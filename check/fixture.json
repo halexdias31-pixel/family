@@ -474,7 +474,14 @@
    "library_note"
   ]
  },
- "studentFields": [],
+ "studentFields": {
+  "About you": ["first_name", "last_name", "date_of_birth", "photo"],
+  "Contact": ["email", "phone"],
+  "Exam dates": ["exam_small_date", "exam_big_date"],
+  "Where": ["borough", "city", "town"],
+  "Where you are": ["address", "postcode"],
+  "Library cards": ["lib1_name", "lib1_no", "lib1_pin", "lib2_name", "lib2_no", "lib2_pin", "lib3_name", "lib3_no", "lib3_pin", "library_note"]
+ },
  "clientFields": [],
  "profileReadonly": [],
  "termsAccepted": false,

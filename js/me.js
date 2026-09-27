@@ -1691,6 +1691,18 @@ const FIELD_IS_BOOL = /^(dbs|active|listed|is_|has_|allow|paid|trackable|stealab
 const FIELD_IS_DECIMAL = /rate|price|cost|hours|km|fraction/;
 const FIELD_IS_NUMERIC = /pages|year|students|days|weeks|count|level_required/;
 
+/* ---------- AND A NAME ENDING `_date` IS A DAY ON A CALENDAR --------------------------------------
+   MATCHED RATHER THAN LISTED, which is the argument written over `FIELD_IS_BOOL` three lines up:
+   the sheet grows columns and a list has to be remembered. `exam_small_date` and `exam_big_date` are
+   the two on a form today; `exam_date` on the exams tab and `creation_date` on a post are the same
+   shape and would be right to draw this way if either ever reached a form.
+
+   `date_of_birth` DOES NOT MATCH IT, AND THAT IS THE POINT RATHER THAN AN ESCAPE. A birthday is
+   three boxes and a `dd/mm/yyyy` cell — see `isDobBox_` below, and the long note over `isoDate_` in
+   core.gs, which argues that the same control is wrong for a birth year and right for an exam. The
+   suffix is what separates them, so neither needs an exception written about the other. */
+const FIELD_IS_DATE = /_date$/;
+
 /**
  * ONE FIELD, drawn from what is known about it.
  *
@@ -1726,6 +1738,26 @@ function fieldHtml(name, value, o) {
         ${opts.map(x => `<option value="${esc(x)}"${
           String(v) === String(x) ? ' selected' : ''}>${esc(x)}</option>`).join('')}
       </select></label>`;
+  }
+
+  /* ---------- A DAY ON A CALENDAR IS A DATE INPUT -----------------------------------------------
+     WHAT IT BUYS OVER A TEXT BOX, which is what these two were until this: the platform's own
+     calendar, the weekday beside each number, a value it has already validated, and no way to type
+     `05/14/2027` into a sheet that reads `14/05/2027`. That last one is not hypothetical — it is the
+     fault the three birthday boxes were written to close, one column along.
+
+     ITS VALUE IS ALWAYS `yyyy-mm-dd`, WHICHEVER WAY THE PHONE DRAWS IT. The control shows the
+     viewer's own format and yields ISO, so the sheet gets one spelling from every device — which is
+     why `isoDate_` on the server sends ISO back rather than the `dd/mm/yyyy` everything else writes:
+     a non-ISO value is SILENTLY REJECTED by the control, so a picker fed the wrong spelling opens
+     empty over a cell that has a date in it and the next save writes the empty over it.
+
+     NO PLACEHOLDER, because a date input does not show one — it draws its own hint — so the caption
+     is the only thing that can name it and is always kept. */
+  if (FIELD_IS_DATE.test(name)) {
+    return `<label class="field"><span>${esc(label)}</span>
+      <input type="date" ${attr}="${esc(name)}" value="${esc(String(v))}"
+             ${ro ? 'disabled' : ''} ${o.extra || ''}></label>`;
   }
 
   /* WHAT OTHERS SAY IS A SUGGESTION, not a rule — a datalist offers them and still lets somebody

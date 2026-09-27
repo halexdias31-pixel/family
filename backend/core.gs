@@ -1020,6 +1020,72 @@ function dobRefusal_(fields) {
   return '';
 }
 
+/* ---------- A DATE AS `yyyy-mm-dd`, WHICH IS THE ONE FORM A DATE PICKER SPEAKS -------------------
+   WHY THIS EXISTS BESIDE `dobOut` RATHER THAN INSTEAD OF IT — a real decision, and the opposite one
+   on purpose. The note over `DOB_FIELDS` refuses `type="date"` for a birthday and gives four
+   reasons; for an exam date three of them fall away and the load-bearing one INVERTS:
+
+     · a birth year is forty years of scrolling on a picker that opens on today. An exam is weeks
+       away, so a picker opening on today is the shortest route to it rather than the longest.
+     · `inputmode` and `maxlength` are ignored by a date input — irrelevant, there are no boxes.
+     · it draws its own chrome this stylesheet cannot reach — still true, and the price of getting a
+       real calendar, a weekday, and a value the platform has already validated.
+     · its value is ISO rather than the `dd/mm/yyyy` this sheet writes elsewhere — which is what
+       this function is for.
+
+   And one argument a birthday could not have: somebody picking an exam date wants to see which day
+   of the week it falls on, which only a calendar can say.
+
+   NO `new Date(<string>)` ANYWHERE IN IT, and that is the whole care. `sheetDate` ends in exactly
+   that, and `new Date('2027-05-14')` is UTC MIDNIGHT — so in any timezone behind UTC it reads back
+   as the 13th, which is the `parseWhen` fault this repository records reading `2026-09-15` as 26
+   September 2015. A real Date is read through its own local fields; a string is matched and
+   re-spelled, never parsed.
+
+   AN UNREADABLE CELL COMES BACK EMPTY, and that is a stated cost rather than an oversight. `dobOut`
+   can keep a value it cannot parse — it puts it in the day box, visible and editable — and a date
+   input cannot hold one at all: a non-ISO value is silently rejected by the control. So a hand-typed
+   "after half term" in one of these cells draws an empty picker, and the next save of that page
+   writes the empty over it. Acceptable here because these two columns are brand new and written by
+   one control; it would not be acceptable on a column somebody has been typing into for a year. */
+function isoDate_(v) {
+  const p = n => ('0' + n).slice(-2);
+  if (v instanceof Date && !isNaN(v)) {
+    return v.getFullYear() + '-' + p(v.getMonth() + 1) + '-' + p(v.getDate());
+  }
+  const t = S(v);
+  if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+  const dmy = t.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{4})$/);
+  if (dmy) return dmy[3] + '-' + p(dmy[2]) + '-' + p(dmy[1]);
+  return '';
+}
+
+/* ---------- AND WHY IT MAY NOT BE WRITTEN, AS A SENTENCE -----------------------------------------
+   BESIDE `dobRefusal_`, `handleRefusal` AND `pricingRefusal_` IN SHAPE, and for their reason: a rule
+   written inline in `updateProfile` is a rule nothing can run.
+
+   THE CONTROL CANNOT PRODUCE A BAD VALUE, WHICH IS NOT A REASON TO SKIP THE CHECK. A date input
+   yields `yyyy-mm-dd` or nothing — so every refusal here is about a request that did not come from
+   the form, and a handler that trusts its own form is a handler that trusts anybody's. The calendar
+   test is the same `new Date(y, m, 0)` as the birthday's, and for the same reason: it is what makes
+   29/02 right in 2028 and wrong in 2027.
+
+   NO "IS IT IN THE FUTURE" TEST, deliberately. A birthday in the future is always a mistake; an
+   exam date in the past is an exam already sat, which is a fact a student's own page may hold for
+   months afterwards. */
+function isoRefusal_(v, what) {
+  const t = S(v);
+  if (!t) return '';                                   // clearing it is allowed
+  const m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return 'The ' + what + ' is not a date this form can read.';
+  const yy = Number(m[1]), mm = Number(m[2]), dd = Number(m[3]);
+  if (mm < 1 || mm > 12) return 'There is no month ' + mm + '.';
+  const last = new Date(yy, mm, 0).getDate();
+  if (dd < 1 || dd > last) return 'There is no ' + dd + '/' + m[2] + ' in ' + yy + '.';
+  if (yy < 2000 || yy > 2100) return 'Check the year.';
+  return '';
+}
+
 /** A sheet date, however it's stored. A real Date, or dd/mm/yyyy text — never mm/dd, which is
     what new Date() assumes and why "25/10/2026" parsed as an invalid month 25 and silently
     became zero sessions. */

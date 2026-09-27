@@ -57,6 +57,17 @@ const FIELD_LABEL = {
   /* Inside a group already called "Library card", "library card" and "library pin" say the word
      twice and read as two different cards. The group names the thing; these name the parts. */
   library_card: 'card number', library_pin: 'PIN', library_note: 'note to yourself',
+  /* ---------- AND THE TWO EXAMS, IN THE WORDS THEY WERE ASKED FOR IN ---------------------------
+     `exam_small_date` UNDERSCORE-STRIPPED IS "exam small date", which reads as nothing anybody
+     says — and inside a group already called "Exam dates" it says both words twice, which is the
+     argument written three lines up about the library card.
+
+     NOT SHORTENED TO "small" AND "big", WHICH IS WHERE THIS STOPS COPYING THAT ONE. There the two
+     parts are self-describing once the group has named the thing ("card number", "PIN"); here
+     "small" alone on a card is a size of nothing. So the repetition is kept and the caption is the
+     owner's own sentence — *"like Small exam: _____ big exam:_____"* — which is also what a student
+     will recognise: the mock and the real one. */
+  exam_small_date: 'small exam', exam_big_date: 'big exam',
 };
 const fieldLabel = f => FIELD_LABEL[f] || String(f).replace(/_/g, ' ');
 

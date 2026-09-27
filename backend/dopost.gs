@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-26-d-doget-token";
+const DOPOST_VERSION = "2026-09-27-a-exam-dates";
 
 
 function doPost(e) {
@@ -469,6 +469,23 @@ function doPost(e) {
         if (dobNo) return jsonOut({ error: dobNo });
         setCell(t, r, 'date_of_birth', dobIn(fields));
       }
+      /* ---------- AND AN EXAM DATE IS REFUSED BEFORE IT IS WRITTEN --------------------------
+         THESE TWO **ARE** COLUMNS, unlike the nine library boxes and the three date boxes above, so
+         they need none of that plumbing: `wanted` finds them, the `noColumn` refusal covers them,
+         and `setCell` writes them. What they need is the one thing a column check cannot do, which
+         is to say whether the VALUE is a date.
+
+         A DATE INPUT CANNOT PRODUCE A BAD ONE, WHICH IS NOT A REASON TO TRUST IT. Every refusal
+         here is about a request that did not come from the form, and `doPost` is reachable by
+         anybody with the URL — the sentence this repository already writes about `?name=`. Without
+         it, `after half term` lands in the cell, `isoDate_` cannot read it back, and the picker is
+         empty for ever with nothing anywhere saying why.
+
+         BEFORE THE LOOP BELOW, like the pricing clock and the birthday above it: a refusal after a
+         partial write is a save that half happened under a toast saying it did not. */
+      const badDate = DATE_COLS.map(f => fields[f] === undefined ? ''
+                        : isoRefusal_(fields[f], f.replace(/_/g, ' '))).filter(Boolean)[0];
+      if (badDate) return jsonOut({ error: badDate });
       /* A field with no column vanishes silently: setCell writes to a header that isn't there and
          the value is gone with no error anywhere. That's how an extra-seat fraction was entered
          four times and lost four times, with the site showing a stale default each time and
@@ -3257,6 +3274,13 @@ function profileOf_(r) {
     out[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (avail[f] ? 'TRUE' : '')
            : LIBRARY_FIELD.test(f) ? S(cards[f])
            : f === 'date_of_birth' ? S(dobIn(dob))
+           /* ---------- AND AN EXAM DATE AS `yyyy-mm-dd`, WHICH IS WHAT THE PICKER CAN HOLD ------
+              `S(r[f])` IS THE `S(r.date_of_birth)` FAULT ONE COLUMN ALONG, and worse: a birthday
+              sent as `Sun Sep 15 1985 …` at least DREW, wrongly, in a text box. A date input
+              silently rejects any value that is not ISO — so a real Date, or a `dd/mm/yyyy` string
+              typed into the spreadsheet, would open an EMPTY picker over a cell that has a date in
+              it, and the next save would write the empty over it. */
+           : DATE_COLS.indexOf(f) !== -1 ? isoDate_(r[f])
            : S(r[f]);
   });
   /* THE THREE BOXES ARE SENT AS WELL AS THE CELL. They are not columns, so the loop above cannot

@@ -409,6 +409,44 @@ const STATES = {
                      ? 3 : 0),
       wants: 'three date-of-birth boxes and no fourth box for the column itself' },
 
+    /* ---------- THE TWO EXAM DATES, WHICH ONLY A STUDENT IS OFFERED ------------------------------
+       ASKED FOR AS *"allow student accounts to be able to write exam dates. like Small exam: _____
+       big exam:_____."* The group is in `STUDENT_GROUPS` and in neither of the other two maps, which
+       is what makes it appear for a student and for nobody else — so it is unreachable as the admin
+       every other state on this column is measured as, and would have gone unmeasured for exactly
+       that reason.
+
+       `USER.role` IS THE APP'S OWN DOOR AND IS WHY THIS IS NOT A POKE. `loginReplyFor_` sends the
+       role and `data.js` writes it onto `USER`, so a state that sets it and repaints is the state a
+       student's own sign-in produces — the same argument as the message thread seeded through
+       `MESSAGES`, which is what `loadMessages` writes.
+
+       `studentFields` WAS `[]` IN THE FIXTURE, which is not what `doGet` sends — it sends
+       `STUDENT_GROUPS`, an object — so `Object.keys([]).length` was 0, `settingsPages_` fell through
+       to the tutor's map, and a student's whole settings column has never been drawn here at all.
+       The FIFTH time that file has been found stating a shape the server does not send.
+
+       IT PUTS THE ROLE BACK, because states run in order down one page and a lab left holding a
+       student would measure every column after this one as the wrong visitor. */
+    { name: 'the exam dates',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_ROLE_WAS = USER.role;
+        USER.role = 'student';
+        repaint();
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-me="exam_small_date"]'));
+        if (at < 0) throw new Error('no exam-dates page on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => { USER.role = window.STATE_ROLE_WAS; repaint(); },
+      /* BOTH, AND BOTH A REAL DATE PICKER. `expect` is truthy-read, so a bare count passes on a page
+         holding two plain text boxes — which is precisely what `FIELD_IS_DATE` failing to match
+         produces, and the whole point of the `_date` suffix. So the type is the assertion. */
+      expect: () => (document.querySelectorAll('#s-settings .page.on input[type="date"][data-me]')
+                       .length === 2 ? 2 : 0),
+      wants: 'two exam-date boxes, both drawn as a date picker' },
+
     { name: 'the wardrobe',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {

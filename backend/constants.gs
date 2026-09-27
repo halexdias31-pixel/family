@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-26-d-doget-token";
+const BACKEND_VERSION = "2026-09-27-a-exam-dates";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -399,6 +399,34 @@ const SCHEMA = {
     "availability", "xp", "credits", "high_score_flappy",
     "high_score_tables", "friends", "notepad", "todo", "ticks_1",
     "ticks_2", "ticks_3", "children",
+    /* ---------- THE TWO EXAMS A STUDENT IS WORKING TOWARDS ---------------------------------------
+       ASKED FOR AS *"allow student accounts to be able to write exam dates. like Small exam: _____
+       big exam:_____."* Two named facts rather than a list: the mock and the real thing, which is
+       how the owner thinks of them and how a student does.
+
+       THERE IS AN `exams` TAB AND THIS IS DELIBERATELY NOT IT. It exists, it has the richer shape
+       for this — `person_id`, `subject`, `label`, `exam_date`, `board`, `notes` — and it is read by
+       nothing, which is this repository's oldest silence. What it needs to be useful is a repeating
+       row editor: a surface to add a row, name a subject, pick a board and delete one again. That
+       is a feature rather than two blanks, and it was not what was asked for. So the choice is
+       named here with its upgrade path: if a student ever needs five exams with boards and notes,
+       these two columns are what the migration reads, and that tab is where it writes.
+
+       WHY THEY ARE COLUMNS AND NOT SOMETHING CLEVERER, by the three-question test at the top of
+       CLAUDE.md. Is it secret? A child's exam timetable is a fact about a child, so it is a sheet
+       and never `data/`. Does the app write to it? Yes, from the student's own Settings column,
+       which is what makes it a column rather than something kept on the phone — an exam date in
+       `localStorage` is an exam date you lose when you change phone.
+
+       `_date` IS LOAD-BEARING AND NOT DECORATION. `FIELD_IS_DATE` in js/me.js is `/_date$/`, so the
+       suffix is what makes the form draw a real date picker instead of a text box somebody types
+       `05/14/2027` into. A column renamed to `exam_small` would silently go back to a plain box.
+
+       WHO SEES THEM: nobody by default, exactly as the library cards beside them. `doGet` sends no
+       profile column to anybody — `profileFields` is the SHAPE of the form, not its values — so
+       these two reach the student themselves in their own sign-in reply and an admin through
+       `getProfile`, and nowhere else. */
+    "exam_small_date", "exam_big_date",
     /* ---------- THE LIBRARY CARD, WHICH IS A NOTE RATHER THAN A CREDENTIAL OF OURS ---------------
        ASKED FOR AS "a place to make notes for library card numbers and library card pins", and the
        reason it is three ordinary columns on `people` rather than anything cleverer is the
@@ -1685,6 +1713,22 @@ const DOB_FIELDS = ['dob_d', 'dob_m', 'dob_y'];
 /* ONE TEST, EVERY READER — the `LIBRARY_FIELD` argument, and for the same three jobs: keeping these
    three out of the column check, out of `wanted`, and out of what `profileOf_` reads as a column. */
 const DOB_FIELD = /^dob_[dmy]$/;
+
+/* ---------- AND THE COLUMNS THAT ARE EDITED AS A DATE PICKER RATHER THAN AS TEXT -----------------
+   ONE LIST, TWO READERS, WHICH IS THE ONLY THING THAT KEEPS THEM IN STEP. `profileOf_` sends these
+   through `isoDate_` so the picker is filled, and `updateProfile` refuses a value `isoRefusal_`
+   cannot read. A column in one and not the other is a picker that opens empty over a cell that has
+   a date in it, or a cell that takes whatever a hand-built request sends.
+
+   THE FORM DECIDES THEIR SHAPE BY NAME, NOT FROM THIS LIST. `FIELD_IS_DATE` in js/me.js is
+   `/_date$/` — derived from the name for the reason written over `FIELD_IS_BOOL`, that the sheet
+   grows columns and a list has to be remembered — so this list is the SERVER's half and the suffix
+   is the phone's. They agree today and the check is what says so.
+
+   `date_of_birth` IS NOT HERE AND MUST NOT BE. It is three boxes and one `dd/mm/yyyy` cell, which
+   is the opposite arrangement and a deliberate one — the long note over `isoDate_` in core.gs says
+   why the same control is wrong for a birthday and right for an exam. */
+const DATE_COLS = ['exam_small_date', 'exam_big_date'];
 const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18,19];
 
 /* ---------- PEOPLE --------------------------------------------------------------------------- */
@@ -2021,6 +2065,17 @@ const CLIENT_GROUPS = {
 const STUDENT_GROUPS = {
   'About you': ['first_name','last_name','date_of_birth','photo'],
   'Contact':   ['email','phone'],
+  /* ---------- THE TWO EXAMS, AND WHY THEY ARE A PAGE OF THEIR OWN --------------------------------
+     `settingsPages_` MAPS EACH KEY HERE ONTO ITS OWN CARD WITH ITS OWN SAVE, so a group is a page.
+     Third, straight after the two a student is asked for first — a student opening Settings is
+     most likely there to put a date in, and the note over `PROFILE_GROUPS`' `Contact` row is the
+     same argument in the same map: *"a field nobody can find is a field that is not there"*, about
+     a group that had been the thirteenth of twenty-three swipes.
+
+     IN `STUDENT_GROUPS` ALONE. A tutor's exams are their qualifications and a parent does not sit
+     one, so neither of the other two maps carries these — which is what makes them appear for a
+     student and for nobody else, with nothing on the phone deciding it. */
+  'Exam dates': ['exam_small_date','exam_big_date'],
   'Where':     ['borough','city','town'],
   'Where you are': ['address','postcode'],
   'Library cards': LIBRARY_FIELDS.concat(['library_note']),
