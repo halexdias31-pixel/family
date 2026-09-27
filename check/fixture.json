@@ -128,7 +128,7 @@
    ],
    "listed": true,
    "title": "Ada Tutor",
-   "handle": "@ada",
+   "handle": "ada",
    "subtitle": "Maths and further maths, GCSE to A-Level",
    "image": "",
    "mediaUrl": "",
@@ -281,7 +281,7 @@
   {
    "id": "PO2",
    "author": "Ada Tutor",
-   "handle": "@ada",
+   "handle": "ada",
    "avatar": "",
    "image": "",
    "caption": "Waiting on a check before this one goes up",

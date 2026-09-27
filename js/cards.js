@@ -285,6 +285,22 @@ function findCard(x) {
           : `<span class="prof-pic prof-none">${esc((t.title || '?').slice(0, 1).toUpperCase())}</span>`}
         <div class="prof-who">
           <span class="prof-name">${esc(t.title)}</span>
+          ${/* ---------- AND THE HANDLE, WITH THE `@` THAT IS NOT IN THE CELL ---------------------
+                ASKED FOR AS *"each person should have … handle llik \"@_____\""*, and the visible
+                half of that was missing: `doGet` has sent `handle` on every tutor since it was
+                written, and measured across `js/`, the only place the `@` appeared was a toast in
+                `changeHandle`. So a handle was a thing you signed in with and never saw.
+
+                THE `@` IS DRAWN AND NOT STORED. The cell holds `BrightOtter42`; `findPerson`
+                resolves through `key()`, which strips the `@` anyway, so a stored one would be a
+                character that means nothing to every reader and has to be remembered by every
+                writer. Same separation as `spellShow_`: what is matched and what is shown.
+
+                WHATEVER THE SERVER RESOLVED, which is worth knowing before anybody reads one.
+                `doget.gs` sends `handle || username || first_name`, so a row with neither column
+                filled in shows an `@` in front of a FIRST NAME — true of every account made before
+                `register` started generating one, and what `?run=fillHandles` is for. */''}
+          ${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
           ${t.subtitle || t.city || t.borough
             ? `<span class="prof-where">${esc(t.subtitle || t.city || t.borough)}</span>` : ''}
           ${/* ---------- ABSENT IS NOT `false`, AND IT IS THE ONLY EXCEPTION ON THIS CARD ----------

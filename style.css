@@ -637,6 +637,29 @@ input, select, textarea {
   -webkit-appearance: none; appearance: none;
   transition: border-color var(--quick) ease;
 }
+
+/* ---------- A FIELD THAT IS WAITING HAS TO LOOK LIKE IT IS ----------------------------------------
+   REPORTED AS *"i can still backspace login details while its loading logging in. this is not
+   proffesional or right."* `send_` in me.js locks every field on the card for the length of a
+   request now -- and until this rule there was no `input:disabled` in this stylesheet at all, so a
+   locked box drew exactly like a live one. A control that has stopped answering and does not say
+   so is the invisible mode this repository records against the reel that was paused with nothing
+   on it saying so, and against the camera's own shutter.
+
+   THE SAME WASH THE BUTTON ALREADY USES. `.btn[disabled]` is `opacity: .4`; a field carries text
+   somebody needs to still be able to READ while it is being checked, so it recedes rather than
+   fades out -- enough to say "not now", not so much that you cannot see the PIN you typed.
+
+   `not-allowed` RATHER THAN NOTHING, because the one thing somebody does with a box that has
+   stopped taking keystrokes is click it again. */
+input:disabled, select:disabled, textarea:disabled {
+  opacity: .62;
+  cursor: not-allowed;
+  background: var(--sunk);
+}
+/* AND THE CAPTION WITH IT, or the label stands at full strength over a box that has receded and
+   the pair reads as a rendering fault rather than as a state. */
+.is-sending .field > span { opacity: .62; }
 textarea { min-height: 5.8rem; resize: vertical; }
 input:focus, select:focus, textarea:focus { outline: 0; border-color: var(--gold); }
 label.field { display: block; margin-bottom: .75rem; }
@@ -5364,6 +5387,19 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .is-prof { --prof-warn: #c4655a; }
 .prof-name { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; }
 .prof-where { font: 400 .7rem/1.2 var(--mono); color: var(--dim); }
+/* ---------- THE HANDLE, IN GOLD AND SMALLER THAN THE NAME ----------------------------------------
+   IT IS NOT THE NAME AND MUST NOT COMPETE WITH IT. `.prof-name` is 1.05rem at 700; this is the
+   thing you sign in with rather than the thing you are called, so it sits under the name at the
+   size `.prof-where` already uses for the second line of this block.
+
+   GOLD, BECAUSE IT IS YOURS IN THE SENSE THIS APP ALREADY MEANS BY GOLD — the one starred thing,
+   the ticked hour, the chosen answer. It is also what separates `@BrightOtter42` from the place
+   name directly beneath it at the same size and font, which `--dim` alone would not.
+
+   `overflow-wrap` FOR THE REASON `.prof-name` HAS IT. A handle is up to twenty characters with
+   nothing to break at, which at this size is 85px — under the column at every width the app is
+   measured at, and one `HANDLE_SHAPE` change away from not being. */
+.prof-handle { font: 400 .7rem/1.2 var(--mono); color: var(--gold); overflow-wrap: anywhere; }
 /* THE ONE THING A PARENT IS SCANNING FOR, and the only fact on this card that is a mark rather than
    a row. Present and green, or absent and said so — never quietly missing, which is what a blank
    field is. `align-self: start` so the chip is the width of its own words rather than the width of

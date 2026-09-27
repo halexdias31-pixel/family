@@ -1085,6 +1085,42 @@ if (worst.length) {
   console.log(`   worst papers: ${worst.map(k => `${k} (${perPaper[k]})`).join(', ')}`);
 }
 
+/* ---------- ONE PICTURE, SEVERAL PARTS, AND WHERE IT BELONGS ------------------------------------
+   `preamble_` DRAWS A QUESTION-SCOPED PREAMBLE ON EVERY PART THAT HANGS FROM IT, so a figure two
+   parts share is written ONCE on the preamble and appears on both. Named on each part instead, it
+   is the duplication CLAUDE.md records under the AQA insert and under `.reel .over`: one fact in
+   two places, drifting apart the first time either is touched.
+
+   AND THE COST IS NOT ONLY TIDINESS. June 2024 Foundation Paper 1 was reported as *"navigation is
+   a bit buggy for one student"*, and this was it: with the shared stem left on part (a), swiping
+   through the paper handed a student a card reading only "Find the range." and another reading
+   only "Give a reason for your answer.", with the thing they refer to on the page before. You had
+   to swipe back, and swiping back loses your place in the strip.
+
+   PRINTED, NOT FAILED, AND `figure` IS WHY. It is a LABEL rather than an identity -- two parts both
+   saying `graph` may mean Figure 3 and Figure 5, and no rule here can tell that from two parts
+   sharing one picture. A check that cannot tell them apart is the `check-rows.js` fault, where the
+   first version had 95 findings and 2 real ones. So this is a place to look, and the second number
+   is the sharp end of it: a part carrying a real DRAWING beside a sibling that names the same
+   figure is one picture built twice, whatever the label means. */
+const byQ = {};
+rows.forEach(r => {
+  if (!r || r.kind !== 'question') return;
+  const f = String(r.figure || '').trim();
+  if (!f || ANSWER_SPACE.indexOf(f) !== -1) return;
+  const k = `${r.paper_id}|${r.question}|${f}`;
+  (byQ[k] || (byQ[k] = [])).push(r);
+});
+const shared = Object.keys(byQ).filter(k => byQ[k].length > 1);
+const drawnTwice = shared.filter(k => byQ[k].filter(r => String(r.diagram || '').trim()).length > 1);
+console.log(`a picture named on more than one part of one question: ${shared.length}`
+  + `  (it belongs on the question's preamble, drawn once — see \`preamble_\`)`);
+if (drawnTwice.length) {
+  console.log(`   and drawn on more than one of them: ${drawnTwice.length} — `
+    + drawnTwice.slice(0, 3).map(k => k.split('|').slice(0, 2).join(' Q')).join(', ')
+    + (drawnTwice.length > 3 ? `, …` : ''));
+}
+
 /* ---------- WHAT A PAPER REQUIRES, AND HOW MUCH OF IT IS KNOWN ----------------------------------
    THE SAME BACKLOG SHAPE AS `total_marks` AND `exam_date`: a number somebody can act on beats a
    silence. Calculator is read off the paper's own front page and covers every question inside, so

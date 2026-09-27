@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-09-27-a-exam-dates";
+const BOOKING_VERSION = "2026-09-27-c-haspin";
 
 
 /**
@@ -1227,6 +1227,31 @@ function authSame_(a, b) {
 
 /* SET OR CHANGE A PIN. The salt is new every time, so changing a PIN back to an old one does not
    reproduce an old hash. */
+/* ---------- CAN THIS PERSON SIGN IN AT ALL? ONE READER, BECAUSE FOUR ASKED IT WRONGLY -------------
+   ASKED FOR AS *"i still have trouble logging in as myself. but i have no problem logging in as
+   danile."* The differential is the whole clue and this is what it led to.
+
+   `authSetPin_` CLEARS THE PLAINTEXT `pin` CELL, so on every correctly hashed row that cell is
+   EMPTY — and four places asked `S(r.pin)` to decide whether somebody has a PIN:
+
+     `dataProblems`   setup.gs  — reported a working hashed admin as "has no PIN"
+     the admins count setup.gs  — "No account with the admin role has a PIN" over a tab full of them
+     `diagnosePeople` dopost.gs — `noPin` and `hasPin`, the admin-facing list
+
+   SO THE ONE DIAGNOSTIC AN OWNER REACHES FOR WHEN THEY CANNOT SIGN IN SAID THE OPPOSITE OF THE
+   TRUTH, and its printed remedy was *"Run makeBrandAccount with one"* — which is the function that
+   writes the plaintext cell and leaves the hash standing, which is the state that cannot sign in.
+   A closed loop: follow the app's own advice and you create the fault you were diagnosing.
+
+   THE HONEST QUESTION IS "IS THERE A CREDENTIAL ON THIS ROW", and that is either form — a hash, or
+   a plaintext one `authCheckPin_`'s migration branch will convert on the next sign-in. One function,
+   so the next reader cannot get it wrong a fifth time. */
+function hasPin_(r) { return !!(r && (S(r.pin_hash) || S(r.pin))); }
+
+/* ---------- AND SETTING A PIN GOES THROUGH HERE OR IT DOES NOT COUNT ------------------------------
+   IT WRITES BOTH AND CLEARS THE THIRD, and that is the invariant the whole chain rests on: a row
+   carries a hash OR a plaintext, never both. `makeBrandAccount` wrote the plaintext directly and
+   broke it — see the note over `hasPin_` and the one in setup.gs. */
 function authSetPin_(t, r, pin) {
   const salt = Utilities.getUuid();
   setCell(t, r, 'pin_salt', salt);

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-27-a-exam-dates";
+const DOPOST_VERSION = "2026-09-27-c-haspin";
 
 
 function doPost(e) {
@@ -130,10 +130,14 @@ function doPost(e) {
         total: rows.length,
         duplicateNames: [...new Set(dupes)],
         noId:   rows.filter(r => !S(r.person_id)).map(personDisplayName),
-        noPin:  rows.filter(r => !S(r.pin)).map(personDisplayName),
+        /* `hasPin_`, NOT `S(r.pin)`. The plaintext cell is EMPTY on every correctly hashed row —
+           `authSetPin_` clears it — so this listed every properly secured person as having no PIN,
+           on the one screen an admin opens to find out who cannot sign in. The third and fourth
+           readers of that cell; see the note over `hasPin_` in booking.gs. */
+        noPin:  rows.filter(r => !hasPin_(r)).map(personDisplayName),
         noName: rows.filter(r => !personDisplayName(r)).length,
         people: rows.map(r => ({ id: S(r.person_id), name: personDisplayName(r),
-                                 roles: rolesOf(r), email: S(r.email), hasPin: !!S(r.pin) }))
+                                 roles: rolesOf(r), email: S(r.email), hasPin: hasPin_(r) }))
       });
     }
 
@@ -175,29 +179,43 @@ function doPost(e) {
         if (owner) inviter = S(owner.person_id) || S(owner.full_name);
       }
 
+      /* BEFORE THE ROW EXISTS, so `handleMake_` is passed no row: there is nothing of this
+         person's for a clash to exclude yet, and `isAdmin: true` inside it skips the month's
+         cooldown, which is about changing a handle rather than being given a first one. */
+      const regHandle = handleMake_(null);
       addRow(t, {
         // Students by default. A parent booking for a child is the account an admin sets up; a
         // person signing themselves up is almost always the one being taught.
         person_id: 'P' + Date.now(), role: 'student',
         first_name: first, last_name: last, full_name: full,
-        /* ---------- THE CASE THEY TYPED, WHICH IS THE ONE WRITER THAT STILL FOLDED IT ------------
-           `changeHandle` STOPPED LOWER-CASING AND THIS DID NOT. It was `norm(first + last)` —
-           somebody signing up as "Halex Dias" was stored `halexdias`, and `doget.gs`'s
-           `handle || username || first_name` then SHOWS that, so every account on the tab that has
-           never renamed itself has been displaying a lower-cased name. That is the half of "i would
-           like peoples username logins to be case sensitive" a person actually sees, on the one
-           path that reaches everybody who has not gone looking for the rename box.
+        /* ---------- THE HANDLE AND THE USERNAME ARE GENERATED, NOT BUILT FROM THE NAME ---------
+           IT WROTE NO `handle` AT ALL, and the username was `S(first + last)` with the punctuation
+           stripped — so every account ever made through this form has a blank handle, and `doGet`'s
+           `handle || username || first_name` has been showing the squashed name in its place.
 
-           THE PUNCTUATION STILL GOES AND THE LETTERS STAY. `HANDLE_SHAPE` is never applied to a
-           registered username — `handleTrouble_` guards `changeHandle` and nothing else — so this
-           is the only thing keeping a space or an apostrophe out of the cell, and it has to hold.
-           What it must not do any more is decide somebody's capitals for them.
+           AND THAT USERNAME COLLIDES. Two people called John Smith both got `JohnSmith`;
+           `findPerson` matches `username` and returns the FIRST row, so the second one signs in as
+           the first and `changePin` checks their PIN against the other's row. This repository
+           records that exact denial happening for real. `handleTrouble_` would have refused it and
+           was never reached from here — it guards `changeHandle` and nothing else.
 
-           NOTHING ABOUT MATCHING CHANGES, which is the whole of why this is safe: `findPerson`
-           compares through `key()`, which folds case and strips the same characters, so a row
-           written `HalexDias` is found by `halexdias`, `HALEXDIAS` and `Halex Dias` exactly as
-           before. See the long note over `changeHandle`. */
-        username: S(first + last).replace(/[^A-Za-z0-9]/g, ''),
+           WORDS RATHER THAN THE NAME, WHICH IS THE SAFEGUARDING HALF: most of the people on this tab
+           are children, and a handle built from a child's full name publishes that name wherever the
+           handle is shown. See the long note over `handleMake_`, which is also the one place any of
+           this is decided — it goes through `handleTrouble_`, so the shape, the reserved list, the
+           blocklist and the clash against all four columns are checked exactly once.
+
+           BOTH COLUMNS GET THE SAME STRING, because `handle` and `username` are one fact in two
+           columns and `changeHandle` already writes both. Two different generated values would be
+           two names for one person, which is the thing `findPerson` resolving the FIRST match makes
+           dangerous rather than merely untidy.
+
+           `|| S(first + last)…` IS THE FALLBACK AND IT IS THE OLD BEHAVIOUR. `handleMake_` answers
+           '' only if forty tries all clashed, which cannot happen on a tab this size — and a
+           registration that fails because a name generator gave up would be worse than one that
+           writes the name it used to. `?run=fillHandles` reports any row left that way. */
+        handle: regHandle || '',
+        username: regHandle || S(first + last).replace(/[^A-Za-z0-9]/g, ''),
         email, pin, credits: 0, xp: 0,
         came_from: arrivedWith,
         invited_by: inviter,

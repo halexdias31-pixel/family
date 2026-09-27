@@ -51,6 +51,7 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const people = fs.readFileSync(path.join(ROOT, 'backend', 'people.gs'), 'utf8');
 const consts = fs.readFileSync(path.join(ROOT, 'backend', 'constants.gs'), 'utf8');
+const setup  = fs.readFileSync(path.join(ROOT, 'backend', 'setup.gs'), 'utf8');
 
 /* ---------- CUT BY NAME, AND FAIL LOUDLY IF A NAME IS NOT THERE -------------------------------------
    A check that cannot reach its subject must exit non-zero — `check-booking.js` printed "nothing to
@@ -72,6 +73,23 @@ const SRC = [
   grab(people, /function findPerson\([\s\S]*?\n\}\n/, 'findPerson'),
   grab(people, /function emailRefusal_\([\s\S]*?\n\}/, 'emailRefusal_'),
   grab(people, /function handleTrouble_\([\s\S]*?\n\}\n/, 'handleTrouble_'),
+  /* ---------- AND THE GENERATOR, WHICH THE COMMENT OVER IT CANNOT CHECK ITSELF ------------------
+     `handleMake_` PASSES ITS CANDIDATES THROUGH `handleTrouble_`, so it cannot produce a handle that
+     is taken, reserved or the wrong shape — that half is structural. What it CAN produce is a pair
+     that folds onto a banned word: `handleFold_` turns digits into letters, so a word-pair nobody
+     would look at twice can reduce onto something the blocklist refuses, and the generator would
+     then quietly burn tries. That is a fact about the two lists TOGETHER, which is exactly what a
+     person reading one list cannot see. */
+  grab(people, /const HANDLE_ADJ\s*=\s*\[[\s\S]*?\];/, 'HANDLE_ADJ'),
+  grab(people, /const HANDLE_NOUN\s*=\s*\[[\s\S]*?\];/, 'HANDLE_NOUN'),
+  grab(people, /const HANDLE_TRIES[^;]*;/, 'HANDLE_TRIES'),
+  grab(people, /function handleMake_\([\s\S]*?\n\}/, 'handleMake_'),
+  /* ---------- AND THE REPAIR JOB, WHICH IS THE ONE THING HERE THAT WRITES -----------------------
+     `fillHandles` FILLS A BLANK HANDLE ON EVERY EXISTING ROW, and the fault it must never have is
+     overwriting one: a handle is what somebody signs in with and what `findPerson` resolves them
+     by, so a job that replaced one would lock that person out of their own account. That is not a
+     thing reading it can settle — it is a thing you run over rows and then look at the rows. */
+  grab(setup,  /function fillHandles\([\s\S]*?\n\}/, 'fillHandles'),
   grab(consts, /const PRICING_COOLDOWN_DAYS[^;]*;/, 'PRICING_COOLDOWN_DAYS'),
   /* THE FOUR FIELDS THE RULE IS ABOUT, READ OUT OF `constants.gs` RATHER THAN LISTED HERE. A copy
      would agree with itself and with nothing else — so a fifth field added there is under these
@@ -104,7 +122,19 @@ const PRELUDE = `
   const fmtDate = d => d.toISOString().slice(0, 10);
   let ROWS = [];
   const TAB = { people: 'people' };
-  const read = () => ({ rows: ROWS });
+  /* ---------- A SHEET ENOUGH OF ONE FOR A JOB THAT WRITES ---------------------------------------
+     fillHandles ASKS THREE THINGS OF THE TAB that the clash check never did: that it exists, what
+     its headers are, and to be written to. The headers are the two columns the job itself refuses to
+     run without -- named rather than assumed, so a rule can put the missing-column branch through
+     it. setCell writes the row IN PLACE, exactly as the real one's last line does, which is what
+     lets a case read back what the job did.
+     NO BACKTICKS IN HERE EITHER, and this comment is why the rule two blocks up is written down:
+     the first version of it used them and the file failed to parse eighty lines from the cause. */
+  const read = () => ({ rows: ROWS, sheet: true, headers: HEADERS });
+  let HEADERS = ['person_id', 'handle', 'username', 'email', 'first_name', 'last_name', 'full_name'];
+  const setCell = (t, r, f, v) => { r[f] = v; WROTE.push(f); };
+  let WROTE = [];
+  const clearCache = () => {};
   const setRows = r => { ROWS = r; };
   const N = v => { const x = parseFloat(String(v == null ? '' : v).replace(/[£$,\s]/g, ''));
                    return isNaN(x) ? 0 : x; };
@@ -114,7 +144,19 @@ const box = {};
 new Function('box', PRELUDE + SRC + '\nbox.trouble = handleTrouble_; box.fold = handleFold_;'
            + ' box.setRows = setRows; box.price = pricingRefusal_;'
            + ' box.moved = pricingMoved_; box.fields = PRICING_FIELDS;'
-           + ' box.find = findPerson; box.mail = emailRefusal_;')(box);
+           + ' box.find = findPerson; box.mail = emailRefusal_;'
+           + ' box.make = handleMake_; box.ADJ = HANDLE_ADJ; box.NOUN = HANDLE_NOUN;'
+           + ' box.TRIES = HANDLE_TRIES; box.fill = fillHandles;'
+           /* THE GATE ITSELF, SO THE GENERATOR'S OWN LOOP CAN BE TESTED. `handleTrouble_` is a
+              function DECLARATION in this scope, so it can be rebound — and that is the only way to
+              reach `handleMake_`'s retry and its give-up branch, because the tail is random over
+              fifty-one thousand pairs and no number of seeded rows makes a collision reliable.
+              Restored after each case; nothing outside these two lines uses it. */
+           + ' box.shape = HANDLE_SHAPE;'
+           + ' box.realGate = handleTrouble_;'
+           + ' box.setGate = f => { handleTrouble_ = f; };'
+           + ' box.setHeaders = h => { HEADERS = h; };'
+           + ' box.wrote = () => WROTE; box.clearWrote = () => { WROTE = []; };')(box);
 
 const DAY = 864e5;
 const ago = n => new Date(Date.now() - n * DAY);
@@ -339,7 +381,18 @@ function run() {
      expression is all that keeps a space or an apostrophe out of the cell. A rule that only
      refused the fold would pass a version that had dropped the strip with it. */
   const reg = post.indexOf("action === 'register'");
-  const rblock = reg < 0 ? '' : post.slice(reg, reg + 4000);
+  /* ---------- TO THE NEXT HANDLER, NOT FOR 4000 CHARACTERS ---------------------------------------
+     IT WAS `post.slice(reg, reg + 4000)` AND THE HANDLER OUTGREW IT. Adding the generated handle put
+     the `username:` line at 4715 characters from `action === 'register'`, so the window ended before
+     the line it exists to read and the check reported "could not find the username line" — which is
+     the guard doing its job, and about itself rather than about the app.
+
+     A CHARACTER COUNT IS NOT A BOUNDARY. The next `if (action ===` is, and it is what the handler
+     actually ends at — so a comment added above a line cannot move that line out of reach. Same
+     lesson as `objectAfter_` in `check-tabs.js`, where `indexOf('const ' + name)` matched a longer
+     name and handed the check the wrong object. */
+  const rEnd = reg < 0 ? -1 : post.indexOf("if (action ===", reg + 20);
+  const rblock = reg < 0 ? '' : post.slice(reg, rEnd > reg ? rEnd : undefined);
   const uline = (rblock.match(/username:\s*[^\n]*/) || [''])[0];
   if (!uline) {
     console.log('FAILED — could not find the username line in register to check.');
@@ -351,6 +404,173 @@ function run() {
   if (!/replace\(/.test(uline)) bad.push({ handle: 'register', want: 'letters and digits only',
     why: 'HANDLE_SHAPE never sees a registered username, so this strip is the only thing holding',
     said: 'dopost.gs no longer strips punctuation out of a new username' });
+
+  /* ---------- AND BOTH COLUMNS COME FROM THE SAME GENERATED VALUE -------------------------------
+     `register` USED TO WRITE NO HANDLE AT ALL and a username of `first + last`. Two people called
+     John Smith both got `JohnSmith`; `findPerson` matches `username` and returns the FIRST row, so
+     the second signs in as the first and `changePin` checks their PIN against the other one's row.
+     This is the same rule the `changeHandle` block above applies — both cells from one value, or
+     the old one still answers — asked of the writer every account goes through exactly once. */
+  if (!/handle:\s*regHandle/.test(rblock)) bad.push({ handle: 'register', want: 'a handle',
+    why: 'a row written with no handle shows its squashed name in place of one, for ever',
+    said: 'dopost.gs does not write a generated handle at registration' });
+  if (!/username:\s*regHandle\s*\|\|/.test(rblock)) bad.push({ handle: 'register',
+    want: 'one value in both cells',
+    why: 'two spellings of who somebody is means findPerson resolves the first and changePin '
+       + 'checks the wrong row',
+    said: 'dopost.gs does not write the username from the same generated value' });
+
+  /* ---------- EVERY PAIR THE GENERATOR CAN MAKE, THROUGH THE GATE IT CLAIMS TO PASS -------------
+     `handleMake_` RUNS ITS CANDIDATES THROUGH `handleTrouble_`, so it cannot RETURN a bad one — and
+     that is not the same as the lists being sound. `handleFold_` turns digits into letters, so a
+     word-pair nobody would look at twice can reduce onto something the blocklist refuses, and the
+     generator would then burn tries on it silently. The comment over those lists asserts no pair
+     does; this is what makes that a measurement.
+
+     ON AN EMPTY TAB, so the only things that can refuse are the shape, the reserved list and the
+     blocklist — the three that are facts about the words rather than about who is registered. A
+     clash is the generator's job to retry and is checked below. */
+  box.setRows([]);
+  const pairs = [];
+  box.ADJ.forEach(a2 => box.NOUN.forEach(b2 => pairs.push(a2 + b2 + '42')));
+  const refused = pairs.filter(w => box.trouble(w, null, true));
+  if (refused.length) bad.push({ handle: refused.slice(0, 4).join(', '), want: 'yes',
+    why: refused.length + ' of ' + pairs.length + ' generated pairs are refused by the very gate '
+       + 'the generator passes them through, so it burns tries on them',
+    said: box.trouble(refused[0], null, true) });
+
+  /* AND EVERY ONE OF THEM IS THE RIGHT SHAPE, which is a separate question from being allowed:
+     `HANDLE_SHAPE` caps a handle at twenty characters and the tail is two digits, so a pair of
+     nine-letter words would be refused for length alone — the one thing about those lists that a
+     new word can break with nothing else changing. */
+  const tooLong = pairs.filter(w => w.length > 20);
+  if (tooLong.length) bad.push({ handle: tooLong[0], want: 'yes',
+    why: tooLong.length + ' pairs are over twenty characters, so HANDLE_SHAPE refuses them',
+    said: '"' + tooLong[0] + '" is ' + tooLong[0].length + ' characters' });
+
+  /* ---------- AND WHAT IT ACTUALLY RETURNS IS SOMETHING THE GATE ACCEPTS ------------------------
+     TEN DRAWS RATHER THAN ONE, because it is random: a single call passing proves one pair. */
+  for (let i = 0; i < 10; i++) {
+    const made = box.make(null);
+    const no = made ? box.trouble(made, null, true) : 'it gave up on an empty tab';
+    if (no) { bad.push({ handle: made || '(nothing)', want: 'yes',
+      why: 'the generator returned something its own gate refuses', said: no }); break; }
+  }
+
+  /* ---------- THE RETRY, AND THE GIVE-UP, WHICH ONLY A STUBBED GATE CAN REACH -------------------
+     SEEDING ROWS CANNOT TEST EITHER, AND THE FIRST VERSION OF THIS TRIED. It took every
+     adjective-noun pair but one as a taken row and wanted the generator to return the one left —
+     and the generator correctly returned `WarmComet37`, because the tail is a random 10 to 99 and
+     those 575 rows are 575 of FIFTY-ONE THOUSAND possibilities. A case that assumed a fixed tail,
+     reported as a fault in the app. Taking the whole space needs 51,840 rows through a clash check
+     that runs four `key()` calls per row per try, which is seconds of a check that runs in
+     hundredths.
+
+     SO THE GATE IS REBOUND INSTEAD, which is what makes both branches deterministic: the generator's
+     contract is "keep asking until the gate says yes, and give up rather than loop", and that is a
+     statement about the loop rather than about the words. */
+  box.setGate(() => 'no');
+  const gaveUp = box.make(null);
+  if (gaveUp !== '') bad.push({ handle: String(gaveUp), want: '(nothing)',
+    why: 'a gate that refuses everything must make the generator give up, not return a refused '
+       + 'handle — `register` writes whatever it hands back',
+    said: '"' + gaveUp + '"' });
+
+  /* AND IT RETRIES RATHER THAN TAKING THE FIRST DRAW. A gate that refuses the first four candidates
+     and then allows anything must still produce one — which a generator that asked once would fail
+     and a generator that asked for ever would hang. */
+  let asked = 0;
+  box.setGate(() => (++asked <= 4 ? 'taken' : ''));
+  const fifth = box.make(null);
+  if (!fifth || asked !== 5) bad.push({ handle: String(fifth), want: 'the fifth candidate',
+    why: 'the generator does not retry past a refusal',
+    said: 'it asked ' + asked + ' time(s) and returned "' + fifth + '"' });
+  box.setGate(box.realGate);
+
+  /* ---------- AND THE REPAIR JOB ONLY EVER FILLS A BLANK ----------------------------------------
+     THE FAULT IT MUST NOT HAVE is overwriting a handle. That is what somebody signs in with, so a
+     job that replaced one would lock them out of their own account and change the name their friends
+     know them by — and it would look like a successful run. Every case below is a row shape that
+     exists on the real tab today. */
+  box.setHeaders(['person_id', 'handle', 'username', 'email', 'first_name', 'last_name']);
+  const rows = [
+    { person_id: 'P1', handle: 'HalexD', username: 'HalexD', email: 'a@b.com',
+      first_name: 'Halex', last_name: 'Dias' },                       // whole — must not be touched
+    { person_id: 'P2', handle: 'OnlyHandle', username: '', email: 'c@d.com',
+      first_name: 'A', last_name: 'B' },                              // half — copied across
+    { person_id: 'P3', handle: '', username: 'OnlyUser', email: 'e@f.com',
+      first_name: 'C', last_name: 'D' },                              // half the other way
+    { person_id: 'P4', handle: '', username: '', email: '', first_name: '', last_name: '' },
+  ];
+  box.setRows(rows);
+  box.clearWrote();
+  const did = box.fill();
+  if (rows[0].handle !== 'HalexD' || rows[0].username !== 'HalexD') {
+    bad.push({ handle: 'fillHandles', want: 'untouched',
+      why: 'a row that already has both cells was rewritten, which signs that person out of their '
+         + 'own account', said: rows[0].handle + ' / ' + rows[0].username });
+  }
+  if (did.leftAlone !== 1) bad.push({ handle: 'fillHandles', want: '1 left alone',
+    why: 'a run that reports nothing left alone reads the same whether it found nothing or '
+       + 'rewrote everything', said: String(did.leftAlone) });
+  if (rows[1].username !== 'OnlyHandle' || rows[2].handle !== 'OnlyUser') {
+    bad.push({ handle: 'fillHandles', want: 'the existing one copied across',
+      why: 'a row with one of the two filled in is half-resolvable: findPerson answers to one '
+         + 'spelling and not the other', said: rows[1].username + ' / ' + rows[2].handle });
+  }
+  if (!rows[3].handle || rows[3].handle !== rows[3].username) {
+    bad.push({ handle: 'fillHandles', want: 'both cells from one value',
+      why: 'a blank row must get a handle, and the same one in both columns',
+      said: '"' + rows[3].handle + '" / "' + rows[3].username + '"' });
+  }
+  /* AND IT INVENTS NEITHER AN EMAIL NOR A NAME, which is the line this job stops at: a generated
+     address is not a blank cell, it is a WRONG one, and `notify` would post into it and report
+     success. P4 has none of the three and must come back NAMED rather than filled. */
+  if (box.wrote().indexOf('email') !== -1 || box.wrote().indexOf('first_name') !== -1) {
+    bad.push({ handle: 'fillHandles', want: 'never invented',
+      why: 'a generated email address makes every notification silently post into nothing',
+      said: 'it wrote ' + box.wrote().join(', ') });
+  }
+  if (did.missingEmail !== 1 || did.noEmail.indexOf('P4') === -1) {
+    bad.push({ handle: 'fillHandles', want: 'P4 named as missing an email',
+      why: 'a row nobody can be written to has to be reported, or it is a silence',
+      said: JSON.stringify(did.noEmail) });
+  }
+  /* AND IT REFUSES RATHER THAN RUNNING WHEN THE COLUMN IS NOT THERE. `setCell` writes to a header
+     that is not there and loses the value with no error anywhere — a job that "ran" and changed
+     nothing is the worst outcome available here. */
+  box.setHeaders(['person_id', 'email']);
+  box.setRows([{ person_id: 'P9', handle: '', username: '' }]);
+  if (!box.fill().error) bad.push({ handle: 'fillHandles', want: 'a refusal',
+    why: 'with no handle column every write is silently lost and the job reports success',
+    said: '(it ran)' });
+
+  /* ---------- AND THE FIXTURE CANNOT STATE A HANDLE THE SERVER WOULD NEVER SEND -----------------
+     IT SAID `@ada`, WITH THE `@` IN THE CELL. `doget.gs` sends `S(r.handle) || S(r.username) ||
+     S(r.first_name)` off a sheet whose cells hold `HalexD`, and `HANDLE_SHAPE` refuses a leading
+     `@` outright — so no row anywhere can produce one. The moment a card drew `@` + the handle the
+     lab rendered `@@ada`, and every measurement of that card would have been of a string the app
+     cannot produce.
+
+     SIXTH TIME THAT FILE HAS BEEN FOUND STATING A SHAPE THE SERVER DOES NOT SEND — after `focus` as
+     a string, the receipt's `sessionDates` against `dates`, the job's `students` and `venue`, the
+     availability hour codes, and `studentFields: []`. The other five were each found by a feature
+     failing to draw; this is a rule, so the seventh fails here instead.
+
+     THROUGH `HANDLE_SHAPE` RATHER THAN A REGEX WRITTEN HERE, which is the one thing that makes it
+     honest: the question is whether the server could ever send this value, and that constant is what
+     decides it. */
+  const fixture = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
+  []. concat(fixture.tutors || [], fixture.students || []).forEach(who => {
+    const h = String((who && who.handle) || '');
+    if (!h) return;                         // a row with no handle is a real shape and draws nothing
+    if (!box.shape.test(h.toLowerCase())) bad.push({ handle: h, want: 'a handle a row could hold',
+      why: 'the fixture states a handle HANDLE_SHAPE refuses, so every card measured against it is '
+         + 'measured on a string the server cannot send',
+      said: '"' + h + '" is not a shape any row can produce' });
+  });
+
+  box.setRows(OTHERS.concat([ME]));
 
   /* An admin is exempt from the COOLDOWN and from nothing else — an admin fixing somebody's bad
      handle is the remedy, and an admin taking a taken one is still a collision. */

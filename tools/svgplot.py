@@ -80,7 +80,7 @@ def scatter(xmax, ymax, xstep, ystep, xlab, ylab, label, points, **kw):
 
 
 def blankgrid(cols, rows, cell, bars, per_square, label, left=40, ylab='', ynums=False,
-              zero_col=None):
+              zero_col=None, frame=True):
     """The squared grid a plotting question is drawn ON, with whatever the paper has already put on
     it and nothing else — because labelling and scaling the empty axis is what the marks are for.
 
@@ -97,7 +97,13 @@ def blankgrid(cols, rows, cell, bars, per_square, label, left=40, ylab='', ynums
     `bars` is (column, value, text) and `per_square` says what one large square is worth, so a bar
     is placed by the paper's own scale rather than by a height somebody measured off the page.
     `ynums` numbers the y-axis in those same units; `zero_col` draws the heavier vertical the paper
-    prints for a pyramid, with its `0` beneath it, and leaves the left-hand axis off."""
+    prints for a pyramid, with its `0` beneath it, and leaves the left-hand axis off.
+
+    `frame=False` LEAVES BOTH AXES OFF, which is what a paper prints when the axes are part of the
+    marks. Edexcel 1MA1 June 2024 Foundation Q7 says "on the grid, draw a suitable diagram or
+    chart", and its scheme gives a mark for "a linear scale present" and adds that the scale need
+    not start at 0 -- so an axis drawn here would be a mark awarded by the picture. Squared paper
+    and nothing else. Every existing caller keeps the frame, so their output is unchanged."""
     L, T = left, 12
     R, B = L + cols * cell, T + rows * cell
     p = ['<svg viewBox="0 0 %d %d" role="img" aria-label="%s">' % (W, B + 26, label)]
@@ -129,13 +135,16 @@ def blankgrid(cols, rows, cell, bars, per_square, label, left=40, ylab='', ynums
     if ylab:
         p.append('<text x="12" y="%.1f" class="ax" style="text-anchor:middle" '
                  'transform="rotate(-90 12 %.1f)">%s</text>' % ((T + B) / 2.0, (T + B) / 2.0, ylab))
-    if zero_col is None:
+    if not frame:
+        pass
+    elif zero_col is None:
         p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" class="axis"/>' % (L, T, L, B))
     else:
         x = L + zero_col * cell
         p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" class="axis"/>' % (x, T, x, B))
         p.append('<text x="%d" y="%d" class="num" style="text-anchor:middle">0</text>' % (x, B + 18))
-    p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" class="axis"/>' % (L, B, R, B))
+    if frame:
+        p.append('<line x1="%d" y1="%d" x2="%d" y2="%d" class="axis"/>' % (L, B, R, B))
     return ''.join(p) + '</svg>'
 
 

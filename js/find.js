@@ -4550,6 +4550,19 @@ function markNorm_(s) {
       '\u2157': '3/5', '\u2158': '4/5', '\u2159': '1/6', '\u215a': '5/6', '\u215b': '1/8',
       '\u215c': '3/8', '\u215d': '5/8', '\u215e': '7/8' }[c] + ' ')
     .replace(/\s*\/\s*/g, '/')
+    /* AND THE SPACES ROUND A COLON, FOR THE SAME REASON ONE LINE UP. A ratio is printed `2 : 3` on
+       a mark scheme and typed `2:3` into a box, and those were two different strings -- so an
+       `accept` written the way the scheme prints it marked the way a child writes it WRONG, which
+       is the failure this file calls the worse of the two.
+
+       IT CANNOT CHANGE ANY ROW THAT ALREADY EXISTS, and that is measured rather than argued: not
+       one of the library's 1,435 `accept` cells contains a colon, so before this line NO ratio
+       answer anywhere could mark itself. 62 ratio questions still have no `accept` at all -- a
+       backlog rather than a silence, and this is what makes writing one possible.
+
+       A COLON IN AN ANSWER IS A RATIO SEPARATOR AND NOTHING ELSE. The only other thing it could be
+       is a time, and folding `3 : 30` onto `3:30` is right about that too. */
+    .replace(/\s*:\s*/g, ':')
     .replace(/\band\b|&/g, ',')
     .replace(/[.\s]+$/, '')
     .replace(/\s+/g, ' ')
@@ -4632,8 +4645,28 @@ function markFrac_(s) {
    and accepts 2. THREE ROWS IN THE LIBRARY carry one and all three are real bands; anything that
    is not two numbers with `to` between them comes back null and is marked exactly as before. */
 function markRange_(w) {
-  const m = /^(-?\d+(?:\.\d+)?)\s*(?:to|\u2013|\u2014)\s*(-?\d+(?:\.\d+)?)(?:\s+[a-z\u00b0%].*)?$/
-    .exec(markNorm_(w));
+  /* ---------- THE SEPARATOR IS READ BEFORE `markNorm_` FLATTENS IT ------------------------------
+     THE DASH HALF OF THIS RULE WAS DEAD FROM THE DAY IT WAS WRITTEN, and two lines of `markNorm_`
+     are why: its SECOND line is `.replace(/[\u2212\u2013\u2014]/g, '-')`, which is right -- a
+     minus typed as U+2212 has to compare equal to one typed as `-` -- and it runs BEFORE this
+     regex. So by the time `(?:to|\u2013|\u2014)` was tested, every en and em dash had already
+     become a hyphen and only the word `to` could ever match.
+
+     NOTHING COULD SEE IT. Every one of this repository's band cases was written with the word, so
+     `check-marking.js` was green over a branch that could not fire -- a green light with nothing
+     behind it, which is what CLAUDE.md says a check that cannot fail is. It is four cases now, and
+     they failed before this line existed.
+
+     THE DASH BECOMES THE WORD, AND A HYPHEN STILL DOES NOT. That is the whole care: CLAUDE.md
+     refuses a plain hyphen outright, because `1.5-2` is also how somebody writes a subtraction and
+     how this library writes an age range, and a rule that cannot tell them apart marks a WRONG
+     answer right. Only the two LONG dashes are turned into `to`; U+2212 and `-` are untouched and
+     still fail this regex.
+
+     AND IT CANNOT CHANGE A ROW THAT ALREADY EXISTS: measured, not one of the library's 1,436
+     `accept` cells contains an en or em dash at all. */
+  const m = /^(-?\d+(?:\.\d+)?)\s*(?:to)\s*(-?\d+(?:\.\d+)?)(?:\s+[a-z\u00b0%].*)?$/
+    .exec(markNorm_(String(w == null ? '' : w).replace(/[\u2013\u2014]/g, ' to ')));
   if (!m) return null;
   const lo = markFrac_(m[1]), hi = markFrac_(m[2]);
   if (!lo || !hi) return null;
