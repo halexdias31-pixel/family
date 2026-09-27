@@ -1705,11 +1705,40 @@ function nameForms_(s) {
    WITH NO IDS IT IS THE LIBRARY, MEMOISED, exactly as before — which is what a CHIP needs. A chip
    sits alone with no siblings to be unique against, so `chipText` must get the form that is
    unambiguous in the whole library or the chip would read `Paper 1` and name one of twenty. */
+/* ---------- THE FILE, NOT THE MAPPED LIST — AND THIS IS THE THIRD FUNCTION THAT NEEDED IT --------
+   `libraryInto_` DROPS EVERY ROW WHOSE `active` CELL IS NOT ON, so `DATA.questions` holds 174 of
+   the file's 691 document rows. Anything that reads a PAPER-LEVEL fact — the code on its cover, the
+   name for its button, whether a calculator is allowed — has to read the file or it silently knows
+   a quarter of the library.
+
+   IT WAS WRITTEN OUT TWICE AND `needsIndex_` WAS THE ONE THAT MISSED IT. Measured: 77 of the 128
+   document rows carrying a `needs` cell are marked inactive, and seven of those have questions under
+   them — the whole June 2024 Edexcel series, both tiers, Papers 1, 2 and 3, plus June 2023 Higher
+   Paper 1. So **247 questions never said whether a calculator was allowed**, which on a maths paper
+   is the first thing a student needs and the one fact `needs` exists to carry. Worse than a silence:
+   15 of the 41 cards on Foundation Paper 1 drew "Printed sheet" and nothing else, so the strip was
+   there and read as complete.
+
+   A THIRD COPY OF THE THREE LINES WOULD HAVE BEEN THE THIRD, which is this repository's own sentence
+   about `documents_()`, `factsNow_` and `childrenOf`. One reader, so the next function that needs a
+   paper-level fact cannot get it wrong by being written somewhere else.
+
+   `active` IS THE RIGHT CELL TO IGNORE HERE and `specIndex_`'s note says why: it decides whether a
+   student may OPEN the document, and has nothing to say about what is printed on its cover. */
+function libDocRows_() {
+  return (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
+    ? LIBRARY_ROWS : ((DATA && DATA.questions) || []);
+}
+
+/* A DOCUMENT ROW IN EITHER SPELLING. The file says `kind: 'document'`; the mapped list says
+   `isDoc`, because `libraryInto_` renames it. A reader that knows only one of the two is a reader
+   that finds nothing whichever list it is handed. */
+const libIsDoc_ = r => !!r && (String(r.kind || '').toLowerCase() === 'document' || !!r.isDoc);
+
 const PAPER_LABEL = new WeakMap();
 
 function paperLabels_(ids) {
-  const rows = (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
-    ? LIBRARY_ROWS : ((DATA && DATA.questions) || []);
+  const rows = libDocRows_();
   const only = ids && ids.length ? new Set(ids.map(String)) : null;
   let map = only ? null : PAPER_LABEL.get(rows);
   if (map) return map;
@@ -3981,13 +4010,10 @@ function companyAtoms_(v) {
    it has nothing to say about what is printed on its cover, and letting it decide would make the
    search box go quiet on a paper somebody is holding. */
 function specIndex_() {
-  const rows = (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
-    ? LIBRARY_ROWS : ((DATA && DATA.questions) || []);
+  const rows = libDocRows_();
   const at = {};
   rows.forEach(r => {
-    if (!r) return;
-    const kind = String(r.kind || '').toLowerCase();
-    if (kind !== 'document' && !r.isDoc) return;
+    if (!libIsDoc_(r)) return;
     const pid = paperIdOf_(r);
     const code = String(r.spec_code || (r.row && r.row.spec_code) || '').trim();
     if (pid && code) at[pid] = code;
@@ -4260,10 +4286,20 @@ function preamble_(r, at) {
  * directly above — the paper's fact, then the question's own. Deduplicated on the way, because a
  * question that names a ruler inside a paper that already asks for one should not say it twice.
  */
+/* ---------- OFF THE FILE, FOR THE REASON `libDocRows_` IS WRITTEN DOWN ONCE --------------------
+   IT TOOK `DATA.questions` AND THAT IS A QUARTER OF THE DOCUMENT ROWS. See `libDocRows_` above for
+   the measurement: 247 questions across seven papers -- the whole June 2024 Edexcel series, both
+   tiers -- never said whether a calculator was allowed, because their document row is marked
+   inactive and `libraryInto_` drops it before this function is handed the list.
+
+   `all` IS STILL TAKEN AND STILL IGNORED IN FAVOUR OF THE FILE, exactly as `specIndex_` does: the
+   argument is the fallback that keeps this working in a harness with no `LIBRARY_ROWS`. */
 function needsIndex_(all) {
+  const rows = (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
+    ? LIBRARY_ROWS : (all || []);
   const at = {};
-  all.forEach(r => {
-    if (!r || !r.isDoc) return;
+  rows.forEach(r => {
+    if (!libIsDoc_(r)) return;
     const pid = paperIdOf_(r);
     if (pid) at[pid] = asList_(String(r.needs || '').split(','));
   });
@@ -4563,6 +4599,28 @@ function markNorm_(s) {
        A COLON IN AN ANSWER IS A RATIO SEPARATOR AND NOTHING ELSE. The only other thing it could be
        is a time, and folding `3 : 30` onto `3:30` is right about that too. */
     .replace(/\s*:\s*/g, ':')
+    /* ---------- AND ROUND AN OPERATOR, WHICH IS THE COLON RULE FOR A THIRD CLASS OF CHARACTER ----
+       A MARK SCHEME PRINTS `4n − 3` AND A CHILD TYPES `4n-3`. Those were two different strings, so
+       the nth-term question on the June 2024 Foundation paper marked the answer every student
+       actually writes as wrong. Measured across the library: **178 of the 1,436 `accept` cells
+       carry a space round an operator** — `3(2x − 5)`, `5x + 2y`, `2 × 3 × 3 × 5`, `x = 3, y = -4`
+       — and they are precisely the algebra ones, where nobody types the spaces.
+
+       THE MINUS IS ALREADY FOLDED TWENTY LINES UP and that was not enough on its own: `norm` gave
+       `4n - 3` against a typed `4n-3`, so the sign matched and the spacing did not.
+
+       IT CANNOT FOLD A MIXED NUMBER, which is the danger the fraction rule above names: `1 1/6`
+       and `11/6` are 1.17 and 1.83, and the space between a whole number and its fraction does
+       not touch an operator, so nothing here can reach it. Every other space-significant thing in
+       this notation is the same shape. Proved over the real library: no two `accept` cells that
+       were different before become equal after.
+
+       AND A SIGN NO PHONE KEYBOARD HAS IS FOLDED TO THE ONE IT DOES. `≤` is on eleven cells and
+       there is no way to type it — the inequality on this paper is `x ≤ −4`, and a student who
+       has solved it correctly cannot enter the answer at all. `<=` is what a keyboard gives and is
+       not a legitimate spelling of anything else. */
+    .replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/≠/g, '!=')
+    .replace(/\s*([-+×÷=<>!])\s*/g, '$1')
     .replace(/\band\b|&/g, ',')
     .replace(/[.\s]+$/, '')
     .replace(/\s+/g, ' ')

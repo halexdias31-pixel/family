@@ -439,6 +439,72 @@ boot(f => {
     + ' — the rest carry no code in any column, which is right for a worksheet and a backlog '
     + 'for an exam paper');
 
+  /* ---------- 6c. A PAPER-LEVEL FACT HAS TO REACH EVERY QUESTION UNDER IT -----------------------
+     "YOU MUST NOT USE A CALCULATOR" IS PRINTED ON A COVER AND IS TRUE OF ALL 41 QUESTIONS INSIDE,
+     which is why `needs` sits on the `kind: 'document'` row rather than being copied onto every
+     question — `needsOf_`'s own note says so, and CLAUDE.md records the denormalisation hazard the
+     copy would be.
+
+     MEASURED, AND IT WAS NOT REACHING THEM: `needsIndex_` was handed `DATA.questions`, and
+     `libraryInto_` drops every row whose `active` cell is not on — so the map held 174 of the file's
+     691 document rows. 77 of the 128 papers with a `needs` cell are marked inactive, seven of those
+     have questions under them, and **247 questions never said whether a calculator was allowed**:
+     the whole June 2024 Edexcel series, both tiers, Papers 1, 2 and 3, plus June 2023 Higher 1. On
+     Foundation Paper 1, 15 of the 41 cards drew `Printed sheet` and nothing else, so the strip was
+     present and read as complete — worse than a silence.
+
+     THIS IS THE THIRD FUNCTION TO GET THAT WRONG. `specIndex_` and `paperLabels_` were each repaired
+     for it, each with a paragraph explaining why, and the three lines were written out twice — so a
+     third copy was the third. They all go through `libDocRows_` now, and this is the rule that would
+     have caught the next one.
+
+     A FAILURE RATHER THAN A COUNT, and rule 6b's own sentence is why: a paper that HAS the cell
+     either reaches its questions or something between the cell and the card has come undone, and
+     the question has exactly one right answer. A paper with no `needs` cell is the backlog and is
+     printed below.
+
+     ON THE ITEMS, THROUGH `asList_`, which is what `questionCard_` reads — asking the property
+     rather than the mechanism, so it holds however the index is built. A test on `needsIndex_`'s
+     arguments would pass on a version that took the file and ignored it. */
+  const docNeeds = {};
+  LIBRARY.forEach(r => {
+    if (!r || r.kind !== 'document' || !r.paper_id) return;
+    const n = String(r.needs || '').trim();
+    if (n) docNeeds[r.paper_id] = n;
+  });
+  /* THE PAPERS THE FUNNEL ACTUALLY HOLDS QUESTIONS FOR -- a document row with nothing under it yet
+     is the transcription queue and has no card for a requirement to be missing from. */
+  const withQs = {};
+  items.forEach(x => {
+    if (x.kind === 'question' && x.row && x.row.paper_id) withQs[x.row.paper_id] = 1;
+  });
+  const missedNeeds = [];
+  let needsChecked = 0;
+  Object.keys(docNeeds).forEach(pid => {
+    const mine = items.filter(x => x.kind === 'question' && x.row && x.row.paper_id === pid);
+    if (!mine.length) return;
+    needsChecked += mine.length;
+    const want = f.asList_(String(docNeeds[pid]).split(','));
+    const short = mine.filter(x => {
+      const got = f.asList_(x.needs).map(v => String(v).toLowerCase());
+      return !want.every(w => got.indexOf(String(w).toLowerCase()) !== -1);
+    });
+    if (short.length) missedNeeds.push(pid + ' declares `' + docNeeds[pid] + '` on its cover and '
+      + short.length + ' of its ' + mine.length + ' questions do not carry it');
+  });
+  if (typeof f.asList_ !== 'function') {
+    bad.push('`asList_` is not declared, so a paper\'s own requirements cannot be checked \u2014 not a pass');
+  } else {
+    missedNeeds.slice(0, 10).forEach(m => bad.push(m));
+    if (missedNeeds.length > 10) bad.push('\u2026 and ' + (missedNeeds.length - 10)
+      + ' more papers whose cover says something its questions do not');
+    const noNeeds = Object.keys(withQs).filter(p => !docNeeds[p]).length;
+    console.log('\nWHAT A PAPER SAYS YOU NEED, REACHING ITS QUESTIONS: ' + needsChecked
+      + ' questions under ' + Object.keys(docNeeds).filter(p => withQs[p]).length
+      + ' papers that declare one \u2014 and ' + noNeeds + ' papers declare nothing, which is right '
+      + 'for a worksheet and a backlog for an exam paper');
+  }
+
   /* ---------- AN ANSWER THAT NAMES A THING MUST NAME EXACTLY ONE OF THEM ------------------------
      THE `Paper` QUESTION WAS OFFERING ONE BUTTON FOR TWO PAPERS. Its `of` returned the paper's
      NAME, and `spellKey_` folds `Paper 1 (Non-Calculator) — May 2017` onto
