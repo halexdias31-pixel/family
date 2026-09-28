@@ -105,18 +105,14 @@ function passFor_(name) {
 function meCard(given) {
   if (!USER) return '';
   const face = pic(USER.photo || (USER.profile || {}).photo || '');
-  const p = USER.profile || {};
-  const rows = [
-    /* `Role` GOES WHEN THE PASS IS THERE. The pass prints it in the corner, and a row repeating it
-       under the photograph is the duplication this merge exists to remove. */
-    ['Role', roleOf(USER.role || '')],
-    ['Credits', String(USER.credits || 0)],
-    /* `['Ticks', …]` WAS HERE. Nothing counts a tick any more — see `tickCount` in price-rows.js.
-       Dropped rather than left at 0: `.filter(([, v]) => …)` below would have hidden it anyway, so
-       the only thing a zero could have done is reappear the day somebody typed a number in. */
-    ['Email', p.email || ''],
-    ['Where', p.city || p.borough || ''],
-  ].filter(([, v]) => String(v || '').trim());
+  /* ---------- CREDITS, E-MAIL AND WHERE MOVED TO THE SETTINGS COLUMN ----------------------------
+     They were a second card under this one headed "Only you see this". Asked for as *"credits can
+     stay in the column to the right along with email and where bit"* and *"remove the only you can
+     see this bit"*: the e-mail and the place are boxes on that column already, so printing them here
+     too was one fact in two places, and the credits sit on the figure's card there because credits
+     are what buy a wearable. What is left here is who you are — the photograph, the name, the role
+     and the handle — which is the one thing this column is for. The fallback card below prints
+     the role in its subtitle, so a `Role` row under it would say it twice. */
 
   const mine = given || passFor_(USER.name);
   if (mine) {
@@ -124,18 +120,9 @@ function meCard(given) {
        THIS WRAPPED `findCard` IN `<div class="card">` and appended the private rows inside it. That
        was right while a tutor was a `.pass` — a bare object with no container of its own. It is a
        `.card.is-widget` now, so a wrapper would be a card in a card, which is the nesting
-       `accountPages_` has just stopped doing.
-
-       AND THEY ARE TWO DIFFERENT THINGS ANYWAY, which is the better reason. The profile is what
-       everybody else sees of you; credits, e-mail and where you are are what only you see. One box
-       holding both says they are the same kind of fact, and the heading on the second is what tells
-       a reader that the rows under it are private — which nothing on the merged card ever did. */
-    const priv = rows.filter(([k]) => k !== 'Role');
-    return findCard({ kind: 'tutor', row: mine })
-      + (priv.length
-         ? `<div class="card is-widget"><h3>Only you see this</h3>${
-              priv.map(([k, v]) => row(k, v)).join('')}</div>`
-         : '');
+       `accountPages_` has just stopped doing. And with the private rows gone to Settings there is
+       no second card either: your own card is the card everybody else sees of you. */
+    return findCard({ kind: 'tutor', row: mine });
   }
 
   return `<div class="card is-widget">
@@ -146,9 +133,9 @@ function meCard(given) {
       <div class="thing-body">
         <h3>${esc(USER.name)}</h3>
         <p class="sub">${esc(roleOf(USER.role || 'student'))}</p>
+        ${USER.handle ? `<p class="prof-handle">@${esc(USER.handle)}</p>` : ''}
       </div>
     </div>
-    ${rows.map(([k, v]) => row(k, v)).join('')}
     ${/* THE `Sign out` BUTTON WAS HERE, briefly. It moved to `#stuff-controls` — the question at the
           top of the funnel, which is the one thing on screen that is never scrolled past, never
           filtered out and never not drawn. A card can be all three, and a way out that is only

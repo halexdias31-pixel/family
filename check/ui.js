@@ -257,22 +257,21 @@ const ACCEPTED_TAP = [
   + '`slot-row` or `slot-hours`, every cell is an ordinary tap, and `slot-row` is not even the '
   + 'element any more \u2014 a day is a row of the card. A sentence that outlived what it '
   + 'described, which is the shape this repository records under `.favwrap.is-fav`.' },
-  { cls: /^av-sw\b/, why:
-    'A COLOUR SWATCH AT 44px COSTS THE PAGE MORE THAN IT BUYS, and that is measured rather than '
-  + 'argued \u2014 the mistake this repository records under `.mat-out` is changing a rule on a '
-  + 'measurement nobody took, so 44px was written, rendered and read back. Twenty-one swatches, '
-  + 'seven to a row at 30px; at 44 each group needs two rows, and the Colours page goes from 454.9px '
-  + 'to **574.9px in a 532px pane at 320x568** \u2014 68px that can be neither scrolled to nor paged '
-  + 'to, which is the OUT OF REACH fault this same file has a rule for. A control you cannot reach '
-  + 'is worse than one you occasionally mis-tap.\n'
-  + '        WHAT MAKES IT LIVEABLE is the same thing that makes an hour cell liveable: a wrong tap '
-  + 'costs nothing you cannot undo with the next one. The circles are 30px on a 37px pitch, so a '
-  + 'fingertip covers about one and a half of them \u2014 nothing like the four columns the hour grid '
-  + 'accepts \u2014 and picking the wrong brown is fixed by picking the right one.\n'
-  + '        SPLITTING THE COLOURS ONTO THREE PAGES would give the 44px and was refused: skin, hair '
-  + 'and shirt are the one thing most people come here to change, and three swipes to change a look '
-  + 'is a worse wardrobe than a slightly small circle. The trade is written here so it is a decision '
-  + 'rather than something nobody measured.' },
+  { cls: /^av-(sw|opt)\b/, why:
+    'THE WARDROBE IS ONE CARD NOW, AND ITS CONTROLS ARE SIZED SO IT IS. Asked for as *"the avatar '
+  + 'bit is split into like 4 widgets. should just be 1. make things smaller to fit on a screen if '
+  + 'need be."* It was four pages — Colours, then the six slots two at a time — because at 44px '
+  + 'every swatch and every drawing-with-its-name the whole wardrobe was 1517px against a 534px pane '
+  + 'at 320x568. One card fits only if the controls come down: 21px colour circles eight to a row, '
+  + 'and 29px squares holding the drawing alone, six to a row, which is the strip a 320px card has '
+  + 'beside its label column. Measured with the card rendered at 320x568: inside the pane.\n'
+  + '        WHAT MAKES IT LIVEABLE is what makes an hour cell liveable: a wrong tap costs nothing you '
+  + 'cannot undo with the next one. Picking the wrong brown is fixed by picking the right one, and a '
+  + 'hat you did not mean is taken off by pressing the one you did. The ONE press that is not free '
+  + 'is a priced item, and that one says its price on its own face before it is pressed.\n'
+  + '        THE OLD ENTRY REFUSED THIS for the colours alone, on the grounds that splitting them '
+  + 'across three pages to get the 44px would make changing a look three swipes — which is the '
+  + 'same argument, now answered the other way round because the owner asked for the one card.' },
   { cls: /^scr-sq\b/, why:
     'A SCRABBLE BOARD IS FIFTEEN SQUARES ACROSS AND THAT IS THE GAME, not a layout choice. Fifteen '
   + '44px cells need 660px, which is wider than any phone made; at 320px they are 13px each and at '

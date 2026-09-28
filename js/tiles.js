@@ -509,27 +509,19 @@ on('widget-open', el => {
    `video_url` OR THE SEARCH, whichever the backend found — see `video: S(r.video_url) ||
    S(r.video_search_url)` in doget. So a bout nobody has tracked down still offers a way to look,
    and there is nothing here to tell the two apart. */
-/* ---------- WHAT YOU CAN DO ABOUT YOURSELF -------------------------------------------------------
-   THREE TAP-CARDS BECAME THREE MARKS. "Edit your details", "Add your child" and the wardrobe were
-   full cards in the `You` column, each a heading and a sentence, each doing one thing — which is
-   what a tile is for.
+/* ---------- WHAT YOU CAN DO ABOUT YOURSELF — NOTHING, ON THIS CARD ------------------------------
+   `meTiles_` WAS HERE: `Your settings`, `Add your child`, `Your figure` and `Build`. Asked for as
+   *"remove edit tile as they can already edit their profile on the column to the right. remove add
+   your child tile as that should go on column to the right. remove you figure column. remove build
+   tile too."* Every one of the four was a DOOR to the Settings column — `edit-me` and `wardrobe`
+   were literally `go('settings')` — and the column is one swipe from this card, so each tile was a
+   second route to a place the swipe already reaches. The things themselves moved there: the child
+   request is a card on that column (`childCard_` in me.js), the figure is its last card, and the
+   build stamps sit under the admin's own Signing-in card.
 
-   ADDING A CHILD IS NOT FOR EVERYBODY. A student has nobody to add, which is the same condition the
-   card carried; it is asked here now so the row is right for whoever is looking. */
-function meTiles_() {
-  const parent = heldRoles().indexOf('client') !== -1
-    || heldRoles().indexOf('parent') !== -1
-    || heldRoles().indexOf('admin') !== -1;
-  /* THE BUILD STAMPS, FOR YOU ONLY. They were a card of their own at the foot of the You column,
-     and when that column became pages in the funnel they landed between the question and this card
-     — a page of version numbers in front of everybody, answering a question only an admin asks.
-     A tile is the right size for it: out of the way, one tap, on the card it is about. */
-  return `${tile_({ icon: 'edit', label: 'Your settings', act: 'edit-me' })}
-    ${parent ? tile_({ icon: 'star', label: 'Add your child', act: 'add-child' }) : ''}
-    ${tile_({ icon: 'wear', label: 'Your figure', act: 'wardrobe' })}
-    ${isAdmin() ? tile_({ icon: 'note', label: 'Build', act: 'build-said' }) : ''}`;
-}
-
+   `kind: 'me'` STAYS ON YOUR OWN ITEM and routes to nothing below, which is deliberate: the kind is
+   what stops `tutorTiles_` drawing a Message tile addressed to yourself — the reason it was built —
+   and that is still true with no actions of its own to offer. */
 function fightTiles_(x) {
   const f = x.row || {};
   return f.video ? tile_({ icon: 'play', label: 'Watch', href: f.video }) : '';
@@ -570,7 +562,9 @@ function cardActions_(x) {
   if (x.kind === 'level') return levelTiles_(x);
   if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   if (x.kind === 'fight') return fightTiles_(x);
-  if (x.kind === 'me') return meTiles_(x);
+  /* `me` HAS NO ACTIONS — see the note where `meTiles_` was. It is named so it does not fall
+     through to anything that would give it some. */
+  if (x.kind === 'me') return '';
   if (x.kind === 'receipt') return jobTiles_(x);
   /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. Collections are gone
      from the funnel (see the note where `collectionAxes_` used to be in find.js): a paper is an
