@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-09-28-a-throttle";
+const BOOKING_VERSION = "2026-09-28-b-email";
 
 
 /**
@@ -1252,10 +1252,18 @@ function hasPin_(r) { return !!(r && (S(r.pin_hash) || S(r.pin))); }
    IT WRITES BOTH AND CLEARS THE THIRD, and that is the invariant the whole chain rests on: a row
    carries a hash OR a plaintext, never both. `makeBrandAccount` wrote the plaintext directly and
    broke it — see the note over `hasPin_` and the one in setup.gs. */
+/* ---------- AND THE PLAINTEXT GOES ONLY ONCE THE HASH IS SURELY WRITTEN ------------------------
+   `setCell` ON A COLUMN THAT IS NOT THERE RETURNS FALSE AND WRITES NOTHING. With `pin_hash` or
+   `pin_salt` deleted from the tab — which happened, as the fix somebody reached for when a PIN was
+   refused — the two writes above it did nothing and this line still blanked `pin`, so a successful
+   sign-in stored the PIN NOWHERE and the next one could never succeed. Keeping the plaintext when
+   the hash did not land leaves the row exactly as able to sign in as it was a moment ago. */
 function authSetPin_(t, r, pin) {
   const salt = Utilities.getUuid();
-  setCell(t, r, 'pin_salt', salt);
-  setCell(t, r, 'pin_hash', authHash_(pin, salt));
+  /* IN THIS ORDER AND STOPPING AT THE FIRST MISS: a hash written beside a salt that was not would be
+     a credential nothing can ever match, and it would outrank the plaintext kept for exactly this. */
+  if (!setCell(t, r, 'pin_salt', salt)) return;
+  if (!setCell(t, r, 'pin_hash', authHash_(pin, salt))) return;
   setCell(t, r, 'pin', '');            // the plaintext goes, here and for good
 }
 

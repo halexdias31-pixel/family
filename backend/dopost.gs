@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-28-a-throttle";
+const DOPOST_VERSION = "2026-09-28-b-email";
 
 
 function doPost(e) {
@@ -104,7 +104,12 @@ function doPost(e) {
       /* The invited family becomes a client, with WHERE THEY CAME FROM recorded — this is the one
          moment that fact is knowable, and it can never be recovered later. */
       const p = read(TAB.people);
-      if (!peopleNamed(S(body.newName)).length) {
+      /* NOT WHEN THE ADDRESS ALREADY HAS AN ACCOUNT. Signing in is an address now, and two rows on
+         one address is refused by `verifyLogin` — so a second row here would lock the existing
+         account holder out of their own sign-in. They are already a person; the invite stands. */
+      const mailTaken = !!norm(r.to_email)
+        && p.rows.some(x => norm(x.email) === norm(r.to_email));
+      if (!peopleNamed(S(body.newName)).length && !mailTaken) {
         addRow(p, {
           person_id: 'P' + Date.now(), full_name: S(body.newName), email: S(r.to_email),
           role: 'client', came_from: 'invited', invited_by: S(r.from_person),
@@ -240,7 +245,7 @@ function doPost(e) {
           subject: 'Confirm your @family. account',
           body: 'Hello ' + first + ',\n\nConfirm your email address by opening this link:\n\n'
               + SITE_URL + '?verify=' + token
-              + '\n\nThen log in with your full name and the PIN you chose.\n\n— @family.' });
+              + '\n\nThen sign in with this email address and the PIN you chose.\n\n— @family.' });
       } catch (err) {
         return jsonOut({ error: 'Account created, but the confirmation email could not be sent. Please get in touch.' });
       }
@@ -313,7 +318,16 @@ function doPost(e) {
       const t = read(TAB.people);
       /* MATCHED ON THE ADDRESS AND NOTHING ELSE. Not on the name Google carries: people change
          their display name, and a name match would let a stranger called Sasha Ivanov in. */
-      const r = t.rows.find(x => S(x.email).toLowerCase() === email) || null;
+      /* THE SAME READING OF THE ADDRESS AS `verifyLogin`, and the same refusal of two rows on one:
+         the first match would sign somebody in as whoever sits higher on the tab, and the two
+         doors disagreeing about one address is a PIN refused while Google lets them in as the
+         other account. */
+      const googleHits = t.rows.filter(x => norm(x.email) === norm(email));
+      if (googleHits.length > 1) {
+        return jsonOut({ success: false,
+          error: 'That email address is on more than one account — ask us to sort it out.' });
+      }
+      const r = googleHits[0] || null;
       if (!r) {
         return jsonOut({ success: false,
           error: 'No @family. account uses that Google address. Ask an admin to add it to your profile.' });
@@ -343,8 +357,40 @@ function doPost(e) {
 
     if (action === 'verifyLogin') {
       const t0 = read(TAB.people);
-      const r = findPerson(body.name);
-      if (!r) return jsonOut({ success: false, error: 'Name or PIN not recognised.' });
+      /* ---------- AN E-MAIL ADDRESS AND A PIN, AND NOTHING ELSE ------------------------------------
+         ASKED FOR AS *"i want people to be able to sign in only with their email and their pin now.
+         no case sensitive stuff."* This went through `findPerson`, which answers to six things — an
+         id, a full name, first + last, a handle, a username and an address — so the box took all of
+         them and the question of which one a person should type had six answers. One now.
+
+         NOT `findPerson`, and the reason is the other half of the ask. `findPerson` returns the FIRST
+         row that answers to ANY rung, so an address typed here could still be claimed by a name rung
+         above it on somebody else's row. Asked of the `email` column alone, it cannot.
+
+         `norm` IS THE WHOLE OF "NO CASE SENSITIVE STUFF": trimmed and lower-cased on both sides, so
+         `Halex.Dias.31@Gmail.com ` is the same address as the one in the sheet. A PIN is digits and
+         has no case to fold.
+
+         `body.email` FIRST AND `body.name` AFTER, because the phone that asks for an address may be
+         older than this backend or newer than it — see `do-signin`. An old phone sends whatever was
+         typed as `name`, and that is still refused unless it is an address.
+
+         TWO ROWS ON ONE ADDRESS IS REFUSED, NOT GUESSED. The first-match rule is what made
+         `changePin` check one person's PIN against another's row; with the address as the ONLY
+         key, the first match would be somebody signing in as whoever happens to sit higher on the
+         tab. `emailRefusal_` stops a duplicate being SAVED from the app; a duplicate typed into the
+         sheet by hand is what this answers, in a sentence that says who can fix it. */
+      const mail = norm(body.email || body.name);
+      if (mail.indexOf('@') === -1) {
+        return jsonOut({ success: false, error: 'Sign in with your email address and PIN.' });
+      }
+      const hits = t0.rows.filter(x => norm(x.email) === mail);
+      if (hits.length > 1) {
+        return jsonOut({ success: false,
+          error: 'That email address is on more than one account — ask us to sort it out.' });
+      }
+      const r = hits[0] || null;
+      if (!r) return jsonOut({ success: false, error: 'Email or PIN not recognised.' });
       /* LOCKED IS ANSWERED BEFORE THE PIN IS LOOKED AT, so guessing costs the same whether the
          guess was right or not — a lock that only applies to wrong answers tells a guesser when
          they have found the right one. */
@@ -361,9 +407,9 @@ function doPost(e) {
       /* HASHED, AND OLD ROWS MOVED ACROSS AS THEY ARRIVE — see `authCheckPin_`. */
       if (!authCheckPin_(t0, r, body.pin)) {
         authWrong_(t0, r);
-        /* THE SAME SENTENCE FOR A WRONG NAME AND A WRONG PIN, which was already right here: telling
-           somebody the name was correct is telling them half the answer. */
-        return jsonOut({ success: false, error: 'Name or PIN not recognised.' });
+        /* THE SAME SENTENCE FOR A WRONG ADDRESS AND A WRONG PIN, which was already right here:
+           telling somebody the address was correct is telling them half the answer. */
+        return jsonOut({ success: false, error: 'Email or PIN not recognised.' });
       }
       // Only accounts that WERE asked to confirm are held back. A blank means the account predates
       // this and was never sent a link, so it isn't unverified — it's just older.
@@ -576,6 +622,13 @@ function doPost(e) {
          rule firing on absence would refuse them. An admin is NOT exempt: an admin putting a
          duplicate address on somebody's row is still the collision. */
       if (wanted.indexOf('email') !== -1 && fields.email !== undefined) {
+        /* AN ADDRESS IS WHAT SIGNS IN TO THIS ACCOUNT NOW, so emptying the box on the Contact page
+           is a sign-out nobody can undo: `verifyLogin` and `forgotPin` both look the person up by
+           it, and neither can find a row that has none. Changing it is still allowed — the new
+           address is what they sign in with next time. */
+        if (!norm(fields.email) && norm(r.email)) {
+          return jsonOut({ error: 'Your email address is what you sign in with, so it cannot be left empty.' });
+        }
         const mailNo = emailRefusal_(fields.email, r);
         if (mailNo) return jsonOut({ error: mailNo });
       }
@@ -1210,18 +1263,24 @@ function doPost(e) {
        already signed in stays signed in. */
     if (action === 'forgotPin') {
       const said = { success: true,
-        message: 'If there is an account with that name and an email on it, a new PIN is on its '
-               + 'way. Check your inbox, then change it in your settings.' };
+        message: 'If there is an account with that email, a new PIN is on its way. Check your '
+               + 'inbox, then change it in your settings.' };
 
-      const asked = S(body.who).trim();
-      if (!asked) return jsonOut({ error: 'Type your name, username or email first.' });
+      const asked = norm(body.who);
+      if (asked.indexOf('@') === -1) return jsonOut({ error: 'Type your email address first.' });
 
       const tPeople = read(TAB.people);
-      /* BY EMAIL TOO, because "forgot" is exactly the state in which somebody cannot remember
-         which of the two names they signed up with. `findPerson` does not do addresses — this is
-         not a second copy of it, it is the one column it has never looked at. */
-      const r = findPerson(asked)
-        || tPeople.rows.find(x => S(x.email) && key(x.email) === key(asked));
+      /* ---------- BY THE ADDRESS AND NOTHING ELSE, THE SAME RULE AS SIGNING IN -------------------
+         THIS WAS `findPerson(asked)` AND THEN THE ADDRESS, compared through `key` — which strips
+         every dot and the `@`, so `halex.dias@x.com` and `halexdias@xcom` were one address. With the
+         address now the only thing anybody signs in with (see `verifyLogin`), the box on the card
+         is an address and this reads it exactly as that handler does: `norm` on both sides, whole.
+
+         TWO ROWS ON ONE ADDRESS SENDS NOTHING. Which of the two accounts would get the new PIN is a
+         guess, and the reply is the same sentence either way — so a stranger learns nothing and the
+         owner fixes the sheet. */
+      const hits = tPeople.rows.filter(x => norm(x.email) === asked);
+      const r = hits.length === 1 ? hits[0] : null;
       if (!r) return jsonOut(said);
 
       const to = S(r.email);

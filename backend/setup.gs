@@ -397,11 +397,13 @@ function makeBrandAccount(pin) {
     throw new Error('Give it a PIN of 4 to 8 digits: makeBrandAccount(\'4821\')');
   }
 
-  /* The email is taken from whoever the admin currently is, so the notifications that used to
-     reach you still reach you. Without one, every print order and every reported message is
-     discarded in silence — which is what `dataProblems` already reports for nine of fifteen. */
-  const someAdmin = t.rows.find(r => hasRole(r, 'admin') && S(r.email));
-  const email = someAdmin ? S(someAdmin.email) : '';
+  /* ---------- NO E-MAIL ON THE BRAND ROW, WHICH IT USED TO BORROW FROM WHOEVER THE ADMIN WAS ------
+     It copied the current admin's address so notifications would still reach them. That was
+     harmless while an address was only somewhere to send mail; SIGNING IN IS AN ADDRESS NOW, and
+     `verifyLogin` refuses an address held by two rows rather than guessing between them — so this
+     line would have locked the owner AND the brand account out of PIN sign-in the moment it ran.
+     Notifications do not need it: `notify` falls back to any admin with an address. */
+  const email = '';
 
   const row = addRow(t, {
     person_id: 'P' + Date.now(),
@@ -432,8 +434,8 @@ function makeBrandAccount(pin) {
   clearCache();
 
   const out = { created: true, name: name, personId: row ? S(row.person_id) : '',
-                email: email || '(none — add one, or notifications go nowhere)',
-                loginWith: name + '  (or just "family")' };
+                email: '(none — add an address of its own, not one already on another account)',
+                loginWith: 'the e-mail address you put on this row, and its PIN' };
   Logger.log(JSON.stringify(out, null, 2));
   return out;
 }

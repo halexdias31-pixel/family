@@ -69,21 +69,30 @@ function signInCard_() {
 
              `autocomplete="username"` IS UNCHANGED AND IS STILL RIGHT. It is the token for "the
              thing you sign in with" whatever that thing is, and a phone offers a saved address
-             under it as readily as a saved handle — `email` would tell the phone this box is only
-             ever an address, which it is not. */''}
-        <label class="field"><span>name, username or email</span>
-          <input id="in-name" autocomplete="username" placeholder="Halex Dias, @halex, or your email"></label>
+             under it as readily as a saved handle.
+
+             ---------- AND THE THING YOU SIGN IN WITH IS AN ADDRESS NOW, AND ONLY THAT ----------
+             ASKED FOR AS *"i want people to be able to sign in only with their email and their pin
+             now. no case sensitive stuff."* `verifyLogin` resolves the `email` column and nothing
+             else, so the caption says one thing rather than offering three and refusing two.
+
+             `type="email"` IS WHAT BRINGS UP THE KEYBOARD WITH `@` ON IT, and `autocapitalize` off
+             is the phone's half of "no case sensitive stuff" — the server folds case anyway, but a
+             box that capitalises the first letter of an address reads as though case mattered.
+             THE ID STAYS `in-name`, because `forgot-pin`, the Enter-to-submit listener and
+             `check-flow.js` all find the box by it, and renaming it buys nothing but three edits. */''}
+        <label class="field"><span>email</span>
+          <input id="in-name" type="email" autocomplete="username" autocapitalize="off"
+                 spellcheck="false" placeholder="you@example.com"></label>
         <label class="field"><span>PIN</span>
           <input id="in-pin" type="password" inputmode="numeric" autocomplete="current-password"></label>
         <button class="btn" data-do="do-signin">Sign in</button>
         ${/* ---------- AND THE WAY BACK IN WHEN THE PIN HAS GONE ------------------------------------
              ASKED FOR AS *"add forgot pin option. it will send an email to their email."*
 
-             IT TAKES NO SECOND BOX. The name is already typed into the field above — it is the
+             IT TAKES NO SECOND BOX. The address is already typed into the field above — it is the
              first thing anybody fills in — so asking for it again would be asking somebody who
-             cannot get in to type their name twice. `forgotPin` accepts the name, the username or
-             the email, which is the whole point: "forgot" is the state in which you are not sure
-             which one you signed up with.
+             cannot get in to type it twice. It is the same address the new PIN is sent to.
 
              QUIET, because gold on this card is `Sign in` and there is one of those. */''}
         <button class="btn quiet" data-do="forgot-pin">Forgotten your PIN?</button>
@@ -651,10 +660,10 @@ function googleSignedIn_(res) {
    deployment too old to carry the action at all, which answers a refusal rather than this. */
 on('forgot-pin', el => {
   const who = (($('in-name') || {}).value || '').trim();
-  if (!who) { toast('Type your name, username or email first.'); return; }
+  if (!who) { toast('Type your email address first.'); return; }
   send_({ action: 'forgotPin', who }, { button: el, busy: 'Sending\u2026' })
     .then(d => toast((d && d.message)
-      || 'If there is an account with that name, a new PIN is on its way.'));
+      || 'If there is an account with that email, a new PIN is on its way.'));
 });
 
 on('do-signin', el => {
@@ -675,7 +684,11 @@ on('do-signin', el => {
      over this handler. `saying` wrote "Checking…" into a line under a button that `busy` has
      already relabelled "Checking…" with a spinner on it, which is the same word twice, six pixels
      apart, on the one card where somebody is waiting. */
-  send_({ action: 'verifyLogin', name, pin }, { button: el, busy: 'Checking…' })
+  /* `email` AND `name`, THE SAME STRING TWICE. This backend reads `email` first; one deployed
+     before it reads `name` and resolves an address through `findPerson`'s last rung — so the two
+     can land a day apart in either order and signing in works throughout. See `verifyLogin`. */
+  send_({ action: 'verifyLogin', email: name.trim(), name: name.trim(), pin },
+        { button: el, busy: 'Checking…' })
     .then(d => {
       /* `send_` THROWS ON A REPLY CARRYING `error`, and `verifyLogin` refuses with one — so this
          branch is for a reply that says `success: false` and nothing else, which is the shape a
@@ -694,8 +707,11 @@ on('do-signin', el => {
          that element. The LOUD copy was the banner, which nothing cleared at all and which was
          still across the top of the app after a successful sign-in. A toast expires by itself, so
          there is nothing here to clear and nothing that can outlive the thing it was about. */
-      USER = Object.assign({ name: name }, d);
-      if (!USER.name) USER.name = name;
+      /* NOT THE TYPED TEXT AS A NAME FALLBACK ANY MORE — it is an e-mail address now, and a row with
+         no first or last name would have signed in wearing its address as a display name. The
+         handle is on every sign-in reply and is a name somebody chose. */
+      USER = Object.assign({}, d);
+      if (!USER.name) USER.name = d.handle || d.username || name;
       try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
       toast('Signed in');
       /* ---------- DRAWN NOW, REFRESHED AFTER --------------------------------------------------------
