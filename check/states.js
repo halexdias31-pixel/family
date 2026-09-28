@@ -1215,6 +1215,16 @@ const STATES = {
           m('m4', true,  'Shall I bring the November 2019 paper?', '2026-09-16 09:41', true),
           m('m5', false, 'Please do — and a ruler, there is a construction question near the end '
                        + 'that needs compasses as well.', '2026-09-16 10:03', true),
+          /* ONE PICTURE AND ONE FILE, because a thread of words alone never drew an attachment and
+             the bubble that holds one is laid out differently — no padding round a photograph, a
+             chip for a PDF. The picture is a data: URL so the lab needs no network for it; the file
+             is only a link, which is all a file is on the card. */
+          Object.assign(m('m6', true, '', '2026-09-17 08:30', true), { attachments: [
+            { url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+              type: 'image/png', name: 'working.png' }] }),
+          Object.assign(m('m7', false, 'Here is the mark scheme.', '2026-09-17 09:05', true), {
+            attachments: [{ url: 'https://drive.google.com/file/d/1AbCdEfGhIjKlMnOpQrStUvWx/view',
+              type: 'application/pdf', name: 'November 2019 mark scheme.pdf' }] }),
         ];
         /* ---------- AND THE COLUMN POLLS NOW, SO THE SEED HAS TO READ AS FRESH --------------------
            `dmSync_` ASKS THE BACKEND WHENEVER THE LAST ANSWER IS OVER `DM_EVERY` OLD, which is how
@@ -1226,9 +1236,12 @@ const STATES = {
         DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
         paint('dm');
       },
-      expect: () => document.querySelectorAll('#s-dm .msg-bub').length >= 5
+      expect: () => document.querySelectorAll('#s-dm .msg-bub').length >= 7
+                 && document.querySelector('#s-dm .msg-pic img')
+                 && document.querySelector('#s-dm .msg-file')
+                 && document.querySelector('#s-dm .msg-day')
                  && document.querySelector('#s-dm .msg-text'),
-      wants: 'five bubbles and a box to reply in' },
+      wants: 'seven bubbles — one a picture, one a file — a day line and a box to reply in' },
     /* ---------- AND AN INBOX, WHICH IS THE STATE THE FAULT WAS IN ---------------------------------
        ONE CONVERSATION IS NOT AN INBOX. The state above seeds a single thread — deliberately, for
        what it measures: which side a bubble sits on and how a run of three collapses. It fits on one

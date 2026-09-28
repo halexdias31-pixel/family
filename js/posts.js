@@ -2505,8 +2505,11 @@ function dmStamp_() {
 function dmTyping_() {
   const host = $('s-dm');
   if (!host) return false;
+  /* Files chosen and not yet sent count as typing: a repaint would keep them (they live in
+     `MSG_QUEUE`) but would close whatever somebody was doing with the picker. */
   return [].slice.call(host.querySelectorAll('.msg-form .msg-text'))
-    .some(b => String(b.value || '').trim());
+    .some(b => String(b.value || '').trim())
+    || Object.keys(MSG_QUEUE).some(k => (MSG_QUEUE[k] || []).length);
 }
 
 /* THE ONE SIDE EFFECT. `loadMessages` swallows its own failures and always resolves, so there is no
@@ -2518,9 +2521,14 @@ function dmSync_(force) {
   const first = !DM_ASKED;
   DM_ASKED = true; DM_BUSY = true; DM_LAST = Date.now();
   const was = dmStamp_();
+  /* Which conversation is on the screen, by person rather than by page — a message arriving in
+     another thread moves that thread to the front and would otherwise slide this one out from
+     under the reader. `dmRedraw_` puts the page back on it. */
+  const here = ((messageThreads_()[(typeof PAGE === 'object' && PAGE.dm) || 0]) || {}).id;
   loadMessages().then(() => {
     DM_BUSY = false; DM_DONE = true;
-    if (first || (dmStamp_() !== was && !dmTyping_())) paint('dm');
+    if (first) paint('dm');
+    else if (dmStamp_() !== was && !dmTyping_()) dmRedraw_(here);
   });
 }
 
@@ -2621,7 +2629,9 @@ function dmPages_() {
   return threads.map(t => ({
     name: t.name + (t.unread ? ' (' + t.unread + ')' : ''),
     html: `<div class="card${t.unread ? ' unread' : ''}">
-      <h3>${esc(t.name)}${t.unread ? ` <span class="faint">(${t.unread})</span>` : ''}</h3>
+      <div class="dm-head"><span class="dm-av" aria-hidden="true">${
+        esc(String(t.name || '?').trim().charAt(0).toUpperCase() || '?')}</span>
+        <h3>${esc(t.name)}${t.unread ? ` <span class="dm-new">${t.unread} new</span>` : ''}</h3></div>
       <div class="msg-body">${messagesHtml_(t.msgs)}</div>
       ${msgForm_(t.name, t.id)}
     </div>`,
@@ -2678,9 +2688,23 @@ function castPages_() {
 function dmFoot_() {
   const col = $('s-dm');
   if (!col) return;
-  [].forEach.call(col.querySelectorAll('.msg-body'), el => { el.scrollTop = el.scrollHeight; });
+  [].forEach.call(col.querySelectorAll('.msg-body'), el => {
+    el.scrollTop = el.scrollHeight;
+    /* A PICTURE LANDS AFTER THE SCROLL, and a photograph arriving 300px tall under a thread already
+       at its bottom pushes the newest message out of sight. Each one re-asks once it has a size —
+       but only while the thread is still at its end, so somebody reading back up is left alone. */
+    [].forEach.call(el.querySelectorAll('img, video'), m => {
+      if (m.dataset.foot) return;
+      m.dataset.foot = '1';
+      const bottom = () => el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+      const was = bottom();
+      m.addEventListener(m.tagName === 'VIDEO' ? 'loadedmetadata' : 'load', () => {
+        if (was || bottom()) el.scrollTop = el.scrollHeight;
+      }, { once: true });
+    });
+  });
 }
 
 /* THE ONLY WAY BACK TO THE SERVER ONCE THE SCREEN IS UP. The fetch above runs once, so without this
    a message that arrived after the tab was first opened would not appear until a reload. */
-on('dm-refresh', () => { loadMessages().then(() => paint('dm')); });
+on('dm-refresh', () => { loadMessages().then(() => { paint('dm'); setTimeout(dmFoot_, 0); }); });

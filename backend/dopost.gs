@@ -1387,7 +1387,10 @@ function doPost(e) {
       if (!me) return jsonOut({ error: 'Not signed in.' });
 
       const text = S(body.body).trim();
-      if (!text) return jsonOut({ error: 'Nothing to send.' });
+      /* A MESSAGE MAY BE WORDS, FILES OR BOTH — a photograph with nothing said about it is still
+         something sent. Only a message with neither is refused. */
+      const files = (Array.isArray(body.files) ? body.files : []).filter(f => f && S(f.data));
+      if (!text && !files.length) return jsonOut({ error: 'Nothing to send.' });
       if (text.length > 2000) {
         return jsonOut({ error: 'That is longer than a message should be — 2,000 characters.' });
       }
@@ -1670,7 +1673,10 @@ function doPost(e) {
       }
 
       const text = S(body.body).trim();
-      if (!text) return jsonOut({ error: 'Nothing to send.' });
+      /* A MESSAGE MAY BE WORDS, FILES OR BOTH — a photograph with nothing said about it is still
+         something sent. Only a message with neither is refused. */
+      const files = (Array.isArray(body.files) ? body.files : []).filter(f => f && S(f.data));
+      if (!text && !files.length) return jsonOut({ error: 'Nothing to send.' });
       if (text.length > 2000) {
         return jsonOut({ error: 'That is longer than a message should be — 2,000 characters.' });
       }
@@ -1678,6 +1684,13 @@ function doPost(e) {
       /* One every five minutes. Measured from THIS sender's last message to anybody, so a burst
          cannot be spread across recipients to get round it. */
       const t = read(TAB.messages);
+      /* A FILE WITH NOWHERE TO GO IS REFUSED BEFORE ANYTHING IS UPLOADED — `addRow` would drop the
+         column with a line in the log and the message would arrive without the picture it was
+         sent for. `addPost`'s `media` rule, one tab along. */
+      if (files.length && t.headers.indexOf('attachments') < 0) {
+        return jsonOut({ error: 'The messages tab has no attachments column yet, so files cannot be '
+          + 'kept. An admin needs to run ?setup=1 once — the words can still be sent on their own.' });
+      }
       const mine = t.rows.filter(r => S(r.from_id) === S(me.person_id));
       const last = mine.reduce((newest, r) => {
         const at = sheetDate(r.sent_at);

@@ -1093,68 +1093,207 @@ on('cast-send', el => {
     });
 });
 
+/* ---------- SENDING, OPTIMISTICALLY ----------------------------------------------------------------
+   THE BUBBLE APPEARS THE MOMENT SEND IS PRESSED. Against this backend a send is several seconds —
+   longer again with a photograph on it — and a box that sits there saying "Sending…" reads as the tap
+   having missed. So the message joins its thread at once, marked `sending`, and becomes an ordinary
+   message when `loadMessages` next brings it back from the sheet.
+
+   A REFUSAL STAYS ON THE SCREEN AS A REFUSAL, beside the message it refused, with the server's own
+   sentence and a Retry — the rule `check-replies.js` enforces, one step on: a message that failed
+   must not read as sent, and what was typed must not be thrown away. `send()` rather than `api()`
+   for exactly that reason: it throws on `{ error }`.
+
+   THE PENDING LIST IS NOT `MESSAGES`, because `loadMessages` replaces that array wholesale — a
+   pending item written into it would vanish on the next poll whether or not it had been delivered. */
+let MSG_PENDING = [];
+let MSG_SEQ = 0;
+/* What is queued to go with the next message, per conversation. Held here rather than in the DOM so a
+   repaint — the poll, a sign-in — does not drop somebody's chosen photographs. */
+const MSG_QUEUE = {};
+
+/* THE CAPS, IN BYTES, AND THE SERVER HOLDS THE SAME ONES (`MSG_FILE_MAX`, `MSG_FILES_MAX` and
+   `MSG_FILES_COUNT` in content.gs). Checked here so a person is told when they CHOOSE a file rather
+   than after a minute of upload. 32MB rather than a round 45 because the files travel as base64,
+   four thirds of their size, and Apps Script takes about 50MB in one POST — a larger message would be
+   refused by Google with an HTML page rather than by the handler with a sentence. */
+const MSG_CAP_ = { file: 20 * 1048576, total: 32 * 1048576, count: 6 };
+
+const msgKey_ = (to, toId) => String(toId || to || '');
+const msgMB_ = n => (n / 1048576).toFixed(n < 10 * 1048576 ? 1 : 0) + 'MB';
+
+/* A photograph over a couple of megabytes is redrawn through `camItemOf_` — the same 1600px the
+   camera uses — because a camera roll's original is four megabytes for a bubble 280px wide. Anything
+   else goes as it is. Never rejects: a file that cannot be read comes back `null` and is left out. */
+function msgRead_(q) {
+  const f = q.file;
+  if (/^image\/(jpeg|png|webp|heic|heif)$/i.test(f.type) && f.size > 2 * 1048576
+      && typeof camItemOf_ === 'function') {
+    return camItemOf_(f).then(it => it && it.data
+      ? { name: String(f.name || 'photo').replace(/\.\w+$/, '') + '.jpg', type: 'image/jpeg', data: it.data }
+      : null);
+  }
+  return new Promise(done => {
+    const r = new FileReader();
+    r.onload = () => done({ name: f.name || 'file', type: f.type || 'application/octet-stream',
+                            data: String(r.result || '') });
+    r.onerror = () => done(null);
+    try { r.readAsDataURL(f); } catch (e) { done(null); }
+  });
+}
+
+function msgQueueHtml_(key) {
+  const q = MSG_QUEUE[key] || [];
+  return q.map((a, i) => `<span class="msg-chip">${
+      /^image\//.test(a.type) ? `<img src="${esc(a.url)}" alt="">` : `<b>${esc(msgFileMark_(a))}</b>`}
+    <span class="msg-chip-name">${esc(a.name)}</span>
+    <button class="msg-chip-x" data-do="msg-unqueue" data-k="${esc(key)}" data-i="${i}"
+      aria-label="Remove ${esc(a.name)}">×</button></span>`).join('');
+}
+function msgQueueDraw_(form) {
+  const key = form && form.dataset.k;
+  const box = form && form.querySelector('.msg-queue');
+  if (box) box.innerHTML = msgQueueHtml_(key);
+}
+
+/* The file picker answers with `change`, which the `data-do` dispatcher does not listen for. */
+document.addEventListener('change', e => {
+  const inp = e.target;
+  if (!inp || !inp.matches || !inp.matches('.msg-file-in')) return;
+  const form = inp.closest('.msg-form');
+  const key = form && form.dataset.k;
+  if (!key) return;
+  const q = MSG_QUEUE[key] = MSG_QUEUE[key] || [];
+  [].slice.call(inp.files || []).forEach(f => {
+    const total = q.reduce((n, a) => n + a.size, 0);
+    if (q.length >= MSG_CAP_.count) { toast('Up to ' + MSG_CAP_.count + ' files in one message.'); return; }
+    if (f.size > MSG_CAP_.file) { toast(f.name + ' is ' + msgMB_(f.size) + ' — over the 20MB a file can be.'); return; }
+    if (total + f.size > MSG_CAP_.total) { toast('That would be over 32MB in one message — send it on its own.'); return; }
+    q.push({ file: f, name: f.name || 'file', type: f.type || '', size: f.size,
+             url: URL.createObjectURL(f) });
+  });
+  inp.value = '';
+  msgQueueDraw_(form);
+});
+
+on('msg-attach', el => {
+  const inp = el.closest('.msg-form') && el.closest('.msg-form').querySelector('.msg-file-in');
+  if (inp) inp.click();
+});
+on('msg-unqueue', el => {
+  const q = MSG_QUEUE[el.dataset.k] || [];
+  const gone = q.splice(+el.dataset.i, 1)[0];
+  if (gone) { try { URL.revokeObjectURL(gone.url); } catch (e) {} }
+  msgQueueDraw_(el.closest('.msg-form'));
+});
+
+/* THE COMPOSER GROWS WITH WHAT IS TYPED. `field-sizing: content` does this in Chromium and nowhere
+   else, and Safari is where most of these messages are written. Capped by the stylesheet's own
+   `max-height`, after which it scrolls. */
+document.addEventListener('input', e => {
+  const b = e.target;
+  if (!b || !b.matches || !b.matches('.msg-text')) return;
+  b.style.height = 'auto';
+  b.style.height = b.scrollHeight + 2 + 'px';
+});
+/* ENTER SENDS ON A KEYBOARD AND NEVER ON A PHONE. On a phone the return key is the only way to start
+   a new line, and a message sent half-written because somebody wanted a paragraph break is worse than
+   one more tap. `pointer: fine` is the test for a real keyboard beside a real mouse. */
+document.addEventListener('keydown', e => {
+  const b = e.target;
+  if (e.key !== 'Enter' || e.shiftKey || e.isComposing || !b || !b.matches || !b.matches('.msg-text')) return;
+  if (!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches)) return;
+  const go = b.closest('.msg-form') && b.closest('.msg-form').querySelector('.msg-go');
+  if (go) { e.preventDefault(); go.click(); }
+});
+
+function msgPost_(p) {
+  p.state = 'sending'; p.err = '';
+  const files = p.queue.length ? Promise.all(p.queue.map(msgRead_)) : Promise.resolve([]);
+  return files.then(list => {
+    list = list.filter(Boolean);
+    if (p.queue.length && !list.length && !p.body) throw new Error('Those files could not be read.');
+    return send({ action: 'sendMessage', name: USER.name, personId: USER.personId,
+                  to: p.withName, toId: p.withId, body: p.body, files: list });
+  }).then(d => {
+    p.state = 'sent'; p.id = (d && d.id) || '';
+    toast(p.inSheet ? 'Sent to ' + p.withName : 'Sent');
+    return loadMessages().then(() => {
+      if (!MSG_FAILED) {
+        MSG_PENDING = MSG_PENDING.filter(x => x !== p);
+        p.queue.forEach(a => { try { URL.revokeObjectURL(a.url); } catch (e) {} });
+      }
+    });
+  }).catch(err => {
+    p.state = 'failed';
+    /* The server's sentence says what to do — "one message every five minutes — 3 to go" — so it is
+       what is shown, rather than a "Not sent" that throws that away. */
+    p.err = String((err && err.message) || 'Not sent.');
+    if (p.inSheet) toast(p.err);
+  }).then(() => dmRedraw_(p.withId || p.withName));
+}
+
+/* Repaint the column and stay on the conversation somebody is in. A new message moves its thread to
+   the front, so without this the page index stays put and the screen shows SOMEBODY ELSE'S thread
+   after you press send — the conversation you wrote in replaced by the next one down. */
+function dmRedraw_(key) {
+  if (typeof paint !== 'function' || !$('s-dm')) return;
+  paint('dm');
+  const at = messageThreads_().findIndex(t => t.id === key);
+  if (at >= 0 && typeof goPage === 'function' && AT === 'dm') { try { goPage('dm', at, true); } catch (e) {} }
+  setTimeout(() => { if (typeof dmFoot_ === 'function') dmFoot_(); }, 0);
+}
+
 on('msg-send', el => {
-  /* ---------- FOUND BY WALKING UP, NOT BY ID -----------------------------------------------------
-     `$('msg-text')` WAS RIGHT WHILE THERE COULD ONLY EVER BE ONE. The Messages column draws a
-     composer per conversation, so three on a screen would be three elements with one id and the
-     browser would hand every Send button the first one — a reply typed to your tutor posted to
-     somebody else. The nearest enclosing form is the one the button is in, which is a fact the DOM
-     can answer and an id cannot. */
+  /* THE NEAREST FORM, not an id: the Messages column draws one composer per conversation, and an id
+     would hand every Send button the first box on the page — a reply posted to somebody else. */
   const form = el.closest ? el.closest('.msg-form') : null;
   const box  = form ? form.querySelector('.msg-text') : null;
   const said = form ? form.querySelector('.msg-said') : null;
   const text = ((box && box.value) || '').trim();
-  if (!text) { box && box.focus(); return; }
+  const key  = msgKey_(el.dataset.to, el.dataset.id);
+  const queue = (MSG_QUEUE[key] || []).slice();
+  if (!text && !queue.length) { box && box.focus(); return; }
   if (!USER) { if (said) said.textContent = 'Sign in first.'; return; }
+  if (text.length > 2000) { toast('That is longer than a message should be — 2,000 characters.'); return; }
 
-  /* THE BUTTON SAYS WHAT IT IS DOING, and stops being pressable while it does. A five-minute gap
-     on the server means a second press is refused with a countdown rather than duplicated — which
-     is the better failure, and still a confusing one to read when you did not know you had sent
-     anything. */
-  el.disabled = true;
-  const was = el.textContent;
-  el.textContent = 'Sending…';
-  const done = () => { el.disabled = false; el.textContent = was; };
+  const p = {
+    tmp: 'tmp' + (++MSG_SEQ), mine: true, read: true, state: 'sending',
+    withId: el.dataset.id || el.dataset.to, withName: el.dataset.to,
+    fromName: USER.name, body: text, atMs: Date.now(), at: '',
+    attachments: queue.map(a => ({ url: a.url, type: a.type, name: a.name })),
+    queue: queue, inSheet: !!(form && form.closest('#sheet')),
+  };
+  MSG_PENDING.push(p);
+  delete MSG_QUEUE[key];
+  if (box) { box.value = ''; box.style.height = ''; }
+  if (p.inSheet) { closeSheet(); toast('Sending to ' + p.withName + '…'); }
+  dmRedraw_(p.withId);
+  msgPost_(p);
+});
 
-  /* ---------- `send`, NOT `api` — AND THE DIFFERENCE IS THE WHOLE POINT OF THIS CONTROL ---------
-     `api()` RESOLVES ON A REFUSAL. It hands back `{ error: '…' }` as an ordinary answer, so a
-     `.then` runs on "You cannot message them directly" exactly as it runs on success — which here
-     meant closing the sheet, throwing away what somebody had typed, and telling them "Sent to Ada
-     Tutor" about a message that was never written. Caught by stubbing a refusal and watching it say
-     the wrong thing; nothing in the app would have shown it, because the backend's refusals are the
-     one thing a happy path never sees.
-     `send()` is `api()` that throws on `error`, and it exists for precisely this. */
-  send({ action: 'sendMessage', name: USER.name, personId: USER.personId,
-         to: el.dataset.to, toId: el.dataset.id, body: text })
-    .then(() => {
-      /* ---------- CLOSE A SHEET; EMPTY A THREAD'S BOX -------------------------------------------
-         `closeSheet()` UNCONDITIONALLY WOULD SHUT A SHEET NOBODY OPENED. The composer at the foot
-         of a thread is on the page, not in the sheet, so what it needs is its box emptied and the
-         note put back — and closing the sheet from there would dismiss whatever else somebody had
-         open. Asked of the DOM rather than remembered in a flag. */
-      done();
-      if (form && form.closest('#sheet')) closeSheet();
-      else if (box) { box.value = ''; box.style.height = ''; }
-      toast('Sent to ' + el.dataset.to);
-      /* SO IT IS THERE WHEN YOU LOOK. Without this the thread you have just started does not exist
-         on the phone until something else happens to fetch — and the first place anybody looks
-         after sending a message is the place messages are. */
-      /* ---------- AND REDRAWN WHEREVER YOU ARE, NOT ONLY ON THE MESSAGE SCREEN ------------------
-         THIS WAS `if (AT === 'dm') paint('dm')`, and the one place you can send from is a person's
-         pass — which is on the ACCOUNT column and on the Find screen, never on `dm`. So the
-         condition was false every single time it ran: the fetch happened, `MESSAGES` was updated,
-         and nothing on screen was told. The new conversation existed and was invisible until
-         something else happened to repaint.
-
-         `repaint()` REDRAWS WHAT IS SHOWING, which is the honest answer to "where should this
-         appear": the message widgets are built from `MESSAGES` by `msgWidgets_()` and they live in
-         the widget roster, so the column that has to change is whichever one you are looking at. */
-      loadMessages().then(() => { try { repaint(); } catch (e) {} });
-    })
-    /* THE SERVER'S OWN SENTENCE, not a generic failure. Every refusal it can give is already
-       written for a person to read — the role policy, the five-minute gap, the length — and
-       replacing them with "Not sent" would throw away the only part that says what to do. */
-    .catch(err => { done(); if (said) said.textContent = String(err.message || 'Not sent.'); });
+on('msg-retry', el => {
+  const p = MSG_PENDING.find(x => x.tmp === el.dataset.k);
+  if (!p) return;
+  p.state = 'sending'; p.err = '';
+  dmRedraw_(p.withId);
+  msgPost_(p);
+});
+on('msg-drop', el => {
+  const p = MSG_PENDING.find(x => x.tmp === el.dataset.k);
+  if (!p) return;
+  MSG_PENDING = MSG_PENDING.filter(x => x !== p);
+  /* What was typed and chosen goes back in the composer rather than being thrown away with the
+     bubble — Remove is "I will write it differently", not "I did not mean any of it". */
+  const key = p.withId;
+  if (p.queue.length) MSG_QUEUE[key] = (MSG_QUEUE[key] || []).concat(p.queue);
+  dmRedraw_(key);
+  if (p.body) setTimeout(() => {
+    const host = $('s-dm');
+    const box = host && [].slice.call(host.querySelectorAll('.msg-form'))
+      .filter(f => f.dataset.k === key).map(f => f.querySelector('.msg-text'))[0];
+    if (box && !box.value) box.value = p.body;
+  }, 0);
 });
 
 /* ---------- AND MARKING THEM READ, WHICH NOTHING HAS EVER DONE -----------------------------------
@@ -1191,19 +1330,29 @@ const emptyMessages_ = `<p class="empty">Nothing yet.<br><span class="faint">Mes
 
    MOST RECENT FIRST, because a thread nobody has written to in a month is not the one you opened
    the app for. */
+/* When a message was sent, as a number: the server's `15/09/26 18:20`, the fixture's ISO and a
+   pending bubble's own clock all come through here, because sorting their STRINGS put 16 September
+   below 9 September — day-first dates do not sort as text. */
+function msgTime_(m) {
+  if (m && m.atMs) return m.atMs;
+  const d = typeof parseWhen === 'function' ? parseWhen(m && m.at) : null;
+  return d && !isNaN(d) ? d.getTime() : 0;
+}
 function messageThreads_() {
   const by = {};
-  (MESSAGES || []).forEach(m => {
+  (MESSAGES || []).concat(MSG_PENDING).forEach(m => {
     const k = m.withId || m.withName || '?';
     (by[k] = by[k] || { id: k, name: m.withName || 'Someone', msgs: [] }).msgs.push(m);
   });
   const out = Object.keys(by).map(k => by[k]);
   out.forEach(t => {
+    /* STABLE BY TIME, and a pending bubble always last — it is the newest thing in the thread even
+       when the server's clock and this phone's disagree by a minute. */
+    t.msgs.sort((a, b) => (!!a.tmp - !!b.tmp) || (msgTime_(a) - msgTime_(b)));
     t.unread = t.msgs.filter(m => !m.mine && !m.read).length;
     t.last = t.msgs[t.msgs.length - 1];
   });
-  return out.sort((a, b) => String((b.last || {}).at || '')
-    .localeCompare(String((a.last || {}).at || '')));
+  return out.sort((a, b) => msgTime_(b.last) - msgTime_(a.last));
 }
 
 /* ---------- THREADS AS WIDGETS WERE HERE, AND THEY PUT CHAT IN TOOLS ------------------------------
@@ -1244,18 +1393,92 @@ function messageThreads_() {
    STILL ONE RENDERER. The widget on Tools, the thread on the Messages column and anything else that
    wants a conversation all call this — a second copy of "how to show a message" is how this screen
    came to be reading a payload key that has never existed. */
-const messagesHtml_ = ms => (ms || []).map((m, i, all) => {
-  const mine = !!m.mine;
-  const prev = all[i - 1], next = all[i + 1];
-  const runTop = !prev || !!prev.mine !== mine;
-  const runEnd = !next || !!next.mine !== mine;
-  return `<div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
-      runEnd ? ' run-end' : ''}${!mine && !m.read ? ' unread' : ''}">
-    <div class="msg-bub"><p class="msg-body-text">${mark(m.body)}</p></div>
-    ${runEnd ? `<p class="faint msg-when">${esc(mine ? 'you' : (m.fromName || 'them'))} · ${
-      esc(m.at || '')}</p>` : ''}
-  </div>`;
-}).join('');
+/* ---------- A DAY, AND A TIME ------------------------------------------------------------------
+   The day is said ONCE, on a line of its own, where the conversation crosses midnight — so the line
+   under a bubble can be the time alone. Printing `15/09/26 18:20` under every run was the date
+   repeated down the whole thread. */
+function msgDay_(ms) {
+  if (!ms) return '';
+  const d = new Date(ms), now = new Date();
+  const day = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const gap = Math.round((day(now) - day(d)) / 864e5);
+  if (gap === 0) return 'Today';
+  if (gap === 1) return 'Yesterday';
+  const opt = { weekday: 'short', day: 'numeric', month: 'short' };
+  if (d.getFullYear() !== now.getFullYear()) opt.year = 'numeric';
+  try { return d.toLocaleDateString('en-GB', opt); } catch (e) { return d.toDateString(); }
+}
+function msgClock_(ms, raw) {
+  if (!ms) return String(raw || '');
+  const d = new Date(ms);
+  return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+}
+
+/* A FILE'S MARK — its extension, because "PDF" and "DOCX" say more than any one icon would. */
+function msgFileMark_(a) {
+  const ext = (String(a.name || '').match(/\.(\w{1,5})$/) || [])[1];
+  return ext ? ext.toUpperCase() : (String(a.type || '').split('/')[1] || 'FILE').slice(0, 4).toUpperCase();
+}
+
+/* ---------- WHAT WAS SENT WITH IT --------------------------------------------------------------
+   A picture is drawn, a clip plays in place, and anything else is a chip naming the file that opens
+   it. `pic()` and `postVidSrc_` are the feed's own readers of a Drive address, so a photograph in a
+   message and one on a post come through one door — and the clip carries `post-vid` so the feed's
+   `error` listener turns a clip Drive will not hand over into a link rather than a black box. A
+   pending bubble's addresses are `blob:` URLs, which both readers pass through untouched. */
+function msgAttachHtml_(list) {
+  if (!Array.isArray(list) || !list.length) return '';
+  return `<div class="msg-att">${list.map(a => {
+    const url = String(a.url || '');
+    if (/^image\//i.test(a.type)) {
+      return `<a class="msg-pic" href="${esc(url)}" target="_blank" rel="noopener"
+        aria-label="Open ${esc(a.name || 'the photo')}">
+        <img src="${esc(pic(url))}" alt="${esc(a.name || 'photo')}" loading="lazy"></a>`;
+    }
+    if (/^video\//i.test(a.type)) {
+      return `<video class="msg-vid post-vid" src="${esc(/^blob:/.test(url) ? url : postVidSrc_(url))}"
+        data-open="${esc(url)}" controls playsinline preload="metadata"></video>`;
+    }
+    return `<a class="msg-file" href="${esc(url)}" target="_blank" rel="noopener">
+      <b>${esc(msgFileMark_(a))}</b><span>${esc(a.name || 'a file')}</span></a>`;
+  }).join('')}</div>`;
+}
+
+/* ---------- THE THREAD --------------------------------------------------------------------------
+   Runs, as before: four messages in a row from one person are one turn, so only the last carries
+   the tail and the time. A day line wherever the date changes, and a pending message says where it
+   has got to — `sending…`, or the server's refusal with a Retry beside it. */
+const messagesHtml_ = ms => {
+  let lastDay = '';
+  return (ms || []).map((m, i, all) => {
+    const mine = !!m.mine;
+    const t = msgTime_(m);
+    const dayWord = msgDay_(t);
+    const newDay = dayWord && dayWord !== lastDay;
+    if (dayWord) lastDay = dayWord;
+    const prev = all[i - 1], next = all[i + 1];
+    const nextDay = next ? msgDay_(msgTime_(next)) : '';
+    const runTop = newDay || !prev || !!prev.mine !== mine;
+    const runEnd = !next || !!next.mine !== mine || (nextDay && nextDay !== dayWord)
+                || !!m.tmp !== !!next.tmp;
+    const words = String(m.body || '').trim();
+    const state = m.state === 'failed'
+      ? `<p class="msg-when msg-fail">Not sent — ${esc(m.err || 'try again')}
+           <button class="msg-act" data-do="msg-retry" data-k="${esc(m.tmp)}">Retry</button>
+           <button class="msg-act" data-do="msg-drop" data-k="${esc(m.tmp)}">Remove</button></p>`
+      : m.state === 'sending' ? `<p class="faint msg-when">sending…</p>`
+      : m.tmp ? `<p class="faint msg-when">sent</p>` : '';
+    return `${newDay ? `<p class="msg-day"><span>${esc(dayWord)}</span></p>` : ''}
+      <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
+        runEnd ? ' run-end' : ''}${!mine && !m.read ? ' unread' : ''}${
+        m.state ? ' is-' + m.state : ''}">
+      <div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
+        words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>
+      ${state || (runEnd ? `<p class="faint msg-when">${esc(mine ? 'you' : (m.fromName || 'them'))} · ${
+        esc(msgClock_(t, m.at))}</p>` : '')}
+    </div>`;
+  }).join('');
+};
 
 /* ---------- THE COMPOSER, ONCE, WHEREVER IT IS WANTED --------------------------------------------
    IT EXISTED ONLY INSIDE A SHEET, reached from a person's pass — so the Messages column showed you
@@ -1273,7 +1496,12 @@ const messagesHtml_ = ms => (ms || []).map((m, i, all) => {
    know BEFORE pressing send, and they are also where a refusal is printed — so the sentence and the
    place the server answers are one element rather than two to keep in step. */
 function msgForm_(to, toId, note, rows) {
-  return `<div class="msg-form">
+  const k = msgKey_(to, toId);
+  return `<div class="msg-form" data-k="${esc(k)}">
+    <div class="msg-queue">${msgQueueHtml_(k)}</div>
+    <button class="btn quiet msg-clip" data-do="msg-attach"
+      aria-label="Attach a photo, video or file">＋</button>
+    <input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">
     <textarea class="msg-text" rows="${rows || 1}" maxlength="2000"
       placeholder="Message ${esc(to)}…"></textarea>
     <button class="btn msg-go" data-do="msg-send"
