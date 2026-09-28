@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-28-a-email";
+const DOPOST_VERSION = "2026-09-28-b-email";
 
 
 function doPost(e) {
@@ -104,7 +104,12 @@ function doPost(e) {
       /* The invited family becomes a client, with WHERE THEY CAME FROM recorded — this is the one
          moment that fact is knowable, and it can never be recovered later. */
       const p = read(TAB.people);
-      if (!peopleNamed(S(body.newName)).length) {
+      /* NOT WHEN THE ADDRESS ALREADY HAS AN ACCOUNT. Signing in is an address now, and two rows on
+         one address is refused by `verifyLogin` — so a second row here would lock the existing
+         account holder out of their own sign-in. They are already a person; the invite stands. */
+      const mailTaken = !!norm(r.to_email)
+        && p.rows.some(x => norm(x.email) === norm(r.to_email));
+      if (!peopleNamed(S(body.newName)).length && !mailTaken) {
         addRow(p, {
           person_id: 'P' + Date.now(), full_name: S(body.newName), email: S(r.to_email),
           role: 'client', came_from: 'invited', invited_by: S(r.from_person),
@@ -240,7 +245,7 @@ function doPost(e) {
           subject: 'Confirm your @family. account',
           body: 'Hello ' + first + ',\n\nConfirm your email address by opening this link:\n\n'
               + SITE_URL + '?verify=' + token
-              + '\n\nThen log in with your full name and the PIN you chose.\n\n— @family.' });
+              + '\n\nThen sign in with this email address and the PIN you chose.\n\n— @family.' });
       } catch (err) {
         return jsonOut({ error: 'Account created, but the confirmation email could not be sent. Please get in touch.' });
       }
@@ -313,7 +318,16 @@ function doPost(e) {
       const t = read(TAB.people);
       /* MATCHED ON THE ADDRESS AND NOTHING ELSE. Not on the name Google carries: people change
          their display name, and a name match would let a stranger called Sasha Ivanov in. */
-      const r = t.rows.find(x => S(x.email).toLowerCase() === email) || null;
+      /* THE SAME READING OF THE ADDRESS AS `verifyLogin`, and the same refusal of two rows on one:
+         the first match would sign somebody in as whoever sits higher on the tab, and the two
+         doors disagreeing about one address is a PIN refused while Google lets them in as the
+         other account. */
+      const googleHits = t.rows.filter(x => norm(x.email) === norm(email));
+      if (googleHits.length > 1) {
+        return jsonOut({ success: false,
+          error: 'That email address is on more than one account — ask us to sort it out.' });
+      }
+      const r = googleHits[0] || null;
       if (!r) {
         return jsonOut({ success: false,
           error: 'No @family. account uses that Google address. Ask an admin to add it to your profile.' });
@@ -608,6 +622,13 @@ function doPost(e) {
          rule firing on absence would refuse them. An admin is NOT exempt: an admin putting a
          duplicate address on somebody's row is still the collision. */
       if (wanted.indexOf('email') !== -1 && fields.email !== undefined) {
+        /* AN ADDRESS IS WHAT SIGNS IN TO THIS ACCOUNT NOW, so emptying the box on the Contact page
+           is a sign-out nobody can undo: `verifyLogin` and `forgotPin` both look the person up by
+           it, and neither can find a row that has none. Changing it is still allowed — the new
+           address is what they sign in with next time. */
+        if (!norm(fields.email) && norm(r.email)) {
+          return jsonOut({ error: 'Your email address is what you sign in with, so it cannot be left empty.' });
+        }
         const mailNo = emailRefusal_(fields.email, r);
         if (mailNo) return jsonOut({ error: mailNo });
       }
@@ -1276,6 +1297,13 @@ function doPost(e) {
 
       const row = tPeople.rows.find(x => x._row === r._row);
       authSetPin_(tPeople, row, fresh);
+      /* AND THE THROTTLE GOES WITH IT. Without this the reset is useless exactly when it is
+         needed: somebody who has just been locked out asks for a new PIN, the e-mail arrives,
+         and the site refuses the six digits it just sent for up to an hour because of wrong
+         answers at a PIN that no longer exists. Whoever read that e-mail holds the mailbox,
+         which is a stronger claim than the counter was ever measuring. See
+         `authClearThrottle_`. */
+      authClearThrottle_(tPeople, row);
       clearCache();
 
       /* NOT `notify`, which looks the person up again by name — the row is already in hand, and a
@@ -1886,6 +1914,10 @@ function doPost(e) {
       const t = read(TAB.people);
       const row = t.rows.find(x => x._row === r._row);
       authSetPin_(t, row, next);
+      /* The guesses were at the OLD PIN, so they say nothing about this one — and an admin
+         resetting a locked-out family's PIN would otherwise hand them a PIN they still
+         cannot use. See `authClearThrottle_`. */
+      authClearThrottle_(t, row);
       /* ---------- CHANGING A PIN ENDS EVERY OTHER SESSION -------------------------------------
          SOMEBODY CHANGING A PIN IS OFTEN SOMEBODY WHO THINKS SOMEONE ELSE HAS IT. Leaving old
          tokens working would mean the intruder stays signed in through the very act meant to

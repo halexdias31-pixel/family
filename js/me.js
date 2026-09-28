@@ -707,8 +707,11 @@ on('do-signin', el => {
          that element. The LOUD copy was the banner, which nothing cleared at all and which was
          still across the top of the app after a successful sign-in. A toast expires by itself, so
          there is nothing here to clear and nothing that can outlive the thing it was about. */
-      USER = Object.assign({ name: name }, d);
-      if (!USER.name) USER.name = name;
+      /* NOT THE TYPED TEXT AS A NAME FALLBACK ANY MORE — it is an e-mail address now, and a row with
+         no first or last name would have signed in wearing its address as a display name. The
+         handle is on every sign-in reply and is a name somebody chose. */
+      USER = Object.assign({}, d);
+      if (!USER.name) USER.name = d.handle || d.username || name;
       try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
       toast('Signed in');
       /* ---------- DRAWN NOW, REFRESHED AFTER --------------------------------------------------------

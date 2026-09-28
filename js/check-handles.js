@@ -253,8 +253,9 @@ function run() {
   });
 
   /* ---------- SIGNING IN WITH AN E-MAIL, AND THE COLLISION THAT MADE IT A DIFFERENT FOLD --------
-     ASKED FOR AS *"i want people to be able to sign in with email as well."* `verifyLogin` resolves
-     through `findPerson` and nothing else, so the rung there IS the feature — and the case that
+     ASKED FOR AS *"i want people to be able to sign in with email as well."* `verifyLogin` RESOLVED
+     through `findPerson` when this was written, so the rung there WAS the feature. It reads the
+     `email` column alone now, and the cases for THAT are under `SIGNIN` below — and the case that
      decides how it is written is `SAME` below.
 
      `alex@dias.com` AND A PERSON CALLED "Alex Dias Com" REDUCE TO ONE `key()`. That function strips
@@ -637,6 +638,63 @@ function run() {
       said: JSON.stringify(box.fields) });
   });
 
+  /* ---------- `SIGNIN` — AN E-MAIL ADDRESS AND A PIN, AND NOTHING ELSE ---------------------------
+     ASKED FOR AS *"i want people to be able to sign in only with their email and their pin now. no
+     case sensitive stuff."* `verifyLogin` reads the `email` column alone, and the three rules that
+     make it so had no check at all: `check-flow`'s sign-in journey stubs the POST, and the cases
+     above run `findPerson`, which sign-in no longer calls. Putting `findPerson(body.name)` back
+     would have left every check here green.
+
+     THE HANDLER ITSELF, CUT OUT OF `dopost.gs` AND RUN, not a second implementation of it. The
+     seven helpers it reaches for are stubbed — the PIN check is a plain comparison, because what is
+     under test is WHICH ROW a sign-in lands on rather than the hashing — and `findPerson` is stubbed
+     to answer a username, so a version that went back to it fails the username case. */
+  const vlAt = post.indexOf("if (action === 'verifyLogin')");
+  const vlEnd = vlAt < 0 ? -1 : post.indexOf("if (action === '", vlAt + 10);
+  if (vlAt < 0 || vlEnd < 0) {
+    console.log('FAILED — could not find the verifyLogin block in dopost.gs to check.');
+    process.exit(1);
+  }
+  const SIGNIN_ROWS = [
+    { person_id: 'P1', email: 'Ada@Example.com', pin: '0000', username: 'AdaL' },
+    { person_id: 'P2', email: 'dup@x.com',       pin: '0000', username: 'DupOne' },
+    { person_id: 'P3', email: ' DUP@x.com ',     pin: '0000', username: 'DupTwo' },
+    { person_id: 'P4', email: '',                pin: '0000', username: 'NoMail' },
+  ];
+  const signIn = new Function('body', 'ROWS', `
+    const S = v => String(v == null ? '' : v).trim();
+    const norm = v => S(v).toLowerCase();
+    const key = v => S(v).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const TAB = { people: 'people' };
+    const read = () => ({ rows: ROWS });
+    const jsonOut = o => o;
+    const findPerson = n => ROWS.find(r => key(r.username) === key(n) || norm(r.email) === norm(n)) || null;
+    const authWaitMins_ = () => 0;
+    const authWrong_ = () => {};
+    const authCheckPin_ = (t, r, pin) => S(r.pin) === S(pin);
+    const authNewSession_ = () => 'token';
+    const loginReplyFor_ = r => ({ success: true, who: r.person_id });
+    const action = 'verifyLogin';
+    ` + post.slice(vlAt, vlEnd) + `
+    return { fellThrough: true };`);
+  const SIGNIN = [
+    { body: { email: '  ADA@example.COM ', pin: '0000' }, want: 'P1', why: 'case and spaces must not matter' },
+    { body: { name: 'ada@example.com', pin: '0000' },     want: 'P1', why: 'an older phone sends the address as name' },
+    { body: { email: 'AdaL', pin: '0000' },               want: '',   why: 'a username is not an address' },
+    { body: { name: 'NoMail', pin: '0000' },              want: '',   why: 'a row with no address cannot be named instead' },
+    { body: { email: 'ada@example.com', pin: 'wrong' },    want: '',   why: 'a wrong PIN is still wrong' },
+    { body: { email: 'dup@x.com', pin: '0000' },          want: '',   why: 'two rows on one address is refused, not guessed' },
+    { body: { email: 'nobody@x.com', pin: '0000' },       want: '',   why: 'an address nobody has signs nobody in' },
+  ];
+  SIGNIN.forEach(c => {
+    let got;
+    try { got = signIn(c.body, SIGNIN_ROWS.map(r => Object.assign({}, r))); }
+    catch (e) { got = { error: 'threw: ' + e.message }; }
+    const who = (got && got.success) ? got.who : '';
+    if (who !== c.want) bad.push({ handle: 'verifyLogin ' + JSON.stringify(c.body),
+      want: c.want || 'refused', why: c.why, said: JSON.stringify(got) });
+  });
+
   /* ---------- THE HEADING NAMES BOTH THINGS, because it checks both -------------------------------
      It read "A USERNAME JUDGED WRONGLY" over a list that has held pricing findings since the cap
      cooldown went in — a summary naming one of the two subjects it covers, which is the "all 18
@@ -650,7 +708,8 @@ function run() {
      "all 18 checks pass" fault, which this repository has now recorded four times — including once
      in its own tally of how often it had recorded it. */
   console.log('\nusernames checked: ' + (CASES.length + 3)
-    + '  ·  sign-in terms resolved: ' + FINDS.length
+    + '  ·  findPerson terms resolved: ' + FINDS.length
+    + '  ·  sign-ins checked: ' + SIGNIN.length
     + '  ·  e-mail clashes checked: ' + MAILCASES.length
     + '  ·  pricing changes checked: ' + PRICES.length
     + ' over ' + box.fields.length + ' fields'

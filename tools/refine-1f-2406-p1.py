@@ -227,11 +227,22 @@ def q12():
     body = (line(ax, ay, bx, by) + line(bx, by, cx, cy) + line(cx, cy, ax, ay)
             + txt((ax + bx) / 2.0, ay + 18, '36 cm')
             + txt((ax + cx) / 2.0 - 22, (ay + cy) / 2.0, '30 cm')
-            + txt((bx + cx) / 2.0 + 32, (by + cy) / 2.0, '14 cm'))
+            # THE TWO LABELS IN THE GAP WERE OVERLAPPING, WHICH A SCREENSHOT IS THE ONLY THING
+            # THAT COULD SAY. `14 cm` belongs to the triangle and `4 cm` to the rectangle, and both
+            # sat in the 74 units between the two shapes: measured in the browser, their rendered
+            # boxes intersected by 7.3 units across and 1.8 down, so each was nearer the other than
+            # the shape it names. Nothing else can see it -- the svg clips nothing, the card fits
+            # its column, and `check/cards.js`'s four-edge rule asks whether a label leaves its own
+            # box rather than whether two labels collide inside it.
+            #
+            # PULLED APART IN BOTH AXES rather than one: the gap is too narrow for either move on
+            # its own. `14 cm` comes in towards its own side and up; `4 cm` goes out towards the
+            # rectangle and down, so they clear each other vertically as well as across.
+            + txt((bx + cx) / 2.0 + 26, (by + cy) / 2.0 - 8, '14 cm'))
     rx, ry, rw, rh = 196.0, 62.0, 124.0, 44.0
     body += ('<rect x="%.1f" y="%.1f" width="%.1f" height="%.1f" fill="none" '
              'stroke="currentColor" stroke-width="1.4"/>' % (rx, ry, rw, rh))
-    body += txt(rx - 22, ry + rh / 2.0 + 4, '4 cm')
+    body += txt(rx - 18, ry + rh / 2.0 + 14, '4 cm')
     body += txt(W / 2.0, 164, NOT_SCALE, 'cap')
     return svg(body, 174, 'A triangle with sides marked 36 cm, 30 cm and 14 cm, and beside it a '
                           'rectangle with its width marked 4 cm and its length not given.')

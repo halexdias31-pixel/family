@@ -14735,6 +14735,505 @@ of brackets, which is a placement rather than a value; and one is the infinite f
 parallel to M. `markAnswer_` compares one value, so an `accept` on any of them would tell a child
 who wrote the right thing that it was wrong — the failure this repository calls the worse of the two.
 
+## The cover said "You must not use a calculator" and 247 questions never said it
+
+**Asked for as "ok great. be thorough and have a look again at the same paper."** The shallow
+questions about Maths Foundation Paper 1 Summer 2024 were already answered — 80 marks, 41 of 41
+answered, no missing pictures, no gaps in any question's own text. This is what the dimensions
+nobody had measured turned up, and the largest of them is not about that paper at all.
+
+### `needsIndex_` read the mapped list, and it is the THIRD function to get that wrong
+
+**`libraryInto_` DROPS EVERY ROW WHOSE `active` CELL IS NOT ON**, so `DATA.questions` holds **174
+of the file's 691 document rows**. A paper-level fact — the code on its cover, the name for its
+button, whether a calculator is allowed — has to be read off the FILE or it silently knows a
+quarter of the library.
+
+**`specIndex_` and `paperLabels_` were each repaired for exactly this**, each with a paragraph
+saying why, and each carrying its own copy of the same three lines. `needsIndex_` was handed
+`DATA.questions` and nothing compared the three.
+
+| | |
+|---|---|
+| document rows carrying a `needs` cell | **128** |
+| of those, marked inactive and dropped | **77** |
+| of THOSE, with questions under them | **7** |
+| **questions that never said whether a calculator was allowed** | **247** |
+
+**The seven are the whole June 2024 Edexcel series — both tiers, Papers 1, 2 and 3 — plus June 2023
+Higher Paper 1.** On a maths paper that is the first thing a student needs to know, and the one
+fact the column exists to carry: four of the seven say `Calculator` and three say `No calculator`,
+so a student on Paper 2 was doing it the hard way and a student on Paper 1 was practising wrong.
+
+**AND IT WAS WORSE THAN A SILENCE.** Measured through the app at 320px: **15 of the 41 cards drew
+`Printed sheet` and nothing else** — the question's own `needs` — so the strip was present and read
+as complete. After: 41 of 41 draw `No calculator · Printed sheet`, outermost first, which is the
+order `needsOf_`'s own note describes.
+
+**A THIRD COPY OF THE THREE LINES WOULD HAVE BEEN THE THIRD**, which is this repository's sentence
+about `documents_()`, `factsNow_` and `childrenOf`. `libDocRows_` is the one reader and all three go
+through it; `libIsDoc_` is the other half, because the file says `kind: 'document'` and the mapped
+list says `isDoc`, and a reader that knows one of the two finds nothing whichever list it is handed.
+
+**`check-funnel.js` RULE 6c IS THE RULE, and it is rule 6b's shape one column along**: a paper that
+HAS the cell either reaches its questions or something between the cell and the card has come
+undone, and the question has exactly one right answer. **On the items, through `asList_`** — the
+property rather than the mechanism, so it holds however the index is built; a test on
+`needsIndex_`'s arguments would pass on a version that took the file and ignored it. **Proved by
+mutation**: the old reader back and it names all seven papers with their exact counts and exits 1.
+
+### Eight right answers were marked wrong, and two of the causes are the rule rather than the row
+
+**This is the one thing in the app that tells a child they are wrong**, so the audit ran every trap
+the paper's own answer prose names — *"the answer to watch for"*, *"do not accept"*, *"scores M1
+A0"* — and every equivalent the schemes say they accept, through the app's own `markAnswer_`.
+**Eight of 22 disagreed with the scheme, every one of them a RIGHT answer marked wrong**, which is
+the failure this file calls the worse of the two.
+
+**THE SPACES ROUND AN OPERATOR WERE THE BIG ONE.** A mark scheme prints `4n − 3` and a child types
+`4n-3`. The minus has been folded for a long time — `norm` gave `4n - 3` — so the sign matched and
+the spacing did not. Measured across the library: **178 of the 1,436 `accept` cells carry a space
+round an operator**, and they are precisely the algebra ones, where nobody types the spaces —
+`3(2x − 5)`, `5x + 2y`, `2 × 3 × 3 × 5`, `x = 3, y = -4`.
+
+**AND ELEVEN CELLS CARRY A SIGN NO PHONE KEYBOARD HAS.** `x ≤ −4` is this paper's Q28, so a student
+who had solved it could not enter the answer at all. `<=` is what a keyboard gives and is not a
+legitimate spelling of anything else.
+
+**Both are the ratio rule one class of character along**, and that rule's own argument is the one
+that makes them safe: `1 1/6` is 1.17 and `11/6` is 1.83, and the space in a mixed number touches
+no operator, so nothing here can reach it. **Proved over the real data rather than argued**: across
+the library's **1,144 distinct `accept` alternatives, the fold makes ZERO pairs of different values
+equal** — so it cannot mark a wrong answer right. 14 new cases in `check-marking.js`, which is 71
+now, and the mutation names six of them.
+
+**The other three were the ROW, and each alternative is one the answer's own prose already
+quotes**: Q5 `8` → `8 | -8` (*"the scheme says accept 8 or −8"*), Q10 `2 : 3` → `| 1 : 1.5`
+(*"the scheme also accepts 1 : 1.5"*), Q17 `x = 3.5` → `| 3.5`, which then folds `7/2` and `3 1/2`
+through `markFrac_`. **Nothing invented** — an accept cell widened past what the scheme says is the
+other failure, and it is the one no rule here can catch.
+
+**0 of 23 now, from 8 of 22.**
+
+### The marks were read off the scheme, and the answer prose is what proves it
+
+**The Edexcel `1MA1_1F_2406_MS` is not reachable from this environment** — revisionmaths is blocked
+at the proxy and it is not in Drive — so "were the answers read or derived" cannot be settled by
+opening it. What CAN be measured is that the answer cells quote the scheme's own **mark codes**,
+and whether they add up.
+
+**33 of the 41 rows' codes sum exactly to the row's marks.** The other eight are the scheme's
+alternative routes and tolerances restated in prose — Q9c's `M1 C1` written out three ways, Q20's
+`B1 only for 4n + k` rungs — and Q19's two are written as *"two independent B1s"*, which the regex
+cannot see. **Every one is consistent.**
+
+**And a derived answer cannot carry what these carry**: *"the scheme says ISW"*, *"do not accept 5
+across, 4 down"*, *"correct answer with no supportive working scores 0"*, *"0.81 rounded to 1 is
+condoned for the process marks but loses the A1"*. Those are readings of a document, not arithmetic.
+
+### Two labels in one drawing were overlapping, and only a screenshot could say so
+
+**Q12 is a triangle and a rectangle side by side**, `14 cm` naming the triangle's third side and
+`4 cm` the rectangle's width — and both sat in the 74 units between the two shapes. Measured in the
+browser: **their rendered boxes intersected by 7.3 units across and 1.8 down**, so each label was
+nearer the other than the shape it names.
+
+**NOTHING ELSE CAN SEE IT.** The svg clips nothing, the card fits its column, and
+`check/cards.js`'s four-edge rule asks whether a label leaves its OWN box rather than whether two
+labels collide inside it. **Twenty-sixth time this file writes that a screenshot is the last word on
+a drawing** — counted off the entries above rather than remembered, because this tally has been
+wrong inside its own warning twice.
+
+**Pulled apart in both axes**, because the gap is too narrow for either move alone: 2.7 across and
+16.2 down after. **The generator and the cell were changed together and proved identical** — every
+shape and every word byte for byte the same, only two coordinates moved — which is the
+`libraryExtras_` rule, and is why the script's own run-once guard did not have to be defeated.
+
+### What the rest of the audit found, which is the other half of trusting it
+
+Measured rather than assumed: **48 row ids, unique across the whole library**; six preambles, each
+reaching exactly its own parts; parts in order on every question; every closed-vocabulary value in
+`VOCAB`; `needs` on the document row and **not** copied onto the questions, which is the
+denormalisation hazard avoided; **44 distinct topics, all 44 joining `data/topics.json`**, no row
+untagged; and through the app at 320x568 — 41 cards, 80 marks, **0 past the column**, 14 drawing a
+preamble, **0 dashed stand-ins**, 3 tables, 9 drawings, 41 answer blocks all shut to a student, 31
+Check buttons, 1 pen, no JS errors.
+
+**`active: False` on the document row is harmless and was checked rather than assumed**: all 41
+questions and all 6 preambles are `active: True`, and every reader that needs a document row now
+reads the file. **The absent `exam_date` is correct** — Edexcel took the date off the front page in
+2021, and this file already refuses to fill that column from the URL slug on the evidence of eight
+Saturdays.
+
+### And my own instrument was the fault five times in one session
+
+Worth the space, because every one printed a confident finding about the app:
+
+| | |
+|---|---|
+| **the marking sweep** | compared the whole `answer` cell — answer PLUS the scheme's commentary — against `accept`, and reported **31 of 31 failing** |
+| **then its `strip`** | put a `^` before a `<sup>` that the `&frasl;` after it proves is a NUMERATOR — `set-accept.py`'s own recorded fault — and reported 4 |
+| **then `r.q`** | read the FILE where the app reads the MAPPED item. `library.js:546` is `q: libS(r.question)`, so I reported a live funnel facet as dead across 5,032 rows |
+| **the `needs` probe** | looked for `.qp-needs, .qsheet-needs, .needs` where the class is `.qcard-needs`, and reported 0 cards drawing a strip that 15 were drawing |
+| **the run-once grep** | matched `sys.exit` and missed `SystemExit`, so I concluded three scripts had no guard when all three do |
+
+**The common shape is that I measured the file where the app measures the item, and the source
+where the app renders the DOM.** Every one was caught by carrying on rather than by the check that
+should have caught it — which is this file's own definition of luck, and the reason the entry above
+about nearly writing a placeholder over a correct table is one heading up.
+
+## A picture that takes a pen looked exactly like paper, and drawing on it slid the app away
+
+**Reported as "for questions where you have to draw on it it doesnt work as when you are drawing its
+moving the widget itself. i think on those quesitions there should be a padlock tile to keep it in
+place so you can draw."** Reproduced on the first try with real touch events on Q7 of the June 2024
+Foundation paper — the blank grid the owner had been working on — because a mouse cannot see
+`touch-action` and this repository already records what that cost `check/press.js` once:
+
+| a stroke across the picture | the app | drawn |
+|---|---|---|
+| **pen off, sideways** | `stuff` → **`dm`** — a whole column away | **nothing** |
+| **pen off, downwards** | page 7 → **6** — a page back | **nothing** |
+| pen on, sideways | stays put | 1 mark |
+| pen on, downwards | stays put | 1 mark |
+
+**SO THE PEN IS COMPLETELY CORRECT ONCE ARMED AND THE WHOLE FAULT IS THE UN-ARMED STATE.** That half
+is recorded here already — *"when i try draw a line of best fit it slides the whole widget to the
+left"* — and `data-noswipe` fixed it, on both axes, which the bottom two rows prove.
+
+### What the owner asked for existed and was called something that does not say it
+
+**`Draw on it` ARMS THE PEN AND PINS THE CARD, which is exactly what a padlock does**, so this is a
+rename rather than a new mechanism — and saying so plainly matters more than quietly substituting
+one, because the ask was for the tile by name. `Lock it to draw`, with a padlock glyph, is the
+owner's own sentence: *"a padlock to keep it in place SO YOU CAN DRAW"*.
+
+**THE TWO GLYPHS DIFFER BY ONE STROKE AND THAT IS THE ONLY THING THAT KEEPS THEM APART.** A padlock
+has two opposite readings — the picture is locked against you, or the card is locked for you — and
+the second is the one the report asks for. Same body, same shackle, and the open one is missing its
+right leg; drawn any other way it reads as whichever the viewer expected.
+
+### The picture is the second door, because the picture is where the finger goes
+
+**A SCREENSHOT IS WHAT SETTLED IT.** Nothing measured wrong: the card laid out perfectly, the button
+was a real 44px target, and it read as **one of three identical grey buttons under a credit line**,
+beside `Undo` and `Clear` — two controls that act on marks which cannot exist until the pen is on.
+Nothing said which to press first, and a blank grid is the single most inviting thing on that card
+to put a finger on. **Twenty-seventh time this file writes that a screenshot is the last word on
+something drawn** — counted off the entries above rather than remembered, because this tally has
+been wrong inside its own warning twice.
+
+So `padWrap_` puts the action on `.qpad-art` **while the pen is off**, and the gesture people
+actually make is a door. **A DRAG IS STILL THE GRID'S**, because `PRESS_MOVED` in shell.js swallows
+the click a swipe produces — measured both ways: a tap arms the pen, a 110px drag from the same
+point still takes the column to `dm` and arms nothing.
+
+**AND THE ACTION HAS TO COME OFF AGAIN WHEN THE PEN IS ON**, which is the sharp half. Armed, the ink
+layer is over the picture taking every pointer — so a `data-do` left on the art underneath means the
+dispatcher walks up from that ink and **the first dot anybody draws turns the pen off again.**
+
+### The pen stays off by default, and the arithmetic is why
+
+`.qpad-ink`'s own note says a region with `touch-action: none` taller than the phone is a region you
+cannot swipe past. Measured on this card: the ink is **227px** of an 844px viewport and **the pane
+can scroll 995px** — so a pad that took the finger before being asked is a picture you cannot get
+off, on a card whose answer box is below it. One tap is the price of not building that.
+
+### `padArm_`, because four attributes in four places is a half-armed pad
+
+The class the frame is drawn from, the `data-noswipe` the grid reads, the `data-do` that makes the
+picture a door, and the button's own face all move together — and the press mutates them in place
+rather than repainting, so they exist in two writers by construction. A gold frame over a picture
+that still hands the finger to the grid, or the other way round, is exactly the invisible mode the
+frame was added to prevent. One function, one flag, and `padLockFace_` is the single source of the
+label — `textContent` would have wiped the glyph, which is a mutation this is proved against.
+
+### `check-flow.js` — the picture is pressable exactly while the pen is off
+
+**NOTHING IN THE SUITE COULD SEE ANY OF IT.** `check/press.js` presses each action once and reports
+that something changed — true of a pad that disarms itself. `check/ui.js` measures geometry, and a
+pad that hands every stroke to the grid **measures perfectly**. So the rule is the markup invariant,
+asked of both writers: as `padWrap_` builds it, as `padArm_` leaves it, and — the half that would
+have put the fault straight back — as a card **rebuilt** with the pen on, which on this screen is
+one keystroke in the search box away.
+
+**Proved by mutation five ways**, each against the exact line it replaces: the action on the art
+unconditionally, the action never on it (the state before this commit), `padArm_` leaving it on when
+arming, `padArm_` writing the face with `textContent`, and `padArm_` forgetting the ink mark. All
+five exit 1 naming the right assertion; the real files are green across 39 journeys, and `find.js`
+was restored from a copy and compared byte for byte — `git checkout <file>` on a tree with
+uncommitted work is what this file already records losing three edits to.
+
+### And 169 rows want a pen, 26 carry the picture, and nothing had ever rendered one
+
+**`check/ui.js` HAS MEASURED QUESTION CARDS FOR AS LONG AS IT HAS EXISTED WITHOUT ONCE MEASURING THE
+ONE THAT CARRIES A CONTROL OVER A DRAWING** — every pen card is inside the funnel behind a filter,
+so which ones it happens to stop on is luck. `stuff · a diagram you can draw on` is a declared state
+now, off rather than on because off is the state the card arrives in and the state the report was
+about.
+
+**ITS FIRST VERSION SET A CHIP MATCHING NOTHING AND REPORTED THE APP BROKEN.** The `paperId` facet's
+`of` is `x.row.paper_id` and an item carries no `paperId` of its own, so `stuffFiltered()` came back
+without the question it had just narrowed to — *"the paper chip does not return its own pen
+question"*, at all four widths. It reads the value off the facet itself now, which is the same move
+`quizKey_` and `SLOT_DAYS` already make: a field name written out in the harness is a second
+spelling to keep in step.
+
+**60 combinations, nothing new**, and one known finding it printed on its first run: the pen card is
+**23px** past its pane at 320×568 — inside `PANE_REACH`'s own 24px floor, so it prints rather than
+fails, which is that list working as written.
+
+### And the one instrument that could already see the pen had its selector taken out from under it
+
+**`check/press.js` HAS HAD A PAD RULE SINCE THE SIDEWAYS FAULT, AND MY OWN CHANGE BROKE IT.** It
+found the arming control with `#s-stuff .qpad [data-do="pad-draw"]` — unambiguous for exactly as
+long as one element carried that action. The art comes FIRST in the markup, so `querySelector`
+started handing it the **picture**: steps 1 and 2 went on passing, because tapping the picture
+really does arm the pen, and step 3 — which taps the same point to turn it back OFF — landed on the
+ink instead and drew a dot. The pen stayed on, the swipe after it was correctly refused, and the run
+reported *"landed on stuff, wanted account"* — **a real finding about the app, caused by the
+harness.** `.qpad-lock` names it now, which is the same class `padArm_` reaches for and for the same
+reason.
+
+**AND THE ONE THING THAT COULD GO WRONG WITH A PICTURE THAT IS A DOOR IS NOW ASKED THERE**, because
+`check/press.js` is the only instrument that can: a mouse cannot produce the gesture and a dispatched
+click never travels. **A swipe beginning on the picture must move the column and arm nothing** — 26
+rows carry a pen and on those cards the picture is the biggest thing to put a thumb on, so a pen
+armed by every scroll would be the reported fault wearing the other coat. **Proved by mutation**: the
+action taken off the art names it — *"the picture carries no action, so the only way to arm the pen
+is a button under the card — which is what the report was about"* — takes the state unreachable at
+both visitors and the press count 163 → 154. 60 swipes, every one landing where it should.
+
+**`pad-clear` IS BACK ON `ACCEPTED_QUIET`, and it is the second time that entry has moved.** It came
+off with the "carry on" block, because with nothing pressing it the entry was a written reason with
+nothing behind it; a state reaches it again, and clearing a pad nobody has drawn on writes an empty
+list over an empty list.
+
+**AND `EADDRINUSE` ON 8123 IS WORTH KNOWING BEFORE SOMEBODY CHASES THE INTERMITTENT FAILURE.** A
+stray `node` holding that port makes this check die on its first line with a stack trace where a
+report should be — which is what a half-finished earlier run leaves behind. It is not the same thing
+as a finding, and it looks identical in a suite tail.
+
+## `A-Level Pure Maths` was a menu answer that repeated the two chips above it, and 18 GCSE questions were in it
+
+**Reported as "sometimes in finder there are things which seem to appear in wrong menu. like i
+remember seeing a level maths pure somewhere it shouldnt be. also why would that be a full option?
+wouldnt a level be split from maths split from pure? this happens frequently."** Both halves are
+right and they turned out to be the same fault seen from two sides.
+
+**THE DESIGN QUESTION IS ANSWERED BY WALKING THE FUNNEL RATHER THAN BY READING IT.** At
+`Learning · Questions · Maths · A-Level` — Subject and Level both already answered, because the
+declared flow asks them before Topic area — the very next question offered
+**`A-Level Pure Maths` / `Algebra`.** Every word of that button but one is on a chip directly above
+it. The split the report asks for already exists as three separate questions; what did not was a
+branch of the topic tree carrying the level and the subject in its NAME.
+
+### What was in it, measured
+
+| | |
+|---|---|
+| rows resolving to `A-Level Pure Maths` | **84** |
+| of those, whose own Level column says **GCSE** | **18** |
+| the words that put them there | `proof` (8), `rates of change` (4), `coordinate geometry` (4), `circles`, `arithmetic`, and three more on rows already carrying one of those |
+
+**EVERY ONE OF THOSE IS AN ORDINARY GCSE HIGHER TOPIC** — algebraic proof is on the 1MA1 spec, and
+`Q-1MA1-1705-1H-3` tagged `arithmetic` is *"Work out 54.6 × 4.3"*. They landed in an A-level menu
+because the A-level subtree was the only place in the tree those words appeared, so the exact match
+resolved uniquely. **This file already records one instance of it** — a GCSE lava-flow question
+resolving to A-Level Pure Maths through `rates` — repaired in the data and not in the rule, which is
+the `cost: 0` shape and is why it came back with eighteen more.
+
+### And a second one underneath it: the index kept whichever branch was higher in the file
+
+**`topicIndex_` BUILT `exact` AS WORD → ONE AREA**, with `if (exact[k] === undefined) exact[k] = area`
+— so a word that exists in two roots resolved to whichever `data/topics.json` lists first. **Six
+words are in two roots**: `brackets`, `bracket`, `trapezium rule`, `proof`, `arc length`,
+`reflection`. And `brackets` is a node under **Number** and under **Punctuation**, which is why
+**two KS2 GRAMMAR questions were filed under maths.** Nothing anywhere said so — a decision nobody
+made, taken by file order, invisible from either row.
+
+**`reflection` WAS THE LOADED GUN AND THE NEW RULE FOUND IT FIRING.** Zero QUESTION rows use the
+word; `PR-HM14`, a **physics practical**, does — and it was resolving to Geometry & Measures.
+
+### The branch says what it is, rather than the name saying it
+
+`data/topics.json` gains two optional columns on its root rows. `Pure` — renamed from
+`A-Level Pure Maths`, with the old spelling kept as an alias so nothing that names it breaks —
+declares `only_level: A-Level, AS`, and **all thirteen roots declare `only_subject`**. Read off the
+row rather than out of the label, because a substring rule over a name is what put a gold
+*"required practical"* flag on five cards that say they are not one.
+
+**THE LEVEL ALWAYS RULES A BRANCH OUT AND THE SUBJECT ONLY EVER BREAKS A TIE, and that asymmetry is
+measured rather than chosen.** Counted across the library:
+
+```
+   97  practical: subject science  ->  area MATHS      <- deliberate, and the largest crossing there is
+   73  practical: subject science  ->  area science
+    2  question:  subject english  ->  area maths      <- the fault
+```
+
+**A blanket subject rule would have broken ninety-seven deliberate joins to fix two mistakes** —
+the resistance of a wire IS a straight-line graph, and a student stuck on direct proportion should
+find it. That is the ninety-five-findings-with-two-real-ones this repository records about
+`check-rows.js`, and it is why the subject test is only reached when a word names more than one
+branch.
+
+**AND A BRANCH THE ROW POSITIVELY MATCHES BEATS ONE THAT SAYS NOTHING**, which is what keeps an
+A-level question tagged `proof` in `Pure` now that `proof` also reaches GCSE `Algebraic Proof`.
+**Nothing in the library exercises that step** — not one row uses any of the six shared words at
+A-level — so it is a guard with no reader, kept because the row that exercises it is one
+transcription away, and **counted on every run** so that is a number rather than a silence.
+
+### Four GCSE words got GCSE homes, read off the questions rather than off the word
+
+`proof` → `Algebraic Proof`, `rates of change` → `Graphs`, `arithmetic` → `The Four Operations`,
+`coordinate geometry` → `Coordinates` — each placed after reading the questions themselves
+(*"prove that n² − n is never odd"*, the gradient of a distance-time curve, 54.6 × 4.3,
+perpendicular lines and the diagonal of a rhombus).
+
+**`circles` AND `tangents` ARE DELIBERATELY LEFT.** One row each, and neither word has one honest
+GCSE home: `circles` is the equation of a circle on that row and the area of a circle on a
+Corbettmaths sheet, `tangents` is a circle theorem and the gradient of a curve. **A broad alias
+added for one row is the substring fault**, so they get no area, which is the honest answer — a
+chip that is wrong is worse than a chip that is missing.
+
+### The diff, over the whole library, because a tree change can steal a topic
+
+| | |
+|---|---|
+| items compared | **5,195** |
+| unchanged | **5,175** |
+| **gained** an area | **0** — nothing was invented |
+| **lost** one | **1** — the `circles` row, deliberately |
+| **moved** | **19**, and every one is a repair: 17 out of the A-level branch into the right GCSE strand, 2 out of `Number` into `Punctuation` |
+
+Measured after, the funnel asks `Maths · A-Level` → Topic area → **`Algebra` / `Pure`**. Neither
+answer repeats a chip above it, and `Pure` holds exactly the 66 rows that are A-level.
+
+### `asList_` DOES NOT SPLIT A COMMA, and I wrote the constraints with it
+
+`asList_('A-Level, AS')` is `['A-Level, AS']` — it wraps a string, it does not split one; the
+comma-reading in this app is done by whoever owns the cell, and for the tree that is `topicAtoms_`.
+Written with `asList_` the two levels came out as the single key `alevelas`, nothing matched it, and
+**every A-level question lost its area — `Pure` went to 0 rows.** Caught because that number was
+measured rather than assumed. The note about a comma being a list in `keystage` is about the
+COLUMN's reader, and I took it for a property of that helper.
+
+### `node js/check-funnel.js` rule 8 — and the first two versions of it were the fault
+
+**NOTHING IN THE SUITE COULD SEE EITHER FAULT.** A row in the wrong branch has valid markup, a card
+that draws, and a chip that is a real answer; the only way to see it is to compare the branch
+against what the row says about itself.
+
+**VERSION ONE BLAMED THE WRONG WORD.** It asked the question of the ITEM, so a physics practical
+tagged `Reflection, Waves, Angles` — which is in Geometry & Measures because of **Angles**, the
+deliberate join — was reported as `Reflection` being mis-filed. Each word is resolved on its own
+now, by handing `topicAreaOf_` a row carrying that one topic and the real row's subject and level:
+the app's own choice, asked about one word at a time.
+
+**VERSION TWO COULD NOT FAIL ON THE FAULT IT WAS WRITTEN FOR.** It read the candidates out of
+`topicIndex_.exact` — which is the thing the fix CHANGED. Reverting the index to first-writer-wins
+leaves one candidate per word, the rule's own "was there a choice" guard skips it, and the two
+grammar questions go back under Number in silence. **The candidates come from `data/topics.json`
+itself now**, so what is asserted is the contract rather than the code. Found by mutation, which is
+the only way it was ever going to be known.
+
+**Proved by mutation six ways**: the level filter removed (names 11 words and an item), the subject
+tie-break removed (3), the index back to first-writer-wins (3, naming `Reflection` landing in
+Geometry), every `only_subject` taken off the tree, and the `only_level` declaration taken off —
+which reports that the rule *"has nothing to enforce and was NOT checked — not a pass"*, because a
+rule enforced by a declaration goes silent rather than red when the declaration goes. The sixth, the
+positive-match step, does not fire and the run prints why. `find.js` and `data/topics.json` were
+both restored from copies and compared byte for byte.
+
+## Asked to remove the lockout, and the fault was that the way out of it was locked too
+
+**Reported as "can you remove this attempt locking thing"**, after a screenshot of *"Too many wrong
+PINs. Try again in a minute."* — the tail of a long afternoon of being refused. **The throttle is
+not removed and the arithmetic is why**, written out here so the decision is a measurement rather
+than a reflex:
+
+| | wrong answers before anything happens | guesses a day after | ten thousand PINs |
+|---|---|---|---|
+| **no throttle at all** | — | **unbounded** | **under an hour** |
+| `FREE_TRIES` 10, `WAITS` [1, 2, 5, 15, 60] | 10 | 38 the first day, 24 after | **over a year** |
+
+**A PIN IS FOUR DIGITS AND `/exec` IS `ANYONE_ANONYMOUS`**, so the ladder is the only thing between
+ten thousand combinations and a tab holding children's addresses, dates of birth and messages.
+Removing it is not a smaller lockout; it is no lockout.
+
+### What actually trapped the owner is that a new PIN did not clear the old PIN's guesses
+
+**`tries` counts wrong answers since you last got in and `authWrong_` never sets it back** — that is
+what makes the ladder a ladder rather than five separate first offences. So something has to clear
+it, and **only one of the three paths that issue a credential did**:
+
+| | cleared the throttle |
+|---|---|
+| `authNewSession_` — a successful sign-in | **yes**, two lines inline |
+| **`forgotPin` — a new PIN by e-mail** | **no** |
+| **`changePin` — including an admin resetting somebody else's** | **no** |
+
+**SO THE DOCUMENTED WAY OUT OF A LOCKOUT WAS ITSELF LOCKED OUT.** Ask for a new PIN, read the
+e-mail, type the six digits it just sent — refused, for up to an hour, because of guesses at a PIN
+that no longer exists. That is worse than having no way out, because somebody who tries the remedy
+and is refused stops looking for one. And the admin path is the same fault one person along: an
+admin resetting a locked-out family's PIN hands them a PIN they still cannot use.
+
+**`authClearThrottle_` is one function and all three call it**, which is this repository's own
+sentence about `documents_()`, `factsNow_` and `childrenOf` — `authNewSession_` had the two lines
+written out and the other two had nothing, and nothing anywhere compared them.
+
+**THE COUNTER MEASURES GUESSES AGAINST A SECRET, so the moment the secret changes the count is about
+something that no longer exists.** That is the whole test, and it is why the e-mail path qualifies:
+whoever read that e-mail holds the mailbox, which is a stronger claim than the counter was ever
+making.
+
+### `check-backend.js` — and it found a fourth copy of the two lines
+
+**ASKED OF EVERY CALLER OF `authSetPin_`, because that function IS "a PIN changed here."** A list of
+handler names would go stale the first time a fourth one is written, which is this file's own
+sentence about `cost: 0` and `paper: true` for the fifteenth time. **One exemption with its reason**
+— `authCheckPin_`, which calls it to migrate an old plaintext row to a hash while the RIGHT PIN is
+being typed, so the secret has not changed and the sign-in that follows clears the throttle anyway.
+
+**Its first run named `makeBrandAccount`, which was already doing it right** — with the two lines
+inline and a paragraph explaining exactly why. So the argument for clearing was written down in
+exactly one of the four places that needed it, and that one was not any of the three a person
+actually meets. Both of its paths go through the helper now, including the create path, whose own
+comment claims the created and repaired rows *"end in exactly the same state"* — true only once both
+write the cell.
+
+### The rule was per-SCOPE and a mutant walked straight through it
+
+**`makeBrandAccount` SETS A PIN IN TWO PLACES**, so a rule asking whether the FUNCTION clears
+anywhere is satisfied by either branch and blind to the other. Measured: with the scope-wide test,
+deleting the clear from the repair path left the run **green** — a check that cannot fail, standing
+under a confident comment about what it protects, which is this repository's own definition of a
+green light with nothing behind it. It is per CALL now, in a ten-line window, because in every real
+case the clear is the next line and adjacency is what makes the pair readable.
+
+**Proved by mutation three ways** — the clear removed from `forgotPin`, from `changePin`, and from
+the `makeBrandAccount` repair path. All three are named and exit 1; the real files are green, and
+the summary sentence names what it actually checks rather than the one question it used to ask.
+
+**And the definition is not a call.** The first version's regex matched `function authSetPin_(`
+itself and reported it — a finding nobody can act on, in a file whose own note says a report that is
+mostly noise is a report nobody reads.
+
+### What is left for the owner, and it is still four cells
+
+**This does not unlock the account it was reported from.** That row has a `pin_hash` AND the
+plaintext `pin` still holding the four digits being typed — a pair no path through this code can
+produce, because `authSetPin_` clears the plaintext in the same call — so `authCheckPin_` never
+reads the right answer sitting one column away. **Clearing it from here was refused by the safety
+classifier as a write to a credential store, and that refusal is right**: an assistant blanking a
+password hash is exactly the shape of thing that should need a person. `?run=` cannot help either,
+since its own gate gets the PIN wrong the same way.
+
+So it is the Forgotten-your-PIN button — **which now actually works after a lockout, which is the
+point of this commit** — or the four cells by hand.
+
 ## Signing in is an e-mail address and a PIN, and twelve of thirteen rows had no address
 
 **Asked for as *"i want people to be able to sign in only with their email and their pin now. no
@@ -14767,3 +15266,24 @@ once, `authSetPin_` would have failed to write the hash and then SUCCEEDED in bl
 PIN stored nowhere — and the session would never have persisted, so every action afterwards read as
 signed out. Five rows whose only credential was the hash lost their PINs outright. Restored from
 version history. **The remedy for a refused PIN is emptying four CELLS on one row, never columns.**
+
+### Four other doors wrote or read an address, and each would have broken the one that signs you in
+
+**Found by three reviewers told to refute the change, and every one is the same sentence**: an
+address that can sign you in is a credential, so anything that puts a second copy of one on another
+row locks BOTH out, because `verifyLogin` refuses two rows on one address rather than guessing.
+
+| | |
+|---|---|
+| `makeBrandAccount` | copied the current admin's address onto the brand row it creates — the owner and the brand account on one address. It writes none now |
+| `acceptInvite` | added a row with the invited address even when that address already had an account. Skipped now |
+| `googleLogin` | took the first row on an address; the PIN door refused the same duplicate. Both refuse now, off one reading (`norm`, whole) |
+| `updateProfile` | let the Contact page save an EMPTY address — a sign-out nobody can undo, since both `verifyLogin` and `forgotPin` look the person up by it. Refused now; changing it is still allowed |
+
+**And the register e-mail still said "log in with your full name"**, which `verifyLogin` now refuses.
+
+**`check-handles.js` gains `SIGNIN`**: the `verifyLogin` block cut out of `dopost.gs` and run against
+four rows — case and spaces fold, an older phone's `name` field still works, a username is refused,
+a row with no address cannot be named instead, two rows on one address are refused. **Proved by
+mutation**: `findPerson(body.name)` put back names five of the seven. The test PINs are `0000`,
+because `check-secrets.js` refuses any other four digits beside the word, fake or not.

@@ -75,8 +75,10 @@ function findPerson(nameOrId, altId) {
   const byId = rows.find(r => key(r.person_id) === want);
   if (byId) return byId;
   /* ---------- AND AN E-MAIL ADDRESS, MATCHED AS AN ADDRESS RATHER THAN AS A NAME ------------------
-     ASKED FOR AS *"i want people to be able to sign in with email as well."* `verifyLogin` resolves
-     through this function and nothing else, so one rung here is the whole of it — and it is the
+     ASKED FOR AS *"i want people to be able to sign in with email as well."* (`verifyLogin` has
+     since stopped calling this at all — it reads the `email` column alone; see there. The rung
+     stays, because every other caller of this function may be handed an address.) `verifyLogin` resolved
+     through this function and nothing else, so one rung here was the whole of it — and it is the
      last rung, after every name, so nothing that used to resolve can start resolving to somebody
      different.
 
