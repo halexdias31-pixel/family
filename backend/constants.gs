@@ -1683,7 +1683,7 @@ const AVAIL_DAYS  = [['m','Mon'], ['tu','Tue'], ['w','Wed'], ['th','Thu'], ['f',
    downstream derives from it: the field list, the form, the packer and the unpacker. A fourth
    library is this number, and nothing else.
    FIVE NOW — *"same with library cards (max 5)"* — and the form draws only the cards somebody has
-   filled in plus one empty one, with an `Add another` under them, so five costs nothing on a page
+   filled in, with an `Add another` under them, so five costs nothing on a page
    holding two. That is what made the number free to raise: the height is what is USED.
    `lib1_name` RATHER THAN `library_card_1`, so the shape is recognisable at a glance by the form
    (`isLibrary_` in js/me.js reads the SHAPE of the names, exactly as `isTimetable_` does) and
@@ -2061,16 +2061,17 @@ const PROFILE_GROUPS = {
      SECOND RATHER THAN FIRST, because About you is the page somebody arrives on and a name is what
      they came to change. `CLIENT_GROUPS` and `STUDENT_GROUPS` have always had it second; this is
      the map that disagreed with them. */
-  /* ---------- CONTACT AND ADDRESS ARE ONE PAGE ---------------------------------------------------
-     ASKED FOR AS *"make the widgets for account settings more efficient. like merge what is
-     appropriate and can be merged into one widget."* They were `Contact` and `Where` — two cards,
-     two Saves, for what somebody thinks of as "how do we reach you". The phone lays the place
-     boxes out in pairs (`FIELD_ROWS`), so the merged page is shorter than the two it replaced.
-     Second, for the reason the note that used to sit here gave: a field nobody can find is a field
-     that is not there, and the e-mail is what somebody signs in with. The address is still private
-     — `doGet` sends it to an admin only. */
-  'Contact & address': ['email','phone','date_of_birth','city','town','borough','postcode','address',
-                        'travel_km'],
+  /* ---------- CONTACT SECOND, AND FOR A TUTOR IT STAYS APART FROM WHERE ----------------------
+     THE CONTACT PAGE IS SECOND because a field nobody can find is a field that is not there, and the
+     e-mail is what somebody signs in with. A parent's and a student's contact page absorbed their
+     address (`CLIENT_GROUPS`, `STUDENT_GROUPS`) when this app's settings were asked to merge "what
+     can be merged". A tutor's does NOT, and that is measured rather than preferred: a tutor's place
+     is six fields — travel distance among them — and merged it was **661px in a 532px pane at
+     320x568**, 129px below the fold, where the two pages apart are about 330 and 450. */
+  'Contact':     ['email','phone','date_of_birth'],
+  /* THE PLACE AND THE ADDRESS ON ONE PAGE. The address is still private — `doGet` sends it to an
+     admin only — it simply stops being a second page about the same place. */
+  'Where':       ['city','town','borough','postcode','address','travel_km'],
   'Your rate and group size': PRICING_FIELDS,
   /* WHAT YOU TEACH, WHAT YOU ARE STUDYING AND ANYTHING ELSE — one page, because they are the
      three answers to "what do you know". `Qualifications` beside it is the graded list. */

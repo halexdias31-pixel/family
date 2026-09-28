@@ -469,10 +469,10 @@ const STATES = {
                      ? 4 : 0),
       wants: 'all four pricing boxes on one page' },
 
-    /* ---------- UP TO TEN QUALIFICATIONS ON ONE PAGE, SHOWN AS FILLED-PLUS-ONE -------------------
+    /* ---------- UP TO TEN QUALIFICATIONS ON ONE PAGE, SHOWN AS WHAT IS FILLED IN -------------------
        ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"*. All ten are IN
        the page — forty controls under one Save, because the packer rebuilds the whole `quals` cell
-       from what arrives — and only the filled ones and one empty one are SHOWN, with `Add another`
+       from what arrives — and only the filled ones (or one empty one) are SHOWN, with `Add another`
        revealing the next. So this presses `Add another` once and asks for exactly one more card
        showing than it arrived with: a shelf that drew all ten, or one whose button did nothing,
        both measure perfectly and both fail this.

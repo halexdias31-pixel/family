@@ -829,6 +829,9 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   color: var(--dim);
 }
 .pick-group .pick-list { grid-template-columns: repeat(auto-fill, minmax(4.8rem, 1fr)); margin: 0; }
+/* ONE LINE A LEVEL. `A-Level` broke after its hyphen in a four-character column — a screenshot is
+   what caught it — and a level split over two lines reads as two answers. */
+.pick-group .pick-opt { white-space: nowrap; padding-inline: .3rem; }
 
 /* The whole row is the target, not the little box. A pixel floor rather than a rem multiple,
    because 2.9rem at a 15px root came out at 43.5px — half a pixel under, which is exactly the

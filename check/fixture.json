@@ -423,10 +423,12 @@
    "adjective_2",
    "adjective_3"
   ],
-  "Contact & address": [
+  "Contact": [
    "email",
    "phone",
-   "date_of_birth",
+   "date_of_birth"
+  ],
+  "Where": [
    "city",
    "town",
    "borough",

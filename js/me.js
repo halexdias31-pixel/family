@@ -2142,20 +2142,25 @@ const isLibrary_ = list => (list || []).some(isLibraryCard_);
    ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"* and *"same with
    library cards (max 5)"*. Ten qualifications drawn at once is two thousand pixels of empty boxes
    on a pane that caps at 534 — so every slot is IN the markup (the save posts all of them, and a
-   hidden empty slot packs to nothing) and only the filled ones and the first empty one are SHOWN.
+   hidden empty slot packs to nothing) and only the filled ones are SHOWN, or one empty one when
+   nothing is filled yet.
    `Add another` reveals the next one in place; it is not a sheet and not a menu, because the owner
    refuses both, and the pane scrolls once the card outgrows it (`paneWatch_`).
 
    THE LAST FILLED SLOT DECIDES, NOT THE COUNT. A library shelf keeps a gap in the middle on
-   purpose (`libCardsIn`'s note), so "filled plus one" is measured from the last slot with anything
-   in it — a count would hide the card after the gap, with its answers still in it.
+   purpose (`libCardsIn`'s note), so what shows is measured from the last slot with anything in it
+   — a count would hide the card after the gap, with its answers still in it.
 
    `hidden` ON THE SLOT ITSELF, which works because no rule gives `.lib-card` a `display` of its own
    — `[hidden]` is the UA's `display: none` and nothing here outranks it. */
 function shelfSlots_(nums, filled, draw) {
   let last = 0;
   nums.forEach((n, i) => { if (filled(n)) last = i + 1; });
-  const show = Math.min(nums.length, last + 1);
+  /* NO SPARE EMPTY SLOT ONCE ONE IS FILLED — `Add another` IS the empty slot, one tap away. An
+     empty card as well as the button measured **583px in a 532px pane at 320x568** on a shelf with
+     two libraries in it; without it, 475. A shelf with nothing filled still shows one empty slot,
+     because a button over nothing is a page with nothing to type into. */
+  const show = Math.min(nums.length, Math.max(1, last));
   return nums.map((n, i) => draw(n, i >= show)).join('')
     + (show < nums.length
       ? `<button class="btn quiet shelf-more" data-do="shelf-more">Add another</button>` : '');
