@@ -537,105 +537,40 @@ function feedColours(seed) {
 }
 
 /* The card. The HEADING is the fact, so it takes the space; the body is why, so it is small. */
-/* ---------- WHERE A CLIP IS ----------------------------------------------------------------------
-   A `clip` IS A DRIVE FILE ID OR A WHOLE URL, and the difference is a slash. An id is what somebody
-   copies out of the address bar of a file they have just uploaded; a URL is what a clip hosted
-   anywhere else looks like. Anything with a slash in it is left exactly as typed, so this can never
-   mangle an address it did not recognise — the `.xlsx` trap in `check-tabs.js` one column along.
+/* ---------- WHERE A CLIP IS, AND THE ONLY KIND THERE IS NOW ---------------------------------------
+   A `clip` IS A VIDEO FILE — a path beside this site (`data/reels/x.mp4`) or a whole `http(s)` URL
+   to one. That is the one thing a `<video>` can mute, autoplay, loop and pause, which is what every
+   other line of the Reels column is written against.
 
-   TWO ADDRESSES FOR ONE DRIVE FILE, AND THEY ARE NOT INTERCHANGEABLE. `uc?export=download` answers
-   with the BYTES, which is what a `<video>` needs — it can be muted, autoplayed, paused when the
-   slide leaves and sized to the column. `/preview` answers with an HTML PLAYER, which can only be
-   an iframe: Google's own chrome, no autoplay, nothing this code can control. The first is the one
-   worth having and it is also the one that is not documented, so `reelClip_` in posts.js uses it
-   and falls back to the second the moment the browser says the video errored.
+   THERE USED TO BE TWO MORE KINDS AND BOTH ENDED IN SOMEBODY ELSE'S PLAYER IN AN IFRAME. A Google
+   Drive id climbed a ladder of two download addresses and then fell to Drive's `/preview` embed —
+   which on a real phone is where it always landed (a screenshot showed Google's scrubber, CC, 1x and
+   a black letterbox). An Instagram reel had no address a `<video>` could read at all and went
+   straight to Instagram's embed. Both: no autoplay, no mute, no pause from this column, and another
+   company's chrome round the picture.
 
-   NEITHER CAN BE TESTED FROM HERE. Every Google host is blocked from the agent's environment by
-   network policy, so which of the two a real browser gets is a fact one open of the live site
-   settles and nothing in this repository can. That is exactly why there are two. */
-/* ---------- A LADDER, BECAUSE ONE ADDRESS WAS A GUESS AND THE PHONE SETTLED IT ------------------
-   REPORTED WITH A SCREENSHOT OF THE LIVE SITE: the reel was playing inside GOOGLE'S OWN PLAYER —
-   its scrubber, its 10-second skips, CC, 1x, an expand button and a black letterbox round the lot.
-   That is the `error` fallback doing exactly what it was written to do, which means the FIRST
-   address had failed on a real phone. Everything about the look and everything about "why does it
-   not start by itself" follows from that one fact: an iframe from another origin cannot be styled,
-   cannot be muted from here, and will not autoplay.
+   REMOVED ON THE OWNER'S WORD — "remove the embedded reels. they suck." — and removed whole rather
+   than switched off: `clipFrame_`, `reelFrame_`, the iframe half of `clipsStop_` and `reelTurn_`, and
+   the download ladder are all gone. A dormant embed route behind a flag is a second mode nothing
+   presses, which is `orderPrints`.
 
-   `uc?export=download` IS THE OLD SPELLING. Google moved direct downloads to
-   `drive.usercontent.google.com/download`, and the old address answers a redirect — or an HTML
-   interstitial, which a `<video>` reports as an error because it is not a video. So the newer one
-   is tried first and the old one second, which costs nothing when the first works.
-
-   IT IS A LIST RATHER THAN A CHOICE, because **no version of this can be tested from here**: every
-   Google host is blocked from this environment by network policy, which is why the wrong address
-   shipped in the first place. A ladder is the shape that does not need me to be right — each rung
-   is a real attempt, `error` moves to the next, and the iframe is the last one rather than the
-   second. One open of the live site settles which rung wins, and nothing here has to guess.
-
-   A FULL URL IS USED AS GIVEN AND IS THE REAL ANSWER. `clip` takes an address, so a file served
-   from anywhere — including beside this site — is one rung with no fallbacks and no chrome. */
-/* ---------- AN INSTAGRAM REEL HAS NO RUNG ON THIS LADDER AT ALL ----------------------------------
-   TWO WERE PASTED IN AS EMBED BLOCKQUOTES and this is the honest shape for them. Instagram serves
-   no stable direct address for the file: the CDN URLs it uses are signed, expire within hours and
-   are refused cross-origin, so there is nothing a `<video>` can be pointed at. The documented way
-   to show somebody else's reel is their own embed, and it is also the right one — it carries the
-   author's name and the post's own link, which matters when the reel is @eli_radu's rather than
-   this business's.
-
-   SO IT RETURNS NOTHING AND `clipFrame_` ANSWERS INSTEAD. Leaving the URL on the ladder would put
-   the `<video>` through a load that can only fail before the iframe it was always going to need —
-   a rung whose outcome is known is not an attempt, it is a delay with an error in the console.
-
-   WHAT THAT COSTS IS REAL AND IS THE SAME COST THE DRIVE PLAYER ALREADY HAS: an iframe from another
-   origin will not autoplay, cannot be muted or paused from this page, and wears Instagram's chrome.
-   `reelPlay_` removes the sound button when a slide ends up in one, and the column's own pause
-   cannot reach inside it. That is the price of showing somebody else's reel at all, and it is
-   written down here rather than discovered by whoever wonders why one slide behaves differently. */
-const IG_CLIP = /(?:^|\/\/)(?:www\.)?instagram\.com\/(?:reel|reels|p|tv)\/([A-Za-z0-9_-]+)/;
-
-function clipSrcs_(clip) {
+   SO A ROW THAT CAN ONLY BE EMBEDDED IS NOT A REEL AND IS DROPPED FROM THE LIST, rather than drawn as
+   a slide that never plays. `clipPlayable_` is the one test and `clipsNow_` filters on it, so the
+   column, the "One more thing" widget and the pager all agree about what counts. `check-reels.js`
+   refuses such a row in `FEED_FACTS` outright, so the code's own list cannot grow one again. */
+const CLIP_EMBED_ONLY = /(?:^|\/\/)(?:www\.)?instagram\.com\//i;
+function clipPlayable_(clip) {
   const c = String(clip || '').trim();
-  if (!c) return [];
-  if (IG_CLIP.test(c)) return [];
-  if (/[:/]/.test(c)) return [c];
-  const id = encodeURIComponent(c);
-  return [
-    'https://drive.usercontent.google.com/download?id=' + id + '&export=download',
-    'https://drive.google.com/uc?export=download&id=' + id,
-  ];
+  if (!c || CLIP_EMBED_ONLY.test(c)) return false;
+  /* A SCHEME MEANS A WHOLE ADDRESS, and only http(s) is a file a browser will fetch into a
+     `<video>`. No scheme and a slash is a path into this repository. No scheme and NO slash is a
+     Drive id — the one kind that can only ever be embedded — and is refused. */
+  if (/^[a-z][a-z0-9+.-]*:/i.test(c)) return /^https?:\/\//i.test(c);
+  return c.indexOf('/') !== -1;
 }
-/* ---------- THE IFRAME IS DRIVE'S PLAYER, SO IT ONLY EXISTS FOR A DRIVE ID -----------------------
-   IT USED TO RETURN THE ADDRESS ITSELF, and for an address that is the same file through a worse
-   door. The whole reason a `/preview` iframe is worth having is that it is a DIFFERENT SERVER doing
-   a different thing — Drive hands `<video>` a redirect or an interstitial and hands its own player
-   a stream. Nothing of the kind is true of a file beside this site: if the browser cannot play
-   `data/reels/x.mp4` in a `<video>`, it cannot play it in an iframe either, because it is the same
-   decoder on the same bytes. What the swap costs is real — Google's chrome, no autoplay, no mute,
-   and the sound button removed on the way past.
-
-   PROVED HERE RATHER THAN REASONED ABOUT, and the container is what made it testable. The Chromium
-   in this environment is built WITHOUT the proprietary codecs — `canPlayType('video/mp4;
-   codecs="avc1.42E01E"')` comes back empty — so a real H.264 clip errors for real, which is the one
-   failure this repository could never previously reach. The column drew an iframe over a file that
-   was there, 200 OK, serving ranges correctly.
-
-   SO A DEAD LOCAL CLIP STAYS A `<video>`, and `.feed-vid` is transparent for exactly this: the
-   slide underneath is `.feed-art`'s own gradient with the subject's initial on it, which is a
-   finished thing rather than a hole. That is the sentence written over the transparency rule and
-   over the photograph slide that waits for `img.onload`. */
-function clipFrame_(clip) {
-  const c = String(clip || '').trim();
-  /* INSTAGRAM'S OWN EMBED, BUILT FROM THE SHORTCODE rather than from the address that was pasted.
-     What arrives is a share link carrying `?utm_source=ig_embed&utm_campaign=loading` and whatever
-     else was on the clipboard; the embed path wants the code and nothing else, so it is pulled out
-     rather than appended to — which also means `/reel/`, `/reels/`, `/p/` and `/tv/` all land in
-     the same place, because Instagram renamed that path twice and the old ones still resolve. */
-  const ig = IG_CLIP.exec(c);
-  if (ig) return 'https://www.instagram.com/reel/' + encodeURIComponent(ig[1]) + '/embed/';
-  if (!c || /[:/]/.test(c)) return '';
-  return 'https://drive.google.com/file/d/' + encodeURIComponent(c) + '/preview';
+function clipSrc_(clip) {
+  return clipPlayable_(clip) ? String(clip).trim() : '';
 }
-
 function feedSlide(it) {
   const c = feedColours(it.subject);
   /* A SLIDE WITH NO WORDS DRAWS NO WORDS. Every fact has a heading, so for fifty-eight of these

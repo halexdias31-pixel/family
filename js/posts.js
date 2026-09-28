@@ -1996,17 +1996,6 @@ function reelTurn_(n) {
     if (v) {
       if (here) reelPlay_(v);
       else { try { v.pause(); } catch {} }
-      return;
-    }
-    /* THE IFRAME GETS ITS ADDRESS BACK, and only the one you are on — see `clipsStop_`, which took
-       it away. Google's player does not autoplay, so this is a slide with a play button on it
-       rather than a clip that starts talking; taking the address away is a stop and giving it back
-       is not a start. */
-    const f = el.querySelector('iframe.feed-vid');
-    if (here && f && f.dataset.src && f.getAttribute('src') !== f.dataset.src) {
-      f.setAttribute('src', f.dataset.src);
-    } else if (!here && f) {
-      clipsStop_(el);
     }
   });
 }
@@ -2037,22 +2026,7 @@ function reelsStop_() { clipsStop_($('s-reel')); }
 function clipsStop_(root) {
   if (!root) return;
   root.querySelectorAll('video.feed-vid').forEach(v => { try { v.pause(); } catch {} });
-  /* ---------- AND THE ONE THIS PAGE CANNOT REACH INSIDE OF ---------------------------------------
-     WHEN DRIVE REFUSES THE BYTES the `<video>` is replaced by Google's own player in an iframe, and
-     an iframe from another origin has no `pause` anybody here can call — so the one clip that had
-     ALREADY gone wrong was also the one that could go on playing behind another screen for ever.
-     The half that was fixed was the half that was easy to reach, which is a shape worth naming.
 
-     TAKING ITS ADDRESS AWAY IS THE ONLY STOP AVAILABLE, and the address is kept so the slide can
-     have it back — `about:blank` rather than removing the element, because a slide that loses its
-     player has nothing left to look at and the card would resize under the column. It costs a
-     reload of the embed when you come back, which is what a stopped embed is. */
-  root.querySelectorAll('iframe.feed-vid').forEach(f => {
-    const src = f.getAttribute('src');
-    if (!src || src === 'about:blank') return;
-    f.dataset.src = src;
-    f.setAttribute('src', 'about:blank');
-  });
 }
 
 /* ONE MORE LAP, AS PAGES. `pages()` is the same wrapper the screen's first draw used, so an
@@ -2066,85 +2040,30 @@ function reelMore_(host) {
   paintPager('reel', true);
 }
 
-/* ---------- A CLIP, AND THE ROUTE THAT CANNOT BE TESTED FROM HERE --------------------------------
+/* ---------- A CLIP, AND NOTHING BEHIND IT IF IT WILL NOT PLAY ------------------------------------
    THE `src` IS SET HERE AND NOT IN THE MARKUP, so a clip five slides down is not being downloaded
-   while you watch the first one. Seven megabytes each, and the browser decides for itself how much
-   of a `preload="none"` video to fetch anyway.
+   while you watch the first one. Seven megabytes each, and `preload="none"` is a hint a browser is
+   free to ignore where an absent `src` is not.
 
-   AND IF IT WILL NOT PLAY, GOOGLE'S OWN PLAYER DOES. `uc?export=download` hands back the bytes,
-   which is the only form a `<video>` can mute, loop and pause; it is also undocumented and every
-   Google host is blocked from the environment this was written in, so whether a real browser gets
-   the file or a redirect it will not follow is a fact the live site settles. `error` is the
-   browser saying which — and the `/preview` iframe that replaces it is the documented embed,
-   with Google's chrome and a play button instead of an autoplay, which is a worse reel and a
-   working one. A column that shows a black rectangle is neither. */
-
-/* ---------- THE LAST THING A SLIDE CAN BE: SOMEBODY ELSE'S PLAYER IN A FRAME ---------------------
-   ONE FUNCTION, TWO CALLERS, and they are not the same case. A Drive clip reaches here having run
-   out of addresses a `<video>` could read; an Instagram reel reaches here without ever having had
-   one. Both end in the same element, so writing the swap twice would be the second reader this
-   repository keeps recording — and the sound button has to go on both endings, because a control
-   that cannot reach into a cross-origin document is a control that does nothing. */
-function reelFrame_(v) {
-  if (!v || v.dataset.dead) return;
-  v.dataset.dead = '1';
-  const slide = v.closest('.reel');
-  const btn0 = slide && slide.querySelector('.reel-sound');
-  if (btn0) btn0.remove();
-  const frame = clipFrame_(v.dataset.clip);
-  if (!frame || !slide) return;
-  /* THE SCRIM AND THE WHITE WORDS ARRIVE HERE TOO. A frame is the picture having arrived, which is
-     what `has-photo` means — and without it the words sit unreadable over somebody else's video
-     instead of over this slide's own gradient. */
-  const art = v.closest('.feed-art');
-  if (art) art.classList.add('has-photo');
-  v.outerHTML = `<iframe class="feed-vid" src="${esc(frame)}" allow="autoplay; encrypted-media"
-    referrerpolicy="no-referrer" loading="lazy" title="Reel"></iframe>`;
-}
-
+   THERE WAS A LADDER HERE — two Drive download addresses and then Drive's or Instagram's embed in an
+   iframe — and it is gone with the embedded reels (see `clipPlayable_` in games.js). A clip that
+   reaches this is a file, so there is one address, and if it errors the slide STAYS A `<video>`:
+   `.feed-vid` is transparent, so what shows is the poster or `.feed-art`'s own gradient, which is a
+   finished thing rather than somebody else's player or a black hole. `dead` stops the next page
+   turn asking the browser for a file it has already refused. */
 function reelPlay_(v) {
   if (!v || v.dataset.dead) return;
   if (!v.getAttribute('src')) {
-    const srcs = clipSrcs_(v.dataset.clip);
-    /* ---------- NO RUNG AT ALL IS AN ANSWER, NOT A DEAD SLIDE ----------------------------------
-       THIS RETURNED AND LEFT A `<video>` WITH NO SOURCE, which was right while every clip had at
-       least one address a `<video>` could be pointed at. An Instagram reel has none — see
-       `clipSrcs_` — so the slide would have been a gradient for ever, which is the "column that
-       shows a black rectangle" this file already refuses one paragraph down.
-
-       SO IT GOES STRAIGHT TO THE FRAME. Same swap the last rung makes and for the same reason;
-       what differs is only that there was never a rung to fail first. */
-    if (!srcs.length) { reelFrame_(v); return; }
+    const src = clipSrc_(v.dataset.clip);
+    if (!src) { v.dataset.dead = '1'; return; }
     /* THE SCRIM AND THE WHITE TEXT ARRIVE WITH THE FIRST FRAME, for the reason the photograph slide
-       waits for `img.onload`: until then the slide is its own gradient and its subject's initial,
-       which is a finished thing rather than a hole. */
+       waits for `img.onload`: until then the slide is its own gradient and its subject's initial. */
     v.addEventListener('loadeddata', () => {
       const art = v.closest('.feed-art');
       if (art) art.classList.add('has-photo');
     }, { once: true });
-    /* ---------- THE NEXT RUNG, AND ONLY THEN GOOGLE'S PLAYER ------------------------------------
-       NOT `{ once: true }` ANY MORE, and that is the whole change: one listener that fired once
-       took the first failure straight to the iframe, so a second address never got a turn. It
-       counts down the list instead and the iframe is what is left when there is no rung below.
-
-       `load()` BEFORE THE NEXT `src`. A `<video>` that has already failed keeps its error state
-       until it is told to start again, and setting `src` alone on some browsers does not clear it —
-       so the second address would be reported broken without being asked for. */
-    v.addEventListener('error', () => {
-      if (v.dataset.dead) return;
-      const next = Number(v.dataset.rung || 0) + 1;
-      if (next < srcs.length) {
-        v.dataset.rung = String(next);
-        v.src = srcs[next];
-        try { v.load(); } catch (e) {}
-        const p2 = v.play();
-        if (p2 && p2.catch) p2.catch(() => {});
-        return;
-      }
-      reelFrame_(v);
-    });
-    v.dataset.rung = '0';
-    v.src = srcs[0];
+    v.addEventListener('error', () => { v.dataset.dead = '1'; }, { once: true });
+    v.src = src;
   }
   /* A BLOCKED AUTOPLAY IS A REJECTED PROMISE AND NOT AN ERROR. Every browser refuses to start an
      unmuted video nobody has tapped, and one that has been unmuted by the button below and then
@@ -2153,7 +2072,6 @@ function reelPlay_(v) {
   const p = v.play();
   if (p && p.catch) p.catch(() => {});
 }
-
 /* SOUND IS OFF UNTIL IT IS ASKED FOR, because a column that starts talking the moment it opens is a
    column nobody opens twice — and because a muted video is the only kind a browser will start by
    itself. The button says the state it is IN, not the state it would move to: "Sound off" on a
@@ -2167,8 +2085,7 @@ function reelPlay_(v) {
    THE MARK IS THE HALF THAT MATTERS. A stopped video whose first frame is still on the screen looks
    exactly like a playing one that happens to be still, so `is-held` draws the ▶ over it — the same
    argument this repository writes about the pen: "a mode you cannot see is a mode that surprises
-   you". An errored clip is a Google iframe with its own controls and there is nothing here to
-   toggle, so it is left alone rather than given a mark that does nothing. */
+   you". */
 on('reel-tap', (el) => {
   const v = el.querySelector('video.feed-vid');
   if (!v) return;
