@@ -676,6 +676,95 @@ function getPostFolder() {
   }
 }
 
+/* ---------- A PICTURE, A CLIP OR A FILE IN A MESSAGE ----------------------------------------------
+   THE POSTS FOLDER'S OWN CHILD, `Messages`, made the first time it is needed. A second config key
+   would be a second thing somebody has to set before the feature works, and the one folder this
+   deployment is already known to be able to write to is the posts folder — `addPost` proves it on
+   every photograph. Null when there is no posts folder, and the caller says so.
+
+   SHARED ANYONE-WITH-LINK, EXACTLY AS A POST'S PICTURE IS, and for its reason: a file only its owner
+   can open is a broken image in the recipient's bubble, which reads as the app failing rather than
+   as a permission. The id is unguessable and appears only in the two people's own `messages`
+   reply, which is the same exposure every post's photograph already has. */
+function getMessageFolder_() {
+  const posts = getPostFolder();
+  if (!posts) return null;
+  try {
+    const it = posts.getFoldersByName('Messages');
+    return it.hasNext() ? it.next() : posts.createFolder('Messages');
+  } catch (e) { return null; }
+}
+
+/* The caps, in DECODED bytes, and the phone enforces the same numbers first (`MSG_CAP_` in me.js) so
+   a person is told before a minute of upload rather than after it. 20MB a file is a phone video of
+   about a minute; 32MB a message is what keeps the BASE64 body — four thirds of that — under the
+   ~50MB an Apps Script web app takes in one POST. A cap at a raw 45MB would be a 60MB body, refused
+   by Google with an HTML page rather than by this handler with a sentence. */
+const MSG_FILE_MAX  = 20 * 1024 * 1024;
+const MSG_FILES_MAX = 32 * 1024 * 1024;
+const MSG_FILES_COUNT = 6;
+
+/* ONE CELL, `url#type#name` items joined by ` | `. `#` and `|` are taken out of the name rather
+   than escaped — left in, `holiday|photo.jpg` comes back as two attachments on the next read, which
+   is `libCardsIn`'s argument for the same two characters. A Drive view URL never holds either. */
+function msgAttachIn_(list) {
+  return (list || []).map(a => [
+    S(a.url), S(a.type).replace(/[#|]/g, ''),
+    S(a.name).replace(/[#|\r\n]/g, ' ').trim().slice(0, 120),
+  ].join('#')).join(' | ');
+}
+
+function msgAttachOut_(cell) {
+  return S(cell).split('|').map(x => x.trim()).filter(Boolean).map(x => {
+    const p = x.split('#');
+    return { url: S(p[0]), type: S(p[1]), name: S(p.slice(2).join(' ')) };
+  }).filter(a => /^https?:\/\//.test(a.url));
+}
+
+/* `{ error }` or `{ list }`. Every file is decoded and measured BEFORE any is written, so a message
+   whose third file is too big leaves no orphans of the first two in Drive. */
+function msgAttachSave_(files) {
+  const raw = (Array.isArray(files) ? files : []).filter(f => f && S(f.data));
+  if (!raw.length) return { list: [] };
+  if (raw.length > MSG_FILES_COUNT) {
+    return { error: 'Up to ' + MSG_FILES_COUNT + ' files in one message.' };
+  }
+  const blobs = [];
+  let total = 0;
+  for (let i = 0; i < raw.length; i++) {
+    const f = raw[i];
+    const parts = S(f.data).split(',');
+    const type = (parts[0].match(/data:([^;]+)/) || [])[1] || S(f.type) || 'application/octet-stream';
+    let bytes;
+    try { bytes = Utilities.base64Decode(parts[1] || ''); }
+    catch (err) { return { error: 'Could not read ' + (S(f.name) || 'a file') + '.' }; }
+    if (bytes.length > MSG_FILE_MAX) {
+      return { error: (S(f.name) || 'A file') + ' is over 20MB — too big to send.' };
+    }
+    total += bytes.length;
+    if (total > MSG_FILES_MAX) return { error: 'Those files add up to more than 32MB — send fewer at once.' };
+    const name = S(f.name).replace(/[\\/]/g, '-').slice(0, 120) || ('file-' + (i + 1));
+    blobs.push({ blob: Utilities.newBlob(bytes, type, name), type: type, name: name });
+  }
+  const folder = getMessageFolder_();
+  if (!folder) {
+    return { error: 'No posts folder, so files have nowhere to go. Add a row to the config tab: '
+      + 'key `posts_folder`, value the id from the folder URL.' };
+  }
+  const out = [];
+  try {
+    blobs.forEach(b => {
+      const file = folder.createFile(b.blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      out.push({ url: 'https://drive.google.com/file/d/' + file.getId() + '/view',
+                 type: b.type, name: b.name });
+    });
+  } catch (err) {
+    return { error: 'Could not save the file. ' + driveTrouble_(err) };
+  }
+  return { list: out };
+}
+
 /* ---------- `pdfPageCount` AND `refreshPageCounts` WERE HERE -------------------------------------
    A PAGE COUNT IS WHAT PRICES A PRINT, and it was read by pulling the PDF's bytes out of Drive and
    counting `/Count` and `/Type /Page` in them — then written back into the document row's `pages`

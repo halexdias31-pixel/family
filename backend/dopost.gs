@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-29-a-shelves";
+const DOPOST_VERSION = "2026-09-29-c-batch";
 
 
 function doPost(e) {
@@ -1433,7 +1433,10 @@ function doPost(e) {
       if (!me) return jsonOut({ error: 'Not signed in.' });
 
       const text = S(body.body).trim();
-      if (!text) return jsonOut({ error: 'Nothing to send.' });
+      /* A MESSAGE MAY BE WORDS, FILES OR BOTH — a photograph with nothing said about it is still
+         something sent. Only a message with neither is refused. */
+      const files = (Array.isArray(body.files) ? body.files : []).filter(f => f && S(f.data));
+      if (!text && !files.length) return jsonOut({ error: 'Nothing to send.' });
       if (text.length > 2000) {
         return jsonOut({ error: 'That is longer than a message should be — 2,000 characters.' });
       }
@@ -1716,7 +1719,10 @@ function doPost(e) {
       }
 
       const text = S(body.body).trim();
-      if (!text) return jsonOut({ error: 'Nothing to send.' });
+      /* A MESSAGE MAY BE WORDS, FILES OR BOTH — a photograph with nothing said about it is still
+         something sent. Only a message with neither is refused. */
+      const files = (Array.isArray(body.files) ? body.files : []).filter(f => f && S(f.data));
+      if (!text && !files.length) return jsonOut({ error: 'Nothing to send.' });
       if (text.length > 2000) {
         return jsonOut({ error: 'That is longer than a message should be — 2,000 characters.' });
       }
@@ -1724,6 +1730,13 @@ function doPost(e) {
       /* One every five minutes. Measured from THIS sender's last message to anybody, so a burst
          cannot be spread across recipients to get round it. */
       const t = read(TAB.messages);
+      /* A FILE WITH NOWHERE TO GO IS REFUSED BEFORE ANYTHING IS UPLOADED — `addRow` would drop the
+         column with a line in the log and the message would arrive without the picture it was
+         sent for. `addPost`'s `media` rule, one tab along. */
+      if (files.length && t.headers.indexOf('attachments') < 0) {
+        return jsonOut({ error: 'The messages tab has no attachments column yet, so files cannot be '
+          + 'kept. An admin needs to run ?setup=1 once — the words can still be sent on their own.' });
+      }
       const mine = t.rows.filter(r => S(r.from_id) === S(me.person_id));
       const last = mine.reduce((newest, r) => {
         const at = sheetDate(r.sent_at);
@@ -1738,20 +1751,31 @@ function doPost(e) {
         }
       }
 
+      /* Uploaded AFTER every refusal above, so a message turned away by the gap leaves nothing
+         behind in Drive. */
+      const saved = msgAttachSave_(files);
+      if (saved.error) return jsonOut({ error: saved.error });
+
+      const id = 'M' + Date.now();
       addRow(t, {
-        message_id: 'M' + Date.now(),
+        message_id: id,
         from_id: S(me.person_id),
         to_id: S(to.person_id),
         sent_at: new Date(),
         body: text,
+        attachments: msgAttachIn_(saved.list),
       });
       clearCache();
 
       // They find out by email, because nobody sits on a tutoring site waiting for a message.
+      const extra = saved.list.length
+        ? '\n\n(' + saved.list.length + ' attachment' + (saved.list.length === 1 ? '' : 's')
+          + ' — open it on the site.)' : '';
       notify(personDisplayName(to), 'A message from ' + personDisplayName(me),
-        text + '\n\n— reply on the site.');
+        (text || 'Sent you ' + (saved.list.length === 1 ? 'a file.' : 'some files.'))
+        + extra + '\n\n— reply on the site.');
 
-      return jsonOut({ success: true });
+      return jsonOut({ success: true, id: id, attachments: saved.list });
     }
 
     /* Somebody's conversations. Only their own — an admin reading everything does it in the
@@ -1785,6 +1809,7 @@ function doPost(e) {
                                             : (who ? personDisplayName(who) : ''),
             at: fmtDateTime(r.sent_at),
             body: S(r.body),
+            attachments: msgAttachOut_(r.attachments),
             read: !!sheetDate(r.read_at),
           };
         });

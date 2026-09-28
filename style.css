@@ -2534,6 +2534,62 @@ button.text-drop { color: var(--bad); }
 .msg-said { flex: 1 0 100%; margin: .3rem 0 0; }
 .msg-said:empty { display: none; }
 
+/* ---------- THE THREAD'S OWN FURNITURE ------------------------------------------------------------
+   A day line where the conversation crosses midnight, so the line under a bubble can be the time
+   alone; a head naming who the thread is with; and what a pending bubble says about itself. */
+.msg-day { display: flex; align-items: center; gap: .6rem; margin: .7rem 0 .45rem;
+           color: var(--faint); font-size: .64rem; letter-spacing: .06em; text-transform: uppercase; }
+.msg-day::before, .msg-day::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+.msg-day:first-child { margin-top: 0; }
+.dm-head { display: flex; align-items: center; gap: .55rem; margin: 0 0 .6rem; }
+.dm-head h3 { margin: 0; min-width: 0; overflow-wrap: anywhere; }
+.dm-av { flex: 0 0 auto; width: 2rem; height: 2rem; border-radius: 50%;
+         display: grid; place-items: center;
+         background: var(--sunk); border: 1px solid var(--gold); color: var(--gold);
+         font-weight: 700; font-size: .85rem; }
+.dm-new { margin-left: .35rem; font-size: .66rem; font-weight: 400; color: var(--gold); }
+.msg.is-sending .msg-bub { opacity: .6; }
+.msg.is-failed .msg-bub { border-color: var(--bad); }
+.msg-fail { color: var(--bad); display: flex; flex-wrap: wrap; align-items: center; gap: 0 .3rem;
+            justify-content: flex-end; }
+/* 44px in px — a tap target, the one measurement here that must not scale. */
+.msg-act { min-height: 44px; padding: 0 .5rem; background: none; border: 0;
+           color: var(--gold); font: inherit; text-decoration: underline; cursor: pointer; }
+
+/* ---------- WHAT WAS SENT WITH IT ------------------------------------------------------------------
+   A picture or clip sits inside the bubble at the bubble's own width; a file is a chip that opens
+   it. A bubble holding only a picture loses its padding, so the photograph IS the bubble. */
+.msg-att { display: grid; grid-template-columns: minmax(0, 16rem); gap: .3rem; margin: .1rem 0 .3rem; }
+.msg-bub.is-bare { padding: .25rem; }
+.msg-bub.is-bare .msg-att { margin: 0; }
+/* 16rem wide whatever the picture's own size — a bubble shrinks to its content, so a small image
+   would otherwise make a bubble the width of a thumbnail. The track above caps it. */
+.msg-pic, .msg-vid { display: block; width: 16rem; max-width: 100%; min-width: 0; border-radius: .8rem; }
+.msg-pic img { display: block; width: 100%; border-radius: .8rem; }
+.msg-pic img { height: auto; max-height: 20rem; object-fit: cover; background: var(--sunk); }
+.msg-vid { max-height: 20rem; background: #000; }
+.msg-file { display: flex; align-items: center; gap: .5rem; min-height: 44px; min-width: 0;
+            padding: .3rem .6rem; border-radius: .7rem;
+            background: var(--sunk); border: 1px solid var(--line); color: var(--ink);
+            text-decoration: underline; font-size: .8rem; }
+.msg-file span { min-width: 0; overflow-wrap: anywhere; }
+.msg-file b, .msg-chip b { flex: 0 0 auto; font-size: .62rem; letter-spacing: .04em;
+            color: var(--gold); }
+
+/* ---------- THE COMPOSER'S TRAY ---------------------------------------------------------------- */
+.msg-queue { flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: .35rem; }
+.msg-queue:empty { display: none; }
+.msg-chip { display: inline-flex; align-items: center; gap: .35rem; max-width: 100%;
+            padding: 0 0 0 .5rem; border-radius: .7rem;
+            background: var(--sunk); border: 1px solid var(--line); font-size: .74rem; }
+.msg-chip img { width: 2rem; height: 2rem; object-fit: cover; border-radius: .35rem; }
+.msg-chip-name { min-width: 0; max-width: 9rem; overflow: hidden;
+                 text-overflow: ellipsis; white-space: nowrap; }
+.msg-chip-x { min-width: 44px; min-height: 44px; background: none; border: 0;
+              color: var(--dim); font-size: 1.1rem; cursor: pointer; }
+.msg-form .btn.msg-clip { width: auto; flex: 0 0 auto; min-width: 44px; min-height: 44px;
+                          padding: 0 .7rem; font-size: 1.1rem; }
+
 /* ---------- THE RECEIPT ---------------------------------------------------------------------------
    The breakdown was always a receipt: a list of what you are buying, what each part cost, and a
    total at the bottom. It is the only document shaped exactly like this, and one everybody can read
