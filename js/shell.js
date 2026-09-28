@@ -1058,9 +1058,25 @@ function placeGrid(instant, drag) {
   /* ONE LINE FOR EVERY COLUMN, read once — see `cardTop_`. */
   const topLine = cardTop_($('screen') ? $('screen').clientHeight || innerHeight : innerHeight);
 
+  /* ---------- THREE PASSES — WRITE, READ, WRITE — AND THAT IS THE WHOLE OF THE SPEED ----------
+     THIS WAS ONE LOOP THAT WROTE A COLUMN'S STYLES, THEN MEASURED IT, THEN WROTE THE NEXT ONE. Every
+     `columnShift_` reads `offsetTop` and `clientHeight`, and a read after a write forces the browser
+     to lay the whole app out again before it can answer — so eleven columns cost eleven full
+     layouts per placement, and a placement runs on every tap and every page turn. REPORTED AS "when
+     students click questions it takes ages to load on phone"; a profile at 8x CPU put
+     `columnShift_` at 188 ms of self time across five taps and six page turns.
+     WHAT IT BUYS IS SMALLER THAN THAT NUMBER, and it is worth saying so: most of a layout is work
+     the frame needs anyway, so moving it is not removing it. `paneWatch_` straight after this now
+     pays for the one layout that is left. Measured over the same walk, `placeNow_` in total went
+     from about 730 ms to about 620 ms — real, and noisy on a shared machine. The answers do not change: each column is absolutely positioned, so column 3's styles cannot
+     move a card inside column 7, and every read still sees exactly what it saw before — its own
+     host's `on` class written, its pages' classes as the last placement left them. Only the NUMBER
+     of forced layouts inside this function changes, from eleven to one. */
+  const hosts = [];
   tabs.forEach((id, i) => {
     const host = $('s-' + id);
     if (!host) return;
+    hosts.push({ id: id, i: i, host: host });
 
     /* A SCREEN IS THE COLUMN, and the column is what moves. Every page used to be positioned on
        its own; they now sit in an ordinary CSS column inside this and the whole thing slides. One
@@ -1074,12 +1090,15 @@ function placeGrid(instant, drag) {
     host.classList.toggle('on', id === AT);
     /* No transition while a finger is down — the movement is the finger, not an animation. */
     host.classList.toggle('no-anim', !!drag);
-
+  });
+  /* Slid so the page being read sits in the middle. A vertical drag only ever moves the screen in
+     front; the others have no finger on them. READ ONLY — see the three passes above. */
+  hosts.forEach(h => {
+    h.shift = columnShift_(h.host, domIndex_(h.id, PAGE[h.id] || 0), topLine) + (h.id === AT ? dyPx : 0);
+  });
+  hosts.forEach(({ id, i, host, shift }) => {
     const dx = i - ti;
     const at = PAGE[id] || 0;
-    /* Slid so the page being read sits in the middle. A vertical drag only ever moves the screen
-       in front; the others have no finger on them. */
-    const shift = columnShift_(host, domIndex_(id, at), topLine) + (id === AT ? dyPx : 0);
 
     host.style.transition = instant ? 'none' : '';
     host.style.transform =
@@ -1256,6 +1275,8 @@ function placeNow_(which, instant, dragPx, id) {
      photograph adding its controls, `drawBooker()` replacing the card outright — so the measuring
      is also booked on a `ResizeObserver` over the cards themselves. See its note in find.js. */
   if (typeof paneWatch_ === 'function') paneWatch_($('s-' + AT));
+  /* THE FEED'S NEXT PICTURES, asked for a page ahead — see `postsAhead_` in posts.js. */
+  if (AT === 'feed' && typeof postsAhead_ === 'function') postsAhead_('feed');
 
   /* ANY SCREEN NO TAB POINTS AT. index.html lists eight sections and the tab table decides which of
      them exist, so removing a tab leaves a section behind that nothing places. */

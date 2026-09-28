@@ -319,9 +319,22 @@ function findCard(x) {
             is a claim that somebody looked and there was nothing, which is the sentence this
             repository has written down five times. `row` prints a dash for an empty value, so the
             emptiness has to be decided here, before it is asked for. */''}
+      ${/* ---------- WHAT THEY TEACH, AS THE SAME CHIPS THE ADJECTIVES ARE ------------------------
+            ASKED FOR AS *"can you see how adjectives look like google chips? i want the same for
+            the subjects in tutors profile cards. to look like this ( Maths (GCSE) )"*. It was a
+            `Teaches` row, a comma list — and each subject is a separate claim a parent is looking
+            for, which is the argument the adjectives' own note makes for being chips.
+            THE SPECIALISM IS MARKED, and `teachesMain` says which one it is rather than position:
+            a tutor with no specialism and two other subjects must not have the first drawn as one.
+            `mark` still runs inside each chip, so a search for "GCSE" lights the chip it matched.
+            NOT UPPER-CASED, unlike the adjectives: "MATHS (GCSE)" is a subject shouted, and the
+            owner's own example is written in the case the sheet holds. */''}
+      ${profList_(t.teaches).length
+        ? `<div class="prof-tags prof-teach">${profList_(t.teaches).map(v =>
+             `<span class="prof-tag${t.teachesMain && v === t.teachesMain ? ' is-main' : ''}"${
+               t.teachesMain && v === t.teachesMain ? ' title="Specialises in"' : ''}>${mark(v)}</span>`)
+             .join('')}</div>` : ''}
       ${[
-        profList_(t.teaches).length
-          ? rowHtml('Teaches', profList_(t.teaches).map(v => mark(v)).join(', ')) : '',
         t.yrsExp ? row('Experience', String(t.yrsExp).replace(/^(\d+)$/, '$1 years')) : '',
         profList_(t.quals).length ? row('Qualifications', profList_(t.quals).join(' · ')) : '',
         profList_(t.extraQuals).length ? row('Also', profList_(t.extraQuals).join(' · ')) : '',
@@ -370,47 +383,27 @@ function findCard(x) {
       ].filter(Boolean).join('')}
     </div>`;
 
-  /* ---------- A VENUE IS THE SLIP ON THE DOOR ----------------------------------------------------
-     The tear-off booking slip taped to a library room: where it is, which rooms, how many fit, what
-     an hour costs. Everything on it is already on the venues and rooms tabs — this is not inventing
-     a form, it is drawing the one the data was always describing.
-
-     THE PERFORATION down the bottom is the whole trick. A rectangle with a torn edge is a slip you
-     take away, and a slip you take away is a thing you BOOK — which is what this card does when you
-     tap it. The shape says what the tap does. */
-  if (x.kind === 'venue') return `
-    ${/* NO LONGER A TAP TARGET. The sheet it opened held a "from" price and a rate; the rooms
-          below already hold one line each, which is the better version of both. */''}
-    <div class="slip">
-      <div class="slip-head">
-        <span class="slip-where">${esc(t.title)}</span>
-        ${t.subtitle ? `<span class="slip-sub">${mark(t.subtitle)}</span>` : ''}
-      </div>
-      <div class="slip-rows">
-        ${/* ONE LINE PER ROOM, which is what a venue with rooms actually is — Richmond is not one
-              price, it is three rooms at three prices holding three different numbers, and a single
-              "from" figure was the cheapest of them dressed as the answer. */''}
-        ${(t.rooms || []).length
-          ? (t.rooms || []).slice(0, 4).map(r => `
-              <div class="slip-row">
-                <span class="slip-room">${esc(r.name)}</span>
-                <span class="slip-cap">${r.max ? 'up to ' + r.max : ''}</span>
-                <span class="slip-rate mono">${r.rate ? money(r.rate) + '/h' : 'free'}</span>
-              </div>`).join('')
-          : `<div class="slip-row">
-               <span class="slip-room">The room</span>
-               <span class="slip-cap">${t.maxCapacity ? 'up to ' + t.maxCapacity : ''}</span>
-               <span class="slip-rate mono">${t.bestRate ? money(t.bestRate) + '/h' : 'free'}</span>
-             </div>`}
-      </div>
-      ${/* The perforation, and under it the stub — the part you would tear off and keep. */''}
-      <div class="slip-perf"></div>
-      <div class="slip-stub">
-        <span>${t.minNoticeDays ? esc(t.minNoticeDays) + ' days notice' : 'Book any time'}</span>
-      </div>
-      ${/* "Tap to book" WAS THE STUB'S RIGHT-HAND TEXT and it is gone: the tap it described no
-            longer exists, and a row underneath now says the same thing as a thing you press. */''}
+  /* ---------- A VENUE IS AN ORDINARY CARD ------------------------------------------------------
+     IT WAS THE SLIP ON THE DOOR — cream paper, a torn perforation and a stub, drawn to read as a
+     booking form you tear off. Asked to go: "venues have unique css. i dont want that anymore."
+     So it is `.card` with an `h3` and `row`s, which is exactly what a level and a subject are, and
+     nothing it said is lost — the place, the line under it, one row per room with how many fit and
+     what an hour costs, and the notice it needs. ONE LINE PER ROOM stays, for the reason it was
+     written: Richmond is three rooms at three prices, and a single "from" figure was the cheapest
+     of them dressed as the answer. */
+  if (x.kind === 'venue') {
+    const say = (max, rate) => [max ? 'up to ' + max : '', rate ? money(rate) + '/h' : 'free']
+      .filter(Boolean).join(' · ');
+    return `
+    <div class="card">
+      <h3>${esc(t.title)}</h3>
+      ${t.subtitle ? `<p class="sub">${mark(t.subtitle)}</p>` : ''}
+      ${(t.rooms || []).length
+        ? (t.rooms || []).slice(0, 4).map(r => row(r.name || 'Room', say(r.max, r.rate))).join('')
+        : row('The room', say(t.maxCapacity, t.bestRate))}
+      ${row('Notice', t.minNoticeDays ? t.minNoticeDays + ' days' : 'Book any time')}
     </div>`;
+  }
 
   /* ---------- A LEVEL IS THE OTHER HALF OF A SUBJECT CARD ----------------------------------------
      GCSE was never a thing you could look at. It was a word inside a tutor's `teaches` string, a

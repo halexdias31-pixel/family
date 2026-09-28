@@ -155,7 +155,8 @@
    "avail": [],
    "busy": [],
    "teaches": [
-    "Maths"
+    "Maths (GCSE)",
+    "English (KS3)"
    ],
    "quals": [
     "MMath"
@@ -164,7 +165,8 @@
    "studying": "Bible and Theology",
    "studyingAt": "University of Wales Trinity Saint David",
    "actionText": "Book this tutor",
-   "personId": "P-@ada"
+   "personId": "P-@ada",
+   "teachesMain": "Maths (GCSE)"
   }
  ],
  "students": [],
@@ -233,7 +235,11 @@
    "handle": "@family.",
    "avatar": "",
    "image": "data/reels/archetest.jpg",
-   "media": ["data/reels/archetest.jpg", "data/reels/v24044gl0000d88i15nog65im2kilnbg.jpg", "data/reels/archetest.mp4"],
+   "media": [
+    "data/reels/archetest.jpg",
+    "data/reels/v24044gl0000d88i15nog65im2kilnbg.jpg",
+    "data/reels/archetest.mp4"
+   ],
    "caption": "A very ordinary Tuesday at the library #maths",
    "body": "",
    "location": "Colliers Wood Library",
@@ -351,6 +357,16 @@
    "AQA",
    "Edexcel",
    "OCR"
+  ],
+  "teaches_1": [
+   "Maths",
+   "English",
+   "Science"
+  ],
+  "teaches_1_level": [
+   "KS3",
+   "GCSE",
+   "A-Level"
   ]
  },
  "terms": [],
@@ -423,8 +439,7 @@
   "What you teach": [
    "teaches_1",
    "teaches_1_level",
-   "teaches_2",
-   "teaches_2_level",
+   "teaches_also",
    "studying",
    "studying_at",
    "extra_quals"
@@ -441,7 +456,35 @@
    "qual_3",
    "qual_3_level",
    "qual_3_board",
-   "qual_3_grade"
+   "qual_3_grade",
+   "qual_4",
+   "qual_4_level",
+   "qual_4_board",
+   "qual_4_grade",
+   "qual_5",
+   "qual_5_level",
+   "qual_5_board",
+   "qual_5_grade",
+   "qual_6",
+   "qual_6_level",
+   "qual_6_board",
+   "qual_6_grade",
+   "qual_7",
+   "qual_7_level",
+   "qual_7_board",
+   "qual_7_grade",
+   "qual_8",
+   "qual_8_level",
+   "qual_8_board",
+   "qual_8_grade",
+   "qual_9",
+   "qual_9_level",
+   "qual_9_board",
+   "qual_9_grade",
+   "qual_10",
+   "qual_10_level",
+   "qual_10_board",
+   "qual_10_grade"
   ],
   "Your rate and group size": [
    "rate_per_hour",
@@ -538,6 +581,12 @@
    "lib3_name",
    "lib3_no",
    "lib3_pin",
+   "lib4_name",
+   "lib4_no",
+   "lib4_pin",
+   "lib5_name",
+   "lib5_no",
+   "lib5_pin",
    "library_note"
   ]
  },
@@ -546,17 +595,13 @@
    "first_name",
    "last_name",
    "date_of_birth",
-   "photo"
-  ],
-  "Contact": [
-   "email",
-   "phone"
-  ],
-  "Exam dates": [
+   "photo",
    "exam_small_date",
    "exam_big_date"
   ],
-  "Where": [
+  "Contact & address": [
+   "email",
+   "phone",
    "city",
    "town",
    "borough",
@@ -573,10 +618,49 @@
    "lib3_name",
    "lib3_no",
    "lib3_pin",
+   "lib4_name",
+   "lib4_no",
+   "lib4_pin",
+   "lib5_name",
+   "lib5_no",
+   "lib5_pin",
    "library_note"
   ]
  },
- "clientFields": [],
+ "clientFields": {
+  "About you": [
+   "first_name",
+   "last_name",
+   "photo"
+  ],
+  "Contact & address": [
+   "email",
+   "phone",
+   "city",
+   "town",
+   "borough",
+   "postcode",
+   "address"
+  ],
+  "Library cards": [
+   "lib1_name",
+   "lib1_no",
+   "lib1_pin",
+   "lib2_name",
+   "lib2_no",
+   "lib2_pin",
+   "lib3_name",
+   "lib3_no",
+   "lib3_pin",
+   "lib4_name",
+   "lib4_no",
+   "lib4_pin",
+   "lib5_name",
+   "lib5_no",
+   "lib5_pin",
+   "library_note"
+  ]
+ },
  "profileReadonly": [],
  "termsAccepted": false,
  "googleClientId": "",
