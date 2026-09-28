@@ -1275,6 +1275,8 @@ function placeNow_(which, instant, dragPx, id) {
      photograph adding its controls, `drawBooker()` replacing the card outright — so the measuring
      is also booked on a `ResizeObserver` over the cards themselves. See its note in find.js. */
   if (typeof paneWatch_ === 'function') paneWatch_($('s-' + AT));
+  /* THE FEED'S NEXT PICTURES, asked for a page ahead — see `postsAhead_` in posts.js. */
+  if (AT === 'feed' && typeof postsAhead_ === 'function') postsAhead_('feed');
 
   /* ANY SCREEN NO TAB POINTS AT. index.html lists eight sections and the tab table decides which of
      them exist, so removing a tab leaves a section behind that nothing places. */

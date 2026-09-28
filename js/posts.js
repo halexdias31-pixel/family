@@ -95,16 +95,43 @@ function postItem_(u, cls, eager) {
    photograph somebody put first is the one that leads. Squares crop — `object-fit: cover` — which the
    single-picture rule above refuses, and that refusal is about ONE picture shown whole; in a grid
    the square IS the thumbnail and every picture still has the same size as its neighbours. */
+/* ---------- THE NEXT POSTS' PICTURES ARE ASKED FOR BEFORE YOU REACH THEM ----------------------------
+   `loading="lazy"` waits for a picture to near the viewport, and in a column whose pages are moved by
+   a transform that is the moment you have already swiped to it — "each post loads as it goes".
+   Measured with the files arriving 800ms late: only 2 of 5 had been asked for when page 3 came up.
+   So every placement of the feed turns the pages one behind and two ahead to `eager`, which starts
+   the request and nothing else; the element, its box and its `src` are untouched, so a repaint
+   draws exactly what it drew. A clip is not touched — `preload="metadata"` is a decision about
+   somebody's data allowance and stays one. Called from `placeNow_` in shell.js. */
+function postsAhead_(id) {
+  try {
+    const host = $('s-' + id);
+    if (!host || !host.querySelector('img[loading="lazy"]')) return;
+    const pages = host.querySelectorAll(':scope .page');
+    const at = PAGE[id] || 0;
+    const k = typeof domIndex_ === 'function' ? domIndex_(id, at) : at;
+    for (let n = k - 1; n <= k + 2; n++) {
+      const pg = pages[n];
+      if (pg) pg.querySelectorAll('img[loading="lazy"]').forEach(img => { img.loading = 'eager'; });
+    }
+  } catch (e) { /* a picture fetched on arrival is still a picture */ }
+}
 function postMediaHtml_(list, i) {
   if (!list.length) return '';
   if (list.length === 1) {
     const u = list[0];
     if (postIsVideo_(u)) return postItem_(u, 'post-pic', i < 2);
-    /* A SHAPE BEFORE IT LOADS — see the note where this markup was written out inline. */
-    return `<img class="post-pic" src="${esc(pic(u))}" alt=""
-           style="aspect-ratio:4/5"
-           onload="this.style.aspectRatio=this.naturalWidth+'/'+this.naturalHeight"
-           loading="${i < 2 ? 'eager' : 'lazy'}">`;
+    /* A SHAPE THAT DOES NOT DEPEND ON THE PICTURE. This reserved 4:5 and then, on `onload`, swapped
+       in the file's own proportions — which is a card changing height AFTER the column was placed.
+       Measured at 390x844 with the photographs arriving 800ms late: a 2:1 landscape post shrank by
+       203px under the thumb, the caption, the reactions and the comment box sliding up the moment
+       the picture landed. That is "it keeps moving". The box is 4:5 of the card whatever the file
+       says — `aspect-ratio` without `auto` ignores the natural ratio — and the picture sits inside
+       it with `object-fit: contain` on the sunk ink (`.post-pic` in style.css), so nothing is
+       cropped and nothing that arrives late can move the card. `width`/`height` say the same 4:5
+       to anything that reads the attributes before the stylesheet. */
+    return `<img class="post-pic" src="${esc(pic(u))}" alt="" width="800" height="1000"
+           decoding="async" loading="${i < 2 ? 'eager' : 'lazy'}">`;
   }
   return `<div class="post-grid${list.length % 2 ? ' is-odd' : ''}">${
     list.map((u, k) => postItem_(u, 'post-cell', i < 2 && k < 2)).join('')}</div>`;
