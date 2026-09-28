@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-28-g-many";
+const DOPOST_VERSION = "2026-09-29-b-attach";
 
 
 function doPost(e) {
@@ -1692,20 +1692,31 @@ function doPost(e) {
         }
       }
 
+      /* Uploaded AFTER every refusal above, so a message turned away by the gap leaves nothing
+         behind in Drive. */
+      const saved = msgAttachSave_(files);
+      if (saved.error) return jsonOut({ error: saved.error });
+
+      const id = 'M' + Date.now();
       addRow(t, {
-        message_id: 'M' + Date.now(),
+        message_id: id,
         from_id: S(me.person_id),
         to_id: S(to.person_id),
         sent_at: new Date(),
         body: text,
+        attachments: msgAttachIn_(saved.list),
       });
       clearCache();
 
       // They find out by email, because nobody sits on a tutoring site waiting for a message.
+      const extra = saved.list.length
+        ? '\n\n(' + saved.list.length + ' attachment' + (saved.list.length === 1 ? '' : 's')
+          + ' — open it on the site.)' : '';
       notify(personDisplayName(to), 'A message from ' + personDisplayName(me),
-        text + '\n\n— reply on the site.');
+        (text || 'Sent you ' + (saved.list.length === 1 ? 'a file.' : 'some files.'))
+        + extra + '\n\n— reply on the site.');
 
-      return jsonOut({ success: true });
+      return jsonOut({ success: true, id: id, attachments: saved.list });
     }
 
     /* Somebody's conversations. Only their own — an admin reading everything does it in the
@@ -1739,6 +1750,7 @@ function doPost(e) {
                                             : (who ? personDisplayName(who) : ''),
             at: fmtDateTime(r.sent_at),
             body: S(r.body),
+            attachments: msgAttachOut_(r.attachments),
             read: !!sheetDate(r.read_at),
           };
         });

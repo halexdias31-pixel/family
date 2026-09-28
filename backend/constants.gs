@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-28-g-many";
+const BACKEND_VERSION = "2026-09-29-b-attach";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1056,6 +1056,10 @@ const SCHEMA = {
   messages: [
     "message_id", "from_id", "to_id", "sent_at", "body",
     "read_at", "flagged", "flag_reason",
+    /* ATTACHMENTS: pictures, clips and files, as `url#type#name` items joined by ` | `. One cell
+       rather than `attachment_1 … attachment_n`, which is the numbered-column fault this file
+       refuses under `images` and `needs` — see `msgAttachIn_` in content.gs, the only writer. */
+    "attachments",
   ],
 
   /* FAMILY LINKS. A parent asks; the child accepts. Nothing is true until both have said so.
