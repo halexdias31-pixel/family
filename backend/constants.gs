@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-28-e-quals";
+const BACKEND_VERSION = "2026-09-28-f-settings";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1989,8 +1989,15 @@ const PRICING_FIELDS = ['rate_per_hour', 'extra_seat_rate', 'max_students', 'min
    One list per role drives the edit form AND the write allow-list, so the two cannot drift.
    Anything not named here is unreachable by updateProfile — pin, role, xp and credits included. */
 const PROFILE_GROUPS = {
+  /* ---------- EIGHT PAGES, NOT TWELVE ---------------------------------------------------------
+     ASKED AS *"look at all of account settings. make it all more efficient and intuitive it looks
+     long right now."* It was twelve groups, so twelve cards with twelve Saves — `Yours` was one box
+     on a page of its own, `Where` and `Where you are` were two pages about one place, and `Studying
+     now` and `More qualifications` were two more for three boxes between them. Merged by what a
+     person thinks of as one question; the phone lays related boxes side by side (`FIELD_ROWS` in
+     me.js), so a merged page is shorter than the two it replaced. */
   'About you':   ['first_name','last_name','headline','photo','video','years_experience',
-                  'adjective_1','adjective_2','adjective_3'],
+                  'favourite_colour','adjective_1','adjective_2','adjective_3'],
   /* ---------- CONTACT IS SECOND NOW, AND THE ORDER OF THIS OBJECT IS THE ORDER OF THE COLUMN ----
      REPORTED AS *"add email field in account settings"*, and the field was already here — at the
      BOTTOM. `settingsPages_` maps these keys straight onto pages, so `Contact` was the thirteenth
@@ -2002,7 +2009,9 @@ const PROFILE_GROUPS = {
      they came to change. `CLIENT_GROUPS` and `STUDENT_GROUPS` have always had it second; this is
      the map that disagreed with them. */
   'Contact':     ['email','phone','date_of_birth'],
-  'Where':       ['borough','city','town','travel_km'],
+  /* THE PLACE AND THE ADDRESS ON ONE PAGE. The address is still private — `doGet` sends it to an
+     admin only — it simply stops being a second page about the same place. */
+  'Where':       ['city','town','borough','postcode','address','travel_km'],
   /* ---------- ONE PAGE, BECAUSE THEY ARE ONE DECISION AND ONE CLOCK ---------------------------
      `Group size` AND `Your rate` WERE TWO PAGES WITH A SAVE EACH, and the four fields on them are
      what a family is quoted: an hour with this tutor, what a second seat is worth, and the range of
@@ -2020,11 +2029,10 @@ const PROFILE_GROUPS = {
      BUILT FROM `PRICING_FIELDS`, which is also what `pricingRefusal_` reads, so the page and the
      cooldown cannot disagree about which fields are the quote. */
   'Your rate and group size': PRICING_FIELDS,
-  /* An address is a parent's to give and nobody else's business, so it sits with contact details
-     rather than on the public card. */
-  'Where you are': ['address', 'postcode'],
-  'Yours':       ['favourite_colour'],
-  'What you teach': ['teaches_1','teaches_1_level','teaches_2','teaches_2_level'],
+  /* WHAT YOU TEACH, WHAT YOU ARE STUDYING AND ANYTHING ELSE — one page, because they are the
+     three answers to "what do you know". `Qualifications` beside it is the graded list. */
+  'What you teach': ['teaches_1','teaches_1_level','teaches_2','teaches_2_level',
+                     'studying','studying_at','extra_quals'],
   /* ---------- ONE PAGE FOR ALL THREE, NOT THREE PAGES WITH A SAVE EACH -------------------------
      ASKED AS *"is there a more efficient way to edit account settings for qualifications?"*. It was
      three groups, so `settingsPages_` drew three cards and three Saves, twelve captioned boxes and
@@ -2034,11 +2042,6 @@ const PROFILE_GROUPS = {
   'Qualifications': ['qual_1','qual_1_level','qual_1_board','qual_1_grade',
                      'qual_2','qual_2_level','qual_2_board','qual_2_grade',
                      'qual_3','qual_3_level','qual_3_board','qual_3_grade'],
-  /* AFTER THE THREE, because it is the one that is not finished. A page of its own rather than a
-     fourth box on Qualification 3 — `settingsPages_` maps each key here onto its own card with its
-     own Save, and a thing you are still doing is not part of a thing you have done. */
-  'Studying now': ['studying','studying_at'],
-  'More qualifications': ['extra_quals'],
   'Availability': AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), []),
   /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA.
      It is in all three group maps because a tutor, a parent and a student each have one library
@@ -2048,10 +2051,9 @@ const PROFILE_GROUPS = {
 const CLIENT_GROUPS = {
   'About you': ['first_name','last_name','photo'],
   'Contact':   ['email','phone'],
-  'Where':     ['borough','city','town'],
-  /* An address, because a printed copy has to go somewhere. Without it the basket can offer
+  /* The address, because a printed copy has to go somewhere. Without it the basket can offer
      collection and nothing else, and the reason is invisible on a form that never asked. */
-  'Where you are': ['address','postcode'],
+  'Where':     ['city','town','borough','postcode','address'],
   'Library cards': LIBRARY_FIELDS.concat(['library_note']),
 };
 const STUDENT_GROUPS = {
@@ -2068,8 +2070,7 @@ const STUDENT_GROUPS = {
      one, so neither of the other two maps carries these — which is what makes them appear for a
      student and for nobody else, with nothing on the phone deciding it. */
   'Exam dates': ['exam_small_date','exam_big_date'],
-  'Where':     ['borough','city','town'],
-  'Where you are': ['address','postcode'],
+  'Where':     ['city','town','borough','postcode','address'],
   'Library cards': LIBRARY_FIELDS.concat(['library_note']),
 };
 /* `RESOURCE_GROUPS` WAS HERE — the seven sections of the admin form that relabelled a paper, and

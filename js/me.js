@@ -1520,8 +1520,13 @@ function settingsPages_() {
      a rule written twice is two rules to keep in step, and the server's own sentence already says
      what to do instead. Writing "3 to 20 characters" in this file would be a third place for that
      number to be wrong. */
+  /* ---------- SIGNING IN IS ONE CARD: YOUR USERNAME AND YOUR PIN --------------------------------
+     They were two pages. Each keeps its own button and its own line underneath, because each goes
+     to a different handler with different rules — folding them into one Save would mean every
+     username change asking for a PIN. The three PIN boxes sit on one line, captioned by what they
+     are in order, which is most of the height the second page cost. */
   pages.push(`<div class="card">
-    <h3>Your username</h3>
+    <h3>Signing in</h3>
     <label class="field"><span>username</span>
       <input id="handle-new" type="text" autocapitalize="none" autocorrect="off"
         spellcheck="false" maxlength="20"
@@ -1529,21 +1534,14 @@ function settingsPages_() {
     <button class="btn quiet" data-do="handle-save">Change my username</button>
     <p class="faint" id="handle-said" style="margin:.6rem 0 0">This is how people find you.
       You can change it once a month.</p>
-  </div>`);
-
-  /* THE PIN, at the end of your own settings — which is what it is. It had a card of its own on the
-     You screen opening a sheet of its own, to change one of the things this column already exists
-     to change.
-     SAVED SEPARATELY, and that is not an inconsistency: a PIN needs the current one to change it,
-     and folding it into `Save` would mean every change of an address asking for a password. */
-  pages.push(`<div class="card">
-    <h3>Your PIN</h3>
-    <label class="field"><span>current PIN</span>
-      <input id="pin-now" type="password" inputmode="numeric" autocomplete="current-password"></label>
-    <label class="field"><span>new PIN</span>
-      <input id="pin-new" type="password" inputmode="numeric" autocomplete="new-password"></label>
-    <label class="field"><span>and again</span>
-      <input id="pin-again" type="password" inputmode="numeric" autocomplete="new-password"></label>
+    <div class="f-row pin-row" style="--n:3">
+      <label class="field"><span>current PIN</span>
+        <input id="pin-now" type="password" inputmode="numeric" autocomplete="current-password"></label>
+      <label class="field"><span>new PIN</span>
+        <input id="pin-new" type="password" inputmode="numeric" autocomplete="new-password"></label>
+      <label class="field"><span>again</span>
+        <input id="pin-again" type="password" inputmode="numeric" autocomplete="new-password"></label>
+    </div>
     <button class="btn quiet" data-do="pin-save">Change my PIN</button>
     <p class="faint" id="pin-said" style="margin:.6rem 0 0">4 to 8 numbers, and not 1234.</p>
   </div>`);
@@ -1851,6 +1849,50 @@ function fieldHtml(name, value, o) {
       seen.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`;
 }
 
+/* ---------- BOXES THAT ARE ONE QUESTION SIT ON ONE LINE ----------------------------------------
+   ASKED AS *"make it all more efficient and intuitive it looks long right now."* A name is a first
+   and a last; a subject is the subject and its level; three words are three words. Drawn one under
+   another each costs a whole row and a caption, so a page of them read as a list twice as long as
+   the thing it asks. Side by side they read as the pairs they are.
+
+   WHEN EVERY MEMBER IS ON THE PAGE, AND ONLY THEN — a group that sends one of a pair draws it as an
+   ordinary box, so this can never hide a field or invent one. `cap` gives the row ONE caption and
+   the boxes placeholders instead, for the three words, where "adjective 1, adjective 2, adjective 3"
+   over three narrow boxes would be the caption saying the same thing three times. */
+const FIELD_ROWS = [
+  { fields: ['first_name', 'last_name'] },
+  { fields: ['adjective_1', 'adjective_2', 'adjective_3'], cap: 'you, in three words',
+    ph: ['word 1', 'word 2', 'word 3'] },
+  { fields: ['years_experience', 'favourite_colour'] },
+  { fields: ['photo', 'video'] },
+  { fields: ['city', 'town'] },
+  { fields: ['borough', 'postcode'] },
+  { fields: ['teaches_1', 'teaches_1_level'] },
+  { fields: ['teaches_2', 'teaches_2_level'] },
+  { fields: ['studying', 'studying_at'] },
+];
+const ROW_LABEL = {
+  teaches_1: 'teaches', teaches_1_level: 'level', teaches_2: 'also teaches', teaches_2_level: 'level',
+  studying: 'studying now', studying_at: 'at', years_experience: 'years teaching',
+  photo: 'photo link', video: 'video link',
+  travel_km: 'will travel (km)', extra_quals: 'anything else', favourite_colour: 'favourite colour',
+};
+function fieldRows_(list, one) {
+  const out = [], done = new Set();
+  list.forEach(f => {
+    if (done.has(f)) return;
+    const row = FIELD_ROWS.find(r => r.fields[0] === f && r.fields.every(x => list.indexOf(x) !== -1));
+    if (!row) { out.push(one(f, {})); return; }
+    row.fields.forEach(x => done.add(x));
+    const boxes = row.fields.map((x, i) => one(x, row.cap ? { placeholder: row.ph[i] } : {})).join('');
+    out.push(row.cap
+      ? `<div class="f-rowwrap"><span class="dob-cap">${esc(row.cap)}</span>
+           <div class="f-row" style="--n:${row.fields.length}">${boxes}</div></div>`
+      : `<div class="f-row" style="--n:${row.fields.length}">${boxes}</div>`);
+  });
+  return out.join('');
+}
+
 /**
  * A WHOLE FORM, from a group table.
  *
@@ -2028,12 +2070,13 @@ function fieldsHtml(groups, o) {
       : (library ? libraryShelf_(list, value) : '')
       + (quals ? qualShelf_(list, value, o.options) : '')
       + (wantsDob ? dobBoxes_(value) : '')
-      + rest.map(f => fieldHtml(f, value(f), {
+      + fieldRows_(rest, (f, extra) => fieldHtml(f, value(f), Object.assign({
           attr: o.attr,
+          label: ROW_LABEL[f],
           options: o.options ? o.options(f) : null,
           suggest: o.suggest ? o.suggest(f) : null,
           readonly: (o.readonly || []).indexOf(f) !== -1,
-        })).join('');
+        }, extra)));
     return `<${head}><span>${esc(g)}</span></${head}>` + body;
   }).join('');
 }
