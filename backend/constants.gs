@@ -1714,17 +1714,14 @@ const QUAL_FIELDS = (() => {
 })();
 const QUAL_FIELD = /^qual_\d+(_level|_board|_grade)?$/;
 
-/* ---------- AND WHAT ELSE A TUTOR TEACHES, AS PAIRS OVER ONE CELL -------------------------------
-   `also_N` and `also_N_level`, a subject and a level each, packed into `teaches_also`. Eight,
-   because a tutor with more than one specialism and eight others is describing a school, and a
-   longer list on the card is a list a parent stops reading. */
+/* ---------- AND WHAT ELSE A TUTOR TEACHES, AS ONE CELL OF "Subject (Level)" PHRASES --------------
+   `teaches_also` IS A REAL COLUMN, not a packed set of boxes: the phone draws it as the settings
+   column's multi-select (the anchored `#drop` panel `extra_quals` already uses), every option a
+   "Maths (GCSE)" phrase, so what arrives is already the cell. `teachAlsoIn` in core.gs only tidies
+   it — dedupes, drops a bracket with nothing in front of it, and caps it here. Eight, because a
+   tutor with a specialism and eight others is describing a school, and a longer list on the card
+   is a list a parent stops reading. */
 const TEACH_ALSO_MAX = 8;
-const TEACH_ALSO_FIELDS = (() => {
-  const out = [];
-  for (let i = 1; i <= TEACH_ALSO_MAX; i++) out.push('also_' + i, 'also_' + i + '_level');
-  return out;
-})();
-const TEACH_ALSO_FIELD = /^also_\d+(_level)?$/;
 
 /* ---------- A DATE OF BIRTH IS THREE NUMBERS SOMEBODY REMEMBERS, NOT A DATE THEY PICK -------------
    ASKED FOR AS *"date of birth should be 3 boxes. day, month and year. or copy the best practice
@@ -2080,11 +2077,11 @@ const PROFILE_GROUPS = {
   /* ---------- WHAT YOU SPECIALISE IN, THEN WHAT ELSE YOU TEACH -------------------------------
      ASKED FOR AS *"should be what you specialise teaching in and what you also teach."* The
      specialism is one subject and one level (`teaches_1`, unchanged, so nothing that reads it
-     moves); everything else is a list of pairs over one cell, drawn as filled rows plus one empty
-     one and an `Add another` (`alsoShelf_` in js/me.js). `teaches_2` is not on the form any more —
+     moves); everything else is `teaches_also`, one multi-select of "Subject (Level)" phrases in the
+     anchored panel `extra_quals` already uses. `teaches_2` is not on the form any more —
      it is mirrored from the first "also" pair on save, and migrated into it on read. */
-  'What you teach': ['teaches_1','teaches_1_level'].concat(TEACH_ALSO_FIELDS,
-                     ['studying','studying_at','extra_quals']),
+  'What you teach': ['teaches_1','teaches_1_level','teaches_also',
+                     'studying','studying_at','extra_quals'],
   /* ---------- ONE PAGE FOR ALL THREE, NOT THREE PAGES WITH A SAVE EACH -------------------------
      ASKED AS *"is there a more efficient way to edit account settings for qualifications?"*. It was
      three groups, so `settingsPages_` drew three cards and three Saves, twelve captioned boxes and
@@ -2137,10 +2134,10 @@ const FIELD_OPTIONS = {
   // what a tutor teaches and what a client may ask for — deliberately the same list
   teaches_1: 'subject', teaches_2: 'subject',
   teaches_1_level: 'level', teaches_2_level: 'level',
-  /* ONE ENTRY FOR EACH SHELF, NOT ONE PER SLOT. `qual_4` … `qual_10` and `also_2` … `also_8` offer
-     the same lists as the first, and sending forty copies of the subject list on every payload is
-     weight for nobody — the phone reads a slot's list off its first (`fieldOptions_` in js/me.js). */
-  also_1: 'subject', also_1_level: 'level',
+  /* NOT ONE PER SHELF SLOT. `qual_4` … `qual_10` offer the same lists as `qual_1…3`, and sending
+     forty copies of the subject list on every payload is weight for nobody — the phone reads a
+     slot's list off its first (`fieldOptions_` in js/me.js), and builds `teaches_also`'s phrases
+     from `teaches_1`'s two lists. */
   qual_1: 'subject', qual_2: 'subject', qual_3: 'subject',
   qual_1_level: 'level', qual_2_level: 'level', qual_3_level: 'level',
   qual_1_grade: 'grade', qual_2_grade: 'grade', qual_3_grade: 'grade',

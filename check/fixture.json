@@ -235,7 +235,11 @@
    "handle": "@family.",
    "avatar": "",
    "image": "data/reels/archetest.jpg",
-   "media": ["data/reels/archetest.jpg", "data/reels/v24044gl0000d88i15nog65im2kilnbg.jpg", "data/reels/archetest.mp4"],
+   "media": [
+    "data/reels/archetest.jpg",
+    "data/reels/v24044gl0000d88i15nog65im2kilnbg.jpg",
+    "data/reels/archetest.mp4"
+   ],
    "caption": "A very ordinary Tuesday at the library #maths",
    "body": "",
    "location": "Colliers Wood Library",
@@ -354,12 +358,12 @@
    "Edexcel",
    "OCR"
   ],
-  "also_1": [
+  "teaches_1": [
    "Maths",
    "English",
    "Science"
   ],
-  "also_1_level": [
+  "teaches_1_level": [
    "KS3",
    "GCSE",
    "A-Level"
@@ -433,22 +437,7 @@
   "What you teach": [
    "teaches_1",
    "teaches_1_level",
-   "also_1",
-   "also_1_level",
-   "also_2",
-   "also_2_level",
-   "also_3",
-   "also_3_level",
-   "also_4",
-   "also_4_level",
-   "also_5",
-   "also_5_level",
-   "also_6",
-   "also_6_level",
-   "also_7",
-   "also_7_level",
-   "also_8",
-   "also_8_level",
+   "teaches_also",
    "studying",
    "studying_at",
    "extra_quals"

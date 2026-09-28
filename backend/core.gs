@@ -1009,12 +1009,14 @@ function qualsIn(fields) {
   return items.join('|');
 }
 
-/* ---------- WHAT ELSE A TUTOR TEACHES, AS ONE CELL AND SIXTEEN BOXES -----------------------------
-   WRITTEN THE WAY THE CARD PRINTS IT — `Maths (GCSE)|English (KS3)` — so the sheet reads as the
-   card does. The level is the LAST bracketed group, so a subject with brackets of its own and a
-   level still comes apart right; the one case it cannot tell apart is a bracketed subject with NO
-   level, which the subject list does not hold. `teaches_2` is the legacy answer, read when the cell
-   is empty for the reason `qualsList_` gives. */
+/* ---------- WHAT ELSE A TUTOR TEACHES, AS ONE CELL OF "Subject (Level)" PHRASES --------------------
+   WRITTEN THE WAY THE CARD PRINTS IT — `Maths (GCSE), English (KS3)` — so the sheet reads as the
+   card does, and comma-separated because that is what the phone's multi-select already writes for
+   `extra_quals`. A pipe is read as a separator too, so a cell typed by hand either way comes apart.
+   The level is the LAST bracketed group, so a subject with brackets of its own and a level still
+   comes apart right. `teaches_2` is the legacy answer, read when the cell is empty for the reason
+   `qualsList_` gives: a row nobody has saved since this landed must not show an empty list, or the
+   next save mirrors the empty back over `teaches_2`. */
 function teachAlsoList_(r) {
   r = r || {};
   const cell = S(r.teaches_also);
@@ -1022,30 +1024,26 @@ function teachAlsoList_(r) {
     const m = S(t).match(/^(.*?)\s*\(([^()]*)\)\s*$/);
     return m ? { subject: S(m[1]), level: S(m[2]) } : { subject: S(t), level: '' };
   };
-  if (cell) return cell.split('|').map(one).filter(x => x.subject).slice(0, TEACH_ALSO_MAX);
+  if (cell) return cell.split(/[|,]/).map(one).filter(x => x.subject).slice(0, TEACH_ALSO_MAX);
   const legacy = { subject: S(r.teaches_2), level: S(r.teaches_2_level) };
   return legacy.subject ? [legacy] : [];
 }
-function teachAlsoOut(r) {
-  const list = teachAlsoList_(r), out = {};
-  for (let i = 1; i <= TEACH_ALSO_MAX; i++) {
-    const x = list[i - 1] || {};
-    out['also_' + i] = S(x.subject);
-    out['also_' + i + '_level'] = S(x.level);
-  }
-  return out;
-}
-/* A LEVEL WITH NO SUBJECT IS DROPPED, because "(GCSE)" on a card is a bracket with nothing in front
-   of it — the form's level box on an empty row is a default somebody did not choose. Brackets and
-   pipes are taken out of what is typed, because either would change how the cell splits. */
-function teachAlsoIn(fields) {
-  const cut = v => S(v).replace(/[|()]/g, ' ').replace(/\s+/g, ' ').trim();
-  const items = [];
-  for (let i = 1; i <= TEACH_ALSO_MAX; i++) {
-    const subject = cut(fields['also_' + i]), level = cut(fields['also_' + i + '_level']);
-    if (subject) items.push(subject + (level ? ' (' + level + ')' : ''));
-  }
-  return items.join('|');
+const teachAlsoPhrase_ = x => S(x.subject) + (S(x.level) ? ' (' + S(x.level) + ')' : '');
+/* THE CELL AS THE FORM SHOULD SHOW IT — including a legacy `teaches_2` promoted into the list. */
+function teachAlsoOut(r) { return teachAlsoList_(r).map(teachAlsoPhrase_).join(', '); }
+/* AND WHAT THE FORM POSTED, TIDIED: deduped (case-blind), capped, and a bracket with nothing in front
+   of it dropped — "(GCSE)" on a card is a level with no subject. An EMPTY post stays empty: that is a
+   tutor clearing the list, and `teachAlsoList_`'s fallback is why `teaches_2` is mirrored empty too. */
+function teachAlsoIn(value) {
+  const seen = {}, out = [];
+  S(value).split(/[|,]/).forEach(t => {
+    const x = teachAlsoList_({ teaches_also: t })[0];
+    if (!x || !x.subject) return;
+    const phrase = teachAlsoPhrase_(x), k = phrase.toLowerCase();
+    if (seen[k] || out.length >= TEACH_ALSO_MAX) return;
+    seen[k] = true; out.push(phrase);
+  });
+  return out.join(', ');
 }
 
 /* ---------- A DATE OF BIRTH, AS THREE BOXES AND BACK ----------------------------------------------

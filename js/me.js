@@ -1765,21 +1765,34 @@ const FIELD_LISTS_ = {
 };
 /* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell — the shape
    `extra_quals` already had as free text, so nothing written before this needs migrating. */
-const FIELD_MULTI = { extra_quals: true };
+const FIELD_MULTI = { extra_quals: true, teaches_also: true };
 /* ---------- AND ONE SHELF SLOT'S LIST OFF THE FIRST SLOT'S -------------------------------------
-   `FIELD_OPTIONS` sends `qual_1_level` and `also_1` ONCE rather than ten times each — see its note
-   in constants.gs — so `qual_7_level` asks for `qual_1`'s list here. `also_N` then falls back to
-   what `teaches_1` offers and to the booking lists, so a backend too old to send `also_1` still
-   draws real subjects rather than a text box. */
+   `FIELD_OPTIONS` sends `qual_1_level` ONCE rather than ten times — see its note in constants.gs —
+   so `qual_7_level` asks for `qual_1`'s list here. `teaches_also` is built from `teaches_1`'s two
+   lists, falling back to the booking lists, so a backend too old to send them still offers real
+   subjects rather than nothing. */
 function fieldOptions_(f) {
   const v = (typeof DATA !== 'undefined' && DATA && DATA.validations) || {};
   const dd = (typeof DATA !== 'undefined' && DATA && DATA.dropdowns) || {};
   const got = x => (x && x.length ? x : null);
-  const first = String(f).replace(/^(qual|also)_\d+/, '$1_1');
+  const first = String(f).replace(/^qual_\d+/, 'qual_1');
   return got(v[f]) || FIELD_LISTS_[f] || got(v[first])
-    || (/^also_\d+$/.test(f) ? got(v.teaches_1) || got(dd.subjects) : null)
-    || (/^also_\d+_level$/.test(f) ? got(v.teaches_1_level) || got(dd.levels) : null)
+    || (f === 'teaches_also' ? teachPhrases_(got(v.teaches_1) || got(dd.subjects) || [],
+                                             got(v.teaches_1_level) || got(dd.levels) || []) : null)
     || null;
+}
+/* ---------- "ALSO TEACH" IS EVERY SUBJECT AT EVERY LEVEL, WRITTEN AS THE CARD WRITES IT --------
+   ASKED FOR AS *"should be what you specialise teaching in and what you also teach."* Each option
+   is one phrase — `Maths (GCSE)` — built from the same two lists `teaches_1` offers, so what is
+   ticked is already what the card prints and what `teaches_also` holds. Subject-major, because a
+   tutor thinks "Maths, at which levels" rather than "GCSE, in which subjects"; `meDropHtml_` draws
+   them grouped by subject for the same reason, so a hundred phrases read as twelve short rows. */
+function teachPhrases_(subjects, levels) {
+  const out = [];
+  subjects.forEach(sub => { (levels.length ? levels : ['']).forEach(l => {
+    out.push(sub + (l ? ' (' + l + ')' : ''));
+  }); });
+  return out;
 }
 
 /**
@@ -1916,11 +1929,24 @@ function meDropHtml_(field, box) {
      easy to lose on the next save. */
   const opts = (fieldOptions_(field) || []).slice();
   got.forEach(g => { if (!opts.some(x => norm(x) === norm(g))) opts.push(g); });
+  const btn = (x, text) => `<button type="button"
+        class="btn quiet pick-opt${on(x) ? ' on' : ''}" data-do="me-many-pick" data-val="${esc(x)}"
+        aria-pressed="${on(x) ? 'true' : 'false'}">${on(x) ? '✓ ' : ''}${esc(text)}</button>`;
+  /* ---------- A PHRASE LIST IS DRAWN GROUPED BY ITS SUBJECT -----------------------------------
+     `teaches_also` offers every subject at every level — about a hundred buttons as one flat list,
+     which is a list nobody scans. Grouped, it is one short row per subject with the levels as its
+     buttons, and the button says only the level because the row's head already says the subject.
+     `data-val` is still the whole phrase, so the pick handler and the save are untouched. */
+  const lvl = x => (String(x).match(/^(.*?)\s*\(([^()]*)\)\s*$/) || []);
+  const body = field === 'teaches_also'
+    ? [...new Set(opts.map(x => lvl(x)[1] || x))].map(sub => `<div class="pick-group">
+        <span class="pick-head">${esc(sub)}</span>
+        <div class="pick-list">${opts.filter(x => (lvl(x)[1] || x) === sub)
+          .map(x => btn(x, lvl(x)[2] || x)).join('')}</div></div>`).join('')
+    : `<div class="pick-list">${opts.map(x => btn(x, x)).join('')}</div>`;
   return `<p class="drop-say${got.length ? '' : ' is-none'}">${got.length ? esc(got.join(', '))
       : 'Nothing chosen yet — tap as many as apply.'}</p>
-    <div class="pick-list">${opts.map(x => `<button type="button"
-        class="btn quiet pick-opt${on(x) ? ' on' : ''}" data-do="me-many-pick" data-val="${esc(x)}"
-        aria-pressed="${on(x) ? 'true' : 'false'}">${on(x) ? '✓ ' : ''}${esc(x)}</button>`).join('')}</div>
+    ${body}
     <button type="button" class="btn quiet drop-done" data-do="me-many-done">Done</button>`;
 }
 function meDrop_() {
@@ -2019,7 +2045,7 @@ const FIELD_ROWS = [
   { fields: ['studying', 'studying_at'] },
 ];
 const ROW_LABEL = {
-  teaches_1: 'specialise in', teaches_1_level: 'level',
+  teaches_1: 'specialise in', teaches_1_level: 'level', teaches_also: 'also teach',
   studying: 'studying now', studying_at: 'at', years_experience: 'years teaching',
   photo: 'photo link', video: 'video link',
   travel_km: 'will travel (km)', extra_quals: 'more qualifications', favourite_colour: 'favourite colour',
@@ -2147,27 +2173,6 @@ on('shelf-more', el => {
   if (!shelf || !shelf.querySelector('.lib-card[hidden]')) el.remove();
 });
 
-/* ---------- WHAT ELSE A TUTOR TEACHES, ONE ROW A SUBJECT --------------------------------------
-   `also_N` and `also_N_level`, recognised by the shape of the names like every shelf here. A pair
-   is ONE row — the subject wide, the level narrow — because it is read as one phrase, "Maths
-   (GCSE)", which is exactly how the card prints it. */
-const isAlsoField_ = f => /^also_\d+(_level)?$/.test(String(f || ''));
-const isAlso_ = list => (list || []).some(isAlsoField_);
-function alsoShelf_(list, value, options) {
-  const nums = [...new Set((list || []).filter(isAlsoField_)
-    .map(f => String(f).match(/^also_(\d+)/)[1]))];
-  const box = (f, ph) => fieldHtml(f, value(f), { placeholder: ph, options: options ? options(f) : null });
-  return `<span class="dob-cap">also teach</span><div class="lib-shelf also-shelf">${shelfSlots_(nums,
-    n => shelfFilled_(value, ['also_' + n]),
-    (n, hide) => `
-    <div class="lib-card"${hide ? ' hidden' : ''}>
-      <div class="lib-row">
-        ${box('also_' + n, 'Subject')}
-        ${box('also_' + n + '_level', 'Level')}
-      </div>
-    </div>`)}</div>`;
-}
-
 /* ---------- AND A GROUP OF `qual_N*` NAMES IS A SHELF OF QUALIFICATIONS -------------------------
    THE LIBRARY SHELF'S SHAPE, ONE GROUP ALONG, and recognised the same way — by the names, never by
    the group's title. Twelve captioned boxes are about 760px at 320 against a pane that caps at 534,
@@ -2265,7 +2270,6 @@ function fieldsHtml(groups, o) {
        then need a heading of its own. */
     const library = !timetable && isLibrary_(list);
     const quals = !timetable && isQuals_(list);
-    const also = !timetable && isAlso_(list);
     /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT --------
        `date_of_birth` IS STILL IN THE GROUP because the backend's list names columns and that is
        the column. Drawing it as well as the three boxes would be the same fact twice on one card —
@@ -2279,21 +2283,13 @@ function fieldsHtml(groups, o) {
        the backend is tidied. */
     const wantsDob = !timetable && (list.indexOf('date_of_birth') !== -1 || isDob_(list));
     const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f))
-                              && !(also && isAlsoField_(f))
                               && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
       : (library ? libraryShelf_(list, value) : '')
       + (quals ? qualShelf_(list, value, o.options) : '')
       + (wantsDob ? dobBoxes_(value) : '')
-      /* THE "ALSO TEACH" SHELF GOES WHERE ITS FIRST FIELD SAT IN THE LIST — straight under the
-         specialism and above what you are studying — so the page reads specialise, also, studying
-         in the order the backend wrote it, rather than the shelf floating to the top. */
-      + (also
-        ? fieldRows_(rest.filter(f => list.indexOf(f) < list.findIndex(isAlsoField_)), plain)
-          + alsoShelf_(list, value, o.options)
-          + fieldRows_(rest.filter(f => list.indexOf(f) > list.findIndex(isAlsoField_)), plain)
-        : fieldRows_(rest, plain));
+      + fieldRows_(rest, plain);
     return `<${head}><span>${esc(g)}</span></${head}>` + body;
   }).join('');
 }

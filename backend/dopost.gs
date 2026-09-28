@@ -524,7 +524,7 @@ function doPost(e) {
           + 'Run ensureSchema() to add it — nothing was saved.' });
       }
       if (libSent) setCell(t, r, 'library_card', libCardsIn(fields));
-      /* ---------- AND THE QUALIFICATIONS AND THE "ALSO TEACH" PAIRS, THE SAME WAY ----------------
+      /* ---------- AND THE QUALIFICATIONS, THE SAME WAY -------------------------------------------
          THE LIBRARY'S THREE PLACES AGAIN, and the same reason for each: the form names are not the
          cell, so they are out of `wanted`, the cell's header is checked here because nothing below
          can see it, and the packer is fed the WHOLE field map so a shelf that sent two rows writes
@@ -539,9 +539,7 @@ function doPost(e) {
          a missing header is a `missedWrite_` about a cell nobody needs. */
       const qualsSent = Object.keys(fields).some(f => QUAL_FIELD.test(f))
                      && QUAL_FIELDS.some(f => allowed.indexOf(f) !== -1);
-      const alsoSent = Object.keys(fields).some(f => TEACH_ALSO_FIELD.test(f))
-                    && TEACH_ALSO_FIELDS.some(f => allowed.indexOf(f) !== -1);
-      const packedMissing = [qualsSent && 'quals', alsoSent && 'teaches_also']
+      const packedMissing = [qualsSent && 'quals']
         .filter(c => c && t.headers.indexOf(c) === -1);
       if (packedMissing.length) {
         return jsonOut({ error: 'The sheet has no column for: ' + packedMissing.join(', ')
@@ -560,12 +558,16 @@ function doPost(e) {
           mirror('qual_' + n + '_grade', S(q.grade));
         }
       }
+      /* `teaches_also` IS A COLUMN, so `wanted` writes it and the `noColumn` refusal covers it; what
+         it needs here is tidying before that write, and the `teaches_2` mirror after it. */
+      const alsoSent = fields.teaches_also !== undefined && allowed.indexOf('teaches_also') !== -1;
       if (alsoSent) {
-        const packed = teachAlsoIn(fields);
-        setCell(t, r, 'teaches_also', packed);
-        const first = teachAlsoList_({ teaches_also: packed })[0] || {};
-        mirror('teaches_2', S(first.subject));
-        mirror('teaches_2_level', S(first.level));
+        fields.teaches_also = teachAlsoIn(fields.teaches_also);
+        if (t.headers.indexOf('teaches_also') !== -1) {
+          const first = teachAlsoList_({ teaches_also: fields.teaches_also })[0] || {};
+          mirror('teaches_2', S(first.subject));
+          mirror('teaches_2_level', S(first.level));
+        }
       }
 
       /* ---------- AND THE DATE OF BIRTH ARRIVES AS THREE BOXES AND IS STORED AS ONE CELL --------
@@ -622,7 +624,7 @@ function doPost(e) {
          never meant to have one. */
       const wanted = Object.keys(fields)
         .filter(f => !/^(m|tu|w|th|f|sa|su)\d\d$/.test(f) && !LIBRARY_FIELD.test(f)
-                  && !QUAL_FIELD.test(f) && !TEACH_ALSO_FIELD.test(f)
+                  && !QUAL_FIELD.test(f)
                   && allowed.indexOf(f) !== -1);
       const noColumn = wanted.filter(f => t.headers.indexOf(f) === -1);
       if (noColumn.length) {
@@ -3439,7 +3441,7 @@ function profileOf_(r) {
      code. `libCardsOut` is the only reader of the `name:number:pin|…` format on this side. */
   const cards = libCardsOut(r.library_card);
   /* The two shelves, each read off the ROW so an unsaved row answers from its legacy cells. */
-  const quals = qualsOut(r), also = teachAlsoOut(r);
+  const quals = qualsOut(r);
   /* ---------- AND THE DATE OF BIRTH, WHICH WAS BEING SENT AS A JAVASCRIPT DATE STRING ------------
      `S(r.date_of_birth)` IS `String(v).trim()`, AND SHEETS STORES A DATE AS A REAL DATE. So a
      birthday typed into the spreadsheet came back into the box as
@@ -3454,7 +3456,7 @@ function profileOf_(r) {
     out[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (avail[f] ? 'TRUE' : '')
            : LIBRARY_FIELD.test(f) ? S(cards[f])
            : QUAL_FIELD.test(f) ? S(quals[f])
-           : TEACH_ALSO_FIELD.test(f) ? S(also[f])
+           : f === 'teaches_also' ? teachAlsoOut(r)
            : f === 'date_of_birth' ? S(dobIn(dob))
            /* ---------- AND AN EXAM DATE AS `yyyy-mm-dd`, WHICH IS WHAT THE PICKER CAN HOLD ------
               `S(r[f])` IS THE `S(r.date_of_birth)` FAULT ONE COLUMN ALONG, and worse: a birthday

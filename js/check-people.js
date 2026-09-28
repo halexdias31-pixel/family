@@ -77,12 +77,12 @@ const SRC = [
   grab(consts, /const QUAL_MAX\s*=[^;]*;/, 'QUAL_MAX'),
   grab(consts, /const QUAL_FIELDS\s*=\s*\(\(\)[\s\S]*?\}\)\(\);/, 'QUAL_FIELDS'),
   grab(consts, /const TEACH_ALSO_MAX\s*=[^;]*;/, 'TEACH_ALSO_MAX'),
-  grab(consts, /const TEACH_ALSO_FIELDS\s*=\s*\(\(\)[\s\S]*?\}\)\(\);/, 'TEACH_ALSO_FIELDS'),
   grab(core,   /function qualsList_\([\s\S]*?\n\}/, 'qualsList_'),
   grab(core,   /function qualsOut\([\s\S]*?\n\}/, 'qualsOut'),
   grab(core,   /function qualsIn\([\s\S]*?\n\}/, 'qualsIn'),
   grab(core,   /function teachAlsoList_\([\s\S]*?\n\}/, 'teachAlsoList_'),
-  grab(core,   /function teachAlsoOut\([\s\S]*?\n\}/, 'teachAlsoOut'),
+  grab(core,   /const teachAlsoPhrase_\s*=[^;]*;/, 'teachAlsoPhrase_'),
+  grab(core,   /function teachAlsoOut\([^\n]*\}/, 'teachAlsoOut'),
   grab(core,   /function teachAlsoIn\([\s\S]*?\n\}/, 'teachAlsoIn'),
   /* THE THIRD PACKED CELL, and the one whose unpacker has to read TWO different stored shapes:
      Sheets makes a real Date of a birthday typed into the spreadsheet, and this app writes a
@@ -105,7 +105,7 @@ const SRC = [
    arrangement `check-handles.js` uses and for its stated reason: if one of them changes meaning in
    `constants.gs`, a case here fails, which is what a stub is for. */
 const PRELUDE = `
-  const S = v => (v === undefined || v === null ? '' : String(v));
+  const S = v => String(v ?? '').trim();   // constants.gs's own — it TRIMS, and the packers rely on it
   const norm = v => S(v).toLowerCase().replace(/\\s+/g, '').trim();
   const TRUE_ = v => v === true || /^(true|yes|1|✓)$/i.test(S(v).trim());
 `;
@@ -119,7 +119,7 @@ new Function('box', PRELUDE + SRC
   + ' box.qList = qualsList_; box.qOut = qualsOut; box.qIn = qualsIn;'
   + ' box.QMAX = QUAL_MAX; box.QFIELDS = QUAL_FIELDS;'
   + ' box.aList = teachAlsoList_; box.aOut = teachAlsoOut; box.aIn = teachAlsoIn;'
-  + ' box.AMAX = TEACH_ALSO_MAX; box.AFIELDS = TEACH_ALSO_FIELDS;')(box);
+  + ' box.AMAX = TEACH_ALSO_MAX;')(box);
 
 let bad = 0;
 const is = (what, got, want) => {
@@ -137,7 +137,7 @@ is('each card gives three field names', box.FIELDS.length, box.N * 3);
    check fails if somebody lowers the constant back without being asked to. */
 is('five library cards', box.N, 5);
 is('ten qualifications, four boxes each', [box.QMAX, box.QFIELDS.length], [10, 40]);
-is('eight also-teach pairs, two boxes each', [box.AMAX, box.AFIELDS.length], [8, 16]);
+is('eight also-teach subjects', box.AMAX, 8);
 is('the first card is named lib1_*', box.FIELDS.slice(0, 3), ['lib1_name', 'lib1_no', 'lib1_pin']);
 
 /* ---------- THE ROUND TRIP, WHICH IS THE WHOLE POINT --------------------------------------------- */
@@ -235,25 +235,28 @@ is('and the form is filled from them',
 is('a filled quals cell wins over the old columns',
    box.qList(Object.assign({ quals: 'Physics:GCSE:AQA:8' }, legacy)).length, 1);
 
-/* ---------- WHAT ELSE A TUTOR TEACHES ---------------------------------------------------------- */
-const also = (...rows) => {
-  const f = {};
-  rows.forEach((r, i) => { f['also_' + (i + 1)] = r[0]; f['also_' + (i + 1) + '_level'] = r[1]; });
-  return f;
-};
-is('also-teach packs the way the card prints it',
-   box.aIn(also(['Maths', 'GCSE'], ['English', 'KS3'])), 'Maths (GCSE)|English (KS3)');
-is('and comes back apart',
-   [box.aOut({ teaches_also: 'Maths (GCSE)|English (KS3)' }).also_2,
-    box.aOut({ teaches_also: 'Maths (GCSE)|English (KS3)' }).also_2_level], ['English', 'KS3']);
-is('a subject with no level has no brackets', box.aIn(also(['Chess', ''])), 'Chess');
-is('a level with no subject is not a subject', box.aIn(also(['', 'GCSE'])), '');
+/* ---------- WHAT ELSE A TUTOR TEACHES ----------------------------------------------------------
+   ONE COLUMN, posted by the phone's multi-select as the phrases the card prints. What the server
+   owes it is tidying and the legacy fallback, and both are silent when wrong. */
+is('the cell reads back as it went in',
+   box.aIn('Maths (GCSE), English (KS3)'), 'Maths (GCSE), English (KS3)');
+is('a pipe typed by hand is a separator too',
+   box.aIn('Maths (GCSE)|English (KS3)'), 'Maths (GCSE), English (KS3)');
+is('a subject with no level has no brackets', box.aIn('Chess'), 'Chess');
+is('a level with no subject is not a subject', box.aIn('(GCSE)'), '');
+is('the same subject twice is one subject, whatever the case',
+   box.aIn('Maths (GCSE), maths (gcse)'), 'Maths (GCSE)');
+is('an empty post stays empty, which is a tutor clearing the list', box.aIn(''), '');
+is('the level comes apart from the subject',
+   box.aList({ teaches_also: 'Maths (GCSE), English (KS3)' })[1], { subject: 'English', level: 'KS3' });
 is('an empty teaches_also reads the old teaches_2',
    box.aList({ teaches_2: 'Physics', teaches_2_level: 'A-Level' }), [{ subject: 'Physics', level: 'A-Level' }]);
+is('and the form is filled from it', box.aOut({ teaches_2: 'Physics', teaches_2_level: 'A-Level' }),
+   'Physics (A-Level)');
 is('a filled teaches_also wins over teaches_2',
    box.aList({ teaches_also: 'Chess', teaches_2: 'Physics' }).map(x => x.subject), ['Chess']);
-is('no more than eight come back',
-   box.aList({ teaches_also: Array.from({ length: 9 }, (_, i) => 'S' + i).join('|') }).length, 8);
+is('no more than eight are kept',
+   box.aIn(Array.from({ length: 9 }, (_, i) => 'S' + i).join(', ')).split(', ').length, 8);
 
 /* ---------- AND THE HOURS, WHICH HAVE NEVER BEEN TESTED EITHER ----------------------------------- */
 is('a ticked hour survives the round trip',

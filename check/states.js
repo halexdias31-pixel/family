@@ -577,10 +577,13 @@ const STATES = {
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const pages = [...document.querySelectorAll('#s-settings .page')];
-        const at = pages.findIndex(pg => pg.querySelector('[data-do="me-many"]'));
+        /* BY FIELD, because the "What you teach" page now carries two of these — `teaches_also`
+           first — and "the first multi-select on the page" stopped meaning this one. */
+        const q = '[data-do="me-many"][data-field="extra_quals"]';
+        const at = pages.findIndex(pg => pg.querySelector(q));
         if (at < 0) throw new Error('no several-of-a-list field on the settings column');
         goPage('settings', at, true);
-        pages[at].querySelector('[data-do="me-many"]').click();
+        pages[at].querySelector(q).click();
       },
       leave: () => { if (typeof meDropShut_ === 'function') meDropShut_(); },
       expect: () => {
@@ -589,6 +592,32 @@ const STATES = {
           && el.querySelectorAll('[data-do="me-many-pick"]').length > 7;
       },
       wants: 'the qualifications list open under its field, with more than seven to tick' },
+
+    /* ---------- "ALSO TEACH", OPEN, GROUPED BY SUBJECT -------------------------------------------
+       ASKED FOR AS *"what you specialise teaching in and what you also teach."* The panel offers
+       every subject at every level as a "Maths (GCSE)" phrase, drawn as one short row per subject —
+       so this asks for more than one GROUP, and that every button in them carries a whole phrase
+       as its value: a flat list would pass a count and fail the first, and a button whose value is
+       only "GCSE" would save a level with no subject and fail the second. */
+    { name: 'also teach open',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const q = '[data-do="me-many"][data-field="teaches_also"]';
+        const pages = [...document.querySelectorAll('#s-settings .page')];
+        const at = pages.findIndex(pg => pg.querySelector(q));
+        if (at < 0) throw new Error('no also-teach field on the settings column');
+        goPage('settings', at, true);
+        pages[at].querySelector(q).click();
+      },
+      leave: () => { if (typeof meDropShut_ === 'function') meDropShut_(); },
+      expect: () => {
+        const el = document.getElementById('drop');
+        const picks = el ? [...el.querySelectorAll('[data-do="me-many-pick"]')] : [];
+        return !!el && !el.classList.contains('hidden')
+          && el.querySelectorAll('.pick-group').length > 1
+          && picks.length > 1 && picks.every(b => /\(.+\)$/.test(b.dataset.val));
+      },
+      wants: 'the also-teach panel open, one group per subject, every option a whole "Subject (Level)"' },
 
     /* ---------- THE WARDROBE IS ONE CARD NOW, SO ONE STATE FINDS IT AND A SECOND PRESSES IT --------
        It was four pages — Colours, then the six slots two at a time — and these two states found the

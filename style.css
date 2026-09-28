@@ -812,16 +812,23 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    naming six elements. The twelfth conviction of `.price.faint` in this stylesheet, and the first
    one caught by the check rather than by a person reading two blocks side by side. */
 .lib-shelf .lib-row > label.field { margin-bottom: .35rem; }
-/* ---------- A SHELF'S `Add another`, AND THE ONE SHELF WHOSE ROWS ARE ONE LINE EACH ----------
+/* ---------- A SHELF'S `Add another` ---------------------------------------------------------
    The button is the shelf's own last child, so it sits under the last card showing and goes when
    there is nothing left to reveal (`shelf-more` in me.js). A quiet `.btn`, because the Save under
-   the card is the page's one action and this is not it — the correction `.reel-sound` records.
-   AN "ALSO TEACH" ROW IS ONE PHRASE, "Maths (GCSE)", so the dashed rule the library cards use
-   between cards would draw a line between every subject in a list — chrome where a list wants
-   none. The level is the narrow half, sized off the longest level name rather than half the card. */
+   the card is the page's one action and this is not it — the correction `.reel-sound` records. */
 .lib-shelf .shelf-more { margin: .1rem 0 .6rem; }
-.also-shelf .lib-card + .lib-card { border-top: 0; padding-top: 0; }
-.also-shelf .lib-row { grid-template-columns: minmax(0, 1fr) minmax(0, 7.5rem); }
+/* ---------- "ALSO TEACH" IN THE PANEL: ONE SHORT ROW A SUBJECT --------------------------------
+   The subject is a small caption over its levels, in the ink `.dob-cap` uses for the same job, and
+   the groups are spaced rather than ruled — a rule between twelve subjects is chrome where a list
+   wants none. The level buttons keep `.pick-opt`'s 44px; only the flat list's width rule changes,
+   because a level is four characters and the flat list is sized for a phrase. */
+.pick-group + .pick-group { margin-top: .45rem; }
+.pick-head {
+  display: block; margin: 0 0 .2rem;
+  font-family: var(--mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--dim);
+}
+.pick-group .pick-list { grid-template-columns: repeat(auto-fill, minmax(4.8rem, 1fr)); margin: 0; }
 
 /* The whole row is the target, not the little box. A pixel floor rather than a rem multiple,
    because 2.9rem at a 15px root came out at 43.5px — half a pixel under, which is exactly the
