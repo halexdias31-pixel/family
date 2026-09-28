@@ -244,6 +244,50 @@ const STATES = {
         paintStuff();
         goPage('stuff', 0);
       } },
+    /* ---------- A DIAGRAM YOU CAN DRAW ON, WITH THE PEN OFF ------------------------------------
+       THE SURFACE THE REPORT WAS ABOUT, AND NOTHING HAD EVER RENDERED IT. 169 rows in the library
+       want a pen and 26 carry the picture to put one over — and every one of them is inside the
+       funnel behind a filter, so `check/ui.js` has measured question cards for as long as it has
+       existed without once measuring the one that carries a control over a drawing.
+
+       OFF RATHER THAN ON, because off is the state the card ARRIVES in and the state the report
+       was about: "when you are drawing its moving the widget itself". Armed, the card differs by a
+       gold frame and a gold fill, which the contrast rule has already seen on other surfaces; the
+       lock control's gold-on-sunk outline is new here and is the thing worth measuring.
+
+       BY `paperId` AND THEN BY POSITION, not by `kindLabel`. Every question in the library is one
+       `kindLabel`, so filtering on it and taking the first would land on whichever question sorts
+       first — which is not a pen card. The paper is the narrowest chip that reaches this row, and
+       `stuffFiltered()` after the repaint is the order the pages are built from, for the reason the
+       quiz state above records. */
+    { name: 'a diagram you can draw on',
+      enter: () => {
+        const pen = stuffItemsAll_().find(it => it.kind === 'question'
+          && typeof padSource_ === 'function' && padSource_(it));
+        if (!pen) throw new Error('no question in the list carries a pen');
+        /* THE VALUE THE FACET ITSELF WOULD READ, not a field name written out here. `paperId`'s
+           `of` is `x.row.paper_id` and the item carries no `paperId` of its own — so a state that
+           reached for one would set a chip matching nothing and report the app broken, which is
+           what the first version of this did. */
+        const facet = FACETS.find(f => f.field === 'paperId');
+        if (!facet) throw new Error('there is no paperId facet to narrow by');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(pen) }];
+        paintStuff();
+        const at = stuffFiltered().indexOf(pen);
+        if (at < 0) throw new Error('the paper chip does not return its own pen question');
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+      },
+      /* THE PICTURE AND ITS CONTROL, PER CARD. `.qpad-art[data-do]` is the half that was missing —
+         a pad whose picture is not a door is the card as it was reported, and it measures perfectly
+         either way, so it has to be asserted rather than looked at. */
+      expect: () => {
+        const c = document.querySelector('#s-stuff .qpad');
+        return !!c && !!c.querySelector('.qpad-art[data-do="pad-draw"]')
+               && !!c.querySelector('.qpad-lock')
+               && !c.classList.contains('is-drawing');
+      },
+      wants: 'a question card whose diagram takes a pen, with the lock control drawn and the pen off',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
        That one is a roster gate on the phone; this is the PAYLOAD — `doGet` builds `films` inside

@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-09-27-c-haspin";
+const BOOKING_VERSION = "2026-09-28-a-throttle";
 
 
 /**
@@ -1309,14 +1309,37 @@ function authWrong_(t, r) {
   } catch (err) {}
 }
 
+/* ---------- CLEARING THE THROTTLE, AND THE THREE PLACES THAT MAY --------------------------------
+   `tries` COUNTS WRONG ANSWERS SINCE YOU LAST GOT IN, and it is deliberately never set back by
+   `authWrong_` — that is what makes the ladder a ladder rather than five separate first offences.
+   So something has to clear it, and exactly three things have earned the right:
+
+     · a successful sign-in       — you typed the PIN, so the guesses before it were yours and wrong
+     · a PIN reset by e-mail      — you proved you hold the mailbox, which is a stronger claim
+     · a PIN change               — you proved the old PIN, or an admin did it for you
+
+   ALL THREE ISSUE OR RE-ESTABLISH A CREDENTIAL, which is the whole test: the counter measures
+   guesses against a secret, and the moment the secret changes the count is about a secret that no
+   longer exists. Leaving it standing is the trap this was written for — you ask for a new PIN,
+   the e-mail arrives, and the site refuses it for another hour because of guesses at the old one.
+   The documented way out failing exactly when somebody needs it is worse than no way out, because
+   they stop looking.
+
+   ONE FUNCTION RATHER THAN TWO LINES AT EACH CALLER. `authNewSession_` had the two lines inline and
+   the other two paths had nothing, and nothing anywhere compared them — which is how this repository
+   keeps finding a rule applied in one place and forgotten in the next. */
+function authClearThrottle_(t, r) {
+  setCell(t, r, 'tries', 0);
+  setCell(t, r, 'locked_until', '');
+}
+
 /* A NEW SESSION. The token is returned once and never stored — only its digest is kept, so this is
    the only moment it exists in readable form anywhere. */
 function authNewSession_(t, r) {
   const token = Utilities.getUuid() + Utilities.getUuid();
   setCell(t, r, 'session_hash', authHash_(token, 'session'));
   setCell(t, r, 'session_until', new Date(Date.now() + AUTH.SESSION_DAYS * 864e5));
-  setCell(t, r, 'tries', 0);
-  setCell(t, r, 'locked_until', '');
+  authClearThrottle_(t, r);
   return token;
 }
 

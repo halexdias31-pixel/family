@@ -272,6 +272,16 @@ function boot(opts) {
       /* THE FORM'S PAGE AS DRAWN, because a picker replaces it rather than covering it — so the
          only way to ask "is the list on screen" is to ask what page 0 of the booking column holds. */
       'bookerCard: typeof bookerCard === "function" ? bookerCard : null,' +
+      /* THE PEN ON A QUESTION'S DIAGRAM, both halves: the markup a card is built with, and the
+         function the press mutates it with. A journey needs both because they are the two places
+         the same four attributes are written, and the fault they guard is what happens when the two
+         disagree. */
+      'padWrap: typeof padWrap_ === "function" ? padWrap_ : null,' +
+      'padArm: typeof padArm_ === "function" ? padArm_ : null,' +
+      /* AND THE STATE THE MARKUP IS BUILT FROM, so the repaint path can be asked the same question
+         as the press path. Without it only `padArm_` could be checked — and a `padWrap_` that got
+         the armed case wrong would put the fault straight back on the next repaint. */
+      'padOn: v => { PAD_ON = v; },' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
          below checks is unchanged: a client and an admin are told different things. */
@@ -2195,6 +2205,90 @@ check('a backend that never answers does not hang the app for ever', async () =>
     bad.push('index.html has no splash watchdog — if the code loads and the data never comes, '
       + 'nothing says so');
   }
+  return bad;
+});
+
+/* ---------- THE PICTURE IS A DOOR EXACTLY WHILE THE PEN IS OFF -----------------------------------
+   REPORTED AS "for questions where you have to draw on it it doesnt work as when you are drawing
+   its moving the widget itself". Measured with real touch events on Q7 of the June 2024 Foundation
+   paper, before anything was changed: with the pen off a stroke across the grid took the app from
+   `stuff` to `dm` sideways and back a page downwards, and drew nothing.
+
+   THAT HALF IS BY DESIGN AND MUST STAY. `touch-action: none` on a region taller than the phone is a
+   region you cannot swipe past, so a pad that took the finger before being asked would trap you on
+   a box-plot grid. What was missing is that nothing said so: the remedy was a grey button among
+   three, and the picture — a blank grid, the most inviting thing on the card — looked exactly like
+   paper. So the picture carries the action while the pen is off, and `PRESS_MOVED` in shell.js
+   keeps a DRAG from being a press, which is what lets the column still move.
+
+   FOUR ATTRIBUTES AND TWO WRITERS. `padWrap_` builds them and the press mutates them in place, so
+   they exist in two places by construction — and a half-armed pad is the invisible mode the gold
+   frame was added to prevent. The sharp one is the `data-do` on the art: left on while the pen is
+   ON, the dispatcher walks up from the ink to it and the first dot anybody draws turns the pen off
+   again. Nothing else in the suite can see that — `check/press.js` presses each action once and
+   `check/ui.js` measures geometry, and a pad that disarms itself measures perfectly. */
+check('a question diagram is pressable exactly while the pen is off', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (typeof t.padWrap !== 'function' || typeof t.padArm !== 'function') {
+    return ['padWrap_ or padArm_ is not exported, so the pen was NOT checked — not a pass'];
+  }
+  const bad = [];
+  const x = { key: 'q:Q-PEN', answerType: 'drawing', diagram: '<svg viewBox="0 0 340 340"></svg>' };
+  const hold = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
+
+  /* ---------- AS BUILT ------------------------------------------------------------------------ */
+  const off = hold(t.padWrap(x, x.diagram, ''));
+  if (!off.querySelector('.qpad-art[data-do="pad-draw"]'))
+    bad.push('with the pen off the picture carries no action, so the only way to arm it is a button '
+      + 'under a credit line — which is what the report was about');
+  if (!off.querySelector('.qpad-lock[data-do="pad-draw"]'))
+    bad.push('with the pen off there is no lock control in the bar');
+  if (off.querySelector('.qpad-ink[data-noswipe]'))
+    bad.push('an un-armed pad already refuses the grid, so the card cannot be swiped off');
+
+  /* ---------- AND AS THE PRESS LEAVES IT ------------------------------------------------------- */
+  const pad = off.querySelector('.qpad');
+  t.padArm(pad, true);
+  if (pad.querySelector('.qpad-art[data-do]'))
+    bad.push('the picture still carries the action while the pen is ON — the dispatcher walks up '
+      + 'from the ink to it, so the first dot drawn turns the pen off again');
+  if (!pad.classList.contains('is-drawing'))
+    bad.push('arming the pad does not put the frame on, so the mode is invisible');
+  if (!pad.querySelector('.qpad-ink[data-noswipe]'))
+    bad.push('arming the pad does not mark the ink `data-noswipe`, so `axisFree` hands the stroke '
+      + 'to the grid and a line of best fit slides the column');
+  const lockOn = pad.querySelector('.qpad-lock');
+  if (lockOn && lockOn.getAttribute('aria-pressed') !== 'true')
+    bad.push('the armed pad\'s control does not report itself pressed');
+  if (lockOn && !lockOn.querySelector('svg'))
+    bad.push('the control lost its padlock when the press rewrote it — `textContent` would do that, '
+      + 'which is why there is one face builder');
+
+  t.padArm(pad, false);
+  if (!pad.querySelector('.qpad-art[data-do="pad-draw"]'))
+    bad.push('disarming does not give the picture its action back, so the second door works once');
+  if (pad.querySelector('.qpad-ink[data-noswipe]'))
+    bad.push('disarming leaves `data-noswipe` on, so the card can never be swiped off again');
+  if (pad.classList.contains('is-drawing'))
+    bad.push('disarming leaves the gold frame on');
+
+  /* ---------- AND THE REPAINT PATH, ASKED THE SAME QUESTION -------------------------------------
+     `padArm_` being right is not enough: a card is rebuilt on every repaint, so a `padWrap_` that
+     emitted the action on an ARMED pad's picture would put the fault back the moment anything
+     repainted — which on this screen is a keystroke in the search box. */
+  t.padOn('pad:' + x.key);
+  const on = hold(t.padWrap(x, x.diagram, ''));
+  t.padOn('');
+  if (on.querySelector('.qpad-art[data-do]'))
+    bad.push('a card REBUILT with the pen on puts the action back on the picture, so the first dot '
+      + 'after any repaint turns the pen off');
+  if (!on.querySelector('.qpad-ink[data-noswipe]'))
+    bad.push('a card rebuilt with the pen on does not mark the ink, so the pen survives a repaint '
+      + 'in name only and the next stroke slides the column');
+  if (!on.querySelector('.qpad.is-drawing'))
+    bad.push('a card rebuilt with the pen on has no frame');
   return bad;
 });
 

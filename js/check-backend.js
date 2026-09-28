@@ -206,6 +206,64 @@ const claims = [];
 say('WHO IS ASKING TAKEN FROM A NAME OR AN ID IN THE URL, which anybody can type', claims,
   'resolve the session token instead — authWhoIs_(p.token), as accessDenied already does for POST.');
 
+/* ---------- AND A NEW PIN MUST CLEAR THE GUESSES AT THE OLD ONE ------------------------------------
+   `tries` counts wrong answers since you last got in and `authWrong_` never sets it back, which is
+   what makes the lockout a ladder. So the moment a PIN CHANGES, the count is about a secret that no
+   longer exists — and a path that issues one without clearing it hands somebody a PIN the site then
+   refuses for up to an hour. That is what `forgotPin` did: the documented way out of a lockout was
+   itself locked out, which is worse than having no way out, because people stop looking for one.
+
+   ASKED OF EVERY CALLER OF `authSetPin_`, because that function IS "a PIN changed here" — a list of
+   handler names would go stale the first time a fourth one is written, which is this repository's
+   own sentence about a rule repaired in the instance and not in the rule.
+
+   ONE EXEMPTION, WITH ITS REASON. `authCheckPin_` calls it to migrate an old plaintext row to a hash
+   while the RIGHT PIN is being typed — the secret has not changed, and `authNewSession_` clears the
+   throttle a moment later on the successful sign-in that follows. */
+const SETS_PIN = /\bauthSetPin_\s*\(/;
+const CLEARS   = /\bauthClearThrottle_\s*\(/;
+const SCOPE    = /^\s*(?:function\s+(\w+)\s*\(|if \(action === '(\w+)'\))/;
+const PIN_OK   = new Set(['authCheckPin_']);   // see above — the migration path, not a change
+const pins = [];
+files.forEach(f => {
+  let src;
+  try { src = fs.readFileSync(path.join(dir, f), 'utf8').split('\n'); } catch (e) { src = null; }
+  if (!src) { pins.push([f, 'could not be read, so NOTHING was checked — not a pass']); return; }
+  const clean = decomment(src.join('\n')).split('\n');
+  /* Where each scope starts, so a call can be attributed to the handler it is in rather than to
+     whatever happens to sit forty lines below it. */
+  const marks = [];
+  clean.forEach((line, i) => {
+    const m = SCOPE.exec(line);
+    if (m) marks.push([i, m[1] || m[2]]);
+  });
+  clean.forEach((line, i) => {
+    if (!SETS_PIN.test(line)) return;
+    /* The function's own `function authSetPin_(` line is not a call to it. Without this the
+       rule reports the definition, which is a finding nobody can act on — and a report that
+       is mostly noise is a report nobody reads. */
+    if (/^\s*function\s/.test(line)) return;
+    let at = -1;
+    for (let k = 0; k < marks.length; k++) if (marks[k][0] <= i) at = k;
+    if (at < 0) return;
+    const name = marks[at][1];
+    if (PIN_OK.has(name)) return;
+    /* PER CALL, NOT PER SCOPE, and that distinction is the whole of it. `makeBrandAccount` sets a
+       PIN in two places — a repaired row and a created one — so a rule asking whether the FUNCTION
+       clears anywhere is satisfied by either branch and blind to the other. Measured: with the
+       scope-wide test, deleting the clear from the repair path left the run green, which is this
+       repository's own definition of a check that cannot fail. The window is short because in every
+       real case the clear is the next line: adjacency is what makes it readable as a pair. */
+    const end = Math.min(at + 1 < marks.length ? marks[at + 1][0] : clean.length, i + 10);
+    const body = clean.slice(i, end).join('\n');
+    if (!CLEARS.test(body)) {
+      pins.push([f + ':' + (i + 1), name + ' sets a new PIN and never clears tries/locked_until']);
+    }
+  });
+});
+say('A PIN ISSUED WITHOUT CLEARING THE LOCKOUT, so the new one is refused for up to an hour', pins,
+  'call authClearThrottle_(t, row) beside authSetPin_ — see its note in booking.gs.');
+
 console.log('');
 console.log(files.length + ' file(s) in ' + path.relative(path.join(__dirname, '..'), dir)
           + '   top-level functions: ' + fn.size + '   values: ' + val.size);
@@ -215,5 +273,6 @@ console.log(files.length + ' file(s) in ' + path.relative(path.join(__dirname, '
    names", both of which CLAUDE.md records. */
 console.log(fail
   ? 'FAILED — see above: a name declared twice, or a sheet changed outside setCell/addRow/delRow.'
-  : 'OK — every top-level name is declared once, and every deletion goes through delRow.');
+  : 'OK — every top-level name is declared once, every deletion goes through delRow, and a new '
+    + 'PIN clears the lockout.');
 process.exit(fail ? 1 : 0);

@@ -373,11 +373,15 @@ function makeBrandAccount(pin) {
        "make sure it actually WORKS" — and a row at the top of the lockout ladder does not work
        however right its PIN is. `tries` is what `authWrong_` counts and nothing but a successful
        sign-in resets it, so a row that has been refused ten times stays one typo from an hour's
-       wait. Clearing both is the difference between a repair and a repair you cannot use. */
+       wait. Clearing both is the difference between a repair and a repair you cannot use.
+
+       THROUGH `authClearThrottle_` RATHER THAN THE TWO LINES, which is what this was before the
+       helper existed. Four paths issue a PIN and this was the only one that remembered — so the
+       argument above was right and was written down in exactly one of the four places that needed
+       it. `check-backend.js` asks the question now. */
     if (pin && /^\d{4,8}$/.test(String(pin))) {
       authSetPin_(t, existing, String(pin));
-      setCell(t, existing, 'tries', 0);
-      setCell(t, existing, 'locked_until', '');
+      authClearThrottle_(t, existing);
       fixed.push('pin');
     }
     if (norm(existing.verified) === 'pending') { setCell(t, existing, 'verified', 'TRUE'); fixed.push('verified'); }
@@ -420,6 +424,11 @@ function makeBrandAccount(pin) {
      sheet. So the PIN is hashed in a second step rather than passed in — which is also what makes
      the created row and the repaired row above end in exactly the same state. */
   if (row) authSetPin_(t, row, String(pin));
+  /* Nothing to clear on a row `addRow` made a moment ago — and it is written anyway, because
+     the note above claims both paths end in the same state and an unwritten cell is only
+     nearly that. `N('')` is 0, so this changes no behaviour; it removes the reader's need to
+     know that. */
+  if (row) authClearThrottle_(t, row);
   clearCache();
 
   const out = { created: true, name: name, personId: row ? S(row.person_id) : '',

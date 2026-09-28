@@ -1705,11 +1705,40 @@ function nameForms_(s) {
    WITH NO IDS IT IS THE LIBRARY, MEMOISED, exactly as before — which is what a CHIP needs. A chip
    sits alone with no siblings to be unique against, so `chipText` must get the form that is
    unambiguous in the whole library or the chip would read `Paper 1` and name one of twenty. */
+/* ---------- THE FILE, NOT THE MAPPED LIST — AND THIS IS THE THIRD FUNCTION THAT NEEDED IT --------
+   `libraryInto_` DROPS EVERY ROW WHOSE `active` CELL IS NOT ON, so `DATA.questions` holds 174 of
+   the file's 691 document rows. Anything that reads a PAPER-LEVEL fact — the code on its cover, the
+   name for its button, whether a calculator is allowed — has to read the file or it silently knows
+   a quarter of the library.
+
+   IT WAS WRITTEN OUT TWICE AND `needsIndex_` WAS THE ONE THAT MISSED IT. Measured: 77 of the 128
+   document rows carrying a `needs` cell are marked inactive, and seven of those have questions under
+   them — the whole June 2024 Edexcel series, both tiers, Papers 1, 2 and 3, plus June 2023 Higher
+   Paper 1. So **247 questions never said whether a calculator was allowed**, which on a maths paper
+   is the first thing a student needs and the one fact `needs` exists to carry. Worse than a silence:
+   15 of the 41 cards on Foundation Paper 1 drew "Printed sheet" and nothing else, so the strip was
+   there and read as complete.
+
+   A THIRD COPY OF THE THREE LINES WOULD HAVE BEEN THE THIRD, which is this repository's own sentence
+   about `documents_()`, `factsNow_` and `childrenOf`. One reader, so the next function that needs a
+   paper-level fact cannot get it wrong by being written somewhere else.
+
+   `active` IS THE RIGHT CELL TO IGNORE HERE and `specIndex_`'s note says why: it decides whether a
+   student may OPEN the document, and has nothing to say about what is printed on its cover. */
+function libDocRows_() {
+  return (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
+    ? LIBRARY_ROWS : ((DATA && DATA.questions) || []);
+}
+
+/* A DOCUMENT ROW IN EITHER SPELLING. The file says `kind: 'document'`; the mapped list says
+   `isDoc`, because `libraryInto_` renames it. A reader that knows only one of the two is a reader
+   that finds nothing whichever list it is handed. */
+const libIsDoc_ = r => !!r && (String(r.kind || '').toLowerCase() === 'document' || !!r.isDoc);
+
 const PAPER_LABEL = new WeakMap();
 
 function paperLabels_(ids) {
-  const rows = (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
-    ? LIBRARY_ROWS : ((DATA && DATA.questions) || []);
+  const rows = libDocRows_();
   const only = ids && ids.length ? new Set(ids.map(String)) : null;
   let map = only ? null : PAPER_LABEL.get(rows);
   if (map) return map;
@@ -3981,13 +4010,10 @@ function companyAtoms_(v) {
    it has nothing to say about what is printed on its cover, and letting it decide would make the
    search box go quiet on a paper somebody is holding. */
 function specIndex_() {
-  const rows = (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
-    ? LIBRARY_ROWS : ((DATA && DATA.questions) || []);
+  const rows = libDocRows_();
   const at = {};
   rows.forEach(r => {
-    if (!r) return;
-    const kind = String(r.kind || '').toLowerCase();
-    if (kind !== 'document' && !r.isDoc) return;
+    if (!libIsDoc_(r)) return;
     const pid = paperIdOf_(r);
     const code = String(r.spec_code || (r.row && r.row.spec_code) || '').trim();
     if (pid && code) at[pid] = code;
@@ -4260,10 +4286,20 @@ function preamble_(r, at) {
  * directly above — the paper's fact, then the question's own. Deduplicated on the way, because a
  * question that names a ruler inside a paper that already asks for one should not say it twice.
  */
+/* ---------- OFF THE FILE, FOR THE REASON `libDocRows_` IS WRITTEN DOWN ONCE --------------------
+   IT TOOK `DATA.questions` AND THAT IS A QUARTER OF THE DOCUMENT ROWS. See `libDocRows_` above for
+   the measurement: 247 questions across seven papers -- the whole June 2024 Edexcel series, both
+   tiers -- never said whether a calculator was allowed, because their document row is marked
+   inactive and `libraryInto_` drops it before this function is handed the list.
+
+   `all` IS STILL TAKEN AND STILL IGNORED IN FAVOUR OF THE FILE, exactly as `specIndex_` does: the
+   argument is the fallback that keeps this working in a harness with no `LIBRARY_ROWS`. */
 function needsIndex_(all) {
+  const rows = (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS && LIBRARY_ROWS.length)
+    ? LIBRARY_ROWS : (all || []);
   const at = {};
-  all.forEach(r => {
-    if (!r || !r.isDoc) return;
+  rows.forEach(r => {
+    if (!libIsDoc_(r)) return;
     const pid = paperIdOf_(r);
     if (pid) at[pid] = asList_(String(r.needs || '').split(','));
   });
@@ -4563,6 +4599,28 @@ function markNorm_(s) {
        A COLON IN AN ANSWER IS A RATIO SEPARATOR AND NOTHING ELSE. The only other thing it could be
        is a time, and folding `3 : 30` onto `3:30` is right about that too. */
     .replace(/\s*:\s*/g, ':')
+    /* ---------- AND ROUND AN OPERATOR, WHICH IS THE COLON RULE FOR A THIRD CLASS OF CHARACTER ----
+       A MARK SCHEME PRINTS `4n − 3` AND A CHILD TYPES `4n-3`. Those were two different strings, so
+       the nth-term question on the June 2024 Foundation paper marked the answer every student
+       actually writes as wrong. Measured across the library: **178 of the 1,436 `accept` cells
+       carry a space round an operator** — `3(2x − 5)`, `5x + 2y`, `2 × 3 × 3 × 5`, `x = 3, y = -4`
+       — and they are precisely the algebra ones, where nobody types the spaces.
+
+       THE MINUS IS ALREADY FOLDED TWENTY LINES UP and that was not enough on its own: `norm` gave
+       `4n - 3` against a typed `4n-3`, so the sign matched and the spacing did not.
+
+       IT CANNOT FOLD A MIXED NUMBER, which is the danger the fraction rule above names: `1 1/6`
+       and `11/6` are 1.17 and 1.83, and the space between a whole number and its fraction does
+       not touch an operator, so nothing here can reach it. Every other space-significant thing in
+       this notation is the same shape. Proved over the real library: no two `accept` cells that
+       were different before become equal after.
+
+       AND A SIGN NO PHONE KEYBOARD HAS IS FOLDED TO THE ONE IT DOES. `≤` is on eleven cells and
+       there is no way to type it — the inequality on this paper is `x ≤ −4`, and a student who
+       has solved it correctly cannot enter the answer at all. `<=` is what a keyboard gives and is
+       not a legitimate spelling of anything else. */
+    .replace(/≤/g, '<=').replace(/≥/g, '>=').replace(/≠/g, '!=')
+    .replace(/\s*([-+×÷=<>!])\s*/g, '$1')
     .replace(/\band\b|&/g, ',')
     .replace(/[.\s]+$/, '')
     .replace(/\s+/g, ' ')
@@ -4873,6 +4931,19 @@ const padPath_ = st => {
   return st.length === 2 ? `M${st[0]} ${st[1]}L${st[0]} ${st[1]}` : d;
 };
 
+/* ---------- WHAT THE CONTROL SAYS, IN ONE PLACE --------------------------------------------------
+   THE HANDLER REWRITES THIS BUTTON IN PLACE rather than repainting the card, so the label exists in
+   two places by construction — the markup above and the press below. Written twice they drift, and
+   the drift here is invisible: a pad that says `Draw on it` while the pen is on is a mode you cannot
+   see, which is the fault the gold frame was added for.
+
+   `Draw on it` SAID NOTHING ABOUT THE CARD BEING HELD, and that is what the report was about. The
+   owner's own sentence is the label: a padlock, and `Lock it to draw`. */
+const PAD_TAP = 'Hold the card still and draw on this';
+const padLockFace_ = pen =>
+  (typeof tileIcon_ === 'function' ? tileIcon_(pen ? 'lock' : 'unlock') : '')
+  + (pen ? 'Done drawing' : 'Lock it to draw');
+
 function padWrap_(x, svg, credit) {
   const k = padKey_(x);
   const marks = padRead_(k);
@@ -4895,20 +4966,48 @@ function padWrap_(x, svg, credit) {
      the answer to exactly that: the width is measured on the screen rather than in the stretched
      user space, so the pen is one pen. */
   return `<div class="qpad${pen ? ' is-drawing' : ''}" data-k="${esc(k)}">
-    <div class="qpad-art">${svg}
+    <div class="qpad-art"${pen ? '' : ` data-do="pad-draw" title="${esc(PAD_TAP)}"`}>${svg}
       <svg class="qpad-ink"${pen ? ' data-noswipe' : ''} viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>
       </svg>
-    </div>${credit || ''}
+    </div>
     <div class="qpad-bar">
-      <button type="button" class="qpad-btn" data-do="pad-draw" aria-pressed="${pen}">${
-        pen ? 'Done drawing' : 'Draw on it'}</button>
+      <button type="button" class="qpad-btn qpad-lock" data-do="pad-draw" aria-pressed="${pen}">${
+        padLockFace_(pen)}</button>
       <button type="button" class="qpad-btn" data-do="pad-undo">Undo</button>
       <button type="button" class="qpad-btn" data-do="pad-clear">Clear</button>
-    </div>
+    </div>${credit || ''}
     <p class="qpad-note">Kept on this phone only, like the answer box.</p>
   </div>`;
+}
+
+/* ---------- ARMING ONE PAD, EVERY PART OF IT TOGETHER --------------------------------------------
+   FOUR THINGS MOVE AND THE HANDLER USED TO MOVE THEM IN FOUR PLACES: the class the frame is drawn
+   from, the `data-noswipe` the grid reads, the `data-do` that makes the picture itself a door, and
+   the button's own face. Four sites is four chances to leave a pad half-armed — a gold frame over a
+   picture that still hands the finger to the grid, or the other way round — and a half-armed pad is
+   exactly the invisible mode the frame exists to prevent.
+
+   TURNING ONE ON TURNS EVERY OTHER OFF, which is why this takes a flag rather than toggling: two
+   live `touch-action: none` regions on one scroller is the trap twice. */
+function padArm_(pad, on) {
+  if (!pad) return;
+  pad.classList.toggle('is-drawing', !!on);
+  const ink = pad.querySelector('.qpad-ink');
+  if (ink) { if (on) ink.setAttribute('data-noswipe', ''); else ink.removeAttribute('data-noswipe'); }
+  /* THE PICTURE IS A DOOR ONLY WHILE THE PEN IS OFF. Armed, the ink layer is over it taking every
+     pointer — and a `data-do` still on the art would make the dispatcher walk up from that ink and
+     turn the pen off again on the first dot anybody drew. */
+  const art = pad.querySelector('.qpad-art');
+  if (art) {
+    if (on) { art.removeAttribute('data-do'); art.removeAttribute('title'); }
+    else { art.setAttribute('data-do', 'pad-draw'); art.setAttribute('title', PAD_TAP); }
+  }
+  /* `.qpad-lock` RATHER THAN THE ACTION, because the art carries the same action when the pen is
+     off and `querySelector` would hand back whichever comes first in the markup. */
+  const b = pad.querySelector('.qpad-lock');
+  if (b) { b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.innerHTML = padLockFace_(!!on); }
 }
 
 /* ---------- THE PEN ------------------------------------------------------------------------------
@@ -4979,39 +5078,31 @@ function padEnd_(e) {
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
 
-/* THE THREE CONTROLS. `Draw on it` is a MODE and not an action, so it says which it is with
+/* THE THREE CONTROLS. `Lock it to draw` is a MODE and not an action, so it says which it is with
    `aria-pressed` and a class — see the note at the top of this block about why the pen cannot
    simply always be on. Only one pad takes the pen at a time: turning one on turns the last one
    off, because two live `touch-action: none` regions on one scroller is the trap twice. */
 on('pad-draw', (el) => {
+  /* TWO DOORS, ONE HANDLER. `el` is the button in the bar, or — while the pen is off — the
+     PICTURE itself, which carries the same action for the reason written over `padArm_`. Both are
+     inside the pad, so neither needs to be told apart here.
+
+     `touch-action: none` STOPS THE BROWSER AND NOT THIS APP, and that is the whole of the fault
+     this was first reported as: "when i try draw a line of best fit it slides the whole widget to
+     the left". The grid's swipe is a `pointermove` listener on the window — it never asks the
+     browser for a scroll, so no `touch-action` anywhere can refuse it, and a line of best fit is
+     exactly the stroke that travels furthest sideways. `axisFree` names `[data-noswipe]`, so the
+     attribute is the app's own half of the same sentence the stylesheet makes to the browser.
+
+     ONLY WHILE THE PEN IS ON, for the reason written over `.qpad-ink` in the stylesheet: a picture
+     you cannot swipe past is a picture that traps you on it, and every question card with a diagram
+     would become a page with no way off. */
   const pad = el.closest('.qpad'); if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
   const want = PAD_ON !== k;
-  [].slice.call(document.querySelectorAll('.qpad.is-drawing'))
-    .forEach(p => p.classList.remove('is-drawing'));
-  [].slice.call(document.querySelectorAll('.qpad-ink[data-noswipe]'))
-    .forEach(i => i.removeAttribute('data-noswipe'));
-  [].slice.call(document.querySelectorAll('[data-do="pad-draw"]')).forEach(b => {
-    b.setAttribute('aria-pressed', 'false'); b.textContent = 'Draw on it';
-  });
+  [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
   PAD_ON = want ? k : '';
-  if (want) {
-    pad.classList.add('is-drawing');
-    /* `touch-action: none` STOPS THE BROWSER AND NOT THIS APP, and that is the whole of the fault
-       it was reported as: "when i try draw a line of best fit it slides the whole widget to the
-       left". The grid's swipe is a `pointermove` listener on the window — it never asks the
-       browser for a scroll, so no `touch-action` anywhere can refuse it, and a line of best fit is
-       exactly the stroke that travels furthest sideways. `axisFree` names `[data-noswipe]`, so the
-       attribute is the app's own half of the same sentence the stylesheet makes to the browser.
-
-       ONLY WHILE THE PEN IS ON, for the reason written over `.qpad-ink` in the stylesheet: a
-       picture you cannot swipe past is a picture that traps you on it, and every question card
-       with a diagram would become a page with no way off. */
-    const ink = pad.querySelector('.qpad-ink');
-    if (ink) ink.setAttribute('data-noswipe', '');
-    el.setAttribute('aria-pressed', 'true');
-    el.textContent = 'Done drawing';
-  }
+  if (want) padArm_(pad, true);
 });
 
 on('pad-undo', (el) => {
@@ -5817,7 +5908,7 @@ const topicOne_ = k => k.endsWith('ies') && k.length > 5 ? k.slice(0, -3) + 'y'
 function topicIndex_() {
   if (TOPIC_AREA) return TOPIC_AREA;
   const tree = (DATA && DATA.topicTree) || [];
-  const byId = {}, exact = {}, roots = [];
+  const byId = {}, exact = {}, roots = [], limits = {};
   tree.forEach(r => { if (r && r.topic_id) byId[r.topic_id] = r; });
   const rootOf = (r, n) => {
     const p = String((r && r.parent_id) || '').trim();
@@ -5825,7 +5916,23 @@ function topicIndex_() {
   };
   tree.forEach(r => {
     if (!r || !r.label) return;
-    const area = (rootOf(r) || r).label;
+    const root = rootOf(r) || r;
+    const area = root.label;
+    /* ---------- WHAT THE BRANCH SAYS ABOUT ITSELF -------------------------------------------
+       DECLARED ON THE ROOT ROW RATHER THAN READ OUT OF ITS NAME. `Pure` is A-level maths and
+       `Punctuation` is English, and both were facts only a person reading the label knew — which
+       is how a GCSE proof question ended up in an A-level menu and a grammar question about
+       brackets ended up under Number. A substring rule over the label is what put a gold
+       "required practical" flag on five cards that say they are not one. */
+    if (limits[area] === undefined) {
+      /* `topicAtoms_`, NOT `asList_`. The second one does not split a comma — it wraps a string
+         in a one-element array, and the comma-reading in this app is done by whoever owns the
+         cell. Written with `asList_` these two came out as the single key `alevelas` and every
+         A-level question lost its area; `topicAtoms_` is the same splitter `topicOf_` uses on the
+         cell these are being compared against. */
+      limits[area] = { subjects: topicAtoms_(root.only_subject).map(spellKey_).filter(Boolean),
+                       levels:   topicAtoms_(root.only_level).map(spellKey_).filter(Boolean) };
+    }
     const names = [r.label, String(r.topic_id || '').replace(/-/g, ' ')]
       .concat(String(r.aliases || '').split(',').filter(a => a.trim()));
     /* A ROOT ANSWERS TO ITS OWN HALVES. "Ratio & Proportion" is one branch and the library writes
@@ -5833,27 +5940,78 @@ function topicIndex_() {
     if (!String(r.parent_id || '').trim()) names.push.apply(names, r.label.split(/[&/,]/));
     names.forEach(nm => {
       [topicKey_(nm), topicOne_(topicKey_(nm))].forEach(k => {
-        if (k && exact[k] === undefined) exact[k] = area;
+        if (!k) return;
+        /* ---------- EVERY BRANCH THE WORD REACHES, NOT THE FIRST ONE IN THE FILE -------------
+           THIS WAS `if (exact[k] === undefined) exact[k] = area`, so a word in two branches
+           resolved to whichever sits higher in `data/topics.json` — a decision nobody made,
+           taken silently, and unreadable from either row. Measured: five words are in two roots
+           (`brackets`, `arc length`, `reflection`, `trapezium rule` and the singular of the
+           first), and `brackets` is why two KS2 GRAMMAR questions were filed under Number.
+           Keeping them all is what lets the row decide, below. */
+        if (exact[k] === undefined) exact[k] = [];
+        if (exact[k].indexOf(area) < 0) exact[k].push(area);
       });
     });
     roots.push([topicOne_(topicKey_(r.label)), area]);
   });
-  return (TOPIC_AREA = { exact: exact, roots: roots });
+  return (TOPIC_AREA = { exact: exact, roots: roots, limits: limits });
+}
+
+/* ---------- WHICH OF THE BRANCHES A ROW CAN HONESTLY BE IN --------------------------------------
+   THREE STEPS, AND THE ASYMMETRY BETWEEN THE FIRST TWO IS THE WHOLE CARE.
+
+   A LEVEL CONTRADICTION ALWAYS RULES A BRANCH OUT. `Pure` says it is A-level; a GCSE row is not in
+   it, whatever its topic cell says. That is the eighteen Edexcel Higher questions this was reported
+   for — `proof`, `rates of change`, `coordinate geometry`, `arithmetic` — every one of them sitting
+   in an A-level menu because the A-level subtree was the only place those words appeared.
+
+   A SUBJECT CONTRADICTION ONLY BREAKS A TIE, and that restraint was measured rather than chosen:
+   **97 practicals carry a science subject and resolve to a MATHS area on purpose** — the resistance
+   of a wire IS a straight-line graph, and a student stuck on direct proportion should find it. A
+   blanket subject rule would have broken all ninety-seven to fix two, which is the ninety-five
+   findings with two real ones in them that `check-rows.js` records.
+
+   AND A BRANCH THE ROW POSITIVELY MATCHES BEATS ONE THAT SAYS NOTHING. With `proof` now reaching
+   GCSE `Algebraic Proof` as well as A-level `Proof`, an A-level row matches both — and the branch
+   that declared itself A-level is the better answer for a row that is. Without this step the fix
+   for the GCSE rows would have taken the area off the A-level ones. */
+function topicPick_(cands, x) {
+  const at = topicIndex_();
+  const lim = a => at.limits[a] || { subjects: [], levels: [] };
+  const lv = spellKey_(levelOf_(x) || '');
+  const sub = spellKey_(String((x && x.subject) || '') || '');
+
+  let left = cands.filter(a => !(lv && lim(a).levels.length && lim(a).levels.indexOf(lv) < 0));
+  if (left.length > 1 && sub) {
+    const fits = left.filter(a => !(lim(a).subjects.length && lim(a).subjects.indexOf(sub) < 0));
+    if (fits.length) left = fits;
+  }
+  if (left.length > 1 && lv) {
+    const named = left.filter(a => lim(a).levels.indexOf(lv) >= 0);
+    if (named.length) left = named;
+  }
+  /* STILL MORE THAN ONE IS NO ANSWER. A chip that is wrong is worse than a chip that is missing —
+     this file's own rule about `cost: 0` and about a description standing in for a picture — and
+     `check-funnel.js` counts what lands here so it is a number rather than a silence. */
+  return left.length === 1 ? left[0] : null;
 }
 function topicAreaOf_(x) {
   const at = topicIndex_();
   const out = [];
   asList_(topicOf_(x)).forEach(t => {
     const k = topicKey_(t), k1 = topicOne_(k);
-    let area = at.exact[k] !== undefined ? at.exact[k]
-             : at.exact[k1] !== undefined ? at.exact[k1] : null;
-    if (area === null && k1.length >= 4) {
+    const hit = at.exact[k] !== undefined ? at.exact[k]
+              : at.exact[k1] !== undefined ? at.exact[k1] : null;
+    let area = hit ? topicPick_(hit, x) : null;
+    if (area === null && !hit && k1.length >= 4) {
       let only = null, many = false;
       at.roots.forEach(pair => {
         if (pair[0].indexOf(k1) < 0) return;
         if (only === null) only = pair[1]; else if (only !== pair[1]) many = true;
       });
-      if (only !== null && !many) area = only;
+      /* THROUGH THE SAME CHOICE, because a PARTIAL match is less certain than an exact one, not
+         more — so a branch the row's level rules out is ruled out here too. */
+      if (only !== null && !many) area = topicPick_([only], x);
     }
     if (area && out.indexOf(area) < 0) out.push(area);
   });

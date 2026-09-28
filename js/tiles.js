@@ -81,6 +81,22 @@ const TILE_ICONS = {
        + '<path d="M11.4 10.6A2.2 2.2 0 0 1 7.5 8.9"/>'
        + '<path d="M12 12.4A7.6 7.6 0 0 1 9 13c-4.8 0-7.5-4.5-7.5-4.5a14 14 0 0 1 3.3-3.4"/>',
   close: '<path d="M4 4.5 14 14"/><path d="M14 4.5 4 14"/>',
+  /* ---------- A PADLOCK, AND THE TWO DIFFER BY ONE STROKE ------------------------------------
+     REPORTED AS "when you are drawing its moving the widget itself. i think on those quesitions
+     there should be a padlock tile to keep it in place so you can draw." That is the owner's own
+     word for what arming the pen on a question's diagram already does — it pins the card so a
+     stroke is a stroke rather than a swipe — and the control had been called `Draw on it`, which
+     says nothing about the card being held.
+
+     CLOSED IS PINNED, which is the reading the report asks for: "a padlock to keep it in place SO
+     YOU CAN DRAW". The other reading — a locked picture you may not draw on — is the opposite, and
+     the only thing that keeps them apart is that the two marks are a pair: same body, same shackle,
+     and the open one is missing its right leg. A padlock drawn any other way reads as whichever
+     the viewer expected. */
+  lock:   '<rect x="4" y="8" width="10" height="6.8" rx="1.5"/>'
+        + '<path d="M6.2 8V6a2.8 2.8 0 0 1 5.6 0v2"/>',
+  unlock: '<rect x="4" y="8" width="10" height="6.8" rx="1.5"/>'
+        + '<path d="M6.2 8V6a2.8 2.8 0 0 1 5.6 0"/>',
   /* THE SHARE MARK. An arrow leaving a tray — the same idea the ↗ on a post was reaching for, drawn
      properly so it is the same weight and the same size as every other mark in the row. */
   /* AN ENVELOPE, WHICH IS THE ONE PICTURE EVERYBODY ALREADY READS. The paper aeroplane below means

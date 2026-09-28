@@ -142,6 +142,32 @@ const CASES = [
   ['2.1', '1.5\u20132 metres', false, 'and over is still over'],
   ['1.75', '1.5\u20142 metres', true, 'and the same band written with an EM dash'],
   /* NOTHING TYPED IS NOT A WRONG ANSWER */
+  /* ---------- A SPACE ROUND AN OPERATOR, WHICH IS THE RATIO RULE ONE CLASS OF CHARACTER ALONG ----
+     A MARK SCHEME PRINTS `4n \u2212 3` AND NOBODY TYPES THE SPACES. 178 of the library's 1,436
+     `accept` cells carry one, and they are the algebra questions \u2014 so the nth-term answer every
+     student actually writes was marked wrong on every one of them. */
+  ['4n-3', '4n \u2212 3', true, 'Q20 of June 2024 Foundation, typed the way a child types it'],
+  ['4n - 3', '4n \u2212 3', true, 'and with the spaces the scheme prints'],
+  ['3(2x-5)', '3(2x \u2212 5)', true, 'a factorised expression closed up'],
+  ['5x+2y', '5x + 2y', true, 'and a sum'],
+  ['2\u00d73\u00d73\u00d75', '2 \u00d7 3 \u00d7 3 \u00d7 5', true, 'a product of primes'],
+  ['4n+1', '4n \u2212 3', false, 'the common slip off the first term is still wrong'],
+  ['4x-3', '4n \u2212 3', false, 'and so is the wrong letter'],
+  /* THE ONE THING THIS MUST NOT DO, and the fraction rule above names it: `1 1/6` is 1.17 and
+     `11/6` is 1.83. The space in a mixed number touches no operator, so nothing here can reach it
+     \u2014 and these two cases are what says so rather than a sentence claiming it. */
+  ['1 1/6', '11/6', false, 'a mixed number must not fold onto the improper fraction'],
+  ['11/6', '1 1/6', false, 'and not the other way round either'],
+
+  /* ---------- A SIGN NO PHONE KEYBOARD HAS ------------------------------------------------------
+     `\u2264` IS ON ELEVEN `accept` CELLS AND THERE IS NO KEY FOR IT. Q28 of June 2024 Foundation is
+     `x \u2264 \u22124`, so a student who had solved it could not enter the answer at all. */
+  ['x<=-4', 'x \u2264 \u22124', true, 'Q28 of June 2024 Foundation, with the keyboard\'s own operator'],
+  ['x \u2264 -4', 'x \u2264 \u22124', true, 'and with the sign, if they can find it'],
+  ['x>=-4', 'x \u2264 \u22124', false, 'the wrong way round is a different answer'],
+  ['x=-4', 'x \u2264 \u22124', false, 'and an equation is not an inequality'],
+  ['100<w<=150', '100 < w \u2264 150', true, 'a grouped-data class, typed'],
+
   ['', '7', null, 'an empty box is not a mistake'],
   ['banana', '7', false, 'and a word is not a number'],
 ];
