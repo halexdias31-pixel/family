@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-28-g-many";
+const DOPOST_VERSION = "2026-09-29-a-shelves";
 
 
 function doPost(e) {
@@ -524,6 +524,51 @@ function doPost(e) {
           + 'Run ensureSchema() to add it — nothing was saved.' });
       }
       if (libSent) setCell(t, r, 'library_card', libCardsIn(fields));
+      /* ---------- AND THE QUALIFICATIONS, THE SAME WAY -------------------------------------------
+         THE LIBRARY'S THREE PLACES AGAIN, and the same reason for each: the form names are not the
+         cell, so they are out of `wanted`, the cell's header is checked here because nothing below
+         can see it, and the packer is fed the WHOLE field map so a shelf that sent two rows writes
+         the others empty rather than leaving them. Refused BEFORE either is written, because a save
+         that wrote the qualifications and was then refused about the subjects has half happened.
+
+         THE OLD CELLS ARE MIRRORED FROM THE NEW LIST, which is what makes clearing one stick. The
+         readers (`qualsList_`, `teachAlsoList_`) fall back to `qual_1…3` and `teaches_2` whenever
+         the new cell is empty — so a tutor who deletes every qualification must also empty those,
+         or the next load would bring back the ones just removed. And it keeps anything still
+         reading `qual_1` telling the same story. Only where the column exists: a mirror written to
+         a missing header is a `missedWrite_` about a cell nobody needs. */
+      const qualsSent = Object.keys(fields).some(f => QUAL_FIELD.test(f))
+                     && QUAL_FIELDS.some(f => allowed.indexOf(f) !== -1);
+      const packedMissing = [qualsSent && 'quals']
+        .filter(c => c && t.headers.indexOf(c) === -1);
+      if (packedMissing.length) {
+        return jsonOut({ error: 'The sheet has no column for: ' + packedMissing.join(', ')
+          + '. Run ensureSchema() to add it — nothing was saved.' });
+      }
+      const mirror = (col, v) => { if (t.headers.indexOf(col) !== -1) setCell(t, r, col, v); };
+      if (qualsSent) {
+        const packed = qualsIn(fields);
+        setCell(t, r, 'quals', packed);
+        const list = qualsList_({ quals: packed });
+        for (let n = 1; n <= 3; n++) {
+          const q = list[n - 1] || {};
+          mirror('qual_' + n, S(q.subject));
+          mirror('qual_' + n + '_level', S(q.level));
+          mirror('qual_' + n + '_board', S(q.board));
+          mirror('qual_' + n + '_grade', S(q.grade));
+        }
+      }
+      /* `teaches_also` IS A COLUMN, so `wanted` writes it and the `noColumn` refusal covers it; what
+         it needs here is tidying before that write, and the `teaches_2` mirror after it. */
+      const alsoSent = fields.teaches_also !== undefined && allowed.indexOf('teaches_also') !== -1;
+      if (alsoSent) {
+        fields.teaches_also = teachAlsoIn(fields.teaches_also);
+        if (t.headers.indexOf('teaches_also') !== -1) {
+          const first = teachAlsoList_({ teaches_also: fields.teaches_also })[0] || {};
+          mirror('teaches_2', S(first.subject));
+          mirror('teaches_2_level', S(first.level));
+        }
+      }
 
       /* ---------- AND THE DATE OF BIRTH ARRIVES AS THREE BOXES AND IS STORED AS ONE CELL --------
          THE SAME THREE PLACES `library_card` NEEDED, for the same three reasons, and skipping any
@@ -579,6 +624,7 @@ function doPost(e) {
          never meant to have one. */
       const wanted = Object.keys(fields)
         .filter(f => !/^(m|tu|w|th|f|sa|su)\d\d$/.test(f) && !LIBRARY_FIELD.test(f)
+                  && !QUAL_FIELD.test(f)
                   && allowed.indexOf(f) !== -1);
       const noColumn = wanted.filter(f => t.headers.indexOf(f) === -1);
       if (noColumn.length) {
@@ -3394,6 +3440,8 @@ function profileOf_(r) {
   /* ONE CELL, EXPANDED ONCE, for the reason `availSet` is called once above rather than per hour
      code. `libCardsOut` is the only reader of the `name:number:pin|…` format on this side. */
   const cards = libCardsOut(r.library_card);
+  /* The two shelves, each read off the ROW so an unsaved row answers from its legacy cells. */
+  const quals = qualsOut(r);
   /* ---------- AND THE DATE OF BIRTH, WHICH WAS BEING SENT AS A JAVASCRIPT DATE STRING ------------
      `S(r.date_of_birth)` IS `String(v).trim()`, AND SHEETS STORES A DATE AS A REAL DATE. So a
      birthday typed into the spreadsheet came back into the box as
@@ -3407,6 +3455,8 @@ function profileOf_(r) {
   PROFILE_EDITABLE.concat(PROFILE_READONLY).forEach(f => {
     out[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (avail[f] ? 'TRUE' : '')
            : LIBRARY_FIELD.test(f) ? S(cards[f])
+           : QUAL_FIELD.test(f) ? S(quals[f])
+           : f === 'teaches_also' ? teachAlsoOut(r)
            : f === 'date_of_birth' ? S(dobIn(dob))
            /* ---------- AND AN EXAM DATE AS `yyyy-mm-dd`, WHICH IS WHAT THE PICKER CAN HOLD ------
               `S(r[f])` IS THE `S(r.date_of_birth)` FAULT ONE COLUMN ALONG, and worse: a birthday

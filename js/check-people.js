@@ -69,6 +69,21 @@ const SRC = [
   grab(core,   /function availSet\([\s\S]*?\n\}/, 'availSet'),
   grab(core,   /function libCardsOut\([\s\S]*?\n\}/, 'libCardsOut'),
   grab(core,   /function libCardsIn\([\s\S]*?\n\}/, 'libCardsIn'),
+  /* ---------- THE TWO SHELVES THAT READ THE ROW RATHER THAN THE CELL -------------------------------
+     `qualsList_` AND `teachAlsoList_` ARE THE MIGRATION: a row nobody has saved since `quals` and
+     `teaches_also` existed has those cells empty and its answers in `qual_1…3` and `teaches_2`, and a
+     reader that looked only at the new cell would show an empty shelf — which the next Save would
+     then mirror back over the old cells. So the cases below include a legacy row. */
+  grab(consts, /const QUAL_MAX\s*=[^;]*;/, 'QUAL_MAX'),
+  grab(consts, /const QUAL_FIELDS\s*=\s*\(\(\)[\s\S]*?\}\)\(\);/, 'QUAL_FIELDS'),
+  grab(consts, /const TEACH_ALSO_MAX\s*=[^;]*;/, 'TEACH_ALSO_MAX'),
+  grab(core,   /function qualsList_\([\s\S]*?\n\}/, 'qualsList_'),
+  grab(core,   /function qualsOut\([\s\S]*?\n\}/, 'qualsOut'),
+  grab(core,   /function qualsIn\([\s\S]*?\n\}/, 'qualsIn'),
+  grab(core,   /function teachAlsoList_\([\s\S]*?\n\}/, 'teachAlsoList_'),
+  grab(core,   /const teachAlsoPhrase_\s*=[^;]*;/, 'teachAlsoPhrase_'),
+  grab(core,   /function teachAlsoOut\([^\n]*\}/, 'teachAlsoOut'),
+  grab(core,   /function teachAlsoIn\([\s\S]*?\n\}/, 'teachAlsoIn'),
   /* THE THIRD PACKED CELL, and the one whose unpacker has to read TWO different stored shapes:
      Sheets makes a real Date of a birthday typed into the spreadsheet, and this app writes a
      `dd/mm/yyyy` string. `sheetDate` is what tells them apart, so it is cut out too. */
@@ -90,7 +105,7 @@ const SRC = [
    arrangement `check-handles.js` uses and for its stated reason: if one of them changes meaning in
    `constants.gs`, a case here fails, which is what a stub is for. */
 const PRELUDE = `
-  const S = v => (v === undefined || v === null ? '' : String(v));
+  const S = v => String(v ?? '').trim();   // constants.gs's own — it TRIMS, and the packers rely on it
   const norm = v => S(v).toLowerCase().replace(/\\s+/g, '').trim();
   const TRUE_ = v => v === true || /^(true|yes|1|✓)$/i.test(S(v).trim());
 `;
@@ -100,7 +115,11 @@ new Function('box', PRELUDE + SRC
   + ' box.availOut = availGridOut; box.availIn = availGridIn;'
   + ' box.N = LIBRARY_CARDS; box.FIELDS = LIBRARY_FIELDS;'
   + ' box.dobOut = dobOut; box.dobIn = dobIn; box.dobNo = dobRefusal_;'
-  + ' box.iso = isoDate_; box.isoNo = isoRefusal_; box.DATE_COLS = DATE_COLS;')(box);
+  + ' box.iso = isoDate_; box.isoNo = isoRefusal_; box.DATE_COLS = DATE_COLS;'
+  + ' box.qList = qualsList_; box.qOut = qualsOut; box.qIn = qualsIn;'
+  + ' box.QMAX = QUAL_MAX; box.QFIELDS = QUAL_FIELDS;'
+  + ' box.aList = teachAlsoList_; box.aOut = teachAlsoOut; box.aIn = teachAlsoIn;'
+  + ' box.AMAX = TEACH_ALSO_MAX;')(box);
 
 let bad = 0;
 const is = (what, got, want) => {
@@ -112,7 +131,13 @@ const is = (what, got, want) => {
    WRITTEN OUT HERE WOULD BE THE SECOND COPY. What this asks instead is that the list AGREES with
    the count — nine names for three cards — which is the thing that breaks if somebody edits one and
    not the other. */
-is('three cards give nine field names', box.FIELDS.length, box.N * 3);
+is('each card gives three field names', box.FIELDS.length, box.N * 3);
+/* FIVE, BECAUSE THAT IS THE ASK — *"same with library cards (max 5)"*. A number typed into a check
+   is usually the second copy this repository warns about; here it is the requirement itself, so the
+   check fails if somebody lowers the constant back without being asked to. */
+is('five library cards', box.N, 5);
+is('ten qualifications, four boxes each', [box.QMAX, box.QFIELDS.length], [10, 40]);
+is('eight also-teach subjects', box.AMAX, 8);
 is('the first card is named lib1_*', box.FIELDS.slice(0, 3), ['lib1_name', 'lib1_no', 'lib1_pin']);
 
 /* ---------- THE ROUND TRIP, WHICH IS THE WHOLE POINT --------------------------------------------- */
@@ -169,10 +194,69 @@ is('nothing typed at all is an empty cell', box.libIn(cards(['', '', ''])), '');
 /* AN OLD CELL, AND A CELL WITH MORE CARDS IN IT THAN THE FORM DRAWS. Neither should throw and
    neither should invent a field: the form shows `LIBRARY_CARDS` of them and a fourth would be
    dropped on the next save, which is a real loss and is why the count is one constant. */
+const blanks = n => Array.from({ length: n }, () => ['', '', '']);
 is('an empty cell unpacks to empty boxes',
-   box.libOut(''), cards(['', '', ''], ['', '', ''], ['', '', '']));
+   box.libOut(''), cards(...blanks(box.N)));
 is('a ragged item does not throw and does not invent',
-   box.libOut('Merton'), cards(['Merton', '', ''], ['', '', ''], ['', '', '']));
+   box.libOut('Merton'), cards(['Merton', '', ''], ...blanks(box.N - 1)));
+
+/* ---------- THE QUALIFICATIONS: ROUND TRIP, MIGRATION, COMPACTION, AND THE CAP ------------------ */
+const quals = (...rows) => {
+  const f = {};
+  rows.forEach((r, i) => ['', '_level', '_board', '_grade'].forEach((sfx, j) => {
+    f['qual_' + (i + 1) + sfx] = r[j];
+  }));
+  return f;
+};
+is('a qualification packs as subject:level:board:grade',
+   box.qIn(quals(['Maths', 'A-Level', 'Edexcel', 'B'])), 'Maths:A-Level:Edexcel:B');
+is('and comes back into the same four boxes',
+   box.qOut({ quals: 'Maths:A-Level:Edexcel:B' }).qual_1_board, 'Edexcel');
+is('a colon in the subject survives, because the item is read from the right',
+   box.qList({ quals: 'Maths: Pure:A-Level:Edexcel:B' })[0].subject, 'Maths: Pure');
+/* COMPACTED, UNLIKE THE LIBRARY. A gap would come back as an empty card mid-shelf above the
+   `Add another`, and a list of qualifications has no slot anybody remembers by position. */
+is('an empty qualification in the middle is dropped, not kept',
+   box.qIn(quals(['Maths', 'GCSE', '', '9'], ['', '', '', ''], ['Physics', 'GCSE', 'AQA', '8'])),
+   'Maths:GCSE::9|Physics:GCSE:AQA:8');
+is('ten fit and are all kept',
+   box.qList({ quals: Array.from({ length: 10 }, (_, i) => 'S' + i + ':GCSE::1').join('|') }).length, 10);
+is('an eleventh in the cell is not invented into a box',
+   box.qList({ quals: Array.from({ length: 11 }, (_, i) => 'S' + i + ':GCSE::1').join('|') }).length, 10);
+is('a pipe typed into a subject does not become a second qualification',
+   box.qList({ quals: box.qIn(quals(['Maths|Stats', 'GCSE', '', '9'])) }).length, 1);
+/* THE MIGRATION, and the case that would have lost data: a row saved before `quals` existed. */
+const legacy = { qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_board: 'Edexcel', qual_1_grade: 'B',
+                 qual_2: 'English', qual_2_level: 'GCSE', qual_2_grade: '7' };
+is('an empty quals cell reads the old qual_1..3 columns',
+   box.qList(legacy).map(q => q.subject + '/' + q.grade), ['Maths/B', 'English/7']);
+is('and the form is filled from them',
+   [box.qOut(legacy).qual_1, box.qOut(legacy).qual_2_level, box.qOut(legacy).qual_3], ['Maths', 'GCSE', '']);
+is('a filled quals cell wins over the old columns',
+   box.qList(Object.assign({ quals: 'Physics:GCSE:AQA:8' }, legacy)).length, 1);
+
+/* ---------- WHAT ELSE A TUTOR TEACHES ----------------------------------------------------------
+   ONE COLUMN, posted by the phone's multi-select as the phrases the card prints. What the server
+   owes it is tidying and the legacy fallback, and both are silent when wrong. */
+is('the cell reads back as it went in',
+   box.aIn('Maths (GCSE), English (KS3)'), 'Maths (GCSE), English (KS3)');
+is('a pipe typed by hand is a separator too',
+   box.aIn('Maths (GCSE)|English (KS3)'), 'Maths (GCSE), English (KS3)');
+is('a subject with no level has no brackets', box.aIn('Chess'), 'Chess');
+is('a level with no subject is not a subject', box.aIn('(GCSE)'), '');
+is('the same subject twice is one subject, whatever the case',
+   box.aIn('Maths (GCSE), maths (gcse)'), 'Maths (GCSE)');
+is('an empty post stays empty, which is a tutor clearing the list', box.aIn(''), '');
+is('the level comes apart from the subject',
+   box.aList({ teaches_also: 'Maths (GCSE), English (KS3)' })[1], { subject: 'English', level: 'KS3' });
+is('an empty teaches_also reads the old teaches_2',
+   box.aList({ teaches_2: 'Physics', teaches_2_level: 'A-Level' }), [{ subject: 'Physics', level: 'A-Level' }]);
+is('and the form is filled from it', box.aOut({ teaches_2: 'Physics', teaches_2_level: 'A-Level' }),
+   'Physics (A-Level)');
+is('a filled teaches_also wins over teaches_2',
+   box.aList({ teaches_also: 'Chess', teaches_2: 'Physics' }).map(x => x.subject), ['Chess']);
+is('no more than eight are kept',
+   box.aIn(Array.from({ length: 9 }, (_, i) => 'S' + i).join(', ')).split(', ').length, 8);
 
 /* ---------- AND THE HOURS, WHICH HAVE NEVER BEEN TESTED EITHER ----------------------------------- */
 is('a ticked hour survives the round trip',
@@ -287,6 +371,6 @@ is('and it does NOT match `date_of_birth`, which is three boxes',
 
 if (bad) { console.log('\nFAILED — ' + bad + ' packed-cell case(s) wrong.'); process.exit(1); }
 console.log('\nlibrary cards: ' + box.N + '   fields: ' + box.FIELDS.length
-          + '   packed cells: availability, library_card, date_of_birth'
+          + '   packed cells: availability, library_card, date_of_birth, quals, teaches_also'
           + '   date columns: ' + box.DATE_COLS.join(', '));
 console.log('OK — every packed cell and every date column comes back as it went in.');

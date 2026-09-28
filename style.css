@@ -812,6 +812,26 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    naming six elements. The twelfth conviction of `.price.faint` in this stylesheet, and the first
    one caught by the check rather than by a person reading two blocks side by side. */
 .lib-shelf .lib-row > label.field { margin-bottom: .35rem; }
+/* ---------- A SHELF'S `Add another` ---------------------------------------------------------
+   The button is the shelf's own last child, so it sits under the last card showing and goes when
+   there is nothing left to reveal (`shelf-more` in me.js). A quiet `.btn`, because the Save under
+   the card is the page's one action and this is not it — the correction `.reel-sound` records. */
+.lib-shelf .shelf-more { margin: .1rem 0 .6rem; }
+/* ---------- "ALSO TEACH" IN THE PANEL: ONE SHORT ROW A SUBJECT --------------------------------
+   The subject is a small caption over its levels, in the ink `.dob-cap` uses for the same job, and
+   the groups are spaced rather than ruled — a rule between twelve subjects is chrome where a list
+   wants none. The level buttons keep `.pick-opt`'s 44px; only the flat list's width rule changes,
+   because a level is four characters and the flat list is sized for a phrase. */
+.pick-group + .pick-group { margin-top: .45rem; }
+.pick-head {
+  display: block; margin: 0 0 .2rem;
+  font-family: var(--mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--dim);
+}
+.pick-group .pick-list { grid-template-columns: repeat(auto-fill, minmax(4.8rem, 1fr)); margin: 0; }
+/* ONE LINE A LEVEL. `A-Level` broke after its hyphen in a four-character column — a screenshot is
+   what caught it — and a level split over two lines reads as two answers. */
+.pick-group .pick-opt { white-space: nowrap; padding-inline: .3rem; }
 
 /* The whole row is the target, not the little box. A pixel floor rather than a rem multiple,
    because 2.9rem at a 15px root came out at 43.5px — half a pixel under, which is exactly the
@@ -5556,6 +5576,13 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .is-prof .prof-top + .row,
 .is-prof .prof-say + .row,
 .is-prof .prof-tags + .row { margin-top: .7rem; }
+/* THE SUBJECTS, AS THE ADJECTIVES' CHIPS. Same pill, same line; the case is the sheet's own rather
+   than upper, because a subject shouted reads as a heading (see `findCard`). The specialism takes
+   the gold edge and the ink — gold is what this app means by "the one", and it is the only chip on
+   the card that is a claim about depth rather than range. Two chip rows in a row need a gap. */
+.prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: .64rem; }
+.prof-teach .prof-tag.is-main { border-color: var(--gold); color: var(--ink); }
+.prof-tags + .prof-teach { margin-top: .35rem; }
 /* SWITCHED OFF. The whole card dims and the heading says so in words — a tutor hidden from the
    public list is a state an admin has to be able to see at a glance without reading a row. */
 .card.is-widget.is-off { opacity: .6; }

@@ -948,6 +948,104 @@ function libCardsIn(fields) {
   return items.join('|');
 }
 
+/* ---------- UP TO TEN QUALIFICATIONS, AS ONE CELL AND FORTY BOXES --------------------------------
+   `libCardsOut`'s arrangement one row along, with one difference that is the whole of the
+   migration: the cell `quals` is new, so a row nobody has saved since it landed has an EMPTY cell
+   and three filled `qual_N` columns. Reading only the cell would show that tutor an empty shelf,
+   and the next Save would then mirror the empties back over `qual_1…3` — the whole list gone on
+   the first press. So the READER takes the row, and the legacy columns are the answer whenever the
+   cell has nothing in it.
+
+   AN ITEM IS `subject:level:board:grade`, PARSED FROM THE RIGHT, so a subject holding a colon
+   survives exactly as a library's name does; the other three come off a closed list and cannot. */
+function qualsList_(r) {
+  r = r || {};
+  const cell = S(r.quals);
+  if (cell) {
+    return cell.split('|').map(item => {
+      const bits = S(item).split(':');
+      const grade = bits.length > 1 ? S(bits.pop()) : '';
+      const board = bits.length > 1 ? S(bits.pop()) : '';
+      const level = bits.length > 1 ? S(bits.pop()) : '';
+      return { subject: S(bits.join(':')), level, board, grade };
+    }).filter(q => q.subject || q.level || q.board || q.grade).slice(0, QUAL_MAX);
+  }
+  const out = [];
+  for (let n = 1; n <= 3; n++) {
+    const q = { subject: S(r['qual_' + n]), level: S(r['qual_' + n + '_level']),
+                board: S(r['qual_' + n + '_board']), grade: S(r['qual_' + n + '_grade']) };
+    if (q.subject || q.level || q.board || q.grade) out.push(q);
+  }
+  return out;
+}
+function qualsOut(r) {
+  const list = qualsList_(r), out = {};
+  for (let i = 1; i <= QUAL_MAX; i++) {
+    const q = list[i - 1] || {};
+    out['qual_' + i] = S(q.subject);
+    out['qual_' + i + '_level'] = S(q.level);
+    out['qual_' + i + '_board'] = S(q.board);
+    out['qual_' + i + '_grade'] = S(q.grade);
+  }
+  return out;
+}
+/* ---------- AND BACK, WITH EVERY EMPTY ONE DROPPED — NOT ONLY THE TRAILING ONES ---------------
+   THE ONE PLACE THIS PARTS FROM `libCardsIn`, and on purpose. That one keeps a gap in the middle
+   because a library slot is somebody's second card left blank on purpose. A qualification is not a
+   slot anybody remembers by position — it is a list — and the form draws the filled ones plus ONE
+   empty one; a gap kept here would come back as an empty card in the middle of the shelf with the
+   `Add another` below it. The pipe and the colon are stripped from what is typed for the reason
+   `libCardsIn` gives, except the colon in the subject, which the parse above makes safe. */
+function qualsIn(fields) {
+  const cut = v => S(v).replace(/\|/g, ' ').trim();
+  const items = [];
+  for (let i = 1; i <= QUAL_MAX; i++) {
+    const subject = cut(fields['qual_' + i]);
+    const level = cut(fields['qual_' + i + '_level']).replace(/:/g, '');
+    const board = cut(fields['qual_' + i + '_board']).replace(/:/g, '');
+    const grade = cut(fields['qual_' + i + '_grade']).replace(/:/g, '');
+    if (subject || level || board || grade) items.push([subject, level, board, grade].join(':'));
+  }
+  return items.join('|');
+}
+
+/* ---------- WHAT ELSE A TUTOR TEACHES, AS ONE CELL OF "Subject (Level)" PHRASES --------------------
+   WRITTEN THE WAY THE CARD PRINTS IT — `Maths (GCSE), English (KS3)` — so the sheet reads as the
+   card does, and comma-separated because that is what the phone's multi-select already writes for
+   `extra_quals`. A pipe is read as a separator too, so a cell typed by hand either way comes apart.
+   The level is the LAST bracketed group, so a subject with brackets of its own and a level still
+   comes apart right. `teaches_2` is the legacy answer, read when the cell is empty for the reason
+   `qualsList_` gives: a row nobody has saved since this landed must not show an empty list, or the
+   next save mirrors the empty back over `teaches_2`. */
+function teachAlsoList_(r) {
+  r = r || {};
+  const cell = S(r.teaches_also);
+  const one = t => {
+    const m = S(t).match(/^(.*?)\s*\(([^()]*)\)\s*$/);
+    return m ? { subject: S(m[1]), level: S(m[2]) } : { subject: S(t), level: '' };
+  };
+  if (cell) return cell.split(/[|,]/).map(one).filter(x => x.subject).slice(0, TEACH_ALSO_MAX);
+  const legacy = { subject: S(r.teaches_2), level: S(r.teaches_2_level) };
+  return legacy.subject ? [legacy] : [];
+}
+const teachAlsoPhrase_ = x => S(x.subject) + (S(x.level) ? ' (' + S(x.level) + ')' : '');
+/* THE CELL AS THE FORM SHOULD SHOW IT — including a legacy `teaches_2` promoted into the list. */
+function teachAlsoOut(r) { return teachAlsoList_(r).map(teachAlsoPhrase_).join(', '); }
+/* AND WHAT THE FORM POSTED, TIDIED: deduped (case-blind), capped, and a bracket with nothing in front
+   of it dropped — "(GCSE)" on a card is a level with no subject. An EMPTY post stays empty: that is a
+   tutor clearing the list, and `teachAlsoList_`'s fallback is why `teaches_2` is mirrored empty too. */
+function teachAlsoIn(value) {
+  const seen = {}, out = [];
+  S(value).split(/[|,]/).forEach(t => {
+    const x = teachAlsoList_({ teaches_also: t })[0];
+    if (!x || !x.subject) return;
+    const phrase = teachAlsoPhrase_(x), k = phrase.toLowerCase();
+    if (seen[k] || out.length >= TEACH_ALSO_MAX) return;
+    seen[k] = true; out.push(phrase);
+  });
+  return out.join(', ');
+}
+
 /* ---------- A DATE OF BIRTH, AS THREE BOXES AND BACK ----------------------------------------------
    `libCardsOut` / `libCardsIn` ONE CELL ALONG, degenerate to a single value. The reason it is the
    same shape rather than three columns is the reason written over `LIBRARY_FIELDS` and over

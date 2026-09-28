@@ -1765,10 +1765,34 @@ const FIELD_LISTS_ = {
 };
 /* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell — the shape
    `extra_quals` already had as free text, so nothing written before this needs migrating. */
-const FIELD_MULTI = { extra_quals: true };
+const FIELD_MULTI = { extra_quals: true, teaches_also: true };
+/* ---------- AND ONE SHELF SLOT'S LIST OFF THE FIRST SLOT'S -------------------------------------
+   `FIELD_OPTIONS` sends `qual_1_level` ONCE rather than ten times — see its note in constants.gs —
+   so `qual_7_level` asks for `qual_1`'s list here. `teaches_also` is built from `teaches_1`'s two
+   lists, falling back to the booking lists, so a backend too old to send them still offers real
+   subjects rather than nothing. */
 function fieldOptions_(f) {
-  const sent = (typeof DATA !== 'undefined' && DATA && DATA.validations || {})[f];
-  return (sent && sent.length) ? sent : (FIELD_LISTS_[f] || null);
+  const v = (typeof DATA !== 'undefined' && DATA && DATA.validations) || {};
+  const dd = (typeof DATA !== 'undefined' && DATA && DATA.dropdowns) || {};
+  const got = x => (x && x.length ? x : null);
+  const first = String(f).replace(/^qual_\d+/, 'qual_1');
+  return got(v[f]) || FIELD_LISTS_[f] || got(v[first])
+    || (f === 'teaches_also' ? teachPhrases_(got(v.teaches_1) || got(dd.subjects) || [],
+                                             got(v.teaches_1_level) || got(dd.levels) || []) : null)
+    || null;
+}
+/* ---------- "ALSO TEACH" IS EVERY SUBJECT AT EVERY LEVEL, WRITTEN AS THE CARD WRITES IT --------
+   ASKED FOR AS *"should be what you specialise teaching in and what you also teach."* Each option
+   is one phrase — `Maths (GCSE)` — built from the same two lists `teaches_1` offers, so what is
+   ticked is already what the card prints and what `teaches_also` holds. Subject-major, because a
+   tutor thinks "Maths, at which levels" rather than "GCSE, in which subjects"; `meDropHtml_` draws
+   them grouped by subject for the same reason, so a hundred phrases read as twelve short rows. */
+function teachPhrases_(subjects, levels) {
+  const out = [];
+  subjects.forEach(sub => { (levels.length ? levels : ['']).forEach(l => {
+    out.push(sub + (l ? ' (' + l + ')' : ''));
+  }); });
+  return out;
 }
 
 /**
@@ -1905,11 +1929,24 @@ function meDropHtml_(field, box) {
      easy to lose on the next save. */
   const opts = (fieldOptions_(field) || []).slice();
   got.forEach(g => { if (!opts.some(x => norm(x) === norm(g))) opts.push(g); });
+  const btn = (x, text) => `<button type="button"
+        class="btn quiet pick-opt${on(x) ? ' on' : ''}" data-do="me-many-pick" data-val="${esc(x)}"
+        aria-pressed="${on(x) ? 'true' : 'false'}">${on(x) ? '✓ ' : ''}${esc(text)}</button>`;
+  /* ---------- A PHRASE LIST IS DRAWN GROUPED BY ITS SUBJECT -----------------------------------
+     `teaches_also` offers every subject at every level — about a hundred buttons as one flat list,
+     which is a list nobody scans. Grouped, it is one short row per subject with the levels as its
+     buttons, and the button says only the level because the row's head already says the subject.
+     `data-val` is still the whole phrase, so the pick handler and the save are untouched. */
+  const lvl = x => (String(x).match(/^(.*?)\s*\(([^()]*)\)\s*$/) || []);
+  const body = field === 'teaches_also'
+    ? [...new Set(opts.map(x => lvl(x)[1] || x))].map(sub => `<div class="pick-group">
+        <span class="pick-head">${esc(sub)}</span>
+        <div class="pick-list">${opts.filter(x => (lvl(x)[1] || x) === sub)
+          .map(x => btn(x, lvl(x)[2] || x)).join('')}</div></div>`).join('')
+    : `<div class="pick-list">${opts.map(x => btn(x, x)).join('')}</div>`;
   return `<p class="drop-say${got.length ? '' : ' is-none'}">${got.length ? esc(got.join(', '))
       : 'Nothing chosen yet — tap as many as apply.'}</p>
-    <div class="pick-list">${opts.map(x => `<button type="button"
-        class="btn quiet pick-opt${on(x) ? ' on' : ''}" data-do="me-many-pick" data-val="${esc(x)}"
-        aria-pressed="${on(x) ? 'true' : 'false'}">${on(x) ? '✓ ' : ''}${esc(x)}</button>`).join('')}</div>
+    ${body}
     <button type="button" class="btn quiet drop-done" data-do="me-many-done">Done</button>`;
 }
 function meDrop_() {
@@ -2002,11 +2039,13 @@ const FIELD_ROWS = [
   { fields: ['city', 'town'] },
   { fields: ['borough', 'postcode'] },
   { fields: ['teaches_1', 'teaches_1_level'] },
-  { fields: ['teaches_2', 'teaches_2_level'] },
+  /* A STUDENT'S TWO EXAMS SIDE BY SIDE, now they share About you with a name and a photo: two date
+     pickers are one row, which is what let them join that page rather than cost a card of their own. */
+  { fields: ['exam_small_date', 'exam_big_date'] },
   { fields: ['studying', 'studying_at'] },
 ];
 const ROW_LABEL = {
-  teaches_1: 'teaches', teaches_1_level: 'level', teaches_2: 'also teaches', teaches_2_level: 'level',
+  teaches_1: 'specialise in', teaches_1_level: 'level', teaches_also: 'also teach',
   studying: 'studying now', studying_at: 'at', years_experience: 'years teaching',
   photo: 'photo link', video: 'video link',
   travel_km: 'will travel (km)', extra_quals: 'more qualifications', favourite_colour: 'favourite colour',
@@ -2099,6 +2138,46 @@ function dobBoxes_(value) {
 }
 const isLibrary_ = list => (list || []).some(isLibraryCard_);
 
+/* ---------- A SHELF SHOWS WHAT IS FILLED IN, ONE EMPTY SLOT, AND A WAY TO ASK FOR ANOTHER ---------
+   ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"* and *"same with
+   library cards (max 5)"*. Ten qualifications drawn at once is two thousand pixels of empty boxes
+   on a pane that caps at 534 — so every slot is IN the markup (the save posts all of them, and a
+   hidden empty slot packs to nothing) and only the filled ones are SHOWN, or one empty one when
+   nothing is filled yet.
+   `Add another` reveals the next one in place; it is not a sheet and not a menu, because the owner
+   refuses both, and the pane scrolls once the card outgrows it (`paneWatch_`).
+
+   THE LAST FILLED SLOT DECIDES, NOT THE COUNT. A library shelf keeps a gap in the middle on
+   purpose (`libCardsIn`'s note), so what shows is measured from the last slot with anything in it
+   — a count would hide the card after the gap, with its answers still in it.
+
+   `hidden` ON THE SLOT ITSELF, which works because no rule gives `.lib-card` a `display` of its own
+   — `[hidden]` is the UA's `display: none` and nothing here outranks it. */
+function shelfSlots_(nums, filled, draw) {
+  let last = 0;
+  nums.forEach((n, i) => { if (filled(n)) last = i + 1; });
+  /* NO SPARE EMPTY SLOT ONCE ONE IS FILLED — `Add another` IS the empty slot, one tap away. An
+     empty card as well as the button measured **583px in a 532px pane at 320x568** on a shelf with
+     two libraries in it; without it, 475. A shelf with nothing filled still shows one empty slot,
+     because a button over nothing is a page with nothing to type into. */
+  const show = Math.min(nums.length, Math.max(1, last));
+  return nums.map((n, i) => draw(n, i >= show)).join('')
+    + (show < nums.length
+      ? `<button class="btn quiet shelf-more" data-do="shelf-more">Add another</button>` : '');
+}
+const shelfFilled_ = (value, names) => names.some(f => String(value(f) ?? '').trim() !== '');
+
+on('shelf-more', el => {
+  const shelf = el.closest('.lib-shelf');
+  const next = shelf && shelf.querySelector('.lib-card[hidden]');
+  if (next) {
+    next.hidden = false;
+    const box = next.querySelector('input, select');
+    try { if (box) box.focus({ preventScroll: true }); } catch {}
+  }
+  if (!shelf || !shelf.querySelector('.lib-card[hidden]')) el.remove();
+});
+
 /* ---------- AND A GROUP OF `qual_N*` NAMES IS A SHELF OF QUALIFICATIONS -------------------------
    THE LIBRARY SHELF'S SHAPE, ONE GROUP ALONG, and recognised the same way — by the names, never by
    the group's title. Twelve captioned boxes are about 760px at 320 against a pane that caps at 534,
@@ -2111,8 +2190,10 @@ function qualShelf_(list, value, options) {
   const nums = [...new Set((list || []).filter(isQualField_)
     .map(f => String(f).match(/^qual_(\d+)/)[1]))];
   const box = (f, ph) => fieldHtml(f, value(f), { placeholder: ph, options: options ? options(f) : null });
-  return `<div class="lib-shelf">${nums.map(i => `
-    <div class="lib-card">
+  return `<div class="lib-shelf">${shelfSlots_(nums,
+    i => shelfFilled_(value, ['qual_' + i, 'qual_' + i + '_level', 'qual_' + i + '_board', 'qual_' + i + '_grade']),
+    (i, hide) => `
+    <div class="lib-card"${hide ? ' hidden' : ''}>
       <div class="lib-row">
         ${box('qual_' + i, 'Subject')}
         ${box('qual_' + i + '_grade', 'Grade')}
@@ -2121,7 +2202,7 @@ function qualShelf_(list, value, options) {
         ${box('qual_' + i + '_level', 'Level')}
         ${box('qual_' + i + '_board', 'Board')}
       </div>
-    </div>`).join('')}</div>`;
+    </div>`)}</div>`;
 }
 
 /* ---------- ONE SHELF, ONE CARD PER LIBRARY -----------------------------------------------------
@@ -2139,14 +2220,16 @@ function qualShelf_(list, value, options) {
 function libraryShelf_(list, value) {
   const nums = [...new Set((list || []).filter(isLibraryCard_)
     .map(f => String(f).match(/^lib(\d+)_/)[1]))];
-  return `<div class="lib-shelf">${nums.map(i => `
-    <div class="lib-card">
+  return `<div class="lib-shelf">${shelfSlots_(nums,
+    i => shelfFilled_(value, ['lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin']),
+    (i, hide) => `
+    <div class="lib-card"${hide ? ' hidden' : ''}>
       <div class="lib-row">
         ${fieldHtml('lib' + i + '_name', value('lib' + i + '_name'), { placeholder: 'Library' })}
         ${fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'), { placeholder: 'PIN' })}
       </div>
       ${fieldHtml('lib' + i + '_no', value('lib' + i + '_no'), { placeholder: 'Card number' })}
-    </div>`).join('')}</div>`;
+    </div>`)}</div>`;
 }
 
 /* THE HOUR CODES, WHEREVER THE BACKEND PUT THEM. The group's title is the backend's to choose, so
@@ -2176,6 +2259,13 @@ function fieldsHtml(groups, o) {
   o = o || {};
   const head = o.head || 'h2';
   const value = o.value || (() => '');
+  const plain = (f, extra) => fieldHtml(f, value(f), Object.assign({
+    attr: o.attr,
+    label: ROW_LABEL[f],
+    options: o.options ? o.options(f) : null,
+    suggest: o.suggest ? o.suggest(f) : null,
+    readonly: (o.readonly || []).indexOf(f) !== -1,
+  }, extra));
   return Object.keys(groups).map(g => {
     const list = groups[g] || [];
     const timetable = isTimetable_(list);
@@ -2204,13 +2294,7 @@ function fieldsHtml(groups, o) {
       : (library ? libraryShelf_(list, value) : '')
       + (quals ? qualShelf_(list, value, o.options) : '')
       + (wantsDob ? dobBoxes_(value) : '')
-      + fieldRows_(rest, (f, extra) => fieldHtml(f, value(f), Object.assign({
-          attr: o.attr,
-          label: ROW_LABEL[f],
-          options: o.options ? o.options(f) : null,
-          suggest: o.suggest ? o.suggest(f) : null,
-          readonly: (o.readonly || []).indexOf(f) !== -1,
-        }, extra)));
+      + fieldRows_(rest, plain);
     return `<${head}><span>${esc(g)}</span></${head}>` + body;
   }).join('');
 }

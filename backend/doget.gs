@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-28-g-many";
+const DOGET_VERSION = "2026-09-29-a-shelves";
 
 
 function doGet(e) {
@@ -669,10 +669,15 @@ function doGet(e) {
              spreadsheet becoming a wrong number on a card. */
           teaches: (function () {
             const seen = {}, out = [];
-            [1, 2].forEach(function (n) {
-              const subj = S(r['teaches_' + n]);
+            /* THE SPECIALISM FIRST, THEN EVERYTHING ELSE THEY TEACH. `teachAlsoList_` reads the
+               `teaches_also` cell and falls back to `teaches_2` for a row nobody has saved since
+               it landed, so the list is the same before and after the migration. The card draws the
+               first entry as the specialism, so the ORDER is the claim — see `findCard`. */
+            const specialism = { subject: S(r.teaches_1), level: S(r.teaches_1_level) };
+            [specialism].concat(teachAlsoList_(r)).forEach(function (x) {
+              const subj = S(x.subject);
               if (!subj) return;
-              const lvl = S(r['teaches_' + n + '_level']);
+              const lvl = S(x.level);
               const one = subj + (lvl ? ' (' + lvl + ')' : '');
               const key = one.toLowerCase().trim();
               if (seen[key]) return;
@@ -681,15 +686,22 @@ function doGet(e) {
             });
             return out;
           })(),
-          quals: [1,2,3].map(n => {
-            const subj = S(r['qual_' + n]);
+          /* WHICH OF THOSE IS THE SPECIALISM, said rather than inferred from position — a tutor
+             with no `teaches_1` and two "also" subjects must not have the first of those drawn as
+             the thing they specialise in. Empty when there is none. */
+          teachesMain: S(r.teaches_1)
+            ? S(r.teaches_1) + (S(r.teaches_1_level) ? ' (' + S(r.teaches_1_level) + ')' : '') : '',
+          /* UP TO TEN, OFF THE `quals` CELL, with `qual_1…3` as the answer for a row that has never
+             been saved since that cell existed — `qualsList_` in core.gs is the one reader. */
+          quals: qualsList_(r).map(q => {
+            const subj = S(q.subject);
             if (!subj) return null;
-            const lvl = S(r['qual_' + n + '_level']), grd = S(r['qual_' + n + '_grade']);
+            const lvl = S(q.level), grd = S(q.grade);
             /* THE BOARD IN BRACKETS, where it reads as the qualifying detail it is: "Maths A-Level
                (Edexcel) grade B". Joined here rather than on the phone for the reason the three
                parts above already are — one sentence, built once, so a card and a roster cannot
                disagree about how a qualification is written. */
-            const brd = S(r['qual_' + n + '_board']);
+            const brd = S(q.board);
             return [subj, lvl, brd && ('(' + brd + ')'), grd && ('grade ' + grd)]
               .filter(Boolean).join(' ');
           }).filter(Boolean),

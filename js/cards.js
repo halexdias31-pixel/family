@@ -319,9 +319,22 @@ function findCard(x) {
             is a claim that somebody looked and there was nothing, which is the sentence this
             repository has written down five times. `row` prints a dash for an empty value, so the
             emptiness has to be decided here, before it is asked for. */''}
+      ${/* ---------- WHAT THEY TEACH, AS THE SAME CHIPS THE ADJECTIVES ARE ------------------------
+            ASKED FOR AS *"can you see how adjectives look like google chips? i want the same for
+            the subjects in tutors profile cards. to look like this ( Maths (GCSE) )"*. It was a
+            `Teaches` row, a comma list — and each subject is a separate claim a parent is looking
+            for, which is the argument the adjectives' own note makes for being chips.
+            THE SPECIALISM IS MARKED, and `teachesMain` says which one it is rather than position:
+            a tutor with no specialism and two other subjects must not have the first drawn as one.
+            `mark` still runs inside each chip, so a search for "GCSE" lights the chip it matched.
+            NOT UPPER-CASED, unlike the adjectives: "MATHS (GCSE)" is a subject shouted, and the
+            owner's own example is written in the case the sheet holds. */''}
+      ${profList_(t.teaches).length
+        ? `<div class="prof-tags prof-teach">${profList_(t.teaches).map(v =>
+             `<span class="prof-tag${t.teachesMain && v === t.teachesMain ? ' is-main' : ''}"${
+               t.teachesMain && v === t.teachesMain ? ' title="Specialises in"' : ''}>${mark(v)}</span>`)
+             .join('')}</div>` : ''}
       ${[
-        profList_(t.teaches).length
-          ? rowHtml('Teaches', profList_(t.teaches).map(v => mark(v)).join(', ')) : '',
         t.yrsExp ? row('Experience', String(t.yrsExp).replace(/^(\d+)$/, '$1 years')) : '',
         profList_(t.quals).length ? row('Qualifications', profList_(t.quals).join(' · ')) : '',
         profList_(t.extraQuals).length ? row('Also', profList_(t.extraQuals).join(' · ')) : '',
