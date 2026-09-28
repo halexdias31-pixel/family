@@ -613,6 +613,18 @@ function dateCol_(t) {
 /** A file's name without its extension. Only the extension: everything else is somebody's own
     words about their own photograph, and deciding which parts of a filename are meaningful would
     be guessing about the one thing we were told directly. */
+/* EVERY PICTURE AND CLIP ON A POST ROW, IN ORDER, `image` FIRST — one list for the phone to read,
+   so the order is decided here and nowhere else. Repeats are dropped, because a row whose `image`
+   was also typed into `media` would otherwise draw the same photograph twice. */
+function postMediaOut_(r) {
+  const out = [];
+  [S(r.image)].concat(S(r.media).split('|')).forEach(x => {
+    const v = S(x).trim();
+    if (v && out.indexOf(v) < 0) out.push(v);
+  });
+  return out;
+}
+
 function captionFromName_(n) {
   return S(n).replace(/\.[^./]+$/, '').trim();
 }

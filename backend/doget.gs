@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-28-f-settings";
+const DOGET_VERSION = "2026-09-28-g-many";
 
 
 function doGet(e) {
@@ -1104,6 +1104,10 @@ function doGet(e) {
           handle: who.handle,
           avatar: who.avatar,
           image: S(r.image),        // converted on the phone, the way the gallery already does it
+          /* EVERY PICTURE AND CLIP, THE FIRST INCLUDED, so the phone reads one list rather than
+             stitching `image` onto the front itself — which would be a second place for the order
+             to be decided. See `media` in `SCHEMA.posts`. */
+          media: postMediaOut_(r),
           /* THE CAPTION, RESOLVED HERE AND NOWHERE ELSE.
              Two columns, two owners, and no rule about who may overwrite whom:
                `caption`   what a PERSON typed. Only ever written by editPost.

@@ -53,8 +53,82 @@ function pic(url) {
    the rest lazily, and a post found by searching is the first thing on its page, so it is passed 0
    from there.
 --------------------------------------------------------------------------------------------- */
+/* ---------- EVERY PICTURE AND CLIP ON A POST, AS ONE LIST ----------------------------------------
+   ASKED FOR AS "tutors should be able to post more then one photo. not just one. and also videos."
+   `doGet` sends `media` — the first item and every one after it, in order — and a payload from a
+   backend older than that sends `image` alone, so that is the floor: one list either way, and
+   nothing below this has to know which backend answered. */
+function postMedia_(p) {
+  const list = Array.isArray(p && p.media) && p.media.length ? p.media : [p && p.image];
+  return list.map(x => String(x || '').trim()).filter(Boolean);
+}
+/* A CLIP IS MARKED `#video` BY THE BACKEND THAT UPLOADED IT, because a Drive address names no type;
+   an address typed in is a clip if it ends like one. */
+const postIsVideo_ = u => /#video$/i.test(u) || /\.(mp4|webm|mov|m4v)(?:[?#]|$)/i.test(u);
+/* THE ADDRESS A `<video>` IS POINTED AT. A Drive link is a PAGE, which a `<video>` cannot play, so a
+   Drive file goes to its download address — the bytes, which is the only thing that element can
+   read. NOT THE `/preview` EMBED: that is Google's own player in an iframe, which is exactly what
+   "remove the embedded reels. they suck." took off the Reels column, and a post is the same
+   picture-that-moves on the column next door. If Drive will not hand the bytes over the element
+   says so with `error`, and `postVidFail_` below replaces it with a plain link to the file rather
+   than with somebody else's player. */
+function postVidSrc_(u) {
+  const bare = String(u || '').replace(/#video$/i, '');
+  const id = (bare.match(/\/file\/d\/([\w-]{20,})/) || bare.match(/[?&]id=([\w-]{20,})/) || [])[1];
+  return id ? 'https://drive.usercontent.google.com/download?id=' + id + '&export=download' : bare;
+}
+/* ONE ITEM, drawn as a picture or as a clip. `controls` because a post's clip is somebody's
+   footage to be watched on purpose — not a reel that plays itself as it scrolls past — and
+   `preload="metadata"` so a feed of ten clips is not ten downloads before anybody presses one. */
+function postItem_(u, cls, eager) {
+  if (postIsVideo_(u)) {
+    return `<video class="${cls} post-vid" src="${esc(postVidSrc_(u))}"
+      data-open="${esc(String(u).replace(/#video$/i, ''))}" controls playsinline preload="metadata"></video>`;
+  }
+  return `<img class="${cls}" src="${esc(pic(u))}" alt="" loading="${eager ? 'eager' : 'lazy'}">`;
+}
+/* ---------- SEVERAL OF THEM, IN A GRID RATHER THAN A STRIP --------------------------------------
+   NOT A SIDEWAYS CAROUSEL, and the app is why: every screen here is reached by a sideways swipe, so a
+   strip of photographs you swipe along would eat exactly the gesture that changes column — the
+   fault this repository already records on the notepad, the answer box and the line of best fit.
+   Two columns of squares, and when the count is odd the first one takes the whole width, so the
+   photograph somebody put first is the one that leads. Squares crop — `object-fit: cover` — which the
+   single-picture rule above refuses, and that refusal is about ONE picture shown whole; in a grid
+   the square IS the thumbnail and every picture still has the same size as its neighbours. */
+function postMediaHtml_(list, i) {
+  if (!list.length) return '';
+  if (list.length === 1) {
+    const u = list[0];
+    if (postIsVideo_(u)) return postItem_(u, 'post-pic', i < 2);
+    /* A SHAPE BEFORE IT LOADS — see the note where this markup was written out inline. */
+    return `<img class="post-pic" src="${esc(pic(u))}" alt=""
+           style="aspect-ratio:4/5"
+           onload="this.style.aspectRatio=this.naturalWidth+'/'+this.naturalHeight"
+           loading="${i < 2 ? 'eager' : 'lazy'}">`;
+  }
+  return `<div class="post-grid${list.length % 2 ? ' is-odd' : ''}">${
+    list.map((u, k) => postItem_(u, 'post-cell', i < 2 && k < 2)).join('')}</div>`;
+}
+/* A CLIP DRIVE WOULD NOT HAND OVER BECOMES A LINK TO IT, not a black box with a play button that
+   does nothing. `error` does not bubble, so this listens in the capture phase, once, for the whole
+   document — the same one-listener shape every `data-do` in this app has. */
+function postVidFail_(v) {
+  if (!v || v.dataset.dead) return;
+  v.dataset.dead = '1';
+  const href = v.dataset.open || '';
+  const a = document.createElement('a');
+  a.className = v.className.replace('post-vid', 'post-vid-out');
+  a.href = href; a.target = '_blank'; a.rel = 'noopener';
+  a.textContent = '\u25b6 Open the video';
+  v.replaceWith(a);
+}
+document.addEventListener('error', e => {
+  const v = e.target;
+  if (v && v.matches && v.matches('video.post-vid')) postVidFail_(v);
+}, true);
+
 function postCard_(p, i) {
-    const src = pic(p.image);
+    const media = postMedia_(p);
     /* The author's face, or the brand's mark when the post is the business speaking. A column of
        blank circles is the thing that makes a feed look unfinished. */
     const face = pic(p.avatar || brand('logo_square') || brand('logo_circle'));
@@ -95,10 +169,7 @@ function postCard_(p, i) {
              the real one replaces it the moment the file's own dimensions are known; the observer
              below catches that. Reserving the wrong shape briefly is a smaller error than reserving
              none, which is what the overlap was. */''}
-      ${src ? `<img class="post-pic" src="${esc(src)}" alt=""
-           style="aspect-ratio:4/5"
-           onload="this.style.aspectRatio=this.naturalWidth+'/'+this.naturalHeight"
-           loading="${i < 2 ? 'eager' : 'lazy'}">` : ''}
+      ${postMediaHtml_(media, i)}
 
       ${/* THE ACTIONS ROW, which is now reactions and sharing and nothing else.
             The heart has gone. A like is a reaction with exactly one option, so having both was
@@ -491,7 +562,10 @@ function cameraCard() {
             rebuilding it. `accept="image/*"` and NO `capture`: capture would reopen the camera,
             which is the thing this button exists to be an alternative to. */''}
       <label class="cam-side cam-pick" for="cam-pick">Photos</label>
-      <input type="file" id="cam-pick" data-do="cam-pick" accept="image/*" hidden>
+      ${/* SEVERAL, AND CLIPS AS WELL AS PHOTOGRAPHS — "tutors should be able to post more then one
+            photo. not just one. and also videos." `multiple` is the whole of the first half; the
+            handler files each one into the post. */''}
+      <input type="file" id="cam-pick" data-do="cam-pick" accept="image/*,video/*" multiple hidden>
       ${/* THE WORDS ARE IN `aria-label` AND `title` RATHER THAN IN THE DISC. A shutter with the
             word "Photo" written across it is not a shutter, and a control with no name at all is
             one a screen reader cannot offer. */''}
@@ -523,6 +597,11 @@ function cameraCard() {
           have no text and every one of them carries a placeholder, which IS the accessible name
           when there is nothing else, so a label repeating it would be two strings to keep in step.
           It is also 21px, and this card has 26px between it and the pane's fold at 390. */''}
+    ${/* ---------- WHAT IS ALREADY IN THIS POST ------------------------------------------------
+          Everything kept with `Add another`, picked several at a time, or recorded — a square each,
+          and a tap on one takes it back out. Hidden while there is nothing in it, like every other
+          part of this card that belongs to a post rather than to the camera. Built by `camHold_`. */''}
+    <div class="cam-tray" id="cam-tray" hidden></div>
     <input id="cam-cap" class="cam-cap" hidden
            placeholder="One line about it" autocomplete="off" maxlength="200">
 
@@ -543,6 +622,9 @@ function cameraCard() {
     </span>
     <div class="btn-row cam-row">
       <button class="btn quiet" data-do="cam-again" id="cam-again" hidden>Again</button>
+      ${/* KEEP THIS ONE AND TAKE ANOTHER. The picture goes into the tray and the viewfinder comes
+            back, so a post of five is five presses of the shutter and one of `Post it`. */''}
+      <button class="btn quiet" data-do="cam-more" id="cam-more" hidden>Add another</button>
       <button class="btn" data-do="cam-post" id="cam-post" hidden>Post it</button>
       <button class="btn quiet" data-do="cam-save" id="cam-save" hidden>Save a copy</button>
       ${/* HIDDEN UNTIL SOMETHING FAILS. See the note at the top: this is the way back from a refused
@@ -767,12 +849,33 @@ on('cam-on', () => camStart_());
 document.addEventListener('change', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="cam-pick"]');
   if (!el) return;
-  const file = el.files && el.files[0];
+  const files = Array.from(el.files || []);
   el.value = '';
-  if (!file) return;
+  if (!files.length) return;
 
   const said = $('cam-said'), c = $('cam-still'), v = $('cam-view');
   if (!c) return;
+
+  /* ---------- ONE PHOTOGRAPH WITH NOTHING HELD IS THE CARD IT ALWAYS WAS ------------------------
+     Everything else — several at once, a clip, or anything picked while a post is already being
+     made — goes into the tray, and the viewfinder is left as it is. A picture already on the card
+     goes in first, so choosing from Photos never throws away the shot you were looking at. */
+  const file = files[0];
+  if (files.length > 1 || !/^image\//i.test(file.type || '') || CAM_ITEMS.length || !c.hidden) {
+    camKeep_();
+    if (said) said.textContent = 'Adding\u2026';
+    Promise.all(files.map(camItemOf_)).then(got => {
+      const kept = got.filter(Boolean);
+      CAM_ITEMS = CAM_ITEMS.concat(kept);
+      if (said) said.textContent = kept.length < got.length
+        ? (got.length - kept.length) + ' could not be added \u2014 a clip over '
+          + Math.round(CAM_VID_MAX / 1048576) + ' MB is too big to post from here.'
+        : '';
+      camHold_();
+      camSettle_();
+    });
+    return;
+  }
 
   const url = URL.createObjectURL(file);
   const img = new Image();
@@ -786,11 +889,7 @@ document.addEventListener('change', e => {
     c.hidden = false;
     if (v) v.hidden = true;
     camLive_(false);
-    $('cam-again') && ($('cam-again').hidden = false);
-    $('cam-save')  && ($('cam-save').hidden = false);
-    $('cam-post')  && ($('cam-post').hidden = false);
-    $('cam-cap')   && ($('cam-cap').hidden = false);
-    $('cam-as')    && ($('cam-as').hidden = false);
+    camHold_();
     $('cam-off')   && ($('cam-off').hidden = true);
     /* SEE `cam-shoot`: `Again` already offers the camera, so this would be the second button for it. */
     $('cam-on')    && ($('cam-on').hidden = true);
@@ -817,11 +916,7 @@ on('cam-shoot', () => {
   /* THE SHUTTERS GREY WHILE A PICTURE IS BEING LOOKED AT. The stream is still running underneath —
      see `Again` — so they would work; what they would do is throw away the shot you just took. */
   camLive_(false);
-  $('cam-again').hidden = false;
-  $('cam-save').hidden = false;
-  $('cam-post').hidden = false;
-  $('cam-cap').hidden = false;
-  $('cam-as').hidden = false;
+  camHold_();
   /* `Try the camera again` GOES WHILE A PICTURE IS BEING HELD, and that is a duplicate removed
      rather than a control taken away. It is revealed only by a camera that FAILED to start — and
      once you are holding a photograph, `Again` is already the button that throws it away and puts
@@ -855,6 +950,90 @@ on('cam-shoot', () => {
    `true` for its reason too — the cards have not moved as far as anybody is concerned, and
    animating them to where they already look like they are is a second movement nobody asked for.
 ================================================================================================== */
+/* ---------- THE POST BEING MADE, AS A LIST -------------------------------------------------------
+   `CAM_ITEMS` holds what has been kept for this post — `{ kind, data }`, `data` a `data:` URL, which
+   is what `addPost` uploads. The picture on the card is NOT in it until `Add another` or `Post it`
+   takes it, so `Again` can still throw away just that one. */
+let CAM_ITEMS = [];
+/* TWENTY MEGABYTES A CLIP AND FORTY-FIVE A POST, because the whole post travels in one request and
+   base64 adds a third. Numbers a phone can post over a school's wifi, not limits anybody enforces
+   past this card. */
+const CAM_VID_MAX = 20 * 1048576;
+const CAM_POST_MAX = 45 * 1048576;
+
+/* ONE FILE OR RECORDING, READY TO POST. A photograph is redrawn at no more than 1600px on its long
+   side — a camera roll's 12-megapixel original is four megabytes for a card 390px wide — and a clip
+   is read as it is, because re-encoding video in a browser is not a thing to do on a phone. Answers
+   `null` for anything it cannot use, and never rejects, so one bad file in five does not lose the
+   other four. */
+function camItemOf_(file) {
+  return new Promise(done => {
+    const type = String((file && file.type) || '');
+    if (/^video\//i.test(type)) {
+      if (file.size > CAM_VID_MAX) { done(null); return; }
+      const r = new FileReader();
+      r.onload = () => done({ kind: 'video', data: String(r.result || '') });
+      r.onerror = () => done(null);
+      try { r.readAsDataURL(file); } catch (e) { done(null); }
+      return;
+    }
+    if (!/^image\//i.test(type)) { done(null); return; }
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const k = Math.min(1, 1600 / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+      const cv = document.createElement('canvas');
+      cv.width = Math.max(1, Math.round(img.naturalWidth * k));
+      cv.height = Math.max(1, Math.round(img.naturalHeight * k));
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      URL.revokeObjectURL(url);
+      try { done({ kind: 'image', data: cv.toDataURL('image/jpeg', 0.85) }); } catch (e) { done(null); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); done(null); };
+    img.src = url;
+  });
+}
+/* THE PICTURE ON THE CARD GOES INTO THE TRAY, and the card goes back to the viewfinder. */
+function camKeep_() {
+  const c = $('cam-still');
+  if (!c || c.hidden) return;
+  try { CAM_ITEMS.push({ kind: 'image', data: c.toDataURL('image/jpeg', 0.85) }); } catch (e) { return; }
+  c.hidden = true;
+}
+/* ---------- WHICH CONTROLS ARE SHOWING IS ONE FACT: WHAT IS BEING HELD ---------------------------
+   FIVE PLACES SET THESE ONE AT A TIME, and a sixth would have been the tray. `Again`, `Save a copy`
+   and `Add another` are about the picture ON the card; `Post it`, the caption and who-it-goes-up-as
+   are about the POST, which exists once anything is held. Written from the state rather than by
+   each handler, so no press can leave the card half-showing — the `REEL_HELD` rule. */
+function camHold_() {
+  const still = !!($('cam-still') && !$('cam-still').hidden);
+  const n = CAM_ITEMS.length + (still ? 1 : 0);
+  const show = (id, on) => { const el = $(id); if (el) el.hidden = !on; };
+  show('cam-again', still); show('cam-save', still); show('cam-more', still);
+  show('cam-post', n > 0); show('cam-cap', n > 0); show('cam-as', n > 0);
+  const post = $('cam-post');
+  if (post) post.textContent = n > 1 ? 'Post all ' + n : 'Post it';
+  const tray = $('cam-tray');
+  if (!tray) return;
+  tray.hidden = !CAM_ITEMS.length;
+  tray.innerHTML = CAM_ITEMS.length ? `<p class="faint cam-tray-say">${CAM_ITEMS.length} kept for
+      this post \u2014 tap one to take it out</p><div class="cam-thumbs">${CAM_ITEMS.map((x, k) =>
+    `<button class="cam-thumb" data-do="cam-drop" data-i="${k}"
+       aria-label="Take this one out of the post" title="Take this one out">${x.kind === 'video'
+      ? '<span class="cam-thumb-vid">\u25b6</span>'
+      : `<img src="${esc(x.data)}" alt="">`}</button>`).join('')}</div>` : '';
+}
+on('cam-more', () => {
+  camKeep_();
+  camAgain_();
+});
+on('cam-drop', el => {
+  const k = Number(el.dataset.i);
+  if (k >= 0 && k < CAM_ITEMS.length) CAM_ITEMS.splice(k, 1);
+  camHold_();
+  camSettle_();
+});
+
 function camSettle_() {
   try { placeCells('y', true, 0, 'feed'); } catch (err) {}
 }
@@ -870,12 +1049,13 @@ function camAgain_() {
   const v = $('cam-view'), c = $('cam-still');
   if (c) c.hidden = true;
   if (v) v.hidden = false;
-  const hide = id => { const el = $(id); if (el) el.hidden = true; };
-  hide('cam-again'); hide('cam-save'); hide('cam-post'); hide('cam-as');
   /* EMPTIED AS WELL AS HIDDEN, and that is the half a `hidden` does not do. This function runs on
      `Again` and on a posted shot alike, so a caption left in the box would be offered as the
-     caption for the NEXT photograph — a sentence about one picture printed under another. */
-  const cap = $('cam-cap'); if (cap) { cap.hidden = true; cap.value = ''; }
+     caption for the NEXT photograph — a sentence about one picture printed under another.
+     NOT WHILE THE TRAY HOLDS ANYTHING: then the caption is about the post that is still being
+     made, and `Again` threw away one picture of it, not the post. */
+  const cap = $('cam-cap'); if (cap && !CAM_ITEMS.length) cap.value = '';
+  camHold_();
   camLive_(true);
   const said = $('cam-said'); if (said) said.textContent = '';
   camStart_();
@@ -954,6 +1134,19 @@ on('cam-video', () => {
       document.body.appendChild(a); a.click(); a.remove();
       URL.revokeObjectURL(url);
       if (said) said.textContent = 'Saved.';
+      /* AND INTO THE POST, which is the half that makes a clip postable at all — "and also videos".
+         The copy above is still saved, because it was the only way out a recording had and a
+         download somebody expects is not one to take away. */
+      camItemOf_(blob).then(it => {
+        if (!it) {
+          if (said) said.textContent = 'Saved. Too long to post from here \u2014 a clip over '
+            + Math.round(CAM_VID_MAX / 1048576) + ' MB.';
+          return;
+        }
+        CAM_ITEMS.push(it);
+        if (said) said.textContent = 'Saved, and added to this post.';
+        camHold_(); camSettle_();
+      });
     } catch (err) {
       if (said) said.textContent = 'Could not save that: ' + String((err && err.message) || err);
     }
@@ -1024,13 +1217,29 @@ on('cam-post', el => {
   const c = $('cam-still'), said = $('cam-said');
   if (!c) return;
   if (!USER) { if (said) said.textContent = 'Sign in first — a post needs somebody to be from.'; return; }
+  /* ---------- EVERYTHING IN THE TRAY, THEN THE PICTURE ON THE CARD ------------------------------
+     The first goes as `data`, exactly as a single photograph always has — so a backend older than
+     the `media` column still posts it — and the rest go as `media`. */
   /* 0.85 RATHER THAN THE DOWNLOAD'S 0.92. The copy you keep should be the better one; the one that
      travels goes through a base64 body and a spreadsheet round trip, and the difference between
      the two qualities is about a third of the bytes and nothing anybody can see on a feed card. */
-  let data = '';
-  try { data = c.toDataURL('image/jpeg', 0.85); }
-  catch (err) { if (said) said.textContent = 'Could not read that photo: '
-    + String((err && err.message) || err); return; }
+  const list = CAM_ITEMS.map(x => x.data);
+  if (!c.hidden) {
+    try { list.push(c.toDataURL('image/jpeg', 0.85)); }
+    catch (err) { if (said) said.textContent = 'Could not read that photo: '
+      + String((err && err.message) || err); return; }
+  }
+  if (!list.length) { if (said) said.textContent = 'Take a photo or pick one first.'; return; }
+  /* ONE REQUEST CARRIES ALL OF IT, base64 inside a JSON body, and Apps Script refuses a body much
+     past fifty megabytes — so the phone says so in words rather than letting the server fail in
+     its own. */
+  const size = list.reduce((n, x) => n + x.length, 0);
+  if (size > CAM_POST_MAX) {
+    if (said) said.textContent = 'That is too much to post at once (' + Math.round(size / 1048576)
+      + ' MB). Take a clip or two out and post them separately.';
+    return;
+  }
+  const data = list[0];
 
   const as = ($('cam-as') || {}).dataset;
   /* `send_` RATHER THAN `api`, WHICH IS THE WHOLE OF `check-replies.js`. This handler is about to
@@ -1041,12 +1250,13 @@ on('cam-post', el => {
     action: 'addPost',
     name: USER.name, adminName: USER.name, personId: (USER && USER.personId) || '',
     data: data,
+    media: list.slice(1),
     postAs: (as && as.as) || 'brand',
     caption: ($('cam-cap') || {}).value || '',
     body: '', location: '', poll: '',
   }, { button: el, busy: 'Posting…', where: 'cam-said' })
     .then(() => {
-      toast('Posted'); camAgain_(); load();
+      toast('Posted'); CAM_ITEMS = []; camAgain_(); load();
     })
     /* `send_` HAS ALREADY WRITTEN THE REASON into `cam-said` and marked the error handled; this
        catch exists so the rejection does not reach the console as an unhandled one. */
@@ -1105,11 +1315,11 @@ function camStop_(keepShown) {
   if (off) { off.hidden = false;
              const t = off.querySelector('.sub'); if (t) t.textContent = 'Starting the camera…'; }
   $('cam-on')    && ($('cam-on').hidden = true, $('cam-on').disabled = false);
-  $('cam-again') && ($('cam-again').hidden = true);
-  $('cam-save')  && ($('cam-save').hidden = true);
-  $('cam-post')  && ($('cam-post').hidden = true);
-  $('cam-cap')   && ($('cam-cap').hidden = true);
-  $('cam-as')    && ($('cam-as').hidden = true);
+  /* LEAVING THE COLUMN LETS THE POST GO TOO, the tray with it — the same thing it has always done to
+     a single held picture. */
+  CAM_ITEMS = [];
+  const cap = $('cam-cap'); if (cap) cap.value = '';
+  camHold_();
 }
 
 /* ---------- REACTIONS ---------------------------------------------------------------------------
@@ -1388,8 +1598,12 @@ on('new-post', () => {
        link anyway before anybody but you can see it.
        So the picture stays where it is and the post keeps its address. The row above fills this in
        for anything already in the folder; anything else is a paste. */''}
-  <label class="field"><span>link to the picture</span>
-    <input id="post-link" placeholder="https://…" inputmode="url" autocomplete="off"></label>
+  ${/* SEVERAL LINKS, ONE PER LINE — "more then one photo … and also videos". A textarea rather than
+       an input so each address is on a line of its own and can be read back; `postLinks_` splits on
+       any space, comma or pipe as well, so a list pasted in one line works too. */''}
+  <label class="field"><span>links to the pictures or clips — one per line</span>
+    <textarea id="post-link" rows="2" placeholder="https://…" inputmode="url"
+              autocomplete="off"></textarea></label>
   <div id="post-preview"></div>
   <label class="field"><span>caption</span>
     <input id="post-cap" placeholder="One line about it"></label>
@@ -1461,13 +1675,25 @@ on('as', el => {
 
 /* Choosing one. It does not upload anything — the picture is already in Drive and already shared,
    so all that is missing is the row. */
+/* EVERY ADDRESS IN THE LINK BOX, in the order they were written, once each. */
+function postLinks_(v) {
+  return String(v || '').split(/[\s,|]+/).map(x => x.trim())
+    .filter((x, i, a) => x && a.indexOf(x) === i);
+}
 on('post-pick', el => {
-  document.querySelectorAll('.picker').forEach(b => b.classList.toggle('on', b === el));
   /* Straight into the link box, not into a hidden field beside it. There is one place the picture
      is named, and you can see it and change it — a picker that stores its answer somewhere
      invisible is a second source of truth waiting to disagree with the one on screen. */
+  /* ADDED TO THE LIST RATHER THAN REPLACING IT, now that a post takes several. A second tap on one
+     already in the list takes it back out, which is what the ring round it says. */
   const box = $('post-link');
-  if (box) box.value = 'https://drive.google.com/file/d/' + el.dataset.id + '/view';
+  const url = 'https://drive.google.com/file/d/' + el.dataset.id + '/view';
+  if (box) {
+    const had = postLinks_(box.value);
+    const next = had.indexOf(url) < 0 ? had.concat(url) : had.filter(x => x !== url);
+    box.value = next.join('\n');
+    el.classList.toggle('on', next.indexOf(url) >= 0);
+  }
   /* The caption comes from the file's name, and only while the box is empty — somebody who has
      already typed one meant it. */
   const cap = $('post-cap');
@@ -1488,18 +1714,19 @@ function showPostPreview() {
   if (!box) return;
   if (!url.trim()) { box.innerHTML = ''; return; }
 
-  const src = pic(url.trim());
-  box.innerHTML = `<img src="${esc(src)}" alt=""
-    style="width:100%;margin:.2rem 0 .6rem;background:var(--sunk)">`;
-  const img = box.querySelector('img');
-  if (!img) return;                 // nothing to watch load, so nothing to report about it
+  /* EVERY LINK, DRAWN THE WAY THE POST WILL DRAW IT — `postMediaHtml_` is the card's own renderer,
+     so the preview cannot disagree with what goes up. A picture that will not load is still the
+     commonest fault, and it is named by position so somebody with five links knows which. */
+  const links = postLinks_(url);
+  box.innerHTML = `<div class="post-preview">${postMediaHtml_(links, 0)}</div>`;
   const said = $('post-said');
-  img.onload = () => { if (said) said.textContent = ''; };
-  img.onerror = () => {
-    box.innerHTML = '';
-    if (said) said.textContent = 'That link does not show a picture. If it is in Drive, it needs '
-      + 'to be shared with anyone who has the link.';
-  };
+  if (said) said.textContent = '';
+  box.querySelectorAll('img').forEach((img, k) => {
+    img.onerror = () => {
+      if (said) said.textContent = (links.length > 1 ? 'Link ' + (k + 1) + ' does' : 'That link does')
+        + ' not show a picture. If it is in Drive, it needs to be shared with anyone who has the link.';
+    };
+  });
 }
 
 document.addEventListener('input', e => {
@@ -1507,7 +1734,8 @@ document.addEventListener('input', e => {
 });
 
 on('post-send', el => {
-  const link = (($('post-link') || {}).value || '').trim();
+  const links = postLinks_(($('post-link') || {}).value);
+  const link = links[0] || '';
   const said = $('post-said');
   if (!link) { if (said) said.textContent = 'A link to the picture, first.'; return; }
   el.disabled = true;
@@ -1519,6 +1747,9 @@ on('post-send', el => {
        it already is, which is the only reason this app no longer needs permission to write to your
        Drive at all. */
     image: link,
+    /* THE REST, AS A LIST — see `addPost`. A backend older than the `media` column ignores it and
+       posts the first, which is what this form always did. */
+    media: links.slice(1),
     caption: ($('post-cap') || {}).value || '',
     location: ($('post-loc') || {}).value || '',
     poll: ($('post-poll') || {}).value || '',
