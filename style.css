@@ -1456,7 +1456,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    a gap. 44px is the floor because it is a control. */
 .post-vid-out { display: flex; align-items: center; justify-content: center; min-height: 44px;
                 background: var(--sunk); color: var(--gold); text-decoration: underline; }
-.post-grid .post-vid-out { display: flex; aspect-ratio: 1; }
+.post-grid .post-cell.post-vid-out { display: flex; aspect-ratio: 1; }
 /* 4:5 LIKE THE CLIP IT REPLACES, so a clip Drive refuses does not change the card's height after it
    was placed — it was 16:9, and the swap moved everything under it up by a third of a card. */
 .post-pic.post-vid-out { aspect-ratio: 4 / 5; }

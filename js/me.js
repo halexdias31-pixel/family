@@ -2213,6 +2213,12 @@ on('me-many', el => {
   const open = ME_PICK === el.dataset.field && !$('drop').classList.contains('hidden');
   if (open) { meDropShut_(); return; }
   ME_PICK = el.dataset.field;
+  /* ON THE PAGE THE FIELD IS ON. `mePickRow_` looks on the page in front, so a press that reached a
+     field on another page — a keyboard, or `check/press.js` — found no row and silently shut. Turn to
+     it first, then open. */
+  const pg = el.closest('.page');
+  const at = pg ? [...document.querySelectorAll('#s-settings > .page')].indexOf(pg) : -1;
+  if (AT === 'settings' && at >= 0 && at !== (PAGE.settings || 0)) goPage('settings', at, true);
   meDrop_();
 });
 on('me-many-pick', el => {

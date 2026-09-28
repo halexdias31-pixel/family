@@ -107,6 +107,12 @@ const VISITORS = [
    pressing it changes nothing THAT THIS CAN SEE — which is a different claim from "it does
    nothing". */
 const ACCEPTED_QUIET = {
+  /* ---------- A FILE PICKER --------------------------------------------------------------------
+     Both press a hidden `<input type="file">`, which opens the device's own chooser — a window this
+     harness cannot see and nothing on the page changes until a file is chosen. */
+  'msg-attach': { why: 'opens the device file chooser; nothing on the page changes until a file is picked.' },
+  'cam-more':   { why: 'keeps the current shot and starts the camera again; with no shot and no camera '
+                     + 'in this container there is nothing to keep and nothing to restart.' },
   /* ---------- A BOX WITH NOTHING IN IT ------------------------------------------------------------
      All four refuse in the same way and it is the right refusal: the box is focused and the handler
      returns. Sending an empty message is not an action, and a toast saying so would be the app
@@ -797,7 +803,24 @@ for (const who of VISITORS) {
             const r = el.getBoundingClientRect();
             if (r.top < 0 || r.bottom > innerHeight || r.left < 0 || r.right > innerWidth) return null;
             if (r.width < 40 || r.height < 24) return null;
-            return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
+            /* NOT ON A DROPDOWN. A `<select>` (and anything marked `data-noswipe`) keeps the gesture
+               on purpose — `axisFree` says so — so a swipe that happens to START on one measures that
+               rule rather than this one. The flyer maker lost its preview and the middle of its box
+               became a select; the spot is walked down the box to the first point that is not one. */
+            let x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+            /* AND PREFERABLY ON THE BOX ITSELF rather than on a control inside it: a touch is SNAPPED
+               to a nearby control by the browser's touch adjustment, so a point on a label an inch from
+               a select still arrives as a press on the select. A gap in the box has nothing to snap to. */
+            let fallback = null;
+            for (let f = 0.5, k = 0; k < 18; k++, f = 0.5 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 0.05) {
+              const yy = Math.round(r.top + r.height * f);
+              const hit = document.elementFromPoint(x, yy);
+              if (!hit || hit.closest('select, [data-noswipe]')) continue;
+              if (hit === el) { fallback = null; y = yy; break; }
+              if (fallback === null) fallback = yy;
+            }
+            if (fallback !== null) y = fallback;
+            return { x, y,
                      what: el.tagName.toLowerCase() + (el.id ? '#' + el.id : '.' + String(el.className || '').split(' ')[0]),
                      scrollsY: el.scrollHeight > el.clientHeight + 6 };
           }).filter(Boolean);

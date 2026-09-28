@@ -2394,7 +2394,10 @@ function pressMark_(t) {
   /* THE NEAREST THING THAT ACTS, not the exact target — pressing a word inside a card lights the
      card, which is the same rule `SHEET_FROM` follows for where a sheet grows from. */
   const el = t && t.closest && t.closest('[data-do], .tab');
-  if (!el) return;
+  /* NOT A DISABLED CONTROL. A disabled button never fires the click whose handler would clear the
+     mark, so it stayed lit for the length of a swipe that began on it — the camera's shutter while
+     the camera is starting was the one `check/press.js` caught. */
+  if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
   PRESSED = el;
   el.classList.add('is-pressed');
   PRESSED_OFF = setTimeout(pressClear_, 1200);
