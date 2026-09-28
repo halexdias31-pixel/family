@@ -3114,40 +3114,27 @@ function practicalCard_(x) {
           session with. That is a fact about CHOOSING between practicals, so it belongs on the thing
           you choose from, not inside the document you open once you have chosen. The kit and the
           method are the opposite — you read them after deciding. (The safety line moved with them
-          and the guide no longer draws it; see `practicalGuide_` for what the cut took and what it
+          and the guide no longer draws it; see `practicalPart_` for what the cut took and what it
           cost.)
 
           A closed vocabulary, so the test is an equality rather than a substring — see the note in
           `check-practicals.js` and the five cards a substring wrongly called required. */''}
     ${(!off && (p.wow === 'high' || p.wow === 'very high'))
       ? `<p class="prac-open">Worth opening a session with.</p>` : ''}
-    ${/* ---------- THE GUIDE IS ON THE CARD, AND THE TILE THAT OPENED IT IS GONE ------------------
-          REPORTED, IN THESE WORDS: "I want a diagram for every practical. As I said. Same layout.
-          Diagram, ingredients, steps, work. It seems you've moved it all to pop up after pressing
-          a tile. I HATE THIS. I HATE POP UP. Even if it doesn't fit on screen we'll cross that
-          bridge when we get there."
+    ${/* ---------- FOUR CARDS NOW, AND THIS IS THE FIRST OF THEM -------------------------------
+          ASKED FOR AS "the practicals widget need to be split into widgets. diagram, equipment,
+          steps, worksheet bit." The round before this put the whole guide back on this one card
+          after "I HATE POP UP" — and a median card of 1,581px in an 807px pane is a card you
+          scroll inside, which is the half that was not wanted. Swiping between pages is how every
+          other result in this funnel is read, and it is not a pop-up.
 
-          SO IT IS ONE CARD AGAIN, in the four parts that were asked for and in that order. The
-          sheet, the `prac-guide` tile and its handler are all deleted; `practicalGuide_` is kept
-          as the builder and is called from here instead, which is what leaves every `.gd` rule in
-          the stylesheet applying unchanged.
+          SO THIS CARD IS THE PRACTICAL AND ITS PICTURE, and the kit, the method and the worksheet
+          are three more pages straight after it — see `pracParts_` and `practicalPart_`. They are
+          PAGES rather than items: `stuffPages_` expands the filtered list only where pages are
+          built, so a practical is still one item to every count the funnel makes.
 
-          WHAT THAT COSTS IS REAL AND IS THE OWNER'S CALL, WHICH THEY HAVE MADE. `.pane` is
-          `overflow: hidden` and caps at about 805px on an 844px phone; a practical card with its
-          guide on it is well past that, so the bottom of the longer ones is cut off with no scroll
-          and no page to turn to. That is exactly the measurement the split was made on — 51 of 56
-          cards over the cap, median 921px — and "we'll cross that bridge when we get there" is the
-          answer to it. It is not a silence: `check/ui.js`'s OUT OF REACH is what measures it, and
-          `ACCEPTED_TALL` there carries the owner's own sentence so the numbers are printed on
-          every run rather than failing the build.
-
-          THE OTHER TWO ROUTES WERE AVAILABLE AND ARE NOT WHAT WAS ASKED FOR. Paging the practical
-          over three pages is swiping rather than a pop-up, and it is still not "same layout, one
-          card". A pane that scrolls was tried once and reverted, and the note by `.pane`'s own
-          `touch-action` records why. */''}
-    ${off ? '' : practicalGuide_(x)}
-    ${p.setupCost ? `<p class="prac-cost">About £${p.setupCost.toFixed(2)} of kit to set up,
-      and it is bought once.</p>` : ''}
+          The drawing keeps its own `.gd` wrapper so every `.gd figure` rule applies unchanged. */''}
+    ${(!off && p.diagram) ? `<div class="gd"><figure>${p.diagram}</figure></div>` : ''}
   </div>`;
 }
 
@@ -3158,7 +3145,7 @@ function practicalCard_(x) {
    ASKED FOR AS "each practicle needs to have a guide with it. like a risk assessment, something
    which asks for iv dv and control variable." — AND THEN NARROWED, in the owner's own words: "Should
    be name diagram, ingredients with their quantity, steps. And then worksheet bit which records iv
-   DV cv. Just that for now for each." The risk assessment is the half that went; `practicalGuide_`
+   DV cv. Just that for now for each." The risk assessment is the half that went; `practicalPart_`
    below lists what else did, and says what it costs.
 
    IT ASKS RATHER THAN STATES, AND THAT IS THE WHOLE DESIGN. Naming the independent variable FOR a
@@ -3250,7 +3237,7 @@ function kitChips_(list) {
 }
 
 
-function practicalGuide_(x) {
+function practicalPart_(x, part) {
   const p = x.row;
   /* ---------- FIVE THINGS, IN THIS ORDER, AND NOTHING ELSE FOR NOW -----------------------------
      ASKED FOR AS "Should be name diagram, ingredients with their quantity, steps. And then
@@ -3279,38 +3266,35 @@ function practicalGuide_(x) {
      THE ONE THING WORTH WEIGHING BEFORE IT COMES BACK is that `risks` is now a column nothing
      draws. That is this repository's oldest shape — `figure`, `orderPrints`, `exam_date`, `wow` —
      and it is deliberate here rather than accidental, which is the whole difference. */
-  return `<div class="gd">
-    ${/* THE PICTURE FIRST, WHICH IS WHERE THE LAST ROUND PUT IT and the reason has not changed:
-          seeing the thing, then what it is made of, then how to make it is the order a set of
-          instructions comes in. No class on the `<figure>` — `.gd figure` and `.gd figure svg`
-          already centre it and cap it at `min(100%, 20rem)`, the constant every drawing in this
-          app lays out inside, and a class styled nowhere is what `check-css.js` prints.
+  /* ---------- ONE PAGE EACH, HEADED WITH WHOSE PAGE IT IS ------------------------------------
+     "Split into widgets. diagram, equipment, steps, worksheet bit." The picture is on the
+     practical's own card (`practicalCard_`), so this builds the other three. Each is a whole card
+     rather than a fragment, because a page in this strip is somewhere you can land from a flick
+     four results away — and a page reading only "How it runs" is a page you would have to swipe
+     back to understand. So the practical's name sits small above the section's own heading.
 
-          ONLY 17 OF THE 77 LIVE ROWS HAVE ONE, so on sixty of these the guide opens on the kit.
-          That is the rule this file states twice — draw only where the row's own words determine
-          the picture — and `check-practicals.js` prints the count so it is a backlog rather than a
-          silence. */''}
-    ${p.diagram ? `<figure>${p.diagram}</figure>` : ''}
-
-    ${p.equipment.length ? `<section class="prac-kit"><h4>What you need</h4>
-      ${kitChips_(p.equipment)}</section>` : ''}
-
-    ${p.steps.length ? `<section class="prac-steps"><h4>How it runs</h4>
-      <ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol>
-      </section>` : ''}
-
-    ${/* ---------- THE WORKSHEET, AND THE CANDIDATE LISTS ARE PART OF IT ----------------------
-          `prac-tab` IS THIS SECTION'S OWN SCAFFOLDING RATHER THAN A SIXTH THING. The last round
-          of this filled `variables` and `log` on all 77 live rows precisely because a box asking
-          a student to name an independent variable with nothing on the card suggesting one is a
-          worksheet with the scaffolding removed — that entry is in this file under its own
-          heading. So the two lists stay inside the section whose three questions they answer.
-
-          THEY ARE CANDIDATES AND NOT ANSWERS, which is why the box still asks — two to six of
-          each across the 77, so the choice is real rather than a single suggestion wearing a
-          list's clothes. */''}
-    <section class="gd-sec">
-      <h4>Worksheet</h4>
+     `.gd` STAYS ROUND THE CONTENT, which is what leaves every rule the guide already had —
+     `.gd .kit-chips`, `.gd .prac-steps`, `.gd-sec`, `.prac-tab` — applying unchanged. The markup
+     inside each section is the markup it had on the single card, moved, not rewritten; and the
+     answer boxes are `guideBox_`'s with the same slots, so every answer already typed comes back. */
+  const head = what => `<p class="prac-of">${esc(x.name)}</p><h3>${what}</h3>`;
+  let inner = '';
+  if (part === 'kit') {
+    inner = `${head('Equipment')}<div class="gd"><section class="prac-kit">
+      ${kitChips_(p.equipment)}</section></div>
+      ${/* The one-off cost is about the KIT, so it is on the kit's page rather than the first. */''}
+      ${p.setupCost ? `<p class="prac-cost">About £${p.setupCost.toFixed(2)} of kit to set up,
+        and it is bought once.</p>` : ''}`;
+  } else if (part === 'steps') {
+    inner = `${head('Steps')}<div class="gd"><section class="prac-steps">
+      <ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>`;
+  } else if (part === 'work') {
+    /* ---------- THE WORKSHEET, AND THE CANDIDATE LISTS ARE PART OF IT ------------------------
+       `prac-tab` IS THIS SECTION'S OWN SCAFFOLDING RATHER THAN A FIFTH THING: a box asking a
+       student to name an independent variable with nothing on the page suggesting one is a
+       worksheet with the scaffolding removed. They are CANDIDATES and not answers, which is why the
+       boxes still ask. */
+    inner = `${head('Worksheet')}<div class="gd"><section class="gd-sec">
       ${(p.variables.length || p.log.length) ? `<div class="prac-tab">
         ${p.variables.length ? `<div><h4>Things you could change</h4><ul>${
           p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
@@ -3323,8 +3307,24 @@ function practicalGuide_(x) {
         'How will you measure it, and in what units?')}
       ${guideBox_(x, 'cv', 'Control variables — what you must keep the same',
         'Usually the longest of the three. Everything you are NOT changing.')}
-    </section>
-  </div>`;
+    </section></div>`;
+  }
+  return inner ? `<div class="card prac prac-part is-${part}">${inner}</div>` : '';
+}
+
+/* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS ------------------------
+   The card, then a page per section that has something in it. A REFUSED experiment is its card
+   alone: it carries no kit and no method by rule (`check-practicals.js` refuses one that does), and
+   a worksheet asking somebody to plan an afternoon that has been turned down is inviting exactly
+   what the refusal is for. A section with nothing in it is not drawn as an empty page — a page you
+   can swipe to that says nothing reads as a fault. Anything that is not a practical is one page. */
+function pracParts_(x) {
+  if (!x || x.kind !== 'practical' || !x.row || x.row.excluded) return [null];
+  const p = x.row, out = [null];
+  if (p.equipment && p.equipment.length) out.push('kit');
+  if (p.steps && p.steps.length) out.push('steps');
+  out.push('work');
+  return out;
 }
 
 /* `on('prac-guide')` WAS HERE and is gone with the tile that opened it. It looked the practical up
@@ -6409,6 +6409,34 @@ function stuffFiltered() {
   return items;
 }
 
+/* ---------- THE PAGES, WHICH ARE NOT THE SAME LIST AS THE RESULTS -----------------------------
+   A PRACTICAL IS ONE RESULT AND FOUR PAGES — its card and picture, the kit, the method and the
+   worksheet (see `pracParts_`). Expanding it HERE, where pages are built, and nowhere upstream is
+   the whole care: `stuffFiltered()` is what every count reads — `facetTally_`, `nextFacet`, the
+   "N of M" above the question, `check-funnel.js` — and a practical expanded there would be counted
+   four times in every one of them and answer every facet four times over.
+
+   So the results stay the results, and this is the one list the pager, the page count and the
+   fill all read — three readers of one array, so the dial and the strip cannot disagree about how
+   many pages there are. Memoised on the results array itself: a new filter is a new array. */
+let STUFF_PAGES = { from: null, pages: [] };
+function stuffPages_() {
+  const items = stuffFiltered();
+  if (STUFF_PAGES.from === items) return STUFF_PAGES.pages;
+  const pages = [];
+  items.forEach(x => pracParts_(x).forEach(part => pages.push({ x: x, part: part })));
+  STUFF_PAGES = { from: items, pages: pages };
+  return pages;
+}
+
+/* THE PAGE AN ITEM STARTS ON, counted from the first result. For anything that turns to a result by
+   its position in `stuffFiltered()` — without this it would land a page early for every practical
+   in front of it, and on a worksheet rather than the thing it asked for. */
+function stuffPageOf_(x) {
+  const i = stuffPages_().findIndex(pg => pg.x === x && !pg.part);
+  return i < 0 ? 0 : i;
+}
+
 /* ---------- THE COLLECTION WENT, AND WHAT IT KNEW IS IN THE FACET LIST ---------------------------
    `collectionAxes_`, `groupItems_`, `one_` and `plural_` WERE HERE, with `collect: true` on the
    facet they served. Together they drew a line above the funnel — "or the 227 papers these are in"
@@ -6933,7 +6961,8 @@ function stuffPageCount() {
      Nought results is a real answer and the ordinary one on arrival: the screen is a question until
      somebody answers it. */
   if (!stuffAsked()) return 0;
-  const n = stuffFiltered().length;
+  /* PAGES, NOT RESULTS — a practical is four of them. See `stuffPages_`. */
+  const n = stuffPages_().length;
   /* AND ZERO AGAIN WHEN A SEARCH FINDS NOTHING. This returned 1, which is a blank page you can
      swipe to — the funnel already says "0 of 565" above, and a page of nothing underneath it is
      the same news told twice, the second time as an empty screen. */
@@ -6974,9 +7003,13 @@ function stuffPageHtml(n) {
     return wgt ? `<div class="widget-full${wgt.solid ? ' solid' : ''}">${wgt.html}</div>` : '';
   }
 
-  const per = stuffPerPage();
-  return items.slice(n * per, (n + 1) * per)
-    .map(x => stuffCard(x, credits)).join('');
+  /* ONE PAGE IS ONE ENTRY OF `stuffPages_`, which is the results with each practical expanded into
+     its four parts. The first part is the ordinary card — star, tiles and all — and the other three
+     are pages of that same practical, drawn without a second star: keeping a practical is one
+     decision, not four. `stuffPerPage` is 1 and has been since the list became a strip. */
+  const pg = stuffPages_()[n];
+  if (!pg) return '';
+  return pg.part ? practicalPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
 }
 
 /* One card. Lifted out of the list so the pager and anything else can build one without rebuilding
@@ -7796,7 +7829,8 @@ function fillStuffPages(all) {
      See `stuffWindow_`. */
   const seen = {};
   const lo = Math.max(first, at - STUFF_NEAR);
-  const hi = Math.min(first + items.length - 1, at + STUFF_NEAR);
+  /* THE PAGE COUNT, not the result count — a practical is four pages. See `stuffPages_`. */
+  const hi = Math.min(first + stuffPages_().length - 1, at + STUFF_NEAR);
   const todo = [];
   for (let i = lo; i <= hi; i++) { todo.push(i); seen[i] = 1; }
   [].slice.call(host.querySelectorAll(':scope > .page[data-filled="1"]')).forEach(el => {

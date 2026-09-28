@@ -156,7 +156,15 @@ const STATES = {
            question writes, so this is the chip a thumb would have set. */
         STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }];
         paintStuff();
-        goPage('stuff', typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1);
+        /* ONTO THE WORKSHEET, which is the fourth page of the first practical now — "split into
+           widgets. diagram, equipment, steps, worksheet bit." Found off the app's own
+           `stuffPages_` rather than counted as `+ 3`, because a practical with no method would have
+           three pages and a literal would land on the next practical's card. The pager keeps five
+           pages either side filled, so the card, the kit and the method are all in the DOM too
+           and the expect below asks about all four. */
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'work')) : 0;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
       },
       /* THE NUMBER IS ASSERTED RATHER THAN DESCRIBED — `>= 3` would pass on a guide that had
          quietly grown a fourth question nobody decided on, and this state is the only thing that
@@ -168,11 +176,23 @@ const STATES = {
            once, so counting `.gd-box` across `#s-stuff` counts six guides and answers 18 — which
            is what the first version of this did, and it reported the state unreachable on a screen
            that was drawing it perfectly. The count is per card because the claim is per card. */
-        const c = document.querySelector('#s-stuff .card.prac');
-        return !!c && c.querySelectorAll('.gd-box').length === 3
-               && !!c.querySelector('.prac-kit .kit-chip');
+        /* FOUR CARDS, EACH ASKED ABOUT ITS OWN JOB. The worksheet holds exactly the three boxes;
+           the kit page holds the chips; and the practical's own card holds NEITHER — a first card
+           that still carried the guide would pass the other two tests while being the one long
+           card this split replaced. And no part page carries a drawing: the picture is on the
+           first card and only there. */
+        const main = document.querySelector('#s-stuff .card.prac:not(.prac-part)');
+        const work = document.querySelector('#s-stuff .card.prac-part.is-work');
+        const kit  = document.querySelector('#s-stuff .card.prac-part.is-kit');
+        const steps = document.querySelector('#s-stuff .card.prac-part.is-steps');
+        return !!main && !!work && !!kit && !!steps
+               && work.querySelectorAll('.gd-box').length === 3
+               && !!kit.querySelector('.prac-kit .kit-chip')
+               && !!steps.querySelector('.prac-steps li')
+               && !main.querySelector('.gd-box, .kit-chip, .prac-steps')
+               && !document.querySelector('#s-stuff .prac-part figure');
       },
-      wants: 'a practical card with its guide on it — the kit chips and the three worksheet boxes',
+      wants: 'a practical split over four cards — the card, the kit chips, the steps, and a worksheet of three boxes',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
        BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,

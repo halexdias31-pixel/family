@@ -854,7 +854,9 @@ for (const who of VISITORS) {
       const items = stuffFiltered();
       const i = items.findIndex(x => x.row && x.row.row_id === 'Q-AQA-8464B-2406-1H-024');
       if (i < 0) return null;
-      goPage('stuff', i + stuffFirstResult_(), true);
+      /* BY PAGE, NOT BY RESULT — a practical is four pages, so a result's index is not its page
+         once one sorts ahead of it. `stuffPageOf_` is the app's own mapping. */
+      goPage('stuff', stuffPageOf_(items[i]) + stuffFirstResult_(), true);
       await new Promise(r => setTimeout(r, 600));
       const pane = [...document.querySelectorAll('#s-stuff > .page')][domIndex_('stuff', PAGE.stuff || 0)]
         .querySelector('.pane');
@@ -919,9 +921,9 @@ for (const who of VISITORS) {
         STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: a.paper }];
         paintStuff(true);
         await new Promise(r => setTimeout(r, 500));
-        const i = stuffFiltered().findIndex(x => x.row && x.row.row_id === a.row);
-        if (i < 0) return null;
-        goPage('stuff', i + stuffFirstResult_(), true);
+        const hit = stuffFiltered().find(x => x.row && x.row.row_id === a.row);
+        if (!hit) return null;
+        goPage('stuff', stuffPageOf_(hit) + stuffFirstResult_(), true);
         await new Promise(r => setTimeout(r, 650));
         /* ---------- `.qpad-lock`, BECAUSE THE PICTURE CARRIES THE SAME ACTION NOW ------------
            THIS WAS `[data-do="pad-draw"]` AND IT STOPPED BEING UNAMBIGUOUS. `padWrap_` puts the

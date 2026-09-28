@@ -306,9 +306,14 @@ function outside(svg, row) {
     host.style.cssText = 'position:absolute;left:0;top:0;width:' + width + 'px';
     host.innerHTML = '<section class="page"><div class="pane"></div></section>';
     document.body.appendChild(host);
+    /* EVERY PAGE OF EVERY PRACTICAL, not just its first card: "split into widgets. diagram,
+       equipment, steps, worksheet bit" made each practical four cards, and the kit, the method and
+       the worksheet are exactly the parts most likely to run long. `pracParts_` is the app's own
+       answer to which pages a practical takes, so a refused row is still its card alone. */
     host.querySelector('.pane').innerHTML = items.map(x =>
-      practicalCard_(x).replace('<div class="card prac',
-        '<div data-row="' + x.key + '" class="card prac')).join('');
+      pracParts_(x).map(part => (part ? practicalPart_(x, part) : practicalCard_(x))
+        .replace('<div class="card prac', '<div data-row="' + x.key + (part ? '#' + part : '')
+          + '" class="card prac')).join('')).join('');
     window.__pracHost = host;
     /* ---------- AND WHETHER THE CARD FITS THE PANE, WHICH IS THE OTHER AXIS ----------------------
        THIS FILE ASKED ONE QUESTION UNTIL NOW and its own header says so: does this row's markup fit
@@ -465,17 +470,21 @@ function outside(svg, row) {
     document.body.appendChild(host);
     const pane = host.querySelector('.pane');
     items.forEach(x => {
-      pane.innerHTML = practicalCard_(x);
-      const gd = pane.querySelector('.gd');
+      /* ALL OF A PRACTICAL'S PAGES AT ONCE, in the order the strip draws them — see `pracParts_`.
+         The measurements below were written against one card holding the whole guide, and they ask
+         the same questions of the four cards together. */
+      const parts = pracParts_(x);
+      pane.innerHTML = parts.map(part => part ? practicalPart_(x, part) : practicalCard_(x)).join('');
+      const gd = parts.length > 1 ? pane.querySelector('.gd') : null;
       /* A REFUSED PRACTICAL DRAWS NO GUIDE, BY RULE — no kit, no method, no worksheet, because
          writing out a procedure for something nobody will run is inventing content to satisfy a
          checker. Five of the 82 are in that state, so a missing `.gd` here is correct and the
          count below is of the ones that have one. */
       if (!gd) return;
-      gd.dataset.row = x.key;
+      pane.querySelectorAll('.gd').forEach(g => { g.dataset.row = x.key; });
       window.__measure({ slack: arg.slack, sel: '#__cardhost .gd' })
         .forEach(f => wide.push(f));
-      gd.querySelectorAll('figure svg').forEach(svg => {
+      pane.querySelectorAll('figure svg').forEach(svg => {
         drawings++;
         clipped.push(...window.__outside(svg, x.key));
       });
@@ -491,16 +500,33 @@ function outside(svg, row) {
          `.reel .over` fault: one object, two descriptions, drifting apart the first time either is
          touched. It is the exact mistake putting the picture at the top invites somebody to make
          by leaving a copy behind. */
-      const figs = gd.querySelectorAll('figure');
-      const kit = gd.querySelector('.prac-kit');
+      /* SPLIT OVER FOUR CARDS NOW, so "first" is a CARD: the drawing belongs on the practical's
+         own card and nowhere else, and the kit on the page after it. The four questions are the
+         old two asked of the split — drawn once, drawn above the kit — plus the two the split
+         introduced: the drawing is not on a part page, and the practical's own card is not still
+         carrying the guide, which is the one long card the split replaced. */
+      const figs = pane.querySelectorAll('figure');
+      const main = pane.querySelector('.card.prac:not(.prac-part)');
+      const kit = pane.querySelector('.prac-part.is-kit .prac-kit');
+      const work = pane.querySelector('.prac-part.is-work');
       if (figs.length > 1) {
-        order.push(x.key + ' draws its apparatus drawing ' + figs.length + ' times in one guide');
+        order.push(x.key + ' draws its apparatus drawing ' + figs.length + ' times across its cards');
+      } else if (figs.length === 1 && !(main && main.contains(figs[0]))) {
+        order.push(x.key + ' draws its apparatus drawing on a part page — the picture belongs on '
+          + 'the practical\'s own card, the first of the four');
       } else if (figs.length === 1 && kit
                  && !(figs[0].compareDocumentPosition(kit) & Node.DOCUMENT_POSITION_FOLLOWING)) {
         order.push(x.key + ' draws its apparatus drawing BELOW the kit list — the picture of the '
           + 'practical comes first, then the things it is made of');
       }
-      gd.querySelectorAll('.kit-chip').forEach(c => {
+      if (main && main.querySelector('.kit-chip, .prac-steps, .gd-box')) {
+        order.push(x.key + ' still draws its guide on the practical\'s own card — the kit, the '
+          + 'method and the worksheet are pages of their own now');
+      }
+      if (!work || work.querySelectorAll('.gd-box').length !== 3) {
+        order.push(x.key + ' has no worksheet page holding exactly the three boxes (iv, dv, cv)');
+      }
+      pane.querySelectorAll('.kit-chip').forEach(c => {
         chips++;
         if (c.querySelector('.kit-q')) withQty++;
       });
@@ -604,7 +630,7 @@ function outside(svg, row) {
             + `(${withPre} of them under a preamble), and ${practicals.n} practical cards`);
   console.log(`the pane caps at ${practicals.cap}px on a ${WIDTH}x${PHONE_H} phone; `
             + `${practicals.tall.length} practical card(s) are taller than that`);
-  console.log(`${guides.n} practical guide(s) opened in the app's own sheet, `
+  console.log(`${guides.n} practical(s) laid out over their split cards, `
             + `carrying ${guides.drawings} apparatus drawing(s)`);
   console.log(`${guides.chips} kit chip(s) drawn across those guides, `
             + `${guides.withQty} of them carrying a quantity`);
