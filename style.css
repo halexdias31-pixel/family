@@ -724,6 +724,26 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .me-said { margin: .6rem 0 0; }
 .me-said:empty { margin: 0; }
 
+/* ---------- A SEVERAL-OF-A-LIST FIELD LOOKS LIKE THE BOX IT REPLACES --------------------------------
+   `extra_quals` was a text box and is a button that opens `#drop` — see `meDrop_` in me.js. It is
+   drawn in the box's own clothes, so a card of boxes and one drop-down still reads as one form: the
+   same height, edge, fill and type as `input, select`, left-aligned because what it shows is a list
+   read from its start, and ellipsised because the panel under it is where the whole list is read.
+   44px in px, because it is a tap target. */
+.me-many {
+  display: block; width: 100%; min-height: 44px; padding: .7rem .75rem;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--ink); font: 16px/1.3 var(--font); text-align: left; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.me-many.is-unset { color: var(--faint); }
+.me-many[aria-expanded="true"] { border-color: var(--gold); }
+/* THE BUILD STAMPS UNDER AN ADMIN'S SIGNING-IN CARD. Small and faint: a line for the one person who
+   asks which build is running, printed where nobody else ever sees it. */
+.me-build { margin-top: .9rem; padding-top: .6rem; border-top: 1px dashed var(--line);
+            font-size: .62rem; }
+.me-build p { margin: 0; }
+
 /* ---------- A DATE OF BIRTH IS ONE QUESTION IN THREE BOXES --------------------------------------
    ONE CAPTION OVER THE ROW, WHICH IS THE ONE THING `fieldHtml` CANNOT DRAW. Its `<span>` is inside
    the `<label>`, so it is per box — three captions reading `day`, `month`, `year` under a group
@@ -3703,46 +3723,85 @@ button.text-drop { color: var(--bad); }
    phone. The one visual on this site that belongs to the person rather than to the business.
 --------------------------------------------------------------------------------------------- */
 .av-wrap { display: flex; align-items: center; justify-content: center; padding: .3rem 0; }
-.av-big { padding: .8rem 0 1rem; }
+/* `.av-big` WAS HERE, the figure's padding when the wardrobe opened in a sheet; nothing draws it. */
 .avatar, .av-item { display: block; }
 /* On a card, the figure sits in the same square a photograph would — so a row with a picture and
    a row with a figure line up rather than one of them being taller. */
 .thing-pic.art { display: flex; align-items: center; justify-content: center;
                  background: var(--sunk); overflow: hidden; }
 
-.av-slot { margin: 0 0 .7rem; }
-.av-slot-name { font-size: .66rem; letter-spacing: .1em; text-transform: uppercase;
-                color: var(--faint); margin-bottom: .3rem; }
+/* ---------- THE WARDROBE IS ONE CARD, SO EVERY PART OF IT IS A LINE ---------------------------------
+   *"the avatar bit is split into like 4 widgets. should just be 1. make things smaller to fit on a
+   screen if need be."* The arithmetic is over `wardrobeCard_` in me.js. Every line is a label column
+   and a strip; the label column is sized for `SHOULDERS`, the longest slot name, at this size.
+   `.av-slot` and `.av-name` went with the pages — a block per slot with its name above it, and each
+   option's name under its drawing. */
+.av-top { display: flex; align-items: center; gap: .7rem; margin: 0 0 .65rem; }
+.av-top .av-figure { flex: 0 0 auto; padding: 0; width: 64px; height: 64px;
+                     background: var(--sunk); border-radius: var(--r-sm); }
+.av-stats { min-width: 0; }
+.av-stats p { margin: 0; font-size: .78rem; line-height: 1.35; }
+.av-stats p + p { margin-top: .2rem; font-size: .64rem; }
+.av-line { display: grid; grid-template-columns: 3.6rem minmax(0, 1fr); gap: .4rem;
+           align-items: center; margin: 0 0 .45rem; }
+.av-slot-name { font-size: .58rem; letter-spacing: .02em; text-transform: uppercase;
+                color: var(--faint); }
 
-/* WRAPS, and each option is a drawing with its name under it. A dropdown of item names would ask
-   somebody to know what "goggles" looks like before choosing it, which is the one thing a
-   wardrobe exists to answer. */
-.av-opts { display: flex; flex-wrap: wrap; gap: .4rem; }
+/* A DRAWING AND NOTHING ELSE, on a 29px square — six to a row fits the strip of a 320px card. The
+   name is the button's `aria-label` and `title`; the drawing is what anybody reads, and a dropdown of
+   names would ask somebody to know what "goggles" looks like before choosing it. `auto-fill` WRAPS
+   rather than scrolling sideways, so a seventh hairstyle added from the shop tab is a second row
+   rather than a hidden one. */
+.av-opts { display: grid; grid-template-columns: repeat(auto-fill, 29px); gap: 3px; }
 .av-opt {
-  display: flex; flex-direction: column; align-items: center; gap: .1rem;
-  min-width: 4.2rem; min-height: max(44px, 2.9rem); padding: .35rem .3rem .3rem;
+  position: relative; display: grid; place-items: center;
+  width: 29px; height: 29px; padding: 0;
   background: var(--sunk); border: 1px solid var(--line-soft); border-radius: 2px;
-  color: var(--dim); font: inherit; cursor: pointer;
+  color: var(--dim); font: inherit; cursor: pointer; overflow: hidden;
   transition: border-color var(--quick) ease, transform var(--quick) ease;
 }
 .av-opt:active { transform: scale(.94); }
 .av-opt.on { border-color: var(--gold); }
-.av-opt.on .av-name { color: var(--gold); }
-.av-name { font-size: .6rem; line-height: 1.2; text-align: center; }
 /* NOT YOURS YET. Dimmed rather than removed, and it says what it would take — a wardrobe showing
-   only what you own tells you nothing about what is next, which is the entire point of a level. */
-.av-opt.locked { opacity: .45; }
-.av-why { font-size: .55rem; color: var(--gold); letter-spacing: .04em; }
+   only what you own tells you nothing about what is next, which is the entire point of a level.
+   A PILL ACROSS ITS FOOT rather than a line under it, because there is no line under a 29px square;
+   its full sentence is in the button's `aria-label`. */
+.av-opt.locked > :not(.av-why) { opacity: .4; }
+.av-why { position: absolute; left: 0; right: 0; bottom: 0;
+          font-size: .5rem; line-height: 1.35; text-align: center; letter-spacing: 0;
+          color: var(--gold); background: color-mix(in srgb, var(--bg) 75%, transparent); }
 .av-none { display: flex; align-items: center; justify-content: center;
-           width: 34px; height: 34px; color: var(--faint); font-size: .9rem; }
+           width: 24px; height: 24px; color: var(--faint); font-size: .85rem; }
 
-/* Colours: a row of the colour itself. A swatch that is the thing it selects needs no label. */
-.av-swatches { display: flex; flex-wrap: wrap; gap: .45rem; }
-.av-sw { width: max(30px, 2rem); height: max(30px, 2rem); border-radius: 50%;
+/* Colours: a row of the colour itself. A swatch that is the thing it selects needs no label.
+   21px, eight to a row — see `ACCEPTED_TAP` in check/ui.js for why that is a trade and not a slip. */
+.av-swatches { display: grid; grid-template-columns: repeat(auto-fill, 21px); gap: 3px; }
+.av-sw { width: 21px; height: 21px; border-radius: 50%;
          border: 2px solid transparent; cursor: pointer;
          transition: border-color var(--quick) ease, transform var(--quick) ease; }
 .av-sw:active { transform: scale(.9); }
-.av-sw.on { border-color: var(--gold); }
+.av-sw.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--bg); }
+
+/* ---------- WHEN I CAN TEACH, AS A TIDY WEEK ---------------------------------------------------------
+   *"refine availability bit it looks weird, like scruffy."* The note over `availGrid_` in me.js says
+   what was scruffy; this is the shape instead. A GRID, not a flex row, for both the header and the
+   hours, so the numbers and the cells are one set of columns by construction — `--hours` is the
+   count the builder already knows. SQUARE CELLS, because a week is read by its shape and a column
+   of 19 by 20 rectangles has no shape. Days in the dim ink the card's other labels use and in their
+   own case (`Mon`), because capitals at this size read as a code rather than a word.
+   The booking week and the receipt are untouched: `.me-week` is on this card and the Tools widget
+   that draws the same grid, and nowhere else. */
+.me-week-say { margin: .1rem 0 .6rem; }
+.me-week .slot-grid { gap: 3px; margin: 0 0 .85rem; }
+.me-week .slot-row { display: grid; grid-template-columns: 2.1rem minmax(0, 1fr);
+                     gap: .35rem; align-items: center; }
+.me-week .slot-day { font-size: .66rem; text-transform: none; letter-spacing: 0; color: var(--dim); }
+.me-week .slot-hours { display: grid; grid-template-columns: repeat(var(--hours, 10), minmax(0, 1fr));
+                       gap: 3px; }
+.me-week .slot-hh { font-size: .58rem; }
+.me-week .hr { aspect-ratio: 1; min-height: 0; border-radius: 3px; }
+/* THE BRIDGE REACHES ACROSS A 3px GUTTER HERE, not the 2px the booking week has. */
+.me-week .hr.on + .hr.on::before { left: -4px; width: 4px; }
 
 /* Somebody who asked their phone to stop animating things meant it. The dial still WORKS — the
    pages still move and still fade, because that is the layout rather than the decoration — it just

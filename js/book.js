@@ -2600,10 +2600,17 @@ function dropPlace_(el, row) {
 function bookDrop_() {
   const el = $('drop'), back = $('drop-back');
   if (!el || !back) return;
+  /* ---------- THE PANEL MAY BE THE SETTINGS COLUMN'S -------------------------------------------
+     `meDrop_` in me.js borrows `#drop` for a several-of-a-list profile field and writes
+     `data-owner="me"` on it. `drawBooker` calls this on every redraw of the booking card — a
+     payload landing is enough — and without this line that redraw would find no booking question
+     open and shut somebody else's list under their thumb. */
+  if (el.dataset.owner === 'me' && !BOOKING.picking) return;
   const st = dropStep_();
   const row = st && dropRow_(st);
   if (!row) { dropShut_(); return; }
   el.innerHTML = dropCard_(st);
+  el.dataset.owner = 'book';
   el.setAttribute('aria-label', st.label);
   back.classList.remove('hidden');
   el.classList.remove('hidden');
@@ -2617,6 +2624,8 @@ function bookDrop_() {
 function bookDropMove_() {
   const el = $('drop');
   if (!el || el.classList.contains('hidden')) return;
+  /* THE SETTINGS COLUMN'S PANEL FOLLOWS ITS OWN FIELD. See the note in `bookDrop_`. */
+  if (el.dataset.owner === 'me') { if (typeof meDropMove_ === 'function') meDropMove_(); return; }
   const st = dropStep_();
   const row = st && dropRow_(st);
   if (!row) { dropShut_(); return; }
@@ -2627,7 +2636,7 @@ function bookDropMove_() {
    yesterday's list is a list that can be reopened by a stray class. */
 function dropShut_() {
   const el = $('drop'), back = $('drop-back');
-  if (el) { el.classList.add('hidden'); el.innerHTML = ''; }
+  if (el) { el.classList.add('hidden'); el.innerHTML = ''; delete el.dataset.owner; }
   if (back) back.classList.add('hidden');
 }
 
@@ -2636,6 +2645,7 @@ function dropShut_() {
 function bookDropShut_() {
   const el = $('drop');
   if (!el || el.classList.contains('hidden')) return false;
+  if (el.dataset.owner === 'me') { if (typeof meDropShut_ === 'function') meDropShut_(); return true; }
   BOOKING.picking = '';
   drawBooker();
   return true;
@@ -2660,7 +2670,13 @@ on('book-many-pick', el => {
   drawBooker();
 });
 
-on('book-many-done', () => { BOOKING.picking = ''; drawBooker(); });
+/* `#drop-back` CARRIES THIS ACTION, so a tap outside either surface's panel arrives here — the
+   settings column's is shut by its own function rather than by a booking redraw it has no part in. */
+on('book-many-done', () => {
+  const el = $('drop');
+  if (el && el.dataset.owner === 'me' && typeof meDropShut_ === 'function') { meDropShut_(); return; }
+  BOOKING.picking = ''; drawBooker();
+});
 
 /* ---------- ELEVEN HOURS, SAID ONCE --------------------------------------------------------------
    SEVENTY-SEVEN NUMBERS FOR ELEVEN FACTS. Every day drew its own `10 11 12 … 20`, so the week was
@@ -2799,7 +2815,11 @@ function weekRows_(days, cell, opts) {
   }));
 }
 
-function weekGrid_(days, cell) {
+/* `o.chars` IS HOW MUCH OF A DAY'S NAME TO PRINT — two by default, for the reason under it. The
+   settings card has the room for three (`Mon`, `Tue`) and reads better with them; see `availGrid_`. */
+function weekGrid_(days, cell, o) {
+  o = o || {};
+  const chars = o.chars || 2;
   const cols = ((days[0] || {}).hours || []).map(h => (typeof h === 'object' ? h.h : h));
   return `<div class="slot-grid">
     ${slotHead_(cols)}
@@ -2811,7 +2831,7 @@ function weekGrid_(days, cell) {
       ${/* TWO LETTERS. Three cost 14px of a row where every pixel is a cell’s width — and Mo/Tu/
             We/Th/Fr/Sa/Su reads as fast as MON/TUE at a third of the room. One letter would not:
             T and S are each two days. */''}
-      <span class="slot-day">${esc(String(d.label).slice(0, 2))}</span>
+      <span class="slot-day">${esc(String(d.label).slice(0, chars))}</span>
       <div class="slot-hours">${d.hours.map(h => cell(h, d)).join('')}</div>
     </div>`).join('')}
   </div>`;

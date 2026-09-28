@@ -6831,7 +6831,11 @@ function accountPages_() {
      SO THIS COLUMN CALLS IT, which is where it always belonged — `meCard`'s own note says the
      private rows hang off the public card, and this is the one screen that is yours. It is given
      the row `mineIs_` found rather than looking a second time: two lookups for one person is two
-     answers to "which row are you", which is the fault `mineIs_` exists to prevent. */
+     answers to "which row are you", which is the fault `mineIs_` exists to prevent.
+
+     THE PRIVATE HALF HAS SINCE MOVED ON AGAIN, to the Settings column one swipe right — see the
+     note at the top of `meCard`. What this column shows of you is your public card, and the row of
+     tiles under it lost its four doors to that same column (see where `meTiles_` was in tiles.js). */
   const me = [
     typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow),
     typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow, 'me')) : '',
