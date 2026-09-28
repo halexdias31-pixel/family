@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-27-c-haspin";
+const DOPOST_VERSION = "2026-09-28-a-throttle";
 
 
 function doPost(e) {
@@ -1238,6 +1238,13 @@ function doPost(e) {
 
       const row = tPeople.rows.find(x => x._row === r._row);
       authSetPin_(tPeople, row, fresh);
+      /* AND THE THROTTLE GOES WITH IT. Without this the reset is useless exactly when it is
+         needed: somebody who has just been locked out asks for a new PIN, the e-mail arrives,
+         and the site refuses the six digits it just sent for up to an hour because of wrong
+         answers at a PIN that no longer exists. Whoever read that e-mail holds the mailbox,
+         which is a stronger claim than the counter was ever measuring. See
+         `authClearThrottle_`. */
+      authClearThrottle_(tPeople, row);
       clearCache();
 
       /* NOT `notify`, which looks the person up again by name — the row is already in hand, and a
@@ -1848,6 +1855,10 @@ function doPost(e) {
       const t = read(TAB.people);
       const row = t.rows.find(x => x._row === r._row);
       authSetPin_(t, row, next);
+      /* The guesses were at the OLD PIN, so they say nothing about this one — and an admin
+         resetting a locked-out family's PIN would otherwise hand them a PIN they still
+         cannot use. See `authClearThrottle_`. */
+      authClearThrottle_(t, row);
       /* ---------- CHANGING A PIN ENDS EVERY OTHER SESSION -------------------------------------
          SOMEBODY CHANGING A PIN IS OFTEN SOMEBODY WHO THINKS SOMEONE ELSE HAS IT. Leaving old
          tokens working would mean the intruder stays signed in through the very act meant to
