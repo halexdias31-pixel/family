@@ -619,7 +619,7 @@ function camWhy_(err) {
    you swiped away and straight back before the card was torn down, and a second `getUserMedia` while
    the first is running is a second camera light and a stream nothing ever stops.
 
-   AND IT RETURNS EARLY IF THE CARD IS NOT DRAWN. Signed out, `screen('make')` renders a sentence and
+   AND IT RETURNS EARLY IF THE CARD IS NOT DRAWN. Signed out, `feedCamCard_` renders a sentence and
    no viewfinder, so there is nothing to start and nothing to say about it. */
 async function camStart_() {
   const v = $('cam-view');
@@ -675,7 +675,7 @@ async function camStart_() {
   /* THE COLUMN MAY HAVE LEFT WHILE THE PROMPT WAS UP. `camStop_` ran with CAM_STREAM still null, so
      it stopped nothing, and this stream would have stayed live behind a screen nobody is looking at
      — a recording light on for nothing, which is the exact thing camStop_ exists to prevent. */
-  if (typeof AT !== 'undefined' && AT !== 'make') { camStop_(); return; }
+  if (!feedCamHere_()) { camStop_(true); return; }
 
   v.srcObject = CAM_STREAM;
   try { await v.play(); } catch (e) {}
@@ -856,7 +856,7 @@ on('cam-shoot', () => {
    animating them to where they already look like they are is a second movement nobody asked for.
 ================================================================================================== */
 function camSettle_() {
-  try { placeCells('y', true, 0, 'make'); } catch (err) {}
+  try { placeCells('y', true, 0, 'feed'); } catch (err) {}
 }
 
 /* `Again` NOW HAS TO PUT THE CAMERA BACK, not just uncover it. A shot taken here leaves the stream
@@ -1701,23 +1701,16 @@ on('post-delete', el => {
    that second card had already been deleted from the top of the feed for being a duplicate of this
    column. Two of it on one column was one more than two of it across two. The composer it offered
    is a button on the camera now; see `cameraCard`. */
-/* ---------- AND IT IS COUNTED, ALTHOUGH THERE IS ONE OF IT -----------------------------------------
-   `check-doors.js` NAMED THIS ON THE FIRST RUN OF THE RULE THAT ASKS: `pages('make', …)` is built
-   and `PAGER` had no `make`. Nothing is wrong on screen, because the list is one card either way —
-   and that is the whole reason it is worth fixing rather than exempting. It is correct by accident
-   of what is in it, and the day this column holds a second card that card is silently unreachable:
-   no `paged` class, no vertical axis, `goPage('make', 1)` returning early. Which is exactly how
-   `booking`, `reel` and `dm` each lost theirs.
-
-   COUNTED FROM THE LIST THE SCREEN DRAWS, one call, which is the rule every entry in that table
-   states. `makeCards_` exists so there is one list rather than two. */
-function makeCards_() {
+/* ---------- IT WAS A COLUMN, AND IT IS ONE PAGE OF THE FEED NOW -----------------------------------
+   `makeCards_` BUILT THE `make` COLUMN'S ONE CARD and `PAGER.make` counted it. The camera is the page
+   directly above the newest post now — see `feedColumn_` under `screen('feed')` — so this returns the
+   card itself and the feed's own list is what the pager counts. */
+function feedCamCard_() {
   return USER
-    ? [cameraCard()]
-    : [`<div class="card"><h3>New post</h3>
-      <p class="sub">Sign in to post — your account is the last screen to the right.</p></div>`];
+    ? cameraCard()
+    : `<div class="card"><h3>Camera</h3>
+      <p class="sub">Sign in to post — your account is a few screens to the right.</p></div>`;
 }
-screen('make', () => pages('make', makeCards_()));
 
 /* ---------- READING THEM -------------------------------------------------------------------------
    `postsBlocks` UNCHANGED, and that is the point: the feed under `What for · Posts` and the feed on
@@ -1726,7 +1719,55 @@ screen('make', () => pages('make', makeCards_()));
    THE COMPOSER IS NOT REPEATED AT THE TOP. It is one swipe left from anywhere in the feed, always
    in the same direction — which is what a column gives it that a card at the top of a list cannot,
    because a card at the top of a list moves as the list grows. */
-screen('feed', () => pages('feed', postsBlocks()));
+/* ---------- THE CAMERA IS THE PAGE ABOVE THE NEWEST POST ----------------------------------------
+   ASKED FOR AS "move the post new post camera widget above the latest post widget. still make the
+   latest post widget be the default front door of site." It was a column of its own one swipe LEFT
+   of the feed; a column is read top to bottom, so "above the latest post" is the page before it,
+   and the `make` column is gone from all five places a screen is named (see the note where its
+   `TABS` entry was).
+
+   ON THIS SCREEN ONLY, NOT IN `postsBlocks`, and that is the half that keeps the funnel honest:
+   `postsBlocks` is also the answer to `What for · Posts` on the Find screen, and a camera there
+   would be a second viewfinder on a screen that knows nothing about starting or stopping one.
+
+   AFTER THE FESTIVE CARDS AND BEFORE THE POSTS, so it is directly on top of the newest post — which
+   is exactly where it was asked for — and `PAGE_HOME.feed` opens the column on the page after it.
+   The price, said rather than hidden: when the calendar has a festive card it sits above the
+   camera, two swipes up from the front door rather than being the front door. That is the reading
+   of "the latest post is the front door" taken literally, and it is one line to move.
+
+   `feedCamAt_` IS THE ONE ANSWER TO "WHICH PAGE IS THE CAMERA", read by the column, the home
+   position and `feedCamWatch_` alike — three readings of one number, not three counts that can
+   disagree. */
+function feedCamAt_() {
+  /* `postsBlocks` PUTS THE FESTIVE CARDS FIRST and nothing else in front of the posts — and when
+     there is nothing at all it returns one "Nothing posted yet" card and no festive ones, which is
+     a count of nought here too. Counted rather than built: this is asked on every page turn, and
+     building every post card to find one index is the work `PAGER.stuff` was cured of. */
+  return LOADED ? (DATA.festive || []).length : 0;
+}
+function feedColumn_() {
+  const blocks = postsBlocks();
+  if (!LOADED || !Array.isArray(blocks)) return blocks;
+  const at = feedCamAt_();
+  return blocks.slice(0, at).concat([feedCamCard_()], blocks.slice(at));
+}
+screen('feed', () => pages('feed', feedColumn_()));
+
+/* IS THE CAMERA ON THE SCREEN, which is the only moment it should be running. */
+function feedCamHere_() {
+  return typeof AT !== 'undefined' && AT === 'feed' && LOADED
+    && (PAGE.feed || 0) === feedCamAt_();
+}
+/* START IT ON ITS PAGE AND LET IT GO ON EVERY OTHER. Booked from `goPage` on every turn and from
+   `startScreen_` on arrival and on a repaint. A picture you are holding is NOT thrown away by
+   swiping down to read a post: the stream is released and the card is left exactly as it looks —
+   `camStop_(true)` — so coming back finds the photograph still on it, and `camStart_` already
+   returns early over a held picture. Leaving the COLUMN is what resets the card, as it always did. */
+function feedCamWatch_() {
+  if (feedCamHere_()) { camStart_(); return; }
+  if (CAM_STREAM || (CAM_REC && CAM_REC.state === 'recording')) camStop_(true);
+}
 
 
 /* ==================================================================================================

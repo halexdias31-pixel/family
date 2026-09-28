@@ -2078,7 +2078,7 @@ check('the camera card starts itself and offers the gallery', async () => {
     bad.push('`Write a post` is on the card with no `data-do="new-post"`, so nothing opens it');
   }
 
-  /* SIGNED OUT THERE IS NO VIEWFINDER AT ALL. `screen('make')` renders a sentence instead, and a
+  /* SIGNED OUT THERE IS NO VIEWFINDER AT ALL. `feedCamCard_` renders a sentence instead, and a
      camera that starts for somebody who is not signed in is a permission prompt with no purpose. */
   w.__t.USER(null);
   if (typeof w.__t.makeScreen === 'function') {
