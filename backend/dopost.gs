@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-27-c-haspin";
+const DOPOST_VERSION = "2026-09-28-a-email";
 
 
 function doPost(e) {
@@ -343,8 +343,40 @@ function doPost(e) {
 
     if (action === 'verifyLogin') {
       const t0 = read(TAB.people);
-      const r = findPerson(body.name);
-      if (!r) return jsonOut({ success: false, error: 'Name or PIN not recognised.' });
+      /* ---------- AN E-MAIL ADDRESS AND A PIN, AND NOTHING ELSE ------------------------------------
+         ASKED FOR AS *"i want people to be able to sign in only with their email and their pin now.
+         no case sensitive stuff."* This went through `findPerson`, which answers to six things — an
+         id, a full name, first + last, a handle, a username and an address — so the box took all of
+         them and the question of which one a person should type had six answers. One now.
+
+         NOT `findPerson`, and the reason is the other half of the ask. `findPerson` returns the FIRST
+         row that answers to ANY rung, so an address typed here could still be claimed by a name rung
+         above it on somebody else's row. Asked of the `email` column alone, it cannot.
+
+         `norm` IS THE WHOLE OF "NO CASE SENSITIVE STUFF": trimmed and lower-cased on both sides, so
+         `Halex.Dias.31@Gmail.com ` is the same address as the one in the sheet. A PIN is digits and
+         has no case to fold.
+
+         `body.email` FIRST AND `body.name` AFTER, because the phone that asks for an address may be
+         older than this backend or newer than it — see `do-signin`. An old phone sends whatever was
+         typed as `name`, and that is still refused unless it is an address.
+
+         TWO ROWS ON ONE ADDRESS IS REFUSED, NOT GUESSED. The first-match rule is what made
+         `changePin` check one person's PIN against another's row; with the address as the ONLY
+         key, the first match would be somebody signing in as whoever happens to sit higher on the
+         tab. `emailRefusal_` stops a duplicate being SAVED from the app; a duplicate typed into the
+         sheet by hand is what this answers, in a sentence that says who can fix it. */
+      const mail = norm(body.email || body.name);
+      if (mail.indexOf('@') === -1) {
+        return jsonOut({ success: false, error: 'Sign in with your email address and PIN.' });
+      }
+      const hits = t0.rows.filter(x => norm(x.email) === mail);
+      if (hits.length > 1) {
+        return jsonOut({ success: false,
+          error: 'That email address is on more than one account — ask us to sort it out.' });
+      }
+      const r = hits[0] || null;
+      if (!r) return jsonOut({ success: false, error: 'Email or PIN not recognised.' });
       /* LOCKED IS ANSWERED BEFORE THE PIN IS LOOKED AT, so guessing costs the same whether the
          guess was right or not — a lock that only applies to wrong answers tells a guesser when
          they have found the right one. */
@@ -361,9 +393,9 @@ function doPost(e) {
       /* HASHED, AND OLD ROWS MOVED ACROSS AS THEY ARRIVE — see `authCheckPin_`. */
       if (!authCheckPin_(t0, r, body.pin)) {
         authWrong_(t0, r);
-        /* THE SAME SENTENCE FOR A WRONG NAME AND A WRONG PIN, which was already right here: telling
-           somebody the name was correct is telling them half the answer. */
-        return jsonOut({ success: false, error: 'Name or PIN not recognised.' });
+        /* THE SAME SENTENCE FOR A WRONG ADDRESS AND A WRONG PIN, which was already right here:
+           telling somebody the address was correct is telling them half the answer. */
+        return jsonOut({ success: false, error: 'Email or PIN not recognised.' });
       }
       // Only accounts that WERE asked to confirm are held back. A blank means the account predates
       // this and was never sent a link, so it isn't unverified — it's just older.
@@ -1210,18 +1242,24 @@ function doPost(e) {
        already signed in stays signed in. */
     if (action === 'forgotPin') {
       const said = { success: true,
-        message: 'If there is an account with that name and an email on it, a new PIN is on its '
-               + 'way. Check your inbox, then change it in your settings.' };
+        message: 'If there is an account with that email, a new PIN is on its way. Check your '
+               + 'inbox, then change it in your settings.' };
 
-      const asked = S(body.who).trim();
-      if (!asked) return jsonOut({ error: 'Type your name, username or email first.' });
+      const asked = norm(body.who);
+      if (asked.indexOf('@') === -1) return jsonOut({ error: 'Type your email address first.' });
 
       const tPeople = read(TAB.people);
-      /* BY EMAIL TOO, because "forgot" is exactly the state in which somebody cannot remember
-         which of the two names they signed up with. `findPerson` does not do addresses — this is
-         not a second copy of it, it is the one column it has never looked at. */
-      const r = findPerson(asked)
-        || tPeople.rows.find(x => S(x.email) && key(x.email) === key(asked));
+      /* ---------- BY THE ADDRESS AND NOTHING ELSE, THE SAME RULE AS SIGNING IN -------------------
+         THIS WAS `findPerson(asked)` AND THEN THE ADDRESS, compared through `key` — which strips
+         every dot and the `@`, so `halex.dias@x.com` and `halexdias@xcom` were one address. With the
+         address now the only thing anybody signs in with (see `verifyLogin`), the box on the card
+         is an address and this reads it exactly as that handler does: `norm` on both sides, whole.
+
+         TWO ROWS ON ONE ADDRESS SENDS NOTHING. Which of the two accounts would get the new PIN is a
+         guess, and the reply is the same sentence either way — so a stranger learns nothing and the
+         owner fixes the sheet. */
+      const hits = tPeople.rows.filter(x => norm(x.email) === asked);
+      const r = hits.length === 1 ? hits[0] : null;
       if (!r) return jsonOut(said);
 
       const to = S(r.email);
