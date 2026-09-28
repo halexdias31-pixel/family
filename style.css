@@ -724,6 +724,26 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .me-said { margin: .6rem 0 0; }
 .me-said:empty { margin: 0; }
 
+/* ---------- A SEVERAL-OF-A-LIST FIELD LOOKS LIKE THE BOX IT REPLACES --------------------------------
+   `extra_quals` was a text box and is a button that opens `#drop` — see `meDrop_` in me.js. It is
+   drawn in the box's own clothes, so a card of boxes and one drop-down still reads as one form: the
+   same height, edge, fill and type as `input, select`, left-aligned because what it shows is a list
+   read from its start, and ellipsised because the panel under it is where the whole list is read.
+   44px in px, because it is a tap target. */
+.me-many {
+  display: block; width: 100%; min-height: 44px; padding: .7rem .75rem;
+  background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r-sm);
+  color: var(--ink); font: 16px/1.3 var(--font); text-align: left; cursor: pointer;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.me-many.is-unset { color: var(--faint); }
+.me-many[aria-expanded="true"] { border-color: var(--gold); }
+/* THE BUILD STAMPS UNDER AN ADMIN'S SIGNING-IN CARD. Small and faint: a line for the one person who
+   asks which build is running, printed where nobody else ever sees it. */
+.me-build { margin-top: .9rem; padding-top: .6rem; border-top: 1px dashed var(--line);
+            font-size: .62rem; }
+.me-build p { margin: 0; }
+
 /* ---------- A DATE OF BIRTH IS ONE QUESTION IN THREE BOXES --------------------------------------
    ONE CAPTION OVER THE ROW, WHICH IS THE ONE THING `fieldHtml` CANNOT DRAW. Its `<span>` is inside
    the `<label>`, so it is per box — three captions reading `day`, `month`, `year` under a group
@@ -1397,6 +1417,42 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    photograph with a border. */
 .post-pic { display: block; width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad));
             background: var(--sunk); }
+/* ---------- SEVERAL PICTURES ON ONE POST, AS A GRID --------------------------------------------
+   TWO COLUMNS OF SQUARES, edge to edge like the single picture, and never a sideways strip: every
+   column in this app is reached by a sideways swipe, and a carousel would eat it. When the count is
+   odd the first takes the whole width, so what was put first leads. `object-fit: cover` here and
+   not above, deliberately — see `postMediaHtml_` in posts.js for why a grid may crop and a single
+   picture may not. The 2px gap is the one hairline between photographs, in the ground colour. */
+.post-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+             width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad)); }
+.post-grid .post-cell { display: block; width: 100%; aspect-ratio: 1; object-fit: cover;
+                        min-width: 0; background: var(--sunk); }
+/* THE BLEED INSIDE A PANE IS THE PANE'S OWN PADDING, NOT `--pad`. The pane was trimmed from 1rem to
+   .85rem and the edge-to-edge rules above went on cancelling 1rem — so every post with a picture ran
+   13 to 15px past its own card, which `check/live.js` recorded against real photographs and nothing
+   here could see, because the fixture's posts had none. `--pane-pad` is written once, on `.pane`. */
+.pane .post-pic, .pane .post-grid, .pane .sk-pic {
+  width: calc(100% + 2 * var(--pane-pad)); margin-left: calc(-1 * var(--pane-pad)); }
+/* AND THE POST ITSELF TAKES THE PANE'S PADDING AS ITS OWN, so the bleed lands inside the post's
+   padding box rather than past its edge. Without this the picture still reaches the glass but the
+   `article` reports it as overflow — 11 to 13px of sideways scroll that `check/ui.js` names the
+   moment a fixture post carries a picture. The words inside are exactly where they were. */
+.pane > .post { margin-inline: calc(-1 * var(--pane-pad)); padding-inline: var(--pane-pad); }
+.post-grid.is-odd > :first-child { grid-column: 1 / -1; aspect-ratio: 4 / 3; }
+/* A CLIP IS A PICTURE THAT MOVES and takes the same box; its controls are the browser's own. */
+.post-vid { background: var(--sunk); }
+.post-pic.post-vid { aspect-ratio: 4 / 5; object-fit: contain; }
+/* AND ONE DRIVE WOULD NOT HAND OVER IS A LINK, in the same box, so the grid does not close up round
+   a gap. 44px is the floor because it is a control. */
+.post-vid-out { display: flex; align-items: center; justify-content: center; min-height: 44px;
+                background: var(--sunk); color: var(--gold); text-decoration: underline; }
+.post-grid .post-vid-out { display: flex; aspect-ratio: 1; }
+.post-pic.post-vid-out { aspect-ratio: 16 / 9; }
+/* THE COMPOSER'S PREVIEW DRAWS WITH THE CARD'S OWN RENDERER, in a sheet that has no page margin to
+   cancel — so the edge-to-edge bleed above would run past the sheet's sides. Inside the preview the
+   picture and the grid are simply the width they are given. */
+.post-preview { margin: .2rem 0 .6rem; }
+.post-preview .post-pic, .post-preview .post-grid { width: 100%; margin-left: 0; }
 /* THE PICTURE IS SHOWN WHOLE. Full width, its own height, and never enlarged past it.
 
    It used to stretch to fill the page with `object-fit: cover`, which crops — and what a phone
@@ -2098,7 +2154,8 @@ button.text-drop { color: var(--bad); }
      TRIMMED, NOT REMOVED. A pane with no padding is content against a border, which is what makes a
      card read as a box rather than as a surface — and the bottom keeps a little more than the top
      because a list that ends flush with the glass reads as clipped. */
-  padding: .85rem .85rem 1rem;
+  --pane-pad: .85rem;
+  padding: var(--pane-pad) var(--pane-pad) 1rem;
   border-radius: 14px;
   /* Same promise as the cell above, for the same reason: a pane's contents changing must not cost
      a repaint of the panes either side of it. */
@@ -3713,46 +3770,85 @@ button.text-drop { color: var(--bad); }
    phone. The one visual on this site that belongs to the person rather than to the business.
 --------------------------------------------------------------------------------------------- */
 .av-wrap { display: flex; align-items: center; justify-content: center; padding: .3rem 0; }
-.av-big { padding: .8rem 0 1rem; }
+/* `.av-big` WAS HERE, the figure's padding when the wardrobe opened in a sheet; nothing draws it. */
 .avatar, .av-item { display: block; }
 /* On a card, the figure sits in the same square a photograph would — so a row with a picture and
    a row with a figure line up rather than one of them being taller. */
 .thing-pic.art { display: flex; align-items: center; justify-content: center;
                  background: var(--sunk); overflow: hidden; }
 
-.av-slot { margin: 0 0 .7rem; }
-.av-slot-name { font-size: .66rem; letter-spacing: .1em; text-transform: uppercase;
-                color: var(--faint); margin-bottom: .3rem; }
+/* ---------- THE WARDROBE IS ONE CARD, SO EVERY PART OF IT IS A LINE ---------------------------------
+   *"the avatar bit is split into like 4 widgets. should just be 1. make things smaller to fit on a
+   screen if need be."* The arithmetic is over `wardrobeCard_` in me.js. Every line is a label column
+   and a strip; the label column is sized for `SHOULDERS`, the longest slot name, at this size.
+   `.av-slot` and `.av-name` went with the pages — a block per slot with its name above it, and each
+   option's name under its drawing. */
+.av-top { display: flex; align-items: center; gap: .7rem; margin: 0 0 .65rem; }
+.av-top .av-figure { flex: 0 0 auto; padding: 0; width: 64px; height: 64px;
+                     background: var(--sunk); border-radius: var(--r-sm); }
+.av-stats { min-width: 0; }
+.av-stats p { margin: 0; font-size: .78rem; line-height: 1.35; }
+.av-stats p + p { margin-top: .2rem; font-size: .64rem; }
+.av-line { display: grid; grid-template-columns: 3.6rem minmax(0, 1fr); gap: .4rem;
+           align-items: center; margin: 0 0 .45rem; }
+.av-slot-name { font-size: .58rem; letter-spacing: .02em; text-transform: uppercase;
+                color: var(--faint); }
 
-/* WRAPS, and each option is a drawing with its name under it. A dropdown of item names would ask
-   somebody to know what "goggles" looks like before choosing it, which is the one thing a
-   wardrobe exists to answer. */
-.av-opts { display: flex; flex-wrap: wrap; gap: .4rem; }
+/* A DRAWING AND NOTHING ELSE, on a 29px square — six to a row fits the strip of a 320px card. The
+   name is the button's `aria-label` and `title`; the drawing is what anybody reads, and a dropdown of
+   names would ask somebody to know what "goggles" looks like before choosing it. `auto-fill` WRAPS
+   rather than scrolling sideways, so a seventh hairstyle added from the shop tab is a second row
+   rather than a hidden one. */
+.av-opts { display: grid; grid-template-columns: repeat(auto-fill, 29px); gap: 3px; }
 .av-opt {
-  display: flex; flex-direction: column; align-items: center; gap: .1rem;
-  min-width: 4.2rem; min-height: max(44px, 2.9rem); padding: .35rem .3rem .3rem;
+  position: relative; display: grid; place-items: center;
+  width: 29px; height: 29px; padding: 0;
   background: var(--sunk); border: 1px solid var(--line-soft); border-radius: 2px;
-  color: var(--dim); font: inherit; cursor: pointer;
+  color: var(--dim); font: inherit; cursor: pointer; overflow: hidden;
   transition: border-color var(--quick) ease, transform var(--quick) ease;
 }
 .av-opt:active { transform: scale(.94); }
 .av-opt.on { border-color: var(--gold); }
-.av-opt.on .av-name { color: var(--gold); }
-.av-name { font-size: .6rem; line-height: 1.2; text-align: center; }
 /* NOT YOURS YET. Dimmed rather than removed, and it says what it would take — a wardrobe showing
-   only what you own tells you nothing about what is next, which is the entire point of a level. */
-.av-opt.locked { opacity: .45; }
-.av-why { font-size: .55rem; color: var(--gold); letter-spacing: .04em; }
+   only what you own tells you nothing about what is next, which is the entire point of a level.
+   A PILL ACROSS ITS FOOT rather than a line under it, because there is no line under a 29px square;
+   its full sentence is in the button's `aria-label`. */
+.av-opt.locked > :not(.av-why) { opacity: .4; }
+.av-why { position: absolute; left: 0; right: 0; bottom: 0;
+          font-size: .5rem; line-height: 1.35; text-align: center; letter-spacing: 0;
+          color: var(--gold); background: color-mix(in srgb, var(--bg) 75%, transparent); }
 .av-none { display: flex; align-items: center; justify-content: center;
-           width: 34px; height: 34px; color: var(--faint); font-size: .9rem; }
+           width: 24px; height: 24px; color: var(--faint); font-size: .85rem; }
 
-/* Colours: a row of the colour itself. A swatch that is the thing it selects needs no label. */
-.av-swatches { display: flex; flex-wrap: wrap; gap: .45rem; }
-.av-sw { width: max(30px, 2rem); height: max(30px, 2rem); border-radius: 50%;
+/* Colours: a row of the colour itself. A swatch that is the thing it selects needs no label.
+   21px, eight to a row — see `ACCEPTED_TAP` in check/ui.js for why that is a trade and not a slip. */
+.av-swatches { display: grid; grid-template-columns: repeat(auto-fill, 21px); gap: 3px; }
+.av-sw { width: 21px; height: 21px; border-radius: 50%;
          border: 2px solid transparent; cursor: pointer;
          transition: border-color var(--quick) ease, transform var(--quick) ease; }
 .av-sw:active { transform: scale(.9); }
-.av-sw.on { border-color: var(--gold); }
+.av-sw.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--bg); }
+
+/* ---------- WHEN I CAN TEACH, AS A TIDY WEEK ---------------------------------------------------------
+   *"refine availability bit it looks weird, like scruffy."* The note over `availGrid_` in me.js says
+   what was scruffy; this is the shape instead. A GRID, not a flex row, for both the header and the
+   hours, so the numbers and the cells are one set of columns by construction — `--hours` is the
+   count the builder already knows. SQUARE CELLS, because a week is read by its shape and a column
+   of 19 by 20 rectangles has no shape. Days in the dim ink the card's other labels use and in their
+   own case (`Mon`), because capitals at this size read as a code rather than a word.
+   The booking week and the receipt are untouched: `.me-week` is on this card and the Tools widget
+   that draws the same grid, and nowhere else. */
+.me-week-say { margin: .1rem 0 .6rem; }
+.me-week .slot-grid { gap: 3px; margin: 0 0 .85rem; }
+.me-week .slot-row { display: grid; grid-template-columns: 2.1rem minmax(0, 1fr);
+                     gap: .35rem; align-items: center; }
+.me-week .slot-day { font-size: .66rem; text-transform: none; letter-spacing: 0; color: var(--dim); }
+.me-week .slot-hours { display: grid; grid-template-columns: repeat(var(--hours, 10), minmax(0, 1fr));
+                       gap: 3px; }
+.me-week .slot-hh { font-size: .58rem; }
+.me-week .hr { aspect-ratio: 1; min-height: 0; border-radius: 3px; }
+/* THE BRIDGE REACHES ACROSS A 3px GUTTER HERE, not the 2px the booking week has. */
+.me-week .hr.on + .hr.on::before { left: -4px; width: 4px; }
 
 /* Somebody who asked their phone to stop animating things meant it. The dial still WORKS — the
    pages still move and still fade, because that is the layout rather than the decoration — it just
@@ -7169,7 +7265,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    SO IT IS HIDDEN AGAIN, and `check/ui.js` now asks the second question in pixels somebody can see
    — see the note on its overflow pass. `overflow-x: auto` was not harmless either: it put a real
    scrollbar under a sheet that is entirely on screen. */
-.fm-out { overflow: hidden; margin-top: .5rem; }
+/* ---------- AND NOW THERE IS NO PREVIEW AT ALL -----------------------------------------------------
+   Asked for as "for make a flyer remove the preview". `.fm-out` is the paper `fm-print` builds at the
+   end of `body` for the length of a print dialogue and removes afterwards; on screen it is never
+   seen and never takes a tap, and the print rules below make it visible. What the card shows in its
+   place is `.fm-said`, one line saying what the Print button will put on the paper. */
+.fm-out { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
+.fm-said { margin: .6rem 0 .5rem; font: 400 .78rem/1.45 var(--mono); color: var(--dim); }
+.fm-said b { color: var(--ink); font-weight: 600; }
 .fm-sheet { width: 210mm; height: 297mm; background: #fff; display: grid;
             transform-origin: 0 0; overflow: hidden; }
 .fm-z-a5 { grid-template: 148.5mm 148.5mm / 210mm; }
@@ -7483,7 +7586,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    session on the strength of `check/ui.js` reporting it clipped, and CLAUDE.md was written up to
    match. `matFit` scales the sheet to the box with a transform; `scrollWidth` does not see
    transforms. Measured with rectangles: sheet right edge 335, box right edge 335, nothing lost. */
-.mat-out { overflow: hidden; margin-top: .6rem; }
+/* `.mat-out` IS GONE — there is no preview on the card (see `matProbe` in mat.js). What is left on
+   screen is the paper built for the printer, which exists only between `mat-print` and `afterprint`
+   and must not be seen or take a tap in that moment. The print rules below make it visible. */
+.mat-paper { position: absolute; left: 0; top: 0; visibility: hidden; pointer-events: none; }
 /* ---------- THE PAPER'S NINE GREYS, NAMED ---------------------------------------------------------
    THE SHEET WAS THE ONLY PART OF THE STYLESHEET WITH NO PALETTE. The app has --gold, --dim, --faint
    and the rest; the paper had `var(--mono)` for its typeface and forty-nine colour literals for
@@ -7570,29 +7676,27 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    A FULL-WIDTH BLOCK STILL BREAKS IT, and should — there is no second column to divide from while
    one block is spanning both, and a line running behind it would be drawing a division that is not
    there for those few millimetres. */
-.mat-cols { display: flex; flex-direction: column; gap: 0; }
-.mat-col { padding-bottom: 5mm; }
-.mat-cols > .mat-box { margin-bottom: 5mm; }
-/* ---------- AND ONE BETWEEN THE TWO HALVES --------------------------------------------------------
-   THE HORIZONTAL RULES ALONE MADE IT WORSE. They run the full width of the sheet, straight across
-   the gap between a pair, so two side-by-side blocks read as one block with a very wide middle
-   column — 'Pythagoras' and 'Sequences' became one four-column table with two headings.
-
-   THE GAP IS SPLIT RATHER THAN ADDED TO. 4mm of gap becomes 4mm of padding on each side of the line,
-   so the two columns still measure the same and the separation is the same 8mm it always was; only
-   now there is something in the middle of it. */
-.mat-two-up { display: flex; gap: 0; }
-/* THE PADDING IS ON EVERY CELL, NOT ON THE FIRST ONE. With two across, 'first gets padding-right,
-   second gets padding-left' is the same thing; with three it gives 8mm between the first pair and
-   4mm between the second, and a row whose two gutters are different widths reads as a mistake even
-   when nobody can say what is wrong with it. */
-.mat-two-up > * { flex: 1; min-width: 0; padding-right: 4mm; }
-.mat-two-up > :last-child { padding-right: 0; }
-/* THE RULE IS BETWEEN COLUMNS NOW, not between blocks — a column is the thing that has a neighbour.
-   AN EMPTY COLUMN STILL DRAWS ITS LINE, and that is right: three stacks that level out to different
-   depths are still three columns, and a line stopping short of the shortest one would read as the
-   page running out rather than as a column ending. */
-.mat-two-up > .mat-col + .mat-col { border-left: .2mm solid var(--pa-rule); padding-left: 4mm; }
+.mat-cols { display: grid; flex: none;
+            grid-template-columns: repeat(var(--mat-tracks, 6), minmax(0, 1fr));
+            grid-auto-rows: var(--mat-row, 2mm); grid-auto-flow: row dense;
+            column-gap: var(--mat-gut, 6mm); row-gap: 0; align-content: start; }
+/* A SLOT IS ITS AREA AND NOT A MILLIMETRE MORE. `overflow: hidden` is what makes the size fixed;
+   `matPaint` grows a slot its drawing overflows before this could ever clip anything, and says so.
+   The 3mm under each block is inside the slot, so the air between two blocks is part of what each
+   one costs rather than a gap that depends on what is next to it. */
+.mat-cols > .mat-box { min-width: 0; overflow: hidden; padding-bottom: 3mm; }
+/* ---------- THE PAGE IS A GRID OF FIXED SLOTS ------------------------------------------------------
+   The notes above this rule are about runs and columns that no longer exist: every component owns a
+   fixed slot now (asked for as "make all components of cheat sheet maker fixed in area"), `span`
+   tracks wide and a whole number of `--mat-row`s tall, both set on the block by `matPaint`. The
+   three numbers come from mat.js — `MAT_TRACKS`, `MAT_GUT`, `MAT_ROW` — through the inline custom
+   properties on `.mat-cols`, so the picker's prices and the paper's widths are one source; the
+   fallbacks are those same numbers, for a sheet drawn before the script has set them.
+   `dense` puts a narrow block into the third left beside a two-thirds grid; `start` stops the grid
+   stretching its rows to fill the sheet, which would make every slot a different height again.
+   THE COLUMN RULES WENT WITH THE COLUMNS. A slot grid has no continuous columns for a line to run
+   down — a vertical rule would stop and start at every wide block — so the gutter alone divides.
+   `.mat-col` and `.mat-two-up` are gone, and their gap and rule arguments with them. */
 
 /* ---------- WHERE THE HAIRLINE ABOVE A BLOCK BELONGS, NOW THAT BLOCKS STACK -----------------------
    THE FIRST BLOCK IN EACH COLUMN TAKES NO RULE. It is already under the heading rule or under a
@@ -7602,8 +7706,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    THE OLD EXCEPTION HAD TO GO WITH IT: `.mat-cols > :first-child .mat-box` took the rule off EVERY
    block in the first row, which when a row became a column meant the whole first column lost its
    separators. */
-.mat-col > .mat-box:first-child { border-top: 0; padding-top: 0; }
-.mat-col > .mat-box + .mat-box { border-top: .25mm solid var(--pa-rule); padding-top: 1.6mm; }
+
 /* WHERE ONE COMPONENT ENDS AND THE NEXT BEGINS — a hairline ABOVE the block, not under its heading.
    Under the heading it separated a heading from its own content, which is the one boundary that did
    not need marking; the boundary that did was invisible, and 2.8mm of gap between two blocks of
@@ -7636,7 +7739,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    THIS IS THE LINE THE COMMENT ASKED FOR. Above the heading, so it costs no height it was not
    already spending; hairline, so it separates without weighing; and it lines up across a pair. */
 .mat-box { border-top: .25mm solid var(--pa-rule); padding-top: 1.6mm; }
-.mat-cols > .mat-box:first-child { border-top: 0; padding-top: 0; }
+/* THE TOP ROW OF THE GRID, which `matPaint` marks — asked of the laid-out page, because a narrow
+   block packed up beside a wide one is in the top row without being first in the list. */
+.mat-box.is-top { border-top: 0; padding-top: 0; }
 /* DARKER THAN IT WAS. At var(--pa-mid) the heading was lighter than the values under it, so scanning for
    'where does probability start' meant reading the block rather than seeing it. It is the label for
    everything below it and it should be the first thing found, not the last. */
@@ -7677,12 +7782,20 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    WHAT IS KEPT IS WHAT CARRIES MEANING. The tens still print bold and the fives still print grey,
    so the structure a hundred square is FOR survives with no lines at all. */
 .mat-hun { display: grid; grid-template-columns: repeat(10, minmax(0, 1fr)); }
-.mat-hun i { aspect-ratio: 1; display: grid; place-items: center; font-style: normal; font-weight: 400; font-size: 2.9mm; line-height: 1;
+/* BIGGER, asked for by name: the square is two thirds of the page now (about 121mm, cells of 12mm
+   rather than 8.8), so the digits go from 2.9mm to 4.2mm — the same share of the cell as before.
+   6:5 RATHER THAN SQUARE, and the arithmetic is why. Square cells at 121mm make each grid about
+   130mm tall with its heading, and the two together 264mm — two millimetres more than the page, so
+   the one sheet both were built for (SATs) could never hold both. At 6:5 they are 110mm each and
+   leave a band across the foot of the page for the number line or the place value chart. */
+.mat-hun i { aspect-ratio: 6 / 5; display: grid; place-items: center; font-style: normal; font-weight: 400; font-size: 4.2mm; line-height: 1;
              padding: .35mm 0; }
 .mat-hun i.five { color: var(--pa-mid); }
 .mat-hun i.ten { font-weight: 700; }
 .mat-tt { display: grid; grid-template-columns: repeat(13, minmax(0, 1fr)); }
-.mat-tt i { aspect-ratio: 1; display: grid; place-items: center; font-style: normal; font-weight: 400; font-size: 2.2mm; line-height: 1;
+/* AND THE TIMES TABLE WITH IT: cells of 9.3mm rather than 6.8, digits 3.2mm rather than 2.2. `144`
+   is the widest value and is the one this was sized against. */
+.mat-tt i { aspect-ratio: 6 / 5; display: grid; place-items: center; font-style: normal; font-weight: 400; font-size: 3.2mm; line-height: 1;
             padding: .35mm 0; overflow: hidden; }
 .mat-tt i.h { font-weight: 700; }
 /* THE ONLY TWO LINES LEFT, and they are the two that mean something: everything below this line and
@@ -7693,9 +7806,31 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE SQUARE NUMBERS DOWN THE DIAGONAL, boxed rather than filled. An outline is drawn on top of the
    cell instead of inside its border, so it marks the square without moving anything. */
 .mat-tt i.sq { font-weight: 700; outline: .25mm solid var(--pa-mark); outline-offset: -.25mm; }
+
+/* ---------- THE PERIODIC TABLE --------------------------------------------------------------------
+   EIGHTEEN COLUMNS AND ELEVEN ROWS: the group numbers, seven periods, a gap, and the f-block. Every
+   cell is placed by `grid-area` from `matPtAt`, so the gaps in periods 1–3 are simply cells nobody
+   was put in. The gap row is a third of a period, which is how every printed table separates the
+   lanthanides and actinides from the body.
+   BORDERS, NOT FILLS, for the reason at the head of this section — a browser drops fills on paper. */
+.mat-pt { display: grid; grid-template-columns: repeat(18, minmax(0, 1fr));
+          grid-template-rows: 3mm repeat(7, 8.6mm) 2.6mm repeat(2, 8.6mm); gap: .35mm; }
+.mat-pt i { display: flex; flex-direction: column; justify-content: center; align-items: center;
+            border: .15mm solid var(--pa-line); font-style: normal; line-height: 1; min-width: 0; }
+/* THE NUMBER SMALL AND ABOVE, THE SYMBOL LARGE AND BOLD — the order a student reads a cell in. */
+.mat-pt i em { font: 400 1.8mm/1 var(--mono); font-style: normal; color: var(--pa-mid); }
+.mat-pt i b { font-size: 3.6mm; font-weight: 700; margin-top: .5mm; }
+.mat-pt s { align-self: end; text-align: center; text-decoration: none;
+            font: 700 2.2mm/1 var(--mono); color: var(--pa-head); }
+.mat-pt u { display: grid; place-items: center; text-decoration: none;
+            font: 400 1.7mm/1 var(--mono); color: var(--pa-faint); }
 /* FRACTIONS ABOVE AND DECIMALS BELOW ON ONE LINE, because they are the same thing and showing them
    apart is most of why they stay separate ideas. */
-.mat-nl { position: relative; height: 16mm; }
+/* INSET BY HALF A LABEL EACH SIDE. The 0 and the 1 are centred on the ends of the line, so half of
+   each hangs outside it — invisible while a block could spill, and cut in half once every block
+   became a fixed slot that clips (`.mat-cols > .mat-box`). The line is 4mm shorter; its labels are
+   whole. */
+.mat-nl { position: relative; height: 16mm; margin: 0 2mm; }
 .mat-nl::before { content: ""; position: absolute; left: 0; right: 0; top: 8mm; height: 0;
                   border-top: .4mm solid var(--pa-ink); }
 .mat-nl i { position: absolute; top: 4mm; width: 0; height: 4mm; border-left: .4mm solid var(--pa-ink); }
@@ -7799,12 +7934,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    a wrapped label pushes its own value down and takes the row's alignment with it. Giving the label
    less and the value more means the wrapping happens in the values, where a second line is a second
    line and nothing moves. */
-.mat-two-up .mat-two { grid-template-columns: fit-content(40%) 1fr; gap: 1mm 2mm; }
+.mat-box.is-narrow .mat-two { grid-template-columns: fit-content(40%) 1fr; gap: 1mm 2mm; }
 
 /* AND THE HALF-GAP GOES WITH IT. `nth-child(odd) em` puts 4mm on the right of the first value
    column to separate the two halves of the wide grid. In two columns there is no second half, so
    that padding is 4mm bitten out of the only value column there is. */
-.mat-two-up .mat-two i:nth-child(odd) em { padding-right: 0; }
+.mat-box.is-narrow .mat-two i:nth-child(odd) em { padding-right: 0; }
 
 /* ---------- OPTIONAL, AND ARGUABLE ----------------------------------------------------------------
    A HAIRLINE PER ROW. The comment in the sheet section argues against frames and is right — eight
@@ -7843,8 +7978,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    child of `.mat-cols` and a half-width one is not, which the stylesheet already relies on at
    `.mat-cols > .mat-box:first-child`. Reusing that beats a `:not()` holding a descendant selector,
    which is a Selectors-4 feature doing work an existing structural fact already does. */
-.mat-cols > .mat-box .mat-two i:nth-last-child(2) b,
-.mat-cols > .mat-box .mat-two i:nth-last-child(2) em { border-bottom: 0; padding-bottom: 0; }
+.mat-box.is-wide .mat-two i:nth-last-child(2) b,
+.mat-box.is-wide .mat-two i:nth-last-child(2) em { border-bottom: 0; padding-bottom: 0; }
 
 /* ---------- SET NOTATION ------------------------------------------------------------------------- */
 .mat-venn { display: grid; grid-template-columns: 1fr 1fr; gap: 2.5mm 3mm; }
@@ -8787,6 +8922,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    checked and the parent's agreement in writing. The fact is still `venue === 'home'` on 34 of the
    77 live rows, so the sentence is one rule and one line of markup away. */
 .prac-cost { margin: .5rem 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
+
+/* ---------- A PRACTICAL'S OTHER THREE PAGES — WHOSE PAGE IT IS, THEN WHAT IT IS ---------------
+   "Split into widgets. diagram, equipment, steps, worksheet bit." The kit, the method and the
+   worksheet are pages of their own after the practical's card (see `practicalPart_`), and a page
+   you can land on from a flick four results away has to say which practical it belongs to. So the
+   practical's name sits SMALL above the section's own heading — the name is context and the
+   heading is what this page is, which is the order of importance on it. `--faint` and the mono
+   label size because it is a caption; the `<h3>` takes the card's ordinary heading rules. The name
+   wraps rather than clipping, for the `.prac-head h3` reason: a long title is one unbreakable
+   flex item's worth of text on a 320px phone. */
+.prac-of { margin: 0 0 .15rem; font: 600 .66rem/1.3 var(--mono); letter-spacing: .06em;
+  text-transform: uppercase; color: var(--faint); overflow-wrap: anywhere; }
+.prac-part > h3 { margin: 0 0 .55rem; }
 /* The one line on the card that is a recommendation rather than a fact, so it is the one that
    carries the gold. */
 .prac-open { margin: .5rem 0 0; font: 600 .76rem/1.45 var(--mono); color: var(--gold); }
@@ -9083,8 +9231,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 /* THE LEFT MARGIN IS THE RULER'S, so the sheet only gives it up when the ruler is on. Untick it and
    the page reclaims the 20mm rather than printing an empty strip, which looks like a fault. */
-.mat-sheet { padding-left: 6mm; }
-.mat-sheet.ruled { padding-left: 20mm; }
+/* AND THE TEXT BLOCK IS 184mm EITHER WAY, because every slot is a fixed width now (see `.mat-cols`).
+   With the ruler off the 14mm it gives back is shared between the two sides rather than left as a
+   wider right margin, so the page stays centred instead of leaning left. */
+.mat-sheet { padding-left: 13mm; padding-right: 13mm; }
+.mat-sheet.ruled { padding-left: 20mm; padding-right: 6mm; }
 
 /* GIVEN IN THE EXAM. Shown only when the sheet says TRUE — a blank cell means nobody has checked,
    and a mark that appears for "unknown" as well as for "no" tells you nothing. Set beside the name
@@ -10083,6 +10234,20 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the spacing down the card is one number rather than two. It costs nothing when there is no
    picture, because the row is `hidden` and `[hidden]` takes it out of the flow entirely. */
 .cam-card .cam-as { margin-bottom: .5rem; }
+
+/* ---------- WHAT IS ALREADY IN THIS POST ---------------------------------------------------------
+   A ROW OF SQUARES, WRAPPING, and never a sideways scroller — this card is a page of a column you
+   swipe, and a strip you swipe along would eat the gesture. 48px because each is a control (a tap
+   takes it out) and a fingertip does not scale; in px for that reason. A clip has no picture to show
+   until it is decoded, so it is a ▶ on the sunk ground. */
+.cam-card .cam-tray { margin: 0 0 .6rem; }
+.cam-card .cam-tray-say { margin: 0 0 .35rem; }
+.cam-card .cam-thumbs { display: flex; flex-wrap: wrap; gap: 6px; }
+.cam-card .cam-thumb { width: 48px; height: 48px; min-height: 48px; padding: 0; overflow: hidden;
+                       border: 1px solid var(--line); border-radius: 6px; background: var(--sunk);
+                       display: flex; align-items: center; justify-content: center; }
+.cam-card .cam-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cam-card .cam-thumb-vid { color: var(--gold); font-size: 1.1rem; line-height: 1; }
 
 /* AND AN EMPTY STATUS LINE TAKES NO ROOM. `#cam-said` is blank until something has to be said, and
    a `p`'s own margin is 10.7px at 390 whether or not there is a sentence in it — vertical space on

@@ -56,7 +56,13 @@ let SPOT = new Set();
    this repository's oldest fault and the one `nothingHere` exists for. */
 function spotNow_() {
   const sheet = (DATA && DATA.spotlight);
-  if (Array.isArray(sheet) && sheet.length) return sheet.map(String);
+  /* AN ARRAY IS THE ANSWER, EMPTY OR NOT. This tested `sheet.length`, so an admin who took the last
+     thing out of the window got `[]` back — and `[]` fell through to the committed file, which puts
+     straight back whatever the file holds: the resurrection the note above says a switched-off row
+     prevents, happening anyway. The payload sends only the rows switched ON, so an emptied window
+     and an unused tab both arrived as `[]`; `doGet` tells them apart now by sending NO key for a tab
+     with no rows at all, which is the one case the file is the floor for. */
+  if (Array.isArray(sheet)) return sheet.map(String);
   const file = (DATA && DATA.spotlightFile) || [];
   return (Array.isArray(file) ? file : []).map(String);
 }
@@ -69,29 +75,55 @@ const isSpot = k => SPOT.has(String(k));
 
 /* Toggled by an admin, and saved one row at a time for the reason `favourite` is: writing a whole
    list back is a read-modify-write, and two admins on two phones would lose one of the two taps. */
+
+/* ---------- ONE PLACE THAT SAYS WHETHER A KEY IS SPOTLIT, AND EVERYTHING THAT SHOWS IT FOLLOWS ------
+   REPORTED AS *"spotlight is a bit buggy. if i unspotlight something for example it doesnt feel like
+   it responds as it is still there in spotlight tab."* Measured: the tap changed `SPOT` and the word
+   on the tile, and nothing else — so the card stayed on the Spotlight column, which is the one screen
+   whose whole content is that set. THE UNSTAR-FROM-SAVED FAULT, ONE COLUMN ALONG, and the answer is
+   the same three cases `on('fav')` records: on Spotlight the card IS a page, so the column is rebuilt
+   and its position clamped; everywhere else the card stays and is correct, and what is out of date is
+   the Spotlight column you are not on, which is marked `STALE` rather than redrawn.
+
+   AND `DATA.spotlight` MOVES WITH THE SET. `adoptSpotlight_` rebuilds `SPOT` from it on every load,
+   so a tap that changed only the set would be undone by the next `load()` that landed before the
+   write did — a payload fetched a moment before the POST finished, holding the old list. Writing the
+   set back into the payload's own key means every reader, and every re-adoption, sees the tap.
+   Written as an array whatever it was before, because an admin's tap IS a row in the tab: from that
+   moment the tab is the authority, which is `spotNow_`'s own rule.
+
+   THE TILE IS FOUND BY KEY, not handed in, because a repaint has already replaced the element that
+   was pressed — the one in the hand is detached by the time a refusal comes back. */
+function spotSet_(key, on) {
+  if (on) SPOT.add(key); else SPOT.delete(key);
+  try { DATA.spotlight = Array.from(SPOT); } catch (e) {}
+  const label = on ? 'Spotlit' : 'Spotlight';
+  document.querySelectorAll('[data-do="spot"]').forEach(el => {
+    if (el.getAttribute('data-key') === key) tileSet_(el, { label: label, on: on });
+  });
+  TABS.forEach(t => { if (t.id !== AT) STALE[t.id] = 1; });
+  if (AT === 'spotlight') repaint(true);
+}
+
 function toggleSpot(k, kind) {
   if (!isAdmin()) return;
   const key = String(k);
-  if (SPOT.has(key)) SPOT.delete(key); else SPOT.add(key);
+  const want = !SPOT.has(key);
+  /* AT ONCE, BEFORE THE SERVER HAS SAID ANYTHING. The backend answers in seconds; a card that stays
+     on the Spotlight column for that long after being taken off it is the complaint. The set is put
+     back below if the write is refused, so the screen never disagrees with the sheet for longer than
+     one round trip. */
+  spotSet_(key, want);
 
   /* ---------- THIS CALLED `send` WITH TWO ARGUMENTS AND `send` TAKES ONE ------------------------
-     `send(body)` — shell.js:1546 — passes its single argument straight to `api`. Written as
+     `send(body)` passes its single argument straight to `api`. Written as
      `send('spotlight', { … })` the body was the STRING "spotlight" and the whole object, name,
-     itemId, kind and all, was dropped on the floor before the request was built. There is no
-     `action` field in a bare string, so the backend could not have known what was being asked even
-     if it had the handler.
+     itemId, kind and all, was dropped on the floor before the request was built.
 
-     AND `.catch(() => {})` MADE IT LOOK LIKE IT WORKED. `SPOT.add`/`delete` three lines up has
-     already changed the set, so the star fills in the moment it is pressed; the request then fails
-     and the empty catch discards the failure without a word. An admin stars six things, sees six
-     stars, reloads, and has none — with nothing anywhere having said no.
-
-     THE HANDLER DOES NOT EXIST EITHER. There is no `spotlight` action in dopost.gs, no spotlight
-     tab in SCHEMA, and `doGet` never sends `DATA.spotlight` — which collections.js:39 reads. The
-     feature is wired at both ends of the front end and has no middle. Fixing the call therefore
-     does not make starring work; it makes it FAIL OUT LOUD, which is the difference between a
-     feature that is missing and a feature that is lying. `send` already turns an unknown action
-     into "The backend does not have `spotlight` yet", which is the true sentence. */
+     AND `.catch(() => {})` MADE IT LOOK LIKE IT WORKED. The set had already changed, so the tile
+     lit the moment it was pressed; the request then failed and the empty catch discarded the
+     failure without a word. An admin spotlights six things, sees six, reloads, and has none — with
+     nothing anywhere having said no. `send` throws on a refusal, and the catch below says so. */
   send({
     action: 'spotlight',
     name: USER.name,
@@ -106,24 +138,28 @@ function toggleSpot(k, kind) {
        does it: some keys are a bare title and some are prefixed, and splitting on the colon turns
        a venue called "Colliers Wood Library" into a kind. */
     kind: kind || 'item', itemId: key,
-    on: SPOT.has(key) ? 'TRUE' : '',
+    on: want ? 'TRUE' : '',
+  }).then(res => {
+    /* RECONCILED WITH WHAT THE SHEET NOW HOLDS. The handler answers `{ on }`, and where that is a
+       boolean that disagrees with the tap it wins — the sheet is the authority and the phone was a
+       guess. Only while nobody has pressed the same tile again: a second tap in flight is a newer
+       intention than this reply. */
+    if (res && typeof res.on === 'boolean' && res.on !== want && SPOT.has(key) === want) {
+      spotSet_(key, res.on);
+    }
   }).catch(err => {
-    /* PUT BACK WHAT WAS NOT SAVED. Leaving the star lit after the save failed is the lie this was
-       built on; the set is the only record the screen has, so it has to agree with the server. */
-    if (SPOT.has(key)) SPOT.delete(key); else SPOT.add(key);
+    /* PUT BACK WHAT WAS NOT SAVED, and only if it is still what this tap left — a second tap has
+       already said something newer. Leaving the card on (or off) the column after the save failed
+       is the lie this was built on. */
+    if (SPOT.has(key) === want) spotSet_(key, !want);
     toast(String((err && err.message) || 'That did not save'));
   });
 }
 
 on('spot', el => {
+  /* THE TILE, THE PAYLOAD'S COPY AND THE COLUMN ARE ALL DONE IN `spotSet_`, so the press and the
+     refusal that may undo it go through one function rather than two that could disagree. */
   toggleSpot(el.getAttribute('data-key'), el.getAttribute('data-kind'));
-  /* THE ONE BUTTON, not the screen. Redrawing would throw away the scroll position of somebody
-     working down a long list — the same reason the star repaints itself and nothing else. */
-  /* THE TILE'S OWN LABEL, not a glyph. This wrote ✦ / ✧ — written when the control was a small
-     button in the corner beside the star, and it would now overwrite the word on the tile AND any
-     value beside it, because a tile is two spans rather than a string. */
-  tileSet_(el, { label: isSpot(el.getAttribute('data-key')) ? 'Spotlit' : 'Spotlight',
-                 on: isSpot(el.getAttribute('data-key')) });
 });
 
 

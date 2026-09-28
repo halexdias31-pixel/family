@@ -156,7 +156,15 @@ const STATES = {
            question writes, so this is the chip a thumb would have set. */
         STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }];
         paintStuff();
-        goPage('stuff', typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1);
+        /* ONTO THE WORKSHEET, which is the fourth page of the first practical now — "split into
+           widgets. diagram, equipment, steps, worksheet bit." Found off the app's own
+           `stuffPages_` rather than counted as `+ 3`, because a practical with no method would have
+           three pages and a literal would land on the next practical's card. The pager keeps five
+           pages either side filled, so the card, the kit and the method are all in the DOM too
+           and the expect below asks about all four. */
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'work')) : 0;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
       },
       /* THE NUMBER IS ASSERTED RATHER THAN DESCRIBED — `>= 3` would pass on a guide that had
          quietly grown a fourth question nobody decided on, and this state is the only thing that
@@ -168,11 +176,23 @@ const STATES = {
            once, so counting `.gd-box` across `#s-stuff` counts six guides and answers 18 — which
            is what the first version of this did, and it reported the state unreachable on a screen
            that was drawing it perfectly. The count is per card because the claim is per card. */
-        const c = document.querySelector('#s-stuff .card.prac');
-        return !!c && c.querySelectorAll('.gd-box').length === 3
-               && !!c.querySelector('.prac-kit .kit-chip');
+        /* FOUR CARDS, EACH ASKED ABOUT ITS OWN JOB. The worksheet holds exactly the three boxes;
+           the kit page holds the chips; and the practical's own card holds NEITHER — a first card
+           that still carried the guide would pass the other two tests while being the one long
+           card this split replaced. And no part page carries a drawing: the picture is on the
+           first card and only there. */
+        const main = document.querySelector('#s-stuff .card.prac:not(.prac-part)');
+        const work = document.querySelector('#s-stuff .card.prac-part.is-work');
+        const kit  = document.querySelector('#s-stuff .card.prac-part.is-kit');
+        const steps = document.querySelector('#s-stuff .card.prac-part.is-steps');
+        return !!main && !!work && !!kit && !!steps
+               && work.querySelectorAll('.gd-box').length === 3
+               && !!kit.querySelector('.prac-kit .kit-chip')
+               && !!steps.querySelector('.prac-steps li')
+               && !main.querySelector('.gd-box, .kit-chip, .prac-steps')
+               && !document.querySelector('#s-stuff .prac-part figure');
       },
-      wants: 'a practical card with its guide on it — the kit chips and the three worksheet boxes',
+      wants: 'a practical split over four cards — the card, the kit chips, the steps, and a worksheet of three boxes',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
        BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,
@@ -414,13 +434,12 @@ const STATES = {
   /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR ----------------
      IT HAS THIRTEEN PAGES AND THE LAB HAD ONLY EVER SEEN THE FIRST. `check/ui.js` measures the page
      a column opens on, so `About you` was the whole of Settings as far as this file was concerned
-     — and that column now also holds the library cards and the seven wardrobe pages. Same fault as
+     — and that column now also holds the library cards and the wardrobe card. Same fault as
      the Find screen measured only on its first question, one column along: what was missing was
      never a rule, it was a state.
 
-     THE WARDROBE IS FOUND BY ASKING THE DOM, exactly as the tile that opens it does. A literal page
-     number would drift the moment a deployment sends one `profileFields` group fewer — which is
-     the fault the tile's own note records, and a state that lands on the wrong page fails loudly
+     THE WARDROBE IS FOUND BY ASKING THE DOM. A literal page number would drift the moment a
+     deployment sends one `profileFields` group fewer, and a state that lands on the wrong page fails loudly
      through `expect` rather than measuring the wrong card in silence. */
   settings: [
     { name: '' },
@@ -547,58 +566,82 @@ const STATES = {
                        .length === 2 ? 2 : 0),
       wants: 'two exam-date boxes, both drawn as a date picker' },
 
+    /* ---------- MORE QUALIFICATIONS, WITH ITS LIST OPEN ------------------------------------------
+       `extra_quals` IS A DROP-DOWN THAT STAYS OPEN — `#drop`, borrowed from the booking form, which
+       is a sibling of the screens rather than inside one. So the only way this lab ever sees the
+       panel, or the press pass ever reaches `me-many-pick`, is a state that opens it: the same hole
+       `booking · a list of answers open` was written to close. Opened through the app's own door,
+       the field's button, and shut again on the way out because states run in order down one page
+       and an open panel would be measured as part of every state after this one. */
+    { name: 'more qualifications open',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const pages = [...document.querySelectorAll('#s-settings .page')];
+        const at = pages.findIndex(pg => pg.querySelector('[data-do="me-many"]'));
+        if (at < 0) throw new Error('no several-of-a-list field on the settings column');
+        goPage('settings', at, true);
+        pages[at].querySelector('[data-do="me-many"]').click();
+      },
+      leave: () => { if (typeof meDropShut_ === 'function') meDropShut_(); },
+      expect: () => {
+        const el = document.getElementById('drop');
+        return !!el && !el.classList.contains('hidden')
+          && el.querySelectorAll('[data-do="me-many-pick"]').length > 7;
+      },
+      wants: 'the qualifications list open under its field, with more than seven to tick' },
+
+    /* ---------- THE WARDROBE IS ONE CARD NOW, SO ONE STATE FINDS IT AND A SECOND PRESSES IT --------
+       It was four pages — Colours, then the six slots two at a time — and these two states found the
+       colour page and then the first slot page. *"should just be 1"*: one card holds the swatches, all
+       six slots and ONE figure, so both states land on the same page and ask different things of it. */
     { name: 'the wardrobe',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const at = [...document.querySelectorAll('#s-settings .page')]
           .findIndex(pg => pg.querySelector('[data-do="av-colour"]'));
-        if (at < 0) throw new Error('no wardrobe page on the settings column');
+        if (at < 0) throw new Error('no wardrobe card on the settings column');
         goPage('settings', at, true);
       },
-      /* THE COLOURS PAGE HOLDS TWENTY-ONE SWATCHES — seven skins, seven hairs, seven shirts — so
-         a count is what proves this landed on the page rather than beside it. */
-      expect: () => document.querySelectorAll('#s-settings .page.on [data-do="av-colour"]').length,
-      wants: 'the wardrobe\'s colour swatches' },
+      /* ONE CARD: the swatches AND the slots on the same page, and ONE figure — the report was the
+         same picture drawn four times, so the count of figures is the assertion. */
+      expect: () => {
+        const pages = [...document.querySelectorAll('#s-settings .page')];
+        const pg = pages.find(p => p.querySelector('[data-do="av-colour"]'));
+        return pg && pg.querySelector('[data-do="av-pick"]')
+          && document.querySelectorAll('#s-settings .av-figure').length === 1
+          && pages.filter(p => p.querySelector('[data-do="av-pick"], [data-do="av-colour"]')).length === 1;
+      },
+      wants: 'one wardrobe card holding the colours, every slot and one figure' },
 
-    /* ---------- AND A SLOT PAGE, WHICH IS WHERE THE DUPLICATE-ID FAULT LIVED --------------------
-       THE FIGURE IS ON EVERY WARDROBE PAGE. As `id="av-figure"` that was four elements with one id
-       and `$()` handed `avatarSave` the first — so picking a hairstyle on page eight redrew the
-       figure on page seven and the one under your thumb did not move. Measured before the repair,
-       and invisible to everything: the markup is valid, nothing overflows, and `check/press.js`
-       correctly reports that SOMETHING changed.
-
-       SO THIS PRESSES ONE AND ASKS THE PAGE IT IS ON. The item chosen is the first unlocked one
-       that is not already worn — pressing the one already on is a save that changes nothing, which
-       is the harness fault `check/press.js` records about pressing the option that is already
-       chosen. */
-    { name: 'a slot page',
+    /* ---------- AND A PICK, WHICH IS WHERE THE DUPLICATE-ID FAULT LIVED -------------------------
+       WITH FOUR PAGES THE FIGURE WAS ON EVERY ONE, and as `id="av-figure"` `$()` handed `avatarSave`
+       the first — so a pick on one page redrew the figure on another. One card makes that impossible
+       rather than guarded, and the state stays because the immediate redraw is still the thing a
+       wardrobe is for: the item chosen is the first unlocked one that is not already worn, because
+       pressing the one already on is a save that changes nothing. */
+    { name: 'a pick redraws the figure',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const pages = [...document.querySelectorAll('#s-settings .page')];
         const at = pages.findIndex(pg => pg.querySelector('[data-do="av-pick"]'));
-        if (at < 0) throw new Error('no wardrobe slot page on the settings column');
+        if (at < 0) throw new Error('no wardrobe card on the settings column');
         goPage('settings', at, true);
-        /* THE PAGE BY INDEX, NOT BY `.page.on`. `goPage` sets that class through `paintPager` and
-           the first version of this read it in the same tick — so it found the page the column was
-           on BEFORE the turn, pressed nothing, and the assertion failed about the app rather than
-           about itself. `pages[at]` is the element `goPage` was just handed. */
+        /* THE PAGE BY INDEX, NOT BY `.page.on` — `goPage` sets that class through `paintPager`, and
+           reading it in the same tick finds the page the column was on before the turn. */
         const pg = pages[at];
         const fig = pg.querySelector('.av-figure');
         const was = fig ? fig.innerHTML : '';
         const pick = [...pg.querySelectorAll('[data-do="av-pick"]')]
           .find(b => !b.classList.contains('on') && !b.classList.contains('locked'));
         if (pick) pick.click();
-        /* ---------- READ IT HERE, IN THE SAME TICK AS THE PRESS ----------------------------------
-           `avatarSave` REDRAWS BEFORE THE SERVER ANSWERS — its own note says that is the difference
-           between a wardrobe and a form — and that immediate redraw is the thing this state is
-           about. Read later, the answer is the HARNESS's: `check/fixture.json` is one payload served
-           to every request, so the stubbed reply carries no `avatar` key, `USER.avatar` becomes
-           undefined and the figure goes back to the default. That is a fact about the stub, and
-           asserting on it would report the app broken for the fixture's shape. */
+        /* READ IN THE SAME TICK AS THE PRESS. `avatarSave` redraws before the server answers, and
+           read later the answer is the stub's: `check/fixture.json` carries no `avatar` key, so the
+           figure would go back to the default and this would report the app broken for the
+           fixture's shape. */
         window.__AV_MOVED = !!fig && !!was && fig.innerHTML !== was;
       },
       expect: () => window.__AV_MOVED,
-      wants: 'the figure ON THIS PAGE redrawn by a pick made on it' },
+      wants: 'the figure on the wardrobe card redrawn by a pick made on it' },
   ],
 
   saved: [
@@ -662,8 +705,13 @@ const STATES = {
         if (n < 0) throw new Error('no cheat sheet widget in the roster');
         goPage('tools', n, true);
       },
-      expect: () => document.querySelector('#s-tools #mat-out .mat-sheet'),
-      wants: 'the A4 preview drawn on screen' },
+      /* NO PREVIEW, AND THAT IS PART OF WHAT IS ASSERTED. The sheet is built off screen for the
+         gauge and the printer (see `matProbe`); a `.mat-sheet` back inside the card would be the
+         preview returning, which the owner asked to be rid of. The gauge's sentence is what says
+         the page was laid out and measured at all. */
+      expect: () => !document.querySelector('#s-tools .mat-sheet')
+        && document.querySelector('#s-tools #mat-said b'),
+      wants: 'the picker and the gauge, with no A4 preview on the card' },
     /* ---------- AND THIS ONE IS NOT THERE FOR EVERYBODY -------------------------------------
        `flyers` CARRIES `admin: true`, so it is not in a signed-out visitor's roster at all — and
        "could not reach it" is the wrong sentence for a widget that correctly does not exist. A
@@ -684,8 +732,10 @@ const STATES = {
         if (n < 0) throw new Error('no flyer widget in the roster');
         goPage('tools', n, true);
       },
-      expect: () => document.querySelector('#s-tools #fm-out .fm-sheet'),
-      wants: 'the flyer drawn on screen' },
+      /* THE SENTENCE IN PLACE OF THE PICTURE, and no picture — see `flyDraw`. */
+      expect: () => !document.querySelector('#s-tools .fm-sheet')
+        && document.querySelector('#s-tools #fm-said b'),
+      wants: 'the flyer maker saying what will print, with no preview on the card' },
 
     /* ---------- AND THE BASKET, WHICH A FIXTURE CANNOT REACH AT ALL ---------------------------
        `CART` LIVES IN `localStorage`, NOT IN THE PAYLOAD, so no fixture can put anything in it:
@@ -924,7 +974,7 @@ const STATES = {
      dates so the `Dates` row has a range and a count; a price so the total row draws; a venue name
      as long as a real one. */
   /* ---------- THE CAMERA WITH A PICTURE ON IT ----------------------------------------------------
-     THE `make` COLUMN OPENS ON A VIEWFINDER AND NOTHING ELSE. `Again`, `Post it`, `Save a copy`,
+     THE CAMERA OPENS ON A VIEWFINDER AND NOTHING ELSE. `Again`, `Post it`, `Save a copy`,
      the caption box and the row that says who it goes up as are all `hidden` until there is a
      photograph — so HALF THE CAMERA has been outside this lab for as long as it has existed, and
      `check/press.js` reported `cam-post`, `cam-save` and `cam-again` as untouched rather than as
@@ -946,13 +996,17 @@ const STATES = {
      AND IT IS PUT BACK. States run in order down one page and `camAgain_` is the app's own way to
      throw a picture away, so the next state and the next screen are not measured with a photograph
      still on the card — the same reason the guide state closes its sheet. */
-  make: [
+  /* THE CAMERA IS A PAGE OF THE FEED NOW, directly above the newest post — the `make` column is
+     gone. So the state turns to that page first, through the app's own `goPage` and `feedCamAt_`,
+     and measures the card where it now sits. */
+  feed: [
     { name: '' },
     { name: 'a photograph taken',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
+        goPage('feed', feedCamAt_(), true);
         const el = document.getElementById('cam-pick');
-        if (!el) throw new Error('no cam-pick on the make column');
+        if (!el) throw new Error('no cam-pick on the feed column');
         /* A ONE-PIXEL PNG, WRITTEN OUT RATHER THAN DRAWN. `canvas.toBlob` is async and this has to
            throw synchronously to be reported as unreachable. */
         const b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';

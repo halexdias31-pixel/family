@@ -976,7 +976,17 @@ const SCHEMA = {
          REFUSED   you said no. The row stays: a post you turned down is the one you may need to
                    show somebody afterwards, and deleting it is the one thing you cannot undo. */
     "approved", "approved_by", "approved_on",
-    "post_id", "author", "image", "caption", "file_name", "body",
+    "post_id", "author", "image",
+    /* ---------- EVERY PICTURE AND CLIP AFTER THE FIRST, AS ONE LIST ---------------------------------
+       ASKED FOR AS "tutors should be able to post more then one photo. not just one. and also
+       videos." `image` stays the FIRST — the scan, `creation_date`, the edit sheet and every row that
+       predates this column read it — and `media` holds the rest, `|`-separated. A pipe rather than a
+       comma because an address may carry a comma and none carries a pipe; ONE column rather than
+       `image_2`, `image_3`, which is the numbered-column fault the `images` column on the library
+       already refuses in writing. A clip is marked `#video` on the end of its address, because a
+       Drive link does not say what the file is and the phone has to know which element to draw. */
+    "media",
+    "caption", "file_name", "body",
     /* Where it was taken. Free text — "Colliers Wood Library", "Wandle Park", "the Tandem
        Centre". Not a venue id: a photograph might be somewhere you have never taught, and
        forcing it into the venues list would mean inventing venue rows for a park bench. */
@@ -2129,7 +2139,7 @@ const FIELD_OPTIONS = {
   teaches_1_level: 'level', teaches_2_level: 'level',
   /* ONE ENTRY FOR EACH SHELF, NOT ONE PER SLOT. `qual_4` … `qual_10` and `also_2` … `also_8` offer
      the same lists as the first, and sending forty copies of the subject list on every payload is
-     weight for nobody — the phone reads a slot's list off its first (`optionsFor_` in js/me.js). */
+     weight for nobody — the phone reads a slot's list off its first (`fieldOptions_` in js/me.js). */
   also_1: 'subject', also_1_level: 'level',
   qual_1: 'subject', qual_2: 'subject', qual_3: 'subject',
   qual_1_level: 'level', qual_2_level: 'level', qual_3_level: 'level',

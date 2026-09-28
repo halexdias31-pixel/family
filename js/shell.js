@@ -76,7 +76,18 @@ const TABS = [
 
      ORDER COMES FROM THE LAYOUT SHEET, left to right, and this table stays append-only — see
      `TAB_ORDER` below for why. */
-  { id: 'make',    icon: '📷', label: 'Post',    title: 'New post' },
+  /* ---------- `make` WAS HERE, AND THE CAMERA IS THE PAGE ABOVE THE NEWEST POST NOW ------------
+     ASKED FOR AS "move the post new post camera widget above the latest post widget. still make the
+     latest post widget be the default front door of site." It was a column of its own, one swipe
+     LEFT of the feed; it is page `feedCamAt_()` of the feed, one swipe UP from the newest post —
+     which is what "above" means on a column read top to bottom. See `feedColumn_` in posts.js.
+
+     REMOVED FROM ALL FIVE PLACES A SCREEN IS NAMED IN ONE COMMIT, which is what `check-doors.js`
+     asks: this table, `TAB_ORDER`, `PAGER`, the `<section>` in index.html and the row in
+     `data/settings/columns.json`. A remembered `AT` of `make` falls through to `TAB_HOME` a few
+     lines down, because no tab answers to it. The append-only rule is about MOVING an entry; taking
+     one out moves every later index by one, which costs a phone that remembered a column by index
+     nothing — `AT` is remembered by id. */
   { id: 'feed',    icon: '🏠', label: 'Feed',    title: 'Feed' },
   { id: 'booking', icon: '📅', label: 'Book',    title: 'Booking' },
   { id: 'tools',   icon: '🧰', label: 'Tools',   title: 'Tools' },
@@ -135,7 +146,7 @@ const TABS = [
      camera · post · booking · reel · DM · search · profile · tools · games
    `calculator` and `flappy bird` appear on that sheet as the first thing in the last two columns —
    they are widgets standing for what the column holds, not columns of their own. */
-const TAB_ORDER = ['make', 'feed', 'booking', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
+const TAB_ORDER = ['feed', 'booking', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
                    'spotlight',
                    'settings'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
@@ -353,7 +364,10 @@ function go(id, remember, instant) {
   /* AND THE CAMERA, for the same reason and with more force: a canvas loop behind a screen nobody
      is looking at is a flat battery, and a live camera behind one is a recording light on for
      nothing. */
-  if (typeof camStop_ === 'function' && AT !== 'make') camStop_();
+  /* THE CAMERA IS A PAGE OF THE FEED NOW, so leaving the FEED is what lets it go. Turning a page
+     within the feed is the other half, and it is `feedCamWatch_` — booked from `goPage` and from
+     `startScreen_` below. */
+  if (typeof camStop_ === 'function' && AT !== 'feed') camStop_();
   /* AND THE REEL, which is the third of these and was the one nobody had written. Measured before
      it existed: `go('reel')` then `go('tools')` left a `<video>` with `paused === false` — a clip
      somebody may have turned the sound on for, talking from a screen two swipes away, with no
@@ -432,7 +446,11 @@ function startScreen_(id) {
      `getUserMedia` needs a gesture; what it needs is PERMISSION, which the browser prompts for once
      and then remembers — so the button was asking you to confirm, every single visit, a thing you
      had already allowed. */
-  if (id === 'make' && typeof camStart_ === 'function') camStart_();
+  /* ONLY ON ITS OWN PAGE. The camera is the page above the newest post, and a feed somebody is
+     reading five posts down is not a reason to hold a camera open — that is the recording light on
+     for nothing that `camStop_` exists to prevent. `feedCamWatch_` starts it on its page and lets it
+     go on every other. */
+  if (id === 'feed' && typeof feedCamWatch_ === 'function') feedCamWatch_();
   /* AND THE REEL COLUMN PLAYS THE ONE YOU ARE ON. Here rather than in `go` because both callers
      need it and only one of them was doing it — see the note where that line used to be.
 
@@ -1225,7 +1243,7 @@ function placeNow_(which, instant, dragPx, id) {
 
      HERE RATHER THAN IN `startScreen_`, because a card that GROWS after its screen was drawn is
      half the finding: taking a photograph adds 167px of controls, and the camera's answer is
-     `placeCells('y', true, 0, 'make')` — which arrives here. Every grower in the app already
+     `placeCells('y', true, 0, 'feed')` — which arrives here. Every grower in the app already
      calls this, so there is one hook rather than one per card.
 
      THE SCREEN YOU ARE ON, not every pane in the document: about a dozen against a hundred, and a
@@ -1417,8 +1435,10 @@ const PAGER = {
      long as it has existed only because `spotPages()` was measurably always empty: `doGet` sent no
      `DATA.spotlight` and there was no handler to write one. It becomes a real over-count the moment
      anything is spotlit, which is a page number at the end of the feed with nothing on it. */
-  feed:   () => (DATA.festive || []).map(() => '')
-    .concat(feedPosts().map(() => '')),
+  /* COUNTED FROM `feedColumn_`, the list `screen('feed')` draws, which now holds the camera as
+     well — one page directly above the newest post. The same rule every entry here states: a pager
+     that counts for itself is a pager that can disagree with its own screen. */
+  feed:   () => (typeof feedColumn_ === 'function' ? [].concat(feedColumn_()) : ['']).map(() => ''),
   /* ---------- THE REELS COLUMN HAD NO ENTRY HERE, AND THAT IS WHY IT MOVED DIFFERENTLY -----------
      IT WAS THE ONE COLUMN THE DIAL DID NOTHING ON. `paint` does `classList.toggle('paged',
      !!PAGER[id])` and `PAGER.reel` was undefined, so the class never went on and the vertical axis
@@ -1451,7 +1471,8 @@ const PAGER = {
      the list holds one card, and the accident that `booking`, `reel` and `dm` each turned into a
      column you could not move on. Empty names: a single-page screen has no "1 of 1" worth saying,
      which is what the head of this table already says about them. */
-  make:   () => (typeof makeCards_ === 'function' ? makeCards_() : ['']).map(() => ''),
+  /* `make:` WAS HERE, counting the camera column's one card. The camera is a page of the feed
+     now and `PAGER.feed` counts it — see the note there. */
   /* The controls, then the results. Named so the header says which page of how many — on a list
      you are working through, that is the one thing a title cannot tell you and the number is
      worth having. */
@@ -1523,7 +1544,13 @@ const PAGE_HOME = {
   /* THE `USER ? 1 : 0` SKIPPED PAST THE ＋ CARD, which is no longer on this screen — so it now
      skips past the first festive card or the newest post instead, which is a page somebody wants
      to see. Spotlight still wins when there is one. */
-  feed:    () => 0,
+  /* ---------- THE NEWEST POST, PAST THE CAMERA ABOVE IT -------------------------------------
+     "still make the latest post widget be the default front door of site." The camera is the page
+     directly above the newest post, so the front door is the page after it: `feedCamAt_() + 1`.
+     Anything in front of the camera — the festive cards, when the calendar has any — is above it
+     and is reached by swiping up, which is the price of the camera sitting directly on top of the
+     newest post as asked. */
+  feed:    () => (typeof feedCamAt_ === 'function' ? feedCamAt_() + 1 : 0),
   /* ---------- AND `account` HAS BEEN OPENING ON SOMEBODY ELSE ---------------------------------
      REPORTED AS *"im logged into halex, i dont see account settings."* It was there: the door to
      the Settings column is the `Your settings` tile, and that tile is on YOUR OWN card, which is
@@ -1794,6 +1821,10 @@ function goPage(id, to, instant) {
      on rather than starting and pausing one per swipe. A fresh arrow here would be a different key
      every call and would undo exactly that. */
   if (id === 'reel' && typeof reelsWatch_ === 'function') afterSlide_(reelsWatch_);
+  /* AND THE CAMERA, WHICH IS A PAGE OF THE FEED — started when its page arrives and let go when the
+     page turns away, booked under its own name for the reason `reelsWatch_` is: a run of quick
+     flicks is one decision at the end rather than a camera started and stopped per swipe. */
+  if (id === 'feed' && typeof feedCamWatch_ === 'function') afterSlide_(feedCamWatch_);
   paintPager(id);
 }
 

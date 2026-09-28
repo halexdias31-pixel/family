@@ -157,7 +157,7 @@ function meRest_() {
           only until it is used — once installed it returns nothing and the pane goes. */''}
     ${installCard()}
 
-    ${/* `Your figure` IS A TILE ON YOUR CARD — see `meTiles_`. It was a whole card here, with the
+    ${/* `Your figure` WAS A TILE ON YOUR CARD and is the last card of Settings now. It was a whole card here, with the
           avatar drawn a second time beside the one at the top of the same column, listing what you
           have on. The wardrobe itself says that better than a summary of it does. */''}
 
@@ -199,7 +199,8 @@ function meRest_() {
           it answer. Shown to a parent or client; a student has nobody to add. */''}
     ${/* `Add your child` AND `Edit your details` ARE TILES ON YOUR CARD NOW — one mark each, in the
           row under your own face, beside the wardrobe. Three cards you scrolled past, each a heading
-          and a sentence, each doing one thing: which is what a tile is. See `meTiles_`. */''}
+          and a sentence, each doing one thing: which is what a tile is. The tiles have gone too — `Add your child` is a
+          card on the Settings column (`childCard_`), and your details are that column. */''}
 
     ${/* ---------- `What needs fixing` AND `Tell someone` WERE HERE ------------------------------
           BOTH WERE CARDS THAT OPENED A SHEET, in a column of things you do to your account, and
@@ -780,154 +781,88 @@ on('signout', () => {
 
    The colours are free and come first, because they are what most people change and because
    nobody should have to earn the right to have brown hair. */
-/* THE BUILD STAMPS, ON DEMAND. `versionSaid_` is the card that used to sit at the foot of the You
-   column; the tile on your own card opens it. Admin-only, because the tile is. */
-on('build-said', () => openSheet('Build', versionSaid_()));
+/* `on('build-said')` WAS HERE, opening `versionSaid_` in a sheet from a `Build` tile on your own
+   card. The tile was removed on request, and the stamps are printed under the admin's own Signing-in
+   card on the Settings column instead — a sheet opened from nothing is a handler with no door. */
 
-/* ---------- IT IS A COLUMN OF PAGES NOW, NOT A SHEET -------------------------------------------
-   *"editing clothing for avatar character shouldnt be a new menu pop up i dont like menu pop ups."*
-   MEASURED BEFORE ANY OF THE THREE ALTERNATIVES WAS PICKED, because the sheet is the one shape that
-   could hold it: rendered whole it is **1517.1px at 320x568 against a 534.25px pane cap** — 1010px
-   that can be neither scrolled to nor paged to — and 1365.8px against 806.95 at 390x844. So an
-   inline card on your own account page and a widget on Tools are out by arithmetic rather than by
-   preference: a widget is one `.card.is-widget` in the same capped pane and the numbers are
-   identical. That is exactly the `OUT OF REACH` fault, and the same sum that sent the practical
-   guide and the quiz into a sheet in the first place.
+/* ---------- THE WARDROBE IS ONE CARD ---------------------------------------------------------------
+   *"the avatar bit is split into like 4 widgets. should just be 1. make things smaller to fit on a
+   screen if need be."* It was four pages — Colours, then the six slots two at a time — and each of
+   the four drew the same figure at the top, so swiping the wardrobe was one picture going past four
+   times. The history of why it was paged at all is worth keeping: rendered whole at the old sizes it
+   was **1517px against a 534px pane at 320x568**, with every option a 44px drawing and its name
+   under it, and a pane that could not scroll. That arithmetic is what changed, not the goal.
 
-   SO IT IS PAGED, and the cheapest column is the one that already exists. `settingsPages_` returns
-   an array and `PAGER.settings` counts that same array, so this touches NONE of the five places a
-   new screen id needs — no `TABS`, no `TAB_ORDER`, no `PAGER`, no `PAGE`, no `<section>`, and no
-   row in `data/settings/columns.json`.
+   SMALLER, AND THE NUMBERS ARE THE DESIGN. Every line is a label column and a strip: the three
+   colours are 21px circles, eight to a row, and the six slots are 29px squares holding the drawing
+   alone, six to a row — which fits a 320px card (about 191px of strip) exactly, and wraps rather
+   than scrolls sideways the day a shop row adds a seventh hairstyle. Measured with the probe at
+   320x568, the whole card is inside the pane with room to spare; see `ACCEPTED_TAP` in
+   check/ui.js for why a 21px circle and a 29px square are an accepted trade and not an oversight.
 
-   ONE SLOT PER PAGE WAS THE FIRST ANSWER AND IT IS TWO NOW. Splitting the whole wardrobe in two
-   leaves Things at 948.1px; in three, all three pages are over; in four there are 34.1px spare and
-   the "Saving…" line takes it 18px over the moment it appears. One slot per page is 356.0px with
-   178.3px spare at 320 and fits at all four widths — and it made SEVEN pages, six of them carrying
-   the same picture.
+   THE NAME MOVED OFF THE BUTTON AND ONTO IT. A 29px square has no room for `fringe` under the
+   drawing, so the name is its `aria-label` and `title` — the drawing is what anybody reads, which is
+   the argument `.av-opts` already makes against a dropdown of names — and a locked item keeps the
+   one word that matters, what it would take, as a small pill across its foot.
 
-   ---------- AND SEVEN COPIES OF ONE PICTURE IS WHAT GOT REPORTED ---------------------------------
-   *"the avatar customisation has like over 5 different widgets of same avater. bit redundant."* —
-   and it is exactly seven: `Colours` plus one per slot in `AV_SLOTS`, every one drawing the same
-   64px figure at the top. Settings is not windowed (`PAGE_KEEP` is written only for `stuff`), so
-   all seven are in the document at once — 84 element nodes for one picture — and swiping the
-   wardrobe is the same avatar going past six times.
-
-   TWO SLOTS A PAGE, AND THE NUMBER IS MEASURED RATHER THAN CHOSEN. At 320x568 against the 534.25px
-   pane cap: the worst pair, Hairstyle (6 options) with Headwear (5), is 424.7px — **109.6px
-   spare** — and Face+Shoulders is 302.3 and Holding+Legs is 363.5. Every pairing fits at every
-   width, so nothing has to be hand-balanced. THREE a page does not: the naive grouping is 569px,
-   **over the cap by 34.7**, and only a hand-picked one fits with 26.5px spare — which is two option
-   rows from failing the day a shop row adds an item, because `avatarCatalogue()` builds this list
-   from the shop tab and a new row needs no deploy. That is the `isEdexcelGcseMaths` shape: a rule
-   fitted to the data somebody had in front of them.
-
-   THE FIGURE STAYS ON EVERY PAGE, AND THAT IS THE ONE THING NOT TRADED. Dropping it from the slot
-   pages takes them to 202.1px and answers the complaint completely — and it deletes the live
-   preview `avatarSave` redraws before the server answers, which its own note calls the difference
-   between a wardrobe and a form. You cannot try a hat on without seeing it on. Seven pictures
-   become four; the picture stays where the change happens.
-
-   AND THE LAB CANNOT REFUSE A TOO-TALL PAGE, so these numbers were taken at a real 320x568 rather
-   than read off a run. `check/ui.js` gives every width an 844px viewport, so its "320" has an 807px
-   cap and the three-a-page merge that is 34.7px over on an iPhone SE measures green there. Same gap
-   CLAUDE.md records under `.post-pic`.
-
-   APPENDED, NOT PREPENDED. `PAGE.settings` remembers where somebody was, so inserting at the front
-   moves every existing index and a returning visitor lands on a different page. */
-function wardrobePages_() {
-  if (!USER) return [];
+   THE FIGURE ONCE, beside the level and the credits. Credits live here now rather than on your
+   account card — *"credits can stay in the column to the right"* — because credits are what buy a
+   wearable, so this is where the number means something. */
+const AV_FIG = 56;
+function wardrobeCard_() {
+  if (!USER) return '';
   const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);
   const items = wardrobe();
 
-  /* THE FIGURE IS ON EVERY PAGE and it is a CLASS rather than an id. Four pages carrying
-     `id="av-figure"` is four elements with one id, and `$()` hands every one of them the first —
-     which is the `$('msg-text')` fault this file records in full, and here it means picking a
-     colour on page five moves the figure on page one and not the one you are looking at.
-     64px RATHER THAN 120. It is a reminder of what you are dressing rather than the subject of the
-     page, and the 56px is most of what buys the Colours page its room. */
-  const figure = () => `<div class="av-wrap av-figure">${
-    avatarFor(USER.handle || USER.name, 64, USER.avatar)}</div>`;
+  /* A CLASS, NOT AN ID — `avatarSave` redraws every `.av-figure` and there is only one now, but an
+     id here is how the four-pages version once moved the wrong picture, and nothing is saved by
+     going back to one. */
+  const figure = `<div class="av-wrap av-figure">${
+    avatarFor(USER.handle || USER.name, AV_FIG, USER.avatar)}</div>`;
 
   const swatches = (field, colours) => `<div class="av-swatches">
     ${colours.map((col, i) => `<span class="av-sw${cfg[field] === i ? ' on' : ''}"
       style="background:${col}" data-do="av-colour" data-field="${field}" data-value="${i}"
-      title="${esc(col)}"></span>`).join('')}
+      role="button" aria-label="${esc(field)} ${i + 1}" title="${esc(col)}"></span>`).join('')}
   </div>`;
+  const line = (label, body) => `<div class="av-line">
+      <span class="av-slot-name">${esc(label)}</span>${body}</div>`;
 
-  /* ONE SLOT'S OPTIONS, WITH ITS OWN NAME OVER THEM — which is what the Colours card already does
-     for Skin, Hair and Shirt. With two slots to a card the card's `h3` names both and `.av-slot-name`
-     says which block is which, so nothing new had to be styled. */
-  const slotBlock = ([slot, label]) => {
+  const slotLine = ([slot, label]) => {
     const mine = items.filter(x => x.slot === slot);
     if (!mine.length) return '';
-    return `<div class="av-slot">
-      <div class="av-slot-name">${esc(label)}</div>
-      <div class="av-opts">${mine.map(it => {
-        const on = cfg[slot] === it.id;
-        /* WHY it is not yours, on the item itself. "Locked" is a state; "Level 8" is a thing you
-           can count towards, and the difference is whether the wardrobe is a shop window or a
-           list of doors. */
-        const why = it.unlocked ? '' : (it.cost ? it.cost + ' cr' : 'Lv ' + it.level);
-        return `<button class="av-opt${on ? ' on' : ''}${it.unlocked ? '' : ' locked'}"
-          data-do="av-pick" data-slot="${esc(slot)}" data-id="${esc(it.id)}"
-          title="${esc(it.name + (why ? ' — ' + why : ''))}">
-          ${itemArt(slot, it.id, 34) || '<span class="av-none">—</span>'}
-          <span class="av-name">${esc(it.name)}</span>
-          ${why ? `<span class="av-why">${esc(why)}</span>` : ''}
-        </button>`;
-      }).join('')}</div>
-    </div>`;
+    return line(label, `<div class="av-opts">${mine.map(it => {
+      const on = cfg[slot] === it.id;
+      /* WHY it is not yours, on the item itself. "Locked" is a state; "Lv 8" is a thing you can
+         count towards, which is the difference between a shop window and a list of doors. */
+      const why = it.unlocked ? '' : (it.cost ? it.cost + 'cr' : 'Lv' + it.level);
+      const said = it.name + (why ? ' — ' + (it.cost ? it.cost + ' credits' : 'level ' + it.level) : '');
+      return `<button class="av-opt${on ? ' on' : ''}${it.unlocked ? '' : ' locked'}"
+        data-do="av-pick" data-slot="${esc(slot)}" data-id="${esc(it.id)}"
+        aria-label="${esc(said)}" aria-pressed="${on ? 'true' : 'false'}" title="${esc(said)}">
+        ${itemArt(slot, it.id, 24) || '<span class="av-none">—</span>'}
+        ${why ? `<span class="av-why">${esc(why)}</span>` : ''}
+      </button>`;
+    }).join('')}</div>`);
   };
 
-  /* PAIRED IN THE ORDER `AV_SLOTS` DECLARES THEM, which is top of the head downwards — so the card
-     reads Hairstyle & Headwear, Face & Shoulders, Holding & Legs rather than a grouping somebody
-     picked. Every pairing fits (see above), so there is nothing to balance and nothing to go stale.
-     A slot with no items drops out first, so a pair is never half empty. */
-  const pairCard = pair => {
-    /* BUILT ONCE AND KEPT WITH ITS LABEL. A first version mapped for the markup and then filtered
-       the labels by calling `slotBlock` again — two readings of "does this slot have items", which
-       is the second reader this repository keeps finding, and here it would have put a name over a
-       block that was not drawn the day a slot emptied. */
-    const made = pair.map(sl => ({ label: sl[1], html: slotBlock(sl) })).filter(x => x.html);
-    if (!made.length) return '';
-    return `<div class="card"><h3><span>${esc(made.map(x => x.label).join(' & '))}</span></h3>
-      ${figure()}
-      ${made.map(x => x.html).join('')}
-    </div>`;
-  };
-  const pairs = [];
-  for (let i = 0; i < AV_SLOTS.length; i += 2) pairs.push(AV_SLOTS.slice(i, i + 2));
-
-  /* `Credits` IS DROPPED AND `Level` IS KEPT, which is not tidying. `cards.js` already draws the
-     credit balance on this same column, so a second copy is one fact in two places — and dropping
-     it is what buys this page its room. The level has one home and the locked items say `Lv 8`, so
-     this is the page that makes the number mean something. */
-  return [`<div class="card"><h3><span>Colours</span></h3>
-      ${figure()}
-      ${row('Level', levelFromXp(USER.xp))}
-      <p class="faint" style="margin:.4rem 0">Free, all of them. Nobody earns their own hair.</p>
-      <div class="av-slot"><div class="av-slot-name">Skin</div>${swatches('skin', AV_SKIN)}</div>
-      <div class="av-slot"><div class="av-slot-name">Hair</div>${swatches('hairColour', AV_HAIR)}</div>
-      <div class="av-slot"><div class="av-slot-name">Shirt</div>${swatches('shirt', AV_SHIRT)}</div>
-    </div>`].concat(pairs.map(pairCard).filter(Boolean));
+  return `<div class="card av-card"><h3><span>Your figure</span></h3>
+    <div class="av-top">
+      ${figure}
+      <div class="av-stats">
+        <p><b>Level ${esc(String(levelFromXp(USER.xp)))}</b> · ${esc(String(USER.credits || 0))} credits</p>
+        <p class="faint">Colours are free. Things unlock with a level or a few credits.</p>
+      </div>
+    </div>
+    ${line('Skin', swatches('skin', AV_SKIN))}
+    ${line('Hair', swatches('hairColour', AV_HAIR))}
+    ${line('Shirt', swatches('shirt', AV_SHIRT))}
+    ${AV_SLOTS.map(slotLine).join('')}
+  </div>`;
 }
 
-/* ---------- AND THE TILE IS A DOOR RATHER THAN A SHEET -------------------------------------------
-   `on('edit-me')` TWO HUNDRED LINES DOWN IS LITERALLY `go('settings')`, which is the precedent: a
-   tile on your own card takes you to the column that holds the thing.
-
-   THE PAGE IS FOUND BY ASKING THE DOM, not by a remembered index. `settingsPages_`'s length varies
-   with what the backend sends — `profileFields` is the SHAPE of the form and a deployment that
-   sends one group fewer moves every page after it — so a literal would drift silently. The colour
-   swatches are the first thing on the first wardrobe page and nothing else in the app carries
-   `av-colour`. */
-on('wardrobe', () => {
-  if (!USER) { toast('Sign in first'); return; }
-  go('settings');
-  const at = [...document.querySelectorAll('#s-settings .page')]
-    .findIndex(pg => pg.querySelector('[data-do="av-colour"]'));
-  if (at >= 0) goPage('settings', at, true);
-});
+/* `on('wardrobe')` WAS HERE — the `Your figure` tile's door, which found the colour page on this
+   column and turned to it. The tile went on request, and the card is the last one on the column. */
 
 /* A colour and an item go through the SAME request, because to the server they are the same
    thing: a whole look, re-checked piece by piece. Nothing here decides what anybody may wear. */
@@ -936,12 +871,12 @@ function avatarSave(change) {
   Object.assign(cfg, change);
 
   /* ---------- EVERY FIGURE ON THE COLUMN, NOT THE FIRST ONE `$()` FINDS ------------------------
-     THE WARDROBE IS SEVEN PAGES AND EACH CARRIES THE FIGURE. As an id that was four elements with
-     one id and `$()` handing all of them the first — so picking a colour on page five moved the
+     THE WARDROBE WAS SEVEN PAGES AND EACH CARRIED THE FIGURE (it is one card now). As an id that was
+     four elements with one id and `$()` handing all of them the first — so picking a colour on page five moved the
      figure on page one and the one under your thumb did not change. The `$('msg-text')` fault, on
      the surface where the whole point is that you SEE the change. A class, and all of them. */
   const draw = () => document.querySelectorAll('.av-figure').forEach(el => {
-    el.innerHTML = avatarFor(USER.handle || USER.name, 64, USER.avatar);
+    el.innerHTML = avatarFor(USER.handle || USER.name, AV_FIG, USER.avatar);
   });
 
   /* The figure redraws IMMEDIATELY, before the server answers — picking a colour and waiting a
@@ -1367,39 +1302,56 @@ function msgForm_(to, toId, note, rows) {
    TWO NAMES, NOT ONE. The backend matches on first AND last name and refuses when it finds none or
    more than one — asking for a single field would send it a string it cannot split reliably, and
    "Mary Anne Smith" is where that goes wrong. */
-on('add-child', () => {
-  if (!USER) { toast('Sign in first'); return; }
-  openSheet('Add your child', `
+/* WHO MAY ASK — the same test the tile carried, kept in one place so the card and its handler
+   cannot disagree about it. */
+function mayAddChild_() {
+  const held = typeof heldRoles === 'function' ? heldRoles() : [];
+  return held.indexOf('client') !== -1 || held.indexOf('parent') !== -1 || held.indexOf('admin') !== -1;
+}
+
+/* THE CARD, on the Settings column — see `settingsPages_`. It was a sheet opened by a tile; the
+   words are the sheet's own. NO IDS ON THE BOXES: the handler reads the card the button is in, which
+   is what `me-save` does, so a second copy of this card anywhere can never be the one it reads. */
+function childCard_() {
+  return `<div class="card kid-card">
+    <h3>Add your child</h3>
     <p class="sub">Their name as it is on their account. They will be asked to say yes before
       anything is linked.</p>
-    <label class="fld"><span>First name</span><input id="kid-first" autocomplete="off"></label>
-    <label class="fld"><span>Last name</span><input id="kid-last" autocomplete="off"></label>
-    <button class="btn" data-do="add-child-go">Ask them</button>
+    <div class="f-row" style="--n:2">
+      <label class="field"><input data-kid="first" placeholder="First name" autocomplete="off"></label>
+      <label class="field"><input data-kid="last" placeholder="Last name" autocomplete="off"></label>
+    </div>
+    <button class="btn quiet" data-do="add-child-go">Ask them</button>
     <p class="faint">Nothing changes until they accept. If they say no, nothing happens and we do
-      not tell them off.</p>`);
-});
+      not tell them off.</p>
+  </div>`;
+}
 
-on('add-child-go', () => {
-  const first = (document.getElementById('kid-first') || {}).value || '';
-  const last = (document.getElementById('kid-last') || {}).value || '';
-  if (!first.trim() || !last.trim()) { toast('Both names, please'); return; }
-  /* ---------- `send` TAKES ONE ARGUMENT AND THIS PASSED TWO, so nothing was ever asked ----------
-     THE SAME FAULT AS THE STAR AND AS `toggleSpot` BEFORE IT, and this one is the loudest of the
-     three because there is no `.catch`: the body on the wire is `{"0":"c","1":"l","2":"a", …}`, the
-     backend refuses an action it cannot read, `send` THROWS on that refusal, and the `.then` below
-     never runs. So a parent presses "Add your child", types both names, presses go — and the sheet
-     stays open, no toast appears, and the rejection goes to the console.
-     Measured, not read: the POST body and the empty `#toast` were both checked in the harness. */
-  send({
+on('add-child-go', el => {
+  if (!USER) { toast('Sign in first'); return; }
+  const card = (el && el.closest('.card')) || document;
+  const box = k => card.querySelector('[data-kid="' + k + '"]');
+  const first = ((box('first') || {}).value || '').trim();
+  const last = ((box('last') || {}).value || '').trim();
+  if (!first || !last) { toast('Both names, please'); return; }
+  /* ---------- `send` TAKES ONE ARGUMENT AND THIS ONCE PASSED TWO, so nothing was ever asked -----
+     THE SAME FAULT AS THE STAR AND AS `toggleSpot` BEFORE IT: the body on the wire was the string
+     spread into indexed keys, the backend refused an action it could not read, and the sheet stayed
+     open with no toast. Measured, not read, at the time.
+
+     `send_` NOW RATHER THAN `send`, because the boxes are on a card rather than in a sheet: it
+     locks them and the button while the request is in flight and says a refusal as a toast — the
+     rule `send_`'s own note gives about backspacing a PIN that is already on the wire. */
+  send_({
     action: 'claimChild',
     name: USER.name, personId: (USER && USER.personId) || '',
-    firstName: first.trim(), lastName: last.trim(),
-  }).then(d => {
-    if (d && d.error) { toast(d.error); return; }
-    closeSheet();
+    firstName: first, lastName: last,
+  }, { button: el, busy: 'Asking…' }).then(() => {
+    if (box('first')) box('first').value = '';
+    if (box('last')) box('last').value = '';
     toast('Asked. They will see it when they next sign in.');
     load();
-  }).catch(err => toast(String((err && err.message) || 'That did not send')));
+  }).catch(() => {});
 });
 
 /* YES AND NO ARE ONE HANDLER WITH A FLAG. Two handlers doing the same call with one word different
@@ -1502,8 +1454,9 @@ function settingsPages_() {
       value: f => p[f] ?? '',
       raw: p,
       readonly: readonly,
-      /* The backend says which fields have a fixed set of answers. */
-      options: optionsFor_,
+      /* The backend says which fields have a fixed set of answers, and `FIELD_LISTS_` answers for
+         the two it has never been told about — see the note over it. */
+      options: fieldOptions_,
     })}
       <button class="btn" data-do="me-save">Save</button>
       <p class="faint me-said"></p></div>
@@ -1525,6 +1478,14 @@ function settingsPages_() {
      to a different handler with different rules — folding them into one Save would mean every
      username change asking for a PIN. The three PIN boxes sit on one line, captioned by what they
      are in order, which is most of the height the second page cost. */
+  /* ---------- ADDING A CHILD IS A CARD HERE NOW -------------------------------------------------
+     *"remove add your child tile as that should go on column to the right."* It was a tile on your
+     own account card that opened a sheet with two boxes and a button — and this app has been asked,
+     more than once, for no pop-up menus. So the two boxes are on the card, `add-child-go` reads
+     them from the card the button is on, and there is nothing to open. For the same people the tile
+     was for: a parent, a client or an admin; a student has nobody to add. */
+  if (mayAddChild_()) pages.push(childCard_());
+
   pages.push(`<div class="card">
     <h3>Signing in</h3>
     <label class="field"><span>username</span>
@@ -1544,6 +1505,11 @@ function settingsPages_() {
     </div>
     <button class="btn quiet" data-do="pin-save">Change my PIN</button>
     <p class="faint" id="pin-said" style="margin:.6rem 0 0">4 to 8 numbers, and not 1234.</p>
+    ${/* THE BUILD STAMPS, FOR AN ADMIN, UNDER THE ONE CARD ONLY THEY SEE THEM ON. They were a `Build`
+          tile on your own account card, removed on request; the stamps are still the only thing on
+          a home-screen app with no address bar that says which build is running, so they moved
+          rather than went — small, at the foot of the card that is about your own sign-in. */''}
+    ${isAdmin() ? `<div class="me-build">${versionSaid_()}</div>` : ''}
   </div>`);
 
 
@@ -1552,20 +1518,16 @@ function settingsPages_() {
      at the front moves every existing index and a returning visitor lands on a different page.
      Thirteen pages is long and in range — games is eleven and tools ten — and nobody walks to it:
      the `Your figure` tile on your own card jumps straight there. */
-  pages.push(...wardrobePages_());
+  pages.push(wardrobeCard_());
 
   return pages;
 }
 
 screen('settings', () => pages('settings', settingsPages_()));
 
-/* THE TILE ON YOUR OWN CARD IS THE DOOR, and it is one line now. It opened the sheet; the sheet is
-   a column. Kept as a door rather than deleted because `meTiles_` is where somebody looks for their
-   own settings, and a column at the far right of nine others is a column you have to know about. */
-on('edit-me', () => {
-  if (!USER) { toast('Sign in first'); return; }
-  go('settings');
-});
+/* `on('edit-me')` WAS HERE — `go('settings')`, the door from a `Your settings` tile on your own
+   account card. *"remove edit tile as they can already edit their profile on the column to the
+   right"*: the column is one swipe from that card, so the tile was a second route to it. */
 
 /**
  * THE HOURS SOMEBODY IS FREE, as a week you tick.
@@ -1608,12 +1570,21 @@ function availGrid_(codes, p, readonly) {
     .filter(d => d.hours.length);
 
   if (!days.length) return '';
-  return `<p class="faint" style="margin:.2rem 0 .4rem">Tap the hours you can teach.</p>
+  /* ---------- `.me-week`, BECAUSE THIS WEEK IS READ AT LEISURE AND THE BOOKING ONE IS NOT ----------
+     *"refine availability bit it looks weird, like scruffy."* Three things made it so, measured on
+     a screenshot at 320 and 390: cells a different width from their height (a 19px column in a
+     20px row reads as a smudge rather than a square), a two-letter day in capitals beside a column
+     of small numbers, and bars that joined only for hours saved before the card was drawn — see the
+     change listener in me.js. The booking week keeps its shape because that card has no height to
+     spare; this card is a page to itself, so its cells are SQUARE, its days are `Mon`, and the
+     scoping class says so without touching the other two weeks that share `weekGrid_`. */
+  return `<div class="me-week" style="--hours:${days[0].hours.length}">
+    <p class="faint me-week-say">Tap the hours you can teach. Tap again to clear one.</p>
     ${weekGrid_(days, (h, d) => `<label class="hr${on(h.code) ? ' on' : ''}${
       ro(h.code) ? ' shut' : ''}" aria-label="${esc(d.label)} ${h.h}:00">
       <input type="checkbox" data-me="${esc(h.code)}" ${on(h.code) ? 'checked' : ''}
              ${ro(h.code) ? 'disabled' : ''}>
-    </label>`)}`;
+    </label>`, { chars: 3 })}</div>`;
 }
 
 /**
@@ -1758,6 +1729,59 @@ const FIELD_IS_NUMERIC = /pages|year|students|days|weeks|count|level_required/;
    suffix is what separates them, so neither needs an exception written about the other. */
 const FIELD_IS_DATE = /_date$/;
 
+/* ---------- TWO LISTS THE BACKEND HAS NEVER BEEN TOLD ABOUT ------------------------------------------
+   `DATA.validations` IS BUILT FROM THE `options` TAB through `FIELD_OPTIONS` in constants.gs, and
+   neither of these fields is in that map — so the backend sends no list for either, and without one
+   `fieldHtml` draws a free text box. Asked for as *"favourite colour doesn't need its own widget and
+   should be a dropdown"* and *"the more qualifications bit should instead be a drop down of many
+   different qualification stuff and its multi select"*.
+
+   THE BACKEND STILL WINS WHEN IT SENDS ONE. `fieldOptions_` reads `validations` first, so the day
+   somebody adds `favourite_colour: 'colour'` to `FIELD_OPTIONS` and fills an `options` list, that
+   list is the dropdown with no deploy of this file. Until then these are the floor — the house rule
+   that an empty sheet must still produce a working form, which is `factsNow_`'s rule one list along.
+
+   CREDENTIALS, NOT SUBJECTS. What somebody STUDIED is the `Qualifications` shelf (subject, level,
+   board, grade); this is the list of things a parent asks about beside that — can you teach, are you
+   checked, are you first-aid trained, can you coach. NO COMMAS IN ANY ENTRY, because the cell stores
+   the ticked ones as a comma-list and `profList_` splits it on the public card: a comma inside a name
+   would print one qualification as two. `check-people.js` could not see that, so it is said here. */
+const FIELD_LISTS_ = {
+  favourite_colour: ['Red', 'Orange', 'Yellow', 'Green', 'Teal', 'Blue', 'Navy', 'Purple', 'Pink',
+                     'Brown', 'Black', 'White', 'Grey', 'Gold', 'Silver'],
+  extra_quals: [
+    'BA', 'BSc', 'BEd', 'MA', 'MSc', 'MEd', 'MPhil', 'PhD',
+    'PGCE', 'QTS', 'QTLS', 'NPQ', 'Level 3 Teaching Assistant', 'Level 5 Diploma in Teaching',
+    'TEFL', 'TESOL', 'CELTA', 'DELTA',
+    'Enhanced DBS', 'Safeguarding Level 1', 'Safeguarding Level 2', 'Safeguarding Level 3',
+    'Prevent duty', 'SEND training', 'SENCo award', 'Dyslexia specialist',
+    'First Aid at Work', 'Emergency First Aid', 'Paediatric First Aid', 'Mental Health First Aid',
+    'Food Hygiene Level 2', 'Lifeguard (NPLQ)',
+    'FA Level 1 Coaching', 'FA Level 2 Coaching', 'UKCC Level 1', 'UKCC Level 2',
+    'England Boxing coach', 'Swim England teacher', 'DofE leader',
+    'ABRSM Grade 5', 'ABRSM Grade 8', 'Trinity Grade 8', 'LAMDA',
+    'Duolingo English Test', 'IELTS 8+', 'A-Level Further Maths', 'UKMT Gold',
+  ],
+};
+/* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell — the shape
+   `extra_quals` already had as free text, so nothing written before this needs migrating. */
+const FIELD_MULTI = { extra_quals: true };
+/* ---------- AND ONE SHELF SLOT'S LIST OFF THE FIRST SLOT'S -------------------------------------
+   `FIELD_OPTIONS` sends `qual_1_level` and `also_1` ONCE rather than ten times each — see its note
+   in constants.gs — so `qual_7_level` asks for `qual_1`'s list here. `also_N` then falls back to
+   what `teaches_1` offers and to the booking lists, so a backend too old to send `also_1` still
+   draws real subjects rather than a text box. */
+function fieldOptions_(f) {
+  const v = (typeof DATA !== 'undefined' && DATA && DATA.validations) || {};
+  const dd = (typeof DATA !== 'undefined' && DATA && DATA.dropdowns) || {};
+  const got = x => (x && x.length ? x : null);
+  const first = String(f).replace(/^(qual|also)_\d+/, '$1_1');
+  return got(v[f]) || FIELD_LISTS_[f] || got(v[first])
+    || (/^also_\d+$/.test(f) ? got(v.teaches_1) || got(dd.subjects) : null)
+    || (/^also_\d+_level$/.test(f) ? got(v.teaches_1_level) || got(dd.levels) : null)
+    || null;
+}
+
 /**
  * ONE FIELD, drawn from what is known about it.
  *
@@ -1781,6 +1805,23 @@ function fieldHtml(name, value, o) {
       <input type="checkbox" ${attr}="${esc(name)}" ${TRUEish_(v) ? 'checked' : ''}
              ${ro ? 'disabled' : ''}>
       <span class="box"></span><span>${esc(label)}</span></label>`;
+  }
+
+  /* ---------- SEVERAL OF A LIST IS A DROP-DOWN THAT STAYS OPEN ----------------------------------
+     NOT `<select multiple>`, which a phone draws as a list box with its own scrollbar, and not a
+     `<select>` that shuts after every pick — *"doesnt disapear after each option click"* is the
+     booking form's accepted answer and this is the same control: a field that opens `#drop`
+     anchored under it, several ticks, Done or a tap outside to close. See `meDrop_` below.
+
+     THE ANSWER IS A HIDDEN INPUT CARRYING THE ATTRIBUTE, so `me-save` gathers it exactly like every
+     other box on the card and nothing about saving had to change. The button shows what is ticked. */
+  if (FIELD_MULTI[name] && (o.options || []).length) {
+    const got = profList_(v);
+    return `<label class="field"><span>${esc(label)}</span>
+      <input type="hidden" ${attr}="${esc(name)}" value="${esc(got.join(', '))}">
+      <button type="button" class="me-many${got.length ? '' : ' is-unset'}" data-do="me-many"
+        data-field="${esc(name)}" aria-expanded="false" ${ro ? 'disabled' : ''}
+        aria-label="${esc(label)}">${esc(got.join(', ') || 'Tap to choose')}</button></label>`;
   }
 
   /* A FIXED LIST IS A SELECT. Somebody choosing an exam board should not be able to invent one —
@@ -1849,6 +1890,110 @@ function fieldHtml(name, value, o) {
       seen.map(x => `<option value="${esc(x)}">`).join('')}</datalist>` : ''}</label>`;
 }
 
+/* ---------- THE PANEL FOR A SEVERAL-OF-A-LIST FIELD, ON THE SETTINGS COLUMN ----------------------
+   `#drop` IS THE BOOKING FORM'S PANEL AND THIS BORROWS IT RATHER THAN BUILDING A SECOND. The reason
+   it is a sibling of the screens is the same here: `.pane` clips, a transformed column is the
+   containing block for anything fixed inside it, and only a panel outside every column can hang
+   off a field without being cut in half. Its placing (`dropPlace_`) and its closing (`dropShut_`)
+   are book.js's; what is new is which surface owns it, written on the panel as `data-owner`, so
+   the booking form's own redraws leave this one alone and its move and Escape hooks hand over.
+
+   THE STATE IS THE HIDDEN INPUT, NOT A VARIABLE. What is ticked lives in the box `me-save` reads,
+   so the panel, the button's summary and what is posted are one value and cannot disagree —
+   `ME_PICK` only says WHICH field is open. */
+let ME_PICK = '';
+function mePickRow_() {
+  if (!ME_PICK || AT !== 'settings') return null;
+  const pages = document.querySelectorAll('#s-settings > .page');
+  const pg = pages[PAGE.settings || 0];
+  return (pg && pg.querySelector('[data-do="me-many"][data-field="' + ME_PICK + '"]')) || null;
+}
+function meDropHtml_(field, box) {
+  const got = profList_(box.value);
+  const on = x => got.some(g => norm(g) === norm(x));
+  /* ANYTHING ALREADY IN THE CELL IS OFFERED, list or not. The column was free text until today, so
+     a row may hold "Grade 8 piano" — leaving it off the panel would make it impossible to untick and
+     easy to lose on the next save. */
+  const opts = (fieldOptions_(field) || []).slice();
+  got.forEach(g => { if (!opts.some(x => norm(x) === norm(g))) opts.push(g); });
+  return `<p class="drop-say${got.length ? '' : ' is-none'}">${got.length ? esc(got.join(', '))
+      : 'Nothing chosen yet — tap as many as apply.'}</p>
+    <div class="pick-list">${opts.map(x => `<button type="button"
+        class="btn quiet pick-opt${on(x) ? ' on' : ''}" data-do="me-many-pick" data-val="${esc(x)}"
+        aria-pressed="${on(x) ? 'true' : 'false'}">${on(x) ? '✓ ' : ''}${esc(x)}</button>`).join('')}</div>
+    <button type="button" class="btn quiet drop-done" data-do="me-many-done">Done</button>`;
+}
+function meDrop_() {
+  const el = $('drop'), back = $('drop-back');
+  const row = mePickRow_();
+  const box = row && row.parentNode.querySelector('input[type="hidden"]');
+  if (!el || !back || !row || !box) { meDropShut_(); return; }
+  const scroll = el.dataset.owner === 'me' ? el.scrollTop : 0;
+  el.innerHTML = meDropHtml_(ME_PICK, box);
+  el.dataset.owner = 'me';
+  el.setAttribute('aria-label', row.getAttribute('aria-label') || 'Choose');
+  back.classList.remove('hidden');
+  el.classList.remove('hidden');
+  row.setAttribute('aria-expanded', 'true');
+  dropPlace_(el, row);
+  /* A TICK REBUILDS THE LIST, AND A REBUILT LIST STARTS AT THE TOP. Forty-odd options is a list you
+     scroll, and losing your place on every tick is the panel shutting by another name. */
+  el.scrollTop = scroll;
+}
+/* Called by `bookDropMove_` on every placement the grid makes, while this surface owns the panel. */
+function meDropMove_() {
+  const el = $('drop');
+  const row = mePickRow_();
+  if (!el || !row) { meDropShut_(); return; }
+  dropPlace_(el, row);
+}
+function meDropShut_() {
+  document.querySelectorAll('[data-do="me-many"][aria-expanded="true"]')
+    .forEach(b => b.setAttribute('aria-expanded', 'false'));
+  ME_PICK = '';
+  const el = $('drop');
+  if (el && el.dataset.owner === 'me' && typeof dropShut_ === 'function') dropShut_();
+}
+on('me-many', el => {
+  /* PRESSING THE OPEN ONE SHUTS IT, which is what every drop-down does. */
+  const open = ME_PICK === el.dataset.field && !$('drop').classList.contains('hidden');
+  if (open) { meDropShut_(); return; }
+  ME_PICK = el.dataset.field;
+  meDrop_();
+});
+on('me-many-pick', el => {
+  const row = mePickRow_();
+  const box = row && row.parentNode.querySelector('input[type="hidden"]');
+  if (!box) { meDropShut_(); return; }
+  const val = el.dataset.val;
+  let got = profList_(box.value);
+  got = got.some(g => norm(g) === norm(val)) ? got.filter(g => norm(g) !== norm(val)) : got.concat(val);
+  /* IN THE LIST'S OWN ORDER, which is `bookToggle_`'s rule: a summary in the order things were
+     tapped reads as a different answer every time. Anything not on the list keeps its place at the
+     end. */
+  const order = fieldOptions_(ME_PICK) || [];
+  const rank = x => { const i = order.findIndex(o => norm(o) === norm(x)); return i < 0 ? 1e6 : i; };
+  got.sort((a, b) => rank(a) - rank(b));
+  box.value = got.join(', ');
+  row.textContent = got.join(', ') || 'Tap to choose';
+  row.classList.toggle('is-unset', !got.length);
+  /* THE LIST STAYS OPEN, which is the whole feature. */
+  meDrop_();
+});
+on('me-many-done', () => meDropShut_());
+
+/* ---------- A TICKED HOUR SAYS SO WITH `.on` AS WELL AS WITH `:checked` ------------------------------
+   THE JOINED BAR IS DRAWN OFF `.on` — `.hr.on + .hr.on` — and the availability grid set that class
+   only when it was DRAWN. So an hour ticked since joined nothing, and one unticked stayed joined to
+   its neighbour: a week of saved bars beside a week of loose squares, which is most of what read as
+   "scruffy". One listener keeps the class in step with the box, so every run of hours is one bar
+   whether it was saved yesterday or ticked a second ago. */
+document.addEventListener('change', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('.hr > input[type="checkbox"]')) return;
+  t.parentNode.classList.toggle('on', t.checked);
+});
+
 /* ---------- BOXES THAT ARE ONE QUESTION SIT ON ONE LINE ----------------------------------------
    ASKED AS *"make it all more efficient and intuitive it looks long right now."* A name is a first
    and a last; a subject is the subject and its level; three words are three words. Drawn one under
@@ -1877,7 +2022,7 @@ const ROW_LABEL = {
   teaches_1: 'specialise in', teaches_1_level: 'level',
   studying: 'studying now', studying_at: 'at', years_experience: 'years teaching',
   photo: 'photo link', video: 'video link',
-  travel_km: 'will travel (km)', extra_quals: 'anything else', favourite_colour: 'favourite colour',
+  travel_km: 'will travel (km)', extra_quals: 'more qualifications', favourite_colour: 'favourite colour',
 };
 function fieldRows_(list, one) {
   const out = [], done = new Set();
@@ -1990,21 +2135,6 @@ function shelfSlots_(nums, filled, draw) {
       ? `<button class="btn quiet shelf-more" data-do="shelf-more">Add another</button>` : '');
 }
 const shelfFilled_ = (value, names) => names.some(f => String(value(f) ?? '').trim() !== '');
-
-/* ONE SLOT'S LIST OFF THE FIRST SLOT'S. `FIELD_OPTIONS` sends `qual_1_level` and `also_1` once
-   rather than ten times each — see its note in constants.gs — so `qual_7_level` asks for `qual_1`'s
-   list here. And `also_N` falls back to what `teaches_1` offers, then to the booking lists, so a
-   backend too old to send `also_1` still draws a dropdown of real subjects rather than a text box. */
-function optionsFor_(f) {
-  const v = (DATA && DATA.validations) || {};
-  const dd = (DATA && DATA.dropdowns) || {};
-  if (v[f]) return v[f];
-  const first = String(f).replace(/^(qual|also)_\d+/, '$1_1');
-  if (v[first]) return v[first];
-  if (/^also_\d+$/.test(f)) return v.teaches_1 || dd.subjects || null;
-  if (/^also_\d+_level$/.test(f)) return v.teaches_1_level || dd.levels || null;
-  return null;
-}
 
 on('shelf-more', el => {
   const shelf = el.closest('.lib-shelf');

@@ -20,8 +20,9 @@
      column, the tab bar and the sheet chrome on the paper. `@media print` hides everything and
      lifts the sheet out of the flow — see the `.fm-out` rule in the stylesheet.
 
-     WIDTH.  A 210mm page does not fit a phone. It is scaled down to fit the sheet and scaled back
-     to 1 for printing, so what you see is the shape of the paper rather than a phone-sized guess.
+     WIDTH.  A 210mm page does not fit a phone. It WAS scaled down to fit the card and scaled back to
+     1 for printing; the preview has since been removed on request, so the paper is only ever built
+     at true size, at the end of `body`, for the length of a print — see `fm-print`.
 ================================================================================================== */
 
 /* ---------- THE CAMPAIGNS ------------------------------------------------------------------------
@@ -441,9 +442,9 @@ function flyTicks(list) {
   });
 }
 
-/* `flyDraw` AND `flyFit` ARE GONE. They drew a second A4 sheet and scaled it to the screen — which
-   is what `matPaint` and `matFit` do, measured against the same 262mm and shown by the same gauge.
-   Keeping both would have been two answers to "how big is the paper", and they would have drifted. */
+/* `flyDraw` AND `flyFit` WENT ONCE, when the flyer was a piece of the cheat sheet, and `flyDraw` came
+   back with the flyer's own page. It is a sentence now rather than a picture — the preview was
+   removed on request, `flyFit` with it — and the sheet is built by `flySheet` only when it prints. */
 
 /* ---------- PRESETS, WHICH ONLY TICK BOXES -------------------------------------------------------
    A sticker is not a mode — it is most of the switches off and a smaller size, and you can watch it
@@ -522,81 +523,73 @@ function initFlyer() {
      shared builder should not know which column it is being drawn on. `widget-squeeze` is the
      declared class; see style.css beside `.card.is-widget`.
 
-     THE PREVIEW IS NOT THE ELASTIC ONE, deliberately. It is what somebody opened the tool to look
-     at, and a flyer that shrinks to a strip to make room for a dropdown has the trade backwards. */
+     THE PREVIEW HAS GONE, asked for as "for make a flyer remove the preview". It was an A4 page
+     scaled to about a third of a phone, where none of its words could be read, and it was most of
+     the card. What replaces it is one line saying what the Print button will put on the paper —
+     the size, how many to a sheet, and which blocks are on — because without a picture that is the
+     one thing somebody can no longer see for themselves. */
   wrap.innerHTML = '<div class="widget-squeeze">' + flyControls() + '</div>'
-    + '<div class="fm-out" id="fm-out"></div>'
-    + '<button class="btn" data-do="fm-print" style="margin-top:.5rem">Print</button>';
-  flyBind(wrap, flyDraw);          /* binds, loads the campaign, and draws once */
-  flyWatch();
+    + '<p class="fm-said" id="fm-said"></p>'
+    + '<button class="btn" data-do="fm-print">Print</button>';
+  flyBind(wrap, flyDraw);          /* binds, loads the campaign, and says what will print */
 }
 
 /* THE SHEET, FILLED WITH AS MANY AS FIT. `FLY_PER` knows how many of each size go on a page — two
-   A5, four A6, nine stickers — so the paper is one flyer repeated rather than a layout to maintain. */
-function flyDraw() {
-  const out = $('fm-out');
-  if (!out) return;
+   A5, four A6, nine stickers — so the paper is one flyer repeated rather than a layout to maintain.
+   BUILT ONLY FOR THE PRINTER NOW. It used to be drawn into the card on every change and scaled down
+   with `flyFit`; with the preview gone it is drawn at the moment it is printed, from exactly the
+   controls on the screen, so there is nothing on the card to keep in step with them. */
+function flySheet() {
   const z = ($('fm-z') || {}).value || 'a5';
   const size = FLY_PER[z] || FLY_PER.a5;
-  out.innerHTML = `<div class="fm-sheet ${size.cls}">`
+  return `<div class="fm-sheet ${size.cls}">`
     + flyOne(flyRows()[FLY_AT] || flyRows()[0]).repeat(size.per) + '</div>';
-  flyFit();
 }
 
-/* ---------- THE PAPER IS SCALED TO FIT THE SCREEN ------------------------------------------------
-   A4 IS 210MM AND A PHONE IS NOT. Scaled down to whatever the sheet is wide, so what you see is the
-   SHAPE of the page rather than a phone-sized guess at it — and reset to 1 for printing, where the
-   paper really is 210mm. Measured rather than assumed, because the sheet width changes with the
-   screen and a hard-coded factor would be right on exactly one device. */
-/* SAME FAULT THE CHEAT SHEET HAD, written into this file when its page came back: `clientWidth ||
-   320` scales to a guessed phone width whenever the panel is measured before it is on screen —
-   which on a phone is most of the time. It does not guess; the observer calls again. */
-function flyFit() {
-  const out = $('fm-out'), sheet = out && out.firstElementChild;
-  if (!sheet) return;
-  const room = out.getBoundingClientRect().width;
-  if (!room) return;
-  /* MEASURED, NOT ASSUMED — the same call the cheat sheet uses. 3.7795 is what a browser SHOULD
-     make of a millimetre and it is what `matPx` returns on every ordinary page; where the two part
-     company is under a page zoom or inside a transformed ancestor, and then the hard-coded one is
-     silently wrong while the measured one is not. Two functions doing one job by two methods is
-     one of them being right by luck. */
-  const k = Math.min(1, room / (210 * matPx()));
-  sheet.style.transform = 'scale(' + k.toFixed(4) + ')';
-  /* THE SPACE IT LEAVES BEHIND. A scaled element still occupies its full height, so without this
-     the sheet sits in a column of empty space taller than the phone. */
-  out.style.height = (297 * matPx() * k) + 'px';
+/* ---------- WHAT WILL PRINT, IN WORDS ------------------------------------------------------------
+   THE CONTROLS STILL NEED AN ANSWER, and with no picture a change you cannot see is a change you
+   cannot trust. One line: the campaign, the size and how many go on a sheet, and the blocks that are
+   switched on — read off the same checkboxes `flyOn` reads, so the sentence and the paper cannot
+   disagree about what is on it. */
+const FLY_SIZE_SAY = { a5: 'A5', a6: 'A6', sq: 'sticker' };
+function flyDraw() {
+  const said = $('fm-said');
+  if (!said) return;
+  const z = ($('fm-z') || {}).value || 'a5';
+  const size = FLY_PER[z] || FLY_PER.a5;
+  const row = flyRows()[FLY_AT] || flyRows()[0] || [];
+  const on_ = [...document.querySelectorAll('.fm-adds input[type=checkbox]')]
+    .filter(x => x.checked)
+    .map(x => (x.parentElement ? x.parentElement.textContent : '').trim().toLowerCase())
+    .filter(Boolean);
+  said.innerHTML = `Prints <b>${size.per} × ${esc(FLY_SIZE_SAY[z] || z)}</b> to an A4 sheet${
+    row[0] ? ' · <b>' + esc(row[0]) + '</b>' : ''}${
+    on_.length ? ' · ' + esc(on_.join(', ')) : ' · nothing ticked, so a blank colour'}.`;
 }
 
 /* ---------- PRINTING ------------------------------------------------------------------------------
-   THE BROWSER PRINTS THE WHOLE DOCUMENT, so without the `@media print` rules in the stylesheet this
-   would put the column, the tab bar and the tool's own chrome on the paper. The class is set here
-   rather than left on, so a print started from anywhere else in the app is unaffected. */
+   THE SHEET IS BUILT AT THE END OF `body`, NOT INSIDE THE CARD. It used to be the preview, printed in
+   place — and the card is inside a column that `placeCells` moves with a transform, which makes that
+   column the containing block for anything positioned inside it, and `body` is a centred 26.5rem
+   column that clips at 115mm. So "left: 0" meant the column's edge, not the paper's. `mat-print`
+   learned this first and builds its paper at the foot of the body; this is the same shape.
+   THE CLASS IS SET ONLY WHILE PRINTING, so a print started anywhere else in the app is unaffected,
+   and the paper is removed afterwards so nothing of it is left in the document. */
 on('fm-print', () => {
-  const sheet = document.querySelector('.fm-out .fm-sheet');
-  if (sheet) sheet.style.transform = 'scale(1)';   /* full size on paper */
+  const paper = document.createElement('div');
+  paper.className = 'fm-out';
+  paper.innerHTML = flySheet();
+  document.body.appendChild(paper);
   document.body.classList.add('printing-fly');
   const done = () => {
     document.body.classList.remove('printing-fly');
-    flyFit();
+    paper.remove();
     window.removeEventListener('afterprint', done);
   };
   window.addEventListener('afterprint', done);
   /* AND A TIMER AS WELL AS THE EVENT. Some browsers never fire `afterprint` when the dialogue is
      cancelled, and the app would be left in printing mode with everything hidden — a blank screen
      that looks like a crash. */
-  setTimeout(done, 1500);
+  setTimeout(done, 4000);
   window.print();
 });
-
-/* THE SHEET IS MEASURED, so anything that changes its box has to re-measure it — a rotation, a
-   keyboard, and above all the panel becoming visible, which `resize` never reports. */
-addEventListener('resize', () => { if ($('fm-out')) flyFit(); });
-
-let FLY_WATCH = null;
-function flyWatch() {
-  const out = $('fm-out');
-  if (!out || FLY_WATCH || typeof ResizeObserver !== 'function') return;
-  FLY_WATCH = new ResizeObserver(() => flyFit());
-  FLY_WATCH.observe(out);
-}

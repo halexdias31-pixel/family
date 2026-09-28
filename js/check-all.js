@@ -137,9 +137,9 @@ const SUITE = [
   { file: 'check-practicals.js', what: 'the practicals, and the topics they join to' },
   { file: 'check-quizzes.js', what: 'the quizzes: an answer that can be reached, and why' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
-     A clip whose path is one character wrong does not draw a broken link. `reelPlay_` swaps the
-     element for an iframe on the same address, so a missing file reads as Google's player or as a
-     black rectangle — the feature half-working rather than a file nobody uploaded. The README in
+     A clip whose path is one character wrong does not draw a broken link. The slide stays its own
+     gradient, so a missing file reads as the feature half-working rather than as a file nobody
+     uploaded — and a clip that could only ever be embedded is refused outright. The README in
      `data/reels/` asked for this the day there was a clip to check, and there are two. */
   { file: 'check-reels.js', what: 'every clip a file a phone can fetch and start' },
   /* ---------- AND WHAT A PERSON MAY CALL THEMSELVES ----------------------------------------------
