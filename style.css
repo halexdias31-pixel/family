@@ -1397,6 +1397,17 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
              width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad)); }
 .post-grid .post-cell { display: block; width: 100%; aspect-ratio: 1; object-fit: cover;
                         min-width: 0; background: var(--sunk); }
+/* THE BLEED INSIDE A PANE IS THE PANE'S OWN PADDING, NOT `--pad`. The pane was trimmed from 1rem to
+   .85rem and the edge-to-edge rules above went on cancelling 1rem — so every post with a picture ran
+   13 to 15px past its own card, which `check/live.js` recorded against real photographs and nothing
+   here could see, because the fixture's posts had none. `--pane-pad` is written once, on `.pane`. */
+.pane .post-pic, .pane .post-grid, .pane .sk-pic {
+  width: calc(100% + 2 * var(--pane-pad)); margin-left: calc(-1 * var(--pane-pad)); }
+/* AND THE POST ITSELF TAKES THE PANE'S PADDING AS ITS OWN, so the bleed lands inside the post's
+   padding box rather than past its edge. Without this the picture still reaches the glass but the
+   `article` reports it as overflow — 11 to 13px of sideways scroll that `check/ui.js` names the
+   moment a fixture post carries a picture. The words inside are exactly where they were. */
+.pane > .post { margin-inline: calc(-1 * var(--pane-pad)); padding-inline: var(--pane-pad); }
 .post-grid.is-odd > :first-child { grid-column: 1 / -1; aspect-ratio: 4 / 3; }
 /* A CLIP IS A PICTURE THAT MOVES and takes the same box; its controls are the browser's own. */
 .post-vid { background: var(--sunk); }
@@ -1405,7 +1416,7 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    a gap. 44px is the floor because it is a control. */
 .post-vid-out { display: flex; align-items: center; justify-content: center; min-height: 44px;
                 background: var(--sunk); color: var(--gold); text-decoration: underline; }
-.post-grid .post-vid-out { aspect-ratio: 1; }
+.post-grid .post-vid-out { display: flex; aspect-ratio: 1; }
 .post-pic.post-vid-out { aspect-ratio: 16 / 9; }
 /* THE COMPOSER'S PREVIEW DRAWS WITH THE CARD'S OWN RENDERER, in a sheet that has no page margin to
    cancel — so the edge-to-edge bleed above would run past the sheet's sides. Inside the preview the
@@ -2113,7 +2124,8 @@ button.text-drop { color: var(--bad); }
      TRIMMED, NOT REMOVED. A pane with no padding is content against a border, which is what makes a
      card read as a box rather than as a surface — and the bottom keeps a little more than the top
      because a list that ends flush with the glass reads as clipped. */
-  padding: .85rem .85rem 1rem;
+  --pane-pad: .85rem;
+  padding: var(--pane-pad) var(--pane-pad) 1rem;
   border-radius: 14px;
   /* Same promise as the cell above, for the same reason: a pane's contents changing must not cost
      a repaint of the panes either side of it. */

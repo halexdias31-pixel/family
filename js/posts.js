@@ -706,6 +706,10 @@ function camWhy_(err) {
 async function camStart_() {
   const v = $('cam-view');
   if (!v) return;
+  /* A REBUILT CARD HAS AN EMPTY TRAY while `CAM_ITEMS` still holds the post being made — `repaint`
+     replaces the markup and keeps the state — so the tray is drawn back from the state here, which
+     is the one function every fresh copy of this card passes through. */
+  camHold_();
 
   /* ---------- THE MARKUP CAN BE REPLACED UNDER A LIVE STREAM -----------------------------------
      `repaint` rebuilds this screen's cards, so the `<video>` that had the camera in it is gone and
