@@ -179,7 +179,7 @@ rows.forEach(r => {
        A RISK ASSESSMENT IS THE ONE PLACE THAT ARGUMENT DOES NOT HOLD, and the reason it gives has
        changed while the rule has not. It used to be about the SCREEN: a blank produced a guide
        opening on a heading reading `Risk assessment` over nothing, which reads as an experiment
-       with no hazards in it. The guide draws no such section now — see `practicalGuide_`, which
+       with no hazards in it. The guide draws no such section now — see `practicalPart_` in js/find.js, which
        was cut to five things — so this rule guards the DATA and nothing else.
 
        IT IS STILL A FAILURE AND NOT A COUNT. Everywhere else a blank here is work somebody
