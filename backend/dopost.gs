@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-28-c-simplepin";
+const DOPOST_VERSION = "2026-09-28-d-errors";
 
 
 function doPost(e) {
@@ -382,7 +382,8 @@ function doPost(e) {
          sheet by hand is what this answers, in a sentence that says who can fix it. */
       const mail = norm(body.email || body.name);
       if (mail.indexOf('@') === -1) {
-        return jsonOut({ success: false, error: 'Sign in with your email address and PIN.' });
+        return jsonOut({ success: false, why: 'not-an-email',
+          error: 'That is not an email address — sign in with the email on your account.' });
       }
       const hits = t0.rows.filter(x => norm(x.email) === mail);
       if (hits.length > 1) {
@@ -390,7 +391,10 @@ function doPost(e) {
           error: 'That email address is on more than one account — ask us to sort it out.' });
       }
       const r = hits[0] || null;
-      if (!r) return jsonOut({ success: false, error: 'Email or PIN not recognised.' });
+      if (!r) return jsonOut({ success: false, why: 'no-such-email',
+        error: 'No account has that email address.' });
+      if (!hasPin_(r)) return jsonOut({ success: false, why: 'no-pin',
+        error: 'That account has no PIN set yet — ask us to add one.' });
       /* LOCKED IS ANSWERED BEFORE THE PIN IS LOOKED AT, so guessing costs the same whether the
          guess was right or not — a lock that only applies to wrong answers tells a guesser when
          they have found the right one. */
@@ -407,9 +411,14 @@ function doPost(e) {
       /* HASHED, AND OLD ROWS MOVED ACROSS AS THEY ARRIVE — see `authCheckPin_`. */
       if (!authCheckPin_(t0, r, body.pin)) {
         authWrong_(t0, r);
-        /* THE SAME SENTENCE FOR A WRONG ADDRESS AND A WRONG PIN, which was already right here:
-           telling somebody the address was correct is telling them half the answer. */
-        return jsonOut({ success: false, error: 'Email or PIN not recognised.' });
+        /* ---------- A WRONG ADDRESS AND A WRONG PIN SAY DIFFERENT THINGS NOW ---------------------
+           ASKED FOR AS *"make the error codes more specific. if its username not recognised then say
+           that. if pin wrong then say that."* It used to be one sentence for both, on purpose:
+           telling somebody the address was right is telling a guesser half the answer, and it lets
+           anybody find out whether an address has an account here. The owner has chosen being told
+           which half was wrong over that. What still stands between a guesser and a PIN is the
+           throttle above, which is untouched. */
+        return jsonOut({ success: false, why: 'wrong-pin', error: 'Wrong PIN for that email address.' });
       }
       // Only accounts that WERE asked to confirm are held back. A blank means the account predates
       // this and was never sent a link, so it isn't unverified — it's just older.
@@ -417,7 +426,15 @@ function doPost(e) {
         return jsonOut({ success: false,
           error: 'Please confirm your email first — check your inbox for the link we sent.' });
       }
-      return loginReplyFor_(r, authNewSession_(t0, r));
+      /* ANYTHING ELSE IS SAID AS ITSELF, not folded into one of the sentences above — a sign-in
+         that failed on our side must not read as a wrong PIN, or somebody retypes a right one until
+         the throttle locks them out. */
+      try { return loginReplyFor_(r, authNewSession_(t0, r)); }
+      catch (err) {
+        return jsonOut({ success: false, why: 'server',
+          error: 'Your email and PIN are right, but signing in failed on our side: '
+                 + String(err && err.message || err) });
+      }
     }
 
     /* --- admin: read anyone's profile -------------------------------------------------------- */

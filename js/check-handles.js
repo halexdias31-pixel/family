@@ -672,6 +672,7 @@ function run() {
     const authWaitMins_ = () => 0;
     const authWrong_ = () => {};
     const authCheckPin_ = (t, r, pin) => S(r.pin) === S(pin);
+    const hasPin_ = r => !!(r && S(r.pin));
     const authNewSession_ = () => 'token';
     const loginReplyFor_ = r => ({ success: true, who: r.person_id });
     const action = 'verifyLogin';
@@ -680,11 +681,11 @@ function run() {
   const SIGNIN = [
     { body: { email: '  ADA@example.COM ', pin: '0000' }, want: 'P1', why: 'case and spaces must not matter' },
     { body: { name: 'ada@example.com', pin: '0000' },     want: 'P1', why: 'an older phone sends the address as name' },
-    { body: { email: 'AdaL', pin: '0000' },               want: '',   why: 'a username is not an address' },
+    { body: { email: 'AdaL', pin: '0000' },               want: '', code: 'not-an-email', why: 'a username is not an address' },
     { body: { name: 'NoMail', pin: '0000' },              want: '',   why: 'a row with no address cannot be named instead' },
-    { body: { email: 'ada@example.com', pin: 'wrong' },    want: '',   why: 'a wrong PIN is still wrong' },
+    { body: { email: 'ada@example.com', pin: 'wrong' },    want: '', code: 'wrong-pin', why: 'a wrong PIN is still wrong' },
     { body: { email: 'dup@x.com', pin: '0000' },          want: '',   why: 'two rows on one address is refused, not guessed' },
-    { body: { email: 'nobody@x.com', pin: '0000' },       want: '',   why: 'an address nobody has signs nobody in' },
+    { body: { email: 'nobody@x.com', pin: '0000' },       want: '', code: 'no-such-email', why: 'an address nobody has signs nobody in' },
   ];
   SIGNIN.forEach(c => {
     let got;
@@ -693,6 +694,10 @@ function run() {
     const who = (got && got.success) ? got.who : '';
     if (who !== c.want) bad.push({ handle: 'verifyLogin ' + JSON.stringify(c.body),
       want: c.want || 'refused', why: c.why, said: JSON.stringify(got) });
+    /* AND IT SAYS WHICH HALF WAS WRONG — asked for by the owner, so a wrong PIN must not read as an
+       unknown address or the other way round. */
+    else if (c.code && (!got || got.why !== c.code)) bad.push({ handle: 'verifyLogin ' + JSON.stringify(c.body),
+      want: 'refused as ' + c.code, why: c.why, said: JSON.stringify(got) });
   });
 
   /* ---------- THE HEADING NAMES BOTH THINGS, because it checks both -------------------------------
