@@ -792,6 +792,16 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    naming six elements. The twelfth conviction of `.price.faint` in this stylesheet, and the first
    one caught by the check rather than by a person reading two blocks side by side. */
 .lib-shelf .lib-row > label.field { margin-bottom: .35rem; }
+/* ---------- A SHELF'S `Add another`, AND THE ONE SHELF WHOSE ROWS ARE ONE LINE EACH ----------
+   The button is the shelf's own last child, so it sits under the last card showing and goes when
+   there is nothing left to reveal (`shelf-more` in me.js). A quiet `.btn`, because the Save under
+   the card is the page's one action and this is not it — the correction `.reel-sound` records.
+   AN "ALSO TEACH" ROW IS ONE PHRASE, "Maths (GCSE)", so the dashed rule the library cards use
+   between cards would draw a line between every subject in a list — chrome where a list wants
+   none. The level is the narrow half, sized off the longest level name rather than half the card. */
+.lib-shelf .shelf-more { margin: .1rem 0 .6rem; }
+.also-shelf .lib-card + .lib-card { border-top: 0; padding-top: 0; }
+.also-shelf .lib-row { grid-template-columns: minmax(0, 1fr) minmax(0, 7.5rem); }
 
 /* The whole row is the target, not the little box. A pixel floor rather than a rem multiple,
    because 2.9rem at a 15px root came out at 43.5px — half a pixel under, which is exactly the
@@ -5446,6 +5456,13 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .is-prof .prof-top + .row,
 .is-prof .prof-say + .row,
 .is-prof .prof-tags + .row { margin-top: .7rem; }
+/* THE SUBJECTS, AS THE ADJECTIVES' CHIPS. Same pill, same line; the case is the sheet's own rather
+   than upper, because a subject shouted reads as a heading (see `findCard`). The specialism takes
+   the gold edge and the ink — gold is what this app means by "the one", and it is the only chip on
+   the card that is a claim about depth rather than range. Two chip rows in a row need a gap. */
+.prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: .64rem; }
+.prof-teach .prof-tag.is-main { border-color: var(--gold); color: var(--ink); }
+.prof-tags + .prof-teach { margin-top: .35rem; }
 /* SWITCHED OFF. The whole card dims and the heading says so in words — a tutor hidden from the
    public list is a state an admin has to be able to see at a glance without reading a row. */
 .card.is-widget.is-off { opacity: .6; }

@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-28-f-settings";
+const BACKEND_VERSION = "2026-09-29-a-shelves";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -456,7 +456,24 @@ const SCHEMA = {
        THE NAME MAY CONTAIN A COLON AND THE OTHER TWO MAY NOT, so an item is parsed from the RIGHT:
        the last two colon-parts are the number and the PIN and everything before them is the name.
        `Merton: Wimbledon` survives; a card number is digits and a PIN is digits. */
-    "library_card", "library_note"
+    "library_card", "library_note",
+    /* ---------- AS MANY QUALIFICATIONS AS SOMEBODY HAS, UP TO TEN, IN ONE CELL -------------------
+       ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"*. `qual_1/2/3` is
+       the numbered-column shape the note above already refuses, and ten of it would be forty
+       columns. So it is `library_card`'s arrangement one row along: `subject:level:board:grade`
+       items joined by `|`, parsed from the RIGHT so a subject holding a colon survives, expanded by
+       `qualsOut` and packed by `qualsIn` in `core.gs`.
+       THE THREE OLD CELLS ARE STILL WRITTEN — the first three qualifications are mirrored into them
+       on every save — so anything still reading `qual_1` sees the same list, and a row nobody has
+       saved since this landed is read FROM them (`qualsOut` falls back when this cell is empty). */
+    "quals",
+    /* ---------- WHAT ELSE A TUTOR TEACHES, BESIDE THE ONE THEY SPECIALISE IN --------------------
+       ASKED FOR AS *"should be what you specialise teaching in and what you also teach."* The
+       specialism keeps `teaches_1`/`teaches_1_level`; everything else is this one cell, written
+       the way the card prints it — `Maths (GCSE)|English (KS3)` — so a person reading the sheet
+       reads the same words a parent does. `teaches_2` is mirrored from the first entry for the
+       reason `qual_1` is above, and read from when this cell is empty. */
+    "teaches_also"
   ],
   /* ---------- THE MAP -----------------------------------------------------------------------
      WHERE THE GROUND COMES FROM, and the reason this tab exists at all.
@@ -1655,10 +1672,13 @@ const AVAIL_DAYS  = [['m','Mon'], ['tu','Tue'], ['w','Wed'], ['th','Thu'], ['f',
    THE NUMBER IS THE ASK — *"so can fit in like 3"* — and it is one constant because everything
    downstream derives from it: the field list, the form, the packer and the unpacker. A fourth
    library is this number, and nothing else.
+   FIVE NOW — *"same with library cards (max 5)"* — and the form draws only the cards somebody has
+   filled in plus one empty one, with an `Add another` under them, so five costs nothing on a page
+   holding two. That is what made the number free to raise: the height is what is USED.
    `lib1_name` RATHER THAN `library_card_1`, so the shape is recognisable at a glance by the form
    (`isLibrary_` in js/me.js reads the SHAPE of the names, exactly as `isTimetable_` does) and
    cannot be mistaken for a column: none of these nine is one. The cell is `library_card`. */
-const LIBRARY_CARDS = 3;
+const LIBRARY_CARDS = 5;
 const LIBRARY_FIELDS = (() => {
   const out = [];
   for (let i = 1; i <= LIBRARY_CARDS; i++) out.push('lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin');
@@ -1669,6 +1689,32 @@ const LIBRARY_FIELDS = (() => {
    is a second chance for one of them to stop recognising a field — the `isTimetable_` argument
    one file along. */
 const LIBRARY_FIELD = /^lib\d+_(name|no|pin)$/;
+
+/* ---------- UP TO TEN QUALIFICATIONS, AS FORTY FORM FIELDS OVER ONE CELL -----------------------
+   THE LIBRARY SHELF'S ARRANGEMENT AGAIN, and one constant for the same reason: the field list, the
+   form, the packer and the unpacker all derive from it, so an eleventh is this number and nothing
+   else. The FORM NAMES keep the old `qual_N` spelling on purpose — `qualShelf_` in js/me.js reads
+   the shape of those names, and `qual_1…3` being real columns too is what lets the save mirror
+   them (see `updateProfile`). They are out of `wanted` either way: the cell is `quals`. */
+const QUAL_MAX = 10;
+const QUAL_FIELDS = (() => {
+  const out = [];
+  for (let i = 1; i <= QUAL_MAX; i++) out.push('qual_' + i, 'qual_' + i + '_level', 'qual_' + i + '_board', 'qual_' + i + '_grade');
+  return out;
+})();
+const QUAL_FIELD = /^qual_\d+(_level|_board|_grade)?$/;
+
+/* ---------- AND WHAT ELSE A TUTOR TEACHES, AS PAIRS OVER ONE CELL -------------------------------
+   `also_N` and `also_N_level`, a subject and a level each, packed into `teaches_also`. Eight,
+   because a tutor with more than one specialism and eight others is describing a school, and a
+   longer list on the card is a list a parent stops reading. */
+const TEACH_ALSO_MAX = 8;
+const TEACH_ALSO_FIELDS = (() => {
+  const out = [];
+  for (let i = 1; i <= TEACH_ALSO_MAX; i++) out.push('also_' + i, 'also_' + i + '_level');
+  return out;
+})();
+const TEACH_ALSO_FIELD = /^also_\d+(_level)?$/;
 
 /* ---------- A DATE OF BIRTH IS THREE NUMBERS SOMEBODY REMEMBERS, NOT A DATE THEY PICK -------------
    ASKED FOR AS *"date of birth should be 3 boxes. day, month and year. or copy the best practice
@@ -2008,40 +2054,34 @@ const PROFILE_GROUPS = {
      SECOND RATHER THAN FIRST, because About you is the page somebody arrives on and a name is what
      they came to change. `CLIENT_GROUPS` and `STUDENT_GROUPS` have always had it second; this is
      the map that disagreed with them. */
-  'Contact':     ['email','phone','date_of_birth'],
-  /* THE PLACE AND THE ADDRESS ON ONE PAGE. The address is still private — `doGet` sends it to an
-     admin only — it simply stops being a second page about the same place. */
-  'Where':       ['city','town','borough','postcode','address','travel_km'],
-  /* ---------- ONE PAGE, BECAUSE THEY ARE ONE DECISION AND ONE CLOCK ---------------------------
-     `Group size` AND `Your rate` WERE TWO PAGES WITH A SAVE EACH, and the four fields on them are
-     what a family is quoted: an hour with this tutor, what a second seat is worth, and the range of
-     class sizes that applies to. Asked for as *"…all together. and they can only change once a
-     month."* — and two pages cannot be changed together at all: `settingsPages_` maps each key here
-     onto its own card with its own Save, so a tutor would have spent the month's one change on
-     whichever page they pressed first and found the other refused.
-
-     Their own pay is the minimum wage and is fixed in the code, so these four are the whole of the
-     pricing decision a tutor makes. The extra-seat fraction is theirs because the extra work is
-     theirs — teaching two is more than teaching one, and by how much is a judgement only the person
-     doing it can make. Your own share of it stays in config, so a tutor can price their effort
-     without touching your margin.
-
-     BUILT FROM `PRICING_FIELDS`, which is also what `pricingRefusal_` reads, so the page and the
-     cooldown cannot disagree about which fields are the quote. */
+  /* ---------- CONTACT AND ADDRESS ARE ONE PAGE ---------------------------------------------------
+     ASKED FOR AS *"make the widgets for account settings more efficient. like merge what is
+     appropriate and can be merged into one widget."* They were `Contact` and `Where` — two cards,
+     two Saves, for what somebody thinks of as "how do we reach you". The phone lays the place
+     boxes out in pairs (`FIELD_ROWS`), so the merged page is shorter than the two it replaced.
+     Second, for the reason the note that used to sit here gave: a field nobody can find is a field
+     that is not there, and the e-mail is what somebody signs in with. The address is still private
+     — `doGet` sends it to an admin only. */
+  'Contact & address': ['email','phone','date_of_birth','city','town','borough','postcode','address',
+                        'travel_km'],
   'Your rate and group size': PRICING_FIELDS,
   /* WHAT YOU TEACH, WHAT YOU ARE STUDYING AND ANYTHING ELSE — one page, because they are the
      three answers to "what do you know". `Qualifications` beside it is the graded list. */
-  'What you teach': ['teaches_1','teaches_1_level','teaches_2','teaches_2_level',
-                     'studying','studying_at','extra_quals'],
+  /* ---------- WHAT YOU SPECIALISE IN, THEN WHAT ELSE YOU TEACH -------------------------------
+     ASKED FOR AS *"should be what you specialise teaching in and what you also teach."* The
+     specialism is one subject and one level (`teaches_1`, unchanged, so nothing that reads it
+     moves); everything else is a list of pairs over one cell, drawn as filled rows plus one empty
+     one and an `Add another` (`alsoShelf_` in js/me.js). `teaches_2` is not on the form any more —
+     it is mirrored from the first "also" pair on save, and migrated into it on read. */
+  'What you teach': ['teaches_1','teaches_1_level'].concat(TEACH_ALSO_FIELDS,
+                     ['studying','studying_at','extra_quals']),
   /* ---------- ONE PAGE FOR ALL THREE, NOT THREE PAGES WITH A SAVE EACH -------------------------
      ASKED AS *"is there a more efficient way to edit account settings for qualifications?"*. It was
      three groups, so `settingsPages_` drew three cards and three Saves, twelve captioned boxes and
      two swipes for what somebody thinks of as one list. One group; the phone draws it as a shelf
      (`qualShelf_` in me.js), two rows a qualification, and one Save posts all twelve.
      `updateProfile` writes only what it is sent, so nothing else on the row is touched. */
-  'Qualifications': ['qual_1','qual_1_level','qual_1_board','qual_1_grade',
-                     'qual_2','qual_2_level','qual_2_board','qual_2_grade',
-                     'qual_3','qual_3_level','qual_3_board','qual_3_grade'],
+  'Qualifications': QUAL_FIELDS,
   'Availability': AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), []),
   /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA.
      It is in all three group maps because a tutor, a parent and a student each have one library
@@ -2050,27 +2090,21 @@ const PROFILE_GROUPS = {
 };
 const CLIENT_GROUPS = {
   'About you': ['first_name','last_name','photo'],
-  'Contact':   ['email','phone'],
   /* The address, because a printed copy has to go somewhere. Without it the basket can offer
-     collection and nothing else, and the reason is invisible on a form that never asked. */
-  'Where':     ['city','town','borough','postcode','address'],
+     collection and nothing else, and the reason is invisible on a form that never asked. One page
+     with the contact details, for the reason `PROFILE_GROUPS` gives. */
+  'Contact & address': ['email','phone','city','town','borough','postcode','address'],
   'Library cards': LIBRARY_FIELDS.concat(['library_note']),
 };
 const STUDENT_GROUPS = {
-  'About you': ['first_name','last_name','date_of_birth','photo'],
-  'Contact':   ['email','phone'],
-  /* ---------- THE TWO EXAMS, AND WHY THEY ARE A PAGE OF THEIR OWN --------------------------------
-     `settingsPages_` MAPS EACH KEY HERE ONTO ITS OWN CARD WITH ITS OWN SAVE, so a group is a page.
-     Third, straight after the two a student is asked for first — a student opening Settings is
-     most likely there to put a date in, and the note over `PROFILE_GROUPS`' `Contact` row is the
-     same argument in the same map: *"a field nobody can find is a field that is not there"*, about
-     a group that had been the thirteenth of twenty-three swipes.
-
-     IN `STUDENT_GROUPS` ALONE. A tutor's exams are their qualifications and a parent does not sit
-     one, so neither of the other two maps carries these — which is what makes them appear for a
-     student and for nobody else, with nothing on the phone deciding it. */
-  'Exam dates': ['exam_small_date','exam_big_date'],
-  'Where':     ['city','town','borough','postcode','address'],
+  /* ---------- THE TWO EXAMS ARE ON THE FIRST PAGE NOW -------------------------------------------
+     They were a page of their own, third, on the argument that a student opening Settings is most
+     likely there to put a date in. First is better than third for that, and two date pickers side
+     by side (`FIELD_ROWS`) are one row — so they joined About you rather than costing a card and a
+     Save. IN `STUDENT_GROUPS` ALONE: a tutor's exams are their qualifications and a parent does
+     not sit one, which is what makes them appear for a student and for nobody else. */
+  'About you': ['first_name','last_name','date_of_birth','photo','exam_small_date','exam_big_date'],
+  'Contact & address': ['email','phone','city','town','borough','postcode','address'],
   'Library cards': LIBRARY_FIELDS.concat(['library_note']),
 };
 /* `RESOURCE_GROUPS` WAS HERE — the seven sections of the admin form that relabelled a paper, and
@@ -2093,6 +2127,10 @@ const FIELD_OPTIONS = {
   // what a tutor teaches and what a client may ask for — deliberately the same list
   teaches_1: 'subject', teaches_2: 'subject',
   teaches_1_level: 'level', teaches_2_level: 'level',
+  /* ONE ENTRY FOR EACH SHELF, NOT ONE PER SLOT. `qual_4` … `qual_10` and `also_2` … `also_8` offer
+     the same lists as the first, and sending forty copies of the subject list on every payload is
+     weight for nobody — the phone reads a slot's list off its first (`optionsFor_` in js/me.js). */
+  also_1: 'subject', also_1_level: 'level',
   qual_1: 'subject', qual_2: 'subject', qual_3: 'subject',
   qual_1_level: 'level', qual_2_level: 'level', qual_3_level: 'level',
   qual_1_grade: 'grade', qual_2_grade: 'grade', qual_3_grade: 'grade',

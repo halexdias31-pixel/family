@@ -1503,7 +1503,7 @@ function settingsPages_() {
       raw: p,
       readonly: readonly,
       /* The backend says which fields have a fixed set of answers. */
-      options: f => (DATA.validations || {})[f],
+      options: optionsFor_,
     })}
       <button class="btn" data-do="me-save">Save</button>
       <p class="faint me-said"></p></div>
@@ -1868,11 +1868,13 @@ const FIELD_ROWS = [
   { fields: ['city', 'town'] },
   { fields: ['borough', 'postcode'] },
   { fields: ['teaches_1', 'teaches_1_level'] },
-  { fields: ['teaches_2', 'teaches_2_level'] },
+  /* A STUDENT'S TWO EXAMS SIDE BY SIDE, now they share About you with a name and a photo: two date
+     pickers are one row, which is what let them join that page rather than cost a card of their own. */
+  { fields: ['exam_small_date', 'exam_big_date'] },
   { fields: ['studying', 'studying_at'] },
 ];
 const ROW_LABEL = {
-  teaches_1: 'teaches', teaches_1_level: 'level', teaches_2: 'also teaches', teaches_2_level: 'level',
+  teaches_1: 'specialise in', teaches_1_level: 'level',
   studying: 'studying now', studying_at: 'at', years_experience: 'years teaching',
   photo: 'photo link', video: 'video link',
   travel_km: 'will travel (km)', extra_quals: 'anything else', favourite_colour: 'favourite colour',
@@ -1965,6 +1967,77 @@ function dobBoxes_(value) {
 }
 const isLibrary_ = list => (list || []).some(isLibraryCard_);
 
+/* ---------- A SHELF SHOWS WHAT IS FILLED IN, ONE EMPTY SLOT, AND A WAY TO ASK FOR ANOTHER ---------
+   ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"* and *"same with
+   library cards (max 5)"*. Ten qualifications drawn at once is two thousand pixels of empty boxes
+   on a pane that caps at 534 — so every slot is IN the markup (the save posts all of them, and a
+   hidden empty slot packs to nothing) and only the filled ones and the first empty one are SHOWN.
+   `Add another` reveals the next one in place; it is not a sheet and not a menu, because the owner
+   refuses both, and the pane scrolls once the card outgrows it (`paneWatch_`).
+
+   THE LAST FILLED SLOT DECIDES, NOT THE COUNT. A library shelf keeps a gap in the middle on
+   purpose (`libCardsIn`'s note), so "filled plus one" is measured from the last slot with anything
+   in it — a count would hide the card after the gap, with its answers still in it.
+
+   `hidden` ON THE SLOT ITSELF, which works because no rule gives `.lib-card` a `display` of its own
+   — `[hidden]` is the UA's `display: none` and nothing here outranks it. */
+function shelfSlots_(nums, filled, draw) {
+  let last = 0;
+  nums.forEach((n, i) => { if (filled(n)) last = i + 1; });
+  const show = Math.min(nums.length, last + 1);
+  return nums.map((n, i) => draw(n, i >= show)).join('')
+    + (show < nums.length
+      ? `<button class="btn quiet shelf-more" data-do="shelf-more">Add another</button>` : '');
+}
+const shelfFilled_ = (value, names) => names.some(f => String(value(f) ?? '').trim() !== '');
+
+/* ONE SLOT'S LIST OFF THE FIRST SLOT'S. `FIELD_OPTIONS` sends `qual_1_level` and `also_1` once
+   rather than ten times each — see its note in constants.gs — so `qual_7_level` asks for `qual_1`'s
+   list here. And `also_N` falls back to what `teaches_1` offers, then to the booking lists, so a
+   backend too old to send `also_1` still draws a dropdown of real subjects rather than a text box. */
+function optionsFor_(f) {
+  const v = (DATA && DATA.validations) || {};
+  const dd = (DATA && DATA.dropdowns) || {};
+  if (v[f]) return v[f];
+  const first = String(f).replace(/^(qual|also)_\d+/, '$1_1');
+  if (v[first]) return v[first];
+  if (/^also_\d+$/.test(f)) return v.teaches_1 || dd.subjects || null;
+  if (/^also_\d+_level$/.test(f)) return v.teaches_1_level || dd.levels || null;
+  return null;
+}
+
+on('shelf-more', el => {
+  const shelf = el.closest('.lib-shelf');
+  const next = shelf && shelf.querySelector('.lib-card[hidden]');
+  if (next) {
+    next.hidden = false;
+    const box = next.querySelector('input, select');
+    try { if (box) box.focus({ preventScroll: true }); } catch {}
+  }
+  if (!shelf || !shelf.querySelector('.lib-card[hidden]')) el.remove();
+});
+
+/* ---------- WHAT ELSE A TUTOR TEACHES, ONE ROW A SUBJECT --------------------------------------
+   `also_N` and `also_N_level`, recognised by the shape of the names like every shelf here. A pair
+   is ONE row — the subject wide, the level narrow — because it is read as one phrase, "Maths
+   (GCSE)", which is exactly how the card prints it. */
+const isAlsoField_ = f => /^also_\d+(_level)?$/.test(String(f || ''));
+const isAlso_ = list => (list || []).some(isAlsoField_);
+function alsoShelf_(list, value, options) {
+  const nums = [...new Set((list || []).filter(isAlsoField_)
+    .map(f => String(f).match(/^also_(\d+)/)[1]))];
+  const box = (f, ph) => fieldHtml(f, value(f), { placeholder: ph, options: options ? options(f) : null });
+  return `<span class="dob-cap">also teach</span><div class="lib-shelf also-shelf">${shelfSlots_(nums,
+    n => shelfFilled_(value, ['also_' + n]),
+    (n, hide) => `
+    <div class="lib-card"${hide ? ' hidden' : ''}>
+      <div class="lib-row">
+        ${box('also_' + n, 'Subject')}
+        ${box('also_' + n + '_level', 'Level')}
+      </div>
+    </div>`)}</div>`;
+}
+
 /* ---------- AND A GROUP OF `qual_N*` NAMES IS A SHELF OF QUALIFICATIONS -------------------------
    THE LIBRARY SHELF'S SHAPE, ONE GROUP ALONG, and recognised the same way — by the names, never by
    the group's title. Twelve captioned boxes are about 760px at 320 against a pane that caps at 534,
@@ -1977,8 +2050,10 @@ function qualShelf_(list, value, options) {
   const nums = [...new Set((list || []).filter(isQualField_)
     .map(f => String(f).match(/^qual_(\d+)/)[1]))];
   const box = (f, ph) => fieldHtml(f, value(f), { placeholder: ph, options: options ? options(f) : null });
-  return `<div class="lib-shelf">${nums.map(i => `
-    <div class="lib-card">
+  return `<div class="lib-shelf">${shelfSlots_(nums,
+    i => shelfFilled_(value, ['qual_' + i, 'qual_' + i + '_level', 'qual_' + i + '_board', 'qual_' + i + '_grade']),
+    (i, hide) => `
+    <div class="lib-card"${hide ? ' hidden' : ''}>
       <div class="lib-row">
         ${box('qual_' + i, 'Subject')}
         ${box('qual_' + i + '_grade', 'Grade')}
@@ -1987,7 +2062,7 @@ function qualShelf_(list, value, options) {
         ${box('qual_' + i + '_level', 'Level')}
         ${box('qual_' + i + '_board', 'Board')}
       </div>
-    </div>`).join('')}</div>`;
+    </div>`)}</div>`;
 }
 
 /* ---------- ONE SHELF, ONE CARD PER LIBRARY -----------------------------------------------------
@@ -2005,14 +2080,16 @@ function qualShelf_(list, value, options) {
 function libraryShelf_(list, value) {
   const nums = [...new Set((list || []).filter(isLibraryCard_)
     .map(f => String(f).match(/^lib(\d+)_/)[1]))];
-  return `<div class="lib-shelf">${nums.map(i => `
-    <div class="lib-card">
+  return `<div class="lib-shelf">${shelfSlots_(nums,
+    i => shelfFilled_(value, ['lib' + i + '_name', 'lib' + i + '_no', 'lib' + i + '_pin']),
+    (i, hide) => `
+    <div class="lib-card"${hide ? ' hidden' : ''}>
       <div class="lib-row">
         ${fieldHtml('lib' + i + '_name', value('lib' + i + '_name'), { placeholder: 'Library' })}
         ${fieldHtml('lib' + i + '_pin', value('lib' + i + '_pin'), { placeholder: 'PIN' })}
       </div>
       ${fieldHtml('lib' + i + '_no', value('lib' + i + '_no'), { placeholder: 'Card number' })}
-    </div>`).join('')}</div>`;
+    </div>`)}</div>`;
 }
 
 /* THE HOUR CODES, WHEREVER THE BACKEND PUT THEM. The group's title is the backend's to choose, so
@@ -2042,6 +2119,13 @@ function fieldsHtml(groups, o) {
   o = o || {};
   const head = o.head || 'h2';
   const value = o.value || (() => '');
+  const plain = (f, extra) => fieldHtml(f, value(f), Object.assign({
+    attr: o.attr,
+    label: ROW_LABEL[f],
+    options: o.options ? o.options(f) : null,
+    suggest: o.suggest ? o.suggest(f) : null,
+    readonly: (o.readonly || []).indexOf(f) !== -1,
+  }, extra));
   return Object.keys(groups).map(g => {
     const list = groups[g] || [];
     const timetable = isTimetable_(list);
@@ -2051,6 +2135,7 @@ function fieldsHtml(groups, o) {
        then need a heading of its own. */
     const library = !timetable && isLibrary_(list);
     const quals = !timetable && isQuals_(list);
+    const also = !timetable && isAlso_(list);
     /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT --------
        `date_of_birth` IS STILL IN THE GROUP because the backend's list names columns and that is
        the column. Drawing it as well as the three boxes would be the same fact twice on one card —
@@ -2064,19 +2149,21 @@ function fieldsHtml(groups, o) {
        the backend is tidied. */
     const wantsDob = !timetable && (list.indexOf('date_of_birth') !== -1 || isDob_(list));
     const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f))
+                              && !(also && isAlsoField_(f))
                               && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
       : (library ? libraryShelf_(list, value) : '')
       + (quals ? qualShelf_(list, value, o.options) : '')
       + (wantsDob ? dobBoxes_(value) : '')
-      + fieldRows_(rest, (f, extra) => fieldHtml(f, value(f), Object.assign({
-          attr: o.attr,
-          label: ROW_LABEL[f],
-          options: o.options ? o.options(f) : null,
-          suggest: o.suggest ? o.suggest(f) : null,
-          readonly: (o.readonly || []).indexOf(f) !== -1,
-        }, extra)));
+      /* THE "ALSO TEACH" SHELF GOES WHERE ITS FIRST FIELD SAT IN THE LIST — straight under the
+         specialism and above what you are studying — so the page reads specialise, also, studying
+         in the order the backend wrote it, rather than the shelf floating to the top. */
+      + (also
+        ? fieldRows_(rest.filter(f => list.indexOf(f) < list.findIndex(isAlsoField_)), plain)
+          + alsoShelf_(list, value, o.options)
+          + fieldRows_(rest.filter(f => list.indexOf(f) > list.findIndex(isAlsoField_)), plain)
+        : fieldRows_(rest, plain));
     return `<${head}><span>${esc(g)}</span></${head}>` + body;
   }).join('');
 }

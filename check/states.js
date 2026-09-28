@@ -450,24 +450,37 @@ const STATES = {
                      ? 4 : 0),
       wants: 'all four pricing boxes on one page' },
 
-    /* ---------- ALL THREE QUALIFICATIONS ON ONE PAGE, WITH ONE SAVE --------------------------------
-       They were three pages of four captioned boxes each. One group now, drawn as a shelf of two
-       rows a qualification — twelve controls and ONE Save. EXACTLY twelve, because a page holding
-       four is what the three-page version drew. */
+    /* ---------- UP TO TEN QUALIFICATIONS ON ONE PAGE, SHOWN AS FILLED-PLUS-ONE -------------------
+       ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"*. All ten are IN
+       the page — forty controls under one Save, because the packer rebuilds the whole `quals` cell
+       from what arrives — and only the filled ones and one empty one are SHOWN, with `Add another`
+       revealing the next. So this presses `Add another` once and asks for exactly one more card
+       showing than it arrived with: a shelf that drew all ten, or one whose button did nothing,
+       both measure perfectly and both fail this.
+       FOUND BY ASKING THE DOM for the tenth slot's board box, which exists whether or not it shows. */
     { name: 'the qualifications',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        const at = [...document.querySelectorAll('#s-settings .page')]
-          .findIndex(pg => pg.querySelector('[data-me="qual_3_board"]'));
+        const pages = [...document.querySelectorAll('#s-settings .page')];
+        const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
         if (at < 0) throw new Error('no qualifications page on the settings column');
         goPage('settings', at, true);
+        const shelf = pages[at].querySelector('[data-me="qual_1"]').closest('.lib-shelf');
+        window.STATE_QUALS_SHOWN = shelf.querySelectorAll('.lib-card:not([hidden])').length;
+        const more = shelf.querySelector('[data-do="shelf-more"]');
+        if (more) more.click();
       },
+      leave: () => { delete window.STATE_QUALS_SHOWN; },
       expect: () => {
         const pg = document.querySelector('#s-settings .page.on');
-        return pg && pg.querySelectorAll('[data-me^="qual_"]').length === 12
-          && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 12 : 0;
+        const shelf = pg && pg.querySelector('[data-me="qual_1"]');
+        const box = shelf && shelf.closest('.lib-shelf');
+        return box && pg.querySelectorAll('[data-me^="qual_"]').length === 40
+          && pg.querySelectorAll('[data-do="me-save"]').length === 1
+          && box.querySelectorAll('.lib-card:not([hidden])').length === window.STATE_QUALS_SHOWN + 1
+          ? 40 : 0;
       },
-      wants: 'all three qualifications on one page with one Save' },
+      wants: 'ten qualification slots under one Save, and Add another revealing exactly one more' },
 
     /* ---------- THE THREE DATE-OF-BIRTH BOXES, ON A GROUP THE FIXTURE DID NOT HAVE ---------------
        `check/fixture.json` SENT NO `Contact` GROUP, so nothing in this lab had ever drawn a date of
