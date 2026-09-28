@@ -767,6 +767,14 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .dob-boxes input { min-width: 0; text-align: center; }
 .lib-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 7rem); gap: .6rem; }
 .lib-row label.field, .lib-row input { min-width: 0; }
+/* THE QUALIFICATION'S SECOND ROW IS TWO EQUAL SELECTS, a level and a board, rather than the wide
+   box beside a narrow one above it. `.lib-row select` joins the min-width rule for the reason the
+   inputs do: a select's own idea of its width is its longest option. */
+.lib-row.q-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.lib-row select { min-width: 0; }
+/* AN UNCHOSEN LEVEL OR BOARD READS AS A PLACEHOLDER, in the same grey as the empty boxes above it —
+   otherwise `Level` in full ink looks like an answer somebody gave. */
+.lib-row select:has(option[value=""]:checked) { color: var(--faint); }
 /* THE MARGIN COMES OFF THE ROW'S OWN CHILDREN, because the row is what separates them now. The
    number underneath keeps its margin: it is the last thing on the card and the gap before the
    dashed rule is what stops the three reading as one long list. */
