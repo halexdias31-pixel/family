@@ -396,7 +396,14 @@
   "About you": [
    "first_name",
    "last_name",
-   "photo"
+   "headline",
+   "photo",
+   "video",
+   "years_experience",
+   "favourite_colour",
+   "adjective_1",
+   "adjective_2",
+   "adjective_3"
   ],
   "Contact": [
    "email",
@@ -404,8 +411,21 @@
    "date_of_birth"
   ],
   "Where": [
+   "city",
+   "town",
    "borough",
-   "city"
+   "postcode",
+   "address",
+   "travel_km"
+  ],
+  "What you teach": [
+   "teaches_1",
+   "teaches_1_level",
+   "teaches_2",
+   "teaches_2_level",
+   "studying",
+   "studying_at",
+   "extra_quals"
   ],
   "Qualifications": [
    "qual_1",
@@ -535,13 +555,11 @@
    "exam_big_date"
   ],
   "Where": [
-   "borough",
    "city",
-   "town"
-  ],
-  "Where you are": [
-   "address",
-   "postcode"
+   "town",
+   "borough",
+   "postcode",
+   "address"
   ],
   "Library cards": [
    "lib1_name",

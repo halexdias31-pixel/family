@@ -745,6 +745,14 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    shelf: `label.field`'s own `.75rem` is sized for a column of captioned boxes read one at a time,
    and three of them side by side would put that gap under a row that is one thing. */
 .dob-row { margin-bottom: .75rem; }
+/* ---------- A PAIR OR A TRIPLE ON ONE LINE — see `FIELD_ROWS` in me.js ---------------------------
+   Equal columns, `min-width: 0` so a long value shrinks its box instead of pushing the card
+   sideways, and the row carries the field's own bottom margin so it reads as one more field down
+   the same column. A row with a single caption (`cap`) puts that caption above all of its boxes. */
+.f-row { display: grid; grid-template-columns: repeat(var(--n, 2), minmax(0, 1fr)); gap: .5rem; }
+.f-row label.field, .f-row input, .f-row select { min-width: 0; }
+.f-rowwrap .f-row label.field { margin-bottom: .75rem; }
+.pin-row { margin-top: 1rem; }
 /* ---------- THE TRACKS HOLD THE DIGITS **AND** THE INPUT'S OWN PADDING ---------------------------
    `6ch` CLIPPED `1985` TO `198`, and nothing measured it wrong: the box was exactly 6ch wide and
    the text inside it was not. Every input in this stylesheet carries `.7rem .75rem`, so about 22px
