@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-28-d-errors";
+const BACKEND_VERSION = "2026-09-28-e-quals";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2025,9 +2025,15 @@ const PROFILE_GROUPS = {
   'Where you are': ['address', 'postcode'],
   'Yours':       ['favourite_colour'],
   'What you teach': ['teaches_1','teaches_1_level','teaches_2','teaches_2_level'],
-  'Qualification 1': ['qual_1','qual_1_level','qual_1_board','qual_1_grade'],
-  'Qualification 2': ['qual_2','qual_2_level','qual_2_board','qual_2_grade'],
-  'Qualification 3': ['qual_3','qual_3_level','qual_3_board','qual_3_grade'],
+  /* ---------- ONE PAGE FOR ALL THREE, NOT THREE PAGES WITH A SAVE EACH -------------------------
+     ASKED AS *"is there a more efficient way to edit account settings for qualifications?"*. It was
+     three groups, so `settingsPages_` drew three cards and three Saves, twelve captioned boxes and
+     two swipes for what somebody thinks of as one list. One group; the phone draws it as a shelf
+     (`qualShelf_` in me.js), two rows a qualification, and one Save posts all twelve.
+     `updateProfile` writes only what it is sent, so nothing else on the row is touched. */
+  'Qualifications': ['qual_1','qual_1_level','qual_1_board','qual_1_grade',
+                     'qual_2','qual_2_level','qual_2_board','qual_2_grade',
+                     'qual_3','qual_3_level','qual_3_board','qual_3_grade'],
   /* AFTER THE THREE, because it is the one that is not finished. A page of its own rather than a
      fourth box on Qualification 3 — `settingsPages_` maps each key here onto its own card with its
      own Save, and a thing you are still doing is not part of a thing you have done. */

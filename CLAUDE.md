@@ -15326,3 +15326,14 @@ sixteen left/right routes is taken once, so the pile is **1, 4, 6, 4, 1 by const
 come up under the bins, it holds, and the board empties. `tools/galton.py` writes the circles and the
 keyframes from the peg grid; each circle sits at its landing spot so reduced motion shows the finished
 bell. Screenshotted at 1.5s, 4s and 8.6s.
+
+## Three qualifications are one page with one Save
+
+**Asked as "is there a more efficient way to edit account settings for qualifications?"** They were
+three `PROFILE_GROUPS` entries, so three cards, three Saves and twelve captioned boxes. One
+`Qualifications` group now, drawn by `qualShelf_` as the library shelf is — the subject beside a
+narrow grade, then level and board side by side — with the placeholder as each control's name and
+one Save posting all twelve. Fits a 320x568 phone. `fieldHtml` gained a placeholder for a select (its
+empty option, plus an `aria-label`). The fixture's `validations` was `[]` where `doGet` sends an
+object — the seventh shape it stated that the server does not send — and it carries the group now,
+with a state asserting exactly twelve controls and one Save.

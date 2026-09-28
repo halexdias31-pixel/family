@@ -450,6 +450,25 @@ const STATES = {
                      ? 4 : 0),
       wants: 'all four pricing boxes on one page' },
 
+    /* ---------- ALL THREE QUALIFICATIONS ON ONE PAGE, WITH ONE SAVE --------------------------------
+       They were three pages of four captioned boxes each. One group now, drawn as a shelf of two
+       rows a qualification — twelve controls and ONE Save. EXACTLY twelve, because a page holding
+       four is what the three-page version drew. */
+    { name: 'the qualifications',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-me="qual_3_board"]'));
+        if (at < 0) throw new Error('no qualifications page on the settings column');
+        goPage('settings', at, true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        return pg && pg.querySelectorAll('[data-me^="qual_"]').length === 12
+          && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 12 : 0;
+      },
+      wants: 'all three qualifications on one page with one Save' },
+
     /* ---------- THE THREE DATE-OF-BIRTH BOXES, ON A GROUP THE FIXTURE DID NOT HAVE ---------------
        `check/fixture.json` SENT NO `Contact` GROUP, so nothing in this lab had ever drawn a date of
        birth at all — the fourth time that file has been found stating a shape `doGet` does not

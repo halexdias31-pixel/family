@@ -1789,9 +1789,14 @@ function fieldHtml(name, value, o) {
      that is how a sheet ends up with four spellings of Edexcel. */
   const opts = o.options || [];
   if (opts.length) {
-    return `<label class="field"><span>${esc(label)}</span>
-      <select ${attr}="${esc(name)}" ${ro ? 'disabled' : ''}>
-        <option value="">${NONE_LABEL}</option>
+    /* A PLACEHOLDER ON A SELECT IS ITS EMPTY OPTION, and the caption goes exactly as it does for a
+       box below: the empty option reads `Level` or `Board` until something is chosen, and the
+       `aria-label` names it after that, because a chosen `A-Level` alone does not say which
+       question it answers. */
+    const ph = o.placeholder || '';
+    return `<label class="field">${ph ? '' : `<span>${esc(label)}</span>`}
+      <select ${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}>
+        <option value="">${ph ? esc(ph) : NONE_LABEL}</option>
         ${opts.map(x => `<option value="${esc(x)}"${
           String(v) === String(x) ? ' selected' : ''}>${esc(x)}</option>`).join('')}
       </select></label>`;
@@ -1918,6 +1923,31 @@ function dobBoxes_(value) {
 }
 const isLibrary_ = list => (list || []).some(isLibraryCard_);
 
+/* ---------- AND A GROUP OF `qual_N*` NAMES IS A SHELF OF QUALIFICATIONS -------------------------
+   THE LIBRARY SHELF'S SHAPE, ONE GROUP ALONG, and recognised the same way — by the names, never by
+   the group's title. Twelve captioned boxes are about 760px at 320 against a pane that caps at 534,
+   so two rows a qualification: the subject wide beside a narrow grade, then the level and the board
+   side by side. Every control keeps its 44px; what goes is the caption over each, and the
+   placeholder is the name — the argument `fieldHtml` already makes for the library boxes. */
+const isQualField_ = f => /^qual_\d+(_level|_board|_grade)?$/.test(String(f || ''));
+const isQuals_ = list => (list || []).some(isQualField_);
+function qualShelf_(list, value, options) {
+  const nums = [...new Set((list || []).filter(isQualField_)
+    .map(f => String(f).match(/^qual_(\d+)/)[1]))];
+  const box = (f, ph) => fieldHtml(f, value(f), { placeholder: ph, options: options ? options(f) : null });
+  return `<div class="lib-shelf">${nums.map(i => `
+    <div class="lib-card">
+      <div class="lib-row">
+        ${box('qual_' + i, 'Subject')}
+        ${box('qual_' + i + '_grade', 'Grade')}
+      </div>
+      <div class="lib-row q-row">
+        ${box('qual_' + i + '_level', 'Level')}
+        ${box('qual_' + i + '_board', 'Board')}
+      </div>
+    </div>`).join('')}</div>`;
+}
+
 /* ---------- ONE SHELF, ONE CARD PER LIBRARY -----------------------------------------------------
    BUILT FROM THE FIELD LIST THE BACKEND SENT, not from a count written here. `LIBRARY_CARDS` is a
    constant in `constants.gs` and the nine names are derived from it there; a `3` written again on
@@ -1978,6 +2008,7 @@ function fieldsHtml(groups, o) {
        it in the usual way — one `filter`, rather than a second group in the backend that would
        then need a heading of its own. */
     const library = !timetable && isLibrary_(list);
+    const quals = !timetable && isQuals_(list);
     /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT --------
        `date_of_birth` IS STILL IN THE GROUP because the backend's list names columns and that is
        the column. Drawing it as well as the three boxes would be the same fact twice on one card —
@@ -1990,11 +2021,12 @@ function fieldsHtml(groups, o) {
        argument: a renderer that recognises only what is sent today stops recognising it the day
        the backend is tidied. */
     const wantsDob = !timetable && (list.indexOf('date_of_birth') !== -1 || isDob_(list));
-    const rest = list.filter(f => !(library && isLibraryCard_(f))
+    const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f))
                               && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
       : (library ? libraryShelf_(list, value) : '')
+      + (quals ? qualShelf_(list, value, o.options) : '')
       + (wantsDob ? dobBoxes_(value) : '')
       + rest.map(f => fieldHtml(f, value(f), {
           attr: o.attr,
