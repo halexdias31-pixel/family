@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-28-b-email";
+const DOGET_VERSION = "2026-09-28-c-simplepin";
 
 
 function doGet(e) {
@@ -52,8 +52,8 @@ function doGet(e) {
        `accessDenied` resolves `authWhoIs_(body.token)` and overwrites `body.name` with whoever the
        token really is. The same machinery, the same function; `doGet` was simply never moved onto it.
 
-       MEMOISED, because `authWhoIs_` runs `authHash_` and that is four thousand rounds of SHA-256 by
-       design — about fifty milliseconds. Seven places here ask who is looking; one answer.
+       MEMOISED, because `authWhoIs_` reads Script Properties and the people tab. Seven places here ask
+       who is looking; one answer.
 
        THE TOKEN TRAVELS IN THE QUERY STRING AND THAT COSTS SOMETHING, said plainly rather than
        waved past: a GET URL is written to Apps Script's own execution log, where a POST body is not.
@@ -147,9 +147,7 @@ function doGet(e) {
          `clearPayloadCache`. Not a disclosure: remote invocation of the maintenance surface.
 
          `authCheckPin_` IS THE ONE FUNCTION THAT KNOWS THE ANSWER. It refuses an empty PIN on its
-         first line, reads the hash where there is one, and keeps the plaintext branch as the
-         migration path for a row typed into the sheet before hashing existed — re-hashing it on the
-         way through. Exactly what `verifyLogin` asks, which is the point: one test, one place.
+         first line and compares the `pin` cell. Exactly what `verifyLogin` asks, which is the point: one test, one place.
 
          NO THROTTLE HERE, DELIBERATELY. `authWrong_`'s ladder guards the sign-in door; this is a URL
          typed by hand by somebody who already holds the spreadsheet, and a lock-out written from a

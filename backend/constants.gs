@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-28-b-email";
+const BACKEND_VERSION = "2026-09-28-c-simplepin";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -307,25 +307,11 @@ const SCHEMA = {
        referral that does not happen. */
     "referral_code",
     /* ---------- HOW A PERSON PROVES WHO THEY ARE -----------------------------------------------
-       THE PIN COLUMN HELD THE PIN. Typed in, written down, sat in a cell — so anybody who could
-       open the spreadsheet could read every family's PIN, and a PIN is the same four digits people
-       use on a phone and a bank card. `pin_hash` replaces it: a one-way digest, so what is stored
-       cannot be read back into the number somebody types.
-
-       `pin_salt` IS PER PERSON and is why two families choosing 4815 do not produce the same hash.
-       Without it one leaked hash tells you every account sharing that PIN.
-
-       `session_hash` AND `session_until` ARE THE SIGNED-IN STATE. A random token is handed to the
-       phone at sign-in and only its digest is kept here — the same reasoning as the PIN, and it
-       means a copy of this sheet cannot be used to impersonate anybody.
-
-       `tries` AND `locked_until` ARE THE THROTTLE. Four digits is ten thousand guesses, which is
-       minutes of unattended requests; five wrong in a row and the account stops answering for a
-       while, which turns minutes into years without inconveniencing anybody who knows their PIN.
-
-       `pin` STAYS IN THE LIST so the migration can read it once and blank it. It is not written
-       to again. */
-    "pin_hash", "pin_salt", "session_hash", "session_until", "tries", "locked_until",
+       `pin` IS THE CREDENTIAL, as typed, and the e-mail address is what it is typed beside. The
+       hash, salt, session and tries columns were deleted from the tab on request — sessions and the
+       throttle live in Script Properties now, see `authNewSession_` in booking.gs. `locked_until`
+       stays only so a lock written by the older code can be cleared. */
+    "locked_until",
     "photo",
     /* THE FIGURE, and what has been bought for it. Neither column existed, and both are written
        to: saveAvatar called setCell for `avatar` and `avatar_owned` on every save, setCell found
