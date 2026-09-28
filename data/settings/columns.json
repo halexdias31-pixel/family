@@ -1,6 +1,5 @@
 [
-{"screen": "make", "label": "Post", "icon": "📷", "active": "TRUE", "sort_order": 1, "notes": "the camera. First on the layout sheet, left to right."},
-{"screen": "feed", "label": "Feed", "icon": "🏠", "active": "TRUE", "sort_order": 2, "notes": "what has been posted."},
+{"screen": "feed", "label": "Feed", "icon": "🏠", "active": "TRUE", "sort_order": 2, "notes": "what has been posted, with the camera as the page directly above the newest post. The `make` column that held the camera is gone."},
 {"screen": "booking", "label": "Book", "icon": "📅", "active": "TRUE", "sort_order": 3, "notes": "the form, the receipts and the basket."},
 {"screen": "reel", "label": "Reels", "icon": "▶", "active": "TRUE", "sort_order": 4, "notes": "one clip per page."},
 {"screen": "dm", "label": "DMs", "icon": "✉", "active": "TRUE", "sort_order": 5, "notes": "one conversation per page."},

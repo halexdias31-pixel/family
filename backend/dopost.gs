@@ -1004,25 +1004,53 @@ function doPost(e) {
           + 'key `posts_folder`, value the id from the folder URL.' });
       }
 
-      let url = S(body.image);
-      if (S(body.data)) {
-        try {
-          const parts = S(body.data).split(',');
-          const meta = parts[0] || '';
-          const type = (meta.match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
-          const blob = Utilities.newBlob(
-            Utilities.base64Decode(parts[1] || ''), type,
-            'post-' + new Date().getTime() + '.' + (type.split('/')[1] || 'jpg'));
-          const file = folder.createFile(blob);
-          /* Readable by anyone with the link — otherwise the picture is in the folder and shows as
-             a broken image to every client, which is the failure that would look like a bug in the
-             site rather than a permission. */
-          file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-          url = 'https://drive.google.com/file/d/' + file.getId() + '/view';
-        } catch (err) {
-          return jsonOut({ error: 'Could not save the picture. ' + driveTrouble_(err) });
-        }
+      /* ---------- SEVERAL PICTURES AND CLIPS, AND THE FIRST IS STILL WHERE IT ALWAYS WAS ----------
+         `data` / `image` ARE THE FIRST ITEM exactly as before, so a phone older than this deploy
+         still posts; `media` is the list of the rest, each either a `data:` URL to upload or an
+         address to keep. One helper for both halves, because the first picture and the fifth are
+         the same act and two copies of "save a file to the posts folder" is two places for the
+         sharing line to be forgotten. */
+      const stamp = new Date().getTime();
+      let n = 0;
+      const keep_ = raw => {
+        const v = S(raw).trim();
+        if (!v) return '';
+        if (!/^data:/i.test(v)) return v;
+        const parts = v.split(',');
+        const type = ((parts[0] || '').match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+        const ext = ({ 'image/jpeg': 'jpg', 'video/quicktime': 'mov', 'video/x-m4v': 'm4v' })[type]
+          || (type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/gi, '');
+        const blob = Utilities.newBlob(Utilities.base64Decode(parts[1] || ''), type,
+          'post-' + stamp + '-' + (n++) + '.' + ext);
+        const file = folder.createFile(blob);
+        /* Readable by anyone with the link — otherwise the picture is in the folder and shows as
+           a broken image to every client, which is the failure that would look like a bug in the
+           site rather than a permission. */
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        /* `#video` IS HOW THE PHONE KNOWS WHICH ELEMENT TO DRAW. A Drive address names no type. */
+        return 'https://drive.google.com/file/d/' + file.getId() + '/view'
+          + (/^video\//i.test(type) ? '#video' : '');
+      };
+      const rest = (Array.isArray(body.media) ? body.media : []).filter(x => S(x).trim());
+      /* A LIST WITH NOWHERE TO GO IS REFUSED BEFORE ANYTHING IS UPLOADED. Without the column
+         `addRow` would drop the rest with a line in the log and the post would go up holding one of
+         the five pictures somebody chose — a success message over a post that is not what they
+         made. `?setup=1` creates it. */
+      const tp = read(TAB.posts);
+      if (rest.length && tp.headers.indexOf('media') < 0) {
+        return jsonOut({ error: 'The posts tab has no media column yet, so only one picture could '
+          + 'be kept. Run ?setup=1 once, then post again.' });
       }
+      let url = '';
+      const more = [];
+      try {
+        url = keep_(S(body.data)) || S(body.image).trim();
+        rest.forEach(x => { const u = keep_(x); if (u) more.push(u); });
+      } catch (err) {
+        return jsonOut({ error: 'Could not save the picture. ' + driveTrouble_(err) });
+      }
+      /* THE FIRST MAY HAVE COME IN THE LIST, from a phone that sent nothing else. */
+      if (!url && more.length) url = more.shift();
       if (!url) return jsonOut({ error: 'A post needs a picture.' });
 
       /* WHO IT IS FROM, which is not the same as who pressed the button.
@@ -1037,12 +1065,13 @@ function doPost(e) {
          request says — a client whose post went up signed "@family." would be the site putting your
          name to something you had not seen. */
       const asBrand = iAmAdmin && norm(body.postAs) !== 'me';
-      const t = read(TAB.posts);
+      const t = tp;
       addRow(t, {
         post_id: 'PO' + new Date().getTime(),
         author: asBrand ? brandName() : (personDisplayName(me) || S(body.name)),
         posted_by: personDisplayName(me) || S(body.name),
         image: url,
+        media: more.join(' | '),
         caption: S(body.caption),
         body: S(body.body),
         location: S(body.location),
@@ -1080,7 +1109,7 @@ function doPost(e) {
           + 'post to approve or turn it down.');
       }
 
-      return jsonOut({ success: true, image: url, pending: !iAmAdmin });
+      return jsonOut({ success: true, image: url, media: [url].concat(more), pending: !iAmAdmin });
     }
 
     /* Anything in the folder that is not yet a row becomes one. This is the sync: drop files in

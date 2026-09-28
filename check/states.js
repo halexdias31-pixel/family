@@ -961,7 +961,7 @@ const STATES = {
      dates so the `Dates` row has a range and a count; a price so the total row draws; a venue name
      as long as a real one. */
   /* ---------- THE CAMERA WITH A PICTURE ON IT ----------------------------------------------------
-     THE `make` COLUMN OPENS ON A VIEWFINDER AND NOTHING ELSE. `Again`, `Post it`, `Save a copy`,
+     THE CAMERA OPENS ON A VIEWFINDER AND NOTHING ELSE. `Again`, `Post it`, `Save a copy`,
      the caption box and the row that says who it goes up as are all `hidden` until there is a
      photograph — so HALF THE CAMERA has been outside this lab for as long as it has existed, and
      `check/press.js` reported `cam-post`, `cam-save` and `cam-again` as untouched rather than as
@@ -983,13 +983,17 @@ const STATES = {
      AND IT IS PUT BACK. States run in order down one page and `camAgain_` is the app's own way to
      throw a picture away, so the next state and the next screen are not measured with a photograph
      still on the card — the same reason the guide state closes its sheet. */
-  make: [
+  /* THE CAMERA IS A PAGE OF THE FEED NOW, directly above the newest post — the `make` column is
+     gone. So the state turns to that page first, through the app's own `goPage` and `feedCamAt_`,
+     and measures the card where it now sits. */
+  feed: [
     { name: '' },
     { name: 'a photograph taken',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
+        goPage('feed', feedCamAt_(), true);
         const el = document.getElementById('cam-pick');
-        if (!el) throw new Error('no cam-pick on the make column');
+        if (!el) throw new Error('no cam-pick on the feed column');
         /* A ONE-PIXEL PNG, WRITTEN OUT RATHER THAN DRAWN. `canvas.toBlob` is async and this has to
            throw synchronously to be reported as unreachable. */
         const b64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';

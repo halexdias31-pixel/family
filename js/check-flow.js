@@ -2049,7 +2049,11 @@ check('the camera card starts itself and offers the gallery', async () => {
 
   if (!/id="cam-view"/.test(html)) bad.push('the camera card has no viewfinder');
   if (!/id="cam-pick"/.test(html)) bad.push('there is no way to pick a picture from the gallery');
-  if (!/type="file"/.test(html) || !/accept="image\/\*"/.test(html)) {
+  /* `image/*` STILL, AND NOW `video/*` BESIDE IT — a post takes clips as well as photographs. The
+     test reads the attribute rather than matching it whole, so the order the two are written in is
+     not a fault. */
+  const acc = (html.match(/id="cam-pick"[^>]*accept="([^"]*)"/) || [])[1] || '';
+  if (!/type="file"/.test(html) || !/image\/\*/.test(acc)) {
     bad.push('the gallery control is not a file input that accepts pictures');
   }
   /* `capture` WOULD REOPEN THE CAMERA, which is the thing the Photos button exists to be an
@@ -2081,7 +2085,7 @@ check('the camera card starts itself and offers the gallery', async () => {
     bad.push('`Write a post` is on the card with no `data-do="new-post"`, so nothing opens it');
   }
 
-  /* SIGNED OUT THERE IS NO VIEWFINDER AT ALL. `screen('make')` renders a sentence instead, and a
+  /* SIGNED OUT THERE IS NO VIEWFINDER AT ALL. `feedCamCard_` renders a sentence instead, and a
      camera that starts for somebody who is not signed in is a permission prompt with no purpose. */
   w.__t.USER(null);
   if (typeof w.__t.makeScreen === 'function') {

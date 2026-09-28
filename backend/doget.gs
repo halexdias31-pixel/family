@@ -1104,6 +1104,10 @@ function doGet(e) {
           handle: who.handle,
           avatar: who.avatar,
           image: S(r.image),        // converted on the phone, the way the gallery already does it
+          /* EVERY PICTURE AND CLIP, THE FIRST INCLUDED, so the phone reads one list rather than
+             stitching `image` onto the front itself — which would be a second place for the order
+             to be decided. See `media` in `SCHEMA.posts`. */
+          media: postMediaOut_(r),
           /* THE CAPTION, RESOLVED HERE AND NOWHERE ELSE.
              Two columns, two owners, and no rule about who may overwrite whom:
                `caption`   what a PERSON typed. Only ever written by editPost.

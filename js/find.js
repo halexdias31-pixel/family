@@ -3732,9 +3732,9 @@ on('quiz-print', el => {
 /* ==================================================================================================
    `filmCard_` — A THING WITH A LINK ON IT, AND NOTHING THIS APP CAN PLAY.
 
-   IT OPENS DRIVE AND DOES NOT EMBED. A `<video>` pointed at Drive is the ladder `clipSrcs_` spends
-   forty lines on — three addresses, an iframe fallback and a note saying none of it can be tested
-   from here — and that was worth building for a two-clip column this app owns. A three-gigabyte
+   IT OPENS DRIVE AND DOES NOT EMBED. A `<video>` pointed at Drive was a ladder of three addresses
+   and an iframe fallback that the Reels column spent forty lines on and then removed as embedded
+   reels nobody wanted. A three-gigabyte
    `.mkv` is not: no browser plays Matroska, the file is somebody's whole evening of bandwidth, and
    Drive's own player already does the job. So the tile is a door rather than a screen.
 

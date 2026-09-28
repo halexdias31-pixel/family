@@ -1407,6 +1407,42 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    photograph with a border. */
 .post-pic { display: block; width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad));
             background: var(--sunk); }
+/* ---------- SEVERAL PICTURES ON ONE POST, AS A GRID --------------------------------------------
+   TWO COLUMNS OF SQUARES, edge to edge like the single picture, and never a sideways strip: every
+   column in this app is reached by a sideways swipe, and a carousel would eat it. When the count is
+   odd the first takes the whole width, so what was put first leads. `object-fit: cover` here and
+   not above, deliberately — see `postMediaHtml_` in posts.js for why a grid may crop and a single
+   picture may not. The 2px gap is the one hairline between photographs, in the ground colour. */
+.post-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 2px;
+             width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad)); }
+.post-grid .post-cell { display: block; width: 100%; aspect-ratio: 1; object-fit: cover;
+                        min-width: 0; background: var(--sunk); }
+/* THE BLEED INSIDE A PANE IS THE PANE'S OWN PADDING, NOT `--pad`. The pane was trimmed from 1rem to
+   .85rem and the edge-to-edge rules above went on cancelling 1rem — so every post with a picture ran
+   13 to 15px past its own card, which `check/live.js` recorded against real photographs and nothing
+   here could see, because the fixture's posts had none. `--pane-pad` is written once, on `.pane`. */
+.pane .post-pic, .pane .post-grid, .pane .sk-pic {
+  width: calc(100% + 2 * var(--pane-pad)); margin-left: calc(-1 * var(--pane-pad)); }
+/* AND THE POST ITSELF TAKES THE PANE'S PADDING AS ITS OWN, so the bleed lands inside the post's
+   padding box rather than past its edge. Without this the picture still reaches the glass but the
+   `article` reports it as overflow — 11 to 13px of sideways scroll that `check/ui.js` names the
+   moment a fixture post carries a picture. The words inside are exactly where they were. */
+.pane > .post { margin-inline: calc(-1 * var(--pane-pad)); padding-inline: var(--pane-pad); }
+.post-grid.is-odd > :first-child { grid-column: 1 / -1; aspect-ratio: 4 / 3; }
+/* A CLIP IS A PICTURE THAT MOVES and takes the same box; its controls are the browser's own. */
+.post-vid { background: var(--sunk); }
+.post-pic.post-vid { aspect-ratio: 4 / 5; object-fit: contain; }
+/* AND ONE DRIVE WOULD NOT HAND OVER IS A LINK, in the same box, so the grid does not close up round
+   a gap. 44px is the floor because it is a control. */
+.post-vid-out { display: flex; align-items: center; justify-content: center; min-height: 44px;
+                background: var(--sunk); color: var(--gold); text-decoration: underline; }
+.post-grid .post-vid-out { display: flex; aspect-ratio: 1; }
+.post-pic.post-vid-out { aspect-ratio: 16 / 9; }
+/* THE COMPOSER'S PREVIEW DRAWS WITH THE CARD'S OWN RENDERER, in a sheet that has no page margin to
+   cancel — so the edge-to-edge bleed above would run past the sheet's sides. Inside the preview the
+   picture and the grid are simply the width they are given. */
+.post-preview { margin: .2rem 0 .6rem; }
+.post-preview .post-pic, .post-preview .post-grid { width: 100%; margin-left: 0; }
 /* THE PICTURE IS SHOWN WHOLE. Full width, its own height, and never enlarged past it.
 
    It used to stretch to fill the page with `object-fit: cover`, which crops — and what a phone
@@ -2108,7 +2144,8 @@ button.text-drop { color: var(--bad); }
      TRIMMED, NOT REMOVED. A pane with no padding is content against a border, which is what makes a
      card read as a box rather than as a surface — and the bottom keeps a little more than the top
      because a list that ends flush with the glass reads as clipped. */
-  padding: .85rem .85rem 1rem;
+  --pane-pad: .85rem;
+  padding: var(--pane-pad) var(--pane-pad) 1rem;
   border-radius: 14px;
   /* Same promise as the cell above, for the same reason: a pane's contents changing must not cost
      a repaint of the panes either side of it. */
@@ -10180,6 +10217,20 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the spacing down the card is one number rather than two. It costs nothing when there is no
    picture, because the row is `hidden` and `[hidden]` takes it out of the flow entirely. */
 .cam-card .cam-as { margin-bottom: .5rem; }
+
+/* ---------- WHAT IS ALREADY IN THIS POST ---------------------------------------------------------
+   A ROW OF SQUARES, WRAPPING, and never a sideways scroller — this card is a page of a column you
+   swipe, and a strip you swipe along would eat the gesture. 48px because each is a control (a tap
+   takes it out) and a fingertip does not scale; in px for that reason. A clip has no picture to show
+   until it is decoded, so it is a ▶ on the sunk ground. */
+.cam-card .cam-tray { margin: 0 0 .6rem; }
+.cam-card .cam-tray-say { margin: 0 0 .35rem; }
+.cam-card .cam-thumbs { display: flex; flex-wrap: wrap; gap: 6px; }
+.cam-card .cam-thumb { width: 48px; height: 48px; min-height: 48px; padding: 0; overflow: hidden;
+                       border: 1px solid var(--line); border-radius: 6px; background: var(--sunk);
+                       display: flex; align-items: center; justify-content: center; }
+.cam-card .cam-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cam-card .cam-thumb-vid { color: var(--gold); font-size: 1.1rem; line-height: 1; }
 
 /* AND AN EMPTY STATUS LINE TAKES NO ROOM. `#cam-said` is blank until something has to be said, and
    a `p`'s own margin is 10.7px at 390 whether or not there is a sentence in it — vertical space on
