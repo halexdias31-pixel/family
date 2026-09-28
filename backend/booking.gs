@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-09-28-b-email";
+const BOOKING_VERSION = "2026-09-28-c-simplepin";
 
 
 /**
@@ -1161,62 +1161,36 @@ function closeFinishedJobs() {
    rounds, which is what makes guessing expensive. The pepper lives in Script Properties rather than
    the sheet, so the spreadsheet alone is not enough to test guesses against.
 ================================================================================================== */
-/* ---------- FIVE WRONG ANSWERS AND A FLAT FIFTEEN MINUTES WAS THE WRONG SHAPE, BOTH WAYS ---------
-   REPORTED AS "I don't like this too many attempts nonsense just let me sign in", and the
-   arithmetic agrees with the complaint AND with the note above it — which is what makes this a
-   repair rather than a concession to it.
+/* ---------- THE SIMPLE VERSION: ONE `pin` CELL, AND NOTHING ELSE ON THE ROW -------------------------
+   ASKED FOR AS *"just pin and login no other username stuff"*, after `pin_hash`, `pin_salt`,
+   `session_hash`, `session_until` and `tries` had been deleted from `people` by hand. So the PIN is
+   the `pin` cell, read and written as typed, and signing in is an e-mail address and that PIN.
 
-   A FLAT LOCK IS PAID BY THE WRONG PERSON. Somebody who mistypes their own four digits five times
-   is held out for a quarter of an hour with nothing to do but wait. A script is held out for the
-   same quarter of an hour and does not mind, because waiting is free to it: 5 tries per 15 minutes
-   is 480 guesses a day, so ten thousand PINs is three weeks. The person pays attention and the
-   guesser pays nothing.
+   WHAT THAT COSTS, SAID RATHER THAN BURIED: anybody who can open the spreadsheet can read every
+   PIN. That was the reason for the hash, and the owner has chosen to give it up.
 
-   SO THE FIRST TEN COST NOTHING AND THE WAIT GROWS AFTER THAT. Ten wrong answers before anything
-   happens at all — which is past anybody's second guess at which of their PINs it is — and then one
-   minute, two, five, fifteen, and an hour for ever. A guesser gets about fifteen tries in the first
-   half-hour, THIRTY-EIGHT IN THE FIRST DAY and TWENTY-FOUR A DAY after that — ten thousand PINs is
-   over a year. Ten free guesses out of ten thousand is a rounding error against that.
+   THE SIGNED-IN STATE AND THE THROTTLE STILL EXIST, AND LIVE IN SCRIPT PROPERTIES. Without a
+   session nothing a signed-in person does can be checked — every action after sign-in would be
+   refused — and without a throttle four digits is ten thousand guesses over an anonymous URL. So
+   both are kept, and moved OFF the sheet, which is what "no other columns" asks: Script Properties
+   belong to the project, so nobody sees them and nobody can delete them by accident.
 
-   THOSE THREE NUMBERS ARE MEASURED, not reasoned: the ladder was walked in a loop against a clock,
-   because a figure written into a comment from arithmetic done in somebody's head is the shape this
-   repository records under "all 18 checks pass".
-
-   GENTLER ON THE PERSON AND TWENTY TIMES HARDER ON THE GUESSER IN THE STEADY STATE (24 a day
-   against 485), which is why the flat number was worth replacing rather than merely raising.
-
-   `tries` IS THE ESCALATION'S ONLY MEMORY and it is a column that already exists. It used to be set
-   back to nought at every lock, which is precisely what made every lock the same length; it counts
-   on now, and `authNewSession_` clears it on a successful sign-in — so the rung is "wrong answers
-   since you last got in" rather than a second column somebody has to keep in step. */
+   A TOKEN IS KEPT AS ONE SHA-256 OF ITSELF. It is 72 random characters, so a single digest is as
+   good as four thousand rounds — the rounds were only ever for a four-digit PIN. */
 const AUTH = {
-  ROUNDS: 4000,          // ~50ms per check here; a login is rare and a guess is not free
   SESSION_DAYS: 30,      // signed in for a month, then the PIN again
   FREE_TRIES: 10,        // nothing happens at all until the eleventh wrong answer
   WAITS: [1, 2, 5, 15, 60]   // minutes: one rung per wrong answer after that, then the last for ever
 };
 
-/* THE PEPPER. Made once and kept out of the sheet — Script Properties belong to the project, not to
-   the document, so somebody holding a copy of the spreadsheet still cannot test a guess. */
-function authPepper_() {
-  const p = PropertiesService.getScriptProperties();
-  let v = p.getProperty('AUTH_PEPPER');
-  if (!v) { v = Utilities.getUuid() + Utilities.getUuid(); p.setProperty('AUTH_PEPPER', v); }
-  return v;
+function authProps_() { return PropertiesService.getScriptProperties(); }
+
+function authDigest_(s) {
+  return Utilities.base64Encode(
+    Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, String(s), Utilities.Charset.UTF_8));
 }
 
-function authHash_(secret, salt) {
-  let acc = String(salt) + '|' + authPepper_() + '|' + String(secret);
-  for (let i = 0; i < AUTH.ROUNDS; i++) {
-    acc = Utilities.base64Encode(
-      Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, acc, Utilities.Charset.UTF_8));
-  }
-  return acc;
-}
-
-/* CONSTANT TIME. `a === b` on strings stops at the first differing character, and the time that
-   takes is a measurement of how much of the digest was right. Irrelevant over the internet in
-   practice, and it costs three lines. */
+/* CONSTANT TIME, which costs three lines. */
 function authSame_(a, b) {
   const x = String(a), y = String(b);
   if (x.length !== y.length) return false;
@@ -1225,89 +1199,48 @@ function authSame_(a, b) {
   return diff === 0;
 }
 
-/* SET OR CHANGE A PIN. The salt is new every time, so changing a PIN back to an old one does not
-   reproduce an old hash. */
-/* ---------- CAN THIS PERSON SIGN IN AT ALL? ONE READER, BECAUSE FOUR ASKED IT WRONGLY -------------
-   ASKED FOR AS *"i still have trouble logging in as myself. but i have no problem logging in as
-   danile."* The differential is the whole clue and this is what it led to.
+/* CAN THIS PERSON SIGN IN AT ALL: is there a PIN in the cell. */
+function hasPin_(r) { return !!(r && S(r.pin)); }
 
-   `authSetPin_` CLEARS THE PLAINTEXT `pin` CELL, so on every correctly hashed row that cell is
-   EMPTY — and four places asked `S(r.pin)` to decide whether somebody has a PIN:
+/* SET OR CHANGE A PIN: the cell, as typed. */
+function authSetPin_(t, r, pin) { setCell(t, r, 'pin', String(pin)); }
 
-     `dataProblems`   setup.gs  — reported a working hashed admin as "has no PIN"
-     the admins count setup.gs  — "No account with the admin role has a PIN" over a tab full of them
-     `diagnosePeople` dopost.gs — `noPin` and `hasPin`, the admin-facing list
-
-   SO THE ONE DIAGNOSTIC AN OWNER REACHES FOR WHEN THEY CANNOT SIGN IN SAID THE OPPOSITE OF THE
-   TRUTH, and its printed remedy was *"Run makeBrandAccount with one"* — which is the function that
-   writes the plaintext cell and leaves the hash standing, which is the state that cannot sign in.
-   A closed loop: follow the app's own advice and you create the fault you were diagnosing.
-
-   THE HONEST QUESTION IS "IS THERE A CREDENTIAL ON THIS ROW", and that is either form — a hash, or
-   a plaintext one `authCheckPin_`'s migration branch will convert on the next sign-in. One function,
-   so the next reader cannot get it wrong a fifth time. */
-function hasPin_(r) { return !!(r && (S(r.pin_hash) || S(r.pin))); }
-
-/* ---------- AND SETTING A PIN GOES THROUGH HERE OR IT DOES NOT COUNT ------------------------------
-   IT WRITES BOTH AND CLEARS THE THIRD, and that is the invariant the whole chain rests on: a row
-   carries a hash OR a plaintext, never both. `makeBrandAccount` wrote the plaintext directly and
-   broke it — see the note over `hasPin_` and the one in setup.gs. */
-/* ---------- AND THE PLAINTEXT GOES ONLY ONCE THE HASH IS SURELY WRITTEN ------------------------
-   `setCell` ON A COLUMN THAT IS NOT THERE RETURNS FALSE AND WRITES NOTHING. With `pin_hash` or
-   `pin_salt` deleted from the tab — which happened, as the fix somebody reached for when a PIN was
-   refused — the two writes above it did nothing and this line still blanked `pin`, so a successful
-   sign-in stored the PIN NOWHERE and the next one could never succeed. Keeping the plaintext when
-   the hash did not land leaves the row exactly as able to sign in as it was a moment ago. */
-function authSetPin_(t, r, pin) {
-  const salt = Utilities.getUuid();
-  /* IN THIS ORDER AND STOPPING AT THE FIRST MISS: a hash written beside a salt that was not would be
-     a credential nothing can ever match, and it would outrank the plaintext kept for exactly this. */
-  if (!setCell(t, r, 'pin_salt', salt)) return;
-  if (!setCell(t, r, 'pin_hash', authHash_(pin, salt))) return;
-  setCell(t, r, 'pin', '');            // the plaintext goes, here and for good
-}
-
-/* CHECKING A PIN, AND MOVING AN OLD ROW ACROSS WHILE NOBODY IS LOOKING.
-   A row that predates this has a plaintext `pin` and no hash. It is compared once, in the old way,
-   and immediately rewritten as a hash — so the sheet converts itself as people sign in and nobody
-   is locked out by the change. A row with a hash never consults the plaintext again. */
 function authCheckPin_(t, r, pin) {
-  const given = S(pin);
-  if (!given) return false;
-  const hash = S(r.pin_hash);
-  if (hash) return authSame_(hash, authHash_(given, S(r.pin_salt)));
-  const old = S(r.pin);
-  if (!old || old !== given) return false;
-  authSetPin_(t, r, given);
-  return true;
+  const given = S(pin), have = S(r && r.pin);
+  if (!given || !have) return false;
+  return authSame_(have, given);
 }
 
-/* THE THROTTLE. Read before the PIN is even looked at, so a locked account costs a guesser the same
-   whether the guess was right or not. */
-/* HOW MUCH LONGER, IN MINUTES, AND NOUGHT FOR NOT HELD. ONE READER, because the gate wants the
-   yes-or-no and the sentence it prints wants the number — and two functions asking the clock
-   separately is a message that says four minutes about a wait of five. Rounded UP, so it never
-   says nought to somebody who is still held. */
+/* ---------- THE THROTTLE, KEPT OFF THE SHEET ---------------------------------------------------
+   Ten wrong answers cost nothing, then one minute, two, five, fifteen, and an hour for ever — a
+   guesser gets about thirty-eight tries on the first day and twenty-four a day after that, so ten
+   thousand PINs is over a year. Keyed by `person_id`, one small property per person who has got it
+   wrong, cleared the moment they get in. */
+function authThrottleKey_(r) { return 'AUTH_TRIES_' + S(r.person_id || personDisplayName(r)); }
+
+function authThrottle_(r) {
+  try { return JSON.parse(authProps_().getProperty(authThrottleKey_(r)) || '{}'); }
+  catch (err) { return {}; }
+}
+
 function authWaitMins_(r) {
-  const until = r.locked_until ? new Date(r.locked_until) : null;
-  if (!until) return 0;
-  const left = until.getTime() - Date.now();
+  const until = N(authThrottle_(r).until);
+  const left = until - Date.now();
   return left > 0 ? Math.ceil(left / 60000) : 0;
 }
 
 function authLocked_(r) { return authWaitMins_(r) > 0; }
 
 function authWrong_(t, r) {
-  const n = N(r.tries) + 1;
-  setCell(t, r, 'tries', n);
-  if (n <= AUTH.FREE_TRIES) return;
-  /* ONE RUNG PER WRONG ANSWER PAST THE FREE TEN, and the top rung for ever after. `tries` is
-     deliberately NOT set back to nought here — see AUTH. */
-  const step = Math.min(n - AUTH.FREE_TRIES - 1, AUTH.WAITS.length - 1);
-  setCell(t, r, 'locked_until', new Date(Date.now() + AUTH.WAITS[step] * 60000));
-  /* TOLD, BECAUSE A LOCKOUT IS THE ONLY WARNING A GUESSED ACCOUNT EVER GIVES — and told on the
-     FIRST rung ONLY, because with a rung per wrong answer an email each time is an email per guess,
-     which is a mailbox nobody reads and therefore a warning nobody sees. */
+  const was = authThrottle_(r);
+  const n = N(was.n) + 1;
+  let until = 0, step = -1;
+  if (n > AUTH.FREE_TRIES) {
+    step = Math.min(n - AUTH.FREE_TRIES - 1, AUTH.WAITS.length - 1);
+    until = Date.now() + AUTH.WAITS[step] * 60000;
+  }
+  try { authProps_().setProperty(authThrottleKey_(r), JSON.stringify({ n: n, until: until })); } catch (err) {}
+  /* Told on the FIRST rung only — an email per guess is a mailbox nobody reads. */
   if (step !== 0) return;
   try {
     notify(personDisplayName(r), 'Too many sign-in attempts',
@@ -1317,57 +1250,54 @@ function authWrong_(t, r) {
   } catch (err) {}
 }
 
-/* ---------- CLEARING THE THROTTLE, AND THE THREE PLACES THAT MAY --------------------------------
-   `tries` COUNTS WRONG ANSWERS SINCE YOU LAST GOT IN, and it is deliberately never set back by
-   `authWrong_` — that is what makes the ladder a ladder rather than five separate first offences.
-   So something has to clear it, and exactly three things have earned the right:
-
-     · a successful sign-in       — you typed the PIN, so the guesses before it were yours and wrong
-     · a PIN reset by e-mail      — you proved you hold the mailbox, which is a stronger claim
-     · a PIN change               — you proved the old PIN, or an admin did it for you
-
-   ALL THREE ISSUE OR RE-ESTABLISH A CREDENTIAL, which is the whole test: the counter measures
-   guesses against a secret, and the moment the secret changes the count is about a secret that no
-   longer exists. Leaving it standing is the trap this was written for — you ask for a new PIN,
-   the e-mail arrives, and the site refuses it for another hour because of guesses at the old one.
-   The documented way out failing exactly when somebody needs it is worse than no way out, because
-   they stop looking.
-
-   ONE FUNCTION RATHER THAN TWO LINES AT EACH CALLER. `authNewSession_` had the two lines inline and
-   the other two paths had nothing, and nothing anywhere compared them — which is how this repository
-   keeps finding a rule applied in one place and forgotten in the next. */
+/* A successful sign-in, a PIN reset by e-mail and a PIN change all clear it: the count is about
+   guesses against a PIN, and those three each establish the PIN afresh. The old `locked_until`
+   cell is emptied too if the tab still has one, so a lock written by the old code does not linger. */
 function authClearThrottle_(t, r) {
-  setCell(t, r, 'tries', 0);
-  setCell(t, r, 'locked_until', '');
+  try { authProps_().deleteProperty(authThrottleKey_(r)); } catch (err) {}
+  if (r && r.locked_until) setCell(t, r, 'locked_until', '');
 }
 
-/* A NEW SESSION. The token is returned once and never stored — only its digest is kept, so this is
-   the only moment it exists in readable form anywhere. */
+/* ---------- SESSIONS, KEPT OFF THE SHEET -------------------------------------------------------
+   `AUTH_S_<digest of the token>` → `{ id, until }`. The token itself is returned once and never
+   stored. Expired ones are swept whenever a new one is made, so the store does not grow. */
+function authSessionKey_(token) { return 'AUTH_S_' + authDigest_(token); }
+
 function authNewSession_(t, r) {
   const token = Utilities.getUuid() + Utilities.getUuid();
-  setCell(t, r, 'session_hash', authHash_(token, 'session'));
-  setCell(t, r, 'session_until', new Date(Date.now() + AUTH.SESSION_DAYS * 864e5));
+  const props = authProps_();
+  try {
+    const all = props.getProperties(), now = Date.now();
+    Object.keys(all).forEach(k => {
+      if (k.indexOf('AUTH_S_') !== 0) return;
+      try { if (N(JSON.parse(all[k]).until) < now) props.deleteProperty(k); } catch (err) { props.deleteProperty(k); }
+    });
+  } catch (err) {}
+  props.setProperty(authSessionKey_(token),
+    JSON.stringify({ id: S(r.person_id), until: Date.now() + AUTH.SESSION_DAYS * 864e5 }));
   authClearThrottle_(t, r);
   return token;
 }
 
-/* WHO IS CALLING, decided by the token and by nothing else. Returns the row or null; a caller with
-   no valid token is not somebody whose name we should look up. */
+/* WHO IS CALLING, decided by the token and by nothing else. */
 function authWhoIs_(token) {
   const given = S(token);
   if (!given) return null;
-  const want = authHash_(given, 'session');
-  const t = read(TAB.people);
-  const r = t.rows.find(x => S(x.session_hash) && authSame_(S(x.session_hash), want));
-  if (!r) return null;
-  const until = r.session_until ? new Date(r.session_until) : null;
-  if (!until || until.getTime() < Date.now()) return null;
-  return r;
+  let s = null;
+  try { s = JSON.parse(authProps_().getProperty(authSessionKey_(given)) || 'null'); } catch (err) {}
+  if (!s || !s.id || N(s.until) < Date.now()) return null;
+  return read(TAB.people).rows.find(x => S(x.person_id) === S(s.id)) || null;
 }
 
-/* SIGNING OUT ends the session HERE, not only on the phone. A token that still works after the
-   person believed they left is the one thing sign-out must not do. */
+/* SIGNING OUT, or a PIN changed: every session that person holds ends here, not only on the phone. */
 function authEndSession_(t, r) {
-  setCell(t, r, 'session_hash', '');
-  setCell(t, r, 'session_until', '');
+  const id = S(r && r.person_id);
+  if (!id) return;
+  try {
+    const props = authProps_(), all = props.getProperties();
+    Object.keys(all).forEach(k => {
+      if (k.indexOf('AUTH_S_') !== 0) return;
+      try { if (S(JSON.parse(all[k]).id) === id) props.deleteProperty(k); } catch (err) {}
+    });
+  } catch (err) {}
 }
