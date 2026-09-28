@@ -649,8 +649,13 @@ const STATES = {
         if (n < 0) throw new Error('no cheat sheet widget in the roster');
         goPage('tools', n, true);
       },
-      expect: () => document.querySelector('#s-tools #mat-out .mat-sheet'),
-      wants: 'the A4 preview drawn on screen' },
+      /* NO PREVIEW, AND THAT IS PART OF WHAT IS ASSERTED. The sheet is built off screen for the
+         gauge and the printer (see `matProbe`); a `.mat-sheet` back inside the card would be the
+         preview returning, which the owner asked to be rid of. The gauge's sentence is what says
+         the page was laid out and measured at all. */
+      expect: () => !document.querySelector('#s-tools .mat-sheet')
+        && document.querySelector('#s-tools #mat-said b'),
+      wants: 'the picker and the gauge, with no A4 preview on the card' },
     /* ---------- AND THIS ONE IS NOT THERE FOR EVERYBODY -------------------------------------
        `flyers` CARRIES `admin: true`, so it is not in a signed-out visitor's roster at all — and
        "could not reach it" is the wrong sentence for a widget that correctly does not exist. A
@@ -671,8 +676,10 @@ const STATES = {
         if (n < 0) throw new Error('no flyer widget in the roster');
         goPage('tools', n, true);
       },
-      expect: () => document.querySelector('#s-tools #fm-out .fm-sheet'),
-      wants: 'the flyer drawn on screen' },
+      /* THE SENTENCE IN PLACE OF THE PICTURE, and no picture — see `flyDraw`. */
+      expect: () => !document.querySelector('#s-tools .fm-sheet')
+        && document.querySelector('#s-tools #fm-said b'),
+      wants: 'the flyer maker saying what will print, with no preview on the card' },
 
     /* ---------- AND THE BASKET, WHICH A FIXTURE CANNOT REACH AT ALL ---------------------------
        `CART` LIVES IN `localStorage`, NOT IN THE PAYLOAD, so no fixture can put anything in it:

@@ -28,18 +28,11 @@
 const MAT_ROOM = 262;
 
 /* ---------- HOW MANY NARROW BLOCKS GO ACROSS -----------------------------------------------------
-   THREE, NOT TWO. `half` has never meant "half the page" to anything but the name — it means "this
-   one is narrow enough to share a row", and how many share it is a decision about the page rather
-   than about the block. At two across a narrow block gets 99mm; at three it gets 60mm, and the
-   label/value grid inside it goes from 44mm + 55mm to 27mm + 33mm.
-
-   SOME VALUES WILL WRAP AT 33mm, and it is still the cheaper page. Six narrow blocks at two across
-   is three rows of about six lines each; at three across it is two rows of about seven, because
-   only the longest values wrap and only onto one extra line. That is roughly 14 line-heights
-   against 18 — and vertical space is the thing this sheet has none of.
-
-   SET IT BACK TO 2 AND EVERYTHING FOLLOWS. The row builder, the rule between the columns and the
-   gauge all read the rendered result, so this is the only number to change. */
+   THREE, AND IT IS NOT A SETTING ANY MORE. `MAT_ACROSS` said how many narrow blocks shared a run,
+   and a narrow block's width depended on it and on how many others happened to be ticked beside it.
+   The page is a six-track grid now and a narrow block is always two tracks — a third — so three go
+   across because 6 / 2 is 3, not because a constant says so. See "EVERY COMPONENT HAS A FIXED AREA"
+   below. */
 /* ---------- EVERY COMPONENT HAS A FACE ------------------------------------------------------------
    THE PICKER WAS TWENTY-FIVE PHRASES AND YOU HAD TO READ ALL OF THEM. 'Compound measures',
    'Rounding & bounds', 'Percentage change' — three or four words each, wrapping to two lines in a
@@ -68,27 +61,44 @@ const MAT_ROOM = 262;
 
    AND A WORD ALONE WHERE THERE IS NO NOTATION. 'HCF · LCM' and 'nth term' are words because the
    notation for them is either nothing or the whole block, and an invented glyph would be worse. */
-const MAT_ACROSS = 3;
-/* THE GUTTER, ONCE. 4mm of padding either side of the rule between two columns, so 8mm goes between
-   each pair — the CSS spends it and the pricing has to know it. */
-const MAT_GUT = 8;
-/* THE COLUMNS DO NOT GET 198mm. The sheet is 210 wide and gives up 6mm on the right and 20mm on the
-   left to the ruler, so the text block is 184. Pricing the picker off 198 read every half-width row
-   8% dearer than it is, and — worse — sized the times table's thirteen cells against a column that
-   was never there, which is why 144 sat on top of its neighbour. */
-const MAT_TEXT_W = 184;
-/* WHAT ONE COLUMN IS ACTUALLY WORTH, in millimetres of the 198 usable across the page.
+/* ---------- EVERY COMPONENT HAS A FIXED AREA -----------------------------------------------------
+   ASKED FOR AS "make all components of cheat sheet maker fixed in area". What the sheet did before
+   is recorded in the notes on the parts list: a narrow block's WIDTH depended on how many other
+   narrow blocks shared its run (one alone was drawn at the full 184mm, three shared 56mm each), and
+   its PLACE depended on a balancer that moved blocks between columns after measuring them. You
+   ticked Roman numerals at the foot of the list and the hundred square at the top changed size.
 
-   `half` STOPPED MEANING HALF THE PAGE the moment there were three columns, and the price did not
-   notice. A narrow block was costed at 99mm wide while it was being laid out at 61 — every narrow
-   row in the picker read about 63% dearer than it was, on a gauge whose whole job is to say whether
-   the next block fits. Derived here so the two can never disagree again: change MAT_ACROSS and the
-   price follows. */
-const matColW = () => (MAT_TEXT_W - MAT_GUT * (MAT_ACROSS - 1)) / MAT_ACROSS;
-/* AND WHAT A `pair` BLOCK IS WORTH, which is two across rather than three — the hundred square and
-   the times table are drawn in a run of their own precisely so that this number cannot move. Same
-   two constants, so the gutter is still spent once and in one place. */
-const matPairW = () => (MAT_TEXT_W - MAT_GUT) / 2;
+   SO THE PAGE IS A GRID AND EVERY COMPONENT OWNS A SLOT IN IT. Six tracks across the 184mm text
+   block, a 2mm row, and each component declares how many tracks wide it is (`span`: 2, 4 or 6) and
+   how many millimetres tall (`MAT_SLOT` below). Neither number reads what else is ticked, so a
+   component is the same size on every sheet it is ever put on — which is what "fixed" means. The
+   browser's own grid placement (`dense`) fills the slots; nothing here measures and moves blocks.
+
+   SIX RATHER THAN THREE, because six divides into the three widths this sheet actually has: a third
+   (2 tracks, text blocks), two thirds (4 tracks, the two big grids — see M02/M03) and the whole
+   width (6, the pictures whose meaning is spread sideways). A two-thirds grid leaves exactly one
+   third beside it, which a narrow block fills, so a big grid never costs a strip of white. */
+const MAT_TRACKS = 6;
+/* THE GUTTER, ONCE — the gap between two tracks. The CSS spends it (`.mat-cols` column-gap) and the
+   pricing has to know it, so the stylesheet reads it through `--mat-gut` set from here. */
+const MAT_GUT = 6;
+/* THE ROW UNIT. Slots are whole numbers of these tall, so a slot's height is exact rather than a
+   fractional track the browser rounds differently on each sheet. */
+const MAT_ROW = 2;
+/* THE TEXT BLOCK IS 184mm AND STAYS 184mm. The sheet is 210 wide and gives up 6mm on the right and
+   20mm on the left to the ruler. With the ruler off, the left margin shrinks and the grid does NOT
+   widen into it: a slot that is 184/3 wide on one sheet and 198/3 on another is not a fixed area. */
+const MAT_TEXT_W = 184;
+/* ONE TRACK, AND A SPAN OF N OF THEM — the same two constants the stylesheet is given, so the price
+   in the picker and the width on the paper cannot disagree (the fault this file records twice: `half`
+   priced at 99mm while drawn at 61, the ruler priced at 0cm² while the bar charged 52). */
+const matTrackW = () => (MAT_TEXT_W - MAT_GUT * (MAT_TRACKS - 1)) / MAT_TRACKS;
+const matSpanW = n => n * matTrackW() + (n - 1) * MAT_GUT;
+/* A NARROW BLOCK IS A THIRD, a `pair` block (the hundred square and the times table) two thirds. */
+const matColW = () => matSpanW(2);
+const matPairW = () => matSpanW(4);
+/* HOW MANY TRACKS A COMPONENT TAKES, from what it is rather than from what is beside it. */
+const matSpan = c => c.pair ? 4 : (c.half ? 2 : MAT_TRACKS);
 
 /* ---------- THE SECOND FILTER, AND WHY LEVEL ALONE WAS NOT ENOUGH -------------------------------
    HALF THE GCSE COMPONENTS ARE HIGHER-ONLY. Exact trig values, negative and fractional indices,
@@ -187,31 +197,17 @@ const MAT_PARTS = [
      bar was charging 52cm² for. Two numbers for one thing, and the visible one was the wrong one. */
   { id: 'M01', name: 'Ruler down the edge', face: '|·| ruler', lv: [], h: 262, half: false, edge: true,
     note: 'prints at true size' },
-  /* ---------- THE TWO GRIDS KEEP A RUN TO THEMSELVES -----------------------------------------------
-     A COMPONENT'S SIZE DEPENDED ON WHAT ELSE WAS TICKED. `stack` draws a run in as many columns as
-     it has blocks, up to three, so these two get 88mm each when they are the only narrow pair
-     before the number line — and 56mm the moment a third narrow block joins them. Measured: cells
-     go from 11.7px to 7.5px in the preview, digits from 2.9mm to about 1.9mm on paper.
-
-     NOTHING ON SCREEN SAYS WHY, and the thing that changed is not the thing that was touched: you
-     tick Roman numerals at the bottom of the list and the hundred square at the top gets smaller.
-     That is the worst shape a layout rule can have, and it is why you asked for these to be a fixed
-     size.
-
-     `pair` MEANS "DO NOT SHARE A RUN WITH ANYTHING ELSE". These two close the run in front of them
-     and open one of their own, exactly as a full-width block does — so they are always two across,
-     always 88mm, whatever else is on the sheet. That is also the biggest either of them can be: a
-     hundred square at the full 184mm would be 184mm tall, most of the 262mm page, and there would
-     be no room for the times table at all.
-
-     TWO OF THEM, SO THE RUN IS FULL. This is not the empty-column fault in disguise — `stack` draws
-     a run of two in two columns, so there is no 56mm strip of white with a rule down it. Tick only
-     one of the pair and it is drawn alone at full width, which for a single hundred square on a
-     sheet of its own is the right answer anyway.
-
-     THE HEIGHTS ARE WHAT THEY MEASURE AT 88mm. `h` is used to price the picker and to level the
-     stacks, and these two are square: at 88mm wide a ten-cell grid is 88mm tall and a thirteen-cell
-     one is 88 too, plus the heading. 94 and 100 were measured at that width and stay right. */
+  /* ---------- THE TWO GRIDS ARE TWO THIRDS OF THE PAGE WIDE --------------------------------------
+     ASKED FOR AS "make number square bigger" and "make time table square bigger". They were two
+     across at 88mm, which is where the old run logic could guarantee them a fixed size; with every
+     component in a fixed slot the size is free to be chosen rather than defended, and it is four of
+     the six tracks — about 121mm, cells 12mm for the hundred square and 9.3mm for the times table,
+     digits a third larger again in the stylesheet.
+     NOT THE FULL WIDTH. A hundred square 184mm across is 184mm tall — most of the 262mm page — and
+     the times table would have nowhere to go. Two thirds leaves exactly a third beside each, which
+     the grid fills with narrow blocks, so neither costs a strip of white.
+     `pair` STILL NAMES THEM, and now means "the two-thirds slot" rather than "a run of two". The
+     name is kept because the sheet, the picker and `check-flow` already use it. */
   { id: 'M02', name: 'Number square', face: '100 square',      lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 94,  half: true, pair: true },
   { id: 'M03', name: 'Times tables', face: '12×12 tables',       lv: ['SATs','11+','Y1 Mocks','Y2 Mocks'],         h: 100, half: true, pair: true },
   /* ---------- THE FOUR THAT KEEP THE FULL WIDTH ----------------------------------------------------
@@ -347,7 +343,41 @@ const MAT_PARTS = [
      is 61mm and the same rows simply run down instead of across: taller, and no longer a break in
      the column rules for something that is only text. */
   { id: 'M48', name: 'Numerical methods', face: 'xₙ₊₁ iter',  lv: ['Alevel'],                                   h: 23,  half: true },
+  /* ---------- THE PERIODIC TABLE -------------------------------------------------------------------
+     ASKED FOR BY NAME: "add periodic table to cheat sheet maker". A science sheet on a maths tool,
+     and the right place for it anyway — the paper, the gauge and the print are all here, and a
+     second tool for one A4 page would be a second print path to keep working.
+     FULL WIDTH, because it is eighteen columns and every column is a group: at a third of the page
+     a cell would be 3mm across, which is smaller than the symbol it has to hold.
+     GIVEN IN THE EXAM. AQA and Edexcel both hand a periodic table to every science candidate, so
+     `inExam: true` — the sheet's `in_exam` column can say otherwise per board without a deploy.
+     THE LEVELS ARE THE ONES THAT SIT CHEMISTRY. Y9 mocks start it, GCSE is where it is used most,
+     and A-level chemistry uses the same table; SATs and 11+ never ask for it. */
+  { id: 'M50', name: 'Periodic table', face: 'H He table',  lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 96,  half: false, inExam: true },
 ];
+
+/* ---------- EACH COMPONENT'S HEIGHT, IN MILLIMETRES OF PAPER ----------------------------------------
+   MEASURED, NOT ESTIMATED. Every component was drawn alone at its own slot width with nothing
+   clipping it — on the Higher view of the Everything list, which is the version with the most rows —
+   and its natural height rounded UP to the 2mm row. That is the slot, on every sheet, for good.
+   A FOUNDATION SHEET LEAVES AIR IN SOME SLOTS, deliberately: the tier hides rows inside a block, and
+   a slot that shrank with them would be a component whose size depends on a button two rows up —
+   the exact fault this table exists to end.
+   A COMPONENT WITH NO ENTRY falls back to its `h` plus the heading, rounded up; `matPaint` also
+   grows any slot its drawing overflows rather than clip a formula, and says so in the console — so a
+   stale number here costs a slightly bigger box, never a missing line on the printed page. */
+const MAT_SLOT = {
+  M02: 112, M03: 112, M04: 28, M05: 20, M06: 42, M07: 30, M08: 60, M09: 40, M10: 18, M11: 24,
+  M12A: 14, M12B: 18, M12C: 18, M12D: 18, M12E: 14, M12F: 14, M12G: 18, M12H: 14,
+  M13: 36, M14: 44, M15: 54, M16: 46, M17: 38, M18: 32, M19: 54, M20: 72, M21: 42, M22: 46,
+  M23: 46, M24: 38, M25: 42, M26: 44, M27: 50, M28: 46, M29: 24, M30: 36, M31: 46, M32: 46,
+  M33: 66, M34: 44, M35: 56, M36: 50, M37: 36, M38: 46, M39: 46, M40: 46, M41: 54, M42: 42,
+  M43: 38, M44: 54, M45: 38, M46: 46, M47: 42, M48: 44, M49: 60, M50: 98,
+};
+const matSlot = c => {
+  const mm = MAT_SLOT[c.id] || (Number(c.h) || 20) + 8;
+  return Math.ceil(mm / MAT_ROW) * MAT_ROW;
+};
 
 
 /* WHAT IS TICKED WHEN IT OPENS, from the sheet when the sheet says. `start_on` on the cheatsheet
@@ -434,7 +464,7 @@ function matParts() {
     /* IN THE CODE AND NOT IN THE SHEET is not the same as switched off. The backend only sends rows
        whose `active` is on, so a component with no row here is one the sheet has never been told
        about — and it keeps everything the code says about it. */
-    if (!r) return Object.assign({}, c, { at: c.at0 || (i + 1) * 10 });
+    if (!r) return Object.assign({}, c, { h: c.edge ? MAT_ROOM : matSlot(c), at: c.at0 || (i + 1) * 10 });
     const levels = String(r.levels || '').split(/[,\n|]/).map(s => s.trim()).filter(Boolean);
     return Object.assign({}, c, {
       name:  r.name || c.name,
@@ -454,9 +484,14 @@ function matParts() {
          is nothing here for anybody to set — and a setting with one correct value is a way to be
          wrong, not a way to choose. The gauge already worked this out for itself, which is why the
          bar charged 52cm² while the list said nothing. Now the list asks the same question. */
-      h:     c.edge ? MAT_ROOM
-               : (r.heightMm === null || r.heightMm === undefined ? c.h : r.heightMm),
-      half:  r.half === null || r.half === undefined ? c.half : r.half,
+      /* ---------- AND THE SLOT IS NOT A SETTING EITHER -----------------------------------------
+         THE SHEET'S `height_mm` AND `half_width` USED TO WIN, and that is how a component's size came
+         to depend on a cell: six rows say `half_width: False` for blocks the code draws narrow, and
+         the heights in that tab are the estimates this file already calls "a long way out" (index
+         laws written as 24mm, rendering at 77). A fixed area has to be decided in one place and
+         measured against the drawing, so both come from the code — `matSlot` below. The sheet still
+         owns the name, the levels, the tier, the order and whether a component is offered at all. */
+      h:     c.edge ? MAT_ROOM : matSlot(c),
       /* WHETHER THE EXAM GIVES YOU THIS. Only the sheet knows — nothing in the code has an opinion,
          and null stays null so "nobody has checked" survives all the way to the screen. */
       /* THE SHEET WINS, THE CODE ANSWERS WHEN IT IS SILENT. `null` from the tab means the cell was
@@ -799,7 +834,66 @@ const MAT_HTML = {
                        ['Newton–Raphson', 'x − ' + fr('f(x)','f′(x)')],
                        ['trapezium','½h[(y₀ + yₙ) + 2(rest)]'], ['h', fr('b − a','n')],
                        ['iteration','xₙ₊₁ = g(xₙ)']]),
+
+  M50: () => matPeriodic(),
 };
+
+/* ---------- THE PERIODIC TABLE, 118 OF THEM --------------------------------------------------------
+   ONE STRING, SPLIT, rather than 118 quoted entries — a list that long is read by a person far more
+   often than by this, and a missing comma in an array of strings shifts every element after it by
+   one with nothing to say so. The length is checked where it is used: a table of 117 draws nothing
+   rather than drawing oxygen in the fluorine box. */
+const MAT_ELEMENTS = ('H He Li Be B C N O F Ne Na Mg Al Si P S Cl Ar K Ca Sc Ti V Cr Mn Fe Co Ni Cu '
+  + 'Zn Ga Ge As Se Br Kr Rb Sr Y Zr Nb Mo Tc Ru Rh Pd Ag Cd In Sn Sb Te I Xe Cs Ba La Ce Pr Nd Pm '
+  + 'Sm Eu Gd Tb Dy Ho Er Tm Yb Lu Hf Ta W Re Os Ir Pt Au Hg Tl Pb Bi Po At Rn Fr Ra Ac Th Pa U Np '
+  + 'Pu Am Cm Bk Cf Es Fm Md No Lr Rf Db Sg Bh Hs Mt Ds Rg Cn Nh Fl Mc Lv Ts Og').split(' ');
+
+/* WHERE ELEMENT Z SITS: [row, column] of an 18-column table, with the lanthanides (57–71) and the
+   actinides (89–103) in two rows of their own under a gap — the layout every exam board prints.
+   Rows 1–7 are the periods, row 8 is the gap, rows 9 and 10 are the f-block. Worked out from the
+   period lengths rather than typed as 118 pairs, for the reason the symbols are one string. */
+function matPtAt(z) {
+  if (z === 1) return [1, 1];
+  if (z === 2) return [1, 18];
+  const small = (start, row) => {           /* periods 2 and 3: two s-block, then six p-block */
+    const k = z - start;
+    return [row, k < 2 ? k + 1 : k + 11];
+  };
+  if (z <= 10) return small(3, 2);
+  if (z <= 18) return small(11, 3);
+  if (z <= 36) return [4, z - 18];
+  if (z <= 54) return [5, z - 36];
+  const heavy = (start, row, fRow, fFrom) => {  /* periods 6 and 7, with their f-block pulled out */
+    if (z < start + 2) return [row, z - start + 1];
+    if (z <= fFrom + 14) return [fRow, z - fFrom + 3];
+    return [row, z - fFrom - 11];
+  };
+  if (z <= 86) return heavy(55, 6, 9, 57);
+  return heavy(87, 7, 10, 89);
+}
+
+/* THE CELL IS A NUMBER AND A SYMBOL, which is what the question asked for and what fits: at 184mm
+   an eighteenth of the width is about 10mm, room for "Og" in bold and "118" above it, and not for a
+   name or a mass without shrinking both below what a student can read across a desk.
+   A HAIRLINE ROUND EACH CELL, which the "269 rectangles" note would argue against — but that note is
+   about numbers already standing in columns. A periodic table is read by its boxes: which group,
+   which period, and where the block edges fall. Borders print; a fill would not.
+   THE GROUP NUMBERS ARE THE UK EXAM ONES, 1–7 and 0, over the main groups only — the ones a GCSE
+   question names. Numbering the transition metals too would be a second convention on one sheet. */
+function matPeriodic() {
+  if (MAT_ELEMENTS.length !== 118) return '<p class="mat-gone">The periodic table has a symbol missing.</p>';
+  let h = '';
+  [[1, '1'], [2, '2'], [13, '3'], [14, '4'], [15, '5'], [16, '6'], [17, '7'], [18, '0']]
+    .forEach(([col, g]) => { h += `<s style="grid-area:1/${col}">${g}</s>`; });
+  MAT_ELEMENTS.forEach((sym, n) => {
+    const z = n + 1, [row, col] = matPtAt(z);
+    h += `<i style="grid-area:${row + 1}/${col}"><em>${z}</em><b>${sym}</b></i>`;
+  });
+  /* WHERE THE f-BLOCK WAS TAKEN FROM, so the gap under barium reads as a reference rather than as a
+     missing element. */
+  h += '<u style="grid-area:7/3">57–71</u><u style="grid-area:8/3">89–103</u>';
+  return `<div class="mat-pt">${h}</div>`;
+}
 
 const matGrid = (cls, n, cell) => {
   let h = '';
@@ -1109,15 +1203,15 @@ function initMat() {
           MEASURED ON THE TOOLS COLUMN AT 390px: this list is 464px of a 1263px card inside an
           805px pane, so 458px of the card was clipped — the A4 preview below it entirely, and the
           Print button all but nineteen pixels. Everything else here is short and fixed: three rows
-          of pills, a gauge, a line of text, a button and the sheet.
+          of pills, a gauge, a line of text and a button. (The preview has since gone — see
+          `matProbe` — so the list is now most of the card, and still the part that gives way.)
           `widget-squeeze` is the class that says so; the rules are in style.css beside
           `.card.is-widget`, and the reason a list may scroll where a card may not is the same one
           `#docket-body` already carries. */''}
     <div class="mat-list widget-squeeze" id="mat-list"></div>
     <div class="mat-gauge" id="mat-gauge"><i></i></div>
     <p class="mat-said" id="mat-said"></p>
-    <button class="btn" data-do="mat-print" id="mat-go">Print the sheet</button>
-    <div class="mat-out" id="mat-out"></div>`;
+    <button class="btn" data-do="mat-print" id="mat-go">Print the sheet</button>`;
 
   const levels = matLevels();
   if (levels.indexOf(MAT_LEVEL) === -1) MAT_LEVEL = levels[0];
@@ -1155,7 +1249,7 @@ function initMat() {
             being drawn at 61, and the note on `matColW` says the two must never disagree again.
             Derived from the same two constants, so changing the gutter still moves both. */
          Math.round((c.edge ? 20 * c.h
-                   : (c.pair ? matPairW() : c.half ? matColW() : MAT_TEXT_W) * c.h) / 100)}cm²</u>${
+                   : matSpanW(matSpan(c)) * c.h) / 100)}cm²</u>${
        /* A NOTE BELONGS TO THE COMPONENT, NOT TO THE TOOL. "The ruler and protractor print at true
           size" was a line in a paragraph above the whole list, which is where a fact about two
           items out of twenty-five goes to be ignored. On the two rows it is about, it is read. */
@@ -1190,8 +1284,9 @@ function matDraw(c) {
 }
 
 function matPaint() {
-  const lev = $('mat-lev'), tierBar = $('mat-tier'), list = $('mat-list'), out = $('mat-out');
-  if (!out) return;
+  const lev = $('mat-lev'), tierBar = $('mat-tier'), list = $('mat-list');
+  /* THE PICKER IS WHAT MUST BE THERE — there is no sheet on the card to look for any more. */
+  if (!list || !$('mat-said')) return;
   if (lev) lev.querySelectorAll('button').forEach(b =>
     b.classList.toggle('on', b.getAttribute('data-l') === MAT_LEVEL));
   $('mat-exam').querySelectorAll('button').forEach(b =>
@@ -1236,126 +1331,34 @@ function matPaint() {
      with the others or it would take a row of its own and push everything down a sheet. */
   const pieces = on_.filter(c => !c.edge);
 
-  /* HALF-WIDTH BLOCKS PAIR UP, full ones take a row. Walked in list order rather than sorted, so
-     moving something on the mat is moving one line here. */
-  let h = '';
   /* ONE FUNCTION, CALLED ONCE PER BLOCK. The first version had a ternary that invoked `MAT_HTML`
      twice for the same component — drawing a protractor's 181 ticks and throwing one copy away. */
   /* A PIECE THAT IS ALREADY A FINISHED THING GETS NO HEADING AND NO RULE. A flyer carries its own
      name, its own colour and its own edge — putting "FLYER — BACK TO SCHOOL" in small capitals above
      it would be labelling a poster with the word poster. `bare` says so, and the stylesheet takes
      the heading, the hairline and the padding off. */
-  /* `data-i` IS THE BLOCK'S PLACE IN THE LIST, carried onto the page so the balancer can measure the
-     blocks, move them, and still put each column back into list order afterwards. */
+  /* ---------- ONE GRID, AND EVERY BLOCK TAKES ITS OWN SLOT IN IT -----------------------------------
+     THIS WAS A HUNDRED AND FIFTY LINES of runs, stacks, `pair` runs and a balancer that measured the
+     blocks and moved them between columns. Every one of them answered "how wide is this block, given
+     what else is here" — the question a fixed area does not ask — and their notes recorded each way
+     it went wrong: a run of two drawn in three left a 56mm strip of white; one narrow block alone was
+     drawn at the full 184mm; a `sort_order` typed into one cell dropped the hundred square from 88mm
+     to 56. What replaced them is the grid in the stylesheet (`.mat-cols`) and two numbers per block:
+     `span` tracks across and `h` millimetres down, neither of which reads anything else on the sheet.
+     `dense` LETS A NARROW BLOCK DROP INTO THE THIRD LEFT BESIDE A TWO-THIRDS GRID, which is the only
+     packing the page needs, and the order is otherwise the list's — so moving a component in the
+     sheet moves it on the page, and nothing can change how big it is.
+     `data-i` IS THE BLOCK'S PLACE IN THE LIST and `data-id` its component, so a slot on the paper
+     can be matched back to the thing that owns it. */
   let cellN = 0;
-  const cell = c => `<div class="mat-box${c.bare ? ' bare' : ''}" data-i="${cellN++}">${
+  /* `is-wide` / `is-narrow` BECAUSE A LABEL/VALUE BLOCK LAYS ITSELF OUT DIFFERENTLY at a third of
+     the page (two columns) and across the whole of it (four) — the stylesheet reads the class
+     rather than working the width out again. */
+  const cell = c => `<div class="mat-box${c.bare ? ' bare' : ''}${
+    matSpan(c) === MAT_TRACKS ? ' is-wide' : ' is-narrow'}" data-i="${cellN++}" data-id="${
+    esc(c.id)}" style="grid-column:span ${matSpan(c)};grid-row:span ${Math.round(c.h / MAT_ROW)}">${
     c.bare ? '' : `<h4>${esc(c.name)}</h4>`}${matDraw(c)}</div>`;
-  /* ---------- COLUMNS THAT FILL, NOT ROWS THAT STRETCH ---------------------------------------------
-     ROWS WERE THE REASON THE PAGE LOOKED UNTIDY. Three blocks side by side in a row are three cells
-     of one grid, so every one of them is as tall as the tallest — and the blocks are nothing like
-     the same height. 'Circle' is one line and sat beside a nine-row trig table; 'Percentage change'
-     is one line and sat beside Angle rules, which is ten. The short ones did not shrink, they were
-     given sixty millimetres of nothing underneath, and the sheet came out as text with holes in it.
-
-     A COLUMN DOES NOT DO THAT. Each of the three is its own stack and ends where its last block
-     ends, so a one-line block costs one line wherever it lands.
-
-     FILLED SHORTEST-FIRST, in order. Each block goes to whichever column is currently shortest,
-     which is the ordinary way of levelling three stacks and needs nothing but the height already in
-     the list. Reading order becomes column-major rather than row-major — down one column, then down
-     the next — which is how a page of columns is read anyway.
-
-     THE HEIGHTS ARE THE LIST'S, NOT THE PAGE'S. They are only used to decide which column is
-     behind; the gauge still measures what was actually rendered, so an estimate being a few
-     millimetres out costs a slightly uneven pair of columns and never a wrong budget. */
-  /* `across` IS OPTIONAL AND ONLY THE `pair` RUN PASSES IT. Everything else keeps the rule below —
-     as many columns as there are blocks, up to three — because for an ordinary run that is what
-     stops an empty column being drawn and charged for. */
-  const stack = (cs, across) => {
-    /* ---------- AS MANY COLUMNS AS THERE ARE BLOCKS, UP TO THREE -------------------------------
-       A RUN OF TWO WAS STILL DRAWN IN THREE. Two blocks went into two columns and the third was
-       left empty — a 56mm strip of white paper with a rule down the side of it, and the gauge
-       charged for it, because the gauge measures the width of the run and the run was full width
-       whether or not anything was in it. On the SATs sheet the number square and the times table
-       are the only two half-width blocks before the number line breaks the run, so the very first
-       thing on the page was a third of a page of nothing.
-       TWO BLOCKS SHARE THE WIDTH INSTEAD. They get 88mm each rather than 56, which is the room a
-       ten-cell hundred square and a thirteen-cell times table both wanted anyway. */
-    const cols = Array.from({ length: across || Math.min(MAT_ACROSS, cs.length) },
-                            () => ({ h: 0, out: [] }));
-    /* ---------- TALLEST FIRST, THEN PUT THE ORDER BACK -------------------------------------------
-       TAKING THEM IN ORDER LEVELLED BADLY WHENEVER THE LAST BLOCK WAS THE BIGGEST. On the GCSE
-       sheet it is: Angle rules is 35mm and arrives last, so it lands on a column that is already
-       the tallest and the three come out 52, 45 and 78 — a page whose third column runs 26mm past
-       the other two, which is the ragged bottom edge this was meant to fix.
-
-       PLACING THE BIG ONES WHILE THERE IS STILL ROOM TO CHOOSE gives 55, 58 and 62 from the same
-       nine blocks. It is the ordinary way of levelling stacks and it costs one sort.
-
-       AND THE ORDER GOES BACK AFTERWARDS, so this decides only WHICH column a block is in, never
-       where it sits within one. A column still reads top to bottom in the order of the list. */
-    cs.map((c, i) => ({ c, i }))
-      .sort((a, b) => (b.c.h || 0) - (a.c.h || 0))
-      .forEach(({ c, i }) => {
-        const to = cols.reduce((a, b) => (b.h < a.h ? b : a));
-        to.out.push({ c, i });
-        to.h += c.h || 0;
-      });
-    return `<div class="mat-two-up">${cols.map(col =>
-      `<div class="mat-col">${col.out.sort((a, b) => a.i - b.i)
-        .map(x => cell(x.c)).join('')}</div>`).join('')}</div>`;
-  };
-  /* A FULL-WIDTH BLOCK STILL PRINTS WHERE IT WAS, at full width — it closes the run of narrow blocks
-     in front of it and starts a new one behind. That is the part that was worth keeping. */
-  /* ---------- THE `pair` BLOCKS ARE DRAWN TOGETHER, TWO ACROSS, WHATEVER ELSE IS TICKED -----------
-     A NARROW BLOCK'S WIDTH IS DECIDED BY HOW MANY OTHERS SHARE ITS RUN — see `stack`. That is right
-     for the ordinary blocks and wrong for the hundred square and the times table, whose whole value
-     is how big the cells are.
-
-     IT LOOKS STABLE AND IT IS NOT. In the order this file is written the two grids are the only
-     narrow blocks before the number line, so they always land in a run of two and always get 88mm.
-     Nothing enforces that: the `cheatsheet` tab's `sort_order` decides the order, so one number
-     typed into one cell moves any narrow component between them and the grids drop to 56mm, with
-     cells going from 11.7px to 7.5px in the preview. Measured, with `M05` at order 25.
-
-     THE FIRST TWO ATTEMPTS AT THIS WERE BOTH WORSE, and both are worth recording because they are
-     the two obvious ideas:
-
-       ONE COLUMN COUNT FOR THE WHOLE SHEET, chosen from how much there is to fit. It made the
-       grids 56mm on the sheet where they matter, and put back the empty-column fault `stack`'s own
-       note describes — a run of two drawn in three leaves a 56mm strip of white with a rule down it.
-
-       A RUN OF THEIR OWN, CLOSED BY ANYTHING THAT IS NOT ONE OF THEM. With a component reordered
-       between them they end up one per run, so each is drawn at the full 184mm — a hundred square
-       184mm tall is most of a 262mm page and the times table has nowhere left to go.
-
-     SO THEY ARE COLLECTED, not merely separated. Every `pair` block on the sheet is drawn as one
-     run at the position of the first of them, and that run is always two across. They cannot be
-     split by anything typed into the sheet, and they cannot stretch to full width when one of them
-     is unticked — the size is the size. Moving one in the sheet still moves the pair on the page;
-     what it can no longer do is change how big they are. */
-  const queue = pieces.slice();          /* a copy: `pieces` is read again for the gauge */
-  const pairs = queue.filter(c => c.half && c.pair);
-  let pairsDone = !pairs.length;
-  let run = [];
-  const close = () => { if (run.length) { h += stack(run); run = []; } };
-  while (queue.length) {
-    const c = queue.shift();
-    if (c.pair && c.half) {
-      /* THE FIRST ONE DRAWS ALL OF THEM; the rest are already in that run and are skipped here. */
-      if (pairsDone) continue;
-      close();
-      pairsDone = true;
-      /* ALWAYS TWO COLUMNS, not `pairs.length`. With one of the two unticked, `stack` left to
-         itself would draw the survivor in a single column at the full 184mm — three times the
-         width it has at every other moment, which is the opposite of a fixed size. */
-      h += stack(pairs, 2);
-      continue;
-    }
-    if (c.half) run.push(c);
-    else { close(); h += cell(c); }
-  }
-  close();
+  const h = pieces.map(cell).join('');
 
   /* THE LEVEL IS ON THE PAPER. Six sheets in a folder all headed "Cheat sheet" are six sheets you
      have to read to tell apart, and the one thing that distinguishes them is already known here.
@@ -1371,17 +1374,48 @@ function matPaint() {
      would take the scale away and leave a 20mm strip of nothing down the page — which reads as a
      printing fault rather than as a choice. */
   const ruled = MAT_ON.indexOf('M01') !== -1;
-  out.innerHTML = `<div class="mat-sheet${ruled ? ' ruled' : ''}">${
+  /* THE GRID'S THREE NUMBERS ARE HANDED TO THE STYLESHEET FROM HERE, so the tracks the paper is
+     laid out on and the widths the picker prices from are the same constants rather than two copies
+     of them — the disagreement this file has already paid for twice. */
+  const grid = `--mat-tracks:${MAT_TRACKS};--mat-gut:${MAT_GUT}mm;--mat-row:${MAT_ROW}mm;`
+             + `width:${MAT_TEXT_W}mm`;
+  const probe = matProbe(`<div class="mat-sheet${ruled ? ' ruled' : ''}">${
     ruled ? `<div class="mat-rule">${matRuler(285)}</div>` : ''}
     <div class="mat-head"><h3>${esc(title)}</h3><span>${esc(B.name)}</span></div>
-    <div class="mat-cols">${h}</div>
+    <div class="mat-cols" style="${grid}">${h}</div>
     <div class="mat-foot"><span>${esc(foot)}</span>
-      <b>${esc(B.site)}</b></div></div>`;
+      <b>${esc(B.site)}</b></div></div>`);
 
-  /* MEASURED, NOT ADDED UP. The heights in the list are what each costs ALONE; two halves in a row
-     cost the taller of them, and no table of numbers can know which pairs got ticked. Reading the
-     rendered column is the only figure that is always right. */
-  const cols = out.querySelector('.mat-cols');
+  /* ---------- A SLOT IS NEVER ALLOWED TO CUT A FORMULA OFF ------------------------------------------
+     `MAT_SLOT` IS MEASURED, and a measurement can go stale — a row added to a block, a font that
+     renders wider. A fixed slot that silently clipped the last line of the quadratic formula would be
+     worse than one that grew, because the sheet is photocopied thirty times before anybody reads the
+     bottom of it. So a slot its own drawing overflows takes the rows it needs, and the console names
+     it: the fixed size is the rule and this is the alarm that says the table needs a new number. */
+  const px = matPx();
+  const cols = probe.querySelector('.mat-cols');
+  if (cols) cols.querySelectorAll('.mat-box').forEach(b => {
+    if (b.scrollHeight <= b.clientHeight + 1) return;
+    const rows = Math.ceil(b.scrollHeight / px / MAT_ROW);
+    b.style.gridRow = 'span ' + rows;
+    if (typeof console !== 'undefined') {
+      console.warn('[mat] ' + b.getAttribute('data-id') + ' needs ' + rows * MAT_ROW
+                 + 'mm and its slot is smaller — update MAT_SLOT');
+    }
+  });
+  /* THE TOP ROW TAKES NO HAIRLINE. It is already under the heavy rule below the title, and two
+     lines 2mm apart is a mistake that looks deliberate. Which blocks ARE the top row is the grid's
+     answer rather than the list's — a narrow block may be packed up beside a wide one — so it is
+     asked of the laid-out page. */
+  if (cols) {
+    const top = cols.getBoundingClientRect().top;
+    cols.querySelectorAll('.mat-box').forEach(b =>
+      b.classList.toggle('is-top', b.getBoundingClientRect().top - top < 1));
+  }
+
+  /* MEASURED, NOT ADDED UP. The slots are fixed, but which of them the grid packs side by side is
+     not something a table of numbers can know. Reading the rendered column is the figure that is
+     always right. */
   /* ---------- THE PAGE IS AN AREA, NOT A HEIGHT ---------------------------------------------------
      THIS MEASURED THE COLUMN'S HEIGHT, which works while everything is stacked and breaks the
      moment something is not. The ruler is the case that broke it: 20mm off the WIDTH of every row
@@ -1417,49 +1451,40 @@ function matPaint() {
     ? `<b>${Math.round((used - room) / 100)}cm² too much</b> — untick something, or the bottom is cut off.`
     : `<b>${pct}% used</b> · ${left}cm² of paper left.`;
   $('mat-go').disabled = over || !pieces.length;
-  matBalance(out);
-  matFit();
-  matWatch();
+  /* WHAT GOES TO THE PRINTER is the sheet exactly as it was measured — slots grown, top row marked —
+     kept as markup so `mat-print` prints the page the gauge was talking about rather than a second
+     rendering of it. */
+  MAT_SHEET = probe.innerHTML;
+  probe.remove();
 }
 
-/* ---------- THE COLUMNS ARE LEVELLED AGAIN, ON HEIGHTS THAT ARE REAL ------------------------------
-   `h` IS AN ESTIMATE AND SOME OF THEM ARE A LONG WAY OUT. On the GCSE Higher sheet the trig trick is
-   written as 33mm and renders at about 24; index laws is written as 24 and renders at about 77,
-   because it is seven rows and two of them hold a fraction. Balancing on those numbers put the
-   short block alone in one column and the tall one alone in the next, and the first column finished
-   160 pixels above the second — the ragged bottom the packing was supposed to remove.
+/* ---------- THERE IS NO PREVIEW ---------------------------------------------------------------------
+   ASKED FOR AS "same for cheat sheet maker" — the preview removed, as for the flyer. It was an A4 page
+   scaled to a phone with a transform, most of the card's height spent on a picture of the sheet at a
+   size where the type could not be read, and it had cost this file three faults: `matFit` guessing a
+   phone width while the panel was off screen, the sheet running off the bottom of the card, and two
+   wrong fixes to `.mat-out` made on a measurement nobody took. `matFit`, `matWatch`, `matBalance` and
+   `.mat-out` are gone with it.
 
-   SO IT IS DONE TWICE. Once from the estimates, to get something on the page; then measured and
-   done again from what actually rendered. The blocks are moved, not rebuilt — the same nodes are
-   appended to different columns, so nothing is drawn a second time.
-
-   THE WIDTHS ARE EQUAL, which is what makes this sound: a block measured in one column is the same
-   height in any of them, so the second pass can trust the first pass's measurements.
-
-   AND `h` STOPS DECIDING THE LAYOUT. It still prices the row in the picker, and the gauge still
-   measures the page, but a wrong estimate can no longer tilt the columns. */
-function matBalance(out) {
-  out.querySelectorAll('.mat-two-up').forEach(run => {
-    const cols = Array.prototype.slice.call(run.querySelectorAll('.mat-col'));
-    if (cols.length < 2) return;
-    const boxes = [];
-    cols.forEach(col => Array.prototype.slice.call(col.children).forEach(b =>
-      boxes.push({ el: b, i: +b.getAttribute('data-i'), h: b.getBoundingClientRect().height })));
-    if (boxes.length < 2) return;
-    const bins = cols.map(() => ({ h: 0, out: [] }));
-    boxes.slice().sort((a, b) => b.h - a.h).forEach(b => {
-      const to = bins.reduce((a, c) => (c.h < a.h ? c : a));
-      to.out.push(b);
-      to.h += b.h;
-    });
-    bins.forEach((bin, n) => bin.out.sort((a, b) => a.i - b.i)
-      .forEach(b => cols[n].appendChild(b.el)));
-  });
+   THE PAGE STILL HAS TO BE LAID OUT, because the gauge is a measurement of it. So it is built in a
+   probe at true size, at the end of `body` where no transformed column can scale it or clip it,
+   measured, and taken away again in the same tick — nothing is ever painted, and no layout outlives
+   the function. `MAT_SHEET` keeps the result for the printer. */
+let MAT_SHEET = '';
+function matProbe(html) {
+  const p = document.createElement('div');
+  p.className = 'mat-probe';
+  p.style.cssText = 'position:absolute;left:-10000px;top:0;width:210mm;visibility:hidden;'
+                  + 'pointer-events:none';
+  p.setAttribute('aria-hidden', 'true');
+  p.innerHTML = html;
+  document.body.appendChild(p);
+  return p;
 }
 
-/* THE SHEET IS SCALED TO THE SCREEN and back to 1 for printing, where 210mm really is 210mm. The
-   factor is measured rather than assumed, because the box width changes with the screen and a
-   hard-coded one would be right on a single device. */
+/* HOW MANY PIXELS A MILLIMETRE IS, measured rather than assumed — 3.7795 is what a browser SHOULD
+   make of one, and under a page zoom it is not. The gauge divides the probe's rendered box by this;
+   it scaled the old on-screen preview too, which is gone (see `matProbe`). */
 function matPx() {
   const p = document.createElement('div');
   p.style.cssText = 'width:100mm;position:absolute;visibility:hidden';
@@ -1468,95 +1493,32 @@ function matPx() {
   p.remove();
   return k || 3.7795;
 }
-/* ---------- MEASURE, OR WAIT ---------------------------------------------------------------------
-   `out.clientWidth || 320` was the phone bug. A hidden element measures 0, and this is usually
-   painted before its screen is on camera — so the sheet was scaled to a GUESS at a phone width.
-   Desktop paints visible, measures fine, never hits the fallback: same code, two pages. And 320 is
-   plausible enough that the result looked like a fit, so nothing ever looked wrong.
-   No width now means not laid out yet; the observer calls back when it is. */
-function matFit() {
-  const out = $('mat-out'), sheet = out && out.querySelector('.mat-sheet');
-  if (!sheet) return;
-  const room = out.getBoundingClientRect().width;
-  if (!room) return;                     /* not on screen yet; the observer will call again */
-  const px = matPx();
-  /* ---------- A4 IS TALLER THAN IT IS WIDE, AND THIS ONLY EVER MEASURED THE WIDTH -----------------
-     THE SHEET FITTED THE COLUMN AND THEN RAN OFF THE BOTTOM. Measured on the Tools column once the
-     card stopped being clipped wholesale: 16px of the sheet past the cut at 390 and 50px at 768 —
-     the wider the column, the bigger the sheet, and 297/210 of the extra width goes downwards.
-
-     SO IT FITS THE BOX RATHER THAN THE COLUMN. Whichever of the two is tighter wins, which is the
-     same shape as `CARD_W`: one number decides the scale, and nothing else can disagree with it.
-
-     THE HEIGHT IS WORKED OUT FROM THE SIBLINGS, NOT FROM `out` ITSELF. `out.style.height` is set by
-     the line below and the `ResizeObserver` watches `out` — so reading its own height here would be
-     a loop that re-scaled on every frame. What is left for the sheet is the box minus everything
-     BESIDE it, which this function never writes to, so one pass settles it.
-
-     A FLOOR OF HALF, because past that the preview stops being a preview. A sheet at 0.3 of a phone
-     column is a grey stamp you cannot read a word of, and clipping the bottom margin of a legible
-     one is the better of the two — the same judgement `.mat-out` already records about `overflow:
-     hidden` versus a scrollbar under a sheet that is entirely on screen. */
-  const box = out.parentElement;
-  let beside = 0;
-  if (box) [].forEach.call(box.children, c => {
-    if (c !== out) beside += c.getBoundingClientRect().height;
-  });
-  const tall = box ? Math.max(0, box.clientHeight - beside) : 0;
-  const byW = room / (210 * px);
-  const byH = tall ? tall / (297 * px) : Infinity;
-  const k = Math.max(Math.min(1, byW, byH), Math.min(1, byW) * 0.5);
-  sheet.style.transform = 'scale(' + k.toFixed(4) + ')';
-  /* THE SPACE IT LEAVES BEHIND. A scaled element still occupies its full unscaled height, so
-     without this the sheet sits in a column of white taller than the phone. */
-  out.style.height = (297 * px * k) + 'px';
-}
-
-/* WATCHES THE BOX, NOT THE WINDOW. `resize` does not fire when a hidden panel becomes visible, when
-   a column changes width because something else on the screen collapsed, or when the sheet is
-   painted before layout — which are the three ways this went wrong. A ResizeObserver fires for all
-   of them, and for the window too. */
-let MAT_WATCH = null;
-function matWatch() {
-  const out = $('mat-out');
-  if (!out || MAT_WATCH || typeof ResizeObserver !== 'function') return;
-  MAT_WATCH = new ResizeObserver(() => matFit());
-  MAT_WATCH.observe(out);
-}
-
 /* PRINTING FROM INSIDE THE APP. A browser prints the whole document, so the class hides everything
    else and lifts the sheet out at full size — set only while printing, so a print started anywhere
    else is untouched. The timer is there because some browsers never fire `afterprint` on a
    cancelled dialogue, and the app would be left with everything hidden: a blank screen that looks
    exactly like a crash. */
 on('mat-print', () => {
-  const sheet = document.querySelector('.mat-out .mat-sheet');
-  if (!sheet) return;
-  /* A COPY, PRINTED FROM THE END OF THE BODY, rather than the sheet where it sits.
-     Undoing the scale was never the whole job. `body` is a centred 26.5rem column — 115mm — with
-     `overflow-x: clip` and `position: relative`, so a 210mm sheet positioned `absolute; left: 0`
-     inside it starts where the COLUMN starts, not where the paper does, and everything past 115mm
-     is clipped off the page. What came out was a sheet shifted right by half the margin with its
-     right-hand half missing, a ruler that stopped at 12cm and a trig table with no 90° column.
-     THE CLONE IS WHY THIS IS A COPY AND NOT A MOVE. Moving the real sheet out and back leaves the
-     tool broken if the print throws between the two; a copy that is deleted afterwards cannot. */
+  if (!MAT_SHEET) return;
+  /* BUILT AT THE END OF THE BODY, from the sheet the gauge measured. It was always a copy here —
+     `body` is a centred 26.5rem column that clips at 115mm, so a sheet printed from inside the card
+     came out shifted right with its right-hand half missing — and with no preview on the card it is
+     now a copy of `MAT_SHEET`, which is the same page without a second rendering of it. */
   const paper = document.createElement('div');
   paper.className = 'mat-paper';
-  paper.appendChild(sheet.cloneNode(true));
+  paper.innerHTML = MAT_SHEET;
   document.body.appendChild(paper);
   document.body.classList.add('printing-mat');
   const done = () => {
     document.body.classList.remove('printing-mat');
     paper.remove();
-    matFit();
     window.removeEventListener('afterprint', done);
   };
   window.addEventListener('afterprint', done);
+  /* AND A TIMER, because some browsers never fire `afterprint` on a cancelled dialogue, and the app
+     would be left with everything hidden: a blank screen that looks exactly like a crash. */
   setTimeout(done, 4000);
   /* `window.print()`, NOT `print()`. Bare it works — it is a global — and it reads as a function
-     this file forgot to declare, which is exactly what `check.js` said. A name that has to be
-     recognised as a browser built-in rather than as a mistake costs a reader a lookup. */
+     this file forgot to declare, which is exactly what `check.js` said. */
   window.print();
 });
-
-window.addEventListener('resize', () => { if ($('mat-out')) matFit(); });
