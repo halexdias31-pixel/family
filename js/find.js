@@ -7442,6 +7442,22 @@ function stuffBlank_(el) {
   if (pane) pane.innerHTML = '';
 }
 
+/* WHERE THE WINDOW STARTS, given how many results there are, how many pages come before them and
+   where it started last time. One function because TWO things build the window — `stuffWindow_`,
+   recycling the elements already there, and `screen('stuff')`, drawing it from nothing — and two
+   copies of this arithmetic would be two answers to which result is on which element. */
+function stuffLo_(want, keep, had) {
+  const size = Math.min(want, STUFF_WIN);
+  const maxLo = Math.max(0, want - size);
+  /* WHICH RESULT WE ARE ON, counted from the first one rather than from the top of the column. */
+  const r = Math.max(0, (PAGE.stuff || 0) - keep);
+  let lo = Math.max(0, Math.min(maxLo, had || 0));
+  if (r < lo + STUFF_EDGE || r > lo + size - 1 - STUFF_EDGE) {
+    lo = Math.max(0, Math.min(maxLo, r - ((size - 1) >> 1)));
+  }
+  return lo;
+}
+
 function stuffWindow_() {
   const host = $('s-stuff');
   if (!host) return;
@@ -7454,12 +7470,7 @@ function stuffWindow_() {
   const size = Math.min(want, STUFF_WIN);
   const maxLo = Math.max(0, want - size);
   const had = Math.max(0, Math.min(maxLo, PAGE_LO.stuff || 0));
-  /* WHICH RESULT WE ARE ON, counted from the first one rather than from the top of the column. */
-  const r = Math.max(0, (PAGE.stuff || 0) - keep);
-  let lo = had;
-  if (r < lo + STUFF_EDGE || r > lo + size - 1 - STUFF_EDGE) {
-    lo = Math.max(0, Math.min(maxLo, r - ((size - 1) >> 1)));
-  }
+  const lo = stuffLo_(want, keep, had);
 
   /* ---------- THE COUNT FIRST, AT THE TAIL --------------------------------------------------------
      Growing appends and shrinking removes from the END, which is the high-numbered end of the
@@ -7626,7 +7637,6 @@ function paintStuff(keepPage) {
      every page in the window is standing for something different anyway. */
   [].slice.call(host.querySelectorAll(':scope > .page.is-res')).forEach(el => el.remove());
   PAGE_LO.stuff = 0;
-  stuffWindow_();
 
 
   /* AND BACK TO THE TOP OF THE RESULTS. A filter is a new question, and the answer to it starts at
@@ -7641,10 +7651,18 @@ function paintStuff(keepPage) {
      and a saved page you were looking at is still the page it was — it is the RESULTS that slide.
      So a position before the first result is left exactly where it is, and one at or past it is
      carried by the same amount the results moved. */
+  /* CLAMPED TO THE COLUMN'S PAGE COUNT, NOT TO `host.children.length`. That was the page count
+     before the strip was windowed and is about sixteen now — so a star, a repaint of a card or a
+     booking dropdown on result forty put you on page fifteen: a different card, under your thumb.
+     Measured, not reasoned: the same probe that found the repaint fault above. */
   PAGE.stuff = keepPage
     ? Math.max(0, Math.min(was >= wasFirst ? was + (stuffFirstResult_() - wasFirst) : was,
-                           host.children.length - 1))
+                           pageCount('stuff') - 1))
     : stuffQuestionPage_();
+  /* AND THE WINDOW IS BUILT AROUND THE PAGE WE ARE GOING TO BE ON, so it is decided first. Built
+     around the old one, a shift of a page or two in front could put the new page just past the
+     window's edge, where there is no element to fill. */
+  stuffWindow_();
 
   fillStuffPages();
   paintPager('stuff', true);
@@ -8474,9 +8492,35 @@ screen('stuff', () => {
      carries the argument; what matters here is that it is gone rather than copied, because two
      homes for one list is the `documents_()` fault and `PAGER.stuff` had never counted these pages
      while this line drew them. */
-  return pages('stuff', [controls].concat(
-    frontPages_(),
-    Array.from({ length: stuffPageCount() }, () => '')));
+  /* ---------- THE DRAW BUILDS THE WINDOW, NOT ONE EMPTY PAGE PER RESULT -----------------------
+     THIS RETURNED `stuffPageCount()` BLANK PAGES — 5,690 of them with the library unfiltered — and
+     every other writer of this strip keeps a WINDOW of fifteen, marked `is-res`, with `PAGE_LO`
+     saying which result the first of them stands for. So `paint('stuff')` — which is what
+     `repaint()` does on every load, every sign-in and every save — replaced a windowed strip with
+     an unwindowed one and LEFT `PAGE_LO` where it was. `domIndex_` then pointed at the wrong
+     element: measured, six pages into a list a repaint left the page you were on blank, and after
+     a few more flicks `goPage(0)` showed a practical where the question should be, with the search
+     box on no screen at all. Nothing threw; every later fill wrote the right card into the wrong
+     element.
+
+     So it draws what `stuffWindow_` would have left: the question, the pages in front, and the
+     window, with `PAGE_KEEP` and `PAGE_LO` set to describe exactly that. The count in front is
+     `1 + frontPages_().length` because the question is page nought here, which is what
+     `stuffFirstResult_` reads back off the DOM once it exists. */
+  const front = frontPages_();
+  const keep = 1 + front.length;
+  const want = stuffPageCount();
+  PAGE_KEEP.stuff = keep;
+  PAGE_LO.stuff = stuffLo_(want, keep, PAGE_LO.stuff);
+  /* AND THE WINDOW IS FILLED A MOMENT LATER, because a page cannot be filled until it is in the
+     document and `paint` writes the markup after this returns. A microtask rather than a timer:
+     it runs before the browser draws, so the page you are on is never seen empty — and
+     `fillStuffPages` settles the column itself once the cards have their heights. */
+  if (typeof queueMicrotask === 'function') {
+    queueMicrotask(() => { try { if ($('stuff-controls')) fillStuffPages(); } catch (e) {} });
+  }
+  return pages('stuff', [controls].concat(front))
+    + '<section class="page is-res"><div class="pane"></div></section>'.repeat(Math.min(want, STUFF_WIN));
 }, () => '');
 /* THE `basket ‧ 2` LINK WENT WITH THE SHEET IT OPENED. The basket is the page in front of this one
    — one swipe, and the pager names it — so a control that jumps there is a shortcut to somewhere

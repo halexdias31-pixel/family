@@ -1665,8 +1665,19 @@ const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booki
    path every column shares. */
 const PAGE_KEEP = {};
 const PAGE_LO = {};
-/* WHICH ELEMENT IS PAGE `i`. */
-const domIndex_ = (id, i) => (i < (PAGE_KEEP[id] || 0) ? i : i - (PAGE_LO[id] || 0));
+/* WHICH ELEMENT IS PAGE `i` — AND -1 FOR A PAGE THAT HAS SCROLLED OFF THE FRONT OF THE WINDOW.
+   `i - PAGE_LO` alone answered a number for those too, and it was the number of a LEADING page:
+   with one page kept and the window starting eight results in, result page 8 came out as element
+   nought, which is the question. `fillStuffPages` walks five pages either side of where you are,
+   so swiping back up a list wrote a practical's card into the question's pane — measured: the
+   search box, the chips and every answer gone from the screen with nothing thrown, and `goPage(0)`
+   landing on a card. A page past the END already had no element; this makes the front the same. */
+const domIndex_ = (id, i) => {
+  const keep = PAGE_KEEP[id] || 0;
+  if (i < keep) return i;
+  const d = i - (PAGE_LO[id] || 0);
+  return d < keep ? -1 : d;
+};
 /* AND WHICH PAGE ELEMENT `p` IS. */
 const logIndex_ = (id, p) => (p < (PAGE_KEEP[id] || 0) ? p : p + (PAGE_LO[id] || 0));
 
