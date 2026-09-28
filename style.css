@@ -2196,10 +2196,19 @@ button.text-drop { color: var(--bad); }
 
    Where there is no backdrop-filter at all, a translucent pane over a dark app is nearly
    invisible rather than merely unblurred. A solid fill instead, so it still reads as a surface. */
-.screen.on .pane, .page.on .pane {
-  backdrop-filter: blur(16px) saturate(1.5);
-  -webkit-backdrop-filter: blur(16px) saturate(1.5);
-}
+/* ---------- AND THEN THE BLUR WENT, BECAUSE IT WAS BLURRING NOTHING ---------------------------------
+   `.screen.on .pane, .page.on .pane { backdrop-filter: blur(16px) saturate(1.5) }` WAS HERE. The
+   note above says one blur at a time; `.screen.on .pane` is every pane on the screen in front, which
+   on the Find screen is sixteen of them and on Settings thirteen — sixteen live backdrop blurs,
+   recomposited through every page turn and every sideways slide.
+   AND NOT ONE OF THEM COULD BE SEEN. A backdrop filter draws BEHIND the element's own background,
+   and `.pane`'s background ends in `#101010`, which is opaque. MEASURED, screenshots of the Find
+   screen, a question card and the feed with the blur and without it: the largest difference in any
+   pixel is 2/255 on the two funnel screens, and the feed differs only by text anti-aliasing moving
+   when the compositing layer went. The note above already says a card must read as a card with the
+   blur taken away entirely — "an old browser, a slow phone, a future speed fix" — and this is the
+   third of those. REPORTED AS "when students click questions it takes ages to load on phone": a
+   backdrop blur is the effect a phone's GPU pays most for, and CPU throttling cannot even see it. */
 /* The fallback is no longer load-bearing — `.pane` has a real fill of its own above — but it stays,
    because a browser with no backdrop-filter should get the flatter, more solid version rather than
    the one designed to have a blur under it. */

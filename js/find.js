@@ -669,9 +669,18 @@ function kindMap_() {
 
 /* THE GROUPS IN THE ORDER THEY ARE OFFERED, lowest `sort_order` of any kind in the group first —
    so a group moves by moving any one of its kinds, and there is no second list to keep in step. */
+/* HELD AGAINST THE KIND MAP IT WAS READ FROM, because `facetTally_`'s comparator asks for it on
+   every comparison while it sorts a question's answers — an `Object.keys`, a walk and a
+   `localeCompare` sort, dozens of times a tap, for a list that changes only when `kindMap_` does. A
+   copy is handed out so nothing can reorder the one that is kept. */
+let GROUP_ORDER = null, GROUP_ORDER_FOR = null;
 function groupOrder_() {
+  const m0 = kindMap_();
+  if (GROUP_ORDER_FOR !== m0 || !GROUP_ORDER) { GROUP_ORDER = groupOrderFresh_(m0); GROUP_ORDER_FOR = m0; }
+  return GROUP_ORDER.slice();
+}
+function groupOrderFresh_(m) {
   const seen = {};
-  const m = kindMap_();
   Object.keys(m).forEach(k => {
     /* EVERY GROUP THE KIND IS IN, so a kind belonging to two puts its number against both — and a
        group still moves by moving any one of its kinds. */
@@ -788,7 +797,14 @@ const facetSame_ = v => {
 /* The raw reader of another facet, off `FACETS` rather than off `facetList()`: the sheet may
    relabel and reorder a question but it cannot change what a column holds, and going through the
    live list would make a `not:` chain depend on which rows the sheet happens to carry. */
-const facetRaw_ = field => FACETS.find(f => f.field === field);
+/* A MAP, BUILT ON FIRST USE — this is asked once per item per deferring facet while a question is
+   tallied, and `FACETS` is a fixed array, so a `find` along it each time was the same answer
+   bought five thousand times a tap. Built lazily because `FACETS` is declared further down. */
+let FACET_RAW = null;
+const facetRaw_ = field => {
+  if (!FACET_RAW) { FACET_RAW = new Map(); FACETS.forEach(f => { if (!FACET_RAW.has(f.field)) FACET_RAW.set(f.field, f); }); }
+  return FACET_RAW.get(field);
+};
 
 /* Every value of one facet that the facet it defers to does NOT already give this item. */
 function facetOwn_(facet, x) {
@@ -1564,7 +1580,21 @@ const facetMin_ = v => {
   return n < 0 ? 0 : n;
 };
 
-const facetBy = f => facetList().find(x => x.field === f) || FACETS.find(x => x.field === f);
+/* A MAP OVER THE LIVE LIST, rebuilt only when `facetList` hands back a different array. This is
+   called once per item per chip inside the filter — about seventy thousand times across a walk down
+   the funnel — and a `find` along twenty-odd facets each time is work a phone does not need. Same answer
+   as the two `find`s it replaces: the live list first, then the code's own. */
+let FACET_BY_FROM = null, FACET_BY = null;
+const facetBy = f => {
+  const live = facetList();
+  if (FACET_BY_FROM !== live) {
+    FACET_BY = new Map();
+    FACETS.forEach(x => { if (!FACET_BY.has(x.field)) FACET_BY.set(x.field, x); });
+    [].concat(live).reverse().forEach(x => FACET_BY.set(x.field, x));
+    FACET_BY_FROM = live;
+  }
+  return FACET_BY.get(f);
+};
 
 /** Does one item satisfy one chosen filter? One comparison, because a facet says how to read
     itself — the old version had a switch with a case per field, which is a place to forget one. */
@@ -4324,6 +4354,18 @@ function needsOf_(r, at) {
   return out;
 }
 
+/* THE SEARCH HAYSTACK FOR ONE QUESTION — see the `text` getter in `questionItems`, which is the
+   only caller and the reason this is a function rather than an expression in the object literal. */
+function questionText_(r, lead, spec) {
+  return searchText_(r) + lead.map(p => ' ' + searchText_(p)).join('')
+            + ' ' + topicAtoms_(r.row ? r.row.topics : r.topics).join(' ')
+            + ' ' + companyAtoms_(r.row ? r.row.company : r.company)
+            /* AND THE CODE ON THE COVER — see `paperCodeAtoms_`. Off the raw file row, because
+               `spec_code` and `paper_id` are both columns of it and neither is enumerated onto the
+               payload object. */
+            + ' ' + paperCodeAtoms_(r.row || r, spec);
+}
+
 function questionItems() {
   const all = DATA.questions || [];
   if (!all.length) return [];
@@ -4423,13 +4465,19 @@ function questionItems() {
          THE FUNNEL'S ORDER IS NOT CHANGED HERE, deliberately. `at` is editorial and the `facets`
          sheet owns it: putting `company` at a low `order` asks it early, with no deploy. That is
          a judgement about what somebody wants asked first, and it is not mine to make. */
-      text: searchText_(r) + lead.map(p => ' ' + searchText_(p)).join('')
-            + ' ' + topicAtoms_(r.row ? r.row.topics : r.topics).join(' ')
-            + ' ' + companyAtoms_(r.row ? r.row.company : r.company)
-            /* AND THE CODE ON THE COVER — see `paperCodeAtoms_`. Off the raw file row, because
-               `spec_code` and `paper_id` are both columns of it and neither is enumerated onto the
-               payload object. */
-            + ' ' + paperCodeAtoms_(r.row || r, spec),
+      /* ---------- BUILT THE FIRST TIME SOMETHING READS IT, NOT FOR EVERY ROW AT BOOT ------------
+         This was a plain property, so all five thousand questions had their markup stripped and
+         joined before the Find screen could draw — measured at 8x CPU, `plainText_` and
+         `searchText_` were **220 ms of the boot**, spent on a haystack nothing reads until
+         somebody types into the search box. A student tapping through the funnel never does.
+         A GETTER THAT REPLACES ITSELF WITH ITS VALUE, so the first reader pays once and every
+         reader after that gets an ordinary property: `stuffHay_`'s own `_hay` memo and
+         `check-funnel.js`'s count see exactly the string they always did. */
+      get text() {
+        const v = questionText_(r, lead, spec);
+        Object.defineProperty(this, 'text', { value: v, writable: true, enumerable: true, configurable: true });
+        return v;
+      },
       /* THE RAW FILE ROW WHERE THERE IS ONE, not the payload object built from it — see the note on
          `row:` in js/library.js. It is what a sheet-invented facet reads through, so every column of
          `data/questions.json` is filterable and not just the 29 that got enumerated. */
@@ -5995,8 +6043,24 @@ function topicPick_(cands, x) {
      `check-funnel.js` counts what lands here so it is a number rather than a silence. */
   return left.length === 1 ? left[0] : null;
 }
+/* ONE ANSWER PER ITEM PER TREE. `Topic area` is tallied on every tap that reaches it, over every
+   item still in the list, and each tally resolved every topic word of every item against the tree
+   again — the same item, the same words, the same tree, the same answer — `topicAreaOf_` showed in the 8x
+   CPU profile of every tap that reached that question. Held against the item itself, and thrown
+   away whole when `topicIndex_` is rebuilt, so a tree that lands late cannot leave a stale answer
+   behind. A copy is handed out so no caller can edit the one that is kept. */
+let TOPIC_AREA_MEMO = new WeakMap(), TOPIC_AREA_FOR = null;
 function topicAreaOf_(x) {
   const at = topicIndex_();
+  if (TOPIC_AREA_FOR !== at) { TOPIC_AREA_MEMO = new WeakMap(); TOPIC_AREA_FOR = at; }
+  const keep = x && typeof x === 'object';
+  const had = keep ? TOPIC_AREA_MEMO.get(x) : null;
+  if (had) return had.slice();
+  const out = topicAreaFresh_(x, at);
+  if (keep) TOPIC_AREA_MEMO.set(x, out.slice());
+  return out;
+}
+function topicAreaFresh_(x, at) {
   const out = [];
   asList_(topicOf_(x)).forEach(t => {
     const k = topicKey_(t), k1 = topicOne_(k);
@@ -6256,7 +6320,6 @@ function stuffFind(items, credits) {
   /* THE TWO RULES, in four lines. Filters are grouped by field, and an item must satisfy at least
      one from EVERY group — `some` within a field, `every` across them, which is exactly what
      "either / both" means written out. */
-  const byField = {};
   /* ---------- A SKIPPED QUESTION IS ASKED AND ANSWERED "ANY" -------------------------------------
      `{ any: true }` IS A FILTER THAT FILTERS NOTHING, and that is the entire mechanism. It sits in
      `STUFF.filters` so `nextFacet` — which reads that list to know what has been asked — moves on
@@ -6268,16 +6331,7 @@ function stuffFind(items, credits) {
      had a choice between answering it wrongly and going no further. Picking Year 4 took 1,093
      questions to 193 and silently threw away nine hundred KS2 questions that were just as
      relevant. */
-  STUFF.filters.forEach(f => {
-    if (f.any) return;
-    (byField[f.field] = byField[f.field] || []).push(f);
-  });
-  Object.keys(byField).forEach(field => {
-    out = out.filter(x => byField[field].some(f => filterHit(x, f, credits)));
-  });
-
-  const words = norm(STUFF.q).split(/\s+/).filter(Boolean);
-  if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
+  out = stuffNarrow_(out, STUFF.filters, stuffWords_(STUFF.q), credits);
 
   /* ONE KEY, then the name to settle ties. There was an outer sort by group — and with the
      groups gone there is nothing above the sort, which is most of why this is now four lines.
@@ -6330,6 +6384,22 @@ function stuffFind(items, credits) {
      THEY ARE WRITTEN AGAIN ANYWAY, because the key below needs them stated rather than implied: it
      is built from the fields, and a key that leans on a number happening to be inside a name is a
      key that breaks the day a name changes. This is an intent made explicit, not a bug fixed. */
+  return out;
+}
+/* THE NARROWING ITSELF, split out of `stuffFind` so `stuffFiltered` can run it over the list it
+   already has rather than over the whole library — see the note there. One body, two callers, so
+   the two cannot disagree about what a filter or a word means. */
+const stuffWords_ = q => norm(q).split(/\s+/).filter(Boolean);
+function stuffNarrow_(out, filters, words, credits) {
+  const byField = {};
+  filters.forEach(f => {
+    if (f.any) return;
+    (byField[f.field] = byField[f.field] || []).push(f);
+  });
+  Object.keys(byField).forEach(field => {
+    out = out.filter(x => byField[field].some(f => filterHit(x, f, credits)));
+  });
+  if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
   return out;
 }
 
@@ -6404,8 +6474,39 @@ function stuffFiltered() {
                               USER ? USER.credits : -1, isAdmin()]);
   if (FIND_MEMO.key === key && FIND_MEMO.from === DATA) return FIND_MEMO.items;
   const all = stuffItems();
-  const items = stuffFind(all, USER ? (USER.credits || 0) : 0);
-  FIND_MEMO = { key: key, from: DATA, items: items, total: all.length };
+  const credits = USER ? (USER.credits || 0) : 0;
+  /* ---------- A TAP ONLY EVER NARROWS, SO IT NARROWS WHAT IS ALREADY HERE --------------------------
+     EVERY ANSWER IN THE FUNNEL RE-FILTERED THE WHOLE LIBRARY FROM NOTHING — five thousand items
+     through every chip, again, to add one chip. MEASURED at 8x CPU: `stuffFind` was about 70 ms of
+     every tap, the largest single piece of the handler behind "when students click questions it
+     takes ages to load on phone".
+     A chip on a field nothing has answered yet, or a word that contains every word before it, can
+     only take things AWAY — filters on different fields are ANDed, and a haystack holding `fract`
+     holds `fra` — so the answer is the last list with the new test applied, in the same order,
+     because `filter` keeps order. Anything else — a chip dropped, a second answer to a field already
+     answered (which ORs), a word deleted — goes the long way, exactly as before.
+     `FIND_MEMO.key` IS CLEARED BY `me.js` when the list has to be rebuilt, so a null key is a memo
+     that may not be narrowed from; and `all` has to be the same array, or the library underneath
+     it has changed. */
+  const prev = FIND_MEMO;
+  const words = stuffWords_(STUFF.q);
+  let items = null;
+  if (prev.key !== null && prev.from === DATA && prev.all === all && prev.credits === credits
+      && prev.admin === isAdmin() && prev.filters && prev.words
+      && prev.filters.length <= STUFF.filters.length
+      && prev.words.every(w => words.some(n => n.includes(w)))) {
+    const same = prev.filters.every((f, i) => JSON.stringify(f) === JSON.stringify(STUFF.filters[i]));
+    const had = {};
+    prev.filters.forEach(f => { if (!f.any) had[f.field] = true; });
+    const added = STUFF.filters.slice(prev.filters.length);
+    if (same && added.every(f => f.any || !had[f.field])) {
+      items = stuffNarrow_(prev.items, added, words, credits);
+    }
+  }
+  if (!items) items = stuffFind(all, credits);
+  FIND_MEMO = { key: key, from: DATA, items: items, total: all.length, all: all, credits: credits,
+                admin: isAdmin(), words: words,
+                filters: STUFF.filters.map(f => Object.assign({}, f)) };
   return items;
 }
 
@@ -7799,9 +7900,17 @@ function paneWatch_(host) {
       });
       paneReach_(mine);
     });
-    (host.PANE_KIDS || []).forEach(k => { try { PANE_WATCH.unobserve(k); } catch (e) {} });
+    /* ONLY WHAT CHANGED IS UNOBSERVED OR OBSERVED. This ran on every placement — every tap and
+       every page turn — and let go of every card on the screen and took hold of it again. A
+       `ResizeObserver` reports every element it is newly given, so each placement bought a second
+       round of `paneReach_` over the whole screen for cards that had not changed at all —
+       re-measuring, a frame later, panes this function had measured one line above. A card that is still there keeps its watch. */
     const kids = [].slice.call(panes).map(p => p.firstElementChild).filter(Boolean);
-    kids.forEach(k => PANE_WATCH.observe(k));
+    const had = host.PANE_KIDS || [];
+    const now = new Set(kids);
+    had.forEach(k => { if (!now.has(k)) { try { PANE_WATCH.unobserve(k); } catch (e) {} } });
+    const old = new Set(had);
+    kids.forEach(k => { if (!old.has(k)) PANE_WATCH.observe(k); });
     host.PANE_KIDS = kids;
   } catch (e) {}
 }
