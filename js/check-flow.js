@@ -302,6 +302,8 @@ function boot(opts) {
       'matParts: typeof matParts === "function" ? matParts : null,' +
       'matColW: typeof matColW === "function" ? matColW : null,' +
       'matPairW: typeof matPairW === "function" ? matPairW : null,' +
+      'matSpan: typeof matSpan === "function" ? matSpan : null,' +
+      'matSpanW: typeof matSpanW === "function" ? matSpanW : null,' +
       /* THE BASKET, AND ITS ARITHMETIC. `cartMoney_` is the one place a line's price is worked out
          — print plus the laminate upgrade — and `CART` is the list it works it out from. Exposed
          together so a journey can put a line in the basket and ask what it costs, which is the
@@ -429,54 +431,55 @@ check('the basket draws a laminate control on a paper and on nothing else', asyn
   return bad;
 });
 
-/* ---------- THE TWO GRIDS ARE PRICED AT THE WIDTH THEY ARE DRAWN AT ------------------------------
+/* ---------- EVERY COMPONENT IS PRICED AT THE SLOT IT IS DRAWN IN ----------------------------------
    THE FAULT THIS GUARDS AGAINST has happened twice in `mat.js` already and both are written up
    there: the picker costs a component from its width, the page draws it at another, and the gauge
    that decides whether the sheet fits is confidently wrong. `half` was priced at 99mm while it was
    drawn at 61; the ruler was priced at 0cm² while the bar charged 52.
 
-   THE `pair` BLOCKS ARE THE THIRD CHANCE TO MAKE IT. They are laid out two across rather than
-   three, so the one number that must not be `matColW()` is theirs — and the two widths have to come
-   out of the same two constants, or changing the gutter moves one and not the other. */
-check('the cheat sheet prices its two-across blocks at two across', async () => {
+   THE SHEET IS A GRID OF FIXED SLOTS NOW ("make all components of cheat sheet maker fixed in area"),
+   so the check is the slot: every component has a span of 2, 4 or 6 tracks, a height that is a whole
+   number of rows, and the widths come out of the same constants the stylesheet is handed. The
+   hundred square and the times table were asked for bigger, by name, so they are held at two thirds
+   of the page — the one number that must not quietly drop back to a third. */
+check('the cheat sheet prices every component at the fixed slot it is drawn in', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t;
-  if (!t.matParts || !t.matColW || !t.matPairW) return ['the cheat sheet is not exported'];
+  if (!t.matParts || !t.matColW || !t.matPairW || !t.matSpan || !t.matSpanW) {
+    return ['the cheat sheet is not exported'];
+  }
   const bad = [];
   const parts = t.matParts();
-  const pair = parts.filter(c => c.pair);
-  /* ---------- NAMED, NOT COUNTED ------------------------------------------------------------------
-     THIS ASKED WHETHER ANY COMPONENT WAS MARKED `pair` and passed with one of the two unmarked —
-     which is exactly the change somebody makes by accident, editing one line of a pair. The ids are
-     written here on purpose: these two were asked for by name, and a list of two kept in two places
-     is the cheapest way to be told when one of them moves. */
+  /* NAMED, NOT COUNTED — these two were asked for by name, twice now. */
   ['M02', 'M03'].forEach(id => {
     const c = parts.find(x => x.id === id);
     if (!c) return;                 /* the sheet can hide a component; that is not this check's business */
-    if (!c.pair) {
-      bad.push(id + ' (' + c.name + ') is no longer marked `pair`, so its width goes back to '
-             + 'depending on how many other narrow blocks happen to share its run');
+    if (t.matSpan(c) !== 4) {
+      bad.push(id + ' (' + c.name + ') is ' + t.matSpan(c) + ' tracks wide — it was made two thirds '
+             + 'of the page (4 of 6) because it was asked for bigger');
     }
   });
-  if (!pair.length) {
-    return ['no component is marked `pair` any more — the hundred square and the times table were, '
-          + 'and without it their width goes back to depending on what else is ticked'];
+  if (!parts.some(c => c.id === 'M50')) bad.push('the periodic table (M50) is not in the list');
+  parts.filter(c => !c.edge).forEach(c => {
+    const span = t.matSpan(c);
+    if ([2, 4, 6].indexOf(span) === -1) bad.push(c.id + ' spans ' + span + ' tracks, not 2, 4 or 6');
+    if (!(c.h > 0) || Math.abs(c.h / 2 - Math.round(c.h / 2)) > 1e-9) {
+      bad.push(c.id + ' is ' + c.h + 'mm tall, which is not a whole number of 2mm rows');
+    }
+  });
+  /* THE ARITHMETIC, not a remembered number: 184mm of text, six tracks, five 6mm gutters. */
+  const track = (184 - 6 * 5) / 6;
+  const want3 = 2 * track + 6, want23 = 4 * track + 18;
+  if (Math.abs(t.matColW() - want3) > 0.01) {
+    bad.push('a narrow block is priced at ' + t.matColW() + 'mm; two tracks and a gutter is ' + want3);
   }
-  /* EVERY `pair` BLOCK MUST ALSO BE NARROW. A full-width one would be drawn at 184mm and priced at
-     88 — the same disagreement, pointing the other way. */
-  pair.filter(c => !c.half).forEach(c =>
-    bad.push(c.id + ' is marked `pair` but not `half`, so it is drawn full width and priced at half'));
-  const one = t.matColW(), two = t.matPairW();
-  if (!(two > one)) {
-    bad.push('a two-across block is priced at ' + two + 'mm and a three-across one at ' + one
-           + 'mm — two across cannot be the narrower of the two');
+  if (Math.abs(t.matPairW() - want23) > 0.01) {
+    bad.push('a two-thirds block is priced at ' + t.matPairW() + 'mm; four tracks and three gutters is '
+           + want23);
   }
-  /* THE ARITHMETIC, not a remembered number: 184mm of text with one 8mm gutter, halved. */
-  const want = (184 - 8) / 2;
-  if (Math.abs(two - want) > 0.01) {
-    bad.push('a two-across block is priced at ' + two + 'mm; 184mm of text less one 8mm gutter, '
-           + 'halved, is ' + want + 'mm — the gutter is being spent twice or not at all');
+  if (Math.abs(t.matSpanW(6) - 184) > 0.01) {
+    bad.push('six tracks come to ' + t.matSpanW(6) + 'mm, not the 184mm text block');
   }
   return bad;
 });
@@ -2046,7 +2049,11 @@ check('the camera card starts itself and offers the gallery', async () => {
 
   if (!/id="cam-view"/.test(html)) bad.push('the camera card has no viewfinder');
   if (!/id="cam-pick"/.test(html)) bad.push('there is no way to pick a picture from the gallery');
-  if (!/type="file"/.test(html) || !/accept="image\/\*"/.test(html)) {
+  /* `image/*` STILL, AND NOW `video/*` BESIDE IT — a post takes clips as well as photographs. The
+     test reads the attribute rather than matching it whole, so the order the two are written in is
+     not a fault. */
+  const acc = (html.match(/id="cam-pick"[^>]*accept="([^"]*)"/) || [])[1] || '';
+  if (!/type="file"/.test(html) || !/image\/\*/.test(acc)) {
     bad.push('the gallery control is not a file input that accepts pictures');
   }
   /* `capture` WOULD REOPEN THE CAMERA, which is the thing the Photos button exists to be an
@@ -2078,7 +2085,7 @@ check('the camera card starts itself and offers the gallery', async () => {
     bad.push('`Write a post` is on the card with no `data-do="new-post"`, so nothing opens it');
   }
 
-  /* SIGNED OUT THERE IS NO VIEWFINDER AT ALL. `screen('make')` renders a sentence instead, and a
+  /* SIGNED OUT THERE IS NO VIEWFINDER AT ALL. `feedCamCard_` renders a sentence instead, and a
      camera that starts for somebody who is not signed in is a permission prompt with no purpose. */
   w.__t.USER(null);
   if (typeof w.__t.makeScreen === 'function') {

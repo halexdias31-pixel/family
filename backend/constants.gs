@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-28-f-settings";
+const BACKEND_VERSION = "2026-09-28-g-many";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -959,7 +959,17 @@ const SCHEMA = {
          REFUSED   you said no. The row stays: a post you turned down is the one you may need to
                    show somebody afterwards, and deleting it is the one thing you cannot undo. */
     "approved", "approved_by", "approved_on",
-    "post_id", "author", "image", "caption", "file_name", "body",
+    "post_id", "author", "image",
+    /* ---------- EVERY PICTURE AND CLIP AFTER THE FIRST, AS ONE LIST ---------------------------------
+       ASKED FOR AS "tutors should be able to post more then one photo. not just one. and also
+       videos." `image` stays the FIRST — the scan, `creation_date`, the edit sheet and every row that
+       predates this column read it — and `media` holds the rest, `|`-separated. A pipe rather than a
+       comma because an address may carry a comma and none carries a pipe; ONE column rather than
+       `image_2`, `image_3`, which is the numbered-column fault the `images` column on the library
+       already refuses in writing. A clip is marked `#video` on the end of its address, because a
+       Drive link does not say what the file is and the phone has to know which element to draw. */
+    "media",
+    "caption", "file_name", "body",
     /* Where it was taken. Free text — "Colliers Wood Library", "Wandle Park", "the Tandem
        Centre". Not a venue id: a photograph might be somewhere you have never taught, and
        forcing it into the venues list would mean inventing venue rows for a park bench. */

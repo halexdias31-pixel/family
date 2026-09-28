@@ -304,25 +304,17 @@ function search(pos, depth, alpha, beta) {
    — "a board is self-explanatory in a way almost nothing else in this app is" — and a clip you are
    watching is too. So the test is heading OR clip, and `feedSlide` leaves the text block out
    entirely rather than drawing an empty one. */
-/* ---------- A CLIP IS A PATH, A DRIVE ID, OR SOMEBODY ELSE'S POST --------------------------------
-   THE TWO INSTAGRAM ONES WERE PASTED IN AS EMBED BLOCKQUOTES and the URL is what is kept: the code
-   is pulled out of it by `clipFrame_`, so whichever of `/reel/`, `/reels/`, `/p/` and `/tv/` the
-   share link happens to use lands in the same place, and the row stays something a person can
-   paste without editing. `?utm_source=ig_embed` and the rest of the share tail are ignored.
+/* ---------- A CLIP IS A VIDEO FILE AND NOTHING ELSE ---------------------------------------------
+   THERE WERE TWO INSTAGRAM REELS HERE, pasted in as embed blockquotes, and they were the only way
+   somebody else's reel could be shown: in Instagram's own frame, with no autoplay, no mute, no pause
+   from this column and their chrome round it. Removed on "remove the embedded reels. they suck." —
+   see `clipPlayable_` in games.js, which now refuses any clip that can only be embedded, and
+   `check-reels.js`, which refuses one in this list outright.
 
-   THEY BEHAVE DIFFERENTLY FROM THE TWO LOCAL ONES AND THAT IS NOT FIXABLE HERE. An Instagram reel
-   has no address a `<video>` can read — see `clipSrcs_` — so it is drawn in Instagram's own frame:
-   no autoplay, no mute, no pause from this column, and their chrome round it. The alternative is
-   not showing somebody else's reel at all.
-
-   `pic` IS THE SUBJECT AND THE SUBJECT IS THE AUTHOR. A frame paints itself, so the gradient behind
-   it is only ever seen for the moment before it loads — but the subject is also the word
-   `feedColours` hashes, and naming the account keeps two people's reels visibly two people's. */
+   `pic` IS THE SUBJECT AND THE SUBJECT IS THE AUTHOR, which is also the word `feedColours` hashes. */
 const FEED_FACTS = [
   ['@family.', '', '', '', 'data/reels/archetest.mp4'],
   ['@family.', '', '', '', 'data/reels/v24044gl0000d88i15nog65im2kilnbg.mp4'],
-  ['@eli_radu', '', '', '', 'https://www.instagram.com/reel/DbpludDAk7z/'],
-  ['@safeyah', '', '', '', 'https://www.instagram.com/reel/DbgYM-FqcGl/'],
   ['Space', 'You are seeing the sun as it was eight minutes ago',
    'Light takes 8 minutes 20 seconds to cross 150 million km. If it went out you would carry on reading in bright daylight for the length of a song.', 'sun solar corona'],
   ['Space', 'There is a planet where it rains glass, sideways',
@@ -518,9 +510,35 @@ const sheetFacts_ = () => ((typeof DATA !== 'undefined' && DATA.facts) || []);
    is the trap this repository keeps paying for: a rule that is right about the case in front of it
    and wrong one row later. The house rule is per LIST — a list the sheet has nothing for leaves the
    code's copy alone — so the clips answer separately from the facts. */
+/* ---------- ONLY WHAT A `<video>` CAN PLAY, AND IN AN ORDER DEALT ONCE PER OPEN --------------------
+   `clipPlayable_` IS THE FILTER, on both halves, so a sheet row naming a Drive id or an Instagram
+   post neither draws a slide that never plays nor counts as "the sheet has clips" and hides the
+   built-in ones — which is this function's own per-list rule, applied to what a clip IS.
+
+   RANDOM, NOT THE SAME SEQUENCE EACH TIME — asked for in those words. Shuffled with a key per clip
+   rather than by shuffling the array on each call, and that is the whole care: `screen('reel')`
+   takes a fresh snapshot of this list on EVERY draw, and a repaint lands on every payload and every
+   save. Reshuffling there would swap the reel under your thumb mid-watch — page 4 would become a
+   different clip, with `REEL_HELD` pointing at whichever is there now, which is the exact fault the
+   snapshot in posts.js was written against. A random number drawn the first time a clip is seen and
+   kept for the life of the page is random per open and still for the length of a session, and a
+   clip that arrives later with a new payload simply takes its own place in the deal.
+
+   A UNIFORM KEY PER CLIP IS A UNIFORM SHUFFLE: sorting by independent random keys is a random
+   permutation, which is the property the famous `sort(() => Math.random() - 0.5)` does not have. */
+const CLIP_DEAL = new Map();
+function clipDealt_(list) {
+  const key = f => {
+    const c = String(f.clip);
+    if (!CLIP_DEAL.has(c)) CLIP_DEAL.set(c, Math.random());
+    return CLIP_DEAL.get(c);
+  };
+  return list.slice().sort((a, b) => key(a) - key(b));
+}
 function clipsNow_() {
-  const said = sheetFacts_().filter(f => f && f.clip);
-  return said.length ? said : factsBuilt_().filter(f => f.clip);
+  const ok = f => f && f.clip && (typeof clipPlayable_ !== 'function' || clipPlayable_(f.clip));
+  const said = sheetFacts_().filter(ok);
+  return clipDealt_(said.length ? said : factsBuilt_().filter(ok));
 }
 
 /* THE COMPUTED GENERATORS lived here — times tables, factors, squares, percentages. Removed.

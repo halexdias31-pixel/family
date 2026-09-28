@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-28-f-settings";
+const DOGET_VERSION = "2026-09-28-g-many";
 
 
 function doGet(e) {
@@ -1104,6 +1104,10 @@ function doGet(e) {
           handle: who.handle,
           avatar: who.avatar,
           image: S(r.image),        // converted on the phone, the way the gallery already does it
+          /* EVERY PICTURE AND CLIP, THE FIRST INCLUDED, so the phone reads one list rather than
+             stitching `image` onto the front itself — which would be a second place for the order
+             to be decided. See `media` in `SCHEMA.posts`. */
+          media: postMediaOut_(r),
           /* THE CAPTION, RESOLVED HERE AND NOWHERE ELSE.
              Two columns, two owners, and no rule about who may overwrite whom:
                `caption`   what a PERSON typed. Only ever written by editPost.
@@ -1398,11 +1402,19 @@ function doGet(e) {
        `data/settings/spotlight.json`. A `catch` that sent `[]` for a tab that FAILED would look
        exactly like a tab an admin had deliberately emptied — so it sends nothing at all, which is
        what `adoptSpotlight_` reads as "no answer" rather than as "none". */
+    /* AND A TAB WITH NO ROWS SENDS NO KEY, because the filter below cannot tell "an admin switched
+       the last one off" from "nobody has ever spotlit anything" — both are `[]` once the off rows
+       are dropped. The phone reads any array as the authority (see `spotNow_`), so an emptied window
+       stays empty instead of falling through to the committed file and putting back what the admin
+       had just taken out. A switched-off row is still a row, which is exactly what makes this work. */
     try {
-      payload.spotlight = read(TAB.spotlight).rows
-        .filter(r => TRUE_(r.on))
-        .map(r => S(r.item_id))
-        .filter(Boolean);
+      const spotRows = read(TAB.spotlight).rows;
+      if (spotRows.length) {
+        payload.spotlight = spotRows
+          .filter(r => TRUE_(r.on))
+          .map(r => S(r.item_id))
+          .filter(Boolean);
+      } else delete payload.spotlight;
     } catch (err) { delete payload.spotlight; }
 
     try { payload.festive = festiveOffers(); }
