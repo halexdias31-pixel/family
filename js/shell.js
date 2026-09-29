@@ -1631,7 +1631,11 @@ function applyBrandIcon_() {
     const old = document.getElementById(id);
     if (old) old.remove();
     const el = document.createElement('link');
-    el.id = id; el.rel = rel; el.href = url;
+    /* THE DEFAULT `logo_square` IS `icon.png`, THE SQUARE ONE, so taken as given it would put the
+       square back on the tab the moment the payload lands. The tab icon keeps its circle unless
+       the sheet names a real picture of its own; the home-screen icon stays square either way. */
+    el.id = id; el.rel = rel;
+    el.href = (rel === 'icon' && url === 'icon.png') ? 'favicon.png' : url;
     document.head.appendChild(el);
   });
 }

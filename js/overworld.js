@@ -213,10 +213,8 @@ let flappyState = null;
    whatever had been drawn into it, so every repaint blanked the arcade and `repaint` had to
    remember to wake it again. A sheet is not repainted; it is opened, used and closed. */
 
-/* `on('chess-new')` and `on('chess-undo')` were here — New game and Take back, two buttons under
-   the board. The board is the whole widget now, so nothing carries either name and neither could
-   ever fire. Starting again is leaving the page and coming back; there is no undo, which is how
-   chess works away from a screen. */
+/* `on('chess-new')` and `on('chess-undo')` are in games.js beside the board they act on — they went
+   when the board played a computer, and came back when it became two players round one phone. */
 on('tt-start',   () => startTimesTables?.());
 on('tt-stop',    () => endTimesTables?.());
 /* `on('flap-start')` was here — a toast saying "Tap the canvas to flap". Nothing in the app has

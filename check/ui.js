@@ -756,7 +756,12 @@ function inspect(opts) {
 
        NARROW ON PURPOSE. Only a cell whose own class says it is a board square. Anything else that
        is too small is still reported. */
-    if (/\b(c4-cell|oth-cell)\b/.test(String(el.className || ''))) continue;
+    /* CHESS JOINED THIS LIST when its board became a control — sixty-four squares that had been
+       spans with no action, so the board could not be played at all. Eight across is Othello's
+       arithmetic exactly, and what makes a mis-tap survivable is the same: a tap on a square that is
+       not one of the picked piece's legal moves does nothing to the game, it only picks or unpicks,
+       and a move played in error comes back with Undo. */
+    if (/\b(c4-cell|oth-cell|chess-sq)\b/.test(String(el.className || ''))) continue;
 
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(tag)) {
       const lab = el.closest('label');

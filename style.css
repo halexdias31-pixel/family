@@ -1113,7 +1113,12 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 .chess .sq { display: flex; align-items: center; justify-content: center;
              /* Sized against the BOARD, so a piece is the same share of its square on every phone. */
              font-size: 9cqw; line-height: 1; cursor: pointer;
-             position: relative; min-width: 0; min-height: 0; }
+             position: relative; min-width: 0; min-height: 0;
+             /* A SQUARE IS A `<button>` NOW — the board could not be played while it was spans with no
+                action — so everything a browser gives a button is taken back off: no border, no
+                padding, no font of its own, no grey face. The square's colour is `.lt`/`.dk`. */
+             border: 0; padding: 0; margin: 0; border-radius: 0; font-family: inherit;
+             width: 100%; height: 100%; }
 /* BLACK AND WHITE SQUARES. The board was cream and tan — handsome, and the reason nothing could be
    read on it: a pale piece on a cream square and a dark piece on a tan one are both low contrast,
    so half the board was hard to see whichever way round you looked at it. */
@@ -1134,7 +1139,11 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
   --chess-white: #ffffff;
   --chess-black: #111111;
   --chess-frame: #1b1815;
+  --chess-last:  rgb(214 180 60 / .38);
+  --chess-check: rgb(214 52 40 / .85);
 }
+/* The promotion row sits OUTSIDE the board, so it needs the board's palette on the card too. */
+.chess-game { --chess-light: #f4f4f2; --chess-white: #ffffff; --chess-black: #111111; }
 .chess .lt { background: var(--chess-light); }
 .chess .dk { background: var(--chess-dark); }
 
@@ -1159,6 +1168,26 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
 .chess .can::after { content: ''; position: absolute; width: 26%; height: 26%;
                      border-radius: 50%; background: var(--gold); opacity: .75; }
 .chess .take { box-shadow: inset 0 0 0 3px rgba(190,60,50,.8); }
+/* THE LAST MOVE, both ends of it. On a board passed between two people it is the one thing the
+   player picking the phone up needs and cannot see: what the other side just did. A wash rather than
+   a ring, so it never competes with the ring that says "this piece is picked". */
+.chess .last { background-image: linear-gradient(var(--chess-last), var(--chess-last)); }
+/* A KING IN CHECK is red under the piece, which is the one square the whole position is about. */
+.chess .chk { background-image: radial-gradient(circle, var(--chess-check) 0 40%, transparent 72%); }
+.chess .sq:active, .chess .sq.is-pressed { filter: brightness(.9); }
+
+/* WHOSE MOVE, above the board, in words — the board does not flip, so this line is the only thing
+   that says it. Big enough to read at arm's length from the other side of a table. */
+.chess-say { text-align: center; margin: .2rem 0 .35rem; font-size: .95rem; font-weight: 600; }
+.chess-say.is-note { color: var(--dim); font-weight: 400; }
+.chess-ctl, .chess-promo { margin-top: .1rem; }
+/* The promotion choices are the pieces themselves, drawn in their own side's fill and outline on a
+   light square so a black knight is as legible as a white one. 44px, in px, like every tap target. */
+.chess-promo .chess-pro { min-height: 44px; font-size: 1.7rem; line-height: 1; padding: 0;
+  background: var(--chess-light); }
+.chess-promo .chess-pro.wp { color: var(--chess-white);
+  text-shadow: 0 1px 0 var(--chess-black), 0 -1px 0 var(--chess-black), 1px 0 0 var(--chess-black), -1px 0 0 var(--chess-black); }
+.chess-promo .chess-pro.bp { color: var(--chess-black); }
 
 /* ---------- ANCHORS -------------------------------------------------------------------------------
    NOTHING IN THIS FILE EVER RESET A LINK. Every card that opens something is an `<a>`, and an `<a>`
@@ -6233,49 +6262,53 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 @keyframes hf-breathe { 0%,100% { filter: none; } 50% { filter: brightness(1.3); } }
 .hf-say { margin-top: .8rem; font: 700 .9rem var(--mono); color: var(--paper); text-align: center; }
 
-/* ---------- THE ANGLES IN A TRIANGLE ------------------------------------------------------------ */
-#splash-ang .ag-svg { width: min(66vw, 16rem); height: auto; }
-.ag-tri { fill: rgb(111 168 220 / .18); stroke: #6fa8dc; stroke-width: 2;
-          stroke-dasharray: 200; stroke-dashoffset: 200;
-          animation: ag-draw 1.1s ease-out .2s forwards; }
-.ag-c { stroke: none; }
-/* THE THREE WEDGES, ONE COLOUR EACH. `.ag-c` is the class every wedge shares AND the name of the
-   third corner — an unlucky collision, so the third is given its fill through the shared class and
-   the other two override it. `.ag-c-c` stood here as a third name that nothing ever produced;
-   `check-css` found it, which is what that check is for. */
-.ag-c { fill: #6fd8c4; }
-.ag-a { fill: #f0b45f; }
-.ag-b { fill: #d98c3a; }
-/* THE CORNERS TEAR OFF AND LINE UP, over and over — the move is the whole argument. */
-/* ---------- FADES ONLY ---------------------------------------------------------------------------
-   No transform, no transform-origin, no transform-box. The corners are marked in place and the fan
-   below fills in behind them, one sector at a time, in the matching colour — so the eye pairs them
-   without anything having to travel. */
-.ag-a { fill: #f0b45f; }
-.ag-b { fill: #d98c3a; }
-.ag-c { fill: #6fd8c4; }
-.ag-a, .ag-b, .ag-c { opacity: 0; animation: ag-show .4s ease-out both; }
-.ag-a { animation-delay: .5s; } .ag-b { animation-delay: .7s; } .ag-c { animation-delay: .9s; }
+/* ---------- THE ANGLES IN A TRIANGLE ------------------------------------------------------------
+   Draw the triangle, tear off its three corners, slide them onto a straight line where they fill it
+   exactly, hold, and go back — for as long as the splash is up. The geometry, and why it cannot
+   misbehave the way the torn-corner version before last did, is written beside the markup.
 
-.ag-f { opacity: 0; animation: ag-show .45s ease-out both, ag-lit 3.6s ease-in-out infinite; }
-.ag-f1 { fill: #f0b45f; animation-delay: 1.3s, 2.6s; }
-.ag-f2 { fill: #d98c3a; animation-delay: 1.5s, 2.8s; }
-.ag-f3 { fill: #6fd8c4; animation-delay: 1.7s, 3.0s; }
+   ONE 6s CYCLE FOR EVERYTHING, so the pieces, the labels at the line and the caption cannot drift
+   apart over a long load: the same duration, delays a fraction of it. The wedges leave a tenth of a
+   second apart, the way three corners are torn off one at a time. */
+#splash-ang .ag-svg { width: min(70vw, 17rem); height: auto; overflow: visible; }
+/* THE COLOURS, declared on the component: a splash's palette is that picture's and nobody else's. */
+#splash-ang { --ag-a: #f0b45f; --ag-b: #6fd8c4; --ag-c: #e0709a; --ag-edge: #6fa8dc; }
+.ag-tri { fill: rgb(111 168 220 / .14); stroke: var(--ag-edge); stroke-width: 2; stroke-linejoin: round;
+          transform-box: fill-box; transform-origin: 50% 60%; opacity: 0;
+          animation: ag-draw .9s cubic-bezier(.2, .8, .3, 1) .15s forwards; }
+/* OPACITY AND A SCALE, not a stroke drawing itself in: a dash offset is repainted by the main thread,
+   which is the thread parsing the app underneath this splash. */
+@keyframes ag-draw { from { opacity: 0; transform: scale(.86); } to { opacity: 1; transform: none; } }
+.ag-wa { fill: var(--ag-a); } .ag-wb { fill: var(--ag-b); } .ag-wc { fill: var(--ag-c); }
+.ag-ghost { opacity: .22; }
+.ag-k, .ag-lab { font: 700 7px var(--mono); text-anchor: middle; dominant-baseline: central; }
+.ag-k { opacity: 0; animation: ag-show .4s ease-out 1s forwards; }
+.ag-line { stroke: rgb(244 241 232 / .45); stroke-width: 1.4; stroke-linecap: round; }
+
+.ag-w { transform-box: view-box; transform-origin: 0 0; transform: var(--from); opacity: 0;
+        animation: ag-move 6s cubic-bezier(.55, 0, .3, 1) infinite; }
+.ag-w.ag-wa { animation-delay: 1.3s; } .ag-w.ag-wb { animation-delay: 1.4s; } .ag-w.ag-wc { animation-delay: 1.5s; }
+@keyframes ag-move {
+  0%        { transform: var(--from); opacity: 0; }
+  8%, 22%   { transform: var(--from); opacity: 1; }
+  52%, 84%  { transform: var(--to);   opacity: 1; }
+  94%       { transform: var(--to);   opacity: 0; }
+  100%      { transform: var(--from); opacity: 0; }
+}
+/* The a, b, c at the line and the 180° under it arrive once the three pieces have landed. */
+.ag-lab { opacity: 0; animation: ag-land 6s ease-in-out 1.5s infinite; }
+.ag-180 { fill: rgb(244 241 232 / .85); font-size: 6px; }
+@keyframes ag-land { 0%, 50% { opacity: 0; } 58%, 84% { opacity: 1; } 94%, 100% { opacity: 0; } }
 @keyframes ag-show { to { opacity: 1; } }
-/* THE IDLE: each sector brightens in turn, so the fan keeps re-stating itself for as long as the
-   splash is up rather than assembling once and going dead. */
-@keyframes ag-lit { 0%, 100% { filter: none; } 50% { filter: brightness(1.4); } }
-
-.ag-line { stroke: rgb(244 241 232 / .35); stroke-width: 1.6; }
-@keyframes ag-draw { to { stroke-dashoffset: 0; } }
-/* THREE ORPHANED LINES SAT HERE — the tail of the old `ag-tear` keyframe, left behind when its
-   opening line was removed by a regex that matched the header and not the body. A stray `}` and two
-   declarations with no rule around them: the browser discards from the error to the next brace it
-   can make sense of, which can silently take the rules after it as well.
-   `check-css` reads declarations rather than parsing the file as a browser would, so it saw nothing
-   wrong — worth knowing about that checker, and the reason to count `{` against `}` by hand when
-   deleting a block. */
-.ag-say { margin-top: .7rem; font: 700 .95rem var(--mono); color: #f0b45f; text-align: center; }
+.ag-say { margin-top: .5rem; font: 700 .95rem var(--mono); color: var(--ag-a); text-align: center;
+          animation: ag-land 6s ease-in-out 1.5s infinite; opacity: 0; }
+/* MOTION OFF SHOWS THE FINISHED PICTURE: the corners already on the line, labelled, with the sum.
+   That is the half that carries the result, and a triangle alone is not an argument. */
+@media (prefers-reduced-motion: reduce) {
+  .ag-tri { animation: none; opacity: 1; transform: none; }
+  .ag-w { animation: none; transform: var(--to); opacity: 1; }
+  .ag-k, .ag-lab, .ag-say { animation: none; opacity: 1; }
+}
 
 /* ---------- BINARY ------------------------------------------------------------------------------ */
 #splash-bin .bn-row { display: flex; gap: .42rem; }
@@ -6392,10 +6425,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
      equal measure. `check-css` found them; the new names are `.ar-round` and `.ar-strip`. */
   .od-svg g, .od-say, .tn-up, .tn-dn, .sn-wave, .sn-arm, .sn-dot, .sn-trace, .sn-guide,
   .ar-round, .ar-strip, .ar-h, .ar-w, .ar-lab,
-  .sv-o, .sv-x, .hf-p, .ag-tri, .ag-c, .bn-row i, .pa-r, .pa-r i, .fb-sq, .fb-arc,
+  .sv-o, .sv-x, .hf-p, .ag-tri, .bn-row i, .pa-r, .pa-r i, .fb-sq, .fb-arc,
   .gl-b, .gl-n text { animation: none; opacity: 1; transform: none; }
   .gl-b { fill: #6fd8c4; }
-  .sn-wave, .ag-tri, .fb-arc { stroke-dashoffset: 0; }
+  .sn-wave, .fb-arc { stroke-dashoffset: 0; }
   /* with motion off, show the rectangle — it is the half of the picture that carries the result. */
   .ar-round { opacity: 0; } .ar-strip, .ar-h, .ar-w, .ar-lab { opacity: 1; }
   .bn-row i:nth-child(2n) { background: #f0b45f; border-color: #ffd48a; }

@@ -124,6 +124,7 @@ const SUITE = [
      and it is here because it caught a live one: the library spells a fraction with U+2044, a
      phone types `/`, and `5/9` was marked wrong against `5⁄9` on a paper somebody was sitting. */
   { file: 'check-marking.js', what: 'a right answer marked right, a wrong one wrong' },
+  { file: 'check-chess.js',   what: 'the chess move generator, counted by perft' },
   /* ---------- AND EVERY TIMESTAMP ANYBODY SEES ---------------------------------------------------
      `parseWhen` read `2026-09-15` as 26 September 2015, because its day-month-year match was not
      anchored and the engine slid past the four-digit year. A plausible date, wrong by eleven years,

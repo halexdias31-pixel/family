@@ -466,50 +466,173 @@ on('cal-day', el => {
     </div>`).join(''));
 });
 
+/* ---------- CHESS, TWO PLAYERS ROUND ONE PHONE ------------------------------------------------------
+   ASKED FOR AS "make chess 2 player. also make it more stable and better in recognition." Measured
+   before anything was written, and the second half was worse than it sounded: THE BOARD COULD NOT BE
+   PLAYED AT ALL. `drawChess` drew sixty-four `<span data-sq>` with no `data-do`, the tap handler it
+   was written for (`chessTap`) had been deleted as dead, and the dispatcher only answers `data-do` —
+   so a tap on a piece did nothing, on every phone, while the line under the board said "Your move".
+   `check/press.js` could not see it, because a control with no action is not in its queue.
+
+   So every square is a `<button data-do="chess-sq">`. That is also what makes a swipe safe: a drag
+   that starts on the board produces a click, and `PRESS_MOVED` in shell.js swallows exactly that
+   click before the dispatcher sees it — so scrolling past the board never picks a piece up.
+
+   EVERYTHING ON THE BOARD IS DRAWN FROM STATE — the position, the picked square, the pending
+   promotion, the last move — and never left on the DOM by a handler. A repaint rebuilds the card,
+   and a highlight that lived only in the markup would vanish while the selection it showed stayed:
+   the `REEL_HELD` fault. And it draws by CLASS rather than by id, because a starred chess widget is
+   a second board on the Saved column and `$()` would only ever find the first.
+
+   NO FLIP. The board stays white-at-the-bottom and the line above it says whose move it is, in
+   words. Turning the board every move is what a two-player app on a table does; on a phone held by
+   one person and passed across, it is the picture jumping under the hand reaching for it. */
+const CH_FILES = 'abcdefgh';
+const CH_NAME = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' };
+const chSide_ = s => s === CH_WHITE ? 'White' : 'Black';
+const chSq_ = i => CH_FILES[file(i)] + (8 - rank(i));
+
+function chessReset_() {
+  CHESS = newGame(); CHESS_HIST = []; CHESS_PICK = -1; CHESS_PROMO = null; CHESS_LAST = null; CHESS_ARM = 0;
+}
+
 function initChess() {
   if (!$('chess-board')) return;
-  if (!CHESS) { CHESS = newGame(); CHESS_HIST = []; }
+  if (!CHESS) chessReset_();
   drawChess();
 }
 
-function drawChess() {
-  const el = $('chess-board');
-  if (!el || !CHESS) return;
-  const legal = CHESS_PICK >= 0
-    ? legalMoves(CHESS).filter(m => m.from === CHESS_PICK).map(m => m.to)
-    : [];
-  el.innerHTML = CHESS.board.map((p, i) => {
-    const dark = (file(i) + rank(i)) % 2 === 1;
-    const cls = ['sq', dark ? 'dk' : 'lt'];
+/* THE GAME IS OVER, and why. Mate and stalemate come from the rules; the fifty-move rule and bare
+   kings are the two draws a kitchen-table game actually reaches — without them two kings chase each
+   other round an empty board for ever with the line underneath saying whose move it is. */
+function chessEnd_(pos) {
+  const end = outcome(pos);
+  if (end) return end;
+  if (pos.halfmove >= 100) return 'fifty';
+  const rest = pos.board.filter(p => p !== '_' && p.toLowerCase() !== 'k');
+  if (!rest.length || (rest.length === 1 && /[bn]/i.test(rest[0]))) return 'material';
+  return null;
+}
+
+function chessStatus_() {
+  const end = chessEnd_(CHESS);
+  const side = chSide_(CHESS.turn), other = chSide_(CHESS.turn === CH_WHITE ? CH_BLACK : CH_WHITE);
+  if (end === 'mate') return `Checkmate — ${other} wins.`;
+  if (end === 'stalemate') return `Stalemate — ${side} has no legal move. A draw.`;
+  if (end === 'fifty') return 'A draw — fifty moves each with no capture and no pawn move.';
+  if (end === 'material') return 'A draw — neither side has enough left to checkmate.';
+  if (CHESS_PROMO) return `${side} — promote the pawn to:`;
+  return inCheck(CHESS, CHESS.turn) ? `${side} to move — check!` : `${side} to move`;
+}
+
+function drawChess(note) {
+  if (!CHESS) return;
+  const mine = CHESS_PICK >= 0 ? legalMoves(CHESS).filter(m => m.from === CHESS_PICK) : [];
+  const checked = inCheck(CHESS, CHESS.turn) ? kingSquare(CHESS, CHESS.turn) : -1;
+  const board = CHESS.board.map((p, i) => {
+    const cls = ['sq', 'chess-sq', (file(i) + rank(i)) % 2 ? 'dk' : 'lt'];
     if (i === CHESS_PICK) cls.push('pick');
-    if (legal.includes(i)) cls.push(p === '_' ? 'can' : 'take');
-    /* WHOSE PIECE IT IS, as a class. Uppercase is white in this file's board notation, and that
-       is the only thing that decides its colour now — the glyph is the same either way. */
-    if (p !== '_') cls.push(p === p.toUpperCase() ? 'wp' : 'bp');
-    return `<span class="${cls.join(' ')}" data-sq="${i}">${p === '_' ? '' : GLYPH[p]}</span>`;
+    /* A CAPTURE IS RINGED AND A QUIET MOVE IS A DOT — and en passant is a capture that lands on an
+       empty square, so it is asked of the move rather than of what is standing on the square. */
+    const hit = mine.find(m => m.to === i);
+    if (hit) cls.push(p !== '_' || hit.enpassant ? 'take' : 'can');
+    if (CHESS_LAST && (i === CHESS_LAST.from || i === CHESS_LAST.to)) cls.push('last');
+    if (i === checked) cls.push('chk');
+    if (p !== '_') cls.push(isWhite(p) ? 'wp' : 'bp');
+    const who = p === '_' ? '' : ', ' + (isWhite(p) ? 'white ' : 'black ') + CH_NAME[p.toLowerCase()];
+    return `<button type="button" class="${cls.join(' ')}" data-do="chess-sq" data-sq="${i}"
+      aria-label="${chSq_(i)}${who}">${p === '_' ? '' : GLYPH[p]}</button>`;
   }).join('');
-  say();
+  /* PROMOTION IS ASKED, NOT ASSUMED. The queen is first and is what nearly everybody wants, but an
+     under-promotion to a knight is the one move that sometimes wins, and a board that quietly
+     queens has taken the decision off the player. The row replaces the controls while it is up, so
+     there is nothing else to press. */
+  const promo = CHESS_PROMO ? 'QRBN'.split('').map(q => {
+    const g = CHESS.turn === CH_WHITE ? q : q.toLowerCase();
+    return `<button type="button" class="btn quiet chess-pro ${CHESS.turn === CH_WHITE ? 'wp' : 'bp'}"
+      data-do="chess-promo" data-p="${q}" aria-label="${CH_NAME[q.toLowerCase()]}">${GLYPH[g]}</button>`;
+  }).join('') : '';
+  const armed = Date.now() - CHESS_ARM < 3000;
+  document.querySelectorAll('.chess-game').forEach(root => {
+    const b = root.querySelector('.chess'); if (b) b.innerHTML = board;
+    const s = root.querySelector('.chess-say');
+    if (s) { s.textContent = note || chessStatus_(); s.classList.toggle('is-note', !!note); }
+    const pr = root.querySelector('.chess-promo'); if (pr) { pr.innerHTML = promo; pr.hidden = !promo; }
+    const ctl = root.querySelector('.chess-ctl'); if (ctl) ctl.hidden = !!promo;
+    const u = root.querySelector('[data-do="chess-undo"]'); if (u) u.disabled = !CHESS_HIST.length;
+    const n = root.querySelector('[data-do="chess-new"]'); if (n) n.textContent = armed ? 'Tap again to start over' : 'New game';
+  });
 }
 
-/* `chessTap` was here — the tap handler for a board square, from before the board was drawn by
-   `drawChess` and wired through `data-do`. Nothing has called it since. */
+function chessPlay_(m) {
+  CHESS_HIST.push({ pos: CHESS, last: CHESS_LAST });
+  CHESS = play(CHESS, m);
+  CHESS_LAST = { from: m.from, to: m.to };
+  CHESS_PICK = -1; CHESS_PROMO = null; CHESS_ARM = 0;
+  drawChess();
+}
 
-
-function say(msg) {
-  const el = $('chess-say');
-  if (!el) return;
-  if (msg) { el.textContent = msg; return; }
-  const end = outcome(CHESS);
-  if (end === 'mate') {
-    el.textContent = CHESS.turn === CH_WHITE ? 'Checkmate — the computer wins.' : 'Checkmate — you win.';
-  } else if (end === 'stalemate') {
-    el.textContent = 'Stalemate. Nobody wins.';
-  } else if (inCheck(CHESS, CHESS.turn)) {
-    el.textContent = CHESS.turn === CH_WHITE ? 'You are in check.' : 'Check.';
-  } else {
-    el.textContent = CHESS.turn === CH_WHITE ? 'Your move.' : 'Thinking…';
+/* A TAP. Three things it can mean and they are tried in the order a player means them: the second
+   tap of a move, picking a piece of your own, and anything else — which says WHY nothing happened
+   rather than doing nothing, because a board that ignores a tap reads as a board that missed it. */
+on('chess-sq', el => {
+  if (!CHESS) chessReset_();
+  const i = Number(el.dataset.sq);
+  if (chessEnd_(CHESS)) return drawChess('The game is over — New game to play again.');
+  if (CHESS_PROMO) return drawChess();
+  const moves = legalMoves(CHESS);
+  if (CHESS_PICK >= 0) {
+    const hits = moves.filter(m => m.from === CHESS_PICK && m.to === i);
+    if (hits.length) {
+      if (hits.some(m => m.promote)) { CHESS_PROMO = { from: CHESS_PICK, to: i }; return drawChess(); }
+      return chessPlay_(hits[0]);
+    }
   }
-}
+  const p = CHESS.board[i];
+  if (p !== '_' && colourOf(p) === CHESS.turn) {
+    CHESS_PICK = CHESS_PICK === i ? -1 : i;        // the same piece again puts it back down
+    if (CHESS_PICK >= 0 && !moves.some(m => m.from === i))
+      return drawChess(`That ${CH_NAME[p.toLowerCase()]} has no legal move${inCheck(CHESS, CHESS.turn) ? ' — you are in check' : ''}.`);
+    return drawChess();
+  }
+  const wasPicked = CHESS_PICK >= 0;
+  CHESS_PICK = -1;
+  if (wasPicked) return drawChess(inCheck(CHESS, CHESS.turn) ? 'Not legal — you are in check.' : 'That piece cannot go there.');
+  if (p !== '_') return drawChess(`It is ${chSide_(CHESS.turn)}'s move.`);
+  drawChess();
+});
+
+on('chess-promo', el => {
+  if (!CHESS_PROMO) return drawChess();
+  const m = legalMoves(CHESS).find(x => x.from === CHESS_PROMO.from && x.to === CHESS_PROMO.to && x.promote === el.dataset.p);
+  if (m) chessPlay_(m); else { CHESS_PROMO = null; drawChess(); }
+});
+
+/* UNDO takes back one move, either side's — two people at one board agree on that out loud, and an
+   app that refused it would be stricter than the table. With a promotion half-chosen it cancels
+   that instead, which is the smaller undo and the one being reached for. */
+on('chess-undo', () => {
+  if (!CHESS) return;
+  if (CHESS_PROMO) { CHESS_PROMO = null; CHESS_PICK = -1; return drawChess(); }
+  const h = CHESS_HIST.pop();
+  if (h) { CHESS = h.pos; CHESS_LAST = h.last; }
+  CHESS_PICK = -1; CHESS_ARM = 0;
+  drawChess();
+});
+
+/* NEW GAME THROWS A GAME AWAY, so a game in progress asks twice — the label says so and goes back
+   by itself. A finished game or an empty board starts over at once: there is nothing to lose. */
+on('chess-new', () => {
+  const live = CHESS && CHESS_HIST.length && !chessEnd_(CHESS);
+  if (live && Date.now() - CHESS_ARM >= 3000) {
+    CHESS_ARM = Date.now();
+    setTimeout(() => drawChess(), 3100);
+    return drawChess();
+  }
+  chessReset_();
+  drawChess();
+});
+
 
 /* ---------- THE REELS ---------------------------------------------------------------------------
    One fact at a time, full card, tap for another.
