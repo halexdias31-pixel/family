@@ -470,6 +470,8 @@ const driveId = u => {
   return m ? m[0] : String(u || '');
 };
 const partsPer = {};
+const docType = {};
+rows.forEach(r => { if (r && r.kind === 'document') docType[r.paper_id] = String(r.document_type || ''); });
 rows.forEach(r => { if (r && r.kind === 'question') partsPer[r.paper_id] = (partsPer[r.paper_id] || 0) + 1; });
 const byDoc = new Map();
 rows.forEach(r => {
@@ -484,6 +486,11 @@ byDoc.forEach((ids, k) => {
   if (ids.size < 2) return;
   const withParts = [...ids].filter(id => partsPer[id]);
   if (withParts.length < 2) { stubPairs++; return; }
+  /* A 5-A-DAY BOOK IS ONE FILE HOLDING A MONTH OF DOCUMENTS. Corbettmaths prints a month of days in
+     one PDF and a day is the thing somebody sits, so thirty-one `paper_id`s on one file is the book
+     being read ONCE, a page per day — not the same paper entered twice. Exempt only when every paper
+     on the file is a 5-a-day, so a real duplicate sitting beside one still fires. */
+  if (withParts.every(id => docType[id] === '5-a-day')) return;
   fail.push(`one document is transcribed ${withParts.length} times — `
     + withParts.map(id => `${id} (${partsPer[id]} parts)`).join(', ')
     + `. They share the file ${k}, so they are one PDF read twice: keep the fuller transcription `
