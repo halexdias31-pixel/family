@@ -1489,8 +1489,19 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 }
 /* Edge to edge — the page margin is cancelled, because a photograph inset by 16px on a phone is a
    photograph with a border. */
+/* NO BACKGROUND. It was `--sunk`, and inside the fixed 4:5 box below that ink WAS the black band
+   above and below every landscape photograph and either side of every portrait one — reported as
+   "please dont add the ugly black boarder to posts". A picture now takes its own proportions, so
+   nothing of the box is left over to paint; while the file is still arriving the reserved space is
+   the card's own colour, which reads as room rather than as a frame. A clip keeps its ink, below. */
+/* `height: auto` HERE AND NOT ONLY ON `.page .post-pic` BELOW, because the element carries
+   `width="800" height="1000"` and a height attribute IS a height: outside a page — the composer's
+   preview, which is a sheet — the picture was drawn 1000px tall at whatever width it was given,
+   every photograph stretched into the same tall rectangle. Measured at 390x844 before this line: a
+   1600x900 landscape previewed at 358x1000. `auto` hands the height back to the attributes' own
+   ratio mapping, which is `auto 800 / 1000` — the file's shape once it lands, 4:5 before. */
 .post-pic { display: block; width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad));
-            background: var(--sunk); }
+            height: auto; }
 /* ---------- SEVERAL PICTURES ON ONE POST, AS A GRID --------------------------------------------
    TWO COLUMNS OF SQUARES, edge to edge like the single picture, and never a sideways strip: every
    column in this app is reached by a sideways swipe, and a carousel would eat it. When the count is
@@ -1514,8 +1525,15 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .pane > .post { margin-inline: calc(-1 * var(--pane-pad)); padding-inline: var(--pane-pad); }
 .post-grid.is-odd > :first-child { grid-column: 1 / -1; aspect-ratio: 4 / 3; }
 /* A CLIP IS A PICTURE THAT MOVES and takes the same box; its controls are the browser's own. */
+/* THE INK IS ONLY EVER SEEN BEFORE THE FIRST FRAME: a clip with no frame yet — iOS draws none until it
+   is played — is a dark rectangle with a play control on it, which reads as a video, where a
+   transparent one is a play button floating over nothing. Once there is a frame the box is the
+   clip's own shape (below), so none of the ink is left showing round it. */
 .post-vid { background: var(--sunk); }
-.post-pic.post-vid { aspect-ratio: 4 / 5; object-fit: contain; }
+/* ITS OWN SHAPE, LIKE A PHOTOGRAPH, and 4:5 only until the file says what that is. It was a fixed
+   4:5 with `contain`, which letterboxed every landscape clip in the same black bands as the
+   photographs. `auto` means: the clip's natural ratio once its metadata has arrived, 4:5 before. */
+.post-pic.post-vid { aspect-ratio: auto 4 / 5; }
 /* AND ONE DRIVE WOULD NOT HAND OVER IS A LINK, in the same box, so the grid does not close up round
    a gap. 44px is the floor because it is a control. */
 .post-vid-out { display: flex; align-items: center; justify-content: center; min-height: 44px;
@@ -1546,37 +1564,51 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    `.pane`'s own `touch-action` records it, and CLAUDE.md records the argument. A pane is
    `overflow: hidden` and clips. There is no scroll for the gesture to reach the end of.
 
-   SO IT IS CUT OFF, AND MEASURED IT IS THE COMMENT BOX. A 4:5 portrait — the shape the markup above
-   reserves, because it is the shape a phone camera gives — puts the post 582px into a 534px pane at
-   320x568: `post-said`, `cmt-form`, the textarea and its Send button are all below the fold, with no
-   scroll and no page to turn to. 46px at 375x667. Nothing at 390 and up.
-
-   NOT FIXED HERE, because every fix for it is a visible change to how a photograph is shown and
-   that is the owner's call rather than a repair. `object-fit: cover` and a bare `max-height` are
-   both refused above and the reasons stand; what would work is a height cap with `object-fit:
-   contain`, which crops nothing and squashes nothing and makes a tall photograph NARROWER than the
-   card on a short phone — about 74% of the width at 320, 83% at 375, unchanged at 390. That is the
-   trade, written down so it is a decision.
-
-   AND THE LAB CANNOT SEE IT, WHICH IS WHY IT HAS SAT HERE. Two reasons, both in `check/ui.js`:
-   `check/fixture.json`'s posts carry `image: ""`, so no run has ever drawn a photograph on this
-   card; and every width is measured in a viewport 844px TALL, so its "320px" is a 320x844 phone
-   that does not exist and whose pane is 807px. The receipt's own 216px below the fold at 320x568 is
-   invisible for the same second reason, and CLAUDE.md already records that one. */
+   SO IT WAS CUT OFF, AND MEASURED IT WAS THE COMMENT BOX: a 4:5 portrait put the post 582px into a
+   534px pane at 320x568, the textarea and its Send button below the fold with no scroll and no page
+   to turn to. That is answered now by the rule every card follows — `paneReach_` in find.js draws a
+   card taller than its pane smaller, whole, and centred — rather than by anything that crops or
+   caps the photograph. A 9:16 portrait, the tallest thing a phone camera gives, is drawn at about
+   95% at 390x844 and 72% at 320x568 for somebody signed in, whose card carries the comment box;
+   signed out it fits whole at 390 and is 77% at 320. `check/fixture.json` carries photographs now and every width
+   is measured at a real phone's height, which are the two reasons this used to be invisible. */
 .page .post-pic {
   flex: 0 0 auto;          /* never grows to fill the page — that is what forced a crop */
   height: auto;            /* its own height, from its own proportions */
   max-height: none;        /* and never capped, which would crop it a second way */
   max-width: none;
-  /* A FIXED 4:5 BOX AND THE PICTURE INSIDE IT, WHOLE. This was `fill` over a box that took the
-     file's own proportions on `onload` — so a card changed height after its column was placed, by
-     203px for a 2:1 landscape measured with the file 800ms late, and the caption, the reactions and
-     the comment box slid up under the thumb. `aspect-ratio` without `auto` ignores the natural
-     ratio, so the box is the same before and after the picture arrives; `contain` shows all of it
-     on the sunk ink, so nothing is cropped either. NOT `cover`, which is what cropped the sides off
-     a landscape photograph and the top off a portrait one. */
-  aspect-ratio: 4 / 5;
-  object-fit: contain;
+  /* ITS OWN PROPORTIONS, EDGE TO EDGE, AND 4:5 ONLY WHILE IT IS ON ITS WAY.
+
+     THIS WAS A FIXED 4:5 BOX WITH `object-fit: contain` ON THE SUNK INK, and it went on the report
+     "please dont add the ugly black boarder to posts". Measured at 390x844 before the change: a
+     1600x900 landscape drew in a 326x407 box with 112px of black above it and 112px below, and a
+     900x1600 portrait had 48px of black down each side. Every photograph that was not already 4:5 —
+     which is most of them — was a photograph in a frame.
+
+     THE FIXED BOX WAS BOUGHT FOR STABILITY and the reason is sound: a box that takes the file's own
+     shape changes height when the file lands, and a 2:1 landscape arriving 800ms late shrank its
+     card by 203px under the thumb. So the stability is kept by the two things that cost no black:
+
+       - `auto 4 / 5` reserves a 4:5 space until the file's own ratio is known, so an image is never
+         a zero-height box that the grid places for the wrong height. `width`/`height` on the
+         element say the same to anything that reads them before the stylesheet;
+       - and `postsAhead_` asks for the pictures one page behind and two ahead, so a photograph has
+         normally arrived before its page is in front of anybody — the change happens off-screen.
+
+     IT DOES MOVE THE PAGES UNDER IT, which is the half worth measuring rather than assuming: a page
+     is `height: auto` in an ordinary CSS column, not a fixed cell, so every picture that lands above
+     the post being read moves it by the difference between 4:5 and the file — 224px for a 16:9
+     landscape at 390 — and the differences add up. `holdColumn_` in shell.js puts it back, from
+     inside the `ResizeObserver` delivery that sees the card grow — which runs before paint, so the
+     frame is never drawn with it moved. Its own note holds the measurements; one place, so they
+     cannot disagree.
+
+     What is left is the post you are READING on a cold open, whose own picture can land after it is
+     drawn and move its caption once. That is the whole cost of showing a photograph without bands,
+     written down so it is a trade rather than a regression. NOT `cover`, which crops the sides off
+     a landscape and the top off a portrait — where the person usually is. A card this makes taller
+     than its pane is drawn smaller by `paneReach_`, like every other card, and stays centred. */
+  aspect-ratio: auto 4 / 5;
 }
 .page .post-by, .page .post-acts, .page .post-cap,
 .page .post-when, .page .poll, .page .note { flex: none; }
@@ -8865,41 +8897,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .prac-kit, .prac-steps, .gd-sec { margin: .65rem 0 0; }
 .prac-kit h4, .prac-steps h4, .gd-sec h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono);
                                letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
-/* `.prac-kit` IS OFF THESE THREE GROUPS BECAUSE IT NO LONGER HOLDS A LIST. The kit is chips, and
-   leaving `.prac-kit ul` here would be a rule with no markup — which `check-css.js` prints — AND a
-   rule that wins: `.prac-kit ul` is a class plus a type (0,1,1) against `.kit-chips`'s (0,1,0), so
-   its `padding-left: 1.1rem` would have indented the chip block by a bullet's width and nothing
-   below would have looked wrong enough to find. Tenth conviction of `.price.faint`, refused before
-   it was written rather than after a screenshot. */
-.prac-steps ol, .gd-sec ul, .gd-sec ol { margin: 0; padding-left: 1.1rem; }
-.prac-steps li, .gd-sec li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
-.gd-sec li { margin: 0; }
+/* `.prac-kit` IS BACK ON THESE THREE GROUPS, because it holds a list again. The kit was chips —
+   "like how Google has chips in documents" — and they were reverted on "the google chip idea didnt
+   work how i wanted to so revert back", so `.kit-chips`, `.kit-chip`, `.kit-n` and `.kit-q` went
+   with them and these are the rules the kit had before, restored as they were: one item a line, a
+   bullet's indent, the guide's dim ink. The quantity is text on the line — see `kitList_`.
 
-/* ---------- THE KIT, AS CHIPS --------------------------------------------------------------------
-   ASKED FOR AS "I want each item/ingredient to be like a chip. Like how Google has chips in
-   documents and stuff." A bulleted list is read down a column; a kit list is checked off while
-   packing a bag, and chips wrap into a block you take in at once.
-
-   NOT `.chip`, WHICH IS THE FUNNEL'S FILTER — 44px of tap target with a gold ✕ on it, and its own
-   note records this stylesheet's fourth conviction of the tap-target rule. Five hundred inert kit
-   items inheriting a fingertip's height is both wrong to look at and wrong to measure, because
-   `check/ui.js` would then be asked about tap targets on things nobody can tap.
-
-   THE NAME SHRINKS AND THE QUANTITY DOES NOT. `min-width: 0` is the `.prac-head h3` lesson, which
-   this card has already paid for once: a flex item's minimum is its min-content, so without it the
-   longest item (`Nichrome wire (about 1 m, taped to a metre rule)`) could not wrap inside its own
-   chip and would take the sheet sideways. The badge is `flex: 0 0 auto` for the opposite reason —
-   a quantity with a digit wrapped onto the next line is a different number.
-
-   THE QUANTITY IS GOLD AND MONO because that is what this app already dresses a measurement in:
-   `.prac-strip` two rules up prints `45 min · 7+ · £0.40 a run` in exactly that pair. */
-.kit-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0; padding: 0; list-style: none; }
-.kit-chip { display: inline-flex; align-items: baseline; gap: .3rem; max-width: 100%;
-            font-size: .76rem; line-height: 1.4; color: var(--ink);
-            border: 1px solid var(--line); border-radius: .5rem; padding: .22rem .45rem;
-            background: rgb(255 255 255 / .03); }
-.kit-n { min-width: 0; overflow-wrap: break-word; }
-.kit-q { flex: 0 0 auto; font: 600 .68rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
+   The tenth conviction of `.price.faint` was recorded against `.prac-kit ul` beside those chips — a
+   class plus a type (0,1,1) that would have out-specified `.kit-chips`' (0,1,0) and indented the
+   block by a bullet's width. With no chip rule left there is nothing for it to beat; it is the only
+   rule styling that list, as it was before them. */
+.prac-kit ul, .prac-steps ol, .gd-sec ul, .gd-sec ol { margin: 0; padding-left: 1.1rem; }
+.prac-kit li, .prac-steps li, .gd-sec li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
+.prac-kit li, .gd-sec li { margin: 0; }
 .prac-steps li { margin: 0 0 .25rem; }
 /* `.prac-safety` AND `.prac-maths` WERE HERE, and the guide was the only thing that drew either.
    The safety line was a gold-ruled paragraph and its note is worth keeping: the house rule puts one

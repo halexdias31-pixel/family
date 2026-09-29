@@ -973,6 +973,51 @@ function columnShift_(host, at, top) {
   return line - cur.offsetTop;
 }
 
+/* ---------- A CARD ABOVE CHANGED HEIGHT, SO THE COLUMN IS HELD ON THE PAGE YOU ARE READING --------
+   THE PAGES ARE AN ORDINARY CSS COLUMN AND THE SHIFT IS WORKED OUT FROM `offsetTop`, so a card
+   ABOVE the page in front that changes height after the column was placed moves that page by the
+   difference — and nothing re-placed it, because nothing had ever grown up there. A post
+   photograph in its own proportions is the first thing that does: it reserves 4:5 while the file is
+   on its way and becomes a landscape when it lands. Measured at 390x844 with two landscapes above
+   the post being read and the files 3.5s late: the post in front jumped 447px up the screen and
+   STAYED there until the next swipe. With a portrait among them the zoom-to-fit happened to
+   re-place the column, three frames later — a 100px flicker instead of a lost post.
+
+   SO THE CALLER IS THE `ResizeObserver` THAT ALREADY WATCHES EVERY CARD (`paneWatch_` in find.js),
+   and it calls this INSIDE its own delivery. That is the one moment that is early enough: the
+   observer runs after layout and before paint, so the page moved and the column moved back in the
+   same frame and no frame ever shows the jump. It is also safe there, which `paneReach_` is not — a
+   transform changes where a column is drawn and not how big anything in it is, so no observed size
+   changes and the observer cannot feed itself.
+
+   ONLY THE TRANSLATE'S SECOND HALF, and only when it is wrong. The first half is the sideways step
+   and belongs to whoever placed the grid. AT REST THE TRANSITION IS SWITCHED OFF for the move, as an
+   instant placement does: with it on, the layout would jump the page and the transform would then
+   slide it back over a third of a second, which is the flicker wearing a different coat. MID-SLIDE
+   it is left alone, so the running animation simply retargets. And NEVER UNDER A FINGER — a drag
+   writes its own offset into this transform every frame, and `no-anim` is what says one is down.
+   AND NEVER WHILE A SLIDE IS BOOKED: `PAGE` may already name the page an animated placement is
+   about to go to, and moving the column there now, instantly, would be the slide cancelled a frame
+   before it began — the collision `placeCells` exists to make unwriteable. An INSTANT placement
+   booked for next frame is different and is not waited for: it would put the column exactly where
+   this does, one frame later, and that frame is the jump. Measured at 320x568: waiting for the one
+   `paneReach_` books after a zoom changes painted the post 85px low for a frame. */
+function holdColumn_(id) {
+  try {
+    const host = $('s-' + id);
+    if (!host || host.classList.contains('no-anim')) return;
+    if (PLACE_FRAME && PLACE_WANT && !PLACE_WANT.instant) return;
+    const m = /translate\(\s*(-?[\d.]+)px\s*,\s*(-?[\d.]+)px\s*\)/.exec(host.style.transform || '');
+    if (!m) return;
+    const want = columnShift_(host, domIndex_(id, PAGE[id] || 0));
+    if (!isFinite(want) || Math.abs(parseFloat(m[2]) - want) < 0.5) return;
+    const moving = typeof host.getAnimations === 'function'
+      && host.getAnimations().some(a => a.playState === 'running');
+    if (!moving) host.style.transition = 'none';
+    host.style.transform = `translate(${m[1]}px, ${want.toFixed(1)}px)`;
+  } catch (e) { /* a column left where it was is the behaviour before this existed */ }
+}
+
 /* ---------- HOW FAR IT IS TO THE NEXT CARD DOWN ---------------------------------------------------
    MEASURED ONCE, IN ONE PLACE, and this is the whole reason down never felt like across.
 

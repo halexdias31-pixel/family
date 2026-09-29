@@ -3235,40 +3235,27 @@ function guideBox_(x, slot, ask, hint) {
   </label>`;
 }
 
-/* ---------- THE KIT, AS CHIPS -------------------------------------------------------------------
-   ASKED FOR AS "I want each item/ingredient to be like a chip. Like how Google has chips in
-   documents and stuff ... Then the things needed. And it's quantity."
+/* ---------- THE KIT, AS A LIST AGAIN ------------------------------------------------------------
+   IT WAS CHIPS — "like how Google has chips in documents" — and went back on "the google chip idea
+   didnt work how i wanted to so revert back". So it is the bulleted list it was before them: one
+   item a line, in the guide's own dim ink, read down a column. The chips' own classes (`.kit-chip`,
+   `.kit-n`, `.kit-q`) and their rules went with them rather than being left for nothing to draw.
 
-   A BULLETED LIST IS A THING YOU READ DOWN AND A KIT LIST IS A THING YOU CHECK OFF. Twelve items
-   as `<li>`s is twelve lines of one column, scanned top to bottom, with the ruler and the
-   stopwatch three inches apart; as chips they wrap into a block you take in at once and can run a
-   finger along while you pack the bag. That is what the shape is FOR, and it is why the quantity
-   belongs on the chip rather than in a second column: the two facts about an item are what it is
-   and how much of it, and a chip is exactly big enough for both.
+   THE DATA DID NOT GO BACK, and that half was worth keeping. An item is still `Name × qty` in the
+   cell, split by `kitParse_` into `{ name, qty }` — the quantity inside the item rather than in a
+   parallel column, for the reason the note over `risks` gives about three lists lining up by index.
+   So the quantity is printed on the line, after the name.
 
-   IT IS NOT `.chip`, AND THAT IS NOT FUSSINESS. `.chip` is the funnel's FILTER — a 44px tap
-   target with a gold ✕, whose own note records this stylesheet's fourth conviction of the
-   tap-target rule. A kit item is not pressable, so borrowing that class would give five hundred
-   inert boxes a fingertip's height each and put `check/ui.js` in the position of measuring tap
-   targets on things nobody can tap. `.price.faint` is what this repository calls the other half
-   of that mistake — a rule that reads as a decision and behaves as nothing — and it is the fault
-   this stylesheet has been convicted of more often than any other. The tally is kept where the
-   rules are, because a count written in a second file is a count that goes stale.
-
-   `×` IS DRAWN BACK IN FRONT OF A BARE NUMBER AND NOT IN FRONT OF AN AMOUNT. `Lolly sticks 12`
-   is ambiguous — twelve of them, or the twelfth? — and `Water × 100 ml` is not English. One is a
-   count and the other is an amount, and the only thing that tells them apart is whether the
-   quantity is nothing but digits. One rule, at the one place the badge is drawn. */
-function kitChips_(list) {
-  /* THE NAME IS A SPAN RATHER THAN A BARE TEXT NODE, so it can be told to shrink. A chip is a
-     flex box and a flex item's minimum is its MIN-CONTENT — which is the fault `.prac-head h3`
-     already records on this very card, where four titles ran past a 320px column because they
-     could not shrink below their longest word. `Nichrome wire (about 1 m, taped to a metre rule)`
-     is the longest thing this list holds, and it has to wrap INSIDE its chip. */
-  return `<ul class="kit-chips">${list.map(e => `<li class="kit-chip"><span class="kit-n">${
-    esc(e.name)}</span>${
-    e.qty ? `<b class="kit-q">${/^\d+$/.test(e.qty) ? '\u00d7' : ''}${esc(e.qty)}</b>` : ''
-  }</li>`).join('')}</ul>`;
+   A COLON, AND THAT IS MEASURED RATHER THAN PREFERRED. The em dash reads nicely on `Lemons — 4` and
+   TEN of the 640 names already carry one of their own — `A stopwatch — a phone will do`,
+   `Surfaces to try — carpet, hard floor, pavement, short grass` — so a dash for the amount made a
+   name's own aside and its quantity the same mark, and the second of those read `… short grass — 4`.
+   The colon appears in NONE of them, counted, which is the same test `×` passed in the cell. And it
+   reads right for both kinds of amount, where `×` is right for a count and wrong for a measure:
+   `Lemons: 4`, `Water: 100 ml`, `Lolly sticks: about 10`, `Red cabbage: half`. */
+function kitList_(list) {
+  return `<ul>${list.map(e => `<li>${esc(e.name)}${
+    e.qty ? ': ' + esc(e.qty) : ''}</li>`).join('')}</ul>`;
 }
 
 
@@ -3309,14 +3296,14 @@ function practicalPart_(x, part) {
      back to understand. So the practical's name sits small above the section's own heading.
 
      `.gd` STAYS ROUND THE CONTENT, which is what leaves every rule the guide already had —
-     `.gd .kit-chips`, `.gd .prac-steps`, `.gd-sec`, `.prac-tab` — applying unchanged. The markup
+     `.prac-kit ul`, `.gd .prac-steps`, `.gd-sec`, `.prac-tab` — applying unchanged. The markup
      inside each section is the markup it had on the single card, moved, not rewritten; and the
      answer boxes are `guideBox_`'s with the same slots, so every answer already typed comes back. */
   const head = what => `<p class="prac-of">${esc(x.name)}</p><h3>${what}</h3>`;
   let inner = '';
   if (part === 'kit') {
     inner = `${head('Equipment')}<div class="gd"><section class="prac-kit">
-      ${kitChips_(p.equipment)}</section></div>
+      ${kitList_(p.equipment)}</section></div>
       ${/* The one-off cost is about the KIT, so it is on the kit's page rather than the first. */''}
       ${p.setupCost ? `<p class="prac-cost">About £${p.setupCost.toFixed(2)} of kit to set up,
         and it is bought once.</p>` : ''}`;
@@ -7894,7 +7881,10 @@ function paneReach_(panes) {
     const kids = list.map(p => [].slice.call(p.children));
     const was = kids.map(ks => ks.map(k => k.style.zoom || ''));
     kids.forEach(ks => ks.forEach(k => {
-      if (k.style.zoom) { k.style.zoom = ''; k.style.width = ''; k.style.marginInline = ''; }
+      if (k.style.zoom) {
+        k.style.zoom = ''; k.style.width = '';
+        k.style.marginInline = ''; k.style.marginLeft = ''; k.style.marginRight = '';
+      }
     }));
     const pad = p => {
       const cs = getComputedStyle(p);
@@ -7914,12 +7904,32 @@ function paneReach_(panes) {
        in its own pixels and the board grows to fill it. Measured on the Games column the first time:
        zoomed to 0.91 and still 24px past the pane. Pinned to the width it had at zoom 1, everything
        scales by exactly the same factor and the zoom that was asked for is the zoom that fits. */
-    const wide = kids.map(ks => ks.map(k => k.getBoundingClientRect().width));
+    /* ---------- AND IT STAYS CENTRED WHERE IT WAS, WHICH `margin-inline: auto` DID NOT DO -----------
+       THIS WAS `margin-inline: auto`, which centres a child only when the zoomed width fits inside
+       the pane's content box. A post does not: `.pane > .post` bleeds into the pane's padding with a
+       negative margin so its photograph reaches the glass, so it is wider than that box — and a zoom
+       of about 0.92 or more left it wider still, the auto margins resolved to nought, and the card
+       started at the padding's edge and hung off the right. Measured at 390x844 on a 9:16 portrait
+       zoomed to fit: the photograph at 45→356 inside a card at 32→358, thirteen pixels of card on
+       the left and two on the right. It surfaced when a post photograph stopped being a fixed 4:5
+       box, because that is when a post first grew past its pane at 390.
+
+       SO THE CENTRE IS KEPT, which is `auto` for every ordinary card and the right answer for one that
+       bleeds. `zoom` scales an element's margins with everything else, so the margin is written
+       divided by the zoom and lands where it was worked out. Measured after: 7.5px either side. */
+    const box = list.map(p => {
+      const r = p.getBoundingClientRect(), cs = getComputedStyle(p);
+      return r.left + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
+    });
+    const rects = kids.map(ks => ks.map(k => k.getBoundingClientRect()));
     list.forEach((p, i) => {
       if (want[i] < 1) kids[i].forEach((k, j) => {
-        k.style.width = wide[i][j] + 'px';
-        k.style.marginInline = 'auto';
-        k.style.zoom = String(want[i]);
+        const r = rects[i][j], z = want[i];
+        const left = (r.left - box[i]) + r.width / 2 - r.width * z / 2;
+        k.style.width = r.width + 'px';
+        k.style.marginLeft = (left / z) + 'px';
+        k.style.marginRight = 'auto';
+        k.style.zoom = String(z);
       });
     });
     /* ---------- A ZOOM THAT CHANGED MOVES THE PAGES UNDER IT, SO THE COLUMN IS PLACED AGAIN ---------
@@ -7986,7 +7996,19 @@ function paneReach_(panes) {
 
    THE ONE CASE IT CANNOT SEE IS A ROTATION: the pane's own cap moves and the card does not, so
    nothing resizes. That is why `placeNow_` calls this as well — a resize arrives there. */
+/* ---------- AND IT MEASURES A FRAME LATER, NOT INSIDE THE OBSERVER'S OWN CALLBACK ----------------
+   A ZOOM THAT CHANGES INSIDE THE CALLBACK CHANGES THE SIZE THE CALLBACK WAS TOLD ABOUT, and the
+   browser reports that as "ResizeObserver loop completed with undelivered notifications" — an error
+   event on `window`, which `overworld.js` turns into a gold banner reading "Something went wrong".
+   It was always possible and nothing had produced it: every card that grew after its placement grew
+   to a size that still fitted. A post photograph in its own proportions is the first that does not —
+   a portrait lands, the card passes its pane, the callback zooms it, and the banner went up over the
+   feed on the first open. Measured at 390x844. Nothing was broken; the notification the browser
+   calls undelivered is simply delivered next frame. So the callback only collects which panes moved
+   and one `requestAnimationFrame` measures them, which is outside the observer's delivery and so
+   cannot loop. The one frame of an un-zoomed card is the frame the picture arrived in. */
 let PANE_WATCH = null;
+let PANE_WATCH_DUE = null;
 function paneWatch_(host) {
   if (!host || !host.querySelectorAll) return;
   const panes = host.querySelectorAll('.pane');
@@ -7994,12 +8016,26 @@ function paneWatch_(host) {
   if (typeof ResizeObserver !== 'function') return;
   try {
     if (!PANE_WATCH) PANE_WATCH = new ResizeObserver(rows => {
-      const mine = [];
+      const due = PANE_WATCH_DUE || (PANE_WATCH_DUE = []);
+      const first = due.length === 0;
+      const held = new Set();
       rows.forEach(r => {
         const pane = r.target && r.target.parentElement;
-        if (pane && mine.indexOf(pane) === -1) mine.push(pane);
+        if (pane && due.indexOf(pane) === -1) due.push(pane);
+        const scr = pane && pane.closest && pane.closest('.screen');
+        if (scr && scr.id && !held.has(scr.id)) {
+          held.add(scr.id);
+          /* NOW, INSIDE THE DELIVERY, and not with the measuring a frame later — see `holdColumn_`
+             in shell.js: a card above the page in front moved that page, and this is the last
+             moment before the frame is painted with it moved. */
+          if (typeof holdColumn_ === 'function') holdColumn_(scr.id.replace(/^s-/, ''));
+        }
       });
-      paneReach_(mine);
+      if (first && due.length) requestAnimationFrame(() => {
+        const mine = PANE_WATCH_DUE || [];
+        PANE_WATCH_DUE = null;
+        paneReach_(mine.filter(p => p.isConnected));
+      });
     });
     /* ONLY WHAT CHANGED IS UNOBSERVED OR OBSERVED. This ran on every placement — every tap and
        every page turn — and let go of every card on the screen and took hold of it again. A
