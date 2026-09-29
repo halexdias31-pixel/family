@@ -1068,31 +1068,6 @@ function messageSheet(to, toId) {
 
 on('msg-open', el => messageSheet(el.dataset.to, el.dataset.id));
 
-/* ---------- AND THE SAME ROUND TRIP WITH NO RECIPIENT TO NAME ------------------------------------
-   `send`, NOT `api`, FOR THE REASON WRITTEN OUT UNDER `msg-send`: a refusal that resolves is a
-   refusal a `.then` treats as a success, and this one would empty the box and say "Sent" about a
-   note that never left. `broadcast` can refuse four ways and every one of them is real.
-
-   THE COUNT COMES BACK FROM THE SERVER. How many people the roster holds, and which of them the
-   messaging policy allows the sender to reach, are the server's arithmetic — counting them here
-   would be a second copy of `mayMessage` on the phone, which is the fault `MESSAGING` records. */
-on('cast-send', el => {
-  const box = $('cast-text');
-  const text = ((box && box.value) || '').trim();
-  if (!text) { box && box.focus(); toast('Type the message first.'); return; }
-  if (!USER) { toast('Sign in first'); return; }
-  const alsoEmail = !!(($('cast-mail') || {}).checked);
-
-  send_({ action: 'broadcast', name: USER.name, personId: USER.personId,
-          body: text, alsoEmail }, { button: el, busy: 'Sending\u2026' })
-    .then(d => {
-      if (box) box.value = '';
-      const n = (d && d.sent) || 0;
-      toast('Sent to ' + n + ' ' + (n === 1 ? 'person' : 'people')
-        + ((d && d.mailed) ? ' \u00b7 ' + d.mailed + ' emailed' : ''));
-    });
-});
-
 /* ---------- SENDING, OPTIMISTICALLY ----------------------------------------------------------------
    THE BUBBLE APPEARS THE MOMENT SEND IS PRESSED. Against this backend a send is several seconds —
    longer again with a photograph on it — and a box that sits there saying "Sending…" reads as the tap
@@ -1976,7 +1951,7 @@ function send_(body, o) {
      screen no longer shows.
 
      ON `send_` RATHER THAN ON THE SIGN-IN CARD, because it is the one shared POST helper in this
-     app -- so the booking form, the composer, the broadcast and the profile save all get it from
+     app -- so the booking form, the composer and the profile save all get it from
      one place. A lock written on the card that prompted it is the fault this repository records
      under `cost: 0` and `paper: true`: repaired in the instance, and back within a month.
 

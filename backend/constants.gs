@@ -2735,9 +2735,8 @@ const ACTION_ACCESS = {
      except that they have just locked the real owner out until they read their email, which is
      the one real cost and is why `authEndSession_` is NOT called here. */
   forgotPin: 'anyone',
-  /* ONE MESSAGE TO EVERYBODY, WHICH IS A DECISION ABOUT OTHER PEOPLE'S INBOXES. Admin, for the
-     same reason `closeJob` is. */
-  broadcast: 'admin',
+  /* `broadcast: 'admin'` WAS HERE — one message to everybody — and went with its handler and its
+     card on "remove the note to everyone button". An entry with no handler is a door onto nothing. */
   /* SIGNING IN WITH GOOGLE. `anyone` for the same reason as the two beside it — you cannot be
      signed in to sign in — and the handler proves identity by asking Google rather than by
      believing the request, which is the difference between this and the entry removed below. */

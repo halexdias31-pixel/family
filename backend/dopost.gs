@@ -1478,68 +1478,14 @@ function doPost(e) {
       return jsonOut(said);
     }
 
-    /* --- one message to everybody ------------------------------------------------------------------
-       ASKED FOR AS *"have a message sent to everyone from halex saying Hi wlecome!"*
-
-       IT IS `sendMessage` WITHOUT THE PICKER AND WITHOUT THE GAP. The same tab, the same row shape
-       and the same `mayMessage` policy asked per recipient — so a broadcast cannot put a note in
-       front of somebody the rules say the sender may not reach, and a policy written twice is the
-       fault this repository records under `MESSAGING`.
-
-       THE FIVE-MINUTE GAP IS SKIPPED, and only here: it exists to stop one person writing to many
-       people quickly, which is precisely what this is for and is why it is admin-only instead.
-
-       THE EMAIL IS OFF UNLESS ASKED FOR. `MailApp` has a daily quota, and spending it on a whole
-       roster at once means the next booking confirmation goes nowhere — a broadcast that silently
-       breaks the mail everything else depends on. The message is in the app either way. */
-    if (action === 'broadcast') {
-      const me = findPerson(S(body.name), S(body.personId));
-      if (!me) return jsonOut({ error: 'Not signed in.' });
-
-      const text = S(body.body).trim();
-      /* A MESSAGE MAY BE WORDS, FILES OR BOTH — a photograph with nothing said about it is still
-         something sent. Only a message with neither is refused. */
-      const files = (Array.isArray(body.files) ? body.files : []).filter(f => f && S(f.data));
-      if (!text && !files.length) return jsonOut({ error: 'Nothing to send.' });
-      if (text.length > 2000) {
-        return jsonOut({ error: 'That is longer than a message should be — 2,000 characters.' });
-      }
-
-      const mine = S(me.person_id);
-      const who = read(TAB.people).rows.filter(r =>
-        S(r.person_id) && S(r.person_id) !== mine && mayMessage(mainRole(me), mainRole(r)));
-      if (!who.length) return jsonOut({ error: 'There is nobody to send it to.' });
-
-      const t = read(TAB.messages);
-      const stamp = new Date();
-      who.forEach((r, i) => addRow(t, {
-        /* ONE ID PER ROW. `'M' + Date.now()` is the same millisecond for every row of one loop, so
-           a broadcast to forty people would write forty rows sharing an id — and `readMessage`
-           finds a message by that id. */
-        message_id: 'M' + stamp.getTime() + '-' + i,
-        from_id: mine,
-        to_id: S(r.person_id),
-        sent_at: stamp,
-        body: text,
-      }));
-      clearCache();
-
-      let mailed = 0;
-      if (TRUE_(body.alsoEmail)) {
-        who.forEach(r => {
-          const to = S(r.email);
-          if (!to) return;
-          try {
-            MailApp.sendEmail({ to: to, name: BRAND_NAME,
-              subject: 'A message from ' + personDisplayName(me),
-              body: text + '\n\n— reply on the site.' });
-            mailed++;
-          } catch (err) { /* one blocked address must not stop the rest */ }
-        });
-      }
-
-      return jsonOut({ success: true, sent: who.length, mailed: mailed });
-    }
+    /* --- ONE MESSAGE TO EVERYBODY WAS HERE -------------------------------------------------------
+       `broadcast` — `sendMessage` without the picker and without the five-minute gap, admin-only —
+       and it went with its only door, the "Message everyone" card at the foot of the Messages
+       column, on the report "remove the note to everyone button". A handler with no door is the
+       `orderPrints` shape, and it would also have been a live admin action nothing could see or
+       test. The one idea in it worth keeping if it is ever rebuilt: every row of one send needs its
+       own `message_id`, because `'M' + Date.now()` is one millisecond for a whole loop and
+       `readMessage` finds a message by that id. */
 
     /* --- reacting -------------------------------------------------------------------------------
        One per person per post, and it can be changed or taken back — the same shape as a vote,
