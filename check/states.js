@@ -526,13 +526,21 @@ const STATES = {
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         USER.agreementSignedAt = '28/09/26 18:20'; USER.agreementVersion = AGREEMENT_VERSION;
+        /* A CLEAN COLUMN FIRST. `paint('settings')` is refused while a card has something typed in
+           it — `settingsKeep_`, so a Save's reload cannot throw away another card's typing — and
+           `check/press.js` has been typing into these cards for a minute before any state runs. The
+           refused paint left the state measuring the card from before its own seed, and reported
+           two settings states as not arriving that `check/ui.js`, which types nothing, found fine. */
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
         const at = [...document.querySelectorAll('#s-settings .page')]
           .findIndex(pg => pg.querySelector('[data-do="agree-sign"]'));
         if (at < 0) throw new Error('no agreement card on the settings column');
         goPage('settings', at, true);
       },
-      leave: () => { delete USER.agreementSignedAt; delete USER.agreementVersion; paint('settings'); },
+      leave: () => { delete USER.agreementSignedAt; delete USER.agreementVersion;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings'); },
       expect: () => {
         const b = document.querySelector('#s-settings .page.on [data-do="agree-sign"]');
         return b && b.checked && b.disabled
@@ -572,6 +580,8 @@ const STATES = {
         window.STATE_QUAL_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {},
           { qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_grade: 'B', qual_1_board: 'Edexcel' });
+        /* A CLEAN COLUMN FIRST — see the agreement state above. */
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
         const pages = [...document.querySelectorAll('#s-settings .page')];
         const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
@@ -585,6 +595,7 @@ const STATES = {
       leave: () => {
         delete window.STATE_QUALS_SHOWN;
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
       },
       expect: () => {
@@ -661,13 +672,17 @@ const STATES = {
       enter: () => {
         window.STATE_ROLE_WAS = USER.role;
         USER.role = 'student';
+        /* A CLEAN COLUMN FIRST — see the agreement state above. */
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         repaint();
         const at = [...document.querySelectorAll('#s-settings .page')]
           .findIndex(pg => pg.querySelector('[data-me="exam_small_date"]'));
         if (at < 0) throw new Error('no exam-dates page on the settings column');
         goPage('settings', at, true);
       },
-      leave: () => { USER.role = window.STATE_ROLE_WAS; repaint(); },
+      leave: () => { USER.role = window.STATE_ROLE_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        repaint(); },
       /* BOTH, AND BOTH A REAL DATE PICKER. `expect` is truthy-read, so a bare count passes on a page
          holding two plain text boxes — which is precisely what `FIELD_IS_DATE` failing to match
          produces, and the whole point of the `_date` suffix. So the type is the assertion. */

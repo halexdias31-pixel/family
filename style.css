@@ -7214,7 +7214,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   text-align: left; color: inherit;
   overflow-wrap: break-word; hyphens: none;
 }
-.bk-row.is-bare .bk-m, .bk-row.is-bare .bk-r, .bk-row.is-bare .bk-t { display: none; }
+/* `:not(.is-wide)` BECAUSE A BASKET LINE CAN BE BOTH. A paper with no page count has no figure, so
+   `receiptRow` marks it bare as well as wide, and two rules at one specificity both hiding `.bk-m`
+   and `.bk-r` is a tie settled by file order — harmless while they agree, and the first thing that
+   goes wrong the day one of them changes. `is-wide` already says what those two columns are on a
+   basket line, so this one stands aside. */
+.bk-row.is-bare:not(.is-wide) .bk-m, .bk-row.is-bare:not(.is-wide) .bk-r,
+.bk-row.is-bare .bk-t { display: none; }
 
 /* ==================================================================================================
    AN OPEN WAITING LIST — A TICKET, NOT A CARD.
