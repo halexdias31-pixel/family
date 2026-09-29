@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-29-e-card";
+const DOPOST_VERSION = "2026-09-29-f-many";
 
 
 function doPost(e) {
@@ -557,6 +557,26 @@ function doPost(e) {
           mirror('qual_' + n + '_board', S(q.board));
           mirror('qual_' + n + '_grade', S(q.grade));
         }
+        /* ---------- WHAT YOU TEACH IS DERIVED FROM THE TICKS, HERE AND NOT ON THE PHONE ---------
+           The `What you teach` page is gone; `teaches_1`, `teaches_1_level` and `teaches_also` are
+           not — `doGet`'s tutor payload, the booking form's tutor filter and every card read them.
+           So they are written from the qualification the tutor ticked `Specialise` on and the ones
+           ticked `I teach this`, on the server, because a rule that lived only in `me.js` would be
+           skipped by anything that posts without the page. The studying cells are emptied for the
+           reason `qualsList_` gives: their answer is a `Present` qualification now, and left full
+           they would bring it back the moment the tutor deleted it. */
+        const spec = list.find(q => q.spec) || {};
+        const also = list.filter(q => q.teach && !q.spec && S(q.subject))
+                         .map(q => teachAlsoPhrase_({ subject: q.subject, level: q.level })).join(', ');
+        mirror('teaches_1', S(spec.subject));
+        mirror('teaches_1_level', S(spec.level));
+        const alsoCell = teachAlsoIn(also);
+        mirror('teaches_also', alsoCell);
+        const first = teachAlsoList_({ teaches_also: alsoCell })[0] || {};
+        mirror('teaches_2', S(first.subject));
+        mirror('teaches_2_level', S(first.level));
+        mirror('studying', '');
+        mirror('studying_at', '');
       }
       /* `teaches_also` IS A COLUMN, so `wanted` writes it and the `noColumn` refusal covers it; what
          it needs here is tidying before that write, and the `teaches_2` mirror after it. */
@@ -584,6 +604,20 @@ function doPost(e) {
          REFUSED BEFORE THE WRITE, like the pricing clock and the e-mail clash above it: a partial
          is `null` to `sheetDate`, so the birthday would go off the calendar with a toast saying
          Saved. `dobRefusal_` is in `core.gs` beside `sheetDate` so something can run it. */
+      /* ---------- THE PHONE IS TWO BOXES AND ONE CELL ------------------------------------------
+         ASKED AS *"phone: have field for country code, then number."* The birthday's three places
+         again: `phone_cc`/`phone_no` are not columns, so `wanted` drops them; `phone` is checked for
+         a header here because nothing below can see it; and `phoneIn` is the one packer. A post
+         that names the column itself (an older phone) still goes through `wanted` as before. */
+      const phoneSent = Object.keys(fields).some(f => PHONE_FIELD.test(f))
+                     && allowed.indexOf('phone') !== -1;
+      if (phoneSent) {
+        if (t.headers.indexOf('phone') === -1) {
+          return jsonOut({ error: 'The sheet has no column for: phone. '
+            + 'Run ensureSchema() to add it — nothing was saved.' });
+        }
+        setCell(t, r, 'phone', phoneIn(fields));
+      }
       const dobSent = Object.keys(fields).some(f => DOB_FIELD.test(f))
                    && allowed.indexOf('date_of_birth') !== -1;
       if (dobSent) {
@@ -3555,6 +3589,8 @@ function profileOf_(r) {
      produce them — and the form reads them by name. The cell itself stays because `fieldsHtml`
      dispatches on the group's field list, which still names `date_of_birth`. */
   DOB_FIELDS.forEach(f => { out[f] = S(dob[f]); });
+  const ph = phoneOut(r.phone);
+  PHONE_FIELDS.forEach(f => { out[f] = S(ph[f]); });
   return out;
 }
 
