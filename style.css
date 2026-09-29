@@ -724,9 +724,22 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    and wrap; the chevron keeps its own width. */
 .q-sum-t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; padding-block: .3rem; }
 .q-sum::after { flex: 0 0 auto; content: '▾'; margin-left: auto; color: var(--faint); transition: transform .15s ease; }
-.q-card.is-shut .q-sum::after { transform: rotate(-90deg); }
-.q-card.is-shut > .lib-row { display: none; }
-.q-card:not(.is-shut) > .q-sum { color: var(--gold); }
+.q-lvl.is-shut .q-sum::after { transform: rotate(-90deg); }
+.q-lvl.is-shut > .lib-row, .q-lvl.is-shut > .q-drop { display: none; }
+.q-lvl:not(.is-shut) > .q-sum { color: var(--gold); }
+/* ---------- A SUBJECT AND ITS LEVELS — see `qualShelf_` ---------------------------------------------
+   THE SUBJECT IS THE HEADING OF ITS OWN BLOCK, so its box is the first thing and the level lines hang
+   under it, indented by a rule down the left rather than by a box round them: they are the subject's,
+   and a border would make each one a card of its own, which is the "widget" the owner asked to lose.
+   `Remove this level` is a quiet line at the foot of an open level, 44px because it is a control, and
+   red only in its words — it empties a level rather than destroying anything saved until Save. */
+.q-subj .q-levels { margin: .1rem 0 .15rem .35rem; padding-left: .6rem; border-left: 1px solid var(--line); }
+.q-lvl + .q-lvl { border-top: 1px dashed var(--line); }
+.q-drop { display: block; min-height: 44px; margin: -.2rem 0 .1rem; padding: 0; background: none; border: 0;
+          color: var(--bad, #c4655a); font: inherit; font-size: .72rem; text-align: left; cursor: pointer;
+          text-decoration: underline; text-underline-offset: 3px; }
+.q-subj .q-add { margin: .1rem 0 .1rem; }
+.q-subj .q-ticks { display: flex; gap: 1rem; align-items: center; }
 .lib-card + .lib-card { border-top: 1px dashed var(--line); padding-top: .45rem; }
 /* ---------- AND THE GAPS ARE THE ONLY THING LEFT TO SPEND, BECAUSE 44px IS NOT ------------------
    SIX ROWS OF INPUT AT A 44px FLOOR IS 264px AND THAT IS THE SHELF'S FLOOR. `label.field`'s own
@@ -833,7 +846,6 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* THE THIRD ROW OF A QUALIFICATION: the received year, then the two ticks that replaced the
    `What you teach` page. The ticks take what their words need and the year takes the rest; the
    label is the 44px target, as `.check` already makes it, and the words shrink rather than wrap. */
-.lib-row.q-row.q-ticks { grid-template-columns: minmax(5.8rem, 1fr) max-content max-content; align-items: center; gap: .5rem; }
 .q-tick { gap: .35rem; font-size: .72rem; min-height: 44px; padding: 0; white-space: nowrap; }
 /* AN UNCHOSEN LEVEL OR BOARD READS AS A PLACEHOLDER, in the same grey as the empty boxes above it —
    otherwise `Level` in full ink looks like an answer somebody gave. */

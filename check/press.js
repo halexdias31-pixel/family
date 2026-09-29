@@ -225,8 +225,8 @@ function stateOf(id) {
   return [
     scr ? hash(scr.innerHTML) : -1,
     /* A TICK IS A PROPERTY, NOT MARKUP. `checked` moves without touching `innerHTML`, so a checkbox
-       whose whole effect is the box it ticks — `qual-tick` keeping a specialism and its teach tick
-       in step — read as a press that did nothing. Counted per screen; there are a few dozen. */
+       whose whole effect is the box it ticks — `qual-subj-tick` copying a subject's teach tick onto
+       every level under it — read as a press that did nothing. Counted per screen; there are a few dozen. */
     scr ? [...scr.querySelectorAll('input[type=checkbox],input[type=radio]')].map(x => x.checked ? 1 : 0).join('') : '',
     sheet && !sheet.classList.contains('hidden') ? hash((document.getElementById('sheet-body') || {}).innerHTML || '1') : 0,
     /* AND THE DROP-DOWN, which is the booking form's list of answers and is a sibling of the screens
