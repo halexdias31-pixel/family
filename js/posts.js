@@ -2588,6 +2588,29 @@ document.addEventListener('visibilitychange', () => {
 
    AND IT IS PURE. Every branch reads state and returns; the asking is `dmSync_` above. That is what
    lets `PAGER.dm` call it on the app's first frame without starting a request from a header. */
+/* ---------- THE FACE IN A CONVERSATION'S HEAD IS THE ONE ON THEIR PROFILE -----------------------
+   ASKED FOR AS *"the profile picture for people in messages should be informed from their profile
+   picture in people."* A message row carries a name and an id and no photograph, so the photograph
+   is looked up in the people the payload already sent — by `person_id` first and the display name
+   only after, which is `findPerson`'s own order and for its reason: two people can share a name,
+   and a stranger's face over a private conversation is worse than a letter.
+
+   ONLY `DATA.tutors` CARRIES A PHOTO, and that is the server deciding, not this function. A child's
+   row is sent with a name and an avatar and nothing else, so a conversation with a student keeps the
+   initial — which is the fallback for every case this cannot place, and the reason a failed image
+   quietly becomes one rather than a broken-picture icon. */
+function dmFace_(t) {
+  const letter = initial(t.name);   // letters and digits only, so it is safe inside the onerror below
+  const rows = (DATA && DATA.tutors) || [];
+  const id = String(t.id || '');
+  const who = (id && rows.find(r => r && String(r.personId || '') === id))
+    || rows.find(r => r && t.name && norm(r.title || '') === norm(t.name));
+  const src = who && who.image ? pic(who.image) : '';
+  if (!src) return `<span class="dm-av" aria-hidden="true">${letter}</span>`;
+  return `<span class="dm-av has-pic" aria-hidden="true"><img src="${esc(src)}" alt="" loading="lazy"
+    onerror="this.parentNode.classList.remove('has-pic');this.parentNode.textContent='${letter}'"></span>`;
+}
+
 function dmPages_() {
   if (!USER) return [{ name: '', html: `<div class="card"><h3>Messages</h3>
     <p class="sub">Sign in to see your messages.</p></div>` }];
@@ -2656,8 +2679,7 @@ function dmPages_() {
   return threads.map(t => ({
     name: t.name + (t.unread ? ' (' + t.unread + ')' : ''),
     html: `<div class="card${t.unread ? ' unread' : ''}">
-      <div class="dm-head"><span class="dm-av" aria-hidden="true">${
-        esc(String(t.name || '?').trim().charAt(0).toUpperCase() || '?')}</span>
+      <div class="dm-head">${dmFace_(t)}
         <h3>${esc(t.name)}${t.unread ? ` <span class="dm-new">${t.unread} new</span>` : ''}</h3></div>
       <div class="msg-body">${messagesHtml_(t.msgs)}</div>
       ${msgForm_(t.name, t.id)}

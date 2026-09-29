@@ -188,81 +188,12 @@ function outcome(pos) {
   return inCheck(pos, pos.turn) ? 'mate' : 'stalemate';
 }
 
-/* ---------- THE OPPONENT -----------------------------------------------------------------------
-   Minimax with alpha-beta. Deliberately shallow: a student wants an opponent that can be beaten
-   with thought, not one that cannot be beaten at all — and a browser on a Chromebook has to answer
-   within a second. */
-const VALUE = { p: 100, n: 320, b: 330, r: 500, q: 900, k: 20000 };
-
-/* Where a piece would rather be. Crude, but it is the difference between an engine that develops
-   and one that shuffles its rooks — and the tables cost nothing to evaluate. */
-const PAWN_MAP = [
-   0,  0,  0,  0,  0,  0,  0,  0,
-  50, 50, 50, 50, 50, 50, 50, 50,
-  10, 10, 20, 30, 30, 20, 10, 10,
-   5,  5, 10, 25, 25, 10,  5,  5,
-   0,  0,  0, 20, 20,  0,  0,  0,
-   5, -5,-10,  0,  0,-10, -5,  5,
-   5, 10, 10,-20,-20, 10, 10,  5,
-   0,  0,  0,  0,  0,  0,  0,  0];
-const KNIGHT_MAP = [
- -50,-40,-30,-30,-30,-30,-40,-50,
- -40,-20,  0,  0,  0,  0,-20,-40,
- -30,  0, 10, 15, 15, 10,  0,-30,
- -30,  5, 15, 20, 20, 15,  5,-30,
- -30,  0, 15, 20, 20, 15,  0,-30,
- -30,  5, 10, 15, 15, 10,  5,-30,
- -40,-20,  0,  5,  5,  0,-20,-40,
- -50,-40,-30,-30,-30,-30,-40,-50];
-
-function evaluate(pos) {
-  let score = 0;
-  for (let i = 0; i < 64; i++) {
-    const p = pos.board[i];
-    if (p === '_') continue;
-    const w = isWhite(p);
-    let v = VALUE[p.toLowerCase()];
-    // The maps are written from black's point of view, so white reads them mirrored.
-    const at = w ? i : 63 - i;
-    if (p.toLowerCase() === 'p') v += PAWN_MAP[at];
-    if (p.toLowerCase() === 'n') v += KNIGHT_MAP[at];
-    score += w ? v : -v;
-  }
-  return score;                                    // positive favours white
-}
-
-function search(pos, depth, alpha, beta) {
-  const end = outcome(pos);
-  if (end === 'mate') return pos.turn === CH_WHITE ? -99999 + depth : 99999 - depth;
-  if (end === 'stalemate') return 0;
-  if (depth === 0) return evaluate(pos);
-
-  const moves = legalMoves(pos);
-  // Captures first: alpha-beta prunes far more when good moves come early.
-  moves.sort((a, b) => (pos.board[b.to] !== '_' ? 1 : 0) - (pos.board[a.to] !== '_' ? 1 : 0));
-
-  if (pos.turn === CH_WHITE) {
-    let best = -Infinity;
-    for (const m of moves) {
-      best = Math.max(best, search(play(pos, m), depth - 1, alpha, beta));
-      alpha = Math.max(alpha, best);
-      if (beta <= alpha) break;
-    }
-    return best;
-  }
-  let best = Infinity;
-  for (const m of moves) {
-    best = Math.min(best, search(play(pos, m), depth - 1, alpha, beta));
-    beta = Math.min(beta, best);
-    if (beta <= alpha) break;
-  }
-  return best;
-}
-
-/* `bestMove` was here — the engine's search, and it was kept alive by `chessTap` alone. Removing one
-   dead function uncovered another underneath it, which is the thing to know about dead code: it
-   holds more dead code up, and a single pass only ever finds the top layer. The board plays through
-   `chessMove`, which does its own search. */
+/* ---------- THERE IS NO OPPONENT ------------------------------------------------------------------
+   `VALUE`, the two piece-square maps, `evaluate` and `search` were here — a shallow minimax the
+   board used to play black with. Removed on "make chess 2 player": two people round one phone,
+   white and black taking turns, which is how the game is played at a kitchen table. A dormant
+   engine behind a flag would be a second mode nothing presses, which is `orderPrints`; the move
+   generator above is all a two-player board needs, and `js/check-chess.js` proves it by perft. */
 
 
 

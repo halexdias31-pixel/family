@@ -1748,8 +1748,134 @@ function settingsPages_() {
      the `Your figure` tile on your own card jumps straight there. */
   pages.push(wardrobeCard_());
 
+  /* AFTER THE WARDROBE, for the reason the wardrobe gives: `PAGE.settings` remembers where somebody
+     was, so a card inserted in front moves every index behind it. Each is gated on the role it is
+     about, and the server gates it again — a card is not a permission. */
+  if (isTutorRole()) pages.push(agreementCard_());
+  if (isAdmin()) pages.push(cutCard_());
+
   return pages;
 }
+
+/* ---------- THE TUTOR AGREEMENT (DRAFT), AND A TICK THAT CANNOT BE TAKEN BACK ----------------------
+   ASKED FOR AS *"a draft widget for tutors, just do a draft small contract with tick to agree. cant
+   untick after ticked."* Plain English, short enough to read on the card rather than in a sheet —
+   no pop-ups, which the owner has said twice — and headed DRAFT in words, because it has not been
+   read by anybody who writes contracts for a living and must not look as though it has.
+
+   `AGREEMENT_VERSION` IS POSTED WITH THE TICK, so the sheet says WHICH text somebody agreed to. A
+   revised agreement is a new version string; the old signature stays on the row and says so.
+
+   THE LOCK IS THE SERVER'S. `signAgreement` refuses a row that already carries a date, and there is
+   no untick action at all. The disabled box here is the half somebody sees; drawn from
+   `USER.agreementSignedAt`, which `loginReplyFor_` sends, so it is locked on every phone the person
+   signs in on rather than only the one they ticked it on. */
+const AGREEMENT_VERSION = 'draft-2026-09';
+const AGREEMENT_POINTS = [
+  'You work as a self-employed tutor, not as an employee. You are responsible for your own tax and National Insurance.',
+  'You hold an enhanced DBS check, and you tell us straight away if anything about it changes.',
+  'Safeguarding comes first. You report any concern about a child to us the same day, and you never meet a student alone somewhere that has not been agreed.',
+  'You arrive on time and prepared. If you cannot make a session you give at least 24 hours\u2019 notice, except in a real emergency.',
+  'Families pay through this platform. You do not take payment directly, and you are paid for the sessions you teach, on the schedule we agree.',
+  'You keep what you learn about students and families private, and you only use their details to teach them.',
+  'You are polite and professional with students, parents and staff, in person and in messages.',
+  'You do not take on a family you met through us privately while you work with us, or for 6 months after.',
+  'Either side can end this with 2 weeks\u2019 written notice, or straight away for a serious breach such as a safeguarding failure.',
+  'This is a DRAFT and may change. If it does, you will be asked to agree to the new version.',
+];
+function agreementCard_() {
+  const at = USER && USER.agreementSignedAt;
+  return `<div class="card agree">
+    <h3>Tutor agreement <span class="agree-draft">Draft</span></h3>
+    <ol class="agree-list">${AGREEMENT_POINTS.map(t => `<li>${esc(t)}</li>`).join('')}</ol>
+    <label class="check"><input type="checkbox" data-do="agree-sign"${at ? ' checked disabled' : ''}>
+      <span class="box"></span><span>I have read this and I agree</span></label>
+    <p class="faint agree-said">${at
+      ? 'Agreed on ' + esc(at) + (USER.agreementVersion ? ' \u00b7 ' + esc(USER.agreementVersion) : '') + '. This cannot be undone.'
+      : 'Once ticked it stays ticked \u2014 it cannot be undone.'}</p>
+  </div>`;
+}
+
+on('agree-sign', el => {
+  if (!USER || el.disabled) return;
+  /* A click on an unticked box has already ticked it by the time this runs. It is locked for the
+     length of the request so a second tap cannot post twice, and put back only if the server
+     refused — a refusal is reported as a refusal, which is `send`'s whole job. */
+  el.disabled = true;
+  const said = el.closest('.card') && el.closest('.card').querySelector('.agree-said');
+  send({ action: 'signAgreement', name: USER.name, personId: USER.personId, version: AGREEMENT_VERSION })
+    .then(d => {
+      USER.agreementSignedAt = (d && d.signedAt) || 'today';
+      USER.agreementVersion = (d && d.version) || AGREEMENT_VERSION;
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      el.checked = true;
+      if (said) said.textContent = 'Agreed on ' + USER.agreementSignedAt + '. This cannot be undone.';
+      toast('Agreed');
+    })
+    .catch(err => {
+      el.checked = false; el.disabled = false;
+      toast(String((err && err.message) || 'Not saved.'));
+    });
+});
+
+/* ---------- YOUR CUT OF AN EXTRA CHILD, FOR THE ADMIN -----------------------------------------------
+   ASKED FOR AS *"for admin he should have an extra widget which is how much does he take from extra
+   child from other tutors."* That figure is `B` in `priceFrom` (core.js) — read off config as `B`,
+   `boss rate` or `boss_rate` — a FRACTION of the tutor's hourly rate added for each child after the
+   first, beside the tutor's own share `c`. So the card says it in money as well as as a fraction,
+   because 0.1 is not a number anybody thinks in and "£3 an hour on a £30 tutor" is.
+
+   THE KEY IS WHICHEVER OF THE THREE THE SHEET ALREADY USES, so a save edits that row rather than
+   adding a second one `cv` would never read. None of them → `boss_rate`, which `updateConfig` is
+   allowed to add. `send`, not `api`: a refusal must not be toasted as "Saved". */
+const CUT_KEYS = ['B', 'boss rate', 'boss_rate'];
+function cutNow_() {
+  const v = (DATA && DATA.constants && DATA.constants.vars) || {};
+  for (const k of CUT_KEYS) {
+    const x = Number(v[k]);
+    if (v[k] !== undefined && v[k] !== '' && !isNaN(x)) return { key: k, value: x };
+  }
+  return { key: 'boss_rate', value: 0 };
+}
+function cutSay_(b) {
+  const v = (DATA && DATA.constants && DATA.constants.vars) || {};
+  const c = Number(v.c ?? v['extra child rate'] ?? v.extra_child_rate) || 0;
+  const r = 30, pct = Math.round(b * 1000) / 10;
+  return `So on a ${money(r)}/h tutor, each extra child adds ${money(r * (c + b))}/h,
+    of which you take <b>${money(r * b)}/h</b> (${pct}%) and the tutor ${money(r * c)}/h.`;
+}
+function cutCard_() {
+  const now = cutNow_();
+  return `<div class="card cut">
+    <h3>Your cut of an extra child</h3>
+    <p class="sub">What the business takes from each child after the first, as a share of the
+      tutor's hourly rate. 0.1 is 10%.</p>
+    <label class="field"><span>your share (0 to 2)</span>
+      <input id="cut-val" type="number" inputmode="decimal" step="0.01" min="0" max="2"
+        value="${esc(String(now.value))}" data-key="${esc(now.key)}"></label>
+    <p class="faint cut-say">${cutSay_(now.value)}</p>
+    <button class="btn" data-do="cut-save">Save</button>
+  </div>`;
+}
+on('cut-save', el => {
+  const box = el.closest('.card') && el.closest('.card').querySelector('#cut-val');
+  if (!box || !isAdmin()) return;
+  const x = Number(box.value);
+  if (box.value === '' || isNaN(x) || x < 0 || x > 2) return toast('A number from 0 to 2 \u2014 0.1 is 10%.');
+  el.disabled = true;
+  send({ action: 'updateConfig', name: USER.name, personId: USER.personId,
+         key: box.dataset.key || 'boss_rate', value: x })
+    .then(() => {
+      el.disabled = false;
+      DATA.constants = DATA.constants || {};
+      DATA.constants.vars = DATA.constants.vars || {};
+      DATA.constants.vars[box.dataset.key || 'boss_rate'] = x;
+      const say = el.closest('.card').querySelector('.cut-say');
+      if (say) say.innerHTML = cutSay_(x);
+      toast('Saved');
+    })
+    .catch(err => { el.disabled = false; toast(String((err && err.message) || 'Not saved.')); });
+});
 
 screen('settings', () => pages('settings', settingsPages_()));
 
@@ -1989,6 +2115,9 @@ const FIELD_LISTS_ = {
     'England Boxing coach', 'Swim England teacher', 'DofE leader',
     'ABRSM Grade 5', 'ABRSM Grade 8', 'Trinity Grade 8', 'LAMDA',
     'Duolingo English Test', 'IELTS 8+', 'A-Level Further Maths', 'UKMT Gold',
+    /* Asked for by name. No comma in either — this cell is comma-separated and `profList_` would
+       cut one in two. */
+    "Duke of Edinburgh's Award — Gold", 'Young Citizens Bar Mock Trial',
   ],
 };
 /* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell — the shape
@@ -2213,6 +2342,12 @@ on('me-many', el => {
   const open = ME_PICK === el.dataset.field && !$('drop').classList.contains('hidden');
   if (open) { meDropShut_(); return; }
   ME_PICK = el.dataset.field;
+  /* ON THE PAGE THE FIELD IS ON. `mePickRow_` looks on the page in front, so a press that reached a
+     field on another page — a keyboard, or `check/press.js` — found no row and silently shut. Turn to
+     it first, then open. */
+  const pg = el.closest('.page');
+  const at = pg ? [...document.querySelectorAll('#s-settings > .page')].indexOf(pg) : -1;
+  if (AT === 'settings' && at >= 0 && at !== (PAGE.settings || 0)) goPage('settings', at, true);
   meDrop_();
 });
 on('me-many-pick', el => {
@@ -2266,15 +2401,18 @@ const FIELD_ROWS = [
   { fields: ['photo', 'video'] },
   { fields: ['city', 'town'] },
   { fields: ['borough', 'postcode'] },
-  { fields: ['teaches_1', 'teaches_1_level'] },
   /* A STUDENT'S TWO EXAMS SIDE BY SIDE, now they share About you with a name and a photo: two date
      pickers are one row, which is what let them join that page rather than cost a card of their own. */
   { fields: ['exam_small_date', 'exam_big_date'] },
-  { fields: ['studying', 'studying_at'] },
+  /* *"max and min number of students could more efficiently be written as '[] - []'."* One row, one
+     caption, a dash between — and MIN FIRST although the backend lists max first, because a range is
+     read low to high. `dash` is what draws the `–`; the two stay two columns in `PRICING_FIELDS`, so
+     the month's clock still covers both. */
+  { fields: ['min_students', 'max_students'], cap: 'students', ph: ['min', 'max'], dash: true },
 ];
 const ROW_LABEL = {
   teaches_1: 'specialise in', teaches_1_level: 'level', teaches_also: 'also teach',
-  studying: 'studying now', studying_at: 'at', years_experience: 'years teaching',
+  years_experience: 'years teaching',
   photo: 'photo link', video: 'video link',
   travel_km: 'will travel (km)', extra_quals: 'more qualifications', favourite_colour: 'favourite colour',
 };
@@ -2282,13 +2420,16 @@ function fieldRows_(list, one) {
   const out = [], done = new Set();
   list.forEach(f => {
     if (done.has(f)) return;
-    const row = FIELD_ROWS.find(r => r.fields[0] === f && r.fields.every(x => list.indexOf(x) !== -1));
+    /* ANY field of a row places it, not only its first: a row can now read in a different order
+       from the backend's list (the students range is min–max over a list that says max, min). */
+    const row = FIELD_ROWS.find(r => r.fields.indexOf(f) !== -1 && r.fields.every(x => list.indexOf(x) !== -1));
     if (!row) { out.push(one(f, {})); return; }
     row.fields.forEach(x => done.add(x));
-    const boxes = row.fields.map((x, i) => one(x, row.cap ? { placeholder: row.ph[i] } : {})).join('');
+    const boxes = row.fields.map((x, i) => one(x, row.cap ? { placeholder: row.ph[i] } : {}))
+      .join(row.dash ? '<span class="f-dash" aria-hidden="true">–</span>' : '');
     out.push(row.cap
       ? `<div class="f-rowwrap"><span class="dob-cap">${esc(row.cap)}</span>
-           <div class="f-row" style="--n:${row.fields.length}">${boxes}</div></div>`
+           <div class="f-row${row.dash ? ' is-range' : ''}" style="--n:${row.fields.length}">${boxes}</div></div>`
       : `<div class="f-row" style="--n:${row.fields.length}">${boxes}</div>`);
   });
   return out.join('');
@@ -2412,14 +2553,15 @@ on('shelf-more', el => {
    so two rows a qualification: the subject wide beside a narrow grade, then the level and the board
    side by side. Every control keeps its 44px; what goes is the caption over each, and the
    placeholder is the name — the argument `fieldHtml` already makes for the library boxes. */
-const isQualField_ = f => /^qual_\d+(_level|_board|_grade)?$/.test(String(f || ''));
+const isQualField_ = f => /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/.test(String(f || ''));
 const isQuals_ = list => (list || []).some(isQualField_);
 function qualShelf_(list, value, options) {
   const nums = [...new Set((list || []).filter(isQualField_)
     .map(f => String(f).match(/^qual_(\d+)/)[1]))];
   const box = (f, ph) => fieldHtml(f, value(f), { placeholder: ph, options: options ? options(f) : null });
   return `<div class="lib-shelf">${shelfSlots_(nums,
-    i => shelfFilled_(value, ['qual_' + i, 'qual_' + i + '_level', 'qual_' + i + '_board', 'qual_' + i + '_grade']),
+    i => shelfFilled_(value, ['qual_' + i, 'qual_' + i + '_level', 'qual_' + i + '_board', 'qual_' + i + '_grade',
+                              'qual_' + i + '_received']),
     (i, hide) => `
     <div class="lib-card"${hide ? ' hidden' : ''}>
       <div class="lib-row">
@@ -2430,8 +2572,67 @@ function qualShelf_(list, value, options) {
         ${box('qual_' + i + '_level', 'Level')}
         ${box('qual_' + i + '_board', 'Board')}
       </div>
+      <div class="lib-row q-row q-ticks">
+        ${fieldHtml('qual_' + i + '_received', value('qual_' + i + '_received'),
+                    { placeholder: 'Received', options: qualYears_(value('qual_' + i + '_received')) })}
+        ${qualTick_('qual_' + i + '_teach', 'Teach', value)}
+        ${qualTick_('qual_' + i + '_spec', 'Specialise', value)}
+      </div>
     </div>`)}</div>`;
 }
+/* ---------- WHEN IT WAS RECEIVED, AND WHETHER YOU TEACH IT ------------------------------------
+   *"remove the studying now widget. could be achieved if each qualification has a date of reception
+   and present is an option"* — so a year, or `Present` for a course still running, which is what the
+   studying page said in two boxes. A YEAR, NOT A DATE: nobody remembers the day a certificate came,
+   and a `<select>` is one tap where a date picker is a calendar to page back through. A value the
+   list does not hold (typed into the sheet) is offered anyway, so opening the page cannot lose it. */
+/* ---------- *"phone: have field for country code, then number."* --------------------------------
+   One cell (`phone`, "+44 7700 900123"); the server splits it into `phone_cc`/`phone_no` for the form
+   (`phoneOut`) and packs it back (`phoneIn`), reading an old `07…` as UK. The codes come from the
+   server (`DATA.phoneCodes`, off `PHONE_CODES`) so there is one list; `+44` is the floor for a
+   deployment that has not sent one, and a code the list lacks is offered rather than lost. */
+function phoneRow_(value) {
+  const cc = String(value('phone_cc') || '') || '+44';
+  const codes = (Array.isArray(DATA && DATA.phoneCodes) && DATA.phoneCodes.length) ? DATA.phoneCodes.slice() : ['+44'];
+  if (codes.indexOf(cc) === -1) codes.unshift(cc);
+  return `<div class="f-rowwrap"><span class="dob-cap">phone</span>
+    <div class="f-row is-phone">
+      <label class="field"><select data-me="phone_cc" aria-label="Country code">
+        ${codes.map(x => `<option value="${esc(x)}"${x === cc ? ' selected' : ''}>${esc(x)}</option>`).join('')}
+      </select></label>
+      <label class="field"><input type="tel" data-me="phone_no" inputmode="tel" autocomplete="tel-national"
+        placeholder="Number" value="${esc(String(value('phone_no') || (value('phone_cc') ? '' : value('phone')) || ''))}"></label>
+    </div></div>`;
+}
+function qualYears_(current) {
+  const now = new Date().getFullYear(), out = ['Present'];
+  for (let y = now; y >= now - 60; y--) out.push(String(y));
+  if (current && out.indexOf(String(current)) === -1) out.splice(1, 0, String(current));
+  return out;
+}
+/* THE TWO TICKS THAT REPLACED `What you teach`. Not `FIELD_IS_BOOL` — these names do not match it and
+   should not have to — but the same `label.check` markup, so `me-save` sends TRUE/FALSE for them as
+   it does for every checkbox. `qual-tick` keeps the pair honest while you tick: a specialism is
+   taught, and there is one of it. The server says the same (`qualsIn`), because the page is not the
+   only thing that can post. */
+function qualTick_(name, label, value) {
+  return `<label class="check q-tick">
+    <input type="checkbox" data-me="${esc(name)}" data-do="qual-tick" ${TRUEish_(value(name)) ? 'checked' : ''}>
+    <span class="box"></span><span>${esc(label)}</span></label>`;
+}
+on('qual-tick', el => {
+  const m = String(el.dataset.me || '').match(/^qual_(\d+)_(teach|spec)$/);
+  const form = el.closest('.me-form');
+  if (!m || !form) return;
+  const pick = (i, k) => form.querySelector('[data-me="qual_' + i + '_' + k + '"]');
+  if (m[2] === 'spec' && el.checked) {
+    form.querySelectorAll('[data-me$="_spec"]').forEach(x => { if (x !== el) x.checked = false; });
+    const teach = pick(m[1], 'teach'); if (teach) teach.checked = true;
+  }
+  if (m[2] === 'teach' && !el.checked) {
+    const spec = pick(m[1], 'spec'); if (spec) spec.checked = false;
+  }
+});
 
 /* ---------- ONE SHELF, ONE CARD PER LIBRARY -----------------------------------------------------
    BUILT FROM THE FIELD LIST THE BACKEND SENT, not from a count written here. `LIBRARY_CARDS` is a
@@ -2515,6 +2716,10 @@ function fieldsHtml(groups, o) {
        argument: a renderer that recognises only what is sent today stops recognising it the day
        the backend is tidied. */
     const wantsDob = !timetable && (list.indexOf('date_of_birth') !== -1 || isDob_(list));
+    /* THE PHONE, AS A CODE AND A NUMBER — the birthday's arrangement: `phone` is the column the
+       group names, the two boxes are what is drawn, and it comes out of `rest` so it is not drawn
+       twice. Drawn where `phone` sat in the list rather than at the foot. */
+    const wantsPhone = !timetable && list.indexOf('phone') !== -1;
     const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f))
                               && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
@@ -2522,7 +2727,7 @@ function fieldsHtml(groups, o) {
       : (library ? libraryShelf_(list, value) : '')
       + (quals ? qualShelf_(list, value, o.options) : '')
       + (wantsDob ? dobBoxes_(value) : '')
-      + fieldRows_(rest, plain);
+      + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneRow_(value) : plain(f, extra));
     return `<${head}><span>${esc(g)}</span></${head}>` + body;
   }).join('');
 }

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-29-c-batch";
+const DOPOST_VERSION = "2026-09-29-f-many";
 
 
 function doPost(e) {
@@ -557,6 +557,26 @@ function doPost(e) {
           mirror('qual_' + n + '_board', S(q.board));
           mirror('qual_' + n + '_grade', S(q.grade));
         }
+        /* ---------- WHAT YOU TEACH IS DERIVED FROM THE TICKS, HERE AND NOT ON THE PHONE ---------
+           The `What you teach` page is gone; `teaches_1`, `teaches_1_level` and `teaches_also` are
+           not — `doGet`'s tutor payload, the booking form's tutor filter and every card read them.
+           So they are written from the qualification the tutor ticked `Specialise` on and the ones
+           ticked `I teach this`, on the server, because a rule that lived only in `me.js` would be
+           skipped by anything that posts without the page. The studying cells are emptied for the
+           reason `qualsList_` gives: their answer is a `Present` qualification now, and left full
+           they would bring it back the moment the tutor deleted it. */
+        const spec = list.find(q => q.spec) || {};
+        const also = list.filter(q => q.teach && !q.spec && S(q.subject))
+                         .map(q => teachAlsoPhrase_({ subject: q.subject, level: q.level })).join(', ');
+        mirror('teaches_1', S(spec.subject));
+        mirror('teaches_1_level', S(spec.level));
+        const alsoCell = teachAlsoIn(also);
+        mirror('teaches_also', alsoCell);
+        const first = teachAlsoList_({ teaches_also: alsoCell })[0] || {};
+        mirror('teaches_2', S(first.subject));
+        mirror('teaches_2_level', S(first.level));
+        mirror('studying', '');
+        mirror('studying_at', '');
       }
       /* `teaches_also` IS A COLUMN, so `wanted` writes it and the `noColumn` refusal covers it; what
          it needs here is tidying before that write, and the `teaches_2` mirror after it. */
@@ -584,6 +604,20 @@ function doPost(e) {
          REFUSED BEFORE THE WRITE, like the pricing clock and the e-mail clash above it: a partial
          is `null` to `sheetDate`, so the birthday would go off the calendar with a toast saying
          Saved. `dobRefusal_` is in `core.gs` beside `sheetDate` so something can run it. */
+      /* ---------- THE PHONE IS TWO BOXES AND ONE CELL ------------------------------------------
+         ASKED AS *"phone: have field for country code, then number."* The birthday's three places
+         again: `phone_cc`/`phone_no` are not columns, so `wanted` drops them; `phone` is checked for
+         a header here because nothing below can see it; and `phoneIn` is the one packer. A post
+         that names the column itself (an older phone) still goes through `wanted` as before. */
+      const phoneSent = Object.keys(fields).some(f => PHONE_FIELD.test(f))
+                     && allowed.indexOf('phone') !== -1;
+      if (phoneSent) {
+        if (t.headers.indexOf('phone') === -1) {
+          return jsonOut({ error: 'The sheet has no column for: phone. '
+            + 'Run ensureSchema() to add it — nothing was saved.' });
+        }
+        setCell(t, r, 'phone', phoneIn(fields));
+      }
       const dobSent = Object.keys(fields).some(f => DOB_FIELD.test(f))
                    && allowed.indexOf('date_of_birth') !== -1;
       if (dobSent) {
@@ -741,12 +775,42 @@ function doPost(e) {
        Every number in the formula lives in `config`; this is how the site writes one back.
        Restricted to keys that already exist, so a typo can't invent a variable that looks like a
        setting and is read by nothing. --- */
+    /* ---------- IT HAS A CALLER NOW: the admin's "your cut of an extra child" card ------------
+       Dead for as long as it existed — see the note under `saveRoom` below. The Settings column's
+       admin card posts `boss_rate` here, which is the `B` `priceFrom` reads as the business's
+       share of each extra child. `setCell` and `addRow` both set `POST_WROTE`, so the six-hour
+       payload is retired on the way out and the new figure is on the next load rather than
+       tomorrow — which is the whole difference between a control and a suggestion.
+
+       A KEY THAT IS NOT THERE MAY BE ADDED, BUT ONLY FROM A SHORT LIST. `priceFrom` reads `B`,
+       `boss rate` or `boss_rate`, and a config tab that has never carried any of them prices every
+       extra child with no cut at all; refusing to create the row would leave the card unable to set
+       the one thing it exists for. A list rather than any key, because an admin's typo would
+       otherwise become a config row nothing reads.
+
+       A NUMBER STAYS A NUMBER. A fraction is what this key means (`asFraction` in core.js takes
+       0 to 2 and ignores anything bigger as a leftover pound figure), so it is checked here too —
+       the phone's check is a convenience and this is the rule. */
     if (action === 'updateConfig') {
+      const CONFIG_ADDABLE = { boss_rate: "YOUR cut of each extra child, as a fraction of the tutor's hourly rate. 0.1 = 10%" };
+      const FRACTION_KEYS = ['boss_rate', 'b', 'boss rate'];
+      const want = S(body.key);
+      if (FRACTION_KEYS.indexOf(norm(want)) >= 0) {
+        const x = Number(body.value);
+        if (S(body.value) === '' || isNaN(x) || x < 0 || x > 2)
+          return jsonOut({ error: 'That share must be a number from 0 to 2 — 0.1 is 10%.' });
+      }
       const t = read(TAB.config);
-      const r = t.rows.find(x => norm(x.key) === norm(body.key));
-      if (!r) return jsonOut({ error: 'No config key called "' + S(body.key) + '".' });
-      setCell(t, r, 'value', body.value);
-      return jsonOut({ success: true, key: S(r.key), value: body.value });
+      let r = t.rows.find(x => norm(x.key) === norm(want));
+      if (!r && CONFIG_ADDABLE[norm(want)]) {
+        r = addRow(t, { key: norm(want), value: Number(body.value), what_it_does: CONFIG_ADDABLE[norm(want)] });
+        if (!r) return jsonOut({ error: 'The config tab could not be opened.' });
+        return jsonOut({ success: true, key: S(r.key), value: r.value, added: true });
+      }
+      if (!r) return jsonOut({ error: 'No config key called "' + want + '".' });
+      const value = FRACTION_KEYS.indexOf(norm(want)) >= 0 ? Number(body.value) : body.value;
+      if (!setCell(t, r, 'value', value)) return jsonOut({ error: 'The config tab has no value column.' });
+      return jsonOut({ success: true, key: S(r.key), value: value });
     }
 
     /* --- admin edits a per-option surcharge ---------------------------------------------------
@@ -1960,6 +2024,35 @@ function doPost(e) {
        `findPerson` matches both — so writing one and not the other leaves the old name answering to
        this person for ever. `handle_was` keeps the previous one, which is the question an admin
        eventually has to answer about exactly one account. */
+    /* ---------- THE TUTOR AGREEMENT: A TICK THAT STAYS TICKED ------------------------------------
+       ASKED FOR AS *"a draft widget for tutors, just do a draft small contract with tick to agree.
+       cant untick after ticked."* The phone's box is disabled once ticked, and that is the
+       convenience; THIS is the rule — a row already carrying a signature is refused rather than
+       re-stamped, so the date it holds is the day they agreed and nothing can move or clear it.
+       There is no `agree: false` path at all, which is the only way "cannot untick" is true of a
+       server anybody can post to.
+
+       TUTORS AND ADMINS, the same test the widget roster's `tutor: true` flag reads. A parent
+       posting here gets a sentence rather than a signature on a contract they are not party to. */
+    if (action === 'signAgreement') {
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me) return jsonOut({ error: 'We could not find your account.' });
+      if (!hasRole(me, 'tutor') && !hasRole(me, 'admin'))
+        return jsonOut({ error: 'The tutor agreement is for tutors.' });
+      if (S(me.agreement_signed_at))
+        return jsonOut({ error: 'You agreed on ' + S(me.agreement_signed_at) + ', and that cannot be undone.',
+                         signedAt: S(me.agreement_signed_at), version: S(me.agreement_version) });
+      const version = S(body.version).slice(0, 40);
+      if (!version) return jsonOut({ error: 'Which version of the agreement was this?' });
+      const t = read(TAB.people);
+      const row = t.rows.find(x => x._row === me._row) || me;
+      const at = fmtDateTime(new Date());
+      if (!setCell(t, row, 'agreement_signed_at', at))
+        return jsonOut({ error: 'The sheet has no column for: agreement_signed_at. Run ?setup=1.' });
+      setCell(t, row, 'agreement_version', version);
+      return jsonOut({ success: true, signedAt: at, version: version });
+    }
+
     if (action === 'changeHandle') {
       const me = findPerson(S(body.name), S(body.personId));
       if (!me) return jsonOut({ error: 'We could not find your account.' });
@@ -3496,6 +3589,8 @@ function profileOf_(r) {
      produce them — and the form reads them by name. The cell itself stays because `fieldsHtml`
      dispatches on the group's field list, which still names `date_of_birth`. */
   DOB_FIELDS.forEach(f => { out[f] = S(dob[f]); });
+  const ph = phoneOut(r.phone);
+  PHONE_FIELDS.forEach(f => { out[f] = S(ph[f]); });
   return out;
 }
 
@@ -3543,6 +3638,9 @@ function loginReplyFor_(r, token) {
                 /* THE SETTINGS FORM'S OWN VALUES — see `profileOf_` above. Without it every box on
                    that column opens blank and the first Save writes the blanks back. */
                 profile: profileOf_(r),
+                /* THE TUTOR AGREEMENT — so the box draws ticked and locked on every phone the
+                   person signs in on, not only the one they ticked it on. */
+                agreementSignedAt: S(r.agreement_signed_at), agreementVersion: S(r.agreement_version),
                 highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables),
                 friends: S(r.friends) };
   /* `childNamesOf`, NOT `childrenOf` — see the note on it. This said `childrenOf(r)`, which after

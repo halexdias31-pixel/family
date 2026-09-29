@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-29-c-batch";
+const DOGET_VERSION = "2026-09-29-f-many";
 
 
 function doGet(e) {
@@ -480,7 +480,7 @@ function doGet(e) {
       /* And what its first two questions answer — see SCHEMA.kinds. */
       kinds: [],
       gallery: [], galleryError: '',
-      profileFields: PROFILE_GROUPS, clientFields: CLIENT_GROUPS,
+      profileFields: PROFILE_GROUPS, clientFields: CLIENT_GROUPS, phoneCodes: PHONE_CODES,
       studentFields: STUDENT_GROUPS, venueFields: VENUE_GROUPS,
       /* `resourceFields` AND `resourceOptions` WERE HERE — the admin form that relabelled a
          document, built from the server's own allow-list so it could not offer a field the server
@@ -693,7 +693,7 @@ function doGet(e) {
             ? S(r.teaches_1) + (S(r.teaches_1_level) ? ' (' + S(r.teaches_1_level) + ')' : '') : '',
           /* UP TO TEN, OFF THE `quals` CELL, with `qual_1…3` as the answer for a row that has never
              been saved since that cell existed — `qualsList_` in core.gs is the one reader. */
-          quals: qualsList_(r).map(q => {
+          quals: qualsList_(r).filter(q => !q.taught).map(q => {
             const subj = S(q.subject);
             if (!subj) return null;
             const lvl = S(q.level), grd = S(q.grade);
@@ -702,7 +702,11 @@ function doGet(e) {
                parts above already are — one sentence, built once, so a card and a roster cannot
                disagree about how a qualification is written. */
             const brd = S(q.board);
-            return [subj, lvl, brd && ('(' + brd + ')'), grd && ('grade ' + grd)]
+            /* AND WHEN: "studying now" for `Present`, the year otherwise — the studying row the
+               card used to draw is this qualification now. */
+            const rec = S(q.received);
+            const when = /^present$/i.test(rec) ? '— studying now' : rec ? '(' + rec + ')' : '';
+            return [subj, lvl, brd && ('(' + brd + ')'), grd && ('grade ' + grd), when]
               .filter(Boolean).join(' ');
           }).filter(Boolean),
           extraQuals: S(r.extra_quals),
@@ -712,8 +716,11 @@ function doGet(e) {
              this is a subject and a place that the card may one day want separately. What it must
              NOT be is one cell with a comma in it: `profList_` would split "Bible and Theology,
              University of Wales" into two, which is the practicals' comma fault. */
-          studying: S(r.studying),
-          studyingAt: S(r.studying_at),
+          /* EMPTY BY CONSTRUCTION NOW: `qualsList_` turns the old studying cells into a `Present`
+             qualification in `quals` above, so sending them too would print it twice. The keys stay
+             so a phone that reads them draws nothing rather than `undefined`. */
+          studying: '',
+          studyingAt: '',
           actionText: '▶ Watch Intro'
         });
       }

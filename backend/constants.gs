@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-29-c-batch";
+const BACKEND_VERSION = "2026-09-29-f-many";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -348,6 +348,11 @@ const SCHEMA = {
        night before this and `?setup=1` has not run since, so `ensureSchema` never created it and no
        cell anywhere holds a date under the old name. */
     "pricing_changed_at",
+    /* THE TUTOR AGREEMENT, SIGNED ONCE. `signAgreement` writes both and nothing clears them — the
+       box on the Settings column cannot be unticked, and the server refuses a second signature
+       rather than moving the date, because "when did they agree" is the one fact this column is
+       for. The version is the draft's own stamp, so a revised agreement is a new version to sign. */
+    "agreement_signed_at", "agreement_version",
     /* These four were added to forms, payloads and pricing over several rounds and never to the
        schema — so ensureSchema never created the columns, every write went nowhere, and each
        feature failed silently for want of one line here. Nothing else was wrong with any of them. */
@@ -1713,10 +1718,19 @@ const LIBRARY_FIELD = /^lib\d+_(name|no|pin)$/;
 const QUAL_MAX = 10;
 const QUAL_FIELDS = (() => {
   const out = [];
-  for (let i = 1; i <= QUAL_MAX; i++) out.push('qual_' + i, 'qual_' + i + '_level', 'qual_' + i + '_board', 'qual_' + i + '_grade');
+  for (let i = 1; i <= QUAL_MAX; i++) out.push('qual_' + i, 'qual_' + i + '_level', 'qual_' + i + '_board',
+    'qual_' + i + '_grade', 'qual_' + i + '_received', 'qual_' + i + '_teach', 'qual_' + i + '_spec');
   return out;
 })();
-const QUAL_FIELD = /^qual_\d+(_level|_board|_grade)?$/;
+/* `_received`, `_teach` AND `_spec` ARE THE THREE THE ITEM GREW, and they replace two pages.
+   ASKED AS *"remove the studying now widget. could be achieved if each qualification has a date of
+   reception and present is an option"* and *"what you teach shouldn't even be a widget. you can just
+   tick which of your qualifications you teach really. and tick which you specialise in."* So the
+   received year (or `Present`, for a course still running) and the two ticks live on the
+   qualification they are about, packed into the same `quals` cell — no new column. What the
+   `What you teach` page used to write (`teaches_1`, `teaches_1_level`, `teaches_also`) is DERIVED
+   from the ticks on save, in `updateProfile`, so every reader of those columns is untouched. */
+const QUAL_FIELD = /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/;
 
 /* ---------- AND WHAT ELSE A TUTOR TEACHES, AS ONE CELL OF "Subject (Level)" PHRASES --------------
    `teaches_also` IS A REAL COLUMN, not a packed set of boxes: the phone draws it as the settings
@@ -1752,6 +1766,12 @@ const TEACH_ALSO_MAX = 8;
    matches `pages|year|students`, so a field called `dob_year` would pick up an `inputmode` the
    other two boxes do not have and two of the three would differ by accident of a regex written for
    something else. */
+/* THE PHONE AS A COUNTRY CODE AND A NUMBER, one cell (`phone`, "+44 7700 900123") — see
+   `phoneOut`/`phoneIn` in core.gs. The list is the codes offered; the first is the default. */
+const PHONE_FIELDS = ['phone_cc', 'phone_no'];
+const PHONE_FIELD = /^phone_(cc|no)$/;
+const PHONE_CODES = ['+44', '+1', '+353', '+33', '+49', '+34', '+39', '+351', '+48', '+40',
+                     '+91', '+92', '+234', '+27', '+61', '+971', '+31', '+32', '+41', '+46', '+90', '+880', '+86', '+63'];
 const DOB_FIELDS = ['dob_d', 'dob_m', 'dob_y'];
 /* ONE TEST, EVERY READER — the `LIBRARY_FIELD` argument, and for the same three jobs: keeping these
    three out of the column check, out of `wanted`, and out of what `profileOf_` reads as a column. */
@@ -2085,15 +2105,19 @@ const PROFILE_GROUPS = {
      moves); everything else is `teaches_also`, one multi-select of "Subject (Level)" phrases in the
      anchored panel `extra_quals` already uses. `teaches_2` is not on the form any more —
      it is mirrored from the first "also" pair on save, and migrated into it on read. */
-  'What you teach': ['teaches_1','teaches_1_level','teaches_also',
-                     'studying','studying_at','extra_quals'],
+  /* ---------- AND THEN THE PAGE WENT ----------------------------------------------------------
+     *"what you teach shouldn't even be a widget. you can just tick which of your qualifications you
+     teach really. and tick which you specialise in."* and *"remove the studying now widget."* Both
+     answers are ticks and a received year on each qualification now (`QUAL_FIELDS`), and the
+     columns this page wrote are derived from them in `updateProfile`. `extra_quals` moves under the
+     shelf, because it is the rest of the same list. */
   /* ---------- ONE PAGE FOR ALL THREE, NOT THREE PAGES WITH A SAVE EACH -------------------------
      ASKED AS *"is there a more efficient way to edit account settings for qualifications?"*. It was
      three groups, so `settingsPages_` drew three cards and three Saves, twelve captioned boxes and
      two swipes for what somebody thinks of as one list. One group; the phone draws it as a shelf
      (`qualShelf_` in me.js), two rows a qualification, and one Save posts all twelve.
      `updateProfile` writes only what it is sent, so nothing else on the row is touched. */
-  'Qualifications': QUAL_FIELDS,
+  'Qualifications': QUAL_FIELDS.concat(['extra_quals']),
   'Availability': AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), []),
   /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA.
      It is in all three group maps because a tutor, a parent and a student each have one library
@@ -2768,7 +2792,7 @@ const ACTION_ACCESS = {
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
   /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can.
      An admin resetting somebody else's is handled inside, where the old PIN can be waived. */
-  changePin: 'self', changeHandle: 'self',
+  changePin: 'self', changeHandle: 'self', signAgreement: 'self',
   /* The shop window is the business talking, so only the business may change it. */
   spotlight: 'admin',
   createCheckout: 'self', finalizePayment: 'self',

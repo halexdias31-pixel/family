@@ -466,8 +466,48 @@ const STATES = {
          `Group size` and `Your rate` produces. The whole point is that they are on ONE page, so the
          number is the assertion. */
       expect: () => (document.querySelectorAll('#s-settings .page.on [data-me]').length === 4
+                     && document.querySelectorAll('#s-settings .page.on .f-row.is-range [data-me]').length === 2
                      ? 4 : 0),
-      wants: 'all four pricing boxes on one page' },
+      wants: 'all four pricing boxes on one page, the students as one min – max row' },
+
+    /* ---------- THE TUTOR AGREEMENT, BOTH OF ITS STATES --------------------------------------------
+       The signed-in visitor is an admin, and `isTutorRole()` is tutor-or-admin, so the card is on
+       the column. Seeded as SIGNED through `USER` — the field `loginReplyFor_` sends — because the
+       locked box is the half that is easy to get wrong: a ticked box a repaint draws unticked is the
+       `REEL_HELD` fault, and a signed agreement that can be clicked again is the whole complaint.
+       `leave` puts the visitor back as unsigned, since states run in order down one page. */
+    { name: 'the tutor agreement, signed',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        USER.agreementSignedAt = '28/09/26 18:20'; USER.agreementVersion = AGREEMENT_VERSION;
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-do="agree-sign"]'));
+        if (at < 0) throw new Error('no agreement card on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => { delete USER.agreementSignedAt; delete USER.agreementVersion; paint('settings'); },
+      expect: () => {
+        const b = document.querySelector('#s-settings .page.on [data-do="agree-sign"]');
+        return b && b.checked && b.disabled
+          && document.querySelectorAll('#s-settings .page.on .agree-list li').length >= 8;
+      },
+      wants: 'the agreement, ticked and locked, with its points' },
+
+    /* THE ADMIN'S CUT OF AN EXTRA CHILD: a box holding the current figure and a sentence saying it
+       in money. The fixture carries no `boss_rate`, so this is the "none set" state, which is the
+       one a new sheet is in. */
+    { name: "the admin's cut of an extra child",
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('#cut-val'));
+        if (at < 0) throw new Error('no cut card on the settings column');
+        goPage('settings', at, true);
+      },
+      expect: () => document.querySelector('#s-settings .page.on #cut-val')
+        && /extra child adds/.test((document.querySelector('#s-settings .page.on .cut-say') || {}).textContent || ''),
+      wants: 'the share box and its worked example' },
 
     /* ---------- UP TO TEN QUALIFICATIONS ON ONE PAGE, SHOWN AS WHAT IS FILLED IN -------------------
        ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"*. All ten are IN
@@ -494,12 +534,16 @@ const STATES = {
         const pg = document.querySelector('#s-settings .page.on');
         const shelf = pg && pg.querySelector('[data-me="qual_1"]');
         const box = shelf && shelf.closest('.lib-shelf');
-        return box && pg.querySelectorAll('[data-me^="qual_"]').length === 40
+        /* SEVENTY: four boxes, the received year and the two ticks per slot, which replaced the
+           `What you teach` and studying pages — and exactly twenty ticks, so a shelf that lost its
+           `I teach this` / `Specialise` pair fails here rather than drawing a page that looks fine. */
+        return box && pg.querySelectorAll('[data-me^="qual_"]').length === 70
+          && pg.querySelectorAll('[data-do="qual-tick"]').length === 20
           && pg.querySelectorAll('[data-do="me-save"]').length === 1
           && box.querySelectorAll('.lib-card:not([hidden])').length === window.STATE_QUALS_SHOWN + 1
-          ? 40 : 0;
+          ? 70 : 0;
       },
-      wants: 'ten qualification slots under one Save, and Add another revealing exactly one more' },
+      wants: 'ten qualification slots with their received year and two ticks under one Save, and Add another revealing exactly one more' },
 
     /* ---------- THE THREE DATE-OF-BIRTH BOXES, ON A GROUP THE FIXTURE DID NOT HAVE ---------------
        `check/fixture.json` SENT NO `Contact` GROUP, so nothing in this lab had ever drawn a date of
@@ -577,8 +621,8 @@ const STATES = {
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const pages = [...document.querySelectorAll('#s-settings .page')];
-        /* BY FIELD, because the "What you teach" page now carries two of these — `teaches_also`
-           first — and "the first multi-select on the page" stopped meaning this one. */
+        /* BY FIELD, so this goes on meaning `extra_quals` whichever page carries it — it sits under
+           the qualifications shelf now that the "What you teach" page is gone. */
         const q = '[data-do="me-many"][data-field="extra_quals"]';
         const at = pages.findIndex(pg => pg.querySelector(q));
         if (at < 0) throw new Error('no several-of-a-list field on the settings column');
@@ -593,31 +637,9 @@ const STATES = {
       },
       wants: 'the qualifications list open under its field, with more than seven to tick' },
 
-    /* ---------- "ALSO TEACH", OPEN, GROUPED BY SUBJECT -------------------------------------------
-       ASKED FOR AS *"what you specialise teaching in and what you also teach."* The panel offers
-       every subject at every level as a "Maths (GCSE)" phrase, drawn as one short row per subject —
-       so this asks for more than one GROUP, and that every button in them carries a whole phrase
-       as its value: a flat list would pass a count and fail the first, and a button whose value is
-       only "GCSE" would save a level with no subject and fail the second. */
-    { name: 'also teach open',
-      only: () => typeof USER !== 'undefined' && !!USER,
-      enter: () => {
-        const q = '[data-do="me-many"][data-field="teaches_also"]';
-        const pages = [...document.querySelectorAll('#s-settings .page')];
-        const at = pages.findIndex(pg => pg.querySelector(q));
-        if (at < 0) throw new Error('no also-teach field on the settings column');
-        goPage('settings', at, true);
-        pages[at].querySelector(q).click();
-      },
-      leave: () => { if (typeof meDropShut_ === 'function') meDropShut_(); },
-      expect: () => {
-        const el = document.getElementById('drop');
-        const picks = el ? [...el.querySelectorAll('[data-do="me-many-pick"]')] : [];
-        return !!el && !el.classList.contains('hidden')
-          && el.querySelectorAll('.pick-group').length > 1
-          && picks.length > 1 && picks.every(b => /\(.+\)$/.test(b.dataset.val));
-      },
-      wants: 'the also-teach panel open, one group per subject, every option a whole "Subject (Level)"' },
+    /* "ALSO TEACH, OPEN" WENT WITH THE PAGE. What a tutor teaches is two ticks on each
+       qualification now — `the qualifications` above counts them — and `teaches_also` is derived
+       from those on save, so there is no panel on this column to open. */
 
     /* ---------- THE WARDROBE IS ONE CARD NOW, SO ONE STATE FINDS IT AND A SECOND PRESSES IT --------
        It was four pages — Colours, then the six slots two at a time — and these two states found the

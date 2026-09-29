@@ -84,6 +84,9 @@ const SRC = [
   grab(core,   /const teachAlsoPhrase_\s*=[^;]*;/, 'teachAlsoPhrase_'),
   grab(core,   /function teachAlsoOut\([^\n]*\}/, 'teachAlsoOut'),
   grab(core,   /function teachAlsoIn\([\s\S]*?\n\}/, 'teachAlsoIn'),
+  grab(consts, /const PHONE_CODES\s*=[^;]*;/, 'PHONE_CODES'),
+  grab(core,   /function phoneOut\([\s\S]*?\n\}/, 'phoneOut'),
+  grab(core,   /function phoneIn\([\s\S]*?\n\}/, 'phoneIn'),
   /* THE THIRD PACKED CELL, and the one whose unpacker has to read TWO different stored shapes:
      Sheets makes a real Date of a birthday typed into the spreadsheet, and this app writes a
      `dd/mm/yyyy` string. `sheetDate` is what tells them apart, so it is cut out too. */
@@ -119,7 +122,7 @@ new Function('box', PRELUDE + SRC
   + ' box.qList = qualsList_; box.qOut = qualsOut; box.qIn = qualsIn;'
   + ' box.QMAX = QUAL_MAX; box.QFIELDS = QUAL_FIELDS;'
   + ' box.aList = teachAlsoList_; box.aOut = teachAlsoOut; box.aIn = teachAlsoIn;'
-  + ' box.AMAX = TEACH_ALSO_MAX;')(box);
+  + ' box.AMAX = TEACH_ALSO_MAX; box.phOut = phoneOut; box.phIn = phoneIn;')(box);
 
 let bad = 0;
 const is = (what, got, want) => {
@@ -136,7 +139,7 @@ is('each card gives three field names', box.FIELDS.length, box.N * 3);
    is usually the second copy this repository warns about; here it is the requirement itself, so the
    check fails if somebody lowers the constant back without being asked to. */
 is('five library cards', box.N, 5);
-is('ten qualifications, four boxes each', [box.QMAX, box.QFIELDS.length], [10, 40]);
+is('ten qualifications, seven boxes each — four, the received year and the two ticks', [box.QMAX, box.QFIELDS.length], [10, 70]);
 is('eight also-teach subjects', box.AMAX, 8);
 is('the first card is named lib1_*', box.FIELDS.slice(0, 3), ['lib1_name', 'lib1_no', 'lib1_pin']);
 
@@ -208,8 +211,8 @@ const quals = (...rows) => {
   }));
   return f;
 };
-is('a qualification packs as subject:level:board:grade',
-   box.qIn(quals(['Maths', 'A-Level', 'Edexcel', 'B'])), 'Maths:A-Level:Edexcel:B');
+is('a qualification packs as subject:level:board:grade~received~flags',
+   box.qIn(quals(['Maths', 'A-Level', 'Edexcel', 'B'])), 'Maths:A-Level:Edexcel:B~~');
 is('and comes back into the same four boxes',
    box.qOut({ quals: 'Maths:A-Level:Edexcel:B' }).qual_1_board, 'Edexcel');
 is('a colon in the subject survives, because the item is read from the right',
@@ -218,7 +221,7 @@ is('a colon in the subject survives, because the item is read from the right',
    `Add another`, and a list of qualifications has no slot anybody remembers by position. */
 is('an empty qualification in the middle is dropped, not kept',
    box.qIn(quals(['Maths', 'GCSE', '', '9'], ['', '', '', ''], ['Physics', 'GCSE', 'AQA', '8'])),
-   'Maths:GCSE::9|Physics:GCSE:AQA:8');
+   'Maths:GCSE::9~~|Physics:GCSE:AQA:8~~');
 is('ten fit and are all kept',
    box.qList({ quals: Array.from({ length: 10 }, (_, i) => 'S' + i + ':GCSE::1').join('|') }).length, 10);
 is('an eleventh in the cell is not invented into a box',
@@ -234,6 +237,64 @@ is('and the form is filled from them',
    [box.qOut(legacy).qual_1, box.qOut(legacy).qual_2_level, box.qOut(legacy).qual_3], ['Maths', 'GCSE', '']);
 is('a filled quals cell wins over the old columns',
    box.qList(Object.assign({ quals: 'Physics:GCSE:AQA:8' }, legacy)).length, 1);
+
+/* ---------- THE RECEIVED YEAR AND THE TWO TICKS -------------------------------------------------
+   The tail every item carries now. The cases that would lose data are the legacy ones: an item from
+   before the tail must still read, and a row with no ticks written must inherit them from
+   `teaches_1`/`teaches_also` or the first Save blanks what a tutor teaches. */
+const q7 = (...rows) => {
+  const f = {};
+  rows.forEach((r, i) => ['', '_level', '_board', '_grade', '_received', '_teach', '_spec'].forEach((sfx, j) => {
+    f['qual_' + (i + 1) + sfx] = r[j];
+  }));
+  return f;
+};
+is('the received year and the ticks pack onto the tail',
+   box.qIn(q7(['Maths', 'A-Level', 'Edexcel', 'B', '2019', 'TRUE', 'FALSE'])), 'Maths:A-Level:Edexcel:B~2019~t');
+is('a specialism is taught even when Teach was left unticked',
+   box.qIn(q7(['Maths', 'GCSE', '', '9', '', 'FALSE', 'TRUE'])), 'Maths:GCSE::9~~ts');
+is('only one specialism survives the server, the first',
+   box.qIn(q7(['Maths', 'GCSE', '', '9', '', '', 'TRUE'], ['Physics', 'GCSE', '', '8', '', '', 'TRUE'])),
+   'Maths:GCSE::9~~ts|Physics:GCSE::8~~');
+is('a tilde typed into a subject cannot forge a tail',
+   box.qList({ quals: box.qIn(q7(['Maths~x~s', 'GCSE', '', '9', '', '', ''])) })[0].spec, false);
+is('the tail round-trips through the form',
+   (o => [o.qual_1_received, o.qual_1_teach, o.qual_1_spec])(box.qOut({ quals: 'Bible:Degree::~Present~t' })),
+   ['Present', 'TRUE', '']);
+is('an item from before the tail still reads',
+   box.qList({ quals: 'Maths:GCSE:AQA:9' })[0].grade, '9');
+is('with no ticks written, teaches_1 ticks the matching qualification as the specialism',
+   (q => [q.teach, q.spec])(box.qList({ quals: 'Maths:GCSE:AQA:9|English:GCSE::7',
+     teaches_1: 'Maths', teaches_1_level: 'GCSE', teaches_also: 'English (GCSE)' })[0]), [true, true]);
+is('and teaches_also ticks Teach on the others',
+   (q => [q.teach, q.spec])(box.qList({ quals: 'Maths:GCSE:AQA:9|English:GCSE::7',
+     teaches_1: 'Maths', teaches_1_level: 'GCSE', teaches_also: 'English (GCSE)' })[1]), [true, false]);
+is('a subject taught with no matching qualification becomes one rather than vanishing',
+   box.qList({ teaches_1: 'Chemistry', teaches_1_level: 'A-Level' }).map(q => q.subject + '/' + q.spec),
+   ['Chemistry/true']);
+is('once ticks are written, teaches_1 no longer re-ticks an unticked list',
+   box.qList({ quals: 'Maths:GCSE::9~~', teaches_1: 'Maths', teaches_1_level: 'GCSE' })[0].teach, false);
+is('what they were studying becomes a qualification received Present',
+   (q => q.subject + '/' + q.received)(box.qList({ studying: 'Bible and Theology', studying_at: 'UWTSD' })[0]),
+   'Bible and Theology — UWTSD/Present');
+is('and is not added twice once a Present qualification exists',
+   box.qList({ quals: 'Bible:Degree::~Present~', studying: 'Bible' }).length, 1);
+
+/* ---------- THE PHONE: A COUNTRY CODE AND A NUMBER, ONE CELL ------------------------------------ */
+is('a phone packs as code, space, number',
+   box.phIn({ phone_cc: '+44', phone_no: '7700 900123' }), '+44 7700 900123');
+is('and the trunk 0 comes off',
+   box.phIn({ phone_cc: '+44', phone_no: '07700 900123' }), '+44 7700 900123');
+is('an empty number is an empty cell, not a bare code',
+   box.phIn({ phone_cc: '+44', phone_no: '' }), '');
+is('a legacy 07… reads as UK',
+   box.phOut('07700 900123'), { phone_cc: '+44', phone_no: '7700 900123' });
+is('the longest matching code wins, so +353 is not +3',
+   box.phOut('+353 87 123 4567').phone_cc, '+353');
+is('00 is read as +',
+   box.phOut('0044 7700 900123'), { phone_cc: '+44', phone_no: '7700 900123' });
+is('the cell round-trips',
+   box.phIn(box.phOut('+1 415 555 0100')), '+1 415 555 0100');
 
 /* ---------- WHAT ELSE A TUTOR TEACHES ----------------------------------------------------------
    ONE COLUMN, posted by the phone's multi-select as the phrases the card prints. What the server

@@ -466,50 +466,173 @@ on('cal-day', el => {
     </div>`).join(''));
 });
 
+/* ---------- CHESS, TWO PLAYERS ROUND ONE PHONE ------------------------------------------------------
+   ASKED FOR AS "make chess 2 player. also make it more stable and better in recognition." Measured
+   before anything was written, and the second half was worse than it sounded: THE BOARD COULD NOT BE
+   PLAYED AT ALL. `drawChess` drew sixty-four `<span data-sq>` with no `data-do`, the tap handler it
+   was written for (`chessTap`) had been deleted as dead, and the dispatcher only answers `data-do` —
+   so a tap on a piece did nothing, on every phone, while the line under the board said "Your move".
+   `check/press.js` could not see it, because a control with no action is not in its queue.
+
+   So every square is a `<button data-do="chess-sq">`. That is also what makes a swipe safe: a drag
+   that starts on the board produces a click, and `PRESS_MOVED` in shell.js swallows exactly that
+   click before the dispatcher sees it — so scrolling past the board never picks a piece up.
+
+   EVERYTHING ON THE BOARD IS DRAWN FROM STATE — the position, the picked square, the pending
+   promotion, the last move — and never left on the DOM by a handler. A repaint rebuilds the card,
+   and a highlight that lived only in the markup would vanish while the selection it showed stayed:
+   the `REEL_HELD` fault. And it draws by CLASS rather than by id, because a starred chess widget is
+   a second board on the Saved column and `$()` would only ever find the first.
+
+   NO FLIP. The board stays white-at-the-bottom and the line above it says whose move it is, in
+   words. Turning the board every move is what a two-player app on a table does; on a phone held by
+   one person and passed across, it is the picture jumping under the hand reaching for it. */
+const CH_FILES = 'abcdefgh';
+const CH_NAME = { p: 'pawn', n: 'knight', b: 'bishop', r: 'rook', q: 'queen', k: 'king' };
+const chSide_ = s => s === CH_WHITE ? 'White' : 'Black';
+const chSq_ = i => CH_FILES[file(i)] + (8 - rank(i));
+
+function chessReset_() {
+  CHESS = newGame(); CHESS_HIST = []; CHESS_PICK = -1; CHESS_PROMO = null; CHESS_LAST = null; CHESS_ARM = 0;
+}
+
 function initChess() {
   if (!$('chess-board')) return;
-  if (!CHESS) { CHESS = newGame(); CHESS_HIST = []; }
+  if (!CHESS) chessReset_();
   drawChess();
 }
 
-function drawChess() {
-  const el = $('chess-board');
-  if (!el || !CHESS) return;
-  const legal = CHESS_PICK >= 0
-    ? legalMoves(CHESS).filter(m => m.from === CHESS_PICK).map(m => m.to)
-    : [];
-  el.innerHTML = CHESS.board.map((p, i) => {
-    const dark = (file(i) + rank(i)) % 2 === 1;
-    const cls = ['sq', dark ? 'dk' : 'lt'];
+/* THE GAME IS OVER, and why. Mate and stalemate come from the rules; the fifty-move rule and bare
+   kings are the two draws a kitchen-table game actually reaches — without them two kings chase each
+   other round an empty board for ever with the line underneath saying whose move it is. */
+function chessEnd_(pos) {
+  const end = outcome(pos);
+  if (end) return end;
+  if (pos.halfmove >= 100) return 'fifty';
+  const rest = pos.board.filter(p => p !== '_' && p.toLowerCase() !== 'k');
+  if (!rest.length || (rest.length === 1 && /[bn]/i.test(rest[0]))) return 'material';
+  return null;
+}
+
+function chessStatus_() {
+  const end = chessEnd_(CHESS);
+  const side = chSide_(CHESS.turn), other = chSide_(CHESS.turn === CH_WHITE ? CH_BLACK : CH_WHITE);
+  if (end === 'mate') return `Checkmate — ${other} wins.`;
+  if (end === 'stalemate') return `Stalemate — ${side} has no legal move. A draw.`;
+  if (end === 'fifty') return 'A draw — fifty moves each with no capture and no pawn move.';
+  if (end === 'material') return 'A draw — neither side has enough left to checkmate.';
+  if (CHESS_PROMO) return `${side} — promote the pawn to:`;
+  return inCheck(CHESS, CHESS.turn) ? `${side} to move — check!` : `${side} to move`;
+}
+
+function drawChess(note) {
+  if (!CHESS) return;
+  const mine = CHESS_PICK >= 0 ? legalMoves(CHESS).filter(m => m.from === CHESS_PICK) : [];
+  const checked = inCheck(CHESS, CHESS.turn) ? kingSquare(CHESS, CHESS.turn) : -1;
+  const board = CHESS.board.map((p, i) => {
+    const cls = ['sq', 'chess-sq', (file(i) + rank(i)) % 2 ? 'dk' : 'lt'];
     if (i === CHESS_PICK) cls.push('pick');
-    if (legal.includes(i)) cls.push(p === '_' ? 'can' : 'take');
-    /* WHOSE PIECE IT IS, as a class. Uppercase is white in this file's board notation, and that
-       is the only thing that decides its colour now — the glyph is the same either way. */
-    if (p !== '_') cls.push(p === p.toUpperCase() ? 'wp' : 'bp');
-    return `<span class="${cls.join(' ')}" data-sq="${i}">${p === '_' ? '' : GLYPH[p]}</span>`;
+    /* A CAPTURE IS RINGED AND A QUIET MOVE IS A DOT — and en passant is a capture that lands on an
+       empty square, so it is asked of the move rather than of what is standing on the square. */
+    const hit = mine.find(m => m.to === i);
+    if (hit) cls.push(p !== '_' || hit.enpassant ? 'take' : 'can');
+    if (CHESS_LAST && (i === CHESS_LAST.from || i === CHESS_LAST.to)) cls.push('last');
+    if (i === checked) cls.push('chk');
+    if (p !== '_') cls.push(isWhite(p) ? 'wp' : 'bp');
+    const who = p === '_' ? '' : ', ' + (isWhite(p) ? 'white ' : 'black ') + CH_NAME[p.toLowerCase()];
+    return `<button type="button" class="${cls.join(' ')}" data-do="chess-sq" data-sq="${i}"
+      aria-label="${chSq_(i)}${who}">${p === '_' ? '' : GLYPH[p]}</button>`;
   }).join('');
-  say();
+  /* PROMOTION IS ASKED, NOT ASSUMED. The queen is first and is what nearly everybody wants, but an
+     under-promotion to a knight is the one move that sometimes wins, and a board that quietly
+     queens has taken the decision off the player. The row replaces the controls while it is up, so
+     there is nothing else to press. */
+  const promo = CHESS_PROMO ? 'QRBN'.split('').map(q => {
+    const g = CHESS.turn === CH_WHITE ? q : q.toLowerCase();
+    return `<button type="button" class="btn quiet chess-pro ${CHESS.turn === CH_WHITE ? 'wp' : 'bp'}"
+      data-do="chess-promo" data-p="${q}" aria-label="${CH_NAME[q.toLowerCase()]}">${GLYPH[g]}</button>`;
+  }).join('') : '';
+  const armed = Date.now() - CHESS_ARM < 3000;
+  document.querySelectorAll('.chess-game').forEach(root => {
+    const b = root.querySelector('.chess'); if (b) b.innerHTML = board;
+    const s = root.querySelector('.chess-say');
+    if (s) { s.textContent = note || chessStatus_(); s.classList.toggle('is-note', !!note); }
+    const pr = root.querySelector('.chess-promo'); if (pr) { pr.innerHTML = promo; pr.hidden = !promo; }
+    const ctl = root.querySelector('.chess-ctl'); if (ctl) ctl.hidden = !!promo;
+    const u = root.querySelector('[data-do="chess-undo"]'); if (u) u.disabled = !CHESS_HIST.length;
+    const n = root.querySelector('[data-do="chess-new"]'); if (n) n.textContent = armed ? 'Tap again to start over' : 'New game';
+  });
 }
 
-/* `chessTap` was here — the tap handler for a board square, from before the board was drawn by
-   `drawChess` and wired through `data-do`. Nothing has called it since. */
+function chessPlay_(m) {
+  CHESS_HIST.push({ pos: CHESS, last: CHESS_LAST });
+  CHESS = play(CHESS, m);
+  CHESS_LAST = { from: m.from, to: m.to };
+  CHESS_PICK = -1; CHESS_PROMO = null; CHESS_ARM = 0;
+  drawChess();
+}
 
-
-function say(msg) {
-  const el = $('chess-say');
-  if (!el) return;
-  if (msg) { el.textContent = msg; return; }
-  const end = outcome(CHESS);
-  if (end === 'mate') {
-    el.textContent = CHESS.turn === CH_WHITE ? 'Checkmate — the computer wins.' : 'Checkmate — you win.';
-  } else if (end === 'stalemate') {
-    el.textContent = 'Stalemate. Nobody wins.';
-  } else if (inCheck(CHESS, CHESS.turn)) {
-    el.textContent = CHESS.turn === CH_WHITE ? 'You are in check.' : 'Check.';
-  } else {
-    el.textContent = CHESS.turn === CH_WHITE ? 'Your move.' : 'Thinking…';
+/* A TAP. Three things it can mean and they are tried in the order a player means them: the second
+   tap of a move, picking a piece of your own, and anything else — which says WHY nothing happened
+   rather than doing nothing, because a board that ignores a tap reads as a board that missed it. */
+on('chess-sq', el => {
+  if (!CHESS) chessReset_();
+  const i = Number(el.dataset.sq);
+  if (chessEnd_(CHESS)) return drawChess('The game is over — New game to play again.');
+  if (CHESS_PROMO) return drawChess();
+  const moves = legalMoves(CHESS);
+  if (CHESS_PICK >= 0) {
+    const hits = moves.filter(m => m.from === CHESS_PICK && m.to === i);
+    if (hits.length) {
+      if (hits.some(m => m.promote)) { CHESS_PROMO = { from: CHESS_PICK, to: i }; return drawChess(); }
+      return chessPlay_(hits[0]);
+    }
   }
-}
+  const p = CHESS.board[i];
+  if (p !== '_' && colourOf(p) === CHESS.turn) {
+    CHESS_PICK = CHESS_PICK === i ? -1 : i;        // the same piece again puts it back down
+    if (CHESS_PICK >= 0 && !moves.some(m => m.from === i))
+      return drawChess(`That ${CH_NAME[p.toLowerCase()]} has no legal move${inCheck(CHESS, CHESS.turn) ? ' — you are in check' : ''}.`);
+    return drawChess();
+  }
+  const wasPicked = CHESS_PICK >= 0;
+  CHESS_PICK = -1;
+  if (wasPicked) return drawChess(inCheck(CHESS, CHESS.turn) ? 'Not legal — you are in check.' : 'That piece cannot go there.');
+  if (p !== '_') return drawChess(`It is ${chSide_(CHESS.turn)}'s move.`);
+  drawChess();
+});
+
+on('chess-promo', el => {
+  if (!CHESS_PROMO) return drawChess();
+  const m = legalMoves(CHESS).find(x => x.from === CHESS_PROMO.from && x.to === CHESS_PROMO.to && x.promote === el.dataset.p);
+  if (m) chessPlay_(m); else { CHESS_PROMO = null; drawChess(); }
+});
+
+/* UNDO takes back one move, either side's — two people at one board agree on that out loud, and an
+   app that refused it would be stricter than the table. With a promotion half-chosen it cancels
+   that instead, which is the smaller undo and the one being reached for. */
+on('chess-undo', () => {
+  if (!CHESS) return;
+  if (CHESS_PROMO) { CHESS_PROMO = null; CHESS_PICK = -1; return drawChess(); }
+  const h = CHESS_HIST.pop();
+  if (h) { CHESS = h.pos; CHESS_LAST = h.last; }
+  CHESS_PICK = -1; CHESS_ARM = 0;
+  drawChess();
+});
+
+/* NEW GAME THROWS A GAME AWAY, so a game in progress asks twice — the label says so and goes back
+   by itself. A finished game or an empty board starts over at once: there is nothing to lose. */
+on('chess-new', () => {
+  const live = CHESS && CHESS_HIST.length && !chessEnd_(CHESS);
+  if (live && Date.now() - CHESS_ARM >= 3000) {
+    CHESS_ARM = Date.now();
+    setTimeout(() => drawChess(), 3100);
+    return drawChess();
+  }
+  chessReset_();
+  drawChess();
+});
+
 
 /* ---------- THE REELS ---------------------------------------------------------------------------
    One fact at a time, full card, tap for another.
@@ -917,7 +1040,7 @@ const HERD_BUILTIN = [
   'Name something you own too many of.',
   'Name a rule everybody breaks.',
 
-  /* ---------- AND EIGHTY MORE, SO THE DECK IS A HUNDRED ------------------------------------
+  /* ---------- AND EIGHTY MORE, SO THE DECK IS A HUNDRED — AND FOUR HUNDRED MORE AT THE FOOT --
      THE COUNT WAS THE COMPLAINT and the deck was half of it: twenty questions is a deck you
      reach the end of in a lesson, which is what made the round counter under it true enough
      to be annoying. A hundred is a number nobody reaches.
@@ -975,7 +1098,179 @@ const HERD_BUILTIN = [
   'Name something everybody pretends to enjoy.',
   'Name something people say when they are not listening.',
   'Name a phrase adults use far too often.', 'Name something you cannot do quietly.',
-  'Name something that is worth queueing for.', 'Name something that is easier with two people.'
+  'Name something that is worth queueing for.', 'Name something that is easier with two people.',
+  'Name something yellow.', 'Name something round.', 'Name a fruit you would find in a lunchbox.',
+  'Name something you eat with a spoon.', 'Name something you eat with your hands.',
+  'Name a breakfast cereal.', 'Name a flavour of ice cream.', 'Name a kind of cake.',
+  'Name something you would find at a birthday party.', 'Name something you blow.',
+  'Name something that bounces.', 'Name something that floats.', 'Name something that sinks.',
+  'Name something that rolls.', 'Name something with wheels.', 'Name something with wings.',
+  'Name something with a tail.', 'Name something with stripes.', 'Name something with buttons.',
+  'Name something with a lid.', 'Name something with a handle.', 'Name something with keys.',
+  'Name something that beeps.', 'Name something that ticks.', 'Name something that buzzes.',
+  'Name something that rings.', 'Name something that squeaks.',
+  'Name something that smells horrible.', 'Name something that is soft.',
+  'Name something that is prickly.', 'Name something that is slimy.',
+  'Name something that is shiny.', 'Name something that is heavy.',
+  'Name something that is very light.', 'Name something that is cold to touch.',
+  'Name something that is very quiet.', 'Name something that is very small.',
+  'Name something that is enormous.', 'Name something that is very long.',
+  'Name something that is always wet.', 'Name something that is red.',
+  'Name something that is blue.', 'Name something that is orange.', 'Name something that is purple.',
+  'Name something that is black and white.', 'Name something that is brown.',
+  'Name something made of wood.', 'Name something made of glass.', 'Name something made of plastic.',
+  'Name something made of metal.', 'Name something made of rubber.', 'Name something you can fold.',
+  'Name something you can pour.', 'Name something you can squeeze.', 'Name something you can climb.',
+  'Name something you can throw.', 'Name something you can catch.', 'Name something you can ride.',
+  'Name something you can plant.', 'Name something you can wear on your head.',
+  'Name something you can wear on your feet.', 'Name something you wear to the beach.',
+  'Name something people wear to a wedding.', 'Name something you wear to bed.',
+  'Name a part of your face.', 'Name a part of your body that you have two of.',
+  'Name something you do with your feet.', 'Name something you do when you are bored.',
+  'Name something you do when you are nervous.', 'Name something you do when you are happy.',
+  'Name something you do in the bath.', 'Name something you do at the park.',
+  'Name something you do at the beach.', 'Name something you do in the snow.',
+  'Name something you do on a sunny day.', 'Name something you do at a sleepover.',
+  'Name something you do after school.', 'Name something you do on your birthday.',
+  'Name something you do when you cannot sleep.', 'Name something that makes you laugh.',
+  'Name something that makes you sneeze.', 'Name something that makes you jump.',
+  'Name something that makes you yawn.', 'Name something that makes you hungry.',
+  'Name something that makes you thirsty.', 'Name something that is scary in the dark.',
+  'Name something that is fun to do with a friend.', 'Name something you find in a fridge.',
+  'Name something you find in a bathroom.', 'Name something you find in a garden.',
+  'Name something you find in a park.', 'Name something you find in a playground.',
+  'Name something you find in a library.', 'Name something you find in a hospital.',
+  'Name something you find at a funfair.', 'Name something you find in a forest.',
+  'Name something you find in the sky.', 'Name something you find under the sea.',
+  'Name something you find in space.', 'Name something you find in a castle.',
+  'Name something you find in a toy box.', 'Name something you find in a toolbox.',
+  'Name something you find in a handbag.', 'Name something you find in your pocket.',
+  'Name something you find in a classroom.', 'Name something you find in a sports bag.',
+  'Name something you find on a desk.', 'Name something you find on a Christmas tree.',
+  'Name something you find at a bus stop.', 'Name something you find in a cinema.',
+  'Name something you find in a swimming pool.', 'Name something you find at a football match.',
+  'Name something you find on a pirate ship.', 'Name something you find in a haunted house.',
+  'Name something you find in a spaceship.', 'Name an animal that lives in the jungle.',
+  'Name an animal that lives in the Arctic.', 'Name an animal that lives in a tree.',
+  'Name an animal that can swim.', 'Name an animal that can climb.', 'Name an animal that hops.',
+  'Name an animal that is very slow.', 'Name an animal that is very small.',
+  'Name an animal with a long neck.', 'Name an animal with a long tail.',
+  'Name an animal with big ears.', 'Name an animal that is black and white.',
+  'Name an animal people are scared of.', 'Name an animal that sleeps all day.',
+  'Name an animal you might see in a garden.', 'Name an animal in a nursery rhyme.',
+  'Name a baby animal.', 'Name an insect.', 'Name a creepy-crawly.', 'Name a dinosaur.',
+  'Name a dog\'s name.', 'Name a cat\'s name.', 'Name a name for a goldfish.',
+  'Name something a dog chews.', 'Name something a cat chases.', 'Name a job where you help people.',
+  'Name a job where you work outside.', 'Name a job where you work with animals.',
+  'Name a job you would like to try for a day.', 'Name a job in a hospital.',
+  'Name a job in a school.', 'Name a job where you drive.', 'Name a job on a film set.',
+  'Name a famous wizard.', 'Name a famous bear.', 'Name a famous mouse.', 'Name a famous pig.',
+  'Name a famous duck.', 'Name a cartoon character.', 'Name a character from a fairy tale.',
+  'Name a baddie from a film.', 'Name a princess.', 'Name a monster.', 'Name a robot from a film.',
+  'Name a character in a Christmas story.', 'Name a Roald Dahl book.',
+  'Name a film with animals in it.', 'Name a film that makes people cry.',
+  'Name a film with a song everybody knows.', 'Name a TV show for children.',
+  'Name a cartoon on TV.', 'Name a song everybody knows the words to.',
+  'Name a song you sing at a party.', 'Name a dance.', 'Name a musical instrument you blow.',
+  'Name a musical instrument with strings.', 'Name a sport you do in water.',
+  'Name a sport you do on your own.', 'Name a sport with a net.', 'Name a sport in the Olympics.',
+  'Name a sport people watch on TV.', 'Name a football team.', 'Name something a footballer does.',
+  'Name something at sports day.', 'Name a game you play in the car.',
+  'Name a game you play at Christmas.', 'Name a game you play with dice.',
+  'Name a game with a chasing part.', 'Name a toy that needs batteries.',
+  'Name a toy that is older than you.', 'Name a type of puzzle.', 'Name something you build with.',
+  'Name something you colour with.', 'Name something you draw.', 'Name something that has a face but is not a person.',
+  'Name a number people think is lucky.', 'Name a number bigger than a hundred.',
+  'Name a word that rhymes with light.', 'Name a word that starts with Z.',
+  'Name a word that means big.', 'Name a word that means happy.', 'Name a word you shout.',
+  'Name something you say on the phone.', 'Name something you say when you meet someone.',
+  'Name something you say when you are sorry.', 'Name something you say when you hurt yourself.',
+  'Name something parents say too often.', 'Name something children say too often.',
+  'Name something teachers say when it is noisy.', 'Name something you say at the dinner table.',
+  'Name a way to say hello.', 'Name a greeting in another language.', 'Name a country.',
+  'Name a country in Europe.', 'Name a famous building.', 'Name a place people visit in London.',
+  'Name a planet.', 'Name something in the solar system.', 'Name something about the Moon.',
+  'Name something you see in winter.', 'Name something you see in spring.',
+  'Name something you see in autumn.', 'Name something you do on a bike.', 'Name a day people look forward to.',
+  'Name something you celebrate.', 'Name a festival.', 'Name something you eat at a party.',
+  'Name something you eat on bonfire night.', 'Name something you eat at the cinema.',
+  'Name something you eat at the seaside.', 'Name something you eat for lunch.',
+  'Name something you eat for tea.', 'Name something you eat cold.', 'Name something you dip.',
+  'Name something you peel.', 'Name something you crunch.', 'Name something you bake.',
+  'Name something you fry.', 'Name something you boil.', 'Name something you grate.',
+  'Name something you put in soup.', 'Name something you put in a smoothie.',
+  'Name something you put on a pizza that is a bit odd.', 'Name something you put in a pie.',
+  'Name something on a burger.', 'Name a fruit.', 'Name a vegetable.', 'Name a berry.',
+  'Name a nut.', 'Name something made from eggs.', 'Name something made from milk.',
+  'Name something made from flour.', 'Name something made with chocolate.', 'Name a crunchy snack.',
+  'Name a drink.', 'Name a juice.', 'Name a sauce.', 'Name something that is sour.',
+  'Name something that is salty.', 'Name something that is sweet.',
+  'Name a food that is bright green.', 'Name a food that is white.', 'Name a food children hate.',
+  'Name a food people argue about.', 'Name something that goes with fish.',
+  'Name something that goes with beans.', 'Name something in a picnic basket.',
+  'Name a room in a house.', 'Name something in a bedroom.', 'Name something in a kitchen.',
+  'Name something in a living room.', 'Name something on a wall.', 'Name something on a shelf.',
+  'Name something in a cupboard.', 'Name something under a bed.',
+  'Name something by the front door.', 'Name something you plug in.',
+  'Name something that needs batteries.', 'Name something with a switch.',
+  'Name something that goes round and round.', 'Name something that goes up and down.',
+  'Name something that opens and shuts.', 'Name something you turn.', 'Name something you push.',
+  'Name something you press.', 'Name something you tie.', 'Name something you zip.',
+  'Name something you wash.', 'Name something you fix.', 'Name something you share.',
+  'Name something you collect.', 'Name something you count.', 'Name something you keep in a box.',
+  'Name something you keep in your bag.', 'Name something you keep in a drawer.',
+  'Name something you forget to bring.', 'Name something you lose at school.',
+  'Name something that breaks easily.', 'Name something that gets dirty quickly.',
+  'Name something that goes mouldy.', 'Name something that needs a password.',
+  'Name something that is hard to carry.', 'Name something that is hard to draw.',
+  'Name something that is hard to spell.', 'Name something that is hard to say.',
+  'Name something that is easy to learn.', 'Name something you learn in primary school.',
+  'Name something you learn to do as a baby.', 'Name something you learn to ride.',
+  'Name a times table people find hard.', 'Name a school subject with lots of homework.',
+  'Name something in a science lab.', 'Name something you do in art.',
+  'Name something you do in music.', 'Name something you learn in history.',
+  'Name something you learn in geography.', 'Name a school rule.', 'Name a school club.',
+  'Name something in a school assembly.', 'Name something teachers carry.',
+  'Name a reason to go to the office at school.', 'Name something that happens on a snow day.',
+  'Name something you see on the way to school.', 'Name something in a fairy tale forest.',
+  'Name something a witch has.', 'Name something a pirate has.', 'Name something a knight has.',
+  'Name something a clown has.', 'Name something a chef has.', 'Name something a doctor has.',
+  'Name something a builder has.', 'Name something a firefighter has.',
+  'Name something a baby needs.', 'Name something a dog needs.', 'Name something a snowman has.',
+  'Name something a superhero wears.', 'Name something the tooth fairy leaves.',
+  'Name something the Easter bunny brings.', 'Name something on a birthday cake.',
+  'Name something in a party bag.', 'Name a fancy dress costume.',
+  'Name something scary at Halloween.', 'Name something you see at a firework display.',
+  'Name something you see at a circus.', 'Name something you see at the aquarium.',
+  'Name something you see at a train station.', 'Name something you see in a garden centre.',
+  'Name something you see at the vet.', 'Name something you see in the countryside.',
+  'Name something you see on a motorway.', 'Name something you see in a river.',
+  'Name something you see at night.', 'Name something you hear in the morning.',
+  'Name something you hear at the seaside.', 'Name something you hear in a classroom.',
+  'Name something you hear in a kitchen.', 'Name something you hear at a football match.',
+  'Name something that comes in pairs.', 'Name something that comes in a tin.',
+  'Name something that comes in a jar.', 'Name something that comes in a box.',
+  'Name something that has a hole in it.', 'Name something that has a lot of legs.',
+  'Name something that has feathers.', 'Name something that has scales.',
+  'Name something that has a shell.', 'Name something that grows.', 'Name something that shrinks.',
+  'Name something that changes colour.', 'Name something that goes pop.',
+  'Name something that goes bang.', 'Name something that falls from the sky.',
+  'Name something that flies.', 'Name something that swims.', 'Name something that crawls.',
+  'Name something that glows in the dark.', 'Name something that is always cold.',
+  'Name something that is always hot.', 'Name something that is always changing.',
+  'Name something that is always full.', 'Name something that is always empty.',
+  'Name something you should not touch.', 'Name something you should never run with.',
+  'Name something you should always wash.', 'Name something that is good for you.',
+  'Name something that keeps you warm.', 'Name something that keeps you cool.',
+  'Name something that keeps you dry.', 'Name something that wakes you up.',
+  'Name something that cheers you up.', 'Name something you do to get fit.',
+  'Name something you do to relax.', 'Name something that is nice to give.',
+  'Name something that is nice to hear.', 'Name something that is nice to smell.',
+  'Name a way to say thank you.', 'Name a way to make a friend.', 'Name a good name for a robot.',
+  'Name a good name for a dragon.', 'Name a good name for a unicorn.',
+  'Name a good name for a spaceship.', 'Name a good name for a band.',
+  'Name a good name for a café.', 'Name a good name for a school hamster.',
+  'Name a good name for a new sweet.'
 ];
 
 let herd = null;
@@ -1013,7 +1308,7 @@ function herdPack_() {
    the number matters.
 
    SO THE COUNT IS GONE AND THE DEAL IS UNCHANGED. Shuffled, dealt one at a time, reshuffled when
-   it runs out — which with a hundred questions is a thing nobody reaches in a lesson. The shuffle
+   it runs out — which with five hundred questions is a thing nobody reaches in a lesson. The shuffle
    is still Fisher-Yates and the reason is still the one above it: a bag beats picking at random
    every tap, because picking at random repeats, and a question you have just answered coming
    straight back is the one thing that reads as broken. */
@@ -1032,7 +1327,7 @@ function herdPaint() {
 on('herd-next', () => {
   if (!herd) return;
   herd.at++;
-  /* RESHUFFLED WHEN IT RUNS OUT, silently. Nothing says so, because nothing needs to: a hundred
+  /* RESHUFFLED WHEN IT RUNS OUT, silently. Nothing says so, because nothing needs to: five hundred
      questions later is not a moment anybody is keeping track of. */
   if (herd.at >= herd.pack.length) {
     herd.pack = herdShuffle_(herdPack_());
@@ -1222,8 +1517,8 @@ document.addEventListener('keydown', e => {
    chosen, which is the same decision one step earlier and is also the screen this widget needs
    anyway: six buttons is a first page that explains the game without a paragraph.
 
-   THIRTY SECONDS, WHICH IS THE GAME'S OWN NUMBER, and the reason the deck is only about twenty
-   words a category: nobody gets through twenty in thirty seconds, so a round never repeats a word
+   THIRTY SECONDS, WHICH IS THE GAME'S OWN NUMBER, and the reason the deck started at about twenty
+   words a category (it is nearer a hundred now): nobody gets through twenty in thirty seconds, so a round never repeats a word
    and the list does not have to be huge to behave as though it were.
 
    NO SCORE IS KEPT BETWEEN ROUNDS. Articulate is scored by moving a counter, which is a thing the
@@ -1235,20 +1530,49 @@ const ART_DECK = {
            'telescope', 'zip', 'hoover', 'candle', 'passport', 'skateboard', 'saucepan',
            'toothbrush', 'seatbelt', 'chandelier', 'padlock', 'compass', 'radiator',
            'hourglass', 'lawnmower', 'wheelie bin', 'megaphone', 'jigsaw puzzle', 'escalator',
-           'washing line', 'hammock', 'weathervane', 'drawing pin'
+           'washing line', 'hammock', 'weathervane', 'drawing pin',
+           'toaster', 'microwave', 'fridge', 'dishwasher', 'washing machine', 'calculator', 'ruler',
+           'rubber', 'sellotape', 'scissors', 'glue stick', 'paperclip', 'envelope', 'stamp',
+           'postcard', 'calendar', 'alarm clock', 'doorbell', 'letterbox', 'doormat', 'coat hanger',
+           'clothes peg', 'ironing board', 'frying pan', 'rolling pin', 'whisk', 'colander',
+           'cheese grater', 'tin opener', 'teapot', 'mug', 'lunchbox', 'flask', 'backpack',
+           'suitcase', 'wallet', 'keyring', 'torch', 'battery', 'plug', 'remote control',
+           'headphones', 'microphone', 'keyboard', 'computer mouse', 'printer', 'lamp', 'pillow',
+           'duvet', 'curtain', 'sponge', 'flannel', 'hairdryer', 'comb', 'mirror', 'tweezers',
+           'plaster', 'thermometer', 'stethoscope', 'crutches', 'highchair', 'bunk bed', 'sofa',
+           'beanbag', 'deckchair', 'parasol', 'bucket and spade', 'goggles'
   ],
   Nature: ['avalanche', 'hedgehog', 'thunderstorm', 'coral reef', 'acorn', 'glacier', 'moth',
            'quicksand', 'rainbow', 'beaver', 'tide', 'fossil', 'cactus', 'eclipse', 'swamp',
            'pollen', 'volcano', 'otter', 'frost', 'mushroom',
            'badger', 'waterfall', 'dandelion', 'tadpole', 'whirlpool', 'icicle', 'puffin',
-           'nettle', 'sand dune', 'conker'
+           'nettle', 'sand dune', 'conker',
+           'earthquake', 'tornado', 'hurricane', 'tsunami', 'lightning', 'fog', 'drizzle',
+           'hailstone', 'snowflake', 'puddle', 'rock pool', 'cave', 'cliff', 'island', 'desert',
+           'meadow', 'pond', 'stream', 'geyser', 'lava', 'crater', 'meteor', 'comet',
+           'shooting star', 'full moon', 'sunrise', 'sunset', 'dew', 'breeze', 'gale', 'drought',
+           'flood', 'iceberg', 'seaweed', 'starfish', 'seahorse', 'walrus', 'polar bear', 'reindeer',
+           'fox', 'mole', 'woodlouse', 'ladybird', 'dragonfly', 'slug', 'beetle', 'ant', 'wasp',
+           'grasshopper', 'robin', 'swan', 'eagle', 'pigeon', 'seagull', 'crow', 'parrot', 'toucan',
+           'ostrich', 'hummingbird', 'panda', 'koala', 'hippo', 'rhino', 'cheetah', 'leopard',
+           'wolf', 'deer'
   ],
   Action: ['juggling', 'whispering', 'sneezing', 'hitchhiking', 'tiptoeing', 'yawning',
            'hibernating', 'shrugging', 'wrestling', 'queueing', 'gargling', 'skimming a stone',
            'blushing', 'haggling', 'eavesdropping', 'sprinting', 'knitting', 'shivering',
            'applauding', 'daydreaming',
            'whistling', 'somersaulting', 'sleepwalking', 'abseiling', 'tying a shoelace',
-           'blowing out candles', 'plaiting hair', 'revising', 'snorkelling', 'sulking'
+           'blowing out candles', 'plaiting hair', 'revising', 'snorkelling', 'sulking',
+           'bouncing', 'tickling', 'winking', 'stretching', 'kneeling', 'crawling', 'hopping',
+           'skipping', 'galloping', 'marching', 'limping', 'waddling', 'wobbling', 'shuffling',
+           'clapping', 'pointing', 'nodding', 'bowing', 'curtseying', 'saluting', 'waving',
+           'hugging', 'snoring', 'humming', 'chewing', 'nibbling', 'slurping', 'sipping', 'munching',
+           'blinking', 'frowning', 'squinting', 'sniffing', 'scratching', 'hiding', 'peeping',
+           'tidying', 'dusting', 'sprinkling', 'spreading', 'grating', 'unwrapping', 'folding',
+           'sharpening', 'colouring', 'doodling', 'scribbling', 'spelling', 'counting', 'measuring',
+           'weighing', 'rhyming', 'guessing', 'cheating', 'bragging', 'apologising', 'complaining',
+           'interrupting', 'fidgeting', 'dawdling', 'rummaging', 'recycling', 'volunteering',
+           'hula hooping', 'leapfrogging'
   ],
   World: ['Iceland', 'the Sahara', 'Mount Everest', 'the Amazon', 'Venice', 'the Great Wall',
           'Antarctica', 'Tokyo', 'the Nile', 'Stonehenge', 'the Alps', 'Cairo', 'New Zealand',
@@ -1256,7 +1580,20 @@ const ART_DECK = {
           'the Arctic Circle',
            'the Eiffel Tower', 'Loch Ness', 'the Grand Canyon', 'Big Ben', 'Machu Picchu',
            'the Channel Tunnel', 'the Colosseum', 'the Taj Mahal', 'the Lake District',
-           'the Sydney Opera House'
+           'the Sydney Opera House',
+          'Paris', 'Rome', 'New York', 'the London Eye', 'Buckingham Palace',
+          'the Statue of Liberty', 'the Pyramids', 'the Leaning Tower of Pisa',
+          'the Great Barrier Reef', 'the Mississippi', 'the Thames', 'the Pacific Ocean',
+          'the Mediterranean', 'the North Pole', 'the South Pole', 'the Equator', 'Australia',
+          'Canada', 'Brazil', 'Mexico', 'Egypt', 'India', 'China', 'Japan', 'Greece', 'Spain',
+          'Scotland', 'Wales', 'Ireland', 'Jamaica', 'Hawaii', 'Hollywood', 'Mount Kilimanjaro',
+          'Ben Nevis', 'Snowdon', 'the Himalayas', 'the Rocky Mountains', 'the Andes', 'Siberia',
+          'the Outback', 'the Serengeti', 'the Galapagos Islands', 'Amsterdam', 'Berlin',
+          'Barcelona', 'Edinburgh Castle', 'Blackpool Tower', 'the Angel of the North',
+          'Hadrian\'s Wall', 'the Isle of Wight', 'Cornwall', 'the Giant\'s Causeway', 'Mount Fuji',
+          'the Golden Gate Bridge', 'the White House', 'Mount Rushmore', 'Uluru', 'the Caribbean',
+          'Rio de Janeiro', 'Greenland', 'Timbuktu', 'Hong Kong', 'Tower Bridge',
+          'St Paul\'s Cathedral', 'Windsor Castle', 'the Shard', 'the Norwegian fjords'
   ],
   Person: ['a lifeguard', 'a blacksmith', 'a referee', 'an astronaut', 'a plumber', 'a busker',
            'a detective', 'a midwife', 'a lighthouse keeper', 'a beekeeper', 'a paramedic',
@@ -1264,7 +1601,18 @@ const ART_DECK = {
            'a lollipop lady', 'an archaeologist', 'a barista', 'a train driver',
            'a window cleaner', 'a magician', 'a vet', 'a shepherd', 'a park ranger',
            'a goalkeeper', 'a puppeteer', 'a weather forecaster', 'a caretaker',
-           'a stunt double'
+           'a stunt double',
+           'a nurse', 'a dentist', 'a pilot', 'a firefighter', 'a police officer', 'a postman',
+           'a farmer', 'a chef', 'a baker', 'a butcher', 'a builder', 'an electrician',
+           'a carpenter', 'a hairdresser', 'a teacher', 'a head teacher', 'a dinner lady',
+           'a gardener', 'a zookeeper', 'a pirate', 'a knight', 'a king', 'a queen', 'a princess',
+           'a wizard', 'a witch', 'a clown', 'an acrobat', 'a ringmaster', 'a ballerina', 'a DJ',
+           'a newsreader', 'a journalist', 'a photographer', 'an author', 'a poet', 'a scientist',
+           'an inventor', 'an explorer', 'a mountaineer', 'a sailor', 'a spy', 'a judge', 'a mayor',
+           'a prime minister', 'a bus driver', 'a taxi driver', 'a lorry driver', 'a mechanic',
+           'a pharmacist', 'an optician', 'a cashier', 'a shopkeeper', 'a waiter', 'a jockey',
+           'a cowboy', 'a lumberjack', 'a fisherman', 'a scuba diver', 'a babysitter', 'a twin',
+           'a grandma', 'a neighbour', 'a toddler', 'a teenager', 'a football manager'
   ],
   Random: ['jet lag', 'a leap year', 'homesickness', 'a power cut', 'déjà vu', 'the alphabet',
            'a rumour', 'a traffic jam', 'small talk', 'a nickname', 'bad luck', 'an alibi',
@@ -1272,7 +1620,20 @@ const ART_DECK = {
            'a shortcut', 'a coincidence',
            'a tongue twister', 'a time capsule', 'a sleepover', 'a riddle', 'a head start',
            'a false alarm', 'a cliffhanger', 'an apology', 'a wild goose chase',
-           'a wrong number'
+           'a wrong number',
+           'a secret', 'a surprise', 'a promise', 'a joke', 'a nightmare', 'a wish', 'half term',
+           'a fire drill', 'a school report', 'a hiccup', 'the giggles', 'brain freeze',
+           'pins and needles', 'butterflies in your stomach', 'a lucky charm', 'a high five',
+           'a thumbs up', 'a group photo', 'a password', 'a spelling test', 'a penalty shoot-out',
+           'a world record', 'a to-do list', 'a shopping list', 'a recipe', 'a timetable',
+           'a deadline', 'the weekend', 'Monday morning', 'a bank holiday', 'midnight',
+           'the dawn chorus', 'a lie-in', 'a nap', 'bedtime', 'a bedtime story', 'a happy ending',
+           'a plot twist', 'a spoiler', 'a sequel', 'an encore', 'a standing ovation', 'a mascot',
+           'a trophy', 'a medal', 'a certificate', 'a gold star', 'beginner\'s luck',
+           'a second chance', 'a fresh start', 'musical chairs', 'pass the parcel',
+           'a treasure hunt', 'a secret code', 'an emoji', 'the internet', 'gravity', 'electricity',
+           'friendship', 'kindness', 'patience', 'courage', 'curiosity', 'boredom', 'excitement',
+           'teamwork', 'a compliment'
   ],
 };
 
@@ -1297,7 +1658,8 @@ const ART_DECK = {
    sentence does, and Articulate's thirty is the board game's own number while charades has never
    had one. */
 const CHA_DECK = {
-  /* THIRTY EACH, AND `Action` IS THE ONE THAT HAD TO BE STRONGEST — it is the category that
+  /* THIRTY EACH ONCE (four hundred more were added later, plus `Animal` and `Sport`, which are
+     things a body can SHOW), AND `Action` IS THE ONE THAT HAD TO BE STRONGEST — it is the category that
      always plays, because a title only works if the room has seen it and a thing you DO always
      works. Eleven cards were thrown out by a reviewer before they got here, and the sharpest
      was `trying to do a handstand against a wall`: charades is MIMED, so the mime of a
@@ -1313,15 +1675,37 @@ const CHA_DECK = {
     'Chitty Chitty Bang Bang', '101 Dalmatians', 'Wallace and Gromit', 'Chicken Run',
     'Despicable Me', 'Ratatouille', 'Up', 'The Incredibles', 'Ice Age', 'Star Wars',
     'The Sound of Music', 'Peter Pan', 'Moana', 'Kung Fu Panda', 'How to Train Your Dragon',
-    'Babe', 'Nanny McPhee', 'Madagascar', 'Night at the Museum'
+    'Babe', 'Nanny McPhee', 'Madagascar', 'Night at the Museum',
+    'Cars', 'Coco', 'Encanto', 'Inside Out', 'Zootropolis', 'Tangled', 'Aladdin',
+    'The Little Mermaid', 'Beauty and the Beast', 'Cinderella', 'Snow White and the Seven Dwarfs',
+    'Sleeping Beauty', 'Mulan', 'Pinocchio', 'Dumbo', 'Bambi', 'Lady and the Tramp', 'Robin Hood',
+    'The Aristocats', 'Hercules', 'Tarzan', 'Lilo and Stitch', 'Brave', 'WALL-E', 'Monsters Inc',
+    'A Bug\'s Life', 'Luca', 'Turning Red', 'Soul', 'Onward', 'Elemental', 'Big Hero 6',
+    'Wreck-It Ralph', 'Bolt', 'Minions', 'The Secret Life of Pets', 'Sing', 'Trolls',
+    'The Lego Movie', 'Cloudy with a Chance of Meatballs', 'Rio', 'Happy Feet', 'Megamind',
+    'Bee Movie', 'Shark Tale', 'The Boss Baby', 'Puss in Boots', 'Spider-Man', 'Batman', 'Superman',
+    'Annie', 'Oliver!', 'The Greatest Showman', 'Grease', 'Hook', 'Jumanji', 'Back to the Future',
+    'Honey I Shrunk the Kids', 'Free Willy', 'Beethoven', 'Stuart Little', 'The Karate Kid',
+    'Cool Runnings', 'Space Jam', 'The Parent Trap', 'The Goonies', 'Flushed Away', 'Early Man',
+    'My Neighbour Totoro', 'Sonic the Hedgehog'
   ],
   TV: [
     'Bake Off', 'Doctor Who', 'Strictly Come Dancing', 'Blue Peter', 'Top Gear',
     'Only Fools and Horses', 'Match of the Day', 'Ninja Warrior', 'Peppa Pig', 'Postman Pat',
     'Fireman Sam', 'Thomas the Tank Engine', 'Bob the Builder', 'Teletubbies', 'Shaun the Sheep',
-    'Horrible Histories', 'The Chase', 'Robot Wars', 'Mastermind', 'Art Attack',
+    'Horrible Histories', 'Mr Tumble', 'Robot Wars', 'Rastamouse', 'Art Attack',
     'SpongeBob SquarePants', 'Scooby Doo', 'Tom and Jerry', 'The Simpsons', 'Danger Mouse',
-    'Mr Bean', 'Gladiators', 'Dragons Den', 'The Repair Shop', 'The Crystal Maze'
+    'Mr Bean', 'Gladiators', 'Dragons Den', 'The Repair Shop', 'The Crystal Maze',
+    'Bluey', 'Paw Patrol', 'Hey Duggee', 'In the Night Garden', 'Something Special', 'Balamory',
+    'Tweenies', 'Noddy', 'The Clangers', 'The Wombles', 'Pingu', 'Bananas in Pyjamas', 'Pokémon',
+    'Newsround', 'Countryfile', 'Gardeners\' World', 'Antiques Roadshow', 'Blue Planet',
+    'Springwatch', 'Top of the Pops', 'EastEnders', 'Coronation Street', 'Emmerdale', 'Neighbours',
+    'Casualty', 'Dad\'s Army', 'Fawlty Towers', 'Blackadder', 'Grange Hill', 'Tracy Beaker',
+    'Thunderbirds', 'Ben and Holly\'s Little Kingdom', 'Octonauts', 'Sarah and Duck', 'Numberblocks',
+    'Mister Maker', 'Andy\'s Dinosaur Adventures', 'Britain\'s Got Talent',
+    'The Great British Sewing Bee', 'The Masked Singer', 'Dancing on Ice', 'Changing Rooms',
+    'Grand Designs', 'Total Wipeout', 'Record Breakers', 'The Muppet Show', 'Sesame Street',
+    'Fraggle Rock', 'Power Rangers', 'Teenage Mutant Ninja Turtles'
   ],
   Book: [
     'Matilda', 'The Gruffalo', 'Treasure Island', 'The Hobbit', 'Robinson Crusoe',
@@ -1331,7 +1715,21 @@ const CHA_DECK = {
     'The Very Hungry Caterpillar', 'Where the Wild Things Are', 'The Railway Children',
     'The Secret Garden', 'Swallows and Amazons', 'Black Beauty', 'The Tiger Who Came to Tea',
     'Room on the Broom', 'The Worst Witch', 'Horrid Henry', 'Diary of a Wimpy Kid',
-    'Stig of the Dump', 'The Iron Man', 'Around the World in Eighty Days', 'The Cat in the Hat'
+    'Stig of the Dump', 'The Iron Man', 'Around the World in Eighty Days', 'The Cat in the Hat',
+    'Charlotte\'s Web', 'The Borrowers', 'The Tale of Peter Rabbit',
+    'The Owl Who Was Afraid of the Dark', 'Dear Zoo', 'We\'re Going on a Bear Hunt',
+    'The Snail and the Whale', 'Stick Man', 'Zog', 'The Smartest Giant in Town', 'Tiddler',
+    'Superworm', 'The Highway Rat', 'Monkey Puzzle', 'Each Peach Pear Plum', 'Pippi Longstocking',
+    'Heidi', 'Oliver Twist', 'Great Expectations', 'The Famous Five', 'The Secret Seven',
+    'Malory Towers', 'The Magic Faraway Tree', 'The Little Prince', 'Gulliver\'s Travels',
+    'Moby Dick', 'Frankenstein', 'Kidnapped', 'The Three Musketeers', 'War Horse',
+    'Private Peaceful', 'Holes', 'Wonder', 'The Midnight Gang', 'Gangsta Granny', 'Billionaire Boy',
+    'Mr Stink', 'The Witches', 'The Enormous Crocodile', 'George\'s Marvellous Medicine',
+    'Danny the Champion of the World', 'Esio Trot', 'The Magic Finger', 'Percy Jackson',
+    'Tom\'s Midnight Garden', 'The Enormous Turnip', 'The Little Red Hen',
+    'Goldilocks and the Three Bears', 'The Three Little Pigs', 'Jack and the Beanstalk',
+    'Little Red Riding Hood', 'Hansel and Gretel', 'Rapunzel', 'The Ugly Duckling',
+    'The Princess and the Pea'
   ],
   Song: [
     'Happy Birthday', 'Twinkle Twinkle Little Star', 'YMCA', 'We Will Rock You',
@@ -1342,7 +1740,21 @@ const CHA_DECK = {
     'London Bridge is Falling Down', 'Baa Baa Black Sheep', 'Humpty Dumpty',
     'Hickory Dickory Dock', 'Jack and Jill', 'Pop Goes the Weasel', 'Twist and Shout',
     'The Animals Went in Two by Two', 'You Are My Sunshine', 'The Macarena',
-    'Singing in the Rain', 'Yellow Submarine', 'Walking on Sunshine', 'Here Comes the Sun'
+    'Singing in the Rain', 'Yellow Submarine', 'Walking on Sunshine', 'Here Comes the Sun',
+    'Mary Had a Little Lamb', 'Hey Diddle Diddle', 'Little Bo Peep', 'Little Miss Muffet',
+    'Hot Cross Buns', 'Oranges and Lemons', 'Ring a Ring o\' Roses', 'The Farmer\'s in His Den',
+    'Polly Put the Kettle On', 'Sing a Song of Sixpence', 'Three Blind Mice', 'Rock-a-bye Baby',
+    'Wind the Bobbin Up', 'Miss Polly Had a Dolly', 'Five Little Speckled Frogs',
+    'Five Little Monkeys Jumping on the Bed', 'Ten in the Bed', 'Baby Shark', 'Let It Go',
+    'Old King Cole', 'Doctor Foster', 'Little Jack Horner', 'Pat-a-Cake', 'This Old Man',
+    'Here We Go Round the Mulberry Bush', 'Bingo', 'Five Currant Buns', 'Alice the Camel',
+    'Dancing Queen', 'Don\'t Stop Me Now', 'Shake It Off', 'Happy', 'Can\'t Stop the Feeling',
+    'Uptown Funk', 'Who Let the Dogs Out', 'I\'m a Believer', 'Stayin\' Alive', 'Hey Jude',
+    'Octopus\'s Garden', 'All You Need Is Love', 'Let It Be', 'Somewhere Over the Rainbow',
+    'The Lion Sleeps Tonight', 'Hakuna Matata', 'Under the Sea', 'A Whole New World',
+    'How Far I\'ll Go', 'We Don\'t Talk About Bruno', 'Supercalifragilisticexpialidocious',
+    'The Bare Necessities', 'I Just Can\'t Wait to Be King', 'You\'ve Got a Friend in Me',
+    'Circle of Life', 'Let\'s Go Fly a Kite', 'Do-Re-Mi'
   ],
   Action: [
     'building a flat-pack wardrobe', 'walking a dog that will not walk',
@@ -1359,7 +1771,52 @@ const CHA_DECK = {
     'skipping with a rope that keeps catching your feet',
     'washing up in rubber gloves that are too big', 'fishing the last crisp out of the packet',
     'running for a train and just missing it', 'threading a needle and missing every time',
-    'icing a cake with a wobbly hand', 'folding a big map back up the way it was'
+    'icing a cake with a wobbly hand', 'folding a big map back up the way it was',
+    'flipping a pancake', 'walking across an icy pavement', 'blowing bubbles',
+    'building a sandcastle before the tide comes in', 'mowing the lawn',
+    'planting a seed and watering it', 'hanging out the washing on a windy day', 'ironing a shirt',
+    'hoovering under the sofa', 'making a bed', 'washing a car', 'changing a light bulb',
+    'taking a selfie', 'posting a letter', 'walking on hot sand without shoes',
+    'walking through deep mud', 'playing hide and seek', 'brushing a horse', 'milking a cow',
+    'feeding the ducks', 'flying a kite', 'kneading bread dough', 'chopping onions and crying',
+    'eating a big plate of spaghetti', 'eating a sandwich that is too big to bite',
+    'drinking through a straw', 'licking an ice cream before it drips',
+    'opening a window that is stuck', 'wading into a cold sea', 'pumping up a bike tyre',
+    'squeezing onto a crowded bus', 'finding a seat in a dark cinema',
+    'trying to sneeze and it will not come', 'putting on sun cream', 'lifting a very heavy rucksack',
+    'climbing into a sleeping bag', 'rowing a boat', 'catching a boot on a fishing line',
+    'hammering a nail and hitting your thumb', 'sawing a plank of wood', 'painting a fence',
+    'hanging wallpaper', 'washing a dog that does not want a bath', 'carrying a sleeping baby',
+    'pushing a pram up a hill', 'feeding a baby with a spoon', 'spinning a plate on a stick',
+    'walking along a tightrope', 'standing still as a statue', 'conducting an orchestra',
+    'playing the drums', 'playing the violin', 'playing the piano', 'playing the trumpet',
+    'playing the guitar', 'singing into a hairbrush', 'dancing at a disco', 'sweeping the floor',
+    'mopping a slippery floor', 'scrubbing a very dirty pan', 'setting the table',
+    'carrying a tray of drinks', 'cracking an egg into a bowl', 'stirring a giant pot of soup',
+    'typing a very long email', 'sending a text with cold fingers',
+    'reading a newspaper in the wind', 'knocking over a line of dominoes',
+    'making a paper aeroplane', 'putting on gloves that are too tight',
+    'walking in shoes that are too big', 'trying on a hat in a mirror', 'sewing on a button',
+    'hanging a picture straight', 'looking for the TV remote', 'trying to get a signal on a phone',
+    'hailing a taxi', 'directing traffic', 'getting a splinter out',
+    'stepping on a building brick in bare feet', 'eating a slice of lemon', 'digging a hole',
+    'picking apples from a tree', 'watering the garden with a hose'
+  ],
+  Animal: [
+    'a kangaroo', 'a penguin', 'an elephant', 'a monkey', 'a giraffe', 'a snake', 'a crab', 'a frog',
+    'a chicken', 'a gorilla', 'a lion', 'a crocodile', 'a flamingo', 'a rabbit', 'a horse', 'an owl',
+    'a bat', 'a butterfly', 'a spider', 'a bee', 'a duck', 'a dog', 'a cow', 'a pig', 'a sheep',
+    'a tortoise', 'a snail', 'a seal', 'a dolphin', 'a shark', 'an octopus', 'a jellyfish',
+    'a peacock', 'a sloth', 'a meerkat', 'a bear', 'a tiger', 'a camel', 'a squirrel', 'a chameleon',
+    'a woodpecker', 'a caterpillar', 'a worm', 'a mouse'
+  ],
+  Sport: [
+    'football', 'tennis', 'golf', 'cricket', 'rugby', 'basketball', 'netball', 'swimming', 'fencing',
+    'archery', 'ten-pin bowling', 'darts', 'snooker', 'table tennis', 'badminton', 'canoeing',
+    'sailing', 'surfing', 'skiing', 'snowboarding', 'ice skating', 'cycling', 'weightlifting',
+    'horse riding', 'javelin', 'shot put', 'hurdles', 'long jump', 'a relay race', 'a sack race',
+    'an egg and spoon race', 'a three-legged race', 'tug of war', 'hockey', 'baseball', 'volleyball',
+    'karate', 'yoga', 'rock climbing', 'water polo', 'curling', 'boxing'
   ],
 }
 

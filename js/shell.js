@@ -1631,7 +1631,11 @@ function applyBrandIcon_() {
     const old = document.getElementById(id);
     if (old) old.remove();
     const el = document.createElement('link');
-    el.id = id; el.rel = rel; el.href = url;
+    /* THE DEFAULT `logo_square` IS `icon.png`, THE SQUARE ONE, so taken as given it would put the
+       square back on the tab the moment the payload lands. The tab icon keeps its circle unless
+       the sheet names a real picture of its own; the home-screen icon stays square either way. */
+    el.id = id; el.rel = rel;
+    el.href = (rel === 'icon' && url === 'icon.png') ? 'favicon.png' : url;
     document.head.appendChild(el);
   });
 }
@@ -1667,8 +1671,19 @@ const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booki
    path every column shares. */
 const PAGE_KEEP = {};
 const PAGE_LO = {};
-/* WHICH ELEMENT IS PAGE `i`. */
-const domIndex_ = (id, i) => (i < (PAGE_KEEP[id] || 0) ? i : i - (PAGE_LO[id] || 0));
+/* WHICH ELEMENT IS PAGE `i` — AND -1 FOR A PAGE THAT HAS SCROLLED OFF THE FRONT OF THE WINDOW.
+   `i - PAGE_LO` alone answered a number for those too, and it was the number of a LEADING page:
+   with one page kept and the window starting eight results in, result page 8 came out as element
+   nought, which is the question. `fillStuffPages` walks five pages either side of where you are,
+   so swiping back up a list wrote a practical's card into the question's pane — measured: the
+   search box, the chips and every answer gone from the screen with nothing thrown, and `goPage(0)`
+   landing on a card. A page past the END already had no element; this makes the front the same. */
+const domIndex_ = (id, i) => {
+  const keep = PAGE_KEEP[id] || 0;
+  if (i < keep) return i;
+  const d = i - (PAGE_LO[id] || 0);
+  return d < keep ? -1 : d;
+};
 /* AND WHICH PAGE ELEMENT `p` IS. */
 const logIndex_ = (id, p) => (p < (PAGE_KEEP[id] || 0) ? p : p + (PAGE_LO[id] || 0));
 
@@ -2383,7 +2398,10 @@ function pressMark_(t) {
   /* THE NEAREST THING THAT ACTS, not the exact target — pressing a word inside a card lights the
      card, which is the same rule `SHEET_FROM` follows for where a sheet grows from. */
   const el = t && t.closest && t.closest('[data-do], .tab');
-  if (!el) return;
+  /* NOT A DISABLED CONTROL. A disabled button never fires the click whose handler would clear the
+     mark, so it stayed lit for the length of a swipe that began on it — the camera's shutter while
+     the camera is starting was the one `check/press.js` caught. */
+  if (!el || el.disabled || el.getAttribute('aria-disabled') === 'true') return;
   PRESSED = el;
   el.classList.add('is-pressed');
   PRESSED_OFF = setTimeout(pressClear_, 1200);

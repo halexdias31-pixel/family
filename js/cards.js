@@ -168,8 +168,8 @@ function profList_(v) {
    THE SHEET STORES A FLOOR AND A CEILING and a reader wants a range, so the joining happens once
    here rather than on every card that shows one. Three cases and they read differently:
      · both, and equal   → "1 student"        — a tutor who only takes one is stating a policy
-     · both, and apart   → "1 to 4 students"
-     · a floor only      → "1 student or more" — `maxStudents` of 0 is "no limit set", which
+     · both, and apart   → "1–4 students"
+     · a floor only      → "1+ student" — `maxStudents` of 0 is "no limit set", which
                             `doget.gs` says outright, so it must not be printed as a ceiling of nought
    NOTHING AT ALL when there is no floor either: an unanswered question is not a range, and a row
    reading "0 students" is the `cost: 0` shape one more time. */
@@ -178,9 +178,12 @@ function profRange_(lo, hi, one, many) {
   if (!a && !b) return '';
   const word = n => n === 1 ? one : many;
   const label = one === 'hour' ? 'Session length' : 'Group size';
-  if (a && b && a !== b) return row(label, a + ' to ' + b + ' ' + word(b));
+  /* `1–4 students` and `1+ hour`, ASKED FOR BY NAME over "1 to 4" and "1 hour or more": a range
+     is scanned rather than read, and the short form is what every timetable prints. En dash, the
+     character this app already writes a range with (`1–10`, `Grades 4–6`). */
+  if (a && b && a !== b) return row(label, a + '–' + b + ' ' + word(b));
   if (a && b) return row(label, a + ' ' + word(a));
-  if (a) return row(label, a + ' ' + word(a) + ' or more');
+  if (a) return row(label, a + '+ ' + word(a));
   return row(label, 'up to ' + b + ' ' + word(b));
 }
 
@@ -288,6 +291,12 @@ function findCard(x) {
                 filled in shows an `@` in front of a FIRST NAME — true of every account made before
                 `register` started generating one, and what `?run=fillHandles` is for. */''}
           ${t.handle ? `<span class="prof-handle">@${esc(t.handle)}</span>` : ''}
+          ${/* ---------- THE RATE, UP HERE AND BIGGER ------------------------------------------------
+                ASKED FOR AS *"rate should appear near profile at the top and bigger."* It was the
+                eleventh label/value row, under the qualifications — and it is the one number a
+                parent opens this card to find. One place: the `Rate` row it replaces is gone, so the
+                card cannot print two rates that disagree. */''}
+          ${t.rate ? `<span class="prof-rate">${esc(money(t.rate))}<small>/h</small></span>` : ''}
           ${t.subtitle || t.city || t.borough
             ? `<span class="prof-where">${esc(t.subtitle || t.city || t.borough)}</span>` : ''}
           ${/* ---------- ABSENT IS NOT `false`, AND IT IS THE ONLY EXCEPTION ON THIS CARD ----------
@@ -334,10 +343,18 @@ function findCard(x) {
              `<span class="prof-tag${t.teachesMain && v === t.teachesMain ? ' is-main' : ''}"${
                t.teachesMain && v === t.teachesMain ? ' title="Specialises in"' : ''}>${mark(v)}</span>`)
              .join('')}</div>` : ''}
+      ${/* ---------- QUALIFICATIONS, AS THE SAME CHIPS ---------------------------------------------
+            ASKED FOR AS *"qualifications should also look like google chips."* Each entry of `quals`
+            is already one sentence built by `doget.gs` ("Maths A-Level (Edexcel) grade B"), so a
+            chip is one claim and nothing is re-joined here. `extraQuals` is a comma cell and goes
+            through `profList_` for that reason; it is dashed, because it is whatever somebody typed
+            rather than a subject, a level and a grade the form asked for. */''}
+      ${profList_(t.quals).length || profList_(t.extraQuals).length
+        ? `<div class="prof-tags prof-teach prof-quals">${profList_(t.quals)
+             .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}${profList_(t.extraQuals)
+             .map(v => `<span class="prof-tag is-extra">${esc(v)}</span>`).join('')}</div>` : ''}
       ${[
         t.yrsExp ? row('Experience', String(t.yrsExp).replace(/^(\d+)$/, '$1 years')) : '',
-        profList_(t.quals).length ? row('Qualifications', profList_(t.quals).join(' · ')) : '',
-        profList_(t.extraQuals).length ? row('Also', profList_(t.extraQuals).join(' · ')) : '',
         /* ---------- AND WHAT THEY ARE STUDYING NOW, UNDER THE THINGS THEY HAVE FINISHED ----------
            NOT THROUGH `profList_`, WHICH IS THE ONE THING TO GET RIGHT HERE. That function reads a
            comma cell as a LIST, and "Bible and Theology" is one subject that happens to contain an
@@ -358,7 +375,6 @@ function findCard(x) {
            which `doget.gs` says outright, so it is read as no limit rather than as nought. */
         profRange_(t.minStudents, t.maxStudents, 'student', 'students'),
         profRange_(t.minHours, t.maxHours, 'hour', 'hours'),
-        t.rate ? row('Rate', money(t.rate) + '/h') : '',
         /* THE SECOND SEAT IS A DIFFERENT PRICE and a parent booking for two children is the person
            most likely to be looking at this card. `core.js` already prices it; this says so. */
         Number(t.extraSeat) > 0 ? row('Each extra seat', money(t.extraSeat) + '/h') : '',

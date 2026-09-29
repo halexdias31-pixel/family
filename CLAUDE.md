@@ -15349,3 +15349,81 @@ pairs side by side when both are on the page — first/last name, city/town, bor
 and video links, each subject and its level, what you are studying and where, and the three
 adjectives under one caption. Measured at 320x568: all thirteen pages fit their pane. Clients and
 students lose the `Where you are` page the same way.
+
+## The big batch of 29 September: nineteen asks, eight workers, one PR
+
+Built by parallel workers in separate worktrees and merged here; each item's reasoning is in the code
+beside it. The shape of it, so the next reader knows where to look:
+
+| | |
+|---|---|
+| **camera** | the new-post card is the page ABOVE the newest post on the feed; the app still opens on the newest post. The `make` column is gone (11 screens) |
+| **reels** | a random order dealt once per open; the Drive iframe player is gone — only real video files play |
+| **posts** | several photos and videos: `image` holds the first, new `posts.media` holds the rest (`" \| "`). A single photo sits in a fixed 4:5 box and pages ±2 preload, so the column no longer moves as pictures arrive |
+| **messages** | photos, videos and files in a chat via new `messages.attachments`; optimistic bubbles with retry; day lines; Enter sends on a keyboard |
+| **You card** | lean: the edit, add-child, figure and build tiles and the "only you see this" card are gone. Add your child, credits and the wardrobe live on Settings |
+| **settings** | the wardrobe is one card; the week grid is square and tidy; "Specialise in" + "Also teach" (new `people.teaches_also`); qualifications up to 10 (new `people.quals`, packed, migrated from `qual_1..3`); library cards up to 5; extra qualifications and favourite colour are dropdowns; Contact & address merged for parents and students |
+| **profile cards** | subjects as chips, `Maths (GCSE)`, the specialism edged in gold |
+| **tools** | flyer and cheat sheet have no on-screen preview; the cheat sheet lays out in fixed slots, gains a periodic table (M50), and its number square and times table are bigger |
+| **Find** | spotlight responds at once; each practical is four pages (card+diagram, equipment, steps, worksheet) counted once; narrowing reuses the last result, search text is lazy, the invisible pane blurs are gone (about 20% faster a tap at 8x); a repaint no longer empties the page you are on; swiping back up no longer writes a result over the question; a star past page 15 no longer moves you; venues are ordinary cards |
+
+**New columns, all created by `?setup=1`**: `people.quals`, `people.teaches_also`,
+`posts.media`, `messages.attachments`. Backend stamps are `2026-09-29-c-batch`.
+
+**Two instruments were taught something on the way.** `check/press.js` walks a swipe's start point
+to a gap in the box, because Chromium's touch adjustment snaps a touch near a `<select>` onto it —
+the flyer's dropdowns moved to the middle of its card when the preview went, and every swipe from the
+middle became a press on a select. And `pressMark_` ignores a disabled control, which never fires the
+click that would clear the mark.
+
+## The Foundation 5-a-day books, and a letter range that spelled itself like a tens band
+
+**Asked for as "add these 5 a day stuff to database. its foundation", with a Drive folder of seven
+monthly books, June to December.** All seven are in: **1,564 rows** — 213 day-documents, the questions
+under them, and the shared stems as preambles — through `tools/cbm5ad/`. `common.py` holds the id
+scheme and asserts every topic against `data/topics.json`; one `F_MM.py` per month, each written from
+the rendered pages; `write.py` replaces every `P-CBM-5AD-F-` row and nothing else, and with no months
+present it reproduces the file byte for byte.
+
+**About three quarters of the questions carry an `accept`** and the rest are deliberately without
+one, each with a note: drawings, bearings and distances measured off the page, questions with many
+right answers, anything asking for simplest form (the rule `check-library.js` enforces), and answers
+that are a list or an explanation. A right answer marked wrong is the worse failure, so where a
+book's grid does not settle one answer the row goes to a person.
+
+**One book is one Drive file holding a month of documents**, so `check-library.js`'s "one document
+transcribed twice" rule — two `paper_id`s on one file — is exempted for `document_type: 5-a-day`
+and nothing else. The alternative was a URL per day, which does not exist.
+
+### `2–5` in the paper index promised 1,564 papers and pressing it returned none
+
+**The alphabet grouping keys the paper question on its name, and the 5-a-day books are named
+`5-a-day Foundation — …`**, so a range of names starting with digits came out as `2–5`. `bucketHas_`
+tests that shape as a TENS BAND first, and a paper id is not an integer, so every one of them was
+refused. The numeric branch runs only for a value that is itself an integer now — a tens band is
+only ever drawn when every value is one — and the letter-range branch answers everything else.
+`check-funnel.js`'s bucket rule named it on the first run after the books landed, which is the
+reason that rule walks the real library rather than the fixture.
+
+## Chess is two players, and the profile card and settings were tidied in the same batch
+
+**Chess** lost its opponent and became a pass-the-phone game, with `js/check-chess.js` on the roster:
+perft counts from the start position, Kiwipete and position 3 against the published numbers, plus
+castling, en passant and promotion cases — the move generator is the half a player cannot see
+failing. **The favicon is its own circle** (`favicon.png`, cut by `tools/make-favicon.py`), and the
+triangle splash was redone.
+
+**The settings form**: a qualification carries its received year (or Present) and two ticks —
+teach, specialise — so the "What you teach" and "Studying now" pages are gone and `teaches_*` is
+derived from the ticks; the phone is a country code plus a number packed into one cell; minimum and
+maximum students are one `[] – []` row; Where and Where you are are one page; DofE Gold and Young
+Citizens Bar Mock Trial are on the extra-qualifications list. **The profile card** puts the rate by
+the name, reads `1–4 students` and `1+ hour`, and draws qualifications as chips. **Admin** has a card
+for his cut on an extra child (`boss_rate` in config), and **tutors** have a draft agreement whose
+tick cannot be undone (`agreement_signed_at`, `agreement_version`). **Messages** draw each person's
+own photograph. **Herd Mentality, Charades and Articulate** each gained 400 prompts, with the
+cross-deck duplicate rule still enforced.
+
+**Needs `?setup=1` after the backend deploys**, for `people.quals`, `people.teaches_also`,
+`people.agreement_signed_at`, `people.agreement_version`, `posts.media` and
+`messages.attachments`.

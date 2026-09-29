@@ -66,7 +66,10 @@
      THE SHEET OVERRIDES IT ONCE IT ARRIVES: `brand.logo_square` swaps this href when the payload
      lands — see `applyBrandIcon_` in shell.js. So the file is the instant answer and the sheet is
      the authority, which is the same arrangement `LOAD` has with the version string. -->
-<link rel="icon" id="favicon" href="icon.png">
+<!-- THE TAB ICON IS ITS OWN CIRCLE, favicon.png, cut by tools/make-favicon.py. The two below stay
+     square on purpose: iOS rounds a home-screen icon itself and a manifest icon is masked by the
+     platform, so a circle there would be a circle inside a rounded square. -->
+<link rel="icon" id="favicon" href="favicon.png">
 <link rel="apple-touch-icon" id="favicon-ios" href="icon.png">
 <!-- BOTH NAMES, BECAUSE ONE OF THEM IS DEPRECATED AND THE OTHER IS NOT UNIVERSAL. The `apple-`
      prefixed one is what iOS has always read and still reads; `mobile-web-app-capable` is the
@@ -945,33 +948,46 @@
   <!-- THE ANGLES IN A TRIANGLE. Tear off the three corners, put them together, and they make a
        straight line. Every child who has done this remembers it. -->
   <div id="splash-ang" aria-hidden="true">
-    <svg class="ag-svg" viewBox="0 0 120 92">
+    <svg class="ag-svg" viewBox="0 0 120 106">
       <!-- ==========================================================================================
-           NOTHING MOVES. THAT IS THE FIX.
+           THE CORNERS TEAR OFF AND SLIDE TOGETHER ONTO A STRAIGHT LINE, which is the proof.
 
-           The last version tore the three corners off and flew them down to assemble on a line. The
-           maths was right — the wedges summed to exactly 180 and landed edge to edge on paper — and
-           it was broken on screen, because rotating a shape about its own vertex needs
-           `transform-box`, `transform-origin` and the order of rotate-then-translate all correct at
-           once, and any one of them wrong fails silently and looks like nonsense.
+           The version before this one had nothing move — the three corners were marked in place and
+           a fan was drawn below — because an EARLIER version had tried the tear and broken it:
+           rotating a shape about its own vertex needs `transform-box`, `transform-origin` and the
+           order of rotate-then-translate all right at once, and any one wrong fails silently. It was
+           asked to be made better, and the move is the whole argument, so it moves — built so the
+           three things that went wrong cannot:
 
-           So the corners stay where they are and the half turn is DRAWN, in the same three colours,
-           as a fan below the triangle. Same argument, no moving parts: you see the three angles up
-           there and the same three filling a straight angle down here. Fades only — there is no
-           transform anywhere in this splash and therefore nothing that can silently misbehave.
+           - EACH WEDGE IS DRAWN WITH ITS VERTEX AT (0, 0), so "rotate about the vertex" is "rotate
+             about the origin" and there is no origin to compute.
+           - `transform-box: view-box; transform-origin: 0 0` on `.ag-w`, so the origin IS (0, 0).
+           - THE WHOLE TRANSFORM IS ONE STRING PER WEDGE, `--from` and `--to` below, rotate written
+             after translate — so the order is stated once, beside the numbers it orders.
+
+           The numbers are computed, not eyeballed: A(20,58) B(100,58) C(62,14) give angles of
+           46.33°, 49.18° and 84.48°, which sum to 180. a lands on the left of P(60,88),
+           b on the right, c upside down between them — the parallel-line picture exactly.
+           Transform and opacity only, so it keeps moving while the thread under it parses the app.
       =========================================================================================== -->
       <path class="ag-tri" d="M20 58 L100 58 L62 14 Z"/>
 
-      <!-- the three corners, marked where they are -->
-      <path class="ag-a" d="M20 58 L31.05 46.43 A16 16 0 0 1 36.00 58.00 Z"/>
-      <path class="ag-b" d="M100 58 L84.00 58.00 A16 16 0 0 1 89.54 45.89 Z"/>
-      <path class="ag-c" d="M62 14 L72.46 26.11 A16 16 0 0 1 50.95 25.57 Z"/>
+      <!-- where each corner was torn from: a faint copy stays, so the triangle shows the gap -->
+      <path class="ag-ghost ag-wa" transform="translate(20 58)" d="M0 0 L11.05 -11.57 A16 16 0 0 1 16 0 Z"/>
+      <path class="ag-ghost ag-wb" transform="translate(100 58)" d="M0 0 L-16 0 A16 16 0 0 1 -10.46 -12.11 Z"/>
+      <path class="ag-ghost ag-wc" transform="translate(62 14)" d="M0 0 L10.46 12.11 A16 16 0 0 1 -11.05 11.57 Z"/>
+      <text class="ag-k ag-wa" x="40" y="54">a</text>
+      <text class="ag-k ag-wb" x="80" y="54">b</text>
+      <text class="ag-k ag-wc" x="61.5" y="38">c</text>
 
-      <!-- and the same three, side by side, filling a half turn -->
-      <line class="ag-line" x1="30" y1="72" x2="90" y2="72"/>
-      <path class="ag-f ag-f1" d="M60 72 L38.00 72.00 A22 22 0 0 1 44.81 56.09 Z"/>
-      <path class="ag-f ag-f2" d="M60 72 L44.81 56.09 A22 22 0 0 1 62.13 50.10 Z"/>
-      <path class="ag-f ag-f3" d="M60 72 L62.13 50.10 A22 22 0 0 1 82.00 72.00 Z"/>
+      <line class="ag-line" x1="22" y1="88" x2="98" y2="88"/>
+      <g class="ag-w ag-wa" style="--from: translate(20px, 58px); --to: translate(60px, 88px) rotate(-133.67deg)"><path d="M0 0 L11.05 -11.57 A16 16 0 0 1 16 0 Z"/></g>
+      <g class="ag-w ag-wb" style="--from: translate(100px, 58px); --to: translate(60px, 88px) rotate(130.82deg)"><path d="M0 0 L-16 0 A16 16 0 0 1 -10.46 -12.11 Z"/></g>
+      <g class="ag-w ag-wc" style="--from: translate(62px, 14px); --to: translate(60px, 88px) rotate(177.15deg)"><path d="M0 0 L10.46 12.11 A16 16 0 0 1 -11.05 11.57 Z"/></g>
+      <text class="ag-lab ag-wa" x="40.7" y="79.7">a</text>
+      <text class="ag-lab ag-wc" x="59.5" y="67.0">c</text>
+      <text class="ag-lab ag-wb" x="79.1" y="79.3">b</text>
+      <text class="ag-lab ag-180" x="60" y="101">180°</text>
     </svg>
     <div class="ag-say">a + b + c = 180°</div>
     <div class="sp-sig">@family.</div>
