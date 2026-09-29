@@ -1544,7 +1544,8 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    to turn to. That is answered now by the rule every card follows — `paneReach_` in find.js draws a
    card taller than its pane smaller, whole, and centred — rather than by anything that crops or
    caps the photograph. A 9:16 portrait, the tallest thing a phone camera gives, is drawn at about
-   95% at 390x844 and 73% at 320x568. `check/fixture.json` carries photographs now and every width
+   95% at 390x844 and 72% at 320x568 for somebody signed in, whose card carries the comment box;
+   signed out it fits whole at 390 and is 77% at 320. `check/fixture.json` carries photographs now and every width
    is measured at a real phone's height, which are the two reasons this used to be invisible. */
 .page .post-pic {
   flex: 0 0 auto;          /* never grows to fill the page — that is what forced a crop */
@@ -1570,11 +1571,12 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
          normally arrived before its page is in front of anybody — the change happens off-screen.
 
      IT DOES MOVE THE PAGES UNDER IT, which is the half worth measuring rather than assuming: a page
-     is `height: auto` in an ordinary CSS column, not a fixed cell. With every picture held back 3.5s
-     and the reader three posts below them, the post in front ended 82px up the screen as they
-     landed and stayed there. `holdColumn_` in shell.js puts it back, from inside the
-     `ResizeObserver` delivery that sees the card grow — which runs before paint, so the frame is
-     never drawn with it moved.
+     is `height: auto` in an ordinary CSS column, not a fixed cell, so every picture that lands above
+     the post being read moves it by the difference between 4:5 and the file — 224px for a 16:9
+     landscape at 390 — and the differences add up. `holdColumn_` in shell.js puts it back, from
+     inside the `ResizeObserver` delivery that sees the card grow — which runs before paint, so the
+     frame is never drawn with it moved. Its own note holds the measurements; one place, so they
+     cannot disagree.
 
      What is left is the post you are READING on a cold open, whose own picture can land after it is
      drawn and move its caption once. That is the whole cost of showing a photograph without bands,

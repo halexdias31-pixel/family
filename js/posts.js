@@ -133,10 +133,11 @@ function postMediaHtml_(list, i) {
        `postsAhead_`, which asks for the pictures before their page is in front of anybody, so the
        change normally happens off-screen; and `holdColumn_` in shell.js for the case it does not.
        A page is NOT a fixed cell — it is `height: auto` in an ordinary CSS column — so a picture
-       landing on a card ABOVE the one being read moves that one. Measured at 390x844 with every
-       picture 3.5s late and the reader three posts below them: without `holdColumn_` the post in
-       front ended 82px up the screen and stayed there; with it, it is back on its line in the same
-       frame, because the `ResizeObserver` that sees the card grow runs before paint. */
+       landing on a card ABOVE the one being read moves that one, by however much the 4:5 it
+       reserved differs from the file: 224px for a 16:9 landscape on a 390px phone, and it adds up
+       down the column. Without `holdColumn_` the post in front stays wherever that leaves it; with
+       it, it is back on its line in the same frame, because the `ResizeObserver` that sees the card
+       grow runs before paint. The measurements are in `holdColumn_`'s own note, in one place. */
     return `<img class="post-pic" src="${esc(pic(u))}" alt="" width="800" height="1000"
            decoding="async" loading="${i < 2 ? 'eager' : 'lazy'}">`;
   }
