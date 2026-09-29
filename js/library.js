@@ -263,6 +263,10 @@ function libraryExtras_(d, extra) {
       if (!id || !libOn(r.active)) return;
       out.push({
         id: id, name: libS(r.name), levels: libS(r.levels), tier: libS(r.tier),
+        /* WHICH SUBJECT, for the cheat sheet's subject select — a column of the file like `levels`,
+           and it wins the way `levels` does. A blank cell is '' and the code's answer stands
+           (`matSubjectOf`, which reads a piece with no subject as Maths). */
+        subject: libS(r.subject),
         heightMm: libS(r.height_mm) === '' ? null : libN(r.height_mm),
         half: libS(r.half_width) === '' ? null : libOn(r.half_width),
         startOn: libOn(r.start_on),

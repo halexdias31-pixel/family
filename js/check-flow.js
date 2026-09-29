@@ -312,6 +312,23 @@ function boot(opts) {
       'matPairW: typeof matPairW === "function" ? matPairW : null,' +
       'matSpan: typeof matSpan === "function" ? matSpan : null,' +
       'matSpanW: typeof matSpanW === "function" ? matSpanW : null,' +
+      /* THE SUBJECT FILTER AND WHAT IT DECIDES. `matShown` is the one test the list and the paper
+         both ask, so a journey asking it is asking what would print; `matSet` puts the two selects
+         where a person would, through `matSettle`, which is what the handlers do. */
+      'matShown: typeof matShown === "function" ? matShown : null,' +
+      'matSubjects: typeof matSubjects === "function" ? matSubjects : null,' +
+      'matSubjectOf: typeof matSubjectOf === "function" ? matSubjectOf : null,' +
+      'matLevelChoices: typeof matLevelChoices === "function" ? matLevelChoices : null,' +
+      'matDraw: typeof matDraw === "function" ? matDraw : null,' +
+      'matSet: (s, l, tier) => { MAT_SUBJECT = s; MAT_LEVEL = l; if (tier) MAT_TIER = tier;' +
+      '  MAT_EXAM = "all"; matSettle(matParts()); return [MAT_SUBJECT, MAT_LEVEL]; },' +
+      /* WHO MAY OPEN A WIDGET, and the two lists that ask it. `star` puts a key in the device's
+         favourites the way a press on a star does, without the request. */
+      'widgetFor: typeof widgetFor_ === "function" ? widgetFor_ : null,' +
+      'allWidgets: typeof allWidgets === "function" ? allWidgets : null,' +
+      'widgetsOf: typeof widgetsOf_ === "function" ? widgetsOf_ : null,' +
+      'savedWidgets: typeof savedWidgets_ === "function" ? savedWidgets_ : null,' +
+      'star: k => FAVS.add(String(k)),' +
       /* THE BASKET, AND ITS ARITHMETIC. `cartMoney_` is the one place a line's price is worked out
          — print plus the laminate upgrade — and `CART` is the list it works it out from. Exposed
          together so a journey can put a line in the basket and ask what it costs, which is the
@@ -489,6 +506,109 @@ check('the cheat sheet prices every component at the fixed slot it is drawn in',
   if (Math.abs(t.matSpanW(6) - 184) > 0.01) {
     bad.push('six tracks come to ' + t.matSpanW(6) + 'mm, not the 184mm text block');
   }
+  return bad;
+});
+
+/* ---------- THE SUBJECT FILTER NARROWS THE LIST AND THE PAPER TO ONE SUBJECT ---------------------
+   ASKED FOR AS *"for cheat sheet maker it should have subject as a filter too"*. The fault worth a
+   rule is the one a filter always risks: a choice on the screen that the paper does not honour —
+   an English sheet carrying a hundred square, or "Every subject" quietly meaning Maths. So each
+   subject the select offers is set the way the select sets it and `matShown`, the one test the list
+   and the sheet share, is asked of every piece. The ruler belongs to no subject and must be offered
+   under all of them. And the tier split is only offered where a piece changes with it, which is the
+   maths: an English "GCSE Foundation" would be a choice that changes nothing on the paper. */
+check('the cheat sheet offers only the pieces of the subject chosen', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.matShown || !t.matSubjects || !t.matSubjectOf || !t.matLevelChoices || !t.matSet) {
+    return ['the cheat sheet subject filter is not exported'];
+  }
+  const bad = [];
+  const parts = t.matParts();
+  const subs = t.matSubjects(parts);
+  ['Maths', 'English', 'Science'].forEach(s => {
+    if (subs.indexOf(s) === -1) bad.push('the subject select does not offer ' + s + ' — it offers ' + subs.join(', '));
+  });
+  if (subs[0] !== 'Maths') bad.push('Maths has the most pieces and is not first: ' + subs.join(', '));
+  subs.forEach(s => {
+    t.matSet(s, 'all');
+    const shown = parts.filter(c => t.matShown(c));
+    const stray = shown.filter(c => !c.edge && t.matSubjectOf(c) !== s);
+    if (stray.length) {
+      bad.push(s + ' shows ' + stray.length + ' piece(s) of another subject — '
+             + stray.slice(0, 3).map(c => c.id + ' (' + t.matSubjectOf(c) + ')').join(', '));
+    }
+    if (!shown.some(c => !c.edge)) bad.push(s + ' is offered in the select and shows no piece at all');
+    if (parts.some(c => c.edge) && !shown.some(c => c.edge)) {
+      bad.push('the ruler is not offered under ' + s + ', and it goes down the edge of any sheet');
+    }
+  });
+  t.matSet('all', 'all');
+  const every = parts.filter(c => !c.edge && t.matShown(c)).map(c => t.matSubjectOf(c));
+  subs.forEach(s => { if (every.indexOf(s) === -1) bad.push('"Every subject" leaves out ' + s); });
+
+  t.matSet('English', 'all');
+  const en = t.matLevelChoices(parts).map(o => o.v);
+  if (en.some(v => v.indexOf('|') !== -1)) {
+    bad.push('English offers a Foundation/Higher split and no English piece changes with the tier: '
+           + en.join(', '));
+  }
+  t.matSet('Maths', 'all');
+  const ma = t.matLevelChoices(parts).map(o => o.v);
+  if (ma.indexOf('GCSE|F') === -1 || ma.indexOf('GCSE|H') === -1) {
+    bad.push('Maths GCSE is not offered as Foundation and Higher: ' + ma.join(', '));
+  }
+  t.matSet('English', 'GCSE');
+  parts.filter(c => !c.edge && t.matShown(c)).forEach(c => {
+    if (c.lv.indexOf('GCSE') === -1) bad.push(c.id + ' is on an English GCSE sheet and is not a GCSE piece');
+  });
+  /* A PIECE OFFERED IS A PIECE THAT CAN BE DRAWN. `matDraw` prints a sentence on the paper for one
+     with no drawing, which is right as a last resort and wrong as the state of a whole subject. The
+     ruler is not asked: it is drawn down the margin by `matRuler`, never into a slot. */
+  parts.filter(c => !c.edge).forEach(c => {
+    if (/mat-gone/.test(String(t.matDraw(c)))) bad.push(c.id + ' (' + c.name + ') has nothing to draw it');
+  });
+  t.matSet('Maths', 'all');
+  return bad;
+});
+
+/* ---------- THE FLYER MAKER IS AN ADMIN'S, AT EVERY DOOR ---------------------------------------------
+   ASKED FOR AS *"make a flyer should only be visible to admin"*. `admin: true` on the roster entry is
+   the rule and `widgetFor_` is the one place it is asked — this asks it as every other kind of
+   visitor and as an admin, and then asks the two lists that draw widgets, because a rule on one door
+   and not the next is the shape of every leak this repository records. The Saved column is the door
+   that is easy to forget: a star is kept on the device, so a flyer starred by an admin would come
+   back on the Saved column of whoever signs in on that phone next. */
+check("the flyer maker is an admin's and nobody else's", async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.widgetFor || !t.allWidgets || !t.widgetsOf || !t.savedWidgets || !t.star) {
+    return ['who may open a widget is not exported'];
+  }
+  const fly = t.allWidgets().find(x => x.id === 'flyers');
+  if (!fly) return ['there is no flyer maker in the roster'];
+  const bad = [];
+  t.star('w:flyers');
+  const visitors = [
+    ['somebody signed out', null],
+    ['a parent', { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] }],
+    ['a student', { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] }],
+    ['a tutor', { name: 'Ada Tutor', personId: 'P-@ada', role: 'tutor', roles: ['tutor'] }],
+  ];
+  visitors.forEach(([say, u]) => {
+    t.USER(u);
+    if (t.widgetFor(fly)) bad.push(say + ' may open the flyer maker');
+    if (t.widgetsOf('tool').some(x => x.id === 'flyers')) bad.push('the Tools column offers ' + say + ' the flyer maker');
+    if (t.savedWidgets().some(x => x.id === 'flyers')) {
+      bad.push('a flyer maker starred on this phone comes back on the Saved column of ' + say);
+    }
+  });
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'] });
+  if (!t.widgetFor(fly)) bad.push('an admin may not open the flyer maker');
+  if (!t.widgetsOf('tool').some(x => x.id === 'flyers')) bad.push('the Tools column does not offer an admin the flyer maker');
+  if (!t.savedWidgets().some(x => x.id === 'flyers')) bad.push('an admin who starred the flyer maker does not find it on Saved');
   return bad;
 });
 

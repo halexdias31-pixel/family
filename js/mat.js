@@ -129,7 +129,11 @@ let MAT_TIER = 'H';
    THE ROW COLOUR KEEPS THE JOB — it is what a scan picks up, which is what the tag was for. What
    the tag could not do is answer the question somebody actually has, which is "show me only the
    ones the paper will not give me". A filter does that, and it doubles as the key: 'all' / 'not
-   given' / 'given' names the colour without a legend sitting under the list. */
+   given' / 'given' names the colour without a legend sitting under the list.
+
+   AND THEN THE FILTER BECAME ONE BOX, and the colour went with the pills that explained it — see
+   `matChoices`. `all` or `not`: the third answer, "show me only what the exam gives me", is not a
+   sheet anybody makes. */
 let MAT_EXAM = 'all';
 let MAT_SHOW = 'H';
 
@@ -353,7 +357,7 @@ const MAT_PARTS = [
      `inExam: true` — the sheet's `in_exam` column can say otherwise per board without a deploy.
      THE LEVELS ARE THE ONES THAT SIT CHEMISTRY. Y9 mocks start it, GCSE is where it is used most,
      and A-level chemistry uses the same table; SATs and 11+ never ask for it. */
-  { id: 'M50', name: 'Periodic table', face: 'H He table',  lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 96,  half: false, inExam: true },
+  { id: 'M50', subject: 'Science', name: 'Periodic table', face: 'H He table',  lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 96,  half: false, inExam: true },
 ];
 
 /* ---------- EACH COMPONENT'S HEIGHT, IN MILLIMETRES OF PAPER ----------------------------------------
@@ -373,6 +377,13 @@ const MAT_SLOT = {
   M23: 46, M24: 38, M25: 42, M26: 44, M27: 50, M28: 46, M29: 24, M30: 36, M31: 46, M32: 46,
   M33: 66, M34: 44, M35: 56, M36: 50, M37: 36, M38: 46, M39: 46, M40: 46, M41: 54, M42: 42,
   M43: 38, M44: 54, M45: 38, M46: 46, M47: 42, M48: 44, M49: 60, M50: 98,
+  /* THE ENGLISH PIECES (see `MAT_PARTS_EN`), measured the same way — each alone at its own slot
+     width, its scroll height read off the page — and given a millimetre before rounding, because a
+     label-and-value block wraps a word or two differently in another browser's sans-serif and the
+     alarm below should be for a stale number, not for a font. */
+  E02: 22, E03: 54, E04: 34, E05: 66, E06: 42, E07: 58, E08: 58, E09: 42, E10: 34, E11: 48,
+  E12: 26, E13: 36, E14: 36, E15: 66, E16: 50, E17: 42, E18: 32, E19: 56, E20: 52, E21: 30,
+  E22: 44,
 };
 const matSlot = c => {
   const mm = MAT_SLOT[c.id] || (Number(c.h) || 20) + 8;
@@ -457,7 +468,9 @@ function matParts() {
   const by = {};
   rows.forEach(r => { if (r && r.id) by[String(r.id).toUpperCase()] = r; });
 
-  const all = MAT_PARTS;
+  /* THE MATHS AND THE ENGLISH, one list — see `MAT_PARTS_EN`. Concatenated here rather than
+     written into `MAT_PARTS`, so the English is one block that can be read, and moved, whole. */
+  const all = MAT_PARTS.concat(MAT_PARTS_EN);
 
   const out = all.map((c, i) => {
     const r = by[c.id];
@@ -468,6 +481,8 @@ function matParts() {
     const levels = String(r.levels || '').split(/[,\n|]/).map(s => s.trim()).filter(Boolean);
     return Object.assign({}, c, {
       name:  r.name || c.name,
+      /* A SUBJECT THE SHEET CAN SET, and an empty cell leaves the code's — see `matSubjectOf`. */
+      subject: r.subject || c.subject,
       lv:    levels.length ? levels : c.lv,
       /* THE SHEET CAN ADD A TIER AND IT CAN TAKE ONE AWAY. `'-'` is how you say "both papers" about
          a component the code calls Higher-only, since an empty cell already means "no opinion" and
@@ -505,7 +520,14 @@ function matParts() {
   /* SORTED BY THE SHEET'S NUMBER, ties broken by the order they are written in code — so a column
      of blank `sort_order` cells leaves the sheet exactly as it prints today, and filling in one cell
      moves one component. */
-  return out.sort((a, b) => a.at - b.at);
+  /* ONE SUBJECT AFTER ANOTHER, THEN THE SHEET'S ORDER WITHIN IT. The tab numbers each subject from
+     10 — the English rows restart where the maths ones start — so ordering on the number alone
+     interleaved them, a hundred square beside the alphabet, on the one view that shows both. Which
+     subject comes first is `matSubjectOrder`'s answer, the same one the subject select gives, so the
+     list and the select cannot disagree about it. The ruler is in no subject and goes first. */
+  const order = matSubjectOrder(out);
+  const rank = c => { const s = matSubjectOf(c); return s ? order.indexOf(s) + 1 : 0; };
+  return out.sort((a, b) => rank(a) - rank(b) || a.at - b.at);
 }
 
 /* ---------- THE BLOCKS ---------------------------------------------------------------------------
@@ -1180,31 +1202,480 @@ function matRuler(mmHigh) {
   return h;
 }
 
+/* ==================================================================================================
+   A SUBJECT, AND THE ENGLISH PIECES IT OPENS
+
+   ASKED FOR AS *"for cheat sheet maker it should have subject as a filter too"*. A subject filter
+   over a list that is all maths would be a control with one answer — and the `cheatsheet` tab
+   already knew better. It holds twenty-one English rows, E02 to E22, each with a name, the levels
+   it suits and a note saying what goes in it, and `matParts` has thrown every one of them away
+   since they were typed: it walks the code's list and only lays the sheet over what it finds there.
+   So the English was never missing from the data. It was missing a drawing.
+
+   THE DRAWINGS ARE HERE, WRITTEN FROM THOSE NOTES, and each row keeps the tab's own name and levels
+   so the sheet and the code describe one piece. The sheet still wins everything it wins today —
+   name, levels, tier, order, and whether a piece is offered at all.
+
+   E01 IS NOT HERE, DELIBERATELY. It is a second "Ruler down the edge", and the ruler is not a maths
+   thing or an English thing: it lives in the margin of whatever sheet you are making. M01 is shown
+   under every subject, so an E01 would be two tickboxes for one strip of paper.
+
+   `inExam: false` ON ALL OF THEM, because the sheet says so and it is true: no English paper hands
+   a candidate a list of word classes. That also keeps the "leave out what the exam gives you" box
+   off an English sheet, where it would be a control with nothing to do.
+================================================================================================== */
+const MAT_PARTS_EN = [
+  { id: 'E02', subject: 'English', name: 'Alphabet — print and cursive', face: 'Aa Bb alphabet',
+    lv: ['SATs', '11+', 'Y1 Mocks', 'Y2 Mocks'], h: 22, half: false, inExam: false },
+  { id: 'E03', subject: 'English', name: 'Word classes', face: 'noun · verb',
+    lv: ['SATs', '11+', 'Y9 Mocks', 'GCSE'], h: 46, half: true, inExam: false },
+  { id: 'E04', subject: 'English', name: 'Sentence types', face: 'sentences',
+    lv: ['SATs', '11+', 'Y9 Mocks', 'GCSE'], h: 40, half: true, inExam: false },
+  { id: 'E05', subject: 'English', name: 'Punctuation and what it does', face: '. , ; : marks',
+    lv: ['SATs', '11+', 'Y9 Mocks', 'GCSE'], h: 52, half: true, inExam: false },
+  { id: 'E06', subject: 'English', name: 'Apostrophes', face: '’s apostrophes',
+    lv: ['SATs', '11+', 'Y9 Mocks', 'GCSE'], h: 30, half: true, inExam: false },
+  { id: 'E07', subject: 'English', name: 'Homophones', face: 'their · there',
+    lv: ['SATs', '11+', 'Y9 Mocks', 'GCSE'], h: 40, half: true, inExam: false },
+  { id: 'E08', subject: 'English', name: 'Spelling rules', face: 'i before e',
+    lv: ['SATs', '11+', 'Y9 Mocks', 'GCSE'], h: 44, half: true, inExam: false },
+  { id: 'E09', subject: 'English', name: 'PEE / PETAL paragraph', face: 'PEE · PETAL',
+    lv: ['11+', 'Y9 Mocks', 'GCSE', 'AS', 'Alevel'], h: 48, half: true, inExam: false },
+  { id: 'E10', subject: 'English', name: 'What to say about a quotation', face: '“…” quotes',
+    lv: ['Y9 Mocks', 'GCSE', 'AS', 'Alevel'], h: 46, half: true, inExam: false },
+  { id: 'E11', subject: 'English', name: 'AFOREST', face: 'AFOREST',
+    lv: ['11+', 'Y9 Mocks', 'GCSE'], h: 46, half: true, inExam: false },
+  { id: 'E12', subject: 'English', name: 'Ethos, pathos, logos', face: 'ethos · pathos',
+    lv: ['Y9 Mocks', 'GCSE', 'AS', 'Alevel'], h: 26, half: true, inExam: false },
+  { id: 'E13', subject: 'English', name: 'Connectives by job', face: 'however · so',
+    lv: ['SATs', '11+', 'Y9 Mocks', 'GCSE'], h: 44, half: true, inExam: false },
+  { id: 'E14', subject: 'English', name: 'Sentence openers', face: 'openers',
+    lv: ['SATs', '11+', 'Y1 Mocks', 'Y2 Mocks'], h: 32, half: true, inExam: false },
+  { id: 'E15', subject: 'English', name: 'Devices worth naming', face: 'simile · etc.',
+    lv: ['11+', 'Y9 Mocks', 'GCSE', 'AS', 'Alevel'], h: 56, half: true, inExam: false },
+  { id: 'E16', subject: 'English', name: 'Structure methods', face: '↻ structure',
+    lv: ['Y9 Mocks', 'GCSE', 'AS', 'Alevel'], h: 40, half: true, inExam: false },
+  { id: 'E17', subject: 'English', name: "Instead of 'said', 'good', 'bad'", face: 'said → muttered',
+    lv: ['SATs', '11+', 'Y1 Mocks', 'Y2 Mocks'], h: 34, half: true, inExam: false },
+  { id: 'E18', subject: 'English', name: 'Letter, article, speech', face: 'Dear… forms',
+    lv: ['Y9 Mocks', 'GCSE', 'B-TEC'], h: 42, half: true, inExam: false },
+  { id: 'E19', subject: 'English', name: 'Reading question stems', face: '“How does…”',
+    lv: ['Y9 Mocks', 'GCSE', 'B-TEC'], h: 36, half: true, inExam: false },
+  { id: 'E20', subject: 'English', name: 'Poetry: form and sound', face: 'enjambment',
+    lv: ['Y9 Mocks', 'GCSE', 'AS', 'Alevel'], h: 40, half: true, inExam: false },
+  { id: 'E21', subject: 'English', name: 'Tiers of vocabulary', face: 'tier 1 2 3 words',
+    lv: ['Y9 Mocks', 'GCSE', 'AS', 'Alevel'], h: 28, half: true, inExam: false },
+  { id: 'E22', subject: 'English', name: 'Proofreading checklist', face: '✓ proofread',
+    lv: ['SATs', '11+', 'Y9 Mocks', 'GCSE'], h: 26, half: true, inExam: false },
+];
+
+/* ---------- THE ENGLISH DRAWINGS -------------------------------------------------------------------
+   MOSTLY `matPairs`, the label-and-value block thirty-four of the maths pieces already are — a
+   term and what it does is exactly that shape, and a second layout for it would be a second thing
+   for the stylesheet to keep right. Two are not: the alphabet is a row of letters and the word bank
+   is three short columns, and each borrows the nearest block the maths already has.
+
+   WRITTEN TO BE SHORT, because the note over the secondary maths set is true here too: at a third of
+   the page a value much past twenty characters wraps, and a wrapped row costs three times its
+   height. Where a line could not be said shorter, it is the example that goes, not the rule. */
+const MAT_ABC = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+const MAT_HTML_EN = {
+  /* PRINT OVER JOINED, LETTER BY LETTER. "Both hands" in the sheet's note means both handwriting
+     styles, and a child copying a letter wants the two shapes of it one above the other rather than
+     two alphabets a line apart. The joined row is set in whatever script face the printer has —
+     `cursive` is the last word in that list for a reason — so it is a model rather than a font. */
+  E02: () => `<div class="mat-abc">${MAT_ABC.map(l =>
+    `<i><b>${l}${l.toLowerCase()}</b><em>${l}${l.toLowerCase()}</em></i>`).join('')}</div>`,
+  E03: () => matPairs([['noun', 'dog, London, joy'], ['verb', 'run, is, think'],
+                       ['adjective', 'tall, red'], ['adverb', 'quickly, soon'],
+                       ['pronoun', 'she, it, they'], ['preposition', 'under, after'],
+                       ['conjunction', 'and, because'], ['determiner', 'the, a, some']]),
+  E04: () => matPairs([['simple', 'one main clause'],
+                       ['compound', 'two main clauses: and, but, or, so'],
+                       ['complex', 'main + subordinate: because, although, when, if'],
+                       ['minor', 'not a full sentence: “Nice one.”']]),
+  E05: () => matPairs([['.', 'ends a sentence'], [',', 'splits a list or a clause'],
+                       ['?', 'ends a question'], ['!', 'surprise or force'],
+                       ['’', 'a missing letter, or belonging'], ['“ ”', 'the words spoken'],
+                       [':', 'brings in a list or a reason'], [';', 'joins two linked sentences'],
+                       ['( )', 'extra information'], ['–', 'a pause, or an aside']]),
+  /* ITS AND IT'S GET A ROW EACH, because that is the line the sheet's note says catches everybody —
+     and it catches them precisely because every other belonging word takes the apostrophe. */
+  E06: () => matPairs([['missing letters', 'do not → don’t'], ['one owner', 'the dog’s bone'],
+                       ['more than one', 'the dogs’ bones'], ['no s plural', 'the children’s'],
+                       ['its', 'belonging: its tail'], ['it’s', 'it is, or it has']]),
+  E07: () => matPairs([['their', 'belongs to them'], ['there', 'a place'], ['they’re', 'they are'],
+                       ['your', 'belongs to you'], ['you’re', 'you are'],
+                       ['to · too · two', 'towards · also · 2'], ['of · off', 'belonging · not on'],
+                       ['were · we’re · where', 'was, plural · we are · a place']]),
+  E08: () => matPairs([['most plurals', '+ s: cats'], ['s x ch sh', '+ es: boxes'],
+                       ['consonant + y', 'y → ies: babies'], ['f, fe', 'often ves: leaves'],
+                       ['short vowel', 'double it: hop → hopping'],
+                       ['silent e', 'drop it: make → making'],
+                       ['i before e', 'except after c: receive'],
+                       ['and where it fails', 'weird, seize, science']]),
+  /* THE STEMS ARE THE POINT, which is what the note asks for: a student who knows the letters stand
+     for Point, Evidence and Explain still sits in front of a blank line not knowing how to start one.
+     PEE is the first three of PETAL, so it is one block rather than two, and the last row says how
+     they fold into each other. */
+  E09: () => matPairs([['Point', 'The writer presents…'], ['Evidence', 'This is shown when “…”'],
+                       ['Technique', 'The writer uses…'], ['Analysis', 'The word “…” suggests…'],
+                       ['Link', 'This links to… / So…'],
+                       ['PEE', 'Point, Evidence, Explain = T + A']]),
+  E10: () => matPairs([['zoom in', 'The word “…” suggests…'], ['name it', 'a metaphor, a verb…'],
+                       ['the effect', 'It makes the reader feel…'],
+                       ['link it out', 'This fits the wider idea that…']]),
+  E11: () => matPairs([['A', 'alliteration'], ['F', 'facts'], ['O', 'opinions'],
+                       ['R', 'rhetorical questions'], ['E', 'emotive language'],
+                       ['S', 'statistics'], ['T', 'triples — the rule of three']]),
+  /* THE TEST IS A QUESTION TO ASK OF THE TEXT, which is what the note means by a one-line test: the
+     names are easy to learn and hard to spot, and each of these is the thing to ask to spot one. */
+  E12: () => matPairs([['ethos', 'trust: why believe the speaker?'],
+                       ['pathos', 'feeling: does it move you?'],
+                       ['logos', 'logic: reasons and evidence?']]),
+  E13: () => matPairs([['adding', 'and, also, furthermore'], ['contrasting', 'but, however, whereas'],
+                       ['causing', 'because, so, therefore'], ['sequencing', 'first, then, finally'],
+                       ['concluding', 'overall, in conclusion']]),
+  E14: () => matPairs([['adverb', 'Slowly, …'], ['-ing', 'Running to the door, …'],
+                       ['simile', 'Like a ghost, …'], ['preposition', 'Under the bridge, …'],
+                       ['subordinate', 'Although it was late, …']]),
+  E15: () => matPairs([['simile', 'like or as'], ['metaphor', 'says it IS something else'],
+                       ['personification', 'a thing acting human'], ['alliteration', 'same first sound'],
+                       ['onomatopoeia', 'sounds like it means: buzz'], ['hyperbole', 'deliberate exaggeration'],
+                       ['imagery', 'a picture in words'], ['juxtaposition', 'opposites side by side'],
+                       ['pathetic fallacy', 'weather matches mood'], ['semantic field', 'a group of linked words']]),
+  E16: () => matPairs([['opening', 'how it hooks you'], ['shift', 'focus moves: out → in, past → now'],
+                       ['cyclical', 'ends where it began'], ['foreshadowing', 'a hint of what comes'],
+                       ['zoom', 'narrows to a detail, or widens'], ['flashback', 'a jump back in time']]),
+  /* THREE SHORT COLUMNS, as the note says — which is the measures block's shape with a third column,
+     so it borrows `.mat-meas` rather than starting a fourth kind of list. */
+  E17: () => `<div class="mat-meas mat-three">${[
+      ['said', ['whispered', 'shouted', 'muttered', 'replied', 'gasped', 'insisted']],
+      ['good', ['brilliant', 'kind', 'excellent', 'skilful', 'delightful', 'generous']],
+      ['bad', ['awful', 'cruel', 'dreadful', 'harmful', 'rotten', 'terrible']]]
+    .map(([k, vs]) => `<div><em>${k}</em>${vs.map(v => `<i>${v}</i>`).join('')}</div>`).join('')}</div>`,
+  E18: () => matPairs([['letter', 'Dear… → Yours sincerely (a name), faithfully (Sir, Madam)'],
+                       ['article', 'headline, strapline, subheadings'],
+                       ['speech', 'greet them, say “you”, end with what to do']]),
+  E19: () => matPairs([['list four', 'short facts, from the lines given'],
+                       ['how… language', 'words, methods, effect'],
+                       ['how… structured', 'start, shifts, ending'],
+                       ['to what extent', 'judge it, with quotations'],
+                       ['summarise', 'the differences, inferred'],
+                       ['compare', 'both texts, views and methods']]),
+  E20: () => matPairs([['stanza', 'a verse: a group of lines'], ['metre', 'the beat: iambic is da-DUM'],
+                       ['rhyme scheme', 'ABAB, AABB…'], ['enjambment', 'a sentence runs over the line'],
+                       ['caesura', 'a pause inside a line'], ['volta', 'the turn in the thought'],
+                       ['writing it', 'name it, quote it, say what it does']]),
+  E21: () => matPairs([['tier 1', 'everyday: happy, walk — talk'],
+                       ['tier 2', 'academic: analyse, significant — any essay'],
+                       ['tier 3', 'subject: metaphor, sonnet — naming it']]),
+  E22: () => matPairs([['1', 'capitals and full stops'], ['2', 'spellings from the question'],
+                       ['3', 'a new paragraph for each new point, time or speaker'],
+                       ['4', 'its / it’s, their / there'],
+                       ['5', 'read it back: does each sentence make sense?']]),
+};
+Object.assign(MAT_HTML, MAT_HTML_EN);
+
+/* ---------- WHICH SUBJECT A PIECE IS -----------------------------------------------------------------
+   `subject` IS A FIELD ON THE PIECE, like its levels and its tier, and it lives where they do: a
+   `subject` column on the `cheatsheet` tab (`data/cheatsheet.json`), which `matParts` lays over the
+   code's own row. The English rows above carry it, the periodic table carries `Science`, and the
+   rest of `MAT_PARTS` carries nothing — so THE DEFAULT IS MATHS, and that is not a guess about
+   forty-nine rows: every `M` id is the maths mat this tool started as. Written as a default rather
+   than onto forty-nine rows, because a field that says the same word on every line of a list is a
+   field nobody reads, and the day one of them is wrong it is wrong in a crowd.
+
+   A PIECE IN THE MARGIN IS IN NO SUBJECT. The ruler goes down the edge of any sheet, so it is offered
+   whichever subject is chosen rather than belonging to one. */
+const matSubjectOf = c => (!c || c.edge) ? '' : String(c.subject || 'Maths');
+
+/* WHAT IS CHOSEN. Maths until somebody says otherwise, because the maths is most of the library and
+   what this tool was built as; `all` is "every subject" and mixes them on one sheet. */
+let MAT_SUBJECT = 'Maths';
+
+/* THE SUBJECTS THAT HAVE PIECES, and no others — a subject with nothing under it is an option that
+   empties the list, which is a dead control wearing a name. THE ONE WITH THE MOST PIECES FIRST,
+   because it is the one most sheets are made of, and ties alphabetically so the order never depends
+   on how the file happens to be sorted.
+   NOT THE SITE'S OWN SUBJECT LIST, which the first version sorted by. That list is what somebody can
+   be BOOKED for — "English Language", "(Single) Chemistry" — and not one of its names is a subject
+   a cheat sheet piece carries, so every subject here fell through to the alphabet and English came
+   out above Maths on a tool that is fifty maths pieces to twenty-one English. */
+function matSubjectOrder(list) {
+  const n = {};
+  (list || []).forEach(c => { const s = matSubjectOf(c); if (s) n[s] = (n[s] || 0) + 1; });
+  return Object.keys(n).sort((a, b) => n[b] - n[a] || a.localeCompare(b));
+}
+const matSubjects = parts => matSubjectOrder(parts || matParts());
+
+/* ---------- ONE LIST OF LEVELS, AND THE TIER INSIDE IT -----------------------------------------------
+   THE LEVEL WAS TEN PILLS AND THE TIER WAS TWO MORE, IN A ROW THAT CAME AND WENT. Measured on a
+   320x568 phone: four rows of pills, 288px of a 534px pane, before a single piece was on the screen
+   — and the list below them had room for two and a half rows while the Print button sat under the
+   fold. The choice itself is one question, "which paper is this for", and GCSE Higher is an answer
+   to it in the same way SATs is; splitting it into a level and then a tier that only exists for two
+   of the levels was the screen changing shape under the thumb that answered the first half.
+
+   SO IT IS ONE SELECT, and a tiered level is two options in it. Only the levels this subject has
+   pieces for — an English sheet offers no B-TEC Foundation — and the tier split only where it
+   changes anything, which is the maths: its blocks carry Higher-only rows (`matKeep`), and nothing
+   in the English or the periodic table does. `MAT_LEVEL` and `MAT_TIER` stay the state, because the
+   title on the paper and every block that reads `matKeep` already know them.
+
+   WHICH SUBJECTS SPLIT IS A LIST, BESIDE `MAT_TIERED`, rather than a word inside a function. It
+   cannot be worked out from the pieces: the component-level `tier: 'H'` is only half of it, and the
+   other half is Higher-only ROWS inside ordinary blocks (M22, M23, M25, M26), which only reading the
+   drawing would find. A tiered English or science piece is one line here. */
+const MAT_TIERED_SUBJECTS = ['Maths'];
+const matTierSplits = l => MAT_TIERED.indexOf(l) !== -1
+  && (MAT_SUBJECT === 'all' || MAT_TIERED_SUBJECTS.indexOf(MAT_SUBJECT) !== -1);
+const matLevelValue = () => MAT_LEVEL === 'all' ? 'all'
+  : (matTierSplits(MAT_LEVEL) ? MAT_LEVEL + '|' + MAT_TIER : MAT_LEVEL);
+
+function matLevelChoices(parts) {
+  const used = {};
+  (parts || matParts()).forEach(c => {
+    if (c.edge) return;
+    if (MAT_SUBJECT !== 'all' && matSubjectOf(c) !== MAT_SUBJECT) return;
+    c.lv.forEach(l => { used[l] = true; });
+  });
+  const known = matLevels();
+  const levels = known.filter(l => used[l])
+    .concat(Object.keys(used).filter(l => known.indexOf(l) === -1));
+  const out = [{ v: 'all', say: 'Every level' }];
+  levels.forEach(l => {
+    if (matTierSplits(l)) out.push({ v: l + '|F', say: l + ' Foundation' }, { v: l + '|H', say: l + ' Higher' });
+    else out.push({ v: l, say: l });
+  });
+  return out;
+}
+
+/* ---------- WHAT IS ON THE SHEET IS WHAT IS SHOWN, TICKED ---------------------------------------------
+   ONE TEST FOR THE LIST AND THE PAPER, so the two cannot disagree. It was two: the level and the tier
+   decided what printed, and the "given" filter hid rows from the list while leaving them on the
+   paper — its note said so, and meant it kindly ("narrowing the view must not quietly drop the
+   given blocks off a sheet that was already built"). What it produced was a sheet carrying pieces
+   the screen was not showing, which is the one thing a picker must not do.
+
+   HIDDEN IS STILL NOT UNTICKED. Every tick is kept, so looking at another subject or level and
+   coming back finds the sheet as it was; what changed is only that a piece prints when you can see
+   it ticked, and not otherwise. */
+function matShown(c, ignoreExam) {
+  if (!c) return false;
+  const s = matSubjectOf(c);
+  if (s && MAT_SUBJECT !== 'all' && s !== MAT_SUBJECT) return false;
+  /* NO LEVEL MEANS EVERY LEVEL — the ruler's `lv` is empty, and reading that as "belongs to nothing"
+     would hide it at every level. */
+  if (MAT_LEVEL !== 'all' && c.lv.length && c.lv.indexOf(MAT_LEVEL) === -1) return false;
+  if (!matKeep(c.tier)) return false;
+  if (!ignoreExam && MAT_EXAM === 'not' && c.inExam === true) return false;
+  return true;
+}
+
+/* THE CHOICES, PUT RIGHT BEFORE ANYTHING IS DRAWN. A subject that has lost its pieces, a level the
+   new subject does not have, a tier split that no longer applies — each falls back to the widest
+   answer rather than leaving a select showing a value it does not contain. `MAT_SHOW` is set here
+   because every block reads it through `matKeep` while it is being drawn. */
+function matSettle(parts) {
+  const subs = matSubjects(parts);
+  if (MAT_SUBJECT !== 'all' && subs.indexOf(MAT_SUBJECT) === -1) MAT_SUBJECT = subs[0] || 'all';
+  if (matLevelChoices(parts).map(o => o.v).indexOf(matLevelValue()) === -1) MAT_LEVEL = 'all';
+  MAT_SHOW = (MAT_LEVEL !== 'all' && matTierSplits(MAT_LEVEL)) ? MAT_TIER : 'H';
+}
+
+/* THE TWO SELECTS AND THE ONE BOX, drawn from the same state every time rather than patched by the
+   handler that changed them — a control that says one thing while the list says another is the
+   invisible mode this repository records against the paused reel. */
+function matChoices(parts) {
+  const sub = $('mat-subject'), lev = $('mat-level'), given = $('mat-given');
+  const subs = matSubjects(parts);
+  if (sub) {
+    sub.innerHTML = subs.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')
+      + '<option value="all">Every subject</option>';
+    sub.value = MAT_SUBJECT;
+    /* ONE SUBJECT IS NO CHOICE, so there is nothing to draw — the sheet's tab can switch every
+       English row off, and a select with one real answer is a control that does nothing. */
+    (sub.closest('.mat-sel') || sub).hidden = subs.length < 2;
+  }
+  if (lev) {
+    lev.innerHTML = matLevelChoices(parts)
+      .map(o => `<option value="${esc(o.v)}">${esc(o.say)}</option>`).join('');
+    lev.value = matLevelValue();
+  }
+  /* "GIVEN IN THE EXAM" ONLY WHERE SOMETHING IS. It was a row of three pills — All, Not given,
+     Given — shown on every level, SATs included, where nothing on the list is marked given and the
+     middle pill hid the lot. It is one box now, offered only when a piece on this list is one the
+     exam prints for you, and it says what it does rather than naming a category somebody has to
+     decode. "Given" alone was a word that needed explaining; the box is the explanation. */
+  if (given) {
+    given.hidden = !parts.some(c => c.inExam === true && matShown(c, true));
+    const box = given.querySelector('input');
+    if (box) box.checked = MAT_EXAM === 'not';
+  }
+}
+
+/* ---------- WHERE YOU LEFT IT --------------------------------------------------------------------------
+   A TUTOR PRINTS THE SAME SHEET MOST WEEKS. Opening the tool on "Every subject, every level" with
+   nothing ticked every time is five choices and a dozen ticks to get back to the page printed last
+   Tuesday — so the subject, the level, the box and the ticks are kept on this device and come back
+   when the tool opens. A per-viewer convenience, which is what `localStorage` is for here; wrapped,
+   because it can be blocked or full, and the tool must open either way. */
+const MAT_KEEP_AT = 'matChoice';
+function matRemember() {
+  try {
+    localStorage.setItem(MAT_KEEP_AT, JSON.stringify({
+      s: MAT_SUBJECT, l: MAT_LEVEL, t: MAT_TIER, x: MAT_EXAM, on: MAT_ON }));
+  } catch (e) { /* a phone that will not store it simply opens fresh next time */ }
+}
+function matRecall() {
+  try {
+    const v = JSON.parse(localStorage.getItem(MAT_KEEP_AT) || 'null');
+    if (!v || typeof v !== 'object') return false;
+    if (typeof v.s === 'string') MAT_SUBJECT = v.s;
+    if (typeof v.l === 'string') MAT_LEVEL = v.l;
+    if (v.t === 'F' || v.t === 'H') MAT_TIER = v.t;
+    MAT_EXAM = v.x === 'not' ? 'not' : 'all';
+    if (Array.isArray(v.on)) MAT_ON = v.on.map(String);
+    return true;
+  } catch (e) { return false; }
+}
+
+/* ---------- FILL THE PAGE ------------------------------------------------------------------------------
+   THE SHORTEST ROUTE FROM "GCSE Higher" TO A SHEET WORTH PRINTING. Ticking pieces one at a time while
+   watching a gauge is the right tool for somebody who knows exactly what they want, and it is fifteen
+   taps for somebody who just wants a good page. This ticks as much as fits.
+
+   WHAT GOES IN FIRST IS A JUDGEMENT, SO HERE IT IS. What the exam will NOT give you, first — that is
+   what a cheat sheet is for, and a formula the paper prints is room spent on nothing. Then the pieces
+   written for the fewest levels, because a block tagged for this level alone is more likely to be
+   this level's work than one tagged for five. Then the sheet's own order. The ruler is left as it is:
+   it takes the margin rather than the page, and whether you want one is not "as much as fits".
+
+   MEASURED, NOT ADDED UP — the gauge is the only number that is always right (see `matPaint`), so
+   this asks it. A binary search over how many of the ranked pieces to take, a paint per step: five
+   or six for a list of thirty, rather than one per piece. Then one more pass for anything small the
+   estimate says might still fit in what is left. What was ticked before is kept. */
+const matOver = () => { const g = $('mat-gauge'); return !!(g && g.classList.contains('over')); };
+/* WHAT A PIECE COSTS, IN SQUARE MILLIMETRES — its slot, which is its span of tracks times its fixed
+   height (see `MAT_SLOT`). Only an estimate of what it adds, because the grid may pack it beside
+   something already there, and used only to decide which pieces are worth trying; the gauge has the
+   last word. */
+const matArea = c => (c.edge ? 20 : matSpanW(matSpan(c))) * (c.h || 0);
+let MAT_LEFT = 0;
+
+function matFill() {
+  if (MAT_LEVEL === 'all') return 0;
+  const parts = matParts();
+  matSettle(parts);
+  const at = {};
+  parts.forEach((c, i) => { at[c.id] = i; });
+  const cand = parts.filter(c => !c.edge && matShown(c) && MAT_ON.indexOf(c.id) === -1)
+    .sort((a, b) => (a.inExam === false ? 0 : 1) - (b.inExam === false ? 0 : 1)
+                 || (a.lv.length || 99) - (b.lv.length || 99)
+                 || at[a.id] - at[b.id]);
+  if (!cand.length) return 0;
+  const kept = MAT_ON.slice();
+  const fits = ids => { MAT_ON = kept.concat(ids); matPaint(); return !matOver(); };
+  if (!fits([])) { MAT_ON = kept; matPaint(); return 0; }
+  let lo = 0, hi = cand.length;
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2);
+    if (fits(cand.slice(0, mid).map(c => c.id))) lo = mid; else hi = mid - 1;
+  }
+  let took = cand.slice(0, lo).map(c => c.id);
+  fits(took);
+  /* THE SMALL ONES AFTER THE FIRST THAT DID NOT FIT. A prefix stops at the first piece too big for
+     what is left, and a one-line block further down the list would still have gone in. Tried only
+     where the estimate says it could, so this is a handful of paints rather than one per piece. */
+  cand.slice(lo + 1).forEach(c => {
+    if (matArea(c) > MAT_LEFT) return;
+    const left = MAT_LEFT;
+    if (fits(took.concat(c.id))) took = took.concat(c.id);
+    else MAT_LEFT = left;          /* the page is repainted once, at the end, from `took` */
+  });
+  MAT_ON = kept.concat(took);
+  matPaint();
+  return took.length;
+}
+
+/* A FILL THAT ADDED NOTHING SAYS SO. Pressed on a page that is already full it would otherwise
+   repaint exactly what was there, and a button that visibly does nothing reads as a button that is
+   broken. How many it DID add needs no sentence — the ticks and the gauge move. */
+on('mat-fill', () => {
+  MAT_TOUCHED = true;
+  const n = matFill();
+  matRemember();
+  if (!n && MAT_LEVEL !== 'all') toast('Nothing else fits on this page.');
+});
+/* CLEAR IS EVERYTHING, the ruler and the pieces other levels are holding too — it is "start again",
+   and a clear that left ticks behind on the levels you are not looking at would bring them back the
+   moment you looked. */
+on('mat-clear', () => { MAT_TOUCHED = true; MAT_ON = []; matPaint(); matRemember(); });
+
 /* ---------- THE PICKER AND THE SHEET -------------------------------------------------------------
    Rendered into the widget's own box, so this behaves like every other tool: a card with a start
-   function, listed and searchable with the rest. */
+   function, listed and searchable with the rest.
+
+   ---------- IN THE ORDER SOMEBODY DECIDES IT ----------------------------------------------------
+   ASKED FOR AS *"see if the cheat sheet maker could be reworked to be more efficient and
+   intuitive"*. Measured on a 320x568 phone before anything moved: the level was ten pills in four
+   rows, the tier two more, "All / Not given / Given" three more — 288px of controls before the
+   first piece — and the list under them had room for two and a half rows while Print sat below the
+   fold with no way to it. And it did not open where its own note said it did: `MAT_LEVEL` starts
+   as `all` under a paragraph arguing for exactly that, and the next line in this function replaced
+   it with the first level in the list, so every visit opened on SATs.
+
+   SO IT READS TOP TO BOTTOM AS THE CHOICES ARE MADE: which subject, which paper, then the pieces,
+   then print. Two selects on one row where there were fifteen pills on five; one box for the
+   formulae the exam prints, and only on a list that has any; two quiet buttons — fill the page,
+   start again — for the two things that were a dozen taps each; and the list gets the height back.
+   Nothing on it needs a legend any more: the per-row cm² went (the gauge is the only figure that is
+   right, and it is under the list), and so did the red that meant "not given" and needed the pills
+   above it to say so. */
 function initMat() {
   const box = $('mat-box');
   if (!box) return;
-  /* SET FROM THE SHEET EACH TIME THE TOOL OPENS, not once at load: the payload may not have landed
-     when this file did, and a default read too early is the hard-coded one for the rest of the
-     session. Only when nothing has been ticked yet, so reopening the tool does not throw away what
-     somebody was in the middle of choosing. */
-  if (!MAT_TOUCHED) MAT_ON = matStart();
+  /* SET EACH TIME THE TOOL OPENS, not once at load: the payload may not have landed when this file
+     did, and a default read too early is the hard-coded one for the rest of the session. Only when
+     nothing has been chosen yet, so reopening the tool does not throw away what somebody was in the
+     middle of — and what they chose LAST time comes first, before the sheet's `start_on`. */
+  if (!MAT_TOUCHED) {
+    if (matRecall()) MAT_TOUCHED = true;
+    else MAT_ON = matStart();
+  }
   box.innerHTML = `
-    <div class="mat-lev" id="mat-lev"></div>
-    ${/* THE SAME CLASS AS THE LEVEL ROW, deliberately. Two rows of pills that are the same kind of
-          choice should look the same, and reusing the class is what guarantees they cannot drift
-          apart in the stylesheet. It is hidden on an untiered level rather than emptied — an empty
-          row still holds its gap and reads as something that failed to load. */''}
-    <div class="mat-lev" id="mat-tier"></div>
-    <div class="mat-lev mat-exam" id="mat-exam"></div>
+    <div class="mat-pick">
+      ${/* SELECTS, IN THE ORDER THE QUESTION IS ASKED: which subject, then which paper. A select
+            answers on `change` — the dispatcher in cards.js routes it — and it is a real 44px
+            control whose options the phone lays out itself, so a list of eleven levels costs one
+            row of the card rather than four. One above the other, at every width — see `.mat-pick`.
+            `aria-label` because nothing else names it; the option showing already says which
+            question it is. */''}
+      <label class="mat-sel"><select id="mat-subject" data-do="mat-subject"
+        aria-label="Subject"></select></label>
+      <label class="mat-sel"><select id="mat-level" data-do="mat-level"
+        aria-label="Level"></select></label>
+    </div>
+    <label class="check mat-given" id="mat-given" hidden><input type="checkbox" data-do="mat-exam">
+      <span class="box"></span><span>Skip what the exam gives you</span></label>
+    ${/* ---------- FILL AND CLEAR, ONLY ONCE THERE IS A LEVEL -----------------------------------
+          "As much as fits" of every level at once is a page of SATs and A-level side by side, so
+          on "Every level" Fill can do nothing — and the first version drew the row anyway, both
+          buttons greyed, on the first thing anybody saw. A row of two dead controls is a question
+          nobody can answer. It arrives when a level is chosen, which happens in the select directly
+          above it, so it never moves the list under a thumb that is ticking. */''}
+    <div class="btn-row mat-quick" id="mat-quick" hidden>
+      <button class="btn quiet" data-do="mat-fill" id="mat-fill">Fill the page</button>
+      <button class="btn quiet" data-do="mat-clear" id="mat-clear">Clear</button>
+    </div>
     ${/* ---------- THE LIST IS THE PART THAT GIVES UP ITS HEIGHT ------------------------------
           MEASURED ON THE TOOLS COLUMN AT 390px: this list is 464px of a 1263px card inside an
           805px pane, so 458px of the card was clipped — the A4 preview below it entirely, and the
-          Print button all but nineteen pixels. Everything else here is short and fixed: three rows
-          of pills, a gauge, a line of text and a button. (The preview has since gone — see
-          `matProbe` — so the list is now most of the card, and still the part that gives way.)
+          Print button all but nineteen pixels. Everything else here is short and fixed: a row of
+          two selects, a box, two buttons, a gauge, a line of text and a button. (The preview has
+          since gone — see `matProbe` — so the list is now most of the card, and still the part
+          that gives way.)
           `widget-squeeze` is the class that says so; the rules are in style.css beside
           `.card.is-widget`, and the reason a list may scroll where a card may not is the same one
           `#docket-body` already carries. */''}
@@ -1213,56 +1684,53 @@ function initMat() {
     <p class="mat-said" id="mat-said"></p>
     <button class="btn" data-do="mat-print" id="mat-go">Print the sheet</button>`;
 
-  const levels = matLevels();
-  if (levels.indexOf(MAT_LEVEL) === -1) MAT_LEVEL = levels[0];
-  $('mat-lev').innerHTML = levels.map(l =>
-    `<button data-do="mat-level" data-l="${esc(l)}">${esc(l)}</button>`).join('')
-    + '<button data-do="mat-level" data-l="all">Everything</button>';
-  $('mat-tier').innerHTML = [['F', 'Foundation'], ['H', 'Higher']].map(([t, label]) =>
-    `<button data-do="mat-tier" data-t="${t}">${label}</button>`).join('');
-  /* THE MIDDLE ONE CARRIES THE COLOUR, so the bar reads as a key whether or not it is used: the
-     words 'not given' in the same red as the rows say what the red means. */
-  $('mat-exam').innerHTML = [['all', 'All'], ['not', 'Not given'], ['given', 'Given']].map(([g, label]) =>
-    `<button data-do="mat-exam" data-g="${g}">${label}</button>`).join('');
-  /* THE TIER IS ON THE COMPONENT ROW TOO, so switching tier hides the same way switching level
-     does and neither has to know what the other did. */
-  /* ONE KIND OF THING, SO NO HEADINGS. The list was split into "Components" and "Flyers" while a
-     flyer could be ticked onto the sheet; with the flyer maker its own tool again there is one
-     library here, and a heading over a list of one kind is a word doing no work. */
+  /* ONE LIBRARY, SO NO HEADINGS. The list was split into "Components" and "Flyers" while a flyer
+     could be ticked onto the sheet; with the flyer maker its own tool again there is one library
+     here, and the subject select is what cuts it now — a heading over each subject would be the
+     same fact twice, once in the select and once over the list it has just filtered. */
   $('mat-list').innerHTML = matParts().map(c => {
-    return `<label title="${esc(c.name)}" aria-label="${esc(c.name)}" data-id="${c.id}" data-l="${
-      esc(c.lv.join('|'))}" data-t="${c.tier || ''}" data-g="${
-      c.inExam === false ? 'not' : 'given'}"${
-      /* THE CLASS IS ON THE ROW so the name can carry the colour. The tag alone is read once the
-         row has been found; the point of the mark is to find it. */
-      c.inExam === false ? ' class="not-given"' : ''}><input
+    /* GIVEN IN THE EXAM IS SAID ON THE ROW, IN WORDS, and only on the few it is true of. The old
+       mark was the other way round — red on every piece the exam does NOT print, which on GCSE
+       Higher is twenty of twenty-five, with a row of pills above the list to say what red meant.
+       Marking the handful that are given is quieter and needs no key: the note is the key. */
+    const notes = [c.note, c.inExam === true ? 'given in the exam' : '']
+      .filter(Boolean).map(n => `<em class="mat-note">${esc(n)}</em>`).join('');
+    return `<label title="${esc(c.name)}" aria-label="${esc(c.name)}" data-id="${esc(c.id)}"${
+      c.inExam === true ? ' class="given"' : ''}><input
        type="checkbox" data-do="mat-tick"
-       data-id="${c.id}"${MAT_ON.indexOf(c.id) !== -1 ? ' checked' : ''}>
-     ${/* NO TAG EITHER. The row is already red and the bar above says what red means. */''}${
-     `<b class="mat-face">${esc(c.face || c.name)}</b>`}<u>${
-         /* THE COST, IN THE UNIT THE GAUGE USES. `${c.h}mm` is the height of a stacked block and
-            says nothing about a piece 20mm wide and the whole page tall — the ruler read as 0mm
-            and cost a tenth of the sheet. Area is true of both shapes. */
-         /* PRICED AT THE WIDTH IT IS ACTUALLY DRAWN AT. A `pair` block is laid out two across, not
-            three, so costing it at `matColW()` reads it 36% cheap — and this file already has one
-            entry for a gauge that disagreed with the page: `half` was priced at 99mm while it was
-            being drawn at 61, and the note on `matColW` says the two must never disagree again.
-            Derived from the same two constants, so changing the gutter still moves both. */
-         Math.round((c.edge ? 20 * c.h
-                   : matSpanW(matSpan(c)) * c.h) / 100)}cm²</u>${
+       data-id="${esc(c.id)}"${MAT_ON.indexOf(c.id) !== -1 ? ' checked' : ''}>
+     <b class="mat-face">${esc(c.face || c.name)}</b>${
        /* A NOTE BELONGS TO THE COMPONENT, NOT TO THE TOOL. "The ruler and protractor print at true
           size" was a line in a paragraph above the whole list, which is where a fact about two
           items out of twenty-five goes to be ignored. On the two rows it is about, it is read. */
-       c.note ? `<em class="mat-note">${esc(c.note)}</em>` : ''}</label>`;
+       notes}</label>`;
   }).join('');
   matPaint();
 }
 
-/* SWITCHING LEVEL HIDES WHAT DOES NOT APPLY; it does not untick it. Somebody who set up a SATs mat,
-   looked at GCSE and came back should find their mat as they left it. */
-on('mat-level', el => { MAT_LEVEL = el.getAttribute('data-l'); matPaint(); });
-on('mat-tier', el => { MAT_TIER = el.getAttribute('data-t'); matPaint(); });
-on('mat-exam', el => { MAT_EXAM = el.getAttribute('data-g'); matPaint(); });
+/* SWITCHING SUBJECT OR LEVEL HIDES WHAT DOES NOT APPLY; it does not untick it. Somebody who set up
+   a SATs mat, looked at GCSE and came back should find their mat as they left it. The level select
+   carries the tier in its value — `GCSE|H` — because they are one choice on the screen. */
+on('mat-subject', el => {
+  MAT_TOUCHED = true;
+  MAT_SUBJECT = String(el.value || 'all');
+  matPaint();
+  matRemember();
+});
+on('mat-level', el => {
+  MAT_TOUCHED = true;
+  const [l, t] = String(el.value || 'all').split('|');
+  MAT_LEVEL = l || 'all';
+  if (t === 'F' || t === 'H') MAT_TIER = t;
+  matPaint();
+  matRemember();
+});
+on('mat-exam', el => {
+  MAT_TOUCHED = true;
+  MAT_EXAM = el.checked ? 'not' : 'all';
+  matPaint();
+  matRemember();
+});
 on('mat-tick', el => {
   MAT_TOUCHED = true;
   const id = el.getAttribute('data-id');
@@ -1270,12 +1738,14 @@ on('mat-tick', el => {
   if (el.checked && at === -1) MAT_ON.push(id);
   if (!el.checked && at !== -1) MAT_ON.splice(at, 1);
   matPaint();
+  matRemember();
 });
 
-/* WHAT DRAWS A PIECE. Two libraries, one lookup: a component is a function in `MAT_HTML` keyed by
-   its id, and a flyer is `flyOne` handed the campaign row it names. Every caller asks this rather
-   than reaching into `MAT_HTML` itself, so a third kind of piece — a coupon, a booking slip — is a
-   line here and a row in the list, and nothing else in the file has to learn about it.
+/* WHAT DRAWS A PIECE. One lookup: a component is a function in `MAT_HTML` keyed by its id. There
+   were two libraries while a flyer could be ticked onto the sheet (`flyOne` handed the campaign row
+   it named); the flyer maker is its own admin-only tool again and there is no flyer here to draw.
+   Every caller asks this rather than reaching into `MAT_HTML` itself, so a second kind of piece — a
+   coupon, a booking slip — is a line here and a row in the list, and nothing else has to learn it.
    A PIECE WHOSE DRAWING IS MISSING SAYS SO on the paper. Silence would print a gap, and a gap on a
    sheet you are about to photocopy thirty times is worth a sentence. */
 function matDraw(c) {
@@ -1284,48 +1754,36 @@ function matDraw(c) {
 }
 
 function matPaint() {
-  const lev = $('mat-lev'), tierBar = $('mat-tier'), list = $('mat-list');
+  const list = $('mat-list');
   /* THE PICKER IS WHAT MUST BE THERE — there is no sheet on the card to look for any more. */
   if (!list || !$('mat-said')) return;
-  if (lev) lev.querySelectorAll('button').forEach(b =>
-    b.classList.toggle('on', b.getAttribute('data-l') === MAT_LEVEL));
-  $('mat-exam').querySelectorAll('button').forEach(b =>
-    b.classList.toggle('on', b.getAttribute('data-g') === MAT_EXAM));
+  /* ONE READ OF THE PARTS FOR THE WHOLE PAINT — the choices, the list and the sheet are all asked
+     about the same list, so they cannot be answering about two. */
+  const parts = matParts();
 
-  /* WHETHER THIS LEVEL HAS TIERS AT ALL, and therefore whether the row is offered. `all` is not a
-     level anybody sits, so it shows everything: filtering the Everything view by tier would make
-     "Everything" mean less than it says.
-     MAT_SHOW IS SET BEFORE ANYTHING IS DRAWN, because every block reads it through `matKeep` while
-     rendering — setting it afterwards would tier the sheet one repaint late. */
-  const tiered = MAT_TIERED.indexOf(MAT_LEVEL) !== -1;
-  MAT_SHOW = tiered ? MAT_TIER : 'H';
-  if (tierBar) {
-    tierBar.style.display = tiered ? '' : 'none';
-    tierBar.querySelectorAll('button').forEach(b =>
-      b.classList.toggle('on', b.getAttribute('data-t') === MAT_TIER));
-  }
+  /* THE CHOICES FIRST, BECAUSE EVERYTHING BELOW READS THEM. `matSettle` puts back any choice the
+     parts no longer support and sets `MAT_SHOW` before a single block is drawn — every block reads
+     it through `matKeep` while rendering, so setting it afterwards would tier the sheet one repaint
+     late. `matChoices` then draws the selects and the box from that state. */
+  matSettle(parts);
+  matChoices(parts);
 
-  /* SHOWN WHEN THE COMPONENT LISTS THIS LEVEL — a component belongs to several, so this is a
-     membership test rather than an equality one. A Higher-only component is hidden on Foundation
-     the same way, and hidden rather than unticked: coming back to Higher should find the sheet as
-     it was left. */
+  /* THE LIST AND THE PAPER ASK ONE QUESTION — `matShown` — and the tick on each row is drawn from
+     `MAT_ON` rather than left to the box, so Fill and Clear, which change the ticks without anybody
+     pressing a box, show what they did. */
+  const byId = {};
+  parts.forEach(c => { byId[c.id] = c; });
+  let listed = 0;
   if (list) list.querySelectorAll('label').forEach(el => {
-    const lv = el.getAttribute('data-l');
-    const has = !lv || lv.split('|').indexOf(MAT_LEVEL) !== -1;
-    const fits = matKeep(el.getAttribute('data-t'));
-    /* HIDDEN, NOT UNTICKED — the same rule the tier filter follows. Narrowing the view to 'not
-       given' must not quietly drop the given blocks off a sheet that was already built. */
-    const shown = MAT_EXAM === 'all' || el.getAttribute('data-g') === MAT_EXAM;
-    el.classList.toggle('off', (MAT_LEVEL !== 'all' && !has) || !fits || !shown);
+    const id = el.getAttribute('data-id');
+    const show = matShown(byId[id]);
+    el.classList.toggle('off', !show);
+    const tick = el.querySelector('input');
+    if (tick) tick.checked = MAT_ON.indexOf(id) !== -1;
+    if (show) listed++;
   });
 
-
-  const on_ = matParts().filter(c => MAT_ON.indexOf(c.id) !== -1
-    /* NO LEVEL MEANS EVERY LEVEL. A flyer is not GCSE or SATs, and reading an empty list as
-       "belongs to nothing" would have hidden every flyer at every level — which looks exactly like
-       a feature that failed to load. */
-    && (MAT_LEVEL === 'all' || !c.lv.length || c.lv.indexOf(MAT_LEVEL) !== -1)
-    && matKeep(c.tier));
+  const on_ = parts.filter(c => MAT_ON.indexOf(c.id) !== -1 && matShown(c));
 
   /* AN EDGE PIECE IS NOT IN THE COLUMN. The ruler lives in the margin, so it must not be laid out
      with the others or it would take a row of its own and push everything down a sheet. */
@@ -1333,10 +1791,11 @@ function matPaint() {
 
   /* ONE FUNCTION, CALLED ONCE PER BLOCK. The first version had a ternary that invoked `MAT_HTML`
      twice for the same component — drawing a protractor's 181 ticks and throwing one copy away. */
-  /* A PIECE THAT IS ALREADY A FINISHED THING GETS NO HEADING AND NO RULE. A flyer carries its own
-     name, its own colour and its own edge — putting "FLYER — BACK TO SCHOOL" in small capitals above
-     it would be labelling a poster with the word poster. `bare` says so, and the stylesheet takes
-     the heading, the hairline and the padding off. */
+  /* A PIECE THAT IS ALREADY A FINISHED THING GETS NO HEADING AND NO RULE. That was the flyer, when
+     one could be ticked here: it carries its own name, colour and edge, and a heading over it would
+     label a poster with the word poster. `bare` says so and the stylesheet takes the heading, the
+     hairline and the padding off. No piece carries it today; it is kept for the next one that is a
+     finished thing rather than a block of facts. */
   /* ---------- ONE GRID, AND EVERY BLOCK TAKES ITS OWN SLOT IN IT -----------------------------------
      THIS WAS A HUNDRED AND FIFTY LINES of runs, stacks, `pair` runs and a balancer that measured the
      blocks and moved them between columns. Every one of them answered "how wide is this block, given
@@ -1360,13 +1819,16 @@ function matPaint() {
     c.bare ? '' : `<h4>${esc(c.name)}</h4>`}${matDraw(c)}</div>`;
   const h = pieces.map(cell).join('');
 
-  /* THE LEVEL IS ON THE PAPER. Six sheets in a folder all headed "Cheat sheet" are six sheets you
-     have to read to tell apart, and the one thing that distinguishes them is already known here.
-     `all` is not a level anybody is at, so it prints as the plain title. */
+  /* THE SUBJECT AND THE LEVEL ARE ON THE PAPER. Six sheets in a folder all headed "Cheat sheet"
+     are six sheets you have to read to tell apart, and the two things that distinguish them are
+     already known here. `all` is not a subject or a level anybody is at, so either prints as
+     nothing rather than as "every". The tier is named only where it split the list — an English
+     GCSE sheet headed "Higher" would be claiming a difference the pieces do not have. */
   const B = matBrand();
-  const tierWord = MAT_TIERED.indexOf(MAT_LEVEL) !== -1
+  const tierWord = (MAT_LEVEL !== 'all' && matTierSplits(MAT_LEVEL))
     ? (MAT_TIER === 'F' ? ' Foundation' : ' Higher') : '';
-  const title = MAT_LEVEL === 'all' ? 'Cheat sheet' : 'Cheat sheet — ' + MAT_LEVEL + tierWord;
+  const title = (MAT_SUBJECT === 'all' ? 'Cheat sheet' : MAT_SUBJECT + ' cheat sheet')
+    + (MAT_LEVEL === 'all' ? '' : ' — ' + MAT_LEVEL + tierWord);
   /* PHONE ONLY IF THE TAB HAS ONE — a separator with nothing after it reads as something missing
      rather than something not offered. */
   const foot = [B.area, B.phone].filter(Boolean).join('  ·  ');
@@ -1439,6 +1901,7 @@ function matPaint() {
   const room = Math.round(ruleW * PAGE_H + colW * PAGE_H);
   const used = Math.round(ruleW * PAGE_H + colW * colH);
   const over = used > room;
+  MAT_LEFT = room - used;                        /* for `matFill`, which asks what might still fit */
 
   /* IN CENTIMETRES SQUARED, and the percentage first. 41,382mm2 is a number nobody can picture;
      414cm2 is a postcard, and "38% used" is what actually gets read. */
@@ -1447,10 +1910,26 @@ function matPaint() {
   $('mat-gauge').classList.toggle('over', over);
   $('mat-gauge').firstElementChild.style.width = pct + '%';
   $('mat-said').className = 'mat-said' + (over ? ' over' : '');
+  /* A PERCENTAGE OF ONE PAGE AND A COUNT, which are the two things somebody holding a phone can
+     picture. It said "412cm² of paper left", which is true and has to be worked out; and when the
+     list is empty it says what to do, because an empty gauge over an empty list reads as broken. */
+  const n = pieces.length;
   $('mat-said').innerHTML = over
-    ? `<b>${Math.round((used - room) / 100)}cm² too much</b> — untick something, or the bottom is cut off.`
-    : `<b>${pct}% used</b> · ${left}cm² of paper left.`;
-  $('mat-go').disabled = over || !pieces.length;
+    ? `<b>${Math.round(used / room * 100)}% of one page</b> — untick something, or the bottom is cut off.`
+    : `<b>${pct}% of the page</b> · ${
+        n ? `${n} piece${n === 1 ? '' : 's'}${left ? '' : ' · full'}`
+        : !listed ? 'nothing here for this level yet'
+        : MAT_LEVEL === 'all' ? 'tick pieces, or pick a level to fill it'
+        : 'tick pieces, or Fill the page'}`;
+  $('mat-go').disabled = over || !n;
+  /* THE ROW NEEDS A LEVEL (see its note in `initMat`). Inside it, FILL NEEDS SOMETHING LEFT TO ADD
+     and CLEAR NEEDS SOMETHING TICKED — each disabled rather than hidden, so the row does not change
+     shape under the thumb that has just used one of them. */
+  const quick = $('mat-quick'), fill = $('mat-fill'), clear = $('mat-clear');
+  if (quick) quick.hidden = MAT_LEVEL === 'all';
+  if (fill) fill.disabled = over || MAT_LEVEL === 'all'
+    || !parts.some(c => !c.edge && matShown(c) && MAT_ON.indexOf(c.id) === -1);
+  if (clear) clear.disabled = !MAT_ON.length;
   /* WHAT GOES TO THE PRINTER is the sheet exactly as it was measured — slots grown, top row marked —
      kept as markup so `mat-print` prints the page the gauge was talking about rather than a second
      rendering of it. */
