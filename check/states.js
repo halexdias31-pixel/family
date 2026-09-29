@@ -475,6 +475,34 @@ const STATES = {
         if (window.__OFF_HELD) DATA.tutors = window.__OFF_HELD;
         paint('account');
       } },
+    /* ---------- A TUTOR'S OTHER PHOTOGRAPHS, AND ONE OF THEM OPENED -----------------------------
+       ASKED FOR AS *"tutors should be able to add more pics"*. The grid is four squares to a row and
+       a tap opens one across the row, in place — so the state that matters is the OPENED one: a
+       picture at its own proportions is the tallest thing this card can hold, and it is exactly the
+       height `paneWatch_` has to hear about. `check/fixture.json`'s tutor carries three local
+       pictures so the squares have something real in them. */
+    { name: "a tutor's photographs, one opened",
+      only: () => typeof USER !== 'undefined' && !!USER
+                  && (DATA.tutors || []).some(t => t && Array.isArray(t.photos) && t.photos.length),
+      enter: () => {
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.prof-photos'));
+        if (at < 0) throw new Error('no card on the account column draws a tutor\'s photographs');
+        goPage('account', at, true);
+        /* THE PAGE BY INDEX, NOT `.page.on` — that class is written when the column is placed, so
+           read in the same tick as `goPage` it names the page the column was on before the turn. */
+        const shots = pages[at].querySelectorAll('.prof-shot');
+        if (shots[1]) shots[1].click();
+      },
+      expect: () => {
+        const grid = document.querySelector('#s-account .page.on .prof-photos');
+        const shots = grid ? [...grid.querySelectorAll('.prof-shot')] : [];
+        const big = shots.filter(b => b.classList.contains('is-big'));
+        return shots.length >= 2 && big.length === 1 && big[0] === shots[1]
+          && big[0].getAttribute('aria-pressed') === 'true' ? shots.length : 0;
+      },
+      wants: "a tutor's photographs as squares, with the one tapped opened across the row",
+      leave: () => { paint('account'); } },
   ],
 
   /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR ----------------
@@ -489,6 +517,41 @@ const STATES = {
      through `expect` rather than measuring the wrong card in silence. */
   settings: [
     { name: '' },
+    /* ---------- THE PHOTOGRAPHS PAGE: THE FACE, THE CLIP, AND A SHELF OF EIGHT ------------------
+       Eight boxes are IN the form whether or not they are drawn — `photosIn` rebuilds the whole cell
+       from what arrives, so a box missing from the form is a photograph deleted on Save — and only
+       the filled ones SHOW, each with a thumbnail of the link beside it and one `Add another` under
+       them. Seeded through `USER.profile`, which is what the column is drawn from. */
+    { name: 'the photographs',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_PHOTO_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          photos_1: 'data/reels/archetest.jpg', photos_2: 'icon.png' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-me="photos_1"]'));
+        if (at < 0) throw new Error('no photographs page on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_PHOTO_WAS; delete window.STATE_PHOTO_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        if (!pg) return 0;
+        const slots = [...pg.querySelectorAll('.ph-slot')];
+        const shown = slots.filter(s => !s.hidden);
+        return pg.querySelectorAll('[data-me^="photos_"]').length === 8
+          && !!pg.querySelector('[data-me="photo"]') && !!pg.querySelector('[data-me="video"]')
+          && shown.length === 2 && shown.every(s => s.querySelector('.ph-thumb img'))
+          && pg.querySelectorAll('[data-do="shelf-more"]').length === 1
+          && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 8 : 0;
+      },
+      wants: 'the profile photo and video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another' },
     /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE, WHICH THE FIXTURE HAD NEVER SENT -------------
        `Group size` AND `Your rate` WERE TWO PAGES WITH A SAVE EACH and are one page now, because
        they are one decision and one monthly clock — asked for as *"…all together. and they can only

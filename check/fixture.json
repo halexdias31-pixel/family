@@ -167,7 +167,12 @@
    "studyingAt": "",
    "actionText": "Book this tutor",
    "personId": "P-@ada",
-   "teachesMain": "Maths (GCSE)"
+   "teachesMain": "Maths (GCSE)",
+   "photos": [
+    "data/reels/archetest.jpg",
+    "icon.png",
+    "favicon.png"
+   ]
   }
  ],
  "students": [],
@@ -416,8 +421,6 @@
    "first_name",
    "last_name",
    "headline",
-   "photo",
-   "video",
    "years_experience",
    "favourite_colour",
    "adjective_1",
@@ -434,6 +437,18 @@
    "postcode",
    "address",
    "travel_km"
+  ],
+  "Photos": [
+   "photo",
+   "video",
+   "photos_1",
+   "photos_2",
+   "photos_3",
+   "photos_4",
+   "photos_5",
+   "photos_6",
+   "photos_7",
+   "photos_8"
   ],
   "Qualifications": [
    "qual_1",

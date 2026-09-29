@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-29-h-batch";
+const DOPOST_VERSION = "2026-09-29-i-photos";
 
 
 function doPost(e) {
@@ -564,8 +564,10 @@ function doPost(e) {
       const phoneSent = sent(PHONE_FIELD) && allowed.indexOf('phone') !== -1;
       const dobSent   = sent(DOB_FIELD) && allowed.indexOf('date_of_birth') !== -1;
       const alsoSent  = fields.teaches_also !== undefined && allowed.indexOf('teaches_also') !== -1;
+      const photosSent = sent(PHOTO_FIELD) && PHOTO_FIELDS.some(f => allowed.indexOf(f) !== -1);
       const packedMissing = [availSent && 'availability', libSent && 'library_card',
-                             qualsSent && 'quals', phoneSent && 'phone', dobSent && 'date_of_birth']
+                             qualsSent && 'quals', phoneSent && 'phone', dobSent && 'date_of_birth',
+                             photosSent && 'photos']
         .filter(c => c && !has(c));
       if (packedMissing.length) {
         return jsonOut({ error: 'The sheet has no column for: ' + packedMissing.join(', ')
@@ -577,6 +579,11 @@ function doPost(e) {
         const dobNo = dobRefusal_(fields);
         if (dobNo) return jsonOut({ error: dobNo });
       }
+      /* A PHOTOGRAPH THAT IS NOT A LINK is refused rather than kept or dropped — `photosRefusal_`. */
+      if (photosSent) {
+        const photoNo = photosRefusal_(fields);
+        if (photoNo) return jsonOut({ error: photoNo });
+      }
       /* AN EXAM DATE IS A COLUMN, so `wanted` finds it; what a column check cannot say is whether the
          VALUE is a date. A date input cannot produce a bad one, which is not a reason to trust it:
          `doPost` is reachable by anybody with the URL. See `isoRefusal_`. */
@@ -587,7 +594,7 @@ function doPost(e) {
       if (alsoSent) fields.teaches_also = teachAlsoIn(fields.teaches_also);
       const wanted = Object.keys(fields)
         .filter(f => !HOUR.test(f) && !LIBRARY_FIELD.test(f) && !QUAL_FIELD.test(f)
-                  && !PHONE_FIELD.test(f) && !DOB_FIELD.test(f)
+                  && !PHONE_FIELD.test(f) && !DOB_FIELD.test(f) && !PHOTO_FIELD.test(f)
                   && allowed.indexOf(f) !== -1);
       /* A field with no column vanishes silently: that is how an extra-seat fraction was entered
          four times and lost four times, with the site showing a stale default each time and nothing
@@ -649,6 +656,7 @@ function doPost(e) {
       const mirror = (col, v) => { if (has(col)) put[col] = v; };
       if (availSent) put.availability = availGridIn(fields);
       if (libSent) put.library_card = libCardsIn(fields);
+      if (photosSent) put.photos = photosIn(fields);
       if (qualsSent) {
         /* THE OLD CELLS ARE MIRRORED FROM THE NEW LIST, which is what makes clearing one stick. The
            readers (`qualsList_`, `teachAlsoList_`) fall back to `qual_1…3` and `teaches_2` whenever
@@ -3496,6 +3504,7 @@ function profileOf_(r) {
   /* ONE CELL, EXPANDED ONCE, for the reason `availSet` is called once above rather than per hour
      code. `libCardsOut` is the only reader of the `name:number:pin|…` format on this side. */
   const cards = libCardsOut(r.library_card);
+  const photos = photosOut(r.photos);
   /* The two shelves, each read off the ROW so an unsaved row answers from its legacy cells. */
   const quals = qualsOut(r);
   /* ---------- AND THE DATE OF BIRTH, WHICH WAS BEING SENT AS A JAVASCRIPT DATE STRING ------------
@@ -3511,6 +3520,7 @@ function profileOf_(r) {
   PROFILE_EDITABLE.concat(PROFILE_READONLY).forEach(f => {
     out[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (avail[f] ? 'TRUE' : '')
            : LIBRARY_FIELD.test(f) ? S(cards[f])
+           : PHOTO_FIELD.test(f) ? S(photos[f])
            : QUAL_FIELD.test(f) ? S(quals[f])
            : f === 'teaches_also' ? teachAlsoOut(r)
            : f === 'date_of_birth' ? S(dobIn(dob))

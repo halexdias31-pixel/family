@@ -2837,6 +2837,42 @@ function libraryShelf_(list, value) {
     </div>`)}</div>`;
 }
 
+/* ---------- AND A GROUP OF `photos_N` NAMES IS A SHELF OF PHOTOGRAPHS ----------------------------
+   ASKED FOR AS *"theres only 1 photo link slot it seems like. tutors should be able to add more
+   pics."* The library shelf a third time, recognised by the SHAPE of the names as the other two are:
+   what is filled in, and an `Add another` under it — eight boxes drawn at once would be most of a
+   phone of empty links. The backend packs them into `photos` (`photosIn` in core.gs); `photo` stays
+   the face on the card and is the ordinary box above the shelf.
+
+   A THUMBNAIL BESIDE EACH LINK, because a link is a string nobody can check by reading it. A Drive
+   address that is not shared, or one pasted from the wrong tab, draws as a broken square here —
+   which is the moment to find out, rather than on the public card after Save. `pic()` is the same
+   rewrite the card uses, so what previews is what will be drawn. */
+const isPhotoField_ = f => /^photos_\d+$/.test(String(f));
+const isPhotos_ = list => (list || []).some(isPhotoField_);
+function photoShelf_(list, value) {
+  const nums = (list || []).filter(isPhotoField_).map(f => String(f).match(/^photos_(\d+)$/)[1]);
+  return `<div class="lib-shelf ph-shelf">${shelfSlots_(nums,
+    i => shelfFilled_(value, ['photos_' + i]),
+    (i, hide) => {
+      const v = String(value('photos_' + i) || '').trim();
+      return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
+        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" loading="lazy">` : ''}</span>
+        ${fieldHtml('photos_' + i, v, { placeholder: 'Another photo link',
+          extra: 'type="url" inputmode="url" autocomplete="off" spellcheck="false"' })}
+      </div>`;
+    })}</div>`;
+}
+/* THE PREVIEW FOLLOWS THE BOX as it is typed into, so the check above does not wait for a Save. One
+   listener for the document, which is how every other input here is heard. */
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('.ph-slot input')) return;
+  const thumb = t.closest('.ph-slot').querySelector('.ph-thumb');
+  const v = String(t.value || '').trim();
+  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="">` : '';
+});
+
 /* THE HOUR CODES, WHEREVER THE BACKEND PUT THEM. The group's title is the backend's to choose, so
    this looks for the shape rather than for a name — and answers an empty list when no deployment
    has sent one, which is what the widget reports instead of drawing a week with no hours in it. */
@@ -2896,14 +2932,19 @@ function fieldsHtml(groups, o) {
        group names, the two boxes are what is drawn, and it comes out of `rest` so it is not drawn
        twice. Drawn where `phone` sat in the list rather than at the foot. */
     const wantsPhone = !timetable && list.indexOf('phone') !== -1;
+    /* THE PHOTOGRAPH SHELF GOES UNDER THE REST, not over it as the library one does: the page
+       reads profile photo, video, then the others, which is the order somebody thinks of them in. */
+    const photos = !timetable && isPhotos_(list);
     const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f))
+                              && !(photos && isPhotoField_(f))
                               && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
       : (library ? libraryShelf_(list, value) : '')
       + (quals ? qualShelf_(list, value, o.options) : '')
       + (wantsDob ? dobBoxes_(value) : '')
-      + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneRow_(value) : plain(f, extra));
+      + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneRow_(value) : plain(f, extra))
+      + (photos ? photoShelf_(list, value) : '');
     return `<${head}><span>${esc(g)}</span></${head}>` + body;
   }).join('');
 }

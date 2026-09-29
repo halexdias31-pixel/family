@@ -231,6 +231,9 @@ const CHANGE = [
   ['headline', 'A new headline'], ['town', 'Wimbledon'], ['phone_no', '7700 900999'],
   ['lib1_name', 'Wimbledon'], ['qual_2_received', '2016'], ['rate_per_hour', '26'],
   ['tu16', 'TRUE'], ['exam_small_date', '2027-05-20'], ['first_name', 'Patricia'],
+  /* THE PHOTOGRAPH SHELF'S FIRST BOX: a packed cell like the library's, so the change has to go in
+     through `photosIn` and come back out through `photosOut` to be read back at all. */
+  ['photos_1', 'https://example.org/second.jpg'],
 ];
 
 const bad = [];

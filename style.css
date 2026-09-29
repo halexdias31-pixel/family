@@ -864,6 +864,17 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    there is nothing left to reveal (`shelf-more` in me.js). A quiet `.btn`, because the Save under
    the card is the page's one action and this is not it — the correction `.reel-sound` records. */
 .lib-shelf .shelf-more { margin: .1rem 0 .6rem; }
+/* THE PHOTOGRAPH SHELF — `photoShelf_` in me.js. A 44px square beside each link, showing what the link
+   draws, so a Drive file that is not shared is a broken square HERE rather than on the public card.
+   The square is the height of the box beside it, so a slot is one line; no dashed rule between them,
+   because a photograph is a line of a list and not a card of its own like a library is. */
+.lib-shelf .ph-slot { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: .5rem; align-items: start; }
+.lib-shelf .ph-slot + .ph-slot { border-top: 0; padding-top: 0; }
+.ph-thumb {
+  width: 44px; height: 44px; border-radius: var(--r-sm); overflow: hidden;
+  background: var(--sunk); border: 1px solid var(--line);
+}
+.ph-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 /* ---------- "ALSO TEACH" IN THE PANEL: ONE SHORT ROW A SUBJECT --------------------------------
    The subject is a small caption over its levels, in the ink `.dob-cap` uses for the same job, and
    the groups are spaced rather than ruled — a rule between twelve subjects is chrome where a list
@@ -5733,6 +5744,17 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   font-style: italic; color: var(--ink); font-size: .86rem; line-height: 1.45;
 }
 .prof-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .6rem; }
+/* A TUTOR'S OTHER PHOTOGRAPHS — `findCard`. Four squares to a row, and one at a time opens across the
+   whole row at its own proportions. Each square is a button of its own and keeps the 44px floor in px,
+   which four to a row clears at 320 (about 64px each). */
+.prof-photos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: .6rem; }
+.prof-shot {
+  padding: 0; border: 0; border-radius: var(--r-sm); overflow: hidden;
+  aspect-ratio: 1 / 1; min-height: 44px; background: var(--sunk); cursor: zoom-in;
+}
+.prof-shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.prof-shot.is-big { grid-column: 1 / -1; aspect-ratio: auto; cursor: zoom-out; }
+.prof-shot.is-big img { height: auto; max-height: 60svh; object-fit: contain; }
 .prof-tag {
   font-family: var(--mono); font-size: .58rem; letter-spacing: .08em; text-transform: uppercase;
   padding: .2rem .45rem; border-radius: 999px;

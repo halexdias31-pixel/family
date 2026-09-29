@@ -1026,6 +1026,58 @@ function libCardsIn(fields) {
   return items.join('|');
 }
 
+/* ---------- THE EXTRA PHOTOGRAPHS: EIGHT BOXES, ONE CELL -------------------------------------------
+   `posts.media`'s shape on the people tab — links joined by ` | ` — so a person's gallery and a
+   post's gallery are the same kind of cell. Expanded into `photos_1…8` for the form and packed back
+   from them, the library shelf's arrangement with two differences, both because this is a LIST rather
+   than a set of slots:
+   - A GAP CLOSES UP. `libCardsIn` keeps an empty second card so the third does not move under
+     somebody; a photograph has no slot of its own to be in, and a blank in the middle of a gallery
+     draws as nothing, so it is simply not kept.
+   - THE SAME LINK TWICE IS ONE PHOTOGRAPH. Pasting a link again is the commonest way to get a
+     duplicate, and the card would draw the same picture twice side by side.
+   A PIPE IN A LINK IS ESCAPED, NOT STRIPPED: `%7C` is what a browser would send for it anyway, so the
+   address still works, where a space in its place would break it — and left alone it would split
+   one photograph into two on the next read. */
+function photosOut(cellValue) {
+  const items = S(cellValue).split('|').map(x => x.trim()).filter(Boolean);
+  const out = {};
+  for (let i = 1; i <= PHOTO_MAX; i++) out['photos_' + i] = S(items[i - 1]);
+  return out;
+}
+function photosIn(fields) {
+  const out = [];
+  for (let i = 1; i <= PHOTO_MAX; i++) {
+    const v = S(fields['photos_' + i]).replace(/\|/g, '%7C').trim();
+    if (v && out.indexOf(v) === -1) out.push(v);
+  }
+  return out.join(' | ');
+}
+/* A PHOTOGRAPH IS A LINK, AND ANYTHING ELSE IS REFUSED BY NAME rather than kept. The card draws each
+   one as an `<img>`, and a note typed into the box draws as a broken picture on a public profile;
+   dropping it silently is the other half of the same fault — something typed, gone, under a toast
+   saying Saved. `doPost` is reachable by anybody with the URL, so the form's own `type="url"` is not
+   a reason to trust it. In core.gs beside the packer so something can run it (`check-people.js`). */
+function photosRefusal_(fields) {
+  for (let i = 1; i <= PHOTO_MAX; i++) {
+    const v = S(fields['photos_' + i]).trim();
+    if (v && !/^https?:\/\/\S+$/i.test(v)) {
+      return 'Photo ' + i + ' is not a link. Paste the address of the picture — it starts https://';
+    }
+  }
+  return '';
+}
+/* THE LIST THE CARD DRAWS: the extras, without the face. A link already used as `photo` is left out,
+   because the card draws the face at the top and the same picture again in the grid under it is one
+   photograph twice. Only addresses — a cell typed straight into the sheet is not checked by the
+   refusal above, and an `<img>` pointed at a sentence is a broken picture. */
+function photosList_(r) {
+  const face = S(r.photo).trim();
+  return S(r.photos).split('|').map(x => x.trim())
+    .filter((v, i, all) => /^https?:\/\//i.test(v) && v !== face && all.indexOf(v) === i)
+    .slice(0, PHOTO_MAX);
+}
+
 /* ---------- UP TO TEN QUALIFICATIONS, AS ONE CELL AND FORTY BOXES --------------------------------
    `libCardsOut`'s arrangement one row along, with one difference that is the whole of the
    migration: the cell `quals` is new, so a row nobody has saved since it landed has an EMPTY cell
