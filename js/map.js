@@ -1280,12 +1280,12 @@ const WIDGETS = [
       ).join('')}
     </div>
   </div>` },
-  /* THE FLYER MAKER IS THE CHEAT SHEET MAKER NOW. It was a widget of its own here — its own page,
-     its own A4 sheet, its own print button — and the paper maker below already had every one of
-     those. A flyer is a piece you tick, at whichever size, on the same sheet as everything else,
-     so what is left of `flyer.js` is the flyer itself and the sum that prices a seat.
-     `admin` MOVED WITH IT rather than being dropped: the controls price your classes and print
-     your advertising, so they appear on the paper maker for an admin and for nobody else. */
+  /* THE FLYER MAKER WAS FOLDED INTO THE CHEAT SHEET MAKER ONCE, AND IS ITS OWN TOOL AGAIN — the
+     `flyers` entry below. This note used to say the opposite, that a flyer was a piece you ticked on
+     the cheat sheet, and went on saying it after the pieces went back: `MAT_PARTS` holds no flyer and
+     `matDraw` draws none, so the cheat sheet maker is not a way to a flyer for anybody. Asked again as
+     *"make a flyer should only be visible to admin"* — which is `admin: true` on that entry, asked
+     through `widgetFor_` by every door that can show or open a widget. */
 
   /* THE CHEAT SHEET MAKER. A tool rather than a game, and `solid` like the others in this section,
      so it is listed and searchable with everything else.

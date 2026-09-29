@@ -778,9 +778,13 @@ const STATES = {
   tools: [
     { name: '' },
     { name: 'the cheat sheet maker',
+      /* `widgetsOf_`, NOT `allWidgets()` — the note over the flyer state below says why, and this
+         state was still doing the thing it describes: the flyer maker and the tutors' hours are
+         gated out of a stranger's column, so `allWidgets()` put the cheat sheet two pages further
+         down than the column draws it and a signed-out run turned to the calendar instead. The
+         expect went on passing because every page of the column is in the document at once. */
       enter: () => {
-        const n = allWidgets().filter(w => w.kind === 'tool')
-          .findIndex(w => String(w.id) === 'mat');
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'mat');
         if (n < 0) throw new Error('no cheat sheet widget in the roster');
         goPage('tools', n, true);
       },
@@ -791,6 +795,40 @@ const STATES = {
       expect: () => !document.querySelector('#s-tools .mat-sheet')
         && document.querySelector('#s-tools #mat-said b'),
       wants: 'the picker and the gauge, with no A4 preview on the card' },
+    /* ---------- AND FILLED, WHICH IS THE CARD SOMEBODY ACTUALLY PRINTS FROM ------------------------
+       THE STATE ABOVE IS THE CARD AS IT OPENS — every level, nothing ticked, so the row holding
+       Fill and Clear is not drawn at all and not one tick on the list is set. That is the least
+       interesting version of the card to measure and the only one this file had: a subject and a
+       level chosen, the page filled, the "given in the exam" notes under their rows and Print lit
+       is the state the tool exists to reach, and none of it had been laid out at any width.
+       ENTERED THROUGH THE CONTROLS rather than by setting `MAT_LEVEL`, because the selects and the
+       button are the doors, and a state reached round them proves the drawing and not the tool.
+       `leave` PUTS THE MAKER BACK AS IT OPENS, and forgets what it remembered on this device —
+       states run in order down one page, and `matRecall` would otherwise open every later visit to
+       the tool on a filled GCSE sheet. */
+    { name: 'the cheat sheet maker, filled',
+      enter: () => {
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'mat');
+        if (n < 0) throw new Error('no cheat sheet widget in the roster');
+        goPage('tools', n, true);
+        const sub = document.querySelector('#s-tools #mat-subject');
+        const lev = document.querySelector('#s-tools #mat-level');
+        if (!sub || !lev) throw new Error('the cheat sheet maker has no subject or level select');
+        sub.value = 'Maths'; sub.dispatchEvent(new Event('change', { bubbles: true }));
+        lev.value = 'GCSE|H'; lev.dispatchEvent(new Event('change', { bubbles: true }));
+        const fill = document.querySelector('#s-tools #mat-fill');
+        if (!fill) throw new Error('the cheat sheet maker has no Fill button');
+        fill.click();
+      },
+      expect: () => document.querySelector('#s-tools #mat-quick:not([hidden])')
+        && document.querySelectorAll('#s-tools .mat-list input:checked').length >= 5
+        && !document.querySelector('#s-tools #mat-go').disabled,
+      wants: 'a subject and a level chosen, the page filled and Print ready',
+      leave: () => {
+        MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
+        try { localStorage.removeItem('matChoice'); } catch (e) {}
+        matPaint();
+      } },
     /* ---------- AND THIS ONE IS NOT THERE FOR EVERYBODY -------------------------------------
        `flyers` CARRIES `admin: true`, so it is not in a signed-out visitor's roster at all — and
        "could not reach it" is the wrong sentence for a widget that correctly does not exist. A

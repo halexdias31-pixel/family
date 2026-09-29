@@ -485,7 +485,10 @@ on('widget-open', el => {
      `WIDGETS`. Looking at the const would list a conversation and then fail to open it. */
   const wgt = allWidgets().find(w => w.id === id);
   const slot = $('wgt-' + id);
-  if (!wgt || !slot) return;
+  /* AND ONLY ONE THIS PERSON MAY OPEN — `widgetFor_` in arcade.js, which the columns ask as well.
+     This door looked a widget up by id and asked nothing else, so the flyer maker was admin-only on
+     every surface except the one that opens a widget from a card. */
+  if (!wgt || !slot || !widgetFor_(wgt)) return;
 
   /* A SECOND PRESS PUTS IT AWAY. A thing that can only be opened is a thing that fills the card and
      stays there — and on a list, the way back has to be the same control that got you in. */

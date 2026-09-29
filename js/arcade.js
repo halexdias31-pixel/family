@@ -127,11 +127,31 @@ const mapPlaces = () => (DATA.venues || []).filter(v => {
    tutor, and an admin needs them too — `isTutorRole()` already answers "tutor or admin", which is
    the shape every other staff test in this app uses. A single `staff` flag would have put the
    flyer in front of every tutor to save declaring one word. */
+/* ---------- WHO MAY OPEN A WIDGET, ASKED IN ONE PLACE ---------------------------------------------
+   ASKED FOR AS *"make a flyer should only be visible to admin"*. On the Tools column it already was
+   — `admin: true` and the two filters that used to sit here — but that pair was written out TWICE,
+   here and again in `savedWidgets_`, and two more doors asked nothing at all: `widget-open` in
+   tiles.js looks a widget up by id in `allWidgets()` and draws it, and `startWidget_` in find.js
+   starts whatever it is handed. Neither can reach the flyer today, because tools are out of the
+   funnel and no card carries its id; both would open it for anybody the day one does, which is the
+   shape of every leak this repository records — a rule on the door somebody thought of and not on
+   the one next to it.
+
+   SO IT IS ONE PREDICATE AND EVERY DOOR ASKS IT. Two copies of "who may see this" is the fault
+   `MESSAGING` records one file along; four would have been the same thing waiting to happen twice.
+   ON THE PHONE, because that is where the flyer maker lives: it never talks to the backend, so
+   there is no server rule for this to be a second copy of. */
+function widgetFor_(w) {
+  if (!w) return false;
+  if (w.admin && !(typeof isAdmin === 'function' && isAdmin())) return false;
+  if (w.tutor && !(typeof isTutorRole === 'function' && isTutorRole())) return false;
+  return true;
+}
+
 function widgetsOf_(kind) {
   return allWidgets()
     .filter(w => w.kind === kind)
-    .filter(w => !w.admin || isAdmin())
-    .filter(w => !w.tutor || (typeof isTutorRole === 'function' && isTutorRole()));
+    .filter(widgetFor_);
 }
 
 function widgetColumn_(kind) {
@@ -221,9 +241,11 @@ function widgetOnColumn_(w) {
    so they are one column — and the order is the one that puts what is usable at the top. */
 function savedWidgets_() {
   if (typeof isFav !== 'function') return [];
+  /* THROUGH `widgetFor_`. A star outlives the role that made it — `FAVS` is kept on the device
+     between payloads — so a flyer starred by an admin must not come back on the Saved column of
+     whoever is signed in next. */
   return allWidgets().filter(w => (w.kind === 'tool' || w.kind === 'game') && isFav(WIDGET_KEY(w)))
-    .filter(w => !w.admin || isAdmin())
-    .filter(w => !w.tutor || (typeof isTutorRole === 'function' && isTutorRole()));
+    .filter(widgetFor_);
 }
 
 function savedCards_() {

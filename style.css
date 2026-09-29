@@ -7569,50 +7569,60 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    collide with something eventually — and the flyer maker already taught this lesson, where `.fav`
    was a favicon and a star button at the same time and every star came out as a black rectangle.
 ================================================================================================== */
-.mat-lev { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .5rem; }
-/* ---------- BIG ENOUGH TO HIT, WITHOUT GETTING LOUDER ---------------------------------------------
-   THESE WERE 21 PIXELS TALL. `padding: .35rem .5rem` around .68rem text comes out at 21px, and the
-   smallest thing a finger reliably lands on is 44 — so every level on this row was a half-size
-   target, and "AS" was 27px wide as well. Nobody reports this as a bug either: a mis-tap reads as
-   your own clumsiness, you try again, and the second one usually works. It is a tax on every use
-   rather than a fault anybody names.
+/* ---------- THE CHOICES, ONE ABOVE THE OTHER --------------------------------------------------------
+   THEY WERE FIFTEEN PILLS IN FIVE ROWS — ten levels, two tiers, three "given" filters — and 288px of
+   a 534px pane on a 320x568 phone before the first piece. The pills had been made hittable the hard
+   way (44px in px, because 2.75rem is 40.75px on a phone — measured, and the reason is written up
+   where tap targets are), and a hittable pill is still a pill. Two selects say the same two things
+   in two rows, and each is the global `select` rule's own 44px control — nothing here sets a height.
 
-   THE HEIGHT IS THE ONLY THING THAT CHANGES. `min-height` with the text centred means the chip grows
-   downward into space the flex row already had, the font stays at .68rem, and the words sit exactly
-   where they sat. `min-width` does the same for "AS" and "11+". So the row is the same row — it is
-   just possible to hit now.
+   STACKED, AND NOT SIDE BY SIDE, AT EVERY WIDTH. The text is 16px because anything smaller makes
+   iOS zoom the page on focus (see the global rule), and at 16px of this face "GCSE Foundation" and
+   "Every subject" do not fit half a card — side by side at 390 the level read "Every le…". And the
+   card never gets wide enough for the two to share a row, because `--app` caps the column at 26.5rem
+   on a laptop as on a phone. The first version said "they sit together on a tablet" over a
+   `flex-basis` that could never be met; a grid of one column says what actually happens.
 
-   A HIT AREA FAKED WITH A PSEUDO-ELEMENT WOULD HAVE KEPT THE 21px LOOK, and was the first idea. It
-   does not work here: the gap between chips is .3rem, so stretching each one to 44px would have
-   overlapped its neighbours by about 18px in both directions and the wrong level would be selected
-   near every edge. An invisible target that hits the wrong thing is worse than a small one.
-
-   44px AND NOT 2.75rem, WHICH IS THE SAME NUMBER EVERYWHERE EXCEPT HERE. Line 121 sets the root to
-   `clamp(13.5px, 3.8vw, 16px)`, so a rem on this site is 14.82px on a 390px phone rather than 16 —
-   and `2.75rem` came out as 40.75px. Measured, not assumed: the first version of this fix used rem
-   and the check still reported the chips as too small, at 37px, which is how the scaling was found
-   at all.
-
-   AND THE UNIT IS RIGHT IN PRINCIPLE, not just arithmetically. Every other size here is meant to
-   scale with the viewport — text, padding, the width of a column. A fingertip is not. It is the
-   same eight millimetres on a 320px phone and on a tablet, so the one measurement on this site that
-   must NOT respond to screen size is this one.
-
-   Found by `node check/ui.js`, which measures every button on every screen at four widths. */
-.mat-lev button { font: 600 .68rem/1 var(--mono); background: var(--sunk); color: var(--dim);
-                  border: 1px solid var(--line); border-radius: var(--r); padding: .35rem .6rem;
-                  display: inline-flex; align-items: center; justify-content: center;
-                  min-height: 44px; min-width: 44px;
-                  cursor: pointer; }
-.mat-lev button.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+   THE ARROW IS DRAWN, because the global rule takes the platform's off (`appearance: none`) and a
+   select with nothing on it reads as a text box. On the wrapper rather than the control, since a
+   `select` cannot hold a pseudo-element; `pointer-events: none` so a tap on it opens the list. */
+.mat-pick { display: grid; gap: .4rem; margin-bottom: .45rem; }
+.mat-sel { position: relative; min-width: 0; display: block; }
+.mat-sel select { font-size: 16px; padding-right: 1.8rem; text-overflow: ellipsis; }
+.mat-sel::after { content: '▾'; position: absolute; right: .7rem; top: 50%;
+                  transform: translateY(-50%); color: var(--dim); pointer-events: none; }
+/* THE BOX IS THE APP'S OWN CHECKBOX — `.check`, a 44px row with the tick drawn — and tighter than
+   its usual padding, because it sits between two rows of controls rather than in a form of them. */
+.check.mat-given { padding: .2rem 0; font-size: .74rem; color: var(--dim); }
+/* TWO QUIET BUTTONS, NOT GOLD. Print is the one thing this card is for and it is the gold one; these
+   are shortcuts on the way to it, and a second gold slab would compete with it. */
+.mat-quick { margin-bottom: .5rem; }
+/* PADDING TRIMMED SO "Fill the page" STAYS ON ONE LINE at 320, where the stock `.btn` padding broke
+   it in two — a two-line button beside a one-line one reads as two different kinds of control. */
+.mat-quick .btn { font-size: .74rem; padding-left: .4rem; padding-right: .4rem; }
 /* ---------- SHORTER ROWS, SO MORE OF THEM FIT ACROSS ----------------------------------------------
    9rem WAS THE WIDTH A THREE-WORD NAME NEEDED. A face is rarely more than eight characters, so the
    column can be narrower and a phone gets three where it got two — twenty-five rows in nine lines
    rather than thirteen, and no row wrapping onto a second line. */
 /* 7.5rem, NOT 6.5. A face that pairs a symbol with a word runs to twelve characters — `◡ protractor`,
    `km→m units` — and at 6.5rem those wrap, which costs more height than the extra width does. */
+/* `align-items: start` SO A ROW WITH A NOTE DOES NOT PULL ITS NEIGHBOUR OUT OF LINE. Stretched to
+   the height of the ruler's row (face, then "prints at true size" underneath), the label beside it
+   centred its one line in the extra height, so `100 square` sat half a line below `|·| ruler` at
+   the top of every list — two ticks in one row that did not look like one row. */
 .mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
-            gap: .1rem .5rem; margin-bottom: .5rem; }
+            gap: .1rem .5rem; margin-bottom: .5rem; align-items: start; }
+/* ---------- A LOWER FLOOR THAN `.widget-squeeze`'s, BECAUSE WHAT IT COMPETES WITH CHANGED ---------
+   THE 8rem FLOOR WAS MEASURED AGAINST THE A4 PREVIEW, which this card no longer draws — see the table
+   under `.widget-squeeze`. What the list competes with now is the picker above it and Print below
+   it, and the rework added two rows to the picker: the "skip what the exam gives you" box and the
+   Fill / Clear pair. Measured at 320x568 with a level chosen: 108px of list and the box above left
+   the Print button 28px past the bottom of its own card, over the card's edge — and the pane could
+   not see it, because the squeeze chain lets every box between them shrink to nothing, so the
+   overflow sat in the pane's padding and no zoom was ever asked for. Even the filled sheet ran 13px.
+   6rem IS 81px AT 320 — a row and most of the next, which still reads as a list you scroll — and
+   takes back the 27 that one extra line of the gauge's sentence costs. The flyer keeps 8. */
+.mat-list.widget-squeeze { min-height: 6rem; }
 /* ---------- AND THE ROWS THEMSELVES, FOR THE SAME REASON ------------------------------------------
    1.7rem IS 27 PIXELS AND THE CHECKBOX INSIDE IT IS 14, so the row was a half-height target wrapped
    round a quarter-height one. The whole label is clickable, which is right, and it was still too
@@ -7625,10 +7635,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    THE COLUMNS ARE UNTOUCHED. `auto-fit, minmax(7.5rem, 1fr)` still decides how many fit across, so
    a phone gets three and a laptop gets six exactly as before. Only the row height moved. */
-/* WRAPPING, SO THE NOTE CAN TAKE ITS OWN LINE — see `.mat-note`, which asks for one and could not
-   have it while this row refused to wrap. */
-.mat-list label { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center;
-                  min-height: 44px; font-size: .72rem; color: var(--ink); cursor: pointer; }
+/* ---------- A GRID, SO THE FIRST LINE OF EVERY ROW IS THE SAME 44px ------------------------------
+   IT WAS A WRAPPING FLEX ROW WITH `min-height: 44px`, which is 44px round the whole label — so a row
+   carrying a note under its face ("prints at true size", "given in the exam") put its tick at
+   the top of a taller box while the row beside it centred its tick in 44. Measured: `|·| ruler` and
+   `100 square`, the first two things on every list, sat ten pixels apart in one row. Two columns
+   of ticks are read across as well as down, and a row that is not a row reads as a list that has
+   slipped.
+   THE FIRST LINE IS THE TARGET AND IT IS 44px WHATEVER IS UNDER IT; the note takes a line of its own
+   below, across the whole row — under the face it wrapped "prints at true size" onto two lines at
+   320. Tucked up a little so it reads as belonging to the line above rather than floating between
+   two rows. */
+.mat-list label { display: grid; grid-template-columns: auto minmax(0, 1fr);
+                  grid-template-rows: minmax(44px, auto); column-gap: .4rem; align-items: center;
+                  font-size: .72rem; color: var(--ink); cursor: pointer; }
+.mat-list label .mat-note { grid-column: 1 / -1; margin-top: -.6rem; padding-bottom: .3rem; }
 /* THE MATHS, SET AS MATHS. Mono keeps the columns of the list from jittering as the glyphs change
    width, and it is the face of the block rather than a label about it, so it takes the row's ink
    rather than the muted grey a caption would.
@@ -7676,7 +7697,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-list input:checked::after { content: ""; position: absolute; left: 5px; top: 1px;
   width: 4px; height: 8px; border: solid var(--bg); border-width: 0 2px 2px 0;
   transform: rotate(43deg); }
-.mat-list u { margin-left: auto; font-size: .62rem; color: var(--faint); text-decoration: none; }
 /* THE GAUGE turns red at 100%, not at 90% — a warning that fires early is one people learn to
    ignore, and then ignore when it matters. */
 .mat-gauge { height: .45rem; background: var(--sunk); border-radius: 3px; overflow: hidden; }
@@ -7973,6 +7993,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-meas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2mm 3mm; }
 .mat-meas em { display: block; font: 400 2.3mm/1 var(--mono); font-style: normal; color: var(--pa-mid); }
 .mat-meas i { display: block; font-style: normal; font-weight: 400; font-size: 2.8mm; line-height: 1.5; font-style: normal; }
+/* THE ENGLISH WORD BANK IS THIS BLOCK WITH A THIRD COLUMN — said, good, bad — so it borrows the
+   measures block's type and spacing rather than starting another kind of list. */
+.mat-meas.mat-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* ---------- THE ALPHABET, PRINT OVER JOINED ---------------------------------------------------------
+   TWENTY-SIX COLUMNS ACROSS THE WHOLE PAGE, each letter's two shapes one above the other — the way a
+   child copies them, rather than two alphabets a line apart. The print row is a plain sans because
+   the site's mono face is not how anybody teaches a letter; the joined row is whatever script face
+   the printer has, `cursive` last, so it is a model rather than a promise about a font. */
+.mat-abc { display: grid; grid-template-columns: repeat(26, minmax(0, 1fr)); text-align: center; }
+.mat-abc i { display: block; font-style: normal; }
+.mat-abc b { display: block; font: 400 4mm/1.3 'Helvetica Neue', Arial, sans-serif; color: var(--pa-ink); }
+.mat-abc em { display: block; font: 400 4.4mm/1.3 'Segoe Script', 'Snell Roundhand', 'Brush Script MT', cursive;
+              font-style: normal; color: var(--pa-mid); }
 /* THE NOTE UNDER THE NAME, NOT UNDER THE ICON. Three children in a two-column grid put the note in
    the next row's first cell — a 7mm column — so "less than 90" came out one letter wide. */
 .mat-ang { display: grid; grid-template-columns: 1fr 1fr; gap: .8mm 2mm; align-content: start; }
@@ -9335,31 +9368,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-sheet { padding-left: 13mm; padding-right: 13mm; }
 .mat-sheet.ruled { padding-left: 20mm; padding-right: 6mm; }
 
-/* GIVEN IN THE EXAM. Shown only when the sheet says TRUE — a blank cell means nobody has checked,
-   and a mark that appears for "unknown" as well as for "no" tells you nothing. Set beside the name
-   rather than in place of the height, because both facts matter when you are choosing: how much
-   paper it costs, and whether it is worth any paper at all. */
-/* ---------- "NOT GIVEN" IS A WARNING AND SHOULD LOOK LIKE ONE -------------------------------------
-   IT WAS GOLD, which is the colour of every heading, every price and the gauge on that screen — so
-   the one mark that changes a decision was set in the same ink as the furniture around it and read
-   as decoration. `--bad` is what this app already uses when something is over the line; a warning
-   in the warning colour needs no legend and is seen without being looked for.
+/* ---------- GIVEN IN THE EXAM, SAID ON THE FEW ROWS IT IS TRUE OF -------------------------------
+   THIS WAS A RED NAME ON EVERY PIECE THE EXAM DOES NOT PRINT, with a row of three pills above the
+   list — All, Not given, Given — to say what the red meant. It was right that a warning should be in
+   the warning colour; what it marked was the majority, twenty of twenty-five on GCSE Higher, so the
+   page was mostly red and needed a key to read. The key was the pills, and the pills are gone —
+   see `matChoices` in mat.js.
 
-   THE WHOLE ROW LEANS RED, not just the tag. A tag is a thing you read after finding the row; the
-   point of marking these is to find them while scanning, and colour on the NAME is what a scan
-   picks up. Kept to the text — a red background on eight of twenty-five rows would be a page that
-   looks broken rather than a page that is telling you something. */
-/* ---------- THE BAR IS THE KEY ---------------------------------------------------------------------
-   'Not given' IS SET IN THE SAME RED AS THE ROWS IT SELECTS, so the bar says what the colour means
-   without a legend under the list — and it says it once, at the top, instead of twenty times down
-   the side. Lit, it is the usual filled pill; unlit, the word still carries the colour, because a
-   key that only works while it is switched on is not a key. */
-.mat-exam [data-g="not"] { color: var(--bad); border-color: var(--bad); }
-.mat-exam [data-g="not"].on { background: var(--bad); border-color: var(--bad); color: #12100d; }
-.mat-list label.not-given { color: var(--bad); }
-/* THE COST STAYS QUIET. It is not the warning, and two red things on one row is neither of them
-   standing out. */
-.mat-list label.not-given u { color: var(--faint); }
+   SO THE MINORITY IS MARKED INSTEAD, IN WORDS. A piece the exam hands you carries a note saying so
+   and recedes a step, because it is the one on the list least worth the paper; the box above the
+   list takes those rows off it altogether. No colour to learn, and nothing to decode. */
+.mat-list label.given .mat-face { color: var(--dim); }
 
 
 /* A COMPONENT'S OWN NOTE. Quiet, under the name, because it is a detail about that one row rather
@@ -9380,9 +9399,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    FOUND BY LOOKING AT IT. check/ui.js reported nothing either way — the layout measured clean with
    the word broken, because a mid-word break is not an overflow. CLAUDE.md already says layout facts
    come from the browser; this is the other half of that, which is that "no measurement failed" and
-   "it looks right" are different claims, and only one of them a screenshot can settle. */
-.mat-note { flex: 1 0 100%; font: 400 .62rem/1.3 var(--mono); font-style: normal;
-            color: var(--faint); margin-top: .1rem; }
+   "it looks right" are different claims, and only one of them a screenshot can settle.
+
+   AND THEN THE ROW BECAME A GRID — see `.mat-list label` — which gives the note a line of its own
+   with `grid-column` and gives the tick a 44px line whatever is under it. The flex-basis went with
+   the flex row it was written for; everything above is why the note is on a line of its own. */
+.mat-note { font: 400 .62rem/1.3 var(--mono); font-style: normal; color: var(--faint); }
 
 /* ---------- TILES: THE CONTROLS THAT USED TO BE IN A SHEET ---------------------------------------
    A STACK, NOT A GRID. Three across meant every button had to be argued into the same width — flex
