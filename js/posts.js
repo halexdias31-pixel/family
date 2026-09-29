@@ -121,15 +121,23 @@ function postMediaHtml_(list, i) {
   if (list.length === 1) {
     const u = list[0];
     if (postIsVideo_(u)) return postItem_(u, 'post-pic', i < 2);
-    /* A SHAPE THAT DOES NOT DEPEND ON THE PICTURE. This reserved 4:5 and then, on `onload`, swapped
-       in the file's own proportions — which is a card changing height AFTER the column was placed.
-       Measured at 390x844 with the photographs arriving 800ms late: a 2:1 landscape post shrank by
-       203px under the thumb, the caption, the reactions and the comment box sliding up the moment
-       the picture landed. That is "it keeps moving". The box is 4:5 of the card whatever the file
-       says — `aspect-ratio` without `auto` ignores the natural ratio — and the picture sits inside
-       it with `object-fit: contain` on the sunk ink (`.post-pic` in style.css), so nothing is
-       cropped and nothing that arrives late can move the card. `width`/`height` say the same 4:5
-       to anything that reads the attributes before the stylesheet. */
+    /* THE PICTURE'S OWN SHAPE, EDGE TO EDGE — and 4:5 only until the file says what that is.
+       This was a fixed 4:5 box with the picture `contain`ed inside it on the sunk ink, bought so a
+       card could not change height after its column was placed (a 2:1 landscape arriving 800ms late
+       shrank its card by 203px under the thumb). It letterboxed every photograph that was not 4:5 in
+       black, and went on "please dont add the ugly black boarder to posts".
+       So the box is `aspect-ratio: auto 4 / 5` (`.page .post-pic` in style.css): 4:5 while the file
+       is on its way, the file's own proportions once it has landed. `width`/`height` say the same 4:5
+       to anything that reads the attributes before the stylesheet — a browser maps them to exactly
+       that `auto` ratio. What the fixed box bought is kept by two things that cost no black:
+       `postsAhead_`, which asks for the pictures before their page is in front of anybody, so the
+       change normally happens off-screen; and `holdColumn_` in shell.js for the case it does not.
+       A page is NOT a fixed cell — it is `height: auto` in an ordinary CSS column — so a picture
+       landing on a card ABOVE the one being read moves that one, by however much the 4:5 it
+       reserved differs from the file: 224px for a 16:9 landscape on a 390px phone, and it adds up
+       down the column. Without `holdColumn_` the post in front stays wherever that leaves it; with
+       it, it is back on its line in the same frame, because the `ResizeObserver` that sees the card
+       grow runs before paint. The measurements are in `holdColumn_`'s own note, in one place. */
     return `<img class="post-pic" src="${esc(pic(u))}" alt="" width="800" height="1000"
            decoding="async" loading="${i < 2 ? 'eager' : 'lazy'}">`;
   }
@@ -2641,7 +2649,7 @@ function dmPages_() {
       ? `<p class="empty">Your messages did not come.<br><span class="faint">The line to the
            office is down, or this phone has no signal.</span></p>
          <button class="btn quiet" data-do="dm-refresh">Try again</button>`
-      : emptyMessages_}</div>` }].concat(castPages_());
+      : emptyMessages_}</div>` }];
 
   /* ONE CARD PER CONVERSATION, most recent first — `messageThreads_` has already done both, and
      doing it again here is a second copy of the ordering rule to get wrong later. */
@@ -2684,45 +2692,16 @@ function dmPages_() {
       <div class="msg-body">${messagesHtml_(t.msgs)}</div>
       ${msgForm_(t.name, t.id)}
     </div>`,
-  })).concat(castPages_());
+  }));
 }
 
-/* ---------- ONE MESSAGE TO EVERYBODY, ON THE COLUMN MESSAGES ALREADY LIVE ON ---------------------
-   ASKED FOR AS *"have a message sent to everyone from halex saying Hi wlecome!"*
-
-   IT IS A PAGE RATHER THAN A SHEET, which is the wardrobe's own decision one column along: a sheet
-   is a pop-up, and the owner has said twice what they think of those. `#sheet-body` scrolls and a
-   pane does not, so a sheet earns itself only where the content is longer than a card — a heading,
-   a box and a button is not.
-
-   APPENDED RATHER THAN PREPENDED. `dmPages_` used to open with a head card carrying one control,
-   and `PAGE_HOME.dm` existed purely to swipe past it; both were deleted together. Putting an admin
-   card at the FRONT would be that fault again, on the same column, three commits later — so this
-   is last, where the newest conversation is still what the column opens on.
-
-   ADMIN ONLY, AND ABSENT RATHER THAN DISABLED for everybody else. The gate is on the server —
-   `broadcast: 'admin'` in `ACTION_ACCESS` — and this is the door to it, so a client simply has one
-   fewer page rather than a control that refuses. Same shape as the films list.
-
-   THE EMAIL IS OFF BY DEFAULT and the tick says why. `MailApp` has a daily quota and a roster can
-   spend the whole of it in one press, which would take down the booking confirmations everything
-   else depends on — so the loud option is the one you have to choose. */
-function castPages_() {
-  if (typeof isAdmin !== 'function' || !isAdmin()) return [];
-  return [{ name: 'Everyone', html: `<div class="card">
-    <h3>Message everyone</h3>
-    <p class="sub">One note to every person on the roster who you are allowed to write to. It lands
-      in their Messages here.</p>
-    <label class="field"><span>your message</span>
-      <textarea id="cast-text" rows="3" maxlength="2000"
-        placeholder="e.g. Hi welcome!"></textarea></label>
-    <label class="check"><input type="checkbox" id="cast-mail"><span class="box"></span>
-      <span>email it as well</span></label>
-    <p class="faint">Leave that off unless it matters — one broadcast can spend the day's whole
-      email allowance, and the booking confirmations come out of the same pot.</p>
-    <button class="btn" data-do="cast-send">Send to everyone</button>
-  </div>` }];
-}
+/* ---------- THE "MESSAGE EVERYONE" CARD WAS HERE --------------------------------------------------
+   An admin-only page at the foot of this column — one box, an "email it as well" tick and a Send —
+   removed on "remove the note to everyone button", with its `cast-send` handler and the backend's
+   `broadcast` action, so nothing is left posting to a door that is gone. Its two decisions outlive
+   it and are what a rebuild should copy: a PAGE rather than a sheet, APPENDED so the column still
+   opens on the newest conversation; and the e-mail off by default, because one press to a whole
+   roster can spend `MailApp`'s daily quota that the booking confirmations come out of. */
 
 /* ---------- A CONVERSATION OPENS AT THE NEWEST MESSAGE, NOT THE OLDEST -----------------------------
    A THREAD SCROLLED TO THE TOP IS A THREAD OPENED AT LAST MONTH. Every messaging app opens at the

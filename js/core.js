@@ -245,6 +245,11 @@ function spaceFor(label) {
 }
 
 
+/* THE CLIENT'S OWN HOUSE, by name — see the note over `seatLimits` for why this is not `isHome`. */
+function atClientHome_(loc) {
+  return /\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(String(loc || ''));
+}
+
 function isHome(loc) {
   const name = String(loc || '');
   if (/\b(home|house|client\s*(house|home|place)|your venue)\b/i.test(name)) return true;
@@ -264,9 +269,14 @@ function isHome(loc) {
 
    `loc` RATHER THAN `hosting`, AND THEY ARE NOT THE SAME QUESTION. "At the client's house" is where
    the session happens; `hosting` is who provides the room, and a family that books a hall themselves
-   answers yes to that while being nowhere near their own front room. `isHome` is the app's one
-   reader of the first question and it already handles both the literal "At home" and a venue that
-   costs nothing.
+   answers yes to that while being nowhere near their own front room.
+
+   AND NOT `isHome`, WHICH WAS THE FIRST VERSION AND WAS WRONG. `isHome` answers "does anybody pay
+   for this room", so it is true of every venue that costs nothing — `Online`, and every free
+   library — and a floor of four chairs landed on a one-to-one video call and on a table in Sutton
+   Library. That is the right question for `hosting` and the wrong one here. `atClientHome_` reads
+   the NAME and nothing else: the literal `At home` the question offers first, and a venue row
+   whose own title says it is a house. A free room is a free room; only a house is a house.
 
    AN EMPTY `loc` IS NOT A HOME. The venue is asked AFTER the seats, so this runs with nothing chosen
    on the way down and must not impose a floor on a question whose answer cannot yet be known.
@@ -297,7 +307,7 @@ function seatLimits(space, tutor, loc) {
   if (tutor)  { capMax(Number(tutor.maxStudents), tutor.title);
                 capMin(Number(tutor.minStudents), tutor.title); }
   capMax(houseMax, 'your limit');
-  if (loc && isHome(loc)) capMin(homeMin, 'a session at your own home');
+  if (loc && atClientHome_(loc)) capMin(homeMin, 'a session at your own home');
 
   return { max, min, why };
 }

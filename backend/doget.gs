@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-29-f-many";
+const DOGET_VERSION = "2026-09-29-h-batch";
 
 
 function doGet(e) {
@@ -263,7 +263,11 @@ function doGet(e) {
        spreadsheet, and before `config()`, which is the first of about thirty tab reads. A cache
        checked after the reads it exists to skip is a cache that saves nothing. See `cacheGet_` in
        core.gs for what is kept and why it is the finished body rather than the rows. */
-    const cacheKey = payloadKey_(p);
+    /* THE TOKEN'S PERSON, NOT THE URL'S — see `payloadKey_`. Resolving it here costs one digest and
+       one property read, before the cache is asked, which is the only order in which the answer can
+       decide which copy comes back. */
+    const cacheViewer = askedBy_();
+    const cacheKey = payloadKey_(p, cacheViewer ? S(cacheViewer.person_id) : '');
     /* ---------- `?warm=1` BUILDS AND STORES WITHOUT READING ---------------------------------------
        THE SCHEDULED REFRESH ASKS FOR THIS. A warmer that made an ordinary request would be handed
        the copy already in the cache and would refresh nothing; one that cleared the cache first
@@ -441,7 +445,7 @@ function doGet(e) {
                      minutes went into looking for a fault that was not there.
                      Every action added from here on goes in this list, and the site now reads it. */
                  'openWaitlist', 'claimChild', 'answerClaim', 'joinWaitlist',
-                 'move', 'events', 'tabs', 'getProfile', 'listPeople', 'createJob',
+                 'move', 'events', 'tabs', 'getProfile', 'myProfile', 'listPeople', 'createJob',
                  'updateConfig', 'updatePricing', 'updateShop',
                  'deleteShopItem', 'updateTrip', 'addTrip', 'imageData',
                  'saveRoom',

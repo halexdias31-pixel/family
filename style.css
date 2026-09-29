@@ -534,7 +534,12 @@ body {
   position: relative;
 }
 .card:last-child { border-bottom: 0; }
-.card > h3 { margin: 0 0 .5rem; font-size: 1rem; font-weight: 620; letter-spacing: -.01em; }
+/* A SETTINGS CARD'S TITLE IS ONE LEVEL DOWN, inside its `.me-form`, so `.card > h3` never reached it
+   and it took the browser's own h3 margin — 17px above the first word of every settings page, on top
+   of the pane's padding and the card's, which is the empty band over "About you". Same rule, named
+   through the form, so the two kinds of card title cannot drift. */
+.card > h3, .card > .me-form > h3:first-child {
+  margin: 0 0 .5rem; font-size: 1rem; font-weight: 620; letter-spacing: -.01em; }
 .card .sub { color: var(--dim); font-size: .82rem; margin: -.25rem 0 .5rem; }
 
 /* A card that is a button. The whole thing is the target — the only sane size on a touchscreen —
@@ -706,6 +711,22 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    a card, which is the "not everything is a card" fault; a hairline between them says the same
    thing for one declaration and no inset. */
 .lib-shelf { display: flex; flex-direction: column; }
+/* ---------- A SHUT QUALIFICATION IS ITS SUMMARY LINE — see `qualShelf_` ---------------------------
+   The line is a control, so 44px in px; it reads as the list it is, left-aligned text in the ink of an
+   answer, with a chevron saying it opens. Open, the line stays as the card's own heading and the
+   boxes follow it; shut, the boxes are not drawn but are still in the form, so a Save posts them. */
+.q-sum { display: flex; align-items: center; gap: .4rem; width: 100%; min-height: 44px; padding: 0 .1rem;
+         background: none; border: 0; color: var(--ink); font: inherit; font-size: .82rem;
+         text-align: left; cursor: pointer; }
+/* A LINE THAT WRAPS RATHER THAN ONE THAT PUSHES. Text straight inside a flex button is an anonymous
+   flex item, and `Maths · A-Level · Edexcel · B · 2019 · specialism` ran 4px past a 320px card —
+   `check/ui.js` named it the first run a filled qualification was on screen. The span may shrink
+   and wrap; the chevron keeps its own width. */
+.q-sum-t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; padding-block: .3rem; }
+.q-sum::after { flex: 0 0 auto; content: '▾'; margin-left: auto; color: var(--faint); transition: transform .15s ease; }
+.q-card.is-shut .q-sum::after { transform: rotate(-90deg); }
+.q-card.is-shut > .lib-row { display: none; }
+.q-card:not(.is-shut) > .q-sum { color: var(--gold); }
 .lib-card + .lib-card { border-top: 1px dashed var(--line); padding-top: .45rem; }
 /* ---------- AND THE GAPS ARE THE ONLY THING LEFT TO SPEND, BECAUSE 44px IS NOT ------------------
    SIX ROWS OF INPUT AT A 44px FLOOR IS 264px AND THAT IS THE SHELF'S FLOOR. `label.field`'s own
@@ -794,7 +815,11 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    the one the root font was about to scale. The year keeps its own track — it is already 57px and
    a floor it clears changes nothing. Measured at 320: 44 + 44 + 57.3 and two 6.75px gaps is 158.8
    inside a 243.9px card, so nothing is given up for it. */
-.dob-boxes { display: grid;
+/* 16px ON THE GRID, BECAUSE `ch` RESOLVES AGAINST THE ELEMENT THAT DECLARES THE TRACK. The inputs
+   are 16px exactly (the iOS focus-zoom rule above) and the grid inherited the root's clamp, which is
+   13.5px on a 320px phone — so `4ch` was four characters of a SMALLER font and the year read `200`
+   with its last digit under the box's own padding. Caught on a screenshot of the Contact page. */
+.dob-boxes { display: grid; font-size: 16px;
   grid-template-columns: repeat(2, max(44px, calc(2ch + 1.9rem))) calc(4ch + 1.9rem); gap: .5rem; }
 .dob-boxes label.field { margin-bottom: 0; min-width: 0; }
 .dob-boxes input { min-width: 0; text-align: center; }
@@ -1464,8 +1489,19 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 }
 /* Edge to edge — the page margin is cancelled, because a photograph inset by 16px on a phone is a
    photograph with a border. */
+/* NO BACKGROUND. It was `--sunk`, and inside the fixed 4:5 box below that ink WAS the black band
+   above and below every landscape photograph and either side of every portrait one — reported as
+   "please dont add the ugly black boarder to posts". A picture now takes its own proportions, so
+   nothing of the box is left over to paint; while the file is still arriving the reserved space is
+   the card's own colour, which reads as room rather than as a frame. A clip keeps its ink, below. */
+/* `height: auto` HERE AND NOT ONLY ON `.page .post-pic` BELOW, because the element carries
+   `width="800" height="1000"` and a height attribute IS a height: outside a page — the composer's
+   preview, which is a sheet — the picture was drawn 1000px tall at whatever width it was given,
+   every photograph stretched into the same tall rectangle. Measured at 390x844 before this line: a
+   1600x900 landscape previewed at 358x1000. `auto` hands the height back to the attributes' own
+   ratio mapping, which is `auto 800 / 1000` — the file's shape once it lands, 4:5 before. */
 .post-pic { display: block; width: calc(100% + 2 * var(--pad)); margin-left: calc(-1 * var(--pad));
-            background: var(--sunk); }
+            height: auto; }
 /* ---------- SEVERAL PICTURES ON ONE POST, AS A GRID --------------------------------------------
    TWO COLUMNS OF SQUARES, edge to edge like the single picture, and never a sideways strip: every
    column in this app is reached by a sideways swipe, and a carousel would eat it. When the count is
@@ -1489,8 +1525,15 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 .pane > .post { margin-inline: calc(-1 * var(--pane-pad)); padding-inline: var(--pane-pad); }
 .post-grid.is-odd > :first-child { grid-column: 1 / -1; aspect-ratio: 4 / 3; }
 /* A CLIP IS A PICTURE THAT MOVES and takes the same box; its controls are the browser's own. */
+/* THE INK IS ONLY EVER SEEN BEFORE THE FIRST FRAME: a clip with no frame yet — iOS draws none until it
+   is played — is a dark rectangle with a play control on it, which reads as a video, where a
+   transparent one is a play button floating over nothing. Once there is a frame the box is the
+   clip's own shape (below), so none of the ink is left showing round it. */
 .post-vid { background: var(--sunk); }
-.post-pic.post-vid { aspect-ratio: 4 / 5; object-fit: contain; }
+/* ITS OWN SHAPE, LIKE A PHOTOGRAPH, and 4:5 only until the file says what that is. It was a fixed
+   4:5 with `contain`, which letterboxed every landscape clip in the same black bands as the
+   photographs. `auto` means: the clip's natural ratio once its metadata has arrived, 4:5 before. */
+.post-pic.post-vid { aspect-ratio: auto 4 / 5; }
 /* AND ONE DRIVE WOULD NOT HAND OVER IS A LINK, in the same box, so the grid does not close up round
    a gap. 44px is the floor because it is a control. */
 .post-vid-out { display: flex; align-items: center; justify-content: center; min-height: 44px;
@@ -1521,37 +1564,51 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
    `.pane`'s own `touch-action` records it, and CLAUDE.md records the argument. A pane is
    `overflow: hidden` and clips. There is no scroll for the gesture to reach the end of.
 
-   SO IT IS CUT OFF, AND MEASURED IT IS THE COMMENT BOX. A 4:5 portrait — the shape the markup above
-   reserves, because it is the shape a phone camera gives — puts the post 582px into a 534px pane at
-   320x568: `post-said`, `cmt-form`, the textarea and its Send button are all below the fold, with no
-   scroll and no page to turn to. 46px at 375x667. Nothing at 390 and up.
-
-   NOT FIXED HERE, because every fix for it is a visible change to how a photograph is shown and
-   that is the owner's call rather than a repair. `object-fit: cover` and a bare `max-height` are
-   both refused above and the reasons stand; what would work is a height cap with `object-fit:
-   contain`, which crops nothing and squashes nothing and makes a tall photograph NARROWER than the
-   card on a short phone — about 74% of the width at 320, 83% at 375, unchanged at 390. That is the
-   trade, written down so it is a decision.
-
-   AND THE LAB CANNOT SEE IT, WHICH IS WHY IT HAS SAT HERE. Two reasons, both in `check/ui.js`:
-   `check/fixture.json`'s posts carry `image: ""`, so no run has ever drawn a photograph on this
-   card; and every width is measured in a viewport 844px TALL, so its "320px" is a 320x844 phone
-   that does not exist and whose pane is 807px. The receipt's own 216px below the fold at 320x568 is
-   invisible for the same second reason, and CLAUDE.md already records that one. */
+   SO IT WAS CUT OFF, AND MEASURED IT WAS THE COMMENT BOX: a 4:5 portrait put the post 582px into a
+   534px pane at 320x568, the textarea and its Send button below the fold with no scroll and no page
+   to turn to. That is answered now by the rule every card follows — `paneReach_` in find.js draws a
+   card taller than its pane smaller, whole, and centred — rather than by anything that crops or
+   caps the photograph. A 9:16 portrait, the tallest thing a phone camera gives, is drawn at about
+   95% at 390x844 and 72% at 320x568 for somebody signed in, whose card carries the comment box;
+   signed out it fits whole at 390 and is 77% at 320. `check/fixture.json` carries photographs now and every width
+   is measured at a real phone's height, which are the two reasons this used to be invisible. */
 .page .post-pic {
   flex: 0 0 auto;          /* never grows to fill the page — that is what forced a crop */
   height: auto;            /* its own height, from its own proportions */
   max-height: none;        /* and never capped, which would crop it a second way */
   max-width: none;
-  /* A FIXED 4:5 BOX AND THE PICTURE INSIDE IT, WHOLE. This was `fill` over a box that took the
-     file's own proportions on `onload` — so a card changed height after its column was placed, by
-     203px for a 2:1 landscape measured with the file 800ms late, and the caption, the reactions and
-     the comment box slid up under the thumb. `aspect-ratio` without `auto` ignores the natural
-     ratio, so the box is the same before and after the picture arrives; `contain` shows all of it
-     on the sunk ink, so nothing is cropped either. NOT `cover`, which is what cropped the sides off
-     a landscape photograph and the top off a portrait one. */
-  aspect-ratio: 4 / 5;
-  object-fit: contain;
+  /* ITS OWN PROPORTIONS, EDGE TO EDGE, AND 4:5 ONLY WHILE IT IS ON ITS WAY.
+
+     THIS WAS A FIXED 4:5 BOX WITH `object-fit: contain` ON THE SUNK INK, and it went on the report
+     "please dont add the ugly black boarder to posts". Measured at 390x844 before the change: a
+     1600x900 landscape drew in a 326x407 box with 112px of black above it and 112px below, and a
+     900x1600 portrait had 48px of black down each side. Every photograph that was not already 4:5 —
+     which is most of them — was a photograph in a frame.
+
+     THE FIXED BOX WAS BOUGHT FOR STABILITY and the reason is sound: a box that takes the file's own
+     shape changes height when the file lands, and a 2:1 landscape arriving 800ms late shrank its
+     card by 203px under the thumb. So the stability is kept by the two things that cost no black:
+
+       - `auto 4 / 5` reserves a 4:5 space until the file's own ratio is known, so an image is never
+         a zero-height box that the grid places for the wrong height. `width`/`height` on the
+         element say the same to anything that reads them before the stylesheet;
+       - and `postsAhead_` asks for the pictures one page behind and two ahead, so a photograph has
+         normally arrived before its page is in front of anybody — the change happens off-screen.
+
+     IT DOES MOVE THE PAGES UNDER IT, which is the half worth measuring rather than assuming: a page
+     is `height: auto` in an ordinary CSS column, not a fixed cell, so every picture that lands above
+     the post being read moves it by the difference between 4:5 and the file — 224px for a 16:9
+     landscape at 390 — and the differences add up. `holdColumn_` in shell.js puts it back, from
+     inside the `ResizeObserver` delivery that sees the card grow — which runs before paint, so the
+     frame is never drawn with it moved. Its own note holds the measurements; one place, so they
+     cannot disagree.
+
+     What is left is the post you are READING on a cold open, whose own picture can land after it is
+     drawn and move its caption once. That is the whole cost of showing a photograph without bands,
+     written down so it is a trade rather than a regression. NOT `cover`, which crops the sides off
+     a landscape and the top off a portrait — where the person usually is. A card this makes taller
+     than its pane is drawn smaller by `paneReach_`, like every other card, and stays centred. */
+  aspect-ratio: auto 4 / 5;
 }
 .page .post-by, .page .post-acts, .page .post-cap,
 .page .post-when, .page .poll, .page .note { flex: none; }
@@ -5674,6 +5731,14 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .is-prof .prof-top + .row,
 .is-prof .prof-say + .row,
 .is-prof .prof-tags + .row { margin-top: .7rem; }
+/* ---------- AND THE ROWS ARE A NOTCH SMALLER THAN AN ORDINARY ROW, because a profile has twice as
+   many of them. Reported with a screenshot of a tutor's card running past the bottom of a phone:
+   "I don't like scrolling. If you need to leave things more compact or smaller font." `paneReach_`
+   now shrinks any card that still does not fit, and this is the half that means a profile rarely
+   needs it — the rows are labels and values read down a card, not paragraphs, and .44rem of air
+   above and below each one was the difference between fitting and not. */
+.is-prof .row { padding: .26rem 0; font-size: .8rem; }
+.is-prof .prof-say { font-size: .8rem; line-height: 1.35; }
 /* THE SUBJECTS, AS THE ADJECTIVES' CHIPS. Same pill, same line; the case is the sheet's own rather
    than upper, because a subject shouted reads as a heading (see `findCard`). The specialism takes
    the gold edge and the ink — gold is what this app means by "the one", and it is the only chip on
@@ -7149,7 +7214,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   text-align: left; color: inherit;
   overflow-wrap: break-word; hyphens: none;
 }
-.bk-row.is-bare .bk-m, .bk-row.is-bare .bk-r, .bk-row.is-bare .bk-t { display: none; }
+/* `:not(.is-wide)` BECAUSE A BASKET LINE CAN BE BOTH. A paper with no page count has no figure, so
+   `receiptRow` marks it bare as well as wide, and two rules at one specificity both hiding `.bk-m`
+   and `.bk-r` is a tie settled by file order — harmless while they agree, and the first thing that
+   goes wrong the day one of them changes. `is-wide` already says what those two columns are on a
+   basket line, so this one stands aside. */
+.bk-row.is-bare:not(.is-wide) .bk-m, .bk-row.is-bare:not(.is-wide) .bk-r,
+.bk-row.is-bare .bk-t { display: none; }
 
 /* ==================================================================================================
    AN OPEN WAITING LIST — A TICKET, NOT A CARD.
@@ -7504,50 +7575,60 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    collide with something eventually — and the flyer maker already taught this lesson, where `.fav`
    was a favicon and a star button at the same time and every star came out as a black rectangle.
 ================================================================================================== */
-.mat-lev { display: flex; flex-wrap: wrap; gap: .3rem; margin-bottom: .5rem; }
-/* ---------- BIG ENOUGH TO HIT, WITHOUT GETTING LOUDER ---------------------------------------------
-   THESE WERE 21 PIXELS TALL. `padding: .35rem .5rem` around .68rem text comes out at 21px, and the
-   smallest thing a finger reliably lands on is 44 — so every level on this row was a half-size
-   target, and "AS" was 27px wide as well. Nobody reports this as a bug either: a mis-tap reads as
-   your own clumsiness, you try again, and the second one usually works. It is a tax on every use
-   rather than a fault anybody names.
+/* ---------- THE CHOICES, ONE ABOVE THE OTHER --------------------------------------------------------
+   THEY WERE FIFTEEN PILLS IN FIVE ROWS — ten levels, two tiers, three "given" filters — and 288px of
+   a 534px pane on a 320x568 phone before the first piece. The pills had been made hittable the hard
+   way (44px in px, because 2.75rem is 40.75px on a phone — measured, and the reason is written up
+   where tap targets are), and a hittable pill is still a pill. Two selects say the same two things
+   in two rows, and each is the global `select` rule's own 44px control — nothing here sets a height.
 
-   THE HEIGHT IS THE ONLY THING THAT CHANGES. `min-height` with the text centred means the chip grows
-   downward into space the flex row already had, the font stays at .68rem, and the words sit exactly
-   where they sat. `min-width` does the same for "AS" and "11+". So the row is the same row — it is
-   just possible to hit now.
+   STACKED, AND NOT SIDE BY SIDE, AT EVERY WIDTH. The text is 16px because anything smaller makes
+   iOS zoom the page on focus (see the global rule), and at 16px of this face "GCSE Foundation" and
+   "Every subject" do not fit half a card — side by side at 390 the level read "Every le…". And the
+   card never gets wide enough for the two to share a row, because `--app` caps the column at 26.5rem
+   on a laptop as on a phone. The first version said "they sit together on a tablet" over a
+   `flex-basis` that could never be met; a grid of one column says what actually happens.
 
-   A HIT AREA FAKED WITH A PSEUDO-ELEMENT WOULD HAVE KEPT THE 21px LOOK, and was the first idea. It
-   does not work here: the gap between chips is .3rem, so stretching each one to 44px would have
-   overlapped its neighbours by about 18px in both directions and the wrong level would be selected
-   near every edge. An invisible target that hits the wrong thing is worse than a small one.
-
-   44px AND NOT 2.75rem, WHICH IS THE SAME NUMBER EVERYWHERE EXCEPT HERE. Line 121 sets the root to
-   `clamp(13.5px, 3.8vw, 16px)`, so a rem on this site is 14.82px on a 390px phone rather than 16 —
-   and `2.75rem` came out as 40.75px. Measured, not assumed: the first version of this fix used rem
-   and the check still reported the chips as too small, at 37px, which is how the scaling was found
-   at all.
-
-   AND THE UNIT IS RIGHT IN PRINCIPLE, not just arithmetically. Every other size here is meant to
-   scale with the viewport — text, padding, the width of a column. A fingertip is not. It is the
-   same eight millimetres on a 320px phone and on a tablet, so the one measurement on this site that
-   must NOT respond to screen size is this one.
-
-   Found by `node check/ui.js`, which measures every button on every screen at four widths. */
-.mat-lev button { font: 600 .68rem/1 var(--mono); background: var(--sunk); color: var(--dim);
-                  border: 1px solid var(--line); border-radius: var(--r); padding: .35rem .6rem;
-                  display: inline-flex; align-items: center; justify-content: center;
-                  min-height: 44px; min-width: 44px;
-                  cursor: pointer; }
-.mat-lev button.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+   THE ARROW IS DRAWN, because the global rule takes the platform's off (`appearance: none`) and a
+   select with nothing on it reads as a text box. On the wrapper rather than the control, since a
+   `select` cannot hold a pseudo-element; `pointer-events: none` so a tap on it opens the list. */
+.mat-pick { display: grid; gap: .4rem; margin-bottom: .45rem; }
+.mat-sel { position: relative; min-width: 0; display: block; }
+.mat-sel select { font-size: 16px; padding-right: 1.8rem; text-overflow: ellipsis; }
+.mat-sel::after { content: '▾'; position: absolute; right: .7rem; top: 50%;
+                  transform: translateY(-50%); color: var(--dim); pointer-events: none; }
+/* THE BOX IS THE APP'S OWN CHECKBOX — `.check`, a 44px row with the tick drawn — and tighter than
+   its usual padding, because it sits between two rows of controls rather than in a form of them. */
+.check.mat-given { padding: .2rem 0; font-size: .74rem; color: var(--dim); }
+/* TWO QUIET BUTTONS, NOT GOLD. Print is the one thing this card is for and it is the gold one; these
+   are shortcuts on the way to it, and a second gold slab would compete with it. */
+.mat-quick { margin-bottom: .5rem; }
+/* PADDING TRIMMED SO "Fill the page" STAYS ON ONE LINE at 320, where the stock `.btn` padding broke
+   it in two — a two-line button beside a one-line one reads as two different kinds of control. */
+.mat-quick .btn { font-size: .74rem; padding-left: .4rem; padding-right: .4rem; }
 /* ---------- SHORTER ROWS, SO MORE OF THEM FIT ACROSS ----------------------------------------------
    9rem WAS THE WIDTH A THREE-WORD NAME NEEDED. A face is rarely more than eight characters, so the
    column can be narrower and a phone gets three where it got two — twenty-five rows in nine lines
    rather than thirteen, and no row wrapping onto a second line. */
 /* 7.5rem, NOT 6.5. A face that pairs a symbol with a word runs to twelve characters — `◡ protractor`,
    `km→m units` — and at 6.5rem those wrap, which costs more height than the extra width does. */
+/* `align-items: start` SO A ROW WITH A NOTE DOES NOT PULL ITS NEIGHBOUR OUT OF LINE. Stretched to
+   the height of the ruler's row (face, then "prints at true size" underneath), the label beside it
+   centred its one line in the extra height, so `100 square` sat half a line below `|·| ruler` at
+   the top of every list — two ticks in one row that did not look like one row. */
 .mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
-            gap: .1rem .5rem; margin-bottom: .5rem; }
+            gap: .1rem .5rem; margin-bottom: .5rem; align-items: start; }
+/* ---------- A LOWER FLOOR THAN `.widget-squeeze`'s, BECAUSE WHAT IT COMPETES WITH CHANGED ---------
+   THE 8rem FLOOR WAS MEASURED AGAINST THE A4 PREVIEW, which this card no longer draws — see the table
+   under `.widget-squeeze`. What the list competes with now is the picker above it and Print below
+   it, and the rework added two rows to the picker: the "skip what the exam gives you" box and the
+   Fill / Clear pair. Measured at 320x568 with a level chosen: 108px of list and the box above left
+   the Print button 28px past the bottom of its own card, over the card's edge — and the pane could
+   not see it, because the squeeze chain lets every box between them shrink to nothing, so the
+   overflow sat in the pane's padding and no zoom was ever asked for. Even the filled sheet ran 13px.
+   6rem IS 81px AT 320 — a row and most of the next, which still reads as a list you scroll — and
+   takes back the 27 that one extra line of the gauge's sentence costs. The flyer keeps 8. */
+.mat-list.widget-squeeze { min-height: 6rem; }
 /* ---------- AND THE ROWS THEMSELVES, FOR THE SAME REASON ------------------------------------------
    1.7rem IS 27 PIXELS AND THE CHECKBOX INSIDE IT IS 14, so the row was a half-height target wrapped
    round a quarter-height one. The whole label is clickable, which is right, and it was still too
@@ -7560,10 +7641,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    THE COLUMNS ARE UNTOUCHED. `auto-fit, minmax(7.5rem, 1fr)` still decides how many fit across, so
    a phone gets three and a laptop gets six exactly as before. Only the row height moved. */
-/* WRAPPING, SO THE NOTE CAN TAKE ITS OWN LINE — see `.mat-note`, which asks for one and could not
-   have it while this row refused to wrap. */
-.mat-list label { display: flex; flex-wrap: wrap; gap: .4rem; align-items: center;
-                  min-height: 44px; font-size: .72rem; color: var(--ink); cursor: pointer; }
+/* ---------- A GRID, SO THE FIRST LINE OF EVERY ROW IS THE SAME 44px ------------------------------
+   IT WAS A WRAPPING FLEX ROW WITH `min-height: 44px`, which is 44px round the whole label — so a row
+   carrying a note under its face ("prints at true size", "given in the exam") put its tick at
+   the top of a taller box while the row beside it centred its tick in 44. Measured: `|·| ruler` and
+   `100 square`, the first two things on every list, sat ten pixels apart in one row. Two columns
+   of ticks are read across as well as down, and a row that is not a row reads as a list that has
+   slipped.
+   THE FIRST LINE IS THE TARGET AND IT IS 44px WHATEVER IS UNDER IT; the note takes a line of its own
+   below, across the whole row — under the face it wrapped "prints at true size" onto two lines at
+   320. Tucked up a little so it reads as belonging to the line above rather than floating between
+   two rows. */
+.mat-list label { display: grid; grid-template-columns: auto minmax(0, 1fr);
+                  grid-template-rows: minmax(44px, auto); column-gap: .4rem; align-items: center;
+                  font-size: .72rem; color: var(--ink); cursor: pointer; }
+.mat-list label .mat-note { grid-column: 1 / -1; margin-top: -.6rem; padding-bottom: .3rem; }
 /* THE MATHS, SET AS MATHS. Mono keeps the columns of the list from jittering as the glyphs change
    width, and it is the face of the block rather than a label about it, so it takes the row's ink
    rather than the muted grey a caption would.
@@ -7611,7 +7703,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-list input:checked::after { content: ""; position: absolute; left: 5px; top: 1px;
   width: 4px; height: 8px; border: solid var(--bg); border-width: 0 2px 2px 0;
   transform: rotate(43deg); }
-.mat-list u { margin-left: auto; font-size: .62rem; color: var(--faint); text-decoration: none; }
 /* THE GAUGE turns red at 100%, not at 90% — a warning that fires early is one people learn to
    ignore, and then ignore when it matters. */
 .mat-gauge { height: .45rem; background: var(--sunk); border-radius: 3px; overflow: hidden; }
@@ -7908,6 +7999,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-meas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1.2mm 3mm; }
 .mat-meas em { display: block; font: 400 2.3mm/1 var(--mono); font-style: normal; color: var(--pa-mid); }
 .mat-meas i { display: block; font-style: normal; font-weight: 400; font-size: 2.8mm; line-height: 1.5; font-style: normal; }
+/* THE ENGLISH WORD BANK IS THIS BLOCK WITH A THIRD COLUMN — said, good, bad — so it borrows the
+   measures block's type and spacing rather than starting another kind of list. */
+.mat-meas.mat-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+/* ---------- THE ALPHABET, PRINT OVER JOINED ---------------------------------------------------------
+   TWENTY-SIX COLUMNS ACROSS THE WHOLE PAGE, each letter's two shapes one above the other — the way a
+   child copies them, rather than two alphabets a line apart. The print row is a plain sans because
+   the site's mono face is not how anybody teaches a letter; the joined row is whatever script face
+   the printer has, `cursive` last, so it is a model rather than a promise about a font. */
+.mat-abc { display: grid; grid-template-columns: repeat(26, minmax(0, 1fr)); text-align: center; }
+.mat-abc i { display: block; font-style: normal; }
+.mat-abc b { display: block; font: 400 4mm/1.3 'Helvetica Neue', Arial, sans-serif; color: var(--pa-ink); }
+.mat-abc em { display: block; font: 400 4.4mm/1.3 'Segoe Script', 'Snell Roundhand', 'Brush Script MT', cursive;
+              font-style: normal; color: var(--pa-mid); }
 /* THE NOTE UNDER THE NAME, NOT UNDER THE ICON. Three children in a two-column grid put the note in
    the next row's first cell — a 7mm column — so "less than 90" came out one letter wide. */
 .mat-ang { display: grid; grid-template-columns: 1fr 1fr; gap: .8mm 2mm; align-content: start; }
@@ -8832,41 +8936,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .prac-kit, .prac-steps, .gd-sec { margin: .65rem 0 0; }
 .prac-kit h4, .prac-steps h4, .gd-sec h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono);
                                letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
-/* `.prac-kit` IS OFF THESE THREE GROUPS BECAUSE IT NO LONGER HOLDS A LIST. The kit is chips, and
-   leaving `.prac-kit ul` here would be a rule with no markup — which `check-css.js` prints — AND a
-   rule that wins: `.prac-kit ul` is a class plus a type (0,1,1) against `.kit-chips`'s (0,1,0), so
-   its `padding-left: 1.1rem` would have indented the chip block by a bullet's width and nothing
-   below would have looked wrong enough to find. Tenth conviction of `.price.faint`, refused before
-   it was written rather than after a screenshot. */
-.prac-steps ol, .gd-sec ul, .gd-sec ol { margin: 0; padding-left: 1.1rem; }
-.prac-steps li, .gd-sec li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
-.gd-sec li { margin: 0; }
+/* `.prac-kit` IS BACK ON THESE THREE GROUPS, because it holds a list again. The kit was chips —
+   "like how Google has chips in documents" — and they were reverted on "the google chip idea didnt
+   work how i wanted to so revert back", so `.kit-chips`, `.kit-chip`, `.kit-n` and `.kit-q` went
+   with them and these are the rules the kit had before, restored as they were: one item a line, a
+   bullet's indent, the guide's dim ink. The quantity is text on the line — see `kitList_`.
 
-/* ---------- THE KIT, AS CHIPS --------------------------------------------------------------------
-   ASKED FOR AS "I want each item/ingredient to be like a chip. Like how Google has chips in
-   documents and stuff." A bulleted list is read down a column; a kit list is checked off while
-   packing a bag, and chips wrap into a block you take in at once.
-
-   NOT `.chip`, WHICH IS THE FUNNEL'S FILTER — 44px of tap target with a gold ✕ on it, and its own
-   note records this stylesheet's fourth conviction of the tap-target rule. Five hundred inert kit
-   items inheriting a fingertip's height is both wrong to look at and wrong to measure, because
-   `check/ui.js` would then be asked about tap targets on things nobody can tap.
-
-   THE NAME SHRINKS AND THE QUANTITY DOES NOT. `min-width: 0` is the `.prac-head h3` lesson, which
-   this card has already paid for once: a flex item's minimum is its min-content, so without it the
-   longest item (`Nichrome wire (about 1 m, taped to a metre rule)`) could not wrap inside its own
-   chip and would take the sheet sideways. The badge is `flex: 0 0 auto` for the opposite reason —
-   a quantity with a digit wrapped onto the next line is a different number.
-
-   THE QUANTITY IS GOLD AND MONO because that is what this app already dresses a measurement in:
-   `.prac-strip` two rules up prints `45 min · 7+ · £0.40 a run` in exactly that pair. */
-.kit-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0; padding: 0; list-style: none; }
-.kit-chip { display: inline-flex; align-items: baseline; gap: .3rem; max-width: 100%;
-            font-size: .76rem; line-height: 1.4; color: var(--ink);
-            border: 1px solid var(--line); border-radius: .5rem; padding: .22rem .45rem;
-            background: rgb(255 255 255 / .03); }
-.kit-n { min-width: 0; overflow-wrap: break-word; }
-.kit-q { flex: 0 0 auto; font: 600 .68rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
+   The tenth conviction of `.price.faint` was recorded against `.prac-kit ul` beside those chips — a
+   class plus a type (0,1,1) that would have out-specified `.kit-chips`' (0,1,0) and indented the
+   block by a bullet's width. With no chip rule left there is nothing for it to beat; it is the only
+   rule styling that list, as it was before them. */
+.prac-kit ul, .prac-steps ol, .gd-sec ul, .gd-sec ol { margin: 0; padding-left: 1.1rem; }
+.prac-kit li, .prac-steps li, .gd-sec li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
+.prac-kit li, .gd-sec li { margin: 0; }
 .prac-steps li { margin: 0 0 .25rem; }
 /* `.prac-safety` AND `.prac-maths` WERE HERE, and the guide was the only thing that drew either.
    The safety line was a gold-ruled paragraph and its note is worth keeping: the house rule puts one
@@ -9292,31 +9374,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-sheet { padding-left: 13mm; padding-right: 13mm; }
 .mat-sheet.ruled { padding-left: 20mm; padding-right: 6mm; }
 
-/* GIVEN IN THE EXAM. Shown only when the sheet says TRUE — a blank cell means nobody has checked,
-   and a mark that appears for "unknown" as well as for "no" tells you nothing. Set beside the name
-   rather than in place of the height, because both facts matter when you are choosing: how much
-   paper it costs, and whether it is worth any paper at all. */
-/* ---------- "NOT GIVEN" IS A WARNING AND SHOULD LOOK LIKE ONE -------------------------------------
-   IT WAS GOLD, which is the colour of every heading, every price and the gauge on that screen — so
-   the one mark that changes a decision was set in the same ink as the furniture around it and read
-   as decoration. `--bad` is what this app already uses when something is over the line; a warning
-   in the warning colour needs no legend and is seen without being looked for.
+/* ---------- GIVEN IN THE EXAM, SAID ON THE FEW ROWS IT IS TRUE OF -------------------------------
+   THIS WAS A RED NAME ON EVERY PIECE THE EXAM DOES NOT PRINT, with a row of three pills above the
+   list — All, Not given, Given — to say what the red meant. It was right that a warning should be in
+   the warning colour; what it marked was the majority, twenty of twenty-five on GCSE Higher, so the
+   page was mostly red and needed a key to read. The key was the pills, and the pills are gone —
+   see `matChoices` in mat.js.
 
-   THE WHOLE ROW LEANS RED, not just the tag. A tag is a thing you read after finding the row; the
-   point of marking these is to find them while scanning, and colour on the NAME is what a scan
-   picks up. Kept to the text — a red background on eight of twenty-five rows would be a page that
-   looks broken rather than a page that is telling you something. */
-/* ---------- THE BAR IS THE KEY ---------------------------------------------------------------------
-   'Not given' IS SET IN THE SAME RED AS THE ROWS IT SELECTS, so the bar says what the colour means
-   without a legend under the list — and it says it once, at the top, instead of twenty times down
-   the side. Lit, it is the usual filled pill; unlit, the word still carries the colour, because a
-   key that only works while it is switched on is not a key. */
-.mat-exam [data-g="not"] { color: var(--bad); border-color: var(--bad); }
-.mat-exam [data-g="not"].on { background: var(--bad); border-color: var(--bad); color: #12100d; }
-.mat-list label.not-given { color: var(--bad); }
-/* THE COST STAYS QUIET. It is not the warning, and two red things on one row is neither of them
-   standing out. */
-.mat-list label.not-given u { color: var(--faint); }
+   SO THE MINORITY IS MARKED INSTEAD, IN WORDS. A piece the exam hands you carries a note saying so
+   and recedes a step, because it is the one on the list least worth the paper; the box above the
+   list takes those rows off it altogether. No colour to learn, and nothing to decode. */
+.mat-list label.given .mat-face { color: var(--dim); }
 
 
 /* A COMPONENT'S OWN NOTE. Quiet, under the name, because it is a detail about that one row rather
@@ -9337,9 +9405,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    FOUND BY LOOKING AT IT. check/ui.js reported nothing either way — the layout measured clean with
    the word broken, because a mid-word break is not an overflow. CLAUDE.md already says layout facts
    come from the browser; this is the other half of that, which is that "no measurement failed" and
-   "it looks right" are different claims, and only one of them a screenshot can settle. */
-.mat-note { flex: 1 0 100%; font: 400 .62rem/1.3 var(--mono); font-style: normal;
-            color: var(--faint); margin-top: .1rem; }
+   "it looks right" are different claims, and only one of them a screenshot can settle.
+
+   AND THEN THE ROW BECAME A GRID — see `.mat-list label` — which gives the note a line of its own
+   with `grid-column` and gives the tick a 44px line whatever is under it. The flex-basis went with
+   the flex row it was written for; everything above is why the note is on a line of its own. */
+.mat-note { font: 400 .62rem/1.3 var(--mono); font-style: normal; color: var(--faint); }
 
 /* ---------- TILES: THE CONTROLS THAT USED TO BE IN A SHEET ---------------------------------------
    A STACK, NOT A GRID. Three across meant every button had to be argued into the same width — flex
@@ -9644,6 +9715,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    with the title rather than beside it, and stay pressable at 44px without making the line taller
    than its neighbours. */
 .bk-v .text-drop { padding: .35rem .3rem; margin-left: .25rem; }
+
+/* ---------- A BASKET LINE IS A NAME, THEN ONE STRIP OF CONTROLS -------------------------------------
+   THE ✕ WRAPPED ONTO A LINE OF ITS OWN. The name, the page count, the laminate switch and the ✕
+   were four inline things wrapping wherever the width ran out, and two of them are 44px targets —
+   so a paper was three lines and 115px tall at 390, with the ✕ alone on the last. The name is a line
+   and the strip is the next, wrapping as a unit; the ✕ goes to the strip's far end, beside the
+   price it takes away. `min-width: 0` so a long library-wide name wraps inside its column rather
+   than pushing the total off the card, which is the fault this document was adopted to fix. */
+.bk-v .cart-nm { display: block; min-width: 0; }
+.bk-v .cart-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 0 .35rem; }
+.bk-v .cart-ctl .text-drop { margin-left: auto; }
+/* THE BUNDLE A GROUP OF LINES CAME FROM — a caption over them rather than a line of its own to buy,
+   so it is the quiet ink and a size down, and it has a little air above it where a second bundle
+   starts under the first. */
+.bk-v .cart-from { display: block; margin-top: .25rem; font-size: .92em; color: var(--dim); }
 
 /* ==================================================================================================
    DOCUMENTS — the agreements and policies, read in a sheet. See terms.js.
@@ -9990,6 +10076,23 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE TITLE IS THE THING BEING CHOSEN, so it carries the weight — and it sits tight under the
    breadcrumb, because the two are one block and the space belongs below them, not between. */
 .card .crumb + h3 { margin-top: 0; font-size: 1rem; font-weight: 600; }
+
+/* ---------- A BUNDLE: THE PAPERS ON THE SCREEN, LISTED -------------------------------------------
+   NUMBERED, because a bundle is read as "how many, and which" and a count down the edge answers the
+   first without anybody adding up. SMALL AND TIGHT, because up to twenty-four of them share one
+   card on a 568px phone (`BUNDLE_MAX` in find.js says why twenty-four) and a list that pushes the
+   trolley below the fold is a bundle you cannot add. Each name wraps rather than truncating: two
+   papers can differ only in their last word — `May 2017` against `November 2017` — and an ellipsis
+   would put the one word that tells them apart behind it. Tokens only, so the card follows the
+   theme it is drawn in. */
+.card.bundle .bundle-list {
+  margin: .35rem 0 .2rem; padding-left: 1.6rem;
+  font-size: .78rem; line-height: 1.3; color: var(--dim);
+}
+.card.bundle .bundle-list li { margin: 0 0 .12rem; overflow-wrap: anywhere; }
+.card.bundle .bundle-list li::marker { color: var(--faint); font-family: var(--mono); }
+.card.bundle .bundle-name { color: var(--ink); }
+.card.bundle .bundle-off { margin: .35rem 0 0; font-size: .72rem; color: var(--faint); }
 
 /* ---------- EACH WIDGET IS ITS OWN THING ----------------------------------------------------------
    A CARD EACH, with its own edge, because that is what makes nine tools nine tools rather than one
@@ -10804,6 +10907,21 @@ button.scr-sq { cursor: pointer; }
 .art-score { margin: 0; font: 700 1.8rem/1.1 var(--font); color: var(--gold); }
 .art-row { display: flex; gap: .5rem; margin-top: .6rem; }
 .art-meta { text-align: center; margin: .5rem 0 0; }
+
+/* ---------- IMPOSTER -------------------------------------------------------------------------------
+   THE ARTICULATE CARD, BECAUSE IT IS THE SAME OBJECT: one thing read across a table, with a gold
+   button under it. What is new is the player count and the sentence that hands the phone on.
+
+   THE STEPPERS ARE 44px IN px, the one measurement here that does not scale, and a real circle so
+   `−` and `+` read as controls rather than as the maths symbols they also are. */
+.imp-count { display: flex; align-items: center; gap: 1rem; }
+.imp-step {
+  width: 44px; height: 44px; border-radius: 999px;
+  border: 1px solid var(--line); background: transparent; color: var(--ink);
+  font: 600 1.3rem/1 var(--font); cursor: pointer;
+}
+.imp-step:disabled { opacity: .35; cursor: default; }
+.imp-pass { margin: 0; font: 400 1rem/1.35 var(--font); color: var(--ink); max-width: 18rem; }
 
 /* ==================================================================================================
    SHARING A BOOKING IS PRINTING IT — THE ELEMENT ON THE SCREEN, NOT A DRAWING OF IT.

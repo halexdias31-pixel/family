@@ -15427,3 +15427,230 @@ cross-deck duplicate rule still enforced.
 **Needs `?setup=1` after the backend deploys**, for `people.quals`, `people.teaches_also`,
 `people.agreement_signed_at`, `people.agreement_version`, `posts.media` and
 `messages.attachments`.
+
+## A card taller than the screen is drawn smaller, and scrolls only past 70%
+
+**Reported with a screenshot of a tutor's profile running off the bottom of a phone: "I don't like
+scrolling. If you need to leave things more compact or smaller font. This goes for all widgets so
+they all fit on screen."** `paneReach_` in find.js used to give an overflowing pane `overflow-y:
+auto`. It now shrinks the card first — CSS `zoom` on the pane's children, measured at zoom 1 every
+time so the answer is deterministic, down to `PANE_ZOOM_MIN` (0.7, about 10px text) — and scrolls
+only a card that still does not fit at that. It runs on every column, from `placeNow_`.
+
+**Two things had to be right and both were found by measuring.** Zoom alone does not shrink
+anything whose height follows its width — a game board, a 4:5 photo — because a zoomed card is wider
+in its own pixels; so each child keeps the width it had at zoom 1 (`width` + `margin-inline: auto`)
+and everything scales by one factor. And a shrunk card is a few pixels shorter than the capped pane,
+which moved the page in front on the Find screen by 46px on a busy machine; a zoom that changed now
+re-places its column.
+
+**The cost is the tap targets**, which shrink with the card. `check/ui.js` judges each control at
+its own size and prints `CARD DRAWN SMALLER TO FIT (known)` — 39 findings at the four sizes, nearly
+all at 320x568. Profile rows are also a notch tighter (`.is-prof .row`), so a profile rarely needs
+shrinking at all.
+
+## Signed out, the booking column is one sentence like the others
+
+**Asked for as "sign in to book shouldnt have a sign in button it should be like the other stuff."**
+The signed-out booking card had a gold `Sign in` button, and `on('signin')` behind it only toasted
+*"Sign-in screen next"* — a control that did nothing. The Camera and Messages cards already handle
+this with a heading and one line saying where your account is, and nothing to press. The booking
+card is the same shape now (`Booking` / *"Sign in to book — your account is a few screens to the
+right"*). The handler went too, so `check-doors.js` is 155 handlers and 154 doors with no orphans.
+
+## Settings did not save for anybody but the admin, and the admin's Saves wrote blanks
+
+**Reported as "some things arent updating when i click save. also the whole saving process feels very
+unresponsive".** An audit (five investigations, each finding re-run by a skeptic) found the faults
+under it. Every one reproduced against the real `.gs` files, and none was visible to the suite,
+because nothing on the roster had ever run `updateProfile`:
+
+| | |
+|---|---|
+| **the sign-in reply threw `profileOf_` away** | `loginReplyFor_` set `profile: profileOf_(r)`, then an older block ten lines down replaced it with raw cells. So the qualification shelf past row three, every tick and year, all nine library boxes, the phone's two boxes, the birthday's three and the exam pickers opened EMPTY — and a Save wrote the blanks back (library cards → '', quals → '', the specialism wiped, the phone doubled to `+44 44 …`) |
+| **nobody but an admin could save** | `updateProfile` compared the phone's `targetId` — a person_id — with `body.name`, which the gate had just set to the DISPLAY name. `p002` against `adatutor`: never equal. Every tutor, parent and student was refused "Not authorised to edit that profile." |
+| **a refused Save had already written** | the phone and the birthday were written before the e-mail clash was asked about, and every write retired the payload cache under a reply that said failure |
+| **a new PIN signed the phone out on the server** | `authEndSession_` ends every session, the caller's included, and nothing told the phone — every later Save answered "Please sign in again." |
+| **the payload cache was keyed on `?person=` and `?name=`** | so a stranger typing the admin's id and name into the address was served the admin's cached payload, every child in `students` included |
+
+**Fixed as rules rather than instances.** `updateProfile` asks every refusal before a single cell is
+touched, decides whose row it is by comparing two ids, asks admin of the token's own row, and writes
+the row through `setCells` — one `setValues` per run of adjacent columns, and a cell already holding
+the value is skipped, so an untouched Save writes nothing and does not retire the payload (an
+untouched Qualifications Save was 55 service calls and 21 writes; it is 9 and 0). It answers with
+`profileOf_` of the row as saved and how many cells `changed`. `payloadKey_` keys on the person the
+TOKEN resolves to. `changePin` hands the phone that asked a fresh token. A dead session is answered
+`why: 'signed-out'` and `api()` signs the phone out once, saying why.
+
+**`myProfile`**, a `self` POST, is the phone's way to learn what the sheet holds — once per app open,
+and whenever a Save finds a copy of your settings in the old broken shape (no `phone_cc` key), which
+it refuses to post from. A POST and never a key on the payload, because the payload is cached and
+this carries a birthday, a phone number and library-card PINs.
+
+**The phone**: `me-save`, `handle-save`, `pin-save` and the cut card all go through `send_`, so the
+button spins and the card is locked while the request is on the wire (a headline typed mid-save used
+to be silently lost). A settings card with anything typed into it is not repainted by a `load()` or
+the inbox landing — `paint` marks the column stale instead — so a Save on About you no longer throws
+away a postcode typed on Where. The wardrobe rebuilds its whole card on a pick, so the ring, a bought
+item and the credits follow; a slower reply to an older tap is ignored.
+
+**`cellSafe_`**: a string starting `=`, `+` or `@` (or `-` when it is not a number) is written with a
+leading apostrophe, which the sheet keeps as "this is text" and does not return as part of the value.
+`phoneIn` produces `+44 7700 …`, which a sheet otherwise reads as a sum; and a caption or message
+starting `=` would have been a live formula in the owner's spreadsheet.
+
+### `node js/check-profile.js` — the round trip, through the real `doPost`
+
+Every `.gs` in one vm over an in-memory Ledger whose tabs carry `SCHEMA`'s headers, a UK-locale
+`setValue` (dates, booleans and numbers come back typed, as a sheet hands them back), and a cache that
+keeps what it is given. It signs in four people, checks the reply's profile IS `profileOf_`, saves
+every page for every role with nothing changed (must succeed, must write nothing), changes one field
+per page and signs in again, refuses a Contact Save on another account's address (must have written
+nothing), and asks the payload-key, `changePin` and `myProfile` questions. **Proved on the old code**:
+30 findings, one per fault above; the fixed code is clean.
+
+**What the owner must do**: pull and deploy the backend, run `?setup=1` (the live sheet has no `quals`,
+`teaches_also`, `agreement_signed_at` or `agreement_version` columns), and sign out and back in once
+on each phone. Rows the admin's old Saves wrote blanks over (qualifications, library cards, a doubled
+phone) cannot be rebuilt from the app: restore those cells from the sheet's version history, or type
+them again.
+
+## Settings is shorter: one Contact & address page, and a qualification is one line until opened
+
+**Asked for as "look at all of account settings and see if there is a better way to have it
+layout. like more efficient."** Two changes, both measured at 320x568.
+
+**`Contact` and `Where` were two pages with two Saves for one question** — how do we reach you.
+They are one `Contact & address` group in `PROFILE_GROUPS`, and `check-profile.js` and the fixture
+name it. A tutor's column is nine pages.
+
+**A FILLED QUALIFICATION IS ITS SUMMARY LINE** — `Maths · A-Level · Edexcel · B · 2019` — and a tap
+opens its boxes in place. The shelf was 802px at 390 and 605 at 320 even drawn at 70%; it is 456 and
+443 at full size. Shut cards are still in the form, so one Save posts all ten, and an empty shelf's
+first slot arrives open. The summary line is a span that may wrap, because `check/ui.js` named the
+button running 4px past a 320px card the first run a filled qualification was on screen.
+
+**The state had to be given a filled slot.** The fixture's admin has none, so every card was empty,
+every card open, and a collapse that never shut anything measured perfectly — proved by mutation
+before and after seeding `USER.profile`.
+
+**And the year box read `200`.** `.dob-boxes` sized its tracks in `ch` of the root's clamp (13.5px
+on a 320px phone) while the inputs are 16px, so four characters of the smaller font were not four of
+the larger. The grid is 16px now. Caught on a screenshot, which is the only thing that could.
+
+## Four reverts in one message: no black round a photograph, no "Message everyone", a speech bubble, and the kit a list again
+
+**Asked for as "please dont add the ugly black boarder to posts. remove the note to everyone button. change message tile to look like a speach bubble. the google chip idea didnt work how i wanted to so revert back."**
+
+**THE BORDER WAS THE FIXED 4:5 BOX.** A single post photograph sat in a 4:5 frame with `object-fit: contain` on `--sunk`, so at 390x844 a 16:9 landscape had 112px of black above and below it and a 9:16 portrait 48px down each side. `.page .post-pic` and a single clip are `aspect-ratio: auto 4 / 5` now, with no background: 4:5 is held only while the file is on its way, and once it lands the photo takes its own shape. `.post-pic` gained `height: auto`, because a `height="1000"` attribute IS a height and stretched every photo in the composer preview.
+
+**The stability the fixed box bought is kept without black.** `postsAhead_` asks for pictures a page behind and two ahead. `holdColumn_` in shell.js is called from inside `paneWatch_`'s ResizeObserver delivery, which runs before paint, and it puts the page in front back on its line when a picture ABOVE it changes height. A 16:9 landscape reserved at 4:5 is 224px taller at 390 than it becomes, and the differences add up down the column. Measured with the pictures of three posts above arriving 3s late: the post in front stays on its line; with `holdColumn_` stubbed out it ends 529px up and stays there. What is left is the post you are reading on a cold open, whose own picture can move its caption once.
+
+**Two knock-ons.**
+- `paneWatch_` measures a frame later instead of zooming inside its own callback. Zooming there raised "ResizeObserver loop" and the gold "Something went wrong" banner once a portrait pushed a post past its pane.
+- `paneReach_` keeps a shrunk card on its own centre: the left margin is worked out and divided by the zoom, instead of `margin-inline: auto`, which left a post that bleeds to the pane edge hanging off the right. Ordinary shrunk cards on six columns measured identical before and after. A 9:16 portrait post is drawn at about 95% at 390 and 72% at 320 signed in (the comment box is on the card); signed out it fits whole at 390 and is 77% at 320.
+
+**Messages.** The admin "Message everyone" page is gone, along with `cast-send`, the backend `broadcast` action and its `ACTION_ACCESS` entry, because a handler with no door is the `orderPrints` shape. No version stamps were bumped. `dopost.gs` keeps the one idea worth copying if it is ever rebuilt: every row of one send needs its own `message_id`.
+
+**The tile.** `TILE_ICONS.chat` is an outline speech bubble with its tail cut into the bottom edge, one path at stroke 1.4. The envelope (`mail`) had one caller and went with it.
+
+**The kit.** `kitList_` in find.js draws the bulleted list from before the chips (the parent of 6e3d52b, rules restored as they were). The data stays `Name × qty` and the quantity is printed after a colon, as in `Water: 100 ml`, because ten of the 640 names already carry an em dash of their own and none a colon.
+
+**Three sentences in this file are now false, and this heading corrects them**: the batch table's "A single photo sits in a fixed 4:5 box"; the zoom section's "`width` + `margin-inline: auto`"; and the kit-chips section, including "`.kit-chip` is its own component". The "One message to everybody" section describes a feature that no longer exists.
+
+**The review found one thing.** The builder wrote three different figures for one effect: 82px in posts.js and style.css, 447px in shell.js, and 223px in the commit message. All three are true of different shapes above the reader. posts.js and style.css now give the arithmetic and point at `holdColumn_`'s own note, so the measurements are in one place.
+
+**And the lab still cannot see this.** `check/fixture.json` has no single-photo post (PO1 is a grid), so no check here draws the box this section is about.
+
+## Make a flyer is an admin's at every door, and the cheat sheet maker has a subject
+
+**Asked for as "make a flyer should only be visible to admin".** On the Tools column it already was (`admin: true`), but the rule was written out twice: once in `widgetsOf_` and again in `savedWidgets_`. Two more doors asked nothing at all: `widget-open` in tiles.js opened any widget by id, and `startWidget_` started whatever it was handed. **`widgetFor_(w)` in arcade.js is the one test now and all four doors ask it.** `initFlyer`, `fm-preset` and `fm-print` refuse anybody else as a second lock. A star is kept on the device, so without the Saved-column test a flyer starred by an admin came back for whoever signed in next. Measured as admin, tutor, parent, student and signed out, across all 11 screens with the flyer pre-starred.
+
+**"Subject as a filter too" gave the cheat sheet maker a subject select, and a second subject for it to choose.** `data/cheatsheet.json` gains a `subject` column. The periodic table carries `Science` in code, and a code piece with none is Maths. The tab already held 21 English rows (E02–E22), and `matParts` had thrown them away since they were typed because nothing drew them. `MAT_PARTS_EN` draws them now. The ruler is in no subject and is offered under all of them. The card reads in the order the choices are made:
+- subject
+- one level select, which splits Foundation/Higher only for maths (`MAT_TIERED_SUBJECTS`)
+- one "skip what the exam gives you" box, only where a listed piece is given
+- Fill the page / Clear
+- the list, the gauge and Print
+
+The list and the paper ask one test, `matShown`. The subject, level and ticks are remembered on the device.
+
+### A review found four faults in the rework, all invisible to every check
+
+| | |
+|---|---|
+| **Fill** | it ranked "not given" first and folded "unknown" and "given" together, so the sphere, which the exam prints, beat the protractor, which nobody has checked. Three ranks now: known not given, then unknown, then known given |
+| **Clear** | it was lit whenever anything was ticked. Ticks are kept across subjects, so with Maths on screen it would throw away an English sheet you could not see, with nothing on the screen changing. It is now lit only over a visible tick |
+| **Print off its card at 320x568** | the two new picker rows plus the list's 8rem floor put Print 28px past its own card, and 13px even when filled. **The squeeze chain hid it from the pane**, because every box between them may shrink to nothing, so the overflow sat in the pane's padding and no zoom was ever asked for. The mat list's floor is 6rem (the 8 was measured against the A4 preview this card no longer draws), and the gauge's sentences fit on one line |
+| **The ruler counted as a listed piece** | so "nothing here" was unreachable, and a Science sheet with the periodic table skipped said "or Fill the page" beside a greyed-out Fill |
+
+The over-page warning also said "or the bottom is cut off", which cannot happen: Print is disabled while the page is over. `check-flow.js` asks the Fill order and the Clear rule, and proved it by mutation.
+
+**A widget starred onto the Saved column is dead there, and has been since Saved held widgets.** Every widget finds its parts by id, and the Tools copy is earlier in the document. Measured at e3124ae: a starred cheat sheet maker draws an empty box on Saved, and the Saved calculator types into the Tools calculator. Not fixed here, because the repair is scoping every widget's start to its own box.
+
+## A bundle of papers in Find, and the basket sends the order to the owner
+
+**Asked as "what happened to collection/bundle in the finder. like what if someone wants a bundle of
+2017 past papers for maths edexcell to add to cart and have me send it to them?"** The collection
+line was deleted for being a pivot table stacked on the funnel, and nothing replaced the one job it
+did that the funnel cannot: a set of whole papers as ONE thing to order.
+
+**A bundle is what the results add up to, not a new question.** `bundleOf_` in find.js looks at the
+list on screen and offers a bundle only when it is WHOLE PAPERS: between 2 and 24 of them, with at
+most a tenth of the results from papers outside the set. It is a leading page after the question,
+counted by `PAGER.stuff`. So nothing is offered at the top of the funnel, a topic is never a bundle,
+and the owner's own example reads **Maths · Past paper · GCSE · Edexcel · Sitting `2017 & 2018`**,
+which is 13 papers grouped a line per sitting. A search over questions from everywhere offers none.
+
+**It goes into the basket as one print line per paper, under the bundle's title.** A bundle is not a
+product: each sheet keeps its own `+ laminate` switch and its own page count, and a paper already in
+the basket is not added twice. A paper nobody has counted the pages of is `? pp` and `tbc`, and the
+total says how many are priced when sent rather than adding them in as nought.
+
+**`Send order` POSTS THE BASKET TO AN ADMIN THROUGH `sendMessage`**, the one messaging route that
+already exists, and it empties the basket **only on a yes**. There is still no checkout: money
+changes hands when the paper does, and the owner answers in Messages. Before this the button was
+`toast('Checkout is the next thing to build')`, the `orderPrints` shape.
+
+**And a fault the bundle found in the funnel.** An answer given INSIDE a bucket was ORed beside it:
+`2017 & 2018` then `Summer 2017` still kept all four sittings, because two chips on one field are
+"either / both". `stuffNarrow_` lets a bucket stand down when a later chip answers the same field,
+so the chip that says Summer 2017 is the list that says Summer 2017. Nothing could see it:
+`check-funnel.js` presses each answer on its own.
+
+**`node js/check-bundle.js`** runs the real library, works the right papers out from the file on its
+own, and asks that each bundle names exactly those, that a paper goes in once, and that an order
+empties the basket only on a yes. `check/states.js` seeds the bundle card and a basket holding one.
+This work was finished and merged by hand after the worker building it stalled.
+
+## Imposter, and Articulate and Charades got longer clocks
+
+**Asked for as "add one of those word imposter games to games column" and "for articulate give like
+90 seconds. for cherades give like 3 minutes."** `ROUND_GAMES` is 90 and 180 seconds now, drawn as
+`m:ss` by `roundClock_`, because "180s left" is a number somebody has to divide.
+
+**Imposter is dealt like the Scrabble rack.** Three to twelve players, one phone passed round. The
+next player sees only "Hand the phone to Player 3" until they press Show me; everybody gets the word
+except one, who is told only the category. Who speaks first is drawn from everybody, the imposter
+included, because leaving them out tells the room who it is not. **Every control is built by
+`impPaint`**, so nothing on the card can be pressed before there is a round. The round survives a
+repaint, and `stop` HIDES a word left on the screen, because a column swiped away and back is how the
+next person would otherwise see it. No score and no timer, which is Herd Mentality's argument.
+
+**About half its words are also in Articulate or Charades, and `check-widgets.js` is not asked to
+refuse that.** That rule exists because a word described and then mimed is one the room already
+knows. Here the word is dealt at random from 242 and only one person is trying to work it out.
+
+**`check-flow.js` deals a round of five through the handlers** and asks: exactly one imposter, every
+other player shown one word, one category for all, nothing secret on the screen between two players,
+leaving the column hides a shown word, and the reveal names the right player and word. Proved by
+mutation: no imposter, and a stop that forgets instead of repainting.
+
+## The four-seat floor was on every free room, and I put it there
+
+**`seatLimits` asked `isHome(loc)`**, and `isHome` answers "does anybody pay for this room", so it
+is true of `Online` and of every free library. A one-to-one video call needed four chairs. The floor
+is for the client's own house, so `atClientHome_` reads the NAME and nothing else: the literal
+`At home` and a venue whose title says house. `isHome` is unchanged and is still what decides
+`hosting`, which is the question it answers. `check-flow.js` asks both directions, and the old rule
+put back names `Online` and `Sutton Library`.

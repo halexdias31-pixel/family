@@ -148,10 +148,77 @@ function setCell(t, row, field, value) {
   if (!t.sheet || !row) return false;
   const c = t.headers.indexOf(field);
   if (c < 0) { missedWrite_(t, field); return false; }
-  t.sheet.getRange(row._row, c + 1).setValue(value);
+  t.sheet.getRange(row._row, c + 1).setValue(cellSafe_(value));
   row[field] = value;              // read-after-write within this request now sees the truth
   POST_WROTE = true;               // the stored payload no longer matches the sheet
   return true;
+}
+
+/* ---------- A STRING THAT STARTS LIKE A FORMULA IS WRITTEN AS TEXT --------------------------------
+   `setValue` PARSES A STRING THE WAY TYPING IT INTO THE CELL WOULD. So `+44 7700 900123` — which is
+   exactly what `phoneIn` produces — is read as a sum and comes back `#ERROR!`, and anything somebody
+   types that starts with `=` becomes a live formula in the owner's spreadsheet: a caption, a message
+   or a name reading `=IMPORTXML(…)` would run with the owner's own permissions the next time the
+   sheet recalculates. A leading apostrophe is the sheet's own "this is text": it is not stored as
+   part of the value, so every reader gets back exactly what was written.
+   `-` ONLY WHEN IT IS NOT A NUMBER, because `-5` in a credits cell is a number and must stay one. */
+function cellSafe_(v) {
+  if (typeof v !== 'string' || !v) return v;
+  const c = v.charAt(0);
+  if (c === '=' || c === '+' || c === '@') return "'" + v;
+  if (c === '-' && !/^-\d+(\.\d+)?$/.test(v)) return "'" + v;
+  return v;
+}
+
+/* ---------- SEVERAL CELLS OF ONE ROW, IN AS FEW CALLS AS THE COLUMNS ALLOW ----------------------------
+   `setCell` IS ONE `getRange().setValue()` PER CELL, and a Settings page was up to twenty-one of them
+   — the Qualifications page writes the packed cell, twelve `qual_N` mirrors and seven `teaches_*` /
+   `studying*` cells. Measured with counting stubs: an untouched Qualifications Save was 55 service
+   calls and 21 writes; the same Save through this is 9 and 0. The contract is `setCell`'s, for a row:
+
+     · A MISSING HEADER IS `missedWrite_`, exactly as in `setCell`, and that cell is skipped — so
+       `jsonOut` goes on turning a lost value into an error.
+     · A CELL ALREADY HOLDING WHAT IS BEING WRITTEN IS SKIPPED, compared as text (and a Date against
+       its own `dd/mm/yyyy` or `yyyy-mm-dd` spelling). So a Save that changes nothing writes nothing,
+       leaves `POST_WROTE` false, and does not retire every visitor's stored payload.
+     · ONE `setValues` PER RUN OF ADJACENT COLUMNS BEING WRITTEN, never a span that includes a cell
+       nobody asked to change: a span would write values read at the top of this request back over
+       anything another request (a game's credits, a notepad save) wrote in between.
+     · The in-memory row is updated afterwards, as `setCell`'s last line does. */
+function setCells(t, row, values) {
+  if (!t.sheet || !row) return [];
+  const cells = [];
+  Object.keys(values || {}).forEach(f => {
+    const c = t.headers.indexOf(f);
+    if (c < 0) { missedWrite_(t, f); return; }
+    if (sameCell_(row[f], values[f])) return;
+    cells.push({ c: c, f: f, v: values[f] });
+  });
+  if (!cells.length) return [];
+  cells.sort((a, b) => a.c - b.c);
+  const runs = [];
+  cells.forEach(x => {
+    const run = runs[runs.length - 1];
+    if (run && x.c === run[run.length - 1].c + 1) run.push(x); else runs.push([x]);
+  });
+  runs.forEach(run => {
+    t.sheet.getRange(row._row, run[0].c + 1, 1, run.length).setValues([run.map(x => cellSafe_(x.v))]);
+  });
+  cells.forEach(x => { row[x.f] = x.v; });   // read-after-write within this request sees the truth
+  POST_WROTE = true;                          // the stored payload no longer matches the sheet
+  return cells.map(x => x.f);
+}
+
+/* Is a cell already holding this value? Text comparison, deliberately strict: anything that is not
+   character-for-character the same is written. A Date is the one exception, because the sheet hands
+   back a Date for a cell the form posts as `06/05/1990` or `2027-05-14`. A Date being WRITTEN (a
+   stamp) is always written. A number the sheet hands back as `4` against a box's `'4'` is equal as
+   text, which is the comparison wanted. */
+function sameCell_(have, want) {
+  if (want instanceof Date) return false;
+  const w = (want === undefined || want === null) ? '' : String(want);
+  if (have instanceof Date) return !isNaN(have) && !!w && (w === fmtDate(have) || w === isoDate_(have));
+  return ((have === undefined || have === null) ? '' : String(have)) === w;
 }
 
 /** Append a record. Fields not in the tab are dropped rather than shifting the row. */
@@ -160,7 +227,7 @@ function addRow(t, obj) {
   Object.keys(obj || {}).forEach(k => {
     if (t.headers.indexOf(k) < 0) missedWrite_(t, k);
   });
-  const line = t.headers.map(h => (obj[h] !== undefined ? obj[h] : ''));
+  const line = t.headers.map(h => (obj[h] !== undefined ? cellSafe_(obj[h]) : ''));
   t.sheet.appendRow(line);
   POST_WROTE = true;               // the stored payload no longer matches the sheet
   const row = Object.assign({ _row: t.sheet.getLastRow() }, obj);
@@ -402,8 +469,8 @@ function testCache() {
   /* AND THE PART THAT ACTUALLY BREAKS: whether the key a visitor produces is the same key twice
      running. A cache that works perfectly and is asked a different question each time is a cache
      that never hits, and that failure looks exactly like this one from the outside. */
-  const k1 = payloadKey_({ person: 'P001', name: 'Test Person' });
-  const k2 = payloadKey_({ person: 'P001', name: 'Test Person' });
+  const k1 = payloadKey_({}, 'P001');
+  const k2 = payloadKey_({}, 'P001');
   if (k1 !== k2) return 'FAIL — the same visitor produces two different keys (' + k1 + ' / ' + k2
     + '), so nothing can ever be found again.';
   out.push('key is stable: ' + k1);
@@ -449,14 +516,26 @@ function testCache() {
    EVERYTHING ELSE IS A DIFFERENT ENDPOINT — `setup`, `run`, `map`, `receipts` and the rest all
    return before the payload is built — so a request carrying one of them is not cached at all
    rather than being given a key it would never hit twice. */
-function payloadKey_(p) {
+/* ---------- KEYED ON WHO THE TOKEN SAYS, NEVER ON WHO THE URL SAYS ----------------------------------
+   IT WAS `person|name`, OFF THE QUERY STRING, and `doGet` stopped believing either of those for
+   identity a while ago — `askedBy_()` resolves the token instead. The cache was never told. So the
+   key a stranger produced by typing `?person=P001&name=<the admin's name>` into the address was the
+   admin's own key, and the stored body behind it was the ADMIN'S payload: every child in
+   `students`, every unlisted tutor, the films. Measured in a harness with a Map-backed cache: a
+   stranger with no token got `cached:true`, `students=1`. And the other way round — a stranger asking
+   first stored the ANONYMOUS view under the admin's key, and the admin's own signed-in load was then
+   handed that. The warmer did the second one every five minutes, because it asked with `person` and
+   `name` and no token.
+   `viewer` IS THE PERSON ID THE TOKEN RESOLVED TO, or '' for nobody. Person ids are sequential and
+   names are printed on screen, so anything in the URL is public knowledge; a token is not. */
+function payloadKey_(p, viewer) {
   const special = ['run', 'setup', 'pages', 'map', 'receipts', 'galleryOnly',
                    'triggers', 'debugTiming', 'health'];
   for (let i = 0; i < special.length; i++) if (S(p[special[i]])) return '';
   /* THE VERSION AND THE GENERATION ARE BOTH IN IT. The version so a deploy cannot serve a body
      built by the code before it; the generation so `clearPayloadCache` can invalidate everything
      at once without being able to list what it stored. */
-  return payloadGen_() + '|' + BACKEND_VERSION + '|' + S(p.person) + '|' + S(p.name);
+  return payloadGen_() + '|' + BACKEND_VERSION + '|' + S(viewer);
 }
 
 /** Empty it. Called after every write, so the app's own edits are never behind. */
@@ -522,14 +601,13 @@ function webAppUrl_() {
 function warmPayload() {
   const url = webAppUrl_();
   if (!url) return 'no web app url — deploy first, or set WEB_APP_URL in Script properties';
+  /* THE ANONYMOUS KEY AND NO OTHER. It used to warm one key per admin by asking with `person` and
+     `name` — and with the cache keyed on the token now (see `payloadKey_`), a request with no token
+     is the anonymous visitor whatever it names, so those asks would only have rebuilt the anonymous
+     entry again. Before the key changed they were worse than useless: they stored the ANONYMOUS view
+     under the admin's key. So an admin's first load after each write builds, which it effectively
+     always did. */
   const asks = ['?warm=1'];
-  try {
-    read(TAB.people).rows.forEach(r => {
-      if (!S(r.full_name) || mainRole(r) !== 'admin') return;
-      asks.push('?warm=1&person=' + encodeURIComponent(S(r.person_id))
-              + '&name=' + encodeURIComponent(S(r.full_name)));
-    });
-  } catch (err) {}
   const done = [];
   asks.forEach(q => {
     try {

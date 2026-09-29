@@ -125,6 +125,50 @@ const STATES = {
       },
       expect: () => document.querySelectorAll('#stuff-groups .row').length,
       wants: 'a question with answers on it' },
+    /* ---------- A BUNDLE OF PAPERS, WHICH ONLY A NARROWED LIST OFFERS ------------------------------
+       THE CARD EXISTS ONLY WHEN THE RESULTS ARE WHOLE PAPERS — see `bundleOf_` — so `go('stuff')`
+       never shows one, and neither does any state above: a search for "work out" is questions from
+       everywhere, and six answers into the worksheets is not a set of papers. Nothing here would
+       ever have measured it, which is the hole the receipt, the message thread and the basket were
+       each in before a state put them on the screen.
+
+       THE WIDEST ONE ANYBODY REACHES BY ANSWERING, on purpose: Edexcel GCSE Higher over the
+       `2017 & 2018` bucket is twelve papers in four sittings, grouped a line per sitting — the
+       longest list and the longest title the card is drawn with on the owner's own example. A
+       three-paper bundle would measure the easy case.
+
+       FOUND BY THE PAGE IT IS ON rather than by a number, because the leading pages in front of the
+       results change with what else is offered, and a literal would land on the wrong one.
+
+       AND IT PUTS THE BASKET BACK AS WELL AS THE FUNNEL. `check/press.js` presses the trolley here,
+       which writes twelve lines to `localStorage` — and states run in order down one page, so a
+       basket left full would be measured on the Tools column as though somebody had filled it. */
+    { name: 'a bundle of papers',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'subject', value: 'Maths' },
+                         { field: 'documentType', value: 'Past paper' },
+                         { field: 'level', value: 'GCSE' },
+                         { field: 'tier', value: 'Higher' },
+                         { field: 'examWave', value: '2017 & 2018', bucket: true }];
+        paintStuff();
+        const card = document.querySelector('#s-stuff .card.bundle');
+        const page = card && card.closest('.page');
+        if (!page) throw new Error('the funnel narrowed to twelve whole papers offers no bundle');
+        goPage('stuff', [].indexOf.call(page.parentNode.children, page), true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .card.bundle');
+        return !!c && c.querySelectorAll('.bundle-list li').length >= 2
+               && !!document.querySelector('#s-stuff [data-do="cart-add"][data-kind="bundle"]');
+      },
+      wants: 'a bundle card listing its papers, with a trolley to put them in the basket',
+      leave: () => {
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        CART = []; cartSave(); if (typeof cartPaint_ === 'function') cartPaint_();
+      } },
     /* ---------- AND THE DOCUMENT BEHIND THE TILE -----------------------------------------------
        THE LONGEST SURFACE IN THE APP, AND IT IS NOT ON A SCREEN. A practical's guide opens in the
        sheet, which is where it had to go: 51 of the 56 practical cards were already taller than
@@ -168,16 +212,17 @@ const STATES = {
       },
       /* THE NUMBER IS ASSERTED RATHER THAN DESCRIBED — `>= 3` would pass on a guide that had
          quietly grown a fourth question nobody decided on, and this state is the only thing that
-         renders one. And the kit is asked for as `.kit-chip` rather than `.prac-kit li`: the chips
-         ARE `<li>`s, so the loose selector would go on passing if they ever went back to bullets,
-         which is a state that measures nothing it claims to. */
+         renders one. And the kit is asked for as a LIST — `.prac-kit ul > li` — and as nothing
+         else: it was Google-Docs-style chips for a while and went back to bullets on "the google
+         chip idea didnt work how i wanted to so revert back", so a `.kit-chip` turning up again is
+         the reverted shape coming back and fails here rather than passing as "a kit was drawn". */
       expect: () => {
         /* ONE CARD, NOT THE SCREEN. The windowed pager keeps about six result pages in the DOM at
            once, so counting `.gd-box` across `#s-stuff` counts six guides and answers 18 — which
            is what the first version of this did, and it reported the state unreachable on a screen
            that was drawing it perfectly. The count is per card because the claim is per card. */
         /* FOUR CARDS, EACH ASKED ABOUT ITS OWN JOB. The worksheet holds exactly the three boxes;
-           the kit page holds the chips; and the practical's own card holds NEITHER — a first card
+           the kit page holds the list; and the practical's own card holds NEITHER — a first card
            that still carried the guide would pass the other two tests while being the one long
            card this split replaced. And no part page carries a drawing: the picture is on the
            first card and only there. */
@@ -187,12 +232,13 @@ const STATES = {
         const steps = document.querySelector('#s-stuff .card.prac-part.is-steps');
         return !!main && !!work && !!kit && !!steps
                && work.querySelectorAll('.gd-box').length === 3
-               && !!kit.querySelector('.prac-kit .kit-chip')
+               && !!kit.querySelector('.prac-kit ul > li')
+               && !kit.querySelector('.kit-chip')
                && !!steps.querySelector('.prac-steps li')
-               && !main.querySelector('.gd-box, .kit-chip, .prac-steps')
+               && !main.querySelector('.gd-box, .prac-kit, .prac-steps')
                && !document.querySelector('#s-stuff .prac-part figure');
       },
-      wants: 'a practical split over four cards — the card, the kit chips, the steps, and a worksheet of three boxes',
+      wants: 'a practical split over four cards — the card, the kit list, the steps, and a worksheet of three boxes',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
        BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,
@@ -480,13 +526,21 @@ const STATES = {
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         USER.agreementSignedAt = '28/09/26 18:20'; USER.agreementVersion = AGREEMENT_VERSION;
+        /* A CLEAN COLUMN FIRST. `paint('settings')` is refused while a card has something typed in
+           it — `settingsKeep_`, so a Save's reload cannot throw away another card's typing — and
+           `check/press.js` has been typing into these cards for a minute before any state runs. The
+           refused paint left the state measuring the card from before its own seed, and reported
+           two settings states as not arriving that `check/ui.js`, which types nothing, found fine. */
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
         const at = [...document.querySelectorAll('#s-settings .page')]
           .findIndex(pg => pg.querySelector('[data-do="agree-sign"]'));
         if (at < 0) throw new Error('no agreement card on the settings column');
         goPage('settings', at, true);
       },
-      leave: () => { delete USER.agreementSignedAt; delete USER.agreementVersion; paint('settings'); },
+      leave: () => { delete USER.agreementSignedAt; delete USER.agreementVersion;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings'); },
       expect: () => {
         const b = document.querySelector('#s-settings .page.on [data-do="agree-sign"]');
         return b && b.checked && b.disabled
@@ -520,6 +574,15 @@ const STATES = {
     { name: 'the qualifications',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
+        /* ONE SLOT FILLED, through `USER.profile`, which is what `loginReplyFor_` fills and what the
+           column is drawn from. The fixture's admin has no qualifications, so without this every card
+           is empty, every card is open, and a collapse that never shuts anything measures perfectly. */
+        window.STATE_QUAL_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {},
+          { qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_grade: 'B', qual_1_board: 'Edexcel' });
+        /* A CLEAN COLUMN FIRST — see the agreement state above. */
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
         const pages = [...document.querySelectorAll('#s-settings .page')];
         const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
         if (at < 0) throw new Error('no qualifications page on the settings column');
@@ -529,7 +592,12 @@ const STATES = {
         const more = shelf.querySelector('[data-do="shelf-more"]');
         if (more) more.click();
       },
-      leave: () => { delete window.STATE_QUALS_SHOWN; },
+      leave: () => {
+        delete window.STATE_QUALS_SHOWN;
+        USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
       expect: () => {
         const pg = document.querySelector('#s-settings .page.on');
         const shelf = pg && pg.querySelector('[data-me="qual_1"]');
@@ -540,6 +608,14 @@ const STATES = {
         return box && pg.querySelectorAll('[data-me^="qual_"]').length === 70
           && pg.querySelectorAll('[data-do="qual-tick"]').length === 20
           && pg.querySelectorAll('[data-do="me-save"]').length === 1
+          /* ONE SUMMARY BUTTON PER SLOT, and every filled slot arrives SHUT — a filled card drawn open
+             is the 802px page the collapse exists to prevent, and it measures perfectly. */
+          && box.querySelectorAll('.q-card > .q-sum[data-do="qual-open"]').length === 10
+          && box.querySelectorAll('.q-card.is-shut').length >= 1
+          && [...box.querySelectorAll('.q-card')].every(c =>
+               [...c.querySelectorAll('[data-me^="qual_"]')]
+                 .some(el => !/_(teach|spec)$/.test(el.dataset.me) && String(el.value || '').trim())
+               === c.classList.contains('is-shut'))
           && box.querySelectorAll('.lib-card:not([hidden])').length === window.STATE_QUALS_SHOWN + 1
           ? 70 : 0;
       },
@@ -596,13 +672,17 @@ const STATES = {
       enter: () => {
         window.STATE_ROLE_WAS = USER.role;
         USER.role = 'student';
+        /* A CLEAN COLUMN FIRST — see the agreement state above. */
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         repaint();
         const at = [...document.querySelectorAll('#s-settings .page')]
           .findIndex(pg => pg.querySelector('[data-me="exam_small_date"]'));
         if (at < 0) throw new Error('no exam-dates page on the settings column');
         goPage('settings', at, true);
       },
-      leave: () => { USER.role = window.STATE_ROLE_WAS; repaint(); },
+      leave: () => { USER.role = window.STATE_ROLE_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        repaint(); },
       /* BOTH, AND BOTH A REAL DATE PICKER. `expect` is truthy-read, so a bare count passes on a page
          holding two plain text boxes — which is precisely what `FIELD_IS_DATE` failing to match
          produces, and the whole point of the `_date` suffix. So the type is the assertion. */
@@ -688,8 +768,15 @@ const STATES = {
         /* READ IN THE SAME TICK AS THE PRESS. `avatarSave` redraws before the server answers, and
            read later the answer is the stub's: `check/fixture.json` carries no `avatar` key, so the
            figure would go back to the default and this would report the app broken for the
-           fixture's shape. */
-        window.__AV_MOVED = !!fig && !!was && fig.innerHTML !== was;
+           fixture's shape.
+           ASKED OF THE CARD AS IT NOW IS. `avatarSave` rebuilds the card's inside from `wardrobeCard_`
+           — so the ring, a bought item's lock and the credits line follow the look, not only the
+           figure — which means the figure read before the press is a detached element afterwards.
+           And the picked item must now carry the ring: that half is what the rebuild is for. */
+        const now = pg.querySelector('.av-figure');
+        const ringed = pick && pg.querySelector('[data-do="av-pick"][data-slot="' + pick.dataset.slot
+          + '"][data-id="' + pick.dataset.id + '"].on');
+        window.__AV_MOVED = !!now && !!was && now.innerHTML !== was && (!pick || !!ringed);
       },
       expect: () => window.__AV_MOVED,
       wants: 'the figure on the wardrobe card redrawn by a pick made on it' },
@@ -750,9 +837,13 @@ const STATES = {
   tools: [
     { name: '' },
     { name: 'the cheat sheet maker',
+      /* `widgetsOf_`, NOT `allWidgets()` — the note over the flyer state below says why, and this
+         state was still doing the thing it describes: the flyer maker and the tutors' hours are
+         gated out of a stranger's column, so `allWidgets()` put the cheat sheet two pages further
+         down than the column draws it and a signed-out run turned to the calendar instead. The
+         expect went on passing because every page of the column is in the document at once. */
       enter: () => {
-        const n = allWidgets().filter(w => w.kind === 'tool')
-          .findIndex(w => String(w.id) === 'mat');
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'mat');
         if (n < 0) throw new Error('no cheat sheet widget in the roster');
         goPage('tools', n, true);
       },
@@ -763,6 +854,40 @@ const STATES = {
       expect: () => !document.querySelector('#s-tools .mat-sheet')
         && document.querySelector('#s-tools #mat-said b'),
       wants: 'the picker and the gauge, with no A4 preview on the card' },
+    /* ---------- AND FILLED, WHICH IS THE CARD SOMEBODY ACTUALLY PRINTS FROM ------------------------
+       THE STATE ABOVE IS THE CARD AS IT OPENS — every level, nothing ticked, so the row holding
+       Fill and Clear is not drawn at all and not one tick on the list is set. That is the least
+       interesting version of the card to measure and the only one this file had: a subject and a
+       level chosen, the page filled, the "given in the exam" notes under their rows and Print lit
+       is the state the tool exists to reach, and none of it had been laid out at any width.
+       ENTERED THROUGH THE CONTROLS rather than by setting `MAT_LEVEL`, because the selects and the
+       button are the doors, and a state reached round them proves the drawing and not the tool.
+       `leave` PUTS THE MAKER BACK AS IT OPENS, and forgets what it remembered on this device —
+       states run in order down one page, and `matRecall` would otherwise open every later visit to
+       the tool on a filled GCSE sheet. */
+    { name: 'the cheat sheet maker, filled',
+      enter: () => {
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'mat');
+        if (n < 0) throw new Error('no cheat sheet widget in the roster');
+        goPage('tools', n, true);
+        const sub = document.querySelector('#s-tools #mat-subject');
+        const lev = document.querySelector('#s-tools #mat-level');
+        if (!sub || !lev) throw new Error('the cheat sheet maker has no subject or level select');
+        sub.value = 'Maths'; sub.dispatchEvent(new Event('change', { bubbles: true }));
+        lev.value = 'GCSE|H'; lev.dispatchEvent(new Event('change', { bubbles: true }));
+        const fill = document.querySelector('#s-tools #mat-fill');
+        if (!fill) throw new Error('the cheat sheet maker has no Fill button');
+        fill.click();
+      },
+      expect: () => document.querySelector('#s-tools #mat-quick:not([hidden])')
+        && document.querySelectorAll('#s-tools .mat-list input:checked').length >= 5
+        && !document.querySelector('#s-tools #mat-go').disabled,
+      wants: 'a subject and a level chosen, the page filled and Print ready',
+      leave: () => {
+        MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
+        try { localStorage.removeItem('matChoice'); } catch (e) {}
+        matPaint();
+      } },
     /* ---------- AND THIS ONE IS NOT THERE FOR EVERYBODY -------------------------------------
        `flyers` CARRIES `admin: true`, so it is not in a signed-out visitor's roster at all — and
        "could not reach it" is the wrong sentence for a widget that correctly does not exist. A
@@ -801,9 +926,23 @@ const STATES = {
        A PRICE IN THE THOUSANDS ON PURPOSE. The figure column is the thing that breaks here — it is
        sized in `ch` of a proportional font and drawn in mono — and `£2050.00` is one character
        wider than `£270.00`, which is the difference between a finding and a pass. */
+    /* ---------- AND WHAT A BUNDLE PUTS IN IT, which is most of what a basket holds now --------------
+       Three papers under the title of the bundle they came from, one of them laminated, and a paper
+       nobody has counted the pages of — so the group's caption, the `✓ laminated` switch, the `? pp`
+       and the `tbc` in the figure column are all on the screen at once. The first version of the
+       laminated switch said `laminated £7.00 · plain` and put the ✕ on a line of its own at 320px;
+       a basket seeded with shop items only could never have shown that. Invented lines, shaped the
+       way `cartAddBundle_` writes them. */
     { name: 'the basket',
       enter: () => {
-        CART = [{ key: 'I001', name: 'Trundle wheel, 1 m circumference', kind: 'shop',
+        const from = 'Edexcel · Maths · GCSE · Higher · Past papers · Summer 2017';
+        CART = [{ key: 'P-1MA1-1705-1H', kind: 'print', name: 'Paper 1 (Non-Calculator) — May 2017 · Higher',
+                  short: 'Paper 1', pages: 20, cost: 0, from: from, laminate: true },
+                { key: 'P-1MA1-1706-2H', kind: 'print', name: 'Paper 2 (Calculator) — June 2017 · Higher',
+                  short: 'Paper 2', pages: 24, cost: 0, from: from },
+                { key: 'P-UNCOUNTED', kind: 'print', name: 'Paper 3 (Calculator) — June 2017 · Higher',
+                  short: 'Paper 3', pages: 0, cost: 0, from: from },
+                { key: 'I001', name: 'Trundle wheel, 1 m circumference', kind: 'shop',
                   cost: 0, money: 120000 },
                 { key: 'I026', name: 'Tape measure, 30 m', kind: 'shop', cost: 0, money: 85000 }];
         const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'cart');
@@ -811,8 +950,9 @@ const STATES = {
         goPage('tools', n, true);
         initCart();
       },
-      expect: () => document.querySelector('#s-tools [data-do="cart-send"]'),
-      wants: 'a basket with a way to pay on it',
+      expect: () => document.querySelector('#s-tools [data-do="cart-send"]')
+                    && document.querySelector('#s-tools .cart-box .cart-from'),
+      wants: 'a basket holding a bundle under its title, with a way to send the order',
       /* PUT BACK, because states run in order down one page and an empty basket is what every
          other state on this column expects to find. */
       leave: () => { CART = []; initCart(); } },

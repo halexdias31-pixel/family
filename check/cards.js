@@ -369,8 +369,8 @@ function outside(svg, row) {
      IT IS STILL A SEPARATE PASS FROM THE CARD ONE ABOVE, deliberately. That one asks whether a card
      fits the COLUMN at 320px; this one asks the questions only the guide's own contents raise — a
      drawing clipped by its own viewBox, a drawing rendered twice, the picture landing below the kit
-     list, and how many kit chips carry a quantity. Folding them together would make one report of
-     two different subjects.
+     list, and whether the kit list draws every item its row holds. Folding them together would
+     make one report of two different subjects.
 
      RENDERED INTO A `.pane`, which is what a funnel result page is: `.page.is-res > .pane >
      .favwrap > .card.prac`. A bare div of the right width would be a column the card is never in,
@@ -456,14 +456,14 @@ function outside(svg, row) {
 
      EVERY MEASUREMENT INSIDE THE LOOP IS UNCHANGED, and that is the point of the edit being this
      small: the `.gd` block is the same markup in the same order, so the width rule, the clipped-
-     label rule, the drawn-once rule, the picture-before-the-kit rule and the chip counts all ask
+     label rule, the drawn-once rule, the picture-before-the-kit rule and the kit count all ask
      exactly what they asked before. What changed is only how it gets on a screen — rendered into a
      `.pane`, which is what a funnel result page actually is. */
   const guides = await pracPage.evaluate(arg => {
     if (typeof practicalCard_ !== 'function') return -1;
     const items = stuffItems().filter(x => x.kind === 'practical');
     const wide = [], clipped = [], order = [];
-    let drawings = 0, chips = 0, withQty = 0;
+    let drawings = 0, lines = 0, withQty = 0;
     const host = document.createElement('div');
     host.id = '__cardhost';
     host.innerHTML = '<section class="page"><div class="pane"></div></section>';
@@ -519,20 +519,33 @@ function outside(svg, row) {
         order.push(x.key + ' draws its apparatus drawing BELOW the kit list — the picture of the '
           + 'practical comes first, then the things it is made of');
       }
-      if (main && main.querySelector('.kit-chip, .prac-steps, .gd-box')) {
+      if (main && main.querySelector('.prac-kit, .prac-steps, .gd-box')) {
         order.push(x.key + ' still draws its guide on the practical\'s own card — the kit, the '
           + 'method and the worksheet are pages of their own now');
       }
       if (!work || work.querySelectorAll('.gd-box').length !== 3) {
         order.push(x.key + ' has no worksheet page holding exactly the three boxes (iv, dv, cv)');
       }
-      pane.querySelectorAll('.kit-chip').forEach(c => {
-        chips++;
-        if (c.querySelector('.kit-q')) withQty++;
-      });
+      /* ---------- THE KIT IS A LIST AGAIN, AND IT DRAWS EVERY ITEM IT HOLDS ---------------------
+         IT WAS CHIPS, counted here by class, and went back to bullets on "the google chip idea
+         didnt work how i wanted to so revert back". What is worth asking of a list is the thing
+         the chip count stood in for: one line per item, so nothing the row names is missing from
+         the bag. Counted against the row the card was drawn from rather than against a number
+         typed here. A `.kit-chip` coming back is the reverted shape returning, and it is named. */
+      const kitList = pane.querySelectorAll('.prac-part.is-kit .prac-kit ul > li');
+      const want = ((x.row && x.row.equipment) || []).length;
+      lines += kitList.length;
+      withQty += ((x.row && x.row.equipment) || []).filter(e => e && e.qty).length;
+      if (want && kitList.length !== want) {
+        order.push(x.key + ' draws ' + kitList.length + ' kit line(s) for the ' + want
+          + ' item(s) its row holds');
+      }
+      if (pane.querySelector('.kit-chip')) {
+        order.push(x.key + ' draws its kit as chips — they were reverted to a plain list');
+      }
     });
     host.remove();
-    return { n: items.length, drawings, wide, clipped, order, chips, withQty };
+    return { n: items.length, drawings, wide, clipped, order, lines, withQty };
   }, { slack: SLACK });
 
   /* A CHECK THAT CANNOT REACH ITS SUBJECT MUST SAY SO AND FAIL -- "I did not check" is not the same
@@ -632,7 +645,7 @@ function outside(svg, row) {
             + `${practicals.tall.length} practical card(s) are taller than that`);
   console.log(`${guides.n} practical(s) laid out over their split cards, `
             + `carrying ${guides.drawings} apparatus drawing(s)`);
-  console.log(`${guides.chips} kit chip(s) drawn across those guides, `
+  console.log(`${guides.lines} kit line(s) drawn across those guides, `
             + `${guides.withQty} of them carrying a quantity`);
   if (papers === -1 || !papers.n) {
     console.error('\nthe app laid out no printed quiz at all -- not a pass');
@@ -649,7 +662,7 @@ function outside(svg, row) {
      A FAILURE RATHER THAN A COUNT, because the number is zero and can stay zero: this is a fact
      about one template, not a backlog anybody has to work through. */
   if (guides.order.length) {
-    console.log('\nTHE GUIDE IS IN THE WRONG ORDER  (' + guides.order.length + ')');
+    console.log('\nTHE GUIDE IS IN THE WRONG ORDER OR SHAPE  (' + guides.order.length + ')');
     guides.order.forEach(o => console.log('  ' + o));
   }
 

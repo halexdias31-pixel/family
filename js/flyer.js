@@ -473,6 +473,7 @@ const FLY_PRESETS = {
 };
 
 on('fm-preset', el => {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;     /* see `initFlyer` */
   const p = FLY_PRESETS[el.getAttribute('data-p')];
   if (!p) return;
   document.querySelectorAll('.fm-adds input[type=checkbox]')
@@ -511,6 +512,12 @@ on('fm-preset', el => {
 function initFlyer() {
   const wrap = $('fm-wrap');
   if (!wrap) return;
+  /* ---------- ADMIN ONLY, AND THE TOOL ITSELF SAYS SO -----------------------------------------
+     ASKED FOR AS *"make a flyer should only be visible to admin"*. The roster already hides it
+     (`admin: true`, `widgetFor_`), and this is the second lock rather than the first: a flyer prices
+     the business's classes and prints its advertising, so the one function that builds the controls
+     refuses anybody else outright and leaves the box empty rather than half-built. */
+  if (!(typeof isAdmin === 'function' && isAdmin())) { wrap.innerHTML = ''; return; }
   /* ---------- THE CONTROLS ARE THE PART THAT GIVES UP ITS HEIGHT --------------------------------
      MEASURED ON THE TOOLS COLUMN AT 390px: two `.fm-bar` rows (185 each), `.fm-adds` (189) and a
      note (50) come to 609px of controls, and with a 378px flyer and a 44px button under them the
@@ -576,6 +583,7 @@ function flyDraw() {
    THE CLASS IS SET ONLY WHILE PRINTING, so a print started anywhere else in the app is unaffected,
    and the paper is removed afterwards so nothing of it is left in the document. */
 on('fm-print', () => {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;     /* see `initFlyer` */
   const paper = document.createElement('div');
   paper.className = 'fm-out';
   paper.innerHTML = flySheet();

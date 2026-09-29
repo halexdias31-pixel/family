@@ -156,6 +156,10 @@ const SUITE = [
      completely silent: a dropped field writes a shorter cell, the form reloads with an empty box,
      and the person who typed it assumes they forgot. */
   { file: 'check-people.js', what: 'the packed cells on the people tab, round-tripped' },
+  /* THE SETTINGS COLUMN THROUGH THE REAL BACKEND. For months nobody but an admin could save, and the
+     admin's Saves wrote blanks over five packed cells — and nothing on this roster ever ran
+     `updateProfile`. See the header of that file. */
+  { file: 'check-profile.js', what: 'your settings, saved and read back through the real backend' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
      The third check here about SAFETY rather than about working, after `check-marking.js` and
      `check-handles.js` — and the only one whose subject is this repository rather than the app.
@@ -182,6 +186,14 @@ const SUITE = [
      checklist topic arriving with no link on it, and nothing throwing. */
   { file: 'check-settings.js', what: 'the settings files, against what the app reads off them' },
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something' },
+  /* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS --------------------------------
+     A bundle is the whole papers on the list, a trolley that puts them in the basket, and a Send
+     that tells the owner. `check-flow` cannot reach it — its fake backend answers the library with
+     the payload, so no bundle ever forms there — and each half can be wrong in a way that draws
+     perfectly: a paper named that the list does not hold, a paper in the basket twice, an order
+     that empties the basket on a refusal. This runs the real library and works the right papers out
+     from the file on its own. */
+  { file: 'check-bundle.js', what: 'a bundle names its papers, and an order reaches the owner' },
   { file: 'check-flow.js',    what: 'the app, actually running' },
   /* ---------- AND THE LIBRARY ITSELF, LAID OUT ---------------------------------------------------
      `check/ui.js` MEASURES THE APP AND SAMPLES THE LIBRARY. The Find screen's results are pages

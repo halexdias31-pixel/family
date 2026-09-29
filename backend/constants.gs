@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-29-f-many";
+const BACKEND_VERSION = "2026-09-29-h-batch";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2085,17 +2085,16 @@ const PROFILE_GROUPS = {
      SECOND RATHER THAN FIRST, because About you is the page somebody arrives on and a name is what
      they came to change. `CLIENT_GROUPS` and `STUDENT_GROUPS` have always had it second; this is
      the map that disagreed with them. */
-  /* ---------- CONTACT SECOND, AND FOR A TUTOR IT STAYS APART FROM WHERE ----------------------
+  /* ---------- CONTACT SECOND, AND FOR A TUTOR IT IS ONE PAGE WITH WHERE NOW --------------------
      THE CONTACT PAGE IS SECOND because a field nobody can find is a field that is not there, and the
      e-mail is what somebody signs in with. A parent's and a student's contact page absorbed their
      address (`CLIENT_GROUPS`, `STUDENT_GROUPS`) when this app's settings were asked to merge "what
-     can be merged". A tutor's does NOT, and that is measured rather than preferred: a tutor's place
-     is six fields — travel distance among them — and merged it was **661px in a 532px pane at
-     320x568**, 129px below the fold, where the two pages apart are about 330 and 450. */
-  'Contact':     ['email','phone','date_of_birth'],
-  /* THE PLACE AND THE ADDRESS ON ONE PAGE. The address is still private — `doGet` sends it to an
-     admin only — it simply stops being a second page about the same place. */
-  'Where':       ['city','town','borough','postcode','address','travel_km'],
+     can be merged". A tutor's was KEPT APART on a measurement — merged it was 661px in a 532px pane
+     at 320x568 — and that measurement no longer holds: the 17px browser margin over every settings
+     title is gone, and a card taller than its pane is now drawn smaller to fit (`paneReach_`) rather
+     than clipped. Asked again as "look at all of account settings and see if there is a better way to
+     have it layout. like more effecient", so one page, the same shape as everybody else's. */
+  'Contact & address': ['email','phone','date_of_birth','city','town','borough','postcode','address','travel_km'],
   'Your rate and group size': PRICING_FIELDS,
   /* WHAT YOU TEACH, WHAT YOU ARE STUDYING AND ANYTHING ELSE — one page, because they are the
      three answers to "what do you know". `Qualifications` beside it is the graded list. */
@@ -2735,9 +2734,8 @@ const ACTION_ACCESS = {
      except that they have just locked the real owner out until they read their email, which is
      the one real cost and is why `authEndSession_` is NOT called here. */
   forgotPin: 'anyone',
-  /* ONE MESSAGE TO EVERYBODY, WHICH IS A DECISION ABOUT OTHER PEOPLE'S INBOXES. Admin, for the
-     same reason `closeJob` is. */
-  broadcast: 'admin',
+  /* `broadcast: 'admin'` WAS HERE — one message to everybody — and went with its handler and its
+     card on "remove the note to everyone button". An entry with no handler is a door onto nothing. */
   /* SIGNING IN WITH GOOGLE. `anyone` for the same reason as the two beside it — you cannot be
      signed in to sign in — and the handler proves identity by asking Google rather than by
      believing the request, which is the difference between this and the entry removed below. */
@@ -2820,6 +2818,9 @@ const ACTION_ACCESS = {
      is their own name going down. */
   joinFestive: 'self',
 
+  /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
+     resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */
+  myProfile: 'self',
   // The books, the prices, the rooms, the people list.
   diagnosePeople: 'admin', getProfile: 'admin', listPeople: 'admin',
   updateVenue: 'admin', updateConfig: 'admin', updatePricing: 'admin',

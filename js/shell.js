@@ -442,6 +442,19 @@ function startScreen_(id) {
   else if ((id === 'tools' || id === 'games') && typeof toolsStart_ === 'function') {
     toolsStart_(id === 'tools' ? 'tool' : 'game');
   }
+  /* ---------- AND A COLUMN WHOSE CARDS JUST GREW IS PLACED AGAIN ---------------------------------
+     A WIDGET DRAWS ITSELF IN ITS `start`, which runs here, 300ms after the column was placed — so
+     the basket's receipt, the calendar's month and the week's roster all arrive AFTER `goPage` has
+     measured where the page in front is. On a column somebody lands on at page 0 that costs
+     nothing; on one they land on further down it put the page they asked for 1,500px below the
+     glass. Measured from the bundle's "see your basket" tile: `PAGE.tools` was 9, the basket was
+     `.page.on`, and its top edge was at y = 1706 on an 844px phone — a blank column until somebody
+     swiped, with nothing wrong in any single step.
+     INSTANT, because the slide has already finished and nobody saw the wrong position move; and
+     only for the column in front, because a neighbour is placed when it is arrived at. */
+  if ((id === 'saved' || id === 'tools' || id === 'games') && id === AT) {
+    placeCells('y', true, 0, id);
+  }
   /* THE CAMERA STARTS ON ARRIVAL rather than on a tap. It waited for a button on the belief that
      `getUserMedia` needs a gesture; what it needs is PERMISSION, which the browser prompts for once
      and then remembers — so the button was asking you to confirm, every single visit, a thing you
@@ -525,6 +538,17 @@ function paintNeighbours() {
 let STALE = {};
 
 function paint(id) {
+  /* ---------- A SETTINGS CARD WITH SOMETHING TYPED INTO IT IS NOT REDRAWN UNDER THE TYPING ---------
+     REPORTED AS "some things arent updating when i click save", and part of it was this: a Save on
+     one card called `load()`, and when the payload landed — and again when the inbox landed — every
+     column was repainted from `USER.profile`, so anything typed on ANOTHER settings card and not yet
+     saved was thrown back to the old value, seconds after the toast said Saved. Measured in Chromium:
+     typed a postcode on Where, pressed Save on About you, and the postcode box was a new element
+     holding the old postcode. So a column holding an unsaved or in-flight card is marked stale
+     instead, and drawn the next time it is arrived at with nothing typed in it. `settingsKeep_` is in
+     me.js, beside the forms it asks about; signed out it always answers no, so signing out clears
+     the column as it always did. */
+  if (typeof settingsKeep_ === 'function' && settingsKeep_(id)) { STALE[id] = 1; return; }
   /* Drawn is fresh, by definition, whoever asked for it. */
   delete STALE[id];
   /* A PAGED SCREEN HAS NO PADDING OF ITS OWN — each page supplies it, because a page is positioned
@@ -960,6 +984,51 @@ function columnShift_(host, at, top) {
   const line = top === undefined ? cardTop_(boxH) : top;
   if (line === null) return boxH / 2 - (cur.offsetTop + cur.offsetHeight / 2);
   return line - cur.offsetTop;
+}
+
+/* ---------- A CARD ABOVE CHANGED HEIGHT, SO THE COLUMN IS HELD ON THE PAGE YOU ARE READING --------
+   THE PAGES ARE AN ORDINARY CSS COLUMN AND THE SHIFT IS WORKED OUT FROM `offsetTop`, so a card
+   ABOVE the page in front that changes height after the column was placed moves that page by the
+   difference — and nothing re-placed it, because nothing had ever grown up there. A post
+   photograph in its own proportions is the first thing that does: it reserves 4:5 while the file is
+   on its way and becomes a landscape when it lands. Measured at 390x844 with two landscapes above
+   the post being read and the files 3.5s late: the post in front jumped 447px up the screen and
+   STAYED there until the next swipe. With a portrait among them the zoom-to-fit happened to
+   re-place the column, three frames later — a 100px flicker instead of a lost post.
+
+   SO THE CALLER IS THE `ResizeObserver` THAT ALREADY WATCHES EVERY CARD (`paneWatch_` in find.js),
+   and it calls this INSIDE its own delivery. That is the one moment that is early enough: the
+   observer runs after layout and before paint, so the page moved and the column moved back in the
+   same frame and no frame ever shows the jump. It is also safe there, which `paneReach_` is not — a
+   transform changes where a column is drawn and not how big anything in it is, so no observed size
+   changes and the observer cannot feed itself.
+
+   ONLY THE TRANSLATE'S SECOND HALF, and only when it is wrong. The first half is the sideways step
+   and belongs to whoever placed the grid. AT REST THE TRANSITION IS SWITCHED OFF for the move, as an
+   instant placement does: with it on, the layout would jump the page and the transform would then
+   slide it back over a third of a second, which is the flicker wearing a different coat. MID-SLIDE
+   it is left alone, so the running animation simply retargets. And NEVER UNDER A FINGER — a drag
+   writes its own offset into this transform every frame, and `no-anim` is what says one is down.
+   AND NEVER WHILE A SLIDE IS BOOKED: `PAGE` may already name the page an animated placement is
+   about to go to, and moving the column there now, instantly, would be the slide cancelled a frame
+   before it began — the collision `placeCells` exists to make unwriteable. An INSTANT placement
+   booked for next frame is different and is not waited for: it would put the column exactly where
+   this does, one frame later, and that frame is the jump. Measured at 320x568: waiting for the one
+   `paneReach_` books after a zoom changes painted the post 85px low for a frame. */
+function holdColumn_(id) {
+  try {
+    const host = $('s-' + id);
+    if (!host || host.classList.contains('no-anim')) return;
+    if (PLACE_FRAME && PLACE_WANT && !PLACE_WANT.instant) return;
+    const m = /translate\(\s*(-?[\d.]+)px\s*,\s*(-?[\d.]+)px\s*\)/.exec(host.style.transform || '');
+    if (!m) return;
+    const want = columnShift_(host, domIndex_(id, PAGE[id] || 0));
+    if (!isFinite(want) || Math.abs(parseFloat(m[2]) - want) < 0.5) return;
+    const moving = typeof host.getAnimations === 'function'
+      && host.getAnimations().some(a => a.playState === 'running');
+    if (!moving) host.style.transition = 'none';
+    host.style.transform = `translate(${m[1]}px, ${want.toFixed(1)}px)`;
+  } catch (e) { /* a column left where it was is the behaviour before this existed */ }
 }
 
 /* ---------- HOW FAR IT IS TO THE NEXT CARD DOWN ---------------------------------------------------
@@ -2224,6 +2293,19 @@ function api(body) {
           + d.unwritten.map(x => x.tab + '.' + x.field).join(', ')
           + ' — those columns are not in the sheet.');
       }
+      /* ---------- A SESSION THE SERVER HAS ENDED IS ENDED HERE TOO ---------------------------------
+         `why: 'signed-out'` IS THE GATE SAYING THE TOKEN IS NO GOOD — expired after thirty days,
+         ended by a PIN change on another phone, or from before sessions moved off the sheet. Every
+         request after it would be refused with "Please sign in again." under a screen that still
+         shows somebody signed in, which reads as the app being broken rather than as a sign-in to
+         do. So the phone forgets the account the way Sign out does, once, and says why. A code rather
+         than the sentence, so a reworded refusal cannot turn this off. */
+      if (d && d.why === 'signed-out' && typeof USER === 'object' && USER && USER.token === b.token) {
+        USER = null;
+        try { localStorage.removeItem('familyUser'); } catch (e) {}
+        toast('Signed out — please sign in again');
+        try { repaint(); } catch (e) {}
+      }
       return d || {};
     });
 }
@@ -2900,6 +2982,10 @@ async function load() {
       if (USER && typeof loadMessages === 'function') {
         loadMessages().then(() => { try { repaint(); } catch (e) {} });
       }
+      /* AND YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM — see `profileRefresh_` in me.js. Once per
+         app open, beside the inbox and for the same reason: a private thing, fetched only for somebody
+         signed in, and never part of a payload that is cached and shared. */
+      if (USER && typeof profileRefresh_ === 'function') profileRefresh_();
       /* NO BANNER FOR A VERSION MISMATCH ANY MORE.
          It was built when a cached stylesheet was a real and invisible problem — twice a rule had
          been changed and the browser was serving an old copy, and there was no way to tell that

@@ -98,9 +98,11 @@ const WOW = new Set(['low', 'medium', 'medium-high', 'high', 'very high']);
 const PRACTICAL_TYPE = new Set(['experiment', 'build']);
 
 /* ---------- A QUANTITY IS SHORT, OR IT IS NOT A QUANTITY ------------------------------------------
-   IT RENDERS INSIDE A CHIP beside the item's own name, and `.kit-q` is `flex: 0 0 auto` so it
-   cannot wrap — a long one pushes the name out of its chip rather than wrapping politely. Twelve
-   characters holds `2`, `250 ml`, `a handful` and `2 per person`, and refuses a sentence. */
+   IT IS PRINTED AFTER THE ITEM'S NAME on its line of the kit list — `Lolly sticks: about 10`. It
+   was a badge inside a chip that could not wrap, and the chips were reverted to a list on "the
+   google chip idea didnt work how i wanted to so revert back"; the cap outlived them for its other
+   reason. Twelve characters holds `2`, `250 ml`, `a handful` and `2 per person`, and a sentence
+   after the colon reads as a second item on the same line. Put the detail in the name. */
 const QTY_MAX = 12;
 
 /* The numbered columns this file exists to have replaced. A returning `equipment_11` is not untidy,
@@ -202,8 +204,8 @@ rows.forEach(r => {
     });
     /* ---------- AND THE KIT CARRIES ITS OWN QUANTITY, IN ONE STRING ---------------------------
        THE FORMAT IS `Name × qty` AND THIS IS WHERE IT IS REFUSED. `kitParse_` in js/library.js is
-       its only reader and it is deliberately forgiving — a chip with no label is worse than a chip
-       with a long one, so a malformed item falls back to drawing the whole string. That forgiveness
+       its only reader and it is deliberately forgiving — a kit line with no name is worse than one
+       with a long name, so a malformed item falls back to drawing the whole string. That forgiveness
        is exactly why the rule has to be here: a `Water ×` with nothing after it would render as the
        words `Water ×` and look like a design.
 
@@ -213,7 +215,7 @@ rows.forEach(r => {
        same idea.
 
        A QUANTITY OF ONE IS NOT A QUANTITY. One stopwatch is one stopwatch, and `× 1` on five
-       hundred chips is five hundred pieces of furniture that say nothing. The absence IS the
+       hundred lines of kit is five hundred pieces of furniture that say nothing. The absence IS the
        answer, which is the same argument this file makes three columns along about an age nobody
        has judged. */
     String(r.equipment || '').split('|').map(t => t.trim()).filter(Boolean).forEach(item => {
@@ -230,15 +232,16 @@ rows.forEach(r => {
       }
       if (!qty) {
         fail.push(id + ' has a kit item ending in × with nothing after it — "' + item + '". '
-          + 'The chip would draw the × as part of the name');
+          + 'The kit list would draw the × as part of the name');
       }
       if (qty === '1') {
         fail.push(id + ' has a kit item with a quantity of 1 — "' + item + '". Leave it off: one '
-          + 'of a thing is what a chip with no quantity already means');
+          + 'of a thing is what a kit line with no quantity already means');
       }
       if (qty.length > QTY_MAX) {
         fail.push(id + ' has a kit quantity of ' + qty.length + ' characters — "' + qty + '". It '
-          + 'renders in a chip beside the name and cannot wrap; put the detail in the name');
+          + 'is printed after the name on the kit line and reads as a second item; put the detail '
+          + 'in the name');
       }
     });
     riskLines += String(r.risks || '').split('|').filter(t => t.trim()).length;

@@ -312,6 +312,28 @@ function boot(opts) {
       'matPairW: typeof matPairW === "function" ? matPairW : null,' +
       'matSpan: typeof matSpan === "function" ? matSpan : null,' +
       'matSpanW: typeof matSpanW === "function" ? matSpanW : null,' +
+      /* THE SUBJECT FILTER AND WHAT IT DECIDES. `matShown` is the one test the list and the paper
+         both ask, so a journey asking it is asking what would print; `matSet` puts the two selects
+         where a person would, through `matSettle`, which is what the handlers do. */
+      'matShown: typeof matShown === "function" ? matShown : null,' +
+      'matSubjects: typeof matSubjects === "function" ? matSubjects : null,' +
+      'matSubjectOf: typeof matSubjectOf === "function" ? matSubjectOf : null,' +
+      'matLevelChoices: typeof matLevelChoices === "function" ? matLevelChoices : null,' +
+      'matDraw: typeof matDraw === "function" ? matDraw : null,' +
+      /* FILL AND CLEAR, and the tick list they change — the two shortcuts a person presses, asked
+         through the same functions the buttons call. */
+      'matFill: typeof matFill === "function" ? matFill : null,' +
+      'matPaint: typeof matPaint === "function" ? matPaint : null,' +
+      'matOn: v => { if (v) MAT_ON = v.slice(); return MAT_ON.slice(); },' +
+      'matSet: (s, l, tier) => { MAT_SUBJECT = s; MAT_LEVEL = l; if (tier) MAT_TIER = tier;' +
+      '  MAT_EXAM = "all"; matSettle(matParts()); return [MAT_SUBJECT, MAT_LEVEL]; },' +
+      /* WHO MAY OPEN A WIDGET, and the two lists that ask it. `star` puts a key in the device's
+         favourites the way a press on a star does, without the request. */
+      'widgetFor: typeof widgetFor_ === "function" ? widgetFor_ : null,' +
+      'allWidgets: typeof allWidgets === "function" ? allWidgets : null,' +
+      'widgetsOf: typeof widgetsOf_ === "function" ? widgetsOf_ : null,' +
+      'savedWidgets: typeof savedWidgets_ === "function" ? savedWidgets_ : null,' +
+      'star: k => FAVS.add(String(k)),' +
       /* THE BASKET, AND ITS ARITHMETIC. `cartMoney_` is the one place a line's price is worked out
          — print plus the laminate upgrade — and `CART` is the list it works it out from. Exposed
          together so a journey can put a line in the basket and ask what it costs, which is the
@@ -489,6 +511,240 @@ check('the cheat sheet prices every component at the fixed slot it is drawn in',
   if (Math.abs(t.matSpanW(6) - 184) > 0.01) {
     bad.push('six tracks come to ' + t.matSpanW(6) + 'mm, not the 184mm text block');
   }
+  return bad;
+});
+
+/* ---------- THE SUBJECT FILTER NARROWS THE LIST AND THE PAPER TO ONE SUBJECT ---------------------
+   ASKED FOR AS *"for cheat sheet maker it should have subject as a filter too"*. The fault worth a
+   rule is the one a filter always risks: a choice on the screen that the paper does not honour —
+   an English sheet carrying a hundred square, or "Every subject" quietly meaning Maths. So each
+   subject the select offers is set the way the select sets it and `matShown`, the one test the list
+   and the sheet share, is asked of every piece. The ruler belongs to no subject and must be offered
+   under all of them. And the tier split is only offered where a piece changes with it, which is the
+   maths: an English "GCSE Foundation" would be a choice that changes nothing on the paper. */
+check('the cheat sheet offers only the pieces of the subject chosen', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.matShown || !t.matSubjects || !t.matSubjectOf || !t.matLevelChoices || !t.matSet) {
+    return ['the cheat sheet subject filter is not exported'];
+  }
+  const bad = [];
+  const parts = t.matParts();
+  const subs = t.matSubjects(parts);
+  ['Maths', 'English', 'Science'].forEach(s => {
+    if (subs.indexOf(s) === -1) bad.push('the subject select does not offer ' + s + ' — it offers ' + subs.join(', '));
+  });
+  if (subs[0] !== 'Maths') bad.push('Maths has the most pieces and is not first: ' + subs.join(', '));
+  subs.forEach(s => {
+    t.matSet(s, 'all');
+    const shown = parts.filter(c => t.matShown(c));
+    const stray = shown.filter(c => !c.edge && t.matSubjectOf(c) !== s);
+    if (stray.length) {
+      bad.push(s + ' shows ' + stray.length + ' piece(s) of another subject — '
+             + stray.slice(0, 3).map(c => c.id + ' (' + t.matSubjectOf(c) + ')').join(', '));
+    }
+    if (!shown.some(c => !c.edge)) bad.push(s + ' is offered in the select and shows no piece at all');
+    if (parts.some(c => c.edge) && !shown.some(c => c.edge)) {
+      bad.push('the ruler is not offered under ' + s + ', and it goes down the edge of any sheet');
+    }
+  });
+  t.matSet('all', 'all');
+  const every = parts.filter(c => !c.edge && t.matShown(c)).map(c => t.matSubjectOf(c));
+  subs.forEach(s => { if (every.indexOf(s) === -1) bad.push('"Every subject" leaves out ' + s); });
+
+  t.matSet('English', 'all');
+  const en = t.matLevelChoices(parts).map(o => o.v);
+  if (en.some(v => v.indexOf('|') !== -1)) {
+    bad.push('English offers a Foundation/Higher split and no English piece changes with the tier: '
+           + en.join(', '));
+  }
+  t.matSet('Maths', 'all');
+  const ma = t.matLevelChoices(parts).map(o => o.v);
+  if (ma.indexOf('GCSE|F') === -1 || ma.indexOf('GCSE|H') === -1) {
+    bad.push('Maths GCSE is not offered as Foundation and Higher: ' + ma.join(', '));
+  }
+  t.matSet('English', 'GCSE');
+  parts.filter(c => !c.edge && t.matShown(c)).forEach(c => {
+    if (c.lv.indexOf('GCSE') === -1) bad.push(c.id + ' is on an English GCSE sheet and is not a GCSE piece');
+  });
+  /* A PIECE OFFERED IS A PIECE THAT CAN BE DRAWN. `matDraw` prints a sentence on the paper for one
+     with no drawing, which is right as a last resort and wrong as the state of a whole subject. The
+     ruler is not asked: it is drawn down the margin by `matRuler`, never into a slot. */
+  parts.filter(c => !c.edge).forEach(c => {
+    if (/mat-gone/.test(String(t.matDraw(c)))) bad.push(c.id + ' (' + c.name + ') has nothing to draw it');
+  });
+  t.matSet('Maths', 'all');
+  return bad;
+});
+
+/* ---------- FILL PUTS WHAT THE EXAM GIVES YOU LAST, AND CLEAR IS NEVER LIT OVER NOTHING -------------
+   TWO FAULTS A REVIEW FOUND IN THE REWORK, both invisible to every other rule here. `matFill`'s own
+   note says what the exam prints is room spent on nothing, and its sort put that first whenever the
+   piece was tagged for fewer levels than one nobody had checked — so the sphere went on a GCSE
+   Higher sheet ahead of the protractor. And Clear was lit whenever ANY piece was ticked, so with an
+   English sheet built and Maths on the screen it sat lit over a list with no tick on it, and
+   pressing it threw the English sheet away with nothing on the screen changing.
+   IN jsdom EVERYTHING FITS — there is no layout, so the gauge never fills — which is exactly what
+   makes the ORDER Fill ticks in readable: it takes every candidate, in the order it ranked them. */
+check('the cheat sheet fills what the exam gives you last, and Clear is lit only over a tick', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.matFill || !t.matOn || !t.matSet || !t.matParts) return ['the cheat sheet Fill is not exported'];
+  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  await wait(300);
+  const d = w.document;
+  if (!d.getElementById('mat-list')) return ['the cheat sheet maker did not draw on the Tools column'];
+  const bad = [];
+  const rank = c => c.inExam === false ? 0 : (c.inExam === true ? 2 : 1);
+  const byId = {};
+  t.matParts().forEach(c => { byId[c.id] = c; });
+
+  t.matSet('Maths', 'GCSE', 'H');
+  t.matOn([]);
+  t.matFill();
+  const took = t.matOn().map(id => byId[id]).filter(Boolean);
+  if (!took.some(c => c.inExam === true)) bad.push('a GCSE Higher Fill took no piece the exam gives you, so the order cannot be asked');
+  for (let i = 1; i < took.length; i++) {
+    if (rank(took[i]) < rank(took[i - 1])) {
+      bad.push('Fill ticked ' + took[i - 1].id + ' (' + took[i - 1].inExam + ') before ' + took[i].id
+             + ' (' + took[i].inExam + ') — what the exam gives you goes in last');
+      break;
+    }
+  }
+
+  t.matSet('English', 'GCSE');
+  t.matOn([]);
+  t.matFill();
+  if (!t.matOn().length) bad.push('an English GCSE Fill ticked nothing');
+  t.matSet('Maths', 'GCSE', 'H');
+  t.matPaint();
+  const clear = d.getElementById('mat-clear');
+  const shownTicks = [...d.querySelectorAll('#mat-list label:not(.off) input:checked')].length;
+  if (!clear) bad.push('there is no Clear button');
+  else if (!shownTicks && !clear.disabled) {
+    bad.push('Clear is lit on Maths with no tick on the list, and pressing it would throw away the English sheet');
+  }
+  t.matOn([]);
+  t.matSet('Maths', 'all');
+  t.matPaint();
+  return bad;
+});
+
+/* ---------- IMPOSTER: ONE PLAYER IS NOT TOLD, AND NOBODY SEES ANYBODY ELSE'S CARD -------------------
+   THE GAME IS A SECRET KEPT BY A PHONE PASSED ROUND, and every way it can go wrong draws perfectly:
+   two imposters, an imposter shown the word, a word left on the screen when the phone is handed on,
+   a reveal naming somebody who was never told. So this deals a round of five through the app's own
+   handlers and reads what each player would have seen — and what the NEXT player sees before they
+   press anything, which is the half that is easy to get wrong. */
+check('the imposter game tells everybody the word but one, and hides it between players', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  await wait(300);
+  const d = w.document;
+  const card = () => d.getElementById('imp-card');
+  if (!card()) return ['the imposter game did not draw on the Games column'];
+  const press = (act, attrs) => {
+    const el = d.createElement('button');
+    Object.keys(attrs || {}).forEach(k => el.setAttribute(k, attrs[k]));
+    t.ACTIONS[act](el);
+  };
+  const bad = [];
+  const text = () => String(card().textContent || '').replace(/\s+/g, ' ').trim();
+  const N = 5;
+  for (let i = 0; i < 12; i++) press('imp-count', { 'data-d': '-1' });
+  for (let i = 0; i < N - 3; i++) press('imp-count', { 'data-d': '1' });
+  if (!/\b5\b/.test(text())) bad.push('two presses up from three players does not read 5: "' + text() + '"');
+  press('imp-start');
+  const seen = [];
+  for (let i = 0; i < N; i++) {
+    const before = text();
+    if (before.indexOf('Player ' + (i + 1)) === -1 || !/Hand the phone/.test(before)) {
+      bad.push('before player ' + (i + 1) + ' presses anything the card reads "' + before + '"');
+    }
+    seen.forEach(s => {
+      if (s.word && before.indexOf(s.word) !== -1) bad.push('the word is on the screen when the phone reaches player ' + (i + 1));
+    });
+    press('imp-show');
+    const shown = text();
+    const imposter = /imposter/i.test(shown);
+    /* THE WORD IS THE LARGE LINE, so it is read off the element that draws it rather than guessed
+       at from the text round it. */
+    const wordEl = card().querySelector('.art-word');
+    seen.push({ imposter: imposter,
+                word: imposter ? '' : String(wordEl ? wordEl.textContent : '').trim(),
+                cat: String((card().querySelector('.art-cat-of') || {}).textContent || '').trim() });
+    if (i === 1) {
+      /* LEAVING THE COLUMN HIDES A WORD LEFT UP, and keeps whose turn it was. */
+      const wd = t.allWidgets().find(x => x.id === 'imposter');
+      if (!wd || !wd.stop) bad.push('the imposter widget has no stop, so a word left up stays up');
+      else wd.stop();
+      t.go('games', false, true);
+      if (!/Hand the phone to Player 2/.test(text())) {
+        bad.push('leaving the column with a word up does not hide it: the card reads "' + text() + '"');
+      }
+      press('imp-show');
+    }
+    press('imp-hide');
+  }
+  const imps = seen.filter(s => s.imposter);
+  if (imps.length !== 1) bad.push(imps.length + ' of ' + N + ' players were told they were the imposter');
+  const words = new Set(seen.filter(s => !s.imposter).map(s => s.word));
+  if (words.size !== 1 || [...words][0] === '') {
+    bad.push('the others were not all shown one word: ' + [...words].join(' / '));
+  }
+  const cats = new Set(seen.map(s => s.cat));
+  if (cats.size !== 1 || [...cats][0] === '') bad.push('not everybody, imposter included, was shown one category');
+  const play = text();
+  if ([...words].some(wd => wd && play.indexOf(wd) !== -1)) bad.push('the word is on the screen once everybody has looked');
+  press('imp-reveal');
+  const rev = text();
+  const who = seen.findIndex(s => s.imposter) + 1;
+  if (rev.indexOf('Player ' + who) === -1) bad.push('the reveal does not name player ' + who + ': "' + rev + '"');
+  if ([...words].some(wd => rev.indexOf(wd) === -1)) bad.push('the reveal does not say the word');
+  press('imp-players');
+  return bad;
+});
+
+/* ---------- THE FLYER MAKER IS AN ADMIN'S, AT EVERY DOOR ---------------------------------------------
+   ASKED FOR AS *"make a flyer should only be visible to admin"*. `admin: true` on the roster entry is
+   the rule and `widgetFor_` is the one place it is asked — this asks it as every other kind of
+   visitor and as an admin, and then asks the two lists that draw widgets, because a rule on one door
+   and not the next is the shape of every leak this repository records. The Saved column is the door
+   that is easy to forget: a star is kept on the device, so a flyer starred by an admin would come
+   back on the Saved column of whoever signs in on that phone next. */
+check("the flyer maker is an admin's and nobody else's", async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.widgetFor || !t.allWidgets || !t.widgetsOf || !t.savedWidgets || !t.star) {
+    return ['who may open a widget is not exported'];
+  }
+  const fly = t.allWidgets().find(x => x.id === 'flyers');
+  if (!fly) return ['there is no flyer maker in the roster'];
+  const bad = [];
+  t.star('w:flyers');
+  const visitors = [
+    ['somebody signed out', null],
+    ['a parent', { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] }],
+    ['a student', { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] }],
+    ['a tutor', { name: 'Ada Tutor', personId: 'P-@ada', role: 'tutor', roles: ['tutor'] }],
+  ];
+  visitors.forEach(([say, u]) => {
+    t.USER(u);
+    if (t.widgetFor(fly)) bad.push(say + ' may open the flyer maker');
+    if (t.widgetsOf('tool').some(x => x.id === 'flyers')) bad.push('the Tools column offers ' + say + ' the flyer maker');
+    if (t.savedWidgets().some(x => x.id === 'flyers')) {
+      bad.push('a flyer maker starred on this phone comes back on the Saved column of ' + say);
+    }
+  });
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'] });
+  if (!t.widgetFor(fly)) bad.push('an admin may not open the flyer maker');
+  if (!t.widgetsOf('tool').some(x => x.id === 'flyers')) bad.push('the Tools column does not offer an admin the flyer maker');
+  if (!t.savedWidgets().some(x => x.id === 'flyers')) bad.push('an admin who starred the flyer maker does not find it on Saved');
   return bad;
 });
 
@@ -1473,6 +1729,23 @@ check('a session at the client\'s own home cannot be booked for one', async () =
   if (w.__t.seatLimits(null, null, '').min !== 1) {
     bad.push('an unanswered venue imposes a floor of ' + w.__t.seatLimits(null, null, '').min);
   }
+  /* A FREE ROOM IS NOT A HOUSE. The first version asked `isHome`, which is "does anybody pay for
+     this room" — true of `Online` and of every free library — so a one-to-one video call needed four
+     chairs. Two free venues are put on the payload for the question, and a house by name beside
+     them so the rule is asked in both directions on one list. */
+  const V = w.__t.DATA().venues = (w.__t.DATA().venues || []).concat([
+    { title: 'Online', bestRate: 0 }, { title: 'Sutton Library', bestRate: 0 },
+    { title: 'Client House', bestRate: 0 }]);
+  ['Online', 'Sutton Library'].forEach(n => {
+    if (w.__t.seatLimits(null, null, n).min !== 1) {
+      bad.push('a session at "' + n + '", which costs nothing and is not anybody\'s house, has a seat floor of '
+               + w.__t.seatLimits(null, null, n).min);
+    }
+  });
+  if (w.__t.seatLimits(null, null, 'Client House').min < 4) {
+    bad.push('a venue called "Client House" is not given the home floor');
+  }
+  V.splice(-3, 3);
 
   B.loc = 'At home';
   const home = st.options();

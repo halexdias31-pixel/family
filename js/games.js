@@ -1517,9 +1517,9 @@ document.addEventListener('keydown', e => {
    chosen, which is the same decision one step earlier and is also the screen this widget needs
    anyway: six buttons is a first page that explains the game without a paragraph.
 
-   THIRTY SECONDS, WHICH IS THE GAME'S OWN NUMBER, and the reason the deck started at about twenty
-   words a category (it is nearer a hundred now): nobody gets through twenty in thirty seconds, so a round never repeats a word
-   and the list does not have to be huge to behave as though it were.
+   THIRTY SECONDS WAS THE GAME'S OWN NUMBER AND IT IS NINETY NOW — see `ROUND_GAMES`. The deck is
+   nearer a hundred words a category, and nobody gets through a hundred in ninety seconds, so a
+   round still never repeats a word.
 
    NO SCORE IS KEPT BETWEEN ROUNDS. Articulate is scored by moving a counter, which is a thing the
    people playing do; an app that remembered it would be keeping half a game and inviting somebody
@@ -1829,12 +1829,24 @@ const CHA_DECK = {
 
    THE DECK IS A FUNCTION rather than the object, so a deck replaced at runtime is read rather than
    captured. Same reason `factsNow_` is a call and not a constant. */
+/* NINETY AND A HUNDRED AND EIGHTY, ASKED FOR IN THOSE WORDS: "for articulate give like 90 seconds.
+   for cherades give like 3 minutes." The board game's thirty is the right number for the board
+   game — a counter moving round a track is the score, and a short round keeps the track moving.
+   Round a table with no board, a round IS the turn, and thirty seconds is two cards and a laugh.
+   The note on Charades below argued sixty from the same principle (a mime reads slower than a
+   sentence) and three minutes keeps that ratio at twice Articulate's. The clock is drawn as m:ss by
+   `roundClock_`, because "180s left" is a number somebody has to divide. */
 const ROUND_GAMES = {
-  art: { secs: 30, deck: () => ART_DECK, name: 'Articulate',
+  art: { secs: 90, deck: () => ART_DECK, name: 'Articulate',
          say: 'Describe it. Not the word, not a rhyme, not the initials.' },
-  cha: { secs: 60, deck: () => CHA_DECK, name: 'Charades',
+  cha: { secs: 180, deck: () => CHA_DECK, name: 'Charades',
          say: 'Act it out. No words, no sounds, no pointing.' },
 };
+
+function roundClock_(secs) {
+  const n = Math.max(0, secs | 0);
+  return Math.floor(n / 60) + ':' + String(n % 60).padStart(2, '0');
+}
 
 /* ONE STATE PER GAME, not one shared. Both cards can be on the screen at once — they are two pages
    of the same column — and a single state would have the second one wiping the first's clock. */
@@ -1867,7 +1879,7 @@ function roundPaint(k) {
   if (!s || s.phase === 'idle') {
     card.innerHTML = `<button class="art-go" data-do="rg-start" data-g="${esc(k)}">Start</button>`;
     if (said) said.textContent = g.say;
-    if (left) left.textContent = String(g.secs);
+    if (left) left.textContent = roundClock_(g.secs);
     if (got) got.textContent = '0';
     return;
   }
@@ -1876,13 +1888,13 @@ function roundPaint(k) {
       <p class="art-score">${s.score}</p>
       <p class="art-cat-of">${esc(s.cat)}</p>`;
     if (said) said.textContent = 'Start again for another.';
-    if (left) left.textContent = '0';
+    if (left) left.textContent = roundClock_(0);
     return;
   }
   card.innerHTML = `<p class="art-cat-of">${esc(s.cat)}</p>
     <p class="art-word">${esc(s.word || '')}</p>`;
   if (said) said.textContent = g.say;
-  if (left) left.textContent = String(s.left);
+  if (left) left.textContent = roundClock_(s.left);
   if (got) got.textContent = String(s.score);
 }
 
@@ -1941,6 +1953,248 @@ on('rg-again', el => {
   roundAt[k] = null;
   roundPaint(k);
 });
+
+/* ==================================================================================================
+   IMPOSTER — three or more people, one phone, one word that everybody knows but one of them.
+
+   ASKED FOR AS "add one of those word imposter games to games column. like you know when theres 3
+   or more people and everyone knows the word except 1 person and he has to pretend like he knows
+   and they go round in a circle saying associated words."
+
+   THE PHONE IS THE ONLY THING THAT KNOWS WHO THE IMPOSTER IS, so it is dealt like the Scrabble rack:
+   passed round, one player at a time, and nothing secret is on the screen between two of them.
+   "Hand the phone to Player 3" is what the next player sees, and the word only comes up when THEY
+   press for it. A card that showed the word and then said "pass it on" would put it in front of
+   whoever takes the phone.
+
+   THE IMPOSTER IS TOLD THE CATEGORY AND NOTHING ELSE, which is the rule every version of this game
+   that is fun to play uses. With nothing at all to go on, the imposter's first word is a guess and
+   the round is over before it starts; with the category — Food, not "pizza" — they can say
+   something that sounds right and the game is whether the others notice.
+
+   WHO GOES FIRST IS DRAWN FROM EVERYBODY, THE IMPOSTER INCLUDED. Leaving the imposter out would be
+   kinder to them and would tell the room something: in a game of three, "Player 2 goes first" would
+   rule Player 2 out, and the whole game is not knowing.
+
+   NO SCORE AND NO TIMER, for the reason Herd Mentality gives: the voting and the arguing are the
+   game, and they happen out loud. The app deals, keeps the secret, and says who it was at the end.
+
+   THE ROUND SURVIVES A REPAINT, WHICH IS SCRABBLE'S RULE AND NOT THE MAZE'S. `repaint` runs whenever
+   a payload lands, and a round half-dealt that dealt itself again would hand some players a second
+   word. `initImposter` redraws what is in progress. What `stop` does instead is HIDE a word left on
+   the screen, because a column swiped away and back is exactly how the next person sees it.
+================================================================================================== */
+const IMP_MIN = 3, IMP_MAX = 12;
+
+/* THE WORDS ARE THINGS, NOT IDEAS. Articulate's deck can hold `stage fright`, because it is
+   described one sentence at a time; this one is talked about ONE WORD at a time, round a circle,
+   so a card has to be something everybody can say three different true words about — and
+   something a child in the room has heard of.
+
+   ABOUT HALF OF THESE ARE ALSO IN ARTICULATE OR CHARADES, AND THAT IS ALLOWED. `check-widgets.js`
+   refuses one word in both of those two, because a word described and then mimed is a word the
+   room already knows the answer to. Nothing like that can happen here: the word is dealt at random
+   from about two hundred and forty, only one person is trying to work it out, and a card from an
+   hour ago tells them nothing about which one came up. Keeping ordinary words out to satisfy a rule
+   written for a different game would leave the imposter a deck of words nobody can talk about. */
+const IMP_DECK = {
+  Food: [
+    'pizza', 'pancakes', 'spaghetti', 'sushi', 'curry', 'burger', 'porridge', 'cereal',
+    'doughnut', 'popcorn', 'soup', 'omelette', 'jacket potato', 'fish fingers', 'trifle',
+    'crumpet', 'strawberries', 'chocolate', 'cheese', 'lasagne', 'sausage roll', 'hot dog',
+  ],
+  Animals: [
+    'elephant', 'penguin', 'giraffe', 'kangaroo', 'octopus', 'hedgehog', 'crocodile', 'owl',
+    'dolphin', 'tortoise', 'zebra', 'squirrel', 'shark', 'parrot', 'camel', 'bee', 'spider',
+    'frog', 'polar bear', 'jellyfish', 'hamster', 'bat',
+  ],
+  Places: [
+    'beach', 'airport', 'library', 'hospital', 'zoo', 'cinema', 'supermarket', 'museum',
+    'swimming pool', 'farm', 'castle', 'train station', 'playground', 'campsite', 'bakery',
+    'theme park', 'desert', 'jungle', 'bowling alley', 'hairdresser’s', 'car park', 'church',
+  ],
+  'At home': [
+    'sofa', 'fridge', 'toothbrush', 'pillow', 'kettle', 'bath', 'microwave', 'washing machine',
+    'lamp', 'mirror', 'ladder', 'doorbell', 'remote control', 'toaster', 'hoover', 'duvet',
+    'stairs', 'bin', 'radiator', 'curtains', 'plug', 'letterbox',
+  ],
+  Jobs: [
+    'firefighter', 'pilot', 'chef', 'teacher', 'farmer', 'plumber', 'nurse', 'vet',
+    'police officer', 'postman', 'builder', 'lifeguard', 'hairdresser', 'judge', 'footballer',
+    'scientist', 'zookeeper', 'baker', 'dentist', 'bus driver', 'artist', 'shopkeeper',
+  ],
+  Sport: [
+    'football', 'tennis', 'swimming', 'cricket', 'basketball', 'skiing', 'golf', 'rugby',
+    'cycling', 'gymnastics', 'darts', 'bowling', 'karate', 'badminton', 'snooker', 'surfing',
+    'ice skating', 'netball', 'table tennis', 'athletics', 'rowing', 'hockey',
+  ],
+  School: [
+    'pencil case', 'homework', 'calculator', 'whiteboard', 'lunchbox', 'assembly', 'register',
+    'ruler', 'school bus', 'exam', 'science lab', 'backpack', 'rubber', 'textbook',
+    'spelling test', 'school trip', 'uniform', 'detention', 'sports day', 'glue stick',
+    'times tables', 'break time',
+  ],
+  Transport: [
+    'bicycle', 'helicopter', 'submarine', 'tractor', 'rocket', 'hot-air balloon', 'canoe',
+    'double-decker bus', 'scooter', 'ambulance', 'fire engine', 'taxi', 'lorry', 'train',
+    'aeroplane', 'cable car', 'motorbike', 'tram', 'yacht', 'ferry', 'van', 'go-kart',
+  ],
+  Nature: [
+    'rainbow', 'thunderstorm', 'snowman', 'volcano', 'waterfall', 'tornado', 'fog', 'puddle',
+    'sunset', 'icicle', 'lightning', 'earthquake', 'mountain', 'river', 'forest', 'cave',
+    'island', 'moon', 'desert island', 'conker', 'mushroom', 'sunflower',
+  ],
+  Clothes: [
+    'wellies', 'pyjamas', 'scarf', 'sunglasses', 'trainers', 'raincoat', 'crown', 'gloves',
+    'swimming costume', 'dressing gown', 'bow tie', 'slippers', 'hoodie', 'flip-flops', 'apron',
+    'helmet', 'tie', 'socks', 'woolly hat', 'onesie', 'cap', 'wedding dress',
+  ],
+  Celebrations: [
+    'birthday party', 'wedding', 'fireworks', 'Christmas', 'Easter egg', 'Halloween',
+    'Bonfire Night', 'sleepover', 'picnic', 'barbecue', 'Pancake Day', 'Diwali', 'Eid',
+    'New Year’s Eve', 'school disco', 'fancy dress', 'Mother’s Day', 'carnival',
+    'graduation', 'Valentine’s Day', 'baby shower', 'party bags',
+  ],
+};
+
+/* ONE PILE OF EVERY (category, word) PAIR, shuffled once and dealt from the top, so no word comes
+   round twice until the whole deck has — which is the same promise `roundNext_` makes, one level
+   up, because here the category changes every round too. */
+let IMP_PILE = [];
+function impDraw_() {
+  if (!IMP_PILE.length) {
+    const all = [];
+    Object.keys(IMP_DECK).forEach(c => IMP_DECK[c].forEach(w => all.push([c, w])));
+    IMP_PILE = herdShuffle_(all);
+  }
+  return IMP_PILE.pop();
+}
+
+/* HOW MANY PLAY IS KEPT ON THE DEVICE, because it is the same four people at the same table next
+   week. The try is the house rule for storage: a browser that refuses it still gets a game. */
+function impCount_(n) {
+  if (n !== undefined) {
+    try { localStorage.setItem('imp-n', String(n)); } catch (e) {}
+    return n;
+  }
+  let v = 4;
+  try { v = parseInt(localStorage.getItem('imp-n'), 10) || 4; } catch (e) {}
+  return Math.max(IMP_MIN, Math.min(IMP_MAX, v));
+}
+
+/* `phase` IS ONE OF idle · deal · play · reveal, and `at` is whose turn it is to look while dealing.
+   `shown` is whether that player's card is up — the one piece of state that must never outlive the
+   person holding the phone, which is what `impHide_` is for. */
+let IMP = { phase: 'idle', n: 0, at: 0, shown: false, imp: 0, first: 0, cat: '', word: '' };
+
+function impDeal_(n) {
+  const [cat, word] = impDraw_();
+  IMP = { phase: 'deal', n: n, at: 0, shown: false,
+          imp: Math.floor(Math.random() * n), first: Math.floor(Math.random() * n),
+          cat: cat, word: word };
+}
+
+/* DRAWN FROM THE STATE, the `REEL_HELD` rule — the handlers change `IMP` and ask for a paint, and
+   nothing is ever patched onto the element. EVERY CONTROL IS BUILT HERE rather than written into
+   the widget's markup, which is the Scrabble lesson: a button that is on the page before it can do
+   anything is one `check/press.js` presses and correctly reports dead. */
+function impPaint() {
+  const card = $('imp-card'), acts = $('imp-acts'), said = $('imp-said');
+  if (!card) return;
+  const s = IMP;
+  const player = i => 'Player ' + (i + 1);
+  if (s.phase === 'idle') {
+    const n = impCount_();
+    card.innerHTML = `<p class="art-cat-of">Players</p>
+      <div class="imp-count">
+        <button class="imp-step" data-do="imp-count" data-d="-1" aria-label="One player fewer"
+          ${n <= IMP_MIN ? 'disabled' : ''}>&minus;</button>
+        <span class="art-score" id="imp-n">${n}</span>
+        <button class="imp-step" data-do="imp-count" data-d="1" aria-label="One player more"
+          ${n >= IMP_MAX ? 'disabled' : ''}>+</button>
+      </div>
+      <button class="art-go" data-do="imp-start">Deal</button>`;
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = 'Everybody sees the word but one. Pass the phone round.';
+    return;
+  }
+  if (s.phase === 'deal') {
+    const last = s.at === s.n - 1;
+    if (!s.shown) {
+      card.innerHTML = `<p class="art-cat-of">${esc(player(s.at))} of ${s.n}</p>
+        <p class="imp-pass">Hand the phone to <b>${esc(player(s.at))}</b></p>
+        <button class="art-go" data-do="imp-show">Show me</button>`;
+      if (said) said.textContent = 'Nobody else looks.';
+    } else {
+      card.innerHTML = `<p class="art-cat-of">${esc(s.cat)}</p>`
+        + (s.at === s.imp
+          ? `<p class="art-word">You’re the imposter</p>
+             <p class="imp-pass">Nobody else knows. Blend in.</p>`
+          : `<p class="art-word">${esc(s.word)}</p>`)
+        + `<button class="art-go" data-do="imp-hide">${last ? 'Hide it' : 'Hide — pass it on'}</button>`;
+      if (said) said.textContent = '';
+    }
+    if (acts) acts.innerHTML = '';
+    return;
+  }
+  if (s.phase === 'play') {
+    card.innerHTML = `<p class="art-cat-of">${esc(s.cat)}</p>
+      <p class="imp-pass"><b>${esc(player(s.first))}</b> goes first. One word each, round the
+        circle — then vote.</p>
+      <button class="art-go" data-do="imp-reveal">Reveal</button>`;
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = 'Caught? The imposter still wins by guessing the word.';
+    return;
+  }
+  card.innerHTML = `<p class="art-over">The imposter was</p>
+    <p class="art-score">${esc(player(s.imp))}</p>
+    <p class="art-over">and the word was</p>
+    <p class="art-word">${esc(s.word)}</p>`;
+  if (acts) {
+    acts.innerHTML = `<button class="btn" data-do="imp-again">Play again</button>
+      <button class="btn quiet" data-do="imp-players">Players</button>`;
+  }
+  if (said) said.textContent = '';
+}
+
+function initImposter() {
+  if (!$('imp-card')) return;
+  impPaint();
+}
+
+/* A WORD LEFT UP WHEN THE COLUMN GOES IS A WORD THE NEXT PERSON SEES, so leaving hides it. The
+   round is kept — this is `stop`, not `New game` — and whoever was looking presses Show me again. */
+function impHide_() {
+  /* AND REPAINTED, not just forgotten: the column is still in the document off to one side, so a
+     word left in its markup is a word the next repaint of anything is not obliged to remove. */
+  if (IMP.phase === 'deal' && IMP.shown) { IMP.shown = false; impPaint(); }
+}
+
+on('imp-count', el => {
+  const d = parseInt(el.getAttribute('data-d'), 10) || 0;
+  impCount_(Math.max(IMP_MIN, Math.min(IMP_MAX, impCount_() + d)));
+  impPaint();
+});
+on('imp-start', () => { impDeal_(impCount_()); impPaint(); });
+on('imp-show', () => {
+  if (IMP.phase !== 'deal') return;
+  IMP.shown = true;
+  impPaint();
+});
+on('imp-hide', () => {
+  if (IMP.phase !== 'deal') return;
+  IMP.shown = false;
+  if (IMP.at < IMP.n - 1) IMP.at++;
+  else IMP.phase = 'play';
+  impPaint();
+});
+on('imp-reveal', () => {
+  if (IMP.phase !== 'play') return;
+  IMP.phase = 'reveal';
+  impPaint();
+});
+on('imp-again', () => { impDeal_(IMP.n || impCount_()); impPaint(); });
+on('imp-players', () => { IMP = { phase: 'idle', n: 0, at: 0, shown: false, imp: 0, first: 0, cat: '', word: '' }; impPaint(); });
 
 /* ==================================================================================================
    SCRABBLE — two, three or four people, one phone.

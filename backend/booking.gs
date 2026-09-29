@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-09-29-f-many";
+const BOOKING_VERSION = "2026-09-29-h-batch";
 
 
 /**
@@ -428,7 +428,10 @@ function accessDenied(action, body) {
     if (!who) return 'Please sign in again.';
     body.name = personDisplayName(who);
     body.personId = S(who.person_id);
-    if (need === 'admin' && !isAdminPerson(body.name)) return 'Not authorised.';
+    /* ADMIN IS ASKED OF THE ROW THE TOKEN RESOLVED TO, not of its display name looked up again.
+       `isAdminPerson(name)` goes back through `findPerson`, which returns the FIRST row answering to
+       that name — so two people sharing a display name could each be judged by the other's role. */
+    if (need === 'admin' && !hasRole(who, 'admin')) return 'Not authorised.';
     /* NAMING SOMEBODY ELSE AS THE ADMIN IS OVER. Anything reading `adminName` gets the signed-in
        person, so the two can no longer disagree. */
     if (S(body.adminName)) body.adminName = body.name;

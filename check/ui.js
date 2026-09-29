@@ -157,8 +157,8 @@ const { STATES, statesOf } = require('./states.js');
 /* ---------- AND THE VISITOR, WHICH THIS FILE HAD NEVER THOUGHT ABOUT ------------------------------
    NINE SCREENS AT FOUR WIDTHS, AND EVERY ONE OF THEM SIGNED OUT. Nothing here ever set a user, so
    every run measured what a stranger sees — and this app shows a stranger very little. The booking
-   screen is the plainest case: signed out it is one card reading "Sign in to book", four lines and
-   a button, and that is what "booking: nothing to report" has meant all along. The form behind it
+   screen is the plainest case: signed out it is one card saying "Sign in to book" and nothing to
+   press, and that is what "booking: nothing to report" has meant all along. The form behind it
    is the most control-dense surface in the app.
 
    HOW MUCH IT MEANT is worth writing down rather than summarising. Measured the first time this
@@ -369,7 +369,7 @@ function serve() {
    two thousand elements into two thousand round trips. */
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
-  const found = { overflow: [], hidden: [], offscreen: [], strays: [],
+  const found = { overflow: [], hidden: [], offscreen: [], strays: [], shrunk: [],
                  tinyTargets: [], lowContrast: [], noName: [] };
 
   /* ---------- THE SCREEN WE ASKED FOR, BY NAME ---------------------------------------------------
@@ -575,6 +575,9 @@ function inspect(opts) {
   const paneFloor = typeof PANE_REACH === 'number' ? PANE_REACH : 2;
   const panes = live && live.querySelectorAll ? [...live.querySelectorAll('.pane')] : [];
   for (const el of panes) {
+    const zk = el.firstElementChild && parseFloat(el.firstElementChild.style.zoom);
+    if (zk > 0 && zk < 1) found.shrunk.push({ cls: String(el.firstElementChild.className || '')
+      .split(/\s+/)[0], z: zk });
     const s2 = getComputedStyle(el);
     if (/(auto|scroll)/.test(s2.overflowY)) continue;
     const under = el.scrollHeight - el.clientHeight;
@@ -766,8 +769,15 @@ function inspect(opts) {
     if (/^(INPUT|SELECT|TEXTAREA)$/.test(tag)) {
       const lab = el.closest('label');
       if (lab) {
+        /* AT ITS OWN SIZE, for the reason given below where the control itself is measured: a label
+           on a card `paneReach_` has drawn smaller is 44px times the zoom on the glass. */
+        let lz = 1;
+        for (let e = lab; e; e = e.parentElement) {
+          const zv = parseFloat(e.style && e.style.zoom);
+          if (zv > 0 && zv < 1) lz *= zv;
+        }
         const lr = lab.getBoundingClientRect();
-        if (lr.height >= MIN_TAP && lr.width >= MIN_TAP) continue;
+        if (lr.height / lz >= MIN_TAP - 0.5 && lr.width / lz >= MIN_TAP - 0.5) continue;
       }
     }
 
@@ -843,7 +853,21 @@ function inspect(opts) {
        HALF A PIXEL AND NOT A ROUNDING. `Math.round` would wave a real 43.5px control through;
        everything genuinely under the floor in this app is 38, 40, 20 or 13, so half a pixel is
        nowhere near any of them and is below what a screen can draw or a stylesheet can mean. */
-    const r = el.getBoundingClientRect();
+    /* ---------- AT ITS OWN SIZE, NOT THE SIZE A SHRUNK CARD DRAWS IT -------------------------------
+       `paneReach_` DRAWS A CARD SMALLER WHEN IT DOES NOT FIT ITS PANE — CSS `zoom`, down to
+       `PANE_ZOOM_MIN` — because the owner asked for every widget to fit on the screen rather than
+       scroll, "smaller font" included. So a 44px button on a card drawn at 0.9 is 40px on the glass,
+       by design, and measuring the glass would report every control on every shrunk card as a new
+       fault: 501 of them, the first run after it went in. The control is judged at the size the
+       stylesheet gave it, and the shrinking is counted on its own line below — CARD DRAWN SMALLER TO
+       FIT — so the cost is a number rather than a silence. */
+    let ez = 1;
+    for (let e = el; e; e = e.parentElement) {
+      const zv = parseFloat(e.style && e.style.zoom);
+      if (zv > 0 && zv < 1) ez *= zv;
+    }
+    const r0 = el.getBoundingClientRect();
+    const r = { width: r0.width / ez, height: r0.height / ez };
     if (r.height < MIN_TAP - 0.5 || r.width < MIN_TAP - 0.5) {
       /* THE CLASS COMES BACK WITH IT, because a finding has to be identifiable to be accepted. A
          report keyed on the element's TEXT cannot tell a 22px hour button from a 22px anything
@@ -1282,6 +1306,13 @@ function inspect(opts) {
       `.${o.col} ${o.edge} edge varies by ${o.by}px down one card — "${o.hi}" against "${o.lo}"`, at));
     (r.offscreen || []).forEach(o => add('PANE OFF THE SCREEN',
       `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} (${o.height}px) sits ${o.by}px outside the viewport`, at));
+    (r.shrunk || []).forEach(o => add('CARD DRAWN SMALLER TO FIT (known)',
+      `.${o.cls || 'card'} at ${Math.round(o.z * 100)}%`, at,
+      `ASKED FOR: "I don't like scrolling. If you need to leave things more compact or smaller font. `
+      + `This goes for all widgets so they all fit on screen." \`paneReach_\` in find.js shrinks a card `
+      + `taller than its pane, down to PANE_ZOOM_MIN, and only scrolls past that. Its controls shrink `
+      + `with it — the trade the owner chose — so each is judged above at its own size, and this line `
+      + `is how many cards pay it and by how much.`));
     (r.tinyTargets || []).forEach(t => {
       const ok = ACCEPTED_TAP.find(a => a.cls.test(t.cls || ''));
       add(ok ? 'TAP TARGET (known)' : 'TAP TARGET',

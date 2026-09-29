@@ -1829,9 +1829,18 @@ function shortLabels_(values) {
   const forms = values.map(v => nameForms_(v.text || v.value));
   let deepest = 0;
   forms.forEach(f => { if (f.length > deepest) deepest = f.length; });
+  /* ---------- UNIQUE TO A READER, NOT TO `===` ------------------------------------------------------
+     `Paper 1 (Non-Calculator)` AND `Paper 1 (Non-calculator)` ARE DIFFERENT STRINGS AND ONE LABEL.
+     The first is the Edexcel Higher paper of Summer 2017 and the second the Foundation one, and
+     `paperLabels_` had already told them apart by tier — this rung then threw the tier away again,
+     because the two shorter forms differ by one letter's case and a `Set` of strings calls that
+     unique. Found by the bundle, which listed the two side by side over one sitting.
+     `spellKey_` IS THE FUNNEL'S OWN ANSWER to "are these the same word", so a rung is taken only
+     where no two labels on it reduce to one identity. Stricter than before and never looser, so no
+     answer that was distinct becomes a collision — which is what `check-funnel.js` test 4b guards. */
   for (let rung = 0; rung < deepest; rung++) {
     const at = forms.map(f => f[Math.min(rung, f.length - 1)]);
-    if (new Set(at).size === at.length) {
+    if (new Set(at.map(spellKey_)).size === at.length) {
       values.forEach((v, i) => { v.show = at[i]; });
       return values;
     }
@@ -3235,40 +3244,27 @@ function guideBox_(x, slot, ask, hint) {
   </label>`;
 }
 
-/* ---------- THE KIT, AS CHIPS -------------------------------------------------------------------
-   ASKED FOR AS "I want each item/ingredient to be like a chip. Like how Google has chips in
-   documents and stuff ... Then the things needed. And it's quantity."
+/* ---------- THE KIT, AS A LIST AGAIN ------------------------------------------------------------
+   IT WAS CHIPS — "like how Google has chips in documents" — and went back on "the google chip idea
+   didnt work how i wanted to so revert back". So it is the bulleted list it was before them: one
+   item a line, in the guide's own dim ink, read down a column. The chips' own classes (`.kit-chip`,
+   `.kit-n`, `.kit-q`) and their rules went with them rather than being left for nothing to draw.
 
-   A BULLETED LIST IS A THING YOU READ DOWN AND A KIT LIST IS A THING YOU CHECK OFF. Twelve items
-   as `<li>`s is twelve lines of one column, scanned top to bottom, with the ruler and the
-   stopwatch three inches apart; as chips they wrap into a block you take in at once and can run a
-   finger along while you pack the bag. That is what the shape is FOR, and it is why the quantity
-   belongs on the chip rather than in a second column: the two facts about an item are what it is
-   and how much of it, and a chip is exactly big enough for both.
+   THE DATA DID NOT GO BACK, and that half was worth keeping. An item is still `Name × qty` in the
+   cell, split by `kitParse_` into `{ name, qty }` — the quantity inside the item rather than in a
+   parallel column, for the reason the note over `risks` gives about three lists lining up by index.
+   So the quantity is printed on the line, after the name.
 
-   IT IS NOT `.chip`, AND THAT IS NOT FUSSINESS. `.chip` is the funnel's FILTER — a 44px tap
-   target with a gold ✕, whose own note records this stylesheet's fourth conviction of the
-   tap-target rule. A kit item is not pressable, so borrowing that class would give five hundred
-   inert boxes a fingertip's height each and put `check/ui.js` in the position of measuring tap
-   targets on things nobody can tap. `.price.faint` is what this repository calls the other half
-   of that mistake — a rule that reads as a decision and behaves as nothing — and it is the fault
-   this stylesheet has been convicted of more often than any other. The tally is kept where the
-   rules are, because a count written in a second file is a count that goes stale.
-
-   `×` IS DRAWN BACK IN FRONT OF A BARE NUMBER AND NOT IN FRONT OF AN AMOUNT. `Lolly sticks 12`
-   is ambiguous — twelve of them, or the twelfth? — and `Water × 100 ml` is not English. One is a
-   count and the other is an amount, and the only thing that tells them apart is whether the
-   quantity is nothing but digits. One rule, at the one place the badge is drawn. */
-function kitChips_(list) {
-  /* THE NAME IS A SPAN RATHER THAN A BARE TEXT NODE, so it can be told to shrink. A chip is a
-     flex box and a flex item's minimum is its MIN-CONTENT — which is the fault `.prac-head h3`
-     already records on this very card, where four titles ran past a 320px column because they
-     could not shrink below their longest word. `Nichrome wire (about 1 m, taped to a metre rule)`
-     is the longest thing this list holds, and it has to wrap INSIDE its chip. */
-  return `<ul class="kit-chips">${list.map(e => `<li class="kit-chip"><span class="kit-n">${
-    esc(e.name)}</span>${
-    e.qty ? `<b class="kit-q">${/^\d+$/.test(e.qty) ? '\u00d7' : ''}${esc(e.qty)}</b>` : ''
-  }</li>`).join('')}</ul>`;
+   A COLON, AND THAT IS MEASURED RATHER THAN PREFERRED. The em dash reads nicely on `Lemons — 4` and
+   TEN of the 640 names already carry one of their own — `A stopwatch — a phone will do`,
+   `Surfaces to try — carpet, hard floor, pavement, short grass` — so a dash for the amount made a
+   name's own aside and its quantity the same mark, and the second of those read `… short grass — 4`.
+   The colon appears in NONE of them, counted, which is the same test `×` passed in the cell. And it
+   reads right for both kinds of amount, where `×` is right for a count and wrong for a measure:
+   `Lemons: 4`, `Water: 100 ml`, `Lolly sticks: about 10`, `Red cabbage: half`. */
+function kitList_(list) {
+  return `<ul>${list.map(e => `<li>${esc(e.name)}${
+    e.qty ? ': ' + esc(e.qty) : ''}</li>`).join('')}</ul>`;
 }
 
 
@@ -3309,14 +3305,14 @@ function practicalPart_(x, part) {
      back to understand. So the practical's name sits small above the section's own heading.
 
      `.gd` STAYS ROUND THE CONTENT, which is what leaves every rule the guide already had —
-     `.gd .kit-chips`, `.gd .prac-steps`, `.gd-sec`, `.prac-tab` — applying unchanged. The markup
+     `.prac-kit ul`, `.gd .prac-steps`, `.gd-sec`, `.prac-tab` — applying unchanged. The markup
      inside each section is the markup it had on the single card, moved, not rewritten; and the
      answer boxes are `guideBox_`'s with the same slots, so every answer already typed comes back. */
   const head = what => `<p class="prac-of">${esc(x.name)}</p><h3>${what}</h3>`;
   let inner = '';
   if (part === 'kit') {
     inner = `${head('Equipment')}<div class="gd"><section class="prac-kit">
-      ${kitChips_(p.equipment)}</section></div>
+      ${kitList_(p.equipment)}</section></div>
       ${/* The one-off cost is about the KIT, so it is on the kit's page rather than the first. */''}
       ${p.setupCost ? `<p class="prac-cost">About £${p.setupCost.toFixed(2)} of kit to set up,
         and it is bought once.</p>` : ''}`;
@@ -5348,13 +5344,34 @@ function questionCard_(x) {
 /* `topicBy` WAS HERE — a document by id, falling back to its name. Nothing has a document to look
    up any more; see the note above `questionItems`. */
 
-/* `printPrice` WAS HERE, AND I SAID ONE COMMIT AGO THAT `cartMoney_` STILL READ IT. It does not —
-   `cartMoney_` reads `laminatePrice`, which is a different function with the same shape, and I
-   checked the shape rather than the caller. `check-dead.js` named it on the next run, which is what
-   that check is for.
+/* ---------- WHAT A PRINTED COPY COSTS, WHICH HAS A CALLER AGAIN --------------------------------------
+   `printPrice` WAS DELETED AS AN ORPHAN — `check-dead.js` named it once the paper card and its
+   `Paper` tile had gone, and the note that stood here said a print would cost nothing "until
+   something lists whole papers again". The bundle below is that something: asked for as *"what if
+   someone wants a bundle of 2017 past papers for maths edexcell to add to cart and have me send it
+   to them?"*
 
-   WHAT A PRINT COSTS is `laminatePrice` below plus nothing, until something lists whole papers
-   again. See the note above `topicTiles_` in tiles.js for why nothing does. */
+   PAGES x RATE, FLOORED AT A MINIMUM, and NULL rather than £0.00 when nobody has counted the pages.
+   Zero pages means UNCOUNTED — 113 of the 266 papers with questions carry a page count and the rest
+   do not — and a free price would be the site answering a question it has not asked anybody. That
+   is the `cost: 0` fault this repository records four times, and the basket draws such a line as
+   "tbc" rather than as "free".
+
+   NO RATE MEANS PRINTING IS OFF. The config row says so in its own words — *"Set to 0 and no paper
+   copies are offered at all"* — so `printOffered_` is what decides whether a bundle is offered at
+   all, and this only ever prices a copy that could exist. */
+function printOffered_() {
+  const v = (DATA.constants || {}).vars || {};
+  const rate = num(v.print_rate_per_page);
+  return !isNaN(rate) && rate > 0;
+}
+function printPrice(pages) {
+  const n = Number(pages) || 0;
+  if (n <= 0 || !printOffered_()) return null;
+  const v = (DATA.constants || {}).vars || {};
+  const min = num(v.print_minimum) || 0;
+  return Math.max(min, Math.round(n * num(v.print_rate_per_page) * 100) / 100);
+}
 
 
 
@@ -5386,13 +5403,47 @@ function laminatePrice(pages) {
    every time it is asked for, and a line laminated last week is repriced if the sheet's rate
    changes before anybody pays. Storing the sum instead would have frozen a price nobody agreed to,
    and would need the subtraction to be got right in the one place that takes the upgrade off. */
-const cartMoney_ = c => (Number(c && c.money) || 0)
+/* ---------- AND A PRINTED LINE IS PRICED THE SAME WAY, WITH ONE EXCEPTION ------------------------
+   A LINE FROM A BUNDLE STORES NO `money`, so its print is derived from its pages every time it is
+   asked for — the argument above about the laminate, pointed at the paper under it.
+
+   A LINE THAT ALREADY CARRIES `money` KEEPS IT. Those are print lines saved in somebody's
+   `localStorage` before the paper card was deleted, priced at the rate of the day they were
+   added; re-pricing them silently would be a basket whose total moves while nobody touched it. */
+const cartPrint_ = c => {
+  if (!c) return null;
+  if (Number(c.money) > 0) return Number(c.money);
+  return c.kind === 'print' ? printPrice(c.pages) : 0;
+};
+/* NOT YET PRICED — a paper nobody has counted the pages of, or a print when printing is off. It is
+   what the basket draws as "tbc" and what the order message says will be priced when it is sent. */
+const cartUnpriced_ = c => cartPrint_(c) === null;
+const cartMoney_ = c => (cartPrint_(c) || 0)
   + (c && c.laminate ? (laminatePrice(c.pages) || 0) : 0);
 
-/* `canPrint` WAS HERE — whether a printed copy is offered at all, an explicit FALSE in the sheet
-   beating any page count. Its two callers were `topicTiles_`'s Paper tile and `cart-add`'s `print`
-   branch, both gone with the documents. `printPrice` above stays: `cartMoney_` and `laminatePrice`
-   still read it for a basket line saved before this change. */
+/* WHETHER LAMINATING IS OFFERED AT ALL, which is a different question from what one costs. A paper
+   with no page count cannot be priced for either, and the toggle on its line still means something
+   — "laminate it" is a decision about the copy, and the price follows the count — so the basket
+   asks this rather than whether `laminatePrice` answered. No rate is still OFF, for the reason
+   written over `laminatePrice`: the config row's own sentence is *"0 = laminating is not offered"*. */
+function laminateOffered_() {
+  const rate = num(((DATA.constants || {}).vars || {}).laminate_rate_per_page);
+  return !isNaN(rate) && rate > 0;
+}
+
+/* ---------- `canPrint` CAME BACK WITH THE BUNDLE, AND ITS RULE CAME BACK UNCHANGED --------------
+   An explicit FALSE in the document row's `printable` cell beats any page count: somebody wrote it
+   on purpose, and a print order for a paper the library says cannot be printed is an order the
+   owner then has to refuse by hand. Blank is not false — 519 of the 691 document rows have no cell
+   at all, and reading an empty cell as a refusal would take most of the library out of every
+   bundle for a fact nobody stated.
+
+   MEASURED: 42 rows say FALSE, and 36 of those have questions under them — every AQA Religious
+   Studies paper (which carry no `source_url` either, so there is genuinely no copy here to print)
+   and the June 2024 AQA sciences. The bundle card names them rather than dropping them silently, so
+   the owner can see the cell is what is stopping them and change it. */
+const canPrint_ = doc => !!doc && String(doc.printable == null ? '' : doc.printable)
+  .trim().toLowerCase() !== 'false';
 
 
 
@@ -6401,8 +6452,24 @@ function stuffNarrow_(out, filters, words, credits) {
     if (f.any) return;
     (byField[f.field] = byField[f.field] || []).push(f);
   });
+  /* ---------- AN ANSWER GIVEN INSIDE A BUCKET REFINES IT, IT DOES NOT SIT BESIDE IT --------------
+     FOUND WHILE MEASURING THE BUNDLE, and it is the owner's own example: Maths · Past paper · GCSE ·
+     Higher · `2017 & 2018` is 362 questions, the Sitting question is asked again inside the bucket,
+     and pressing `Summer 2017` left **362**. Two chips on one field are ORed by the line below —
+     "either / both" — so the bucket went on keeping everything the answer inside it was meant to
+     remove. The chip said Summer 2017 and the list said four sittings.
+
+     NOTHING COULD SEE IT. `check-funnel.js`'s promise test presses each answer through `filterHit`
+     on its own, which is exactly right about the answer and blind to the OR it is then put into.
+
+     A BUCKET FOLLOWED BY ANOTHER CHIP ON THE SAME FIELD STANDS DOWN. That is the only way a second
+     chip on one field arrives — `nextFacet` settles a field the moment a non-bucket chip answers it,
+     so the re-ask inside a bucket is the one route — and `facetWithin_` already reads the LAST
+     bucket on a field as the one the question is being asked inside. Taking the chip off again puts
+     the bucket back in force, because the rule is read off the list rather than stored. */
   Object.keys(byField).forEach(field => {
-    out = out.filter(x => byField[field].some(f => filterHit(x, f, credits)));
+    const list = byField[field].filter((f, i, all) => !(f.bucket && i < all.length - 1));
+    out = out.filter(x => list.some(f => filterHit(x, f, credits)));
   });
   if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
   return out;
@@ -7029,8 +7096,394 @@ screen('account', () => pages('account',
   accountPages_().concat(typeof termsPages_ === 'function' ? termsPages_() : [])));
 
 /** Everything spliced between the question and the results, whichever answer is showing. */
+/* THE BUNDLE IS THE LAST OF THEM — see `bundlePages_`. It is asked here and nowhere else, so
+   `PAGER.stuff`, `stuffFirstResult_`, `paintStuff` and `screen('stuff')` all count it by asking the
+   one function that draws it, which is the rule every one of those already follows. */
 function frontPages_() {
-  return [].concat(bookingPages_(), feedPages_());
+  return [].concat(bookingPages_(), feedPages_(), bundlePages_());
+}
+
+/* ==================================================================================================
+   A BUNDLE — THE PAPERS ON THE SCREEN, AS ONE THING YOU CAN ORDER.
+
+   ASKED FOR AS *"what happened to collection/bundle in the finder. like what if someone wants a
+   bundle of 2017 past papers for maths edexcell to add to cart and have me send it to them?"*
+
+   WHAT HAPPENED IS WRITTEN DOWN, TWICE, AND BOTH HALVES ARE STILL TRUE. The collection line —
+   *"or the 227 papers these are in"* — went because it was a second way of narrowing one list,
+   stacked on the first and named in a sentence you had to understand before you could use it. And
+   the print line went with the paper card: *"You cannot print one question — a print is a whole
+   paper, priced per page, and this screen no longer lists a whole paper."* What was lost is exactly
+   what is being asked for. This is not the collection line coming back: it does not narrow
+   anything and it does not change what the results are. It is ONE page, in front of them, that
+   says what they add up to — and lets somebody order that.
+
+   ---- WHEN THE RESULTS *ARE* THOSE PAPERS, AND ONLY THEN ----------------------------------------
+   THE TEST IS WHOLENESS, NOT HOW MANY PAPERS ARE REPRESENTED. Every question of every paper on the
+   list has to be on the list. Measured over every state the real funnel reaches by paper-level
+   answers — subject, type, level, tier, board, sitting — and it holds exactly there: Maths · Past
+   paper · GCSE · Higher · 2017 & 2018 is 362 questions and TWELVE WHOLE PAPERS. Narrow by `Topic`
+   instead and it fails everywhere, correctly: GCSE · Algebra is 248 questions from 32 papers and
+   not one of them whole. A "bundle of the 32 papers that contain some algebra" would be 640 printed
+   pages for 248 questions, and a card offering it would be describing a different thing from the
+   list under it. The count can be right and the claim wrong; wholeness is what makes the claim
+   true.
+
+   ---- BUT A STRAY IS NAMED RATHER THAN FATAL, AND THE OWNER'S OWN EXAMPLE IS WHY ----------------
+   THE FIRST VERSION REFUSED ANY LIST THAT WAS NOT ENTIRELY WHOLE PAPERS, and typing `2017` into the
+   search on Maths — which is the sentence the owner used — returned 223 questions: every question of
+   seven 2017 papers, AND ONE question from a June 2019 paper whose own text mentions the year. One
+   question in 223 took the bundle away from the one search it was asked for by. The same is true of
+   a search that also finds a boxer or a link.
+
+   SO THE WHOLE PAPERS ARE THE BUNDLE, and everything else on the list is a STRAY: a question from a
+   paper only part of which is here, or anything that is not a question at all. A bundle is offered
+   while the strays are at most a tenth of the list (`BUNDLE_STRAY`) — which keeps `GCSE · Algebra`
+   out exactly as before, because not one of its 32 papers is whole and every one of its 248
+   questions is a stray — and the card SAYS what it left out, by paper, so it is never a
+   description of a different list from the one under it. A tenth because the measured cases sit at
+   either end of it: the year search is 1 stray in 223, a topic-narrowed list is all strays, and
+   nothing reached in between.
+
+   ---- THE BOUNDS, AND WHERE EACH ONE CAME FROM ---------------------------------------------------
+   AT LEAST TWO. One paper is where somebody working through it swipes from the question to Q1, and
+   a shop card between them and the paper they are sitting tonight is friction on the commonest
+   journey this screen has. It is also not what was asked for — a bundle is several. One paper can
+   still be ordered: its sitting's bundle goes into the basket as one line per paper, and a line is
+   taken out with its own ✕.
+
+   AT MOST TWENTY-FOUR. Measured, the sizes a whole-paper state reaches cluster up to 24 — English
+   Language is 24, a Year 6 worksheet shelf is 20, the owner's own example is 12 — and then jump
+   to 29, 33 and 35: every Higher GCSE maths paper in the library, every GCSE one, every Foundation
+   worksheet. Those are SHELVES, not bundles, and nobody orders one in a single go. Twenty-four is
+   also what the card can list without the pane scrolling on a 320px phone, and what one message
+   to the owner can carry under the backend's 2,000-character cap — see `orderText_`.
+
+   NEVER ON THE FIRST UNANSWERED STATE. `stuffAsked()` is false there, so nothing is offered before
+   anybody has asked for anything — the whole library is 266 papers and is not a bundle either.
+
+   ---- WHERE IT SITS ------------------------------------------------------------------------------
+   A LEADING PAGE, BETWEEN THE QUESTION AND THE FIRST RESULT — the place the booking and feed pages
+   already occupy. So it is kept rather than recycled (`PAGE_KEEP`), counted by `PAGER.stuff`, and
+   rebuilt by `paintStuff` with the others; nothing about the result window moves. On the question
+   page itself it would have cost the funnel's answers their room on a 568px phone, and after the
+   last result it would be 362 swipes away. One swipe from the question is where "these, all of
+   them" belongs.
+================================================================================================== */
+const BUNDLE_MIN = 2;
+const BUNDLE_MAX = 24;
+const BUNDLE_STRAY = 0.1;
+
+/* HOW MANY QUESTIONS EACH PAPER HAS, OVER THE SAME LIST THE FUNNEL FILTERS. Against `stuffItems()`
+   rather than the file, because wholeness is a question about the list on screen: a row the file
+   holds and the funnel does not offer (an inactive one) is not a question anybody could have been
+   shown, so it cannot make a paper partial. Memoised on the array, which is rebuilt only when the
+   payload or the visitor changes. */
+const PAPER_QUESTIONS = new WeakMap();
+function paperQuestionCounts_() {
+  const all = stuffItems();
+  let m = PAPER_QUESTIONS.get(all);
+  if (m) return m;
+  m = {};
+  all.forEach(x => {
+    if (!x || x.kind !== 'question') return;
+    const id = String(paperIdOf_(x.row || x) || '');
+    if (id) m[id] = (m[id] || 0) + 1;
+  });
+  PAPER_QUESTIONS.set(all, m);
+  return m;
+}
+
+/* A DOCUMENT ROW BY ITS ID, off the file rather than the mapped list — `libDocRows_`'s own note
+   says why: `DATA.questions` carries 174 of the 691 document rows and the page count, the name and
+   `printable` are all paper-level facts. */
+const DOC_BY_ID = new WeakMap();
+function docById_(id) {
+  const rows = libDocRows_();
+  let m = DOC_BY_ID.get(rows);
+  if (!m) {
+    m = {};
+    rows.forEach(r => {
+      if (!libIsDoc_(r)) return;
+      const k = String(paperIdOf_(r) || '');
+      if (k && !m[k]) m[k] = r;
+    });
+    DOC_BY_ID.set(rows, m);
+  }
+  return m[String(id)] || null;
+}
+
+/* A TYPE, IN THE PLURAL, for a title naming several of them. `5-a-day` is already a count noun. */
+const typePlural_ = t => /(s|day)$/i.test(String(t)) ? String(t) : String(t) + 's';
+
+/* ---------- WHAT THE BUNDLE IS CALLED, BUILT FROM THE CHIPS AND THE DATA ----------------------------
+   EVERY COLUMN ALL OF ITS QUESTIONS AGREE ON, IN THE ORDER A PERSON SAYS THEM: the board, the
+   subject, the level, the year or grade, the tier, the type, the sitting. Read through the funnel's
+   own tally, so every word is spelled the way the answer button spelled it — `1st Class Maths`,
+   not `1stclassmaths` — and a column the papers DISAGREE on falls back to the chip that was pressed
+   on it, which is how `2017 & 2018` gets into the name of twelve papers from four sittings.
+
+   THE DATA BEFORE THE CHIPS, because a question the funnel never had to ask is still true of the
+   bundle: every Higher GCSE maths paper here is Edexcel, so `Exam board` is skipped as a question
+   that cannot narrow — and "Edexcel" is the first word anybody ordering one would say. */
+const BUNDLE_TITLE_FIELDS = ['examBoard', 'company', 'subject', 'level', 'keystage', 'yearGroup',
+                             'bandValue', 'tier', 'documentType', 'examWave', 'year'];
+function bundleTitle_(items) {
+  const parts = [];
+  const said = {};
+  BUNDLE_TITLE_FIELDS.forEach(field => {
+    /* THE KEY STAGE ONLY WHERE THERE IS NO LEVEL. `GCSE · KS4` and `KS2 SATs · KS2` say one thing
+       twice — measured on the first run, over the owner's own example — and the level is the word
+       people use; a worksheet shelf has no level and its key stage is then the only word for it. */
+    if (field === 'keystage' && said.level) return;
+    /* THE YEAR ONLY WHERE THE SITTING DID NOT SAY IT. Seven 2017 papers are two sittings, Summer and
+       Autumn, so `examWave` has nothing single to say — and "2017" is the word the owner asked with.
+       Where the sitting did speak it already carries the year, and `Summer 2017 · 2017` is one fact
+       twice. `year` is switched off as a funnel QUESTION (the sitting is the better question) and
+       `facetBy` still finds it, which is the only thing this needs. */
+    if (field === 'year' && said.examWave) return;
+    const n = parts.length;
+    try { titlePart_(field); } finally { if (parts.length > n) said[field] = true; }
+  });
+  /* THE SEARCH, IN QUOTES, UNLESS THE TITLE ALREADY SAYS IT — `… · 2017 · “2017”` is the year
+     twice, and the search is only there to say what the chips cannot. */
+  const q = String(STUFF.q || '').trim();
+  if (q && !norm(parts.join(' ')).includes(norm(q))) parts.push('“' + q + '”');
+  return parts.join(' · ');
+
+  function titlePart_(field) {
+    const facet = facetBy(field);
+    if (!facet) return;
+    let t = null;
+    try { t = facetTally_(items, facet); } catch (e) { t = null; }
+    const vals = (t && t.values) || [];
+    if (vals.length === 1 && t.coverage >= 1 && !vals[0].bucket) {
+      const w = String(vals[0].show || vals[0].value || '');
+      if (w) parts.push(field === 'documentType' ? typePlural_(w) : w);
+      return;
+    }
+    /* THE LAST CHIP ON THE FIELD, because a bucket refined by a later answer is that answer. */
+    const chip = (STUFF.filters || []).slice().reverse().find(f => f.field === field && !f.any);
+    if (chip) parts.push(String(chipShow_(chip)));
+  }
+}
+
+/* PAPERS, WORKSHEETS OR DOCUMENTS — whatever every one of them is. */
+function bundleNoun_(papers, n) {
+  const types = papers.map(p => String(p.type || '').toLowerCase());
+  const one = types.every(t => /paper/.test(t)) ? 'paper'
+    : types.every(t => t === 'worksheet') ? 'worksheet' : 'document';
+  return n + ' ' + one + (n === 1 ? '' : 's');
+}
+
+const BUNDLE_MEMO = new WeakMap();
+function bundleOf_() {
+  if (!stuffAsked() || !printOffered_()) return null;
+  const items = stuffFiltered();
+  if (BUNDLE_MEMO.has(items)) return BUNDLE_MEMO.get(items);
+  let out = null;
+  try { out = bundleBuild_(items); } catch (e) { out = null; }
+  BUNDLE_MEMO.set(items, out);
+  return out;
+}
+
+function bundleBuild_(items) {
+  if (!items.length) return null;
+  /* ---------- WHICH PAPERS ARE WHOLE ON THIS LIST, AND WHAT IS LEFT OVER ------------------------
+     Counted per paper over the list's QUESTIONS; anything that is not a question, or has no paper,
+     goes straight to the strays — see the note above `BUNDLE_MIN` for why a stray is named rather
+     than fatal. `first` keeps one question per paper, because the sitting is read off a question
+     through the funnel's own facet rather than worked out a second time from the row. */
+  const count = {};
+  const first = {};
+  const order = [];
+  let other = 0;
+  for (const x of items) {
+    const id = x && x.kind === 'question' ? String(paperIdOf_(x.row || x) || '') : '';
+    if (!id) { other++; continue; }
+    if (!count[id]) { count[id] = 0; order.push(id); first[id] = x; }
+    count[id]++;
+  }
+  const whole = paperQuestionCounts_();
+  const kept = order.filter(id => count[id] === whole[id]);
+  if (kept.length < BUNDLE_MIN || kept.length > BUNDLE_MAX) return null;
+  const partial = order.filter(id => count[id] !== whole[id]);
+  const strayQs = partial.reduce((n, id) => n + count[id], 0);
+  if (strayQs + other > items.length * BUNDLE_STRAY) return null;
+
+  /* ---------- IN THE ORDER THEY WERE SAT -----------------------------------------------------------
+     THE LIST ARRIVES IN THE FUNNEL'S OWN ORDER, which sorts on the paper's NAME — so twelve papers
+     came out as four Paper 1s, then four Paper 2s, then four Paper 3s, across two years and four
+     sittings. A bundle is read as "which exams", and an exam is a sitting before it is a number, so
+     it is year, then month, then the paper's own number, then the name as the last word. Read off
+     the document row — `year`, `month` and `paper` are all paper-level facts. */
+  const int_ = v => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; };
+  const sortKey = id => {
+    const d = docById_(id) || (first[id] && first[id].row) || {};
+    return [int_(d.year), int_(d.month), int_(d.paper), String(paperLabel_(id))];
+  };
+  kept.sort((a, b) => {
+    const ka = sortKey(a), kb = sortKey(b);
+    for (let i = 0; i < ka.length; i++) {
+      if (ka[i] < kb[i]) return -1;
+      if (ka[i] > kb[i]) return 1;
+    }
+    return 0;
+  });
+
+  /* ---------- AND GROUPED BY SITTING WHEN THERE IS MORE THAN ONE ----------------------------------
+     TWELVE PAPERS WERE TWELVE LINES OF `Paper 1 (Non-Calculator) — November 2017`, because across
+     four sittings `Paper 1` is not unique and the shortest name that is carries the whole date.
+     Grouped, each sitting is ONE line and inside it `Paper 1` IS unique — so the twelve read as
+     `Summer 2017   Paper 1 · Paper 2 · Paper 3`, four lines, which is how anybody says them.
+
+     THE SITTING IS THE FUNNEL'S OWN ANSWER for that paper (`examWave`, through `waveOf`), so the
+     group is spelled exactly as the Sitting chip spells it. Only where EVERY paper has one and there
+     are at least two: a worksheet shelf has no sittings, and one sitting is already in the title.
+
+     ---------- AND BY TIER, WHERE THE BUNDLE HOLDS BOTH ---------------------------------------------
+     THE OWNER'S OWN EXAMPLE IS WHERE IT SHOWED. Maths · Past paper · Summer 2017 is the three Higher
+     papers AND the Foundation Paper 1, and inside one sitting the two Paper 1s are `Paper 1
+     (Non-Calculator)` and `Paper 1 (Non-calculator)` — one letter's case apart, with the tier that
+     actually separates them nowhere on the card. The title cannot say `Higher` either, because the
+     four papers disagree. So a mixed bundle groups on the tier too — `Summer 2017 · Higher` over
+     three papers and `Summer 2017 · Foundation` over one — and inside each, `Paper 1` is unique
+     again. The same rule as the sitting: only where every paper has one and they differ, so a
+     bundle that is all Higher says so once, in its title, and nowhere else. Read off the document
+     row, because a tier is a paper-level fact. */
+  const wf = facetBy('examWave');
+  const sitOf = id => {
+    try { return String(asList_(wf && wf.of ? wf.of(first[id]) : '')[0] || ''); } catch (e) { return ''; }
+  };
+  const tierOf = id => String((docById_(id) || {}).tier || '').trim();
+  const sits = kept.map(sitOf);
+  const tiers = kept.map(tierOf);
+  const bySit = sits.every(Boolean) && new Set(sits).size >= 2;
+  const byTier = tiers.every(Boolean) && new Set(tiers.map(spellKey_)).size >= 2;
+  const grouped = bySit || byTier;
+  const groupOf = i => [bySit ? sits[i] : '', byTier ? tiers[i] : ''].filter(Boolean).join(' · ');
+
+  /* THE SHORTEST NAME THAT IS STILL UNIQUE — among the whole bundle when it is one list, among its
+     own group when it is grouped. `paperLabels_` against the ids it is given, then `shortLabels_`,
+     which is exactly what the funnel's own Paper question does. */
+  const labels = paperLabels_(kept);
+  const shortIn = ids => shortLabels_(ids.map(id => ({ value: id, text: labels[id] || id })));
+  const label = {};
+  const groupAt = {};
+  const groups = [];
+  if (grouped) {
+    kept.forEach((id, i) => {
+      const s = groupOf(i);
+      groupAt[id] = s;
+      let g = groups.find(x => x.group === s);
+      if (!g) groups.push(g = { group: s, ids: [] });
+      g.ids.push(id);
+    });
+    groups.forEach(g => shortIn(g.ids).forEach(v => { label[v.value] = v.show || v.text; }));
+  } else {
+    shortIn(kept).forEach(v => { label[v.value] = v.show || v.text; });
+  }
+
+  /* `group` IS WHAT THE CARD PRINTS OVER A PAPER, and `short` is the two together — the name that is
+     unique inside the bundle and nowhere else, which is what the basket and the order message put
+     under the bundle's title. Built here, once, so the card, the basket and the message cannot
+     spell one paper three ways. */
+  const papers = kept.map(id => {
+    const doc = docById_(id) || {};
+    const g = groupAt[id] || '';
+    const l = String(label[id] || id);
+    return { id: id, label: l, name: paperLabel_(id), group: g, short: (g ? g + ' · ' : '') + l,
+             pages: Number(doc.pages) || 0, ok: canPrint_(doc), type: doc.document_type || '' };
+  });
+  const printable = papers.filter(p => p.ok);
+  if (printable.length < BUNDLE_MIN) return null;
+
+  /* THE TITLE IS WRITTEN FROM THE BUNDLE'S OWN QUESTIONS, not the whole list — a stray from a June
+     2019 paper would otherwise stop the sitting and the year from being one thing each. */
+  const inBundle = items.filter(x => x && x.kind === 'question'
+    && count[String(paperIdOf_(x.row || x) || '')] === whole[String(paperIdOf_(x.row || x) || '')]);
+  return { papers: papers, printable: printable, ids: printable.map(p => p.id), grouped: grouped,
+           title: bundleTitle_(inBundle), noun: bundleNoun_(printable, printable.length),
+           stray: { questions: strayQs, other: other, papers: partial.map(id => paperLabel_(id)) } };
+}
+
+/* WHETHER EVERY PAPER IN IT IS ALREADY A LINE IN THE BASKET — the tile fills when it is, exactly as
+   the trolley on a shop card does. */
+const bundleInCart_ = b => !!b && b.ids.every(id =>
+  (typeof CART !== 'undefined' ? CART : []).some(c => c.kind === 'print' && String(c.key) === id));
+
+/* WHAT IT COSTS, SAID HONESTLY. A paper with no page count is not free and is not guessed at. */
+function bundlePriceLine_(b) {
+  const priced = b.printable.filter(p => printPrice(p.pages) !== null);
+  const pages = priced.reduce((n, p) => n + p.pages, 0);
+  const cash = priced.reduce((n, p) => n + printPrice(p.pages), 0);
+  const left = b.printable.length - priced.length;
+  if (!priced.length) return 'Priced when it is sent — no page counts yet';
+  if (!left) return pages + ' pages · ' + money(cash);
+  return money(cash) + ' for ' + priced.length + ' · ' + left + ' priced when sent';
+}
+
+/* WHAT IS ON THE LIST AND NOT IN THE BUNDLE, in one sentence — see the note above `BUNDLE_MIN`. The
+   partial papers by name, up to three, because "1 question from Paper 3 — June 2019" is what
+   somebody needs in order to see why it is there; past three it is a count. */
+function bundleStrayLine_(b) {
+  const s = b.stray || {};
+  const bits = [];
+  if (s.questions) {
+    const named = (s.papers || []).slice(0, 3).join(', ');
+    const more = (s.papers || []).length - 3;
+    bits.push(s.questions + ' question' + (s.questions === 1 ? '' : 's') + ' from '
+      + named + (more > 0 ? ' and ' + more + ' more' : ''));
+  }
+  if (s.other) bits.push(s.other + ' thing' + (s.other === 1 ? '' : 's') + ' that ' + (s.other === 1 ? 'is' : 'are')
+    + ' not a paper');
+  return bits.length ? 'Also on this list and not in the bundle: ' + bits.join('; ') + '.' : '';
+}
+
+function bundleCard_(b) {
+  const inCart = bundleInCart_(b);
+  const off = b.papers.filter(p => !p.ok);
+  const note = b.noun + ' · ' + bundlePriceLine_(b);
+  const pp = p => p.pages ? ` <span class="mono faint">${p.pages}pp</span>` : '';
+  /* ONE LINE PER GROUP WHEN IT IS GROUPED — a sitting, a tier, or both — one per paper when it is
+     not. Numbered either way: the count down the edge is how many LINES, and the title already says
+     how many papers. */
+  const list = b.grouped
+    ? (() => {
+        const groups = [];
+        b.printable.forEach(p => {
+          let g = groups.find(x => x.group === p.group);
+          if (!g) groups.push(g = { group: p.group, papers: [] });
+          g.papers.push(p);
+        });
+        return groups.map(g => `<li><span class="bundle-when">${esc(g.group)}</span> ${
+          g.papers.map(p => `<span class="bundle-name">${esc(p.label)}</span>${pp(p)}`)
+            .join('<span class="faint"> · </span>')}</li>`).join('');
+      })()
+    : b.printable.map(p => `<li><span class="bundle-name">${esc(p.label)}</span>${pp(p)}</li>`).join('');
+  const stray = bundleStrayLine_(b);
+  return `<div class="card bundle">
+      <p class="crumb">Bundle · printed and sent</p>
+      <h3>${esc(b.title || 'These papers')} <span class="faint">— ${esc(b.noun)}</span></h3>
+      <p class="sub">${esc(bundlePriceLine_(b))}</p>
+      <ol class="bundle-list">${list}</ol>
+      ${/* NAMED, NOT DROPPED. A paper the library marks `printable: FALSE` is on the list above the
+            card and missing from the bundle, and a card that said "these papers" without saying so
+            would be the misdescription the wholeness test exists to prevent. */''}
+      ${off.length ? `<p class="bundle-off">Not in the bundle, marked not printable: ${
+        off.map(p => esc(p.label)).join(', ')}</p>` : ''}
+      ${stray ? `<p class="bundle-off">${esc(stray)}</p>` : ''}
+    </div>
+    <div class="tile-row">${tile_({ icon: 'cart',
+        label: inCart ? 'In your basket' : 'Add bundle to basket', note: note,
+        act: 'cart-add', on: inCart, off: inCart,
+        data: { kind: 'bundle', ids: b.ids.join(','), key: b.title || '' } })}${
+      tile_({ icon: 'open', label: 'See your basket', act: 'cart-open' })}</div>`;
+}
+
+function bundlePages_() {
+  const b = bundleOf_();
+  return b ? [bundleCard_(b)] : [];
 }
 
 /* WHICH PAGE THE QUESTION IS ON. Saved things sit in front of it and their number changes with a
@@ -7850,6 +8303,8 @@ const STUFF_SOON = 1;
    called for the screen you are on from `placeNow_` in shell.js as well -- where every card in the
    app that grows after its paint already arrives. */
 const PANE_REACH = 24;
+/* HOW SMALL A CARD MAY BE DRAWN TO FIT ITS PANE before it scrolls instead. See `paneReach_`. */
+const PANE_ZOOM_MIN = 0.7;
 
 /* EVERY READ, THEN EVERY WRITE, AND IT IS THE WHOLE COST OF THIS FUNCTION. The first version took
    one pane at a time -- read `scrollHeight`, write `overflowY` -- and a CPU profile of the tap put
@@ -7864,18 +8319,117 @@ function paneReach_(panes) {
   const list = [].slice.call(panes || []);
   if (!list.length) return;
   try {
-    const want = list.map(p => p.scrollHeight - p.clientHeight > PANE_REACH);
+    /* ---------- SHRINK TO FIT FIRST, AND SCROLL ONLY PAST THE FLOOR ---------------------------------
+       REPORTED WITH A SCREENSHOT OF A TUTOR'S CARD ON A PHONE: "this stretches beyond it and causes
+       scrolling. I don't like scrolling. If you need to leave things more compact or smaller font.
+       This goes for all widgets so they all fit on screen."
+
+       SO A CARD TALLER THAN ITS PANE IS DRAWN SMALLER, by CSS `zoom` on the pane's children — which,
+       unlike a `transform: scale()`, is a LAYOUT property: the card re-flows at the smaller size, the
+       pane measures what is really there, and nothing is painted outside a box that does not know
+       about it. That last half is the fault `.mat-out` cost this project twice.
+
+       MEASURED AT ZOOM 1 EVERY TIME, not nudged from the zoom it already has. Zooming out widens the
+       card in its own pixels, so text wraps less and the card gets shorter than the ratio predicts —
+       which means a zoom computed as "pane over natural height" is guaranteed to fit, and one nudged
+       from the last value oscillates: shrink, find slack, grow, overflow, shrink. Resetting and
+       re-setting in one task is deterministic, and the `ResizeObserver` below sees the same final
+       size it saw before, so it does not feed itself.
+
+       THE FLOOR IS WHERE THE WORDS STOP BEING WORDS. `PANE_ZOOM_MIN` of the ordinary size is about
+       10px text on a phone; below that a card is not "more compact", it is unreadable, and a
+       question card 2,800px tall would come out as a column of grey. Past the floor the pane scrolls,
+       which is the old behaviour and is now the last resort rather than the first.
+
+       WHAT IT COSTS, SAID RATHER THAN BURIED: a zoomed card's 44px tap targets are 44px times the
+       zoom. That is the trade the report asked for, and `check/ui.js` measures a control at its own
+       size and counts the zoomed panes separately, so the cost is a number rather than a silence. */
+    const kids = list.map(p => [].slice.call(p.children));
+    const was = kids.map(ks => ks.map(k => k.style.zoom || ''));
+    kids.forEach(ks => ks.forEach(k => {
+      if (k.style.zoom) {
+        k.style.zoom = ''; k.style.width = '';
+        k.style.marginInline = ''; k.style.marginLeft = ''; k.style.marginRight = '';
+      }
+    }));
+    const pad = p => {
+      const cs = getComputedStyle(p);
+      return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    };
+    const want = list.map(p => {
+      const room = p.clientHeight - pad(p);
+      const used = p.scrollHeight - pad(p);
+      if (room <= 0 || used - room <= 2) return 1;
+      /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
+         measured, a card zoomed to exactly room / used ended 4px past its pane. */
+      return Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
+    });
+    /* AND THE CARD KEEPS ITS OWN WIDTH, so it is the same card drawn smaller rather than a wider
+       card re-flowed. Zoom alone does not shrink anything whose height follows its width — a game
+       board, a 4:5 photograph, a square week grid — because at zoom 0.8 the card is a quarter wider
+       in its own pixels and the board grows to fill it. Measured on the Games column the first time:
+       zoomed to 0.91 and still 24px past the pane. Pinned to the width it had at zoom 1, everything
+       scales by exactly the same factor and the zoom that was asked for is the zoom that fits. */
+    /* ---------- AND IT STAYS CENTRED WHERE IT WAS, WHICH `margin-inline: auto` DID NOT DO -----------
+       THIS WAS `margin-inline: auto`, which centres a child only when the zoomed width fits inside
+       the pane's content box. A post does not: `.pane > .post` bleeds into the pane's padding with a
+       negative margin so its photograph reaches the glass, so it is wider than that box — and a zoom
+       of about 0.92 or more left it wider still, the auto margins resolved to nought, and the card
+       started at the padding's edge and hung off the right. Measured at 390x844 on a 9:16 portrait
+       zoomed to fit: the photograph at 45→356 inside a card at 32→358, thirteen pixels of card on
+       the left and two on the right. It surfaced when a post photograph stopped being a fixed 4:5
+       box, because that is when a post first grew past its pane at 390.
+
+       SO THE CENTRE IS KEPT, which is `auto` for every ordinary card and the right answer for one that
+       bleeds. `zoom` scales an element's margins with everything else, so the margin is written
+       divided by the zoom and lands where it was worked out. Measured after: 7.5px either side. */
+    const box = list.map(p => {
+      const r = p.getBoundingClientRect(), cs = getComputedStyle(p);
+      return r.left + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
+    });
+    const rects = kids.map(ks => ks.map(k => k.getBoundingClientRect()));
+    list.forEach((p, i) => {
+      if (want[i] < 1) kids[i].forEach((k, j) => {
+        const r = rects[i][j], z = want[i];
+        const left = (r.left - box[i]) + r.width / 2 - r.width * z / 2;
+        k.style.width = r.width + 'px';
+        k.style.marginLeft = (left / z) + 'px';
+        k.style.marginRight = 'auto';
+        k.style.zoom = String(z);
+      });
+    });
+    /* ---------- A ZOOM THAT CHANGED MOVES THE PAGES UNDER IT, SO THE COLUMN IS PLACED AGAIN ---------
+       A SHRUNK CARD IS A FEW PIXELS SHORTER THAN THE CAPPED PANE IT REPLACED — the zoom is rounded
+       down so it fits — and on the Find screen fifteen pages sit above the one you are on. The
+       column was placed before this ran, so the page in front drifted: `check/ui.js` caught it 46px
+       off the bottom of a 320x568 phone, only on runs where the machine was busy enough for the
+       deferred measuring to land after the placement. `placeCells` coalesces to one frame, and the
+       placement it books calls back into here, finds nothing changed, and stops. */
+    const moved = new Set();
+    list.forEach((p, i) => {
+      const now = want[i] < 1 ? String(want[i]) : '';
+      if (was[i].some(z => z !== now)) {
+        const scr = p.closest && p.closest('.screen');
+        if (scr && scr.id) moved.add(scr.id.replace(/^s-/, ''));
+      }
+    });
+    if (moved.size && typeof placeCells === 'function') {
+      moved.forEach(id => placeCells('y', true, 0, id));
+    }
     /* `overflow-y` AND NOT `touch-action`, WHICH IS THE OPPOSITE OF WHAT `padReach_` DOES AND IS
        DELIBERATE. `pan-y` hands the whole vertical axis to the browser for the whole gesture, and
        `touch-action` cannot say "at the bottom, going up" -- measured, a card set to pan could be
        scrolled to its end and then could not be left by swiping at all, three swipes and the page
        never turned. The pane stays `touch-action: none` and `scrollHost_` in overworld.js scrolls
        it from the app's own drag, which hands over to the grid the moment there is nothing left. */
+    /* READ AFTER THE ZOOM, and only matters at the floor: anything above it fits by construction. */
+    const over = list.map((p, i) => want[i] <= PANE_ZOOM_MIN
+      && p.scrollHeight - p.clientHeight > PANE_REACH);
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
        desktop a classic scrollbar takes width off the card, the card rewraps, the observer fires,
        and a write that sets the value it already had would go round again for ever. */
     list.forEach((p, i) => {
-      const to = want[i] ? 'auto' : '';
+      const to = over[i] ? 'auto' : '';
       if (p.style.overflowY !== to) p.style.overflowY = to;
     });
   } catch (e) {}
@@ -7908,7 +8462,19 @@ function paneReach_(panes) {
 
    THE ONE CASE IT CANNOT SEE IS A ROTATION: the pane's own cap moves and the card does not, so
    nothing resizes. That is why `placeNow_` calls this as well — a resize arrives there. */
+/* ---------- AND IT MEASURES A FRAME LATER, NOT INSIDE THE OBSERVER'S OWN CALLBACK ----------------
+   A ZOOM THAT CHANGES INSIDE THE CALLBACK CHANGES THE SIZE THE CALLBACK WAS TOLD ABOUT, and the
+   browser reports that as "ResizeObserver loop completed with undelivered notifications" — an error
+   event on `window`, which `overworld.js` turns into a gold banner reading "Something went wrong".
+   It was always possible and nothing had produced it: every card that grew after its placement grew
+   to a size that still fitted. A post photograph in its own proportions is the first that does not —
+   a portrait lands, the card passes its pane, the callback zooms it, and the banner went up over the
+   feed on the first open. Measured at 390x844. Nothing was broken; the notification the browser
+   calls undelivered is simply delivered next frame. So the callback only collects which panes moved
+   and one `requestAnimationFrame` measures them, which is outside the observer's delivery and so
+   cannot loop. The one frame of an un-zoomed card is the frame the picture arrived in. */
 let PANE_WATCH = null;
+let PANE_WATCH_DUE = null;
 function paneWatch_(host) {
   if (!host || !host.querySelectorAll) return;
   const panes = host.querySelectorAll('.pane');
@@ -7916,12 +8482,26 @@ function paneWatch_(host) {
   if (typeof ResizeObserver !== 'function') return;
   try {
     if (!PANE_WATCH) PANE_WATCH = new ResizeObserver(rows => {
-      const mine = [];
+      const due = PANE_WATCH_DUE || (PANE_WATCH_DUE = []);
+      const first = due.length === 0;
+      const held = new Set();
       rows.forEach(r => {
         const pane = r.target && r.target.parentElement;
-        if (pane && mine.indexOf(pane) === -1) mine.push(pane);
+        if (pane && due.indexOf(pane) === -1) due.push(pane);
+        const scr = pane && pane.closest && pane.closest('.screen');
+        if (scr && scr.id && !held.has(scr.id)) {
+          held.add(scr.id);
+          /* NOW, INSIDE THE DELIVERY, and not with the measuring a frame later — see `holdColumn_`
+             in shell.js: a card above the page in front moved that page, and this is the last
+             moment before the frame is painted with it moved. */
+          if (typeof holdColumn_ === 'function') holdColumn_(scr.id.replace(/^s-/, ''));
+        }
       });
-      paneReach_(mine);
+      if (first && due.length) requestAnimationFrame(() => {
+        const mine = PANE_WATCH_DUE || [];
+        PANE_WATCH_DUE = null;
+        paneReach_(mine.filter(p => p.isConnected));
+      });
     });
     /* ONLY WHAT CHANGED IS UNOBSERVED OR OBSERVED. This ran on every placement — every tap and
        every page turn — and let go of every card on the screen and took hold of it again. A
@@ -8174,6 +8754,8 @@ function allWidgets() {
 }
 
 function startWidget_(wgt) {
+  /* NOT ONE THIS PERSON MAY NOT OPEN, whoever handed it here — see `widgetFor_` in arcade.js. */
+  if (typeof widgetFor_ === 'function' && !widgetFor_(wgt)) return;
   /* The same one again is already running — restarting would throw away a game in progress and a
      clock somebody is watching. */
   if (WIDGET_ON && WIDGET_ON.id === wgt.id) return;
