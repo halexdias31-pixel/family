@@ -206,6 +206,14 @@ function boot(opts) {
 
   const errs = [];
   w.onerror = m => errs.push(String(m));
+  /* JSDOM HAS NO MEDIA PLAYER. Reels are real `<video>` files now, and leaving a column pauses every
+     clip on it — which jsdom answers with a "not implemented" stack trace per clip per journey, a
+     wall of red over a run that passed. A video that does nothing is what this harness wants. */
+  try {
+    w.HTMLMediaElement.prototype.pause = function () {};
+    w.HTMLMediaElement.prototype.play = function () { return Promise.resolve(); };
+    w.HTMLMediaElement.prototype.load = function () {};
+  } catch (e) {}
   const src = ORDER.map(n => fs.readFileSync(path.join(dir, n + '.js'), 'utf8')).join('\n');
   try {
     w.eval(src + '\n;window.__t = {' +
