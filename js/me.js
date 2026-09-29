@@ -2127,7 +2127,9 @@ const FIELD_LISTS_ = {
 };
 /* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell — the shape
    `extra_quals` already had as free text, so nothing written before this needs migrating. */
-const FIELD_MULTI = { extra_quals: true, teaches_also: true };
+/* `venues_ok` IS NOT A COLUMN of `people` — it is the venues tab's own `tutors_happy_here`, read and
+   written through this one box. See `venuesWrites_` in core.gs for why there is no second copy. */
+const FIELD_MULTI = { extra_quals: true, teaches_also: true, venues_ok: true };
 /* ---------- AND ONE SHELF SLOT'S LIST OFF THE FIRST SLOT'S -------------------------------------
    `FIELD_OPTIONS` sends `qual_1_level` ONCE rather than ten times — see its note in constants.gs —
    so `qual_7_level` asks for `qual_1`'s list here. `teaches_also` is built from `teaches_1`'s two
@@ -2139,6 +2141,9 @@ function fieldOptions_(f) {
   const got = x => (x && x.length ? x : null);
   const first = String(f).replace(/^qual_\d+/, 'qual_1');
   return got(v[f]) || FIELD_LISTS_[f] || got(v[first])
+    /* THE VENUES ON OFFER ARE THE VENUES THE SITE HAS, by the name the booking form uses for them. */
+    || (f === 'venues_ok' ? got((typeof DATA !== 'undefined' && DATA && DATA.venues || [])
+                                  .map(x => x && x.title).filter(Boolean)) : null)
     || (f === 'teaches_also' ? teachPhrases_(got(v.teaches_1) || got(dd.subjects) || [],
                                              got(v.teaches_1_level) || got(dd.levels) || []) : null)
     || null;
@@ -2420,6 +2425,7 @@ const ROW_LABEL = {
   years_experience: 'years teaching',
   photo: 'photo link', video: 'video link',
   travel_km: 'will travel (km)', extra_quals: 'more qualifications', favourite_colour: 'favourite colour',
+  venues_ok: 'venues you teach at',
 };
 function fieldRows_(list, one) {
   const out = [], done = new Set();
@@ -2561,78 +2567,224 @@ on('shelf-more', el => {
 const isQualField_ = f => /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/.test(String(f || ''));
 const isQuals_ = list => (list || []).some(isQualField_);
 function qualShelf_(list, value, options) {
+  /* ---------- ONE SUBJECT, AND ITS LEVELS UNDER IT --------------------------------------------------
+     ASKED FOR AS *"i would rather a tutor add a subject for example, then add that they got a gcse in
+     it at a certain grade, and then add another level eg a level and its grade. that way they dont
+     need to add another entry for the same subject. then add the teach tick, and specialise tick.
+     forgot to mention exam board too. the degree shouldnt be a whole nother widget ... this does the
+     job. also add date of completing"*. It was a shelf of separate qualifications — Maths GCSE and
+     Maths A-Level were two cards, each with its own subject box and its own pair of ticks.
+
+     THE SHEET DOES NOT CHANGE, AND THAT IS WHAT MAKES THIS A PAGE CHANGE ONLY. The `quals` cell is
+     still a list of records, each a subject, a level, a board, a grade, a year and two ticks —
+     `qualsIn` / `qualsOut` in core.gs, untouched. What changes is how the page GROUPS them: records
+     sharing a subject are drawn as one subject with its levels underneath, the subject is typed once
+     (a visible box that writes into each record's hidden `qual_N`), and the ticks are the subject's
+     (written onto each of its records). So the backend in Apps Script does not have to be updated for
+     this to work, and nothing already saved moves.
+
+     A DEGREE IS A LEVEL, which is the whole of *"it shouldnt be a widget at all"*: `Bible and
+     Theology` · `Degree` · `Present` is one level line under one subject, and `Present` in the
+     completed list is what says it is still being studied. The board box takes a university as well
+     as an exam board, which is why it suggests rather than restricts.
+
+     A LEVEL IS ONE LINE UNTIL IT IS OPENED — "GCSE · 8 · Edexcel · 2017" — for the reason the old
+     shelf gave: four 44px controls do not fit one row of a 320px card, so a level's boxes are two
+     rows, and a subject with three levels open would be most of a phone. A new level arrives open.
+
+     TEN RECORDS IN ALL, which is `QUAL_MAX`: every slot is in the form whether or not it is drawn, so
+     `me-save` posts all seventy fields and `qualsIn` rebuilds the whole cell. Unused slots wait in a
+     hidden pool, and `Add a level` / `Add a subject` take the next one from it. */
   const nums = [...new Set((list || []).filter(isQualField_)
     .map(f => String(f).match(/^qual_(\d+)/)[1]))];
-  const box = (f, ph) => fieldHtml(f, value(f), { placeholder: ph, options: options ? options(f) : null });
-  const filled = i => shelfFilled_(value, ['qual_' + i, 'qual_' + i + '_level', 'qual_' + i + '_board',
-                                           'qual_' + i + '_grade', 'qual_' + i + '_received']);
-  /* ---------- A SAVED QUALIFICATION IS ONE LINE UNTIL YOU OPEN IT --------------------------------
-     ASKED AS *"look at all of account settings and see if there is a better way to have it layout.
-     like more effecient"*. Three rows of 44px boxes a qualification is 150px each, so four of them
-     were 605px on a 568px phone — drawn at the 70% floor and STILL scrolling. Measured, and the rows
-     could not be packed tighter: a subject, a level, a grade, a board, a year and two ticks are seven
-     44px controls, and two rows of them do not fit a 320px card.
-     SO A FILLED ONE IS ITS SUMMARY, one 44px line that says what it is — the tutor reads a list of
-     qualifications far more often than they edit one — and a tap opens its boxes IN PLACE, not over
-     the app. The boxes are still in the form while shut, just not drawn, so `me-save` posts every
-     qualification whichever are open: a shut one is not a deleted one. An empty shelf's first slot
-     arrives open, because a summary of nothing is a line with nothing to press. */
-  const anyFilled = nums.some(filled);
-  return `<div class="lib-shelf">${shelfSlots_(nums, filled,
-    (i, hide) => `
-    <div class="lib-card q-card${filled(i) ? ' is-shut' : ''}"${hide ? ' hidden' : ''}>
-      <button type="button" class="q-sum" data-do="qual-open" aria-expanded="${filled(i) ? 'false' : 'true'}"><span class="q-sum-t">${
-        esc(qualSummary_(value, i)) || (anyFilled ? 'New qualification' : 'Your first qualification')}</span></button>
-      <div class="lib-row">
-        ${box('qual_' + i, 'Subject')}
-        ${box('qual_' + i + '_grade', 'Grade')}
-      </div>
-      <div class="lib-row q-row">
-        ${box('qual_' + i + '_level', 'Level')}
-        ${box('qual_' + i + '_board', 'Board')}
-      </div>
-      <div class="lib-row q-row q-ticks">
-        ${fieldHtml('qual_' + i + '_received', value('qual_' + i + '_received'),
-                    { placeholder: 'Received', options: qualYears_(value('qual_' + i + '_received')) })}
-        ${qualTick_('qual_' + i + '_teach', 'Teach', value)}
-        ${qualTick_('qual_' + i + '_spec', 'Specialise', value)}
-      </div>
-    </div>`)}</div>`;
+  const v = (i, k) => String(value('qual_' + i + (k || '')) ?? '').trim();
+  const filled = i => ['', '_level', '_board', '_grade', '_received'].some(k => v(i, k) !== '');
+  const opts = f => (options ? options(f) : null) || [];
+  const groups = [];
+  const byKey = {};
+  nums.filter(filled).forEach(i => {
+    const key = norm(v(i)) || ('#' + i);
+    if (!byKey[key]) { byKey[key] = { subject: v(i), slots: [] }; groups.push(byKey[key]); }
+    byKey[key].slots.push(i);
+  });
+  const pool = nums.filter(i => !filled(i));
+  /* AN EMPTY SHELF SHOWS ONE SUBJECT WITH ONE LEVEL OPEN, because a button over nothing is a page
+     with nothing to type into. */
+  if (!groups.length && pool.length) groups.push({ subject: '', slots: [pool.shift()], fresh: true });
+  const subjects = opts('qual_1'), boards = opts('qual_1_board');
+  return `<div class="lib-shelf q-shelf">
+    <datalist id="q-subjects">${subjects.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
+    <datalist id="q-boards">${boards.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
+    ${groups.map(g => qualSubject_(g.subject, g.slots, value, options, !!g.fresh)).join('')}
+    <div class="q-pool" hidden>${pool.map(i => qualLevel_(i, value, options, true)).join('')}</div>
+    <button type="button" class="btn quiet shelf-more" data-do="qual-add-subject"${
+      pool.length ? '' : ' disabled'}>Add a subject</button>
+  </div>`;
 }
-/* THE LINE A SHUT QUALIFICATION SHOWS. Built from the same five values the boxes hold, in the order a
-   tutor would say it — "Maths · A-Level · Edexcel · B · 2019 · teaches" — and rebuilt from the boxes
-   whenever one changes, so the line and the boxes under it cannot disagree. */
-function qualSummary_(value, i) {
-  const v = k => String(value('qual_' + i + k) ?? '').trim();
-  const parts = [v(''), v('_level'), v('_board'), v('_grade'), v('_received')].filter(Boolean);
-  if (!parts.length) return '';
-  const tick = k => TRUEish_(value('qual_' + i + k));
-  return parts.join(' · ') + (tick('_spec') ? ' · specialism' : tick('_teach') ? ' · teaches' : '');
+/* ONE SUBJECT: its name, its level lines, `Add a level`, and its two ticks. The ticks read off the
+   records — Teach if any level of it is taught, Specialise if any is the specialism — because a
+   record saved by the old shelf may carry a tick on one level and not another, and showing the
+   subject ticked is the honest reading of "you teach Maths". */
+function qualSubject_(subject, slots, value, options, open) {
+  const tick = k => slots.some(i => TRUEish_(value('qual_' + i + k)));
+  return `<div class="lib-card q-subj">
+    <label class="field"><input type="text" class="q-name" list="q-subjects" value="${esc(subject)}"
+      placeholder="Subject" aria-label="Subject" autocomplete="off" data-q="name"></label>
+    <div class="q-levels">${slots.map(i => qualLevel_(i, value, options, false, open)).join('')}</div>
+    <button type="button" class="btn quiet q-add" data-do="qual-add-level">Add a level</button>
+    <div class="q-ticks">
+      <label class="check q-tick"><input type="checkbox" data-do="qual-subj-tick" data-k="teach"
+        ${tick('_teach') || tick('_spec') ? 'checked' : ''}><span class="box"></span><span>Teach</span></label>
+      <label class="check q-tick"><input type="checkbox" data-do="qual-subj-tick" data-k="spec"
+        ${tick('_spec') ? 'checked' : ''}><span class="box"></span><span>Specialise</span></label>
+    </div>
+  </div>`;
 }
-on('qual-open', el => {
-  const card = el.closest('.q-card');
-  if (!card) return;
-  const shut = card.classList.toggle('is-shut');
-  el.setAttribute('aria-expanded', shut ? 'false' : 'true');
-  /* THE LINE IS REBUILT FROM THE BOXES ON THE WAY SHUT, so what it says is what will be saved. */
-  if (shut) qualSumFrom_(card);
-  /* A CARD THAT CHANGES HEIGHT UNDER A PLACED COLUMN IS RE-PLACED — `paneWatch_` sees the card grow
-     or shrink and asks `paneReach_` again, which is what keeps it inside its pane. */
+/* ONE LEVEL OF ONE SUBJECT. The subject and the two ticks are HIDDEN inputs carrying `data-me`, so
+   `me-save` gathers them exactly as before; the visible subject box and ticks above write into them.
+   The level, grade, board and year are the ordinary boxes. */
+function qualLevel_(i, value, options, pooled, open) {
+  const f = k => 'qual_' + i + k;
+  const val = k => String(value(f(k)) ?? '');
+  const box = (k, ph) => fieldHtml(f(k), val(k), { placeholder: ph,
+    options: (options ? options(f(k)) : null) });
+  const summary = qualLevelSay_(k => val(k));
+  const shut = !pooled && !open && summary;
+  return `<div class="q-lvl${shut ? ' is-shut' : ''}" data-slot="${esc(i)}">
+    <input type="hidden" data-me="${esc(f(''))}" value="${esc(val(''))}">
+    <input type="checkbox" hidden data-me="${esc(f('_teach'))}" ${TRUEish_(val('_teach')) ? 'checked' : ''}>
+    <input type="checkbox" hidden data-me="${esc(f('_spec'))}" ${TRUEish_(val('_spec')) ? 'checked' : ''}>
+    <button type="button" class="q-sum" data-do="qual-open" aria-expanded="${shut ? 'false' : 'true'}"><span class="q-sum-t">${
+      esc(summary || 'New level')}</span></button>
+    <div class="lib-row q-row">
+      ${box('_level', 'Level')}
+      ${fieldHtml(f('_grade'), val('_grade'), { placeholder: 'Grade', options: (options ? options(f('_grade')) : null) })}
+    </div>
+    <div class="lib-row q-row">
+      <label class="field"><input type="text" data-me="${esc(f('_board'))}" list="q-boards" value="${esc(val('_board'))}"
+        placeholder="Exam board or university" aria-label="Exam board or university" autocomplete="off"></label>
+      ${fieldHtml(f('_received'), val('_received'), { placeholder: 'Completed', options: qualYears_(val('_received')) })}
+    </div>
+    <button type="button" class="q-drop" data-do="qual-drop">Remove this level</button>
+  </div>`;
+}
+/* THE LINE A SHUT LEVEL SHOWS — "GCSE · 8 · Edexcel · 2017" — built from the same four values its
+   boxes hold, and rebuilt from them whenever one changes, so the line and the boxes cannot disagree. */
+function qualLevelSay_(read) {
+  return ['_level', '_grade', '_board', '_received'].map(k => String(read(k) || '').trim())
+    .filter(Boolean).join(' · ');
+}
+function qualLevelFrom_(lvl) {
+  const i = lvl && lvl.dataset.slot;
+  const t = lvl && lvl.querySelector('.q-sum-t');
+  if (!i || !t) return;
+  t.textContent = qualLevelSay_(k => { const b = lvl.querySelector('[data-me="qual_' + i + k + '"]');
+    return b ? b.value : ''; }) || 'New level';
+}
+/* PROGRAMMATIC CHANGES DO NOT FIRE `input`, so a card changed by a button marks itself dirty — see
+   `settingsKeep_`: a column holding an unsaved card is not redrawn under it. */
+const qualDirty_ = el => { const f = el && el.closest('.me-form'); if (f) f.dataset.dirty = '1'; };
+/* A SUBJECT'S NAME AND TICKS, WRITTEN INTO EVERY LEVEL IT HOLDS. The specialism is ONE: ticking it
+   unticks every other subject's, and a specialism is taught, so Teach comes on with it. It is
+   written onto the subject's FIRST level only, because `qualsIn` keeps the first specialism it meets
+   and the card marks that level's chip — which is the level listed first under the subject. */
+function qualSubjectSync_(subj) {
+  if (!subj) return;
+  const name = (subj.querySelector('.q-name') || {}).value || '';
+  const teach = !!(subj.querySelector('[data-k="teach"]') || {}).checked;
+  const spec = !!(subj.querySelector('[data-k="spec"]') || {}).checked;
+  [...subj.querySelectorAll('.q-levels > .q-lvl')].forEach((lvl, n) => {
+    const i = lvl.dataset.slot;
+    const set = (k, fn) => { const b = lvl.querySelector('[data-me="qual_' + i + k + '"]'); if (b) fn(b); };
+    set('', b => { b.value = name.trim(); });
+    set('_teach', b => { b.checked = teach || spec; });
+    set('_spec', b => { b.checked = spec && n === 0; });
+  });
+}
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (t && t.classList && t.classList.contains('q-name')) qualSubjectSync_(t.closest('.q-subj'));
 });
-function qualSumFrom_(card) {
-  /* THE SPAN, NOT THE BUTTON — `textContent` on the button would take the span with it, and the
-     span is what lets a long line wrap instead of pushing the card sideways. */
-  const btn = card.querySelector('.q-sum-t');
-  const box = card.querySelector('[data-me^="qual_"]');
-  const m = box && String(box.dataset.me).match(/^qual_(\d+)/);
-  if (!btn || !m) return;
-  const read = f => { const b = card.querySelector('[data-me="' + f + '"]');
-    return !b ? '' : b.type === 'checkbox' ? (b.checked ? 'TRUE' : '') : b.value; };
-  btn.textContent = qualSummary_(read, m[1]) || 'New qualification';
-}
 document.addEventListener('change', e => {
-  const card = e.target && e.target.closest && e.target.closest('.q-card');
-  if (card) qualSumFrom_(card);
+  const lvl = e.target && e.target.closest && e.target.closest('.q-lvl');
+  if (lvl) qualLevelFrom_(lvl);
+});
+on('qual-open', el => {
+  const lvl = el.closest('.q-lvl');
+  if (!lvl) return;
+  const shut = lvl.classList.toggle('is-shut');
+  el.setAttribute('aria-expanded', shut ? 'false' : 'true');
+  if (shut) qualLevelFrom_(lvl);
+});
+on('qual-subj-tick', el => {
+  const subj = el.closest('.q-subj');
+  const shelf = el.closest('.q-shelf');
+  if (!subj || !shelf) return;
+  if (el.dataset.k === 'spec' && el.checked) {
+    shelf.querySelectorAll('.q-subj [data-k="spec"]').forEach(x => { if (x !== el) x.checked = false; });
+    const teach = subj.querySelector('[data-k="teach"]'); if (teach) teach.checked = true;
+  }
+  if (el.dataset.k === 'teach' && !el.checked) {
+    const spec = subj.querySelector('[data-k="spec"]'); if (spec) spec.checked = false;
+  }
+  shelf.querySelectorAll('.q-subj').forEach(qualSubjectSync_);
+  qualDirty_(el);
+});
+/* THE NEXT UNUSED SLOT, MOVED IN AND OPENED. Moving the element keeps every `data-me` in the form, so
+   a Save posts it wherever it sits. */
+function qualTake_(shelf) {
+  const lvl = shelf && shelf.querySelector('.q-pool > .q-lvl');
+  if (!lvl) { toast('That is the most this page holds — ten levels in all.'); return null; }
+  lvl.classList.remove('is-shut');
+  return lvl;
+}
+function qualPoolLeft_(shelf) {
+  const left = !!shelf.querySelector('.q-pool > .q-lvl');
+  shelf.querySelectorAll('[data-do="qual-add-subject"], [data-do="qual-add-level"]')
+    .forEach(b => { b.disabled = !left; });
+}
+on('qual-add-level', el => {
+  const subj = el.closest('.q-subj'), shelf = el.closest('.q-shelf');
+  const lvl = qualTake_(shelf);
+  if (!lvl || !subj) return;
+  subj.querySelector('.q-levels').appendChild(lvl);
+  qualSubjectSync_(subj);
+  qualPoolLeft_(shelf);
+  qualDirty_(el);
+  const first = lvl.querySelector('select, input:not([type="hidden"]):not([hidden])');
+  try { if (first) first.focus({ preventScroll: true }); } catch {}
+});
+on('qual-add-subject', el => {
+  const shelf = el.closest('.q-shelf');
+  const lvl = qualTake_(shelf);
+  if (!lvl) return;
+  const holder = document.createElement('div');
+  holder.innerHTML = qualSubject_('', [], () => '', null, true);
+  const subj = holder.firstElementChild;
+  subj.querySelector('.q-levels').appendChild(lvl);
+  shelf.insertBefore(subj, shelf.querySelector('.q-pool'));
+  qualSubjectSync_(subj);
+  qualPoolLeft_(shelf);
+  qualDirty_(el);
+  const name = subj.querySelector('.q-name');
+  try { if (name) name.focus({ preventScroll: true }); } catch {}
+});
+/* A LEVEL TAKEN OFF IS EMPTIED AND GOES BACK TO THE POOL, so the Save posts it blank and `qualsIn`
+   drops it. A subject with no level left goes with its last one. */
+on('qual-drop', el => {
+  const lvl = el.closest('.q-lvl'), shelf = el.closest('.q-shelf');
+  if (!lvl || !shelf) return;
+  const subj = lvl.closest('.q-subj');
+  lvl.querySelectorAll('[data-me]').forEach(b => {
+    if (b.type === 'checkbox') b.checked = false; else b.value = '';
+  });
+  lvl.classList.remove('is-shut');
+  qualLevelFrom_(lvl);
+  shelf.querySelector('.q-pool').appendChild(lvl);
+  if (subj && !subj.querySelector('.q-levels > .q-lvl')) subj.remove();
+  else if (subj) qualSubjectSync_(subj);
+  qualPoolLeft_(shelf);
+  qualDirty_(el);
 });
 /* ---------- WHEN IT WAS RECEIVED, AND WHETHER YOU TEACH IT ------------------------------------
    *"remove the studying now widget. could be achieved if each qualification has a date of reception
@@ -2664,30 +2816,6 @@ function qualYears_(current) {
   if (current && out.indexOf(String(current)) === -1) out.splice(1, 0, String(current));
   return out;
 }
-/* THE TWO TICKS THAT REPLACED `What you teach`. Not `FIELD_IS_BOOL` — these names do not match it and
-   should not have to — but the same `label.check` markup, so `me-save` sends TRUE/FALSE for them as
-   it does for every checkbox. `qual-tick` keeps the pair honest while you tick: a specialism is
-   taught, and there is one of it. The server says the same (`qualsIn`), because the page is not the
-   only thing that can post. */
-function qualTick_(name, label, value) {
-  return `<label class="check q-tick">
-    <input type="checkbox" data-me="${esc(name)}" data-do="qual-tick" ${TRUEish_(value(name)) ? 'checked' : ''}>
-    <span class="box"></span><span>${esc(label)}</span></label>`;
-}
-on('qual-tick', el => {
-  const m = String(el.dataset.me || '').match(/^qual_(\d+)_(teach|spec)$/);
-  const form = el.closest('.me-form');
-  if (!m || !form) return;
-  const pick = (i, k) => form.querySelector('[data-me="qual_' + i + '_' + k + '"]');
-  if (m[2] === 'spec' && el.checked) {
-    form.querySelectorAll('[data-me$="_spec"]').forEach(x => { if (x !== el) x.checked = false; });
-    const teach = pick(m[1], 'teach'); if (teach) teach.checked = true;
-  }
-  if (m[2] === 'teach' && !el.checked) {
-    const spec = pick(m[1], 'spec'); if (spec) spec.checked = false;
-  }
-});
-
 /* ---------- ONE SHELF, ONE CARD PER LIBRARY -----------------------------------------------------
    BUILT FROM THE FIELD LIST THE BACKEND SENT, not from a count written here. `LIBRARY_CARDS` is a
    constant in `constants.gs` and the nine names are derived from it there; a `3` written again on
@@ -2714,6 +2842,42 @@ function libraryShelf_(list, value) {
       ${fieldHtml('lib' + i + '_no', value('lib' + i + '_no'), { placeholder: 'Card number' })}
     </div>`)}</div>`;
 }
+
+/* ---------- AND A GROUP OF `photos_N` NAMES IS A SHELF OF PHOTOGRAPHS ----------------------------
+   ASKED FOR AS *"theres only 1 photo link slot it seems like. tutors should be able to add more
+   pics."* The library shelf a third time, recognised by the SHAPE of the names as the other two are:
+   what is filled in, and an `Add another` under it — eight boxes drawn at once would be most of a
+   phone of empty links. The backend packs them into `photos` (`photosIn` in core.gs); `photo` stays
+   the face on the card and is the ordinary box above the shelf.
+
+   A THUMBNAIL BESIDE EACH LINK, because a link is a string nobody can check by reading it. A Drive
+   address that is not shared, or one pasted from the wrong tab, draws as a broken square here —
+   which is the moment to find out, rather than on the public card after Save. `pic()` is the same
+   rewrite the card uses, so what previews is what will be drawn. */
+const isPhotoField_ = f => /^photos_\d+$/.test(String(f));
+const isPhotos_ = list => (list || []).some(isPhotoField_);
+function photoShelf_(list, value) {
+  const nums = (list || []).filter(isPhotoField_).map(f => String(f).match(/^photos_(\d+)$/)[1]);
+  return `<div class="lib-shelf ph-shelf">${shelfSlots_(nums,
+    i => shelfFilled_(value, ['photos_' + i]),
+    (i, hide) => {
+      const v = String(value('photos_' + i) || '').trim();
+      return `<div class="lib-card ph-slot"${hide ? ' hidden' : ''}>
+        <span class="ph-thumb">${v ? `<img src="${esc(pic(v))}" alt="" loading="lazy">` : ''}</span>
+        ${fieldHtml('photos_' + i, v, { placeholder: 'Another photo link',
+          extra: 'type="url" inputmode="url" autocomplete="off" spellcheck="false"' })}
+      </div>`;
+    })}</div>`;
+}
+/* THE PREVIEW FOLLOWS THE BOX as it is typed into, so the check above does not wait for a Save. One
+   listener for the document, which is how every other input here is heard. */
+document.addEventListener('input', e => {
+  const t = e.target;
+  if (!t || !t.matches || !t.matches('.ph-slot input')) return;
+  const thumb = t.closest('.ph-slot').querySelector('.ph-thumb');
+  const v = String(t.value || '').trim();
+  if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="">` : '';
+});
 
 /* THE HOUR CODES, WHEREVER THE BACKEND PUT THEM. The group's title is the backend's to choose, so
    this looks for the shape rather than for a name — and answers an empty list when no deployment
@@ -2774,14 +2938,19 @@ function fieldsHtml(groups, o) {
        group names, the two boxes are what is drawn, and it comes out of `rest` so it is not drawn
        twice. Drawn where `phone` sat in the list rather than at the foot. */
     const wantsPhone = !timetable && list.indexOf('phone') !== -1;
+    /* THE PHOTOGRAPH SHELF GOES UNDER THE REST, not over it as the library one does: the page
+       reads profile photo, video, then the others, which is the order somebody thinks of them in. */
+    const photos = !timetable && isPhotos_(list);
     const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f))
+                              && !(photos && isPhotoField_(f))
                               && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
       : (library ? libraryShelf_(list, value) : '')
       + (quals ? qualShelf_(list, value, o.options) : '')
       + (wantsDob ? dobBoxes_(value) : '')
-      + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneRow_(value) : plain(f, extra));
+      + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneRow_(value) : plain(f, extra))
+      + (photos ? photoShelf_(list, value) : '');
     return `<${head}><span>${esc(g)}</span></${head}>` + body;
   }).join('');
 }
@@ -2869,11 +3038,30 @@ on('me-save', el => {
      Save from that form writes those blanks over the sheet. `profileOf_` always sends `phone_cc`, so
      its absence is the one test that tells the broken shape apart. Nothing is sent from it; the
      sheet's own copy is asked for, and the form is redrawn from that. */
+  /* ---------- AND WHEN THE SERVER IS OLDER THAN THIS SITE -----------------------------------------
+     REPORTED FROM THE LIVE SITE AS "the account settings stuff isnt saving. its saying action not
+     recognised". The site had been published and the Apps Script had not been updated, so the
+     server had never heard of `myProfile` — and this guard asked for it before every save from an
+     old-shaped copy, which on an old server is every save, and showed the server's raw sentence.
+     The site and the backend land days apart whichever is deployed first, so each has to work
+     against the other's older version.
+     SO AN OLD SERVER SAVES THE OLD WAY, EXCEPT WHERE THAT WAS THE DANGER. A card of plain fields —
+     names, a photo link, a borough — is posted exactly as it always was. A card holding a PACKED
+     field (the phone's two halves, the birthday's three boxes, the qualification shelf, library
+     cards, the week of hours) is the one this guard exists for: drawn from a copy without the
+     expanded values, its boxes are empty, and posting them writes blanks over the sheet. That card
+     is refused with a sentence saying what to update, rather than the server's. */
   if (!profileShapeOk_()) {
+    const packed = Object.keys(fields).some(k => PACKED_FIELD_.test(k));
+    const blocked = () => { if (said) said.textContent = OLD_SERVER_SAY_
+      + ' Until then this card is not sent, because its boxes may be empty and saving would wipe what the sheet holds.'; };
+    if (PROFILE_SERVER_OLD) { if (packed) return blocked(); return saveNow(); }
     if (said) said.textContent = 'Your saved details are still loading from the sheet, so nothing was sent. Try again in a moment.';
-    profileRefresh_(true);
+    profileRefresh_(true, () => (packed ? blocked() : saveNow()));
     return;
   }
+  saveNow();
+  function saveNow() {
   /* `send_`, NOT `api()`. `api()` resolves with whatever the server said, and this disabled only the
      button: no spinner, every box still live, and a headline edited while the request was on the
      wire was silently lost — measured. `send_` spins the button, locks the card's boxes, puts them
@@ -2902,7 +3090,14 @@ on('me-save', el => {
       if (!d || d.changed === undefined || d.changed > 0) load();
     })
     .catch(() => { /* `send_` has already written the refusal under the card. */ });
+  }
 });
+
+/* THE FIELD NAMES THAT ARE HALVES OF ONE CELL — see the old-server note in `me-save`. Hour codes are
+   a day prefix and an hour; the rest are the prefixes `fieldsHtml` expands a packed column into. */
+const PACKED_FIELD_ = /^(phone_(cc|no)|dob_[dmy]|qual_\d+(_|$)|lib\d+_|photos_\d+|(m|tu|w|th|f|sa|su)\d{1,2})$|^(qual_\d+_\w+|lib\d+_\w+)$/;
+let PROFILE_SERVER_OLD = false;
+const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Update the backend (pull from GitHub, then Deploy \u2192 Manage deployments \u2192 New version).';
 
 /* ---------- WHICH SETTINGS CARDS HAVE SOMETHING TYPED INTO THEM -----------------------------------
    A CARD IS DIRTY FROM ITS FIRST KEYSTROKE UNTIL IT IS SAVED, and while any card on the column is,
@@ -2936,12 +3131,20 @@ function profileShapeOk_() {
   const p = USER && USER.profile;
   return !!p && Object.prototype.hasOwnProperty.call(p, 'phone_cc');
 }
-function profileRefresh_(loud) {
+function profileRefresh_(loud, onOld) {
   if (!USER || !USER.token || PROFILE_ASKING) return;
   PROFILE_ASKING = true;
   api({ action: 'myProfile', name: USER.name, personId: USER.personId || '' })
     .then(d => {
       PROFILE_ASKING = false;
+      /* AN OLD SERVER, NOT A FAULT. "That action is not recognised" is the server saying it predates
+         this site — remembered, so the next save does not ask again, and never shown raw. */
+      if (d && d.error && /unknown action|not recognis/i.test(String(d.error))) {
+        PROFILE_SERVER_OLD = true;
+        if (typeof onOld === 'function') return onOld();
+        if (loud) toast(OLD_SERVER_SAY_);
+        return;
+      }
       if (!d || !d.success || !d.profile || !USER) {
         if (loud && d && d.error) toast(d.error);
         return;

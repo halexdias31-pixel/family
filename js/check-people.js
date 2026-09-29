@@ -102,6 +102,13 @@ const SRC = [
   grab(core,   /function isoDate_\([\s\S]*?\n\}/, 'isoDate_'),
   grab(core,   /function isoRefusal_\([\s\S]*?\n\}/, 'isoRefusal_'),
   grab(consts, /const DATE_COLS\s*=[^;]*;/, 'DATE_COLS'),
+  /* THE EXTRA PHOTOGRAPHS: eight boxes, one cell, a list rather than a set of slots — so a gap
+     closes up and a duplicate is one, which is where it parts from the library shelf. */
+  grab(consts, /const PHOTO_MAX\s*=[^;]*;/, 'PHOTO_MAX'),
+  grab(core,   /function photosOut\([\s\S]*?\n\}/, 'photosOut'),
+  grab(core,   /function photosIn\([\s\S]*?\n\}/, 'photosIn'),
+  grab(core,   /function photosRefusal_\([\s\S]*?\n\}/, 'photosRefusal_'),
+  grab(core,   /function photosList_\([\s\S]*?\n\}/, 'photosList_'),
 ].join('\n\n');
 
 /* THE FOUR APPS SCRIPT HELPERS THOSE FIVE REACH FOR, copied rather than imported — the same
@@ -122,7 +129,9 @@ new Function('box', PRELUDE + SRC
   + ' box.qList = qualsList_; box.qOut = qualsOut; box.qIn = qualsIn;'
   + ' box.QMAX = QUAL_MAX; box.QFIELDS = QUAL_FIELDS;'
   + ' box.aList = teachAlsoList_; box.aOut = teachAlsoOut; box.aIn = teachAlsoIn;'
-  + ' box.AMAX = TEACH_ALSO_MAX; box.phOut = phoneOut; box.phIn = phoneIn;')(box);
+  + ' box.AMAX = TEACH_ALSO_MAX; box.phOut = phoneOut; box.phIn = phoneIn;'
+  + ' box.pOut = photosOut; box.pIn = photosIn; box.pNo = photosRefusal_; box.pList = photosList_;'
+  + ' box.PMAX = PHOTO_MAX;')(box);
 
 let bad = 0;
 const is = (what, got, want) => {
@@ -430,8 +439,28 @@ box.DATE_COLS.forEach(f => {
 is('and it does NOT match `date_of_birth`, which is three boxes',
    FIELD_IS_DATE.test('date_of_birth'), false);
 
+/* ---------- THE PHOTOGRAPHS ---------------------------------------------------------------------
+   Every case is a way a gallery goes wrong without anything failing: a link that splits in two on
+   the next read, a picture drawn twice, a blank that becomes a hole in the grid, a note typed into a
+   link box drawn as a broken picture on a public card, and the face repeated under itself. */
+const A = 'https://example.org/a.jpg', B = 'https://example.org/b.jpg', C = 'https://example.org/c.jpg';
+const pf = o => { const f = {}; for (let i = 1; i <= box.PMAX; i++) f['photos_' + i] = o[i] || ''; return f; };
+is('three photographs go out as three and come back as three',
+   box.pOut(box.pIn(pf({ 1: A, 2: B, 3: C }))), Object.assign(pf({}), { photos_1: A, photos_2: B, photos_3: C }));
+is('a gap in the middle closes up rather than drawing a hole', box.pIn(pf({ 1: A, 3: B })), A + ' | ' + B);
+is('the same link twice is one photograph', box.pIn(pf({ 1: A, 2: A, 3: B })), A + ' | ' + B);
+is('a pipe inside a link is escaped, so it stays one photograph',
+   box.pOut(box.pIn(pf({ 1: 'https://x.org/a|b.jpg' }))).photos_1, 'https://x.org/a%7Cb.jpg');
+is('nothing typed packs to an empty cell', box.pIn(pf({})), '');
+is('an empty cell opens eight empty boxes', box.pOut(''), pf({}));
+is('every box is a slot the form draws', Object.keys(box.pOut('')).length, box.PMAX);
+is('a link is not refused', box.pNo(pf({ 1: A, 2: B })), '');
+is('a sentence in a link box is refused, by its number', /Photo 2/.test(box.pNo(pf({ 1: A, 2: 'my cat' }))), true);
+is('the card leaves out the face and anything that is not a link',
+   box.pList({ photo: A, photos: [A, 'a note', B, B].join(' | ') }), [B]);
+
 if (bad) { console.log('\nFAILED — ' + bad + ' packed-cell case(s) wrong.'); process.exit(1); }
 console.log('\nlibrary cards: ' + box.N + '   fields: ' + box.FIELDS.length
-          + '   packed cells: availability, library_card, date_of_birth, quals, teaches_also'
+          + '   packed cells: availability, library_card, date_of_birth, quals, teaches_also, photos'
           + '   date columns: ' + box.DATE_COLS.join(', '));
 console.log('OK — every packed cell and every date column comes back as it went in.');

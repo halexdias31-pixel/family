@@ -15654,3 +15654,140 @@ is for the client's own house, so `atClientHome_` reads the NAME and nothing els
 `At home` and a venue whose title says house. `isHome` is unchanged and is still what decides
 `hosting`, which is the question it answers. `check-flow.js` asks both directions, and the old rule
 put back names `Online` and `Sutton Library`.
+
+## A qualification is a subject with levels under it, and the degree is one of the levels
+
+**Asked for as "i would rather a tutor add a subject … then add that they got a gcse in it at a
+certain grade, and then add another level eg a level and its grade. that way they dont need to add
+another entry for the same subject. then add the teach tick, and specialise tick … exam board too.
+the degree shouldnt be a whole nother widget … also add date of completing drop down list."**
+
+**THE CELL DID NOT CHANGE, WHICH IS WHAT MADE THIS A FRONT-END CHANGE ONLY.** `people.quals` is
+still a packed list of records — subject, level, grade, board, received, teach, spec — through
+`qualsIn` / `qualsOut`, so no backend deploy and no migration. What changed is that `qualShelf_`
+GROUPS the records by subject (`norm` of the name) and draws each subject once: its name, its
+levels as one-line summaries (`GCSE · 8 · Edexcel · 2017`) that open to edit, `Add a level`, and
+one pair of Teach / Specialise ticks. A new level carries the subject's name into its hidden
+`qual_N`, or a Save would post a level with no subject.
+
+**THE TICKS ARE THE SUBJECT'S AND THE RECORDS ARE PER LEVEL**, so `qualSubjectSync_` writes them
+down: teach onto every level, and the specialism onto the FIRST level only — three chips of gold for
+one subject would say Maths three times on the card. The visible pair is a control; the hidden
+`qual_N_teach` / `qual_N_spec` boxes are what `me-save` posts.
+
+**THE DEGREE IS A LEVEL, and "Studying now" stays gone.** `Degree · Present` under `Bible and
+Theology` is the whole of it; the board box takes a university as well as an exam board, and
+`Completed` is the same year list with `Present` as before.
+
+**All seventy fields stay in the form, drawn or not** — `qualsIn` rebuilds the whole cell from what
+arrives, so a slot missing from the form is a qualification deleted on Save. Unused slots wait in a
+hidden pool that `Add a level` and `Add a subject` take from.
+
+**`settings · the qualifications` asserts the shape and the sync**: Maths once with three levels all
+named Maths, the two saved ones shut, one pair of ticks, teach on all three and the specialism on the
+first only. **Proved by mutation twice** — every level keyed as its own subject, and the specialism
+copied onto every level — and both are named at all four widths.
+
+## A tutor has more than one photograph, and the extras are `posts.media`'s shape on `people`
+
+**Asked for as *"theres only 1 photo link slot it seems like. tutors should be able to add more
+pics."*** `photo` STAYS THE FACE and is not turned into a list: the tutor payload, the class picture,
+the roster and three other readers take it as one address, and a separator inside it would be every
+one of them breaking at once. **`photos` is the rest**, links joined by ` | `, which is exactly what
+`posts.media` is beside `posts.image`.
+
+**EIGHT BOXES OVER ONE CELL, the library shelf a third time** — `PHOTO_MAX` in constants.gs,
+`photosIn` / `photosOut` in core.gs, kept out of `wanted` and header-checked in `updateProfile`,
+expanded in `profileOf_`. Two differences, both because a gallery is a LIST rather than a set of
+slots: a gap closes up, and the same link twice is one photograph. A pipe inside a link is escaped
+to `%7C` rather than stripped, so the address still works and still reads back as one.
+
+**A PHOTOGRAPH THAT IS NOT A LINK IS REFUSED BY NUMBER** (`photosRefusal_`), not kept and not
+dropped — kept, it draws as a broken picture on a public card; dropped, it is something typed and
+gone under a toast saying Saved.
+
+**A TUTOR'S `Photos` PAGE IS THIRD**, after Contact: the profile photo and the video moved there off
+About you, then the shelf. Each filled link has a 44px thumbnail beside it, drawn through the same
+`pic()` the card uses, so an unshared Drive file is a broken square on the form rather than on the
+card. Parents and students keep `photo` on About you.
+
+**ON THE CARD, FOUR SQUARES TO A ROW, and a tap opens one across the row in place** — not a sheet
+and not a new tab. `photosList_` sends the extras without the face, so the card does not draw one
+photograph twice; an older backend sends no key and the card draws nothing.
+
+**Proved**: `check-people.js` round-trips the cell (a gap, a duplicate, a pipe, a sentence refused,
+the face left out), `check-profile.js` saves `photos_1` and reads it back after signing in again,
+and two states — the settings shelf and an opened square — each named at all four widths when broken.
+
+**Needs `?setup=1` once the backend is deployed**, which is what creates `people.photos`. Until it
+exists the Photos page refuses its save by name rather than losing the links.
+
+## The swipe froze at the lift, then leapt, and "more frames" was not it
+
+**Asked for as *"refine the swiping to feel more stable. idk what it is... maybe more frames?"*.**
+Three investigators measured it frame by frame under real touch, a fourth was told to refute them,
+and they agreed: **the drag already tracks the finger to the pixel once per drawn frame.** What was
+wrong is the moment the finger lifts. A settle is a CSS transition the compositor runs, which is
+also the only way to get more than 60Hz on an iPhone — a JavaScript loop would get fewer frames.
+
+| at 4x CPU, 30 gestures | before | after |
+|---|---|---|
+| release stall p50 / max, 390x844 | 226 / 383 ms | **47 / 110 ms** |
+| release stall p50 / max, 320x568 | 191 / 462 ms | **40 / 145 ms** |
+| first frame after a flick | 96–320 px against a finger at 22 | **19–21 px** |
+| slides teleported the rest of the way | 2 / 30 and 6 / 30 | **0 / 30** |
+
+**WHAT CAUSED IT, IN ORDER OF SIZE:**
+
+| | |
+|---|---|
+| `--slide` written on `<html>` at every release | an inherited custom property, so ~3,000 elements re-styled before the card could move. The duration and curve are written on the eleven columns now |
+| the curve `cubic-bezier(.16, 1, .3, 1)` | leaves at 6.25x its average speed. `settleCurve_` builds one per release whose starting slope IS the finger's speed (`s = v·T/D`), 260–420ms |
+| an instant placement mid-slide | `transition: none` cut the glide and the card teleported. Instant becomes animated while a settle runs |
+| `paneWatch_` in the release frame | re-zoomed every pane on the column for nothing. It measures only new panes, or all of them when the viewport changes |
+| the release speed | two `Date.now()` samples, never expired. A least-squares line over the last 80ms of `e.timeStamp` samples, coalesced ones included, and nought if the finger had stopped — a flick held a second before lifting turned the page |
+| the ten pixels of axis lock | added in one frame, so every pick-up twitched. Taken off what is placed, not what is decided |
+| a card caught still settling | snapped to its target. Its leftover distance is carried by the drag |
+
+**AND THE CATCH SHIPPED WITH A BUG THAT THE REFUTER FOUND AND I DID NOT.** The leftover distance
+went into the DECISION as well as the placement, so a second flick up 30ms after the first carried
+hundreds of pixels the other way and turned the page back — 1, 2, 1. Worse than the jerk it fixed.
+It is in what is placed only; `PAGE` already names the page being settled to.
+
+**`check/press.js` HAS THE CHAINED FLICK NOW, and writing it cost a wrong fix.** Its first version
+awaited each touch move, which spaced them 33ms apart, so its "flick" was a slow drag no code would
+turn a page on — I read that as the new speed fit being too slow and narrowed the fit window before
+measuring the harness. Reverted. Moves are sent every 8ms without waiting now, the way a phone sends
+them, and the rule fails the mutant with the catch in the decision and passes the real code.
+`check-flow.js` asserts the curve's slope equals the release speed and that nothing is written on
+the root; both proved by mutation.
+
+**Smaller, from the same plan**: after-slide jobs wait for the settle and a lifted finger and run one
+per task; a tap-driven slide eases out of rest (`.3s cubic-bezier(.3, 0, .2, 1)`); the settle starts
+16ms in so there is no dead first frame; the press highlight goes when the axis is claimed; the
+hidden splash stops animating; Flabby's message keeps its line so the card does not shrink on touch.
+**Not done, and named**: pre-painting stale neighbours at rest, and catching a sideways settle with a
+vertical drag — medium risk, and the second is inferred rather than measured.
+
+## The profile card is chips under captions, and a tutor picks the venues they will teach at
+
+**Asked for as "the years experience should also be a google chip … a smaller rate to the side so
+clients can know extra cost for the extra seat … details confirmed shouldnt be a line. enhanced dbs
+check shoulnt appear up there. treat it like an extra qualification … tutors should be able to select
+the venues they are comfortable tutoring at. remove the city".**
+
+- **Experience, group size and session length are one row of chips** under `At a glance`
+  (`profFacts_`); the Experience, Studying (dead — `doGet` always sent `''`), Each extra seat and
+  Details confirmed rows are gone, so `profDate_`/`profStale_` went with them.
+- **The extra seat sits beside the rate**: `+£15.00/h a seat`, from `seatShare_` — the reader
+  `priceFrom` uses — so the card and the booking agree. The old row printed the tutor's FRACTION as
+  money (`£0.50/h`), which was wrong.
+- **Captions** `Teaches` / `Qualifications` / `Tutors at` over each chip row, because two rows of
+  identical pills could not be told apart.
+- **No city, no DBS stamp.** `Enhanced DBS` is on the extra-qualifications list, so a tutor who holds
+  one ticks it and it is a dashed chip. The card no longer says a DBS is MISSING; checking the
+  certificate belongs in business records.
+- **`venues_ok` is a pseudo-field over the venues tab's own `tutors_happy_here` column**, not a new
+  people column: `venuesFor_` reads it, `venuesWrites_` writes only the cells that change and keeps
+  other people's entries, and new entries are the `person_id`. The uncalled `toggleVenueComfort`
+  handler — which let anybody name any `body.handle` — is deleted. `doGet` sends `venues` per tutor.

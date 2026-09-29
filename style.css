@@ -422,19 +422,19 @@ body {
      sets `pointer-events` inline on every cell it places — so nothing about the working case
      changes. What changes is the broken case: it degrades to an app you can still press. */
   /* ---------- HOW LONG THE SLIDE TAKES, AND WHAT CURVE IT FOLLOWS ------------------------------
-     THE DURATION COMES FROM THE GESTURE. `--slide` is set on release from how far the card still
-     has to travel and how fast it was already going — a fixed .26s was the other half of why this
-     felt heavy: a card let go a hair from its destination took exactly as long as one let go at
-     the start, so the end of every swipe felt like wading.
+     THIS IS THE SLIDE FOR EVERYTHING THAT IS NOT A SWIPE — a tab tapped, a tile that turns a page.
+     A swipe's settle is written INLINE on each column by `placeGrid` (see `settleCurve_` in
+     shell.js): a duration from the distance and a curve that leaves at the finger's own speed. It
+     used to be `--slide` on `<html>`, and a custom property on the root is inherited by every
+     element in the app — so each release re-styled about three thousand of them before the card
+     could move. Nothing sets `--slide` now; the fallback below is the whole of it.
 
-     THE CURVE IS THE DECELERATION ONE, not an ease-in-out. A card released from a finger is
-     ALREADY MOVING — it should carry on at that speed and slow into place, not start from nothing.
-     `ease-in-out` begins at a standstill, and that pause between letting go and the card moving is
-     exactly the half-beat that reads as lag.
-
-     The fallback matters: `--slide` is unset until the first release, and on that first tap the
-     card would otherwise move instantly. */
-  transition: transform var(--slide, .28s) cubic-bezier(.16, 1, .3, 1),
+     A TAP STARTS FROM REST, SO THIS CURVE DOES TOO. It was `cubic-bezier(.16, 1, .3, 1)`, written
+     for a card released from a moving finger — and it leaves at 6.25 times its average speed, so a
+     tab tapped from rest jumped about a third of the way in its first frame. The finger's settle has
+     its own curve now; this one is only ever a slide nobody was already moving, and it eases out
+     of a standstill into place. */
+  transition: transform .3s cubic-bezier(.3, 0, .2, 1),
               opacity .22s ease;
   /* NO `contain` HERE, and this is the fault that broke the whole layout when the screen became a
      column. `contain: paint` does not merely hint — it CLIPS the element to its own box, and it
@@ -724,9 +724,22 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    and wrap; the chevron keeps its own width. */
 .q-sum-t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; padding-block: .3rem; }
 .q-sum::after { flex: 0 0 auto; content: '▾'; margin-left: auto; color: var(--faint); transition: transform .15s ease; }
-.q-card.is-shut .q-sum::after { transform: rotate(-90deg); }
-.q-card.is-shut > .lib-row { display: none; }
-.q-card:not(.is-shut) > .q-sum { color: var(--gold); }
+.q-lvl.is-shut .q-sum::after { transform: rotate(-90deg); }
+.q-lvl.is-shut > .lib-row, .q-lvl.is-shut > .q-drop { display: none; }
+.q-lvl:not(.is-shut) > .q-sum { color: var(--gold); }
+/* ---------- A SUBJECT AND ITS LEVELS — see `qualShelf_` ---------------------------------------------
+   THE SUBJECT IS THE HEADING OF ITS OWN BLOCK, so its box is the first thing and the level lines hang
+   under it, indented by a rule down the left rather than by a box round them: they are the subject's,
+   and a border would make each one a card of its own, which is the "widget" the owner asked to lose.
+   `Remove this level` is a quiet line at the foot of an open level, 44px because it is a control, and
+   red only in its words — it empties a level rather than destroying anything saved until Save. */
+.q-subj .q-levels { margin: .1rem 0 .15rem .35rem; padding-left: .6rem; border-left: 1px solid var(--line); }
+.q-lvl + .q-lvl { border-top: 1px dashed var(--line); }
+.q-drop { display: block; min-height: 44px; margin: -.2rem 0 .1rem; padding: 0; background: none; border: 0;
+          color: var(--bad, #c4655a); font: inherit; font-size: .72rem; text-align: left; cursor: pointer;
+          text-decoration: underline; text-underline-offset: 3px; }
+.q-subj .q-add { margin: .1rem 0 .1rem; }
+.q-subj .q-ticks { display: flex; gap: 1rem; align-items: center; }
 .lib-card + .lib-card { border-top: 1px dashed var(--line); padding-top: .45rem; }
 /* ---------- AND THE GAPS ARE THE ONLY THING LEFT TO SPEND, BECAUSE 44px IS NOT ------------------
    SIX ROWS OF INPUT AT A 44px FLOOR IS 264px AND THAT IS THE SHELF'S FLOOR. `label.field`'s own
@@ -833,7 +846,6 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* THE THIRD ROW OF A QUALIFICATION: the received year, then the two ticks that replaced the
    `What you teach` page. The ticks take what their words need and the year takes the rest; the
    label is the 44px target, as `.check` already makes it, and the words shrink rather than wrap. */
-.lib-row.q-row.q-ticks { grid-template-columns: minmax(5.8rem, 1fr) max-content max-content; align-items: center; gap: .5rem; }
 .q-tick { gap: .35rem; font-size: .72rem; min-height: 44px; padding: 0; white-space: nowrap; }
 /* AN UNCHOSEN LEVEL OR BOARD READS AS A PLACEHOLDER, in the same grey as the empty boxes above it —
    otherwise `Level` in full ink looks like an answer somebody gave. */
@@ -852,6 +864,17 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    there is nothing left to reveal (`shelf-more` in me.js). A quiet `.btn`, because the Save under
    the card is the page's one action and this is not it — the correction `.reel-sound` records. */
 .lib-shelf .shelf-more { margin: .1rem 0 .6rem; }
+/* THE PHOTOGRAPH SHELF — `photoShelf_` in me.js. A 44px square beside each link, showing what the link
+   draws, so a Drive file that is not shared is a broken square HERE rather than on the public card.
+   The square is the height of the box beside it, so a slot is one line; no dashed rule between them,
+   because a photograph is a line of a list and not a card of its own like a library is. */
+.lib-shelf .ph-slot { display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: .5rem; align-items: start; }
+.lib-shelf .ph-slot + .ph-slot { border-top: 0; padding-top: 0; }
+.ph-thumb {
+  width: 44px; height: 44px; border-radius: var(--r-sm); overflow: hidden;
+  background: var(--sunk); border: 1px solid var(--line);
+}
+.ph-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
 /* ---------- "ALSO TEACH" IN THE PANEL: ONE SHORT ROW A SUBJECT --------------------------------
    The subject is a small caption over its levels, in the ink `.dob-cap` uses for the same job, and
    the groups are spaced rather than ruled — a rule between twelve subjects is chrome where a list
@@ -5687,11 +5710,11 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    chess board's cream and charcoal. */
 .is-prof { --prof-warn: #c4655a; }
 .prof-name { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; }
-.prof-where { font: 400 .7rem/1.2 var(--mono); color: var(--dim); }
+/* `.prof-where` — the city under the rate — was here and went on request; the card no longer says where somebody lives. */
 /* ---------- THE HANDLE, IN GOLD AND SMALLER THAN THE NAME ----------------------------------------
    IT IS NOT THE NAME AND MUST NOT COMPETE WITH IT. `.prof-name` is 1.05rem at 700; this is the
    thing you sign in with rather than the thing you are called, so it sits under the name at the
-   size `.prof-where` already uses for the second line of this block.
+   size the second line of this block has always used.
 
    GOLD, BECAUSE IT IS YOURS IN THE SENSE THIS APP ALREADY MEANS BY GOLD — the one starred thing,
    the ticked hour, the chosen answer. It is also what separates `@BrightOtter42` from the place
@@ -5701,18 +5724,10 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    nothing to break at, which at this size is 85px — under the column at every width the app is
    measured at, and one `HANDLE_SHAPE` change away from not being. */
 .prof-handle { font: 400 .7rem/1.2 var(--mono); color: var(--gold); overflow-wrap: anywhere; }
-/* THE ONE THING A PARENT IS SCANNING FOR, and the only fact on this card that is a mark rather than
-   a row. Present and green, or absent and said so — never quietly missing, which is what a blank
-   field is. `align-self: start` so the chip is the width of its own words rather than the width of
-   the column it is in. */
-.prof-dbs {
-  align-self: start; margin-top: .1rem;
-  font-family: var(--mono); font-size: .56rem; letter-spacing: .12em; text-transform: uppercase;
-  padding: .18rem .4rem; border-radius: 2px;
-  border: 1px solid currentColor;
-}
-.prof-dbs.yes { color: #3ddc84; }
-.prof-dbs.no  { color: var(--prof-warn); }
+/* `.prof-dbs` — a green DBS CHECKED or a red NO DBS ON FILE under the name — WAS HERE. Asked to go:
+   *"enhanced dbs check shouldnt appear up there. treat it like an extra qualification thing."* A
+   tutor who holds one ticks `Enhanced DBS` among their extra qualifications and it is a dashed chip
+   there. What that costs: the card no longer says a DBS is MISSING. */
 /* WHAT THEY WROTE ABOUT THEMSELVES. `doget.gs` already puts the quotation marks on, so this is set
    as a quotation and not as a field: italic, indented off a rule, no label. */
 .prof-say {
@@ -5721,6 +5736,17 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   font-style: italic; color: var(--ink); font-size: .86rem; line-height: 1.45;
 }
 .prof-tags { display: flex; flex-wrap: wrap; gap: .3rem; margin-top: .6rem; }
+/* A TUTOR'S OTHER PHOTOGRAPHS — `findCard`. Four squares to a row, and one at a time opens across the
+   whole row at its own proportions. Each square is a button of its own and keeps the 44px floor in px,
+   which four to a row clears at 320 (about 64px each). */
+.prof-photos { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: .6rem; }
+.prof-shot {
+  padding: 0; border: 0; border-radius: var(--r-sm); overflow: hidden;
+  aspect-ratio: 1 / 1; min-height: 44px; background: var(--sunk); cursor: zoom-in;
+}
+.prof-shot img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.prof-shot.is-big { grid-column: 1 / -1; aspect-ratio: auto; cursor: zoom-out; }
+.prof-shot.is-big img { height: auto; max-height: 60svh; object-fit: contain; }
 .prof-tag {
   font-family: var(--mono); font-size: .58rem; letter-spacing: .08em; text-transform: uppercase;
   padding: .2rem .45rem; border-radius: 999px;
@@ -5753,6 +5779,18 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   line-height: 1.1; margin-top: .1rem;
 }
 .prof-rate small { font-size: .62rem; font-weight: 400; color: var(--dim); margin-left: .1rem; }
+/* WHAT AN EXTRA SEAT ADDS, beside the rate and a step quieter: it is read after the rate, never
+   instead of it. Wraps under it on a narrow card rather than pushing the name. */
+.prof-price { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .45rem; }
+.prof-seat { font: 400 .66rem/1.2 var(--mono); color: var(--dim); }
+/* A CAPTION OVER EACH ROW OF CHIPS — "Teaches", "Qualifications", "Tutors at" — because two rows of
+   identical pills could not be told apart: *"its hard to tell what they teach and what they have
+   qualification in"*. Small and faint, a label rather than a heading. */
+.prof-cap {
+  margin: .55rem 0 .2rem; font: 400 .56rem/1 var(--mono); letter-spacing: .12em;
+  text-transform: uppercase; color: var(--faint);
+}
+.prof-cap + .prof-tags { margin-top: 0; }
 /* QUALIFICATIONS, AS CHIPS. Same pill as the subjects; a free-typed extra is dashed, because it is
    what somebody wrote rather than a subject, level and grade the form asked for. */
 .prof-quals .prof-tag.is-extra { border-style: dashed; }
@@ -8366,22 +8404,45 @@ body.has-ib #install-bar { transition: transform .28s ease; }
           color: rgb(240 236 224 / .45); text-align: center; }
 
 /* ---------- A PENDULUM WAVE ----------------------------------------------------------------------
-   FIFTEEN SWINGS OF SLIGHTLY DIFFERENT PERIOD. They start together, drift apart, briefly form a
-   travelling snake and a double helix, and come back together — and nothing coordinates them. That
-   is the actual thing worth looking at: it appears choreographed and is only fifteen lengths.
-   The period is `2.4s + n × .06s`, computed in the CSS from `--n`, so fifteen bobs are one rule. */
-.pd-rack { display: flex; justify-content: center; gap: 3px;
-           width: min(60vw, 13rem); height: 8rem; margin: 0 auto; }
-.pd-rack i { position: relative; width: 6px; height: 100%;
+   FIFTEEN PENDULUMS SEEN END-ON, hanging from one bar that points straight at you — so every string
+   leaves the same point at the top, and the bobs sit one behind the other at different depths. They
+   are released together, drift out of step, draw a travelling snake, then a double one, and come
+   back into line; nothing coordinates them. That is the thing worth looking at.
+
+   REFINED FROM A ROW SEEN FROM THE FRONT, which is the wrong view of this toy. From the front the
+   fifteen swings overlap sideways, and with periods of 2.4 to 3.2 seconds they stayed nearly in
+   step for the whole of a loading screen — a screenshot at 2.2s was a tilted comb, fifteen balls in
+   a straight slanted line. End-on is the view every film of one of these is shot from, because it
+   is the only one where the pattern is visible.
+
+   THE ARITHMETIC IS THE REAL DEVICE'S. Pendulum n makes `24 + n` swings in forty seconds, so its
+   period is `40s / (24 + n)` (1.67s down to 1.05s) and all fifteen are back in line every forty
+   seconds. A pendulum's period goes as the square root of its length, so the length goes as the
+   period squared: `(24 / (24 + n))²` of the longest, which is why the far ones bunch up near the
+   bar — that bunching is what a real one looks like, and it reads as depth. Half a period is one
+   `alternate` leg, and `cubic-bezier(.37,0,.63,1)` is ease-in-out-sine, which is the shape a small
+   swing actually has. The snake forms after about three seconds, when neighbours are a fifteenth of
+   a swing apart; in the first second they are already bending into a curve.
+
+   NEARER IS BIGGER AND BRIGHTER. n = 0 is the longest string and the nearest bob; the size and
+   opacity ramps give the depth a flat drawing otherwise lacks, at the cost of two calcs. */
+.pd-rack { position: relative; width: min(60vw, 13rem); height: 10rem; margin: 0 auto .4rem; }
+/* The bar, seen end-on: a short gold-grey stub the strings leave from. */
+.pd-rack::before { content: ""; position: absolute; left: 50%; top: -3px; width: 14px; height: 3px;
+                   margin-left: -7px; border-radius: 2px; background: rgb(244 241 232 / .4); }
+.pd-rack i { position: absolute; left: 50%; top: 0; width: 1px; margin-left: -.5px;
+             height: calc(100% * 576 / ((24 + var(--n)) * (24 + var(--n))));
              transform-origin: 50% 0;
-             animation: pd-swing calc(2.4s + var(--n) * .06s) cubic-bezier(.37,0,.63,1)
+             animation: pd-swing calc(20s / (24 + var(--n))) cubic-bezier(.37,0,.63,1)
                         infinite alternate; }
-.pd-rack i::before { content: ""; position: absolute; left: 50%; top: 0; width: 1px; bottom: 14%;
-                     margin-left: -.5px; background: rgb(244 241 232 / .22); }
-.pd-rack i::after { content: ""; position: absolute; left: 0; bottom: 0; width: 6px; height: 6px;
-                    border-radius: 50%; background: #f0b45f;
+.pd-rack i::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 1px;
+                     background: rgb(244 241 232 / calc(.1 + (14 - var(--n)) * .012)); }
+.pd-rack i::after { content: ""; position: absolute; left: 50%; bottom: 0;
+                    width: calc(3px + (14 - var(--n)) * .3px); aspect-ratio: 1;
+                    transform: translate(-50%, 50%); border-radius: 50%;
+                    background: #f0b45f; opacity: calc(.45 + (14 - var(--n)) * .04);
                     box-shadow: 0 0 6px rgb(240 180 95 / .5); }
-@keyframes pd-swing { from { transform: rotate(-19deg); } to { transform: rotate(19deg); } }
+@keyframes pd-swing { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
 .pd-say { margin-top: .9rem; font: 600 .75rem var(--mono); letter-spacing: .1em;
           color: rgb(240 236 224 / .45); }
 
@@ -8394,8 +8455,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   .br-ring i { transform: scale(1); opacity: .8; }
   .br-say { opacity: 1; }
   .rn-glass i { top: 30%; }
-  .pd-rack i:nth-child(odd) { transform: rotate(-12deg); }
-  .pd-rack i:nth-child(even) { transform: rotate(12deg); }
+  /* THE SNAKE, HELD STILL — one gentle S down the depth, which is the picture the moving version
+     is known for. `sin()` in `calc` is in every browser this app supports; where it is not, the
+     declaration is dropped and the strings hang straight, which is still a pendulum. */
+  .pd-rack i { transform: rotate(calc(sin(var(--n) * 24deg) * 18deg)); }
 }
 
 
@@ -9548,7 +9611,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    declared six hundred lines away from every other pass rule. Found only by deleting the pass, which
    is the argument for keeping a component's rules together: a stray that nothing else names survives
    exactly as long as nobody removes the thing it belonged to.
-   It is `.prof-where`, beside the rest of the profile. */
+   `.prof-where` later went too, on request. */
 
 /* A TOOL OPENS INSIDE ITS OWN CARD. Empty until the row is pressed, so a list of forty widgets is
    forty headings and no canvases — a running board on a card nobody is looking at is a flat

@@ -1026,6 +1026,107 @@ function libCardsIn(fields) {
   return items.join('|');
 }
 
+/* ---------- THE EXTRA PHOTOGRAPHS: EIGHT BOXES, ONE CELL -------------------------------------------
+   `posts.media`'s shape on the people tab — links joined by ` | ` — so a person's gallery and a
+   post's gallery are the same kind of cell. Expanded into `photos_1…8` for the form and packed back
+   from them, the library shelf's arrangement with two differences, both because this is a LIST rather
+   than a set of slots:
+   - A GAP CLOSES UP. `libCardsIn` keeps an empty second card so the third does not move under
+     somebody; a photograph has no slot of its own to be in, and a blank in the middle of a gallery
+     draws as nothing, so it is simply not kept.
+   - THE SAME LINK TWICE IS ONE PHOTOGRAPH. Pasting a link again is the commonest way to get a
+     duplicate, and the card would draw the same picture twice side by side.
+   A PIPE IN A LINK IS ESCAPED, NOT STRIPPED: `%7C` is what a browser would send for it anyway, so the
+   address still works, where a space in its place would break it — and left alone it would split
+   one photograph into two on the next read. */
+function photosOut(cellValue) {
+  const items = S(cellValue).split('|').map(x => x.trim()).filter(Boolean);
+  const out = {};
+  for (let i = 1; i <= PHOTO_MAX; i++) out['photos_' + i] = S(items[i - 1]);
+  return out;
+}
+function photosIn(fields) {
+  const out = [];
+  for (let i = 1; i <= PHOTO_MAX; i++) {
+    const v = S(fields['photos_' + i]).replace(/\|/g, '%7C').trim();
+    if (v && out.indexOf(v) === -1) out.push(v);
+  }
+  return out.join(' | ');
+}
+/* A PHOTOGRAPH IS A LINK, AND ANYTHING ELSE IS REFUSED BY NAME rather than kept. The card draws each
+   one as an `<img>`, and a note typed into the box draws as a broken picture on a public profile;
+   dropping it silently is the other half of the same fault — something typed, gone, under a toast
+   saying Saved. `doPost` is reachable by anybody with the URL, so the form's own `type="url"` is not
+   a reason to trust it. In core.gs beside the packer so something can run it (`check-people.js`). */
+function photosRefusal_(fields) {
+  for (let i = 1; i <= PHOTO_MAX; i++) {
+    const v = S(fields['photos_' + i]).trim();
+    if (v && !/^https?:\/\/\S+$/i.test(v)) {
+      return 'Photo ' + i + ' is not a link. Paste the address of the picture — it starts https://';
+    }
+  }
+  return '';
+}
+/* THE LIST THE CARD DRAWS: the extras, without the face. A link already used as `photo` is left out,
+   because the card draws the face at the top and the same picture again in the grid under it is one
+   photograph twice. Only addresses — a cell typed straight into the sheet is not checked by the
+   refusal above, and an `<img>` pointed at a sentence is a broken picture. */
+function photosList_(r) {
+  const face = S(r.photo).trim();
+  return S(r.photos).split('|').map(x => x.trim())
+    .filter((v, i, all) => /^https?:\/\//i.test(v) && v !== face && all.indexOf(v) === i)
+    .slice(0, PHOTO_MAX);
+}
+
+/* ---------- THE VENUES A TUTOR IS HAPPY TO TEACH AT, WHICH THE VENUES TAB ALREADY RECORDED ---------
+   ASKED FOR AS *"in account setting tutors should be able to select the venues they are comfortable
+   tutoring at."* The fact had a home long before the ask: `venues.tutors_happy_here`, a comma list of
+   people per venue, sent to every phone as `comfort` and written by a `toggleVenueComfort` handler
+   that NOTHING HAS EVER CALLED — the `orderPrints` shape. A `venues_ok` column on `people` would have
+   been a second copy of the same fact, the `needs_print` / `print_required` shape that cost 356 rows
+   of disagreement. So there is no new column: the settings form reads and writes this one.
+
+   `venues_ok` IS A FORM NAME, NOT A CELL, which is the packed-cell arrangement pointed at another
+   tab: `updateProfile` keeps it out of `wanted`, `profileOf_` expands it, and these two functions are
+   the only readers and the only writer.
+
+   AN ENTRY NAMES A PERSON BY ANY OF THE WAYS THIS SHEET HAS: the rows already hold a handle, an
+   admin typing into the tab will type a name, and a new entry is written as the PERSON_ID, because
+   an id is the one of those that survives `changeHandle` and a rename. `key` on both sides. */
+function venuesPersonIs_(entry, p) {
+  const k = key(entry);
+  if (!k || !p) return false;
+  return [p.person_id, p.handle, p.username, p.full_name,
+          S(p.first_name) + S(p.last_name)].some(v => S(v) && key(v) === k);
+}
+function venuesListOf_(r) {
+  return S(r && r.tutors_happy_here).split(/[,\n]/).map(x => x.trim()).filter(Boolean);
+}
+/* The names of the venues this person is on, in the tab's own order. */
+function venuesFor_(p, venueRows) {
+  return (venueRows || []).filter(v => S(v.name) && venuesListOf_(v).some(e => venuesPersonIs_(e, p)))
+    .map(v => S(v.name));
+}
+/* WHAT EACH VENUE'S CELL SHOULD HOLD once this person has chosen `names`. Only the cells that change
+   are returned, so a Save that moves nothing writes nothing — `setCells`' own rule, one tab along.
+   Entries naming somebody else are left exactly as they were. */
+function venuesWrites_(p, chosen, venueRows) {
+  const want = {};
+  S(chosen).split(/[,\n]/).map(x => key(x)).filter(Boolean).forEach(k => { want[k] = true; });
+  const me = S(p.person_id) || S(p.handle);
+  const out = [];
+  (venueRows || []).forEach(v => {
+    if (!S(v.name)) return;
+    const list = venuesListOf_(v);
+    const mine = list.filter(e => venuesPersonIs_(e, p));
+    const others = list.filter(e => !venuesPersonIs_(e, p));
+    const next = want[key(v.name)] ? others.concat(mine.length ? mine.slice(0, 1) : [me]) : others;
+    const cell = next.join(', ');
+    if (cell !== list.join(', ')) out.push({ row: v, cell: cell });
+  });
+  return out;
+}
+
 /* ---------- UP TO TEN QUALIFICATIONS, AS ONE CELL AND FORTY BOXES --------------------------------
    `libCardsOut`'s arrangement one row along, with one difference that is the whole of the
    migration: the cell `quals` is new, so a row nobody has saved since it landed has an EMPTY cell

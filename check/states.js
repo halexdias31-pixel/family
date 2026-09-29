@@ -475,6 +475,34 @@ const STATES = {
         if (window.__OFF_HELD) DATA.tutors = window.__OFF_HELD;
         paint('account');
       } },
+    /* ---------- A TUTOR'S OTHER PHOTOGRAPHS, AND ONE OF THEM OPENED -----------------------------
+       ASKED FOR AS *"tutors should be able to add more pics"*. The grid is four squares to a row and
+       a tap opens one across the row, in place — so the state that matters is the OPENED one: a
+       picture at its own proportions is the tallest thing this card can hold, and it is exactly the
+       height `paneWatch_` has to hear about. `check/fixture.json`'s tutor carries three local
+       pictures so the squares have something real in them. */
+    { name: "a tutor's photographs, one opened",
+      only: () => typeof USER !== 'undefined' && !!USER
+                  && (DATA.tutors || []).some(t => t && Array.isArray(t.photos) && t.photos.length),
+      enter: () => {
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.prof-photos'));
+        if (at < 0) throw new Error('no card on the account column draws a tutor\'s photographs');
+        goPage('account', at, true);
+        /* THE PAGE BY INDEX, NOT `.page.on` — that class is written when the column is placed, so
+           read in the same tick as `goPage` it names the page the column was on before the turn. */
+        const shots = pages[at].querySelectorAll('.prof-shot');
+        if (shots[1]) shots[1].click();
+      },
+      expect: () => {
+        const grid = document.querySelector('#s-account .page.on .prof-photos');
+        const shots = grid ? [...grid.querySelectorAll('.prof-shot')] : [];
+        const big = shots.filter(b => b.classList.contains('is-big'));
+        return shots.length >= 2 && big.length === 1 && big[0] === shots[1]
+          && big[0].getAttribute('aria-pressed') === 'true' ? shots.length : 0;
+      },
+      wants: "a tutor's photographs as squares, with the one tapped opened across the row",
+      leave: () => { paint('account'); } },
   ],
 
   /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR ----------------
@@ -489,6 +517,41 @@ const STATES = {
      through `expect` rather than measuring the wrong card in silence. */
   settings: [
     { name: '' },
+    /* ---------- THE PHOTOGRAPHS PAGE: THE FACE, THE CLIP, AND A SHELF OF EIGHT ------------------
+       Eight boxes are IN the form whether or not they are drawn — `photosIn` rebuilds the whole cell
+       from what arrives, so a box missing from the form is a photograph deleted on Save — and only
+       the filled ones SHOW, each with a thumbnail of the link beside it and one `Add another` under
+       them. Seeded through `USER.profile`, which is what the column is drawn from. */
+    { name: 'the photographs',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_PHOTO_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          photos_1: 'data/reels/archetest.jpg', photos_2: 'icon.png' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-me="photos_1"]'));
+        if (at < 0) throw new Error('no photographs page on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_PHOTO_WAS; delete window.STATE_PHOTO_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        if (!pg) return 0;
+        const slots = [...pg.querySelectorAll('.ph-slot')];
+        const shown = slots.filter(s => !s.hidden);
+        return pg.querySelectorAll('[data-me^="photos_"]').length === 8
+          && !!pg.querySelector('[data-me="photo"]') && !!pg.querySelector('[data-me="video"]')
+          && shown.length === 2 && shown.every(s => s.querySelector('.ph-thumb img'))
+          && pg.querySelectorAll('[data-do="shelf-more"]').length === 1
+          && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 8 : 0;
+      },
+      wants: 'the profile photo and video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another' },
     /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE, WHICH THE FIXTURE HAD NEVER SENT -------------
        `Group size` AND `Your rate` WERE TWO PAGES WITH A SAVE EACH and are one page now, because
        they are one decision and one monthly clock — asked for as *"…all together. and they can only
@@ -574,12 +637,18 @@ const STATES = {
     { name: 'the qualifications',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        /* ONE SLOT FILLED, through `USER.profile`, which is what `loginReplyFor_` fills and what the
-           column is drawn from. The fixture's admin has no qualifications, so without this every card
-           is empty, every card is open, and a collapse that never shuts anything measures perfectly. */
+        /* TWO LEVELS OF ONE SUBJECT AND A DEGREE, through `USER.profile`, which is what the column is
+           drawn from. The two Maths records are the whole point of the page: they must be ONE subject
+           with two level lines under it, not two entries — *"that way they dont need to add another
+           entry for the same subject"* — and the degree must be a level under its subject rather
+           than a card of its own. */
         window.STATE_QUAL_WAS = USER.profile;
-        USER.profile = Object.assign({}, USER.profile || {},
-          { qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_grade: 'B', qual_1_board: 'Edexcel' });
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8', qual_1_board: 'Edexcel', qual_1_received: '2017',
+          qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B', qual_2_board: 'Edexcel', qual_2_received: '2019',
+          qual_2_teach: 'TRUE',
+          qual_3: 'Bible and Theology', qual_3_level: 'Degree', qual_3_received: 'Present' });
         /* A CLEAN COLUMN FIRST — see the agreement state above. */
         document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
@@ -587,39 +656,48 @@ const STATES = {
         const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
         if (at < 0) throw new Error('no qualifications page on the settings column');
         goPage('settings', at, true);
-        const shelf = pages[at].querySelector('[data-me="qual_1"]').closest('.lib-shelf');
-        window.STATE_QUALS_SHOWN = shelf.querySelectorAll('.lib-card:not([hidden])').length;
-        const more = shelf.querySelector('[data-do="shelf-more"]');
-        if (more) more.click();
+        /* AND A THIRD LEVEL ADDED TO MATHS, through the page's own button — the new level has to
+           carry the subject's name into its hidden `qual_N`, or a Save posts a level with no subject
+           and `qualsIn` keeps it as a nameless record. */
+        const maths = [...pages[at].querySelectorAll('.q-subj')]
+          .find(sj => (sj.querySelector('.q-name') || {}).value === 'Maths');
+        const add = maths && maths.querySelector('[data-do="qual-add-level"]');
+        if (add) add.click();
       },
       leave: () => {
-        delete window.STATE_QUALS_SHOWN;
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
         document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
       },
       expect: () => {
         const pg = document.querySelector('#s-settings .page.on');
-        const shelf = pg && pg.querySelector('[data-me="qual_1"]');
-        const box = shelf && shelf.closest('.lib-shelf');
-        /* SEVENTY: four boxes, the received year and the two ticks per slot, which replaced the
-           `What you teach` and studying pages — and exactly twenty ticks, so a shelf that lost its
-           `I teach this` / `Specialise` pair fails here rather than drawing a page that looks fine. */
-        return box && pg.querySelectorAll('[data-me^="qual_"]').length === 70
-          && pg.querySelectorAll('[data-do="qual-tick"]').length === 20
+        const shelf = pg && pg.querySelector('.q-shelf');
+        if (!shelf) return 0;
+        const subjects = [...shelf.querySelectorAll('.q-subj')];
+        const maths = subjects.find(sj => (sj.querySelector('.q-name') || {}).value === 'Maths');
+        const levelsOf = sj => [...sj.querySelectorAll('.q-levels > .q-lvl')];
+        const slotName = lvl => (lvl.querySelector('[data-me="qual_' + lvl.dataset.slot + '"]') || {}).value;
+        /* SEVENTY FIELDS IN THE FORM, drawn or not — `qualsIn` rebuilds the whole cell from what
+           arrives, so a slot missing from the form is a qualification deleted on Save. */
+        return pg.querySelectorAll('[data-me^="qual_"]').length === 70
           && pg.querySelectorAll('[data-do="me-save"]').length === 1
-          /* ONE SUMMARY BUTTON PER SLOT, and every filled slot arrives SHUT — a filled card drawn open
-             is the 802px page the collapse exists to prevent, and it measures perfectly. */
-          && box.querySelectorAll('.q-card > .q-sum[data-do="qual-open"]').length === 10
-          && box.querySelectorAll('.q-card.is-shut').length >= 1
-          && [...box.querySelectorAll('.q-card')].every(c =>
-               [...c.querySelectorAll('[data-me^="qual_"]')]
-                 .some(el => !/_(teach|spec)$/.test(el.dataset.me) && String(el.value || '').trim())
-               === c.classList.contains('is-shut'))
-          && box.querySelectorAll('.lib-card:not([hidden])').length === window.STATE_QUALS_SHOWN + 1
+          && subjects.length === 2 && !!maths
+          && levelsOf(maths).length === 3
+          && levelsOf(maths).every(l => slotName(l) === 'Maths')
+          /* THE TWO SAVED LEVELS ARRIVE SHUT AS ONE LINE EACH, THE NEW ONE OPEN. */
+          && levelsOf(maths).filter(l => l.classList.contains('is-shut')).length === 2
+          /* ONE PAIR OF TICKS FOR THE SUBJECT, NOT ONE PER LEVEL. */
+          && maths.querySelectorAll('[data-do="qual-subj-tick"]').length === 2
+          && !!maths.querySelector('[data-k="spec"]:checked')
+          /* AND THE TICKS REACH THE LEVELS, which is what is saved. Teach goes onto every level of a
+             subject — the new one included — and the specialism onto its FIRST level only, so the
+             card draws one gold chip for Maths rather than three. The visible pair is only a control;
+             the hidden `qual_N_teach` / `qual_N_spec` boxes are what `me-save` posts. */
+          && levelsOf(maths).every(l => !!(l.querySelector('[data-me="qual_' + l.dataset.slot + '_teach"]') || {}).checked)
+          && levelsOf(maths).map(l => (l.querySelector('[data-me="qual_' + l.dataset.slot + '_spec"]') || {}).checked ? 1 : 0).join('') === '100'
           ? 70 : 0;
       },
-      wants: 'ten qualification slots with their received year and two ticks under one Save, and Add another revealing exactly one more' },
+      wants: 'Maths drawn once with its GCSE and A-Level under it, a degree as a level of its own subject, one pair of ticks per subject, and Add a level carrying the subject into the new level' },
 
     /* ---------- THE THREE DATE-OF-BIRTH BOXES, ON A GROUP THE FIXTURE DID NOT HAVE ---------------
        `check/fixture.json` SENT NO `Contact` GROUP, so nothing in this lab had ever drawn a date of

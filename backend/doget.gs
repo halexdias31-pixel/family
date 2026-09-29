@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-29-h-batch";
+const DOGET_VERSION = "2026-09-29-j-venues";
 
 
 function doGet(e) {
@@ -638,6 +638,10 @@ function doGet(e) {
           title: name, handle: S(r.handle) || S(r.username) || S(r.first_name),
           subtitle: S(r.city) || 'London',
           image: S(r.photo), mediaUrl: S(r.video),
+          /* THE OTHER PHOTOGRAPHS, AS A LIST, without the face — `photosList_`. An older phone
+             ignores the key, and a row that has none sends `[]` rather than a missing key, so the
+             card can tell "none" from "a backend that does not know about them". */
+          photos: photosList_(r),
           tags: [r.adjective_1, r.adjective_2, r.adjective_3].map(S).filter(Boolean),
           description: S(r.headline) ? '"' + S(r.headline) + '"' : '',
           rate: N(r.rate_per_hour),
@@ -653,6 +657,9 @@ function doGet(e) {
           minStudents: N(r.min_students) || 1, maxStudents: N(r.max_students),
           minHours: N(r.min_hours) || 1, maxHours: N(r.max_hours),
           extraSeat: N(r.extra_seat_rate),
+          /* THE VENUES THEY ARE HAPPY AT, off `venues.tutors_happy_here` — `venuesFor_` is the one
+             reader, and the Settings page is the one writer. Names, in the tab's order. */
+          venues: venuesFor_(r, venuesTab),
           focus: S(r.focus).split(/[,\n]/).map(x => x.trim()).filter(Boolean),
           xp: N(r.xp), credits: N(r.credits),
           highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables),

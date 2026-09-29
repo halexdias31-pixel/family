@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-29-h-batch";
+const BACKEND_VERSION = "2026-09-29-j-venues";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -462,6 +462,14 @@ const SCHEMA = {
        the last two colon-parts are the number and the PIN and everything before them is the name.
        `Merton: Wimbledon` survives; a card number is digits and a PIN is digits. */
     "library_card", "library_note",
+    /* ---------- MORE PHOTOGRAPHS THAN THE ONE ON THE PROFILE ------------------------------------
+       ASKED FOR AS *"theres only 1 photo link slot it seems like. tutors should be able to add more
+       pics."* `photo` stays the face on the card — it is read by the tutor payload, the class
+       picture, the roster and three other surfaces, and turning it into a list would be every one of
+       them getting a string with a separator in it. `photos` is the REST, in order, joined by ` | `,
+       which is exactly what `posts.media` already is beside `posts.image`: the first thing, then a
+       list of the others. `photosIn` / `photosOut` in core.gs. */
+    "photos",
     /* ---------- AS MANY QUALIFICATIONS AS SOMEBODY HAS, UP TO TEN, IN ONE CELL -------------------
        ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"*. `qual_1/2/3` is
        the numbered-column shape the note above already refuses, and ten of it would be forty
@@ -1709,6 +1717,20 @@ const LIBRARY_FIELDS = (() => {
    one file along. */
 const LIBRARY_FIELD = /^lib\d+_(name|no|pin)$/;
 
+/* ---------- EIGHT MORE PHOTOGRAPHS, AS EIGHT FORM FIELDS OVER ONE CELL ----------------------------
+   The library shelf's arrangement a third time, and one constant for the same reason: the field
+   list, the form, the packer and the unpacker all derive from it. EIGHT because the card draws them
+   as a grid of squares two to a row (`postMediaHtml_`'s grid, in posts.js), and four rows of
+   thumbnails under a profile is already more than a parent scrolls past. `photos_1` rather than
+   `photo_1`, so no form name is one letter away from the `photo` column it sits beside. */
+const PHOTO_MAX = 8;
+const PHOTO_FIELDS = (() => {
+  const out = [];
+  for (let i = 1; i <= PHOTO_MAX; i++) out.push('photos_' + i);
+  return out;
+})();
+const PHOTO_FIELD = /^photos_\d+$/;
+
 /* ---------- UP TO TEN QUALIFICATIONS, AS FORTY FORM FIELDS OVER ONE CELL -----------------------
    THE LIBRARY SHELF'S ARRANGEMENT AGAIN, and one constant for the same reason: the field list, the
    form, the packer and the unpacker all derive from it, so an eleventh is this number and nothing
@@ -2073,7 +2095,7 @@ const PROFILE_GROUPS = {
      now` and `More qualifications` were two more for three boxes between them. Merged by what a
      person thinks of as one question; the phone lays related boxes side by side (`FIELD_ROWS` in
      me.js), so a merged page is shorter than the two it replaced. */
-  'About you':   ['first_name','last_name','headline','photo','video','years_experience',
+  'About you':   ['first_name','last_name','headline','years_experience',
                   'favourite_colour','adjective_1','adjective_2','adjective_3'],
   /* ---------- CONTACT IS SECOND NOW, AND THE ORDER OF THIS OBJECT IS THE ORDER OF THE COLUMN ----
      REPORTED AS *"add email field in account settings"*, and the field was already here — at the
@@ -2094,7 +2116,18 @@ const PROFILE_GROUPS = {
      title is gone, and a card taller than its pane is now drawn smaller to fit (`paneReach_`) rather
      than clipped. Asked again as "look at all of account settings and see if there is a better way to
      have it layout. like more effecient", so one page, the same shape as everybody else's. */
-  'Contact & address': ['email','phone','date_of_birth','city','town','borough','postcode','address','travel_km'],
+  'Contact & address': ['email','phone','date_of_birth','city','town','borough','postcode','address','travel_km',
+                        /* THE VENUES THEY ARE HAPPY AT — a form name over `venues.tutors_happy_here`,
+                           not a column here; see `venuesWrites_` in core.gs. */
+                        'venues_ok'],
+  /* ---------- THE PHOTOGRAPHS, ON A PAGE OF THEIR OWN ------------------------------------------
+     The face and the clip were two boxes on About you; eight more photograph links there would have
+     made About you the longest page in the column. THIRD, after Contact, whose own note says why it
+     is second. One page for everything that is a picture: the
+     profile photo, the video, then the shelf (`photoShelf_` in me.js), which shows what is filled in
+     and an `Add another` under it. A tutor's only — a parent and a student keep `photo` on About
+     you, because nobody browses their card. */
+  'Photos': ['photo','video'].concat(PHOTO_FIELDS),
   'Your rate and group size': PRICING_FIELDS,
   /* WHAT YOU TEACH, WHAT YOU ARE STUDYING AND ANYTHING ELSE — one page, because they are the
      three answers to "what do you know". `Qualifications` beside it is the graded list. */
@@ -2761,7 +2794,7 @@ const ACTION_ACCESS = {
   updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self', confirmDetails: 'self',
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
   myReferral: 'self',        // your own code, and who came through it
-  saveTopics: 'self', toggleVenueComfort: 'self',
+  saveTopics: 'self',
   saveExam: 'self', deleteExam: 'self', redeem: 'self',
   /* `likePost` was here. A like is a reaction with one option, so the heart and the 👍 were two
      counts of the same gesture. The action is gone rather than left working-but-unused: an

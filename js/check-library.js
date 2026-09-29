@@ -808,6 +808,46 @@ EXTRA_FILES.forEach(name => {
   }
 });
 
+/* ---------- THE LEGO SETS: A CATALOGUE SHAPED LIKE THE SHOP, WAITING TO BE STOCKED ------------------
+   ASKED FOR AS "just database the lego sets ... include rough price ... maybe ill have these items as
+   items in the shop". `data/lego-sets.json` is one row per set, carrying EVERY column of the shop tab
+   (`SCHEMA.shop` in constants.gs) so a row can be pasted into the Ledger's shop tab as it stands, plus
+   the facts about the set a shop row has no column for: its number, theme, year, pieces, age, and the
+   RRP and a street price seen on a named date. `active` is false on every row, because nothing is for
+   sale until the owner decides the price and has one to sell.
+   NOTHING READS IT YET, and that is deliberate rather than the "written and never read" fault: it is a
+   catalogue, not a feature. What is checked is what would make the paste go wrong: the file's shape,
+   every shop column present, one id per set built from its number, and whole-pence prices. */
+{
+  const f = path.join(__dirname, '..', 'data', 'lego-sets.json');
+  let raw = null;
+  try { raw = fs.readFileSync(f, 'utf8'); } catch (e) { fail.push('data/lego-sets.json could not be read'); }
+  const schemaSrc = (() => { try { return fs.readFileSync(path.join(__dirname, '..', 'backend', 'constants.gs'), 'utf8'); } catch (e) { return ''; } })();
+  const shopCols = (() => {
+    const m = schemaSrc.match(/\n  shop: \[([\s\S]*?)\]/);
+    return m ? [...m[1].matchAll(/"([^"]+)"/g)].map(x => x[1]) : [];
+  })();
+  if (raw !== null) {
+    const lines = raw.replace(/\n$/, '').split('\n');
+    if (lines[0] !== '[' || lines[lines.length - 1] !== ']') fail.push('data/lego-sets.json must open with a bare [ and close with a bare ]');
+    let sets = [];
+    try { sets = JSON.parse(raw); } catch (e) { fail.push('data/lego-sets.json does not parse — ' + e.message.slice(0, 60)); }
+    if (!shopCols.length) fail.push('SCHEMA.shop could not be read out of backend/constants.gs, so data/lego-sets.json was NOT compared with the shop tab');
+    const seen = new Set();
+    sets.forEach((r, i) => {
+      const at = 'data/lego-sets.json row ' + (i + 1) + ' (' + (r.item_id || '?') + ')';
+      shopCols.forEach(c => { if (!(c in r)) fail.push(at + ' has no `' + c + '` — the shop tab has that column, so a paste would shift every cell after it'); });
+      if (r.item_id !== 'LG-' + r.set_number) fail.push(at + ': the id must be LG- and the set number');
+      if (seen.has(r.item_id)) fail.push(at + ' repeats an id');
+      seen.add(r.item_id);
+      ['price_pence', 'rrp_pence', 'pieces'].forEach(k => {
+        if (!Number.isInteger(r[k]) || r[k] <= 0) fail.push(at + ': `' + k + '` must be a whole number above nought, and is ' + JSON.stringify(r[k]));
+      });
+    });
+    note.push('data/lego-sets.json holds ' + sets.length + ' set(s), ' + sets.filter(r => r.active).length + ' of them switched on for the shop');
+  }
+}
+
 /* ---------- A SIMPLEST-FORM QUESTION MUST NOT HAVE A FRACTION FOR AN ANSWER -----------------------
    `markAnswer_` compares two fractions BY VALUE, because "or equivalent" is what a mark scheme
    actually says and a child who writes 15/20 before cancelling has not made a mistake. That is
