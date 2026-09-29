@@ -2129,8 +2129,13 @@ function bucketHas_(facet, bucket, v) {
      that is two integers around a dash AND sits on a facet whose values are bare integers is the
      one combination that would be wrong here, and nothing in `FACETS` is both. */
   const num = /^(\d+)–(\d+)$/.exec(b);
-  if (num) {
-    return intAnswer_(v) && Number(v) >= Number(num[1]) && Number(v) <= Number(num[2]);
+  /* ONLY FOR A VALUE THAT IS ITSELF AN INTEGER. A letter range over names that start with digits
+     spells exactly the same way — the paper index drew `2–5` over papers named `2019 …` to
+     `5-a-day …` — and read as a tens band it held nothing: the row promised 1,564 papers and
+     pressing it returned none. A tens band is only ever drawn when every value is an integer, so
+     a value that is not one can only be asking about a prefix range. */
+  if (num && intAnswer_(v)) {
+    return Number(v) >= Number(num[1]) && Number(v) <= Number(num[2]);
   }
   /* ---------- A PREFIX RANGE, AND IT MUST NOT INSIST ON A LETTER --------------------------------
      THIS OPENED WITH `if (!/^[a-z]/i.test(b)) return false;` AND IT WAS WRONG about two real
