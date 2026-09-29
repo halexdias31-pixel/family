@@ -142,6 +142,8 @@ const cartSave = () => { try { localStorage.setItem('familyCart', JSON.stringify
 
 on('cart-add', el => {
   if (!USER) { toast('Sign in first'); go('account'); return; }
+  /* A BUNDLE IS PAPERS, SO IT GOES IN AS PAPERS — see `cartAddBundle_` below. */
+  if (el.dataset.kind === 'bundle') { cartAddBundle_(el); return; }
   const key = el.dataset.key;
   const kind = ['topic', 'print', 'shop'].includes(el.dataset.kind) ? el.dataset.kind : 'shop';
   /* Keyed on BOTH, because a printed copy and a shop item can share a name and they are not the
@@ -171,6 +173,76 @@ on('cart-add', el => {
      this can be the simplest of them. */
   tileSet_(el, { label: 'In your basket', note: '', on: true, off: true });
   toast('In your basket — ' + CART.length + ' item' + (CART.length === 1 ? '' : 's'));
+});
+
+/* ---------- A BUNDLE GOES IN AS ONE LINE PER PAPER, NOT AS ONE LINE --------------------------------
+   TWO SHAPES WERE POSSIBLE AND THE ASK DECIDES BETWEEN THEM. When the basket became a tool the
+   owner described it as *"only recording items and sheets and wether to upgrade a specific sheet to
+   lamininated"* — per SHEET. One `bundle` line would put one laminate switch over six papers, and a
+   family that wants Paper 1 laminated for the fridge and the other five plain could not say so.
+
+   IT ALSO MAKES THE ONE-PAPER ORDER POSSIBLE without a one-paper bundle: add the sitting, take the
+   others out with their own ✕. And it is a shape the basket already had — `print` lines with a
+   page count and a laminate flag drew and priced before this existed, and a basket saved in
+   somebody's browser from then still does.
+
+   `from` KEEPS WHERE A LINE CAME FROM, for the message to the owner, which lists what somebody asked
+   for in words they would recognise rather than as a pile of papers.
+
+   NOTHING TWICE, AND NOT BY NAME. A paper already in the basket is left alone — keyed on the paper's
+   own id, because two papers share a name twenty times in this library — so pressing the same bundle
+   again adds nothing and says so, and an overlapping bundle adds only what is new.
+
+   THE IDS ARE CHECKED AGAINST THE LIBRARY, not trusted off the button. A document row the file does
+   not have, or one marked not printable, is refused here as well as never being offered — the
+   rule written once in `canPrint_` and asked in both places.
+
+   ---------- AND EACH LINE KEEPS THE SHORT NAME THE CARD GAVE IT, BESIDE THE LONG ONE ----------------
+   `name` IS THE LIBRARY-WIDE NAME — `Paper 1 (Non-Calculator) — May 2017 · Higher` — and it is right
+   for a line read on its own. Under its bundle's title it is the title said a second time on every
+   line: twelve lines of it made a basket 2,700px tall on a 390px phone and a message to the owner
+   that the backend's 2,000-character cap refused outright for a bundle of English papers. `short`
+   is what the bundle card drew — `Summer 2017 · Paper 1` — which is unique INSIDE the bundle, so
+   the basket and the message print the bundle's title once and `short` under it. Read off the
+   bundle the tile belongs to, and only when it is still the one on the screen: a tile pressed
+   after the list changed underneath it falls back to `name`, which is never wrong, only long. */
+function cartAddBundle_(el) {
+  const ids = String(el.dataset.ids || '').split(',').map(s => s.trim()).filter(Boolean);
+  const from = String(el.dataset.key || '');
+  const b = typeof bundleOf_ === 'function' ? bundleOf_() : null;
+  const shortOf = {};
+  if (b && b.ids.join(',') === ids.join(',')) {
+    b.printable.forEach(p => { shortOf[p.id] = p.short || p.label; });
+  }
+  let added = 0;
+  let had = 0;
+  ids.forEach(id => {
+    const doc = typeof docById_ === 'function' ? docById_(id) : null;
+    if (!doc || !canPrint_(doc)) return;
+    if (CART.some(c => c.kind === 'print' && String(c.key) === id)) { had++; return; }
+    CART.push({ key: id, kind: 'print', name: paperLabel_(id), short: shortOf[id] || '',
+                pages: Number(doc.pages) || 0, cost: 0, from: from });
+    added++;
+  });
+  if (!added && !had) { toast('Nothing in that bundle can be printed'); return; }
+  cartSave();
+  if (typeof cartPaint_ === 'function') cartPaint_();
+  tileSet_(el, { label: 'In your basket', note: '', on: true, off: true });
+  toast(!added ? 'Already in your basket'
+      : added + ' paper' + (added === 1 ? '' : 's') + ' in your basket'
+        + (had ? ' — ' + had + ' already there' : ''));
+}
+
+/* ---------- AND THE WAY TO IT, FROM THE CARD THAT FILLED IT --------------------------------------
+   THE BASKET IS A TOOL, four swipes from the Find screen, and a bundle is the first thing in this
+   app that fills it with several lines at once — so the card that did it says where they went. The
+   page is asked for by id off the same list the column is built from, because `widgetsOf_` hides
+   the admin-only tools from everybody else and a literal index would land on the wrong card. */
+on('cart-open', () => {
+  const n = typeof widgetsOf_ === 'function'
+    ? widgetsOf_('tool').findIndex(w => String(w.id) === 'cart') : -1;
+  go('tools');
+  if (n >= 0) goPage('tools', n, true);
 });
 
 /* ---------- LAMINATE, OR BACK TO PLAIN -----------------------------------------------------------
@@ -218,8 +290,165 @@ on('cart-drop', el => {
    that cannot be pressed, and the line about printing being charged at cost — all of it says more
    than the page version did, and all of it moved there. */
 
-on('cart-send', () => {
-  toast('Checkout is the next thing to build');
+/* ---------- SENDING THE ORDER, AS A MESSAGE TO THE OWNER -------------------------------------------
+   IT SAID *"Checkout is the next thing to build"* AND DID NOTHING, which made the button the fault
+   this repository calls `orderPrints`: a door drawn in gold with nothing behind it. Asked for as
+   *"add to cart and have me send it to them"* — so what is needed is not a checkout, it is the owner
+   finding out what somebody wants, which is a message.
+
+   THROUGH `sendMessage`, WHICH IS LIVE TODAY. A new `placeOrder` action writing to the `orders` tab
+   would be tidier — the tab exists and has the right columns — and it would not work until the
+   backend deploy that is blocked on the Cloud-project switch goes through. A message works this
+   afternoon, lands in the Messages column the owner already reads, and e-mails them as every
+   message does. The policy is the server's: `MESSAGING` lets a student, a parent and a tutor all
+   reach an admin, and it is not repeated here.
+
+   `send_`, NOT `api`, and the reason is `check-replies.js`: this says "Sent" and empties the basket,
+   so it must only do that when the server said yes. A refusal — the five-minute gap, the length cap,
+   a role that may not write — is toasted in the server's own words and the basket is left exactly
+   as it was, because a basket emptied by an order that never arrived is an order nobody can place
+   again without remembering what was in it. */
+/* WHO IT GOES TO. An admin off the payload — `doGet` sends admins among the tutors, with their
+   `personId` — and a PERSON rather than the brand account where there is one: the brand row has no
+   e-mail address for `notify` to reach and exists to post as the business rather than to be written
+   to. It is the last resort rather than never, because a message sitting in the brand account's
+   inbox is still an order the owner can read, where "nobody to send this to" is an order lost. Not
+   the sender either: the server answers "That is you." and an admin testing their own basket
+   should hear something better. */
+function orderTo_() {
+  const me = String((USER && USER.personId) || '');
+  const house = norm(brand('name', '@family.'));
+  const admins = (DATA.tutors || []).filter(t => t && t.personId && norm(t.role) === 'admin'
+    && String(t.personId) !== me);
+  return admins.find(t => norm(t.title) !== house) || admins[0] || null;
+}
+
+/* ---------- WHAT THE MESSAGE SAYS ------------------------------------------------------------------
+   EVERY LINE, ITS PAGES, ITS PRICE, WHETHER IT IS LAMINATED, THE TOTAL, AND DELIVERY — in that
+   order, which is the order the owner acts on it in: what to print, what to charge, where it goes.
+
+   A BUNDLE'S PAPERS UNDER THE BUNDLE'S TITLE, EACH BY ITS SHORT NAME — `cartGroups_`, the reader the
+   basket draws from, so the message and the basket cannot disagree about what went together.
+   `Edexcel · Maths · GCSE · Higher · Past papers · Summer 2017` then `Paper 1`, `Paper 2`, `Paper 3`
+   is how a person says it, and `short` is unique inside its bundle by construction. A line with no
+   bundle — a shop item, a print line from before bundles — is written out by its library-wide
+   `name`, which is unique on its own.
+
+   THE FIRST VERSION WROTE EVERY LINE BY ITS LIBRARY-WIDE NAME and claimed twenty-four papers fitted
+   under the cap "with room over". Measured, a bundle of English Language papers — the largest shelf
+   `BUNDLE_MAX` admits — came to 2,721 characters in the full form and was refused outright in the
+   short one, so the order the owner asked for would have been declined for the one subject whose
+   paper names are sentences. Grouped, the same twenty-four are well under the cap.
+
+   A LINE WITH NO PAGE COUNT SAYS SO rather than claiming a price — the `cost: 0` rule once more.
+
+   THE BACKEND REFUSES ANYTHING OVER 2,000 CHARACTERS, so this degrades before it gets there: the
+   whole version, then one without the per-line figures (the total still says what is owed), and
+   past that it declines rather than sending an order the server would turn away. */
+const ORDER_MAX_CHARS = 2000;
+function orderLine_(c, i, full, under) {
+  const bits = [];
+  if (c.kind === 'print') {
+    if (full) {
+      const p = cartPrint_(c);
+      bits.push(c.pages ? c.pages + ' pages' : 'pages not counted yet');
+      bits.push(p === null ? 'priced when sent' : money(p));
+    }
+    if (c.laminate) {
+      const lam = laminatePrice(c.pages);
+      bits.push('laminated' + (full && lam !== null ? ' (+' + money(lam) + ')' : ''));
+    }
+  } else if (c.cost) {
+    bits.push(c.cost + ' credit' + (c.cost === 1 ? '' : 's'));
+  } else if (full && Number(c.money) > 0) {
+    bits.push(money(Number(c.money)));
+  }
+  const name = under && c.short ? c.short : (c.name || c.key);
+  return (i + 1) + '. ' + String(name) + (bits.length ? ' — ' + bits.join(', ') : '');
+}
+
+/* WHERE IT GOES. The login reply carries `address` and `postcode` for exactly this — the note in
+   `loginReplyFor_` says the basket has to know whether it can offer to post — and a profile saved
+   since then carries them on `profile`. The postcode is what the message names: it is enough for the
+   owner to recognise the address they already hold, and it is not the whole of somebody's home
+   written into a second place. */
+function orderWhere_() {
+  const u = USER || {};
+  const p = u.profile || {};
+  const code = String(u.postcode || p.postcode || '').trim();
+  const any = code || String(u.address || p.address || '').trim();
+  if (!any) return 'Delivery: there is no address on my account, so I will collect it at a session.';
+  return 'Delivery: post it to the address on my account' + (code ? ' (' + code + ')' : '')
+    + ', or I can collect it at a session — whichever suits.';
+}
+
+function orderText_(cart) {
+  const lines = (cart || CART).slice();
+  const cash = lines.reduce((n, c) => n + cartMoney_(c), 0);
+  const tbc = lines.filter(c => c.kind === 'print' && cartUnpriced_(c)).length;
+  const credits = lines.reduce((n, c) => n + (c.cost || 0), 0);
+
+  const head = 'An order from my basket, sent from the app — please print and send:';
+  const foot = [];
+  if (cash || tbc) {
+    foot.push('Printing: ' + (cash ? money(cash) : 'nothing priced yet')
+      + (tbc ? ' — ' + tbc + ' still to price when sent' : ''));
+  }
+  if (credits) foot.push('Credits: ' + credits);
+  foot.push(orderWhere_());
+
+  /* NUMBERED STRAIGHT THROUGH, not restarted under each title, so "number 7" means one line
+     whichever way the owner replies about it. */
+  const build = full => {
+    const out = [head];
+    let at = 0;
+    cartGroups_(lines).forEach(g => {
+      out.push('');
+      if (g.from) out.push(g.from);
+      g.lines.forEach(c => out.push(orderLine_(c, at++, full, !!g.from)));
+    });
+    return out.concat([''], foot).join('\n');
+  };
+  const long = build(true);
+  if (long.length <= ORDER_MAX_CHARS) return long;
+  const short = build(false);
+  return short.length <= ORDER_MAX_CHARS ? short : '';
+}
+
+on('cart-send', el => {
+  if (!USER) { toast('Sign in first'); go('account'); return; }
+  if (!CART.length) return;
+  const to = orderTo_();
+  if (!to) {
+    toast('There is nobody on the site to send this to yet — message @family. directly');
+    return;
+  }
+  const text = orderText_();
+  if (!text) {
+    toast('That is too much for one message — send some of it now and the rest after');
+    return;
+  }
+  send_({ action: 'sendMessage', name: USER.name, personId: USER.personId,
+          to: to.title, toId: to.personId, body: text },
+        { button: el, busy: 'Sending…' })
+    .then(() => {
+      /* SAID PLAINLY, AND THE BASKET GOES — only here, on a yes. */
+      CART = [];
+      cartSave();
+      if (typeof cartPaint_ === 'function') cartPaint_();
+      toast('Order sent to ' + to.title + ' — the reply will be in Messages');
+      /* SO THE CONVERSATION IS THERE WHEN THEY LOOK, which is the first thing anybody does after
+         sending something — the `msg-send` handler's own reason. NOT followed by a `repaint()`:
+         this is pressed on the Tools column, and repainting that restarts every widget on it — a
+         running timer put back to its start so that a column somebody is not looking at can learn
+         about a message. The Messages column is drawn from `MESSAGES` when it is arrived at. */
+      if (typeof loadMessages === 'function') {
+        try { Promise.resolve(loadMessages()).catch(() => {}); } catch (e) {}
+      }
+    })
+    /* `send_` HAS ALREADY SAID THE SERVER'S SENTENCE, and rethrows so a caller could react. This
+       one's reaction is to keep the basket, which is doing nothing. */
+    .catch(() => {});
 });
 /* ==================================================================================================
    THE WHOLE PAPER, READ FROM THE ROWS THAT ALREADY DRAW ITS QUESTIONS.

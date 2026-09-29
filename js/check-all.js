@@ -186,6 +186,14 @@ const SUITE = [
      checklist topic arriving with no link on it, and nothing throwing. */
   { file: 'check-settings.js', what: 'the settings files, against what the app reads off them' },
   { file: 'check-funnel.js', what: 'every question the funnel asks can narrow something' },
+  /* ---------- AND THE ONE THING THE FUNNEL CAN NOW BE ORDERED AS --------------------------------
+     A bundle is the whole papers on the list, a trolley that puts them in the basket, and a Send
+     that tells the owner. `check-flow` cannot reach it — its fake backend answers the library with
+     the payload, so no bundle ever forms there — and each half can be wrong in a way that draws
+     perfectly: a paper named that the list does not hold, a paper in the basket twice, an order
+     that empties the basket on a refusal. This runs the real library and works the right papers out
+     from the file on its own. */
+  { file: 'check-bundle.js', what: 'a bundle names its papers, and an order reaches the owner' },
   { file: 'check-flow.js',    what: 'the app, actually running' },
   /* ---------- AND THE LIBRARY ITSELF, LAID OUT ---------------------------------------------------
      `check/ui.js` MEASURES THE APP AND SAMPLES THE LIBRARY. The Find screen's results are pages
