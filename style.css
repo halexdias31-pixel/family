@@ -7555,6 +7555,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the top of every list — two ticks in one row that did not look like one row. */
 .mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
             gap: .1rem .5rem; margin-bottom: .5rem; align-items: start; }
+/* ---------- A LOWER FLOOR THAN `.widget-squeeze`'s, BECAUSE WHAT IT COMPETES WITH CHANGED ---------
+   THE 8rem FLOOR WAS MEASURED AGAINST THE A4 PREVIEW, which this card no longer draws — see the table
+   under `.widget-squeeze`. What the list competes with now is the picker above it and Print below
+   it, and the rework added two rows to the picker: the "skip what the exam gives you" box and the
+   Fill / Clear pair. Measured at 320x568 with a level chosen: 108px of list and the box above left
+   the Print button 28px past the bottom of its own card, over the card's edge — and the pane could
+   not see it, because the squeeze chain lets every box between them shrink to nothing, so the
+   overflow sat in the pane's padding and no zoom was ever asked for. Even the filled sheet ran 13px.
+   6rem IS 81px AT 320 — a row and most of the next, which still reads as a list you scroll — and
+   takes back the 27 that one extra line of the gauge's sentence costs. The flyer keeps 8. */
+.mat-list.widget-squeeze { min-height: 6rem; }
 /* ---------- AND THE ROWS THEMSELVES, FOR THE SAME REASON ------------------------------------------
    1.7rem IS 27 PIXELS AND THE CHECKBOX INSIDE IT IS 14, so the row was a half-height target wrapped
    round a quarter-height one. The whole label is clickable, which is right, and it was still too

@@ -108,17 +108,20 @@ const matSpan = c => c.pair ? 4 : (c.half ? 2 : MAT_TRACKS);
    the level says which exam, and nothing said which paper.
 
    ONLY SOME LEVELS ARE TIERED, which is why this is a list and not a flag on every level. A tier
-   picker showing on SATs is a question with no answer, so it appears for these and nowhere else.
+   offered on SATs is a question with no answer, so the level select splits these into Foundation
+   and Higher and nothing else — and only for a subject whose pieces change with it (see
+   `MAT_TIERED_SUBJECTS`, and `matLevelChoices`, which draws the split).
 
-   AND HIGHER CONTAINS FOUNDATION. That is what makes two buttons enough rather than three: Higher
+   AND HIGHER CONTAINS FOUNDATION. That is what makes two options enough rather than three: Higher
    is already the everything view, so 'H' is the default and the opening sheet is what it always
    was. Foundation is the one that takes things away. */
 const MAT_TIERED = ['Y9 Mocks', 'GCSE'];
 
-/* WHICH BUTTON IS PRESSED, and separately WHICH TIER IS BEING DRAWN. They are not the same: on an
-   untiered level nothing should be filtered, so the drawn tier is 'H' whatever the button says —
-   and the button has to keep saying what it said, or choosing Foundation, looking at A-level and
-   coming back would silently promote the sheet. */
+/* WHICH TIER WAS LAST CHOSEN, and separately WHICH TIER IS BEING DRAWN (`MAT_SHOW`). They are not
+   the same: on an untiered level nothing should be filtered, so the drawn tier is 'H' whatever was
+   chosen — and the choice has to be kept, or choosing GCSE Foundation, looking at A-level and
+   coming back would silently promote the sheet to Higher. It was a pair of buttons; it is the
+   `|F` / `|H` half of the level select's value now, and the rule is the same. */
 let MAT_TIER = 'H';
 /* ---------- GIVEN IN THE EXAM, AS A FILTER --------------------------------------------------------
    'not given' WAS WRITTEN AS THE EXCEPTION AND TURNED OUT TO BE THE RULE. The comment on the tag
@@ -1484,6 +1487,19 @@ function matSettle(parts) {
   MAT_SHOW = (MAT_LEVEL !== 'all' && matTierSplits(MAT_LEVEL)) ? MAT_TIER : 'H';
 }
 
+/* THE OPTIONS ARE WRITTEN ONLY WHEN THEY CHANGE. `matPaint` runs on every tick, and `matFill` paints
+   half a dozen times in one press — and this is called from inside the select's own `change`
+   handler. Rewriting a select's options while its own picker may still be up is asking a phone's
+   native wheel to survive having its contents replaced under it, and nothing here needs that: the
+   subject list only changes when the pieces do, and the level list when the subject does. */
+/* A WeakMap rather than an attribute, so the markup does not carry a copy of itself, and so a select
+   `initMat` has just rebuilt starts with nothing remembered and is always written. */
+const MAT_OPTS = new WeakMap();
+const matOptions_ = (sel, html) => {
+  if (MAT_OPTS.get(sel) === html) return;
+  sel.innerHTML = html;
+  MAT_OPTS.set(sel, html);
+};
 /* THE TWO SELECTS AND THE ONE BOX, drawn from the same state every time rather than patched by the
    handler that changed them — a control that says one thing while the list says another is the
    invisible mode this repository records against the paused reel. */
@@ -1491,16 +1507,16 @@ function matChoices(parts) {
   const sub = $('mat-subject'), lev = $('mat-level'), given = $('mat-given');
   const subs = matSubjects(parts);
   if (sub) {
-    sub.innerHTML = subs.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')
-      + '<option value="all">Every subject</option>';
+    matOptions_(sub, subs.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')
+      + '<option value="all">Every subject</option>');
     sub.value = MAT_SUBJECT;
     /* ONE SUBJECT IS NO CHOICE, so there is nothing to draw — the sheet's tab can switch every
        English row off, and a select with one real answer is a control that does nothing. */
     (sub.closest('.mat-sel') || sub).hidden = subs.length < 2;
   }
   if (lev) {
-    lev.innerHTML = matLevelChoices(parts)
-      .map(o => `<option value="${esc(o.v)}">${esc(o.say)}</option>`).join('');
+    matOptions_(lev, matLevelChoices(parts)
+      .map(o => `<option value="${esc(o.v)}">${esc(o.say)}</option>`).join(''));
     lev.value = matLevelValue();
   }
   /* "GIVEN IN THE EXAM" ONLY WHERE SOMETHING IS. It was a row of three pills — All, Not given,
@@ -1570,8 +1586,15 @@ function matFill() {
   matSettle(parts);
   const at = {};
   parts.forEach((c, i) => { at[c.id] = i; });
+  /* THREE RANKS, NOT TWO. `inExam` is true, false or null — null is a cell nobody has checked,
+     which is most of the list — and the first version ranked "not given" first and folded the other
+     two together. So on GCSE Higher the sphere, which the exam prints, went in ahead of the
+     protractor and the named angles, which nobody has checked, because it happened to be tagged for
+     fewer levels: the one piece KNOWN to be room spent on nothing beat pieces that might not be.
+     Known not given, then unknown, then known given. */
+  const given = c => c.inExam === false ? 0 : (c.inExam === true ? 2 : 1);
   const cand = parts.filter(c => !c.edge && matShown(c) && MAT_ON.indexOf(c.id) === -1)
-    .sort((a, b) => (a.inExam === false ? 0 : 1) - (b.inExam === false ? 0 : 1)
+    .sort((a, b) => given(a) - given(b)
                  || (a.lv.length || 99) - (b.lv.length || 99)
                  || at[a.id] - at[b.id]);
   if (!cand.length) return 0;
@@ -1627,7 +1650,8 @@ on('mat-clear', () => { MAT_TOUCHED = true; MAT_ON = []; matPaint(); matRemember
    it with the first level in the list, so every visit opened on SATs.
 
    SO IT READS TOP TO BOTTOM AS THE CHOICES ARE MADE: which subject, which paper, then the pieces,
-   then print. Two selects on one row where there were fifteen pills on five; one box for the
+   then print. Two selects, one above the other, where there were fifteen pills on five rows (why
+   not side by side is under `.mat-pick` in style.css — at 16px they do not fit); one box for the
    formulae the exam prints, and only on a list that has any; two quiet buttons — fill the page,
    start again — for the two things that were a dozen taps each; and the list gets the height back.
    Nothing on it needs a legend any more: the per-row cm² went (the gauge is the only figure that is
@@ -1672,8 +1696,8 @@ function initMat() {
     ${/* ---------- THE LIST IS THE PART THAT GIVES UP ITS HEIGHT ------------------------------
           MEASURED ON THE TOOLS COLUMN AT 390px: this list is 464px of a 1263px card inside an
           805px pane, so 458px of the card was clipped — the A4 preview below it entirely, and the
-          Print button all but nineteen pixels. Everything else here is short and fixed: a row of
-          two selects, a box, two buttons, a gauge, a line of text and a button. (The preview has
+          Print button all but nineteen pixels. Everything else here is short and fixed: two
+          selects, a box, two buttons, a gauge, a line of text and a button. (The preview has
           since gone — see `matProbe` — so the list is now most of the card, and still the part
           that gives way.)
           `widget-squeeze` is the class that says so; the rules are in style.css beside
@@ -1780,7 +1804,10 @@ function matPaint() {
     el.classList.toggle('off', !show);
     const tick = el.querySelector('input');
     if (tick) tick.checked = MAT_ON.indexOf(id) !== -1;
-    if (show) listed++;
+    /* PIECES, NOT THE RULER. The ruler is offered under every subject and level, so counting it made
+       "nothing here" unreachable: Science with the exam's own periodic table skipped listed the
+       ruler alone and said "tick pieces, or Fill the page" over a Fill that was greyed out. */
+    if (show && byId[id] && !byId[id].edge) listed++;
   });
 
   const on_ = parts.filter(c => MAT_ON.indexOf(c.id) !== -1 && matShown(c));
@@ -1915,21 +1942,33 @@ function matPaint() {
      list is empty it says what to do, because an empty gauge over an empty list reads as broken. */
   const n = pieces.length;
   $('mat-said').innerHTML = over
-    ? `<b>${Math.round(used / room * 100)}% of one page</b> — untick something, or the bottom is cut off.`
+    /* NOT "OR THE BOTTOM IS CUT OFF", which it said — and could not happen, because Print is
+       disabled while the gauge is over (below). A warning about a consequence the tool has already
+       prevented is a sentence the next reader believes; this one also fits on one line at 320. */
+    ? `<b>${Math.round(used / room * 100)}% of one page</b> — untick something`
     : `<b>${pct}% of the page</b> · ${
         n ? `${n} piece${n === 1 ? '' : 's'}${left ? '' : ' · full'}`
-        : !listed ? 'nothing here for this level yet'
+        : !listed ? (MAT_EXAM === 'not' && parts.some(c => !c.edge && matShown(c, true))
+            ? 'all given in the exam' : 'nothing here for this level yet')
         : MAT_LEVEL === 'all' ? 'tick pieces, or pick a level to fill it'
-        : 'tick pieces, or Fill the page'}`;
+        /* JUST "tick pieces" ONCE THERE IS A LEVEL: the Fill button is two rows above, saying the
+           other half itself, and the sentence that repeated it was the line that wrapped. */
+        : 'tick pieces'}`;
   $('mat-go').disabled = over || !n;
   /* THE ROW NEEDS A LEVEL (see its note in `initMat`). Inside it, FILL NEEDS SOMETHING LEFT TO ADD
-     and CLEAR NEEDS SOMETHING TICKED — each disabled rather than hidden, so the row does not change
-     shape under the thumb that has just used one of them. */
+     and CLEAR NEEDS SOMETHING TICKED THAT YOU CAN SEE — each disabled rather than hidden, so the row
+     does not change shape under the thumb that has just used one of them.
+     SEE, NOT MERELY TICKED. Ticks are kept across subjects and levels (`matShown`), and Clear empties
+     all of them — so with an English sheet built and Maths on the screen, Clear was lit over a list
+     with no tick on it and pressing it threw the English sheet away with nothing on the screen
+     changing. A control whose whole effect is invisible reads as dead, and this one was worse than
+     dead: it destroyed work you could not see. Lit only when there is a tick in front of you, it
+     still clears everything, which is what its own note argues for. */
   const quick = $('mat-quick'), fill = $('mat-fill'), clear = $('mat-clear');
   if (quick) quick.hidden = MAT_LEVEL === 'all';
   if (fill) fill.disabled = over || MAT_LEVEL === 'all'
     || !parts.some(c => !c.edge && matShown(c) && MAT_ON.indexOf(c.id) === -1);
-  if (clear) clear.disabled = !MAT_ON.length;
+  if (clear) clear.disabled = !on_.length;
   /* WHAT GOES TO THE PRINTER is the sheet exactly as it was measured — slots grown, top row marked —
      kept as markup so `mat-print` prints the page the gauge was talking about rather than a second
      rendering of it. */

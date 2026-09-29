@@ -320,6 +320,11 @@ function boot(opts) {
       'matSubjectOf: typeof matSubjectOf === "function" ? matSubjectOf : null,' +
       'matLevelChoices: typeof matLevelChoices === "function" ? matLevelChoices : null,' +
       'matDraw: typeof matDraw === "function" ? matDraw : null,' +
+      /* FILL AND CLEAR, and the tick list they change — the two shortcuts a person presses, asked
+         through the same functions the buttons call. */
+      'matFill: typeof matFill === "function" ? matFill : null,' +
+      'matPaint: typeof matPaint === "function" ? matPaint : null,' +
+      'matOn: v => { if (v) MAT_ON = v.slice(); return MAT_ON.slice(); },' +
       'matSet: (s, l, tier) => { MAT_SUBJECT = s; MAT_LEVEL = l; if (tier) MAT_TIER = tier;' +
       '  MAT_EXAM = "all"; matSettle(matParts()); return [MAT_SUBJECT, MAT_LEVEL]; },' +
       /* WHO MAY OPEN A WIDGET, and the two lists that ask it. `star` puts a key in the device's
@@ -570,6 +575,60 @@ check('the cheat sheet offers only the pieces of the subject chosen', async () =
     if (/mat-gone/.test(String(t.matDraw(c)))) bad.push(c.id + ' (' + c.name + ') has nothing to draw it');
   });
   t.matSet('Maths', 'all');
+  return bad;
+});
+
+/* ---------- FILL PUTS WHAT THE EXAM GIVES YOU LAST, AND CLEAR IS NEVER LIT OVER NOTHING -------------
+   TWO FAULTS A REVIEW FOUND IN THE REWORK, both invisible to every other rule here. `matFill`'s own
+   note says what the exam prints is room spent on nothing, and its sort put that first whenever the
+   piece was tagged for fewer levels than one nobody had checked — so the sphere went on a GCSE
+   Higher sheet ahead of the protractor. And Clear was lit whenever ANY piece was ticked, so with an
+   English sheet built and Maths on the screen it sat lit over a list with no tick on it, and
+   pressing it threw the English sheet away with nothing on the screen changing.
+   IN jsdom EVERYTHING FITS — there is no layout, so the gauge never fills — which is exactly what
+   makes the ORDER Fill ticks in readable: it takes every candidate, in the order it ranked them. */
+check('the cheat sheet fills what the exam gives you last, and Clear is lit only over a tick', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.matFill || !t.matOn || !t.matSet || !t.matParts) return ['the cheat sheet Fill is not exported'];
+  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  await wait(300);
+  const d = w.document;
+  if (!d.getElementById('mat-list')) return ['the cheat sheet maker did not draw on the Tools column'];
+  const bad = [];
+  const rank = c => c.inExam === false ? 0 : (c.inExam === true ? 2 : 1);
+  const byId = {};
+  t.matParts().forEach(c => { byId[c.id] = c; });
+
+  t.matSet('Maths', 'GCSE', 'H');
+  t.matOn([]);
+  t.matFill();
+  const took = t.matOn().map(id => byId[id]).filter(Boolean);
+  if (!took.some(c => c.inExam === true)) bad.push('a GCSE Higher Fill took no piece the exam gives you, so the order cannot be asked');
+  for (let i = 1; i < took.length; i++) {
+    if (rank(took[i]) < rank(took[i - 1])) {
+      bad.push('Fill ticked ' + took[i - 1].id + ' (' + took[i - 1].inExam + ') before ' + took[i].id
+             + ' (' + took[i].inExam + ') — what the exam gives you goes in last');
+      break;
+    }
+  }
+
+  t.matSet('English', 'GCSE');
+  t.matOn([]);
+  t.matFill();
+  if (!t.matOn().length) bad.push('an English GCSE Fill ticked nothing');
+  t.matSet('Maths', 'GCSE', 'H');
+  t.matPaint();
+  const clear = d.getElementById('mat-clear');
+  const shownTicks = [...d.querySelectorAll('#mat-list label:not(.off) input:checked')].length;
+  if (!clear) bad.push('there is no Clear button');
+  else if (!shownTicks && !clear.disabled) {
+    bad.push('Clear is lit on Maths with no tick on the list, and pressing it would throw away the English sheet');
+  }
+  t.matOn([]);
+  t.matSet('Maths', 'all');
+  t.matPaint();
   return bad;
 });
 
