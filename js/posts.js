@@ -121,15 +121,22 @@ function postMediaHtml_(list, i) {
   if (list.length === 1) {
     const u = list[0];
     if (postIsVideo_(u)) return postItem_(u, 'post-pic', i < 2);
-    /* A SHAPE THAT DOES NOT DEPEND ON THE PICTURE. This reserved 4:5 and then, on `onload`, swapped
-       in the file's own proportions — which is a card changing height AFTER the column was placed.
-       Measured at 390x844 with the photographs arriving 800ms late: a 2:1 landscape post shrank by
-       203px under the thumb, the caption, the reactions and the comment box sliding up the moment
-       the picture landed. That is "it keeps moving". The box is 4:5 of the card whatever the file
-       says — `aspect-ratio` without `auto` ignores the natural ratio — and the picture sits inside
-       it with `object-fit: contain` on the sunk ink (`.post-pic` in style.css), so nothing is
-       cropped and nothing that arrives late can move the card. `width`/`height` say the same 4:5
-       to anything that reads the attributes before the stylesheet. */
+    /* THE PICTURE'S OWN SHAPE, EDGE TO EDGE — and 4:5 only until the file says what that is.
+       This was a fixed 4:5 box with the picture `contain`ed inside it on the sunk ink, bought so a
+       card could not change height after its column was placed (a 2:1 landscape arriving 800ms late
+       shrank its card by 203px under the thumb). It letterboxed every photograph that was not 4:5 in
+       black, and went on "please dont add the ugly black boarder to posts".
+       So the box is `aspect-ratio: auto 4 / 5` (`.page .post-pic` in style.css): 4:5 while the file
+       is on its way, the file's own proportions once it has landed. `width`/`height` say the same 4:5
+       to anything that reads the attributes before the stylesheet — a browser maps them to exactly
+       that `auto` ratio. What the fixed box bought is kept by two things that cost no black:
+       `postsAhead_`, which asks for the pictures before their page is in front of anybody, so the
+       change normally happens off-screen; and `holdColumn_` in shell.js for the case it does not.
+       A page is NOT a fixed cell — it is `height: auto` in an ordinary CSS column — so a picture
+       landing on a card ABOVE the one being read moves that one. Measured at 390x844 with every
+       picture 3.5s late and the reader three posts below them: without `holdColumn_` the post in
+       front ended 82px up the screen and stayed there; with it, it is back on its line in the same
+       frame, because the `ResizeObserver` that sees the card grow runs before paint. */
     return `<img class="post-pic" src="${esc(pic(u))}" alt="" width="800" height="1000"
            decoding="async" loading="${i < 2 ? 'eager' : 'lazy'}">`;
   }

@@ -7881,7 +7881,10 @@ function paneReach_(panes) {
     const kids = list.map(p => [].slice.call(p.children));
     const was = kids.map(ks => ks.map(k => k.style.zoom || ''));
     kids.forEach(ks => ks.forEach(k => {
-      if (k.style.zoom) { k.style.zoom = ''; k.style.width = ''; k.style.marginInline = ''; }
+      if (k.style.zoom) {
+        k.style.zoom = ''; k.style.width = '';
+        k.style.marginInline = ''; k.style.marginLeft = ''; k.style.marginRight = '';
+      }
     }));
     const pad = p => {
       const cs = getComputedStyle(p);
@@ -7901,12 +7904,32 @@ function paneReach_(panes) {
        in its own pixels and the board grows to fill it. Measured on the Games column the first time:
        zoomed to 0.91 and still 24px past the pane. Pinned to the width it had at zoom 1, everything
        scales by exactly the same factor and the zoom that was asked for is the zoom that fits. */
-    const wide = kids.map(ks => ks.map(k => k.getBoundingClientRect().width));
+    /* ---------- AND IT STAYS CENTRED WHERE IT WAS, WHICH `margin-inline: auto` DID NOT DO -----------
+       THIS WAS `margin-inline: auto`, which centres a child only when the zoomed width fits inside
+       the pane's content box. A post does not: `.pane > .post` bleeds into the pane's padding with a
+       negative margin so its photograph reaches the glass, so it is wider than that box — and a zoom
+       of about 0.92 or more left it wider still, the auto margins resolved to nought, and the card
+       started at the padding's edge and hung off the right. Measured at 390x844 on a 9:16 portrait
+       zoomed to fit: the photograph at 45→356 inside a card at 32→358, thirteen pixels of card on
+       the left and two on the right. It surfaced when a post photograph stopped being a fixed 4:5
+       box, because that is when a post first grew past its pane at 390.
+
+       SO THE CENTRE IS KEPT, which is `auto` for every ordinary card and the right answer for one that
+       bleeds. `zoom` scales an element's margins with everything else, so the margin is written
+       divided by the zoom and lands where it was worked out. Measured after: 7.5px either side. */
+    const box = list.map(p => {
+      const r = p.getBoundingClientRect(), cs = getComputedStyle(p);
+      return r.left + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.paddingLeft) || 0);
+    });
+    const rects = kids.map(ks => ks.map(k => k.getBoundingClientRect()));
     list.forEach((p, i) => {
       if (want[i] < 1) kids[i].forEach((k, j) => {
-        k.style.width = wide[i][j] + 'px';
-        k.style.marginInline = 'auto';
-        k.style.zoom = String(want[i]);
+        const r = rects[i][j], z = want[i];
+        const left = (r.left - box[i]) + r.width / 2 - r.width * z / 2;
+        k.style.width = r.width + 'px';
+        k.style.marginLeft = (left / z) + 'px';
+        k.style.marginRight = 'auto';
+        k.style.zoom = String(z);
       });
     });
     /* ---------- A ZOOM THAT CHANGED MOVES THE PAGES UNDER IT, SO THE COLUMN IS PLACED AGAIN ---------
@@ -7973,7 +7996,19 @@ function paneReach_(panes) {
 
    THE ONE CASE IT CANNOT SEE IS A ROTATION: the pane's own cap moves and the card does not, so
    nothing resizes. That is why `placeNow_` calls this as well — a resize arrives there. */
+/* ---------- AND IT MEASURES A FRAME LATER, NOT INSIDE THE OBSERVER'S OWN CALLBACK ----------------
+   A ZOOM THAT CHANGES INSIDE THE CALLBACK CHANGES THE SIZE THE CALLBACK WAS TOLD ABOUT, and the
+   browser reports that as "ResizeObserver loop completed with undelivered notifications" — an error
+   event on `window`, which `overworld.js` turns into a gold banner reading "Something went wrong".
+   It was always possible and nothing had produced it: every card that grew after its placement grew
+   to a size that still fitted. A post photograph in its own proportions is the first that does not —
+   a portrait lands, the card passes its pane, the callback zooms it, and the banner went up over the
+   feed on the first open. Measured at 390x844. Nothing was broken; the notification the browser
+   calls undelivered is simply delivered next frame. So the callback only collects which panes moved
+   and one `requestAnimationFrame` measures them, which is outside the observer's delivery and so
+   cannot loop. The one frame of an un-zoomed card is the frame the picture arrived in. */
 let PANE_WATCH = null;
+let PANE_WATCH_DUE = null;
 function paneWatch_(host) {
   if (!host || !host.querySelectorAll) return;
   const panes = host.querySelectorAll('.pane');
@@ -7981,12 +8016,26 @@ function paneWatch_(host) {
   if (typeof ResizeObserver !== 'function') return;
   try {
     if (!PANE_WATCH) PANE_WATCH = new ResizeObserver(rows => {
-      const mine = [];
+      const due = PANE_WATCH_DUE || (PANE_WATCH_DUE = []);
+      const first = due.length === 0;
+      const held = new Set();
       rows.forEach(r => {
         const pane = r.target && r.target.parentElement;
-        if (pane && mine.indexOf(pane) === -1) mine.push(pane);
+        if (pane && due.indexOf(pane) === -1) due.push(pane);
+        const scr = pane && pane.closest && pane.closest('.screen');
+        if (scr && scr.id && !held.has(scr.id)) {
+          held.add(scr.id);
+          /* NOW, INSIDE THE DELIVERY, and not with the measuring a frame later — see `holdColumn_`
+             in shell.js: a card above the page in front moved that page, and this is the last
+             moment before the frame is painted with it moved. */
+          if (typeof holdColumn_ === 'function') holdColumn_(scr.id.replace(/^s-/, ''));
+        }
       });
-      paneReach_(mine);
+      if (first && due.length) requestAnimationFrame(() => {
+        const mine = PANE_WATCH_DUE || [];
+        PANE_WATCH_DUE = null;
+        paneReach_(mine.filter(p => p.isConnected));
+      });
     });
     /* ONLY WHAT CHANGED IS UNOBSERVED OR OBSERVED. This ran on every placement — every tap and
        every page turn — and let go of every card on the screen and took hold of it again. A
