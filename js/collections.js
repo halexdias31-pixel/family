@@ -350,53 +350,37 @@ function savedPages_() {
 
    A REAL BUTTON, with a title, because the row is read by a thumb and by a screen reader and the
    label is three words either way. */
+/* ---------- AND ON A PAPER NOBODY HAS COUNTED THE PAGES OF, TOO -----------------------------------
+   IT RETURNED NOTHING when `laminatePrice` did, and `laminatePrice` answers null for two different
+   reasons: the sheet has no rate (laminating is not offered) and the paper has no page count (it is
+   offered and cannot be priced yet). The first is a reason not to draw the switch; the second is
+   not — "laminate it" is a decision about the copy, and the price follows the count exactly as the
+   print's does. 153 of the 266 papers with questions have no count, so the second case is most of
+   what a bundle puts in here. `laminateOffered_` asks the first question on its own. */
 function lamControl_(c) {
   if (!c || c.kind !== 'print') return '';
+  if (typeof laminateOffered_ === 'function' && !laminateOffered_()) return '';
   const p = typeof laminatePrice === 'function' ? laminatePrice(c.pages) : null;
-  if (p === null) return '';
+  const cost = p === null ? '' : ' ' + money(p);
   const at = ` data-key="${esc(c.key)}" data-kind="${esc(c.kind)}"`;
+  /* ---------- ✓ LAMINATED, NOT "laminated · plain" ------------------------------------------------
+     `laminated £7.00 · plain` IS SEVEN CHARACTERS LONGER THAN THE OFF STATE, and on a 320px phone
+     that was the difference between the ✕ sitting at the end of the strip and wrapping onto a line
+     of its own — a paper 44px taller the moment it was laminated, measured on the bundle's own
+     basket. The tick is the ON state in one character, in the gold that already says "chosen", and
+     the way back is the same press that got here, which the title says for anybody who asks. */
   return c.laminate
     ? ` <button class="text-action lam-on" data-do="cart-laminate" data-on=""${at}
-        title="Back to plain paper">laminated ${esc(money(p))} · plain</button>`
+        title="Laminated — press again for plain paper">✓ laminated${esc(cost)}</button>`
     : ` <button class="text-action" data-do="cart-laminate" data-on="1"${at}
-        title="Laminate this copy">+ laminate ${esc(money(p))}</button>`;
+        title="Laminate this copy">+ laminate${esc(cost)}</button>`;
 }
 
-function cartCard_() {
-  /* ---------- NOTHING IN IT IS A STATE, NOT AN ABSENCE ------------------------------------------
-     THE HEADING IS OUTSIDE THIS, in the widget's own markup, so what is drawn here is the paper or
-     the sentence that says there is no paper yet. It also says where things come FROM, because the
-     one thing a person cannot work out from an empty basket is how to fill it: every line in here
-     arrived by pressing the trolley on a card in Find. */
-  if (!CART.length) {
-    return `<p class="empty">Nothing in your basket yet.<br><span class="faint">The trolley on a
-      shop card in Find puts something in it.</span></p>`;
-  }
-
-  /* ---------- THE BASKET IS A RECEIPT, BECAUSE IT IS ONE -------------------------------------------
-     IT WAS BUILT FROM `.row`, the app's generic label-and-value line, and it broke: `.k` has no
-     `min-width: 0`, so a long title could not shrink and pushed the price and the ✕ off the right
-     edge of the card. Three items and you could see none of the prices and remove none of them.
-
-     THAT IS FIXABLE IN A LINE, and fixing it would still leave a list of things and prices with a
-     total and a button to pay, drawn in a shape the app uses for settings screens. The app already
-     has a shape for exactly this, and it is on the page above: `receiptHtml`, the same paper the
-     booking is drawn on, with columns that were measured to fit a phone.
-
-     SO THE BASKET AND THE BOOKING ARE THE SAME DOCUMENT. Both are things you are about to pay for,
-     and now they look it — same torn ends, same numbered lines, same total, and the button printed
-     on the paper rather than floating under it.
-
-     `printed ‧ 26 pages` MOVES TO THE PAGES COLUMN, where a receipt puts a quantity, instead of
-     trailing after the title in a smaller grey. It was the thing making the line too long. */
-  const credits = collCredits_();
-  const due  = CART.reduce((n, c) => n + (c.cost || 0), 0);
-  /* THROUGH `cartMoney_`, so the laminate upgrade is in the total the moment it is on the line.
-     Summing `c.money` directly was the same figure in two places the day laminating was added. */
-  const cash = CART.reduce((n, c) => n + cartMoney_(c), 0);
-  const short = due > credits;
-
-  const rows = CART.map((c, i) => receiptRow({
+/* ---------- ONE LINE OF THE BASKET ---------------------------------------------------------------
+   Lifted out of `cartCard_` so the grouped and the ungrouped lines are one builder — a title row
+   above some of them is the only difference, and it is not this function's business. */
+function cartRow_(c, i, under) {
+  return receiptRow({
     /* WIDE, because a basket line is a name and a price and nothing else — see `receiptRow`. The
        kind column said "Paper" beside a title that already begins "Paper 31", and the quantity
        column held "8pp" three columns from the thing it counts. Both are in the name now, where
@@ -421,8 +405,22 @@ function cartCard_() {
 
        THE PRICE IS ON THE CONTROL. "+ laminate" is a question somebody has to press to find out the
        answer to; "+ laminate £1.20" is one they can decide. */
-    sel: esc(c.name)
-      + (c.kind === 'print' && c.pages ? ` <span class="faint">${esc(c.pages)}pp</span>` : '')
+    /* ---------- THE NAME, THEN ONE STRIP OF CONTROLS -----------------------------------------------
+       THE ✕ WRAPPED ONTO A LINE OF ITS OWN. Each control is a 44px target and the name, the page
+       count, the laminate switch and the ✕ were four inline things wrapping wherever the width ran
+       out — so a line was three lines tall with the ✕ alone on the last, 115px a paper. Twelve papers
+       is the owner's own example and that was a basket you scroll for a minute. The name is one
+       line; `.cart-ctl` is the other, and it wraps as a unit rather than a word at a time.
+
+       `short` UNDER A TITLE, `name` OTHERWISE — see `cartGroups_`. */
+    sel: `<span class="cart-nm">${esc(under && c.short ? c.short : c.name)}</span>`
+      + ` <span class="cart-ctl">`
+      /* `? pp`, NOT "pages not counted yet" — twenty-one characters beside a laminate switch and a
+         ✕ is the strip wrapping at 320px. The total column already says `tbc` on the same line and
+         the receipt's head says how many are still to price, so the page count only has to say it
+         is the half that is missing. */
+      + (c.kind === 'print' ? `<span class="faint">${c.pages
+          ? esc(c.pages) + 'pp' : '? pp'}</span>` : '')
       + lamControl_(c)
       /* ---------- A `<span>` WITH A `data-do` ON IT IS NOT A CONTROL -------------------------------
          THE ✕ WAS ONE, and it is the third time in this codebase: the docket's delete, the post's
@@ -430,15 +428,95 @@ function cartCard_() {
          invisible to `check/ui.js`, which measures buttons, links and inputs — so its size has
          never been checked by anything. `.text-drop` gives it the same look either way. */
       + ` <button class="text-drop" data-do="cart-drop" title="Take this out"
-          data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</button>`,
+          data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</button></span>`,
     mul: '',
     rate: '',
     /* CREDITS AND MONEY IN THE SAME COLUMN, because a line costs one or the other and never both —
        `cart-add` writes `money` for a paper and `cost` for anything bought with credits. */
-    total: cartMoney_(c) ? money(cartMoney_(c)) : (c.cost ? c.cost + ' cr' : 'free'),
+    /* `tbc`, NOT `free`, FOR A PAPER NOBODY HAS COUNTED — the `cost: 0` fault written down four
+       times in this repository, on the one column that is a price. Three characters, because the
+       track is sized for `£270.00` and a longer word would take the row sideways. */
+    total: c.kind === 'print' && cartUnpriced_(c) ? 'tbc'
+         : cartMoney_(c) ? money(cartMoney_(c)) : (c.cost ? c.cost + ' cr' : 'free'),
     /* THE ✕ IS THE ROW'S OWN CONTROL, drawn where a receipt's line already ends. */
     end: true,
-  }));
+  });
+}
+
+/* ---------- THE BASKET'S LINES, GROUPED BY THE BUNDLE THEY CAME FROM ------------------------------
+   IN ORDER OF FIRST APPEARANCE, so the basket reads in the order things went into it. A paper taken
+   out and put back by pressing its bundle again lands at the end of `CART` — and here it rejoins its
+   own title rather than starting a second copy of it at the foot of the list.
+
+   ONLY A LINE THAT CARRIES BOTH `from` AND `short` IS GROUPED. `short` is unique inside its bundle and
+   nowhere else, so a line without it has to be read on its own and keeps its library-wide `name` —
+   which is also every line saved in somebody's browser before this existed, and those have to go on
+   drawing exactly as they did. One reader, used by the basket and by the order message, so the two
+   cannot disagree about which lines belong under which title. */
+function cartGroups_(lines) {
+  const order = [];
+  const by = {};
+  (lines || []).forEach(c => {
+    const f = c && c.kind === 'print' && c.short && c.from ? String(c.from) : '';
+    if (!by[f]) { by[f] = []; order.push(f); }
+    by[f].push(c);
+  });
+  return order.map(f => ({ from: f, lines: by[f] }));
+}
+
+function cartCard_() {
+  /* ---------- NOTHING IN IT IS A STATE, NOT AN ABSENCE ------------------------------------------
+     THE HEADING IS OUTSIDE THIS, in the widget's own markup, so what is drawn here is the paper or
+     the sentence that says there is no paper yet. It also says where things come FROM, because the
+     one thing a person cannot work out from an empty basket is how to fill it: every line in here
+     arrived by pressing the trolley on a card in Find. */
+  if (!CART.length) {
+    /* AND A BUNDLE OF PAPERS, which is the second way in and the one somebody is likelier to be
+       looking for — see `bundleOf_` in find.js. */
+    return `<p class="empty">Nothing in your basket yet.<br><span class="faint">The trolley on a
+      shop card, or on a bundle of papers, in Find puts something in it.</span></p>`;
+  }
+
+  /* ---------- THE BASKET IS A RECEIPT, BECAUSE IT IS ONE -------------------------------------------
+     IT WAS BUILT FROM `.row`, the app's generic label-and-value line, and it broke: `.k` has no
+     `min-width: 0`, so a long title could not shrink and pushed the price and the ✕ off the right
+     edge of the card. Three items and you could see none of the prices and remove none of them.
+
+     THAT IS FIXABLE IN A LINE, and fixing it would still leave a list of things and prices with a
+     total and a button to pay, drawn in a shape the app uses for settings screens. The app already
+     has a shape for exactly this, and it is on the page above: `receiptHtml`, the same paper the
+     booking is drawn on, with columns that were measured to fit a phone.
+
+     SO THE BASKET AND THE BOOKING ARE THE SAME DOCUMENT. Both are things you are about to pay for,
+     and now they look it — same torn ends, same numbered lines, same total, and the button printed
+     on the paper rather than floating under it.
+
+     `printed ‧ 26 pages` MOVES TO THE PAGES COLUMN, where a receipt puts a quantity, instead of
+     trailing after the title in a smaller grey. It was the thing making the line too long. */
+  const credits = collCredits_();
+  const due  = CART.reduce((n, c) => n + (c.cost || 0), 0);
+  /* THROUGH `cartMoney_`, so the laminate upgrade is in the total the moment it is on the line.
+     Summing `c.money` directly was the same figure in two places the day laminating was added. */
+  const cash = CART.reduce((n, c) => n + cartMoney_(c), 0);
+  /* A PAPER WITH NO PAGE COUNT IS NOT FREE, and the total must not add it in as nought and then
+     print a figure that reads as the whole bill. Counted, and said. */
+  const tbc = CART.filter(c => c.kind === 'print' && cartUnpriced_(c)).length;
+  const short = due > credits;
+
+  /* ---------- A BUNDLE'S PAPERS UNDER ITS TITLE, SAID ONCE -----------------------------------------
+     `cartGroups_` puts each bundle's lines together under the words the bundle card was titled with,
+     and anything else — a shop item, a print line saved before bundles existed — in a group with no
+     title, drawn exactly as it always was. The title is a row of its own with nothing to price,
+     because it is not a thing being bought: it is what the lines under it have in common. */
+  const rows = [];
+  let at = 0;
+  cartGroups_(CART).forEach(g => {
+    if (g.from) {
+      rows.push(receiptRow({ wide: true, n: '', k: '', v: '', mul: '', rate: '', total: '',
+                             sel: `<span class="cart-from">${esc(g.from)}</span>` }));
+    }
+    g.lines.forEach(c => rows.push(cartRow_(c, at++, !!g.from)));
+  });
   /* AN ARRAY, NOT A STRING. `receiptHtml` does `(r.rows || []).join('')` itself — every other caller
      hands it the list and lets it do that, and handing it a joined string instead threw
      `.join is not a function` and took the whole screen down. */
@@ -446,13 +524,20 @@ function cartCard_() {
   /* THE WORDING OFF THE SHEET THAT USED TO DUPLICATE THIS. A button saying what it will cost is a
      button somebody can agree to; one saying "Send" is one they have to work out first. And when
      it cannot be pressed it says why rather than sitting there greyed with no explanation. */
+  /* ---------- "SEND ORDER", NOT "PAY" — NOTHING IS PAID HERE ---------------------------------------
+     IT SAID "Pay £0.92" OVER A HANDLER THAT TOASTED "Checkout is the next thing to build". It sends
+     the order to the owner now — see `cart-send` — and money changes hands when the paper does, so
+     a button naming a payment would promise the one thing it does not do. The figure stays on it,
+     because a button saying what it is about to ask for is one somebody can agree to. */
+  const paper = cash || tbc;
   const foot = `
     <button class="btn rc-do" ${short ? 'disabled' : ''} data-do="cart-send">${
       short ? (due - credits) + ' more credits needed'
-            : cash ? 'Pay ' + money(cash) : 'Confirm'}</button>
-    <p class="rc-terms">${cash
-      ? 'Printing is charged at cost — paper only. Collect from the library or a session.'
-      : 'Nothing leaves your basket until you confirm.'}</p>`;
+            : 'Send order' + (cash ? ' · ' + money(cash) + (tbc ? ' + tbc' : '') : '')}</button>
+    <p class="rc-terms">${paper
+      ? 'Printing is at cost — paper only — posted or kept for you to collect. Anything marked tbc '
+        + 'is priced before you are charged for it.'
+      : 'Nothing leaves your basket until you send it.'}</p>`;
 
   return receiptHtml({
     /* ---------- THE BASKET WORE THE GREEN TERMINAL, AND IT WAS THE LAST ONE WEARING ANYTHING ------
@@ -471,12 +556,17 @@ function cartCard_() {
        between four palettes is one line deciding which of four sets of rules the next control on
        this card has to obey, and the set nobody remembers is the one that gets written wrong. */
     lines: [due ? due + ' credit' + (due === 1 ? '' : 's') : '',
-            due ? 'you have ' + credits : ''].filter(Boolean),
+            due ? 'you have ' + credits : '',
+            tbc ? tbc + ' to price when sent' : ''].filter(Boolean),
     rows: rows,
     /* "TO PAY", NOT "COST". The booking card says Cost on a thing nobody has agreed to; this one has
        a Pay button under it and money genuinely about to move. */
-    totalLabel: cash ? 'To pay' : 'Credits',
-    total: cash ? money(cash) : String(due),
+    /* "SO FAR" WHEN ANY LINE IS STILL TO BE PRICED, because the figure beside it is then a floor
+       rather than the bill. `tbc` alone when nothing is priced — a total of £0.00 over papers that
+       cost money is the one figure on this card that would be flatly untrue. "TOTAL", NOT "TO PAY":
+       nothing is paid by pressing the button under it. */
+    totalLabel: paper ? (tbc ? 'So far' : 'Total') : 'Credits',
+    total: cash ? money(cash) : tbc ? 'tbc' : String(due),
     foot: foot,
   });
 }
@@ -494,6 +584,16 @@ function cartCard_() {
    the press IS the change. Same argument `cart-add` already makes for using `tileSet_`. */
 function cartPaint_() {
   document.querySelectorAll('.cart-box').forEach(el => { el.innerHTML = cartCard_(); });
+  /* AND THE BUNDLE'S TROLLEY, WHEREVER IT IS DRAWN. It fills when every paper in it is a line here,
+     so a line taken out on the Tools column has made a filled trolley on the Find screen untrue —
+     and this is the one function every change to the basket already goes through. Read off the
+     tile's own ids against `CART`, so it cannot disagree with `bundleInCart_`'s rule. */
+  document.querySelectorAll('[data-do="cart-add"][data-kind="bundle"]').forEach(el => {
+    const ids = String(el.dataset.ids || '').split(',').filter(Boolean);
+    const all = ids.length && ids.every(id => CART.some(c => c.kind === 'print' && String(c.key) === id));
+    tileSet_(el, all ? { label: 'In your basket', on: true, off: true }
+                     : { label: 'Add bundle to basket', on: false, off: false });
+  });
 }
 
 /* THE WIDGET'S OWN `start`. It is called when the tools column arrives and on every repaint of it,

@@ -125,6 +125,50 @@ const STATES = {
       },
       expect: () => document.querySelectorAll('#stuff-groups .row').length,
       wants: 'a question with answers on it' },
+    /* ---------- A BUNDLE OF PAPERS, WHICH ONLY A NARROWED LIST OFFERS ------------------------------
+       THE CARD EXISTS ONLY WHEN THE RESULTS ARE WHOLE PAPERS — see `bundleOf_` — so `go('stuff')`
+       never shows one, and neither does any state above: a search for "work out" is questions from
+       everywhere, and six answers into the worksheets is not a set of papers. Nothing here would
+       ever have measured it, which is the hole the receipt, the message thread and the basket were
+       each in before a state put them on the screen.
+
+       THE WIDEST ONE ANYBODY REACHES BY ANSWERING, on purpose: Edexcel GCSE Higher over the
+       `2017 & 2018` bucket is twelve papers in four sittings, grouped a line per sitting — the
+       longest list and the longest title the card is drawn with on the owner's own example. A
+       three-paper bundle would measure the easy case.
+
+       FOUND BY THE PAGE IT IS ON rather than by a number, because the leading pages in front of the
+       results change with what else is offered, and a literal would land on the wrong one.
+
+       AND IT PUTS THE BASKET BACK AS WELL AS THE FUNNEL. `check/press.js` presses the trolley here,
+       which writes twelve lines to `localStorage` — and states run in order down one page, so a
+       basket left full would be measured on the Tools column as though somebody had filled it. */
+    { name: 'a bundle of papers',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'subject', value: 'Maths' },
+                         { field: 'documentType', value: 'Past paper' },
+                         { field: 'level', value: 'GCSE' },
+                         { field: 'tier', value: 'Higher' },
+                         { field: 'examWave', value: '2017 & 2018', bucket: true }];
+        paintStuff();
+        const card = document.querySelector('#s-stuff .card.bundle');
+        const page = card && card.closest('.page');
+        if (!page) throw new Error('the funnel narrowed to twelve whole papers offers no bundle');
+        goPage('stuff', [].indexOf.call(page.parentNode.children, page), true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .card.bundle');
+        return !!c && c.querySelectorAll('.bundle-list li').length >= 2
+               && !!document.querySelector('#s-stuff [data-do="cart-add"][data-kind="bundle"]');
+      },
+      wants: 'a bundle card listing its papers, with a trolley to put them in the basket',
+      leave: () => {
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+        CART = []; cartSave(); if (typeof cartPaint_ === 'function') cartPaint_();
+      } },
     /* ---------- AND THE DOCUMENT BEHIND THE TILE -----------------------------------------------
        THE LONGEST SURFACE IN THE APP, AND IT IS NOT ON A SCREEN. A practical's guide opens in the
        sheet, which is where it had to go: 51 of the 56 practical cards were already taller than
@@ -867,9 +911,23 @@ const STATES = {
        A PRICE IN THE THOUSANDS ON PURPOSE. The figure column is the thing that breaks here — it is
        sized in `ch` of a proportional font and drawn in mono — and `£2050.00` is one character
        wider than `£270.00`, which is the difference between a finding and a pass. */
+    /* ---------- AND WHAT A BUNDLE PUTS IN IT, which is most of what a basket holds now --------------
+       Three papers under the title of the bundle they came from, one of them laminated, and a paper
+       nobody has counted the pages of — so the group's caption, the `✓ laminated` switch, the `? pp`
+       and the `tbc` in the figure column are all on the screen at once. The first version of the
+       laminated switch said `laminated £7.00 · plain` and put the ✕ on a line of its own at 320px;
+       a basket seeded with shop items only could never have shown that. Invented lines, shaped the
+       way `cartAddBundle_` writes them. */
     { name: 'the basket',
       enter: () => {
-        CART = [{ key: 'I001', name: 'Trundle wheel, 1 m circumference', kind: 'shop',
+        const from = 'Edexcel · Maths · GCSE · Higher · Past papers · Summer 2017';
+        CART = [{ key: 'P-1MA1-1705-1H', kind: 'print', name: 'Paper 1 (Non-Calculator) — May 2017 · Higher',
+                  short: 'Paper 1', pages: 20, cost: 0, from: from, laminate: true },
+                { key: 'P-1MA1-1706-2H', kind: 'print', name: 'Paper 2 (Calculator) — June 2017 · Higher',
+                  short: 'Paper 2', pages: 24, cost: 0, from: from },
+                { key: 'P-UNCOUNTED', kind: 'print', name: 'Paper 3 (Calculator) — June 2017 · Higher',
+                  short: 'Paper 3', pages: 0, cost: 0, from: from },
+                { key: 'I001', name: 'Trundle wheel, 1 m circumference', kind: 'shop',
                   cost: 0, money: 120000 },
                 { key: 'I026', name: 'Tape measure, 30 m', kind: 'shop', cost: 0, money: 85000 }];
         const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'cart');
@@ -877,8 +935,9 @@ const STATES = {
         goPage('tools', n, true);
         initCart();
       },
-      expect: () => document.querySelector('#s-tools [data-do="cart-send"]'),
-      wants: 'a basket with a way to pay on it',
+      expect: () => document.querySelector('#s-tools [data-do="cart-send"]')
+                    && document.querySelector('#s-tools .cart-box .cart-from'),
+      wants: 'a basket holding a bundle under its title, with a way to send the order',
       /* PUT BACK, because states run in order down one page and an empty basket is what every
          other state on this column expects to find. */
       leave: () => { CART = []; initCart(); } },

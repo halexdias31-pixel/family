@@ -442,6 +442,19 @@ function startScreen_(id) {
   else if ((id === 'tools' || id === 'games') && typeof toolsStart_ === 'function') {
     toolsStart_(id === 'tools' ? 'tool' : 'game');
   }
+  /* ---------- AND A COLUMN WHOSE CARDS JUST GREW IS PLACED AGAIN ---------------------------------
+     A WIDGET DRAWS ITSELF IN ITS `start`, which runs here, 300ms after the column was placed — so
+     the basket's receipt, the calendar's month and the week's roster all arrive AFTER `goPage` has
+     measured where the page in front is. On a column somebody lands on at page 0 that costs
+     nothing; on one they land on further down it put the page they asked for 1,500px below the
+     glass. Measured from the bundle's "see your basket" tile: `PAGE.tools` was 9, the basket was
+     `.page.on`, and its top edge was at y = 1706 on an 844px phone — a blank column until somebody
+     swiped, with nothing wrong in any single step.
+     INSTANT, because the slide has already finished and nobody saw the wrong position move; and
+     only for the column in front, because a neighbour is placed when it is arrived at. */
+  if ((id === 'saved' || id === 'tools' || id === 'games') && id === AT) {
+    placeCells('y', true, 0, id);
+  }
   /* THE CAMERA STARTS ON ARRIVAL rather than on a tap. It waited for a button on the belief that
      `getUserMedia` needs a gesture; what it needs is PERMISSION, which the browser prompts for once
      and then remembers — so the button was asking you to confirm, every single visit, a thing you
