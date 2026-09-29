@@ -7850,6 +7850,8 @@ const STUFF_SOON = 1;
    called for the screen you are on from `placeNow_` in shell.js as well -- where every card in the
    app that grows after its paint already arrives. */
 const PANE_REACH = 24;
+/* HOW SMALL A CARD MAY BE DRAWN TO FIT ITS PANE before it scrolls instead. See `paneReach_`. */
+const PANE_ZOOM_MIN = 0.7;
 
 /* EVERY READ, THEN EVERY WRITE, AND IT IS THE WHOLE COST OF THIS FUNCTION. The first version took
    one pane at a time -- read `scrollHeight`, write `overflowY` -- and a CPU profile of the tap put
@@ -7864,18 +7866,94 @@ function paneReach_(panes) {
   const list = [].slice.call(panes || []);
   if (!list.length) return;
   try {
-    const want = list.map(p => p.scrollHeight - p.clientHeight > PANE_REACH);
+    /* ---------- SHRINK TO FIT FIRST, AND SCROLL ONLY PAST THE FLOOR ---------------------------------
+       REPORTED WITH A SCREENSHOT OF A TUTOR'S CARD ON A PHONE: "this stretches beyond it and causes
+       scrolling. I don't like scrolling. If you need to leave things more compact or smaller font.
+       This goes for all widgets so they all fit on screen."
+
+       SO A CARD TALLER THAN ITS PANE IS DRAWN SMALLER, by CSS `zoom` on the pane's children — which,
+       unlike a `transform: scale()`, is a LAYOUT property: the card re-flows at the smaller size, the
+       pane measures what is really there, and nothing is painted outside a box that does not know
+       about it. That last half is the fault `.mat-out` cost this project twice.
+
+       MEASURED AT ZOOM 1 EVERY TIME, not nudged from the zoom it already has. Zooming out widens the
+       card in its own pixels, so text wraps less and the card gets shorter than the ratio predicts —
+       which means a zoom computed as "pane over natural height" is guaranteed to fit, and one nudged
+       from the last value oscillates: shrink, find slack, grow, overflow, shrink. Resetting and
+       re-setting in one task is deterministic, and the `ResizeObserver` below sees the same final
+       size it saw before, so it does not feed itself.
+
+       THE FLOOR IS WHERE THE WORDS STOP BEING WORDS. `PANE_ZOOM_MIN` of the ordinary size is about
+       10px text on a phone; below that a card is not "more compact", it is unreadable, and a
+       question card 2,800px tall would come out as a column of grey. Past the floor the pane scrolls,
+       which is the old behaviour and is now the last resort rather than the first.
+
+       WHAT IT COSTS, SAID RATHER THAN BURIED: a zoomed card's 44px tap targets are 44px times the
+       zoom. That is the trade the report asked for, and `check/ui.js` measures a control at its own
+       size and counts the zoomed panes separately, so the cost is a number rather than a silence. */
+    const kids = list.map(p => [].slice.call(p.children));
+    const was = kids.map(ks => ks.map(k => k.style.zoom || ''));
+    kids.forEach(ks => ks.forEach(k => {
+      if (k.style.zoom) { k.style.zoom = ''; k.style.width = ''; k.style.marginInline = ''; }
+    }));
+    const pad = p => {
+      const cs = getComputedStyle(p);
+      return (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    };
+    const want = list.map(p => {
+      const room = p.clientHeight - pad(p);
+      const used = p.scrollHeight - pad(p);
+      if (room <= 0 || used - room <= 2) return 1;
+      /* FOUR PIXELS SHORT OF THE ROOM, because a 1px border and a sub-pixel line box do not scale:
+         measured, a card zoomed to exactly room / used ended 4px past its pane. */
+      return Math.max(PANE_ZOOM_MIN, Math.floor((room - 4) / used * 1000) / 1000);
+    });
+    /* AND THE CARD KEEPS ITS OWN WIDTH, so it is the same card drawn smaller rather than a wider
+       card re-flowed. Zoom alone does not shrink anything whose height follows its width — a game
+       board, a 4:5 photograph, a square week grid — because at zoom 0.8 the card is a quarter wider
+       in its own pixels and the board grows to fill it. Measured on the Games column the first time:
+       zoomed to 0.91 and still 24px past the pane. Pinned to the width it had at zoom 1, everything
+       scales by exactly the same factor and the zoom that was asked for is the zoom that fits. */
+    const wide = kids.map(ks => ks.map(k => k.getBoundingClientRect().width));
+    list.forEach((p, i) => {
+      if (want[i] < 1) kids[i].forEach((k, j) => {
+        k.style.width = wide[i][j] + 'px';
+        k.style.marginInline = 'auto';
+        k.style.zoom = String(want[i]);
+      });
+    });
+    /* ---------- A ZOOM THAT CHANGED MOVES THE PAGES UNDER IT, SO THE COLUMN IS PLACED AGAIN ---------
+       A SHRUNK CARD IS A FEW PIXELS SHORTER THAN THE CAPPED PANE IT REPLACED — the zoom is rounded
+       down so it fits — and on the Find screen fifteen pages sit above the one you are on. The
+       column was placed before this ran, so the page in front drifted: `check/ui.js` caught it 46px
+       off the bottom of a 320x568 phone, only on runs where the machine was busy enough for the
+       deferred measuring to land after the placement. `placeCells` coalesces to one frame, and the
+       placement it books calls back into here, finds nothing changed, and stops. */
+    const moved = new Set();
+    list.forEach((p, i) => {
+      const now = want[i] < 1 ? String(want[i]) : '';
+      if (was[i].some(z => z !== now)) {
+        const scr = p.closest && p.closest('.screen');
+        if (scr && scr.id) moved.add(scr.id.replace(/^s-/, ''));
+      }
+    });
+    if (moved.size && typeof placeCells === 'function') {
+      moved.forEach(id => placeCells('y', true, 0, id));
+    }
     /* `overflow-y` AND NOT `touch-action`, WHICH IS THE OPPOSITE OF WHAT `padReach_` DOES AND IS
        DELIBERATE. `pan-y` hands the whole vertical axis to the browser for the whole gesture, and
        `touch-action` cannot say "at the bottom, going up" -- measured, a card set to pan could be
        scrolled to its end and then could not be left by swiping at all, three swipes and the page
        never turned. The pane stays `touch-action: none` and `scrollHost_` in overworld.js scrolls
        it from the app's own drag, which hands over to the grid the moment there is nothing left. */
+    /* READ AFTER THE ZOOM, and only matters at the floor: anything above it fits by construction. */
+    const over = list.map((p, i) => want[i] <= PANE_ZOOM_MIN
+      && p.scrollHeight - p.clientHeight > PANE_REACH);
     /* WRITTEN ONLY WHERE IT CHANGES, which is what stops `paneWatch_` below feeding itself: on a
        desktop a classic scrollbar takes width off the card, the card rewraps, the observer fires,
        and a write that sets the value it already had would go round again for ever. */
     list.forEach((p, i) => {
-      const to = want[i] ? 'auto' : '';
+      const to = over[i] ? 'auto' : '';
       if (p.style.overflowY !== to) p.style.overflowY = to;
     });
   } catch (e) {}

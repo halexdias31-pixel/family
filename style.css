@@ -5674,6 +5674,14 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .is-prof .prof-top + .row,
 .is-prof .prof-say + .row,
 .is-prof .prof-tags + .row { margin-top: .7rem; }
+/* ---------- AND THE ROWS ARE A NOTCH SMALLER THAN AN ORDINARY ROW, because a profile has twice as
+   many of them. Reported with a screenshot of a tutor's card running past the bottom of a phone:
+   "I don't like scrolling. If you need to leave things more compact or smaller font." `paneReach_`
+   now shrinks any card that still does not fit, and this is the half that means a profile rarely
+   needs it — the rows are labels and values read down a card, not paragraphs, and .44rem of air
+   above and below each one was the difference between fitting and not. */
+.is-prof .row { padding: .26rem 0; font-size: .8rem; }
+.is-prof .prof-say { font-size: .8rem; line-height: 1.35; }
 /* THE SUBJECTS, AS THE ADJECTIVES' CHIPS. Same pill, same line; the case is the sheet's own rather
    than upper, because a subject shouted reads as a heading (see `findCard`). The specialism takes
    the gold edge and the ink — gold is what this app means by "the one", and it is the only chip on
