@@ -156,6 +156,10 @@ const SUITE = [
      completely silent: a dropped field writes a shorter cell, the form reloads with an empty box,
      and the person who typed it assumes they forgot. */
   { file: 'check-people.js', what: 'the packed cells on the people tab, round-tripped' },
+  /* THE SETTINGS COLUMN THROUGH THE REAL BACKEND. For months nobody but an admin could save, and the
+     admin's Saves wrote blanks over five packed cells — and nothing on this roster ever ran
+     `updateProfile`. See the header of that file. */
+  { file: 'check-profile.js', what: 'your settings, saved and read back through the real backend' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
      The third check here about SAFETY rather than about working, after `check-marking.js` and
      `check-handles.js` — and the only one whose subject is this repository rather than the app.

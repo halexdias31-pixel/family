@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-29-f-many";
+const BACKEND_VERSION = "2026-09-29-g-saves";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2820,6 +2820,9 @@ const ACTION_ACCESS = {
      is their own name going down. */
   joinFestive: 'self',
 
+  /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
+     resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */
+  myProfile: 'self',
   // The books, the prices, the rooms, the people list.
   diagnosePeople: 'admin', getProfile: 'admin', listPeople: 'admin',
   updateVenue: 'admin', updateConfig: 'admin', updatePricing: 'admin',

@@ -534,7 +534,12 @@ body {
   position: relative;
 }
 .card:last-child { border-bottom: 0; }
-.card > h3 { margin: 0 0 .5rem; font-size: 1rem; font-weight: 620; letter-spacing: -.01em; }
+/* A SETTINGS CARD'S TITLE IS ONE LEVEL DOWN, inside its `.me-form`, so `.card > h3` never reached it
+   and it took the browser's own h3 margin — 17px above the first word of every settings page, on top
+   of the pane's padding and the card's, which is the empty band over "About you". Same rule, named
+   through the form, so the two kinds of card title cannot drift. */
+.card > h3, .card > .me-form > h3:first-child {
+  margin: 0 0 .5rem; font-size: 1rem; font-weight: 620; letter-spacing: -.01em; }
 .card .sub { color: var(--dim); font-size: .82rem; margin: -.25rem 0 .5rem; }
 
 /* A card that is a button. The whole thing is the target — the only sane size on a touchscreen —

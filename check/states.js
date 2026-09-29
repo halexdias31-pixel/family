@@ -688,8 +688,15 @@ const STATES = {
         /* READ IN THE SAME TICK AS THE PRESS. `avatarSave` redraws before the server answers, and
            read later the answer is the stub's: `check/fixture.json` carries no `avatar` key, so the
            figure would go back to the default and this would report the app broken for the
-           fixture's shape. */
-        window.__AV_MOVED = !!fig && !!was && fig.innerHTML !== was;
+           fixture's shape.
+           ASKED OF THE CARD AS IT NOW IS. `avatarSave` rebuilds the card's inside from `wardrobeCard_`
+           — so the ring, a bought item's lock and the credits line follow the look, not only the
+           figure — which means the figure read before the press is a detached element afterwards.
+           And the picked item must now carry the ring: that half is what the rebuild is for. */
+        const now = pg.querySelector('.av-figure');
+        const ringed = pick && pg.querySelector('[data-do="av-pick"][data-slot="' + pick.dataset.slot
+          + '"][data-id="' + pick.dataset.id + '"].on');
+        window.__AV_MOVED = !!now && !!was && now.innerHTML !== was && (!pick || !!ringed);
       },
       expect: () => window.__AV_MOVED,
       wants: 'the figure on the wardrobe card redrawn by a pick made on it' },

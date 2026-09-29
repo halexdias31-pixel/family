@@ -866,6 +866,7 @@ function wardrobeCard_() {
 
 /* A colour and an item go through the SAME request, because to the server they are the same
    thing: a whole look, re-checked piece by piece. Nothing here decides what anybody may wear. */
+let AV_SEQ = 0;
 function avatarSave(change) {
   const cfg = avatarConfig(USER.avatar, USER.handle || USER.name);
   Object.assign(cfg, change);
@@ -875,9 +876,31 @@ function avatarSave(change) {
      four elements with one id and `$()` handing all of them the first — so picking a colour on page five moved the
      figure on page one and the one under your thumb did not change. The `$('msg-text')` fault, on
      the surface where the whole point is that you SEE the change. A class, and all of them. */
-  const draw = () => document.querySelectorAll('.av-figure').forEach(el => {
-    el.innerHTML = avatarFor(USER.handle || USER.name, AV_FIG, USER.avatar);
-  });
+  /* ---------- THE WHOLE CARD FOLLOWS THE LOOK, NOT ONLY THE FIGURE --------------------------------
+     THIS REDREW `.av-figure` AND NOTHING ELSE, so the ring stayed on the colour you had left, a
+     bought item went on showing its price and lock, and the credits line kept the old balance —
+     measured, pressing skin 4 left the ring on skin 1 while the figure changed. The card's INSIDE is
+     rebuilt from `wardrobeCard_`, the one renderer, but the card ELEMENT is kept: `paneReach_` writes
+     its zoom inline on that element and `paneWatch_`'s observer is attached to it, and swapping it
+     would drop both. */
+  const draw = () => {
+    const card = document.querySelector('.av-card');
+    if (card) {
+      const tmp = document.createElement('div');
+      tmp.innerHTML = wardrobeCard_();
+      const fresh = tmp.firstElementChild;
+      if (fresh) { card.innerHTML = fresh.innerHTML; return; }
+    }
+    document.querySelectorAll('.av-figure').forEach(el => {
+      el.innerHTML = avatarFor(USER.handle || USER.name, AV_FIG, USER.avatar);
+    });
+  };
+  /* ---------- AND ONLY THE LATEST TAP'S ANSWER COUNTS -----------------------------------------------
+     Two quick taps are two requests, and they can come back in either order — measured, skin 2 then
+     skin 5 left the phone wearing skin 2 when the first reply was the slower one. Each tap takes a
+     number; a reply for an older one is ignored, in the refusal path too, or a late refusal of an
+     old tap would put the look from before it back over a newer one the server accepted. */
+  const seq = ++AV_SEQ;
 
   /* The figure redraws IMMEDIATELY, before the server answers — picking a colour and waiting a
      second to see it is the difference between a wardrobe and a form. Put back if refused. */
@@ -888,6 +911,7 @@ function avatarSave(change) {
   api({ action: 'saveAvatar',
     name: USER.name, personId: USER.personId, avatar: cfg })
     .then(d => {
+      if (seq !== AV_SEQ) return;
       if (!d || d.error) throw new Error((d && d.error) || 'Could not save that');
       USER.avatar = d.avatar;
       if (typeof d.credits === 'number') USER.credits = d.credits;
@@ -902,6 +926,7 @@ function avatarSave(change) {
       draw();
     })
     .catch(err => {
+      if (seq !== AV_SEQ) return;
       USER.avatar = before;
       draw();
       /* A REFUSAL IS A TOAST. This app decided that once already — see the note on `why_` in
@@ -1862,19 +1887,22 @@ on('cut-save', el => {
   if (!box || !isAdmin()) return;
   const x = Number(box.value);
   if (box.value === '' || isNaN(x) || x < 0 || x > 2) return toast('A number from 0 to 2 \u2014 0.1 is 10%.');
-  el.disabled = true;
-  send({ action: 'updateConfig', name: USER.name, personId: USER.personId,
-         key: box.dataset.key || 'boss_rate', value: x })
-    .then(() => {
-      el.disabled = false;
+  /* `send_`, like every other Save on this column: the spinner, and the box locked while the number
+     is on the wire, so what is saved is what the box says. */
+  const want = box.dataset.key || 'boss_rate';
+  send_({ action: 'updateConfig', name: USER.name, personId: USER.personId, key: want, value: x },
+        { button: el, busy: 'Saving…' })
+    .then(d => {
       DATA.constants = DATA.constants || {};
       DATA.constants.vars = DATA.constants.vars || {};
-      DATA.constants.vars[box.dataset.key || 'boss_rate'] = x;
+      /* THE KEY THE SERVER WROTE, which is the one the pricing reads — see the exact-case match in
+         `updateConfig`. */
+      DATA.constants.vars[(d && d.key) || want] = x;
       const say = el.closest('.card').querySelector('.cut-say');
       if (say) say.innerHTML = cutSay_(x);
       toast('Saved');
     })
-    .catch(err => { el.disabled = false; toast(String((err && err.message) || 'Not saved.')); });
+    .catch(() => {});
 });
 
 screen('settings', () => pages('settings', settingsPages_()));
@@ -1957,8 +1985,10 @@ function availGrid_(codes, p, readonly) {
 function send_(body, o) {
   o = o || {};
   const btn = o.button;
+  /* AN ID OR THE ELEMENT ITSELF. A settings card's status line is a CLASS, one per card — there are
+     a dozen on one column, so it cannot be an id — and the caller already holds the element. */
   const say = msg => {
-    const el = o.where && $(o.where);
+    const el = o.where && (typeof o.where === 'string' ? $(o.where) : o.where);
     if (el) el.textContent = msg; else toast(msg);
   };
 
@@ -2801,33 +2831,113 @@ on('me-save', el => {
   const box = el.closest('.me-form') || el.closest('#sheet-body') || el.closest('.widget-slot')
            || document.body;
   const said = box.querySelector('.me-said');
+  /* GATHERED BEFORE `send_` LOCKS THE CARD. The lock disables every box, and this skips a disabled
+     one on purpose (a locked field is not an answer) — so gathering afterwards would post nothing. */
   const fields = {};
   box.querySelectorAll('[data-me]').forEach(box => {
     if (box.disabled) return;
     fields[box.dataset.me] = box.type === 'checkbox' ? (box.checked ? 'TRUE' : 'FALSE')
                                                      : String(box.value || '').trim();
   });
-  el.disabled = true;
-  if (said) said.textContent = 'Saving…';
-
-  api({ action: 'updateProfile', name: USER.name,
-    target: USER.name, targetId: USER.personId || '', fields })
+  /* ---------- NOT FROM A COPY OF YOUR SETTINGS THAT CANNOT BE TRUE ------------------------------
+     THE SIGN-IN REPLY SENT THE RAW CELLS FOR MONTHS, so every phone signed in before it was repaired
+     holds a profile with no phone boxes, no birthday boxes and an empty qualification shelf — and a
+     Save from that form writes those blanks over the sheet. `profileOf_` always sends `phone_cc`, so
+     its absence is the one test that tells the broken shape apart. Nothing is sent from it; the
+     sheet's own copy is asked for, and the form is redrawn from that. */
+  if (!profileShapeOk_()) {
+    if (said) said.textContent = 'Your saved details are still loading from the sheet, so nothing was sent. Try again in a moment.';
+    profileRefresh_(true);
+    return;
+  }
+  /* `send_`, NOT `api()`. `api()` resolves with whatever the server said, and this disabled only the
+     button: no spinner, every box still live, and a headline edited while the request was on the
+     wire was silently lost — measured. `send_` spins the button, locks the card's boxes, puts them
+     back afterwards, and writes a refusal into this card's own line. */
+  send_({ action: 'updateProfile', name: USER.name, personId: USER.personId || '',
+          target: USER.name, targetId: USER.personId || '', fields },
+        { button: el, busy: 'Saving…', where: said })
     .then(d => {
-      if (d && d.error) throw new Error(d.error);
-      /* Kept on the phone as well, so the You screen shows the new values before the next load. */
-      USER.profile = Object.assign({}, USER.profile || {}, fields);
+      /* THE SERVER'S OWN READING OF THE ROW, NOT WHAT WAS TYPED. `updateProfile` answers with
+         `profileOf_` of the row after the write — the phone repacked, the specialism derived from the
+         ticks, a birthday normalised — so the next Save starts from the sheet. An older backend sends
+         no profile, and the typed fields are merged as they always were. */
+      USER.profile = (d && d.profile) ? d.profile : Object.assign({}, USER.profile || {}, fields);
       if (d && d.name) USER.name = d.name;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       if (box.closest('#sheet-body')) closeSheet();
-      el.disabled = false;
-      if (said) said.textContent = '';
-      toast('Saved'); load();
+      /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_`. */
+      const form = el.closest('.me-form');
+      if (form) delete form.dataset.dirty;
+      if (said) said.textContent = 'Saved';
+      toast('Saved');
+      /* THE PUBLIC CARD IS BUILT BY `doGet`, so it only moves when the payload does — but only when
+         something was written. A Save that changed nothing writes nothing and leaves the stored
+         payload alone, so fetching it again would be a full rebuild to learn nothing. `changed` is
+         absent from an older backend, which is treated as "something changed", as before. */
+      if (!d || d.changed === undefined || d.changed > 0) load();
     })
-    .catch(err => {
-      el.disabled = false;
-      if (said) said.textContent = String(err.message || 'Could not save that');
-    });
+    .catch(() => { /* `send_` has already written the refusal under the card. */ });
 });
+
+/* ---------- WHICH SETTINGS CARDS HAVE SOMETHING TYPED INTO THEM -----------------------------------
+   A CARD IS DIRTY FROM ITS FIRST KEYSTROKE UNTIL IT IS SAVED, and while any card on the column is,
+   `paint` leaves the column alone — see the note there. Marked from the events rather than by
+   comparing each box with its `defaultValue`, because the qualification shelf and the anchored
+   multi-selects keep their answer in a HIDDEN input, whose `value` and `defaultValue` are the same
+   attribute: a comparison would call a picked subject clean. */
+document.addEventListener('input', e => {
+  const f = e.target && e.target.closest && e.target.closest('#s-settings .me-form');
+  if (f) f.dataset.dirty = '1';
+});
+document.addEventListener('change', e => {
+  const f = e.target && e.target.closest && e.target.closest('#s-settings .me-form');
+  if (f) f.dataset.dirty = '1';
+});
+function settingsKeep_(id) {
+  if (id !== 'settings' || !USER) return false;
+  const el = $('s-settings');
+  return !!(el && el.querySelector('.me-form[data-dirty], .me-form.is-sending'));
+}
+
+/* ---------- YOUR SETTINGS, AS THE SHEET HOLDS THEM ------------------------------------------------
+   `USER.profile` WAS WRITTEN ONCE, BY THE SIGN-IN REPLY, and then kept for the thirty days a session
+   lasts — so a change made on another phone, by an admin, or typed into the sheet never reached this
+   form, and the next Save posted this phone's old copy back over it. `myProfile` is the backend's
+   `profileOf_` of the row the TOKEN resolves to, asked once per app open (see `load()`), and whenever
+   a Save finds a copy it cannot trust. A POST rather than a key on the payload: the payload is cached
+   and shared, and this carries a birthday, a phone number and library-card PINs. */
+let PROFILE_ASKING = false;
+function profileShapeOk_() {
+  const p = USER && USER.profile;
+  return !!p && Object.prototype.hasOwnProperty.call(p, 'phone_cc');
+}
+function profileRefresh_(loud) {
+  if (!USER || !USER.token || PROFILE_ASKING) return;
+  PROFILE_ASKING = true;
+  api({ action: 'myProfile', name: USER.name, personId: USER.personId || '' })
+    .then(d => {
+      PROFILE_ASKING = false;
+      if (!d || !d.success || !d.profile || !USER) {
+        if (loud && d && d.error) toast(d.error);
+        return;
+      }
+      /* ONLY FOR THE PERSON STILL SIGNED IN. A reply that lands after somebody else has signed in on
+         this phone is about the previous person. */
+      if (USER.personId && String(d.personId) !== String(USER.personId)) return;
+      if (!USER.personId) USER.personId = d.personId;
+      USER.profile = d.profile;
+      if (d.agreementSignedAt !== undefined) {
+        USER.agreementSignedAt = d.agreementSignedAt; USER.agreementVersion = d.agreementVersion;
+      }
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
+      if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_('settings')) {
+        try { paint('settings'); placeCells('y', true, 0, 'settings'); } catch (e) {}
+      }
+    })
+    .catch(() => { PROFILE_ASKING = false; });
+}
 /* `change-pin` opened a sheet of its own. It is three fields at the bottom of `edit-me` now — the
    sheet that already exists for changing your details, which a PIN is one of. */
 /* ---------- AND THE USERNAME, WHICH IS THE SAME SHAPE ---------------------------------------------
@@ -2849,10 +2959,11 @@ on('handle-save', el => {
   const box = $('handle-new');
   const want = String((box && box.value) || '').trim();
   if (!want) { if (said) said.textContent = 'Type the name you want.'; return; }
-  el.disabled = true;
-  if (said) said.textContent = 'Checking…';
-  send({ action: 'changeHandle', name: USER.name,
-         personId: (USER && USER.personId) || '', handle: want })
+  /* `send_`, which spins, locks the box and — the half that was missing — gives the button back
+     afterwards. This left it disabled after a success until an unrelated repaint rebuilt it. */
+  send_({ action: 'changeHandle', name: USER.name,
+          personId: (USER && USER.personId) || '', handle: want },
+        { button: el, busy: 'Checking…', where: 'handle-said', lock: box })
     .then(d => {
       USER.handle = d.handle;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
@@ -2860,7 +2971,7 @@ on('handle-save', el => {
       toast('You are @' + d.handle);
       load();
     })
-    .catch(err => { el.disabled = false; if (said) said.textContent = why_(err); });
+    .catch(() => {});
 });
 
 on('pin-save', el => {
@@ -2878,17 +2989,31 @@ on('pin-save', el => {
      NOT A WAY IN. The current PIN is still required, so a collision cannot change anybody else's;
      it is a denial rather than a breach. It is on this call above all the others because the answer
      it gives is confidently wrong about the one thing the person is certain of. */
-  api({ action: 'changePin', name: USER.name, personId: (USER && USER.personId) || '',
-    currentPin: v('pin-now'), newPin: v('pin-new') })
+  /* `send_`, SO A SECOND TAP CANNOT POST A SECOND CHANGE. It was `api()` with nothing disabled:
+     measured, a double tap posted `changePin` twice, and the second came back refused because the
+     first had already changed the PIN it was checking. The three boxes are locked while it is on the
+     wire and emptied afterwards — a PIN left sitting in a box is a PIN on the screen. */
+  const lock = $('pin-now') && $('pin-now').closest('.pin-row');
+  send_({ action: 'changePin', name: USER.name, personId: (USER && USER.personId) || '',
+          currentPin: v('pin-now'), newPin: v('pin-new') },
+        { button: el, busy: 'Changing…', where: 'pin-said', lock: lock })
     .then(d => {
-      if (d && d.error) { if (said) said.textContent = d.error; return; }
-      /* ASKED OF THE DOM, LIKE `me-save` AND `msg-send`. These three boxes are a page of the
-         settings column now rather than the foot of a sheet, and an unconditional `closeSheet()`
-         would dismiss whatever else somebody happened to have open. */
+      /* ---------- A NEW PIN ENDS EVERY SESSION, SO THIS PHONE IS HANDED A NEW ONE ------------------
+         The server ends every session the person holds — the point of changing a PIN you think
+         somebody else has — and now mints a fresh one for the phone that asked. Kept before anything
+         else, because every request after this one would otherwise go out on a dead token and be
+         answered "Please sign in again." */
+      if (d && d.token) {
+        USER.token = d.token;
+        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      }
+      ['pin-now', 'pin-new', 'pin-again'].forEach(id => { const b = $(id); if (b) b.value = ''; });
+      if (said) said.textContent = 'Changed.';
       toast('PIN changed');
+      /* ASKED OF THE DOM, LIKE `me-save` AND `msg-send`. */
       if (el.closest('#sheet-body')) closeSheet();
     })
-    .catch(err => { if (said) said.textContent = why_(err); });
+    .catch(() => {});
 });
 
 /* `on('my-referral')` WAS HERE — the referral link sheet. Its card has gone and nothing else opened

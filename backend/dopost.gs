@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-29-f-many";
+const DOPOST_VERSION = "2026-09-29-g-saves";
 
 
 function doPost(e) {
@@ -42,7 +42,12 @@ function doPost(e) {
        is thirteen chances to forget — and a forgotten check looks exactly like a working feature.
        The table above says who may do what; this enforces it once. */
     const denied = accessDenied(action, body);
-    if (denied) return jsonOut({ error: denied });
+    /* A DEAD SESSION SAYS SO IN A WORD THE PHONE CAN READ. The sentence is for a person; `why` is for
+       `api()`, which would otherwise have to match English to know that the app it is running in is
+       no longer signed in — and every later Save would say "Please sign in again." under a screen
+       that still shows somebody signed in. */
+    if (denied) return jsonOut(denied === 'Please sign in again.'
+      ? { error: denied, why: 'signed-out' } : { error: denied });
 
     /* --- invitations --------------------------------------------------------------------------
        Sending: the split emails already on a booking become actual invitations.
@@ -438,6 +443,24 @@ function doPost(e) {
     }
 
     /* --- admin: read anyone's profile -------------------------------------------------------- */
+    /* ---------- YOUR OWN SETTINGS, READ FRESH ------------------------------------------------------
+       THE SETTINGS FORM DRAWS FROM `USER.profile`, AND THAT WAS WRITTEN ONCE — by the sign-in reply —
+       and then kept in the phone's storage for the thirty days a session lasts. So a change made on
+       another phone, by an admin, or typed into the sheet never reached the form, and the next Save
+       posted the phone's old copy back over it. Worse, every phone signed in before the sign-in reply
+       was repaired holds the broken shape, and would go on posting blanks.
+       A POST AND NOT A KEY ON THE PAYLOAD, and that is not a preference: the payload is cached and
+       served to whoever asks for the same key, and this carries a birthday, a phone number and the
+       library-card PINs. `profileOf_` of the row the TOKEN resolved to, and of nobody else — the
+       gate has already overwritten `body.personId` with it. */
+    if (action === 'myProfile') {
+      const me = findPerson('', S(body.personId));
+      if (!me) return jsonOut({ error: 'We could not find your account.' });
+      return jsonOut({ success: true, personId: S(me.person_id), profile: profileOf_(me),
+                       agreementSignedAt: S(me.agreement_signed_at),
+                       agreementVersion: S(me.agreement_version) });
+    }
+
     if (action === 'getProfile') {
       const r = findPerson(body.target);
       if (!r) return jsonOut({ error: 'Person not found.' });
@@ -487,68 +510,157 @@ function doPost(e) {
         return jsonOut({ error: 'More than one account answers to "' + target +
           '". Nothing was changed — give them different names, or reload so the site can use ids.' });
       }
-      const adminEditing = key(target) !== key(asker);
-      if (adminEditing && !isAdminPerson(asker)) {
-        return jsonOut({ error: 'Not authorised to edit that profile.' });
-      }
       const t = read(TAB.people);
       const r = findPerson(target);
       if (!r) return jsonOut({ error: 'Profile not found.' });
+      /* ---------- WHO IS EDITING WHOM IS A QUESTION ABOUT TWO ROWS, ANSWERED BY THEIR IDS ----------
+         IT WAS `key(target) !== key(asker)`, AND FOR EVERY ORDINARY SAVE THAT WAS AN ID AGAINST A
+         NAME. The phone sends `targetId` — a person_id — and `accessDenied` overwrites `body.name`
+         with the token's DISPLAY name, so it compared `p002` with `adatutor`: never equal. Every
+         tutor, parent and student was therefore "an admin editing somebody else", and refused with
+         "Not authorised to edit that profile." — measured, all three roles, nothing written. The
+         admin passed the gate and was treated as editing SOMEBODY ELSE on their own row, which is
+         why a renamed admin kept their old name on the phone (`name: ''` in the reply).
+         `accessDenied` has already resolved the token to a row and put its id on `body.personId`,
+         so the question is one comparison of two ids, and admin is asked of that same row rather
+         than of a display name looked up a second time. */
+      const me = findPerson('', S(body.personId));
+      const iAmAdmin = !!me && hasRole(me, 'admin');
+      const adminEditing = !me || S(r.person_id) !== S(me.person_id);
+      if (adminEditing && !iAmAdmin) {
+        return jsonOut({ error: 'Not authorised to edit that profile.' });
+      }
       const fields = body.fields || {};
       // An admin may additionally set the admin-only flags — that's what makes them admin-only
       // rather than merely hidden.
       const allowed = adminEditing ? PROFILE_EDITABLE.concat(PROFILE_READONLY) : PROFILE_EDITABLE;
+      const has = f => t.headers.indexOf(f) !== -1;
+      const sent = re => Object.keys(fields).some(f => re.test(f));
+      const HOUR = /^(m|tu|w|th|f|sa|su)\d\d$/;
 
-      // Availability arrives as 77 tickboxes and is stored as one cell.
-      if (Object.keys(fields).some(f => /^(m|tu|w|th|f|sa|su)\d\d$/.test(f))) {
-        setCell(t, r, 'availability', availGridIn(fields));
-      }
-      /* ---------- AND THE LIBRARY CARDS ARRIVE AS NINE BOXES AND ARE STORED AS ONE CELL --------
-         THE SAME ARRANGEMENT ONE COLUMN ALONG, and the same care: `libCardsIn` is fed the WHOLE
-         field map, so a form that sent two of the three writes the third as empty rather than
-         leaving whatever was there — which is what a partial write would do if these were columns.
-         The page saves as a page, exactly as the week does.
-         ALLOWED FOR AN ADMIN EDITING SOMEBODY ELSE TOO, because `library_card` is in
-         `PROFILE_EDITABLE` and the nine are only its spelling on a form. The gate above is what
-         decides who may edit; this is what decides how. */
-      const libSent = Object.keys(fields).some(f => LIBRARY_FIELD.test(f))
-                   && LIBRARY_FIELDS.some(f => allowed.indexOf(f) !== -1);
-      /* THE COLUMN IS CHECKED HERE BECAUSE THE LIST BELOW CANNOT SEE IT. These nine are not
-         columns, so they are out of `wanted` and out of the `noColumn` refusal under it — and
-         `setCell` writes to a header that is not there and loses the value with no error anywhere,
-         which is the exact fault that refusal exists to prevent. `library_card` has never been
-         created in the live sheet (`?setup=1` has not been run since it was added), so this is the
-         first thing anybody saving this page will meet, and it says what to do. */
-      if (libSent && t.headers.indexOf('library_card') === -1) {
-        return jsonOut({ error: 'The sheet has no column for: library_card. '
-          + 'Run ensureSchema() to add it — nothing was saved.' });
-      }
-      if (libSent) setCell(t, r, 'library_card', libCardsIn(fields));
-      /* ---------- AND THE QUALIFICATIONS, THE SAME WAY -------------------------------------------
-         THE LIBRARY'S THREE PLACES AGAIN, and the same reason for each: the form names are not the
-         cell, so they are out of `wanted`, the cell's header is checked here because nothing below
-         can see it, and the packer is fed the WHOLE field map so a shelf that sent two rows writes
-         the others empty rather than leaving them. Refused BEFORE either is written, because a save
-         that wrote the qualifications and was then refused about the subjects has half happened.
+      /* ================================================================================================
+         1. EVERY REFUSAL, BEFORE A SINGLE CELL IS TOUCHED.
 
-         THE OLD CELLS ARE MIRRORED FROM THE NEW LIST, which is what makes clearing one stick. The
-         readers (`qualsList_`, `teachAlsoList_`) fall back to `qual_1…3` and `teaches_2` whenever
-         the new cell is empty — so a tutor who deletes every qualification must also empty those,
-         or the next load would bring back the ones just removed. And it keeps anything still
-         reading `qual_1` telling the same story. Only where the column exists: a mirror written to
-         a missing header is a `missedWrite_` about a cell nobody needs. */
-      const qualsSent = Object.keys(fields).some(f => QUAL_FIELD.test(f))
-                     && QUAL_FIELDS.some(f => allowed.indexOf(f) !== -1);
-      const packedMissing = [qualsSent && 'quals']
-        .filter(c => c && t.headers.indexOf(c) === -1);
+         THE PACKED CELLS USED TO BE WRITTEN AS THEY WERE MET, and the refusals under them fired
+         afterwards. Measured: a Contact save carrying somebody else's e-mail answered "That e-mail
+         address is already on another account" — having already written the phone and the birthday.
+         A student's About-you save refused over a missing exam column had already written the
+         birthday. And because `setCell` sets `POST_WROTE`, `jsonOut` retired every visitor's stored
+         payload for a save that reported failure. A refusal is only a refusal if nothing has
+         happened yet, so every one of them is asked here and section 2 does not start until all of
+         them have said no.
+         ================================================================================================ */
+      /* THE FORM NAMES ARE NOT THE CELLS. Hour codes, the library boxes, the qualification shelf, the
+         phone's two boxes and the birthday's three are packed into one cell each (`availGridIn`,
+         `libCardsIn`, `qualsIn`, `phoneIn`, `dobIn`), so they are kept out of `wanted` below — and
+         because they are out of it, the `noColumn` refusal cannot see their cell, so each cell's
+         header is checked here. `setCell` writes to a missing header and loses the value with no
+         error anywhere, which is the exact fault that refusal exists to prevent.
+         EACH PACKER IS FED THE WHOLE FIELD MAP, so a form that sent two of three library cards writes
+         the third as empty rather than leaving whatever was there. A page saves as a page. */
+      const availSent = sent(HOUR);
+      const libSent   = sent(LIBRARY_FIELD) && LIBRARY_FIELDS.some(f => allowed.indexOf(f) !== -1);
+      const qualsSent = sent(QUAL_FIELD) && QUAL_FIELDS.some(f => allowed.indexOf(f) !== -1);
+      const phoneSent = sent(PHONE_FIELD) && allowed.indexOf('phone') !== -1;
+      const dobSent   = sent(DOB_FIELD) && allowed.indexOf('date_of_birth') !== -1;
+      const alsoSent  = fields.teaches_also !== undefined && allowed.indexOf('teaches_also') !== -1;
+      const packedMissing = [availSent && 'availability', libSent && 'library_card',
+                             qualsSent && 'quals', phoneSent && 'phone', dobSent && 'date_of_birth']
+        .filter(c => c && !has(c));
       if (packedMissing.length) {
         return jsonOut({ error: 'The sheet has no column for: ' + packedMissing.join(', ')
           + '. Run ensureSchema() to add it — nothing was saved.' });
       }
-      const mirror = (col, v) => { if (t.headers.indexOf(col) !== -1) setCell(t, r, col, v); };
+      /* A PARTIAL BIRTHDAY is `null` to `sheetDate`, so it would go off the calendar under a toast
+         saying Saved. `dobRefusal_` is in `core.gs` beside `sheetDate` so something can run it. */
+      if (dobSent) {
+        const dobNo = dobRefusal_(fields);
+        if (dobNo) return jsonOut({ error: dobNo });
+      }
+      /* AN EXAM DATE IS A COLUMN, so `wanted` finds it; what a column check cannot say is whether the
+         VALUE is a date. A date input cannot produce a bad one, which is not a reason to trust it:
+         `doPost` is reachable by anybody with the URL. See `isoRefusal_`. */
+      const badDate = DATE_COLS.map(f => fields[f] === undefined ? ''
+                        : isoRefusal_(fields[f], f.replace(/_/g, ' '))).filter(Boolean)[0];
+      if (badDate) return jsonOut({ error: badDate });
+      /* `teaches_also` IS a column — tidied here, before `wanted` reads it. */
+      if (alsoSent) fields.teaches_also = teachAlsoIn(fields.teaches_also);
+      const wanted = Object.keys(fields)
+        .filter(f => !HOUR.test(f) && !LIBRARY_FIELD.test(f) && !QUAL_FIELD.test(f)
+                  && !PHONE_FIELD.test(f) && !DOB_FIELD.test(f)
+                  && allowed.indexOf(f) !== -1);
+      /* A field with no column vanishes silently: that is how an extra-seat fraction was entered
+         four times and lost four times, with the site showing a stale default each time and nothing
+         connecting the two. Refuse the save and name the column — the fix is one ensureSchema run,
+         and nobody can act on an error they were never shown. */
+      const noColumn = wanted.filter(f => !has(f));
+      if (noColumn.length) {
+        return jsonOut({ error: 'The sheet has no column for: ' + noColumn.join(', ')
+          + '. Run ensureSchema() to add it — nothing was saved.' });
+      }
+      /* ---------- WHAT A TUTOR CHARGES MOVES ONCE A MONTH, ALL FOUR FIELDS TOGETHER ------------
+         `PRICING_FIELDS` is the four and `pricingRefusal_` in people.gs is the rule. ONLY WHEN A
+         VALUE ACTUALLY MOVES: that page posts all four on every save, touched or not, and a rule
+         firing on a field being PRESENT would refuse the boxes beside it for a month over a number
+         nobody edited. Compared against the row as it is — and nothing below has run yet, which is
+         the only moment that comparison is honest: `setCell` updates the row in memory, so asking
+         after the write compares the new values with themselves.
+         THE WANTED LIST IS WHAT IS ASKED ABOUT, not `fields`: a field the allow-list dropped will
+         not be written, so a cooldown started by one would be a month spent on nothing. */
+      const priceAsked = {};
+      wanted.forEach(f => { priceAsked[f] = fields[f]; });
+      const priceMoved = pricingMoved_(r, priceAsked).length > 0;
+      /* THE STAMP'S COLUMN IS CHECKED HERE NOW. This used to say a missing `pricing_changed_at` was
+         "the safe direction to fail in — the rate is still saved". It was not safe: `jsonOut` turns
+         any write that lands on a missing header into an error, so the rate WAS saved under a reply
+         saying "Nothing was saved", and with no stamp the once-a-month rule was never enforced
+         (measured: two rate changes on one day, both through). A refusal before anything moves is
+         the only honest answer. */
+      if (priceMoved && !has('pricing_changed_at')) {
+        return jsonOut({ error: 'The sheet has no column for: pricing_changed_at. '
+          + 'Run ensureSchema() to add it — nothing was saved.' });
+      }
+      const priceNo = pricingRefusal_(r, priceAsked, iAmAdmin);
+      if (priceNo) return jsonOut({ error: priceNo });
+      /* ---------- AN ADDRESS IS WHAT SIGNS IN TO THIS ACCOUNT ------------------------------------
+         SO EMPTYING THE BOX IS A SIGN-OUT NOBODY CAN UNDO — `verifyLogin` and `forgotPin` both look
+         the person up by it. And two rows on one address means `verifyLogin` refuses both, so a
+         duplicate is `emailRefusal_`'s to refuse. Only when the form sent one: About you and every
+         other page post no `email`, and a rule firing on absence would refuse them. An admin is NOT
+         exempt: an admin putting a duplicate address on somebody's row is still the collision. */
+      if (wanted.indexOf('email') !== -1 && fields.email !== undefined) {
+        if (!norm(fields.email) && norm(r.email)) {
+          return jsonOut({ error: 'Your email address is what you sign in with, so it cannot be left empty.' });
+        }
+        const mailNo = emailRefusal_(fields.email, r);
+        if (mailNo) return jsonOut({ error: mailNo });
+      }
+
+      /* ================================================================================================
+         2. EVERY WRITE, COLLECTED INTO ONE OBJECT, THEN ONE CALL.
+
+         ORDER STILL MATTERS WHERE TWO WRITERS NAME ONE CELL — the qualification mirror, then the
+         `teaches_also` mirror, then `wanted` — and an object assigned in that order keeps "the last
+         one wins", which is what the separate `setCell` calls did.
+         ================================================================================================ */
+      const put = {};
+      /* A mirror is written only where its column exists: a mirror to a missing header is a
+         `missedWrite_` about a cell nobody needs, and `jsonOut` would call the save a failure. */
+      const mirror = (col, v) => { if (has(col)) put[col] = v; };
+      if (availSent) put.availability = availGridIn(fields);
+      if (libSent) put.library_card = libCardsIn(fields);
       if (qualsSent) {
+        /* THE OLD CELLS ARE MIRRORED FROM THE NEW LIST, which is what makes clearing one stick. The
+           readers (`qualsList_`, `teachAlsoList_`) fall back to `qual_1…3` and `teaches_2` whenever
+           the new cell is empty — so a tutor who deletes every qualification must also empty those,
+           or the next load would bring back the ones just removed.
+           WHAT YOU TEACH IS DERIVED FROM THE TICKS, HERE AND NOT ON THE PHONE: `teaches_1`,
+           `teaches_1_level` and `teaches_also` are read by doGet's tutor payload, the booking form's
+           tutor filter and every card, and a rule living only in `me.js` would be skipped by anything
+           that posts without the page. The studying cells are emptied because their answer is a
+           `Present` qualification now, and left full they would bring it back after a delete. */
         const packed = qualsIn(fields);
-        setCell(t, r, 'quals', packed);
+        put.quals = packed;
         const list = qualsList_({ quals: packed });
         for (let n = 1; n <= 3; n++) {
           const q = list[n - 1] || {};
@@ -557,14 +669,6 @@ function doPost(e) {
           mirror('qual_' + n + '_board', S(q.board));
           mirror('qual_' + n + '_grade', S(q.grade));
         }
-        /* ---------- WHAT YOU TEACH IS DERIVED FROM THE TICKS, HERE AND NOT ON THE PHONE ---------
-           The `What you teach` page is gone; `teaches_1`, `teaches_1_level` and `teaches_also` are
-           not — `doGet`'s tutor payload, the booking form's tutor filter and every card read them.
-           So they are written from the qualification the tutor ticked `Specialise` on and the ones
-           ticked `I teach this`, on the server, because a rule that lived only in `me.js` would be
-           skipped by anything that posts without the page. The studying cells are emptied for the
-           reason `qualsList_` gives: their answer is a `Present` qualification now, and left full
-           they would bring it back the moment the tutor deleted it. */
         const spec = list.find(q => q.spec) || {};
         const also = list.filter(q => q.teach && !q.spec && S(q.subject))
                          .map(q => teachAlsoPhrase_({ subject: q.subject, level: q.level })).join(', ');
@@ -578,181 +682,42 @@ function doPost(e) {
         mirror('studying', '');
         mirror('studying_at', '');
       }
-      /* `teaches_also` IS A COLUMN, so `wanted` writes it and the `noColumn` refusal covers it; what
-         it needs here is tidying before that write, and the `teaches_2` mirror after it. */
-      const alsoSent = fields.teaches_also !== undefined && allowed.indexOf('teaches_also') !== -1;
-      if (alsoSent) {
-        fields.teaches_also = teachAlsoIn(fields.teaches_also);
-        if (t.headers.indexOf('teaches_also') !== -1) {
-          const first = teachAlsoList_({ teaches_also: fields.teaches_also })[0] || {};
-          mirror('teaches_2', S(first.subject));
-          mirror('teaches_2_level', S(first.level));
-        }
+      if (alsoSent && has('teaches_also')) {
+        const first = teachAlsoList_({ teaches_also: fields.teaches_also })[0] || {};
+        mirror('teaches_2', S(first.subject));
+        mirror('teaches_2_level', S(first.level));
+      }
+      if (phoneSent) put.phone = phoneIn(fields);
+      if (dobSent) put.date_of_birth = dobIn(fields);
+      wanted.forEach(f => { put[f] = fields[f]; });
+      /* THE STAMP GOES ON WITH THE WRITE, NOT BEFORE IT: written earlier, a refusal would leave the
+         clock started on a change that never happened. It is the same `pricingMoved_` the guard read,
+         over the same object, so the two cannot disagree about whether anything moved. An admin's edit
+         stamps it too — the cell records when the quote last moved, whoever moved it. */
+      if (priceMoved) put.pricing_changed_at = new Date();
+      const renamed = fields.first_name !== undefined || fields.last_name !== undefined;
+      let full = '';
+      if (renamed) {
+        full = (S(fields.first_name !== undefined ? fields.first_name : r.first_name) + ' ' +
+                S(fields.last_name  !== undefined ? fields.last_name  : r.last_name)).trim();
+        put.full_name = full;
       }
 
-      /* ---------- AND THE DATE OF BIRTH ARRIVES AS THREE BOXES AND IS STORED AS ONE CELL --------
-         THE SAME THREE PLACES `library_card` NEEDED, for the same three reasons, and skipping any
-         one of them makes the control a silent no-op. `dob_d`/`dob_m`/`dob_y` are not columns, so
-         they would be dropped by `wanted` below and `date_of_birth` would never be written — the
-         form would say Saved and nothing would change, which is the favourites-star shape.
-
-         THE HEADER IS CHECKED HERE BECAUSE THE LIST BELOW CANNOT SEE IT. Out of `wanted` means out
-         of the `noColumn` refusal, and `setCell` writes to a missing header and loses the value
-         with no error anywhere. `date_of_birth` IS in the live sheet, unlike `library_card`, so
-         this will not fire today — which is exactly why it has to be written rather than assumed.
-
-         REFUSED BEFORE THE WRITE, like the pricing clock and the e-mail clash above it: a partial
-         is `null` to `sheetDate`, so the birthday would go off the calendar with a toast saying
-         Saved. `dobRefusal_` is in `core.gs` beside `sheetDate` so something can run it. */
-      /* ---------- THE PHONE IS TWO BOXES AND ONE CELL ------------------------------------------
-         ASKED AS *"phone: have field for country code, then number."* The birthday's three places
-         again: `phone_cc`/`phone_no` are not columns, so `wanted` drops them; `phone` is checked for
-         a header here because nothing below can see it; and `phoneIn` is the one packer. A post
-         that names the column itself (an older phone) still goes through `wanted` as before. */
-      const phoneSent = Object.keys(fields).some(f => PHONE_FIELD.test(f))
-                     && allowed.indexOf('phone') !== -1;
-      if (phoneSent) {
-        if (t.headers.indexOf('phone') === -1) {
-          return jsonOut({ error: 'The sheet has no column for: phone. '
-            + 'Run ensureSchema() to add it — nothing was saved.' });
-        }
-        setCell(t, r, 'phone', phoneIn(fields));
-      }
-      const dobSent = Object.keys(fields).some(f => DOB_FIELD.test(f))
-                   && allowed.indexOf('date_of_birth') !== -1;
-      if (dobSent) {
-        if (t.headers.indexOf('date_of_birth') === -1) {
-          return jsonOut({ error: 'The sheet has no column for: date_of_birth. '
-            + 'Run ensureSchema() to add it — nothing was saved.' });
-        }
-        const dobNo = dobRefusal_(fields);
-        if (dobNo) return jsonOut({ error: dobNo });
-        setCell(t, r, 'date_of_birth', dobIn(fields));
-      }
-      /* ---------- AND AN EXAM DATE IS REFUSED BEFORE IT IS WRITTEN --------------------------
-         THESE TWO **ARE** COLUMNS, unlike the nine library boxes and the three date boxes above, so
-         they need none of that plumbing: `wanted` finds them, the `noColumn` refusal covers them,
-         and `setCell` writes them. What they need is the one thing a column check cannot do, which
-         is to say whether the VALUE is a date.
-
-         A DATE INPUT CANNOT PRODUCE A BAD ONE, WHICH IS NOT A REASON TO TRUST IT. Every refusal
-         here is about a request that did not come from the form, and `doPost` is reachable by
-         anybody with the URL — the sentence this repository already writes about `?name=`. Without
-         it, `after half term` lands in the cell, `isoDate_` cannot read it back, and the picker is
-         empty for ever with nothing anywhere saying why.
-
-         BEFORE THE LOOP BELOW, like the pricing clock and the birthday above it: a refusal after a
-         partial write is a save that half happened under a toast saying it did not. */
-      const badDate = DATE_COLS.map(f => fields[f] === undefined ? ''
-                        : isoRefusal_(fields[f], f.replace(/_/g, ' '))).filter(Boolean)[0];
-      if (badDate) return jsonOut({ error: badDate });
-      /* A field with no column vanishes silently: setCell writes to a header that isn't there and
-         the value is gone with no error anywhere. That's how an extra-seat fraction was entered
-         four times and lost four times, with the site showing a stale default each time and
-         nothing connecting the two.
-         Refuse the save and name the column. The fix is one ensureSchema run, and nobody can act
-         on an error they were never shown. */
-      /* NEITHER THE HOUR CODES NOR THE LIBRARY BOXES ARE COLUMNS, so both are out of this list and
-         out of the `noColumn` refusal under it. Left in, `lib1_name` would be refused by the very
-         error that exists to catch a field with no column — correctly, and about a field that is
-         never meant to have one. */
-      const wanted = Object.keys(fields)
-        .filter(f => !/^(m|tu|w|th|f|sa|su)\d\d$/.test(f) && !LIBRARY_FIELD.test(f)
-                  && !QUAL_FIELD.test(f)
-                  && allowed.indexOf(f) !== -1);
-      const noColumn = wanted.filter(f => t.headers.indexOf(f) === -1);
-      if (noColumn.length) {
-        return jsonOut({ error: 'The sheet has no column for: ' + noColumn.join(', ')
-          + '. Run ensureSchema() to add it — nothing was saved.' });
-      }
-
-      /* ---------- WHAT A TUTOR CHARGES MOVES ONCE A MONTH, ALL FOUR FIELDS TOGETHER ------------
-         ASKED FOR AS *"only let tutors change thier rate, min number of kids and max number of kids
-         willing to work with and fraction extra rate all together. and they can only change once a
-         month."* `PRICING_FIELDS` is the four and `pricingRefusal_` is the rule.
-
-         ONLY WHEN SOMETHING ACTUALLY CHANGES, and that is the half that would have broken the form.
-         That page posts all four every time it is saved, whether or not any was touched — so a rule
-         that fired on a field being PRESENT would refuse a save of the boxes beside it, for a month,
-         over a number nobody had edited. That is the fault this repository already paid for on this
-         very handler, where a blank box was written back over every profile field on the first press
-         of Save. Compared against the cells.
-
-         REFUSED RATHER THAN DROPPED, and the whole page with it. Writing the other fields and silently
-         keeping the old rate is a save that reports success about something it did not do — this
-         file's oldest shape. Nothing is written, and the sentence says when they may.
-
-         THE SENTENCE IS NOT REPEATED ON THE PHONE. `me-save` prints whatever the server said, which
-         is the arrangement `MESSAGING` and `changeHandle` both record: a rule written twice is two
-         rules to keep in step, and the copy on the phone is the one that goes stale.
-
-         THE RULE ITSELF IS `pricingRefusal_` IN `people.gs`, beside `handleRefusal`, so something can
-         RUN it — see the note over it. What is here is when to ask and what to do with the answer.
-
-         READ BEFORE THE WRITE, BECAUSE `setCell` UPDATES THE ROW IN MEMORY. `row[field] = value` is
-         the last thing it does, under a comment saying so — "read-after-write within this request now
-         sees the truth" — so asking whether anything moved AFTER the write compares the new values
-         against themselves, which is always equal, and the stamp below would never be set: the clock
-         would never start and the cooldown would never fire once.
-
-         AND THE WANTED LIST IS WHAT IS ASKED ABOUT, not `fields`. A field the allow-list dropped is a
-         field that will not be written, so a cooldown started by one would be a month spent on a
-         change that never happened. */
-      const priceAsked = {};
-      wanted.forEach(f => { priceAsked[f] = fields[f]; });
-      const priceMoved = pricingMoved_(r, priceAsked).length > 0;
-      const priceNo = pricingRefusal_(r, priceAsked, isAdminPerson(asker));
-      if (priceNo) return jsonOut({ error: priceNo });
-
-      /* ---------- AN ADDRESS THAT ALREADY ANSWERS TO SOMEBODY ELSE ------------------------------
-         SINCE `findPerson` RESOLVES AN E-MAIL, THIS COLUMN IS A CREDENTIAL. Two rows holding one
-         address means the first wins and the second person is told their own PIN is wrong — the
-         denial recorded under `changePin`, one column along. The rule is `emailRefusal_` in
-         `people.gs` rather than four lines here, beside `handleRefusal` and `pricingRefusal_` and
-         for their reason: something has to be able to RUN it.
-
-         READ BEFORE THE WRITE, like the pricing clock above and for the same reason — `setCell`
-         ends with `row[field] = value`, so asking afterwards compares the new address against
-         itself and finds no clash, every time.
-
-         ONLY WHEN THE FORM SENT ONE. `About you` and every other page post no `email` at all, and a
-         rule firing on absence would refuse them. An admin is NOT exempt: an admin putting a
-         duplicate address on somebody's row is still the collision. */
-      if (wanted.indexOf('email') !== -1 && fields.email !== undefined) {
-        /* AN ADDRESS IS WHAT SIGNS IN TO THIS ACCOUNT NOW, so emptying the box on the Contact page
-           is a sign-out nobody can undo: `verifyLogin` and `forgotPin` both look the person up by
-           it, and neither can find a row that has none. Changing it is still allowed — the new
-           address is what they sign in with next time. */
-        if (!norm(fields.email) && norm(r.email)) {
-          return jsonOut({ error: 'Your email address is what you sign in with, so it cannot be left empty.' });
-        }
-        const mailNo = emailRefusal_(fields.email, r);
-        if (mailNo) return jsonOut({ error: mailNo });
-      }
-
-      wanted.forEach(f => setCell(t, r, f, fields[f]));
-      /* ---------- AND THE STAMP GOES ON AFTER THE WRITE, NOT INSTEAD OF IT -----------------------
-         Written before `setCell`, a refusal further down would leave the clock started on a change
-         that never happened. It is the same `pricingMoved_` the guard read, over the same object, so
-         the two cannot disagree about whether anything moved. An admin's edit stamps it too: the cell
-         records when the quote last moved, which is true whoever moved it, and the exemption above is
-         about who may move it rather than about what is recorded.
-
-         AND NO COLUMN CHECK, DELIBERATELY. This is not a field any form sends, so it is not in
-         `wanted` and the `noColumn` refusal above cannot see it — and unlike `library_card`, which
-         needed that check written out by hand, a missing cell here loses a STAMP rather than
-         somebody's data. `setCell` reports it through `missedWrite_` and returns false; the rate is
-         still saved, and the next change is still allowed, which is the safe direction to fail in.
-         `pricing_changed_at` is in `SCHEMA.people`, so one `ensureSchema` run creates it. */
-      if (priceMoved) setCell(t, r, 'pricing_changed_at', new Date());
-      if (fields.first_name !== undefined || fields.last_name !== undefined) {
-        const full = (S(fields.first_name !== undefined ? fields.first_name : r.first_name) + ' ' +
-                      S(fields.last_name  !== undefined ? fields.last_name  : r.last_name)).trim();
-        setCell(t, r, 'full_name', full);
-        // Only the person themselves needs their session renamed; an admin must not inherit it.
-        return jsonOut({ success: true, name: adminEditing ? '' : full });
-      }
-      return jsonOut({ success: true });
+      /* 3. ONE WRITE. `setCells` is `setCell` for a whole row: a cell already holding what is asked
+         is left alone, so a Save that changes nothing writes nothing and does NOT retire every
+         visitor's stored payload — which is what made the `load()` after an untouched Save a full
+         cold rebuild. See the note over it in core.gs. */
+      const wrote = setCells(t, r, put);
+      /* ---------- AND THE FORM'S OWN VALUES COME BACK WITH THE ANSWER ------------------------------
+         `profileOf_` of the row as it now stands — so the phone's copy is what the SERVER made of the
+         boxes (the phone repacked, the specialism derived from the ticks, a birthday normalised)
+         rather than what was typed, and the next Save starts from the sheet. Only for your own row:
+         an admin editing somebody else is shown that person's form elsewhere. */
+      /* `changed` IS HOW MANY CELLS MOVED, so the phone can skip fetching a payload nothing altered. */
+      const out = { success: true, changed: wrote.length, profile: adminEditing ? null : profileOf_(r) };
+      // Only the person themselves needs their session renamed; an admin must not inherit it.
+      if (renamed) out.name = adminEditing ? '' : full;
+      return jsonOut(out);
     }
 
     if (action === 'updateVenue') {
@@ -801,7 +766,10 @@ function doPost(e) {
           return jsonOut({ error: 'That share must be a number from 0 to 2 — 0.1 is 10%.' });
       }
       const t = read(TAB.config);
-      let r = t.rows.find(x => norm(x.key) === norm(want));
+      /* EXACT CASE FIRST. `config()` keys its variables case-sensitively and the pricing reads `B`
+         (your cut) and `b` (the bulk discount) as two different numbers — so a case-folded match let
+         row order decide which of the two a Save on the cut card changed. */
+      let r = t.rows.find(x => S(x.key) === want) || t.rows.find(x => norm(x.key) === norm(want));
       if (!r && CONFIG_ADDABLE[norm(want)]) {
         r = addRow(t, { key: norm(want), value: Number(body.value), what_it_does: CONFIG_ADDABLE[norm(want)] });
         if (!r) return jsonOut({ error: 'The config tab could not be opened.' });
@@ -1920,8 +1888,10 @@ function doPost(e) {
     if (action === 'claimChild') {
       const me = findPerson(S(body.name), S(body.personId));
       if (!me) return jsonOut({ error: 'Not signed in.' });
-      const myRole = norm(mainRole(me));
-      if (myRole !== 'client' && myRole !== 'admin') {
+      /* HELD, NOT MAIN. The card is drawn for anybody who HOLDS client or admin (`mayAddChild_` reads
+         `heldRoles`), and this asked for the MAIN role — so a person who is both a tutor and a parent
+         was shown the card and refused behind it. `hasRole` reads every role in the cell. */
+      if (!hasRole(me, 'client') && !hasRole(me, 'admin')) {
         return jsonOut({ error: 'Only a parent can add a child.' });
       }
 
@@ -1956,7 +1926,8 @@ function doPost(e) {
                               : 'They have a request from you waiting.' });
       }
 
-      addRow(t, {
+      /* `addRow` ANSWERS null WHEN THE TAB CANNOT BE OPENED, and this said success over nothing. */
+      const linked = addRow(t, {
         link_id: 'F' + Date.now(),
         parent_id: S(me.person_id),
         child_id: S(child.person_id),
@@ -1964,6 +1935,7 @@ function doPost(e) {
         state: 'asked',
         asked_on: new Date(),
       });
+      if (!linked) return jsonOut({ error: 'The family tab could not be opened — nothing was saved.' });
       clearCache();
 
       notify(personDisplayName(child), 'Someone has added you to their account',
@@ -2039,17 +2011,25 @@ function doPost(e) {
       if (!me) return jsonOut({ error: 'We could not find your account.' });
       if (!hasRole(me, 'tutor') && !hasRole(me, 'admin'))
         return jsonOut({ error: 'The tutor agreement is for tutors.' });
+      /* ALREADY SIGNED IS AN ANSWER, NOT A FAILURE. It was an error, so a phone that had not seen the
+         tick yet (signed in before it was made on another one) unticked the box, re-enabled it and
+         toasted a refusal about an agreement that WAS signed. The reply carries the date either way,
+         and the phone ticks and locks the box from it. */
       if (S(me.agreement_signed_at))
-        return jsonOut({ error: 'You agreed on ' + S(me.agreement_signed_at) + ', and that cannot be undone.',
+        return jsonOut({ success: true, already: true,
                          signedAt: S(me.agreement_signed_at), version: S(me.agreement_version) });
       const version = S(body.version).slice(0, 40);
       if (!version) return jsonOut({ error: 'Which version of the agreement was this?' });
       const t = read(TAB.people);
+      /* BOTH COLUMNS BEFORE EITHER IS WRITTEN. It checked the first only, so with `agreement_version`
+         missing the date landed and `jsonOut` then called the whole thing a failure — a signature on
+         the sheet under a phone that unticked it. */
+      const lacking = ['agreement_signed_at', 'agreement_version'].filter(c => t.headers.indexOf(c) === -1);
+      if (lacking.length)
+        return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
       const row = t.rows.find(x => x._row === me._row) || me;
       const at = fmtDateTime(new Date());
-      if (!setCell(t, row, 'agreement_signed_at', at))
-        return jsonOut({ error: 'The sheet has no column for: agreement_signed_at. Run ?setup=1.' });
-      setCell(t, row, 'agreement_version', version);
+      setCells(t, row, { agreement_signed_at: at, agreement_version: version });
       return jsonOut({ success: true, signedAt: at, version: version });
     }
 
@@ -2080,16 +2060,20 @@ function doPost(e) {
          SO: CASE-PRESERVING, CASE-INSENSITIVE. Store the letters as typed; fold for every
          comparison. That is what "case sensitive" means everywhere it is safe to mean anything. */
       const want = S(body.handle).trim();
-      const why = handleTrouble_(want, me, isAdminPerson(S(body.name)));
+      const why = handleTrouble_(want, me, hasRole(me, 'admin'));
       if (why) return jsonOut({ error: why });
 
       const t = read(TAB.people);
+      /* ALL FOUR COLUMNS BEFORE ANY IS WRITTEN. With `handle_was` or `handle_changed_at` missing, the
+         new name landed and `jsonOut` then reported "Nothing was saved" — and with no stamp the
+         once-a-month rule never started, so a second change went straight through. */
+      const lacking = ['handle', 'username', 'handle_was', 'handle_changed_at']
+        .filter(c => t.headers.indexOf(c) === -1);
+      if (lacking.length)
+        return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
       const r = t.rows.find(x => key(x.person_id) === key(me.person_id)) || me;
       const was = S(r.handle) || S(r.username);
-      setCell(t, r, 'handle_was', was);
-      setCell(t, r, 'handle', want);
-      setCell(t, r, 'username', want);
-      setCell(t, r, 'handle_changed_at', new Date());
+      setCells(t, r, { handle_was: was, handle: want, username: want, handle_changed_at: new Date() });
       clearCache();
       return jsonOut({ success: true, handle: want, was: was });
     }
@@ -2142,7 +2126,15 @@ function doPost(e) {
         + (resetting ? ' by an administrator.' : '.')
         + '\n\nIf that was not you, reply to this message.');
 
-      return jsonOut({ success: true });
+      /* ---------- AND THE PHONE THAT MADE THE CHANGE IS GIVEN A NEW SESSION -------------------------
+         `authEndSession_` ENDS EVERY SESSION THE PERSON HOLDS, THE CALLER'S INCLUDED — so the note
+         above ("every OTHER session") was a promise the code did not keep. Measured: the reply was
+         `{success}`, the phone kept its dead token, and every Save after it on every card answered
+         "Please sign in again." under a screen that still said you were signed in. A fresh session
+         for the caller, and only the caller: minting one for SOMEBODY ELSE and handing it to whoever
+         asked would be handing over their account. */
+      const fresh = S(row.person_id) === S(body.personId) ? authNewSession_(t, row) : '';
+      return jsonOut({ success: true, token: fresh });
     }
 
     /* ---------- `redeem` WAS HERE — A PRINTED PAPER FOR A THOUSAND TICKS -------------------------
@@ -3663,12 +3655,14 @@ function loginReplyFor_(r, token) {
       const pr = findPerson(S(x.parent_id));
       return { rowIndex: x._row, from: pr ? personDisplayName(pr) : 'Someone' };
     });
-  // Their own values, so the edit form opens filled in rather than blank.
-  const groups = appRole === 'parent' ? CLIENT_GROUPS : appRole === 'kid' ? STUDENT_GROUPS : PROFILE_GROUPS;
-  out.profile = {};
-  flat(groups).concat(PROFILE_READONLY).forEach(f => {
-    out.profile[f] = f.match(/^(m|tu|w|th|f|sa|su)\d\d$/) ? (availSet(r.availability)[f] ? 'TRUE' : '') : S(r[f]);
-  });
-  out.profile.location = S(r.city);
+  /* ---------- `out.profile = {}` WAS HERE, AND IT THREW AWAY `profileOf_` TEN LINES AFTER USING IT ---
+     The object literal above sets `profile: profileOf_(r)` — every packed cell expanded into the
+     boxes the form draws. This block, older than that line, then REPLACED it with `S(r[f])` for each
+     name in the role's groups: so the qualification shelf past row three, every tick and received
+     year, all nine library boxes, the phone's two boxes, the birthday's three and both exam pickers
+     came back EMPTY or as a raw `Date` string on every sign-in. The form drew blanks over a sheet
+     that had values, and the next Save on those pages wrote the blanks back — reported as "some
+     things arent updating when i click save". `location` went with it: nothing on the phone reads
+     `profile.location`. */
   return jsonOut(out);
 }

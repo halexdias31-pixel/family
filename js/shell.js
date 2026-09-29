@@ -525,6 +525,17 @@ function paintNeighbours() {
 let STALE = {};
 
 function paint(id) {
+  /* ---------- A SETTINGS CARD WITH SOMETHING TYPED INTO IT IS NOT REDRAWN UNDER THE TYPING ---------
+     REPORTED AS "some things arent updating when i click save", and part of it was this: a Save on
+     one card called `load()`, and when the payload landed — and again when the inbox landed — every
+     column was repainted from `USER.profile`, so anything typed on ANOTHER settings card and not yet
+     saved was thrown back to the old value, seconds after the toast said Saved. Measured in Chromium:
+     typed a postcode on Where, pressed Save on About you, and the postcode box was a new element
+     holding the old postcode. So a column holding an unsaved or in-flight card is marked stale
+     instead, and drawn the next time it is arrived at with nothing typed in it. `settingsKeep_` is in
+     me.js, beside the forms it asks about; signed out it always answers no, so signing out clears
+     the column as it always did. */
+  if (typeof settingsKeep_ === 'function' && settingsKeep_(id)) { STALE[id] = 1; return; }
   /* Drawn is fresh, by definition, whoever asked for it. */
   delete STALE[id];
   /* A PAGED SCREEN HAS NO PADDING OF ITS OWN — each page supplies it, because a page is positioned
@@ -2224,6 +2235,19 @@ function api(body) {
           + d.unwritten.map(x => x.tab + '.' + x.field).join(', ')
           + ' — those columns are not in the sheet.');
       }
+      /* ---------- A SESSION THE SERVER HAS ENDED IS ENDED HERE TOO ---------------------------------
+         `why: 'signed-out'` IS THE GATE SAYING THE TOKEN IS NO GOOD — expired after thirty days,
+         ended by a PIN change on another phone, or from before sessions moved off the sheet. Every
+         request after it would be refused with "Please sign in again." under a screen that still
+         shows somebody signed in, which reads as the app being broken rather than as a sign-in to
+         do. So the phone forgets the account the way Sign out does, once, and says why. A code rather
+         than the sentence, so a reworded refusal cannot turn this off. */
+      if (d && d.why === 'signed-out' && typeof USER === 'object' && USER && USER.token === b.token) {
+        USER = null;
+        try { localStorage.removeItem('familyUser'); } catch (e) {}
+        toast('Signed out — please sign in again');
+        try { repaint(); } catch (e) {}
+      }
       return d || {};
     });
 }
@@ -2900,6 +2924,10 @@ async function load() {
       if (USER && typeof loadMessages === 'function') {
         loadMessages().then(() => { try { repaint(); } catch (e) {} });
       }
+      /* AND YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM — see `profileRefresh_` in me.js. Once per
+         app open, beside the inbox and for the same reason: a private thing, fetched only for somebody
+         signed in, and never part of a payload that is cached and shared. */
+      if (USER && typeof profileRefresh_ === 'function') profileRefresh_();
       /* NO BANNER FOR A VERSION MISMATCH ANY MORE.
          It was built when a cached stylesheet was a real and invisible problem — twice a rule had
          been changed and the browser was serving an old copy, and there was no way to tell that

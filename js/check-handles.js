@@ -357,8 +357,13 @@ function run() {
   const takes = /const want = S\(body\.handle\)\.trim\(\);/.test(block);
   const folds = /body\.handle[^;]*toLowerCase/.test(block)
              || /const want[^;]*toLowerCase/.test(block);
-  const stores = /setCell\(t, r, 'handle', want\)/.test(block)
-              && /setCell\(t, r, 'username', want\)/.test(block);
+  /* EITHER SPELLING OF THE WRITE: two `setCell`s, or one `setCells` whose object names both. The
+     handler moved to the second so all four cells go in one call, and the rule is about the VALUE —
+     both cells from `want` — rather than about how many calls it takes. */
+  const cells = (block.match(/setCells\(t, r, \{([^}]*)\}\)/) || [])[1] || '';
+  const stores = (/setCell\(t, r, 'handle', want\)/.test(block)
+                  && /setCell\(t, r, 'username', want\)/.test(block))
+              || (/\bhandle: want\b/.test(cells) && /\busername: want\b/.test(cells));
   if (folds) bad.push({ handle: 'changeHandle', want: 'as typed',
     why: 'the case somebody chose is thrown away on the way into the cell',
     said: 'dopost.gs lower-cases the handle before storing it' });
