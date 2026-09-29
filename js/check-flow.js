@@ -1729,6 +1729,23 @@ check('a session at the client\'s own home cannot be booked for one', async () =
   if (w.__t.seatLimits(null, null, '').min !== 1) {
     bad.push('an unanswered venue imposes a floor of ' + w.__t.seatLimits(null, null, '').min);
   }
+  /* A FREE ROOM IS NOT A HOUSE. The first version asked `isHome`, which is "does anybody pay for
+     this room" — true of `Online` and of every free library — so a one-to-one video call needed four
+     chairs. Two free venues are put on the payload for the question, and a house by name beside
+     them so the rule is asked in both directions on one list. */
+  const V = w.__t.DATA().venues = (w.__t.DATA().venues || []).concat([
+    { title: 'Online', bestRate: 0 }, { title: 'Sutton Library', bestRate: 0 },
+    { title: 'Client House', bestRate: 0 }]);
+  ['Online', 'Sutton Library'].forEach(n => {
+    if (w.__t.seatLimits(null, null, n).min !== 1) {
+      bad.push('a session at "' + n + '", which costs nothing and is not anybody\'s house, has a seat floor of '
+               + w.__t.seatLimits(null, null, n).min);
+    }
+  });
+  if (w.__t.seatLimits(null, null, 'Client House').min < 4) {
+    bad.push('a venue called "Client House" is not given the home floor');
+  }
+  V.splice(-3, 3);
 
   B.loc = 'At home';
   const home = st.options();
