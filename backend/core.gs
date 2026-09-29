@@ -956,27 +956,71 @@ function libCardsIn(fields) {
    the first press. So the READER takes the row, and the legacy columns are the answer whenever the
    cell has nothing in it.
 
-   AN ITEM IS `subject:level:board:grade`, PARSED FROM THE RIGHT, so a subject holding a colon
+   AN ITEM IS `subject:level:board:grade~received~flags` (the tail since 2026-09-29; an item
+   without it is the older form and still reads), THE BASE PARSED FROM THE RIGHT, so a subject holding a colon
    survives exactly as a library's name does; the other three come off a closed list and cannot. */
 function qualsList_(r) {
   r = r || {};
   const cell = S(r.quals);
+  const low = v => S(v).toLowerCase();
+  let list, flagged = false;
   if (cell) {
-    return cell.split('|').map(item => {
-      const bits = S(item).split(':');
+    list = cell.split('|').map(item => {
+      /* `base~received~flags`. A `~` anywhere in the cell is what says the ticks were ever
+         written; an item from before them has none, and `qualsIn` strips `~` from what is typed. */
+      const parts = S(item).split('~');
+      if (parts.length > 1) flagged = true;
+      const bits = S(parts[0]).split(':');
       const grade = bits.length > 1 ? S(bits.pop()) : '';
       const board = bits.length > 1 ? S(bits.pop()) : '';
       const level = bits.length > 1 ? S(bits.pop()) : '';
-      return { subject: S(bits.join(':')), level, board, grade };
-    }).filter(q => q.subject || q.level || q.board || q.grade).slice(0, QUAL_MAX);
+      const flags = low(parts[2]);
+      const spec = flags.indexOf('s') !== -1;
+      return { subject: S(bits.join(':')), level, board, grade, received: S(parts[1]),
+               teach: spec || flags.indexOf('t') !== -1, spec };
+    }).filter(q => q.subject || q.level || q.board || q.grade || q.received);
+  } else {
+    list = [];
+    for (let n = 1; n <= 3; n++) {
+      const q = { subject: S(r['qual_' + n]), level: S(r['qual_' + n + '_level']),
+                  board: S(r['qual_' + n + '_board']), grade: S(r['qual_' + n + '_grade']),
+                  received: '', teach: false, spec: false };
+      if (q.subject || q.level || q.board || q.grade) list.push(q);
+    }
   }
-  const out = [];
-  for (let n = 1; n <= 3; n++) {
-    const q = { subject: S(r['qual_' + n]), level: S(r['qual_' + n + '_level']),
-                board: S(r['qual_' + n + '_board']), grade: S(r['qual_' + n + '_grade']) };
-    if (q.subject || q.level || q.board || q.grade) out.push(q);
+  /* ---------- A ROW SAVED BEFORE THE TICKS EXISTED KEEPS WHAT IT TAUGHT ----------------------
+     With no ticks written anywhere, the first Save of the new page would derive `teaches_1` and
+     `teaches_also` from nothing and blank both — a tutor's whole teaching list gone on a press of
+     Save with nothing touched. So the ticks are READ OFF those two columns until they have been
+     written once: the matching qualification is ticked, and a subject taught with no matching
+     qualification becomes one (subject and level, no grade), because the only other place for it
+     to go is nowhere. */
+  if (!flagged) {
+    const mark = (t, spec) => {
+      if (!S(t.subject)) return;
+      const hit = list.find(q => low(q.subject) === low(t.subject)
+        && (!S(t.level) || !S(q.level) || low(q.level) === low(t.level)));
+      if (hit) { hit.teach = true; if (spec) hit.spec = true; return; }
+      /* `taught` marks it as inferred: `doGet` leaves it off the public card, where it would
+         read as a qualification nobody claimed — a subject taught is not a certificate held. */
+      list.push({ subject: S(t.subject), level: S(t.level), board: '', grade: '', received: '',
+                  teach: true, spec: !!spec, taught: true });
+    };
+    mark({ subject: r.teaches_1, level: r.teaches_1_level }, true);
+    teachAlsoList_(r).forEach(t => mark(t, false));
   }
-  return out;
+  /* ---------- AND WHAT THEY WERE STUDYING BECOMES A QUALIFICATION RECEIVED `Present` ------------
+     The `studying` page is gone; the facts on it are not. Shown here until a Save writes them into
+     the cell (which also empties the two old cells — see `updateProfile`), and never twice: a row
+     that already has a `Present` qualification is taken to have moved it across. The place goes in
+     the subject, because the board is a closed list and a university is not on it. */
+  if (S(r.studying) && !list.some(q => /^present$/i.test(q.received))) {
+    list.push({ subject: S(r.studying) + (S(r.studying_at) ? ' — ' + S(r.studying_at) : ''),
+                level: '', board: '', grade: '', received: 'Present', teach: false, spec: false });
+  }
+  let one = false;
+  list.forEach(q => { if (q.spec) { if (one) q.spec = false; one = true; } if (q.spec) q.teach = true; });
+  return list.slice(0, QUAL_MAX);
 }
 function qualsOut(r) {
   const list = qualsList_(r), out = {};
@@ -986,6 +1030,9 @@ function qualsOut(r) {
     out['qual_' + i + '_level'] = S(q.level);
     out['qual_' + i + '_board'] = S(q.board);
     out['qual_' + i + '_grade'] = S(q.grade);
+    out['qual_' + i + '_received'] = S(q.received);
+    out['qual_' + i + '_teach'] = q.teach ? 'TRUE' : '';
+    out['qual_' + i + '_spec'] = q.spec ? 'TRUE' : '';
   }
   return out;
 }
@@ -997,14 +1044,26 @@ function qualsOut(r) {
    `Add another` below it. The pipe and the colon are stripped from what is typed for the reason
    `libCardsIn` gives, except the colon in the subject, which the parse above makes safe. */
 function qualsIn(fields) {
-  const cut = v => S(v).replace(/\|/g, ' ').trim();
+  const cut = v => S(v).replace(/[|~]/g, ' ').trim();
+  const yes = v => /^(true|yes|1|✓)$/i.test(S(v));
   const items = [];
+  let specDone = false;
   for (let i = 1; i <= QUAL_MAX; i++) {
     const subject = cut(fields['qual_' + i]);
     const level = cut(fields['qual_' + i + '_level']).replace(/:/g, '');
     const board = cut(fields['qual_' + i + '_board']).replace(/:/g, '');
     const grade = cut(fields['qual_' + i + '_grade']).replace(/:/g, '');
-    if (subject || level || board || grade) items.push([subject, level, board, grade].join(':'));
+    const received = cut(fields['qual_' + i + '_received']).replace(/:/g, '');
+    if (!(subject || level || board || grade || received)) continue;
+    /* A SPECIALISM IS TAUGHT, AND THERE IS ONE. The phone unticks the others and ticks Teach, but
+       `doPost` is reachable by anybody with the URL, so the rule is here as well — first wins. */
+    let spec = yes(fields['qual_' + i + '_spec']) && !specDone;
+    if (spec) specDone = true;
+    const flags = (spec || yes(fields['qual_' + i + '_teach']) ? 't' : '') + (spec ? 's' : '');
+    /* EVERY ITEM CARRIES ITS `~`, EVEN WITH NOTHING AFTER IT, because a `~` is what tells
+       `qualsList_` the ticks were written — an unticked list must not be re-inferred from
+       `teaches_1` on the next read and come back ticked. */
+    items.push([subject, level, board, grade].join(':') + '~' + received + '~' + flags);
   }
   return items.join('|');
 }
@@ -1063,6 +1122,36 @@ function teachAlsoIn(value) {
    clears it. A PARTIAL is refused rather than written — see `dobRefusal_` — because `15//1985` is
    `null` to `sheetDate`, which is a birthday that vanishes off the calendar with nothing anywhere
    saying why. */
+/* THE PHONE CELL AS TWO BOXES. `+44 7700 900123` comes apart on the LONGEST code in
+   `PHONE_CODES` that prefixes its digits, so `+353…` is Ireland rather than `+3`. A number typed
+   before there was a code — `07700 900123` — is read as UK, with the trunk 0 off, because that is
+   what every one of those cells in this sheet is; `0044…` is `+44…`. Anything else keeps its
+   digits and gets the default code, so nothing typed is ever thrown away. */
+function phoneOut(cellValue) {
+  let v = S(cellValue).replace(/^00/, '+');
+  if (!v) return { phone_cc: PHONE_CODES[0], phone_no: '' };
+  if (v[0] === '+') {
+    const digits = v.slice(1).replace(/\D/g, '');
+    const cc = PHONE_CODES.filter(c => digits.indexOf(c.slice(1)) === 0)
+                          .sort((a, b) => b.length - a.length)[0];
+    if (cc) {
+      /* The rest keeps the spacing it was typed with, minus the code itself. */
+      const rest = v.replace(/^\+\s*/, '').replace(new RegExp('^' + cc.slice(1)), '').trim();
+      return { phone_cc: cc, phone_no: rest };
+    }
+    const m = v.match(/^\+(\d{1,4})\s*(.*)$/);
+    return { phone_cc: m ? '+' + m[1] : PHONE_CODES[0], phone_no: m ? S(m[2]) : v };
+  }
+  return { phone_cc: PHONE_CODES[0], phone_no: v.replace(/^0(?=\d)/, '') };
+}
+function phoneIn(fields) {
+  const cc = /^\+\d{1,4}$/.test(S(fields.phone_cc)) ? S(fields.phone_cc) : PHONE_CODES[0];
+  /* Digits and spaces only, and one trunk 0 off the front — `+44 07700` is not a number anybody
+     can dial. Italy keeps it, because there the 0 is part of the number. */
+  let no = S(fields.phone_no).replace(/[^\d ]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (cc !== '+39') no = no.replace(/^0(?=\d)/, '');
+  return no ? cc + ' ' + no : '';
+}
 function dobOut(cellValue) {
   /* ---------- A REAL DATE, OR THE ONE WRITTEN FORM — AND NOTHING ELSE --------------------------
      `sheetDate` ENDS IN `new Date(t)`, WHICH IS FAR TOO WILLING. Measured: `sometime in 85` comes
