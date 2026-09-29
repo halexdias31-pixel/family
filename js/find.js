@@ -8252,6 +8252,8 @@ function allWidgets() {
 }
 
 function startWidget_(wgt) {
+  /* NOT ONE THIS PERSON MAY NOT OPEN, whoever handed it here — see `widgetFor_` in arcade.js. */
+  if (typeof widgetFor_ === 'function' && !widgetFor_(wgt)) return;
   /* The same one again is already running — restarting would throw away a game in progress and a
      clock somebody is watching. */
   if (WIDGET_ON && WIDGET_ON.id === wgt.id) return;
