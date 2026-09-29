@@ -137,14 +137,12 @@
    ],
    "description": "Ten years of GCSE and A-Level maths.",
    "rate": 30,
-   "dbs": true,
-   "detailsConfirmed": "04/02/2026",
    "yrsExp": 10,
    "minStudents": 1,
    "maxStudents": 4,
    "minHours": 1,
    "maxHours": 3,
-   "extraSeat": 8,
+   "extraSeat": 0.5,
    "focus": [
     "Maths"
    ],
@@ -162,7 +160,9 @@
     "MMath",
     "Bible and Theology — University of Wales Trinity Saint David — studying now"
    ],
-   "extraQuals": "",
+   "extraQuals": [
+    "Enhanced DBS"
+   ],
    "studying": "",
    "studyingAt": "",
    "actionText": "Book this tutor",
@@ -172,7 +172,13 @@
     "data/reels/archetest.jpg",
     "icon.png",
     "favicon.png"
-   ]
+   ],
+   "venues": [
+    "Sutton Library",
+    "Online"
+   ],
+   "dbs": true,
+   "detailsConfirmed": "04/02/2026"
   }
  ],
  "students": [],
@@ -436,7 +442,8 @@
    "borough",
    "postcode",
    "address",
-   "travel_km"
+   "travel_km",
+   "venues_ok"
   ],
   "Photos": [
    "photo",

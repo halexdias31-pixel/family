@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-29-i-photos";
+const BACKEND_VERSION = "2026-09-29-j-venues";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2116,7 +2116,10 @@ const PROFILE_GROUPS = {
      title is gone, and a card taller than its pane is now drawn smaller to fit (`paneReach_`) rather
      than clipped. Asked again as "look at all of account settings and see if there is a better way to
      have it layout. like more effecient", so one page, the same shape as everybody else's. */
-  'Contact & address': ['email','phone','date_of_birth','city','town','borough','postcode','address','travel_km'],
+  'Contact & address': ['email','phone','date_of_birth','city','town','borough','postcode','address','travel_km',
+                        /* THE VENUES THEY ARE HAPPY AT — a form name over `venues.tutors_happy_here`,
+                           not a column here; see `venuesWrites_` in core.gs. */
+                        'venues_ok'],
   /* ---------- THE PHOTOGRAPHS, ON A PAGE OF THEIR OWN ------------------------------------------
      The face and the clip were two boxes on About you; eight more photograph links there would have
      made About you the longest page in the column. THIRD, after Contact, whose own note says why it
@@ -2791,7 +2794,7 @@ const ACTION_ACCESS = {
   updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self', confirmDetails: 'self',
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
   myReferral: 'self',        // your own code, and who came through it
-  saveTopics: 'self', toggleVenueComfort: 'self',
+  saveTopics: 'self',
   saveExam: 'self', deleteExam: 'self', redeem: 'self',
   /* `likePost` was here. A like is a reaction with one option, so the heart and the 👍 were two
      counts of the same gesture. The action is gone rather than left working-but-unused: an

@@ -463,6 +463,23 @@ function levelPriced(name) {
   return Object.prototype.hasOwnProperty.call(t, name) && String(t[name]).trim() !== '';
 }
 
+/* ---------- WHAT ONE EXTRA SEAT ADDS, AS A FRACTION OF THE RATE -----------------------------------
+   LIFTED OUT OF `priceFrom` so the tutor's card can print the same number the quote charges — *"a
+   smaller rate to the side so clients can know extra cost for the extra seat"*. The card computing
+   it again from the same three cells would be the second reader this repository keeps finding, and
+   the two would disagree the first time `asFraction`'s bounds moved.
+   `c` and `B` are passed in by `priceFrom`, which has already read them; the card asks with neither
+   and they are read here the same way. */
+function seatShare_(tutorRow, c, B) {
+  const v = ((typeof DATA !== 'undefined' && DATA && DATA.constants) || {}).vars || {};
+  const cv = (...keys) => { for (const key of keys) { const x = num(v[key]); if (!isNaN(x)) return x; } return 0; };
+  if (c === undefined) c = cv('c', 'extra child rate', 'extra_child_rate');
+  if (B === undefined) B = cv('B', 'boss rate', 'boss_rate');
+  const asFraction = (x, fallback) => (x > 0 && x <= 2) ? x : fallback;
+  const cRaw = (tutorRow && Number(tutorRow.extraSeat) > 0) ? Number(tutorRow.extraSeat) : c;
+  return { cRaw, cUsed: asFraction(cRaw, 0), bUsed: asFraction(B, 0) };
+}
+
 function priceFrom(spec) {
   spec = spec || {};
   const m = DATA.multipliers || {};
@@ -661,10 +678,7 @@ function priceFrom(spec) {
      saying so.
      What's still rejected is a value large enough to be unmistakably an amount rather than a
      fraction: nobody means "a second student costs five times the first". */
-  const asFraction = (x, fallback) => (x > 0 && x <= 2) ? x : fallback;
-  const cRaw = (tutorRow && Number(tutorRow.extraSeat) > 0) ? Number(tutorRow.extraSeat) : c;
-  const cUsed = asFraction(cRaw, 0);
-  const bUsed = asFraction(B, 0);
+  const { cRaw, cUsed, bUsed } = seatShare_(tutorRow, c, B);
   // Which one won, for the admin view. A silent fallback and a read value look the same on a card.
   const ignored = [];
   if (cRaw > 2) ignored.push(`c ${cRaw}`);

@@ -2127,7 +2127,9 @@ const FIELD_LISTS_ = {
 };
 /* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell — the shape
    `extra_quals` already had as free text, so nothing written before this needs migrating. */
-const FIELD_MULTI = { extra_quals: true, teaches_also: true };
+/* `venues_ok` IS NOT A COLUMN of `people` — it is the venues tab's own `tutors_happy_here`, read and
+   written through this one box. See `venuesWrites_` in core.gs for why there is no second copy. */
+const FIELD_MULTI = { extra_quals: true, teaches_also: true, venues_ok: true };
 /* ---------- AND ONE SHELF SLOT'S LIST OFF THE FIRST SLOT'S -------------------------------------
    `FIELD_OPTIONS` sends `qual_1_level` ONCE rather than ten times — see its note in constants.gs —
    so `qual_7_level` asks for `qual_1`'s list here. `teaches_also` is built from `teaches_1`'s two
@@ -2139,6 +2141,9 @@ function fieldOptions_(f) {
   const got = x => (x && x.length ? x : null);
   const first = String(f).replace(/^qual_\d+/, 'qual_1');
   return got(v[f]) || FIELD_LISTS_[f] || got(v[first])
+    /* THE VENUES ON OFFER ARE THE VENUES THE SITE HAS, by the name the booking form uses for them. */
+    || (f === 'venues_ok' ? got((typeof DATA !== 'undefined' && DATA && DATA.venues || [])
+                                  .map(x => x && x.title).filter(Boolean)) : null)
     || (f === 'teaches_also' ? teachPhrases_(got(v.teaches_1) || got(dd.subjects) || [],
                                              got(v.teaches_1_level) || got(dd.levels) || []) : null)
     || null;
@@ -2420,6 +2425,7 @@ const ROW_LABEL = {
   years_experience: 'years teaching',
   photo: 'photo link', video: 'video link',
   travel_km: 'will travel (km)', extra_quals: 'more qualifications', favourite_colour: 'favourite colour',
+  venues_ok: 'venues you teach at',
 };
 function fieldRows_(list, one) {
   const out = [], done = new Set();

@@ -5710,11 +5710,11 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    chess board's cream and charcoal. */
 .is-prof { --prof-warn: #c4655a; }
 .prof-name { font-size: 1.05rem; font-weight: 700; letter-spacing: -.01em; overflow-wrap: anywhere; }
-.prof-where { font: 400 .7rem/1.2 var(--mono); color: var(--dim); }
+/* `.prof-where` — the city under the rate — was here and went on request; the card no longer says where somebody lives. */
 /* ---------- THE HANDLE, IN GOLD AND SMALLER THAN THE NAME ----------------------------------------
    IT IS NOT THE NAME AND MUST NOT COMPETE WITH IT. `.prof-name` is 1.05rem at 700; this is the
    thing you sign in with rather than the thing you are called, so it sits under the name at the
-   size `.prof-where` already uses for the second line of this block.
+   size the second line of this block has always used.
 
    GOLD, BECAUSE IT IS YOURS IN THE SENSE THIS APP ALREADY MEANS BY GOLD — the one starred thing,
    the ticked hour, the chosen answer. It is also what separates `@BrightOtter42` from the place
@@ -5724,18 +5724,10 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    nothing to break at, which at this size is 85px — under the column at every width the app is
    measured at, and one `HANDLE_SHAPE` change away from not being. */
 .prof-handle { font: 400 .7rem/1.2 var(--mono); color: var(--gold); overflow-wrap: anywhere; }
-/* THE ONE THING A PARENT IS SCANNING FOR, and the only fact on this card that is a mark rather than
-   a row. Present and green, or absent and said so — never quietly missing, which is what a blank
-   field is. `align-self: start` so the chip is the width of its own words rather than the width of
-   the column it is in. */
-.prof-dbs {
-  align-self: start; margin-top: .1rem;
-  font-family: var(--mono); font-size: .56rem; letter-spacing: .12em; text-transform: uppercase;
-  padding: .18rem .4rem; border-radius: 2px;
-  border: 1px solid currentColor;
-}
-.prof-dbs.yes { color: #3ddc84; }
-.prof-dbs.no  { color: var(--prof-warn); }
+/* `.prof-dbs` — a green DBS CHECKED or a red NO DBS ON FILE under the name — WAS HERE. Asked to go:
+   *"enhanced dbs check shouldnt appear up there. treat it like an extra qualification thing."* A
+   tutor who holds one ticks `Enhanced DBS` among their extra qualifications and it is a dashed chip
+   there. What that costs: the card no longer says a DBS is MISSING. */
 /* WHAT THEY WROTE ABOUT THEMSELVES. `doget.gs` already puts the quotation marks on, so this is set
    as a quotation and not as a field: italic, indented off a rule, no label. */
 .prof-say {
@@ -5787,6 +5779,18 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   line-height: 1.1; margin-top: .1rem;
 }
 .prof-rate small { font-size: .62rem; font-weight: 400; color: var(--dim); margin-left: .1rem; }
+/* WHAT AN EXTRA SEAT ADDS, beside the rate and a step quieter: it is read after the rate, never
+   instead of it. Wraps under it on a narrow card rather than pushing the name. */
+.prof-price { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .45rem; }
+.prof-seat { font: 400 .66rem/1.2 var(--mono); color: var(--dim); }
+/* A CAPTION OVER EACH ROW OF CHIPS — "Teaches", "Qualifications", "Tutors at" — because two rows of
+   identical pills could not be told apart: *"its hard to tell what they teach and what they have
+   qualification in"*. Small and faint, a label rather than a heading. */
+.prof-cap {
+  margin: .55rem 0 .2rem; font: 400 .56rem/1 var(--mono); letter-spacing: .12em;
+  text-transform: uppercase; color: var(--faint);
+}
+.prof-cap + .prof-tags { margin-top: 0; }
 /* QUALIFICATIONS, AS CHIPS. Same pill as the subjects; a free-typed extra is dashed, because it is
    what somebody wrote rather than a subject, level and grade the form asked for. */
 .prof-quals .prof-tag.is-extra { border-style: dashed; }
@@ -9607,7 +9611,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    declared six hundred lines away from every other pass rule. Found only by deleting the pass, which
    is the argument for keeping a component's rules together: a stray that nothing else names survives
    exactly as long as nobody removes the thing it belonged to.
-   It is `.prof-where`, beside the rest of the profile. */
+   `.prof-where` later went too, on request. */
 
 /* A TOOL OPENS INSIDE ITS OWN CARD. Empty until the row is pressed, so a list of forty widgets is
    forty headings and no canvases — a running board on a card nobody is looking at is a flat

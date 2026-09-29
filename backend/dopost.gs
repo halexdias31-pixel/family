@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-29-i-photos";
+const DOPOST_VERSION = "2026-09-29-j-venues";
 
 
 function doPost(e) {
@@ -565,6 +565,13 @@ function doPost(e) {
       const dobSent   = sent(DOB_FIELD) && allowed.indexOf('date_of_birth') !== -1;
       const alsoSent  = fields.teaches_also !== undefined && allowed.indexOf('teaches_also') !== -1;
       const photosSent = sent(PHOTO_FIELD) && PHOTO_FIELDS.some(f => allowed.indexOf(f) !== -1);
+      /* THE VENUES ARE ON ANOTHER TAB — `venuesWrites_` in core.gs says why there is no column here. */
+      const venuesSent = fields.venues_ok !== undefined && allowed.indexOf('venues_ok') !== -1;
+      const venueTab = venuesSent ? read(TAB.venues) : null;
+      if (venueTab && venueTab.headers.indexOf('tutors_happy_here') === -1) {
+        return jsonOut({ error: 'The venues tab has no column for: tutors_happy_here. '
+          + 'Run ensureSchema() to add it — nothing was saved.' });
+      }
       const packedMissing = [availSent && 'availability', libSent && 'library_card',
                              qualsSent && 'quals', phoneSent && 'phone', dobSent && 'date_of_birth',
                              photosSent && 'photos']
@@ -595,7 +602,7 @@ function doPost(e) {
       const wanted = Object.keys(fields)
         .filter(f => !HOUR.test(f) && !LIBRARY_FIELD.test(f) && !QUAL_FIELD.test(f)
                   && !PHONE_FIELD.test(f) && !DOB_FIELD.test(f) && !PHOTO_FIELD.test(f)
-                  && allowed.indexOf(f) !== -1);
+                  && f !== 'venues_ok' && allowed.indexOf(f) !== -1);
       /* A field with no column vanishes silently: that is how an extra-seat fraction was entered
          four times and lost four times, with the site showing a stale default each time and nothing
          connecting the two. Refuse the save and name the column — the fix is one ensureSchema run,
@@ -716,6 +723,13 @@ function doPost(e) {
          visitor's stored payload — which is what made the `load()` after an untouched Save a full
          cold rebuild. See the note over it in core.gs. */
       const wrote = setCells(t, r, put);
+      /* AND THE VENUES, AFTER THE ROW, so a refusal above has already stopped both. Only the venue
+         cells that actually change are written. */
+      if (venueTab) {
+        venuesWrites_(r, fields.venues_ok, venueTab.rows).forEach(w => {
+          wrote.push.apply(wrote, setCells(venueTab, w.row, { tutors_happy_here: w.cell }));
+        });
+      }
       /* ---------- AND THE FORM'S OWN VALUES COME BACK WITH THE ANSWER ------------------------------
          `profileOf_` of the row as it now stands — so the phone's copy is what the SERVER made of the
          boxes (the phone repacked, the specialism derived from the ticks, a birthday normalised)
@@ -2286,19 +2300,11 @@ function doPost(e) {
        they always were: a fact about a PERSON and a document, filed under neither. That is also the
        version that would have survived this move untouched. */
 
-    /* --- a tutor marks a venue they're happy at --------------------------------------------- */
-    if (action === 'toggleVenueComfort') {
-      const t = read(TAB.venues);
-      const r = t.rows.find(x => key(x.name) === key(body.venue));
-      if (!r) return jsonOut({ error: 'Venue not found.' });
-      const handle = S(body.handle);
-      let list = S(r.tutors_happy_here).split(/[,\n]/).map(x => x.trim()).filter(Boolean);
-      const has = list.some(h => norm(h) === norm(handle));
-      if (body.checked && !has) list.push(handle);
-      if (!body.checked && has) list = list.filter(h => norm(h) !== norm(handle));
-      setCell(t, r, 'tutors_happy_here', list.join(', '));
-      return jsonOut({ success: true });
-    }
+    /* ---------- `toggleVenueComfort` WAS HERE -----------------------------------------------------
+       It wrote whatever `body.handle` it was handed into a venue's `tutors_happy_here`, so a signed-in
+       tutor could put ANYBODY on a venue — and nothing in the app ever called it. The Settings page
+       writes that cell now, through `updateProfile` and `venuesWrites_`, for the signed-in person only:
+       one writer, keyed on the row the token resolved to rather than a name in the request. */
 
     /* --- PAYMENT ------------------------------------------------------------------------------
        Two halves, and they must stay apart.
@@ -3523,6 +3529,7 @@ function profileOf_(r) {
            : PHOTO_FIELD.test(f) ? S(photos[f])
            : QUAL_FIELD.test(f) ? S(quals[f])
            : f === 'teaches_also' ? teachAlsoOut(r)
+           : f === 'venues_ok' ? venuesFor_(r, read(TAB.venues).rows).join(', ')
            : f === 'date_of_birth' ? S(dobIn(dob))
            /* ---------- AND AN EXAM DATE AS `yyyy-mm-dd`, WHICH IS WHAT THE PICKER CAN HOLD ------
               `S(r[f])` IS THE `S(r.date_of_birth)` FAULT ONE COLUMN ALONG, and worse: a birthday

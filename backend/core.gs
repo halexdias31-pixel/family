@@ -1078,6 +1078,55 @@ function photosList_(r) {
     .slice(0, PHOTO_MAX);
 }
 
+/* ---------- THE VENUES A TUTOR IS HAPPY TO TEACH AT, WHICH THE VENUES TAB ALREADY RECORDED ---------
+   ASKED FOR AS *"in account setting tutors should be able to select the venues they are comfortable
+   tutoring at."* The fact had a home long before the ask: `venues.tutors_happy_here`, a comma list of
+   people per venue, sent to every phone as `comfort` and written by a `toggleVenueComfort` handler
+   that NOTHING HAS EVER CALLED — the `orderPrints` shape. A `venues_ok` column on `people` would have
+   been a second copy of the same fact, the `needs_print` / `print_required` shape that cost 356 rows
+   of disagreement. So there is no new column: the settings form reads and writes this one.
+
+   `venues_ok` IS A FORM NAME, NOT A CELL, which is the packed-cell arrangement pointed at another
+   tab: `updateProfile` keeps it out of `wanted`, `profileOf_` expands it, and these two functions are
+   the only readers and the only writer.
+
+   AN ENTRY NAMES A PERSON BY ANY OF THE WAYS THIS SHEET HAS: the rows already hold a handle, an
+   admin typing into the tab will type a name, and a new entry is written as the PERSON_ID, because
+   an id is the one of those that survives `changeHandle` and a rename. `key` on both sides. */
+function venuesPersonIs_(entry, p) {
+  const k = key(entry);
+  if (!k || !p) return false;
+  return [p.person_id, p.handle, p.username, p.full_name,
+          S(p.first_name) + S(p.last_name)].some(v => S(v) && key(v) === k);
+}
+function venuesListOf_(r) {
+  return S(r && r.tutors_happy_here).split(/[,\n]/).map(x => x.trim()).filter(Boolean);
+}
+/* The names of the venues this person is on, in the tab's own order. */
+function venuesFor_(p, venueRows) {
+  return (venueRows || []).filter(v => S(v.name) && venuesListOf_(v).some(e => venuesPersonIs_(e, p)))
+    .map(v => S(v.name));
+}
+/* WHAT EACH VENUE'S CELL SHOULD HOLD once this person has chosen `names`. Only the cells that change
+   are returned, so a Save that moves nothing writes nothing — `setCells`' own rule, one tab along.
+   Entries naming somebody else are left exactly as they were. */
+function venuesWrites_(p, chosen, venueRows) {
+  const want = {};
+  S(chosen).split(/[,\n]/).map(x => key(x)).filter(Boolean).forEach(k => { want[k] = true; });
+  const me = S(p.person_id) || S(p.handle);
+  const out = [];
+  (venueRows || []).forEach(v => {
+    if (!S(v.name)) return;
+    const list = venuesListOf_(v);
+    const mine = list.filter(e => venuesPersonIs_(e, p));
+    const others = list.filter(e => !venuesPersonIs_(e, p));
+    const next = want[key(v.name)] ? others.concat(mine.length ? mine.slice(0, 1) : [me]) : others;
+    const cell = next.join(', ');
+    if (cell !== list.join(', ')) out.push({ row: v, cell: cell });
+  });
+  return out;
+}
+
 /* ---------- UP TO TEN QUALIFICATIONS, AS ONE CELL AND FORTY BOXES --------------------------------
    `libCardsOut`'s arrangement one row along, with one difference that is the whole of the
    migration: the cell `quals` is new, so a row nobody has saved since it landed has an EMPTY cell

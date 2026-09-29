@@ -177,33 +177,32 @@ function profRange_(lo, hi, one, many) {
   const a = Number(lo) || 0, b = Number(hi) || 0;
   if (!a && !b) return '';
   const word = n => n === 1 ? one : many;
-  const label = one === 'hour' ? 'Session length' : 'Group size';
   /* `1–4 students` and `1+ hour`, ASKED FOR BY NAME over "1 to 4" and "1 hour or more": a range
      is scanned rather than read, and the short form is what every timetable prints. En dash, the
      character this app already writes a range with (`1–10`, `Grades 4–6`). */
-  if (a && b && a !== b) return row(label, a + '–' + b + ' ' + word(b));
-  if (a && b) return row(label, a + ' ' + word(a));
-  if (a) return row(label, a + '+ ' + word(a));
-  return row(label, 'up to ' + b + ' ' + word(b));
+  if (a && b && a !== b) return a + '–' + b + ' ' + word(b);
+  if (a && b) return a + ' ' + word(a);
+  if (a) return a + '+ ' + word(a);
+  return 'up to ' + b + ' ' + word(b);
 }
 
-/* A YEAR OLD. `fmtDate` sends `dd/mm/yyyy`, which `parseDMY` is the one reader of in this app —
-   `new Date('03/12/2026')` is March in New York and December in London, and that timezone fault
-   already cost this project seven buttons under `waveOf`. Anything unparseable is not stale: an
-   unreadable date is a fact about the cell, and marking it red would accuse somebody of letting
-   their profile rot because a spreadsheet holds a word. */
-/* THE DATE AS TYPED, or nothing. Anything that is not `dd/mm/yyyy` is not a date this app can
-   reason about, and the two callers below want the same answer to that question. */
-function profDate_(v) {
-  const t = String(v == null ? '' : v).trim();
-  return /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(t) ? t : '';
+/* THE THREE FACT CHIPS, in the order a parent asks: how experienced, how many at once, how long.
+   `yrsExp` is a number when the sheet holds one and whatever was typed otherwise. */
+function profFacts_(t) {
+  const y = String(t.yrsExp == null ? '' : t.yrsExp).trim();
+  const exp = !y || y === '0' ? '' : /^\d+$/.test(y) ? (y === '1' ? '1 year' : y + ' years') : y;
+  return [exp ? exp + ' experience' : '',
+          profRange_(t.minStudents, t.maxStudents, 'student', 'students'),
+          profRange_(t.minHours, t.maxHours, 'hour', 'hours')].filter(Boolean);
 }
 
-function profStale_(s) {
-  const d = typeof parseDMY === 'function' ? parseDMY(String(s || '')) : null;
-  if (!d || isNaN(+d)) return false;
-  const year = new Date(); year.setFullYear(year.getFullYear() - 1);
-  return d < year;
+/* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS *"a smaller rate to the side so
+   clients can know extra cost for the extra seat"*. `seatShare_` is the reader `priceFrom` uses,
+   so the card and the booking agree: a seat is `(cUsed + bUsed)` of the rate. Nought draws nothing. */
+function profSeat_(t) {
+  if (!(Number(t.rate) > 0) || typeof seatShare_ !== 'function') return 0;
+  const s = seatShare_(t);
+  return Math.round(Number(t.rate) * (s.cUsed + s.bUsed) * 100) / 100;
 }
 
 function findCard(x) {
@@ -296,20 +295,16 @@ function findCard(x) {
                 eleventh label/value row, under the qualifications — and it is the one number a
                 parent opens this card to find. One place: the `Rate` row it replaces is gone, so the
                 card cannot print two rates that disagree. */''}
-          ${t.rate ? `<span class="prof-rate">${esc(money(t.rate))}<small>/h</small></span>` : ''}
-          ${t.subtitle || t.city || t.borough
-            ? `<span class="prof-where">${esc(t.subtitle || t.city || t.borough)}</span>` : ''}
-          ${/* ---------- ABSENT IS NOT `false`, AND IT IS THE ONLY EXCEPTION ON THIS CARD ----------
-                A TUTOR ROW'S `dbs` COMES FROM `TRUE_(r.dbs_checked)` and is therefore always
-                answered — true or false — so every person a parent can look up gets a mark either
-                way, and a missing one is meant to be alarming. A row built somewhere that has no
-                such cell (your own account, when you are not staff) has the key ABSENT, and
-                stamping NO DBS ON FILE across it would report a fact nobody has recorded: the
-                `cost: 0` shape, a blank read as a negative. Omitting the key is what tells the two
-                apart. See `accountPages_`. */''}
-          ${t.dbs === undefined ? ''
-            : `<span class="prof-dbs ${t.dbs ? 'yes' : 'no'}">${
-                t.dbs ? 'DBS checked' : 'No DBS on file'}</span>`}
+          ${t.rate ? `<span class="prof-price"><span class="prof-rate">${esc(money(t.rate))}<small>/h</small></span>${
+              profSeat_(t) ? `<span class="prof-seat">+${esc(money(profSeat_(t)))}/h a seat</span>` : ''}</span>` : ''}
+          ${/* ---------- NO CITY AND NO DBS STAMP UP HERE --------------------------------------------
+                ASKED FOR AS *"remove the city which appears under the rate"* and *"enhanced dbs check
+                shouldnt appear up there. treat it like an extra qualification thing. thats how they
+                activate it."* `Enhanced DBS` is on the extra-qualifications list, so a tutor who holds
+                one ticks it and it is drawn as a dashed chip under Qualifications with everything else
+                they typed. The `dbs_checked` stamp went, which means the card no longer says a DBS is
+                MISSING — absence is now silence, like every other qualification. Checking the
+                certificate is the business's job and belongs with the records, not on the card. */''}
         </div>
       </div>
       ${/* WHAT THEY WROTE ABOUT THEMSELVES. `doget.gs` already wraps it in quotation marks, so it
@@ -336,6 +331,15 @@ function findCard(x) {
       ${profList_(t.tags).length
         ? `<div class="prof-tags">${profList_(t.tags).slice(0, 3)
              .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
+      ${/* ---------- EXPERIENCE, GROUP SIZE AND SESSION LENGTH, AS CHIPS --------------------------
+            ASKED FOR AS *"the years experience should also be a google chip type thing … sesson
+            lenth should also be a google chip. same with student number size."* They were three
+            label/value rows; each is one short fact a parent scans for, which is what a chip is.
+            Captioned so a chip reading `1–4 students` does not have to explain itself. The extra
+            seat is not a chip: it is beside the rate, which is where a price is looked for. */''}
+      ${profFacts_(t).length
+        ? `<div class="prof-cap">At a glance</div><div class="prof-tags prof-teach prof-facts">${profFacts_(t)
+             .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
       ${/* ---------- THE ROWS, AND EVERY ONE OF THEM IS DROPPED WHEN IT IS EMPTY -------------------
             `.filter(Boolean)` AT THE END IS THE WHOLE RULE. A tutor with no qualifications typed in
             should show a shorter card, not a card with `Qualifications —` on it: a labelled blank
@@ -353,7 +357,7 @@ function findCard(x) {
             NOT UPPER-CASED, unlike the adjectives: "MATHS (GCSE)" is a subject shouted, and the
             owner's own example is written in the case the sheet holds. */''}
       ${profList_(t.teaches).length
-        ? `<div class="prof-tags prof-teach">${profList_(t.teaches).map(v =>
+        ? `<div class="prof-cap">Teaches</div><div class="prof-tags prof-teach">${profList_(t.teaches).map(v =>
              `<span class="prof-tag${t.teachesMain && v === t.teachesMain ? ' is-main' : ''}"${
                t.teachesMain && v === t.teachesMain ? ' title="Specialises in"' : ''}>${mark(v)}</span>`)
              .join('')}</div>` : ''}
@@ -364,53 +368,15 @@ function findCard(x) {
             through `profList_` for that reason; it is dashed, because it is whatever somebody typed
             rather than a subject, a level and a grade the form asked for. */''}
       ${profList_(t.quals).length || profList_(t.extraQuals).length
-        ? `<div class="prof-tags prof-teach prof-quals">${profList_(t.quals)
+        ? `<div class="prof-cap">Qualifications</div><div class="prof-tags prof-teach prof-quals">${profList_(t.quals)
              .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}${profList_(t.extraQuals)
              .map(v => `<span class="prof-tag is-extra">${esc(v)}</span>`).join('')}</div>` : ''}
-      ${[
-        t.yrsExp ? row('Experience', String(t.yrsExp).replace(/^(\d+)$/, '$1 years')) : '',
-        /* ---------- AND WHAT THEY ARE STUDYING NOW, UNDER THE THINGS THEY HAVE FINISHED ----------
-           NOT THROUGH `profList_`, WHICH IS THE ONE THING TO GET RIGHT HERE. That function reads a
-           comma cell as a LIST, and "Bible and Theology" is one subject that happens to contain an
-           "and" — one comma in either cell and the card would print two half-facts joined by a
-           middle dot. So the two are read as single values and joined with the word "at", which is
-           also the only shape that reads as a sentence: "Bible and Theology at University of Wales
-           Trinity Saint David".
-
-           EITHER HALF ALONE IS STILL WORTH DRAWING. Somebody studying something with no institution
-           named, or at a place with no subject given, has said something true; a row that appears
-           only when both cells are filled is a row that silently swallows half an answer. */
-        (t.studying || t.studyingAt)
-          ? row('Studying', [t.studying, t.studyingAt].filter(Boolean).join(' at ')) : '',
-        profList_(t.focus).length ? row('Focus', profList_(t.focus).join(' · ')) : '',
-        /* WHAT A SESSION WITH THEM LOOKS LIKE. Two rows rather than four, because "1 to 4 students"
-           is the fact and `minStudents` / `maxStudents` are how it is stored — and a card that
-           prints storage has made the reader do the joining. `maxStudents` of 0 means no limit set,
-           which `doget.gs` says outright, so it is read as no limit rather than as nought. */
-        profRange_(t.minStudents, t.maxStudents, 'student', 'students'),
-        profRange_(t.minHours, t.maxHours, 'hour', 'hours'),
-        /* THE SECOND SEAT IS A DIFFERENT PRICE and a parent booking for two children is the person
-           most likely to be looking at this card. `core.js` already prices it; this says so. */
-        Number(t.extraSeat) > 0 ? row('Each extra seat', money(t.extraSeat) + '/h') : '',
-        /* ---------- WHEN THEY LAST SAID ANY OF THIS WAS TRUE --------------------------------------
-           `doget.gs` SENDS THE DATE AND SAYS WHY: "a profile nobody has looked at for a year is
-           worse than one that's obviously incomplete, because it reads as true" — and then "the
-           site decides what counts as recent, so the rule lives in one place". This is that one
-           place, and until now it was nowhere: the column has been on every phone since it was
-           written, drawn by nothing.
-
-           A YEAR, AND IT IS MARKED RATHER THAN HIDDEN. Hiding a stale date leaves the card looking
-           exactly like a fresh one, which is the fault the sentence above describes. */
-        /* ONLY IF IT IS A DATE. `doget.gs` sends `fmtDate(r.details_confirmed)` — `dd/mm/yyyy` — and
-           the fixture holds the boolean `true`, which would have printed a row reading
-           `Details confirmed  true`. A cell holding a tick instead of a day is a fact about the
-           spreadsheet and not about the tutor, and printing it is the same mistake as the `figure`
-           column's "not drawn yet": a value drawn as though somebody had meant it that way. */
-        profDate_(t.detailsConfirmed)
-          ? row('Details confirmed', profDate_(t.detailsConfirmed),
-                profStale_(t.detailsConfirmed) ? 'bad' : '')
-          : '',
-      ].filter(Boolean).join('')}
+      ${/* WHERE THEY WILL TEACH, off the venues tab's own `tutors_happy_here` column, which a tutor
+            ticks on their Contact & address page. An older backend sends no key: nothing drawn. */''}
+      ${profList_(t.venues).length
+        ? `<div class="prof-cap">Tutors at</div><div class="prof-tags prof-teach prof-venues">${profList_(t.venues)
+             .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
+      ${profList_(t.focus).length ? row('Focus', profList_(t.focus).join(' · ')) : ''}
     </div>`;
 
   /* ---------- A VENUE IS AN ORDINARY CARD ------------------------------------------------------
