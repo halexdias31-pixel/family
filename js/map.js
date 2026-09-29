@@ -1137,13 +1137,13 @@ const WIDGETS = [
     into: 'art-card', what: 'Articulate',
     html: `<div class="card">
     <h3>Articulate</h3>
-    <p class="sub">Describe it without saying it. Thirty seconds.</p>
+    <p class="sub">Describe it without saying it. Ninety seconds.</p>
     <div id="art-card" class="art"></div>
     <div class="art-row">
       <button class="btn" data-do="rg-next" data-g="art" data-got="1">Got it</button>
       <button class="btn quiet" data-do="rg-next" data-g="art" data-got="0">Pass</button>
     </div>
-    <p class="faint art-meta"><span id="art-left">30</span>s left &middot;
+    <p class="faint art-meta"><span id="art-left">1:30</span> left &middot;
       <b id="art-got">0</b> so far</p>
     <p class="note" id="art-said"></p>
     <button class="btn quiet" data-do="rg-again" data-g="art">New round</button>
@@ -1154,13 +1154,13 @@ const WIDGETS = [
     into: 'cha-card', what: 'Charades',
     html: `<div class="card">
     <h3>Charades</h3>
-    <p class="sub">Act it out. No words, no sounds. A minute.</p>
+    <p class="sub">Act it out. No words, no sounds. Three minutes.</p>
     <div id="cha-card" class="art"></div>
     <div class="art-row">
       <button class="btn" data-do="rg-next" data-g="cha" data-got="1">Got it</button>
       <button class="btn quiet" data-do="rg-next" data-g="cha" data-got="0">Pass</button>
     </div>
-    <p class="faint art-meta"><span id="cha-left">60</span>s left &middot;
+    <p class="faint art-meta"><span id="cha-left">3:00</span> left &middot;
       <b id="cha-got">0</b> so far</p>
     <p class="note" id="cha-said"></p>
     <button class="btn quiet" data-do="rg-again" data-g="cha">New round</button>
@@ -1202,6 +1202,22 @@ const WIDGETS = [
       <button class="btn" data-do="scr-new" data-n="3">3</button>
       <button class="btn" data-do="scr-new" data-n="4">4</button>
     </div>
+  </div>` },
+
+  /* ---------- IMPOSTER — DEALT LIKE THE SCRABBLE RACK ----------------------------------------------
+     The note over `IMP_DECK` in games.js is the argument. Every control is built by `impPaint`, so
+     the markup here is the frame and nothing in it can be pressed before there is a round.
+     `stop` HIDES a word left on the screen and keeps the round: a column swiped away and back is
+     exactly how the next person would otherwise see it. */
+  { id: 'imposter', kind: 'game', name: 'Imposter', start: () => initImposter?.(),
+    stop: () => { if (typeof impHide_ === 'function') impHide_(); },
+    into: 'imp-card', what: 'The word',
+    html: `<div class="card">
+    <h3>Imposter</h3>
+    <p class="sub">Three or more, one phone. Everybody knows the word but one of you.</p>
+    <div id="imp-card" class="art"></div>
+    <div id="imp-acts" class="art-row"></div>
+    <p class="note" id="imp-said" style="text-align:center;margin:.5rem 0 0"></p>
   </div>` },
 
   { id: 'maze', kind: 'game', name: 'Maze', start: () => initMaze?.(),

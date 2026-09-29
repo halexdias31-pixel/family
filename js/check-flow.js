@@ -632,6 +632,83 @@ check('the cheat sheet fills what the exam gives you last, and Clear is lit only
   return bad;
 });
 
+/* ---------- IMPOSTER: ONE PLAYER IS NOT TOLD, AND NOBODY SEES ANYBODY ELSE'S CARD -------------------
+   THE GAME IS A SECRET KEPT BY A PHONE PASSED ROUND, and every way it can go wrong draws perfectly:
+   two imposters, an imposter shown the word, a word left on the screen when the phone is handed on,
+   a reveal naming somebody who was never told. So this deals a round of five through the app's own
+   handlers and reads what each player would have seen — and what the NEXT player sees before they
+   press anything, which is the half that is easy to get wrong. */
+check('the imposter game tells everybody the word but one, and hides it between players', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  await wait(300);
+  const d = w.document;
+  const card = () => d.getElementById('imp-card');
+  if (!card()) return ['the imposter game did not draw on the Games column'];
+  const press = (act, attrs) => {
+    const el = d.createElement('button');
+    Object.keys(attrs || {}).forEach(k => el.setAttribute(k, attrs[k]));
+    t.ACTIONS[act](el);
+  };
+  const bad = [];
+  const text = () => String(card().textContent || '').replace(/\s+/g, ' ').trim();
+  const N = 5;
+  for (let i = 0; i < 12; i++) press('imp-count', { 'data-d': '-1' });
+  for (let i = 0; i < N - 3; i++) press('imp-count', { 'data-d': '1' });
+  if (!/\b5\b/.test(text())) bad.push('two presses up from three players does not read 5: "' + text() + '"');
+  press('imp-start');
+  const seen = [];
+  for (let i = 0; i < N; i++) {
+    const before = text();
+    if (before.indexOf('Player ' + (i + 1)) === -1 || !/Hand the phone/.test(before)) {
+      bad.push('before player ' + (i + 1) + ' presses anything the card reads "' + before + '"');
+    }
+    seen.forEach(s => {
+      if (s.word && before.indexOf(s.word) !== -1) bad.push('the word is on the screen when the phone reaches player ' + (i + 1));
+    });
+    press('imp-show');
+    const shown = text();
+    const imposter = /imposter/i.test(shown);
+    /* THE WORD IS THE LARGE LINE, so it is read off the element that draws it rather than guessed
+       at from the text round it. */
+    const wordEl = card().querySelector('.art-word');
+    seen.push({ imposter: imposter,
+                word: imposter ? '' : String(wordEl ? wordEl.textContent : '').trim(),
+                cat: String((card().querySelector('.art-cat-of') || {}).textContent || '').trim() });
+    if (i === 1) {
+      /* LEAVING THE COLUMN HIDES A WORD LEFT UP, and keeps whose turn it was. */
+      const wd = t.allWidgets().find(x => x.id === 'imposter');
+      if (!wd || !wd.stop) bad.push('the imposter widget has no stop, so a word left up stays up');
+      else wd.stop();
+      t.go('games', false, true);
+      if (!/Hand the phone to Player 2/.test(text())) {
+        bad.push('leaving the column with a word up does not hide it: the card reads "' + text() + '"');
+      }
+      press('imp-show');
+    }
+    press('imp-hide');
+  }
+  const imps = seen.filter(s => s.imposter);
+  if (imps.length !== 1) bad.push(imps.length + ' of ' + N + ' players were told they were the imposter');
+  const words = new Set(seen.filter(s => !s.imposter).map(s => s.word));
+  if (words.size !== 1 || [...words][0] === '') {
+    bad.push('the others were not all shown one word: ' + [...words].join(' / '));
+  }
+  const cats = new Set(seen.map(s => s.cat));
+  if (cats.size !== 1 || [...cats][0] === '') bad.push('not everybody, imposter included, was shown one category');
+  const play = text();
+  if ([...words].some(wd => wd && play.indexOf(wd) !== -1)) bad.push('the word is on the screen once everybody has looked');
+  press('imp-reveal');
+  const rev = text();
+  const who = seen.findIndex(s => s.imposter) + 1;
+  if (rev.indexOf('Player ' + who) === -1) bad.push('the reveal does not name player ' + who + ': "' + rev + '"');
+  if ([...words].some(wd => rev.indexOf(wd) === -1)) bad.push('the reveal does not say the word');
+  press('imp-players');
+  return bad;
+});
+
 /* ---------- THE FLYER MAKER IS AN ADMIN'S, AT EVERY DOOR ---------------------------------------------
    ASKED FOR AS *"make a flyer should only be visible to admin"*. `admin: true` on the roster entry is
    the rule and `widgetFor_` is the one place it is asked — this asks it as every other kind of
