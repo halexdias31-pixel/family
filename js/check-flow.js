@@ -199,7 +199,10 @@ function boot(opts) {
     if (o && o.body) {                       // a POST — record it and answer plausibly
       const body = JSON.parse(o.body);
       sent.push(body);
-      return Promise.resolve(body_(opts.reply || { success: true, joined: 3, seats: 4 }));
+      /* A FUNCTION MAY ANSWER PER ACTION, so a journey can play an older server that knows some
+         actions and not others. */
+      const rep = typeof opts.reply === 'function' ? opts.reply(body) : opts.reply;
+      return Promise.resolve(body_(rep || { success: true, joined: 3, seats: 4 }));
     }
     return Promise.resolve(body_(data));
   };
@@ -629,6 +632,51 @@ check('the cheat sheet fills what the exam gives you last, and Clear is lit only
   t.matOn([]);
   t.matSet('Maths', 'all');
   t.matPaint();
+  return bad;
+});
+
+/* ---------- SETTINGS SAVE AGAINST A SERVER OLDER THAN THE SITE ------------------------------------
+   REPORTED FROM THE LIVE SITE: "the account settings stuff isnt saving. its saying action not
+   recognised". The site was published and the Apps Script was not, so every Save asked the server
+   for `myProfile`, got "That action is not recognised", and stopped. This plays that server — it
+   refuses `myProfile` and answers everything else — with a copy of your details in the OLD shape
+   (no `phone_cc`), and asks two things: a card of plain fields still posts `updateProfile`, and a
+   card holding a packed field does not, saying the backend needs updating instead of the server's
+   raw sentence. The second half is the guard's whole reason: that card's boxes can be empty, and
+   posting them would write blanks over the sheet. */
+check('a settings save still works against a server older than the site', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'myProfile'
+    ? { error: 'That action is not recognised.' } : { success: true, changed: 1 } });
+  await wait(300);
+  const t = w.__t;
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+           profile: { first_name: 'Test', last_name: 'Admin', photo: '', phone: '07700900000' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const d = w.document;
+  const cardWith = f => [...d.querySelectorAll('#s-settings .me-form')]
+    .find(form => form.querySelector('[data-me="' + f + '"]'));
+  const plain = cardWith('first_name'), packed = cardWith('phone_no') || cardWith('dob_d');
+  if (!plain || !packed) return ['the settings column has no About you card or no Contact card to press'];
+  const bad = [];
+  const press = form => t.ACTIONS['me-save'](form.querySelector('[data-do="me-save"]'));
+  sent.length = 0;
+  press(plain);
+  await wait(300);
+  if (!sent.some(b => b.action === 'updateProfile')) {
+    bad.push('the About you card posted ' + JSON.stringify(sent.map(b => b.action))
+             + ' and no updateProfile — an older server stops every save');
+  }
+  sent.length = 0;
+  press(packed);
+  await wait(300);
+  if (sent.some(b => b.action === 'updateProfile')) {
+    bad.push('the Contact card posted its empty packed boxes to an older server, which would write blanks over the sheet');
+  }
+  const said = String((packed.querySelector('.me-said') || {}).textContent || '');
+  if (!/older than this site/i.test(said)) bad.push('the Contact card says "' + said + '" rather than that the backend needs updating');
+  const toastEl = d.getElementById('toast');
+  if (/not recognised/i.test(String(toastEl ? toastEl.textContent : ''))) bad.push('the raw "not recognised" sentence is still toasted');
   return bad;
 });
 

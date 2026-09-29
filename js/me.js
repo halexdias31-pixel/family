@@ -2869,11 +2869,30 @@ on('me-save', el => {
      Save from that form writes those blanks over the sheet. `profileOf_` always sends `phone_cc`, so
      its absence is the one test that tells the broken shape apart. Nothing is sent from it; the
      sheet's own copy is asked for, and the form is redrawn from that. */
+  /* ---------- AND WHEN THE SERVER IS OLDER THAN THIS SITE -----------------------------------------
+     REPORTED FROM THE LIVE SITE AS "the account settings stuff isnt saving. its saying action not
+     recognised". The site had been published and the Apps Script had not been updated, so the
+     server had never heard of `myProfile` — and this guard asked for it before every save from an
+     old-shaped copy, which on an old server is every save, and showed the server's raw sentence.
+     The site and the backend land days apart whichever is deployed first, so each has to work
+     against the other's older version.
+     SO AN OLD SERVER SAVES THE OLD WAY, EXCEPT WHERE THAT WAS THE DANGER. A card of plain fields —
+     names, a photo link, a borough — is posted exactly as it always was. A card holding a PACKED
+     field (the phone's two halves, the birthday's three boxes, the qualification shelf, library
+     cards, the week of hours) is the one this guard exists for: drawn from a copy without the
+     expanded values, its boxes are empty, and posting them writes blanks over the sheet. That card
+     is refused with a sentence saying what to update, rather than the server's. */
   if (!profileShapeOk_()) {
+    const packed = Object.keys(fields).some(k => PACKED_FIELD_.test(k));
+    const blocked = () => { if (said) said.textContent = OLD_SERVER_SAY_
+      + ' Until then this card is not sent, because its boxes may be empty and saving would wipe what the sheet holds.'; };
+    if (PROFILE_SERVER_OLD) { if (packed) return blocked(); return saveNow(); }
     if (said) said.textContent = 'Your saved details are still loading from the sheet, so nothing was sent. Try again in a moment.';
-    profileRefresh_(true);
+    profileRefresh_(true, () => (packed ? blocked() : saveNow()));
     return;
   }
+  saveNow();
+  function saveNow() {
   /* `send_`, NOT `api()`. `api()` resolves with whatever the server said, and this disabled only the
      button: no spinner, every box still live, and a headline edited while the request was on the
      wire was silently lost — measured. `send_` spins the button, locks the card's boxes, puts them
@@ -2902,7 +2921,14 @@ on('me-save', el => {
       if (!d || d.changed === undefined || d.changed > 0) load();
     })
     .catch(() => { /* `send_` has already written the refusal under the card. */ });
+  }
 });
+
+/* THE FIELD NAMES THAT ARE HALVES OF ONE CELL — see the old-server note in `me-save`. Hour codes are
+   a day prefix and an hour; the rest are the prefixes `fieldsHtml` expands a packed column into. */
+const PACKED_FIELD_ = /^(phone_(cc|no)|dob_[dmy]|qual_\d+(_|$)|lib\d+_|photos_\d+|(m|tu|w|th|f|sa|su)\d{1,2})$|^(qual_\d+_\w+|lib\d+_\w+)$/;
+let PROFILE_SERVER_OLD = false;
+const OLD_SERVER_SAY_ = 'The server in Apps Script is older than this site. Update the backend (pull from GitHub, then Deploy \u2192 Manage deployments \u2192 New version).';
 
 /* ---------- WHICH SETTINGS CARDS HAVE SOMETHING TYPED INTO THEM -----------------------------------
    A CARD IS DIRTY FROM ITS FIRST KEYSTROKE UNTIL IT IS SAVED, and while any card on the column is,
@@ -2936,12 +2962,20 @@ function profileShapeOk_() {
   const p = USER && USER.profile;
   return !!p && Object.prototype.hasOwnProperty.call(p, 'phone_cc');
 }
-function profileRefresh_(loud) {
+function profileRefresh_(loud, onOld) {
   if (!USER || !USER.token || PROFILE_ASKING) return;
   PROFILE_ASKING = true;
   api({ action: 'myProfile', name: USER.name, personId: USER.personId || '' })
     .then(d => {
       PROFILE_ASKING = false;
+      /* AN OLD SERVER, NOT A FAULT. "That action is not recognised" is the server saying it predates
+         this site — remembered, so the next save does not ask again, and never shown raw. */
+      if (d && d.error && /unknown action|not recognis/i.test(String(d.error))) {
+        PROFILE_SERVER_OLD = true;
+        if (typeof onOld === 'function') return onOld();
+        if (loud) toast(OLD_SERVER_SAY_);
+        return;
+      }
       if (!d || !d.success || !d.profile || !USER) {
         if (loud && d && d.error) toast(d.error);
         return;
