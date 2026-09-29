@@ -226,7 +226,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-29-c-batch";
+const BACKEND_VERSION = "2026-09-29-e-card";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -348,6 +348,11 @@ const SCHEMA = {
        night before this and `?setup=1` has not run since, so `ensureSchema` never created it and no
        cell anywhere holds a date under the old name. */
     "pricing_changed_at",
+    /* THE TUTOR AGREEMENT, SIGNED ONCE. `signAgreement` writes both and nothing clears them — the
+       box on the Settings column cannot be unticked, and the server refuses a second signature
+       rather than moving the date, because "when did they agree" is the one fact this column is
+       for. The version is the draft's own stamp, so a revised agreement is a new version to sign. */
+    "agreement_signed_at", "agreement_version",
     /* These four were added to forms, payloads and pricing over several rounds and never to the
        schema — so ensureSchema never created the columns, every write went nowhere, and each
        feature failed silently for want of one line here. Nothing else was wrong with any of them. */
@@ -2768,7 +2773,7 @@ const ACTION_ACCESS = {
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
   /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can.
      An admin resetting somebody else's is handled inside, where the old PIN can be waived. */
-  changePin: 'self', changeHandle: 'self',
+  changePin: 'self', changeHandle: 'self', signAgreement: 'self',
   /* The shop window is the business talking, so only the business may change it. */
   spotlight: 'admin',
   createCheckout: 'self', finalizePayment: 'self',

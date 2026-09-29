@@ -469,6 +469,45 @@ const STATES = {
                      ? 4 : 0),
       wants: 'all four pricing boxes on one page' },
 
+    /* ---------- THE TUTOR AGREEMENT, BOTH OF ITS STATES --------------------------------------------
+       The signed-in visitor is an admin, and `isTutorRole()` is tutor-or-admin, so the card is on
+       the column. Seeded as SIGNED through `USER` — the field `loginReplyFor_` sends — because the
+       locked box is the half that is easy to get wrong: a ticked box a repaint draws unticked is the
+       `REEL_HELD` fault, and a signed agreement that can be clicked again is the whole complaint.
+       `leave` puts the visitor back as unsigned, since states run in order down one page. */
+    { name: 'the tutor agreement, signed',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        USER.agreementSignedAt = '28/09/26 18:20'; USER.agreementVersion = AGREEMENT_VERSION;
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-do="agree-sign"]'));
+        if (at < 0) throw new Error('no agreement card on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => { delete USER.agreementSignedAt; delete USER.agreementVersion; paint('settings'); },
+      expect: () => {
+        const b = document.querySelector('#s-settings .page.on [data-do="agree-sign"]');
+        return b && b.checked && b.disabled
+          && document.querySelectorAll('#s-settings .page.on .agree-list li').length >= 8;
+      },
+      wants: 'the agreement, ticked and locked, with its points' },
+
+    /* THE ADMIN'S CUT OF AN EXTRA CHILD: a box holding the current figure and a sentence saying it
+       in money. The fixture carries no `boss_rate`, so this is the "none set" state, which is the
+       one a new sheet is in. */
+    { name: "the admin's cut of an extra child",
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('#cut-val'));
+        if (at < 0) throw new Error('no cut card on the settings column');
+        goPage('settings', at, true);
+      },
+      expect: () => document.querySelector('#s-settings .page.on #cut-val')
+        && /extra child adds/.test((document.querySelector('#s-settings .page.on .cut-say') || {}).textContent || ''),
+      wants: 'the share box and its worked example' },
+
     /* ---------- UP TO TEN QUALIFICATIONS ON ONE PAGE, SHOWN AS WHAT IS FILLED IN -------------------
        ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"*. All ten are IN
        the page — forty controls under one Save, because the packer rebuilds the whole `quals` cell

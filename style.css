@@ -2547,6 +2547,9 @@ button.text-drop { color: var(--bad); }
          display: grid; place-items: center;
          background: var(--sunk); border: 1px solid var(--gold); color: var(--gold);
          font-weight: 700; font-size: .85rem; }
+/* A PHOTOGRAPH IN THE DISC fills it and loses the gold ring's letter; see `dmFace_`. */
+.dm-av.has-pic { overflow: hidden; padding: 0; }
+.dm-av.has-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .dm-new { margin-left: .35rem; font-size: .66rem; font-weight: 400; color: var(--gold); }
 .msg.is-sending .msg-bub { opacity: .6; }
 .msg.is-failed .msg-bub { border-color: var(--bad); }
@@ -5639,6 +5642,16 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: .64rem; }
 .prof-teach .prof-tag.is-main { border-color: var(--gold); color: var(--ink); }
 .prof-tags + .prof-teach { margin-top: .35rem; }
+/* THE RATE, UP BY THE NAME AND BIGGER than any row — it is the number a parent opened the card for.
+   Gold because it is a price and this app's prices are gold; the `/h` recedes so the figure leads. */
+.prof-rate {
+  font-family: var(--mono); font-size: 1.2rem; font-weight: 700; color: var(--gold);
+  line-height: 1.1; margin-top: .1rem;
+}
+.prof-rate small { font-size: .62rem; font-weight: 400; color: var(--dim); margin-left: .1rem; }
+/* QUALIFICATIONS, AS CHIPS. Same pill as the subjects; a free-typed extra is dashed, because it is
+   what somebody wrote rather than a subject, level and grade the form asked for. */
+.prof-quals .prof-tag.is-extra { border-style: dashed; }
 /* SWITCHED OFF. The whole card dims and the heading says so in words — a tutor hidden from the
    public list is a state an admin has to be able to see at a glance without reading a row. */
 .card.is-widget.is-off { opacity: .6; }
@@ -10793,3 +10806,19 @@ button.scr-sq { cursor: pointer; }
      a control nobody can press. Everything else on the card is the document. */
   body.printing-rc .rc-print .rc-tiles { display: none !important; }
 }
+
+/* ---------- THE TUTOR AGREEMENT (DRAFT) and THE ADMIN'S CUT -------------------------------------
+   Two Settings cards (see `agreementCard_` and `cutCard_` in me.js). The draft mark is its own
+   class rather than `.chip`, which is the funnel's 44px filter with a ✕ on it. The list is small
+   type because it is ten sentences on one pane; a locked box recedes so it reads as done rather
+   than as a control waiting for a tap. */
+.agree-draft {
+  font-family: var(--mono); font-size: .58rem; letter-spacing: .08em; text-transform: uppercase;
+  padding: .15rem .45rem; border-radius: 999px; border: 1px dashed var(--gold); color: var(--gold);
+  vertical-align: middle; margin-left: .3rem; font-weight: 400;
+}
+.agree-list { margin: .5rem 0 .2rem; padding-left: 1.1rem; font-size: .74rem; line-height: 1.4; color: var(--dim); }
+.agree-list li + li { margin-top: .25rem; }
+.agree .check input:disabled ~ span:last-child { color: var(--dim); }
+.agree .check:has(input:disabled) { cursor: default; }
+.cut-say b { color: var(--gold); }
