@@ -854,6 +854,61 @@ for (const who of VISITORS) {
     swipes.push(...held.map(h => ({ from: h.where, dir: 'touch ' + h.dir, got: h.got, want: h.want, ok: h.ok })));
 
     /* ==================================================================================================
+       A SECOND FLICK WHILE THE FIRST IS STILL SETTLING GOES THE WAY THE FINGER WENT
+
+       THE SETTLE LEAVES AT THE FINGER'S SPEED NOW (`settleCurve_` in shell.js), which makes it longer,
+       and a card still moving can be caught by the next touch (`SWIPE.catch` in overworld.js). The
+       first version of that catch put the card's leftover distance into the DECISION as well as the
+       placement — so a second flick up 30ms after the first carried hundreds of pixels the other way
+       and turned the page back: 1, 2, 1. Every rule above swipes from rest, so none could see it; the
+       review told to refute the change found it with a probe, and this is that probe. Up then up must
+       advance two pages, up then down must come back, at gaps inside the settle and one after it. */
+    /* A REAL FLICK, sent the way a phone sends one: a move every 8ms of wall time, NOT awaited one by
+       one. Awaiting each round trip spaced the moves 33ms apart, so eight of them took a quarter of a
+       second and the "flick" was a slow drag at 0.2px/ms that no version of the code would ever turn a
+       page on — measured, and it cost a wrong fix before it was understood. */
+    const flick = async (x, y, dy) => {
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y }] });
+      const t0 = Date.now(), dur = 80;
+      for (;;) {
+        const tn = Math.min(1, (Date.now() - t0) / dur);
+        cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x, y: y + dy * tn * tn }] }).catch(() => {});
+        if (tn >= 1) break;
+        await page.waitForTimeout(8);
+      }
+      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+    };
+    const chainCol = tabs.indexOf('games') !== -1 ? 'games' : null;
+    if (chainCol) {
+      /* A SHORT SECOND FLICK, because that is where the fault bites: the card's leftover distance
+         has to outweigh the finger's travel for a decision that counts it to go the wrong way.
+         Measured here, a flick 20-40ms after the first catches the card 30-50px short of its page, so
+         a 40px flick — a flick by speed, and turned on its own — is the one a wrong rule turns back or
+         drops. */
+      for (const [gap, second] of [[20, -40], [40, -40], [40, 40], [400, -40]]) {
+        await page.evaluate(c => { go(c, false, true); goPage(c, 1, true); }, chainCol);
+        await page.waitForTimeout(700);
+        const spot = await page.evaluate(() => {
+          for (const fy of [0.65, 0.55, 0.75, 0.45]) for (const fx of [0.5, 0.3, 0.7]) {
+            const x = Math.round(innerWidth * fx), y = Math.round(innerHeight * fy);
+            const el = document.elementFromPoint(x, y);
+            if (el && axisFree(el, 'y', -1) && axisFree(el, 'y', 1) && !el.closest('[data-do], select')) return [x, y];
+          }
+          return null;
+        });
+        const where = chainCol + ' p1 flick up, ' + gap + 'ms, ' + Math.abs(second) + 'px flick ' + (second < 0 ? 'up' : 'down');
+        if (!spot) { swipes.push({ from: where, dir: 'chain', got: 'no spot the grid takes', want: 'a spot', ok: false }); continue; }
+        await flick(spot[0], spot[1], -90);
+        await page.waitForTimeout(gap);
+        await flick(spot[0], spot[1], second);
+        await page.waitForTimeout(900);
+        const got = await page.evaluate(c => PAGE[c], chainCol);
+        const want = second < 0 ? 3 : 1;
+        swipes.push({ from: where, dir: 'chain', got: 'page ' + got, want: 'page ' + want, ok: got === want });
+      }
+    }
+
+    /* ==================================================================================================
        A TALL QUESTION CARD IS READ BY SWIPING AND LEFT BY SWIPING, WHICH IS TWO CLAIMS
 
        431 OF 5,032 QUESTION CARDS ARE TALLER THAN THE PANE -- `check/cards.js` counts them -- and the

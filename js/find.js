@@ -8478,7 +8478,24 @@ let PANE_WATCH_DUE = null;
 function paneWatch_(host) {
   if (!host || !host.querySelectorAll) return;
   const panes = host.querySelectorAll('.pane');
-  paneReach_(panes);
+  /* ---------- ONLY THE PANES IT HAS NOT ALREADY MEASURED -------------------------------------------
+     THIS RAN `paneReach_` OVER EVERY PANE ON THE SCREEN ON EVERY PLACEMENT — including the one in the
+     frame a finger lifts — and `paneReach_` takes each card's zoom off, measures it at full size and
+     puts it back. Measured at 4x CPU on a Settings release: 34 computed-style reads, 22 rectangles,
+     8-19ms, all to arrive at the zoom every card already had. That frame is the one the settle
+     starts in, so it was spent on nothing while the card waited.
+
+     A PANE IS MEASURED WHEN IT IS NEW, OR WHEN THE SCREEN CHANGED SIZE. New is a card this host has
+     not seen — a paint replaces the elements, so a repainted card is new by construction; a card
+     that grows in place is the `ResizeObserver`'s below, which was already the thing that caught
+     it. What the observer cannot see is the pane's own cap moving on a rotation, so a change of
+     viewport measures everything again, as every placement used to. */
+  const vp = innerWidth + 'x' + innerHeight;
+  const all = host.PANE_VP !== vp;
+  host.PANE_VP = vp;
+  paneReach_(all ? panes : [].filter.call(panes, p =>
+    !(p.PANE_SEEN && p.PANE_SEEN === p.firstElementChild && p.PANE_N === p.children.length)));
+  [].forEach.call(panes, p => { p.PANE_SEEN = p.firstElementChild; p.PANE_N = p.children.length; });
   if (typeof ResizeObserver !== 'function') return;
   try {
     if (!PANE_WATCH) PANE_WATCH = new ResizeObserver(rows => {

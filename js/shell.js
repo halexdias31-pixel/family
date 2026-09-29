@@ -484,7 +484,10 @@ function startScreen_(id) {
 /** Has this screen been drawn? A screen with markup needs no redrawing to be arrived at. */
 function screenHasMarkup_(id) {
   const el = $('s-' + id);
-  return !!(el && el.innerHTML.trim());
+  /* THE FIRST CHILD, NOT `innerHTML`, which serialises every screen's whole markup to answer
+     yes or no — about a millisecond across eleven at 1x and four at 4x, inside a release. `paint`
+     always writes an element and index.html's sections are empty, so the answer is the same. */
+  return !!(el && el.firstElementChild);
 }
 
 function paintNeighbours() {
@@ -498,7 +501,7 @@ function paintNeighbours() {
     const id = t.id;
     if (id === AT) return;
     const el = $('s-' + id);
-    if (!el || el.innerHTML) return;          // already drawn; redrawing would only cost
+    if (!el || el.firstChild) return;         // already drawn; redrawing would only cost
     paint(id);
     /* And placed, if it is a paged screen. A neighbour whose pages have no position shows nothing
        when a drag reveals it, which is worse than showing an empty rectangle because it looks like
@@ -1111,6 +1114,62 @@ function stepX_() {
   return appWidth_() * (CARD_W + gap);
 }
 
+/* ---------- THE SETTLE AFTER A SWIPE, MATCHED TO THE FINGER ----------------------------------------
+   ASKED FOR AS *"refine the swiping to feel more stable ... maybe more frames? ... very profesional
+   and sleek"*. More frames was not it: the drag is already placed once per drawn frame, and three
+   separate measurements found the drag itself tracking the finger to the pixel. What was wrong was
+   the moment the finger LIFTED — the card froze, then leapt, then crept.
+
+   THE SPEED AND THE MOMENT, from `pointerup` in overworld.js. The distance is not known there — the
+   release asks for a page and this is what decides where that page is — so the curve is built here,
+   in the one placement that runs next, from how far each column really moves.
+
+   TWO NUMBERS, BOTH FROM THE GESTURE:
+   · THE DURATION grows with the distance and is held between 260 and 420ms. The old one could fall
+     to 130ms, which on a 500px page turn is a card crossing half the phone in one frame.
+   · THE CURVE STARTS AT THE FINGER'S SPEED. A `cubic-bezier` whose first control point is (x1, y1)
+     leaves at a slope of y1/x1 times the average speed, so the slope is worked out rather than
+     chosen: `s = v * T / D`, the speed the card must leave at over the speed the average implies.
+     Released still, it eases out of rest instead; released faster than a 0.3 control point can say,
+     `x1` shrinks so the curve can still start that steeply. Ends at (.25, 1), which comes to rest
+     without the long creep the old curve had.
+   Measured at 4x CPU against the old release: the frame the card is frozen in went from 150-380ms
+   to 45-100ms, and the first frame after lift moves about as far as the finger was moving per frame
+   rather than 7 to 47 times further. */
+let SETTLE_FROM = null;        // { axis, v, at } — the release the next placement settles from
+let SETTLE_ON = null;          // { dur, tf, until } — the settle the columns are running now
+function settleFrom_(axis, v) {
+  SETTLE_FROM = axis ? { axis: axis, v: Number(v) || 0, at: performance.now() } : null;
+}
+function settleCurve_(D, v) {
+  const dist = Math.abs(D);
+  const dur = Math.round(Math.max(260, Math.min(420, 220 + 0.45 * dist)));
+  const toward = v * Math.sign(D);                  // px/ms in the direction the card is going
+  if (!(toward > 0.02) || dist < 1) return { dur: dur, tf: 'cubic-bezier(.3, 0, .2, 1)' };
+  const s = toward * dur / dist;
+  let x1 = 0.3, y1 = 0.3 * s;
+  if (y1 > 1) { x1 = 1 / s; y1 = 1; }
+  return { dur: dur, tf: 'cubic-bezier(' + x1.toFixed(3) + ', ' + y1.toFixed(3) + ', .25, 1)' };
+}
+/* WHERE A SETTLING COLUMN REALLY IS, against where it is going — for a drag that starts before the
+   last one has landed (`SWIPE.catch` in overworld.js). Read only while a transform transition is
+   running on the screen in front, because it is a computed-style read and the answer is nought
+   otherwise. The other columns move with it along x and not at all along y, so one answers. */
+function settleLeft_(axis) {
+  try {
+    const host = $('s-' + AT);
+    if (!host || !host.getAnimations || !host.getAnimations().some(a => a.transitionProperty === 'transform')) return 0;
+    /* `matrix(a, b, c, d, e, f)` — a translate is the last two. Parsed rather than handed to
+       `DOMMatrix`, which is one more browser global for `check.js` to be told about for two numbers. */
+    const cur = (getComputedStyle(host).transform || '').match(/matrix\(([^)]+)\)/);
+    const m = /translate\(\s*(-?[\d.]+)px\s*,\s*(-?[\d.]+)px/.exec(host.style.transform || '');
+    if (!cur || !m) return 0;
+    const v6 = cur[1].split(',').map(Number);
+    const off = axis === 'x' ? v6[4] - parseFloat(m[1]) : v6[5] - parseFloat(m[2]);
+    return Math.abs(off) < 0.5 ? 0 : off;
+  } catch (e) { return 0; }
+}
+
 /* The two axes still call in — one placer underneath, so a horizontal move and a vertical one
    cannot disagree about where a cell is. */
 
@@ -1141,6 +1200,15 @@ function placeGrid(instant, drag) {
      move a card inside column 7, and every read still sees exactly what it saw before — its own
      host's `on` class written, its pages' classes as the last placement left them. Only the NUMBER
      of forced layouts inside this function changes, from eleven to one. */
+  /* ---------- AN INSTANT PLACEMENT DOES NOT CANCEL A SLIDE THAT IS STILL RUNNING -----------------
+     `transition: none` STOPS A TRANSITION DEAD, so an instant placement asked for while a swipe was
+     still settling teleported the card the rest of the way. Two ask for one routinely: `startScreen_`
+     re-places Tools, Games and Saved 300ms after arrival, which on a slow phone is inside the
+     slide, and a pane whose zoom changed re-places its column. Measured at 4x on a 320x568 phone: six
+     of thirty swipes finished with the card covering 76-255px in a single frame. An instant request
+     made while a slide runs is an animated one instead, which ends in the same place without the
+     jump — the rule `placeCells` already states, that animation is the safe side to lose to. */
+  if (instant && !drag && SETTLE_ON && performance.now() < SETTLE_ON.until) instant = false;
   const hosts = [];
   tabs.forEach((id, i) => {
     const host = $('s-' + id);
@@ -1165,11 +1233,44 @@ function placeGrid(instant, drag) {
   hosts.forEach(h => {
     h.shift = columnShift_(h.host, domIndex_(h.id, PAGE[h.id] || 0), topLine) + (h.id === AT ? dyPx : 0);
   });
+  /* THE SETTLE, if this placement is the one a release asked for. The distance is the column that
+     moves furthest along the swipe's axis, read off the transform it has now — the drag's last
+     position, written inline, so nothing is forced to lay out — against the one it is about to get. */
+  /* WHENEVER IT COMES. A window of 150ms was the first version, and on a slow phone the placement a
+     release asks for can start later than that — it then fell back to the old curve, whose first
+     frame is the lurch this exists to remove. The release is cleared at the next `pointerdown`
+     instead, so a later tap cannot inherit it. */
+  const rel = !instant && !drag && SETTLE_FROM ? SETTLE_FROM : null;
+  if (rel) {
+    SETTLE_FROM = null;
+    let D = 0;
+    hosts.forEach(({ i, host, shift }) => {
+      const m = /translate\(\s*(-?[\d.]+)px\s*,\s*(-?[\d.]+)px/.exec(host.style.transform || '');
+      if (!m) return;
+      const d = rel.axis === 'x' ? ((i - ti) * stepX) - parseFloat(m[1]) : shift - parseFloat(m[2]);
+      if (Math.abs(d) > Math.abs(D)) D = d;
+    });
+    const c = settleCurve_(D, rel.v);
+    /* SIXTEEN MILLISECONDS IN ALREADY — see the delay below. */
+    SETTLE_ON = { dur: c.dur, tf: c.tf, until: performance.now() + c.dur - 16 };
+  }
+  const settle = !instant && !drag && SETTLE_ON && performance.now() < SETTLE_ON.until ? SETTLE_ON : null;
   hosts.forEach(({ id, i, host, shift }) => {
     const dx = i - ti;
     const at = PAGE[id] || 0;
 
     host.style.transition = instant ? 'none' : '';
+    /* ON THE COLUMN, NOT THE ROOT — see `settleCurve_`. `transition-duration` does not inherit, so
+       writing it costs eleven elements' style and not three thousand. The opacity fade keeps its own
+       .22s; only the slide is the finger's. */
+    if (settle) {
+      host.style.transitionDuration = settle.dur + 'ms, .22s';
+      host.style.transitionTimingFunction = settle.tf + ', ease';
+      /* A TRANSITION SHOWS NOTHING ON ITS FIRST FRAME — progress nought — so every release began with
+         one frame of the card standing still under a finger that had just been moving it. Starting a
+         frame in is the continuation: the card is already one step along when it is first drawn. */
+      host.style.transitionDelay = '-16ms, 0s';
+    }
     host.style.transform =
       `translate(${(dx * stepX + dxPx).toFixed(1)}px, ${shift.toFixed(1)}px)`;
     /* Only the screen in front takes presses. A sliver of the next tab showing at the edge is
@@ -1854,13 +1955,32 @@ const AFTER_SLIDE_JOBS = new Map();
 function afterSlide_(fn, key) {
   AFTER_SLIDE_JOBS.set(key || fn, fn);
   if (AFTER_SLIDE) clearTimeout(AFTER_SLIDE);
-  AFTER_SLIDE = setTimeout(() => {
+  AFTER_SLIDE = setTimeout(function run() {
+    /* NOT INSIDE A SETTLE, AND NOT UNDER A FINGER. A swipe's settle is 260-420ms now
+       (`settleCurve_`), so a fixed 300ms landed widgets drawing themselves and pages being filled in
+       the middle of it — measured on Tools: a widget starting at +322ms for 85ms, then a re-placement
+       retargeting the glide at +412ms. The slide itself is composited and survives that work; what
+       does not is the next swipe, which waits behind it, and a widget that grows mid-glide restarts
+       the curve. So it waits for the settle's end, or for a finger that has claimed the grid to
+       lift; the timer was only ever a stand-in for "the slide has finished". */
+    const now = performance.now();
+    const wait = SETTLE_ON && now < SETTLE_ON.until ? Math.ceil(SETTLE_ON.until - now) + 50
+               : (typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis) ? 100 : 0;
+    if (wait) { AFTER_SLIDE = setTimeout(run, wait); return; }
     AFTER_SLIDE = null;
     const jobs = [...AFTER_SLIDE_JOBS.values()];
     AFTER_SLIDE_JOBS.clear();
     /* ONE JOB THAT THROWS MUST NOT TAKE THE REST WITH IT. They are unrelated — an observer, a
-       widget's `start`, a page fill — and before there was a list there was nothing to protect. */
-    jobs.forEach(f => { try { f(); } catch (e) {} });
+       widget's `start`, a page fill — and before there was a list there was nothing to protect.
+       AND ONE PER TASK, so a finger that lands between them is answered between them rather than
+       after all of them. */
+    const next = () => {
+      const f = jobs.shift();
+      if (!f) return;
+      try { f(); } catch (e) {}
+      if (jobs.length) setTimeout(next, 0);
+    };
+    next();
   }, 300);
 }
 
@@ -3161,8 +3281,12 @@ function splashWaitWatch_() {
 function splashOff_() {
   clearTimeout(splashSayTimer); clearTimeout(splashEarlyTimer); splashSay_(false);
   const el = $('splash'); if (el) el.classList.add('done');
+  /* AND OUT OF THE DOCUMENT ONCE IT HAS FADED. `done` hides it, and a hidden splash still runs its
+     endless animations — one kept eight of them restyling on every frame, drags included. Half a
+     second is past the fade; `splashOn_` puts it back. */
+  if (el) setTimeout(() => { if (el.classList.contains('done')) el.style.display = 'none'; }, 500);
 }
-function splashOn_()  { const el = $('splash'); if (el) el.classList.remove('done'); }
+function splashOn_()  { const el = $('splash'); if (el) { el.style.display = ''; el.classList.remove('done'); } }
 
 /* `tap` IS OPTIONAL AND EVERY OLD CALLER PASSES NOTHING, which is why it is a second argument
    rather than a second function: a banner that says a column is missing is a statement, and one

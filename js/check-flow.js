@@ -596,8 +596,11 @@ check('the cheat sheet fills what the exam gives you last, and Clear is lit only
   const t = w.__t;
   if (!t.matFill || !t.matOn || !t.matSet || !t.matParts) return ['the cheat sheet Fill is not exported'];
   try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
-  await wait(300);
+  /* POLLED, NOT A FIXED 300ms. The widgets start from `afterSlide_`, whose own timer is 300ms and
+     which now runs its jobs one per task and waits out any settle — so "300ms later" was a bet on
+     the order two timers fire in. A second is the ceiling, not the wait. */
   const d = w.document;
+  for (let n = 0; n < 20 && !d.getElementById('mat-list'); n++) await wait(50);
   if (!d.getElementById('mat-list')) return ['the cheat sheet maker did not draw on the Tools column'];
   const bad = [];
   const rank = c => c.inExam === false ? 0 : (c.inExam === true ? 2 : 1);
@@ -2625,6 +2628,52 @@ check('a question diagram is pressable exactly while the pen is off', async () =
       + 'in name only and the next stroke slides the column');
   if (!on.querySelector('.qpad.is-drawing'))
     bad.push('a card rebuilt with the pen on has no frame');
+  return bad;
+});
+
+/* ---------- A SWIPE SETTLES AT THE FINGER'S SPEED, WRITTEN ON THE COLUMNS AND NOT THE ROOT ------------
+   ASKED FOR AS *"refine the swiping to feel more stable"*, and measured before it was touched: every
+   release wrote `--slide` on `<html>`, which re-styled about three thousand elements before the card
+   could move (100-200ms frozen at 4x CPU), and the curve it fed left at 7 to 47 times the finger's
+   speed. Nothing here can time a frame, so the rule is the two facts the fix rests on: the curve's
+   starting slope IS the release speed, and the settle is written on the columns — never the root. */
+check("a swipe settles at the finger's speed, written on the columns and not the root", async () => {
+  const { w } = boot();
+  await wait(300);
+  if (typeof w.settleCurve_ !== 'function' || typeof w.settleFrom_ !== 'function'
+      || typeof w.placeGrid !== 'function') {
+    return ['settleCurve_, settleFrom_ or placeGrid is not reachable, so the settle was NOT checked — not a pass'];
+  }
+  const bad = [];
+  const slope = tf => { const m = /cubic-bezier\(\s*([^,]+),\s*([^,]+),/.exec(tf || ''); return m ? (+m[2]) / (+m[1]) : NaN; };
+  /* A card D px from where it is going, released at v px/ms. A `cubic-bezier` leaves at y1/x1 times
+     its average speed, and the average is D over the duration — so the card leaves at the finger's
+     speed exactly when y1/x1 = |v| x duration / |D|. Four releases, one of them fast enough that
+     `x1` has to shrink to say it. */
+  [[300, 1.2], [-300, -1.2], [120, 0.3], [200, 4]].forEach(([D, v]) => {
+    const c = w.settleCurve_(D, v);
+    const want = Math.abs(v) * c.dur / Math.abs(D), got = slope(c.tf);
+    if (!(Math.abs(got - want) / want < 0.02)) {
+      bad.push(`a card ${D}px from home released at ${v}px/ms leaves at ${got.toFixed(2)}x its average `
+        + `speed and should leave at ${want.toFixed(2)}x — the finger's own speed`);
+    }
+    if (!(c.dur >= 260 && c.dur <= 420)) bad.push(`a ${Math.abs(D)}px settle takes ${c.dur}ms, outside 260-420`);
+  });
+  /* RELEASED STILL, OR PULLING BACK THE OTHER WAY: nothing to carry on, so it eases out of rest. */
+  if (slope(w.settleCurve_(200, 0).tf) !== 0) bad.push('a card released still does not start from rest');
+  if (slope(w.settleCurve_(200, -1).tf) !== 0) bad.push('a card whose finger was pulling the other way starts by leaping toward home');
+
+  /* ---------- AND WHERE IT IS WRITTEN ------------------------------------------------------------ */
+  w.settleFrom_('x', -1);
+  w.placeGrid(false, null);
+  if (w.document.documentElement.style.getPropertyValue('--slide')) {
+    bad.push('the release wrote --slide on <html>, which re-styles every element in the app before the card can move');
+  }
+  const hosts = [...w.document.querySelectorAll('#screen > .screen')].filter(h => h.style.transform);
+  if (!hosts.length) bad.push('no column was placed, so where the settle goes was NOT checked');
+  else if (!hosts.some(h => /cubic-bezier/.test(h.style.transitionTimingFunction || ''))) {
+    bad.push('the settle was not written on the columns, so a release has no curve of its own');
+  }
   return bad;
 });
 

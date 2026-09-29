@@ -390,6 +390,28 @@ const FLICK = 0.4;            // fast enough, in pixels per millisecond
 /* Far enough, for this axis. A fraction of the actual step as well as a flat number, so the same
    gesture means the same thing on a small phone and a wide one — sixty-four pixels is a fifth of
    the way across a 320px card and an eighth of the way down a tall one. */
+/* ---------- THE RELEASE SPEED, FITTED RATHER THAN SUBTRACTED ------------------------------------
+   IT WAS TWO `Date.now()` SAMPLES, and that was fine while the speed only decided whether a flick
+   turned the page. It seeds the settle's curve now (`settleCurve_` in shell.js), so a noisy speed is
+   a random release: eight identical 40px flicks read anywhere from 0.34 to 1.35 px/ms, and the card
+   left at a quarter of the finger's speed on one and one and a half times on another. Measured.
+
+   THE LAST 80ms OF THE FINGER, with its own timestamps — the event's, not the clock's, so a busy
+   main thread cannot bunch the samples up — and every coalesced sample the browser folded into one
+   event, fitted with a straight line. The slope of that line is the speed. And nought if the finger
+   had stopped: a flick held still before it lifts is not a flick, and the old speed, only ever
+   updated by a move, went on reporting it and turned the page after a second's pause. */
+function releaseV_(trail, axis, upAt) {
+  const k = axis === 'x' ? 1 : 2, last = trail && trail[trail.length - 1];
+  if (!last || upAt - last[0] > 50) return 0;
+  const pts = trail.filter(p => p[0] >= last[0] - 80);
+  if (pts.length < 2) return 0;
+  let n = 0, st = 0, sp = 0, stt = 0, stp = 0;
+  pts.forEach(p => { const t = p[0] - last[0]; n++; st += t; sp += p[k]; stt += t * t; stp += t * p[k]; });
+  const den = n * stt - st * st;
+  return den > 1e-6 ? (n * stp - st * sp) / den : 0;
+}
+
 const THROW = axis => {
   /* THE ACTUAL STEP, both ways. `innerHeight * 0.5` was a guess at the vertical one and it did not
      match the guess the settle used or the one the axis used — three numbers for one distance. */
@@ -417,6 +439,11 @@ addEventListener('pointerdown', e => {
   SWIPE.frame = 0;
   SWIPE.held = false;
   SWIPE.vAt = Date.now(); SWIPE.vD = 0; SWIPE.v = 0;
+  SWIPE.lock = 0; SWIPE.catch = 0; SWIPE.last = null;
+  SWIPE.trail = [[e.timeStamp, e.clientX, e.clientY]];
+  /* A RELEASE NOBODY PLACED YET IS NOT THIS GESTURE'S. Cleared so a later tap cannot inherit the
+     last swipe's speed — see `settleFrom_` in shell.js. */
+  if (typeof settleFrom_ === 'function') settleFrom_(null);
   SWIPE.id = e.pointerId;
   /* A NEW GESTURE HAS NOT MOVED YET — see `PRESS_MOVED` in shell.js. Cleared here as well as
      by the click it swallows, so a drag that ends without one cannot eat the next tap. */
@@ -447,12 +474,25 @@ addEventListener('pointermove', e => {
   if (!SWIPE.live || e.pointerId !== SWIPE.id) return;
   if (e.pointerType === 'mouse' && e.buttons !== 1) { SWIPE.live = false; return; }
   const dx = e.clientX - SWIPE.x, dy = e.clientY - SWIPE.y;
+  /* EVERY SAMPLE, INCLUDING THE ONES THE BROWSER FOLDED TOGETHER — `releaseV_` above. Before any
+     early return, so a gesture the grid has not claimed yet still has its start recorded. */
+  {
+    const co = e.getCoalescedEvents ? e.getCoalescedEvents() : null;
+    (co && co.length ? co : [e]).forEach(p => SWIPE.trail.push([p.timeStamp || e.timeStamp, p.clientX, p.clientY]));
+    while (SWIPE.trail.length > 2 && SWIPE.trail[0][0] < e.timeStamp - 120) SWIPE.trail.shift();
+  }
 
   /* THIS IS A DRAG, WHATEVER THE GRID DECIDES NEXT. The same ten pixels, read BEFORE the axis is
      chosen — because the branch below can refuse the gesture and stop reading moves, and a drag the
      grid will not take is still a drag as far as the thing under the finger is concerned. Without
      it, every swipe that began on a control pressed that control. See `PRESS_MOVED` in shell.js. */
-  if (Math.abs(dx) > 10 || Math.abs(dy) > 10) PRESS_MOVED = true;
+  if (Math.abs(dx) > 10 || Math.abs(dy) > 10) {
+    /* AND THE PRESSED LOOK GOES WITH IT, NOW. A touch that moves sends no click, so the swallow in
+       shell.js never runs and the mark stayed lit through the whole swipe until its 1.2s backstop —
+       a control that looks held down while the column slides away under it. */
+    if (!PRESS_MOVED && typeof pressClear_ === 'function') pressClear_();
+    PRESS_MOVED = true;
+  }
 
   /* THE DECISION, made once. Ten pixels is enough to tell a deliberate drag from the wobble in a
      thumb, and 1.4x means an ambiguous diagonal goes to the vertical — which on a phone is the
@@ -476,11 +516,30 @@ addEventListener('pointermove', e => {
         ? scrollHost_(SWIPE.target, axis, dir) : null;
       if (!host) { SWIPE.live = false; return; }
       SWIPE.scroll = host;
-      SWIPE.scrollFrom = host.scrollTop;
+      /* FROM WHERE THE FINGER IS NOW, not where it started — the grid's own dead-zone pop, in the
+         box that scrolls instead. */
+      SWIPE.scrollFrom = host.scrollTop + dy;
       SWIPE.axis = axis;
     } else {
       SWIPE.axis = axis;
       SWIPE.cells = AXES[axis].cells();
+      /* ---------- THE TEN PIXELS ARE NOT ADDED IN ONE FRAME ---------------------------------------
+         NOTHING MOVES UNTIL THE FINGER HAS GONE TEN PIXELS, and then the card was placed at the whole
+         of that travel at once — measured, a 13px step in the first moving frame against a finger
+         moving 4px a frame, on every swipe. That twitch is the card not being stuck to the finger.
+         So the travel at the moment the axis is chosen is taken off what is PLACED, which is what a
+         native pager does with its touch slop. What is DECIDED — how far, which page — still reads
+         the whole travel, so the threshold to turn a page is where it always was. */
+      SWIPE.lock = dir;
+      SWIPE.last = AXES[axis].count() - 1;
+      /* ---------- AND A CARD STILL SETTLING IS CAUGHT WHERE IT IS --------------------------------
+         A SWIPE THAT STARTS WHILE THE LAST ONE IS STILL SLIDING used to snap the card to where it
+         was GOING before following the finger: `no-anim` kills the running transition and the drag
+         is placed relative to the target. Measured, flicking through Tools a second time 30ms
+         after lifting jumped the card 51px under a still finger. The column's real position is read
+         off the transition — once, here, and only when one is running — and the difference is
+         carried by the drag, so the card is picked up where it is. */
+      SWIPE.catch = settleLeft_(axis);
     }
   }
 
@@ -494,7 +553,10 @@ addEventListener('pointermove', e => {
 
   const ax = AXES[SWIPE.axis];
   const travelled = SWIPE.axis === 'x' ? dx : dy;
-  const at = ax.at(), last = ax.count() - 1;
+  /* THE COUNT FROM THE LOCK, not rebuilt on every move: `ax.count()` walks the column's page list,
+     which on Settings is a millisecond a move at 1x and six at 4x, for a number that cannot change
+     while the finger is down. */
+  const at = ax.at(), last = SWIPE.last !== undefined && SWIPE.last !== null ? SWIPE.last : ax.count() - 1;
   /* Resisted at the ends. The grid still moves, grudgingly, which says "nothing that way" better
      than refusing to move at all. */
   const end = (travelled > 0 && at === 0) || (travelled < 0 && at === last);
@@ -504,16 +566,6 @@ addEventListener('pointermove', e => {
      is still ambiguous might turn out to be somebody selecting a caption. */
   if (e.cancelable) e.preventDefault();
   document.getSelection?.()?.removeAllRanges?.();
-  /* THE SPEED, from the last stretch only. Anything older than 90ms is thrown away, so a long slow
-     drag that ends in a flick is measured on the flick — which is what the hand meant. */
-  {
-    const now = Date.now();
-    const gap = now - SWIPE.vAt;
-    if (gap > 12) {
-      if (gap < 90 && SWIPE.vAt) SWIPE.v = (travelled - SWIPE.vD) / gap;
-      SWIPE.vAt = now; SWIPE.vD = travelled;
-    }
-  }
   SWIPE.d = travelled;
   /* ONCE, not on every frame. `classList.add` on a class an element already has does nothing, but
      asking is still a walk of every cell sixty times a second for an answer that cannot change
@@ -543,7 +595,13 @@ addEventListener('pointermove', e => {
      ZERO. The screen holds still, which is a stronger statement than a wobble and an honest one —
      the edge is the edge. Everything else about the gesture is unchanged: it still commits, still
      settles, still turns a page anywhere that is not the end. */
-  SWIPE.px = end ? 0 : travelled;
+  SWIPE.px = (end ? 0 : travelled - SWIPE.lock) + SWIPE.catch;
+  /* THE CATCH IS IN WHAT IS PLACED AND NEVER IN WHAT IS DECIDED. The first version added it to the
+     travel the release reads, and a second flick up 30ms after the first then carried the card's
+     leftover distance — hundreds of pixels the OTHER way — so it turned the page back: 1, 2, 1.
+     Found by the review that was told to refute this, not by me. `PAGE` already points at the page
+     being settled to, so the finger's own travel from there is the whole of the decision. */
+  SWIPE.d = travelled;
   if (SWIPE.frame) return;
   SWIPE.frame = requestAnimationFrame(() => {
     SWIPE.frame = 0;
@@ -551,7 +609,11 @@ addEventListener('pointermove', e => {
     /* THE SAME PLACER that puts them at rest, given a drag. One function decides where a cell is,
        whether a finger is on it or not — two would be two things to keep in step, which is how the
        axes came apart in the first place. */
-    placeCells(SWIPE.axis, false, SWIPE.px);
+    /* A DRAG AT EXACTLY NOUGHT IS STILL A DRAG. `placeCells` reads a falsy `dragPx` as "not a
+       drag" and books an ordinary placement, which takes `no-anim` off the columns — so the first
+       frame after the dead zone, which now lands on 0 by construction, would have slid the grid
+       instead of holding it under the finger. A hundredth of a pixel rounds to nothing on screen. */
+    placeCells(SWIPE.axis, false, SWIPE.px || 0.01);
   });
 }, { passive: false });
 
@@ -561,13 +623,15 @@ addEventListener('pointerup', e => {
      dragging. The card would stop halfway and settle back, which reads as the swipe simply failing
      for no reason. */
   if (!SWIPE.live || (e && e.pointerId !== undefined && e.pointerId !== SWIPE.id)) return;
-  const axis = SWIPE.axis, d = SWIPE.d, cells = SWIPE.cells, v = SWIPE.v;
+  const v = releaseV_(SWIPE.trail, SWIPE.axis, e && e.timeStamp !== undefined ? e.timeStamp : performance.now());
+  const axis = SWIPE.axis, d = SWIPE.d, cells = SWIPE.cells;
   /* EVERYTHING A DRAG SET, PUT BACK — in one line, so a field added later is added here rather
      than left to be noticed. `px` and the three velocity fields were being left behind: harmless
      while `pointerdown` clears them, and harmless is not the same as correct, because the next
      thing to read one before a drag starts would get the last gesture's answer. */
   SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0; SWIPE.cells = null;
   SWIPE.held = false; SWIPE.px = 0; SWIPE.v = 0; SWIPE.vD = 0; SWIPE.vAt = 0;
+  SWIPE.lock = 0; SWIPE.catch = 0;
   SWIPE.id = null;
   /* A frame booked and not yet run would place the grid mid-drag AFTER the drag had finished,
      putting it back where the finger left it a moment after it had settled somewhere else. */
@@ -584,21 +648,28 @@ addEventListener('pointerup', e => {
   const fast = Math.abs(v) >= FLICK && (v < 0) === (d < 0) && Math.abs(d) > 8;
   const going = far || fast;
 
-  /* HOW LONG THE SETTLE TAKES, from how far it still has to go and how fast it was already moving.
-     A fixed duration is the other half of why this felt wrong: a card released a hair from its
-     destination took the same quarter of a second as one released at the start, so the end of
-     every gesture felt like wading. Distance decides the base; a fast release shortens it, because
-     the movement is already happening and the animation only has to finish it. */
-  /* The same distance the threshold used — see `stepY_` in shell.js. */
-  const step = axis === 'x' ? stepX_() : stepY_();
-  const left = going ? Math.max(0, step - Math.abs(d)) : Math.abs(d);
-  const ms = Math.round(Math.min(400, Math.max(130,
-    (left / step) * 520 / (1 + Math.min(2, Math.abs(v) * 1.6)))));
-  document.documentElement.style.setProperty('--slide', ms + 'ms');
+  /* ---------- THE SETTLE CARRIES ON AT THE SPEED THE FINGER WAS GOING --------------------------
+     IT WAS `--slide` ON `<html>`, and that one line was most of what felt unstable. A custom property
+     is INHERITED, so a new value on the root invalidates the style of every element in the app —
+     about three thousand — and the placement that runs next pays for all of it before the card can
+     move: measured at 4x CPU, 100-200ms of the card frozen where the finger left it, then a leap.
+     And the curve it fed, `cubic-bezier(.16, 1, .3, 1)`, starts at 6.25 times its average speed, so
+     the leap was 7 to 47 times faster than the finger had been moving.
+
+     SO THE RELEASE IS HANDED TO THE PLACEMENT, which knows the distance each column really has to
+     travel because it is the thing about to move them: `settleFrom_` records the speed and the
+     moment, and `placeGrid` in shell.js turns them into a duration and a curve whose starting slope
+     IS that speed, written on the columns themselves. Nothing is written on the root. */
+  settleFrom_(axis, v);
 
   /* The sweep `placeCells` skips during a drag — which screens nothing points at — runs once now.
      There is no pane-watching any more: sizes are fixed, so nothing can change size. */
-  if (going) ax.go(ax.at() + (d < 0 ? 1 : -1));
+  /* PAST THE END IS A SETTLE, NOT A TURN. `goPage` returns early when it is asked for the page it
+     is already on — right for a tile, wrong here, because a card caught mid-settle and released
+     past the last page carries the catch in its position and would be left off its page for good
+     with nothing re-placing it. So a turn that has nowhere to go is a settle back, and is seen to. */
+  const to = ax.at() + (d < 0 ? 1 : -1);
+  if (going && to >= 0 && to < ax.count()) ax.go(to);
   else placeCells(axis);          // not far enough: it settles back, and is seen to
 }, { passive: true });
 
@@ -650,6 +721,7 @@ addEventListener('pointercancel', e => {
      behind as a finished one. */
   SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0; SWIPE.cells = null;
   SWIPE.held = false; SWIPE.px = 0; SWIPE.v = 0; SWIPE.vD = 0; SWIPE.vAt = 0;
+  SWIPE.lock = 0; SWIPE.catch = 0;
   SWIPE.id = null;
   if (SWIPE.frame) { cancelAnimationFrame(SWIPE.frame); SWIPE.frame = 0; }
   if (axis) placeCells(axis);
@@ -706,6 +778,7 @@ addEventListener('visibilitychange', () => {
   if (!SWIPE.live) return;
   SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0;
   SWIPE.held = false; SWIPE.px = 0; SWIPE.v = 0; SWIPE.vD = 0; SWIPE.vAt = 0;
+  SWIPE.lock = 0; SWIPE.catch = 0;
   SWIPE.id = null;
   if (SWIPE.frame) { cancelAnimationFrame(SWIPE.frame); SWIPE.frame = 0; }
   (SWIPE.cells || []).forEach(el => el.classList.remove('no-anim'));

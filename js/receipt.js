@@ -1029,8 +1029,8 @@ function initFlappy() {
     S.pipes.push({ x: W, top, scored: false });
   };
   const flap = () => {
-    if (S.dead) { reset(); S.running = true; $('flappy-msg').textContent = ''; loop(); return; }
-    if (!S.running) { S.running = true; $('flappy-msg').textContent = ''; loop(); }
+    if (S.dead) { reset(); S.running = true; $('flappy-msg').textContent = '\u00a0'; loop(); return; }
+    if (!S.running) { S.running = true; $('flappy-msg').textContent = '\u00a0'; loop(); }
     S.bird.vy = FLAP;
   };
   const gameOver = () => {

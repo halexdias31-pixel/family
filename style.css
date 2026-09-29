@@ -422,19 +422,19 @@ body {
      sets `pointer-events` inline on every cell it places — so nothing about the working case
      changes. What changes is the broken case: it degrades to an app you can still press. */
   /* ---------- HOW LONG THE SLIDE TAKES, AND WHAT CURVE IT FOLLOWS ------------------------------
-     THE DURATION COMES FROM THE GESTURE. `--slide` is set on release from how far the card still
-     has to travel and how fast it was already going — a fixed .26s was the other half of why this
-     felt heavy: a card let go a hair from its destination took exactly as long as one let go at
-     the start, so the end of every swipe felt like wading.
+     THIS IS THE SLIDE FOR EVERYTHING THAT IS NOT A SWIPE — a tab tapped, a tile that turns a page.
+     A swipe's settle is written INLINE on each column by `placeGrid` (see `settleCurve_` in
+     shell.js): a duration from the distance and a curve that leaves at the finger's own speed. It
+     used to be `--slide` on `<html>`, and a custom property on the root is inherited by every
+     element in the app — so each release re-styled about three thousand of them before the card
+     could move. Nothing sets `--slide` now; the fallback below is the whole of it.
 
-     THE CURVE IS THE DECELERATION ONE, not an ease-in-out. A card released from a finger is
-     ALREADY MOVING — it should carry on at that speed and slow into place, not start from nothing.
-     `ease-in-out` begins at a standstill, and that pause between letting go and the card moving is
-     exactly the half-beat that reads as lag.
-
-     The fallback matters: `--slide` is unset until the first release, and on that first tap the
-     card would otherwise move instantly. */
-  transition: transform var(--slide, .28s) cubic-bezier(.16, 1, .3, 1),
+     A TAP STARTS FROM REST, SO THIS CURVE DOES TOO. It was `cubic-bezier(.16, 1, .3, 1)`, written
+     for a card released from a moving finger — and it leaves at 6.25 times its average speed, so a
+     tab tapped from rest jumped about a third of the way in its first frame. The finger's settle has
+     its own curve now; this one is only ever a slide nobody was already moving, and it eases out
+     of a standstill into place. */
+  transition: transform .3s cubic-bezier(.3, 0, .2, 1),
               opacity .22s ease;
   /* NO `contain` HERE, and this is the fault that broke the whole layout when the screen became a
      column. `contain: paint` does not merely hint — it CLIPS the element to its own box, and it
