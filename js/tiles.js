@@ -97,13 +97,18 @@ const TILE_ICONS = {
         + '<path d="M6.2 8V6a2.8 2.8 0 0 1 5.6 0v2"/>',
   unlock: '<rect x="4" y="8" width="10" height="6.8" rx="1.5"/>'
         + '<path d="M6.2 8V6a2.8 2.8 0 0 1 5.6 0"/>',
+  /* A SPEECH BUBBLE, ON "change message tile to look like a speach bubble". It was an envelope,
+     argued as the one picture everybody already reads — and that is true of an e-mail, which is not
+     what this opens: it opens a conversation with somebody, and every messaging app anybody has used
+     marks that with a bubble. The argument that stays is the one against the aeroplane below: that
+     means SEND, the act, and this control sends nothing — it opens the composer.
+     ONE PATH, the tail cut into the bottom edge rather than a second shape laid over it, so the
+     stroke joins cleanly at 1.4 like every other mark in the row; no dots inside, because at 18
+     units three dots are three smudges. The envelope had no other caller, so it went with it. */
+  chat:  '<path d="M4.5 2.5h9a2.5 2.5 0 0 1 2.5 2.5v4.5a2.5 2.5 0 0 1-2.5 2.5H9L4.5 15.5V12'
+       + 'a2.5 2.5 0 0 1-2.5-2.5V5a2.5 2.5 0 0 1 2.5-2.5z"/>',
   /* THE SHARE MARK. An arrow leaving a tray — the same idea the ↗ on a post was reaching for, drawn
      properly so it is the same weight and the same size as every other mark in the row. */
-  /* AN ENVELOPE, WHICH IS THE ONE PICTURE EVERYBODY ALREADY READS. The paper aeroplane below means
-     SEND — the act — and this means a message as a thing, which is what the control on a person's
-     pass offers: it opens a sheet, it does not post anything. Two marks, two meanings, and the tile
-     that actually sends sits inside the sheet using the aeroplane. */
-  mail:  '<path d="M2.5 4h13v9.5h-13z"/><path d="m2.5 4.6 6.5 4.4 6.5-4.4"/>',
   share: '<path d="M9 11.5V2.5"/><path d="M5.8 5.7 9 2.5l3.2 3.2"/>'
        + '<path d="M3.5 9.5v5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-5"/>',
   /* THE PAPER AEROPLANE. Sending, and nothing else in the app sends — so it can be the one mark
@@ -367,7 +372,7 @@ function tutorTiles_(x) {
           is the fault this repository records under `kinds`, under `link`/`source_url` and under
           `childrenOf`. The sheet shows the server's own sentence, which already says what to do
           instead: "You cannot message them directly. An admin can pass it on." */''}
-    ${(USER && !isMe_(x)) ? tile_({ icon: 'mail', label: 'Message',
+    ${(USER && !isMe_(x)) ? tile_({ icon: 'chat', label: 'Message',
               note: 'a note to them', act: 'msg-open',
               data: { to: x.name, id: (x.row && x.row.personId) || '' } }) : ''}
     ${isAdmin() ? tile_({ icon: t.listed === false ? 'hide' : 'show',
