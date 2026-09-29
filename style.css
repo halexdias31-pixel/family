@@ -711,6 +711,22 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    a card, which is the "not everything is a card" fault; a hairline between them says the same
    thing for one declaration and no inset. */
 .lib-shelf { display: flex; flex-direction: column; }
+/* ---------- A SHUT QUALIFICATION IS ITS SUMMARY LINE — see `qualShelf_` ---------------------------
+   The line is a control, so 44px in px; it reads as the list it is, left-aligned text in the ink of an
+   answer, with a chevron saying it opens. Open, the line stays as the card's own heading and the
+   boxes follow it; shut, the boxes are not drawn but are still in the form, so a Save posts them. */
+.q-sum { display: flex; align-items: center; gap: .4rem; width: 100%; min-height: 44px; padding: 0 .1rem;
+         background: none; border: 0; color: var(--ink); font: inherit; font-size: .82rem;
+         text-align: left; cursor: pointer; }
+/* A LINE THAT WRAPS RATHER THAN ONE THAT PUSHES. Text straight inside a flex button is an anonymous
+   flex item, and `Maths · A-Level · Edexcel · B · 2019 · specialism` ran 4px past a 320px card —
+   `check/ui.js` named it the first run a filled qualification was on screen. The span may shrink
+   and wrap; the chevron keeps its own width. */
+.q-sum-t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; padding-block: .3rem; }
+.q-sum::after { flex: 0 0 auto; content: '▾'; margin-left: auto; color: var(--faint); transition: transform .15s ease; }
+.q-card.is-shut .q-sum::after { transform: rotate(-90deg); }
+.q-card.is-shut > .lib-row { display: none; }
+.q-card:not(.is-shut) > .q-sum { color: var(--gold); }
 .lib-card + .lib-card { border-top: 1px dashed var(--line); padding-top: .45rem; }
 /* ---------- AND THE GAPS ARE THE ONLY THING LEFT TO SPEND, BECAUSE 44px IS NOT ------------------
    SIX ROWS OF INPUT AT A 44px FLOOR IS 264px AND THAT IS THE SHELF'S FLOOR. `label.field`'s own
@@ -799,7 +815,11 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    the one the root font was about to scale. The year keeps its own track — it is already 57px and
    a floor it clears changes nothing. Measured at 320: 44 + 44 + 57.3 and two 6.75px gaps is 158.8
    inside a 243.9px card, so nothing is given up for it. */
-.dob-boxes { display: grid;
+/* 16px ON THE GRID, BECAUSE `ch` RESOLVES AGAINST THE ELEMENT THAT DECLARES THE TRACK. The inputs
+   are 16px exactly (the iOS focus-zoom rule above) and the grid inherited the root's clamp, which is
+   13.5px on a 320px phone — so `4ch` was four characters of a SMALLER font and the year read `200`
+   with its last digit under the box's own padding. Caught on a screenshot of the Contact page. */
+.dob-boxes { display: grid; font-size: 16px;
   grid-template-columns: repeat(2, max(44px, calc(2ch + 1.9rem))) calc(4ch + 1.9rem); gap: .5rem; }
 .dob-boxes label.field { margin-bottom: 0; min-width: 0; }
 .dob-boxes input { min-width: 0; text-align: center; }

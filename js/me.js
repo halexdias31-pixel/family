@@ -2589,11 +2589,25 @@ function qualShelf_(list, value, options) {
   const nums = [...new Set((list || []).filter(isQualField_)
     .map(f => String(f).match(/^qual_(\d+)/)[1]))];
   const box = (f, ph) => fieldHtml(f, value(f), { placeholder: ph, options: options ? options(f) : null });
-  return `<div class="lib-shelf">${shelfSlots_(nums,
-    i => shelfFilled_(value, ['qual_' + i, 'qual_' + i + '_level', 'qual_' + i + '_board', 'qual_' + i + '_grade',
-                              'qual_' + i + '_received']),
+  const filled = i => shelfFilled_(value, ['qual_' + i, 'qual_' + i + '_level', 'qual_' + i + '_board',
+                                           'qual_' + i + '_grade', 'qual_' + i + '_received']);
+  /* ---------- A SAVED QUALIFICATION IS ONE LINE UNTIL YOU OPEN IT --------------------------------
+     ASKED AS *"look at all of account settings and see if there is a better way to have it layout.
+     like more effecient"*. Three rows of 44px boxes a qualification is 150px each, so four of them
+     were 605px on a 568px phone — drawn at the 70% floor and STILL scrolling. Measured, and the rows
+     could not be packed tighter: a subject, a level, a grade, a board, a year and two ticks are seven
+     44px controls, and two rows of them do not fit a 320px card.
+     SO A FILLED ONE IS ITS SUMMARY, one 44px line that says what it is — the tutor reads a list of
+     qualifications far more often than they edit one — and a tap opens its boxes IN PLACE, not over
+     the app. The boxes are still in the form while shut, just not drawn, so `me-save` posts every
+     qualification whichever are open: a shut one is not a deleted one. An empty shelf's first slot
+     arrives open, because a summary of nothing is a line with nothing to press. */
+  const anyFilled = nums.some(filled);
+  return `<div class="lib-shelf">${shelfSlots_(nums, filled,
     (i, hide) => `
-    <div class="lib-card"${hide ? ' hidden' : ''}>
+    <div class="lib-card q-card${filled(i) ? ' is-shut' : ''}"${hide ? ' hidden' : ''}>
+      <button type="button" class="q-sum" data-do="qual-open" aria-expanded="${filled(i) ? 'false' : 'true'}"><span class="q-sum-t">${
+        esc(qualSummary_(value, i)) || (anyFilled ? 'New qualification' : 'Your first qualification')}</span></button>
       <div class="lib-row">
         ${box('qual_' + i, 'Subject')}
         ${box('qual_' + i + '_grade', 'Grade')}
@@ -2610,6 +2624,41 @@ function qualShelf_(list, value, options) {
       </div>
     </div>`)}</div>`;
 }
+/* THE LINE A SHUT QUALIFICATION SHOWS. Built from the same five values the boxes hold, in the order a
+   tutor would say it — "Maths · A-Level · Edexcel · B · 2019 · teaches" — and rebuilt from the boxes
+   whenever one changes, so the line and the boxes under it cannot disagree. */
+function qualSummary_(value, i) {
+  const v = k => String(value('qual_' + i + k) ?? '').trim();
+  const parts = [v(''), v('_level'), v('_board'), v('_grade'), v('_received')].filter(Boolean);
+  if (!parts.length) return '';
+  const tick = k => TRUEish_(value('qual_' + i + k));
+  return parts.join(' · ') + (tick('_spec') ? ' · specialism' : tick('_teach') ? ' · teaches' : '');
+}
+on('qual-open', el => {
+  const card = el.closest('.q-card');
+  if (!card) return;
+  const shut = card.classList.toggle('is-shut');
+  el.setAttribute('aria-expanded', shut ? 'false' : 'true');
+  /* THE LINE IS REBUILT FROM THE BOXES ON THE WAY SHUT, so what it says is what will be saved. */
+  if (shut) qualSumFrom_(card);
+  /* A CARD THAT CHANGES HEIGHT UNDER A PLACED COLUMN IS RE-PLACED — `paneWatch_` sees the card grow
+     or shrink and asks `paneReach_` again, which is what keeps it inside its pane. */
+});
+function qualSumFrom_(card) {
+  /* THE SPAN, NOT THE BUTTON — `textContent` on the button would take the span with it, and the
+     span is what lets a long line wrap instead of pushing the card sideways. */
+  const btn = card.querySelector('.q-sum-t');
+  const box = card.querySelector('[data-me^="qual_"]');
+  const m = box && String(box.dataset.me).match(/^qual_(\d+)/);
+  if (!btn || !m) return;
+  const read = f => { const b = card.querySelector('[data-me="' + f + '"]');
+    return !b ? '' : b.type === 'checkbox' ? (b.checked ? 'TRUE' : '') : b.value; };
+  btn.textContent = qualSummary_(read, m[1]) || 'New qualification';
+}
+document.addEventListener('change', e => {
+  const card = e.target && e.target.closest && e.target.closest('.q-card');
+  if (card) qualSumFrom_(card);
+});
 /* ---------- WHEN IT WAS RECEIVED, AND WHETHER YOU TEACH IT ------------------------------------
    *"remove the studying now widget. could be achieved if each qualification has a date of reception
    and present is an option"* — so a year, or `Present` for a course still running, which is what the

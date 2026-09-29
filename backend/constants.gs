@@ -2085,17 +2085,16 @@ const PROFILE_GROUPS = {
      SECOND RATHER THAN FIRST, because About you is the page somebody arrives on and a name is what
      they came to change. `CLIENT_GROUPS` and `STUDENT_GROUPS` have always had it second; this is
      the map that disagreed with them. */
-  /* ---------- CONTACT SECOND, AND FOR A TUTOR IT STAYS APART FROM WHERE ----------------------
+  /* ---------- CONTACT SECOND, AND FOR A TUTOR IT IS ONE PAGE WITH WHERE NOW --------------------
      THE CONTACT PAGE IS SECOND because a field nobody can find is a field that is not there, and the
      e-mail is what somebody signs in with. A parent's and a student's contact page absorbed their
      address (`CLIENT_GROUPS`, `STUDENT_GROUPS`) when this app's settings were asked to merge "what
-     can be merged". A tutor's does NOT, and that is measured rather than preferred: a tutor's place
-     is six fields — travel distance among them — and merged it was **661px in a 532px pane at
-     320x568**, 129px below the fold, where the two pages apart are about 330 and 450. */
-  'Contact':     ['email','phone','date_of_birth'],
-  /* THE PLACE AND THE ADDRESS ON ONE PAGE. The address is still private — `doGet` sends it to an
-     admin only — it simply stops being a second page about the same place. */
-  'Where':       ['city','town','borough','postcode','address','travel_km'],
+     can be merged". A tutor's was KEPT APART on a measurement — merged it was 661px in a 532px pane
+     at 320x568 — and that measurement no longer holds: the 17px browser margin over every settings
+     title is gone, and a card taller than its pane is now drawn smaller to fit (`paneReach_`) rather
+     than clipped. Asked again as "look at all of account settings and see if there is a better way to
+     have it layout. like more effecient", so one page, the same shape as everybody else's. */
+  'Contact & address': ['email','phone','date_of_birth','city','town','borough','postcode','address','travel_km'],
   'Your rate and group size': PRICING_FIELDS,
   /* WHAT YOU TEACH, WHAT YOU ARE STUDYING AND ANYTHING ELSE — one page, because they are the
      three answers to "what do you know". `Qualifications` beside it is the graded list. */

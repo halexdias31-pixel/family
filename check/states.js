@@ -520,6 +520,13 @@ const STATES = {
     { name: 'the qualifications',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
+        /* ONE SLOT FILLED, through `USER.profile`, which is what `loginReplyFor_` fills and what the
+           column is drawn from. The fixture's admin has no qualifications, so without this every card
+           is empty, every card is open, and a collapse that never shuts anything measures perfectly. */
+        window.STATE_QUAL_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {},
+          { qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_grade: 'B', qual_1_board: 'Edexcel' });
+        paint('settings');
         const pages = [...document.querySelectorAll('#s-settings .page')];
         const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
         if (at < 0) throw new Error('no qualifications page on the settings column');
@@ -529,7 +536,11 @@ const STATES = {
         const more = shelf.querySelector('[data-do="shelf-more"]');
         if (more) more.click();
       },
-      leave: () => { delete window.STATE_QUALS_SHOWN; },
+      leave: () => {
+        delete window.STATE_QUALS_SHOWN;
+        USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
+        paint('settings');
+      },
       expect: () => {
         const pg = document.querySelector('#s-settings .page.on');
         const shelf = pg && pg.querySelector('[data-me="qual_1"]');
@@ -540,6 +551,14 @@ const STATES = {
         return box && pg.querySelectorAll('[data-me^="qual_"]').length === 70
           && pg.querySelectorAll('[data-do="qual-tick"]').length === 20
           && pg.querySelectorAll('[data-do="me-save"]').length === 1
+          /* ONE SUMMARY BUTTON PER SLOT, and every filled slot arrives SHUT — a filled card drawn open
+             is the 802px page the collapse exists to prevent, and it measures perfectly. */
+          && box.querySelectorAll('.q-card > .q-sum[data-do="qual-open"]').length === 10
+          && box.querySelectorAll('.q-card.is-shut').length >= 1
+          && [...box.querySelectorAll('.q-card')].every(c =>
+               [...c.querySelectorAll('[data-me^="qual_"]')]
+                 .some(el => !/_(teach|spec)$/.test(el.dataset.me) && String(el.value || '').trim())
+               === c.classList.contains('is-shut'))
           && box.querySelectorAll('.lib-card:not([hidden])').length === window.STATE_QUALS_SHOWN + 1
           ? 70 : 0;
       },

@@ -289,7 +289,7 @@ PEOPLE.forEach(p => {
 {
   const reply = tokens['P-A1'];
   const profile = b.ev(`profileOf_(read(TAB.people).rows.find(r => r.person_id === 'P-A1'))`);
-  const fields = formOf(b.ev('PROFILE_GROUPS')['Contact'] || ['email', 'phone', 'date_of_birth'], profile);
+  const fields = formOf(b.ev('PROFILE_GROUPS')['Contact & address'] || ['email', 'phone', 'date_of_birth'], profile);
   Object.assign(fields, { email: 'parent@example.org', phone_no: '7700 900555', dob_d: '9', dob_m: '9', dob_y: '1999' });
   const d = b.post({ action: 'updateProfile', token: reply.token, name: reply.name, personId: 'P-A1',
     target: reply.name, targetId: 'P-A1', fields });
