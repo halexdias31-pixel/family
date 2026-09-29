@@ -3235,40 +3235,27 @@ function guideBox_(x, slot, ask, hint) {
   </label>`;
 }
 
-/* ---------- THE KIT, AS CHIPS -------------------------------------------------------------------
-   ASKED FOR AS "I want each item/ingredient to be like a chip. Like how Google has chips in
-   documents and stuff ... Then the things needed. And it's quantity."
+/* ---------- THE KIT, AS A LIST AGAIN ------------------------------------------------------------
+   IT WAS CHIPS — "like how Google has chips in documents" — and went back on "the google chip idea
+   didnt work how i wanted to so revert back". So it is the bulleted list it was before them: one
+   item a line, in the guide's own dim ink, read down a column. The chips' own classes (`.kit-chip`,
+   `.kit-n`, `.kit-q`) and their rules went with them rather than being left for nothing to draw.
 
-   A BULLETED LIST IS A THING YOU READ DOWN AND A KIT LIST IS A THING YOU CHECK OFF. Twelve items
-   as `<li>`s is twelve lines of one column, scanned top to bottom, with the ruler and the
-   stopwatch three inches apart; as chips they wrap into a block you take in at once and can run a
-   finger along while you pack the bag. That is what the shape is FOR, and it is why the quantity
-   belongs on the chip rather than in a second column: the two facts about an item are what it is
-   and how much of it, and a chip is exactly big enough for both.
+   THE DATA DID NOT GO BACK, and that half was worth keeping. An item is still `Name × qty` in the
+   cell, split by `kitParse_` into `{ name, qty }` — the quantity inside the item rather than in a
+   parallel column, for the reason the note over `risks` gives about three lists lining up by index.
+   So the quantity is printed on the line, after the name.
 
-   IT IS NOT `.chip`, AND THAT IS NOT FUSSINESS. `.chip` is the funnel's FILTER — a 44px tap
-   target with a gold ✕, whose own note records this stylesheet's fourth conviction of the
-   tap-target rule. A kit item is not pressable, so borrowing that class would give five hundred
-   inert boxes a fingertip's height each and put `check/ui.js` in the position of measuring tap
-   targets on things nobody can tap. `.price.faint` is what this repository calls the other half
-   of that mistake — a rule that reads as a decision and behaves as nothing — and it is the fault
-   this stylesheet has been convicted of more often than any other. The tally is kept where the
-   rules are, because a count written in a second file is a count that goes stale.
-
-   `×` IS DRAWN BACK IN FRONT OF A BARE NUMBER AND NOT IN FRONT OF AN AMOUNT. `Lolly sticks 12`
-   is ambiguous — twelve of them, or the twelfth? — and `Water × 100 ml` is not English. One is a
-   count and the other is an amount, and the only thing that tells them apart is whether the
-   quantity is nothing but digits. One rule, at the one place the badge is drawn. */
-function kitChips_(list) {
-  /* THE NAME IS A SPAN RATHER THAN A BARE TEXT NODE, so it can be told to shrink. A chip is a
-     flex box and a flex item's minimum is its MIN-CONTENT — which is the fault `.prac-head h3`
-     already records on this very card, where four titles ran past a 320px column because they
-     could not shrink below their longest word. `Nichrome wire (about 1 m, taped to a metre rule)`
-     is the longest thing this list holds, and it has to wrap INSIDE its chip. */
-  return `<ul class="kit-chips">${list.map(e => `<li class="kit-chip"><span class="kit-n">${
-    esc(e.name)}</span>${
-    e.qty ? `<b class="kit-q">${/^\d+$/.test(e.qty) ? '\u00d7' : ''}${esc(e.qty)}</b>` : ''
-  }</li>`).join('')}</ul>`;
+   A COLON, AND THAT IS MEASURED RATHER THAN PREFERRED. The em dash reads nicely on `Lemons — 4` and
+   TEN of the 640 names already carry one of their own — `A stopwatch — a phone will do`,
+   `Surfaces to try — carpet, hard floor, pavement, short grass` — so a dash for the amount made a
+   name's own aside and its quantity the same mark, and the second of those read `… short grass — 4`.
+   The colon appears in NONE of them, counted, which is the same test `×` passed in the cell. And it
+   reads right for both kinds of amount, where `×` is right for a count and wrong for a measure:
+   `Lemons: 4`, `Water: 100 ml`, `Lolly sticks: about 10`, `Red cabbage: half`. */
+function kitList_(list) {
+  return `<ul>${list.map(e => `<li>${esc(e.name)}${
+    e.qty ? ': ' + esc(e.qty) : ''}</li>`).join('')}</ul>`;
 }
 
 
@@ -3309,14 +3296,14 @@ function practicalPart_(x, part) {
      back to understand. So the practical's name sits small above the section's own heading.
 
      `.gd` STAYS ROUND THE CONTENT, which is what leaves every rule the guide already had —
-     `.gd .kit-chips`, `.gd .prac-steps`, `.gd-sec`, `.prac-tab` — applying unchanged. The markup
+     `.prac-kit ul`, `.gd .prac-steps`, `.gd-sec`, `.prac-tab` — applying unchanged. The markup
      inside each section is the markup it had on the single card, moved, not rewritten; and the
      answer boxes are `guideBox_`'s with the same slots, so every answer already typed comes back. */
   const head = what => `<p class="prac-of">${esc(x.name)}</p><h3>${what}</h3>`;
   let inner = '';
   if (part === 'kit') {
     inner = `${head('Equipment')}<div class="gd"><section class="prac-kit">
-      ${kitChips_(p.equipment)}</section></div>
+      ${kitList_(p.equipment)}</section></div>
       ${/* The one-off cost is about the KIT, so it is on the kit's page rather than the first. */''}
       ${p.setupCost ? `<p class="prac-cost">About £${p.setupCost.toFixed(2)} of kit to set up,
         and it is bought once.</p>` : ''}`;

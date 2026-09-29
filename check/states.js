@@ -168,16 +168,17 @@ const STATES = {
       },
       /* THE NUMBER IS ASSERTED RATHER THAN DESCRIBED — `>= 3` would pass on a guide that had
          quietly grown a fourth question nobody decided on, and this state is the only thing that
-         renders one. And the kit is asked for as `.kit-chip` rather than `.prac-kit li`: the chips
-         ARE `<li>`s, so the loose selector would go on passing if they ever went back to bullets,
-         which is a state that measures nothing it claims to. */
+         renders one. And the kit is asked for as a LIST — `.prac-kit ul > li` — and as nothing
+         else: it was Google-Docs-style chips for a while and went back to bullets on "the google
+         chip idea didnt work how i wanted to so revert back", so a `.kit-chip` turning up again is
+         the reverted shape coming back and fails here rather than passing as "a kit was drawn". */
       expect: () => {
         /* ONE CARD, NOT THE SCREEN. The windowed pager keeps about six result pages in the DOM at
            once, so counting `.gd-box` across `#s-stuff` counts six guides and answers 18 — which
            is what the first version of this did, and it reported the state unreachable on a screen
            that was drawing it perfectly. The count is per card because the claim is per card. */
         /* FOUR CARDS, EACH ASKED ABOUT ITS OWN JOB. The worksheet holds exactly the three boxes;
-           the kit page holds the chips; and the practical's own card holds NEITHER — a first card
+           the kit page holds the list; and the practical's own card holds NEITHER — a first card
            that still carried the guide would pass the other two tests while being the one long
            card this split replaced. And no part page carries a drawing: the picture is on the
            first card and only there. */
@@ -187,12 +188,13 @@ const STATES = {
         const steps = document.querySelector('#s-stuff .card.prac-part.is-steps');
         return !!main && !!work && !!kit && !!steps
                && work.querySelectorAll('.gd-box').length === 3
-               && !!kit.querySelector('.prac-kit .kit-chip')
+               && !!kit.querySelector('.prac-kit ul > li')
+               && !kit.querySelector('.kit-chip')
                && !!steps.querySelector('.prac-steps li')
-               && !main.querySelector('.gd-box, .kit-chip, .prac-steps')
+               && !main.querySelector('.gd-box, .prac-kit, .prac-steps')
                && !document.querySelector('#s-stuff .prac-part figure');
       },
-      wants: 'a practical split over four cards — the card, the kit chips, the steps, and a worksheet of three boxes',
+      wants: 'a practical split over four cards — the card, the kit list, the steps, and a worksheet of three boxes',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
        BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,

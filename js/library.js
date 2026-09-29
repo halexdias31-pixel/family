@@ -74,7 +74,7 @@ const libTrue = v => {
 /* ---------- A KIT LIST, SPLIT INTO WHAT THE THING IS AND HOW MUCH OF IT ---------------------------
    THE STORAGE FORMAT IS `Name × qty`, ONE PIPE-SEPARATED ITEM EACH, and this is its only reader.
    `Lolly sticks × 12`, `Water × 100 ml`, `Beaker (250 ml)` — the last has no quantity because one
-   beaker is one beaker, and a chip reading `× 1` says nothing.
+   beaker is one beaker, and a kit line reading `Beaker: 1` says nothing.
 
    SPLIT ON THE LAST `×`, NOT THE FIRST. A name may one day carry one (`10 × 10 grid`); a quantity
    is always the tail, so taking the last occurrence is right under both readings and taking the
@@ -87,7 +87,7 @@ const libTrue = v => {
 
    THE NAME IS WHAT IS LEFT AND IT IS NEVER EMPTY. An item that is nothing but a quantity is a
    quantity of nothing, so a leading `×` keeps the whole string as the name rather than producing a
-   chip with no label — and `check-practicals.js` fails the row, which is where that is repaired. */
+   kit line with no name — and `check-practicals.js` fails the row, which is where that is repaired. */
 function kitParse_(cell) {
   return libS(cell).split('|').map(s => s.trim()).filter(Boolean).map(item => {
     const at = item.lastIndexOf('\u00d7');
@@ -329,11 +329,12 @@ function libraryExtras_(d, extra) {
         groupSize: libN(r.group_size), minutes: libN(r.minutes),
         safety: libS(r.safety), mathsLink: libS(r.maths_link),
         /* ---------- THE KIT, AS A NAME AND A QUANTITY ------------------------------------------
-           ASKED FOR AS "each item/ingredient to be like a chip ... and it's quantity". A chip has
-           two halves and the file has to carry both, so `kitParse_` splits each item on its own
-           `×`. That character appears NOWHERE in the 640 items this column already holds, measured
-           before it was chosen, and it is the one this app already means multiplication by — the
-           booking card prints `2 × £24.00` in the same face.
+           ASKED FOR AS "each item/ingredient to be like a chip ... and it's quantity". The chips
+           were reverted to a list — `kitList_` in find.js — and the half that was worth keeping
+           is this one: an item has two halves and the file has to carry both, so `kitParse_`
+           splits each item on its own `×`. That character appeared NOWHERE in the 640 items this
+           column already held, measured before it was chosen, and it is the one this app already
+           means multiplication by — the booking card prints `2 × £24.00` in the same face.
 
            ONE STRING PER ITEM RATHER THAN A SECOND LIST BESIDE IT, and the argument is written out
            ten lines above this one about `risks`: "three lists that have to line up by index is
@@ -342,7 +343,7 @@ function libraryExtras_(d, extra) {
            problem, on a column somebody edits by hand.
 
            AND THE QUANTITY IS OFTEN ABSENT ON PURPOSE. One stopwatch, one clamp stand, one pair of
-           goggles: writing `× 1` on five hundred chips is five hundred pieces of furniture. A
+           goggles: writing `× 1` on five hundred lines is five hundred pieces of furniture. A
            quantity is written where it MATTERS — more than one, or an amount the method states —
            and `check-practicals.js` refuses a `× 1`. */
         equipment: kitParse_(libS(r.equipment)),
