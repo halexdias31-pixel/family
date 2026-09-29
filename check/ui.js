@@ -157,8 +157,8 @@ const { STATES, statesOf } = require('./states.js');
 /* ---------- AND THE VISITOR, WHICH THIS FILE HAD NEVER THOUGHT ABOUT ------------------------------
    NINE SCREENS AT FOUR WIDTHS, AND EVERY ONE OF THEM SIGNED OUT. Nothing here ever set a user, so
    every run measured what a stranger sees — and this app shows a stranger very little. The booking
-   screen is the plainest case: signed out it is one card reading "Sign in to book", four lines and
-   a button, and that is what "booking: nothing to report" has meant all along. The form behind it
+   screen is the plainest case: signed out it is one card saying "Sign in to book" and nothing to
+   press, and that is what "booking: nothing to report" has meant all along. The form behind it
    is the most control-dense surface in the app.
 
    HOW MUCH IT MEANT is worth writing down rather than summarising. Measured the first time this

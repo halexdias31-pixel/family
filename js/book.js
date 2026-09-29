@@ -50,15 +50,16 @@
    talking already lives — a holiday offer is an announcement with a date on it, and it was only
    ever here because bookings were.
 
-   SIGNED OUT, IT IS A SIGN-IN CARD. The column drew one; the form drew unconditionally after the
-   move, which meant a visitor got twelve fields they could fill in and no way to send any of it.
-   The button toasts rather than opening anything, which is the state sign-in has been in for a
-   while — but a dead end that says what it is beats a form that silently cannot work. */
+   SIGNED OUT, IT IS ONE SENTENCE, THE SAME SHAPE AS EVERY OTHER COLUMN'S. The form drew
+   unconditionally after the move, which meant a visitor got twelve fields they could fill in and no
+   way to send any of it — so a card stands in for it. It used to carry a gold `Sign in` button,
+   and that button only ever toasted "Sign-in screen next": signing in is the You column's, and the
+   Camera and Messages cards already say so in one line with nothing to press. A control that does
+   nothing on a card whose whole job is to say where to go is the one thing on it that was wrong. */
 function bookBlocks() {
   if (!USER) {
-    return [`<div class="card"><h3>Sign in to book</h3>
-      <p class="sub">You need an account to ask for a session.</p>
-      <button class="btn" data-do="signin">Sign in</button></div>`];
+    return [`<div class="card"><h3>Booking</h3>
+      <p class="sub">Sign in to book — your account is a few screens to the right.</p></div>`];
   }
   /* ---------- THE FORM, THEN WHAT IS ALREADY BOOKED, THEN WHAT IS FINISHED -----------------------
      THE PAST ONES HAD NOWHERE TO BE. `myJobs_` has always held every session a person is in, live
@@ -449,12 +450,14 @@ function paintBook_() {
 
 /* The second argument was a header action — a "Sign in" link in the top right for anybody who was
    not. There is no header, so it went nowhere; the Book screen's own first card already says
-   "Sign in to book" with a button on it, which is where somebody is actually looking. */
+   "Sign in to book", which is where somebody is actually looking. */
 /* `screen('book')` WAS HERE. A screen with no tab is a screen nobody can reach, and `bookPages` was
    its only caller — the same blocks are pages on Find now, assembled by `bookingPages_` there. */
 /* `on('soon')` was here — "Not moved across yet", for screens that had not been rebuilt during
    the rewrite. They all have been, and nothing has carried `data-do="soon"` for a long time. */
-on('signin', () => toast('Sign-in screen next'));
+/* `on('signin')` WAS HERE — `toast('Sign-in screen next')`, behind the gold button on the signed-out
+   booking card. The button went (see `bookBlocks`), and a handler with no door is what
+   `check-doors.js` exists to print, so it went with it. Signing in is `do-signin` on the You card. */
 /* ================================================================================================
    THE BOOKER.
 
