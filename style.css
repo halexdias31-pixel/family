@@ -8366,22 +8366,45 @@ body.has-ib #install-bar { transition: transform .28s ease; }
           color: rgb(240 236 224 / .45); text-align: center; }
 
 /* ---------- A PENDULUM WAVE ----------------------------------------------------------------------
-   FIFTEEN SWINGS OF SLIGHTLY DIFFERENT PERIOD. They start together, drift apart, briefly form a
-   travelling snake and a double helix, and come back together — and nothing coordinates them. That
-   is the actual thing worth looking at: it appears choreographed and is only fifteen lengths.
-   The period is `2.4s + n × .06s`, computed in the CSS from `--n`, so fifteen bobs are one rule. */
-.pd-rack { display: flex; justify-content: center; gap: 3px;
-           width: min(60vw, 13rem); height: 8rem; margin: 0 auto; }
-.pd-rack i { position: relative; width: 6px; height: 100%;
+   FIFTEEN PENDULUMS SEEN END-ON, hanging from one bar that points straight at you — so every string
+   leaves the same point at the top, and the bobs sit one behind the other at different depths. They
+   are released together, drift out of step, draw a travelling snake, then a double one, and come
+   back into line; nothing coordinates them. That is the thing worth looking at.
+
+   REFINED FROM A ROW SEEN FROM THE FRONT, which is the wrong view of this toy. From the front the
+   fifteen swings overlap sideways, and with periods of 2.4 to 3.2 seconds they stayed nearly in
+   step for the whole of a loading screen — a screenshot at 2.2s was a tilted comb, fifteen balls in
+   a straight slanted line. End-on is the view every film of one of these is shot from, because it
+   is the only one where the pattern is visible.
+
+   THE ARITHMETIC IS THE REAL DEVICE'S. Pendulum n makes `24 + n` swings in forty seconds, so its
+   period is `40s / (24 + n)` (1.67s down to 1.05s) and all fifteen are back in line every forty
+   seconds. A pendulum's period goes as the square root of its length, so the length goes as the
+   period squared: `(24 / (24 + n))²` of the longest, which is why the far ones bunch up near the
+   bar — that bunching is what a real one looks like, and it reads as depth. Half a period is one
+   `alternate` leg, and `cubic-bezier(.37,0,.63,1)` is ease-in-out-sine, which is the shape a small
+   swing actually has. The snake forms after about three seconds, when neighbours are a fifteenth of
+   a swing apart; in the first second they are already bending into a curve.
+
+   NEARER IS BIGGER AND BRIGHTER. n = 0 is the longest string and the nearest bob; the size and
+   opacity ramps give the depth a flat drawing otherwise lacks, at the cost of two calcs. */
+.pd-rack { position: relative; width: min(60vw, 13rem); height: 10rem; margin: 0 auto .4rem; }
+/* The bar, seen end-on: a short gold-grey stub the strings leave from. */
+.pd-rack::before { content: ""; position: absolute; left: 50%; top: -3px; width: 14px; height: 3px;
+                   margin-left: -7px; border-radius: 2px; background: rgb(244 241 232 / .4); }
+.pd-rack i { position: absolute; left: 50%; top: 0; width: 1px; margin-left: -.5px;
+             height: calc(100% * 576 / ((24 + var(--n)) * (24 + var(--n))));
              transform-origin: 50% 0;
-             animation: pd-swing calc(2.4s + var(--n) * .06s) cubic-bezier(.37,0,.63,1)
+             animation: pd-swing calc(20s / (24 + var(--n))) cubic-bezier(.37,0,.63,1)
                         infinite alternate; }
-.pd-rack i::before { content: ""; position: absolute; left: 50%; top: 0; width: 1px; bottom: 14%;
-                     margin-left: -.5px; background: rgb(244 241 232 / .22); }
-.pd-rack i::after { content: ""; position: absolute; left: 0; bottom: 0; width: 6px; height: 6px;
-                    border-radius: 50%; background: #f0b45f;
+.pd-rack i::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 1px;
+                     background: rgb(244 241 232 / calc(.1 + (14 - var(--n)) * .012)); }
+.pd-rack i::after { content: ""; position: absolute; left: 50%; bottom: 0;
+                    width: calc(3px + (14 - var(--n)) * .3px); aspect-ratio: 1;
+                    transform: translate(-50%, 50%); border-radius: 50%;
+                    background: #f0b45f; opacity: calc(.45 + (14 - var(--n)) * .04);
                     box-shadow: 0 0 6px rgb(240 180 95 / .5); }
-@keyframes pd-swing { from { transform: rotate(-19deg); } to { transform: rotate(19deg); } }
+@keyframes pd-swing { from { transform: rotate(-24deg); } to { transform: rotate(24deg); } }
 .pd-say { margin-top: .9rem; font: 600 .75rem var(--mono); letter-spacing: .1em;
           color: rgb(240 236 224 / .45); }
 
@@ -8394,8 +8417,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   .br-ring i { transform: scale(1); opacity: .8; }
   .br-say { opacity: 1; }
   .rn-glass i { top: 30%; }
-  .pd-rack i:nth-child(odd) { transform: rotate(-12deg); }
-  .pd-rack i:nth-child(even) { transform: rotate(12deg); }
+  /* THE SNAKE, HELD STILL — one gentle S down the depth, which is the picture the moving version
+     is known for. `sin()` in `calc` is in every browser this app supports; where it is not, the
+     declaration is dropped and the strings hang straight, which is still a pendulum. */
+  .pd-rack i { transform: rotate(calc(sin(var(--n) * 24deg) * 18deg)); }
 }
 
 
