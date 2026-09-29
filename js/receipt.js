@@ -848,7 +848,7 @@ function sure_(el, ask) {
 }
 
 let FEED_AT = null;
-let CHESS = null, CHESS_PICK = -1, CHESS_HIST = [], CHESS_BUSY = false;
+let CHESS = null, CHESS_PICK = -1, CHESS_HIST = [], CHESS_PROMO = null, CHESS_LAST = null, CHESS_ARM = 0;
 let CAL_VIEW = null;
 let ttState = null;
 let timerState = { total: 25*60, left: 25*60, running: false, tick: null };

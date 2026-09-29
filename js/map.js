@@ -1023,10 +1023,19 @@ const WIDGETS = [
        A board is self-explanatory in a way almost nothing else in this app is. What is left is the
        board and one line telling you whose move it is, which is the only thing a board cannot say
        for itself. */
-    html: `<div class="card">
+    /* AND THEN TWO PLAYERS, WHICH PUT TWO BUTTONS BACK. With a computer opponent there was nothing
+       to take back and a new game was leaving the page; with two people at one phone a finger slips
+       and the person opposite agrees it did not count, and a game ends and another starts. The
+       whose-move line went ABOVE the board, because it is what the person being handed the phone
+       reads first. `chess-game` is the class `drawChess` draws into — see the note there. */
+    html: `<div class="card chess-game">
+    <p class="chess-say" id="chess-say" aria-live="polite">White to move</p>
     <div id="chess-board" class="chess"></div>
-    <p class="note" id="chess-say" style="text-align:center;margin:.5rem 0 0">
-      Your move — you are white.</p>
+    <div class="btn-row chess-promo" hidden></div>
+    <div class="btn-row chess-ctl">
+      <button type="button" class="btn quiet" data-do="chess-undo" disabled>Undo</button>
+      <button type="button" class="btn quiet" data-do="chess-new">New game</button>
+    </div>
   </div>` },
   { id: 'tables', kind: 'game', name: 'Times Tables', start: () => initTables?.(),
     /* The sprint's clock is a setInterval. Left running it goes on counting a sixty-second round
