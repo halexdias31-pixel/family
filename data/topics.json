@@ -301,5 +301,16 @@
 {"topic_id": "phys-astro", "label": "Astrophysics", "parent_id": "physics", "aliases": "astronomy, a-level astrophysics", "active": "True"},
 {"topic_id": "astro-telescopes", "label": "Telescopes", "parent_id": "phys-astro", "aliases": "telescope, resolving power, ccd, collecting power, reflecting telescope, refracting telescope, radio telescope", "active": "True"},
 {"topic_id": "astro-stars", "label": "Classification of Stars", "parent_id": "phys-astro", "aliases": "magnitude, absolute magnitude, apparent magnitude, spectral classes, hertzsprung-russell diagram, black body radiation, supernovae, black holes", "active": "True"},
-{"topic_id": "astro-cosmology", "label": "Cosmology", "parent_id": "phys-astro", "aliases": "doppler effect, hubble's law, quasars, exoplanets", "active": "True"}
+{"topic_id": "astro-cosmology", "label": "Cosmology", "parent_id": "phys-astro", "aliases": "doppler effect, hubble's law, quasars, exoplanets", "active": "True"},
+{"topic_id": "alp-measure", "label": "Measurements & Their Errors", "parent_id": "physics", "aliases": "si units, uncertainties, absolute uncertainty, percentage uncertainty", "active": "True"},
+{"topic_id": "alp-particles", "label": "Particles & Radiation", "parent_id": "physics", "aliases": "particle physics, quarks, leptons, antiparticles, photoelectric effect, energy levels", "active": "True"},
+{"topic_id": "alp-waves", "label": "Progressive & Stationary Waves", "parent_id": "physics", "aliases": "stationary waves, diffraction gratings, superposition, interference, refraction at a plane surface", "active": "True"},
+{"topic_id": "alp-mech", "label": "Mechanics & Materials", "parent_id": "physics", "aliases": "projectile motion, moments, young modulus, stress and strain", "active": "True"},
+{"topic_id": "alp-circuits", "label": "Electric Circuits", "parent_id": "physics", "aliases": "resistivity, internal resistance, potential dividers, emf", "active": "True"},
+{"topic_id": "alp-circular", "label": "Circular & Periodic Motion", "parent_id": "physics", "aliases": "circular motion, simple harmonic motion, shm, resonance", "active": "True"},
+{"topic_id": "alp-thermal", "label": "Thermal Physics", "parent_id": "physics", "aliases": "ideal gases, specific latent heat, kinetic theory", "active": "True"},
+{"topic_id": "alp-grav", "label": "Gravitational Fields", "parent_id": "physics", "aliases": "gravitational potential, orbits of planets and satellites", "active": "True"},
+{"topic_id": "alp-emfields", "label": "Electric & Magnetic Fields", "parent_id": "physics", "aliases": "electric fields, magnetic flux, electromagnetic induction, alternating currents", "active": "True"},
+{"topic_id": "alp-caps", "label": "Capacitors", "parent_id": "physics", "aliases": "capacitance, capacitor discharge", "active": "True"},
+{"topic_id": "alp-nuclear", "label": "Nuclear Physics", "parent_id": "physics", "aliases": "radioactive decay, nuclear radius, binding energy, fission and fusion", "active": "True"}
 ]
