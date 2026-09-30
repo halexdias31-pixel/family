@@ -297,5 +297,9 @@
 {"topic_id": "phys-atomic", "label": "Atomic Structure", "parent_id": "physics", "aliases": "radioactivity, half-life, nuclear fission, nuclear fusion, alpha beta gamma", "active": "True"},
 {"topic_id": "phys-magnet", "label": "Magnetism & Electromagnetism", "parent_id": "physics", "aliases": "magnetism and electromagnetism, generator effect, motor effect, transformers", "active": "True"},
 {"topic_id": "phys-emwaves", "label": "Electromagnetic Waves", "parent_id": "physics", "aliases": "electromagnetic spectrum, gamma rays, radio waves, infrared", "active": "True"},
-{"topic_id": "phys-space", "label": "Space Physics", "parent_id": "physics", "aliases": "the solar system, red-shift, life cycle of a star, big bang", "active": "True"}
+{"topic_id": "phys-space", "label": "Space Physics", "parent_id": "physics", "aliases": "the solar system, red-shift, life cycle of a star, big bang", "active": "True"},
+{"topic_id": "phys-astro", "label": "Astrophysics", "parent_id": "physics", "aliases": "astronomy, a-level astrophysics", "active": "True"},
+{"topic_id": "astro-telescopes", "label": "Telescopes", "parent_id": "phys-astro", "aliases": "telescope, resolving power, ccd, collecting power, reflecting telescope, refracting telescope, radio telescope", "active": "True"},
+{"topic_id": "astro-stars", "label": "Classification of Stars", "parent_id": "phys-astro", "aliases": "magnitude, absolute magnitude, apparent magnitude, spectral classes, hertzsprung-russell diagram, black body radiation, supernovae, black holes", "active": "True"},
+{"topic_id": "astro-cosmology", "label": "Cosmology", "parent_id": "phys-astro", "aliases": "doppler effect, hubble's law, quasars, exoplanets", "active": "True"}
 ]
