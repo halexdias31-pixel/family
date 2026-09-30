@@ -227,7 +227,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-30-b-records";
+const BACKEND_VERSION = "2026-09-30-f-handles";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2555,6 +2555,12 @@ const RUNNABLE = {
      one is safe to run again and gets more useful the more rows there are — it fills what is blank
      and reports what it left alone, so it is `priceWearables` above rather than a spent id. */
   fillHandles:       () => fillHandles(),
+  /* ---------- AND EVERY HANDLE INTO `<first>_<adjective><NN>` ONCE -------------------------------
+     Unlike `fillHandles` this REPLACES a handle, on the owner's ask ("handles are their first name
+     then underscore then adjective then number") — safe because signing in is an e-mail address
+     and a PIN now, so nobody is locked out by it. A row already in the new shape is left alone, so
+     a second run changes nothing. */
+  renameHandles:     () => renameHandles(),
   /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE.
      All four wrote rows into the `questions` tab, and there is no such tab — the papers are
      `data/questions.json` in this repository, and CLAUDE.md has said "do not seed that tab" since

@@ -213,6 +213,62 @@ function fillHandles() {
   return out;
 }
 
+/* ==================================================================================================
+   EVERY HANDLE INTO THE NEW SHAPE — `?run=renameHandles`.
+
+   ASKED FOR AS *"remove the usernames. only handles. also handles are their first name then
+   underscore then adjective then number."* The handles `fillHandles` and `register` generated
+   before this are `BrightOtter42`, so this regenerates every one that is not already
+   `<first>_<adjective><NN>` — see `handleMake_` and `handleIsShaped_` in people.gs.
+
+   THIS OVERWRITES, WHICH `fillHandles` REFUSES TO, AND THE REASON IT MAY IS SIGN-IN. `fillHandles`
+   only fills blanks because a handle used to be something you signed in with; `verifyLogin` reads
+   the e-mail column and nothing else now, so a new handle locks nobody out. It changes the name
+   friends see, which is what was asked for.
+
+   BOTH CELLS AGAIN, and the old one into `handle_was` where that column exists, because that is a
+   safeguarding column — "who was @foo last week" is asked exactly once, about the one account where
+   it matters. `handle_changed_at` is NOT written: that date is the person's own month's cooldown,
+   and a rename they did not ask for must not spend it.
+
+   A ROW ALREADY IN THE SHAPE IS LEFT ALONE, so a second run reports every row left alone and
+   changes nothing. Reported by `person_id`, for the reason `fillHandles` gives.
+================================================================================================ */
+function renameHandles() {
+  const t = read(TAB.people);
+  if (!t.sheet) return { error: 'no people tab' };
+  for (const col of ['handle', 'username']) {
+    if (t.headers.indexOf(col) === -1) {
+      return { error: 'the people tab has no ' + col + ' column. Run ensureSchema() first '
+                    + '— nothing was changed.' };
+    }
+  }
+  const keepWas = t.headers.indexOf('handle_was') !== -1;
+  const out = { renamed: [], leftAlone: 0, couldNotGenerate: [] };
+  t.rows.forEach(r => {
+    const who = S(r.person_id) || '(a row with no id)';
+    const has = S(r.handle);
+    if (handleIsShaped_(has, r.first_name)) {
+      /* The shape is right; make sure the other column agrees, which is one fact in two cells. */
+      if (S(r.username) !== has) setCell(t, r, 'username', has);
+      out.leftAlone++;
+      return;
+    }
+    const made = handleMake_(r);
+    if (!made) { out.couldNotGenerate.push(who); return; }
+    const was = has || S(r.username);
+    if (keepWas && was) setCell(t, r, 'handle_was', was);
+    setCell(t, r, 'handle', made);
+    setCell(t, r, 'username', made);
+    out.renamed.push(who);
+  });
+  clearCache();
+  out.renamedCount = out.renamed.length;
+  out.means = 'every handle not already <first>_<adjective><NN> was regenerated, the username written '
+            + 'to match and the old one kept in handle_was. Sign-in is by e-mail, so nobody is locked out.';
+  return out;
+}
+
 /** Add any config key that's missing. Never overwrites a value you've set. */
 function seedConfig() {
   const t = read(TAB.config);
