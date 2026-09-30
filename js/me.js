@@ -1686,7 +1686,7 @@ function settingsPages_() {
          the two it has never been told about — see the note over it. */
       options: fieldOptions_,
     })}
-      <button class="btn" data-do="me-save">Save</button>
+      <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'me-save' })}</div>
       <p class="faint me-said"></p></div>
   </div>`);
 
@@ -1854,7 +1854,7 @@ function cutCard_() {
       <input id="cut-val" type="number" inputmode="decimal" step="0.01" min="0" max="2"
         value="${esc(String(now.value))}" data-key="${esc(now.key)}"></label>
     <p class="faint cut-say">${cutSay_(now.value)}</p>
-    <button class="btn" data-do="cut-save">Save</button>
+    <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'cut-save' })}</div>
   </div>`;
 }
 on('cut-save', el => {
@@ -1970,7 +1970,9 @@ function send_(body, o) {
   /* `is-busy` IS THE SPINNER, and it goes on whether or not there is a `busy` label -- a
      button with no relabel still has to show that it is waiting. See `.btn.is-busy`. */
   if (btn) { btn.disabled = true; btn.classList.add('is-busy');
-             if (o.busy) { btn.dataset.was = btn.textContent; btn.textContent = o.busy; } }
+             /* A TILE HAS NO WORD TO SWAP — its face is a mark, and writing text over it would lose
+                the mark for good. The ring is the whole of its busy state. */
+             if (o.busy && !btn.classList.contains('tile')) { btn.dataset.was = btn.textContent; btn.textContent = o.busy; } }
   if (o.saying) say(o.saying);
 
   /* ---------- AND THE FIELDS, WHICH IS THE HALF THAT WAS MISSING ---------------------------------
@@ -3045,7 +3047,7 @@ function initAvail() {
   }
 
   into.innerHTML = availGrid_(codes, USER.profile || {}, DATA.profileReadonly || [])
-    + `<button class="btn" data-do="me-save">Save my hours</button>
+    + `<div class="tile-row">${tile_({ icon: 'save', label: 'Save my hours', act: 'me-save' })}</div>
        <p class="faint me-said"></p>`;
 }
 

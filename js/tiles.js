@@ -116,6 +116,11 @@ const TILE_ICONS = {
      filled shape beside eleven outlined ones is a different set. */
   send:  '<path d="M16 2.5 2.5 7.8l5.4 2.3z"/><path d="M16 2.5 10.2 16l-2.3-5.9z"/>'
        + '<path d="M7.9 10.1 16 2.5"/>',
+  /* SAVE IS A TICK, not a floppy disk: nobody who uses this app has held one, and a tick is what
+     every form here already means by "done". */
+  save:  '<path d="M3.5 9.5 7.3 13.3 14.8 4.8"/>',
+  /* SIGN OUT: a door frame and an arrow leaving it. */
+  out:   '<path d="M8.5 2.5h-5v13h5"/><path d="M7.5 9h8.5"/><path d="m13 6 3 3-3 3"/>',
 };
 
 function tileIcon_(name) {

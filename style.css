@@ -621,6 +621,16 @@ body {
 /* STILL A RING, JUST NOT A SPINNING ONE. Removing the mark entirely would take the state with it,
    which is the thing this exists to show. */
 @media (prefers-reduced-motion: reduce) { .btn.is-busy::before { animation: none; } }
+/* A TILE WAITING IS THE SAME RING IN PLACE OF ITS MARK. It is disabled while it waits, and a disabled
+   tile loses its plate and fades to a third — which is "nothing to press here", the wrong sentence
+   for "pressed, and working on it". So a busy tile keeps its plate and its ink. */
+.tile.is-busy, .tile.is-busy[disabled] { opacity: 1; background: rgb(255 255 255 / .03);
+  border-color: var(--line-soft); cursor: progress; }
+.tile.is-busy svg { display: none; }
+.tile.is-busy::before { content: ''; width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor; animation: btn-spin .7s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .tile.is-busy::before { animation: none; } }
 .btn.ghost { background: transparent; color: var(--gold); border: 1px solid var(--line); }
 .btn.quiet { background: var(--sunk); color: var(--ink); border: 1px solid var(--line); }
 .btn.danger { background: transparent; color: var(--bad); border: 1px solid #3a2320; }
