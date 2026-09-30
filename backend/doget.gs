@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-30-d-bizpages";
+const DOGET_VERSION = "2026-09-30-e-noextraquals";
 
 
 function doGet(e) {
@@ -721,7 +721,6 @@ function doGet(e) {
             return [subj, lvl, grd && ('grade ' + grd), brd && ('at ' + brd), when]
               .filter(Boolean).join(' ');
           }).filter(Boolean),
-          extraQuals: S(r.extra_quals),
           /* ---------- AND WHAT THEY ARE STUDYING NOW, WHICH IS NOT A QUALIFICATION ---------------
              SENT AS TWO FIELDS RATHER THAN ONE SENTENCE, unlike `quals` above — and the difference
              is that a qualification has three parts that are always written the same way, where

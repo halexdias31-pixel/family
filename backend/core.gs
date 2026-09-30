@@ -1202,6 +1202,16 @@ function qualsList_(r) {
     list.push({ subject: S(r.studying) + (S(r.studying_at) ? ' — ' + S(r.studying_at) : ''),
                 level: '', board: '', grade: '', received: 'Present', teach: false, spec: false });
   }
+  /* ---------- AND "MORE QUALIFICATIONS" IS ONE ENTRY EACH, BECAUSE THE FIELD IS GONE -----------
+     ASKED FOR AS *"remove the extra qualifications field. this can be achieved by the regular
+     qualification entries."* A PGCE or an Enhanced DBS is a qualification with no level and no
+     grade, so each ticked item becomes an entry with a subject and nothing else. Shown here until a
+     Save writes them into the cell (which also empties the old one — see `updateProfile`), and never
+     twice: an entry already carrying that name is taken to be it. */
+  S(r.extra_quals).split(/[,|]/).map(v => S(v)).filter(Boolean).forEach(name => {
+    if (list.some(q => low(q.subject) === low(name))) return;
+    list.push({ subject: name, level: '', board: '', grade: '', received: '', teach: false, spec: false });
+  });
   let one = false;
   list.forEach(q => { if (q.spec) { if (one) q.spec = false; one = true; } if (q.spec) q.teach = true; });
   return list.slice(0, QUAL_MAX);

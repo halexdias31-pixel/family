@@ -162,9 +162,6 @@
     "MMath",
     "Bible and Theology — University of Wales Trinity Saint David — studying now"
    ],
-   "extraQuals": [
-    "Enhanced DBS"
-   ],
    "studying": "",
    "studyingAt": "",
    "actionText": "Book this tutor",
@@ -547,8 +544,7 @@
    "qual_10_grade",
    "qual_10_received",
    "qual_10_teach",
-   "qual_10_spec",
-   "extra_quals"
+   "qual_10_spec"
   ],
   "Your rate and group size": [
    "rate_per_hour",

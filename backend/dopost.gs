@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-30-d-bizpages";
+const DOPOST_VERSION = "2026-09-30-e-noextraquals";
 
 
 function doPost(e) {
@@ -702,6 +702,7 @@ function doPost(e) {
         mirror('teaches_2_level', S(first.level));
         mirror('studying', '');
         mirror('studying_at', '');
+        mirror('extra_quals', '');
       }
       if (alsoSent && has('teaches_also')) {
         const first = teachAlsoList_({ teaches_also: fields.teaches_also })[0] || {};

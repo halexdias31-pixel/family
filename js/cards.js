@@ -367,13 +367,11 @@ function findCard(x) {
       ${/* ---------- QUALIFICATIONS, AS THE SAME CHIPS ---------------------------------------------
             ASKED FOR AS *"qualifications should also look like google chips."* Each entry of `quals`
             is already one sentence built by `doget.gs` ("Maths A-Level (Edexcel) grade B"), so a
-            chip is one claim and nothing is re-joined here. `extraQuals` is a comma cell and goes
-            through `profList_` for that reason; it is dashed, because it is whatever somebody typed
-            rather than a subject, a level and a grade the form asked for. */''}
-      ${profList_(t.quals).length || profList_(t.extraQuals).length
+            chip is one claim and nothing is re-joined here. A PGCE or a DBS is one of those entries now —
+            the separate "more qualifications" field is gone and `qualsList_` folds it in. */''}
+      ${profList_(t.quals).length
         ? `<div class="prof-cap">Qualifications</div><div class="prof-tags prof-teach prof-quals">${profList_(t.quals)
-             .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}${profList_(t.extraQuals)
-             .map(v => `<span class="prof-tag is-extra">${esc(v)}</span>`).join('')}</div>` : ''}
+             .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
       ${/* WHERE THEY WILL TEACH, off the venues tab's own `tutors_happy_here` column, which a tutor
             ticks on their Contact & address page. An older backend sends no key: nothing drawn. */''}
       ${profList_(t.venues).length

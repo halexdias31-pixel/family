@@ -735,29 +735,34 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-sum-t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; padding-block: .3rem; }
 .q-sum::after { flex: 0 0 auto; content: '▾'; margin-left: auto; color: var(--faint); transition: transform .15s ease; }
 .q-lvl.is-shut .q-sum::after { transform: rotate(-90deg); }
-.q-lvl.is-shut > .lib-row, .q-lvl.is-shut > .q-drop { display: none; }
-.q-lvl:not(.is-shut) > .q-sum { color: var(--gold); }
+.q-lvl.is-shut > .lib-row, .q-lvl.is-shut > label.field { display: none; }
+.q-lvl:not(.is-shut) > .q-sum-row > .q-sum { color: var(--gold); }
+/* THE SUMMARY LINE AND ITS DELETE, side by side — see `qualSubject_`. The ✕ is a 44px target in
+   px, quiet until pressed, and red only in its glyph: it empties a line rather than destroying
+   anything saved until Save. */
+.q-sum-row { display: flex; align-items: center; }
+.q-sum-row > .q-sum { flex: 1 1 auto; min-width: 0; }
+.q-x { flex: 0 0 auto; width: 44px; height: 44px; padding: 0; background: none; border: 0;
+       color: var(--faint); font: inherit; font-size: .8rem; cursor: pointer; }
+.q-x:active, .q-x.is-pressed { color: var(--bad, #c4655a); }
 /* ---------- A SUBJECT AND ITS LEVELS — see `qualShelf_` ---------------------------------------------
    THE SUBJECT IS THE HEADING OF ITS OWN BLOCK, so its box is the first thing and the level lines hang
    under it, indented by a rule down the left rather than by a box round them: they are the subject's,
    and a border would make each one a card of its own, which is the "widget" the owner asked to lose.
-   `Remove this level` is a quiet line at the foot of an open level, 44px because it is a control, and
-   red only in its words — it empties a level rather than destroying anything saved until Save. */
+   Deleting is the ✕ on each summary line (`.q-x`, above), not a line at the foot of an opened level,
+   which is where nobody found it. */
 .q-subj .q-levels { margin: .1rem 0 .15rem .35rem; padding-left: .6rem; border-left: 1px solid var(--line); }
 .q-lvl + .q-lvl { border-top: 1px dashed var(--line); }
-.q-drop { display: block; min-height: 44px; margin: -.2rem 0 .1rem; padding: 0; background: none; border: 0;
-          color: var(--bad, #c4655a); font: inherit; font-size: .72rem; text-align: left; cursor: pointer;
-          text-decoration: underline; text-underline-offset: 3px; }
 /* ---------- A SUBJECT IS ONE LINE UNTIL OPENED — see `qualSubject_` -------------------------------
    Shut, only its summary line shows; open, the line stays as its heading (gold, chevron down) and
    the body follows: the subject box with its two ticks on the SAME row — they were a row of their
    own under the levels — then the levels, then `+ Add a level` as one more line of that list rather
    than a full-width button. */
 .q-subj.is-shut > .q-subj-body { display: none; }
-.q-subj:not(.is-shut) > .q-subj-sum { color: var(--gold); }
-.q-subj.is-shut > .q-subj-sum::after { transform: rotate(-90deg); }
+.q-subj:not(.is-shut) > .q-sum-row > .q-subj-sum { color: var(--gold); }
+.q-subj.is-shut > .q-sum-row > .q-subj-sum::after { transform: rotate(-90deg); }
 .q-subj-sum { font-weight: 600; }
-.q-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .6rem; align-items: center; }
+.q-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: .6rem; align-items: center; }
 /* Named through the shelf, which `.lib-shelf label.field` also is — at equal specificity the
    margin was decided by file order alone (check/cascade.js). */
 .lib-shelf .q-head label.field { margin-bottom: 0; min-width: 0; }
@@ -871,6 +876,8 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* THE THIRD ROW OF A QUALIFICATION: the received year, then the two ticks that replaced the
    `What you teach` page. The ticks take what their words need and the year takes the rest; the
    label is the 44px target, as `.check` already makes it, and the words shrink rather than wrap. */
+/* Per level now, two to a row — see `qualLevel_`. */
+.q-ticks { justify-content: flex-start; gap: 1.2rem; }
 .q-tick { gap: .35rem; font-size: .72rem; min-height: 44px; min-width: 44px; padding: 0; white-space: nowrap; }
 /* AN UNCHOSEN LEVEL OR BOARD READS AS A PLACEHOLDER, in the same grey as the empty boxes above it —
    otherwise `Level` in full ink looks like an answer somebody gave. */
@@ -5869,7 +5876,6 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .prof-cap + .prof-tags { margin-top: 0; }
 /* QUALIFICATIONS, AS CHIPS. Same pill as the subjects; a free-typed extra is dashed, because it is
    what somebody wrote rather than a subject, level and grade the form asked for. */
-.prof-quals .prof-tag.is-extra { border-style: dashed; }
 /* SWITCHED OFF. The whole card dims and the heading says so in words — a tutor hidden from the
    public list is a state an admin has to be able to see at a glance without reading a row. */
 .card.is-widget.is-off { opacity: .6; }
@@ -7764,12 +7770,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE BOX IS THE APP'S OWN CHECKBOX — `.check`, a 44px row with the tick drawn — and tighter than
    its usual padding, because it sits between two rows of controls rather than in a form of them. */
 .check.mat-given { padding: .2rem 0; font-size: .74rem; color: var(--dim); }
-/* TWO QUIET BUTTONS, NOT GOLD. Print is the one thing this card is for and it is the gold one; these
-   are shortcuts on the way to it, and a second gold slab would compete with it. */
-.mat-quick { margin-bottom: .5rem; }
-/* PADDING TRIMMED SO "Fill the page" STAYS ON ONE LINE at 320, where the stock `.btn` padding broke
-   it in two — a two-line button beside a one-line one reads as two different kinds of control. */
-.mat-quick .btn { font-size: .74rem; padding-left: .4rem; padding-right: .4rem; }
 /* ---------- SHORTER ROWS, SO MORE OF THEM FIT ACROSS ----------------------------------------------
    9rem WAS THE WIDTH A THREE-WORD NAME NEEDED. A face is rarely more than eight characters, so the
    column can be narrower and a phone gets three where it got two — twenty-five rows in nine lines
