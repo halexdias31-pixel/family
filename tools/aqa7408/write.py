@@ -32,7 +32,11 @@ def check(name, rows):
     for k in ('subject', 'level', 'exam_board', 'spec_code', 'year', 'month', 'paper', 'name',
               'document_type', 'total_marks', 'source_url'):
         assert str(doc.get(k, '')).strip(), '%s: document row has no %s' % (name, k)
-    assert doc['subject'] == 'Physics' and doc['level'] == 'A-Level' and doc['exam_board'] == 'AQA'
+    # `level` IS A CLOSED LIST in check-library.js — 'Alevel', with band_value 'A-Level' beside it,
+    # which is what the 180 A-level rows already in the library carry. `levelOf_` shows both as A-Level.
+    assert doc['subject'] == 'Physics' and doc['level'] == 'Alevel' and doc['exam_board'] == 'AQA', \
+        name + ": document row must be subject 'Physics', level 'Alevel', exam_board 'AQA'"
+    assert doc.get('band_value') == 'A-Level', name + ": band_value 'A-Level'"
     total = 0
     for r in rows[1:]:
         assert r['paper_id'] == pid, '%s: %s names another paper' % (name, r['row_id'])

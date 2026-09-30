@@ -8367,19 +8367,27 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mu-grid i { aspect-ratio: 1; border-radius: 2px; background: rgb(244 241 232 / .07); }
 .mu-say { margin-top: .8rem; font: 600 .8rem var(--mono); letter-spacing: .06em;
           color: rgb(240 236 224 / .55); text-align: center; }
-.mu-say b { color: #f0b45f; animation: mu-n 6s steps(1) infinite; }
-/* THE LABEL IS A PSEUDO-ELEMENT so `content` can be animated — on a real element it does nothing,
-   which is a rule that looks considered and has no effect. */
-.mu-n { font-size: 0; }
-.mu-n::after { font-size: .8rem; content: "3"; animation: mu-n 6s steps(1) infinite; }
-@keyframes mu-n { 0%,33% { content: "3"; } 34%,66% { content: "5"; } 67%,100% { content: "9"; } }
+.mu-say b { color: #f0b45f; }
+/* THREE NUMBERS STACKED IN ONE PLACE, one showing at a time. It was a `::after` whose `content` was
+   animated — which Chrome does and SAFARI DOES NOT, so on an iPhone the label read "multiples of 3"
+   for all six seconds while the grid went on to the fives and the nines: the words and the picture
+   disagreeing on the one splash whose job is showing that they agree. Opacity animates everywhere. */
+.mu-n { display: inline-grid; }
+.mu-n span { grid-area: 1 / 1; opacity: 0; animation: 6s steps(1) infinite; }
+.mu-n span:nth-child(1) { animation-name: mu-n3; }
+.mu-n span:nth-child(2) { animation-name: mu-n5; }
+.mu-n span:nth-child(3) { animation-name: mu-n9; }
+@keyframes mu-n3 { 0%, 33% { opacity: 1; } 34%, 100% { opacity: 0; } }
+@keyframes mu-n5 { 0%, 33% { opacity: 0; } 34%, 66% { opacity: 1; } 67%, 100% { opacity: 0; } }
+@keyframes mu-n9 { 0%, 66% { opacity: 0; } 67%, 100% { opacity: 1; } }
 /* THE CELLS LIT AND THEN HELD, so the middle of each table's third was three identical frames — the
    pattern appeared and then sat there, which is a picture of a pattern rather than one emerging.
    They now come up in a stagger and breathe while lit, so the grid is alive for the whole third
    rather than for the moment it arrives. The stagger is per-cell via the delays below. */
 
 @media (prefers-reduced-motion: reduce) {
-  .mu-grid i, .mu-n::after, .mu-say b { animation: none; }
+  .mu-grid i, .mu-n span { animation: none; }
+  .mu-n span:first-child { opacity: 1; }
   /* STILL A PATTERN, not a blank grid. With motion off the threes stay lit, so the splash says the
      same thing without moving — which is what reduced motion is for and not an excuse to show
      nothing. */
@@ -9810,7 +9818,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    receipt is a single thing to do, not a set to choose from. */
 /* THE ACTIONS ON THE DOCUMENT, centred and ruled off — everything above is what was asked for and
    everything here is what to do about it. Two of them, so a row rather than a stack. */
-.rc-tiles { justify-content: center; gap: .4rem; margin: .45rem 0 0; padding-top: .45rem; }
+/* NOT CENTRED AND NOT RULED OFF ANY MORE. *"The booking thing has tiles which are floating below it.
+   This isn't consistent with other stuff on site"* — every other card ends in a plain `.tile-row`
+   at its left edge; this one centred two tiles in a band of their own under a rule, which read as
+   a separate panel hanging off the receipt. The row's own gap and margin, like the rest. */
+.rc-tiles { justify-content: flex-start; }
 /* ---------- 40px, IN px, ON THE TWO CONTROLS THE WHOLE CARD EXISTS TO REACH ----------------------
    "Ask for it" and "Share this booking" were 40x40 at every width. CLAUDE.md's own rule is that tap
    targets go in px precisely so they cannot come out under 44 by accident — and these were in px
@@ -9819,7 +9831,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    THE RECEIPT IS NOT THERE ANY MORE and it was never a good enough reason: sending a booking is the
    one irreversible thing on this card. 44px, which is the floor, and the row has the height. */
 .rc-tiles .tile { width: 44px; height: 44px; }
-.rc .rc-tiles { border-top: 1px solid var(--line-soft); }
 
 /* THE TERMS. This was `var(--paper-dim)` with a note saying `.faint` is a dark-theme grey and the
    terms sit on off-white — which was true of the paper and is the whole reason the paper had to
