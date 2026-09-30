@@ -633,6 +633,40 @@ const STATES = {
         && /extra child adds/.test((document.querySelector('#s-settings .page.on .cut-say') || {}).textContent || ''),
       wants: 'the share box and its worked example' },
 
+    /* THE BUSINESS RECORDS, AN ADMIN'S PAGES OF THIS COLUMN — they were a widget on Tools. `only:`
+       for the flyer's reason: nobody else is drawn one, so asking a stranger to reach it would be a
+       finding about the check. SEEDED THROUGH `BIZ.list`, which is what `listRecords` writes — the
+       fixture answers every POST with the payload, so without a seed the page is measured with every
+       box empty and no flag, which is half of what the card can draw. One item due in ten days, so
+       the Due soon flag is on the screen and measured. */
+    { name: 'the business records (insurance)',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        const d = new Date(); d.setDate(d.getDate() + 10);
+        const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-'
+          + String(d.getDate()).padStart(2, '0');
+        window.__bizWas = BIZ.list;
+        BIZ.list = [{ id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+          provider: 'Example Insure', reference: 'PL-000000', due_on: iso }];
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-biz-page="Insurance"]'));
+        if (at < 0) throw new Error('no business-records page on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => { BIZ.list = window.__bizWas || null; delete window.__bizWas;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings'); },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        return pg && pg.querySelectorAll('.biz-item').length === 3
+          && pg.querySelectorAll('input[type="date"][data-biz]').length === 3
+          && /Due soon/.test((pg.querySelector('.biz-item.is-soon .biz-flag') || {}).textContent || '')
+          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000';
+      },
+      wants: 'three insurance items, each with its date box, and the one due soon flagged' },
+
     /* ---------- UP TO TEN QUALIFICATIONS ON ONE PAGE, SHOWN AS WHAT IS FILLED IN -------------------
        ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"*. All ten are IN
        the page — forty controls under one Save, because the packer rebuilds the whole `quals` cell
@@ -651,9 +685,9 @@ const STATES = {
            than a card of its own. */
         window.STATE_QUAL_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {}, {
-          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8', qual_1_board: 'Edexcel', qual_1_received: '2017',
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8', qual_1_board: 'Hill Top School', qual_1_received: '2017',
           qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
-          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B', qual_2_board: 'Edexcel', qual_2_received: '2019',
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2019',
           qual_2_teach: 'TRUE',
           qual_3: 'Bible and Theology', qual_3_level: 'Degree', qual_3_received: 'Present' });
         /* A CLEAN COLUMN FIRST — see the agreement state above. */
@@ -702,12 +736,14 @@ const STATES = {
              the hidden `qual_N_teach` / `qual_N_spec` boxes are what `me-save` posts. */
           && levelsOf(maths).every(l => !!(l.querySelector('[data-me="qual_' + l.dataset.slot + '_teach"]') || {}).checked)
           && levelsOf(maths).map(l => (l.querySelector('[data-me="qual_' + l.dataset.slot + '_spec"]') || {}).checked ? 1 : 0).join('') === '100'
-          /* THE SUBJECT AND THE BOARD ARE DROP-DOWNS LIKE THE LEVEL BESIDE THEM — no `<input list>` left
-             on the shelf — and a subject the list does not hold is kept as its chosen option. */
+          /* THE SUBJECT IS A DROP-DOWN LIKE THE LEVEL BESIDE IT — no `<input list>` left on the shelf —
+             and a subject the list does not hold is kept as its chosen option. THE PLACE IS A TEXT
+             BOX, because it is a school's name rather than an exam board (the owner's correction). */
           && !shelf.querySelector('input[list]')
           && maths.querySelector('.q-name').tagName === 'SELECT'
           && subjects.some(sj => (sj.querySelector('.q-name') || {}).value === 'Bible and Theology')
-          && !!shelf.querySelector('select[data-me$="_board"] option[value="__other"]')
+          && !shelf.querySelector('select[data-me$="_board"]')
+          && !!shelf.querySelector('input[data-me$="_board"][placeholder="School, college or uni"]')
           ? 70 : 0;
       },
       wants: 'Maths drawn once with its GCSE and A-Level under it, a degree as a level of its own subject, one pair of ticks per subject, and Add a level carrying the subject into the new level' },

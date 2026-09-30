@@ -681,39 +681,40 @@
     <div class="py-sig">@family.</div>
   </div>
 
-  <!-- ---------- FIVE: THE LINE. A roundel, and a journey across Merton. -----------------------
-       You work in Merton and Wandsworth and everybody you teach gets to you on the Northern line or
-       the tram. The roundel is the shape that says "London" faster than any word, and the bar
-       across the middle of it exists to hold a name.
+  <!-- ---------- FIVE: THE LINE. A roundel, and a train running along under it. -----------------
+       THE ROUNDEL IS THE SHAPE THAT SAYS "LONDON" FASTER THAN ANY WORD, and the bar across the middle
+       of it exists to hold a name. In @family.'s own colours, not TfL's: the FORM, a circle with a bar
+       through it, is what anybody recognises, and their red and blue with their typeface would be
+       pretending to be them.
 
-       IN @family.'S OWN COLOURS, not TfL's. The FORM is what anybody recognises — a circle with a
-       bar through it — and the form is a geometric idea rather than somebody's property. Their red
-       and blue with their typeface would be pretending to be them; gold and the app's own ink is a
-       nod to a city, which is what was meant.
+       IT NAMED TWO BOROUGHS UNDER IT AND NO LONGER DOES. The owner asked for them to come off: the
+       splash is the first thing every visitor sees, and where the business works is not something
+       it needs to announce there. "Mind the gap" is the line anybody who has stood on a platform
+       already knows, and it belongs to nobody's address.
 
-       And underneath, the reason this one is a LOADING animation rather than a picture: a line with
-       stops on it and a train running along it. The journey is the progress bar, which is a joke
-       everybody who waits on a platform already knows. -->
+       AND UNDERNEATH, the reason this is a LOADING animation rather than a picture: a line with four
+       stations and a train that stops at each, lighting it as it arrives. The wait has a shape and
+       you can see how much of it is left. See style.css for why the train moves by `transform`. -->
   <div id="splash-tube" aria-hidden="true">
     <svg class="tube-roundel" viewBox="0 0 200 150" aria-hidden="true">
       <!-- The circle, drawn on rather than appearing — a ring that is struck looks made. -->
       <circle class="tube-ring" cx="100" cy="72" r="42"/>
       <!-- The bar, pulled across after it. -->
       <rect class="tube-bar" x="26" y="60" width="148" height="24" rx="2"/>
-      <text class="tube-name" x="100" y="76" text-anchor="middle">@family.</text>
+      <text class="tube-name" x="100" y="76.5" text-anchor="middle">@family.</text>
     </svg>
 
-    <!-- THE JOURNEY. Four stops, and a train that visits each one — so the wait has a shape and you
-         can see how much of it is left, which is the entire job of a loading animation. -->
     <div class="tube-line">
       <span class="tube-track"></span>
-      <span class="tube-stop"></span>
-      <span class="tube-stop"></span>
-      <span class="tube-stop"></span>
-      <span class="tube-stop"></span>
-      <span class="tube-train"></span>
+      <span class="tube-rail">
+        <span class="tube-stop"></span>
+        <span class="tube-stop"></span>
+        <span class="tube-stop"></span>
+        <span class="tube-stop"></span>
+      </span>
+      <span class="tube-run"><span class="tube-train"></span></span>
     </div>
-    <div class="tube-say">MERTON &amp; WANDSWORTH</div>
+    <div class="tube-say">MIND THE GAP</div>
   </div>
 
   <!-- ---------- SIX: THE COLUMNS. Something enormous, starting up, a long way off. ------------

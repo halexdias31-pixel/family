@@ -74,7 +74,7 @@ const FILE = process.argv[2] || path.join(__dirname, '..', 'data', 'questions.js
 const VOCAB = {
   kind:          ['document', 'preamble', 'question'],
   active:        ['True', 'False'],
-  subject:       ['Biology', 'Chemistry', 'Combined Science', 'English Language', 'Maths',
+  subject:       ['Biology', 'Chemistry', 'Combined Science', 'English Language', 'Greek', 'Maths',
                   'Physics', 'Religious Studies'],
   /* `5-a-day` IS A DIFFERENT KIND OF THING FROM A WORKSHEET and the owner's own words are the
      reason it is a value rather than a naming convention: "its its own category, not to be

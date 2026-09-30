@@ -909,6 +909,9 @@ const SUBJECT_BUCKET = bucketTable_([
   ['English',           ['English Language']],
   ['Science',           ['Biology', 'Chemistry', 'Physics', 'Combined Science']],
   ['Religious Studies', ['Religious Studies']],
+  /* A LANGUAGE IS NOT ENGLISH, which is the bucket it would otherwise have been guessed into. Greek
+     is the first; the next language joins this row rather than getting one of its own. */
+  ['Languages',         ['Greek']],
   ['Boxing',            ['Boxing']],
 ]);
 
@@ -1022,6 +1025,11 @@ function decadeBucket_(v) {
 }
 decadeBucket_.order = ['Before 1930', '1930s & 1940s', '1950s & 1960s',
                        '1970s & 1980s', '1990s & 2000s', '2010s onwards'];
+
+/* The 5-a-day levels and weeks, above `FACETS` because it is built as the file loads — see
+   `fiveADayOf_` for the rest. */
+const FIVE_LEVELS = ['Foundation', 'Foundation Plus', 'Higher', 'Higher Plus'];
+const FIVE_WEEKS = ['1st–7th', '8th–14th', '15th–21st', '22nd–28th', '29th–31st'];
 
 const FACETS = [
   /* What sort of thing, first. It is the one question that changes which of the others make any
@@ -1342,6 +1350,29 @@ const FACETS = [
      question of one paper carries that paper's name as its `sub`, so the id decides WHO answers
      and the name is what is shown. An item with no `paper_id` does not answer at all, which is
      what keeps the question away from tutors, venues and widgets. */
+  /* ---------- A 5-A-DAY IS FOUND BY ITS LEVEL, ITS MONTH AND ITS DAY -------------------------
+     REPORTED AS "corbet maths 5 a day is mad on the finder. should split into months and tiers".
+     A book is a month of days, and the Paper question over 214 of them drew seven letter ranges of
+     "5-a-day Foundation — 12 June" — an index nobody can use. The three questions somebody actually
+     has in mind are which level, which month and which day, in that order, and they are asked in
+     that order (sort 44–46 in `data/settings/facets.json`, straight after Type).
+
+     ONLY 5-A-DAY ROWS ANSWER THESE, so the coverage rule keeps all three off every other screen,
+     and nothing here touches `tier` or `paperId` for the rest of the library. `fiveLevel` reads the
+     same `tier` cell as Tier — deliberately a second question rather than a move of Tier, because
+     moving Tier up the order would move it for every past paper as well. With one level in the
+     library it has one answer and is skipped, and it starts being asked the day a second book lands.
+
+     THE DAY'S VALUE IS THE PAPER ID and its label is `1 June`, which is the `paperId` arrangement:
+     the id decides who answers. Grouped into weeks, because a month is thirty answers. */
+  { field: 'fiveLevel', label: 'Level',       of: x => fiveADay_(x) ? x.tier || '' : '',
+    orderOf: v => FIVE_LEVELS.indexOf(v) },
+  { field: 'fiveMonth', label: 'Month',       of: x => { const d = fiveADay_(x); return d ? d.month : ''; },
+    orderOf: v => MONTH_NAMES.indexOf(v) },
+  { field: 'fiveDay',   label: 'Day',         of: x => fiveADay_(x) ? x.row.paper_id : '',
+    showOf: (id, ids) => fiveDayLabel_(id, ids),
+    bucketOf: id => { const d = fiveADayOf_(id); return d ? FIVE_WEEKS[Math.min(4, Math.floor((d.day - 1) / 7))] : ''; },
+    bucketOrder: FIVE_WEEKS },
   { field: 'paperId',   label: 'Paper',
     of: x => (x.row && x.row.paper_id) || '',
     showOf: (id, ids) => paperLabel_(id, ids) },
@@ -2480,6 +2511,11 @@ function facetTally_(items, facet) {
 
   const order = facet.field === 'forLabel'
     ? (a, b) => (rank(a) - rank(b)) || cmpText(a, b)
+    /* A FACET MAY SAY ITS OWN ORDER when its answers have one their letters do not give — a month
+       name is the case: alphabetical puts August first. An answer the facet does not know sorts last. */
+    : typeof facet.orderOf === 'function'
+    ? (a, b) => { const o = v => { const i = facet.orderOf(v); return i < 0 ? 1e6 : i; };
+                  return (o(a) - o(b)) || cmpText(a, b); }
     : allDates
     ? (a, b) => dateKey_(b) - dateKey_(a)
     : cmpText;
@@ -2732,7 +2768,32 @@ function facetSplit_(items, facet) {
  * `part` NEEDS BOTH. Part `a` means nothing without a question number, which means nothing without
  * a paper — so it names the rung below it and the chain resolves itself.
  */
+/* ---------- A 5-A-DAY'S DATE, READ OFF ITS PAPER ID ----------------------------------------------
+   `P-CBM-5AD-F-0601` is the Foundation book's 1 June — the id scheme `tools/cbm5ad/common.py`
+   writes, month then day. Read off the id rather than out of the name, because the name is prose
+   and the id is a key somebody chose to be read. Null for anything else. */
+function fiveADayOf_(id) {
+  const m = /^P-CBM-5AD-[A-Z+]+-(\d{2})(\d{2})$/.exec(String(id || ''));
+  if (!m) return null;
+  const month = MONTH_NAMES[Number(m[1]) - 1];
+  return month ? { month, day: Number(m[2]) } : null;
+}
+function fiveADay_(x) {
+  return x && x.row && String(x.row.document_type || '') === '5-a-day' ? fiveADayOf_(x.row.paper_id) : null;
+}
+/* `1 June`, and the level beside it only where the answers on screen span two levels — the same
+   rule `paperLabels_` applies: say only what differs. */
+function fiveDayLabel_(id, ids) {
+  const d = fiveADayOf_(id);
+  if (!d) return '';
+  const lvl = i => { const m = /^P-CBM-5AD-([A-Z+]+)-/.exec(String(i)); return m ? m[1] : ''; };
+  const mixed = Array.isArray(ids) && new Set(ids.map(lvl)).size > 1;
+  const name = { F: 'Foundation', FP: 'Foundation Plus', H: 'Higher', HP: 'Higher Plus' }[lvl(id)] || lvl(id);
+  return d.day + ' ' + d.month + (mixed ? ' · ' + name : '');
+}
+
 const FACET_NEEDS_FIRST = {
+  fiveDay:  'fiveMonth',
   question: 'paperId',
   qNumber:  'paperId',
   part:     'question',

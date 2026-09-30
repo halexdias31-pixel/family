@@ -15824,3 +15824,54 @@ table landed under the thumb at the foot of the scrolled pane, and the page woul
 `overflow-x: auto` makes `.qsheet table` a scroller, a scroller starts its own `touch-action`, so
 the pane's `none` stopped at it and the browser took the vertical gesture. `touch-action: pan-x` on
 the table: sideways is the table's, up and down are the app's. Pre-existing, found by the press walk.
+
+## Greek Paper 1 (Listening), questions only, and 5-a-day found by month and day
+
+**Asked for as "i added another greek paper … i dont care that we dont have the audio at the
+moment … but at least we can do questions".** `tools/greek/write.py` writes both Edexcel 1GK0
+listening papers: Foundation June 2019 and Higher November 2020. That is 78 questions and 50 marks
+each, asserted against the cover. **Every `answer` is empty on purpose.** A listening answer is a
+fact about a recording nobody here has heard, and neither mark scheme is in Drive. Each paper
+carries one paper-scoped preamble saying the recording is not in the app. It is marked
+`placeholder: True`, so `check-library.js` lists it until it is replaced. The Higher cover says
+June 2020, but that series was cancelled and the paper was sat in November, so it has no
+`exam_date`. `Greek` joined `VOCAB.subject` and a `Languages` row in `SUBJECT_BUCKET`.
+
+**5-a-day** was reported as "mad on the finder". The Paper question drew seven letter ranges over
+214 days. It now has three questions straight after Type, which only 5-a-day rows answer, so the
+coverage rule hides them everywhere else:
+- **`fiveLevel`**: Foundation, Foundation Plus, Higher or Higher Plus. It is skipped while only the
+  Foundation books exist.
+- **`fiveMonth`**: the month, read off the paper id (`P-CBM-5AD-F-0601`).
+- **`fiveDay`**: the day, grouped into weeks, labelled `8 August`, and held behind Month.
+
+A facet may now declare `orderOf`, because month names sorted alphabetically put August first.
+
+## A qualification says where it was studied, not which exam board set it
+
+**Asked for as *"subject, level, grade and institution such as the name of school, NOT EXAM
+BOARD"*.** Each level on the qualification shelf now has:
+- **Level** and **Grade**, side by side;
+- **School, college or uni**, as a full-width free-text box;
+- **Completed**.
+
+`OPTION_FOR` no longer gives `qual_N_board` the exam-board list. On the card a qualification reads
+`Maths A-Level grade B at Hill Top School (2019)`.
+
+**The storage slot is still called `board`.** Renaming it inside the packed `quals` cell would strand
+every qualification already saved. A value typed before this change still shows, for example
+`at Edexcel`, until the tutor replaces it.
+
+Several levels under one subject was already how the shelf works: **Add a level** under the subject.
+
+## Business records are admin pages of the Settings column, not a Tools widget
+
+**Asked for as "the business stuff should not be on tools it should be on the account settings
+column. only admin sees. also it should be like everything else, like e.g. public liability
+insurance:________".** The `records` widget is gone from `WIDGETS`. `bizPages_` in js/records.js
+appends one card per category (Insurance, Tax, Legal, Safeguarding…) to `settingsPages_`, for an
+admin only, each item a caption with its boxes and a date, and one Save per page through `send_`.
+`listRecords` is asked once when the column is first reached (`bizStart_` from `startScreen_`), and
+Save refuses until it has answered. The backend's `saveRecord`/`dropRecord` became one
+`saveRecordsPage`, `admin` in `ACTION_ACCESS`. `check-profile.js` saves and reads a page back;
+`check/states.js` has `the business records (insurance)`. Stamps are `2026-09-30-d-bizpages`.

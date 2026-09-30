@@ -227,7 +227,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-30-b-records";
+const BACKEND_VERSION = "2026-09-30-d-bizpages";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2214,10 +2214,9 @@ const FIELD_OPTIONS = {
   qual_1: 'subject', qual_2: 'subject', qual_3: 'subject',
   qual_1_level: 'level', qual_2_level: 'level', qual_3_level: 'level',
   qual_1_grade: 'grade', qual_2_grade: 'grade', qual_3_grade: 'grade',
-  /* THE SAME LIST THE LIBRARY'S OWN `exam_board` FACET IS FILLED FROM — one list, so a tutor's
-     A-level and a past paper cannot end up with two spellings of Edexcel, which is the whole
-     argument written over this object. */
-  qual_1_board: 'exam_board', qual_2_board: 'exam_board', qual_3_board: 'exam_board',
+  /* `qual_N_board` HAS NO LIST NOW. It was the exam board, off the library's own `exam_board` list;
+     the owner asked for the school, college or university instead, which is free text — see
+     `qualLevel_` in me.js. The slot keeps its old name so saved qualifications are not stranded. */
   borough: 'borough', city: 'city', town: 'town', focus: 'focus',
   // resources
   subject: 'subject', document_type: 'document_type', key_stage: 'key_stage',
@@ -2832,7 +2831,7 @@ const ACTION_ACCESS = {
   claimChild: 'self', answerClaim: 'self',
   /* All `self`: each handler checks the message is the asker's own, and the POLICY table decides
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
-  listRecords: 'admin', saveRecord: 'admin', dropRecord: 'admin',
+  listRecords: 'admin', saveRecordsPage: 'admin',
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
   /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can.
      An admin resetting somebody else's is handled inside, where the old PIN can be waived. */

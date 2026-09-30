@@ -473,6 +473,9 @@ function startScreen_(id) {
      clip playing on a screen nobody was looking at, started by a booking made for the screen
      before. */
   if (id === 'reel' && typeof reelsWatch_ === 'function') reelsWatch_();
+  /* AND AN ADMIN'S BUSINESS RECORDS ARE ASKED FOR THE FIRST TIME THE SETTINGS COLUMN IS REACHED — a
+     POST, once, and never the payload (see js/records.js). */
+  if (id === 'settings' && typeof bizStart_ === 'function') bizStart_();
   /* AND A CONVERSATION OPENS AT ITS NEWEST MESSAGE. A scroller's natural state is the top, which on
      a thread is last month — so something has to say otherwise, once the markup exists. */
   if (id === 'dm' && typeof dmFoot_ === 'function') dmFoot_();

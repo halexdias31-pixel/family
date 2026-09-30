@@ -1,65 +1,65 @@
 /* ==================================================================================================
    BUSINESS RECORDS — insurance, tax, legal, safeguarding: the paperwork a tutoring business keeps.
 
-   AN ADMIN'S TOOL, on the Tools column beside the flyer maker (`admin: true` on its roster entry,
-   and `widgetFor_` is the one test every door asks). The rows live in the Ledger's `records` tab and
-   come by a POST — see backend/records.gs for why never the payload.
+   PAGES OF THE SETTINGS COLUMN, FOR AN ADMIN AND NOBODY ELSE. They were a widget on the Tools column,
+   a register you added rows to. *"no the business stuff should not be on tools it should be on the
+   account settings column. only admin sees. also it should be like everything else, like e.g. public
+   liability insurance:________ then i have to enter that bit in."* So it is a FORM now, shaped like
+   every other settings page: a fixed list of things, each a caption with its boxes beside each other
+   (the library shelf's `.lib-row`), and one Save per page through `send_`.
 
-   THE REGISTER IS SORTED BY WHEN THINGS FALL DUE, because that is the question it exists to answer:
-   what needs doing next. Anything past its date is marked overdue and anything within thirty days
-   due soon, and the line at the top counts both, so opening the tool is enough to know.
+   A FIXED LIST RATHER THAN A REGISTER, and that is the whole of what changed. Each item has a slug
+   (`pub_liability`) that is its `record_id` in the Ledger's `records` tab, so the tab keeps its shape
+   and a row is found by what it IS rather than by an id the phone invented. What somebody fills in
+   is a reference and a date — and for insurance, who provides it. It is advice about what to keep,
+   not a statement of what the law requires of this business: employers' liability and Companies
+   House depend on how the business is set up, and the placeholders say so.
 
-   A RECORD IS ONE LINE UNTIL IT IS OPENED — the qualification shelf's shape: the summary line, then
-   the boxes in place, one open at a time, with Save, Open the document and Remove as tiles.
+   THE DATE IS MARKED WHEN IT IS NEAR, which is what the register was for: past it and the caption
+   says Overdue, within thirty days Due soon. Only on a date that is a DEADLINE — a registration or
+   the day an account was opened is in the past on purpose, and calling it overdue would be a red
+   flag on something that is fine. `track: false` says which.
 
-   AND WHAT IS NOT RECORDED YET IS LISTED UNDER IT. `REC_CHECKLIST` is what a small UK tutoring
-   business normally has to hold, each with one line saying why; an item whose title matches a
-   record is left off, and tapping one opens a new record already named. It is advice about what to
-   keep, not a statement of what is legally required of this business — whether employers' liability
-   or Companies House applies depends on how the business is set up, and each line says so.
+   A POST AND NEVER THE PAYLOAD — see backend/records.gs. `listRecords` is asked once, when an admin
+   first arrives at the column (`bizStart_`, from `startScreen_`). Until it answers, Save refuses: a
+   page saved before the rows arrived would post six empty boxes over whatever the sheet holds.
 ================================================================================================== */
-const REC_CATEGORIES = ['Insurance', 'Tax', 'Legal', 'Safeguarding', 'Money', 'Company', 'Other'];
-const REC_SOON_DAYS = 30;
-const REC_CHECKLIST = [
-  { category: 'Insurance', title: 'Public liability insurance',
-    why: 'Cover if somebody is hurt or property is damaged during a session, at a home or a venue.' },
-  { category: 'Insurance', title: 'Professional indemnity insurance',
-    why: 'Cover if a family claims your teaching or advice caused them a loss.' },
-  { category: 'Insurance', title: "Employers' liability insurance",
-    why: 'Required by law once you employ anybody. Self-employed tutors usually do not count — check.' },
-  { category: 'Tax', title: 'HMRC self-assessment registration (UTR)',
-    why: 'Register by 5 October after the tax year you started trading.' },
-  { category: 'Tax', title: 'Self-assessment tax return',
-    why: 'Filed online by 31 January after the tax year ends on 5 April.' },
-  { category: 'Tax', title: 'Payments on account',
-    why: 'Due 31 January and 31 July when the last tax bill was over £1,000.' },
-  { category: 'Tax', title: 'VAT threshold check',
-    why: 'Register for VAT if turnover in any 12 months passes the threshold (£90,000 from April 2024).' },
-  { category: 'Legal', title: 'ICO data protection fee',
-    why: 'Most businesses holding personal data pay the ICO a yearly fee — renews every year.' },
-  { category: 'Legal', title: 'Privacy notice',
-    why: 'What you hold about families and children, why, and for how long.' },
-  { category: 'Legal', title: 'Terms and conditions for families',
-    why: 'Prices, cancellations and what happens if a session is missed.' },
-  { category: 'Legal', title: 'Tutor agreements',
-    why: 'The agreement each tutor signs, and which version they signed.' },
-  { category: 'Safeguarding', title: 'Safeguarding policy',
-    why: 'Written, dated, and reviewed at least once a year.' },
-  { category: 'Safeguarding', title: 'Enhanced DBS checks',
-    why: 'One per person who teaches children — the Update Service keeps them current.' },
-  { category: 'Safeguarding', title: 'Safeguarding training',
-    why: 'Who has done it and when it needs refreshing.' },
-  { category: 'Money', title: 'Business bank account',
-    why: 'Keeps business money apart from personal money, which makes the tax return far simpler.' },
-  { category: 'Money', title: 'Bookkeeping and receipts',
-    why: 'Income and expenses for the year, kept for at least five years after the return is due.' },
-  { category: 'Company', title: 'Companies House confirmation statement',
-    why: 'Only if the business is a limited company: filed every year.' },
-  { category: 'Company', title: 'Company accounts',
-    why: 'Only if the business is a limited company: filed with Companies House every year.' },
+const BIZ_SOON_DAYS = 30;
+const BIZ_PAGES = [
+  { title: 'Insurance', items: [
+    { id: 'pub_liability', title: 'Public liability insurance', provider: true, ref: 'Policy no.', due: 'Renews' },
+    { id: 'prof_indemnity', title: 'Professional indemnity insurance', provider: true, ref: 'Policy no.', due: 'Renews' },
+    { id: 'employers_liability', title: "Employers' liability insurance", provider: true,
+      ref: 'Policy no. (once you employ)', due: 'Renews' },
+  ] },
+  { title: 'Tax', items: [
+    { id: 'hmrc_utr', title: 'HMRC self-assessment (UTR)', ref: 'UTR', due: 'Registered', track: false },
+    { id: 'tax_return', title: 'Self-assessment tax return', ref: 'Tax year, e.g. 2025–26', due: 'Due' },
+    { id: 'payments_on_account', title: 'Payments on account', ref: 'Amount', due: 'Next due' },
+    { id: 'vat', title: 'VAT', ref: 'VAT no., if registered', due: 'Check by' },
+  ] },
+  { title: 'Legal and data', items: [
+    { id: 'ico_fee', title: 'ICO data protection fee', ref: 'Registration no.', due: 'Renews' },
+    { id: 'privacy_notice', title: 'Privacy notice', ref: 'Version', due: 'Review by' },
+    { id: 'family_terms', title: 'Terms and conditions for families', ref: 'Version', due: 'Review by' },
+    { id: 'tutor_agreements', title: 'Tutor agreements', ref: 'Version', due: 'Review by' },
+  ] },
+  { title: 'Safeguarding', items: [
+    { id: 'safeguarding_policy', title: 'Safeguarding policy', ref: 'Version', due: 'Review by' },
+    { id: 'dbs_checks', title: 'Enhanced DBS checks', ref: 'Certificate no.', due: 'Check by' },
+    { id: 'safeguarding_training', title: 'Safeguarding training', ref: 'Course', due: 'Refresh by' },
+  ] },
+  { title: 'Money and company', items: [
+    { id: 'bank_account', title: 'Business bank account', ref: 'Bank', due: 'Opened', track: false },
+    { id: 'bookkeeping', title: 'Bookkeeping and receipts', ref: 'Kept where', due: 'Next check' },
+    { id: 'ch_confirmation', title: 'Companies House confirmation', ref: 'Company no., if limited', due: 'Due' },
+    { id: 'company_accounts', title: 'Company accounts', ref: 'Company no., if limited', due: 'Due' },
+  ] },
 ];
 
-const REC = { list: null, error: '', open: null, draft: null, todo: false };
+/* `list` is null until `listRecords` answers — the difference between "nothing recorded" and "not
+   asked yet", which Save has to know. */
+const BIZ = { list: null, asking: false, error: '' };
 
 const recDays_ = iso => {
   const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -68,157 +68,116 @@ const recDays_ = iso => {
   const now = new Date(); now.setHours(0, 0, 0, 0);
   return Math.round((d - now) / 864e5);
 };
-const recState_ = r => {
-  const n = recDays_(r.due_on);
-  return n == null ? '' : n < 0 ? 'overdue' : n <= REC_SOON_DAYS ? 'soon' : '';
+const bizState_ = (item, iso) => {
+  if (item.track === false) return '';
+  const n = recDays_(iso);
+  return n == null ? '' : n < 0 ? 'overdue' : n <= BIZ_SOON_DAYS ? 'soon' : '';
 };
-const recDate_ = iso => {
-  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (!m) return '';
-  return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
-};
+const bizRow_ = id => (BIZ.list || []).find(r => r.id === id) || {};
 
-function recordsHtml_() {
-  if (REC.error) {
-    return `<p class="note">${esc(REC.error)}</p>
-      <div class="tile-row">${tile_({ icon: 'undo', label: 'Try again', act: 'rec-load' })}</div>`;
-  }
-  if (!REC.list) return `<p class="faint">Loading the records…</p>`;
-  const list = REC.list.slice().sort((a, b) => {
-    const x = recDays_(a.due_on), y = recDays_(b.due_on);
-    return (x == null ? 1e9 : x) - (y == null ? 1e9 : y) || a.title.localeCompare(b.title);
-  });
-  const over = list.filter(r => recState_(r) === 'overdue').length;
-  const soon = list.filter(r => recState_(r) === 'soon').length;
-  const head = !list.length ? 'Nothing recorded yet — start with the list below.'
-    : [over ? over + ' overdue' : '', soon ? soon + ' due within ' + REC_SOON_DAYS + ' days' : '']
-        .filter(Boolean).join(' · ') || 'Nothing due in the next ' + REC_SOON_DAYS + ' days.';
-  const have = new Set(list.map(r => norm(r.title)));
-  const todo = REC_CHECKLIST.filter(c => !have.has(norm(c.title)));
-  const rows = list.map(r => recRow_(r)).join('')
-    + (REC.open === 'new' ? recRow_(REC.draft || {}, true) : '');
-  return `<p class="rec-head${over ? ' is-over' : soon ? ' is-soon' : ''}">${esc(head)}</p>
-    <div class="rec-list">${rows}
-      <button type="button" class="q-sum rec-add" data-do="rec-new"><span class="q-sum-t">+ Add a record</span></button>
-    </div>
-    ${/* ONE LINE UNTIL OPENED, like everything else here: eighteen items with a sentence each made the
-          card taller than a phone and it was drawn small to fit. The sentence is shown on the record
-          it opens, where it is read. */''}
-    ${todo.length ? `<button type="button" class="q-sum rec-todo-sum${REC.todo ? '' : ' is-shut'}" data-do="rec-todo"
-        aria-expanded="${REC.todo}"><span class="q-sum-t">${todo.length} ${todo.length === 1 ? 'thing' : 'things'} not recorded yet</span></button>
-      ${REC.todo ? `<div class="rec-todo">${todo.map(c => `<button type="button" class="rec-todo-i" data-do="rec-new"
-        data-i="${REC_CHECKLIST.indexOf(c)}">${esc(c.title)}</button>`).join('')}</div>` : ''}` : ''}`;
-}
+const bizCap_ = (item, st) => `${esc(item.title)} <span class="biz-when">· ${esc(item.due.toLowerCase())}</span>${
+  st ? ` <b class="biz-flag">${st === 'overdue' ? 'Overdue' : 'Due soon'}</b>` : ''}`;
+const bizSaid_ = () => BIZ.error ? BIZ.error : BIZ.list ? '' : 'Fetching what is recorded…';
 
-function recRow_(r, fresh) {
-  const id = fresh ? 'new' : r.id;
-  const open = REC.open === id;
-  const st = fresh ? '' : recState_(r);
-  const when = r.due_on ? (st === 'overdue' ? 'overdue since ' : 'due ') + recDate_(r.due_on) : '';
-  const say = [r.title || 'New record', r.provider, when].filter(Boolean).join(' · ');
-  const f = (k, ph, extra) => `<label class="field"><input type="text" data-rec="${k}" value="${esc(r[k] || '')}"
-      placeholder="${esc(ph)}" aria-label="${esc(ph)}" autocomplete="off" ${extra || ''}></label>`;
-  return `<div class="rec${open ? '' : ' is-shut'}${st ? ' is-' + st : ''}" data-id="${esc(id)}">
-    <button type="button" class="q-sum rec-sum" data-do="rec-open" aria-expanded="${open}"><span class="q-sum-t">${
-      st ? `<b class="rec-flag">${st === 'overdue' ? 'Overdue' : 'Due soon'}</b> ` : ''}${esc(say)}</span></button>
-    ${open ? `<div class="rec-body">
-      ${r.why ? `<p class="rec-why">${esc(r.why)}</p>` : ''}
-      <div class="lib-row q-row">
-        <label class="field"><select data-rec="category" aria-label="Category">
-          ${REC_CATEGORIES.map(c => `<option${(r.category || 'Other') === c ? ' selected' : ''}>${esc(c)}</option>`).join('')}
-        </select></label>
-        <label class="field"><input type="date" data-rec="due_on" value="${esc(r.due_on || '')}" aria-label="Renews or due"></label>
-      </div>
-      ${f('title', 'What it is — e.g. Public liability insurance')}
-      <div class="lib-row q-row">${f('provider', 'Provider')}${f('reference', 'Policy or reference no.')}</div>
-      <div class="lib-row q-row">${f('cost', 'Cost, e.g. £120 a year')}${f('link', 'Link to the document', 'type="url" inputmode="url"')}</div>
-      <label class="field"><textarea data-rec="notes" rows="2" placeholder="Notes" aria-label="Notes">${esc(r.notes || '')}</textarea></label>
-      <div class="tile-row">
-        ${tile_({ icon: 'save', label: 'Save', act: 'rec-save' })}
-        ${r.link && /^https?:\/\//i.test(r.link) ? tile_({ icon: 'open', label: 'Open the document', href: r.link }) : ''}
-        ${fresh ? '' : tile_({ icon: 'bin', label: 'Remove', act: 'rec-drop' })}
-      </div>
-      <p class="faint me-said rec-said"></p>
-    </div>` : ''}
+function bizItem_(item) {
+  const r = bizRow_(item.id);
+  const st = bizState_(item, r.due_on);
+  const box = (k, ph, v, extra) => `<label class="field"><input type="${k === 'due_on' ? 'date' : 'text'}"
+      data-biz="${esc(item.id)}" data-k="${k}" value="${esc(v || '')}" placeholder="${esc(ph)}"
+      aria-label="${esc(item.title + ' — ' + ph)}" autocomplete="off" ${extra || ''}></label>`;
+  const date = box('due_on', item.due.toLowerCase(), r.due_on);
+  const ref = box('reference', item.ref, r.reference);
+  /* THE DATE'S MEANING IS IN THE CAPTION — `renews`, `due`, `review by` — because a date input draws
+     no placeholder: the box says dd/mm/yyyy whatever it is for. */
+  return `<div class="biz-item${st ? ' is-' + st : ''}" data-item="${esc(item.id)}">
+    <p class="biz-cap">${bizCap_(item, st)}</p>
+    ${item.provider
+      ? `<div class="lib-row q-row">${box('provider', 'Provider', r.provider)}${ref}</div>${date}`
+      : `<div class="lib-row q-row">${ref}${date}</div>`}
   </div>`;
 }
 
-/* EVERY BOX WITH THE TOOL IN IT — the Tools column and, if it has been starred, the Saved column. */
-function recordsPaint_() {
-  document.querySelectorAll('.rec-box').forEach(b => { b.innerHTML = recordsHtml_(); });
-  if (typeof placeCells === 'function') placeCells('y', true, 0, AT);
+function bizCard_(pg) {
+  return `<div class="card biz"><div class="me-form" data-biz-page="${esc(pg.title)}">
+    <h3>${esc(pg.title)}</h3>
+    ${pg.items.map(bizItem_).join('')}
+    <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'biz-save' })}</div>
+    <p class="faint me-said biz-said">${esc(bizSaid_())}</p>
+  </div></div>`;
 }
 
-function recordsLoad_() {
-  REC.error = '';
+/* THE PAGES, OR NONE. A card is not a permission — `listRecords` and `saveRecordsPage` are `admin` in
+   `ACTION_ACCESS` — but a page a non-admin cannot use is a page they should not have to swipe past. */
+function bizPages_() {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return [];
+  return BIZ_PAGES.map(bizCard_);
+}
+
+/* WHAT ARRIVED, WRITTEN INTO THE CARDS ALREADY ON THE PAGE rather than a repaint of the column. A
+   repaint throws away every pane's fitted zoom and the column is re-measured a frame later; filling
+   the boxes in place changes a few values and a caption, and the cards stay the elements
+   `paneWatch_` is already watching. A card with something typed into it is left alone — the same
+   rule `settingsKeep_` applies to the whole column. */
+function bizFill_(form) {
+  const pg = BIZ_PAGES.find(p => p.title === form.dataset.bizPage);
+  if (!pg) return;
+  pg.items.forEach(item => {
+    const r = bizRow_(item.id);
+    const st = bizState_(item, r.due_on);
+    const it = form.querySelector(`.biz-item[data-item="${item.id}"]`);
+    if (!it) return;
+    it.classList.toggle('is-soon', st === 'soon');
+    it.classList.toggle('is-overdue', st === 'overdue');
+    const cap = it.querySelector('.biz-cap');
+    if (cap) cap.innerHTML = bizCap_(item, st);
+    it.querySelectorAll('[data-biz]').forEach(b => { b.value = r[b.dataset.k] || ''; });
+  });
+  const said = form.querySelector('.biz-said');
+  if (said) said.textContent = bizSaid_();
+}
+const bizFillAll_ = () => document.querySelectorAll('.me-form[data-biz-page]')
+  .forEach(f => { if (!f.dataset.dirty && !f.classList.contains('is-sending')) bizFill_(f); });
+
+function bizStart_() {
+  if (!(typeof isAdmin === 'function' && isAdmin()) || BIZ.list || BIZ.asking) return;
+  BIZ.asking = true; BIZ.error = '';
   api({ action: 'listRecords', name: USER && USER.name })
     .then(d => {
-      if (d && d.error) { REC.error = String(d.error); REC.list = null; }
-      else REC.list = (d && Array.isArray(d.records)) ? d.records : [];
-      recordsPaint_();
+      BIZ.asking = false;
+      if (d && d.error) BIZ.error = String(d.error);
+      else BIZ.list = (d && Array.isArray(d.records)) ? d.records : [];
     })
-    .catch(() => { REC.error = 'The records could not be fetched — check the connection.'; recordsPaint_(); });
+    .catch(() => { BIZ.asking = false; BIZ.error = 'The records could not be fetched — check the connection.'; })
+    .then(bizFillAll_);
 }
 
-function initRecords() {
-  if (!(typeof isAdmin === 'function' && isAdmin())) {
-    document.querySelectorAll('.rec-box').forEach(b => { b.innerHTML = ''; });
+on('biz-save', el => {
+  const form = el.closest('.me-form');
+  if (!form || !isAdmin()) return;
+  if (!BIZ.list) {
+    toast(BIZ.error ? 'The records have not loaded, so nothing was saved — trying again.'
+                    : 'Still fetching what is recorded — a moment.');
+    if (BIZ.error) { BIZ.error = ''; bizStart_(); }
     return;
   }
-  recordsPaint_();
-  if (!REC.list) recordsLoad_();
-}
-
-/* WHAT IS TYPED, READ OFF THE OPEN RECORD — so a repaint of a list that arrives late keeps it. */
-const recRead_ = el => {
-  const out = {};
-  el.querySelectorAll('[data-rec]').forEach(b => { out[b.dataset.rec] = String(b.value || '').trim(); });
-  return out;
-};
-
-on('rec-todo', () => { REC.todo = !REC.todo; recordsPaint_(); });
-on('rec-load', () => { REC.list = null; recordsPaint_(); recordsLoad_(); });
-on('rec-open', el => {
-  const id = el.closest('.rec').dataset.id;
-  REC.open = REC.open === id ? null : id;
-  if (REC.open !== 'new') REC.draft = null;
-  recordsPaint_();
-});
-on('rec-new', el => {
-  const c = REC_CHECKLIST[Number(el.dataset.i)];
-  REC.draft = c ? { category: c.category, title: c.title, why: c.why } : { category: 'Other' };
-  REC.open = 'new';
-  recordsPaint_();
-});
-on('rec-save', el => {
-  const row = el.closest('.rec');
-  const id = row.dataset.id;
-  const record = Object.assign(recRead_(row), id === 'new' ? {} : { id });
-  send_({ action: 'saveRecord', name: USER && USER.name, record },
-        { button: el, where: row.querySelector('.rec-said'), lock: row })
+  const pg = BIZ_PAGES.find(p => p.title === form.dataset.bizPage);
+  if (!pg) return;
+  const records = pg.items.map(item => {
+    const out = { id: item.id, title: item.title, category: pg.title };
+    form.querySelectorAll(`[data-biz="${item.id}"]`).forEach(b => { out[b.dataset.k] = String(b.value || '').trim(); });
+    return out;
+  });
+  send_({ action: 'saveRecordsPage', name: USER && USER.name, records },
+        { button: el, where: form.querySelector('.biz-said'), busy: 'Saving…' })
     .then(d => {
-      const saved = d && d.record;
-      if (saved) {
-        REC.list = (REC.list || []).filter(r => r.id !== saved.id).concat(saved);
-      }
-      REC.open = null; REC.draft = null;
+      const got = (d && Array.isArray(d.records)) ? d.records : records;
+      const ids = new Set(got.map(r => r.id));
+      BIZ.list = (BIZ.list || []).filter(r => !ids.has(r.id)).concat(got);
+      delete form.dataset.dirty;
+      /* THIS CARD ONLY — the flags follow the dates just saved, and another card with something
+         typed into it is not touched. */
+      bizFill_(form);
       toast('Saved');
-      recordsPaint_();
     })
-    .catch(() => {});
-});
-on('rec-drop', el => {
-  const row = el.closest('.rec');
-  const id = row.dataset.id;
-  /* TWO PRESSES, not a browser dialogue — the app's own rule (see `sure_` in receipt.js). A tile has
-     no word to swap, so the first press lights it and says so; a second within four seconds removes. */
-  if (!el.dataset.sure) {
-    el.dataset.sure = '1'; el.classList.add('on');
-    toast('Press the bin again to remove it. It stays in the sheet, marked inactive.');
-    setTimeout(() => { delete el.dataset.sure; el.classList.remove('on'); }, 4000);
-    return;
-  }
-  send_({ action: 'dropRecord', name: USER && USER.name, id }, { button: el, where: row.querySelector('.rec-said') })
-    .then(() => { REC.list = (REC.list || []).filter(r => r.id !== id); REC.open = null; toast('Removed'); recordsPaint_(); })
     .catch(() => {});
 });
