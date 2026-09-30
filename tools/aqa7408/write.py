@@ -64,8 +64,11 @@ def load(stem):
 if len(sys.argv) > 2 and sys.argv[1] == '--check':
     load(sys.argv[2]); print('OK — checked, nothing written.'); sys.exit(0)
 
+# `--skip p_2_2306` leaves out a module another session is still writing.
+SKIP = set(sys.argv[sys.argv.index('--skip') + 1].split(',')) if '--skip' in sys.argv else set()
 new = []
 for f in sorted(HERE.glob('p_*.py')):
+    if f.stem in SKIP: print(f.stem + ': skipped'); continue
     new += load(f.stem)
 ids = [r['row_id'] for r in new]
 assert len(ids) == len(set(ids)), 'duplicate row_id across the 7408 papers'
