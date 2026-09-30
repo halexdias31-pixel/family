@@ -1324,6 +1324,18 @@ const WIDGETS = [
     <div id="fm-wrap"></div>
   </div>` },
 
+  /* THE BUSINESS'S OWN PAPERWORK — insurance, tax, legal, safeguarding. An admin's, like the flyer
+     maker, and for the same reason: nobody else has any business seeing a policy number. The rows come
+     from the Ledger by a POST when this starts — see js/records.js and backend/records.gs. */
+  { id: 'records', kind: 'tool', name: 'Business records (insurance, tax, legal)', solid: true, admin: true,
+    start: () => initRecords?.(),
+    into: 'rec-box', what: 'Business records',
+    html: `<div class="card">
+    <h3>Business records</h3>
+    <p class="sub">Insurance, tax, legal and safeguarding — what you hold, and when each needs renewing.</p>
+    <div id="rec-box" class="rec-box"></div>
+  </div>` },
+
   /* THE HOURS A TUTOR CAN TEACH. It existed and could only be reached by opening *Your details*
      and scrolling past everything else — see the note over `initAvail`. `tutor: true` is the
      flyer's `admin: true` one role along, and the name carries the word somebody would type:
