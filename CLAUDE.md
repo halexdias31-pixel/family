@@ -15588,6 +15588,8 @@ The over-page warning also said "or the bottom is cut off", which cannot happen:
 
 **A widget starred onto the Saved column is dead there, and has been since Saved held widgets.** Every widget finds its parts by id, and the Tools copy is earlier in the document. Measured at e3124ae: a starred cheat sheet maker draws an empty box on Saved, and the Saved calculator types into the Tools calculator. Not fixed here, because the repair is scoping every widget's start to its own box.
 
+**Fixed since, in one place rather than in every widget.** `$` in `js/data.js` now prefers the copy of an id inside `#s-<AT>`, the screen in front, and falls back to the first copy. A widget is started while its own column is `AT`, so each copy binds to its own parts. Measured in a browser with the calculator starred: pressing 7 on Saved lights the Saved display and leaves the Tools one at 0; with the old `$` it was the other way round.
+
 ## A bundle of papers in Find, and the basket sends the order to the owner
 
 **Asked as "what happened to collection/bundle in the finder. like what if someone wants a bundle of

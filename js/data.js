@@ -168,7 +168,20 @@ let LOAD_SLOW = false;
 try { USER = JSON.parse(localStorage.getItem('familyUser') || 'null'); } catch {}
 
 /* ---------- THE SMALLEST HELPERS ---------------------------------------------------------------- */
-const $ = id => document.getElementById(id);
+/* ---------- AND WHEN ONE ID IS ON THE PAGE TWICE, THE COPY ON THE SCREEN IN FRONT --------------
+   A WIDGET STARRED ONTO THE SAVED COLUMN WAS DEAD THERE. Every widget finds its parts by id, the
+   Tools copy of it comes first in the document, and `getElementById` answers the first — so a
+   starred cheat sheet maker drew an empty box on Saved and the Saved calculator typed into the
+   Tools one. Rewriting every widget to scope its lookups to its own box is forty-odd widgets; this
+   is the one place they all ask. Only when the first match is NOT on the screen in front is the
+   screen asked for a copy of its own, so a unique id costs exactly what it did. */
+const $ = id => {
+  const el = document.getElementById(id);
+  if (!el || typeof AT === 'undefined' || !AT) return el;
+  const scr = document.getElementById('s-' + AT);
+  if (!scr || scr.contains(el)) return el;
+  try { return scr.querySelector('#' + CSS.escape(id)) || el; } catch { return el; }
+};
 
 /* The letter to put in a circle when there is no picture. The first LETTER, not the first
    character — punctuation is not an initial, and "@family." was giving "@", which sat next to the
