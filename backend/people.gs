@@ -173,7 +173,7 @@ function handleTrouble_(want, me, isAdmin) {
   const raw = shown.toLowerCase();
   if (!raw) return 'Type the name you want.';
   if (!HANDLE_SHAPE.test(raw)) {
-    return 'A username is 3 to 20 characters, starts with a letter, and holds only letters, '
+    return 'A handle is 3 to 20 characters, starts with a letter, and holds only letters, '
          + 'numbers and underscores.';
   }
 
@@ -202,7 +202,7 @@ function handleTrouble_(want, me, isAdmin) {
       if (folded.indexOf(HANDLE_BLOCKED[i]) !== -1) {
         /* THE WORD IS NOT QUOTED BACK. Naming it is repeating it, on a site children read, and the
            person typing it already knows which one it was. */
-        return 'That username has a word in it we do not allow. Pick another.';
+        return 'That handle has a word in it we do not allow. Pick another.';
       }
     }
   }
@@ -230,7 +230,7 @@ function handleTrouble_(want, me, isAdmin) {
       const day = 864e5;
       const next = new Date(last.getTime() + HANDLE_COOLDOWN_DAYS * day);
       if (next > new Date()) {
-        return 'You changed your username on ' + fmtDate(last) + '. You can change it again on '
+        return 'You changed your handle on ' + fmtDate(last) + '. You can change it again on '
              + fmtDate(next) + '.';
       }
     }
@@ -279,50 +279,75 @@ function handleTrouble_(want, me, isAdmin) {
    same string in both, which is what makes `findPerson` resolve one person however they type it.
 ================================================================================================ */
 
-/* ---------- THE TWO LISTS, AND WHY NOTHING IN THEM IS A JUDGEMENT CALL --------------------------
-   EVERY WORD IS ORDINARY AND HAS NO SECOND MEANING somebody has to have thought about.
+/* ---------- A HANDLE IS THEIR FIRST NAME, AN UNDERSCORE, A WORD AND A NUMBER -------------------
+   ASKED FOR AS *"remove the usernames. only handles. also handles are their first name then
+   underscore then adjective then number."* So `halex_bright42`: lower case, the underscore where it
+   was asked for and nowhere else, and a two-digit tail. The noun list that made `BrightOtter42` is
+   gone with the old shape.
 
-   AND THE LENGTH IS MEASURED RATHER THAN CAPPED BY A RULE OF THUMB. `HANDLE_SHAPE` allows twenty
-   characters and the tail is two, so the longest pair may be eighteen: the longest adjective here is
-   6, the longest noun 7, and the worst pair plus its tail is **15**. A first version of this
-   paragraph said "eight characters or fewer" and did the arithmetic as 8 + 8 + 2 — which is a rule
-   nothing enforces and, measured, not what the lists are. What enforces it is the check, and a
-   thirteen-letter noun is what it takes to break it.
+   THIS REVERSES A SAFEGUARDING ARGUMENT THIS FILE USED TO MAKE, AND SAYS SO. The old generator
+   used words rather than the name because a handle built from a child's FULL name publishes it
+   wherever the handle is shown. A FIRST name is what the owner asked for and is much less than a
+   full name, and cards already draw it — but it is not nothing, and it is the owner's call.
 
-   `check-handles.js` PUTS ALL OF THEM THROUGH `handleTrouble_` rather than trusting this paragraph.
-   The blocklist folds digits onto letters, so a pair nobody would look at twice could still reduce
-   onto a banned word — that is a fact about the two lists together, which is exactly the kind of
-   thing a person reading one list cannot check. */
-const HANDLE_ADJ = ['Bright', 'Calm', 'Clever', 'Bold', 'Brave', 'Keen', 'Swift', 'Quiet',
-                    'Sunny', 'Lucky', 'Merry', 'Neat', 'Warm', 'Wise', 'Jolly', 'Kind',
-                    'Royal', 'Loyal', 'Steady', 'Tidy', 'Golden', 'Silver', 'Copper', 'Amber'];
-const HANDLE_NOUN = ['Otter', 'Badger', 'Heron', 'Robin', 'Falcon', 'Marten', 'Puffin', 'Beaver',
-                     'Comet', 'Meadow', 'Harbour', 'Lantern', 'Compass', 'Anchor', 'Willow',
-                     'Cedar', 'Maple', 'Pebble', 'River', 'Summit', 'Harvest', 'Beacon',
-                     'Cobble', 'Thistle'];
-/* HOW MANY TRIES BEFORE GIVING UP. 24 x 24 x 90 is 51,840 pairs, so on a tab of any size this
-   repository will ever hold, forty consecutive clashes cannot happen — the number is a backstop
-   against a `handleTrouble_` that has started refusing everything, not a real ceiling. It gives up
-   rather than looping, and the caller reports it, because a job that spins for ever is worse than
-   one that says it could not. */
+   THE LENGTH IS ARITHMETIC. `HANDLE_SHAPE` allows twenty characters: the longest adjective is 6,
+   the tail 2 and the underscore 1, so a first name is cut to `HANDLE_FIRST_MAX` = 11. And it must
+   START with a letter, so leading digits come off; a name with no ASCII letters left (a name in
+   another script) falls back to `HANDLE_FALLBACK`.
+
+   THE FALLBACK IS ALSO WHERE A FIRST NAME THE BLOCKLIST REFUSES GOES. Every candidate built on it
+   carries the refused word, so its forty tries all fail; the same forty are then tried on the
+   fallback, which keeps the shape asked for with a neutral word where the name would be.
+
+   `check-handles.js` PUTS EVERY ADJECTIVE THROUGH `handleTrouble_` with a range of first names,
+   because the blocklist folds digits onto letters and drops the underscore, so a name and an
+   adjective can meet across it — a fact about the list and the names together that nobody reading
+   the list can check. */
+const HANDLE_ADJ = ['bright', 'calm', 'clever', 'bold', 'brave', 'keen', 'swift', 'quiet',
+                    'sunny', 'lucky', 'merry', 'neat', 'warm', 'wise', 'jolly', 'kind',
+                    'royal', 'loyal', 'steady', 'tidy', 'golden', 'silver', 'copper', 'amber'];
+const HANDLE_FIRST_MAX = 11;
+const HANDLE_FALLBACK = 'friend';
+/* HOW MANY TRIES BEFORE GIVING UP, per head (the name, then the fallback). 24 adjectives x 90 tails
+   is 2,160 handles per first name, so forty consecutive clashes is a backstop against a
+   `handleTrouble_` that has started refusing everything, not a real ceiling. It gives up rather than
+   looping, and the caller reports it. */
 const HANDLE_TRIES = 40;
+
+/** The first-name half of a handle: lower-case ASCII letters and digits, starting with a letter,
+    at most `HANDLE_FIRST_MAX` long. '' when nothing usable is left. */
+function handleFirst_(first) {
+  return String(first == null ? '' : first).toLowerCase()
+    .replace(/[^a-z0-9]/g, '').replace(/^[0-9]+/, '').slice(0, HANDLE_FIRST_MAX);
+}
+
+/** Does `h` already have the generated shape for somebody called `first` — `<first>_<adj><NN>`,
+    or the fallback where the name would be? `?run=renameHandles` leaves a row alone that does. */
+function handleIsShaped_(h, first) {
+  const heads = [handleFirst_(first), HANDLE_FALLBACK].filter(Boolean);
+  const m = String(h == null ? '' : h).match(/^([a-z0-9]+)_([a-z]+)\d{2}$/);
+  return !!m && heads.indexOf(m[1]) !== -1 && HANDLE_ADJ.indexOf(m[2]) !== -1;
+}
 
 /**
  * A handle nobody has, or '' if one could not be found.
  *
  * `me` is the row it is FOR, so that row's own cells are not counted as a clash — pass null for a
- * row that does not exist yet. Nothing is written here: the caller decides, because `register`
- * writes it into a row it is building and the repair job writes it into one that exists.
+ * row that does not exist yet. `first` is the first name to build it from; left out, it is read off
+ * `me`. Nothing is written here: the caller decides, because `register` writes it into a row it is
+ * building and the repair jobs write it into one that exists.
  */
-function handleMake_(me) {
-  for (let i = 0; i < HANDLE_TRIES; i++) {
-    const a = HANDLE_ADJ[Math.floor(Math.random() * HANDLE_ADJ.length)];
-    const b = HANDLE_NOUN[Math.floor(Math.random() * HANDLE_NOUN.length)];
-    /* TEN TO NINETY-NINE, so the tail is always two digits. A single digit would make `Otter7` and
-       `Otter70` two handles one keystroke apart, which is the impersonation shape `HANDLE_SHAPE`'s
-       ASCII rule exists to close one character along. */
-    const want = a + b + String(10 + Math.floor(Math.random() * 90));
-    if (!handleTrouble_(want, me || null, true)) return want;
+function handleMake_(me, first) {
+  const name = handleFirst_(first !== undefined ? first : (me && me.first_name));
+  const heads = name ? [name, HANDLE_FALLBACK] : [HANDLE_FALLBACK];
+  for (let h = 0; h < heads.length; h++) {
+    for (let i = 0; i < HANDLE_TRIES; i++) {
+      const a = HANDLE_ADJ[Math.floor(Math.random() * HANDLE_ADJ.length)];
+      /* TEN TO NINETY-NINE, so the tail is always two digits. A single digit would make `bold7`
+         and `bold70` two handles one keystroke apart. */
+      const want = heads[h] + '_' + a + String(10 + Math.floor(Math.random() * 90));
+      if (!handleTrouble_(want, me || null, true)) return want;
+    }
   }
   return '';
 }

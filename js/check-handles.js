@@ -81,7 +81,10 @@ const SRC = [
      then quietly burn tries. That is a fact about the two lists TOGETHER, which is exactly what a
      person reading one list cannot see. */
   grab(people, /const HANDLE_ADJ\s*=\s*\[[\s\S]*?\];/, 'HANDLE_ADJ'),
-  grab(people, /const HANDLE_NOUN\s*=\s*\[[\s\S]*?\];/, 'HANDLE_NOUN'),
+  grab(people, /const HANDLE_FIRST_MAX[^;]*;/, 'HANDLE_FIRST_MAX'),
+  grab(people, /const HANDLE_FALLBACK[^;]*;/, 'HANDLE_FALLBACK'),
+  grab(people, /function handleFirst_\([\s\S]*?\n\}/, 'handleFirst_'),
+  grab(people, /function handleIsShaped_\([\s\S]*?\n\}/, 'handleIsShaped_'),
   grab(people, /const HANDLE_TRIES[^;]*;/, 'HANDLE_TRIES'),
   grab(people, /function handleMake_\([\s\S]*?\n\}/, 'handleMake_'),
   /* ---------- AND THE REPAIR JOB, WHICH IS THE ONE THING HERE THAT WRITES -----------------------
@@ -90,6 +93,8 @@ const SRC = [
      by, so a job that replaced one would lock that person out of their own account. That is not a
      thing reading it can settle — it is a thing you run over rows and then look at the rows. */
   grab(setup,  /function fillHandles\([\s\S]*?\n\}/, 'fillHandles'),
+  /* AND THE ONE THAT REPLACES A HANDLE ON PURPOSE, into the owner's `<first>_<adjective><NN>`. */
+  grab(setup,  /function renameHandles\([\s\S]*?\n\}/, 'renameHandles'),
   grab(consts, /const PRICING_COOLDOWN_DAYS[^;]*;/, 'PRICING_COOLDOWN_DAYS'),
   /* THE FOUR FIELDS THE RULE IS ABOUT, READ OUT OF `constants.gs` RATHER THAN LISTED HERE. A copy
      would agree with itself and with nothing else — so a fifth field added there is under these
@@ -131,7 +136,8 @@ const PRELUDE = `
      NO BACKTICKS IN HERE EITHER, and this comment is why the rule two blocks up is written down:
      the first version of it used them and the file failed to parse eighty lines from the cause. */
   const read = () => ({ rows: ROWS, sheet: true, headers: HEADERS });
-  let HEADERS = ['person_id', 'handle', 'username', 'email', 'first_name', 'last_name', 'full_name'];
+  let HEADERS = ['person_id', 'handle', 'username', 'email', 'first_name', 'last_name', 'full_name',
+                 'handle_was'];
   const setCell = (t, r, f, v) => { r[f] = v; WROTE.push(f); };
   let WROTE = [];
   const clearCache = () => {};
@@ -145,7 +151,9 @@ new Function('box', PRELUDE + SRC + '\nbox.trouble = handleTrouble_; box.fold = 
            + ' box.setRows = setRows; box.price = pricingRefusal_;'
            + ' box.moved = pricingMoved_; box.fields = PRICING_FIELDS;'
            + ' box.find = findPerson; box.mail = emailRefusal_;'
-           + ' box.make = handleMake_; box.ADJ = HANDLE_ADJ; box.NOUN = HANDLE_NOUN;'
+           + ' box.make = handleMake_; box.ADJ = HANDLE_ADJ;'
+           + ' box.FIRST_MAX = HANDLE_FIRST_MAX; box.FALLBACK = HANDLE_FALLBACK;'
+           + ' box.first = handleFirst_; box.shaped = handleIsShaped_; box.rename = renameHandles;'
            + ' box.TRIES = HANDLE_TRIES; box.fill = fillHandles;'
            /* THE GATE ITSELF, SO THE GENERATOR'S OWN LOOP CAN BE TESTED. `handleTrouble_` is a
               function DECLARATION in this scope, so it can be rebound — and that is the only way to
@@ -437,27 +445,76 @@ function run() {
      blocklist — the three that are facts about the words rather than about who is registered. A
      clash is the generator's job to retry and is checked below. */
   box.setRows([]);
+  /* ---------- THE SHAPE THE OWNER ASKED FOR: `<first>_<adjective><NN>` ------------------------------
+     *"handles are their first name then underscore then adjective then number."* Every draw below
+     must be exactly that, lower case, with the first name reduced the way `handleFirst_` says. A
+     regex written here rather than read from people.gs, because this is the contract and the
+     generator is what it checks. */
+  const NEW_SHAPE = /^([a-z][a-z0-9]*)_([a-z]+)(\d{2})$/;
+  const shapeCases = [
+    ['Halex', 'halex'], ['ZOË', 'zo'], ["O'Brien", 'obrien'], ['Mary-Jane', 'maryjane'],
+    ['2Pac', 'pac'], ['Maximilianoaurelius', 'maximiliano'], ['', box.FALLBACK], ['李', box.FALLBACK],
+  ];
+  shapeCases.forEach(([first, head]) => {
+    for (let i = 0; i < 5; i++) {
+      const made = box.make(null, first);
+      const m = made.match(NEW_SHAPE);
+      if (!m || m[1] !== head || box.ADJ.indexOf(m[2]) === -1 || made.length > 20) {
+        bad.push({ handle: made || '(nothing)', want: head + '_<adjective><NN>',
+          why: 'a generated handle is the first name, an underscore, an adjective and a two-digit '
+             + 'number — which is what the owner asked for', said: 'first name "' + first + '"' });
+        break;
+      }
+    }
+  });
+
+  /* THE LONGEST FIRST NAME THE GENERATOR KEEPS, WITH THE LONGEST ADJECTIVE AND THE TAIL, MUST FIT
+     `HANDLE_SHAPE`'s twenty, or a long name makes every draw refused for length alone and falls to
+     the fallback in silence. A seventh-letter adjective breaks it with nothing else changing. */
+  const longestAdj = box.ADJ.reduce((x, y) => (y.length > x.length ? y : x), '');
+  const worst = 'a'.repeat(box.FIRST_MAX) + '_' + longestAdj + '99';
+  if (!box.shape.test(worst)) bad.push({ handle: worst, want: 'yes',
+    why: 'the longest name the generator keeps plus the longest adjective is past HANDLE_SHAPE',
+    said: worst.length + ' characters' });
+
+  /* EVERY ADJECTIVE, AGAINST A SPREAD OF ORDINARY FIRST NAMES, THROUGH THE GATE. The blocklist folds
+     digits onto letters and drops the underscore, so a name and an adjective can meet across it and
+     the generator would burn tries on that name in silence. On an empty tab, so only the shape, the
+     reserved list and the blocklist can refuse. */
+  const names = ['halex', 'ada', 'sam', 'pat', 'jo', 'al', 'mo', 'zo', box.FALLBACK];
   const pairs = [];
-  box.ADJ.forEach(a2 => box.NOUN.forEach(b2 => pairs.push(a2 + b2 + '42')));
+  names.forEach(n => box.ADJ.forEach(a2 => pairs.push(n + '_' + a2 + '42')));
   const refused = pairs.filter(w => box.trouble(w, null, true));
   if (refused.length) bad.push({ handle: refused.slice(0, 4).join(', '), want: 'yes',
-    why: refused.length + ' of ' + pairs.length + ' generated pairs are refused by the very gate '
+    why: refused.length + ' of ' + pairs.length + ' generated handles are refused by the very gate '
        + 'the generator passes them through, so it burns tries on them',
     said: box.trouble(refused[0], null, true) });
 
-  /* AND EVERY ONE OF THEM IS THE RIGHT SHAPE, which is a separate question from being allowed:
-     `HANDLE_SHAPE` caps a handle at twenty characters and the tail is two digits, so a pair of
-     nine-letter words would be refused for length alone — the one thing about those lists that a
-     new word can break with nothing else changing. */
-  const tooLong = pairs.filter(w => w.length > 20);
-  if (tooLong.length) bad.push({ handle: tooLong[0], want: 'yes',
-    why: tooLong.length + ' pairs are over twenty characters, so HANDLE_SHAPE refuses them',
-    said: '"' + tooLong[0] + '" is ' + tooLong[0].length + ' characters' });
+  /* AND A FIRST NAME THE GATE REFUSES OUTRIGHT FALLS TO THE FALLBACK, rather than giving up and
+     leaving `register` to write a squashed name. Built from the blocklist at run time rather than
+     written here, because a refused word pasted into this file is the word in one more file. */
+  const blockedName = (consts.match(/HANDLE_BLOCKED\s*=\s*\[\s*'([a-z]+)'/) || [])[1];
+  if (blockedName) {
+    const made = box.make(null, blockedName);
+    if (!made || made.indexOf(box.FALLBACK + '_') !== 0) bad.push({ handle: made || '(nothing)',
+      want: box.FALLBACK + '_<adjective><NN>',
+      why: 'a first name the blocklist refuses must fall back to the neutral head, not give up',
+      said: '(a blocked first name)' });
+  }
+
+  /* AND `handleIsShaped_` — what `renameHandles` leaves alone — says yes to its own output and no
+     to the old `BrightOtter42` shape, or the job either rewrites everybody every run or nobody. */
+  if (!box.shaped('halex_bright42', 'Halex')) bad.push({ handle: 'halex_bright42', want: 'shaped',
+    why: 'renameHandles would regenerate a handle already in the new shape on every run', said: 'no' });
+  ['BrightOtter42', 'ada_bright42', 'halex_otter42', 'halex_bright4'].forEach(h => {
+    if (box.shaped(h, 'Halex')) bad.push({ handle: h, want: 'not shaped',
+      why: 'renameHandles would leave a handle that is not <first>_<adjective><NN> alone', said: 'yes' });
+  });
 
   /* ---------- AND WHAT IT ACTUALLY RETURNS IS SOMETHING THE GATE ACCEPTS ------------------------
      TEN DRAWS RATHER THAN ONE, because it is random: a single call passing proves one pair. */
   for (let i = 0; i < 10; i++) {
-    const made = box.make(null);
+    const made = box.make(null, 'Halex');
     const no = made ? box.trouble(made, null, true) : 'it gave up on an empty tab';
     if (no) { bad.push({ handle: made || '(nothing)', want: 'yes',
       why: 'the generator returned something its own gate refuses', said: no }); break; }
@@ -476,7 +533,7 @@ function run() {
      contract is "keep asking until the gate says yes, and give up rather than loop", and that is a
      statement about the loop rather than about the words. */
   box.setGate(() => 'no');
-  const gaveUp = box.make(null);
+  const gaveUp = box.make(null, 'Halex');
   if (gaveUp !== '') bad.push({ handle: String(gaveUp), want: '(nothing)',
     why: 'a gate that refuses everything must make the generator give up, not return a refused '
        + 'handle — `register` writes whatever it hands back',
@@ -487,7 +544,7 @@ function run() {
      and a generator that asked for ever would hang. */
   let asked = 0;
   box.setGate(() => (++asked <= 4 ? 'taken' : ''));
-  const fifth = box.make(null);
+  const fifth = box.make(null, 'Halex');
   if (!fifth || asked !== 5) bad.push({ handle: String(fifth), want: 'the fifth candidate',
     why: 'the generator does not retry past a refusal',
     said: 'it asked ' + asked + ' time(s) and returned "' + fifth + '"' });
@@ -550,6 +607,39 @@ function run() {
   if (!box.fill().error) bad.push({ handle: 'fillHandles', want: 'a refusal',
     why: 'with no handle column every write is silently lost and the job reports success',
     said: '(it ran)' });
+
+  /* ---------- AND `renameHandles`, WHICH REPLACES ON PURPOSE AND ONLY WHERE THE SHAPE IS WRONG ------
+     It may overwrite because signing in is an e-mail and a PIN now. What it must do: rename an old
+     `BrightOtter42` into `<first>_<adjective><NN>`, write the username to match, keep the old one in
+     `handle_was`, leave a row already in the shape alone, and change nothing on a second run. */
+  box.setHeaders(['person_id', 'handle', 'username', 'handle_was', 'first_name']);
+  const rrows = [
+    { person_id: 'R1', handle: 'BrightOtter42', username: 'BrightOtter42', first_name: 'Halex' },
+    { person_id: 'R2', handle: 'ada_calm17', username: 'ada_calm17', first_name: 'Ada' },
+    { person_id: 'R3', handle: '', username: '', first_name: '' },
+  ];
+  box.setRows(rrows);
+  const ren = box.rename();
+  const r1 = rrows[0].handle.match(/^halex_([a-z]+)\d{2}$/);
+  if (!r1 || rrows[0].username !== rrows[0].handle || rrows[0].handle_was !== 'BrightOtter42') {
+    bad.push({ handle: 'renameHandles', want: 'halex_<adjective><NN>, username matching, old kept',
+      why: 'the old-format handle must become the new format in both columns, with handle_was set',
+      said: rrows[0].handle + ' / ' + rrows[0].username + ' / was ' + rrows[0].handle_was });
+  }
+  if (rrows[1].handle !== 'ada_calm17') bad.push({ handle: 'renameHandles', want: 'untouched',
+    why: 'a handle already in the new shape must be left alone', said: rrows[1].handle });
+  if (rrows[2].handle.indexOf(box.FALLBACK + '_') !== 0) bad.push({ handle: 'renameHandles',
+    want: box.FALLBACK + '_<adjective><NN>', why: 'a row with no first name gets the fallback head',
+    said: rrows[2].handle });
+  if (ren.renamedCount !== 2 || ren.renamed.indexOf('R1') === -1 || ren.leftAlone !== 1) {
+    bad.push({ handle: 'renameHandles', want: '2 renamed by id, 1 left alone',
+      why: 'the report names who changed', said: JSON.stringify(ren.renamed) + ' / ' + ren.leftAlone });
+  }
+  const snap = JSON.stringify(rrows);
+  const again = box.rename();
+  if (again.renamedCount !== 0 || JSON.stringify(rrows) !== snap) bad.push({ handle: 'renameHandles',
+    want: 'nothing on a second run', why: 'the job must be safe to run twice',
+    said: again.renamedCount + ' renamed' });
 
   /* ---------- AND THE FIXTURE CANNOT STATE A HANDLE THE SERVER WOULD NEVER SEND -----------------
      IT SAID `@ada`, WITH THE `@` IN THE CELL. `doget.gs` sends `S(r.handle) || S(r.username) ||

@@ -1160,7 +1160,15 @@ function qualsList_(r) {
       const level = bits.length > 1 ? S(bits.pop()) : '';
       const flags = low(parts[2]);
       const spec = flags.indexOf('s') !== -1;
-      return { subject: S(bits.join(':')), level, board, grade, received: S(parts[1]),
+      /* AND AN ENTRY ALREADY SAVED THE OLD WAY IS SPLIT BACK. The studying migration below used to
+         write "Bible and Theology — University of Wales Trinity Saint David" into the subject, and a
+         row saved since carries it in this cell. A spaced em dash with no place beside it is exactly
+         that shape, so the place moves to the board slot where it belongs; the next Save writes it
+         back split. Only when `board` is empty, so nothing typed there is overwritten. */
+      let subject = S(bits.join(':')), place = board;
+      const m = !place && subject.match(/^(.+?) \u2014 (.+)$/);
+      if (m) { subject = S(m[1]); place = S(m[2]); }
+      return { subject, level, board: place, grade, received: S(parts[1]),
                teach: spec || flags.indexOf('t') !== -1, spec };
     }).filter(q => q.subject || q.level || q.board || q.grade || q.received);
   } else {
@@ -1196,11 +1204,15 @@ function qualsList_(r) {
   /* ---------- AND WHAT THEY WERE STUDYING BECOMES A QUALIFICATION RECEIVED `Present` ------------
      The `studying` page is gone; the facts on it are not. Shown here until a Save writes them into
      the cell (which also empties the two old cells — see `updateProfile`), and never twice: a row
-     that already has a `Present` qualification is taken to have moved it across. The place goes in
-     the subject, because the board is a closed list and a university is not on it. */
+     that already has a `Present` qualification is taken to have moved it across. */
+  /* THE PLACE GOES IN THE `board` SLOT, NOT THE SUBJECT. *"you included uni name in the subject"*:
+     it read "Bible and Theology — University of Wales Trinity Saint David", because when this was
+     written the board was a closed list of exam boards. It is "School, college or uni" now (see
+     `qualLevel_` in me.js), which is exactly where a university belongs, and the subject stays a
+     subject. */
   if (S(r.studying) && !list.some(q => /^present$/i.test(q.received))) {
-    list.push({ subject: S(r.studying) + (S(r.studying_at) ? ' — ' + S(r.studying_at) : ''),
-                level: '', board: '', grade: '', received: 'Present', teach: false, spec: false });
+    list.push({ subject: S(r.studying), level: '', board: S(r.studying_at), grade: '',
+                received: 'Present', teach: false, spec: false });
   }
   /* ---------- AND "MORE QUALIFICATIONS" IS ONE ENTRY EACH, BECAUSE THE FIELD IS GONE -----------
      ASKED FOR AS *"remove the extra qualifications field. this can be achieved by the regular

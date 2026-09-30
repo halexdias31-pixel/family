@@ -510,6 +510,36 @@ const STATES = {
       },
       wants: "a tutor's photographs as squares, with the one tapped opened across the row",
       leave: () => { paint('account'); } },
+    /* ---------- WHERE THEY TUTOR, AS A HEAT MAP — see `profHeat_` in cards.js ------------------
+       *"just let it be a heat map of the areas"*. The fixture's tutor ticks three: one venue WITH
+       coordinates, one WITHOUT (left off rather than guessed), and Online (a chip, not a place). So
+       the map must carry exactly one glow, the Online chip must be under it, and no venue's name may
+       be printed on the card — which is the whole point of the change. Also the five captions and no
+       sixth: *"there should be x number of titles"*. */
+    { name: 'a tutor card, the five captions and the area map',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.prof-heat'));
+        if (at < 0) throw new Error('no card on the account column draws a heat map');
+        goPage('account', at, true);
+      },
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-account .page')].find(p => p.querySelector('.prof-heat'));
+        if (!pg) return 0;
+        const caps = [...pg.querySelectorAll('.prof-cap')].map(c => c.textContent.trim());
+        const allowed = ['At a glance', 'Teaches', 'Can also teach', 'Qualifications', 'Tutors at'];
+        const text = pg.textContent;
+        const heat = pg.querySelector('.prof-heat');
+        return heat.getAttribute('data-dots') === '1'
+          && (heat.style.backgroundImage.match(/cartocdn/g) || []).length >= 2
+          && caps.every(c => allowed.includes(c)) && caps.includes('Tutors at')
+          && caps.indexOf('Tutors at') === caps.length - 1
+          && [...pg.querySelectorAll('.prof-tag')].some(x => x.textContent.trim() === 'Online')
+          && !/Colliers Wood Library|Sutton Library/.test(text) ? 1 : 0;
+      },
+      wants: 'the five captions in order, one glow on a map, Online as a chip, and no venue named',
+      leave: () => { paint('account'); } },
   ],
 
   /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR ----------------

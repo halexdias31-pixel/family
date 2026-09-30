@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-30-e-noextraquals";
+const DOPOST_VERSION = "2026-09-30-g-handlesprofile";
 
 
 function doPost(e) {
@@ -192,7 +192,7 @@ function doPost(e) {
       /* BEFORE THE ROW EXISTS, so `handleMake_` is passed no row: there is nothing of this
          person's for a clash to exclude yet, and `isAdmin: true` inside it skips the month's
          cooldown, which is about changing a handle rather than being given a first one. */
-      const regHandle = handleMake_(null);
+      const regHandle = handleMake_(null, first);
       addRow(t, {
         // Students by default. A parent booking for a child is the account an admin sets up; a
         // person signing themselves up is almost always the one being taught.

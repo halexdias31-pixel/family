@@ -196,6 +196,77 @@ function profFacts_(t) {
           profRange_(t.minHours, t.maxHours, 'hour', 'hours')].filter(Boolean);
 }
 
+/* ---------- WHERE THEY TUTOR, AS A HEAT MAP RATHER THAN A LIST OF NAMES -------------------------
+   ASKED FOR AS *"instead of the tutors at showing names of all places, just let it be a heat map of
+   the areas. like that way people will generally see that i tutor roughly south west london by
+   seeing my heat map."* A list of eleven library names says nothing to a parent who does not know
+   them; a warm patch over the south west of a map of London says it at a glance.
+
+   THE POINTS ARE THE VENUES' OWN COORDINATES, which the payload already carries (`lat`/`lng` on
+   `DATA.venues`, filled by `?run=geocode`), matched by name to the ticked list. A venue with no
+   coordinates is left off rather than guessed at, and `Online` has none, so it is a chip under the
+   map when it is ticked — it is not a place.
+
+   THE MAP IS REAL STREET TILES, NOT A DRAWING, because "roughly south west London" is only readable
+   against London: a glow on a blank box is a glow. CARTO's dark basemap over OpenStreetMap data, so
+   it sits in a black-and-gold card rather than being a white hole in it, with the attribution both
+   licences ask for. Tiles are another origin, so `sw.js` never caches them, and one that fails to
+   load leaves the card's own grey under the glow — the heat still reads, the streets do not.
+
+   CENTRED ON THE POINTS, AT THE CLOSEST ZOOM THAT HOLDS THEM ALL, capped both ways: never closer than
+   a borough (a street-level map would be a tutor's front door, which is not what this is for) and
+   never further out than all of London. Positions are Web Mercator pixels relative to the centre,
+   written as `calc(50% + …px)`, so the map is right at every card width without being measured. */
+const HEAT_W = 300, HEAT_H = 160;
+const heatPx_ = (lat, lng, z) => {
+  const n = 256 * Math.pow(2, z), r = lat * Math.PI / 180;
+  return [(lng + 180) / 360 * n, (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n];
+};
+function profHeat_(names) {
+  if (!names || !names.length) return '';
+  const byName = {};
+  ((typeof DATA !== 'undefined' && DATA && DATA.venues) || []).forEach(v => {
+    if (v && v.title) byName[norm(v.title)] = v; });
+  const pts = names.map(n => byName[norm(n)])
+    .filter(v => v && Number(v.lat) && Number(v.lng)).map(v => [Number(v.lat), Number(v.lng), v.borough || '']);
+  const online = names.some(n => /^online$/i.test(String(n).trim()));
+  const tail = online ? `<div class="prof-tags prof-teach"><span class="prof-tag">Online</span></div>` : '';
+  if (!pts.length) return online ? `<div class="prof-cap">Tutors at</div>${tail}` : '';
+  let z = 12;
+  for (; z > 9; z--) {
+    const px = pts.map(p => heatPx_(p[0], p[1], z));
+    const xs = px.map(p => p[0]), ys = px.map(p => p[1]);
+    if (Math.max(...xs) - Math.min(...xs) <= HEAT_W * .6 && Math.max(...ys) - Math.min(...ys) <= HEAT_H * .6) break;
+  }
+  const px = pts.map(p => heatPx_(p[0], p[1], z));
+  const cx = (Math.min(...px.map(p => p[0])) + Math.max(...px.map(p => p[0]))) / 2;
+  const cy = (Math.min(...px.map(p => p[1])) + Math.max(...px.map(p => p[1]))) / 2;
+  /* BACKGROUND LAYERS, NOT ELEMENTS. The tiles run wider than any card so no width leaves a bare
+     edge, and as absolutely placed `<img>`s that made the box scroll sideways by 120-150px —
+     `overflow: hidden` clips a scroller, it does not stop it being one, and `check/ui.js` named it on
+     the first run. A background is painted inside its own box and has no extent to scroll to, so the
+     map is clipped by construction. The glows are radial gradients in the same list, on top. */
+  const pos = (x, y) => `calc(50% + ${Math.round(x - cx)}px) calc(50% + ${Math.round(y - cy)}px)`;
+  const layers = [];
+  px.forEach(p => layers.push({ img: 'radial-gradient(circle closest-side, rgba(255,180,84,.85) 0, rgba(255,140,50,.45) 40%, rgba(255,90,40,0) 100%)',
+    pos: pos(p[0] - 32, p[1] - 32), size: '64px 64px' }));
+  const t0x = Math.floor((cx - 220) / 256), t1x = Math.floor((cx + 220) / 256);
+  const t0y = Math.floor((cy - 110) / 256), t1y = Math.floor((cy + 110) / 256);
+  for (let tx = t0x; tx <= t1x; tx++) for (let ty = t0y; ty <= t1y; ty++) {
+    layers.push({ img: `url("https://basemaps.cartocdn.com/dark_all/${z}/${tx}/${ty}@2x.png")`,
+      pos: pos(tx * 256, ty * 256), size: '256px 256px' });
+  }
+  const style = `background-image:${layers.map(l => l.img).join(',')};`
+    + `background-position:${layers.map(l => l.pos).join(',')};`
+    + `background-size:${layers.map(l => l.size).join(',')};background-repeat:no-repeat`;
+  const areas = [...new Set(pts.map(p => p[2]).filter(Boolean))];
+  return `<div class="prof-cap">Tutors at</div>
+    <div class="prof-heat" role="img" data-dots="${px.length}" style="${esc(style)}"
+      aria-label="${esc('A map of where they tutor' + (areas.length ? ': around ' + areas.join(', ') : ''))}">
+      <span class="heat-credit">© OpenStreetMap © CARTO</span>
+    </div>${tail}`;
+}
+
 /* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS *"a smaller rate to the side so
    clients can know extra cost for the extra seat"*. `seatShare_` is the reader `priceFrom` uses,
    so the card and the booking agree: a seat is `(cUsed + bUsed)` of the rate. Nought draws nothing. */
@@ -280,7 +351,7 @@ function findCard(x) {
                 written, and measured across `js/`, the only place the `@` appeared was a toast in
                 `changeHandle`. So a handle was a thing you signed in with and never saw.
 
-                THE `@` IS DRAWN AND NOT STORED. The cell holds `BrightOtter42`; `findPerson`
+                THE `@` IS DRAWN AND NOT STORED. The cell holds `halex_bright42`; `findPerson`
                 resolves through `key()`, which strips the `@` anyway, so a stored one would be a
                 character that means nothing to every reader and has to be remembered by every
                 writer. Same separation as `spellShow_`: what is matched and what is shown.
@@ -359,11 +430,21 @@ function findCard(x) {
             `mark` still runs inside each chip, so a search for "GCSE" lights the chip it matched.
             NOT UPPER-CASED, unlike the adjectives: "MATHS (GCSE)" is a subject shouted, and the
             owner's own example is written in the case the sheet holds. */''}
-      ${profList_(t.teaches).length
-        ? `<div class="prof-cap">Teaches</div><div class="prof-tags prof-teach">${profList_(t.teaches).map(v =>
-             `<span class="prof-tag${t.teachesMain && v === t.teachesMain ? ' is-main' : ''}"${
-               t.teachesMain && v === t.teachesMain ? ' title="Specialises in"' : ''}>${mark(v)}</span>`)
-             .join('')}</div>` : ''}
+      ${/* ---------- FIVE CAPTIONS, IN THIS ORDER, AND NO OTHERS ----------------------------------
+            ASKED FOR AS *"there should be x number of titles. at a glance, teaches, can also teach,
+            qualifications, tutors at."* So `Teaches` is the specialism alone — the level a tutor
+            ticked `Teach` on, one on the whole page (see `qualLevel_` in me.js) — and everything
+            else they ticked `Can teach` on is its own caption, where it used to share a row with the
+            specialism and be told apart only by a gold edge. The `Focus` row went: it was a sixth
+            title nobody asked for. `teachesMain` is still said by the server rather than read off
+            position, so a tutor with no specialism gets no `Teaches` row rather than their first
+            "also" subject promoted into it. */''}
+      ${t.teachesMain
+        ? `<div class="prof-cap">Teaches</div><div class="prof-tags prof-teach"><span class="prof-tag is-main">${
+             mark(t.teachesMain)}</span></div>` : ''}
+      ${profList_(t.teaches).filter(v => v !== t.teachesMain).length
+        ? `<div class="prof-cap">Can also teach</div><div class="prof-tags prof-teach">${profList_(t.teaches)
+             .filter(v => v !== t.teachesMain).map(v => `<span class="prof-tag">${mark(v)}</span>`).join('')}</div>` : ''}
       ${/* ---------- QUALIFICATIONS, AS THE SAME CHIPS ---------------------------------------------
             ASKED FOR AS *"qualifications should also look like google chips."* Each entry of `quals`
             is already one sentence built by `doget.gs` ("Maths A-Level (Edexcel) grade B"), so a
@@ -374,10 +455,7 @@ function findCard(x) {
              .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
       ${/* WHERE THEY WILL TEACH, off the venues tab's own `tutors_happy_here` column, which a tutor
             ticks on their Contact & address page. An older backend sends no key: nothing drawn. */''}
-      ${profList_(t.venues).length
-        ? `<div class="prof-cap">Tutors at</div><div class="prof-tags prof-teach prof-venues">${profList_(t.venues)
-             .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
-      ${profList_(t.focus).length ? row('Focus', profList_(t.focus).join(' · ')) : ''}
+      ${profHeat_(profList_(t.venues))}
     </div>`;
 
   /* ---------- A VENUE IS AN ORDINARY CARD ------------------------------------------------------

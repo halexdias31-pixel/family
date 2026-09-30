@@ -1646,7 +1646,7 @@ function settingsPages_() {
     const you = (TABS.find(t => t.id === 'account') || {}).label || 'You';
     return [`<div class="card">
       <h3>Your settings</h3>
-      <p class="sub">Sign in on ${esc(you)} and your details, your username and your PIN are
+      <p class="sub">Sign in on ${esc(you)} and your details, your handle and your PIN are
         here.</p>
     </div>`];
   }
@@ -1716,11 +1716,17 @@ function settingsPages_() {
 
   pages.push(`<div class="card">
     <h3>Signing in</h3>
-    <label class="field"><span>username</span>
-      <input id="handle-new" type="text" autocapitalize="none" autocorrect="off"
-        spellcheck="false" maxlength="20"
-        value="${esc((USER && (USER.handle || '')) || '')}"></label>
-    <button class="btn quiet" data-do="handle-save">Change my username</button>
+    ${/* ---------- A HANDLE, NOT A USERNAME -------------------------------------------------------
+          *"remove the usernames. only handles."* Signing in is an e-mail address and a PIN, so the
+          one name a person has here is the one people see them by, and the card calls it that and
+          draws it the way every card does: with the `@` in front. The `@` is drawn and not typed —
+          `findPerson` strips it anyway, and `handle-save` takes one off if somebody types it. */''}
+    <label class="field"><span>handle</span>
+      <span class="handle-in"><b aria-hidden="true">@</b><input id="handle-new" type="text"
+        autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20"
+        aria-label="handle"
+        value="${esc((USER && (USER.handle || '')) || '')}"></span></label>
+    <button class="btn quiet" data-do="handle-save">Change my handle</button>
     <p class="faint" id="handle-said" style="margin:.6rem 0 0">This is how people find you.
       You can change it once a month.</p>
     <div class="f-row pin-row" style="--n:3">
@@ -2114,6 +2120,28 @@ const FIELD_LISTS_ = {
   favourite_colour: ['Red', 'Orange', 'Yellow', 'Green', 'Teal', 'Blue', 'Navy', 'Purple', 'Pink',
                      'Brown', 'Black', 'White', 'Grey', 'Gold', 'Silver'],
 };
+/* ---------- WHAT A QUALIFICATION CAN BE IN, AS A LIST THAT IS SPELT RIGHT -------------------------
+   ASKED FOR AS *"reevaluate the subjects list"*. The shelf offered the `options` tab's `subject`
+   list, which is the list of what can be BOOKED — thirteen entries, among them "Englisht Literiture",
+   "Physical Educations" and "(Single) Physics", and nothing a degree is in. A qualification is what
+   somebody STUDIED, which is a different and much longer list, so it is its own list here rather
+   than a second job for the booking one. Alphabetical, because it is scanned for a name; the common
+   school and university subjects, spelt as the boards and universities spell them. Anything not on it
+   is `Something else…`, which `qualChoice_` turns into a box, and a value already saved that the list
+   does not hold is kept as its chosen option — so nothing anybody typed is lost by this. The
+   certificates a tutor holds (a PGCE, a DBS) are at the foot, because they are entries on this same
+   shelf now that "More qualifications" is gone. */
+const QUAL_SUBJECTS = [
+  'Accounting', 'Ancient History', 'Arabic', 'Archaeology', 'Art and Design', 'Biology',
+  'Business Studies', 'Chemistry', 'Chinese', 'Citizenship', 'Classical Civilisation', 'Combined Science',
+  'Computer Science', 'Dance', 'Design and Technology', 'Drama', 'Economics', 'Education',
+  'Electronics', 'Engineering', 'English Language', 'English Literature', 'Film Studies',
+  'Food Preparation and Nutrition', 'French', 'Further Maths', 'Geography', 'Geology', 'German',
+  'Greek', 'History', 'Italian', 'Latin', 'Law', 'Maths', 'Media Studies', 'Medicine', 'Music',
+  'Philosophy', 'Physical Education', 'Physics', 'Politics', 'Portuguese', 'Psychology',
+  'Religious Studies', 'Sociology', 'Spanish', 'Statistics', 'Theology',
+  'PGCE', 'QTS', 'Enhanced DBS', 'First Aid', 'DofE Gold',
+];
 /* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell. */
 /* `venues_ok` IS NOT A COLUMN of `people` — it is the venues tab's own `tutors_happy_here`, read and
    written through this one box. See `venuesWrites_` in core.gs for why there is no second copy. */
@@ -2128,6 +2156,7 @@ function fieldOptions_(f) {
   const dd = (typeof DATA !== 'undefined' && DATA && DATA.dropdowns) || {};
   const got = x => (x && x.length ? x : null);
   const first = String(f).replace(/^qual_\d+/, 'qual_1');
+  if (/^qual_\d+$/.test(String(f))) return QUAL_SUBJECTS;
   return got(v[f]) || FIELD_LISTS_[f] || got(v[first])
     /* THE VENUES ON OFFER ARE THE VENUES THE SITE HAS, by the name the booking form uses for them. */
     || (f === 'venues_ok' ? got((typeof DATA !== 'undefined' && DATA && DATA.venues || [])
@@ -3328,8 +3357,8 @@ function profileRefresh_(loud, onOld) {
 on('handle-save', el => {
   const said = $('handle-said');
   const box = $('handle-new');
-  const want = String((box && box.value) || '').trim();
-  if (!want) { if (said) said.textContent = 'Type the name you want.'; return; }
+  const want = String((box && box.value) || '').trim().replace(/^@+/, '');
+  if (!want) { if (said) said.textContent = 'Type the handle you want.'; return; }
   /* `send_`, which spins, locks the box and — the half that was missing — gives the button back
      afterwards. This left it disabled after a success until an unrelated repaint rebuilt it. */
   send_({ action: 'changeHandle', name: USER.name,

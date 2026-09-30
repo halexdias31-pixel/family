@@ -15913,3 +15913,73 @@ on every summary line, shut or open, beside the line rather than inside it, beca
 itself a button. `qual-drop-subject` empties each of the subject's levels back into the pool, the
 same way `qual-drop` empties one, then removes the subject. Nothing is lost until Save. The
 qualifications state asserts one ✕ per subject and one per level.
+
+## Five captions, a heat map instead of place names, a spelt-right subject list
+
+**Asked for in one message**: *"reevaluate the subjects list. you included uni name in the subject.
+there should be x number of titles. at a glance, teaches, can also teach, qualifications, tutors at.
+why is sign out tile under the favourite tile? … instead of the tutors at showing names of all
+places, just let it be a heat map of the areas."*
+
+- **The captions are exactly those five, in that order.** `Teaches` is the specialism alone (the
+  level ticked `Teach`); `Can also teach` is the rest of `teaches`. They used to share one row, told
+  apart only by a gold edge. The `Focus` row went. The account state asserts no sixth caption.
+- **`Tutors at` is a heat map** (`profHeat_` in cards.js). It is the ticked venues' own `lat`/`lng`,
+  already on `DATA.venues`, drawn as glows over CARTO dark tiles of OpenStreetMap, centred on the
+  venues at the closest zoom from 12 to 10 that holds them. The attribution is on the map. A venue
+  with no coordinates is left off, `Online` is a chip under the map, and no venue is named anywhere
+  on the card. **The tiles and glows are BACKGROUND LAYERS, not elements.** Absolutely placed
+  `<img>`s made the box scroll sideways by 120–150px (`overflow: hidden` clips a scroller, it does
+  not stop it being one), and `check/ui.js` named it on the first run. **This container cannot
+  reach the tile host**, so every screenshot here shows the glow over the plain grey fallback; the
+  streets are the owner's to see on a phone.
+- **The university was in the subject** because the studying migration in `qualsList_` wrote
+  `Bible and Theology — University of…` into it, from when the board slot was a closed list of exam
+  boards. It now writes the place into the board slot, which is "School, college or uni". An entry
+  already saved that way is split back on read, but only when the board is empty.
+- **Qualifications have their own subject list** (`QUAL_SUBJECTS` in me.js). They used to be
+  offered the booking list from the sheet: thirteen entries including "Englisht Literiture" and
+  "Physical Educations", and nothing a degree is in. A saved value that is not on the list is kept,
+  and `Something else…` still types one in.
+- **Sign out is in the same row as the star**, as the one action of `cardActions_`'s `me` branch,
+  instead of a second row of one tile.
+## A handle is `<first>_<adjective><NN>`, and "username" is gone from every screen
+
+**Asked for as "remove the usernames. only handles. also handles are their first name then
+underscore then adjective then number."** Sign-in is already an e-mail and a PIN, so the one name a
+person has here is the handle. The Settings card says **handle**, draws the gold `@` in front of the
+box (`.handle-in`; `handle-save` strips an `@` if one is typed) and its button is `Change my handle`;
+`handleTrouble_`'s refusals say handle too. **The `username` column stays** and is written equal to the
+handle everywhere — `findPerson` and older rows read it — and nothing draws it.
+
+**`handleMake_(me, first)` builds `halex_bright42`**: the first name lower-cased to ASCII letters and
+digits, leading digits off, cut to `HANDLE_FIRST_MAX` (11 = 20 − the underscore − the longest
+adjective, 6 − the two-digit tail); an underscore; one of 24 lower-case adjectives; 10–99. Still through
+`handleTrouble_`, so clashes, the reserved list and the blocklist are asked once. A first name with
+nothing usable, or one the blocklist refuses (every candidate would carry it), falls back to
+`HANDLE_FALLBACK` = `friend` after its forty tries. `register` passes the first name; `fillHandles`
+reads it off the row. The noun list is gone. **This reverses the old "words, not the name"
+safeguarding argument**: a first name is much less than a full one, and it is the owner's call.
+
+**`?run=renameHandles`** regenerates every handle not already in the shape (`handleIsShaped_`), writes
+`username` to match, keeps the old one in `handle_was`, does NOT touch `handle_changed_at` (the person's
+own cooldown), reports by `person_id`, and changes nothing on a second run. It may overwrite where
+`fillHandles` refuses to because nobody signs in with a handle any more. **Run it once after the
+backend deploys**, because every generated handle so far is the old `BrightOtter42` shape.
+
+`check-handles.js` asserts the shape over eight first names (accents, apostrophes, a leading digit,
+a long name, an empty one, another script), that the longest kept name plus the longest adjective
+fits twenty, every adjective against a spread of names through the gate, the blocked-name fallback,
+and the rename job both ways. Proved by mutation five ways. Stamps are `2026-09-30-f-handles`.
+## The sine splash unrolls the circle, and its wave slides rather than draws
+
+**Asked for as "refine animation for sin circle thing".** `#splash-sine` was one period revealed by
+`stroke-dashoffset`, which repaints the path every frame and restarts with a jump from a full wave to
+an empty one. `tools/sine.py` now writes both the `<svg>` and its keyframes, like `tools/galton.py`:
+the wave's x axis is the circle **unrolled** (one period is 2πr, so a point d to the right shows the
+height the dot had d/r radians ago), the path is sampled from `sin()` and slides right by exactly one
+period per turn, so the loop has no seam. A dashed guide carries the dot's height to where the wave
+leaves the circle, a teal leg inside the circle draws sin θ where it lives, and everything moves by
+`transform` alone. The un-animated geometry is the frame at θ = 60°, so reduced motion shows a
+finished picture. Screenshotted at seven points in the 4s turn; `npm run splash` has it moving in
+31 of 31 frames.
