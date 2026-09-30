@@ -619,6 +619,13 @@ function run() {
     ['yes', PRI,    { rate_per_hour: 40 }, false, 'never moved — no cell, so no cooldown'],
     ['yes', PRInew, { rate_per_hour: 40 }, true,
        'an admin fixing a rate is the remedy, not the thing being braked'],
+    /* THE SHAPES THE PRICE CANNOT USE, refused for an admin too — see `pricingRefusal_`. */
+    ['no',  PRI, { extra_seat_rate: 15 }, false, 'an extra-seat share of 15 is pounds typed into a fraction'],
+    ['no',  PRI, { extra_seat_rate: 15 }, true, 'and an admin cannot save it either'],
+    ['yes', PRI, { extra_seat_rate: 2 }, false, 'two is the top of the range and allowed'],
+    ['no',  PRI, { min_students: 6 }, false, 'a minimum above the saved maximum of 4'],
+    ['no',  PRI, { min_students: 6, max_students: 4 }, true, 'both posted, the wrong way round'],
+    ['yes', PRI, { min_students: 3, max_students: 3 }, false, 'equal is a class of exactly three'],
   ];
   PRICES.forEach(([want, me, f, isAdmin, why]) => {
     const said = box.price(me, f, isAdmin);

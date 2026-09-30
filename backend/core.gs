@@ -1119,8 +1119,13 @@ function venuesWrites_(p, chosen, venueRows) {
     if (!S(v.name)) return;
     const list = venuesListOf_(v);
     const mine = list.filter(e => venuesPersonIs_(e, p));
-    const others = list.filter(e => !venuesPersonIs_(e, p));
-    const next = want[key(v.name)] ? others.concat(mine.length ? mine.slice(0, 1) : [me]) : others;
+    /* IN PLACE, NOT MOVED TO THE END. `others.concat(mine)` re-ordered the cell on every Save, so a
+       Save with nothing touched still wrote it and retired the payload. Keep the first entry that is
+       this person where it stands; append only when they are not there at all. */
+    let kept = false;
+    const next = want[key(v.name)]
+      ? (mine.length ? list.filter(e => !venuesPersonIs_(e, p) || (!kept && (kept = true))) : list.concat([me]))
+      : list.filter(e => !venuesPersonIs_(e, p));
     const cell = next.join(', ');
     if (cell !== list.join(', ')) out.push({ row: v, cell: cell });
   });
@@ -1327,7 +1332,13 @@ function phoneIn(fields) {
   const cc = /^\+\d{1,4}$/.test(S(fields.phone_cc)) ? S(fields.phone_cc) : PHONE_CODES[0];
   /* Digits and spaces only, and one trunk 0 off the front — `+44 07700` is not a number anybody
      can dial. Italy keeps it, because there the 0 is part of the number. */
-  let no = S(fields.phone_no).replace(/[^\d ]/g, ' ').replace(/\s+/g, ' ').trim();
+  let no = S(fields.phone_no).trim();
+  /* A NUMBER TYPED WITH ITS OWN CODE — `+44 7700 900123`, or `0044 …` — had the code put on a
+     second time: `+44 44 7700 900123`, and `phoneOut` then split that as +44 / `44 7700…`, so the
+     doubled form came back on every Save. The chosen code's digits come off the front first. */
+  const ccd = cc.slice(1);
+  if (/^(\+|00)/.test(no)) no = no.replace(/^(\+|00)\s*/, '').replace(new RegExp('^' + ccd + '\\s*'), '');
+  no = no.replace(/[^\d ]/g, ' ').replace(/\s+/g, ' ').trim();
   if (cc !== '+39') no = no.replace(/^0(?=\d)/, '');
   return no ? cc + ' ' + no : '';
 }

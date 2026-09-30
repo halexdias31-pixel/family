@@ -369,6 +369,20 @@ function pricingMoved_(me, fields) {
 function pricingRefusal_(me, fields, isAdmin) {
   if (!me) return '';
   if (!pricingMoved_(me, fields).length) return '';   // nothing moved: not a change at all
+  /* TWO SHAPES THE PRICE CANNOT USE, refused for an admin too. `seatShare_` reads the extra-seat
+     figure as a SHARE of the rate and treats anything outside 0–2 as nothing, so `15` typed as
+     pounds saved without complaint and charged nothing per seat. And a minimum above the maximum is
+     a class nobody can book. Only when something moved, like the rule below. */
+  const got = f => Object.prototype.hasOwnProperty.call(fields, f) ? fields[f] : me[f];
+  const seat = S(got('extra_seat_rate'));
+  if (seat !== '' && !(N(seat) >= 0 && N(seat) <= 2 && !isNaN(Number(seat)))) {
+    return 'The extra-seat rate is a share of your hourly rate, from 0 to 2 — 0.5 means half your rate '
+         + 'for each extra student. Nothing was saved.';
+  }
+  const lo = S(got('min_students')), hi = S(got('max_students'));
+  if (lo !== '' && hi !== '' && N(lo) > N(hi)) {
+    return 'The fewest students (' + lo + ') is more than the most (' + hi + '). Nothing was saved.';
+  }
   /* AN ADMIN FIXING A TUTOR'S RATE OR CAP IS THE REMEDY RATHER THAN THE THING BEING BRAKED — the
      same exemption, for the same reason, as the handle cooldown above. */
   if (isAdmin) return '';

@@ -2175,6 +2175,14 @@ function teachPhrases_(subjects, levels) {
  */
 function fieldHtml(name, value, o) {
   o = o || {};
+  /* THE EXTRA-SEAT FIGURE IS A SHARE OF THE RATE, NOT POUNDS, and nothing on the box said so: a tutor
+     typing 15 meaning £15 saved without complaint and charged nothing per seat, because `seatShare_`
+     treats anything outside 0–2 as nought. The caption says what it is and the box refuses the rest;
+     `pricingRefusal_` refuses it on the server as well. */
+  if (name === 'extra_seat_rate' && !o.label && !o.placeholder) {
+    o = Object.assign({}, o, { label: 'extra seat: share of your rate, 0–2 (0.5 = half)',
+      extra: (o.extra || '') + ' type="number" min="0" max="2" step="0.05"' });
+  }
   const attr = o.attr || 'data-me';
   const label = o.label || fieldLabel(name);
   const ro = !!o.readonly;
@@ -2205,7 +2213,11 @@ function fieldHtml(name, value, o) {
   }
 
   /* A FIXED LIST IS A SELECT. Somebody choosing an exam board should not be able to invent one —
-     that is how a sheet ends up with four spellings of Edexcel. */
+     that is how a sheet ends up with four spellings of Edexcel.
+     AND A SAVED VALUE THE LIST DOES NOT HOLD IS KEPT AS ITS FIRST OPTION. Without it the empty
+     option was the one selected, so pressing Save with nothing touched wrote '' over a borough, a
+     town, a favourite colour, or a qualification's Merit or Grade 8 — whatever the options tab
+     happened not to list. `qualYears_` and `meDropHtml_` already keep theirs this way. */
   const opts = o.options || [];
   if (opts.length) {
     /* A PLACEHOLDER ON A SELECT IS ITS EMPTY OPTION, and the caption goes exactly as it does for a
@@ -2216,7 +2228,8 @@ function fieldHtml(name, value, o) {
     return `<label class="field">${ph ? '' : `<span>${esc(label)}</span>`}
       <select ${attr}="${esc(name)}" ${ro ? 'disabled' : ''}${ph ? ` aria-label="${esc(ph)}"` : ''}>
         <option value="">${ph ? esc(ph) : NONE_LABEL}</option>
-        ${opts.map(x => `<option value="${esc(x)}"${
+        ${(v !== '' && v != null && !opts.some(x => String(x) === String(v)) ? [String(v)] : [])
+          .concat(opts).map(x => `<option value="${esc(x)}"${
           String(v) === String(x) ? ' selected' : ''}>${esc(x)}</option>`).join('')}
       </select></label>`;
   }
@@ -2611,10 +2624,7 @@ function qualShelf_(list, value, options) {
   /* AN EMPTY SHELF SHOWS ONE SUBJECT WITH ONE LEVEL OPEN, because a button over nothing is a page
      with nothing to type into. */
   if (!groups.length && pool.length) groups.push({ subject: '', slots: [pool.shift()], fresh: true });
-  const subjects = opts('qual_1'), boards = opts('qual_1_board');
   return `<div class="lib-shelf q-shelf">
-    <datalist id="q-subjects">${subjects.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
-    <datalist id="q-boards">${boards.map(x => `<option value="${esc(x)}">`).join('')}</datalist>
     ${groups.map(g => qualSubject_(g.subject, g.slots, value, options, !!g.fresh)).join('')}
     <div class="q-pool" hidden>${pool.map(i => qualLevel_(i, value, options, true)).join('')}</div>
     <button type="button" class="btn quiet shelf-more" data-do="qual-add-subject"${
@@ -2628,8 +2638,8 @@ function qualShelf_(list, value, options) {
 function qualSubject_(subject, slots, value, options, open) {
   const tick = k => slots.some(i => TRUEish_(value('qual_' + i + k)));
   return `<div class="lib-card q-subj">
-    <label class="field"><input type="text" class="q-name" list="q-subjects" value="${esc(subject)}"
-      placeholder="Subject" aria-label="Subject" autocomplete="off" data-q="name"></label>
+    ${qualChoice_('class="q-name" data-q="name"', subject,
+      (options ? options('qual_1') : null) || [], 'Subject')}
     <div class="q-levels">${slots.map(i => qualLevel_(i, value, options, false, open)).join('')}</div>
     <button type="button" class="btn quiet q-add" data-do="qual-add-level">Add a level</button>
     <div class="q-ticks">
@@ -2661,13 +2671,52 @@ function qualLevel_(i, value, options, pooled, open) {
       ${fieldHtml(f('_grade'), val('_grade'), { placeholder: 'Grade', options: (options ? options(f('_grade')) : null) })}
     </div>
     <div class="lib-row q-row">
-      <label class="field"><input type="text" data-me="${esc(f('_board'))}" list="q-boards" value="${esc(val('_board'))}"
-        placeholder="Exam board or university" aria-label="Exam board or university" autocomplete="off"></label>
+      ${qualChoice_(`data-me="${esc(f('_board'))}"`, val('_board'),
+        (options ? options(f('_board')) : null) || [], 'Board or university')}
       ${fieldHtml(f('_received'), val('_received'), { placeholder: 'Completed', options: qualYears_(val('_received')) })}
     </div>
     <button type="button" class="q-drop" data-do="qual-drop">Remove this level</button>
   </div>`;
 }
+/* ---------- THE SUBJECT AND THE BOARD ARE DROP-DOWNS, LIKE EVERY OTHER CHOICE ON THIS PAGE ----------
+   They were `<input list>` boxes — the only datalists on the settings column — so they opened the
+   browser's own suggestion strip over the keyboard rather than a list, and behaved like neither the
+   Level and Completed selects beside them nor anything else in the app. *"drop downs should behave
+   like rest of site"*: a native select, the same control the Level, Grade and Completed boxes are.
+
+   BUT BOTH MUST TAKE A NAME NOBODY LISTED — `Bible and Theology`, a university — so the last option
+   is `Something else…`, which turns that one select into a text box in place. A value already saved
+   that the list does not hold is kept as the selected option, for the reason `fieldHtml` gives. */
+const QUAL_OTHER = '__other';
+function qualChoice_(attrs, v, list, ph) {
+  v = String(v ?? '');
+  const opts = (v && !list.some(x => norm(x) === norm(v)) ? [v] : []).concat(list);
+  if (!opts.length) {
+    return `<label class="field"><input type="text" ${attrs} value="${esc(v)}" placeholder="${esc(ph)}"
+      aria-label="${esc(ph)}" autocomplete="off"></label>`;
+  }
+  return `<label class="field"><select ${attrs} aria-label="${esc(ph)}">
+      <option value="">${esc(ph)}</option>
+      ${opts.map(x => `<option value="${esc(x)}"${norm(x) === norm(v) && v ? ' selected' : ''}>${esc(x)}</option>`).join('')}
+      <option value="${QUAL_OTHER}">Something else…</option>
+    </select></label>`;
+}
+/* `Something else…` swaps the select for a box carrying the same attributes, so `me-save` and
+   `qualSubjectSync_` read it exactly as they read the select. */
+document.addEventListener('change', e => {
+  const sel = e.target;
+  if (!sel || sel.tagName !== 'SELECT' || sel.value !== QUAL_OTHER || !sel.closest('.q-shelf')) return;
+  const box = document.createElement('input');
+  box.type = 'text'; box.autocomplete = 'off';
+  [...sel.attributes].forEach(a => { if (a.name !== 'aria-label') box.setAttribute(a.name, a.value); });
+  const ph = sel.getAttribute('aria-label') || '';
+  box.placeholder = ph; box.setAttribute('aria-label', ph);
+  sel.replaceWith(box);
+  qualDirty_(box);
+  if (box.classList.contains('q-name')) qualSubjectSync_(box.closest('.q-subj'));
+  const lvl = box.closest('.q-lvl'); if (lvl) qualLevelFrom_(lvl);
+  try { box.focus({ preventScroll: true }); } catch {}
+}, true);
 /* THE LINE A SHUT LEVEL SHOWS — "GCSE · 8 · Edexcel · 2017" — built from the same four values its
    boxes hold, and rebuilt from them whenever one changes, so the line and the boxes cannot disagree. */
 function qualLevelSay_(read) {
@@ -2701,10 +2750,10 @@ function qualSubjectSync_(subj) {
     set('_spec', b => { b.checked = spec && n === 0; });
   });
 }
-document.addEventListener('input', e => {
+['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   const t = e.target;
   if (t && t.classList && t.classList.contains('q-name')) qualSubjectSync_(t.closest('.q-subj'));
-});
+}));
 document.addEventListener('change', e => {
   const lvl = e.target && e.target.closest && e.target.closest('.q-lvl');
   if (lvl) qualLevelFrom_(lvl);
@@ -3032,6 +3081,16 @@ on('me-save', el => {
     fields[box.dataset.me] = box.type === 'checkbox' ? (box.checked ? 'TRUE' : 'FALSE')
                                                      : String(box.value || '').trim();
   });
+  /* A QUALIFICATION WITH NO SUBJECT. `Add a subject` left unnamed saved as `:GCSE::8` — a card with
+     no name that never counted towards what you teach. Said here, before anything is sent, because
+     dropping it on the server would be something typed and gone under a toast saying Saved. */
+  const nameless = [...box.querySelectorAll('.q-shelf .q-subj')].some(sj => {
+    const n = sj.querySelector('.q-name');
+    return !(n && String(n.value || '').trim())
+      && [...sj.querySelectorAll('.q-lvl [data-me]')].some(b => b.type !== 'checkbox' && b.type !== 'hidden'
+                                                              && String(b.value || '').trim());
+  });
+  if (nameless) { toast('Choose a subject for each qualification first — nothing was saved.'); return; }
   /* ---------- NOT FROM A COPY OF YOUR SETTINGS THAT CANNOT BE TRUE ------------------------------
      THE SIGN-IN REPLY SENT THE RAW CELLS FOR MONTHS, so every phone signed in before it was repaired
      holds a profile with no phone boxes, no birthday boxes and an empty qualification shelf — and a
@@ -3087,11 +3146,26 @@ on('me-save', el => {
          something was written. A Save that changed nothing writes nothing and leaves the stored
          payload alone, so fetching it again would be a full rebuild to learn nothing. `changed` is
          absent from an older backend, which is treated as "something changed", as before. */
-      if (!d || d.changed === undefined || d.changed > 0) load();
+      if (!d || d.changed === undefined || d.changed > 0) {
+        const at = [...document.querySelectorAll('#s-settings .me-form')].indexOf(form);
+        sayAfterLoad_(() => at < 0 ? null
+          : (document.querySelectorAll('#s-settings .me-form')[at] || {}).querySelector?.('.me-said'), 'Saved');
+      }
     })
     .catch(() => { /* `send_` has already written the refusal under the card. */ });
   }
 });
+
+/* ---------- "SAVED" SURVIVES THE REPAINT IT CAUSES ------------------------------------------------
+   A Save that wrote something calls `load()`, and the repaint rebuilds the card — so the line
+   under it that had just said "Saved" (or "You were patparent.") was back to its default within a
+   second, and only the toast was left saying anything. The line is written again on the rebuilt
+   card, found by where it is rather than by the element that no longer exists. */
+function sayAfterLoad_(find, text) {
+  Promise.resolve(load()).then(() => setTimeout(() => {
+    const el = find(); if (el) el.textContent = text;
+  }, 0), () => {});
+}
 
 /* THE FIELD NAMES THAT ARE HALVES OF ONE CELL — see the old-server note in `me-save`. Hour codes are
    a day prefix and an hour; the rest are the prefixes `fieldsHtml` expands a packed column into. */
@@ -3194,9 +3268,10 @@ on('handle-save', el => {
     .then(d => {
       USER.handle = d.handle;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      if (said) said.textContent = d.was ? 'You were ' + d.was + '.' : '';
+      const was = d.was ? 'You were ' + d.was + '.' : '';
+      if (said) said.textContent = was;
       toast('You are @' + d.handle);
-      load();
+      sayAfterLoad_(() => $('handle-said'), was || 'Changed.');
     })
     .catch(() => {});
 });

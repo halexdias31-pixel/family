@@ -695,6 +695,12 @@ const STATES = {
              the hidden `qual_N_teach` / `qual_N_spec` boxes are what `me-save` posts. */
           && levelsOf(maths).every(l => !!(l.querySelector('[data-me="qual_' + l.dataset.slot + '_teach"]') || {}).checked)
           && levelsOf(maths).map(l => (l.querySelector('[data-me="qual_' + l.dataset.slot + '_spec"]') || {}).checked ? 1 : 0).join('') === '100'
+          /* THE SUBJECT AND THE BOARD ARE DROP-DOWNS LIKE THE LEVEL BESIDE THEM — no `<input list>` left
+             on the shelf — and a subject the list does not hold is kept as its chosen option. */
+          && !shelf.querySelector('input[list]')
+          && maths.querySelector('.q-name').tagName === 'SELECT'
+          && subjects.some(sj => (sj.querySelector('.q-name') || {}).value === 'Bible and Theology')
+          && !!shelf.querySelector('select[data-me$="_board"] option[value="__other"]')
           ? 70 : 0;
       },
       wants: 'Maths drawn once with its GCSE and A-Level under it, a degree as a level of its own subject, one pair of ticks per subject, and Add a level carrying the subject into the new level' },
