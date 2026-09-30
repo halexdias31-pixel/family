@@ -5069,11 +5069,11 @@ textarea { touch-action: none; }
 }
 
 /* ==================================================================================================
-   THE FIFTH SPLASH — a roundel, and a journey across the borough.
+   THE FIFTH SPLASH — a roundel, and a train running along the line under it.
 
-   WHY THIS ONE BELONGS. You teach in Merton and Wandsworth and almost everybody gets to you on the
-   Northern line or the tram. The roundel is the shape that says London faster than any word, and
-   the bar across the middle of it exists to hold a name.
+   The roundel is the shape that says London faster than any word, and the bar across the middle of
+   it exists to hold a name. It used to name two boroughs underneath; the owner asked for those to
+   come off, and it says MIND THE GAP instead — see index.html.
 
    IN THIS APP'S OWN COLOURS, deliberately. The FORM — a circle with a bar through it — is a
    geometric idea and what anybody recognises; their exact red and blue with their typeface would be
@@ -5118,55 +5118,99 @@ textarea { touch-action: none; }
 @keyframes tube-name { from { opacity: 0; } to { opacity: 1; } }
 
 /* ---------- THE JOURNEY ------------------------------------------------------------------------
-   Stops evenly spread, a track behind them, and a train going along. Laid out with the stops in a
-   row and the track and the train positioned over it, so the spacing is decided once by the row
-   rather than by four sets of coordinates that have to agree with a fifth. */
+   THE TRAIN MOVES BY `transform`, AND IT USED TO MOVE BY `left`. `left` is layout: the main thread
+   recomputes and repaints it every frame, and during boot that thread is parsing half a megabyte of
+   JavaScript — which is exactly when a splash is on screen. A transform is the compositor's, so the
+   train keeps moving while the page is busy.
+
+   A PERCENTAGE IN `translateX` IS OF THE ELEMENT ITSELF, so the train rides inside `.tube-run`, a box
+   exactly as wide as the distance it travels (the line less one train). `translateX(100%)` of that
+   box is the far end, and a third of it is the second station. The stations sit on `.tube-rail`,
+   inset by half a train at each end, so a station's centre and the train's centre are the same point
+   by construction rather than by four sets of pixels that have to agree. The old version was up to
+   seven pixels off at the middle stations. */
 .tube-line {
   position: relative;
-  display: flex; justify-content: space-between; align-items: center;
-  margin: 1.2rem .6rem .7rem;
-  height: 14px;
+  margin: 1.3rem .4rem .75rem;
+  height: 16px;
+  --train: 30px;
 }
 .tube-track {
   position: absolute; left: 0; right: 0; top: 50%;
-  height: 3px; margin-top: -1.5px; border-radius: 2px;
-  background: rgb(244 241 232 / .16);
+  height: 4px; margin-top: -2px; border-radius: 2px;
+  background: rgb(244 241 232 / .14);
+}
+.tube-rail {
+  position: absolute; top: 0; bottom: 0;
+  left: calc(var(--train) / 2); right: calc(var(--train) / 2);
 }
 .tube-stop {
-  position: relative; z-index: 1;
-  width: 11px; height: 11px; border-radius: 50%;
+  position: absolute; top: 50%;
+  width: 13px; height: 13px; margin: -6.5px 0 0 -6.5px;
+  border-radius: 50%;
   background: #101010;
-  border: 3px solid rgb(244 241 232 / .55);
+  border: 3px solid rgb(244 241 232 / .5);
 }
-/* THE TRAIN. A short bright dash rather than a dot, because a dot on a line is another stop —
-   and a train is a thing with a length going somewhere. */
+.tube-stop:nth-child(1) { left: 0; }
+.tube-stop:nth-child(2) { left: 33.333%; }
+.tube-stop:nth-child(3) { left: 66.667%; }
+.tube-stop:nth-child(4) { left: 100%; }
+/* A STATION LIGHTS WHEN THE TRAIN ARRIVES and stays lit until the line resets, so the four of them
+   are the progress bar. A gold ring laid over the grey one and faded in, because opacity is the
+   compositor's too. */
+.tube-stop::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 50%;
+  border: 3px solid var(--gold, #f0a93c);
+  box-shadow: 0 0 8px rgb(240 169 60 / .55);
+  opacity: 0;
+  animation: tube-lit-1 3s linear 1.4s infinite both;
+}
+.tube-stop:nth-child(2)::after { animation-name: tube-lit-2; }
+.tube-stop:nth-child(3)::after { animation-name: tube-lit-3; }
+.tube-stop:nth-child(4)::after { animation-name: tube-lit-4; }
+@keyframes tube-lit-1 { 0%, 93% { opacity: 1; } 97%, 100% { opacity: 0; } }
+@keyframes tube-lit-2 { 0%, 26% { opacity: 0; } 28%, 93% { opacity: 1; } 97%, 100% { opacity: 0; } }
+@keyframes tube-lit-3 { 0%, 52% { opacity: 0; } 54%, 93% { opacity: 1; } 97%, 100% { opacity: 0; } }
+@keyframes tube-lit-4 { 0%, 78% { opacity: 0; } 80%, 93% { opacity: 1; } 97%, 100% { opacity: 0; } }
+
+.tube-run {
+  position: absolute; top: 0; bottom: 0; left: 0;
+  width: calc(100% - var(--train));
+  z-index: 2;
+  animation: tube-run 3s 1.4s infinite both;
+}
+/* A TRAIN THAT SLIDES EVENLY IS A PROGRESS BAR WITH A HIGHLIGHT ON IT. Each run pulls away slowly,
+   gets going and brakes into the platform, which is the easing on each moving stretch; the flat
+   stretches are the station stops. At the end the train leaves the last station and the line goes
+   dark before it starts again, so the loop reads as a new journey rather than a jump back. */
+@keyframes tube-run {
+  0%   { transform: translateX(0);       opacity: 1; animation-timing-function: step-end; }
+  6%   { transform: translateX(0);       animation-timing-function: cubic-bezier(.55, 0, .35, 1); }
+  28%  { transform: translateX(33.333%); animation-timing-function: step-end; }
+  34%  { transform: translateX(33.333%); animation-timing-function: cubic-bezier(.55, 0, .35, 1); }
+  54%  { transform: translateX(66.667%); animation-timing-function: step-end; }
+  60%  { transform: translateX(66.667%); animation-timing-function: cubic-bezier(.55, 0, .35, 1); }
+  80%  { transform: translateX(100%);    animation-timing-function: step-end; }
+  90%  { transform: translateX(100%);    opacity: 1; animation-timing-function: ease-in; }
+  97%  { transform: translateX(100%);    opacity: 0; }
+  100% { transform: translateX(0);       opacity: 0; }
+}
+/* THE TRAIN: two carriages rather than a dash, because a dash on a line is a road marking. A lit
+   cab at the front, so it has a direction; a slight lean into each start, so it has weight. */
 .tube-train {
   position: absolute; top: 50%; left: 0;
-  width: 26px; height: 7px; margin-top: -3.5px;
-  border-radius: 4px;
-  background: var(--gold, #f0a93c);
-  box-shadow: 0 0 12px rgb(240 169 60 / .7);
-  z-index: 2;
-  animation: tube-run 2.6s cubic-bezier(.45, 0, .55, 1) 1.4s infinite;
-}
-/* It PAUSES AT EACH STOP, which is the whole character of the thing — a train that slides evenly
-   from one end to the other is a progress bar with a highlight on it. The flat stretches in the
-   keyframes are the station stops. */
-@keyframes tube-run {
-  0%   { left: 0; }
-  8%   { left: 0; }
-  25%  { left: calc(33.33% - 6px); }
-  33%  { left: calc(33.33% - 6px); }
-  50%  { left: calc(66.66% - 13px); }
-  58%  { left: calc(66.66% - 13px); }
-  78%  { left: calc(100% - 26px); }
-  100% { left: calc(100% - 26px); }
+  width: var(--train); height: 9px; margin-top: -4.5px;
+  border-radius: 4px 5px 5px 4px;
+  background:
+    linear-gradient(90deg, transparent calc(50% - 1px), #101010 calc(50% - 1px), #101010 calc(50% + 1px), transparent calc(50% + 1px)),
+    linear-gradient(90deg, #d8902a, var(--gold, #f0a93c) 70%, #ffe2a6);
+  box-shadow: 0 0 14px rgb(240 169 60 / .6);
 }
 
 .tube-say {
   font-family: var(--mono);
-  font-size: .58rem; letter-spacing: .28em;
-  color: rgb(244 241 232 / .4);
+  font-size: .58rem; letter-spacing: .32em;
+  color: rgb(244 241 232 / .42);
   opacity: 0;
   animation: tube-name .5s ease-out 1.7s forwards;
 }
@@ -5176,7 +5220,8 @@ textarea { touch-action: none; }
 @media (prefers-reduced-motion: reduce) {
   .tube-ring { stroke-dashoffset: 0; animation: none; transform: none; }
   .tube-bar, .tube-name, .tube-say { animation: none; opacity: 1; transform: none; }
-  .tube-train { animation: none; }
+  .tube-run, .tube-stop::after { animation: none; }
+  .tube-stop:first-child::after { opacity: 1; }
 }
 
 /* ==================================================================================================
