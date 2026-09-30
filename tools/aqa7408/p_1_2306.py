@@ -87,10 +87,15 @@ def curve(pts):
 
 
 def fig1():
-    return axes(16000, 500, 4000, 50, 'distance / m', 'speed / m s⁻¹',
-                'Figure 1: speed against distance for the car, rising in a straight line from the '
-                'origin, levelling off near the top, then falling back to zero by about 15 000 m',
-                curve(FIG1), xminor=400, yminor=10)
+    s = axes(16000, 500, 4000, 50, 'distance / m', 'speed / m s⁻¹',
+             'Figure 1: speed against distance for the car, rising in a straight line from the '
+             'origin, levelling off near the top, then falling back to zero by about 15 000 m',
+             curve(FIG1), xminor=400, yminor=10)
+    # THE LAST TICK LABEL IS CENTRED ON THE AXIS END, and five digits of it ran 2px past the svg's
+    # own box (check/cards.js). Pulled in by its own half-overhang; every other label is untouched.
+    old = '<text x="326.0" y="216" class="num">16000</text>'
+    assert old in s, 'fig1: the 16000 label moved'
+    return s.replace(old, '<text x="322.0" y="216" class="num">16000</text>')
 
 
 def fig11():

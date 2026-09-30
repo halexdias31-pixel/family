@@ -221,7 +221,7 @@ function spotPages() {
   const items = collItems_(isSpot);
   if (!items.length) return [];
   const credits = collCredits_();
-  return items.map(x => stuffCard(x, credits));
+  return [].concat(...items.map(x => cardPages_(x, credits)));
 }
 
 /* ---------- AND IT IS A COLUMN AGAIN, WHICH IS THE THIRD TIME IT HAS MOVED -----------------------
@@ -303,7 +303,7 @@ function spotlightCards_() {
 function savedPages_() {
   if (!USER) return [];
   const credits = collCredits_();
-  return collItems_(isFav).map(x => stuffCard(x, credits));
+  return [].concat(...collItems_(isFav).map(x => cardPages_(x, credits)));
 }
 
 

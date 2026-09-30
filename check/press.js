@@ -1005,7 +1005,9 @@ for (const who of VISITORS) {
         await new Promise(r => setTimeout(r, 500));
         const hit = stuffFiltered().find(x => x.row && x.row.row_id === a.row);
         if (!hit) return null;
-        goPage('stuff', stuffPageOf_(hit) + stuffFirstResult_(), true);
+        /* ITS FIGURE PAGE, the one after the question: the pen moved with the picture. */
+        goPage('stuff', stuffPageOf_(hit, 'fig') + stuffFirstResult_(), true);
+        window.__penSel = '#s-stuff .qfig .qpad[data-k="' + padKey_(hit) + '"]';
         await new Promise(r => setTimeout(r, 650));
         /* ---------- `.qpad-lock`, BECAUSE THE PICTURE CARRIES THE SAME ACTION NOW ------------
            THIS WAS `[data-do="pad-draw"]` AND IT STOPPED BEING UNAMBIGUOUS. `padWrap_` puts the
@@ -1016,9 +1018,10 @@ for (const who of VISITORS) {
            instead and drew a dot. The pen stayed on, the swipe after it was correctly refused,
            and this reported the app broken. `padArm_` in find.js names the same class for the
            same reason. */
-        const btn = document.querySelector('#s-stuff .qpad-lock');
-        const art = document.querySelector('#s-stuff .qpad-art');
-        const ink = document.querySelector('#s-stuff .qpad-ink');
+        const pad0 = document.querySelector(window.__penSel);
+        const btn = pad0 && pad0.querySelector('.qpad-lock');
+        const art = pad0 && pad0.querySelector('.qpad-art');
+        const ink = pad0 && pad0.querySelector('.qpad-ink');
         if (!btn || !ink) return null;
         const r = ink.getBoundingClientRect(), b = btn.getBoundingClientRect();
         return { at: AT, page: PAGE.stuff, door: !!(art && art.getAttribute('data-do')),
@@ -1048,7 +1051,7 @@ for (const who of VISITORS) {
           const k0 = tabs.indexOf('stuff');
           await touch(box.ink.x + 60, box.ink.y, -140, 0);
           const r2 = await page.evaluate(() => ({ at: AT,
-            on: !!document.querySelector('#s-stuff .qpad.is-drawing') }));
+            on: !!document.querySelector(window.__penSel + '.is-drawing') }));
           if (r2.on) return 'a swipe beginning on the picture armed the pen';
           if (k0 + 1 < tabs.length && r2.at !== tabs[k0 + 1])
             return 'a swipe beginning on the picture did not change column — it landed on ' + r2.at;
@@ -1065,7 +1068,7 @@ for (const who of VISITORS) {
            the button is already covered by the press pass above. */
         await touch(box.ink.x, box.ink.y, 0, 0);
         const on = await page.evaluate(() => {
-          const pad = document.querySelector('#s-stuff .qpad');
+          const pad = document.querySelector(window.__penSel);
           return pad && pad.classList.contains('is-drawing')
             && !!pad.querySelector('.qpad-ink[data-noswipe]')
             && !pad.querySelector('.qpad-art[data-do]');
@@ -1078,7 +1081,7 @@ for (const who of VISITORS) {
           await touch(box.ink.x - Math.round(box.ink.w * 0.35), box.ink.y + 30,
                       Math.round(box.ink.w * 0.7), -50);
           const drew = await page.evaluate(() => {
-            const pad = document.querySelector('#s-stuff .qpad');
+            const pad = document.querySelector(window.__penSel);
             const k = pad && pad.getAttribute('data-k');
             let n = 0;
             try { n = (JSON.parse(localStorage.getItem(k) || '[]') || []).length; } catch (e) {}
@@ -1192,24 +1195,41 @@ for (const who of VISITORS) {
       } else {
         const bad = await page.evaluate(() => {
           const out = [];
-          const items = stuffFiltered(), first = stuffFirstResult_();
+          const pages = stuffPages_(), first = stuffFirstResult_();
+          /* ---------- A QUESTION WITH A PICTURE IS TWO PAGES NOW, its words and then its figure —
+             "across the board of all resources the diagrams should be its own widgets". So the walk
+             is over `stuffPages_`, the app's own list, and each page is asked the right question: a
+             question page carries its own answer key; a figure page names its row in `data-of`,
+             carries NO answer box (the box stays with the words), and comes straight after its
+             question. */
           const look = i => {
             goPage('stuff', first + i, true);
             const el = document.querySelectorAll('#s-stuff > .page')[domIndex_('stuff', first + i)];
-            const want = ':q:' + items[i].row.row_id;
-            const has = el && el.innerHTML.indexOf(want) !== -1;
-            if (!has) out.push({ page: i, want: items[i].row.row_id,
-                                 got: (el && (el.innerHTML.match(/:q:([^"]+)/) || [])[1]) || 'nothing' });
+            const pg = pages[i], id = pg.x.row.row_id;
+            const html = el ? el.innerHTML : '';
+            let ok;
+            if (pg.part === 'fig') {
+              ok = html.indexOf('data-of="' + id + '"') !== -1 && html.indexOf('qp-ans') === -1
+                && i > 0 && pages[i - 1].x === pg.x && !pages[i - 1].part;
+            } else {
+              ok = html.indexOf(':q:' + id) !== -1 && html.indexOf('class="qcard qfig') === -1;
+            }
+            if (!ok) out.push({ page: i, want: id + (pg.part ? '#' + pg.part : ''),
+                                got: (html.match(/:q:([^"]+)/) || html.match(/data-of="([^"]+)"/) || [])[1]
+                                     || 'nothing' });
           };
-          for (let i = 0; i < items.length; i++) look(i);
-          for (let i = items.length - 1; i >= 0; i--) look(i);
-          return { n: items.length, bad: out.slice(0, 4), count: out.length,
+          for (let i = 0; i < pages.length; i++) look(i);
+          for (let i = pages.length - 1; i >= 0; i--) look(i);
+          const items = pages, figs = pages.filter(pg => pg.part === 'fig').length;
+          return { n: items.length, figs: figs, bad: out.slice(0, 4), count: out.length,
                    held: document.querySelectorAll('#s-stuff > .page').length };
         });
-        walk.push({ from: 'stuff, ' + bad.n + ' pages over ' + bad.held + ' elements',
-                    dir: 'walk', ok: bad.count === 0,
-                    got: bad.count ? bad.count + ' wrong, first ' + JSON.stringify(bad.bad[0]) : 'every page its own question',
-                    want: 'every page its own question' });
+        walk.push({ from: 'stuff, ' + bad.n + ' pages (' + bad.figs + ' of them figures) over '
+                          + bad.held + ' elements',
+                    dir: 'walk', ok: bad.count === 0 && bad.figs > 0,
+                    got: bad.count ? bad.count + ' wrong, first ' + JSON.stringify(bad.bad[0])
+                         : bad.figs ? 'every page its own question or figure' : 'no figure page on a paper that has pictures',
+                    want: 'every page its own question, each figure straight after it' });
       }
     }
     swipes.push(...walk);

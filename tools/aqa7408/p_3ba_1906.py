@@ -72,7 +72,7 @@ def fig1():
         p.append('<line x1="14" y1="%d" x2="%d" y2="%d" stroke="currentColor" stroke-width="1.4"/>'
                  % (y, lx - 5, y))
         p.append('<path d="M60 %d l-8 -4 v8 z" fill="currentColor"/>' % y)
-    p.append('<text x="14" y="%d" class="lbl">white light</text>' % (cy - 40))
+    p.append('<text x="14" y="%d" class="lbl" style="text-anchor:start">white light</text>' % (cy - 40))
     p.append('</svg>')
     return ''.join(p)
 

@@ -758,7 +758,9 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-subj.is-shut > .q-subj-sum::after { transform: rotate(-90deg); }
 .q-subj-sum { font-weight: 600; }
 .q-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .6rem; align-items: center; }
-.q-head label.field { margin-bottom: 0; min-width: 0; }
+/* Named through the shelf, which `.lib-shelf label.field` also is — at equal specificity the
+   margin was decided by file order alone (check/cascade.js). */
+.lib-shelf .q-head label.field { margin-bottom: 0; min-width: 0; }
 .q-head select, .q-head input { min-width: 0; }
 .q-levels > .q-add { color: var(--dim); font-size: .76rem; }
 .q-levels > .q-add::after { content: none; }
@@ -8908,6 +8910,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   border-collapse: collapse; margin: .9rem auto;
   display: block; width: max-content; max-width: 100%;
   overflow-x: auto; overscroll-behavior-x: contain;
+  /* `pan-x`, BECAUSE A SCROLLER STARTS ITS OWN `touch-action`. `overflow-x: auto` makes the table a
+     scroll container, and the `none` the pane declares stops at one — so the table was `auto`, and a
+     swipe up that began on it at the foot of a scrolled pane went to the browser and never reached
+     the grid: the page did not turn. Found when the figures moved off the question cards and a tall
+     card's table landed under the thumb. Sideways stays the table's, which is what the scroller is
+     for; up and down are the app's. */
+  touch-action: pan-x;
 }
 .qsheet th, .qsheet td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
 /* THE FIGURES COME THROUGH AS SVG using `currentColor`, so a diagram drawn for white paper reads

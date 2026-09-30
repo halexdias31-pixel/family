@@ -91,17 +91,28 @@ function cardHtml(r, stems) {
                r.section ? at('section', r.paper_id + '|' + r.section) : null,
                (r.question !== undefined && r.question !== null && r.question !== '')
                  ? at('question', r.paper_id + '|' + r.question) : null].filter(Boolean);
+  /* ---------- AND THE FIGURE ON A CARD OF ITS OWN, AFTER IT -------------------------------------
+     "Across the board of all resources the diagrams should be its own widgets" — so the question card
+     carries the words and the answer, and every picture it hangs from is the next page, which is
+     `questionFigCard_` in find.js. The same split here, or this measures a card nobody draws. */
+  const pics = v => (Array.isArray(v) ? v : String(v || '').split(',').map(x => x.trim()).filter(Boolean))
+    .map(src => `<figure class="qpic"><img src="${src}" alt=""></figure>`).join('');
+  const figs = pre.map(p => fig(p.diagram) + pics(p.images)).join('') + fig(r.diagram) + pics(r.images);
   return `<div class="qcard" data-row="${r.row_id}">
     <div class="qcard-top"><b>Q${r.question || ''}${r.part || ''}</b>
       <span>${r.marks || 0} marks</span></div>
     <p class="qcard-sub">${r.name || ''}</p>
     <div class="qsheet">
-      ${pre.map(p => `<div class="qsheet-stem${String(p.placeholder) === 'True' ? ' is-standin' : ''}"
-        >${p.html || ''}${fig(p.diagram)}</div>`).join('')}
+      ${pre.filter(p => p.html).map(p => `<div class="qsheet-stem${String(p.placeholder) === 'True' ? ' is-standin' : ''}"
+        >${p.html || ''}</div>`).join('')}
       ${r.lead ? `<div class="qsheet-lead">${r.lead}</div>` : ''}
-      <div class="qsheet-part"><div class="qsheet-pb">${r.html || ''}${fig(r.diagram)}</div></div>
+      <div class="qsheet-part"><div class="qsheet-pb">${r.html || ''}</div></div>
     </div>
-  </div>`;
+  </div>${figs ? `<div class="qcard qfig" data-row="${r.row_id}#fig">
+    <div class="qcard-top"><b>Figure · Q${r.question || ''}${r.part || ''}</b></div>
+    <p class="qcard-sub">${r.name || ''}</p>
+    <div class="qsheet">${figs}</div>
+  </div>` : ''}`;
 }
 
 /* ---------- ONE SET OF RULES, ASKED OF TWO SETS OF CARDS ------------------------------------------
@@ -308,10 +319,10 @@ function outside(svg, row) {
     document.body.appendChild(host);
     /* EVERY PAGE OF EVERY PRACTICAL, not just its first card: "split into widgets. diagram,
        equipment, steps, worksheet bit" made each practical four cards, and the kit, the method and
-       the worksheet are exactly the parts most likely to run long. `pracParts_` is the app's own
+       the worksheet are exactly the parts most likely to run long. `pageParts_` is the app's own
        answer to which pages a practical takes, so a refused row is still its card alone. */
     host.querySelector('.pane').innerHTML = items.map(x =>
-      pracParts_(x).map(part => (part ? practicalPart_(x, part) : practicalCard_(x))
+      pageParts_(x).map(part => (part ? practicalPart_(x, part) : practicalCard_(x))
         .replace('<div class="card prac', '<div data-row="' + x.key + (part ? '#' + part : '')
           + '" class="card prac')).join('')).join('');
     window.__pracHost = host;
@@ -426,6 +437,18 @@ function outside(svg, row) {
     document.body.appendChild(host);
     const cap = parseFloat(getComputedStyle(host.querySelector('.pane')).maxHeight);
     const tall = [];
+    /* ---------- NO PICTURE ON A QUESTION CARD, AND EVERY PICTURE ON ITS FIGURE PAGE -------------
+       "Across the board of all resources the diagrams should be its own widgets." Asked of the app's
+       own two builders, because a figure left inline measures perfectly: it fits, it clips nothing,
+       and it is the thing that was asked to move. */
+    const inline = [];
+    items.forEach(x => {
+      const q = questionCard_(x, 0);
+      if (/<svg|class="qpad|class="qpic/.test(q)) inline.push(x.row.row_id + ' draws a picture on the question card');
+      if (questionHasFig_(x) && !/<svg|class="qpic/.test(questionFigCard_(x))) {
+        inline.push(x.row.row_id + ' has a picture and its figure page draws none');
+      }
+    });
     /* ONE CARD PER PANE, IN BATCHES OF TWO HUNDRED PANES. The first version put two hundred cards
        into ONE pane and reported `Q-1MA1-2406-2F-28a` as 67,622px past the fold -- a card that
        measures 478px on its own. 67,622 + 534 is the height of the whole batch, because a card is
@@ -436,14 +459,18 @@ function outside(svg, row) {
     for (let i = 0; i < items.length; i += 200) {
       host.innerHTML = items.slice(i, i + 200).map(x =>
         '<section class="page"><div class="pane"><div data-row="' + (x.row && x.row.row_id) + '" '
-        + 'class="card is-widget">' + questionCard_(x, 0) + '</div></div></section>').join('');
+        + 'class="card is-widget">' + questionCard_(x, 0) + '</div></div></section>'
+        /* AND ITS FIGURE PAGE, which is a page of its own and has a height of its own. */
+        + (questionHasFig_(x) ? '<section class="page"><div class="pane"><div data-row="'
+          + (x.row && x.row.row_id) + '#fig" class="card is-widget">' + questionFigCard_(x)
+          + '</div></div></section>' : '')).join('');
       host.querySelectorAll('.card.is-widget').forEach(el => {
         const h = el.getBoundingClientRect().height;
         if (h > cap) tall.push({ row: el.dataset.row, px: Math.round(h - cap) });
       });
     }
     host.remove();
-    return { n: items.length, cap: Math.round(cap), tall };
+    return { n: items.length, cap: Math.round(cap), tall, inline };
   }, WIDTH);
 
   await pracPage.evaluate('window.__measure = ' + measure.toString());
@@ -470,10 +497,10 @@ function outside(svg, row) {
     document.body.appendChild(host);
     const pane = host.querySelector('.pane');
     items.forEach(x => {
-      /* ALL OF A PRACTICAL'S PAGES AT ONCE, in the order the strip draws them — see `pracParts_`.
+      /* ALL OF A PRACTICAL'S PAGES AT ONCE, in the order the strip draws them — see `pageParts_`.
          The measurements below were written against one card holding the whole guide, and they ask
          the same questions of the four cards together. */
-      const parts = pracParts_(x);
+      const parts = pageParts_(x);
       pane.innerHTML = parts.map(part => part ? practicalPart_(x, part) : practicalCard_(x)).join('');
       const gd = parts.length > 1 ? pane.querySelector('.gd') : null;
       /* A REFUSED PRACTICAL DRAWS NO GUIDE, BY RULE — no kit, no method, no worksheet, because
@@ -500,20 +527,26 @@ function outside(svg, row) {
          `.reel .over` fault: one object, two descriptions, drifting apart the first time either is
          touched. It is the exact mistake putting the picture at the top invites somebody to make
          by leaving a copy behind. */
-      /* SPLIT OVER FOUR CARDS NOW, so "first" is a CARD: the drawing belongs on the practical's
-         own card and nowhere else, and the kit on the page after it. The four questions are the
+      /* SPLIT OVER FIVE CARDS NOW, so "first" is a CARD: the drawing belongs on its own figure page
+         straight after the practical's card, and the kit on the page after that. The four questions are the
          old two asked of the split — drawn once, drawn above the kit — plus the two the split
          introduced: the drawing is not on a part page, and the practical's own card is not still
          carrying the guide, which is the one long card the split replaced. */
       const figs = pane.querySelectorAll('figure');
       const main = pane.querySelector('.card.prac:not(.prac-part)');
+      const figPage = pane.querySelector('.prac-part.is-fig');
       const kit = pane.querySelector('.prac-part.is-kit .prac-kit');
       const work = pane.querySelector('.prac-part.is-work');
-      if (figs.length > 1) {
+      if (x.row.diagram && !figs.length) {
+        order.push(x.key + ' has an apparatus drawing and none of its cards draws it');
+      } else if (figs.length > 1) {
         order.push(x.key + ' draws its apparatus drawing ' + figs.length + ' times across its cards');
-      } else if (figs.length === 1 && !(main && main.contains(figs[0]))) {
-        order.push(x.key + ' draws its apparatus drawing on a part page — the picture belongs on '
-          + 'the practical\'s own card, the first of the four');
+      } else if (figs.length === 1 && !(figPage && figPage.contains(figs[0]))) {
+        /* ITS OWN PAGE, STRAIGHT AFTER THE CARD — "across the board of all resources the diagrams
+           should be its own widgets". It was on the practical's own card until then. */
+        order.push(x.key + ' draws its apparatus drawing somewhere other than its own figure page');
+      } else if (figPage && figPage.previousElementSibling !== main) {
+        order.push(x.key + ' puts its figure page somewhere other than straight after its card');
       } else if (figs.length === 1 && kit
                  && !(figs[0].compareDocumentPosition(kit) & Node.DOCUMENT_POSITION_FOLLOWING)) {
         order.push(x.key + ' draws its apparatus drawing BELOW the kit list — the picture of the '
@@ -711,7 +744,14 @@ function outside(svg, row) {
   bad.push(...guides.wide);
   /* `practicals.tall` IS OUT OF THIS TEST, with the rule it belongs to: it counts cards taller than
      the fold, and the pane scrolls them. The question count beside it was never in it. */
-  if (!bad.length && !painted.length && !guides.order.length
+  const inline = qtall === -1 ? ['questionCard_ could not be reached, so where the pictures are was NOT checked']
+                               : qtall.inline;
+  if (inline.length) {
+    console.log('\nA PICTURE NOT ON ITS OWN FIGURE PAGE  (' + inline.length + ')');
+    inline.slice(0, 10).forEach(l => console.log('  ' + l));
+    if (inline.length > 10) console.log('  … and ' + (inline.length - 10) + ' more');
+  }
+  if (!bad.length && !painted.length && !guides.order.length && !inline.length
       && !papers.over.length && !papers.leak.length) {
     /* IT SAID "EVERY QUESTION FITS THE NARROWEST PHONE" AND MEANT ITS WIDTH. That was true and
        read as more than it said, which is the "all 18 checks pass" shape one more time: the
@@ -720,7 +760,8 @@ function outside(svg, row) {
     console.log('\nOK — every question, every practical and every guide fits the WIDTH of the\n'
               + '     narrowest phone, every label in every drawing is inside the drawing, and\n'
               + '     every printed quiz fits one side of A4 with its answers on the other sheet.'
-              + '\n     The picture of a practical comes before the things it is made of, once each.'
+              + '\n     The picture of a practical comes before the things it is made of, once each,'
+              + '\n     and every question\'s picture is on its own figure page, none on the card.'
               /* IT SAID "every practical card fits the pane it is drawn in" AND 77 OF 82 DO NOT.
                  That was true while the guide opened in a sheet and stopped being true the hour it
                  came back onto the card — a confident sentence outliving the thing it described,
