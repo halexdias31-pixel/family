@@ -2636,8 +2636,17 @@ function qualSubject_(subject, slots, value, options, open) {
     level: value('qual_' + i + '_level'), grade: value('qual_' + i + '_grade'),
     teach: TRUEish_(value('qual_' + i + '_teach')), spec: TRUEish_(value('qual_' + i + '_spec')) })));
   return `<div class="lib-card q-subj${shut ? ' is-shut' : ''}">
-    <button type="button" class="q-sum q-subj-sum" data-do="qual-subj-open"
-      aria-expanded="${shut ? 'false' : 'true'}"><span class="q-sum-t">${esc(say || 'New subject')}</span></button>
+    <div class="q-sum-row">
+      <button type="button" class="q-sum q-subj-sum" data-do="qual-subj-open"
+        aria-expanded="${shut ? 'false' : 'true'}"><span class="q-sum-t">${esc(say || 'New subject')}</span></button>
+      ${/* ---------- A DELETE ON THE LINE ITSELF -----------------------------------------------------
+            Asked for as *"there should be a delete button for subjects or levels"*. There was one for
+            a level and it was at the foot of an OPENED level, and every saved level arrives shut, so
+            nobody found it. So a ✕ sits on the summary line of every subject and every level, shut or
+            open. Beside the line rather than inside it, because the line is itself a button and a
+            button cannot hold another. Nothing is lost until Save, like every other change here. */''}
+      <button type="button" class="q-x" data-do="qual-drop-subject" aria-label="Delete this subject" title="Delete this subject">&#10005;</button>
+    </div>
     <div class="q-subj-body">
       <div class="q-head">
         ${qualChoice_('class="q-name" data-q="name"', subject,
@@ -2691,8 +2700,11 @@ function qualLevel_(i, value, options, pooled, open) {
   const shut = !pooled && !open && summary;
   return `<div class="q-lvl${shut ? ' is-shut' : ''}" data-slot="${esc(i)}">
     <input type="hidden" data-me="${esc(f(''))}" value="${esc(val(''))}">
-    <button type="button" class="q-sum" data-do="qual-open" aria-expanded="${shut ? 'false' : 'true'}"><span class="q-sum-t">${
-      esc(summary || 'New level')}</span></button>
+    <div class="q-sum-row">
+      <button type="button" class="q-sum" data-do="qual-open" aria-expanded="${shut ? 'false' : 'true'}"><span class="q-sum-t">${
+        esc(summary || 'New level')}</span></button>
+      <button type="button" class="q-x" data-do="qual-drop" aria-label="Delete this level" title="Delete this level">&#10005;</button>
+    </div>
     <div class="lib-row q-row">
       ${box('_level', 'Level')}
       ${fieldHtml(f('_grade'), val('_grade'), { placeholder: 'Grade', options: (options ? options(f('_grade')) : null) })}
@@ -2720,7 +2732,6 @@ function qualLevel_(i, value, options, pooled, open) {
       <label class="check q-tick"><input type="checkbox" data-do="qual-tick" data-k="teach"
         data-me="${esc(f('_teach'))}" ${TRUEish_(val('_teach')) || TRUEish_(val('_spec')) ? 'checked' : ''}><span class="box"></span><span>Can teach</span></label>
     </div>
-    <button type="button" class="q-drop" data-do="qual-drop">Remove this level</button>
   </div>`;
 }
 /* ---------- THE SUBJECT AND THE BOARD ARE DROP-DOWNS, LIKE EVERY OTHER CHOICE ON THIS PAGE ----------
@@ -2877,6 +2888,22 @@ on('qual-drop', el => {
   else if (subj) qualSubjectSync_(subj);
   qualPoolLeft_(shelf);
   qualDirty_(el);
+});
+/* A SUBJECT TAKEN OFF IS EVERY ONE OF ITS LEVELS TAKEN OFF — emptied and back to the pool, exactly
+   as `qual-drop` does one — and then the subject itself. */
+on('qual-drop-subject', el => {
+  const subj = el.closest('.q-subj'), shelf = el.closest('.q-shelf');
+  if (!subj || !shelf) return;
+  subj.querySelectorAll('.q-levels > .q-lvl').forEach(lvl => {
+    lvl.querySelectorAll('[data-me]').forEach(b => { if (b.type === 'checkbox') b.checked = false; else b.value = ''; });
+    lvl.classList.remove('is-shut');
+    qualLevelFrom_(lvl);
+    shelf.querySelector('.q-pool').appendChild(lvl);
+  });
+  subj.remove();
+  qualPoolLeft_(shelf);
+  qualDirty_(shelf);
+  toast('Subject deleted. Press Save to keep it that way.');
 });
 /* ---------- WHEN IT WAS RECEIVED, AND WHETHER YOU TEACH IT ------------------------------------
    *"remove the studying now widget. could be achieved if each qualification has a date of reception

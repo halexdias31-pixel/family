@@ -732,6 +732,10 @@ const STATES = {
              level, and they ARE the saved boxes: GCSE taught (spec, which also means can-teach),
              A-Level can-teach only, the new level neither. */
           && !maths.querySelector('.q-head [type="checkbox"]')
+          /* A DELETE ON EVERY SUBJECT AND EVERY LEVEL LINE, shut or open — *"there should be a delete
+             button for subjects or levels"*. */
+          && subjects.every(sj => sj.querySelectorAll(':scope > .q-sum-row [data-do="qual-drop-subject"]').length === 1)
+          && levelsOf(maths).every(l => l.querySelectorAll(':scope > .q-sum-row [data-do="qual-drop"]').length === 1)
           && levelsOf(maths).every(l => l.querySelectorAll('[data-do="qual-tick"]').length === 2)
           && levelsOf(maths).map(l => (l.querySelector('[data-me="qual_' + l.dataset.slot + '_spec"]') || {}).checked ? 1 : 0).join('') === '100'
           && levelsOf(maths).map(l => (l.querySelector('[data-me="qual_' + l.dataset.slot + '_teach"]') || {}).checked ? 1 : 0).join('') === '110'

@@ -15905,3 +15905,11 @@ button."** Both buttons, their handlers, `matFill`, `matOver`, `matArea` and `MA
 sheet is built by ticking pieces and a piece comes off by unticking it. `check-flow.js` loses the
 Fill-order journey. The cheat-sheet state ticks five pieces through the list's own boxes and asserts
 that neither button is there.
+
+**And every subject and every level has a delete button.** Asked for as *"there should be a delete
+button for subjects or levels"*. A level already had one, `Remove this level`, but it was at the
+foot of an OPENED level, and every saved level arrives shut, so nobody found it. Now a 44px ✕ sits
+on every summary line, shut or open, beside the line rather than inside it, because the line is
+itself a button. `qual-drop-subject` empties each of the subject's levels back into the pool, the
+same way `qual-drop` empties one, then removes the subject. Nothing is lost until Save. The
+qualifications state asserts one ✕ per subject and one per level.
