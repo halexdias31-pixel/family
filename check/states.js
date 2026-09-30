@@ -235,10 +235,12 @@ const STATES = {
                && !!kit.querySelector('.prac-kit ul > li')
                && !kit.querySelector('.kit-chip')
                && !!steps.querySelector('.prac-steps li')
-               && !main.querySelector('.gd-box, .prac-kit, .prac-steps')
-               && !document.querySelector('#s-stuff .prac-part figure');
+               && !main.querySelector('.gd-box, .prac-kit, .prac-steps, figure')
+               /* THE PICTURE IS ITS OWN PAGE NOW, and on no other: "across the board of all
+                  resources the diagrams should be its own widgets". */
+               && !document.querySelector('#s-stuff .prac-part:not(.is-fig) figure');
       },
-      wants: 'a practical split over four cards — the card, the kit list, the steps, and a worksheet of three boxes',
+      wants: 'a practical split into cards — the card, its diagram, the kit list, the steps, and a worksheet of three boxes',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
        BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,
@@ -339,20 +341,25 @@ const STATES = {
         if (!facet) throw new Error('there is no paperId facet to narrow by');
         STUFF.filters = [{ field: 'paperId', value: facet.of(pen) }];
         paintStuff();
-        const at = stuffFiltered().indexOf(pen);
-        if (at < 0) throw new Error('the paper chip does not return its own pen question');
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+        if (stuffFiltered().indexOf(pen) < 0) throw new Error('the paper chip does not return its own pen question');
+        /* ONTO ITS FIGURE PAGE, the one after the question — the pen goes with the picture, and the
+           picture is its own card now. `stuffPageOf_` is the app's own mapping from an item and a
+           part to a page. */
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1)
+          + stuffPageOf_(pen, 'fig'));
       },
       /* THE PICTURE AND ITS CONTROL, PER CARD. `.qpad-art[data-do]` is the half that was missing —
          a pad whose picture is not a door is the card as it was reported, and it measures perfectly
          either way, so it has to be asserted rather than looked at. */
       expect: () => {
-        const c = document.querySelector('#s-stuff .qpad');
-        return !!c && !!c.querySelector('.qpad-art[data-do="pad-draw"]')
+        /* ON THE FIGURE CARD, AND ON NO QUESTION CARD — the pen moved with the picture. */
+        const c = document.querySelector('#s-stuff .qfig .qpad');
+        return !!c && !document.querySelector('#s-stuff .qcard:not(.qfig) .qpad')
+               && !!c.querySelector('.qpad-art[data-do="pad-draw"]')
                && !!c.querySelector('.qpad-lock')
                && !c.classList.contains('is-drawing');
       },
-      wants: 'a question card whose diagram takes a pen, with the lock control drawn and the pen off',
+      wants: 'a figure card, after its question, whose diagram takes a pen, with the lock control drawn and the pen off',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.

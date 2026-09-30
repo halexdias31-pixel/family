@@ -8908,6 +8908,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   border-collapse: collapse; margin: .9rem auto;
   display: block; width: max-content; max-width: 100%;
   overflow-x: auto; overscroll-behavior-x: contain;
+  /* `pan-x`, BECAUSE A SCROLLER STARTS ITS OWN `touch-action`. `overflow-x: auto` makes the table a
+     scroll container, and the `none` the pane declares stops at one — so the table was `auto`, and a
+     swipe up that began on it at the foot of a scrolled pane went to the browser and never reached
+     the grid: the page did not turn. Found when the figures moved off the question cards and a tall
+     card's table landed under the thumb. Sideways stays the table's, which is what the scroller is
+     for; up and down are the app's. */
+  touch-action: pan-x;
 }
 .qsheet th, .qsheet td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
 /* THE FIGURES COME THROUGH AS SVG using `currentColor`, so a diagram drawn for white paper reads

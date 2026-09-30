@@ -3172,13 +3172,11 @@ function practicalCard_(x) {
           scroll inside, which is the half that was not wanted. Swiping between pages is how every
           other result in this funnel is read, and it is not a pop-up.
 
-          SO THIS CARD IS THE PRACTICAL AND ITS PICTURE, and the kit, the method and the worksheet
-          are three more pages straight after it — see `pracParts_` and `practicalPart_`. They are
+          SO THIS CARD IS THE PRACTICAL, and its picture, the kit, the method and the worksheet
+          are the pages straight after it — see `pageParts_` and `practicalPart_`. They are
           PAGES rather than items: `stuffPages_` expands the filtered list only where pages are
-          built, so a practical is still one item to every count the funnel makes.
-
-          The drawing keeps its own `.gd` wrapper so every `.gd figure` rule applies unchanged. */''}
-    ${(!off && p.diagram) ? `<div class="gd"><figure>${p.diagram}</figure></div>` : ''}
+          built, so a practical is still one item to every count the funnel makes. The drawing was on
+          this card and is its own page now, like every question's figure. */''}
   </div>`;
 }
 
@@ -3310,7 +3308,10 @@ function practicalPart_(x, part) {
      answer boxes are `guideBox_`'s with the same slots, so every answer already typed comes back. */
   const head = what => `<p class="prac-of">${esc(x.name)}</p><h3>${what}</h3>`;
   let inner = '';
-  if (part === 'kit') {
+  if (part === 'fig') {
+    /* THE DRAWING, ON A PAGE OF ITS OWN. `.gd` round it so every `.gd figure` rule applies. */
+    inner = `${head('Diagram')}<div class="gd"><figure>${p.diagram}</figure></div>`;
+  } else if (part === 'kit') {
     inner = `${head('Equipment')}<div class="gd"><section class="prac-kit">
       ${kitList_(p.equipment)}</section></div>
       ${/* The one-off cost is about the KIT, so it is on the kit's page rather than the first. */''}
@@ -3349,13 +3350,31 @@ function practicalPart_(x, part) {
    a worksheet asking somebody to plan an afternoon that has been turned down is inviting exactly
    what the refusal is for. A section with nothing in it is not drawn as an empty page — a page you
    can swipe to that says nothing reads as a fault. Anything that is not a practical is one page. */
-function pracParts_(x) {
+function pageParts_(x) {
+  if (questionHasFig_(x)) return [null, 'fig'];
   if (!x || x.kind !== 'practical' || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
+  /* THE PICTURE IS ITS OWN PAGE, straight after the card — "across the board of all resources the
+     diagrams should be its own widgets". It was on the card; see `questionFigCard_`. */
+  if (p.diagram) out.push('fig');
   if (p.equipment && p.equipment.length) out.push('kit');
   if (p.steps && p.steps.length) out.push('steps');
   out.push('work');
   return out;
+}
+
+/* ONE PAGE THAT IS NOT A RESULT'S OWN CARD, whichever kind it belongs to. */
+/* ---------- AND THE CARD WITH ITS FIGURE, FOR A COLUMN THAT LISTS THINGS ONE PAGE EACH -----------
+   Saved and Spotlight draw a kept thing as one page; its picture is its own card now, so it is the
+   page after — the same rule as the Find screen. Only the figure: a practical kept on Saved is its
+   card and its drawing, as it was, not the kit, the method and the worksheet too. */
+function cardPages_(x, credits) {
+  const out = [stuffCard(x, credits)];
+  if (pageParts_(x).indexOf('fig') >= 0) out.push(stuffPart_(x, 'fig'));
+  return out;
+}
+function stuffPart_(x, part) {
+  return (x && x.kind === 'question' && part === 'fig') ? questionFigCard_(x) : practicalPart_(x, part);
 }
 
 /* `on('prac-guide')` WAS HERE and is gone with the tile that opened it. It looked the practical up
@@ -4950,7 +4969,7 @@ const padWanted_ = x => !!PAD_TYPES[String((x && x.answerType) || '').trim().toL
    built, innermost last, and takes the last picture on the card: the one nearest the part being
    asked is the one the part is about.
 
-   IT RETURNS THE MARKUP, NOT A FLAG, so `questionCard_` can draw the picture in the pad INSTEAD of
+   IT RETURNS THE MARKUP, NOT A FLAG, so `questionFigCard_` can draw the picture in the pad INSTEAD of
    in its usual figure. Drawing it in both is the fault where every widget printed its name twice. */
 function padSource_(x) {
   if (!x || !padWanted_(x)) return null;
@@ -5273,14 +5292,8 @@ function satOn_(x) {
 }
 
 function questionCard_(x) {
-  const fig = d => (d ? `<figure>${d}</figure>` : '');
   const sat = satOn_(x);
   const needs = asList_(x.needs);
-  /* THE PICTURE THAT TAKES THE PEN, IF THERE IS ONE — see `padSource_` above. It is drawn INSIDE
-     the pad and therefore not in its usual place: a diagram rendered twice on one card is the
-     fault every widget had when the roster's name sat above its own heading, and here the second
-     copy would be the one you cannot write on. */
-  const pad = padSource_(x);
   return `<div class="qcard">
     <div class="qcard-top">
       <b>${esc(x.name)}</b>
@@ -5305,7 +5318,7 @@ function questionCard_(x) {
             not in the paper and cannot be here either — what is in the row is enough to teach
             around. A student reading an exam question has to be able to tell at a glance which of
             the two they are looking at; the same argument as `figCredit_` one screen down. */''}
-      ${(x.stems || []).map(p =>
+      ${(x.stems || []).filter(p => p && (p.html || p.lines)).map(p =>
         `<div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${
           /* WHICH PART OF THE SOURCE THIS IS, when the insert has been split into several. Every
              AQA reading question names a span -- "lines 1 to 6", "from line 20 to the end" -- so
@@ -5313,24 +5326,12 @@ function questionCard_(x) {
              problem the split was supposed to solve. Drawn only when the row says one: a paper
              whose insert is a single part prints no heading, which is why this needed no
              migration. */''}${
-          p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${p.html || ''}${
-          /* THE PICTURE SWAPPED FOR THE PAD, AND NOTHING ELSE. The first version returned the pad
-             INSTEAD of this whole block, which threw the preamble's PROSE away with it: November
-             2017 Q12(a) is "draw a box plot for this information" and the information is the table
-             in that prose, so the card offered an empty grid and no figures to put on it. A
-             question made unanswerable by the feature meant to make it answerable, and no check
-             could see it — the markup was valid, the card fitted, nothing threw. A screenshot
-             caught it, which is the third time this file records that sentence. */''}${
-          pad && pad.from === p ? padWrap_(x, p.diagram) : fig(p.diagram)}${
-          pics_(p.images)}</div>`).join('')}
+          p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${p.html || ''}</div>`).join('')}
       ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
       <div class="qsheet-part">
         <div class="qsheet-pb">${x.html || ''}${
-          /* THE DIAGRAM, AFTER THE PROSE, where a printed paper puts it. See the `diagram`
-             column in js/library.js, and `figCredit_` above for the ones we drew. */''}${
-          pad && pad.from === 'part' ? padWrap_(x, x.diagram, figCredit_(x, 'p'))
-            : x.diagram ? `<figure>${x.diagram}${figCredit_(x)}</figure>` : ''}${
-          pics_(x.images)}</div>
+          /* NO PICTURE HERE. The diagram, the pen and the question's photographs are the NEXT page
+             — see `questionFigCard_`. The answer box stays on this card, under the words. */''}</div>
       </div>
     </div>
     ${/* YOUR BOX FIRST, THE MARK SCHEME UNDER IT, and the order is the whole point: an answer you
@@ -5340,6 +5341,50 @@ function questionCard_(x) {
   </div>`;
 }
 
+
+/* ==================================================================================================
+   THE FIGURE IS ITS OWN CARD, THE PAGE STRAIGHT AFTER ITS QUESTION.
+
+   ASKED FOR AS "across the board of all resources the diagrams should be its own widgets." The
+   practicals were already split into pages — card, kit, method, worksheet — and this is the same
+   move one kind along: `pageParts_` gives a question with a picture a second page, and
+   `stuffPages_` expands it where pages are built, so a question is still ONE item to every count
+   the funnel makes and only the pager's page count grows.
+
+   WHAT MOVES: every diagram and photograph the card used to draw inline — the preamble's own
+   pictures (`preamble_` puts them on every part that hangs from them, so each part's figure page
+   carries them too), the part's `diagram`, its `images`, and the pen (`padWrap_`), which goes with
+   the picture it draws on. Its key is still `pad:<row>` through `padKey_`, so marks already made
+   come back. WHAT STAYS: the words, the tables and the answer box, on the question card. A table is
+   text somebody reads while answering, not a picture.
+
+   `data-of` NAMES THE ROW, so a check walking the strip can tell the figure of Q6(i) from the one of
+   Q6(ii) — the answer box's key does that job on the question card, and this card has no box. */
+const figImgs_ = v => (Array.isArray(v) ? v : topicAtoms_(v));
+function questionHasFig_(x) {
+  if (!x || x.kind !== 'question') return false;
+  if (x.diagram || figImgs_(x.images).length) return true;
+  return (x.stems || []).some(p => p && (p.diagram || figImgs_(p.images).length));
+}
+function questionFigCard_(x) {
+  const pad = padSource_(x);
+  const out = [];
+  (x.stems || []).forEach(p => {
+    if (!p) return;
+    if (pad && pad.from === p) out.push(padWrap_(x, p.diagram));
+    else if (p.diagram) out.push(`<figure>${p.diagram}</figure>`);
+    out.push(pics_(figImgs_(p.images)));
+  });
+  if (pad && pad.from === 'part') out.push(padWrap_(x, x.diagram, figCredit_(x, 'p')));
+  else if (x.diagram) out.push(`<figure>${x.diagram}${figCredit_(x)}</figure>`);
+  out.push(pics_(figImgs_(x.images)));
+  const id = (x.row && x.row.row_id) || x.key || '';
+  return `<div class="qcard qfig" data-of="${esc(id)}">
+    <div class="qcard-top"><b>Figure · ${esc(x.name)}</b></div>
+    <p class="qcard-sub">${esc(x.sub)}</p>
+    <div class="qsheet">${out.join('')}</div>
+  </div>`;
+}
 
 /* `topicBy` WAS HERE — a document by id, falling back to its name. Nothing has a document to look
    up any more; see the note above `questionItems`. */
@@ -6584,7 +6629,8 @@ function stuffFiltered() {
 
 /* ---------- THE PAGES, WHICH ARE NOT THE SAME LIST AS THE RESULTS -----------------------------
    A PRACTICAL IS ONE RESULT AND FOUR PAGES — its card and picture, the kit, the method and the
-   worksheet (see `pracParts_`). Expanding it HERE, where pages are built, and nowhere upstream is
+   worksheet (see `pageParts_`) — and a question with a picture is two, its words and its figure.
+   Expanding it HERE, where pages are built, and nowhere upstream is
    the whole care: `stuffFiltered()` is what every count reads — `facetTally_`, `nextFacet`, the
    "N of M" above the question, `check-funnel.js` — and a practical expanded there would be counted
    four times in every one of them and answer every facet four times over.
@@ -6597,7 +6643,7 @@ function stuffPages_() {
   const items = stuffFiltered();
   if (STUFF_PAGES.from === items) return STUFF_PAGES.pages;
   const pages = [];
-  items.forEach(x => pracParts_(x).forEach(part => pages.push({ x: x, part: part })));
+  items.forEach(x => pageParts_(x).forEach(part => pages.push({ x: x, part: part })));
   STUFF_PAGES = { from: items, pages: pages };
   return pages;
 }
@@ -6605,8 +6651,8 @@ function stuffPages_() {
 /* THE PAGE AN ITEM STARTS ON, counted from the first result. For anything that turns to a result by
    its position in `stuffFiltered()` — without this it would land a page early for every practical
    in front of it, and on a worksheet rather than the thing it asked for. */
-function stuffPageOf_(x) {
-  const i = stuffPages_().findIndex(pg => pg.x === x && !pg.part);
+function stuffPageOf_(x, part) {
+  const i = stuffPages_().findIndex(pg => pg.x === x && (pg.part || null) === (part || null));
   return i < 0 ? 0 : i;
 }
 
@@ -7040,7 +7086,9 @@ function accountPages_() {
   const me = [
     typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow),
     typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow, 'me')) : '',
-    `<button class="btn quiet" data-do="signout" style="margin-top:.7rem">Sign out</button>`,
+    /* SIGN OUT IS A TILE, like every other action on your card — it was the one button left in a row
+       of marks. Its own row, so it cannot be pressed on the way to one of the others. */
+    `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`,
   ].join('');
 
   /* ---------- AND AN UNLISTED TUTOR WAS DELETED FROM THE ONE SCREEN THAT CAN SWITCH HIM BACK ON --
@@ -7572,7 +7620,7 @@ function stuffPageHtml(n) {
      decision, not four. `stuffPerPage` is 1 and has been since the list became a strip. */
   const pg = stuffPages_()[n];
   if (!pg) return '';
-  return pg.part ? practicalPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
+  return pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, credits);
 }
 
 /* One card. Lifted out of the list so the pager and anything else can build one without rebuilding
