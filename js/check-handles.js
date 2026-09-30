@@ -136,8 +136,7 @@ const PRELUDE = `
      NO BACKTICKS IN HERE EITHER, and this comment is why the rule two blocks up is written down:
      the first version of it used them and the file failed to parse eighty lines from the cause. */
   const read = () => ({ rows: ROWS, sheet: true, headers: HEADERS });
-  let HEADERS = ['person_id', 'handle', 'username', 'email', 'first_name', 'last_name', 'full_name',
-                 'handle_was'];
+  let HEADERS = ['person_id', 'handle', 'email', 'first_name', 'last_name', 'handle_was'];
   const setCell = (t, r, f, v) => { r[f] = v; WROTE.push(f); };
   let WROTE = [];
   const clearCache = () => {};
@@ -369,9 +368,7 @@ function run() {
      handler moved to the second so all four cells go in one call, and the rule is about the VALUE —
      both cells from `want` — rather than about how many calls it takes. */
   const cells = (block.match(/setCells\(t, r, \{([^}]*)\}\)/) || [])[1] || '';
-  const stores = (/setCell\(t, r, 'handle', want\)/.test(block)
-                  && /setCell\(t, r, 'username', want\)/.test(block))
-              || (/\bhandle: want\b/.test(cells) && /\busername: want\b/.test(cells));
+  const stores = /setCell\(t, r, 'handle', want\)/.test(block) || /\bhandle: want\b/.test(cells);
   if (folds) bad.push({ handle: 'changeHandle', want: 'as typed',
     why: 'the case somebody chose is thrown away on the way into the cell',
     said: 'dopost.gs lower-cases the handle before storing it' });
@@ -379,8 +376,8 @@ function run() {
     why: 'the posted handle is not taken as S(body.handle).trim()',
     said: 'dopost.gs no longer builds `want` the way this rule can read' });
   if (!stores) bad.push({ handle: 'changeHandle', want: 'as typed',
-    why: 'handle and username must both be written from the same value, or the old one still answers',
-    said: 'dopost.gs does not write both cells from `want`' });
+    why: 'what was checked is what must be written',
+    said: 'dopost.gs does not write the handle from `want`' });
 
   /* ---------- AND `register`, WHICH IS THE WRITER EVERY ACCOUNT GOES THROUGH ONCE ---------------
      `changeHandle` IS THE RENAME BOX AND `register` IS EVERYBODY. The rule above was written for
@@ -407,32 +404,40 @@ function run() {
      name and handed the check the wrong object. */
   const rEnd = reg < 0 ? -1 : post.indexOf("if (action ===", reg + 20);
   const rblock = reg < 0 ? '' : post.slice(reg, rEnd > reg ? rEnd : undefined);
-  const uline = (rblock.match(/username:\s*[^\n]*/) || [''])[0];
-  if (!uline) {
-    console.log('FAILED — could not find the username line in register to check.');
+  if (!rblock) {
+    console.log('FAILED — could not find the register handler in dopost.gs to check.');
     process.exit(1);
   }
-  if (/norm\(|toLowerCase/.test(uline)) bad.push({ handle: 'register', want: 'as typed',
-    why: 'every account that never renames itself is shown a name it did not choose',
-    said: 'dopost.gs folds the case when it writes a new username' });
-  if (!/replace\(/.test(uline)) bad.push({ handle: 'register', want: 'letters and digits only',
-    why: 'HANDLE_SHAPE never sees a registered username, so this strip is the only thing holding',
-    said: 'dopost.gs no longer strips punctuation out of a new username' });
-
-  /* ---------- AND BOTH COLUMNS COME FROM THE SAME GENERATED VALUE -------------------------------
-     `register` USED TO WRITE NO HANDLE AT ALL and a username of `first + last`. Two people called
-     John Smith both got `JohnSmith`; `findPerson` matches `username` and returns the FIRST row, so
-     the second signs in as the first and `changePin` checks their PIN against the other one's row.
-     This is the same rule the `changeHandle` block above applies — both cells from one value, or
-     the old one still answers — asked of the writer every account goes through exactly once. */
   if (!/handle:\s*regHandle/.test(rblock)) bad.push({ handle: 'register', want: 'a handle',
     why: 'a row written with no handle shows its squashed name in place of one, for ever',
     said: 'dopost.gs does not write a generated handle at registration' });
-  if (!/username:\s*regHandle\s*\|\|/.test(rblock)) bad.push({ handle: 'register',
-    want: 'one value in both cells',
-    why: 'two spellings of who somebody is means findPerson resolves the first and changePin '
-       + 'checks the wrong row',
-    said: 'dopost.gs does not write the username from the same generated value' });
+
+  /* ---------- AND NOTHING WRITES A `username` ANY MORE -------------------------------------------
+     THE COLUMN WENT WITH THE PEOPLE TAB'S REDESIGN — it was the handle written a second time — so a
+     write to it is a write to a header that is not there: `missedWrite_` records it and `jsonOut`
+     turns the whole Save into "Nothing was saved". A grep over the backend's code (comments are
+     prose and may say the word) for anything that names it as a cell. */
+  const writesUser = [];
+  fs.readdirSync(path.join(ROOT, 'backend')).filter(f => f.endsWith('.gs')).forEach(f => {
+    /* COMMENTS TRACKED OPENER TO CLOSER, not guessed at from how a line starts — prose inside a
+       block comment is allowed to say the word, and `check-backend.js` records its own first version
+       firing on its own documentation. */
+    let inBlock = false;
+    fs.readFileSync(path.join(ROOT, 'backend', f), 'utf8').split('\n').forEach((line, n) => {
+      let code = '', i = 0;
+      while (i < line.length) {
+        if (inBlock) { const e = line.indexOf('*/', i); if (e < 0) { i = line.length; } else { inBlock = false; i = e + 2; } continue; }
+        const o = line.indexOf('/*', i), sl = line.indexOf('//', i);
+        if (sl >= 0 && (o < 0 || sl < o)) { code += line.slice(i, sl); break; }
+        if (o < 0) { code += line.slice(i); break; }
+        code += line.slice(i, o); inBlock = true; i = o + 2;
+      }
+      if (/\busername\s*:|'username'|"username"|\.username\b/.test(code)) writesUser.push(f + ':' + (n + 1));
+    });
+  });
+  if (writesUser.length) bad.push({ handle: 'username', want: 'no such column',
+    why: 'the people tab has no username column, so a write to it fails the whole save',
+    said: 'still named at ' + writesUser.slice(0, 4).join(', ') });
 
   /* ---------- EVERY PAIR THE GENERATOR CAN MAKE, THROUGH THE GATE IT CLAIMS TO PASS -------------
      `handleMake_` RUNS ITS CANDIDATES THROUGH `handleTrouble_`, so it cannot RETURN a bad one — and
@@ -555,37 +560,29 @@ function run() {
      job that replaced one would lock them out of their own account and change the name their friends
      know them by — and it would look like a successful run. Every case below is a row shape that
      exists on the real tab today. */
-  box.setHeaders(['person_id', 'handle', 'username', 'email', 'first_name', 'last_name']);
+  box.setHeaders(['person_id', 'handle', 'email', 'first_name', 'last_name']);
   const rows = [
-    { person_id: 'P1', handle: 'HalexD', username: 'HalexD', email: 'a@b.com',
-      first_name: 'Halex', last_name: 'Dias' },                       // whole — must not be touched
-    { person_id: 'P2', handle: 'OnlyHandle', username: '', email: 'c@d.com',
-      first_name: 'A', last_name: 'B' },                              // half — copied across
-    { person_id: 'P3', handle: '', username: 'OnlyUser', email: 'e@f.com',
-      first_name: 'C', last_name: 'D' },                              // half the other way
-    { person_id: 'P4', handle: '', username: '', email: '', first_name: '', last_name: '' },
+    { person_id: 'P1', handle: 'HalexD', email: 'a@b.com',
+      first_name: 'Halex', last_name: 'Dias' },                       // has one — must not be touched
+    { person_id: 'P4', handle: '', email: '', first_name: '', last_name: '' },
   ];
   box.setRows(rows);
   box.clearWrote();
   const did = box.fill();
-  if (rows[0].handle !== 'HalexD' || rows[0].username !== 'HalexD') {
+  if (rows[0].handle !== 'HalexD') {
     bad.push({ handle: 'fillHandles', want: 'untouched',
-      why: 'a row that already has both cells was rewritten, which signs that person out of their '
-         + 'own account', said: rows[0].handle + ' / ' + rows[0].username });
+      why: 'a row that already has a handle was rewritten, which changes the name its friends know it by',
+      said: rows[0].handle });
   }
   if (did.leftAlone !== 1) bad.push({ handle: 'fillHandles', want: '1 left alone',
     why: 'a run that reports nothing left alone reads the same whether it found nothing or '
        + 'rewrote everything', said: String(did.leftAlone) });
-  if (rows[1].username !== 'OnlyHandle' || rows[2].handle !== 'OnlyUser') {
-    bad.push({ handle: 'fillHandles', want: 'the existing one copied across',
-      why: 'a row with one of the two filled in is half-resolvable: findPerson answers to one '
-         + 'spelling and not the other', said: rows[1].username + ' / ' + rows[2].handle });
+  if (!rows[1].handle) {
+    bad.push({ handle: 'fillHandles', want: 'a handle',
+      why: 'a blank row must get one', said: '"' + rows[1].handle + '"' });
   }
-  if (!rows[3].handle || rows[3].handle !== rows[3].username) {
-    bad.push({ handle: 'fillHandles', want: 'both cells from one value',
-      why: 'a blank row must get a handle, and the same one in both columns',
-      said: '"' + rows[3].handle + '" / "' + rows[3].username + '"' });
-  }
+  if (box.wrote().indexOf('username') !== -1) bad.push({ handle: 'fillHandles', want: 'no username',
+    why: 'the column is gone, so a write to it is a write to nothing', said: box.wrote().join(', ') });
   /* AND IT INVENTS NEITHER AN EMAIL NOR A NAME, which is the line this job stops at: a generated
      address is not a blank cell, it is a WRONG one, and `notify` would post into it and report
      success. P4 has none of the three and must come back NAMED rather than filled. */
@@ -603,7 +600,7 @@ function run() {
      that is not there and loses the value with no error anywhere — a job that "ran" and changed
      nothing is the worst outcome available here. */
   box.setHeaders(['person_id', 'email']);
-  box.setRows([{ person_id: 'P9', handle: '', username: '' }]);
+  box.setRows([{ person_id: 'P9', handle: '' }]);
   if (!box.fill().error) bad.push({ handle: 'fillHandles', want: 'a refusal',
     why: 'with no handle column every write is silently lost and the job reports success',
     said: '(it ran)' });
@@ -612,19 +609,19 @@ function run() {
      It may overwrite because signing in is an e-mail and a PIN now. What it must do: rename an old
      `BrightOtter42` into `<first>_<adjective><NN>`, write the username to match, keep the old one in
      `handle_was`, leave a row already in the shape alone, and change nothing on a second run. */
-  box.setHeaders(['person_id', 'handle', 'username', 'handle_was', 'first_name']);
+  box.setHeaders(['person_id', 'handle', 'handle_was', 'first_name']);
   const rrows = [
-    { person_id: 'R1', handle: 'BrightOtter42', username: 'BrightOtter42', first_name: 'Halex' },
-    { person_id: 'R2', handle: 'ada_calm17', username: 'ada_calm17', first_name: 'Ada' },
-    { person_id: 'R3', handle: '', username: '', first_name: '' },
+    { person_id: 'R1', handle: 'BrightOtter42', first_name: 'Halex' },
+    { person_id: 'R2', handle: 'ada_calm17', first_name: 'Ada' },
+    { person_id: 'R3', handle: '', first_name: '' },
   ];
   box.setRows(rrows);
   const ren = box.rename();
   const r1 = rrows[0].handle.match(/^halex_([a-z]+)\d{2}$/);
-  if (!r1 || rrows[0].username !== rrows[0].handle || rrows[0].handle_was !== 'BrightOtter42') {
-    bad.push({ handle: 'renameHandles', want: 'halex_<adjective><NN>, username matching, old kept',
-      why: 'the old-format handle must become the new format in both columns, with handle_was set',
-      said: rrows[0].handle + ' / ' + rrows[0].username + ' / was ' + rrows[0].handle_was });
+  if (!r1 || rrows[0].handle_was !== 'BrightOtter42') {
+    bad.push({ handle: 'renameHandles', want: 'halex_<adjective><NN>, old kept',
+      why: 'the old-format handle must become the new format, with handle_was set',
+      said: rrows[0].handle + ' / was ' + rrows[0].handle_was });
   }
   if (rrows[1].handle !== 'ada_calm17') bad.push({ handle: 'renameHandles', want: 'untouched',
     why: 'a handle already in the new shape must be left alone', said: rrows[1].handle });

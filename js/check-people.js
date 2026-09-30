@@ -9,8 +9,11 @@
    `equipment_1 … equipment_10` and, in writing, over `library_card` itself. So:
 
      `availability`   77 tickboxes -> "m09,m10,…"           `availGridOut` / `availGridIn`
-     `library_card`    9 boxes     -> "name:no:pin|…"       `libCardsOut`  / `libCardsIn`
      `date_of_birth`   3 boxes     -> "15/09/1985"          `dobOut`       / `dobIn`
+
+   AND TWO SETS OF BOXES THAT ARE ROWS ON TABS OF THEIR OWN since the people tab was redesigned —
+   the qualification shelf on `qualifications` and the library cards on `library_cards`. They go
+   through the same round trip: boxes to rows, rows back to boxes.
 
    NOTHING HAS EVER TESTED EITHER. They are the one shape where a fault is completely silent: a
    packer that drops a field writes a shorter cell, the form reloads with an empty box, and the
@@ -67,23 +70,18 @@ const SRC = [
   grab(core,   /function availGridOut\([\s\S]*?\n\}/, 'availGridOut'),
   grab(core,   /function availGridIn\([\s\S]*?\n\}/, 'availGridIn'),
   grab(core,   /function availSet\([\s\S]*?\n\}/, 'availSet'),
+  /* ---------- THE TWO LISTS THAT ARE TABS: A PERSON'S OWN ROWS, READ AND TURNED INTO BOXES ---------
+     `read` is stubbed below over an in-memory store, which is the one Apps Script call these reach. */
+  grab(core,   /function ownRows_\([\s\S]*?\n\}/, 'ownRows_'),
   grab(core,   /function libCardsOut\([\s\S]*?\n\}/, 'libCardsOut'),
   grab(core,   /function libCardsIn\([\s\S]*?\n\}/, 'libCardsIn'),
-  /* ---------- THE TWO SHELVES THAT READ THE ROW RATHER THAN THE CELL -------------------------------
-     `qualsList_` AND `teachAlsoList_` ARE THE MIGRATION: a row nobody has saved since `quals` and
-     `teaches_also` existed has those cells empty and its answers in `qual_1…3` and `teaches_2`, and a
-     reader that looked only at the new cell would show an empty shelf — which the next Save would
-     then mirror back over the old cells. So the cases below include a legacy row. */
   grab(consts, /const QUAL_MAX\s*=[^;]*;/, 'QUAL_MAX'),
   grab(consts, /const QUAL_FIELDS\s*=\s*\(\(\)[\s\S]*?\}\)\(\);/, 'QUAL_FIELDS'),
-  grab(consts, /const TEACH_ALSO_MAX\s*=[^;]*;/, 'TEACH_ALSO_MAX'),
   grab(core,   /function qualsList_\([\s\S]*?\n\}/, 'qualsList_'),
   grab(core,   /function qualsOut\([\s\S]*?\n\}/, 'qualsOut'),
   grab(core,   /function qualsIn\([\s\S]*?\n\}/, 'qualsIn'),
-  grab(core,   /function teachAlsoList_\([\s\S]*?\n\}/, 'teachAlsoList_'),
-  grab(core,   /const teachAlsoPhrase_\s*=[^;]*;/, 'teachAlsoPhrase_'),
-  grab(core,   /function teachAlsoOut\([^\n]*\}/, 'teachAlsoOut'),
-  grab(core,   /function teachAlsoIn\([\s\S]*?\n\}/, 'teachAlsoIn'),
+  grab(core,   /const teachPhrase_\s*=[^;]*;/, 'teachPhrase_'),
+  grab(core,   /function teachesOf_\([\s\S]*?\n\}/, 'teachesOf_'),
   grab(consts, /const PHONE_CODES\s*=[^;]*;/, 'PHONE_CODES'),
   grab(core,   /function phoneOut\([\s\S]*?\n\}/, 'phoneOut'),
   grab(core,   /function phoneIn\([\s\S]*?\n\}/, 'phoneIn'),
@@ -123,6 +121,10 @@ const PRELUDE = `
   const norm = v => S(v).toLowerCase().replace(/\\s+/g, '').trim();
   const key = v => S(v).toLowerCase().replace(/[^a-z0-9]/g, '');
   const TRUE_ = v => v === true || /^(true|yes|1|✓)$/i.test(S(v).trim());
+  const TAB = { qualifications: 'qualifications', library_cards: 'library_cards' };
+  let STORE = { qualifications: [], library_cards: [] };
+  function read(tab) { return { rows: STORE[tab] || [] }; }
+  box.setStore = s => { STORE = s; };
 `;
 const box = {};
 new Function('box', PRELUDE + SRC
@@ -133,8 +135,7 @@ new Function('box', PRELUDE + SRC
   + ' box.iso = isoDate_; box.isoNo = isoRefusal_; box.DATE_COLS = DATE_COLS;'
   + ' box.qList = qualsList_; box.qOut = qualsOut; box.qIn = qualsIn;'
   + ' box.QMAX = QUAL_MAX; box.QFIELDS = QUAL_FIELDS;'
-  + ' box.aList = teachAlsoList_; box.aOut = teachAlsoOut; box.aIn = teachAlsoIn;'
-  + ' box.AMAX = TEACH_ALSO_MAX; box.phOut = phoneOut; box.phIn = phoneIn;'
+  + ' box.teaches = teachesOf_; box.phOut = phoneOut; box.phIn = phoneIn;'
   + ' box.pOut = photosOut; box.pIn = photosIn; box.pNo = photosRefusal_; box.pList = photosList_;'
   + ' box.PMAX = PHOTO_MAX; box.vWrites = venuesWrites_;')(box);
 
@@ -154,10 +155,12 @@ is('each card gives three field names', box.FIELDS.length, box.N * 3);
    check fails if somebody lowers the constant back without being asked to. */
 is('five library cards', box.N, 5);
 is('ten qualifications, seven boxes each — four, the received year and the two ticks', [box.QMAX, box.QFIELDS.length], [10, 70]);
-is('eight also-teach subjects', box.AMAX, 8);
 is('the first card is named lib1_*', box.FIELDS.slice(0, 3), ['lib1_name', 'lib1_no', 'lib1_pin']);
 
-/* ---------- THE ROUND TRIP, WHICH IS THE WHOLE POINT --------------------------------------------- */
+/* ---------- THE ROUND TRIP, WHICH IS THE WHOLE POINT ---------------------------------------------
+   Boxes -> rows (what `updateProfile` writes with `writeOwnRows_`) -> the person's rows read back
+   (`ownRows_`) -> boxes. `person_id` is what ties a row to its person, so rows for somebody else in
+   the same tab must never come back into this person's form. */
 const cards = (...rows) => {
   const f = {};
   rows.forEach((r, i) => {
@@ -167,8 +170,12 @@ const cards = (...rows) => {
   });
   return f;
 };
+const ME = { person_id: 'P-ME' };
+const asRows = (list, pid) => list.map(x => Object.assign({ person_id: pid || 'P-ME' }, x));
+const store = (quals, libs) => box.setStore({ qualifications: quals || [], library_cards: libs || [] });
 const trip = f => {
-  const back = box.libOut(box.libIn(f));
+  store([], asRows(box.libIn(f)));
+  const back = box.libOut(ME);
   const out = {};
   box.FIELDS.forEach(k => { if (f[k] !== undefined) out[k] = back[k]; });
   return out;
@@ -177,85 +184,32 @@ const trip = f => {
 is('one card comes back as it went in',
    trip(cards(['Merton', '2000000000000', '0000'])),
    cards(['Merton', '2000000000000', '0000']));
-
 is('three cards come back as they went in',
-   trip(cards(['Merton', '20000000001', '1111'],
-              ['Sutton', '20000000002', '2222'],
-              ['Wandsworth Town and Putney', '20000000003', '3333'])),
-   cards(['Merton', '20000000001', '1111'],
-         ['Sutton', '20000000002', '2222'],
-         ['Wandsworth Town and Putney', '20000000003', '3333']));
-
-/* A NAME MAY HOLD A COLON AND THAT IS WHY AN ITEM IS PARSED FROM THE RIGHT. `Merton: Wimbledon` is
-   a real way to write a branch, and a left-to-right parse would file `Wimbledon` as the number. */
-is('a colon inside a library name survives',
-   trip(cards(['Merton: Wimbledon', '2000000000000', '0000'])),
-   cards(['Merton: Wimbledon', '2000000000000', '0000']));
-
-/* A PIPE IS THE SEPARATOR AND IS STRIPPED RATHER THAN ESCAPED. Left in, `Merton|Sutton` would come
-   back as TWO cards on the next load — a silent corruption of the one thing this cell exists to
-   remember, and the kind that looks like the app inventing a library. */
-is('a pipe typed into a name cannot split the cell',
-   trip(cards(['Merton|Sutton', '2000000000000', '0000'])),
-   cards(['Merton Sutton', '2000000000000', '0000']));
-
-/* THE TWO ASYMMETRIES, BOTH DELIBERATE AND BOTH EASY TO GET WRONG ------------------------------- */
-is('a trailing empty card is not written',
-   box.libIn(cards(['Merton', '1', '0000'], ['', '', ''], ['', '', ''])),
-   'Merton:1:0000');
-is('a gap in the middle is kept, because it is somebody\'s second slot left blank',
-   box.libIn(cards(['Merton', '1', '0000'], ['', '', ''], ['Sutton', '3', '3333'])),
-   'Merton:1:0000||Sutton:3:3333');
-is('nothing typed at all is an empty cell', box.libIn(cards(['', '', ''])), '');
-
-/* AN OLD CELL, AND A CELL WITH MORE CARDS IN IT THAN THE FORM DRAWS. Neither should throw and
-   neither should invent a field: the form shows `LIBRARY_CARDS` of them and a fourth would be
-   dropped on the next save, which is a real loss and is why the count is one constant. */
+   trip(cards(['Merton', '20000000001', '0000'],
+              ['Sutton', '20000000002', '0000'],
+              ['Wandsworth Town and Putney', '20000000003', '0000'])),
+   cards(['Merton', '20000000001', '0000'],
+         ['Sutton', '20000000002', '0000'],
+         ['Wandsworth Town and Putney', '20000000003', '0000']));
+/* A ROW HAS NO SEPARATORS TO PROTECT, so what is typed is what is kept — a colon or a pipe that the
+   packed cell had to strip or parse around is just a character now. */
+is('a colon and a pipe in a library name survive as typed',
+   trip(cards(['Merton: Wimbledon|West', '2000000000000', '0000'])),
+   cards(['Merton: Wimbledon|West', '2000000000000', '0000']));
+is('an empty card is not written, wherever it is — a row has no position to keep',
+   box.libIn(cards(['Merton', '1', '0000'], ['', '', ''], ['Sutton', '3', '0000'])).map(c => c.library),
+   ['Merton', 'Sutton']);
+is('nothing typed at all is no rows', box.libIn(cards(['', '', ''])), []);
 const blanks = n => Array.from({ length: n }, () => ['', '', '']);
-is('an empty cell unpacks to empty boxes',
-   box.libOut(''), cards(...blanks(box.N)));
-is('a ragged item does not throw and does not invent',
-   box.libOut('Merton'), cards(['Merton', '', ''], ...blanks(box.N - 1)));
+store([], []);
+is('no rows unpack to empty boxes', box.libOut(ME), cards(...blanks(box.N)));
+store([], asRows([{ library: 'Theirs', card_number: '9', pin: '0000' }], 'P-SOMEBODY'));
+is('somebody else\'s card never comes into this form', box.libOut(ME), cards(...blanks(box.N)));
 
-/* ---------- THE QUALIFICATIONS: ROUND TRIP, MIGRATION, COMPACTION, AND THE CAP ------------------ */
-const quals = (...rows) => {
-  const f = {};
-  rows.forEach((r, i) => ['', '_level', '_board', '_grade'].forEach((sfx, j) => {
-    f['qual_' + (i + 1) + sfx] = r[j];
-  }));
-  return f;
-};
-is('a qualification packs as subject:level:board:grade~received~flags',
-   box.qIn(quals(['Maths', 'A-Level', 'Edexcel', 'B'])), 'Maths:A-Level:Edexcel:B~~');
-is('and comes back into the same four boxes',
-   box.qOut({ quals: 'Maths:A-Level:Edexcel:B' }).qual_1_board, 'Edexcel');
-is('a colon in the subject survives, because the item is read from the right',
-   box.qList({ quals: 'Maths: Pure:A-Level:Edexcel:B' })[0].subject, 'Maths: Pure');
-/* COMPACTED, UNLIKE THE LIBRARY. A gap would come back as an empty card mid-shelf above the
-   `Add another`, and a list of qualifications has no slot anybody remembers by position. */
-is('an empty qualification in the middle is dropped, not kept',
-   box.qIn(quals(['Maths', 'GCSE', '', '9'], ['', '', '', ''], ['Physics', 'GCSE', 'AQA', '8'])),
-   'Maths:GCSE::9~~|Physics:GCSE:AQA:8~~');
-is('ten fit and are all kept',
-   box.qList({ quals: Array.from({ length: 10 }, (_, i) => 'S' + i + ':GCSE::1').join('|') }).length, 10);
-is('an eleventh in the cell is not invented into a box',
-   box.qList({ quals: Array.from({ length: 11 }, (_, i) => 'S' + i + ':GCSE::1').join('|') }).length, 10);
-is('a pipe typed into a subject does not become a second qualification',
-   box.qList({ quals: box.qIn(quals(['Maths|Stats', 'GCSE', '', '9'])) }).length, 1);
-/* THE MIGRATION, and the case that would have lost data: a row saved before `quals` existed. */
-const legacy = { qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_board: 'Edexcel', qual_1_grade: 'B',
-                 qual_2: 'English', qual_2_level: 'GCSE', qual_2_grade: '7' };
-is('an empty quals cell reads the old qual_1..3 columns',
-   box.qList(legacy).map(q => q.subject + '/' + q.grade), ['Maths/B', 'English/7']);
-is('and the form is filled from them',
-   [box.qOut(legacy).qual_1, box.qOut(legacy).qual_2_level, box.qOut(legacy).qual_3], ['Maths', 'GCSE', '']);
-is('a filled quals cell wins over the old columns',
-   box.qList(Object.assign({ quals: 'Physics:GCSE:AQA:8' }, legacy)).length, 1);
-
-/* ---------- THE RECEIVED YEAR AND THE TWO TICKS -------------------------------------------------
-   The tail every item carries now. The cases that would lose data are the legacy ones: an item from
-   before the tail must still read, and a row with no ticks written must inherit them from
-   `teaches_1`/`teaches_also` or the first Save blanks what a tutor teaches. */
+/* ---------- THE QUALIFICATIONS -------------------------------------------------------------------
+   `teach` IS THE SPECIALISM (one on the page, the gold chip under "Teaches") and `can_teach` is
+   everything else taught. On the way back a specialism is also taught, so the form's Can teach box
+   comes back ticked beside it. */
 const q7 = (...rows) => {
   const f = {};
   rows.forEach((r, i) => ['', '_level', '_board', '_grade', '_received', '_teach', '_spec'].forEach((sfx, j) => {
@@ -263,44 +217,44 @@ const q7 = (...rows) => {
   }));
   return f;
 };
-is('the received year and the ticks pack onto the tail',
-   box.qIn(q7(['Maths', 'A-Level', 'Edexcel', 'B', '2019', 'TRUE', 'FALSE'])), 'Maths:A-Level:Edexcel:B~2019~t');
-is('a specialism is taught even when Teach was left unticked',
-   box.qIn(q7(['Maths', 'GCSE', '', '9', '', 'FALSE', 'TRUE'])), 'Maths:GCSE::9~~ts');
+is('a qualification becomes one row, the institution in its own column',
+   box.qIn(q7(['Maths', 'A-Level', 'Hill Top School', 'B', '2019', 'TRUE', ''])),
+   [{ subject: 'Maths', level: 'A-Level', institution: 'Hill Top School', grade: 'B', completed: '2019',
+      teach: 'FALSE', can_teach: 'TRUE' }]);
+is('a specialism is teach, and not can_teach as well',
+   (q => [q.teach, q.can_teach])(box.qIn(q7(['Maths', 'GCSE', '', '9', '', 'TRUE', 'TRUE']))[0]), ['TRUE', 'FALSE']);
 is('only one specialism survives the server, the first',
-   box.qIn(q7(['Maths', 'GCSE', '', '9', '', '', 'TRUE'], ['Physics', 'GCSE', '', '8', '', '', 'TRUE'])),
-   'Maths:GCSE::9~~ts|Physics:GCSE::8~~');
-is('a tilde typed into a subject cannot forge a tail',
-   box.qList({ quals: box.qIn(q7(['Maths~x~s', 'GCSE', '', '9', '', '', ''])) })[0].spec, false);
-is('the tail round-trips through the form',
-   (o => [o.qual_1_received, o.qual_1_teach, o.qual_1_spec])(box.qOut({ quals: 'Bible:Degree::~Present~t' })),
-   ['Present', 'TRUE', '']);
-is('an item from before the tail still reads',
-   box.qList({ quals: 'Maths:GCSE:AQA:9' })[0].grade, '9');
-is('with no ticks written, teaches_1 ticks the matching qualification as the specialism',
-   (q => [q.teach, q.spec])(box.qList({ quals: 'Maths:GCSE:AQA:9|English:GCSE::7',
-     teaches_1: 'Maths', teaches_1_level: 'GCSE', teaches_also: 'English (GCSE)' })[0]), [true, true]);
-is('and teaches_also ticks Teach on the others',
-   (q => [q.teach, q.spec])(box.qList({ quals: 'Maths:GCSE:AQA:9|English:GCSE::7',
-     teaches_1: 'Maths', teaches_1_level: 'GCSE', teaches_also: 'English (GCSE)' })[1]), [true, false]);
-is('a subject taught with no matching qualification becomes one rather than vanishing',
-   box.qList({ teaches_1: 'Chemistry', teaches_1_level: 'A-Level' }).map(q => q.subject + '/' + q.spec),
-   ['Chemistry/true']);
-is('once ticks are written, teaches_1 no longer re-ticks an unticked list',
-   box.qList({ quals: 'Maths:GCSE::9~~', teaches_1: 'Maths', teaches_1_level: 'GCSE' })[0].teach, false);
-is('what they were studying becomes a qualification received Present',
-   (q => q.subject + '/' + q.board + '/' + q.received)(box.qList({ studying: 'Bible and Theology', studying_at: 'UWTSD' })[0]),
-   'Bible and Theology/UWTSD/Present');
-/* *"you included uni name in the subject"* — the place is the board slot, and an entry already saved
-   with it in the subject is split back on read. */
-is('a place saved inside the subject is split back into the board slot',
-   (q => q.subject + '/' + q.board)(box.qList({ quals: 'Bible and Theology \u2014 UWTSD:Degree::~Present~' })[0]),
-   'Bible and Theology/UWTSD');
-is('and a place typed into the board is never overwritten by that split',
-   (q => q.subject + '/' + q.board)(box.qList({ quals: 'A \u2014 B:Degree:Uni:~~' })[0]),
-   'A \u2014 B/Uni');
-is('and is not added twice once a Present qualification exists',
-   box.qList({ quals: 'Bible:Degree::~Present~', studying: 'Bible' }).length, 1);
+   box.qIn(q7(['Maths', 'GCSE', '', '9', '', '', 'TRUE'], ['Physics', 'GCSE', '', '8', '', '', 'TRUE'])).map(q => q.teach),
+   ['TRUE', 'FALSE']);
+is('an empty qualification in the middle is dropped',
+   box.qIn(q7(['Maths', 'GCSE', '', '9'], ['', '', '', ''], ['Physics', 'GCSE', 'AQA', '8'])).map(q => q.subject),
+   ['Maths', 'Physics']);
+store(asRows(box.qIn(q7(['Bible and Theology', 'Degree', 'UWTSD', '', 'Present', '', ''],
+                       ['Maths', 'GCSE', 'Hill Top', '8', '2017', '', 'TRUE']))));
+is('and the rows come back into the same boxes',
+   (o => [o.qual_1, o.qual_1_board, o.qual_1_received, o.qual_2, o.qual_2_teach, o.qual_2_spec, o.qual_3])(box.qOut(ME)),
+   ['Bible and Theology', 'UWTSD', 'Present', 'Maths', 'TRUE', 'TRUE', '']);
+store(asRows(Array.from({ length: 11 }, (_, i) => ({ subject: 'S' + i, level: 'GCSE', grade: '1' }))));
+is('ten fit, and an eleventh row is not invented into a box', box.qList(ME).length, 10);
+store(asRows([{ subject: 'Maths', teach: 'TRUE' }, { subject: 'Physics', teach: 'TRUE' }]));
+is('two teach rows typed into the sheet still give one specialism, the first',
+   box.qList(ME).map(q => q.spec), [true, false]);
+store(asRows([{ subject: 'Maths', level: 'GCSE' }], 'P-SOMEBODY'));
+is('somebody else\'s qualification never comes into this form', box.qList(ME).length, 0);
+
+/* ---------- WHAT A TUTOR TEACHES IS DERIVED FROM THE TICKS, NOT KEPT ------------------------------
+   The card's "Teaches" and "Can also teach" read this. The specialism first; a subject ticked twice
+   is one phrase; a tutor with no specialism has no "Teaches" rather than their first "can teach"
+   promoted into it. */
+store(asRows([{ subject: 'English', level: 'KS3', can_teach: 'TRUE' },
+              { subject: 'Maths', level: 'GCSE', teach: 'TRUE' },
+              { subject: 'english', level: 'ks3', can_teach: 'TRUE' },
+              { subject: 'Latin', level: '' }]));
+is('the specialism first, then what else they teach, deduped, and nothing untaught',
+   box.teaches(ME), { main: 'Maths (GCSE)', all: ['Maths (GCSE)', 'English (KS3)'], mainSubject: 'Maths', mainLevel: 'GCSE' });
+store(asRows([{ subject: 'English', level: 'KS3', can_teach: 'TRUE' }]));
+is('no specialism is no Teaches', box.teaches(ME).main, '');
+store([], []);
 
 /* ---------- THE VENUES: A SAVE THAT MOVES NOTHING WRITES NOTHING ----------------------------------
    `others.concat(mine)` put this person at the END of the cell on every Save, so a Save with nothing
@@ -336,29 +290,6 @@ is('00 is read as +',
    box.phOut('0044 7700 900123'), { phone_cc: '+44', phone_no: '7700 900123' });
 is('the cell round-trips',
    box.phIn(box.phOut('+1 415 555 0100')), '+1 415 555 0100');
-
-/* ---------- WHAT ELSE A TUTOR TEACHES ----------------------------------------------------------
-   ONE COLUMN, posted by the phone's multi-select as the phrases the card prints. What the server
-   owes it is tidying and the legacy fallback, and both are silent when wrong. */
-is('the cell reads back as it went in',
-   box.aIn('Maths (GCSE), English (KS3)'), 'Maths (GCSE), English (KS3)');
-is('a pipe typed by hand is a separator too',
-   box.aIn('Maths (GCSE)|English (KS3)'), 'Maths (GCSE), English (KS3)');
-is('a subject with no level has no brackets', box.aIn('Chess'), 'Chess');
-is('a level with no subject is not a subject', box.aIn('(GCSE)'), '');
-is('the same subject twice is one subject, whatever the case',
-   box.aIn('Maths (GCSE), maths (gcse)'), 'Maths (GCSE)');
-is('an empty post stays empty, which is a tutor clearing the list', box.aIn(''), '');
-is('the level comes apart from the subject',
-   box.aList({ teaches_also: 'Maths (GCSE), English (KS3)' })[1], { subject: 'English', level: 'KS3' });
-is('an empty teaches_also reads the old teaches_2',
-   box.aList({ teaches_2: 'Physics', teaches_2_level: 'A-Level' }), [{ subject: 'Physics', level: 'A-Level' }]);
-is('and the form is filled from it', box.aOut({ teaches_2: 'Physics', teaches_2_level: 'A-Level' }),
-   'Physics (A-Level)');
-is('a filled teaches_also wins over teaches_2',
-   box.aList({ teaches_also: 'Chess', teaches_2: 'Physics' }).map(x => x.subject), ['Chess']);
-is('no more than eight are kept',
-   box.aIn(Array.from({ length: 9 }, (_, i) => 'S' + i).join(', ')).split(', ').length, 8);
 
 /* ---------- AND THE HOURS, WHICH HAVE NEVER BEEN TESTED EITHER ----------------------------------- */
 is('a ticked hour survives the round trip',
@@ -493,6 +424,6 @@ is('the card leaves out the face and anything that is not a link',
 
 if (bad) { console.log('\nFAILED — ' + bad + ' packed-cell case(s) wrong.'); process.exit(1); }
 console.log('\nlibrary cards: ' + box.N + '   fields: ' + box.FIELDS.length
-          + '   packed cells: availability, library_card, date_of_birth, quals, teaches_also, photos'
+          + '   packed cells: availability, date_of_birth, phone, photos   rows: qualifications, library_cards'
           + '   date columns: ' + box.DATE_COLS.join(', '));
 console.log('OK — every packed cell and every date column comes back as it went in.');

@@ -916,21 +916,6 @@ label.field > span.handle-in {
   background: var(--sunk); border: 1px solid var(--line);
 }
 .ph-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
-/* ---------- "ALSO TEACH" IN THE PANEL: ONE SHORT ROW A SUBJECT --------------------------------
-   The subject is a small caption over its levels, in the ink `.dob-cap` uses for the same job, and
-   the groups are spaced rather than ruled — a rule between twelve subjects is chrome where a list
-   wants none. The level buttons keep `.pick-opt`'s 44px; only the flat list's width rule changes,
-   because a level is four characters and the flat list is sized for a phrase. */
-.pick-group + .pick-group { margin-top: .45rem; }
-.pick-head {
-  display: block; margin: 0 0 .2rem;
-  font-family: var(--mono); font-size: .62rem; letter-spacing: .08em; text-transform: uppercase;
-  color: var(--dim);
-}
-.pick-group .pick-list { grid-template-columns: repeat(auto-fill, minmax(4.8rem, 1fr)); margin: 0; }
-/* ONE LINE A LEVEL. `A-Level` broke after its hyphen in a four-character column — a screenshot is
-   what caught it — and a level split over two lines reads as two answers. */
-.pick-group .pick-opt { white-space: nowrap; padding-inline: .3rem; }
 
 /* The whole row is the target, not the little box. A pixel floor rather than a rem multiple,
    because 2.9rem at a 15px root came out at 43.5px — half a pixel under, which is exactly the

@@ -154,6 +154,8 @@ const FILES = { ledger: LEDGER_ID };
 const WHERE = {
   /* ---- the app writes these ---- */
   people:         { file: 'ledger' },
+  qualifications: { file: 'ledger' },
+  library_cards:  { file: 'ledger' },
   family:         { file: 'ledger' },
   jobs:           { file: 'ledger' },
   events:         { file: 'ledger' },
@@ -231,7 +233,8 @@ const BACKEND_VERSION = "2026-09-30-g-handlesprofile";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
-  people: 'people', venues: 'venues', jobs: 'jobs', events: 'events', terms: 'terms',
+  people: 'people', qualifications: 'qualifications', library_cards: 'library_cards',
+  venues: 'venues', jobs: 'jobs', events: 'events', terms: 'terms',
   /* `resources` WAS HERE, then `questions` was. Both are gone: the documents and the questions
      inside them are one table, and that table is `data/questions.json` in this repository now. */
   shop: 'shop', pricing: 'pricing',
@@ -284,211 +287,75 @@ const TAB = {
    load /exec?setup=1.
 ---------------------------------------------------------------------------------------------- */
 const SCHEMA = {
+  /* ---------- THE PEOPLE TAB, REDESIGNED -----------------------------------------------------------
+     ASKED FOR AS *"do you think that the current structure of having qualification 1 2 3 is a bit
+     barbaric ... i am giving you position to completely redesign organisation of people tab"* and
+     then *"make it the best you in charge you choose"*.
+
+     IT WAS 89 COLUMNS AND ABOUT A QUARTER OF THEM WERE ONE FACT WRITTEN TWICE OR A FACT NOTHING
+     READ. Qualifications lived in a packed `quals` cell AND in `qual_1…3` with a level, a grade and a
+     board each; what a tutor teaches lived in `teaches_1`, `teaches_2` and `teaches_also`; `full_name`
+     repeated `first_name` + `last_name`; `username` repeated `handle`; `studying`, `studying_at` and
+     `extra_quals` had been folded into qualifications; `ticks_1…3` were read by one handler nothing
+     called; `locked_until` was kept only to clear a lock the old code wrote. And the packed cells —
+     `Maths:GCSE:Edexcel:8~~ts|…` — worked for the code and could not be read or edited in the sheet.
+
+     SO A PERSON IS ONE ROW OF FACTS ABOUT THEM, AND A LIST IS A TAB. `qualifications` and
+     `library_cards` below are one row per thing, keyed by `person_id`, which is the shape every
+     other list in this spreadsheet already has (`family`, `favourites`, `post_comments`). A tab can
+     be read, sorted, filtered ("who can teach GCSE Chemistry") and typed into by hand; a packed cell
+     can only be decoded. The phone's form did not change — it still posts `qual_N_*` and `libN_*`
+     boxes — and `qualsIn` / `libCardsIn` turn those into rows.
+
+     THE ORDER IS THE ORDER SOMEBODY LOOKS FOR THINGS: who they are, how to reach them and sign in,
+     the account's own bookkeeping, what the profile says, where they are, what they charge and when
+     they can teach, a family's and a student's own fields, and last the app's state, which nobody
+     types into. `ensureSchema` only ever ADDS, so a column dropped here is never deleted from a live
+     sheet by code — the new tab is pasted in whole, from the CSV that goes with this commit.
+
+     `handle_changed_at` IS A COOLDOWN'S ONLY STATE and `handle_was` IS A SAFEGUARDING COLUMN: most of
+     the people here are children, and "who was @foo last week" is asked exactly once, about the one
+     account it matters for. `pricing_changed_at` is the same shape for the four fields that between
+     them ARE a quote (see `pricingRefusal_`). `_date` on the two exam columns is load-bearing:
+     `FIELD_IS_DATE` in js/me.js is `/_date$/`, which is what draws a date picker. */
   people: [
-    "person_id", "role", "first_name", "last_name",
-    "full_name", "handle", "username", "pin",
-    /* WHEN THE HANDLE LAST MOVED, AND WHAT IT WAS. `changeHandle` writes both.
-
-       `handle_changed_at` IS THE COOLDOWN'S ONLY STATE — no counter, no log, one date, so the rule
-       is "has a month passed" rather than a tally somebody has to keep in step.
-
-       `handle_was` IS A SAFEGUARDING COLUMN AND NOT A NICETY. This is a tutoring business and most
-       of the people in this tab are children. A rename that leaves no trace means an admin cannot
-       answer "who was @foo last week" — which is the question that gets asked exactly once, about
-       the one account it matters for. One cell, the previous handle, overwritten each time. */
-    "handle_changed_at", "handle_was",
-    "email", "phone", "date_of_birth", "account_number", "sort_code",
-    "verified", "verify_token", "details_confirmed", "listed",
-    /* WHERE THEY CAME FROM. Recorded once, when the account is made, and never changed. Without
-       it every outreach question is unanswerable — you cannot tell whether the referral link
-       works, so you cannot tell whether to do more of it.
-       `came_from` is the channel; `invited_by` is the person, when there was one. */
-    "came_from", "invited_by", "joined_on",
-    /* The code THIS person hands out. Made from their own name so it can be said aloud at a school
-       gate — a random string has to be read off a screen, and a referral needing a screen is a
-       referral that does not happen. */
-    "referral_code",
-    /* ---------- HOW A PERSON PROVES WHO THEY ARE -----------------------------------------------
-       `pin` IS THE CREDENTIAL, as typed, and the e-mail address is what it is typed beside. The
-       hash, salt, session and tries columns were deleted from the tab on request — sessions and the
-       throttle live in Script Properties now, see `authNewSession_` in booking.gs. `locked_until`
-       stays only so a lock written by the older code can be cleared. */
-    "locked_until",
-    "photo",
-    /* THE FIGURE, and what has been bought for it. Neither column existed, and both are written
-       to: saveAvatar called setCell for `avatar` and `avatar_owned` on every save, setCell found
-       no header, returned false, and the value went nowhere. Every wardrobe change since has been
-       discarded in silence — the same failure as the four pricing fields above it. */
-    "avatar", "avatar_owned",
-    "video", "headline", "adjective_1", "adjective_2",
-    "adjective_3", "city", "town", "borough",
-    /* Where they are, and — for a student — the colour they chose. An address is a parent's to
-       give; a colour is a child's, and it is the only thing on this sheet that is theirs purely
-       because they like it. */
-    "address", "postcode", "favourite_colour",
-    "travel_km", "rate_per_hour", "max_students", "min_students",
-    /* WHEN WHAT THIS TUTOR CHARGES LAST MOVED, AND IT IS THE `handle_changed_at` SHAPE ON A SECOND
-       COLUMN. ASKED FOR AS *"only let tutors change thier rate, min number of kids and max number of
-       kids willing to work with and fraction extra rate all together. and they can only change once
-       a month."* None of those four is a preference: between them they ARE the quote. `seatLimits`
-       offers a family a seat count and `priceFrom` builds the price from the rate and the extra-seat
-       fraction, and every booking already taken was priced and seated against whatever they said on
-       the day. A rate that moves on a whim leaves sessions already agreed at a figure nobody would
-       quote now, and a cap that moves leaves classes already agreed sitting above it.
-
-       ONE DATE FOR ALL FOUR, which is what *"all together"* means. Four stamps would be four clocks
-       and a tutor could walk round them a week at a time, which is the arms race `handle_changed_at`
-       was written against. It is also what puts them on one page: you see the whole quote and change
-       as much of it as you like in one save.
-
-       ONE DATE AND NO COUNTER, for the reason written over `handle_changed_at`: the rule is "has a
-       month passed" rather than a tally to keep in step, and a row that has never changed has no
-       cell and is free. There is nothing `_was` beside it — a previous handle is a safeguarding fact
-       about a person, and a previous price is not.
-
-       IT REPLACES `max_students_changed_at`, WHICH COST NOTHING TO RENAME. That column shipped the
-       night before this and `?setup=1` has not run since, so `ensureSchema` never created it and no
-       cell anywhere holds a date under the old name. */
-    "pricing_changed_at",
-    /* THE TUTOR AGREEMENT, SIGNED ONCE. `signAgreement` writes both and nothing clears them — the
-       box on the Settings column cannot be unticked, and the server refuses a second signature
-       rather than moving the date, because "when did they agree" is the one fact this column is
-       for. The version is the draft's own stamp, so a revised agreement is a new version to sign. */
-    "agreement_signed_at", "agreement_version",
-    /* These four were added to forms, payloads and pricing over several rounds and never to the
-       schema — so ensureSchema never created the columns, every write went nowhere, and each
-       feature failed silently for want of one line here. Nothing else was wrong with any of them. */
-    "min_hours", "max_hours", "extra_seat_rate", "focus",
-    "years_experience", "dbs_checked", "teaches_1", "teaches_1_level",
-    "teaches_2", "teaches_2_level", "qual_1", "qual_1_level",
-    "qual_1_grade", "qual_2", "qual_2_level", "qual_2_grade",
-    "qual_3", "qual_3_level", "qual_3_grade", "extra_quals",
-    /* ---------- WHICH BOARD IT WAS, AND WHAT YOU ARE STUDYING NOW --------------------------------
-       ASKED FOR AS *"i want to update my qualifications. I have a B in a level maths edexcel. also
-       i am currently studying bible and theology at university of st david wales. is there a place
-       to list this?"* — and the honest answer to that last question was NO, twice over.
-
-       THE BOARD HAD NOWHERE TO GO. A qualification is subject, level and grade; "Edexcel" is none
-       of those, and `qual_N_level` is a closed dropdown so it could not be typed in there either.
-       THREE COLUMNS RATHER THAN ONE LIST, and that is the existing fault continued rather than
-       repaired: `qual_1/2/3` IS the numbered-column shape `images` and `needs` are written against,
-       and folding all three into one list column is a migration of live cells plus every reader —
-       `doget.gs`'s join, the three form groups, `OPTION_FOR`, `PROFILE_EDITABLE`. Worth doing; not
-       worth doing on the way past an ask about one person's A-level. The cost is named here so the
-       next reader knows it was a choice.
-
-       AND "CURRENTLY STUDYING" IS A DIFFERENT FACT FROM A QUALIFICATION, which is why it is not a
-       fourth qual. A qualification has a GRADE and is finished; a degree in progress has neither,
-       so filing it as `qual_4` with an empty grade would say somebody holds something they do not.
-       `extra_quals` is free text and would have buried it.
-
-       TWO COLUMNS RATHER THAN ONE, BECAUSE OF A COMMA. "Bible and Theology, University of Wales
-       Trinity Saint David" in one cell is one fact with a comma in it, and `profList_` splits a
-       comma cell into a list — which is exactly the fault the practicals paid for when 14 of 410
-       equipment cells held a comma inside one item. The subject and the place are two facts, so
-       they are two cells and the card joins them with the word "at". */
-    "qual_1_board", "qual_2_board", "qual_3_board",
-    "studying", "studying_at",
-    "availability", "xp", "credits", "high_score_flappy",
-    "high_score_tables", "friends", "notepad", "todo", "ticks_1",
-    "ticks_2", "ticks_3", "children",
-    /* ---------- THE TWO EXAMS A STUDENT IS WORKING TOWARDS ---------------------------------------
-       ASKED FOR AS *"allow student accounts to be able to write exam dates. like Small exam: _____
-       big exam:_____."* Two named facts rather than a list: the mock and the real thing, which is
-       how the owner thinks of them and how a student does.
-
-       THERE IS AN `exams` TAB AND THIS IS DELIBERATELY NOT IT. It exists, it has the richer shape
-       for this — `person_id`, `subject`, `label`, `exam_date`, `board`, `notes` — and it is read by
-       nothing, which is this repository's oldest silence. What it needs to be useful is a repeating
-       row editor: a surface to add a row, name a subject, pick a board and delete one again. That
-       is a feature rather than two blanks, and it was not what was asked for. So the choice is
-       named here with its upgrade path: if a student ever needs five exams with boards and notes,
-       these two columns are what the migration reads, and that tab is where it writes.
-
-       WHY THEY ARE COLUMNS AND NOT SOMETHING CLEVERER, by the three-question test at the top of
-       CLAUDE.md. Is it secret? A child's exam timetable is a fact about a child, so it is a sheet
-       and never `data/`. Does the app write to it? Yes, from the student's own Settings column,
-       which is what makes it a column rather than something kept on the phone — an exam date in
-       `localStorage` is an exam date you lose when you change phone.
-
-       `_date` IS LOAD-BEARING AND NOT DECORATION. `FIELD_IS_DATE` in js/me.js is `/_date$/`, so the
-       suffix is what makes the form draw a real date picker instead of a text box somebody types
-       `05/14/2027` into. A column renamed to `exam_small` would silently go back to a plain box.
-
-       WHO SEES THEM: nobody by default, exactly as the library cards beside them. `doGet` sends no
-       profile column to anybody — `profileFields` is the SHAPE of the form, not its values — so
-       these two reach the student themselves in their own sign-in reply and an admin through
-       `getProfile`, and nowhere else. */
-    "exam_small_date", "exam_big_date",
-    /* ---------- THE LIBRARY CARD, WHICH IS A NOTE RATHER THAN A CREDENTIAL OF OURS ---------------
-       ASKED FOR AS "a place to make notes for library card numbers and library card pins", and the
-       reason it is three ordinary columns on `people` rather than anything cleverer is the
-       three-question test at the top of CLAUDE.md, answered in order.
-
-       IS IT SECRET? YES, so it is a sheet and never `data/`. This repository is public and its
-       history is permanent; a card number and its four digits are exactly the shape of thing that
-       must not be committed, and the same sentence already keeps PINs, e-mail addresses and dates
-       of birth in this tab and out of git.
-
-       DOES THE APP WRITE TO IT? YES — `updateProfile`, from the Settings column, which is what
-       makes it a sheet column rather than something kept on the phone. A note that lives in
-       `localStorage` is a note you lose when you change phone, and the whole point of writing a
-       library card number down is that it is there in a year when you cannot find the card.
-
-       `library_note` IS THE THIRD COLUMN AND IT IS DELIBERATE, not padding. Somebody with cards
-       for two boroughs, or a card in a child's name, has a fact the other two columns have nowhere
-       to put — and the alternative to one free line is `library_card_2`, which is the numbered-
-       column fault this file records three times over under `images`, `needs` and the practicals.
-
-       WHO SEES IT: nobody by default. `doGet` sends no profile column to anybody — `profileFields`
-       is the SHAPE of the form, not its values — so these three never reach the public payload.
-       They reach the person themselves in their own sign-in reply (`profileOf_`, answered only
-       after the PIN has passed), and an ADMIN through `getProfile` — which is how every other
-       column on this tab has behaved since it was written. Said rather than buried, because one of
-       the three is a PIN and the owner is the admin.
-
-       THREE LIBRARIES, IN ONE CELL, AND `library_pin` IS GONE WITH THE SECOND.
-       *"there are many different librarys for library card detais so make it smaller so can fit
-       in like 3."* Nine stacked boxes do not fit and that is arithmetic rather than styling:
-       measured in the real app, a nine-field group is **790.2px in a pane that caps at 534.25px**
-       at 320x568, and the irreducible floor — nine 44px inputs plus 161.5px of measured card
-       chrome — is 557.5px, so it cannot fit at 320 with zero captions and zero gaps.
-
-       AND `library_card_2` IS WHAT THE PARAGRAPH ABOVE ALREADY REFUSES, so the three cards are one
-       cell: `name:number:pin` items joined by `|`, which is `avatar`'s own `key:value|...` format
-       on this same tab. `libCardsOut` expands it into nine form fields and `libCardsIn` packs them
-       back, exactly as `availGridOut`/`availGridIn` do for the 77 hour boxes — the one precedent
-       this tab already has for "a form with many boxes and a sheet with one cell".
-
-       THE NAME MAY CONTAIN A COLON AND THE OTHER TWO MAY NOT, so an item is parsed from the RIGHT:
-       the last two colon-parts are the number and the PIN and everything before them is the name.
-       `Merton: Wimbledon` survives; a card number is digits and a PIN is digits. */
-    "library_card", "library_note",
-    /* ---------- MORE PHOTOGRAPHS THAN THE ONE ON THE PROFILE ------------------------------------
-       ASKED FOR AS *"theres only 1 photo link slot it seems like. tutors should be able to add more
-       pics."* `photo` stays the face on the card — it is read by the tutor payload, the class
-       picture, the roster and three other surfaces, and turning it into a list would be every one of
-       them getting a string with a separator in it. `photos` is the REST, in order, joined by ` | `,
-       which is exactly what `posts.media` already is beside `posts.image`: the first thing, then a
-       list of the others. `photosIn` / `photosOut` in core.gs. */
-    "photos",
-    /* ---------- AS MANY QUALIFICATIONS AS SOMEBODY HAS, UP TO TEN, IN ONE CELL -------------------
-       ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"*. `qual_1/2/3` is
-       the numbered-column shape the note above already refuses, and ten of it would be forty
-       columns. So it is `library_card`'s arrangement one row along: `subject:level:board:grade`
-       items joined by `|`, parsed from the RIGHT so a subject holding a colon survives, expanded by
-       `qualsOut` and packed by `qualsIn` in `core.gs`.
-       THE THREE OLD CELLS ARE STILL WRITTEN — the first three qualifications are mirrored into them
-       on every save — so anything still reading `qual_1` sees the same list, and a row nobody has
-       saved since this landed is read FROM them (`qualsOut` falls back when this cell is empty). */
-    "quals",
-    /* ---------- WHAT ELSE A TUTOR TEACHES, BESIDE THE ONE THEY SPECIALISE IN --------------------
-       ASKED FOR AS *"should be what you specialise teaching in and what you also teach."* The
-       specialism keeps `teaches_1`/`teaches_1_level`; everything else is this one cell, written
-       the way the card prints it — `Maths (GCSE)|English (KS3)` — so a person reading the sheet
-       reads the same words a parent does. `teaches_2` is mirrored from the first entry for the
-       reason `qual_1` is above, and read from when this cell is empty. */
-    "teaches_also"
+    /* who they are */
+    "person_id", "role", "first_name", "last_name", "handle", "handle_changed_at", "handle_was",
+    /* how to reach them, and how they sign in */
+    "email", "phone", "pin", "date_of_birth",
+    /* the account */
+    "verified", "verify_token", "listed", "details_confirmed", "joined_on", "came_from",
+    "invited_by", "referral_code", "account_number", "sort_code",
+    /* the profile a parent reads */
+    "photo", "photos", "video", "headline", "adjective_1", "adjective_2", "adjective_3",
+    "years_experience", "focus", "dbs_checked",
+    /* where they are */
+    "address", "town", "city", "borough", "postcode", "travel_km",
+    /* what they charge, and when they can teach */
+    "rate_per_hour", "extra_seat_rate", "min_students", "max_students", "min_hours", "max_hours",
+    "pricing_changed_at", "availability", "agreement_signed_at", "agreement_version",
+    /* a family's and a student's own */
+    "children", "favourite_colour", "exam_small_date", "exam_big_date", "library_note",
+    /* the app's state, which nobody types into */
+    "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
+    "friends", "notepad", "todo"
+  ],
+  /* ---------- ONE ROW PER QUALIFICATION --------------------------------------------------------
+     A qualification is a subject at a level with a grade, from somewhere, finished in a year (or
+     `Present` while it is still being studied). `institution` is the school, college or university
+     — never the exam board, which the owner took off. `teach` is the ONE level a tutor specialises
+     in (the gold chip under "Teaches"); `can_teach` is everything else they will take on (under
+     "Can also teach"). Rows for one person are read in sheet order, which is the order they show.
+     A PGCE or an Enhanced DBS is a row with a subject and nothing else. */
+  qualifications: [
+    "person_id", "subject", "level", "grade", "institution", "completed", "teach", "can_teach"
+  ],
+  /* ---------- ONE ROW PER LIBRARY CARD ---------------------------------------------------------
+     A note rather than a credential of ours, kept here rather than in `data/` because a card number
+     and its four digits are secret, and in a sheet because the app writes them. Up to `LIB_MAX` per
+     person on the form. */
+  library_cards: [
+    "person_id", "library", "card_number", "pin"
   ],
   /* ---------- THE MAP -----------------------------------------------------------------------
      WHERE THE GROUND COMES FROM, and the reason this tab exists at all.
@@ -1641,8 +1508,7 @@ const RENAMEABLE = [
      `data/questions.json` committed here. `check-rename.js` does not exist and this note is the
      only thing that will remind anybody — which is why it is this long. */
   ['jobs',      ['subject', 'level']],
-  ['people',    ['teaches_1', 'teaches_2', 'teaches_3', 'teaches_4', 'teaches_5',
-                 'subjects', 'level']],
+  ['qualifications', ['subject', 'level']],
   ['exams',     ['subject']],
   ['trips',     ['subject']],
 ];
@@ -1716,7 +1582,8 @@ const AVAIL_DAYS  = [['m','Mon'], ['tu','Tue'], ['w','Wed'], ['th','Thu'], ['f',
    holding two. That is what made the number free to raise: the height is what is USED.
    `lib1_name` RATHER THAN `library_card_1`, so the shape is recognisable at a glance by the form
    (`isLibrary_` in js/me.js reads the SHAPE of the names, exactly as `isTimetable_` does) and
-   cannot be mistaken for a column: none of these nine is one. The cell is `library_card`. */
+   cannot be mistaken for a column: none of these nine is one. They are rows on the `library_cards`
+   tab — `libCardsOut` / `libCardsIn` in core.gs. */
 const LIBRARY_CARDS = 5;
 const LIBRARY_FIELDS = (() => {
   const out = [];
@@ -1761,19 +1628,11 @@ const QUAL_FIELDS = (() => {
    reception and present is an option"* and *"what you teach shouldn't even be a widget. you can just
    tick which of your qualifications you teach really. and tick which you specialise in."* So the
    received year (or `Present`, for a course still running) and the two ticks live on the
-   qualification they are about, packed into the same `quals` cell — no new column. What the
-   `What you teach` page used to write (`teaches_1`, `teaches_1_level`, `teaches_also`) is DERIVED
-   from the ticks on save, in `updateProfile`, so every reader of those columns is untouched. */
+   qualification they are about. They are the `teach` and `can_teach` columns of the
+   `qualifications` tab now, and what a tutor teaches is derived from them (`teachesOf_` in core.gs)
+   rather than kept anywhere else. */
 const QUAL_FIELD = /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/;
 
-/* ---------- AND WHAT ELSE A TUTOR TEACHES, AS ONE CELL OF "Subject (Level)" PHRASES --------------
-   `teaches_also` IS A REAL COLUMN, not a packed set of boxes: the phone draws it as the settings
-   column's multi-select (the anchored `#drop` panel `extra_quals` already uses), every option a
-   "Maths (GCSE)" phrase, so what arrives is already the cell. `teachAlsoIn` in core.gs only tidies
-   it — dedupes, drops a bracket with nothing in front of it, and caps it here. Eight, because a
-   tutor with a specialism and eight others is describing a school, and a longer list on the card
-   is a list a parent stops reading. */
-const TEACH_ALSO_MAX = 8;
 
 /* ---------- A DATE OF BIRTH IS THREE NUMBERS SOMEBODY REMEMBERS, NOT A DATE THEY PICK -------------
    ASKED FOR AS *"date of birth should be 3 boxes. day, month and year. or copy the best practice
@@ -2204,13 +2063,10 @@ const STUDENT_GROUPS = {
    and yours; the source is now rows you can see and edit rather than rules attached to cells,
    which is also what removed the 318,000-object scan that used to time the site out. */
 const FIELD_OPTIONS = {
-  // what a tutor teaches and what a client may ask for — deliberately the same list
-  teaches_1: 'subject', teaches_2: 'subject',
-  teaches_1_level: 'level', teaches_2_level: 'level',
   /* NOT ONE PER SHELF SLOT. `qual_4` … `qual_10` offer the same lists as `qual_1…3`, and sending
      forty copies of the subject list on every payload is weight for nobody — the phone reads a
-     slot's list off its first (`fieldOptions_` in js/me.js), and builds `teaches_also`'s phrases
-     from `teaches_1`'s two lists. */
+     slot's list off its first (`fieldOptions_` in js/me.js). (The subject itself comes from
+     `QUAL_SUBJECTS` in me.js, which is spelt right; the level and grade lists come from here.) */
   qual_1: 'subject', qual_2: 'subject', qual_3: 'subject',
   qual_1_level: 'level', qual_2_level: 'level', qual_3_level: 'level',
   qual_1_grade: 'grade', qual_2_grade: 'grade', qual_3_grade: 'grade',
@@ -2255,21 +2111,18 @@ const PROFILE_READONLY = ['dbs_checked', 'role'];
 
    ---------- UNIQUENESS IS THE RULE THAT MATTERS, AND IT IS NOT ABOUT TASTE -----------------------
 
-   `findPerson` resolves a person by `person_id`, then by `full_name`, then `first + last`, then
-   `handle`, then `username` — FIRST MATCH WINS. So a handle that duplicates anybody's existing name
+   `findPerson` resolves a person by `person_id`, then by `first + last`, then `handle`, then e-mail
+   — FIRST MATCH WINS. So a handle that duplicates anybody's existing name
    or handle makes `changePin` check the PIN you typed against SOMEBODY ELSE'S row and tell you your
    own PIN is wrong. CLAUDE.md records that denial already; it happened by accident, to one person,
    because a call forgot to send an id. **Letting people choose their own handle turns an accident
    into something a person can do on purpose**, which is why this is checked against all three
    columns and not just `handle`.
 
-   ---------- AND `handle` AND `username` ARE ONE FACT IN TWO COLUMNS -------------------------------
-
-   Third occurrence of the shape this file keeps recording, after `needs_print`/`print_required` and
-   `category`/`compliance`. `register` writes `username` as `norm(first + last)`; `doGet` reads
-   `handle || username || first_name`; `findPerson` matches BOTH. So a change that wrote only
-   `handle` would leave the old name resolving to that person for ever — they would have a new name
-   and still answer to the old one. `changeHandle` writes both, together, or neither.
+   ---------- `username` IS GONE ----------------------------------------------------------------------
+   It was `handle` written a second time, which is the one-fact-in-two-columns shape this file keeps
+   recording, and the redesign of the people tab dropped it. `handle` is the only name a person has
+   here besides their own.
 ================================================================================================== */
 
 /* A MONTH, AND THE REASON IS NOT TIDINESS. A blocklist is a floor and never a ceiling — somebody who
@@ -2280,7 +2133,7 @@ const HANDLE_COOLDOWN_DAYS = 30;
 
 /* ---------- AND A MONTH ON WHAT A TUTOR CHARGES, WHICH IS ITS OWN NUMBER -------------------------
    THE SAME THIRTY AND DELIBERATELY NOT THE SAME CONSTANT. The two rules answer different questions
-   and could honestly diverge: a username cooldown is a brake on an arms race, and this is about
+   and could honestly diverge: a handle cooldown is a brake on an arms race, and this is about
    bookings already taken against a stated price and a stated capacity. Folding them onto one name
    would make a change to either a change to both, which is the shape this repository records under
    `needs_print` / `print_required` — one fact in two columns is a fault, and two facts under one
@@ -2811,7 +2664,6 @@ const ACTION_ACCESS = {
   updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self', confirmDetails: 'self',
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
   myReferral: 'self',        // your own code, and who came through it
-  saveTopics: 'self',
   saveExam: 'self', deleteExam: 'self', redeem: 'self',
   /* `likePost` was here. A like is a reaction with one option, so the heart and the 👍 were two
      counts of the same gesture. The action is gone rather than left working-but-unused: an

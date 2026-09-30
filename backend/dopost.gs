@@ -116,7 +116,12 @@ function doPost(e) {
         && p.rows.some(x => norm(x.email) === norm(r.to_email));
       if (!peopleNamed(S(body.newName)).length && !mailTaken) {
         addRow(p, {
-          person_id: 'P' + Date.now(), full_name: S(body.newName), email: S(r.to_email),
+          /* THE NAME IS SPLIT, because `full_name` is gone (see `SCHEMA.people`): the first word is
+             the first name and the rest the last, which is how every row typed by hand reads. */
+          person_id: 'P' + Date.now(),
+          first_name: S(body.newName).split(/\s+/)[0] || '',
+          last_name: S(body.newName).split(/\s+/).slice(1).join(' '),
+          email: S(r.to_email),
           role: 'client', came_from: 'invited', invited_by: S(r.from_person),
           joined_on: new Date(), listed: 'FALSE',
         });
@@ -186,7 +191,7 @@ function doPost(e) {
       let inviter = '';
       if (arrivedWith) {
         const owner = t.rows.find(x => S(x.referral_code).toUpperCase() === arrivedWith);
-        if (owner) inviter = S(owner.person_id) || S(owner.full_name);
+        if (owner) inviter = S(owner.person_id) || personDisplayName(owner);
       }
 
       /* BEFORE THE ROW EXISTS, so `handleMake_` is passed no row: there is nothing of this
@@ -197,35 +202,12 @@ function doPost(e) {
         // Students by default. A parent booking for a child is the account an admin sets up; a
         // person signing themselves up is almost always the one being taught.
         person_id: 'P' + Date.now(), role: 'student',
-        first_name: first, last_name: last, full_name: full,
-        /* ---------- THE HANDLE AND THE USERNAME ARE GENERATED, NOT BUILT FROM THE NAME ---------
-           IT WROTE NO `handle` AT ALL, and the username was `S(first + last)` with the punctuation
-           stripped — so every account ever made through this form has a blank handle, and `doGet`'s
-           `handle || username || first_name` has been showing the squashed name in its place.
-
-           AND THAT USERNAME COLLIDES. Two people called John Smith both got `JohnSmith`;
-           `findPerson` matches `username` and returns the FIRST row, so the second one signs in as
-           the first and `changePin` checks their PIN against the other's row. This repository
-           records that exact denial happening for real. `handleTrouble_` would have refused it and
-           was never reached from here — it guards `changeHandle` and nothing else.
-
-           WORDS RATHER THAN THE NAME, WHICH IS THE SAFEGUARDING HALF: most of the people on this tab
-           are children, and a handle built from a child's full name publishes that name wherever the
-           handle is shown. See the long note over `handleMake_`, which is also the one place any of
-           this is decided — it goes through `handleTrouble_`, so the shape, the reserved list, the
-           blocklist and the clash against all four columns are checked exactly once.
-
-           BOTH COLUMNS GET THE SAME STRING, because `handle` and `username` are one fact in two
-           columns and `changeHandle` already writes both. Two different generated values would be
-           two names for one person, which is the thing `findPerson` resolving the FIRST match makes
-           dangerous rather than merely untidy.
-
-           `|| S(first + last)…` IS THE FALLBACK AND IT IS THE OLD BEHAVIOUR. `handleMake_` answers
-           '' only if forty tries all clashed, which cannot happen on a tab this size — and a
-           registration that fails because a name generator gave up would be worse than one that
-           writes the name it used to. `?run=fillHandles` reports any row left that way. */
+        first_name: first, last_name: last,
+        /* ---------- THE HANDLE IS GENERATED — `<first>_<adjective><NN>` — see `handleMake_` ---------
+           It goes through `handleTrouble_`, so the shape, the reserved list, the blocklist and the
+           clash are checked exactly once. There is no `username` column any more: it was the handle
+           written twice. `?run=fillHandles` fills any row a generator ever gave up on. */
         handle: regHandle || '',
-        username: regHandle || S(first + last).replace(/[^A-Za-z0-9]/g, ''),
         email, pin, credits: 0, xp: 0,
         came_from: arrivedWith,
         invited_by: inviter,
@@ -236,7 +218,7 @@ function doPost(e) {
       /* Tell the person who sent them. It is the only thanks the mechanism can give, it costs
          nothing, and somebody who hears that their introduction landed makes another. */
       if (inviter) {
-        const owner = t.rows.find(x => S(x.person_id) === inviter || S(x.full_name) === inviter);
+        const owner = t.rows.find(x => S(x.person_id) === inviter || personDisplayName(x) === inviter);
         if (owner) {
           notify(personDisplayName(owner), 'Somebody joined through you',
             full + ' has just signed up using your code. Thank you — that is genuinely how this '
@@ -569,7 +551,6 @@ function doPost(e) {
       const qualsSent = sent(QUAL_FIELD) && QUAL_FIELDS.some(f => allowed.indexOf(f) !== -1);
       const phoneSent = sent(PHONE_FIELD) && allowed.indexOf('phone') !== -1;
       const dobSent   = sent(DOB_FIELD) && allowed.indexOf('date_of_birth') !== -1;
-      const alsoSent  = fields.teaches_also !== undefined && allowed.indexOf('teaches_also') !== -1;
       const photosSent = sent(PHOTO_FIELD) && PHOTO_FIELDS.some(f => allowed.indexOf(f) !== -1);
       /* THE VENUES ARE ON ANOTHER TAB — `venuesWrites_` in core.gs says why there is no column here. */
       const venuesSent = fields.venues_ok !== undefined && allowed.indexOf('venues_ok') !== -1;
@@ -578,13 +559,21 @@ function doPost(e) {
         return jsonOut({ error: 'The venues tab has no column for: tutors_happy_here. '
           + 'Run ensureSchema() to add it — nothing was saved.' });
       }
-      const packedMissing = [availSent && 'availability', libSent && 'library_card',
-                             qualsSent && 'quals', phoneSent && 'phone', dobSent && 'date_of_birth',
-                             photosSent && 'photos']
+      const packedMissing = [availSent && 'availability', phoneSent && 'phone',
+                             dobSent && 'date_of_birth', photosSent && 'photos']
         .filter(c => c && !has(c));
       if (packedMissing.length) {
         return jsonOut({ error: 'The sheet has no column for: ' + packedMissing.join(', ')
           + '. Run ensureSchema() to add it — nothing was saved.' });
+      }
+      /* QUALIFICATIONS AND LIBRARY CARDS ARE ROWS ON TABS OF THEIR OWN now (see `SCHEMA.people`), so
+         the question is whether the TAB is there — a tab `ensureSchema` has not made yet would take a
+         save of that page and write nothing, under a toast saying Saved. */
+      const tabMissing = [qualsSent && !read(TAB.qualifications).sheet && 'qualifications',
+                          libSent && !read(TAB.library_cards).sheet && 'library_cards'].filter(Boolean);
+      if (tabMissing.length) {
+        return jsonOut({ error: 'The spreadsheet has no tab called: ' + tabMissing.join(', ')
+          + '. Run ensureSchema() to make it — nothing was saved.' });
       }
       /* A PARTIAL BIRTHDAY is `null` to `sheetDate`, so it would go off the calendar under a toast
          saying Saved. `dobRefusal_` is in `core.gs` beside `sheetDate` so something can run it. */
@@ -603,8 +592,6 @@ function doPost(e) {
       const badDate = DATE_COLS.map(f => fields[f] === undefined ? ''
                         : isoRefusal_(fields[f], f.replace(/_/g, ' '))).filter(Boolean)[0];
       if (badDate) return jsonOut({ error: badDate });
-      /* `teaches_also` IS a column — tidied here, before `wanted` reads it. */
-      if (alsoSent) fields.teaches_also = teachAlsoIn(fields.teaches_also);
       const wanted = Object.keys(fields)
         .filter(f => !HOUR.test(f) && !LIBRARY_FIELD.test(f) && !QUAL_FIELD.test(f)
                   && !PHONE_FIELD.test(f) && !DOB_FIELD.test(f) && !PHOTO_FIELD.test(f)
@@ -659,56 +646,14 @@ function doPost(e) {
       /* ================================================================================================
          2. EVERY WRITE, COLLECTED INTO ONE OBJECT, THEN ONE CALL.
 
-         ORDER STILL MATTERS WHERE TWO WRITERS NAME ONE CELL — the qualification mirror, then the
-         `teaches_also` mirror, then `wanted` — and an object assigned in that order keeps "the last
-         one wins", which is what the separate `setCell` calls did.
+         THE QUALIFICATIONS AND THE LIBRARY CARDS ARE WRITTEN AS ROWS, after the person's own row, by
+         `writeOwnRows_` — see core.gs. What a tutor teaches is no longer written anywhere: it is
+         DERIVED from the qualifications' two ticks every time it is read (`teachesOf_`), so there is
+         no second copy for a Save to keep in step.
          ================================================================================================ */
       const put = {};
-      /* A mirror is written only where its column exists: a mirror to a missing header is a
-         `missedWrite_` about a cell nobody needs, and `jsonOut` would call the save a failure. */
-      const mirror = (col, v) => { if (has(col)) put[col] = v; };
       if (availSent) put.availability = availGridIn(fields);
-      if (libSent) put.library_card = libCardsIn(fields);
       if (photosSent) put.photos = photosIn(fields);
-      if (qualsSent) {
-        /* THE OLD CELLS ARE MIRRORED FROM THE NEW LIST, which is what makes clearing one stick. The
-           readers (`qualsList_`, `teachAlsoList_`) fall back to `qual_1…3` and `teaches_2` whenever
-           the new cell is empty — so a tutor who deletes every qualification must also empty those,
-           or the next load would bring back the ones just removed.
-           WHAT YOU TEACH IS DERIVED FROM THE TICKS, HERE AND NOT ON THE PHONE: `teaches_1`,
-           `teaches_1_level` and `teaches_also` are read by doGet's tutor payload, the booking form's
-           tutor filter and every card, and a rule living only in `me.js` would be skipped by anything
-           that posts without the page. The studying cells are emptied because their answer is a
-           `Present` qualification now, and left full they would bring it back after a delete. */
-        const packed = qualsIn(fields);
-        put.quals = packed;
-        const list = qualsList_({ quals: packed });
-        for (let n = 1; n <= 3; n++) {
-          const q = list[n - 1] || {};
-          mirror('qual_' + n, S(q.subject));
-          mirror('qual_' + n + '_level', S(q.level));
-          mirror('qual_' + n + '_board', S(q.board));
-          mirror('qual_' + n + '_grade', S(q.grade));
-        }
-        const spec = list.find(q => q.spec) || {};
-        const also = list.filter(q => q.teach && !q.spec && S(q.subject))
-                         .map(q => teachAlsoPhrase_({ subject: q.subject, level: q.level })).join(', ');
-        mirror('teaches_1', S(spec.subject));
-        mirror('teaches_1_level', S(spec.level));
-        const alsoCell = teachAlsoIn(also);
-        mirror('teaches_also', alsoCell);
-        const first = teachAlsoList_({ teaches_also: alsoCell })[0] || {};
-        mirror('teaches_2', S(first.subject));
-        mirror('teaches_2_level', S(first.level));
-        mirror('studying', '');
-        mirror('studying_at', '');
-        mirror('extra_quals', '');
-      }
-      if (alsoSent && has('teaches_also')) {
-        const first = teachAlsoList_({ teaches_also: fields.teaches_also })[0] || {};
-        mirror('teaches_2', S(first.subject));
-        mirror('teaches_2_level', S(first.level));
-      }
       if (phoneSent) put.phone = phoneIn(fields);
       if (dobSent) put.date_of_birth = dobIn(fields);
       wanted.forEach(f => { put[f] = fields[f]; });
@@ -722,7 +667,6 @@ function doPost(e) {
       if (renamed) {
         full = (S(fields.first_name !== undefined ? fields.first_name : r.first_name) + ' ' +
                 S(fields.last_name  !== undefined ? fields.last_name  : r.last_name)).trim();
-        put.full_name = full;
       }
 
       /* 3. ONE WRITE. `setCells` is `setCell` for a whole row: a cell already holding what is asked
@@ -730,6 +674,9 @@ function doPost(e) {
          visitor's stored payload — which is what made the `load()` after an untouched Save a full
          cold rebuild. See the note over it in core.gs. */
       const wrote = setCells(t, r, put);
+      let rowsMoved = 0;
+      if (qualsSent) rowsMoved += writeOwnRows_(TAB.qualifications, S(r.person_id), qualsIn(fields), QUAL_COLS).changed;
+      if (libSent) rowsMoved += writeOwnRows_(TAB.library_cards, S(r.person_id), libCardsIn(fields), LIB_COLS).changed;
       /* AND THE VENUES, AFTER THE ROW, so a refusal above has already stopped both. Only the venue
          cells that actually change are written. */
       if (venueTab) {
@@ -743,7 +690,7 @@ function doPost(e) {
          rather than what was typed, and the next Save starts from the sheet. Only for your own row:
          an admin editing somebody else is shown that person's form elsewhere. */
       /* `changed` IS HOW MANY CELLS MOVED, so the phone can skip fetching a payload nothing altered. */
-      const out = { success: true, changed: wrote.length, profile: adminEditing ? null : profileOf_(r) };
+      const out = { success: true, changed: wrote.length + rowsMoved, profile: adminEditing ? null : profileOf_(r) };
       // Only the person themselves needs their session renamed; an admin must not inherit it.
       if (renamed) out.name = adminEditing ? '' : full;
       return jsonOut(out);
@@ -2042,13 +1989,13 @@ function doPost(e) {
       /* ALL FOUR COLUMNS BEFORE ANY IS WRITTEN. With `handle_was` or `handle_changed_at` missing, the
          new name landed and `jsonOut` then reported "Nothing was saved" — and with no stamp the
          once-a-month rule never started, so a second change went straight through. */
-      const lacking = ['handle', 'username', 'handle_was', 'handle_changed_at']
+      const lacking = ['handle', 'handle_was', 'handle_changed_at']
         .filter(c => t.headers.indexOf(c) === -1);
       if (lacking.length)
         return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
       const r = t.rows.find(x => key(x.person_id) === key(me.person_id)) || me;
-      const was = S(r.handle) || S(r.username);
-      setCells(t, r, { handle_was: was, handle: want, username: want, handle_changed_at: new Date() });
+      const was = S(r.handle);
+      setCells(t, r, { handle_was: was, handle: want, handle_changed_at: new Date() });
       clearCache();
       return jsonOut({ success: true, handle: want, was: was });
     }
@@ -2198,12 +2145,12 @@ function doPost(e) {
       if (!r) return jsonOut({ error: 'No such person.' });
       let code = S(r.referral_code);
       if (!code) {
-        const base = S(r.full_name).replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 6) || 'FAMILY';
+        const base = personDisplayName(r).replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 6) || 'FAMILY';
         code = base + String(Math.floor(Math.random() * 90) + 10);
         setCell(t, r, 'referral_code', code);
         clearCache();
       }
-      const me = key(S(r.person_id)) || key(S(r.full_name));
+      const me = key(S(r.person_id)) || key(personDisplayName(r));
       const sent = t.rows
         .filter(x => key(S(x.invited_by)) === me && me)
         .map(x => ({ name: personDisplayName(x), joined: fmtDate(x.joined_on) }));
@@ -2288,14 +2235,9 @@ function doPost(e) {
                        beat: incoming > best });
     }
 
-    if (action === 'saveTopics') {
-      const t = read(TAB.people);
-      const r = findPerson(S(body.name), S(body.personId));
-      if (!r) return jsonOut({ error: 'Person not found.' });
-      [['ticks_1', body.tick1], ['ticks_2', body.tick2], ['ticks_3', body.tick3]]
-        .forEach(([f, v]) => { if (v !== undefined) setCell(t, r, f, S(v)); });
-      return jsonOut({ success: true });
-    }
+    /* `saveTopics` WAS HERE. It wrote `ticks_1…3` on a person's row and nothing on the phone has ever
+       called it; the columns went with the people tab's redesign (see `SCHEMA.people`). */
+
 
     /* ---------- `toggleTopicTick` WAS HERE ------------------------------------------------------
        It put a person's handle into `ticks_1..3` on a document row and moved XP and credits by one.
@@ -3514,11 +3456,9 @@ function doPost(e) {
    `getProfile` has handed an admin since it was written. */
 function profileOf_(r) {
   const avail = availSet(r.availability);
-  /* ONE CELL, EXPANDED ONCE, for the reason `availSet` is called once above rather than per hour
-     code. `libCardsOut` is the only reader of the `name:number:pin|…` format on this side. */
-  const cards = libCardsOut(r.library_card);
+  /* The library cards and the qualifications are rows on tabs of their own, read once each. */
+  const cards = libCardsOut(r);
   const photos = photosOut(r.photos);
-  /* The two shelves, each read off the ROW so an unsaved row answers from its legacy cells. */
   const quals = qualsOut(r);
   /* ---------- AND THE DATE OF BIRTH, WHICH WAS BEING SENT AS A JAVASCRIPT DATE STRING ------------
      `S(r.date_of_birth)` IS `String(v).trim()`, AND SHEETS STORES A DATE AS A REAL DATE. So a
@@ -3535,7 +3475,6 @@ function profileOf_(r) {
            : LIBRARY_FIELD.test(f) ? S(cards[f])
            : PHOTO_FIELD.test(f) ? S(photos[f])
            : QUAL_FIELD.test(f) ? S(quals[f])
-           : f === 'teaches_also' ? teachAlsoOut(r)
            : f === 'venues_ok' ? venuesFor_(r, read(TAB.venues).rows).join(', ')
            : f === 'date_of_birth' ? S(dobIn(dob))
            /* ---------- AND AN EXAM DATE AS `yyyy-mm-dd`, WHICH IS WHAT THE PICKER CAN HOLD ------
@@ -3588,7 +3527,6 @@ function loginReplyFor_(r, token) {
                    real answer. One of those is authoritative and it was not the one the
                    person themselves was shown. */
                 avatarItems: avatarUnlocks(r),
-                topics: S(r.ticks_1), tick1: S(r.ticks_1), tick2: S(r.ticks_2), tick3: S(r.ticks_3),
                 xp: N(r.xp), credits: N(r.credits),
                 /* `ticks:` WAS HERE, counted off the document rows. There are no document rows
                    and no tick columns — see `toggleTopicTick` below. The You screen no longer

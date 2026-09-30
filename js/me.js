@@ -712,7 +712,7 @@ on('do-signin', el => {
          no first or last name would have signed in wearing its address as a display name. The
          handle is on every sign-in reply and is a name somebody chose. */
       USER = Object.assign({}, d);
-      if (!USER.name) USER.name = d.handle || d.username || name;
+      if (!USER.name) USER.name = d.handle || name;
       try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
       toast('Signed in');
       /* ---------- DRAWN NOW, REFRESHED AFTER --------------------------------------------------------
@@ -2145,12 +2145,11 @@ const QUAL_SUBJECTS = [
 /* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell. */
 /* `venues_ok` IS NOT A COLUMN of `people` — it is the venues tab's own `tutors_happy_here`, read and
    written through this one box. See `venuesWrites_` in core.gs for why there is no second copy. */
-const FIELD_MULTI = { teaches_also: true, venues_ok: true };
+const FIELD_MULTI = { venues_ok: true };
 /* ---------- AND ONE SHELF SLOT'S LIST OFF THE FIRST SLOT'S -------------------------------------
    `FIELD_OPTIONS` sends `qual_1_level` ONCE rather than ten times — see its note in constants.gs —
-   so `qual_7_level` asks for `qual_1`'s list here. `teaches_also` is built from `teaches_1`'s two
-   lists, falling back to the booking lists, so a backend too old to send them still offers real
-   subjects rather than nothing. */
+   so `qual_7_level` asks for `qual_1`'s list here. (What a tutor teaches is no longer a field: it is
+   the two ticks on each qualification level — see `qualLevel_`.) */
 function fieldOptions_(f) {
   const v = (typeof DATA !== 'undefined' && DATA && DATA.validations) || {};
   const dd = (typeof DATA !== 'undefined' && DATA && DATA.dropdowns) || {};
@@ -2161,22 +2160,7 @@ function fieldOptions_(f) {
     /* THE VENUES ON OFFER ARE THE VENUES THE SITE HAS, by the name the booking form uses for them. */
     || (f === 'venues_ok' ? got((typeof DATA !== 'undefined' && DATA && DATA.venues || [])
                                   .map(x => x && x.title).filter(Boolean)) : null)
-    || (f === 'teaches_also' ? teachPhrases_(got(v.teaches_1) || got(dd.subjects) || [],
-                                             got(v.teaches_1_level) || got(dd.levels) || []) : null)
     || null;
-}
-/* ---------- "ALSO TEACH" IS EVERY SUBJECT AT EVERY LEVEL, WRITTEN AS THE CARD WRITES IT --------
-   ASKED FOR AS *"should be what you specialise teaching in and what you also teach."* Each option
-   is one phrase — `Maths (GCSE)` — built from the same two lists `teaches_1` offers, so what is
-   ticked is already what the card prints and what `teaches_also` holds. Subject-major, because a
-   tutor thinks "Maths, at which levels" rather than "GCSE, in which subjects"; `meDropHtml_` draws
-   them grouped by subject for the same reason, so a hundred phrases read as twelve short rows. */
-function teachPhrases_(subjects, levels) {
-  const out = [];
-  subjects.forEach(sub => { (levels.length ? levels : ['']).forEach(l => {
-    out.push(sub + (l ? ' (' + l + ')' : ''));
-  }); });
-  return out;
 }
 
 /**
@@ -2329,18 +2313,7 @@ function meDropHtml_(field, box) {
   const btn = (x, text) => `<button type="button"
         class="btn quiet pick-opt${on(x) ? ' on' : ''}" data-do="me-many-pick" data-val="${esc(x)}"
         aria-pressed="${on(x) ? 'true' : 'false'}">${on(x) ? '✓ ' : ''}${esc(text)}</button>`;
-  /* ---------- A PHRASE LIST IS DRAWN GROUPED BY ITS SUBJECT -----------------------------------
-     `teaches_also` offers every subject at every level — about a hundred buttons as one flat list,
-     which is a list nobody scans. Grouped, it is one short row per subject with the levels as its
-     buttons, and the button says only the level because the row's head already says the subject.
-     `data-val` is still the whole phrase, so the pick handler and the save are untouched. */
-  const lvl = x => (String(x).match(/^(.*?)\s*\(([^()]*)\)\s*$/) || []);
-  const body = field === 'teaches_also'
-    ? [...new Set(opts.map(x => lvl(x)[1] || x))].map(sub => `<div class="pick-group">
-        <span class="pick-head">${esc(sub)}</span>
-        <div class="pick-list">${opts.filter(x => (lvl(x)[1] || x) === sub)
-          .map(x => btn(x, lvl(x)[2] || x)).join('')}</div></div>`).join('')
-    : `<div class="pick-list">${opts.map(x => btn(x, x)).join('')}</div>`;
+  const body = `<div class="pick-list">${opts.map(x => btn(x, x)).join('')}</div>`;
   return `<p class="drop-say${got.length ? '' : ' is-none'}">${got.length ? esc(got.join(', '))
       : 'Nothing chosen yet — tap as many as apply.'}</p>
     ${body}
@@ -2451,7 +2424,6 @@ const FIELD_ROWS = [
   { fields: ['min_students', 'max_students'], cap: 'students', ph: ['min', 'max'], dash: true },
 ];
 const ROW_LABEL = {
-  teaches_1: 'specialise in', teaches_1_level: 'level', teaches_also: 'also teach',
   years_experience: 'years teaching',
   photo: 'photo link', video: 'video link',
   travel_km: 'will travel (km)', favourite_colour: 'favourite colour',

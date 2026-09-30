@@ -95,10 +95,8 @@ function findPerson(nameOrId, altId) {
      is a different fold and would not. */
   const mail = norm(nameOrId);
   return rows.find(r =>
-    key(r.full_name) === want ||
     key(S(r.first_name) + ' ' + S(r.last_name)) === want ||
     key(r.handle) === want ||
-    key(r.username) === want ||
     (mail.indexOf('@') !== -1 && norm(r.email) === mail)) || null;
 }
 
@@ -208,15 +206,14 @@ function handleTrouble_(want, me, isAdmin) {
   }
 
   /* ---------- TAKEN, AND AGAINST ALL THREE COLUMNS -----------------------------------------------
-     `findPerson` matches `full_name`, `first + last`, `handle` AND `username`, first row wins — so
+     `findPerson` matches `first + last` and `handle`, first row wins — so
      checking `handle` alone would let somebody take a name that already resolves to another person,
      and `changePin` would then check their PIN against that person's row. Everything `findPerson`
      can answer to, this refuses. */
   const mine = me ? key(me.person_id) : '';
   const clash = read(TAB.people).rows.some(r => {
     if (mine && key(r.person_id) === mine) return false;       // your own row is not a clash
-    return key(r.handle) === key(raw) || key(r.username) === key(raw)
-        || key(r.full_name) === key(raw)
+    return key(r.handle) === key(raw)
         || key(S(r.first_name) + ' ' + S(r.last_name)) === key(raw);
   });
   if (clash) return '"' + shown + '" is taken.';
@@ -429,9 +426,9 @@ function peopleNamed(name) {
   const want = key(name);
   if (!want) return [];
   return read(TAB.people).rows.filter(r =>
-    key(r.person_id) === want || key(r.full_name) === want ||
+    key(r.person_id) === want ||
     key(S(r.first_name) + ' ' + S(r.last_name)) === want ||
-    key(r.handle) === want || key(r.username) === want);
+    key(r.handle) === want);
 }
 
 /** Give every row a permanent id. Rows that predate this have none, which is how they were
@@ -645,8 +642,10 @@ function childrenOf(parentId) {
   return ids.map(id => findPerson(id)).filter(Boolean);
 }
 
+/* FIRST AND LAST, AND NOTHING ELSE. `full_name` was the same fact typed a third time and the people
+   tab's redesign dropped it — see `SCHEMA.people`. */
 function personDisplayName(r) {
-  return S(r.full_name) || (S(r.first_name) + ' ' + S(r.last_name)).trim();
+  return (S(r.first_name) + ' ' + S(r.last_name)).trim();
 }
 
 /**

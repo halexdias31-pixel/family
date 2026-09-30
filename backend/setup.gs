@@ -168,7 +168,7 @@ function repairShopPrices() {
 function fillHandles() {
   const t = read(TAB.people);
   if (!t.sheet) return { error: 'no people tab' };
-  for (const col of ['handle', 'username']) {
+  for (const col of ['handle']) {
     /* NAMED, NOT SKIPPED. `setCell` writes to a header that is not there and loses the value with
        no error anywhere — the fault every `noColumn` refusal in this project exists to prevent, and
        the reason a job that "ran" and changed nothing is the worst possible outcome here. */
@@ -185,21 +185,12 @@ function fillHandles() {
     if (!S(r.first_name)) out.noFirstName.push(who);
     if (!S(r.last_name))  out.noLastName.push(who);
 
-    /* BOTH CELLS, OR NEITHER. A row with a handle and no username is half-resolvable: `findPerson`
-       answers to one spelling and not the other, which is the `needs_print` / `print_required`
-       shape on the two columns that decide who somebody IS. So an existing handle is copied across
-       rather than a second one generated. */
-    const has = S(r.handle), hasUser = S(r.username);
-    if (has && hasUser) { out.leftAlone++; return; }
-    if (has && !hasUser) { setCell(t, r, 'username', has); out.filled++; return; }
-    if (!has && hasUser) { setCell(t, r, 'handle', hasUser); out.filled++; return; }
-
+    if (S(r.handle)) { out.leftAlone++; return; }
     /* `r` IS PASSED, so this row's own cells are not counted as a clash — which matters for
-       `full_name` and `first + last`, the two `handleTrouble_` also compares against. */
+       `first + last`, which `handleTrouble_` also compares against. */
     const made = handleMake_(r);
     if (!made) { out.couldNotGenerate.push(who); return; }
     setCell(t, r, 'handle', made);
-    setCell(t, r, 'username', made);
     out.filled++;
   });
   clearCache();
@@ -208,7 +199,7 @@ function fillHandles() {
   out.missingEmail = out.noEmail.length;
   out.missingFirstName = out.noFirstName.length;
   out.missingLastName = out.noLastName.length;
-  out.means = 'handle and username filled where blank; nothing overwritten. An email or a name is '
+  out.means = 'handle filled where blank; nothing overwritten. An email or a name is '
             + 'never invented — the ids above are the rows somebody has to type one into.';
   return out;
 }
@@ -237,7 +228,7 @@ function fillHandles() {
 function renameHandles() {
   const t = read(TAB.people);
   if (!t.sheet) return { error: 'no people tab' };
-  for (const col of ['handle', 'username']) {
+  for (const col of ['handle']) {
     if (t.headers.indexOf(col) === -1) {
       return { error: 'the people tab has no ' + col + ' column. Run ensureSchema() first '
                     + '— nothing was changed.' };
@@ -248,24 +239,17 @@ function renameHandles() {
   t.rows.forEach(r => {
     const who = S(r.person_id) || '(a row with no id)';
     const has = S(r.handle);
-    if (handleIsShaped_(has, r.first_name)) {
-      /* The shape is right; make sure the other column agrees, which is one fact in two cells. */
-      if (S(r.username) !== has) setCell(t, r, 'username', has);
-      out.leftAlone++;
-      return;
-    }
+    if (handleIsShaped_(has, r.first_name)) { out.leftAlone++; return; }
     const made = handleMake_(r);
     if (!made) { out.couldNotGenerate.push(who); return; }
-    const was = has || S(r.username);
-    if (keepWas && was) setCell(t, r, 'handle_was', was);
+    if (keepWas && has) setCell(t, r, 'handle_was', has);
     setCell(t, r, 'handle', made);
-    setCell(t, r, 'username', made);
     out.renamed.push(who);
   });
   clearCache();
   out.renamedCount = out.renamed.length;
-  out.means = 'every handle not already <first>_<adjective><NN> was regenerated, the username written '
-            + 'to match and the old one kept in handle_was. Sign-in is by e-mail, so nobody is locked out.';
+  out.means = 'every handle not already <first>_<adjective><NN> was regenerated and the old one '
+            + 'kept in handle_was. Sign-in is by e-mail, so nobody is locked out.';
   return out;
 }
 
@@ -464,8 +448,7 @@ function makeBrandAccount(pin) {
   const row = addRow(t, {
     person_id: 'P' + Date.now(),
     role: 'admin',
-    first_name: name, last_name: '', full_name: name,
-    username: 'family', handle: name,
+    first_name: name, last_name: '', handle: name,
     /* NO `pin` HERE. It used to be `pin: String(pin)` — the brand account's PIN sitting in a
        spreadsheet cell in plain sight, which is the whole thing `authSetPin_` was written to stop,
        on the one row that can reach every control on the site. The hash is set below, once the row
@@ -904,7 +887,7 @@ function dataProblems(deep) {
 
   /* --- tutors: a tutor nobody can book is a tutor who earns nothing --- */
   read(TAB.people).rows.forEach(r => {
-    if (!S(r.full_name)) return;
+    if (!personDisplayName(r)) return;
     const role = mainRole(r);
     if (role === 'tutor' || role === 'admin') {
       // Availability is ONE cell, not a column per hour — `availSet` unpacks it.
