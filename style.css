@@ -748,8 +748,21 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-drop { display: block; min-height: 44px; margin: -.2rem 0 .1rem; padding: 0; background: none; border: 0;
           color: var(--bad, #c4655a); font: inherit; font-size: .72rem; text-align: left; cursor: pointer;
           text-decoration: underline; text-underline-offset: 3px; }
-.q-subj .q-add { margin: .1rem 0 .1rem; }
-.q-subj .q-ticks { display: flex; gap: 1rem; align-items: center; }
+/* ---------- A SUBJECT IS ONE LINE UNTIL OPENED — see `qualSubject_` -------------------------------
+   Shut, only its summary line shows; open, the line stays as its heading (gold, chevron down) and
+   the body follows: the subject box with its two ticks on the SAME row — they were a row of their
+   own under the levels — then the levels, then `+ Add a level` as one more line of that list rather
+   than a full-width button. */
+.q-subj.is-shut > .q-subj-body { display: none; }
+.q-subj:not(.is-shut) > .q-subj-sum { color: var(--gold); }
+.q-subj.is-shut > .q-subj-sum::after { transform: rotate(-90deg); }
+.q-subj-sum { font-weight: 600; }
+.q-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .6rem; align-items: center; }
+.q-head label.field { margin-bottom: 0; min-width: 0; }
+.q-head select, .q-head input { min-width: 0; }
+.q-levels > .q-add { color: var(--dim); font-size: .76rem; }
+.q-levels > .q-add::after { content: none; }
+.q-lvl + .q-add { border-top: 1px dashed var(--line); }
 .lib-card + .lib-card { border-top: 1px dashed var(--line); padding-top: .45rem; }
 /* ---------- AND THE GAPS ARE THE ONLY THING LEFT TO SPEND, BECAUSE 44px IS NOT ------------------
    SIX ROWS OF INPUT AT A 44px FLOOR IS 264px AND THAT IS THE SHELF'S FLOOR. `label.field`'s own
@@ -856,7 +869,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* THE THIRD ROW OF A QUALIFICATION: the received year, then the two ticks that replaced the
    `What you teach` page. The ticks take what their words need and the year takes the rest; the
    label is the 44px target, as `.check` already makes it, and the words shrink rather than wrap. */
-.q-tick { gap: .35rem; font-size: .72rem; min-height: 44px; padding: 0; white-space: nowrap; }
+.q-tick { gap: .35rem; font-size: .72rem; min-height: 44px; min-width: 44px; padding: 0; white-space: nowrap; }
 /* AN UNCHOSEN LEVEL OR BOARD READS AS A PLACEHOLDER, in the same grey as the empty boxes above it —
    otherwise `Level` in full ink looks like an answer somebody gave. */
 .lib-row select:has(option[value=""]:checked) { color: var(--faint); }

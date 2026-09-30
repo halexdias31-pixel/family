@@ -2639,19 +2639,66 @@ function qualShelf_(list, value, options) {
    subject ticked is the honest reading of "you teach Maths". */
 function qualSubject_(subject, slots, value, options, open) {
   const tick = k => slots.some(i => TRUEish_(value('qual_' + i + k)));
-  return `<div class="lib-card q-subj">
-    ${qualChoice_('class="q-name" data-q="name"', subject,
-      (options ? options('qual_1') : null) || [], 'Subject')}
-    <div class="q-levels">${slots.map(i => qualLevel_(i, value, options, false, open)).join('')}</div>
-    <button type="button" class="btn quiet q-add" data-do="qual-add-level">Add a level</button>
-    <div class="q-ticks">
-      <label class="check q-tick"><input type="checkbox" data-do="qual-subj-tick" data-k="teach"
-        ${tick('_teach') || tick('_spec') ? 'checked' : ''}><span class="box"></span><span>Teach</span></label>
-      <label class="check q-tick"><input type="checkbox" data-do="qual-subj-tick" data-k="spec"
-        ${tick('_spec') ? 'checked' : ''}><span class="box"></span><span>Specialise</span></label>
+  /* ---------- A SUBJECT IS ONE LINE UNTIL IT IS OPENED ------------------------------------------
+     *"too long ... so more can fit in one screen"*. Open, every subject was a name box, a line per
+     level, a full-width Add a level button and a row of ticks — about 230px for Maths with two
+     levels, so two subjects filled a phone. Shut, a subject is its summary line — "Maths · GCSE 8 ·
+     A-Level B · teach ★" — 44px, and one subject is open at a time. Shut boxes are still in the
+     form (hidden, not removed), so a Save posts every level exactly as before. A subject with
+     nothing saved yet arrives open, because a line over nothing is a page with nothing to type into. */
+  const shut = !open && !!String(subject || '').trim();
+  const say = qualSubjSay_(subject, slots.map(i => ({
+    level: value('qual_' + i + '_level'), grade: value('qual_' + i + '_grade') })),
+    tick('_teach') || tick('_spec'), tick('_spec'));
+  return `<div class="lib-card q-subj${shut ? ' is-shut' : ''}">
+    <button type="button" class="q-sum q-subj-sum" data-do="qual-subj-open"
+      aria-expanded="${shut ? 'false' : 'true'}"><span class="q-sum-t">${esc(say || 'New subject')}</span></button>
+    <div class="q-subj-body">
+      <div class="q-head">
+        ${qualChoice_('class="q-name" data-q="name"', subject,
+          (options ? options('qual_1') : null) || [], 'Subject')}
+        <label class="check q-tick"><input type="checkbox" data-do="qual-subj-tick" data-k="teach"
+          ${tick('_teach') || tick('_spec') ? 'checked' : ''}><span class="box"></span><span>Teach</span></label>
+        <label class="check q-tick" title="Specialise"><input type="checkbox" data-do="qual-subj-tick" data-k="spec"
+          aria-label="Specialise" ${tick('_spec') ? 'checked' : ''}><span class="box"></span><span aria-hidden="true">&#9733;</span></label>
+      </div>
+      <div class="q-levels">${slots.map(i => qualLevel_(i, value, options, false, open)).join('')}
+        <button type="button" class="q-sum q-add" data-do="qual-add-level"><span class="q-sum-t">+ Add a level</span></button></div>
     </div>
   </div>`;
 }
+/* THE LINE A SHUT SUBJECT SHOWS, built from the same values its boxes hold. The star is the
+   specialism — the same mark the profile card edges in gold. */
+function qualSubjSay_(subject, levels, teach, spec) {
+  const lv = levels.map(l => [l.level, l.grade].map(x => String(x || '').trim()).filter(Boolean).join(' '))
+    .filter(Boolean).join(' · ');
+  return [String(subject || '').trim(), lv, (teach ? 'teach' : '') + (spec ? ' \u2605' : '')]
+    .map(x => x.trim()).filter(Boolean).join(' · ');
+}
+function qualSubjFrom_(subj) {
+  const t = subj && subj.querySelector('.q-subj-sum .q-sum-t');
+  if (!t) return;
+  const get = (lvl, k) => { const b = lvl.querySelector('[data-me="qual_' + lvl.dataset.slot + k + '"]'); return b ? b.value : ''; };
+  const levels = [...subj.querySelectorAll('.q-levels > .q-lvl')].map(l => ({ level: get(l, '_level'), grade: get(l, '_grade') }));
+  t.textContent = qualSubjSay_((subj.querySelector('.q-name') || {}).value, levels,
+    !!(subj.querySelector('[data-k="teach"]') || {}).checked,
+    !!(subj.querySelector('[data-k="spec"]') || {}).checked) || 'New subject';
+}
+on('qual-subj-open', el => {
+  const subj = el.closest('.q-subj'), shelf = el.closest('.q-shelf');
+  if (!subj) return;
+  const opening = subj.classList.contains('is-shut');
+  if (shelf) shelf.querySelectorAll('.q-subj').forEach(sj => {
+    if (sj !== subj && !sj.classList.contains('is-shut')) {
+      sj.classList.add('is-shut'); qualSubjFrom_(sj);
+      const b = sj.querySelector('.q-subj-sum'); if (b) b.setAttribute('aria-expanded', 'false');
+    }
+  });
+  subj.classList.toggle('is-shut', !opening);
+  el.setAttribute('aria-expanded', opening ? 'true' : 'false');
+  if (!opening) qualSubjFrom_(subj);
+  if (typeof placeCells === 'function') placeCells('y', true, 0, 'settings');
+});
 /* ONE LEVEL OF ONE SUBJECT. The subject and the two ticks are HIDDEN inputs carrying `data-me`, so
    `me-save` gathers them exactly as before; the visible subject box and ticks above write into them.
    The level, grade, board and year are the ordinary boxes. */
@@ -2798,7 +2845,8 @@ on('qual-add-level', el => {
   const subj = el.closest('.q-subj'), shelf = el.closest('.q-shelf');
   const lvl = qualTake_(shelf);
   if (!lvl || !subj) return;
-  subj.querySelector('.q-levels').appendChild(lvl);
+  const list = subj.querySelector('.q-levels');
+  list.insertBefore(lvl, list.querySelector('.q-add'));
   qualSubjectSync_(subj);
   qualPoolLeft_(shelf);
   qualDirty_(el);
@@ -2812,7 +2860,10 @@ on('qual-add-subject', el => {
   const holder = document.createElement('div');
   holder.innerHTML = qualSubject_('', [], () => '', null, true);
   const subj = holder.firstElementChild;
-  subj.querySelector('.q-levels').appendChild(lvl);
+  const list = subj.querySelector('.q-levels');
+  list.insertBefore(lvl, list.querySelector('.q-add'));
+  /* ONE SUBJECT OPEN AT A TIME — the new one is it. */
+  shelf.querySelectorAll('.q-subj:not(.is-shut)').forEach(sj => { sj.classList.add('is-shut'); qualSubjFrom_(sj); });
   shelf.insertBefore(subj, shelf.querySelector('.q-pool'));
   qualSubjectSync_(subj);
   qualPoolLeft_(shelf);
