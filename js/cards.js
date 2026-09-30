@@ -217,7 +217,7 @@ function profFacts_(t) {
    a borough (a street-level map would be a tutor's front door, which is not what this is for) and
    never further out than all of London. Positions are Web Mercator pixels relative to the centre,
    written as `calc(50% + …px)`, so the map is right at every card width without being measured. */
-const HEAT_W = 300, HEAT_H = 160;
+const HEAT_W = 300, HEAT_H = 200;
 const heatPx_ = (lat, lng, z) => {
   const n = 256 * Math.pow(2, z), r = lat * Math.PI / 180;
   return [(lng + 180) / 360 * n, (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n];
@@ -246,15 +246,24 @@ function profHeat_(names) {
      `overflow: hidden` clips a scroller, it does not stop it being one, and `check/ui.js` named it on
      the first run. A background is painted inside its own box and has no extent to scroll to, so the
      map is clipped by construction. The glows are radial gradients in the same list, on top. */
-  const pos = (x, y) => `calc(50% + ${Math.round(x - cx)}px) calc(50% + ${Math.round(y - cy)}px)`;
+  /* `50%` IN A BACKGROUND POSITION IS NOT THE BOX'S MIDDLE. It lines the IMAGE's 50% up with the
+     BOX's 50%, so a 256px tile placed at `calc(50% + d)` starts 128px left of where `d` says — and
+     the first version shipped that way: every tile and every glow was half its own size up and to
+     the left, the bottom of the map was black, and the glows sat off their venues. The owner's
+     screenshot is what showed it (this container cannot load the tiles). `w` and `h` put it back:
+     the image's own half is added so its top-left corner lands at `50% + d`. */
+  const pos = (x, y, w, h) => `calc(50% + ${Math.round(x - cx + w / 2)}px) calc(50% + ${Math.round(y - cy + h / 2)}px)`;
   const layers = [];
-  px.forEach(p => layers.push({ img: 'radial-gradient(circle closest-side, rgba(255,180,84,.85) 0, rgba(255,140,50,.45) 40%, rgba(255,90,40,0) 100%)',
-    pos: pos(p[0] - 32, p[1] - 32), size: '64px 64px' }));
+  /* A SOFT, WIDE GLOW PER VENUE, TRANSLUCENT, so the streets read through it and venues close
+     together add up into a warmer patch rather than each being a hard orange ball. */
+  const G = 80;
+  px.forEach(p => layers.push({ img: 'radial-gradient(circle closest-side, rgba(255,190,90,.6) 0, rgba(255,150,60,.3) 45%, rgba(255,120,40,0) 100%)',
+    pos: pos(p[0] - G / 2, p[1] - G / 2, G, G), size: G + 'px ' + G + 'px' }));
   const t0x = Math.floor((cx - 220) / 256), t1x = Math.floor((cx + 220) / 256);
-  const t0y = Math.floor((cy - 110) / 256), t1y = Math.floor((cy + 110) / 256);
+  const t0y = Math.floor((cy - 130) / 256), t1y = Math.floor((cy + 130) / 256);
   for (let tx = t0x; tx <= t1x; tx++) for (let ty = t0y; ty <= t1y; ty++) {
     layers.push({ img: `url("https://basemaps.cartocdn.com/dark_all/${z}/${tx}/${ty}@2x.png")`,
-      pos: pos(tx * 256, ty * 256), size: '256px 256px' });
+      pos: pos(tx * 256, ty * 256, 256, 256), size: '256px 256px' });
   }
   const style = `background-image:${layers.map(l => l.img).join(',')};`
     + `background-position:${layers.map(l => l.pos).join(',')};`

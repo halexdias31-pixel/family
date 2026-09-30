@@ -185,7 +185,6 @@ const base = {
   pin: '0000', verified: 'TRUE', listed: true, dbs_checked: true, xp: 10, credits: 5,
   city: 'London', town: 'Mitcham', borough: 'Merton', postcode: 'ZZ1 1ZZ', address: '1 Example Road',
   phone: '+44 7700 900123', date_of_birth: new Date(1990, 2, 4),
-  library_note: 'renew in May',
   photo: 'https://example.org/p.jpg',
 };
 const tutor = Object.assign({}, base, {

@@ -204,8 +204,7 @@ const VISITORS = [
                                   lib1_name: 'Merton', lib1_no: '2000000000000', lib1_pin: '0000',
                                   lib2_name: 'Sutton', lib2_no: '2000000000001', lib2_pin: '0000',
                                   lib3_name: 'Wandsworth Town and Putney',
-                                  lib3_no: '2000000000002', lib3_pin: '0000',
-                                  library_note: 'Example note — the second card is in the top drawer' } } },
+                                  lib3_no: '2000000000002', lib3_pin: '0000' } } },
 ];
 
 /* 44 CSS PIXELS is Apple's published minimum for something a finger has to hit, and Google says 48.

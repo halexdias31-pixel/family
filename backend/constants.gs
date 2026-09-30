@@ -335,7 +335,7 @@ const SCHEMA = {
     "rate_per_hour", "extra_seat_rate", "min_students", "max_students", "min_hours", "max_hours",
     "pricing_changed_at", "availability", "agreement_signed_at", "agreement_version",
     /* a family's and a student's own */
-    "children", "favourite_colour", "exam_small_date", "exam_big_date", "library_note",
+    "children", "favourite_colour", "exam_small_date", "exam_big_date",
     /* the app's state, which nobody types into */
     "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
     "friends", "notepad", "todo"
@@ -2025,7 +2025,7 @@ const PROFILE_GROUPS = {
   /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA.
      It is in all three group maps because a tutor, a parent and a student each have one library
      card and one set of digits they cannot remember. */
-  'Library cards': LIBRARY_FIELDS.concat(['library_note']),
+  'Library cards': LIBRARY_FIELDS,
 };
 const CLIENT_GROUPS = {
   'About you': ['first_name','last_name','photo'],
@@ -2033,7 +2033,7 @@ const CLIENT_GROUPS = {
      collection and nothing else, and the reason is invisible on a form that never asked. One page
      with the contact details, for the reason `PROFILE_GROUPS` gives. */
   'Contact & address': ['email','phone','city','town','borough','postcode','address'],
-  'Library cards': LIBRARY_FIELDS.concat(['library_note']),
+  'Library cards': LIBRARY_FIELDS,
 };
 const STUDENT_GROUPS = {
   /* ---------- THE TWO EXAMS ARE ON THE FIRST PAGE NOW -------------------------------------------
@@ -2044,7 +2044,7 @@ const STUDENT_GROUPS = {
      not sit one, which is what makes them appear for a student and for nobody else. */
   'About you': ['first_name','last_name','date_of_birth','photo','exam_small_date','exam_big_date'],
   'Contact & address': ['email','phone','city','town','borough','postcode','address'],
-  'Library cards': LIBRARY_FIELDS.concat(['library_note']),
+  'Library cards': LIBRARY_FIELDS,
 };
 /* `RESOURCE_GROUPS` WAS HERE — the seven sections of the admin form that relabelled a paper, and
    `RESOURCE_EDITABLE` was its flattened allow-list. Both are gone with the tab they wrote to. The

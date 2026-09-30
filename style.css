@@ -11140,7 +11140,7 @@ button.scr-sq { cursor: pointer; }
    box (see `profHeat_` for why not elements); the glows are listed first, so they paint on top, and
    where two venues are close their gradients overlap into a warmer patch — which is what makes it a
    heat map rather than a scatter of pins. Nothing in it is pressable. */
-.prof-heat { position: relative; height: 160px; margin: .15rem 0 .6rem; overflow: hidden;
+.prof-heat { position: relative; height: 200px; margin: .15rem 0 .6rem; overflow: hidden;
              border-radius: 10px; background: var(--sunk, #111); border: 1px solid var(--line); }
 .prof-heat .heat-credit { position: absolute; right: 4px; bottom: 2px; font-size: .5rem; line-height: 1.4;
   color: rgba(255, 255, 255, .72); background: rgba(0, 0, 0, .45); padding: 0 3px; border-radius: 3px; }

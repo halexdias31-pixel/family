@@ -647,8 +647,7 @@
    "lib4_pin",
    "lib5_name",
    "lib5_no",
-   "lib5_pin",
-   "library_note"
+   "lib5_pin"
   ]
  },
  "phoneCodes": [
@@ -710,8 +709,7 @@
    "lib4_pin",
    "lib5_name",
    "lib5_no",
-   "lib5_pin",
-   "library_note"
+   "lib5_pin"
   ]
  },
  "clientFields": {
@@ -744,8 +742,7 @@
    "lib4_pin",
    "lib5_name",
    "lib5_no",
-   "lib5_pin",
-   "library_note"
+   "lib5_pin"
   ]
  },
  "profileReadonly": [],

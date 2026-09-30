@@ -2140,7 +2140,28 @@ const QUAL_SUBJECTS = [
   'Greek', 'History', 'Italian', 'Latin', 'Law', 'Maths', 'Media Studies', 'Medicine', 'Music',
   'Philosophy', 'Physical Education', 'Physics', 'Politics', 'Portuguese', 'Psychology',
   'Religious Studies', 'Sociology', 'Spanish', 'Statistics', 'Theology',
-  'PGCE', 'QTS', 'Enhanced DBS', 'First Aid', 'DofE Gold',
+  'PGCE', 'QTS', 'DBS', 'First Aid', 'DofE Gold',
+];
+/* ---------- AND THE LEVELS, WHICH STOPPED AT A-LEVEL ------------------------------------------------
+   ASKED FOR AS *"level only has gcse. it doesnt seem to have like the degree levels ... add enhanced
+   level to level so i can put enhanced dbs."* The shelf offered the `options` tab's `level` list,
+   which is the booking list again — GCSE, 11+, AS, Alevel, B-TEC, SATs and three mocks — so a degree
+   could only be typed in. This is what somebody can HOLD, school to doctorate, in the order they get
+   it; then the three certificate levels a DBS check comes at, so `DBS · Enhanced` is two picks rather
+   than one subject spelling the level out. A level already saved that is not here is kept as its
+   chosen option, exactly as the subject is, so the sheet's `Alevel` still shows. */
+const QUAL_LEVELS = [
+  'Entry Level', 'KS2 SATs', '11+', 'GCSE', 'IGCSE', 'AS', 'A-Level', 'BTEC', 'T Level',
+  'International Baccalaureate', 'Access to HE', 'Foundation Degree', 'HNC', 'HND',
+  "Bachelor's degree", "Master's degree", 'PGCE', 'Doctorate', 'Diploma', 'Certificate',
+  'Basic', 'Standard', 'Enhanced',
+];
+/* AND THE GRADES, spelt right ("Distinciton" was on the sheet's list), numbered and lettered, then
+   the ones a BTEC and a degree give. */
+const QUAL_GRADES = [
+  '9', '8', '7', '6', '5', '4', '3', '2', '1', 'A*', 'A', 'B', 'C', 'D', 'E', 'U',
+  'Distinction*', 'Distinction', 'Merit', 'Pass',
+  'First', '2:1', '2:2', 'Third',
 ];
 /* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell. */
 /* `venues_ok` IS NOT A COLUMN of `people` — it is the venues tab's own `tutors_happy_here`, read and
@@ -2156,6 +2177,8 @@ function fieldOptions_(f) {
   const got = x => (x && x.length ? x : null);
   const first = String(f).replace(/^qual_\d+/, 'qual_1');
   if (/^qual_\d+$/.test(String(f))) return QUAL_SUBJECTS;
+  if (/^qual_\d+_level$/.test(String(f))) return QUAL_LEVELS;
+  if (/^qual_\d+_grade$/.test(String(f))) return QUAL_GRADES;
   return got(v[f]) || FIELD_LISTS_[f] || got(v[first])
     /* THE VENUES ON OFFER ARE THE VENUES THE SITE HAS, by the name the booking form uses for them. */
     || (f === 'venues_ok' ? got((typeof DATA !== 'undefined' && DATA && DATA.venues || [])
@@ -2466,9 +2489,9 @@ const isTimetable_ = list => (list || []).length > 12
 /* ---------- AND A GROUP OF `libN_*` NAMES IS A SHELF OF LIBRARY CARDS ----------------------------
    RECOGNISED BY THE SHAPE OF THE NAMES, exactly as the timetable above is and for the same reason:
    the group's title is the backend's to choose, and a renderer that keys on it stops working the
-   day somebody renames it. The one field that is not a card — `library_note` — is drawn as an
-   ordinary box under the shelf, so the test asks whether ANY of the names is a card rather than
-   whether all of them are.
+   day somebody renames it. (There was a `library_note` box under the shelf — "note to yourself" —
+   and the owner took it off, so every name in the group is a card now; the test still asks ANY
+   rather than ALL, so a field added beside the cards one day is drawn rather than dropped.)
 
    WHY IT NEEDS A RENDERER AT ALL, measured rather than asserted: nine ordinary `label.field` boxes
    are 63.1px each at 320 and the group came to **790.2px in a pane that caps at 534.25** — 283px
