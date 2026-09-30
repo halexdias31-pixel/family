@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-09-29-j-venues";
+const DOPOST_VERSION = "2026-09-30-b-records";
 
 
 function doPost(e) {
@@ -473,6 +473,12 @@ function doPost(e) {
     }
 
     /* --- admin: everyone ---------------------------------------------------------------------- */
+    /* THE BUSINESS RECORDS — admin only by `ACTION_ACCESS`, and read by a POST rather than sent in
+       the payload, because the payload is cached and goes to every visitor. See records.gs. */
+    if (action === 'listRecords' || action === 'saveRecord' || action === 'dropRecord') {
+      return jsonOut(recordsAction_(action, body));
+    }
+
     if (action === 'listPeople') {
       const people = read(TAB.people).rows.map(r => ({
         name: personDisplayName(r),

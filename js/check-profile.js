@@ -138,7 +138,7 @@ function backend() {
                getScriptTimeZone: () => 'Europe/London' },
   };
   sandbox.globalThis = sandbox;
-  const ORDER = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'doget', 'dopost'];
+  const ORDER = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'records', 'doget', 'dopost'];
   const missing = ORDER.filter(n => !fs.existsSync(path.join(REPO, 'backend', n + '.gs')));
   if (missing.length) {
     console.log('backend/' + missing.join('.gs, backend/') + '.gs could not be read, so NOTHING was checked — not a pass.');
@@ -341,6 +341,29 @@ PEOPLE.forEach(p => {
   const stranger = b.get({ person: 'P-A1', name: 'Hal Admin' });
   if ((stranger.students || []).length) bad.push('a request with the admin\'s id and name in the URL and NO token was served '
     + (stranger.students || []).length + ' student(s) — the cache is keyed on the URL');
+}
+
+/* 9. THE BUSINESS RECORDS: an admin's and nobody else's, a refused save writes nothing, and what is
+   saved comes back — see backend/records.gs. */
+{
+  const a = tokens['P-A1'], t = tokens['P-T1'];
+  const as = (who, body) => b.post(Object.assign({ token: who.token, name: who.name }, body));
+  const no = as(t, { action: 'listRecords' });
+  if (no.success || no.records) bad.push('a tutor was answered listRecords — the business records are an admin\'s');
+  const refused = as(a, { action: 'saveRecord', record: { title: 'Insurance', link: 'drive/file' } });
+  if (refused.success) bad.push('a record whose link is not a web address was saved');
+  else if (refused.writes) bad.push('a refused record had already written ' + refused.writes + ' cell(s)');
+  const saved = as(a, { action: 'saveRecord', record: { category: 'Insurance', title: 'Public liability insurance',
+    provider: 'Hiscox', reference: 'PL-1', due_on: '2027-03-12', link: 'https://example.org/x' } });
+  if (!saved.success) bad.push('an admin could not save a record — ' + saved.error);
+  const list = as(a, { action: 'listRecords' });
+  const got = (list.records || []).find(r => r.title === 'Public liability insurance');
+  if (!got) bad.push('a saved record did not come back from listRecords');
+  else if (got.due_on !== '2027-03-12') bad.push('a record due 2027-03-12 came back due "' + got.due_on + '"');
+  else {
+    as(a, { action: 'dropRecord', id: got.id });
+    if ((as(a, { action: 'listRecords' }).records || []).some(r => r.id === got.id)) bad.push('a removed record is still listed');
+  }
 }
 
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');

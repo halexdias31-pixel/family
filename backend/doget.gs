@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-29-j-venues";
+const DOGET_VERSION = "2026-09-30-b-records";
 
 
 function doGet(e) {
@@ -451,6 +451,7 @@ function doGet(e) {
                  'saveRoom',
 
                  'saveTodo', 'saveAvatar', 'register', 'verifyEmail', 'diagnosePeople',
+                 'listRecords', 'saveRecord', 'dropRecord',
                  /* The site checks for this to decide whether it may offer the picker. */
                  'folderFiles',
                  /* `likePost` is deliberately absent. The site checks this list, so a stale copy

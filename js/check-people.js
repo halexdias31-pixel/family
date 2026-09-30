@@ -109,6 +109,10 @@ const SRC = [
   grab(core,   /function photosIn\([\s\S]*?\n\}/, 'photosIn'),
   grab(core,   /function photosRefusal_\([\s\S]*?\n\}/, 'photosRefusal_'),
   grab(core,   /function photosList_\([\s\S]*?\n\}/, 'photosList_'),
+  /* THE VENUES A TUTOR WILL TEACH AT: a pseudo-field over the venues tab's own column. */
+  grab(core,   /function venuesPersonIs_\([\s\S]*?\n\}/, 'venuesPersonIs_'),
+  grab(core,   /function venuesListOf_\([\s\S]*?\n\}/, 'venuesListOf_'),
+  grab(core,   /function venuesWrites_\([\s\S]*?\n\}/, 'venuesWrites_'),
 ].join('\n\n');
 
 /* THE FOUR APPS SCRIPT HELPERS THOSE FIVE REACH FOR, copied rather than imported — the same
@@ -117,6 +121,7 @@ const SRC = [
 const PRELUDE = `
   const S = v => String(v ?? '').trim();   // constants.gs's own — it TRIMS, and the packers rely on it
   const norm = v => S(v).toLowerCase().replace(/\\s+/g, '').trim();
+  const key = v => S(v).toLowerCase().replace(/[^a-z0-9]/g, '');
   const TRUE_ = v => v === true || /^(true|yes|1|✓)$/i.test(S(v).trim());
 `;
 const box = {};
@@ -131,7 +136,7 @@ new Function('box', PRELUDE + SRC
   + ' box.aList = teachAlsoList_; box.aOut = teachAlsoOut; box.aIn = teachAlsoIn;'
   + ' box.AMAX = TEACH_ALSO_MAX; box.phOut = phoneOut; box.phIn = phoneIn;'
   + ' box.pOut = photosOut; box.pIn = photosIn; box.pNo = photosRefusal_; box.pList = photosList_;'
-  + ' box.PMAX = PHOTO_MAX;')(box);
+  + ' box.PMAX = PHOTO_MAX; box.vWrites = venuesWrites_;')(box);
 
 let bad = 0;
 const is = (what, got, want) => {
@@ -289,11 +294,30 @@ is('what they were studying becomes a qualification received Present',
 is('and is not added twice once a Present qualification exists',
    box.qList({ quals: 'Bible:Degree::~Present~', studying: 'Bible' }).length, 1);
 
+/* ---------- THE VENUES: A SAVE THAT MOVES NOTHING WRITES NOTHING ----------------------------------
+   `others.concat(mine)` put this person at the END of the cell on every Save, so a Save with nothing
+   touched rewrote it and retired the payload. */
+{
+  const me = { person_id: 'P-T1', handle: 'tee' };
+  const rows = [{ name: 'Sutton Library', tutors_happy_here: 'P-T1, someone-else' },
+                { name: 'Online', tutors_happy_here: 'someone-else' }];
+  is('the venues already chosen, saved again, write nothing',
+     box.vWrites(me, 'Sutton Library', rows).length, 0);
+  is('a venue added is appended to the others',
+     box.vWrites(me, 'Sutton Library, Online', rows).map(w => w.cell), ['someone-else, P-T1']);
+  is('a venue taken off keeps everybody else in their order',
+     box.vWrites(me, '', rows).map(w => w.cell), ['someone-else']);
+}
+
 /* ---------- THE PHONE: A COUNTRY CODE AND A NUMBER, ONE CELL ------------------------------------ */
 is('a phone packs as code, space, number',
    box.phIn({ phone_cc: '+44', phone_no: '7700 900123' }), '+44 7700 900123');
 is('and the trunk 0 comes off',
    box.phIn({ phone_cc: '+44', phone_no: '07700 900123' }), '+44 7700 900123');
+is('a number typed with its own +44 is not given it twice',
+   box.phIn({ phone_cc: '+44', phone_no: '+44 7700 900123' }), '+44 7700 900123');
+is('nor one typed with 0044',
+   box.phIn({ phone_cc: '+44', phone_no: '0044 7700 900123' }), '+44 7700 900123');
 is('an empty number is an empty cell, not a bare code',
    box.phIn({ phone_cc: '+44', phone_no: '' }), '');
 is('a legacy 07… reads as UK',

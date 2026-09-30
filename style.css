@@ -621,6 +621,16 @@ body {
 /* STILL A RING, JUST NOT A SPINNING ONE. Removing the mark entirely would take the state with it,
    which is the thing this exists to show. */
 @media (prefers-reduced-motion: reduce) { .btn.is-busy::before { animation: none; } }
+/* A TILE WAITING IS THE SAME RING IN PLACE OF ITS MARK. It is disabled while it waits, and a disabled
+   tile loses its plate and fades to a third — which is "nothing to press here", the wrong sentence
+   for "pressed, and working on it". So a busy tile keeps its plate and its ink. */
+.tile.is-busy, .tile.is-busy[disabled] { opacity: 1; background: rgb(255 255 255 / .03);
+  border-color: var(--line-soft); cursor: progress; }
+.tile.is-busy svg { display: none; }
+.tile.is-busy::before { content: ''; width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor; animation: btn-spin .7s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .tile.is-busy::before { animation: none; } }
 .btn.ghost { background: transparent; color: var(--gold); border: 1px solid var(--line); }
 .btn.quiet { background: var(--sunk); color: var(--ink); border: 1px solid var(--line); }
 .btn.danger { background: transparent; color: var(--bad); border: 1px solid #3a2320; }
@@ -738,8 +748,21 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-drop { display: block; min-height: 44px; margin: -.2rem 0 .1rem; padding: 0; background: none; border: 0;
           color: var(--bad, #c4655a); font: inherit; font-size: .72rem; text-align: left; cursor: pointer;
           text-decoration: underline; text-underline-offset: 3px; }
-.q-subj .q-add { margin: .1rem 0 .1rem; }
-.q-subj .q-ticks { display: flex; gap: 1rem; align-items: center; }
+/* ---------- A SUBJECT IS ONE LINE UNTIL OPENED — see `qualSubject_` -------------------------------
+   Shut, only its summary line shows; open, the line stays as its heading (gold, chevron down) and
+   the body follows: the subject box with its two ticks on the SAME row — they were a row of their
+   own under the levels — then the levels, then `+ Add a level` as one more line of that list rather
+   than a full-width button. */
+.q-subj.is-shut > .q-subj-body { display: none; }
+.q-subj:not(.is-shut) > .q-subj-sum { color: var(--gold); }
+.q-subj.is-shut > .q-subj-sum::after { transform: rotate(-90deg); }
+.q-subj-sum { font-weight: 600; }
+.q-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .6rem; align-items: center; }
+.q-head label.field { margin-bottom: 0; min-width: 0; }
+.q-head select, .q-head input { min-width: 0; }
+.q-levels > .q-add { color: var(--dim); font-size: .76rem; }
+.q-levels > .q-add::after { content: none; }
+.q-lvl + .q-add { border-top: 1px dashed var(--line); }
 .lib-card + .lib-card { border-top: 1px dashed var(--line); padding-top: .45rem; }
 /* ---------- AND THE GAPS ARE THE ONLY THING LEFT TO SPEND, BECAUSE 44px IS NOT ------------------
    SIX ROWS OF INPUT AT A 44px FLOOR IS 264px AND THAT IS THE SHELF'S FLOOR. `label.field`'s own
@@ -846,7 +869,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* THE THIRD ROW OF A QUALIFICATION: the received year, then the two ticks that replaced the
    `What you teach` page. The ticks take what their words need and the year takes the rest; the
    label is the 44px target, as `.check` already makes it, and the words shrink rather than wrap. */
-.q-tick { gap: .35rem; font-size: .72rem; min-height: 44px; padding: 0; white-space: nowrap; }
+.q-tick { gap: .35rem; font-size: .72rem; min-height: 44px; min-width: 44px; padding: 0; white-space: nowrap; }
 /* AN UNCHOSEN LEVEL OR BOARD READS AS A PLACEHOLDER, in the same grey as the empty boxes above it —
    otherwise `Level` in full ink looks like an answer somebody gave. */
 .lib-row select:has(option[value=""]:checked) { color: var(--faint); }
@@ -8357,19 +8380,27 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mu-grid i { aspect-ratio: 1; border-radius: 2px; background: rgb(244 241 232 / .07); }
 .mu-say { margin-top: .8rem; font: 600 .8rem var(--mono); letter-spacing: .06em;
           color: rgb(240 236 224 / .55); text-align: center; }
-.mu-say b { color: #f0b45f; animation: mu-n 6s steps(1) infinite; }
-/* THE LABEL IS A PSEUDO-ELEMENT so `content` can be animated — on a real element it does nothing,
-   which is a rule that looks considered and has no effect. */
-.mu-n { font-size: 0; }
-.mu-n::after { font-size: .8rem; content: "3"; animation: mu-n 6s steps(1) infinite; }
-@keyframes mu-n { 0%,33% { content: "3"; } 34%,66% { content: "5"; } 67%,100% { content: "9"; } }
+.mu-say b { color: #f0b45f; }
+/* THREE NUMBERS STACKED IN ONE PLACE, one showing at a time. It was a `::after` whose `content` was
+   animated — which Chrome does and SAFARI DOES NOT, so on an iPhone the label read "multiples of 3"
+   for all six seconds while the grid went on to the fives and the nines: the words and the picture
+   disagreeing on the one splash whose job is showing that they agree. Opacity animates everywhere. */
+.mu-n { display: inline-grid; }
+.mu-n span { grid-area: 1 / 1; opacity: 0; animation: 6s steps(1) infinite; }
+.mu-n span:nth-child(1) { animation-name: mu-n3; }
+.mu-n span:nth-child(2) { animation-name: mu-n5; }
+.mu-n span:nth-child(3) { animation-name: mu-n9; }
+@keyframes mu-n3 { 0%, 33% { opacity: 1; } 34%, 100% { opacity: 0; } }
+@keyframes mu-n5 { 0%, 33% { opacity: 0; } 34%, 66% { opacity: 1; } 67%, 100% { opacity: 0; } }
+@keyframes mu-n9 { 0%, 66% { opacity: 0; } 67%, 100% { opacity: 1; } }
 /* THE CELLS LIT AND THEN HELD, so the middle of each table's third was three identical frames — the
    pattern appeared and then sat there, which is a picture of a pattern rather than one emerging.
    They now come up in a stagger and breathe while lit, so the grid is alive for the whole third
    rather than for the moment it arrives. The stagger is per-cell via the delays below. */
 
 @media (prefers-reduced-motion: reduce) {
-  .mu-grid i, .mu-n::after, .mu-say b { animation: none; }
+  .mu-grid i, .mu-n span { animation: none; }
+  .mu-n span:first-child { opacity: 1; }
   /* STILL A PATTERN, not a blank grid. With motion off the threes stay lit, so the splash says the
      same thing without moving — which is what reduced motion is for and not an excuse to show
      nothing. */
@@ -9800,7 +9831,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    receipt is a single thing to do, not a set to choose from. */
 /* THE ACTIONS ON THE DOCUMENT, centred and ruled off — everything above is what was asked for and
    everything here is what to do about it. Two of them, so a row rather than a stack. */
-.rc-tiles { justify-content: center; gap: .4rem; margin: .45rem 0 0; padding-top: .45rem; }
+/* NOT CENTRED AND NOT RULED OFF ANY MORE. *"The booking thing has tiles which are floating below it.
+   This isn't consistent with other stuff on site"* — every other card ends in a plain `.tile-row`
+   at its left edge; this one centred two tiles in a band of their own under a rule, which read as
+   a separate panel hanging off the receipt. The row's own gap and margin, like the rest. */
+.rc-tiles { justify-content: flex-start; }
 /* ---------- 40px, IN px, ON THE TWO CONTROLS THE WHOLE CARD EXISTS TO REACH ----------------------
    "Ask for it" and "Share this booking" were 40x40 at every width. CLAUDE.md's own rule is that tap
    targets go in px precisely so they cannot come out under 44 by accident — and these were in px
@@ -9809,7 +9844,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    THE RECEIPT IS NOT THERE ANY MORE and it was never a good enough reason: sending a booking is the
    one irreversible thing on this card. 44px, which is the floor, and the row has the height. */
 .rc-tiles .tile { width: 44px; height: 44px; }
-.rc .rc-tiles { border-top: 1px solid var(--line-soft); }
 
 /* THE TERMS. This was `var(--paper-dim)` with a note saying `.faint` is a dark-theme grey and the
    terms sit on off-white — which was true of the paper and is the whole reason the paper had to
@@ -11096,3 +11130,30 @@ button.scr-sq { cursor: pointer; }
 .agree .check input:disabled ~ span:last-child { color: var(--dim); }
 .agree .check:has(input:disabled) { cursor: default; }
 .cut-say b { color: var(--gold); }
+
+/* ---------- BUSINESS RECORDS — see js/records.js --------------------------------------------------
+   The qualification shelf's shape: a summary line per record, opened in place. The line at the top
+   says what is overdue or due soon, in the colour of the worst of them; each line carries its own
+   flag. The checklist under it is the faint list of what nothing has recorded yet. */
+.rec-head { font-size: .8rem; color: var(--dim); margin: .2rem 0 .4rem; }
+.rec-head.is-soon { color: var(--warn, #f0b45f); }
+.rec-head.is-over { color: var(--bad, #c4655a); font-weight: 600; }
+.rec + .rec, .rec + .rec-add { border-top: 1px dashed var(--line); }
+.rec-flag { font-weight: 700; margin-right: .2rem; }
+.rec.is-soon .rec-flag { color: var(--warn, #f0b45f); }
+.rec.is-overdue .rec-flag { color: var(--bad, #c4655a); }
+.rec.is-shut .rec-sum::after { transform: rotate(-90deg); }
+.rec:not(.is-shut) > .rec-sum { color: var(--gold); }
+.rec-body { padding: .2rem 0 .5rem; }
+.rec-body label.field { margin-bottom: .4rem; min-width: 0; }
+.rec-body textarea { min-height: 3.2rem; }
+.rec-list > .rec-add { color: var(--dim); font-size: .76rem; }
+.rec-list > .rec-add::after { content: none; }
+.rec-todo-sum { color: var(--dim); font-size: .76rem; margin-top: .4rem; border-top: 1px solid var(--line); }
+.rec-todo-sum.is-shut::after { transform: rotate(-90deg); }
+.rec-why { font-size: .72rem; color: var(--faint); margin: 0 0 .5rem; line-height: 1.4; }
+.rec-todo { display: flex; flex-direction: column; }
+.rec-todo-i { display: flex; align-items: center; width: 100%; min-height: 44px; padding: 0 0 0 .6rem;
+              background: none; border: 0; text-align: left; color: var(--ink); font: inherit;
+              font-size: .78rem; cursor: pointer; }
+.rec-todo-i + .rec-todo-i { border-top: 1px dashed var(--line); }

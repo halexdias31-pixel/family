@@ -161,6 +161,7 @@ const WHERE = {
   orders:         { file: 'ledger' },
   invites:        { file: 'ledger' },
   messages:       { file: 'ledger' },
+  records:        { file: 'ledger' },
   exams:          { file: 'ledger' },
   posts:          { file: 'ledger' },
   post_likes:     { file: 'ledger' },
@@ -226,7 +227,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-29-j-venues";
+const BACKEND_VERSION = "2026-09-30-b-records";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -236,6 +237,7 @@ const TAB = {
   shop: 'shop', pricing: 'pricing',
   config: 'config', options: 'options', trips: 'trips', rooms: 'rooms', invites: 'invites',
   exams: 'exams', orders: 'orders', messages: 'messages', widgets: 'widgets',
+  records: 'records',
   herd: 'herd',
   /* The map's own geometry, fetched from OpenStreetMap and kept. Not a tab anybody types into —
      see `fetchMap`. */
@@ -1083,6 +1085,16 @@ const SCHEMA = {
      `read_at` is when the recipient opened it. `flagged` is for you: a message somebody reported,
      which stays in the sheet rather than being deleted, because a deleted message is one you
      cannot show anybody afterwards. */
+  /* BUSINESS RECORDS. The business's own paperwork — insurance, tax, registrations, policies, DBS —
+     one row per thing that has a reference, a date it runs out or falls due, and somewhere the
+     document lives. ADMIN ONLY, and in the Ledger rather than in the repository, because a policy
+     number is exactly the kind of fact a public repository must never hold. `active` rather than a
+     deleted row, for the reason `messages` gives: a record removed is one you may need afterwards. */
+  records: [
+    "record_id", "category", "title", "provider", "reference", "due_on", "cost", "link", "notes",
+    "active", "updated_at",
+  ],
+
   messages: [
     "message_id", "from_id", "to_id", "sent_at", "body",
     "read_at", "flagged", "flag_reason",
@@ -2820,6 +2832,7 @@ const ACTION_ACCESS = {
   claimChild: 'self', answerClaim: 'self',
   /* All `self`: each handler checks the message is the asker's own, and the POLICY table decides
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
+  listRecords: 'admin', saveRecord: 'admin', dropRecord: 'admin',
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
   /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can.
      An admin resetting somebody else's is handled inside, where the old PIN can be waived. */

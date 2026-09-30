@@ -379,6 +379,24 @@
    "KS3",
    "GCSE",
    "A-Level"
+  ],
+  "qual_1": [
+   "Maths",
+   "English",
+   "Physics",
+   "Chemistry"
+  ],
+  "qual_2": [
+   "Maths",
+   "English",
+   "Physics",
+   "Chemistry"
+  ],
+  "qual_3": [
+   "Maths",
+   "English",
+   "Physics",
+   "Chemistry"
   ]
  },
  "terms": [],
