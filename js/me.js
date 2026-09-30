@@ -2600,10 +2600,10 @@ function qualShelf_(list, value, options) {
 
      A DEGREE IS A LEVEL, which is the whole of *"it shouldnt be a widget at all"*: `Bible and
      Theology` · `Degree` · `Present` is one level line under one subject, and `Present` in the
-     completed list is what says it is still being studied. The board box takes a university as well
-     as an exam board, which is why it suggests rather than restricts.
+     completed list is what says it is still being studied. The last box is the school, college or
+     university — never the exam board, which the owner took off — and it is free text.
 
-     A LEVEL IS ONE LINE UNTIL IT IS OPENED — "GCSE · 8 · Edexcel · 2017" — for the reason the old
+     A LEVEL IS ONE LINE UNTIL IT IS OPENED — "GCSE · 8 · Hill Top School · 2017" — for the reason the old
      shelf gave: four 44px controls do not fit one row of a 320px card, so a level's boxes are two
      rows, and a subject with three levels open would be most of a phone. A new level arrives open.
 
@@ -2719,11 +2719,16 @@ function qualLevel_(i, value, options, pooled, open) {
       ${box('_level', 'Level')}
       ${fieldHtml(f('_grade'), val('_grade'), { placeholder: 'Grade', options: (options ? options(f('_grade')) : null) })}
     </div>
-    <div class="lib-row q-row">
-      ${qualChoice_(`data-me="${esc(f('_board'))}"`, val('_board'),
-        (options ? options(f('_board')) : null) || [], 'Board or university')}
-      ${fieldHtml(f('_received'), val('_received'), { placeholder: 'Completed', options: qualYears_(val('_received')) })}
-    </div>
+      ${/* THE PLACE, NOT THE EXAM BOARD. Asked for as "subject level, grade and insitution such as
+            the name of school, NOT EXAM BOARD". A parent reads where somebody studied; which board
+            set the paper is a detail nobody asked about. Free text, because a school's name is not a
+            list anybody could keep. It is still stored in the `_board` slot of the packed `quals`
+            cell — renaming the slot would strand every qualification already saved — so the name in
+            the code is the old one and the thing in the box is the place. A ROW OF ITS OWN, full width,
+            because a school's name is the longest thing on the level and half a row cut it to
+            "School, colle". */''}
+      ${fieldHtml(f('_board'), val('_board'), { placeholder: 'School, college or uni' })}
+    ${fieldHtml(f('_received'), val('_received'), { placeholder: 'Completed', options: qualYears_(val('_received')) })}
     <button type="button" class="q-drop" data-do="qual-drop">Remove this level</button>
   </div>`;
 }
@@ -2766,7 +2771,7 @@ document.addEventListener('change', e => {
   const lvl = box.closest('.q-lvl'); if (lvl) qualLevelFrom_(lvl);
   try { box.focus({ preventScroll: true }); } catch {}
 }, true);
-/* THE LINE A SHUT LEVEL SHOWS — "GCSE · 8 · Edexcel · 2017" — built from the same four values its
+/* THE LINE A SHUT LEVEL SHOWS — "GCSE · 8 · Hill Top School · 2017" — built from the same four values its
    boxes hold, and rebuilt from them whenever one changes, so the line and the boxes cannot disagree. */
 function qualLevelSay_(read) {
   return ['_level', '_grade', '_board', '_received'].map(k => String(read(k) || '').trim())

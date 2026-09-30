@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-30-b-records";
+const DOGET_VERSION = "2026-09-30-c-quals";
 
 
 function doGet(e) {
@@ -709,16 +709,16 @@ function doGet(e) {
             const subj = S(q.subject);
             if (!subj) return null;
             const lvl = S(q.level), grd = S(q.grade);
-            /* THE BOARD IN BRACKETS, where it reads as the qualifying detail it is: "Maths A-Level
-               (Edexcel) grade B". Joined here rather than on the phone for the reason the three
-               parts above already are — one sentence, built once, so a card and a roster cannot
-               disagree about how a qualification is written. */
+            /* WHERE, AFTER THE GRADE: "Maths A-Level grade B at Hill Top School". The `board` slot
+               holds the school, college or university now, not the exam board — see `qualLevel_` in
+               me.js. Joined here rather than on the phone so a card and a roster cannot disagree
+               about how a qualification is written. */
             const brd = S(q.board);
             /* AND WHEN: "studying now" for `Present`, the year otherwise — the studying row the
                card used to draw is this qualification now. */
             const rec = S(q.received);
             const when = /^present$/i.test(rec) ? '— studying now' : rec ? '(' + rec + ')' : '';
-            return [subj, lvl, brd && ('(' + brd + ')'), grd && ('grade ' + grd), when]
+            return [subj, lvl, grd && ('grade ' + grd), brd && ('at ' + brd), when]
               .filter(Boolean).join(' ');
           }).filter(Boolean),
           extraQuals: S(r.extra_quals),
