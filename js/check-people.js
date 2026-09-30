@@ -289,8 +289,16 @@ is('a subject taught with no matching qualification becomes one rather than vani
 is('once ticks are written, teaches_1 no longer re-ticks an unticked list',
    box.qList({ quals: 'Maths:GCSE::9~~', teaches_1: 'Maths', teaches_1_level: 'GCSE' })[0].teach, false);
 is('what they were studying becomes a qualification received Present',
-   (q => q.subject + '/' + q.received)(box.qList({ studying: 'Bible and Theology', studying_at: 'UWTSD' })[0]),
-   'Bible and Theology — UWTSD/Present');
+   (q => q.subject + '/' + q.board + '/' + q.received)(box.qList({ studying: 'Bible and Theology', studying_at: 'UWTSD' })[0]),
+   'Bible and Theology/UWTSD/Present');
+/* *"you included uni name in the subject"* — the place is the board slot, and an entry already saved
+   with it in the subject is split back on read. */
+is('a place saved inside the subject is split back into the board slot',
+   (q => q.subject + '/' + q.board)(box.qList({ quals: 'Bible and Theology \u2014 UWTSD:Degree::~Present~' })[0]),
+   'Bible and Theology/UWTSD');
+is('and a place typed into the board is never overwritten by that split',
+   (q => q.subject + '/' + q.board)(box.qList({ quals: 'A \u2014 B:Degree:Uni:~~' })[0]),
+   'A \u2014 B/Uni');
 is('and is not added twice once a Present qualification exists',
    box.qList({ quals: 'Bible:Degree::~Present~', studying: 'Bible' }).length, 1);
 

@@ -11204,3 +11204,14 @@ button.scr-sq { cursor: pointer; }
 .biz-item.is-overdue .biz-flag { color: var(--bad); }
 .biz-item label.field { margin-bottom: .3rem; } /* min-width comes from `.lib-row label.field` */
 .biz-item input { min-width: 0; }
+
+/* ---------- WHERE A TUTOR TUTORS, AS A HEAT MAP — see `profHeat_` in cards.js ---------------------
+   A fixed-height window onto map tiles placed in pixels from its own centre. The tiles are 256px
+   CSS pixels at @2x, so they are crisp on a phone. They and the glows are background layers of the
+   box (see `profHeat_` for why not elements); the glows are listed first, so they paint on top, and
+   where two venues are close their gradients overlap into a warmer patch — which is what makes it a
+   heat map rather than a scatter of pins. Nothing in it is pressable. */
+.prof-heat { position: relative; height: 160px; margin: .15rem 0 .6rem; overflow: hidden;
+             border-radius: 10px; background: var(--sunk, #111); border: 1px solid var(--line); }
+.prof-heat .heat-credit { position: absolute; right: 4px; bottom: 2px; font-size: .5rem; line-height: 1.4;
+  color: rgba(255, 255, 255, .72); background: rgba(0, 0, 0, .45); padding: 0 3px; border-radius: 3px; }

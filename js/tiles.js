@@ -575,9 +575,12 @@ function cardActions_(x) {
   if (x.kind === 'level') return levelTiles_(x);
   if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   if (x.kind === 'fight') return fightTiles_(x);
-  /* `me` HAS NO ACTIONS — see the note where `meTiles_` was. It is named so it does not fall
-     through to anything that would give it some. */
-  if (x.kind === 'me') return '';
+  /* `me` HAS ONE ACTION, SIGN OUT, AND IT IS IN THE SAME ROW AS THE STAR. It was a row of its own
+     under the star — *"why is sign out tile under the favourite tile?"* — which made one card carry
+     two rows of marks for no reason anybody could see. The old argument was that its own row kept it
+     from being pressed on the way to another tile; the star is the only other one, and signing out
+     by mistake costs a sign-in, not anything saved. */
+  if (x.kind === 'me') return tile_({ icon: 'out', label: 'Sign out', act: 'signout' });
   if (x.kind === 'receipt') return jobTiles_(x);
   /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. Collections are gone
      from the funnel (see the note where `collectionAxes_` used to be in find.js): a paper is an

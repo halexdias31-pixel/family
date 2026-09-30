@@ -2114,6 +2114,28 @@ const FIELD_LISTS_ = {
   favourite_colour: ['Red', 'Orange', 'Yellow', 'Green', 'Teal', 'Blue', 'Navy', 'Purple', 'Pink',
                      'Brown', 'Black', 'White', 'Grey', 'Gold', 'Silver'],
 };
+/* ---------- WHAT A QUALIFICATION CAN BE IN, AS A LIST THAT IS SPELT RIGHT -------------------------
+   ASKED FOR AS *"reevaluate the subjects list"*. The shelf offered the `options` tab's `subject`
+   list, which is the list of what can be BOOKED — thirteen entries, among them "Englisht Literiture",
+   "Physical Educations" and "(Single) Physics", and nothing a degree is in. A qualification is what
+   somebody STUDIED, which is a different and much longer list, so it is its own list here rather
+   than a second job for the booking one. Alphabetical, because it is scanned for a name; the common
+   school and university subjects, spelt as the boards and universities spell them. Anything not on it
+   is `Something else…`, which `qualChoice_` turns into a box, and a value already saved that the list
+   does not hold is kept as its chosen option — so nothing anybody typed is lost by this. The
+   certificates a tutor holds (a PGCE, a DBS) are at the foot, because they are entries on this same
+   shelf now that "More qualifications" is gone. */
+const QUAL_SUBJECTS = [
+  'Accounting', 'Ancient History', 'Arabic', 'Archaeology', 'Art and Design', 'Biology',
+  'Business Studies', 'Chemistry', 'Chinese', 'Citizenship', 'Classical Civilisation', 'Combined Science',
+  'Computer Science', 'Dance', 'Design and Technology', 'Drama', 'Economics', 'Education',
+  'Electronics', 'Engineering', 'English Language', 'English Literature', 'Film Studies',
+  'Food Preparation and Nutrition', 'French', 'Further Maths', 'Geography', 'Geology', 'German',
+  'Greek', 'History', 'Italian', 'Latin', 'Law', 'Maths', 'Media Studies', 'Medicine', 'Music',
+  'Philosophy', 'Physical Education', 'Physics', 'Politics', 'Portuguese', 'Psychology',
+  'Religious Studies', 'Sociology', 'Spanish', 'Statistics', 'Theology',
+  'PGCE', 'QTS', 'Enhanced DBS', 'First Aid', 'DofE Gold',
+];
 /* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell. */
 /* `venues_ok` IS NOT A COLUMN of `people` — it is the venues tab's own `tutors_happy_here`, read and
    written through this one box. See `venuesWrites_` in core.gs for why there is no second copy. */
@@ -2128,6 +2150,7 @@ function fieldOptions_(f) {
   const dd = (typeof DATA !== 'undefined' && DATA && DATA.dropdowns) || {};
   const got = x => (x && x.length ? x : null);
   const first = String(f).replace(/^qual_\d+/, 'qual_1');
+  if (/^qual_\d+$/.test(String(f))) return QUAL_SUBJECTS;
   return got(v[f]) || FIELD_LISTS_[f] || got(v[first])
     /* THE VENUES ON OFFER ARE THE VENUES THE SITE HAS, by the name the booking form uses for them. */
     || (f === 'venues_ok' ? got((typeof DATA !== 'undefined' && DATA && DATA.venues || [])

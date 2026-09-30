@@ -7146,10 +7146,9 @@ function accountPages_() {
      tiles under it lost its four doors to that same column (see where `meTiles_` was in tiles.js). */
   const me = [
     typeof meCard === 'function' ? meCard(myRow) : withTiles_(myRow),
-    typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow, 'me')) : '',
-    /* SIGN OUT IS A TILE, like every other action on your card — it was the one button left in a row
-       of marks. Its own row, so it cannot be pressed on the way to one of the others. */
-    `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`,
+    /* SIGN OUT IS IN THIS ROW, beside the star — see `cardActions_`'s `me` branch in tiles.js. */
+    typeof cardTiles_ === 'function' ? cardTiles_(asItem_(myRow, 'me'))
+      : `<div class="tile-row">${tile_({ icon: 'out', label: 'Sign out', act: 'signout' })}</div>`,
   ].join('');
 
   /* ---------- AND AN UNLISTED TUTOR WAS DELETED FROM THE ONE SCREEN THAT CAN SWITCH HIM BACK ON --
