@@ -5826,7 +5826,13 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    of them. Applied to the first row only, so rows keep their own even spacing among themselves. */
 .is-prof .prof-top + .row,
 .is-prof .prof-say + .row,
-.is-prof .prof-tags + .row { margin-top: .7rem; }
+.is-prof .prof-tags + .row,
+.is-prof .prof-words + .row { margin-top: .7rem; }
+/* THE ADJECTIVES — bold words rather than chips; see `findCard`. The dots are gold and faint so the
+   words carry the line. */
+.prof-words { margin: .6rem 0 0; font-size: .95rem; line-height: 1.3; color: var(--ink); }
+.prof-words b { font-weight: 800; }
+.prof-words i { font-style: normal; color: var(--gold); opacity: .7; margin: 0 .4em; }
 /* ---------- AND THE ROWS ARE A NOTCH SMALLER THAN AN ORDINARY ROW, because a profile has twice as
    many of them. Reported with a screenshot of a tutor's card running past the bottom of a phone:
    "I don't like scrolling. If you need to leave things more compact or smaller font." `paneReach_`

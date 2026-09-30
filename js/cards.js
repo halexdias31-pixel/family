@@ -325,12 +325,15 @@ function findCard(x) {
              `<button type="button" class="prof-shot" data-do="prof-shot" aria-label="Photo — tap to see it bigger"
                 aria-pressed="false"><img src="${esc(pic(u))}" alt="" loading="lazy"></button>`).join('')}</div>`
         : ''}
-      ${/* THE THREE ADJECTIVES OFF THE SHEET. Chips rather than a comma list because they are three
-            separate claims and not a sentence; and capped at three because the tab has exactly
-            three columns and a fourth would mean somebody changed the sheet, not the card. */''}
+      ${/* THE THREE ADJECTIVES OFF THE SHEET, AS BOLD WORDS AND NOT CHIPS. Asked for as "the
+            adjectives for tutors shouldnt be like google chips. they should be like just bold words to
+            catch attention." A chip is a fact somebody scans for — a subject, a group size — and the
+            rows below are chips for that reason. These are the tutor describing themselves, which is
+            read rather than scanned, so they are one line of words with a gold dot between them.
+            Capped at three because the tab has exactly three columns. */''}
       ${profList_(t.tags).length
-        ? `<div class="prof-tags">${profList_(t.tags).slice(0, 3)
-             .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
+        ? `<p class="prof-words">${profList_(t.tags).slice(0, 3)
+             .map(v => `<b>${esc(v)}</b>`).join('<i aria-hidden="true">·</i>')}</p>` : ''}
       ${/* ---------- EXPERIENCE, GROUP SIZE AND SESSION LENGTH, AS CHIPS --------------------------
             ASKED FOR AS *"the years experience should also be a google chip type thing … sesson
             lenth should also be a google chip. same with student number size."* They were three
