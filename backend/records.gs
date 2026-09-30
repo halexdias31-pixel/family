@@ -1,19 +1,23 @@
 /* ==================================================================================================
    BUSINESS RECORDS — the business's own paperwork, for an admin and nobody else.
 
-   Insurance, tax, registrations, policies and checks: each is a row with a category, a title, who
-   provides it, its reference, the date it runs out or falls due, what it costs, and a link to the
-   document itself (a Drive file, normally). The phone draws them as a register sorted by that date,
-   with what is overdue or due soon marked — see `js/records.js`.
+   Insurance, tax, registrations, policies and checks. The phone draws them as pages of the Settings
+   column: a fixed list of items, each a caption and its boxes — see `js/records.js`. Each item's
+   `record_id` is its slug (`pub_liability`), so a row is found by what it IS rather than by an id
+   somebody has to remember, and a page's Save is one batch that fills or updates those rows.
 
    A POST AND NEVER THE PAYLOAD. `doGet` builds one payload per viewer and caches it for six hours;
    a policy number has no business in a cache, and a read that happens only when an admin opens the
-   tool is also a read nothing else pays for.
+   column is also a read nothing else pays for.
 
-   `active` IS SET FALSE RATHER THAN THE ROW DELETED — a removed record is one you may need to show
-   somebody afterwards, which is the argument `messages` makes for `flagged`.
+   `saveRecord` and `dropRecord` WENT WITH THE OLD REGISTER. It added rows under invented ids and
+   removed them; a form of fixed items does neither, and a handler with no door is the `orderPrints`
+   shape. A row they wrote is still in the tab and still listed — the phone just draws the items it
+   knows, by slug.
 ================================================================================================== */
-const RECORD_FIELDS = ['category', 'title', 'provider', 'reference', 'due_on', 'cost', 'link', 'notes'];
+const RECORD_SLUG = /^[a-z][a-z0-9_]{1,39}$/;
+const RECORD_PAGE_FIELDS = ['category', 'title', 'provider', 'reference', 'due_on'];
+const RECORD_PAGE_MAX = 12;
 
 function recordOut_(r) {
   return {
@@ -23,47 +27,53 @@ function recordOut_(r) {
   };
 }
 
-/* WHY A RECORD MAY NOT BE SAVED, as a sentence — beside `isoRefusal_` in shape so something can run it. */
-function recordRefusal_(rec) {
-  if (!S(rec.title)) return 'Give the record a name — what is it?';
-  const d = isoRefusal_(rec.due_on, 'date');
-  if (d) return d;
-  const link = S(rec.link);
-  if (link && !/^https?:\/\//i.test(link)) return 'The link has to be a web address starting https://.';
+/* WHY A PAGE MAY NOT BE SAVED, as a sentence — every one asked before a cell is touched, so a
+   refused page has written nothing. */
+function recordsPageRefusal_(list) {
+  if (!Array.isArray(list) || !list.length) return 'Nothing to save.';
+  if (list.length > RECORD_PAGE_MAX) return 'That is more items than one page holds.';
+  const seen = {};
+  for (let i = 0; i < list.length; i++) {
+    const r = list[i] || {};
+    if (!RECORD_SLUG.test(S(r.id))) return 'An item on that page has no name this sheet can file it under.';
+    if (seen[r.id]) return 'An item appears twice on that page.';
+    seen[r.id] = 1;
+    if (!S(r.title)) return 'An item on that page has no title.';
+    const d = isoRefusal_(r.due_on, 'date for ' + S(r.title));
+    if (d) return d;
+  }
   return '';
 }
 
 function recordsAction_(action, body) {
   const t = read(TAB.records);
   if (!t.sheet) return { error: 'The sheet has no records tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
-  const byId = id => t.rows.find(r => S(r.record_id) === S(id));
 
   if (action === 'listRecords') {
     return { success: true, records: t.rows.filter(r => S(r.title) && TRUE_(r.active)).map(recordOut_) };
   }
 
-  if (action === 'dropRecord') {
-    const row = byId(body.id);
-    if (!row) return { error: 'No such record.' };
-    setCells(t, row, { active: 'FALSE', updated_at: new Date() });
-    return { success: true };
-  }
-
-  /* saveRecord: a new one when there is no id, otherwise the row it names. Every refusal is asked
-     before a cell is touched, so a refused save has written nothing. */
-  const rec = {};
-  RECORD_FIELDS.forEach(f => { rec[f] = S((body.record || {})[f]); });
-  const no = recordRefusal_(rec);
+  /* saveRecordsPage */
+  const list = body.records;
+  const no = recordsPageRefusal_(list);
   if (no) return { error: no };
-  const values = Object.assign({}, rec, { active: 'TRUE', updated_at: new Date() });
-  const id = S((body.record || {}).id);
-  if (id) {
-    const row = byId(id);
-    if (!row) return { error: 'No such record.' };
-    setCells(t, row, values);
-    return { success: true, record: recordOut_(Object.assign({}, row, values)) };
-  }
-  const newId = 'BR' + Utilities.getUuid().slice(0, 8);
-  addRow(t, Object.assign({ record_id: newId }, values));
-  return { success: true, record: recordOut_(Object.assign({ record_id: newId }, values)) };
+  const out = list.map(raw => {
+    const v = {};
+    RECORD_PAGE_FIELDS.forEach(f => { v[f] = S(raw[f]); });
+    const row = t.rows.find(r => S(r.record_id) === S(raw.id));
+    if (row) {
+      /* ONLY WHEN SOMETHING MOVED, or `updated_at` is a write on every Save and every Save retires
+         the payload for nothing. */
+      const moved = RECORD_PAGE_FIELDS.some(f => !sameCell_(row[f], v[f])) || !TRUE_(row.active);
+      if (moved) setCells(t, row, Object.assign({}, v, { active: 'TRUE', updated_at: new Date() }));
+      return recordOut_(Object.assign({}, row, v));
+    }
+    /* AN ITEM LEFT EMPTY IS NOT A ROW. The page posts every item on it; the sheet gets a line only
+       for the ones somebody filled in. */
+    if (!v.provider && !v.reference && !v.due_on) return recordOut_(Object.assign({ record_id: raw.id }, v));
+    const fresh = Object.assign({ record_id: S(raw.id) }, v, { active: 'TRUE', updated_at: new Date() });
+    addRow(t, fresh);
+    return recordOut_(fresh);
+  });
+  return { success: true, records: out };
 }

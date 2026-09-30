@@ -227,7 +227,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-30-c-quals";
+const BACKEND_VERSION = "2026-09-30-d-bizpages";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2831,7 +2831,7 @@ const ACTION_ACCESS = {
   claimChild: 'self', answerClaim: 'self',
   /* All `self`: each handler checks the message is the asker's own, and the POLICY table decides
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
-  listRecords: 'admin', saveRecord: 'admin', dropRecord: 'admin',
+  listRecords: 'admin', saveRecordsPage: 'admin',
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
   /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can.
      An admin resetting somebody else's is handled inside, where the old PIN can be waived. */

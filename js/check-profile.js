@@ -343,27 +343,37 @@ PEOPLE.forEach(p => {
     + (stranger.students || []).length + ' student(s) — the cache is keyed on the URL');
 }
 
-/* 9. THE BUSINESS RECORDS: an admin's and nobody else's, a refused save writes nothing, and what is
-   saved comes back — see backend/records.gs. */
+/* 9. THE BUSINESS RECORDS: an admin's and nobody else's, a refused page writes nothing, what is
+   saved comes back by its slug, an unchanged page writes nothing, and an item left empty is not a
+   row — see backend/records.gs and the Settings pages in js/records.js. */
 {
   const a = tokens['P-A1'], t = tokens['P-T1'];
   const as = (who, body) => b.post(Object.assign({ token: who.token, name: who.name }, body));
+  const page = over => [
+    Object.assign({ id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+      provider: 'Hiscox', reference: 'PL-1', due_on: '2027-03-12' }, over || {}),
+    { id: 'prof_indemnity', title: 'Professional indemnity insurance', category: 'Insurance',
+      provider: '', reference: '', due_on: '' },
+  ];
   const no = as(t, { action: 'listRecords' });
   if (no.success || no.records) bad.push('a tutor was answered listRecords — the business records are an admin\'s');
-  const refused = as(a, { action: 'saveRecord', record: { title: 'Insurance', link: 'drive/file' } });
-  if (refused.success) bad.push('a record whose link is not a web address was saved');
-  else if (refused.writes) bad.push('a refused record had already written ' + refused.writes + ' cell(s)');
-  const saved = as(a, { action: 'saveRecord', record: { category: 'Insurance', title: 'Public liability insurance',
-    provider: 'Hiscox', reference: 'PL-1', due_on: '2027-03-12', link: 'https://example.org/x' } });
-  if (!saved.success) bad.push('an admin could not save a record — ' + saved.error);
+  if (as(t, { action: 'saveRecordsPage', records: page() }).success) bad.push('a tutor was allowed saveRecordsPage');
+  const refused = as(a, { action: 'saveRecordsPage', records: page({ due_on: '2027-13-40' }) });
+  if (refused.success) bad.push('a page carrying a date that does not exist was saved');
+  else if (refused.writes) bad.push('a refused page had already written ' + refused.writes + ' cell(s)');
+  const saved = as(a, { action: 'saveRecordsPage', records: page() });
+  if (!saved.success) bad.push('an admin could not save a page of records — ' + saved.error);
   const list = as(a, { action: 'listRecords' });
-  const got = (list.records || []).find(r => r.title === 'Public liability insurance');
-  if (!got) bad.push('a saved record did not come back from listRecords');
-  else if (got.due_on !== '2027-03-12') bad.push('a record due 2027-03-12 came back due "' + got.due_on + '"');
-  else {
-    as(a, { action: 'dropRecord', id: got.id });
-    if ((as(a, { action: 'listRecords' }).records || []).some(r => r.id === got.id)) bad.push('a removed record is still listed');
-  }
+  const got = (list.records || []).find(r => r.id === 'pub_liability');
+  if (!got) bad.push('a saved record did not come back from listRecords by its slug');
+  else if (got.due_on !== '2027-03-12' || got.reference !== 'PL-1') bad.push('pub_liability came back as ' + JSON.stringify(got));
+  if ((list.records || []).some(r => r.id === 'prof_indemnity')) bad.push('an item left empty was written as a row');
+  const again = as(a, { action: 'saveRecordsPage', records: page() });
+  if (!again.success || again.writes) bad.push('saving an unchanged page wrote ' + again.writes + ' cell(s)');
+  const moved = as(a, { action: 'saveRecordsPage', records: page({ reference: 'PL-2' }) });
+  const back = (as(a, { action: 'listRecords' }).records || []).filter(r => r.id === 'pub_liability');
+  if (!moved.success || back.length !== 1 || back[0].reference !== 'PL-2')
+    bad.push('changing a saved item did not update its one row — ' + JSON.stringify(back));
 }
 
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');

@@ -1753,6 +1753,9 @@ function settingsPages_() {
      about, and the server gates it again — a card is not a permission. */
   if (isTutorRole()) pages.push(agreementCard_());
   if (isAdmin()) pages.push(cutCard_());
+  /* THE BUSINESS'S OWN PAPERWORK, LAST AND FOR AN ADMIN — see js/records.js. They were a widget on
+     the Tools column, moved here on request; appended for the wardrobe's reason above. */
+  if (typeof bizPages_ === 'function') pages.push(...bizPages_());
 
   return pages;
 }

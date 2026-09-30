@@ -633,6 +633,40 @@ const STATES = {
         && /extra child adds/.test((document.querySelector('#s-settings .page.on .cut-say') || {}).textContent || ''),
       wants: 'the share box and its worked example' },
 
+    /* THE BUSINESS RECORDS, AN ADMIN'S PAGES OF THIS COLUMN — they were a widget on Tools. `only:`
+       for the flyer's reason: nobody else is drawn one, so asking a stranger to reach it would be a
+       finding about the check. SEEDED THROUGH `BIZ.list`, which is what `listRecords` writes — the
+       fixture answers every POST with the payload, so without a seed the page is measured with every
+       box empty and no flag, which is half of what the card can draw. One item due in ten days, so
+       the Due soon flag is on the screen and measured. */
+    { name: 'the business records (insurance)',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        const d = new Date(); d.setDate(d.getDate() + 10);
+        const iso = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-'
+          + String(d.getDate()).padStart(2, '0');
+        window.__bizWas = BIZ.list;
+        BIZ.list = [{ id: 'pub_liability', title: 'Public liability insurance', category: 'Insurance',
+          provider: 'Example Insure', reference: 'PL-000000', due_on: iso }];
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-biz-page="Insurance"]'));
+        if (at < 0) throw new Error('no business-records page on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => { BIZ.list = window.__bizWas || null; delete window.__bizWas;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings'); },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        return pg && pg.querySelectorAll('.biz-item').length === 3
+          && pg.querySelectorAll('input[type="date"][data-biz]').length === 3
+          && /Due soon/.test((pg.querySelector('.biz-item.is-soon .biz-flag') || {}).textContent || '')
+          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000';
+      },
+      wants: 'three insurance items, each with its date box, and the one due soon flagged' },
+
     /* ---------- UP TO TEN QUALIFICATIONS ON ONE PAGE, SHOWN AS WHAT IS FILLED IN -------------------
        ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"*. All ten are IN
        the page — forty controls under one Save, because the packer rebuilds the whole `quals` cell
