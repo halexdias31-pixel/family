@@ -351,7 +351,7 @@ function findCard(x) {
                 written, and measured across `js/`, the only place the `@` appeared was a toast in
                 `changeHandle`. So a handle was a thing you signed in with and never saw.
 
-                THE `@` IS DRAWN AND NOT STORED. The cell holds `BrightOtter42`; `findPerson`
+                THE `@` IS DRAWN AND NOT STORED. The cell holds `halex_bright42`; `findPerson`
                 resolves through `key()`, which strips the `@` anyway, so a stored one would be a
                 character that means nothing to every reader and has to be remembered by every
                 writer. Same separation as `spellShow_`: what is matched and what is shown.

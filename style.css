@@ -691,6 +691,15 @@ label.field > span, .dob-cap {
 /* A note UNDER a field — why an input is disabled, what will happen when it is saved. It is not
    the label, so it does not get the label's uppercase treatment. */
 label.field > .faint { display: block; margin-top: .3rem; text-transform: none; letter-spacing: 0; }
+/* THE HANDLE BOX, WITH ITS `@` DRAWN IN FRONT. A span inside `label.field`, so it is named through
+   the class to out-rank the caption rule above rather than tie with it — a tie settled by order is
+   the `.price.faint` shape. The `@` is gold because that is how every card draws a handle. */
+label.field > span.handle-in {
+  display: flex; align-items: center; gap: .35rem; margin: 0;
+  font-size: inherit; letter-spacing: 0; text-transform: none; color: inherit;
+}
+.handle-in > b { color: var(--gold); font-weight: 600; }
+.handle-in > input { flex: 1 1 auto; min-width: 0; }
 
 /* ---------- THREE LIBRARY CARDS ON ONE PAGE, WHICH NINE STACKED BOXES CANNOT BE -------------------
    *"there are many different librarys for library card detais so make it smaller so can fit in like
