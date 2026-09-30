@@ -227,7 +227,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-09-30-d-bizpages";
+const BACKEND_VERSION = "2026-09-30-e-noextraquals";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2153,15 +2153,15 @@ const PROFILE_GROUPS = {
      *"what you teach shouldn't even be a widget. you can just tick which of your qualifications you
      teach really. and tick which you specialise in."* and *"remove the studying now widget."* Both
      answers are ticks and a received year on each qualification now (`QUAL_FIELDS`), and the
-     columns this page wrote are derived from them in `updateProfile`. `extra_quals` moves under the
-     shelf, because it is the rest of the same list. */
+     columns this page wrote are derived from them in `updateProfile`. `extra_quals` is gone from the
+     page: a PGCE or a DBS is an ordinary entry on the shelf, and `qualsList_` folds the old cell in. */
   /* ---------- ONE PAGE FOR ALL THREE, NOT THREE PAGES WITH A SAVE EACH -------------------------
      ASKED AS *"is there a more efficient way to edit account settings for qualifications?"*. It was
      three groups, so `settingsPages_` drew three cards and three Saves, twelve captioned boxes and
      two swipes for what somebody thinks of as one list. One group; the phone draws it as a shelf
      (`qualShelf_` in me.js), two rows a qualification, and one Save posts all twelve.
      `updateProfile` writes only what it is sent, so nothing else on the row is touched. */
-  'Qualifications': QUAL_FIELDS.concat(['extra_quals']),
+  'Qualifications': QUAL_FIELDS,
   'Availability': AVAIL_DAYS.reduce((a, [p]) => a.concat(AVAIL_HOURS.map(h => p + String(h).padStart(2,'0'))), []),
   /* A NOTE TO YOURSELF, not a credential this site issues or checks — see the columns in SCHEMA.
      It is in all three group maps because a tutor, a parent and a student each have one library

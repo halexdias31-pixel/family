@@ -5869,7 +5869,6 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .prof-cap + .prof-tags { margin-top: 0; }
 /* QUALIFICATIONS, AS CHIPS. Same pill as the subjects; a free-typed extra is dashed, because it is
    what somebody wrote rather than a subject, level and grade the form asked for. */
-.prof-quals .prof-tag.is-extra { border-style: dashed; }
 /* SWITCHED OFF. The whole card dims and the heading says so in words — a tutor hidden from the
    public list is a state an admin has to be able to see at a glance without reading a row. */
 .card.is-widget.is-off { opacity: .6; }

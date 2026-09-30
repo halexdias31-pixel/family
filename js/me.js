@@ -2113,28 +2113,11 @@ const FIELD_IS_DATE = /_date$/;
 const FIELD_LISTS_ = {
   favourite_colour: ['Red', 'Orange', 'Yellow', 'Green', 'Teal', 'Blue', 'Navy', 'Purple', 'Pink',
                      'Brown', 'Black', 'White', 'Grey', 'Gold', 'Silver'],
-  extra_quals: [
-    'BA', 'BSc', 'BEd', 'MA', 'MSc', 'MEd', 'MPhil', 'PhD',
-    'PGCE', 'QTS', 'QTLS', 'NPQ', 'Level 3 Teaching Assistant', 'Level 5 Diploma in Teaching',
-    'TEFL', 'TESOL', 'CELTA', 'DELTA',
-    'Enhanced DBS', 'Safeguarding Level 1', 'Safeguarding Level 2', 'Safeguarding Level 3',
-    'Prevent duty', 'SEND training', 'SENCo award', 'Dyslexia specialist',
-    'First Aid at Work', 'Emergency First Aid', 'Paediatric First Aid', 'Mental Health First Aid',
-    'Food Hygiene Level 2', 'Lifeguard (NPLQ)',
-    'FA Level 1 Coaching', 'FA Level 2 Coaching', 'UKCC Level 1', 'UKCC Level 2',
-    'England Boxing coach', 'Swim England teacher', 'DofE leader',
-    'ABRSM Grade 5', 'ABRSM Grade 8', 'Trinity Grade 8', 'LAMDA',
-    'Duolingo English Test', 'IELTS 8+', 'A-Level Further Maths', 'UKMT Gold',
-    /* Asked for by name. No comma in either — this cell is comma-separated and `profList_` would
-       cut one in two. */
-    "Duke of Edinburgh's Award — Gold", 'Young Citizens Bar Mock Trial',
-  ],
 };
-/* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell — the shape
-   `extra_quals` already had as free text, so nothing written before this needs migrating. */
+/* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell. */
 /* `venues_ok` IS NOT A COLUMN of `people` — it is the venues tab's own `tutors_happy_here`, read and
    written through this one box. See `venuesWrites_` in core.gs for why there is no second copy. */
-const FIELD_MULTI = { extra_quals: true, teaches_also: true, venues_ok: true };
+const FIELD_MULTI = { teaches_also: true, venues_ok: true };
 /* ---------- AND ONE SHELF SLOT'S LIST OFF THE FIRST SLOT'S -------------------------------------
    `FIELD_OPTIONS` sends `qual_1_level` ONCE rather than ten times — see its note in constants.gs —
    so `qual_7_level` asks for `qual_1`'s list here. `teaches_also` is built from `teaches_1`'s two
@@ -2442,7 +2425,7 @@ const ROW_LABEL = {
   teaches_1: 'specialise in', teaches_1_level: 'level', teaches_also: 'also teach',
   years_experience: 'years teaching',
   photo: 'photo link', video: 'video link',
-  travel_km: 'will travel (km)', extra_quals: 'more qualifications', favourite_colour: 'favourite colour',
+  travel_km: 'will travel (km)', favourite_colour: 'favourite colour',
   venues_ok: 'venues you teach at',
 };
 function fieldRows_(list, one) {

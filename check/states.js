@@ -824,13 +824,14 @@ const STATES = {
        `booking · a list of answers open` was written to close. Opened through the app's own door,
        the field's button, and shut again on the way out because states run in order down one page
        and an open panel would be measured as part of every state after this one. */
-    { name: 'more qualifications open',
+    { name: 'a several-of-a-list field open',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         const pages = [...document.querySelectorAll('#s-settings .page')];
-        /* BY FIELD, so this goes on meaning `extra_quals` whichever page carries it — it sits under
-           the qualifications shelf now that the "What you teach" page is gone. */
-        const q = '[data-do="me-many"][data-field="extra_quals"]';
+        /* ANY SEVERAL-OF-A-LIST FIELD. It was `extra_quals`, which is gone — a PGCE or a DBS is an
+           ordinary qualification entry now — so this opens whichever one the column carries (a
+           tutor's venues, on Contact & address). */
+        const q = '[data-do="me-many"]';
         const at = pages.findIndex(pg => pg.querySelector(q));
         if (at < 0) throw new Error('no several-of-a-list field on the settings column');
         goPage('settings', at, true);
@@ -840,9 +841,9 @@ const STATES = {
       expect: () => {
         const el = document.getElementById('drop');
         return !!el && !el.classList.contains('hidden')
-          && el.querySelectorAll('[data-do="me-many-pick"]').length > 7;
+          && el.querySelectorAll('[data-do="me-many-pick"]').length > 0;
       },
-      wants: 'the qualifications list open under its field, with more than seven to tick' },
+      wants: 'a several-of-a-list field open under its button, with something to tick' },
 
     /* "ALSO TEACH, OPEN" WENT WITH THE PAGE. What a tutor teaches is two ticks on each
        qualification now — `the qualifications` above counts them — and `teaches_also` is derived

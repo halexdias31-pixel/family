@@ -193,12 +193,15 @@ const tutor = Object.assign({}, base, {
   favourite_colour: 'Blue', adjective_1: 'calm', adjective_2: 'clear', adjective_3: 'kind',
   travel_km: 10, rate_per_hour: 20, extra_seat_rate: 0.5, max_students: 4, min_students: 1,
   availability: 'm09,m10,tu15,sa11',
-  quals: 'Maths:A-Level:Edexcel:B~2019~ts|Physics:GCSE:AQA:8~2017~t|Bible and Theology:Degree::~Present~',
+  /* PGCE and QTS are ordinary entries: the "more qualifications" cell is gone, and a row still
+     holding one is folded in by `qualsList_` and emptied by its first Save — a real change, so it
+     is not seeded here, where the rule is that an untouched Save writes nothing. */
+  quals: 'Maths:A-Level:Edexcel:B~2019~ts|Physics:GCSE:AQA:8~2017~t|Bible and Theology:Degree::~Present~|PGCE:::~~|QTS:::~~',
   qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_board: 'Edexcel', qual_1_grade: 'B',
   qual_2: 'Physics', qual_2_level: 'GCSE', qual_2_board: 'AQA', qual_2_grade: '8',
   qual_3: 'Bible and Theology', qual_3_level: 'Degree',
   teaches_1: 'Maths', teaches_1_level: 'A-Level', teaches_also: 'Physics (GCSE)',
-  teaches_2: 'Physics', teaches_2_level: 'GCSE', extra_quals: 'PGCE, QTS',
+  teaches_2: 'Physics', teaches_2_level: 'GCSE',
 });
 const admin = Object.assign({}, tutor, { person_id: 'P-A1', role: 'admin', first_name: 'Hal', last_name: 'Admin',
   full_name: 'Hal Admin', handle: 'haladmin', username: 'haladmin', email: 'admin@example.org' });
