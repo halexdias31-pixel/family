@@ -1487,8 +1487,7 @@ function matSettle(parts) {
   MAT_SHOW = (MAT_LEVEL !== 'all' && matTierSplits(MAT_LEVEL)) ? MAT_TIER : 'H';
 }
 
-/* THE OPTIONS ARE WRITTEN ONLY WHEN THEY CHANGE. `matPaint` runs on every tick, and `matFill` paints
-   half a dozen times in one press — and this is called from inside the select's own `change`
+/* THE OPTIONS ARE WRITTEN ONLY WHEN THEY CHANGE. `matPaint` runs on every tick — and this is called from inside the select's own `change`
    handler. Rewriting a select's options while its own picker may still be up is asking a phone's
    native wheel to survive having its contents replaced under it, and nothing here needs that: the
    subject list only changes when the pieces do, and the level list when the subject does. */
@@ -1557,84 +1556,12 @@ function matRecall() {
   } catch (e) { return false; }
 }
 
-/* ---------- FILL THE PAGE ------------------------------------------------------------------------------
-   THE SHORTEST ROUTE FROM "GCSE Higher" TO A SHEET WORTH PRINTING. Ticking pieces one at a time while
-   watching a gauge is the right tool for somebody who knows exactly what they want, and it is fifteen
-   taps for somebody who just wants a good page. This ticks as much as fits.
-
-   WHAT GOES IN FIRST IS A JUDGEMENT, SO HERE IT IS. What the exam will NOT give you, first — that is
-   what a cheat sheet is for, and a formula the paper prints is room spent on nothing. Then the pieces
-   written for the fewest levels, because a block tagged for this level alone is more likely to be
-   this level's work than one tagged for five. Then the sheet's own order. The ruler is left as it is:
-   it takes the margin rather than the page, and whether you want one is not "as much as fits".
-
-   MEASURED, NOT ADDED UP — the gauge is the only number that is always right (see `matPaint`), so
-   this asks it. A binary search over how many of the ranked pieces to take, a paint per step: five
-   or six for a list of thirty, rather than one per piece. Then one more pass for anything small the
-   estimate says might still fit in what is left. What was ticked before is kept. */
-const matOver = () => { const g = $('mat-gauge'); return !!(g && g.classList.contains('over')); };
-/* WHAT A PIECE COSTS, IN SQUARE MILLIMETRES — its slot, which is its span of tracks times its fixed
-   height (see `MAT_SLOT`). Only an estimate of what it adds, because the grid may pack it beside
-   something already there, and used only to decide which pieces are worth trying; the gauge has the
-   last word. */
-const matArea = c => (c.edge ? 20 : matSpanW(matSpan(c))) * (c.h || 0);
-let MAT_LEFT = 0;
-
-function matFill() {
-  if (MAT_LEVEL === 'all') return 0;
-  const parts = matParts();
-  matSettle(parts);
-  const at = {};
-  parts.forEach((c, i) => { at[c.id] = i; });
-  /* THREE RANKS, NOT TWO. `inExam` is true, false or null — null is a cell nobody has checked,
-     which is most of the list — and the first version ranked "not given" first and folded the other
-     two together. So on GCSE Higher the sphere, which the exam prints, went in ahead of the
-     protractor and the named angles, which nobody has checked, because it happened to be tagged for
-     fewer levels: the one piece KNOWN to be room spent on nothing beat pieces that might not be.
-     Known not given, then unknown, then known given. */
-  const given = c => c.inExam === false ? 0 : (c.inExam === true ? 2 : 1);
-  const cand = parts.filter(c => !c.edge && matShown(c) && MAT_ON.indexOf(c.id) === -1)
-    .sort((a, b) => given(a) - given(b)
-                 || (a.lv.length || 99) - (b.lv.length || 99)
-                 || at[a.id] - at[b.id]);
-  if (!cand.length) return 0;
-  const kept = MAT_ON.slice();
-  const fits = ids => { MAT_ON = kept.concat(ids); matPaint(); return !matOver(); };
-  if (!fits([])) { MAT_ON = kept; matPaint(); return 0; }
-  let lo = 0, hi = cand.length;
-  while (lo < hi) {
-    const mid = Math.ceil((lo + hi) / 2);
-    if (fits(cand.slice(0, mid).map(c => c.id))) lo = mid; else hi = mid - 1;
-  }
-  let took = cand.slice(0, lo).map(c => c.id);
-  fits(took);
-  /* THE SMALL ONES AFTER THE FIRST THAT DID NOT FIT. A prefix stops at the first piece too big for
-     what is left, and a one-line block further down the list would still have gone in. Tried only
-     where the estimate says it could, so this is a handful of paints rather than one per piece. */
-  cand.slice(lo + 1).forEach(c => {
-    if (matArea(c) > MAT_LEFT) return;
-    const left = MAT_LEFT;
-    if (fits(took.concat(c.id))) took = took.concat(c.id);
-    else MAT_LEFT = left;          /* the page is repainted once, at the end, from `took` */
-  });
-  MAT_ON = kept.concat(took);
-  matPaint();
-  return took.length;
-}
-
-/* A FILL THAT ADDED NOTHING SAYS SO. Pressed on a page that is already full it would otherwise
-   repaint exactly what was there, and a button that visibly does nothing reads as a button that is
-   broken. How many it DID add needs no sentence — the ticks and the gauge move. */
-on('mat-fill', () => {
-  MAT_TOUCHED = true;
-  const n = matFill();
-  matRemember();
-  if (!n && MAT_LEVEL !== 'all') toast('Nothing else fits on this page.');
-});
-/* CLEAR IS EVERYTHING, the ruler and the pieces other levels are holding too — it is "start again",
-   and a clear that left ticks behind on the levels you are not looking at would bring them back the
-   moment you looked. */
-on('mat-clear', () => { MAT_TOUCHED = true; MAT_ON = []; matPaint(); matRemember(); });
+/* ---------- THERE IS NO FILL AND NO CLEAR -------------------------------------------------------
+   Asked for as *"get rid of fill the page button on the cheat sheet maker. and get rid of clear
+   button."* Both went, with `matFill` behind Fill (a binary search over ranked pieces, measured by
+   the gauge — known-not-given first, then unchecked, then what the exam prints) and the handlers.
+   A sheet is built by ticking pieces; a piece comes off by unticking it. `MAT_LEFT` went too: the
+   gauge is still the only number that says whether the page is full. */
 
 /* ---------- THE PICKER AND THE SHEET -------------------------------------------------------------
    Rendered into the widget's own box, so this behaves like every other tool: a card with a start
@@ -1652,8 +1579,7 @@ on('mat-clear', () => { MAT_TOUCHED = true; MAT_ON = []; matPaint(); matRemember
    SO IT READS TOP TO BOTTOM AS THE CHOICES ARE MADE: which subject, which paper, then the pieces,
    then print. Two selects, one above the other, where there were fifteen pills on five rows (why
    not side by side is under `.mat-pick` in style.css — at 16px they do not fit); one box for the
-   formulae the exam prints, and only on a list that has any; two quiet buttons — fill the page,
-   start again — for the two things that were a dozen taps each; and the list gets the height back.
+   formulae the exam prints, and only on a list that has any; and the list gets the height back.
    Nothing on it needs a legend any more: the per-row cm² went (the gauge is the only figure that is
    right, and it is under the list), and so did the red that meant "not given" and needed the pills
    above it to say so. */
@@ -1683,16 +1609,6 @@ function initMat() {
     </div>
     <label class="check mat-given" id="mat-given" hidden><input type="checkbox" data-do="mat-exam">
       <span class="box"></span><span>Skip what the exam gives you</span></label>
-    ${/* ---------- FILL AND CLEAR, ONLY ONCE THERE IS A LEVEL -----------------------------------
-          "As much as fits" of every level at once is a page of SATs and A-level side by side, so
-          on "Every level" Fill can do nothing — and the first version drew the row anyway, both
-          buttons greyed, on the first thing anybody saw. A row of two dead controls is a question
-          nobody can answer. It arrives when a level is chosen, which happens in the select directly
-          above it, so it never moves the list under a thumb that is ticking. */''}
-    <div class="btn-row mat-quick" id="mat-quick" hidden>
-      <button class="btn quiet" data-do="mat-fill" id="mat-fill">Fill the page</button>
-      <button class="btn quiet" data-do="mat-clear" id="mat-clear">Clear</button>
-    </div>
     ${/* ---------- THE LIST IS THE PART THAT GIVES UP ITS HEIGHT ------------------------------
           MEASURED ON THE TOOLS COLUMN AT 390px: this list is 464px of a 1263px card inside an
           805px pane, so 458px of the card was clipped — the A4 preview below it entirely, and the
@@ -1793,8 +1709,8 @@ function matPaint() {
   matChoices(parts);
 
   /* THE LIST AND THE PAPER ASK ONE QUESTION — `matShown` — and the tick on each row is drawn from
-     `MAT_ON` rather than left to the box, so Fill and Clear, which change the ticks without anybody
-     pressing a box, show what they did. */
+     `MAT_ON` rather than left to the box, so a remembered sheet, which
+     changes the ticks without anybody pressing a box, shows what it holds. */
   const byId = {};
   parts.forEach(c => { byId[c.id] = c; });
   let listed = 0;
@@ -1806,7 +1722,7 @@ function matPaint() {
     if (tick) tick.checked = MAT_ON.indexOf(id) !== -1;
     /* PIECES, NOT THE RULER. The ruler is offered under every subject and level, so counting it made
        "nothing here" unreachable: Science with the exam's own periodic table skipped listed the
-       ruler alone and said "tick pieces, or Fill the page" over a Fill that was greyed out. */
+       ruler alone and said "tick pieces, or Fill the page" over a Fill that was greyed out (Fill is gone now). */
     if (show && byId[id] && !byId[id].edge) listed++;
   });
 
@@ -1928,7 +1844,6 @@ function matPaint() {
   const room = Math.round(ruleW * PAGE_H + colW * PAGE_H);
   const used = Math.round(ruleW * PAGE_H + colW * colH);
   const over = used > room;
-  MAT_LEFT = room - used;                        /* for `matFill`, which asks what might still fit */
 
   /* IN CENTIMETRES SQUARED, and the percentage first. 41,382mm2 is a number nobody can picture;
      414cm2 is a postcard, and "38% used" is what actually gets read. */
@@ -1950,25 +1865,8 @@ function matPaint() {
         n ? `${n} piece${n === 1 ? '' : 's'}${left ? '' : ' · full'}`
         : !listed ? (MAT_EXAM === 'not' && parts.some(c => !c.edge && matShown(c, true))
             ? 'all given in the exam' : 'nothing here for this level yet')
-        : MAT_LEVEL === 'all' ? 'tick pieces, or pick a level to fill it'
-        /* JUST "tick pieces" ONCE THERE IS A LEVEL: the Fill button is two rows above, saying the
-           other half itself, and the sentence that repeated it was the line that wrapped. */
         : 'tick pieces'}`;
   $('mat-go').disabled = over || !n;
-  /* THE ROW NEEDS A LEVEL (see its note in `initMat`). Inside it, FILL NEEDS SOMETHING LEFT TO ADD
-     and CLEAR NEEDS SOMETHING TICKED THAT YOU CAN SEE — each disabled rather than hidden, so the row
-     does not change shape under the thumb that has just used one of them.
-     SEE, NOT MERELY TICKED. Ticks are kept across subjects and levels (`matShown`), and Clear empties
-     all of them — so with an English sheet built and Maths on the screen, Clear was lit over a list
-     with no tick on it and pressing it threw the English sheet away with nothing on the screen
-     changing. A control whose whole effect is invisible reads as dead, and this one was worse than
-     dead: it destroyed work you could not see. Lit only when there is a tick in front of you, it
-     still clears everything, which is what its own note argues for. */
-  const quick = $('mat-quick'), fill = $('mat-fill'), clear = $('mat-clear');
-  if (quick) quick.hidden = MAT_LEVEL === 'all';
-  if (fill) fill.disabled = over || MAT_LEVEL === 'all'
-    || !parts.some(c => !c.edge && matShown(c) && MAT_ON.indexOf(c.id) === -1);
-  if (clear) clear.disabled = !on_.length;
   /* WHAT GOES TO THE PRINTER is the sheet exactly as it was measured — slots grown, top row marked —
      kept as markup so `mat-print` prints the page the gauge was talking about rather than a second
      rendering of it. */

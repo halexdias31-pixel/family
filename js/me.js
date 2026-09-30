@@ -2624,7 +2624,6 @@ function qualShelf_(list, value, options) {
    record saved by the old shelf may carry a tick on one level and not another, and showing the
    subject ticked is the honest reading of "you teach Maths". */
 function qualSubject_(subject, slots, value, options, open) {
-  const tick = k => slots.some(i => TRUEish_(value('qual_' + i + k)));
   /* ---------- A SUBJECT IS ONE LINE UNTIL IT IS OPENED ------------------------------------------
      *"too long ... so more can fit in one screen"*. Open, every subject was a name box, a line per
      level, a full-width Add a level button and a row of ticks — about 230px for Maths with two
@@ -2634,8 +2633,8 @@ function qualSubject_(subject, slots, value, options, open) {
      nothing saved yet arrives open, because a line over nothing is a page with nothing to type into. */
   const shut = !open && !!String(subject || '').trim();
   const say = qualSubjSay_(subject, slots.map(i => ({
-    level: value('qual_' + i + '_level'), grade: value('qual_' + i + '_grade') })),
-    tick('_teach') || tick('_spec'), tick('_spec'));
+    level: value('qual_' + i + '_level'), grade: value('qual_' + i + '_grade'),
+    teach: TRUEish_(value('qual_' + i + '_teach')), spec: TRUEish_(value('qual_' + i + '_spec')) })));
   return `<div class="lib-card q-subj${shut ? ' is-shut' : ''}">
     <button type="button" class="q-sum q-subj-sum" data-do="qual-subj-open"
       aria-expanded="${shut ? 'false' : 'true'}"><span class="q-sum-t">${esc(say || 'New subject')}</span></button>
@@ -2643,10 +2642,6 @@ function qualSubject_(subject, slots, value, options, open) {
       <div class="q-head">
         ${qualChoice_('class="q-name" data-q="name"', subject,
           (options ? options('qual_1') : null) || [], 'Subject')}
-        <label class="check q-tick"><input type="checkbox" data-do="qual-subj-tick" data-k="teach"
-          ${tick('_teach') || tick('_spec') ? 'checked' : ''}><span class="box"></span><span>Teach</span></label>
-        <label class="check q-tick" title="Specialise"><input type="checkbox" data-do="qual-subj-tick" data-k="spec"
-          aria-label="Specialise" ${tick('_spec') ? 'checked' : ''}><span class="box"></span><span aria-hidden="true">&#9733;</span></label>
       </div>
       <div class="q-levels">${slots.map(i => qualLevel_(i, value, options, false, open)).join('')}
         <button type="button" class="q-sum q-add" data-do="qual-add-level"><span class="q-sum-t">+ Add a level</span></button></div>
@@ -2655,20 +2650,19 @@ function qualSubject_(subject, slots, value, options, open) {
 }
 /* THE LINE A SHUT SUBJECT SHOWS, built from the same values its boxes hold. The star is the
    specialism — the same mark the profile card edges in gold. */
-function qualSubjSay_(subject, levels, teach, spec) {
-  const lv = levels.map(l => [l.level, l.grade].map(x => String(x || '').trim()).filter(Boolean).join(' '))
-    .filter(Boolean).join(' · ');
-  return [String(subject || '').trim(), lv, (teach ? 'teach' : '') + (spec ? ' \u2605' : '')]
-    .map(x => x.trim()).filter(Boolean).join(' · ');
+function qualSubjSay_(subject, levels) {
+  const lv = levels.map(l => [l.level, l.grade].map(x => String(x || '').trim()).filter(Boolean).join(' ')
+    + (l.spec ? ' \u2605' : l.teach ? ' \u2713' : '')).map(x => x.trim()).filter(Boolean).join(' · ');
+  return [String(subject || '').trim(), lv].filter(Boolean).join(' · ');
 }
 function qualSubjFrom_(subj) {
   const t = subj && subj.querySelector('.q-subj-sum .q-sum-t');
   if (!t) return;
   const get = (lvl, k) => { const b = lvl.querySelector('[data-me="qual_' + lvl.dataset.slot + k + '"]'); return b ? b.value : ''; };
-  const levels = [...subj.querySelectorAll('.q-levels > .q-lvl')].map(l => ({ level: get(l, '_level'), grade: get(l, '_grade') }));
-  t.textContent = qualSubjSay_((subj.querySelector('.q-name') || {}).value, levels,
-    !!(subj.querySelector('[data-k="teach"]') || {}).checked,
-    !!(subj.querySelector('[data-k="spec"]') || {}).checked) || 'New subject';
+  const on = (lvl, k) => !!(lvl.querySelector('[data-me="qual_' + lvl.dataset.slot + k + '"]') || {}).checked;
+  const levels = [...subj.querySelectorAll('.q-levels > .q-lvl')].map(l => ({ level: get(l, '_level'),
+    grade: get(l, '_grade'), teach: on(l, '_teach'), spec: on(l, '_spec') }));
+  t.textContent = qualSubjSay_((subj.querySelector('.q-name') || {}).value, levels) || 'New subject';
 }
 on('qual-subj-open', el => {
   const subj = el.closest('.q-subj'), shelf = el.closest('.q-shelf');
@@ -2693,12 +2687,10 @@ function qualLevel_(i, value, options, pooled, open) {
   const val = k => String(value(f(k)) ?? '');
   const box = (k, ph) => fieldHtml(f(k), val(k), { placeholder: ph,
     options: (options ? options(f(k)) : null) });
-  const summary = qualLevelSay_(k => val(k));
+  const summary = qualLevelSay_(k => val(k), TRUEish_(val('_spec')), TRUEish_(val('_teach')));
   const shut = !pooled && !open && summary;
   return `<div class="q-lvl${shut ? ' is-shut' : ''}" data-slot="${esc(i)}">
     <input type="hidden" data-me="${esc(f(''))}" value="${esc(val(''))}">
-    <input type="checkbox" hidden data-me="${esc(f('_teach'))}" ${TRUEish_(val('_teach')) ? 'checked' : ''}>
-    <input type="checkbox" hidden data-me="${esc(f('_spec'))}" ${TRUEish_(val('_spec')) ? 'checked' : ''}>
     <button type="button" class="q-sum" data-do="qual-open" aria-expanded="${shut ? 'false' : 'true'}"><span class="q-sum-t">${
       esc(summary || 'New level')}</span></button>
     <div class="lib-row q-row">
@@ -2715,6 +2707,19 @@ function qualLevel_(i, value, options, pooled, open) {
             "School, colle". */''}
       ${fieldHtml(f('_board'), val('_board'), { placeholder: 'School, college or uni' })}
     ${fieldHtml(f('_received'), val('_received'), { placeholder: 'Completed', options: qualYears_(val('_received')) })}
+    ${/* ---------- THE TICKS ARE THE LEVEL'S, NOT THE SUBJECT'S ----------------------------------------
+          Asked for as *"each level should have a tickbox which is 'teach' and 'can teach'. instead of
+          for the whole subject."* A tutor with a Maths degree may teach A-Level and only be able to
+          cover GCSE, and one pair per subject could not say that. So they sit on the level and ARE
+          the saved `qual_N_spec` / `qual_N_teach` boxes — no hidden copy for a subject tick to write
+          down into. `Teach` is the specialism (the gold chip on the card, one on the whole page,
+          which `qualsIn` also enforces); `Can teach` is everything else you would take on. */''}
+    <div class="lib-row q-row q-ticks">
+      <label class="check q-tick"><input type="checkbox" data-do="qual-tick" data-k="spec"
+        data-me="${esc(f('_spec'))}" ${TRUEish_(val('_spec')) ? 'checked' : ''}><span class="box"></span><span>Teach</span></label>
+      <label class="check q-tick"><input type="checkbox" data-do="qual-tick" data-k="teach"
+        data-me="${esc(f('_teach'))}" ${TRUEish_(val('_teach')) || TRUEish_(val('_spec')) ? 'checked' : ''}><span class="box"></span><span>Can teach</span></label>
+    </div>
     <button type="button" class="q-drop" data-do="qual-drop">Remove this level</button>
   </div>`;
 }
@@ -2759,35 +2764,28 @@ document.addEventListener('change', e => {
 }, true);
 /* THE LINE A SHUT LEVEL SHOWS — "GCSE · 8 · Hill Top School · 2017" — built from the same four values its
    boxes hold, and rebuilt from them whenever one changes, so the line and the boxes cannot disagree. */
-function qualLevelSay_(read) {
+function qualLevelSay_(read, spec, teach) {
   return ['_level', '_grade', '_board', '_received'].map(k => String(read(k) || '').trim())
-    .filter(Boolean).join(' · ');
+    .concat(spec ? 'teach' : teach ? 'can teach' : '').filter(Boolean).join(' · ');
 }
 function qualLevelFrom_(lvl) {
   const i = lvl && lvl.dataset.slot;
   const t = lvl && lvl.querySelector('.q-sum-t');
   if (!i || !t) return;
-  t.textContent = qualLevelSay_(k => { const b = lvl.querySelector('[data-me="qual_' + i + k + '"]');
-    return b ? b.value : ''; }) || 'New level';
+  const b = k => lvl.querySelector('[data-me="qual_' + i + k + '"]') || {};
+  t.textContent = qualLevelSay_(k => b(k).value, !!b('_spec').checked, !!b('_teach').checked) || 'New level';
 }
 /* PROGRAMMATIC CHANGES DO NOT FIRE `input`, so a card changed by a button marks itself dirty — see
    `settingsKeep_`: a column holding an unsaved card is not redrawn under it. */
 const qualDirty_ = el => { const f = el && el.closest('.me-form'); if (f) f.dataset.dirty = '1'; };
-/* A SUBJECT'S NAME AND TICKS, WRITTEN INTO EVERY LEVEL IT HOLDS. The specialism is ONE: ticking it
-   unticks every other subject's, and a specialism is taught, so Teach comes on with it. It is
-   written onto the subject's FIRST level only, because `qualsIn` keeps the first specialism it meets
-   and the card marks that level's chip — which is the level listed first under the subject. */
+/* A SUBJECT'S NAME, WRITTEN INTO EVERY LEVEL IT HOLDS. The ticks are the levels' own now — see
+   `qualLevel_` and `on('qual-tick')`. */
 function qualSubjectSync_(subj) {
   if (!subj) return;
   const name = (subj.querySelector('.q-name') || {}).value || '';
-  const teach = !!(subj.querySelector('[data-k="teach"]') || {}).checked;
-  const spec = !!(subj.querySelector('[data-k="spec"]') || {}).checked;
-  [...subj.querySelectorAll('.q-levels > .q-lvl')].forEach((lvl, n) => {
-    const i = lvl.dataset.slot;
-    const set = (k, fn) => { const b = lvl.querySelector('[data-me="qual_' + i + k + '"]'); if (b) fn(b); };
-    set('', b => { b.value = name.trim(); });
-    set('_teach', b => { b.checked = teach || spec; });
-    set('_spec', b => { b.checked = spec && n === 0; });
+  subj.querySelectorAll('.q-levels > .q-lvl').forEach(lvl => {
+    const b = lvl.querySelector('[data-me="qual_' + lvl.dataset.slot + '"]');
+    if (b) b.value = name.trim();
   });
 }
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
@@ -2805,18 +2803,19 @@ on('qual-open', el => {
   el.setAttribute('aria-expanded', shut ? 'false' : 'true');
   if (shut) qualLevelFrom_(lvl);
 });
-on('qual-subj-tick', el => {
-  const subj = el.closest('.q-subj');
-  const shelf = el.closest('.q-shelf');
-  if (!subj || !shelf) return;
+on('qual-tick', el => {
+  const lvl = el.closest('.q-lvl'), shelf = el.closest('.q-shelf');
+  if (!lvl || !shelf) return;
+  const box = k => lvl.querySelector('[data-k="' + k + '"]') || {};
+  /* ONE TEACH ON THE PAGE, and what you teach you can teach: ticking it unticks every other level's
+     and ticks Can teach beside it; unticking Can teach takes Teach off with it. */
   if (el.dataset.k === 'spec' && el.checked) {
-    shelf.querySelectorAll('.q-subj [data-k="spec"]').forEach(x => { if (x !== el) x.checked = false; });
-    const teach = subj.querySelector('[data-k="teach"]'); if (teach) teach.checked = true;
+    shelf.querySelectorAll('[data-k="spec"]').forEach(x => { if (x !== el) x.checked = false; });
+    box('teach').checked = true;
   }
-  if (el.dataset.k === 'teach' && !el.checked) {
-    const spec = subj.querySelector('[data-k="spec"]'); if (spec) spec.checked = false;
-  }
-  shelf.querySelectorAll('.q-subj').forEach(qualSubjectSync_);
+  if (el.dataset.k === 'teach' && !el.checked) box('spec').checked = false;
+  shelf.querySelectorAll('.q-lvl').forEach(qualLevelFrom_);
+  shelf.querySelectorAll('.q-subj').forEach(qualSubjFrom_);
   qualDirty_(el);
 });
 /* THE NEXT UNUSED SLOT, MOVED IN AND OPENED. Moving the element keeps every `data-me` in the form, so

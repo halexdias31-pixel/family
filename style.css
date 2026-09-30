@@ -735,7 +735,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-sum-t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; padding-block: .3rem; }
 .q-sum::after { flex: 0 0 auto; content: '▾'; margin-left: auto; color: var(--faint); transition: transform .15s ease; }
 .q-lvl.is-shut .q-sum::after { transform: rotate(-90deg); }
-.q-lvl.is-shut > .lib-row, .q-lvl.is-shut > .q-drop { display: none; }
+.q-lvl.is-shut > .lib-row, .q-lvl.is-shut > label.field, .q-lvl.is-shut > .q-drop { display: none; }
 .q-lvl:not(.is-shut) > .q-sum { color: var(--gold); }
 /* ---------- A SUBJECT AND ITS LEVELS — see `qualShelf_` ---------------------------------------------
    THE SUBJECT IS THE HEADING OF ITS OWN BLOCK, so its box is the first thing and the level lines hang
@@ -757,7 +757,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-subj:not(.is-shut) > .q-subj-sum { color: var(--gold); }
 .q-subj.is-shut > .q-subj-sum::after { transform: rotate(-90deg); }
 .q-subj-sum { font-weight: 600; }
-.q-head { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: .6rem; align-items: center; }
+.q-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: .6rem; align-items: center; }
 /* Named through the shelf, which `.lib-shelf label.field` also is — at equal specificity the
    margin was decided by file order alone (check/cascade.js). */
 .lib-shelf .q-head label.field { margin-bottom: 0; min-width: 0; }
@@ -871,6 +871,8 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* THE THIRD ROW OF A QUALIFICATION: the received year, then the two ticks that replaced the
    `What you teach` page. The ticks take what their words need and the year takes the rest; the
    label is the 44px target, as `.check` already makes it, and the words shrink rather than wrap. */
+/* Per level now, two to a row — see `qualLevel_`. */
+.q-ticks { justify-content: flex-start; gap: 1.2rem; }
 .q-tick { gap: .35rem; font-size: .72rem; min-height: 44px; min-width: 44px; padding: 0; white-space: nowrap; }
 /* AN UNCHOSEN LEVEL OR BOARD READS AS A PLACEHOLDER, in the same grey as the empty boxes above it —
    otherwise `Level` in full ink looks like an answer somebody gave. */
@@ -7763,12 +7765,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* THE BOX IS THE APP'S OWN CHECKBOX — `.check`, a 44px row with the tick drawn — and tighter than
    its usual padding, because it sits between two rows of controls rather than in a form of them. */
 .check.mat-given { padding: .2rem 0; font-size: .74rem; color: var(--dim); }
-/* TWO QUIET BUTTONS, NOT GOLD. Print is the one thing this card is for and it is the gold one; these
-   are shortcuts on the way to it, and a second gold slab would compete with it. */
-.mat-quick { margin-bottom: .5rem; }
-/* PADDING TRIMMED SO "Fill the page" STAYS ON ONE LINE at 320, where the stock `.btn` padding broke
-   it in two — a two-line button beside a one-line one reads as two different kinds of control. */
-.mat-quick .btn { font-size: .74rem; padding-left: .4rem; padding-right: .4rem; }
 /* ---------- SHORTER ROWS, SO MORE OF THEM FIT ACROSS ----------------------------------------------
    9rem WAS THE WIDTH A THREE-WORD NAME NEEDED. A face is rarely more than eight characters, so the
    column can be narrower and a phone gets three where it got two — twenty-five rows in nine lines

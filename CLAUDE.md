@@ -15885,3 +15885,23 @@ each comma item in as an entry with a subject and nothing else (skipping a name 
 list), and the first Save of that page writes it into `quals` and empties the old cell, exactly as
 `studying` was retired. `check/states.js`'s multi-select state opens whichever several-of-a-list
 field the column carries now (a tutor's venues). Stamps are `2026-09-30-e-noextraquals`.
+
+## The Teach ticks are each level's, and the cheat sheet has no Fill or Clear
+
+**Asked for as "each level should have a tickbox which is 'teach' and 'can teach'. instead of for
+the whole subject."** The pair moved off the subject and onto every level of it, and they ARE the
+saved `qual_N_spec` / `qual_N_teach` boxes, so nothing writes a subject tick down any more
+(`qualSubjectSync_` now carries the name only). **`Teach` is the specialism**, the one gold chip on
+the card, and ticking it unticks every other level's; **`Can teach`** is everything else. Ticking
+Teach ticks Can teach beside it and unticking Can teach takes Teach off, which is the rule `qualsIn`
+already enforces, so there is no backend change and nothing saved moves. The level's summary line
+ends `teach` or `can teach`; the subject's marks each level with ★ or ✓. A shut level now hides its
+school and year boxes too; before, `.q-lvl.is-shut` hid only its first row. `settings · the
+qualifications` asserts no tick on the subject, a pair on every level, and `100` / `110` across
+GCSE, A-Level and a new level.
+
+**Asked for as "get rid of fill the page button on the cheat sheet maker. and get rid of clear
+button."** Both buttons, their handlers, `matFill`, `matOver`, `matArea` and `MAT_LEFT` are gone. A
+sheet is built by ticking pieces and a piece comes off by unticking it. `check-flow.js` loses the
+Fill-order journey. The cheat-sheet state ticks five pieces through the list's own boxes and asserts
+that neither button is there.

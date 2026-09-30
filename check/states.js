@@ -727,15 +727,14 @@ const STATES = {
           && levelsOf(maths).every(l => slotName(l) === 'Maths')
           /* THE TWO SAVED LEVELS ARRIVE SHUT AS ONE LINE EACH, THE NEW ONE OPEN. */
           && levelsOf(maths).filter(l => l.classList.contains('is-shut')).length === 2
-          /* ONE PAIR OF TICKS FOR THE SUBJECT, NOT ONE PER LEVEL. */
-          && maths.querySelectorAll('[data-do="qual-subj-tick"]').length === 2
-          && !!maths.querySelector('[data-k="spec"]:checked')
-          /* AND THE TICKS REACH THE LEVELS, which is what is saved. Teach goes onto every level of a
-             subject — the new one included — and the specialism onto its FIRST level only, so the
-             card draws one gold chip for Maths rather than three. The visible pair is only a control;
-             the hidden `qual_N_teach` / `qual_N_spec` boxes are what `me-save` posts. */
-          && levelsOf(maths).every(l => !!(l.querySelector('[data-me="qual_' + l.dataset.slot + '_teach"]') || {}).checked)
+          /* THE TICKS ARE EACH LEVEL'S OWN — *"each level should have a tickbox which is 'teach' and
+             'can teach'. instead of for the whole subject"* — so none on the subject, a pair on every
+             level, and they ARE the saved boxes: GCSE taught (spec, which also means can-teach),
+             A-Level can-teach only, the new level neither. */
+          && !maths.querySelector('.q-head [type="checkbox"]')
+          && levelsOf(maths).every(l => l.querySelectorAll('[data-do="qual-tick"]').length === 2)
           && levelsOf(maths).map(l => (l.querySelector('[data-me="qual_' + l.dataset.slot + '_spec"]') || {}).checked ? 1 : 0).join('') === '100'
+          && levelsOf(maths).map(l => (l.querySelector('[data-me="qual_' + l.dataset.slot + '_teach"]') || {}).checked ? 1 : 0).join('') === '110'
           /* THE SUBJECT IS A DROP-DOWN LIKE THE LEVEL BESIDE IT — no `<input list>` left on the shelf —
              and a subject the list does not hold is kept as its chosen option. THE PLACE IS A TEXT
              BOX, because it is a school's name rather than an exam board (the owner's correction). */
@@ -993,7 +992,7 @@ const STATES = {
        `leave` PUTS THE MAKER BACK AS IT OPENS, and forgets what it remembered on this device —
        states run in order down one page, and `matRecall` would otherwise open every later visit to
        the tool on a filled GCSE sheet. */
-    { name: 'the cheat sheet maker, filled',
+    { name: 'the cheat sheet maker, five pieces ticked',
       enter: () => {
         const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'mat');
         if (n < 0) throw new Error('no cheat sheet widget in the roster');
@@ -1003,14 +1002,16 @@ const STATES = {
         if (!sub || !lev) throw new Error('the cheat sheet maker has no subject or level select');
         sub.value = 'Maths'; sub.dispatchEvent(new Event('change', { bubbles: true }));
         lev.value = 'GCSE|H'; lev.dispatchEvent(new Event('change', { bubbles: true }));
-        const fill = document.querySelector('#s-tools #mat-fill');
-        if (!fill) throw new Error('the cheat sheet maker has no Fill button');
-        fill.click();
+        /* FIVE PIECES TICKED BY HAND — there is no Fill button any more (the owner took it off), so
+           the pieces go on the way a person puts them on, through the list's own boxes. */
+        const boxes = [...document.querySelectorAll('#s-tools .mat-list label:not(.off) input:not(:checked)')].slice(0, 5);
+        if (boxes.length < 5) throw new Error('fewer than five pieces offered for GCSE Higher');
+        boxes.forEach(b => b.click());
       },
-      expect: () => document.querySelector('#s-tools #mat-quick:not([hidden])')
+      expect: () => !document.querySelector('#s-tools #mat-fill, #s-tools #mat-clear')
         && document.querySelectorAll('#s-tools .mat-list input:checked').length >= 5
         && !document.querySelector('#s-tools #mat-go').disabled,
-      wants: 'a subject and a level chosen, the page filled and Print ready',
+      wants: 'a subject and a level chosen, five pieces ticked, no Fill or Clear, and Print ready',
       leave: () => {
         MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
         try { localStorage.removeItem('matChoice'); } catch (e) {}
