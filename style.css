@@ -6643,25 +6643,75 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .pr-say { margin-top: .7rem; font: 600 .8rem var(--mono); letter-spacing: .1em;
           color: #f0b45f; text-align: center; }
 
-/* ---------- COIN FLIPS --------------------------------------------------------------------------- */
-#splash-coin .cn-flip { width: 3.4rem; height: 3.4rem; margin: 0 auto; border-radius: 50%;
-        background: #e8c15f; border: 3px solid #a8873a; display: grid; place-items: center;
-        animation: cn-spin 1.4s cubic-bezier(.4,0,.6,1) infinite; }
-.cn-face { font: 700 1.2rem var(--mono); color: #6b5420; }
-@keyframes cn-spin { 0%,100% { transform: rotateX(0deg); } 50% { transform: rotateX(180deg); } }
-/* AND THE RUNNING TALLY, wobbling in towards a half and never quite settling — which is what a
-   proportion actually does, and the opposite of the tidy answer a bar usually implies. */
-.cn-bar { width: min(58vw, 13rem); height: .55rem; margin: 1rem auto 0; border-radius: 4px;
-          background: #2a2c27; overflow: hidden; }
-.cn-bar i { display: block; height: 100%; background: #6fd8c4;
-            /* THE BAR SETTLING ON A HALF IS THE IDEA, and at six seconds a splash showed it
-               drifting and stopping partway — which says a coin lands wherever, the opposite of
-               what converging means. Three seconds and it arrives. */
-            animation: cn-settle 3s ease-in-out infinite; }
-@keyframes cn-settle { 0% { width: 100%; } 14% { width: 30%; } 30% { width: 66%; }
-                       48% { width: 42%; } 66% { width: 56%; } 82% { width: 47%; }
-                       100% { width: 51%; } }
-.cn-say { margin-top: .7rem; font: 600 .76rem var(--mono); color: #6fd8c4; text-align: center; }
+/* ---------- COIN FLIPS ---------------------------------------------------------------------------
+   TEN TOSSES AND A TALLY, written by tools/coin.py. The old one spun an H on the spot over a bar
+   that wobbled on a timer of its own, so the coin never came down tails and nothing it did moved
+   the bar. Now the coin goes UP, turns, lands on the face the row records, and the bar is the share
+   of heads so far: 1, .5, .33, .5, .4, .5, .43, .38, .44, and five in ten. It is a fixed sequence
+   that ends on exactly a half, because a splash has ten seconds and a real run of ten does not
+   promise one. Every toss adds two whole turns and a half turn when the face changes, so the angle
+   is always a face; the run ends on heads, so 100% and 0% are the same picture.
+   Transform and opacity only, so the compositor runs all of it. */
+#splash-coin .cn-stage { position: relative; width: 3.4rem; height: 6rem; margin: 0 auto;
+        perspective: 16rem; display: flex; align-items: flex-end; justify-content: center; }
+.cn-coin { position: relative; width: 3.4rem; height: 3.4rem; transform-style: preserve-3d;
+           animation: cn-toss 9s linear infinite; }
+.cn-coin b { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center;
+             font: 700 1.2rem var(--mono); backface-visibility: hidden; }
+.cn-h { background: #e8c15f; border: 3px solid #a8873a; color: #6b5420; }
+.cn-t { background: #6fd8c4; border: 3px solid #3f9a88; color: #1d5147; transform: rotateX(180deg); }
+.cn-shadow { position: absolute; bottom: -.45rem; left: 50%; width: 3rem; height: .5rem;
+             margin-left: -1.5rem; border-radius: 50%; background: rgb(244 241 232 / .35);
+             animation: cn-shadow 9s linear infinite; }
+.cn-row { display: flex; justify-content: center; gap: .28rem; margin-top: 1rem; height: 1.35rem; }
+.cn-m { width: 1.1rem; height: 1.1rem; border-radius: 50%; display: grid; place-items: center;
+        font: 700 .62rem/1 var(--mono); font-style: normal; opacity: 0;
+        animation-duration: 9s; animation-timing-function: linear;
+        animation-iteration-count: infinite; animation-fill-mode: both; }
+.cn-m.is-h { background: #e8c15f; color: #6b5420; }
+.cn-m.is-t { background: #6fd8c4; color: #1d5147; }
+/* THE LINE AT HALF is the thing the bar is converging on, so it is drawn rather than implied. */
+.cn-bar { position: relative; width: min(58vw, 13rem); height: .55rem; margin: .8rem auto 0;
+          border-radius: 4px; background: #2a2c27; overflow: hidden; }
+.cn-bar::after { content: ''; position: absolute; top: 0; bottom: 0; left: 50%; width: 2px;
+                 margin-left: -1px; background: rgb(244 241 232 / .55); }
+.cn-bar i { display: block; height: 100%; background: #e8c15f; transform-origin: left;
+            transform: scaleX(0); animation: cn-share 9s linear infinite; }
+/* ONE LINE PER TOSS, stacked in one place, only the current one showing. */
+.cn-say { position: relative; height: 1.2rem; margin-top: .7rem;
+          font: 600 .76rem var(--mono); color: #6fd8c4; text-align: center; }
+.cn-say span { position: absolute; left: 0; right: 0; opacity: 0; animation-duration: 9s;
+               animation-timing-function: linear; animation-iteration-count: infinite; }
+@keyframes cn-toss { 0% { transform: translateY(0) rotateX(0deg); } 3.33% { transform: translateY(0) rotateX(0deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 5.61% { transform: translateY(-2.4rem) rotateX(360deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 7.88% { transform: translateY(0) rotateX(720deg); animation-timing-function: ease-out; } 8.66% { transform: translateY(-.22rem) rotateX(720deg); animation-timing-function: ease-in; } 9.44% { transform: translateY(0) rotateX(720deg); } 10.67% { transform: translateY(0) rotateX(720deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 12.94% { transform: translateY(-2.4rem) rotateX(1170deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 15.21% { transform: translateY(0) rotateX(1620deg); animation-timing-function: ease-out; } 15.99% { transform: translateY(-.22rem) rotateX(1620deg); animation-timing-function: ease-in; } 16.77% { transform: translateY(0) rotateX(1620deg); } 18.00% { transform: translateY(0) rotateX(1620deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 20.27% { transform: translateY(-2.4rem) rotateX(1980deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 22.55% { transform: translateY(0) rotateX(2340deg); animation-timing-function: ease-out; } 23.32% { transform: translateY(-.22rem) rotateX(2340deg); animation-timing-function: ease-in; } 24.10% { transform: translateY(0) rotateX(2340deg); } 25.33% { transform: translateY(0) rotateX(2340deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 27.61% { transform: translateY(-2.4rem) rotateX(2790deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 29.88% { transform: translateY(0) rotateX(3240deg); animation-timing-function: ease-out; } 30.66% { transform: translateY(-.22rem) rotateX(3240deg); animation-timing-function: ease-in; } 31.44% { transform: translateY(0) rotateX(3240deg); } 32.67% { transform: translateY(0) rotateX(3240deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 34.94% { transform: translateY(-2.4rem) rotateX(3690deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 37.21% { transform: translateY(0) rotateX(4140deg); animation-timing-function: ease-out; } 37.99% { transform: translateY(-.22rem) rotateX(4140deg); animation-timing-function: ease-in; } 38.77% { transform: translateY(0) rotateX(4140deg); } 40.00% { transform: translateY(0) rotateX(4140deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 42.27% { transform: translateY(-2.4rem) rotateX(4590deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 44.55% { transform: translateY(0) rotateX(5040deg); animation-timing-function: ease-out; } 45.32% { transform: translateY(-.22rem) rotateX(5040deg); animation-timing-function: ease-in; } 46.10% { transform: translateY(0) rotateX(5040deg); } 47.33% { transform: translateY(0) rotateX(5040deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 49.61% { transform: translateY(-2.4rem) rotateX(5490deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 51.88% { transform: translateY(0) rotateX(5940deg); animation-timing-function: ease-out; } 52.66% { transform: translateY(-.22rem) rotateX(5940deg); animation-timing-function: ease-in; } 53.44% { transform: translateY(0) rotateX(5940deg); } 54.67% { transform: translateY(0) rotateX(5940deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 56.94% { transform: translateY(-2.4rem) rotateX(6300deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 59.21% { transform: translateY(0) rotateX(6660deg); animation-timing-function: ease-out; } 59.99% { transform: translateY(-.22rem) rotateX(6660deg); animation-timing-function: ease-in; } 60.77% { transform: translateY(0) rotateX(6660deg); } 62.00% { transform: translateY(0) rotateX(6660deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 64.27% { transform: translateY(-2.4rem) rotateX(7110deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 66.55% { transform: translateY(0) rotateX(7560deg); animation-timing-function: ease-out; } 67.32% { transform: translateY(-.22rem) rotateX(7560deg); animation-timing-function: ease-in; } 68.10% { transform: translateY(0) rotateX(7560deg); } 69.33% { transform: translateY(0) rotateX(7560deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 71.61% { transform: translateY(-2.4rem) rotateX(7920deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 73.88% { transform: translateY(0) rotateX(8280deg); animation-timing-function: ease-out; } 74.66% { transform: translateY(-.22rem) rotateX(8280deg); animation-timing-function: ease-in; } 75.44% { transform: translateY(0) rotateX(8280deg); } 100% { transform: translateY(0) rotateX(8280deg); } }
+@keyframes cn-shadow { 0% { transform: scaleX(1); opacity: .5; } 3.33% { transform: scaleX(1); opacity: .5; } 5.61% { transform: scaleX(.45); opacity: .18; } 7.88% { transform: scaleX(1); opacity: .5; } 10.67% { transform: scaleX(1); opacity: .5; } 12.94% { transform: scaleX(.45); opacity: .18; } 15.21% { transform: scaleX(1); opacity: .5; } 18.00% { transform: scaleX(1); opacity: .5; } 20.27% { transform: scaleX(.45); opacity: .18; } 22.55% { transform: scaleX(1); opacity: .5; } 25.33% { transform: scaleX(1); opacity: .5; } 27.61% { transform: scaleX(.45); opacity: .18; } 29.88% { transform: scaleX(1); opacity: .5; } 32.67% { transform: scaleX(1); opacity: .5; } 34.94% { transform: scaleX(.45); opacity: .18; } 37.21% { transform: scaleX(1); opacity: .5; } 40.00% { transform: scaleX(1); opacity: .5; } 42.27% { transform: scaleX(.45); opacity: .18; } 44.55% { transform: scaleX(1); opacity: .5; } 47.33% { transform: scaleX(1); opacity: .5; } 49.61% { transform: scaleX(.45); opacity: .18; } 51.88% { transform: scaleX(1); opacity: .5; } 54.67% { transform: scaleX(1); opacity: .5; } 56.94% { transform: scaleX(.45); opacity: .18; } 59.21% { transform: scaleX(1); opacity: .5; } 62.00% { transform: scaleX(1); opacity: .5; } 64.27% { transform: scaleX(.45); opacity: .18; } 66.55% { transform: scaleX(1); opacity: .5; } 69.33% { transform: scaleX(1); opacity: .5; } 71.61% { transform: scaleX(.45); opacity: .18; } 73.88% { transform: scaleX(1); opacity: .5; } 100% { transform: scaleX(1); opacity: .5; } }
+@keyframes cn-m0 { 0%, 7.77% { opacity: 0; transform: scale(.4); } 8.99% { opacity: 1; transform: scale(1.18); } 10.32%, 92% { opacity: 1; transform: scale(1); } 97%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes cn-m1 { 0%, 15.10% { opacity: 0; transform: scale(.4); } 16.32% { opacity: 1; transform: scale(1.18); } 17.66%, 92% { opacity: 1; transform: scale(1); } 97%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes cn-m2 { 0%, 22.44% { opacity: 0; transform: scale(.4); } 23.66% { opacity: 1; transform: scale(1.18); } 24.99%, 92% { opacity: 1; transform: scale(1); } 97%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes cn-m3 { 0%, 29.77% { opacity: 0; transform: scale(.4); } 30.99% { opacity: 1; transform: scale(1.18); } 32.32%, 92% { opacity: 1; transform: scale(1); } 97%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes cn-m4 { 0%, 37.10% { opacity: 0; transform: scale(.4); } 38.32% { opacity: 1; transform: scale(1.18); } 39.66%, 92% { opacity: 1; transform: scale(1); } 97%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes cn-m5 { 0%, 44.44% { opacity: 0; transform: scale(.4); } 45.66% { opacity: 1; transform: scale(1.18); } 46.99%, 92% { opacity: 1; transform: scale(1); } 97%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes cn-m6 { 0%, 51.77% { opacity: 0; transform: scale(.4); } 52.99% { opacity: 1; transform: scale(1.18); } 54.32%, 92% { opacity: 1; transform: scale(1); } 97%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes cn-m7 { 0%, 59.10% { opacity: 0; transform: scale(.4); } 60.32% { opacity: 1; transform: scale(1.18); } 61.66%, 92% { opacity: 1; transform: scale(1); } 97%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes cn-m8 { 0%, 66.44% { opacity: 0; transform: scale(.4); } 67.66% { opacity: 1; transform: scale(1.18); } 68.99%, 92% { opacity: 1; transform: scale(1); } 97%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes cn-m9 { 0%, 73.77% { opacity: 0; transform: scale(.4); } 74.99% { opacity: 1; transform: scale(1.18); } 76.32%, 92% { opacity: 1; transform: scale(1); } 97%, 100% { opacity: 0; transform: scale(1); } }
+@keyframes cn-share { 0%, 7.77% { transform: scaleX(0); } 9.21%, 15.10% { transform: scaleX(1.0000); } 16.55%, 22.44% { transform: scaleX(0.5000); } 23.88%, 29.77% { transform: scaleX(0.3333); } 31.21%, 37.10% { transform: scaleX(0.5000); } 38.55%, 44.44% { transform: scaleX(0.4000); } 45.88%, 51.77% { transform: scaleX(0.5000); } 53.21%, 59.10% { transform: scaleX(0.4286); } 60.55%, 66.44% { transform: scaleX(0.3750); } 67.88%, 73.77% { transform: scaleX(0.4444); } 75.21%, 91.89% { transform: scaleX(0.5000); } 97%, 100% { transform: scaleX(0.5000); } }
+@keyframes cn-s0 { 0%, 8.44% { opacity: 0; } 9.21%, 15.21% { opacity: 1; } 15.32%, 100% { opacity: 0; } }
+@keyframes cn-s1 { 0%, 15.77% { opacity: 0; } 16.55%, 22.55% { opacity: 1; } 22.66%, 100% { opacity: 0; } }
+@keyframes cn-s2 { 0%, 23.10% { opacity: 0; } 23.88%, 29.88% { opacity: 1; } 29.99%, 100% { opacity: 0; } }
+@keyframes cn-s3 { 0%, 30.44% { opacity: 0; } 31.21%, 37.21% { opacity: 1; } 37.32%, 100% { opacity: 0; } }
+@keyframes cn-s4 { 0%, 37.77% { opacity: 0; } 38.55%, 44.55% { opacity: 1; } 44.66%, 100% { opacity: 0; } }
+@keyframes cn-s5 { 0%, 45.10% { opacity: 0; } 45.88%, 51.88% { opacity: 1; } 51.99%, 100% { opacity: 0; } }
+@keyframes cn-s6 { 0%, 52.44% { opacity: 0; } 53.21%, 59.21% { opacity: 1; } 59.32%, 100% { opacity: 0; } }
+@keyframes cn-s7 { 0%, 59.77% { opacity: 0; } 60.55%, 66.55% { opacity: 1; } 66.66%, 100% { opacity: 0; } }
+@keyframes cn-s8 { 0%, 67.10% { opacity: 0; } 67.88%, 73.88% { opacity: 1; } 73.99%, 100% { opacity: 0; } }
+@keyframes cn-s9 { 0%, 74.44% { opacity: 0; } 75.21%, 92.00% { opacity: 1; } 97.00%, 100% { opacity: 0; } }
+
+/* LESS MOVEMENT: the finished run, still — ten marks, the bar at half, the last line. */
+@media (prefers-reduced-motion: reduce) {
+  .cn-coin, .cn-shadow, .cn-m, .cn-bar i, .cn-say span { animation: none; }
+  .cn-m { opacity: 1; } .cn-bar i { transform: scaleX(.5); }
+  .cn-say span:last-child { opacity: 1; }
+}
 
 /* ---------- THE NUMBER LINE ---------------------------------------------------------------------- */
 #splash-nline .nl-svg { width: min(70vw, 17rem); height: auto; }
@@ -6969,9 +7019,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
           text-align: center; }
 
 @media (prefers-reduced-motion: reduce) {
-  .so-row i, .mn-row i, .rp-box span, .or-arm, .td-row i, .dw-sun, .h3-say i, .h3-bar span, .mx-line, .pr-arm, .cn-flip, .cn-bar i, .nl-dot,
+  .so-row i, .mn-row i, .rp-box span, .or-arm, .td-row i, .dw-sun, .h3-say i, .h3-bar span, .mx-line, .pr-arm, .nl-dot,
   .vn-a, .vn-b, .vn-both, .ck-m, .ck-h { animation: none; opacity: 1; transform: none; }
-  .cn-bar i { width: 51%; } .vn-both { opacity: .55; }
+  .vn-both { opacity: .55; }
 }
 
 /* ---------- A ROW WITH NOTHING IN THE FIGURE COLUMNS ---------------------------------------------
