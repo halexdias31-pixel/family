@@ -1246,11 +1246,28 @@ const FACETS = [
   /* Through `waveOf`, for the same reason `year` goes through `yearOf` one line below: the cell
      may hold a DATE rather than a wave, and a filter button sixty characters wide reading
      "Fri Jun 01 2024 08:00:00 GMT+0100 (British Summer Time)" is what that looks like untouched. */
-  /* `Sitting`, NOT `Exam wave`. "Wave" is the column's name and nobody outside this repo says it;
-     the answers under it are now "June 2018" and "November 2018", which is what a student calls
-     the thing. The `facets` tab can still relabel it. */
-  { field: 'examWave',
-    bucketOf: waveBucket_, bucketOrder: waveBucket_.order, bucketDesc: true,  label: 'Sitting',     of: x => waveOf(x) },
+  /* `Sitting`, NOT `Exam wave`. "Wave" is the column's name and nobody outside this repo says it.
+     The facets tab can still relabel it. */
+  /* ---------- A SITTING IS TWO QUESTIONS: THE SERIES, THEN THE YEAR ---------------------------------
+     REPORTED AS "some tags are like summer 2018 when it should just be summer then 2018". This was
+     ONE facet, `examWave`, answering `Summer 2018`. Sixteen sittings is past the seven a card holds,
+     so its first draw was year PAIRS (`2023 & 2024`), and pressing one drew `Summer 2023`,
+     `Autumn 2023`, `Summer 2024`: two facts on every answer, the year twice on the screen.
+
+     Now two facets over the one reader, `sittingOf_`, which splits what `waveOf` already produced.
+     So the two cannot disagree about what a row's sitting is, and every spelling `waveOf` folds (a
+     date cell, `First wave`, `June 2018`) folds the same way for both. The series has two answers
+     on this library (Summer, Autumn); the year keeps the pairs grouping, because nine years is still
+     past seven, and is asked over again inside a pair.
+
+     `examWave` IS RETIRED, NOT KEPT AS A THIRD WAY IN, and `RETIRED_FACETS` says why. Two questions
+     about the sitting plus a third about the same thing joined up would be the `level`/`stage`
+     fault. The bundle still names a sitting `Summer 2017` in its title and its groups; it reads
+     `waveOf` directly for that, which is the one reader both facets are built on. */
+  { field: 'examSeries', label: 'Sitting', cmp: seriesCmp_, of: x => sittingOf_(x).series },
+  { field: 'examYear',
+    bucketOf: waveBucket_, bucketOrder: waveBucket_.order, bucketDesc: true,
+    label: 'Year', cmp: (a, b) => Number(b) - Number(a), of: x => sittingOf_(x).year },
   /* Through `yearOf`, so a paper whose year lives only inside "June 2024" is filterable by year
      without anybody having to type it into a second column to make the filter work. */
   { field: 'year',      label: 'Year',        of: x => yearOf(x) },
@@ -1525,6 +1542,9 @@ const RETIRED_FACETS = {
   paper: 'the "Printed?" facet was deleted for reading a literal — and the `paper` COLUMN it would '
        + 'now read means which paper of the set (1, 2, 3), so the sheet\'s old label sits over '
        + 'completely different data. Use `Paper`, which asks the same thing by name.',
+  examWave: 'the sitting is asked as two questions now, `examSeries` (Summer) and then `examYear` '
+          + '(2018). A sheet row naming `examWave` would read the raw column and offer `Summer 2018` '
+          + 'beside them, which is the one answer wearing two questions this split took apart.',
 };
 
 function facetList() {
@@ -1768,7 +1788,8 @@ function nameForms_(s) {
    SO IT DISAMBIGUATES AGAINST THE IDS IT IS GIVEN. `facetTally_` hands `showOf` the answers it is
    about to draw, so at `Subject · Biology` the field is those four papers: the subject is the same
    on all of them and is not pushed, the tier differs and is, and the label comes out
-   `Paper 1 — June 2024 · Foundation`. At `Chemistry · Higher` two papers share no name at all, so
+   `Paper 1 · Foundation — June 2024` (the rung goes before the date: see the end of this function),
+   which `shortLabels_` then trims to `Paper 1 · Foundation`. At `Chemistry · Higher` two papers share no name at all, so
    nothing is appended and `shortLabels_` trims both to `Paper 1` and `Paper 2`.
 
    WITH NO IDS IT IS THE LIBRARY, MEMOISED, exactly as before — which is what a CHIP needs. A chip
@@ -1850,7 +1871,20 @@ function paperLabels_(ids) {
       if (mine && new Set(field.map(d => String(d[col] || '').trim())).size > 1) bits.push(mine);
       field = field.filter(d => String(d[col] || '').trim() === mine);
     });
-    map[r.id] = bits.join(' \u00b7 ');
+    /* ---------- THE RUNGS GO BEFORE THE DATE, NOT AFTER IT ----------------------------------------
+       APPENDED, THEY HELD THE DATE ON THE BUTTON FOR EVER. `Paper 1 \u2014 June 2024 \u00b7 Foundation` has
+       nowhere for `nameForms_` to cut between `Paper 1` and the whole string, so once the sitting
+       became two questions of its own \u2014 `Summer`, then `2024`, both chips above the answers \u2014 the
+       Paper answers still read `\u2014 June 2024` under them: the year said twice and the season said
+       a second way, which is the "summer 2018" report wearing a paper's name. Put before the spaced
+       dash the date is the last cut, `Paper 1 \u00b7 Foundation` is a form of its own, and
+       `shortLabels_` drops the date wherever the answers on screen let it. A name with no dash is
+       unchanged. `check-funnel.js`'s paper-label rule asserts the year is not repeated. */
+    const extra = bits.slice(1).join(' \u00b7 ');
+    const dash = /\s[\u2014\u2013]\s/.exec(name);
+    map[r.id] = !extra ? name
+      : dash ? name.slice(0, dash.index) + ' \u00b7 ' + extra + name.slice(dash.index)
+      : name + ' \u00b7 ' + extra;
   });
   if (!only) PAPER_LABEL.set(rows, map);
   return map;
@@ -2517,8 +2551,13 @@ function facetTally_(items, facet) {
   const answers = Object.keys(by);
   const allDates = answers.length > 1 && answers.every(v => dateKey_(v) !== null);
 
+  /* `cmp` IS A FACET SAYING ITS OWN ORDER, for an answer that HAS one and is not a date the test
+     above can read: a bare year (`2018`), and a season (`Summer` before `Autumn`). Both came out of
+     splitting the sitting in two, and both would otherwise go to the alphabet, which puts 2017 on
+     top and the autumn first. */
   const order = facet.field === 'forLabel'
     ? (a, b) => (rank(a) - rank(b)) || cmpText(a, b)
+    : typeof facet.cmp === 'function' ? facet.cmp
     /* A FACET MAY SAY ITS OWN ORDER when its answers have one their letters do not give — a month
        name is the case: alphabetical puts August first. An answer the facet does not know sorts last. */
     : typeof facet.orderOf === 'function'
@@ -6549,6 +6588,36 @@ function waveOf(x) {
   return bare ? bare[0] : raw;
 }
 
+/* ---------- THE SITTING IN ITS TWO HALVES, FOR THE TWO QUESTIONS THAT ASK THEM ----------------------
+   `Summer 2018` → `{ series: 'Summer', year: '2018' }`. Split off `waveOf`'s answer rather than
+   worked out again from the row, so `examSeries` and `examYear` cannot disagree with each other or
+   with the bundle about what a row's sitting is. A bare year has no series; anything that is not a
+   year at all (`Spec`, a word somebody typed) is a series with no year, which is the honest reading:
+   it names a sitting, not a date. Memoised on the item, because both facets read it for every item
+   on every tally and `waveOf` runs four regexes. */
+const SITTING_MEMO = new WeakMap();
+function sittingOf_(x) {
+  if (!x || typeof x !== 'object') return { series: '', year: '' };
+  const had = SITTING_MEMO.get(x);
+  if (had) return had;
+  const w = String(waveOf(x) || '').trim();
+  const m = /^(.*\S)\s+((?:19|20)\d{2})$/.exec(w);
+  const out = m ? { series: m[1], year: m[2] }
+    : /^(19|20)\d{2}$/.test(w) ? { series: '', year: w }
+    : { series: w, year: '' };
+  SITTING_MEMO.set(x, out);
+  return out;
+}
+
+/* THE SERIES IN THE ORDER THEY COME IN A YEAR, not the alphabet: `Autumn` sorted before `Summer`
+   and read as the year starting in September. `SERIES_AT` places a season, `MONTH_NAMES` a month
+   that kept its own name; anything else goes after them, alphabetically. */
+function seriesCmp_(a, b) {
+  const at = v => SERIES_AT[v] !== undefined ? SERIES_AT[v]
+    : MONTH_NAMES.indexOf(v) >= 0 ? MONTH_NAMES.indexOf(v) + 1 : 99;
+  return (at(a) - at(b)) || cmpText(a, b);
+}
+
 /* Numeric-aware, so Grade 2 comes before Grade 10. Plain alphabetical put Grade 10 first, and that
    reads as the list being unsorted rather than sorted by a rule nobody wanted. */
 const cmpText = (a, b) =>
@@ -6946,7 +7015,7 @@ const S_ = v => String(v == null ? '' : v);
    SO THE PAGE IS THE WHOLE DOCUMENT NOW, and there is one of it. `on('job')` used to stack the same
    pieces by hand into a sheet — receipt, join block, then an admin's tiles and the paragraph under
    them — which is two renderers for one session, in two files, differing by a `moneyBlock`. This is
-   that stack, once, and the sheet is gone.
+   that stack, once, and the sheet is gone. (`moneyBlock` has gone too — see book.js.)
 
    AND THE ADMIN PARAGRAPH WENT, BECAUSE EVERY WARNING IN IT IS DELIVERED AT THE MOMENT OF THE
    PRESS. It was four sentences of consequences under the row, read once and then scrolled past on
@@ -6960,19 +7029,31 @@ const S_ = v => String(v == null ? '' : v);
    `jobAdminTiles_`'s own note still argues for a paragraph under the row rather than longer tiles,
    and it is still right about the shape — CLAUDE.md's "A THING has tiles; a FORM has buttons" says
    one paragraph, not one per button. What changed is that there is nothing left for it to say. */
+/* ---------- AND THE TILES ARE ON THE PAPER NOW, NOT UNDER IT ---------------------------------------
+   ASKED FOR AS *"no floating tiles for already booked sessions"*. The row this built sat after the
+   receipt, on a pane that is transparent because the receipt IS the box — so Withdraw and an
+   admin's Delete hung on black under a card they plainly belong to, which is the exact fault the
+   booking form's own two tiles were moved off for (see the note at `r.foot` in `receiptHtml`).
+
+   SO THEY ARE THE RECEIPT'S FOOT: `.tile-row rc-tiles`, the class the form's row carries, handed to
+   `jobReceipt`. And `jobAdminTiles_` returns tiles rather than a row of its own — it used to, and
+   this wrapped it in a second one, so an admin's four sat in a row inside a row. One row, the
+   client's actions first and the admin's after, which is the order `jobAdminTiles_`'s note gives.
+
+   A PAID SESSION OFFERS NO PAY TILE, and that is `jobTiles_`'s own test: Pay is offered while the
+   booking is accepted and your seat is not yet Paying or Booked. An empty row is no row at all —
+   a foot with nothing on it is a rule under the total pointing at nothing. */
 function jobPage_(j) {
   const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
   const admin = typeof isAdmin === 'function' && isAdmin();
-  return (typeof jobReceipt === 'function' ? jobReceipt(j) : '')
-    + (typeof moneyBlock === 'function' ? moneyBlock(j) : '')
+  const tiles = (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
+    + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
+  const foot = tiles.trim() ? `<div class="tile-row rc-tiles">${tiles}</div>` : '';
+  return (typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '')
     /* NOT AN ACTION ON YOUR OWN SESSION: the offer made to somebody who is not in it yet, carrying
        the seats left and the price. Facts rather than buttons, so it is not a tile. */
-    + (typeof joinBlock === 'function' ? joinBlock(j) : '')
-    + `<div class="tile-row">${
-        (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
-      + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '')
-      }</div>`;
+    + (typeof joinBlock === 'function' ? joinBlock(j) : '');
 }
 
 const forIs_ = want => (STUFF.filters || [])
@@ -7289,8 +7370,51 @@ function accountPages_() {
      THE SERVER IS THE GATE AND STAYS THE GATE. A non-admin is never sent an unlisted tutor, so
      there is nothing here to filter — which is what makes deleting the clause safe rather than a
      disclosure: the list this walks is whatever `doGet` judged this viewer may see. */
+  /* ---------- YOUR FAMILY, BETWEEN YOU AND EVERYBODY ELSE ---------------------------------------
+     ASKED FOR AS *"students should be able to see their parents and likewise"*. A student sees a
+     card for each parent linked to them and a parent a card for each child, straight after their
+     own — the people this column is most about after you.
+
+     THE SERVER SAYS WHO. `DATA.family` is built in `doGet` from this person's ACCEPTED links and
+     nothing else, by the token rather than by anything typed into the address — so there is no
+     rule here to keep in step with it, which is the `MESSAGING` argument: a policy copied onto
+     the phone is two policies. An older backend sends no key, and `Array.isArray` draws nothing
+     rather than a family of none.
+
+     `findCard`, LIKE EVERY OTHER PERSON ON THIS COLUMN. The role label says which side of the link
+     they are on. A parent who is also a tutor is drawn ONCE, here, from their tutor row with the
+     tiles a tutor gets — and is taken out of the list below, or they would be on two pages.
+
+     AND ONLY IF IT IS YOURS. `DATA` survives a sign-out, and signing in paints at once and fetches
+     the payload after — so on a phone handed from a parent to somebody else's child, the parent's
+     children were drawn as "Your child" on the child's column until the new payload landed, and
+     for good if it never did. `familyFor` is the id the server built the list for; a list built
+     for anybody else, or stamped by nobody, draws nothing. */
+  const famLabel_ = { parent: 'Your parent', child: 'Your child' };
+  const famMine = !!(USER.personId && DATA.familyFor && String(DATA.familyFor) === String(USER.personId));
+  const family = (famMine && Array.isArray(DATA.family) ? DATA.family : [])
+    .filter(f => f && f.personId && f.title && famLabel_[f.relation]
+      && !(USER.personId && String(f.personId) === String(USER.personId)));
+  /* AND THE REQUESTS THAT BECOME ONE. A parent's "this is my child" waits on the child, so the
+     child is asked here, on their own column, straight after their own card — see `claimCard_` in
+     me.js for why this is the only door it has. `DATA.claims` is built for the signed-in person
+     alone and is stamped by the same `familyFor`, so it is held to the same test. */
+  const claimPages = (famMine && Array.isArray(DATA.claims) && typeof claimCard_ === 'function')
+    ? DATA.claims.filter(c => c && c.rowIndex && c.from).map(claimCard_) : [];
+  const famIds = family.map(f => String(f.personId));
+  const famPages = family.map(f => {
+    const asTutor = (DATA.tutors || []).find(t => t && t.personId && String(t.personId) === String(f.personId));
+    const row = Object.assign({}, asTutor || {}, {
+      title: f.title, handle: f.handle || (asTutor || {}).handle, personId: f.personId,
+      image: f.image || (asTutor || {}).image || '',
+      role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
+    });
+    return asTutor ? withTiles_(row) : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : '');
+  });
+
   const others = (DATA.tutors || [])
     .filter(t => t && t.title)
+    .filter(t => !(t.personId && famIds.indexOf(String(t.personId)) !== -1))
     /* NOT YOU, TWICE. With a tutor row of your own you would otherwise appear at the top as your
        account and again below as a tutor — the same duplication the `me` kind was merged away to
        avoid. Matched by `mineIs_`, the same test that FOUND the row above, so the two can never
@@ -7308,7 +7432,7 @@ function accountPages_() {
      `.card.is-widget` itself. Keeping this line would put a widget card inside a widget card —
      two borders, two backgrounds, two lots of padding — which is visibly worse than what was
      reported in the first place and is exactly what "just a normal widget" rules out. */
-  return [me].concat(others);
+  return [me].concat(claimPages, famPages, others);
 }
 
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept
@@ -7452,7 +7576,15 @@ const typePlural_ = t => /(s|day)$/i.test(String(t)) ? String(t) : String(t) + '
    bundle: every Higher GCSE maths paper here is Edexcel, so `Exam board` is skipped as a question
    that cannot narrow — and "Edexcel" is the first word anybody ordering one would say. */
 const BUNDLE_TITLE_FIELDS = ['examBoard', 'company', 'subject', 'level', 'keystage', 'yearGroup',
-                             'bandValue', 'tier', 'documentType', 'examWave', 'year'];
+                             'bandValue', 'tier', 'documentType', 'sitting', 'examSeries',
+                             'examYear', 'year'];
+/* `sitting` IS NOT A FUNNEL QUESTION ANY MORE — the funnel asks the series and then the year — and
+   it is still the right TITLE word: twelve papers from one sitting are `Summer 2017`, which is how
+   anybody orders them, and `Summer · 2017` reads as two facts. So the title has its own reader over
+   `waveOf`, the one both halves are cut from. Where the papers do not share one sitting the two
+   halves speak for themselves: `Summer` if they share a series, and the `2017 & 2018` chip. A
+   constant rather than an object built per call, because `facetTally_` memoises on the facet. */
+const SITTING_READER_ = { field: 'sitting', label: 'Sitting', of: x => waveOf(x) };
 function bundleTitle_(items) {
   const parts = [];
   const said = {};
@@ -7462,11 +7594,13 @@ function bundleTitle_(items) {
        people use; a worksheet shelf has no level and its key stage is then the only word for it. */
     if (field === 'keystage' && said.level) return;
     /* THE YEAR ONLY WHERE THE SITTING DID NOT SAY IT. Seven 2017 papers are two sittings, Summer and
-       Autumn, so `examWave` has nothing single to say — and "2017" is the word the owner asked with.
-       Where the sitting did speak it already carries the year, and `Summer 2017 · 2017` is one fact
-       twice. `year` is switched off as a funnel QUESTION (the sitting is the better question) and
-       `facetBy` still finds it, which is the only thing this needs. */
-    if (field === 'year' && said.examWave) return;
+       Autumn, so the sitting has nothing single to say — and "2017" is the word the owner asked with,
+       which `examYear` says first and `year` says only for a row with no sitting. Where the sitting
+       did speak it already carries the series and the year, and `Summer 2017 · Summer · 2017` is one
+       fact three times. `year` is switched off as a funnel QUESTION and `facetBy` still finds it,
+       which is the only thing this needs. */
+    if (field === 'year' && (said.sitting || said.examYear)) return;
+    if ((field === 'examSeries' || field === 'examYear') && said.sitting) return;
     const n = parts.length;
     try { titlePart_(field); } finally { if (parts.length > n) said[field] = true; }
   });
@@ -7477,7 +7611,7 @@ function bundleTitle_(items) {
   return parts.join(' · ');
 
   function titlePart_(field) {
-    const facet = facetBy(field);
+    const facet = field === 'sitting' ? SITTING_READER_ : facetBy(field);
     if (!facet) return;
     let t = null;
     try { t = facetTally_(items, facet); } catch (e) { t = null; }
@@ -7562,8 +7696,9 @@ function bundleBuild_(items) {
      Grouped, each sitting is ONE line and inside it `Paper 1` IS unique — so the twelve read as
      `Summer 2017   Paper 1 · Paper 2 · Paper 3`, four lines, which is how anybody says them.
 
-     THE SITTING IS THE FUNNEL'S OWN ANSWER for that paper (`examWave`, through `waveOf`), so the
-     group is spelled exactly as the Sitting chip spells it. Only where EVERY paper has one and there
+     THE SITTING IS `waveOf`'S ANSWER for that paper — the reader the funnel's Sitting and Year
+     questions are both cut from — so the group reads `Summer 2017` and the two chips above it read
+     `Summer` and `2017`, one fact said the same way. Only where EVERY paper has one and there
      are at least two: a worksheet shelf has no sittings, and one sitting is already in the title.
 
      ---------- AND BY TIER, WHERE THE BUNDLE HOLDS BOTH ---------------------------------------------
@@ -7576,9 +7711,8 @@ function bundleBuild_(items) {
      again. The same rule as the sitting: only where every paper has one and they differ, so a
      bundle that is all Higher says so once, in its title, and nowhere else. Read off the document
      row, because a tier is a paper-level fact. */
-  const wf = facetBy('examWave');
   const sitOf = id => {
-    try { return String(asList_(wf && wf.of ? wf.of(first[id]) : '')[0] || ''); } catch (e) { return ''; }
+    try { return String(waveOf(first[id]) || ''); } catch (e) { return ''; }
   };
   const tierOf = id => String((docById_(id) || {}).tier || '').trim();
   const sits = kept.map(sitOf);
@@ -9195,10 +9329,13 @@ function stuffQuestion() {
   /* `data-bucket` SAYS WHICH KIND OF ANSWER THIS IS, and it is carried rather than worked out
      later: `filterHit` has to test membership for a bucket and equality for a leaf, and sniffing
      the text to tell them apart is the trap the band regex used to be. */
-  return values.map(v => `<div class="row tap counted" data-do="facet-pick"
+  /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of
+     that name in style.css. One wrapper round the answers AND the way out, so "Doesn't matter" wraps
+     onto the end of the last line like any other chip instead of sitting alone underneath. */
+  return '<div class="answers">' + values.map(v => `<div class="row tap counted" data-do="facet-pick"
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
-      </div>`).join('') + skip;
+      </div>`).join('') + skip + '</div>';
 }
 
 /* `stuff-jump` went with the group list. It added a filter and turned to the results in one tap,

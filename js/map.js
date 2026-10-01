@@ -1220,6 +1220,66 @@ const WIDGETS = [
     <p class="note" id="imp-said" style="text-align:center;margin:.5rem 0 0"></p>
   </div>` },
 
+  /* ---------- FIVE CLASSROOM GAMES, ONE CLOCK ----------------------------------------------------
+     The note over `PARTY` in games.js is the argument, and the reason they are not `ROUND_GAMES`.
+     Each is Imposter's frame: a card, a row built by its own paint, a sentence — so nothing here can
+     be pressed before there is a round to press it in. `start` redraws whatever is in progress and
+     `stop` holds the clock; a column actually left behind pauses until somebody presses Resume. */
+  { id: 'justaminute', kind: 'game', name: 'Just a Minute', start: () => partyStart_?.('jam'),
+    stop: () => { if (typeof partyStop_ === 'function') partyStop_('jam'); },
+    into: 'jam-card', what: 'The topic',
+    html: `<div class="card">
+    <h3>Just a Minute</h3>
+    <p class="sub">Talk about the topic for sixty seconds without stopping.</p>
+    <div id="jam-card" class="art"></div>
+    <div id="jam-acts" class="party-acts"></div>
+    <p class="note" id="jam-said" style="text-align:center;margin:.5rem 0 0"></p>
+  </div>` },
+
+  { id: 'taboo', kind: 'game', name: 'Taboo', start: () => partyStart_?.('tab'),
+    stop: () => { if (typeof partyStop_ === 'function') partyStop_('tab'); },
+    into: 'tab-card', what: 'The word',
+    html: `<div class="card">
+    <h3>Taboo</h3>
+    <p class="sub">Describe the word without the words under it. Sixty seconds.</p>
+    <div id="tab-card" class="art"></div>
+    <div id="tab-acts" class="party-acts"></div>
+    <p class="note" id="tab-said" style="text-align:center;margin:.5rem 0 0"></p>
+  </div>` },
+
+  { id: 'hotseat', kind: 'game', name: 'Hot Seat', start: () => partyStart_?.('hot'),
+    stop: () => { if (typeof partyStop_ === 'function') partyStop_('hot'); },
+    into: 'hot-card', what: 'The word',
+    html: `<div class="card">
+    <h3>Hot Seat</h3>
+    <p class="sub">The class gives clues; the one in the hot seat guesses. Sixty seconds.</p>
+    <div id="hot-card" class="art"></div>
+    <div id="hot-acts" class="party-acts"></div>
+    <p class="note" id="hot-said" style="text-align:center;margin:.5rem 0 0"></p>
+  </div>` },
+
+  { id: 'twentyq', kind: 'game', name: '20 Questions', start: () => partyStart_?.('twq'),
+    stop: () => { if (typeof partyStop_ === 'function') partyStop_('twq'); },
+    into: 'twq-card', what: 'The secret',
+    html: `<div class="card">
+    <h3>20 Questions</h3>
+    <p class="sub">Twenty yes-or-no questions to find a person, a place or a thing.</p>
+    <div id="twq-card" class="art"></div>
+    <div id="twq-acts" class="party-acts"></div>
+    <p class="note" id="twq-said" style="text-align:center;margin:.5rem 0 0"></p>
+  </div>` },
+
+  { id: 'alibi', kind: 'game', name: 'Alibi', start: () => partyStart_?.('alb'),
+    stop: () => { if (typeof partyStop_ === 'function') partyStop_('alb'); },
+    into: 'alb-card', what: 'The case',
+    html: `<div class="card">
+    <h3>Alibi</h3>
+    <p class="sub">Detectives question two suspects separately and look for where the stories differ.</p>
+    <div id="alb-card" class="art"></div>
+    <div id="alb-acts" class="party-acts"></div>
+    <p class="note" id="alb-said" style="text-align:center;margin:.5rem 0 0"></p>
+  </div>` },
+
   { id: 'maze', kind: 'game', name: 'Maze', start: () => initMaze?.(),
     into: 'maze-grid', what: 'The maze',
     html: `<div class="card">
@@ -1235,6 +1295,41 @@ const WIDGETS = [
     <p class="note" id="maze-said" style="text-align:center;margin:.5rem 0 0"></p>
     <p class="faint" style="text-align:center;margin:.15rem 0 0">Moves: <b id="maze-moves">0</b></p>
     <button class="btn quiet" data-do="maze-again">New maze</button>
+  </div>` },
+
+  /* ---------- WORD SEARCH — TWO TAPS, NOT A DRAG ----------------------------------------------------
+     The note over `WS_THEMES` in games.js is the argument, and it is the maze's argument: a drag
+     across the grid would fight the pager for the one gesture this app navigates by. Tap the first
+     letter, then the last. NEW PUZZLE IS UNDER THE GRID, the maze's place for New maze, and not
+     beside the select: on one row at 320px the select had eighty pixels and read "Spelling…",
+     which is a choice nobody can read. */
+  { id: 'wordsearch', kind: 'game', name: 'Word Search', start: () => initWordSearch?.(),
+    into: 'ws-grid', what: 'The grid',
+    html: `<div class="card">
+    <h3>Word Search</h3>
+    <p class="sub">Tap the first letter of a word, then its last.</p>
+    <label class="mat-sel ws-top"><select id="ws-theme" data-do="ws-theme"
+      aria-label="Which words"></select></label>
+    <div id="ws-grid" class="ws"></div>
+    <ul id="ws-words" class="ws-list"></ul>
+    <p class="note" id="ws-said" style="text-align:center;margin:.4rem 0 0"></p>
+    <button class="btn quiet" data-do="ws-again">New puzzle</button>
+  </div>` },
+
+  /* ---------- SENTENCE SCRAMBLE — CUT-UP PAPER ON A PHONE ------------------------------------------
+     The note over `SS_SENTENCES` in games.js is the argument. The chips and Check are built by
+     `ssPaint`, so nothing here can be pressed before there is a sentence. Skip is built there too,
+     beside Check, rather than beside the select — see the word search above for what that row
+     did to the select's label. */
+  { id: 'scramble', kind: 'game', name: 'Sentence Scramble', start: () => initScramble?.(),
+    into: 'ss-box', what: 'The sentence',
+    html: `<div class="card">
+    <h3>Sentence Scramble</h3>
+    <p class="sub">Tap the words in order to put the sentence back together.</p>
+    <label class="mat-sel ws-top"><select id="ss-level" data-do="ss-level"
+      aria-label="Level"></select></label>
+    <div id="ss-box"></div>
+    <p class="note" id="ss-said" style="text-align:center;margin:.4rem 0 0"></p>
   </div>` },
 
   /* NO SCORING AND NO TIMER, deliberately — see the note on `initHerd`. Everybody answers out loud
@@ -1417,6 +1512,21 @@ const WIDGETS = [
     <h3>Your week</h3>
     <div id="week-body"></div>
   </div>` },
+
+  /* ---------- THE TIMETABLE, WHICH IS NOT `Your week` ------------------------------------------
+     `Your week` is the sessions BOOKED here, read off `liveJobs`; this is the week somebody writes
+     down themselves — a school timetable, a tutor's standing hours. Two different facts, so two
+     widgets. Kept on the device; see the note over `tmtRead_` in games.js.
+
+     `.tmt-box` IS A CLASS AS WELL AS AN ID, the basket's reason: the Saved column draws this markup
+     again and `tmtPaint_` writes every copy. */
+  { id: 'timetable', kind: 'tool', name: 'Timetable', solid: true, start: () => initTimetable?.(),
+    into: 'tmt-box', what: 'Your timetable',
+    /* NO `.card` OF ITS OWN. `widgetOnColumn_` already draws the card, and the inner one only added
+       .85rem above and below and a hairline — height a full Monday on a 320x568 phone does not have.
+       The basket makes the same choice. */
+    html: `<h3>Timetable</h3>
+    <div id="tmt-box" class="tmt-box"></div>` },
 
   /* ---------- A PLACEHOLDER, AND IT SAYS SO ------------------------------------------------------
      ASKED FOR AS "a Duolingo substitute" with "don't do too much for now". So this is the widget and

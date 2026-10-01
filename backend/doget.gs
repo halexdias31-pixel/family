@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-01-a-manyteach";
+const DOGET_VERSION = "2026-10-01-c-family";
 
 
 function doGet(e) {
@@ -478,6 +478,15 @@ function doGet(e) {
                     so an old deployment says so rather than swallowing their photograph. */
                  'approvePost'],
       tutors: [], students: [], venues: [], clientClasses: [], liveJobs: [],
+      /* The signed-in person's own family, both directions — see "YOUR OWN FAMILY" below — and the
+         id of the person it was built for, which the phone checks before drawing any of it. */
+      family: [], familyFor: '',
+      /* ---------- `claims` WAS NEVER IN THIS LITERAL, AND `payload.claims.push` THREW ------------
+         A child with one unanswered "this is my child" row — the ordinary first half of linking a
+         family — was answered `{ error: "Cannot read properties of undefined (reading 'push')" }`
+         instead of a payload: no tutors, no library, nothing, for as long as the claim sat there.
+         Found by `check-profile.js`'s family case, whose second family carries exactly such a row. */
+      claims: [],
       links: [], shop: [], promotions: [], intervals: [], landmarks: [],
       campaigns: [],
       /* What the search funnel asks and what it calls it — see SCHEMA.facets. */
@@ -511,6 +520,9 @@ function doGet(e) {
           const list = opts[FIELD_OPTIONS[f]];
           if (list && list.length) out[f] = list;
         });
+        /* THE CODE'S OWN LISTS LAST, so they win — `FIELD_FIXED` in constants.gs says why a sheet row
+           must not be able to widen a list the server refuses everything outside. */
+        Object.keys(FIELD_FIXED).forEach(f => { out[f] = FIELD_FIXED[f]; });
         return out;
       })(),
       multiSelect: [],
@@ -657,6 +669,11 @@ function doGet(e) {
           // Blank means "no view", and the smallest real booking is one student for one hour.
           minStudents: N(r.min_students) || 1, maxStudents: N(r.max_students),
           minHours: N(r.min_hours) || 1, maxHours: N(r.max_hours),
+          /* THE AGES THEY TEACH, public like the rate — it is what a parent checks before anything
+             else. A whole number, the word `Adults`, or '' for an end nobody has answered: NOT `N()`,
+             which would turn "Adults" into nought and nought into a claim of "age 0". `ageOut_` is
+             the one reader; the card turns the pair into "Ages 8–16". */
+          ageMin: ageOut_(r.age_min), ageMax: ageOut_(r.age_max),
           extraSeat: N(r.extra_seat_rate),
           /* THE VENUES THEY ARE HAPPY AT, off `venues.tutors_happy_here` — `venuesFor_` is the one
              reader, and the Settings page is the one writer. Names, in the tab's order. */
@@ -788,6 +805,52 @@ function doGet(e) {
         });
       }
     });
+
+    /* ---------- YOUR OWN FAMILY, AND NOBODY ELSE'S ------------------------------------------------
+       ASKED FOR AS *"students should be able to see their parents and likewise"*. The sign-in reply
+       already carried `parents` and `children` as NAMES, which is enough for the booking form and
+       not enough for a card: the account column draws a person through `findCard`, and that wants a
+       photograph and a handle as well as a name.
+
+       THE SERVER DECIDES, AND IT DECIDES BY THE TOKEN. `meAsked` is who `?token=` resolves to —
+       never `?person=` or `?name=`, which anybody can type — and the list is that person's
+       ACCEPTED links in both directions, read through `acceptedParents` / `acceptedChildren`, the
+       same two functions the sign-in reply and the exam diary use. A claim nobody has answered is
+       a request and not a family, so an `asked` or `refused` row sends nobody. A stranger has no
+       `meAsked` and gets an empty list; an admin gets their OWN family and not everybody's, because
+       running the place is not being somebody's parent.
+
+       ONLY WHAT THE CARD DRAWS: a name, a handle, a photograph and which side of the link they are
+       on. No e-mail, phone, address or date of birth — a family card is the public half of a
+       person, and the private half is theirs.
+
+       A KEY OF ITS OWN rather than more rows on `students`. `payload.students` goes to every student
+       for the friend search, so a parent's row put there would be a parent sent to every child on
+       the site; and a child's row is already in it for that reason, which is not the same as this
+       person being YOUR child. The cache is keyed on the token's person (`payloadKey_`), so one
+       family's list cannot be handed to another. */
+    if (meAsked && S(meAsked.person_id)) {
+      const famCard_ = (r, rel) => ({
+        personId: S(r.person_id), title: personDisplayName(r), relation: rel,
+        handle: S(r.handle) || S(r.first_name), image: S(r.photo) || '',
+      });
+      /* Once each, and never yourself — a row linked to itself by a slip in the sheet would
+         otherwise draw your own card a second time under "Your child". */
+      const meId = S(meAsked.person_id), seen = {};
+      /* WHOSE FAMILY THIS IS, said in the payload. The phone keeps `DATA` across a sign-out and
+         paints the next person's account before their own payload lands — so without this a phone
+         handed from one family to another drew the first family's children under "Your child" on
+         the second person's column, for as long as the new payload took, or for ever if it failed. */
+      payload.familyFor = meId;
+      const add = (rows, rel) => rows.forEach(r => {
+        const id = S(r.person_id);
+        if (!id || id === meId || seen[rel + id]) return;
+        seen[rel + id] = true;
+        payload.family.push(famCard_(r, rel));
+      });
+      add(acceptedParents(meId), 'parent');
+      add(acceptedChildren(meId), 'child');
+    }
 
     // --- venues -------------------------------------------------------------------------------
     venuesTab.forEach((r, i) => {
@@ -1713,6 +1776,27 @@ function doGet(e) {
       const seatsGoing = Math.max(0, maxKids - cs.length);
       if (!iAmIn && !(openToOthers && seatsGoing > 0)) return;
 
+      /* ---------- WHO MAY SEE WHICH FIGURE, DECIDED HERE AND NOWHERE ELSE --------------------------
+         ASKED FOR AS *"for tutor they shouldnt see grand total client pays, only grand total they
+         earn. admin should be able to see grand total client pays. total tutor earns, and how much
+         admin earns."* Hiding a figure on the phone and shipping it anyway is a filter anybody reads
+         past with the network tab open — this payload goes to whoever asks — so each figure is SENT
+         only to the people allowed it, and `jobMoney_` on the phone draws whatever arrived.
+
+           `price`       — everybody it was sent to before, EXCEPT a tutor on the job who is not also
+                           a client on it (an admin who teaches still gets it, as an admin)
+           `tutorPay`    — the tutors on the job's own roster, and an admin
+           `adminKeeps`  — an admin, and nobody else
+
+         ON THE ROSTER, NOT ON THE NAME: against the name the token resolved to, exactly as `iAmIn`
+         two lines up. A tutor who has only APPLIED is on it too, and seeing what the session would
+         pay is the half of applying that matters to them. A blank cell stays blank — `tutor_pay`
+         was written empty on every job before the phone started sending it, and `N('')` is a
+         nought that would tell a tutor they earn nothing. */
+      const iTeach = !!meAskedName && ts.some(t2 => key(t2.name) === key(meAskedName));
+      const iPay = !!meAskedName && cs.some(c => key(c.name) === key(meAskedName));
+      const tutorOnly = iTeach && !iPay && !viewerIsAdmin;
+
       payload.clientClasses.push({
         id: jobId, rowIndex: j._row, type: 'job',
         /* SAID PLAINLY so the phone does not have to work it out — and so it cannot work it out
@@ -1749,7 +1833,9 @@ function doGet(e) {
            found nothing, and printed "Your seat  £0.00" on a list that is priced perfectly well in
            the sheet. `price_total` on a waitlist holds the PER-SEAT figure, deliberately, which is
            exactly what a seat costs and exactly what this row wants. */
-        price: N(j.price_total),
+        price: tutorOnly ? '' : N(j.price_total),
+        tutorPay: (viewerIsAdmin || iTeach) && S(j.tutor_pay) !== '' ? N(j.tutor_pay) : '',
+        adminKeeps: viewerIsAdmin && S(j.admin_profit) !== '' ? N(j.admin_profit) : '',
         /* AND WHICH TERM, so the card can say when. `term_name` is the column; `term` is what I
            called it and it does not exist. */
         term: S(j.term_name),

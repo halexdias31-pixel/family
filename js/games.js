@@ -1506,6 +1506,668 @@ document.addEventListener('keydown', e => {
 });
 
 /* ==================================================================================================
+   SENTENCE SCRAMBLE — the words of one sentence, cut up and shuffled; tap them back into order.
+
+   ASKED FOR AS "Sentence Scramble - Groups race to arrange cut-up paper words into a grammatically
+   correct sentence." The paper version is a sentence cut into words with scissors, and that decides
+   what a chip carries: THE WORD AS IT WAS PRINTED, capital letter, comma and full stop included. A
+   strip of paper keeps its punctuation, and the capital on the first word and the full stop on the
+   last are the two clues every child uses first — they are part of the game, not a giveaway.
+
+   ONE AREA OF CHIPS THAT NEVER MOVES, and the sentence being built written out above it. Two areas
+   — a pool and a line the chips travel into — is the paper version laid out faithfully and it is two
+   blocks of 44px rows on a card a phone has 534px for; and a chip that leaves the pool reflows every
+   chip after it, so the word your finger was going for next has moved. A used chip stays where it
+   was, dimmed, and tapping it again takes that word back out of the sentence. Nothing jumps.
+
+   MORE THAN ONE RIGHT ORDER IS A REAL CASE, and the owner's brief says so: a sentence whose words can
+   be validly arranged more than one way must accept every one of them or not be in the list. An
+   entry that is an ARRAY is the sentence followed by its other valid orders, and `ssRight_` accepts
+   any of them. `check-widgets.js` refuses an alternative that is not the same chips, because an
+   alternative that uses a word the pool does not have is one nobody can ever build.
+
+   WHAT WAS WEEDED OUT, so the next sentence added is held to the same rule. A sentence where two
+   noun phrases can swap and still make sense ("The teacher thanked the student"), a floating adverb
+   ("quickly", "loudly", "carefully" mid-sentence), an adjective that fits either noun, or two names
+   in symmetric roles — each of those is a sentence with a second right answer that a child would be
+   told is wrong. Each was either rewritten until only one order makes sense, or listed with its
+   alternative. A grammatical NONSENSE order ("The oven took the bread out of the baker") is marked
+   wrong, and that is the right answer: the brief is a sentence that is correct, not merely parsed.
+
+   NO TIMER AND NO SCORE, for the reason Herd Mentality gives: "Groups race" is the people at the
+   table racing each other, and the race is theirs to run. The app deals, checks, and deals again.
+
+   THE SENTENCE SURVIVES A REPAINT, which is Scrabble's rule: `repaint` runs whenever a payload lands,
+   and a half-built sentence that dealt itself again would throw away what somebody had tapped. New
+   sentence or Skip is the only thing that throws one away.
+================================================================================================== */
+const SS_BANDS = [['KS2', 'KS2 · ages 7–11'], ['KS3', 'KS3 · ages 11–14'], ['KS4', 'KS4 · GCSE']];
+
+const SS_SENTENCES = {
+  /* KS2 — simple and compound sentences, fronted adverbials with their comma, relative clauses,
+     apostrophes, questions, commands and exclamations: what the Year 3–6 grammar list asks for. */
+  KS2: [
+    'My sister plays the piano every evening.',
+    'The hungry fox crept towards the henhouse.',
+    'We packed our bags because the bus was leaving early.',
+    'After lunch, the children played football on the field.',
+    'Can you pass me the salt, please?',
+    'Remember to close the door when you leave.',
+    'What a beautiful rainbow that is!',
+    'The boy who lost his shoe hopped all the way home.',
+    'Our class visited the museum, which was full of dinosaur bones.',
+    'Mum’s car would not start this morning.',
+    'The dog’s tail wagged when he saw his lead.',
+    'Although it was raining, we went for a walk.',
+    'I could not sleep, so I read my book.',
+    'The swimmers dived into the pool at the sound of the whistle.',
+    'Please wash your hands before dinner.',
+    'The children’s paintings were hung in the hall.',
+    'If you are tired, you should go to bed.',
+    'Grandpa told us a story about a dragon.',
+    'The cake, which Dad baked, was delicious.',
+    'Our teacher smiled because everyone had finished their work.',
+    'Have you ever seen a shooting star?',
+    'The kite flew high above the trees.',
+    'Lily’s brother is taller than her.',
+    'The farmer fed the pigs before breakfast.',
+    'Carefully, she carried the eggs across the kitchen.',
+    'There are seven days in a week.',
+    'Tom kicked the ball and it smashed the window.',
+    ['The baby giggled when the puppy licked her face.',
+     'The puppy giggled when the baby licked her face.'],
+    'We will visit our cousins in the summer holidays.',
+    'My favourite subject at school is science.',
+    'The moon lit up the path through the woods.',
+    'When the bell rang, everyone rushed outside.',
+    'Have you finished your homework yet?',
+    'The giant’s footsteps shook the ground.',
+    'Stop running in the corridor!',
+    'Ben, who is my best friend, lives next door.',
+    'The flowers grew tall because they had lots of sunshine.',
+    'She wasn’t hungry, so she didn’t eat her lunch.',
+    'Owls hunt for mice at night.',
+    'The pirate buried his treasure on a deserted island.',
+    'I’ve lost my pencil case again!',
+    'The bus driver waited for the last passenger.',
+    'Despite the wind, the boat reached the harbour safely.',
+    'Those muddy boots belong to my dad.',
+    'A spider spun a web in the corner of the room.',
+    'We clapped at the end of the show.',
+    'Where did you put the scissors?',
+    'The rabbit hopped out of its burrow and sniffed the air.',
+    'Everyone cheered as the winner crossed the line.',
+    'My grandma knits warm jumpers for the whole family.',
+    'The library is closed on Sundays.',
+    'Because he was late, Sam ran to school.',
+    'The ice cream melted in the hot sun.',
+    'Our neighbour’s cat climbed onto the shed roof.',
+    'How many legs does a spider have?',
+    'The knight drew his sword and charged at the dragon.',
+    'Mum asked me to tidy my bedroom.',
+    ['The leaves turn orange and fall in autumn.', 'The leaves fall and turn orange in autumn.'],
+    'It was so cold that the pond froze.',
+    'The hedgehog curled into a tight ball.',
+    'Did you remember to feed the fish?',
+    'Running across the playground, Mia tripped over her laces.',
+    'The postman left a parcel by the front door.',
+    'Is it your turn to walk the dog?',
+    'The tallest tower in the city has fifty floors.',
+    'Wait for the green man before you cross.',
+  ],
+  /* KS3 — subordinate and relative clauses, the passive, conditionals, semicolons, inversion for
+     emphasis, and lists with their commas. */
+  KS3: [
+    'The cake sank because the oven had not been heated properly.',
+    'Having finished the race, the runners collapsed onto the grass.',
+    'The castle, which was built in 1066, still stands today.',
+    'If I had known about the party, I would have come.',
+    'The novel was written by a teenager in just six weeks.',
+    'She was nervous; nevertheless, she stepped onto the stage.',
+    'Not only did he win, but he also broke the record.',
+    'The volcano erupted without warning, destroying several villages.',
+    'Although the film was long, nobody in the audience left early.',
+    'The detective examined the footprints that had been left in the mud.',
+    'Climate change is affecting wildlife all over the world.',
+    'My uncle, a keen gardener, grows his own vegetables.',
+    'Whoever finishes first will receive a prize.',
+    'The students were told to bring a calculator and a ruler.',
+    'Unless you apologise, she will never speak to you again.',
+    'The bridge, which had stood for centuries, collapsed in the flood.',
+    'Rarely have I seen such a spectacular sunset.',
+    'The ancient Egyptians built pyramids as tombs for their kings.',
+    'We could hear the waves crashing against the rocks below.',
+    'The scientist, who had worked through the night, made a breakthrough.',
+    'Despite being injured, the goalkeeper refused to leave the pitch.',
+    ['The museum is closed while the new gallery is being built.',
+     'The new gallery is closed while the museum is being built.'],
+    'Tired and hungry, the explorers set up camp for the night.',
+    'The more you practise, the better you become.',
+    'Shakespeare wrote many of his plays for the Globe Theatre.',
+    'The puppy, which had been abandoned, was adopted by a kind family.',
+    'As soon as the alarm sounded, the building was evacuated.',
+    'The witness claimed that she had seen a man running away.',
+    ['Plants need light, water and carbon dioxide to grow.',
+     'Plants need light, carbon dioxide and water to grow.'],
+    'The teacher, smiling, handed back the test papers.',
+    ['Neither the coach nor the players expected the result.',
+     'Neither the players nor the coach expected the result.'],
+    'The village was cut off after heavy snow blocked the roads.',
+    'Some people believe that the house is haunted.',
+    'The athlete trained every day so that she could compete in the Olympics.',
+    'Wearing a disguise, the spy slipped past the guards.',
+    'The town’s oldest resident celebrated her hundredth birthday.',
+    'It is important to drink plenty of water during exercise.',
+    'The storm had passed, but fallen trees blocked every road.',
+    'When the curtain rose, the audience fell silent.',
+    'The fossil, discovered by a schoolgirl, is millions of years old.',
+    ['You should revise regularly rather than cramming the night before.',
+     'You should regularly revise rather than cramming the night before.'],
+    'The cheetah is the fastest land animal in the world.',
+    'Should you need any help, please ask a member of staff.',
+    'The ship sank after it struck an iceberg.',
+    ['Many of the trees in the forest were planted a century ago.',
+     'Many of the trees were planted in the forest a century ago.'],
+    'The company apologised for the delay and offered a refund.',
+    'Having read the instructions, I assembled the bookshelf.',
+    'There is no evidence that the vaccine causes harm.',
+    'The poem describes a soldier’s memories of the war.',
+    'Because the river had flooded, the match was postponed.',
+    'The headteacher announced that the school would close early.',
+    'Hardly anyone noticed when the lights went out.',
+    'The recipe calls for two eggs, flour and a pinch of salt.',
+    'The orchestra played so beautifully that some people cried.',
+    'Our planet is the only one known to support life.',
+  ],
+  /* KS4 — the sentences a GCSE essay is built from: participle and absolute phrases, the subjunctive,
+     inversion after a negative, colons and semicolons, and the vocabulary of literature and science
+     answers. */
+  KS4: [
+    'Had the government acted sooner, thousands of lives might have been saved.',
+    'The evidence suggests that the fire was started deliberately.',
+    'Macbeth’s ambition, fuelled by the witches’ prophecy, leads to his downfall.',
+    'It is essential that every student submit their coursework on time.',
+    'The writer uses pathetic fallacy to reflect the character’s despair.',
+    'Not until the final chapter is the murderer’s identity revealed.',
+    'Social media, despite its benefits, can have a harmful effect on teenagers.',
+    ['The results were inconclusive; further research is therefore required.',
+     'The results were inconclusive; therefore further research is required.'],
+    ['Whereas the first poem celebrates nature, the second presents it as threatening.',
+     'Whereas the second poem celebrates nature, the first presents it as threatening.'],
+    'Scrooge, once bitter and lonely, is transformed by the end.',
+    'The protesters demanded that the factory be closed immediately.',
+    'Only by working together can we solve the climate crisis.',
+    'The narrator’s use of the first person creates a sense of intimacy.',
+    'Inflation rose sharply, causing the price of food to increase.',
+    'Were the bridge to collapse, the town would be cut off completely.',
+    'The data, which was collected over ten years, reveals a clear trend.',
+    'Although she was offered a promotion, she chose to retire.',
+    'The author presents the city as a place of danger and corruption.',
+    'The candidate who receives the most votes will become mayor.',
+    'Language is constantly evolving, as new words enter everyday use.',
+    'The theme of isolation is explored throughout the play.',
+    'Under no circumstances should the fire doors be left open.',
+    'The reaction speeds up when the temperature is increased.',
+    'In the final stanza, the speaker reflects on what has been lost.',
+    'Priestley uses the Inspector as a mouthpiece for his own views.',
+    'The industrial revolution transformed the way people lived and worked.',
+    'So convincing was his argument that the jury acquitted him.',
+    ['The juxtaposition of light and dark highlights the contrast between good and evil.',
+     'The juxtaposition of dark and light highlights the contrast between good and evil.'],
+    'What the tragedy ultimately reveals is the destructive power of jealousy.',
+    'Exercise not only improves fitness but also reduces stress.',
+    'The colonies gained independence after decades of resistance.',
+    'Despite repeated warnings, the climbers continued towards the summit.',
+    'Her refusal to conform makes her a symbol of rebellion.',
+    'The lower the temperature, the slower the particles move.',
+    'Having been rejected by society, the creature seeks revenge.',
+    'It could be argued that the ending is deliberately ambiguous.',
+    'The report, published last week, criticises the government’s response.',
+    'Never before had the village witnessed such a celebration.',
+    'The metaphor suggests that memory is both fragile and precious.',
+    'Carbon dioxide is released when fossil fuels are burned.',
+    'If the treaty had been signed, the war might have been avoided.',
+    'The speaker’s tone shifts from anger to acceptance.',
+    'Unemployment, which had been falling, began to rise again.',
+    'The poet’s use of enjambment mirrors the flow of the river.',
+    'Tybalt’s death marks the turning point of the play.',
+    'Antibiotics are ineffective against viruses because viruses lack cells.',
+    'To what extent is Lady Macbeth responsible for the murder?',
+    'The government introduced the policy, hoping to reduce traffic.',
+    'The setting, a remote island, heightens the sense of danger.',
+    'Few could have predicted how quickly the empire would fall.',
+    'Although widely praised, the film failed to make a profit.',
+    'The second law of thermodynamics states that entropy always increases.',
+  ],
+};
+
+/* THE WORDS OF AN ENTRY, AS CHIPS. Split on spaces and nothing else, so a comma or a full stop stays
+   on the word it was printed against — which is what a strip of cut paper does. */
+function ssOrders_(entry) {
+  return (Array.isArray(entry) ? entry : [entry]).map(s => String(s).trim().split(/\s+/));
+}
+
+/* RIGHT IF IT IS ANY OF THE STATED ORDERS, compared word by word as TEXT rather than chip by chip, so
+   two chips that both say "the" are interchangeable — which they are on paper too. */
+function ssRight_(entry, words) {
+  const got = (words || []).join(' ');
+  return ssOrders_(entry).some(o => o.join(' ') === got);
+}
+
+/* HOW MANY WORDS FROM THE START ARE RIGHT, against whichever stated order agrees for longest. That is
+   the one hint the card gives, and it is the one a teacher gives: "you're right up to here". */
+function ssPrefix_(entry, words) {
+  let best = 0;
+  ssOrders_(entry).forEach(o => {
+    let n = 0;
+    while (n < o.length && n < words.length && o[n] === words[n]) n++;
+    if (n > best) best = n;
+  });
+  return best;
+}
+
+/* ONE PILE PER BAND, dealt from the top and shuffled again when it runs out — the promise `impDraw_`
+   makes: no sentence comes round twice until the band has. */
+const SS_PILE = {};
+function ssDraw_(band) {
+  const list = SS_SENTENCES[band] || SS_SENTENCES.KS2;
+  if (!SS_PILE[band] || !SS_PILE[band].length) SS_PILE[band] = herdShuffle_(list.map((_, i) => i));
+  return list[SS_PILE[band].pop()];
+}
+
+function ssBand_(b) {
+  if (b !== undefined) {
+    try { localStorage.setItem('ss-band', b); } catch (e) {}
+    return b;
+  }
+  let v = 'KS2';
+  try { v = localStorage.getItem('ss-band') || 'KS2'; } catch (e) {}
+  return SS_SENTENCES[v] ? v : 'KS2';
+}
+
+let SS = null;
+
+/* SHUFFLED UNTIL IT IS NOT ALREADY RIGHT. A deal that came out in order is a sentence handed over
+   solved, and with five words that is one deal in a hundred and twenty. */
+function ssDeal_(band) {
+  const entry = ssDraw_(band);
+  const words = ssOrders_(entry)[0];
+  let chips = herdShuffle_(words);
+  for (let i = 0; i < 20 && ssRight_(entry, chips); i++) chips = herdShuffle_(words);
+  SS = { band: band, entry: entry, chips: chips, picked: [], verdict: '', said: '' };
+}
+
+/* DRAWN FROM THE STATE, the `REEL_HELD` rule, and EVERY CONTROL IS BUILT HERE — the Scrabble
+   lesson: Check is not on the page until there is a sentence to check. */
+function ssPaint() {
+  const box = $('ss-box'), said = $('ss-said'), sel = $('ss-level');
+  if (!box || !SS) return;
+  if (sel) sel.value = SS.band;
+  const right = SS.verdict === 'right';
+  const words = SS.picked.map(i => SS.chips[i]);
+  const all = SS.picked.length === SS.chips.length;
+  box.innerHTML = `<p class="ss-built${right ? ' is-right' : ''}${SS.verdict === 'wrong' ? ' is-wrong' : ''}">`
+    + (words.length ? esc(words.join(' ')) : '<span class="ss-empty">Tap the first word</span>')
+    + `</p>`
+    /* NO CHIPS ONCE IT IS RIGHT. The strip above says the whole sentence, and a pool of fourteen
+       dimmed chips under it is fourteen things that look pressable and do nothing — and at 320px
+       they were what shrank the card to 88% to fit. */
+    + (right ? '' : `<div class="ss-chips">`
+      + SS.chips.map((w, i) => {
+          const used = SS.picked.indexOf(i) !== -1;
+          return `<button class="ss-chip${used ? ' used' : ''}" data-do="ss-word" data-i="${i}"`
+            + ` aria-pressed="${used}">${esc(w)}</button>`;
+        }).join('')
+      + `</div>`)
+    + `<div class="ss-acts">`
+    + (right
+        ? `<button class="btn" data-do="ss-next">Next sentence</button>`
+        : `<button class="btn" data-do="ss-check"${all ? '' : ' disabled'}>Check</button>`
+          + `<button class="btn quiet" data-do="ss-new">Skip</button>`)
+    + `</div>`;
+  if (said) said.textContent = SS.said;
+}
+
+function initScramble() {
+  if (!$('ss-box')) return;
+  const sel = $('ss-level');
+  if (sel && !sel.options.length) {
+    sel.innerHTML = SS_BANDS.map(b => `<option value="${b[0]}">${esc(b[1])}</option>`).join('');
+  }
+  if (!SS) ssDeal_(ssBand_());
+  ssPaint();
+}
+
+on('ss-word', el => {
+  if (!SS || SS.verdict === 'right') return;
+  const i = parseInt(el.getAttribute('data-i'), 10);
+  if (!(i >= 0 && i < SS.chips.length)) return;
+  const at = SS.picked.indexOf(i);
+  if (at === -1) SS.picked.push(i); else SS.picked.splice(at, 1);
+  SS.verdict = ''; SS.said = '';
+  ssPaint();
+});
+on('ss-check', () => {
+  if (!SS || SS.picked.length !== SS.chips.length) return;
+  const words = SS.picked.map(i => SS.chips[i]);
+  if (ssRight_(SS.entry, words)) {
+    SS.verdict = 'right';
+    SS.said = 'That’s it.';
+  } else {
+    const n = ssPrefix_(SS.entry, words);
+    SS.verdict = 'wrong';
+    SS.said = n === 0 ? 'Not quite — the first word isn’t right. Tap a word to take it back.'
+      : 'Not quite — the first ' + (n === 1 ? 'word is' : n + ' words are') + ' right.'
+        + ' Tap a word to take it back.';
+  }
+  ssPaint();
+});
+/* NEXT AND SKIP ARE THE SAME DEAL WITH DIFFERENT WORDS ON THEM: one after a sentence is right, the
+   other to give up on one that is not. Two names so each button says what it is for — and "Skip"
+   rather than "New sentence", which wrapped onto two lines beside Check at 320px. */
+on('ss-next', () => { ssDeal_(SS ? SS.band : ssBand_()); ssPaint(); });
+on('ss-new', () => { ssDeal_(SS ? SS.band : ssBand_()); ssPaint(); });
+on('ss-level', el => {
+  const b = SS_SENTENCES[el.value] ? el.value : 'KS2';
+  ssBand_(b);
+  ssDeal_(b);
+  ssPaint();
+});
+
+/* ==================================================================================================
+   WORD SEARCH — a grid of letters with a list of words hidden in it.
+
+   ASKED FOR AS "He also used to like mazes and word searches". The maze was already here.
+
+   A TAP ON THE FIRST LETTER AND A TAP ON THE LAST, NOT A DRAG, and the maze is the precedent for why.
+   Up, down, left and right are the four gestures this app navigates by, so a word search that read a
+   finger dragged across the grid would fight the pager on the one screen it lives on — and the only
+   way to win that fight is `data-noswipe` over the whole grid, which is most of the card, which is a
+   card you cannot swipe off. The pen pad pays that price with a padlock you have to press first; a
+   word search would have to pay it on every word. Two taps cost nothing: a tap is a click, the app
+   already tells a click from a drag (`PRESS_MOVED` in shell.js swallows the click a swipe produces),
+   so a swipe that starts on the grid still turns the page and arms nothing. It also works with a
+   mouse, a pen and a keyboard, which a drag would have had to be written three times for.
+
+   A CELL CANNOT BE 44px, which is the maze's and Scrabble's arithmetic: ten of them is 440px and the
+   narrowest phone here is 320. `ACCEPTED_TAP` in check/ui.js carries the numbers. What makes it
+   liveable is what makes an hour cell liveable: a wrong tap costs nothing. A first tap on the wrong
+   letter is replaced by tapping the right one, and a second tap that is not in a line with the first
+   simply starts again from there.
+
+   YOUNGER PUZZLES READ FORWARDS ONLY — left to right, top to bottom, and down the diagonal — which is
+   the brief's "forward only for younger", and is what makes a first word search possible at all.
+   Older ones hide words in all eight directions.
+
+   THE FILLER IS CHECKED FOR WORDS NOBODY SHOULD FIND, and the arithmetic is why that is not
+   paranoia. A three-letter word has a one-in-17,576 chance at any one place and direction, and a
+   ten-by-ten grid has about 800 of those — so a given three-letter word turns up by chance in about
+   one grid in twenty, on a site whose players are children. `WS_NOT` is the backend's handle
+   blocklist (`HANDLE_BLOCKED` in constants.gs) and `check-widgets.js` refuses the two disagreeing;
+   the grid is read in all eight directions whatever the puzzle's own, because a child reads them all.
+
+   THE PUZZLE SURVIVES A REPAINT, Scrabble's rule again: half the words found and then a payload
+   landing must not deal a new grid. New puzzle is the only thing that does.
+================================================================================================== */
+const WS_DIRS = { e: [1, 0], s: [0, 1], se: [1, 1], ne: [1, -1],
+                  w: [-1, 0], n: [0, -1], nw: [-1, -1], sw: [-1, 1] };
+const WS_FORWARD = ['e', 's', 'se'];
+
+/* EVERY THEME SAYS ITS OWN SIZE, HOW MANY WORDS, AND WHETHER THEY ONLY READ FORWARDS, because "for
+   younger" is a fact about the theme rather than a second control to set. The Years 5–6 spellings are
+   a younger list with older words — "dictionary" is ten letters — so they get the bigger grid and
+   keep the forward rule. The spelling lists are the statutory Years 3–4 and 5–6 words from the
+   national curriculum's English appendix, cut to what fits the grid. */
+const WS_THEMES = [
+  { id: 'y34', name: 'Years 3–4 spellings', young: true, size: 8, n: 6, words: [
+    'accident', 'actual', 'address', 'answer', 'appear', 'arrive', 'believe', 'bicycle', 'breath',
+    'build', 'busy', 'business', 'calendar', 'caught', 'centre', 'century', 'certain', 'circle',
+    'complete', 'consider', 'continue', 'decide', 'describe', 'early', 'earth', 'eight', 'enough',
+    'exercise', 'extreme', 'famous', 'February', 'forward', 'fruit', 'grammar', 'group', 'guard',
+    'guide', 'heard', 'height', 'history', 'imagine', 'increase', 'interest', 'island', 'learn',
+    'length', 'library', 'material', 'medicine', 'mention', 'minute', 'natural', 'naughty', 'notice',
+    'occasion', 'often', 'opposite', 'ordinary', 'peculiar', 'perhaps', 'popular', 'position',
+    'possess', 'possible', 'potatoes', 'pressure', 'probably', 'promise', 'purpose', 'quarter',
+    'question', 'recent', 'regular', 'reign', 'remember', 'sentence', 'separate', 'special',
+    'straight', 'strange', 'strength', 'suppose', 'surprise', 'though', 'thought', 'through',
+    'various', 'weight', 'woman', 'women'] },
+  { id: 'animals', name: 'Animals', young: true, size: 8, n: 6, words: [
+    'badger', 'beaver', 'camel', 'cheetah', 'dolphin', 'eagle', 'ferret', 'gerbil', 'giraffe',
+    'gorilla', 'hamster', 'hedgehog', 'jaguar', 'koala', 'leopard', 'lizard', 'lobster', 'meerkat',
+    'octopus', 'ostrich', 'otter', 'panda', 'parrot', 'penguin', 'pigeon', 'rabbit', 'reindeer',
+    'salmon', 'squirrel', 'tiger', 'toucan', 'turtle', 'walrus', 'weasel', 'whale', 'zebra'] },
+  { id: 'sci2', name: 'Science, KS2', young: true, size: 8, n: 6, words: [
+    'magnet', 'light', 'shadow', 'mirror', 'plant', 'root', 'stem', 'flower', 'seed', 'pollen',
+    'force', 'gravity', 'friction', 'circuit', 'battery', 'switch', 'bulb', 'wire', 'solid',
+    'liquid', 'melt', 'freeze', 'rock', 'soil', 'fossil', 'skeleton', 'muscle', 'teeth', 'lungs',
+    'habitat', 'planet', 'orbit', 'moon', 'sound', 'vibrate', 'magnify'] },
+  { id: 'y56', name: 'Years 5–6 spellings', young: true, size: 10, n: 7, words: [
+    'amateur', 'ancient', 'apparent', 'attached', 'available', 'average', 'awkward', 'bargain',
+    'bruise', 'category', 'cemetery', 'committee', 'community', 'conscience', 'conscious',
+    'correspond', 'criticise', 'curiosity', 'definite', 'desperate', 'determined', 'develop',
+    'dictionary', 'disastrous', 'embarrass', 'equipment', 'especially', 'exaggerate', 'excellent',
+    'existence', 'familiar', 'foreign', 'forty', 'frequently', 'government', 'guarantee', 'harass',
+    'hindrance', 'identity', 'immediate', 'individual', 'interfere', 'interrupt', 'language',
+    'leisure', 'lightning', 'marvellous', 'muscle', 'necessary', 'neighbour', 'nuisance', 'occupy',
+    'occur', 'parliament', 'persuade', 'physical', 'prejudice', 'privilege', 'profession',
+    'programme', 'queue', 'recognise', 'recommend', 'relevant', 'restaurant', 'rhyme', 'rhythm',
+    'sacrifice', 'secretary', 'shoulder', 'signature', 'sincere', 'soldier', 'stomach',
+    'sufficient', 'suggest', 'symbol', 'system', 'thorough', 'twelfth', 'variety', 'vegetable',
+    'vehicle', 'yacht'] },
+  { id: 'sci34', name: 'Science, KS3–4', young: false, size: 10, n: 8, words: [
+    'atom', 'element', 'compound', 'molecule', 'electron', 'proton', 'neutron', 'nucleus',
+    'isotope', 'enzyme', 'osmosis', 'diffusion', 'mitosis', 'chromosome', 'velocity', 'momentum',
+    'energy', 'current', 'voltage', 'resistance', 'wavelength', 'frequency', 'catalyst',
+    'reaction', 'oxidation', 'acid', 'alkali', 'neutral', 'density', 'pressure', 'organism',
+    'ecosystem', 'predator', 'species', 'hormone', 'insulin', 'glucose', 'vaccine', 'antibody',
+    'bacteria', 'virus', 'gene', 'protein', 'neuron'] },
+  { id: 'maths', name: 'Maths', young: false, size: 10, n: 8, words: [
+    'fraction', 'decimal', 'percent', 'integer', 'prime', 'factor', 'multiple', 'square', 'cube',
+    'radius', 'diameter', 'triangle', 'polygon', 'angle', 'parallel', 'vertex', 'volume', 'area',
+    'perimeter', 'symmetry', 'equation', 'formula', 'gradient', 'sequence', 'ratio', 'average',
+    'median', 'mode', 'range', 'algebra', 'quadratic', 'tangent', 'sine', 'cosine', 'vector',
+    'hexagon', 'pentagon', 'circle', 'cylinder', 'product', 'quotient', 'inverse'] },
+  { id: 'geog', name: 'Geography', young: false, size: 10, n: 8, words: [
+    'river', 'mountain', 'valley', 'volcano', 'glacier', 'desert', 'climate', 'weather', 'erosion',
+    'delta', 'estuary', 'tributary', 'meander', 'continent', 'country', 'capital', 'equator',
+    'latitude', 'longitude', 'ocean', 'island', 'tsunami', 'earthquake', 'tectonic', 'magma',
+    'rainforest', 'tundra', 'savanna', 'population', 'migration', 'settlement', 'urban', 'rural',
+    'contour', 'compass', 'monsoon', 'drought', 'flood', 'coast'] },
+];
+
+/* A COPY OF `HANDLE_BLOCKED` FROM backend/constants.gs, and `check-widgets.js` fails if the two
+   differ. A copy rather than a fetch because the backend list never reaches the phone, and a
+   word search must not wait on a network to decide what it may print; a check rather than trust
+   because a copy kept by hand is the second reader this repository keeps finding. */
+const WS_NOT = [
+  'anal', 'anus', 'arse', 'bastard', 'bitch', 'bollock', 'boner', 'clit', 'cock', 'coon', 'cum',
+  'cunt', 'dick', 'dildo', 'dyke', 'fag', 'fanny', 'fuck', 'gash', 'gook', 'incest', 'jizz',
+  'kike', 'knob', 'minge', 'nigg', 'nonce', 'paedo', 'pedo', 'penis', 'piss', 'porn', 'prick',
+  'pussy', 'queer', 'rape', 'retard', 'scrote', 'semen', 'sex', 'shag', 'shit', 'slag', 'slut',
+  'smeg', 'spastic', 'spic', 'sperm', 'tits', 'titty', 'tosser', 'tranny', 'twat', 'vagina',
+  'wank', 'whore', 'wog', 'nazi', 'hitler', 'kkk', 'isis', 'suicide', 'selfharm',
+];
+
+/* THE LETTERS OF A WORD, which is what goes in the grid: capitals, nothing but A to Z. */
+const wsKey_ = w => String(w).toUpperCase().replace(/[^A-Z]/g, '');
+
+/* DOES THE GRID SPELL ANYTHING ON `WS_NOT`, read from every cell in every one of the eight
+   directions. */
+function wsRude_(grid, size) {
+  const bad = WS_NOT.map(wsKey_);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      for (const k of Object.keys(WS_DIRS)) {
+        const [dx, dy] = WS_DIRS[k];
+        let s = '';
+        for (let i = 0, cx = x, cy = y; i < 8 && cx >= 0 && cy >= 0 && cx < size && cy < size;
+             i++, cx += dx, cy += dy) s += grid[cy * size + cx];
+        if (bad.some(b => s.startsWith(b))) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/* ONE PUZZLE. Longest words first, because they are the hard ones to fit and a short word fits in
+   whatever is left. A word that is inside another one already placed — "angle" and "triangle",
+   "sine" and "cosine" — is skipped, because finding the short one inside the long one would be
+   finding the wrong word. Returns null only if sixty whole attempts fail, which on these sizes does
+   not happen; the caller says so rather than drawing an empty grid. */
+function wsBuild_(theme) {
+  const size = theme.size, dirs = theme.young ? WS_FORWARD : Object.keys(WS_DIRS);
+  const words = theme.words.filter(w => { const k = wsKey_(w); return k.length >= 3 && k.length <= size; });
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const grid = new Array(size * size).fill('');
+    const placed = [];
+    /* THE DEAL IS THE FIRST `n` OF A SHUFFLE, AND ONLY THE DEAL IS PLACED LONGEST-FIRST. The first
+       version sorted three puzzles' worth of words by length and placed from the top, so every grid got
+       the LONGEST six of eighteen — and a younger 8x8 drew six eight-letter words, six whole rows of
+       words with two rows of filler between them: a list of rows rather than a puzzle. The rest of the
+       shuffle are spares, used only when a word will not fit or sits inside one already placed.
+       AND ONE WORD AT MOST RUNS THE WHOLE WIDTH OF THE GRID, because two such words can only share a
+       line by crossing at one letter, so the third and fourth end up parallel and the grid reads in
+       one direction. */
+    const pool = [];
+    let full = 0;
+    for (const w of herdShuffle_(words)) {
+      if (pool.length >= theme.n * 3) break;
+      if (wsKey_(w).length === size) { if (full) continue; full++; }
+      pool.push(w);
+    }
+    const byLen = (a, b) => wsKey_(b).length - wsKey_(a).length;
+    pool.splice(0, theme.n, ...pool.slice(0, theme.n).sort(byLen));
+    for (const word of pool) {
+      if (placed.length >= theme.n) break;
+      const key = wsKey_(word);
+      if (placed.some(p => p.key.indexOf(key) !== -1 || key.indexOf(p.key) !== -1)) continue;
+      for (let t = 0; t < 150; t++) {
+        const [dx, dy] = WS_DIRS[dirs[Math.floor(Math.random() * dirs.length)]];
+        const x0 = Math.floor(Math.random() * size), y0 = Math.floor(Math.random() * size);
+        const x1 = x0 + dx * (key.length - 1), y1 = y0 + dy * (key.length - 1);
+        if (x1 < 0 || y1 < 0 || x1 >= size || y1 >= size) continue;
+        const cells = [];
+        let ok = true;
+        for (let i = 0; i < key.length; i++) {
+          const at = (y0 + dy * i) * size + (x0 + dx * i);
+          if (grid[at] && grid[at] !== key[i]) { ok = false; break; }
+          cells.push(at);
+        }
+        if (!ok) continue;
+        cells.forEach((at, i) => { grid[at] = key[i]; });
+        placed.push({ word: word, key: key, cells: cells, found: false });
+        break;
+      }
+    }
+    if (placed.length < theme.n) continue;
+    const empty = [];
+    grid.forEach((c, i) => { if (!c) empty.push(i); });
+    for (let r = 0; r < 40; r++) {
+      empty.forEach(i => { grid[i] = String.fromCharCode(65 + Math.floor(Math.random() * 26)); });
+      if (!wsRude_(grid, size)) {
+        placed.sort((a, b) => a.word.localeCompare(b.word));
+        return { theme: theme.id, size: size, grid: grid, words: placed, got: [], sel: null, said: '' };
+      }
+    }
+  }
+  return null;
+}
+
+const wsTheme_ = id => WS_THEMES.find(t => t.id === id) || WS_THEMES[0];
+
+function wsThemeId_(id) {
+  if (id !== undefined) {
+    try { localStorage.setItem('ws-theme', id); } catch (e) {}
+    return id;
+  }
+  let v = WS_THEMES[0].id;
+  try { v = localStorage.getItem('ws-theme') || v; } catch (e) {}
+  return wsTheme_(v).id;
+}
+
+let WS = null;
+
+function wsDeal_(id) {
+  WS = wsBuild_(wsTheme_(id));
+  if (!WS) WS = { theme: id, size: 0, grid: [], words: [], got: [], sel: null,
+                  said: 'That puzzle would not fit together. Press New puzzle.' };
+}
+
+/* THE CELLS FROM ONE TAP TO ANOTHER, or null if the two are not on one line — across, down, or a
+   true diagonal. The same cell twice is not a line either. */
+function wsLine_(size, a, b) {
+  const ax = a % size, ay = (a / size) | 0, bx = b % size, by = (b / size) | 0;
+  const dx = Math.sign(bx - ax), dy = Math.sign(by - ay);
+  const nx = Math.abs(bx - ax), ny = Math.abs(by - ay);
+  if (a === b || (nx && ny && nx !== ny)) return null;
+  const len = Math.max(nx, ny) + 1, out = [];
+  for (let i = 0; i < len; i++) out.push((ay + dy * i) * size + (ax + dx * i));
+  return out;
+}
+
+/* THE SECOND TAP. Read either way, because a child who taps the last letter first has still found
+   the word — and in an older puzzle the word may be written backwards anyway. */
+function wsPick_(i) {
+  const g = WS;
+  if (!g || !g.size || !(i >= 0 && i < g.grid.length)) return;
+  if (g.words.every(w => w.found)) return;
+  if (g.sel === null) { g.sel = i; g.said = ''; return; }
+  if (g.sel === i) { g.sel = null; g.said = ''; return; }
+  const cells = wsLine_(g.size, g.sel, i);
+  if (!cells) { g.sel = i; g.said = 'Not in a straight line — that letter is the new start.'; return; }
+  const s = cells.map(c => g.grid[c]).join('');
+  const r = s.split('').reverse().join('');
+  const hit = g.words.find(w => !w.found && (w.key === s || w.key === r));
+  g.sel = null;
+  if (!hit) { g.said = 'That’s not one of the words.'; return; }
+  hit.found = true;
+  hit.cells = cells;
+  cells.forEach(c => { if (g.got.indexOf(c) === -1) g.got.push(c); });
+  const left = g.words.filter(w => !w.found).length;
+  g.said = left ? 'Found ' + hit.word + '. ' + left + ' to go.'
+                : 'All ' + g.words.length + ' found!';
+}
+
+function wsPaint() {
+  const box = $('ws-grid'), list = $('ws-words'), said = $('ws-said'), sel = $('ws-theme');
+  if (!box || !WS) return;
+  if (sel) sel.value = WS.theme;
+  const done = WS.words.length && WS.words.every(w => w.found);
+  box.style.setProperty('--ws-n', String(WS.size || 1));
+  box.innerHTML = WS.grid.map((c, i) => {
+    const cls = ['ws-c'];
+    if (WS.got.indexOf(i) !== -1) cls.push('got');
+    if (WS.sel === i) cls.push('sel');
+    return `<button class="${cls.join(' ')}" data-do="ws-cell" data-i="${i}"`
+      + ` aria-pressed="${WS.sel === i}"${done ? ' disabled' : ''}>${esc(c)}</button>`;
+  }).join('');
+  if (list) {
+    list.innerHTML = WS.words.map(w => w.found
+      ? `<li class="got"><s>${esc(w.word)}</s></li>` : `<li>${esc(w.word)}</li>`).join('');
+  }
+  if (said) said.textContent = WS.said;
+}
+
+function initWordSearch() {
+  if (!$('ws-grid')) return;
+  const sel = $('ws-theme');
+  if (sel && !sel.options.length) {
+    const group = (young, label) => `<optgroup label="${label}">`
+      + WS_THEMES.filter(t => t.young === young)
+          .map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('')
+      + '</optgroup>';
+    sel.innerHTML = group(true, 'Younger — words read forwards')
+                  + group(false, 'Older — words go any way');
+  }
+  if (!WS) wsDeal_(wsThemeId_());
+  wsPaint();
+}
+
+on('ws-cell', el => { wsPick_(parseInt(el.getAttribute('data-i'), 10)); wsPaint(); });
+on('ws-again', () => { wsDeal_(WS ? WS.theme : wsThemeId_()); wsPaint(); });
+on('ws-theme', el => { wsDeal_(wsThemeId_(wsTheme_(el.value).id)); wsPaint(); });
+
+/* ==================================================================================================
    ARTICULATE — describe it without saying it.
 
    ASKED FOR AS "can we add articulate to the games widgets". The board game: you land on a
@@ -1606,13 +2268,13 @@ const ART_DECK = {
            'a farmer', 'a chef', 'a baker', 'a butcher', 'a builder', 'an electrician',
            'a carpenter', 'a hairdresser', 'a teacher', 'a head teacher', 'a dinner lady',
            'a gardener', 'a zookeeper', 'a pirate', 'a knight', 'a king', 'a queen', 'a princess',
-           'a wizard', 'a witch', 'a clown', 'an acrobat', 'a ringmaster', 'a ballerina', 'a DJ',
+           'a wizard', 'a fortune teller', 'a clown', 'an acrobat', 'a ringmaster', 'a ballerina', 'a DJ',
            'a newsreader', 'a journalist', 'a photographer', 'an author', 'a poet', 'a scientist',
            'an inventor', 'an explorer', 'a mountaineer', 'a sailor', 'a spy', 'a judge', 'a mayor',
            'a prime minister', 'a bus driver', 'a taxi driver', 'a lorry driver', 'a mechanic',
            'a pharmacist', 'an optician', 'a cashier', 'a shopkeeper', 'a waiter', 'a jockey',
            'a cowboy', 'a lumberjack', 'a fisherman', 'a scuba diver', 'a babysitter', 'a twin',
-           'a grandma', 'a neighbour', 'a toddler', 'a teenager', 'a football manager'
+           'a grandma', 'a pen pal', 'a toddler', 'a teenager', 'a football manager'
   ],
   Random: ['jet lag', 'a leap year', 'homesickness', 'a power cut', 'déjà vu', 'the alphabet',
            'a rumour', 'a traffic jam', 'small talk', 'a nickname', 'bad luck', 'an alibi',
@@ -2197,6 +2859,928 @@ on('imp-again', () => { impDeal_(IMP.n || impCount_()); impPaint(); });
 on('imp-players', () => { IMP = { phase: 'idle', n: 0, at: 0, shown: false, imp: 0, first: 0, cat: '', word: '' }; impPaint(); });
 
 /* ==================================================================================================
+   FIVE CLASSROOM GAMES — Just a Minute, Taboo, Hot Seat, 20 Questions and Alibi.
+
+   ASKED FOR AS A LIST, in the owner's own descriptions:
+     "Just a Minute - A student speaks continuously about a random topic for 60 seconds without
+      hesitating."
+     "Taboo - Students describe a secret word without using a list of forbidden related words."
+     "Hot Seat - The class shouts clues to help a student guess the word written on the board
+      behind them."
+     "20 Questions - The class asks up to 20 yes or no questions to deduce a secret person, place,
+      or thing."
+     "Alibi - Detectives interrogate two suspects separately to find inconsistencies in their
+      shared story."
+
+   NOT `ROUND_GAMES`, AND THE REASON IS ONE LINE OF `initRound`. That engine throws the round away
+   every time the widget starts — `roundAt[k] = null` — and a widget starts on every `repaint`,
+   which runs whenever a payload lands or anything saves. Articulate and Charades live with that;
+   these five were asked to keep their round through a repaint, and changing `initRound` under two
+   games nobody asked about is a change nobody asked for. So the clock is written once more, here,
+   for five — which is the same argument `ROUND_GAMES` makes for two.
+
+   THE CLOCK IS A DEADLINE, NOT A COUNTDOWN. `setInterval(…, 1000)` with `left--` loses up to a
+   second every time it is cleared and set again, and `toolsStart_` clears and sets every widget on
+   every repaint. So a running round holds `ends` (a moment) and a held one holds `left` (a length),
+   and the number on the screen is always one subtracted from the other.
+
+   `stop` IS CALLED IN TWO DIFFERENT SITUATIONS AND THEY MUST NOT BE TREATED ALIKE. `toolsStart_`
+   calls `toolsStop_` before every start, so a repaint with the Games column in front is a stop and
+   a start a moment apart; leaving the column is a stop on its own. `go` has already moved `AT` when
+   it stops the widgets, so `partyHere_` can tell them apart: a repaint carries on as if nothing
+   happened, and a column left behind is PAUSED until somebody presses Resume — a minute that runs
+   out while the phone is on another screen is a round nobody played.
+
+   NO SCORE IS KEPT BETWEEN ROUNDS, for Articulate's reason: the round's own count is on the screen
+   while it matters, and a running total belongs to the people playing.
+================================================================================================== */
+/* ---------- THE DECKS ------------------------------------------------------------------------------
+   EVERY ONE IS ABOUT SOMETHING A CHILD IN THE ROOM HAS HEARD OF, because a tutor is the one reading
+   it out and a card nobody can talk about is a round that stops dead.
+
+   AND NO ENTRY IS IN TWO OF THE WORD DECKS ON THIS COLUMN — these four and Articulate's and
+   Charades' — which `check-widgets.js` enforces, for the reason it gives about `Countdown`: a word
+   dealt twice in one sitting is a word the room already knows the answer to. Imposter is left out
+   of that comparison on purpose, and its own note says why.
+
+   JUST A MINUTE'S TOPICS ARE BROAD ON PURPOSE. A minute is long; "Hats" can fill it and "the
+   history of the bowler hat" cannot. */
+const JAM_DECK = [
+  'My perfect Saturday', 'The best invention ever', 'Breakfast', 'My dream holiday',
+  'Rainy days', 'Forests', 'Learning to ride a bike', 'Space travel', 'The perfect sandwich',
+  'Why homework exists', 'Being the youngest', 'Being the oldest', 'Snow days', 'Board games',
+  'The seaside', 'The perfect pet', 'Pets I would like', 'Things that make me laugh', 'Ice cream flavours',
+  'Superheroes', 'If I ruled the world', 'Inventing a new sport', 'My bedroom', 'Going underground',
+  'The smell of rain', 'Shoes', 'Grandparents', 'Camping', 'The moon', 'Wild animals', 'Nature walks',
+  'Video games', 'Bath time', 'Autumn leaves', 'Sleep', 'Musical instruments',
+  'The journey to school', 'Tidying up', 'Splashing about', 'Animals in the sea', 'Animals at night', 'The ocean floor',
+  'Trees', 'My favourite colour', 'Hats', 'Birds in the garden', 'Things I would invent', 'Time travel',
+  'Being invisible for a day', 'Flying cars', 'The best smell in the world', 'Cooking',
+  'Gardening', 'Maths', 'Why we go to school', 'My favourite animal', 'Mobile phones', 'Tiny things', 'The sun',
+  'Mountains', 'Rivers', 'Treasure', 'Things that need batteries', 'A day without screens', 'Ghost stories', 'The Romans',
+  'The ancient Egyptians', 'Things that fly', 'Farm animals', 'Big cats', 'The jungle', 'The Arctic',
+  'My best friend', 'Lucky things', 'Keeping a secret', 'Making new friends', 'Being brave', 'Things I am good at', 'Something I would like to learn', 'Old toys', 'Staying up late',
+  'Farms', 'Circuses', 'Theme parks', 'Roller coasters', 'Running', 'Dancing', 'Singing',
+  'Drawing', 'Reading', 'Writing stories', 'Comics', 'Cartoons', 'Haircuts', 'Teeth',
+  'My favourite book', 'Manners', 'Shopping', 'Money', 'Saving up', 'Pocket money', 'Chores', 'Weather',
+  'Thunder', 'Windy days', 'Summer holidays', 'The first day of school', 'Lost property',
+  'Lunchtime', 'Packed lunches', 'School dinners', 'Digging in the garden', 'Origami',
+  'Lego', 'Slime', 'Magic tricks', 'Quiet places', 'Building a den', 'Picnics', 'Big cities',
+  'Bread', 'Cheese', 'Getting up in the morning', 'Vegetables I like', 'Vegetables I do not like', 'Fruit',
+  'Cereal', 'Toast', 'Soup', 'Puddings', 'Sweets', 'Biscuits', 'My best day ever',
+  'The worst present I ever got', 'What I want to be when I grow up', 'Holidays at home',
+  'Car journeys', 'Aeroplanes', 'Boats', 'Buses', 'Lazy Sundays', 'Tall buildings', 'Museums',
+  'Football boots', 'Pet fish', 'My favourite film', 'Cats', 'Sports day', 'Hamsters', 'School trips',
+  'Fairy tales', 'People I look up to', 'Bugs in the garden', 'Stars', 'Planets', 'Saving the planet', 'Swimming lessons',
+  'Mysteries', 'Kings and queens', 'Puzzles', 'Myths and legends', 'Numbers', 'Shapes', 'Team games',
+  'Hot places', 'Seasons', 'Winter', 'Spring', 'Summer', 'Autumn',
+];
+
+/* TABOO: THE WORD, THEN THE FIVE YOU MAY NOT SAY. The five are the words anybody would reach for
+   first — which is the whole game — so they are the obvious ones, not the clever ones. */
+const TABOO_DECK = [
+  ['pizza', 'cheese', 'Italy', 'slice', 'tomato', 'topping'],
+  ['library', 'books', 'borrow', 'quiet', 'read', 'shelves'],
+  ['birthday', 'cake', 'candles', 'party', 'present', 'age'],
+  ['snowman', 'snow', 'carrot', 'winter', 'build', 'melt'],
+  ['space suit', 'space', 'astronaut', 'helmet', 'wear', 'moon'],
+  ['dinosaur', 'extinct', 'T. rex', 'fossil', 'reptile', 'Jurassic'],
+  ['penalty kick', 'football', 'goal', 'spot', 'shoot', 'keeper'],
+  ['eye patch', 'pirate', 'eye', 'cover', 'black', 'one'],
+  ['toothpaste', 'teeth', 'brush', 'tube', 'mint', 'white'],
+  ['volcanic eruption', 'lava', 'mountain', 'explode', 'ash', 'hot'],
+  ['cornflakes', 'cereal', 'breakfast', 'milk', 'bowl', 'corn'],
+  ['ice skates', 'ice', 'rink', 'blades', 'skate', 'boots'],
+  ['jelly beans', 'sweets', 'jelly', 'beans', 'colourful', 'chewy'],
+  ['rainforest', 'trees', 'Amazon', 'jungle', 'wet', 'animals'],
+  ['homework', 'school', 'teacher', 'evening', 'worksheet', 'due'],
+  ['pencil case', 'pens', 'school', 'zip', 'bag', 'pencils'],
+  ['hula hoop', 'hips', 'spin', 'circle', 'plastic', 'wiggle'],
+  ['cobweb', 'spider', 'web', 'dust', 'corner', 'sticky'],
+  ['bicycle', 'pedal', 'wheels', 'ride', 'helmet', 'bike'],
+  ['popcorn', 'cinema', 'corn', 'pop', 'butter', 'snack'],
+  ['ghost', 'scary', 'haunted', 'boo', 'sheet', 'spirit'],
+  ['castle', 'king', 'tower', 'moat', 'drawbridge', 'stone'],
+  ['rocket', 'space', 'launch', 'blast off', 'astronaut', 'fly'],
+  ['dragon', 'fire', 'wings', 'breathe', 'myth', 'scales'],
+  ['sticky tape', 'stick', 'roll', 'clear', 'wrap', 'Sellotape'],
+  ['lifejacket', 'boat', 'float', 'water', 'safety', 'wear'],
+  ['pyjamas', 'bed', 'sleep', 'night', 'wear', 'clothes'],
+  ['zebra', 'stripes', 'horse', 'Africa', 'black', 'white'],
+  ['scrambled eggs', 'eggs', 'breakfast', 'toast', 'mix', 'yellow'],
+  ['hospital', 'doctor', 'nurse', 'ill', 'ward', 'ambulance'],
+  ['combine harvester', 'farm', 'wheat', 'field', 'machine', 'crops'],
+  ['robot', 'machine', 'metal', 'beep', 'computer', 'program'],
+  ['unicorn', 'horn', 'horse', 'magic', 'rainbow', 'myth'],
+  ['scuba tank', 'diving', 'air', 'underwater', 'oxygen', 'back'],
+  ['raincoat', 'rain', 'wet', 'coat', 'hood', 'waterproof'],
+  ['throne', 'king', 'queen', 'chair', 'royal', 'sit'],
+  ['carrot', 'orange', 'vegetable', 'rabbit', 'root', 'eat'],
+  ['magnet', 'attract', 'metal', 'fridge', 'north', 'pull'],
+  ['tape measure', 'measure', 'metres', 'long', 'ruler', 'centimetres'],
+  ['skeleton', 'bones', 'body', 'skull', 'Halloween', 'ribs'],
+  ['cocoon', 'caterpillar', 'butterfly', 'silk', 'change', 'wrap'],
+  ['train', 'track', 'station', 'carriage', 'railway', 'driver'],
+  ['safari', 'Africa', 'animals', 'jeep', 'lions', 'wild'],
+  ['sunflower', 'yellow', 'tall', 'seeds', 'petals', 'flower'],
+  ['bathtub', 'water', 'bubbles', 'wash', 'bathroom', 'soak'],
+  ['honey', 'bee', 'sweet', 'sticky', 'jar', 'golden'],
+  ['clock', 'time', 'hands', 'tick', 'hour', 'wall'],
+  ['moustache', 'face', 'hair', 'lip', 'beard', 'shave'],
+  ['lettuce', 'salad', 'green', 'leaves', 'vegetable', 'rabbit'],
+  ['treasure map', 'X', 'pirate', 'dig', 'gold', 'island'],
+  ['microscope', 'small', 'lens', 'science', 'look', 'cells'],
+  ['banana', 'yellow', 'fruit', 'peel', 'monkey', 'bunch'],
+  ['scarecrow', 'farm', 'birds', 'straw', 'field', 'crows'],
+  ['roller blades', 'skates', 'wheels', 'roll', 'boots', 'skating'],
+  ['suit of armour', 'knight', 'metal', 'wear', 'castle', 'protect'],
+  ['lemon', 'yellow', 'sour', 'fruit', 'juice', 'citrus'],
+  ['firework', 'bang', 'sky', 'night', 'November', 'sparkle'],
+  ['midnight snack', 'night', 'food', 'kitchen', 'sleep', 'eat'],
+  ['school bus', 'yellow', 'children', 'ride', 'driver', 'morning'],
+  ['paintbrush', 'paint', 'art', 'bristles', 'colour', 'canvas'],
+  ['zip wire', 'slide', 'rope', 'fast', 'harness', 'trees'],
+  ['igloo', 'ice', 'snow', 'house', 'cold', 'dome'],
+  ['boomerang', 'Australia', 'throw', 'come back', 'curved', 'wood'],
+  ['spaceship', 'alien', 'fly', 'space', 'UFO', 'rocket'],
+  ['tooth fairy', 'tooth', 'pillow', 'money', 'night', 'fairy'],
+  ['toffee apple', 'apple', 'sticky', 'sweet', 'stick', 'fair'],
+  ['strawberry', 'red', 'fruit', 'seeds', 'cream', 'summer'],
+  ['climbing frame', 'climb', 'playground', 'bars', 'monkey', 'park'],
+  ['hot chocolate', 'drink', 'warm', 'cocoa', 'mug', 'marshmallows'],
+  ['magic wand', 'magic', 'wizard', 'spell', 'stick', 'wave'],
+  ['garden', 'grass', 'flowers', 'outside', 'plants', 'shed'],
+  ['bakery', 'bread', 'cakes', 'shop', 'oven', 'bake'],
+  ['swimming pool', 'water', 'swim', 'dive', 'lane', 'chlorine'],
+  ['broccoli', 'green', 'vegetable', 'tree', 'healthy', 'florets'],
+  ['tractor', 'farm', 'field', 'drive', 'wheels', 'plough'],
+  ['alien', 'space', 'green', 'Mars', 'UFO', 'planet'],
+  ['handbag', 'bag', 'carry', 'purse', 'shoulder', 'strap'],
+  ['football pitch', 'grass', 'goal', 'lines', 'play', 'match'],
+  ['snowball', 'snow', 'throw', 'cold', 'round', 'fight'],
+  ['school bell', 'ring', 'school', 'break', 'loud', 'lesson'],
+  ['marshmallow', 'soft', 'pink', 'white', 'toast', 'sweet'],
+  ['abacus', 'beads', 'count', 'maths', 'wires', 'add'],
+  ['zoo', 'animals', 'cages', 'visit', 'keeper', 'lion'],
+  ['blanket', 'bed', 'warm', 'cover', 'wool', 'snuggle'],
+  ['bubblegum', 'chew', 'blow', 'pink', 'sticky', 'pop'],
+  ['egg cup', 'egg', 'boiled', 'breakfast', 'cup', 'spoon'],
+  ['bookcase', 'books', 'shelves', 'wood', 'library', 'furniture'],
+  ['traffic lights', 'red', 'green', 'amber', 'road', 'stop'],
+  ['gravy', 'sauce', 'roast', 'brown', 'meat', 'dinner'],
+  ['rollercoaster', 'ride', 'fast', 'theme park', 'loop', 'scream'],
+  ['potato', 'chips', 'vegetable', 'mash', 'jacket', 'crisps'],
+  ['cardigan', 'wool', 'jumper', 'buttons', 'wear', 'knit'],
+  ['bridge', 'river', 'cross', 'over', 'water', 'road'],
+  ['rainstorm', 'rain', 'wet', 'clouds', 'umbrella', 'heavy'],
+  ['satchel', 'bag', 'leather', 'school', 'strap', 'books'],
+  ['surfboard', 'waves', 'sea', 'beach', 'stand', 'ride'],
+  ['playground', 'swings', 'slide', 'school', 'break', 'play'],
+  ['nest', 'bird', 'eggs', 'tree', 'twigs', 'build'],
+  ['leaf', 'tree', 'green', 'autumn', 'fall', 'plant'],
+  ['oasis', 'desert', 'water', 'palm', 'sand', 'island'],
+  ['pillow fight', 'pillow', 'feathers', 'bed', 'hit', 'sleepover'],
+  ['mud', 'dirty', 'wet', 'brown', 'puddle', 'pig'],
+  ['crisps', 'packet', 'salt', 'potato', 'crunch', 'snack'],
+  ['wooden spoon', 'spoon', 'stir', 'kitchen', 'wood', 'cooking'],
+  ['snowboard', 'snow', 'mountain', 'board', 'ski', 'slope'],
+  ['cupcake', 'cake', 'icing', 'small', 'bake', 'sprinkles'],
+  ['birdhouse', 'bird', 'box', 'garden', 'nest', 'wood'],
+  ['lily pad', 'pond', 'frog', 'float', 'leaf', 'water'],
+  ['map', 'directions', 'country', 'lost', 'paper', 'roads'],
+  ['grandad', 'old', 'grandma', 'family', 'dad', 'grandparent'],
+  ['bus stop', 'wait', 'bus', 'sign', 'road', 'shelter'],
+  ['ketchup', 'red', 'sauce', 'tomato', 'chips', 'bottle'],
+  ['science fair', 'science', 'experiment', 'school', 'project', 'show'],
+  ['doorknob', 'door', 'handle', 'turn', 'open', 'round'],
+  ['hot-water bottle', 'warm', 'bed', 'rubber', 'cold', 'fill'],
+  ['fingerprint', 'finger', 'print', 'police', 'clue', 'swirl'],
+  ['stopwatch', 'time', 'race', 'seconds', 'start', 'clock'],
+  ['bookworm', 'read', 'books', 'worm', 'library', 'love'],
+  ['greenhouse', 'glass', 'plants', 'garden', 'warm', 'grow'],
+  ['cuckoo clock', 'bird', 'time', 'Switzerland', 'wooden', 'hour'],
+  ['water bottle', 'drink', 'plastic', 'fill', 'thirsty', 'lid'],
+  ['snowdrop', 'flower', 'white', 'winter', 'spring', 'snow'],
+  ['goldfish', 'orange', 'bowl', 'pet', 'swim', 'memory'],
+  ['tennis racket', 'ball', 'strings', 'hit', 'court', 'sport'],
+  ['skyscraper', 'tall', 'building', 'city', 'floors', 'lift'],
+  ['rubber duck', 'bath', 'yellow', 'toy', 'float', 'quack'],
+  ['sunglasses', 'sun', 'eyes', 'dark', 'summer', 'wear'],
+  ['shepherd’s pie', 'potato', 'mince', 'meat', 'oven', 'dinner'],
+  ['moon landing', 'moon', 'astronaut', 'Apollo', 'step', 'space'],
+  ['pin cushion', 'pins', 'sewing', 'needle', 'soft', 'prick'],
+  ['braces', 'teeth', 'metal', 'dentist', 'straighten', 'smile'],
+  ['cardboard box', 'cardboard', 'brown', 'packing', 'move', 'square'],
+];
+
+/* HOT SEAT: THINGS, NOT IDEAS. The class shouts clues at somebody who cannot see the word, so it has
+   to be a thing everybody in the room can describe in a hurry. */
+const HOT_DECK = [
+  'pineapple', 'sledge', 'lantern', 'footstool', 'mittens', 'lobster', 'saxophone', 'windmill',
+  'fire engine', 'wardrobe', 'doughnut', 'tiara', 'paddling pool', 'snorkel', 'coconut',
+  'treehouse', 'jet ski', 'yo-yo', 'wellington boots', 'xylophone', 'raft', 'pumpkin',
+  'scooter', 'spanner', 'radish', 'watermelon', 'cauliflower', 'bagpipes', 'snowplough',
+  'ferris wheel', 'hot-air balloon', 'cannon', 'parachute', 'shopping basket', 'apron',
+  'tambourine', 'tuba', 'sausage', 'meringue', 'kiwi fruit', 'avocado', 'mango', 'cherry',
+  'grapes', 'plum', 'pepper', 'cucumber', 'sweetcorn', 'peas', 'fish pie', 'lasagne',
+  'burrito', 'crumpet', 'fish and chips', 'hosepipe', 'flapjack', 'trifle', 'custard',
+  'porridge', 'muffin', 'croissant', 'bagel', 'pretzel', 'waffle', 'smoothie', 'milkshake',
+  'lemonade', 'orange juice', 'kazoo', 'cello', 'flute', 'recorder', 'harp', 'banjo',
+  'accordion', 'maracas', 'triangle', 'cymbals', 'ukulele', 'drumsticks', 'helicopter',
+  'canoe', 'tram', 'police car', 'motorbike', 'lorry', 'ferry', 'cable car', 'go-kart',
+  'tandem', 'unicycle', 'roller skates', 'pogo stick', 'space hopper', 'helter-skelter',
+  'climbing wall', 'bowling ball', 'dartboard', 'chessboard', 'playing cards', 'dice',
+  'marbles', 'teddy bear', 'rocking horse', 'doll’s house', 'toy garage', 'kaleidoscope',
+  'magnifying glass', 'binoculars', 'globe', 'atlas', 'dictionary', 'encyclopaedia',
+  'notebook', 'pencil sharpener', 'protractor', 'set square', 'highlighter', 'crayon',
+  'felt-tip pen', 'chalk', 'blackboard', 'easel', 'paint palette', 'clay', 'glitter',
+  'tinsel', 'bauble', 'stocking', 'wreath', 'snow globe', 'cracker', 'paper chain', 'stilts',
+  'bus ticket', 'feather duster', 'nutcracker', 'tutu', 'gazebo', 'fountain', 'bird table',
+];
+
+/* 20 QUESTIONS: A PERSON, A PLACE OR A THING, and the people are from history lessons and books
+   rather than from this week's news — a living celebrity is a card some families would rather not
+   have read out, and one a ten-year-old may never have heard of. */
+const TWQ_DECK = {
+  Person: [
+    'Isaac Newton', 'Florence Nightingale', 'Albert Einstein', 'William Shakespeare',
+    'Queen Victoria', 'Henry VIII', 'Charles Darwin', 'Marie Curie', 'Neil Armstrong',
+    'Amelia Earhart', 'Leonardo da Vinci', 'Mary Seacole', 'Julius Caesar', 'Cleopatra',
+    'Tutankhamun', 'Rosa Parks', 'Nelson Mandela', 'Martin Luther King', 'Emmeline Pankhurst',
+    'Winston Churchill', 'Isambard Kingdom Brunel', 'Ada Lovelace', 'Alan Turing',
+    'Grace Darling', 'Guy Fawkes', 'King Arthur', 'Father Christmas', 'Charles Dickens',
+    'Sherlock Holmes', 'Boudicca', 'Thomas Edison', 'Galileo', 'Christopher Columbus',
+    'Beatrix Potter', 'Roald Dahl', 'Mozart', 'Elizabeth I', 'Louis Braille', 'Sir Francis Drake',
+    'Mickey Mouse', 'Wonder Woman', 'Anne Frank', 'Jane Austen', 'Captain Cook',
+  ],
+  Place: [
+    'Mars', 'Jupiter', 'Saturn', 'Venus', 'Neptune', 'Africa', 'Lapland', 'London', 'Cardiff',
+    'Disneyland', 'a dentist’s waiting room', 'a lifeboat station', 'a fish market', 'a fire station',
+    'an attic', 'a bamboo forest', 'a coral island', 'a farmyard',
+    'a football stadium', 'a swimming baths', 'a canal boat', 'a space station',
+    'a log cabin', 'a bus garage', 'an aquarium', 'a toy shop', 'a post office',
+    'a seesaw', 'a vegetable patch', 'a haunted house', 'the top of a mountain',
+    'the bottom of the sea', 'a matchbox', 'a supermarket checkout', 'a laundrette',
+    'a car wash', 'a petrol station', 'a harbour', 'a pet shop', 'a sweet shop',
+    'an ice rink', 'a village hall', 'a cruise ship', 'a recording studio',
+  ],
+  Thing: [
+    'a cork', 'a teaspoon', 'a safety pin', 'a paper clip', 'a fork', 'a door handle',
+    'a flower pot', 'a light switch', 'a piggy bank', 'a crown', 'a sugar cube', 'a pine cone',
+    'a pine needle', 'a pebble', 'a seashell', 'a raindrop', 'a cloud', 'a pair of glasses',
+    'a thimble', 'a key', 'a coin', 'a banknote', 'a tennis ball', 'a rugby ball',
+    'a cricket bat', 'a golf club', 'a hockey stick', 'a frisbee', 'a bowl of cereal',
+    'a slice of toast', 'a boiled egg', 'an apple core', 'a peach stone', 'a jam jar',
+    'a cup of tea', 'a glass of milk', 'a bar of soap', 'a towel', 'a sock', 'a woolly hat',
+    'a nail file', 'a car tyre', 'a traffic cone', 'a lunch tray',
+  ],
+};
+
+/* ALIBI'S FOUR LISTS ARE DEALT SEPARATELY, so a case is one of each: what happened, when, and where
+   the two suspects say they were. The "crimes" are the kind a classroom can laugh about — a biscuit,
+   a hamster, a moustache on a photograph — because the game is the questioning, not the crime. */
+const ALB_CRIMES = [
+  'The last chocolate biscuit vanished from the staffroom tin.',
+  'Somebody let the class hamster out of its cage.',
+  'The head teacher’s favourite mug turned up in the sandpit.',
+  'Every pencil in Class 4 was sharpened down to a stub.',
+  'The school trophy went missing from the glass cabinet.',
+  'A whole birthday cake disappeared from the kitchen.',
+  'The garden gnome was moved to the roof of the shed.',
+  'Somebody ate the cherry off the top of every cupcake.',
+  'The TV remote was found inside the fridge.',
+  'All the left shoes in the house were hidden.',
+  'The dog was given a bath in the paddling pool without asking.',
+  'Somebody drew a moustache on the family photo.',
+  'The last slice of pizza was eaten and the box put back.',
+  'The class register was found in the lost property box.',
+  'The neighbour’s prize marrow went missing before the show.',
+  'Somebody swapped the sugar for salt.',
+  'The football went over the fence and never came back.',
+  'Every cushion on the sofa was turned inside out.',
+  'The library book was returned with a jam stain on page 40.',
+  'The goldfish has a new castle and nobody bought one.',
+  'The swing in the park was tied in a knot.',
+  'Somebody hid the Wi-Fi router in the airing cupboard.',
+  'The spare key under the mat has gone.',
+  'A trail of muddy footprints leads to the bath.',
+  'The ice lollies in the freezer were all half-eaten.',
+  'The bunting for the school fair is wrapped round a tree.',
+  'Somebody set every clock in the house ten minutes fast.',
+  'The class plant was watered with orange squash.',
+  'A painting in the hall was hung upside down.',
+  'The cat is wearing a bow tie and nobody knows why.',
+  'Somebody used all the hot water before school.',
+  'The cereal box was put back with one cornflake inside.',
+  'A sandcastle competition entry was flattened overnight.',
+  'The bake sale money tin is five pounds short.',
+  'The new trampoline has a sock stuck in the springs.',
+  'Somebody ate the decorations off the gingerbread house.',
+  'The snowman’s carrot nose has disappeared.',
+  'The whiteboard pens have all run dry overnight.',
+  'Somebody changed the password on the family tablet.',
+  'The hamster wheel was found in the dolls’ house.',
+  'The best felt-tip pens were left with their lids off.',
+  'Every sock in the drawer has lost its partner.',
+  'Somebody let the air out of the bike tyres.',
+  'The class quiz answers were seen on the photocopier.',
+  'The chocolate coins from the advent calendar are gone.',
+  'A school jumper was found on the scarecrow.',
+  'The lunchtime bell rang ten minutes early.',
+  'Somebody hid the board game dice.',
+  'The garden was covered in glitter.',
+  'The last pancake was taken from the plate.',
+  'A recorder was left in the fish tank.',
+  'Somebody filled the welly boots with rice.',
+  'The shop window display was rearranged into a smiley face.',
+  'The baking competition cake had a bite taken out of it.',
+  'The tortoise escaped and was found in the kitchen.',
+  'Every ball in the PE cupboard has gone flat.',
+  'Somebody ate the strawberries meant for the jam.',
+  'The best seat on the bus was saved with a lunchbox.',
+  'The class pet stick insect is missing.',
+  'The doorbell was rung and nobody was there, three times.',
+  'Somebody wrote the answers to the spelling test on the window.',
+  'The washing on the line was rearranged by colour.',
+  'The jigsaw is finished but one piece is missing.',
+  'The family car was washed with washing-up liquid and is now foamy.',
+  'Somebody took the batteries out of the clock.',
+  'The garden hose was left on all night.',
+  'The cake for the school fair has a fingerprint in the icing.',
+  'Somebody stuck googly eyes on every apple in the bowl.',
+  'The sports day medals were found in the bin.',
+  'The chalk drawings on the playground were washed off.',
+  'Somebody ate the last of the birthday sweets.',
+  'The paper aeroplane landed on the head teacher.',
+  'A biscuit was dunked and lost in Grandma’s tea.',
+  'The pet rabbit was found in the neighbour’s garden.',
+  'Somebody hid the TV remote inside a slipper.',
+  'All the coat pegs were swapped round.',
+  'The football team’s kit came back pink from the wash.',
+  'Somebody blew out the candles before the birthday song.',
+  'The class story was finished with a different ending.',
+  'The biscuit tin was refilled with sprouts.',
+  'A bag of flour exploded in the kitchen.',
+  'Somebody ate the crusts off every sandwich.',
+  'The lemonade has gone flat because the lid was left off.',
+  'The new library book has a bookmark made of bacon.',
+  'Somebody painted the fence the wrong colour.',
+  'The family photo album is missing its holiday pictures.',
+  'The class register says somebody was in two places at once.',
+  'The tooth under a pillow was swapped for a button.',
+  'The dog’s ball was hidden in the washing machine.',
+  'Somebody wore the school mascot costume to the shops.',
+  'The plant on the windowsill has been turned round every day.',
+  'The bread was put in the toaster and forgotten.',
+  'Every pen in the pot is a different colour from its lid.',
+  'The bath overflowed while the tap was running.',
+  'The last chocolate in the box was a coffee one and somebody swapped it.',
+  'Somebody put a whoopee cushion on the head teacher’s chair.',
+  'The stairs were turned into a slide with a duvet.',
+  'All the apples were taken from the tree next door.',
+  'The scooter was left on the front path again.',
+  'Somebody used the good scissors to cut paper.',
+  'The ketchup bottle was put back empty.',
+  'The garden swing was moved two metres to the left.',
+  'The shopping list now says “sweets” twenty times.',
+  'Somebody fed the cat twice this morning.',
+  'The sandpit has a hole in it as deep as a bucket.',
+  'Grandad’s glasses were found in the biscuit tin.',
+  'The pencil case was stuffed with grass.',
+  'A drawing on the fridge has been signed by somebody else.',
+  'The kite is stuck at the top of the tallest tree.',
+  'Somebody opened every door of the advent calendar at once.',
+  'The class goldfish was given a new name without a vote.',
+  'The ice rink tickets went missing on the morning of the trip.',
+  'Somebody ate the marshmallows meant for the campfire.',
+  'The pirate costume for the school play has lost its hat.',
+  'A trail of crumbs leads from the kitchen to the garden.',
+  'The robot vacuum was found stuck under the bed.',
+  'Somebody hid every teaspoon in the house.',
+  'The Lego tower in the front room was knocked down.',
+  'The last yoghurt was eaten and the pot put back in the fridge.',
+  'Every book on the shelf is now in alphabetical order by colour.',
+  'The snow on the trampoline was made into a giant face.',
+];
+
+const ALB_TIMES = [
+  'last Saturday at 3 pm', 'yesterday at lunchtime', 'on Tuesday after school',
+  'this morning before breakfast', 'on Sunday afternoon', 'last night at about 8 pm',
+  'on Friday at break time', 'on Wednesday at 4.30 pm', 'during the school assembly',
+  'on Monday just after tea', 'on the first day of half term', 'last Thursday at 6 pm',
+  'on Saturday morning at 10', 'yesterday at 5 pm', 'this afternoon at 2',
+  'during the fire drill', 'on bonfire night', 'on the last day of term',
+  'during the bake sale', 'on Sunday morning at 9', 'after swimming club on Wednesday',
+  'on Friday evening', 'during the school trip', 'at tea time yesterday',
+];
+
+const ALB_PLACES = [
+  'at the park feeding the ducks', 'at the swimming pool', 'at the library',
+  'at Grandma’s house', 'at the cinema', 'at the shops with an adult', 'at football practice',
+  'at a friend’s birthday party', 'at the bowling alley', 'at the beach',
+  'at the dentist’s', 'at the bus stop', 'in the school playground', 'at a café',
+  'at the zoo', 'at the garden centre', 'on a bike ride', 'at the museum', 'at the farm shop',
+  'in the back garden', 'at a music lesson', 'at the ice rink', 'at Scouts', 'at the leisure centre',
+  'on a dog walk', 'at a car boot sale', 'at the barber’s', 'at the train station',
+  'at the pet shop', 'at the skate park', 'at a picnic', 'at the allotment', 'at the post office',
+  'at gymnastics', 'at a play rehearsal', 'at the supermarket', 'at the fair', 'at the vet’s',
+  'at the theatre', 'at a cousin’s house', 'at a sports match', 'on a nature walk',
+  'at the trampoline park', 'at the climbing wall', 'at an art club', 'at the aquarium',
+];
+
+const ALB_QUESTIONS = [
+  'What time did you meet?', 'Who arrived first?', 'What were you wearing?',
+  'What was your friend wearing?', 'How did you get there?', 'How did you get home?',
+  'What did you eat?', 'What did you drink?', 'Who paid?', 'How much did it cost?',
+  'What was the weather like?', 'Did you see anybody you knew?', 'What did you talk about?',
+  'What colour was the front door?', 'Was it busy or quiet?', 'Did anybody take a photo?',
+  'What was the funniest thing that happened?', 'What did you buy?', 'Where did you sit?',
+  'Which of you was carrying a bag?', 'What was in the bag?', 'Did anything go wrong?',
+  'What time did you leave?', 'Did you stop anywhere on the way?', 'Who else was there?',
+  'What music was playing?', 'Was anybody there wearing a hat?', 'What did you see out of the window?',
+  'Did you lose anything?', 'Did you hear any loud noises?', 'What was the last thing you said to each other?',
+  'Who suggested going there?', 'What were you planning to do afterwards?', 'Did you use a phone?',
+  'Who did you phone or message?', 'Was there a dog?', 'What did the person serving look like?',
+  'What did you do first?', 'What did you do last?', 'How long were you there?',
+  'Did you get wet?', 'Were you hot or cold?', 'Did either of you fall over?',
+  'What shoes were you wearing?', 'Did you play a game? Who won?', 'Did you see a clock?',
+  'What did you smell?', 'What colour was the car you came in?', 'Who opened the door?',
+  'What was on the table?', 'Did you share anything?', 'Who was in charge?',
+  'What did you laugh about?', 'Did you argue about anything?', 'What did you leave behind?',
+  'What number was the bus?', 'Was there a queue?', 'What did you have in your pockets?',
+  'Who carried the shopping?', 'Did you wash your hands?', 'Did you see any animals?',
+  'What did you spend your money on?', 'Was it light or dark when you left?',
+  'What was the first thing you noticed when you arrived?', 'Who went to the toilet first?',
+  'Did anybody ask you a question?', 'Which way did you walk?', 'What did you pass on the way?',
+  'Who chose what you ate?', 'Was there a television on?', 'What was on the television?',
+  'Did you take a coat?', 'What colour were the walls?', 'Did you see a clock tower?',
+  'What did you do with your rubbish?', 'Who had the keys?', 'Did you go upstairs?',
+  'What did you hear a grown-up say?', 'How many people were in your group?', 'Did you win anything?',
+  'What was written on the sign outside?', 'Did you get a receipt?', 'Was there a puddle anywhere?',
+  'What did your friend order?', 'Who said goodbye first?', 'What did you do while you waited?',
+  'Did either of you get a text?', 'What was the best part?', 'What was the worst part?',
+  'Did you see anything strange?', 'Did you take the stairs or the lift?', 'Was the radio on in the car?',
+  'Did you hold anything for your friend?', 'What did you forget?', 'Did anybody sneeze?',
+  'Did you see a bike?', 'What did you have for pudding?', 'How did you know what time it was?',
+  'Were the lights on?', 'Who sat on the left?', 'Did you have an umbrella?',
+  'What was the person in front of you wearing?', 'Did you drop anything?', 'Did you make any plans?',
+  'Who laughed the loudest?', 'What was in your friend’s hands?', 'Was there a window open?',
+  'What did you see on the way home?', 'Did you sing anything?', 'Did you tell anybody where you were going?',
+  'Who did you wave to?', 'What did you buy as a treat?', 'What was the shop assistant’s name badge?',
+  'Did you see a police car?', 'Was it raining when you arrived?', 'Who was the last to leave?',
+  'Did you write anything down?', 'What game were people playing nearby?', 'Did you have a drink with ice?',
+  'What did you do with your coat?', 'Did you get a ticket?', 'Where did you put your bags?',
+];
+
+const PARTY = { jam: null, tab: null, hot: null, twq: null, alb: null };
+const PARTY_TICK = {};
+
+/* EVERY ROUND IS DEALT FROM A SHUFFLED PILE, refilled when it runs out — `herdShuffle_` for the
+   reason its own note gives — so nothing comes round twice until everything has. */
+const PARTY_PILE = {};
+function partyDraw_(key, list) {
+  if (!PARTY_PILE[key] || !PARTY_PILE[key].length) PARTY_PILE[key] = herdShuffle_(list);
+  return PARTY_PILE[key].pop();
+}
+
+function partyMs_(s) { return s ? (s.ends ? Math.max(0, s.ends - Date.now()) : (s.left || 0)) : 0; }
+function partyClock_(s) { return roundClock_(Math.ceil(partyMs_(s) / 1000)); }
+
+/* WHERE A STOP CAME FROM: is this game's own card on the screen in front? Asked of the DOM rather
+   than of the column's name, and the first version is why. It said `AT === 'saved'` counts as here,
+   because the Saved column holds starred games — true of a STARRED game and false of every other,
+   so swiping from Games to Saved left a Taboo minute running on a card that was on no screen, and it
+   ran out there: the exact fault the pause exists for. A repaint with the Games column in front still
+   finds the card, because `paint` has put the new markup in before `toolsStart_` stops anything. */
+function partyHere_(k) {
+  if (typeof AT === 'undefined') return true;
+  const scr = document.getElementById('s-' + AT);
+  return !!(scr && scr.querySelector('#' + k + '-card'));
+}
+
+function partyRun_(k) {
+  const s = PARTY[k];
+  if (!s) return;
+  clearInterval(PARTY_TICK[k]);
+  s.run = true;
+  s.ends = Date.now() + s.left;
+  PARTY_TICK[k] = setInterval(() => partyTick_(k), 250);
+}
+
+function partyHold_(k) {
+  clearInterval(PARTY_TICK[k]);
+  PARTY_TICK[k] = 0;
+  const s = PARTY[k];
+  if (s && s.ends) { s.left = partyMs_(s); s.ends = 0; }
+}
+
+/* THE TICK WRITES THE CLOCK AND NOTHING ELSE. A full paint four times a second would rebuild the
+   buttons under somebody's finger — a press that lands on an element replaced mid-tap is a press
+   that does nothing. The card is painted when the STATE changes; the clock is the one thing that
+   changes on its own. */
+function partyTick_(k) {
+  const s = PARTY[k];
+  if (!s || !s.ends) { partyHold_(k); return; }
+  if (partyMs_(s) <= 0) {
+    partyHold_(k);
+    s.left = 0;
+    s.run = false;
+    PARTY_GAMES[k].end(s);
+    PARTY_GAMES[k].paint();
+    return;
+  }
+  const c = $(k + '-left');
+  if (c) c.textContent = partyClock_(s);
+}
+
+/* THE WIDGET'S `start`: redraw what is in progress, and set a clock running again if a repaint is
+   all that stopped it. */
+function partyStart_(k) {
+  const s = PARTY[k];
+  if (s && s.run && !s.ends && s.left > 0) partyRun_(k);
+  if (PARTY_GAMES[k]) PARTY_GAMES[k].paint();
+}
+
+/* THE WIDGET'S `stop`. Always holds the clock; pauses the round only when the column has really
+   gone. A secret on the screen goes with it, which is Imposter's rule: a column swiped away and
+   back is exactly how the next person would see it. */
+function partyStop_(k) {
+  partyHold_(k);
+  if (partyHere_(k)) return;
+  const s = PARTY[k];
+  if (!s) return;
+  s.run = false;
+  if (k === 'twq' && s.phase === 'shown') s.phase = 'hand';
+  if (PARTY_GAMES[k]) PARTY_GAMES[k].paint();
+}
+
+on('party-resume', el => {
+  const k = el.getAttribute('data-g');
+  const s = PARTY[k];
+  if (!s || s.phase !== 'go' || s.left <= 0) return;
+  partyRun_(k);
+  PARTY_GAMES[k].paint();
+});
+
+/* ONE PAINT FOR THE PAUSED CARD, because all four timed games pause the same way and say nothing
+   secret while they do. Hot Seat calls the same card before its first word, which is the same
+   moment: the phone has to be facing the right way before the clock moves. */
+function partyHeld_(k, head, line, go) {
+  return `<p class="art-cat-of">${esc(head)}</p>
+    <p class="party-clock" id="${esc(k)}-left">${partyClock_(PARTY[k])}</p>
+    ${line ? `<p class="imp-pass">${esc(line)}</p>` : ''}
+    <button class="art-go" data-do="party-resume" data-g="${esc(k)}">${esc(go || 'Resume')}</button>`;
+}
+
+function partyBits_(k) {
+  return { card: $(k + '-card'), acts: $(k + '-acts'), said: $(k + '-said') };
+}
+
+/* ---------- JUST A MINUTE -------------------------------------------------------------------------
+   THE RADIO GAME'S THREE RULES ARE THE THREE BUTTONS. Hesitation, repetition and deviation are what
+   the listeners catch, so each is a tally rather than a buzzer that stops the clock: in a classroom
+   the point is to keep talking, and the count afterwards is the conversation about why. */
+function jamPaint() {
+  const { card, acts, said } = partyBits_('jam');
+  if (!card) return;
+  const s = PARTY.jam;
+  if (!s) {
+    card.innerHTML = `<button class="art-go" data-do="jam-start">Start</button>`;
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = 'Talk for a minute. No hesitation, no repetition, no deviation.';
+    return;
+  }
+  const t = s.tally;
+  if (s.phase === 'done') {
+    card.innerHTML = `<p class="art-over">Time</p>
+      <p class="art-word">${esc(s.topic)}</p>
+      <p class="party-sum">Hesitation ${t.h} &middot; Repetition ${t.r} &middot; Deviation ${t.d}</p>`;
+    if (acts) acts.innerHTML = `<button class="btn" data-do="jam-start">Next topic</button>`;
+    if (said) said.textContent = '';
+    return;
+  }
+  if (!s.run) {
+    card.innerHTML = partyHeld_('jam', 'Paused', s.topic);
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = '';
+    return;
+  }
+  card.innerHTML = `<p class="art-cat-of">Talk about</p>
+    <p class="art-word">${esc(s.topic)}</p>
+    <p class="party-clock" id="jam-left">${partyClock_(s)}</p>`;
+  if (acts) {
+    acts.innerHTML = `<div class="btn-row">
+      <button class="btn quiet party-call" data-do="jam-call" data-c="h">Hesitation<b>${t.h}</b></button>
+      <button class="btn quiet party-call" data-do="jam-call" data-c="r">Repetition<b>${t.r}</b></button>
+      <button class="btn quiet party-call" data-do="jam-call" data-c="d">Deviation<b>${t.d}</b></button>
+    </div>`;
+  }
+  if (said) said.textContent = 'Tap one when somebody catches the speaker out.';
+}
+
+on('jam-start', () => {
+  partyHold_('jam');
+  PARTY.jam = { phase: 'go', topic: partyDraw_('jam', JAM_DECK), left: 60000, ends: 0, run: false,
+                tally: { h: 0, r: 0, d: 0 } };
+  partyRun_('jam');
+  jamPaint();
+});
+on('jam-call', el => {
+  const s = PARTY.jam;
+  const c = el.getAttribute('data-c');
+  if (!s || s.phase !== 'go' || !s.run || !(c in s.tally)) return;
+  s.tally[c]++;
+  jamPaint();
+});
+
+/* ---------- TABOO ---------------------------------------------------------------------------------
+   THE FORBIDDEN WORDS ARE ON THE CARD UNDER THE WORD, because that is the card: the describer reads
+   both, and whoever is watching for a slip reads the second half. Correct and Pass are one handler
+   with one number different, Articulate's argument. */
+function tabPaint() {
+  const { card, acts, said } = partyBits_('tab');
+  if (!card) return;
+  const s = PARTY.tab;
+  if (!s) {
+    card.innerHTML = `<button class="art-go" data-do="tab-start">Start</button>`;
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = 'Whoever is watching listens for a word from the list.';
+    return;
+  }
+  if (s.phase === 'done') {
+    card.innerHTML = `<p class="art-over">Time</p>
+      <p class="art-score">${s.score}</p>
+      <p class="art-over">correct &middot; ${s.passed} passed</p>`;
+    if (acts) acts.innerHTML = `<button class="btn" data-do="tab-start">Next round</button>`;
+    if (said) said.textContent = '';
+    return;
+  }
+  if (!s.run) {
+    /* THE WORD IS NOT ON A PAUSED CARD: whoever picks the phone up next may be on the other side. */
+    card.innerHTML = partyHeld_('tab', 'Paused', s.score + ' correct so far');
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = '';
+    return;
+  }
+  const [word, ...ban] = s.card;
+  card.innerHTML = `<p class="art-cat-of">Describe</p>
+    <p class="art-word">${esc(word)}</p>
+    <p class="art-over">Don’t say</p>
+    <ul class="tab-ban">${ban.map(b => `<li>${esc(b)}</li>`).join('')}</ul>
+    <p class="party-clock" id="tab-left">${partyClock_(s)}</p>`;
+  if (acts) {
+    acts.innerHTML = `<div class="btn-row">
+      <button class="btn" data-do="tab-next" data-got="1">Correct</button>
+      <button class="btn quiet" data-do="tab-next" data-got="0">Pass</button>
+    </div>`;
+  }
+  if (said) said.textContent = s.score + ' correct so far.';
+}
+
+on('tab-start', () => {
+  partyHold_('tab');
+  PARTY.tab = { phase: 'go', card: partyDraw_('tab', TABOO_DECK), score: 0, passed: 0,
+                left: 60000, ends: 0, run: false };
+  partyRun_('tab');
+  tabPaint();
+});
+on('tab-next', el => {
+  const s = PARTY.tab;
+  if (!s || s.phase !== 'go' || !s.run) return;
+  if (el.getAttribute('data-got') === '1') s.score++; else s.passed++;
+  s.card = partyDraw_('tab', TABOO_DECK);
+  tabPaint();
+});
+
+/* ---------- HOT SEAT ------------------------------------------------------------------------------
+   THE WORD IS FOR THE CLASS AND NOT FOR THE ONE IN THE SEAT, so the phone is held up facing the room
+   and the word only comes up once it is. Every round starts on the card that says so, with the clock
+   still — the same card a round left behind comes back to, because it is the same moment. */
+function hotPaint() {
+  const { card, acts, said } = partyBits_('hot');
+  if (!card) return;
+  const s = PARTY.hot;
+  if (!s) {
+    card.innerHTML = `<button class="art-go" data-do="hot-start">Start</button>`;
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = 'Whoever is in the hot seat sits with their back to the screen.';
+    return;
+  }
+  if (s.phase === 'done') {
+    card.innerHTML = `<p class="art-over">Time</p>
+      <p class="art-score">${s.score}</p>
+      <p class="art-over">guessed</p>`;
+    if (acts) acts.innerHTML = `<button class="btn" data-do="hot-start">Next player</button>`;
+    if (said) said.textContent = '';
+    return;
+  }
+  if (!s.run) {
+    card.innerHTML = partyHeld_('hot', s.left < 60000 ? 'Paused' : 'Ready',
+      'Hold the phone up so only the class can see it.', 'Show the word');
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = 'The one in the hot seat does not look.';
+    return;
+  }
+  card.innerHTML = `<p class="art-cat-of">Clues for</p>
+    <p class="art-word hot-word">${esc(s.word)}</p>
+    <p class="party-clock" id="hot-left">${partyClock_(s)}</p>`;
+  if (acts) {
+    acts.innerHTML = `<div class="btn-row">
+      <button class="btn" data-do="hot-next" data-got="1">Got it</button>
+      <button class="btn quiet" data-do="hot-next" data-got="0">Pass</button>
+    </div>`;
+  }
+  if (said) said.textContent = s.score + ' guessed so far.';
+}
+
+on('hot-start', () => {
+  partyHold_('hot');
+  PARTY.hot = { phase: 'go', word: partyDraw_('hot', HOT_DECK), score: 0, left: 60000, ends: 0,
+                run: false };
+  hotPaint();
+});
+on('hot-next', el => {
+  const s = PARTY.hot;
+  if (!s || s.phase !== 'go' || !s.run) return;
+  if (el.getAttribute('data-got') === '1') s.score++;
+  s.word = partyDraw_('hot', HOT_DECK);
+  hotPaint();
+});
+
+/* ---------- 20 QUESTIONS --------------------------------------------------------------------------
+   ONE PERSON KNOWS AND HOLDS THE PHONE, so it is dealt like Imposter's card: "hand the phone to
+   whoever answers", Show me, then Hide — and only then the counter. Telling the room whether it is a
+   person, a place or a thing is the classroom version's own first clue ("animal, vegetable or
+   mineral"), so the category stays on the card and the answer does not.
+
+   YES AND NO ARE BOTH ONE QUESTION ASKED. The count is the game; which way each went is what the
+   class is keeping in its head. No timer, so `stop` has nothing to hold — only a secret to hide. */
+const TWQ_MAX = 20;
+
+function twqPaint() {
+  const { card, acts, said } = partyBits_('twq');
+  if (!card) return;
+  const s = PARTY.twq;
+  if (!s) {
+    card.innerHTML = `<button class="art-go" data-do="twq-start">Choose a secret</button>`;
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = 'One of you holds the phone and answers; everybody else asks.';
+    return;
+  }
+  if (s.phase === 'hand') {
+    card.innerHTML = `<p class="imp-pass">Hand the phone to <b>whoever answers</b></p>
+      <button class="art-go" data-do="twq-show">Show me</button>`;
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = 'Nobody else looks.';
+    return;
+  }
+  if (s.phase === 'shown') {
+    card.innerHTML = `<p class="art-cat-of">${esc(s.cat)}</p>
+      <p class="art-word">${esc(s.word)}</p>
+      <button class="art-go" data-do="twq-hide">Hide it</button>`;
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = 'Remember it, then hide it.';
+    return;
+  }
+  if (s.phase === 'done') {
+    card.innerHTML = `<p class="art-over">${s.asked >= TWQ_MAX ? 'Out of questions' : 'It was'}</p>
+      <p class="art-word">${esc(s.word)}</p>
+      <p class="art-over">${s.asked} of ${TWQ_MAX} questions asked</p>`;
+    if (acts) acts.innerHTML = `<button class="btn" data-do="twq-start">Play again</button>`;
+    if (said) said.textContent = '';
+    return;
+  }
+  card.innerHTML = `<p class="art-cat-of">It’s a ${esc(s.cat.toLowerCase())}</p>
+    <p class="art-score">${s.asked} <span class="party-of">of ${TWQ_MAX}</span></p>
+    <p class="art-over">questions asked</p>`;
+  if (acts) {
+    acts.innerHTML = `<div class="btn-row">
+      <button class="btn" data-do="twq-ask">Yes</button>
+      <button class="btn" data-do="twq-ask">No</button>
+    </div>
+    <button class="btn quiet party-more" data-do="twq-reveal">Reveal</button>`;
+  }
+  if (said) said.textContent = 'Answer each question, then tap how you answered.';
+}
+
+on('twq-start', () => {
+  const [cat, word] = partyDraw_('twq', Object.keys(TWQ_DECK)
+    .reduce((all, c) => all.concat(TWQ_DECK[c].map(w => [c, w])), []));
+  PARTY.twq = { phase: 'hand', cat: cat, word: word, asked: 0 };
+  twqPaint();
+});
+on('twq-show', () => { if (PARTY.twq && PARTY.twq.phase === 'hand') { PARTY.twq.phase = 'shown'; twqPaint(); } });
+on('twq-hide', () => { if (PARTY.twq && PARTY.twq.phase === 'shown') { PARTY.twq.phase = 'play'; twqPaint(); } });
+on('twq-ask', () => {
+  const s = PARTY.twq;
+  if (!s || s.phase !== 'play') return;
+  s.asked++;
+  if (s.asked >= TWQ_MAX) s.phase = 'done';
+  twqPaint();
+});
+on('twq-reveal', () => { if (PARTY.twq && PARTY.twq.phase === 'play') { PARTY.twq.phase = 'done'; twqPaint(); } });
+
+/* ---------- ALIBI ---------------------------------------------------------------------------------
+   THE CASE IS READ BY EVERYBODY, THE QUESTIONS ONLY BY THE DETECTIVES. The suspects take the case
+   out of the room to agree their story — what happened, when, and where they say they both were —
+   so the card that starts a case shows those three and nothing else. The questions come up once the
+   first suspect is back and the phone is with the detectives: a suspect who had read them could
+   rehearse the answers, which is the one way to make the game impossible to lose.
+
+   THE SAME SIX QUESTIONS FOR BOTH SUSPECTS, drawn fresh for every case. That is the game — the same
+   question asked twice is where the two stories come apart — and six is what two minutes holds.
+
+   TWO MINUTES EACH. The timer is per suspect, so the second interview starts its own clock from the
+   top rather than inheriting what the first one left. */
+const ALB_SECS = 120, ALB_ASK = 6;
+
+function albPaint() {
+  const { card, acts, said } = partyBits_('alb');
+  if (!card) return;
+  const s = PARTY.alb;
+  if (!s) {
+    card.innerHTML = `<button class="art-go" data-do="alb-start">New case</button>`;
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = 'You need two suspects and at least one detective.';
+    return;
+  }
+  const facts = `<p class="alb-crime">${esc(s.crime)}</p>
+    <dl class="alb-facts"><dt>When</dt><dd>${esc(s.time)}</dd>
+      <dt>Your alibi</dt><dd>You were together ${esc(s.place)}</dd></dl>`;
+  if (s.phase === 'case') {
+    card.innerHTML = `<p class="art-cat-of">The case</p>${facts}`;
+    if (acts) acts.innerHTML = `<button class="btn" data-do="alb-next">Question suspect 1</button>`;
+    if (said) said.textContent = 'Suspects: agree your story outside. Detectives: wait here.';
+    return;
+  }
+  if (s.phase === 'verdict') {
+    card.innerHTML = `<p class="art-over">The verdict</p>
+      <p class="imp-pass">Did the two stories match? Detectives decide: guilty or not guilty.</p>
+      <ol class="alb-qs">${s.qs.map(q => `<li>${esc(q)}</li>`).join('')}</ol>`;
+    if (acts) acts.innerHTML = `<button class="btn" data-do="alb-start">New case</button>`;
+    if (said) said.textContent = '';
+    return;
+  }
+  const who = 'Suspect ' + s.who + ' of 2';
+  const next = s.who === 1 ? 'Question suspect 2' : 'The verdict';
+  if (s.left <= 0) {
+    card.innerHTML = `<p class="art-over">Time</p><p class="imp-pass">Time is up for suspect ${s.who}.</p>`;
+    if (acts) acts.innerHTML = `<button class="btn" data-do="alb-next">${next}</button>`;
+    if (said) said.textContent = '';
+    return;
+  }
+  if (!s.run) {
+    card.innerHTML = partyHeld_('alb', 'Paused · ' + who, '');
+    if (acts) acts.innerHTML = '';
+    if (said) said.textContent = '';
+    return;
+  }
+  card.innerHTML = `<p class="art-cat-of">${esc(who)}</p>
+    <p class="party-clock" id="alb-left">${partyClock_(s)}</p>
+    <ol class="alb-qs">${s.qs.map(q => `<li>${esc(q)}</li>`).join('')}</ol>`;
+  if (acts) acts.innerHTML = `<button class="btn quiet" data-do="alb-next">${next}</button>`;
+  if (said) said.textContent = 'Ask every question. Write down what they say.';
+}
+
+on('alb-start', () => {
+  partyHold_('alb');
+  const qs = herdShuffle_(ALB_QUESTIONS).slice(0, ALB_ASK);
+  PARTY.alb = { phase: 'case', crime: partyDraw_('albc', ALB_CRIMES),
+                time: partyDraw_('albt', ALB_TIMES), place: partyDraw_('albp', ALB_PLACES),
+                qs: qs, who: 0, left: 0, ends: 0, run: false };
+  albPaint();
+});
+/* ONE HANDLER WALKS THE CASE FORWARD: the case → suspect 1 → suspect 2 → the verdict. Ending an
+   interview early is the same press as the clock ending it, because both mean the detectives are
+   done with this suspect. */
+on('alb-next', () => {
+  const s = PARTY.alb;
+  if (!s || (s.phase !== 'case' && s.phase !== 'go')) return;
+  partyHold_('alb');
+  if (s.phase === 'case' || s.who === 1) {
+    s.who = s.phase === 'case' ? 1 : 2;
+    s.phase = 'go';
+    s.left = ALB_SECS * 1000;
+    partyRun_('alb');
+  } else {
+    s.phase = 'verdict';
+    s.run = false;
+  }
+  albPaint();
+});
+
+/* WHAT EACH GAME DOES WHEN ITS CLOCK RUNS OUT, and how it draws. Read by the tick, `partyStart_` and
+   `partyStop_`, so a sixth timed game is a row here. Alibi's interview ends on the card that says
+   "Time" and does not move on by itself: the detectives decide when the next suspect comes in. */
+const PARTY_GAMES = {
+  jam: { paint: jamPaint, end: s => { s.phase = 'done'; } },
+  tab: { paint: tabPaint, end: s => { s.phase = 'done'; } },
+  hot: { paint: hotPaint, end: s => { s.phase = 'done'; } },
+  twq: { paint: twqPaint, end: () => {} },
+  alb: { paint: albPaint, end: () => {} },
+};
+
+/* ==================================================================================================
    SCRABBLE — two, three or four people, one phone.
 
    ASKED FOR AS "add scrable to games tool. 2/3/4 player". The board game: 15x15, a hundred tiles,
@@ -2738,3 +4322,242 @@ on('scr-pass', () => {
   scrPass_(g);
   scrabblePaint();
 });
+
+/* ---------- THE TIMETABLE ---------------------------------------------------------------------------
+   ASKED FOR AS *"timetable widget ... like weekly timetable"*. A student's school week, or a tutor's
+   standing sessions: a day, a time, a subject, a line of note. Nothing here posts anywhere.
+
+   ON THE DEVICE, UNDER WHOEVER IS SIGNED IN. `whoIs_` is the same answer the answer boxes use, so two
+   students sharing a phone get two timetables and signing out puts the stranger's back. Signed out it
+   still works — under the bare key, exactly as an answer box does — because a timetable is not a thing
+   anybody should need an account to write down.
+
+   ONE DAY AT A TIME, AND THAT IS A MEASUREMENT. A seven-column grid of lessons is 35px a column on a
+   320px phone, which holds "Ma" of Maths and no time at all. A day is a list, and a week is the chips
+   over it — Monday to Friday unless the weekend is asked for, because five 44px chips is the most
+   that fit one row of a 320px card and a school week is five days.
+
+   A LESSON IS ITS SUMMARY LINE UNTIL IT IS TAPPED, the qualification shelf's shape: six lessons as
+   six 44px lines fit the pane, where six lessons as three open boxes each are three screens of
+   scrolling. One open at a time, in place — no sheet, no pop-up. */
+const TMT_DAY_NAMES = SLOT_DAYS.map(d => d[1]);   // Monday … Sunday, the list book.js already holds
+let TMT_DAY = -1;      // which day is on screen; -1 until the first draw picks today
+let TMT_OPEN = '';     // the id of the lesson whose boxes are showing
+
+const tmtKey_ = () => 'tmt' + (whoIs_() ? ':' + whoIs_() : '');
+
+function tmtRead_() {
+  try {
+    const t = JSON.parse(localStorage.getItem(tmtKey_()) || 'null');
+    if (t && Array.isArray(t.days) && t.days.length === 7) return t;
+  } catch (e) {}
+  return { weekend: false, days: [[], [], [], [], [], [], []] };
+}
+function tmtSave_(t) {
+  try { localStorage.setItem(tmtKey_(), JSON.stringify(t)); }
+  catch (e) { toast('Not saved — this browser is not keeping anything.'); }
+}
+
+/* ---------- THE COLOUR IS THE SUBJECT'S, NOT THE LESSON'S ------------------------------------------
+   Maths is one colour on Monday and on Thursday with nothing to choose — a colour picker per lesson
+   would be seven places to make Maths blue. Ten hues declared on `.tmt`, the chess board's rule: they
+   are this widget's convention and nothing else in the app wants them.
+
+   HANDED OUT AND REMEMBERED, NOT HASHED. The first version hashed the subject's letters into eight
+   hues, and a screenshot of an ordinary Monday showed Chemistry and History in the same red: five
+   subjects in eight colours collide four times in five (8·7·6·5·4 / 8⁵ is 0.21). So each subject gets
+   the first colour no other subject is wearing, kept in `colours` so it does not move when a subject is
+   added earlier in the week, and given back when the last lesson in that subject goes. Up to ten
+   subjects never share; past ten it is the least-worn hue, which is the best ten colours can do. */
+const TMT_HUES = 10;
+/* LETTERS IN ANY ALPHABET, NOT a-z. The first version kept `[a-z0-9]` — `spellKey_`'s reduction —
+   and that reduces `Ελληνικά` to nothing, so a Greek lesson, in an app whose library carries Greek
+   papers, drew with no colour at all; `Français` and `Español` lost a letter each. A key only has to
+   tell two subjects apart and fold `Maths` onto `maths`, which is what lower-casing and dropping the
+   spaces and punctuation does in every script. */
+const tmtSubKey_ = s => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+
+/* Brings `t.colours` in line with the subjects actually in the week. Answers whether it changed. */
+function tmtColours_(t) {
+  const was = JSON.stringify(t.colours || {});
+  const have = {};
+  t.days.forEach(d => (d || []).forEach(l => { const k = tmtSubKey_(l.subject); if (k) have[k] = 1; }));
+  const c = {};
+  Object.keys(t.colours || {}).forEach(k => { if (have[k]) c[k] = t.colours[k]; });
+  Object.keys(have).forEach(k => { if (!(k in c)) c[k] = tmtFreeHue_(c); });
+  t.colours = c;
+  return JSON.stringify(c) !== was;
+}
+function tmtFreeHue_(c) {
+  const worn = new Array(TMT_HUES).fill(0);
+  Object.values(c).forEach(i => { if (worn[i] !== undefined) worn[i]++; });
+  return worn.indexOf(Math.min(...worn));
+}
+/* What a subject is wearing — or, while it is still being typed, what it WOULD wear. */
+function tmtColour_(t, subject) {
+  const k = tmtSubKey_(subject);
+  if (!k) return '';
+  const c = t.colours || {};
+  return 'var(--tmt-' + (k in c ? c[k] : tmtFreeHue_(c)) + ')';
+}
+
+/* "09:00" sorts as text, and a lesson with no time yet goes last rather than first. */
+const tmtOrder_ = (a, b) => {
+  const x = a.at || '99', y = b.at || '99';
+  return x < y ? -1 : x > y ? 1 : 0;
+};
+
+function tmtRow_(l, t) {
+  const c = tmtColour_(t, l.subject);
+  const style = c ? ` style="--tmt-c:${c}"` : '';
+  const id = esc(l.id);
+  if (l.id !== TMT_OPEN) {
+    return `<button type="button" class="tmt-row" data-do="tmt-open" data-id="${id}"${style}>
+      <span class="tmt-at">${esc(l.at || '--:--')}</span>
+      <span class="tmt-what"><span class="tmt-sub">${esc(l.subject || 'Untitled')}</span>${
+        l.note ? `<span class="tmt-note">${esc(l.note)}</span>` : ''}</span></button>`;
+  }
+  /* A FORM, SO BUTTONS. `Done` shuts it and puts it in time order; `Remove` takes it off. Everything
+     typed is kept on every keystroke — see the `input` listener — so Done is not a Save and nothing is
+     lost by swiping away without pressing it. */
+  return `<div class="tmt-ed"${style}>
+      <div class="tmt-ed-top">
+        <input class="tmt-in tmt-time" type="time" data-id="${id}" data-f="at"
+               value="${esc(l.at || '')}" aria-label="Starts at">
+        <input class="tmt-in" data-id="${id}" data-f="subject" value="${esc(l.subject || '')}"
+               placeholder="Subject" autocomplete="off">
+      </div>
+      <input class="tmt-in" data-id="${id}" data-f="note" value="${esc(l.note || '')}"
+             placeholder="Note — room, teacher, homework" autocomplete="off">
+      <div class="btn-row">
+        <button type="button" class="btn quiet" data-do="tmt-open" data-id="${id}">Done</button>
+        <button type="button" class="btn danger" data-do="tmt-drop" data-id="${id}">Remove</button>
+      </div>
+    </div>`;
+}
+
+function tmtHtml_() {
+  const t = tmtRead_();
+  if (tmtColours_(t)) tmtSave_(t);
+  const shown = t.weekend ? 7 : 5;
+  if (TMT_DAY < 0) TMT_DAY = (new Date().getDay() + 6) % 7;      // Monday-first, as SLOT_DAYS is
+  if (TMT_DAY >= shown) TMT_DAY = 0;
+  const day = (t.days[TMT_DAY] || []).slice().sort(tmtOrder_);
+  const chips = TMT_DAY_NAMES.slice(0, shown).map((n, i) =>
+    `<button type="button" class="tmt-day${i === TMT_DAY ? ' on' : ''}${(t.days[i] || []).length ? ' has' : ''}"
+             data-do="tmt-day" data-day="${i}" aria-pressed="${i === TMT_DAY}"
+             aria-label="${n}">${n.slice(0, 3)}</button>`).join('');
+  return `<div class="tmt">
+    <div class="tmt-days n${shown}">${chips}</div>
+    <div class="tmt-list">${day.length ? day.map(l => tmtRow_(l, t)).join('')
+      : `<p class="faint tmt-none">Nothing on ${TMT_DAY_NAMES[TMT_DAY]}.</p>`}</div>
+    ${/* ONE ROW FOR BOTH, because a full Monday at 320 is the card that runs out of height first and
+          a line of its own for a tickbox is 44px of it. */''}
+    <div class="tmt-foot"><button type="button" class="btn quiet" data-do="tmt-add">Add a lesson</button>
+      <label class="check tmt-wkend"><input type="checkbox" data-do="tmt-weekend"${t.weekend ? ' checked' : ''}>
+        <span class="box"></span><span>Weekend</span></label></div>
+  </div>`;
+}
+
+/* EVERY COPY, BY CLASS. The Saved column draws this same markup, so `$()` would hand the second copy
+   the first one's box — the `$('msg-text')` fault `cartPaint_` is written against one file along. */
+function tmtPaint_() {
+  const html = tmtHtml_();
+  document.querySelectorAll('.tmt-box').forEach(el => { el.innerHTML = html; });
+}
+function initTimetable() { tmtPaint_(); }
+
+/* ---------- A LESSON SHUT WITH NOTHING IN IT IS NOT A LESSON ------------------------------------
+   `Add a lesson` writes a row before anything is typed — it has to, or the boxes would have nowhere
+   to keep a keystroke — so pressing it by mistake and then Done, or another day, or another lesson,
+   left an `Untitled` line for ever, and the only way off it was Remove. Shutting a lesson with no
+   subject and no note takes it away instead: an empty line is not something anybody wrote down.
+   The TIME does not count, because Add filled that in, not the person. */
+function tmtShut_() {
+  if (!TMT_OPEN) return;
+  const t = tmtRead_();
+  let gone = false;
+  t.days = t.days.map(d => (d || []).filter(l => {
+    const blank = l.id === TMT_OPEN && !String(l.subject || '').trim() && !String(l.note || '').trim();
+    if (blank) gone = true;
+    return !blank;
+  }));
+  if (gone) tmtSave_(t);
+  TMT_OPEN = '';
+}
+
+on('tmt-day', el => {
+  TMT_DAY = Number(el.dataset.day) || 0;
+  tmtShut_();
+  tmtPaint_();
+});
+
+/* THE BOX IS FOUND BEFORE THE REPAINT, because the repaint replaces the element that was pressed and
+   `closest` on a detached node finds nothing — the quiz's own lesson. */
+on('tmt-open', el => {
+  const want = TMT_OPEN === el.dataset.id ? '' : el.dataset.id;
+  tmtShut_();
+  TMT_OPEN = want;
+  const box = el.closest('.tmt-box');
+  tmtPaint_();
+  if (TMT_OPEN) box?.querySelector(`.tmt-in[data-f="subject"][data-id="${TMT_OPEN}"]`)?.focus();
+});
+
+on('tmt-add', el => {
+  tmtShut_();
+  const t = tmtRead_();
+  const day = t.days[TMT_DAY] || (t.days[TMT_DAY] = []);
+  /* AN HOUR AFTER THE LAST ONE, because lessons follow each other and the next time is usually the
+     one somebody would have typed. Nine o'clock for an empty day. */
+  const last = day.map(l => l.at).filter(Boolean).sort().pop();
+  const h = last ? Math.min(23, Number(last.slice(0, 2)) + 1) : 9;
+  const id = 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  day.push({ id, at: String(h).padStart(2, '0') + (last ? last.slice(2) : ':00'), subject: '', note: '' });
+  tmtSave_(t);
+  TMT_OPEN = id;
+  const box = el.closest('.tmt-box');
+  tmtPaint_();
+  box?.querySelector(`.tmt-in[data-f="subject"][data-id="${id}"]`)?.focus();
+});
+
+on('tmt-drop', el => {
+  const t = tmtRead_();
+  t.days = t.days.map(d => (d || []).filter(l => l.id !== el.dataset.id));
+  tmtSave_(t);
+  TMT_OPEN = '';
+  tmtPaint_();
+});
+
+/* A CHECKBOX, SO IT IS READ AFTER IT HAS MOVED — the box has already changed by the time this runs. */
+on('tmt-weekend', el => {
+  const t = tmtRead_();
+  t.weekend = !!el.checked;
+  tmtSave_(t);
+  if (!t.weekend && TMT_DAY > 4) TMT_DAY = 4;
+  tmtPaint_();
+});
+
+/* KEPT ON EVERY KEYSTROKE AND NOT REDRAWN. A redraw would take the caret out of the box mid-word;
+   the summary line catches up when the lesson is shut.
+
+   `change` AS WELL AS `input`, for the time box. A phone's own time wheel has not always fired
+   `input` as it turns — older iOS fired only `change`, as the wheel was put away — and a time that
+   reached the box and not the store is a lesson that goes back to nine o'clock when it is shut.
+   Both write the same value, so a browser that fires both writes it twice and nothing else. */
+function tmtKeep_(e) {
+  const el = e.target;
+  if (!el || !el.classList || !el.classList.contains('tmt-in')) return;
+  const t = tmtRead_();
+  for (const d of t.days) {
+    const l = (d || []).find(x => x.id === el.dataset.id);
+    if (l) { l[el.dataset.f] = el.value; tmtSave_(t); break; }
+  }
+  /* THE COLOUR FOLLOWS THE SUBJECT AS IT IS TYPED, so what it will be is visible before Done. */
+  if (el.dataset.f === 'subject') {
+    const ed = el.closest('.tmt-ed');
+    const c = tmtColour_(t, el.value);
+    if (ed) { if (c) ed.style.setProperty('--tmt-c', c); else ed.style.removeProperty('--tmt-c'); }
+  }
+}
+document.addEventListener('input', tmtKeep_);
+document.addEventListener('change', tmtKeep_);

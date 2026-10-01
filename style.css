@@ -684,22 +684,32 @@ label.field { display: block; margin-bottom: .75rem; }
    version of it already had: it said `.68rem`, `.06em`, lower case and `--dim` under a comment
    claiming it matched this. One selector, one caption style, and the row reads as one more field
    down the same column because it IS one. */
-label.field > span, .dob-cap {
+label.field > span, .dob-cap, .handle-cap {
   display: block; margin-bottom: .3rem;
   font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
 }
 /* A note UNDER a field — why an input is disabled, what will happen when it is saved. It is not
    the label, so it does not get the label's uppercase treatment. */
 label.field > .faint { display: block; margin-top: .3rem; text-transform: none; letter-spacing: 0; }
-/* THE HANDLE BOX, WITH ITS `@` DRAWN IN FRONT. A span inside `label.field`, so it is named through
-   the class to out-rank the caption rule above rather than tie with it — a tie settled by order is
-   the `.price.faint` shape. The `@` is gold because that is how every card draws a handle. */
-label.field > span.handle-in {
-  display: flex; align-items: center; gap: .35rem; margin: 0;
-  font-size: inherit; letter-spacing: 0; text-transform: none; color: inherit;
+/* ---------- YOUR HANDLE, SHOWN RATHER THAN TYPED --------------------------------------------------
+   There was a box here — `.handle-in`, an input with an `@` drawn in front of it — and it went with
+   the typed handle: a handle is a first name and a virtue the server builds, and Randomise asks for
+   another word. What is left is a fact about you, so it is set like one: the caption the boxes
+   around it use (`.handle-cap` is in that rule's group, one style for every caption on the card)
+   and the handle at the size a box's value would be, so the card does not change rhythm where the
+   box used to be.
+
+   `margin-top: 0` ON THE CAPTION BECAUSE IT IS A `<p>`, whose browser margin would put a line of
+   air between `Signing in` and the word under it that the PIN boxes' captions do not have.
+   `overflow-wrap: anywhere` because a handle is up to twenty characters with nothing to break at,
+   and a 320px card is the narrowest it is ever drawn on. The `@` is gold because that is how every
+   card draws a handle. */
+.handle-cap { margin-top: 0; }
+.handle-now {
+  display: flex; align-items: baseline; gap: .15rem; margin: 0 0 .6rem;
+  font-size: 1.05rem; color: var(--ink); overflow-wrap: anywhere; min-width: 0;
 }
-.handle-in > b { color: var(--gold); font-weight: 600; }
-.handle-in > input { flex: 1 1 auto; min-width: 0; }
+.handle-now > b { color: var(--gold); font-weight: 600; }
 
 /* ---------- THREE LIBRARY CARDS ON ONE PAGE, WHICH NINE STACKED BOXES CANNOT BE -------------------
    *"there are many different librarys for library card detais so make it smaller so can fit in like
@@ -730,55 +740,78 @@ label.field > span.handle-in {
    a card, which is the "not everything is a card" fault; a hairline between them says the same
    thing for one declaration and no inset. */
 .lib-shelf { display: flex; flex-direction: column; }
-/* ---------- A SHUT QUALIFICATION IS ITS SUMMARY LINE — see `qualShelf_` ---------------------------
-   The line is a control, so 44px in px; it reads as the list it is, left-aligned text in the ink of an
-   answer, with a chevron saying it opens. Open, the line stays as the card's own heading and the
-   boxes follow it; shut, the boxes are not drawn but are still in the form, so a Save posts them. */
-.q-sum { display: flex; align-items: center; gap: .4rem; width: 100%; min-height: 44px; padding: 0 .1rem;
-         background: none; border: 0; color: var(--ink); font: inherit; font-size: .82rem;
-         text-align: left; cursor: pointer; }
-/* A LINE THAT WRAPS RATHER THAN ONE THAT PUSHES. Text straight inside a flex button is an anonymous
-   flex item, and `Maths · A-Level · Edexcel · B · 2019 · specialism` ran 4px past a 320px card —
-   `check/ui.js` named it the first run a filled qualification was on screen. The span may shrink
-   and wrap; the chevron keeps its own width. */
-.q-sum-t { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; padding-block: .3rem; }
-.q-sum::after { flex: 0 0 auto; content: '▾'; margin-left: auto; color: var(--faint); transition: transform .15s ease; }
-.q-lvl.is-shut .q-sum::after { transform: rotate(-90deg); }
-.q-lvl.is-shut > .lib-row, .q-lvl.is-shut > label.field { display: none; }
-.q-lvl:not(.is-shut) > .q-sum-row > .q-sum { color: var(--gold); }
-/* THE SUMMARY LINE AND ITS DELETE, side by side — see `qualSubject_`. The ✕ is a 44px target in
-   px, quiet until pressed, and red only in its glyph: it empties a line rather than destroying
-   anything saved until Save. */
-.q-sum-row { display: flex; align-items: center; }
-.q-sum-row > .q-sum { flex: 1 1 auto; min-width: 0; }
-.q-x { flex: 0 0 auto; width: 44px; height: 44px; padding: 0; background: none; border: 0;
-       color: var(--faint); font: inherit; font-size: .8rem; cursor: pointer; }
-.q-x:active, .q-x.is-pressed { color: var(--bad, #c4655a); }
-/* ---------- A SUBJECT AND ITS LEVELS — see `qualShelf_` ---------------------------------------------
-   THE SUBJECT IS THE HEADING OF ITS OWN BLOCK, so its box is the first thing and the level lines hang
-   under it, indented by a rule down the left rather than by a box round them: they are the subject's,
-   and a border would make each one a card of its own, which is the "widget" the owner asked to lose.
-   Deleting is the ✕ on each summary line (`.q-x`, above), not a line at the foot of an opened level,
-   which is where nobody found it. */
-.q-subj .q-levels { margin: .1rem 0 .15rem .35rem; padding-left: .6rem; border-left: 1px solid var(--line); }
-.q-lvl + .q-lvl { border-top: 1px dashed var(--line); }
-/* ---------- A SUBJECT IS ONE LINE UNTIL OPENED — see `qualSubject_` -------------------------------
-   Shut, only its summary line shows; open, the line stays as its heading (gold, chevron down) and
-   the body follows: the subject box with its two ticks on the SAME row — they were a row of their
-   own under the levels — then the levels, then `+ Add a level` as one more line of that list rather
-   than a full-width button. */
-.q-subj.is-shut > .q-subj-body { display: none; }
-.q-subj:not(.is-shut) > .q-sum-row > .q-subj-sum { color: var(--gold); }
-.q-subj.is-shut > .q-sum-row > .q-subj-sum::after { transform: rotate(-90deg); }
-.q-subj-sum { font-weight: 600; }
-.q-head { display: grid; grid-template-columns: minmax(0, 1fr); gap: .6rem; align-items: center; }
-/* Named through the shelf, which `.lib-shelf label.field` also is — at equal specificity the
-   margin was decided by file order alone (check/cascade.js). */
-.lib-shelf .q-head label.field { margin-bottom: 0; min-width: 0; }
-.q-head select, .q-head input { min-width: 0; }
-.q-levels > .q-add { color: var(--dim); font-size: .76rem; }
-.q-levels > .q-add::after { content: none; }
-.q-lvl + .q-add { border-top: 1px dashed var(--line); }
+/* ---------- THE QUALIFICATIONS SHELF — see `qualShelf_` in me.js ------------------------------------
+   A LIST YOU READ, AND ONE EDITOR AT A TIME. The subject is a bold heading with `Edit` beside it; each
+   level is two or three plain lines with its own `Edit`, hung under the subject by a rule down the
+   left rather than boxed, because a box would make every level a card of its own. Every control is a
+   word, every word that is pressed is 44px in px, and there is no glyph on the shelf to decode — the
+   summary lines with ✓, ★, ▸ and ✕ on them were what *"really hard to understand"* was about. */
+.q-hint { margin: 0 0 .6rem; font-size: .8rem; color: var(--dim); line-height: 1.4; }
+.q-top { display: flex; align-items: center; gap: .5rem; }
+.q-head { flex: 1 1 auto; min-width: 0; margin: 0; font: 700 .9rem/1.3 var(--font); color: var(--ink);
+  overflow-wrap: anywhere; }
+.q-edit { flex: 0 0 auto; min-width: 44px; min-height: 44px; padding: 0 .35rem; background: none; border: 0;
+  color: var(--gold); font: inherit; font-size: .78rem; cursor: pointer; }
+.q-subj .q-levels { margin: 0 0 .5rem .2rem; padding-left: .65rem; border-left: 2px solid var(--line); }
+.q-subj + .q-subj { border-top: 1px dashed var(--line); padding-top: .35rem; }
+/* A LEVEL'S READ ROW: its lines take what is left, `Edit` keeps its 44px. Line one is the level and
+   the grade in the ink of an answer; line two the place and the year a step quieter; line three the
+   teaching word. */
+.q-read { display: flex; align-items: center; gap: .5rem; min-height: 44px; padding: .2rem 0; }
+.q-lines { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: .1rem; overflow-wrap: anywhere; }
+.q-l1 { font-size: .82rem; color: var(--ink); }
+.q-l2 { font-size: .74rem; color: var(--dim); }
+.q-l3 { font-size: .72rem; }
+.q-can { color: var(--dim); }
+/* THE CARD'S OWN GOLD CHIP, so `Teach` here and `Teaches` on the profile read as one fact. */
+.q-chip { display: inline-block; padding: .1rem .5rem; border: 1px solid var(--gold); border-radius: 999px;
+  color: var(--ink); font-size: .68rem; }
+.q-slot + .q-slot { border-top: 1px dashed var(--line); }
+.q-add { display: block; min-height: 44px; padding: 0; background: none; border: 0; color: var(--gold);
+  font: inherit; font-size: .78rem; text-align: left; cursor: pointer; }
+.q-add-subj { margin: .2rem 0 .4rem; }
+.q-count { margin: 0; font-size: .74rem; }
+/* ---------- WHICH OF THE TWO SHOWS ------------------------------------------------------------------
+   A slot holds both its read row and its editor; a subject both its heading and its rename box. One
+   class on the element says which, and `.is-editing` on the shelf takes every OTHER `Edit` and `+ Add`
+   off the page, so there is only ever one thing open and nothing to lose by opening a second. */
+.q-slot > .q-ed, .q-subj > .q-subj-ed { display: none; }
+.q-slot.is-editing > .q-ed, .q-subj.is-editing > .q-subj-ed { display: block; }
+.q-slot.is-editing > .q-read, .q-subj.is-editing > .q-top { display: none; }
+.q-shelf.is-editing .q-edit, .q-shelf.is-editing .q-add, .q-shelf.is-editing .q-add-subj { display: none; }
+/* NOTHING SAVED TO REMOVE: a level not saved yet, and a subject not saved yet, go with Cancel. And an
+   empty shelf has no Cancel, because the editor IS the page there. */
+.q-slot[data-new] .q-drop, .q-subj.is-new .q-drop, .q-shelf.is-empty .q-cancel { display: none; }
+/* THE EDITOR: captioned boxes (the caption is `label.field > span`, above the box rather than a
+   placeholder in it), the question with its three-way control, then the buttons. */
+.q-ed { padding: .35rem 0 .5rem; }
+.q-ask { margin: .1rem 0 .5rem; }
+.q-cap { display: block; margin-bottom: .3rem; font-size: .72rem; letter-spacing: .05em;
+  text-transform: uppercase; color: var(--faint); }
+.q-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line);
+  border-radius: var(--r-sm); overflow: hidden; }
+.q-seg-b { min-height: 44px; padding: 0 .3rem; background: var(--sunk); border: 0; color: var(--ink);
+  font: inherit; font-size: .8rem; cursor: pointer; }
+.q-seg-b + .q-seg-b { border-left: 1px solid var(--line); }
+/* PRESSED IS GOLD WITH BLACK ON IT, which is what `.hr.on` already does for "this one is chosen". */
+.q-seg-b[aria-pressed="true"] { background: var(--gold); color: #000; font-weight: 650; }
+.q-say { margin: .35rem 0 0; font-size: .72rem; line-height: 1.35; }
+/* CANCEL AND SAVE SHARE A ROW, REMOVE HAS ONE OF ITS OWN UNDER THEM. The three in one row wrapped
+   Save onto a line by itself at 320 — measured, on a screenshot — and a destructive word sitting
+   beside the button that keeps your work is one slip from it anyway. `order` rather than the markup's
+   order, so the markup still reads Remove, Cancel, Save to a screen reader, which is the sentence. */
+.q-acts { display: flex; flex-wrap: wrap; gap: .4rem; }
+.q-acts .btn { width: auto; flex: 1 1 0; min-width: 0; padding: 0 .6rem; }
+.q-drop { order: 2; flex: 1 1 100%; min-height: 44px; padding: 0; background: none; border: 0; color: var(--bad);
+  font: inherit; font-size: .76rem; text-align: left; cursor: pointer; }
+/* THE OPEN EDITOR IS MARKED: the grey rule down the left turns gold beside it, because gold is what
+   this app means by "the one you are acting on". Pulled over the grey rule rather than beside it. */
+.q-levels > .q-slot.is-editing > .q-ed { margin-left: calc(-.65rem - 2px); padding-left: .65rem;
+  border-left: 2px solid var(--gold); }
+/* AN UNANSWERED DROP-DOWN READS AS A PLACEHOLDER, in the grey of the empty boxes — `Choose` in full ink
+   looks like an answer somebody gave. `.lib-row select` already does this for Level and Grade. */
+.q-shelf select:has(option[value=""]:checked) { color: var(--faint); }
+.q-subj.is-new > label.field { margin-bottom: .2rem; }
 .lib-card + .lib-card { border-top: 1px dashed var(--line); padding-top: .45rem; }
 /* ---------- AND THE GAPS ARE THE ONLY THING LEFT TO SPEND, BECAUSE 44px IS NOT ------------------
    SIX ROWS OF INPUT AT A 44px FLOOR IS 264px AND THAT IS THE SHELF'S FLOOR. `label.field`'s own
@@ -850,6 +883,11 @@ label.field > span.handle-in {
 .f-row.is-phone { grid-template-columns: 6.5rem minmax(0, 1fr); }
 .f-row.is-range { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; }
 .f-row.is-range .f-dash { color: var(--dim); margin-bottom: .75rem; }
+/* AN UNCHOSEN END OF A RANGE OF SELECTS READS AS A PLACEHOLDER — the ages a tutor teaches. A select's
+   placeholder is its empty option, drawn in the select's own ink, so `youngest` in full white beside
+   the grey `min` of the students range looked like an answer somebody gave. The same rule the
+   qualification shelf's `Level` and `Board` already carry (`.lib-row select:has(...)`). */
+.f-rowwrap select:has(option[value=""]:checked) { color: var(--faint); }
 .pin-row { margin-top: 1rem; }
 /* ---------- THE TRACKS HOLD THE DIGITS **AND** THE INPUT'S OWN PADDING ---------------------------
    `6ch` CLIPPED `1985` TO `198`, and nothing measured it wrong: the box was exactly 6ch wide and
@@ -877,17 +915,13 @@ label.field > span.handle-in {
 .dob-boxes input { min-width: 0; text-align: center; }
 .lib-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 7rem); gap: .6rem; }
 .lib-row label.field, .lib-row input { min-width: 0; }
-/* THE QUALIFICATION'S SECOND ROW IS TWO EQUAL SELECTS, a level and a board, rather than the wide
+/* A QUALIFICATION EDITOR'S FIRST ROW IS TWO EQUAL SELECTS, a level and a grade, rather than the wide
    box beside a narrow one above it. `.lib-row select` joins the min-width rule for the reason the
    inputs do: a select's own idea of its width is its longest option. */
 .lib-row.q-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .lib-row select { min-width: 0; }
-/* THE THIRD ROW OF A QUALIFICATION: the received year, then the two ticks that replaced the
-   `What you teach` page. The ticks take what their words need and the year takes the rest; the
-   label is the 44px target, as `.check` already makes it, and the words shrink rather than wrap. */
-/* Per level now, two to a row — see `qualLevel_`. */
-.q-ticks { justify-content: flex-start; gap: 1.2rem; }
-.q-tick { gap: .35rem; font-size: .72rem; min-height: 44px; min-width: 44px; padding: 0; white-space: nowrap; }
+/* THE TEACH / CAN TEACH TICKS THAT SAT HERE WENT WITH THE SUMMARY LINES: they were checkboxes read
+   per level and per subject, two ways round, and are one three-way control now (`.q-seg`, above). */
 /* AN UNCHOSEN LEVEL OR BOARD READS AS A PLACEHOLDER, in the same grey as the empty boxes above it —
    otherwise `Level` in full ink looks like an answer somebody gave. */
 .lib-row select:has(option[value=""]:checked) { color: var(--faint); }
@@ -1591,6 +1625,71 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 /* 4:5 LIKE THE CLIP IT REPLACES, so a clip Drive refuses does not change the card's height after it
    was placed — it was 16:9, and the swap moved everything under it up by a third of a card. */
 .post-pic.post-vid-out { aspect-ratio: 4 / 5; }
+/* ---------- THE FILM: GRAIN, A WARM FADE, A LITTLE CONTRAST AND A VIGNETTE -----------------------
+   ASKED FOR AS *"make the ig clone have a grainy look to it. like breaking bad but more. like 1999
+   or 2003 you knooow like light phone."* — the look of an early digital camera: visible fine grain,
+   colour gone slightly warm and faded, a touch more contrast, and corners that fall off. ON THE
+   PHOTOGRAPHS AND THE CLIPS ONLY: a caption, a name, a reaction or a tile drawn grainy is a screen
+   that looks dirty rather than a picture that looks old.
+
+   NO OVERLAY ELEMENT, AND THAT IS THE WHOLE DESIGN. The obvious version is a noise layer laid over
+   each picture — and an `<img>` cannot carry a `::after`, so that means a wrapper round every
+   photograph, and every rule above about the bleed, the 4:5 reservation and `holdColumn_` moving
+   onto it. Worse, an element over a picture is an element under the thumb: it has to be told
+   `pointer-events: none`, and the day somebody forgets, every swipe that starts on a photograph —
+   which is most of the swipes on this column — lands on it instead. So the look is TWO PROPERTIES
+   OF THE PICTURE ITSELF, and there is nothing new in the document to intercept anything:
+
+     - `filter` is the colour. `sepia` for the warmth, `saturate` under 1 for the fade, `contrast`
+       over 1 for the bite, and `brightness` to give back what the grain below takes away.
+     - `mask-image` is the grain and the vignette, as two layers multiplied (`intersect`). A mask
+       makes a picture partly transparent, so what shows through is what is BEHIND it: the pane's
+       own near-black. A speckle of 85% is a dark grain; a corner at 62% is the vignette. That is
+       darkening-only grain, which is what a cheap sensor gives in its shadows and what reads as
+       film on a black screen.
+
+   THE GRAIN IS A 160px TILE OF `feTurbulence`, in a data URI so it is not a request. Measured by
+   drawing it to a canvas: the noise channel has a mean of .50 and a spread of .11, and the matrix's
+   last row maps that to an alpha of `.7·n + .55` — a mean of .90 with a spread of about .08, which
+   is visible in a midtone and invisible in a shadow, like the real thing. STATIC, NOT ANIMATED:
+   moving grain is a repaint every step on every picture in eleven columns, and the ask was for a
+   look rather than a motion. `stitchTiles` so the tile edges do not show as a grid.
+
+   CHEAP BECAUSE NOTHING HERE RUNS. The browser rasterises the tile once, shares it across every
+   picture that names the same URL, and paints each photograph into its column's layer once; a
+   swipe moves that layer by a transform and repaints nothing. A clip's mask and filter are applied
+   by the compositor per frame, which is what they are for.
+
+   WHAT IT COSTS, SAID RATHER THAN BURIED: a post's clip carries the browser's own `controls`, and
+   those are drawn INSIDE the `<video>` element, so they are warmed and grained with the picture.
+   No stylesheet can reach into them separately. A clip Drive refused becomes a link
+   (`.post-vid-out`, an `<a>`), and `:is(img, video)` is what keeps the film off that link's words.
+
+   SCOPED TO `.post` AND NOT TO THE CLASSES ALONE, because `post-vid` is also on a clip in a CHAT
+   (`me.js` puts it there so a message and a post open through one door) and a conversation is not
+   the Feed. Declared on the components rather than at `:root`, which is the house rule for
+   something only one part of the app may use. The reel's half is with `.feed-vid`, below.
+
+   AND ON THE COMPOSER'S PREVIEW, which is not a `.post`. `showPostPreview` draws the links with
+   the card's own renderer *"so the preview cannot disagree with what goes up"* — and a clean
+   photograph in the preview over a grainy one on the card a second later is exactly that
+   disagreement, about the one thing this block changes. */
+.post, .reel, .post-preview {
+  --film-tone: sepia(.24) saturate(.86) contrast(1.1) brightness(1.07);
+  --film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .7 0 0 0 .55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --film-vignette: radial-gradient(ellipse at 50% 45%, #000 52%, rgb(0 0 0 / .62) 100%);
+}
+:is(.post, .post-preview) :is(img, video):is(.post-pic, .post-cell), .reel .feed-vid {
+  filter: var(--film-tone);
+  -webkit-mask-image: var(--film-vignette), var(--film-grain);
+  mask-image: var(--film-vignette), var(--film-grain);
+  -webkit-mask-size: 100% 100%, 160px 160px;
+  mask-size: 100% 100%, 160px 160px;
+  -webkit-mask-repeat: no-repeat, repeat;
+  mask-repeat: no-repeat, repeat;
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
 /* THE COMPOSER'S PREVIEW DRAWS WITH THE CARD'S OWN RENDERER, in a sheet that has no page margin to
    cancel — so the edge-to-edge bleed above would run past the sheet's sides. Inside the preview the
    picture and the grid are simply the width they are given. */
@@ -1982,6 +2081,63 @@ button.text-drop { color: var(--bad); }
 .dock-new .btn { width: auto; flex: 0 0 3rem; }
 .dock-new .btn.tiny { font-size: 1.1rem; }
 
+/* ---------- THE TIMETABLE ---------------------------------------------------------------------------
+   A day at a time under a row of day chips — see the note over `TMT_DAY_NAMES` in games.js for why
+   it is not a seven-column grid. The chips are 44px in px, the rule this stylesheet has eight
+   convictions of — five of them and their gaps are 228px, see the 320 rule below — and seven go four
+   and three rather than squeezing under the floor.
+
+   TEN HUES ON THE COMPONENT, the chess board's rule: a subject's colour is this widget's own
+   convention and nothing else in the app should be offered it. Drawn as a 4px edge rather than a
+   fill, so the words on the row are always the app's own ink on the app's own ground and no hue
+   has to pass a contrast test it was never chosen for. None of the ten is the app's gold, which
+   means "the one you have chosen" — the selected day — and a subject drawn in it would say that. */
+.tmt { --tmt-0: #5b9bd5; --tmt-1: #6cc08a; --tmt-2: #d9822b; --tmt-3: #c46bd1; --tmt-4: #e06c75;
+        --tmt-5: #4fc1c1; --tmt-6: #c7b84a; --tmt-7: #8f8fe0; --tmt-8: #a3d65c; --tmt-9: #e8a0bf; }
+.tmt-days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin: .2rem 0 .55rem; }
+/* AND AT 320 THAT DOES NOT FIT, MEASURED: the widget's slot is 218px there and five 44px chips with
+   their gaps are 228. Shrinking a chip under 44 is the one trade this stylesheet refuses, so the
+   card gives up some of its own inside edge on a narrow phone instead — .4rem a side, which takes the
+   slot to 231px. The card's outside is unchanged, so it still lines up with every widget beside it. */
+@media (max-width: 22rem) {
+  .card.is-widget:has(.tmt-box) { padding-left: .4rem; padding-right: .4rem; }
+}
+.tmt-days.n7 { grid-template-columns: repeat(4, 1fr); }
+.tmt-day { position: relative; min-height: 44px; min-width: 44px; padding: 0; cursor: pointer;
+          background: var(--sunk); color: var(--dim); border: 1px solid var(--line);
+          border-radius: var(--r-sm); font: 600 .78rem/1 var(--font); }
+.tmt-day.on { background: var(--gold); color: #000; border-color: var(--gold); }
+/* A DOT ON A DAY THAT HAS SOMETHING ON IT, so the week reads at a glance without opening each day. */
+.tmt-day.has::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 4px; height: 4px;
+                     margin-left: -2px; border-radius: 50%; background: currentColor; opacity: .7; }
+.tmt-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: .5rem; }
+.tmt-none { margin: 0; padding: .4rem 0; }
+.tmt-row { display: flex; align-items: center; gap: .6rem; width: 100%; min-height: 44px;
+          padding: .35rem .6rem; text-align: left; cursor: pointer; color: var(--ink);
+          background: var(--sunk); border: 1px solid var(--line);
+          border-left: 4px solid var(--tmt-c, var(--line)); border-radius: var(--r-sm); font: inherit; }
+.tmt-at { flex: 0 0 auto; font: 600 .8rem/1 var(--mono); color: var(--dim); }
+.tmt-what { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: .1rem; }
+.tmt-sub { font-size: .88rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.tmt-note { font-size: .74rem; line-height: 1.3; color: var(--dim); overflow-wrap: anywhere; }
+.tmt-ed { display: flex; flex-direction: column; gap: .4rem; padding: .45rem;
+         border: 1px solid var(--line); border-left: 4px solid var(--tmt-c, var(--line));
+         border-radius: var(--r-sm); }
+/* 7.8rem HOLDS "11:15 AM", which is what a 12-hour phone shows; 7rem cut the AM off at 320. */
+.tmt-ed-top { display: grid; grid-template-columns: 7.8rem minmax(0, 1fr); gap: .4rem; }
+.tmt-ed input { min-width: 0; }
+/* NO CLOCK BUTTON IN THE TIME BOX. Chrome draws one that opens a picker over the card — a pop-up, the
+   one thing this app refuses — and at 320 it sat on top of the minutes: a screenshot showed "11:1".
+   On a desktop the hours and minutes are typed or arrowed in place without it.
+   ON A PHONE THIS DOES NOTHING AND IS NOT CLAIMED TO: tapping a time box opens the platform's own
+   wheel or clock, which no rule here can reach. That is the same native control as the booking
+   form's dropdowns and the exam-date picker on Settings, which is the line this app already draws —
+   its own surfaces never open over the card, the platform's controls may. */
+.tmt-time::-webkit-calendar-picker-indicator { display: none; }
+.tmt-foot { display: flex; align-items: center; gap: .6rem; }
+.tmt-foot .btn { width: auto; flex: 1; }
+.tmt-wkend { flex: 0 0 auto; padding: 0; gap: .45rem; font-size: .82rem; color: var(--dim); }
+
 /* ---------- FILTER CHIPS ------------------------------------------------------------------------
    Each one is a filter that is ON, and pressing it takes it off. The whole chip is the target
    rather than the ✕ — a 12px cross on a phone is a target you miss.
@@ -2013,15 +2169,22 @@ button.text-drop { color: var(--bad); }
      state it opens in, and in that state there are no filters, so there are no chips — 63 known tap
      targets, four widths, two visitors, and the control that removes a filter was in none of them.
      It appeared the moment the check was given a state six answers deep. */
-  min-height: 44px; padding: 0 .45rem;
-  background: var(--sunk); border: 1px solid var(--line); border-radius: 2px;
+  /* ---------- THE SAME FAMILY AS THE ANSWERS UNDER IT ---------------------------------------------
+     An answer pressed becomes one of these, so they are drawn as the same object: the pill, the
+     `--chip-line` outline. FILLED, where an answer is not, because filled is how a filter chip says
+     "this one is on" — the answers below are the ones you could choose, these the ones you did. */
+  min-height: 44px; padding: 0 .7rem;
+  background: rgb(255 255 255 / .08); border: 1px solid var(--chip-line); border-radius: 22px;
   color: var(--ink); font: inherit; font-size: .72rem; cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
 }
 .chip:active, .chip.is-pressed { transform: scale(.94); }
 /* The FIELD, small and dim, before the value. "Grade 9" and "9" are different amounts of
    information, and with four chips on a line the second one is a puzzle. */
-.chip-k { color: var(--faint); font-size: .6rem; text-transform: uppercase; letter-spacing: .04em; }
+/* `--dim`, NOT `--faint`, ON THE FILL: `--faint` was measured for black and for `--raised`, and on a
+   chip's own 8% white it is 3.97:1 — `check/ui.js` named every field on the first run of the filled
+   chips. `--dim` is the next step up and has exactly this job, a label beside a value. */
+.chip-k { color: var(--dim); font-size: .6rem; text-transform: uppercase; letter-spacing: .04em; }
 .chip-x { color: var(--faint); margin-left: .15rem; }
 .chip:active .chip-x, .chip.is-pressed .chip-x { color: var(--bad); }
 /* The + adds rather than removes, so it is outlined in the accent rather than filled — it is an
@@ -2916,14 +3079,35 @@ button.text-drop { color: var(--bad); }
 .rc-total .bk-k { color: var(--ink); font-weight: 700; text-transform: uppercase;
                   letter-spacing: .06em; }
 .rc-total .bk-t { font-weight: 700; color: var(--ink); }
+/* ---------- AN ADMIN'S TWO MORE MONEY ROWS, UNDER THE FIRST AND PART OF IT -----------------------
+   `Tutor earns` and `Admin earns` follow `Client pays` — see `jobMoney_` in book.js. They are the
+   same row again rather than a block of their own, so no second rule above them: one line closes
+   the questions off, and the three figures under it read down the `+` column as one total split
+   three ways. Named through `.rc-total` so it out-specifies the base rule rather than out-sitting
+   it — the `.price.faint` race this stylesheet has lost twelve times. */
+.rc-total.rc-more { margin-top: 0; padding-top: 0; border-top: 0; }
+/* ---------- A TOTAL'S LABEL RUNS ACROSS THE ROW, SO IT CANNOT WIDEN THE QUESTION COLUMN ------------
+   THE LABEL TRACK IS `minmax(6.2em, max-content)` AND IT IS SHARED BY EVERY ROW ON THE CARD — so
+   the widest label anywhere decides where every answer starts. `COST` fitted inside the floor;
+   `CLIENT PAYS` and `TUTOR EARNS`, in capitals and tracked, did not, and measured at 390 they pushed
+   the answer column far enough right that `Autumn 2026` and every tick's date wrapped onto a second
+   line. At 320 the dates broke mid-number. `IT WOULD COME TO` on an unanswered application had been
+   doing the same thing quietly for as long as that label has existed.
+
+   SO THE LABEL SPANS `1 / -2` — every track but the figure's — and the three empty spans beside it
+   go. A spanning item only grows a track when the tracks it spans are too narrow together, and the
+   answer column alone is wider than any total's label. `-2` RATHER THAN `5` because the basket is
+   two tracks, and there `1 / -2` is just its first. The dotted leader went with `.bk-v`: the row's
+   own rule above it already says this is the total. */
+.rc-total .bk-k { grid-column: 1 / -2; }
+.rc-total .bk-v, .rc-total .bk-m, .rc-total .bk-r { display: none; }
 /* ---------- AND ON A BASKET IT IS TWO COLUMNS, BECAUSE THE BASKET'S CARD IS ----------------------
    `.bk:has(> .is-wide)` GIVES THAT CARD TWO TRACKS and `.bk-row.is-wide` hides four of its six
    spans to match. The total row is not `is-wide` — it is the same row on both documents — so
    without this it would put five spans into two tracks and wrap itself over three lines. The four
    it hides are the four that are empty there, which is the same four `is-wide` hides. */
-.bk:has(> .is-wide) > .rc-total .bk-v,
-.bk:has(> .is-wide) > .rc-total .bk-m,
-.bk:has(> .is-wide) > .rc-total .bk-r { display: none; }
+/* THE THREE IT HID ARE HIDDEN ON EVERY TOTAL NOW — see `.rc-total .bk-k` below — so the basket's
+   own copy of that rule went rather than standing as a second statement of it. */
 
 /* ---------- ELEVEN RULES THAT SAID THE SAME ELEVEN THINGS IN A SECOND COLOUR ----------------------
    THIS BLOCK WAS "the rows inside the paper: the same five columns, in ink rather than in screen
@@ -3314,6 +3498,36 @@ button.text-drop { color: var(--bad); }
    does the row above and a tap anywhere else. `.btn quiet` rather than the gold one, and no top
    margin of its own — `.pick-list` already carries the gap below it. */
 .drop-done { margin: 0; }
+/* ---------- AND EVERY OTHER `<select>` HANGS THE SAME PANEL -----------------------------------------
+   *"should be consistent with the booking multiselect drop down list"*. `selOpen_` in book.js draws a
+   single-choice select's options into `#drop` with the same `.pick-list` and `.pick-opt` as the
+   booking list, and this is the one rule that stops the platform's own picker opening instead: a
+   finger, a pen or a mouse never TARGETS the select, so no browser has a tap on it to open a wheel
+   from. The tap lands on the label or row behind it and is caught there. The whole argument —
+   including why this beats cancelling `touchstart` on an iPhone — is over `SEL_OK`.
+
+   NOT A DISABLED ONE, which keeps its `not-allowed` cursor and opens nothing either way; not
+   `multiple`; and not one carrying `data-native`, which is the way out for a select that genuinely
+   needs the platform's picker and says why beside it. Focus is untouched, so the keyboard reaches
+   every select as before. */
+select:not([multiple]):not([data-native]):not(:disabled) { pointer-events: none; }
+/* THE POINTER CURSOR GOES ON WHATEVER HOLDS ONE, since the select itself is no longer under the
+   mouse. `:where` so it outranks nothing: a parent that states its own cursor keeps it. */
+:where(:has(> select:not([multiple]):not([data-native]):not(:disabled))) { cursor: pointer; }
+/* OPEN SAYS SO ON THE FIELD, as the booking list's button already does with `.me-many`. */
+select[aria-expanded="true"] { border-color: var(--gold); }
+/* ONE LIST, NO DONE AND NO SUMMARY LINE, so the panel's own padding is the only space round it —
+   `.pick-list`'s margin is there to part it from the line above and the button below, neither of
+   which a single choice draws. */
+.sel-list > :first-child { margin-top: 0; }
+.sel-list > :last-child { margin-bottom: 0; }
+.sel-group .pick-list { margin: 0; }
+.sel-list > * + .sel-group, .sel-group + .pick-list { margin-top: .45rem; }
+/* OVER A SHEET WHEN IT HANGS FROM ONE. `#drop` is 43/44, under the sheet's 45/46, so that a booking
+   list can never cover a modal; a select INSIDE a sheet would open its list behind the sheet it is
+   in. Still under the toast (50). */
+#drop-back.over-sheet { z-index: 47; }
+#drop.over-sheet { z-index: 48; }
 /* THE `.pick-list` GRID IS UNCHANGED FROM THE PAGE VERSION and the arithmetic that chose it still
    holds: twelve 44px buttons stacked is 528px, which no phone has room for above or below a field.
    Two columns is six rows and 276px. `minmax(7.5rem, 1fr)` rather than `repeat(2, 1fr)`, so a wider
@@ -5849,6 +6063,21 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: .64rem; }
 .prof-teach .prof-tag.is-main { border-color: var(--gold); color: var(--ink); }
 .prof-tags + .prof-teach { margin-top: .35rem; }
+/* THE LEVELS, RAISED AFTER THE SUBJECT — `teachChip_` in cards.js. *"Subject ^level, level, level …
+   no brackets."*
+   A FLOOR OF 8px, IN px. The chip is .64rem, which is 8.6px on a 320px phone, and a browser's own
+   superscript is "smaller" — about 7px, which is a level nobody can read. `max()` keeps the raise as
+   what says "this belongs to the word before it" and stops the size doing the work as well.
+   `line-height: 0` SO THE RAISE DOES NOT GROW THE CHIP: a chip with levels and a chip without one
+   sit on the same line at the same height, which is what lets a row of them read as a row.
+   `--dim` RATHER THAN AN OPACITY, so the levels step back on the gold-edged chip as well, and so
+   `check/ui.js`'s contrast rule can read the colour: it composites a colour's alpha and not an
+   element's opacity, and a level faded that way would be measured as the subject's ink. */
+.prof-lv {
+  font-size: max(8px, .84em); line-height: 0; vertical-align: .42em;
+  color: var(--dim); letter-spacing: 0;
+}
+.prof-lv span { white-space: nowrap; }
 /* THE RATE, UP BY THE NAME AND BIGGER than any row — it is the number a parent opened the card for.
    Gold because it is a price and this app's prices are gold; the `/h` recedes so the figure leads. */
 .prof-rate {
@@ -5893,13 +6122,10 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    the session is, when, and where it has got to. Nothing draws them. Gone with the stub stylesheet
    above, and found by the same two repairs to `check-css`. */
 
-/* ---------- THE BUSINESS'S OWN ARITHMETIC, BESIDE THE PAPER --------------------------------------
-   Floating under the card rather than printed on it, so the document reads the same for everybody
-   and this reads as a note about it. Faint and small: it is a figure you check, not a figure the
-   other party agreed to. */
-.money-note { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: .5rem;
-              font-size: .78rem; color: var(--dim); }
-.money-note b { color: var(--gold); font-weight: 600; }
+/* `.money-note` STOOD HERE — the business's arithmetic floating under the paper. It is two rows of
+   the total now (`.rc-more` above), because the owner asked that nothing float under a receipt and
+   because the only thing that ever kept those figures from a client was this block's own `isAdmin`
+   test; the payload keeps them now. */
 
 .join { margin-top: 1rem; }
 .join-say { margin: 0 0 .6rem; }
@@ -7003,28 +7229,57 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .ct-say b { color: #6fa8dc; }
 
 /* ---------- THE VENN ----------------------------------------------------------------------------- */
-#splash-venn .vn-svg { width: min(62vw, 15rem); height: auto; }
-/* ---------- THE CIRCLES MOVE INTO EACH OTHER -----------------------------------------------------
-   ONLY THE OVERLAP WAS ANIMATED, and it faded in over two crossed circles that never moved — one
-   moving part on the whole splash, and it read as a lit patch on a diagram rather than as two sets
-   meeting. The overlap only means something if you see it come into being.
-   They slide together and apart, and the middle lights as they meet. Delays are set so the fade
-   peaks when the circles are closest, which is the whole point of the picture and was previously
-   true only by accident. */
-.vn-a, .vn-b { fill: rgb(111 168 220 / .3); stroke: #6fa8dc; stroke-width: 1.8;
-               animation: vn-slide 3.4s ease-in-out infinite; }
-.vn-b { fill: rgb(232 134 44 / .3); stroke: #e8862c; animation-name: vn-slide-b; }
-@keyframes vn-slide   { 0%,100% { transform: translateX(-9px); } 50% { transform: translateX(0); } }
-@keyframes vn-slide-b { 0%,100% { transform: translateX(9px); }  50% { transform: translateX(0); } }
-/* THE OVERLAP, LIT ON ITS OWN. Two circles crossing is a picture; the middle picked out is an idea. */
-.vn-both { fill: var(--paper); opacity: 0; animation: vn-mid 3.4s ease-in-out infinite; }
-@keyframes vn-mid { 0%,22% { opacity: 0; } 45%,58% { opacity: .6; } 80%,100% { opacity: 0; } }
-/* THE LABELS SLIDE WITH THEIR CIRCLES. Same animation, same timing — a label that stayed still
-   while its set moved would be labelling the space the set used to be in. */
-.vn-l { font: 700 15px var(--mono); text-anchor: middle; }
-.vn-a-l { fill: #6fa8dc; animation: vn-slide 3.4s ease-in-out infinite; }
-.vn-b-l { fill: #e8862c; animation: vn-slide-b 3.4s ease-in-out infinite; }
-.vn-say { margin-top: .7rem; font: 700 .9rem var(--mono); color: var(--paper); text-align: center; }
+/* ---------- WRITTEN BY tools/venn.py — edit the table there and re-run, do not edit these lines ---
+   IT WAS TWO CIRCLES SLIDING TOGETHER AND A PATCH LIGHTING IN THE MIDDLE, under "A ∩ B" that never
+   changed. That is one fact drawn once, and the patch was a flat cream blob rather than anything a
+   student has seen on a paper. Now it is the diagram a GCSE question prints: ξ round the outside,
+   A and B arriving, and three regions shaded IN TURN — A ∩ B, A ∪ B, A′ — each with its notation
+   underneath as it appears, because the point of the splash is reading the symbol off the picture.
+   SHADED WITH A HATCH because that is how a region is shaded by hand, and the hatch drifts by one
+   line spacing per turn of its own loop, so a shaded region is moving even while it is held and
+   no frame of the loop is a still picture. Only `transform` and `opacity` move, and the loop starts
+   and ends on the same empty ξ, so there is no seam. The rules that set an opacity WITHOUT an
+   animation are the reduced-motion frame: circles in, A ∩ B shaded and named.
+   OUTLINES ONLY, as on a paper: tinted circles put a third colour in the lens where they cross, so
+   A′ — which leaves the lens unshaded — read as though the lens were shaded something else. And
+   the letters carry a stroke of the page's own black under their fill, because they sit on the
+   hatch and a hatch line through a letter makes it a different glyph. */
+#splash-venn .vn-svg { width: min(66vw, 16rem); height: auto; }
+.vn-box { fill: none; stroke: rgb(244 241 232 / .35); stroke-width: 1.2; }
+.vn-xi, .vn-l { stroke: var(--bg, #000); stroke-width: 3px; paint-order: stroke; stroke-linejoin: round; }
+.vn-xi { font: 400 11px var(--mono); fill: rgb(244 241 232 / .6); }
+.vn-a, .vn-b { fill: none; stroke-width: 1.8; }
+.vn-a { stroke: #6fa8dc; } .vn-b { stroke: #e8862c; }
+.vn-l { font: 700 14px var(--mono); text-anchor: middle; }
+.vn-a-l { fill: #6fa8dc; } .vn-b-l { fill: #e8862c; }
+.vn-tint { fill: rgb(240 180 95 / .16); }
+.vn-h { fill: none; stroke: #f0b45f; stroke-width: 1.3; opacity: .8;
+        animation: vn-hatch 1.6s linear infinite; }
+@keyframes vn-hatch { to { transform: translateX(6px); } }
+.vn-ga { animation: vn-ca 10s ease-in-out infinite; }
+.vn-gb { animation: vn-cb 10s ease-in-out infinite; }
+@keyframes vn-ca { 0% { opacity: 0; transform: translateX(-16px); } 9%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateX(-16px); } }
+@keyframes vn-cb { 0% { opacity: 0; transform: translateX(16px); } 9%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateX(16px); } }
+.vn-say { display: grid; margin-top: .7rem; font: 700 1.3rem var(--mono); color: var(--paper);
+          text-align: center; }
+.vn-s { grid-area: 1 / 1; }
+.vn-say b.a { color: #6fa8dc; } .vn-say b.b { color: #e8862c; }
+.vn-r:not(.vn-r-and), .vn-s:not(.vn-s-and) { opacity: 0; }
+.vn-r-and { animation: vn-and 10s ease-in-out infinite; }
+@keyframes vn-and { 0%, 8% { opacity: 0; } 13%, 32% { opacity: 1; } 37%, 100% { opacity: 0; } }
+.vn-s-and { animation: vn-s-and 10s ease-in-out infinite; }
+@keyframes vn-s-and { 0%, 10.5% { opacity: 0; } 13.5%, 31.5% { opacity: 1; } 34.5%, 100% { opacity: 0; } }
+.vn-r-or { animation: vn-or 10s ease-in-out infinite; }
+@keyframes vn-or { 0%, 32% { opacity: 0; } 37%, 59% { opacity: 1; } 64%, 100% { opacity: 0; } }
+.vn-s-or { animation: vn-s-or 10s ease-in-out infinite; }
+@keyframes vn-s-or { 0%, 34.5% { opacity: 0; } 37.5%, 58.5% { opacity: 1; } 61.5%, 100% { opacity: 0; } }
+.vn-r-not { animation: vn-not 10s ease-in-out infinite; }
+@keyframes vn-not { 0%, 59% { opacity: 0; } 64%, 86% { opacity: 1; } 91%, 100% { opacity: 0; } }
+.vn-s-not { animation: vn-s-not 10s ease-in-out infinite; }
+@keyframes vn-s-not { 0%, 61.5% { opacity: 0; } 64.5%, 85.5% { opacity: 1; } 88.5%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .vn-g, .vn-r, .vn-s, .vn-h { animation: none; }
+}
 
 /* ---------- THE CLOCK ---------------------------------------------------------------------------- */
 #splash-clock .ck-svg { width: min(46vw, 11rem); height: auto; }
@@ -7050,8 +7305,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 @media (prefers-reduced-motion: reduce) {
   .so-row i, .mn-row i, .rp-box span, .or-p, .or-ring, .td-row i, .dw-sun, .h3-say i, .h3-bar span, .mx-line, .pr-arm, .nl-dot,
-  .vn-a, .vn-b, .vn-both, .ck-m, .ck-h { animation: none; opacity: 1; transform: none; }
-  .vn-both { opacity: .55; }
+  .ck-m, .ck-h { animation: none; opacity: 1; transform: none; }
 }
 
 /* ---------- A ROW WITH NOTHING IN THE FIGURE COLUMNS ---------------------------------------------
@@ -7730,17 +7984,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the top of every list — two ticks in one row that did not look like one row. */
 .mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
             gap: .1rem .5rem; margin-bottom: .5rem; align-items: start; }
-/* ---------- A LOWER FLOOR THAN `.widget-squeeze`'s, BECAUSE WHAT IT COMPETES WITH CHANGED ---------
-   THE 8rem FLOOR WAS MEASURED AGAINST THE A4 PREVIEW, which this card no longer draws — see the table
-   under `.widget-squeeze`. What the list competes with now is the picker above it and Print below
-   it, and the rework added two rows to the picker: the "skip what the exam gives you" box and the
-   Fill / Clear pair. Measured at 320x568 with a level chosen: 108px of list and the box above left
-   the Print button 28px past the bottom of its own card, over the card's edge — and the pane could
-   not see it, because the squeeze chain lets every box between them shrink to nothing, so the
-   overflow sat in the pane's padding and no zoom was ever asked for. Even the filled sheet ran 13px.
-   6rem IS 81px AT 320 — a row and most of the next, which still reads as a list you scroll — and
-   takes back the 27 that one extra line of the gauge's sentence costs. The flyer keeps 8. */
-.mat-list.widget-squeeze { min-height: 6rem; }
+/* ---------- NO FLOOR AND NO SCROLL, BECAUSE THE LIST IS NOT A SCROLLER ANY MORE --------------------
+   IT CARRIED `.widget-squeeze`, with a 6rem floor measured against the picker above it and Print
+   below, so the list scrolled inside the card. Taken off on "the cheat sheet maker should not have a
+   scroll thing" — see the note over the list in `initMat`. The card is now as tall as its list, and
+   a card taller than its pane is `paneReach_`'s, exactly as on every other column. The flyer keeps
+   `.widget-squeeze`; its rules below are untouched. */
 /* ---------- AND THE ROWS THEMSELVES, FOR THE SAME REASON ------------------------------------------
    1.7rem IS 27 PIXELS AND THE CHECKBOX INSIDE IT IS 14, so the row was a half-height target wrapped
    round a quarter-height one. The whole label is clickable, which is right, and it was still too
@@ -8110,6 +8359,32 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-nl u { position: absolute; top: 8mm; width: 0; height: 2.5mm; border-left: .25mm solid var(--pa-mid); }
 .mat-nl s { position: absolute; top: 11.5mm; font: 400 2.2mm/1 var(--mono); color: var(--pa-faint);
             text-decoration: none; transform: translateX(-50%); }
+/* ---------- THE NUMBER LINE WITH NEGATIVES (M52) — the numbers UNDER the line, as a textbook prints it --
+   INSET 5mm EACH SIDE for the arrows. The line runs 3mm past −10 and 10 into that margin and ends in
+   a head, so the arrow says "and on" without a tick of its own; the heads are border triangles
+   rather than fills, because a browser drops fills on paper and keeps borders.
+   ZERO IS THE ONE THAT IS DIFFERENT: a longer, thicker tick and a bigger, bold label. Nothing else is
+   picked out — a line with the negatives in a second colour is a key somebody has to read. */
+.mat-neg { position: relative; height: 13mm; margin: 0 5mm; }
+.mat-neg::before { content: ""; position: absolute; left: -3mm; right: -3mm; top: 5mm; height: 0;
+                   border-top: .4mm solid var(--pa-ink); }
+.mat-neg em { position: absolute; top: calc(5mm + .2mm - 1.5mm); width: 0; height: 0;
+              border-top: 1.5mm solid transparent; border-bottom: 1.5mm solid transparent; }
+.mat-neg em.l { left: -5mm; border-right: 2.4mm solid var(--pa-ink); }
+.mat-neg em.r { right: -5mm; border-left: 2.4mm solid var(--pa-ink); }
+.mat-neg i { position: absolute; top: 3.5mm; width: 0; height: 3.4mm; border-left: .3mm solid var(--pa-ink);
+             transform: translateX(-50%); }
+.mat-neg i.z { top: 2mm; height: 6mm; border-left-width: .6mm; }
+.mat-neg b { position: absolute; top: 8.6mm; font: 400 2.9mm/1 var(--mono); transform: translateX(-50%);
+             color: var(--pa-ink); white-space: nowrap; }
+.mat-neg b.z { font-weight: 700; }
+/* BOLD AND NOTHING ELSE, BECAUSE A BIGGER ZERO SAT LOWER THAN ITS NEIGHBOURS. It was 3.6mm against the
+   others' 2.9 with its `top` nudged to centre the two line boxes — and centring line boxes is not
+   lining up digits: a digit sits on its BASELINE, and where the baseline falls inside a line box
+   depends on the font's own metrics. Measured on the printed sheet, the zero's baseline came out
+   0.44mm below the 1's and the −1's, which read as a dropped 0 on the one label the line turns on.
+   The same size and the same `top` puts every label on one baseline by construction, in any font;
+   the long, thick tick above it is what does the picking out. */
 /* ---------- ONE LINE, WHERE THE POINT IS ---------------------------------------------------------
    SEVEN COLUMNS, A BOX ROUND THEM AND A DIVIDER BETWEEN EVERY PAIR was eight lines to say a thing
    the headings already say: Th, H, T, U are four words in four columns and nobody needs ruling to
@@ -8751,8 +9026,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   font: 600 .8rem/1.2 var(--font); color: var(--gold);
 }
 .qans-head em { margin-left: .5rem; font-style: normal; font-size: .68rem; color: var(--faint); }
-/* THE ANSWER READS AS THE PAPER DOES, because it is the same material — see `answerBlock_`. */
-.qans-body { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; padding-bottom: .4rem; }
+/* THE ANSWER READS AS THE PAPER DOES, because it is the same material — see `answerBlock_`. Both are
+   the site's own coding font now: asked for as "the text for questions is still that qwirky text.
+   Should be the coding font universally for whole site." Georgia was here to make a question read
+   as printed paper; one face across the app won over that. */
+.qans-body { font-family: var(--font); line-height: 1.5; padding-bottom: .4rem; }
 .qans-body p:first-child { margin-top: 0; }
 .qans-body table { border-collapse: collapse; margin: .9rem 0; }
 .qans-body td, .qans-body th { border: 1px solid var(--line); padding: .3rem .5rem; }
@@ -8817,7 +9095,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    what keeps a diagram inside a 320px phone, and the label classes below are what let an SVG drawn
    in black ink on white paper read on a black screen — they all take `currentColor`, so there is
    one drawing rather than two. See the `diagram` column in js/library.js. */
-.qsheet { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; }
+.qsheet { font-family: var(--font); line-height: 1.5; }
 /* ---------- A PREAMBLE THAT IS STANDING IN FOR THE REAL ONE ---------------------------------------
    AN AQA ENGLISH INSERT IS A SEPARATE BOOKLET AND THIRD-PARTY COPYRIGHT, so the source is not in
    the question paper and cannot be reproduced here. What sits in the row is a description accurate
@@ -8932,6 +9210,16 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   touch-action: pan-x;
 }
 .qsheet th, .qsheet td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
+/* THE BOX A PAPER LEAVES FOR AN ANSWER. Thirty-five rows write `<span class='box'>` where the
+   printed page has an empty box -- `□ = 9,171 − 530`, a gap in a table, a missing term -- and
+   nothing styled it, so it drew as four spaces: the question opened on a bare "=" and a table's
+   blank cell looked like a cell that failed to load. Drawn as the outline it stands for, in the
+   page's own ink. `.check .box` is the tickbox control and is untouched: this is scoped to
+   `.qsheet` and to a `span`. */
+.qsheet span.box {
+  display: inline-block; min-width: 2.4em; height: 1.25em; vertical-align: middle;
+  border: 1.5px solid currentColor; border-radius: 2px; opacity: .8;
+}
 /* THE FIGURES COME THROUGH AS SVG using `currentColor`, so a diagram drawn for white paper reads
    on this black screen without a second copy of it.
 
@@ -9460,7 +9748,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
      printer's unprintable edge and is what `check/cards.js` now holds the whole set against. */
   .qz-sheet { width: 210mm; min-height: 297mm; box-sizing: border-box; padding: 15mm 16mm;
     background: var(--paper); color: var(--paper-ink);
-    font-family: var(--sans, system-ui, sans-serif); }
+    font-family: var(--font); }
+  /* The site's coding font, and a point smaller than the serif it replaced on the three text
+     sizes below: monospace is about a quarter wider, so it wraps more, and at the old sizes the
+     magnetism quiz ran 18px past A4 and pushed its answer key onto a third sheet. */
   .qz-sheet + .qz-sheet { break-before: page; }
   .qz-q, .qz-ans li { break-inside: avoid; }
 
@@ -9473,19 +9764,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   .qz-who span { flex: 1; border-bottom: .6pt solid var(--paper-rule); padding-bottom: 5mm; }
 
   .qz-q { margin: 0 0 6mm; }
-  .qz-ask { margin: 0; font-size: 11.5pt; line-height: 1.45; }
+  .qz-ask { margin: 0; font-size: 10.5pt; line-height: 1.45; }
   .qz-ask b { margin-right: 1.5mm; }
   /* A LETTER PER CHOICE, because a printed option is circled rather than pressed and a circle needs
      something to go round. `list-style: none` and the letter drawn instead, so the two cannot
      disagree about which is C. */
   .qz-opts { list-style: none; margin: 2.5mm 0 0; padding: 0 0 0 6mm; }
-  .qz-opts li { margin: 0 0 1.5mm; font-size: 11pt; line-height: 1.4; }
+  .qz-opts li { margin: 0 0 1.5mm; font-size: 10pt; line-height: 1.4; }
   .qz-let { display: inline-block; min-width: 6mm; font-weight: 700; }
   /* A RULED LINE RATHER THAN A BOX, for a typed answer. It is a word or a number — `Osmosis`,
      `2,8,1` — and a box the depth of the screen one would be most of a page for eight characters. */
   .qz-rule { height: 8mm; border-bottom: .6pt solid var(--paper-rule); margin: 2mm 0 0; }
 
-  .qz-ans { margin: 0; padding-left: 7mm; font-size: 11pt; }
+  .qz-ans { margin: 0; padding-left: 7mm; font-size: 10pt; }
   .qz-ans li { margin: 0 0 5mm; line-height: 1.45; }
   .qz-why { display: block; margin-top: 1mm; font-size: 10pt; color: var(--paper-dim); }
 
@@ -9967,24 +10258,46 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   /* THE HAIRLINE GOES. Two rows separated by a border AND by a gap is a divider inside a gap —
      it reads as a table that has been given rounded corners rather than as a list of buttons. */
   border-bottom: 0;
-  border: 1px solid var(--line);
-  border-radius: .7rem;
-  background: var(--raised);
-  /* ---------- THE PADDING WAS PUSHING PAST THE TARGET IT ALREADY HAD ---------------------------
-     MEASURED: 48px a row, seven rows, 336px. `min-height: 44px` is the floor a fingertip needs and
-     `.8rem` of padding over a 24px line took every row four pixels past it — height bought from
-     nobody, because the tap target was already 44. At .55rem the box lands ON the floor: the same
-     44px to press and 4px less to scroll past, seven times over. */
-  padding: .55rem .7rem;
-  margin-bottom: .38rem;
+  /* ---------- AND NOW THE ROW IS A CHIP, ONE OF SEVERAL ON A LINE ---------------------------------
+     REPORTED AS "turn the finder options to look more like the google chips tags … they dont need to
+     appear one above the other but can fill like from left to right top to down like writing a
+     paragraph." Measured before: seven answers stacked at 44px plus a gap each were 308px of a
+     575px question card at 390, to show seven words.
+
+     A CHIP IS AS WIDE AS ITS WORDS and `.answers` wraps them like text, so a column of one-word
+     answers (Summer, Autumn, Higher, Foundation) is one or two lines rather than one per answer.
+     An outline and no fill at rest, a light fill under a finger — Google's own filter chip. The
+     radius is half the height, so a one-line chip is a pill; a long answer ("Angles in Triangles &
+     Quadrilaterals") still wraps INSIDE its chip at `max-width: 100%`, and with that radius a
+     two-line chip stays a rounded box rather than a lozenge.
+
+     44px STAYS, in px, AND IN BOTH DIRECTIONS. "As wide as its words" has a floor the words do not
+     set: the letter ranges the funnel groups a long list into are often ONE letter (`G`, `P`, `S`),
+     and a one-letter chip measured 34x44 — under the floor sideways, on the narrowest answers on the
+     screen. `min-width` keeps it a fingertip wide and `justify-content` keeps the letter in the
+     middle of the circle it then makes. A fingertip is the same size whatever the shape. */
+  display: inline-flex;
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 44px;
+  justify-content: center;
+  border: 1px solid var(--chip-line);
+  border-radius: 22px;
+  background: none;
+  padding: .35rem .95rem;
+  margin: 0;
   min-height: 44px;
-  /* THE LABEL IS THE THING NOW, so it takes the foreground colour. `--dim` is right for the left
-     half of a fact row and wrong for the text on a button. */
   align-items: center;
   transition: background var(--quick) ease, border-color var(--quick) ease,
               transform var(--quick) ease;
 }
-.row.tap.counted:last-child { margin-bottom: 0; }
+/* THE BOX THE CHIPS WRAP IN. `--chip-line` is declared HERE rather than at `:root` because it is this
+   family's own outline and nothing else should be offered it — the house rule the chess board's
+   cream and charcoal set. `--line` is a hairline between rows, and as the only edge of a chip on
+   black it measured as nearly nothing; this is the step a reader can see without it competing with
+   the words. */
+.answers, .chips { --chip-line: #3d3d3d; }
+.answers { display: flex; flex-wrap: wrap; gap: .45rem .4rem; align-items: center; }
 /* THE ANSWER IS THE HEADLINE. It was .88rem — the size of a fact on a receipt — for the one word
    on the screen somebody is here to choose. */
 /* ---------- AND IT IS THE ONLY THING ON THE ROW NOW, SO IT MAY USE THE ROW -----------------------
@@ -10002,8 +10315,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    `flex: 1 1 auto` — take the room, and give way when there is not enough, at which point the
    `overflow-wrap` it already carries does the rest. */
-.row.tap.counted .k { color: var(--ink); font-weight: 600; font-size: .92rem;
-  flex: 1 1 auto; min-width: 0; }
+/* A CHIP'S WORDS ARE ITS WHOLE WIDTH now, so they take what they need and give way only when the chip
+   is already the width of the card — `0 1 auto` rather than the `1 1 auto` a row needed to fill its
+   line. 500 rather than 600: seven bold words side by side is a wall, seven medium ones a list. */
+.row.tap.counted .k { color: var(--ink); font-weight: 500; font-size: .86rem; line-height: 1.25;
+  flex: 0 1 auto; min-width: 0; }
 
 /* THE COUNT RECEDES. It was the same weight as the label, so a row read as two things of equal
    importance — and the answer is what you are choosing; the number only tells you how much is
@@ -10024,16 +10340,16 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    states in this file. Two descriptions of one look is the `.reel .over` fault, and these two would
    sit on the same element a tenth of a second apart — which is the version somebody notices. */
 .row.tap.counted:active, .row.tap.counted.is-pressed {
-  background: rgb(255 255 255 / .06);
+  background: rgb(255 255 255 / .08);
   border-color: var(--gold);
-  transform: translateY(1px);
+  transform: scale(.97);
 }
 
 /* HOVER IS FOR THE DESKTOP AND MUST NOT STICK ON A PHONE. A plain `:hover` is applied on tap by
    mobile Safari and stays applied until something else is tapped, so the last answer pressed keeps
    a highlight that means nothing. */
 @media (hover: hover) {
-  .row.tap.counted:hover { background: rgb(255 255 255 / .05); border-color: var(--line); }
+  .row.tap.counted:hover { background: rgb(255 255 255 / .06); }
 }
 
 /* ---------- "DOESN'T MATTER" IS A WAY OUT, NOT AN ANSWER ------------------------------------------
@@ -10045,8 +10361,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    NO NEW COLOUR. `--dim` is the token an unemphasised label already uses on every `.row` in the
    app; this is the answer row handing back the foreground colour the block above gave it. */
-.row.tap.counted.is-skip { background: none; }
-.row.tap.counted.is-skip .k { color: var(--dim); font-weight: 500; }
+/* A CHIP NOW, AND STILL THE QUIET ONE: the dashed edge says "a way past this" where every answer's
+   solid edge says "one of these", and the colour hands back the foreground the block above gave. */
+.row.tap.counted.is-skip { background: none; border-style: dashed; }
+.row.tap.counted.is-skip .k { color: var(--dim); font-weight: 400; }
 @media (hover: hover) {
   .row.tap.counted.is-skip:hover { background: rgb(255 255 255 / .04); }
 }
@@ -10128,6 +10446,16 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   width: 100%; height: 100%; object-fit: cover;
   border: 0; background: transparent;
 }
+/* THE FILM'S MASK SHOWS WHAT IS BEHIND THE CLIP, and behind a reel's clip is `.feed-art`'s subject
+   gradient — so the grain would be green speckles on a green slide and the vignette a pink corner.
+   Black behind it once there is a picture (`has-photo`), which is the moment the gradient stops
+   being the slide and starts being something the mask lets through; a clip with no poster keeps its
+   gradient until its first frame. THE COST, SAID RATHER THAN BURIED: `feedSlide` puts `has-photo` on
+   at first paint wherever a poster PATH exists, before the ~20KB poster has landed — so for that
+   moment the slide is black under its scrim rather than its gradient, and a poster that 404s leaves
+   it black for good (`check-reels.js` prints a clip with none). No CSS can wait for a poster.
+   See `.post, .reel` above. */
+.reel > .feed-art.is-clip.has-photo { background: #000; }
 .feed-art.is-clip::before { z-index: 1; }
 .feed-art.is-clip .feed-text,
 .feed-art.is-clip .feed-credit { z-index: 2; }
@@ -10362,6 +10690,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
      EIGHT. Three rows is enough to see that it IS a list and to work down it; the twelve pixels it
      takes off the sheet are its bottom margin. Below that the list reads as a slot that something
      failed to load into, which is the fault this repository keeps recording in other columns. */
+  /* THE CHEAT SHEET MAKER WAS MEASURED HERE AND NO LONGER CARRIES THE CLASS — its list is an ordinary
+     block now and its card is `paneReach_`'s (see `.mat-list`). The flyer is what keeps this floor. */
   min-height: 8rem;
   overflow-y: auto;
 }
@@ -10745,6 +11075,71 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mz-key.down  { grid-column: 2; grid-row: 2; }
 .mz-key.right { grid-column: 3; grid-row: 2; }
 
+/* ---------- THE ONE CHOICE EACH OF THESE TWO GAMES ASKS, AT THE TOP OF ITS CARD -------------------
+   The cheat sheet's drawn select, full width. It shared a row with "New puzzle" first, and at 320px
+   that left it eighty pixels and the label "Spelling…" — a choice nobody can read is not a choice. */
+.ws-top { margin: .5rem 0 0; }
+
+/* ---------- WORD SEARCH ------------------------------------------------------------------------
+   THE MAZE'S ARITHMETIC, AND THE OPPOSITE ANSWER ABOUT TAPPING. Ten letters across a 320px phone is
+   20px a cell, measured (eight are 25px), which no fingertip hits reliably — and here, unlike the maze, the cells ARE
+   tapped, because a drag would fight the pager (see `WS_THEMES` in games.js). So a cell is as big as
+   the card allows and no bigger, and `ACCEPTED_TAP` in check/ui.js carries the numbers. A wrong tap
+   costs nothing: the next tap replaces it.
+
+   ITS COLOURS ARE THE APP'S OWN, deliberately not declared on the component the way the maze's walls
+   are: gold is what this app means by "yours" — the start you picked, the words you found — and a
+   word search has no convention of its own to keep. */
+.ws {
+  display: grid; gap: 2px; margin: .55rem auto 0;
+  grid-template-columns: repeat(var(--ws-n, 10), 1fr);
+  width: 100%; max-width: 24rem;
+}
+.ws-c {
+  aspect-ratio: 1; min-width: 0; min-height: 0; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--sunk); color: var(--ink); border: 0; border-radius: 4px;
+  font: 600 clamp(.72rem, 3.6vw, .95rem)/1 var(--mono); cursor: pointer;
+}
+/* FOUND IS A FILL AND THE START IS A RING, so a found letter that is also the start of the next try
+   still reads as both — the device `.mz-cell.out` and `.oth-cell.can` use. */
+.ws-c.got { background: color-mix(in srgb, var(--gold) 34%, var(--sunk)); }
+.ws-c.sel { box-shadow: inset 0 0 0 2px var(--gold); color: var(--gold); }
+.ws-c:disabled { cursor: default; }
+.ws-list {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: .15rem .9rem;
+  margin: .55rem 0 0; padding: 0; list-style: none;
+  font: 500 .8rem/1.35 var(--font); color: var(--ink);
+}
+.ws-list li.got { color: var(--dim); }
+
+/* ---------- SENTENCE SCRAMBLE --------------------------------------------------------------------
+   THE SENTENCE BEING BUILT IS A STRIP OF PAPER WRITTEN OUT, and the chips under it never move. A used
+   chip stays where it was, dimmed, so the word your finger was going for next is where it was a
+   moment ago — see the note over `SS_SENTENCES` in games.js.
+
+   CHIPS ARE 44px IN px, the one measurement here that does not scale. The strip is not a control. */
+.ss-built {
+  min-height: 2.9em; margin: .55rem 0 0; padding: .45rem .6rem;
+  border: 1px dashed var(--line); border-radius: var(--r-sm);
+  font: 500 .95rem/1.4 var(--font); color: var(--ink);
+}
+.ss-built.is-right { border: 1px solid var(--gold); }
+.ss-built.is-wrong { border-color: var(--warn); }
+.ss-empty { color: var(--faint); }
+.ss-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .55rem 0 0; }
+.ss-chip {
+  min-height: 44px; min-width: 44px; padding: 0 .6rem;
+  background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
+  border-radius: var(--r-sm); font: 500 .9rem/1 var(--font); cursor: pointer;
+}
+.ss-chip.used { opacity: .35; border-style: dashed; }
+.ss-chip:disabled { cursor: default; }
+/* CHECK AND NEW SENTENCE SIDE BY SIDE, the correction `.btn-row .btn` already makes to `.btn`'s
+   full width. */
+.ss-acts { display: flex; gap: .5rem; margin: .55rem 0 0; }
+.ss-acts .btn { width: auto; flex: 1 1 0; padding: 0 .6rem; }
+
 /* ==================================================================================================
    SCRABBLE
 
@@ -10909,7 +11304,7 @@ button.scr-sq { cursor: pointer; }
   padding: .5rem .6rem; box-sizing: border-box;
   background: var(--sunk); color: var(--ink);
   border: 0; border-bottom: 1px solid var(--line); border-radius: var(--r-sm) var(--r-sm) 0 0;
-  font: 400 .9rem/1.6 Georgia, "Times New Roman", serif;
+  font: 400 .9rem/1.6 var(--font);
 }
 .qp-ans-in:focus { outline: none; border-bottom-color: var(--gold); }
 
@@ -11092,6 +11487,49 @@ button.scr-sq { cursor: pointer; }
 .imp-step:disabled { opacity: .35; cursor: default; }
 .imp-pass { margin: 0; font: 400 1rem/1.35 var(--font); color: var(--ink); max-width: 18rem; }
 
+/* ---------- JUST A MINUTE, TABOO, HOT SEAT, 20 QUESTIONS, ALIBI ------------------------------------
+   THE ARTICULATE CARD AGAIN, for Imposter's reason: one thing read across a room, with a gold button
+   under it. What is new is a clock big enough to read from the back of the room, Taboo's five
+   forbidden words, and Alibi's case and questions — which are read by the person holding the phone,
+   so they are left-aligned prose rather than one big word.
+
+   THE CLOCK IS `--mono`, so the digits do not change width as they count and the line does not
+   twitch four times a second. */
+.party-clock { margin: 0; font: 700 1.5rem/1 var(--mono); color: var(--gold); }
+.party-acts { margin-top: .6rem; }
+.party-acts .btn-row + .btn { margin-top: .5rem; }
+.party-sum { margin: 0; font: 400 .85rem/1.35 var(--font); color: var(--dim); }
+.party-of { font-size: .55em; color: var(--dim); }
+/* THREE TALLIES ACROSS A 320px CARD is about 80px each, and "Repetition" at a button's own size is
+   wider than that — so the name is small and the count under it is the large thing, which is also
+   the half somebody glances at. Still a 52px target, in px. */
+.btn.party-call {
+  flex-direction: column; gap: .25rem; min-height: 52px; padding: .35rem .25rem;
+  font: 600 .66rem/1 var(--font); letter-spacing: .02em;
+}
+.btn.party-call b { font: 700 1.15rem/1 var(--mono); }
+/* TABOO'S FORBIDDEN WORDS ARE QUIETER THAN THE WORD and wrap as a set, because they are read second
+   and the describer has to take all five in at a glance. */
+.tab-ban { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap;
+           justify-content: center; gap: .3rem .35rem; max-width: 18rem; }
+/* EACH ONE IN ITS OWN OUTLINE, because five words wrapped across two lines with only a space between
+   them read as a sentence — "science experiment school project show" — and the describer needs five.
+   A dot between them was the first try and left a dot at the start of the second line. Not a
+   control: nothing here is pressed, so it is an outline and not a 44px chip. */
+.tab-ban li { font: 600 .95rem/1.3 var(--font); color: var(--dim);
+              padding: .05rem .5rem; border: 1px solid var(--line); border-radius: 999px; }
+/* HOT SEAT'S WORD IS READ FROM ACROSS A ROOM, so it is bigger than Articulate's, which is read by
+   the person holding the phone. */
+.art-word.hot-word { font-size: clamp(1.8rem, 9vw, 2.6rem); }
+.alb-crime { margin: 0; font: 600 1rem/1.35 var(--font); color: var(--ink); max-width: 18rem; }
+.alb-facts { display: grid; grid-template-columns: auto 1fr; gap: .2rem .6rem; margin: 0;
+             text-align: left; max-width: 18rem; font: 400 .88rem/1.3 var(--font); }
+.alb-facts dt { color: var(--gold); font-weight: 600; }
+.alb-facts dd { margin: 0; color: var(--ink); }
+.alb-qs { margin: 0; padding-left: 1.3rem; text-align: left; max-width: 18rem;
+          font: 400 .9rem/1.35 var(--font); color: var(--ink); }
+.alb-qs li + li { margin-top: .15rem; }
+
 /* ==================================================================================================
    SHARING A BOOKING IS PRINTING IT — THE ELEMENT ON THE SCREEN, NOT A DRAWING OF IT.
 
@@ -11135,6 +11573,10 @@ button.scr-sq { cursor: pointer; }
      the element being printed, and a PDF of a booking with a gold Send button on it is a picture of
      a control nobody can press. Everything else on the card is the document. */
   body.printing-rc .rc-print .rc-tiles { display: none !important; }
+  /* AND AN ADMIN'S TWO MORE MONEY ROWS. Sharing prints this element for somebody else — a family,
+     usually — and what the tutor earns and what the business keeps are the two lines on the screen
+     that must not travel. `Client pays` stays: it is the figure the document is about. */
+  body.printing-rc .rc-print .rc-more { display: none !important; }
 }
 
 /* ---------- THE TUTOR AGREEMENT (DRAFT) and THE ADMIN'S CUT -------------------------------------

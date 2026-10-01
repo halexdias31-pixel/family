@@ -254,6 +254,12 @@ function boot(opts) {
          when this hook was built, which is the fault CLAUDE.md records about a state seeding
          `DATA.students` before that assignment. */
       'DATA: () => DATA,' +
+      /* THE FIVE CLASSROOM GAMES' ROUNDS, as a getter for the same reason — a journey asks whether a
+         repaint kept the round, and only the state can say that the clock did not move while the
+         column was away. */
+      'PARTY: () => (typeof PARTY !== "undefined" ? PARTY : null),' +
+      /* THE ACCOUNT COLUMN'S PAGES, so a journey can ask who is drawn on it. */
+      'accountPages: () => accountPages_(),' +
       'PAGER, PAGE, goPage, repaint, pageCount, PAGE_KEEP,'
       + 'STUFF_WIN: typeof STUFF_WIN === "number" ? STUFF_WIN : 0,'
       /* THE DOCKET'S STORAGE FORMAT AND ITS PAINTER, so a journey can round-trip a line through
@@ -261,7 +267,15 @@ function boot(opts) {
       + 'dockLines: typeof docketLines === "function" ? docketLines : null,'
       + 'dockText: typeof docketText === "function" ? docketText : null,'
       + 'paintDocket: typeof paintDocket === "function" ? paintDocket : null,'
+      /* THE TIMETABLE'S KEY, because it is a `const` and only a function declaration reaches the
+         window — and the key is the thing a journey has to clear and has to ask is per person. */
+      + 'tmtKey: typeof tmtKey_ === "function" ? tmtKey_ : null,'
       + 'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
+      /* THE WHOLE SESSION PAGE AND THE FIGURES ON IT, so a journey can ask who is shown which money
+         and whether the actions are printed on the paper rather than floating under it. */
+      + 'jobPage: typeof jobPage_ === "function" ? jobPage_ : null,'
+      + 'jobMoney: typeof jobMoney_ === "function" ? jobMoney_ : null,'
+      + 'formMoney: typeof formMoney_ === "function" ? formMoney_ : null,'
       + 'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
       /* THE RECEIPT'S ROWS AS OBJECTS, because the count on the Dates row is a figure in a COLUMN and
@@ -332,6 +346,12 @@ function boot(opts) {
       /* WHO MAY OPEN A WIDGET, and the two lists that ask it. `star` puts a key in the device's
          favourites the way a press on a star does, without the request. */
       'widgetFor: typeof widgetFor_ === "function" ? widgetFor_ : null,' +
+      /* THE SENTENCE SCRAMBLE AND THE WORD SEARCH, their lists and their state, so a journey can
+         deal a known sentence or puzzle and then press through the real handlers. */
+      'ss: () => SS, setSs: v => { SS = v; }, ssOrders: ssOrders_, ssRight: ssRight_,' +
+      'SS_SENTENCES: SS_SENTENCES, ssDeal: ssDeal_, ssPaint: ssPaint,' +
+      'ws: () => WS, setWs: v => { WS = v; }, wsBuild: wsBuild_, wsRude: wsRude_,' +
+      'WS_THEMES: WS_THEMES, WS_DIRS: WS_DIRS, WS_FORWARD: WS_FORWARD, wsPaint: wsPaint,' +
       'allWidgets: typeof allWidgets === "function" ? allWidgets : null,' +
       'widgetsOf: typeof widgetsOf_ === "function" ? widgetsOf_ : null,' +
       'savedWidgets: typeof savedWidgets_ === "function" ? savedWidgets_ : null,' +
@@ -517,6 +537,54 @@ check('the cheat sheet prices every component at the fixed slot it is drawn in',
   return bad;
 });
 
+/* ---------- THE NEGATIVE NUMBER LINE, AND A PICKER LIST THAT IS NOT A SCROLLER -----------------------
+   ASKED FOR AS "add minus number line" and "the cheat sheet maker should not have a scroll thing", in
+   one message. The line is a drawing with one right answer — twenty-one whole numbers, −10 to 10, one
+   zero picked out, the minus a real minus — so it is asserted on what `matDraw` returns rather than
+   left to a screenshot. And it is offered where it was asked for: SATs and the 11+, Y9 mocks and both
+   GCSE tiers.
+   THE LIST HALF IS ASKED OF THE MARKUP, because jsdom has no layout to measure a scroll bar in: the
+   list and everything round it must not carry `.widget-squeeze`, which is the class that made it a
+   scroller inside the card (see the note over the list in `initMat`). */
+check('the cheat sheet has a negative number line, and its piece list does not scroll in the card', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.matParts || !t.matDraw || !t.matSet || !t.matShown) return ['the cheat sheet is not exported'];
+  const bad = [];
+  const c = t.matParts().find(x => x.id === 'M52');
+  if (!c) return ['there is no negative number line (M52) in the cheat sheet list'];
+  if (t.matSpan(c) !== 6) bad.push('the negative number line is ' + t.matSpan(c) + ' tracks wide; a line is the full width');
+  const d = w.document.createElement('div');
+  d.innerHTML = t.matDraw(c);
+  const labels = [...d.querySelectorAll('.mat-neg b')].map(b => b.textContent);
+  const want = [];
+  for (let n = -10; n <= 10; n++) want.push(n < 0 ? '−' + (-n) : String(n));
+  if (labels.join(' ') !== want.join(' ')) bad.push('the line reads "' + labels.join(' ') + '", wanted −10 to 10 with a real minus');
+  const zeros = [...d.querySelectorAll('.mat-neg b.z')].map(b => b.textContent);
+  if (zeros.join() !== '0') bad.push('the line picks out ' + JSON.stringify(zeros) + ' where it should pick out 0 alone');
+  if (d.querySelectorAll('.mat-neg i.z').length !== 1) bad.push('zero has no longer tick of its own');
+  if (d.querySelectorAll('.mat-neg em.l, .mat-neg em.r').length !== 2) bad.push('the line has no arrow at each end');
+  [['SATs'], ['11+'], ['Y9 Mocks'], ['GCSE', 'F'], ['GCSE', 'H']].forEach(([lv, tier]) => {
+    t.matSet('Maths', lv, tier);
+    if (!t.matShown(c)) bad.push('the negative number line is not offered on ' + lv + (tier ? ' ' + tier : ''));
+  });
+  t.matSet('Maths', 'Alevel');
+  if (t.matShown(c)) bad.push('the negative number line is offered at A-level, which does not ask for it');
+  t.matSet('Maths', 'all');
+
+  try { t.go('tools', false, true); } catch (e) { return bad.concat('go("tools") threw: ' + e.message); }
+  const doc = w.document;
+  for (let n = 0; n < 20 && !doc.getElementById('mat-list'); n++) await wait(50);
+  const list = doc.getElementById('mat-list');
+  if (!list) return bad.concat('the cheat sheet maker did not draw on the Tools column');
+  const box = list.closest('#mat-box') || list.parentElement;
+  if (list.classList.contains('widget-squeeze') || box.querySelector('.widget-squeeze')) {
+    bad.push('the cheat sheet\'s piece list is a `.widget-squeeze` again, which makes it scroll inside the card');
+  }
+  return bad;
+});
+
 /* ---------- THE SUBJECT FILTER NARROWS THE LIST AND THE PAPER TO ONE SUBJECT ---------------------
    ASKED FOR AS *"for cheat sheet maker it should have subject as a filter too"*. The fault worth a
    rule is the one a filter always risks: a choice on the screen that the paper does not honour —
@@ -626,31 +694,106 @@ check('a settings save still works against a server older than the site', async 
   return bad;
 });
 
-/* ---------- TEACH MAY BE TICKED ON SEVERAL LEVELS -------------------------------------------------
-   *"when i tick teach for different levels of same subject it unticks the other one. i dont want
-   that."* The handler used to untick every other level's Teach. This ticks Teach on two levels
-   through the app's own handler and wants both still ticked, each with Can teach beside it. */
-check('Teach on one level leaves Teach on another level ticked', async () => {
+/* ---------- THE QUALIFICATIONS SHELF: TEACH ON SEVERAL LEVELS, CANCEL, REMOVE, ADD, THE CAP ----------
+   REPORTED AS *"the current system for adding qualifications is really hard to understand"*, and the
+   shelf was rebuilt as a read list with one editor at a time. What the rebuild must not lose is the
+   data underneath it, so this drives the page's own handlers and reads the seven hidden and visible
+   `data-me` boxes of each slot — the exact fields `me-save` posts and `qualsIn` rebuilds rows from:
+   - Teach pressed on two levels leaves BOTH Teach (and Can teach) — *"when i tick teach for different
+     levels of same subject it unticks the other one. i dont want that"* — and `No` on one leaves the
+     other alone;
+   - Cancel puts back what `Edit` found;
+   - Remove blanks all seven boxes of its slot and SAVES, so `qualsIn` drops the record;
+   - `+ Add a Maths level` writes Maths into the new slot's hidden name, so it is never typed again;
+   - at ten records there is no add button anywhere, and the count line says why. */
+check('the qualifications shelf keeps Teach per level, cancels, removes, adds and stops at ten', async () => {
   const quals = [];
   for (let i = 1; i <= 10; i++) ['', '_level', '_board', '_grade', '_received', '_teach', '_spec'].forEach(k => quals.push('qual_' + i + k));
-  const { w } = boot({ payload: Object.assign(payload(), { profileFields: { Qualifications: quals } }) });
-  await wait(300);
-  const t = w.__t;
-  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
-           profile: { first_name: 'Test', last_name: 'Admin', qual_1: 'Maths', qual_1_level: 'GCSE',
-                      qual_2: 'Maths', qual_2_level: 'A-Level' } });
-  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
-  await wait(300);
-  const d = w.document;
-  const lvls = [...d.querySelectorAll('#s-settings .q-shelf .q-levels .q-lvl')]
-    .filter(l => l.querySelector('[data-k="spec"]') && l.querySelector('[data-k="teach"]'));
-  if (lvls.length < 2) return ['the qualifications shelf has fewer than two levels to tick (' + lvls.length + ')'];
-  const tick = l => { const b = l.querySelector('[data-k="spec"]'); b.checked = true; t.ACTIONS['qual-tick'](b); };
-  tick(lvls[0]); tick(lvls[1]);
-  const on = (l, k) => !!l.querySelector('[data-k="' + k + '"]').checked;
+  const start = profile => {
+    const b = boot({ payload: Object.assign(payload(), { profileFields: { Qualifications: quals } }),
+                     reply: { success: true, changed: 0 } });
+    return wait(300).then(() => {
+      b.w.__t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+                     profile: Object.assign({ first_name: 'Test', last_name: 'Admin', phone_cc: '+44' }, profile) });
+      b.w.__t.go('settings', false, true); b.w.paint('settings');
+      return wait(300).then(() => b);
+    });
+  };
+  let b;
+  try {
+    b = await start({ qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8',
+                      qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B' });
+  } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const { w, sent } = b;
+  const t = w.__t, d = w.document;
+  const A = (act, el) => t.ACTIONS[act](el);
+  const shelf = () => d.querySelector('#s-settings .q-shelf');
+  const slot = i => shelf() && shelf().querySelector('.q-slot[data-slot="' + i + '"]');
+  const box = (i, k) => (slot(i) || d).querySelector('[data-me="qual_' + i + k + '"]') || {};
+  const seg = (i, v) => slot(i).querySelector('[data-do="qual-teach"][data-v="' + v + '"]');
   const bad = [];
-  if (!on(lvls[0], 'spec')) bad.push('ticking Teach on a second level unticked it on the first');
-  if (!on(lvls[0], 'teach') || !on(lvls[1], 'teach')) bad.push('Teach did not tick Can teach beside it');
+  if (!slot(1) || !slot(2)) return ['the qualifications shelf has no slot 1 or 2 to work on'];
+  if (d.querySelectorAll('#s-settings [data-me^="qual_"]').length !== 70) bad.push('the form does not hold all seventy qual_ boxes');
+
+  /* CANCEL: open the A-Level, change its level and its teaching, cancel, and the slot is as it was. */
+  A('qual-edit', slot(2).querySelector('[data-do="qual-edit"]'));
+  if (!slot(2).classList.contains('is-editing')) bad.push('Edit did not open the A-Level editor');
+  box(2, '_level').value = 'AS';
+  A('qual-teach', seg(2, 'spec'));
+  A('qual-cancel', slot(2).querySelector('[data-do="qual-cancel"]'));
+  if (box(2, '_level').value !== 'A-Level' || box(2, '_spec').value !== 'FALSE' || box(2, '_teach').value !== 'FALSE') {
+    bad.push('Cancel did not put the A-Level back (level ' + box(2, '_level').value + ', spec ' + box(2, '_spec').value + ')');
+  }
+  if (shelf().querySelector('.is-editing') || shelf().classList.contains('is-editing')) bad.push('Cancel left an editor open');
+
+  /* TEACH ON TWO LEVELS: both stay Teach, and Teach is Can teach as well. */
+  A('qual-teach', seg(1, 'spec'));
+  A('qual-teach', seg(2, 'spec'));
+  if (box(1, '_spec').value !== 'TRUE' || box(2, '_spec').value !== 'TRUE') bad.push('Teach on a second level took Teach off the first');
+  if (box(1, '_teach').value !== 'TRUE' || box(2, '_teach').value !== 'TRUE') bad.push('Teach did not carry Can teach with it');
+  /* AND `No` ON ONE LEAVES THE OTHER ALONE. */
+  A('qual-teach', seg(1, 'no'));
+  if (box(1, '_spec').value !== 'FALSE' || box(1, '_teach').value !== 'FALSE') bad.push('No did not set both of its level\'s boxes to FALSE');
+  if (box(2, '_spec').value !== 'TRUE' || box(2, '_teach').value !== 'TRUE') bad.push('No on one level changed the other');
+
+  /* ADD A LEVEL: the subject goes into the new slot's hidden name. */
+  const maths = [...shelf().querySelectorAll('.q-subj')].find(sj => sj.dataset.name === 'Maths');
+  const add = maths && maths.querySelector('[data-do="qual-add-level"]');
+  if (!add) bad.push('Maths has no "+ Add a Maths level"');
+  else {
+    A('qual-add-level', add);
+    const fresh = shelf().querySelector('.q-slot.is-editing');
+    const n = fresh && fresh.dataset.slot;
+    if (!fresh || box(n, '').value !== 'Maths') bad.push('a level added under Maths does not carry Maths into its qual_N');
+    if (fresh) A('qual-cancel', fresh.querySelector('[data-do="qual-cancel"]'));
+    if (n && box(n, '').value !== '') bad.push('Cancel on a new level did not send it back to the pool empty');
+  }
+
+  /* REMOVE: the level's seven boxes are posted blank, so `qualsIn` drops it. */
+  sent.length = 0;
+  A('qual-drop', slot(1).querySelector('[data-do="qual-drop"]'));
+  await wait(300);
+  const post = sent.find(x => x.action === 'updateProfile');
+  if (!post) bad.push('Remove this level did not save');
+  else {
+    const f = post.fields || {};
+    const blank = ['', '_level', '_grade', '_board', '_received'].every(k => f['qual_1' + k] === '')
+               && f.qual_1_spec === 'FALSE' && f.qual_1_teach === 'FALSE';
+    if (!blank) bad.push('Remove posted slot 1 as ' + JSON.stringify(['', '_level', '_grade', '_spec'].map(k => f['qual_1' + k])));
+    if (Object.keys(f).filter(k => /^qual_/.test(k)).length !== 70) bad.push('Remove did not post all seventy qual_ boxes');
+    if (f.qual_2_level !== 'A-Level') bad.push('Remove took the other level with it');
+  }
+
+  /* TEN RECORDS: no add button anywhere, and the count line says so. */
+  const ten = {};
+  for (let i = 1; i <= 10; i++) Object.assign(ten, { ['qual_' + i]: 'Subject ' + i, ['qual_' + i + '_level']: 'GCSE' });
+  const b10 = await start(ten);
+  const s10 = b10.w.document.querySelector('#s-settings .q-shelf');
+  if (!s10) bad.push('ten records drew no shelf');
+  else {
+    if (s10.querySelector('[data-do^="qual-add"]')) bad.push('an add button is still drawn at ten records');
+    if (!/10 of 10/.test((s10.querySelector('.q-count') || {}).textContent || '')) bad.push('the count line does not say 10 of 10');
+  }
   return bad;
 });
 
@@ -728,6 +871,490 @@ check('the imposter game tells everybody the word but one, and hides it between 
   if (rev.indexOf('Player ' + who) === -1) bad.push('the reveal does not name player ' + who + ': "' + rev + '"');
   if ([...words].some(wd => rev.indexOf(wd) === -1)) bad.push('the reveal does not say the word');
   press('imp-players');
+  return bad;
+});
+/* ---------- SENTENCE SCRAMBLE: TAPPED IN ORDER IS RIGHT, AND EVERY STATED ORDER IS RIGHT ------------
+   A MARKER THAT TELLS A CHILD THEY ARE WRONG IS THE ONE PART OF A GAME THAT MUST NOT BE, and every way
+   this one could be wrong draws perfectly: an alternative order refused, Check pressable on half a
+   sentence, a chip that cannot be taken back, a deal that arrives already solved. So every sentence
+   with a stated alternative is built in EACH of its orders through the real `ss-word` handler and
+   checked through the real `ss-check`. */
+check('the sentence scramble marks the right order right, every stated order, and nothing else', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.ss || !t.setSs || !t.SS_SENTENCES) return ['the sentence scramble is not exported'];
+  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  await wait(300);
+  const d = w.document;
+  if (!d.getElementById('ss-box')) return ['the sentence scramble did not draw on the Games column'];
+  const bad = [];
+  const press = (act, attrs) => {
+    const el = d.createElement('button');
+    Object.keys(attrs || {}).forEach(k => el.setAttribute(k, attrs[k]));
+    t.ACTIONS[act](el);
+  };
+  /* PRESS THE CHIPS THAT SPELL `words`, choosing an unused chip with that text each time — which is
+     what a person does when two chips both say "the". */
+  const build = words => {
+    words.forEach(wd => {
+      const s = t.ss();
+      const i = s.chips.findIndex((c, k) => c === wd && s.picked.indexOf(k) === -1);
+      if (i < 0) { bad.push('no unused chip says ' + JSON.stringify(wd)); return; }
+      press('ss-word', { 'data-i': String(i) });
+    });
+  };
+  const deal = entry => {
+    const words = t.ssOrders(entry)[0];
+    t.setSs({ band: 'KS2', entry: entry, chips: words.slice().reverse(), picked: [], verdict: '', said: '' });
+    t.ssPaint();
+  };
+  let alts = 0;
+  Object.keys(t.SS_SENTENCES).forEach(band => t.SS_SENTENCES[band].forEach(entry => {
+    const orders = t.ssOrders(entry);
+    if (!t.ssRight(entry, orders[0])) bad.push(JSON.stringify(orders[0].join(' ')) + ' is not marked right against itself');
+    orders.forEach((o, k) => {
+      if (!k) return;
+      alts++;
+      deal(entry);
+      build(o);
+      press('ss-check');
+      if (t.ss().verdict !== 'right') {
+        bad.push('the stated alternative ' + JSON.stringify(o.join(' ')) + ' was marked ' + JSON.stringify(t.ss().verdict));
+      }
+    });
+  }));
+  if (!alts) bad.push('no sentence states an alternative order, so that half was NOT checked');
+
+  /* ONE SENTENCE, THE WHOLE WAY ROUND, on the card. */
+  const entry = t.SS_SENTENCES.KS3[0];
+  const right = t.ssOrders(entry)[0];
+  deal(entry);
+  const check = () => d.querySelector('#ss-box [data-do="ss-check"]');
+  build(right.slice(0, 2));
+  if (!check() || !check().disabled) bad.push('Check can be pressed with two of ' + right.length + ' words placed');
+  const built = String((d.querySelector('#ss-box .ss-built') || {}).textContent || '');
+  if (built.trim() !== right.slice(0, 2).join(' ')) bad.push('the strip reads "' + built.trim() + '" after two taps');
+  /* A USED CHIP TAKES ITS WORD BACK. */
+  const s0 = t.ss();
+  press('ss-word', { 'data-i': String(s0.picked[1]) });
+  if (t.ss().picked.length !== 1) bad.push('tapping a used chip does not take its word back out');
+  build(right.slice(1));
+  if (!check() || check().disabled) bad.push('Check is not pressable with every word placed');
+  press('ss-check');
+  if (t.ss().verdict !== 'right' || !d.querySelector('#ss-box .ss-built.is-right')
+      || !d.querySelector('#ss-box [data-do="ss-next"]')) {
+    bad.push('the right order was not marked right on the card');
+  }
+  press('ss-next');
+  if (t.ss().picked.length || t.ss().verdict) bad.push('Next sentence does not start from an empty strip');
+
+  /* AND A WRONG ORDER IS WRONG, and says how far it got. */
+  deal(entry);
+  const wrong = right.slice(0, 2).concat(right.slice(2).reverse());
+  if (t.ssRight(entry, wrong)) bad.push('the wrong order used here is accidentally right — pick another sentence');
+  build(wrong);
+  press('ss-check');
+  if (t.ss().verdict !== 'wrong') bad.push('a wrong order was marked ' + JSON.stringify(t.ss().verdict));
+  if (!/first 2 words are right/.test(t.ss().said)) bad.push('a wrong order says "' + t.ss().said + '" rather than how far it got');
+
+  /* A DEAL NEVER ARRIVES SOLVED. */
+  for (let i = 0; i < 200; i++) {
+    t.ssDeal('KS2');
+    if (t.ssRight(t.ss().entry, t.ss().chips)) { bad.push('a deal arrived already in order: ' + t.ss().chips.join(' ')); break; }
+  }
+  return bad;
+});
+
+/* ---------- WORD SEARCH: EVERY WORD IS IN THE GRID, AND TWO TAPS FIND IT -----------------------------
+   A word search that hides a word wrongly is a puzzle nobody can finish and nothing on screen says
+   why. So fifteen puzzles of every theme are built and each placed word is READ BACK out of the grid
+   along its own cells; a younger theme's words must read forwards; and the filler must spell nothing
+   on `WS_NOT` in any direction — asked of the grid, so a build that forgot to filter fails here.
+   Then one puzzle is played through the real `ws-cell` handler, forwards and backwards. */
+check('the word search hides every word where it says, and two taps find it', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.wsBuild || !t.WS_THEMES) return ['the word search is not exported'];
+  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  await wait(300);
+  const d = w.document;
+  if (!d.getElementById('ws-grid')) return ['the word search did not draw on the Games column'];
+  const bad = [];
+  const dirOf = (n, a, b) => [Math.sign((b % n) - (a % n)), Math.sign(((b / n) | 0) - ((a / n) | 0))];
+  t.WS_THEMES.forEach(th => {
+    for (let k = 0; k < 15; k++) {
+      const p = t.wsBuild(th);
+      if (!p) { bad.push(th.id + ': a puzzle could not be built'); return; }
+      if (p.words.length !== th.n) bad.push(th.id + ': ' + p.words.length + ' words placed, wanted ' + th.n);
+      if (t.wsRude(p.grid, p.size)) { bad.push(th.id + ': a grid spells a word the filter refuses'); return; }
+      /* ONE WORD AT MOST ACROSS THE WHOLE GRID — the note in `wsBuild_` is why: without it a younger
+         8x8 drew six eight-letter words as six whole rows, a list rather than a puzzle. */
+      const full = p.words.filter(x => x.key.length === p.size).length;
+      if (full > 1) bad.push(th.id + ': ' + full + ' words run the whole width of one grid');
+      p.words.forEach(wd => {
+        const read = wd.cells.map(c => p.grid[c]).join('');
+        if (read !== wd.key) bad.push(th.id + ': ' + wd.word + ' reads "' + read + '" off its own cells');
+        const [dx, dy] = dirOf(p.size, wd.cells[0], wd.cells[1]);
+        const name = Object.keys(t.WS_DIRS).find(n => t.WS_DIRS[n][0] === dx && t.WS_DIRS[n][1] === dy);
+        if (th.young && t.WS_FORWARD.indexOf(name) === -1) {
+          bad.push(th.id + ' is for younger players and hid ' + wd.word + ' going ' + name);
+        }
+      });
+    }
+  });
+  const press = i => {
+    const el = d.createElement('button');
+    el.setAttribute('data-i', String(i));
+    t.ACTIONS['ws-cell'](el);
+  };
+  const th = t.WS_THEMES.find(x => !x.young);
+  const p = t.wsBuild(th);
+  t.setWs(p);
+  t.wsPaint();
+  /* NOT IN A LINE IS NOTHING FOUND, AND THE SECOND TAP IS THE NEW START. */
+  const a = 0, b = p.size * 2 + 1;
+  press(a); press(b);
+  if (t.ws().words.some(x => x.found)) bad.push('two taps not in a line found a word');
+  if (t.ws().sel !== b) bad.push('a second tap off the line does not become the new start');
+  press(b);
+  p.words.forEach((wd, i) => {
+    const first = wd.cells[0], last = wd.cells[wd.cells.length - 1];
+    if (i % 2) { press(last); press(first); } else { press(first); press(last); }
+    if (!t.ws().words[i].found) bad.push(wd.word + ' was not found by tapping ' + (i % 2 ? 'its last then first' : 'its first then last') + ' letter');
+  });
+  const struck = d.querySelectorAll('#ws-words li.got s').length;
+  if (struck !== p.words.length) bad.push(struck + ' of ' + p.words.length + ' found words are struck through in the list');
+  const lit = d.querySelectorAll('#ws-grid .ws-c.got').length;
+  const cells = new Set([].concat(...p.words.map(x => x.cells))).size;
+  if (lit !== cells) bad.push(lit + ' cells are highlighted where the found words cover ' + cells);
+  if (!/All \d+ found/.test(String((d.getElementById('ws-said') || {}).textContent || ''))) bad.push('finishing the puzzle does not say so');
+  if (d.querySelector('#ws-grid .ws-c:not([disabled])')) bad.push('a finished grid can still be tapped');
+  return bad;
+});
+
+
+/* ---------- THE FIVE CLASSROOM GAMES: A ROUND SURVIVES A REPAINT, AND WAITS WHILE YOU ARE AWAY -----
+   JUST A MINUTE, TABOO, HOT SEAT, 20 QUESTIONS AND ALIBI were asked to keep their round through a
+   repaint — which is a stop and a start a moment apart — and to stop their clock when the column is
+   left. Those pull against each other, because both arrive as the same `stop`, and every way of
+   getting it wrong draws perfectly: a repaint that pauses the round under somebody's finger, a
+   leave that lets the minute run out on another screen, a secret left up for whoever picks the
+   phone up next. So these play each game through the app's own handlers and ask the state and the
+   card both. */
+/* A COLUMN'S WIDGETS ARE STARTED AND STOPPED FROM `afterSlide_`, about 300ms after the move, so a
+   journey asking what leaving did has to wait that long first. */
+const LEAVE_MS = 700;
+const partyBoot_ = async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const d = w.document;
+  const press = (act, attrs) => {
+    const el = d.createElement('button');
+    Object.keys(attrs || {}).forEach(k => el.setAttribute(k, attrs[k]));
+    t.ACTIONS[act](el);
+  };
+  const text = k => String((d.getElementById(k + '-card') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+  const acts = k => String((d.getElementById(k + '-acts') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+  return { w, t, d, press, text, acts, P: () => t.PARTY() };
+};
+
+check('just a minute keeps its round through a repaint and pauses when the column is left', async () => {
+  const { t, d, press, text, acts, P } = await partyBoot_();
+  if (!d.getElementById('jam-card')) return ['Just a Minute did not draw on the Games column'];
+  if (!P()) return ['the PARTY state is not reachable, so nothing about the round can be asked'];
+  const bad = [];
+  press('jam-start');
+  const s = P().jam;
+  if (!s || !s.topic || !s.ends) return ['Start did not deal a topic and start the clock'];
+  if (text('jam').indexOf(s.topic) === -1) bad.push('the topic is not on the card: "' + text('jam') + '"');
+  press('jam-call', { 'data-c': 'r' });
+  press('jam-call', { 'data-c': 'r' });
+  press('jam-call', { 'data-c': 'h' });
+  if (!/Repetition\s*2/.test(acts('jam')) || !/Hesitation\s*1/.test(acts('jam'))) {
+    bad.push('two repetitions and a hesitation read "' + acts('jam') + '"');
+  }
+  const topic = s.topic;
+  t.repaint(true);
+  await wait(50);
+  const r = P().jam;
+  if (!r || r.topic !== topic || r.tally.r !== 2) bad.push('a repaint threw the round away');
+  if (!r || !r.ends) bad.push('a repaint left the clock stopped with the Games column still in front');
+  if (text('jam').indexOf(topic) === -1) bad.push('after a repaint the card reads "' + text('jam') + '"');
+  /* AWAY: the clock holds, and stays held on the way back. */
+  t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  const held = P().jam;
+  if (held.ends || held.run) bad.push('leaving the column left the clock running');
+  const left = held.left;
+  await wait(1200);
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  if (P().jam.ends) bad.push('coming back started the clock without anybody pressing Resume');
+  if (P().jam.left !== left) bad.push('the minute went on running while the column was away: ' + left + ' became ' + P().jam.left);
+  if (!/Resume/.test(text('jam'))) bad.push('a paused round has no Resume: "' + text('jam') + '"');
+  press('party-resume', { 'data-g': 'jam' });
+  if (!P().jam.ends) bad.push('Resume did not start the clock again');
+  /* AND THE END: a round whose minute is up says so and keeps its tally. */
+  P().jam.ends = Date.now() + 100;
+  await wait(600);
+  if (P().jam.phase !== 'done' || !/Time/.test(text('jam')) || !/Repetition 2/.test(text('jam'))) {
+    bad.push('a finished minute reads "' + text('jam') + '"');
+  }
+  return bad;
+});
+
+check('taboo shows a word with four or five forbidden words, and Correct and Pass deal the next', async () => {
+  const { t, d, press, text, P } = await partyBoot_();
+  if (!d.getElementById('tab-card')) return ['Taboo did not draw on the Games column'];
+  const bad = [];
+  press('tab-start');
+  const s = P().tab;
+  if (!s || !s.ends) return ['Start did not begin a round'];
+  const ban = d.querySelectorAll('#tab-card .tab-ban li').length;
+  if (ban < 4 || ban > 5) bad.push(ban + ' forbidden words on the card');
+  if (text('tab').indexOf(s.card[0]) === -1) bad.push('the word is not on the card');
+  const first = s.card[0];
+  press('tab-next', { 'data-got': '1' });
+  press('tab-next', { 'data-got': '0' });
+  if (s.score !== 1 || s.passed !== 1) bad.push('a Correct and a Pass counted ' + s.score + ' and ' + s.passed);
+  if (s.card[0] === first) bad.push('Correct and Pass did not deal another word');
+  t.repaint(true);
+  await wait(50);
+  if (P().tab !== s || !P().tab.ends) bad.push('a repaint stopped or replaced the round');
+  /* PAUSED, THE WORD IS NOT ON THE CARD — whoever picks the phone up next may be on the other side. */
+  t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  if (text('tab').indexOf(s.card[0]) !== -1) bad.push('a paused card still shows the word');
+  return bad;
+});
+
+/* AND THE SAVED COLUMN IS NOT "HERE" FOR A GAME NOBODY STARRED. The first version counted the whole
+   column as the Games column's twin, so a minute started on Games and swiped over to Saved went on
+   running on a card that was on no screen — and Saved is the column next door. */
+check('a round left for the Saved column, where it is not starred, pauses like any other leave', async () => {
+  const { t, d, press, P } = await partyBoot_();
+  if (!d.getElementById('tab-card')) return ['Taboo did not draw on the Games column'];
+  const bad = [];
+  press('tab-start');
+  if (!P().tab || !P().tab.ends) return ['Start did not begin a round'];
+  if (d.querySelector('#s-saved #tab-card')) return ['Taboo is already on the Saved column, so this asks nothing'];
+  t.go('saved', false, true);
+  await wait(LEAVE_MS);
+  const s = P().tab;
+  if (s.ends || s.run) bad.push('the clock went on running behind the Saved column, where the card is not');
+  const left = s.left;
+  await wait(800);
+  if (P().tab.left !== left) bad.push('the minute ran down while the round was on no screen');
+  return bad;
+});
+
+check('hot seat shows its word only once the phone faces the class, and hides it when the column goes', async () => {
+  const { t, d, press, text, P } = await partyBoot_();
+  if (!d.getElementById('hot-card')) return ['Hot Seat did not draw on the Games column'];
+  const bad = [];
+  press('hot-start');
+  const s = P().hot;
+  if (!s) return ['Start did not begin a round'];
+  if (s.ends) bad.push('the clock started before the word was shown');
+  if (text('hot').indexOf(s.word) !== -1) bad.push('the word is on the screen before the phone is turned to the class');
+  press('party-resume', { 'data-g': 'hot' });
+  if (!s.ends || text('hot').indexOf(s.word) === -1) bad.push('Show the word did not show it and start the clock');
+  press('hot-next', { 'data-got': '1' });
+  if (s.score !== 1) bad.push('Got it did not count');
+  const word = s.word;
+  t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  if (text('hot').indexOf(word) !== -1) bad.push('the word is still up after leaving the column and coming back');
+  if (P().hot.ends) bad.push('coming back started the clock by itself');
+  return bad;
+});
+
+check('20 questions keeps the secret from the room and counts to twenty', async () => {
+  const { t, d, press, text, P } = await partyBoot_();
+  if (!d.getElementById('twq-card')) return ['20 Questions did not draw on the Games column'];
+  const bad = [];
+  press('twq-start');
+  const s = P().twq;
+  if (!s || !s.word) return ['Start did not choose a secret'];
+  if (text('twq').indexOf(s.word) !== -1) bad.push('the secret is on the screen before anybody pressed Show me');
+  press('twq-show');
+  if (text('twq').indexOf(s.word) === -1) bad.push('Show me did not show the secret');
+  /* LEAVING WITH THE SECRET UP HIDES IT. */
+  t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  if (text('twq').indexOf(s.word) !== -1) bad.push('the secret is still up after leaving the column');
+  press('twq-show');
+  press('twq-hide');
+  if (text('twq').indexOf(s.word) !== -1) bad.push('the secret is on the screen while the class asks');
+  for (let i = 0; i < 5; i++) press('twq-ask');
+  t.repaint(true);
+  await wait(50);
+  if (P().twq.asked !== 5 || !/5 of 20/.test(text('twq'))) bad.push('five questions and a repaint read "' + text('twq') + '"');
+  for (let i = 0; i < 20; i++) press('twq-ask');
+  if (P().twq.asked !== 20 || P().twq.phase !== 'done') bad.push('the count went past twenty or did not end: ' + P().twq.asked);
+  if (text('twq').indexOf(s.word) === -1 || !/Out of questions/.test(text('twq'))) bad.push('the end does not reveal the secret: "' + text('twq') + '"');
+  return bad;
+});
+
+check('alibi shows the case, then the same questions to each suspect on their own clock', async () => {
+  const { t, d, press, text, P } = await partyBoot_();
+  if (!d.getElementById('alb-card')) return ['Alibi did not draw on the Games column'];
+  const bad = [];
+  press('alb-start');
+  const s = P().alb;
+  if (!s) return ['New case did not open one'];
+  const c = text('alb');
+  if (c.indexOf(s.crime) === -1 || c.indexOf(s.time) === -1 || c.indexOf(s.place) === -1) bad.push('the case card is missing the crime, the time or the place');
+  if (s.qs.some(q => c.indexOf(q) !== -1)) bad.push('the questions are on the card the suspects take out of the room');
+  press('alb-next');
+  const one = [...d.querySelectorAll('#alb-card .alb-qs li')].map(li => li.textContent);
+  if (s.who !== 1 || !s.ends || one.length !== 6) bad.push('suspect 1 is not being questioned on a clock with six questions');
+  t.repaint(true);
+  await wait(50);
+  if (P().alb.who !== 1 || !P().alb.ends) bad.push('a repaint lost suspect 1\'s interview');
+  s.ends = Date.now() + 30000;
+  press('alb-next');
+  const two = [...d.querySelectorAll('#alb-card .alb-qs li')].map(li => li.textContent);
+  if (s.who !== 2) bad.push('Next did not bring in suspect 2');
+  if (s.left !== 120000 || Math.abs((s.ends - Date.now()) - 120000) > 1000) bad.push('suspect 2 did not get a clock of their own');
+  if (one.join('|') !== two.join('|')) bad.push('the two suspects were asked different questions');
+  press('alb-next');
+  if (s.phase !== 'verdict' || s.ends) bad.push('the verdict did not follow suspect 2, or left a clock running');
+  return bad;
+});
+
+/* ---------- THE TIMETABLE KEEPS A WEEK, PER PERSON, ONE COLOUR A SUBJECT ----------------------------
+   KEPT ON THE DEVICE, so nothing on the wire says whether it worked: a lesson that is not saved, a
+   timetable shared between two students on one phone, or two subjects in one colour all draw
+   perfectly. So this writes a Monday through the app's own handlers and its own `input` listener —
+   the way a thumb does — and asks what comes back after a repaint, after somebody else signs in, and
+   after a lesson goes.
+
+   THREE SUBJECTS ON PURPOSE, and these three: the first version hashed a subject's letters into
+   eight hues, and Chemistry and History came out the same red on the first screenshot. A rule that
+   could not fail on the fault it was written for is no rule, so the fault's own pair is the case. */
+check('the timetable keeps a week per person, one colour a subject, through a repaint', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  const d = w.document;
+  if (typeof w.initTimetable !== 'function' || typeof t.tmtKey !== 'function') {
+    return ['the timetable widget is not in the app'];
+  }
+  const sam = { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] };
+  const kit = { name: 'Kit Other', personId: 'P8', role: 'student', roles: ['student'] };
+  t.USER(sam);
+  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  await wait(300);
+  w.localStorage.removeItem(t.tmtKey());
+  w.initTimetable();
+  const box = () => d.querySelector('.tmt-box');
+  if (!box()) return ['the timetable did not draw on the Tools column'];
+  const press = (act, attrs) => {
+    const el = d.createElement('button');
+    Object.keys(attrs || {}).forEach(k => el.setAttribute(k, attrs[k]));
+    if (attrs && attrs.checked) el.checked = true;
+    t.ACTIONS[act](el);
+  };
+  const type = (f, v) => {
+    const el = box().querySelector('.tmt-in[data-f="' + f + '"]');
+    if (!el) return false;
+    el.value = v;
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    return true;
+  };
+  const rows = () => [...box().querySelectorAll('.tmt-row')].map(r => ({
+    at: r.querySelector('.tmt-at').textContent.trim(),
+    sub: r.querySelector('.tmt-sub').textContent.trim(),
+    c: r.style.getPropertyValue('--tmt-c') }));
+  const bad = [];
+  press('tmt-day', { 'data-day': '0' });
+  for (const [sub, note] of [['Chemistry', 'Room 4'], ['History', ''], ['Maths', '']]) {
+    press('tmt-add');
+    if (!type('subject', sub)) { bad.push('adding a lesson does not open it with a subject box'); break; }
+    if (note) type('note', note);
+    const id = box().querySelector('.tmt-in').dataset.id;
+    press('tmt-open', { 'data-id': id });
+  }
+  let r = rows();
+  if (r.map(x => x.at + ' ' + x.sub).join(', ') !== '09:00 Chemistry, 10:00 History, 11:00 Maths') {
+    bad.push('three lessons added read back as "' + r.map(x => x.at + ' ' + x.sub).join(', ') + '"');
+  }
+  if (new Set(r.map(x => x.c)).size !== 3 || r.some(x => !x.c)) {
+    bad.push('three subjects are not in three colours: ' + r.map(x => x.sub + '=' + x.c).join(', '));
+  }
+  if (!/Room 4/.test(box().textContent)) bad.push('the note typed into the open lesson is not on its line');
+  const maths = (rows().find(x => x.sub === 'Maths') || {}).c;
+
+  /* A REPAINT REBUILDS THE MARKUP, and a timetable held only in it would be gone. THROUGH `repaint`
+     AND NOTHING ELSE — the first version called `initTimetable()` straight after it, which redraws
+     the widget whether or not the app's own repaint ever restarts it, so a roster entry that lost its
+     `start` passed. `repaint` reaches it through `startScreen_` → `toolsStart_`, synchronously. */
+  try { t.repaint(); } catch (e) { bad.push('repaint threw: ' + e.message); }
+  if (rows().length !== 3) bad.push('after a repaint the timetable holds ' + rows().length + ' lessons, not 3');
+
+  /* SOMEBODY ELSE ON THE SAME PHONE GETS THEIR OWN — again through the repaint a sign-in does. */
+  t.USER(kit);
+  try { t.repaint(); } catch (e) {}
+  if (rows().length) bad.push('a second person signed in on the phone sees the first one\'s timetable');
+  t.USER(sam);
+  try { t.repaint(); } catch (e) {}
+  if (rows().length !== 3) bad.push('signing back in does not bring the timetable back');
+
+  /* A LESSON ADDED AND SHUT WITH NOTHING IN IT GOES, rather than leaving an `Untitled` line that only
+     Remove can take off. Shut three ways: Done, another day, and Add again. */
+  press('tmt-add');
+  press('tmt-open', { 'data-id': box().querySelector('.tmt-in').dataset.id });
+  if (rows().length !== 3) bad.push('Add then Done with nothing typed leaves ' + rows().length + ' lessons, not 3');
+  press('tmt-add');
+  press('tmt-day', { 'data-day': '0' });
+  press('tmt-add');
+  press('tmt-add');
+  press('tmt-open', { 'data-id': box().querySelector('.tmt-in').dataset.id });
+  if (rows().length !== 3) bad.push('a blank lesson shut by another day or another Add is still on the day: ' + rows().length + ' lessons');
+
+  /* A SUBJECT IN ANOTHER ALPHABET HAS A COLOUR. `[a-z0-9]` reduced `Ελληνικά` to nothing. And the time
+     arrives on `change` as well as `input`, which is what an older phone's wheel sends. */
+  press('tmt-add');
+  type('subject', 'Ελληνικά');
+  const at = box().querySelector('.tmt-in[data-f="at"]');
+  if (at) { at.value = '15:20'; at.dispatchEvent(new w.Event('change', { bubbles: true })); }
+  press('tmt-open', { 'data-id': box().querySelector('.tmt-in').dataset.id });
+  const gk = rows().find(x => x.sub === 'Ελληνικά');
+  if (!gk) bad.push('a Greek subject typed into a lesson is not on the day');
+  else {
+    if (!gk.c) bad.push('a subject written in Greek letters is drawn with no colour');
+    if (gk.at !== '15:20') bad.push('a time sent only as `change` is not kept: the line reads ' + gk.at);
+  }
+  const g = [...box().querySelectorAll('.tmt-row')].find(x => /Ελληνικά/.test(x.textContent));
+  if (g) press('tmt-drop', { 'data-id': g.dataset.id });
+
+  /* A COLOUR DOES NOT MOVE WHEN ANOTHER SUBJECT ARRIVES EARLIER IN THE WEEK. */
+  press('tmt-add');
+  type('subject', 'Art');
+  type('at', '08:00');
+  press('tmt-open', { 'data-id': box().querySelector('.tmt-in').dataset.id });
+  if ((rows().find(x => x.sub === 'Maths') || {}).c !== maths) bad.push('adding Art at 08:00 changed Maths\'s colour');
+  if ((rows()[0] || {}).sub !== 'Art') bad.push('a lesson at 08:00 is not first on the day');
+
+  press('tmt-weekend', { checked: true });
+  if (box().querySelectorAll('.tmt-day').length !== 7) bad.push('ticking Weekend does not show seven days');
+  press('tmt-weekend');
+  if (box().querySelectorAll('.tmt-day').length !== 5) bad.push('unticking Weekend does not go back to five days');
+
+  const hid = [...box().querySelectorAll('.tmt-row')].find(x => /History/.test(x.textContent));
+  if (hid) press('tmt-drop', { 'data-id': hid.dataset.id });
+  if (rows().some(x => x.sub === 'History') || rows().length !== 3) bad.push('Remove does not take the lesson off');
+  w.localStorage.removeItem(t.tmtKey());
   return bad;
 });
 
@@ -1320,6 +1947,126 @@ check('picking several answers is one open, hanging off the field, over nothing'
     if (row.indexOf('aria-expanded') === -1) {
       bad.push('the row does not say whether the list is open');
     }
+  }
+  return bad;
+});
+
+/* ---------- A SINGLE-CHOICE SELECT OPENS THE SAME PANEL AND CLOSES ON THE PICK ---------------------
+   ASKED FOR AS *"should be consistent with the booking multiselect drop down list"*. Every ordinary
+   `<select>` now hangs `#drop` instead of opening the platform's picker — see `SEL_OK` in book.js.
+   What can break, and what nothing else here can see, is the contract with the callers that were
+   deliberately not touched: they listen for `change` on a real select, so the pick has to set the
+   select's value and fire `change` exactly once — twice would recompute a price twice and swap a
+   qualification box twice, none would be a pick that did nothing. And a disabled select must open
+   nothing, or a locked booking row and every field `send_` holds still become pressable again.
+
+   `check/ui.js` CANNOT ASK ANY OF IT: a panel that never opens measures perfectly, and so does a
+   select that opens its native wheel. So this drives the real booking column with a click AT the
+   select and a click on an option, through the app's own dispatcher — and asks the label route on
+   the settings column, because a tap on a `.field`'s caption is the one way a finger can still
+   reach a select whose own box takes no pointer. */
+check('a single-choice select opens the booking panel, and choosing closes it with one change', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const panel = d.getElementById('drop');
+  if (!panel) return ['#drop is not in index.html — a select has nowhere to hang its list'];
+  if (typeof w.selOpen_ !== 'function') return ['selOpen_ is not declared, so NOTHING was checked — not a pass'];
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
+  await wait(120);
+  const bad = [];
+  const open = () => !panel.classList.contains('hidden');
+  const pick = () => d.querySelector('#bookr select.bk-sel:not(:disabled)');
+  let sel = pick();
+  if (!sel) return ['the booking form draws no enabled select — cannot check the panel'];
+  const stepId = sel.dataset.step;
+  let changes = 0;
+  d.addEventListener('change', e => { if (e.target && e.target.dataset && e.target.dataset.step === stepId) changes++; });
+
+  /* THE TAP. Its default has to be prevented, or a `<label>`'s activation focuses the select and a
+     focused select is exactly what iOS opens its own wheel for. */
+  const tap = el => { const ev = new w.MouseEvent('click', { bubbles: true, cancelable: true }); el.dispatchEvent(ev); return ev; };
+  const ev = tap(sel);
+  if (!open()) bad.push('a click on the "' + stepId + '" select does not open #drop');
+  if (!ev.defaultPrevented) bad.push('the click that opened the panel was not prevented, so the platform picker can open as well');
+  if (panel.dataset.owner !== 'sel') bad.push('the panel is owned by ' + JSON.stringify(panel.dataset.owner) + ', not by the select');
+  if (!panel.querySelector('[role="listbox"]')) bad.push('the open panel has no role="listbox"');
+  const btns = [...panel.querySelectorAll('[data-do="sel-pick"]')];
+  /* EVERY OPTION BUT A BLANK THAT ONLY REPEATS ANOTHER'S WORDS — see `selHtml_`. */
+  const said = o => String(o.label || o.text || '').trim();
+  const want = [...sel.options].filter(o => !o.hidden && !(o.value === '' && !o.selected && said(o)
+    && [...sel.options].some(x => x !== o && x.value !== '' && said(x) === said(o)))).length;
+  if (btns.length !== want) bad.push('the panel draws ' + btns.length + ' options for a select with ' + want);
+  if (!btns.every(b => /\bpick-opt\b/.test(b.className) && b.getAttribute('role') === 'option')) {
+    bad.push('the options are not `.pick-opt` with role="option" — not the booking list\'s rows');
+  }
+  const marked = btns.filter(b => b.getAttribute('aria-selected') === 'true');
+  if (marked.length !== 1 || Number(marked[0].dataset.i) !== sel.selectedIndex) {
+    bad.push('the panel marks ' + marked.length + ' options as chosen, not the one the select holds');
+  }
+  if (sel.getAttribute('aria-expanded') !== 'true') bad.push('the select does not say its list is open (aria-expanded)');
+
+  /* PICK A DIFFERENT ONE, THROUGH THE DISPATCHER. */
+  const other = btns.find(b => Number(b.dataset.i) !== sel.selectedIndex && !b.disabled);
+  if (!other) bad.push('no second option to choose — the pick was NOT checked');
+  else {
+    const val = other.dataset.v;
+    tap(other);
+    await wait(30);
+    if (open()) bad.push('choosing an option leaves the panel open');
+    if (changes !== 1) bad.push('choosing an option fired change ' + changes + ' times, not once');
+    sel = pick();
+    if (!sel || sel.value !== val) bad.push('choosing ' + JSON.stringify(val) + ' left the select holding ' + JSON.stringify(sel && sel.value));
+    if (String(w.__t.BOOKING[stepId] || '') !== val) {
+      bad.push('the booking handler never heard the pick: BOOKING.' + stepId + ' is ' + JSON.stringify(w.__t.BOOKING[stepId]));
+    }
+  }
+
+  /* THE SAME ANSWER AGAIN IS NOT A CHANGE, as a native select does not fire one. */
+  sel = pick();
+  if (sel) {
+    tap(sel);
+    const same = panel.querySelector('[data-do="sel-pick"][aria-selected="true"]');
+    const before = changes;
+    if (same) tap(same);
+    if (changes !== before) bad.push('choosing the answer already chosen fired change');
+    if (open()) bad.push('choosing the answer already chosen leaves the panel open');
+  }
+
+  /* A TAP OUTSIDE SHUTS IT, through `#drop-back` and the action it already carries. */
+  sel = pick();
+  if (sel) {
+    tap(sel);
+    if (!open()) bad.push('the select does not open a second time');
+    tap(d.getElementById('drop-back'));
+    if (open()) bad.push('a tap outside does not shut the panel');
+    if (sel.getAttribute('aria-expanded') === 'true') bad.push('a shut panel leaves the select saying it is open');
+  }
+
+  /* A DISABLED SELECT OPENS NOTHING. */
+  sel = pick();
+  if (sel) {
+    sel.disabled = true;
+    tap(sel);
+    if (open()) bad.push('a disabled select opens the panel');
+    sel.disabled = false;
+  }
+
+  /* THE CAPTION OF A `.field` IS A WAY IN TOO — the settings column's fields are selects in labels. */
+  try { w.__t.go('settings', false, true); w.paint('settings'); } catch (e) { bad.push('drawing settings threw: ' + e.message); return bad; }
+  await wait(60);
+  const pages = [...d.querySelectorAll('#s-settings > .page')];
+  const at = pages.findIndex(p => p.querySelector('label.field > select:not(:disabled)'));
+  if (at < 0) bad.push('no settings page carries a select in a label — the label route was NOT checked');
+  else {
+    w.__t.goPage('settings', at, true);
+    const lab = pages[at].querySelector('label.field > select:not(:disabled)').parentNode;
+    const ev2 = tap(lab);
+    if (!open()) bad.push('a tap on a select\'s label does not open the panel');
+    if (!ev2.defaultPrevented) bad.push('a tap on a select\'s label was not prevented, so its activation can focus the select');
+    w.bookDropShut_();
+    if (open()) bad.push('Escape (bookDropShut_) does not shut a select\'s panel');
   }
   return bad;
 });
@@ -2182,6 +2929,95 @@ check('the docket keeps the text you typed, whatever it starts with', async () =
   return bad;
 });
 
+check('a student sees their parents, a parent their children, on the account column', async () => {
+  /* ---------- ASKED FOR AS "students should be able to see their parents and likewise" ------------
+     WHO IS IN `DATA.family` IS THE SERVER'S QUESTION and `check-profile.js` asks it through the real
+     `doGet`: accepted links only, the token's own family only. This asks the other half — that the
+     column draws a card for each person it was sent, labelled with which side of the link they are
+     on, once each, and nothing at all when an older backend sent no key. */
+  const { w, sent } = boot();
+  await wait(400);
+  if (!w.__t.accountPages) return ['accountPages_ is not exported — cannot check the account column'];
+  const bad = [];
+  const D = w.__t.DATA();
+  const heads = () => w.__t.accountPages().map(h => (h.match(/<h3>([^<]*)/) || [])[1] || '').map(x => x.trim());
+  const names = () => w.__t.accountPages().join('');
+
+  w.__t.USER({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'] });
+  delete D.family;
+  const before = w.__t.accountPages().length;
+  if (heads().some(h => /^Your (parent|child)/.test(h))) bad.push('with no `family` key a family card was drawn anyway');
+
+  D.family = [
+    { personId: 'P-P', title: 'Pat Parentworth', relation: 'parent', handle: 'pat_calm12', image: '' },
+    { personId: 'P-S', title: 'Sam Student', relation: 'child', handle: 'sam_calm13', image: '' },
+  ];
+  /* A LIST BUILT FOR SOMEBODY ELSE, OR STAMPED BY NOBODY, DRAWS NOTHING. `DATA` outlives a sign-out
+     and signing in paints before the new payload lands, so a phone handed from Pat to another
+     family's child would otherwise show Pat's family as theirs. */
+  D.familyFor = 'P-P';
+  if (heads().some(h => /^Your (parent|child)/.test(h))) bad.push('a family list built for somebody else (P-P) was drawn on P-S\'s account column');
+  delete D.familyFor;
+  if (heads().some(h => /^Your (parent|child)/.test(h))) bad.push('a family list with no `familyFor` stamp was drawn');
+  D.familyFor = 'P-S';
+  const hs = heads();
+  if (hs.filter(h => h === 'Your parent').length !== 1) bad.push('a student sent one parent drew ' + hs.filter(h => h === 'Your parent').length + ' "Your parent" card(s)');
+  if (!/Pat Parentworth/.test(names())) bad.push('the parent\'s name is not on the student\'s account column');
+  if (hs.some(h => h === 'Your child')) bad.push('a family entry for the signed-in person themselves was drawn as a card');
+  if (w.__t.accountPages().length !== before + 1) bad.push('one parent added ' + (w.__t.accountPages().length - before) + ' page(s), not 1');
+
+  /* A PARENT WHO IS ALSO A TUTOR IS DRAWN ONCE, here, and not again in the list of tutors below. */
+  /* Seeded rather than taken from the fixture, whose one tutor carries no `personId` — and the
+     match between a family entry and a tutor row is by that id and nothing else. */
+  const heldTutors = D.tutors;
+  const tutor = Object.assign({}, (D.tutors || [])[0] || {}, { personId: 'P-TP', title: 'Terry Tutorparent', handle: 'terry_kind21' });
+  D.tutors = (D.tutors || []).concat([tutor]);
+  {
+    w.__t.USER({ name: 'Kid Two', personId: 'P-K2', role: 'student', roles: ['student'] });
+    D.family = [{ personId: tutor.personId, title: tutor.title, relation: 'parent', handle: tutor.handle, image: '' }];
+    D.familyFor = 'P-K2';
+    const parentHeads = heads().filter(h => /^Your parent/.test(h));
+    if (parentHeads.length !== 1) bad.push('a parent who is a tutor drew ' + parentHeads.length + ' family card(s)');
+    const pagesWith = w.__t.accountPages().filter(h => h.indexOf('>' + tutor.title + '<') !== -1).length;
+    if (pagesWith !== 1) bad.push('a parent who is also a tutor is on ' + pagesWith + ' pages of the column, not 1');
+  }
+  D.tutors = heldTutors;
+
+  /* AND A PARENT SEES THEIR CHILD. */
+  w.__t.USER({ name: 'Pat Parentworth', personId: 'P-P', role: 'client', roles: ['client'] });
+  D.family = [{ personId: 'P-S', title: 'Sam Student', relation: 'child', handle: 'sam_calm13', image: '' }];
+  D.familyFor = 'P-P';
+  if (heads().filter(h => h === 'Your child').length !== 1) bad.push('a parent sent one child did not draw one "Your child" card');
+
+  /* AND THE REQUEST THAT BECOMES A LINK. A parent's "this is my child" waits on the child, and the
+     account column is the only place it is drawn — before this it was built by `meRest_`, which
+     nothing calls, so no claim was ever answerable and no family could form from the app. It is the
+     child's own and held to the same `familyFor` stamp; pressing yes posts `answerClaim` with that
+     row and takes the card off at once rather than when the payload lands. */
+  w.__t.USER({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'], token: 'tk' });
+  D.family = []; D.familyFor = 'P-S';
+  D.claims = [{ rowIndex: 7, from: 'Pat Parentworth', asked: '01/10/2026' }];
+  if (!/Pat Parentworth says they are your parent/.test(names())) bad.push('a claim waiting on the child is not on the child\'s account column');
+  D.familyFor = 'P-P';
+  if (/says they are your parent/.test(names())) bad.push('a claim list built for somebody else was drawn');
+  D.familyFor = 'P-S';
+  try { w.__t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing the account column threw: ' + e.message); }
+  const yes = w.document.querySelector('#s-account [data-do="claim-yes"]');
+  if (!yes) bad.push('the claim card on the account column has no Yes button');
+  else {
+    sent.length = 0;
+    w.__t.ACTIONS['claim-yes'](yes);
+    await wait(300);
+    const post = sent.find(b => b.action === 'answerClaim');
+    if (!post) bad.push('pressing Yes posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no answerClaim');
+    else if (String(post.rowIndex) !== '7' || post.accept !== true) bad.push('pressing Yes posted ' + JSON.stringify(post) + ' — wanted row 7, accept true');
+    if ((D.claims || []).length) bad.push('the answered claim is still in the list the column is drawn from');
+  }
+  delete D.family; delete D.familyFor; delete D.claims;
+  w.__t.USER(null);
+  return bad;
+});
+
 check('every pager counts the pages its screen actually draws', async () => {
   /* ---------- THE BUG THIS IS WRITTEN FOR, AND IT HAS HAPPENED THREE TIMES ------------------------
      `PAGER.account` counted `mePages()`. That function fed the old You COLUMN and says so in its
@@ -2316,13 +3152,109 @@ check('an admin still has every action on a session after the move to tiles', as
   if (has(live, 'job-answer')) bad.push('a booked session still offers `job-answer`');
   if (!has(live, 'job-delete')) bad.push('a booked session cannot be deleted');
 
-  /* THEY ARE TILES NOW, in the row every other thing's actions use. */
-  if (asking.indexOf('class="tile-row"') === -1) {
-    bad.push('the admin actions are not in a `.tile-row` — they should look like every other '
-           + "thing's actions");
+  /* THEY ARE TILES NOW — and the ROW is the receipt's foot, built once in `jobPage_`, so this
+     hands back marks rather than a row of its own. A row here would be a row inside a row. */
+  if (asking.indexOf('class="tile') === -1) {
+    bad.push('the admin actions are not tiles — they should look like every other thing\'s actions');
+  }
+  if (asking.indexOf('tile-row') !== -1) {
+    bad.push('`jobAdminTiles_` wraps its own `.tile-row` again — the row is the receipt\'s foot');
   }
   if (/<button class="btn/.test(asking)) {
     bad.push('a plain `.btn` came back in among the tiles');
+  }
+  return bad;
+});
+
+/* ---------- WHO IS SHOWN WHICH FIGURE, AND WHERE THE ACTIONS ARE ---------------------------------
+   ASKED FOR AS *"for tutor they shouldnt see grand total client pays, only grand total they earn.
+   admin should be able to see grand total client pays. total tutor earns, and how much admin
+   earns"* and *"no floating tiles for already booked sessions"*. Nothing else can ask either:
+   `check/ui.js` measures whether a figure FITS, and a tutor shown the client's total measures
+   perfectly; `check/press.js` presses the tiles wherever they are.
+
+   THE SAME JOB, READ BY THREE PEOPLE — the client on it, the tutor on it, an admin — and the
+   figures are the payload's as `doGet` sends them to an admin, so what is asked is the DRAWING:
+   which label the total carries and which figures are under it. What `doGet` withholds from whom is
+   `check-profile.js`'s question (section 10), asked of the real `doGet`. */
+check('each person sees their own figure on a session, and its tiles are on the paper', async () => {
+  const { w } = boot();
+  await wait(300);
+  if (typeof w.__t.jobMoney !== 'function' || typeof w.__t.jobPage !== 'function') {
+    return ['`jobMoney_` or `jobPage_` is not exported, so who sees which figure cannot be checked'];
+  }
+  const bad = [];
+  const job = {
+    id: 'J-M', jobId: 'J-M', kind: '', subject: 'Maths', level: 'GCSE', price: 270,
+    tutorPay: 135, adminKeeps: 81, tutor: 'Ada Tutor', location: 'Colliers Wood Library',
+    dates: '06/10/26, 13/10/26', startDate: '06/10/26', endDate: '13/10/26',
+    slots: [{ n: 1, client: 'Rasa Poliksa', status: 'Booked' }],
+    tutorSlots: [{ key: 'a', name: 'Ada Tutor', status: 'Confirmed' }], events: [],
+  };
+  const doc = h => { const d = w.document.createElement('div'); d.innerHTML = h; return d; };
+  const totals = d => [...d.querySelectorAll('.rc .rc-total')]
+    .map(r => r.querySelector('.bk-k').textContent.trim() + ' ' + r.querySelector('.bk-t').textContent.trim());
+
+  /* THE CLIENT: what they pay, and not one other figure. */
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const c = totals(doc(w.__t.jobPage(job)));
+  if (c.length !== 1 || !/270\.00/.test(c[0])) bad.push('the client sees ' + JSON.stringify(c) + ', wanted their £270.00 alone');
+  if (c.some(x => /135|81\./.test(x))) bad.push('the client is shown what the tutor or the admin takes: ' + JSON.stringify(c));
+
+  /* THE TUTOR: what they earn IN PLACE OF the client total — never beside it. */
+  w.__t.USER({ name: 'Ada Tutor', personId: 'P2', role: 'tutor', roles: ['tutor'] });
+  const t = totals(doc(w.__t.jobPage(job)));
+  if (t.length !== 1 || !/^YOU EARN|^You earn/i.test(t[0]) || !/135\.00/.test(t[0])) {
+    bad.push('the tutor sees ' + JSON.stringify(t) + ', wanted "You earn £135.00" alone');
+  }
+  if (t.some(x => /270\.00/.test(x))) bad.push('the tutor is shown the client\'s total: ' + JSON.stringify(t));
+  /* A BLANK `tutor_pay` IS A DASH, NOT A NOUGHT — every job before the phone sent it. */
+  const unpaid = w.__t.jobMoney(Object.assign({}, job, { tutorPay: '' }));
+  if (unpaid.total !== '—') bad.push('an unrecorded tutor pay reads ' + JSON.stringify(unpaid.total) + ', wanted a dash');
+
+  /* A SECOND TUTOR WHO HAS ONLY APPLIED is on `tutorSlots` and not in `j.tutor`, which is the first
+     name on the roster — so a test of `j.tutor` alone would hand them the client's line. */
+  w.__t.USER({ name: 'Ben Tutor', personId: 'P3', role: 'tutor', roles: ['tutor'] });
+  const t2 = totals(doc(w.__t.jobPage(Object.assign({}, job, {
+    tutorSlots: job.tutorSlots.concat([{ key: 'b', name: 'Ben Tutor', status: 'Applied' }]) }))));
+  if (t2.length !== 1 || !/you earn/i.test(t2[0]) || t2.some(x => /270\.00/.test(x))) {
+    bad.push('a tutor who has applied but is not first on the roster sees ' + JSON.stringify(t2) + ', wanted "You earn"');
+  }
+
+  /* THE ADMIN: all three, as rows of the paper — no block under it. */
+  w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
+  const ad = doc(w.__t.jobPage(job));
+  const a = totals(ad);
+  const want = [/client pays.*270\.00/i, /tutor earns.*135\.00/i, /admin earns.*81\.00/i];
+  if (a.length !== 3 || want.some((re, i) => !re.test(a[i] || ''))) {
+    bad.push('the admin sees ' + JSON.stringify(a) + ', wanted Client pays £270.00, Tutor earns £135.00, Admin earns £81.00');
+  }
+  if (ad.querySelector('.money-note')) bad.push('a money block still floats under the paper');
+  /* A WAITING LIST'S `price` IS ONE SEAT, so the admin's line must not call it what the client pays. */
+  const wl = totals(doc(w.__t.jobPage(Object.assign({}, job, { kind: 'waitlist' }))));
+  if (!/^each seat pays/i.test(wl[0] || '')) bad.push('an admin reading a waiting list sees ' + JSON.stringify(wl[0]) + ', wanted "Each seat pays" over the per-seat figure');
+
+  /* THE TILES ARE THE RECEIPT'S FOOT. Every action on the page is inside `.rc`, and a session
+     already paid for offers no Pay. */
+  const loose = [...ad.querySelectorAll('[data-do]')].filter(x => !x.closest('.rc'));
+  if (loose.length) bad.push('actions float outside the paper: ' + loose.map(x => x.dataset.do).join(', '));
+  if (!ad.querySelector('.rc .rc-tiles [data-do="job-delete"]')) bad.push('the admin\'s tiles are not on the receipt\'s foot');
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const paid = doc(w.__t.jobPage(job));
+  if (paid.querySelector('[data-do="job-pay"]')) bad.push('a session already booked and paid offers Pay');
+  const owed = doc(w.__t.jobPage(Object.assign({}, job, { slots: [{ n: 1, client: 'Rasa Poliksa', status: 'Agreed' }] })));
+  if (!owed.querySelector('.rc .rc-tiles [data-do="job-pay"]')) bad.push('an accepted, unpaid session has no Pay on its paper');
+
+  /* AND THE FORM: an admin pricing a booking sees the two more rows; nobody else does. */
+  if (typeof w.__t.formMoney === 'function') {
+    const L = { total: 300, tutorPay: 150, profitTotal: 40 };
+    w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
+    const fa = w.__t.formMoney(L);
+    if (fa.more.length !== 2 || !/150\.00/.test(fa.more[0].t) || !/40\.00/.test(fa.more[1].t)) {
+      bad.push('an admin pricing the form is not shown what the tutor and the business take');
+    }
+    w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+    if (w.__t.formMoney(L).more.length) bad.push('a client pricing the form is shown the split');
   }
   return bad;
 });
@@ -2501,6 +3433,83 @@ check('a landmark is the same shape whichever way it is turned', async () => {
        + 'its shape, which means the polygon is being re-sampled rather than the tiles turned'];
 });
 
+/* ---------- WHAT A TUTOR TEACHES: ONE CHIP A SUBJECT, ITS LEVELS RAISED ---------------------------
+   *"what they teach should appear like Subject ^level, level, level. so like the levels are
+   superscripted. no brackets."* The server sends one phrase per level, so the grouping is the
+   card's, and every way it can go wrong draws perfectly: a subject twice in one row, a bracket left
+   in, a level that was the specialism dragged out from under the gold edge, or the reverse. So this
+   draws two tutors through the app's own `findCard` — one off the current backend, one off a
+   backend old enough to send a single `teachesMain` string — and reads every chip back. */
+check('what a tutor teaches is one chip a subject, its levels raised and no brackets', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const draw = row => { const box = d.createElement('div'); box.innerHTML = w.findCard({ kind: 'tutor', row }); return box; };
+  /* A CHIP, READ BACK AS WHAT A PERSON SEES: the subject is the text outside the `<sup>`, the levels
+     are the spans inside it. A row named by its caption, so the two rows cannot be confused. */
+  const row = (box, cap) => {
+    const c = [...box.querySelectorAll('.prof-cap')].find(x => x.textContent.trim() === cap);
+    const tags = c && c.nextElementSibling ? [...c.nextElementSibling.querySelectorAll('.prof-tag')] : [];
+    return tags.map(el => {
+      const sup = el.querySelector('sup.prof-lv');
+      return { said: (el.textContent.replace(sup ? sup.textContent : '', '').trim()
+                      + (sup ? ' ^' + [...sup.querySelectorAll('span')].map(s => s.textContent.trim()).join(', ') : '')),
+               main: el.classList.contains('is-main'), text: el.textContent };
+    });
+  };
+  const bad = [];
+  const want = (who, box, cap, list, main) => {
+    const got = row(box, cap);
+    if (JSON.stringify(got.map(g => g.said)) !== JSON.stringify(list)) {
+      bad.push(who + ': "' + cap + '" reads ' + JSON.stringify(got.map(g => g.said)) + ', wanted ' + JSON.stringify(list));
+    }
+    if (got.some(g => g.main !== main)) bad.push(who + ': a chip under "' + cap + '" has the wrong edge (gold is the specialism)');
+    if (got.some(g => /[()]/.test(g.text))) bad.push(who + ': a chip under "' + cap + '" still has a bracket in it');
+  };
+  /* THE CURRENT BACKEND: two specialisms in one subject, that subject again at a level that is NOT a
+     specialism, a subject at two levels spelled two ways, one arriving bare AND with a level, and
+     one bare and nothing else. */
+  const now = draw({ title: 'Ada Tutor', personId: 'P-ada', rate: 30,
+    teachesSpec: ['Maths (GCSE)', 'Maths (A-Level)'],
+    teaches: ['Maths (GCSE)', 'Maths (A-Level)', 'Maths (AS)', 'English (KS3)', 'English (GCSE)',
+              'English (gcse)', 'Physics', 'Physics (GCSE)', 'Chemistry'] });
+  want('the current backend', now, 'Teaches', ['Maths ^GCSE, A-Level'], true);
+  want('the current backend', now, 'Can also teach',
+       ['Maths ^AS', 'English ^KS3, GCSE', 'Physics ^GCSE', 'Chemistry'], false);
+  /* A BACKEND FROM BEFORE SEVERAL SPECIALISMS: one string, no list. The phone must not wait on a
+     deploy to draw this the new way. */
+  const old = draw({ title: 'Old Backend', personId: 'P-old', rate: 30, teachesMain: 'Maths (GCSE)',
+    teaches: ['Maths (GCSE)', 'Maths (A-Level)'] });
+  want('an older backend', old, 'Teaches', ['Maths ^GCSE'], true);
+  want('an older backend', old, 'Can also teach', ['Maths ^A-Level'], false);
+  return bad;
+});
+
+/* ---------- AND THE LIBRARY CARDS CARRY NO NOTE, WHATEVER THE BACKEND SAYS ------------------------
+   *"for the library card widget, there doesnt need to be a add note to it."* The current backend no
+   longer lists `library_note`; the deployed one does, so this plays that older server and wants the
+   shelf drawn and the note box not — on the page, not merely absent from the code. */
+check('the library cards draw no note box, even from a backend that still lists one', async () => {
+  const libs = [];
+  for (let i = 1; i <= 5; i++) ['_name', '_no', '_pin'].forEach(k => libs.push('lib' + i + k));
+  const { w } = boot({ payload: Object.assign(payload(), { profileFields: { 'Library cards': libs.concat(['library_note']) } }) });
+  await wait(300);
+  const t = w.__t;
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+           profile: { first_name: 'Test', last_name: 'Admin', lib1_name: 'Merton', library_note: 'old note' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const d = w.document;
+  const form = [...d.querySelectorAll('#s-settings .me-form')].find(f => f.querySelector('[data-me="lib1_name"]'));
+  if (!form) return ['the settings column drew no library shelf, so the note box was NOT checked'];
+  const bad = [];
+  if (form.querySelector('[data-me="library_note"]')) bad.push('the library card page still draws a library_note box');
+  const stray = [...form.querySelectorAll('[data-me]')].map(e => e.getAttribute('data-me')).filter(f => !/^lib\d+_(name|no|pin)$/.test(f));
+  if (stray.length) bad.push('the library card page draws boxes that are not a card: ' + stray.join(', '));
+  if (/note/i.test(form.textContent)) bad.push('the library card page still says "note" somewhere');
+  return bad;
+});
+
 check('a backend that never answers does not hang the app for ever', async () => {
   let html = fs.readFileSync(path.join(dir, '..', 'index.html'), 'utf8');
   const hasDeadline = /AbortController|Promise\.race|setTimeout\([^)]*abort/i.test(
@@ -2645,6 +3654,37 @@ check("a swipe settles at the finger's speed, written on the columns and not the
   else if (!hosts.some(h => /cubic-bezier/.test(h.style.transitionTimingFunction || ''))) {
     bad.push('the settle was not written on the columns, so a release has no curve of its own');
   }
+  return bad;
+});
+
+/* ---------- THE AGE RANGE ON A TUTOR'S CARD, AND EVERY HALF OF ONE A ROW CAN HOLD ----------------
+   ASKED FOR AS *"tutors should also be able to state an age range of people they are willing to
+   work with."* The card is the half a parent sees, and the rows it reads were often typed into the
+   sheet by hand with one end filled in — so the rule is every shape, not the one the form produces.
+   Asked of `profAges_` and then of the card itself, because a chip computed right and never drawn is
+   this repository's oldest silence. */
+check('an age range reads sensibly with both ends, one end, or neither', async () => {
+  const { w } = boot();
+  await wait(300);
+  if (typeof w.profAges_ !== 'function' || typeof w.findCard !== 'function') {
+    return ['profAges_ or findCard is not reachable, so the age range was NOT checked — not a pass'];
+  }
+  const bad = [];
+  [[8, 16, 'Ages 8–16'], ['8', '16', 'Ages 8–16'], [10, 10, 'Age 10'],
+   [11, '', 'Ages 11+'], [11, 'Adults', 'Ages 11+'], ['', 16, 'Ages up to 16'],
+   ['Adults', '', 'Adults'], ['Adults', 'Adults', 'Adults'], ['', 'Adults', 'All ages'],
+   [16, 8, 'Ages 8–16'], ['adults', 12, 'Ages 12+'], [0, 0, ''], ['', '', ''],
+   [undefined, undefined, ''], ['teenagers', '', '']].forEach(([lo, hi, want]) => {
+    const got = w.profAges_({ ageMin: lo, ageMax: hi });
+    if (got !== want) bad.push(`youngest ${JSON.stringify(lo)} and oldest ${JSON.stringify(hi)} read "${got}", wanted "${want}"`);
+  });
+  const t = { title: 'Ada Tutor', handle: 'ada', rate: 30, yrsExp: 10, minStudents: 1, maxStudents: 4,
+              ageMin: 8, ageMax: 16, teaches: [], listed: true, personId: 'P-x' };
+  const html = String(w.findCard({ kind: 'tutor', row: t }) || '');
+  const facts = (html.match(/prof-facts[^]*?<\/div>/) || [''])[0];
+  if (!/>Ages 8–16</.test(facts)) bad.push('a tutor who teaches 8 to 16 has no "Ages 8–16" chip under At a glance');
+  const none = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { ageMin: '', ageMax: '' }) }) || '');
+  if (/>Ages?\b|>Adults<|>All ages</.test(none)) bad.push('a tutor who has said nothing about ages is drawn with an age chip anyway');
   return bad;
 });
 

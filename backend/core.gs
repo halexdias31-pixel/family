@@ -1111,7 +1111,7 @@ function photosList_(r) {
 
    AN ENTRY NAMES A PERSON BY ANY OF THE WAYS THIS SHEET HAS: the rows already hold a handle, an
    admin typing into the tab will type a name, and a new entry is written as the PERSON_ID, because
-   an id is the one of those that survives `changeHandle` and a rename. `key` on both sides. */
+   an id is the one of those that survives a randomised handle and a rename. `key` on both sides. */
 function venuesPersonIs_(entry, p) {
   const k = key(entry);
   if (!k || !p) return false;

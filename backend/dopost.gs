@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-01-a-manyteach";
+const DOPOST_VERSION = "2026-10-01-c-family";
 
 
 function doPost(e) {
@@ -195,15 +195,14 @@ function doPost(e) {
       }
 
       /* BEFORE THE ROW EXISTS, so `handleMake_` is passed no row: there is nothing of this
-         person's for a clash to exclude yet, and `isAdmin: true` inside it skips the month's
-         cooldown, which is about changing a handle rather than being given a first one. */
+         person's for a clash to exclude yet. */
       const regHandle = handleMake_(null, first);
       addRow(t, {
         // Students by default. A parent booking for a child is the account an admin sets up; a
         // person signing themselves up is almost always the one being taught.
         person_id: 'P' + Date.now(), role: 'student',
         first_name: first, last_name: last,
-        /* ---------- THE HANDLE IS GENERATED — `<first>_<adjective><NN>` — see `handleMake_` ---------
+        /* ---------- THE HANDLE IS GENERATED — `<first>_<virtue>` — see `handleMake_` -----------------
            It goes through `handleTrouble_`, so the shape, the reserved list, the blocklist and the
            clash are checked exactly once. There is no `username` column any more: it was the handle
            written twice. `?run=fillHandles` fills any row a generator ever gave up on. */
@@ -629,6 +628,12 @@ function doPost(e) {
       }
       const priceNo = pricingRefusal_(r, priceAsked, iAmAdmin);
       if (priceNo) return jsonOut({ error: priceNo });
+      /* ---------- AND THE AGE RANGE, WHICH IS NOT THE QUOTE AND HAS NO CLOCK ----------------------
+         Asked of the same wanted-only object for the same reason, and before any write for the
+         reason this whole section exists. A youngest older than the oldest is a range nobody falls
+         inside — see `ageRefusal_` in people.gs. */
+      const ageNo = ageRefusal_(r, priceAsked);
+      if (ageNo) return jsonOut({ error: ageNo });
       /* ---------- AN ADDRESS IS WHAT SIGNS IN TO THIS ACCOUNT ------------------------------------
          SO EMPTYING THE BOX IS A SIGN-OUT NOBODY CAN UNDO — `verifyLogin` and `forgotPin` both look
          the person up by it. And two rows on one address means `verifyLogin` refuses both, so a
@@ -1903,21 +1908,6 @@ function doPost(e) {
        So it asks for the CURRENT one first. That is the whole protection: an unlocked laptop, a
        shared computer or a session left open cannot be used to take an account, because taking it
        needs something only the owner knows. */
-    /* ---------- A PERSON RENAMES THEMSELVES ------------------------------------------------------
-       BESIDE `changePin` BECAUSE IT IS THE SAME KIND OF THING: the two facts about an account that
-       only its owner may change, and that `updateProfile` must never be able to reach. Everything
-       in `PROFILE_EDITABLE` is a fact about somebody that is wrong for them alone; a handle is how
-       the rest of the site FINDS them, so it gets its own door with rules the form cannot skip.
-
-       THE ID IS PREFERRED AND THE NAME IS THE FALLBACK, which is the order `findPerson` uses and
-       the order `changePin` was fixed into after a display-name collision told somebody their own
-       PIN was wrong. Here it matters more: this is the call that CREATES those collisions if it is
-       wrong about who is asking.
-
-       BOTH COLUMNS, OR NEITHER. `handle` and `username` are one fact in two columns and
-       `findPerson` matches both — so writing one and not the other leaves the old name answering to
-       this person for ever. `handle_was` keeps the previous one, which is the question an admin
-       eventually has to answer about exactly one account. */
     /* ---------- THE TUTOR AGREEMENT: A TICK THAT STAYS TICKED ------------------------------------
        ASKED FOR AS *"a draft widget for tutors, just do a draft small contract with tick to agree.
        cant untick after ticked."* The phone's box is disabled once ticked, and that is the
@@ -1955,49 +1945,45 @@ function doPost(e) {
       return jsonOut({ success: true, signedAt: at, version: version });
     }
 
-    if (action === 'changeHandle') {
-      const me = findPerson(S(body.name), S(body.personId));
-      if (!me) return jsonOut({ error: 'We could not find your account.' });
-      /* ---------- WHAT WAS TYPED IS WHAT IS STORED, AND EVERY COMPARISON STILL FOLDS ------------
-         ASKED FOR AS *"i would like peoples username logins to be case sensitive."* This line was
-         `.toLowerCase()`, so somebody who typed `HaLeX` was stored and shown as `halex` — the case
-         they chose thrown away at the moment they chose it, which is the half of that sentence a
-         person actually sees.
+    /* ---------- A NEW WORD FOR YOUR OWN HANDLE --------------------------------------------------
+       ASKED FOR AS *"handles should be their name and a virtuous describing word. they can randomise
+       it but it will follow that general name."* So there is no box to type a handle into any more:
+       the Settings card shows the one you have and a Randomise button, and this is what it presses.
+       It asks `handleMake_` for another `<first>_<virtue>`, never the one you already have, and
+       writes it.
 
-         THE MATCHING IS NOT TOUCHED AND MUST NOT BE. `findPerson` compares through `key()`, which
-         lower-cases AND strips everything but letters and digits, and it has 85 call sites across
-         this backend: the roster, the booking, the messaging, every gate. Making THAT case
-         sensitive would mean somebody typing `Halex` at the sign-in box is told the name is not
-         recognised — which is sign-in getting harder for everybody, and is what every site on the
-         internet deliberately does not do.
+       THE ROW IS THE TOKEN'S. `accessDenied` writes `body.personId` from the session before this
+       runs, so a request naming somebody else's id randomises the asker's own handle — there is no
+       admin path and no target, because a handle is the one thing about a person nobody else
+       should be choosing for them.
 
-         AND IT WOULD OPEN AN IMPERSONATION SURFACE ON A SITE CHILDREN USE. `handleTrouble_` checks
-         a new handle against every column `findPerson` answers to, through that same fold — so
-         while it folds, `HaLeX` cannot be taken when `halex` exists. Case-sensitive matching makes
-         those two different accounts that render identically, which is exactly what
-         `HANDLE_SHAPE`'s ASCII-only rule already refuses unicode lookalikes for: `paul` with a
-         Cyrillic a is impersonation with nothing to point at, and `HaLeX` beside `halex` is the
-         same object in a cheaper disguise.
+       NO COOLDOWN, AND THAT IS NOT AN OVERSIGHT. A month between changes existed because a typed box
+       let somebody try variations until a rude one got past the blocklist. Every handle this can
+       produce is a first name and a word somebody chose for the list, so pressing it again is a
+       child looking for a word they like rather than an attempt at anything.
 
-         SO: CASE-PRESERVING, CASE-INSENSITIVE. Store the letters as typed; fold for every
-         comparison. That is what "case sensitive" means everywhere it is safe to mean anything. */
-      const want = S(body.handle).trim();
-      const why = handleTrouble_(want, me, hasRole(me, 'admin'));
-      if (why) return jsonOut({ error: why });
-
+       ALL THREE COLUMNS BEFORE ANY IS WRITTEN. `setCells` loses a write to a header that is not
+       there and `jsonOut` then calls the whole thing a failure — over a handle that HAD changed,
+       with nothing in `handle_was` to say what it was. */
+    if (action === 'randomiseHandle') {
       const t = read(TAB.people);
-      /* ALL FOUR COLUMNS BEFORE ANY IS WRITTEN. With `handle_was` or `handle_changed_at` missing, the
-         new name landed and `jsonOut` then reported "Nothing was saved" — and with no stamp the
-         once-a-month rule never started, so a second change went straight through. */
       const lacking = ['handle', 'handle_was', 'handle_changed_at']
         .filter(c => t.headers.indexOf(c) === -1);
       if (lacking.length)
         return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
-      const r = t.rows.find(x => key(x.person_id) === key(me.person_id)) || me;
+      const want = key(body.personId);
+      const r = want ? t.rows.find(x => key(x.person_id) === want) : null;
+      if (!r) return jsonOut({ error: 'We could not find your account.' });
       const was = S(r.handle);
-      setCells(t, r, { handle_was: was, handle: want, handle_changed_at: new Date() });
+      const made = handleMake_(r, r.first_name, was);
+      if (!made) return jsonOut({ error: 'No free handle could be found just now. Nothing was changed '
+                                       + '— try again.' });
+      /* `handle_was` IS A HISTORY, newest first and capped — see `handleWasWith_`. It was one cell
+         overwritten by each change, which answered "who was @foo" only about the most recent name. */
+      setCells(t, r, { handle: made, handle_was: handleWasWith_(r.handle_was, was),
+                       handle_changed_at: new Date() });
       clearCache();
-      return jsonOut({ success: true, handle: want, was: was });
+      return jsonOut({ success: true, handle: made, was: was });
     }
 
     if (action === 'changePin') {
@@ -2780,7 +2766,12 @@ function doPost(e) {
            AND IT IS STORED AS PAID, not as a rate. The figure on the venue can change next month;
            what this session actually cost cannot. */
         price_total: N(body.price),
-        tutor_pay: '',
+        /* WHAT THE TUTOR EARNS, which `priceFrom` works out on the phone beside `profit` below and
+           which was dropped here — `tutor_pay` was written as an empty string on every job, so the
+           tutor's own receipt had nothing to show them. Recorded as SENT, like `admin_profit`: it
+           is the business's note of the split, never what anybody is charged — `createCheckout`
+           charges from the receipt. Blank when an older phone sends nothing, never a nought. */
+        tutor_pay: S(body.tutorPay) !== '' ? Math.round(N(body.tutorPay) * 100) / 100 : '',
         travel_paid: travelCost(S(body.location), sessionCount),
         /* THE SUBTRACTION, rather than whatever the phone worked out. The travel comes off the
            margin unless `travel_on_client` says the client is paying it — in which case it was

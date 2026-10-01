@@ -371,6 +371,21 @@ const MAT_PARTS = [
      NAMED WITHOUT "pH" because a piece's heading is set in capitals, and "PH SCALE" is the one way a
      chemist would never write it; the list's own face still says pH 0–14. */
   { id: 'M51', subject: 'Science', name: 'Acids, alkalis & indicators', face: 'pH 0–14', lv: ['Y9 Mocks','GCSE','B-TEC'], h: 34, half: true, pair: true, inExam: false },
+  /* ---------- THE NUMBER LINE WITH NEGATIVES -------------------------------------------------------
+     ASKED FOR AS "add minus number line". Every whole number from −10 to 10, zero longer and bolder
+     than the rest because it is the one the whole picture turns on, and an arrow at each end because
+     the line does not stop at ten either way.
+     A PIECE OF ITS OWN RATHER THAN A WIDER M04, because the two answer different questions: M04 is
+     the space between 0 and 1, and a line long enough to carry −10 would squeeze its quarters and
+     thirds into a few millimetres. Both can be on one sheet.
+     FULL WIDTH, the reason M04 gives: a line is a picture whose meaning is spread sideways, and
+     twenty-one steps across a third of the page would be 2.5mm each.
+     THE LEVELS ARE THE ONES THAT ASK ABOUT NEGATIVES: KS2 SATs and the 11+ (temperatures, counting
+     back past zero), and Y9 mocks and GCSE on both tiers — so no `tier`. Not given in the exam.
+     M52, NOT M51: M51 is the pH scale on another branch, and two pieces under one id would be one
+     row of the sheet's tab answering for both. `at0` 35 puts it straight after M04, which the sheet
+     orders at 30 (and M05 at 40). */
+  { id: 'M52', name: 'Negative number line', face: '−10 0 10 line', lv: ['SATs','11+','Y9 Mocks','GCSE'], h: 15, half: false, inExam: false, at0: 35 },
 ];
 
 /* ---------- EACH COMPONENT'S HEIGHT, IN MILLIMETRES OF PAPER ----------------------------------------
@@ -389,7 +404,9 @@ const MAT_SLOT = {
   M13: 36, M14: 44, M15: 54, M16: 46, M17: 38, M18: 32, M19: 54, M20: 72, M21: 42, M22: 46,
   M23: 46, M24: 38, M25: 42, M26: 44, M27: 50, M28: 46, M29: 24, M30: 36, M31: 46, M32: 46,
   M33: 66, M34: 44, M35: 56, M36: 50, M37: 36, M38: 46, M39: 46, M40: 46, M41: 54, M42: 42,
-  M43: 38, M44: 54, M45: 38, M46: 46, M47: 42, M48: 44, M49: 60, M50: 98, M51: 42,
+  M43: 38, M44: 54, M45: 38, M46: 46, M47: 42, M48: 44, M49: 60, M50: 98, M51: 42, M52: 22,
+  /* M52 MEASURED ON THE PRINTED SHEET: 18.8mm under a block, with its rule and the 3mm beneath it —
+     given a millimetre for another browser's mono and rounded up to the row, 22. */
   /* THE ENGLISH PIECES (see `MAT_PARTS_EN`), measured the same way — each alone at its own slot
      width, its scroll height read off the page — and given a millimetre before rounding, because a
      label-and-value block wraps a word or two differently in another browser's sans-serif and the
@@ -873,6 +890,18 @@ const MAT_HTML = {
   M50: () => matPeriodic(),
 
   M51: () => matPh(),
+  /* −10 TO 10, ONE TICK A WHOLE NUMBER, PLACED BY PERCENTAGE like M04 so the line is the same at any
+     slot width. The minus is U+2212, the sign a printed paper uses — a hyphen is shorter and sits
+     lower, and on a line about negative numbers it is the one character that has to look right. */
+  M52: () => {
+    let h = '<em class="l"></em><em class="r"></em>';
+    for (let n = -10; n <= 10; n++) {
+      const at = (n + 10) * 5;
+      const z = n === 0 ? ' class="z"' : '';
+      h += `<i${z} style="left:${at}%"></i><b${z} style="left:${at}%">${n < 0 ? '−' + (-n) : n}</b>`;
+    }
+    return `<div class="mat-neg">${h}</div>`;
+  },
 };
 
 /* ---------- THE pH SCALE --------------------------------------------------------------------------
@@ -1649,17 +1678,17 @@ function initMat() {
     </div>
     <label class="check mat-given" id="mat-given" hidden><input type="checkbox" data-do="mat-exam">
       <span class="box"></span><span>Skip what the exam gives you</span></label>
-    ${/* ---------- THE LIST IS THE PART THAT GIVES UP ITS HEIGHT ------------------------------
-          MEASURED ON THE TOOLS COLUMN AT 390px: this list is 464px of a 1263px card inside an
-          805px pane, so 458px of the card was clipped — the A4 preview below it entirely, and the
-          Print button all but nineteen pixels. Everything else here is short and fixed: two
-          selects, a box, two buttons, a gauge, a line of text and a button. (The preview has
-          since gone — see `matProbe` — so the list is now most of the card, and still the part
-          that gives way.)
-          `widget-squeeze` is the class that says so; the rules are in style.css beside
-          `.card.is-widget`, and the reason a list may scroll where a card may not is the same one
-          `#docket-body` already carries. */''}
-    <div class="mat-list widget-squeeze" id="mat-list"></div>
+    ${/* ---------- THE LIST IS THE WHOLE LIST, AND THE PANE DECIDES WHAT FITS ------------------
+          IT WAS A SCROLLER (`widget-squeeze`): a box inside the card with its own scroll bar,
+          which gave up its height so Print stayed on the card. Reported as "the cheat sheet maker
+          should not have a scroll thing". A box that scrolls inside a card that slides is two
+          gestures fighting for one finger — every drag on the list was a question of whether it
+          moved the list or the column — and it is the one widget that did it.
+          SO IT IS AN ORDINARY BLOCK NOW and the card is as tall as its list. Where that is taller
+          than the pane, `paneReach_` does what it does for every other card: draws it smaller,
+          down to its floor, and only past that lets the PANE scroll — one scroller, the same one
+          every column has, handing the swipe back to the grid at its end. */''}
+    <div class="mat-list" id="mat-list"></div>
     <div class="mat-gauge" id="mat-gauge"><i></i></div>
     <p class="mat-said" id="mat-said"></p>
     <button class="btn" data-do="mat-print" id="mat-go">Print the sheet</button>`;

@@ -183,15 +183,7 @@ function meRest_() {
           FIRST, ABOVE EVERYTHING. A claim is somebody saying they are your parent, and it sits
           unanswered until you say. Putting it below the fold would be putting the one thing that
           needs a decision underneath the things that do not. */''}
-    ${(DATA.claims || []).map(c => `<div class="card">
-      <h3>${esc(c.from)} says they are your parent</h3>
-      <p class="sub">Say yes and they will be able to book sessions for you and see how you are
-        getting on. Say no and nothing happens.</p>
-      <div class="row" style="border:0;gap:.5rem">
-        <button class="btn" data-do="claim-yes" data-row="${esc(c.rowIndex)}">Yes, that is my parent</button>
-        <button class="btn quiet" data-do="claim-no" data-row="${esc(c.rowIndex)}">No</button>
-      </div>
-    </div>`).join('')}
+    ${(DATA.claims || []).map(claimCard_).join('')}
 
     ${/* ---------- AND THE OTHER END OF IT -------------------------------------------------------
           A PARENT ASKS BY NAME. The backend matches on first and last name and refuses politely
@@ -650,8 +642,8 @@ function googleSignedIn_(res) {
    looking at the screen; eight of the thirteen `why_` callers in this app already answer a failed
    write exactly this way. What a toast must not carry is a STANDING condition — see `banner()`. */
 /* ---------- A NEW PIN, TO THE ADDRESS IN THE SHEET AND NOWHERE ELSE ------------------------------
-   NOT ONE RULE IS REPEATED HERE, which is the same argument `handle-save` and `pin-save` already
-   make one column along: the box checks whether it is empty and nothing else, and whatever comes
+   NOT ONE RULE IS REPEATED HERE, which is the same argument `pin-save` already makes one column
+   along: the box checks whether it is empty and nothing else, and whatever comes
    back is what gets said. The server decides whether that name resolves, whether there is an
    address on it, and what to tell somebody who asked about an account that is not theirs — and it
    deliberately says the SAME sentence to all three, so a copy of that reasoning here would be a
@@ -1530,6 +1522,29 @@ function msgForm_(to, toId, note, rows) {
    TWO NAMES, NOT ONE. The backend matches on first AND last name and refuses when it finds none or
    more than one — asking for a single field would send it a string it cannot split reliably, and
    "Mary Anne Smith" is where that goes wrong. */
+/* ---------- THE ANSWER HALF HAD NO DOOR EITHER, UNTIL THE ACCOUNT COLUMN DREW IT -----------------
+   THIS CARD WAS ONLY EVER BUILT BY `meRest_`, AND NOTHING CALLS `meRest_` ANY MORE — the old You
+   column it fed is gone (see `mePages`). So a parent pressed `Ask them`, was told "they will see it
+   when they next sign in", and the child never saw it: the request sat at `asked` for ever, no link
+   was ever accepted, and the family cards the account column now draws could only ever come from a
+   row typed into the sheet by hand. `check-doors` could not say so — `claim-yes` is a string in the
+   markup, so it reads as a door whether or not anything draws it.
+
+   ONE RENDERER, CALLED BY `accountPages_` straight after your own card, which is where a decision
+   about who your parent is belongs. In place, no sheet, two buttons because it is a question with
+   two answers. */
+function claimCard_(c) {
+  return `<div class="card">
+    <h3>${esc(c.from)} says they are your parent</h3>
+    <p class="sub">Say yes and they will be able to book sessions for you and see how you are
+      getting on. Say no and nothing happens.</p>
+    <div class="btn-row">
+      <button class="btn" data-do="claim-yes" data-row="${esc(c.rowIndex)}">Yes</button>
+      <button class="btn quiet" data-do="claim-no" data-row="${esc(c.rowIndex)}">No</button>
+    </div>
+  </div>`;
+}
+
 /* WHO MAY ASK — the same test the tile carried, kept in one place so the card and its handler
    cannot disagree about it. */
 function mayAddChild_() {
@@ -1588,15 +1603,25 @@ const answerClaim_ = (el, accept) => {
   /* THE THIRD OF THE THREE. Same shape, same silence — see `add-child-go` above. A parent pressed
      yes on their own child's request and nothing happened, on the one screen where "nothing
      happened" is indistinguishable from "it worked and the list has not refreshed yet". */
-  send({
+  if (!USER) { toast('Sign in first'); return; }
+  const row = el.getAttribute('data-row');
+  /* `send_` RATHER THAN `send`, for `add-child-go`'s reason: it locks both buttons while the answer
+     is on the wire, so a second tap cannot answer twice, and it says a refusal as a toast. */
+  send_({
     action: 'answerClaim',
     name: USER.name, personId: (USER && USER.personId) || '',
-    rowIndex: el.getAttribute('data-row'), accept: accept,
-  }).then(d => {
-    if (d && d.error) { toast(d.error); return; }
+    rowIndex: row, accept: accept,
+  }, { button: el, busy: accept ? 'Linking…' : 'Saying no…' }).then(() => {
     toast(accept ? 'Linked. They can book for you now.' : 'Turned down.');
+    /* GONE FROM THE SCREEN NOW, not in fifteen seconds. The card is a request that has just been
+       answered; leaving it up until the payload lands invites the second tap the server would
+       refuse as "already answered". The family card it turns into arrives with the payload. */
+    if (Array.isArray(DATA.claims)) DATA.claims = DATA.claims.filter(c => String(c.rowIndex) !== String(row));
+    /* `repaint(true)`, NOT `paint`: a page has left the column, so it must be placed and its
+       position clamped again — the Saved column's unstar records what a bare `paint` leaves. */
+    if (typeof AT !== 'undefined' && AT === 'account') repaint(true); else STALE.account = 1;
     load();
-  }).catch(err => toast(String((err && err.message) || 'That did not send')));
+  }).catch(() => {});
 };
 on('claim-yes', el => answerClaim_(el, true));
 on('claim-no', el => answerClaim_(el, false));
@@ -1608,9 +1633,10 @@ on('claim-no', el => answerClaim_(el, false));
    column at the end." What was there was one sheet — `openSheet('Your details', …)` — holding the
    profile form, the username and the PIN, opened by a tile on your own account card.
 
-   MOVED, NOT COPIED, AND THE IDS ARE WHY. `handle-new`, `handle-said`, `pin-now`, `pin-new`,
-   `pin-again`, `pin-said` and `me-said` are looked up with `$()`. Drawing them on a column AND
-   leaving them in a sheet would put two elements under one id on the page at once, and `$()` hands
+   MOVED, NOT COPIED, AND THE IDS ARE WHY. `pin-now`, `pin-new`, `pin-again` and `pin-said` are
+   looked up with `$()` (the handle's line and the status lines are classes, found from the card).
+   Drawing them on a column AND leaving them in a sheet would put two elements under one id on the
+   page at once, and `$()` hands
    every Save button the first of them — the `$('msg-text')` bug this repository already records,
    where a reply typed into the second thread posted to the first. So the sheet is gone and the tile
    is a door to the column.
@@ -1638,6 +1664,14 @@ on('claim-no', el => answerClaim_(el, false));
    reachable without knowing where anything is, and it is already one swipe from everywhere at the
    foot of your own card in `accountPages_`. Drawing it here as well would be two doors to one
    action, which is the duplication this app's own tab table spends four paragraphs regretting. */
+/* WHAT THE LINE UNDER YOUR HANDLE SAYS AFTER A RANDOMISE — "You were @…" — kept as STATE and drawn
+   from it, never left on the element. The first version wrote it into the line and then called
+   `load()`, and the inbox and your own profile land a moment after the payload and each repaint this
+   column: the line was back to its standing sentence before anybody had read it. The `REEL_HELD`
+   rule, one card along — a mark put on the element by a press is a mark a repaint throws away while
+   the state keeps it. For this session; a reload starts it again. KEYED BY THE PERSON, because a
+   phone passed to somebody else who signs in on it must not tell them who THEY used to be. */
+let HANDLE_SAID = { pid: '', text: '' };
 function settingsPages_() {
   if (!USER) {
     /* THE COLUMN IS NAMED OFF `TABS` RATHER THAN WRITTEN OUT. `applyColumns_` takes every label
@@ -1686,26 +1720,29 @@ function settingsPages_() {
          the two it has never been told about — see the note over it. */
       options: fieldOptions_,
     })}
-      <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'me-save' })}</div>
+      ${/* THE QUALIFICATIONS CARD HAS NO SAVE OF ITS OWN: every editor on its shelf saves itself, in
+            place, a finger's width from the thing being changed — see `qualShelf_`. A second Save at
+            the foot of the card would be two ways to keep one change, and the far one is the one
+            somebody forgets. Only a card that is nothing but the shelf. */
+        (groups[g] || []).length && (groups[g] || []).every(isQualField_) ? ''
+        : `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'me-save' })}</div>`}
       <p class="faint me-said"></p></div>
   </div>`);
 
-  /* ---------- YOUR USERNAME, BEFORE THE PIN AND FOR THE SAME REASON ------------------------------
-     THE TWO THINGS ONLY YOU MAY CHANGE, and neither goes through `Save`. Everything above is
-     `updateProfile`, which writes whatever it is given out of `PROFILE_EDITABLE`; these two have
-     rules a form cannot be trusted with — a PIN needs the old one, a handle has to be free,
-     allowed, and not changed last week.
+  /* ---------- YOUR HANDLE, BEFORE THE PIN AND FOR THE SAME REASON -------------------------------
+     THE TWO THINGS ABOUT AN ACCOUNT THAT DO NOT GO THROUGH `Save`. Everything above is
+     `updateProfile`, which writes whatever it is given out of `PROFILE_EDITABLE`; a PIN needs the
+     old one, and a handle is never typed at all — the server builds it and Randomise asks it for
+     another word.
 
-     NOT ONE RULE IS REPEATED HERE. The box checks nothing, the button posts, and whatever comes
-     back is what the line underneath says. `MESSAGING` records the argument and it is the same one:
-     a rule written twice is two rules to keep in step, and the server's own sentence already says
-     what to do instead. Writing "3 to 20 characters" in this file would be a third place for that
-     number to be wrong. */
-  /* ---------- SIGNING IN IS ONE CARD: YOUR USERNAME AND YOUR PIN --------------------------------
+     NOT ONE RULE IS REPEATED HERE. The button posts, and whatever comes back is what the line
+     underneath says. `MESSAGING` records the argument: a rule written twice is two rules to keep in
+     step, and the server's own sentence already says what to do instead. */
+  /* ---------- SIGNING IN IS ONE CARD: YOUR HANDLE AND YOUR PIN ----------------------------------
      They were two pages. Each keeps its own button and its own line underneath, because each goes
-     to a different handler with different rules — folding them into one Save would mean every
-     username change asking for a PIN. The three PIN boxes sit on one line, captioned by what they
-     are in order, which is most of the height the second page cost. */
+     to a different handler with different rules — folding them into one Save would mean every new
+     handle asking for a PIN. The three PIN boxes sit on one line, captioned by what they are in
+     order, which is most of the height the second page cost. */
   /* ---------- ADDING A CHILD IS A CARD HERE NOW -------------------------------------------------
      *"remove add your child tile as that should go on column to the right."* It was a tile on your
      own account card that opened a sheet with two boxes and a button — and this app has been asked,
@@ -1716,19 +1753,24 @@ function settingsPages_() {
 
   pages.push(`<div class="card">
     <h3>Signing in</h3>
-    ${/* ---------- A HANDLE, NOT A USERNAME -------------------------------------------------------
-          *"remove the usernames. only handles."* Signing in is an e-mail address and a PIN, so the
-          one name a person has here is the one people see them by, and the card calls it that and
-          draws it the way every card does: with the `@` in front. The `@` is drawn and not typed —
-          `findPerson` strips it anyway, and `handle-save` takes one off if somebody types it. */''}
-    <label class="field"><span>handle</span>
-      <span class="handle-in"><b aria-hidden="true">@</b><input id="handle-new" type="text"
-        autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20"
-        aria-label="handle"
-        value="${esc((USER && (USER.handle || '')) || '')}"></span></label>
-    <button class="btn quiet" data-do="handle-save">Change my handle</button>
-    <p class="faint" id="handle-said" style="margin:.6rem 0 0">This is how people find you.
-      You can change it once a month.</p>
+    ${/* ---------- YOUR HANDLE, SHOWN RATHER THAN TYPED ------------------------------------------
+          ASKED FOR AS *"handles should be their name and a virtuous describing word. they can
+          randomise it but it will follow that general name."* So the box went: what a handle is
+          made of is decided — your first name and a word off a list of virtues — and the one choice
+          left is WHICH word, which is a press rather than a keyboard. The `@` is drawn the way every
+          card draws it, gold, and is not in the cell.
+
+          A LINE OF TEXT, NOT A DISABLED INPUT. An input that cannot be typed into reads as broken
+          (and greys out under `send_`'s lock); this is a fact about you, set like the name on a
+          card. `aria-live` so the new handle is read out when Randomise lands, since nothing else
+          on the card moves. */''}
+    <p class="handle-cap">handle</p>
+    <p class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
+      esc((USER && (USER.handle || '')) || '')}</span></p>
+    <button class="btn quiet" data-do="handle-shuffle">Randomise</button>
+    <p class="faint handle-said" style="margin:.6rem 0 0">${esc(
+      (HANDLE_SAID.pid && HANDLE_SAID.pid === String(USER.personId || '') && HANDLE_SAID.text)
+      || 'Your first name and a word that suits you. Randomise picks another word.')}</p>
     <div class="f-row pin-row" style="--n:3">
       <label class="field"><span>current PIN</span>
         <input id="pin-now" type="password" inputmode="numeric" autocomplete="current-password"></label>
@@ -2161,7 +2203,7 @@ const FIELD_LISTS_ = {
    somebody STUDIED, which is a different and much longer list, so it is its own list here rather
    than a second job for the booking one. Alphabetical, because it is scanned for a name; the common
    school and university subjects, spelt as the boards and universities spell them. Anything not on it
-   is `Something else…`, which `qualChoice_` turns into a box, and a value already saved that the list
+   is `Something else…`, which `qualPick_` turns into a box, and a value already saved that the list
    does not hold is kept as its chosen option — so nothing anybody typed is lost by this. The
    certificates a tutor holds (a PGCE, a DBS) are at the foot, because they are entries on this same
    shelf now that "More qualifications" is gone. */
@@ -2204,7 +2246,7 @@ const FIELD_MULTI = { venues_ok: true };
 /* ---------- AND ONE SHELF SLOT'S LIST OFF THE FIRST SLOT'S -------------------------------------
    `FIELD_OPTIONS` sends `qual_1_level` ONCE rather than ten times — see its note in constants.gs —
    so `qual_7_level` asks for `qual_1`'s list here. (What a tutor teaches is no longer a field: it is
-   the two ticks on each qualification level — see `qualLevel_`.) */
+   the three-way Teach / Can teach / No control on each qualification level — see `qualSlot_`.) */
 function fieldOptions_(f) {
   const v = (typeof DATA !== 'undefined' && DATA && DATA.validations) || {};
   const dd = (typeof DATA !== 'undefined' && DATA && DATA.dropdowns) || {};
@@ -2479,6 +2521,11 @@ const FIELD_ROWS = [
      read low to high. `dash` is what draws the `–`; the two stay two columns in `PRICING_FIELDS`, so
      the month's clock still covers both. */
   { fields: ['min_students', 'max_students'], cap: 'students', ph: ['min', 'max'], dash: true },
+  /* THE AGES A TUTOR TEACHES, THE SAME `[ ] – [ ]` SHAPE AS THE STUDENTS ABOVE, so the two ranges a
+     tutor states read alike although they live on different pages. Two SELECTS rather than boxes —
+     `validations` carries `AGE_OPTIONS` from constants.gs, four to eighteen and then `Adults` — and a
+     placeholder on a select is its empty option, so each reads `youngest` / `oldest` until chosen. */
+  { fields: ['age_min', 'age_max'], cap: 'ages you teach', ph: ['youngest', 'oldest'], dash: true },
 ];
 const ROW_LABEL = {
   years_experience: 'years teaching',
@@ -2533,6 +2580,19 @@ const isTimetable_ = list => (list || []).length > 12
    Two rows per card — the name and the PIN across, the number full width beneath — is **430.4px
    with 78.9px of headroom**. */
 const isLibraryCard_ = f => /^lib\d+_(name|no|pin)$/.test(String(f || ''));
+
+/* ---------- AND `library_note` IS NOT DRAWN, WHATEVER THE BACKEND SENDS ---------------------------
+   *"for the library card widget, there doesnt need to be a add note to it."* The column left
+   `SCHEMA.people` and the groups in `constants.gs` — but the phone reaches Pages in a minute and the
+   backend reaches Apps Script when somebody runs the sync, and the deployment the live site talks
+   to still lists `library_note` in its `Library cards` group. So the box went on being drawn under
+   the shelf, asked for by a server that had been told to stop asking.
+
+   DROPPED IN `fieldsHtml`, THE ONE WALK EVERY SURFACE GOES THROUGH, so neither an older deployment
+   nor a cached payload can put it back. Nothing is lost by not posting it: `updateProfile` writes
+   only the fields it is sent, so a note already sitting in an old sheet's cell stays there untouched
+   rather than being blanked by a Save that no longer carries the box. */
+const RETIRED_FIELDS_ = ['library_note'];
 
 /* ---------- AND A DATE OF BIRTH IS THREE BOXES, NOT ONE ------------------------------------------
    ASKED FOR AS *"date of birth should be 3 boxes. day, month and year. or copy the best practice
@@ -2618,47 +2678,43 @@ on('shelf-more', el => {
 });
 
 /* ---------- AND A GROUP OF `qual_N*` NAMES IS A SHELF OF QUALIFICATIONS -------------------------
-   THE LIBRARY SHELF'S SHAPE, ONE GROUP ALONG, and recognised the same way — by the names, never by
-   the group's title. Twelve captioned boxes are about 760px at 320 against a pane that caps at 534,
-   so two rows a qualification: the subject wide beside a narrow grade, then the level and the board
-   side by side. Every control keeps its 44px; what goes is the caption over each, and the
-   placeholder is the name — the argument `fieldHtml` already makes for the library boxes. */
+   RECOGNISED BY THE NAMES, NEVER BY THE GROUP'S TITLE, exactly as the library shelf is. */
 const isQualField_ = f => /^qual_\d+(_level|_board|_grade|_received|_teach|_spec)?$/.test(String(f || ''));
 const isQuals_ = list => (list || []).some(isQualField_);
-function qualShelf_(list, value, options) {
-  /* ---------- ONE SUBJECT, AND ITS LEVELS UNDER IT --------------------------------------------------
-     ASKED FOR AS *"i would rather a tutor add a subject for example, then add that they got a gcse in
-     it at a certain grade, and then add another level eg a level and its grade. that way they dont
-     need to add another entry for the same subject. then add the teach tick, and specialise tick.
-     forgot to mention exam board too. the degree shouldnt be a whole nother widget ... this does the
-     job. also add date of completing"*. It was a shelf of separate qualifications — Maths GCSE and
-     Maths A-Level were two cards, each with its own subject box and its own pair of ticks.
+/* THE SEVEN BOXES OF ONE SLOT, in the order a Cancel restores them. */
+const QUAL_KEYS = ['', '_level', '_grade', '_board', '_received', '_spec', '_teach'];
+/* ---------- A LIST YOU READ, AND ONE EDITOR AT A TIME -----------------------------------------------
+   REPORTED AS *"the current system for adding qualifications is really hard to understand."* It was
+   right, and a design panel measured why before anything was redrawn. The shelf was a summary line
+   that was secretly a button (`Maths · GCSE 8 ✓ · A-Level B ★`), which opened onto a subject box,
+   which held more summary lines that were also buttons, each opening onto boxes captioned only by
+   their placeholders, with a ✓, a ★, a ▸ and a ✕ to decode on the way — and the Save that kept any
+   of it at the foot of the card, a scroll away from whatever had just been changed.
 
-     THE SHEET DOES NOT CHANGE, AND THAT IS WHAT MAKES THIS A PAGE CHANGE ONLY. The `quals` cell is
-     still a list of records, each a subject, a level, a board, a grade, a year and two ticks —
-     `qualsIn` / `qualsOut` in core.gs, untouched. What changes is how the page GROUPS them: records
-     sharing a subject are drawn as one subject with its levels underneath, the subject is typed once
-     (a visible box that writes into each record's hidden `qual_N`), and the ticks are the subject's
-     (written onto each of its records). So the backend in Apps Script does not have to be updated for
-     this to work, and nothing already saved moves.
+   SO THE DEFAULT IS THE FINISHED LIST, AND NOTHING IN IT IS A CONTROL BUT A WORD. A subject is a bold
+   heading; under it each level is two or three plain lines — `A-Level · grade B`, `Hill Top Sixth
+   Form · 2019`, and `Teach` in the card's own gold chip — beside a button that says `Edit`. There is
+   one pattern to learn: `Edit`, then `Save` or `Cancel`, in place, under the thing being edited.
 
-     A DEGREE IS A LEVEL, which is the whole of *"it shouldnt be a widget at all"*: `Bible and
-     Theology` · `Degree` · `Present` is one level line under one subject, and `Present` in the
-     completed list is what says it is still being studied. The last box is the school, college or
-     university — never the exam board, which the owner took off — and it is free text.
+   EVERY EDITOR SAVES ITSELF, which is why the card has no Save of its own (see `settingsPages_`). A
+   change kept by a button an inch away is a change somebody can see being kept; one kept by a button
+   at the foot of the card is one they forget to press and lose on the next repaint.
 
-     A LEVEL IS ONE LINE UNTIL IT IS OPENED — "GCSE · 8 · Hill Top School · 2017" — for the reason the old
-     shelf gave: four 44px controls do not fit one row of a 320px card, so a level's boxes are two
-     rows, and a subject with three levels open would be most of a phone. A new level arrives open.
+   THE BACKEND DOES NOT CHANGE, AND THAT IS WHAT MAKES THIS SAFE. Every one of the ten slots stays in
+   the form — `.q-slot[data-slot=N]`, seven `data-me` boxes each — so `me-save` posts all seventy and
+   `qualsIn` rebuilds the person's rows exactly as before. A drawn slot holds both its read row and its
+   editor and a class says which shows; unused slots wait in the hidden pool. Teach and Can teach are
+   HIDDEN inputs holding `TRUE` / `FALSE`, written by a three-way control, so there is no checkbox on
+   the shelf to be read the wrong way round.
 
-     TEN RECORDS IN ALL, which is `QUAL_MAX`: every slot is in the form whether or not it is drawn, so
-     `me-save` posts all seventy fields and `qualsIn` rebuilds the whole cell. Unused slots wait in a
-     hidden pool, and `Add a level` / `Add a subject` take the next one from it. */
+   A DEGREE IS A LEVEL, and `Present` is `Still studying` — the owner's own wording for what the box
+   means, where `Present` was the sheet's. The place is the school, college or university, never the
+   exam board; the slot is still called `_board` because renaming it would strand every record saved. */
+function qualShelf_(list, value) {
   const nums = [...new Set((list || []).filter(isQualField_)
     .map(f => String(f).match(/^qual_(\d+)/)[1]))];
   const v = (i, k) => String(value('qual_' + i + (k || '')) ?? '').trim();
   const filled = i => ['', '_level', '_board', '_grade', '_received'].some(k => v(i, k) !== '');
-  const opts = f => (options ? options(f) : null) || [];
   const groups = [];
   const byKey = {};
   nums.filter(filled).forEach(i => {
@@ -2667,300 +2723,362 @@ function qualShelf_(list, value, options) {
     byKey[key].slots.push(i);
   });
   const pool = nums.filter(i => !filled(i));
-  /* AN EMPTY SHELF SHOWS ONE SUBJECT WITH ONE LEVEL OPEN, because a button over nothing is a page
-     with nothing to type into. */
-  if (!groups.length && pool.length) groups.push({ subject: '', slots: [pool.shift()], fresh: true });
-  return `<div class="lib-shelf q-shelf">
-    ${groups.map(g => qualSubject_(g.subject, g.slots, value, options, !!g.fresh)).join('')}
-    <div class="q-pool" hidden>${pool.map(i => qualLevel_(i, value, options, true)).join('')}</div>
-    <button type="button" class="btn quiet shelf-more" data-do="qual-add-subject"${
-      pool.length ? '' : ' disabled'}>Add a subject</button>
+  const count = nums.length - pool.length;
+  const room = pool.length > 0;
+  /* AN EMPTY SHELF IS ITS OWN EDITOR, already open and with no Cancel, because there is nothing to go
+     back to — a button over nothing is a page with nothing to type into. One line above it says the
+     whole of how the page works. */
+  const empty = !groups.length;
+  const fresh = empty && pool.length ? qualNewSubject_(qualSlot_(pool.shift(), value, true)) : '';
+  return `<div class="lib-shelf q-shelf${empty ? ' is-empty is-editing' : ''}">
+    ${empty ? `<p class="q-hint">Add each subject you studied, then each level you took in it — GCSE, A-Level, a degree.</p>` : ''}
+    ${groups.map(g => qualSubject_(g.subject, g.slots, value, room)).join('')}
+    ${fresh}
+    <div class="q-pool" hidden>${pool.map(i => qualSlot_(i, value)).join('')}</div>
+    ${room && !empty ? `<button type="button" class="btn quiet q-add-subj" data-do="qual-add-subject">+ Add a subject</button>` : ''}
+    ${empty ? '' : `<p class="faint q-count">${room ? count + ' of ' + nums.length + ' qualifications'
+      : count + ' of ' + nums.length + ' — remove one to add another.'}</p>`}
   </div>`;
 }
-/* ONE SUBJECT: its name, its level lines, `Add a level`, and its two ticks. The ticks read off the
-   records — Teach if any level of it is taught, Specialise if any is the specialism — because a
-   record saved by the old shelf may carry a tick on one level and not another, and showing the
-   subject ticked is the honest reading of "you teach Maths". */
-function qualSubject_(subject, slots, value, options, open) {
-  /* ---------- A SUBJECT IS ONE LINE UNTIL IT IS OPENED ------------------------------------------
-     *"too long ... so more can fit in one screen"*. Open, every subject was a name box, a line per
-     level, a full-width Add a level button and a row of ticks — about 230px for Maths with two
-     levels, so two subjects filled a phone. Shut, a subject is its summary line — "Maths · GCSE 8 ·
-     A-Level B · teach ★" — 44px, and one subject is open at a time. Shut boxes are still in the
-     form (hidden, not removed), so a Save posts every level exactly as before. A subject with
-     nothing saved yet arrives open, because a line over nothing is a page with nothing to type into. */
-  const shut = !open && !!String(subject || '').trim();
-  const say = qualSubjSay_(subject, slots.map(i => ({
-    level: value('qual_' + i + '_level'), grade: value('qual_' + i + '_grade'),
-    teach: TRUEish_(value('qual_' + i + '_teach')), spec: TRUEish_(value('qual_' + i + '_spec')) })));
-  return `<div class="lib-card q-subj${shut ? ' is-shut' : ''}">
-    <div class="q-sum-row">
-      <button type="button" class="q-sum q-subj-sum" data-do="qual-subj-open"
-        aria-expanded="${shut ? 'false' : 'true'}"><span class="q-sum-t">${esc(say || 'New subject')}</span></button>
-      ${/* ---------- A DELETE ON THE LINE ITSELF -----------------------------------------------------
-            Asked for as *"there should be a delete button for subjects or levels"*. There was one for
-            a level and it was at the foot of an OPENED level, and every saved level arrives shut, so
-            nobody found it. So a ✕ sits on the summary line of every subject and every level, shut or
-            open. Beside the line rather than inside it, because the line is itself a button and a
-            button cannot hold another. Nothing is lost until Save, like every other change here. */''}
-      <button type="button" class="q-x" data-do="qual-drop-subject" aria-label="Delete this subject" title="Delete this subject">&#10005;</button>
+/* ONE SUBJECT: its name as a heading, its own `Edit` (which renames it or removes it with its
+   levels), its levels, and `+ Add a Maths level` — the subject is never typed a second time. */
+function qualSubject_(subject, slots, value, room) {
+  const name = String(subject || '').trim();
+  const n = slots.length;
+  return `<div class="q-subj" data-name="${esc(name)}">
+    <div class="q-top">
+      <h4 class="q-head">${esc(name || 'Subject not set')}</h4>
+      <button type="button" class="q-edit" data-do="qual-subj-edit" aria-label="Edit ${esc(name || 'this subject')}">Edit</button>
     </div>
-    <div class="q-subj-body">
-      <div class="q-head">
-        ${qualChoice_('class="q-name" data-q="name"', subject,
-          (options ? options('qual_1') : null) || [], 'Subject')}
+    <div class="q-subj-ed q-ed">
+      ${qualPick_('class="q-name"', name, QUAL_SUBJECTS, 'Subject', 'Choose')}
+      <div class="q-acts">
+        <button type="button" class="q-drop" data-do="qual-drop-subject">Remove ${esc(name || 'this subject')} and its ${
+          n === 1 ? 'level' : n + ' levels'}</button>
+        <button type="button" class="btn quiet q-cancel" data-do="qual-cancel">Cancel</button>
+        <button type="button" class="btn q-save" data-do="qual-save">Save</button>
       </div>
-      <div class="q-levels">${slots.map(i => qualLevel_(i, value, options, false, open)).join('')}
-        <button type="button" class="q-sum q-add" data-do="qual-add-level"><span class="q-sum-t">+ Add a level</span></button></div>
+    </div>
+    <div class="q-levels">${slots.map(i => qualSlot_(i, value)).join('')}
+      ${room ? `<button type="button" class="q-add" data-do="qual-add-level">+ Add a ${esc(name ? name + ' level' : 'level')}</button>` : ''}
     </div>
   </div>`;
 }
-/* THE LINE A SHUT SUBJECT SHOWS, built from the same values its boxes hold. The star is the
-   specialism — the same mark the profile card edges in gold. */
-function qualSubjSay_(subject, levels) {
-  const lv = levels.map(l => [l.level, l.grade].map(x => String(x || '').trim()).filter(Boolean).join(' ')
-    + (l.spec ? ' \u2605' : l.teach ? ' \u2713' : '')).map(x => x.trim()).filter(Boolean).join(' · ');
-  return [String(subject || '').trim(), lv].filter(Boolean).join(' · ');
+/* A SUBJECT NOT YET SAVED: which subject, then the level editor under it. No Remove — there is nothing
+   saved to remove — and on an empty shelf no Cancel either (see `.q-shelf.is-empty`). */
+function qualNewSubject_(slotHtml) {
+  return `<div class="q-subj is-new">
+    ${qualPick_('class="q-name"', '', QUAL_SUBJECTS, 'Which subject?', 'Choose')}
+    <div class="q-levels">${slotHtml || ''}</div>
+  </div>`;
 }
-function qualSubjFrom_(subj) {
-  const t = subj && subj.querySelector('.q-subj-sum .q-sum-t');
-  if (!t) return;
-  const get = (lvl, k) => { const b = lvl.querySelector('[data-me="qual_' + lvl.dataset.slot + k + '"]'); return b ? b.value : ''; };
-  const on = (lvl, k) => !!(lvl.querySelector('[data-me="qual_' + lvl.dataset.slot + k + '"]') || {}).checked;
-  const levels = [...subj.querySelectorAll('.q-levels > .q-lvl')].map(l => ({ level: get(l, '_level'),
-    grade: get(l, '_grade'), teach: on(l, '_teach'), spec: on(l, '_spec') }));
-  t.textContent = qualSubjSay_((subj.querySelector('.q-name') || {}).value, levels) || 'New subject';
-}
-on('qual-subj-open', el => {
-  const subj = el.closest('.q-subj'), shelf = el.closest('.q-shelf');
-  if (!subj) return;
-  const opening = subj.classList.contains('is-shut');
-  if (shelf) shelf.querySelectorAll('.q-subj').forEach(sj => {
-    if (sj !== subj && !sj.classList.contains('is-shut')) {
-      sj.classList.add('is-shut'); qualSubjFrom_(sj);
-      const b = sj.querySelector('.q-subj-sum'); if (b) b.setAttribute('aria-expanded', 'false');
-    }
-  });
-  subj.classList.toggle('is-shut', !opening);
-  el.setAttribute('aria-expanded', opening ? 'true' : 'false');
-  if (!opening) qualSubjFrom_(subj);
-  if (typeof placeCells === 'function') placeCells('y', true, 0, 'settings');
-});
-/* ONE LEVEL OF ONE SUBJECT. The subject and the two ticks are HIDDEN inputs carrying `data-me`, so
-   `me-save` gathers them exactly as before; the visible subject box and ticks above write into them.
-   The level, grade, board and year are the ordinary boxes. */
-function qualLevel_(i, value, options, pooled, open) {
+/* ---------- ONE LEVEL: ITS READ ROW AND ITS EDITOR, BOTH ALWAYS IN THE FORM ------------------------
+   The seven `data-me` boxes live in the editor, so they are posted whether it is open or not; the read
+   row is built from the same values and is redrawn from them after every Save or Cancel, so the line
+   and the boxes cannot disagree. */
+function qualSlot_(i, value, fresh) {
   const f = k => 'qual_' + i + k;
-  const val = k => String(value(f(k)) ?? '');
-  const box = (k, ph) => fieldHtml(f(k), val(k), { placeholder: ph,
-    options: (options ? options(f(k)) : null) });
-  const summary = qualLevelSay_(k => val(k), TRUEish_(val('_spec')), TRUEish_(val('_teach')));
-  const shut = !pooled && !open && summary;
-  return `<div class="q-lvl${shut ? ' is-shut' : ''}" data-slot="${esc(i)}">
+  const val = k => String(value(f(k)) ?? '').trim();
+  const spec = TRUEish_(val('_spec'));
+  const teach = spec || TRUEish_(val('_teach'));
+  const seg = spec ? 'spec' : teach ? 'teach' : 'no';
+  const segB = (v, word) => `<button type="button" class="q-seg-b" data-do="qual-teach" data-v="${v}"
+      aria-pressed="${seg === v ? 'true' : 'false'}">${word}</button>`;
+  return `<div class="q-slot${fresh ? ' is-editing' : ''}" data-slot="${esc(i)}"${fresh ? ' data-new="1"' : ''}>
     <input type="hidden" data-me="${esc(f(''))}" value="${esc(val(''))}">
-    <div class="q-sum-row">
-      <button type="button" class="q-sum" data-do="qual-open" aria-expanded="${shut ? 'false' : 'true'}"><span class="q-sum-t">${
-        esc(summary || 'New level')}</span></button>
-      <button type="button" class="q-x" data-do="qual-drop" aria-label="Delete this level" title="Delete this level">&#10005;</button>
+    <input type="hidden" data-me="${esc(f('_spec'))}" value="${spec ? 'TRUE' : 'FALSE'}">
+    <input type="hidden" data-me="${esc(f('_teach'))}" value="${teach ? 'TRUE' : 'FALSE'}">
+    <div class="q-read">
+      ${qualReadHtml_(val('_level'), val('_grade'), val('_board'), val('_received'), spec, teach)}
+      <button type="button" class="q-edit" data-do="qual-edit" aria-label="Edit ${esc([val(''), val('_level')].filter(Boolean).join(' ') || 'this level')}">Edit</button>
     </div>
-    <div class="lib-row q-row">
-      ${box('_level', 'Level')}
-      ${fieldHtml(f('_grade'), val('_grade'), { placeholder: 'Grade', options: (options ? options(f('_grade')) : null) })}
-    </div>
-      ${/* THE PLACE, NOT THE EXAM BOARD. Asked for as "subject level, grade and insitution such as
-            the name of school, NOT EXAM BOARD". A parent reads where somebody studied; which board
-            set the paper is a detail nobody asked about. Free text, because a school's name is not a
-            list anybody could keep. It is still stored in the `_board` slot of the packed `quals`
-            cell — renaming the slot would strand every qualification already saved — so the name in
-            the code is the old one and the thing in the box is the place. A ROW OF ITS OWN, full width,
-            because a school's name is the longest thing on the level and half a row cut it to
-            "School, colle". */''}
-      ${fieldHtml(f('_board'), val('_board'), { placeholder: 'School, college or uni' })}
-    ${fieldHtml(f('_received'), val('_received'), { placeholder: 'Completed', options: qualYears_(val('_received')) })}
-    ${/* ---------- THE TICKS ARE THE LEVEL'S, NOT THE SUBJECT'S ----------------------------------------
-          Asked for as *"each level should have a tickbox which is 'teach' and 'can teach'. instead of
-          for the whole subject."* A tutor with a Maths degree may teach A-Level and only be able to
-          cover GCSE, and one pair per subject could not say that. So they sit on the level and ARE
-          the saved `qual_N_spec` / `qual_N_teach` boxes — no hidden copy for a subject tick to write
-          down into. `Teach` is what you teach (a gold chip under `Teaches` on the card, on as many
-          levels as you like); `Can teach` is everything else you would take on. */''}
-    <div class="lib-row q-row q-ticks">
-      <label class="check q-tick"><input type="checkbox" data-do="qual-tick" data-k="spec"
-        data-me="${esc(f('_spec'))}" ${TRUEish_(val('_spec')) ? 'checked' : ''}><span class="box"></span><span>Teach</span></label>
-      <label class="check q-tick"><input type="checkbox" data-do="qual-tick" data-k="teach"
-        data-me="${esc(f('_teach'))}" ${TRUEish_(val('_teach')) || TRUEish_(val('_spec')) ? 'checked' : ''}><span class="box"></span><span>Can teach</span></label>
+    <div class="q-ed">
+      <div class="lib-row q-row">
+        ${qualPick_(`data-me="${esc(f('_level'))}"`, val('_level'), QUAL_LEVELS, 'Level', 'Choose')}
+        ${qualPick_(`data-me="${esc(f('_grade'))}"`, val('_grade'), QUAL_GRADES, 'Grade', 'None yet')}
+      </div>
+      <label class="field"><span>School, college or uni</span>
+        <input type="text" data-me="${esc(f('_board'))}" value="${esc(val('_board'))}" autocomplete="off"></label>
+      <label class="field"><span>Finished</span>
+        <select data-me="${esc(f('_received'))}">${qualYears_(val('_received')).map(y => `<option value="${esc(y)}"${
+          y === val('_received') ? ' selected' : ''}>${esc(y === 'Present' ? 'Still studying' : y)}</option>`).join('')}
+          <option value=""${val('_received') ? '' : ' selected'}>Not sure</option></select></label>
+      <div class="q-ask">
+        <span class="q-cap">${esc(qualAskSay_(val(''), val('_level')))}</span>
+        <div class="q-seg" role="group" aria-label="Do you tutor it">${segB('spec', 'Teach')}${segB('teach', 'Can teach')}${segB('no', 'No')}</div>
+        <p class="faint q-say">Teach shows it in gold on your profile; Can teach lists it under Can also teach.</p>
+      </div>
+      <div class="q-acts">
+        <button type="button" class="q-drop" data-do="qual-drop">Remove this level</button>
+        <button type="button" class="btn quiet q-cancel" data-do="qual-cancel">Cancel</button>
+        <button type="button" class="btn q-save" data-do="qual-save">Save</button>
+      </div>
     </div>
   </div>`;
 }
-/* ---------- THE SUBJECT AND THE BOARD ARE DROP-DOWNS, LIKE EVERY OTHER CHOICE ON THIS PAGE ----------
-   They were `<input list>` boxes — the only datalists on the settings column — so they opened the
-   browser's own suggestion strip over the keyboard rather than a list, and behaved like neither the
-   Level and Completed selects beside them nor anything else in the app. *"drop downs should behave
-   like rest of site"*: a native select, the same control the Level, Grade and Completed boxes are.
-
-   BUT BOTH MUST TAKE A NAME NOBODY LISTED — `Bible and Theology`, a university — so the last option
-   is `Something else…`, which turns that one select into a text box in place. A value already saved
-   that the list does not hold is kept as the selected option, for the reason `fieldHtml` gives. */
+/* THE READ ROW, IN PLAIN WORDS. Any empty part is left out; `Present` is `Still studying`; and the
+   teaching line is the card's own vocabulary — a gold `Teach` chip, or `Can teach` in a dim word —
+   with no glyph to decode. */
+function qualReadHtml_(level, grade, board, received, spec, teach) {
+  const l1 = (level || 'Level not set') + (grade ? ' · grade ' + grade : '');
+  const l2 = [board, received === 'Present' ? 'Still studying' : received].filter(Boolean).join(' · ');
+  return `<div class="q-lines">
+    <span class="q-l1">${esc(l1)}</span>
+    ${l2 ? `<span class="q-l2">${esc(l2)}</span>` : ''}
+    ${spec ? '<span class="q-l3"><span class="q-chip">Teach</span></span>'
+      : teach ? '<span class="q-l3 q-can">Can teach</span>' : ''}
+  </div>`;
+}
+/* THE QUESTION OVER THE THREE-WAY CONTROL names what is being asked about, and says `this` until a
+   level has been chosen, because "Do you tutor ?" is not a question. */
+function qualAskSay_(subject, level) {
+  const what = [subject, level].map(x => String(x || '').trim()).filter(Boolean);
+  return 'Do you tutor ' + (String(level || '').trim() && what.length ? what.join(' ') : 'this') + '?';
+}
+/* ---------- A DROP-DOWN WITH A CAPTION, AND `Something else…` AT THE FOOT -------------------------
+   A caption ABOVE the box rather than a placeholder in it: a placeholder disappears the moment
+   something is chosen, so a chosen `B` alone did not say which question it answered. The full value is
+   the option's label — never shortened — and a value already saved that the list does not hold is
+   kept as the chosen option, for the reason `fieldHtml` gives. The last option turns the select into a
+   text box in place (the listener below), because a subject or a level may be one nobody listed. */
 const QUAL_OTHER = '__other';
-function qualChoice_(attrs, v, list, ph) {
+function qualPick_(attrs, v, list, cap, none) {
   v = String(v ?? '');
   const opts = (v && !list.some(x => norm(x) === norm(v)) ? [v] : []).concat(list);
-  if (!opts.length) {
-    return `<label class="field"><input type="text" ${attrs} value="${esc(v)}" placeholder="${esc(ph)}"
-      aria-label="${esc(ph)}" autocomplete="off"></label>`;
-  }
-  return `<label class="field"><select ${attrs} aria-label="${esc(ph)}">
-      <option value="">${esc(ph)}</option>
-      ${opts.map(x => `<option value="${esc(x)}"${norm(x) === norm(v) && v ? ' selected' : ''}>${esc(x)}</option>`).join('')}
+  return `<label class="field"><span>${esc(cap)}</span><select ${attrs}>
+      <option value="">${esc(none)}</option>
+      ${opts.map(x => `<option value="${esc(x)}"${v && norm(x) === norm(v) ? ' selected' : ''}>${esc(x)}</option>`).join('')}
       <option value="${QUAL_OTHER}">Something else…</option>
     </select></label>`;
 }
-/* `Something else…` swaps the select for a box carrying the same attributes, so `me-save` and
-   `qualSubjectSync_` read it exactly as they read the select. */
+/* `Something else…` swaps the select for a box carrying the same attributes, so a Save reads it
+   exactly as it read the select. */
 document.addEventListener('change', e => {
   const sel = e.target;
   if (!sel || sel.tagName !== 'SELECT' || sel.value !== QUAL_OTHER || !sel.closest('.q-shelf')) return;
   const box = document.createElement('input');
-  box.type = 'text'; box.autocomplete = 'off';
-  [...sel.attributes].forEach(a => { if (a.name !== 'aria-label') box.setAttribute(a.name, a.value); });
-  const ph = sel.getAttribute('aria-label') || '';
-  box.placeholder = ph; box.setAttribute('aria-label', ph);
+  box.type = 'text'; box.autocomplete = 'off'; box.placeholder = 'Type it here';
+  [...sel.attributes].forEach(a => box.setAttribute(a.name, a.value));
   sel.replaceWith(box);
   qualDirty_(box);
-  if (box.classList.contains('q-name')) qualSubjectSync_(box.closest('.q-subj'));
-  const lvl = box.closest('.q-lvl'); if (lvl) qualLevelFrom_(lvl);
+  qualAsk_(box.closest('.q-slot') || box.closest('.q-subj'));
   try { box.focus({ preventScroll: true }); } catch {}
 }, true);
-/* THE LINE A SHUT LEVEL SHOWS — "GCSE · 8 · Hill Top School · 2017" — built from the same four values its
-   boxes hold, and rebuilt from them whenever one changes, so the line and the boxes cannot disagree. */
-function qualLevelSay_(read, spec, teach) {
-  return ['_level', '_grade', '_board', '_received'].map(k => String(read(k) || '').trim())
-    .concat(spec ? 'teach' : teach ? 'can teach' : '').filter(Boolean).join(' · ');
-}
-function qualLevelFrom_(lvl) {
-  const i = lvl && lvl.dataset.slot;
-  const t = lvl && lvl.querySelector('.q-sum-t');
-  if (!i || !t) return;
-  const b = k => lvl.querySelector('[data-me="qual_' + i + k + '"]') || {};
-  t.textContent = qualLevelSay_(k => b(k).value, !!b('_spec').checked, !!b('_teach').checked) || 'New level';
-}
-/* PROGRAMMATIC CHANGES DO NOT FIRE `input`, so a card changed by a button marks itself dirty — see
-   `settingsKeep_`: a column holding an unsaved card is not redrawn under it. */
-const qualDirty_ = el => { const f = el && el.closest('.me-form'); if (f) f.dataset.dirty = '1'; };
-/* A SUBJECT'S NAME, WRITTEN INTO EVERY LEVEL IT HOLDS. The ticks are the levels' own now — see
-   `qualLevel_` and `on('qual-tick')`. */
-function qualSubjectSync_(subj) {
-  if (!subj) return;
-  const name = (subj.querySelector('.q-name') || {}).value || '';
-  subj.querySelectorAll('.q-levels > .q-lvl').forEach(lvl => {
-    const b = lvl.querySelector('[data-me="qual_' + lvl.dataset.slot + '"]');
-    if (b) b.value = name.trim();
-  });
-}
+/* THE QUESTION FOLLOWS THE LEVEL AND THE SUBJECT AS THEY ARE CHOSEN. */
 ['input', 'change'].forEach(ev => document.addEventListener(ev, e => {
   const t = e.target;
-  if (t && t.classList && t.classList.contains('q-name')) qualSubjectSync_(t.closest('.q-subj'));
+  if (!t || !t.closest || !t.closest('.q-shelf')) return;
+  qualAsk_(t.closest('.q-slot') || t.closest('.q-subj'));
 }));
-document.addEventListener('change', e => {
-  const lvl = e.target && e.target.closest && e.target.closest('.q-lvl');
-  if (lvl) qualLevelFrom_(lvl);
+function qualAsk_(at) {
+  if (!at) return;
+  const subj = at.closest('.q-subj') || at;
+  (at.classList.contains('q-slot') ? [at] : [...at.querySelectorAll('.q-slot')]).forEach(slot => {
+    const i = slot.dataset.slot;
+    const get = k => (slot.querySelector('[data-me="qual_' + i + k + '"]') || {}).value || '';
+    const named = subj.classList.contains('is-new') ? (subj.querySelector('.q-name') || {}).value : get('');
+    const cap = slot.querySelector('.q-ask .q-cap');
+    if (cap) cap.textContent = qualAskSay_(named === QUAL_OTHER ? '' : named, get('_level') === QUAL_OTHER ? '' : get('_level'));
+  });
+}
+/* PROGRAMMATIC CHANGES DO NOT FIRE `input`, so a card changed by a button marks itself dirty — see
+   `settingsKeep_`: a column holding an unsaved card is not redrawn under it. Opening an editor counts,
+   so a payload landing a second after `Edit` does not close it under the thumb. */
+const qualDirty_ = el => { const f = el && el.closest('.me-form'); if (f) f.dataset.dirty = '1'; };
+const qualClean_ = el => { const f = el && el.closest('.me-form'); if (f) delete f.dataset.dirty; };
+/* THE SLOT'S SEVEN VALUES, as a Cancel puts them back. Kept in `data-was` on the element rather than
+   in a variable, so it outlives anything but a redraw — and a column with an editor open is not
+   redrawn (see `qualDirty_`). */
+function qualValues_(slot) {
+  const out = {};
+  const i = slot.dataset.slot;
+  QUAL_KEYS.forEach(k => { const b = slot.querySelector('[data-me="qual_' + i + k + '"]'); out['qual_' + i + k] = b ? b.value : ''; });
+  return out;
+}
+const qualBlank_ = slot => {
+  const out = {};
+  QUAL_KEYS.forEach(k => { out['qual_' + slot.dataset.slot + k] = /_spec$|_teach$/.test(k) ? 'FALSE' : ''; });
+  return out;
+};
+function qualSet_(slot, vals) {
+  Object.keys(vals).forEach(f => { const b = slot.querySelector('[data-me="' + f + '"]'); if (b) b.value = vals[f]; });
+}
+/* ---------- REDRAWN FROM WHAT THE BOXES HOLD, after every Save and every Cancel -----------------------
+   One renderer: the grouping, the pool, the count line and which buttons there is room for are all
+   worked out by `qualShelf_` from the values, so a subject renamed onto another merges into it, a
+   subject whose last level went is gone, and the tenth record takes the add buttons away — with
+   nothing here to keep in step. `over` is what a Cancel puts back before it redraws. */
+function qualRedraw_(shelf, over) {
+  if (!shelf || !shelf.isConnected) return;
+  const vals = {}, list = [];
+  shelf.querySelectorAll('[data-me]').forEach(b => { list.push(b.dataset.me); vals[b.dataset.me] = b.value; });
+  Object.assign(vals, over || {});
+  const hold = document.createElement('div');
+  hold.innerHTML = qualShelf_(list, f => vals[f] ?? '');
+  shelf.replaceWith(hold.firstElementChild);
+  if (typeof placeCells === 'function') { try { placeCells('y', true, 0, 'settings'); } catch (e) {} }
+}
+/* OPENING AN EDITOR: only one at a time, which `.q-shelf.is-editing` makes visible by taking every
+   other `Edit` and `+ Add…` off the page. */
+function qualOpen_(el) {
+  const shelf = el.closest('.q-shelf');
+  if (!shelf) return;
+  el.classList.add('is-editing');
+  shelf.classList.add('is-editing');
+  qualAsk_(el);
+  qualDirty_(el);
+  const first = el.querySelector(':scope > .q-ed select, :scope > .q-ed input:not([type="hidden"]), :scope > label.field select');
+  try { if (first) first.focus({ preventScroll: true }); } catch {}
+  if (typeof placeCells === 'function') { try { placeCells('y', true, 0, 'settings'); } catch (e) {} }
+}
+/* ---------- ONE OPEN AT A TIME, AND A SECOND `Edit` CLOSES THE FIRST --------------------------------
+   The other buttons are off the page while an editor is open, so on a phone this is never reached;
+   it is here for a press that raced a redraw, and for `check/press.js`, which presses every action
+   in turn — refusing the second press silently would be a control that does nothing. The open one is
+   put back exactly as Cancel would, in place: its snapshot written back, and a level that was never
+   saved sent back to the pool. */
+function qualShut_(shelf) {
+  if (!shelf || shelf.classList.contains('is-empty')) return;
+  const pool = shelf.querySelector('.q-pool');
+  const toPool = s => { qualSet_(s, qualBlank_(s)); s.classList.remove('is-editing'); delete s.dataset.new; pool.appendChild(s); };
+  shelf.querySelectorAll('.q-subj.is-new').forEach(sj => { sj.querySelectorAll('.q-slot').forEach(toPool); sj.remove(); });
+  shelf.querySelectorAll('.q-slot.is-editing, .q-subj.is-editing').forEach(el => {
+    if (el.dataset.new) return toPool(el);
+    let was = {};
+    try { was = JSON.parse(el.dataset.was || '{}'); } catch (e) {}
+    Object.keys(was).forEach(f => { const b = el.querySelector('[data-me="' + f + '"]'); if (b) b.value = was[f]; });
+    el.classList.remove('is-editing');
+  });
+  shelf.classList.remove('is-editing');
+}
+on('qual-edit', el => {
+  const slot = el.closest('.q-slot');
+  if (!slot) return;
+  qualShut_(el.closest('.q-shelf'));
+  slot.dataset.was = JSON.stringify(qualValues_(slot));
+  qualOpen_(slot);
 });
-on('qual-open', el => {
-  const lvl = el.closest('.q-lvl');
-  if (!lvl) return;
-  const shut = lvl.classList.toggle('is-shut');
-  el.setAttribute('aria-expanded', shut ? 'false' : 'true');
-  if (shut) qualLevelFrom_(lvl);
+on('qual-subj-edit', el => {
+  const subj = el.closest('.q-subj');
+  if (!subj) return;
+  qualShut_(el.closest('.q-shelf'));
+  const was = {};
+  subj.querySelectorAll('.q-slot').forEach(s => Object.assign(was, qualValues_(s)));
+  subj.dataset.was = JSON.stringify(was);
+  qualOpen_(subj);
 });
-on('qual-tick', el => {
-  const lvl = el.closest('.q-lvl'), shelf = el.closest('.q-shelf');
-  if (!lvl || !shelf) return;
-  const box = k => lvl.querySelector('[data-k="' + k + '"]') || {};
-  /* WHAT YOU TEACH YOU CAN TEACH: ticking Teach ticks Can teach beside it, and unticking Can teach
-     takes Teach off with it. Teach on one level leaves every other level alone — it used to untick
-     them, and *"when i tick teach for different levels of same subject it unticks the other one. i
-     dont want that"*. */
-  if (el.dataset.k === 'spec' && el.checked) box('teach').checked = true;
-  if (el.dataset.k === 'teach' && !el.checked) box('spec').checked = false;
-  shelf.querySelectorAll('.q-lvl').forEach(qualLevelFrom_);
-  shelf.querySelectorAll('.q-subj').forEach(qualSubjFrom_);
+/* THE THREE-WAY CONTROL, written into the two hidden boxes the Save posts. Teach is Teach AND Can teach,
+   which is the one rule `qualsIn` keeps; nothing here unticks any other level, because *"when i tick
+   teach for different levels of same subject it unticks the other one. i dont want that"*. */
+on('qual-teach', el => {
+  const slot = el.closest('.q-slot');
+  if (!slot) return;
+  const i = slot.dataset.slot, v = el.dataset.v;
+  qualSet_(slot, { ['qual_' + i + '_spec']: v === 'spec' ? 'TRUE' : 'FALSE',
+                   ['qual_' + i + '_teach']: v === 'no' ? 'FALSE' : 'TRUE' });
+  slot.querySelectorAll('[data-do="qual-teach"]').forEach(b => b.setAttribute('aria-pressed', b === el ? 'true' : 'false'));
   qualDirty_(el);
 });
-/* THE NEXT UNUSED SLOT, MOVED IN AND OPENED. Moving the element keeps every `data-me` in the form, so
-   a Save posts it wherever it sits. */
+/* CANCEL PUTS BACK WHAT `Edit` FOUND, and a level that was never saved goes back to the pool. */
+on('qual-cancel', el => {
+  const shelf = el.closest('.q-shelf');
+  const slot = el.closest('.q-slot'), subj = el.closest('.q-subj');
+  if (!shelf) return;
+  let over = {};
+  if (subj && subj.classList.contains('is-new')) subj.querySelectorAll('.q-slot').forEach(s => Object.assign(over, qualBlank_(s)));
+  else if (slot && slot.dataset.new) over = qualBlank_(slot);
+  else { try { over = JSON.parse((slot || subj).dataset.was || '{}'); } catch (e) { over = {}; } }
+  qualClean_(el);
+  qualRedraw_(shelf, over);
+});
+/* ---------- SAVE IS THE EDITOR'S OWN, AND IT GOES THROUGH THE SAME SAVE EVERY CARD USES -------------
+   `meSave_` gathers the whole card — all seventy boxes — and posts it through `send_`, so the button
+   spins and the card is locked while it is on the wire. Refusals are said before anything is sent,
+   and a failed Save leaves the editor open with every answer in it. */
+on('qual-save', el => {
+  const shelf = el.closest('.q-shelf');
+  const slot = el.closest('.q-slot'), subj = el.closest('.q-subj');
+  if (!shelf) return;
+  const named = n => { const x = String((n || {}).value || '').trim(); return x === QUAL_OTHER ? '' : x; };
+  if (slot) {
+    const i = slot.dataset.slot;
+    if (subj && subj.classList.contains('is-new')) {
+      const name = named(subj.querySelector('.q-name'));
+      if (!name) return toast('Choose a subject first.');
+      qualSet_(slot, { ['qual_' + i]: name });
+    }
+    if (!named(slot.querySelector('[data-me="qual_' + i + '_level"]'))) return toast('Choose a level first.');
+  } else if (subj) {
+    const name = named(subj.querySelector('.q-name'));
+    if (!name) return toast('Choose a subject first.');
+    qualSubjectSync_(subj, name);
+  }
+  meSave_(el).then(ok => { if (ok) qualRedraw_(shelf); });
+});
+/* A SUBJECT'S NAME, WRITTEN INTO EVERY LEVEL IT HOLDS — each level's hidden `qual_N` is what is saved. */
+function qualSubjectSync_(subj, name) {
+  if (!subj) return;
+  subj.querySelectorAll('.q-slot').forEach(s => qualSet_(s, { ['qual_' + s.dataset.slot]: String(name || '').trim() }));
+}
+/* THE NEXT UNUSED SLOT. Moving the element keeps every `data-me` in the form, so a Save posts it
+   wherever it sits. The add buttons are not drawn at all once the pool is empty (see `qualShelf_`), so
+   this sentence is for a press that raced a redraw. */
 function qualTake_(shelf) {
-  const lvl = shelf && shelf.querySelector('.q-pool > .q-lvl');
-  if (!lvl) { toast('That is the most this page holds — ten levels in all.'); return null; }
-  lvl.classList.remove('is-shut');
-  return lvl;
+  const slot = shelf && shelf.querySelector('.q-pool > .q-slot');
+  if (!slot) { toast('That is the most this page holds — ten qualifications in all.'); return null; }
+  qualSet_(slot, qualBlank_(slot));
+  slot.dataset.new = '1';
+  return slot;
 }
-function qualPoolLeft_(shelf) {
-  const left = !!shelf.querySelector('.q-pool > .q-lvl');
-  shelf.querySelectorAll('[data-do="qual-add-subject"], [data-do="qual-add-level"]')
-    .forEach(b => { b.disabled = !left; });
-}
+/* `+ Add a Maths level`: the subject goes into the new slot's hidden `qual_N`, so it is never typed again. */
 on('qual-add-level', el => {
   const subj = el.closest('.q-subj'), shelf = el.closest('.q-shelf');
-  const lvl = qualTake_(shelf);
-  if (!lvl || !subj) return;
-  const list = subj.querySelector('.q-levels');
-  list.insertBefore(lvl, list.querySelector('.q-add'));
-  qualSubjectSync_(subj);
-  qualPoolLeft_(shelf);
-  qualDirty_(el);
-  const first = lvl.querySelector('select, input:not([type="hidden"]):not([hidden])');
-  try { if (first) first.focus({ preventScroll: true }); } catch {}
+  if (!subj || !shelf) return;
+  qualShut_(shelf);
+  const slot = qualTake_(shelf);
+  if (!slot) return;
+  qualSet_(slot, { ['qual_' + slot.dataset.slot]: subj.dataset.name || '' });
+  subj.querySelector('.q-levels').insertBefore(slot, el);
+  qualOpen_(slot);
 });
 on('qual-add-subject', el => {
   const shelf = el.closest('.q-shelf');
-  const lvl = qualTake_(shelf);
-  if (!lvl) return;
-  const holder = document.createElement('div');
-  holder.innerHTML = qualSubject_('', [], () => '', null, true);
-  const subj = holder.firstElementChild;
-  const list = subj.querySelector('.q-levels');
-  list.insertBefore(lvl, list.querySelector('.q-add'));
-  /* ONE SUBJECT OPEN AT A TIME — the new one is it. */
-  shelf.querySelectorAll('.q-subj:not(.is-shut)').forEach(sj => { sj.classList.add('is-shut'); qualSubjFrom_(sj); });
+  if (!shelf) return;
+  qualShut_(shelf);
+  const slot = qualTake_(shelf);
+  if (!slot) return;
+  const hold = document.createElement('div');
+  hold.innerHTML = qualNewSubject_('');
+  const subj = hold.firstElementChild;
+  subj.querySelector('.q-levels').appendChild(slot);
   shelf.insertBefore(subj, shelf.querySelector('.q-pool'));
-  qualSubjectSync_(subj);
-  qualPoolLeft_(shelf);
-  qualDirty_(el);
-  const name = subj.querySelector('.q-name');
-  try { if (name) name.focus({ preventScroll: true }); } catch {}
+  slot.classList.add('is-editing');
+  qualOpen_(subj);
 });
-/* A LEVEL TAKEN OFF IS EMPTIED AND GOES BACK TO THE POOL, so the Save posts it blank and `qualsIn`
-   drops it. A subject with no level left goes with its last one. */
+/* ---------- REMOVING SAVES AT ONCE ------------------------------------------------------------------
+   The level's seven boxes are emptied and the card is saved — an emptied slot is dropped by `qualsIn`
+   and goes back to the pool on the redraw. If the Save fails the boxes are put back, so the screen
+   never shows a removal the sheet did not make. */
+function qualRemove_(el, slots, said) {
+  const shelf = el.closest('.q-shelf');
+  if (!shelf || !slots.length) return;
+  const was = slots.map(qualValues_);
+  slots.forEach(s => qualSet_(s, qualBlank_(s)));
+  meSave_(el).then(ok => {
+    if (ok) { toast(said); qualRedraw_(shelf); }
+    else slots.forEach((s, n) => qualSet_(s, was[n]));
+  });
+}
 on('qual-drop', el => {
-  const lvl = el.closest('.q-lvl'), shelf = el.closest('.q-shelf');
-  if (!lvl || !shelf) return;
-  const subj = lvl.closest('.q-subj');
-  lvl.querySelectorAll('[data-me]').forEach(b => {
-    if (b.type === 'checkbox') b.checked = false; else b.value = '';
-  });
-  lvl.classList.remove('is-shut');
-  qualLevelFrom_(lvl);
-  shelf.querySelector('.q-pool').appendChild(lvl);
-  if (subj && !subj.querySelector('.q-levels > .q-lvl')) subj.remove();
-  else if (subj) qualSubjectSync_(subj);
-  qualPoolLeft_(shelf);
-  qualDirty_(el);
+  const slot = el.closest('.q-slot');
+  if (!slot) return;
+  const v = qualValues_(slot), i = slot.dataset.slot;
+  qualRemove_(el, [slot], 'Removed ' + ([v['qual_' + i], v['qual_' + i + '_level']].filter(Boolean).join(' ') || 'that level') + '.');
 });
-/* A SUBJECT TAKEN OFF IS EVERY ONE OF ITS LEVELS TAKEN OFF — emptied and back to the pool, exactly
-   as `qual-drop` does one — and then the subject itself. */
 on('qual-drop-subject', el => {
-  const subj = el.closest('.q-subj'), shelf = el.closest('.q-shelf');
-  if (!subj || !shelf) return;
-  subj.querySelectorAll('.q-levels > .q-lvl').forEach(lvl => {
-    lvl.querySelectorAll('[data-me]').forEach(b => { if (b.type === 'checkbox') b.checked = false; else b.value = ''; });
-    lvl.classList.remove('is-shut');
-    qualLevelFrom_(lvl);
-    shelf.querySelector('.q-pool').appendChild(lvl);
-  });
-  subj.remove();
-  qualPoolLeft_(shelf);
-  qualDirty_(shelf);
-  toast('Subject deleted. Press Save to keep it that way.');
+  const subj = el.closest('.q-subj');
+  if (!subj) return;
+  qualRemove_(el, [...subj.querySelectorAll('.q-slot')], 'Removed ' + (subj.dataset.name || 'that subject') + '.');
 });
 /* ---------- WHEN IT WAS RECEIVED, AND WHETHER YOU TEACH IT ------------------------------------
    *"remove the studying now widget. could be achieved if each qualification has a date of reception
@@ -3090,12 +3208,12 @@ function fieldsHtml(groups, o) {
     readonly: (o.readonly || []).indexOf(f) !== -1,
   }, extra));
   return Object.keys(groups).map(g => {
-    const list = groups[g] || [];
+    const list = (groups[g] || []).filter(f => RETIRED_FIELDS_.indexOf(f) === -1);
     const timetable = isTimetable_(list);
-    /* THE SHELF, THEN WHATEVER ELSE IS IN THE GROUP. `library_note` sits in the same group and is
-       an ordinary box, so the shelf takes the card fields and the rest of the list is drawn under
-       it in the usual way — one `filter`, rather than a second group in the backend that would
-       then need a heading of its own. */
+    /* THE SHELF, THEN WHATEVER ELSE IS IN THE GROUP. The shelf takes the card fields and the rest
+       of the list is drawn under it in the usual way — one `filter`, rather than a second group in
+       the backend that would then need a heading of its own. (`library_note` used to be that rest;
+       it is filtered off the list above — see `RETIRED_FIELDS_`.) */
     const library = !timetable && isLibrary_(list);
     const quals = !timetable && isQuals_(list);
     /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT --------
@@ -3123,7 +3241,7 @@ function fieldsHtml(groups, o) {
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
       : (library ? libraryShelf_(list, value) : '')
-      + (quals ? qualShelf_(list, value, o.options) : '')
+      + (quals ? qualShelf_(list, value) : '')
       + (wantsDob ? dobBoxes_(value) : '')
       + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneRow_(value) : plain(f, extra))
       + (photos ? photoShelf_(list, value) : '');
@@ -3191,7 +3309,14 @@ function initAvail() {
    AND THE STATUS LINE IS A CLASS, NOT AN ID. Two surfaces carrying `id="me-said"` is two elements
    with one id and `$()` handing both Save buttons the first of them — the `$('msg-text')` bug this
    repository already records, which would have written "Saving…" onto the wrong card. */
-on('me-save', el => {
+on('me-save', el => { meSave_(el); });
+/* ---------- THE SAVE ITSELF, LIFTED OUT SO THE QUALIFICATION EDITORS CAN CALL IT ---------------------
+   The qualifications shelf has no Save tile: each editor's own button saves (see `qualShelf_`). So the
+   round trip is a function both call rather than a second copy of it, and it answers whether the card
+   was kept — `true` once the server has said so, `false` for a refusal said here or there — so an
+   editor can close on a yes and stay open, with every answer in it, on a no. */
+function meSave_(el) {
+  return new Promise(resolve => {
   /* AND A THIRD SURFACE, WHICH IS THE SETTINGS COLUMN. Each group the backend sends is a card of
      its own there with its own Save, so the container has to be that card's form and not the
      document: `document.body` would gather the profile fields AND the seventy-seven hour codes on
@@ -3211,13 +3336,15 @@ on('me-save', el => {
   /* A QUALIFICATION WITH NO SUBJECT. `Add a subject` left unnamed saved as `:GCSE::8` — a card with
      no name that never counted towards what you teach. Said here, before anything is sent, because
      dropping it on the server would be something typed and gone under a toast saying Saved. */
-  const nameless = [...box.querySelectorAll('.q-shelf .q-subj')].some(sj => {
-    const n = sj.querySelector('.q-name');
+  /* ASKED OF EACH SLOT: its hidden `qual_N` is the name that is saved, and any visible box with an
+     answer in it is a qualification. Hidden boxes are skipped because Teach and Can teach are hidden
+     and always hold a word. */
+  const nameless = [...box.querySelectorAll('.q-shelf .q-slot')].some(slot => {
+    const n = slot.querySelector('[data-me="qual_' + slot.dataset.slot + '"]');
     return !(n && String(n.value || '').trim())
-      && [...sj.querySelectorAll('.q-lvl [data-me]')].some(b => b.type !== 'checkbox' && b.type !== 'hidden'
-                                                              && String(b.value || '').trim());
+      && [...slot.querySelectorAll('[data-me]')].some(b => b.type !== 'hidden' && String(b.value || '').trim());
   });
-  if (nameless) { toast('Choose a subject for each qualification first — nothing was saved.'); return; }
+  if (nameless) { toast('Choose a subject for each qualification first — nothing was saved.'); return resolve(false); }
   /* ---------- NOT FROM A COPY OF YOUR SETTINGS THAT CANNOT BE TRUE ------------------------------
      THE SIGN-IN REPLY SENT THE RAW CELLS FOR MONTHS, so every phone signed in before it was repaired
      holds a profile with no phone boxes, no birthday boxes and an empty qualification shelf — and a
@@ -3241,9 +3368,12 @@ on('me-save', el => {
     const packed = Object.keys(fields).some(k => PACKED_FIELD_.test(k));
     const blocked = () => { if (said) said.textContent = OLD_SERVER_SAY_
       + ' Until then this card is not sent, because its boxes may be empty and saving would wipe what the sheet holds.'; };
-    if (PROFILE_SERVER_OLD) { if (packed) return blocked(); return saveNow(); }
+    if (PROFILE_SERVER_OLD) { if (packed) { blocked(); return resolve(false); } return saveNow(); }
     if (said) said.textContent = 'Your saved details are still loading from the sheet, so nothing was sent. Try again in a moment.';
-    profileRefresh_(true, () => (packed ? blocked() : saveNow()));
+    profileRefresh_(true, () => (packed ? (blocked(), resolve(false)) : saveNow()));
+    /* NOT SENT YET, AND THE CALLER IS TOLD SO — a refresh that ends in `saveNow` saves the card, but
+       an editor waiting on this would otherwise wait for ever on the path that never calls back. */
+    resolve(false);
     return;
   }
   saveNow();
@@ -3278,10 +3408,12 @@ on('me-save', el => {
         sayAfterLoad_(() => at < 0 ? null
           : (document.querySelectorAll('#s-settings .me-form')[at] || {}).querySelector?.('.me-said'), 'Saved');
       }
+      resolve(true);
     })
-    .catch(() => { /* `send_` has already written the refusal under the card. */ });
+    .catch(() => { /* `send_` has already written the refusal under the card. */ resolve(false); });
   }
-});
+  });
+}
 
 /* ---------- "SAVED" SURVIVES THE REPAINT IT CAUSES ------------------------------------------------
    A Save that wrote something calls `load()`, and the repaint rebuilds the card — so the line
@@ -3368,37 +3500,40 @@ function profileRefresh_(loud, onOld) {
 }
 /* `change-pin` opened a sheet of its own. It is three fields at the bottom of `edit-me` now — the
    sheet that already exists for changing your details, which a PIN is one of. */
-/* ---------- AND THE USERNAME, WHICH IS THE SAME SHAPE ---------------------------------------------
-   `send`, NOT `api`, AND THAT IS THE WHOLE OF WHY THIS FILE HAS A CHECK NAMED AFTER IT. `api()`
-   resolves with whatever the server said, `{ error: … }` included; `send()` throws on one. A caller
-   about to say "Changed" wants the second — `check-replies.js` exists because a toast once said
-   "Sent to Ada Tutor" about a message that was never written.
+/* ---------- AND THE HANDLE, WHICH IS A PRESS RATHER THAN A BOX ----------------------------------
+   `send_`, AND THEREFORE `send`, NOT `api`. `api()` resolves with whatever the server said,
+   `{ error: … }` included; `send()` throws on one. A caller about to say "You are @…" wants the
+   second — `check-replies.js` exists because a toast once said "Sent to Ada Tutor" about a message
+   that was never written. And `send_` spins the button and locks the card while the request is out,
+   so the PIN boxes beside it cannot be typed into under a request that is about to repaint them.
 
-   ONE ARGUMENT. `function send(body)` takes one, and passing two spreads the string into indexed
-   keys and posts `{"0":"c","1":"h",…}` — which `accessDenied` refuses before the handler and a
-   bare `.catch` throws away. That is the favourites bug, three times over, and `check-replies.js`
-   fails the build on a second argument now.
+   FOUND FROM THE CARD THE BUTTON IS ON, not by id. The line it writes and the handle it shows are
+   classes, so nothing here depends on there being exactly one of either on the page.
 
-   THE OLD NAME IS SHOWN BACK. A rename is the one change where "Saved" tells you nothing: you
-   typed the new one, so seeing it proves only that the box still holds what you typed. `was` comes
-   from the server, which is the only thing that knows what it actually replaced. */
-on('handle-save', el => {
-  const said = $('handle-said');
-  const box = $('handle-new');
-  const want = String((box && box.value) || '').trim().replace(/^@+/, '');
-  if (!want) { if (said) said.textContent = 'Type the handle you want.'; return; }
-  /* `send_`, which spins, locks the box and — the half that was missing — gives the button back
-     afterwards. This left it disabled after a success until an unrelated repaint rebuilt it. */
-  send_({ action: 'changeHandle', name: USER.name,
-          personId: (USER && USER.personId) || '', handle: want },
-        { button: el, busy: 'Checking…', where: 'handle-said', lock: box })
+   UPDATED IN PLACE, THEN THE PAYLOAD. The new handle is written onto the card and into `USER` the
+   moment it lands, which is what makes the press feel like it did something; `load()` then fetches
+   the payload, because every card that draws this person — their profile, a high-score board — is
+   drawn from it, and those would otherwise go on saying the old handle until the next open. The
+   line under it is `HANDLE_SAID`, which the card is drawn from, so the repaints that follow keep it.
+
+   THE OLD ONE IS SAID BACK. A new handle is the one change where seeing it proves nothing about
+   what it replaced; `was` comes from the server, which is the only thing that knows. */
+on('handle-shuffle', el => {
+  if (!USER) return;
+  const card = el.closest('.card');
+  const said = card && card.querySelector('.handle-said');
+  send_({ action: 'randomiseHandle', name: USER.name, personId: USER.personId || '' },
+        { button: el, busy: 'Choosing…', where: said || undefined })
     .then(d => {
       USER.handle = d.handle;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      const was = d.was ? 'You were ' + d.was + '.' : '';
-      if (said) said.textContent = was;
+      const shown = card && card.querySelector('.handle-shown');
+      if (shown) shown.textContent = d.handle;
+      HANDLE_SAID = { pid: String(USER.personId || ''),
+                      text: d.was ? 'You were @' + d.was + '.' : 'Changed.' };
+      if (said) said.textContent = HANDLE_SAID.text;
       toast('You are @' + d.handle);
-      sayAfterLoad_(() => $('handle-said'), was || 'Changed.');
+      try { load(); } catch (e) {}
     })
     .catch(() => {});
 });

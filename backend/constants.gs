@@ -229,7 +229,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-01-a-manyteach";
+const BACKEND_VERSION = "2026-10-01-c-family";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -313,10 +313,12 @@ const SCHEMA = {
      types into. `ensureSchema` only ever ADDS, so a column dropped here is never deleted from a live
      sheet by code — the new tab is pasted in whole, from the CSV that goes with this commit.
 
-     `handle_changed_at` IS A COOLDOWN'S ONLY STATE and `handle_was` IS A SAFEGUARDING COLUMN: most of
-     the people here are children, and "who was @foo last week" is asked exactly once, about the one
-     account it matters for. `pricing_changed_at` is the same shape for the four fields that between
-     them ARE a quote (see `pricingRefusal_`). `_date` on the two exam columns is load-bearing:
+     `handle_was` IS A SAFEGUARDING COLUMN — the last ten handles, newest first — and
+     `handle_changed_at` is when the newest one began: most of the people here are children, and "who
+     was @foo last week" is asked exactly once, about the one account it matters for. Neither is a
+     cooldown any more; that went with the typed handle box (see `handleTrouble_`).
+     `pricing_changed_at` IS one — a month's — for the four fields that between them ARE a quote
+     (see `pricingRefusal_`). `_date` on the two exam columns is load-bearing:
      `FIELD_IS_DATE` in js/me.js is `/_date$/`, which is what draws a date picker. */
   people: [
     /* who they are */
@@ -328,7 +330,10 @@ const SCHEMA = {
     "invited_by", "referral_code", "account_number", "sort_code",
     /* the profile a parent reads */
     "photo", "photos", "video", "headline", "adjective_1", "adjective_2", "adjective_3",
-    "years_experience", "focus", "dbs_checked",
+    "years_experience",
+    /* THE AGES THEY TEACH: a whole number or the word `Adults`, out of `AGE_OPTIONS` — see
+       `ageRefusal_` in people.gs. Not on the pricing page: the age range does not decide a price. */
+    "age_min", "age_max", "focus", "dbs_checked",
     /* where they are */
     "address", "town", "city", "borough", "postcode", "travel_km",
     /* what they charge, and when they can teach */
@@ -1955,6 +1960,23 @@ const AVATAR_ITEMS = [
    costs, what a second seat is worth, then the range of class sizes it applies to. */
 const PRICING_FIELDS = ['rate_per_hour', 'extra_seat_rate', 'max_students', 'min_students'];
 
+/* ---------- THE AGES A TUTOR MAY SAY THEY TEACH, AS ONE LIST THE FORM AND THE RULE BOTH READ ------
+   FOUR TO EIGHTEEN, THEN `Adults`. Four is Reception, eighteen is the end of sixth form, and the word
+   is everyone past it — "18" and "Adults" are two answers because a tutor who stops at Year 13 and one
+   who takes a forty-year-old retaking GCSE maths are saying different things.
+
+   A LIST THE CODE OWNS RATHER THAN A ROW OF THE `options` TAB, and that is not the `FIELD_OPTIONS`
+   argument lost — it is the other half of it. Those lists are descriptive and somebody may add
+   "Further Maths" with no deploy; this one is a rule, because `ageRefusal_` in people.gs refuses
+   anything not on it and `ageRank_` orders it. A sheet that could add "Toddlers" to the drop-down
+   would offer an answer the server then refuses. So `doGet` sends it through `validations` exactly
+   as if the tab had it (`FIELD_FIXED` below), and the phone's form needs to know nothing.
+
+   STRINGS, because that is what every list in `validations` is and what a `<select>` compares. */
+const AGE_FIELDS = ['age_min', 'age_max'];
+const AGE_OPTIONS = ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18',
+                     'Adults'];
+
 /* ---------- WHAT A TUTOR/CLIENT MAY EDIT -----------------------------------------------------
    One list per role drives the edit form AND the write allow-list, so the two cannot drift.
    Anything not named here is unreachable by updateProfile — pin, role, xp and credits included. */
@@ -1966,8 +1988,12 @@ const PROFILE_GROUPS = {
      now` and `More qualifications` were two more for three boxes between them. Merged by what a
      person thinks of as one question; the phone lays related boxes side by side (`FIELD_ROWS` in
      me.js), so a merged page is shorter than the two it replaced. */
-  'About you':   ['first_name','last_name','headline','years_experience',
-                  'favourite_colour','adjective_1','adjective_2','adjective_3'],
+  /* THE AGE RANGE IS HERE, AFTER THE YEARS OF EXPERIENCE, and not on the rate page beside the
+     group size it looks like: that page is the quote and moves once a month (`PRICING_FIELDS`), and
+     an age range prices nothing. Drawn as one `[youngest] – [oldest]` row by `FIELD_ROWS` in me.js,
+     exactly as the students range is. */
+  'About you':   ['first_name','last_name','headline','years_experience'].concat(AGE_FIELDS,
+                  ['favourite_colour','adjective_1','adjective_2','adjective_3']),
   /* ---------- CONTACT IS SECOND NOW, AND THE ORDER OF THIS OBJECT IS THE ORDER OF THE COLUMN ----
      REPORTED AS *"add email field in account settings"*, and the field was already here — at the
      BOTTOM. `settingsPages_` maps these keys straight onto pages, so `Contact` was the thirteenth
@@ -2079,6 +2105,11 @@ const FIELD_OPTIONS = {
   tier: 'tier', exam_board: 'exam_board', exam_wave: 'exam_wave',
   company: 'company', band_type: 'band_type',
 };
+/* ---------- AND THE LISTS THE CODE OWNS, sent in the same `validations` shape -----------------------
+   A field here is drawn as a select from THIS list whatever the `options` tab says, because a rule on
+   the server refuses anything else — see `AGE_OPTIONS`. `doGet` merges these over the tab's lists, so
+   the phone reads one map and cannot tell the two sources apart, which is the point. */
+const FIELD_FIXED = { age_min: AGE_OPTIONS, age_max: AGE_OPTIONS };
 /* `RESOURCE_OPTIONS` WAS AN ALIAS FOR `FIELD_OPTIONS`, kept because the resource form read it
    under that name. There is no resource form. `FIELD_OPTIONS` itself stays — it fills the tutor
    profile, the venue editor and every booking dropdown, and its `subject` / `exam_board` / `tier`
@@ -2106,8 +2137,9 @@ const PROFILE_READONLY = ['dbs_checked', 'role'];
 
    `handle` IS NOT IN `PROFILE_EDITABLE` AND MUST NOT BE. Everything in that list is a fact about
    somebody that only they can know — a headline, a rate, a borough — and a wrong one is wrong for
-   them alone. A handle is different in kind: it is how the rest of this site FINDS them, so it goes
-   through a handler of its own with rules the form cannot skip.
+   them alone. A handle is different in kind: it is how the rest of this site FINDS them, so it is
+   never typed at all. `handleMake_` builds it — a first name and a virtue — and the one door a
+   person has is `randomiseHandle`, which asks for another word.
 
    ---------- UNIQUENESS IS THE RULE THAT MATTERS, AND IT IS NOT ABOUT TASTE -----------------------
 
@@ -2115,9 +2147,9 @@ const PROFILE_READONLY = ['dbs_checked', 'role'];
    — FIRST MATCH WINS. So a handle that duplicates anybody's existing name
    or handle makes `changePin` check the PIN you typed against SOMEBODY ELSE'S row and tell you your
    own PIN is wrong. CLAUDE.md records that denial already; it happened by accident, to one person,
-   because a call forgot to send an id. **Letting people choose their own handle turns an accident
-   into something a person can do on purpose**, which is why this is checked against all three
-   columns and not just `handle`.
+   because a call forgot to send an id. A generated handle could make the same collision by
+   accident, which is why every candidate is checked against all three columns and not just
+   `handle`.
 
    ---------- `username` IS GONE ----------------------------------------------------------------------
    It was `handle` written a second time, which is the one-fact-in-two-columns shape this file keeps
@@ -2125,22 +2157,18 @@ const PROFILE_READONLY = ['dbs_checked', 'role'];
    here besides their own.
 ================================================================================================== */
 
-/* A MONTH, AND THE REASON IS NOT TIDINESS. A blocklist is a floor and never a ceiling — somebody who
-   can rename freely sits there trying variations until one gets past it, which is a game they win
-   eventually. A cooldown turns that into a month of waiting per attempt. Admins are exempt, because
-   an admin fixing somebody else's bad handle is the remedy rather than the abuse. */
-const HANDLE_COOLDOWN_DAYS = 30;
+/* `HANDLE_COOLDOWN_DAYS` WAS HERE — a month between handle changes, because a blocklist is a floor
+   and never a ceiling and somebody free to type variations wins eventually. Nobody types a handle
+   now: `handleMake_` builds every one from a first name and a word off a list, and Randomise asks
+   for another word. With nothing to try variations of, the brake had nothing to brake, so it went
+   with the box rather than being left as a constant nothing reads. */
 
-/* ---------- AND A MONTH ON WHAT A TUTOR CHARGES, WHICH IS ITS OWN NUMBER -------------------------
-   THE SAME THIRTY AND DELIBERATELY NOT THE SAME CONSTANT. The two rules answer different questions
-   and could honestly diverge: a handle cooldown is a brake on an arms race, and this is about
-   bookings already taken against a stated price and a stated capacity. Folding them onto one name
-   would make a change to either a change to both, which is the shape this repository records under
-   `needs_print` / `print_required` — one fact in two columns is a fault, and two facts under one
-   name is the same fault the other way round.
+/* ---------- A MONTH ON WHAT A TUTOR CHARGES ------------------------------------------------------
+   ITS OWN NUMBER, and it stayed one when the handle cooldown beside it went: this is about bookings
+   already taken against a stated price and a stated capacity, which are typed and still can be.
 
-   ADMINS ARE EXEMPT AND NOTHING ELSE IS, exactly as the handle rule has it: an admin fixing a
-   tutor's rate or cap is the remedy rather than the thing being braked. */
+   ADMINS ARE EXEMPT AND NOTHING ELSE IS: an admin fixing a tutor's rate or cap is the remedy rather
+   than the thing being braked. */
 const PRICING_COOLDOWN_DAYS = 30;
 
 /* THREE TO TWENTY, LOWER CASE, LETTERS DIGITS AND UNDERSCORE, STARTING WITH A LETTER.
@@ -2164,10 +2192,11 @@ const HANDLE_RESERVED = ['admin', 'administrator', 'family', 'atfamily', 'office
    plain spelling catches nobody who is trying.
 
    IT IS DELIBERATELY SHORT. A long list is an arms race this site cannot win and does not need to:
-   there are tens of users, every handle is visible to an admin the moment it is taken, the cooldown
-   above makes a second attempt cost a month, and `handle_was` means a rename can be traced. This is
-   the floor — the words nobody should have to see on a children's tutoring site — and the ceiling is
-   a person looking. */
+   there are tens of users, every handle is visible to an admin the moment it is taken, nobody types
+   one — each is a first name and a word off a list — and `handle_was` means a rename can be traced.
+   What it still guards is the first NAME, and a name and a word meeting across the underscore. This
+   is the floor — the words nobody should have to see on a children's tutoring site — and the ceiling
+   is a person looking. */
 const HANDLE_BLOCKED = [
   'anal', 'anus', 'arse', 'bastard', 'bitch', 'bollock', 'boner', 'clit', 'cock', 'coon', 'cum',
   'cunt', 'dick', 'dildo', 'dyke', 'fag', 'fanny', 'fuck', 'gash', 'gook', 'incest', 'jizz',
@@ -2407,11 +2436,11 @@ const RUNNABLE = {
      one is safe to run again and gets more useful the more rows there are — it fills what is blank
      and reports what it left alone, so it is `priceWearables` above rather than a spent id. */
   fillHandles:       () => fillHandles(),
-  /* ---------- AND EVERY HANDLE INTO `<first>_<adjective><NN>` ONCE -------------------------------
-     Unlike `fillHandles` this REPLACES a handle, on the owner's ask ("handles are their first name
-     then underscore then adjective then number") — safe because signing in is an e-mail address
-     and a PIN now, so nobody is locked out by it. A row already in the new shape is left alone, so
-     a second run changes nothing. */
+  /* ---------- AND EVERY HANDLE INTO `<first>_<virtue>` ONCE ----------------------------------------
+     Unlike `fillHandles` this REPLACES a handle, on the owner's ask ("handles should be their name
+     and a virtuous describing word") — safe because signing in is an e-mail address and a PIN, so
+     nobody is locked out by it. A row already in the shape is left alone, so a second run changes
+     nothing. */
   renameHandles:     () => renameHandles(),
   /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE.
      All four wrote rows into the `questions` tab, and there is no such tab — the papers are
@@ -2693,7 +2722,11 @@ const ACTION_ACCESS = {
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
   /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can.
      An admin resetting somebody else's is handled inside, where the old PIN can be waived. */
-  changePin: 'self', changeHandle: 'self', signAgreement: 'self',
+  changePin: 'self', signAgreement: 'self',
+  /* A NEW WORD FOR YOUR OWN HANDLE. `self`, and the handler acts on the row the token resolved to
+     rather than on anything posted — the gate writes `body.personId` from the token. `changeHandle`,
+     which took a typed handle, is gone: see `handleTrouble_`. */
+  randomiseHandle: 'self',
   /* The shop window is the business talking, so only the business may change it. */
   spotlight: 'admin',
   createCheckout: 'self', finalizePayment: 'self',

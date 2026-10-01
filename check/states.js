@@ -125,6 +125,78 @@ const STATES = {
       },
       expect: () => document.querySelectorAll('#stuff-groups .row').length,
       wants: 'a question with answers on it' },
+    /* ---------- THE SITTING, ASKED AS THE SERIES AND THEN THE YEAR -----------------------------------
+       REPORTED AS "some tags are like summer 2018 when it should just be summer then 2018", and as
+       "they dont need to appear one above the other but can fill like from left to right". This is
+       the state that answers both at once: Summer already chosen, so the question on the page is
+       Year, and its answers are bare years drawn as chips that share lines.
+
+       THE EXPECT ASKS THE TWO THINGS A SCREENSHOT SHOWED, because neither is a measurement any rule
+       in check/ui.js makes: no answer carries a series word and a year together, and at least two
+       answers sit on one line — chips stacked one per row measure perfectly and are the shape that
+       was reported. Topic area and Topic are skipped, as a person who wants a sitting would. */
+    { name: 'the sitting, then the year',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'subject', value: 'Maths' },
+                         { field: 'documentType', value: 'Past paper' },
+                         { field: 'level', value: 'GCSE' },
+                         { field: 'topicArea', any: true },
+                         { field: 'topic', any: true },
+                         { field: 'tier', value: 'Higher' },
+                         { field: 'examSeries', value: 'Summer' }];
+        paintStuff();
+        goPage('stuff', 0, true);
+      },
+      expect: () => {
+        const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
+        if (rows.length < 2) return false;
+        if (!rows.every(r => r.dataset.field === 'examYear')) return false;
+        if (rows.some(r => /[A-Za-z]+\s+(19|20)\d{2}/.test(r.textContent))) return false;
+        const tops = rows.map(r => Math.round(r.getBoundingClientRect().top));
+        return new Set(tops).size < tops.length;
+      },
+      wants: 'the Year question, bare years only, drawn as chips sharing a line' },
+    /* ---------- AN ANSWER ONE LETTER LONG ---------------------------------------------------------
+       A CHIP IS AS WIDE AS ITS WORDS, and the letter ranges `bucketValues_` groups a long list into
+       are often a single letter — `S` among the topics here, `G` and `P` among the English papers.
+       The first version of the chips drew those 34x44: under the tap floor sideways, which no state
+       above could show, because every answer they reach is a word. This one reaches the Topic
+       question over GCSE Maths past papers, where one of the ranges is one letter, and leaves the
+       measuring to the tap-target rule. */
+    { name: 'an answer one letter long',
+      /* FOUND BY WALKING THE FUNNEL, NOT BY A ROUTE WRITTEN HERE. Which question ends in a one-letter
+         range is a fact about the data, and the data moves: this was written when past papers still
+         answered Topic, and the next commit to land took Topic off every question that is not a 1st
+         Class Maths worksheet — so its one route reached no range at all and the state reported
+         itself unreachable. So it answers the funnel's own questions, depth first, through the same
+         `facet-pick` rows a finger presses, and stops at the first screen drawing a one-letter chip.
+         Capped, so a library with none fails as "did not arrive" rather than hanging the run. */
+      enter: () => {
+        const rows = () => [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
+        const one = () => rows().some(r => r.textContent.trim().length === 1);
+        let left = 400;
+        const walk = (filters, depth) => {
+          STUFF.q = ''; STUFF.filters = filters; paintStuff(); goPage('stuff', 0, true);
+          if (one()) return true;
+          if (!depth || --left <= 0) return false;
+          const opts = rows().map(r => ({ field: r.getAttribute('data-field'), value: r.getAttribute('data-value'),
+                                          bucket: !!r.getAttribute('data-bucket') }))
+                             .filter(o => o.field && o.value != null);
+          for (const o of opts) {
+            const f = Object.assign({ field: o.field, value: o.value }, o.bucket ? { bucket: true } : {});
+            if (walk(filters.concat([f]), depth - 1)) return true;
+            if (left <= 0) return false;
+          }
+          return false;
+        };
+        walk([{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }], 5);
+      },
+      expect: () => [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')]
+        .some(r => r.textContent.trim().length === 1),
+      wants: 'an answer chip whose whole label is one letter' },
     /* ---------- A BUNDLE OF PAPERS, WHICH ONLY A NARROWED LIST OFFERS ------------------------------
        THE CARD EXISTS ONLY WHEN THE RESULTS ARE WHOLE PAPERS — see `bundleOf_` — so `go('stuff')`
        never shows one, and neither does any state above: a search for "work out" is questions from
@@ -152,7 +224,7 @@ const STATES = {
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' },
-                         { field: 'examWave', value: '2017 & 2018', bucket: true }];
+                         { field: 'examYear', value: '2017 & 2018', bucket: true }];
         paintStuff();
         const card = document.querySelector('#s-stuff .card.bundle');
         const page = card && card.closest('.page');
@@ -478,6 +550,23 @@ const STATES = {
         return (/^@[A-Za-z][A-Za-z0-9_]{2,19}$/.test(txt)) ? 1 : 0;
       },
       wants: 'a handle drawn as exactly one @ and a shape a row could hold' },
+    /* ---------- THE AGES THEY TEACH, AS A CHIP UNDER "AT A GLANCE" ---------------------------------
+       `check/fixture.json`'s tutor teaches 8 to 16, which is what `doGet` sends as `ageMin: 8,
+       ageMax: 16`. The chip sits among the other facts rather than as a row of its own, and the
+       assertion is the WORDS — a chip reading "8 – 16" or "Ages: 8, 16" is the card saying it
+       differently from `profAges_`, which `check-flow.js` holds to every one-ended shape. */
+    { name: 'an age range on a card',
+      only: () => typeof USER !== 'undefined' && !!USER
+                  && (DATA.tutors || []).some(t => t && t.ageMin === 8 && t.ageMax === 16),
+      enter: () => {
+        const at = [...document.querySelectorAll('#s-account .page')]
+          .findIndex(pg => [...pg.querySelectorAll('.prof-facts .prof-tag')].some(c => /^Ages /.test(c.textContent.trim())));
+        if (at < 0) throw new Error('no card on the account column draws an age range');
+        goPage('account', at, true);
+      },
+      expect: () => [...document.querySelectorAll('#s-account .page.on .prof-facts .prof-tag')]
+                      .some(c => c.textContent.trim() === 'Ages 8–16') ? 1 : 0,
+      wants: 'the fixture tutor\'s "Ages 8–16" chip under At a glance' },
     { name: 'a tutor switched off',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
@@ -537,6 +626,50 @@ const STATES = {
       },
       wants: "a tutor's photographs as squares, with the one tapped opened across the row",
       leave: () => { paint('account'); } },
+    /* ---------- WHAT THEY TEACH: ONE CHIP A SUBJECT, ITS LEVELS RAISED — see `teachGroups_` ------
+       *"Subject ^level, level, level … no brackets."* The fixture's tutor teaches one level of two
+       subjects, so every chip it draws has one level and nothing wraps — which is the arrangement
+       that cannot go wrong. So this seeds the one that can: a subject at four levels, and a subject
+       with a long name, so a raised list has to break at 320px and the lab measures where it went —
+       sideways scroll, contrast of the raised levels, and the card against its pane. Seeded onto
+       `DATA.tutors` in the server's own shape, as the switched-off tutor above is, and put back. */
+    { name: 'a tutor teaching one subject at several levels',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__TEACH_HELD = (DATA.tutors || []).slice();
+        window.__TEACH_AT = PAGE.account || 0;
+        DATA.tutors = (DATA.tutors || []).concat([Object.assign(
+          {}, (DATA.tutors || [])[0] || {},
+          { personId: 'P-levels', handle: 'levels', title: 'Many Levels', listed: true,
+            teachesSpec: ['Maths (GCSE)', 'Maths (A-Level)'], teachesMain: 'Maths (GCSE)',
+            teaches: ['Maths (GCSE)', 'Maths (A-Level)', 'Maths (KS2)', 'Maths (KS3)', 'Maths (AS)',
+                      'Maths (Degree)', 'English Language and Literature (GCSE)',
+                      'English Language and Literature (A-Level)', 'Physics'] })]);
+        paint('account');
+        const n = accountPages_().findIndex(h => /Many Levels/.test(h));
+        if (n < 0) throw new Error('the seeded tutor is not on the account column');
+        goPage('account', n, true);
+      },
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-account .page')]
+          .find(p => /Many Levels/.test(p.textContent));
+        const tags = pg ? [...pg.querySelectorAll('.prof-teach .prof-tag')] : [];
+        const said = tags.filter(x => x.querySelector('sup.prof-lv'))
+          .map(x => x.textContent.replace(/\s+/g, ' ').trim());
+        return said.includes('Maths GCSE, A-Level') && said.includes('Maths KS2, KS3, AS, Degree')
+          && said.some(s => /^English Language and Literature GCSE, A-Level$/.test(s))
+          && !tags.some(x => /[()]/.test(x.textContent)) ? tags.length : 0;
+      },
+      wants: 'a subject drawn once per row, its levels raised after it and no brackets anywhere',
+      /* AND THE COLUMN GOES BACK TO THE PAGE IT WAS ON. Taking the seeded tutor out takes a page out
+         from under the one this state turned to, so a bare repaint left `PAGE.account` naming a page
+         that is no longer there — and `COLUMNS OUT OF LINE` reported the account column 500px off
+         every other column, which was this state's own debris rather than the app. */
+      leave: () => {
+        if (window.__TEACH_HELD) DATA.tutors = window.__TEACH_HELD;
+        paint('account');
+        goPage('account', window.__TEACH_AT || 0, true);
+      } },
     /* ---------- WHERE THEY TUTOR, AS A HEAT MAP — see `profHeat_` in cards.js ------------------
        *"just let it be a heat map of the areas"*. The fixture's tutor ticks three: one venue WITH
        coordinates, one WITHOUT (left off rather than guessed), and Online (a chip, not a place). So
@@ -568,6 +701,43 @@ const STATES = {
       },
       wants: 'the five captions in order, one glow on a map, Online as a chip, and no venue named',
       leave: () => { paint('account'); } },
+    /* ---------- YOUR FAMILY, A CARD EACH ------------------------------------------------------------
+       ASKED FOR AS *"students should be able to see their parents and likewise"*. `DATA.family` is a
+       key the fixture cannot carry — `doGet` builds it from the signed-in person's own accepted
+       links — so it is seeded here, which is the state a payload with a family in it produces: one
+       parent and one child, so both labels are drawn and measured. Long names on purpose, because
+       the name is the widest thing on the card. */
+    { name: 'your family, a card each',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__FAM_HELD = DATA.family; window.__FAM_FOR = DATA.familyFor; window.__FAM_CLAIMS = DATA.claims;
+        /* AND ONE REQUEST WAITING ON AN ANSWER, so the claim card is measured and its two buttons
+           are pressed by `check/press.js` — it is drawn only from a payload the fixture cannot carry. */
+        DATA.claims = [{ rowIndex: 99, from: 'Bartholomew Askerton-Longfellow', asked: '01/10/2026' }];
+        /* Stamped as THIS visitor's, or the column correctly refuses to draw it — see `familyFor`. */
+        DATA.familyFor = USER.personId;
+        DATA.family = [
+          { personId: 'P-fam-parent', title: 'Philippa Parentington-Smythe', relation: 'parent',
+            handle: 'philippa_bright42', image: '' },
+          { personId: 'P-fam-child', title: 'Christopher Childerley', relation: 'child',
+            handle: 'christopher_calm17', image: '' },
+        ];
+        paint('account');
+        /* ON THE REQUEST, which is the page in front of the family cards: the one with buttons. */
+        const n = accountPages_().findIndex(h => /says they are your parent/.test(h));
+        if (n < 0) throw new Error('no claim card on the account column');
+        goPage('account', n, true);
+      },
+      expect: () => {
+        const heads = [...document.querySelectorAll('#s-account .card.is-prof h3')].map(h => h.textContent.trim());
+        return heads.filter(h => h === 'Your parent').length === 1
+            && heads.filter(h => h === 'Your child').length === 1
+            && document.querySelectorAll('#s-account [data-do="claim-yes"]').length === 1 ? 3 : 0;
+      },
+      wants: 'one card headed "Your parent", one headed "Your child", and one request to answer',
+      /* `repaint(true)`, not `paint`: three pages leave the column, so it is placed again — a bare paint
+         left the card in front sitting where the old page 2 was, and COLUMNS OUT OF LINE said so. */
+      leave: () => { DATA.family = window.__FAM_HELD; DATA.familyFor = window.__FAM_FOR; DATA.claims = window.__FAM_CLAIMS; repaint(true); } },
   ],
 
   /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR ----------------
@@ -664,6 +834,45 @@ const STATES = {
       },
       wants: 'the journey card, with the exam countdown and no control that does nothing',
       leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; paint('settings'); } },
+    /* ---------- THE AGES A TUTOR TEACHES, ON ABOUT YOU AND NOT ON THE PAGE ABOVE ------------------
+       ONE `[youngest] – [oldest]` ROW OF TWO SELECTS, and the assertion is that shape rather than the
+       presence of two fields: two plain boxes would mean `validations` never carried `AGE_OPTIONS`, and
+       the form would be offering free text to a server that refuses anything off the list. The
+       options are read off `DATA.validations` rather than written out here — a list typed into this
+       file would be a third copy of one the backend owns.
+       NOT ON THE RATE PAGE, which the state above counts at exactly four boxes: an age range prices
+       nothing, so it is not under the month's clock. Seeded through `USER.profile` with one end the
+       word `Adults`, because that is the option a number-shaped reader would get wrong. */
+    { name: 'the age range',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_AGE_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, { age_min: '8', age_max: 'Adults' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-me="age_min"]'));
+        if (at < 0) throw new Error('no age range on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_AGE_WAS; delete window.STATE_AGE_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const row = pg && pg.querySelector('.f-row.is-range');
+        const lo = row && row.querySelector('select[data-me="age_min"]');
+        const hi = row && row.querySelector('select[data-me="age_max"]');
+        const want = ((DATA.validations || {}).age_min || []).join('|');
+        const offers = s => [...s.options].map(o => o.value).filter(Boolean).join('|');
+        return lo && hi && want && offers(lo) === want && offers(hi) === want
+          && lo.value === '8' && hi.value === 'Adults'
+          && !pg.querySelector('[data-me="rate_per_hour"]')
+          && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 2 : 0;
+      },
+      wants: 'the ages as one [youngest] – [oldest] row of two selects, 8 and Adults chosen, on a page without the rate' },
 
     /* ---------- THE TUTOR AGREEMENT, BOTH OF ITS STATES --------------------------------------------
        The signed-in visitor is an admin, and `isTutorRole()` is tutor-or-admin, so the card is on
@@ -746,22 +955,25 @@ const STATES = {
       },
       wants: 'three insurance items, each with its date box, and the one due soon flagged' },
 
-    /* ---------- UP TO TEN QUALIFICATIONS ON ONE PAGE, SHOWN AS WHAT IS FILLED IN -------------------
-       ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"*. All ten are IN
-       the page — forty controls under one Save, because the packer rebuilds the whole `quals` cell
-       from what arrives — and only the filled ones (or one empty one) are SHOWN, with `Add another`
-       revealing the next. So this presses `Add another` once and asks for exactly one more card
-       showing than it arrived with: a shelf that drew all ten, or one whose button did nothing,
-       both measure perfectly and both fail this.
-       FOUND BY ASKING THE DOM for the tenth slot's board box, which exists whether or not it shows. */
+    /* ---------- THE QUALIFICATIONS: A LIST YOU READ, AND ONE EDITOR AT A TIME ----------------------
+       REPORTED AS *"the current system for adding qualifications is really hard to understand."* The
+       shelf is a read list now — a bold subject, its levels as plain lines, a word button `Edit` on
+       each — and an editor opens in place of the one row being changed. What this asserts is the
+       DATA CONTRACT the redraw must not break, and the SHAPE the owner asked for:
+       - all seventy `qual_*` boxes in the form, drawn or not, because `qualsIn` rebuilds the person's
+         rows from what arrives and a slot missing from the form is a qualification deleted on Save;
+       - Maths once, with its two levels under it, and the degree a level of its own subject;
+       - no checkbox anywhere on the shelf: Teach and Can teach are HIDDEN boxes holding TRUE/FALSE,
+         read here as values — GCSE taught (so both TRUE), A-Level can-teach only;
+       - an `Edit` per level and per subject, no glyph to decode, and no `data-me` on a control that
+         is not an answer.
+       FOUND BY ASKING THE DOM for the tenth slot's place box, which exists whether or not it shows. */
     { name: 'the qualifications',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         /* TWO LEVELS OF ONE SUBJECT AND A DEGREE, through `USER.profile`, which is what the column is
-           drawn from. The two Maths records are the whole point of the page: they must be ONE subject
-           with two level lines under it, not two entries — *"that way they dont need to add another
-           entry for the same subject"* — and the degree must be a level under its subject rather
-           than a card of its own. */
+           drawn from. The two Maths records must be ONE subject with two levels under it. Written
+           out in each state rather than shared, because a state is sent to the page as source. */
         window.STATE_QUAL_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {}, {
           qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8', qual_1_board: 'Hill Top School', qual_1_received: '2017',
@@ -776,13 +988,6 @@ const STATES = {
         const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
         if (at < 0) throw new Error('no qualifications page on the settings column');
         goPage('settings', at, true);
-        /* AND A THIRD LEVEL ADDED TO MATHS, through the page's own button — the new level has to
-           carry the subject's name into its hidden `qual_N`, or a Save posts a level with no subject
-           and `qualsIn` keeps it as a nameless record. */
-        const maths = [...pages[at].querySelectorAll('.q-subj')]
-          .find(sj => (sj.querySelector('.q-name') || {}).value === 'Maths');
-        const add = maths && maths.querySelector('[data-do="qual-add-level"]');
-        if (add) add.click();
       },
       leave: () => {
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
@@ -794,41 +999,84 @@ const STATES = {
         const shelf = pg && pg.querySelector('.q-shelf');
         if (!shelf) return 0;
         const subjects = [...shelf.querySelectorAll('.q-subj')];
-        const maths = subjects.find(sj => (sj.querySelector('.q-name') || {}).value === 'Maths');
-        const levelsOf = sj => [...sj.querySelectorAll('.q-levels > .q-lvl')];
-        const slotName = lvl => (lvl.querySelector('[data-me="qual_' + lvl.dataset.slot + '"]') || {}).value;
-        /* SEVENTY FIELDS IN THE FORM, drawn or not — `qualsIn` rebuilds the whole cell from what
-           arrives, so a slot missing from the form is a qualification deleted on Save. */
+        const maths = subjects.find(sj => sj.dataset.name === 'Maths');
+        const slotsOf = sj => [...sj.querySelectorAll('.q-levels > .q-slot')];
+        const val = (sl, k) => ((sl && sl.querySelector('[data-me="qual_' + sl.dataset.slot + k + '"]')) || {}).value;
+        const levelOf = lvl => maths && slotsOf(maths).find(sl => val(sl, '_level') === lvl);
+        const flags = [...shelf.querySelectorAll('[data-me$="_spec"], [data-me$="_teach"]')];
         return pg.querySelectorAll('[data-me^="qual_"]').length === 70
-          && pg.querySelectorAll('[data-do="me-save"]').length === 1
+          /* NO SAVE TILE ON THIS CARD — every editor saves itself. */
+          && pg.querySelectorAll('[data-do="me-save"]').length === 0
           && subjects.length === 2 && !!maths
-          && levelsOf(maths).length === 3
-          && levelsOf(maths).every(l => slotName(l) === 'Maths')
-          /* THE TWO SAVED LEVELS ARRIVE SHUT AS ONE LINE EACH, THE NEW ONE OPEN. */
-          && levelsOf(maths).filter(l => l.classList.contains('is-shut')).length === 2
-          /* THE TICKS ARE EACH LEVEL'S OWN — *"each level should have a tickbox which is 'teach' and
-             'can teach'. instead of for the whole subject"* — so none on the subject, a pair on every
-             level, and they ARE the saved boxes: GCSE taught (spec, which also means can-teach),
-             A-Level can-teach only, the new level neither. */
-          && !maths.querySelector('.q-head [type="checkbox"]')
-          /* A DELETE ON EVERY SUBJECT AND EVERY LEVEL LINE, shut or open — *"there should be a delete
-             button for subjects or levels"*. */
-          && subjects.every(sj => sj.querySelectorAll(':scope > .q-sum-row [data-do="qual-drop-subject"]').length === 1)
-          && levelsOf(maths).every(l => l.querySelectorAll(':scope > .q-sum-row [data-do="qual-drop"]').length === 1)
-          && levelsOf(maths).every(l => l.querySelectorAll('[data-do="qual-tick"]').length === 2)
-          && levelsOf(maths).map(l => (l.querySelector('[data-me="qual_' + l.dataset.slot + '_spec"]') || {}).checked ? 1 : 0).join('') === '100'
-          && levelsOf(maths).map(l => (l.querySelector('[data-me="qual_' + l.dataset.slot + '_teach"]') || {}).checked ? 1 : 0).join('') === '110'
-          /* THE SUBJECT IS A DROP-DOWN LIKE THE LEVEL BESIDE IT — no `<input list>` left on the shelf —
-             and a subject the list does not hold is kept as its chosen option. THE PLACE IS A TEXT
-             BOX, because it is a school's name rather than an exam board (the owner's correction). */
-          && !shelf.querySelector('input[list]')
-          && maths.querySelector('.q-name').tagName === 'SELECT'
-          && subjects.some(sj => (sj.querySelector('.q-name') || {}).value === 'Bible and Theology')
-          && !shelf.querySelector('select[data-me$="_board"]')
-          && !!shelf.querySelector('input[data-me$="_board"][placeholder="School, college or uni"]')
+          && shelf.querySelectorAll('.q-head').length === 2
+          && slotsOf(maths).length === 2
+          && slotsOf(maths).every(sl => val(sl, '') === 'Maths')
+          && subjects.some(sj => sj.dataset.name === 'Bible and Theology')
+          && !shelf.querySelector('input[type="checkbox"]')
+          && flags.length === 20 && flags.every(b => b.type === 'hidden')
+          && val(levelOf('A-Level'), '_spec') === 'FALSE' && val(levelOf('A-Level'), '_teach') === 'TRUE'
+          && val(levelOf('GCSE'), '_spec') === 'TRUE' && val(levelOf('GCSE'), '_teach') === 'TRUE'
+          && shelf.querySelectorAll('.q-levels > .q-slot [data-do="qual-edit"]').length === 3
+          && shelf.querySelectorAll('[data-do="qual-subj-edit"]').length === 2
+          && !/[✓★▸▾✕]/.test(shelf.textContent)
+          && !shelf.querySelector('.q-seg [data-me], .q-acts [data-me]')
+          /* THE GOLD CHIP ON GCSE ONLY, and nothing open. */
+          && shelf.querySelectorAll('.q-chip').length === 1 && !!levelOf('GCSE').querySelector('.q-chip')
+          && !shelf.querySelector('.is-editing')
+          && !!shelf.querySelector('input[data-me$="_board"]')
           ? 70 : 0;
       },
-      wants: 'Maths drawn once with its GCSE and A-Level under it, a degree as a level of its own subject, one pair of ticks per subject, and Add a level carrying the subject into the new level' },
+      wants: 'Maths drawn once with GCSE and A-Level as read rows under it, a degree as a level of its own subject, Teach as hidden TRUE/FALSE boxes, an Edit per level and subject, and no glyphs or checkboxes' },
+    /* AND THE A-LEVEL EDITOR OPEN, through the page's own `Edit`. One thing open, the three-way control
+       drawn with `Can teach` lit (that is what the A-Level holds), every caption above its box, and
+       `Still studying` offered in Finished. Every other `Edit` is off the page while it is open. */
+    { name: 'the qualifications, one level open',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        /* TWO LEVELS OF ONE SUBJECT AND A DEGREE, through `USER.profile`, which is what the column is
+           drawn from. The two Maths records must be ONE subject with two levels under it. Written
+           out in each state rather than shared, because a state is sent to the page as source. */
+        window.STATE_QUAL_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8', qual_1_board: 'Hill Top School', qual_1_received: '2017',
+          qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2019',
+          qual_2_teach: 'TRUE',
+          qual_3: 'Bible and Theology', qual_3_level: 'Degree', qual_3_received: 'Present' });
+        /* A CLEAN COLUMN FIRST — see the agreement state above. */
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const pages = [...document.querySelectorAll('#s-settings .page')];
+        const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
+        if (at < 0) throw new Error('no qualifications page on the settings column');
+        goPage('settings', at, true);
+        /* AND THE A-LEVEL OPENED THROUGH ITS OWN `Edit`. */
+        const slot = [...pages[at].querySelectorAll('.q-slot')].find(sl =>
+          (sl.querySelector('[data-me$="_level"]') || {}).value === 'A-Level');
+        if (!slot) throw new Error('no A-Level row on the qualifications page');
+        slot.querySelector('[data-do="qual-edit"]').click();
+      },
+      leave: () => {
+        USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const shelf = pg && pg.querySelector('.q-shelf');
+        if (!shelf) return 0;
+        const open = [...shelf.querySelectorAll('.is-editing')];
+        const ed = open[0] && open[0].querySelector(':scope > .q-ed');
+        const visible = el => !!(el.offsetWidth || el.offsetHeight);
+        return shelf.classList.contains('is-editing') && open.length === 1 && !!ed
+          && ed.querySelectorAll('[data-do="qual-teach"]').length === 3
+          && (ed.querySelector('[data-do="qual-teach"][aria-pressed="true"]') || {}).dataset.v === 'teach'
+          && [...ed.querySelectorAll('label.field')].every(l => !!(l.querySelector(':scope > span') || {}).textContent)
+          && [...ed.querySelectorAll('select[data-me$="_received"] option')].some(o => o.textContent === 'Still studying' && o.value === 'Present')
+          && [...shelf.querySelectorAll('[data-do="qual-edit"], [data-do="qual-subj-edit"], [data-do^="qual-add"]')].every(b => !visible(b))
+          ? 1 : 0;
+      },
+      wants: 'one editor open in place of the A-Level row, its captions above the boxes, Can teach lit, and every other Edit off the page' },
 
     /* ---------- THE THREE DATE-OF-BIRTH BOXES, ON A GROUP THE FIXTURE DID NOT HAVE ---------------
        `check/fixture.json` SENT NO `Contact` GROUP, so nothing in this lab had ever drawn a date of
@@ -856,6 +1104,36 @@ const STATES = {
                      && document.querySelectorAll('#s-settings .page.on [data-me="date_of_birth"]').length === 0
                      ? 3 : 0),
       wants: 'three date-of-birth boxes and no fourth box for the column itself' },
+
+    /* ---------- YOUR HANDLE: SHOWN, WITH RANDOMISE, AND NO BOX ---------------------------------------
+       ASKED FOR AS *"handles should be their name and a virtuous describing word. they can randomise
+       it but it will follow that general name."* The Signing in card had a text box for the handle;
+       a box left behind beside the Randomise button would be a door to an action the server no longer
+       has (`changeHandle` is gone), and it would measure perfectly.
+
+       FOUR THINGS TOGETHER, because each on its own passes a card that got one of the others wrong:
+       exactly one shown handle and it is `USER.handle`, exactly one `@` in front of it (the `@@ada`
+       fault `check-handles.js` already guards in the fixture), one Randomise button, and nothing to
+       type into. Found by asking the DOM, like every other state on this column. */
+    { name: 'your handle',
+      only: () => typeof USER !== 'undefined' && !!USER && !!USER.handle,
+      enter: () => {
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('.handle-shown'));
+        if (at < 0) throw new Error('no handle on the settings column');
+        goPage('settings', at, true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        if (!pg) return 0;
+        const shown = pg.querySelectorAll('.handle-shown');
+        const line = pg.querySelector('.handle-now');
+        return (shown.length === 1 && shown[0].textContent === USER.handle
+                && line && (line.textContent.match(/@/g) || []).length === 1
+                && pg.querySelectorAll('[data-do="handle-shuffle"]').length === 1
+                && !pg.querySelector('#handle-new, [data-do="handle-save"]')) ? 1 : 0;
+      },
+      wants: 'the handle shown once with one @, a Randomise button, and no box to type a handle into' },
 
     /* ---------- THE TWO EXAM DATES, WHICH ONLY A STUDENT IS OFFERED ------------------------------
        ASKED FOR AS *"allow student accounts to be able to write exam dates. like Small exam: _____
@@ -926,6 +1204,28 @@ const STATES = {
           && el.querySelectorAll('[data-do="me-many-pick"]').length > 0;
       },
       wants: 'a several-of-a-list field open under its button, with something to tick' },
+
+    /* ---------- AN ORDINARY SELECT, OPEN ------------------------------------------------------------
+       EVERY SINGLE-CHOICE `<select>` HANGS `#drop` NOW — see `SEL_OK` in book.js — and the settings
+       column is where most of them are. Opened through the select's own door, a click AT it, which is
+       the path `selAt_` takes for assistive technology; shut on the way out for the reason above. */
+    { name: 'a dropdown open',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const pages = [...document.querySelectorAll('#s-settings > .page')];
+        const at = pages.findIndex(pg => pg.querySelector('label.field > select:not(:disabled)'));
+        if (at < 0) throw new Error('no select in a label on the settings column');
+        goPage('settings', at, true);
+        pages[at].querySelector('label.field > select:not(:disabled)').click();
+      },
+      leave: () => { if (typeof selShut_ === 'function') selShut_(); },
+      expect: () => {
+        const el = document.getElementById('drop');
+        return !!el && !el.classList.contains('hidden') && el.dataset.owner === 'sel'
+          && el.querySelectorAll('[data-do="sel-pick"]').length >= 2
+          && el.querySelectorAll('[data-do="sel-pick"][aria-selected="true"]').length === 1;
+      },
+      wants: 'a settings select\'s options hanging off it in the booking list\'s panel, one marked' },
 
     /* "ALSO TEACH, OPEN" WENT WITH THE PAGE. What a tutor teaches is two ticks on each
        qualification now — `the qualifications` above counts them — and `teaches_also` is derived
@@ -1093,8 +1393,23 @@ const STATES = {
       },
       expect: () => !document.querySelector('#s-tools #mat-fill, #s-tools #mat-clear')
         && document.querySelectorAll('#s-tools .mat-list input:checked').length >= 5
-        && !document.querySelector('#s-tools #mat-go').disabled,
-      wants: 'a subject and a level chosen, five pieces ticked, no Fill or Clear, and Print ready',
+        && !document.querySelector('#s-tools #mat-go').disabled
+        /* THE NEGATIVE NUMBER LINE IS ON THE GCSE LIST, and the list is not a scroller — it is the
+           whole list, and the pane is what scrolls (see the note over the list in `initMat`). */
+        && document.querySelector('#s-tools #mat-list label[data-id="M52"]:not(.off)')
+        && !document.querySelector('#s-tools #mat-box .widget-squeeze')
+        /* AND ASKED OF THE COMPUTED STYLE, NOT ONLY THE CLASS: a rule giving `.mat-list` its own
+           `overflow-y: auto` would put the scroll bar straight back with no `widget-squeeze` anywhere,
+           and the class test above would go on passing. Nothing from the list up to its card may
+           scroll; the pane above the card is the one scroller, and it is `paneReach_`'s. */
+        && (() => {
+          const list = document.querySelector('#s-tools #mat-list');
+          for (let e = list; e && !e.matches('.card.is-widget'); e = e.parentElement) {
+            if (/auto|scroll/.test(getComputedStyle(e).overflowY)) return false;
+          }
+          return true;
+        })(),
+      wants: 'a subject and a level chosen, five pieces ticked, no Fill or Clear, the negative number line offered, the list not a scroller, and Print ready',
       leave: () => {
         MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
         try { localStorage.removeItem('matChoice'); } catch (e) {}
@@ -1184,6 +1499,37 @@ const STATES = {
       },
       expect: () => document.querySelectorAll('#s-tools #avail-box .hr').length > 70,
       wants: 'the week of hours drawn on screen' },
+
+    /* ---------- A TIMETABLE WITH A WEEK IN IT ------------------------------------------------------
+       KEPT ON THE DEVICE, so no fixture can fill it — the basket's sentence. Seeded through the app's
+       own key (`tmtKey_`) with the weekend on, so all seven chips are measured going four and three,
+       and with one lesson OPEN, so the editor's time box and subject box are measured side by side
+       at 320 rather than only the summary lines. One subject and one note deliberately long, because
+       the longest thing a row ever holds is something somebody typed. */
+    { name: 'a timetable',
+      enter: () => {
+        const day = [
+          { id: 'T1', at: '09:00', subject: 'Maths', note: 'Room 4 — Mr Patel' },
+          { id: 'T2', at: '10:00', subject: 'English Literature and Language combined', note: '' },
+          { id: 'T3', at: '11:15', subject: 'Chemistry', note: 'Bring the revision guide and a calculator, practical write-up due' },
+          { id: 'T4', at: '13:30', subject: 'History', note: '' }];
+        localStorage.setItem(tmtKey_(), JSON.stringify({ weekend: true,
+          days: [day, [{ id: 'T5', at: '09:00', subject: 'Maths', note: '' }], [], [], [], [], []] }));
+        TMT_DAY = 0; TMT_OPEN = 'T3';
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'timetable');
+        if (n < 0) throw new Error('no timetable widget in the roster');
+        goPage('tools', n, true);
+        initTimetable();
+      },
+      expect: () => document.querySelectorAll('#s-tools .tmt-box .tmt-day').length === 7
+                    && document.querySelectorAll('#s-tools .tmt-box .tmt-row').length === 3
+                    && document.querySelector('#s-tools .tmt-box .tmt-ed .tmt-time'),
+      wants: 'seven day chips, three lessons as lines and one open with its time box',
+      leave: () => {
+        localStorage.removeItem(tmtKey_());
+        TMT_DAY = -1; TMT_OPEN = '';
+        initTimetable();
+      } },
   ],
 
   /* ---------- A HIGH-SCORE BOARD WITH SCORES ON IT ---------------------------------------------
@@ -1345,6 +1691,141 @@ const STATES = {
                  && document.querySelectorAll('#s-games .scr-tile').length === 0,
       wants: 'the hand-over card, with no rack on the screen',
       leave: () => { scrabble = null; scrabblePaint(); } },
+
+    /* ---------- THE FIVE CLASSROOM GAMES, EACH ON ITS BUSIEST CARD ----------------------------
+       EVERY ONE OPENS ON A SINGLE BUTTON, which is the only state `go()` reaches — so everything
+       these games are (a clock, Taboo's forbidden words, Alibi's six questions) is past it and
+       nothing would measure it without a state. Entered through the app's own handlers, and then
+       given the LONGEST entry its deck holds: a round is dealt at random, so a state that measured
+       whatever came up would measure a different card every run, and the one worth measuring is
+       the one that wraps. */
+    { name: 'just a minute, mid-round',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no justaminute widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'justaminute')), true);
+        ACTIONS['jam-start'](document.createElement('button'));
+        PARTY.jam.topic = JAM_DECK.reduce((a, b) => (b.length > a.length ? b : a), '');
+        jamPaint();
+      },
+      expect: () => document.querySelectorAll('#s-games #jam-acts .party-call').length === 3
+                 && !!document.querySelector('#s-games #jam-card .party-clock'),
+      wants: 'the topic, the clock and the three tallies',
+      leave: () => { partyHold_('jam'); PARTY.jam = null; jamPaint(); } },
+
+    { name: 'a taboo card',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no taboo widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'taboo')), true);
+        ACTIONS['tab-start'](document.createElement('button'));
+        PARTY.tab.card = TABOO_DECK.reduce((a, b) => (b.join('').length > a.join('').length ? b : a));
+        tabPaint();
+      },
+      expect: () => {
+        const n = document.querySelectorAll('#s-games #tab-card .tab-ban li').length;
+        return n >= 4 && n <= 5;
+      },
+      wants: 'the word and four or five words you may not say',
+      leave: () => { partyHold_('tab'); PARTY.tab = null; tabPaint(); } },
+
+    { name: 'the hot seat word, held up to the class',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no hotseat widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'hotseat')), true);
+        ACTIONS['hot-start'](document.createElement('button'));
+        const b = document.createElement('button');
+        b.setAttribute('data-g', 'hot');
+        ACTIONS['party-resume'](b);
+        PARTY.hot.word = HOT_DECK.reduce((a, c) => (c.length > a.length ? c : a), '');
+        hotPaint();
+      },
+      expect: () => !!document.querySelector('#s-games #hot-card .hot-word'),
+      wants: 'the word in large type, with Got it and Pass',
+      leave: () => { partyHold_('hot'); PARTY.hot = null; hotPaint(); } },
+
+    { name: '20 questions, being asked',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no twentyq widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'twentyq')), true);
+        ['twq-start', 'twq-show', 'twq-hide', 'twq-ask', 'twq-ask', 'twq-ask']
+          .forEach(a => ACTIONS[a](document.createElement('button')));
+      },
+      expect: () => document.querySelectorAll('#s-games #twq-acts [data-do="twq-ask"]').length === 2
+                 && !document.querySelector('#s-games #twq-card .art-word'),
+      wants: 'the count, Yes and No, and no secret on the screen',
+      leave: () => { PARTY.twq = null; twqPaint(); } },
+
+    { name: 'an alibi case card',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no alibi widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'alibi')), true);
+        ACTIONS['alb-start'](document.createElement('button'));
+        const long = l => l.reduce((a, b) => (b.length > a.length ? b : a), '');
+        Object.assign(PARTY.alb, { crime: long(ALB_CRIMES), time: long(ALB_TIMES), place: long(ALB_PLACES) });
+        albPaint();
+      },
+      expect: () => !!document.querySelector('#s-games #alb-card .alb-facts')
+                 && !document.querySelector('#s-games #alb-card .alb-qs'),
+      wants: 'the crime, the time and the alibi, with no questions on it',
+      leave: () => { partyHold_('alb'); PARTY.alb = null; albPaint(); } },
+
+    /* THE SIX LONGEST QUESTIONS, for the same reason: six of a hundred and twenty chosen at random
+       is a list a different height every run. */
+    { name: 'an alibi interview',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no alibi widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'alibi')), true);
+        ACTIONS['alb-start'](document.createElement('button'));
+        PARTY.alb.qs = ALB_QUESTIONS.slice().sort((a, b) => b.length - a.length).slice(0, ALB_ASK);
+        ACTIONS['alb-next'](document.createElement('button'));
+      },
+      expect: () => document.querySelectorAll('#s-games #alb-card .alb-qs li').length === ALB_ASK
+                 && !!document.querySelector('#s-games #alb-card .party-clock'),
+      wants: 'suspect 1, the clock and six questions',
+      leave: () => { partyHold_('alb'); PARTY.alb = null; albPaint(); } },
+    /* ---------- A WORD SEARCH PART-FOUND, AND A SENTENCE PART-BUILT ------------------------------
+       Both widgets OPEN on a fresh deal, which is the one state `go()` reaches — and a fresh deal is
+       the state with nothing struck through, nothing highlighted, no start ring and an empty strip.
+       Every mark either game puts on its card is past it. Seeded through the games' own functions
+       (`wsBuild_`, `wsPick_`, `ssDeal_`) and their own handlers, never a board written out here: a
+       grid in this file would be a second description of a puzzle, and the one nobody re-reads.
+       THE OLDER THEME, because it is the ten-by-ten grid — the tallest card either game draws, and
+       the one a 320px phone has least room for. */
+    { name: 'a word search part-found',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'wordsearch');
+        if (n < 0) throw new Error('no word search widget in the roster');
+        goPage('games', n, true);
+        window.__seedWs = WS;
+        WS = wsBuild_(WS_THEMES.find(t => !t.young));
+        const wd = WS.words[0];
+        wsPick_(wd.cells[0]);
+        wsPick_(wd.cells[wd.cells.length - 1]);
+        wsPick_(WS.words[1].cells[0]);
+        wsPaint();
+      },
+      expect: () => document.querySelectorAll('#s-games #ws-words li.got s').length === 1
+                 && document.querySelectorAll('#s-games .ws-c.got').length >= 3
+                 && document.querySelectorAll('#s-games .ws-c.sel').length === 1,
+      wants: 'one word struck through and highlighted, and the start of the next one ringed',
+      /* PUT BACK, OR DEALT AGAIN WHERE THERE WAS NOTHING TO PUT BACK: `wsPaint` with no puzzle draws
+         nothing, so restoring a null would leave this state's marks on the card for the next one. */
+      leave: () => { WS = window.__seedWs || null; if (!WS) wsDeal_(wsThemeId_()); wsPaint(); } },
+
+    /* THE LONGEST SENTENCE IN THE LIST, half built — fourteen chips is the most this card ever lays
+       out, and half of them dimmed is what a sentence in progress looks like. */
+    { name: 'a sentence part-built',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'scramble');
+        if (n < 0) throw new Error('no sentence scramble widget in the roster');
+        goPage('games', n, true);
+        window.__seedSs = SS;
+        let long = null;
+        Object.keys(SS_SENTENCES).forEach(b => SS_SENTENCES[b].forEach(e => {
+          if (!long || ssOrders_(e)[0].length > ssOrders_(long)[0].length) long = e;
+        }));
+        const words = ssOrders_(long)[0];
+        SS = { band: 'KS4', entry: long, chips: words.slice().reverse(), picked: [], verdict: '', said: '' };
+        for (let k = 0; k < Math.ceil(words.length / 2); k++) SS.picked.push(words.length - 1 - k);
+        ssPaint();
+      },
+      expect: () => document.querySelectorAll('#s-games .ss-chip.used').length >= 6
+                 && !!document.querySelector('#s-games [data-do="ss-check"][disabled]'),
+      wants: 'the longest sentence half built, its used chips dimmed and Check not yet pressable',
+      leave: () => { SS = window.__seedSs || null; if (!SS) ssDeal_(ssBand_()); ssPaint(); } },
   ],
 
   /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------
@@ -1524,6 +2005,25 @@ const STATES = {
          would otherwise be measuring a picker. */
       leave: () => { BOOKING.picking = ''; drawBooker(); } },
 
+    /* ---------- AND A SINGLE ANSWER, OPEN, IN THE SAME PANEL ---------------------------------------
+       *"should be consistent with the booking multiselect drop down list"* — so the one-of-a-list
+       rows on this card hang the same `#drop` the state above opens. Through the select's own door,
+       and shut again on the way out. */
+    { name: 'a single answer open',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const sel = document.querySelector('#bookr select.bk-sel:not(:disabled)');
+        if (!sel) throw new Error('the booking form draws no enabled select');
+        sel.click();
+      },
+      expect: () => {
+        const el = document.getElementById('drop');
+        return !!el && !el.classList.contains('hidden') && el.dataset.owner === 'sel'
+          && el.querySelectorAll('#drop .pick-opt[data-do="sel-pick"]').length >= 2;
+      },
+      wants: 'a single-answer row\'s options hanging off it, the multi-select list\'s rows',
+      leave: () => { if (typeof selShut_ === 'function') selShut_(); } },
+
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
@@ -1581,7 +2081,10 @@ const STATES = {
             { at: '26/09/2026', actor: USER.name, role: 'client', action: 'Confirm', target: '', message: 'payment confirmed' },
             { at: '28/09/2026', actor: 'Second Family', role: 'client', action: 'Confirm', target: '', message: 'payment confirmed' },
           ],
-          price: '270', tutorPay: '135', stage: 'accepted', status: 'accepted',
+          /* `adminKeeps`, BECAUSE THE LAB SIGNS IN AS AN ADMIN and an admin is sent all three
+             figures — so this card draws `Client pays`, `Tutor earns` and `Admin earns` as three
+             total rows, which is the tallest the total block gets and the one worth measuring. */
+          price: '270', tutorPay: '135', adminKeeps: '81', stage: 'accepted', status: 'accepted',
         }];
         paint('booking');
         /* PAGE BY POSITION IS WRONG HERE and `jobPageAt_` is the app's own answer: it reads the
@@ -1589,8 +2092,21 @@ const STATES = {
            something moved. */
         goPage('booking', typeof jobPageAt_ === 'function' ? jobPageAt_('J-UI') : 1, true);
       },
-      expect: () => document.querySelectorAll('#s-booking .rc .bk-row').length,
-      wants: 'a receipt with rows on it' },
+      /* AND THE ADMIN'S THREE FIGURES ARE ROWS OF IT, AND ITS TILES ARE ON IT. *"no floating tiles
+         for already booked sessions"* — every action on the session's page is inside the paper, and
+         a session already booked offers no Pay. Asked of the one page in front, since the column
+         also holds the form — found by its own reference rather than by `.page.on`. */
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-booking .page')]
+          .find(p => /J-UI/.test((p.querySelector('.rc-ref') || {}).textContent || ''));
+        const rc = pg && pg.querySelector('.rc');
+        if (!rc || !rc.querySelectorAll('.bk-row').length) return false;
+        if (rc.querySelectorAll('.rc-total').length !== 3) return false;
+        if (!rc.querySelector('.rc-tiles [data-do="job-delete"]')) return false;
+        if (pg.querySelector('[data-do="job-pay"]')) return false;
+        return ![...pg.querySelectorAll('[data-do]')].some(x => !x.closest('.rc'));
+      },
+      wants: 'a receipt with rows on it, an admin\'s three money rows, and its tiles on the paper' },
   ],
 
   /* ---------- AND THE MESSAGES COLUMN, WHICH THIS FILE HAS ONLY EVER SEEN EMPTY -----------------

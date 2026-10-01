@@ -193,6 +193,7 @@ const tutor = Object.assign({}, base, {
   headline: 'Friendly maths tutor', video: 'https://example.org/v.mp4', years_experience: 5,
   favourite_colour: 'Blue', adjective_1: 'calm', adjective_2: 'clear', adjective_3: 'kind',
   travel_km: 10, rate_per_hour: 20, extra_seat_rate: 0.5, max_students: 4, min_students: 1,
+  age_min: 8, age_max: 16,
   availability: 'm09,m10,tu15,sa11',
 });
 const admin = Object.assign({}, tutor, { person_id: 'P-A1', role: 'admin', first_name: 'Hal', last_name: 'Admin',
@@ -246,7 +247,7 @@ const CHANGE = [
 ];
 
 const bad = [];
-let saves = 0, rounds = 0;
+let saves = 0, rounds = 0, shuffles = 0;
 const b = backend();
 b.seed('people', PEOPLE);
 b.seed('qualifications', QUAL_ROWS);
@@ -387,10 +388,232 @@ PEOPLE.forEach(p => {
     bad.push('changing a saved item did not update its one row — ' + JSON.stringify(back));
 }
 
+/* 10. RANDOMISE — A NEW WORD FOR YOUR OWN HANDLE, AND NOBODY ELSE'S.
+   *"handles should be their name and a virtuous describing word. they can randomise it but it will
+   follow that general name."* The Settings card has no handle box any more; its Randomise button
+   posts `randomiseHandle`, and these are the things that action must be, through the real `doPost`:
+   the asker's first name and a virtue with no number (nothing else here is called Ada), never the
+   handle they already had, the old one at the FRONT of `handle_was` with the history capped at
+   `HANDLE_WAS_KEEP`, what the next sign-in hands back, the asker's own row whatever id is posted, a
+   refusal that writes nothing for somebody signed out — and `changeHandle`, the typed box it
+   replaced, no longer an action at all. `check-handles.js` holds the generator's own rules. */
+{
+  const t = tokens['P-T1'];
+  const VIRTUES = b.ev('HANDLE_ADJ'), KEEP = b.ev('HANDLE_WAS_KEEP');
+  const shuffle = body => { shuffles++; return b.post(Object.assign({ action: 'randomiseHandle' }, body)); };
+  const before = b.row('P-T1').handle;
+  const d = shuffle({ token: t.token, name: t.name, personId: 'P-T1' });
+  const m = String(d.handle || '').match(/^ada_([a-z]+)$/);
+  if (!d.success) bad.push('randomiseHandle was refused for a signed-in tutor — ' + d.error);
+  else {
+    if (!m || VIRTUES.indexOf(m[1]) === -1) bad.push('randomiseHandle answered "' + d.handle
+      + '" for somebody called Ada — wanted ada_<virtue>, with no number when nothing clashes');
+    if (b.row('P-T1').handle !== d.handle) bad.push('randomiseHandle answered "' + d.handle
+      + '" and the row holds "' + b.row('P-T1').handle + '"');
+    if (d.was !== before) bad.push('randomiseHandle said the old handle was "' + d.was + '", the row held "' + before + '"');
+    if (String(b.row('P-T1').handle_was).split(', ')[0] !== before)
+      bad.push('handle_was does not start with the handle just replaced — it reads "' + b.row('P-T1').handle_was + '"');
+    if (!(b.row('P-T1').handle_changed_at instanceof Date)) bad.push('handle_changed_at was not written');
+    const back = b.post({ action: 'verifyLogin', email: b.row('P-T1').email, pin: '0000' });
+    tokens['P-T1'] = back;
+    if (back.handle !== d.handle) bad.push('the next sign-in handed back "' + back.handle + '", not the randomised "' + d.handle + '"');
+  }
+  /* PRESSED AGAIN AND AGAIN: never the handle you have, and the history newest first and capped. */
+  let prev = b.row('P-T1').handle, same = 0;
+  for (let i = 0; i < KEEP + 4; i++) {
+    const tk = tokens['P-T1'];
+    const e = shuffle({ token: tk.token, name: tk.name, personId: 'P-T1' });
+    if (!e.success) { bad.push('randomiseHandle press ' + (i + 2) + ' was refused — ' + e.error); break; }
+    if (e.handle === prev) same++;
+    if (String(b.row('P-T1').handle_was).split(', ')[0] !== prev)
+      bad.push('press ' + (i + 2) + ': handle_was does not start with "' + prev + '"');
+    prev = e.handle;
+  }
+  if (same) bad.push('randomiseHandle handed back the handle the person already had, ' + same + ' time(s)');
+  const hist = String(b.row('P-T1').handle_was).split(', ');
+  if (hist.length !== KEEP) bad.push('after ' + (KEEP + 5) + ' presses handle_was holds ' + hist.length
+    + ' handle(s), wanted the last ' + KEEP);
+
+  /* SOMEBODY ELSE'S ID POSTED: the gate writes `personId` from the token, so the asker's own changes. */
+  const parentWas = b.row('P-C1').handle, mineWas = b.row('P-T1').handle;
+  const tk = tokens['P-T1'];
+  const other = shuffle({ token: tk.token, name: 'Pat Parent', personId: 'P-C1' });
+  if (b.row('P-C1').handle !== parentWas) bad.push('a tutor\'s randomiseHandle naming P-C1 changed the PARENT\'s handle');
+  if (!other.success || b.row('P-T1').handle === mineWas) bad.push('a randomiseHandle naming somebody else did not change the asker\'s own');
+
+  /* SIGNED OUT: refused, and nothing written. */
+  const out = shuffle({ name: 'Ada Tutor', personId: 'P-T1' });
+  if (out.success) bad.push('randomiseHandle with no token was allowed');
+  else if (out.writes) bad.push('a refused randomiseHandle had already written ' + out.writes + ' cell(s)');
+
+  /* AND THE TYPED BOX IS GONE FROM THE SERVER TOO, not only from the phone. */
+  const typed = b.post({ action: 'changeHandle', token: tokens['P-T1'].token, name: tokens['P-T1'].name,
+    personId: 'P-T1', handle: 'ada_whatever' });
+  if (typed.success || typed.writes) bad.push('changeHandle is still an action — a typed handle reached the sheet');
+}
+
+/* 10. THE AGE RANGE: A YOUNGEST OLDER THAN THE OLDEST IS REFUSED BEFORE ANYTHING IS WRITTEN, so is an
+   age that is not on the list, and a real change comes back. About you posts the headline as well,
+   and it is changed in the same request — so a refusal that let the rest of the page through would
+   show up here as a headline that moved. As the tutor, because it is a tutor's field; the admin row
+   is a copy of the tutor's and would prove nothing the tutor does not. */
+{
+  const t = tokens['P-T1'];
+  const groups = b.ev('PROFILE_GROUPS');
+  const ask = fields => b.post({ action: 'updateProfile', token: tokens['P-T1'].token, name: t.name,
+    personId: 'P-T1', target: t.name, targetId: 'P-T1', fields });
+  const now = () => b.ev(`profileOf_(read(TAB.people).rows.find(r => r.person_id === 'P-T1'))`);
+  if ((groups['About you'] || []).indexOf('age_min') === -1 || (groups['About you'] || []).indexOf('age_max') === -1) {
+    bad.push('the age range is not on About you, so a tutor has nowhere to say which ages they teach');
+  } else {
+    const before = now();
+    [[{ age_min: '16', age_max: '8' }, 'the youngest after the oldest'],
+     [{ age_min: 'Adults', age_max: '11' }, 'adults only, up to eleven'],
+     [{ age_min: '2' }, 'an age that is not on the list'],
+     [{ age_max: 'teenagers' }, 'a word that is not on the list']].forEach(([ages, what]) => {
+      const fields = Object.assign(formOf(groups['About you'], before), { headline: 'Moved by a refused save' }, ages);
+      const d = ask(fields);
+      if (d.success) bad.push('About you with ' + what + ' was saved');
+      else if (d.writes) bad.push('About you with ' + what + ' was refused ("' + d.error + '") having already written ' + d.writes + ' cell(s)');
+    });
+    if (now().headline !== before.headline) bad.push('a refused age range moved the headline anyway');
+    const fields = Object.assign(formOf(groups['About you'], before), { age_min: '11', age_max: 'Adults' });
+    const d = ask(fields);
+    if (!d.success) bad.push('a real age range (11 to Adults) was refused — ' + d.error);
+    else {
+      const again = b.post({ action: 'verifyLogin', email: b.row('P-T1').email, pin: '0000' });
+      tokens['P-T1'] = again;
+      const pr = again.profile || {};
+      if (String(pr.age_min) !== '11' || String(pr.age_max) !== 'Adults')
+        bad.push('the age range saved as 11 to Adults came back as "' + pr.age_min + '" to "' + pr.age_max + '"');
+      /* AND THE PAYLOAD SAYS IT THE WAY THE CARD READS IT: a number and the word. */
+      const pay = b.get({ token: again.token });
+      const me = (pay.tutors || []).find(x => x.personId === 'P-T1');
+      if (!me) bad.push('the tutor is not in the payload, so the age range could not be read back');
+      else if (me.ageMin !== 11 || me.ageMax !== 'Adults')
+        bad.push('the payload sends the age range as ' + JSON.stringify(me.ageMin) + ' to ' + JSON.stringify(me.ageMax)
+          + ', where the card reads a number and the word "Adults"');
+      /* AND THE TWO LISTS THE FORM DRAWS FROM ARE THE ONES THE RULE ASKS ABOUT. */
+      const v = pay.validations || {};
+      const list = b.ev('AGE_OPTIONS');
+      if (JSON.stringify(v.age_min) !== JSON.stringify(list) || JSON.stringify(v.age_max) !== JSON.stringify(list))
+        bad.push('validations does not carry AGE_OPTIONS for both ends, so the form offers ages the server refuses');
+    }
+  }
+}
+
+/* 10. WHO IS SENT WHICH FIGURE ON A SESSION, BY THE REAL `doGet`.
+   *"for tutor they shouldnt see grand total client pays, only grand total they earn. admin should be
+   able to see grand total client pays. total tutor earns, and how much admin earns."* The phone only
+   draws what arrives — see `jobMoney_` — so the rule that matters is the payload's: a client is
+   never sent the split, a tutor on the job is sent their pay and not the client's total, an admin
+   is sent all three. Asked of the cache-keyed GET each person really makes, with their token. */
+{
+  b.seed('jobs', [{ job_id: 'J-MONEY', status: 'active', subject: 'Maths', level: 'GCSE',
+    weekday: 'Tuesday', start_time: '16:00', hours_per_session: 1, venue: 'Online',
+    price_total: 270, tutor_pay: 135, admin_profit: 81, max_students: 4, open_to_others: 'FALSE' }]);
+  /* NAMES READ OFF THE ROWS AS THEY ARE NOW — the saves above rename the parent, and a roster
+     naming somebody who no longer exists is a session nobody is on. */
+  const nameOf = pid => { const r = b.row(pid); return (r.first_name + ' ' + r.last_name).trim(); };
+  b.seed('events', [
+    { event_id: 'E1', at: new Date(2026, 8, 22), job_id: 'J-MONEY', actor: nameOf('P-C1'), role: 'client', action: 'Request' },
+    { event_id: 'E2', at: new Date(2026, 8, 23), job_id: 'J-MONEY', actor: nameOf('P-T1'), role: 'tutor', action: 'Request' },
+  ]);
+  /* AND THE PAYLOAD CACHE, NOT ONLY THE ROW CACHE. `b.seed` writes the tab directly, which is what a
+     hand edit is, and the six-hour payload does not know — so any visitor fetched earlier in this
+     file is served the payload from before the seed. The age-range section above fetches the
+     tutor's, so the tutor and nobody else was sent a payload with no J-MONEY in it, and this
+     section reported the session "did not reach the tutor". `clearPayloadCache` is what a real
+     write retires it with. */
+  b.ev('clearCache()'); b.ev('clearPayloadCache()');
+  const asWho = pid => {
+    const t = tokens[pid]; if (!t) return null;
+    const d = b.get({ person: pid, name: t.name, token: t.token });
+    return (d.liveJobs || d.clientClasses || []).find(j => j.id === 'J-MONEY') || null;
+  };
+  const has = v => v !== '' && v != null;
+  const c = asWho('P-C1'), t = asWho('P-T1'), a = asWho('P-A1');
+  if (!c || !t || !a) bad.push('the seeded session did not reach ' + [!c && 'the client', !t && 'the tutor', !a && 'the admin'].filter(Boolean).join(', ') + ' — so who sees which figure was NOT checked');
+  else {
+    if (Number(c.price) !== 270) bad.push('the client was sent a price of ' + JSON.stringify(c.price) + ', wanted 270');
+    if (has(c.tutorPay) || has(c.adminKeeps)) bad.push('the client was sent the split — tutorPay ' + JSON.stringify(c.tutorPay) + ', adminKeeps ' + JSON.stringify(c.adminKeeps));
+    if (has(t.price)) bad.push('the tutor was sent the client\'s total, ' + JSON.stringify(t.price));
+    if (Number(t.tutorPay) !== 135) bad.push('the tutor was sent tutorPay ' + JSON.stringify(t.tutorPay) + ', wanted 135');
+    if (has(t.adminKeeps)) bad.push('the tutor was sent what the admin keeps, ' + JSON.stringify(t.adminKeeps));
+    if (Number(a.price) !== 270 || Number(a.tutorPay) !== 135 || Number(a.adminKeeps) !== 81) {
+      bad.push('the admin was sent price ' + a.price + ', tutorPay ' + a.tutorPay + ', adminKeeps ' + a.adminKeeps + ' — wanted 270, 135, 81');
+    }
+  }
+}
+
+/* 10. YOUR OWN FAMILY, THROUGH THE REAL `doGet`, AND NOBODY ELSE'S.
+   ASKED FOR AS *"students should be able to see their parents and likewise"*. Two families on one
+   tab, and the links that must NOT count beside the ones that must: a claim nobody answered and a
+   claim refused, each naming somebody from the other family. A student sees their parent and not
+   the other parent; a parent sees their child and not the other child; a stranger whose URL names
+   the student sees nobody, because the list is built from the TOKEN. Its own backend, because the
+   people above have no family and a link added there would change what they are sent. */
+{
+  const f = backend();
+  const mk = (id, role, first, last) => Object.assign({}, base, { person_id: id, role, first_name: first,
+    last_name: last, full_name: first + ' ' + last, handle: first.toLowerCase() + '_calm' + id.slice(-2),
+    username: first.toLowerCase(), email: id.toLowerCase() + '@example.org' });
+  f.seed('people', [mk('P-PA', 'client', 'Anna', 'Parent'), mk('P-PB', 'client', 'Bea', 'Parent'),
+                    mk('P-SA', 'student', 'Abe', 'Child'), mk('P-SB', 'student', 'Ben', 'Child')]);
+  f.seed('family', [
+    { link_id: 'L1', parent_id: 'P-PA', child_id: 'P-SA', state: 'accepted' },
+    { link_id: 'L2', parent_id: 'P-PB', child_id: 'P-SB', state: 'accepted' },
+    { link_id: 'L3', parent_id: 'P-PB', child_id: 'P-SA', state: 'asked' },
+    { link_id: 'L4', parent_id: 'P-PA', child_id: 'P-SB', state: 'refused' },
+  ]);
+  const tok = id => {
+    const d = f.post({ action: 'verifyLogin', email: id.toLowerCase() + '@example.org', pin: '0000' });
+    if (!d.success) bad.push('family: ' + id + ' could not sign in — ' + d.error);
+    return d;
+  };
+  const fam = (d, label) => {
+    if (!Array.isArray(d.family)) { bad.push('family: ' + label + ' was sent no `family` list at all'); return []; }
+    if (d.family.some(x => x.email || x.phone || x.address || x.date_of_birth))
+      bad.push('family: ' + label + ' was sent a private field on a family card');
+    return d.family.map(x => x.relation + ':' + x.personId).sort().join(',');
+  };
+  const want = (label, got, exp) => { if (got !== exp) bad.push('family: ' + label + ' was sent [' + got + '] — wanted [' + exp + ']'); };
+  /* AND STAMPED WITH WHOSE IT IS — the phone draws nothing whose `familyFor` is not the signed-in id. */
+  const stamp = (d, label, exp) => { if (S(d.familyFor) !== exp) bad.push('family: ' + label + ' was stamped familyFor [' + S(d.familyFor) + '] — wanted [' + exp + ']'); return d; };
+  const S = v => (v === undefined || v === null) ? '' : String(v);
+  const sa = tok('P-SA'), pa = tok('P-PA'), pb = tok('P-PB');
+  if (sa.token) want('the student P-SA', fam(stamp(f.get({ person: 'P-SA', name: sa.name, token: sa.token }), 'P-SA', 'P-SA'), 'P-SA'), 'parent:P-PA');
+  if (pa.token) want('the parent P-PA', fam(stamp(f.get({ person: 'P-PA', name: pa.name, token: pa.token }), 'P-PA', 'P-PA'), 'P-PA'), 'child:P-SA');
+  if (pb.token) want('the parent P-PB', fam(stamp(f.get({ person: 'P-PB', name: pb.name, token: pb.token }), 'P-PB', 'P-PB'), 'P-PB'), 'child:P-SB');
+  want('a stranger whose URL names P-SA', fam(stamp(f.get({ person: 'P-SA', name: 'Abe Child' }), 'stranger', ''), 'stranger'), '');
+  /* THE REQUEST THAT BECOMES A LINK goes to the child it names and nobody else: P-SA has Bea's
+     unanswered "this is my child" (L3), P-SB has only a REFUSED one (L4), and a stranger naming
+     P-SA in the URL has none. This is also the payload that used to be an error — see `claims`. */
+  const claimsOf = d => (Array.isArray(d.claims) ? d.claims : []).map(c => c.from).sort().join(',');
+  const sb = tok('P-SB');
+  if (sa.token) want('the claims sent to P-SA', claimsOf(f.get({ token: sa.token })), 'Bea Parent');
+  if (sb.token) want('the claims sent to P-SB', claimsOf(f.get({ token: sb.token })), '');
+  if (pb.token) want('the claims sent to the parent who asked', claimsOf(f.get({ token: pb.token })), '');
+  want('the claims sent to a stranger whose URL names P-SA', claimsOf(f.get({ person: 'P-SA', name: 'Abe Child' })), '');
+  /* AND ANSWERING IT IS WHAT MAKES THE FAMILY: yes on L3 puts Bea on Abe's list, and Abe's claims
+     empty. Only the child may answer — the parent who asked is refused. */
+  if (sa.token && pb.token) {
+    const row = ((f.get({ token: sa.token }).claims || [])[0] || {}).rowIndex;
+    const byParent = f.post({ action: 'answerClaim', token: pb.token, rowIndex: row, accept: true });
+    if (!byParent || !byParent.error) bad.push('family: the parent who asked could answer their own claim');
+    const yes = f.post({ action: 'answerClaim', token: sa.token, rowIndex: row, accept: true });
+    if (!yes || !yes.success) bad.push('family: P-SA could not accept Bea\'s claim — ' + JSON.stringify(yes));
+    const after = f.get({ token: sa.token });
+    want('P-SA after saying yes to Bea', fam(after, 'P-SA after yes'), 'parent:P-PA,parent:P-PB');
+    want('the claims left for P-SA after answering', claimsOf(after), '');
+  }
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
-console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds);
+console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
+  + '   handles randomised: ' + shuffles);
 if (bad.length) {
   console.log('FAILED — a Save that does not stick, or writes what nobody asked, is the one on the screen that only exists to change what the sheet holds.');
   process.exit(1);

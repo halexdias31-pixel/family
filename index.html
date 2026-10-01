@@ -1326,20 +1326,31 @@
     <div class="sp-sig">@family.</div>
   </div>
 
-  <!-- TWO OVERLAPPING SETS, and the bit in the middle. -->
+  <!-- TWO SETS IN ξ, AND THE NOTATION FOR THREE OF ITS REGIONS. A ∩ B, then A ∪ B, then A′, each
+       shaded as it is named underneath, because what a student is here to recognise is the symbol
+       read off the picture. Written by tools/venn.py from one table of geometry and one timeline —
+       re-run it rather than editing these lines; the region paths and the hatch are arithmetic. -->
   <div id="splash-venn" aria-hidden="true">
-    <svg class="vn-svg" viewBox="0 0 120 76">
-      <circle class="vn-a" cx="48" cy="38" r="26"/>
-      <circle class="vn-b" cx="72" cy="38" r="26"/>
-      <path class="vn-both" d="M60 15.6 A26 26 0 0 0 60 60.4 A26 26 0 0 0 60 15.6 Z"/>
-      <!-- THE CIRCLES ARE NAMED, because the caption now names them. A and B ride with their own
-           circle, so they slide with it and the labels stay on the sets they belong to. -->
-      <text class="vn-l vn-a-l" x="30" y="42">A</text>
-      <text class="vn-l vn-b-l" x="90" y="42">B</text>
+    <svg class="vn-svg" viewBox="0 0 160 108">
+      <defs>
+        <clipPath id="vn-c-and"><path clip-rule="nonzero" d="M80 30.62 A30 30 0 0 1 80 81.38 A30 30 0 0 1 80 30.62Z"/></clipPath>
+        <clipPath id="vn-c-or"><path clip-rule="nonzero" d="M80 30.62 A30 30 0 1 0 80 81.38 A30 30 0 1 0 80 30.62Z"/></clipPath>
+        <clipPath id="vn-c-not"><path clip-rule="evenodd" d="M6 6h148v96h-148ZM34 56A30 30 0 1 0 94 56A30 30 0 1 0 34 56Z"/></clipPath>
+        <path id="vn-hl" d="M0 4l-100 100M6 4l-100 100M12 4l-100 100M18 4l-100 100M24 4l-100 100M30 4l-100 100M36 4l-100 100M42 4l-100 100M48 4l-100 100M54 4l-100 100M60 4l-100 100M66 4l-100 100M72 4l-100 100M78 4l-100 100M84 4l-100 100M90 4l-100 100M96 4l-100 100M102 4l-100 100M108 4l-100 100M114 4l-100 100M120 4l-100 100M126 4l-100 100M132 4l-100 100M138 4l-100 100M144 4l-100 100M150 4l-100 100M156 4l-100 100M162 4l-100 100M168 4l-100 100M174 4l-100 100M180 4l-100 100M186 4l-100 100M192 4l-100 100M198 4l-100 100M204 4l-100 100M210 4l-100 100M216 4l-100 100M222 4l-100 100M228 4l-100 100M234 4l-100 100M240 4l-100 100M246 4l-100 100M252 4l-100 100"/>
+      </defs>
+      <g class="vn-r vn-r-and" clip-path="url(#vn-c-and)"><rect class="vn-tint" x="6" y="6" width="148" height="96"/><use class="vn-h" href="#vn-hl"/></g>
+      <g class="vn-r vn-r-or" clip-path="url(#vn-c-or)"><rect class="vn-tint" x="6" y="6" width="148" height="96"/><use class="vn-h" href="#vn-hl"/></g>
+      <g class="vn-r vn-r-not" clip-path="url(#vn-c-not)"><rect class="vn-tint" x="6" y="6" width="148" height="96"/><use class="vn-h" href="#vn-hl"/></g>
+      <rect class="vn-box" x="6" y="6" width="148" height="96"/>
+      <text class="vn-xi" x="13" y="18">&#958;</text>
+      <g class="vn-g vn-ga"><circle class="vn-a" cx="64" cy="56" r="30"/><text class="vn-l vn-a-l" x="49" y="61">A</text></g>
+      <g class="vn-g vn-gb"><circle class="vn-b" cx="96" cy="56" r="30"/><text class="vn-l vn-b-l" x="111" y="61">B</text></g>
     </svg>
-    <!-- THE SYMBOL, NOT THE WORD. "both" is what the picture already shows; the notation is the
-         thing a student is here to recognise, and the sheet now carries it too. -->
-    <div class="vn-say">A &#8745; B</div>
+    <div class="vn-say">
+      <span class="vn-s vn-s-and"><b class="a">A</b> &#8745; <b class="b">B</b></span>
+      <span class="vn-s vn-s-or"><b class="a">A</b> &#8746; <b class="b">B</b></span>
+      <span class="vn-s vn-s-not"><b class="a">A</b>&#8242;</span>
+    </div>
     <div class="sp-sig">@family.</div>
   </div>
 

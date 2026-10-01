@@ -234,12 +234,19 @@ if (acceptedEngine.length) {
   acceptedEngine.forEach(k => console.log('  ' + k + ' \u2014 ' + ACCEPTED_ENGINE[k]));
 }
 
-/* ---------- AND THE TWO DECKS THAT ARE DEALT ON ONE COLUMN ---------------------------------------
+/* ---------- AND THE WORD DECKS THAT ARE DEALT ON ONE COLUMN --------------------------------------
    ARTICULATE AND CHARADES ARE PAGES OF THE SAME COLUMN, so a word in both decks can be dealt twice
    in one sitting — once to be described and once to be mimed — and the second time the room already
    knows the answer. It happened: `Countdown` was in the charades TV deck and `a countdown` is in
    Articulate's Random, and the only thing that found it was an agent told to try to refute the deck
    rather than approve it.
+
+   FOUR MORE DECKS JOINED THE COLUMN — Just a Minute's topics, Taboo's words, Hot Seat's words and
+   20 Questions' secrets — and the argument is the same for all six: the answer to one game must not
+   be the answer to another an hour later. So every pair is compared, not just the first two. Taboo's
+   FORBIDDEN words are not dealt and are not compared; Imposter's deck is left out deliberately, and
+   the note over `IMP_DECK` says why. Alibi's four lists are not words anybody guesses, so they are
+   checked for repeats within themselves and nothing else.
 
    THE COMPARISON IGNORES A LEADING ARTICLE, because `a countdown` and `Countdown` are the same word
    to a room and different strings to a checker — which is the `spellKey_` argument one file along.
@@ -248,36 +255,215 @@ if (acceptedEngine.length) {
    to change, not a backlog to work through. */
 {
   const gsrc = fs.readFileSync(path.join(jsDir, 'games.js'), 'utf8');
+  /* AN OBJECT ENDS AT `\n};` AND AN ARRAY AT `\n];`, and the nearer of the two is this deck's end. */
   const deck = name => {
-    const i = gsrc.indexOf('const ' + name);
+    const i = gsrc.indexOf('const ' + name + ' =');
     if (i < 0) return null;
-    const j = gsrc.indexOf('\n};', i);
-    if (j < 0) return null;
-    try { return new Function(gsrc.slice(i, j + 3) + '\nreturn ' + name + ';')(); }
+    const ends = ['\n};', '\n];'].map(e => gsrc.indexOf(e, i)).filter(j => j >= 0);
+    if (!ends.length) return null;
+    try { return new Function(gsrc.slice(i, Math.min(...ends) + 3) + '\nreturn ' + name + ';')(); }
     catch (e) { return null; }
   };
-  const art = deck('ART_DECK'), cha = deck('CHA_DECK');
+  /* A deck as one flat list of what is DEALT: a category object flattens, Taboo deals its first
+     entry. */
+  const flat = (d, pick) => {
+    const all = Array.isArray(d) ? d : Object.keys(d).reduce((a, c) => a.concat(d[c]), []);
+    return pick ? all.map(pick) : all;
+  };
+  const WORD_DECKS = [
+    ['ART_DECK', 'articulate'], ['CHA_DECK', 'charades'], ['JAM_DECK', 'just a minute'],
+    ['TABOO_DECK', 'taboo', c => c[0]], ['HOT_DECK', 'hot seat'], ['TWQ_DECK', '20 questions'],
+  ];
+  const OWN_ONLY = ['ALB_CRIMES', 'ALB_TIMES', 'ALB_PLACES', 'ALB_QUESTIONS'];
+  /* AT LEAST 120 OF WHATEVER A ROUND IS ABOUT, which the owner asked for: below that a class gets
+     the same card twice in an afternoon. Alibi's times and places are not on this list — a case is
+     one of each of three lists, so 24 times by 46 places by 121 crimes is fifty thousand cases, and
+     a longer list of afternoons would add nothing anybody notices. */
+  const FLOOR = 120;
+  const SIZED = ['JAM_DECK', 'TABOO_DECK', 'HOT_DECK', 'TWQ_DECK', 'ALB_CRIMES', 'ALB_QUESTIONS'];
+
+  const read = {};
+  const unread = [];
+  WORD_DECKS.map(d => d[0]).concat(OWN_ONLY).forEach(n => { read[n] = deck(n); if (!read[n]) unread.push(n); });
   /* A DECK THIS CANNOT READ IS NOT A PASS. "I did not manage to look" printed as "I looked and it
      was fine" is this repository's own recurring failure, and it is cheaper to say so here. */
-  if (!art || !cha) {
+  if (unread.length) {
     console.log('');
-    console.log('COULD NOT READ ART_DECK / CHA_DECK out of games.js, so the two decks were NOT compared');
+    console.log('COULD NOT READ ' + unread.join(', ') + ' out of games.js, so those decks were NOT compared');
     bad = true;
   } else {
-    const key = w => String(w).toLowerCase().replace(/^(a|an|the)\s+/, '');
-    const inArt = new Map();
-    Object.keys(art).forEach(c => art[c].forEach(w => inArt.set(key(w), c + ' ' + JSON.stringify(w))));
-    const clash = [];
-    Object.keys(cha).forEach(c => cha[c].forEach(w => {
-      const hit = inArt.get(key(w));
-      if (hit) clash.push('charades ' + c + ' ' + JSON.stringify(w) + '  vs  articulate ' + hit);
-    }));
-    if (clash.length) {
+    /* AND IT FOLDS A PLURAL, WORD BY WORD, which the first version of this rule did not. Comparing
+       spellings let `Penguins` on Just a Minute sit beside `a penguin` on Charades, `Dinosaurs`
+       beside Taboo's `dinosaur` and `Socks` beside 20 Questions' `a sock` — thirty-odd pairs a room
+       hears as one word, every one of them passing a rule written to catch exactly that. So each word
+       loses a plural ending and then a final e (`potatoes` and `potato`, `shoes` and `shoe`, `witches`
+       and `witch` all meet), which is cruder than English and errs towards calling two words one —
+       the cheaper mistake here, because the cost of a false alarm is choosing a different card.
+       What it does NOT catch is one card inside another (`guitar` in `playing the guitar`): that is
+       a judgement, and the five new decks were swept for it by hand rather than by a rule that would
+       also refuse `a kettle` for appearing in a nursery rhyme. */
+    const fold = t => t.replace(/ies$/, 'y').replace(/(sh|ch|x|ss|z)es$/, '$1')
+      .replace(/([^s])s$/, '$1').replace(/([a-z]{2})e$/, '$1');
+    const key = w => String(w).toLowerCase().replace(/[’']/g, '').replace(/^(a|an|the)\s+/, '')
+      .replace(/[^a-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean).map(fold).join(' ');
+    const clash = [], twice = [], small = [], shape = [];
+    const seen = new Map();
+    WORD_DECKS.forEach(([n, label, pick]) => {
+      const mine = new Set();
+      flat(read[n], pick).forEach(w => {
+        const k = key(w);
+        if (mine.has(k)) { twice.push(label + ' ' + JSON.stringify(w)); return; }
+        mine.add(k);
+        const hit = seen.get(k);
+        if (hit) clash.push(label + ' ' + JSON.stringify(w) + '  vs  ' + hit);
+        else seen.set(k, label + ' ' + JSON.stringify(w));
+      });
+    });
+    OWN_ONLY.forEach(n => {
+      const mine = new Set();
+      flat(read[n]).forEach(w => {
+        const k = key(w);
+        if (mine.has(k)) twice.push(n + ' ' + JSON.stringify(w)); else mine.add(k);
+      });
+    });
+    SIZED.forEach(n => {
+      const len = flat(read[n]).length;
+      if (len < FLOOR) small.push(n + ' holds ' + len + ' — fewer than ' + FLOOR);
+    });
+    /* A TABOO CARD IS A WORD AND FOUR OR FIVE FORBIDDEN ONES, none of them the word itself and none
+       twice — a card that forbids its own word is a card the describer cannot lose. */
+    read.TABOO_DECK.forEach(c => {
+      const ban = Array.isArray(c) ? c.slice(1) : [];
+      if (!Array.isArray(c) || ban.length < 4 || ban.length > 5) {
+        shape.push(JSON.stringify(c) + ' does not have four or five forbidden words');
+      } else if (new Set(ban.map(key)).size !== ban.length || ban.some(b => key(b) === key(c[0]))) {
+        shape.push(JSON.stringify(c) + ' forbids a word twice, or forbids its own word');
+      }
+    });
+    [['ONE WORD IN TWO DECKS, ON ONE COLUMN', clash], ['THE SAME ENTRY TWICE IN ONE DECK', twice],
+     ['A DECK UNDER ' + FLOOR, small], ['A TABOO CARD THE WRONG SHAPE', shape]].forEach(([t, l]) => {
+      if (!l.length) return;
       console.log('');
-      console.log('ONE WORD IN BOTH DECKS, ON ONE COLUMN  (' + clash.length + ')');
-      clash.forEach(c => console.log('  ' + c));
+      console.log(t + '  (' + l.length + ')');
+      l.forEach(x => console.log('  ' + x));
       bad = true;
+    });
+    if (!bad) {
+      console.log('');
+      console.log('  decks: ' + WORD_DECKS.concat(OWN_ONLY.map(n => [n, n]))
+        .map(([n, label, pick]) => label + ' ' + flat(read[n], pick).length).join(', '));
     }
+  }
+}
+
+/* ---------- THE SENTENCE SCRAMBLE'S SENTENCES AND THE WORD SEARCH'S WORDS ------------------------
+   BOTH GAMES ARE ONLY AS GOOD AS THEIR LISTS, and every fault in a list draws perfectly: a sentence
+   whose stated alternative uses a word the pool does not have is a right answer nobody can build; a
+   theme word longer than its grid is never placed; a theme that cannot fill its puzzle three times
+   over deals the same six words every time. And the word search's filter is a COPY of the backend's
+   `HANDLE_BLOCKED` — the phone never sees that list — so the two are compared here, where a copy kept
+   by hand would otherwise quietly fall behind. The notes over `SS_SENTENCES` and `WS_THEMES` in
+   games.js are the argument for each rule. */
+{
+  const gsrc = fs.readFileSync(path.join(jsDir, 'games.js'), 'utf8');
+  /* CUT TO THE FIRST LINE AT COLUMN ZERO THAT CLOSES IT, which is how every one of these is written,
+     and evaluated on its own: a literal, so there is nothing in it that needs a browser. */
+  const lit = (text, name) => {
+    const i = text.indexOf('const ' + name + ' =');
+    if (i < 0) return null;
+    const m = /\n[\]}];/.exec(text.slice(i));
+    if (!m) return null;
+    try { return new Function(text.slice(i, i + m.index + 3) + '\nreturn ' + name + ';')(); }
+    catch (e) { return null; }
+  };
+  const SENT = lit(gsrc, 'SS_SENTENCES'), THEMES = lit(gsrc, 'WS_THEMES'), NOT = lit(gsrc, 'WS_NOT');
+  const csrc = (() => {
+    const c = path.join(jsDir, '..', 'backend', 'constants.gs');
+    return fs.existsSync(c) ? fs.readFileSync(c, 'utf8') : '';
+  })();
+  const BLOCKED = lit(csrc, 'HANDLE_BLOCKED');
+  const lists = [];
+  if (!SENT || !THEMES || !NOT || !BLOCKED) {
+    lists.push('COULD NOT READ ' + [['SS_SENTENCES', SENT], ['WS_THEMES', THEMES], ['WS_NOT', NOT],
+      ['HANDLE_BLOCKED (backend/constants.gs)', BLOCKED]].filter(x => !x[1]).map(x => x[0]).join(', ')
+      + ', so the lists were NOT checked — not a pass');
+  } else {
+    /* SENTENCES */
+    const seenS = new Set();
+    let total = 0;
+    Object.keys(SENT).forEach(band => {
+      const list = SENT[band];
+      if (!Array.isArray(list) || list.length < 40) {
+        lists.push('scramble band ' + band + ' has ' + (list ? list.length : 0) + ' sentences — under 40 is a band '
+                 + 'somebody plays through in one sitting');
+      }
+      (list || []).forEach(entry => {
+        total++;
+        const all = (Array.isArray(entry) ? entry : [entry]).map(x => String(x).trim());
+        const chips = all.map(x => x.split(/\s+/));
+        const head = all[0];
+        if (seenS.has(head)) lists.push('scramble ' + band + ': ' + JSON.stringify(head) + ' is in the list twice');
+        seenS.add(head);
+        if (!/^[A-Z0-9]/.test(head)) lists.push('scramble ' + band + ': ' + JSON.stringify(head) + ' does not start with a capital');
+        if (!/[.!?]$/.test(head)) lists.push('scramble ' + band + ': ' + JSON.stringify(head) + ' does not end with . ! or ?');
+        if (chips[0].length < 4 || chips[0].length > 14) {
+          lists.push('scramble ' + band + ': ' + JSON.stringify(head) + ' is ' + chips[0].length
+                   + ' words; 4 to 14 is what a phone card can lay out as chips');
+        }
+        const bag = c => c.slice().sort().join('\u0001');
+        chips.slice(1).forEach((c, k) => {
+          if (bag(c) !== bag(chips[0])) {
+            lists.push('scramble ' + band + ': the alternative ' + JSON.stringify(all[k + 1])
+                     + ' is not the same words as ' + JSON.stringify(head) + ', so nobody can build it');
+          }
+          if (c.join(' ') === head) lists.push('scramble ' + band + ': ' + JSON.stringify(head) + ' lists itself as its own alternative');
+        });
+      });
+    });
+    if (total < 150) lists.push('the scramble has ' + total + ' sentences; the brief asks for at least 150');
+    /* THEMES */
+    const key = w => String(w).toUpperCase().replace(/[^A-Z]/g, '');
+    const notKeys = NOT.map(key);
+    const ids = new Set();
+    THEMES.forEach(t => {
+      if (ids.has(t.id)) lists.push('word search theme ' + t.id + ' is in the list twice');
+      ids.add(t.id);
+      const fits = (t.words || []).filter(w => key(w).length >= 3 && key(w).length <= t.size);
+      (t.words || []).filter(w => fits.indexOf(w) === -1).forEach(w => {
+        lists.push('word search ' + t.id + ': ' + JSON.stringify(w) + ' does not fit a ' + t.size + '-letter grid');
+      });
+      if (fits.length < t.n * 3) {
+        lists.push('word search ' + t.id + ' has ' + fits.length + ' words that fit for ' + t.n + ' a puzzle — under '
+                 + (t.n * 3) + ' and the same words come round every time');
+      }
+      const ks = new Set();
+      (t.words || []).forEach(w => {
+        if (ks.has(key(w))) lists.push('word search ' + t.id + ': ' + JSON.stringify(w) + ' is in the list twice');
+        ks.add(key(w));
+        /* NOT QUOTED BACK, which is `check-handles.js`'s rule: the word it matched is the thing nobody
+           should have to read, and the theme word is enough to find it. */
+        if (notKeys.some(b => key(w).indexOf(b) !== -1)) {
+          lists.push('word search ' + t.id + ': ' + JSON.stringify(w) + ' contains a word the grid filter refuses, '
+                   + 'so every puzzle it is placed in is thrown away');
+        }
+      });
+    });
+    const a = new Set(NOT.map(key)), b = new Set(BLOCKED.map(key));
+    const only = (x, y) => [...x].filter(v => !y.has(v)).length;
+    if (only(a, b) || only(b, a)) {
+      lists.push('WS_NOT in games.js and HANDLE_BLOCKED in constants.gs disagree (' + only(b, a)
+               + ' missing from the word search, ' + only(a, b) + ' extra) — the word search is a copy of the '
+               + 'backend list and must be kept equal to it');
+    }
+    console.log('');
+    console.log('  scramble: ' + total + ' sentences (' + Object.keys(SENT).map(k => k + ' ' + SENT[k].length).join(', ')
+              + ')   word search: ' + THEMES.length + ' themes');
+  }
+  if (lists.length) {
+    console.log('');
+    console.log('A SENTENCE OR A WORD LIST THE GAME CANNOT USE  (' + lists.length + ')');
+    lists.forEach(x => console.log('  ' + x));
+    bad = true;
   }
 }
 

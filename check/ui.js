@@ -281,6 +281,15 @@ const ACCEPTED_TAP = [
   + 'because those boards are seven and eight across. What makes it liveable here is that a tap on '
   + 'the wrong square costs nothing: a tile you have just put down comes straight back off with '
   + 'another tap, and nothing is committed until Play.' },
+  { cls: /^ws-c\b/, why:
+    'A WORD SEARCH IS A GRID OF LETTERS AND EVERY LETTER IS A PLACE A WORD CAN START OR END. Ten 44px '
+  + 'cells need 440px and the narrowest phone here is 320; eight need 352. Measured at 320x568 a ten-letter row '
+  + 'is 20px a cell and an eight-letter one 25px; at 390 they are 25px and 32px. The two ways out were both worse: a '
+  + 'drag across the grid would fight the pager for the one gesture this app navigates by (the maze '
+  + 'already refuses it for that reason, and the pen pad pays for it with a padlock), and a grid '
+  + 'scrolled sideways hides the words it is asking you to find. What makes it liveable is that a '
+  + 'wrong tap costs nothing: a first tap on the wrong letter is replaced by tapping the right one, '
+  + 'and a second tap that is not in a line with the first simply becomes the new start.' },
   { cls: /^bk-(sel|in|v)\b/, why:
     'THE BOOKING ROW IS ONE LINE AND ITS UNDERLINE IS THE CELL\'S BOTTOM BORDER. Tried twice and '
   + 'photographed both times: `min-height: 44px` on the control grows the grid cell to 44px and '
@@ -487,6 +496,14 @@ function inspect(opts) {
        tap-target rule's question. Only the input's own horizontal scroll is exempt, and only it.
        `<textarea>` is NOT exempt: it wraps, so a sideways scroll there is a real fault. */
     if (el.tagName === 'INPUT') continue;
+    /* ---------- AND NOTHING INSIDE A DRAWING CAN PUSH THE PAGE SIDEWAYS -------------------------
+       The outermost `<svg>` clips to its own viewport — the UA default — so a descendant's layout
+       box cannot reach the card. The `<svg>` itself is an ordinary replaced element and is still
+       measured. `check/cards.js` learned this first (CLAUDE.md, "`check/cards.js` was measuring
+       inside the drawings"); this file met it the day a paper audit put the 2017 Higher Q1 scatter
+       graph on a page beside the bundle state, and reported its rotated y-axis caption — written
+       once and turned into place, so its layout box runs off to the left — as the card scrolling. */
+    if (el.ownerSVGElement) continue;
     /* ---------- AND AN ELLIPSIS IS THE OTHER WAY OF BEING TOLD ---------------------------------
        SAME QUESTION, SECOND ANSWER. `text-overflow: ellipsis` on a clipped box is a declaration
        that the text is EXPECTED to be longer than the box and that the browser should say so — and
@@ -666,6 +683,11 @@ function inspect(opts) {
           if (!b.width && !b.height) continue;            // display:none has no box to be wrong
           /* THE WEEK'S RIGHT EDGE, EXEMPT WITH ITS REASON ABOVE. */
           if (edge === 'right' && col === 'bk-v' && row.classList.contains('bk-wk')) continue;
+          /* AND A TOTAL'S LABEL, ON THE SAME EDGE AND FOR THE SAME KIND OF REASON. `.rc-total .bk-k`
+             spans every track but the figure's, so `CLIENT PAYS` and `TUTOR EARNS` cannot widen the
+             question column and wrap every answer on the card — see the note beside it in
+             style.css. Its LEFT edge is still asked: it starts where every other label starts. */
+          if (edge === 'right' && col === 'bk-k' && row.classList.contains('rc-total')) continue;
           seen.push({ at: Math.round(b[edge] * 10) / 10,
                       k: (row.querySelector(':scope > .bk-k') || {}).textContent || row.className });
         }
@@ -1119,6 +1141,59 @@ function inspect(opts) {
            has a class attached to it. Rows carry what was found; the report decides what it means. */
         rows.push({ width, id: label, as: who.as, counted, guessed, ...found });
 
+        /* ---------- THE FILM IS ON THE PICTURES AND ON NOTHING ELSE -------------------------------
+           ASKED FOR AS "make the ig clone have a grainy look to it" — see `.post, .reel` in
+           style.css. The look is a `filter` and a `mask-image` on the picture itself, so there is
+           no overlay to steal a tap and nothing for the tap rules above to see. Two ways it can go
+           wrong, and neither is a layout fault any other rule here measures: a selector that stops
+           matching (the feed goes back to clean photographs, which measures perfectly), and one
+           that matches too much (a caption, a tile, or a CHAT clip — `post-vid` is on those too —
+           drawn grainy). So it is asked of the rendered page, on every screen: whatever carries
+           the grain mask must be a post's or a reel's own `<img>`/`<video>`, and on the two columns
+           that have them every one of those must carry it. The grain is told from any other mask
+           by its `feTurbulence`, which nothing else in this stylesheet names. */
+        const film = await page.evaluate(sid => {
+          const host = document.getElementById('s-' + sid);
+          if (!host) return [];
+          const out = [];
+          /* TWO TESTS, ONE STRICTER THAN THE OTHER, ON PURPOSE. Over-reach is asked of the grain
+             ALONE — a caption that picked up the mask and not the filter is still a dirty caption,
+             and requiring both would let it through. Under-reach asks for BOTH, because a picture
+             that kept the grain and lost the colour is half the look. */
+          const grainy = el => {
+            const st = getComputedStyle(el);
+            return /feTurbulence/.test(st.maskImage || st.webkitMaskImage || '');
+          };
+          const grained = el => grainy(el) && getComputedStyle(el).filter !== 'none';
+          /* `.post-preview` is the composer's preview, drawn by the card's own renderer — see the
+             note in style.css. It is on the feed's first page and has pictures only while a link is
+             typed into the composer, so no state measures it; it is named so a typed link is not
+             reported as a fault. */
+          const media = el => /^(IMG|VIDEO)$/.test(el.tagName)
+            && (el.closest('.post, .post-preview') && /\bpost-(pic|cell)\b/.test(el.className)
+                || el.closest('.reel') && el.classList.contains('feed-vid'));
+          host.querySelectorAll('*').forEach(el => {
+            if (grainy(el) && !media(el)) {
+              out.push(`${el.tagName.toLowerCase()}.${String(el.className).split(/\s+/)[0] || ''} `
+                       + `carries the film grain and is not a post's or a reel's picture`);
+            }
+          });
+          const want = [...host.querySelectorAll('.post img, .post video, .post-preview img, '
+                                                + '.post-preview video, .reel video')].filter(media);
+          want.forEach(el => {
+            if (!grained(el)) out.push(`${el.tagName.toLowerCase()}.${el.className.split(/\s+/)[0]} `
+                                     + `is a post's or a reel's picture and is drawn without the film`);
+          });
+          /* AND ONE THAT IS NOT THERE AT ALL IS NOT A PASS. The feed's fixture post carries
+             photographs, so finding none there means this rule could not reach its subject. */
+          if (sid === 'feed' && !want.length) out.push('the feed drew no post picture to measure');
+          /* The reel column too: its clips are in the code's own list whatever the fixture says, so
+             a reel column with no clip to measure is a selector that stopped finding them. */
+          if (sid === 'reel' && !want.length) out.push('the reel column drew no clip to measure');
+          return out;
+        }, id);
+        if (film.length) rows.push({ width, id: label, as: who.as, film });
+
         if (SHOTS) await page.screenshot({
           path: path.join(__dirname, 'shots',
             `${id}${state.name ? '-' + state.name.replace(/\s+/g, '-') : ''}`
@@ -1279,6 +1354,7 @@ function inspect(opts) {
     /* THE SCREEN NEVER DREW. Grouped like the rest so one broken card across four widths and two
        visitors is one line to fix rather than eight, and so it is counted exactly once. */
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
+    (r.film || []).forEach(f => add('FILM LOOK', f, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
     (r.hidden || []).forEach(o => add(o.tol ? 'OUT OF REACH, INSIDE THE APP\'S OWN FLOOR (known)'
