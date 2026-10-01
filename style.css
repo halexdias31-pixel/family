@@ -6476,16 +6476,18 @@ body.has-ib #install-bar { transition: transform .28s ease; }
           text-align: center; }
 
 /* ---------- FIBONACCI --------------------------------------------------------------------------- */
-#splash-fib .fb-svg { width: min(62vw, 15rem); height: auto; }
-.fb-sq { fill: none; stroke: #6fa8dc; stroke-width: 1.4; opacity: 0;
+#splash-fib .fb-svg { width: min(72vw, 17rem); height: auto; }
+/* EIGHT SQUARES AT TWO UNITS where there were five at eight — see tools/fib.py — so the lines are
+   thinner in proportion, or the 1-squares would be all stroke. The arc is 169.6 long. */
+.fb-sq { fill: none; stroke: #6fa8dc; stroke-width: .55; opacity: 0;
          animation: fb-in .45s ease-out both, fb-glow 3.4s ease-in-out infinite;
-         animation-delay: calc(.2s + var(--i) * .28s), calc(1.7s + var(--i) * .2s); }
-.fb-arc { fill: none; stroke: #f0b45f; stroke-width: 2.2; stroke-linecap: round;
-          stroke-dasharray: 190; stroke-dashoffset: 190;
-          animation: fb-draw 3.2s ease-in-out 1.6s infinite; }
+         animation-delay: calc(.2s + var(--i) * .22s), calc(1.9s + var(--i) * .16s); }
+.fb-arc { fill: none; stroke: #f0b45f; stroke-width: 1.1; stroke-linecap: round;
+          stroke-dasharray: 172; stroke-dashoffset: 172;
+          animation: fb-draw 3.6s ease-in-out 1.9s infinite; }
 @keyframes fb-in { from { opacity: 0; transform: scale(.8); } to { opacity: 1; } }
 @keyframes fb-glow { 0%,100% { stroke: #6fa8dc; } 50% { stroke: #a8d4ff; } }
-@keyframes fb-draw { 0% { stroke-dashoffset: 190; } 55%,100% { stroke-dashoffset: 0; } }
+@keyframes fb-draw { 0% { stroke-dashoffset: 172; } 55%,100% { stroke-dashoffset: 0; } }
 .fb-say { margin-top: .8rem; font: 700 .9rem var(--mono); letter-spacing: .18em;
           color: #f0b45f; text-align: center; }
 
@@ -8069,6 +8071,20 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    was put in. The gap row is a third of a period, which is how every printed table separates the
    lanthanides and actinides from the body.
    BORDERS, NOT FILLS, for the reason at the head of this section — a browser drops fills on paper. */
+/* ---------- THE pH SCALE (see `matPh`) — fifteen filled cells, the words under them, the indicators -- */
+.mat-ph { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.mat-ph-bar { display: grid; grid-template-columns: repeat(15, minmax(0, 1fr)); gap: .3mm; }
+.mat-ph-bar i { display: grid; place-items: center; height: 7mm; font: 700 3mm/1 var(--mono);
+                font-style: normal; border-radius: .6mm; }
+.mat-ph-say { display: flex; justify-content: space-between; margin-top: .8mm;
+              font: 700 2.4mm/1 var(--mono); color: var(--pa-head); }
+.mat-ph-note { margin: 1mm 0 1.2mm; font-size: 2.4mm; line-height: 1.3; color: var(--pa-mid); }
+.mat-ph-ind { display: grid; grid-template-columns: repeat(3, auto); justify-content: start; column-gap: 5mm; row-gap: .6mm;
+              font-size: 2.5mm; line-height: 1.2; }
+.mat-ph-ind i { display: contents; font-style: normal; }
+.mat-ph-ind i b { font-weight: 700; }
+.mat-ph-ind i em { font-style: normal; color: var(--pa-ink); }
+.mat-ph-ind i:first-child em { font: 700 2.1mm/1.2 var(--mono); color: var(--pa-faint); }
 .mat-pt { display: grid; grid-template-columns: repeat(18, minmax(0, 1fr));
           grid-template-rows: 3mm repeat(7, 8.6mm) 2.6mm repeat(2, 8.6mm); gap: .35mm; }
 .mat-pt i { display: flex; flex-direction: column; justify-content: center; align-items: center;

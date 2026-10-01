@@ -361,6 +361,16 @@ const MAT_PARTS = [
      THE LEVELS ARE THE ONES THAT SIT CHEMISTRY. Y9 mocks start it, GCSE is where it is used most,
      and A-level chemistry uses the same table; SATs and 11+ never ask for it. */
   { id: 'M50', subject: 'Science', name: 'Periodic table', face: 'H He table',  lv: ['Y9 Mocks','GCSE','AS','Alevel','B-TEC'],    h: 96,  half: false, inExam: true },
+  /* ---------- THE pH SCALE AND THE INDICATORS --------------------------------------------------------
+     ASKED FOR AS "add ph indicator to cheat sheet". The universal indicator colours from 0 to 14, the
+     words a question uses for each end, and the three single indicators a GCSE paper names (litmus,
+     methyl orange, phenolphthalein) with the colour each turns in acid and in alkali.
+     TWO THIRDS WIDE (`pair`), because fifteen colour cells need about 8mm each to hold their number,
+     and a third of the page would make them 4mm; the third left over takes another piece beside it.
+     NOT GIVEN IN THE EXAM — nobody hands a student the colour chart, which is why it is worth a slot.
+     NAMED WITHOUT "pH" because a piece's heading is set in capitals, and "PH SCALE" is the one way a
+     chemist would never write it; the list's own face still says pH 0–14. */
+  { id: 'M51', subject: 'Science', name: 'Acids, alkalis & indicators', face: 'pH 0–14', lv: ['Y9 Mocks','GCSE','B-TEC'], h: 34, half: true, pair: true, inExam: false },
 ];
 
 /* ---------- EACH COMPONENT'S HEIGHT, IN MILLIMETRES OF PAPER ----------------------------------------
@@ -379,7 +389,7 @@ const MAT_SLOT = {
   M13: 36, M14: 44, M15: 54, M16: 46, M17: 38, M18: 32, M19: 54, M20: 72, M21: 42, M22: 46,
   M23: 46, M24: 38, M25: 42, M26: 44, M27: 50, M28: 46, M29: 24, M30: 36, M31: 46, M32: 46,
   M33: 66, M34: 44, M35: 56, M36: 50, M37: 36, M38: 46, M39: 46, M40: 46, M41: 54, M42: 42,
-  M43: 38, M44: 54, M45: 38, M46: 46, M47: 42, M48: 44, M49: 60, M50: 98,
+  M43: 38, M44: 54, M45: 38, M46: 46, M47: 42, M48: 44, M49: 60, M50: 98, M51: 42,
   /* THE ENGLISH PIECES (see `MAT_PARTS_EN`), measured the same way — each alone at its own slot
      width, its scroll height read off the page — and given a millimetre before rounding, because a
      label-and-value block wraps a word or two differently in another browser's sans-serif and the
@@ -861,7 +871,37 @@ const MAT_HTML = {
                        ['iteration','xₙ₊₁ = g(xₙ)']]),
 
   M50: () => matPeriodic(),
+
+  M51: () => matPh(),
 };
+
+/* ---------- THE pH SCALE --------------------------------------------------------------------------
+   ONE COLOUR PER WHOLE NUMBER, the universal indicator chart every textbook prints: red through
+   orange and yellow to green at 7, then blue to purple. The colours are FILLS, and a browser drops
+   fills when it prints unless told otherwise — so `.mat-ph` carries `print-color-adjust: exact`, as
+   the flyer does. On a black-and-white printer the cells come out as greys and the numbers, words
+   and the indicator table still say everything, which is why nothing here relies on the colour
+   alone. The number is light on the dark ends and dark on the pale middle, so it reads on all
+   fifteen. */
+const MAT_PH = ['#d7191c', '#e8402b', '#f0672d', '#f68f2f', '#fbb72f', '#f7dc33', '#c9d936', '#5fb846',
+                '#2f9e6b', '#1f8aa0', '#2168b0', '#2f4ea3', '#4a3a96', '#5e2c86', '#6d1f75'];
+function matPh() {
+  if (MAT_PH.length !== 15) return '<p class="mat-gone">The pH scale has a colour missing.</p>';
+  const cells = MAT_PH.map((c, n) =>
+    `<i style="background:${c};color:${n >= 3 && n <= 7 ? '#111' : '#fff'}">${n}</i>`).join('');
+  /* THE THREE INDICATORS, as the words a mark scheme accepts. Litmus is the one that changes at 7;
+     methyl orange changes in the acid half and phenolphthalein in the alkali half, which is why a
+     titration uses one and not the other. */
+  const ind = [['litmus', 'red', 'blue'], ['methyl orange', 'red', 'yellow'],
+               ['phenolphthalein', 'colourless', 'pink']]
+    .map(([n, a, b]) => `<i><b>${n}</b><em>${a}</em><em>${b}</em></i>`).join('');
+  return `<div class="mat-ph">
+    <div class="mat-ph-bar">${cells}</div>
+    <div class="mat-ph-say"><span>&larr; acid</span><span>neutral 7</span><span>alkali &rarr;</span></div>
+    <p class="mat-ph-note">strong acid 0&ndash;2 &middot; weak acid 3&ndash;6 &middot; weak alkali 8&ndash;11 &middot; strong alkali 12&ndash;14. One pH lower is 10&times; more H&#8314; ions.</p>
+    <div class="mat-ph-ind"><i><b></b><em>in acid</em><em>in alkali</em></i>${ind}</div>
+  </div>`;
+}
 
 /* ---------- THE PERIODIC TABLE, 118 OF THEM --------------------------------------------------------
    ONE STRING, SPLIT, rather than 118 quoted entries — a list that long is read by a person far more

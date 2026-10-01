@@ -644,6 +644,27 @@ const STATES = {
                      ? 4 : 0),
       wants: 'all four pricing boxes on one page, the students as one min – max row' },
 
+    /* ---------- YOUR JOURNEY, THE PLACEHOLDER ----------------------------------------------------
+       For a student and an admin; the lab signs in as an admin. Found by asking the DOM, as the
+       pricing state does, and seeded with an exam date a fortnight out so the one live line draws. */
+    { name: 'your journey',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const t = new Date(Date.now() + 14 * 864e5);
+        USER.profile = Object.assign({}, USER.profile || {},
+          { exam_big_date: t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0') });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.journey'));
+        if (at < 0) throw new Error('no journey card on the settings column');
+        goPage('settings', at, true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-settings .card.journey');
+        return !!c && /days? to go/.test(c.textContent) && !c.querySelector('button, [data-do]');
+      },
+      wants: 'the journey card, with the exam countdown and no control that does nothing',
+      leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; paint('settings'); } },
+
     /* ---------- THE TUTOR AGREEMENT, BOTH OF ITS STATES --------------------------------------------
        The signed-in visitor is an admin, and `isTutorRole()` is tutor-or-admin, so the card is on
        the column. Seeded as SIGNED through `USER` — the field `loginReplyFor_` sends — because the
