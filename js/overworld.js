@@ -282,6 +282,10 @@ function axisFree(target, axis, dir) {
   /* ---------- A SELECT IS NAMED. A TEXTAREA IS MEASURED, AND IT USED TO BE NAMED -----------------
      A SELECT OPENS BY DRAGGING ON SOME PHONES, which is not a scroll and not something the walk
      below can see, so it stays named.
+     It is named for the few that still take the finger: `SEL_OK` in book.js gives every ordinary
+     select `pointer-events: none`, so a touch on one lands on the box behind it and a swipe that
+     begins there moves the column like anywhere else on the card. A disabled select, a `multiple`
+     one and one carrying `data-native` are what can still be the target here.
 
      A TEXTAREA WAS BESIDE IT AND THAT BLOCKED BOTH AXES ON EVERY ONE IN THE APP. Measured with
      real touch events on the notepad -- the widget that is mostly textarea -- a swipe left stayed

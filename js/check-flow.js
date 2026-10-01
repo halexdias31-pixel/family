@@ -1399,6 +1399,126 @@ check('picking several answers is one open, hanging off the field, over nothing'
   return bad;
 });
 
+/* ---------- A SINGLE-CHOICE SELECT OPENS THE SAME PANEL AND CLOSES ON THE PICK ---------------------
+   ASKED FOR AS *"should be consistent with the booking multiselect drop down list"*. Every ordinary
+   `<select>` now hangs `#drop` instead of opening the platform's picker — see `SEL_OK` in book.js.
+   What can break, and what nothing else here can see, is the contract with the callers that were
+   deliberately not touched: they listen for `change` on a real select, so the pick has to set the
+   select's value and fire `change` exactly once — twice would recompute a price twice and swap a
+   qualification box twice, none would be a pick that did nothing. And a disabled select must open
+   nothing, or a locked booking row and every field `send_` holds still become pressable again.
+
+   `check/ui.js` CANNOT ASK ANY OF IT: a panel that never opens measures perfectly, and so does a
+   select that opens its native wheel. So this drives the real booking column with a click AT the
+   select and a click on an option, through the app's own dispatcher — and asks the label route on
+   the settings column, because a tap on a `.field`'s caption is the one way a finger can still
+   reach a select whose own box takes no pointer. */
+check('a single-choice select opens the booking panel, and choosing closes it with one change', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const panel = d.getElementById('drop');
+  if (!panel) return ['#drop is not in index.html — a select has nowhere to hang its list'];
+  if (typeof w.selOpen_ !== 'function') return ['selOpen_ is not declared, so NOTHING was checked — not a pass'];
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
+  await wait(120);
+  const bad = [];
+  const open = () => !panel.classList.contains('hidden');
+  const pick = () => d.querySelector('#bookr select.bk-sel:not(:disabled)');
+  let sel = pick();
+  if (!sel) return ['the booking form draws no enabled select — cannot check the panel'];
+  const stepId = sel.dataset.step;
+  let changes = 0;
+  d.addEventListener('change', e => { if (e.target && e.target.dataset && e.target.dataset.step === stepId) changes++; });
+
+  /* THE TAP. Its default has to be prevented, or a `<label>`'s activation focuses the select and a
+     focused select is exactly what iOS opens its own wheel for. */
+  const tap = el => { const ev = new w.MouseEvent('click', { bubbles: true, cancelable: true }); el.dispatchEvent(ev); return ev; };
+  const ev = tap(sel);
+  if (!open()) bad.push('a click on the "' + stepId + '" select does not open #drop');
+  if (!ev.defaultPrevented) bad.push('the click that opened the panel was not prevented, so the platform picker can open as well');
+  if (panel.dataset.owner !== 'sel') bad.push('the panel is owned by ' + JSON.stringify(panel.dataset.owner) + ', not by the select');
+  if (!panel.querySelector('[role="listbox"]')) bad.push('the open panel has no role="listbox"');
+  const btns = [...panel.querySelectorAll('[data-do="sel-pick"]')];
+  /* EVERY OPTION BUT A BLANK THAT ONLY REPEATS ANOTHER'S WORDS — see `selHtml_`. */
+  const said = o => String(o.label || o.text || '').trim();
+  const want = [...sel.options].filter(o => !o.hidden && !(o.value === '' && !o.selected && said(o)
+    && [...sel.options].some(x => x !== o && x.value !== '' && said(x) === said(o)))).length;
+  if (btns.length !== want) bad.push('the panel draws ' + btns.length + ' options for a select with ' + want);
+  if (!btns.every(b => /\bpick-opt\b/.test(b.className) && b.getAttribute('role') === 'option')) {
+    bad.push('the options are not `.pick-opt` with role="option" — not the booking list\'s rows');
+  }
+  const marked = btns.filter(b => b.getAttribute('aria-selected') === 'true');
+  if (marked.length !== 1 || Number(marked[0].dataset.i) !== sel.selectedIndex) {
+    bad.push('the panel marks ' + marked.length + ' options as chosen, not the one the select holds');
+  }
+  if (sel.getAttribute('aria-expanded') !== 'true') bad.push('the select does not say its list is open (aria-expanded)');
+
+  /* PICK A DIFFERENT ONE, THROUGH THE DISPATCHER. */
+  const other = btns.find(b => Number(b.dataset.i) !== sel.selectedIndex && !b.disabled);
+  if (!other) bad.push('no second option to choose — the pick was NOT checked');
+  else {
+    const val = other.dataset.v;
+    tap(other);
+    await wait(30);
+    if (open()) bad.push('choosing an option leaves the panel open');
+    if (changes !== 1) bad.push('choosing an option fired change ' + changes + ' times, not once');
+    sel = pick();
+    if (!sel || sel.value !== val) bad.push('choosing ' + JSON.stringify(val) + ' left the select holding ' + JSON.stringify(sel && sel.value));
+    if (String(w.__t.BOOKING[stepId] || '') !== val) {
+      bad.push('the booking handler never heard the pick: BOOKING.' + stepId + ' is ' + JSON.stringify(w.__t.BOOKING[stepId]));
+    }
+  }
+
+  /* THE SAME ANSWER AGAIN IS NOT A CHANGE, as a native select does not fire one. */
+  sel = pick();
+  if (sel) {
+    tap(sel);
+    const same = panel.querySelector('[data-do="sel-pick"][aria-selected="true"]');
+    const before = changes;
+    if (same) tap(same);
+    if (changes !== before) bad.push('choosing the answer already chosen fired change');
+    if (open()) bad.push('choosing the answer already chosen leaves the panel open');
+  }
+
+  /* A TAP OUTSIDE SHUTS IT, through `#drop-back` and the action it already carries. */
+  sel = pick();
+  if (sel) {
+    tap(sel);
+    if (!open()) bad.push('the select does not open a second time');
+    tap(d.getElementById('drop-back'));
+    if (open()) bad.push('a tap outside does not shut the panel');
+    if (sel.getAttribute('aria-expanded') === 'true') bad.push('a shut panel leaves the select saying it is open');
+  }
+
+  /* A DISABLED SELECT OPENS NOTHING. */
+  sel = pick();
+  if (sel) {
+    sel.disabled = true;
+    tap(sel);
+    if (open()) bad.push('a disabled select opens the panel');
+    sel.disabled = false;
+  }
+
+  /* THE CAPTION OF A `.field` IS A WAY IN TOO — the settings column's fields are selects in labels. */
+  try { w.__t.go('settings', false, true); w.paint('settings'); } catch (e) { bad.push('drawing settings threw: ' + e.message); return bad; }
+  await wait(60);
+  const pages = [...d.querySelectorAll('#s-settings > .page')];
+  const at = pages.findIndex(p => p.querySelector('label.field > select:not(:disabled)'));
+  if (at < 0) bad.push('no settings page carries a select in a label — the label route was NOT checked');
+  else {
+    w.__t.goPage('settings', at, true);
+    const lab = pages[at].querySelector('label.field > select:not(:disabled)').parentNode;
+    const ev2 = tap(lab);
+    if (!open()) bad.push('a tap on a select\'s label does not open the panel');
+    if (!ev2.defaultPrevented) bad.push('a tap on a select\'s label was not prevented, so its activation can focus the select');
+    w.bookDropShut_();
+    if (open()) bad.push('Escape (bookDropShut_) does not shut a select\'s panel');
+  }
+  return bad;
+});
+
 check('a class books through joinWaitlist, a session through createJob', async () => {
   /* ---------- THE TWO KINDS ARE READ OFF THE STEP, NOT TYPED HERE ------------------------------
      THIS SEEDED `'A session of your own'` AND `'A shared class — join the waiting list'`, and the

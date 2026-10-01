@@ -1096,6 +1096,28 @@ const STATES = {
       },
       wants: 'a several-of-a-list field open under its button, with something to tick' },
 
+    /* ---------- AN ORDINARY SELECT, OPEN ------------------------------------------------------------
+       EVERY SINGLE-CHOICE `<select>` HANGS `#drop` NOW — see `SEL_OK` in book.js — and the settings
+       column is where most of them are. Opened through the select's own door, a click AT it, which is
+       the path `selAt_` takes for assistive technology; shut on the way out for the reason above. */
+    { name: 'a dropdown open',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const pages = [...document.querySelectorAll('#s-settings > .page')];
+        const at = pages.findIndex(pg => pg.querySelector('label.field > select:not(:disabled)'));
+        if (at < 0) throw new Error('no select in a label on the settings column');
+        goPage('settings', at, true);
+        pages[at].querySelector('label.field > select:not(:disabled)').click();
+      },
+      leave: () => { if (typeof selShut_ === 'function') selShut_(); },
+      expect: () => {
+        const el = document.getElementById('drop');
+        return !!el && !el.classList.contains('hidden') && el.dataset.owner === 'sel'
+          && el.querySelectorAll('[data-do="sel-pick"]').length >= 2
+          && el.querySelectorAll('[data-do="sel-pick"][aria-selected="true"]').length === 1;
+      },
+      wants: 'a settings select\'s options hanging off it in the booking list\'s panel, one marked' },
+
     /* "ALSO TEACH, OPEN" WENT WITH THE PAGE. What a tutor teaches is two ticks on each
        qualification now — `the qualifications` above counts them — and `teaches_also` is derived
        from those on save, so there is no panel on this column to open. */
@@ -1692,6 +1714,25 @@ const STATES = {
       /* PUT BACK, because states run in order down one page and the receipt state after this one
          would otherwise be measuring a picker. */
       leave: () => { BOOKING.picking = ''; drawBooker(); } },
+
+    /* ---------- AND A SINGLE ANSWER, OPEN, IN THE SAME PANEL ---------------------------------------
+       *"should be consistent with the booking multiselect drop down list"* — so the one-of-a-list
+       rows on this card hang the same `#drop` the state above opens. Through the select's own door,
+       and shut again on the way out. */
+    { name: 'a single answer open',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const sel = document.querySelector('#bookr select.bk-sel:not(:disabled)');
+        if (!sel) throw new Error('the booking form draws no enabled select');
+        sel.click();
+      },
+      expect: () => {
+        const el = document.getElementById('drop');
+        return !!el && !el.classList.contains('hidden') && el.dataset.owner === 'sel'
+          && el.querySelectorAll('#drop .pick-opt[data-do="sel-pick"]').length >= 2;
+      },
+      wants: 'a single-answer row\'s options hanging off it, the multi-select list\'s rows',
+      leave: () => { if (typeof selShut_ === 'function') selShut_(); } },
 
     { name: 'a session receipt',
       only: () => typeof USER !== 'undefined' && !!USER,

@@ -3348,6 +3348,36 @@ button.text-drop { color: var(--bad); }
    does the row above and a tap anywhere else. `.btn quiet` rather than the gold one, and no top
    margin of its own — `.pick-list` already carries the gap below it. */
 .drop-done { margin: 0; }
+/* ---------- AND EVERY OTHER `<select>` HANGS THE SAME PANEL -----------------------------------------
+   *"should be consistent with the booking multiselect drop down list"*. `selOpen_` in book.js draws a
+   single-choice select's options into `#drop` with the same `.pick-list` and `.pick-opt` as the
+   booking list, and this is the one rule that stops the platform's own picker opening instead: a
+   finger, a pen or a mouse never TARGETS the select, so no browser has a tap on it to open a wheel
+   from. The tap lands on the label or row behind it and is caught there. The whole argument —
+   including why this beats cancelling `touchstart` on an iPhone — is over `SEL_OK`.
+
+   NOT A DISABLED ONE, which keeps its `not-allowed` cursor and opens nothing either way; not
+   `multiple`; and not one carrying `data-native`, which is the way out for a select that genuinely
+   needs the platform's picker and says why beside it. Focus is untouched, so the keyboard reaches
+   every select as before. */
+select:not([multiple]):not([data-native]):not(:disabled) { pointer-events: none; }
+/* THE POINTER CURSOR GOES ON WHATEVER HOLDS ONE, since the select itself is no longer under the
+   mouse. `:where` so it outranks nothing: a parent that states its own cursor keeps it. */
+:where(:has(> select:not([multiple]):not([data-native]):not(:disabled))) { cursor: pointer; }
+/* OPEN SAYS SO ON THE FIELD, as the booking list's button already does with `.me-many`. */
+select[aria-expanded="true"] { border-color: var(--gold); }
+/* ONE LIST, NO DONE AND NO SUMMARY LINE, so the panel's own padding is the only space round it —
+   `.pick-list`'s margin is there to part it from the line above and the button below, neither of
+   which a single choice draws. */
+.sel-list > :first-child { margin-top: 0; }
+.sel-list > :last-child { margin-bottom: 0; }
+.sel-group .pick-list { margin: 0; }
+.sel-list > * + .sel-group, .sel-group + .pick-list { margin-top: .45rem; }
+/* OVER A SHEET WHEN IT HANGS FROM ONE. `#drop` is 43/44, under the sheet's 45/46, so that a booking
+   list can never cover a modal; a select INSIDE a sheet would open its list behind the sheet it is
+   in. Still under the toast (50). */
+#drop-back.over-sheet { z-index: 47; }
+#drop.over-sheet { z-index: 48; }
 /* THE `.pick-list` GRID IS UNCHANGED FROM THE PAGE VERSION and the arithmetic that chose it still
    holds: twelve 44px buttons stacked is 528px, which no phone has room for above or below a field.
    Two columns is six rows and 276px. `minmax(7.5rem, 1fr)` rather than `repeat(2, 1fr)`, so a wider
