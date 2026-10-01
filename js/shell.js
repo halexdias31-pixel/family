@@ -2808,8 +2808,8 @@ async function bootJson_(res) {
   const body = await res.text();
   try { return JSON.parse(body); }
   catch (e) {
-    const t = /<title[^>]*>([^<]*)<\/title>/i.exec(body);
-    const said = String((t && t[1]) || body.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ')
+    /* The page's text rather than its title: an Apps Script error page is titled just "Error". */
+    const said = String(body.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ')
       .replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim().slice(0, 160);
     throw new Error('The reply was not valid JSON (HTTP ' + res.status + ')'
       + (said ? ': ' + said : ': it was empty'));
