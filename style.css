@@ -1625,6 +1625,71 @@ h2 .tutor, h3 .tutor { color: #ff7b72; }
 /* 4:5 LIKE THE CLIP IT REPLACES, so a clip Drive refuses does not change the card's height after it
    was placed — it was 16:9, and the swap moved everything under it up by a third of a card. */
 .post-pic.post-vid-out { aspect-ratio: 4 / 5; }
+/* ---------- THE FILM: GRAIN, A WARM FADE, A LITTLE CONTRAST AND A VIGNETTE -----------------------
+   ASKED FOR AS *"make the ig clone have a grainy look to it. like breaking bad but more. like 1999
+   or 2003 you knooow like light phone."* — the look of an early digital camera: visible fine grain,
+   colour gone slightly warm and faded, a touch more contrast, and corners that fall off. ON THE
+   PHOTOGRAPHS AND THE CLIPS ONLY: a caption, a name, a reaction or a tile drawn grainy is a screen
+   that looks dirty rather than a picture that looks old.
+
+   NO OVERLAY ELEMENT, AND THAT IS THE WHOLE DESIGN. The obvious version is a noise layer laid over
+   each picture — and an `<img>` cannot carry a `::after`, so that means a wrapper round every
+   photograph, and every rule above about the bleed, the 4:5 reservation and `holdColumn_` moving
+   onto it. Worse, an element over a picture is an element under the thumb: it has to be told
+   `pointer-events: none`, and the day somebody forgets, every swipe that starts on a photograph —
+   which is most of the swipes on this column — lands on it instead. So the look is TWO PROPERTIES
+   OF THE PICTURE ITSELF, and there is nothing new in the document to intercept anything:
+
+     - `filter` is the colour. `sepia` for the warmth, `saturate` under 1 for the fade, `contrast`
+       over 1 for the bite, and `brightness` to give back what the grain below takes away.
+     - `mask-image` is the grain and the vignette, as two layers multiplied (`intersect`). A mask
+       makes a picture partly transparent, so what shows through is what is BEHIND it: the pane's
+       own near-black. A speckle of 85% is a dark grain; a corner at 62% is the vignette. That is
+       darkening-only grain, which is what a cheap sensor gives in its shadows and what reads as
+       film on a black screen.
+
+   THE GRAIN IS A 160px TILE OF `feTurbulence`, in a data URI so it is not a request. Measured by
+   drawing it to a canvas: the noise channel has a mean of .50 and a spread of .11, and the matrix's
+   last row maps that to an alpha of `.7·n + .55` — a mean of .90 with a spread of about .08, which
+   is visible in a midtone and invisible in a shadow, like the real thing. STATIC, NOT ANIMATED:
+   moving grain is a repaint every step on every picture in eleven columns, and the ask was for a
+   look rather than a motion. `stitchTiles` so the tile edges do not show as a grid.
+
+   CHEAP BECAUSE NOTHING HERE RUNS. The browser rasterises the tile once, shares it across every
+   picture that names the same URL, and paints each photograph into its column's layer once; a
+   swipe moves that layer by a transform and repaints nothing. A clip's mask and filter are applied
+   by the compositor per frame, which is what they are for.
+
+   WHAT IT COSTS, SAID RATHER THAN BURIED: a post's clip carries the browser's own `controls`, and
+   those are drawn INSIDE the `<video>` element, so they are warmed and grained with the picture.
+   No stylesheet can reach into them separately. A clip Drive refused becomes a link
+   (`.post-vid-out`, an `<a>`), and `:is(img, video)` is what keeps the film off that link's words.
+
+   SCOPED TO `.post` AND NOT TO THE CLASSES ALONE, because `post-vid` is also on a clip in a CHAT
+   (`me.js` puts it there so a message and a post open through one door) and a conversation is not
+   the Feed. Declared on the components rather than at `:root`, which is the house rule for
+   something only one part of the app may use. The reel's half is with `.feed-vid`, below.
+
+   AND ON THE COMPOSER'S PREVIEW, which is not a `.post`. `showPostPreview` draws the links with
+   the card's own renderer *"so the preview cannot disagree with what goes up"* — and a clean
+   photograph in the preview over a grainy one on the card a second later is exactly that
+   disagreement, about the one thing this block changes. */
+.post, .reel, .post-preview {
+  --film-tone: sepia(.24) saturate(.86) contrast(1.1) brightness(1.07);
+  --film-grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='g' color-interpolation-filters='sRGB'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .7 0 0 0 .55'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+  --film-vignette: radial-gradient(ellipse at 50% 45%, #000 52%, rgb(0 0 0 / .62) 100%);
+}
+:is(.post, .post-preview) :is(img, video):is(.post-pic, .post-cell), .reel .feed-vid {
+  filter: var(--film-tone);
+  -webkit-mask-image: var(--film-vignette), var(--film-grain);
+  mask-image: var(--film-vignette), var(--film-grain);
+  -webkit-mask-size: 100% 100%, 160px 160px;
+  mask-size: 100% 100%, 160px 160px;
+  -webkit-mask-repeat: no-repeat, repeat;
+  mask-repeat: no-repeat, repeat;
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
 /* THE COMPOSER'S PREVIEW DRAWS WITH THE CARD'S OWN RENDERER, in a sheet that has no page margin to
    cancel — so the edge-to-edge bleed above would run past the sheet's sides. Inside the preview the
    picture and the grid are simply the width they are given. */
@@ -10306,6 +10371,16 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   width: 100%; height: 100%; object-fit: cover;
   border: 0; background: transparent;
 }
+/* THE FILM'S MASK SHOWS WHAT IS BEHIND THE CLIP, and behind a reel's clip is `.feed-art`'s subject
+   gradient — so the grain would be green speckles on a green slide and the vignette a pink corner.
+   Black behind it once there is a picture (`has-photo`), which is the moment the gradient stops
+   being the slide and starts being something the mask lets through; a clip with no poster keeps its
+   gradient until its first frame. THE COST, SAID RATHER THAN BURIED: `feedSlide` puts `has-photo` on
+   at first paint wherever a poster PATH exists, before the ~20KB poster has landed — so for that
+   moment the slide is black under its scrim rather than its gradient, and a poster that 404s leaves
+   it black for good (`check-reels.js` prints a clip with none). No CSS can wait for a poster.
+   See `.post, .reel` above. */
+.reel > .feed-art.is-clip.has-photo { background: #000; }
 .feed-art.is-clip::before { z-index: 1; }
 .feed-art.is-clip .feed-text,
 .feed-art.is-clip .feed-credit { z-index: 2; }
