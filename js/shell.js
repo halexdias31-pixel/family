@@ -2801,6 +2801,21 @@ async function filesOnly_() {
   try { applyBrandIcon_(); } catch (e) {}
 }
 
+/* The boot reply as JSON, or an error whose message says what arrived instead. See the note in
+   `load()` where it is called; `not valid JSON` is the phrase `load()`'s banner listens for. */
+async function bootJson_(res) {
+  if (!res || typeof res.text !== 'function') return res.json();
+  const body = await res.text();
+  try { return JSON.parse(body); }
+  catch (e) {
+    const t = /<title[^>]*>([^<]*)<\/title>/i.exec(body);
+    const said = String((t && t[1]) || body.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<[^>]+>/g, ' ')).replace(/\s+/g, ' ').trim().slice(0, 160);
+    throw new Error('The reply was not valid JSON (HTTP ' + res.status + ')'
+      + (said ? ': ' + said : ': it was empty'));
+  }
+}
+
 async function load() {
   try {
     /* The person's id goes with the request so the server can say which posts YOU liked — it
@@ -2942,7 +2957,14 @@ async function load() {
       const got = res.__jsonp;
       res = { ok: true, status: 200, statusText: 'OK', json: () => got };
     }
-    const d = await res.json();
+    /* ---------- READ AS TEXT, THEN PARSE, so a web page says what it is -------------------------
+       `res.json()` ON AN HTML REPLY THROWS A DIFFERENT SENTENCE IN EVERY BROWSER, and Safari's is
+       "The string did not match the expected pattern." — which matched none of the branches below,
+       so an iPhone looking at an Apps Script error page was told "something else went wrong" and
+       never shown the page's own words. `api()` already reads text first for this reason; the boot
+       read did not. The message carries the page's title or first line, so the banner names the
+       fault (an authorisation prompt, a script that failed to load) without anybody opening a tab. */
+    const d = await bootJson_(res);
     if (d && !d.error) {
       /* WHAT WAS ASKED FOR AND NOT SENT.
          `DATA.liveJobs` was read for weeks and never sent — the `|| []` beside it turned that into
