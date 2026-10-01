@@ -16150,3 +16150,197 @@ splash's squares and spiral from `F = [1,1,2,3,5,8,13,21]`. Eight squares at two
 at eight. It tries each starting turn and corner, and keeps the first landscape layout whose arcs
 meet end to end and are tangent at every joint. The ratio is 1.619, and the strokes are thinner in
 proportion.
+
+## What a tutor teaches is one chip a subject, its levels raised, and the library cards carry no note
+
+**Asked for as *"what they teach should appear like Subject ^level, level, level. so like the levels
+are superscripted. no brackets."*** It was one chip per PHRASE — `Maths (GCSE)`, `Maths (A-Level)`,
+`Maths (AS)` — so a tutor teaching one subject at three levels said "Maths" three times in a row, and
+the brackets were most of the ink. Now `Maths ^GCSE, A-Level`: the subject once, the levels a `<sup>`
+after it.
+
+**GROUPED ON THE PHONE, AND THE PHRASES ARE LEFT ALONE.** `teachesOf_` sends one phrase per level
+because that is what it dedupes on, and the booking form's `why` and `subjectRows` / `levelRows`
+match against exactly that string. Changing `teachPhrase_` would change what three matchers compare
+to fix how one card looks — and an older backend sends the very same strings, so nothing waits on a
+deploy. `teachGroups_` in cards.js reads them with `subjectIn_` / `levelIn_` from price-rows.js, which
+were already the one reader of that format; a third regex would be a third chance to read
+`Maths (GCSE)` differently. A phrase with no bracket is a chip with nothing raised.
+
+**THE TWO ROWS ARE SPLIT ON THE PHRASE BEFORE ANYTHING IS GROUPED.** A tutor who specialises in Maths
+at GCSE and also teaches it at A-Level gets `Maths ^GCSE` in gold under `Teaches` and `Maths ^A-Level`
+under `Can also teach`. Grouping first would put a level they did not specialise in under the gold
+edge. `check-flow.js` asserts both rows for the current backend and for one old enough to send a
+single `teachesMain`, and the mutant that groups across the rows is named.
+
+**AN 8px FLOOR ON THE LEVELS, `line-height: 0`, AND `--dim` RATHER THAN AN OPACITY.** The chip is
+.64rem — 8.6px on a 320px phone — and a browser's own superscript would be about 7px. `line-height: 0`
+is what keeps a chip with levels the same height as one without: measured 15.1px against 15.1px at
+320 and 20.9 against 20.9 at 390. And a colour is what `check/ui.js`'s contrast rule can read: proved
+by setting the levels to `#333`, which it names at 1.56:1 on every width. Each level is its own
+no-wrap span behind a no-break space, so at 320px a long list breaks between levels — never inside
+`A-Level` at its hyphen, never leaving a subject alone with its levels on the next line.
+
+**`account · a tutor teaching one subject at several levels`** seeds a subject at six levels and a
+long subject name, because the fixture's tutor has one level per subject and so cannot wrap. Its
+`leave` puts the account column back on the page it was on: taking the seeded tutor out took a page
+out from under the one the state had turned to, and `COLUMNS OUT OF LINE` reported the column 500px
+off every other — the state's own debris, not the app.
+
+### `library_note` is dropped in `fieldsHtml`, because the deployed backend still asks for it
+
+**Asked for as *"for the library card widget, there doesnt need to be a add note to it."*** The
+column had already left `SCHEMA.people` and the groups in `constants.gs` — but the live site talks to
+a deployment that still lists it in `Library cards`, so the box went on being drawn under the shelf.
+`RETIRED_FIELDS_` in me.js is filtered off every group in `fieldsHtml`, the one walk every surface
+goes through, so neither an older deployment nor a cached payload can put it back. Nothing is lost:
+`updateProfile` writes only what it is sent, so a note already in an old sheet's cell is left alone
+rather than blanked. `check-flow.js` plays that older server and wants the shelf and no note box.
+
+**`.lib-card` IS NOT THE LIBRARY SHELF'S OWN CLASS.** `shelfSlots_` gives every shelf's slots it —
+qualifications and photographs too — so the first version of that journey, and of the screenshot,
+found the Photos page. Both look for `[data-me="lib1_name"]`, which only the library shelf draws.
+
+## A handle is a first name and a virtue, and nobody types one
+
+**Asked for as "handles should be there name and a virtuas describing word. they can randomise it
+but it will follow that general name."** `handleMake_` in people.gs builds `halex_kind`: the first
+name, an underscore, and one word off `HANDLE_ADJ`, which is thirty virtues and nothing else (kind,
+brave, honest, patient, gentle, generous, grateful, faithful…). The old list mixed virtues with
+colours and moods (`golden`, `copper`, `lucky`, `sunny`) and put a number on every handle.
+
+**A different word comes before a number.** A second Sam gets `sam_brave`, not `sam_kind10` beside
+`sam_kind`, because that pair is one keystroke apart and reads as the same person. A two-digit tail
+is added only when every word on the list is already taken for that first name, and then it is the
+smallest free one. The walk is bounded: every word bare in a random order, then tails 10–99 on the
+first word drawn, for the name and then the fallback.
+
+**Eight letters at most, because it is arithmetic.** `HANDLE_SHAPE` allows 20: the longest word (8),
+a tail (2) and the underscore leave `HANDLE_FIRST_MAX` = 9 for the name, which keeps `Alexander`,
+`Charlotte` and `Elizabeth` whole. `thoughtful` and `considerate` are off the list for that reason.
+
+**The Settings card shows the handle and a Randomise button, and the box is gone.** It posts
+`randomiseHandle` (`self` in `ACTION_ACCESS`), which acts on the row the token resolved to whatever
+id is posted, never hands back the handle you already have (`avoid`), and puts the old one at the
+front of `handle_was`: newest first, comma-separated, the last `HANDLE_WAS_KEEP` (10). It goes
+through `send_`, so the button spins and the card is locked. The new handle is written onto the card
+and into `USER` at once, and `load()` refreshes every card that draws it. The "You were @…" line is
+`HANDLE_SAID`, keyed by person and drawn from state, because the inbox and `profileRefresh_` repaint
+the column a moment after the payload and a line written onto the element did not survive them.
+
+**`changeHandle` and `HANDLE_COOLDOWN_DAYS` are deleted.** The month existed because a typed box let
+somebody try variations until a rude one got past the blocklist. A handle built from a first name and
+a chosen word has nothing to try variations of. `handleTrouble_` stays as the one gate every
+candidate goes through: shape, reserved names, the blocklist (a first name can still carry a word,
+and a name and a virtue can meet across the folded underscore) and the clash. It no longer takes
+`isAdmin`. `handle_changed_at` is still written, as the date the newest handle began.
+
+**`?run=renameHandles` must be run once after the backend deploys.** It regenerates every handle not
+already `<first>_<virtue>`: `BrightOtter42`, `halex_bright42`, and typed ones. **A tailed handle
+counts as the shape only while its number is needed**: `halex_steady71` reads as shaped, because
+`steady` is a virtue, but a bare word is free, so it becomes bare. That rule is also what makes the
+job safe to run twice. `handleParts_` is the one reader of the shape, used by `handleIsShaped_` and
+by the job.
+
+**Proved by mutation, twelve ways.** `check-handles.js`: always a tail; a number before trying another
+word; `avoid` ignored; a random tail; `handle_was` overwritten or uncapped; the cooldown put back; a
+tailed handle never or always left alone; `changeHandle` put back; `randomiseHandle` not `self`.
+`check-profile.js` runs the action through the real `doPost`: a bare `ada_<virtue>`, a different handle
+on every one of 15 presses, the history capped at ten, another person's id posted (only the asker's
+own handle changes), signed out (refused and nothing written), and `changeHandle` no longer an action.
+`check/states.js` has `settings · your handle`, which fails at all four widths if a box comes back
+beside the button.
+
+## Qualifications are a list you read, and an editor opens in place of the one row being changed
+
+**Reported as *"the current system for adding qualifications is really hard to understand."*** It
+was. A subject was a summary line that was secretly a button (`Maths · GCSE 8 ✓ · A-Level B ★`),
+opening onto a subject box, which held more summary lines that were also buttons, each opening onto
+boxes captioned only by their placeholders, with a ✓, a ★, a ▸ and a ✕ to decode on the way — and
+the Save that kept any of it was at the foot of the card. A design panel scored three replacements;
+this is the winner, with grafts from the other two.
+
+**THE DEFAULT IS THE FINISHED LIST, AND NOTHING IN IT IS A CONTROL BUT A WORD.** `qualShelf_` draws
+a subject as a bold heading with `Edit` beside it, and each level as two or three plain lines —
+`A-Level · grade B`, `Hill Top Sixth Form · 2019`, and `Teach` in the profile card's own gold chip
+or `Can teach` in a dim word — with its own `Edit`. `+ Add a Maths level` under each subject,
+`+ Add a subject` under them all, and `3 of 10 qualifications` at the foot. An empty shelf is one
+sentence and the new-subject editor, already open, with no Cancel because there is nothing to go
+back to.
+
+**ONE PATTERN: `Edit`, THEN `Save` OR `Cancel`, IN PLACE.** An editor replaces its row, captions
+above every box (`LEVEL`, `GRADE`, `SCHOOL, COLLEGE OR UNI`, `FINISHED`), `Still studying` for
+`Present`, and the teaching question as a sentence — *"Do you tutor Maths A-Level?"* — over a
+three-way `Teach | Can teach | No`. While one is open, `.q-shelf.is-editing` takes every other
+`Edit` and `+ Add` off the page, and a gold rule down the left marks which one is open. **Every
+editor saves itself** through `meSave_` — `me-save`'s body, lifted out so both can call it, and
+answering whether the card was kept — so the Qualifications card has no Save tile of its own.
+Remove saves at once and toasts `Removed Maths A-Level.`; Cancel puts back the snapshot `Edit` took
+(`data-was`), and a level never saved goes back to the pool.
+
+**THE DATA CONTRACT DID NOT MOVE, AND THAT IS WHAT MADE IT SAFE.** All ten slots stay in the form as
+`.q-slot[data-slot=N]` with seven `data-me` boxes each, so every Save posts seventy fields and
+`qualsIn` rebuilds the rows exactly as before — no backend change, no column, no `?setup=1`. Teach
+and Can teach are **hidden inputs holding `TRUE`/`FALSE`**, written by the three-way control, so
+there is no checkbox on the shelf to be read the wrong way round. After every Save and Cancel the
+shelf is **redrawn from what its boxes hold** (`qualRedraw_`), so grouping, the pool, the count line
+and whether there is room for another are one renderer's answer: a subject renamed onto another
+merges into it, a subject whose last level went is gone, and at ten records the add buttons are not
+drawn at all and the line reads `10 of 10 — remove one to add another.`
+
+**Measured at 320x568**: the two-subject list fits whole at full size; an open A-Level editor is
+drawn at 80%; the empty shelf at 93%; ten records at 70% and then scrolling.
+`None yet` is the empty grade, not `No grade yet`, because the longer phrase was clipped to `No grade
+y` in a half-width select at 320. `check-flow.js` drives Teach on two levels (both stay), `No` on one
+(the other untouched), Cancel, Remove (seven blank fields posted), Add a level (the subject carried
+into `qual_N`) and the ten-record cap; an untick-the-others rule and a Cancel that does not restore
+both fail it. `check/states.js` has the read list and the A-Level editor open.
+
+## A tutor states the ages they teach, and "Adults" is an answer rather than a number
+
+**Asked for as *"tutors should also be able to state an age range of people they are willing to work
+with."*** Two columns on `people`, `age_min` and `age_max`, on About you beside the years of
+experience, drawn as one `[youngest] – [oldest]` row by `FIELD_ROWS` — the students range's shape, so
+the two ranges a tutor states read alike.
+
+**NOT ON THE RATE PAGE, though that is where group size lives, and that is the one decision.** Those
+four fields are the quote and move once a month (`PRICING_FIELDS`, `pricingRefusal_`), because bookings
+already taken were priced against them. An age range prices nothing and seats nobody; putting it on
+that page would put it under a clock it has no reason to be under, and the state that counts that
+page at exactly four boxes would say so.
+
+**FOUR TO EIGHTEEN, THEN THE WORD `Adults`.** "18" as the oldest is a school-leaver; "Adults" is no
+upper limit, and as the youngest it is adults only. `AGE_OPTIONS` in constants.gs is the list, and it
+is a list the CODE owns rather than a row of the `options` tab, which is the `FIELD_OPTIONS` argument's
+other half: those lists are descriptive and may grow with no deploy, this one is a rule —
+`ageRefusal_` refuses anything off it — so a sheet able to widen the drop-down would offer an answer
+the server then refuses. `FIELD_FIXED` merges it into `validations` over the tab's lists, and the
+phone's form reads one map and knows nothing.
+
+**THE REFUSAL IS ASKED ONLY WHEN AN END MOVED**, `pricingMoved_`'s rule for its reason: About you posts
+both ends on every save, and the select keeps a hand-typed value that is not on the list as its own
+first option, so a rule firing on presence would refuse a headline because somebody once typed "3"
+into the sheet. What moved must be on the list, and the youngest may not be older than the oldest.
+Asked before a single cell is written, beside the other refusals in `updateProfile`. No admin
+exemption: neither rule is a brake on a person.
+
+**THE CARD READS EVERY HALF A ROW CAN HOLD.** `ageOut_` sends a number, `Adults` or `''` — never
+`N()`, which would turn the word into nought and nought into "age 0", the `cost: 0` shape. `profAges_`
+in cards.js draws one chip under At a glance, second after experience because it is the first thing
+that rules a tutor out: `Ages 8–16`, `Age 10`, `Ages 11+` (youngest only, or up to Adults),
+`Ages up to 16`, `Adults`, `All ages` (oldest Adults, youngest blank), and nothing at all when neither
+end is answered. A pair typed backwards in the sheet is read the way it obviously means.
+
+**Proved**: `check-profile.js` saves About you through the real `doPost` with the youngest after the
+oldest, adults-then-eleven, an age off the list and a word off the list — all four refused having
+written nothing, the headline posted beside them unmoved — then `11` to `Adults` reads back after
+signing in and reaches the payload as `11` and `"Adults"`. Mutation: the refusal call removed names all
+four; `N()` in the payload names it. `check-flow.js` holds `profAges_` to fifteen shapes and the card to
+drawing the chip; the swap and the chip removed are both named. Two declared states,
+`settings · the age range` (two selects off `validations`, `8` and `Adults` chosen, on a page without
+the rate) and `account · an age range on a card`; the first proved by mutation at all four widths.
+
+**About you is 468px in a 495px pane at 320x568 with the row and 394 without** — inside its pane, zoom
+1. **`?setup=1` must run after the backend deploys**: until `age_min` and `age_max` exist, every tutor's
+About you save is refused by name — *"The sheet has no column for: age_min, age_max"* — which is the
+refusal that exists so nobody meets a silent no-op.
