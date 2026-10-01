@@ -1220,6 +1220,66 @@ const WIDGETS = [
     <p class="note" id="imp-said" style="text-align:center;margin:.5rem 0 0"></p>
   </div>` },
 
+  /* ---------- FIVE CLASSROOM GAMES, ONE CLOCK ----------------------------------------------------
+     The note over `PARTY` in games.js is the argument, and the reason they are not `ROUND_GAMES`.
+     Each is Imposter's frame: a card, a row built by its own paint, a sentence — so nothing here can
+     be pressed before there is a round to press it in. `start` redraws whatever is in progress and
+     `stop` holds the clock; a column actually left behind pauses until somebody presses Resume. */
+  { id: 'justaminute', kind: 'game', name: 'Just a Minute', start: () => partyStart_?.('jam'),
+    stop: () => { if (typeof partyStop_ === 'function') partyStop_('jam'); },
+    into: 'jam-card', what: 'The topic',
+    html: `<div class="card">
+    <h3>Just a Minute</h3>
+    <p class="sub">Talk about the topic for sixty seconds without stopping.</p>
+    <div id="jam-card" class="art"></div>
+    <div id="jam-acts" class="party-acts"></div>
+    <p class="note" id="jam-said" style="text-align:center;margin:.5rem 0 0"></p>
+  </div>` },
+
+  { id: 'taboo', kind: 'game', name: 'Taboo', start: () => partyStart_?.('tab'),
+    stop: () => { if (typeof partyStop_ === 'function') partyStop_('tab'); },
+    into: 'tab-card', what: 'The word',
+    html: `<div class="card">
+    <h3>Taboo</h3>
+    <p class="sub">Describe the word without the words under it. Sixty seconds.</p>
+    <div id="tab-card" class="art"></div>
+    <div id="tab-acts" class="party-acts"></div>
+    <p class="note" id="tab-said" style="text-align:center;margin:.5rem 0 0"></p>
+  </div>` },
+
+  { id: 'hotseat', kind: 'game', name: 'Hot Seat', start: () => partyStart_?.('hot'),
+    stop: () => { if (typeof partyStop_ === 'function') partyStop_('hot'); },
+    into: 'hot-card', what: 'The word',
+    html: `<div class="card">
+    <h3>Hot Seat</h3>
+    <p class="sub">The class gives clues; the one in the hot seat guesses. Sixty seconds.</p>
+    <div id="hot-card" class="art"></div>
+    <div id="hot-acts" class="party-acts"></div>
+    <p class="note" id="hot-said" style="text-align:center;margin:.5rem 0 0"></p>
+  </div>` },
+
+  { id: 'twentyq', kind: 'game', name: '20 Questions', start: () => partyStart_?.('twq'),
+    stop: () => { if (typeof partyStop_ === 'function') partyStop_('twq'); },
+    into: 'twq-card', what: 'The secret',
+    html: `<div class="card">
+    <h3>20 Questions</h3>
+    <p class="sub">Twenty yes-or-no questions to find a person, a place or a thing.</p>
+    <div id="twq-card" class="art"></div>
+    <div id="twq-acts" class="party-acts"></div>
+    <p class="note" id="twq-said" style="text-align:center;margin:.5rem 0 0"></p>
+  </div>` },
+
+  { id: 'alibi', kind: 'game', name: 'Alibi', start: () => partyStart_?.('alb'),
+    stop: () => { if (typeof partyStop_ === 'function') partyStop_('alb'); },
+    into: 'alb-card', what: 'The case',
+    html: `<div class="card">
+    <h3>Alibi</h3>
+    <p class="sub">Detectives question two suspects separately and look for where the stories differ.</p>
+    <div id="alb-card" class="art"></div>
+    <div id="alb-acts" class="party-acts"></div>
+    <p class="note" id="alb-said" style="text-align:center;margin:.5rem 0 0"></p>
+  </div>` },
+
   { id: 'maze', kind: 'game', name: 'Maze', start: () => initMaze?.(),
     into: 'maze-grid', what: 'The maze',
     html: `<div class="card">

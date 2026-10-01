@@ -1607,6 +1607,91 @@ const STATES = {
                  && document.querySelectorAll('#s-games .scr-tile').length === 0,
       wants: 'the hand-over card, with no rack on the screen',
       leave: () => { scrabble = null; scrabblePaint(); } },
+
+    /* ---------- THE FIVE CLASSROOM GAMES, EACH ON ITS BUSIEST CARD ----------------------------
+       EVERY ONE OPENS ON A SINGLE BUTTON, which is the only state `go()` reaches — so everything
+       these games are (a clock, Taboo's forbidden words, Alibi's six questions) is past it and
+       nothing would measure it without a state. Entered through the app's own handlers, and then
+       given the LONGEST entry its deck holds: a round is dealt at random, so a state that measured
+       whatever came up would measure a different card every run, and the one worth measuring is
+       the one that wraps. */
+    { name: 'just a minute, mid-round',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no justaminute widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'justaminute')), true);
+        ACTIONS['jam-start'](document.createElement('button'));
+        PARTY.jam.topic = JAM_DECK.reduce((a, b) => (b.length > a.length ? b : a), '');
+        jamPaint();
+      },
+      expect: () => document.querySelectorAll('#s-games #jam-acts .party-call').length === 3
+                 && !!document.querySelector('#s-games #jam-card .party-clock'),
+      wants: 'the topic, the clock and the three tallies',
+      leave: () => { partyHold_('jam'); PARTY.jam = null; jamPaint(); } },
+
+    { name: 'a taboo card',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no taboo widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'taboo')), true);
+        ACTIONS['tab-start'](document.createElement('button'));
+        PARTY.tab.card = TABOO_DECK.reduce((a, b) => (b.join('').length > a.join('').length ? b : a));
+        tabPaint();
+      },
+      expect: () => {
+        const n = document.querySelectorAll('#s-games #tab-card .tab-ban li').length;
+        return n >= 4 && n <= 5;
+      },
+      wants: 'the word and four or five words you may not say',
+      leave: () => { partyHold_('tab'); PARTY.tab = null; tabPaint(); } },
+
+    { name: 'the hot seat word, held up to the class',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no hotseat widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'hotseat')), true);
+        ACTIONS['hot-start'](document.createElement('button'));
+        const b = document.createElement('button');
+        b.setAttribute('data-g', 'hot');
+        ACTIONS['party-resume'](b);
+        PARTY.hot.word = HOT_DECK.reduce((a, c) => (c.length > a.length ? c : a), '');
+        hotPaint();
+      },
+      expect: () => !!document.querySelector('#s-games #hot-card .hot-word'),
+      wants: 'the word in large type, with Got it and Pass',
+      leave: () => { partyHold_('hot'); PARTY.hot = null; hotPaint(); } },
+
+    { name: '20 questions, being asked',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no twentyq widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'twentyq')), true);
+        ['twq-start', 'twq-show', 'twq-hide', 'twq-ask', 'twq-ask', 'twq-ask']
+          .forEach(a => ACTIONS[a](document.createElement('button')));
+      },
+      expect: () => document.querySelectorAll('#s-games #twq-acts [data-do="twq-ask"]').length === 2
+                 && !document.querySelector('#s-games #twq-card .art-word'),
+      wants: 'the count, Yes and No, and no secret on the screen',
+      leave: () => { PARTY.twq = null; twqPaint(); } },
+
+    { name: 'an alibi case card',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no alibi widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'alibi')), true);
+        ACTIONS['alb-start'](document.createElement('button'));
+        const long = l => l.reduce((a, b) => (b.length > a.length ? b : a), '');
+        Object.assign(PARTY.alb, { crime: long(ALB_CRIMES), time: long(ALB_TIMES), place: long(ALB_PLACES) });
+        albPaint();
+      },
+      expect: () => !!document.querySelector('#s-games #alb-card .alb-facts')
+                 && !document.querySelector('#s-games #alb-card .alb-qs'),
+      wants: 'the crime, the time and the alibi, with no questions on it',
+      leave: () => { partyHold_('alb'); PARTY.alb = null; albPaint(); } },
+
+    /* THE SIX LONGEST QUESTIONS, for the same reason: six of a hundred and twenty chosen at random
+       is a list a different height every run. */
+    { name: 'an alibi interview',
+      enter: () => {
+        goPage('games', (n => { if (n < 0) throw new Error('no alibi widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'alibi')), true);
+        ACTIONS['alb-start'](document.createElement('button'));
+        PARTY.alb.qs = ALB_QUESTIONS.slice().sort((a, b) => b.length - a.length).slice(0, ALB_ASK);
+        ACTIONS['alb-next'](document.createElement('button'));
+      },
+      expect: () => document.querySelectorAll('#s-games #alb-card .alb-qs li').length === ALB_ASK
+                 && !!document.querySelector('#s-games #alb-card .party-clock'),
+      wants: 'suspect 1, the clock and six questions',
+      leave: () => { partyHold_('alb'); PARTY.alb = null; albPaint(); } },
   ],
 
   /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------

@@ -254,6 +254,10 @@ function boot(opts) {
          when this hook was built, which is the fault CLAUDE.md records about a state seeding
          `DATA.students` before that assignment. */
       'DATA: () => DATA,' +
+      /* THE FIVE CLASSROOM GAMES' ROUNDS, as a getter for the same reason — a journey asks whether a
+         repaint kept the round, and only the state can say that the clock did not move while the
+         column was away. */
+      'PARTY: () => (typeof PARTY !== "undefined" ? PARTY : null),' +
       'PAGER, PAGE, goPage, repaint, pageCount, PAGE_KEEP,'
       + 'STUFF_WIN: typeof STUFF_WIN === "number" ? STUFF_WIN : 0,'
       /* THE DOCKET'S STORAGE FORMAT AND ITS PAINTER, so a journey can round-trip a line through
@@ -851,6 +855,203 @@ check('the imposter game tells everybody the word but one, and hides it between 
   if (rev.indexOf('Player ' + who) === -1) bad.push('the reveal does not name player ' + who + ': "' + rev + '"');
   if ([...words].some(wd => rev.indexOf(wd) === -1)) bad.push('the reveal does not say the word');
   press('imp-players');
+  return bad;
+});
+
+/* ---------- THE FIVE CLASSROOM GAMES: A ROUND SURVIVES A REPAINT, AND WAITS WHILE YOU ARE AWAY -----
+   JUST A MINUTE, TABOO, HOT SEAT, 20 QUESTIONS AND ALIBI were asked to keep their round through a
+   repaint — which is a stop and a start a moment apart — and to stop their clock when the column is
+   left. Those pull against each other, because both arrive as the same `stop`, and every way of
+   getting it wrong draws perfectly: a repaint that pauses the round under somebody's finger, a
+   leave that lets the minute run out on another screen, a secret left up for whoever picks the
+   phone up next. So these play each game through the app's own handlers and ask the state and the
+   card both. */
+/* A COLUMN'S WIDGETS ARE STARTED AND STOPPED FROM `afterSlide_`, about 300ms after the move, so a
+   journey asking what leaving did has to wait that long first. */
+const LEAVE_MS = 700;
+const partyBoot_ = async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const d = w.document;
+  const press = (act, attrs) => {
+    const el = d.createElement('button');
+    Object.keys(attrs || {}).forEach(k => el.setAttribute(k, attrs[k]));
+    t.ACTIONS[act](el);
+  };
+  const text = k => String((d.getElementById(k + '-card') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+  const acts = k => String((d.getElementById(k + '-acts') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+  return { w, t, d, press, text, acts, P: () => t.PARTY() };
+};
+
+check('just a minute keeps its round through a repaint and pauses when the column is left', async () => {
+  const { t, d, press, text, acts, P } = await partyBoot_();
+  if (!d.getElementById('jam-card')) return ['Just a Minute did not draw on the Games column'];
+  if (!P()) return ['the PARTY state is not reachable, so nothing about the round can be asked'];
+  const bad = [];
+  press('jam-start');
+  const s = P().jam;
+  if (!s || !s.topic || !s.ends) return ['Start did not deal a topic and start the clock'];
+  if (text('jam').indexOf(s.topic) === -1) bad.push('the topic is not on the card: "' + text('jam') + '"');
+  press('jam-call', { 'data-c': 'r' });
+  press('jam-call', { 'data-c': 'r' });
+  press('jam-call', { 'data-c': 'h' });
+  if (!/Repetition\s*2/.test(acts('jam')) || !/Hesitation\s*1/.test(acts('jam'))) {
+    bad.push('two repetitions and a hesitation read "' + acts('jam') + '"');
+  }
+  const topic = s.topic;
+  t.repaint(true);
+  await wait(50);
+  const r = P().jam;
+  if (!r || r.topic !== topic || r.tally.r !== 2) bad.push('a repaint threw the round away');
+  if (!r || !r.ends) bad.push('a repaint left the clock stopped with the Games column still in front');
+  if (text('jam').indexOf(topic) === -1) bad.push('after a repaint the card reads "' + text('jam') + '"');
+  /* AWAY: the clock holds, and stays held on the way back. */
+  t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  const held = P().jam;
+  if (held.ends || held.run) bad.push('leaving the column left the clock running');
+  const left = held.left;
+  await wait(1200);
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  if (P().jam.ends) bad.push('coming back started the clock without anybody pressing Resume');
+  if (P().jam.left !== left) bad.push('the minute went on running while the column was away: ' + left + ' became ' + P().jam.left);
+  if (!/Resume/.test(text('jam'))) bad.push('a paused round has no Resume: "' + text('jam') + '"');
+  press('party-resume', { 'data-g': 'jam' });
+  if (!P().jam.ends) bad.push('Resume did not start the clock again');
+  /* AND THE END: a round whose minute is up says so and keeps its tally. */
+  P().jam.ends = Date.now() + 100;
+  await wait(600);
+  if (P().jam.phase !== 'done' || !/Time/.test(text('jam')) || !/Repetition 2/.test(text('jam'))) {
+    bad.push('a finished minute reads "' + text('jam') + '"');
+  }
+  return bad;
+});
+
+check('taboo shows a word with four or five forbidden words, and Correct and Pass deal the next', async () => {
+  const { t, d, press, text, P } = await partyBoot_();
+  if (!d.getElementById('tab-card')) return ['Taboo did not draw on the Games column'];
+  const bad = [];
+  press('tab-start');
+  const s = P().tab;
+  if (!s || !s.ends) return ['Start did not begin a round'];
+  const ban = d.querySelectorAll('#tab-card .tab-ban li').length;
+  if (ban < 4 || ban > 5) bad.push(ban + ' forbidden words on the card');
+  if (text('tab').indexOf(s.card[0]) === -1) bad.push('the word is not on the card');
+  const first = s.card[0];
+  press('tab-next', { 'data-got': '1' });
+  press('tab-next', { 'data-got': '0' });
+  if (s.score !== 1 || s.passed !== 1) bad.push('a Correct and a Pass counted ' + s.score + ' and ' + s.passed);
+  if (s.card[0] === first) bad.push('Correct and Pass did not deal another word');
+  t.repaint(true);
+  await wait(50);
+  if (P().tab !== s || !P().tab.ends) bad.push('a repaint stopped or replaced the round');
+  /* PAUSED, THE WORD IS NOT ON THE CARD — whoever picks the phone up next may be on the other side. */
+  t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  if (text('tab').indexOf(s.card[0]) !== -1) bad.push('a paused card still shows the word');
+  return bad;
+});
+
+/* AND THE SAVED COLUMN IS NOT "HERE" FOR A GAME NOBODY STARRED. The first version counted the whole
+   column as the Games column's twin, so a minute started on Games and swiped over to Saved went on
+   running on a card that was on no screen — and Saved is the column next door. */
+check('a round left for the Saved column, where it is not starred, pauses like any other leave', async () => {
+  const { t, d, press, P } = await partyBoot_();
+  if (!d.getElementById('tab-card')) return ['Taboo did not draw on the Games column'];
+  const bad = [];
+  press('tab-start');
+  if (!P().tab || !P().tab.ends) return ['Start did not begin a round'];
+  if (d.querySelector('#s-saved #tab-card')) return ['Taboo is already on the Saved column, so this asks nothing'];
+  t.go('saved', false, true);
+  await wait(LEAVE_MS);
+  const s = P().tab;
+  if (s.ends || s.run) bad.push('the clock went on running behind the Saved column, where the card is not');
+  const left = s.left;
+  await wait(800);
+  if (P().tab.left !== left) bad.push('the minute ran down while the round was on no screen');
+  return bad;
+});
+
+check('hot seat shows its word only once the phone faces the class, and hides it when the column goes', async () => {
+  const { t, d, press, text, P } = await partyBoot_();
+  if (!d.getElementById('hot-card')) return ['Hot Seat did not draw on the Games column'];
+  const bad = [];
+  press('hot-start');
+  const s = P().hot;
+  if (!s) return ['Start did not begin a round'];
+  if (s.ends) bad.push('the clock started before the word was shown');
+  if (text('hot').indexOf(s.word) !== -1) bad.push('the word is on the screen before the phone is turned to the class');
+  press('party-resume', { 'data-g': 'hot' });
+  if (!s.ends || text('hot').indexOf(s.word) === -1) bad.push('Show the word did not show it and start the clock');
+  press('hot-next', { 'data-got': '1' });
+  if (s.score !== 1) bad.push('Got it did not count');
+  const word = s.word;
+  t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  if (text('hot').indexOf(word) !== -1) bad.push('the word is still up after leaving the column and coming back');
+  if (P().hot.ends) bad.push('coming back started the clock by itself');
+  return bad;
+});
+
+check('20 questions keeps the secret from the room and counts to twenty', async () => {
+  const { t, d, press, text, P } = await partyBoot_();
+  if (!d.getElementById('twq-card')) return ['20 Questions did not draw on the Games column'];
+  const bad = [];
+  press('twq-start');
+  const s = P().twq;
+  if (!s || !s.word) return ['Start did not choose a secret'];
+  if (text('twq').indexOf(s.word) !== -1) bad.push('the secret is on the screen before anybody pressed Show me');
+  press('twq-show');
+  if (text('twq').indexOf(s.word) === -1) bad.push('Show me did not show the secret');
+  /* LEAVING WITH THE SECRET UP HIDES IT. */
+  t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  if (text('twq').indexOf(s.word) !== -1) bad.push('the secret is still up after leaving the column');
+  press('twq-show');
+  press('twq-hide');
+  if (text('twq').indexOf(s.word) !== -1) bad.push('the secret is on the screen while the class asks');
+  for (let i = 0; i < 5; i++) press('twq-ask');
+  t.repaint(true);
+  await wait(50);
+  if (P().twq.asked !== 5 || !/5 of 20/.test(text('twq'))) bad.push('five questions and a repaint read "' + text('twq') + '"');
+  for (let i = 0; i < 20; i++) press('twq-ask');
+  if (P().twq.asked !== 20 || P().twq.phase !== 'done') bad.push('the count went past twenty or did not end: ' + P().twq.asked);
+  if (text('twq').indexOf(s.word) === -1 || !/Out of questions/.test(text('twq'))) bad.push('the end does not reveal the secret: "' + text('twq') + '"');
+  return bad;
+});
+
+check('alibi shows the case, then the same questions to each suspect on their own clock', async () => {
+  const { t, d, press, text, P } = await partyBoot_();
+  if (!d.getElementById('alb-card')) return ['Alibi did not draw on the Games column'];
+  const bad = [];
+  press('alb-start');
+  const s = P().alb;
+  if (!s) return ['New case did not open one'];
+  const c = text('alb');
+  if (c.indexOf(s.crime) === -1 || c.indexOf(s.time) === -1 || c.indexOf(s.place) === -1) bad.push('the case card is missing the crime, the time or the place');
+  if (s.qs.some(q => c.indexOf(q) !== -1)) bad.push('the questions are on the card the suspects take out of the room');
+  press('alb-next');
+  const one = [...d.querySelectorAll('#alb-card .alb-qs li')].map(li => li.textContent);
+  if (s.who !== 1 || !s.ends || one.length !== 6) bad.push('suspect 1 is not being questioned on a clock with six questions');
+  t.repaint(true);
+  await wait(50);
+  if (P().alb.who !== 1 || !P().alb.ends) bad.push('a repaint lost suspect 1\'s interview');
+  s.ends = Date.now() + 30000;
+  press('alb-next');
+  const two = [...d.querySelectorAll('#alb-card .alb-qs li')].map(li => li.textContent);
+  if (s.who !== 2) bad.push('Next did not bring in suspect 2');
+  if (s.left !== 120000 || Math.abs((s.ends - Date.now()) - 120000) > 1000) bad.push('suspect 2 did not get a clock of their own');
+  if (one.join('|') !== two.join('|')) bad.push('the two suspects were asked different questions');
+  press('alb-next');
+  if (s.phase !== 'verdict' || s.ends) bad.push('the verdict did not follow suspect 2, or left a clock running');
   return bad;
 });
 
