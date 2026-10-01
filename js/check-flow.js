@@ -626,31 +626,106 @@ check('a settings save still works against a server older than the site', async 
   return bad;
 });
 
-/* ---------- TEACH MAY BE TICKED ON SEVERAL LEVELS -------------------------------------------------
-   *"when i tick teach for different levels of same subject it unticks the other one. i dont want
-   that."* The handler used to untick every other level's Teach. This ticks Teach on two levels
-   through the app's own handler and wants both still ticked, each with Can teach beside it. */
-check('Teach on one level leaves Teach on another level ticked', async () => {
+/* ---------- THE QUALIFICATIONS SHELF: TEACH ON SEVERAL LEVELS, CANCEL, REMOVE, ADD, THE CAP ----------
+   REPORTED AS *"the current system for adding qualifications is really hard to understand"*, and the
+   shelf was rebuilt as a read list with one editor at a time. What the rebuild must not lose is the
+   data underneath it, so this drives the page's own handlers and reads the seven hidden and visible
+   `data-me` boxes of each slot — the exact fields `me-save` posts and `qualsIn` rebuilds rows from:
+   - Teach pressed on two levels leaves BOTH Teach (and Can teach) — *"when i tick teach for different
+     levels of same subject it unticks the other one. i dont want that"* — and `No` on one leaves the
+     other alone;
+   - Cancel puts back what `Edit` found;
+   - Remove blanks all seven boxes of its slot and SAVES, so `qualsIn` drops the record;
+   - `+ Add a Maths level` writes Maths into the new slot's hidden name, so it is never typed again;
+   - at ten records there is no add button anywhere, and the count line says why. */
+check('the qualifications shelf keeps Teach per level, cancels, removes, adds and stops at ten', async () => {
   const quals = [];
   for (let i = 1; i <= 10; i++) ['', '_level', '_board', '_grade', '_received', '_teach', '_spec'].forEach(k => quals.push('qual_' + i + k));
-  const { w } = boot({ payload: Object.assign(payload(), { profileFields: { Qualifications: quals } }) });
-  await wait(300);
-  const t = w.__t;
-  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
-           profile: { first_name: 'Test', last_name: 'Admin', qual_1: 'Maths', qual_1_level: 'GCSE',
-                      qual_2: 'Maths', qual_2_level: 'A-Level' } });
-  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
-  await wait(300);
-  const d = w.document;
-  const lvls = [...d.querySelectorAll('#s-settings .q-shelf .q-levels .q-lvl')]
-    .filter(l => l.querySelector('[data-k="spec"]') && l.querySelector('[data-k="teach"]'));
-  if (lvls.length < 2) return ['the qualifications shelf has fewer than two levels to tick (' + lvls.length + ')'];
-  const tick = l => { const b = l.querySelector('[data-k="spec"]'); b.checked = true; t.ACTIONS['qual-tick'](b); };
-  tick(lvls[0]); tick(lvls[1]);
-  const on = (l, k) => !!l.querySelector('[data-k="' + k + '"]').checked;
+  const start = profile => {
+    const b = boot({ payload: Object.assign(payload(), { profileFields: { Qualifications: quals } }),
+                     reply: { success: true, changed: 0 } });
+    return wait(300).then(() => {
+      b.w.__t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+                     profile: Object.assign({ first_name: 'Test', last_name: 'Admin', phone_cc: '+44' }, profile) });
+      b.w.__t.go('settings', false, true); b.w.paint('settings');
+      return wait(300).then(() => b);
+    });
+  };
+  let b;
+  try {
+    b = await start({ qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8',
+                      qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B' });
+  } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const { w, sent } = b;
+  const t = w.__t, d = w.document;
+  const A = (act, el) => t.ACTIONS[act](el);
+  const shelf = () => d.querySelector('#s-settings .q-shelf');
+  const slot = i => shelf() && shelf().querySelector('.q-slot[data-slot="' + i + '"]');
+  const box = (i, k) => (slot(i) || d).querySelector('[data-me="qual_' + i + k + '"]') || {};
+  const seg = (i, v) => slot(i).querySelector('[data-do="qual-teach"][data-v="' + v + '"]');
   const bad = [];
-  if (!on(lvls[0], 'spec')) bad.push('ticking Teach on a second level unticked it on the first');
-  if (!on(lvls[0], 'teach') || !on(lvls[1], 'teach')) bad.push('Teach did not tick Can teach beside it');
+  if (!slot(1) || !slot(2)) return ['the qualifications shelf has no slot 1 or 2 to work on'];
+  if (d.querySelectorAll('#s-settings [data-me^="qual_"]').length !== 70) bad.push('the form does not hold all seventy qual_ boxes');
+
+  /* CANCEL: open the A-Level, change its level and its teaching, cancel, and the slot is as it was. */
+  A('qual-edit', slot(2).querySelector('[data-do="qual-edit"]'));
+  if (!slot(2).classList.contains('is-editing')) bad.push('Edit did not open the A-Level editor');
+  box(2, '_level').value = 'AS';
+  A('qual-teach', seg(2, 'spec'));
+  A('qual-cancel', slot(2).querySelector('[data-do="qual-cancel"]'));
+  if (box(2, '_level').value !== 'A-Level' || box(2, '_spec').value !== 'FALSE' || box(2, '_teach').value !== 'FALSE') {
+    bad.push('Cancel did not put the A-Level back (level ' + box(2, '_level').value + ', spec ' + box(2, '_spec').value + ')');
+  }
+  if (shelf().querySelector('.is-editing') || shelf().classList.contains('is-editing')) bad.push('Cancel left an editor open');
+
+  /* TEACH ON TWO LEVELS: both stay Teach, and Teach is Can teach as well. */
+  A('qual-teach', seg(1, 'spec'));
+  A('qual-teach', seg(2, 'spec'));
+  if (box(1, '_spec').value !== 'TRUE' || box(2, '_spec').value !== 'TRUE') bad.push('Teach on a second level took Teach off the first');
+  if (box(1, '_teach').value !== 'TRUE' || box(2, '_teach').value !== 'TRUE') bad.push('Teach did not carry Can teach with it');
+  /* AND `No` ON ONE LEAVES THE OTHER ALONE. */
+  A('qual-teach', seg(1, 'no'));
+  if (box(1, '_spec').value !== 'FALSE' || box(1, '_teach').value !== 'FALSE') bad.push('No did not set both of its level\'s boxes to FALSE');
+  if (box(2, '_spec').value !== 'TRUE' || box(2, '_teach').value !== 'TRUE') bad.push('No on one level changed the other');
+
+  /* ADD A LEVEL: the subject goes into the new slot's hidden name. */
+  const maths = [...shelf().querySelectorAll('.q-subj')].find(sj => sj.dataset.name === 'Maths');
+  const add = maths && maths.querySelector('[data-do="qual-add-level"]');
+  if (!add) bad.push('Maths has no "+ Add a Maths level"');
+  else {
+    A('qual-add-level', add);
+    const fresh = shelf().querySelector('.q-slot.is-editing');
+    const n = fresh && fresh.dataset.slot;
+    if (!fresh || box(n, '').value !== 'Maths') bad.push('a level added under Maths does not carry Maths into its qual_N');
+    if (fresh) A('qual-cancel', fresh.querySelector('[data-do="qual-cancel"]'));
+    if (n && box(n, '').value !== '') bad.push('Cancel on a new level did not send it back to the pool empty');
+  }
+
+  /* REMOVE: the level's seven boxes are posted blank, so `qualsIn` drops it. */
+  sent.length = 0;
+  A('qual-drop', slot(1).querySelector('[data-do="qual-drop"]'));
+  await wait(300);
+  const post = sent.find(x => x.action === 'updateProfile');
+  if (!post) bad.push('Remove this level did not save');
+  else {
+    const f = post.fields || {};
+    const blank = ['', '_level', '_grade', '_board', '_received'].every(k => f['qual_1' + k] === '')
+               && f.qual_1_spec === 'FALSE' && f.qual_1_teach === 'FALSE';
+    if (!blank) bad.push('Remove posted slot 1 as ' + JSON.stringify(['', '_level', '_grade', '_spec'].map(k => f['qual_1' + k])));
+    if (Object.keys(f).filter(k => /^qual_/.test(k)).length !== 70) bad.push('Remove did not post all seventy qual_ boxes');
+    if (f.qual_2_level !== 'A-Level') bad.push('Remove took the other level with it');
+  }
+
+  /* TEN RECORDS: no add button anywhere, and the count line says so. */
+  const ten = {};
+  for (let i = 1; i <= 10; i++) Object.assign(ten, { ['qual_' + i]: 'Subject ' + i, ['qual_' + i + '_level']: 'GCSE' });
+  const b10 = await start(ten);
+  const s10 = b10.w.document.querySelector('#s-settings .q-shelf');
+  if (!s10) bad.push('ten records drew no shelf');
+  else {
+    if (s10.querySelector('[data-do^="qual-add"]')) bad.push('an add button is still drawn at ten records');
+    if (!/10 of 10/.test((s10.querySelector('.q-count') || {}).textContent || '')) bad.push('the count line does not say 10 of 10');
+  }
   return bad;
 });
 

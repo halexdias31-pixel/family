@@ -790,22 +790,25 @@ const STATES = {
       },
       wants: 'three insurance items, each with its date box, and the one due soon flagged' },
 
-    /* ---------- UP TO TEN QUALIFICATIONS ON ONE PAGE, SHOWN AS WHAT IS FILLED IN -------------------
-       ASKED FOR AS *"allow to add as many qualifications as you like (up to 10)"*. All ten are IN
-       the page — forty controls under one Save, because the packer rebuilds the whole `quals` cell
-       from what arrives — and only the filled ones (or one empty one) are SHOWN, with `Add another`
-       revealing the next. So this presses `Add another` once and asks for exactly one more card
-       showing than it arrived with: a shelf that drew all ten, or one whose button did nothing,
-       both measure perfectly and both fail this.
-       FOUND BY ASKING THE DOM for the tenth slot's board box, which exists whether or not it shows. */
+    /* ---------- THE QUALIFICATIONS: A LIST YOU READ, AND ONE EDITOR AT A TIME ----------------------
+       REPORTED AS *"the current system for adding qualifications is really hard to understand."* The
+       shelf is a read list now — a bold subject, its levels as plain lines, a word button `Edit` on
+       each — and an editor opens in place of the one row being changed. What this asserts is the
+       DATA CONTRACT the redraw must not break, and the SHAPE the owner asked for:
+       - all seventy `qual_*` boxes in the form, drawn or not, because `qualsIn` rebuilds the person's
+         rows from what arrives and a slot missing from the form is a qualification deleted on Save;
+       - Maths once, with its two levels under it, and the degree a level of its own subject;
+       - no checkbox anywhere on the shelf: Teach and Can teach are HIDDEN boxes holding TRUE/FALSE,
+         read here as values — GCSE taught (so both TRUE), A-Level can-teach only;
+       - an `Edit` per level and per subject, no glyph to decode, and no `data-me` on a control that
+         is not an answer.
+       FOUND BY ASKING THE DOM for the tenth slot's place box, which exists whether or not it shows. */
     { name: 'the qualifications',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
         /* TWO LEVELS OF ONE SUBJECT AND A DEGREE, through `USER.profile`, which is what the column is
-           drawn from. The two Maths records are the whole point of the page: they must be ONE subject
-           with two level lines under it, not two entries — *"that way they dont need to add another
-           entry for the same subject"* — and the degree must be a level under its subject rather
-           than a card of its own. */
+           drawn from. The two Maths records must be ONE subject with two levels under it. Written
+           out in each state rather than shared, because a state is sent to the page as source. */
         window.STATE_QUAL_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {}, {
           qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8', qual_1_board: 'Hill Top School', qual_1_received: '2017',
@@ -820,13 +823,6 @@ const STATES = {
         const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
         if (at < 0) throw new Error('no qualifications page on the settings column');
         goPage('settings', at, true);
-        /* AND A THIRD LEVEL ADDED TO MATHS, through the page's own button — the new level has to
-           carry the subject's name into its hidden `qual_N`, or a Save posts a level with no subject
-           and `qualsIn` keeps it as a nameless record. */
-        const maths = [...pages[at].querySelectorAll('.q-subj')]
-          .find(sj => (sj.querySelector('.q-name') || {}).value === 'Maths');
-        const add = maths && maths.querySelector('[data-do="qual-add-level"]');
-        if (add) add.click();
       },
       leave: () => {
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
@@ -838,41 +834,84 @@ const STATES = {
         const shelf = pg && pg.querySelector('.q-shelf');
         if (!shelf) return 0;
         const subjects = [...shelf.querySelectorAll('.q-subj')];
-        const maths = subjects.find(sj => (sj.querySelector('.q-name') || {}).value === 'Maths');
-        const levelsOf = sj => [...sj.querySelectorAll('.q-levels > .q-lvl')];
-        const slotName = lvl => (lvl.querySelector('[data-me="qual_' + lvl.dataset.slot + '"]') || {}).value;
-        /* SEVENTY FIELDS IN THE FORM, drawn or not — `qualsIn` rebuilds the whole cell from what
-           arrives, so a slot missing from the form is a qualification deleted on Save. */
+        const maths = subjects.find(sj => sj.dataset.name === 'Maths');
+        const slotsOf = sj => [...sj.querySelectorAll('.q-levels > .q-slot')];
+        const val = (sl, k) => ((sl && sl.querySelector('[data-me="qual_' + sl.dataset.slot + k + '"]')) || {}).value;
+        const levelOf = lvl => maths && slotsOf(maths).find(sl => val(sl, '_level') === lvl);
+        const flags = [...shelf.querySelectorAll('[data-me$="_spec"], [data-me$="_teach"]')];
         return pg.querySelectorAll('[data-me^="qual_"]').length === 70
-          && pg.querySelectorAll('[data-do="me-save"]').length === 1
+          /* NO SAVE TILE ON THIS CARD — every editor saves itself. */
+          && pg.querySelectorAll('[data-do="me-save"]').length === 0
           && subjects.length === 2 && !!maths
-          && levelsOf(maths).length === 3
-          && levelsOf(maths).every(l => slotName(l) === 'Maths')
-          /* THE TWO SAVED LEVELS ARRIVE SHUT AS ONE LINE EACH, THE NEW ONE OPEN. */
-          && levelsOf(maths).filter(l => l.classList.contains('is-shut')).length === 2
-          /* THE TICKS ARE EACH LEVEL'S OWN — *"each level should have a tickbox which is 'teach' and
-             'can teach'. instead of for the whole subject"* — so none on the subject, a pair on every
-             level, and they ARE the saved boxes: GCSE taught (spec, which also means can-teach),
-             A-Level can-teach only, the new level neither. */
-          && !maths.querySelector('.q-head [type="checkbox"]')
-          /* A DELETE ON EVERY SUBJECT AND EVERY LEVEL LINE, shut or open — *"there should be a delete
-             button for subjects or levels"*. */
-          && subjects.every(sj => sj.querySelectorAll(':scope > .q-sum-row [data-do="qual-drop-subject"]').length === 1)
-          && levelsOf(maths).every(l => l.querySelectorAll(':scope > .q-sum-row [data-do="qual-drop"]').length === 1)
-          && levelsOf(maths).every(l => l.querySelectorAll('[data-do="qual-tick"]').length === 2)
-          && levelsOf(maths).map(l => (l.querySelector('[data-me="qual_' + l.dataset.slot + '_spec"]') || {}).checked ? 1 : 0).join('') === '100'
-          && levelsOf(maths).map(l => (l.querySelector('[data-me="qual_' + l.dataset.slot + '_teach"]') || {}).checked ? 1 : 0).join('') === '110'
-          /* THE SUBJECT IS A DROP-DOWN LIKE THE LEVEL BESIDE IT — no `<input list>` left on the shelf —
-             and a subject the list does not hold is kept as its chosen option. THE PLACE IS A TEXT
-             BOX, because it is a school's name rather than an exam board (the owner's correction). */
-          && !shelf.querySelector('input[list]')
-          && maths.querySelector('.q-name').tagName === 'SELECT'
-          && subjects.some(sj => (sj.querySelector('.q-name') || {}).value === 'Bible and Theology')
-          && !shelf.querySelector('select[data-me$="_board"]')
-          && !!shelf.querySelector('input[data-me$="_board"][placeholder="School, college or uni"]')
+          && shelf.querySelectorAll('.q-head').length === 2
+          && slotsOf(maths).length === 2
+          && slotsOf(maths).every(sl => val(sl, '') === 'Maths')
+          && subjects.some(sj => sj.dataset.name === 'Bible and Theology')
+          && !shelf.querySelector('input[type="checkbox"]')
+          && flags.length === 20 && flags.every(b => b.type === 'hidden')
+          && val(levelOf('A-Level'), '_spec') === 'FALSE' && val(levelOf('A-Level'), '_teach') === 'TRUE'
+          && val(levelOf('GCSE'), '_spec') === 'TRUE' && val(levelOf('GCSE'), '_teach') === 'TRUE'
+          && shelf.querySelectorAll('.q-levels > .q-slot [data-do="qual-edit"]').length === 3
+          && shelf.querySelectorAll('[data-do="qual-subj-edit"]').length === 2
+          && !/[✓★▸▾✕]/.test(shelf.textContent)
+          && !shelf.querySelector('.q-seg [data-me], .q-acts [data-me]')
+          /* THE GOLD CHIP ON GCSE ONLY, and nothing open. */
+          && shelf.querySelectorAll('.q-chip').length === 1 && !!levelOf('GCSE').querySelector('.q-chip')
+          && !shelf.querySelector('.is-editing')
+          && !!shelf.querySelector('input[data-me$="_board"]')
           ? 70 : 0;
       },
-      wants: 'Maths drawn once with its GCSE and A-Level under it, a degree as a level of its own subject, one pair of ticks per subject, and Add a level carrying the subject into the new level' },
+      wants: 'Maths drawn once with GCSE and A-Level as read rows under it, a degree as a level of its own subject, Teach as hidden TRUE/FALSE boxes, an Edit per level and subject, and no glyphs or checkboxes' },
+    /* AND THE A-LEVEL EDITOR OPEN, through the page's own `Edit`. One thing open, the three-way control
+       drawn with `Can teach` lit (that is what the A-Level holds), every caption above its box, and
+       `Still studying` offered in Finished. Every other `Edit` is off the page while it is open. */
+    { name: 'the qualifications, one level open',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        /* TWO LEVELS OF ONE SUBJECT AND A DEGREE, through `USER.profile`, which is what the column is
+           drawn from. The two Maths records must be ONE subject with two levels under it. Written
+           out in each state rather than shared, because a state is sent to the page as source. */
+        window.STATE_QUAL_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8', qual_1_board: 'Hill Top School', qual_1_received: '2017',
+          qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2019',
+          qual_2_teach: 'TRUE',
+          qual_3: 'Bible and Theology', qual_3_level: 'Degree', qual_3_received: 'Present' });
+        /* A CLEAN COLUMN FIRST — see the agreement state above. */
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const pages = [...document.querySelectorAll('#s-settings .page')];
+        const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
+        if (at < 0) throw new Error('no qualifications page on the settings column');
+        goPage('settings', at, true);
+        /* AND THE A-LEVEL OPENED THROUGH ITS OWN `Edit`. */
+        const slot = [...pages[at].querySelectorAll('.q-slot')].find(sl =>
+          (sl.querySelector('[data-me$="_level"]') || {}).value === 'A-Level');
+        if (!slot) throw new Error('no A-Level row on the qualifications page');
+        slot.querySelector('[data-do="qual-edit"]').click();
+      },
+      leave: () => {
+        USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const shelf = pg && pg.querySelector('.q-shelf');
+        if (!shelf) return 0;
+        const open = [...shelf.querySelectorAll('.is-editing')];
+        const ed = open[0] && open[0].querySelector(':scope > .q-ed');
+        const visible = el => !!(el.offsetWidth || el.offsetHeight);
+        return shelf.classList.contains('is-editing') && open.length === 1 && !!ed
+          && ed.querySelectorAll('[data-do="qual-teach"]').length === 3
+          && (ed.querySelector('[data-do="qual-teach"][aria-pressed="true"]') || {}).dataset.v === 'teach'
+          && [...ed.querySelectorAll('label.field')].every(l => !!(l.querySelector(':scope > span') || {}).textContent)
+          && [...ed.querySelectorAll('select[data-me$="_received"] option')].some(o => o.textContent === 'Still studying' && o.value === 'Present')
+          && [...shelf.querySelectorAll('[data-do="qual-edit"], [data-do="qual-subj-edit"], [data-do^="qual-add"]')].every(b => !visible(b))
+          ? 1 : 0;
+      },
+      wants: 'one editor open in place of the A-Level row, its captions above the boxes, Can teach lit, and every other Edit off the page' },
 
     /* ---------- THE THREE DATE-OF-BIRTH BOXES, ON A GROUP THE FIXTURE DID NOT HAVE ---------------
        `check/fixture.json` SENT NO `Contact` GROUP, so nothing in this lab had ever drawn a date of

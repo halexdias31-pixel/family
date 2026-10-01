@@ -487,7 +487,7 @@ function findCard(x) {
       ${/* ---------- FIVE CAPTIONS, IN THIS ORDER, AND NO OTHERS ----------------------------------
             ASKED FOR AS *"there should be x number of titles. at a glance, teaches, can also teach,
             qualifications, tutors at."* So `Teaches` is every level a tutor ticked `Teach` on (see
-            `qualLevel_` in me.js) — and everything
+            `qualSlot_` in me.js) — and everything
             else they ticked `Can teach` on is its own caption, where it used to share a row with the
             specialism and be told apart only by a gold edge. The `Focus` row went: it was a sixth
             title nobody asked for. `teachesSpec` is still said by the server rather than read off
