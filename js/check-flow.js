@@ -493,6 +493,7 @@ check('the cheat sheet prices every component at the fixed slot it is drawn in',
     }
   });
   if (!parts.some(c => c.id === 'M50')) bad.push('the periodic table (M50) is not in the list');
+  if (!parts.some(c => c.id === 'M51')) bad.push('the pH scale (M51) is not in the list');
   parts.filter(c => !c.edge).forEach(c => {
     const span = t.matSpan(c);
     if ([2, 4, 6].indexOf(span) === -1) bad.push(c.id + ' spans ' + span + ' tracks, not 2, 4 or 6');

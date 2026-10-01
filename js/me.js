@@ -1759,11 +1759,45 @@ function settingsPages_() {
      about, and the server gates it again — a card is not a permission. */
   if (isTutorRole()) pages.push(agreementCard_());
   if (isAdmin()) pages.push(cutCard_());
+  if (mayJourney_()) pages.push(journeyCard_());
   /* THE BUSINESS'S OWN PAPERWORK, LAST AND FOR AN ADMIN — see js/records.js. They were a widget on
      the Tools column, moved here on request; appended for the wardrobe's reason above. */
   if (typeof bizPages_ === 'function') pages.push(...bizPages_());
 
   return pages;
+}
+
+/* ---------- YOUR JOURNEY — A PLACEHOLDER ----------------------------------------------------------
+   ASKED FOR AS *"make a journey widget to go in account settings. its for student to track and
+   organise their progess. fo know you can just make it as a place holder."* So this is the card's
+   place and its outline, and nothing on it pretends to work: no button that does nothing, which is
+   the fault `check/press.js` exists to report. The one live line is the countdown to the two exam
+   dates a student already keeps on this column, because that is progress the app already knows.
+   For a student, and for an admin so the owner can see it; appended for the wardrobe's reason. */
+function mayJourney_() {
+  const held = typeof heldRoles === 'function' ? heldRoles() : [];
+  return held.indexOf('student') !== -1 || held.indexOf('admin') !== -1;
+}
+function journeyCard_() {
+  const prof = (USER && USER.profile) || {};
+  const days = iso => {
+    const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+    if (!m) return null;
+    const t = new Date(+m[1], +m[2] - 1, +m[3]), now = new Date();
+    return Math.ceil((t - new Date(now.getFullYear(), now.getMonth(), now.getDate())) / 864e5);
+  };
+  const exams = [['Small exam', prof.exam_small_date], ['Big exam', prof.exam_big_date]]
+    .map(([k, v]) => [k, days(v)]).filter(([, d]) => d !== null && d >= 0)
+    .map(([k, d]) => `<div class="row"><span class="k">${esc(k)}</span><span>${d === 0 ? 'today'
+      : d + (d === 1 ? ' day' : ' days') + ' to go'}</span></div>`).join('');
+  return `<div class="card journey">
+    <h3>Your journey</h3>
+    <p class="sub">Where you are, where you are going, and what you have done on the way. Coming soon.</p>
+    ${exams}
+    <div class="row"><span class="k">Goals</span><span class="faint">what you are aiming for</span></div>
+    <div class="row"><span class="k">Milestones</span><span class="faint">the steps on the way</span></div>
+    <div class="row"><span class="k">Worked through</span><span class="faint">papers and topics you have done</span></div>
+  </div>`;
 }
 
 /* ---------- THE TUTOR AGREEMENT (DRAFT), AND A TICK THAT CANNOT BE TAKEN BACK ----------------------
