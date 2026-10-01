@@ -4322,3 +4322,242 @@ on('scr-pass', () => {
   scrPass_(g);
   scrabblePaint();
 });
+
+/* ---------- THE TIMETABLE ---------------------------------------------------------------------------
+   ASKED FOR AS *"timetable widget ... like weekly timetable"*. A student's school week, or a tutor's
+   standing sessions: a day, a time, a subject, a line of note. Nothing here posts anywhere.
+
+   ON THE DEVICE, UNDER WHOEVER IS SIGNED IN. `whoIs_` is the same answer the answer boxes use, so two
+   students sharing a phone get two timetables and signing out puts the stranger's back. Signed out it
+   still works — under the bare key, exactly as an answer box does — because a timetable is not a thing
+   anybody should need an account to write down.
+
+   ONE DAY AT A TIME, AND THAT IS A MEASUREMENT. A seven-column grid of lessons is 35px a column on a
+   320px phone, which holds "Ma" of Maths and no time at all. A day is a list, and a week is the chips
+   over it — Monday to Friday unless the weekend is asked for, because five 44px chips is the most
+   that fit one row of a 320px card and a school week is five days.
+
+   A LESSON IS ITS SUMMARY LINE UNTIL IT IS TAPPED, the qualification shelf's shape: six lessons as
+   six 44px lines fit the pane, where six lessons as three open boxes each are three screens of
+   scrolling. One open at a time, in place — no sheet, no pop-up. */
+const TMT_DAY_NAMES = SLOT_DAYS.map(d => d[1]);   // Monday … Sunday, the list book.js already holds
+let TMT_DAY = -1;      // which day is on screen; -1 until the first draw picks today
+let TMT_OPEN = '';     // the id of the lesson whose boxes are showing
+
+const tmtKey_ = () => 'tmt' + (whoIs_() ? ':' + whoIs_() : '');
+
+function tmtRead_() {
+  try {
+    const t = JSON.parse(localStorage.getItem(tmtKey_()) || 'null');
+    if (t && Array.isArray(t.days) && t.days.length === 7) return t;
+  } catch (e) {}
+  return { weekend: false, days: [[], [], [], [], [], [], []] };
+}
+function tmtSave_(t) {
+  try { localStorage.setItem(tmtKey_(), JSON.stringify(t)); }
+  catch (e) { toast('Not saved — this browser is not keeping anything.'); }
+}
+
+/* ---------- THE COLOUR IS THE SUBJECT'S, NOT THE LESSON'S ------------------------------------------
+   Maths is one colour on Monday and on Thursday with nothing to choose — a colour picker per lesson
+   would be seven places to make Maths blue. Ten hues declared on `.tmt`, the chess board's rule: they
+   are this widget's convention and nothing else in the app wants them.
+
+   HANDED OUT AND REMEMBERED, NOT HASHED. The first version hashed the subject's letters into eight
+   hues, and a screenshot of an ordinary Monday showed Chemistry and History in the same red: five
+   subjects in eight colours collide four times in five (8·7·6·5·4 / 8⁵ is 0.21). So each subject gets
+   the first colour no other subject is wearing, kept in `colours` so it does not move when a subject is
+   added earlier in the week, and given back when the last lesson in that subject goes. Up to ten
+   subjects never share; past ten it is the least-worn hue, which is the best ten colours can do. */
+const TMT_HUES = 10;
+/* LETTERS IN ANY ALPHABET, NOT a-z. The first version kept `[a-z0-9]` — `spellKey_`'s reduction —
+   and that reduces `Ελληνικά` to nothing, so a Greek lesson, in an app whose library carries Greek
+   papers, drew with no colour at all; `Français` and `Español` lost a letter each. A key only has to
+   tell two subjects apart and fold `Maths` onto `maths`, which is what lower-casing and dropping the
+   spaces and punctuation does in every script. */
+const tmtSubKey_ = s => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
+
+/* Brings `t.colours` in line with the subjects actually in the week. Answers whether it changed. */
+function tmtColours_(t) {
+  const was = JSON.stringify(t.colours || {});
+  const have = {};
+  t.days.forEach(d => (d || []).forEach(l => { const k = tmtSubKey_(l.subject); if (k) have[k] = 1; }));
+  const c = {};
+  Object.keys(t.colours || {}).forEach(k => { if (have[k]) c[k] = t.colours[k]; });
+  Object.keys(have).forEach(k => { if (!(k in c)) c[k] = tmtFreeHue_(c); });
+  t.colours = c;
+  return JSON.stringify(c) !== was;
+}
+function tmtFreeHue_(c) {
+  const worn = new Array(TMT_HUES).fill(0);
+  Object.values(c).forEach(i => { if (worn[i] !== undefined) worn[i]++; });
+  return worn.indexOf(Math.min(...worn));
+}
+/* What a subject is wearing — or, while it is still being typed, what it WOULD wear. */
+function tmtColour_(t, subject) {
+  const k = tmtSubKey_(subject);
+  if (!k) return '';
+  const c = t.colours || {};
+  return 'var(--tmt-' + (k in c ? c[k] : tmtFreeHue_(c)) + ')';
+}
+
+/* "09:00" sorts as text, and a lesson with no time yet goes last rather than first. */
+const tmtOrder_ = (a, b) => {
+  const x = a.at || '99', y = b.at || '99';
+  return x < y ? -1 : x > y ? 1 : 0;
+};
+
+function tmtRow_(l, t) {
+  const c = tmtColour_(t, l.subject);
+  const style = c ? ` style="--tmt-c:${c}"` : '';
+  const id = esc(l.id);
+  if (l.id !== TMT_OPEN) {
+    return `<button type="button" class="tmt-row" data-do="tmt-open" data-id="${id}"${style}>
+      <span class="tmt-at">${esc(l.at || '--:--')}</span>
+      <span class="tmt-what"><span class="tmt-sub">${esc(l.subject || 'Untitled')}</span>${
+        l.note ? `<span class="tmt-note">${esc(l.note)}</span>` : ''}</span></button>`;
+  }
+  /* A FORM, SO BUTTONS. `Done` shuts it and puts it in time order; `Remove` takes it off. Everything
+     typed is kept on every keystroke — see the `input` listener — so Done is not a Save and nothing is
+     lost by swiping away without pressing it. */
+  return `<div class="tmt-ed"${style}>
+      <div class="tmt-ed-top">
+        <input class="tmt-in tmt-time" type="time" data-id="${id}" data-f="at"
+               value="${esc(l.at || '')}" aria-label="Starts at">
+        <input class="tmt-in" data-id="${id}" data-f="subject" value="${esc(l.subject || '')}"
+               placeholder="Subject" autocomplete="off">
+      </div>
+      <input class="tmt-in" data-id="${id}" data-f="note" value="${esc(l.note || '')}"
+             placeholder="Note — room, teacher, homework" autocomplete="off">
+      <div class="btn-row">
+        <button type="button" class="btn quiet" data-do="tmt-open" data-id="${id}">Done</button>
+        <button type="button" class="btn danger" data-do="tmt-drop" data-id="${id}">Remove</button>
+      </div>
+    </div>`;
+}
+
+function tmtHtml_() {
+  const t = tmtRead_();
+  if (tmtColours_(t)) tmtSave_(t);
+  const shown = t.weekend ? 7 : 5;
+  if (TMT_DAY < 0) TMT_DAY = (new Date().getDay() + 6) % 7;      // Monday-first, as SLOT_DAYS is
+  if (TMT_DAY >= shown) TMT_DAY = 0;
+  const day = (t.days[TMT_DAY] || []).slice().sort(tmtOrder_);
+  const chips = TMT_DAY_NAMES.slice(0, shown).map((n, i) =>
+    `<button type="button" class="tmt-day${i === TMT_DAY ? ' on' : ''}${(t.days[i] || []).length ? ' has' : ''}"
+             data-do="tmt-day" data-day="${i}" aria-pressed="${i === TMT_DAY}"
+             aria-label="${n}">${n.slice(0, 3)}</button>`).join('');
+  return `<div class="tmt">
+    <div class="tmt-days n${shown}">${chips}</div>
+    <div class="tmt-list">${day.length ? day.map(l => tmtRow_(l, t)).join('')
+      : `<p class="faint tmt-none">Nothing on ${TMT_DAY_NAMES[TMT_DAY]}.</p>`}</div>
+    ${/* ONE ROW FOR BOTH, because a full Monday at 320 is the card that runs out of height first and
+          a line of its own for a tickbox is 44px of it. */''}
+    <div class="tmt-foot"><button type="button" class="btn quiet" data-do="tmt-add">Add a lesson</button>
+      <label class="check tmt-wkend"><input type="checkbox" data-do="tmt-weekend"${t.weekend ? ' checked' : ''}>
+        <span class="box"></span><span>Weekend</span></label></div>
+  </div>`;
+}
+
+/* EVERY COPY, BY CLASS. The Saved column draws this same markup, so `$()` would hand the second copy
+   the first one's box — the `$('msg-text')` fault `cartPaint_` is written against one file along. */
+function tmtPaint_() {
+  const html = tmtHtml_();
+  document.querySelectorAll('.tmt-box').forEach(el => { el.innerHTML = html; });
+}
+function initTimetable() { tmtPaint_(); }
+
+/* ---------- A LESSON SHUT WITH NOTHING IN IT IS NOT A LESSON ------------------------------------
+   `Add a lesson` writes a row before anything is typed — it has to, or the boxes would have nowhere
+   to keep a keystroke — so pressing it by mistake and then Done, or another day, or another lesson,
+   left an `Untitled` line for ever, and the only way off it was Remove. Shutting a lesson with no
+   subject and no note takes it away instead: an empty line is not something anybody wrote down.
+   The TIME does not count, because Add filled that in, not the person. */
+function tmtShut_() {
+  if (!TMT_OPEN) return;
+  const t = tmtRead_();
+  let gone = false;
+  t.days = t.days.map(d => (d || []).filter(l => {
+    const blank = l.id === TMT_OPEN && !String(l.subject || '').trim() && !String(l.note || '').trim();
+    if (blank) gone = true;
+    return !blank;
+  }));
+  if (gone) tmtSave_(t);
+  TMT_OPEN = '';
+}
+
+on('tmt-day', el => {
+  TMT_DAY = Number(el.dataset.day) || 0;
+  tmtShut_();
+  tmtPaint_();
+});
+
+/* THE BOX IS FOUND BEFORE THE REPAINT, because the repaint replaces the element that was pressed and
+   `closest` on a detached node finds nothing — the quiz's own lesson. */
+on('tmt-open', el => {
+  const want = TMT_OPEN === el.dataset.id ? '' : el.dataset.id;
+  tmtShut_();
+  TMT_OPEN = want;
+  const box = el.closest('.tmt-box');
+  tmtPaint_();
+  if (TMT_OPEN) box?.querySelector(`.tmt-in[data-f="subject"][data-id="${TMT_OPEN}"]`)?.focus();
+});
+
+on('tmt-add', el => {
+  tmtShut_();
+  const t = tmtRead_();
+  const day = t.days[TMT_DAY] || (t.days[TMT_DAY] = []);
+  /* AN HOUR AFTER THE LAST ONE, because lessons follow each other and the next time is usually the
+     one somebody would have typed. Nine o'clock for an empty day. */
+  const last = day.map(l => l.at).filter(Boolean).sort().pop();
+  const h = last ? Math.min(23, Number(last.slice(0, 2)) + 1) : 9;
+  const id = 'L' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  day.push({ id, at: String(h).padStart(2, '0') + (last ? last.slice(2) : ':00'), subject: '', note: '' });
+  tmtSave_(t);
+  TMT_OPEN = id;
+  const box = el.closest('.tmt-box');
+  tmtPaint_();
+  box?.querySelector(`.tmt-in[data-f="subject"][data-id="${id}"]`)?.focus();
+});
+
+on('tmt-drop', el => {
+  const t = tmtRead_();
+  t.days = t.days.map(d => (d || []).filter(l => l.id !== el.dataset.id));
+  tmtSave_(t);
+  TMT_OPEN = '';
+  tmtPaint_();
+});
+
+/* A CHECKBOX, SO IT IS READ AFTER IT HAS MOVED — the box has already changed by the time this runs. */
+on('tmt-weekend', el => {
+  const t = tmtRead_();
+  t.weekend = !!el.checked;
+  tmtSave_(t);
+  if (!t.weekend && TMT_DAY > 4) TMT_DAY = 4;
+  tmtPaint_();
+});
+
+/* KEPT ON EVERY KEYSTROKE AND NOT REDRAWN. A redraw would take the caret out of the box mid-word;
+   the summary line catches up when the lesson is shut.
+
+   `change` AS WELL AS `input`, for the time box. A phone's own time wheel has not always fired
+   `input` as it turns — older iOS fired only `change`, as the wheel was put away — and a time that
+   reached the box and not the store is a lesson that goes back to nine o'clock when it is shut.
+   Both write the same value, so a browser that fires both writes it twice and nothing else. */
+function tmtKeep_(e) {
+  const el = e.target;
+  if (!el || !el.classList || !el.classList.contains('tmt-in')) return;
+  const t = tmtRead_();
+  for (const d of t.days) {
+    const l = (d || []).find(x => x.id === el.dataset.id);
+    if (l) { l[el.dataset.f] = el.value; tmtSave_(t); break; }
+  }
+  /* THE COLOUR FOLLOWS THE SUBJECT AS IT IS TYPED, so what it will be is visible before Done. */
+  if (el.dataset.f === 'subject') {
+    const ed = el.closest('.tmt-ed');
+    const c = tmtColour_(t, el.value);
+    if (ed) { if (c) ed.style.setProperty('--tmt-c', c); else ed.style.removeProperty('--tmt-c'); }
+  }
+}
+document.addEventListener('input', tmtKeep_);
+document.addEventListener('change', tmtKeep_);

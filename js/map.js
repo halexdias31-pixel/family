@@ -1513,6 +1513,21 @@ const WIDGETS = [
     <div id="week-body"></div>
   </div>` },
 
+  /* ---------- THE TIMETABLE, WHICH IS NOT `Your week` ------------------------------------------
+     `Your week` is the sessions BOOKED here, read off `liveJobs`; this is the week somebody writes
+     down themselves — a school timetable, a tutor's standing hours. Two different facts, so two
+     widgets. Kept on the device; see the note over `tmtRead_` in games.js.
+
+     `.tmt-box` IS A CLASS AS WELL AS AN ID, the basket's reason: the Saved column draws this markup
+     again and `tmtPaint_` writes every copy. */
+  { id: 'timetable', kind: 'tool', name: 'Timetable', solid: true, start: () => initTimetable?.(),
+    into: 'tmt-box', what: 'Your timetable',
+    /* NO `.card` OF ITS OWN. `widgetOnColumn_` already draws the card, and the inner one only added
+       .85rem above and below and a hairline — height a full Monday on a 320x568 phone does not have.
+       The basket makes the same choice. */
+    html: `<h3>Timetable</h3>
+    <div id="tmt-box" class="tmt-box"></div>` },
+
   /* ---------- A PLACEHOLDER, AND IT SAYS SO ------------------------------------------------------
      ASKED FOR AS "a Duolingo substitute" with "don't do too much for now". So this is the widget and
      the slot it will grow into, and nothing more: a card that names what it is going to be and does

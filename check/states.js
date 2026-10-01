@@ -1446,6 +1446,37 @@ const STATES = {
       },
       expect: () => document.querySelectorAll('#s-tools #avail-box .hr').length > 70,
       wants: 'the week of hours drawn on screen' },
+
+    /* ---------- A TIMETABLE WITH A WEEK IN IT ------------------------------------------------------
+       KEPT ON THE DEVICE, so no fixture can fill it — the basket's sentence. Seeded through the app's
+       own key (`tmtKey_`) with the weekend on, so all seven chips are measured going four and three,
+       and with one lesson OPEN, so the editor's time box and subject box are measured side by side
+       at 320 rather than only the summary lines. One subject and one note deliberately long, because
+       the longest thing a row ever holds is something somebody typed. */
+    { name: 'a timetable',
+      enter: () => {
+        const day = [
+          { id: 'T1', at: '09:00', subject: 'Maths', note: 'Room 4 — Mr Patel' },
+          { id: 'T2', at: '10:00', subject: 'English Literature and Language combined', note: '' },
+          { id: 'T3', at: '11:15', subject: 'Chemistry', note: 'Bring the revision guide and a calculator, practical write-up due' },
+          { id: 'T4', at: '13:30', subject: 'History', note: '' }];
+        localStorage.setItem(tmtKey_(), JSON.stringify({ weekend: true,
+          days: [day, [{ id: 'T5', at: '09:00', subject: 'Maths', note: '' }], [], [], [], [], []] }));
+        TMT_DAY = 0; TMT_OPEN = 'T3';
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'timetable');
+        if (n < 0) throw new Error('no timetable widget in the roster');
+        goPage('tools', n, true);
+        initTimetable();
+      },
+      expect: () => document.querySelectorAll('#s-tools .tmt-box .tmt-day').length === 7
+                    && document.querySelectorAll('#s-tools .tmt-box .tmt-row').length === 3
+                    && document.querySelector('#s-tools .tmt-box .tmt-ed .tmt-time'),
+      wants: 'seven day chips, three lessons as lines and one open with its time box',
+      leave: () => {
+        localStorage.removeItem(tmtKey_());
+        TMT_DAY = -1; TMT_OPEN = '';
+        initTimetable();
+      } },
   ],
 
   /* ---------- A HIGH-SCORE BOARD WITH SCORES ON IT ---------------------------------------------

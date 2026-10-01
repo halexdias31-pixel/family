@@ -2081,6 +2081,63 @@ button.text-drop { color: var(--bad); }
 .dock-new .btn { width: auto; flex: 0 0 3rem; }
 .dock-new .btn.tiny { font-size: 1.1rem; }
 
+/* ---------- THE TIMETABLE ---------------------------------------------------------------------------
+   A day at a time under a row of day chips — see the note over `TMT_DAY_NAMES` in games.js for why
+   it is not a seven-column grid. The chips are 44px in px, the rule this stylesheet has eight
+   convictions of — five of them and their gaps are 228px, see the 320 rule below — and seven go four
+   and three rather than squeezing under the floor.
+
+   TEN HUES ON THE COMPONENT, the chess board's rule: a subject's colour is this widget's own
+   convention and nothing else in the app should be offered it. Drawn as a 4px edge rather than a
+   fill, so the words on the row are always the app's own ink on the app's own ground and no hue
+   has to pass a contrast test it was never chosen for. None of the ten is the app's gold, which
+   means "the one you have chosen" — the selected day — and a subject drawn in it would say that. */
+.tmt { --tmt-0: #5b9bd5; --tmt-1: #6cc08a; --tmt-2: #d9822b; --tmt-3: #c46bd1; --tmt-4: #e06c75;
+        --tmt-5: #4fc1c1; --tmt-6: #c7b84a; --tmt-7: #8f8fe0; --tmt-8: #a3d65c; --tmt-9: #e8a0bf; }
+.tmt-days { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin: .2rem 0 .55rem; }
+/* AND AT 320 THAT DOES NOT FIT, MEASURED: the widget's slot is 218px there and five 44px chips with
+   their gaps are 228. Shrinking a chip under 44 is the one trade this stylesheet refuses, so the
+   card gives up some of its own inside edge on a narrow phone instead — .4rem a side, which takes the
+   slot to 231px. The card's outside is unchanged, so it still lines up with every widget beside it. */
+@media (max-width: 22rem) {
+  .card.is-widget:has(.tmt-box) { padding-left: .4rem; padding-right: .4rem; }
+}
+.tmt-days.n7 { grid-template-columns: repeat(4, 1fr); }
+.tmt-day { position: relative; min-height: 44px; min-width: 44px; padding: 0; cursor: pointer;
+          background: var(--sunk); color: var(--dim); border: 1px solid var(--line);
+          border-radius: var(--r-sm); font: 600 .78rem/1 var(--font); }
+.tmt-day.on { background: var(--gold); color: #000; border-color: var(--gold); }
+/* A DOT ON A DAY THAT HAS SOMETHING ON IT, so the week reads at a glance without opening each day. */
+.tmt-day.has::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 4px; height: 4px;
+                     margin-left: -2px; border-radius: 50%; background: currentColor; opacity: .7; }
+.tmt-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: .5rem; }
+.tmt-none { margin: 0; padding: .4rem 0; }
+.tmt-row { display: flex; align-items: center; gap: .6rem; width: 100%; min-height: 44px;
+          padding: .35rem .6rem; text-align: left; cursor: pointer; color: var(--ink);
+          background: var(--sunk); border: 1px solid var(--line);
+          border-left: 4px solid var(--tmt-c, var(--line)); border-radius: var(--r-sm); font: inherit; }
+.tmt-at { flex: 0 0 auto; font: 600 .8rem/1 var(--mono); color: var(--dim); }
+.tmt-what { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: .1rem; }
+.tmt-sub { font-size: .88rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
+.tmt-note { font-size: .74rem; line-height: 1.3; color: var(--dim); overflow-wrap: anywhere; }
+.tmt-ed { display: flex; flex-direction: column; gap: .4rem; padding: .45rem;
+         border: 1px solid var(--line); border-left: 4px solid var(--tmt-c, var(--line));
+         border-radius: var(--r-sm); }
+/* 7.8rem HOLDS "11:15 AM", which is what a 12-hour phone shows; 7rem cut the AM off at 320. */
+.tmt-ed-top { display: grid; grid-template-columns: 7.8rem minmax(0, 1fr); gap: .4rem; }
+.tmt-ed input { min-width: 0; }
+/* NO CLOCK BUTTON IN THE TIME BOX. Chrome draws one that opens a picker over the card — a pop-up, the
+   one thing this app refuses — and at 320 it sat on top of the minutes: a screenshot showed "11:1".
+   On a desktop the hours and minutes are typed or arrowed in place without it.
+   ON A PHONE THIS DOES NOTHING AND IS NOT CLAIMED TO: tapping a time box opens the platform's own
+   wheel or clock, which no rule here can reach. That is the same native control as the booking
+   form's dropdowns and the exam-date picker on Settings, which is the line this app already draws —
+   its own surfaces never open over the card, the platform's controls may. */
+.tmt-time::-webkit-calendar-picker-indicator { display: none; }
+.tmt-foot { display: flex; align-items: center; gap: .6rem; }
+.tmt-foot .btn { width: auto; flex: 1; }
+.tmt-wkend { flex: 0 0 auto; padding: 0; gap: .45rem; font-size: .82rem; color: var(--dim); }
+
 /* ---------- FILTER CHIPS ------------------------------------------------------------------------
    Each one is a filter that is ON, and pressing it takes it off. The whole chip is the target
    rather than the ✕ — a 12px cross on a phone is a target you miss.

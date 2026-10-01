@@ -265,6 +265,9 @@ function boot(opts) {
       + 'dockLines: typeof docketLines === "function" ? docketLines : null,'
       + 'dockText: typeof docketText === "function" ? docketText : null,'
       + 'paintDocket: typeof paintDocket === "function" ? paintDocket : null,'
+      /* THE TIMETABLE'S KEY, because it is a `const` and only a function declaration reaches the
+         window — and the key is the thing a journey has to clear and has to ask is per person. */
+      + 'tmtKey: typeof tmtKey_ === "function" ? tmtKey_ : null,'
       + 'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
       /* THE WHOLE SESSION PAGE AND THE FIGURES ON IT, so a journey can ask who is shown which money
          and whether the actions are printed on the paper rather than floating under it. */
@@ -1224,6 +1227,132 @@ check('alibi shows the case, then the same questions to each suspect on their ow
   if (one.join('|') !== two.join('|')) bad.push('the two suspects were asked different questions');
   press('alb-next');
   if (s.phase !== 'verdict' || s.ends) bad.push('the verdict did not follow suspect 2, or left a clock running');
+  return bad;
+});
+
+/* ---------- THE TIMETABLE KEEPS A WEEK, PER PERSON, ONE COLOUR A SUBJECT ----------------------------
+   KEPT ON THE DEVICE, so nothing on the wire says whether it worked: a lesson that is not saved, a
+   timetable shared between two students on one phone, or two subjects in one colour all draw
+   perfectly. So this writes a Monday through the app's own handlers and its own `input` listener —
+   the way a thumb does — and asks what comes back after a repaint, after somebody else signs in, and
+   after a lesson goes.
+
+   THREE SUBJECTS ON PURPOSE, and these three: the first version hashed a subject's letters into
+   eight hues, and Chemistry and History came out the same red on the first screenshot. A rule that
+   could not fail on the fault it was written for is no rule, so the fault's own pair is the case. */
+check('the timetable keeps a week per person, one colour a subject, through a repaint', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  const d = w.document;
+  if (typeof w.initTimetable !== 'function' || typeof t.tmtKey !== 'function') {
+    return ['the timetable widget is not in the app'];
+  }
+  const sam = { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] };
+  const kit = { name: 'Kit Other', personId: 'P8', role: 'student', roles: ['student'] };
+  t.USER(sam);
+  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  await wait(300);
+  w.localStorage.removeItem(t.tmtKey());
+  w.initTimetable();
+  const box = () => d.querySelector('.tmt-box');
+  if (!box()) return ['the timetable did not draw on the Tools column'];
+  const press = (act, attrs) => {
+    const el = d.createElement('button');
+    Object.keys(attrs || {}).forEach(k => el.setAttribute(k, attrs[k]));
+    if (attrs && attrs.checked) el.checked = true;
+    t.ACTIONS[act](el);
+  };
+  const type = (f, v) => {
+    const el = box().querySelector('.tmt-in[data-f="' + f + '"]');
+    if (!el) return false;
+    el.value = v;
+    el.dispatchEvent(new w.Event('input', { bubbles: true }));
+    return true;
+  };
+  const rows = () => [...box().querySelectorAll('.tmt-row')].map(r => ({
+    at: r.querySelector('.tmt-at').textContent.trim(),
+    sub: r.querySelector('.tmt-sub').textContent.trim(),
+    c: r.style.getPropertyValue('--tmt-c') }));
+  const bad = [];
+  press('tmt-day', { 'data-day': '0' });
+  for (const [sub, note] of [['Chemistry', 'Room 4'], ['History', ''], ['Maths', '']]) {
+    press('tmt-add');
+    if (!type('subject', sub)) { bad.push('adding a lesson does not open it with a subject box'); break; }
+    if (note) type('note', note);
+    const id = box().querySelector('.tmt-in').dataset.id;
+    press('tmt-open', { 'data-id': id });
+  }
+  let r = rows();
+  if (r.map(x => x.at + ' ' + x.sub).join(', ') !== '09:00 Chemistry, 10:00 History, 11:00 Maths') {
+    bad.push('three lessons added read back as "' + r.map(x => x.at + ' ' + x.sub).join(', ') + '"');
+  }
+  if (new Set(r.map(x => x.c)).size !== 3 || r.some(x => !x.c)) {
+    bad.push('three subjects are not in three colours: ' + r.map(x => x.sub + '=' + x.c).join(', '));
+  }
+  if (!/Room 4/.test(box().textContent)) bad.push('the note typed into the open lesson is not on its line');
+  const maths = (rows().find(x => x.sub === 'Maths') || {}).c;
+
+  /* A REPAINT REBUILDS THE MARKUP, and a timetable held only in it would be gone. THROUGH `repaint`
+     AND NOTHING ELSE — the first version called `initTimetable()` straight after it, which redraws
+     the widget whether or not the app's own repaint ever restarts it, so a roster entry that lost its
+     `start` passed. `repaint` reaches it through `startScreen_` → `toolsStart_`, synchronously. */
+  try { t.repaint(); } catch (e) { bad.push('repaint threw: ' + e.message); }
+  if (rows().length !== 3) bad.push('after a repaint the timetable holds ' + rows().length + ' lessons, not 3');
+
+  /* SOMEBODY ELSE ON THE SAME PHONE GETS THEIR OWN — again through the repaint a sign-in does. */
+  t.USER(kit);
+  try { t.repaint(); } catch (e) {}
+  if (rows().length) bad.push('a second person signed in on the phone sees the first one\'s timetable');
+  t.USER(sam);
+  try { t.repaint(); } catch (e) {}
+  if (rows().length !== 3) bad.push('signing back in does not bring the timetable back');
+
+  /* A LESSON ADDED AND SHUT WITH NOTHING IN IT GOES, rather than leaving an `Untitled` line that only
+     Remove can take off. Shut three ways: Done, another day, and Add again. */
+  press('tmt-add');
+  press('tmt-open', { 'data-id': box().querySelector('.tmt-in').dataset.id });
+  if (rows().length !== 3) bad.push('Add then Done with nothing typed leaves ' + rows().length + ' lessons, not 3');
+  press('tmt-add');
+  press('tmt-day', { 'data-day': '0' });
+  press('tmt-add');
+  press('tmt-add');
+  press('tmt-open', { 'data-id': box().querySelector('.tmt-in').dataset.id });
+  if (rows().length !== 3) bad.push('a blank lesson shut by another day or another Add is still on the day: ' + rows().length + ' lessons');
+
+  /* A SUBJECT IN ANOTHER ALPHABET HAS A COLOUR. `[a-z0-9]` reduced `Ελληνικά` to nothing. And the time
+     arrives on `change` as well as `input`, which is what an older phone's wheel sends. */
+  press('tmt-add');
+  type('subject', 'Ελληνικά');
+  const at = box().querySelector('.tmt-in[data-f="at"]');
+  if (at) { at.value = '15:20'; at.dispatchEvent(new w.Event('change', { bubbles: true })); }
+  press('tmt-open', { 'data-id': box().querySelector('.tmt-in').dataset.id });
+  const gk = rows().find(x => x.sub === 'Ελληνικά');
+  if (!gk) bad.push('a Greek subject typed into a lesson is not on the day');
+  else {
+    if (!gk.c) bad.push('a subject written in Greek letters is drawn with no colour');
+    if (gk.at !== '15:20') bad.push('a time sent only as `change` is not kept: the line reads ' + gk.at);
+  }
+  const g = [...box().querySelectorAll('.tmt-row')].find(x => /Ελληνικά/.test(x.textContent));
+  if (g) press('tmt-drop', { 'data-id': g.dataset.id });
+
+  /* A COLOUR DOES NOT MOVE WHEN ANOTHER SUBJECT ARRIVES EARLIER IN THE WEEK. */
+  press('tmt-add');
+  type('subject', 'Art');
+  type('at', '08:00');
+  press('tmt-open', { 'data-id': box().querySelector('.tmt-in').dataset.id });
+  if ((rows().find(x => x.sub === 'Maths') || {}).c !== maths) bad.push('adding Art at 08:00 changed Maths\'s colour');
+  if ((rows()[0] || {}).sub !== 'Art') bad.push('a lesson at 08:00 is not first on the day');
+
+  press('tmt-weekend', { checked: true });
+  if (box().querySelectorAll('.tmt-day').length !== 7) bad.push('ticking Weekend does not show seven days');
+  press('tmt-weekend');
+  if (box().querySelectorAll('.tmt-day').length !== 5) bad.push('unticking Weekend does not go back to five days');
+
+  const hid = [...box().querySelectorAll('.tmt-row')].find(x => /History/.test(x.textContent));
+  if (hid) press('tmt-drop', { 'data-id': hid.dataset.id });
+  if (rows().some(x => x.sub === 'History') || rows().length !== 3) bad.push('Remove does not take the lesson off');
+  w.localStorage.removeItem(t.tmtKey());
   return bad;
 });
 
