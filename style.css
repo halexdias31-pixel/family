@@ -8830,8 +8830,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   font: 600 .8rem/1.2 var(--font); color: var(--gold);
 }
 .qans-head em { margin-left: .5rem; font-style: normal; font-size: .68rem; color: var(--faint); }
-/* THE ANSWER READS AS THE PAPER DOES, because it is the same material — see `answerBlock_`. */
-.qans-body { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; padding-bottom: .4rem; }
+/* THE ANSWER READS AS THE PAPER DOES, because it is the same material — see `answerBlock_`. Both are
+   the site's own coding font now: asked for as "the text for questions is still that qwirky text.
+   Should be the coding font universally for whole site." Georgia was here to make a question read
+   as printed paper; one face across the app won over that. */
+.qans-body { font-family: var(--font); line-height: 1.5; padding-bottom: .4rem; }
 .qans-body p:first-child { margin-top: 0; }
 .qans-body table { border-collapse: collapse; margin: .9rem 0; }
 .qans-body td, .qans-body th { border: 1px solid var(--line); padding: .3rem .5rem; }
@@ -8896,7 +8899,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    what keeps a diagram inside a 320px phone, and the label classes below are what let an SVG drawn
    in black ink on white paper read on a black screen — they all take `currentColor`, so there is
    one drawing rather than two. See the `diagram` column in js/library.js. */
-.qsheet { font-family: Georgia, "Times New Roman", serif; line-height: 1.5; }
+.qsheet { font-family: var(--font); line-height: 1.5; }
 /* ---------- A PREAMBLE THAT IS STANDING IN FOR THE REAL ONE ---------------------------------------
    AN AQA ENGLISH INSERT IS A SEPARATE BOOKLET AND THIRD-PARTY COPYRIGHT, so the source is not in
    the question paper and cannot be reproduced here. What sits in the row is a description accurate
@@ -9549,7 +9552,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
      printer's unprintable edge and is what `check/cards.js` now holds the whole set against. */
   .qz-sheet { width: 210mm; min-height: 297mm; box-sizing: border-box; padding: 15mm 16mm;
     background: var(--paper); color: var(--paper-ink);
-    font-family: var(--sans, system-ui, sans-serif); }
+    font-family: var(--font); }
+  /* The site's coding font, and a point smaller than the serif it replaced on the three text
+     sizes below: monospace is about a quarter wider, so it wraps more, and at the old sizes the
+     magnetism quiz ran 18px past A4 and pushed its answer key onto a third sheet. */
   .qz-sheet + .qz-sheet { break-before: page; }
   .qz-q, .qz-ans li { break-inside: avoid; }
 
@@ -9562,19 +9568,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   .qz-who span { flex: 1; border-bottom: .6pt solid var(--paper-rule); padding-bottom: 5mm; }
 
   .qz-q { margin: 0 0 6mm; }
-  .qz-ask { margin: 0; font-size: 11.5pt; line-height: 1.45; }
+  .qz-ask { margin: 0; font-size: 10.5pt; line-height: 1.45; }
   .qz-ask b { margin-right: 1.5mm; }
   /* A LETTER PER CHOICE, because a printed option is circled rather than pressed and a circle needs
      something to go round. `list-style: none` and the letter drawn instead, so the two cannot
      disagree about which is C. */
   .qz-opts { list-style: none; margin: 2.5mm 0 0; padding: 0 0 0 6mm; }
-  .qz-opts li { margin: 0 0 1.5mm; font-size: 11pt; line-height: 1.4; }
+  .qz-opts li { margin: 0 0 1.5mm; font-size: 10pt; line-height: 1.4; }
   .qz-let { display: inline-block; min-width: 6mm; font-weight: 700; }
   /* A RULED LINE RATHER THAN A BOX, for a typed answer. It is a word or a number — `Osmosis`,
      `2,8,1` — and a box the depth of the screen one would be most of a page for eight characters. */
   .qz-rule { height: 8mm; border-bottom: .6pt solid var(--paper-rule); margin: 2mm 0 0; }
 
-  .qz-ans { margin: 0; padding-left: 7mm; font-size: 11pt; }
+  .qz-ans { margin: 0; padding-left: 7mm; font-size: 10pt; }
   .qz-ans li { margin: 0 0 5mm; line-height: 1.45; }
   .qz-why { display: block; margin-top: 1mm; font-size: 10pt; color: var(--paper-dim); }
 
@@ -10998,7 +11004,7 @@ button.scr-sq { cursor: pointer; }
   padding: .5rem .6rem; box-sizing: border-box;
   background: var(--sunk); color: var(--ink);
   border: 0; border-bottom: 1px solid var(--line); border-radius: var(--r-sm) var(--r-sm) 0 0;
-  font: 400 .9rem/1.6 Georgia, "Times New Roman", serif;
+  font: 400 .9rem/1.6 var(--font);
 }
 .qp-ans-in:focus { outline: none; border-bottom-color: var(--gold); }
 
