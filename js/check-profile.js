@@ -246,7 +246,7 @@ const CHANGE = [
 ];
 
 const bad = [];
-let saves = 0, rounds = 0;
+let saves = 0, rounds = 0, shuffles = 0;
 const b = backend();
 b.seed('people', PEOPLE);
 b.seed('qualifications', QUAL_ROWS);
@@ -387,10 +387,75 @@ PEOPLE.forEach(p => {
     bad.push('changing a saved item did not update its one row — ' + JSON.stringify(back));
 }
 
+/* 10. RANDOMISE — A NEW WORD FOR YOUR OWN HANDLE, AND NOBODY ELSE'S.
+   *"handles should be their name and a virtuous describing word. they can randomise it but it will
+   follow that general name."* The Settings card has no handle box any more; its Randomise button
+   posts `randomiseHandle`, and these are the things that action must be, through the real `doPost`:
+   the asker's first name and a virtue with no number (nothing else here is called Ada), never the
+   handle they already had, the old one at the FRONT of `handle_was` with the history capped at
+   `HANDLE_WAS_KEEP`, what the next sign-in hands back, the asker's own row whatever id is posted, a
+   refusal that writes nothing for somebody signed out — and `changeHandle`, the typed box it
+   replaced, no longer an action at all. `check-handles.js` holds the generator's own rules. */
+{
+  const t = tokens['P-T1'];
+  const VIRTUES = b.ev('HANDLE_ADJ'), KEEP = b.ev('HANDLE_WAS_KEEP');
+  const shuffle = body => { shuffles++; return b.post(Object.assign({ action: 'randomiseHandle' }, body)); };
+  const before = b.row('P-T1').handle;
+  const d = shuffle({ token: t.token, name: t.name, personId: 'P-T1' });
+  const m = String(d.handle || '').match(/^ada_([a-z]+)$/);
+  if (!d.success) bad.push('randomiseHandle was refused for a signed-in tutor — ' + d.error);
+  else {
+    if (!m || VIRTUES.indexOf(m[1]) === -1) bad.push('randomiseHandle answered "' + d.handle
+      + '" for somebody called Ada — wanted ada_<virtue>, with no number when nothing clashes');
+    if (b.row('P-T1').handle !== d.handle) bad.push('randomiseHandle answered "' + d.handle
+      + '" and the row holds "' + b.row('P-T1').handle + '"');
+    if (d.was !== before) bad.push('randomiseHandle said the old handle was "' + d.was + '", the row held "' + before + '"');
+    if (String(b.row('P-T1').handle_was).split(', ')[0] !== before)
+      bad.push('handle_was does not start with the handle just replaced — it reads "' + b.row('P-T1').handle_was + '"');
+    if (!(b.row('P-T1').handle_changed_at instanceof Date)) bad.push('handle_changed_at was not written');
+    const back = b.post({ action: 'verifyLogin', email: b.row('P-T1').email, pin: '0000' });
+    tokens['P-T1'] = back;
+    if (back.handle !== d.handle) bad.push('the next sign-in handed back "' + back.handle + '", not the randomised "' + d.handle + '"');
+  }
+  /* PRESSED AGAIN AND AGAIN: never the handle you have, and the history newest first and capped. */
+  let prev = b.row('P-T1').handle, same = 0;
+  for (let i = 0; i < KEEP + 4; i++) {
+    const tk = tokens['P-T1'];
+    const e = shuffle({ token: tk.token, name: tk.name, personId: 'P-T1' });
+    if (!e.success) { bad.push('randomiseHandle press ' + (i + 2) + ' was refused — ' + e.error); break; }
+    if (e.handle === prev) same++;
+    if (String(b.row('P-T1').handle_was).split(', ')[0] !== prev)
+      bad.push('press ' + (i + 2) + ': handle_was does not start with "' + prev + '"');
+    prev = e.handle;
+  }
+  if (same) bad.push('randomiseHandle handed back the handle the person already had, ' + same + ' time(s)');
+  const hist = String(b.row('P-T1').handle_was).split(', ');
+  if (hist.length !== KEEP) bad.push('after ' + (KEEP + 5) + ' presses handle_was holds ' + hist.length
+    + ' handle(s), wanted the last ' + KEEP);
+
+  /* SOMEBODY ELSE'S ID POSTED: the gate writes `personId` from the token, so the asker's own changes. */
+  const parentWas = b.row('P-C1').handle, mineWas = b.row('P-T1').handle;
+  const tk = tokens['P-T1'];
+  const other = shuffle({ token: tk.token, name: 'Pat Parent', personId: 'P-C1' });
+  if (b.row('P-C1').handle !== parentWas) bad.push('a tutor\'s randomiseHandle naming P-C1 changed the PARENT\'s handle');
+  if (!other.success || b.row('P-T1').handle === mineWas) bad.push('a randomiseHandle naming somebody else did not change the asker\'s own');
+
+  /* SIGNED OUT: refused, and nothing written. */
+  const out = shuffle({ name: 'Ada Tutor', personId: 'P-T1' });
+  if (out.success) bad.push('randomiseHandle with no token was allowed');
+  else if (out.writes) bad.push('a refused randomiseHandle had already written ' + out.writes + ' cell(s)');
+
+  /* AND THE TYPED BOX IS GONE FROM THE SERVER TOO, not only from the phone. */
+  const typed = b.post({ action: 'changeHandle', token: tokens['P-T1'].token, name: tokens['P-T1'].name,
+    personId: 'P-T1', handle: 'ada_whatever' });
+  if (typed.success || typed.writes) bad.push('changeHandle is still an action — a typed handle reached the sheet');
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
-console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds);
+console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
+  + '   handles randomised: ' + shuffles);
 if (bad.length) {
   console.log('FAILED — a Save that does not stick, or writes what nobody asked, is the one on the screen that only exists to change what the sheet holds.');
   process.exit(1);

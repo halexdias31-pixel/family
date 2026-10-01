@@ -650,8 +650,8 @@ function googleSignedIn_(res) {
    looking at the screen; eight of the thirteen `why_` callers in this app already answer a failed
    write exactly this way. What a toast must not carry is a STANDING condition — see `banner()`. */
 /* ---------- A NEW PIN, TO THE ADDRESS IN THE SHEET AND NOWHERE ELSE ------------------------------
-   NOT ONE RULE IS REPEATED HERE, which is the same argument `handle-save` and `pin-save` already
-   make one column along: the box checks whether it is empty and nothing else, and whatever comes
+   NOT ONE RULE IS REPEATED HERE, which is the same argument `pin-save` already makes one column
+   along: the box checks whether it is empty and nothing else, and whatever comes
    back is what gets said. The server decides whether that name resolves, whether there is an
    address on it, and what to tell somebody who asked about an account that is not theirs — and it
    deliberately says the SAME sentence to all three, so a copy of that reasoning here would be a
@@ -1608,9 +1608,10 @@ on('claim-no', el => answerClaim_(el, false));
    column at the end." What was there was one sheet — `openSheet('Your details', …)` — holding the
    profile form, the username and the PIN, opened by a tile on your own account card.
 
-   MOVED, NOT COPIED, AND THE IDS ARE WHY. `handle-new`, `handle-said`, `pin-now`, `pin-new`,
-   `pin-again`, `pin-said` and `me-said` are looked up with `$()`. Drawing them on a column AND
-   leaving them in a sheet would put two elements under one id on the page at once, and `$()` hands
+   MOVED, NOT COPIED, AND THE IDS ARE WHY. `pin-now`, `pin-new`, `pin-again` and `pin-said` are
+   looked up with `$()` (the handle's line and the status lines are classes, found from the card).
+   Drawing them on a column AND leaving them in a sheet would put two elements under one id on the
+   page at once, and `$()` hands
    every Save button the first of them — the `$('msg-text')` bug this repository already records,
    where a reply typed into the second thread posted to the first. So the sheet is gone and the tile
    is a door to the column.
@@ -1638,6 +1639,14 @@ on('claim-no', el => answerClaim_(el, false));
    reachable without knowing where anything is, and it is already one swipe from everywhere at the
    foot of your own card in `accountPages_`. Drawing it here as well would be two doors to one
    action, which is the duplication this app's own tab table spends four paragraphs regretting. */
+/* WHAT THE LINE UNDER YOUR HANDLE SAYS AFTER A RANDOMISE — "You were @…" — kept as STATE and drawn
+   from it, never left on the element. The first version wrote it into the line and then called
+   `load()`, and the inbox and your own profile land a moment after the payload and each repaint this
+   column: the line was back to its standing sentence before anybody had read it. The `REEL_HELD`
+   rule, one card along — a mark put on the element by a press is a mark a repaint throws away while
+   the state keeps it. For this session; a reload starts it again. KEYED BY THE PERSON, because a
+   phone passed to somebody else who signs in on it must not tell them who THEY used to be. */
+let HANDLE_SAID = { pid: '', text: '' };
 function settingsPages_() {
   if (!USER) {
     /* THE COLUMN IS NAMED OFF `TABS` RATHER THAN WRITTEN OUT. `applyColumns_` takes every label
@@ -1690,22 +1699,20 @@ function settingsPages_() {
       <p class="faint me-said"></p></div>
   </div>`);
 
-  /* ---------- YOUR USERNAME, BEFORE THE PIN AND FOR THE SAME REASON ------------------------------
-     THE TWO THINGS ONLY YOU MAY CHANGE, and neither goes through `Save`. Everything above is
-     `updateProfile`, which writes whatever it is given out of `PROFILE_EDITABLE`; these two have
-     rules a form cannot be trusted with — a PIN needs the old one, a handle has to be free,
-     allowed, and not changed last week.
+  /* ---------- YOUR HANDLE, BEFORE THE PIN AND FOR THE SAME REASON -------------------------------
+     THE TWO THINGS ABOUT AN ACCOUNT THAT DO NOT GO THROUGH `Save`. Everything above is
+     `updateProfile`, which writes whatever it is given out of `PROFILE_EDITABLE`; a PIN needs the
+     old one, and a handle is never typed at all — the server builds it and Randomise asks it for
+     another word.
 
-     NOT ONE RULE IS REPEATED HERE. The box checks nothing, the button posts, and whatever comes
-     back is what the line underneath says. `MESSAGING` records the argument and it is the same one:
-     a rule written twice is two rules to keep in step, and the server's own sentence already says
-     what to do instead. Writing "3 to 20 characters" in this file would be a third place for that
-     number to be wrong. */
-  /* ---------- SIGNING IN IS ONE CARD: YOUR USERNAME AND YOUR PIN --------------------------------
+     NOT ONE RULE IS REPEATED HERE. The button posts, and whatever comes back is what the line
+     underneath says. `MESSAGING` records the argument: a rule written twice is two rules to keep in
+     step, and the server's own sentence already says what to do instead. */
+  /* ---------- SIGNING IN IS ONE CARD: YOUR HANDLE AND YOUR PIN ----------------------------------
      They were two pages. Each keeps its own button and its own line underneath, because each goes
-     to a different handler with different rules — folding them into one Save would mean every
-     username change asking for a PIN. The three PIN boxes sit on one line, captioned by what they
-     are in order, which is most of the height the second page cost. */
+     to a different handler with different rules — folding them into one Save would mean every new
+     handle asking for a PIN. The three PIN boxes sit on one line, captioned by what they are in
+     order, which is most of the height the second page cost. */
   /* ---------- ADDING A CHILD IS A CARD HERE NOW -------------------------------------------------
      *"remove add your child tile as that should go on column to the right."* It was a tile on your
      own account card that opened a sheet with two boxes and a button — and this app has been asked,
@@ -1716,19 +1723,24 @@ function settingsPages_() {
 
   pages.push(`<div class="card">
     <h3>Signing in</h3>
-    ${/* ---------- A HANDLE, NOT A USERNAME -------------------------------------------------------
-          *"remove the usernames. only handles."* Signing in is an e-mail address and a PIN, so the
-          one name a person has here is the one people see them by, and the card calls it that and
-          draws it the way every card does: with the `@` in front. The `@` is drawn and not typed —
-          `findPerson` strips it anyway, and `handle-save` takes one off if somebody types it. */''}
-    <label class="field"><span>handle</span>
-      <span class="handle-in"><b aria-hidden="true">@</b><input id="handle-new" type="text"
-        autocapitalize="none" autocorrect="off" spellcheck="false" maxlength="20"
-        aria-label="handle"
-        value="${esc((USER && (USER.handle || '')) || '')}"></span></label>
-    <button class="btn quiet" data-do="handle-save">Change my handle</button>
-    <p class="faint" id="handle-said" style="margin:.6rem 0 0">This is how people find you.
-      You can change it once a month.</p>
+    ${/* ---------- YOUR HANDLE, SHOWN RATHER THAN TYPED ------------------------------------------
+          ASKED FOR AS *"handles should be their name and a virtuous describing word. they can
+          randomise it but it will follow that general name."* So the box went: what a handle is
+          made of is decided — your first name and a word off a list of virtues — and the one choice
+          left is WHICH word, which is a press rather than a keyboard. The `@` is drawn the way every
+          card draws it, gold, and is not in the cell.
+
+          A LINE OF TEXT, NOT A DISABLED INPUT. An input that cannot be typed into reads as broken
+          (and greys out under `send_`'s lock); this is a fact about you, set like the name on a
+          card. `aria-live` so the new handle is read out when Randomise lands, since nothing else
+          on the card moves. */''}
+    <p class="handle-cap">handle</p>
+    <p class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
+      esc((USER && (USER.handle || '')) || '')}</span></p>
+    <button class="btn quiet" data-do="handle-shuffle">Randomise</button>
+    <p class="faint handle-said" style="margin:.6rem 0 0">${esc(
+      (HANDLE_SAID.pid && HANDLE_SAID.pid === String(USER.personId || '') && HANDLE_SAID.text)
+      || 'Your first name and a word that suits you. Randomise picks another word.')}</p>
     <div class="f-row pin-row" style="--n:3">
       <label class="field"><span>current PIN</span>
         <input id="pin-now" type="password" inputmode="numeric" autocomplete="current-password"></label>
@@ -3381,37 +3393,40 @@ function profileRefresh_(loud, onOld) {
 }
 /* `change-pin` opened a sheet of its own. It is three fields at the bottom of `edit-me` now — the
    sheet that already exists for changing your details, which a PIN is one of. */
-/* ---------- AND THE USERNAME, WHICH IS THE SAME SHAPE ---------------------------------------------
-   `send`, NOT `api`, AND THAT IS THE WHOLE OF WHY THIS FILE HAS A CHECK NAMED AFTER IT. `api()`
-   resolves with whatever the server said, `{ error: … }` included; `send()` throws on one. A caller
-   about to say "Changed" wants the second — `check-replies.js` exists because a toast once said
-   "Sent to Ada Tutor" about a message that was never written.
+/* ---------- AND THE HANDLE, WHICH IS A PRESS RATHER THAN A BOX ----------------------------------
+   `send_`, AND THEREFORE `send`, NOT `api`. `api()` resolves with whatever the server said,
+   `{ error: … }` included; `send()` throws on one. A caller about to say "You are @…" wants the
+   second — `check-replies.js` exists because a toast once said "Sent to Ada Tutor" about a message
+   that was never written. And `send_` spins the button and locks the card while the request is out,
+   so the PIN boxes beside it cannot be typed into under a request that is about to repaint them.
 
-   ONE ARGUMENT. `function send(body)` takes one, and passing two spreads the string into indexed
-   keys and posts `{"0":"c","1":"h",…}` — which `accessDenied` refuses before the handler and a
-   bare `.catch` throws away. That is the favourites bug, three times over, and `check-replies.js`
-   fails the build on a second argument now.
+   FOUND FROM THE CARD THE BUTTON IS ON, not by id. The line it writes and the handle it shows are
+   classes, so nothing here depends on there being exactly one of either on the page.
 
-   THE OLD NAME IS SHOWN BACK. A rename is the one change where "Saved" tells you nothing: you
-   typed the new one, so seeing it proves only that the box still holds what you typed. `was` comes
-   from the server, which is the only thing that knows what it actually replaced. */
-on('handle-save', el => {
-  const said = $('handle-said');
-  const box = $('handle-new');
-  const want = String((box && box.value) || '').trim().replace(/^@+/, '');
-  if (!want) { if (said) said.textContent = 'Type the handle you want.'; return; }
-  /* `send_`, which spins, locks the box and — the half that was missing — gives the button back
-     afterwards. This left it disabled after a success until an unrelated repaint rebuilt it. */
-  send_({ action: 'changeHandle', name: USER.name,
-          personId: (USER && USER.personId) || '', handle: want },
-        { button: el, busy: 'Checking…', where: 'handle-said', lock: box })
+   UPDATED IN PLACE, THEN THE PAYLOAD. The new handle is written onto the card and into `USER` the
+   moment it lands, which is what makes the press feel like it did something; `load()` then fetches
+   the payload, because every card that draws this person — their profile, a high-score board — is
+   drawn from it, and those would otherwise go on saying the old handle until the next open. The
+   line under it is `HANDLE_SAID`, which the card is drawn from, so the repaints that follow keep it.
+
+   THE OLD ONE IS SAID BACK. A new handle is the one change where seeing it proves nothing about
+   what it replaced; `was` comes from the server, which is the only thing that knows. */
+on('handle-shuffle', el => {
+  if (!USER) return;
+  const card = el.closest('.card');
+  const said = card && card.querySelector('.handle-said');
+  send_({ action: 'randomiseHandle', name: USER.name, personId: USER.personId || '' },
+        { button: el, busy: 'Choosing…', where: said || undefined })
     .then(d => {
       USER.handle = d.handle;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
-      const was = d.was ? 'You were ' + d.was + '.' : '';
-      if (said) said.textContent = was;
+      const shown = card && card.querySelector('.handle-shown');
+      if (shown) shown.textContent = d.handle;
+      HANDLE_SAID = { pid: String(USER.personId || ''),
+                      text: d.was ? 'You were @' + d.was + '.' : 'Changed.' };
+      if (said) said.textContent = HANDLE_SAID.text;
       toast('You are @' + d.handle);
-      sayAfterLoad_(() => $('handle-said'), was || 'Changed.');
+      try { load(); } catch (e) {}
     })
     .catch(() => {});
 });

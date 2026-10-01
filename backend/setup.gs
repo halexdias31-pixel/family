@@ -207,20 +207,29 @@ function fillHandles() {
 /* ==================================================================================================
    EVERY HANDLE INTO THE NEW SHAPE — `?run=renameHandles`.
 
-   ASKED FOR AS *"remove the usernames. only handles. also handles are their first name then
-   underscore then adjective then number."* The handles `fillHandles` and `register` generated
-   before this are `BrightOtter42`, so this regenerates every one that is not already
-   `<first>_<adjective><NN>` — see `handleMake_` and `handleIsShaped_` in people.gs.
+   ASKED FOR AS *"handles should be their name and a virtuous describing word. they can randomise it
+   but it will follow that general name."* The handles `fillHandles`, `register` and the old typed
+   box made before this are `BrightOtter42`, `halex_steady71` or whatever somebody typed, so this
+   regenerates every one that is not already `<first>_<virtue>` — see `handleMake_` and
+   `handleParts_` in people.gs.
+
+   A NUMBER IS ONLY THE SHAPE WHEN IT WAS NEEDED. `halex_steady71` reads as the new shape —
+   `steady` is a virtue, and a tail is allowed — but the generator only adds one when every bare
+   word for that name is taken. So a tailed handle is left alone only while that is still true, and
+   renamed to a bare one the moment a bare one is free. That is also what keeps the job safe to run
+   twice: what it writes is either bare, or tailed because nothing bare was free, and either way the
+   second run asks the same question and gets the same answer.
 
    THIS OVERWRITES, WHICH `fillHandles` REFUSES TO, AND THE REASON IT MAY IS SIGN-IN. `fillHandles`
    only fills blanks because a handle used to be something you signed in with; `verifyLogin` reads
    the e-mail column and nothing else now, so a new handle locks nobody out. It changes the name
    friends see, which is what was asked for.
 
-   BOTH CELLS AGAIN, and the old one into `handle_was` where that column exists, because that is a
-   safeguarding column — "who was @foo last week" is asked exactly once, about the one account where
-   it matters. `handle_changed_at` is NOT written: that date is the person's own month's cooldown,
-   and a rename they did not ask for must not spend it.
+   THE OLD ONE GOES ONTO `handle_was`, newest first, where that column exists — the same history
+   Randomise keeps (`handleWasWith_`) — because that is a safeguarding column: "who was @foo last
+   week" is asked exactly once, about the one account where it matters. `handle_changed_at` is
+   written beside it where it exists: it is when the newest handle began, and there is no cooldown
+   left for a rename somebody did not ask for to spend.
 
    A ROW ALREADY IN THE SHAPE IS LEFT ALONE, so a second run reports every row left alone and
    changes nothing. Reported by `person_id`, for the reason `fillHandles` gives.
@@ -235,21 +244,25 @@ function renameHandles() {
     }
   }
   const keepWas = t.headers.indexOf('handle_was') !== -1;
+  const keepAt = t.headers.indexOf('handle_changed_at') !== -1;
   const out = { renamed: [], leftAlone: 0, couldNotGenerate: [] };
   t.rows.forEach(r => {
     const who = S(r.person_id) || '(a row with no id)';
     const has = S(r.handle);
-    if (handleIsShaped_(has, r.first_name)) { out.leftAlone++; return; }
-    const made = handleMake_(r);
+    const parts = handleParts_(has, r.first_name);
+    if (parts && !(parts.tail && handleBareFree_(r, parts.head))) { out.leftAlone++; return; }
+    const made = handleMake_(r, undefined, has);
     if (!made) { out.couldNotGenerate.push(who); return; }
-    if (keepWas && has) setCell(t, r, 'handle_was', has);
-    setCell(t, r, 'handle', made);
+    const cells = { handle: made };
+    if (keepWas && has) cells.handle_was = handleWasWith_(r.handle_was, has);
+    if (keepAt) cells.handle_changed_at = new Date();
+    Object.keys(cells).forEach(c => setCell(t, r, c, cells[c]));
     out.renamed.push(who);
   });
   clearCache();
   out.renamedCount = out.renamed.length;
-  out.means = 'every handle not already <first>_<adjective><NN> was regenerated and the old one '
-            + 'kept in handle_was. Sign-in is by e-mail, so nobody is locked out.';
+  out.means = 'every handle not already <first>_<virtue> was regenerated and the old one put at the '
+            + 'front of handle_was. Sign-in is by e-mail, so nobody is locked out.';
   return out;
 }
 

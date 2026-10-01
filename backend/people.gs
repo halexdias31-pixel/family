@@ -137,9 +137,13 @@ function emailRefusal_(want, me) {
    changed it a fortnight ago" and "no, not that word" are three completely different things to be
    told, and a person given the wrong one argues with the wrong thing.
 
-   THE PHONE DOES NOT REPEAT ANY OF THIS. `MESSAGING` records the argument and it is the same here:
-   a rule written twice is two rules to keep in step, and the sheet shows the server's own sentence,
-   which already says what to do instead. The form checks nothing but "is the box empty".
+   NOBODY TYPES A HANDLE ANY MORE, AND THE GATE STAYS. *"handles should be their name and a virtuous
+   describing word. they can randomise it but it will follow that general name."* — so the box went
+   and `handleMake_` is the only thing that asks. What it asks is unchanged: the shape, the reserved
+   names, the blocklist (a first name can still carry a word, and the underscore is dropped before
+   the fold, so a name and a virtue can meet across it) and the clash. The sentences are read by
+   `check-handles.js` now rather than by a person, and they stay sentences for its reason: a case
+   that fails should say WHICH rule refused, not that something did.
 ================================================================================================== */
 
 /* WHAT A HANDLE MEANS RATHER THAN HOW IT IS SPELLED. Case, separators and the digits people
@@ -155,18 +159,15 @@ function handleFold_(v) {
 
 /**
  * Why `want` may not be this person's handle — '' when it may.
- * `me` is their row. Pass `isAdmin` true to skip the cooldown only.
+ * `me` is their row, so their own cells are not counted as a clash.
  */
-function handleTrouble_(want, me, isAdmin) {
+function handleTrouble_(want, me) {
   /* ---------- TWO FORMS, AND WHICH ONE EACH LINE BELOW USES IS THE WHOLE OF IT -------------------
-     `shown` IS WHAT THEY TYPED and is the only thing quoted back; `raw` is it folded, and every
-     comparison in this function uses that. `changeHandle` stores `shown`, so a person keeps the
-     case they chose — and because nothing here compares on it, `HaLeX` is still refused when
-     `halex` exists, which is the guard that stops two accounts rendering identically on a site
-     children use. See the long note in `dopost.gs` over the line that stopped lower-casing.
-
-     A REFUSAL THAT QUOTES THE FOLDED FORM IS A REFUSAL ABOUT A STRING NOBODY TYPED. Told `"halex"
-     is taken` after typing `HaLeX`, a person reasonably tries the capitals again. */
+     `shown` IS WHAT WAS ASKED ABOUT and is the only thing quoted back; `raw` is it folded, and every
+     comparison in this function uses that. The generator only ever asks in lower case, but a row
+     typed into the sheet by hand may say `HaLeX` — and because nothing here compares on the case,
+     `halex` is still refused while `HaLeX` exists, which is the guard that stops two accounts
+     rendering identically on a site children use. */
   const shown = String(want == null ? '' : want).trim();
   const raw = shown.toLowerCase();
   if (!raw) return 'Type the name you want.';
@@ -218,21 +219,13 @@ function handleTrouble_(want, me, isAdmin) {
   });
   if (clash) return '"' + shown + '" is taken.';
 
-  /* ---------- A MONTH SINCE THE LAST ONE ----------------------------------------------------------
-     Read off `handle_changed_at` rather than counted, so there is one piece of state and nothing to
-     keep in step. A row that has never changed has no cell and is free. */
-  if (!isAdmin && me) {
-    const last = sheetDate(me.handle_changed_at);
-    if (last) {
-      const day = 864e5;
-      const next = new Date(last.getTime() + HANDLE_COOLDOWN_DAYS * day);
-      if (next > new Date()) {
-        return 'You changed your handle on ' + fmtDate(last) + '. You can change it again on '
-             + fmtDate(next) + '.';
-      }
-    }
-  }
-
+  /* ---------- AND NO MONTH, WHICH THERE USED TO BE ----------------------------------------------
+     A thirty-day cooldown stood here, and its reason was the typed box: a blocklist is a floor
+     rather than a ceiling, so somebody free to rename sits trying variations until a rude one gets
+     past it, and a month per attempt is what made that a game nobody wins. With no box there is
+     nothing to try variations OF — every handle is a first name and a word off a list somebody
+     chose — so the brake has nothing left to brake, and a child who presses Randomise twice is
+     simply looking for a word they like. `handle_was` still traces every change. */
   return '';
 }
 
@@ -251,8 +244,8 @@ function handleTrouble_(want, me, isAdmin) {
    `JohnSmith`. `findPerson` matches `username` and returns the FIRST row, so the second person
    signs in as the first — and `changePin` then checks the PIN they typed against the other one's
    row and tells them their own PIN is wrong. This file records that denial happening for real, to
-   one person, by accident. Nothing guarded it: `handleTrouble_` guards `changeHandle` and was never
-   reached by registration.
+   one person, by accident. Nothing guarded it: `handleTrouble_` guarded the rename box of the day
+   and was never reached by registration.
 
    WORDS RATHER THAN THE NAME, AND THAT IS THE SAFEGUARDING HALF. Most of the people on this tab are
    children. A handle built from a real child's full name publishes that name wherever the handle is
@@ -266,50 +259,65 @@ function handleTrouble_(want, me, isAdmin) {
    trade.
 
    `handleTrouble_` IS THE ONE GATE AND THIS GOES THROUGH IT. Shape, the reserved list, the
-   blocklist and the clash against all four columns `findPerson` answers to — a generator with its
-   own copy of any of that is the second reader this repository keeps finding. It is handed
-   `isAdmin: true` so the month's cooldown is skipped: that rule is a brake on somebody changing
-   their mind, and a row being GIVEN its first handle has not changed anything.
+   blocklist and the clash against every column `findPerson` answers to — a generator with its own
+   copy of any of that is the second reader this repository keeps finding.
 
-   TWO COLUMNS, WRITTEN TOGETHER OR NOT AT ALL. `handle` and `username` are one fact in two columns
-   — this file's own sentence, and `changeHandle` already writes both — so a generated pair is the
-   same string in both, which is what makes `findPerson` resolve one person however they type it.
+   ONE COLUMN. `username` was `handle` written a second time and the people tab's redesign dropped
+   it, so there is nothing to keep in step: `handle` is the only name a person has here besides
+   their own, and the e-mail address is what they sign in with.
 ================================================================================================ */
 
-/* ---------- A HANDLE IS THEIR FIRST NAME, AN UNDERSCORE, A WORD AND A NUMBER -------------------
-   ASKED FOR AS *"remove the usernames. only handles. also handles are their first name then
-   underscore then adjective then number."* So `halex_bright42`: lower case, the underscore where it
-   was asked for and nowhere else, and a two-digit tail. The noun list that made `BrightOtter42` is
-   gone with the old shape.
+/* ---------- A HANDLE IS THEIR FIRST NAME AND A VIRTUE -------------------------------------------
+   ASKED FOR AS *"handles should be their name and a virtuous describing word. they can randomise it
+   but it will follow that general name."* So `halex_kind`: the first name, an underscore, and one
+   word off a list of virtues, all lower case. It replaces `halex_bright42`, whose list mixed virtues
+   with colours and moods (`golden`, `copper`, `lucky`, `sunny`) and whose number was on every
+   handle whether or not anybody needed one.
 
-   THIS REVERSES A SAFEGUARDING ARGUMENT THIS FILE USED TO MAKE, AND SAYS SO. The old generator
-   used words rather than the name because a handle built from a child's FULL name publishes it
-   wherever the handle is shown. A FIRST name is what the owner asked for and is much less than a
-   full name, and cards already draw it — but it is not nothing, and it is the owner's call.
+   THE FIRST NAME REVERSES A SAFEGUARDING ARGUMENT THIS FILE USED TO MAKE, AND SAYS SO. The older
+   generator used words rather than the name because a handle built from a child's FULL name
+   publishes it wherever the handle is shown. A FIRST name is what the owner asked for, twice, and is
+   much less than a full name, and cards already draw it — but it is not nothing, and it is the
+   owner's call rather than this file's.
 
-   THE LENGTH IS ARITHMETIC. `HANDLE_SHAPE` allows twenty characters: the longest adjective is 6,
-   the tail 2 and the underscore 1, so a first name is cut to `HANDLE_FIRST_MAX` = 11. And it must
-   START with a letter, so leading digits come off; a name with no ASCII letters left (a name in
-   another script) falls back to `HANDLE_FALLBACK`.
+   THE NUMBER IS ONLY THERE WHEN IT HAS TO BE, AND A DIFFERENT WORD COMES FIRST. A second Sam does
+   not get `sam_kind10` beside `sam_kind` — that pair is one keystroke apart and reads as the same
+   person, which is the impersonation shape `HANDLE_SHAPE`'s ASCII rule exists to close. He gets
+   `sam_brave`. A two-digit tail is added only when EVERY word on the list is already taken for that
+   name, and then it is the smallest one that is free, so it says "the thirty-first Sam" rather than
+   being noise.
+
+   EVERY WORD IS A VIRTUE A PARENT WOULD BE HAPPY TO SEE BESIDE THEIR CHILD'S NAME, and nothing else
+   is: no colour, no mood, no luck. That is a judgement and it is written here because no check can
+   make it. What a check CAN make is the rest — `check-handles.js` puts every word through
+   `handleTrouble_` beside a spread of first names, because the blocklist folds digits onto letters
+   and drops the underscore, so a name and a word can meet across it.
+
+   EIGHT LETTERS AT MOST, AND THAT IS ARITHMETIC RATHER THAN TASTE. `HANDLE_SHAPE` allows twenty
+   characters: the longest word (8), the possible tail (2) and the underscore (1) leave
+   `HANDLE_FIRST_MAX` = 9 for the name. Every letter a word gains is a letter cut off a child's name,
+   which is why `thoughtful`, `courageous` and `considerate` are not here — `generous` and
+   `cheerful` are, and they are where the line falls. Nine keeps `Alexander`, `Charlotte`,
+   `Elizabeth` and `Sebastian` whole. The first name must START with a letter, so leading digits come
+   off; a name with no ASCII letters left (a name in another script) falls back to `HANDLE_FALLBACK`.
 
    THE FALLBACK IS ALSO WHERE A FIRST NAME THE BLOCKLIST REFUSES GOES. Every candidate built on it
-   carries the refused word, so its forty tries all fail; the same forty are then tried on the
-   fallback, which keeps the shape asked for with a neutral word where the name would be.
-
-   `check-handles.js` PUTS EVERY ADJECTIVE THROUGH `handleTrouble_` with a range of first names,
-   because the blocklist folds digits onto letters and drops the underscore, so a name and an
-   adjective can meet across it — a fact about the list and the names together that nobody reading
-   the list can check. */
-const HANDLE_ADJ = ['bright', 'calm', 'clever', 'bold', 'brave', 'keen', 'swift', 'quiet',
-                    'sunny', 'lucky', 'merry', 'neat', 'warm', 'wise', 'jolly', 'kind',
-                    'royal', 'loyal', 'steady', 'tidy', 'golden', 'silver', 'copper', 'amber'];
-const HANDLE_FIRST_MAX = 11;
+   carries the refused word, so every word and every tail fails; the same walk is then made on the
+   fallback, which keeps the shape asked for with a neutral word where the name would be. */
+const HANDLE_ADJ = ['kind', 'brave', 'honest', 'patient', 'gentle', 'loyal', 'humble', 'wise',
+                    'fair', 'caring', 'cheerful', 'hopeful', 'generous', 'grateful', 'faithful',
+                    'joyful', 'calm', 'steady', 'true', 'careful', 'polite', 'helpful', 'bold',
+                    'sincere', 'modest', 'noble', 'diligent', 'earnest', 'upright', 'valiant'];
+const HANDLE_FIRST_MAX = 9;
 const HANDLE_FALLBACK = 'friend';
-/* HOW MANY TRIES BEFORE GIVING UP, per head (the name, then the fallback). 24 adjectives x 90 tails
-   is 2,160 handles per first name, so forty consecutive clashes is a backstop against a
-   `handleTrouble_` that has started refusing everything, not a real ceiling. It gives up rather than
-   looping, and the caller reports it. */
-const HANDLE_TRIES = 40;
+/* THE TAIL, WHEN THERE HAS TO BE ONE: ten to ninety-nine, so it is always two digits. A single digit
+   would make `kind7` and `kind70` two handles one keystroke apart. */
+const HANDLE_TAIL_MIN = 10, HANDLE_TAIL_MAX = 99;
+/* HOW MANY EARLIER HANDLES `handle_was` KEEPS. There is no cooldown now, so somebody can press
+   Randomise all afternoon — the cell keeps the newest ten rather than growing for ever, which is
+   enough to answer "who was @foo last week" about anybody who has not pressed it eleven times since,
+   and every one of the eleven was a first name and a word off this list. */
+const HANDLE_WAS_KEEP = 10;
 
 /** The first-name half of a handle: lower-case ASCII letters and digits, starting with a letter,
     at most `HANDLE_FIRST_MAX` long. '' when nothing usable is left. */
@@ -318,12 +326,32 @@ function handleFirst_(first) {
     .replace(/[^a-z0-9]/g, '').replace(/^[0-9]+/, '').slice(0, HANDLE_FIRST_MAX);
 }
 
-/** Does `h` already have the generated shape for somebody called `first` — `<first>_<adj><NN>`,
-    or the fallback where the name would be? `?run=renameHandles` leaves a row alone that does. */
-function handleIsShaped_(h, first) {
+/** The pieces of a handle in the generated shape — `{ head, word, tail }` — or null.
+    `<first>_<virtue>`, with a two-digit tail or without one, or the fallback where the name would
+    be. One reader, because `handleIsShaped_` and `renameHandles` both need it and two regexes for
+    one shape are two shapes the day one of them changes. */
+function handleParts_(h, first) {
   const heads = [handleFirst_(first), HANDLE_FALLBACK].filter(Boolean);
-  const m = String(h == null ? '' : h).match(/^([a-z0-9]+)_([a-z]+)\d{2}$/);
-  return !!m && heads.indexOf(m[1]) !== -1 && HANDLE_ADJ.indexOf(m[2]) !== -1;
+  const m = String(h == null ? '' : h).match(/^([a-z0-9]+)_([a-z]+)(\d{2})?$/);
+  if (!m || heads.indexOf(m[1]) === -1 || HANDLE_ADJ.indexOf(m[2]) === -1) return null;
+  return { head: m[1], word: m[2], tail: m[3] || '' };
+}
+
+/** Does `h` already have the generated shape for somebody called `first`? Both the bare form and
+    the tailed one are the shape — `?run=renameHandles` asks separately whether a tail was needed. */
+function handleIsShaped_(h, first) {
+  return !!handleParts_(h, first);
+}
+
+/** The list in a random order. Fisher–Yates, because `sort(() => Math.random() - 0.5)` is the
+    famous wrong one: it does not give every order the same chance. */
+function handleShuffle_(list) {
+  const a = list.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const x = a[i]; a[i] = a[j]; a[j] = x;
+  }
+  return a;
 }
 
 /**
@@ -331,22 +359,48 @@ function handleIsShaped_(h, first) {
  *
  * `me` is the row it is FOR, so that row's own cells are not counted as a clash — pass null for a
  * row that does not exist yet. `first` is the first name to build it from; left out, it is read off
- * `me`. Nothing is written here: the caller decides, because `register` writes it into a row it is
- * building and the repair jobs write it into one that exists.
+ * `me`. `avoid` is a handle it must not hand back — the one somebody pressing Randomise already
+ * has, which the clash check cannot refuse because it is their own. Nothing is written here: the
+ * caller decides, because `register` writes it into a row it is building and the others into one
+ * that exists.
+ *
+ * EVERY WORD BARE, IN A RANDOM ORDER, BEFORE ANY NUMBER. Then the smallest free tail on the first
+ * word drawn. So the walk is at most thirty words and ninety tails a head, and it gives up rather
+ * than looping: a gate that has started refusing everything is a fault to report, not to spin on.
  */
-function handleMake_(me, first) {
+function handleMake_(me, first, avoid) {
   const name = handleFirst_(first !== undefined ? first : (me && me.first_name));
   const heads = name ? [name, HANDLE_FALLBACK] : [HANDLE_FALLBACK];
+  const skip = key(avoid);
+  const free = want => key(want) !== skip && !handleTrouble_(want, me || null);
   for (let h = 0; h < heads.length; h++) {
-    for (let i = 0; i < HANDLE_TRIES; i++) {
-      const a = HANDLE_ADJ[Math.floor(Math.random() * HANDLE_ADJ.length)];
-      /* TEN TO NINETY-NINE, so the tail is always two digits. A single digit would make `bold7`
-         and `bold70` two handles one keystroke apart. */
-      const want = heads[h] + '_' + a + String(10 + Math.floor(Math.random() * 90));
-      if (!handleTrouble_(want, me || null, true)) return want;
+    const words = handleShuffle_(HANDLE_ADJ);
+    for (let i = 0; i < words.length; i++) {
+      const want = heads[h] + '_' + words[i];
+      if (free(want)) return want;
+    }
+    for (let n = HANDLE_TAIL_MIN; n <= HANDLE_TAIL_MAX; n++) {
+      const want = heads[h] + '_' + words[0] + n;
+      if (free(want)) return want;
     }
   }
   return '';
+}
+
+/** Is a handle without a number free for this person? `renameHandles` asks it of a handle that
+    HAS one, because a tail is only right when every bare word is taken — and a number left on
+    somebody after the clash it answered has gone is a number that is now noise. */
+function handleBareFree_(me, head) {
+  return HANDLE_ADJ.some(w => !handleTrouble_(head + '_' + w, me || null));
+}
+
+/** `handle_was` with `was` added at the front: newest first, comma-separated, the last
+    `HANDLE_WAS_KEEP`. Nothing is de-duplicated — a history that says somebody went back to an
+    earlier handle is a true history. */
+function handleWasWith_(cell, was) {
+  const list = String(cell == null ? '' : cell).split(',').map(x => x.trim()).filter(Boolean);
+  if (String(was == null ? '' : was).trim()) list.unshift(String(was).trim());
+  return list.slice(0, HANDLE_WAS_KEEP).join(', ');
 }
 
 /* ==================================================================================================
@@ -360,16 +414,17 @@ function handleMake_(me, first) {
 
    ONE CLOCK FOR THE FOUR, WHICH IS WHAT *"ALL TOGETHER"* MEANS. A stamp each would be four clocks and
    a tutor could walk round them a week at a time — raise the rate on Monday, the extra-seat fraction
-   next Monday — which is the arms race the handle cooldown above was written against. `PRICING_FIELDS`
+   next Monday — which is the arms race the handle cooldown was written against while a handle could
+   be typed (it went with the box; see `handleTrouble_`, and these four ARE typed). `PRICING_FIELDS`
    in `constants.gs` is that list, and `PROFILE_GROUPS` builds the one page from the same constant, so
    the page and this rule cannot disagree about which fields are the quote.
 
    A FUNCTION BESIDE `handleRefusal` RATHER THAN SIX LINES INSIDE `updateProfile`, and that is about
    what can be CHECKED. `check-handles.js` cuts functions out of these files by name and runs them;
    a rule written inside a request handler is a rule nothing here can reach, and this repository's
-   own sentence is that a check which cannot reach its subject is not a check. Same shape and same
-   file as the handle rule — the row, what is wanted, and whether the asker is an admin — so the two
-   read alike and neither has to be remembered separately.
+   own sentence is that a check which cannot reach its subject is not a check. Same file as the
+   handle rule and the same shape — the row and what is wanted, plus here whether the asker is an
+   admin, which the handle rule stopped needing when its cooldown went — so the two read alike.
 
    IT TAKES THE WHOLE `fields` OBJECT WHERE THE HANDLE RULE TAKES ONE VALUE, because the question is
    *has any of the four moved* and only the posted object can answer it.
@@ -406,7 +461,7 @@ function pricingRefusal_(me, fields, isAdmin) {
     return 'The fewest students (' + lo + ') is more than the most (' + hi + '). Nothing was saved.';
   }
   /* AN ADMIN FIXING A TUTOR'S RATE OR CAP IS THE REMEDY RATHER THAN THE THING BEING BRAKED — the
-     same exemption, for the same reason, as the handle cooldown above. */
+     same exemption, for the same reason, the handle cooldown had while there was one. */
   if (isAdmin) return '';
   /* ONE DATE AND NO COUNTER: the rule is "has a month passed", and a row that has never changed has
      no cell and is free. */

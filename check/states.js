@@ -901,6 +901,36 @@ const STATES = {
                      ? 3 : 0),
       wants: 'three date-of-birth boxes and no fourth box for the column itself' },
 
+    /* ---------- YOUR HANDLE: SHOWN, WITH RANDOMISE, AND NO BOX ---------------------------------------
+       ASKED FOR AS *"handles should be their name and a virtuous describing word. they can randomise
+       it but it will follow that general name."* The Signing in card had a text box for the handle;
+       a box left behind beside the Randomise button would be a door to an action the server no longer
+       has (`changeHandle` is gone), and it would measure perfectly.
+
+       FOUR THINGS TOGETHER, because each on its own passes a card that got one of the others wrong:
+       exactly one shown handle and it is `USER.handle`, exactly one `@` in front of it (the `@@ada`
+       fault `check-handles.js` already guards in the fixture), one Randomise button, and nothing to
+       type into. Found by asking the DOM, like every other state on this column. */
+    { name: 'your handle',
+      only: () => typeof USER !== 'undefined' && !!USER && !!USER.handle,
+      enter: () => {
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('.handle-shown'));
+        if (at < 0) throw new Error('no handle on the settings column');
+        goPage('settings', at, true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        if (!pg) return 0;
+        const shown = pg.querySelectorAll('.handle-shown');
+        const line = pg.querySelector('.handle-now');
+        return (shown.length === 1 && shown[0].textContent === USER.handle
+                && line && (line.textContent.match(/@/g) || []).length === 1
+                && pg.querySelectorAll('[data-do="handle-shuffle"]').length === 1
+                && !pg.querySelector('#handle-new, [data-do="handle-save"]')) ? 1 : 0;
+      },
+      wants: 'the handle shown once with one @, a Randomise button, and no box to type a handle into' },
+
     /* ---------- THE TWO EXAM DATES, WHICH ONLY A STUDENT IS OFFERED ------------------------------
        ASKED FOR AS *"allow student accounts to be able to write exam dates. like Small exam: _____
        big exam:_____."* The group is in `STUDENT_GROUPS` and in neither of the other two maps, which

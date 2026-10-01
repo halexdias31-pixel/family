@@ -684,22 +684,32 @@ label.field { display: block; margin-bottom: .75rem; }
    version of it already had: it said `.68rem`, `.06em`, lower case and `--dim` under a comment
    claiming it matched this. One selector, one caption style, and the row reads as one more field
    down the same column because it IS one. */
-label.field > span, .dob-cap {
+label.field > span, .dob-cap, .handle-cap {
   display: block; margin-bottom: .3rem;
   font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
 }
 /* A note UNDER a field — why an input is disabled, what will happen when it is saved. It is not
    the label, so it does not get the label's uppercase treatment. */
 label.field > .faint { display: block; margin-top: .3rem; text-transform: none; letter-spacing: 0; }
-/* THE HANDLE BOX, WITH ITS `@` DRAWN IN FRONT. A span inside `label.field`, so it is named through
-   the class to out-rank the caption rule above rather than tie with it — a tie settled by order is
-   the `.price.faint` shape. The `@` is gold because that is how every card draws a handle. */
-label.field > span.handle-in {
-  display: flex; align-items: center; gap: .35rem; margin: 0;
-  font-size: inherit; letter-spacing: 0; text-transform: none; color: inherit;
+/* ---------- YOUR HANDLE, SHOWN RATHER THAN TYPED --------------------------------------------------
+   There was a box here — `.handle-in`, an input with an `@` drawn in front of it — and it went with
+   the typed handle: a handle is a first name and a virtue the server builds, and Randomise asks for
+   another word. What is left is a fact about you, so it is set like one: the caption the boxes
+   around it use (`.handle-cap` is in that rule's group, one style for every caption on the card)
+   and the handle at the size a box's value would be, so the card does not change rhythm where the
+   box used to be.
+
+   `margin-top: 0` ON THE CAPTION BECAUSE IT IS A `<p>`, whose browser margin would put a line of
+   air between `Signing in` and the word under it that the PIN boxes' captions do not have.
+   `overflow-wrap: anywhere` because a handle is up to twenty characters with nothing to break at,
+   and a 320px card is the narrowest it is ever drawn on. The `@` is gold because that is how every
+   card draws a handle. */
+.handle-cap { margin-top: 0; }
+.handle-now {
+  display: flex; align-items: baseline; gap: .15rem; margin: 0 0 .6rem;
+  font-size: 1.05rem; color: var(--ink); overflow-wrap: anywhere; min-width: 0;
 }
-.handle-in > b { color: var(--gold); font-weight: 600; }
-.handle-in > input { flex: 1 1 auto; min-width: 0; }
+.handle-now > b { color: var(--gold); font-weight: 600; }
 
 /* ---------- THREE LIBRARY CARDS ON ONE PAGE, WHICH NINE STACKED BOXES CANNOT BE -------------------
    *"there are many different librarys for library card detais so make it smaller so can fit in like
