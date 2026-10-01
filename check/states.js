@@ -1340,8 +1340,23 @@ const STATES = {
       },
       expect: () => !document.querySelector('#s-tools #mat-fill, #s-tools #mat-clear')
         && document.querySelectorAll('#s-tools .mat-list input:checked').length >= 5
-        && !document.querySelector('#s-tools #mat-go').disabled,
-      wants: 'a subject and a level chosen, five pieces ticked, no Fill or Clear, and Print ready',
+        && !document.querySelector('#s-tools #mat-go').disabled
+        /* THE NEGATIVE NUMBER LINE IS ON THE GCSE LIST, and the list is not a scroller — it is the
+           whole list, and the pane is what scrolls (see the note over the list in `initMat`). */
+        && document.querySelector('#s-tools #mat-list label[data-id="M52"]:not(.off)')
+        && !document.querySelector('#s-tools #mat-box .widget-squeeze')
+        /* AND ASKED OF THE COMPUTED STYLE, NOT ONLY THE CLASS: a rule giving `.mat-list` its own
+           `overflow-y: auto` would put the scroll bar straight back with no `widget-squeeze` anywhere,
+           and the class test above would go on passing. Nothing from the list up to its card may
+           scroll; the pane above the card is the one scroller, and it is `paneReach_`'s. */
+        && (() => {
+          const list = document.querySelector('#s-tools #mat-list');
+          for (let e = list; e && !e.matches('.card.is-widget'); e = e.parentElement) {
+            if (/auto|scroll/.test(getComputedStyle(e).overflowY)) return false;
+          }
+          return true;
+        })(),
+      wants: 'a subject and a level chosen, five pieces ticked, no Fill or Clear, the negative number line offered, the list not a scroller, and Print ready',
       leave: () => {
         MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
         try { localStorage.removeItem('matChoice'); } catch (e) {}

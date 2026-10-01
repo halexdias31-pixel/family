@@ -517,6 +517,54 @@ check('the cheat sheet prices every component at the fixed slot it is drawn in',
   return bad;
 });
 
+/* ---------- THE NEGATIVE NUMBER LINE, AND A PICKER LIST THAT IS NOT A SCROLLER -----------------------
+   ASKED FOR AS "add minus number line" and "the cheat sheet maker should not have a scroll thing", in
+   one message. The line is a drawing with one right answer — twenty-one whole numbers, −10 to 10, one
+   zero picked out, the minus a real minus — so it is asserted on what `matDraw` returns rather than
+   left to a screenshot. And it is offered where it was asked for: SATs and the 11+, Y9 mocks and both
+   GCSE tiers.
+   THE LIST HALF IS ASKED OF THE MARKUP, because jsdom has no layout to measure a scroll bar in: the
+   list and everything round it must not carry `.widget-squeeze`, which is the class that made it a
+   scroller inside the card (see the note over the list in `initMat`). */
+check('the cheat sheet has a negative number line, and its piece list does not scroll in the card', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.matParts || !t.matDraw || !t.matSet || !t.matShown) return ['the cheat sheet is not exported'];
+  const bad = [];
+  const c = t.matParts().find(x => x.id === 'M52');
+  if (!c) return ['there is no negative number line (M52) in the cheat sheet list'];
+  if (t.matSpan(c) !== 6) bad.push('the negative number line is ' + t.matSpan(c) + ' tracks wide; a line is the full width');
+  const d = w.document.createElement('div');
+  d.innerHTML = t.matDraw(c);
+  const labels = [...d.querySelectorAll('.mat-neg b')].map(b => b.textContent);
+  const want = [];
+  for (let n = -10; n <= 10; n++) want.push(n < 0 ? '−' + (-n) : String(n));
+  if (labels.join(' ') !== want.join(' ')) bad.push('the line reads "' + labels.join(' ') + '", wanted −10 to 10 with a real minus');
+  const zeros = [...d.querySelectorAll('.mat-neg b.z')].map(b => b.textContent);
+  if (zeros.join() !== '0') bad.push('the line picks out ' + JSON.stringify(zeros) + ' where it should pick out 0 alone');
+  if (d.querySelectorAll('.mat-neg i.z').length !== 1) bad.push('zero has no longer tick of its own');
+  if (d.querySelectorAll('.mat-neg em.l, .mat-neg em.r').length !== 2) bad.push('the line has no arrow at each end');
+  [['SATs'], ['11+'], ['Y9 Mocks'], ['GCSE', 'F'], ['GCSE', 'H']].forEach(([lv, tier]) => {
+    t.matSet('Maths', lv, tier);
+    if (!t.matShown(c)) bad.push('the negative number line is not offered on ' + lv + (tier ? ' ' + tier : ''));
+  });
+  t.matSet('Maths', 'Alevel');
+  if (t.matShown(c)) bad.push('the negative number line is offered at A-level, which does not ask for it');
+  t.matSet('Maths', 'all');
+
+  try { t.go('tools', false, true); } catch (e) { return bad.concat('go("tools") threw: ' + e.message); }
+  const doc = w.document;
+  for (let n = 0; n < 20 && !doc.getElementById('mat-list'); n++) await wait(50);
+  const list = doc.getElementById('mat-list');
+  if (!list) return bad.concat('the cheat sheet maker did not draw on the Tools column');
+  const box = list.closest('#mat-box') || list.parentElement;
+  if (list.classList.contains('widget-squeeze') || box.querySelector('.widget-squeeze')) {
+    bad.push('the cheat sheet\'s piece list is a `.widget-squeeze` again, which makes it scroll inside the card');
+  }
+  return bad;
+});
+
 /* ---------- THE SUBJECT FILTER NARROWS THE LIST AND THE PAPER TO ONE SUBJECT ---------------------
    ASKED FOR AS *"for cheat sheet maker it should have subject as a filter too"*. The fault worth a
    rule is the one a filter always risks: a choice on the screen that the paper does not honour —

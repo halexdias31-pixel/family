@@ -7844,17 +7844,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the top of every list — two ticks in one row that did not look like one row. */
 .mat-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(7.5rem, 1fr));
             gap: .1rem .5rem; margin-bottom: .5rem; align-items: start; }
-/* ---------- A LOWER FLOOR THAN `.widget-squeeze`'s, BECAUSE WHAT IT COMPETES WITH CHANGED ---------
-   THE 8rem FLOOR WAS MEASURED AGAINST THE A4 PREVIEW, which this card no longer draws — see the table
-   under `.widget-squeeze`. What the list competes with now is the picker above it and Print below
-   it, and the rework added two rows to the picker: the "skip what the exam gives you" box and the
-   Fill / Clear pair. Measured at 320x568 with a level chosen: 108px of list and the box above left
-   the Print button 28px past the bottom of its own card, over the card's edge — and the pane could
-   not see it, because the squeeze chain lets every box between them shrink to nothing, so the
-   overflow sat in the pane's padding and no zoom was ever asked for. Even the filled sheet ran 13px.
-   6rem IS 81px AT 320 — a row and most of the next, which still reads as a list you scroll — and
-   takes back the 27 that one extra line of the gauge's sentence costs. The flyer keeps 8. */
-.mat-list.widget-squeeze { min-height: 6rem; }
+/* ---------- NO FLOOR AND NO SCROLL, BECAUSE THE LIST IS NOT A SCROLLER ANY MORE --------------------
+   IT CARRIED `.widget-squeeze`, with a 6rem floor measured against the picker above it and Print
+   below, so the list scrolled inside the card. Taken off on "the cheat sheet maker should not have a
+   scroll thing" — see the note over the list in `initMat`. The card is now as tall as its list, and
+   a card taller than its pane is `paneReach_`'s, exactly as on every other column. The flyer keeps
+   `.widget-squeeze`; its rules below are untouched. */
 /* ---------- AND THE ROWS THEMSELVES, FOR THE SAME REASON ------------------------------------------
    1.7rem IS 27 PIXELS AND THE CHECKBOX INSIDE IT IS 14, so the row was a half-height target wrapped
    round a quarter-height one. The whole label is clickable, which is right, and it was still too
@@ -8224,6 +8219,32 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-nl u { position: absolute; top: 8mm; width: 0; height: 2.5mm; border-left: .25mm solid var(--pa-mid); }
 .mat-nl s { position: absolute; top: 11.5mm; font: 400 2.2mm/1 var(--mono); color: var(--pa-faint);
             text-decoration: none; transform: translateX(-50%); }
+/* ---------- THE NUMBER LINE WITH NEGATIVES (M52) — the numbers UNDER the line, as a textbook prints it --
+   INSET 5mm EACH SIDE for the arrows. The line runs 3mm past −10 and 10 into that margin and ends in
+   a head, so the arrow says "and on" without a tick of its own; the heads are border triangles
+   rather than fills, because a browser drops fills on paper and keeps borders.
+   ZERO IS THE ONE THAT IS DIFFERENT: a longer, thicker tick and a bigger, bold label. Nothing else is
+   picked out — a line with the negatives in a second colour is a key somebody has to read. */
+.mat-neg { position: relative; height: 13mm; margin: 0 5mm; }
+.mat-neg::before { content: ""; position: absolute; left: -3mm; right: -3mm; top: 5mm; height: 0;
+                   border-top: .4mm solid var(--pa-ink); }
+.mat-neg em { position: absolute; top: calc(5mm + .2mm - 1.5mm); width: 0; height: 0;
+              border-top: 1.5mm solid transparent; border-bottom: 1.5mm solid transparent; }
+.mat-neg em.l { left: -5mm; border-right: 2.4mm solid var(--pa-ink); }
+.mat-neg em.r { right: -5mm; border-left: 2.4mm solid var(--pa-ink); }
+.mat-neg i { position: absolute; top: 3.5mm; width: 0; height: 3.4mm; border-left: .3mm solid var(--pa-ink);
+             transform: translateX(-50%); }
+.mat-neg i.z { top: 2mm; height: 6mm; border-left-width: .6mm; }
+.mat-neg b { position: absolute; top: 8.6mm; font: 400 2.9mm/1 var(--mono); transform: translateX(-50%);
+             color: var(--pa-ink); white-space: nowrap; }
+.mat-neg b.z { font-weight: 700; }
+/* BOLD AND NOTHING ELSE, BECAUSE A BIGGER ZERO SAT LOWER THAN ITS NEIGHBOURS. It was 3.6mm against the
+   others' 2.9 with its `top` nudged to centre the two line boxes — and centring line boxes is not
+   lining up digits: a digit sits on its BASELINE, and where the baseline falls inside a line box
+   depends on the font's own metrics. Measured on the printed sheet, the zero's baseline came out
+   0.44mm below the 1's and the −1's, which read as a dropped 0 on the one label the line turns on.
+   The same size and the same `top` puts every label on one baseline by construction, in any font;
+   the long, thick tick above it is what does the picking out. */
 /* ---------- ONE LINE, WHERE THE POINT IS ---------------------------------------------------------
    SEVEN COLUMNS, A BOX ROUND THEM AND A DIVIDER BETWEEN EVERY PAIR was eight lines to say a thing
    the headings already say: Th, H, T, U are four words in four columns and nobody needs ruling to
@@ -10519,6 +10540,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
      EIGHT. Three rows is enough to see that it IS a list and to work down it; the twelve pixels it
      takes off the sheet are its bottom margin. Below that the list reads as a slot that something
      failed to load into, which is the fault this repository keeps recording in other columns. */
+  /* THE CHEAT SHEET MAKER WAS MEASURED HERE AND NO LONGER CARRIES THE CLASS — its list is an ordinary
+     block now and its card is `paneReach_`'s (see `.mat-list`). The flyer is what keeps this floor. */
   min-height: 8rem;
   overflow-y: auto;
 }
