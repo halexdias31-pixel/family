@@ -361,6 +361,33 @@ const STATES = {
       },
       wants: 'a figure card, after its question, whose diagram takes a pen, with the lock control drawn and the pen off',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A MULTIPLE-CHOICE QUESTION, ANSWERED BY TAPPING ---------------------------------
+       ITS OPTIONS ARE BUTTONS AND THERE IS NO TEXT BOX — asked for in as many words. Narrowed by
+       its own paper, exactly as the pen state above, and landed on its own page. The expect asks
+       for the buttons AND the absence of a textarea on that card, because a card drawing both
+       measures perfectly and is the thing that was asked to stop. */
+    { name: 'a multiple-choice question',
+      enter: () => {
+        const mc = stuffItemsAll_().find(it => it.kind === 'question'
+          && Array.isArray(it.choices) && it.choices.length >= 2 && (it.choiceRight || []).length);
+        if (!mc) throw new Error('no question in the list carries choices');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(mc) }];
+        paintStuff();
+        if (stuffFiltered().indexOf(mc) < 0) throw new Error('the paper chip does not return its own choice question');
+        window.__mcKey = ansKey_(mc);
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1)
+          + stuffPageOf_(mc));
+      },
+      expect: () => {
+        const box = document.querySelector('#s-stuff .page.on .qp-choices')
+          || [...document.querySelectorAll('#s-stuff .qp-choices')].find(b => b.getAttribute('data-k') === window.__mcKey);
+        const card = box && box.closest('.qcard');
+        return !!box && box.querySelectorAll('button.qp-opt').length >= 2
+               && !card.querySelector('textarea.qp-ans-in');
+      },
+      wants: 'a question whose options are buttons, with no text box on its card',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
        That one is a roster gate on the phone; this is the PAYLOAD — `doGet` builds `films` inside
@@ -532,7 +559,8 @@ const STATES = {
         const text = pg.textContent;
         const heat = pg.querySelector('.prof-heat');
         return heat.getAttribute('data-dots') === '1'
-          && (heat.style.backgroundImage.match(/cartocdn/g) || []).length >= 2
+          && ((heat.querySelector('.heat-tiles') || {}).style || { backgroundImage: '' }).backgroundImage
+               .match(/tile\.openstreetmap\.org/g)?.length >= 2
           && caps.every(c => allowed.includes(c)) && caps.includes('Tutors at')
           && caps.indexOf('Tutors at') === caps.length - 1
           && [...pg.querySelectorAll('.prof-tag')].some(x => x.textContent.trim() === 'Online')

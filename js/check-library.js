@@ -873,6 +873,27 @@ rows.forEach(r => {
             + 'question would be marked right. Leave `accept` off this row and let a person mark it.');
 });
 
+/* ---------- A TAPPED ANSWER MUST BE ONE OF THE TAPS ---------------------------------------------------
+   `choices` makes the app draw buttons instead of a box, and `choice_right` names the positions the
+   mark scheme credits. A position past the end, or `choice_right` on a row with no options, is a
+   question NOBODY can get right, which is the worse of the two marking failures. One option is not a
+   choice. Written by tools/set-choices.py, which asserts the same; this holds the file to it. */
+let choiceRows = 0;
+rows.forEach(r => {
+  if (!r || (!r.choices && !r.choice_right)) return;
+  const ch = String(r.choices || '').split('|').map(t => t.trim()).filter(Boolean);
+  const right = String(r.choice_right || '').split(',').map(t => t.trim()).filter(Boolean);
+  if (r.choices) choiceRows++;
+  if (r.kind !== 'question') fail.push(r.row_id + ' carries `choices` and is not a question row');
+  else if (ch.length < 2) fail.push(r.row_id + ' has `choices` with fewer than two options, so there is nothing to choose between');
+  else right.forEach(n => {
+    const v = Number(n);
+    if (!Number.isInteger(v) || v < 1 || v > ch.length)
+      fail.push(r.row_id + ' credits option ' + n + ' of ' + ch.length + ' — a right answer nobody can tap');
+  });
+});
+console.log('multiple-choice questions drawn as taps: ' + choiceRows);
+
 /* ---------- SAY IT --------------------------------------------------------------------------------- */
 const say = (title, list, draw) => {
   console.log('\n' + title + '  (' + list.length + ')');

@@ -22,7 +22,7 @@
 const fs = require('fs');
 const path = require('path');
 
-const NAMES = ['markNorm_', 'markParts_', 'markNum_', 'markBare_', 'markFrac_', 'markRange_',
+const NAMES = ['markNorm_', 'markParts_', 'markNum_', 'markBare_', 'markFrac_', 'markRange_', 'MARK_UNIT', 'markUnitOff_',
                'markAnswer_'];
 
 function cutFrom(src, name) {

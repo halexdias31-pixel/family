@@ -258,14 +258,17 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
      every bound, and only the wholeness test keeps it out. */
   [{ name: 'GCSE · Algebra', filters: DOORS.slice(0, 3).concat([{ field: 'level', value: 'GCSE' },
                                                                    { field: 'topicArea', value: 'Algebra' }]) },
-   { name: 'Summer 2017 · Higher · Algebra', filters: cases[0].filters.concat([{ field: 'topicArea', value: 'Algebra' }]) },
+   /* BY QUESTION NUMBER, NOT BY TOPIC: a past paper answers no topic question any more (see
+      `topicShown_`), and the first ten questions of three papers is the same shape — three papers
+      inside every bound, none of them whole. */
+   { name: 'Summer 2017 · Higher · Q1–10', filters: cases[0].filters.concat([{ field: 'qNumber', value: '1–10', bucket: true }]) },
   ].forEach(t => {
     narrow(t.filters);
     if (b.stuffFiltered().length < 10) {
       bad.push(t.name + ' returned ' + b.stuffFiltered().length + ' items, so this wholeness case '
                + 'measures nothing — NOT a pass');
     } else if (b.bundleOf_()) {
-      bad.push(t.name + ' — questions narrowed by topic — offers a bundle of ' + b.bundleOf_().noun
+      bad.push(t.name + ' — questions from several papers, none whole — offers a bundle of ' + b.bundleOf_().noun
                + ', and not one of those papers is whole on that list');
     }
   });
