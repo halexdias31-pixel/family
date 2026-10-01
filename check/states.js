@@ -167,16 +167,32 @@ const STATES = {
        question over GCSE Maths past papers, where one of the ranges is one letter, and leaves the
        measuring to the tap-target rule. */
     { name: 'an answer one letter long',
+      /* FOUND BY WALKING THE FUNNEL, NOT BY A ROUTE WRITTEN HERE. Which question ends in a one-letter
+         range is a fact about the data, and the data moves: this was written when past papers still
+         answered Topic, and the next commit to land took Topic off every question that is not a 1st
+         Class Maths worksheet — so its one route reached no range at all and the state reported
+         itself unreachable. So it answers the funnel's own questions, depth first, through the same
+         `facet-pick` rows a finger presses, and stops at the first screen drawing a one-letter chip.
+         Capped, so a library with none fails as "did not arrive" rather than hanging the run. */
       enter: () => {
-        STUFF.q = '';
-        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
-                         { field: 'kindLabel', value: 'Questions' },
-                         { field: 'subject', value: 'Maths' },
-                         { field: 'documentType', value: 'Past paper' },
-                         { field: 'level', value: 'GCSE' },
-                         { field: 'topicArea', any: true }];
-        paintStuff();
-        goPage('stuff', 0, true);
+        const rows = () => [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
+        const one = () => rows().some(r => r.textContent.trim().length === 1);
+        let left = 400;
+        const walk = (filters, depth) => {
+          STUFF.q = ''; STUFF.filters = filters; paintStuff(); goPage('stuff', 0, true);
+          if (one()) return true;
+          if (!depth || --left <= 0) return false;
+          const opts = rows().map(r => ({ field: r.getAttribute('data-field'), value: r.getAttribute('data-value'),
+                                          bucket: !!r.getAttribute('data-bucket') }))
+                             .filter(o => o.field && o.value != null);
+          for (const o of opts) {
+            const f = Object.assign({ field: o.field, value: o.value }, o.bucket ? { bucket: true } : {});
+            if (walk(filters.concat([f]), depth - 1)) return true;
+            if (left <= 0) return false;
+          }
+          return false;
+        };
+        walk([{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }], 5);
       },
       expect: () => [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')]
         .some(r => r.textContent.trim().length === 1),

@@ -519,7 +519,13 @@ PEOPLE.forEach(p => {
     { event_id: 'E1', at: new Date(2026, 8, 22), job_id: 'J-MONEY', actor: nameOf('P-C1'), role: 'client', action: 'Request' },
     { event_id: 'E2', at: new Date(2026, 8, 23), job_id: 'J-MONEY', actor: nameOf('P-T1'), role: 'tutor', action: 'Request' },
   ]);
-  b.ev('clearCache()');
+  /* AND THE PAYLOAD CACHE, NOT ONLY THE ROW CACHE. `b.seed` writes the tab directly, which is what a
+     hand edit is, and the six-hour payload does not know — so any visitor fetched earlier in this
+     file is served the payload from before the seed. The age-range section above fetches the
+     tutor's, so the tutor and nobody else was sent a payload with no J-MONEY in it, and this
+     section reported the session "did not reach the tutor". `clearPayloadCache` is what a real
+     write retires it with. */
+  b.ev('clearCache()'); b.ev('clearPayloadCache()');
   const asWho = pid => {
     const t = tokens[pid]; if (!t) return null;
     const d = b.get({ person: pid, name: t.name, token: t.token });

@@ -287,7 +287,11 @@ for (const c of SUITE) {
   if (!fs.existsSync(p)) continue;
   const t0 = Date.now();
   running.set(c.file, new Promise(done => {
-    execFile(process.execPath, [p], { cwd: dir, encoding: 'utf8', timeout: 300000,
+    /* TEN MINUTES, NOT FIVE. `check/ui.js` passed 300s on the day ten owner-list items each brought
+       their own states, with the other three browser checks running beside it — and a check killed
+       by the clock prints FAIL over a report with no finding in it, which reads exactly like a fault
+       in the app. A real hang still ends; ten minutes is about twice what the slowest takes alone. */
+    execFile(process.execPath, [p], { cwd: dir, encoding: 'utf8', timeout: 600000,
                                       maxBuffer: 32 * 1024 * 1024 },
       (err, stdout, stderr) => done({ ok: !err, out: String(stdout || '') + String(stderr || ''),
                                       secs: ((Date.now() - t0) / 1000).toFixed(1) }));

@@ -16533,3 +16533,602 @@ at the old sizes one quiz spilled onto a second sheet.
 every drawing was laid out against serif metrics, and in the coding font 183 labels are cut off at
 the edge of their own picture. Measured again on this change before it was kept. The flyer's
 "Elegant" style and the cheat sheet keep their own faces: they are printed designs with fixed slots.
+
+## The funnel's answers are chips that wrap like text, and a sitting is asked as Summer, then 2018
+
+**Asked for as "turn the finder options to look more like the google chips tags … they dont need to
+appear one above the other but can fill like from left to right top to down like writing a
+paragraph" and "some tags are like summer 2018 when it should just be summer then 2018".**
+
+**THE ANSWERS ARE CHIPS.** `stuffQuestion` wraps its answer rows and `Doesn't matter` in one
+`.answers` box, which is `flex-wrap`, so a chip is as wide as its words and the answers fill a line
+before starting the next. `.row.tap.counted` is a pill now: an outline (`--chip-line`, declared on
+`.answers, .chips` because it is this family's own edge), no fill at rest, a light fill under a
+finger, the radius half the 44px height so a long answer still wraps inside its own chip.
+`Doesn't matter` is the same chip with a dashed edge and the dim colour. The chosen-filter chips
+above (`.chip`) are the same pill and outline, FILLED, which is how a filter chip says "on". The
+chips' field label (`.chip-k`) moved to `--dim`: `--faint` on the 8% fill measured 3.97:1 and
+`check/ui.js` named every field on the first run.
+
+**THE SITTING IS TWO QUESTIONS.** `examWave` answered `Summer 2018`, and sixteen sittings grouped
+into year pairs whose answers then repeated the year. It is `examSeries` (label `Sitting`: Summer,
+Autumn) at order 130 and `examYear` (label `Year`: 2024 … 2017, newest first, the `2023 & 2024`
+pairs only when more than seven) at 132, both rows in `data/settings/facets.json`. Both read
+`sittingOf_`, which cuts `waveOf`'s answer in two and is memoised on the item, so they cannot
+disagree with each other or with the bundle. `examWave` is in `RETIRED_FACETS`, so a sheet row
+cannot bring the joined answer back. A facet may declare `cmp` for an order that is not a date the
+`dateKey_` test can read: years newest first, series in the order of the year (`seriesCmp_`).
+
+**The bundle still says `Summer 2017`.** Its title has a reader of its own over `waveOf`
+(`SITTING_READER_`), and falls back to the series word and the year chip when the papers do not
+share one sitting; its groups read `waveOf` directly.
+
+**Measured, the walk the owner takes** — Maths · Past paper · GCSE, topics skipped, Higher:
+`Sitting: Summer (555) | Autumn (335)` → `Year: 2024 | 2023 | 2020 | 2019 | 2018 | 2017` →
+`Paper: Paper 1 | Paper 2 | Paper 3`.
+
+**Checked.** `check-funnel.js` rule 4 is three now: `waveOf` over the items is `<series> <year>`,
+the Sitting question offers series words only, the Year question four-digit years only, and the
+run fails if `examWave` is still live. Proved by mutation both ways (an unsplit series names 16
+answers; `examWave` back in `FACETS` names it). `check/states.js` gains `the sitting, then the
+year`, whose expect wants bare years and two chips on one line; with the answers back in a column it
+names the state at every width.
+
+### A review found two more, and both were the change rather than the app
+
+**A ONE-LETTER CHIP WAS 34px WIDE.** "As wide as its words" has a floor the words do not set: the
+letter ranges the funnel groups a long list into are often one letter (`S` among the topics, `G` and
+`P` among the English papers), and those chips measured 34x44 at 320 — under the tap floor sideways.
+No state reached one, because every answer the declared states land on is a word. `.row.tap.counted`
+has `min-width: 44px` and centres its label, and `check/states.js` gains `an answer one letter
+long` (Topic over GCSE Maths past papers, where `S` is a range). **Proved by mutation**: without the
+floor the tap-target rule names `"S" is 34x44` at all four sizes.
+
+**THE PAPER ANSWERS STILL SAID `— June 2024` UNDER A `2024` CHIP.** `paperLabels_` appended its
+subject and tier rungs after the paper's date (`Paper 1 — June 2024 · Foundation`), so `nameForms_`
+had nothing to cut between `Paper 1` and the whole string, and the first version of this change
+exempted the year from the paper-label rule with a comment. The rungs go BEFORE the spaced dash now
+(`Paper 1 · Foundation — June 2024`), so the date is the last cut and `shortLabels_` drops it
+wherever the answers on screen allow: Physics · Summer · 2024 with tier unanswered reads `Paper 1`,
+`Paper 1 · Foundation`, `Paper 1 · Higher`. The exemption is gone and the rule asserts the year;
+**proved by mutation** — the rungs appended again names all 7 answers spelling out "2024". A name
+with no dash is unchanged, and a bundle's labels shorten the same way.
+
+**`check/press.js` and `check/cards.js` take `PRESS_PORT` and `CARDS_PORT`**, as `check/ui.js`,
+`check/cascade.js` and `check/deploy.js` already did: both had a fixed port, which is one of two
+runs dying on `EADDRINUSE` the moment two copies of the suite share a machine.
+
+## The A ∩ B splash is three regions of a GCSE Venn diagram, shaded in turn
+
+**Asked for as "refine the A n B animation".** It was two tinted circles sliding together while a
+flat cream patch lit in the middle, under an "A ∩ B" that never changed — one fact, drawn once.
+`tools/venn.py` now writes both the `<div id="splash-venn">` and its rules, from one table of
+geometry and one timeline; edit the table and re-run it, as with `galton.py`.
+
+**What it draws, in a 10s loop**: ξ, the universal set, is always there. A slides in from the left
+and B from the right. Then A ∩ B, A ∪ B and A′ are shaded in turn, each with its notation
+underneath, and the circles slide back out. The loop starts and ends on the same empty ξ, so there
+is no seam.
+
+**Shaded with a hatch**, because that is how a region is shaded by hand. The hatch drifts sideways
+by exactly one line spacing per turn of its own 1.6s loop, so a held region still moves: `npm run
+splash -- is-venn` reports 46 of 46 frames moving over a full loop and its boundary. Only `transform`
+and `opacity` move. Each region is a `clipPath` over one shared hatch `<path>` (`<use>`), and the
+three paths are worked out from the circles: the lens, the union, and ξ with A cut out (`evenodd`).
+
+**Two things a screenshot changed.**
+- **Staggered fades blanked the lens.** Fading A ∩ B out before A ∪ B came in left the lens nearly
+  unshaded between them, and the lens is the one area both shade. Each pair of regions now
+  crossfades over the same half second.
+- **Two captions overlapped.** With the crossfade, "A ∩ B" and "A ∪ B" printed through each other
+  in one cell. A caption now stops at the middle of the crossfade and the next starts there; the
+  script asserts no two captions overlap.
+
+The circles are outlines only. Tinted circles gave the lens a third colour where they crossed, so
+under A′ (which leaves the lens unshaded) it looked shaded in something else. ξ and the letters have
+a stroke of the page's black painted under them (`paint-order: stroke`), so a hatch line does not
+run through a glyph.
+
+**Reduced motion** is the base styles with every animation off: circles in place, A ∩ B shaded and
+named. `.vn-r:not(.vn-r-and)` says that in one rule, so it is not two rules at one specificity
+settled by file order. The `.vn-a, .vn-b, .vn-both` entries left the shared reduced-motion list.
+
+**A review found three more, all on screenshots, and fixed them in `tools/venn.py`.**
+- **The hatch poked out past ξ's corners.** The box had `rx="4"` and A′'s clip is a plain
+  rectangle, so under A′ the hatch filled four square corners outside a rounded border. ξ is a plain
+  rectangle now, which is also how a GCSE paper draws it.
+- **ξ's own border was hatched over.** The box was drawn under the regions, so under A′ its edge
+  read gold rather than as the edge of everything. It is drawn over the shading now, like the
+  circles' outlines.
+- **The notation was smaller than the letters on the circles.** At `1rem` the caption was 13.5px on
+  a 320px phone under circle labels drawn at about 18. It is `1.3rem`.
+
+What it costs on a fast load is the first second: the loop opens on an empty ξ with the circles
+sliding in, and A ∩ B is first shaded and named at about 1.3s. That order is what was asked for.
+
+## The cheat sheet's list is no longer a scroller, and a number line runs from −10 to 10
+
+**"the cheat sheet maker should not have a scroll thing"**: `.mat-list` lost `.widget-squeeze`, and
+`.mat-list.widget-squeeze { min-height: 6rem }` is deleted. That class made the list a scroll box
+inside a card that also slides, so every drag on it was a guess between moving the list and moving
+the column. The card is now as tall as its whole list, and `paneReach_` treats it like every other
+card: it draws it smaller down to 70%, and past that the PANE scrolls and hands the swipe back to
+the grid at its end. Measured with real touch events, signed in and out: with Every level at
+320x568 the card is drawn at 70%, three swipes up scroll the pane to its end and the fourth turns
+the page; at SATs on 390x844 the card fits at 91% with no scroll at all. The flyer still carries
+`.widget-squeeze`, and the generic rules beside `.card.is-widget` are untouched.
+
+**The state asks the computed style, not just the class.** `tools · the cheat sheet maker, filled`
+fails if anything from the list up to its card has `overflow-y: auto` or `scroll`. The class test
+alone would pass a `.mat-list { overflow-y: auto }` rule that put the scroll bar straight back.
+Proved by mutation: that rule names the state at all four widths.
+
+**"add minus number line"**: `M52`, Negative number line, in `MAT_PARTS` with `at0: 35`, so it is
+listed straight after M04's 0–1 line. Every whole number from −10 to 10:
+- the minus is U+2212;
+- zero has a longer, thicker tick and a bold label;
+- an arrowhead at each end, drawn as a border triangle.
+
+It is full width for M04's reason. It is offered on SATs, 11+, Y9 Mocks and both GCSE tiers, has no
+`tier`, and is not given in the exam. The id is **M52, not M51**: M51 is the pH scale on another
+branch, and one id for two pieces would be one row of the sheet tab answering for both.
+
+**The zero is bold at the same size, not bigger.** The first version drew it at 3.6mm against the
+others' 2.9mm, with its `top` nudged so the two line boxes were centred. Centring line boxes does
+not line up digits, because a digit sits on its baseline and where that falls depends on the font.
+Measured on the printed sheet, the zero's baseline was 0.44mm below its neighbours', and the
+screenshot showed a dropped 0. With one size and one `top`, all 21 baselines are at 10.72mm.
+
+**`MAT_SLOT.M52` is 22mm, measured on the printed sheet.** The block is 18.8mm under another block,
+counting its rule and the 3mm under it. A millimetre is added for another browser's mono and the
+total rounded up to the 2mm row. The block measures 22mm and does not overflow, and `matPaint`'s
+overflow alarm stays silent. Screenshotted in print media.
+
+`check-flow.js` gains one journey, which asserts all of this:
+- the labels read −10…10 with a real minus;
+- exactly one zero is picked out;
+- both arrows are present;
+- it is offered at each of the levels above and not at A-level;
+- the list carries no `.widget-squeeze`.
+
+Proved by mutation: a hyphen for the minus names the line, and putting the class back names the
+list.
+
+**`check/press.js` and `check/cards.js` read `PRESS_PORT` and `CARDS_PORT`** like the other browser
+checks. Both had their port hard-coded, which two sessions on one machine cannot share.
+
+## Five classroom games, and a clock that knows a repaint from a column being left
+
+**Asked for as a list in the owner's own words**: Just a Minute, Taboo, Hot Seat, 20 Questions and
+Alibi. Five Games widgets in `js/map.js`, one section of `js/games.js` under the note over `PARTY`.
+
+| | what is on the card |
+|---|---|
+| **Just a Minute** | a random topic, 60 seconds, and three tallies — Hesitation, Repetition, Deviation |
+| **Taboo** | the word and the five you may not say, 60 seconds, Correct / Pass, a count |
+| **Hot Seat** | a cover card first ("hold the phone up so only the class can see it"), then the word large, 60 seconds, Got it / Pass |
+| **20 Questions** | dealt like Imposter's card — hand the phone over, Show me, Hide it — then "It's a person / place / thing", n of 20, Yes, No and Reveal |
+| **Alibi** | the case (what happened, when, where the two say they were) with **no questions on it**, because the suspects take it out of the room; then each suspect on their own two-minute clock with the same six questions; then the verdict |
+
+**NOT `ROUND_GAMES`, BECAUSE `initRound` THROWS THE ROUND AWAY ON EVERY START** — `roundAt[k] = null`
+— and a widget starts on every `repaint`. These five were asked to survive one. Changing that under
+Articulate and Charades was not asked for, so the clock is written once more for five.
+
+**THE CLOCK IS A DEADLINE.** A running round holds `ends`, a held one holds `left`; `toolsStart_`
+clears and restarts every widget on every repaint, and a `left--` interval would lose up to a second
+each time. The tick writes the clock text and nothing else, so the buttons are never rebuilt under a
+finger.
+
+**`stop` IS CALLED TWICE OVER AND MEANS TWO THINGS.** `toolsStart_` calls `toolsStop_` before every
+start, so a repaint is a stop and a start a moment apart; leaving the column is a stop on its own.
+`partyHere_(k)` tells them apart by asking whether this game's own card is on the screen in front
+(`#s-<AT> #<k>-card`): a repaint carries straight on, and a column left behind is paused until somebody presses Resume, with nothing secret on the paused
+card. Hot Seat's paused card is its cover card, because it is the same moment; 20 Questions has no
+clock and hides its secret instead, which is Imposter's rule.
+
+**Decks**: 170 topics, 132 Taboo cards, 141 Hot Seat words, 132 secrets, and for Alibi 121 crimes,
+24 times, 46 places and 122 questions. Child-safe, and the 20 Questions people are from history and
+books rather than the news. `check-widgets.js` now compares every pair of the six word decks on this
+column (these four and Articulate's and Charades'), refuses a repeat inside any deck including
+Alibi's, holds a 120 floor on what each round is about, and checks every Taboo card is a word and
+four or five forbidden words that are not itself. Imposter is still left out, for the reason over
+`IMP_DECK`. **Proved by mutation**: `a countdown` in Hot Seat, `Hats` in Hot Seat and a three-word
+Taboo card are all named and the run fails.
+
+**Five `check-flow.js` journeys' worth of mutants, all named**: a stop that always pauses (the repaint
+assertions fire), a stop that never pauses (the leaving assertions fire), Hot Seat starting its clock
+before the word is shown, 20 Questions keeping its secret up when the column goes, Alibi reshuffling
+questions for the second suspect, and a tally that counts nothing.
+
+**Six `check/states.js` states**, each entered through the app's own handlers and then given the
+LONGEST entry its deck holds — a random deal measures a different card every run. The Alibi
+interview is drawn at 94% / 87% at 320x568 by `paneReach_`; nothing else is smaller than it ships.
+
+**`check/press.js` reads `PRESS_PORT`** like `check/ui.js` and `check/cascade.js` already do.
+
+### The review found the column next door, and thirty-odd words the rule could not see
+
+**`partyHere_` FIRST SAID THE WHOLE SAVED COLUMN WAS "HERE".** Saved holds starred games, so for a
+starred game that is right — and for every other game it meant a Taboo minute started on Games and
+swiped one column over to Saved went on running on a card that was on no screen, and ran out there:
+the fault the pause exists for, on the column beside it. It asks the DOM now, and a sixth journey
+(*a round left for the Saved column, where it is not starred, pauses like any other leave*) fails on
+the old test.
+
+**THE CROSS-DECK RULE COMPARED SPELLINGS, so a plural walked straight through it.** `Penguins` on Just
+a Minute beside `a penguin` on Charades, `Dinosaurs` beside Taboo's `dinosaur`, `Socks` beside 20
+Questions' `a sock` — 45 pairs, two of them already in the column before this (`a witch` against
+`The Witches`, `a neighbour` against `Neighbours`). The key now folds each word's plural ending and a
+final e, which errs towards calling two words one, because a false alarm costs choosing another card.
+Forty-three topics, two Articulate entries and their replacements' own collisions were changed until
+it passes. **Proved by mutation**: `Penguins` put back is named against `a penguin`.
+
+**What the rule deliberately does not catch is one card inside another** — `guitar` in `playing the
+guitar` — because asked as a rule it would also refuse `kettle` for being in a nursery rhyme, which
+the original two decks are full of. So the four new guessed and dealt decks were swept by hand with a
+throwaway containment script: twelve Taboo cards, twenty-one 20 Questions secrets and seven Hot Seat
+words were replaced where they were the same object as another card (`jigsaw` and `jigsaw puzzle`,
+`Peter Rabbit` and `The Tale of Peter Rabbit`, `a light bulb` and `changing a light bulb`). Among the
+three new guessed decks themselves the sweep reports **0**. Against Articulate and Charades a residue
+remains that is a title or a different sense (`a king` in `King Arthur`, `tennis` in `a tennis ball`),
+and that is a judgement left visible here rather than a rule.
+
+## Sentence Scramble and Word Search, and both are taps rather than drags
+
+**Asked for as "Sentence Scramble - Groups race to arrange cut-up paper words into a grammatically
+correct sentence" and "He also used to like mazes and word searches".** Two games on the Games
+column, after the maze: `wordsearch` and `scramble` in `WIDGETS` (map.js), engines in games.js
+beside the maze. Both keep their state through a repaint (Scrabble's rule, not the maze's), so a
+payload landing does not deal again; New puzzle and Skip / Next sentence are what do.
+
+**The scramble's chips are the words as printed**, capital and full stop included, because a strip
+of cut paper keeps its punctuation, and those are the clues a child uses first. One pool of 44px
+chips that never moves; a used chip stays where it was, dimmed, and tapping it again takes the word
+back, so nothing reflows under the finger. The sentence being built is written out above. Check is
+pressable only when every word is placed, and a wrong answer says how many words from the start are
+right. A level select (KS2, KS3, KS4). No timer and no score: "groups race" is the people's race.
+
+**`SS_SENTENCES` is 173 sentences, and the rule for them is the part to copy.** A sentence that two
+noun phrases can swap and still make sense ("The teacher thanked the student"), a floating adverb, an
+adjective that fits either noun, or two names in symmetric roles has a second right answer that a
+child would be told is wrong. Each was rewritten or listed with its alternatives: an entry that is an
+array is the sentence and its other valid orders, and `ssRight_` accepts any of them. A grammatical
+nonsense order is marked wrong on purpose.
+
+**A review sentence by sentence found seven more with a second sensible order**, and none was
+caught by the builder's pass: `light, carbon dioxide and water`, `regularly revise`, `therefore
+further research`, `the second poem … the first`, `dark and light`, `planted in the forest`, and the
+baby and the puppy swapping. Each is listed with its alternative now, so ten entries carry one. The
+full stop and the capital pin the two ends of most sentences, which is why the rest survive; what
+gets through is two lower-case noun phrases or a floating adverb in the middle. No rule can see
+"sensible", so this stays a reading job, and `check-flow.js` builds every stated alternative.
+
+**The word search is two taps, the first letter and the last, and the maze is why.** A drag across
+the grid would fight the pager for the gesture the app navigates by, and the only fix for that is
+`data-noswipe` over most of the card, which makes a card you cannot swipe off. A tap is a click, and
+`PRESS_MOVED` already swallows the click a swipe makes, so a swipe starting on the grid still turns
+the page. `check/press.js` now swipes with real touch events from `.ws` and `.ss-chips` to prove it.
+A cell cannot be 44px (measured at 320x568, ten across is 20px and eight 25px; at 390, 25 and 32); `ACCEPTED_TAP` in check/ui.js carries the
+numbers, and a wrong tap costs nothing.
+
+**Each theme says its own size and direction rule.** Younger themes read forwards only (right, down
+and down-right): Years 3–4 spellings, animals and KS2 science on 8x8 with six words, and Years 5–6
+spellings on 10x10 with seven because the words are long. Older themes (KS3–4 science, maths,
+geography) are 10x10 with eight words in any of eight directions. The spelling lists are the
+national curriculum's statutory words, cut to what fits. A word inside another already placed
+("angle" in "triangle") is skipped. The select names say the year first (`Years 3–4 spellings`),
+because at 320px the end of the label is cut off, and `Spellings, Years 3…` could not tell the two
+spelling lists apart.
+
+**The first version dealt the LONGEST six of eighteen random words, and a younger grid was six whole
+rows.** `wsBuild_` sorted three puzzles' worth by length and placed from the top, so a Years 3–4 8x8
+was six eight-letter words, one per row, with two rows of filler: a list of rows rather than a
+puzzle, found on a screenshot. The deal is now the first `n` of a shuffle (placed longest-first, the
+rest kept as spares), and at most one word may run the whole width of a grid. `check-flow.js` fails
+on a second; proved by mutation (2 to 4 per grid without the limit).
+
+**The filler is checked for rude words in all eight directions, and the arithmetic is why.** A given
+three-letter word turns up by chance in about one ten-by-ten grid in twenty. `WS_NOT` is a copy of
+`HANDLE_BLOCKED` from backend/constants.gs, because the backend list never reaches the phone, and
+`check-widgets.js` fails if the two differ. It caught `raccoon` on its first run.
+
+**Checked.** `check-widgets.js` reads both lists: at least 150 sentences and 40 a band, each starts
+with a capital and ends with `. ! ?`, 4 to 14 words, no repeats, and every alternative uses the same
+words as its sentence; every theme word fits its grid, each theme has three puzzles' worth, and no
+theme word contains a filtered word. `check-flow.js` builds every stated alternative through the
+real handlers, plays one sentence right and one wrong, builds fifteen puzzles of every theme and
+reads each word back off its cells, and plays a puzzle by taps in both directions. Proved by
+mutation: alternatives refused, the filter removed, a younger theme going backwards, and a reversed
+tap refused all fail. Two states in check/states.js: a word search part-found and the longest
+sentence half built.
+
+**`check/press.js` and `check/cards.js` read `PRESS_PORT` and `CARDS_PORT`** now, as ui.js and
+cascade.js already did, so two checkouts on one machine can run them at once.
+
+**And that swipe pass had been skipping most pages since it was written.** It turned a column's
+page with `goPage` alone, but the sideways swipe before it had already moved the app to the next
+column. So after a column's first sideways swipe, every later page was measured off-screen to the
+left, filtered out, and never swiped from. The scramble's chips, eleven pages into Games, were how
+this was found. It calls `go` as well now, and the pass went from 62 swipes to 72, all landing.
+
+**The full `check/ui.js` run is clean**: 316 combinations, nothing new. One earlier run, made under
+heavy load, reported `PANE OFF THE SCREEN` by 10px on `stuff · a quiz@768`; it did not recur, and
+that screen is not one either game touches.
+
+## The Feed's photographs and clips are grainy now, and the look is two properties rather than an overlay
+
+**Asked for as "make the ig clone have a grainy look to it. like breaking bad but more. like 1999 or
+2003 you knooow like light phone."** These get an early-digital-camera look: fine grain, colour gone
+warm and a little faded, a touch more contrast, and darker corners.
+- every post picture: `.post-pic` and `.post-cell`, `<img>` or `<video>`
+- every reel clip: `.reel .feed-vid`, its poster included
+- the composer's preview: `.post-preview`
+
+Captions, names, avatars, reactions, tiles, the reel's own words and its sound button are untouched.
+
+**No overlay element.** An `<img>` cannot carry `::after`. A noise layer would therefore need a
+wrapper round every photograph, and every bleed, 4:5 and `holdColumn_` rule would move onto it. It
+would also put an element under the thumb, on the column where most swipes start on a picture.
+
+So the look is two properties on the picture itself:
+- `filter` does the colour: `sepia .24`, `saturate .86`, `contrast 1.1`, `brightness 1.07`.
+- `mask-image` does the vignette and the grain: a vignette and a 160px `feTurbulence` tile,
+  multiplied (`intersect`).
+
+The mask lets the near-black behind the picture show through. A speckle at about 85% is a dark
+grain, and a corner at 62% is the vignette. Measured on a canvas, the noise has mean .50 and spread
+.11, and the matrix maps it to alpha `.7n + .55`: mean .90, spread about .08. The tile is static, not
+animated. It is a data URI, rasterised once and shared. Nothing intercepts a tap because nothing was
+added to the document. On a 3x phone the tile is rasterised at device scale, so each grain is about
+one CSS pixel. That is clearly visible, and looked at at 3x before it was kept.
+
+**The composer's preview is in scope on purpose.** `showPostPreview` draws with the card's own
+renderer *"so the preview cannot disagree with what goes up"*. A clean preview and a grainy card a
+second later would be exactly that disagreement.
+
+**The reel needed black behind the clip** (`.reel > .feed-art.is-clip.has-photo`). Without it the
+mask let the subject gradient through, as coloured speckles and pink corners.
+
+**What it costs:**
+- `has-photo` goes on at first paint wherever a poster path exists, so a slide is black, under its
+  scrim and words, for the moment before the ~20KB poster lands. The gradient used to show in that
+  moment.
+- A poster that 404s now leaves a black slide where it used to leave the gradient.
+  `check-reels.js` already prints a clip with no poster.
+- A post clip's native `controls` are inside the `<video>`, so they are warmed and grained with it.
+- Not tested on iOS from here. If Safari ignores the mask, the picture is simply clean.
+
+**Scoped by ancestor, not by class alone.** The film is keyed to `.post` / `.post-preview` / `.reel`
+rather than to the classes, because `post-vid` is also on a clip in a chat, and the "One more thing"
+widget draws `feedSlide` clips outside any `.reel`. Tokens `--film-tone`, `--film-grain` and
+`--film-vignette` are declared on those three components.
+
+**`check/ui.js` FILM LOOK** asks two questions of every screen, at two strictnesses:
+- **Over-reach, asked of the grain mask alone.** Anything carrying it must be a post's, preview's or
+  reel's own `<img>`/`<video>`. A caption that picks up the mask but not the filter is still a dirty
+  caption.
+- **Under-reach, asked of mask and filter together.** Every such picture must carry both.
+
+It also fails when the feed draws no post picture, or the reel column no clip, to measure.
+
+Proved by mutation:
+- the mask alone put on `.post-cap` names `p.post-cap`
+- the post and reel selectors broken names `video.feed-vid … drawn without the film`
+
+## Each person sees their own figure on a session, and its tiles are on the paper
+
+**Asked for as "for tutor they shouldnt see grand total client pays, only grand total they earn.
+admin should be able to see grand total client pays. total tutor earns, and how much admin earns",
+"add how much each job earns tutor and admin and client" and "no floating tiles for already booked
+sessions".**
+
+**THE PAYLOAD DECIDES, THE PHONE DRAWS.** `doGet` sends each job `price` to everybody it went to
+before EXCEPT a tutor on the job who is not also a client on it; `tutorPay` (the `tutor_pay` cell)
+to the tutors on the job's own roster and an admin; `adminKeeps` (`admin_profit`) to an admin
+alone. A blank cell stays `''`, never `N('')` = 0. `jobMoney_` in book.js turns what arrived into
+the total rows: a client gets `Cost` (or the stage's wording), a tutor `You earn` in that row's
+place, an admin `Client pays`, `Tutor earns`, `Admin earns`. An unrecorded figure is a dash.
+A tutor counts as "on the job" by `j.tutor` OR by `tutorSlots`, because `tutor` is only the first
+name on the roster and a second tutor who has applied would otherwise be handed the client's line.
+On a waiting list an admin's first row reads `Each seat pays`, not `Client pays`: `price` there is
+one seat (`doGet` says so beside it), not what the families are charged in all.
+
+**`tutor_pay` WAS WRITTEN BLANK ON EVERY JOB.** `createJob` wrote `''` and the phone never sent it,
+so a tutor's receipt had nothing to show. `receipt.js` sends `L.tutorPay` now and `createJob`
+stores it — recorded as sent, like `admin_profit`; nobody is charged from it. Jobs made before
+this deploy read as a dash for the tutor until the cell is typed in.
+
+**`moneyBlock` IS GONE.** It floated `£X left over` under the paper for an admin, and on the form it
+never drew at all: it read `L.profit` where `priceFrom` returns `profitTotal`. `receiptHtml` takes
+`r.more` and draws each as another `.rc-total` row (`.rc-more`, no rule above it). `formMoney_`
+gives an admin the same two rows on the form once it is priced; a waiting list (priced by
+`waitPrice_`, which works out no split) gets none. Sharing hides `.rc-more` in print, because a
+shared receipt goes to a family.
+
+**A total's label spans `1 / -2`.** The label track is `minmax(6.2em, max-content)` and shared by
+every row, so `CLIENT PAYS` in tracked capitals widened the question column and wrapped every answer
+on the card (and `IT WOULD COME TO` had been doing the same on applications). `check/ui.js`'s
+FIELD OUT OF ITS COLUMN exempts a total's label's RIGHT edge, as it does the week's.
+
+**THE TILES ARE THE RECEIPT'S FOOT.** `jobPage_` builds one `.tile-row rc-tiles` from `jobTiles_`
+and `jobAdminTiles_` and hands it to `jobReceipt(j, foot)`; `jobAdminTiles_` returns tiles rather
+than a row of its own (it was a row inside a row). A session already paid offers no Pay, which is
+`jobTiles_`'s own test.
+
+**Checked**: `check-profile.js` §10 runs the real `doGet` for a client, the tutor and an admin on one
+seeded job (proved by mutation three ways — price to the tutor, tutorPay to all, adminKeeps to
+all). `check-flow.js` "each person sees their own figure on a session, and its tiles are on the
+paper" (proved by mutation: the tutor shown the client total; the tiles back under the paper; a
+tutor matched by `j.tutor` alone; an admin's waiting list labelled `Client pays`).
+`check/states.js`'s session receipt asserts three total rows and no action outside `.rc`.
+
+**Needs the backend pulled** for any of the payload half; until then an older `doGet` sends no
+`tutorPay`/`adminKeeps` and still sends `price` to a tutor, so a tutor sees `You earn —` and an admin
+two dashes.
+
+**Left as they were, deliberately.** A tutor looking at an OPEN class they are not on is still sent
+its seat price, because that row is the join offer and nobody but a family asks to join. The
+booking FORM still shows its quote's rates to whoever fills it in, tutors included: it is the
+family's quote, and tutors do not book. A tutor who shares their own receipt prints `You earn`,
+because sharing prints what is on the screen; an admin's share keeps `Client pays` and drops the
+two rows under it.
+
+## A weekly timetable on the Tools column, a day at a time
+
+**Asked for as "timetable widget ... like weekly timetable".** `timetable` in `WIDGETS` (after `Your
+week`, which is the sessions BOOKED here; this is the week somebody writes down themselves), drawn by
+`tmtHtml_` / `tmtPaint_` at the foot of games.js. Kept on the device under `tmtKey_()` —
+`'tmt:' + whoIs_()`, the answer boxes' key — so two students on one phone get two timetables, and it
+works signed out under the bare key. Nothing posts anywhere.
+
+**The prefix is `tmt-`, not `tt-`, because `.tt` is the Times Tables card** and `.tt input` is
+`font-size: 1.4rem`. The first draw of this widget used `.tt` and every box in it came out at 20.7px.
+
+**One day at a time, measured.** Seven lesson columns is 35px each at 320. Day chips over a list:
+Mon–Fri, and all seven (four and three) when `Weekend` is ticked. Five 44px chips and their 2px gaps
+are 228px and the widget's slot at 320 is 218, so at ≤22rem the widget card gives up some of its
+inside edge (`padding-inline: .4rem` on `.card.is-widget:has(.tmt-box)`): 231px, chips 45x44. A day
+with something on it has a dot under its chip.
+
+**A lesson is its summary line until tapped** (the qualification shelf's shape): time · subject ·
+note, one 44px button. Tapped, it opens in place to a time box, a subject box, a note box and
+Done / Remove. Typing is saved on every keystroke by a document `input` listener and is not
+redrawn; Done shuts it and re-sorts by time. A new lesson is an hour after the last one, 09:00 on
+an empty day. Chrome's clock button in the time box is hidden — it opens a picker over the card and
+sat on the minutes at 320; the time column is 7.8rem because a 12-hour phone shows "11:15 AM" and 7rem
+cut the AM off. **On a phone a tap on the time box still opens the platform's own wheel or clock**,
+which no rule can reach — the same native control as the booking dropdowns and the exam-date picker,
+so the time is kept on `change` as well as `input`, because an older phone's wheel fired only `change`.
+
+**A lesson shut with nothing in it goes** (`tmtShut_`): Add writes a row before anything is typed, so
+Add then Done — or another day, or Add again — used to leave an `Untitled` line only Remove could
+take off. No subject and no note is not a lesson; the time does not count, because Add filled it in.
+
+**A colour per subject, handed out and remembered, not hashed.** The first version hashed the
+subject into eight hues and the first screenshot had Chemistry and History in the same red — five
+subjects in eight hashed colours collide four times in five. `tmtColours_` gives each subject the
+least-worn of ten hues (declared on `.tmt`), keyed on the subject's letters in ANY alphabet
+(`\p{L}\p{N}`) — `[a-z0-9]` reduced `Ελληνικά` to nothing, so a Greek lesson drew with no colour.
+It keeps the hue in `colours` so it does not move when another subject is added earlier in the week, and gives it back when the subject's last lesson goes. Drawn
+as a 4px edge, so no hue has to pass a contrast test.
+
+**Checked.** `check-flow.js` journey *"the timetable keeps a week per person, one colour a subject,
+through a repaint"* writes a Monday through the real handlers and the `input` listener and asks:
+time order, three colours for Chemistry/History/Maths, the note on its line, survives a repaint, a
+second person sees none of it, Maths keeps its colour when Art arrives at 08:00, Weekend 5↔7, Remove.
+Then a blank lesson shut three ways, a Greek subject's colour, and a time sent only as `change`.
+**The repaint and the second person go through `repaint()` alone** — the first version called
+`initTimetable()` straight after, which redraws the widget whether or not the app ever restarts it,
+so a roster entry with no `start` passed. Proved by mutation seven ways: hashed colours, one shared
+key, typing not saved, `[a-z0-9]` keys, no `change` listener, no `tmtShut_`, and no `start`.
+
+**What it does not do, said rather than buried**: a repaint while a lesson is being typed into (a
+payload landing) rebuilds the box and drops the caret — nothing typed is lost, because every
+keystroke is already stored and the lesson comes back open, but the keyboard closes. And with the
+widget starred onto Saved, typing into one copy updates the other only on its next draw.
+
+`check/states.js` has `tools · a timetable` (weekend on, one lesson open). `check/press.js` reads `PRESS_PORT` now.
+
+## Mentos and cola was already a practical, and its row said three things that were not true
+
+**Asked for as "Elephant toothpaste coke mentos volcanoa".** All three are already in
+`data/practicals.json`: elephant's toothpaste is `PR-HM01`, the volcano `PR-HM11`, and the
+Diet Coke geyser `PR-HM33`, "Mentos and cola". It came in with the twenty-five from the pasted
+library and has a drawing, kit, six steps, four risks with what to do about each, things to change
+and to measure, and a science paragraph about nucleation. A second row would be the duplicate this
+file refuses for the lab and home versions of one practical, so no row was added.
+
+**Reviewed against its own text, three cells contradicted the rest of the row:**
+
+| | was | is | why |
+|---|---|---|---|
+| `topics` | Rate of Reaction, … | **Solubility, Particle Model of Matter**, Bar Charts & Pictograms, Units & Measures | the science paragraph opens *"Nothing is reacting here, which is the part almost everybody gets wrong"*. The Rate of Reaction tag filed it under that same misconception. The new tags are what it is about: a dissolved gas leaving solution, and gas under pressure |
+| `venue` | home | **outdoors** | its safety line is *"Outdoors only"* and its risks say *"never indoors"*. `home` read as a front-room practical. `PR-HM04`, also outdoors-only, is already `outdoors` |
+| `hazard` | none | **low** | a fountain several metres high, and a bottle that can fall over and spray sideways. `PR-HM15`, the balloon gas-pressure practical, is `low` |
+| the £5 | `setup_cost_gbp` | **`cost_per_run_gbp`** | the kit page said *"About £5.00 of kit to set up, and it is bought once"*. That £5 is three two-litre bottles and a tube of mints, and one session uses all of them up. The cane, the tape measure and the phone are household things. The card strip now reads `£5.00 a run` |
+
+**A screenshot of the kit page is what found the cost fault.** Nothing in the checks reads that
+sentence. `tools/add-practicals-home-set.py` still holds the old values and has already drifted from
+the file: its equipment cell predates the `× qty` pass. The data file is the source; that script is
+a one-time writer and was not re-run.
+
+## A student sees their parents and a parent their children, and a pending claim had been killing the child's payload
+
+**Asked for as "students should be able to see their parents and likewise".** The sign-in reply
+already carried `parents` and `children` as NAMES (for the booking form). A card needs a
+photograph and a handle as well, so `doGet` now sends **`payload.family`**:
+`{ personId, title, relation: 'parent' | 'child', handle, image }` for the signed-in person's
+**accepted** links in both directions, through `acceptedParents` / `acceptedChildren` — the same
+two readers the sign-in reply and the exam diary use. It is built from `meAsked` (the TOKEN),
+never `?person=` / `?name=`; a stranger gets `[]`; an admin gets their own family and nobody
+else's. No e-mail, phone, address or birthday goes on it.
+
+**A key of its own rather than rows on `payload.students`**, because that list goes to every
+student for the friend search: a parent's row put there would be a parent sent to every child.
+The cache is keyed on the token's person (`payloadKey_`), so one family's list cannot be handed
+to another.
+
+**`accountPages_` draws one `findCard` per entry, between your own card and everybody else**,
+headed `Your parent` / `Your child`. A parent who is also a tutor is drawn ONCE, from their
+tutor row with its tiles and the label in front of the role, and removed from the tutor list
+below. An older backend sends no key, and `Array.isArray` draws nothing.
+
+### `familyFor` — the list says whose it is, because `DATA` outlives a sign-out
+
+**Found by the review, and it is a cross-family disclosure on a shared phone.** Sign-out sets
+`USER = null` and keeps `DATA`; sign-in paints at once and fetches the payload after. So a phone
+handed from a parent to another family's child drew the parent's children as "Your child" on the
+child's column until the new payload landed — about fifteen seconds — and for good if it never
+did. `doGet` stamps `payload.familyFor` with the id it built the list for (set whenever there is a
+token's person, `''` otherwise), and the column draws the family and the claims only when that is
+`USER.personId`. A list stamped for somebody else, or by nobody, draws nothing.
+
+### `payload.claims` was never in the literal, so a pending claim broke the whole payload
+
+`doGet` pushes a child's unanswered "this is my child" rows onto `payload.claims` — and the key
+was never declared. So a student with one `asked` row on the family tab (the ordinary first half
+of linking a family) was answered `{ error: "Cannot read properties of undefined (reading 'push')" }`
+instead of a payload. `claims: []` is in the literal now.
+
+### And nothing drew a claim, so no family could ever form from the app
+
+**The other half of the end-to-end path, and it was missing.** A parent presses `Ask them` on the
+Settings column and is told the child "will see it when they next sign in". The only thing that
+drew a claim was `meRest_` in me.js, and nothing calls `meRest_` — the old You column it fed is
+gone. So every request sat at `asked` for ever, no link was accepted, and the family cards above
+could only come from a row typed into the sheet. `check-doors.js` could not say so: `claim-yes`
+is a string in the markup, so it reads as a door whether or not anything draws it.
+
+**`claimCard_` in me.js is the one renderer**, and `accountPages_` puts one card per claim straight
+after your own (`Bea Parent says they are your parent`, `Yes` / `No`), held to the same
+`familyFor` stamp. `answerClaim_` goes through `send_` now, so both buttons lock while the answer is
+on the wire, and the answered card leaves the column at once with `repaint(true)` — a page has
+gone, so the column is placed again — rather than when the payload lands. The server already
+refused anybody but the named child; the check now proves it.
+
+### Checked through the real `doGet`
+
+`check-profile.js` case 10: two families on one tab, plus an `asked` and a `refused` link naming
+the other family. A student sees their parent and not the other parent; a parent sees their child
+and not the other child; a stranger whose URL names the student sees nobody; no private field on
+any card; every list is stamped with the token's id (`''` for the stranger). The asked claim goes
+to the child it names and to nobody else; the parent who asked cannot answer it; the child's Yes
+puts that parent on their list and empties their claims. **Proved by mutation**: asked/refused
+links counted, built from `?person=` (also named by `check-backend.js`), `familyFor` not set,
+`claims` uninitialised.
+
+`check-flow.js` ("a student sees their parents, a parent their children") asks the drawing: one
+labelled card per entry, nothing without the key, nothing for a list stamped for somebody else or
+for nobody, no card for yourself, a tutor-parent on one page, a claim drawn on the child's column
+and not on a list stamped for somebody else, and Yes posting `answerClaim` with that row and
+taking the card off. Proved by mutation (the stamp test removed; the claim pages dropped; the
+answered claim left in the list). `check/states.js`'s `account · your family, a card each` seeds
+a parent, a child and one claim, lands on the claim, and its `leave` repaints with `repaint(true)`:
+a bare `paint` left the card in front where the old page 2 was, and COLUMNS OUT OF LINE said so.
+
+**What is left.** The backend must be pulled and deployed before any of this reaches a phone;
+until then no `family` key arrives and nothing extra is drawn. `BACKEND_VERSION` was not bumped,
+so a payload already cached under the old code (up to six hours) is served without the key until
+the next write retires it. `payload.students` still goes to every student and parent for the
+friend search, with `siblings` on each row — wider than one family, pre-existing, and the friend
+search depends on it.
