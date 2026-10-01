@@ -41,7 +41,7 @@ const { chromium } = require('playwright');
 const ROOT = path.join(__dirname, '..');
 const WIDTH = 320;
 const PHONE_H = 568;
-const PORT = 8129;
+const PORT = Number(process.env.CARDS_PORT || 8129);  /* overridable: parallel runs in worktrees share one machine */
 const SHOTS = process.argv.includes('--shots');
 
 /* ---------- WHAT COUNTS AS A FAILURE, AND IT IS DELIBERATELY ONE THING ----------------------------
