@@ -4513,6 +4513,7 @@ function questionItems() {
          exists for: sent, and never read. Only 91 of 3,271 rows carry one today. */
       answer: r.answer || '', answerType: r.answerType || '',
       accept: r.accept || '',
+      choices: r.choices || [], choiceRight: r.choiceRight || [],
       examinerNote: r.examinerNote || '',
       /* EVERY PREAMBLE THIS PART SITS UNDER, OUTERMOST FIRST — see `preamble_`. It was one stem or
          none; a list is what makes an AQA source text and a question's own scene-setting the same
@@ -4869,9 +4870,38 @@ function markRange_(w) {
   return { lo: lo, hi: hi };
 }
 
-function markAnswer_(typed, accept) {
+/* ---------- A UNIT THE CHILD TYPED, AND THE BRACKETS ROUND A COORDINATE ----------------------------
+   MEASURED ON THE SATS PAPERS: "3.75 litres", "65p", "144 cm²" and "25%" were all marked wrong
+   against an `accept` of the bare number, and "(55, 30)" against "55, 30". `markBare_` already took
+   a unit off the EXPECTED side; nothing took it off what was typed, so the more carefully a child
+   wrote their answer the more likely it was to be refused. That is the worse of the two failures.
+
+   NARROW ON PURPOSE: a number followed by unit-like letters and NOTHING ELSE, per comma-separated
+   part, so "5 and 24" is never reduced to "5". Brackets come off only when they enclose the whole
+   answer. If nothing changes there is no second attempt, so this can only turn a refusal into a
+   tick where the bare number was already right. */
+const MARK_UNIT = /^(-?[\d.\/]+)\s*(?:[a-z\u00b0%\u00b2\u00b3][a-z0-9\u00b0%\u00b2\u00b3]*\.?\s*)+$/;
+function markUnitOff_(t) {
+  let s = t.replace(/^\((.*)\)$/, '$1').trim();
+  const parts = s.split(/\s*,\s*/);
+  if (parts.length > 1 && parts.every(p => MARK_UNIT.test(p) || /^-?[\d.\/]+$/.test(p)))
+    s = parts.map(p => p.replace(MARK_UNIT, '$1')).join(', ');
+  else s = s.replace(MARK_UNIT, '$1');
+  return s;
+}
+
+function markAnswer_(typed, accept, again) {
   const t = markNorm_(typed);
   if (!t) return null;                              /* nothing typed is not a wrong answer */
+  if (!again) {
+    const off = markUnitOff_(t);
+    /* ONLY AGAINST A WAY THAT HAS NO UNIT, OR THE SAME ONE: "1000 cats" is not "1,000 envelopes". */
+    const unitOf = v => ((/^\(?-?[\d.,\/\s]+\s*([a-z\u00b0%\u00b2\u00b3][a-z0-9\u00b0%\u00b2\u00b3]*)/.exec(markNorm_(v)) || [])[1] || '');
+    const tu = unitOf(t);
+    const ways = String(accept || '').split('|').map(w => w.trim())
+      .filter(w => w && (!unitOf(w) || unitOf(w) === tu)).join(' | ');
+    if (off !== t && ways && markAnswer_(off, ways, true)) return true;
+  }
   const ways = String(accept || '').split('|').map(w => w.trim()).filter(Boolean);
   for (let i = 0; i < ways.length; i++) {
     const w = ways[i];
@@ -4892,7 +4922,79 @@ function markAnswer_(typed, accept) {
   return false;
 }
 
+/* ---------- A MULTIPLE-CHOICE QUESTION IS TAPPED, NOT TYPED ---------------------------------------
+   ASKED FOR AS "if a question is multiple choice then they should just click on the choice, not have
+   to type the answer in." Typing `P = I²R` on a phone is a test of the keyboard rather than of the
+   physics, and a typed option has to be matched against the option's text, which is the one thing
+   a closed list never needs: the position IS the answer.
+
+   THE PICK IS STORED UNDER THE SAME KEY A TYPED ANSWER IS (`ansKey_`), as the positions — `3`, or
+   `2,4` for "tick two" — so whose answer it is, signing out and coming back all behave as the box
+   did. MARKED THE MOMENT ENOUGH ARE CHOSEN, against `choiceRight`, positions against positions.
+   Where the mark scheme did not settle the right one (`choiceRight` empty) the pick is recorded
+   and nothing is marked — a verdict nobody can stand behind is worse than none.
+
+   DRAWN FROM THE STORED PICK, never left on the element by the handler: a repaint rebuilds the
+   card, and a mark the handler added would go while the answer stayed — the `REEL_HELD` fault. */
+function choiceBox_(x) {
+  const k = ansKey_(x);
+  const right = (x.choiceRight || []).slice().sort((a, b) => a - b);
+  const need = Math.max(1, right.length);
+  const picked = String(ansRead_(k) || '').split(',').map(t => parseInt(t, 10)).filter(n => n > 0);
+  const done = right.length && picked.length >= need;
+  const ok = done && picked.slice().sort((a, b) => a - b).join(',') === right.join(',');
+  const who = signedName_();
+  return `<div class="qp-ans qp-choices" data-k="${esc(k)}" data-need="${need}"
+      data-right="${esc(right.join(','))}">
+    <span class="qp-ans-k">${who ? esc(who) + '&rsquo;s answer' : 'Your answer'}${
+      need > 1 ? ' &middot; choose ' + need : ''}</span>
+    <div class="quiz-opts">${x.choices.map((c, i) => {
+      const n = i + 1, on = picked.includes(n);
+      const cls = (on ? ' is-picked' : '') + (done && right.includes(n) ? ' is-ans' : '');
+      /* THE OPTION'S OWN MARKUP, as the question's html is drawn: it is committed library content
+         and carries the italics and superscripts an equation needs. */
+      return `<button type="button" class="quiz-opt qp-opt${cls}" data-do="qp-choose"
+        data-n="${n}" aria-pressed="${on}">${c}</button>`;
+    }).join('')}</div>
+  </div>${right.length ? `<div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">
+    <span class="qp-verdict" role="status" aria-live="polite">${done
+      ? (ok ? 'Correct' : 'Not yet — the right ' + (need > 1 ? 'ones are' : 'one is') + ' marked')
+      : ''}</span>
+  </div>` : ''}`;
+}
+
+/* A tap picks; on "choose two" a second tap adds and a tap on a chosen one takes it back off. Once
+   a marked question is answered it is settled, as a quiz is: changing it after being shown the
+   answer would make "Correct" a thing anybody can reach. "Start again" is clearing the box. */
+on('qp-choose', (el) => {
+  const box = el.closest('.qp-choices');
+  const card = el.closest('.qcard');
+  if (!box || !card) return;
+  const k = box.getAttribute('data-k');
+  const need = +box.getAttribute('data-need') || 1;
+  const right = box.getAttribute('data-right');
+  const n = +el.getAttribute('data-n');
+  let picked = String(ansRead_(k) || '').split(',').map(t => parseInt(t, 10)).filter(v => v > 0);
+  if (right && picked.length >= need) return;
+  if (need === 1) picked = [n];
+  else picked = picked.includes(n) ? picked.filter(v => v !== n) : picked.concat(n);
+  try { localStorage.setItem(k, picked.join(',')); } catch (err) {}
+  const x = stuffItemsAll_().find(it => ansKey_(it) === k);
+  if (!x) return;
+  const wrap = document.createElement('div');
+  wrap.innerHTML = choiceBox_(x);
+  const mark = box.nextElementSibling && box.nextElementSibling.classList.contains('qp-mark')
+    ? box.nextElementSibling : null;
+  if (mark) mark.remove();
+  box.replaceWith(...wrap.childNodes);
+  /* RIGHT OPENS THE MARK SCHEME, as Check does on a typed answer. */
+  const fresh = card.querySelector('.qp-mark.is-right');
+  const ans = card.querySelector('.qans');
+  if (fresh && ans) ans.classList.remove('is-shut');
+});
+
 function ansBox_(x) {
+  if (x && Array.isArray(x.choices) && x.choices.length >= 2) return choiceBox_(x);
   const k = ansKey_(x);
   /* MARKABLE ONLY WHERE `accept` SAYS SO. A question with no machine-checkable answer gets the
      box it always had and no button, rather than a Check that shrugs -- a control that sometimes

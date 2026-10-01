@@ -606,6 +606,12 @@ function libraryInto_(d, rows) {
          em dash, then the method -- and "16 &mdash; half it." does not equal "16". See
          tools/set-accept.py for why the two are separate columns rather than one parsed twice. */
       accept: libS(r.accept),
+      /* A CLOSED LIST OF OPTIONS, TAPPED RATHER THAN TYPED. `choices` is a pipe list, as the
+         quizzes' is, and may carry inline HTML (`<i>P</i> = <i>I</i><sup>2</sup><i>R</i>`);
+         `choice_right` is the 1-based positions the mark scheme credits, a comma for "tick two".
+         Positions rather than option text, so marking is exact and folds nothing. See `choiceBox_`. */
+      choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
+      choiceRight: libS(r.choice_right).split(',').map(t => parseInt(t, 10)).filter(n => n > 0),
       /* TWO COLUMNS, ONE FACT, AND THEY ARE DISJOINT. `needs_print` is True on 252 rows and
          `print_required` on 104, and **not one row is True in both** — two imports over two
          subsets, neither ever given the other's rows. `find.js` noticed and said so where the

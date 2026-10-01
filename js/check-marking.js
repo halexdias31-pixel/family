@@ -71,6 +71,16 @@ const CASES = [
   ['8.50', '8.5', true, 'trailing zeros'],
   ['1000', '1,000 envelopes', true, 'the unit is the sentence, not the answer'],
   ['1000 cats', '1,000 envelopes', false, 'but not from what was typed'],
+  /* A UNIT THE CHILD TYPED, against a bare number or the same unit — the 2019 SATs audit */
+  ['3.75 litres', '3.75', true, 'a careful child writes the unit'],
+  ['65p', '65', true, 'pence written the way a child writes it'],
+  ['25%', '25', true, 'a percentage sign'],
+  ['144 cm²', '144', true, 'square units'],
+  ['(55, 30)', '55, 30', true, 'a coordinate in its own brackets'],
+  ['0.009 kg, 0.99 kg, 1.025 kg, 1.25 kg', '0.009, 0.99, 1.025, 1.25', true, 'a unit on every value of a list'],
+  ['3.75 litres', '4', false, 'a unit does not make a wrong number right'],
+  ['5 and 24', '5', false, 'a second answer is not a unit'],
+  ['12 kg', '12 g', false, 'a different unit is a different answer'],
   /* A LIST IS A SET */
   ['10, 5, 2, 1', '1, 2, 5, 10', true, 'factors, worked outwards from the middle'],
   ['1, 2, 5', '1, 2, 5, 10', false, 'one missing is still wrong'],
