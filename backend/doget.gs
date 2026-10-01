@@ -478,6 +478,15 @@ function doGet(e) {
                     so an old deployment says so rather than swallowing their photograph. */
                  'approvePost'],
       tutors: [], students: [], venues: [], clientClasses: [], liveJobs: [],
+      /* The signed-in person's own family, both directions — see "YOUR OWN FAMILY" below — and the
+         id of the person it was built for, which the phone checks before drawing any of it. */
+      family: [], familyFor: '',
+      /* ---------- `claims` WAS NEVER IN THIS LITERAL, AND `payload.claims.push` THREW ------------
+         A child with one unanswered "this is my child" row — the ordinary first half of linking a
+         family — was answered `{ error: "Cannot read properties of undefined (reading 'push')" }`
+         instead of a payload: no tutors, no library, nothing, for as long as the claim sat there.
+         Found by `check-profile.js`'s family case, whose second family carries exactly such a row. */
+      claims: [],
       links: [], shop: [], promotions: [], intervals: [], landmarks: [],
       campaigns: [],
       /* What the search funnel asks and what it calls it — see SCHEMA.facets. */
@@ -796,6 +805,52 @@ function doGet(e) {
         });
       }
     });
+
+    /* ---------- YOUR OWN FAMILY, AND NOBODY ELSE'S ------------------------------------------------
+       ASKED FOR AS *"students should be able to see their parents and likewise"*. The sign-in reply
+       already carried `parents` and `children` as NAMES, which is enough for the booking form and
+       not enough for a card: the account column draws a person through `findCard`, and that wants a
+       photograph and a handle as well as a name.
+
+       THE SERVER DECIDES, AND IT DECIDES BY THE TOKEN. `meAsked` is who `?token=` resolves to —
+       never `?person=` or `?name=`, which anybody can type — and the list is that person's
+       ACCEPTED links in both directions, read through `acceptedParents` / `acceptedChildren`, the
+       same two functions the sign-in reply and the exam diary use. A claim nobody has answered is
+       a request and not a family, so an `asked` or `refused` row sends nobody. A stranger has no
+       `meAsked` and gets an empty list; an admin gets their OWN family and not everybody's, because
+       running the place is not being somebody's parent.
+
+       ONLY WHAT THE CARD DRAWS: a name, a handle, a photograph and which side of the link they are
+       on. No e-mail, phone, address or date of birth — a family card is the public half of a
+       person, and the private half is theirs.
+
+       A KEY OF ITS OWN rather than more rows on `students`. `payload.students` goes to every student
+       for the friend search, so a parent's row put there would be a parent sent to every child on
+       the site; and a child's row is already in it for that reason, which is not the same as this
+       person being YOUR child. The cache is keyed on the token's person (`payloadKey_`), so one
+       family's list cannot be handed to another. */
+    if (meAsked && S(meAsked.person_id)) {
+      const famCard_ = (r, rel) => ({
+        personId: S(r.person_id), title: personDisplayName(r), relation: rel,
+        handle: S(r.handle) || S(r.first_name), image: S(r.photo) || '',
+      });
+      /* Once each, and never yourself — a row linked to itself by a slip in the sheet would
+         otherwise draw your own card a second time under "Your child". */
+      const meId = S(meAsked.person_id), seen = {};
+      /* WHOSE FAMILY THIS IS, said in the payload. The phone keeps `DATA` across a sign-out and
+         paints the next person's account before their own payload lands — so without this a phone
+         handed from one family to another drew the first family's children under "Your child" on
+         the second person's column, for as long as the new payload took, or for ever if it failed. */
+      payload.familyFor = meId;
+      const add = (rows, rel) => rows.forEach(r => {
+        const id = S(r.person_id);
+        if (!id || id === meId || seen[rel + id]) return;
+        seen[rel + id] = true;
+        payload.family.push(famCard_(r, rel));
+      });
+      add(acceptedParents(meId), 'parent');
+      add(acceptedChildren(meId), 'child');
+    }
 
     // --- venues -------------------------------------------------------------------------------
     venuesTab.forEach((r, i) => {

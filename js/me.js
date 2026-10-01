@@ -183,15 +183,7 @@ function meRest_() {
           FIRST, ABOVE EVERYTHING. A claim is somebody saying they are your parent, and it sits
           unanswered until you say. Putting it below the fold would be putting the one thing that
           needs a decision underneath the things that do not. */''}
-    ${(DATA.claims || []).map(c => `<div class="card">
-      <h3>${esc(c.from)} says they are your parent</h3>
-      <p class="sub">Say yes and they will be able to book sessions for you and see how you are
-        getting on. Say no and nothing happens.</p>
-      <div class="row" style="border:0;gap:.5rem">
-        <button class="btn" data-do="claim-yes" data-row="${esc(c.rowIndex)}">Yes, that is my parent</button>
-        <button class="btn quiet" data-do="claim-no" data-row="${esc(c.rowIndex)}">No</button>
-      </div>
-    </div>`).join('')}
+    ${(DATA.claims || []).map(claimCard_).join('')}
 
     ${/* ---------- AND THE OTHER END OF IT -------------------------------------------------------
           A PARENT ASKS BY NAME. The backend matches on first and last name and refuses politely
@@ -1530,6 +1522,29 @@ function msgForm_(to, toId, note, rows) {
    TWO NAMES, NOT ONE. The backend matches on first AND last name and refuses when it finds none or
    more than one — asking for a single field would send it a string it cannot split reliably, and
    "Mary Anne Smith" is where that goes wrong. */
+/* ---------- THE ANSWER HALF HAD NO DOOR EITHER, UNTIL THE ACCOUNT COLUMN DREW IT -----------------
+   THIS CARD WAS ONLY EVER BUILT BY `meRest_`, AND NOTHING CALLS `meRest_` ANY MORE — the old You
+   column it fed is gone (see `mePages`). So a parent pressed `Ask them`, was told "they will see it
+   when they next sign in", and the child never saw it: the request sat at `asked` for ever, no link
+   was ever accepted, and the family cards the account column now draws could only ever come from a
+   row typed into the sheet by hand. `check-doors` could not say so — `claim-yes` is a string in the
+   markup, so it reads as a door whether or not anything draws it.
+
+   ONE RENDERER, CALLED BY `accountPages_` straight after your own card, which is where a decision
+   about who your parent is belongs. In place, no sheet, two buttons because it is a question with
+   two answers. */
+function claimCard_(c) {
+  return `<div class="card">
+    <h3>${esc(c.from)} says they are your parent</h3>
+    <p class="sub">Say yes and they will be able to book sessions for you and see how you are
+      getting on. Say no and nothing happens.</p>
+    <div class="btn-row">
+      <button class="btn" data-do="claim-yes" data-row="${esc(c.rowIndex)}">Yes</button>
+      <button class="btn quiet" data-do="claim-no" data-row="${esc(c.rowIndex)}">No</button>
+    </div>
+  </div>`;
+}
+
 /* WHO MAY ASK — the same test the tile carried, kept in one place so the card and its handler
    cannot disagree about it. */
 function mayAddChild_() {
@@ -1588,15 +1603,25 @@ const answerClaim_ = (el, accept) => {
   /* THE THIRD OF THE THREE. Same shape, same silence — see `add-child-go` above. A parent pressed
      yes on their own child's request and nothing happened, on the one screen where "nothing
      happened" is indistinguishable from "it worked and the list has not refreshed yet". */
-  send({
+  if (!USER) { toast('Sign in first'); return; }
+  const row = el.getAttribute('data-row');
+  /* `send_` RATHER THAN `send`, for `add-child-go`'s reason: it locks both buttons while the answer
+     is on the wire, so a second tap cannot answer twice, and it says a refusal as a toast. */
+  send_({
     action: 'answerClaim',
     name: USER.name, personId: (USER && USER.personId) || '',
-    rowIndex: el.getAttribute('data-row'), accept: accept,
-  }).then(d => {
-    if (d && d.error) { toast(d.error); return; }
+    rowIndex: row, accept: accept,
+  }, { button: el, busy: accept ? 'Linking…' : 'Saying no…' }).then(() => {
     toast(accept ? 'Linked. They can book for you now.' : 'Turned down.');
+    /* GONE FROM THE SCREEN NOW, not in fifteen seconds. The card is a request that has just been
+       answered; leaving it up until the payload lands invites the second tap the server would
+       refuse as "already answered". The family card it turns into arrives with the payload. */
+    if (Array.isArray(DATA.claims)) DATA.claims = DATA.claims.filter(c => String(c.rowIndex) !== String(row));
+    /* `repaint(true)`, NOT `paint`: a page has left the column, so it must be placed and its
+       position clamped again — the Saved column's unstar records what a bare `paint` leaves. */
+    if (typeof AT !== 'undefined' && AT === 'account') repaint(true); else STALE.account = 1;
     load();
-  }).catch(err => toast(String((err && err.message) || 'That did not send')));
+  }).catch(() => {});
 };
 on('claim-yes', el => answerClaim_(el, true));
 on('claim-no', el => answerClaim_(el, false));

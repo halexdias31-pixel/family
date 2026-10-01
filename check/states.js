@@ -685,6 +685,43 @@ const STATES = {
       },
       wants: 'the five captions in order, one glow on a map, Online as a chip, and no venue named',
       leave: () => { paint('account'); } },
+    /* ---------- YOUR FAMILY, A CARD EACH ------------------------------------------------------------
+       ASKED FOR AS *"students should be able to see their parents and likewise"*. `DATA.family` is a
+       key the fixture cannot carry — `doGet` builds it from the signed-in person's own accepted
+       links — so it is seeded here, which is the state a payload with a family in it produces: one
+       parent and one child, so both labels are drawn and measured. Long names on purpose, because
+       the name is the widest thing on the card. */
+    { name: 'your family, a card each',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__FAM_HELD = DATA.family; window.__FAM_FOR = DATA.familyFor; window.__FAM_CLAIMS = DATA.claims;
+        /* AND ONE REQUEST WAITING ON AN ANSWER, so the claim card is measured and its two buttons
+           are pressed by `check/press.js` — it is drawn only from a payload the fixture cannot carry. */
+        DATA.claims = [{ rowIndex: 99, from: 'Bartholomew Askerton-Longfellow', asked: '01/10/2026' }];
+        /* Stamped as THIS visitor's, or the column correctly refuses to draw it — see `familyFor`. */
+        DATA.familyFor = USER.personId;
+        DATA.family = [
+          { personId: 'P-fam-parent', title: 'Philippa Parentington-Smythe', relation: 'parent',
+            handle: 'philippa_bright42', image: '' },
+          { personId: 'P-fam-child', title: 'Christopher Childerley', relation: 'child',
+            handle: 'christopher_calm17', image: '' },
+        ];
+        paint('account');
+        /* ON THE REQUEST, which is the page in front of the family cards: the one with buttons. */
+        const n = accountPages_().findIndex(h => /says they are your parent/.test(h));
+        if (n < 0) throw new Error('no claim card on the account column');
+        goPage('account', n, true);
+      },
+      expect: () => {
+        const heads = [...document.querySelectorAll('#s-account .card.is-prof h3')].map(h => h.textContent.trim());
+        return heads.filter(h => h === 'Your parent').length === 1
+            && heads.filter(h => h === 'Your child').length === 1
+            && document.querySelectorAll('#s-account [data-do="claim-yes"]').length === 1 ? 3 : 0;
+      },
+      wants: 'one card headed "Your parent", one headed "Your child", and one request to answer',
+      /* `repaint(true)`, not `paint`: three pages leave the column, so it is placed again — a bare paint
+         left the card in front sitting where the old page 2 was, and COLUMNS OUT OF LINE said so. */
+      leave: () => { DATA.family = window.__FAM_HELD; DATA.familyFor = window.__FAM_FOR; DATA.claims = window.__FAM_CLAIMS; repaint(true); } },
   ],
 
   /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR ----------------

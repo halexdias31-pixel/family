@@ -258,6 +258,8 @@ function boot(opts) {
          repaint kept the round, and only the state can say that the clock did not move while the
          column was away. */
       'PARTY: () => (typeof PARTY !== "undefined" ? PARTY : null),' +
+      /* THE ACCOUNT COLUMN'S PAGES, so a journey can ask who is drawn on it. */
+      'accountPages: () => accountPages_(),' +
       'PAGER, PAGE, goPage, repaint, pageCount, PAGE_KEEP,'
       + 'STUFF_WIN: typeof STUFF_WIN === "number" ? STUFF_WIN : 0,'
       /* THE DOCKET'S STORAGE FORMAT AND ITS PAINTER, so a journey can round-trip a line through
@@ -2924,6 +2926,95 @@ check('the docket keeps the text you typed, whatever it starts with', async () =
     bad.push('the legacy `x ` form stopped reading as done');
   }
   if (legacy[2] && legacy[2].done) bad.push('a plain legacy line came back ticked');
+  return bad;
+});
+
+check('a student sees their parents, a parent their children, on the account column', async () => {
+  /* ---------- ASKED FOR AS "students should be able to see their parents and likewise" ------------
+     WHO IS IN `DATA.family` IS THE SERVER'S QUESTION and `check-profile.js` asks it through the real
+     `doGet`: accepted links only, the token's own family only. This asks the other half — that the
+     column draws a card for each person it was sent, labelled with which side of the link they are
+     on, once each, and nothing at all when an older backend sent no key. */
+  const { w, sent } = boot();
+  await wait(400);
+  if (!w.__t.accountPages) return ['accountPages_ is not exported — cannot check the account column'];
+  const bad = [];
+  const D = w.__t.DATA();
+  const heads = () => w.__t.accountPages().map(h => (h.match(/<h3>([^<]*)/) || [])[1] || '').map(x => x.trim());
+  const names = () => w.__t.accountPages().join('');
+
+  w.__t.USER({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'] });
+  delete D.family;
+  const before = w.__t.accountPages().length;
+  if (heads().some(h => /^Your (parent|child)/.test(h))) bad.push('with no `family` key a family card was drawn anyway');
+
+  D.family = [
+    { personId: 'P-P', title: 'Pat Parentworth', relation: 'parent', handle: 'pat_calm12', image: '' },
+    { personId: 'P-S', title: 'Sam Student', relation: 'child', handle: 'sam_calm13', image: '' },
+  ];
+  /* A LIST BUILT FOR SOMEBODY ELSE, OR STAMPED BY NOBODY, DRAWS NOTHING. `DATA` outlives a sign-out
+     and signing in paints before the new payload lands, so a phone handed from Pat to another
+     family's child would otherwise show Pat's family as theirs. */
+  D.familyFor = 'P-P';
+  if (heads().some(h => /^Your (parent|child)/.test(h))) bad.push('a family list built for somebody else (P-P) was drawn on P-S\'s account column');
+  delete D.familyFor;
+  if (heads().some(h => /^Your (parent|child)/.test(h))) bad.push('a family list with no `familyFor` stamp was drawn');
+  D.familyFor = 'P-S';
+  const hs = heads();
+  if (hs.filter(h => h === 'Your parent').length !== 1) bad.push('a student sent one parent drew ' + hs.filter(h => h === 'Your parent').length + ' "Your parent" card(s)');
+  if (!/Pat Parentworth/.test(names())) bad.push('the parent\'s name is not on the student\'s account column');
+  if (hs.some(h => h === 'Your child')) bad.push('a family entry for the signed-in person themselves was drawn as a card');
+  if (w.__t.accountPages().length !== before + 1) bad.push('one parent added ' + (w.__t.accountPages().length - before) + ' page(s), not 1');
+
+  /* A PARENT WHO IS ALSO A TUTOR IS DRAWN ONCE, here, and not again in the list of tutors below. */
+  /* Seeded rather than taken from the fixture, whose one tutor carries no `personId` — and the
+     match between a family entry and a tutor row is by that id and nothing else. */
+  const heldTutors = D.tutors;
+  const tutor = Object.assign({}, (D.tutors || [])[0] || {}, { personId: 'P-TP', title: 'Terry Tutorparent', handle: 'terry_kind21' });
+  D.tutors = (D.tutors || []).concat([tutor]);
+  {
+    w.__t.USER({ name: 'Kid Two', personId: 'P-K2', role: 'student', roles: ['student'] });
+    D.family = [{ personId: tutor.personId, title: tutor.title, relation: 'parent', handle: tutor.handle, image: '' }];
+    D.familyFor = 'P-K2';
+    const parentHeads = heads().filter(h => /^Your parent/.test(h));
+    if (parentHeads.length !== 1) bad.push('a parent who is a tutor drew ' + parentHeads.length + ' family card(s)');
+    const pagesWith = w.__t.accountPages().filter(h => h.indexOf('>' + tutor.title + '<') !== -1).length;
+    if (pagesWith !== 1) bad.push('a parent who is also a tutor is on ' + pagesWith + ' pages of the column, not 1');
+  }
+  D.tutors = heldTutors;
+
+  /* AND A PARENT SEES THEIR CHILD. */
+  w.__t.USER({ name: 'Pat Parentworth', personId: 'P-P', role: 'client', roles: ['client'] });
+  D.family = [{ personId: 'P-S', title: 'Sam Student', relation: 'child', handle: 'sam_calm13', image: '' }];
+  D.familyFor = 'P-P';
+  if (heads().filter(h => h === 'Your child').length !== 1) bad.push('a parent sent one child did not draw one "Your child" card');
+
+  /* AND THE REQUEST THAT BECOMES A LINK. A parent's "this is my child" waits on the child, and the
+     account column is the only place it is drawn — before this it was built by `meRest_`, which
+     nothing calls, so no claim was ever answerable and no family could form from the app. It is the
+     child's own and held to the same `familyFor` stamp; pressing yes posts `answerClaim` with that
+     row and takes the card off at once rather than when the payload lands. */
+  w.__t.USER({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'], token: 'tk' });
+  D.family = []; D.familyFor = 'P-S';
+  D.claims = [{ rowIndex: 7, from: 'Pat Parentworth', asked: '01/10/2026' }];
+  if (!/Pat Parentworth says they are your parent/.test(names())) bad.push('a claim waiting on the child is not on the child\'s account column');
+  D.familyFor = 'P-P';
+  if (/says they are your parent/.test(names())) bad.push('a claim list built for somebody else was drawn');
+  D.familyFor = 'P-S';
+  try { w.__t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing the account column threw: ' + e.message); }
+  const yes = w.document.querySelector('#s-account [data-do="claim-yes"]');
+  if (!yes) bad.push('the claim card on the account column has no Yes button');
+  else {
+    sent.length = 0;
+    w.__t.ACTIONS['claim-yes'](yes);
+    await wait(300);
+    const post = sent.find(b => b.action === 'answerClaim');
+    if (!post) bad.push('pressing Yes posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no answerClaim');
+    else if (String(post.rowIndex) !== '7' || post.accept !== true) bad.push('pressing Yes posted ' + JSON.stringify(post) + ' — wanted row 7, accept true');
+    if ((D.claims || []).length) bad.push('the answered claim is still in the list the column is drawn from');
+  }
+  delete D.family; delete D.familyFor; delete D.claims;
+  w.__t.USER(null);
   return bad;
 });
 

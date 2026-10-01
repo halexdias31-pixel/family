@@ -540,6 +540,69 @@ PEOPLE.forEach(p => {
   }
 }
 
+/* 10. YOUR OWN FAMILY, THROUGH THE REAL `doGet`, AND NOBODY ELSE'S.
+   ASKED FOR AS *"students should be able to see their parents and likewise"*. Two families on one
+   tab, and the links that must NOT count beside the ones that must: a claim nobody answered and a
+   claim refused, each naming somebody from the other family. A student sees their parent and not
+   the other parent; a parent sees their child and not the other child; a stranger whose URL names
+   the student sees nobody, because the list is built from the TOKEN. Its own backend, because the
+   people above have no family and a link added there would change what they are sent. */
+{
+  const f = backend();
+  const mk = (id, role, first, last) => Object.assign({}, base, { person_id: id, role, first_name: first,
+    last_name: last, full_name: first + ' ' + last, handle: first.toLowerCase() + '_calm' + id.slice(-2),
+    username: first.toLowerCase(), email: id.toLowerCase() + '@example.org' });
+  f.seed('people', [mk('P-PA', 'client', 'Anna', 'Parent'), mk('P-PB', 'client', 'Bea', 'Parent'),
+                    mk('P-SA', 'student', 'Abe', 'Child'), mk('P-SB', 'student', 'Ben', 'Child')]);
+  f.seed('family', [
+    { link_id: 'L1', parent_id: 'P-PA', child_id: 'P-SA', state: 'accepted' },
+    { link_id: 'L2', parent_id: 'P-PB', child_id: 'P-SB', state: 'accepted' },
+    { link_id: 'L3', parent_id: 'P-PB', child_id: 'P-SA', state: 'asked' },
+    { link_id: 'L4', parent_id: 'P-PA', child_id: 'P-SB', state: 'refused' },
+  ]);
+  const tok = id => {
+    const d = f.post({ action: 'verifyLogin', email: id.toLowerCase() + '@example.org', pin: '0000' });
+    if (!d.success) bad.push('family: ' + id + ' could not sign in — ' + d.error);
+    return d;
+  };
+  const fam = (d, label) => {
+    if (!Array.isArray(d.family)) { bad.push('family: ' + label + ' was sent no `family` list at all'); return []; }
+    if (d.family.some(x => x.email || x.phone || x.address || x.date_of_birth))
+      bad.push('family: ' + label + ' was sent a private field on a family card');
+    return d.family.map(x => x.relation + ':' + x.personId).sort().join(',');
+  };
+  const want = (label, got, exp) => { if (got !== exp) bad.push('family: ' + label + ' was sent [' + got + '] — wanted [' + exp + ']'); };
+  /* AND STAMPED WITH WHOSE IT IS — the phone draws nothing whose `familyFor` is not the signed-in id. */
+  const stamp = (d, label, exp) => { if (S(d.familyFor) !== exp) bad.push('family: ' + label + ' was stamped familyFor [' + S(d.familyFor) + '] — wanted [' + exp + ']'); return d; };
+  const S = v => (v === undefined || v === null) ? '' : String(v);
+  const sa = tok('P-SA'), pa = tok('P-PA'), pb = tok('P-PB');
+  if (sa.token) want('the student P-SA', fam(stamp(f.get({ person: 'P-SA', name: sa.name, token: sa.token }), 'P-SA', 'P-SA'), 'P-SA'), 'parent:P-PA');
+  if (pa.token) want('the parent P-PA', fam(stamp(f.get({ person: 'P-PA', name: pa.name, token: pa.token }), 'P-PA', 'P-PA'), 'P-PA'), 'child:P-SA');
+  if (pb.token) want('the parent P-PB', fam(stamp(f.get({ person: 'P-PB', name: pb.name, token: pb.token }), 'P-PB', 'P-PB'), 'P-PB'), 'child:P-SB');
+  want('a stranger whose URL names P-SA', fam(stamp(f.get({ person: 'P-SA', name: 'Abe Child' }), 'stranger', ''), 'stranger'), '');
+  /* THE REQUEST THAT BECOMES A LINK goes to the child it names and nobody else: P-SA has Bea's
+     unanswered "this is my child" (L3), P-SB has only a REFUSED one (L4), and a stranger naming
+     P-SA in the URL has none. This is also the payload that used to be an error — see `claims`. */
+  const claimsOf = d => (Array.isArray(d.claims) ? d.claims : []).map(c => c.from).sort().join(',');
+  const sb = tok('P-SB');
+  if (sa.token) want('the claims sent to P-SA', claimsOf(f.get({ token: sa.token })), 'Bea Parent');
+  if (sb.token) want('the claims sent to P-SB', claimsOf(f.get({ token: sb.token })), '');
+  if (pb.token) want('the claims sent to the parent who asked', claimsOf(f.get({ token: pb.token })), '');
+  want('the claims sent to a stranger whose URL names P-SA', claimsOf(f.get({ person: 'P-SA', name: 'Abe Child' })), '');
+  /* AND ANSWERING IT IS WHAT MAKES THE FAMILY: yes on L3 puts Bea on Abe's list, and Abe's claims
+     empty. Only the child may answer — the parent who asked is refused. */
+  if (sa.token && pb.token) {
+    const row = ((f.get({ token: sa.token }).claims || [])[0] || {}).rowIndex;
+    const byParent = f.post({ action: 'answerClaim', token: pb.token, rowIndex: row, accept: true });
+    if (!byParent || !byParent.error) bad.push('family: the parent who asked could answer their own claim');
+    const yes = f.post({ action: 'answerClaim', token: sa.token, rowIndex: row, accept: true });
+    if (!yes || !yes.success) bad.push('family: P-SA could not accept Bea\'s claim — ' + JSON.stringify(yes));
+    const after = f.get({ token: sa.token });
+    want('P-SA after saying yes to Bea', fam(after, 'P-SA after yes'), 'parent:P-PA,parent:P-PB');
+    want('the claims left for P-SA after answering', claimsOf(after), '');
+  }
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');

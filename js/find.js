@@ -7370,8 +7370,51 @@ function accountPages_() {
      THE SERVER IS THE GATE AND STAYS THE GATE. A non-admin is never sent an unlisted tutor, so
      there is nothing here to filter — which is what makes deleting the clause safe rather than a
      disclosure: the list this walks is whatever `doGet` judged this viewer may see. */
+  /* ---------- YOUR FAMILY, BETWEEN YOU AND EVERYBODY ELSE ---------------------------------------
+     ASKED FOR AS *"students should be able to see their parents and likewise"*. A student sees a
+     card for each parent linked to them and a parent a card for each child, straight after their
+     own — the people this column is most about after you.
+
+     THE SERVER SAYS WHO. `DATA.family` is built in `doGet` from this person's ACCEPTED links and
+     nothing else, by the token rather than by anything typed into the address — so there is no
+     rule here to keep in step with it, which is the `MESSAGING` argument: a policy copied onto
+     the phone is two policies. An older backend sends no key, and `Array.isArray` draws nothing
+     rather than a family of none.
+
+     `findCard`, LIKE EVERY OTHER PERSON ON THIS COLUMN. The role label says which side of the link
+     they are on. A parent who is also a tutor is drawn ONCE, here, from their tutor row with the
+     tiles a tutor gets — and is taken out of the list below, or they would be on two pages.
+
+     AND ONLY IF IT IS YOURS. `DATA` survives a sign-out, and signing in paints at once and fetches
+     the payload after — so on a phone handed from a parent to somebody else's child, the parent's
+     children were drawn as "Your child" on the child's column until the new payload landed, and
+     for good if it never did. `familyFor` is the id the server built the list for; a list built
+     for anybody else, or stamped by nobody, draws nothing. */
+  const famLabel_ = { parent: 'Your parent', child: 'Your child' };
+  const famMine = !!(USER.personId && DATA.familyFor && String(DATA.familyFor) === String(USER.personId));
+  const family = (famMine && Array.isArray(DATA.family) ? DATA.family : [])
+    .filter(f => f && f.personId && f.title && famLabel_[f.relation]
+      && !(USER.personId && String(f.personId) === String(USER.personId)));
+  /* AND THE REQUESTS THAT BECOME ONE. A parent's "this is my child" waits on the child, so the
+     child is asked here, on their own column, straight after their own card — see `claimCard_` in
+     me.js for why this is the only door it has. `DATA.claims` is built for the signed-in person
+     alone and is stamped by the same `familyFor`, so it is held to the same test. */
+  const claimPages = (famMine && Array.isArray(DATA.claims) && typeof claimCard_ === 'function')
+    ? DATA.claims.filter(c => c && c.rowIndex && c.from).map(claimCard_) : [];
+  const famIds = family.map(f => String(f.personId));
+  const famPages = family.map(f => {
+    const asTutor = (DATA.tutors || []).find(t => t && t.personId && String(t.personId) === String(f.personId));
+    const row = Object.assign({}, asTutor || {}, {
+      title: f.title, handle: f.handle || (asTutor || {}).handle, personId: f.personId,
+      image: f.image || (asTutor || {}).image || '',
+      role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
+    });
+    return asTutor ? withTiles_(row) : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : '');
+  });
+
   const others = (DATA.tutors || [])
     .filter(t => t && t.title)
+    .filter(t => !(t.personId && famIds.indexOf(String(t.personId)) !== -1))
     /* NOT YOU, TWICE. With a tutor row of your own you would otherwise appear at the top as your
        account and again below as a tutor — the same duplication the `me` kind was merged away to
        avoid. Matched by `mineIs_`, the same test that FOUND the row above, so the two can never
@@ -7389,7 +7432,7 @@ function accountPages_() {
      `.card.is-widget` itself. Keeping this line would put a widget card inside a widget card —
      two borders, two backgrounds, two lots of padding — which is visibly worse than what was
      reported in the first place and is exactly what "just a normal widget" rules out. */
-  return [me].concat(others);
+  return [me].concat(claimPages, famPages, others);
 }
 
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept
