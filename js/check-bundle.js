@@ -180,17 +180,18 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
   const MATHS = r => r.subject === 'Maths' && r.document_type === 'Past paper';
   const cases = [
     { name: 'Summer 2017, Higher',
-      filters: DOORS.concat([{ field: 'tier', value: 'Higher' }, { field: 'examWave', value: 'Summer 2017' }]),
+      filters: DOORS.concat([{ field: 'tier', value: 'Higher' }, { field: 'examSeries', value: 'Summer' },
+                             { field: 'examYear', value: '2017' }]),
       want: papersIn(r => MATHS(r) && r.tier === 'Higher' && SUMMER(r)), title: ['Edexcel', 'Maths', 'Summer 2017'] },
     /* BOTH TIERS, WHERE TWO PAPERS SHARE A NAME. `Paper 1 (Non-Calculator)` and `Paper 1
        (Non-calculator)` are one letter's case apart, so the card has to say which is which. */
     { name: 'Summer 2017, both tiers',
-      filters: DOORS.concat([{ field: 'examWave', value: 'Summer 2017' }]),
+      filters: DOORS.concat([{ field: 'examSeries', value: 'Summer' }, { field: 'examYear', value: '2017' }]),
       want: papersIn(r => MATHS(r) && SUMMER(r)), title: ['Edexcel', 'Maths', 'Summer 2017'] },
-    /* THE BUCKET, which is what the Sitting question offers first: four sittings, twelve papers. */
+    /* THE BUCKET, which is what the Year question offers first: four sittings, twelve papers. */
     { name: '2017 & 2018, Higher',
       filters: DOORS.concat([{ field: 'tier', value: 'Higher' },
-                             { field: 'examWave', value: '2017 & 2018', bucket: true }]),
+                             { field: 'examYear', value: '2017 & 2018', bucket: true }]),
       want: papersIn(r => MATHS(r) && r.tier === 'Higher' && ['2017', '2018'].includes(String(r.year))),
       title: ['Edexcel', 'Maths', '2017 & 2018'] },
   ];

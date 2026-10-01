@@ -125,6 +125,62 @@ const STATES = {
       },
       expect: () => document.querySelectorAll('#stuff-groups .row').length,
       wants: 'a question with answers on it' },
+    /* ---------- THE SITTING, ASKED AS THE SERIES AND THEN THE YEAR -----------------------------------
+       REPORTED AS "some tags are like summer 2018 when it should just be summer then 2018", and as
+       "they dont need to appear one above the other but can fill like from left to right". This is
+       the state that answers both at once: Summer already chosen, so the question on the page is
+       Year, and its answers are bare years drawn as chips that share lines.
+
+       THE EXPECT ASKS THE TWO THINGS A SCREENSHOT SHOWED, because neither is a measurement any rule
+       in check/ui.js makes: no answer carries a series word and a year together, and at least two
+       answers sit on one line — chips stacked one per row measure perfectly and are the shape that
+       was reported. Topic area and Topic are skipped, as a person who wants a sitting would. */
+    { name: 'the sitting, then the year',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'subject', value: 'Maths' },
+                         { field: 'documentType', value: 'Past paper' },
+                         { field: 'level', value: 'GCSE' },
+                         { field: 'topicArea', any: true },
+                         { field: 'topic', any: true },
+                         { field: 'tier', value: 'Higher' },
+                         { field: 'examSeries', value: 'Summer' }];
+        paintStuff();
+        goPage('stuff', 0, true);
+      },
+      expect: () => {
+        const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
+        if (rows.length < 2) return false;
+        if (!rows.every(r => r.dataset.field === 'examYear')) return false;
+        if (rows.some(r => /[A-Za-z]+\s+(19|20)\d{2}/.test(r.textContent))) return false;
+        const tops = rows.map(r => Math.round(r.getBoundingClientRect().top));
+        return new Set(tops).size < tops.length;
+      },
+      wants: 'the Year question, bare years only, drawn as chips sharing a line' },
+    /* ---------- AN ANSWER ONE LETTER LONG ---------------------------------------------------------
+       A CHIP IS AS WIDE AS ITS WORDS, and the letter ranges `bucketValues_` groups a long list into
+       are often a single letter — `S` among the topics here, `G` and `P` among the English papers.
+       The first version of the chips drew those 34x44: under the tap floor sideways, which no state
+       above could show, because every answer they reach is a word. This one reaches the Topic
+       question over GCSE Maths past papers, where one of the ranges is one letter, and leaves the
+       measuring to the tap-target rule. */
+    { name: 'an answer one letter long',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'subject', value: 'Maths' },
+                         { field: 'documentType', value: 'Past paper' },
+                         { field: 'level', value: 'GCSE' },
+                         { field: 'topicArea', any: true }];
+        paintStuff();
+        goPage('stuff', 0, true);
+      },
+      expect: () => [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')]
+        .some(r => r.textContent.trim().length === 1),
+      wants: 'an answer chip whose whole label is one letter' },
     /* ---------- A BUNDLE OF PAPERS, WHICH ONLY A NARROWED LIST OFFERS ------------------------------
        THE CARD EXISTS ONLY WHEN THE RESULTS ARE WHOLE PAPERS — see `bundleOf_` — so `go('stuff')`
        never shows one, and neither does any state above: a search for "work out" is questions from
@@ -152,7 +208,7 @@ const STATES = {
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' },
-                         { field: 'examWave', value: '2017 & 2018', bucket: true }];
+                         { field: 'examYear', value: '2017 & 2018', bucket: true }];
         paintStuff();
         const card = document.querySelector('#s-stuff .card.bundle');
         const page = card && card.closest('.page');

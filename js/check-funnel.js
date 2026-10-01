@@ -110,7 +110,7 @@ function boot(cb) {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
       ' filterHit, facetOwn_, bucketHas_, bucketDeclares_, STUFF, paperLabels_, stuffHay_, norm,' +
-      ' RETIRED_FACETS,' +
+      ' RETIRED_FACETS, waveOf,' +
       /* A THUNK, NOT THE OBJECT. `load()` ends with `DATA = d` — it REPLACES the payload — so a
          reference captured at eval time is the one from before the settings files landed, and the
          sheet reads as nought rows. Same trap `facetList`'s own memo is keyed against. */
@@ -209,35 +209,70 @@ boot(f => {
      check-library.js, and the same one that let `resource_type` sit in it after the rename. */
   const SERIES_WORDS = ['Summer', 'Autumn', 'January', 'February', 'March', 'April', 'May', 'June',
                         'July', 'August', 'September', 'October', 'November', 'December'];
-  const wave = facets.find(x => x.field === 'examWave');
-  if (wave && f.facetOwn_) {
-    /* ---------- THE COLUMN'S OWN VOCABULARY, NOT THE ANSWERS THE FUNNEL DREW --------------------
-       THIS READ `facetValues` AND `bucketValues_` BROKE IT, correctly. Sixteen sittings is past the
-       seven a card holds, so what the Sitting question draws is year pairs — `2023-2024` — and this
-       rule named all five of them as second spellings of a sitting. They are not spellings of
-       anything: a bucket is a GROUP over the spellings, so by construction it cannot be one.
+  /* ---------- THE SITTING IS TWO QUESTIONS NOW, SO THE RULE IS THREE ------------------------------
+     REPORTED AS "some tags are like summer 2018 when it should just be summer then 2018", and
+     `examWave` was split into `examSeries` and `examYear` over one reader, `sittingOf_`, which cuts
+     `waveOf`'s answer in two. So the closed vocabulary is asked of all three, each at the place it
+     can go wrong:
 
-       THE SUBJECT IS WHAT `waveOf` PRODUCES, which is `facetOwn_` over the items — the same reader
-       `filterHit` and `facetTally_` both go through, one step before the grouping. Reading it here
-       makes the rule immune to how the answers are afterwards drawn, which is what it was always
-       about: `First wave` sat on 850 rows for months and the fault was in the column. */
-    const seen = {};
-    items.forEach(x => { f.facetOwn_(wave, x).forEach(v => { if (v) seen[String(v)] = 1; }); });
-    const odd = Object.keys(seen)
-      .filter(v => {
-        const m = /^([A-Za-z]+) ((?:19|20)\d{2})$/.exec(v);
-        return v && (!m || SERIES_WORDS.indexOf(m[1]) === -1);
-      });
-    if (odd.length) {
-      bad.push('the sitting facet offers ' + odd.length + ' answer(s) that are not "<series> <year>", '
+       `waveOf`       over the items, every answer `<series> <year>` — the source both halves are cut
+                      from, and where `First wave` sat on 850 rows. Read off the reader rather than
+                      off a facet, so a bucket can never be mistaken for a spelling.
+       `examSeries`   a series word and nothing else. A year left on it is the fault this split was
+                      made to remove, back in one answer.
+       `examYear`     a four-digit year and nothing else, through `facetOwn_` (the column) and not
+                      through the drawn answers, which are year PAIRS by design.
+
+     AND THE OLD FACET MUST BE OFF THE FUNNEL. A sheet row naming `examWave` would put `Summer 2018`
+     back beside the two questions, so the run fails if the live list still asks it. */
+  const series = facets.find(x => x.field === 'examSeries');
+  const syear = facets.find(x => x.field === 'examYear');
+  if (facets.find(x => x.field === 'examWave')) {
+    bad.push('`examWave` is still a live question: the sitting is asked as `examSeries` then '
+             + '`examYear`, and a third question joining them up offers "Summer 2018" again');
+  }
+  if (!series || !syear) {
+    bad.push('the sitting is not asked as two questions — `examSeries` ' + (series ? 'is' : 'is NOT')
+             + ' live and `examYear` ' + (syear ? 'is' : 'is NOT') + ' — so "Summer then 2018" '
+             + 'has nothing to measure: not a pass');
+  } else if (f.facetOwn_ && f.waveOf) {
+    const waves = {}, seriesSeen = {}, yearsSeen = {};
+    items.forEach(x => {
+      const w = String(f.waveOf(x) || '');
+      if (w) waves[w] = 1;
+      f.facetOwn_(series, x).forEach(v => { if (v) seriesSeen[String(v)] = 1; });
+      f.facetOwn_(syear, x).forEach(v => { if (v) yearsSeen[String(v)] = 1; });
+    });
+    const oddWave = Object.keys(waves).filter(v => {
+      const m = /^([A-Za-z]+) ((?:19|20)\d{2})$/.exec(v);
+      return !m || SERIES_WORDS.indexOf(m[1]) === -1;
+    });
+    if (oddWave.length) {
+      bad.push('`waveOf` gives ' + oddWave.length + ' sitting(s) that are not "<series> <year>", '
                + 'where <series> is one of ' + SERIES_WORDS.join('/') + ': '
-               + odd.slice(0, 6).map(v => '"' + v + '"').join(', ')
+               + oddWave.slice(0, 6).map(v => '"' + v + '"').join(', ')
                + ' — a second spelling of a sitting splits it into two buttons and hides half the '
                + 'questions behind whichever one nobody picks. See waveOf().');
     }
-  } else if (wave) {
-    bad.push('`facetOwn_` is not declared, so the sitting vocabulary cannot be read off the column '
-             + '- not a pass');
+    const oddSeries = Object.keys(seriesSeen).filter(v => SERIES_WORDS.indexOf(v) === -1);
+    if (oddSeries.length) {
+      bad.push('the Sitting question offers ' + oddSeries.length + ' answer(s) that are not a series '
+               + 'word: ' + oddSeries.slice(0, 6).map(v => '"' + v + '"').join(', ')
+               + ' — the year belongs to the next question. See sittingOf_().');
+    }
+    const oddYear = Object.keys(yearsSeen).filter(v => !/^(19|20)\d{2}$/.test(v));
+    if (oddYear.length) {
+      bad.push('the Year question offers ' + oddYear.length + ' answer(s) that are not a year: '
+               + oddYear.slice(0, 6).map(v => '"' + v + '"').join(', ') + '. See sittingOf_().');
+    }
+    if (!Object.keys(seriesSeen).length || !Object.keys(yearsSeen).length) {
+      bad.push('nothing in the library answers the Sitting or the Year question — '
+               + Object.keys(seriesSeen).length + ' series, ' + Object.keys(yearsSeen).length
+               + ' years — so this rule proves nothing');
+    }
+  } else {
+    bad.push('`facetOwn_` or `waveOf` is not declared, so the sitting vocabulary cannot be read off '
+             + 'the column — not a pass');
   }
 
   /* ---------- 4b. TWO ANSWERS, ONE LABEL --------------------------------------------------------
@@ -618,8 +653,15 @@ boot(f => {
       { say: 'Subject · Biology', on: [['subject', 'Biology']] },
       { say: 'Subject · Chemistry, Tier · Higher',
         on: [['subject', 'Chemistry'], ['tier', 'Higher']] },
-      { say: 'Subject · Physics, Sitting · Summer 2024',
-        on: [['subject', 'Physics'], ['examWave', 'Summer 2024']] },
+      { say: 'Subject · Physics, Sitting · Summer, Year · 2024',
+        on: [['subject', 'Physics'], ['examSeries', 'Summer'], ['examYear', '2024']] },
+      /* THE YEAR IS ASSERTED TOO, AND THAT TOOK MOVING A RUNG. Split in two, the year is a chip of
+         its own — and `paperLabels_` used to APPEND its subject and tier rungs after the paper's
+         date (`Paper 1 — June 2024 · Foundation`), which left `nameForms_` nothing to cut, so the
+         first version of this split exempted the year here with a comment. The rungs go before the
+         date now and this narrowing reads `Paper 1 · Foundation`. Tier is deliberately left
+         unanswered: answered, the papers are unique by name and the rule would pass on any order of
+         rungs. */
     ];
     LOOK.forEach(look => {
       const kept = items.filter(x => look.on.every(([field, value]) =>

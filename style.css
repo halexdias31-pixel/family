@@ -2047,15 +2047,22 @@ button.text-drop { color: var(--bad); }
      state it opens in, and in that state there are no filters, so there are no chips — 63 known tap
      targets, four widths, two visitors, and the control that removes a filter was in none of them.
      It appeared the moment the check was given a state six answers deep. */
-  min-height: 44px; padding: 0 .45rem;
-  background: var(--sunk); border: 1px solid var(--line); border-radius: 2px;
+  /* ---------- THE SAME FAMILY AS THE ANSWERS UNDER IT ---------------------------------------------
+     An answer pressed becomes one of these, so they are drawn as the same object: the pill, the
+     `--chip-line` outline. FILLED, where an answer is not, because filled is how a filter chip says
+     "this one is on" — the answers below are the ones you could choose, these the ones you did. */
+  min-height: 44px; padding: 0 .7rem;
+  background: rgb(255 255 255 / .08); border: 1px solid var(--chip-line); border-radius: 22px;
   color: var(--ink); font: inherit; font-size: .72rem; cursor: pointer;
   transition: transform var(--quick) ease, border-color var(--quick) ease;
 }
 .chip:active, .chip.is-pressed { transform: scale(.94); }
 /* The FIELD, small and dim, before the value. "Grade 9" and "9" are different amounts of
    information, and with four chips on a line the second one is a puzzle. */
-.chip-k { color: var(--faint); font-size: .6rem; text-transform: uppercase; letter-spacing: .04em; }
+/* `--dim`, NOT `--faint`, ON THE FILL: `--faint` was measured for black and for `--raised`, and on a
+   chip's own 8% white it is 3.97:1 — `check/ui.js` named every field on the first run of the filled
+   chips. `--dim` is the next step up and has exactly this job, a label beside a value. */
+.chip-k { color: var(--dim); font-size: .6rem; text-transform: uppercase; letter-spacing: .04em; }
 .chip-x { color: var(--faint); margin-left: .15rem; }
 .chip:active .chip-x, .chip.is-pressed .chip-x { color: var(--bad); }
 /* The + adds rather than removes, so it is outlined in the accent rather than filled — it is an
@@ -10062,24 +10069,46 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   /* THE HAIRLINE GOES. Two rows separated by a border AND by a gap is a divider inside a gap —
      it reads as a table that has been given rounded corners rather than as a list of buttons. */
   border-bottom: 0;
-  border: 1px solid var(--line);
-  border-radius: .7rem;
-  background: var(--raised);
-  /* ---------- THE PADDING WAS PUSHING PAST THE TARGET IT ALREADY HAD ---------------------------
-     MEASURED: 48px a row, seven rows, 336px. `min-height: 44px` is the floor a fingertip needs and
-     `.8rem` of padding over a 24px line took every row four pixels past it — height bought from
-     nobody, because the tap target was already 44. At .55rem the box lands ON the floor: the same
-     44px to press and 4px less to scroll past, seven times over. */
-  padding: .55rem .7rem;
-  margin-bottom: .38rem;
+  /* ---------- AND NOW THE ROW IS A CHIP, ONE OF SEVERAL ON A LINE ---------------------------------
+     REPORTED AS "turn the finder options to look more like the google chips tags … they dont need to
+     appear one above the other but can fill like from left to right top to down like writing a
+     paragraph." Measured before: seven answers stacked at 44px plus a gap each were 308px of a
+     575px question card at 390, to show seven words.
+
+     A CHIP IS AS WIDE AS ITS WORDS and `.answers` wraps them like text, so a column of one-word
+     answers (Summer, Autumn, Higher, Foundation) is one or two lines rather than one per answer.
+     An outline and no fill at rest, a light fill under a finger — Google's own filter chip. The
+     radius is half the height, so a one-line chip is a pill; a long answer ("Angles in Triangles &
+     Quadrilaterals") still wraps INSIDE its chip at `max-width: 100%`, and with that radius a
+     two-line chip stays a rounded box rather than a lozenge.
+
+     44px STAYS, in px, AND IN BOTH DIRECTIONS. "As wide as its words" has a floor the words do not
+     set: the letter ranges the funnel groups a long list into are often ONE letter (`G`, `P`, `S`),
+     and a one-letter chip measured 34x44 — under the floor sideways, on the narrowest answers on the
+     screen. `min-width` keeps it a fingertip wide and `justify-content` keeps the letter in the
+     middle of the circle it then makes. A fingertip is the same size whatever the shape. */
+  display: inline-flex;
+  flex: 0 1 auto;
+  max-width: 100%;
+  min-width: 44px;
+  justify-content: center;
+  border: 1px solid var(--chip-line);
+  border-radius: 22px;
+  background: none;
+  padding: .35rem .95rem;
+  margin: 0;
   min-height: 44px;
-  /* THE LABEL IS THE THING NOW, so it takes the foreground colour. `--dim` is right for the left
-     half of a fact row and wrong for the text on a button. */
   align-items: center;
   transition: background var(--quick) ease, border-color var(--quick) ease,
               transform var(--quick) ease;
 }
-.row.tap.counted:last-child { margin-bottom: 0; }
+/* THE BOX THE CHIPS WRAP IN. `--chip-line` is declared HERE rather than at `:root` because it is this
+   family's own outline and nothing else should be offered it — the house rule the chess board's
+   cream and charcoal set. `--line` is a hairline between rows, and as the only edge of a chip on
+   black it measured as nearly nothing; this is the step a reader can see without it competing with
+   the words. */
+.answers, .chips { --chip-line: #3d3d3d; }
+.answers { display: flex; flex-wrap: wrap; gap: .45rem .4rem; align-items: center; }
 /* THE ANSWER IS THE HEADLINE. It was .88rem — the size of a fact on a receipt — for the one word
    on the screen somebody is here to choose. */
 /* ---------- AND IT IS THE ONLY THING ON THE ROW NOW, SO IT MAY USE THE ROW -----------------------
@@ -10097,8 +10126,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    `flex: 1 1 auto` — take the room, and give way when there is not enough, at which point the
    `overflow-wrap` it already carries does the rest. */
-.row.tap.counted .k { color: var(--ink); font-weight: 600; font-size: .92rem;
-  flex: 1 1 auto; min-width: 0; }
+/* A CHIP'S WORDS ARE ITS WHOLE WIDTH now, so they take what they need and give way only when the chip
+   is already the width of the card — `0 1 auto` rather than the `1 1 auto` a row needed to fill its
+   line. 500 rather than 600: seven bold words side by side is a wall, seven medium ones a list. */
+.row.tap.counted .k { color: var(--ink); font-weight: 500; font-size: .86rem; line-height: 1.25;
+  flex: 0 1 auto; min-width: 0; }
 
 /* THE COUNT RECEDES. It was the same weight as the label, so a row read as two things of equal
    importance — and the answer is what you are choosing; the number only tells you how much is
@@ -10119,16 +10151,16 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    states in this file. Two descriptions of one look is the `.reel .over` fault, and these two would
    sit on the same element a tenth of a second apart — which is the version somebody notices. */
 .row.tap.counted:active, .row.tap.counted.is-pressed {
-  background: rgb(255 255 255 / .06);
+  background: rgb(255 255 255 / .08);
   border-color: var(--gold);
-  transform: translateY(1px);
+  transform: scale(.97);
 }
 
 /* HOVER IS FOR THE DESKTOP AND MUST NOT STICK ON A PHONE. A plain `:hover` is applied on tap by
    mobile Safari and stays applied until something else is tapped, so the last answer pressed keeps
    a highlight that means nothing. */
 @media (hover: hover) {
-  .row.tap.counted:hover { background: rgb(255 255 255 / .05); border-color: var(--line); }
+  .row.tap.counted:hover { background: rgb(255 255 255 / .06); }
 }
 
 /* ---------- "DOESN'T MATTER" IS A WAY OUT, NOT AN ANSWER ------------------------------------------
@@ -10140,8 +10172,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    NO NEW COLOUR. `--dim` is the token an unemphasised label already uses on every `.row` in the
    app; this is the answer row handing back the foreground colour the block above gave it. */
-.row.tap.counted.is-skip { background: none; }
-.row.tap.counted.is-skip .k { color: var(--dim); font-weight: 500; }
+/* A CHIP NOW, AND STILL THE QUIET ONE: the dashed edge says "a way past this" where every answer's
+   solid edge says "one of these", and the colour hands back the foreground the block above gave. */
+.row.tap.counted.is-skip { background: none; border-style: dashed; }
+.row.tap.counted.is-skip .k { color: var(--dim); font-weight: 400; }
 @media (hover: hover) {
   .row.tap.counted.is-skip:hover { background: rgb(255 255 255 / .04); }
 }
