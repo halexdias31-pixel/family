@@ -7089,28 +7089,57 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .ct-say b { color: #6fa8dc; }
 
 /* ---------- THE VENN ----------------------------------------------------------------------------- */
-#splash-venn .vn-svg { width: min(62vw, 15rem); height: auto; }
-/* ---------- THE CIRCLES MOVE INTO EACH OTHER -----------------------------------------------------
-   ONLY THE OVERLAP WAS ANIMATED, and it faded in over two crossed circles that never moved — one
-   moving part on the whole splash, and it read as a lit patch on a diagram rather than as two sets
-   meeting. The overlap only means something if you see it come into being.
-   They slide together and apart, and the middle lights as they meet. Delays are set so the fade
-   peaks when the circles are closest, which is the whole point of the picture and was previously
-   true only by accident. */
-.vn-a, .vn-b { fill: rgb(111 168 220 / .3); stroke: #6fa8dc; stroke-width: 1.8;
-               animation: vn-slide 3.4s ease-in-out infinite; }
-.vn-b { fill: rgb(232 134 44 / .3); stroke: #e8862c; animation-name: vn-slide-b; }
-@keyframes vn-slide   { 0%,100% { transform: translateX(-9px); } 50% { transform: translateX(0); } }
-@keyframes vn-slide-b { 0%,100% { transform: translateX(9px); }  50% { transform: translateX(0); } }
-/* THE OVERLAP, LIT ON ITS OWN. Two circles crossing is a picture; the middle picked out is an idea. */
-.vn-both { fill: var(--paper); opacity: 0; animation: vn-mid 3.4s ease-in-out infinite; }
-@keyframes vn-mid { 0%,22% { opacity: 0; } 45%,58% { opacity: .6; } 80%,100% { opacity: 0; } }
-/* THE LABELS SLIDE WITH THEIR CIRCLES. Same animation, same timing — a label that stayed still
-   while its set moved would be labelling the space the set used to be in. */
-.vn-l { font: 700 15px var(--mono); text-anchor: middle; }
-.vn-a-l { fill: #6fa8dc; animation: vn-slide 3.4s ease-in-out infinite; }
-.vn-b-l { fill: #e8862c; animation: vn-slide-b 3.4s ease-in-out infinite; }
-.vn-say { margin-top: .7rem; font: 700 .9rem var(--mono); color: var(--paper); text-align: center; }
+/* ---------- WRITTEN BY tools/venn.py — edit the table there and re-run, do not edit these lines ---
+   IT WAS TWO CIRCLES SLIDING TOGETHER AND A PATCH LIGHTING IN THE MIDDLE, under "A ∩ B" that never
+   changed. That is one fact drawn once, and the patch was a flat cream blob rather than anything a
+   student has seen on a paper. Now it is the diagram a GCSE question prints: ξ round the outside,
+   A and B arriving, and three regions shaded IN TURN — A ∩ B, A ∪ B, A′ — each with its notation
+   underneath as it appears, because the point of the splash is reading the symbol off the picture.
+   SHADED WITH A HATCH because that is how a region is shaded by hand, and the hatch drifts by one
+   line spacing per turn of its own loop, so a shaded region is moving even while it is held and
+   no frame of the loop is a still picture. Only `transform` and `opacity` move, and the loop starts
+   and ends on the same empty ξ, so there is no seam. The rules that set an opacity WITHOUT an
+   animation are the reduced-motion frame: circles in, A ∩ B shaded and named.
+   OUTLINES ONLY, as on a paper: tinted circles put a third colour in the lens where they cross, so
+   A′ — which leaves the lens unshaded — read as though the lens were shaded something else. And
+   the letters carry a stroke of the page's own black under their fill, because they sit on the
+   hatch and a hatch line through a letter makes it a different glyph. */
+#splash-venn .vn-svg { width: min(66vw, 16rem); height: auto; }
+.vn-box { fill: none; stroke: rgb(244 241 232 / .35); stroke-width: 1.2; }
+.vn-xi, .vn-l { stroke: var(--bg, #000); stroke-width: 3px; paint-order: stroke; stroke-linejoin: round; }
+.vn-xi { font: 400 11px var(--mono); fill: rgb(244 241 232 / .6); }
+.vn-a, .vn-b { fill: none; stroke-width: 1.8; }
+.vn-a { stroke: #6fa8dc; } .vn-b { stroke: #e8862c; }
+.vn-l { font: 700 14px var(--mono); text-anchor: middle; }
+.vn-a-l { fill: #6fa8dc; } .vn-b-l { fill: #e8862c; }
+.vn-tint { fill: rgb(240 180 95 / .16); }
+.vn-h { fill: none; stroke: #f0b45f; stroke-width: 1.3; opacity: .8;
+        animation: vn-hatch 1.6s linear infinite; }
+@keyframes vn-hatch { to { transform: translateX(6px); } }
+.vn-ga { animation: vn-ca 10s ease-in-out infinite; }
+.vn-gb { animation: vn-cb 10s ease-in-out infinite; }
+@keyframes vn-ca { 0% { opacity: 0; transform: translateX(-16px); } 9%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateX(-16px); } }
+@keyframes vn-cb { 0% { opacity: 0; transform: translateX(16px); } 9%, 90% { opacity: 1; transform: none; } 100% { opacity: 0; transform: translateX(16px); } }
+.vn-say { display: grid; margin-top: .7rem; font: 700 1.3rem var(--mono); color: var(--paper);
+          text-align: center; }
+.vn-s { grid-area: 1 / 1; }
+.vn-say b.a { color: #6fa8dc; } .vn-say b.b { color: #e8862c; }
+.vn-r:not(.vn-r-and), .vn-s:not(.vn-s-and) { opacity: 0; }
+.vn-r-and { animation: vn-and 10s ease-in-out infinite; }
+@keyframes vn-and { 0%, 8% { opacity: 0; } 13%, 32% { opacity: 1; } 37%, 100% { opacity: 0; } }
+.vn-s-and { animation: vn-s-and 10s ease-in-out infinite; }
+@keyframes vn-s-and { 0%, 10.5% { opacity: 0; } 13.5%, 31.5% { opacity: 1; } 34.5%, 100% { opacity: 0; } }
+.vn-r-or { animation: vn-or 10s ease-in-out infinite; }
+@keyframes vn-or { 0%, 32% { opacity: 0; } 37%, 59% { opacity: 1; } 64%, 100% { opacity: 0; } }
+.vn-s-or { animation: vn-s-or 10s ease-in-out infinite; }
+@keyframes vn-s-or { 0%, 34.5% { opacity: 0; } 37.5%, 58.5% { opacity: 1; } 61.5%, 100% { opacity: 0; } }
+.vn-r-not { animation: vn-not 10s ease-in-out infinite; }
+@keyframes vn-not { 0%, 59% { opacity: 0; } 64%, 86% { opacity: 1; } 91%, 100% { opacity: 0; } }
+.vn-s-not { animation: vn-s-not 10s ease-in-out infinite; }
+@keyframes vn-s-not { 0%, 61.5% { opacity: 0; } 64.5%, 85.5% { opacity: 1; } 88.5%, 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .vn-g, .vn-r, .vn-s, .vn-h { animation: none; }
+}
 
 /* ---------- THE CLOCK ---------------------------------------------------------------------------- */
 #splash-clock .ck-svg { width: min(46vw, 11rem); height: auto; }
@@ -7136,8 +7165,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 @media (prefers-reduced-motion: reduce) {
   .so-row i, .mn-row i, .rp-box span, .or-p, .or-ring, .td-row i, .dw-sun, .h3-say i, .h3-bar span, .mx-line, .pr-arm, .nl-dot,
-  .vn-a, .vn-b, .vn-both, .ck-m, .ck-h { animation: none; opacity: 1; transform: none; }
-  .vn-both { opacity: .55; }
+  .ck-m, .ck-h { animation: none; opacity: 1; transform: none; }
 }
 
 /* ---------- A ROW WITH NOTHING IN THE FIGURE COLUMNS ---------------------------------------------
