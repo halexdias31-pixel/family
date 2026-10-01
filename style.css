@@ -5849,6 +5849,21 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .prof-teach .prof-tag { text-transform: none; letter-spacing: .02em; font-size: .64rem; }
 .prof-teach .prof-tag.is-main { border-color: var(--gold); color: var(--ink); }
 .prof-tags + .prof-teach { margin-top: .35rem; }
+/* THE LEVELS, RAISED AFTER THE SUBJECT — `teachChip_` in cards.js. *"Subject ^level, level, level …
+   no brackets."*
+   A FLOOR OF 8px, IN px. The chip is .64rem, which is 8.6px on a 320px phone, and a browser's own
+   superscript is "smaller" — about 7px, which is a level nobody can read. `max()` keeps the raise as
+   what says "this belongs to the word before it" and stops the size doing the work as well.
+   `line-height: 0` SO THE RAISE DOES NOT GROW THE CHIP: a chip with levels and a chip without one
+   sit on the same line at the same height, which is what lets a row of them read as a row.
+   `--dim` RATHER THAN AN OPACITY, so the levels step back on the gold-edged chip as well, and so
+   `check/ui.js`'s contrast rule can read the colour: it composites a colour's alpha and not an
+   element's opacity, and a level faded that way would be measured as the subject's ink. */
+.prof-lv {
+  font-size: max(8px, .84em); line-height: 0; vertical-align: .42em;
+  color: var(--dim); letter-spacing: 0;
+}
+.prof-lv span { white-space: nowrap; }
 /* THE RATE, UP BY THE NAME AND BIGGER than any row — it is the number a parent opened the card for.
    Gold because it is a price and this app's prices are gold; the `/h` recedes so the figure leads. */
 .prof-rate {

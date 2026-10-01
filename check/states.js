@@ -537,6 +537,50 @@ const STATES = {
       },
       wants: "a tutor's photographs as squares, with the one tapped opened across the row",
       leave: () => { paint('account'); } },
+    /* ---------- WHAT THEY TEACH: ONE CHIP A SUBJECT, ITS LEVELS RAISED — see `teachGroups_` ------
+       *"Subject ^level, level, level … no brackets."* The fixture's tutor teaches one level of two
+       subjects, so every chip it draws has one level and nothing wraps — which is the arrangement
+       that cannot go wrong. So this seeds the one that can: a subject at four levels, and a subject
+       with a long name, so a raised list has to break at 320px and the lab measures where it went —
+       sideways scroll, contrast of the raised levels, and the card against its pane. Seeded onto
+       `DATA.tutors` in the server's own shape, as the switched-off tutor above is, and put back. */
+    { name: 'a tutor teaching one subject at several levels',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__TEACH_HELD = (DATA.tutors || []).slice();
+        window.__TEACH_AT = PAGE.account || 0;
+        DATA.tutors = (DATA.tutors || []).concat([Object.assign(
+          {}, (DATA.tutors || [])[0] || {},
+          { personId: 'P-levels', handle: 'levels', title: 'Many Levels', listed: true,
+            teachesSpec: ['Maths (GCSE)', 'Maths (A-Level)'], teachesMain: 'Maths (GCSE)',
+            teaches: ['Maths (GCSE)', 'Maths (A-Level)', 'Maths (KS2)', 'Maths (KS3)', 'Maths (AS)',
+                      'Maths (Degree)', 'English Language and Literature (GCSE)',
+                      'English Language and Literature (A-Level)', 'Physics'] })]);
+        paint('account');
+        const n = accountPages_().findIndex(h => /Many Levels/.test(h));
+        if (n < 0) throw new Error('the seeded tutor is not on the account column');
+        goPage('account', n, true);
+      },
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-account .page')]
+          .find(p => /Many Levels/.test(p.textContent));
+        const tags = pg ? [...pg.querySelectorAll('.prof-teach .prof-tag')] : [];
+        const said = tags.filter(x => x.querySelector('sup.prof-lv'))
+          .map(x => x.textContent.replace(/\s+/g, ' ').trim());
+        return said.includes('Maths GCSE, A-Level') && said.includes('Maths KS2, KS3, AS, Degree')
+          && said.some(s => /^English Language and Literature GCSE, A-Level$/.test(s))
+          && !tags.some(x => /[()]/.test(x.textContent)) ? tags.length : 0;
+      },
+      wants: 'a subject drawn once per row, its levels raised after it and no brackets anywhere',
+      /* AND THE COLUMN GOES BACK TO THE PAGE IT WAS ON. Taking the seeded tutor out takes a page out
+         from under the one this state turned to, so a bare repaint left `PAGE.account` naming a page
+         that is no longer there — and `COLUMNS OUT OF LINE` reported the account column 500px off
+         every other column, which was this state's own debris rather than the app. */
+      leave: () => {
+        if (window.__TEACH_HELD) DATA.tutors = window.__TEACH_HELD;
+        paint('account');
+        goPage('account', window.__TEACH_AT || 0, true);
+      } },
     /* ---------- WHERE THEY TUTOR, AS A HEAT MAP — see `profHeat_` in cards.js ------------------
        *"just let it be a heat map of the areas"*. The fixture's tutor ticks three: one venue WITH
        coordinates, one WITHOUT (left off rather than guessed), and Online (a chip, not a place). So

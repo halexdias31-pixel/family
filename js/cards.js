@@ -164,6 +164,44 @@ function profList_(v) {
     .map(x => String(x == null ? '' : x).trim()).filter(Boolean);
 }
 
+/* ---------- WHAT A TUTOR TEACHES: THE SUBJECT ONCE, ITS LEVELS RAISED AFTER IT ------------------
+   ASKED FOR AS *"what they teach should appear like Subject ^level, level, level. so like the levels
+   are superscripted. no brackets."* It was one chip per PHRASE — `Maths (GCSE)`, `Maths (A-Level)`,
+   `Maths (AS)` — so a tutor teaching one subject at three levels said "Maths" three times in a row
+   and the brackets were most of the ink.
+
+   GROUPED HERE, ON THE PHONE, AND THE PHRASES ARE LEFT ALONE. `teachesOf_` sends one phrase per level
+   because that is what it dedupes on, and the booking form's `why` and `subjectRows` / `levelRows`
+   match against exactly that string. Changing `teachPhrase_` would change what three matchers
+   compare to fix how one card looks — and an older backend sends the very same strings, so nothing
+   here waits on a deploy.
+
+   READ WITH `subjectIn_` AND `levelIn_`, price-rows.js's pair, which is already the one reader of
+   that format: a third regex here would be a third chance to read `Maths (GCSE)` differently. A
+   phrase with no bracket is the subject on its own, and is a chip with nothing raised; a subject
+   that arrives both bare and with a level just shows the level, because the bare one adds nothing.
+
+   THE ORDER IS THE SERVER'S. The first time a subject is seen fixes its place, and its levels follow
+   in the order they came, which is the order the tutor entered them on the qualification shelf.
+   `GCSE` and `gcse` are one level. */
+function teachGroups_(list) {
+  const out = [], at = {};
+  profList_(list).forEach(p => {
+    const subject = subjectIn_(p), level = levelIn_(p), k = norm(subject);
+    if (!k) return;
+    if (!at[k]) out.push(at[k] = { subject, levels: [] });
+    if (level && !at[k].levels.some(l => norm(l) === norm(level))) at[k].levels.push(level);
+  });
+  return out;
+}
+/* ONE CHIP. The levels are a `<sup>`, and each level is its own no-wrap span, so at 320px a long
+   list breaks BETWEEN levels rather than inside `A-Level` at its hyphen. The no-break space before
+   the first one keeps it on the subject's line, so a chip never wraps to leave a subject on its own
+   with its levels underneath; it is also what makes the chip read "Maths GCSE, A-Level" to a screen
+   reader rather than "MathsGCSE". `mark` runs on each half, so a search for "GCSE" still lights it. */
+const teachChip_ = (g, main) => `<span class="prof-tag${main ? ' is-main' : ''}">${mark(g.subject)}${
+  g.levels.length ? `<sup class="prof-lv">&nbsp;${g.levels.map(l => `<span>${mark(l)}</span>`).join(', ')}</sup>` : ''}</span>`;
+
 /* ---------- "1 to 4 students", NOT `minStudents` AND `maxStudents` --------------------------------
    THE SHEET STORES A FLOOR AND A CEILING and a reader wants a range, so the joining happens once
    here rather than on every card that shows one. Three cases and they read differently:
@@ -459,12 +497,17 @@ function findCard(x) {
             other one. i dont want that"* — so `teachesSpec` is a list, every one a gold chip under
             `Teaches`, and `Can also teach` is the rest. An older backend sends one string as
             `teachesMain`, which `profList_` reads as a list of one. */''}
+      ${/* ONE CHIP A SUBJECT, ITS LEVELS RAISED — `teachGroups_`. The split into the two rows is
+            still made on the PHRASE, before any grouping, so a tutor who specialises in Maths at
+            GCSE and also teaches it at A-Level gets `Maths ^GCSE` in gold and `Maths ^A-Level` under
+            Can also teach. That is the truth; grouping first would put a level they did not
+            specialise in under the gold edge. */''}
       ${(() => {
         const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
         return (main.length ? `<div class="prof-cap">Teaches</div><div class="prof-tags prof-teach">${
-                  main.map(v => `<span class="prof-tag is-main">${mark(v)}</span>`).join('')}</div>` : '')
+                  teachGroups_(main).map(g => teachChip_(g, true)).join('')}</div>` : '')
              + (also.length ? `<div class="prof-cap">Can also teach</div><div class="prof-tags prof-teach">${
-                  also.map(v => `<span class="prof-tag">${mark(v)}</span>`).join('')}</div>` : '');
+                  teachGroups_(also).map(g => teachChip_(g, false)).join('')}</div>` : '');
       })()}
       ${/* ---------- QUALIFICATIONS, AS THE SAME CHIPS ---------------------------------------------
             ASKED FOR AS *"qualifications should also look like google chips."* Each entry of `quals`

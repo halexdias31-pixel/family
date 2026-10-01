@@ -2501,6 +2501,83 @@ check('a landmark is the same shape whichever way it is turned', async () => {
        + 'its shape, which means the polygon is being re-sampled rather than the tiles turned'];
 });
 
+/* ---------- WHAT A TUTOR TEACHES: ONE CHIP A SUBJECT, ITS LEVELS RAISED ---------------------------
+   *"what they teach should appear like Subject ^level, level, level. so like the levels are
+   superscripted. no brackets."* The server sends one phrase per level, so the grouping is the
+   card's, and every way it can go wrong draws perfectly: a subject twice in one row, a bracket left
+   in, a level that was the specialism dragged out from under the gold edge, or the reverse. So this
+   draws two tutors through the app's own `findCard` — one off the current backend, one off a
+   backend old enough to send a single `teachesMain` string — and reads every chip back. */
+check('what a tutor teaches is one chip a subject, its levels raised and no brackets', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const draw = row => { const box = d.createElement('div'); box.innerHTML = w.findCard({ kind: 'tutor', row }); return box; };
+  /* A CHIP, READ BACK AS WHAT A PERSON SEES: the subject is the text outside the `<sup>`, the levels
+     are the spans inside it. A row named by its caption, so the two rows cannot be confused. */
+  const row = (box, cap) => {
+    const c = [...box.querySelectorAll('.prof-cap')].find(x => x.textContent.trim() === cap);
+    const tags = c && c.nextElementSibling ? [...c.nextElementSibling.querySelectorAll('.prof-tag')] : [];
+    return tags.map(el => {
+      const sup = el.querySelector('sup.prof-lv');
+      return { said: (el.textContent.replace(sup ? sup.textContent : '', '').trim()
+                      + (sup ? ' ^' + [...sup.querySelectorAll('span')].map(s => s.textContent.trim()).join(', ') : '')),
+               main: el.classList.contains('is-main'), text: el.textContent };
+    });
+  };
+  const bad = [];
+  const want = (who, box, cap, list, main) => {
+    const got = row(box, cap);
+    if (JSON.stringify(got.map(g => g.said)) !== JSON.stringify(list)) {
+      bad.push(who + ': "' + cap + '" reads ' + JSON.stringify(got.map(g => g.said)) + ', wanted ' + JSON.stringify(list));
+    }
+    if (got.some(g => g.main !== main)) bad.push(who + ': a chip under "' + cap + '" has the wrong edge (gold is the specialism)');
+    if (got.some(g => /[()]/.test(g.text))) bad.push(who + ': a chip under "' + cap + '" still has a bracket in it');
+  };
+  /* THE CURRENT BACKEND: two specialisms in one subject, that subject again at a level that is NOT a
+     specialism, a subject at two levels spelled two ways, one arriving bare AND with a level, and
+     one bare and nothing else. */
+  const now = draw({ title: 'Ada Tutor', personId: 'P-ada', rate: 30,
+    teachesSpec: ['Maths (GCSE)', 'Maths (A-Level)'],
+    teaches: ['Maths (GCSE)', 'Maths (A-Level)', 'Maths (AS)', 'English (KS3)', 'English (GCSE)',
+              'English (gcse)', 'Physics', 'Physics (GCSE)', 'Chemistry'] });
+  want('the current backend', now, 'Teaches', ['Maths ^GCSE, A-Level'], true);
+  want('the current backend', now, 'Can also teach',
+       ['Maths ^AS', 'English ^KS3, GCSE', 'Physics ^GCSE', 'Chemistry'], false);
+  /* A BACKEND FROM BEFORE SEVERAL SPECIALISMS: one string, no list. The phone must not wait on a
+     deploy to draw this the new way. */
+  const old = draw({ title: 'Old Backend', personId: 'P-old', rate: 30, teachesMain: 'Maths (GCSE)',
+    teaches: ['Maths (GCSE)', 'Maths (A-Level)'] });
+  want('an older backend', old, 'Teaches', ['Maths ^GCSE'], true);
+  want('an older backend', old, 'Can also teach', ['Maths ^A-Level'], false);
+  return bad;
+});
+
+/* ---------- AND THE LIBRARY CARDS CARRY NO NOTE, WHATEVER THE BACKEND SAYS ------------------------
+   *"for the library card widget, there doesnt need to be a add note to it."* The current backend no
+   longer lists `library_note`; the deployed one does, so this plays that older server and wants the
+   shelf drawn and the note box not — on the page, not merely absent from the code. */
+check('the library cards draw no note box, even from a backend that still lists one', async () => {
+  const libs = [];
+  for (let i = 1; i <= 5; i++) ['_name', '_no', '_pin'].forEach(k => libs.push('lib' + i + k));
+  const { w } = boot({ payload: Object.assign(payload(), { profileFields: { 'Library cards': libs.concat(['library_note']) } }) });
+  await wait(300);
+  const t = w.__t;
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+           profile: { first_name: 'Test', last_name: 'Admin', lib1_name: 'Merton', library_note: 'old note' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const d = w.document;
+  const form = [...d.querySelectorAll('#s-settings .me-form')].find(f => f.querySelector('[data-me="lib1_name"]'));
+  if (!form) return ['the settings column drew no library shelf, so the note box was NOT checked'];
+  const bad = [];
+  if (form.querySelector('[data-me="library_note"]')) bad.push('the library card page still draws a library_note box');
+  const stray = [...form.querySelectorAll('[data-me]')].map(e => e.getAttribute('data-me')).filter(f => !/^lib\d+_(name|no|pin)$/.test(f));
+  if (stray.length) bad.push('the library card page draws boxes that are not a card: ' + stray.join(', '));
+  if (/note/i.test(form.textContent)) bad.push('the library card page still says "note" somewhere');
+  return bad;
+});
+
 check('a backend that never answers does not hang the app for ever', async () => {
   let html = fs.readFileSync(path.join(dir, '..', 'index.html'), 'utf8');
   const hasDeadline = /AbortController|Promise\.race|setTimeout\([^)]*abort/i.test(

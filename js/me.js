@@ -2534,6 +2534,19 @@ const isTimetable_ = list => (list || []).length > 12
    with 78.9px of headroom**. */
 const isLibraryCard_ = f => /^lib\d+_(name|no|pin)$/.test(String(f || ''));
 
+/* ---------- AND `library_note` IS NOT DRAWN, WHATEVER THE BACKEND SENDS ---------------------------
+   *"for the library card widget, there doesnt need to be a add note to it."* The column left
+   `SCHEMA.people` and the groups in `constants.gs` — but the phone reaches Pages in a minute and the
+   backend reaches Apps Script when somebody runs the sync, and the deployment the live site talks
+   to still lists `library_note` in its `Library cards` group. So the box went on being drawn under
+   the shelf, asked for by a server that had been told to stop asking.
+
+   DROPPED IN `fieldsHtml`, THE ONE WALK EVERY SURFACE GOES THROUGH, so neither an older deployment
+   nor a cached payload can put it back. Nothing is lost by not posting it: `updateProfile` writes
+   only the fields it is sent, so a note already sitting in an old sheet's cell stays there untouched
+   rather than being blanked by a Save that no longer carries the box. */
+const RETIRED_FIELDS_ = ['library_note'];
+
 /* ---------- AND A DATE OF BIRTH IS THREE BOXES, NOT ONE ------------------------------------------
    ASKED FOR AS *"date of birth should be 3 boxes. day, month and year. or copy the best practice
    method."* It was one plain text box with no type, no placeholder and no hint about which way
@@ -3090,12 +3103,12 @@ function fieldsHtml(groups, o) {
     readonly: (o.readonly || []).indexOf(f) !== -1,
   }, extra));
   return Object.keys(groups).map(g => {
-    const list = groups[g] || [];
+    const list = (groups[g] || []).filter(f => RETIRED_FIELDS_.indexOf(f) === -1);
     const timetable = isTimetable_(list);
-    /* THE SHELF, THEN WHATEVER ELSE IS IN THE GROUP. `library_note` sits in the same group and is
-       an ordinary box, so the shelf takes the card fields and the rest of the list is drawn under
-       it in the usual way — one `filter`, rather than a second group in the backend that would
-       then need a heading of its own. */
+    /* THE SHELF, THEN WHATEVER ELSE IS IN THE GROUP. The shelf takes the card fields and the rest
+       of the list is drawn under it in the usual way — one `filter`, rather than a second group in
+       the backend that would then need a heading of its own. (`library_note` used to be that rest;
+       it is filtered off the list above — see `RETIRED_FIELDS_`.) */
     const library = !timetable && isLibrary_(list);
     const quals = !timetable && isQuals_(list);
     /* ---------- AND THE THREE DATE BOXES, WHICH REPLACE ONE FIELD RATHER THAN JOINING IT --------
