@@ -208,9 +208,9 @@ function profFacts_(t) {
    map when it is ticked — it is not a place.
 
    THE MAP IS REAL STREET TILES, NOT A DRAWING, because "roughly south west London" is only readable
-   against London: a glow on a blank box is a glow. CARTO's dark basemap over OpenStreetMap data, so
-   it sits in a black-and-gold card rather than being a white hole in it, with the attribution both
-   licences ask for. Tiles are another origin, so `sw.js` never caches them, and one that fails to
+   against London: a glow on a blank box is a glow. OpenStreetMap's own tiles, which need no key,
+   darkened in CSS so the map sits in a black-and-gold card rather than being a white hole in it, with
+   the credit OpenStreetMap asks for. Tiles are another origin, so `sw.js` never caches them, and one that fails to
    load leaves the card's own grey under the glow — the heat still reads, the streets do not.
 
    CENTRED ON THE POINTS, AT THE CLOSEST ZOOM THAT HOLDS THEM ALL, capped both ways: never closer than
@@ -253,7 +253,7 @@ function profHeat_(names) {
      screenshot is what showed it (this container cannot load the tiles). `w` and `h` put it back:
      the image's own half is added so its top-left corner lands at `50% + d`. */
   const pos = (x, y, w, h) => `calc(50% + ${Math.round(x - cx + w / 2)}px) calc(50% + ${Math.round(y - cy + h / 2)}px)`;
-  const layers = [];
+  const layers = [], tiles = [];
   /* A SOFT, WIDE GLOW PER VENUE, TRANSLUCENT, so the streets read through it and venues close
      together add up into a warmer patch rather than each being a hard orange ball. */
   const G = 80;
@@ -262,17 +262,24 @@ function profHeat_(names) {
   const t0x = Math.floor((cx - 220) / 256), t1x = Math.floor((cx + 220) / 256);
   const t0y = Math.floor((cy - 130) / 256), t1y = Math.floor((cy + 130) / 256);
   for (let tx = t0x; tx <= t1x; tx++) for (let ty = t0y; ty <= t1y; ty++) {
-    layers.push({ img: `url("https://basemaps.cartocdn.com/dark_all/${z}/${tx}/${ty}@2x.png")`,
+    /* OPENSTREETMAP'S OWN TILES, WHICH NEED NO KEY. The first version used CARTO's dark tiles,
+       and CARTO now draws "API key required" over every tile for a site with no account -- the
+       owner's report was "the map is asking me for an api key". OSM's standard tiles are free with
+       the credit printed on the map; they are light, so `.heat-tiles` darkens them in CSS rather
+       than this paying for a dark style. */
+    tiles.push({ img: `url("https://tile.openstreetmap.org/${z}/${tx}/${ty}.png")`,
       pos: pos(tx * 256, ty * 256, 256, 256), size: '256px 256px' });
   }
-  const style = `background-image:${layers.map(l => l.img).join(',')};`
-    + `background-position:${layers.map(l => l.pos).join(',')};`
-    + `background-size:${layers.map(l => l.size).join(',')};background-repeat:no-repeat`;
+  const bg = list => `background-image:${list.map(l => l.img).join(',')};`
+    + `background-position:${list.map(l => l.pos).join(',')};`
+    + `background-size:${list.map(l => l.size).join(',')};background-repeat:no-repeat`;
   const areas = [...new Set(pts.map(p => p[2]).filter(Boolean))];
   return `<div class="prof-cap">Tutors at</div>
-    <div class="prof-heat" role="img" data-dots="${px.length}" style="${esc(style)}"
+    <div class="prof-heat" role="img" data-dots="${px.length}"
       aria-label="${esc('A map of where they tutor' + (areas.length ? ': around ' + areas.join(', ') : ''))}">
-      <span class="heat-credit">© OpenStreetMap © CARTO</span>
+      <span class="heat-tiles" style="${esc(bg(tiles))}"></span>
+      <span class="heat-glow" style="${esc(bg(layers))}"></span>
+      <span class="heat-credit">© OpenStreetMap contributors</span>
     </div>${tail}`;
 }
 

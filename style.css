@@ -11153,11 +11153,16 @@ button.scr-sq { cursor: pointer; }
 
 /* ---------- WHERE A TUTOR TUTORS, AS A HEAT MAP — see `profHeat_` in cards.js ---------------------
    A fixed-height window onto map tiles placed in pixels from its own centre. The tiles are 256px
-   CSS pixels at @2x, so they are crisp on a phone. They and the glows are background layers of the
+   CSS pixels from OpenStreetMap. They and the glows are background layers of two children of the
    box (see `profHeat_` for why not elements); the glows are listed first, so they paint on top, and
    where two venues are close their gradients overlap into a warmer patch — which is what makes it a
    heat map rather than a scatter of pins. Nothing in it is pressable. */
 .prof-heat { position: relative; height: 200px; margin: .15rem 0 .6rem; overflow: hidden;
              border-radius: 10px; background: var(--sunk, #111); border: 1px solid var(--line); }
+/* TWO LAYERS, because the tiles are filtered and the glows must not be. OpenStreetMap's standard
+   tiles are light; inverting them and turning the hue back round gives a dark street map in the
+   app's own palette, and the orange glows go on a separate layer above so they keep their colour. */
+.prof-heat .heat-tiles, .prof-heat .heat-glow { position: absolute; inset: 0; pointer-events: none; }
+.prof-heat .heat-tiles { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.4); }
 .prof-heat .heat-credit { position: absolute; right: 4px; bottom: 2px; font-size: .5rem; line-height: 1.4;
   color: rgba(255, 255, 255, .72); background: rgba(0, 0, 0, .45); padding: 0 3px; border-radius: 3px; }

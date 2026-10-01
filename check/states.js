@@ -559,7 +559,8 @@ const STATES = {
         const text = pg.textContent;
         const heat = pg.querySelector('.prof-heat');
         return heat.getAttribute('data-dots') === '1'
-          && (heat.style.backgroundImage.match(/cartocdn/g) || []).length >= 2
+          && ((heat.querySelector('.heat-tiles') || {}).style || { backgroundImage: '' }).backgroundImage
+               .match(/tile\.openstreetmap\.org/g)?.length >= 2
           && caps.every(c => allowed.includes(c)) && caps.includes('Tutors at')
           && caps.indexOf('Tutors at') === caps.length - 1
           && [...pg.querySelectorAll('.prof-tag')].some(x => x.textContent.trim() === 'Online')
