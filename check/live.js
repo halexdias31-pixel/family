@@ -135,8 +135,10 @@ const idFor = {};
 for (const m of constants.matchAll(/const\s+(LEDGER|SETTINGS)_ID\s*=\s*"([^"]+)"/g)) {
   idFor[m[2]] = m[1].toLowerCase();
 }
-if (Object.keys(idFor).length !== 2) {
-  console.error('check/live.js: could not read two ids out of constants.gs — found ' +
+/* ONE NOW. Settings was folded into the Ledger and its id deleted; a dump with a "settings" key
+   still works, the key is simply never opened. */
+if (!Object.values(idFor).includes('ledger')) {
+  console.error('check/live.js: could not read LEDGER_ID out of constants.gs — found ' +
                 Object.keys(idFor).length);
   process.exit(1);
 }
