@@ -1692,6 +1692,56 @@ const STATES = {
                  && !!document.querySelector('#s-games #alb-card .party-clock'),
       wants: 'suspect 1, the clock and six questions',
       leave: () => { partyHold_('alb'); PARTY.alb = null; albPaint(); } },
+    /* ---------- A WORD SEARCH PART-FOUND, AND A SENTENCE PART-BUILT ------------------------------
+       Both widgets OPEN on a fresh deal, which is the one state `go()` reaches — and a fresh deal is
+       the state with nothing struck through, nothing highlighted, no start ring and an empty strip.
+       Every mark either game puts on its card is past it. Seeded through the games' own functions
+       (`wsBuild_`, `wsPick_`, `ssDeal_`) and their own handlers, never a board written out here: a
+       grid in this file would be a second description of a puzzle, and the one nobody re-reads.
+       THE OLDER THEME, because it is the ten-by-ten grid — the tallest card either game draws, and
+       the one a 320px phone has least room for. */
+    { name: 'a word search part-found',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'wordsearch');
+        if (n < 0) throw new Error('no word search widget in the roster');
+        goPage('games', n, true);
+        window.__seedWs = WS;
+        WS = wsBuild_(WS_THEMES.find(t => !t.young));
+        const wd = WS.words[0];
+        wsPick_(wd.cells[0]);
+        wsPick_(wd.cells[wd.cells.length - 1]);
+        wsPick_(WS.words[1].cells[0]);
+        wsPaint();
+      },
+      expect: () => document.querySelectorAll('#s-games #ws-words li.got s').length === 1
+                 && document.querySelectorAll('#s-games .ws-c.got').length >= 3
+                 && document.querySelectorAll('#s-games .ws-c.sel').length === 1,
+      wants: 'one word struck through and highlighted, and the start of the next one ringed',
+      /* PUT BACK, OR DEALT AGAIN WHERE THERE WAS NOTHING TO PUT BACK: `wsPaint` with no puzzle draws
+         nothing, so restoring a null would leave this state's marks on the card for the next one. */
+      leave: () => { WS = window.__seedWs || null; if (!WS) wsDeal_(wsThemeId_()); wsPaint(); } },
+
+    /* THE LONGEST SENTENCE IN THE LIST, half built — fourteen chips is the most this card ever lays
+       out, and half of them dimmed is what a sentence in progress looks like. */
+    { name: 'a sentence part-built',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'scramble');
+        if (n < 0) throw new Error('no sentence scramble widget in the roster');
+        goPage('games', n, true);
+        window.__seedSs = SS;
+        let long = null;
+        Object.keys(SS_SENTENCES).forEach(b => SS_SENTENCES[b].forEach(e => {
+          if (!long || ssOrders_(e)[0].length > ssOrders_(long)[0].length) long = e;
+        }));
+        const words = ssOrders_(long)[0];
+        SS = { band: 'KS4', entry: long, chips: words.slice().reverse(), picked: [], verdict: '', said: '' };
+        for (let k = 0; k < Math.ceil(words.length / 2); k++) SS.picked.push(words.length - 1 - k);
+        ssPaint();
+      },
+      expect: () => document.querySelectorAll('#s-games .ss-chip.used').length >= 6
+                 && !!document.querySelector('#s-games [data-do="ss-check"][disabled]'),
+      wants: 'the longest sentence half built, its used chips dimmed and Check not yet pressable',
+      leave: () => { SS = window.__seedSs || null; if (!SS) ssDeal_(ssBand_()); ssPaint(); } },
   ],
 
   /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------

@@ -1297,6 +1297,41 @@ const WIDGETS = [
     <button class="btn quiet" data-do="maze-again">New maze</button>
   </div>` },
 
+  /* ---------- WORD SEARCH — TWO TAPS, NOT A DRAG ----------------------------------------------------
+     The note over `WS_THEMES` in games.js is the argument, and it is the maze's argument: a drag
+     across the grid would fight the pager for the one gesture this app navigates by. Tap the first
+     letter, then the last. NEW PUZZLE IS UNDER THE GRID, the maze's place for New maze, and not
+     beside the select: on one row at 320px the select had eighty pixels and read "Spelling…",
+     which is a choice nobody can read. */
+  { id: 'wordsearch', kind: 'game', name: 'Word Search', start: () => initWordSearch?.(),
+    into: 'ws-grid', what: 'The grid',
+    html: `<div class="card">
+    <h3>Word Search</h3>
+    <p class="sub">Tap the first letter of a word, then its last.</p>
+    <label class="mat-sel ws-top"><select id="ws-theme" data-do="ws-theme"
+      aria-label="Which words"></select></label>
+    <div id="ws-grid" class="ws"></div>
+    <ul id="ws-words" class="ws-list"></ul>
+    <p class="note" id="ws-said" style="text-align:center;margin:.4rem 0 0"></p>
+    <button class="btn quiet" data-do="ws-again">New puzzle</button>
+  </div>` },
+
+  /* ---------- SENTENCE SCRAMBLE — CUT-UP PAPER ON A PHONE ------------------------------------------
+     The note over `SS_SENTENCES` in games.js is the argument. The chips and Check are built by
+     `ssPaint`, so nothing here can be pressed before there is a sentence. Skip is built there too,
+     beside Check, rather than beside the select — see the word search above for what that row
+     did to the select's label. */
+  { id: 'scramble', kind: 'game', name: 'Sentence Scramble', start: () => initScramble?.(),
+    into: 'ss-box', what: 'The sentence',
+    html: `<div class="card">
+    <h3>Sentence Scramble</h3>
+    <p class="sub">Tap the words in order to put the sentence back together.</p>
+    <label class="mat-sel ws-top"><select id="ss-level" data-do="ss-level"
+      aria-label="Level"></select></label>
+    <div id="ss-box"></div>
+    <p class="note" id="ss-said" style="text-align:center;margin:.4rem 0 0"></p>
+  </div>` },
+
   /* NO SCORING AND NO TIMER, deliberately — see the note on `initHerd`. Everybody answers out loud
      and the room decides; an app keeping score would make somebody operate it instead of play. */
   { id: 'herd', kind: 'game', name: 'Herd Mentality', start: () => initHerd?.(),

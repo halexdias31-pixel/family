@@ -281,6 +281,15 @@ const ACCEPTED_TAP = [
   + 'because those boards are seven and eight across. What makes it liveable here is that a tap on '
   + 'the wrong square costs nothing: a tile you have just put down comes straight back off with '
   + 'another tap, and nothing is committed until Play.' },
+  { cls: /^ws-c\b/, why:
+    'A WORD SEARCH IS A GRID OF LETTERS AND EVERY LETTER IS A PLACE A WORD CAN START OR END. Ten 44px '
+  + 'cells need 440px and the narrowest phone here is 320; eight need 352. Measured at 320x568 a ten-letter row '
+  + 'is 20px a cell and an eight-letter one 25px; at 390 they are 25px and 32px. The two ways out were both worse: a '
+  + 'drag across the grid would fight the pager for the one gesture this app navigates by (the maze '
+  + 'already refuses it for that reason, and the pen pad pays for it with a padlock), and a grid '
+  + 'scrolled sideways hides the words it is asking you to find. What makes it liveable is that a '
+  + 'wrong tap costs nothing: a first tap on the wrong letter is replaced by tapping the right one, '
+  + 'and a second tap that is not in a line with the first simply becomes the new start.' },
   { cls: /^bk-(sel|in|v)\b/, why:
     'THE BOOKING ROW IS ONE LINE AND ITS UNDERLINE IS THE CELL\'S BOTTOM BORDER. Tried twice and '
   + 'photographed both times: `min-height: 44px` on the control grows the grid cell to 44px and '

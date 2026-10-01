@@ -356,6 +356,117 @@ if (acceptedEngine.length) {
   }
 }
 
+/* ---------- THE SENTENCE SCRAMBLE'S SENTENCES AND THE WORD SEARCH'S WORDS ------------------------
+   BOTH GAMES ARE ONLY AS GOOD AS THEIR LISTS, and every fault in a list draws perfectly: a sentence
+   whose stated alternative uses a word the pool does not have is a right answer nobody can build; a
+   theme word longer than its grid is never placed; a theme that cannot fill its puzzle three times
+   over deals the same six words every time. And the word search's filter is a COPY of the backend's
+   `HANDLE_BLOCKED` — the phone never sees that list — so the two are compared here, where a copy kept
+   by hand would otherwise quietly fall behind. The notes over `SS_SENTENCES` and `WS_THEMES` in
+   games.js are the argument for each rule. */
+{
+  const gsrc = fs.readFileSync(path.join(jsDir, 'games.js'), 'utf8');
+  /* CUT TO THE FIRST LINE AT COLUMN ZERO THAT CLOSES IT, which is how every one of these is written,
+     and evaluated on its own: a literal, so there is nothing in it that needs a browser. */
+  const lit = (text, name) => {
+    const i = text.indexOf('const ' + name + ' =');
+    if (i < 0) return null;
+    const m = /\n[\]}];/.exec(text.slice(i));
+    if (!m) return null;
+    try { return new Function(text.slice(i, i + m.index + 3) + '\nreturn ' + name + ';')(); }
+    catch (e) { return null; }
+  };
+  const SENT = lit(gsrc, 'SS_SENTENCES'), THEMES = lit(gsrc, 'WS_THEMES'), NOT = lit(gsrc, 'WS_NOT');
+  const csrc = (() => {
+    const c = path.join(jsDir, '..', 'backend', 'constants.gs');
+    return fs.existsSync(c) ? fs.readFileSync(c, 'utf8') : '';
+  })();
+  const BLOCKED = lit(csrc, 'HANDLE_BLOCKED');
+  const lists = [];
+  if (!SENT || !THEMES || !NOT || !BLOCKED) {
+    lists.push('COULD NOT READ ' + [['SS_SENTENCES', SENT], ['WS_THEMES', THEMES], ['WS_NOT', NOT],
+      ['HANDLE_BLOCKED (backend/constants.gs)', BLOCKED]].filter(x => !x[1]).map(x => x[0]).join(', ')
+      + ', so the lists were NOT checked — not a pass');
+  } else {
+    /* SENTENCES */
+    const seenS = new Set();
+    let total = 0;
+    Object.keys(SENT).forEach(band => {
+      const list = SENT[band];
+      if (!Array.isArray(list) || list.length < 40) {
+        lists.push('scramble band ' + band + ' has ' + (list ? list.length : 0) + ' sentences — under 40 is a band '
+                 + 'somebody plays through in one sitting');
+      }
+      (list || []).forEach(entry => {
+        total++;
+        const all = (Array.isArray(entry) ? entry : [entry]).map(x => String(x).trim());
+        const chips = all.map(x => x.split(/\s+/));
+        const head = all[0];
+        if (seenS.has(head)) lists.push('scramble ' + band + ': ' + JSON.stringify(head) + ' is in the list twice');
+        seenS.add(head);
+        if (!/^[A-Z0-9]/.test(head)) lists.push('scramble ' + band + ': ' + JSON.stringify(head) + ' does not start with a capital');
+        if (!/[.!?]$/.test(head)) lists.push('scramble ' + band + ': ' + JSON.stringify(head) + ' does not end with . ! or ?');
+        if (chips[0].length < 4 || chips[0].length > 14) {
+          lists.push('scramble ' + band + ': ' + JSON.stringify(head) + ' is ' + chips[0].length
+                   + ' words; 4 to 14 is what a phone card can lay out as chips');
+        }
+        const bag = c => c.slice().sort().join('\u0001');
+        chips.slice(1).forEach((c, k) => {
+          if (bag(c) !== bag(chips[0])) {
+            lists.push('scramble ' + band + ': the alternative ' + JSON.stringify(all[k + 1])
+                     + ' is not the same words as ' + JSON.stringify(head) + ', so nobody can build it');
+          }
+          if (c.join(' ') === head) lists.push('scramble ' + band + ': ' + JSON.stringify(head) + ' lists itself as its own alternative');
+        });
+      });
+    });
+    if (total < 150) lists.push('the scramble has ' + total + ' sentences; the brief asks for at least 150');
+    /* THEMES */
+    const key = w => String(w).toUpperCase().replace(/[^A-Z]/g, '');
+    const notKeys = NOT.map(key);
+    const ids = new Set();
+    THEMES.forEach(t => {
+      if (ids.has(t.id)) lists.push('word search theme ' + t.id + ' is in the list twice');
+      ids.add(t.id);
+      const fits = (t.words || []).filter(w => key(w).length >= 3 && key(w).length <= t.size);
+      (t.words || []).filter(w => fits.indexOf(w) === -1).forEach(w => {
+        lists.push('word search ' + t.id + ': ' + JSON.stringify(w) + ' does not fit a ' + t.size + '-letter grid');
+      });
+      if (fits.length < t.n * 3) {
+        lists.push('word search ' + t.id + ' has ' + fits.length + ' words that fit for ' + t.n + ' a puzzle — under '
+                 + (t.n * 3) + ' and the same words come round every time');
+      }
+      const ks = new Set();
+      (t.words || []).forEach(w => {
+        if (ks.has(key(w))) lists.push('word search ' + t.id + ': ' + JSON.stringify(w) + ' is in the list twice');
+        ks.add(key(w));
+        /* NOT QUOTED BACK, which is `check-handles.js`'s rule: the word it matched is the thing nobody
+           should have to read, and the theme word is enough to find it. */
+        if (notKeys.some(b => key(w).indexOf(b) !== -1)) {
+          lists.push('word search ' + t.id + ': ' + JSON.stringify(w) + ' contains a word the grid filter refuses, '
+                   + 'so every puzzle it is placed in is thrown away');
+        }
+      });
+    });
+    const a = new Set(NOT.map(key)), b = new Set(BLOCKED.map(key));
+    const only = (x, y) => [...x].filter(v => !y.has(v)).length;
+    if (only(a, b) || only(b, a)) {
+      lists.push('WS_NOT in games.js and HANDLE_BLOCKED in constants.gs disagree (' + only(b, a)
+               + ' missing from the word search, ' + only(a, b) + ' extra) — the word search is a copy of the '
+               + 'backend list and must be kept equal to it');
+    }
+    console.log('');
+    console.log('  scramble: ' + total + ' sentences (' + Object.keys(SENT).map(k => k + ' ' + SENT[k].length).join(', ')
+              + ')   word search: ' + THEMES.length + ' themes');
+  }
+  if (lists.length) {
+    console.log('');
+    console.log('A SENTENCE OR A WORD LIST THE GAME CANNOT USE  (' + lists.length + ')');
+    lists.forEach(x => console.log('  ' + x));
+    bad = true;
+  }
+}
+
 console.log('');
 console.log('  tools: ' + widgets.filter(w => str(w.kind) === 'tool').map(w => str(w.id)).join(', '));
 console.log('  games: ' + widgets.filter(w => str(w.kind) === 'game').map(w => str(w.id)).join(', '));

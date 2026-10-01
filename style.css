@@ -10925,6 +10925,71 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mz-key.down  { grid-column: 2; grid-row: 2; }
 .mz-key.right { grid-column: 3; grid-row: 2; }
 
+/* ---------- THE ONE CHOICE EACH OF THESE TWO GAMES ASKS, AT THE TOP OF ITS CARD -------------------
+   The cheat sheet's drawn select, full width. It shared a row with "New puzzle" first, and at 320px
+   that left it eighty pixels and the label "Spelling…" — a choice nobody can read is not a choice. */
+.ws-top { margin: .5rem 0 0; }
+
+/* ---------- WORD SEARCH ------------------------------------------------------------------------
+   THE MAZE'S ARITHMETIC, AND THE OPPOSITE ANSWER ABOUT TAPPING. Ten letters across a 320px phone is
+   20px a cell, measured (eight are 25px), which no fingertip hits reliably — and here, unlike the maze, the cells ARE
+   tapped, because a drag would fight the pager (see `WS_THEMES` in games.js). So a cell is as big as
+   the card allows and no bigger, and `ACCEPTED_TAP` in check/ui.js carries the numbers. A wrong tap
+   costs nothing: the next tap replaces it.
+
+   ITS COLOURS ARE THE APP'S OWN, deliberately not declared on the component the way the maze's walls
+   are: gold is what this app means by "yours" — the start you picked, the words you found — and a
+   word search has no convention of its own to keep. */
+.ws {
+  display: grid; gap: 2px; margin: .55rem auto 0;
+  grid-template-columns: repeat(var(--ws-n, 10), 1fr);
+  width: 100%; max-width: 24rem;
+}
+.ws-c {
+  aspect-ratio: 1; min-width: 0; min-height: 0; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--sunk); color: var(--ink); border: 0; border-radius: 4px;
+  font: 600 clamp(.72rem, 3.6vw, .95rem)/1 var(--mono); cursor: pointer;
+}
+/* FOUND IS A FILL AND THE START IS A RING, so a found letter that is also the start of the next try
+   still reads as both — the device `.mz-cell.out` and `.oth-cell.can` use. */
+.ws-c.got { background: color-mix(in srgb, var(--gold) 34%, var(--sunk)); }
+.ws-c.sel { box-shadow: inset 0 0 0 2px var(--gold); color: var(--gold); }
+.ws-c:disabled { cursor: default; }
+.ws-list {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: .15rem .9rem;
+  margin: .55rem 0 0; padding: 0; list-style: none;
+  font: 500 .8rem/1.35 var(--font); color: var(--ink);
+}
+.ws-list li.got { color: var(--dim); }
+
+/* ---------- SENTENCE SCRAMBLE --------------------------------------------------------------------
+   THE SENTENCE BEING BUILT IS A STRIP OF PAPER WRITTEN OUT, and the chips under it never move. A used
+   chip stays where it was, dimmed, so the word your finger was going for next is where it was a
+   moment ago — see the note over `SS_SENTENCES` in games.js.
+
+   CHIPS ARE 44px IN px, the one measurement here that does not scale. The strip is not a control. */
+.ss-built {
+  min-height: 2.9em; margin: .55rem 0 0; padding: .45rem .6rem;
+  border: 1px dashed var(--line); border-radius: var(--r-sm);
+  font: 500 .95rem/1.4 var(--font); color: var(--ink);
+}
+.ss-built.is-right { border: 1px solid var(--gold); }
+.ss-built.is-wrong { border-color: var(--warn); }
+.ss-empty { color: var(--faint); }
+.ss-chips { display: flex; flex-wrap: wrap; gap: .4rem; margin: .55rem 0 0; }
+.ss-chip {
+  min-height: 44px; min-width: 44px; padding: 0 .6rem;
+  background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
+  border-radius: var(--r-sm); font: 500 .9rem/1 var(--font); cursor: pointer;
+}
+.ss-chip.used { opacity: .35; border-style: dashed; }
+.ss-chip:disabled { cursor: default; }
+/* CHECK AND NEW SENTENCE SIDE BY SIDE, the correction `.btn-row .btn` already makes to `.btn`'s
+   full width. */
+.ss-acts { display: flex; gap: .5rem; margin: .55rem 0 0; }
+.ss-acts .btn { width: auto; flex: 1 1 0; padding: 0 .6rem; }
+
 /* ==================================================================================================
    SCRABBLE
 

@@ -793,13 +793,23 @@ for (const who of VISITORS) {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
       await page.waitForTimeout(520);
     };
-    const KEEPERS = 'textarea, .msg-body, #docket-body, .feed-text, .widget-squeeze';
+    /* `.ws` AND `.ss-chips` ARE NOT KEEPERS — THEY ARE HERE TO PROVE THEY ARE NOT. The word search
+       and the sentence scramble are grids of small buttons a finger lands on to swipe as often as to
+       tap, and both chose taps over a drag precisely so that a swipe starting on them would still be
+       the grid's (see `WS_THEMES` in games.js). A mouse cannot say whether that holds on a phone;
+       real touch events can. */
+    const KEEPERS = 'textarea, .msg-body, #docket-body, .feed-text, .widget-squeeze, .ws, .ss-chips';
     for (const id of tabs) {
       await page.evaluate(x => go(x, false, true), id);
       await page.waitForTimeout(420);
       const n = await page.evaluate(x => (typeof pageCount === 'function' ? pageCount(x) : 0), id);
       for (let i = 0; i < n; i++) {
-        await page.evaluate(a => goPage(a.id, a.i, true), { id, i });
+        /* `go` AS WELL AS `goPage`, EVERY PAGE. The sideways swipe below leaves the app on the NEXT column,
+           and `goPage` alone turned this column's page while it sat off-screen to the left — so after the
+           first sideways swipe on a column every later page's spots were measured at x < 0, filtered out as
+           off the screen, and never swiped from. Found because the sentence scramble's chips, eleven pages
+           into Games, were never measured. */
+        await page.evaluate(a => { go(a.id, false, true); goPage(a.id, a.i, true); }, { id, i });
         await page.waitForTimeout(460);
         const spots = await page.evaluate(a => {
           const pane = [...document.querySelectorAll('#s-' + a.id + ' .pane')][a.i];

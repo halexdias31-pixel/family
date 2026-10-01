@@ -1506,6 +1506,668 @@ document.addEventListener('keydown', e => {
 });
 
 /* ==================================================================================================
+   SENTENCE SCRAMBLE — the words of one sentence, cut up and shuffled; tap them back into order.
+
+   ASKED FOR AS "Sentence Scramble - Groups race to arrange cut-up paper words into a grammatically
+   correct sentence." The paper version is a sentence cut into words with scissors, and that decides
+   what a chip carries: THE WORD AS IT WAS PRINTED, capital letter, comma and full stop included. A
+   strip of paper keeps its punctuation, and the capital on the first word and the full stop on the
+   last are the two clues every child uses first — they are part of the game, not a giveaway.
+
+   ONE AREA OF CHIPS THAT NEVER MOVES, and the sentence being built written out above it. Two areas
+   — a pool and a line the chips travel into — is the paper version laid out faithfully and it is two
+   blocks of 44px rows on a card a phone has 534px for; and a chip that leaves the pool reflows every
+   chip after it, so the word your finger was going for next has moved. A used chip stays where it
+   was, dimmed, and tapping it again takes that word back out of the sentence. Nothing jumps.
+
+   MORE THAN ONE RIGHT ORDER IS A REAL CASE, and the owner's brief says so: a sentence whose words can
+   be validly arranged more than one way must accept every one of them or not be in the list. An
+   entry that is an ARRAY is the sentence followed by its other valid orders, and `ssRight_` accepts
+   any of them. `check-widgets.js` refuses an alternative that is not the same chips, because an
+   alternative that uses a word the pool does not have is one nobody can ever build.
+
+   WHAT WAS WEEDED OUT, so the next sentence added is held to the same rule. A sentence where two
+   noun phrases can swap and still make sense ("The teacher thanked the student"), a floating adverb
+   ("quickly", "loudly", "carefully" mid-sentence), an adjective that fits either noun, or two names
+   in symmetric roles — each of those is a sentence with a second right answer that a child would be
+   told is wrong. Each was either rewritten until only one order makes sense, or listed with its
+   alternative. A grammatical NONSENSE order ("The oven took the bread out of the baker") is marked
+   wrong, and that is the right answer: the brief is a sentence that is correct, not merely parsed.
+
+   NO TIMER AND NO SCORE, for the reason Herd Mentality gives: "Groups race" is the people at the
+   table racing each other, and the race is theirs to run. The app deals, checks, and deals again.
+
+   THE SENTENCE SURVIVES A REPAINT, which is Scrabble's rule: `repaint` runs whenever a payload lands,
+   and a half-built sentence that dealt itself again would throw away what somebody had tapped. New
+   sentence or Skip is the only thing that throws one away.
+================================================================================================== */
+const SS_BANDS = [['KS2', 'KS2 · ages 7–11'], ['KS3', 'KS3 · ages 11–14'], ['KS4', 'KS4 · GCSE']];
+
+const SS_SENTENCES = {
+  /* KS2 — simple and compound sentences, fronted adverbials with their comma, relative clauses,
+     apostrophes, questions, commands and exclamations: what the Year 3–6 grammar list asks for. */
+  KS2: [
+    'My sister plays the piano every evening.',
+    'The hungry fox crept towards the henhouse.',
+    'We packed our bags because the bus was leaving early.',
+    'After lunch, the children played football on the field.',
+    'Can you pass me the salt, please?',
+    'Remember to close the door when you leave.',
+    'What a beautiful rainbow that is!',
+    'The boy who lost his shoe hopped all the way home.',
+    'Our class visited the museum, which was full of dinosaur bones.',
+    'Mum’s car would not start this morning.',
+    'The dog’s tail wagged when he saw his lead.',
+    'Although it was raining, we went for a walk.',
+    'I could not sleep, so I read my book.',
+    'The swimmers dived into the pool at the sound of the whistle.',
+    'Please wash your hands before dinner.',
+    'The children’s paintings were hung in the hall.',
+    'If you are tired, you should go to bed.',
+    'Grandpa told us a story about a dragon.',
+    'The cake, which Dad baked, was delicious.',
+    'Our teacher smiled because everyone had finished their work.',
+    'Have you ever seen a shooting star?',
+    'The kite flew high above the trees.',
+    'Lily’s brother is taller than her.',
+    'The farmer fed the pigs before breakfast.',
+    'Carefully, she carried the eggs across the kitchen.',
+    'There are seven days in a week.',
+    'Tom kicked the ball and it smashed the window.',
+    ['The baby giggled when the puppy licked her face.',
+     'The puppy giggled when the baby licked her face.'],
+    'We will visit our cousins in the summer holidays.',
+    'My favourite subject at school is science.',
+    'The moon lit up the path through the woods.',
+    'When the bell rang, everyone rushed outside.',
+    'Have you finished your homework yet?',
+    'The giant’s footsteps shook the ground.',
+    'Stop running in the corridor!',
+    'Ben, who is my best friend, lives next door.',
+    'The flowers grew tall because they had lots of sunshine.',
+    'She wasn’t hungry, so she didn’t eat her lunch.',
+    'Owls hunt for mice at night.',
+    'The pirate buried his treasure on a deserted island.',
+    'I’ve lost my pencil case again!',
+    'The bus driver waited for the last passenger.',
+    'Despite the wind, the boat reached the harbour safely.',
+    'Those muddy boots belong to my dad.',
+    'A spider spun a web in the corner of the room.',
+    'We clapped at the end of the show.',
+    'Where did you put the scissors?',
+    'The rabbit hopped out of its burrow and sniffed the air.',
+    'Everyone cheered as the winner crossed the line.',
+    'My grandma knits warm jumpers for the whole family.',
+    'The library is closed on Sundays.',
+    'Because he was late, Sam ran to school.',
+    'The ice cream melted in the hot sun.',
+    'Our neighbour’s cat climbed onto the shed roof.',
+    'How many legs does a spider have?',
+    'The knight drew his sword and charged at the dragon.',
+    'Mum asked me to tidy my bedroom.',
+    ['The leaves turn orange and fall in autumn.', 'The leaves fall and turn orange in autumn.'],
+    'It was so cold that the pond froze.',
+    'The hedgehog curled into a tight ball.',
+    'Did you remember to feed the fish?',
+    'Running across the playground, Mia tripped over her laces.',
+    'The postman left a parcel by the front door.',
+    'Is it your turn to walk the dog?',
+    'The tallest tower in the city has fifty floors.',
+    'Wait for the green man before you cross.',
+  ],
+  /* KS3 — subordinate and relative clauses, the passive, conditionals, semicolons, inversion for
+     emphasis, and lists with their commas. */
+  KS3: [
+    'The cake sank because the oven had not been heated properly.',
+    'Having finished the race, the runners collapsed onto the grass.',
+    'The castle, which was built in 1066, still stands today.',
+    'If I had known about the party, I would have come.',
+    'The novel was written by a teenager in just six weeks.',
+    'She was nervous; nevertheless, she stepped onto the stage.',
+    'Not only did he win, but he also broke the record.',
+    'The volcano erupted without warning, destroying several villages.',
+    'Although the film was long, nobody in the audience left early.',
+    'The detective examined the footprints that had been left in the mud.',
+    'Climate change is affecting wildlife all over the world.',
+    'My uncle, a keen gardener, grows his own vegetables.',
+    'Whoever finishes first will receive a prize.',
+    'The students were told to bring a calculator and a ruler.',
+    'Unless you apologise, she will never speak to you again.',
+    'The bridge, which had stood for centuries, collapsed in the flood.',
+    'Rarely have I seen such a spectacular sunset.',
+    'The ancient Egyptians built pyramids as tombs for their kings.',
+    'We could hear the waves crashing against the rocks below.',
+    'The scientist, who had worked through the night, made a breakthrough.',
+    'Despite being injured, the goalkeeper refused to leave the pitch.',
+    ['The museum is closed while the new gallery is being built.',
+     'The new gallery is closed while the museum is being built.'],
+    'Tired and hungry, the explorers set up camp for the night.',
+    'The more you practise, the better you become.',
+    'Shakespeare wrote many of his plays for the Globe Theatre.',
+    'The puppy, which had been abandoned, was adopted by a kind family.',
+    'As soon as the alarm sounded, the building was evacuated.',
+    'The witness claimed that she had seen a man running away.',
+    ['Plants need light, water and carbon dioxide to grow.',
+     'Plants need light, carbon dioxide and water to grow.'],
+    'The teacher, smiling, handed back the test papers.',
+    ['Neither the coach nor the players expected the result.',
+     'Neither the players nor the coach expected the result.'],
+    'The village was cut off after heavy snow blocked the roads.',
+    'Some people believe that the house is haunted.',
+    'The athlete trained every day so that she could compete in the Olympics.',
+    'Wearing a disguise, the spy slipped past the guards.',
+    'The town’s oldest resident celebrated her hundredth birthday.',
+    'It is important to drink plenty of water during exercise.',
+    'The storm had passed, but fallen trees blocked every road.',
+    'When the curtain rose, the audience fell silent.',
+    'The fossil, discovered by a schoolgirl, is millions of years old.',
+    ['You should revise regularly rather than cramming the night before.',
+     'You should regularly revise rather than cramming the night before.'],
+    'The cheetah is the fastest land animal in the world.',
+    'Should you need any help, please ask a member of staff.',
+    'The ship sank after it struck an iceberg.',
+    ['Many of the trees in the forest were planted a century ago.',
+     'Many of the trees were planted in the forest a century ago.'],
+    'The company apologised for the delay and offered a refund.',
+    'Having read the instructions, I assembled the bookshelf.',
+    'There is no evidence that the vaccine causes harm.',
+    'The poem describes a soldier’s memories of the war.',
+    'Because the river had flooded, the match was postponed.',
+    'The headteacher announced that the school would close early.',
+    'Hardly anyone noticed when the lights went out.',
+    'The recipe calls for two eggs, flour and a pinch of salt.',
+    'The orchestra played so beautifully that some people cried.',
+    'Our planet is the only one known to support life.',
+  ],
+  /* KS4 — the sentences a GCSE essay is built from: participle and absolute phrases, the subjunctive,
+     inversion after a negative, colons and semicolons, and the vocabulary of literature and science
+     answers. */
+  KS4: [
+    'Had the government acted sooner, thousands of lives might have been saved.',
+    'The evidence suggests that the fire was started deliberately.',
+    'Macbeth’s ambition, fuelled by the witches’ prophecy, leads to his downfall.',
+    'It is essential that every student submit their coursework on time.',
+    'The writer uses pathetic fallacy to reflect the character’s despair.',
+    'Not until the final chapter is the murderer’s identity revealed.',
+    'Social media, despite its benefits, can have a harmful effect on teenagers.',
+    ['The results were inconclusive; further research is therefore required.',
+     'The results were inconclusive; therefore further research is required.'],
+    ['Whereas the first poem celebrates nature, the second presents it as threatening.',
+     'Whereas the second poem celebrates nature, the first presents it as threatening.'],
+    'Scrooge, once bitter and lonely, is transformed by the end.',
+    'The protesters demanded that the factory be closed immediately.',
+    'Only by working together can we solve the climate crisis.',
+    'The narrator’s use of the first person creates a sense of intimacy.',
+    'Inflation rose sharply, causing the price of food to increase.',
+    'Were the bridge to collapse, the town would be cut off completely.',
+    'The data, which was collected over ten years, reveals a clear trend.',
+    'Although she was offered a promotion, she chose to retire.',
+    'The author presents the city as a place of danger and corruption.',
+    'The candidate who receives the most votes will become mayor.',
+    'Language is constantly evolving, as new words enter everyday use.',
+    'The theme of isolation is explored throughout the play.',
+    'Under no circumstances should the fire doors be left open.',
+    'The reaction speeds up when the temperature is increased.',
+    'In the final stanza, the speaker reflects on what has been lost.',
+    'Priestley uses the Inspector as a mouthpiece for his own views.',
+    'The industrial revolution transformed the way people lived and worked.',
+    'So convincing was his argument that the jury acquitted him.',
+    ['The juxtaposition of light and dark highlights the contrast between good and evil.',
+     'The juxtaposition of dark and light highlights the contrast between good and evil.'],
+    'What the tragedy ultimately reveals is the destructive power of jealousy.',
+    'Exercise not only improves fitness but also reduces stress.',
+    'The colonies gained independence after decades of resistance.',
+    'Despite repeated warnings, the climbers continued towards the summit.',
+    'Her refusal to conform makes her a symbol of rebellion.',
+    'The lower the temperature, the slower the particles move.',
+    'Having been rejected by society, the creature seeks revenge.',
+    'It could be argued that the ending is deliberately ambiguous.',
+    'The report, published last week, criticises the government’s response.',
+    'Never before had the village witnessed such a celebration.',
+    'The metaphor suggests that memory is both fragile and precious.',
+    'Carbon dioxide is released when fossil fuels are burned.',
+    'If the treaty had been signed, the war might have been avoided.',
+    'The speaker’s tone shifts from anger to acceptance.',
+    'Unemployment, which had been falling, began to rise again.',
+    'The poet’s use of enjambment mirrors the flow of the river.',
+    'Tybalt’s death marks the turning point of the play.',
+    'Antibiotics are ineffective against viruses because viruses lack cells.',
+    'To what extent is Lady Macbeth responsible for the murder?',
+    'The government introduced the policy, hoping to reduce traffic.',
+    'The setting, a remote island, heightens the sense of danger.',
+    'Few could have predicted how quickly the empire would fall.',
+    'Although widely praised, the film failed to make a profit.',
+    'The second law of thermodynamics states that entropy always increases.',
+  ],
+};
+
+/* THE WORDS OF AN ENTRY, AS CHIPS. Split on spaces and nothing else, so a comma or a full stop stays
+   on the word it was printed against — which is what a strip of cut paper does. */
+function ssOrders_(entry) {
+  return (Array.isArray(entry) ? entry : [entry]).map(s => String(s).trim().split(/\s+/));
+}
+
+/* RIGHT IF IT IS ANY OF THE STATED ORDERS, compared word by word as TEXT rather than chip by chip, so
+   two chips that both say "the" are interchangeable — which they are on paper too. */
+function ssRight_(entry, words) {
+  const got = (words || []).join(' ');
+  return ssOrders_(entry).some(o => o.join(' ') === got);
+}
+
+/* HOW MANY WORDS FROM THE START ARE RIGHT, against whichever stated order agrees for longest. That is
+   the one hint the card gives, and it is the one a teacher gives: "you're right up to here". */
+function ssPrefix_(entry, words) {
+  let best = 0;
+  ssOrders_(entry).forEach(o => {
+    let n = 0;
+    while (n < o.length && n < words.length && o[n] === words[n]) n++;
+    if (n > best) best = n;
+  });
+  return best;
+}
+
+/* ONE PILE PER BAND, dealt from the top and shuffled again when it runs out — the promise `impDraw_`
+   makes: no sentence comes round twice until the band has. */
+const SS_PILE = {};
+function ssDraw_(band) {
+  const list = SS_SENTENCES[band] || SS_SENTENCES.KS2;
+  if (!SS_PILE[band] || !SS_PILE[band].length) SS_PILE[band] = herdShuffle_(list.map((_, i) => i));
+  return list[SS_PILE[band].pop()];
+}
+
+function ssBand_(b) {
+  if (b !== undefined) {
+    try { localStorage.setItem('ss-band', b); } catch (e) {}
+    return b;
+  }
+  let v = 'KS2';
+  try { v = localStorage.getItem('ss-band') || 'KS2'; } catch (e) {}
+  return SS_SENTENCES[v] ? v : 'KS2';
+}
+
+let SS = null;
+
+/* SHUFFLED UNTIL IT IS NOT ALREADY RIGHT. A deal that came out in order is a sentence handed over
+   solved, and with five words that is one deal in a hundred and twenty. */
+function ssDeal_(band) {
+  const entry = ssDraw_(band);
+  const words = ssOrders_(entry)[0];
+  let chips = herdShuffle_(words);
+  for (let i = 0; i < 20 && ssRight_(entry, chips); i++) chips = herdShuffle_(words);
+  SS = { band: band, entry: entry, chips: chips, picked: [], verdict: '', said: '' };
+}
+
+/* DRAWN FROM THE STATE, the `REEL_HELD` rule, and EVERY CONTROL IS BUILT HERE — the Scrabble
+   lesson: Check is not on the page until there is a sentence to check. */
+function ssPaint() {
+  const box = $('ss-box'), said = $('ss-said'), sel = $('ss-level');
+  if (!box || !SS) return;
+  if (sel) sel.value = SS.band;
+  const right = SS.verdict === 'right';
+  const words = SS.picked.map(i => SS.chips[i]);
+  const all = SS.picked.length === SS.chips.length;
+  box.innerHTML = `<p class="ss-built${right ? ' is-right' : ''}${SS.verdict === 'wrong' ? ' is-wrong' : ''}">`
+    + (words.length ? esc(words.join(' ')) : '<span class="ss-empty">Tap the first word</span>')
+    + `</p>`
+    /* NO CHIPS ONCE IT IS RIGHT. The strip above says the whole sentence, and a pool of fourteen
+       dimmed chips under it is fourteen things that look pressable and do nothing — and at 320px
+       they were what shrank the card to 88% to fit. */
+    + (right ? '' : `<div class="ss-chips">`
+      + SS.chips.map((w, i) => {
+          const used = SS.picked.indexOf(i) !== -1;
+          return `<button class="ss-chip${used ? ' used' : ''}" data-do="ss-word" data-i="${i}"`
+            + ` aria-pressed="${used}">${esc(w)}</button>`;
+        }).join('')
+      + `</div>`)
+    + `<div class="ss-acts">`
+    + (right
+        ? `<button class="btn" data-do="ss-next">Next sentence</button>`
+        : `<button class="btn" data-do="ss-check"${all ? '' : ' disabled'}>Check</button>`
+          + `<button class="btn quiet" data-do="ss-new">Skip</button>`)
+    + `</div>`;
+  if (said) said.textContent = SS.said;
+}
+
+function initScramble() {
+  if (!$('ss-box')) return;
+  const sel = $('ss-level');
+  if (sel && !sel.options.length) {
+    sel.innerHTML = SS_BANDS.map(b => `<option value="${b[0]}">${esc(b[1])}</option>`).join('');
+  }
+  if (!SS) ssDeal_(ssBand_());
+  ssPaint();
+}
+
+on('ss-word', el => {
+  if (!SS || SS.verdict === 'right') return;
+  const i = parseInt(el.getAttribute('data-i'), 10);
+  if (!(i >= 0 && i < SS.chips.length)) return;
+  const at = SS.picked.indexOf(i);
+  if (at === -1) SS.picked.push(i); else SS.picked.splice(at, 1);
+  SS.verdict = ''; SS.said = '';
+  ssPaint();
+});
+on('ss-check', () => {
+  if (!SS || SS.picked.length !== SS.chips.length) return;
+  const words = SS.picked.map(i => SS.chips[i]);
+  if (ssRight_(SS.entry, words)) {
+    SS.verdict = 'right';
+    SS.said = 'That’s it.';
+  } else {
+    const n = ssPrefix_(SS.entry, words);
+    SS.verdict = 'wrong';
+    SS.said = n === 0 ? 'Not quite — the first word isn’t right. Tap a word to take it back.'
+      : 'Not quite — the first ' + (n === 1 ? 'word is' : n + ' words are') + ' right.'
+        + ' Tap a word to take it back.';
+  }
+  ssPaint();
+});
+/* NEXT AND SKIP ARE THE SAME DEAL WITH DIFFERENT WORDS ON THEM: one after a sentence is right, the
+   other to give up on one that is not. Two names so each button says what it is for — and "Skip"
+   rather than "New sentence", which wrapped onto two lines beside Check at 320px. */
+on('ss-next', () => { ssDeal_(SS ? SS.band : ssBand_()); ssPaint(); });
+on('ss-new', () => { ssDeal_(SS ? SS.band : ssBand_()); ssPaint(); });
+on('ss-level', el => {
+  const b = SS_SENTENCES[el.value] ? el.value : 'KS2';
+  ssBand_(b);
+  ssDeal_(b);
+  ssPaint();
+});
+
+/* ==================================================================================================
+   WORD SEARCH — a grid of letters with a list of words hidden in it.
+
+   ASKED FOR AS "He also used to like mazes and word searches". The maze was already here.
+
+   A TAP ON THE FIRST LETTER AND A TAP ON THE LAST, NOT A DRAG, and the maze is the precedent for why.
+   Up, down, left and right are the four gestures this app navigates by, so a word search that read a
+   finger dragged across the grid would fight the pager on the one screen it lives on — and the only
+   way to win that fight is `data-noswipe` over the whole grid, which is most of the card, which is a
+   card you cannot swipe off. The pen pad pays that price with a padlock you have to press first; a
+   word search would have to pay it on every word. Two taps cost nothing: a tap is a click, the app
+   already tells a click from a drag (`PRESS_MOVED` in shell.js swallows the click a swipe produces),
+   so a swipe that starts on the grid still turns the page and arms nothing. It also works with a
+   mouse, a pen and a keyboard, which a drag would have had to be written three times for.
+
+   A CELL CANNOT BE 44px, which is the maze's and Scrabble's arithmetic: ten of them is 440px and the
+   narrowest phone here is 320. `ACCEPTED_TAP` in check/ui.js carries the numbers. What makes it
+   liveable is what makes an hour cell liveable: a wrong tap costs nothing. A first tap on the wrong
+   letter is replaced by tapping the right one, and a second tap that is not in a line with the first
+   simply starts again from there.
+
+   YOUNGER PUZZLES READ FORWARDS ONLY — left to right, top to bottom, and down the diagonal — which is
+   the brief's "forward only for younger", and is what makes a first word search possible at all.
+   Older ones hide words in all eight directions.
+
+   THE FILLER IS CHECKED FOR WORDS NOBODY SHOULD FIND, and the arithmetic is why that is not
+   paranoia. A three-letter word has a one-in-17,576 chance at any one place and direction, and a
+   ten-by-ten grid has about 800 of those — so a given three-letter word turns up by chance in about
+   one grid in twenty, on a site whose players are children. `WS_NOT` is the backend's handle
+   blocklist (`HANDLE_BLOCKED` in constants.gs) and `check-widgets.js` refuses the two disagreeing;
+   the grid is read in all eight directions whatever the puzzle's own, because a child reads them all.
+
+   THE PUZZLE SURVIVES A REPAINT, Scrabble's rule again: half the words found and then a payload
+   landing must not deal a new grid. New puzzle is the only thing that does.
+================================================================================================== */
+const WS_DIRS = { e: [1, 0], s: [0, 1], se: [1, 1], ne: [1, -1],
+                  w: [-1, 0], n: [0, -1], nw: [-1, -1], sw: [-1, 1] };
+const WS_FORWARD = ['e', 's', 'se'];
+
+/* EVERY THEME SAYS ITS OWN SIZE, HOW MANY WORDS, AND WHETHER THEY ONLY READ FORWARDS, because "for
+   younger" is a fact about the theme rather than a second control to set. The Years 5–6 spellings are
+   a younger list with older words — "dictionary" is ten letters — so they get the bigger grid and
+   keep the forward rule. The spelling lists are the statutory Years 3–4 and 5–6 words from the
+   national curriculum's English appendix, cut to what fits the grid. */
+const WS_THEMES = [
+  { id: 'y34', name: 'Years 3–4 spellings', young: true, size: 8, n: 6, words: [
+    'accident', 'actual', 'address', 'answer', 'appear', 'arrive', 'believe', 'bicycle', 'breath',
+    'build', 'busy', 'business', 'calendar', 'caught', 'centre', 'century', 'certain', 'circle',
+    'complete', 'consider', 'continue', 'decide', 'describe', 'early', 'earth', 'eight', 'enough',
+    'exercise', 'extreme', 'famous', 'February', 'forward', 'fruit', 'grammar', 'group', 'guard',
+    'guide', 'heard', 'height', 'history', 'imagine', 'increase', 'interest', 'island', 'learn',
+    'length', 'library', 'material', 'medicine', 'mention', 'minute', 'natural', 'naughty', 'notice',
+    'occasion', 'often', 'opposite', 'ordinary', 'peculiar', 'perhaps', 'popular', 'position',
+    'possess', 'possible', 'potatoes', 'pressure', 'probably', 'promise', 'purpose', 'quarter',
+    'question', 'recent', 'regular', 'reign', 'remember', 'sentence', 'separate', 'special',
+    'straight', 'strange', 'strength', 'suppose', 'surprise', 'though', 'thought', 'through',
+    'various', 'weight', 'woman', 'women'] },
+  { id: 'animals', name: 'Animals', young: true, size: 8, n: 6, words: [
+    'badger', 'beaver', 'camel', 'cheetah', 'dolphin', 'eagle', 'ferret', 'gerbil', 'giraffe',
+    'gorilla', 'hamster', 'hedgehog', 'jaguar', 'koala', 'leopard', 'lizard', 'lobster', 'meerkat',
+    'octopus', 'ostrich', 'otter', 'panda', 'parrot', 'penguin', 'pigeon', 'rabbit', 'reindeer',
+    'salmon', 'squirrel', 'tiger', 'toucan', 'turtle', 'walrus', 'weasel', 'whale', 'zebra'] },
+  { id: 'sci2', name: 'Science, KS2', young: true, size: 8, n: 6, words: [
+    'magnet', 'light', 'shadow', 'mirror', 'plant', 'root', 'stem', 'flower', 'seed', 'pollen',
+    'force', 'gravity', 'friction', 'circuit', 'battery', 'switch', 'bulb', 'wire', 'solid',
+    'liquid', 'melt', 'freeze', 'rock', 'soil', 'fossil', 'skeleton', 'muscle', 'teeth', 'lungs',
+    'habitat', 'planet', 'orbit', 'moon', 'sound', 'vibrate', 'magnify'] },
+  { id: 'y56', name: 'Years 5–6 spellings', young: true, size: 10, n: 7, words: [
+    'amateur', 'ancient', 'apparent', 'attached', 'available', 'average', 'awkward', 'bargain',
+    'bruise', 'category', 'cemetery', 'committee', 'community', 'conscience', 'conscious',
+    'correspond', 'criticise', 'curiosity', 'definite', 'desperate', 'determined', 'develop',
+    'dictionary', 'disastrous', 'embarrass', 'equipment', 'especially', 'exaggerate', 'excellent',
+    'existence', 'familiar', 'foreign', 'forty', 'frequently', 'government', 'guarantee', 'harass',
+    'hindrance', 'identity', 'immediate', 'individual', 'interfere', 'interrupt', 'language',
+    'leisure', 'lightning', 'marvellous', 'muscle', 'necessary', 'neighbour', 'nuisance', 'occupy',
+    'occur', 'parliament', 'persuade', 'physical', 'prejudice', 'privilege', 'profession',
+    'programme', 'queue', 'recognise', 'recommend', 'relevant', 'restaurant', 'rhyme', 'rhythm',
+    'sacrifice', 'secretary', 'shoulder', 'signature', 'sincere', 'soldier', 'stomach',
+    'sufficient', 'suggest', 'symbol', 'system', 'thorough', 'twelfth', 'variety', 'vegetable',
+    'vehicle', 'yacht'] },
+  { id: 'sci34', name: 'Science, KS3–4', young: false, size: 10, n: 8, words: [
+    'atom', 'element', 'compound', 'molecule', 'electron', 'proton', 'neutron', 'nucleus',
+    'isotope', 'enzyme', 'osmosis', 'diffusion', 'mitosis', 'chromosome', 'velocity', 'momentum',
+    'energy', 'current', 'voltage', 'resistance', 'wavelength', 'frequency', 'catalyst',
+    'reaction', 'oxidation', 'acid', 'alkali', 'neutral', 'density', 'pressure', 'organism',
+    'ecosystem', 'predator', 'species', 'hormone', 'insulin', 'glucose', 'vaccine', 'antibody',
+    'bacteria', 'virus', 'gene', 'protein', 'neuron'] },
+  { id: 'maths', name: 'Maths', young: false, size: 10, n: 8, words: [
+    'fraction', 'decimal', 'percent', 'integer', 'prime', 'factor', 'multiple', 'square', 'cube',
+    'radius', 'diameter', 'triangle', 'polygon', 'angle', 'parallel', 'vertex', 'volume', 'area',
+    'perimeter', 'symmetry', 'equation', 'formula', 'gradient', 'sequence', 'ratio', 'average',
+    'median', 'mode', 'range', 'algebra', 'quadratic', 'tangent', 'sine', 'cosine', 'vector',
+    'hexagon', 'pentagon', 'circle', 'cylinder', 'product', 'quotient', 'inverse'] },
+  { id: 'geog', name: 'Geography', young: false, size: 10, n: 8, words: [
+    'river', 'mountain', 'valley', 'volcano', 'glacier', 'desert', 'climate', 'weather', 'erosion',
+    'delta', 'estuary', 'tributary', 'meander', 'continent', 'country', 'capital', 'equator',
+    'latitude', 'longitude', 'ocean', 'island', 'tsunami', 'earthquake', 'tectonic', 'magma',
+    'rainforest', 'tundra', 'savanna', 'population', 'migration', 'settlement', 'urban', 'rural',
+    'contour', 'compass', 'monsoon', 'drought', 'flood', 'coast'] },
+];
+
+/* A COPY OF `HANDLE_BLOCKED` FROM backend/constants.gs, and `check-widgets.js` fails if the two
+   differ. A copy rather than a fetch because the backend list never reaches the phone, and a
+   word search must not wait on a network to decide what it may print; a check rather than trust
+   because a copy kept by hand is the second reader this repository keeps finding. */
+const WS_NOT = [
+  'anal', 'anus', 'arse', 'bastard', 'bitch', 'bollock', 'boner', 'clit', 'cock', 'coon', 'cum',
+  'cunt', 'dick', 'dildo', 'dyke', 'fag', 'fanny', 'fuck', 'gash', 'gook', 'incest', 'jizz',
+  'kike', 'knob', 'minge', 'nigg', 'nonce', 'paedo', 'pedo', 'penis', 'piss', 'porn', 'prick',
+  'pussy', 'queer', 'rape', 'retard', 'scrote', 'semen', 'sex', 'shag', 'shit', 'slag', 'slut',
+  'smeg', 'spastic', 'spic', 'sperm', 'tits', 'titty', 'tosser', 'tranny', 'twat', 'vagina',
+  'wank', 'whore', 'wog', 'nazi', 'hitler', 'kkk', 'isis', 'suicide', 'selfharm',
+];
+
+/* THE LETTERS OF A WORD, which is what goes in the grid: capitals, nothing but A to Z. */
+const wsKey_ = w => String(w).toUpperCase().replace(/[^A-Z]/g, '');
+
+/* DOES THE GRID SPELL ANYTHING ON `WS_NOT`, read from every cell in every one of the eight
+   directions. */
+function wsRude_(grid, size) {
+  const bad = WS_NOT.map(wsKey_);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      for (const k of Object.keys(WS_DIRS)) {
+        const [dx, dy] = WS_DIRS[k];
+        let s = '';
+        for (let i = 0, cx = x, cy = y; i < 8 && cx >= 0 && cy >= 0 && cx < size && cy < size;
+             i++, cx += dx, cy += dy) s += grid[cy * size + cx];
+        if (bad.some(b => s.startsWith(b))) return true;
+      }
+    }
+  }
+  return false;
+}
+
+/* ONE PUZZLE. Longest words first, because they are the hard ones to fit and a short word fits in
+   whatever is left. A word that is inside another one already placed — "angle" and "triangle",
+   "sine" and "cosine" — is skipped, because finding the short one inside the long one would be
+   finding the wrong word. Returns null only if sixty whole attempts fail, which on these sizes does
+   not happen; the caller says so rather than drawing an empty grid. */
+function wsBuild_(theme) {
+  const size = theme.size, dirs = theme.young ? WS_FORWARD : Object.keys(WS_DIRS);
+  const words = theme.words.filter(w => { const k = wsKey_(w); return k.length >= 3 && k.length <= size; });
+  for (let attempt = 0; attempt < 60; attempt++) {
+    const grid = new Array(size * size).fill('');
+    const placed = [];
+    /* THE DEAL IS THE FIRST `n` OF A SHUFFLE, AND ONLY THE DEAL IS PLACED LONGEST-FIRST. The first
+       version sorted three puzzles' worth of words by length and placed from the top, so every grid got
+       the LONGEST six of eighteen — and a younger 8x8 drew six eight-letter words, six whole rows of
+       words with two rows of filler between them: a list of rows rather than a puzzle. The rest of the
+       shuffle are spares, used only when a word will not fit or sits inside one already placed.
+       AND ONE WORD AT MOST RUNS THE WHOLE WIDTH OF THE GRID, because two such words can only share a
+       line by crossing at one letter, so the third and fourth end up parallel and the grid reads in
+       one direction. */
+    const pool = [];
+    let full = 0;
+    for (const w of herdShuffle_(words)) {
+      if (pool.length >= theme.n * 3) break;
+      if (wsKey_(w).length === size) { if (full) continue; full++; }
+      pool.push(w);
+    }
+    const byLen = (a, b) => wsKey_(b).length - wsKey_(a).length;
+    pool.splice(0, theme.n, ...pool.slice(0, theme.n).sort(byLen));
+    for (const word of pool) {
+      if (placed.length >= theme.n) break;
+      const key = wsKey_(word);
+      if (placed.some(p => p.key.indexOf(key) !== -1 || key.indexOf(p.key) !== -1)) continue;
+      for (let t = 0; t < 150; t++) {
+        const [dx, dy] = WS_DIRS[dirs[Math.floor(Math.random() * dirs.length)]];
+        const x0 = Math.floor(Math.random() * size), y0 = Math.floor(Math.random() * size);
+        const x1 = x0 + dx * (key.length - 1), y1 = y0 + dy * (key.length - 1);
+        if (x1 < 0 || y1 < 0 || x1 >= size || y1 >= size) continue;
+        const cells = [];
+        let ok = true;
+        for (let i = 0; i < key.length; i++) {
+          const at = (y0 + dy * i) * size + (x0 + dx * i);
+          if (grid[at] && grid[at] !== key[i]) { ok = false; break; }
+          cells.push(at);
+        }
+        if (!ok) continue;
+        cells.forEach((at, i) => { grid[at] = key[i]; });
+        placed.push({ word: word, key: key, cells: cells, found: false });
+        break;
+      }
+    }
+    if (placed.length < theme.n) continue;
+    const empty = [];
+    grid.forEach((c, i) => { if (!c) empty.push(i); });
+    for (let r = 0; r < 40; r++) {
+      empty.forEach(i => { grid[i] = String.fromCharCode(65 + Math.floor(Math.random() * 26)); });
+      if (!wsRude_(grid, size)) {
+        placed.sort((a, b) => a.word.localeCompare(b.word));
+        return { theme: theme.id, size: size, grid: grid, words: placed, got: [], sel: null, said: '' };
+      }
+    }
+  }
+  return null;
+}
+
+const wsTheme_ = id => WS_THEMES.find(t => t.id === id) || WS_THEMES[0];
+
+function wsThemeId_(id) {
+  if (id !== undefined) {
+    try { localStorage.setItem('ws-theme', id); } catch (e) {}
+    return id;
+  }
+  let v = WS_THEMES[0].id;
+  try { v = localStorage.getItem('ws-theme') || v; } catch (e) {}
+  return wsTheme_(v).id;
+}
+
+let WS = null;
+
+function wsDeal_(id) {
+  WS = wsBuild_(wsTheme_(id));
+  if (!WS) WS = { theme: id, size: 0, grid: [], words: [], got: [], sel: null,
+                  said: 'That puzzle would not fit together. Press New puzzle.' };
+}
+
+/* THE CELLS FROM ONE TAP TO ANOTHER, or null if the two are not on one line — across, down, or a
+   true diagonal. The same cell twice is not a line either. */
+function wsLine_(size, a, b) {
+  const ax = a % size, ay = (a / size) | 0, bx = b % size, by = (b / size) | 0;
+  const dx = Math.sign(bx - ax), dy = Math.sign(by - ay);
+  const nx = Math.abs(bx - ax), ny = Math.abs(by - ay);
+  if (a === b || (nx && ny && nx !== ny)) return null;
+  const len = Math.max(nx, ny) + 1, out = [];
+  for (let i = 0; i < len; i++) out.push((ay + dy * i) * size + (ax + dx * i));
+  return out;
+}
+
+/* THE SECOND TAP. Read either way, because a child who taps the last letter first has still found
+   the word — and in an older puzzle the word may be written backwards anyway. */
+function wsPick_(i) {
+  const g = WS;
+  if (!g || !g.size || !(i >= 0 && i < g.grid.length)) return;
+  if (g.words.every(w => w.found)) return;
+  if (g.sel === null) { g.sel = i; g.said = ''; return; }
+  if (g.sel === i) { g.sel = null; g.said = ''; return; }
+  const cells = wsLine_(g.size, g.sel, i);
+  if (!cells) { g.sel = i; g.said = 'Not in a straight line — that letter is the new start.'; return; }
+  const s = cells.map(c => g.grid[c]).join('');
+  const r = s.split('').reverse().join('');
+  const hit = g.words.find(w => !w.found && (w.key === s || w.key === r));
+  g.sel = null;
+  if (!hit) { g.said = 'That’s not one of the words.'; return; }
+  hit.found = true;
+  hit.cells = cells;
+  cells.forEach(c => { if (g.got.indexOf(c) === -1) g.got.push(c); });
+  const left = g.words.filter(w => !w.found).length;
+  g.said = left ? 'Found ' + hit.word + '. ' + left + ' to go.'
+                : 'All ' + g.words.length + ' found!';
+}
+
+function wsPaint() {
+  const box = $('ws-grid'), list = $('ws-words'), said = $('ws-said'), sel = $('ws-theme');
+  if (!box || !WS) return;
+  if (sel) sel.value = WS.theme;
+  const done = WS.words.length && WS.words.every(w => w.found);
+  box.style.setProperty('--ws-n', String(WS.size || 1));
+  box.innerHTML = WS.grid.map((c, i) => {
+    const cls = ['ws-c'];
+    if (WS.got.indexOf(i) !== -1) cls.push('got');
+    if (WS.sel === i) cls.push('sel');
+    return `<button class="${cls.join(' ')}" data-do="ws-cell" data-i="${i}"`
+      + ` aria-pressed="${WS.sel === i}"${done ? ' disabled' : ''}>${esc(c)}</button>`;
+  }).join('');
+  if (list) {
+    list.innerHTML = WS.words.map(w => w.found
+      ? `<li class="got"><s>${esc(w.word)}</s></li>` : `<li>${esc(w.word)}</li>`).join('');
+  }
+  if (said) said.textContent = WS.said;
+}
+
+function initWordSearch() {
+  if (!$('ws-grid')) return;
+  const sel = $('ws-theme');
+  if (sel && !sel.options.length) {
+    const group = (young, label) => `<optgroup label="${label}">`
+      + WS_THEMES.filter(t => t.young === young)
+          .map(t => `<option value="${t.id}">${esc(t.name)}</option>`).join('')
+      + '</optgroup>';
+    sel.innerHTML = group(true, 'Younger — words read forwards')
+                  + group(false, 'Older — words go any way');
+  }
+  if (!WS) wsDeal_(wsThemeId_());
+  wsPaint();
+}
+
+on('ws-cell', el => { wsPick_(parseInt(el.getAttribute('data-i'), 10)); wsPaint(); });
+on('ws-again', () => { wsDeal_(WS ? WS.theme : wsThemeId_()); wsPaint(); });
+on('ws-theme', el => { wsDeal_(wsThemeId_(wsTheme_(el.value).id)); wsPaint(); });
+
+/* ==================================================================================================
    ARTICULATE — describe it without saying it.
 
    ASKED FOR AS "can we add articulate to the games widgets". The board game: you land on a

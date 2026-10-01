@@ -336,6 +336,12 @@ function boot(opts) {
       /* WHO MAY OPEN A WIDGET, and the two lists that ask it. `star` puts a key in the device's
          favourites the way a press on a star does, without the request. */
       'widgetFor: typeof widgetFor_ === "function" ? widgetFor_ : null,' +
+      /* THE SENTENCE SCRAMBLE AND THE WORD SEARCH, their lists and their state, so a journey can
+         deal a known sentence or puzzle and then press through the real handlers. */
+      'ss: () => SS, setSs: v => { SS = v; }, ssOrders: ssOrders_, ssRight: ssRight_,' +
+      'SS_SENTENCES: SS_SENTENCES, ssDeal: ssDeal_, ssPaint: ssPaint,' +
+      'ws: () => WS, setWs: v => { WS = v; }, wsBuild: wsBuild_, wsRude: wsRude_,' +
+      'WS_THEMES: WS_THEMES, WS_DIRS: WS_DIRS, WS_FORWARD: WS_FORWARD, wsPaint: wsPaint,' +
       'allWidgets: typeof allWidgets === "function" ? allWidgets : null,' +
       'widgetsOf: typeof widgetsOf_ === "function" ? widgetsOf_ : null,' +
       'savedWidgets: typeof savedWidgets_ === "function" ? savedWidgets_ : null,' +
@@ -857,6 +863,167 @@ check('the imposter game tells everybody the word but one, and hides it between 
   press('imp-players');
   return bad;
 });
+/* ---------- SENTENCE SCRAMBLE: TAPPED IN ORDER IS RIGHT, AND EVERY STATED ORDER IS RIGHT ------------
+   A MARKER THAT TELLS A CHILD THEY ARE WRONG IS THE ONE PART OF A GAME THAT MUST NOT BE, and every way
+   this one could be wrong draws perfectly: an alternative order refused, Check pressable on half a
+   sentence, a chip that cannot be taken back, a deal that arrives already solved. So every sentence
+   with a stated alternative is built in EACH of its orders through the real `ss-word` handler and
+   checked through the real `ss-check`. */
+check('the sentence scramble marks the right order right, every stated order, and nothing else', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.ss || !t.setSs || !t.SS_SENTENCES) return ['the sentence scramble is not exported'];
+  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  await wait(300);
+  const d = w.document;
+  if (!d.getElementById('ss-box')) return ['the sentence scramble did not draw on the Games column'];
+  const bad = [];
+  const press = (act, attrs) => {
+    const el = d.createElement('button');
+    Object.keys(attrs || {}).forEach(k => el.setAttribute(k, attrs[k]));
+    t.ACTIONS[act](el);
+  };
+  /* PRESS THE CHIPS THAT SPELL `words`, choosing an unused chip with that text each time — which is
+     what a person does when two chips both say "the". */
+  const build = words => {
+    words.forEach(wd => {
+      const s = t.ss();
+      const i = s.chips.findIndex((c, k) => c === wd && s.picked.indexOf(k) === -1);
+      if (i < 0) { bad.push('no unused chip says ' + JSON.stringify(wd)); return; }
+      press('ss-word', { 'data-i': String(i) });
+    });
+  };
+  const deal = entry => {
+    const words = t.ssOrders(entry)[0];
+    t.setSs({ band: 'KS2', entry: entry, chips: words.slice().reverse(), picked: [], verdict: '', said: '' });
+    t.ssPaint();
+  };
+  let alts = 0;
+  Object.keys(t.SS_SENTENCES).forEach(band => t.SS_SENTENCES[band].forEach(entry => {
+    const orders = t.ssOrders(entry);
+    if (!t.ssRight(entry, orders[0])) bad.push(JSON.stringify(orders[0].join(' ')) + ' is not marked right against itself');
+    orders.forEach((o, k) => {
+      if (!k) return;
+      alts++;
+      deal(entry);
+      build(o);
+      press('ss-check');
+      if (t.ss().verdict !== 'right') {
+        bad.push('the stated alternative ' + JSON.stringify(o.join(' ')) + ' was marked ' + JSON.stringify(t.ss().verdict));
+      }
+    });
+  }));
+  if (!alts) bad.push('no sentence states an alternative order, so that half was NOT checked');
+
+  /* ONE SENTENCE, THE WHOLE WAY ROUND, on the card. */
+  const entry = t.SS_SENTENCES.KS3[0];
+  const right = t.ssOrders(entry)[0];
+  deal(entry);
+  const check = () => d.querySelector('#ss-box [data-do="ss-check"]');
+  build(right.slice(0, 2));
+  if (!check() || !check().disabled) bad.push('Check can be pressed with two of ' + right.length + ' words placed');
+  const built = String((d.querySelector('#ss-box .ss-built') || {}).textContent || '');
+  if (built.trim() !== right.slice(0, 2).join(' ')) bad.push('the strip reads "' + built.trim() + '" after two taps');
+  /* A USED CHIP TAKES ITS WORD BACK. */
+  const s0 = t.ss();
+  press('ss-word', { 'data-i': String(s0.picked[1]) });
+  if (t.ss().picked.length !== 1) bad.push('tapping a used chip does not take its word back out');
+  build(right.slice(1));
+  if (!check() || check().disabled) bad.push('Check is not pressable with every word placed');
+  press('ss-check');
+  if (t.ss().verdict !== 'right' || !d.querySelector('#ss-box .ss-built.is-right')
+      || !d.querySelector('#ss-box [data-do="ss-next"]')) {
+    bad.push('the right order was not marked right on the card');
+  }
+  press('ss-next');
+  if (t.ss().picked.length || t.ss().verdict) bad.push('Next sentence does not start from an empty strip');
+
+  /* AND A WRONG ORDER IS WRONG, and says how far it got. */
+  deal(entry);
+  const wrong = right.slice(0, 2).concat(right.slice(2).reverse());
+  if (t.ssRight(entry, wrong)) bad.push('the wrong order used here is accidentally right — pick another sentence');
+  build(wrong);
+  press('ss-check');
+  if (t.ss().verdict !== 'wrong') bad.push('a wrong order was marked ' + JSON.stringify(t.ss().verdict));
+  if (!/first 2 words are right/.test(t.ss().said)) bad.push('a wrong order says "' + t.ss().said + '" rather than how far it got');
+
+  /* A DEAL NEVER ARRIVES SOLVED. */
+  for (let i = 0; i < 200; i++) {
+    t.ssDeal('KS2');
+    if (t.ssRight(t.ss().entry, t.ss().chips)) { bad.push('a deal arrived already in order: ' + t.ss().chips.join(' ')); break; }
+  }
+  return bad;
+});
+
+/* ---------- WORD SEARCH: EVERY WORD IS IN THE GRID, AND TWO TAPS FIND IT -----------------------------
+   A word search that hides a word wrongly is a puzzle nobody can finish and nothing on screen says
+   why. So fifteen puzzles of every theme are built and each placed word is READ BACK out of the grid
+   along its own cells; a younger theme's words must read forwards; and the filler must spell nothing
+   on `WS_NOT` in any direction — asked of the grid, so a build that forgot to filter fails here.
+   Then one puzzle is played through the real `ws-cell` handler, forwards and backwards. */
+check('the word search hides every word where it says, and two taps find it', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.wsBuild || !t.WS_THEMES) return ['the word search is not exported'];
+  try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
+  await wait(300);
+  const d = w.document;
+  if (!d.getElementById('ws-grid')) return ['the word search did not draw on the Games column'];
+  const bad = [];
+  const dirOf = (n, a, b) => [Math.sign((b % n) - (a % n)), Math.sign(((b / n) | 0) - ((a / n) | 0))];
+  t.WS_THEMES.forEach(th => {
+    for (let k = 0; k < 15; k++) {
+      const p = t.wsBuild(th);
+      if (!p) { bad.push(th.id + ': a puzzle could not be built'); return; }
+      if (p.words.length !== th.n) bad.push(th.id + ': ' + p.words.length + ' words placed, wanted ' + th.n);
+      if (t.wsRude(p.grid, p.size)) { bad.push(th.id + ': a grid spells a word the filter refuses'); return; }
+      /* ONE WORD AT MOST ACROSS THE WHOLE GRID — the note in `wsBuild_` is why: without it a younger
+         8x8 drew six eight-letter words as six whole rows, a list rather than a puzzle. */
+      const full = p.words.filter(x => x.key.length === p.size).length;
+      if (full > 1) bad.push(th.id + ': ' + full + ' words run the whole width of one grid');
+      p.words.forEach(wd => {
+        const read = wd.cells.map(c => p.grid[c]).join('');
+        if (read !== wd.key) bad.push(th.id + ': ' + wd.word + ' reads "' + read + '" off its own cells');
+        const [dx, dy] = dirOf(p.size, wd.cells[0], wd.cells[1]);
+        const name = Object.keys(t.WS_DIRS).find(n => t.WS_DIRS[n][0] === dx && t.WS_DIRS[n][1] === dy);
+        if (th.young && t.WS_FORWARD.indexOf(name) === -1) {
+          bad.push(th.id + ' is for younger players and hid ' + wd.word + ' going ' + name);
+        }
+      });
+    }
+  });
+  const press = i => {
+    const el = d.createElement('button');
+    el.setAttribute('data-i', String(i));
+    t.ACTIONS['ws-cell'](el);
+  };
+  const th = t.WS_THEMES.find(x => !x.young);
+  const p = t.wsBuild(th);
+  t.setWs(p);
+  t.wsPaint();
+  /* NOT IN A LINE IS NOTHING FOUND, AND THE SECOND TAP IS THE NEW START. */
+  const a = 0, b = p.size * 2 + 1;
+  press(a); press(b);
+  if (t.ws().words.some(x => x.found)) bad.push('two taps not in a line found a word');
+  if (t.ws().sel !== b) bad.push('a second tap off the line does not become the new start');
+  press(b);
+  p.words.forEach((wd, i) => {
+    const first = wd.cells[0], last = wd.cells[wd.cells.length - 1];
+    if (i % 2) { press(last); press(first); } else { press(first); press(last); }
+    if (!t.ws().words[i].found) bad.push(wd.word + ' was not found by tapping ' + (i % 2 ? 'its last then first' : 'its first then last') + ' letter');
+  });
+  const struck = d.querySelectorAll('#ws-words li.got s').length;
+  if (struck !== p.words.length) bad.push(struck + ' of ' + p.words.length + ' found words are struck through in the list');
+  const lit = d.querySelectorAll('#ws-grid .ws-c.got').length;
+  const cells = new Set([].concat(...p.words.map(x => x.cells))).size;
+  if (lit !== cells) bad.push(lit + ' cells are highlighted where the found words cover ' + cells);
+  if (!/All \d+ found/.test(String((d.getElementById('ws-said') || {}).textContent || ''))) bad.push('finishing the puzzle does not say so');
+  if (d.querySelector('#ws-grid .ws-c:not([disabled])')) bad.push('a finished grid can still be tapped');
+  return bad;
+});
+
 
 /* ---------- THE FIVE CLASSROOM GAMES: A ROUND SURVIVES A REPAINT, AND WAITS WHILE YOU ARE AWAY -----
    JUST A MINUTE, TABOO, HOT SEAT, 20 QUESTIONS AND ALIBI were asked to keep their round through a
