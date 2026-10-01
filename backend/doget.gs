@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-30-g-handlesprofile";
+const DOGET_VERSION = "2026-10-01-a-manyteach";
 
 
 function doGet(e) {
@@ -681,11 +681,13 @@ function doGet(e) {
              spreadsheet becoming a wrong number on a card. */
           /* WHAT THEY TEACH, THE SPECIALISM FIRST — derived from the two ticks on their rows of the
              `qualifications` tab by `teachesOf_`, which dedupes, so a sheet typed twice cannot put
-             one subject on the card twice. `teachesMain` says which entry is the specialism rather
-             than leaving it to position: a tutor with no specialism must not have their first
-             "can teach" drawn as one. */
+             one subject on the card twice. `teachesSpec` is EVERY level ticked Teach (several are
+             allowed), said by the server rather than left to position, so a tutor with none must
+             not have their first "can teach" drawn as one. `teachesMain` is the first of them, for a
+             phone built when there could only be one. */
           teaches: teachesOf_(r).all,
-          teachesMain: teachesOf_(r).main,
+          teachesMain: teachesOf_(r).first,
+          teachesSpec: teachesOf_(r).main,
           /* UP TO TEN, OFF THEIR ROWS OF THE `qualifications` TAB — `qualsList_` in core.gs. */
           quals: qualsList_(r).map(q => {
             const subj = S(q.subject);

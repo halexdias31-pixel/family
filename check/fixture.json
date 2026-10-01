@@ -167,6 +167,7 @@
    "actionText": "Book this tutor",
    "personId": "P-@ada",
    "teachesMain": "Maths (GCSE)",
+   "teachesSpec": ["Maths (GCSE)"],
    "photos": [
     "data/reels/archetest.jpg",
     "icon.png",

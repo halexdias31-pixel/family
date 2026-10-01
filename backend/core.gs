@@ -1161,14 +1161,13 @@ function venuesWrites_(p, chosen, venueRows) {
    every caller already had — `board` is the institution and `received` is `completed` — so the
    readers of this function did not change when the storage did.
 
-   THE SPECIALISM IS ONE AND IT IS TAUGHT. The phone unticks the others and ticks Can teach beside
-   it, but `doPost` is reachable by anybody with the URL and a row can be typed into the sheet, so
-   the rule is kept on the way in AND on the way out: the first `teach` row wins. */
+   WHAT YOU TEACH IS TAUGHT, AND IT MAY BE SEVERAL LEVELS. It was one on the whole page — the
+   phone unticked every other Teach — and that was reported as *"when i tick teach for different
+   levels of same subject it unticks the other one. i dont want that"*. So every `teach` row is a
+   Teach; the only rule kept is that Teach implies Can teach. */
 function qualsList_(r) {
-  let one = false;
   return ownRows_(TAB.qualifications, r).map(x => {
-    let spec = TRUE_(x.teach) && !one;
-    if (spec) one = true;
+    const spec = TRUE_(x.teach);
     return { subject: S(x.subject), level: S(x.level), board: S(x.institution), grade: S(x.grade),
              received: S(x.completed), spec: spec, teach: spec || TRUE_(x.can_teach) };
   }).filter(q => q.subject || q.level || q.board || q.grade || q.received).slice(0, QUAL_MAX);
@@ -1192,14 +1191,12 @@ function qualsOut(r) {
 function qualsIn(fields) {
   const yes = v => /^(true|yes|1|✓)$/i.test(S(v));
   const list = [];
-  let specDone = false;
   for (let i = 1; i <= QUAL_MAX; i++) {
     const g = k => S(fields['qual_' + i + k]).trim();
     const q = { subject: g(''), level: g('_level'), institution: g('_board'), grade: g('_grade'),
                 completed: g('_received') };
     if (!(q.subject || q.level || q.institution || q.grade || q.completed)) continue;
-    const spec = yes(fields['qual_' + i + '_spec']) && !specDone;
-    if (spec) specDone = true;
+    const spec = yes(fields['qual_' + i + '_spec']);
     q.teach = spec ? 'TRUE' : 'FALSE';
     q.can_teach = (!spec && yes(fields['qual_' + i + '_teach'])) ? 'TRUE' : 'FALSE';
     list.push(q);
@@ -1214,16 +1211,17 @@ const QUAL_COLS = ['subject', 'level', 'grade', 'institution', 'completed', 'tea
 const teachPhrase_ = q => S(q.subject) + (S(q.level) ? ' (' + S(q.level) + ')' : '');
 function teachesOf_(r) {
   const list = qualsList_(r);
-  const main = list.find(q => q.spec && q.subject);
-  const seen = {}, all = [];
-  (main ? [main] : []).concat(list.filter(q => q.teach && !q.spec)).forEach(q => {
+  const seen = {}, all = [], main = [];
+  list.filter(q => q.spec).concat(list.filter(q => q.teach && !q.spec)).forEach(q => {
     if (!S(q.subject)) return;
     const p = teachPhrase_(q), k = p.toLowerCase();
     if (seen[k]) return;
     seen[k] = true; all.push(p);
+    if (q.spec) main.push(p);
   });
-  return { main: main ? teachPhrase_(main) : '', all: all, mainSubject: main ? S(main.subject) : '',
-           mainLevel: main ? S(main.level) : '' };
+  /* `main` is EVERY level ticked Teach, in sheet order. `first` is the first of them, for a phone
+     built before several were allowed — it reads one string as `teachesMain`. */
+  return { main: main, first: main[0] || '', all: all };
 }
 
 /* ---------- A DATE OF BIRTH, AS THREE BOXES AND BACK ----------------------------------------------

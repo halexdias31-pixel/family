@@ -2748,8 +2748,8 @@ function qualLevel_(i, value, options, pooled, open) {
           for the whole subject."* A tutor with a Maths degree may teach A-Level and only be able to
           cover GCSE, and one pair per subject could not say that. So they sit on the level and ARE
           the saved `qual_N_spec` / `qual_N_teach` boxes — no hidden copy for a subject tick to write
-          down into. `Teach` is the specialism (the gold chip on the card, one on the whole page,
-          which `qualsIn` also enforces); `Can teach` is everything else you would take on. */''}
+          down into. `Teach` is what you teach (a gold chip under `Teaches` on the card, on as many
+          levels as you like); `Can teach` is everything else you would take on. */''}
     <div class="lib-row q-row q-ticks">
       <label class="check q-tick"><input type="checkbox" data-do="qual-tick" data-k="spec"
         data-me="${esc(f('_spec'))}" ${TRUEish_(val('_spec')) ? 'checked' : ''}><span class="box"></span><span>Teach</span></label>
@@ -2842,12 +2842,11 @@ on('qual-tick', el => {
   const lvl = el.closest('.q-lvl'), shelf = el.closest('.q-shelf');
   if (!lvl || !shelf) return;
   const box = k => lvl.querySelector('[data-k="' + k + '"]') || {};
-  /* ONE TEACH ON THE PAGE, and what you teach you can teach: ticking it unticks every other level's
-     and ticks Can teach beside it; unticking Can teach takes Teach off with it. */
-  if (el.dataset.k === 'spec' && el.checked) {
-    shelf.querySelectorAll('[data-k="spec"]').forEach(x => { if (x !== el) x.checked = false; });
-    box('teach').checked = true;
-  }
+  /* WHAT YOU TEACH YOU CAN TEACH: ticking Teach ticks Can teach beside it, and unticking Can teach
+     takes Teach off with it. Teach on one level leaves every other level alone — it used to untick
+     them, and *"when i tick teach for different levels of same subject it unticks the other one. i
+     dont want that"*. */
+  if (el.dataset.k === 'spec' && el.checked) box('teach').checked = true;
   if (el.dataset.k === 'teach' && !el.checked) box('spec').checked = false;
   shelf.querySelectorAll('.q-lvl').forEach(qualLevelFrom_);
   shelf.querySelectorAll('.q-subj').forEach(qualSubjFrom_);

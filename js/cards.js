@@ -434,26 +434,31 @@ function findCard(x) {
             the subjects in tutors profile cards. to look like this ( Maths (GCSE) )"*. It was a
             `Teaches` row, a comma list — and each subject is a separate claim a parent is looking
             for, which is the argument the adjectives' own note makes for being chips.
-            THE SPECIALISM IS MARKED, and `teachesMain` says which one it is rather than position:
+            THE SPECIALISMS ARE MARKED, and `teachesSpec` says which they are rather than position:
             a tutor with no specialism and two other subjects must not have the first drawn as one.
             `mark` still runs inside each chip, so a search for "GCSE" lights the chip it matched.
             NOT UPPER-CASED, unlike the adjectives: "MATHS (GCSE)" is a subject shouted, and the
             owner's own example is written in the case the sheet holds. */''}
       ${/* ---------- FIVE CAPTIONS, IN THIS ORDER, AND NO OTHERS ----------------------------------
             ASKED FOR AS *"there should be x number of titles. at a glance, teaches, can also teach,
-            qualifications, tutors at."* So `Teaches` is the specialism alone — the level a tutor
-            ticked `Teach` on, one on the whole page (see `qualLevel_` in me.js) — and everything
+            qualifications, tutors at."* So `Teaches` is every level a tutor ticked `Teach` on (see
+            `qualLevel_` in me.js) — and everything
             else they ticked `Can teach` on is its own caption, where it used to share a row with the
             specialism and be told apart only by a gold edge. The `Focus` row went: it was a sixth
-            title nobody asked for. `teachesMain` is still said by the server rather than read off
+            title nobody asked for. `teachesSpec` is still said by the server rather than read off
             position, so a tutor with no specialism gets no `Teaches` row rather than their first
             "also" subject promoted into it. */''}
-      ${t.teachesMain
-        ? `<div class="prof-cap">Teaches</div><div class="prof-tags prof-teach"><span class="prof-tag is-main">${
-             mark(t.teachesMain)}</span></div>` : ''}
-      ${profList_(t.teaches).filter(v => v !== t.teachesMain).length
-        ? `<div class="prof-cap">Can also teach</div><div class="prof-tags prof-teach">${profList_(t.teaches)
-             .filter(v => v !== t.teachesMain).map(v => `<span class="prof-tag">${mark(v)}</span>`).join('')}</div>` : ''}
+      ${/* SEVERAL TEACHES. *"when i tick teach for different levels of same subject it unticks the
+            other one. i dont want that"* — so `teachesSpec` is a list, every one a gold chip under
+            `Teaches`, and `Can also teach` is the rest. An older backend sends one string as
+            `teachesMain`, which `profList_` reads as a list of one. */''}
+      ${(() => {
+        const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
+        return (main.length ? `<div class="prof-cap">Teaches</div><div class="prof-tags prof-teach">${
+                  main.map(v => `<span class="prof-tag is-main">${mark(v)}</span>`).join('')}</div>` : '')
+             + (also.length ? `<div class="prof-cap">Can also teach</div><div class="prof-tags prof-teach">${
+                  also.map(v => `<span class="prof-tag">${mark(v)}</span>`).join('')}</div>` : '');
+      })()}
       ${/* ---------- QUALIFICATIONS, AS THE SAME CHIPS ---------------------------------------------
             ASKED FOR AS *"qualifications should also look like google chips."* Each entry of `quals`
             is already one sentence built by `doget.gs` ("Maths A-Level (Edexcel) grade B"), so a

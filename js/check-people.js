@@ -223,9 +223,9 @@ is('a qualification becomes one row, the institution in its own column',
       teach: 'FALSE', can_teach: 'TRUE' }]);
 is('a specialism is teach, and not can_teach as well',
    (q => [q.teach, q.can_teach])(box.qIn(q7(['Maths', 'GCSE', '', '9', '', 'TRUE', 'TRUE']))[0]), ['TRUE', 'FALSE']);
-is('only one specialism survives the server, the first',
-   box.qIn(q7(['Maths', 'GCSE', '', '9', '', '', 'TRUE'], ['Physics', 'GCSE', '', '8', '', '', 'TRUE'])).map(q => q.teach),
-   ['TRUE', 'FALSE']);
+is('Teach on two levels survives the server as two Teaches',
+   box.qIn(q7(['Maths', 'GCSE', '', '9', '', '', 'TRUE'], ['Maths', 'A-Level', '', 'B', '', '', 'TRUE'])).map(q => q.teach),
+   ['TRUE', 'TRUE']);
 is('an empty qualification in the middle is dropped',
    box.qIn(q7(['Maths', 'GCSE', '', '9'], ['', '', '', ''], ['Physics', 'GCSE', 'AQA', '8'])).map(q => q.subject),
    ['Maths', 'Physics']);
@@ -237,8 +237,8 @@ is('and the rows come back into the same boxes',
 store(asRows(Array.from({ length: 11 }, (_, i) => ({ subject: 'S' + i, level: 'GCSE', grade: '1' }))));
 is('ten fit, and an eleventh row is not invented into a box', box.qList(ME).length, 10);
 store(asRows([{ subject: 'Maths', teach: 'TRUE' }, { subject: 'Physics', teach: 'TRUE' }]));
-is('two teach rows typed into the sheet still give one specialism, the first',
-   box.qList(ME).map(q => q.spec), [true, false]);
+is('two teach rows are two Teaches — several levels may be taught',
+   box.qList(ME).map(q => q.spec), [true, true]);
 store(asRows([{ subject: 'Maths', level: 'GCSE' }], 'P-SOMEBODY'));
 is('somebody else\'s qualification never comes into this form', box.qList(ME).length, 0);
 
@@ -251,9 +251,13 @@ store(asRows([{ subject: 'English', level: 'KS3', can_teach: 'TRUE' },
               { subject: 'english', level: 'ks3', can_teach: 'TRUE' },
               { subject: 'Latin', level: '' }]));
 is('the specialism first, then what else they teach, deduped, and nothing untaught',
-   box.teaches(ME), { main: 'Maths (GCSE)', all: ['Maths (GCSE)', 'English (KS3)'], mainSubject: 'Maths', mainLevel: 'GCSE' });
+   box.teaches(ME), { main: ['Maths (GCSE)'], first: 'Maths (GCSE)', all: ['Maths (GCSE)', 'English (KS3)'] });
+store(asRows([{ subject: 'Maths', level: 'GCSE', teach: 'TRUE' }, { subject: 'Maths', level: 'A-Level', teach: 'TRUE' },
+              { subject: 'English', level: 'KS3', can_teach: 'TRUE' }]));
+is('Teach on two levels of one subject is two Teaches, and the rest is Can also teach',
+   box.teaches(ME), { main: ['Maths (GCSE)', 'Maths (A-Level)'], first: 'Maths (GCSE)', all: ['Maths (GCSE)', 'Maths (A-Level)', 'English (KS3)'] });
 store(asRows([{ subject: 'English', level: 'KS3', can_teach: 'TRUE' }]));
-is('no specialism is no Teaches', box.teaches(ME).main, '');
+is('no specialism is no Teaches', box.teaches(ME).main, []);
 store([], []);
 
 /* ---------- THE VENUES: A SAVE THAT MOVES NOTHING WRITES NOTHING ----------------------------------
