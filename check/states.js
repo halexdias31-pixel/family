@@ -478,6 +478,23 @@ const STATES = {
         return (/^@[A-Za-z][A-Za-z0-9_]{2,19}$/.test(txt)) ? 1 : 0;
       },
       wants: 'a handle drawn as exactly one @ and a shape a row could hold' },
+    /* ---------- THE AGES THEY TEACH, AS A CHIP UNDER "AT A GLANCE" ---------------------------------
+       `check/fixture.json`'s tutor teaches 8 to 16, which is what `doGet` sends as `ageMin: 8,
+       ageMax: 16`. The chip sits among the other facts rather than as a row of its own, and the
+       assertion is the WORDS — a chip reading "8 – 16" or "Ages: 8, 16" is the card saying it
+       differently from `profAges_`, which `check-flow.js` holds to every one-ended shape. */
+    { name: 'an age range on a card',
+      only: () => typeof USER !== 'undefined' && !!USER
+                  && (DATA.tutors || []).some(t => t && t.ageMin === 8 && t.ageMax === 16),
+      enter: () => {
+        const at = [...document.querySelectorAll('#s-account .page')]
+          .findIndex(pg => [...pg.querySelectorAll('.prof-facts .prof-tag')].some(c => /^Ages /.test(c.textContent.trim())));
+        if (at < 0) throw new Error('no card on the account column draws an age range');
+        goPage('account', at, true);
+      },
+      expect: () => [...document.querySelectorAll('#s-account .page.on .prof-facts .prof-tag')]
+                      .some(c => c.textContent.trim() === 'Ages 8–16') ? 1 : 0,
+      wants: 'the fixture tutor\'s "Ages 8–16" chip under At a glance' },
     { name: 'a tutor switched off',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
@@ -708,6 +725,45 @@ const STATES = {
       },
       wants: 'the journey card, with the exam countdown and no control that does nothing',
       leave: () => { if (USER && USER.profile) delete USER.profile.exam_big_date; paint('settings'); } },
+    /* ---------- THE AGES A TUTOR TEACHES, ON ABOUT YOU AND NOT ON THE PAGE ABOVE ------------------
+       ONE `[youngest] – [oldest]` ROW OF TWO SELECTS, and the assertion is that shape rather than the
+       presence of two fields: two plain boxes would mean `validations` never carried `AGE_OPTIONS`, and
+       the form would be offering free text to a server that refuses anything off the list. The
+       options are read off `DATA.validations` rather than written out here — a list typed into this
+       file would be a third copy of one the backend owns.
+       NOT ON THE RATE PAGE, which the state above counts at exactly four boxes: an age range prices
+       nothing, so it is not under the month's clock. Seeded through `USER.profile` with one end the
+       word `Adults`, because that is the option a number-shaped reader would get wrong. */
+    { name: 'the age range',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_AGE_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, { age_min: '8', age_max: 'Adults' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')]
+          .findIndex(pg => pg.querySelector('[data-me="age_min"]'));
+        if (at < 0) throw new Error('no age range on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_AGE_WAS; delete window.STATE_AGE_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const row = pg && pg.querySelector('.f-row.is-range');
+        const lo = row && row.querySelector('select[data-me="age_min"]');
+        const hi = row && row.querySelector('select[data-me="age_max"]');
+        const want = ((DATA.validations || {}).age_min || []).join('|');
+        const offers = s => [...s.options].map(o => o.value).filter(Boolean).join('|');
+        return lo && hi && want && offers(lo) === want && offers(hi) === want
+          && lo.value === '8' && hi.value === 'Adults'
+          && !pg.querySelector('[data-me="rate_per_hour"]')
+          && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 2 : 0;
+      },
+      wants: 'the ages as one [youngest] – [oldest] row of two selects, 8 and Adults chosen, on a page without the rate' },
 
     /* ---------- THE TUTOR AGREEMENT, BOTH OF ITS STATES --------------------------------------------
        The signed-in visitor is an admin, and `isTutorRole()` is tutor-or-admin, so the card is on

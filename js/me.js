@@ -2496,6 +2496,11 @@ const FIELD_ROWS = [
      read low to high. `dash` is what draws the `–`; the two stay two columns in `PRICING_FIELDS`, so
      the month's clock still covers both. */
   { fields: ['min_students', 'max_students'], cap: 'students', ph: ['min', 'max'], dash: true },
+  /* THE AGES A TUTOR TEACHES, THE SAME `[ ] – [ ]` SHAPE AS THE STUDENTS ABOVE, so the two ranges a
+     tutor states read alike although they live on different pages. Two SELECTS rather than boxes —
+     `validations` carries `AGE_OPTIONS` from constants.gs, four to eighteen and then `Adults` — and a
+     placeholder on a select is its empty option, so each reads `youngest` / `oldest` until chosen. */
+  { fields: ['age_min', 'age_max'], cap: 'ages you teach', ph: ['youngest', 'oldest'], dash: true },
 ];
 const ROW_LABEL = {
   years_experience: 'years teaching',

@@ -475,6 +475,64 @@ function pricingRefusal_(me, fields, isAdmin) {
        + '. You can change them again on ' + fmtDate(next) + '. Nothing was saved.';
 }
 
+/* ==================================================================================================
+   THE AGES A TUTOR TEACHES — ONE READER, AND A REFUSAL ASKED BEFORE ANYTHING IS WRITTEN.
+
+   `ageRank_` TURNS A CELL INTO SOMETHING THAT CAN BE COMPARED: a whole number, `Infinity` for an adult
+   learner, `null` for an end nobody has answered, and `NaN` for a cell holding something else. The
+   word is read loosely — `adults`, `Adult` and `18+` all mean the same thing when typed into the sheet
+   by hand — because a reader that only knew the form's own spelling would print a hand-typed row as
+   nothing. NOUGHT IS UNANSWERED, NOT AN AGE: a blank numeric cell reads as 0 in more than one place in
+   this project, and "age 0" on a public card is the `cost: 0` shape again.
+
+   `ageOut_` IS WHAT THE PAYLOAD SENDS: the number, `Adults`, or '' — so the phone's card never has to
+   know there was ever a second spelling.
+
+   `ageRefusal_` IS ASKED ONLY WHEN AN END MOVED, which is `pricingMoved_`'s rule and for its reason:
+   About you posts both ends on every save, and the select keeps a hand-typed value that is not on the
+   list as its own first option. A rule firing on a value being PRESENT would refuse a headline because
+   somebody once typed "3" into the sheet. What moved must be on `AGE_OPTIONS` — the form cannot
+   produce anything else, which is not a reason to trust it, since `doPost` is reachable by anybody
+   with the URL — and the youngest may not be older than the oldest. An admin is not exempt: neither
+   rule is a brake on a person, both are about whether the range means anything.
+
+   BESIDE `pricingRefusal_` RATHER THAN INSIDE `updateProfile`, so `check-profile.js` reaches it
+   through the real `doPost` and something can say it works.
+================================================================================================== */
+function ageRank_(v) {
+  const s = S(v);
+  if (!s) return null;
+  if (/^adults?$/i.test(s) || /^18\s*\+$/.test(s)) return Infinity;
+  if (!/^\d{1,3}$/.test(s)) return NaN;
+  return Number(s) || null;
+}
+
+function ageOut_(v) {
+  const n = ageRank_(v);
+  return n === Infinity ? 'Adults' : (n == null || isNaN(n)) ? '' : n;
+}
+
+function ageRefusal_(me, asked) {
+  if (!me || !asked) return '';
+  const has = f => Object.prototype.hasOwnProperty.call(asked, f);
+  const moved = AGE_FIELDS.filter(f => has(f) && S(asked[f]) !== S(me[f]));
+  if (!moved.length) return '';
+  const end = f => f === 'age_min' ? 'youngest' : 'oldest';
+  const off = moved.find(f => S(asked[f]) !== '' && !AGE_OPTIONS.some(o => norm(o) === norm(asked[f])));
+  if (off) {
+    return 'The ' + end(off) + ' age has to be one from the list — ' + AGE_OPTIONS[0] + ' to '
+         + AGE_OPTIONS[AGE_OPTIONS.length - 2] + ', or ' + AGE_OPTIONS[AGE_OPTIONS.length - 1]
+         + '. Nothing was saved.';
+  }
+  const got = f => has(f) ? asked[f] : me[f];
+  const lo = ageRank_(got('age_min')), hi = ageRank_(got('age_max'));
+  if (lo != null && hi != null && !isNaN(lo) && !isNaN(hi) && lo > hi) {
+    return 'The youngest age you teach (' + ageOut_(got('age_min')) + ') is older than the oldest ('
+         + ageOut_(got('age_max')) + '). Nothing was saved.';
+  }
+  return '';
+}
+
 
 /** Every row that answers to this name — so a collision can be SEEN rather than silently resolved. */
 function peopleNamed(name) {

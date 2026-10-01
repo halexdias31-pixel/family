@@ -2800,6 +2800,37 @@ check("a swipe settles at the finger's speed, written on the columns and not the
   return bad;
 });
 
+/* ---------- THE AGE RANGE ON A TUTOR'S CARD, AND EVERY HALF OF ONE A ROW CAN HOLD ----------------
+   ASKED FOR AS *"tutors should also be able to state an age range of people they are willing to
+   work with."* The card is the half a parent sees, and the rows it reads were often typed into the
+   sheet by hand with one end filled in — so the rule is every shape, not the one the form produces.
+   Asked of `profAges_` and then of the card itself, because a chip computed right and never drawn is
+   this repository's oldest silence. */
+check('an age range reads sensibly with both ends, one end, or neither', async () => {
+  const { w } = boot();
+  await wait(300);
+  if (typeof w.profAges_ !== 'function' || typeof w.findCard !== 'function') {
+    return ['profAges_ or findCard is not reachable, so the age range was NOT checked — not a pass'];
+  }
+  const bad = [];
+  [[8, 16, 'Ages 8–16'], ['8', '16', 'Ages 8–16'], [10, 10, 'Age 10'],
+   [11, '', 'Ages 11+'], [11, 'Adults', 'Ages 11+'], ['', 16, 'Ages up to 16'],
+   ['Adults', '', 'Adults'], ['Adults', 'Adults', 'Adults'], ['', 'Adults', 'All ages'],
+   [16, 8, 'Ages 8–16'], ['adults', 12, 'Ages 12+'], [0, 0, ''], ['', '', ''],
+   [undefined, undefined, ''], ['teenagers', '', '']].forEach(([lo, hi, want]) => {
+    const got = w.profAges_({ ageMin: lo, ageMax: hi });
+    if (got !== want) bad.push(`youngest ${JSON.stringify(lo)} and oldest ${JSON.stringify(hi)} read "${got}", wanted "${want}"`);
+  });
+  const t = { title: 'Ada Tutor', handle: 'ada', rate: 30, yrsExp: 10, minStudents: 1, maxStudents: 4,
+              ageMin: 8, ageMax: 16, teaches: [], listed: true, personId: 'P-x' };
+  const html = String(w.findCard({ kind: 'tutor', row: t }) || '');
+  const facts = (html.match(/prof-facts[^]*?<\/div>/) || [''])[0];
+  if (!/>Ages 8–16</.test(facts)) bad.push('a tutor who teaches 8 to 16 has no "Ages 8–16" chip under At a glance');
+  const none = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { ageMin: '', ageMax: '' }) }) || '');
+  if (/>Ages?\b|>Adults<|>All ages</.test(none)) bad.push('a tutor who has said nothing about ages is drawn with an age chip anyway');
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;

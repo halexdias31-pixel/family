@@ -628,6 +628,12 @@ function doPost(e) {
       }
       const priceNo = pricingRefusal_(r, priceAsked, iAmAdmin);
       if (priceNo) return jsonOut({ error: priceNo });
+      /* ---------- AND THE AGE RANGE, WHICH IS NOT THE QUOTE AND HAS NO CLOCK ----------------------
+         Asked of the same wanted-only object for the same reason, and before any write for the
+         reason this whole section exists. A youngest older than the oldest is a range nobody falls
+         inside — see `ageRefusal_` in people.gs. */
+      const ageNo = ageRefusal_(r, priceAsked);
+      if (ageNo) return jsonOut({ error: ageNo });
       /* ---------- AN ADDRESS IS WHAT SIGNS IN TO THIS ACCOUNT ------------------------------------
          SO EMPTYING THE BOX IS A SIGN-OUT NOBODY CAN UNDO — `verifyLogin` and `forgotPin` both look
          the person up by it. And two rows on one address means `verifyLogin` refuses both, so a

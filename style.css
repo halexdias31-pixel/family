@@ -883,6 +883,11 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .f-row.is-phone { grid-template-columns: 6.5rem minmax(0, 1fr); }
 .f-row.is-range { grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; }
 .f-row.is-range .f-dash { color: var(--dim); margin-bottom: .75rem; }
+/* AN UNCHOSEN END OF A RANGE OF SELECTS READS AS A PLACEHOLDER — the ages a tutor teaches. A select's
+   placeholder is its empty option, drawn in the select's own ink, so `youngest` in full white beside
+   the grey `min` of the students range looked like an answer somebody gave. The same rule the
+   qualification shelf's `Level` and `Board` already carry (`.lib-row select:has(...)`). */
+.f-rowwrap select:has(option[value=""]:checked) { color: var(--faint); }
 .pin-row { margin-top: 1rem; }
 /* ---------- THE TRACKS HOLD THE DIGITS **AND** THE INPUT'S OWN PADDING ---------------------------
    `6ch` CLIPPED `1985` TO `198`, and nothing measured it wrong: the box was exactly 6ch wide and

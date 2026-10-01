@@ -193,6 +193,7 @@ const tutor = Object.assign({}, base, {
   headline: 'Friendly maths tutor', video: 'https://example.org/v.mp4', years_experience: 5,
   favourite_colour: 'Blue', adjective_1: 'calm', adjective_2: 'clear', adjective_3: 'kind',
   travel_km: 10, rate_per_hour: 20, extra_seat_rate: 0.5, max_students: 4, min_students: 1,
+  age_min: 8, age_max: 16,
   availability: 'm09,m10,tu15,sa11',
 });
 const admin = Object.assign({}, tutor, { person_id: 'P-A1', role: 'admin', first_name: 'Hal', last_name: 'Admin',
@@ -449,6 +450,56 @@ PEOPLE.forEach(p => {
   const typed = b.post({ action: 'changeHandle', token: tokens['P-T1'].token, name: tokens['P-T1'].name,
     personId: 'P-T1', handle: 'ada_whatever' });
   if (typed.success || typed.writes) bad.push('changeHandle is still an action — a typed handle reached the sheet');
+}
+
+/* 10. THE AGE RANGE: A YOUNGEST OLDER THAN THE OLDEST IS REFUSED BEFORE ANYTHING IS WRITTEN, so is an
+   age that is not on the list, and a real change comes back. About you posts the headline as well,
+   and it is changed in the same request — so a refusal that let the rest of the page through would
+   show up here as a headline that moved. As the tutor, because it is a tutor's field; the admin row
+   is a copy of the tutor's and would prove nothing the tutor does not. */
+{
+  const t = tokens['P-T1'];
+  const groups = b.ev('PROFILE_GROUPS');
+  const ask = fields => b.post({ action: 'updateProfile', token: tokens['P-T1'].token, name: t.name,
+    personId: 'P-T1', target: t.name, targetId: 'P-T1', fields });
+  const now = () => b.ev(`profileOf_(read(TAB.people).rows.find(r => r.person_id === 'P-T1'))`);
+  if ((groups['About you'] || []).indexOf('age_min') === -1 || (groups['About you'] || []).indexOf('age_max') === -1) {
+    bad.push('the age range is not on About you, so a tutor has nowhere to say which ages they teach');
+  } else {
+    const before = now();
+    [[{ age_min: '16', age_max: '8' }, 'the youngest after the oldest'],
+     [{ age_min: 'Adults', age_max: '11' }, 'adults only, up to eleven'],
+     [{ age_min: '2' }, 'an age that is not on the list'],
+     [{ age_max: 'teenagers' }, 'a word that is not on the list']].forEach(([ages, what]) => {
+      const fields = Object.assign(formOf(groups['About you'], before), { headline: 'Moved by a refused save' }, ages);
+      const d = ask(fields);
+      if (d.success) bad.push('About you with ' + what + ' was saved');
+      else if (d.writes) bad.push('About you with ' + what + ' was refused ("' + d.error + '") having already written ' + d.writes + ' cell(s)');
+    });
+    if (now().headline !== before.headline) bad.push('a refused age range moved the headline anyway');
+    const fields = Object.assign(formOf(groups['About you'], before), { age_min: '11', age_max: 'Adults' });
+    const d = ask(fields);
+    if (!d.success) bad.push('a real age range (11 to Adults) was refused — ' + d.error);
+    else {
+      const again = b.post({ action: 'verifyLogin', email: b.row('P-T1').email, pin: '0000' });
+      tokens['P-T1'] = again;
+      const pr = again.profile || {};
+      if (String(pr.age_min) !== '11' || String(pr.age_max) !== 'Adults')
+        bad.push('the age range saved as 11 to Adults came back as "' + pr.age_min + '" to "' + pr.age_max + '"');
+      /* AND THE PAYLOAD SAYS IT THE WAY THE CARD READS IT: a number and the word. */
+      const pay = b.get({ token: again.token });
+      const me = (pay.tutors || []).find(x => x.personId === 'P-T1');
+      if (!me) bad.push('the tutor is not in the payload, so the age range could not be read back');
+      else if (me.ageMin !== 11 || me.ageMax !== 'Adults')
+        bad.push('the payload sends the age range as ' + JSON.stringify(me.ageMin) + ' to ' + JSON.stringify(me.ageMax)
+          + ', where the card reads a number and the word "Adults"');
+      /* AND THE TWO LISTS THE FORM DRAWS FROM ARE THE ONES THE RULE ASKS ABOUT. */
+      const v = pay.validations || {};
+      const list = b.ev('AGE_OPTIONS');
+      if (JSON.stringify(v.age_min) !== JSON.stringify(list) || JSON.stringify(v.age_max) !== JSON.stringify(list))
+        bad.push('validations does not carry AGE_OPTIONS for both ends, so the form offers ages the server refuses');
+    }
+  }
 }
 
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');

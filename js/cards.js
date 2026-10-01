@@ -224,12 +224,43 @@ function profRange_(lo, hi, one, many) {
   return 'up to ' + b + ' ' + word(b);
 }
 
-/* THE THREE FACT CHIPS, in the order a parent asks: how experienced, how many at once, how long.
-   `yrsExp` is a number when the sheet holds one and whatever was typed otherwise. */
+/* ---------- "Ages 8–16", AND EVERY WAY A ROW CAN HAVE ONLY HALF OF ONE ---------------------------
+   `doGet` SENDS EACH END AS A WHOLE NUMBER, THE WORD `Adults`, OR '' — `ageOut_` in people.gs — and a
+   row typed into the sheet by hand has often filled in one end and not the other. Each shape says
+   what the tutor actually told us and nothing more:
+     · both, apart        → "Ages 8–16"        · both, equal  → "Age 10"
+     · youngest only      → "Ages 11+"         · oldest only  → "Ages up to 16"
+     · up to Adults       → "Ages 11+"         · Adults first → "Adults"
+     · oldest is Adults and no youngest → "All ages"
+   A PAIR TYPED BACKWARDS IS READ THE WAY IT OBVIOUSLY MEANS — the server refuses one from the form
+   (`ageRefusal_`), so the only way here is a hand-typed row, and "Ages 16–8" helps nobody.
+   Read loosely again rather than trusting the payload's spelling, because the fixture and an older
+   backend are payloads too: a number, a numeric string, `adults` in any case, or `18+`. Nought and
+   anything unreadable are an end nobody answered, never "age 0". */
+function profAge_(v) {
+  const s = String(v == null ? '' : v).trim();
+  if (/^adults?$/i.test(s) || /^18\s*\+$/.test(s)) return Infinity;
+  return /^\d{1,3}$/.test(s) ? (Number(s) || null) : null;
+}
+function profAges_(t) {
+  let a = profAge_(t.ageMin), b = profAge_(t.ageMax);
+  if (a == null && b == null) return '';
+  if (a != null && b != null && a > b) { const x = a; a = b; b = x; }
+  if (a === Infinity) return 'Adults';
+  if (a == null) return b === Infinity ? 'All ages' : 'Ages up to ' + b;
+  if (b == null || b === Infinity) return 'Ages ' + a + '+';
+  return a === b ? 'Age ' + a : 'Ages ' + a + '–' + b;
+}
+
+/* THE FACT CHIPS, in the order a parent asks: how experienced, whether they take a child this age,
+   how many at once, how long. The ages come second because they are the first thing that rules a
+   tutor OUT — a parent of a seven-year-old has no use for the group size of somebody who starts at
+   eleven. `yrsExp` is a number when the sheet holds one and whatever was typed otherwise. */
 function profFacts_(t) {
   const y = String(t.yrsExp == null ? '' : t.yrsExp).trim();
   const exp = !y || y === '0' ? '' : /^\d+$/.test(y) ? (y === '1' ? '1 year' : y + ' years') : y;
   return [exp ? exp + ' experience' : '',
+          profAges_(t),
           profRange_(t.minStudents, t.maxStudents, 'student', 'students'),
           profRange_(t.minHours, t.maxHours, 'hour', 'hours')].filter(Boolean);
 }

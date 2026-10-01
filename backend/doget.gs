@@ -511,6 +511,9 @@ function doGet(e) {
           const list = opts[FIELD_OPTIONS[f]];
           if (list && list.length) out[f] = list;
         });
+        /* THE CODE'S OWN LISTS LAST, so they win — `FIELD_FIXED` in constants.gs says why a sheet row
+           must not be able to widen a list the server refuses everything outside. */
+        Object.keys(FIELD_FIXED).forEach(f => { out[f] = FIELD_FIXED[f]; });
         return out;
       })(),
       multiSelect: [],
@@ -657,6 +660,11 @@ function doGet(e) {
           // Blank means "no view", and the smallest real booking is one student for one hour.
           minStudents: N(r.min_students) || 1, maxStudents: N(r.max_students),
           minHours: N(r.min_hours) || 1, maxHours: N(r.max_hours),
+          /* THE AGES THEY TEACH, public like the rate — it is what a parent checks before anything
+             else. A whole number, the word `Adults`, or '' for an end nobody has answered: NOT `N()`,
+             which would turn "Adults" into nought and nought into a claim of "age 0". `ageOut_` is
+             the one reader; the card turns the pair into "Ages 8–16". */
+          ageMin: ageOut_(r.age_min), ageMax: ageOut_(r.age_max),
           extraSeat: N(r.extra_seat_rate),
           /* THE VENUES THEY ARE HAPPY AT, off `venues.tutors_happy_here` — `venuesFor_` is the one
              reader, and the Settings page is the one writer. Names, in the tab's order. */

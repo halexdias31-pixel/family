@@ -330,7 +330,10 @@ const SCHEMA = {
     "invited_by", "referral_code", "account_number", "sort_code",
     /* the profile a parent reads */
     "photo", "photos", "video", "headline", "adjective_1", "adjective_2", "adjective_3",
-    "years_experience", "focus", "dbs_checked",
+    "years_experience",
+    /* THE AGES THEY TEACH: a whole number or the word `Adults`, out of `AGE_OPTIONS` — see
+       `ageRefusal_` in people.gs. Not on the pricing page: the age range does not decide a price. */
+    "age_min", "age_max", "focus", "dbs_checked",
     /* where they are */
     "address", "town", "city", "borough", "postcode", "travel_km",
     /* what they charge, and when they can teach */
@@ -1957,6 +1960,23 @@ const AVATAR_ITEMS = [
    costs, what a second seat is worth, then the range of class sizes it applies to. */
 const PRICING_FIELDS = ['rate_per_hour', 'extra_seat_rate', 'max_students', 'min_students'];
 
+/* ---------- THE AGES A TUTOR MAY SAY THEY TEACH, AS ONE LIST THE FORM AND THE RULE BOTH READ ------
+   FOUR TO EIGHTEEN, THEN `Adults`. Four is Reception, eighteen is the end of sixth form, and the word
+   is everyone past it — "18" and "Adults" are two answers because a tutor who stops at Year 13 and one
+   who takes a forty-year-old retaking GCSE maths are saying different things.
+
+   A LIST THE CODE OWNS RATHER THAN A ROW OF THE `options` TAB, and that is not the `FIELD_OPTIONS`
+   argument lost — it is the other half of it. Those lists are descriptive and somebody may add
+   "Further Maths" with no deploy; this one is a rule, because `ageRefusal_` in people.gs refuses
+   anything not on it and `ageRank_` orders it. A sheet that could add "Toddlers" to the drop-down
+   would offer an answer the server then refuses. So `doGet` sends it through `validations` exactly
+   as if the tab had it (`FIELD_FIXED` below), and the phone's form needs to know nothing.
+
+   STRINGS, because that is what every list in `validations` is and what a `<select>` compares. */
+const AGE_FIELDS = ['age_min', 'age_max'];
+const AGE_OPTIONS = ['4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14', '15', '16', '17', '18',
+                     'Adults'];
+
 /* ---------- WHAT A TUTOR/CLIENT MAY EDIT -----------------------------------------------------
    One list per role drives the edit form AND the write allow-list, so the two cannot drift.
    Anything not named here is unreachable by updateProfile — pin, role, xp and credits included. */
@@ -1968,8 +1988,12 @@ const PROFILE_GROUPS = {
      now` and `More qualifications` were two more for three boxes between them. Merged by what a
      person thinks of as one question; the phone lays related boxes side by side (`FIELD_ROWS` in
      me.js), so a merged page is shorter than the two it replaced. */
-  'About you':   ['first_name','last_name','headline','years_experience',
-                  'favourite_colour','adjective_1','adjective_2','adjective_3'],
+  /* THE AGE RANGE IS HERE, AFTER THE YEARS OF EXPERIENCE, and not on the rate page beside the
+     group size it looks like: that page is the quote and moves once a month (`PRICING_FIELDS`), and
+     an age range prices nothing. Drawn as one `[youngest] – [oldest]` row by `FIELD_ROWS` in me.js,
+     exactly as the students range is. */
+  'About you':   ['first_name','last_name','headline','years_experience'].concat(AGE_FIELDS,
+                  ['favourite_colour','adjective_1','adjective_2','adjective_3']),
   /* ---------- CONTACT IS SECOND NOW, AND THE ORDER OF THIS OBJECT IS THE ORDER OF THE COLUMN ----
      REPORTED AS *"add email field in account settings"*, and the field was already here — at the
      BOTTOM. `settingsPages_` maps these keys straight onto pages, so `Contact` was the thirteenth
@@ -2081,6 +2105,11 @@ const FIELD_OPTIONS = {
   tier: 'tier', exam_board: 'exam_board', exam_wave: 'exam_wave',
   company: 'company', band_type: 'band_type',
 };
+/* ---------- AND THE LISTS THE CODE OWNS, sent in the same `validations` shape -----------------------
+   A field here is drawn as a select from THIS list whatever the `options` tab says, because a rule on
+   the server refuses anything else — see `AGE_OPTIONS`. `doGet` merges these over the tab's lists, so
+   the phone reads one map and cannot tell the two sources apart, which is the point. */
+const FIELD_FIXED = { age_min: AGE_OPTIONS, age_max: AGE_OPTIONS };
 /* `RESOURCE_OPTIONS` WAS AN ALIAS FOR `FIELD_OPTIONS`, kept because the resource form read it
    under that name. There is no resource form. `FIELD_OPTIONS` itself stays — it fills the tutor
    profile, the venue editor and every booking dropdown, and its `subject` / `exam_board` / `tier`
