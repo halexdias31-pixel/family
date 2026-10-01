@@ -8981,6 +8981,16 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   touch-action: pan-x;
 }
 .qsheet th, .qsheet td { border: 1px solid var(--line); padding: .35rem .8rem; text-align: center; }
+/* THE BOX A PAPER LEAVES FOR AN ANSWER. Thirty-five rows write `<span class='box'>` where the
+   printed page has an empty box -- `□ = 9,171 − 530`, a gap in a table, a missing term -- and
+   nothing styled it, so it drew as four spaces: the question opened on a bare "=" and a table's
+   blank cell looked like a cell that failed to load. Drawn as the outline it stands for, in the
+   page's own ink. `.check .box` is the tickbox control and is untouched: this is scoped to
+   `.qsheet` and to a `span`. */
+.qsheet span.box {
+  display: inline-block; min-width: 2.4em; height: 1.25em; vertical-align: middle;
+  border: 1.5px solid currentColor; border-radius: 2px; opacity: .8;
+}
 /* THE FIGURES COME THROUGH AS SVG using `currentColor`, so a diagram drawn for white paper reads
    on this black screen without a second copy of it.
 
