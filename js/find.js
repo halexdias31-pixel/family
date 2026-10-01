@@ -1111,13 +1111,21 @@ const FACETS = [
      questions -- both rules were already there. */
   /* `not: subject` — see `facetOwn_`. `data/topics.json` gained Biology, Chemistry and Physics as
      roots when the practicals went in, and those are the three answers `Subject` already owns. */
+  /* ---------- A QUESTION ANSWERS THESE ONLY IF IT IS A 1ST CLASS MATHS WORKSHEET ----------------
+     THE OWNER'S CALL, IN HIS WORDS: "each question has an assigned topic. I hate that. I only liked
+     it with the first class maths stuff because the topic names were the names of the pdf itself."
+     A 1st Class Maths sheet IS one topic — `Linear Equations (one step)`, graded 1 to 9 — so the
+     tag is the sheet's own title and choosing it is choosing the worksheet. On a past paper or a
+     5-a-day the same cell is a label somebody assigned to one question out of thirty, which is a
+     judgement drawn as a fact. The `topics` cells stay in the file — the search box still reads
+     them, and practicals and quizzes still join on them — so this is one test to take back out. */
   { field: 'topicArea',
     bucketOf: AREA_BUCKET, bucketOrder: AREA_BUCKET.order, label: 'Topic area', not: 'subject',
-    of: x => x.topicArea || topicAreaOf_(x) },
+    of: x => topicShown_(x) ? (x.topicArea || topicAreaOf_(x)) : '' },
   /* `not: topicArea` — four roots are also typed as a leaf topic on a handful of rows (`Algebra`,
      `Number`, `Probability`, `Statistics`), and on those rows the two questions are one question. */
   { field: 'topic',     label: 'Topic', not: 'topicArea',
-    of: x => x.topic || topicOf_(x) },
+    of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
   /* Only boxers and bouts carry one, so the coverage rule keeps it out of the way of everything
      else — the same rule that hides `borough` unless you are looking at venues. */
   /* BEFORE THE WEIGHT, because "a boxer or a bout" is the question somebody has first and there
@@ -6081,6 +6089,13 @@ const topicAtoms_ = v => String(v == null ? '' : v).split(',').map(s => s.trim()
 
    SO IT IS `spellOne_` AND `spellKey_` IN THE FUNNEL ENGINE, applied to the answers of every facet
    including the ones a spreadsheet invents. See them above `facetTally_`. */
+/* Whether this item's topic is shown in the funnel at all — see the note over the `topicArea`
+   facet. Only questions are narrowed; a practical or a quiz is ABOUT its topic by construction. */
+function topicShown_(x) {
+  if (!x || x.kind !== 'question') return true;
+  const r = x.row || x;
+  return spellKey_(r.company) === '1stclassmaths';
+}
 function topicOf_(x) {
   return topicAtoms_(x && ((x.row && x.row.topics) || x.topics));
 }
