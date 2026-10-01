@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-09-30-g-handlesprofile";
+const DOGET_VERSION = "2026-10-01-a-manyteach";
 
 
 function doGet(e) {
@@ -636,7 +636,7 @@ function doGet(e) {
              ARE secret live on rows this loop never touches. */
           personId: S(r.person_id),
           listed: listed,      // so the site can show which ones are hidden, and offer the switch
-          title: name, handle: S(r.handle) || S(r.username) || S(r.first_name),
+          title: name, handle: S(r.handle) || S(r.first_name),
           subtitle: S(r.city) || 'London',
           image: S(r.photo), mediaUrl: S(r.video),
           /* THE OTHER PHOTOGRAPHS, AS A LIST, without the face — `photosList_`. An older phone
@@ -679,33 +679,17 @@ function doGet(e) {
              `subjectRows` and `levelRows` both walk this list, and fixing it three times is three
              chances to fix it differently. The sheet is still worth tidying; this stops a typo in a
              spreadsheet becoming a wrong number on a card. */
-          teaches: (function () {
-            const seen = {}, out = [];
-            /* THE SPECIALISM FIRST, THEN EVERYTHING ELSE THEY TEACH. `teachAlsoList_` reads the
-               `teaches_also` cell and falls back to `teaches_2` for a row nobody has saved since
-               it landed, so the list is the same before and after the migration. The card draws the
-               first entry as the specialism, so the ORDER is the claim — see `findCard`. */
-            const specialism = { subject: S(r.teaches_1), level: S(r.teaches_1_level) };
-            [specialism].concat(teachAlsoList_(r)).forEach(function (x) {
-              const subj = S(x.subject);
-              if (!subj) return;
-              const lvl = S(x.level);
-              const one = subj + (lvl ? ' (' + lvl + ')' : '');
-              const key = one.toLowerCase().trim();
-              if (seen[key]) return;
-              seen[key] = true;
-              out.push(one);
-            });
-            return out;
-          })(),
-          /* WHICH OF THOSE IS THE SPECIALISM, said rather than inferred from position — a tutor
-             with no `teaches_1` and two "also" subjects must not have the first of those drawn as
-             the thing they specialise in. Empty when there is none. */
-          teachesMain: S(r.teaches_1)
-            ? S(r.teaches_1) + (S(r.teaches_1_level) ? ' (' + S(r.teaches_1_level) + ')' : '') : '',
-          /* UP TO TEN, OFF THE `quals` CELL, with `qual_1…3` as the answer for a row that has never
-             been saved since that cell existed — `qualsList_` in core.gs is the one reader. */
-          quals: qualsList_(r).filter(q => !q.taught).map(q => {
+          /* WHAT THEY TEACH, THE SPECIALISM FIRST — derived from the two ticks on their rows of the
+             `qualifications` tab by `teachesOf_`, which dedupes, so a sheet typed twice cannot put
+             one subject on the card twice. `teachesSpec` is EVERY level ticked Teach (several are
+             allowed), said by the server rather than left to position, so a tutor with none must
+             not have their first "can teach" drawn as one. `teachesMain` is the first of them, for a
+             phone built when there could only be one. */
+          teaches: teachesOf_(r).all,
+          teachesMain: teachesOf_(r).first,
+          teachesSpec: teachesOf_(r).main,
+          /* UP TO TEN, OFF THEIR ROWS OF THE `qualifications` TAB — `qualsList_` in core.gs. */
+          quals: qualsList_(r).map(q => {
             const subj = S(q.subject);
             if (!subj) return null;
             const lvl = S(q.level), grd = S(q.grade);
@@ -721,17 +705,6 @@ function doGet(e) {
             return [subj, lvl, grd && ('grade ' + grd), brd && ('at ' + brd), when]
               .filter(Boolean).join(' ');
           }).filter(Boolean),
-          /* ---------- AND WHAT THEY ARE STUDYING NOW, WHICH IS NOT A QUALIFICATION ---------------
-             SENT AS TWO FIELDS RATHER THAN ONE SENTENCE, unlike `quals` above — and the difference
-             is that a qualification has three parts that are always written the same way, where
-             this is a subject and a place that the card may one day want separately. What it must
-             NOT be is one cell with a comma in it: `profList_` would split "Bible and Theology,
-             University of Wales" into two, which is the practicals' comma fault. */
-          /* EMPTY BY CONSTRUCTION NOW: `qualsList_` turns the old studying cells into a `Present`
-             qualification in `quals` above, so sending them too would print it twice. The keys stay
-             so a phone that reads them draws nothing rather than `undefined`. */
-          studying: '',
-          studyingAt: '',
           actionText: '▶ Watch Intro'
         });
       }
@@ -1085,7 +1058,7 @@ function doGet(e) {
         const nm = personDisplayName(pp);
         if (!nm) return;
         faces[key(nm)] = {
-          handle: S(pp.handle) || S(pp.username) || S(pp.first_name) || nm,
+          handle: S(pp.handle) || S(pp.first_name) || nm,
           avatar: S(pp.avatar) || S(pp.photo),
         };
         if (S(pp.person_id)) byId[S(pp.person_id)] = nm;

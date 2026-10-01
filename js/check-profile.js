@@ -154,7 +154,9 @@ function backend() {
     ev, tabs, log, cache,
     seed(name, rows) {
       const h = tabs[name][0];
-      rows.forEach(r => tabs[name].push(h.map(c => (r[c] === undefined ? '' : r[c]))));
+      /* THROUGH `coerce`, as a sheet would store them — a `TRUE` typed into a cell comes back a boolean,
+         and a Save that compared a boolean against the string it posts would rewrite it every time. */
+      rows.forEach(r => tabs[name].push(h.map(c => (r[c] === undefined ? '' : coerce(r[c])))));
     },
     row(pid) {
       const h = tabs.people[0];
@@ -183,34 +185,38 @@ const base = {
   pin: '0000', verified: 'TRUE', listed: true, dbs_checked: true, xp: 10, credits: 5,
   city: 'London', town: 'Mitcham', borough: 'Merton', postcode: 'ZZ1 1ZZ', address: '1 Example Road',
   phone: '+44 7700 900123', date_of_birth: new Date(1990, 2, 4),
-  library_card: 'Merton:12345678:0000|Sutton Central:87654321:0000', library_note: 'renew in May',
   photo: 'https://example.org/p.jpg',
 };
 const tutor = Object.assign({}, base, {
-  person_id: 'P-T1', role: 'tutor', first_name: 'Ada', last_name: 'Tutor', full_name: 'Ada Tutor',
-  handle: 'adatutor', username: 'adatutor', email: 'tutor@example.org',
+  person_id: 'P-T1', role: 'tutor', first_name: 'Ada', last_name: 'Tutor',
+  handle: 'adatutor', email: 'tutor@example.org',
   headline: 'Friendly maths tutor', video: 'https://example.org/v.mp4', years_experience: 5,
   favourite_colour: 'Blue', adjective_1: 'calm', adjective_2: 'clear', adjective_3: 'kind',
   travel_km: 10, rate_per_hour: 20, extra_seat_rate: 0.5, max_students: 4, min_students: 1,
   availability: 'm09,m10,tu15,sa11',
-  /* PGCE and QTS are ordinary entries: the "more qualifications" cell is gone, and a row still
-     holding one is folded in by `qualsList_` and emptied by its first Save — a real change, so it
-     is not seeded here, where the rule is that an untouched Save writes nothing. */
-  quals: 'Maths:A-Level:Edexcel:B~2019~ts|Physics:GCSE:AQA:8~2017~t|Bible and Theology:Degree::~Present~|PGCE:::~~|QTS:::~~',
-  qual_1: 'Maths', qual_1_level: 'A-Level', qual_1_board: 'Edexcel', qual_1_grade: 'B',
-  qual_2: 'Physics', qual_2_level: 'GCSE', qual_2_board: 'AQA', qual_2_grade: '8',
-  qual_3: 'Bible and Theology', qual_3_level: 'Degree',
-  teaches_1: 'Maths', teaches_1_level: 'A-Level', teaches_also: 'Physics (GCSE)',
-  teaches_2: 'Physics', teaches_2_level: 'GCSE',
 });
 const admin = Object.assign({}, tutor, { person_id: 'P-A1', role: 'admin', first_name: 'Hal', last_name: 'Admin',
-  full_name: 'Hal Admin', handle: 'haladmin', username: 'haladmin', email: 'admin@example.org' });
+  handle: 'haladmin', email: 'admin@example.org' });
 const parent = Object.assign({}, base, { person_id: 'P-C1', role: 'client', first_name: 'Pat', last_name: 'Parent',
-  full_name: 'Pat Parent', handle: 'patparent', username: 'patparent', email: 'parent@example.org' });
+  handle: 'patparent', email: 'parent@example.org' });
 const student = Object.assign({}, base, { person_id: 'P-S1', role: 'student', first_name: 'Sam', last_name: 'Student',
-  full_name: 'Sam Student', handle: 'samstudent', username: 'samstudent', email: 'student@example.org',
+  handle: 'samstudent', email: 'student@example.org',
   date_of_birth: new Date(2010, 6, 21), exam_small_date: new Date(2027, 4, 14), exam_big_date: new Date(2027, 5, 10) });
 const PEOPLE = [admin, tutor, parent, student];
+/* ---------- THEIR QUALIFICATIONS AND LIBRARY CARDS, AS ROWS ON TABS OF THEIR OWN ------------------
+   The people tab was redesigned so a list is a tab — see `SCHEMA.people`. A PGCE and a QTS are
+   ordinary rows. The admin and the tutor share the shelf, and everybody holds two library cards. */
+const QUAL_ROWS = [];
+['P-A1', 'P-T1'].forEach(pid => QUAL_ROWS.push(
+  { person_id: pid, subject: 'Maths', level: 'A-Level', institution: 'Edexcel', grade: 'B', completed: '2019', teach: 'TRUE', can_teach: 'FALSE' },
+  { person_id: pid, subject: 'Physics', level: 'GCSE', institution: 'AQA', grade: '8', completed: '2017', teach: 'FALSE', can_teach: 'TRUE' },
+  { person_id: pid, subject: 'Bible and Theology', level: 'Degree', completed: 'Present', teach: 'FALSE', can_teach: 'FALSE' },
+  { person_id: pid, subject: 'PGCE', teach: 'FALSE', can_teach: 'FALSE' },
+  { person_id: pid, subject: 'QTS', teach: 'FALSE', can_teach: 'FALSE' }));
+const LIB_ROWS = [];
+PEOPLE.forEach(p => LIB_ROWS.push(
+  { person_id: p.person_id, library: 'Merton', card_number: '12345678', pin: '0000' },
+  { person_id: p.person_id, library: 'Sutton Central', card_number: '87654321', pin: '0000' }));
 
 /* ---------- WHAT THE FORM POSTS ------------------------------------------------------------------ */
 const BOX = /^(qual_\d+_(teach|spec))$|^(m|tu|w|th|f|sa|su)\d\d$/;
@@ -243,6 +249,8 @@ const bad = [];
 let saves = 0, rounds = 0;
 const b = backend();
 b.seed('people', PEOPLE);
+b.seed('qualifications', QUAL_ROWS);
+b.seed('library_cards', LIB_ROWS);
 const tokens = {};
 PEOPLE.forEach(p => {
   const d = b.post({ action: 'verifyLogin', email: p.email, pin: '0000' });

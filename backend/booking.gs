@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-09-30-g-handlesprofile";
+const BOOKING_VERSION = "2026-10-01-a-manyteach";
 
 
 /**
@@ -1254,11 +1254,10 @@ function authWrong_(t, r) {
 }
 
 /* A successful sign-in, a PIN reset by e-mail and a PIN change all clear it: the count is about
-   guesses against a PIN, and those three each establish the PIN afresh. The old `locked_until`
-   cell is emptied too if the tab still has one, so a lock written by the old code does not linger. */
+   guesses against a PIN, and those three each establish the PIN afresh. (The old `locked_until`
+   column went with the people tab's redesign; a lock lives in Script Properties only.) */
 function authClearThrottle_(t, r) {
   try { authProps_().deleteProperty(authThrottleKey_(r)); } catch (err) {}
-  if (r && r.locked_until) setCell(t, r, 'locked_until', '');
 }
 
 /* ---------- SESSIONS, KEPT OFF THE SHEET -------------------------------------------------------

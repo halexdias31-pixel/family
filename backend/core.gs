@@ -218,6 +218,11 @@ function sameCell_(have, want) {
   if (want instanceof Date) return false;
   const w = (want === undefined || want === null) ? '' : String(want);
   if (have instanceof Date) return !isNaN(have) && !!w && (w === fmtDate(have) || w === isoDate_(have));
+  /* A TICK TYPED OR WRITTEN AS `TRUE` COMES BACK A BOOLEAN — the sheet coerces it — and the form posts
+     the word. Compared as text, `true` against `TRUE` is a difference, so every Save of the
+     qualifications page rewrote every tick and retired the payload with nothing changed.
+     `check-profile.js` caught it the moment its seed went through the sheet's own coercion. */
+  if (typeof have === 'boolean' && /^(true|false)$/i.test(w)) return have === /^true$/i.test(w);
   return ((have === undefined || have === null) ? '' : String(have)) === w;
 }
 
@@ -979,52 +984,66 @@ function availGridIn(fields) {
   return on.join(',');
 }
 
-/* ---------- THE LIBRARY CARDS, WHICH ARE ONE CELL AND NINE BOXES ---------------------------------
-   THE SAME ARRANGEMENT THE HOURS HAVE, one column along, and for the same reason: three cards is
-   nine facts, nine columns is the `library_card_2` shape `SCHEMA` refuses in writing, and the sheet
-   already stores a list of small things this way — `avatar` is `key:value|key:value` on this very
-   tab.
+/* ---------- A PERSON'S OWN ROWS ON A LIST TAB -------------------------------------------------------
+   THE PEOPLE TAB WAS REDESIGNED so a list is a tab, one row per thing, keyed by `person_id` — see
+   the note over `SCHEMA.people`. `qualifications` and `library_cards` are the two, and both are
+   read and written the same way, so the reading and the writing are here once.
 
-   PARSED FROM THE RIGHT. A library's NAME can hold a colon (`Merton: Wimbledon`); a card number and
-   a PIN are digits. So the last two colon-parts are the number and the PIN and everything before
-   them is the name, which makes the one ambiguous character safe rather than forbidden. */
-function libCardsOut(cellValue) {
+   READ IN SHEET ORDER, which is the order they show on the card and on the form — so an admin who
+   drags a row up in the sheet has reordered it everywhere. `read()` is cached per request, so the
+   whole tab is walked once however many people ask. */
+function ownRows_(tab, r) {
+  const pid = S(r && r.person_id);
+  if (!pid) return [];
+  return read(tab).rows.filter(x => S(x.person_id) === pid);
+}
+/* AND WRITTEN IN PLACE, NOT DELETED AND APPENDED. The first rows this person already has are
+   overwritten with the new list in order (`setCells` skips a cell that already holds the value, so
+   a Save that changed nothing writes nothing and does not retire the payload); anything more is
+   appended, and anything left over is deleted from the BOTTOM UP, because `delRow` shifts every
+   row under the one it removes and deleting top-down would delete the wrong ones. Returns how many
+   cells or rows actually changed. */
+function writeOwnRows_(tab, pid, list, cols) {
+  const t = read(tab);
+  if (!t.sheet) return { changed: 0, missing: true };
+  const mine = t.rows.filter(x => S(x.person_id) === pid);
+  let changed = 0;
+  list.forEach((obj, i) => {
+    const vals = { person_id: pid };
+    cols.forEach(c => { vals[c] = obj[c] === undefined ? '' : obj[c]; });
+    if (mine[i]) changed += setCells(t, mine[i], vals).length;
+    else { addRow(t, vals); changed++; }
+  });
+  mine.slice(list.length).sort((x, y) => y._row - x._row).forEach(x => { delRow(t, x); changed++; });
+  return { changed: changed, missing: false };
+}
+
+/* ---------- THE LIBRARY CARDS: ROWS ON `library_cards`, NINE BOXES ON THE FORM ----------------------
+   The form is unchanged — `lib1_name`, `lib1_no`, `lib1_pin` … — so these turn rows into boxes and
+   boxes back into rows. A card with nothing in any of its three boxes is not a card and is not
+   written; the order of the rest is kept, so the form comes back as it was typed. */
+function libCardsOut(r) {
+  const rows = ownRows_(TAB.library_cards, r);
   const out = {};
-  const items = S(cellValue).split('|');
   for (let i = 1; i <= LIBRARY_CARDS; i++) {
-    const bits = S(items[i - 1]).split(':');
-    const pin = bits.length > 1 ? S(bits.pop()) : '';
-    const no  = bits.length > 1 ? S(bits.pop()) : '';
-    out['lib' + i + '_name'] = S(bits.join(':')).trim();
-    out['lib' + i + '_no']   = no.trim();
-    out['lib' + i + '_pin']  = pin.trim();
+    const c = rows[i - 1] || {};
+    out['lib' + i + '_name'] = S(c.library);
+    out['lib' + i + '_no']   = S(c.card_number);
+    out['lib' + i + '_pin']  = S(c.pin);
   }
   return out;
 }
-
-/* ---------- AND BACK, WITH THE EMPTY ONES AT THE END DROPPED -------------------------------------
-   A TRAILING EMPTY CARD IS NOT A CARD. Writing `a:1:2||` would make the cell grow a separator every
-   time somebody saved a form with two libraries filled in, and the count is already a constant here
-   — so the round trip is exact for what was typed rather than for how many boxes were drawn. A gap
-   in the MIDDLE is kept, because it is somebody's second slot left blank on purpose and moving the
-   third one up would rearrange a form under them.
-
-   THE COLON AND THE PIPE ARE STRIPPED OUT OF WHAT IS TYPED, not escaped. A library called
-   `Merton|Wimbledon` would otherwise become two cards on the next load, which is a silent
-   corruption of the one thing this cell exists to remember; a colon inside the NAME is safe (see
-   above) and is left alone. */
 function libCardsIn(fields) {
-  const items = [];
+  const list = [];
   for (let i = 1; i <= LIBRARY_CARDS; i++) {
-    const cut = v => S(v).replace(/\|/g, ' ').trim();
-    const name = cut(fields['lib' + i + '_name']);
-    const no   = cut(fields['lib' + i + '_no']).replace(/:/g, '');
-    const pin  = cut(fields['lib' + i + '_pin']).replace(/:/g, '');
-    items.push((name || no || pin) ? [name, no, pin].join(':') : '');
+    const library = S(fields['lib' + i + '_name']).trim();
+    const card_number = S(fields['lib' + i + '_no']).trim();
+    const pin = S(fields['lib' + i + '_pin']).trim();
+    if (library || card_number || pin) list.push({ library, card_number, pin });
   }
-  while (items.length && !items[items.length - 1]) items.pop();
-  return items.join('|');
+  return list;
 }
+const LIB_COLS = ['library', 'card_number', 'pin'];
 
 /* ---------- THE EXTRA PHOTOGRAPHS: EIGHT BOXES, ONE CELL -------------------------------------------
    `posts.media`'s shape on the people tab — links joined by ` | ` — so a person's gallery and a
@@ -1096,8 +1115,7 @@ function photosList_(r) {
 function venuesPersonIs_(entry, p) {
   const k = key(entry);
   if (!k || !p) return false;
-  return [p.person_id, p.handle, p.username, p.full_name,
-          S(p.first_name) + S(p.last_name)].some(v => S(v) && key(v) === k);
+  return [p.person_id, p.handle, S(p.first_name) + S(p.last_name)].some(v => S(v) && key(v) === k);
 }
 function venuesListOf_(r) {
   return S(r && r.tutors_happy_here).split(/[,\n]/).map(x => x.trim()).filter(Boolean);
@@ -1132,101 +1150,27 @@ function venuesWrites_(p, chosen, venueRows) {
   return out;
 }
 
-/* ---------- UP TO TEN QUALIFICATIONS, AS ONE CELL AND FORTY BOXES --------------------------------
-   `libCardsOut`'s arrangement one row along, with one difference that is the whole of the
-   migration: the cell `quals` is new, so a row nobody has saved since it landed has an EMPTY cell
-   and three filled `qual_N` columns. Reading only the cell would show that tutor an empty shelf,
-   and the next Save would then mirror the empties back over `qual_1…3` — the whole list gone on
-   the first press. So the READER takes the row, and the legacy columns are the answer whenever the
-   cell has nothing in it.
+/* ---------- QUALIFICATIONS: ROWS ON `qualifications`, FORTY BOXES ON THE FORM ------------------------
+   ONE ROW PER QUALIFICATION, `person_id, subject, level, grade, institution, completed, teach,
+   can_teach` — see `SCHEMA.qualifications`. The form is unchanged: `qual_N`, `qual_N_level`,
+   `qual_N_board` (the institution — the slot kept its old name so the page did not move),
+   `qual_N_grade`, `qual_N_received` (the year, or `Present`), `qual_N_spec` (the `teach` column:
+   the one level a tutor specialises in) and `qual_N_teach` (`can_teach`).
 
-   AN ITEM IS `subject:level:board:grade~received~flags` (the tail since 2026-09-29; an item
-   without it is the older form and still reads), THE BASE PARSED FROM THE RIGHT, so a subject holding a colon
-   survives exactly as a library's name does; the other three come off a closed list and cannot. */
+   A RECORD HERE IS `{ subject, level, board, grade, received, teach, spec }`, which is the shape
+   every caller already had — `board` is the institution and `received` is `completed` — so the
+   readers of this function did not change when the storage did.
+
+   WHAT YOU TEACH IS TAUGHT, AND IT MAY BE SEVERAL LEVELS. It was one on the whole page — the
+   phone unticked every other Teach — and that was reported as *"when i tick teach for different
+   levels of same subject it unticks the other one. i dont want that"*. So every `teach` row is a
+   Teach; the only rule kept is that Teach implies Can teach. */
 function qualsList_(r) {
-  r = r || {};
-  const cell = S(r.quals);
-  const low = v => S(v).toLowerCase();
-  let list, flagged = false;
-  if (cell) {
-    list = cell.split('|').map(item => {
-      /* `base~received~flags`. A `~` anywhere in the cell is what says the ticks were ever
-         written; an item from before them has none, and `qualsIn` strips `~` from what is typed. */
-      const parts = S(item).split('~');
-      if (parts.length > 1) flagged = true;
-      const bits = S(parts[0]).split(':');
-      const grade = bits.length > 1 ? S(bits.pop()) : '';
-      const board = bits.length > 1 ? S(bits.pop()) : '';
-      const level = bits.length > 1 ? S(bits.pop()) : '';
-      const flags = low(parts[2]);
-      const spec = flags.indexOf('s') !== -1;
-      /* AND AN ENTRY ALREADY SAVED THE OLD WAY IS SPLIT BACK. The studying migration below used to
-         write "Bible and Theology — University of Wales Trinity Saint David" into the subject, and a
-         row saved since carries it in this cell. A spaced em dash with no place beside it is exactly
-         that shape, so the place moves to the board slot where it belongs; the next Save writes it
-         back split. Only when `board` is empty, so nothing typed there is overwritten. */
-      let subject = S(bits.join(':')), place = board;
-      const m = !place && subject.match(/^(.+?) \u2014 (.+)$/);
-      if (m) { subject = S(m[1]); place = S(m[2]); }
-      return { subject, level, board: place, grade, received: S(parts[1]),
-               teach: spec || flags.indexOf('t') !== -1, spec };
-    }).filter(q => q.subject || q.level || q.board || q.grade || q.received);
-  } else {
-    list = [];
-    for (let n = 1; n <= 3; n++) {
-      const q = { subject: S(r['qual_' + n]), level: S(r['qual_' + n + '_level']),
-                  board: S(r['qual_' + n + '_board']), grade: S(r['qual_' + n + '_grade']),
-                  received: '', teach: false, spec: false };
-      if (q.subject || q.level || q.board || q.grade) list.push(q);
-    }
-  }
-  /* ---------- A ROW SAVED BEFORE THE TICKS EXISTED KEEPS WHAT IT TAUGHT ----------------------
-     With no ticks written anywhere, the first Save of the new page would derive `teaches_1` and
-     `teaches_also` from nothing and blank both — a tutor's whole teaching list gone on a press of
-     Save with nothing touched. So the ticks are READ OFF those two columns until they have been
-     written once: the matching qualification is ticked, and a subject taught with no matching
-     qualification becomes one (subject and level, no grade), because the only other place for it
-     to go is nowhere. */
-  if (!flagged) {
-    const mark = (t, spec) => {
-      if (!S(t.subject)) return;
-      const hit = list.find(q => low(q.subject) === low(t.subject)
-        && (!S(t.level) || !S(q.level) || low(q.level) === low(t.level)));
-      if (hit) { hit.teach = true; if (spec) hit.spec = true; return; }
-      /* `taught` marks it as inferred: `doGet` leaves it off the public card, where it would
-         read as a qualification nobody claimed — a subject taught is not a certificate held. */
-      list.push({ subject: S(t.subject), level: S(t.level), board: '', grade: '', received: '',
-                  teach: true, spec: !!spec, taught: true });
-    };
-    mark({ subject: r.teaches_1, level: r.teaches_1_level }, true);
-    teachAlsoList_(r).forEach(t => mark(t, false));
-  }
-  /* ---------- AND WHAT THEY WERE STUDYING BECOMES A QUALIFICATION RECEIVED `Present` ------------
-     The `studying` page is gone; the facts on it are not. Shown here until a Save writes them into
-     the cell (which also empties the two old cells — see `updateProfile`), and never twice: a row
-     that already has a `Present` qualification is taken to have moved it across. */
-  /* THE PLACE GOES IN THE `board` SLOT, NOT THE SUBJECT. *"you included uni name in the subject"*:
-     it read "Bible and Theology — University of Wales Trinity Saint David", because when this was
-     written the board was a closed list of exam boards. It is "School, college or uni" now (see
-     `qualLevel_` in me.js), which is exactly where a university belongs, and the subject stays a
-     subject. */
-  if (S(r.studying) && !list.some(q => /^present$/i.test(q.received))) {
-    list.push({ subject: S(r.studying), level: '', board: S(r.studying_at), grade: '',
-                received: 'Present', teach: false, spec: false });
-  }
-  /* ---------- AND "MORE QUALIFICATIONS" IS ONE ENTRY EACH, BECAUSE THE FIELD IS GONE -----------
-     ASKED FOR AS *"remove the extra qualifications field. this can be achieved by the regular
-     qualification entries."* A PGCE or an Enhanced DBS is a qualification with no level and no
-     grade, so each ticked item becomes an entry with a subject and nothing else. Shown here until a
-     Save writes them into the cell (which also empties the old one — see `updateProfile`), and never
-     twice: an entry already carrying that name is taken to be it. */
-  S(r.extra_quals).split(/[,|]/).map(v => S(v)).filter(Boolean).forEach(name => {
-    if (list.some(q => low(q.subject) === low(name))) return;
-    list.push({ subject: name, level: '', board: '', grade: '', received: '', teach: false, spec: false });
-  });
-  let one = false;
-  list.forEach(q => { if (q.spec) { if (one) q.spec = false; one = true; } if (q.spec) q.teach = true; });
-  return list.slice(0, QUAL_MAX);
+  return ownRows_(TAB.qualifications, r).map(x => {
+    const spec = TRUE_(x.teach);
+    return { subject: S(x.subject), level: S(x.level), board: S(x.institution), grade: S(x.grade),
+             received: S(x.completed), spec: spec, teach: spec || TRUE_(x.can_teach) };
+  }).filter(q => q.subject || q.level || q.board || q.grade || q.received).slice(0, QUAL_MAX);
 }
 function qualsOut(r) {
   const list = qualsList_(r), out = {};
@@ -1242,73 +1186,42 @@ function qualsOut(r) {
   }
   return out;
 }
-/* ---------- AND BACK, WITH EVERY EMPTY ONE DROPPED — NOT ONLY THE TRAILING ONES ---------------
-   THE ONE PLACE THIS PARTS FROM `libCardsIn`, and on purpose. That one keeps a gap in the middle
-   because a library slot is somebody's second card left blank on purpose. A qualification is not a
-   slot anybody remembers by position — it is a list — and the form draws the filled ones plus ONE
-   empty one; a gap kept here would come back as an empty card in the middle of the shelf with the
-   `Add another` below it. The pipe and the colon are stripped from what is typed for the reason
-   `libCardsIn` gives, except the colon in the subject, which the parse above makes safe. */
+/* AND THE FORTY BOXES BACK INTO ROWS, EVERY EMPTY SLOT DROPPED — a qualification is a list rather
+   than a slot anybody remembers by position, and the shelf draws the filled ones plus one empty. */
 function qualsIn(fields) {
-  const cut = v => S(v).replace(/[|~]/g, ' ').trim();
   const yes = v => /^(true|yes|1|✓)$/i.test(S(v));
-  const items = [];
-  let specDone = false;
+  const list = [];
   for (let i = 1; i <= QUAL_MAX; i++) {
-    const subject = cut(fields['qual_' + i]);
-    const level = cut(fields['qual_' + i + '_level']).replace(/:/g, '');
-    const board = cut(fields['qual_' + i + '_board']).replace(/:/g, '');
-    const grade = cut(fields['qual_' + i + '_grade']).replace(/:/g, '');
-    const received = cut(fields['qual_' + i + '_received']).replace(/:/g, '');
-    if (!(subject || level || board || grade || received)) continue;
-    /* A SPECIALISM IS TAUGHT, AND THERE IS ONE. The phone unticks the others and ticks Teach, but
-       `doPost` is reachable by anybody with the URL, so the rule is here as well — first wins. */
-    let spec = yes(fields['qual_' + i + '_spec']) && !specDone;
-    if (spec) specDone = true;
-    const flags = (spec || yes(fields['qual_' + i + '_teach']) ? 't' : '') + (spec ? 's' : '');
-    /* EVERY ITEM CARRIES ITS `~`, EVEN WITH NOTHING AFTER IT, because a `~` is what tells
-       `qualsList_` the ticks were written — an unticked list must not be re-inferred from
-       `teaches_1` on the next read and come back ticked. */
-    items.push([subject, level, board, grade].join(':') + '~' + received + '~' + flags);
+    const g = k => S(fields['qual_' + i + k]).trim();
+    const q = { subject: g(''), level: g('_level'), institution: g('_board'), grade: g('_grade'),
+                completed: g('_received') };
+    if (!(q.subject || q.level || q.institution || q.grade || q.completed)) continue;
+    const spec = yes(fields['qual_' + i + '_spec']);
+    q.teach = spec ? 'TRUE' : 'FALSE';
+    q.can_teach = (!spec && yes(fields['qual_' + i + '_teach'])) ? 'TRUE' : 'FALSE';
+    list.push(q);
   }
-  return items.join('|');
+  return list;
 }
-
-/* ---------- WHAT ELSE A TUTOR TEACHES, AS ONE CELL OF "Subject (Level)" PHRASES --------------------
-   WRITTEN THE WAY THE CARD PRINTS IT — `Maths (GCSE), English (KS3)` — so the sheet reads as the
-   card does, and comma-separated because that is what the phone's multi-select already writes for
-   `extra_quals`. A pipe is read as a separator too, so a cell typed by hand either way comes apart.
-   The level is the LAST bracketed group, so a subject with brackets of its own and a level still
-   comes apart right. `teaches_2` is the legacy answer, read when the cell is empty for the reason
-   `qualsList_` gives: a row nobody has saved since this landed must not show an empty list, or the
-   next save mirrors the empty back over `teaches_2`. */
-function teachAlsoList_(r) {
-  r = r || {};
-  const cell = S(r.teaches_also);
-  const one = t => {
-    const m = S(t).match(/^(.*?)\s*\(([^()]*)\)\s*$/);
-    return m ? { subject: S(m[1]), level: S(m[2]) } : { subject: S(t), level: '' };
-  };
-  if (cell) return cell.split(/[|,]/).map(one).filter(x => x.subject).slice(0, TEACH_ALSO_MAX);
-  const legacy = { subject: S(r.teaches_2), level: S(r.teaches_2_level) };
-  return legacy.subject ? [legacy] : [];
-}
-const teachAlsoPhrase_ = x => S(x.subject) + (S(x.level) ? ' (' + S(x.level) + ')' : '');
-/* THE CELL AS THE FORM SHOULD SHOW IT — including a legacy `teaches_2` promoted into the list. */
-function teachAlsoOut(r) { return teachAlsoList_(r).map(teachAlsoPhrase_).join(', '); }
-/* AND WHAT THE FORM POSTED, TIDIED: deduped (case-blind), capped, and a bracket with nothing in front
-   of it dropped — "(GCSE)" on a card is a level with no subject. An EMPTY post stays empty: that is a
-   tutor clearing the list, and `teachAlsoList_`'s fallback is why `teaches_2` is mirrored empty too. */
-function teachAlsoIn(value) {
-  const seen = {}, out = [];
-  S(value).split(/[|,]/).forEach(t => {
-    const x = teachAlsoList_({ teaches_also: t })[0];
-    if (!x || !x.subject) return;
-    const phrase = teachAlsoPhrase_(x), k = phrase.toLowerCase();
-    if (seen[k] || out.length >= TEACH_ALSO_MAX) return;
-    seen[k] = true; out.push(phrase);
+const QUAL_COLS = ['subject', 'level', 'grade', 'institution', 'completed', 'teach', 'can_teach'];
+/* WHAT A TUTOR TEACHES, AS THE CARD PRINTS IT — `Maths (GCSE)` — derived from the ticks rather than
+   kept in a column of its own. It used to be `teaches_1`, `teaches_2` and `teaches_also`, three
+   copies of one fact written by `updateProfile` and read by `doGet`; now there is one. The
+   specialism first, then everything else taught, deduped. */
+const teachPhrase_ = q => S(q.subject) + (S(q.level) ? ' (' + S(q.level) + ')' : '');
+function teachesOf_(r) {
+  const list = qualsList_(r);
+  const seen = {}, all = [], main = [];
+  list.filter(q => q.spec).concat(list.filter(q => q.teach && !q.spec)).forEach(q => {
+    if (!S(q.subject)) return;
+    const p = teachPhrase_(q), k = p.toLowerCase();
+    if (seen[k]) return;
+    seen[k] = true; all.push(p);
+    if (q.spec) main.push(p);
   });
-  return out.join(', ');
+  /* `main` is EVERY level ticked Teach, in sheet order. `first` is the first of them, for a phone
+     built before several were allowed — it reads one string as `teachesMain`. */
+  return { main: main, first: main[0] || '', all: all };
 }
 
 /* ---------- A DATE OF BIRTH, AS THREE BOXES AND BACK ----------------------------------------------

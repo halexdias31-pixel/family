@@ -712,7 +712,7 @@ on('do-signin', el => {
          no first or last name would have signed in wearing its address as a display name. The
          handle is on every sign-in reply and is a name somebody chose. */
       USER = Object.assign({}, d);
-      if (!USER.name) USER.name = d.handle || d.username || name;
+      if (!USER.name) USER.name = d.handle || name;
       try { localStorage.setItem('familyUser', JSON.stringify(d)); } catch {}
       toast('Signed in');
       /* ---------- DRAWN NOW, REFRESHED AFTER --------------------------------------------------------
@@ -2140,43 +2140,50 @@ const QUAL_SUBJECTS = [
   'Greek', 'History', 'Italian', 'Latin', 'Law', 'Maths', 'Media Studies', 'Medicine', 'Music',
   'Philosophy', 'Physical Education', 'Physics', 'Politics', 'Portuguese', 'Psychology',
   'Religious Studies', 'Sociology', 'Spanish', 'Statistics', 'Theology',
-  'PGCE', 'QTS', 'Enhanced DBS', 'First Aid', 'DofE Gold',
+  'PGCE', 'QTS', 'DBS', 'First Aid', 'DofE Gold',
+];
+/* ---------- AND THE LEVELS, WHICH STOPPED AT A-LEVEL ------------------------------------------------
+   ASKED FOR AS *"level only has gcse. it doesnt seem to have like the degree levels ... add enhanced
+   level to level so i can put enhanced dbs."* The shelf offered the `options` tab's `level` list,
+   which is the booking list again — GCSE, 11+, AS, Alevel, B-TEC, SATs and three mocks — so a degree
+   could only be typed in. This is what somebody can HOLD, school to doctorate, in the order they get
+   it; then the three certificate levels a DBS check comes at, so `DBS · Enhanced` is two picks rather
+   than one subject spelling the level out. A level already saved that is not here is kept as its
+   chosen option, exactly as the subject is, so the sheet's `Alevel` still shows. */
+const QUAL_LEVELS = [
+  'Entry Level', 'KS2 SATs', '11+', 'GCSE', 'IGCSE', 'AS', 'A-Level', 'BTEC', 'T Level',
+  'International Baccalaureate', 'Access to HE', 'Foundation Degree', 'HNC', 'HND',
+  "Bachelor's degree", "Master's degree", 'PGCE', 'Doctorate', 'Diploma', 'Certificate',
+  'Basic', 'Standard', 'Enhanced',
+];
+/* AND THE GRADES, spelt right ("Distinciton" was on the sheet's list), numbered and lettered, then
+   the ones a BTEC and a degree give. */
+const QUAL_GRADES = [
+  '9', '8', '7', '6', '5', '4', '3', '2', '1', 'A*', 'A', 'B', 'C', 'D', 'E', 'U',
+  'Distinction*', 'Distinction', 'Merit', 'Pass',
+  'First', '2:1', '2:2', 'Third',
 ];
 /* FIELDS WHOSE ANSWER IS SEVERAL OF THE LIST, stored as one comma-separated cell. */
 /* `venues_ok` IS NOT A COLUMN of `people` — it is the venues tab's own `tutors_happy_here`, read and
    written through this one box. See `venuesWrites_` in core.gs for why there is no second copy. */
-const FIELD_MULTI = { teaches_also: true, venues_ok: true };
+const FIELD_MULTI = { venues_ok: true };
 /* ---------- AND ONE SHELF SLOT'S LIST OFF THE FIRST SLOT'S -------------------------------------
    `FIELD_OPTIONS` sends `qual_1_level` ONCE rather than ten times — see its note in constants.gs —
-   so `qual_7_level` asks for `qual_1`'s list here. `teaches_also` is built from `teaches_1`'s two
-   lists, falling back to the booking lists, so a backend too old to send them still offers real
-   subjects rather than nothing. */
+   so `qual_7_level` asks for `qual_1`'s list here. (What a tutor teaches is no longer a field: it is
+   the two ticks on each qualification level — see `qualLevel_`.) */
 function fieldOptions_(f) {
   const v = (typeof DATA !== 'undefined' && DATA && DATA.validations) || {};
   const dd = (typeof DATA !== 'undefined' && DATA && DATA.dropdowns) || {};
   const got = x => (x && x.length ? x : null);
   const first = String(f).replace(/^qual_\d+/, 'qual_1');
   if (/^qual_\d+$/.test(String(f))) return QUAL_SUBJECTS;
+  if (/^qual_\d+_level$/.test(String(f))) return QUAL_LEVELS;
+  if (/^qual_\d+_grade$/.test(String(f))) return QUAL_GRADES;
   return got(v[f]) || FIELD_LISTS_[f] || got(v[first])
     /* THE VENUES ON OFFER ARE THE VENUES THE SITE HAS, by the name the booking form uses for them. */
     || (f === 'venues_ok' ? got((typeof DATA !== 'undefined' && DATA && DATA.venues || [])
                                   .map(x => x && x.title).filter(Boolean)) : null)
-    || (f === 'teaches_also' ? teachPhrases_(got(v.teaches_1) || got(dd.subjects) || [],
-                                             got(v.teaches_1_level) || got(dd.levels) || []) : null)
     || null;
-}
-/* ---------- "ALSO TEACH" IS EVERY SUBJECT AT EVERY LEVEL, WRITTEN AS THE CARD WRITES IT --------
-   ASKED FOR AS *"should be what you specialise teaching in and what you also teach."* Each option
-   is one phrase — `Maths (GCSE)` — built from the same two lists `teaches_1` offers, so what is
-   ticked is already what the card prints and what `teaches_also` holds. Subject-major, because a
-   tutor thinks "Maths, at which levels" rather than "GCSE, in which subjects"; `meDropHtml_` draws
-   them grouped by subject for the same reason, so a hundred phrases read as twelve short rows. */
-function teachPhrases_(subjects, levels) {
-  const out = [];
-  subjects.forEach(sub => { (levels.length ? levels : ['']).forEach(l => {
-    out.push(sub + (l ? ' (' + l + ')' : ''));
-  }); });
-  return out;
 }
 
 /**
@@ -2329,18 +2336,7 @@ function meDropHtml_(field, box) {
   const btn = (x, text) => `<button type="button"
         class="btn quiet pick-opt${on(x) ? ' on' : ''}" data-do="me-many-pick" data-val="${esc(x)}"
         aria-pressed="${on(x) ? 'true' : 'false'}">${on(x) ? '✓ ' : ''}${esc(text)}</button>`;
-  /* ---------- A PHRASE LIST IS DRAWN GROUPED BY ITS SUBJECT -----------------------------------
-     `teaches_also` offers every subject at every level — about a hundred buttons as one flat list,
-     which is a list nobody scans. Grouped, it is one short row per subject with the levels as its
-     buttons, and the button says only the level because the row's head already says the subject.
-     `data-val` is still the whole phrase, so the pick handler and the save are untouched. */
-  const lvl = x => (String(x).match(/^(.*?)\s*\(([^()]*)\)\s*$/) || []);
-  const body = field === 'teaches_also'
-    ? [...new Set(opts.map(x => lvl(x)[1] || x))].map(sub => `<div class="pick-group">
-        <span class="pick-head">${esc(sub)}</span>
-        <div class="pick-list">${opts.filter(x => (lvl(x)[1] || x) === sub)
-          .map(x => btn(x, lvl(x)[2] || x)).join('')}</div></div>`).join('')
-    : `<div class="pick-list">${opts.map(x => btn(x, x)).join('')}</div>`;
+  const body = `<div class="pick-list">${opts.map(x => btn(x, x)).join('')}</div>`;
   return `<p class="drop-say${got.length ? '' : ' is-none'}">${got.length ? esc(got.join(', '))
       : 'Nothing chosen yet — tap as many as apply.'}</p>
     ${body}
@@ -2451,7 +2447,6 @@ const FIELD_ROWS = [
   { fields: ['min_students', 'max_students'], cap: 'students', ph: ['min', 'max'], dash: true },
 ];
 const ROW_LABEL = {
-  teaches_1: 'specialise in', teaches_1_level: 'level', teaches_also: 'also teach',
   years_experience: 'years teaching',
   photo: 'photo link', video: 'video link',
   travel_km: 'will travel (km)', favourite_colour: 'favourite colour',
@@ -2494,9 +2489,9 @@ const isTimetable_ = list => (list || []).length > 12
 /* ---------- AND A GROUP OF `libN_*` NAMES IS A SHELF OF LIBRARY CARDS ----------------------------
    RECOGNISED BY THE SHAPE OF THE NAMES, exactly as the timetable above is and for the same reason:
    the group's title is the backend's to choose, and a renderer that keys on it stops working the
-   day somebody renames it. The one field that is not a card — `library_note` — is drawn as an
-   ordinary box under the shelf, so the test asks whether ANY of the names is a card rather than
-   whether all of them are.
+   day somebody renames it. (There was a `library_note` box under the shelf — "note to yourself" —
+   and the owner took it off, so every name in the group is a card now; the test still asks ANY
+   rather than ALL, so a field added beside the cards one day is drawn rather than dropped.)
 
    WHY IT NEEDS A RENDERER AT ALL, measured rather than asserted: nine ordinary `label.field` boxes
    are 63.1px each at 320 and the group came to **790.2px in a pane that caps at 534.25** — 283px
@@ -2753,8 +2748,8 @@ function qualLevel_(i, value, options, pooled, open) {
           for the whole subject."* A tutor with a Maths degree may teach A-Level and only be able to
           cover GCSE, and one pair per subject could not say that. So they sit on the level and ARE
           the saved `qual_N_spec` / `qual_N_teach` boxes — no hidden copy for a subject tick to write
-          down into. `Teach` is the specialism (the gold chip on the card, one on the whole page,
-          which `qualsIn` also enforces); `Can teach` is everything else you would take on. */''}
+          down into. `Teach` is what you teach (a gold chip under `Teaches` on the card, on as many
+          levels as you like); `Can teach` is everything else you would take on. */''}
     <div class="lib-row q-row q-ticks">
       <label class="check q-tick"><input type="checkbox" data-do="qual-tick" data-k="spec"
         data-me="${esc(f('_spec'))}" ${TRUEish_(val('_spec')) ? 'checked' : ''}><span class="box"></span><span>Teach</span></label>
@@ -2847,12 +2842,11 @@ on('qual-tick', el => {
   const lvl = el.closest('.q-lvl'), shelf = el.closest('.q-shelf');
   if (!lvl || !shelf) return;
   const box = k => lvl.querySelector('[data-k="' + k + '"]') || {};
-  /* ONE TEACH ON THE PAGE, and what you teach you can teach: ticking it unticks every other level's
-     and ticks Can teach beside it; unticking Can teach takes Teach off with it. */
-  if (el.dataset.k === 'spec' && el.checked) {
-    shelf.querySelectorAll('[data-k="spec"]').forEach(x => { if (x !== el) x.checked = false; });
-    box('teach').checked = true;
-  }
+  /* WHAT YOU TEACH YOU CAN TEACH: ticking Teach ticks Can teach beside it, and unticking Can teach
+     takes Teach off with it. Teach on one level leaves every other level alone — it used to untick
+     them, and *"when i tick teach for different levels of same subject it unticks the other one. i
+     dont want that"*. */
+  if (el.dataset.k === 'spec' && el.checked) box('teach').checked = true;
   if (el.dataset.k === 'teach' && !el.checked) box('spec').checked = false;
   shelf.querySelectorAll('.q-lvl').forEach(qualLevelFrom_);
   shelf.querySelectorAll('.q-subj').forEach(qualSubjFrom_);

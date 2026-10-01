@@ -625,6 +625,34 @@ check('a settings save still works against a server older than the site', async 
   return bad;
 });
 
+/* ---------- TEACH MAY BE TICKED ON SEVERAL LEVELS -------------------------------------------------
+   *"when i tick teach for different levels of same subject it unticks the other one. i dont want
+   that."* The handler used to untick every other level's Teach. This ticks Teach on two levels
+   through the app's own handler and wants both still ticked, each with Can teach beside it. */
+check('Teach on one level leaves Teach on another level ticked', async () => {
+  const quals = [];
+  for (let i = 1; i <= 10; i++) ['', '_level', '_board', '_grade', '_received', '_teach', '_spec'].forEach(k => quals.push('qual_' + i + k));
+  const { w } = boot({ payload: Object.assign(payload(), { profileFields: { Qualifications: quals } }) });
+  await wait(300);
+  const t = w.__t;
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+           profile: { first_name: 'Test', last_name: 'Admin', qual_1: 'Maths', qual_1_level: 'GCSE',
+                      qual_2: 'Maths', qual_2_level: 'A-Level' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const d = w.document;
+  const lvls = [...d.querySelectorAll('#s-settings .q-shelf .q-levels .q-lvl')]
+    .filter(l => l.querySelector('[data-k="spec"]') && l.querySelector('[data-k="teach"]'));
+  if (lvls.length < 2) return ['the qualifications shelf has fewer than two levels to tick (' + lvls.length + ')'];
+  const tick = l => { const b = l.querySelector('[data-k="spec"]'); b.checked = true; t.ACTIONS['qual-tick'](b); };
+  tick(lvls[0]); tick(lvls[1]);
+  const on = (l, k) => !!l.querySelector('[data-k="' + k + '"]').checked;
+  const bad = [];
+  if (!on(lvls[0], 'spec')) bad.push('ticking Teach on a second level unticked it on the first');
+  if (!on(lvls[0], 'teach') || !on(lvls[1], 'teach')) bad.push('Teach did not tick Can teach beside it');
+  return bad;
+});
+
 /* ---------- IMPOSTER: ONE PLAYER IS NOT TOLD, AND NOBODY SEES ANYBODY ELSE'S CARD -------------------
    THE GAME IS A SECRET KEPT BY A PHONE PASSED ROUND, and every way it can go wrong draws perfectly:
    two imposters, an imposter shown the word, a word left on the screen when the phone is handed on,

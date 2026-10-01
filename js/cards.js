@@ -217,7 +217,7 @@ function profFacts_(t) {
    a borough (a street-level map would be a tutor's front door, which is not what this is for) and
    never further out than all of London. Positions are Web Mercator pixels relative to the centre,
    written as `calc(50% + …px)`, so the map is right at every card width without being measured. */
-const HEAT_W = 300, HEAT_H = 160;
+const HEAT_W = 300, HEAT_H = 200;
 const heatPx_ = (lat, lng, z) => {
   const n = 256 * Math.pow(2, z), r = lat * Math.PI / 180;
   return [(lng + 180) / 360 * n, (1 - Math.log(Math.tan(r) + 1 / Math.cos(r)) / Math.PI) / 2 * n];
@@ -246,15 +246,24 @@ function profHeat_(names) {
      `overflow: hidden` clips a scroller, it does not stop it being one, and `check/ui.js` named it on
      the first run. A background is painted inside its own box and has no extent to scroll to, so the
      map is clipped by construction. The glows are radial gradients in the same list, on top. */
-  const pos = (x, y) => `calc(50% + ${Math.round(x - cx)}px) calc(50% + ${Math.round(y - cy)}px)`;
+  /* `50%` IN A BACKGROUND POSITION IS NOT THE BOX'S MIDDLE. It lines the IMAGE's 50% up with the
+     BOX's 50%, so a 256px tile placed at `calc(50% + d)` starts 128px left of where `d` says — and
+     the first version shipped that way: every tile and every glow was half its own size up and to
+     the left, the bottom of the map was black, and the glows sat off their venues. The owner's
+     screenshot is what showed it (this container cannot load the tiles). `w` and `h` put it back:
+     the image's own half is added so its top-left corner lands at `50% + d`. */
+  const pos = (x, y, w, h) => `calc(50% + ${Math.round(x - cx + w / 2)}px) calc(50% + ${Math.round(y - cy + h / 2)}px)`;
   const layers = [];
-  px.forEach(p => layers.push({ img: 'radial-gradient(circle closest-side, rgba(255,180,84,.85) 0, rgba(255,140,50,.45) 40%, rgba(255,90,40,0) 100%)',
-    pos: pos(p[0] - 32, p[1] - 32), size: '64px 64px' }));
+  /* A SOFT, WIDE GLOW PER VENUE, TRANSLUCENT, so the streets read through it and venues close
+     together add up into a warmer patch rather than each being a hard orange ball. */
+  const G = 80;
+  px.forEach(p => layers.push({ img: 'radial-gradient(circle closest-side, rgba(255,190,90,.6) 0, rgba(255,150,60,.3) 45%, rgba(255,120,40,0) 100%)',
+    pos: pos(p[0] - G / 2, p[1] - G / 2, G, G), size: G + 'px ' + G + 'px' }));
   const t0x = Math.floor((cx - 220) / 256), t1x = Math.floor((cx + 220) / 256);
-  const t0y = Math.floor((cy - 110) / 256), t1y = Math.floor((cy + 110) / 256);
+  const t0y = Math.floor((cy - 130) / 256), t1y = Math.floor((cy + 130) / 256);
   for (let tx = t0x; tx <= t1x; tx++) for (let ty = t0y; ty <= t1y; ty++) {
     layers.push({ img: `url("https://basemaps.cartocdn.com/dark_all/${z}/${tx}/${ty}@2x.png")`,
-      pos: pos(tx * 256, ty * 256), size: '256px 256px' });
+      pos: pos(tx * 256, ty * 256, 256, 256), size: '256px 256px' });
   }
   const style = `background-image:${layers.map(l => l.img).join(',')};`
     + `background-position:${layers.map(l => l.pos).join(',')};`
@@ -425,26 +434,31 @@ function findCard(x) {
             the subjects in tutors profile cards. to look like this ( Maths (GCSE) )"*. It was a
             `Teaches` row, a comma list — and each subject is a separate claim a parent is looking
             for, which is the argument the adjectives' own note makes for being chips.
-            THE SPECIALISM IS MARKED, and `teachesMain` says which one it is rather than position:
+            THE SPECIALISMS ARE MARKED, and `teachesSpec` says which they are rather than position:
             a tutor with no specialism and two other subjects must not have the first drawn as one.
             `mark` still runs inside each chip, so a search for "GCSE" lights the chip it matched.
             NOT UPPER-CASED, unlike the adjectives: "MATHS (GCSE)" is a subject shouted, and the
             owner's own example is written in the case the sheet holds. */''}
       ${/* ---------- FIVE CAPTIONS, IN THIS ORDER, AND NO OTHERS ----------------------------------
             ASKED FOR AS *"there should be x number of titles. at a glance, teaches, can also teach,
-            qualifications, tutors at."* So `Teaches` is the specialism alone — the level a tutor
-            ticked `Teach` on, one on the whole page (see `qualLevel_` in me.js) — and everything
+            qualifications, tutors at."* So `Teaches` is every level a tutor ticked `Teach` on (see
+            `qualLevel_` in me.js) — and everything
             else they ticked `Can teach` on is its own caption, where it used to share a row with the
             specialism and be told apart only by a gold edge. The `Focus` row went: it was a sixth
-            title nobody asked for. `teachesMain` is still said by the server rather than read off
+            title nobody asked for. `teachesSpec` is still said by the server rather than read off
             position, so a tutor with no specialism gets no `Teaches` row rather than their first
             "also" subject promoted into it. */''}
-      ${t.teachesMain
-        ? `<div class="prof-cap">Teaches</div><div class="prof-tags prof-teach"><span class="prof-tag is-main">${
-             mark(t.teachesMain)}</span></div>` : ''}
-      ${profList_(t.teaches).filter(v => v !== t.teachesMain).length
-        ? `<div class="prof-cap">Can also teach</div><div class="prof-tags prof-teach">${profList_(t.teaches)
-             .filter(v => v !== t.teachesMain).map(v => `<span class="prof-tag">${mark(v)}</span>`).join('')}</div>` : ''}
+      ${/* SEVERAL TEACHES. *"when i tick teach for different levels of same subject it unticks the
+            other one. i dont want that"* — so `teachesSpec` is a list, every one a gold chip under
+            `Teaches`, and `Can also teach` is the rest. An older backend sends one string as
+            `teachesMain`, which `profList_` reads as a list of one. */''}
+      ${(() => {
+        const main = profList_(t.teachesSpec || t.teachesMain), also = profList_(t.teaches).filter(v => !main.includes(v));
+        return (main.length ? `<div class="prof-cap">Teaches</div><div class="prof-tags prof-teach">${
+                  main.map(v => `<span class="prof-tag is-main">${mark(v)}</span>`).join('')}</div>` : '')
+             + (also.length ? `<div class="prof-cap">Can also teach</div><div class="prof-tags prof-teach">${
+                  also.map(v => `<span class="prof-tag">${mark(v)}</span>`).join('')}</div>` : '');
+      })()}
       ${/* ---------- QUALIFICATIONS, AS THE SAME CHIPS ---------------------------------------------
             ASKED FOR AS *"qualifications should also look like google chips."* Each entry of `quals`
             is already one sentence built by `doget.gs` ("Maths A-Level (Edexcel) grade B"), so a

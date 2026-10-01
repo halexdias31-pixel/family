@@ -56,7 +56,7 @@ const FIELD_LABEL = {
   pages_checked: 'page count checked', trackable: 'can be ticked off',
   /* Inside a group already called "Library card", "library card" and "library pin" say the word
      twice and read as two different cards. The group names the thing; these name the parts. */
-  library_card: 'card number', library_pin: 'PIN', library_note: 'note to yourself',
+  library_card: 'card number', library_pin: 'PIN',
   /* ---------- AND THE TWO EXAMS, IN THE WORDS THEY WERE ASKED FOR IN ---------------------------
      `exam_small_date` UNDERSCORE-STRIPPED IS "exam small date", which reads as nothing anybody
      says — and inside a group already called "Exam dates" it says both words twice, which is the
