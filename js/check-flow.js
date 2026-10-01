@@ -266,6 +266,11 @@ function boot(opts) {
       + 'dockText: typeof docketText === "function" ? docketText : null,'
       + 'paintDocket: typeof paintDocket === "function" ? paintDocket : null,'
       + 'jobAdmin: typeof jobAdminTiles_ === "function" ? jobAdminTiles_ : null,'
+      /* THE WHOLE SESSION PAGE AND THE FIGURES ON IT, so a journey can ask who is shown which money
+         and whether the actions are printed on the paper rather than floating under it. */
+      + 'jobPage: typeof jobPage_ === "function" ? jobPage_ : null,'
+      + 'jobMoney: typeof jobMoney_ === "function" ? jobMoney_ : null,'
+      + 'formMoney: typeof formMoney_ === "function" ? formMoney_ : null,'
       + 'stage: typeof jobStage_ === "function" ? jobStage_ : null,' +
       'accepted: typeof jobAccepted_ === "function" ? jobAccepted_ : null,' +
       /* THE RECEIPT'S ROWS AS OBJECTS, because the count on the Dates row is a figure in a COLUMN and
@@ -2927,13 +2932,109 @@ check('an admin still has every action on a session after the move to tiles', as
   if (has(live, 'job-answer')) bad.push('a booked session still offers `job-answer`');
   if (!has(live, 'job-delete')) bad.push('a booked session cannot be deleted');
 
-  /* THEY ARE TILES NOW, in the row every other thing's actions use. */
-  if (asking.indexOf('class="tile-row"') === -1) {
-    bad.push('the admin actions are not in a `.tile-row` — they should look like every other '
-           + "thing's actions");
+  /* THEY ARE TILES NOW — and the ROW is the receipt's foot, built once in `jobPage_`, so this
+     hands back marks rather than a row of its own. A row here would be a row inside a row. */
+  if (asking.indexOf('class="tile') === -1) {
+    bad.push('the admin actions are not tiles — they should look like every other thing\'s actions');
+  }
+  if (asking.indexOf('tile-row') !== -1) {
+    bad.push('`jobAdminTiles_` wraps its own `.tile-row` again — the row is the receipt\'s foot');
   }
   if (/<button class="btn/.test(asking)) {
     bad.push('a plain `.btn` came back in among the tiles');
+  }
+  return bad;
+});
+
+/* ---------- WHO IS SHOWN WHICH FIGURE, AND WHERE THE ACTIONS ARE ---------------------------------
+   ASKED FOR AS *"for tutor they shouldnt see grand total client pays, only grand total they earn.
+   admin should be able to see grand total client pays. total tutor earns, and how much admin
+   earns"* and *"no floating tiles for already booked sessions"*. Nothing else can ask either:
+   `check/ui.js` measures whether a figure FITS, and a tutor shown the client's total measures
+   perfectly; `check/press.js` presses the tiles wherever they are.
+
+   THE SAME JOB, READ BY THREE PEOPLE — the client on it, the tutor on it, an admin — and the
+   figures are the payload's as `doGet` sends them to an admin, so what is asked is the DRAWING:
+   which label the total carries and which figures are under it. What `doGet` withholds from whom is
+   `check-profile.js`'s question (section 10), asked of the real `doGet`. */
+check('each person sees their own figure on a session, and its tiles are on the paper', async () => {
+  const { w } = boot();
+  await wait(300);
+  if (typeof w.__t.jobMoney !== 'function' || typeof w.__t.jobPage !== 'function') {
+    return ['`jobMoney_` or `jobPage_` is not exported, so who sees which figure cannot be checked'];
+  }
+  const bad = [];
+  const job = {
+    id: 'J-M', jobId: 'J-M', kind: '', subject: 'Maths', level: 'GCSE', price: 270,
+    tutorPay: 135, adminKeeps: 81, tutor: 'Ada Tutor', location: 'Colliers Wood Library',
+    dates: '06/10/26, 13/10/26', startDate: '06/10/26', endDate: '13/10/26',
+    slots: [{ n: 1, client: 'Rasa Poliksa', status: 'Booked' }],
+    tutorSlots: [{ key: 'a', name: 'Ada Tutor', status: 'Confirmed' }], events: [],
+  };
+  const doc = h => { const d = w.document.createElement('div'); d.innerHTML = h; return d; };
+  const totals = d => [...d.querySelectorAll('.rc .rc-total')]
+    .map(r => r.querySelector('.bk-k').textContent.trim() + ' ' + r.querySelector('.bk-t').textContent.trim());
+
+  /* THE CLIENT: what they pay, and not one other figure. */
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const c = totals(doc(w.__t.jobPage(job)));
+  if (c.length !== 1 || !/270\.00/.test(c[0])) bad.push('the client sees ' + JSON.stringify(c) + ', wanted their £270.00 alone');
+  if (c.some(x => /135|81\./.test(x))) bad.push('the client is shown what the tutor or the admin takes: ' + JSON.stringify(c));
+
+  /* THE TUTOR: what they earn IN PLACE OF the client total — never beside it. */
+  w.__t.USER({ name: 'Ada Tutor', personId: 'P2', role: 'tutor', roles: ['tutor'] });
+  const t = totals(doc(w.__t.jobPage(job)));
+  if (t.length !== 1 || !/^YOU EARN|^You earn/i.test(t[0]) || !/135\.00/.test(t[0])) {
+    bad.push('the tutor sees ' + JSON.stringify(t) + ', wanted "You earn £135.00" alone');
+  }
+  if (t.some(x => /270\.00/.test(x))) bad.push('the tutor is shown the client\'s total: ' + JSON.stringify(t));
+  /* A BLANK `tutor_pay` IS A DASH, NOT A NOUGHT — every job before the phone sent it. */
+  const unpaid = w.__t.jobMoney(Object.assign({}, job, { tutorPay: '' }));
+  if (unpaid.total !== '—') bad.push('an unrecorded tutor pay reads ' + JSON.stringify(unpaid.total) + ', wanted a dash');
+
+  /* A SECOND TUTOR WHO HAS ONLY APPLIED is on `tutorSlots` and not in `j.tutor`, which is the first
+     name on the roster — so a test of `j.tutor` alone would hand them the client's line. */
+  w.__t.USER({ name: 'Ben Tutor', personId: 'P3', role: 'tutor', roles: ['tutor'] });
+  const t2 = totals(doc(w.__t.jobPage(Object.assign({}, job, {
+    tutorSlots: job.tutorSlots.concat([{ key: 'b', name: 'Ben Tutor', status: 'Applied' }]) }))));
+  if (t2.length !== 1 || !/you earn/i.test(t2[0]) || t2.some(x => /270\.00/.test(x))) {
+    bad.push('a tutor who has applied but is not first on the roster sees ' + JSON.stringify(t2) + ', wanted "You earn"');
+  }
+
+  /* THE ADMIN: all three, as rows of the paper — no block under it. */
+  w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
+  const ad = doc(w.__t.jobPage(job));
+  const a = totals(ad);
+  const want = [/client pays.*270\.00/i, /tutor earns.*135\.00/i, /admin earns.*81\.00/i];
+  if (a.length !== 3 || want.some((re, i) => !re.test(a[i] || ''))) {
+    bad.push('the admin sees ' + JSON.stringify(a) + ', wanted Client pays £270.00, Tutor earns £135.00, Admin earns £81.00');
+  }
+  if (ad.querySelector('.money-note')) bad.push('a money block still floats under the paper');
+  /* A WAITING LIST'S `price` IS ONE SEAT, so the admin's line must not call it what the client pays. */
+  const wl = totals(doc(w.__t.jobPage(Object.assign({}, job, { kind: 'waitlist' }))));
+  if (!/^each seat pays/i.test(wl[0] || '')) bad.push('an admin reading a waiting list sees ' + JSON.stringify(wl[0]) + ', wanted "Each seat pays" over the per-seat figure');
+
+  /* THE TILES ARE THE RECEIPT'S FOOT. Every action on the page is inside `.rc`, and a session
+     already paid for offers no Pay. */
+  const loose = [...ad.querySelectorAll('[data-do]')].filter(x => !x.closest('.rc'));
+  if (loose.length) bad.push('actions float outside the paper: ' + loose.map(x => x.dataset.do).join(', '));
+  if (!ad.querySelector('.rc .rc-tiles [data-do="job-delete"]')) bad.push('the admin\'s tiles are not on the receipt\'s foot');
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const paid = doc(w.__t.jobPage(job));
+  if (paid.querySelector('[data-do="job-pay"]')) bad.push('a session already booked and paid offers Pay');
+  const owed = doc(w.__t.jobPage(Object.assign({}, job, { slots: [{ n: 1, client: 'Rasa Poliksa', status: 'Agreed' }] })));
+  if (!owed.querySelector('.rc .rc-tiles [data-do="job-pay"]')) bad.push('an accepted, unpaid session has no Pay on its paper');
+
+  /* AND THE FORM: an admin pricing a booking sees the two more rows; nobody else does. */
+  if (typeof w.__t.formMoney === 'function') {
+    const L = { total: 300, tutorPay: 150, profitTotal: 40 };
+    w.__t.USER({ name: 'Halex Dias', personId: 'PA', role: 'admin', roles: ['admin'] });
+    const fa = w.__t.formMoney(L);
+    if (fa.more.length !== 2 || !/150\.00/.test(fa.more[0].t) || !/40\.00/.test(fa.more[1].t)) {
+      bad.push('an admin pricing the form is not shown what the tutor and the business take');
+    }
+    w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+    if (w.__t.formMoney(L).more.length) bad.push('a client pricing the form is shown the split');
   }
   return bad;
 });

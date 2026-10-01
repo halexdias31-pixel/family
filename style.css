@@ -3022,14 +3022,35 @@ button.text-drop { color: var(--bad); }
 .rc-total .bk-k { color: var(--ink); font-weight: 700; text-transform: uppercase;
                   letter-spacing: .06em; }
 .rc-total .bk-t { font-weight: 700; color: var(--ink); }
+/* ---------- AN ADMIN'S TWO MORE MONEY ROWS, UNDER THE FIRST AND PART OF IT -----------------------
+   `Tutor earns` and `Admin earns` follow `Client pays` — see `jobMoney_` in book.js. They are the
+   same row again rather than a block of their own, so no second rule above them: one line closes
+   the questions off, and the three figures under it read down the `+` column as one total split
+   three ways. Named through `.rc-total` so it out-specifies the base rule rather than out-sitting
+   it — the `.price.faint` race this stylesheet has lost twelve times. */
+.rc-total.rc-more { margin-top: 0; padding-top: 0; border-top: 0; }
+/* ---------- A TOTAL'S LABEL RUNS ACROSS THE ROW, SO IT CANNOT WIDEN THE QUESTION COLUMN ------------
+   THE LABEL TRACK IS `minmax(6.2em, max-content)` AND IT IS SHARED BY EVERY ROW ON THE CARD — so
+   the widest label anywhere decides where every answer starts. `COST` fitted inside the floor;
+   `CLIENT PAYS` and `TUTOR EARNS`, in capitals and tracked, did not, and measured at 390 they pushed
+   the answer column far enough right that `Autumn 2026` and every tick's date wrapped onto a second
+   line. At 320 the dates broke mid-number. `IT WOULD COME TO` on an unanswered application had been
+   doing the same thing quietly for as long as that label has existed.
+
+   SO THE LABEL SPANS `1 / -2` — every track but the figure's — and the three empty spans beside it
+   go. A spanning item only grows a track when the tracks it spans are too narrow together, and the
+   answer column alone is wider than any total's label. `-2` RATHER THAN `5` because the basket is
+   two tracks, and there `1 / -2` is just its first. The dotted leader went with `.bk-v`: the row's
+   own rule above it already says this is the total. */
+.rc-total .bk-k { grid-column: 1 / -2; }
+.rc-total .bk-v, .rc-total .bk-m, .rc-total .bk-r { display: none; }
 /* ---------- AND ON A BASKET IT IS TWO COLUMNS, BECAUSE THE BASKET'S CARD IS ----------------------
    `.bk:has(> .is-wide)` GIVES THAT CARD TWO TRACKS and `.bk-row.is-wide` hides four of its six
    spans to match. The total row is not `is-wide` — it is the same row on both documents — so
    without this it would put five spans into two tracks and wrap itself over three lines. The four
    it hides are the four that are empty there, which is the same four `is-wide` hides. */
-.bk:has(> .is-wide) > .rc-total .bk-v,
-.bk:has(> .is-wide) > .rc-total .bk-m,
-.bk:has(> .is-wide) > .rc-total .bk-r { display: none; }
+/* THE THREE IT HID ARE HIDDEN ON EVERY TOTAL NOW — see `.rc-total .bk-k` below — so the basket's
+   own copy of that rule went rather than standing as a second statement of it. */
 
 /* ---------- ELEVEN RULES THAT SAID THE SAME ELEVEN THINGS IN A SECOND COLOUR ----------------------
    THIS BLOCK WAS "the rows inside the paper: the same five columns, in ink rather than in screen
@@ -6044,13 +6065,10 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    the session is, when, and where it has got to. Nothing draws them. Gone with the stub stylesheet
    above, and found by the same two repairs to `check-css`. */
 
-/* ---------- THE BUSINESS'S OWN ARITHMETIC, BESIDE THE PAPER --------------------------------------
-   Floating under the card rather than printed on it, so the document reads the same for everybody
-   and this reads as a note about it. Faint and small: it is a figure you check, not a figure the
-   other party agreed to. */
-.money-note { display: flex; gap: 1rem; flex-wrap: wrap; margin-top: .5rem;
-              font-size: .78rem; color: var(--dim); }
-.money-note b { color: var(--gold); font-weight: 600; }
+/* `.money-note` STOOD HERE — the business's arithmetic floating under the paper. It is two rows of
+   the total now (`.rc-more` above), because the owner asked that nothing float under a receipt and
+   because the only thing that ever kept those figures from a client was this block's own `isAdmin`
+   test; the payload keeps them now. */
 
 .join { margin-top: 1rem; }
 .join-say { margin: 0 0 .6rem; }
@@ -11498,6 +11516,10 @@ button.scr-sq { cursor: pointer; }
      the element being printed, and a PDF of a booking with a gold Send button on it is a picture of
      a control nobody can press. Everything else on the card is the document. */
   body.printing-rc .rc-print .rc-tiles { display: none !important; }
+  /* AND AN ADMIN'S TWO MORE MONEY ROWS. Sharing prints this element for somebody else — a family,
+     usually — and what the tutor earns and what the business keeps are the two lines on the screen
+     that must not travel. `Client pays` stays: it is the figure the document is about. */
+  body.printing-rc .rc-print .rc-more { display: none !important; }
 }
 
 /* ---------- THE TUTOR AGREEMENT (DRAFT) and THE ADMIN'S CUT -------------------------------------

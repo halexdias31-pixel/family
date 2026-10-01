@@ -1721,6 +1721,27 @@ function doGet(e) {
       const seatsGoing = Math.max(0, maxKids - cs.length);
       if (!iAmIn && !(openToOthers && seatsGoing > 0)) return;
 
+      /* ---------- WHO MAY SEE WHICH FIGURE, DECIDED HERE AND NOWHERE ELSE --------------------------
+         ASKED FOR AS *"for tutor they shouldnt see grand total client pays, only grand total they
+         earn. admin should be able to see grand total client pays. total tutor earns, and how much
+         admin earns."* Hiding a figure on the phone and shipping it anyway is a filter anybody reads
+         past with the network tab open — this payload goes to whoever asks — so each figure is SENT
+         only to the people allowed it, and `jobMoney_` on the phone draws whatever arrived.
+
+           `price`       — everybody it was sent to before, EXCEPT a tutor on the job who is not also
+                           a client on it (an admin who teaches still gets it, as an admin)
+           `tutorPay`    — the tutors on the job's own roster, and an admin
+           `adminKeeps`  — an admin, and nobody else
+
+         ON THE ROSTER, NOT ON THE NAME: against the name the token resolved to, exactly as `iAmIn`
+         two lines up. A tutor who has only APPLIED is on it too, and seeing what the session would
+         pay is the half of applying that matters to them. A blank cell stays blank — `tutor_pay`
+         was written empty on every job before the phone started sending it, and `N('')` is a
+         nought that would tell a tutor they earn nothing. */
+      const iTeach = !!meAskedName && ts.some(t2 => key(t2.name) === key(meAskedName));
+      const iPay = !!meAskedName && cs.some(c => key(c.name) === key(meAskedName));
+      const tutorOnly = iTeach && !iPay && !viewerIsAdmin;
+
       payload.clientClasses.push({
         id: jobId, rowIndex: j._row, type: 'job',
         /* SAID PLAINLY so the phone does not have to work it out — and so it cannot work it out
@@ -1757,7 +1778,9 @@ function doGet(e) {
            found nothing, and printed "Your seat  £0.00" on a list that is priced perfectly well in
            the sheet. `price_total` on a waitlist holds the PER-SEAT figure, deliberately, which is
            exactly what a seat costs and exactly what this row wants. */
-        price: N(j.price_total),
+        price: tutorOnly ? '' : N(j.price_total),
+        tutorPay: (viewerIsAdmin || iTeach) && S(j.tutor_pay) !== '' ? N(j.tutor_pay) : '',
+        adminKeeps: viewerIsAdmin && S(j.admin_profit) !== '' ? N(j.admin_profit) : '',
         /* AND WHICH TERM, so the card can say when. `term_name` is the column; `term` is what I
            called it and it does not exist. */
         term: S(j.term_name),

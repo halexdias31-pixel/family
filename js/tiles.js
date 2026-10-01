@@ -661,10 +661,11 @@ function jobAdminTiles_(j, stage, accepted) {
   }
   rows.push(tile_({ icon: 'bin', label: 'Delete', tone: 'danger', note: 'ends it for everybody',
                     act: 'job-delete', data: { id: id } }));
-  /* `.tile-row`, WHICH IS WHAT EVERY OTHER TILE ROW IN THIS APP USES — see `cardTiles_` above.
-     `.tiles` is a different thing entirely (the widget grid) and putting these in one would have
-     made an admin's four actions lay out like a drawer of tools. */
-  return `<div class="tile-row">${rows.join('')}</div>`;
+  /* TILES, NOT A ROW. This returned its own `.tile-row`, and `jobPage_` wrapped it in another
+     beside the client's two — a row inside a row. The row is the receipt's foot now, built once in
+     `jobPage_` with the class the booking form's row carries, so this hands over the marks and the
+     caller decides where they go. Still never `.tiles`, which is the widget grid. */
+  return rows.join('');
 }
 
 /* ---------- WHAT YOU CAN DO ABOUT A POST ----------------------------------------------------------

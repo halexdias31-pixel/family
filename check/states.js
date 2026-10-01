@@ -1997,7 +1997,10 @@ const STATES = {
             { at: '26/09/2026', actor: USER.name, role: 'client', action: 'Confirm', target: '', message: 'payment confirmed' },
             { at: '28/09/2026', actor: 'Second Family', role: 'client', action: 'Confirm', target: '', message: 'payment confirmed' },
           ],
-          price: '270', tutorPay: '135', stage: 'accepted', status: 'accepted',
+          /* `adminKeeps`, BECAUSE THE LAB SIGNS IN AS AN ADMIN and an admin is sent all three
+             figures — so this card draws `Client pays`, `Tutor earns` and `Admin earns` as three
+             total rows, which is the tallest the total block gets and the one worth measuring. */
+          price: '270', tutorPay: '135', adminKeeps: '81', stage: 'accepted', status: 'accepted',
         }];
         paint('booking');
         /* PAGE BY POSITION IS WRONG HERE and `jobPageAt_` is the app's own answer: it reads the
@@ -2005,8 +2008,21 @@ const STATES = {
            something moved. */
         goPage('booking', typeof jobPageAt_ === 'function' ? jobPageAt_('J-UI') : 1, true);
       },
-      expect: () => document.querySelectorAll('#s-booking .rc .bk-row').length,
-      wants: 'a receipt with rows on it' },
+      /* AND THE ADMIN'S THREE FIGURES ARE ROWS OF IT, AND ITS TILES ARE ON IT. *"no floating tiles
+         for already booked sessions"* — every action on the session's page is inside the paper, and
+         a session already booked offers no Pay. Asked of the one page in front, since the column
+         also holds the form — found by its own reference rather than by `.page.on`. */
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-booking .page')]
+          .find(p => /J-UI/.test((p.querySelector('.rc-ref') || {}).textContent || ''));
+        const rc = pg && pg.querySelector('.rc');
+        if (!rc || !rc.querySelectorAll('.bk-row').length) return false;
+        if (rc.querySelectorAll('.rc-total').length !== 3) return false;
+        if (!rc.querySelector('.rc-tiles [data-do="job-delete"]')) return false;
+        if (pg.querySelector('[data-do="job-pay"]')) return false;
+        return ![...pg.querySelectorAll('[data-do]')].some(x => !x.closest('.rc'));
+      },
+      wants: 'a receipt with rows on it, an admin\'s three money rows, and its tiles on the paper' },
   ],
 
   /* ---------- AND THE MESSAGES COLUMN, WHICH THIS FILE HAS ONLY EVER SEEN EMPTY -----------------

@@ -81,21 +81,16 @@ function bookBlocks() {
      same rows is the duplication this evening has already produced twice, and the funnel version is
      the better one: it counts them, it can be searched, and it separates finished from running
      rather than lumping both under "past". */
-  /* THE SAME MONEY BLOCK UNDER THE FORM, and for the sharper reason: the figures move as the
-     questions are answered, which is exactly when you want to see what a booking would leave you. */
-  const L = typeof bookPrice === 'function' ? bookPrice() : null;
+  /* THE MONEY BLOCK THAT STOOD UNDER THE FORM IS GONE — an admin's three figures are rows of the
+     paper now, see `formMoney_`. It never drew here anyway: see the note where `moneyBlock` was. */
   /* BELOW THE FORM, NOT AS A SECOND PAGE. Each element of this array is a page somebody swipes to,
      and the booking they just made is not somewhere else — it is the answer to the form they are
-     looking at. Same string, under the money block. */
+     looking at. Same string. */
   /* THE PAGE IS ALWAYS THE FORM. For one commit an open list replaced it here, on the argument that
      the money block and the receipt are both ABOUT the form and neither is what somebody pressing a
      field went looking for. True, and it was reported as *"i hate this"* — the list hangs off its
      own field now and covers nothing, so there is nothing for this to stand aside for. */
-  return [bookerCard()
-    + (typeof moneyBlock === 'function'
-       ? moneyBlock({ tutor: BOOKING.tutor, tutorPay: L && L.tutorPay, profit: L && L.profit })
-       : '')
-    + askedBlock_()].concat(myJobPages_()).filter(Boolean);
+  return [bookerCard() + askedBlock_()].concat(myJobPages_()).filter(Boolean);
 }
 
 /* ---------- YOUR SESSIONS CAME BACK TO THIS COLUMN, AND THE NOTE ABOVE IS WHY IT HAD TO ------------
@@ -4250,6 +4245,9 @@ function bookBreakdown(L, foot) {
        hours in it multiplies out to nothing. A zero on a receipt means FREE, and that is a promise
        this form is in no position to make. A dash means not yet, which is the truth. */
     total: (L && L.total > 0) ? money(L.total) : '—',
+    /* AN ADMIN'S TWO MORE ROWS, AND THE TOTAL'S LABEL SAYING WHOSE FIGURE IT IS — `formMoney_`. */
+    totalLabel: formMoney_(L).label || undefined,
+    more: formMoney_(L).more,
     /* PASSED STRAIGHT THROUGH. The actions are built where the rest of the booking's wording is —
        see `drawBooker_` — and printed where a receipt's footer goes. */
     foot: foot || '',
@@ -4521,6 +4519,16 @@ function receiptHtml(r) {
          THE RULE ABOVE IT GOES TOO. A `.rc-rule` between the rows and the total was closing off a
          block the total is now part of; the row's own top border does that job, in the one place
          the card already draws a line between rows. */''}
+    ${/* ---------- `r.more`: WHO GETS WHAT, FOR THE ONE PERSON ALLOWED TO KNOW ------------------
+         ASKED FOR AS *"admin should be able to see grand total client pays. total tutor earns, and
+         how much admin earns."* That was `moneyBlock`, a line of faint text floating UNDER the
+         paper — and on the form it never drew at all, because it read `L.profit` where `priceFrom`
+         returns `profitTotal`. A reader of a field nobody writes is a block that cannot appear.
+
+         ROWS OF THE TOTAL, SHAPED LIKE IT. The client's figure is the total row; the tutor's and
+         the admin's are the same row again under it, a label in `Q` and a figure in `+`, so the
+         three money lines read down one column. Only the caller decides who is given any — this
+         function draws whatever it is handed and asks nobody's role. */''}
     <div class="bk">${spineHead_(r)}${(r.rows || []).join('')}<div class="bk-row rc-total">
       <span class="bk-n"></span>
       <span class="bk-k">${esc(r.totalLabel || 'Cost')}</span>
@@ -4528,7 +4536,14 @@ function receiptHtml(r) {
       <span class="bk-m"></span>
       <span class="bk-r"></span>
       <span class="bk-t">${esc(r.total || '')}</span>
-    </div></div>
+    </div>${(r.more || []).map(m => `<div class="bk-row rc-total rc-more">
+      <span class="bk-n"></span>
+      <span class="bk-k">${esc(m.k)}</span>
+      <span class="bk-v"></span>
+      <span class="bk-m"></span>
+      <span class="bk-r"></span>
+      <span class="bk-t">${esc(m.t)}</span>
+    </div>`).join('')}</div>
     ${/* THE ROSTER SLOT IS STILL HERE and nothing fills it — see the notes above. Kept rather than
           cut out, because `rosterHtml` is what `Your sessions` draws and this is the one line that
           would put chairs back on a document if that ever turns out to be right. Removing it would
@@ -4802,7 +4817,9 @@ function jobRows(j) {
        the waiting-list branch above. Both documents lose the same two rows in the same commit,
        which is what `check-spine.js` exists to make unavoidable: a row on one and not the other is
        the drift it was written for. */
-    if (iv && iv.weeks) {
+    /* AND ONLY WHERE THERE IS A PRICE. `doGet` withholds it from a tutor who is not also paying —
+       see `jobMoney_` — and "6 × £0.00" would print the hole as a figure. */
+    if (iv && iv.weeks && j.price) {
       /* "ABOUT", because the weeks are what is LEFT and nothing runs until the seats fill. A
          precise total here would be a promise the list cannot keep. */
       push('About', iv.weeks + ' × ' + money(j.price || 0), money((j.price || 0) * iv.weeks));
@@ -4859,8 +4876,9 @@ function jobRows(j) {
   /* `Tutor is paid` AND `Left over` WERE ROWS HERE. They are not on the spine and they are not on
      the paper: what a tutor earns and what is left over are facts about the BUSINESS, and a
      document a client is handed should not have lines on it that vanish depending on who is
-     holding it. `moneyBlock` floats them underneath, where the tile row and the join offer already
-     sit — see below. */
+     holding it — which is still true, and is now kept true by the PAYLOAD: `tutorPay` and
+     `adminKeeps` are sent to nobody who pays, and `jobMoney_` puts them in the total rows for an
+     admin. */
 
   /* ---------- WHERE IT IS, AND WHERE IT IS GOING --------------------------------------------------
      `Status` PRINTED THE SHEET'S OWN CELL — "unconfirmed", "active", "cancelled" — which is a word
@@ -4946,43 +4964,19 @@ function jobWeekRows_(j) {
     { off: true, ruler: true });
 }
 
-/* ---------- WHAT THE BUSINESS TAKES, UNDERNEATH RATHER THAN ON IT ---------------------------------
-   TWO ROWS USED TO SIT BETWEEN `Total` AND `Stage`, drawn only for an admin or the tutor — so the
-   same receipt had a different number of lines depending on who opened it, and a client comparing
-   theirs with what you see would find rows they have no explanation for.
+/* ---------- `moneyBlock` STOOD HERE, AND THE FIGURES ARE ROWS OF THE PAPER NOW -------------------
+   IT FLOATED THE BUSINESS'S ARITHMETIC UNDER THE CARD, on the argument that "a document is the same
+   document for everybody" — a client comparing theirs with an admin's would otherwise find lines
+   they have no explanation for. The argument was about a client ever SEEING those lines, and that
+   is now settled at the source: `doGet` sends `tutorPay` and `adminKeeps` to nobody who pays, so a
+   client's receipt cannot carry them however it is drawn.
 
-   A DOCUMENT IS THE SAME DOCUMENT FOR EVERYBODY. What it costs is on the paper because that is what
-   was agreed; what the tutor earns and what is left over are the business's own arithmetic ABOUT
-   that agreement, and they belong beside it rather than in it. Floating under the card, the way the
-   tile row and the join offer already do.
+   IT ALSO NEVER DREW ON THE FORM. Its one caller there passed `profit: L.profit`, and `priceFrom`
+   returns `profitTotal` — so the admin's margin under a booking being priced was a block that
+   could not appear, which is this repository's oldest shape: a reader of a field nobody writes.
 
-   AND THE SAME BLOCK UNDER THE FORM, while a booking is still being priced — the figures move as
-   the questions are answered, which is exactly when you want to see them. */
-function moneyBlock(o) {
-  if (!o) return '';
-  /* A TUTOR SAW THIS BLOCK BECAUSE IT HELD THEIR OWN PAY, and that line is gone — so the test
-     that let them in has nothing left to let them in for. An admin-only block with a `theirs`
-     branch that can only ever draw an empty div is the shape this repository records under
-     `resource_type` in `VOCAB`: a reader left standing over a condition that no longer produces
-     anything. */
-  const admin = typeof isAdmin === 'function' && isAdmin();
-  if (!admin) return '';
-  /* ---------- THE TUTOR'S SHARE IS NOT DRAWN ANY MORE ---------------------------------------
-     REPORTED AS *"delete the text 'to the tutor' bit"*, over a screenshot of `£332.16 to the
-     tutor` floating under the card. It went whole rather than being reworded: what it said was
-     already the one thing on that block a tutor could read about themselves, so shortening it
-     would have left a figure with no sentence.
-
-     WHAT IS LEFT IS ADMIN-ONLY, which is what the block now is: the business's own arithmetic
-     about an agreement, beside the agreement rather than in it. `tutorPay` is still computed and
-     still posted — `priceFrom` sets it and the backend writes it — so nothing about what a tutor
-     is paid has changed; it is not printed on this screen. */
-  const left = Number(o.profit) || 0;
-  if (!admin || !left) return '';
-  return `<div class="money-note">
-    <span><b>${esc(money(left))}</b> left over</span>
-  </div>`;
-}
+   REPLACED BY `jobMoney_` (a saved session) and `formMoney_` (the form), which hand `receiptHtml`
+   the extra total rows for an admin. Under the paper is where the owner said nothing should float. */
 
 /* ---------- HOW MANY SEATS A SESSION HAS ----------------------------------------------------------
    `Number(j.maxKids || j.maxStudents) || 4` WAS WRITTEN IN TWO PLACES — the roster and the fullness
@@ -5059,9 +5053,61 @@ function jobAccepted_(j) {
   return clientsOk && tutorsOk;
 }
 
-function jobReceipt(j) {
+/* ---------- THREE PEOPLE, THREE FIGURES, AND EACH SEES THEIR OWN -------------------------------
+   ASKED FOR AS *"for tutor they shouldnt see grand total client pays, only grand total they earn.
+   admin should be able to see grand total client pays. total tutor earns, and how much admin
+   earns."* So the total row is a question of who is holding the paper:
+
+     a CLIENT     what they pay — the figure that was agreed, unchanged
+     a TUTOR      what they earn, in that row's place, and not the client's figure at all
+     an ADMIN     what the client pays, then what the tutor earns and what the business keeps
+
+   THE PAYLOAD DECIDES FIRST AND THIS ONLY DRAWS WHAT ARRIVED. `doGet` sends `tutorPay` to the
+   tutors on the job and to an admin, `adminKeeps` to an admin alone, and withholds `price` from a
+   tutor who is not also paying — because a figure hidden here and shipped anyway is a filter
+   anybody reads past with the network tab open, which is `MESSAGING`'s argument. Asked of the
+   roster as well as of `j.tutor`: `tutor` is the first name on it, so a second tutor who applied
+   would otherwise be shown the client's line with its figure missing.
+
+   AN UNRECORDED FIGURE IS A DASH, NEVER £0.00. `tutor_pay` was written blank on every job before
+   the phone started sending it, and a nought there would tell a tutor they earn nothing — the
+   `cost: 0` shape on the one number they open the receipt for. */
+function jobMoney_(j) {
+  const has = v => v !== '' && v != null && isFinite(Number(v));
+  const say = v => has(v) ? money(Number(v)) : '—';
+  if (typeof isAdmin === 'function' && isAdmin()) {
+    /* A WAITING LIST'S `price` IS ONE SEAT, NOT A TOTAL — `doGet` says so beside it — so "Client
+       pays" over it would name the per-seat figure as everything the families are charged, on the
+       one line an admin reads to see what a session brings in. Said as what it is. */
+    const seat = norm(j.kind) === 'waitlist';
+    return { label: seat ? 'Each seat pays' : 'Client pays', total: say(j.price),
+             more: [{ k: 'Tutor earns', t: say(j.tutorPay) },
+                    { k: 'Admin earns', t: say(j.adminKeeps) }] };
+  }
+  const me = USER ? norm(USER.name) : '';
+  const teaches = !!me && (norm(j.tutor) === me
+    || (j.tutorSlots || []).some(t => norm(t.name) === me));
+  const pays = !!me && (j.slots || []).some(sl => norm(sl.client) === me);
+  if (teaches && !pays) return { label: 'You earn', total: say(j.tutorPay), more: [] };
+  return { label: null, total: money(j.price || 0), more: [] };
+}
+
+/* AND THE FORM, WHILE IT IS BEING PRICED — for an admin only, and only once `priceFrom` has said
+   what the tutor and the business would take. A waiting list is priced by `waitPrice_`, which works
+   out a seat and nothing about who keeps what, so it carries no rows rather than two dashes: the
+   form changes shape as it is answered, and a pair of rows that can never fill would be furniture.
+   Everybody else reads the form exactly as before — the figure on it is the quote for the family. */
+function formMoney_(L) {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return { label: null, more: [] };
+  if (!L || !(L.total > 0) || !isFinite(Number(L.tutorPay))) return { label: null, more: [] };
+  return { label: 'Client pays',
+           more: [{ k: 'Tutor earns', t: money(Number(L.tutorPay) || 0) },
+                  { k: 'Admin earns', t: money(Number(L.profitTotal) || 0) }] };
+}
+
+function jobReceipt(j, foot) {
   const rows = jobRows(j);
-  const mine = USER && norm(j.tutor) === norm(USER.name);
+  const pay = jobMoney_(j);
   const stage = jobStage_(j);
   return receiptHtml({
     /* ---------- THE SAME SKIN AS THE FORM, WHICH IS THE WHOLE POINT --------------------------------
@@ -5112,11 +5158,18 @@ function jobReceipt(j) {
        everywhere, which is the app telling somebody they owe money for a thing nobody has agreed to
        yet — and even on a settled receipt it is a demand where a statement of fact would do.
        "Cost" says what the number IS without saying what anybody should do about it. */
-    totalLabel: mine ? 'You earn'
-      : stage === 'application' ? 'It would come to'
-      : stage === 'waitlist' ? 'Your seat'
-      : 'Cost',
-    total: money(mine ? (j.tutorPay || 0) : (j.price || 0)),
+    totalLabel: pay.label
+      || (stage === 'application' ? 'It would come to'
+        : stage === 'waitlist' ? 'Your seat'
+        : 'Cost'),
+    total: pay.total,
+    more: pay.more,
+    /* ---------- THE SESSION'S ACTIONS ARE PRINTED ON IT, LIKE THE FORM'S --------------------------
+       ASKED FOR AS *"no floating tiles for already booked sessions"*. Pay, Withdraw and an admin's
+       four were a `.tile-row` UNDER the paper, on a pane that is transparent because the receipt is
+       the box — so they hung on black beneath the card they belong to, which is exactly what the
+       form's own two tiles were moved off for. Same slot, same row class: `jobPage_` builds it. */
+    foot: foot || '',
     /* ---------- THE STATUS WORD IS NOT AN ASIDE ON THE TOTAL -----------------------------------
        IT SAT BESIDE THE FIGURE — "IT WOULD COME TO   unconfirmed   £151.82" — a raw cell from the
        jobs tab, in a slot meant for a remark ABOUT the money ("6 sessions"). It is neither: it is a

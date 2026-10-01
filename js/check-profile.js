@@ -502,6 +502,44 @@ PEOPLE.forEach(p => {
   }
 }
 
+/* 10. WHO IS SENT WHICH FIGURE ON A SESSION, BY THE REAL `doGet`.
+   *"for tutor they shouldnt see grand total client pays, only grand total they earn. admin should be
+   able to see grand total client pays. total tutor earns, and how much admin earns."* The phone only
+   draws what arrives — see `jobMoney_` — so the rule that matters is the payload's: a client is
+   never sent the split, a tutor on the job is sent their pay and not the client's total, an admin
+   is sent all three. Asked of the cache-keyed GET each person really makes, with their token. */
+{
+  b.seed('jobs', [{ job_id: 'J-MONEY', status: 'active', subject: 'Maths', level: 'GCSE',
+    weekday: 'Tuesday', start_time: '16:00', hours_per_session: 1, venue: 'Online',
+    price_total: 270, tutor_pay: 135, admin_profit: 81, max_students: 4, open_to_others: 'FALSE' }]);
+  /* NAMES READ OFF THE ROWS AS THEY ARE NOW — the saves above rename the parent, and a roster
+     naming somebody who no longer exists is a session nobody is on. */
+  const nameOf = pid => { const r = b.row(pid); return (r.first_name + ' ' + r.last_name).trim(); };
+  b.seed('events', [
+    { event_id: 'E1', at: new Date(2026, 8, 22), job_id: 'J-MONEY', actor: nameOf('P-C1'), role: 'client', action: 'Request' },
+    { event_id: 'E2', at: new Date(2026, 8, 23), job_id: 'J-MONEY', actor: nameOf('P-T1'), role: 'tutor', action: 'Request' },
+  ]);
+  b.ev('clearCache()');
+  const asWho = pid => {
+    const t = tokens[pid]; if (!t) return null;
+    const d = b.get({ person: pid, name: t.name, token: t.token });
+    return (d.liveJobs || d.clientClasses || []).find(j => j.id === 'J-MONEY') || null;
+  };
+  const has = v => v !== '' && v != null;
+  const c = asWho('P-C1'), t = asWho('P-T1'), a = asWho('P-A1');
+  if (!c || !t || !a) bad.push('the seeded session did not reach ' + [!c && 'the client', !t && 'the tutor', !a && 'the admin'].filter(Boolean).join(', ') + ' — so who sees which figure was NOT checked');
+  else {
+    if (Number(c.price) !== 270) bad.push('the client was sent a price of ' + JSON.stringify(c.price) + ', wanted 270');
+    if (has(c.tutorPay) || has(c.adminKeeps)) bad.push('the client was sent the split — tutorPay ' + JSON.stringify(c.tutorPay) + ', adminKeeps ' + JSON.stringify(c.adminKeeps));
+    if (has(t.price)) bad.push('the tutor was sent the client\'s total, ' + JSON.stringify(t.price));
+    if (Number(t.tutorPay) !== 135) bad.push('the tutor was sent tutorPay ' + JSON.stringify(t.tutorPay) + ', wanted 135');
+    if (has(t.adminKeeps)) bad.push('the tutor was sent what the admin keeps, ' + JSON.stringify(t.adminKeeps));
+    if (Number(a.price) !== 270 || Number(a.tutorPay) !== 135 || Number(a.adminKeeps) !== 81) {
+      bad.push('the admin was sent price ' + a.price + ', tutorPay ' + a.tutorPay + ', adminKeeps ' + a.adminKeeps + ' — wanted 270, 135, 81');
+    }
+  }
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');

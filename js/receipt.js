@@ -438,6 +438,9 @@ on('book-send', el => {
     /* WHAT THE JOB IS WORTH TO YOU, which `priceFrom` has always worked out and nothing ever
        sent — so the sheet's profit column stayed empty on every booking made through the app. */
     profit: L ? String(Math.round((L.profitTotal || 0) * 100) / 100) : '',
+    /* AND WHAT THE TUTOR EARNS, from the same ledger — the backend wrote `tutor_pay` blank on every
+       job because nothing sent it, so a tutor's receipt had no figure to show them. */
+    tutorPay: L && isFinite(Number(L.tutorPay)) ? String(Math.round(L.tutorPay * 100) / 100) : '',
     /* THE PRINTED LINES, sent with the request so the backend can keep the receipt AS DRAWN.
        Regenerating it later from the job would produce a different document the day a rate moves —
        and a receipt that changes after it is issued is not a receipt. */

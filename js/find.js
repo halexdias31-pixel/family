@@ -7015,7 +7015,7 @@ const S_ = v => String(v == null ? '' : v);
    SO THE PAGE IS THE WHOLE DOCUMENT NOW, and there is one of it. `on('job')` used to stack the same
    pieces by hand into a sheet — receipt, join block, then an admin's tiles and the paragraph under
    them — which is two renderers for one session, in two files, differing by a `moneyBlock`. This is
-   that stack, once, and the sheet is gone.
+   that stack, once, and the sheet is gone. (`moneyBlock` has gone too — see book.js.)
 
    AND THE ADMIN PARAGRAPH WENT, BECAUSE EVERY WARNING IN IT IS DELIVERED AT THE MOMENT OF THE
    PRESS. It was four sentences of consequences under the row, read once and then scrolled past on
@@ -7029,19 +7029,31 @@ const S_ = v => String(v == null ? '' : v);
    `jobAdminTiles_`'s own note still argues for a paragraph under the row rather than longer tiles,
    and it is still right about the shape — CLAUDE.md's "A THING has tiles; a FORM has buttons" says
    one paragraph, not one per button. What changed is that there is nothing left for it to say. */
+/* ---------- AND THE TILES ARE ON THE PAPER NOW, NOT UNDER IT ---------------------------------------
+   ASKED FOR AS *"no floating tiles for already booked sessions"*. The row this built sat after the
+   receipt, on a pane that is transparent because the receipt IS the box — so Withdraw and an
+   admin's Delete hung on black under a card they plainly belong to, which is the exact fault the
+   booking form's own two tiles were moved off for (see the note at `r.foot` in `receiptHtml`).
+
+   SO THEY ARE THE RECEIPT'S FOOT: `.tile-row rc-tiles`, the class the form's row carries, handed to
+   `jobReceipt`. And `jobAdminTiles_` returns tiles rather than a row of its own — it used to, and
+   this wrapped it in a second one, so an admin's four sat in a row inside a row. One row, the
+   client's actions first and the admin's after, which is the order `jobAdminTiles_`'s note gives.
+
+   A PAID SESSION OFFERS NO PAY TILE, and that is `jobTiles_`'s own test: Pay is offered while the
+   booking is accepted and your seat is not yet Paying or Booked. An empty row is no row at all —
+   a foot with nothing on it is a rule under the total pointing at nothing. */
 function jobPage_(j) {
   const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
   const admin = typeof isAdmin === 'function' && isAdmin();
-  return (typeof jobReceipt === 'function' ? jobReceipt(j) : '')
-    + (typeof moneyBlock === 'function' ? moneyBlock(j) : '')
+  const tiles = (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
+    + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
+  const foot = tiles.trim() ? `<div class="tile-row rc-tiles">${tiles}</div>` : '';
+  return (typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '')
     /* NOT AN ACTION ON YOUR OWN SESSION: the offer made to somebody who is not in it yet, carrying
        the seats left and the price. Facts rather than buttons, so it is not a tile. */
-    + (typeof joinBlock === 'function' ? joinBlock(j) : '')
-    + `<div class="tile-row">${
-        (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
-      + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '')
-      }</div>`;
+    + (typeof joinBlock === 'function' ? joinBlock(j) : '');
 }
 
 const forIs_ = want => (STUFF.filters || [])

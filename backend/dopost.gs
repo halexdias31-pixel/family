@@ -2766,7 +2766,12 @@ function doPost(e) {
            AND IT IS STORED AS PAID, not as a rate. The figure on the venue can change next month;
            what this session actually cost cannot. */
         price_total: N(body.price),
-        tutor_pay: '',
+        /* WHAT THE TUTOR EARNS, which `priceFrom` works out on the phone beside `profit` below and
+           which was dropped here — `tutor_pay` was written as an empty string on every job, so the
+           tutor's own receipt had nothing to show them. Recorded as SENT, like `admin_profit`: it
+           is the business's note of the split, never what anybody is charged — `createCheckout`
+           charges from the receipt. Blank when an older phone sends nothing, never a nought. */
+        tutor_pay: S(body.tutorPay) !== '' ? Math.round(N(body.tutorPay) * 100) / 100 : '',
         travel_paid: travelCost(S(body.location), sessionCount),
         /* THE SUBTRACTION, rather than whatever the phone worked out. The travel comes off the
            margin unless `travel_on_client` says the client is paying it — in which case it was

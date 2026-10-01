@@ -683,6 +683,11 @@ function inspect(opts) {
           if (!b.width && !b.height) continue;            // display:none has no box to be wrong
           /* THE WEEK'S RIGHT EDGE, EXEMPT WITH ITS REASON ABOVE. */
           if (edge === 'right' && col === 'bk-v' && row.classList.contains('bk-wk')) continue;
+          /* AND A TOTAL'S LABEL, ON THE SAME EDGE AND FOR THE SAME KIND OF REASON. `.rc-total .bk-k`
+             spans every track but the figure's, so `CLIENT PAYS` and `TUTOR EARNS` cannot widen the
+             question column and wrap every answer on the card — see the note beside it in
+             style.css. Its LEFT edge is still asked: it starts where every other label starts. */
+          if (edge === 'right' && col === 'bk-k' && row.classList.contains('rc-total')) continue;
           seen.push({ at: Math.round(b[edge] * 10) / 10,
                       k: (row.querySelector(':scope > .bk-k') || {}).textContent || row.className });
         }
