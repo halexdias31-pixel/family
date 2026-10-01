@@ -79,7 +79,7 @@ const { chromium } = require('playwright');
 const { statesOf } = require('./states.js');
 
 const ROOT = path.join(__dirname, '..');
-const PORT = 8123;
+const PORT = Number(process.env.PRESS_PORT || 8123);   /* overridable: parallel runs in worktrees share one machine */
 const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
 const ONLY = (process.argv.find(a => a.startsWith('--screen=')) || '').split('=')[1] || '';
 const VERBOSE = process.argv.includes('--verbose');
