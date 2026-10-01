@@ -1027,7 +1027,7 @@ for (const who of VISITORS) {
         const r = ink.getBoundingClientRect(), b = btn.getBoundingClientRect();
         return { at: AT, page: PAGE.stuff, door: !!(art && art.getAttribute('data-do')),
                  ink: { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2),
-                        w: Math.round(r.width) },
+                        w: Math.round(r.width), h: Math.round(r.height) },
                  btn: { x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) } };
       }, { paper: PEN_PAPER, row: PEN_ROW });
       if (!box || box.ink.w < 80) {
@@ -1079,8 +1079,13 @@ for (const who of VISITORS) {
                               : 'the pen did not come on',
                       want: 'the pen on' });
         if (on) {
-          await touch(box.ink.x - Math.round(box.ink.w * 0.35), box.ink.y + 30,
-                      Math.round(box.ink.w * 0.7), -50);
+          /* SCALED TO THE PAD, NOT IN FIXED PIXELS. It was `y + 30` up by 50, written against a
+             pad that held the spinner and the scale in one picture; a paper audit moved the spinner
+             onto a shared preamble, this part's own pad became the 66-unit probability scale, and
+             the stroke started below its bottom edge -- on the card, where a drag correctly turns
+             the page. What is asked is a diagonal stroke that begins and ends on the ink. */
+          await touch(box.ink.x - Math.round(box.ink.w * 0.35), box.ink.y + Math.round(box.ink.h * 0.3),
+                      Math.round(box.ink.w * 0.7), -Math.round(box.ink.h * 0.6));
           const drew = await page.evaluate(() => {
             const pad = document.querySelector(window.__penSel);
             const k = pad && pad.getAttribute('data-k');

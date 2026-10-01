@@ -487,6 +487,14 @@ function inspect(opts) {
        tap-target rule's question. Only the input's own horizontal scroll is exempt, and only it.
        `<textarea>` is NOT exempt: it wraps, so a sideways scroll there is a real fault. */
     if (el.tagName === 'INPUT') continue;
+    /* ---------- AND NOTHING INSIDE A DRAWING CAN PUSH THE PAGE SIDEWAYS -------------------------
+       The outermost `<svg>` clips to its own viewport — the UA default — so a descendant's layout
+       box cannot reach the card. The `<svg>` itself is an ordinary replaced element and is still
+       measured. `check/cards.js` learned this first (CLAUDE.md, "`check/cards.js` was measuring
+       inside the drawings"); this file met it the day a paper audit put the 2017 Higher Q1 scatter
+       graph on a page beside the bundle state, and reported its rotated y-axis caption — written
+       once and turned into place, so its layout box runs off to the left — as the card scrolling. */
+    if (el.ownerSVGElement) continue;
     /* ---------- AND AN ELLIPSIS IS THE OTHER WAY OF BEING TOLD ---------------------------------
        SAME QUESTION, SECOND ANSWER. `text-overflow: ellipsis` on a clipped box is a declaration
        that the text is EXPECTED to be longer than the box and that the browser should say so — and
