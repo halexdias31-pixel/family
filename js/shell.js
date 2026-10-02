@@ -2372,9 +2372,18 @@ function why_(err) {
   /* A GENUINELY UNREACHABLE SERVER IS THE ONE CASE THE OLD SENTENCE WAS RIGHT ABOUT. `fetch`
      rejects with a TypeError and no useful text when there is no connection at all, which is the
      only time nothing better can be said. */
-  return (!msg || /^(TypeError|Failed to fetch|NetworkError|Load failed)/i.test(msg))
-    ? 'No connection — the server could not be reached at all.'
-    : msg;
+  if (msg && !/^(TypeError|Failed to fetch|NetworkError|Load failed)/i.test(msg)) return msg;
+  /* "NO CONNECTION" WAS SAID TO A PHONE THAT HAD ONE. Reported with a screenshot of a Save on the
+     Photos page: the thumbnails beside it had just loaded from Google, so the phone was online, and
+     the sentence sent the reader to their Wi-Fi. `fetch` rejects with the same bare TypeError ("Load
+     failed" on an iPhone) for a phone that is offline AND for a server that answered with something a
+     browser will not hand over — Apps Script's own error page when the script cannot run or is over a
+     quota, or a request it gave up on. Only `navigator.onLine` can tell those apart from here, and it
+     is honest in one direction: false means offline. True means the server is the likelier half. */
+  const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+  return offline
+    ? 'No connection — this phone is offline. Nothing was saved.'
+    : 'The server did not answer, so nothing was saved. Try again in a minute.';
 }
 
 function api(body) {

@@ -1122,49 +1122,39 @@ const WIDGETS = [
   /* A PAD, NOT A SWIPE. Up, down, left and right are the four gestures this app navigates by, so a
      maze that read them would fight the pager on the one screen it lives on -- see `initMaze`. The
      four buttons are 44px in px, which is the one measurement in this app that does not scale. */
-  /* ---------- ARTICULATE AND CHARADES ARE ONE ROUND WITH TWO DECKS -------------------------------
-     `ROUND_GAMES` in games.js is the engine and the note over it is where the difference between
-     the two is argued out: one is DESCRIBED and one is MIMED, which is what decides what may be in
-     each deck. Both entries below are the same markup with the key changed, and that is the point
-     — a second copy of "deal a word, count the clock, keep score" would be the `documents_()`
-     fault in a fourth costume.
+  /* ---------- WORD GAMES — SEVEN GAMES, ONE WIDGET ---------------------------------------------------
+     ASKED FOR AS "Merge word games into one widget. Like articulate and charades". They were seven
+     cards in a row on the Games column — Articulate, Charades, Taboo, Hot Seat, Just a Minute, 20
+     Questions and Imposter — every one a round of somebody saying words while the room guesses, and
+     seven swipes to get past them to the maze.
 
-     `stop` IS NOT OPTIONAL AND THE TIMER IS WHY: a round left running on a column nobody is looking
-     at counts down to zero, and the next arrival finds a finished game it never played. Same reason
-     the times table and the reel have one. */
-  { id: 'articulate', kind: 'game', name: 'Articulate', start: () => initRound?.('art'),
-    stop: () => { if (typeof roundStop_ === 'function') roundStop_('art'); },
-    into: 'art-card', what: 'Articulate',
-    html: `<div class="card">
-    <h3>Articulate</h3>
-    <p class="sub">Describe it without saying it. Ninety seconds.</p>
-    <div id="art-card" class="art"></div>
-    <div class="art-row">
-      <button class="btn" data-do="rg-next" data-g="art" data-got="1">Got it</button>
-      <button class="btn quiet" data-do="rg-next" data-g="art" data-got="0">Pass</button>
-    </div>
-    <p class="faint art-meta"><span id="art-left">1:30</span> left &middot;
-      <b id="art-got">0</b> so far</p>
-    <p class="note" id="art-said"></p>
-    <button class="btn quiet" data-do="rg-again" data-g="art">New round</button>
-  </div>` },
+     ONE CARD, A DROPDOWN, AND THE CHOSEN GAME UNDERNEATH. `WORD_GAMES` in games.js holds each game's
+     body and its own start and stop, and nothing about the engines changed: `ROUND_GAMES`, `PARTY`
+     and Imposter each still draw into their own `<k>-card`, which is simply inside `#wg-slot` now.
+     The choice is remembered on the device.
 
-  { id: 'charades', kind: 'game', name: 'Charades', start: () => initRound?.('cha'),
-    stop: () => { if (typeof roundStop_ === 'function') roundStop_('cha'); },
-    into: 'cha-card', what: 'Charades',
-    html: `<div class="card">
-    <h3>Charades</h3>
-    <p class="sub">Act it out. No words, no sounds. Three minutes.</p>
-    <div id="cha-card" class="art"></div>
-    <div class="art-row">
-      <button class="btn" data-do="rg-next" data-g="cha" data-got="1">Got it</button>
-      <button class="btn quiet" data-do="rg-next" data-g="cha" data-got="0">Pass</button>
-    </div>
-    <p class="faint art-meta"><span id="cha-left">3:00</span> left &middot;
-      <b id="cha-got">0</b> so far</p>
-    <p class="note" id="cha-said"></p>
-    <button class="btn quiet" data-do="rg-again" data-g="cha">New round</button>
-  </div>` },
+     `stop` STOPS ALL SEVEN, not just the one on screen. A game switched away from mid-round has had
+     its card taken out of the document, so its own stop is exactly the "column left" case each one
+     already handles — Articulate's clock stops, a party game pauses, Imposter hides its word.
+
+     ALIBI AND HERD MENTALITY ARE NOT IN IT. Alibi is an interview with a case file and two suspects
+     rather than a word to get across, and Herd Mentality is a question everybody answers at once. */
+  { id: 'wordgames', kind: 'game', name: 'Word games', start: () => initWordGames?.(),
+    stop: () => { if (typeof wordGamesStop_ === 'function') wordGamesStop_(); },
+    into: 'wg-slot', what: 'The game',
+    /* A GETTER, SO THE CHOSEN GAME IS IN THE MARKUP `paint` PUTS DOWN. A repaint is a stop and a
+       start a moment apart, and the party games' stop asks whether their own card is on the screen
+       in front to tell a repaint from a leave — with an empty slot until `start` filled it, every
+       repaint read as the column being left and paused the round under somebody's finger. */
+    get html() {
+      return `<div class="card">
+    <h3>Word games</h3>
+    <label class="mat-sel ws-top"><select id="wg-pick" data-do="wg-pick"
+      aria-label="Which game">${typeof wgOptions_ === 'function' ? wgOptions_() : ''}</select></label>
+    <div id="wg-slot">${typeof wgSlot_ === 'function' ? wgSlot_() : ''}</div>
+  </div>`;
+    } },
+
   /* ---------- AND THIS ONE KEEPS ITS GAME ------------------------------------------------------
      EVERY OTHER BOARD HERE IS REBUILT ON EVERY PAINT and says why: the widget is reopened by a
      swipe, so a half-played position is a game you have forgotten starting. A Scrabble game is
@@ -1204,71 +1194,9 @@ const WIDGETS = [
     </div>
   </div>` },
 
-  /* ---------- IMPOSTER — DEALT LIKE THE SCRABBLE RACK ----------------------------------------------
-     The note over `IMP_DECK` in games.js is the argument. Every control is built by `impPaint`, so
-     the markup here is the frame and nothing in it can be pressed before there is a round.
-     `stop` HIDES a word left on the screen and keeps the round: a column swiped away and back is
-     exactly how the next person would otherwise see it. */
-  { id: 'imposter', kind: 'game', name: 'Imposter', start: () => initImposter?.(),
-    stop: () => { if (typeof impHide_ === 'function') impHide_(); },
-    into: 'imp-card', what: 'The word',
-    html: `<div class="card">
-    <h3>Imposter</h3>
-    <p class="sub">Three or more, one phone. Everybody knows the word but one of you.</p>
-    <div id="imp-card" class="art"></div>
-    <div id="imp-acts" class="art-row"></div>
-    <p class="note" id="imp-said" style="text-align:center;margin:.5rem 0 0"></p>
-  </div>` },
-
-  /* ---------- FIVE CLASSROOM GAMES, ONE CLOCK ----------------------------------------------------
-     The note over `PARTY` in games.js is the argument, and the reason they are not `ROUND_GAMES`.
-     Each is Imposter's frame: a card, a row built by its own paint, a sentence — so nothing here can
-     be pressed before there is a round to press it in. `start` redraws whatever is in progress and
-     `stop` holds the clock; a column actually left behind pauses until somebody presses Resume. */
-  { id: 'justaminute', kind: 'game', name: 'Just a Minute', start: () => partyStart_?.('jam'),
-    stop: () => { if (typeof partyStop_ === 'function') partyStop_('jam'); },
-    into: 'jam-card', what: 'The topic',
-    html: `<div class="card">
-    <h3>Just a Minute</h3>
-    <p class="sub">Talk about the topic for sixty seconds without stopping.</p>
-    <div id="jam-card" class="art"></div>
-    <div id="jam-acts" class="party-acts"></div>
-    <p class="note" id="jam-said" style="text-align:center;margin:.5rem 0 0"></p>
-  </div>` },
-
-  { id: 'taboo', kind: 'game', name: 'Taboo', start: () => partyStart_?.('tab'),
-    stop: () => { if (typeof partyStop_ === 'function') partyStop_('tab'); },
-    into: 'tab-card', what: 'The word',
-    html: `<div class="card">
-    <h3>Taboo</h3>
-    <p class="sub">Describe the word without the words under it. Sixty seconds.</p>
-    <div id="tab-card" class="art"></div>
-    <div id="tab-acts" class="party-acts"></div>
-    <p class="note" id="tab-said" style="text-align:center;margin:.5rem 0 0"></p>
-  </div>` },
-
-  { id: 'hotseat', kind: 'game', name: 'Hot Seat', start: () => partyStart_?.('hot'),
-    stop: () => { if (typeof partyStop_ === 'function') partyStop_('hot'); },
-    into: 'hot-card', what: 'The word',
-    html: `<div class="card">
-    <h3>Hot Seat</h3>
-    <p class="sub">The class gives clues; the one in the hot seat guesses. Sixty seconds.</p>
-    <div id="hot-card" class="art"></div>
-    <div id="hot-acts" class="party-acts"></div>
-    <p class="note" id="hot-said" style="text-align:center;margin:.5rem 0 0"></p>
-  </div>` },
-
-  { id: 'twentyq', kind: 'game', name: '20 Questions', start: () => partyStart_?.('twq'),
-    stop: () => { if (typeof partyStop_ === 'function') partyStop_('twq'); },
-    into: 'twq-card', what: 'The secret',
-    html: `<div class="card">
-    <h3>20 Questions</h3>
-    <p class="sub">Twenty yes-or-no questions to find a person, a place or a thing.</p>
-    <div id="twq-card" class="art"></div>
-    <div id="twq-acts" class="party-acts"></div>
-    <p class="note" id="twq-said" style="text-align:center;margin:.5rem 0 0"></p>
-  </div>` },
-
+  /* ---------- ALIBI — THE ONE CLASSROOM GAME THAT IS NOT A WORD GAME ------------------------------
+     The note over `PARTY` in games.js is the argument for its engine. Its four siblings moved into
+     the Word games widget above; this one is an interview rather than a word, so it kept its card. */
   { id: 'alibi', kind: 'game', name: 'Alibi', start: () => partyStart_?.('alb'),
     stop: () => { if (typeof partyStop_ === 'function') partyStop_('alb'); },
     into: 'alb-card', what: 'The case',

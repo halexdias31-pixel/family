@@ -223,7 +223,7 @@ function boot(opts) {
       'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS,' +
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
-      'TABS,' +
+      'TABS, wgChosen: () => wgChosen_(),' +
       /* THE PAPER AS DRAWN, so a journey can ask what is actually on it rather than what the
          functions behind it were supposed to produce. */
       'paper: () => (typeof bookBreakdown === "function" ? bookBreakdown(bookPrice()) : ""),' +
@@ -807,8 +807,9 @@ check('the imposter game tells everybody the word but one, and hides it between 
   const { w } = boot();
   await wait(300);
   const t = w.__t;
+  try { w.localStorage.setItem('wg-game', 'imp'); } catch (e) {}
   try { t.go('games', false, true); } catch (e) { return ['go("games") threw: ' + e.message]; }
-  await wait(300);
+  await wait(700);
   const d = w.document;
   const card = () => d.getElementById('imp-card');
   if (!card()) return ['the imposter game did not draw on the Games column'];
@@ -844,7 +845,7 @@ check('the imposter game tells everybody the word but one, and hides it between 
                 cat: String((card().querySelector('.art-cat-of') || {}).textContent || '').trim() });
     if (i === 1) {
       /* LEAVING THE COLUMN HIDES A WORD LEFT UP, and keeps whose turn it was. */
-      const wd = t.allWidgets().find(x => x.id === 'imposter');
+      const wd = t.allWidgets().find(x => x.id === 'wordgames');
       if (!wd || !wd.stop) bad.push('the imposter widget has no stop, so a word left up stays up');
       else wd.stop();
       t.go('games', false, true);
@@ -1046,10 +1047,14 @@ check('the word search hides every word where it says, and two taps find it', as
 /* A COLUMN'S WIDGETS ARE STARTED AND STOPPED FROM `afterSlide_`, about 300ms after the move, so a
    journey asking what leaving did has to wait that long first. */
 const LEAVE_MS = 700;
-const partyBoot_ = async () => {
+/* `k` IS WHICH WORD GAME THE WIDGET OPENS ON. Four of these five live inside the one Word games
+   widget now, which draws only the game chosen; the choice is the device's, so it is set there
+   before the column is reached. Alibi kept its own card and passes nothing. */
+const partyBoot_ = async (k) => {
   const { w } = boot();
   await wait(300);
   const t = w.__t;
+  if (k) { try { w.localStorage.setItem('wg-game', k); } catch (e) {} }
   t.go('games', false, true);
   await wait(LEAVE_MS);
   const d = w.document;
@@ -1064,7 +1069,7 @@ const partyBoot_ = async () => {
 };
 
 check('just a minute keeps its round through a repaint and pauses when the column is left', async () => {
-  const { t, d, press, text, acts, P } = await partyBoot_();
+  const { t, d, press, text, acts, P } = await partyBoot_('jam');
   if (!d.getElementById('jam-card')) return ['Just a Minute did not draw on the Games column'];
   if (!P()) return ['the PARTY state is not reachable, so nothing about the round can be asked'];
   const bad = [];
@@ -1109,7 +1114,7 @@ check('just a minute keeps its round through a repaint and pauses when the colum
 });
 
 check('taboo shows a word with four or five forbidden words, and Correct and Pass deal the next', async () => {
-  const { t, d, press, text, P } = await partyBoot_();
+  const { t, d, press, text, P } = await partyBoot_('tab');
   if (!d.getElementById('tab-card')) return ['Taboo did not draw on the Games column'];
   const bad = [];
   press('tab-start');
@@ -1137,7 +1142,7 @@ check('taboo shows a word with four or five forbidden words, and Correct and Pas
    column as the Games column's twin, so a minute started on Games and swiped over to Saved went on
    running on a card that was on no screen — and Saved is the column next door. */
 check('a round left for the Saved column, where it is not starred, pauses like any other leave', async () => {
-  const { t, d, press, P } = await partyBoot_();
+  const { t, d, press, P } = await partyBoot_('tab');
   if (!d.getElementById('tab-card')) return ['Taboo did not draw on the Games column'];
   const bad = [];
   press('tab-start');
@@ -1154,7 +1159,7 @@ check('a round left for the Saved column, where it is not starred, pauses like a
 });
 
 check('hot seat shows its word only once the phone faces the class, and hides it when the column goes', async () => {
-  const { t, d, press, text, P } = await partyBoot_();
+  const { t, d, press, text, P } = await partyBoot_('hot');
   if (!d.getElementById('hot-card')) return ['Hot Seat did not draw on the Games column'];
   const bad = [];
   press('hot-start');
@@ -1177,7 +1182,7 @@ check('hot seat shows its word only once the phone faces the class, and hides it
 });
 
 check('20 questions keeps the secret from the room and counts to twenty', async () => {
-  const { t, d, press, text, P } = await partyBoot_();
+  const { t, d, press, text, P } = await partyBoot_('twq');
   if (!d.getElementById('twq-card')) return ['20 Questions did not draw on the Games column'];
   const bad = [];
   press('twq-start');
@@ -1202,6 +1207,45 @@ check('20 questions keeps the secret from the room and counts to twenty', async 
   for (let i = 0; i < 20; i++) press('twq-ask');
   if (P().twq.asked !== 20 || P().twq.phase !== 'done') bad.push('the count went past twenty or did not end: ' + P().twq.asked);
   if (text('twq').indexOf(s.word) === -1 || !/Out of questions/.test(text('twq'))) bad.push('the end does not reveal the secret: "' + text('twq') + '"');
+  return bad;
+});
+
+/* ---------- THE WORD GAMES ARE ONE WIDGET, AND SWITCHING GAME IS A LEAVE ---------------------------
+   Asked for as "Merge word games into one widget. Like articulate and charades". Three things can
+   go wrong and all of them draw perfectly: the dropdown offering a game the slot cannot draw, a
+   game switched away from going on running where nobody can see it, and the old game's card left
+   in the slot beside the new one. */
+check('the word games are one widget, and switching game pauses the one left', async () => {
+  const { t, d, press, text, P } = await partyBoot_('tab');
+  const bad = [];
+  const ids = t.allWidgets().map(x => x.id);
+  ['articulate', 'charades', 'taboo', 'hotseat', 'justaminute', 'twentyq', 'imposter'].forEach(id => {
+    if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own beside Word games');
+  });
+  if (ids.indexOf('wordgames') === -1) return bad.concat(['there is no Word games widget']);
+  const sel = d.getElementById('wg-pick');
+  if (!sel) return bad.concat(['the Word games widget has no game dropdown']);
+  const offered = [...sel.options].map(o => o.value);
+  if (offered.length !== 7) bad.push('the dropdown offers ' + offered.length + ' games, wanted 7');
+  for (const k of offered) {
+    sel.value = k;
+    t.ACTIONS['wg-pick'](sel);
+    if (!d.getElementById(k + '-card')) bad.push('choosing ' + k + ' did not draw its card');
+    const others = offered.filter(o => o !== k && d.getElementById(o + '-card'));
+    if (others.length) bad.push('choosing ' + k + ' left ' + others.join(', ') + ' in the slot too');
+  }
+  sel.value = 'tab'; t.ACTIONS['wg-pick'](sel);
+  press('tab-start');
+  const s = P().tab;
+  if (!s || !s.ends) return bad.concat(['Start did not begin a Taboo round']);
+  const word = s.card[0];
+  sel.value = 'art'; t.ACTIONS['wg-pick'](sel);
+  if (P().tab.ends || P().tab.run) bad.push('a Taboo round went on running after switching to Articulate');
+  sel.value = 'tab'; t.ACTIONS['wg-pick'](sel);
+  if (!d.getElementById('tab-card')) bad.push('switching back did not bring Taboo back');
+  else if (text('tab').indexOf(word) !== -1) bad.push('the paused Taboo card shows its word');
+  if (P().tab !== s) bad.push('switching away and back threw the Taboo round away');
+  if (t.wgChosen() !== 'tab') bad.push('the chosen game is not remembered on the device');
   return bad;
 });
 
