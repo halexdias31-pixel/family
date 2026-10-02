@@ -23,8 +23,57 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-01-c-family";
+const DOPOST_VERSION = "2026-10-02-a-noemail";
 
+
+/* The part of signing in that comes after the row has been found, shared by the address door and the
+   handle door so the two cannot drift: no PIN set, the lock, the PIN, the unconfirmed address, the
+   session. See `verifyLogin`. */
+function signInRow_(t0, r, body) {
+  if (!hasPin_(r)) return jsonOut({ success: false, why: 'no-pin',
+    error: 'That account has no PIN set yet — ask us to add one.' });
+  /* LOCKED IS ANSWERED BEFORE THE PIN IS LOOKED AT, so guessing costs the same whether the
+     guess was right or not — a lock that only applies to wrong answers tells a guesser when
+     they have found the right one. */
+  /* AND IT SAYS HOW LONG. "Try again in a few minutes" is a sentence you cannot act on: it is
+     the same words whether the wait is one minute or an hour, so the only thing to do with it
+     is keep pressing — which is what makes the wait longer. A number is a thing somebody can
+     wait out. See `authWaitMins_`. */
+  const wait = authWaitMins_(r);
+  if (wait > 0) {
+    return jsonOut({ success: false,
+      error: wait === 1 ? 'Too many wrong PINs. Try again in a minute.'
+                        : 'Too many wrong PINs. Try again in ' + wait + ' minutes.' });
+  }
+  /* HASHED, AND OLD ROWS MOVED ACROSS AS THEY ARRIVE — see `authCheckPin_`. */
+  if (!authCheckPin_(t0, r, body.pin)) {
+    authWrong_(t0, r);
+    /* ---------- A WRONG ADDRESS AND A WRONG PIN SAY DIFFERENT THINGS NOW ---------------------
+       ASKED FOR AS *"make the error codes more specific. if its username not recognised then say
+       that. if pin wrong then say that."* It used to be one sentence for both, on purpose:
+       telling somebody the address was right is telling a guesser half the answer, and it lets
+       anybody find out whether an address has an account here. The owner has chosen being told
+       which half was wrong over that. What still stands between a guesser and a PIN is the
+       throttle above, which is untouched. */
+    return jsonOut({ success: false, why: 'wrong-pin',
+      error: norm(r.email) ? 'Wrong PIN for that email address.' : 'Wrong PIN for that handle.' });
+  }
+  // Only accounts that WERE asked to confirm are held back. A blank means the account predates
+  // this and was never sent a link, so it isn't unverified — it's just older.
+  if (S(r.verified).toUpperCase() === 'PENDING') {
+    return jsonOut({ success: false,
+      error: 'Please confirm your email first — check your inbox for the link we sent.' });
+  }
+  /* ANYTHING ELSE IS SAID AS ITSELF, not folded into one of the sentences above — a sign-in
+     that failed on our side must not read as a wrong PIN, or somebody retypes a right one until
+     the throttle locks them out. */
+  try { return loginReplyFor_(r, authNewSession_(t0, r)); }
+  catch (err) {
+    return jsonOut({ success: false, why: 'server',
+      error: 'Your details are right, but signing in failed on our side: '
+             + String(err && err.message || err) });
+  }
+}
 
 function doPost(e) {
   try {
@@ -367,9 +416,28 @@ function doPost(e) {
          tab. `emailRefusal_` stops a duplicate being SAVED from the app; a duplicate typed into the
          sheet by hand is what this answers, in a sentence that says who can fix it. */
       const mail = norm(body.email || body.name);
+      /* ---------- A PERSON WITH NO ADDRESS SIGNS IN WITH THEIR HANDLE ------------------------------
+         ASKED FOR AS *"i have a student who doesnt have an email ... so he can still login."* A child
+         is the usual case, and the address cannot be invented: a made-up one is a WRONG cell that
+         every notice would post into and report success. So a row whose `email` cell is blank
+         answers to its handle (`<first>_<virtue>`, unique by `handleTrouble_`) and its PIN.
+
+         ONLY A ROW WITH NO ADDRESS, and that is the rule that keeps this safe: an account that has
+         an address can only be reached by it, so a handle typed here can never claim somebody who
+         signs in the ordinary way. And the handle is only ever looked up among blank-address rows,
+         so it cannot collide with an address either. Two blank rows on one handle is refused, as
+         two rows on one address is. The throttle is per person, so a guessed handle gets exactly
+         the guesses a guessed address does. */
       if (mail.indexOf('@') === -1) {
+        const h = key(body.email || body.name);
+        const noMail = h ? t0.rows.filter(x => !norm(x.email) && key(x.handle) === h) : [];
+        if (noMail.length === 1) return signInRow_(t0, noMail[0], body);
+        if (noMail.length > 1) {
+          return jsonOut({ success: false,
+            error: 'That handle is on more than one account — ask us to sort it out.' });
+        }
         return jsonOut({ success: false, why: 'not-an-email',
-          error: 'That is not an email address — sign in with the email on your account.' });
+          error: 'Sign in with the email on your account — or, if you have no email, your handle (like halex_kind).' });
       }
       const hits = t0.rows.filter(x => norm(x.email) === mail);
       if (hits.length > 1) {
@@ -379,48 +447,7 @@ function doPost(e) {
       const r = hits[0] || null;
       if (!r) return jsonOut({ success: false, why: 'no-such-email',
         error: 'No account has that email address.' });
-      if (!hasPin_(r)) return jsonOut({ success: false, why: 'no-pin',
-        error: 'That account has no PIN set yet — ask us to add one.' });
-      /* LOCKED IS ANSWERED BEFORE THE PIN IS LOOKED AT, so guessing costs the same whether the
-         guess was right or not — a lock that only applies to wrong answers tells a guesser when
-         they have found the right one. */
-      /* AND IT SAYS HOW LONG. "Try again in a few minutes" is a sentence you cannot act on: it is
-         the same words whether the wait is one minute or an hour, so the only thing to do with it
-         is keep pressing — which is what makes the wait longer. A number is a thing somebody can
-         wait out. See `authWaitMins_`. */
-      const wait = authWaitMins_(r);
-      if (wait > 0) {
-        return jsonOut({ success: false,
-          error: wait === 1 ? 'Too many wrong PINs. Try again in a minute.'
-                            : 'Too many wrong PINs. Try again in ' + wait + ' minutes.' });
-      }
-      /* HASHED, AND OLD ROWS MOVED ACROSS AS THEY ARRIVE — see `authCheckPin_`. */
-      if (!authCheckPin_(t0, r, body.pin)) {
-        authWrong_(t0, r);
-        /* ---------- A WRONG ADDRESS AND A WRONG PIN SAY DIFFERENT THINGS NOW ---------------------
-           ASKED FOR AS *"make the error codes more specific. if its username not recognised then say
-           that. if pin wrong then say that."* It used to be one sentence for both, on purpose:
-           telling somebody the address was right is telling a guesser half the answer, and it lets
-           anybody find out whether an address has an account here. The owner has chosen being told
-           which half was wrong over that. What still stands between a guesser and a PIN is the
-           throttle above, which is untouched. */
-        return jsonOut({ success: false, why: 'wrong-pin', error: 'Wrong PIN for that email address.' });
-      }
-      // Only accounts that WERE asked to confirm are held back. A blank means the account predates
-      // this and was never sent a link, so it isn't unverified — it's just older.
-      if (S(r.verified).toUpperCase() === 'PENDING') {
-        return jsonOut({ success: false,
-          error: 'Please confirm your email first — check your inbox for the link we sent.' });
-      }
-      /* ANYTHING ELSE IS SAID AS ITSELF, not folded into one of the sentences above — a sign-in
-         that failed on our side must not read as a wrong PIN, or somebody retypes a right one until
-         the throttle locks them out. */
-      try { return loginReplyFor_(r, authNewSession_(t0, r)); }
-      catch (err) {
-        return jsonOut({ success: false, why: 'server',
-          error: 'Your email and PIN are right, but signing in failed on our side: '
-                 + String(err && err.message || err) });
-      }
+      return signInRow_(t0, r, body);
     }
 
     /* --- admin: read anyone's profile -------------------------------------------------------- */
@@ -1368,13 +1395,43 @@ function doPost(e) {
        already signed in stays signed in. */
     if (action === 'forgotPin') {
       const said = { success: true,
-        message: 'If there is an account with that email, a new PIN is on its way. Check your '
-               + 'inbox, then change it in your settings.' };
+        message: 'If there is an account with that, a new PIN is on its way. Check your '
+               + 'inbox (a child with no email: the parent\'s inbox), then change it in your settings.' };
 
       const asked = norm(body.who);
-      if (asked.indexOf('@') === -1) return jsonOut({ error: 'Type your email address first.' });
+      if (!asked) return jsonOut({ error: 'Type your email address, or your handle if you have no email, first.' });
 
       const tPeople = read(TAB.people);
+      /* ---------- A PERSON WITH NO ADDRESS: THE NEW PIN GOES TO THEIR PARENT ---------------------
+         A handle typed here finds a row with NO address, and a new PIN is sent to the address of
+         each parent who has accepted the link (`acceptedParents`) — the person who would be asked
+         anyway, and a mailbox that is not the child's. No linked parent means nothing is sent and
+         the admin resets it by hand (`changePin`). The reply is the same sentence either way, so a
+         stranger typing handles learns nothing. The throttle is cleared as for an address. */
+      if (asked.indexOf('@') === -1) {
+        const hk = key(body.who);
+        const hh = hk ? tPeople.rows.filter(x => !norm(x.email) && key(x.handle) === hk) : [];
+        if (hh.length !== 1) return jsonOut(said);
+        const kid = hh[0];
+        const tos = acceptedParents(S(kid.person_id)).map(p => S(p.email)).filter(Boolean);
+        if (!tos.length) return jsonOut(said);
+        let pin = '';
+        for (let tries = 0; tries < 20; tries++) {
+          pin = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+          if (!/^(\d)\1+$/.test(pin) && pin !== '123456' && pin !== '123123') break;
+        }
+        const krow = tPeople.rows.find(x => x._row === kid._row);
+        authSetPin_(tPeople, krow, pin);
+        authClearThrottle_(tPeople, krow);
+        clearCache();
+        try {
+          MailApp.sendEmail({ to: tos.join(','), name: BRAND_NAME,
+            subject: 'A new ' + BRAND_NAME + ' PIN for ' + S(kid.first_name),
+            body: S(kid.first_name) + ' asked for a new PIN.\n\nThe new PIN is ' + pin + '\n\n'
+                + 'They sign in with their handle (' + S(kid.handle) + ') and this PIN, and can change it under Settings.' });
+        } catch (err) { /* a mail quota is not a reason to say the account exists */ }
+        return jsonOut(said);
+      }
       /* ---------- BY THE ADDRESS AND NOTHING ELSE, THE SAME RULE AS SIGNING IN -------------------
          THIS WAS `findPerson(asked)` AND THEN THE ADDRESS, compared through `key` — which strips
          every dot and the `@`, so `halex.dias@x.com` and `halexdias@xcom` were one address. With the

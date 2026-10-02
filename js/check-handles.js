@@ -871,8 +871,19 @@ function run() {
     { person_id: 'P1', email: 'Ada@Example.com', pin: '0000', username: 'AdaL' },
     { person_id: 'P2', email: 'dup@x.com',       pin: '0000', username: 'DupOne' },
     { person_id: 'P3', email: ' DUP@x.com ',     pin: '0000', username: 'DupTwo' },
-    { person_id: 'P4', email: '',                pin: '0000', username: 'NoMail' },
+    { person_id: 'P4', email: '',                pin: '0000', username: 'NoMail', handle: 'sam_kind' },
+    { person_id: 'P5', email: '',                pin: '0000', username: 'Twin1',  handle: 'twin_brave' },
+    { person_id: 'P6', email: '',                pin: '0000', username: 'Twin2',  handle: 'Twin_Brave' },
   ];
+  /* THE HELPER THE TWO DOORS SHARE (the lock, the PIN, the session) is cut out too, because the
+     handler hands every found row to it. */
+  const helpAt = post.indexOf('function signInRow_(');
+  const helpEnd = helpAt < 0 ? -1 : post.indexOf('\n}\n', helpAt);
+  if (helpAt < 0 || helpEnd < 0) {
+    console.log('FAILED — could not find signInRow_ in dopost.gs to check.');
+    process.exit(1);
+  }
+  const helperSrc = post.slice(helpAt, helpEnd + 3);
   const signIn = new Function('body', 'ROWS', `
     const S = v => String(v == null ? '' : v).trim();
     const norm = v => S(v).toLowerCase();
@@ -888,13 +899,19 @@ function run() {
     const authNewSession_ = () => 'token';
     const loginReplyFor_ = r => ({ success: true, who: r.person_id });
     const action = 'verifyLogin';
+    ` + helperSrc + `
     ` + post.slice(vlAt, vlEnd) + `
     return { fellThrough: true };`);
   const SIGNIN = [
     { body: { email: '  ADA@example.COM ', pin: '0000' }, want: 'P1', why: 'case and spaces must not matter' },
     { body: { name: 'ada@example.com', pin: '0000' },     want: 'P1', why: 'an older phone sends the address as name' },
     { body: { email: 'AdaL', pin: '0000' },               want: '', code: 'not-an-email', why: 'a username is not an address' },
-    { body: { name: 'NoMail', pin: '0000' },              want: '',   why: 'a row with no address cannot be named instead' },
+    { body: { name: 'NoMail', pin: '0000' },              want: '', code: 'not-an-email', why: 'a username is not a handle' },
+    { body: { email: 'Sam_Kind', pin: '0000' },            want: 'P4', why: 'a row with no address signs in by handle, case folded' },
+    { body: { email: 'sam_kind', pin: 'wrong' },            want: '', code: 'wrong-pin', why: 'a wrong PIN on a handle is still wrong' },
+    { body: { email: 'twin_brave', pin: '0000' },           want: '',   why: 'two blank rows on one handle is refused, not guessed' },
+    { body: { email: 'ada_x', pin: '0000' },                want: '', code: 'not-an-email', why: 'a handle nobody has signs nobody in' },
+    { body: { email: 'adal', pin: '0000' },                 want: '', code: 'not-an-email', why: 'a row WITH an address cannot be claimed by its handle or username' },
     { body: { email: 'ada@example.com', pin: 'wrong' },    want: '', code: 'wrong-pin', why: 'a wrong PIN is still wrong' },
     { body: { email: 'dup@x.com', pin: '0000' },          want: '',   why: 'two rows on one address is refused, not guessed' },
     { body: { email: 'nobody@x.com', pin: '0000' },       want: '', code: 'no-such-email', why: 'an address nobody has signs nobody in' },

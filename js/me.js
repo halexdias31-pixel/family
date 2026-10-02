@@ -81,9 +81,9 @@ function signInCard_() {
              box that capitalises the first letter of an address reads as though case mattered.
              THE ID STAYS `in-name`, because `forgot-pin`, the Enter-to-submit listener and
              `check-flow.js` all find the box by it, and renaming it buys nothing but three edits. */''}
-        <label class="field"><span>email</span>
-          <input id="in-name" type="email" autocomplete="username" autocapitalize="off"
-                 spellcheck="false" placeholder="you@example.com"></label>
+        <label class="field"><span>email or handle</span>
+          <input id="in-name" type="text" inputmode="email" autocomplete="username" autocapitalize="off"
+                 spellcheck="false" placeholder="you@example.com — or your handle if you have no email"></label>
         <label class="field"><span>PIN</span>
           <input id="in-pin" type="password" inputmode="numeric" autocomplete="current-password"></label>
         <button class="btn" data-do="do-signin">Sign in</button>
@@ -653,7 +653,7 @@ function googleSignedIn_(res) {
    deployment too old to carry the action at all, which answers a refusal rather than this. */
 on('forgot-pin', el => {
   const who = (($('in-name') || {}).value || '').trim();
-  if (!who) { toast('Type your email address first.'); return; }
+  if (!who) { toast('Type your email address first — or your handle if you have no email.'); return; }
   send_({ action: 'forgotPin', who }, { button: el, busy: 'Sending\u2026' })
     .then(d => toast((d && d.message)
       || 'If there is an account with that email, a new PIN is on its way.'));
