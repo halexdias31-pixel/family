@@ -4788,9 +4788,15 @@ function ktNow_() {
   return KT;
 }
 
+/* A LESSON BY ITS NUMBER, the first for one that is not there. A function rather than an index into
+   the `const` wherever it is wanted, because only a function declaration reaches `window` — and the
+   journey in check-flow reads every lesson's letters through this to ask what each line may hold. */
+function ktLesson_(n) { return KT_LESSONS[n] || KT_LESSONS[0]; }
+function ktLessonCount_() { return KT_LESSONS.length; }
+
 /* A LINE OF ABOUT FORTY CHARACTERS — two rows of the card on a 320 phone, one on a laptop. */
 function ktLine_(n) {
-  const L = KT_LESSONS[n] || KT_LESSONS[0];
+  const L = ktLesson_(n);
   const fits = w => [...w.toLowerCase()].every(c => L.keys.includes(c));
   const pool = KT_WORDS.filter(fits);
   const fresh = L.fresh ? pool.filter(w => [...w].some(c => L.fresh.includes(c))) : [];
@@ -4897,7 +4903,7 @@ function ktBoardHtml_(want, miss) {
 
 function ktViewHtml_() {
   const s = ktNow_(), p = s.p;
-  const L = KT_LESSONS[p.at];
+  const L = ktLesson_(p.at);
   const cur = s.line[s.pos] === undefined ? '' : s.line[s.pos];
   const wpm = s.pos ? ktWpm_(s) : (s.last ? s.last.wpm : 0);
   const acc = s.right + s.wrong ? ktAcc_(s) : (s.last ? s.last.acc : 1);

@@ -1438,8 +1438,13 @@ check('touch typing moves on a right key, counts a wrong one, keeps the ladder p
   if (!box() || !box().querySelector('.kt-in')) return ['the touch-typing card did not draw on the Tools column with its box'];
   const bad = [];
 
-  const lessons = w.eval('typeof KT_LESSONS !== "undefined" ? KT_LESSONS : null');
-  (lessons || []).forEach((L, n) => {
+  /* THROUGH `ktLesson_`, NOT `KT_LESSONS`: the app is evaluated as one block here, so its `const`s
+     stay inside it and a journey reading one by name gets nothing — and an empty list here would be a
+     check of nothing that passed. So an empty ladder is a failure of its own. */
+  const lessons = typeof w.ktLessonCount_ === 'function'
+    ? Array.from({ length: w.ktLessonCount_() }, (_, i) => w.ktLesson_(i)) : [];
+  if (lessons.length !== 5) bad.push('the ladder has ' + lessons.length + ' lessons, not 5');
+  lessons.forEach((L, n) => {
     for (let i = 0; i < 50; i++) {
       const line = w.ktLine_(n);
       const stray = [...line].filter(c => /[a-z]/i.test(c) && !L.keys.includes(c.toLowerCase()));
