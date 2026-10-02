@@ -57,3 +57,46 @@ tight under the dropdown, but Taboo and the other six do the same (`.card .sub`'
 margin), so Herd matches them.
 
 A star on the old `herd` id stops matching, as it did for the seven moved before it.
+
+### "maz game is glitched."
+
+**The cause was a class name collision.** The word search added on 1 October gave its grid the bare
+class `.ws`, which sets `display: grid`, a top margin and a max width. The maze already used `ws` as
+its south-wall class. So every maze square with a south wall was laid out as a small grid of its own.
+Measured at 390: 71 of 121 squares were 16.6px tall in 24.7px rows. The result was doubled walls,
+walls that did not meet, gaps in the outer edge and a squashed gold square. Nothing threw and nothing
+overflowed.
+
+**The walls are now `mz-n`, `mz-e`, `mz-s` and `mz-w`.** The fix is the prefix, not a rename of the
+word search: a two-letter class with no prefix is a name any later component can take without
+knowing. After the change, all 121 squares are 19.77px at 320 and 24.7px at 390, and the
+screenshots show a clean maze.
+
+**Two smaller faults the audit measured are fixed in the same pass.**
+- **The arrow keys.** The maze listened on `document` whenever `#maze-grid` existed, and it exists
+  whenever the Games column is drawn as a neighbour. Two arrows on Find walked a hidden maze. On the
+  maze page itself, ArrowDown walked the maze and the pager's `window` listener also turned the
+  column. Now `mzInFront_` asks `dropOnFront_` (book.js), the app's one copy of "on the screen you
+  are on, on the page in front of you", of every copy of the grid. While a maze is being walked in
+  front of you, the arrows are the maze's, and `stopPropagation` keeps them from the pager. That
+  holds when a wall stops the move too. A finished maze gives the arrows back.
+- **A repaint dealt a new maze.** `start` runs on every repaint. Now `initMaze` keeps a maze that is
+  still being walked and deals only when there is none or the last one is finished. `New maze`
+  calls `mzDeal_` directly.
+
+**Checked twice, once in each instrument.**
+- `check-flow.js` has its first maze journey. It reads `style.css` and asks that no rule whose
+  subject names a maze square's class, and that matches one, belongs to anyone but the maze. This
+  turns the fault into a rule, so a future `.you` or `.out` on another card is caught too. The
+  journey then reads the walls back off the drawn classes, checks both sides of every doorway agree,
+  presses the arrow keys on and off the maze page, repaints mid-walk, and walks the shortest route
+  through the pad's own handler to "the shortest way there is". Four mutations each turned it red
+  for the right reason, and each passed again once restored:
+  - bare `ws` put back gave "a rule that is not the maze's reaches a maze square: .ws";
+  - `stopPropagation` removed gave "ArrowUp on the maze page turned the column … to page 6";
+  - the in-front guard removed gave "arrow keys on another column walked the maze from 1 to 4";
+  - dealing on every start gave "coming back to the column dealt a new maze".
+- `check/ui.js` now asks every board on a screen (chess, Connect 4, Othello, maze, word search,
+  Scrabble) that its squares are one size, within 0.5px. It prints how many boards it measured: 528
+  on the Games screen across 88 combinations. With bare `ws` put back, it reported "#maze-grid: 53
+  of 121 squares are not the board's size … 12.1-19.3px tall".

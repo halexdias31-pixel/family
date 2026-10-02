@@ -11126,10 +11126,16 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   background: var(--sunk); border-radius: var(--r-sm); overflow: hidden;
 }
 .mz-cell { display: block; min-width: 0; min-height: 0; }
-.mz-cell.wn { border-top: 2px solid var(--mz-wall); }
-.mz-cell.we { border-right: 2px solid var(--mz-wall); }
-.mz-cell.ws { border-bottom: 2px solid var(--mz-wall); }
-.mz-cell.ww { border-left: 2px solid var(--mz-wall); }
+/* `mz-` ON THE WALLS, BECAUSE `.ws` IS THE WORD SEARCH'S GRID. These were `.wn` `.we` `.ws` `.ww`,
+   and the word search's bare `.ws { display: grid; margin: .55rem auto 0; max-width: 24rem }`
+   landed on every maze cell with a south wall: 71 of 121 cells 16.6px tall in 24.7px rows at 390,
+   so walls doubled, missed each other and left gaps in the outer edge. See `mazePaint`.
+   `check/ui.js` now asks that every square of a board is one size, which is the measurement that
+   would have caught it on the first run. */
+.mz-cell.mz-n { border-top: 2px solid var(--mz-wall); }
+.mz-cell.mz-e { border-right: 2px solid var(--mz-wall); }
+.mz-cell.mz-s { border-bottom: 2px solid var(--mz-wall); }
+.mz-cell.mz-w { border-left: 2px solid var(--mz-wall); }
 /* WHERE YOU HAVE BEEN, which is the whole playability on a card this size: without it a dead end
    looks exactly like a corridor you have not tried yet. Faint, because it is a memory rather than
    part of the maze. */

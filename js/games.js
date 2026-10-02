@@ -1425,18 +1425,32 @@ function mzShortest_(cells) {
   return dist[MAZE_N * MAZE_N - 1];
 }
 
+/* ---------- A MAZE IS KEPT UNTIL IT IS FINISHED, OR UNTIL `New maze` ------------------------------
+   IT WAS REBUILT FROM NOTHING EVERY TIME THE WIDGET STARTED, for the reason `initConnect4` gives:
+   the widget is reopened by a swipe, so a half-walked maze would be answering "where was I" about a
+   game you had forgotten starting. That argument is about a swipe. What it also caught was a
+   REPAINT — `startScreen_` starts every widget on the column again whenever a payload lands or
+   anything saves — and measured, a repaint mid-walk dealt different cells and put you back at the
+   top left with nought moves, under a finger that was halfway to the exit. Word Search, Scramble
+   and Scrabble all keep theirs; this was the one that did not.
+
+   SO `start` KEEPS A MAZE THAT IS STILL BEING WALKED and deals only when there is none or the last
+   one is finished — a finished maze has nothing left to do but be replaced, and the next time the
+   column starts is the natural moment. `New maze` is the one thing that throws a walk away, which
+   is the one thing that should. */
 function initMaze() {
   if (!$('maze-grid')) return;
-  /* REBUILT FROM NOTHING EVERY TIME THE WIDGET OPENS, for the reason `initConnect4` gives: the
-     widget is reopened by a swipe, so a half-walked maze would be answering "where was I" about a
-     game you had forgotten starting. */
+  if (!maze || maze.over) mzDeal_();
+  mazePaint();
+}
+
+function mzDeal_() {
   const cells = mzBuild_();
   /* NOTHING SAID AT THE START, because the line under the heading already says where you are going
      and this sat under it repeating it word for word -- which is the fault CLAUDE.md records where
      every widget printed its own name twice. It speaks when there is something to say. */
   maze = { cells, x: 0, y: 0, moves: 0, best: mzShortest_(cells),
            trail: { 0: true }, over: false, said: '' };
-  mazePaint();
 }
 
 function mzMove_(k) {
@@ -1467,11 +1481,19 @@ function mazePaint() {
   for (let y = 0; y < MAZE_N; y++) {
     for (let x = 0; x < MAZE_N; x++) {
       const v = maze.cells[mzAt_(x, y)];
+      /* THE WALLS ARE `mz-n`/`mz-e`/`mz-s`/`mz-w`, AND THEY WERE `wn`/`we`/`ws`/`ww`. Reported as
+         "maz game is glitched." The word search arrived with its grid on the bare class `.ws` —
+         `display: grid`, a top margin and a max width — and every maze cell with a south wall
+         carried `ws` too, so 71 of 121 cells became small grids of their own: 16.6px tall in a
+         24.7px row, doubled walls, walls that did not meet, gaps in the outer edge and a squashed
+         gold square. Nothing threw and nothing overflowed. A two-letter class with no prefix is a
+         name any later component can take without knowing, so the prefix is the fix rather than
+         renaming the word search: the maze's own names now say whose they are. */
       const cls = ['mz-cell'];
-      if (v & MZ_N) cls.push('wn');
-      if (v & MZ_E) cls.push('we');
-      if (v & MZ_S) cls.push('ws');
-      if (v & MZ_W) cls.push('ww');
+      if (v & MZ_N) cls.push('mz-n');
+      if (v & MZ_E) cls.push('mz-e');
+      if (v & MZ_S) cls.push('mz-s');
+      if (v & MZ_W) cls.push('mz-w');
       if (maze.trail[mzAt_(x, y)]) cls.push('been');
       if (x === maze.x && y === maze.y) cls.push('you');
       if (x === MAZE_N - 1 && y === MAZE_N - 1) cls.push('out');
@@ -1490,19 +1512,44 @@ function mazePaint() {
 }
 
 on('maze-go', el => { mzMove_(el.getAttribute('data-d')); mazePaint(); });
-on('maze-again', () => { initMaze(); });
+on('maze-again', () => { mzDeal_(); mazePaint(); });
 
-/* THE ARROW KEYS, AND ONLY WHERE THE MAZE IS THE THING IN FRONT OF YOU. Guarded on the element
-   existing the way Flabby Pird's is, and on the press not being inside a field — arrows in a
-   textarea move the caret, and a game stealing that would break typing on a screen it is not even
-   on. `preventDefault` only once a move was possible, so an arrow that does nothing here still does
-   whatever it would have done. */
+/* THE ARROW KEYS, AND ONLY WHERE THE MAZE IS THE THING IN FRONT OF YOU. Guarded on the press not
+   being inside a field — arrows in a textarea move the caret, and a game stealing that would break
+   typing on a screen it is not even on.
+
+   "IN FRONT OF YOU" WAS `$('maze-grid')` EXISTING, AND IT EXISTS ALMOST EVERYWHERE. The Games
+   column is drawn as a neighbour of Tools and Saved, and all of its pages are built, so the grid is
+   in the document whenever either is near. Measured: two arrow presses on the Find column moved a
+   maze nobody could see. So it asks `dropOnFront_` in book.js — "on the screen you are on, on the
+   page in front of you", which is exactly this question and was lifted out of the drop-down code so
+   there would be one copy of it — and asks it of every copy of the grid, because a starred maze is
+   on the Saved column too.
+
+   AND ONE KEY IS ONE MOVE. The pager listens for the same four keys on `window`, which this
+   `document` listener runs before — and measured on the maze page, ArrowDown walked the maze AND
+   turned the column to the next widget. So while a maze is being walked in front of you the arrows
+   are the maze's, `stopPropagation` keeps them from the pager, and that holds when a wall stops the
+   move too: a key that moved you on one press and threw you off the page on the next would be
+   worse than either. A FINISHED maze gives them back, so arrowing away from "Out in 38" works. */
+function mzInFront_() {
+  if (typeof AT === 'undefined') return false;
+  const sheet = $('sheet');
+  if (sheet && !sheet.classList.contains('hidden')) return false;
+  return [...document.querySelectorAll('[id="maze-grid"]')].some(g => (typeof dropOnFront_ === 'function'
+    ? dropOnFront_(g)
+    : !!(g.closest('.screen') && g.closest('.screen').id === 's-' + AT)));
+}
+
 document.addEventListener('keydown', e => {
-  if (!maze || !$('maze-grid')) return;
-  if (e.target && e.target.closest && e.target.closest('input, textarea, select')) return;
+  if (!maze || maze.over) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  if (t && (t.isContentEditable || (t.closest && t.closest('input, textarea, select')))) return;
   const k = { ArrowUp: 'n', ArrowRight: 'e', ArrowDown: 's', ArrowLeft: 'w' }[e.key];
-  if (!k) return;
+  if (!k || !mzInFront_()) return;
   e.preventDefault();
+  e.stopPropagation();
   mzMove_(k);
   mazePaint();
 });

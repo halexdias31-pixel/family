@@ -351,6 +351,9 @@ function boot(opts) {
       'ss: () => SS, setSs: v => { SS = v; }, ssOrders: ssOrders_, ssRight: ssRight_,' +
       'SS_SENTENCES: SS_SENTENCES, ssDeal: ssDeal_, ssPaint: ssPaint,' +
       'ws: () => WS, setWs: v => { WS = v; }, wsBuild: wsBuild_, wsRude: wsRude_,' +
+      /* THE MAZE BEING WALKED, as a getter because `New maze` replaces it — a journey asks
+         whether a repaint kept the same one, which only the object itself can say. */
+      'maze: () => (typeof maze !== "undefined" ? maze : null),' +
       'WS_THEMES: WS_THEMES, WS_DIRS: WS_DIRS, WS_FORWARD: WS_FORWARD, wsPaint: wsPaint,' +
       'allWidgets: typeof allWidgets === "function" ? allWidgets : null,' +
       'widgetsOf: typeof widgetsOf_ === "function" ? widgetsOf_ : null,' +
@@ -1035,6 +1038,171 @@ check('the word search hides every word where it says, and two taps find it', as
   return bad;
 });
 
+
+/* ---------- THE MAZE: ITS WALLS ARE ITS OWN, ITS WALK SURVIVES A REPAINT, ITS KEYS ARE ITS OWN -----
+   REPORTED AS "maz game is glitched." Three faults, and every one of them drew without a complaint
+   from anything here — there was no maze journey at all.
+     · THE WALLS. The south wall was the class `ws`, and the word search's grid is the bare `.ws`, so
+       71 of 121 cells were laid out as small grids of their own. Asked here of the stylesheet itself:
+       no rule whose subject names one of a maze cell's classes may be anybody's but the maze's. That
+       is the fault as a rule rather than as the one class it happened to — a `.you` or an `.out`
+       added for some other card tomorrow is the same collision. (`check/ui.js` asks the other half,
+       in a real browser: that every square of a board is one size.)
+     · THE WALK. A repaint dealt a new maze under a finger halfway to the exit.
+     · THE KEYS. On the maze's page ArrowDown walked the maze AND turned the column; on Find, two
+       arrows walked a maze nobody could see.
+   The walk is played through the pad's own handler, along the shortest route read back off the
+   drawn walls — so a wall drawn on the wrong side, or on one side of a doorway only, is a route
+   this cannot finish. */
+check('the maze draws its own walls, keeps a walk through a repaint, and has the arrow keys only in front', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.maze || !t.widgetsOf) return ['the maze is not exported'];
+  const d = w.document;
+  const N = 11;
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'maze');
+  if (at < 0) return ['there is no maze on the Games column'];
+  t.goPage('games', at, true);
+  await wait(50);
+  const grid = () => d.querySelector('#s-games #maze-grid');
+  if (!grid() || grid().children.length !== N * N) return ['the maze did not draw ' + (N * N) + ' squares'];
+  const bad = [];
+
+  /* 1. NO RULE BUT THE MAZE'S REACHES A MAZE SQUARE. Every selector in the stylesheet whose subject
+     — its last compound, the element it styles — names a class some maze square carries, and that
+     matches one, must be the maze's own (`.mz…`). jsdom matches selectors exactly as a browser does
+     for everything here; one it cannot parse is skipped rather than guessed at. */
+  {
+    const css = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const cells = [...grid().children];
+    const theirs = new Set();
+    cells.forEach(c => c.classList.forEach(k => theirs.add(k)));
+    const foreign = new Set();
+    for (const m of css.matchAll(/([^{}@;]+)\{/g)) {
+      m[1].split(',').map(x => x.trim()).filter(Boolean).forEach(sel => {
+        if (/^(from|to|\d+%)$/.test(sel) || /::/.test(sel)) return;
+        const subject = sel.split(/[\s>+~]+/).pop();
+        const named = (subject.match(/\.[\w-]+/g) || []).map(x => x.slice(1));
+        if (!named.some(k => theirs.has(k))) return;
+        if (/\.mz\b|\.mz-/.test(sel)) return;
+        let hit = false;
+        try { hit = cells.some(c => c.matches(sel)); } catch (e) { return; }
+        if (hit) foreign.add(sel);
+      });
+    }
+    if (foreign.size) bad.push('a rule that is not the maze\'s reaches a maze square: ' + [...foreign].join(' | '));
+  }
+
+  /* THE WALLS AS DRAWN, read back off the squares' classes, and both sides of every wall agreeing. */
+  const walls = () => {
+    const out = [];
+    [...grid().children].forEach((c, i) => {
+      let v = 0;
+      if (c.classList.contains('mz-n')) v |= 1;
+      if (c.classList.contains('mz-e')) v |= 2;
+      if (c.classList.contains('mz-s')) v |= 4;
+      if (c.classList.contains('mz-w')) v |= 8;
+      out[i] = v;
+    });
+    return out;
+  };
+  const STEP = { n: [0, -1, 1, 4], e: [1, 0, 2, 8], s: [0, 1, 4, 1], w: [-1, 0, 8, 2] };
+  const route = (cells, from) => {
+    const prev = new Array(N * N).fill(null);
+    prev[from] = '';
+    const q = [from];
+    for (let i = 0; i < q.length; i++) {
+      const a = q[i], x = a % N, y = (a / N) | 0;
+      Object.keys(STEP).forEach(k => {
+        const [dx, dy, bit] = STEP[k];
+        const nx = x + dx, ny = y + dy, b = ny * N + nx;
+        if (cells[a] & bit || nx < 0 || ny < 0 || nx >= N || ny >= N || prev[b] !== null) return;
+        prev[b] = k; q.push(b);
+      });
+    }
+    if (prev[N * N - 1] === null) return null;
+    const steps = [];
+    for (let b = N * N - 1; b !== from;) {
+      const k = prev[b]; steps.unshift(k);
+      b -= STEP[k][1] * N + STEP[k][0];
+    }
+    return steps;
+  };
+  {
+    const c = walls();
+    const oneSided = [];
+    for (let i = 0; i < N * N; i++) {
+      const x = i % N, y = (i / N) | 0;
+      if (x < N - 1 && !!(c[i] & 2) !== !!(c[i + 1] & 8)) oneSided.push((x + 1) + ',' + (y + 1) + ' east');
+      if (y < N - 1 && !!(c[i] & 4) !== !!(c[i + N] & 1)) oneSided.push((x + 1) + ',' + (y + 1) + ' south');
+    }
+    if (oneSided.length) bad.push('walls drawn on one side of a doorway only: ' + oneSided.slice(0, 5).join(', '));
+    if (c.filter(v => v & 4).length === 0) bad.push('no square carries a south wall, so the wall classes were not read');
+  }
+
+  /* 2. THE KEYS, ON THE MAZE'S PAGE AND OFF IT. ArrowUp from the top left is always a wall: the
+     maze must not move, and the press must not reach the pager either. */
+  const key = k => d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+  const page = () => t.PAGE().games;
+  const m0 = t.maze();
+  key('ArrowUp');
+  if (t.maze().moves !== 0) bad.push('ArrowUp into the outer wall counted a move');
+  if (page() !== at) bad.push('ArrowUp on the maze page turned the column from the maze to page ' + page());
+  t.goPage('games', at, true);
+  const open0 = walls()[0] & 2 ? 'ArrowDown' : 'ArrowRight';
+  key(open0);
+  if (t.maze().moves !== 1) bad.push(open0 + ' on the maze page did not move the walker');
+  if (page() !== at) bad.push(open0 + ' on the maze page also turned the column, to page ' + page());
+  t.goPage('games', at, true);
+  /* OFF IT: on the Find column the Games column is drawn as a neighbour, grid and all. */
+  t.go('stuff', false, true);
+  await wait(LEAVE_MS);
+  const was = t.maze().moves;
+  ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].forEach(key);
+  if (t.maze().moves !== was) bad.push('arrow keys on another column walked the maze from ' + was + ' to ' + t.maze().moves + ' moves');
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  t.goPage('games', at, true);
+  await wait(50);
+
+  /* 3. A REPAINT KEEPS THE WALK. */
+  if (t.maze() !== m0) bad.push('coming back to the column dealt a new maze');
+  const drawn = walls().join(',');
+  t.repaint(true);
+  await wait(50);
+  if (t.maze() !== m0 || t.maze().moves !== 1) bad.push('a repaint threw the walk away: moves ' + (t.maze() || {}).moves);
+  if (walls().join(',') !== drawn) bad.push('a repaint drew different walls');
+
+  /* 4. NEW MAZE STARTS AGAIN, and the shortest route read off the drawn walls finishes it. */
+  const press = dd => { const el = d.createElement('button'); el.setAttribute('data-d', dd); t.ACTIONS['maze-go'](el); };
+  t.ACTIONS['maze-again'](d.createElement('button'));
+  const m1 = t.maze();
+  if (m1 === m0 || m1.moves !== 0 || m1.x !== 0 || m1.y !== 0) bad.push('New maze did not start a fresh one at the top left');
+  const way = route(walls(), 0);
+  if (!way) return bad.concat(['the drawn walls have no way from the top left to the bottom right']);
+  if (way.length !== m1.best) bad.push('the shortest way through the drawn walls is ' + way.length + ' and the maze says ' + m1.best);
+  const half = way.length >> 1;
+  way.slice(0, half).forEach(press);
+  t.repaint(true);
+  await wait(50);
+  if (t.maze() !== m1 || t.maze().moves !== half) bad.push('a repaint halfway threw the walk away');
+  way.slice(half).forEach(press);
+  const said = String((d.querySelector('#s-games #maze-said') || {}).textContent || '');
+  if (!t.maze().over || t.maze().moves !== m1.best) bad.push('the shortest route did not finish the maze in ' + m1.best);
+  if (!/the shortest way there is/.test(said)) bad.push('finishing in the fewest moves says "' + said + '"');
+
+  /* 5. A FINISHED MAZE GIVES THE KEYS BACK, and the next start deals another. */
+  key('ArrowUp');
+  if (page() === at) bad.push('ArrowUp on a finished maze still did not reach the pager');
+  t.goPage('games', at, true);
+  t.repaint(true);
+  await wait(50);
+  if (t.maze() === m1 || t.maze().over) bad.push('a finished maze was not replaced at the next start');
+  return bad;
+});
 
 /* ---------- THE FOUR CLASSROOM GAMES: A ROUND SURVIVES A REPAINT, AND WAITS WHILE YOU ARE AWAY -----
    JUST A MINUTE, TABOO, HOT SEAT AND 20 QUESTIONS were asked to keep their round through a
