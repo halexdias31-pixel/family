@@ -229,7 +229,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-01-c-family";
+const BACKEND_VERSION = "2026-10-02-a-noemail";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {

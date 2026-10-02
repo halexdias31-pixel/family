@@ -71,6 +71,24 @@
   --good:      #3ddc84;
   --bad:       #ff5f56;
 
+  /* ---------- A COLOUR PER KIND OF TAG ------------------------------------------------------------
+     ASKED FOR AS *"add a colour for each tag. Like paper 1 2 3 etc should be red tags."* That is a
+     legend, and the note above says a glance holds four categories and past that a palette becomes
+     one -- which is exactly what was asked for here, so it is a deliberate legend rather than drift.
+     Two rules from the note above survive it: GREEN STAYS A SUBJECT (the subject tag IS --green),
+     and the red is a tag red, `--tag-paper`, a step softer than `--bad`, so a red tag and a refusal
+     are not the same paint. Nothing here is gold: gold is the one action, and a tag is not one.
+
+     At `:root` because three components draw them -- the funnel's answers, the chips above them and
+     the tags on a question card -- and `[data-tag]` below is the one place that turns a kind into
+     a colour. `tagOf_` in find.js is the one place that turns a facet into a kind. */
+  --tag-paper:   #ff7b72;
+  --tag-level:   #6cb6ff;
+  --tag-sitting: #c8a2ff;
+  --tag-board:   #4fd1c5;
+  --tag-type:    #c3e88d;
+  --tag-topic:   #ff9e64;
+
   /* Everything below is in rem, so it all scales together from the one root above. */
   /* Square, near enough. A terminal has no rounded corners, and this is the single value that
      decides whether the look lands or reads as an app in fancy dress. */
@@ -2155,6 +2173,19 @@ button.text-drop { color: var(--bad); }
    was costing the room is WIDTH: the label, the padding and the gaps decide how many fit on a line,
    and a line is 44px whether it holds two chips or four. Narrower text, less padding, tighter gaps
    — same target, fewer rows. */
+/* ---------- WHICH KIND OF TAG, AS A COLOUR -----------------------------------------------------------
+   `data-tag` names the kind (`tagOf_` in find.js) and this turns it into `--tag`, which the answer
+   row, the chip and the card tag each read. One place, so a red Paper is the same red in all three.
+   Subject is --green and tier is --pink, the two palette colours that already meant a category. */
+[data-tag="paper"]   { --tag: var(--tag-paper); }
+[data-tag="subject"] { --tag: var(--green); }
+[data-tag="level"]   { --tag: var(--tag-level); }
+[data-tag="sitting"] { --tag: var(--tag-sitting); }
+[data-tag="tier"]    { --tag: var(--pink); }
+[data-tag="board"]   { --tag: var(--tag-board); }
+[data-tag="type"]    { --tag: var(--tag-type); }
+[data-tag="topic"]   { --tag: var(--tag-topic); }
+[data-tag="needs"]   { --tag: var(--gold); }
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
 .chip {
   display: flex; align-items: center; gap: .25rem;
@@ -2185,6 +2216,13 @@ button.text-drop { color: var(--bad); }
    chip's own 8% white it is 3.97:1 — `check/ui.js` named every field on the first run of the filled
    chips. `--dim` is the next step up and has exactly this job, a label beside a value. */
 .chip-k { color: var(--dim); font-size: .6rem; text-transform: uppercase; letter-spacing: .04em; }
+/* A CHIP OF A KIND IS DRAWN IN ITS COLOUR: the outline, the value, and the fill a tint of it rather
+   than the plain 8% white -- filled still says "this one is on", just in the colour of what it is.
+   The field's name stays `--dim`, which measured above for exactly this job on a filled chip. */
+.chip[data-tag] {
+  border-color: var(--tag); color: var(--tag);
+  background: color-mix(in srgb, var(--tag) 14%, transparent);
+}
 .chip-x { color: var(--faint); margin-left: .15rem; }
 .chip:active .chip-x, .chip.is-pressed .chip-x { color: var(--bad); }
 /* The + adds rather than removes, so it is outlined in the accent rather than filled — it is an
@@ -9060,6 +9098,18 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qcard-top b { font: 700 .95rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
 .qcard-top span { font-size: .66rem; color: var(--faint); white-space: nowrap; }
 .qcard-sub { margin: .25rem 0 0; font-size: .7rem; color: var(--dim); }
+/* ---------- THE CARD'S TAGS -------------------------------------------------------------------------
+   ASKED FOR AS *"it has the title of it in one text name when it should still remain as tags."* The
+   paper's name taken apart into the facts it is made of (`qTags_` in find.js), each in its kind's
+   colour. Labels, not controls: smaller than a chip, not pressable, so nothing here is a tap target
+   and a card of them is a card that still has room for its question. A tag with no kind -- the words
+   after a paper's colon, `Arithmetic` -- keeps the plain outline and the dim ink. */
+.qtags { display: flex; flex-wrap: wrap; gap: .25rem; }
+.qtag {
+  display: inline-block; padding: .05rem .45rem; border-radius: 999px;
+  border: 1px solid var(--tag, #3d3d3d); color: var(--tag, var(--dim));
+  font-size: .64rem; line-height: 1.35;
+}
 
 /* THE DAY THE PAPER WAS SAT, UNDER ITS NAME. `display: block` because it is a second line rather
    than a second clause — the name already ends in a month ("Paper 1 (Non-Calculator) — May 2017")
@@ -10363,6 +10413,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    app; this is the answer row handing back the foreground colour the block above gave it. */
 /* A CHIP NOW, AND STILL THE QUIET ONE: the dashed edge says "a way past this" where every answer's
    solid edge says "one of these", and the colour hands back the foreground the block above gave. */
+/* AN ANSWER OF A KIND IS OUTLINED AND LETTERED IN ITS COLOUR, and pressing it makes a chip of the
+   same colour -- so `Paper 1` is red on the menu, red as a chip and red on the card. Unfilled, as
+   every answer is: the colour says what kind of answer, the fill would say it was already chosen. */
+.row.tap.counted[data-tag] { border-color: var(--tag); }
+.row.tap.counted[data-tag] .k { color: var(--tag); }
 .row.tap.counted.is-skip { background: none; border-style: dashed; }
 .row.tap.counted.is-skip .k { color: var(--dim); font-weight: 400; }
 @media (hover: hover) {

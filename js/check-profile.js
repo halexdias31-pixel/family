@@ -609,6 +609,31 @@ PEOPLE.forEach(p => {
   }
 }
 
+/* 11. A STUDENT WITH NO EMAIL, THROUGH THE REAL `doPost`.
+   ASKED FOR AS *"i have a student who doesnt have an email ... so he can still login."* A row with a
+   blank address signs in by its handle and PIN, an address-holder cannot be reached by handle, and a
+   forgotten PIN is reset only when a parent has accepted the link — the child's old PIN stops
+   working, an unlinked child's does not. */
+{
+  const f = backend();
+  const mk = (id, role, first, extra) => Object.assign({}, base, { person_id: id, role, first_name: first,
+    last_name: 'Test', handle: first.toLowerCase() + '_calm', email: '' }, extra || {});
+  f.seed('people', [mk('P-NP', 'client', 'Pat', { email: 'pat@example.org' }),
+                    mk('P-NK', 'student', 'Kit'), mk('P-NL', 'student', 'Lee')]);
+  f.seed('family', [{ link_id: 'L1', parent_id: 'P-NP', child_id: 'P-NK', state: 'accepted' }]);
+  const inn = f.post({ action: 'verifyLogin', email: 'Kit_Calm', pin: '0000' });
+  if (!inn || !inn.success) bad.push('no-email: a child with no address could not sign in by handle — ' + JSON.stringify(inn));
+  const viaParent = f.post({ action: 'verifyLogin', email: 'pat_calm', pin: '0000' });
+  if (viaParent && viaParent.success) bad.push('no-email: a row that HAS an address was reached by its handle');
+  f.post({ action: 'forgotPin', who: 'lee_calm' });
+  const leeStill = f.post({ action: 'verifyLogin', email: 'lee_calm', pin: '0000' });
+  if (!leeStill || !leeStill.success) bad.push('no-email: a child with no linked parent had their PIN changed by a stranger');
+  const said = f.post({ action: 'forgotPin', who: 'kit_calm' });
+  if (!said || !said.success) bad.push('no-email: forgotPin for a linked child did not answer — ' + JSON.stringify(said));
+  const kitOld = f.post({ action: 'verifyLogin', email: 'kit_calm', pin: '0000' });
+  if (kitOld && kitOld.success) bad.push('no-email: the old PIN still works after the parent was sent a new one');
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
