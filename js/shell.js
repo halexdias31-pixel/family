@@ -1744,7 +1744,18 @@ const PAGE_HOME = {
      Anything in front of the camera — the festive cards, when the calendar has any — is above it
      and is reached by swiping up, which is the price of the camera sitting directly on top of the
      newest post as asked. */
-  feed:    () => (typeof feedCamAt_ === 'function' ? feedCamAt_() + 1 : 0),
+  /* ---------- AND WHEN THERE IS NO POST, NOT THE CAMERA EITHER ------------------------------------
+     A FESTIVE CARD AND AN EMPTY POSTS TAB made the column `[festive, camera]`: "the page after the
+     camera" was past the end, `pageHome_` clamped it back onto the last page, and the last page IS
+     the camera — so the app opened on it and asked for it, which is *"it should only go when you
+     swipe to go up"* broken by a second road. With nothing under the camera the front door is the
+     page above it instead, and the camera is one swipe away like it is on every other day. (With no
+     festive card either there is always a page under it: `postsBlocks` draws "Nothing posted yet".) */
+  feed:    () => {
+    if (typeof feedCamAt_ !== 'function') return 0;
+    const at = feedCamAt_();
+    return pageCount('feed') > at + 1 ? at + 1 : Math.max(0, at - 1);
+  },
   /* ---------- AND `account` HAS BEEN OPENING ON SOMEBODY ELSE ---------------------------------
      REPORTED AS *"im logged into halex, i dont see account settings."* It was there: the door to
      the Settings column is the `Your settings` tile, and that tile is on YOUR OWN card, which is
