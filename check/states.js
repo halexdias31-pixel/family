@@ -185,6 +185,38 @@ const STATES = {
         return new Set(tops).size < tops.length;
       },
       wants: 'the Month question, bare month names only, drawn as chips sharing a line' },
+    /* ---------- A PAPER CHOSEN, AND NOTHING MORE ASKED -----------------------------------------------
+       ASKED FOR AS *"no more asking for questions 1-10 or question part 1 or b."* This route used to go
+       on to `Question number 1–10 | 11–20 | 21–30`, then `1–2 | 3–4`, then `1 | 2`. Now the paper is the
+       last folder (`FACET_ENDS`): the funnel page draws no answers and says to swipe up, and the next
+       page is the paper's first question. The state turns to that page, so the card a thumb lands on
+       is what gets measured — and the funnel page is asked about from there, since it is still in
+       the strip. */
+    { name: 'a paper chosen',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'subject', value: 'Maths' },
+                         { field: 'documentType', value: 'Past paper' },
+                         { field: 'level', value: 'GCSE' },
+                         { field: 'topicArea', any: true },
+                         { field: 'topic', any: true },
+                         { field: 'tier', value: 'Higher' },
+                         { field: 'examYear', value: '2017' },
+                         { field: 'examMonth', value: 'June' },
+                         { field: 'paperId', value: 'P-1MA1-1706-2H' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => {
+        const rows = document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]');
+        const groups = document.querySelector('#stuff-groups');
+        return !!groups && rows.length === 0 && /That is the paper, in order/.test(groups.textContent)
+               && document.querySelectorAll('#s-stuff .qcard').length > 0;
+      },
+      wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- AN ANSWER ONE LETTER LONG ---------------------------------------------------------
        A CHIP IS AS WIDE AS ITS WORDS, and the letter ranges `bucketValues_` groups a long list into
        are often a single letter — `S` among the topics here, `G` and `P` among the English papers.

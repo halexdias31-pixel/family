@@ -111,6 +111,9 @@ function boot(cb) {
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
       ' filterHit, facetOwn_, bucketHas_, bucketDeclares_, STUFF, paperLabels_, stuffHay_, norm,' +
       ' stuffNarrow_, FACET_NEEDS_FIRST, fiveDayLabel_, tagOf_,' +
+      /* THE LIST THE APP DRAWS, SORTED, AND THE LAST-RESORT QUESTION -- so 4e can ask what a person
+         is shown once a paper is chosen, through the same two functions the screen asks. */
+      ' stuffFiltered, overFacet_,' +
       ' chipShow_, qTags_,' +
       ' RETIRED_FACETS, waveOf,' +
       /* A THUNK, NOT THE OBJECT. `load()` ends with `DATA = d` — it REPLACES the payload — so a
@@ -563,12 +566,91 @@ boot(f => {
   };
   if (f.stuffNarrow_) {
     chains('in the whole library', items, []);
-    const pid = 'P-1MA1-1705-1H';
-    if (onePaper.length) chains('inside one paper', onePaper, [{ field: 'paperId', value: pid }]);
-    console.log('  ' + chained + ' answer(s) pressed inside their bucket, through the whole chain');
+    /* ---------- AND NOT INSIDE ONE PAPER ANY MORE, WHICH IS SAID RATHER THAN SKIPPED ---------------
+       THIS PRESSED THE QUESTION NUMBERS INSIDE `P-1MA1-1705-1H` -- `1–10`, then `1–2`, then `1` --
+       and they were the only buckets a paper ever had. The owner retired both questions (*"no more
+       asking for questions 1-10 or question part 1 or b."*) and a paper now ends the funnel (see
+       `FACET_ENDS`), so inside one paper there is nothing to press. That is asserted in 4e below
+       rather than assumed here: this line only says why the second state is gone. */
+    console.log('  ' + chained + ' answer(s) pressed inside their bucket, through the whole chain'
+                + ' (none inside one paper: a paper ends the funnel, see 4e)');
     if (!chained) bad.push('no answer was drawn inside any bucket, so the chain rule proves nothing');
   } else {
     bad.push('`stuffNarrow_` is not declared, so an answer inside a bucket cannot be pressed — not a pass');
+  }
+
+  /* ---------- 4e. AFTER PAPER, THE PAPER -- ITS QUESTIONS, IN ORDER, AND NOTHING MORE ASKED ------------
+     ASKED FOR AS *"no more asking for questions 1-10 or question part 1 or b."* Before it, GCSE ·
+     Foundation · 2024 · June · Paper 1 went on to `1–10 | 11–20 | 21–30`, then `1–2 | 3–4 | …`, then
+     `1 | 2`. Three halves, each one a way it can come back:
+
+       THE QUESTIONS ARE NOT LIVE.  `qNumber` and `qPart`, and the row's own spellings `question` and
+                                   `part`, must not be in `facetList()` -- a sheet row switched back on
+                                   is refused by `RETIRED_FACETS`, and this is what says so if that goes.
+       NOTHING IS ASKED.           EVERY paper, reached the way a thumb reaches it -- Year, Month, then
+                                   Paper -- asks nothing more, through `nextFacet` and the last resort
+                                   both. Measured with only the two retired: 495 of 496 asked nothing
+                                   and one asked `What you need`. That one is why `FACET_ENDS` exists.
+       IT IS THE WHOLE PAPER, IN ORDER.  The drawn list holds every question of that paper and nothing
+                                   else, question numbers never going backwards -- which is what makes
+                                   it safe to stop asking: the order IS the question number. */
+  ['qNumber', 'qPart', 'question', 'part'].forEach(old => {
+    if (facets.find(x => x.field === old)) {
+      bad.push('`' + old + '` is a live question again — the owner asked for "no more asking for '
+               + 'questions 1-10 or question part 1 or b." See RETIRED_FACETS.');
+    }
+  });
+  if (f.stuffFiltered && f.nextFacet && syear && smonth) {
+    const was = { q: f.STUFF.q, filters: f.STUFF.filters.slice() };
+    const byPaper = {};
+    items.forEach(x => { const id = x.row && x.row.paper_id; if (id && x.kind === 'question') (byPaper[id] = byPaper[id] || []).push(x); });
+    const after = {}, out = [];
+    let walkedP = 0;
+    try {
+      Object.keys(byPaper).forEach(id => {
+        const one = byPaper[id][0];
+        const y = f.facetOwn_(syear, one)[0], m = f.facetOwn_(smonth, one)[0];
+        f.STUFF.q = '';
+        f.STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }]
+          .concat(y ? [{ field: 'examYear', value: y }] : [])
+          .concat(m ? [{ field: 'examMonth', value: m }] : [])
+          .concat([{ field: 'paperId', value: id }]);
+        const list = f.stuffFiltered();
+        walkedP++;
+        const next = f.nextFacet(list) || (f.overFacet_ && f.overFacet_(list));
+        if (next) {
+          after[next.field] = (after[next.field] || 0) + 1;
+          if (out.length < 6) out.push(id + ' asks `' + next.field + '`: ' + f.facetValues(list, next)
+            .map(v => (v.show || v.value) + ' ' + v.n).join(' | '));
+        }
+        const want = byPaper[id].length;
+        if (list.length !== want || list.some(x => !x.row || x.row.paper_id !== id)) {
+          bad.push(id + ': choosing the paper draws ' + list.length + ' item(s) where the paper has ' + want
+                   + ' question(s) — after Paper the list is the paper, whole');
+        }
+        for (let i = 1; i < list.length; i++) {
+          const a = Number(list[i - 1].qNumber), b = Number(list[i].qNumber);
+          if (isFinite(a) && isFinite(b) && b < a) {
+            bad.push(id + ': question ' + list[i].qNumber + ' is drawn after question ' + list[i - 1].qNumber
+                     + ' — the paper\'s own order is the only thing left to find a question by. See stuffSorted_.');
+            break;
+          }
+        }
+      });
+    } finally { f.STUFF.q = was.q; f.STUFF.filters = was.filters; }
+    const askedAfter = Object.keys(after);
+    if (askedAfter.length) {
+      bad.push(askedAfter.map(k => after[k] + ' paper(s) ask `' + k + '`').join(', ') + ' once the paper '
+               + 'is chosen — after Paper the list is the answer. See FACET_ENDS. ' + out.join('; '));
+    }
+    console.log('  After Paper: ' + walkedP + ' paper(s) chosen through Year and Month; '
+                + (askedAfter.length ? askedAfter.length + ' question(s) still asked' : 'nothing more asked')
+                + ', each the whole paper in question order');
+    if (walkedP < 100) bad.push('only ' + walkedP + ' paper(s) could be chosen, so the after-Paper rule '
+                                + 'measures almost nothing — not a pass');
+  } else {
+    bad.push('`stuffFiltered` or `nextFacet` is not declared, or the sitting is not two questions, so what '
+             + 'follows Paper cannot be read — not a pass');
   }
 
   /* ---------- 5. TWO FACETS, ONE MEANING --------------------------------------------------------

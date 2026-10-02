@@ -916,14 +916,8 @@ const NEEDS_BUCKET = bucketTable_([
   ['A lab',           ['Lab']],
 ]);
 
-/* HOW THE PART IS NUMBERED, which is the only thing this answer has ever said. `Ai` and `Aii` are
-   a letter with a roman under it, so they belong with the letters — that is where a person looks
-   for them on the paper. */
-const PART_BUCKET = bucketTable_([
-  ['Numbered', ['1', '2', '3', '4', '5', '6', '7', '8', '9']],
-  ['Lettered', ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'Ai', 'Aii', 'Bi', 'Bii', 'Ci', 'Cii']],
-  ['Roman',    ['I', 'Ii', 'Iii', 'Iv', 'V']],
-]);
+/* `PART_BUCKET` WAS HERE — Numbered, Lettered and Roman, the grouping for the `Question part`
+   answers. The question is retired (see `RETIRED_FACETS`), so the table had nothing left to group. */
 
 /* THE WEIGHT CLASSES, GROUPED THE WAY BOXING GROUPS THEM. Sixteen divisions is the sport's own
    fragmentation — light, super and plain of nearly everything — and nobody outside it thinks in
@@ -1337,7 +1331,15 @@ const FACETS = [
      `paperId` and `qPart` behind `qNumber`, so both are only ever asked inside ONE paper — which is
      what stops `Question part` offering a paper's `a, b, c` beside another's `1, 2, 3`. Measured: 20
      distinct part values across the library, and within a paper the only mixing is a letter with the
-     roman sub-parts under it, which is what an exam paper prints. */
+     roman sub-parts under it, which is what an exam paper prints.
+
+     ---------- AND THEY ARE RETIRED, BOTH, ON THE OWNER'S WORD ------------------------------------
+     *"no more asking for questions 1-10 or question part 1 or b."* Measured on GCSE · Foundation ·
+     2024 · June · Paper 1 before the change: `1–10 | 11–20 | 21–30`, then `1–2 | 3–4 | …`, then
+     `1 | 2` — three more taps inside one paper, which has at most 63 questions and a median of 8.
+     A paper is short enough to read in order, and it IS in order: `stuffSorted_` sorts by `qNumber`
+     and then `qPart`, so both fields stay on every item and only the QUESTIONS go. The rows are off in
+     `data/settings/facets.json` and `RETIRED_FACETS` keeps them off. */
   /* ---------- THE FACET THAT IS ALWAYS TOO BIG TO ASK, DELIBERATELY ---------------------------
      202 ANSWERS. It will never be offered as a question — `FACET_MAX_ANSWERS` is 40 — and that is
      not a flaw in it, it is what makes it a COLLECTION. `collectionAxes_` picks up exactly the
@@ -1481,8 +1483,13 @@ let FACET_LIVE = null, FACET_FROM = null;
 
    SO THE TABLE IS KEYED ON THE FIELD NAME, beside the facet it belongs to rather than inside the
    builder, and a column the sheet invents tomorrow still gets the alphabet with nothing to add
-   here. One entry today; the shape is what matters. */
-const SHEET_BUCKETS = { qPart: PART_BUCKET };
+   here. One entry today; the shape is what matters.
+
+   NONE TODAY. `qPart` was the one entry and it is retired with `qNumber` — *"no more asking for
+   questions 1-10 or question part 1 or b."* The table stays EMPTY rather than going, because the
+   shape is still what a sheet-invented column with its own vocabulary would need, and
+   `facetFromSheet_` reads it either way. */
+const SHEET_BUCKETS = {};
 
 const facetFromSheet_ = f => ({
   field: f.field,
@@ -1542,6 +1549,16 @@ const RETIRED_FACETS = {
   category: 'the links\' own question, and the links are gone -- "Get rid of links that\'s almost '
           + 'redundant now." A sheet row naming `category` would read that column off whatever else '
           + 'carries one and offer it as a question nobody wrote a label for.',
+  /* ---------- THE QUESTION NUMBER AND THE PART, IN BOTH SPELLINGS ----------------------------------
+     ALL FOUR, because `FACET_NEEDS_FIRST` said why: the sheet may name the item's field (`qNumber`,
+     `qPart`) or the row's column (`question`, `part`), and both read the same numbers. Retiring two
+     of the four would leave the owner's sentence one renamed row away from coming back. The fields
+     stay on every item -- `stuffSorted_` puts a paper's questions in order by them. */
+  qNumber: 'the owner: "no more asking for questions 1-10 or question part 1 or b." After Paper the '
+         + 'list is the paper\'s own questions, in the order the paper prints them.',
+  qPart: 'retired with `qNumber`, on the same words: "no more asking for ... question part 1 or b."',
+  question: 'the row\'s spelling of `qNumber` -- the same question numbers, and retired with them.',
+  part: 'the row\'s spelling of `qPart` -- the same question parts, and retired with them.',
 };
 
 function facetList() {
@@ -2894,13 +2911,32 @@ function fiveDayLabel_(id, ids) {
   return d.day + ' ' + d.month + (mixed ? ' · ' + name : '');
 }
 
+/* ---------- THE FOUR QUESTION-NUMBER ENTRIES LEFT WITH THE QUESTIONS --------------------------------
+   `question`, `qNumber`, `part` and `qPart` were held here behind `paperId` — the note above is why,
+   and it is still the reason a question number means nothing outside its paper. The owner then took
+   the questions themselves away (*"no more asking for questions 1-10 or question part 1 or b."*), and
+   `RETIRED_FACETS` refuses all four spellings, so an entry here would be a rule about a question that
+   can no longer be asked. If one ever comes back, it comes back with its line here. */
 const FACET_NEEDS_FIRST = {
   fiveDay:  'fiveMonth',
-  question: 'paperId',
-  qNumber:  'paperId',
-  part:     'question',
-  qPart:    'qNumber',
 };
+
+/* ---------- A PAPER IS THE LAST FOLDER, AND WHAT IS INSIDE IT IS THE LIST ------------------------------
+   THE OWNER'S WORDS: *"no more asking for questions 1-10 or question part 1 or b."* Retiring those two
+   questions was most of it, and measuring what was left found the rest. Over all 496 papers, reached
+   the way a thumb reaches them (Year, then Month, then Paper), 495 asked nothing more — and one, AQA
+   Physics Paper 2 Higher, June 2023, asked `What you need: Printed sheet 25 | Protractor 1`: a
+   question splitting one paper's 26 questions by what to bring, which is the same tap inside a paper
+   in a different coat.
+
+   SO A LEAF ANSWER HERE ENDS THE FUNNEL, by rule rather than by whichever facets happen to be thin
+   inside a paper today. A paper is at most 63 questions (median 7), they are already in the paper's
+   own order (`stuffSorted_`), and they are what the person came for. A 5-a-day's `Day` is its paper
+   under another name (see `folderOpened_`), so it ends the funnel the same way. A BUCKET does not —
+   `O–P` is seven papers, and the question is asked again inside it — and neither does `Doesn't
+   matter`, which is a skip rather than a paper. `whyThisQuestion` reads the same function. */
+const FACET_ENDS = { paperId: true, fiveDay: true };
+const funnelEnded_ = () => (STUFF.filters || []).some(f => f && FACET_ENDS[f.field] && !f.any && !f.bucket);
 
 /* ---------- A FOLDER WITH ONE ANSWER THAT A CHIP ALREADY OPENED IS NOT ASKED AGAIN ----------------
    A 5-a-day `Day` is its paper's id -- the same folder under another name -- so asking `Paper` over
@@ -2916,6 +2952,7 @@ function folderOpened_(items, facet) {
 }
 
 function nextFacet(items) {
+  if (funnelEnded_()) return null;
   const asked = STUFF.filters.map(f => f.field);
   /* ---------- A BUCKET IS HALF AN ANSWER, SO THE QUESTION IS ASKED AGAIN -----------------------
      `11–20` narrows to ten questions and does not say which, and `Grades 4–6` narrows to three
@@ -2983,6 +3020,9 @@ function nextFacet(items) {
    a facet has to pass is unchanged: not asked, enough coverage, and it must still narrow.
 ================================================================================================== */
 function overFacet_(items) {
+  /* THE LAST RESORT DOES NOT REOPEN A PAPER. See `FACET_ENDS`: inside one paper the list is the
+     answer, and a question this function found would be the same tap `nextFacet` just refused. */
+  if (funnelEnded_()) return null;
   const asked = STUFF.filters.map(f => f.field);
   let best = null;
   for (const facet of facetList()) {
@@ -3044,6 +3084,7 @@ function whyThisQuestion(all) {
     const min = isFinite(f.min) ? f.min : FACET_COVERAGE;
     let why;
     if (asked.indexOf(f.field) !== -1) why = 'asked already';
+    else if (!all && funnelEnded_()) why = 'a paper is chosen — its questions are the list (FACET_ENDS)';
     else if (vals.length < (f.folder ? 1 : 2)) why = (vals.length ? 'one answer' : 'nobody can answer it')
                                     + ' — nothing to decide';
     else if (folderOpened_(items, f)) why = 'one answer, and a chip already opened that folder';
@@ -8423,7 +8464,8 @@ function chipShow_(f, i) {
    because they are where you go rather than what something is. The colours are tokens at `:root`
    (`--tag-paper` and the rest), because three components draw them. */
 const TAG_OF = {
-  paperId: 'paper', qNumber: 'paper', qPart: 'paper', fiveDay: 'paper',
+  /* `qNumber` and `qPart` were red too, and are retired as questions — see `RETIRED_FACETS`. */
+  paperId: 'paper', fiveDay: 'paper',
   subject: 'subject',
   level: 'level', keystage: 'level', yearGroup: 'level', bandValue: 'level', fiveLevel: 'level',
   examMonth: 'sitting', examYear: 'sitting', year: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
@@ -9571,6 +9613,14 @@ function stuffQuestion() {
        SO IT SAYS WHICH OF THE TWO IT MEANS. With a collection on offer the way on is the line
        above, and the sentence points at it instead of contradicting it. */
     const n = items.length === 1 ? 'one' : items.length;
+    /* AND WHEN A PAPER ENDED IT, IT SAYS SO. `FACET_ENDS` stops the funnel the moment a paper is
+       chosen — *"no more asking for questions 1-10 or question part 1 or b."* — so what is left is not
+       "nothing to narrow" but the paper itself, in its own order, which is the thing the person came
+       for and the sentence should say. */
+    if (funnelEnded_()) {
+      return `<p class="faint" style="margin:.6rem 0 0">That is the paper, in order.
+        Swipe up for ${items.length === 1 ? 'its one question' : 'its ' + n + ' questions'}.</p>` + adding;
+    }
     return `<p class="faint" style="margin:.6rem 0 0">Nothing left to narrow.
       Swipe up for the ${n}.</p>` + adding;
   }
