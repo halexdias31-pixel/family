@@ -1569,9 +1569,9 @@ on('maze-again', () => { mzDeal_(); mazePaint(); });
    being inside a field — arrows in a textarea move the caret, and a game stealing that would break
    typing on a screen it is not even on.
 
-   "IN FRONT OF YOU" WAS `$('maze-grid')` EXISTING, AND IT EXISTS ALMOST EVERYWHERE. The Games
-   column is drawn as a neighbour of Tools and Saved, and all of its pages are built, so the grid is
-   in the document whenever either is near. Measured: two arrow presses on the Find column moved a
+   "IN FRONT OF YOU" WAS `$('maze-grid')` EXISTING, AND IT EXISTS ALMOST EVERYWHERE. All of the
+   Games column's pages are built, it is drawn whenever Tools or Saved is beside you, and its
+   markup stays in the document once drawn. Measured: two arrow presses on the Find column moved a
    maze nobody could see. So it asks `dropOnFront_` in book.js — "on the screen you are on, on the
    page in front of you", which is exactly this question and was lifted out of the drop-down code so
    there would be one copy of it — and asks it of every copy of the grid, because a starred maze is
