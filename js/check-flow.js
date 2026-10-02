@@ -2288,7 +2288,7 @@ check('the sign-in card is one tile row, and Make an account posts register', as
   /* ENTER STILL SIGNS IN — the listener clicks `[data-do="do-signin"]`, whatever element that is. */
   const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
   if (name && pin) {
-    name.value = 'x@example.org'; pin.value = '1234';
+    name.value = 'x@example.org'; pin.value = '0000';
     sent.length = 0;
     pin.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     await wait(300);
@@ -2319,14 +2319,14 @@ check('the sign-in card is one tile row, and Make an account posts register', as
     if (sent.some(b => b.action === 'register')) bad.push('a PIN of "' + p + '" was posted — the backend refuses it, so the phone should');
   }
 
-  fill('reg-pin', '4821');
+  fill('reg-pin', '0000');
   sent.length = 0;
   t.ACTIONS['reg-send'](go_);
   await wait(300);
   const post = sent.find(b => b.action === 'register');
   if (!post) bad.push('a filled sheet posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no register');
   else {
-    const want = { first_name: 'Rae', last_name: 'Newcomer', email: 'rae@example.org', pin: '4821' };
+    const want = { first_name: 'Rae', last_name: 'Newcomer', email: 'rae@example.org', pin: '0000' };
     Object.keys(want).forEach(k => { if (post[k] !== want[k]) bad.push('register carried ' + k + ' = ' + JSON.stringify(post[k]) + ', wanted ' + JSON.stringify(want[k])); });
   }
   if (!sheet.classList.contains('hidden')) bad.push('the sheet is still open after the account was made');
