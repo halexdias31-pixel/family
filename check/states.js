@@ -1622,6 +1622,41 @@ const STATES = {
         TMT_DAY = -1; TMT_OPEN = '';
         initTimetable();
       } },
+    /* ---------- TOUCH TYPING, HALF WAY ALONG A LINE WITH A KEY WRONG ----------------------------
+       KEPT ON THE DEVICE, so no fixture can climb the ladder — seeded through the app's own key with
+       three rungs open and the third chosen, so the rungs are measured on, open and shut together.
+       The line is SET rather than drawn at random, half typed and with a wrong key held, so the
+       measured card carries every class it can: letters done, the lit letter in its miss colour, the
+       wrong key red on the keyboard, a capital's shift lit, a score under the line. And the hidden
+       box FOCUSED, through the app's own handler, because the card draws differently when it is
+       listening and that is the state somebody is looking at it in. */
+    { name: 'touch typing',
+      enter: () => {
+        localStorage.setItem(ktKey_(), JSON.stringify({ at: 3, open: 3, held: [3, 3, 3, 1, 0], best: 41, lines: 10 }));
+        KT = null;
+        const s = ktNow_();
+        s.line = 'Quiet zebras jump over the Lazy fox at London';
+        s.pos = 27; s.right = 27; s.wrong = 2; s.miss = 'k'; s.t0 = Date.now() - 6000; s.t1 = Date.now();
+        s.said = 'Last line: 38 wpm, 95% right.';
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'typing');
+        if (n < 0) throw new Error('no typing widget in the roster');
+        goPage('tools', n, true);
+        initTyping();
+        const line = document.querySelector('#s-tools .kt-box .kt-line');
+        if (line) ACTIONS['kt-focus'](line);
+      },
+      expect: () => document.querySelectorAll('#s-tools .kt-box .kt-rung').length === 5
+                    && document.querySelectorAll('#s-tools .kt-box .kt-rung:disabled').length === 1
+                    && document.querySelectorAll('#s-tools .kt-box .kt-k').length === 34
+                    && document.querySelector('#s-tools .kt-box .kt-k.next')
+                    && document.querySelector('#s-tools .kt-box .kt-k.miss'),
+      wants: 'five rungs with the last shut, a 34-key keyboard with the next key lit and a wrong one red',
+      leave: () => {
+        localStorage.removeItem(ktKey_());
+        KT = null;
+        document.activeElement && document.activeElement.blur && document.activeElement.blur();
+        initTyping();
+      } },
   ],
 
   /* ---------- A HIGH-SCORE BOARD WITH SCORES ON IT ---------------------------------------------

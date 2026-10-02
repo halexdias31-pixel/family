@@ -1467,6 +1467,23 @@ const WIDGETS = [
     html: `<h3>Timetable</h3>
     <div id="tmt-box" class="tmt-box"></div>` },
 
+  /* ---------- TOUCH TYPING ----------------------------------------------------------------------
+     ASKED FOR AS *"Add a widget for keyboard practice with no eyes like that one website in links"*
+     — TypingClub, L082 in links.json — and again as *"add keyboard tool widget."* One widget answers
+     both; `piano` in Skills is the other thing "keyboard" could have meant, and nothing asked for it
+     to be played here.
+
+     A TOOL, NOT A GAME. It is practice somebody comes back to, with a ladder that remembers where
+     they are, which is the timetable's and the notepad's kind of thing rather than a round of
+     something. `solid` with the other instruments.
+
+     NO `stop`. Nothing in it runs between keystrokes — see the note over `KT_LESSONS` in games.js —
+     so it is drawn with its page. `.kt-box` is a class as well as an id, the timetable's reason. */
+  { id: 'typing', kind: 'tool', name: 'Touch typing (keyboard practice)', solid: true,
+    start: () => initTyping?.(), into: 'kt-box', what: 'The lesson',
+    html: `<h3>Touch typing</h3>
+    <div id="kt-box" class="kt-box"></div>` },
+
   /* ---------- A PLACEHOLDER, AND IT SAYS SO ------------------------------------------------------
      ASKED FOR AS "a Duolingo substitute" with "don't do too much for now". So this is the widget and
      the slot it will grow into, and nothing more: a card that names what it is going to be and does

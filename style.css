@@ -2108,6 +2108,92 @@ button.text-drop { color: var(--bad); }
 .tmt-foot .btn { width: auto; flex: 1; }
 .tmt-wkend { flex: 0 0 auto; padding: 0; gap: .45rem; font-size: .82rem; color: var(--dim); }
 
+/* ---------- TOUCH TYPING ---------------------------------------------------------------------------
+   See the note over `KT_LESSONS` in games.js. A ladder of five 44px rungs, the line to copy, the
+   speed, and a keyboard drawn underneath with every key in the colour of the finger that presses it.
+
+   THE FINGER COLOURS ARE THIS WIDGET'S, so they are declared on `.kt-box` and nowhere else — the
+   chess board's rule and the timetable's. MIRRORED, one hue a finger and the same on both hands:
+   a little finger is violet whichever hand it is on, which is how the colour teaches anything —
+   eight different hues would be eight things to remember instead of four. None of them is the
+   app's gold, which is kept for the one key that is wanted next — and the index fingers were orange
+   until a screenshot of a lit `g` showed an orange key in a gold ring reading as one blob. Pink now.
+
+   THE KEYS ARE NOT TARGETS. Nothing on the drawn keyboard can be pressed — see `ktBoardHtml_` — so
+   it is sized in rem with the type and is about 18px a key at 320, which is a picture of a
+   keyboard and not a breach of the 44px floor. The rungs and the line are the targets, and those
+   are px. */
+.kt-box { position: relative;
+          --kt-0: #c46bd1; --kt-1: #5b9bd5; --kt-2: #6cc08a; --kt-3: #e8a0bf;
+          --kt-4: #e8a0bf; --kt-5: #6cc08a; --kt-6: #5b9bd5; --kt-7: #c46bd1; --kt-8: #8a8a8a; }
+/* THE BOX THAT TAKES THE KEYS, out of sight and out of the way of a finger. Not `display: none` and
+   not `visibility: hidden` — neither can hold the focus, and without the focus a phone shows no
+   keyboard. 16px for the same reason every field here is: under it iOS zooms the page on focus. */
+.kt-box .kt-in { position: absolute; left: 0; top: 0; width: 1px; height: 1px; min-height: 0;
+                 padding: 0; border: 0; opacity: 0; pointer-events: none; font-size: 16px; }
+.kt-rungs { display: grid; grid-template-columns: repeat(5, 1fr); gap: 2px; margin: .2rem 0 0; }
+/* AT 320 FIVE 44px RUNGS AND THEIR GAPS ARE 228px IN A 218px SLOT — the timetable's measurement, and
+   its answer: the card gives up some of its own inside edge on a narrow phone rather than a rung
+   going under 44. */
+@media (max-width: 22rem) {
+  .card.is-widget:has(.kt-box) { padding-left: .4rem; padding-right: .4rem; }
+}
+.kt-rung { position: relative; min-height: 44px; min-width: 44px; padding: 0; cursor: pointer;
+           background: var(--sunk); color: var(--dim); border: 1px solid var(--line);
+           border-radius: var(--r-sm); font: 600 .85rem/1 var(--mono); }
+.kt-rung.on { background: var(--gold); color: #000; border-color: var(--gold); }
+.kt-rung:disabled { opacity: .35; cursor: default; }
+/* A DOT ON A RUNG THAT HAS HELD, the timetable's dot on a day with something in it. */
+.kt-rung.held::after { content: ''; position: absolute; left: 50%; bottom: 6px; width: 4px; height: 4px;
+                       margin-left: -2px; border-radius: 50%; background: currentColor; opacity: .7; }
+.kt-lesson { margin: .45rem 0 .35rem; font-size: .82rem; line-height: 1.35; }
+/* THE LINE. Mono, so the letter lit is always the letter under the eye, and wrapped wherever it has
+   to be — it is forty characters and a 320 card holds about twenty-six. `pre-wrap` keeps a space a
+   space, so a space that is wanted next has a width to be lit in. */
+.kt-line { display: block; width: 100%; min-height: 44px; padding: .55rem .65rem; text-align: left;
+           cursor: text; background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
+           border-radius: var(--r-sm); font: 500 1.02rem/1.6 var(--mono);
+           white-space: pre-wrap; overflow-wrap: anywhere; }
+.kt-box.typing .kt-line { border-color: var(--gold); }
+.kt-done { color: var(--good); opacity: .75; }
+.kt-cur { border-bottom: 2px solid var(--gold); }
+.kt-box.typing .kt-cur { background: var(--gold); color: #000; border-bottom-color: transparent; }
+.kt-box.typing .kt-cur.miss { background: var(--bad); }
+.kt-hint { margin: .3rem 0 0; font-size: .74rem; color: var(--dim); }
+.kt-hint .kt-on, .kt-box.typing .kt-hint .kt-go { display: none; }
+.kt-box.typing .kt-hint .kt-on { display: inline; }
+.kt-stats { display: flex; flex-wrap: wrap; gap: .3rem .9rem; margin: .35rem 0 .55rem;
+            font-size: .8rem; color: var(--dim); }
+.kt-stats b { color: var(--ink); font-family: var(--mono); }
+/* A GRID OF QUARTER-KEYS, fifty to a row, so the rows stagger as a real keyboard's do: the top row
+   half a key in, the home row three-quarters, the shifts a key and a quarter each. */
+.kt-kb { display: flex; flex-direction: column; gap: 3px; user-select: none; -webkit-user-select: none; }
+.kt-r { display: grid; grid-template-columns: repeat(50, minmax(0, 1fr)); }
+.kt-k { grid-column: span 4; position: relative; display: flex; align-items: center; justify-content: center;
+        min-width: 0; height: 1.65rem; margin: 0 1.5px; overflow: hidden;
+        font: 600 .7rem/1 var(--mono); color: var(--ink);
+        background: color-mix(in srgb, var(--kt-c) 20%, var(--sunk));
+        border: 1px solid color-mix(in srgb, var(--kt-c) 45%, var(--line)); border-radius: var(--r-sm); }
+.kt-k.f0 { --kt-c: var(--kt-0); } .kt-k.f1 { --kt-c: var(--kt-1); } .kt-k.f2 { --kt-c: var(--kt-2); }
+.kt-k.f3 { --kt-c: var(--kt-3); } .kt-k.f4 { --kt-c: var(--kt-4); } .kt-k.f5 { --kt-c: var(--kt-5); }
+.kt-k.f6 { --kt-c: var(--kt-6); } .kt-k.f7 { --kt-c: var(--kt-7); } .kt-k.f8 { --kt-c: var(--kt-8); }
+.kt-r1 .kt-k:first-child { grid-column: 3 / span 4; }
+.kt-r2 .kt-k:first-child { grid-column: 4 / span 4; }
+.kt-k.kt-sh { grid-column: span 5; }
+.kt-k.kt-sp { grid-column: 14 / span 24; font-size: .62rem; color: var(--dim); }
+/* THE HOME ROW, MARKED: a heavier foot on the eight keys the fingers rest on, and the ridge on F and
+   J that a real keyboard has so a finger finds home without looking. */
+.kt-k.home { border-bottom-width: 3px; }
+.kt-k.bump::after { content: ''; position: absolute; left: 50%; bottom: 3px; width: 7px; height: 2px;
+                    margin-left: -3.5px; border-radius: 1px; background: currentColor; opacity: .8; }
+/* THE KEY WANTED NEXT, in its finger's full colour with the app's gold round it — the one thing on
+   the card the eye is meant to go to. And a wrong key, for the moment it was pressed. */
+.kt-k.next { background: var(--kt-c); color: #000; border-color: var(--gold);
+             box-shadow: 0 0 0 2px var(--gold); z-index: 1; }
+.kt-k.miss:not(.next) { background: var(--bad); color: #000; border-color: var(--bad); }
+.kt-said { min-height: 1.3em; margin: .5rem 0 0; }
+.kt-real { margin: .3rem 0 0; font-size: .72rem; line-height: 1.35; }
+
 /* ---------- FILTER CHIPS ------------------------------------------------------------------------
    Each one is a filter that is ON, and pressing it takes it off. The whole chip is the target
    rather than the ✕ — a 12px cross on a phone is a target you miss.
