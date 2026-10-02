@@ -87,3 +87,11 @@ built for it, and that is in the questions for the owner.
 - Screenshots at 320, 390 and 1280 of the state, looked at: the keyboard fits the 218px slot at
   320 with no sideways scroll, every key's letter is readable on its finger's tint, and the next
   key and the lit shift are the two things that stand out.
+- **`check/press.js` found the line quiet**, and it was right about what it saw: the rung above
+  the line is pressed first and hands the focus to the hidden box, so pressing the line after it
+  changes nothing. `kt-focus` is in `ACCEPTED_QUIET` beside the other carets, with that reason. It
+  also showed that a card on a page parked to the side cannot take the focus at all, so `.typing`
+  ("Eyes here, not on your hands") is now set from `document.activeElement`, not assumed.
+- `npm run check`: "OK — nothing is broken". The first full run went red on press.js (the line
+  above) and on ui.js under load; `node check/ui.js` alone exited 0 with nothing new, and the
+  second full run was green throughout.
