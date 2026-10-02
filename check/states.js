@@ -1139,7 +1139,7 @@ const STATES = {
 
        FOUR THINGS TOGETHER, because each on its own passes a card that got one of the others wrong:
        exactly one shown handle and it is `USER.handle`, exactly one `@` in front of it (the `@@ada`
-       fault `check-handles.js` already guards in the fixture), one Randomise button, and nothing to
+       fault `check-handles.js` already guards in the fixture), one Randomise TILE, and nothing to
        type into. Found by asking the DOM, like every other state on this column. */
     { name: 'your handle',
       only: () => typeof USER !== 'undefined' && !!USER && !!USER.handle,
@@ -1157,9 +1157,14 @@ const STATES = {
         return (shown.length === 1 && shown[0].textContent === USER.handle
                 && line && (line.textContent.match(/@/g) || []).length === 1
                 && pg.querySelectorAll('[data-do="handle-shuffle"]').length === 1
+                /* A TILE, NOT A BUTTON — *"a THING has tiles; a FORM has buttons"*, and the handle is a
+                   thing. It was `.btn quiet` until 2 October; one inside a `.tile-row` with its mark
+                   is what `tile_` draws, so this fails if anybody writes the button back by hand. */
+                && pg.querySelectorAll('.tile-row > .tile[data-do="handle-shuffle"] svg.tile-i-shuffle').length === 1
+                && !pg.querySelector('.btn[data-do="handle-shuffle"]')
                 && !pg.querySelector('#handle-new, [data-do="handle-save"]')) ? 1 : 0;
       },
-      wants: 'the handle shown once with one @, a Randomise button, and no box to type a handle into' },
+      wants: 'the handle shown once with one @, a Randomise tile with its mark, and no box to type a handle into' },
 
     /* ---------- THE TWO EXAM DATES, WHICH ONLY A STUDENT IS OFFERED ------------------------------
        ASKED FOR AS *"allow student accounts to be able to write exam dates. like Small exam: _____

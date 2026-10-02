@@ -390,9 +390,11 @@ PEOPLE.forEach(p => {
 
 /* 10. RANDOMISE — A NEW WORD FOR YOUR OWN HANDLE, AND NOBODY ELSE'S.
    *"handles should be their name and a virtuous describing word. they can randomise it but it will
-   follow that general name."* The Settings card has no handle box any more; its Randomise button
+   follow that general name."* The Settings card has no handle box any more; its Randomise tile
    posts `randomiseHandle`, and these are the things that action must be, through the real `doPost`:
-   the asker's first name and a virtue with no number (nothing else here is called Ada), never the
+   the asker's first name, a virtue and a fresh two-digit number in a random order, never led by the
+   digits (*"their first name, a virtuous adjective and random numbers and maybe an underscore. but
+   all random order"*, 2 October — it was `ada_<virtue>` with no number until then), never the
    handle they already had, the old one at the FRONT of `handle_was` with the history capped at
    `HANDLE_WAS_KEEP`, what the next sign-in hands back, the asker's own row whatever id is posted, a
    refusal that writes nothing for somebody signed out — and `changeHandle`, the typed box it
@@ -403,11 +405,18 @@ PEOPLE.forEach(p => {
   const shuffle = body => { shuffles++; return b.post(Object.assign({ action: 'randomiseHandle' }, body)); };
   const before = b.row('P-T1').handle;
   const d = shuffle({ token: t.token, name: t.name, personId: 'P-T1' });
-  const m = String(d.handle || '').match(/^ada_([a-z]+)$/);
+  /* THE SHAPE, WRITTEN HERE RATHER THAN ASKED OF `handleParts_`: the asker's first name, a virtue
+     and a number 10–99 in any of the four orders that do not lead with the digits, one underscore at
+     most. Asking the backend's own parser would be the generator marking its own homework. */
+  const W = '(' + VIRTUES.join('|') + ')', N = '([1-9][0-9])';
+  const ADA_SHAPES = [['ada', W, N], [W, 'ada', N], ['ada', N, W], [W, N, 'ada']]
+    .map(ps => new RegExp('^' + ps.join('_?') + '$'));
+  const adaShaped = h => ADA_SHAPES.some(re => re.test(String(h || '')))
+    && (String(h).match(/_/g) || []).length <= 1 && !/^[0-9]/.test(String(h));
   if (!d.success) bad.push('randomiseHandle was refused for a signed-in tutor — ' + d.error);
   else {
-    if (!m || VIRTUES.indexOf(m[1]) === -1) bad.push('randomiseHandle answered "' + d.handle
-      + '" for somebody called Ada — wanted ada_<virtue>, with no number when nothing clashes');
+    if (!adaShaped(d.handle)) bad.push('randomiseHandle answered "' + d.handle
+      + '" for somebody called Ada — wanted ada, a virtue and a two-digit number in a random order');
     if (b.row('P-T1').handle !== d.handle) bad.push('randomiseHandle answered "' + d.handle
       + '" and the row holds "' + b.row('P-T1').handle + '"');
     if (d.was !== before) bad.push('randomiseHandle said the old handle was "' + d.was + '", the row held "' + before + '"');
@@ -420,16 +429,24 @@ PEOPLE.forEach(p => {
   }
   /* PRESSED AGAIN AND AGAIN: never the handle you have, and the history newest first and capped. */
   let prev = b.row('P-T1').handle, same = 0;
+  const orders = [];
   for (let i = 0; i < KEEP + 4; i++) {
     const tk = tokens['P-T1'];
     const e = shuffle({ token: tk.token, name: tk.name, personId: 'P-T1' });
     if (!e.success) { bad.push('randomiseHandle press ' + (i + 2) + ' was refused — ' + e.error); break; }
-    if (e.handle === prev) same++;
+    if (String(e.handle).replace(/_/g, '') === String(prev).replace(/_/g, '')) same++;
+    if (!adaShaped(e.handle)) bad.push('press ' + (i + 2) + ' answered "' + e.handle + '" — not ada, a virtue and NN');
+    orders[ADA_SHAPES.findIndex(re => re.test(e.handle))] = true;
     if (String(b.row('P-T1').handle_was).split(', ')[0] !== prev)
       bad.push('press ' + (i + 2) + ': handle_was does not start with "' + prev + '"');
     prev = e.handle;
   }
   if (same) bad.push('randomiseHandle handed back the handle the person already had, ' + same + ' time(s)');
+  /* MORE THAN ONE ORDER OVER THE PRESSES — "but all random order". Not all four: fourteen presses
+     miss one of four about one run in fourteen, and a check that is red by chance is a red nobody
+     reads. One order in fourteen presses is a fixed order, one chance in sixty million. */
+  if (orders.filter(Boolean).length < 2) bad.push('fourteen Randomise presses all laid the parts out '
+    + 'in one order — the owner asked for a random one');
   const hist = String(b.row('P-T1').handle_was).split(', ');
   if (hist.length !== KEEP) bad.push('after ' + (KEEP + 5) + ' presses handle_was holds ' + hist.length
     + ' handle(s), wanted the last ' + KEEP);

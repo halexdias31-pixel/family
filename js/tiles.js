@@ -121,6 +121,11 @@ const TILE_ICONS = {
   save:  '<path d="M3.5 9.5 7.3 13.3 14.8 4.8"/>',
   /* SIGN OUT: a door frame and an arrow leaving it. */
   out:   '<path d="M8.5 2.5h-5v13h5"/><path d="M7.5 9h8.5"/><path d="m13 6 3 3-3 3"/>',
+  /* SHUFFLE: two crossing arrows, the mark every music player puts on "play these in a random
+     order" — which is what Randomise does to the three parts of a handle. Open paths, so it
+     is one more outline in the set rather than the only solid. */
+  shuffle: '<path d="M2.5 5h3c3.5 0 4.5 7 8 7h2"/><path d="M2.5 12h3c3.5 0 4.5-7 8-7h2"/>'
+         + '<path d="m13.5 3 2 2-2 2"/><path d="m13.5 10 2 2-2 2"/>',
 };
 
 function tileIcon_(name) {
