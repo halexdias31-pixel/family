@@ -1122,23 +1122,25 @@ const WIDGETS = [
   /* A PAD, NOT A SWIPE. Up, down, left and right are the four gestures this app navigates by, so a
      maze that read them would fight the pager on the one screen it lives on -- see `initMaze`. The
      four buttons are 44px in px, which is the one measurement in this app that does not scale. */
-  /* ---------- WORD GAMES — SEVEN GAMES, ONE WIDGET ---------------------------------------------------
+  /* ---------- WORD GAMES — EIGHT GAMES, ONE WIDGET ---------------------------------------------------
      ASKED FOR AS "Merge word games into one widget. Like articulate and charades". They were seven
      cards in a row on the Games column — Articulate, Charades, Taboo, Hot Seat, Just a Minute, 20
      Questions and Imposter — every one a round of somebody saying words while the room guesses, and
-     seven swipes to get past them to the maze.
+     seven swipes to get past them to the maze. Herd Mentality is the eighth, moved in afterwards.
 
      ONE CARD, A DROPDOWN, AND THE CHOSEN GAME UNDERNEATH. `WORD_GAMES` in games.js holds each game's
      body and its own start and stop, and nothing about the engines changed: `ROUND_GAMES`, `PARTY`
      and Imposter each still draw into their own `<k>-card`, which is simply inside `#wg-slot` now.
      The choice is remembered on the device.
 
-     `stop` STOPS ALL SEVEN, not just the one on screen. A game switched away from mid-round has had
+     `stop` STOPS ALL EIGHT, not just the one on screen. A game switched away from mid-round has had
      its card taken out of the document, so its own stop is exactly the "column left" case each one
      already handles — Articulate's clock stops, a party game pauses, Imposter hides its word.
 
-     HERD MENTALITY IS NOT IN IT. It is a question everybody answers at once rather than a word to
-     get across. (Alibi was not in it either, and is deleted — see where its card was, below.) */
+     HERD MENTALITY WAS LEFT OUT, AND THE OWNER PUT IT IN — "heard mentality is a word game so should
+     go there." It was kept separate on the builder's reasoning, that a question everybody answers at
+     once is not a word to get across; that was a call nobody had asked for, and the owner's line
+     overrides it. Alibi was the other one left out, and is deleted — see where its card was, below. */
   { id: 'wordgames', kind: 'game', name: 'Word games', start: () => initWordGames?.(),
     stop: () => { if (typeof wordGamesStop_ === 'function') wordGamesStop_(); },
     into: 'wg-slot', what: 'The game',
@@ -1249,18 +1251,9 @@ const WIDGETS = [
     <p class="note" id="ss-said" style="text-align:center;margin:.4rem 0 0"></p>
   </div>` },
 
-  /* NO SCORING AND NO TIMER, deliberately — see the note on `initHerd`. Everybody answers out loud
-     and the room decides; an app keeping score would make somebody operate it instead of play. */
-  { id: 'herd', kind: 'game', name: 'Herd Mentality', start: () => initHerd?.(),
-    into: 'herd-q', what: 'The question',
-    html: `<div class="card herd-card">
-    <h3>Herd Mentality</h3>
-    <p class="sub">Everybody answers. You want to match the room, not be right.</p>
-    <p class="herd-q" id="herd-q"></p>
-    ${/* `herd-count` WAS HERE — "3 of 20 · round 2". See `initHerd`: a scoreboard for a game with
-         no score, on a deal that has no end. */''}
-    <button class="btn" data-do="herd-next">Next question</button>
-  </div>` },
+  /* `herd` WAS HERE, Herd Mentality's own card, and it is a game inside Word games now — see the
+     note over the `wordgames` entry above. Its engine and its markup moved unchanged; a star on the
+     old id stops matching, as it did for the seven before it. */
 
   /* `stop` IS THE CLIP. This card deals a fact on a tap and some of those facts are videos, so
      leaving the column with one playing left it playing — the same fault the Reels column had,

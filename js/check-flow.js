@@ -1211,7 +1211,8 @@ check('20 questions keeps the secret from the room and counts to twenty', async 
 });
 
 /* ---------- THE WORD GAMES ARE ONE WIDGET, AND SWITCHING GAME IS A LEAVE ---------------------------
-   Asked for as "Merge word games into one widget. Like articulate and charades". Three things can
+   Asked for as "Merge word games into one widget. Like articulate and charades", and then Herd
+   Mentality moved in as the eighth: "heard mentality is a word game so should go there." Three things can
    go wrong and all of them draw perfectly: the dropdown offering a game the slot cannot draw, a
    game switched away from going on running where nobody can see it, and the old game's card left
    in the slot beside the new one. */
@@ -1219,20 +1220,36 @@ check('the word games are one widget, and switching game pauses the one left', a
   const { t, d, press, text, P } = await partyBoot_('tab');
   const bad = [];
   const ids = t.allWidgets().map(x => x.id);
-  ['articulate', 'charades', 'taboo', 'hotseat', 'justaminute', 'twentyq', 'imposter'].forEach(id => {
+  ['articulate', 'charades', 'taboo', 'hotseat', 'justaminute', 'twentyq', 'imposter', 'herd'].forEach(id => {
     if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own beside Word games');
   });
   if (ids.indexOf('wordgames') === -1) return bad.concat(['there is no Word games widget']);
   const sel = d.getElementById('wg-pick');
   if (!sel) return bad.concat(['the Word games widget has no game dropdown']);
   const offered = [...sel.options].map(o => o.value);
-  if (offered.length !== 7) bad.push('the dropdown offers ' + offered.length + ' games, wanted 7');
+  if (offered.length !== 8) bad.push('the dropdown offers ' + offered.length + ' games, wanted 8');
+  /* HERD MENTALITY IS THE EIGHTH — "heard mentality is a word game so should go there." Asked by
+     name, because a count of eight is also seven games and a stray. */
+  if (offered.indexOf('herd') === -1) bad.push('Herd Mentality is not in the dropdown');
   for (const k of offered) {
     sel.value = k;
     t.ACTIONS['wg-pick'](sel);
     if (!d.getElementById(k + '-card')) bad.push('choosing ' + k + ' did not draw its card');
     const others = offered.filter(o => o !== k && d.getElementById(o + '-card'));
     if (others.length) bad.push('choosing ' + k + ' left ' + others.join(', ') + ' in the slot too');
+  }
+  /* AND IT DEALS IN THE SLOT, IN ITS OWN LARGE TYPE. The question is read across a table, and
+     `.herd-card .herd-q` is the rule that makes it large — a wrapper without that class still draws,
+     at body-text size, which no assertion about ids would notice. */
+  sel.value = 'herd'; t.ACTIONS['wg-pick'](sel);
+  const hq = d.querySelector('#wg-slot .herd-card #herd-q');
+  if (!hq) bad.push('Herd Mentality drew without the .herd-card wrapper its question type hangs off');
+  else {
+    const q1 = hq.textContent.trim();
+    if (!q1) bad.push('choosing Herd Mentality dealt no question');
+    press('herd-next');
+    const q2 = String((d.getElementById('herd-q') || {}).textContent || '').trim();
+    if (!q2 || q2 === q1) bad.push('Next question did not deal another: "' + q1 + '" then "' + q2 + '"');
   }
   sel.value = 'tab'; t.ACTIONS['wg-pick'](sel);
   press('tab-start');

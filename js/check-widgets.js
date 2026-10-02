@@ -180,6 +180,9 @@ const ACCEPTED_ENGINE = {
            + 'games.js starts them from initWordGames, which is the starter a widget names.',
   initImposter: 'Imposter is a game inside the Word games widget; WORD_GAMES in games.js starts it '
               + 'from initWordGames, which is the starter a widget names.',
+  initHerd: 'Herd Mentality is a game inside the Word games widget since the owner moved it there '
+          + '("heard mentality is a word game so should go there."); WORD_GAMES in games.js starts '
+          + 'it from initWordGames, which is the starter a widget names.',
 };
 
 const starters = widgets.map(w => String(w.start || '')).join(' ');

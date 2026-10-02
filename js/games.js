@@ -763,9 +763,11 @@ function feedSlide(it) {
 /* ==================================================================================================
    CONNECT 4, OTHELLO AND HERD MENTALITY
 
-   THREE GAMES, ONE SHAPE. Each is a `WIDGETS` entry in map.js naming an `init` in here, drawn into
-   an id the card already contains — the same arrangement Flabby Pird and Times Tables use, because
-   a fourth way of starting a game is a fourth thing to remember when one of them stops working.
+   THREE GAMES, ONE SHAPE. Each has an `init` in here, drawn into an id its markup already contains
+   — the same arrangement Flabby Pird and Times Tables use, because a fourth way of starting a game
+   is a fourth thing to remember when one of them stops working. Connect 4 and Othello are `WIDGETS`
+   entries in map.js that name theirs; Herd Mentality is a game inside Word games now, and the
+   `herd` row of `WORD_GAMES` names `initHerd` instead.
 
    NOTHING RUNS BETWEEN TURNS. No animation loop, no timer, no interval — the board is redrawn when
    somebody taps and sits still otherwise. That is why none of these three needs a `stop`, and it is
@@ -4287,8 +4289,9 @@ document.addEventListener('input', tmtKeep_);
 document.addEventListener('change', tmtKeep_);
 
 /* ==================================================================================================
-   WORD GAMES — Articulate, Charades, Taboo, Hot Seat, Just a Minute, 20 Questions and Imposter in one
-   widget. The note over the `wordgames` entry in map.js is the argument; this is the switch.
+   WORD GAMES — Articulate, Charades, Taboo, Hot Seat, Just a Minute, 20 Questions, Imposter and Herd
+   Mentality in one widget. The note over the `wordgames` entry in map.js is the argument; this is
+   the switch.
 
    EACH BODY IS THE CARD IT USED TO BE, minus its own `.card` and heading: a sentence, the game's
    `<k>-card` and whatever its engine builds round it. The engines find their parts by id exactly as
@@ -4329,6 +4332,25 @@ const WORD_GAMES = [
     <div id="imp-card" class="art"></div>
     <div id="imp-acts" class="art-row"></div>
     <p class="note" id="imp-said" style="text-align:center;margin:.5rem 0 0"></p>` },
+  /* HERD MENTALITY, MOVED IN BY THE OWNER — "heard mentality is a word game so should go there." It
+     was left out of the merge on the builder's reasoning (a question everybody answers at once is
+     not a word to get across), and that was a call nobody had asked for. Its engine is untouched:
+     `initHerd` deals into `#herd-q` exactly as it did on its own card.
+
+     THE WRAPPER CARRIES TWO NAMES AND BOTH ARE LOAD-BEARING. `id="herd-card"` because every game in
+     this list draws into a `<k>-card`, and `check-flow.js` asks for one per option in the dropdown;
+     `class="herd-card"` because `.herd-card .herd-q` is what sets the question large enough to be
+     read across a table — without it the question drops to body text and the game is a phone one
+     person reads to themselves.
+
+     NO `stop`, because nothing runs: no clock, no secret on the screen. A question left up when the
+     column goes is a question anybody may see. */
+  { k: 'herd', name: 'Herd Mentality', start: () => initHerd(), stop: () => {},
+    body: `<div id="herd-card" class="herd-card">
+    <p class="sub">Everybody answers. You want to match the room, not be right.</p>
+    <p class="herd-q" id="herd-q"></p>
+    <button class="btn" data-do="herd-next">Next question</button>
+    </div>` },
 ];
 
 /* A party game's body is its sentence and the frame `PARTY_GAMES[k].paint` fills — the same three
