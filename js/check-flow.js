@@ -3732,6 +3732,51 @@ check('an age range reads sensibly with both ends, one end, or neither', async (
   return bad;
 });
 
+/* ---------- A TUTOR'S HOURS ON THEIR CARD ---------------------------------------------------------
+   ASKED FOR AS *"tutors availability should appear on their card."* Asked of the card itself, off
+   the shape `doGet` really sends — `availGridOut`'s 77 codes with 'TRUE' or '' — because the fixture
+   once held `avail: []` and a card tested against that would have passed by drawing nothing. Three
+   answers: a ticked hour is lit, a ticked hour they are already teaching is greyed, and a tutor who
+   has ticked nothing gets no caption and no week — not seventy-seven grey cells reading "never". */
+check('a tutor\'s ticked hours are on their card, busy ones greyed, and none means no week', async () => {
+  const { w } = boot();
+  const d = w.document;
+  await wait(300);
+  if (typeof w.findCard !== 'function') return ['findCard is not reachable, so the card\'s week was NOT checked — not a pass'];
+  const avail = {};
+  ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 19; h++) avail[p + String(h).padStart(2, '0')] = ''; });
+  ['m16', 'm17', 'sa10', 'su19'].forEach(c => { avail[c] = 'TRUE'; });
+  const t = { title: 'Ada Tutor', handle: 'ada', rate: 30, teaches: [], listed: true, personId: 'P-x',
+              avail, busy: { m17: 'Maths' } };
+  const box = d.createElement('div');
+  box.innerHTML = String(w.findCard({ kind: 'tutor', row: t }) || '');
+  const bad = [];
+  const caps = [...box.querySelectorAll('.prof-cap')].map(c => c.textContent.trim());
+  if (!caps.includes('Available')) bad.push('a tutor with hours ticked has no "Available" caption on their card');
+  const codeOf = { Monday: 'm', Saturday: 'sa', Sunday: 'su' };
+  const cell = (day, h) => box.querySelector(`.prof-week .hr[data-code="${codeOf[day]}${String(h).padStart(2, '0')}"]`);
+  const lit = [...box.querySelectorAll('.prof-week .hr.on')];
+  if (lit.length !== 3) bad.push(`${lit.length} hours lit on the card, wanted 3 (Mon 16, Sat 10, Sun 19)`);
+  [['Monday', 16], ['Saturday', 10], ['Sunday', 19]].forEach(([dd, h]) => {
+    const c = cell(dd, h);
+    if (!c || !c.classList.contains('on')) bad.push(`${dd} ${h}:00 is ticked and not lit on the card`);
+  });
+  const busy = cell('Monday', 17);
+  if (!busy || busy.classList.contains('on') || !busy.classList.contains('shut')) {
+    bad.push('Monday 17:00 is ticked but already taught, and is not greyed on the card');
+  }
+  if (box.querySelector('.prof-week button, .prof-week input, .prof-week label')) bad.push('a cell of the card\'s week is a control, so it can be pressed and is counted as a tap target');
+  if (!/Monday 16:00/.test(((box.querySelector('.prof-week') || {}).getAttribute || (() => ''))
+      .call(box.querySelector('.prof-week'), 'aria-label') || '')) bad.push('the card\'s week does not say its hours to a screen reader');
+  const rows = [...box.querySelectorAll('.prof-week .slot-row:not(.slot-head)')];
+  const shut = rows.filter(r => r.classList.contains('is-shut')).length;
+  if (rows.length !== 7 || shut !== 4) bad.push(`${rows.length} days drawn with ${shut} collapsed, wanted 7 with 4 (Tue to Fri) collapsed`);
+  const none = d.createElement('div');
+  none.innerHTML = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { avail: Object.assign({}, avail, { m16: '', m17: '', sa10: '', su19: '' }) }) }) || '');
+  if (none.querySelector('.prof-week') || /Available</.test(none.innerHTML)) bad.push('a tutor with no hours ticked is drawn with a week anyway');
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;

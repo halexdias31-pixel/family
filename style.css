@@ -11723,3 +11723,16 @@ button.scr-sq { cursor: pointer; }
 .prof-heat .heat-tiles { filter: brightness(.46) contrast(4) saturate(.5) sepia(.25); }
 .prof-heat .heat-credit { position: absolute; right: 4px; bottom: 2px; font-size: .5rem; line-height: 1.4;
   color: rgba(255, 255, 255, .72); background: rgba(0, 0, 0, .45); padding: 0 3px; border-radius: 3px; }
+/* ---------- A TUTOR'S WEEK ON THEIR CARD — see `profAvail_` in cards.js ----------------------------
+   The receipt's week, read rather than answered: the cells are disabled buttons, so they do not
+   take the pointer, shrink when touched or look like something to tick. SLIMMER THAN THE SETTINGS
+   WEEK, which is square because it is a page of its own; this is the last thing on a card that is
+   already near its pane's height, and a day nobody works is a thin rule (`is-shut`) rather than a
+   row. A busy hour is `shut` like an hour they do not work — both are hours that cannot be booked —
+   and says which in its title. */
+.prof-week .slot-grid { gap: 2px; margin: .1rem 0 .3rem; }
+.prof-week .slot-day { flex-basis: 1.9rem; font-size: .62rem; text-transform: none; letter-spacing: 0; color: var(--dim); }
+.prof-week .hr { min-height: 12px; border-radius: 2px; cursor: default; }
+.prof-week .slot-row.is-shut .hr { min-height: 5px; }
+.prof-week .slot-row.is-shut .slot-day { font-size: .52rem; line-height: 1; color: var(--faint); }
+.prof-week .hr:active { transform: none; }

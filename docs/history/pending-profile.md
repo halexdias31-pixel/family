@@ -31,3 +31,45 @@ change was put back.
 
 **The phone has the last word on the filter.** Every screenshot here was taken over a stand-in tile.
 If it is too dark or too bright, tune the two numbers. Do not change the order.
+
+### A tutor's hours on their card
+
+**Asked for as *"tutors availability should appear on their card."*** `doGet` has always sent `avail`
+on every tutor. It is `availGridOut`'s 77 codes, `{ m09: 'TRUE', m10: '' … }`, and `busy` uses the
+same codes for hours the tutor is already teaching. `findCard` never read either one.
+`profAvail_` (cards.js) now draws an **Available** caption after `Tutors at`, with a read-only week
+under it, built by `weekGrid_` like the booking form, the receipt and the Settings week:
+
+- A ticked hour is lit gold. A ticked hour they are already teaching is greyed (`shut`, with
+  `is-busy`), because offering it as open would be a promise the booking grid then breaks. Its
+  title says "already teaching".
+- A day with nothing ticked collapses to a thin row. A tutor with nothing ticked gets **no caption
+  and no week**. 77 grey cells would read as "never available", and `slotGrid` treats an unfilled
+  grid as "nobody has said".
+- The span is the booking's 9 to 18, widened to any hour the tutor ticked (their own grid runs to 19).
+- **Spans, not the receipt's `<button disabled>`.** The first version used buttons, and
+  `check/ui.js` listed all 77 as 17x12 tap targets: 210 "known" rows at 320 alone, for cells nobody
+  presses. A screen reader now gets one sentence for the whole week (`role="img"`).
+
+**The fixture lied about the shape.** `check/fixture.json`'s tutor had `avail: []` and `busy: []`, so
+the lab could not draw availability at all. It now holds the 77-code object with nine hours on
+(Mon 16–18, Tue 10–11, Wed 16, Sat 10–12) and `busy: { m17: 'Maths' }`. The booking screen's
+`check/ui.js` pass is unchanged by it.
+
+**Owner's five captions.** In note 210 the owner asked for exactly five captions. `Available` is a
+sixth, so the heat-map state now allows it only as the last caption.
+
+Checks:
+- A check-flow journey covers lit hours, the busy hour greyed, collapsed days, no control in the
+  week, the spoken sentence, and no week when nothing is ticked.
+- A `check/states.js` state, `a tutor's hours on their card`, covers four widths.
+
+Proved:
+- Lighting busy hours turned both the journey and the state red at all four widths.
+- Dropping the empty-grid guard turned the journey red ("drawn with a week anyway").
+- Buttons in place of spans turned it red ("is a control").
+
+Each check went green again after the change was restored.
+
+Cost: on the 390 lab card, the tutor card is drawn at 84% where it was 98%. At 320 it was already
+at the 70% floor and scrolls inside its pane. Nothing is out of reach.
