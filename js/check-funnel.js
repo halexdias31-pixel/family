@@ -110,7 +110,7 @@ function boot(cb) {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
       ' filterHit, facetOwn_, bucketHas_, bucketDeclares_, STUFF, paperLabels_, stuffHay_, norm,' +
-      ' stuffNarrow_, FACET_NEEDS_FIRST,' +
+      ' stuffNarrow_, FACET_NEEDS_FIRST, fiveDayLabel_, tagOf_,' +
       ' chipShow_, qTags_,' +
       ' RETIRED_FACETS, waveOf,' +
       /* A THUNK, NOT THE OBJECT. `load()` ends with `DATA = d` — it REPLACES the payload — so a
@@ -887,6 +887,7 @@ boot(f => {
     const byField = fl => f.facetList().find(x => x.field === fl);
     const paperF = byField('paperId');
     const yearF = byField('examYear');
+    let skipped = 0;
     ['KS1 SATs', 'KS2 SATs'].forEach(level => {
       /* MATHS, as reported. The English SATs paper is `GPS Paper 1`, and there `GPS` is the word
          that says which English paper it is rather than a repeat of a chip above it. */
@@ -931,7 +932,82 @@ boot(f => {
           }
         });
       });
+      /* ---------- AND WITH THE YEAR SKIPPED ----------------------------------------------------------
+         `Doesn't matter` IS DRAWN UNDER EVERY QUESTION, folders included, and pressed on Year it left
+         the six KS2 papers reading their whole names -- `Paper 1: Arithmetic — May 2019` -- on the
+         menu and on the chip, while every check here walked only the years. With the year skipped
+         the date is the one thing that tells two papers apart, so it may stay; the qualifier may not.
+         Walked with the Month skipped too and with it answered, because both are a thumb's route. */
+      const months = f.facetValues(kept, byField('examMonth') || yearF).filter(v => !v.bucket);
+      const routes = [[{ field: 'examYear', any: true }, { field: 'examMonth', any: true }]]
+        .concat(months.map(m => [{ field: 'examYear', any: true }, { field: 'examMonth', value: m.value }]));
+      routes.forEach(route => {
+        const saved = f.STUFF.filters;
+        const doors = on.map(([fl, v]) => ({ field: fl, value: v })).concat(route);
+        const say = level + ' with the Year skipped' + (route[1].any ? ' and the Month' : ', ' + route[1].value);
+        try {
+          f.STUFF.filters = doors.slice();
+          const list = f.stuffNarrow_(items, doors, [], null);
+          f.facetValues(list, paperF).forEach(a => {
+            skipped++;
+            const show = String(a.show || a.value);
+            if (!/^Paper \d+( [\u2014\u2013] [A-Za-z]+ (19|20)\d{2})?$/.test(show)) {
+              bad.push(say + ': the Paper answer reads ' + JSON.stringify(show) + ' — the number, and the '
+                       + 'date where two years share it, and nothing else. See nameForms_().');
+            }
+            f.STUFF.filters = doors.concat([{ field: 'paperId', value: a.value }]);
+            const chip = f.chipShow_(f.STUFF.filters[f.STUFF.filters.length - 1], f.STUFF.filters.length - 1);
+            if (chip !== show) {
+              bad.push(say + ': pressing ' + JSON.stringify(show) + ' makes a chip reading '
+                       + JSON.stringify(chip) + ' — a chip says what the button it came from said');
+            }
+            f.STUFF.filters = doors.slice();
+          });
+        } finally { f.STUFF.filters = saved; }
+      });
     });
+    console.log('  SATs: ' + skipped + ' Paper answer(s) read and pressed with the Year skipped');
+
+    /* ---------- A CARD'S SUBJECT IS THE SUBJECT QUESTION'S, AND A 5-A-DAY'S DAY IS ITS DAY ANSWER -----
+       TWO WAYS A CARD SAID A WORD THE FUNNEL ABOVE IT DID NOT. The subject tag was read off the name,
+       so AQA Combined Science cards wore `Biology` in green and real GCSE Biology cards wore nothing;
+       and a 5-a-day's name was cut at its dash, so `5-a-day Foundation` was one red pill and the day
+       was coloured as a sitting while the Day answer that reaches it is red. Over every paper: each
+       green tag is one of the item's own Subject answers, and each 5-a-day card carries its Day
+       answer in the Day answer's colour and no pill joining a type to a level. */
+    const subjectF = byField('subject');
+    const seenPaper = {};
+    let cards = 0, fives = 0;
+    items.forEach(x => {
+      const pid = x.kind === 'question' && x.row && x.row.paper_id;
+      if (!pid || seenPaper[pid]) return;
+      seenPaper[pid] = 1;
+      cards++;
+      const tags = f.qTags_(x) || [];
+      const own = subjectF ? f.asList_(subjectF.of(x)).map(String) : [];
+      tags.filter(t => t.tag === 'subject').forEach(t => {
+        if (own.indexOf(t.text) === -1) {
+          bad.push(pid + ': the card wears a green subject tag ' + JSON.stringify(t.text) + ' that is not its '
+                   + 'Subject answer (' + JSON.stringify(own) + ') — see qTags_().');
+        }
+      });
+      if (String(x.row.document_type || '') === '5-a-day' && f.fiveDayLabel_ && f.tagOf_) {
+        fives++;
+        const day = f.fiveDayLabel_(pid);
+        if (!tags.some(t => t.tag === f.tagOf_('fiveDay') && t.text === day)) {
+          bad.push(pid + ': the 5-a-day card has no ' + JSON.stringify(f.tagOf_('fiveDay')) + ' tag reading '
+                   + JSON.stringify(day) + ', which is what its Day answer says — its tags are '
+                   + JSON.stringify(tags.map(t => t.tag + ':' + t.text)));
+        }
+        if (tags.some(t => /5-a-day\s+\S/i.test(t.text))) {
+          bad.push(pid + ': a 5-a-day card tag joins the type to the level: '
+                   + JSON.stringify(tags.map(t => t.text)));
+        }
+      }
+    });
+    console.log('  Card tags: ' + cards + ' paper(s) read, ' + fives + ' of them 5-a-day');
+    if (!fives) bad.push('no 5-a-day card was read, so the Day tag rule proves nothing');
+    if (!skipped) bad.push('no SATs Paper answer was reached with the Year skipped, so that route proves nothing');
   } else {
     bad.push('`chipShow_` or `qTags_` is not declared, so the SATs tags cannot be checked — not a pass');
   }

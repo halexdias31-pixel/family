@@ -908,9 +908,15 @@ function inspect(opts) {
      white over black was read as nearly-white and every label on it was reported as unreadable.
      Seven false alarms out of seven. Blending down the whole ancestor chain is four more lines and
      it is the difference between a check somebody trusts and a check somebody mutes. */
+  /* `color(srgb r g b / a)` IS HOW CHROME COMPUTES A `color-mix()`, and its channels run 0 to 1, not
+     0 to 255. Read as `rgb()` a tinted chip's fill came out as nearly black at 10% -- so the tag
+     chips' `--dim` field names measured 6.87:1 on every run while the real fill had them at 4.3, and
+     the rule could never have caught the 14% tint that put them under the bar. */
   const parse = c => {
     const n = (c.match(/[\d.]+/g) || []).map(Number);
-    return n.length ? { r: n[0], g: n[1], b: n[2], a: n.length > 3 ? n[3] : 1 } : null;
+    if (!n.length) return null;
+    const k = /^color\(srgb\s/.test(c) ? 255 : 1;
+    return { r: n[0] * k, g: n[1] * k, b: n[2] * k, a: n.length > 3 ? n[3] : 1 };
   };
   const over = (fg, bg) => ({            // fg painted on top of bg
     r: fg.r * fg.a + bg.r * (1 - fg.a),
@@ -921,16 +927,86 @@ function inspect(opts) {
     return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b);
   };
 
-  const groundOf = el => {
-    let acc = { r: 0, g: 0, b: 0, a: 1 };          // the page itself, assumed opaque
+  /* ---------- AND A GRADIENT IS READ WHERE THE TEXT IS ----------------------------------------------
+     A PANE IS `#101010` UNDER A 5%-TO-1.5% WHITE GRADIENT, and this read only the `#101010`: the
+     chips sit at the top of the pane, where the wash is lightest, so a tag chip's tint was measured
+     on a ground darker than the one it is drawn on, and a 16% tint that put its field names at
+     4.3:1 passed. A LINEAR gradient with an angle is read at the text's own centre -- projected onto
+     the gradient line the way CSS draws it, stops evenly spaced or at their own percentages -- so a
+     label at the top of a pane is held to the top's wash and a caption at the bottom to the
+     bottom's. Any other gradient (radial, conic, a keyword corner) cannot be placed here, and is
+     held to the WORSE of its lightest and darkest stop: the honest answer to "somewhere on this box"
+     is both ends. Only those two are kept, so a stack of gradients cannot multiply. */
+  const stopsOf = img => {
+    const out = [];
+    const re = /((?:rgba?|color)\([^()]*\))(?:\s+(-?[\d.]+)%)?/g;
+    let m;
+    while ((m = re.exec(img))) {
+      const c = parse(m[1]);
+      if (c) out.push({ c: c, at: m[2] === undefined ? null : Number(m[2]) / 100 });
+    }
+    if (!out.length) return out;
+    if (out[0].at === null) out[0].at = 0;
+    if (out[out.length - 1].at === null) out[out.length - 1].at = 1;
+    for (let i = 1; i < out.length - 1; i++) {
+      if (out[i].at !== null) continue;
+      let j = i; while (out[j].at === null) j++;
+      const lo = out[i - 1].at, hi = out[j].at;
+      for (let k = i; k < j; k++) out[k].at = lo + (hi - lo) * (k - i + 1) / (j - i + 1);
+    }
+    return out;
+  };
+  const colourAt = (stops, t) => {
+    if (t <= stops[0].at) return stops[0].c;
+    for (let i = 1; i < stops.length; i++) {
+      if (t <= stops[i].at) {
+        const a = stops[i - 1], b = stops[i];
+        const f = b.at > a.at ? (t - a.at) / (b.at - a.at) : 1;
+        const mix = k => a.c[k] + (b.c[k] - a.c[k]) * f;
+        return { r: mix('r'), g: mix('g'), b: mix('b'), a: mix('a') };
+      }
+    }
+    return stops[stops.length - 1].c;
+  };
+  const grounds = el => {
+    let accs = [{ r: 0, g: 0, b: 0, a: 1 }];       // the page itself, assumed opaque
+    const box = el.getBoundingClientRect();
+    const px = box.left + box.width / 2, py = box.top + box.height / 2;
     const chain = [];
     for (let n = el; n; n = n.parentElement) chain.push(n);
     for (const n of chain.reverse()) {
-      const c = parse(getComputedStyle(n).backgroundColor);
-      if (c && c.a > 0) acc = over(c, acc);
+      const cs = getComputedStyle(n);
+      const c = parse(cs.backgroundColor);
+      if (c && c.a > 0) accs = accs.map(a => over(c, a));
+      const img = String(cs.backgroundImage || '');
+      if (!/gradient\(/.test(img)) continue;
+      /* EACH LAYER, TOP LAYER LAST: CSS paints the first one listed on top. */
+      const layers = img.split(/,\s*(?=(?:repeating-)?(?:linear|radial|conic)-gradient\(|url\()/).reverse();
+      layers.forEach(layer => {
+        const stops = stopsOf(layer);
+        if (!stops.length) return;
+        const ang = /^linear-gradient\(\s*(-?[\d.]+)deg/.exec(layer);
+        const plain = /^linear-gradient\(\s*(?:rgba?|color)\(/.test(layer);   // no angle: 180deg
+        if (ang || plain) {
+          const r = n.getBoundingClientRect();
+          const th = (ang ? Number(ang[1]) : 180) * Math.PI / 180;
+          const dx = Math.sin(th), dy = -Math.cos(th);
+          const len = Math.abs(r.width * dx) + Math.abs(r.height * dy) || 1;
+          const t = ((px - (r.left + r.width / 2)) * dx + (py - (r.top + r.height / 2)) * dy) / len + 0.5;
+          const s = colourAt(stops, Math.max(0, Math.min(1, t)));
+          if (s.a > 0) accs = accs.map(a => over(s, a));
+          return;
+        }
+        const all = [];
+        accs.forEach(a => stops.forEach(s => { if (s.c.a > 0) all.push(over(s.c, a)); }));
+        if (!all.length) return;
+        all.sort((p, q) => lum(p) - lum(q));
+        accs = all.length > 1 ? [all[0], all[all.length - 1]] : all;
+      });
     }
-    return acc;
+    return accs;
   };
+  const groundOf = el => grounds(el)[0];
 
   for (const el of inside) {
     const own = [...el.childNodes].some(n => n.nodeType === 3 && n.textContent.trim().length > 1);
@@ -938,10 +1014,13 @@ function inspect(opts) {
     const s = getComputedStyle(el);
     const fg = parse(s.color);
     if (!fg) continue;
-    const bg = groundOf(el);
-    const solidFg = fg.a < 1 ? over(fg, bg) : fg;
-    const a = lum(solidFg), b = lum(bg);
-    const ratio = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    let bg = null, ratio = Infinity;
+    grounds(el).forEach(g => {
+      const solidFg = fg.a < 1 ? over(fg, g) : fg;
+      const a = lum(solidFg), b = lum(g);
+      const r = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+      if (r < ratio) { ratio = r; bg = g; }
+    });
 
     const px = parseFloat(s.fontSize) || 16;
     const bold = (parseInt(s.fontWeight, 10) || 400) >= 700;

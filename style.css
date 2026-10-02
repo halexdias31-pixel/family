@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-09-25-dates-multiplier";
+  --css-version: "2026-10-02-tag-colours";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -54,8 +54,16 @@
      and has a job of its own.
 
      Found by `node check/ui.js`, which measures contrast on every screen at four widths. It was
-     twenty-two failures across `account` and `tools`, and every one of them was this line. */
-  --faint:     #808080;
+     twenty-two failures across `account` and `tools`, and every one of them was this line.
+
+     AND THEN #848484, FOUND BY THE SAME CHECK READING THE PANE PROPERLY. A pane is `#101010` under a
+     5%-to-1.5% white wash, and `check/ui.js` measured only the `#101010` -- so the top of every pane,
+     where the wash lifts the ground to about `#1b1b1b`, was never measured at all. Read at the text's
+     own place on the gradient, `#808080` came out at 4.36 to 4.49:1 on forty-five labels on the Find
+     screen alone: the bundle's `— 6 papers` and `20pp`, `Your answer`, the practicals' captions.
+     `#848484` is the same rule as before -- the smallest step that clears the lightest real ground,
+     4.6:1 there -- and still well short of `--dim`. */
+  --faint:     #848484;
 
   --green:     #3ddc84;   /* a subject. Reserved — nothing else uses it. */
   --purple:    #b98cff;   /* a venue */
@@ -64,6 +72,12 @@
      of noun. The fourth colour to mean something and the last: a glance can hold four categories
      and not eight, and past that a palette becomes a legend. */
   --pink:      #ff8fc4;
+  /* A TUTOR, and a paper tag. It was written out as `#ff7b72` three times for the tutor and a fourth
+     time as the paper tag's red -- one colour in four places is the paper palette's `#f4f1e8` fault
+     in miniature, so it is named once. Softer than `--bad`, which is the whole reason it exists: a
+     person's name and an error message must not be one paint. See `--tag-paper` for why a paper
+     tag shares it. */
+  --coral:     #ff7b72;
   --gold:      #ffb454;   /* the one action */
   /* WHO CAN SEE IT, not what it is. See the tile rules at the end of this file. */
   --admin:     #f2d24b;   /* only you can see this — see `.tile.is-admin` */
@@ -76,13 +90,17 @@
      legend, and the note above says a glance holds four categories and past that a palette becomes
      one -- which is exactly what was asked for here, so it is a deliberate legend rather than drift.
      Two rules from the note above survive it: GREEN STAYS A SUBJECT (the subject tag IS --green),
-     and the red is a tag red, `--tag-paper`, a step softer than `--bad`, so a red tag and a refusal
-     are not the same paint. Nothing here is gold: gold is the one action, and a tag is not one.
+     and the red is not `--bad`, so a red tag and a refusal are not the same paint. It is `--coral`,
+     the tutor's colour, SHARED ON PURPOSE rather than a fifth red a step away from it: the two meet
+     only on a search across everything, where one is a name on a person's card and the other a pill
+     on a question's, and the shape says which. Nothing here is gold: gold is the one action and the
+     press state of every answer, and a tag is not either -- `What you need` was gold for one commit
+     and its answers looked pressed before anybody touched them.
 
      At `:root` because three components draw them -- the funnel's answers, the chips above them and
      the tags on a question card -- and `[data-tag]` below is the one place that turns a kind into
      a colour. `tagOf_` in find.js is the one place that turns a facet into a kind. */
-  --tag-paper:   #ff7b72;
+  --tag-paper:   var(--coral);
   --tag-level:   #6cb6ff;
   --tag-sitting: #c8a2ff;
   --tag-board:   #4fd1c5;
@@ -1447,8 +1465,8 @@ a { color: inherit; text-decoration: none; }
 .w-purple    { color: var(--purple); }                 /* a venue */
 /* A TUTOR. Deliberately NOT `--bad` — that red means something is wrong, and a person's name in
    the identical colour to an error message is the one collision here that would actually mislead
-   somebody. This one is a softer coral and is used for nothing else. */
-.w-red       { color: #ff7b72; }                      /* a tutor */
+   somebody. A softer coral, `--coral`, which a paper tag shares on purpose -- see `--tag-paper`. */
+.w-red       { color: var(--coral); }                 /* a tutor */
 .w-pink      { color: var(--pink); }                  /* something you wear */
 .w-amber     { color: var(--gold); }
 .w-dim       { color: var(--dim); }
@@ -1490,8 +1508,8 @@ h2 .subject, h3 .subject { color: var(--green); }
    and has no `.card` and no `h3`. Left behind it is a rule that reads as though venues are still
    coloured, and the next person to wonder why they are not would look here first. */
 h2 .venue, h3 .venue { color: var(--purple); }
-.card.is-tutor > h3 { color: #ff7b72; }
-h2 .tutor, h3 .tutor { color: #ff7b72; }
+.card.is-tutor > h3 { color: var(--coral); }
+h2 .tutor, h3 .tutor { color: var(--coral); }
 /* A cape, a hat, a scarf. The fourth and last of these — the colours are meant to answer "what
    kind of thing is this" at a glance, and a glance can hold four categories and not eight. */
 .card.is-wear > h3 { color: var(--pink); }
@@ -2176,7 +2194,11 @@ button.text-drop { color: var(--bad); }
 /* ---------- WHICH KIND OF TAG, AS A COLOUR -----------------------------------------------------------
    `data-tag` names the kind (`tagOf_` in find.js) and this turns it into `--tag`, which the answer
    row, the chip and the card tag each read. One place, so a red Paper is the same red in all three.
-   Subject is --green and tier is --pink, the two palette colours that already meant a category. */
+   Subject is --green, the palette's own subject colour. Tier is --pink, which was the WEARABLE
+   colour -- and free on this screen, because `.card.is-wear > h3` matches nothing (the heading sits
+   inside `.thing > .thing-body`, not straight under the card), so no cape heading is pink beside a
+   `Higher` tag. Retarget that rule and tier needs a colour of its own first. `needs` has no kind:
+   it was gold, the press colour, so its answers looked pressed at rest. */
 [data-tag="paper"]   { --tag: var(--tag-paper); }
 [data-tag="subject"] { --tag: var(--green); }
 [data-tag="level"]   { --tag: var(--tag-level); }
@@ -2185,7 +2207,6 @@ button.text-drop { color: var(--bad); }
 [data-tag="board"]   { --tag: var(--tag-board); }
 [data-tag="type"]    { --tag: var(--tag-type); }
 [data-tag="topic"]   { --tag: var(--tag-topic); }
-[data-tag="needs"]   { --tag: var(--gold); }
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
 .chip {
   display: flex; align-items: center; gap: .25rem;
@@ -2218,10 +2239,14 @@ button.text-drop { color: var(--bad); }
 .chip-k { color: var(--dim); font-size: .6rem; text-transform: uppercase; letter-spacing: .04em; }
 /* A CHIP OF A KIND IS DRAWN IN ITS COLOUR: the outline, the value, and the fill a tint of it rather
    than the plain 8% white -- filled still says "this one is on", just in the colour of what it is.
-   The field's name stays `--dim`, which measured above for exactly this job on a filled chip. */
+   THE TINT IS 10% AND THAT NUMBER IS MEASURED, NOT CHOSEN. At 14% the lime `Type` chip's fill went
+   light enough that the `--dim` field name on it measured 4.25-4.35:1 at the top of the pane, where
+   the chips sit -- under the 4.5 an 8px label needs, on the owner's own KS2 SATs route. At 10% the
+   worst pixel is 4.79:1 for type and 5.20-5.44:1 for every other kind; 12% clears it by 0.09. The
+   note above measured `--dim` on the 8% WHITE fill, which is a different ground. */
 .chip[data-tag] {
   border-color: var(--tag); color: var(--tag);
-  background: color-mix(in srgb, var(--tag) 14%, transparent);
+  background: color-mix(in srgb, var(--tag) 10%, transparent);
 }
 .chip-x { color: var(--faint); margin-left: .15rem; }
 .chip:active .chip-x, .chip.is-pressed .chip-x { color: var(--bad); }
@@ -9107,7 +9132,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qtags { display: flex; flex-wrap: wrap; gap: .25rem; }
 .qtag {
   display: inline-block; padding: .05rem .45rem; border-radius: 999px;
-  border: 1px solid var(--tag, #3d3d3d); color: var(--tag, var(--dim));
+  border: 1px solid var(--tag, var(--chip-line)); color: var(--tag, var(--dim));
   font-size: .64rem; line-height: 1.35;
 }
 
@@ -10345,8 +10370,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    family's own outline and nothing else should be offered it — the house rule the chess board's
    cream and charcoal set. `--line` is a hairline between rows, and as the only edge of a chip on
    black it measured as nearly nothing; this is the step a reader can see without it competing with
-   the words. */
-.answers, .chips { --chip-line: #3d3d3d; }
+   the words. The card's TAGS are the third member: a tag with no kind keeps this outline, so it is
+   offered to `.qtags` too rather than written out there as `#3d3d3d` a second time. */
+.answers, .chips, .qtags { --chip-line: #3d3d3d; }
 .answers { display: flex; flex-wrap: wrap; gap: .45rem .4rem; align-items: center; }
 /* THE ANSWER IS THE HEADLINE. It was .88rem — the size of a fact on a receipt — for the one word
    on the screen somebody is here to choose. */
@@ -10415,8 +10441,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    solid edge says "one of these", and the colour hands back the foreground the block above gave. */
 /* AN ANSWER OF A KIND IS OUTLINED AND LETTERED IN ITS COLOUR, and pressing it makes a chip of the
    same colour -- so `Paper 1` is red on the menu, red as a chip and red on the card. Unfilled, as
-   every answer is: the colour says what kind of answer, the fill would say it was already chosen. */
-.row.tap.counted[data-tag] { border-color: var(--tag); }
+   every answer is: the colour says what kind of answer, the fill would say it was already chosen.
+   NOT WHILE IT IS PRESSED. The two rules are equally specific, so this one, coming later, won the
+   border off the press and every tagged answer -- which is nearly every answer below the two doors
+   -- lost the gold edge the press block exists to show. Said by `:not` rather than by moving the
+   line above the press block: order alone deciding it is what broke it, and `check/cascade.js`
+   reports exactly that kind of win. */
+.row.tap.counted[data-tag]:not(:active):not(.is-pressed) { border-color: var(--tag); }
 .row.tap.counted[data-tag] .k { color: var(--tag); }
 .row.tap.counted.is-skip { background: none; border-style: dashed; }
 .row.tap.counted.is-skip .k { color: var(--dim); font-weight: 400; }
