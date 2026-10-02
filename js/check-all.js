@@ -43,6 +43,9 @@ const SUITE = [
   { file: 'check.js',         what: 'names and load order' },
   { file: 'check-strings.js', what: 'templates that do not interpolate' },
   { file: 'check-css.js',     what: 'the stylesheet' },
+  /* THE REBUILT SPLASHES, AS KEYFRAMES. `npm run splash` asks whether the picture changes and a
+     wipe, a snap and a cross-fade all change it — so it passed the three faults this reads for. */
+  { file: 'check-splash-loops.js', what: 'the rebuilt splashes: one seamless loop each, centred' },
   /* ---------- IT EXISTED AND NEVER RAN -------------------------------------------------------
      `check-scope.js` was written for the two faults that got past all the others — a name declared
      inside a block and read outside it, which throws the moment that line runs. It was never added
