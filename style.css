@@ -6905,12 +6905,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
      rule sits with its keyframes, so the still is written beside the motion it stills. Before that,
      `.ar-wheel` and `.ar-box` stood here after the elements were gone — `check-css` found them. */
   .od-svg g, .od-say, .tn-up, .tn-dn, .sn-wave, .sn-arm, .sn-dot, .sn-trace, .sn-guide, .sn-leg,
-<<<<<<< HEAD
-  .sv-o, .sv-x, .hf-p, .ag-tri, .bn-row i, .pa-r, .pa-r i, .fb-sq, .fb-arc,
-=======
-  .ar-round, .ar-strip, .ar-h, .ar-w, .ar-lab,
   .hf-p, .ag-tri, .bn-row i, .pa-r, .pa-r i, .fb-sq, .fb-arc,
->>>>>>> worktree-wf_0fec1e32-0c4-2
   .gl-b, .gl-n text { animation: none; opacity: 1; transform: none; }
   .gl-b { fill: #6fd8c4; }
   .fb-arc { stroke-dashoffset: 0; }
