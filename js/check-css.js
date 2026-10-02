@@ -502,7 +502,7 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
   const WORDS = new Set(['linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out', 'infinite', 'both',
     'forwards', 'backwards', 'none', 'alternate', 'reverse', 'alternate-reverse', 'normal',
     'running', 'paused', 'step-start', 'step-end', 'end', 'start', 'jump-none', 'jump-both']);
-  const namesIn = val => val.replace(/\([^()]*\)/g, '').split(/[\s,]+/)
+  const namesIn = val => val.replace(/[\w-]*\([^()]*\)/g, '').split(/[\s,]+/)
     .filter(t => /^[a-z][\w-]*$/i.test(t) && !WORDS.has(t));
   const loopBad = [];
 
@@ -522,6 +522,44 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
       const discs = (coin.match(/<i><\/i>/g) || []).length;
       if (discs < 4) bad.push('the coin holds ' + discs + ' edge discs — fewer than four and it is '
         + 'a hairline whenever it is edge-on (tools/coin.py prints them)');
+      return bad;
+    },
+    /* THE SIEVE IS A SIEVE. tools/sieve.py writes it, and the markup is the only place the maths
+       lives: every composite struck in the colour of its SMALLEST prime factor (that is the prime
+       that removes it), every prime ringed and never struck, nothing struck by a prime above 3
+       (5 × 5 = 25 is past 17, which is why it stops), and the second, lower line only on a number
+       a later prime also divides. A hand edit that moved one strike would still animate perfectly
+       and teach the wrong thing. And the row stays ONE line: `nowrap` on the run. */
+    sieve: (m) => {
+      const bad = [];
+      const least = n => { for (let p = 2; p <= n; p++) if (n % p === 0) return p; };
+      const cells = [...m.matchAll(/<i[^>]*><b[^>]*>(\d+)<\/b>([\s\S]*?)<\/i>/g)];
+      const seen = cells.map(c => +c[1]);
+      if (seen.join() !== '2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17') {
+        bad.push('the row reads ' + seen.join(' ') + ' — it is 2 to 17, in order');
+      }
+      cells.forEach(([, num, rest]) => {
+        const n = +num, p = least(n);
+        const strikes = [...rest.matchAll(/<s class="sv-(\d+)( sv-again)?"/g)].map(s => ({ by: +s[1], again: !!s[2] }));
+        const ringed = /<u class="sv-/.test(rest);
+        if (p === n) {
+          if (strikes.length) bad.push(n + ' is prime and is struck through');
+          if (!ringed) bad.push(n + ' is prime and is not ringed');
+          return;
+        }
+        if (ringed) bad.push(n + ' is not prime and is ringed');
+        const first = strikes.find(s => !s.again);
+        if (!first) bad.push(n + ' is not prime and nothing strikes it');
+        else if (first.by !== p) bad.push(n + ' is struck by ' + first.by + ' — its smallest factor is ' + p
+          + ', so ' + p + ' is the prime that removes it');
+        strikes.filter(s => s.again).forEach(s => {
+          if (n % s.by || s.by === p) bad.push(n + ' has a second line for ' + s.by + ', which does not also divide it');
+        });
+        strikes.forEach(s => { if (s.by > 3) bad.push(n + ' is struck by ' + s.by + ' — the sieve stops at 3, since 5 × 5 > 17'); });
+      });
+      if (!rules.some(r => r.sel === '#splash-sieve .sv-grid' && r.decls.some(d => d.prop === 'flex-wrap' && d.val === 'nowrap'))) {
+        bad.push('`#splash-sieve .sv-grid` no longer says `flex-wrap: nowrap` — at 320px 17 wraps alone onto a second line');
+      }
       return bad;
     },
   };
@@ -554,7 +592,16 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
         loopBad.push('line ' + r.line + '  ' + r.sel + '  gives a duration and no `infinite` — it plays once');
       }
     }));
-    for (const s of m.matchAll(/animation-name:\s*([\w-]+)/g)) used.add(s[1]);
+    /* AN INLINE `animation-name` BEATS THE REDUCED-MOTION RULE. tools/coin.py wrote one on each of
+       twenty elements, and `animation: none` in the stylesheet lost to every one of them — so with
+       less movement asked for, the coin stood still and the tally and the count went on animating.
+       The generators now write `--kf: name` and a rule reads `animation-name: var(--kf)`. */
+    for (const s of m.matchAll(/style="[^"]*animation[\w-]*:\s*([\w-]+)/g)) {
+      loopBad.push('#splash-' + id + ' sets `animation…: ' + s[1] + '` inline — an inline declaration '
+        + 'beats `animation: none` under reduced motion; write `--kf: ' + s[1] + '` instead');
+      used.add(s[1]);
+    }
+    for (const s of m.matchAll(/--kf:\s*([\w-]+)/g)) used.add(s[1]);
     used.forEach(n => {
       if (!frames[n]) { loopBad.push('#splash-' + id + ' names `' + n + '` and no @keyframes has that name'); return; }
       const other = [...frames[n]].filter(p => p !== 'transform' && p !== 'opacity'
