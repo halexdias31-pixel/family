@@ -125,17 +125,20 @@ const STATES = {
       },
       expect: () => document.querySelectorAll('#stuff-groups .row').length,
       wants: 'a question with answers on it' },
-    /* ---------- THE SITTING, ASKED AS THE SERIES AND THEN THE YEAR -----------------------------------
+    /* ---------- THE SITTING, ASKED AS THE YEAR AND THEN THE MONTH ------------------------------------
        REPORTED AS "some tags are like summer 2018 when it should just be summer then 2018", and as
-       "they dont need to appear one above the other but can fill like from left to right". This is
-       the state that answers both at once: Summer already chosen, so the question on the page is
-       Year, and its answers are bare years drawn as chips that share lines.
+       "they dont need to appear one above the other but can fill like from left to right". Then the
+       season went: "I don't want it to ask summer or autumn I'd rather it just do the months. Like
+       may or November" -- and the year comes FIRST, as the outer folder. So these are two states,
+       one for each folder: Higher chosen and the question on the page is Year, its answers bare
+       years; then 2017 chosen and the question is Month, its answers bare months.
 
-       THE EXPECT ASKS THE TWO THINGS A SCREENSHOT SHOWED, because neither is a measurement any rule
-       in check/ui.js makes: no answer carries a series word and a year together, and at least two
-       answers sit on one line — chips stacked one per row measure perfectly and are the shape that
-       was reported. Topic area and Topic are skipped, as a person who wants a sitting would. */
-    { name: 'the sitting, then the year',
+       THE EXPECT ASKS THE THINGS A SCREENSHOT SHOWED, because none is a measurement any rule in
+       check/ui.js makes: no answer carries a month and a year together, no answer is a season, and at
+       least two answers sit on one line — chips stacked one per row measure perfectly and are the
+       shape that was reported. Topic area and Topic are skipped, as a person who wants a sitting
+       would. */
+    { name: 'the year folder',
       enter: () => {
         STUFF.q = '';
         STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
@@ -145,8 +148,7 @@ const STATES = {
                          { field: 'level', value: 'GCSE' },
                          { field: 'topicArea', any: true },
                          { field: 'topic', any: true },
-                         { field: 'tier', value: 'Higher' },
-                         { field: 'examSeries', value: 'Summer' }];
+                         { field: 'tier', value: 'Higher' }];
         paintStuff();
         goPage('stuff', 0, true);
       },
@@ -159,6 +161,30 @@ const STATES = {
         return new Set(tops).size < tops.length;
       },
       wants: 'the Year question, bare years only, drawn as chips sharing a line' },
+    { name: 'the month folder inside the year',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'subject', value: 'Maths' },
+                         { field: 'documentType', value: 'Past paper' },
+                         { field: 'level', value: 'GCSE' },
+                         { field: 'topicArea', any: true },
+                         { field: 'topic', any: true },
+                         { field: 'tier', value: 'Higher' },
+                         { field: 'examYear', value: '2017' }];
+        paintStuff();
+        goPage('stuff', 0, true);
+      },
+      expect: () => {
+        const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
+        if (rows.length < 2) return false;
+        if (!rows.every(r => r.dataset.field === 'examMonth')) return false;
+        if (rows.some(r => /(19|20)\d{2}|Summer|Autumn|Spring|Winter/i.test(r.textContent))) return false;
+        const tops = rows.map(r => Math.round(r.getBoundingClientRect().top));
+        return new Set(tops).size < tops.length;
+      },
+      wants: 'the Month question, bare month names only, drawn as chips sharing a line' },
     /* ---------- AN ANSWER ONE LETTER LONG ---------------------------------------------------------
        A CHIP IS AS WIDE AS ITS WORDS, and the letter ranges `bucketValues_` groups a long list into
        are often a single letter — `S` among the topics here, `G` and `P` among the English papers.
