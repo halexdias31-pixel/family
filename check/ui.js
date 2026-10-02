@@ -1240,58 +1240,41 @@ function inspect(opts) {
            has a class attached to it. Rows carry what was found; the report decides what it means. */
         rows.push({ width, id: label, as: who.as, counted, guessed, ...found });
 
-        /* ---------- THE FILM IS ON THE PICTURES AND ON NOTHING ELSE -------------------------------
-           ASKED FOR AS "make the ig clone have a grainy look to it" — see `.post, .reel` in
-           style.css. The look is a `filter` and a `mask-image` on the picture itself, so there is
-           no overlay to steal a tap and nothing for the tap rules above to see. Two ways it can go
-           wrong, and neither is a layout fault any other rule here measures: a selector that stops
-           matching (the feed goes back to clean photographs, which measures perfectly), and one
-           that matches too much (a caption, a tile, or a CHAT clip — `post-vid` is on those too —
-           drawn grainy). So it is asked of the rendered page, on every screen: whatever carries
-           the grain mask must be a post's or a reel's own `<img>`/`<video>`, and on the two columns
-           that have them every one of those must carry it. The grain is told from any other mask
-           by its `feTurbulence`, which nothing else in this stylesheet names. */
-        const film = await page.evaluate(sid => {
+        /* ---------- THE PICTURES ARE DRAWN AS THEY WERE TAKEN ------------------------------------
+           THIS PLACE HELD THE OPPOSITE RULE FOR A DAY. "FILM LOOK" required a grain `mask-image`
+           and a warm `filter` on every post picture and reel clip, because the owner had asked for
+           "a grainy look ... like 1999 or 2003"; then asked *"remove the 2002 grainy effect on the
+           posts"*, and the CSS went. Turned round rather than deleted, because the reason it was
+           written still holds the other way up: a look that is two properties ON THE PICTURE is
+           invisible to every layout rule in this file — it measures perfectly — so a filter or a
+           mask put back on these pictures, by any selector, would be noticed by nothing else.
+           ONLY THE PICTURES, NOT EVERY ELEMENT. The old rule walked the whole screen to catch the
+           grain leaking onto a caption; with no grain left there is nothing to leak, and these are
+           the only elements the look was ever on. `.post-face` (the avatar) is not a picture of the
+           post and was never in scope. AND NONE TO MEASURE IS NOT A PASS: the fixture's post
+           carries photographs and the reel column always has its clips, so finding none on either
+           is a selector that stopped reaching its subject. */
+        const tinted = await page.evaluate(sid => {
           const host = document.getElementById('s-' + sid);
           if (!host) return [];
+          const pics = [...host.querySelectorAll('.post img, .post video, .post-preview img, '
+                                                + '.post-preview video, .reel video')]
+            .filter(el => /\bpost-(pic|cell)\b/.test(el.className) || el.classList.contains('feed-vid'));
           const out = [];
-          /* TWO TESTS, ONE STRICTER THAN THE OTHER, ON PURPOSE. Over-reach is asked of the grain
-             ALONE — a caption that picked up the mask and not the filter is still a dirty caption,
-             and requiring both would let it through. Under-reach asks for BOTH, because a picture
-             that kept the grain and lost the colour is half the look. */
-          const grainy = el => {
+          pics.forEach(el => {
             const st = getComputedStyle(el);
-            return /feTurbulence/.test(st.maskImage || st.webkitMaskImage || '');
-          };
-          const grained = el => grainy(el) && getComputedStyle(el).filter !== 'none';
-          /* `.post-preview` is the composer's preview, drawn by the card's own renderer — see the
-             note in style.css. It is on the feed's first page and has pictures only while a link is
-             typed into the composer, so no state measures it; it is named so a typed link is not
-             reported as a fault. */
-          const media = el => /^(IMG|VIDEO)$/.test(el.tagName)
-            && (el.closest('.post, .post-preview') && /\bpost-(pic|cell)\b/.test(el.className)
-                || el.closest('.reel') && el.classList.contains('feed-vid'));
-          host.querySelectorAll('*').forEach(el => {
-            if (grainy(el) && !media(el)) {
-              out.push(`${el.tagName.toLowerCase()}.${String(el.className).split(/\s+/)[0] || ''} `
-                       + `carries the film grain and is not a post's or a reel's picture`);
+            const mask = st.maskImage || st.webkitMaskImage || 'none';
+            if (st.filter !== 'none' || mask !== 'none') {
+              out.push(`${el.tagName.toLowerCase()}.${el.className.split(/\s+/)[0]} is drawn through `
+                       + (st.filter !== 'none' ? `filter ${st.filter.slice(0, 60)}` : `a mask`)
+                       + ` rather than as it was taken`);
             }
           });
-          const want = [...host.querySelectorAll('.post img, .post video, .post-preview img, '
-                                                + '.post-preview video, .reel video')].filter(media);
-          want.forEach(el => {
-            if (!grained(el)) out.push(`${el.tagName.toLowerCase()}.${el.className.split(/\s+/)[0]} `
-                                     + `is a post's or a reel's picture and is drawn without the film`);
-          });
-          /* AND ONE THAT IS NOT THERE AT ALL IS NOT A PASS. The feed's fixture post carries
-             photographs, so finding none there means this rule could not reach its subject. */
-          if (sid === 'feed' && !want.length) out.push('the feed drew no post picture to measure');
-          /* The reel column too: its clips are in the code's own list whatever the fixture says, so
-             a reel column with no clip to measure is a selector that stopped finding them. */
-          if (sid === 'reel' && !want.length) out.push('the reel column drew no clip to measure');
+          if (sid === 'feed' && !pics.length) out.push('the feed drew no post picture to measure');
+          if (sid === 'reel' && !pics.length) out.push('the reel column drew no clip to measure');
           return out;
         }, id);
-        if (film.length) rows.push({ width, id: label, as: who.as, film });
+        if (tinted.length) rows.push({ width, id: label, as: who.as, tinted });
 
         /* EVERY SQUARE OF EVERY BOARD ONE SIZE — see `BOARDS`. `getBoundingClientRect` and not
            `offsetWidth`, because a cell 24.72px wide and one 24.7px wide are one size and integer
@@ -1485,7 +1468,7 @@ function inspect(opts) {
     /* THE SCREEN NEVER DREW. Grouped like the rest so one broken card across four widths and two
        visitors is one line to fix rather than eight, and so it is counted exactly once. */
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
-    (r.film || []).forEach(f => add('FILM LOOK', f, at));
+    (r.tinted || []).forEach(f => add('PICTURE NOT AS TAKEN', f, at));
     (r.boards || []).forEach(f => add('BOARD SQUARES OF MORE THAN ONE SIZE', f, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));

@@ -217,6 +217,14 @@ function boot(opts) {
     w.HTMLMediaElement.prototype.play = function () { return Promise.resolve(); };
     w.HTMLMediaElement.prototype.load = function () {};
   } catch (e) {}
+  /* ---------- AND WHAT A JOURNEY NEEDS IN PLACE BEFORE THE FIRST LINE OF THE APP RUNS ------------
+     `data.js` READS `familyUser` AT LOAD and `boot.js` starts the first screen and the payload in
+     its last lines, so a journey that signs in with `__t.USER` afterwards has already missed the
+     boot it is asking about. That was exactly the camera's fault: the prompt came from the repaint
+     the payload's arrival makes, for somebody signed in from the moment the page opened — a path no
+     journey here could stand on. So a journey may hand the window over first, the way `check/ui.js`
+     uses `addInitScript`: seed storage, or stand in for a browser API jsdom does not have. */
+  if (typeof opts.before === 'function') opts.before(w);
   const src = ORDER.map(n => fs.readFileSync(path.join(dir, n + '.js'), 'utf8')).join('\n');
   try {
     w.eval(src + '\n;window.__t = {' +
@@ -378,6 +386,11 @@ function boot(opts) {
       'lamPrice: typeof laminatePrice === "function" ? laminatePrice : null,' +
       'basket: typeof cartCard_ === "function" ? cartCard_ : null,' +
       'PAGE: () => PAGE,' +
+      /* WHICH COLUMN IS IN FRONT. A `let` in the app's one scope, and jsdom's `eval` runs each call
+         in a scope of its own — measured: `w.eval("AT")` is "AT is not defined" — so only a function
+         built in the same evaluation can read it. The camera journey asks it to know that the load
+         it is watching is the one that opens on the feed. */
+      'AT: () => AT,' +
       /* A landmark rasterised at one bearing, so the test above can compare four of them. */
       'tiles: (ring, bearing) => {' +
       '  if (typeof owWorld !== "function") return 0;' +
@@ -3692,6 +3705,183 @@ check('the camera card starts itself and offers the gallery', async () => {
   if (typeof w.__t.makeScreen === 'function') {
     const out = String(w.__t.makeScreen() || '');
     if (/id="cam-view"/.test(out)) bad.push('the viewfinder is drawn for somebody who is not signed in');
+  }
+  return bad;
+});
+
+/* ---------- THE CAMERA ASKS FOR NOTHING UNTIL SOMEBODY SWIPES UP TO IT ------------------------------
+   REPORTED AS *"the website seems to ask you for permission to use camera when you first load into it
+   even though the camera widget is above the front door widget. it should only go when you swipe to
+   go up."* Reproduced: the payload's arrival calls `repaint`, and `repaint` runs `startScreen_`
+   BEFORE `paintPager` — which is what moves the feed to its front door. For that moment the feed is
+   still on page 0, page 0 IS the camera when the calendar has no festive card, and `feedCamWatch_`
+   asked for it. The column then settled on the newest post with the prompt over it.
+
+   NOTHING HERE HAD EVER STOOD IN FOR `getUserMedia`, which is why it was never caught. jsdom has no
+   `mediaDevices`, so `camStart_` said "no camera support" and returned — and a camera that can never
+   start cannot be caught starting early. So this stands in for it through `boot`'s `before`, counts
+   the ASKS (each one is a prompt on a phone that has not said yes) and the streams still OPEN (each
+   one is a recording light), because "asked once" and "left nothing running" are both the promise.
+
+   EVERY WAY IN, each on a fresh app, because the fault depended on the first paint and a reused app
+   has had its first paint:
+     · signed in, no festive card — the reported case, where page 0 is the camera
+     · signed out — no viewfinder, so nothing to ask for even on its own page
+     · a festive card above the camera — the front door is page 2 and the camera page 1
+     · a festive card and no post at all — nothing under the camera, so it must not be the front door
+     · to another column and back — on a post it asks nothing; on the camera page that IS arriving
+     · refused — a repaint on the camera page does not ask again behind your back; the button does
+     · a prompt still up when a repaint lands — one ask, and the stream reaches the card on screen */
+const camBoot_ = o => {
+  const gum = { asks: 0, open: 0, hold: null };
+  const p = payload();
+  if (!o.festive) p.festive = [];
+  /* TWO POSTS UNDER THE CAMERA, because the front door is "the newest post" and `payload()` has
+     none — with no post below it the camera is the last page, and the column cannot open past it. */
+  if (!o.noPosts) {
+    p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
+      image: '', media: [], caption: 'Post ' + i, body: '', location: '', when: '0' + i + '/09/2026',
+      at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false,
+      reactions: {}, comments: { total: 0, list: [] } }));
+  }
+  const b = boot({ payload: p, before: w => {
+    try { if (o.user) w.localStorage.setItem('familyUser', JSON.stringify(o.user)); } catch (e) {}
+    const stream = () => {
+      let on = true;
+      gum.open++;
+      const track = { kind: 'video', stop() { if (on) { on = false; gum.open--; } } };
+      return { getTracks: () => [track], getVideoTracks: () => [track] };
+    };
+    Object.defineProperty(w.navigator, 'mediaDevices', { configurable: true, value: {
+      getUserMedia: () => {
+        gum.asks++;
+        if (o.refuse) return Promise.reject(Object.assign(new Error('refused'), { name: 'NotAllowedError' }));
+        if (o.slow) return new Promise(ok => { gum.hold = () => ok(stream()); });
+        return Promise.resolve(stream());
+      },
+      enumerateDevices: () => Promise.resolve([]),
+    } });
+  } });
+  b.gum = gum;
+  b.at = () => (b.w.__t && typeof b.w.__t.AT === 'function' ? b.w.__t.AT() : '?');
+  b.page = () => (b.w.__t.PAGE() || {}).feed;
+  b.cam = () => (typeof b.w.feedCamAt_ === 'function' ? b.w.feedCamAt_() : -1);
+  return b;
+};
+/* PAST `afterSlide_`'s 300ms and any settle, which is when `goPage` runs `feedCamWatch_`. */
+const CAM_SLIDE = 700;
+
+check('the camera asks for nothing until somebody swipes up to it', async () => {
+  const bad = [];
+  const rasa = { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] };
+
+  /* ---------- SIGNED IN, NO FESTIVE CARD: THE ONE THAT WAS REPORTED ---------------------------- */
+  {
+    const b = camBoot_({ user: rasa });
+    await wait(400);
+    if (!b.w.__t || typeof b.w.feedCamAt_ !== 'function') {
+      return ['the app did not load, so the camera was NOT checked — not a pass'];
+    }
+    if (!b.w.document.getElementById('cam-view')) {
+      return ['no viewfinder was drawn for somebody signed in, so there was nothing to catch starting — not a pass'];
+    }
+    if (b.at() !== 'feed') bad.push(`the app opened on ${b.at()}, not the feed, so this was not the first load reported`);
+    if (b.gum.asks) {
+      bad.push(`opening the app asked for the camera ${b.gum.asks} time(s) — it is one swipe UP from the front door and nobody swiped`);
+    }
+    if (b.page() !== b.cam() + 1) bad.push(`the feed opened on page ${b.page()}, not the newest post at ${b.cam() + 1}`);
+    const before = b.gum.asks;
+    b.w.__t.repaint(); await wait(CAM_SLIDE);
+    if (b.gum.asks !== before) bad.push('a repaint on the front door asked for the camera');
+
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    if (b.gum.asks !== before + 1) bad.push(`swiping up to the camera asked ${b.gum.asks - before} time(s), not once`);
+    if (b.gum.open !== 1) bad.push(`swiping up to the camera left ${b.gum.open} stream(s) open, not one`);
+    b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE);
+    if (b.gum.open) bad.push('swiping back down to the newest post left the camera running');
+
+    /* AWAY AND BACK, ON A POST: the column remembers where it was, and that is not the camera. */
+    b.w.__t.go('stuff'); await wait(CAM_SLIDE);
+    b.w.__t.go('feed'); await wait(CAM_SLIDE);
+    if (b.gum.asks !== before + 1) bad.push('coming back to the feed on the newest post asked for the camera again');
+
+    /* AWAY AND BACK, ON THE CAMERA PAGE: that IS arriving at it, and it starts — the camera has
+       started on arrival rather than on a tap since the note over `camStart_` was written. */
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.go('stuff'); await wait(CAM_SLIDE);
+    if (b.gum.open) bad.push('leaving the feed from the camera page left the camera running');
+    b.w.__t.go('feed'); await wait(CAM_SLIDE);
+    if (b.gum.asks !== before + 3) bad.push(`coming back to the feed on the camera page asked ${b.gum.asks - before - 2} time(s), not once`);
+    if (b.gum.open !== 1) bad.push(`coming back to the camera page left ${b.gum.open} stream(s) open, not one`);
+  }
+
+  /* ---------- SIGNED OUT ------------------------------------------------------------------------ */
+  {
+    const b = camBoot_({});
+    await wait(400);
+    if (b.gum.asks) bad.push('signed out, opening the app asked for the camera');
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    if (b.gum.asks) bad.push('signed out, the camera page asked for a camera it draws no viewfinder for');
+  }
+
+  /* ---------- A FESTIVE CARD ABOVE THE CAMERA ---------------------------------------------------- */
+  {
+    const b = camBoot_({ user: rasa, festive: true });
+    await wait(400);
+    if (b.cam() !== 1) bad.push(`with one festive card the camera is page ${b.cam()}, not 1, so that case was NOT checked`);
+    if (b.gum.asks) bad.push('with a festive card above the camera, opening the app asked for it');
+    if (b.page() !== 2) bad.push(`with a festive card the feed opened on page ${b.page()}, not the newest post at 2`);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    if (b.gum.asks !== 1) bad.push(`with a festive card, swiping up to the camera asked ${b.gum.asks} time(s), not once`);
+  }
+
+  /* ---------- A FESTIVE CARD AND NO POST AT ALL ---------------------------------------------------
+     With nothing under the camera, "the page after the camera" does not exist, and `pageHome_`'s
+     clamp put the column ON the camera — the reported prompt arriving by a second road. */
+  {
+    const b = camBoot_({ user: rasa, festive: true, noPosts: true });
+    await wait(400);
+    if (b.gum.asks) bad.push('with a festive card and no posts, opening the app asked for the camera');
+    if (b.page() === b.cam()) bad.push('with a festive card and no posts, the feed opened ON the camera page');
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    if (b.gum.asks !== 1) bad.push(`with a festive card and no posts, turning to the camera asked ${b.gum.asks} time(s), not once`);
+  }
+
+  /* ---------- REFUSED, THEN A REPAINT -------------------------------------------------------------
+     The inbox landing and the profile refresh each repaint, and a repaint redraws the card — so a
+     camera that was refused used to be asked for again by whatever landed next, which is a prompt on
+     Safari that nobody swiped for. */
+  {
+    const b = camBoot_({ user: rasa, refuse: true });
+    await wait(400);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    if (b.gum.asks !== 1) bad.push(`refused: swiping up asked ${b.gum.asks} time(s), not once`);
+    b.w.__t.repaint(); await wait(CAM_SLIDE);
+    if (b.gum.asks !== 1) bad.push('refused: a repaint on the camera page asked again — a prompt nobody swiped for');
+    const on = b.w.document.getElementById('cam-on');
+    if (!on || on.hidden) bad.push('refused: after a repaint the card has no `Try the camera again`');
+    const said = (b.w.document.getElementById('cam-said') || {}).textContent || '';
+    if (!said.trim()) bad.push('refused: after a repaint the card no longer says why the camera did not start');
+    if (on) { b.w.__t.ACTIONS['cam-on'](on); await wait(50); }
+    if (b.gum.asks !== 2) bad.push('refused: `Try the camera again` did not ask again');
+    b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    if (b.gum.asks !== 3) bad.push('refused: swiping down and back up to the camera did not ask again');
+  }
+
+  /* ---------- THE PROMPT STILL UP WHEN A REPAINT LANDS --------------------------------------------
+     `CAM_STREAM` is null until somebody answers, so a repaint in that moment used to ask a second
+     time — and when both were granted the first stream was overwritten and never stopped. */
+  {
+    const b = camBoot_({ user: rasa, slow: true });
+    await wait(400);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.repaint(); await wait(50);
+    if (b.gum.asks !== 1) bad.push(`a repaint while the prompt was up asked again — ${b.gum.asks} asks for one card`);
+    if (b.gum.hold) { b.gum.hold(); await wait(50); }
+    if (b.gum.open !== 1) bad.push(`the prompt answered left ${b.gum.open} stream(s) open, not one`);
+    const v = b.w.document.getElementById('cam-view');
+    if (!v || !v.srcObject) bad.push('the stream granted after a repaint went to the card that was replaced, not the one on the screen');
   }
   return bad;
 });
