@@ -741,16 +741,6 @@
     <div class="ps-say">@family.</div>
   </div>
 
-  <!-- ---------- SEVEN: THE BLOCKS. A row of them, bumped from below. --------------------------
-       A side-scrolling platformer, in the sense that everybody who has played one recognises: a
-       hard ground, chunky blocks floating over it, and something popping out when you hit one from
-       underneath. Each block gives up a letter until the row spells the name, and the last one
-       gives up a coin.
-
-       NOTHING BORROWED BUT THE GRAMMAR. There is no character here, no mushroom, no pipe and no
-       plumber — a block that is struck from below and gives something up is a game-design idea
-       forty years old and belongs to nobody. What comes out is this app's own name in its own
-       colours, which is why it can be affectionate without pretending to be anybody else's. -->
   <!-- ==========================================================================================
        TEN VISUAL PROOFS.
 
@@ -1370,6 +1360,20 @@
     <div class="sp-sig">@family.</div>
   </div>
 
+  <!-- ---------- SEVEN: THE BLOCKS. A row of them, bumped from below. --------------------------
+       A side-scrolling platformer, in the sense that everybody who has played one recognises: a
+       hard ground, chunky blocks floating over it, and something popping out when you hit one from
+       underneath. Each block gives up a letter until the row spells the name, and the last one
+       gives up a coin.
+
+       NOTHING BORROWED BUT THE GRAMMAR. No mushroom, no pipe, no ? on a block and no plumber —
+       the one character is our own, a student in a gold mortarboard drawn pixel by pixel in
+       tools/blocks.py, which writes everything inside this div. A block that is struck from
+       below and gives something up is a game-design idea forty years old and belongs to nobody.
+       What comes out is this app's own name in its own colours, which is why it can be
+       affectionate without pretending to be anybody else's.
+       THIS COMMENT SAT 600 LINES ABOVE THE MARKUP, between two other splashes, where it described
+       nothing near it. It lives with the thing it describes now. -->
   <div id="splash-blocks" aria-hidden="true">
     <div class="mb-row">
       <span class="mb-block"><i>@</i></span>
@@ -1379,11 +1383,9 @@
       <span class="mb-block"><i>i</i></span>
       <span class="mb-block"><i>l</i></span>
       <span class="mb-block"><i>y</i></span>
-      <span class="mb-block"><i>.</i></span>
+      <span class="mb-block"><i>.</i><b class="mb-coin"></b></span>
     </div>
-    <!-- The coin off the last one, arcing up and away. -->
-    <span class="mb-coin"></span>
-    <!-- The ground. Solid, because in these games it always is. -->
+    <div class="mb-run"><div class="mb-hop"><svg class="mb-sprite is-a" viewBox="0 0 8 11" shape-rendering="crispEdges"><path class="mb-px-gold" d="M1 0h7v1h-7zM2 1h4v1h-4zM2 5h4v1h-4zM1 6h5v1h-5zM2 7h4v1h-4z"/><path class="mb-px-tassel" d="M0 1h1v1h-1zM0 2h1v1h-1z"/><path class="mb-px-skin" d="M2 2h4v1h-4zM2 3h4v1h-4zM2 4h4v1h-4zM6 6h1v1h-1z"/><path class="mb-px-eye" d="M6 3h1v1h-1z"/><path class="mb-px-leg" d="M2 8h4v1h-4zM1 9h2v1h-2zM5 9h2v1h-2z"/><path class="mb-px-shoe" d="M0 10h2v1h-2zM6 10h2v1h-2z"/></svg><svg class="mb-sprite is-b" viewBox="0 0 8 11" shape-rendering="crispEdges"><path class="mb-px-gold" d="M1 0h7v1h-7zM2 1h4v1h-4zM2 5h4v1h-4zM1 6h5v1h-5zM2 7h4v1h-4z"/><path class="mb-px-tassel" d="M0 1h1v1h-1zM0 2h1v1h-1z"/><path class="mb-px-skin" d="M2 2h4v1h-4zM2 3h4v1h-4zM2 4h4v1h-4zM6 6h1v1h-1z"/><path class="mb-px-eye" d="M6 3h1v1h-1z"/><path class="mb-px-leg" d="M2 8h4v1h-4zM3 9h2v1h-2z"/><path class="mb-px-shoe" d="M2 10h3v1h-3z"/></svg></div></div>
     <div class="mb-ground"></div>
   </div>
 

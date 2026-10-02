@@ -562,6 +562,31 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
       }
       return bad;
     },
+    /* THE BLOCKS: THE COIN COMES OUT OF THE LAST ONE, THE LETTERS FROM BEHIND, AND SOMETHING HITS
+       THEM. The coin was pinned to the stage by `left: 50%` + 6.2rem while flexbox centred the
+       blocks, so it rose between the seventh and the eighth; inside the eighth it cannot drift. The
+       letters painted over the face because a child paints over its parent's background; the face
+       is `::before` with a z-index now, and a background back on `.mb-block` is that fault again.
+       And the runner is what bumps them — without it the rhythm is blocks twitching on their own. */
+    blocks: (m) => {
+      const bad = [];
+      const blocks = [...m.matchAll(/<span class="mb-block">([\s\S]*?)<\/span>/g)].map(x => x[1]);
+      if (blocks.length !== 8) bad.push(blocks.length + ' blocks — @family. is eight');
+      const holder = blocks.findIndex(b => /class="mb-coin"/.test(b));
+      if (holder !== blocks.length - 1) bad.push(holder < 0
+        ? 'the coin is not inside any block — positioned on the stage, it drifts off the last one'
+        : 'the coin is inside block ' + (holder + 1) + ', not the last one');
+      rules.filter(r => r.sel === '.mb-block' && !r.cond).forEach(r => r.decls
+        .filter(d => /^background/.test(d.prop))
+        .forEach(d => bad.push('line ' + r.line + '  .mb-block paints its own ' + d.prop
+          + ' — the letter, its child, paints over that; the face belongs on `.mb-block::before`')));
+      if (!rules.some(r => r.sel === '.mb-block::before' && r.decls.some(d => d.prop === 'z-index' && +d.val > 0))) {
+        bad.push('`.mb-block::before` has no positive z-index — the face is under the letter, '
+          + 'so the letter shows through the block instead of coming out from behind it');
+      }
+      if (!/class="mb-run"/.test(m)) bad.push('no runner (`.mb-run`) — nothing bumps the blocks');
+      return bad;
+    },
   };
 
   Object.keys(LOOPED).forEach(id => {

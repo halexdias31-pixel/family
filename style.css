@@ -5610,60 +5610,80 @@ textarea { touch-action: none; }
 }
 
 /* ==================================================================================================
-   THE SEVENTH SPLASH — a row of blocks, bumped from below.
+   THE SEVENTH SPLASH — a row of blocks, bumped from below. Keyframes, delays and markup written by
+   tools/blocks.py.
 
    A side-scrolling platformer in the sense everybody who has played one recognises: a hard ground,
    chunky blocks floating over it, and something popping out when you hit one from underneath. Each
    block gives up a letter until the row spells the name; the last gives up a coin.
 
-   NOTHING BORROWED BUT THE GRAMMAR. No character, no pipe, no mushroom — a block struck from below
-   that gives something up is a game-design idea forty years old and belongs to nobody. What comes
-   out is this app's own name in its own colours, which is what lets it be affectionate without
-   pretending to be somebody else's.
+   NOTHING BORROWED BUT THE GRAMMAR. No pipe, no mushroom, no ? on a block, and the one character is
+   ours — a student in a gold mortarboard, eight pixels by eleven, drawn in tools/blocks.py. A block
+   struck from below that gives something up is a game-design idea forty years old and belongs to
+   nobody. What comes out is this app's own name in its own colours, which is what lets it be
+   affectionate without pretending to be somebody else's.
+
+   ASKED FOR AS "refine super mario animation", and what was wrong was measured, not guessed:
+     THE COIN WAS ON SCREEN FROM THE FIRST FRAME. `mb-coin … 1.45s both` filled BACKWARDS, so its
+       0% keyframe — opacity 1 — sat on the row for the 1.45s before it was due.
+     AND IN THE WRONG PLACE. It was pinned to the stage at `left: 50%` plus 6.2rem, and the blocks
+       are centred by flexbox, so at 390 it rose from between the seventh block and the eighth and
+       at 320 further off still. It now lives INSIDE the eighth block, so it cannot drift.
+     THE LETTERS CAME OUT OVER THE FACE, not from behind it, because a child paints over its
+       parent's background. The face is now `::before` with a z-index over the letter — inside the
+       block's own stacking context, which its transform makes — so a letter at rest is hidden by
+       the face and rises out over the top edge.
+     NOTHING HIT THE BLOCKS. Now the runner does: it hops under each one, apex on the bump.
+     AND IT RAN ONCE. The bump played in 1.5s and `mb-idle` hovered the row for ever after —
+     animating `box-shadow` — and because the hover was `infinite`, index.html's replay loop never
+     ran the bumps again. Now the whole thing is one loop: run, bump, spell, coin, hold, letters back
+     in, repeat. The hover is gone; nothing needs replaying.
 
    HARD EDGES EVERYWHERE, and that is the whole look: no soft shadows, no gradients that fade, no
    rounded corners. The moment one curve creeps in it stops reading as a game from 1985 and starts
    reading as a modern app doing an impression of one.
+
+   THE LAYOUT IS ARITHMETIC, because the runner's head has to meet the blocks. The row's top is at
+   3.6rem, so a block's underside is at 5.6rem; the ground is the bottom 2.2rem of a 10.6rem stage;
+   the runner is 1.98rem tall standing on it, so its head is at 6.42rem and a hop of .82rem
+   (tools/blocks.py `HOP`) touches 5.6rem exactly. Change one and change the others.
+   `overflow: hidden` is the edge of the "screen" the runner enters and leaves by; everything else
+   stays inside it — the letters rise to 1.45rem and the coin to about .7rem.
 ================================================================================================== */
 #splash-blocks {
   position: relative;
   width: min(88vw, 25rem);
-  height: 11rem;
+  height: 10.6rem;
+  overflow: hidden;
+  /* the row's width: eight blocks and seven gaps. The runner's positions are measured from its
+     left end, so the row is placed by this rather than centred by flexbox and guessed at. */
+  --mb-row: calc(8 * 2rem + 7 * 4px);
 }
 
 .mb-row {
-  position: absolute; left: 0; right: 0; top: 2.2rem;
-  display: flex; justify-content: center; gap: 4px;
+  position: absolute; top: 3.6rem; left: 50%;
+  width: var(--mb-row); margin-left: calc(var(--mb-row) / -2);
+  display: flex; gap: 4px;
 }
 
-/* A BLOCK. Flat colour with a hard light edge on the top and left and a hard dark one on the bottom
-   and right — which is how every sprite of this kind was shaded, because a two-pixel border was all
-   anybody could afford and it turned out to be enough. */
+/* A BLOCK is a box that moves; its FACE is `::before`, drawn over everything inside it. Flat colour
+   with a hard light edge on the top and left and a hard dark one on the bottom and right — which is
+   how every sprite of this kind was shaded, because a two-pixel border was all anybody could afford
+   and it turned out to be enough. */
 .mb-block {
-  position: relative;
+  position: relative; flex: none;
   width: 2rem; height: 2rem;
+  animation: mb-bump 6s steps(4, end) infinite both;
+}
+.mb-block::before {
+  content: ''; position: absolute; inset: 0; z-index: 1;
   background: #c9832f;
   border-top: 3px solid #f0b45f;
   border-left: 3px solid #f0b45f;
   border-right: 3px solid #8a5312;
   border-bottom: 3px solid #8a5312;
-  /* Bumped upward and dropped back, once, when its turn comes — and then a slow breath for as long
-     as the splash is up.
-
-     THE ENTRANCE IS NOT THE PROBLEM AND MUST NOT LOOP. A block that bumps over and over is a block
-     being hit repeatedly, which says something different and quickly becomes irritating. What was
-     wrong is the SILENCE AFTER: the bump takes a third of a second, the splash can be up for eight,
-     and the seven seconds of held stillness read as the page having frozen rather than as a pause.
-
-     So the loop is a second animation, layered after the first, and it is deliberately almost
-     nothing — a hair of vertical drift. Enough that the pixels are never identical two frames
-     running, which is all the eye needs to believe something is still working. */
-  animation: mb-bump .34s steps(4, end) both,
-             mb-idle 1.6s ease-in-out .34s infinite;
 }
-/* THE LETTER, behind the block until it is hit, then rising clear of it and staying. `overflow` is
-   not used to hide it — the block would then clip the letter as it rose. It starts UNDER the block
-   instead and comes out over the top, which is what actually happens. */
+/* THE LETTER, at rest exactly behind its block's face. */
 .mb-block i {
   position: absolute; left: 0; right: 0; top: 0;
   font-family: var(--font);
@@ -5671,56 +5691,48 @@ textarea { touch-action: none; }
   font-size: 1.25rem; line-height: 2rem;
   color: var(--paper);
   text-align: center;
-  opacity: 0;
-  animation: mb-letter .5s cubic-bezier(.2, .9, .3, 1) both;
+  animation: mb-letter 6s linear infinite both;
 }
-/* THE HOVER. Two pixels was the same mistake as the fade — technically animated and visually
-   still. Six pixels and a faint glow reads as a block waiting to be hit, which is what it is. */
-@keyframes mb-idle {
-  0%, 100% { transform: translateY(0);     box-shadow: 0 0 0 rgb(240 180 95 / 0); }
-  50%      { transform: translateY(-6px);  box-shadow: 0 6px 14px rgb(240 180 95 / .35); }
-}
-@keyframes mb-bump {
-  0%   { transform: translateY(0); }
-  40%  { transform: translateY(-11px); }
-  100% { transform: translateY(0); }
-}
-@keyframes mb-letter {
-  0%   { opacity: 0; transform: translateY(0); }
-  25%  { opacity: 1; }
-  100% { opacity: 1; transform: translateY(-2.15rem); }
-}
-
-/* Left to right, one after another, the way somebody running along would hit them. Written out
-   because eight is a number you can see — and both animations on each block share the delay, so a
-   block and its letter cannot come apart. */
-.mb-block:nth-child(1), .mb-block:nth-child(1) i { animation-delay: .15s; }
-.mb-block:nth-child(2), .mb-block:nth-child(2) i { animation-delay: .32s; }
-.mb-block:nth-child(3), .mb-block:nth-child(3) i { animation-delay: .49s; }
-.mb-block:nth-child(4), .mb-block:nth-child(4) i { animation-delay: .66s; }
-.mb-block:nth-child(5), .mb-block:nth-child(5) i { animation-delay: .83s; }
-.mb-block:nth-child(6), .mb-block:nth-child(6) i { animation-delay: 1.0s; }
-.mb-block:nth-child(7), .mb-block:nth-child(7) i { animation-delay: 1.17s; }
-.mb-block:nth-child(8), .mb-block:nth-child(8) i { animation-delay: 1.34s; }
 
 /* THE COIN off the last one. Square, because a circle of this size in a game of that age was a
    square with its corners taken off — and it spins by being squashed flat and back, which is how
-   a coin was animated before anybody could rotate anything. */
+   a coin was animated before anybody could rotate anything. The squash was `width`; it is now
+   `scaleX` on the face, so the box that rises and the face that spins are two elements and two
+   transforms that cannot fight. */
 .mb-coin {
-  position: absolute; top: 2.2rem; left: 50%;
-  margin-left: 6.2rem;
-  width: 14px; height: 14px;
+  position: absolute; left: 50%; top: 50%;
+  width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  animation: mb-coin 6s linear infinite both;
+}
+.mb-coin::before {
+  content: ''; position: absolute; inset: 0;
   background: var(--gold, #f0a93c);
   box-shadow: inset 0 0 0 2px #8a5312;
-  opacity: 0;
-  animation: mb-coin 1s ease-out 1.45s both, mb-spin .18s steps(2, end) 1.45s 5;
+  animation: mb-spin .36s steps(4, end) infinite;
 }
-@keyframes mb-coin {
-  0%   { opacity: 1; transform: translateY(0); }
-  55%  { opacity: 1; transform: translateY(-3.4rem); }
-  100% { opacity: 0; transform: translateY(-2rem); }
+@keyframes mb-spin { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(.28); } }
+
+/* THE RUNNER. `.mb-run` carries it across, `.mb-hop` lifts it, and its two frames — mid-stride and
+   passing — swap by opacity on a beat of their own. Its pixels are paths in two small SVGs drawn
+   with `crispEdges`, so a pixel is a square at every size rather than a blurred box-shadow. */
+.mb-run {
+  position: absolute; bottom: 2.2rem; left: 50%; z-index: 1;
+  margin-left: calc(var(--mb-row) / -2);
+  width: 1.44rem; height: 1.98rem;
+  animation: mb-run 6s linear infinite both;
 }
-@keyframes mb-spin { 0% { width: 14px; } 50% { width: 4px; } 100% { width: 14px; } }
+.mb-hop { position: absolute; inset: 0; animation: mb-hop 6s linear infinite both; }
+.mb-sprite { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.mb-sprite.is-b { opacity: 0; animation: mb-stride .2s steps(1, end) infinite; }
+.mb-sprite.is-a { animation: mb-stride .2s steps(1, end) -.1s infinite; }
+@keyframes mb-stride { 0% { opacity: 0; } 50% { opacity: 1; } }
+/* ITS COLOURS ARE THE APP'S: the gold of the one action, the paper, the ink, the coral. */
+.mb-px-gold { fill: var(--gold); }
+.mb-px-tassel { fill: var(--coral); }
+.mb-px-skin { fill: var(--paper); }
+.mb-px-eye { fill: var(--bg); }
+.mb-px-leg { fill: var(--dim); }
+.mb-px-shoe { fill: var(--ink); }
 
 /* THE GROUND. Solid, with a lighter cap along the top — in these games the ground is a thing you
    stand on, not a line under a picture. */
@@ -5740,11 +5752,32 @@ textarea { touch-action: none; }
     repeating-linear-gradient(0deg,  transparent 0 1rem,   rgb(0 0 0 / .35) 1rem 1.06rem);
 }
 
-/* LESS MOVEMENT: the row already spelt out, the coin gone, the ground where it is. */
+/* THE TIMELINE — from tools/blocks.py. Left to right, .17s apart, the way somebody running along
+   would hit them; a block and its letter share a delay so they cannot come apart. */
+@keyframes mb-run { 0% { transform: translateX(-6rem); opacity: 1; } 8.33% { transform: translateX(0.28rem); opacity: 1; } 28.17% { transform: translateX(calc(7 * (2rem + 4px) + 0.28rem)); opacity: 1; } 35.67% { transform: translateX(calc(7 * (2rem + 4px) + 6.28rem)); opacity: 1; } 36.5% { transform: translateX(calc(7 * (2rem + 4px) + 6.28rem)); opacity: 0; } 37.33%, 98.33% { transform: translateX(-6rem); opacity: 0; } 100% { transform: translateX(-6rem); opacity: 1; } }
+@keyframes mb-hop { 0%, 6.92% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 8.33% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 9.75% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 11.17% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 12.58% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 14% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 15.42% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 16.83% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 18.25% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 19.67% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 21.08% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 22.5% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 23.92% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 25.33% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 26.75% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 28.17% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 29.58%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } }
+@keyframes mb-bump { 0% { transform: translateY(0); } 2.27% { transform: translateY(-11px); } 5.67%, 100% { transform: translateY(0); } }
+@keyframes mb-letter { 0% { transform: translateY(0); animation-timing-function: cubic-bezier(.2,.9,.3,1); } 8.33%, 65% { transform: translateY(-2.15rem); animation-timing-function: ease-in; } 70%, 100% { transform: translateY(0); } }
+@keyframes mb-coin { 0% { transform: translateY(0); opacity: 1; animation-timing-function: ease-out; } 9.17% { transform: translateY(-3.4rem); opacity: 1; animation-timing-function: ease-in; } 16.67% { transform: translateY(-2rem); opacity: 0; } 17.5%, 99.17% { transform: translateY(0); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+.mb-block:nth-child(1), .mb-block:nth-child(1) i { animation-delay: 0.5s; }
+.mb-block:nth-child(2), .mb-block:nth-child(2) i { animation-delay: 0.67s; }
+.mb-block:nth-child(3), .mb-block:nth-child(3) i { animation-delay: 0.84s; }
+.mb-block:nth-child(4), .mb-block:nth-child(4) i { animation-delay: 1.01s; }
+.mb-block:nth-child(5), .mb-block:nth-child(5) i { animation-delay: 1.18s; }
+.mb-block:nth-child(6), .mb-block:nth-child(6) i { animation-delay: 1.35s; }
+.mb-block:nth-child(7), .mb-block:nth-child(7) i { animation-delay: 1.52s; }
+.mb-block:nth-child(8), .mb-block:nth-child(8) i { animation-delay: 1.69s; }
+.mb-coin { animation-delay: 1.8s; }
+
+/* LESS MOVEMENT: the finished still — the row spelt out, the coin gone, the runner standing under
+   the last block it hit. */
 @media (prefers-reduced-motion: reduce) {
-  .mb-block { animation: none; }
-  .mb-block i { animation: none; opacity: 1; transform: translateY(-2.15rem); }
-  .mb-coin { animation: none; opacity: 0; }
+  .mb-block, .mb-block i, .mb-coin, .mb-coin::before, .mb-run, .mb-hop,
+  .mb-sprite.is-a, .mb-sprite.is-b { animation: none; }
+  .mb-block i { transform: translateY(-2.15rem); }
+  .mb-coin { opacity: 0; }
+  .mb-run { transform: translateX(calc(7 * (2rem + 4px) + .28rem)); }
+  .mb-sprite.is-b { opacity: 0; }
 }
 
 /* ==================================================================================================
