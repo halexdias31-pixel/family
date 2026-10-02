@@ -455,6 +455,122 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
   say('A LOADING SCREEN THAT DOES NOT SAY WHOSE APP IT IS', nameless);
 }
 
+/* ---------- 9. A SPLASH BUILT AS ONE SEAMLESS LOOP STAYS ONE ---------------------------------------
+   THREE SPLASHES WERE REBUILT TOGETHER — the coin, the sieve and the blocks — and each had failed in
+   one of the same three ways:
+     A ONE-SHOT WITH A GLOW AFTER IT. The sieve struck its numbers once in 1.2s and then pulsed; the
+     blocks bumped once and then hovered. Because the glow was `infinite`, index.html's replay loop
+     ("IF ANYTHING HERE LOOPS, NOTHING IS TOUCHED") never ran the story again, so a slow load showed
+     the ending and a shimmer for the rest of its life.
+     A PROPERTY THE COMPOSITOR CANNOT RUN. The sieve's strike grew `width` and faded `color`; the
+     blocks' hover animated `box-shadow` and the coin spun by animating `width`. docs/history 055
+     measured that this did not stutter, and that is not a licence: transform and opacity are the
+     only two that cannot.
+     A STILL THAT WAS NOT THE ANSWER. Each has a reduced-motion rule, and it must stay.
+   So a splash named here must: animate only `transform` and `opacity`; give every animation
+   `infinite` (one cycle that ends where it began, rather than a story and an encore); and have a
+   reduced-motion rule that switches its animations off. Then each states the one thing about it
+   that was wrong and is easy to undo — those are below, with what they guard against.
+
+   A REGISTRY RATHER THAN EVERY SPLASH, because 23 of the 39 still animate something else and most
+   of them are fine (055 again). A splash joins this list when it is rebuilt as a loop. */
+{
+  const h = fs.readFileSync(path.join(dir, 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+  /* THE MARKUP OF ONE SPLASH: from its opening tag to the next splash's, or to `#splash-say`, which
+     follows the last one. */
+  const markup = id => {
+    const a = h.search(new RegExp('<(div|svg) id="splash-' + id + '"'));
+    if (a < 0) return null;
+    const rest = h.slice(a + 10);
+    const b = rest.search(/<(div|svg|p) id="splash-/);
+    return h.slice(a, b < 0 ? h.length : a + 10 + b);
+  };
+  /* KEYFRAMES BY NAME, read off the comment-blanked text so a keyframe described in prose is not a
+     keyframe. Brace-matched, because a regex to the first `}` stops at the end of the first stop —
+     the fault the brace check at the top of this file was written for. */
+  const frames = {};
+  for (const m of bare.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+    let i = m.index + m[0].length, depth = 1;
+    while (i < bare.length && depth) { if (bare[i] === '{') depth++; else if (bare[i] === '}') depth--; i++; }
+    const body = bare.slice(m.index + m[0].length, i - 1);
+    const props = new Set();
+    for (const s of body.matchAll(/\{([^{}]*)\}/g)) {
+      s[1].split(';').forEach(d => { const k = d.split(':')[0].trim().toLowerCase(); if (k) props.add(k); });
+    }
+    frames[m[1]] = props;
+  }
+  const WORDS = new Set(['linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out', 'infinite', 'both',
+    'forwards', 'backwards', 'none', 'alternate', 'reverse', 'alternate-reverse', 'normal',
+    'running', 'paused', 'step-start', 'step-end', 'end', 'start', 'jump-none', 'jump-both']);
+  const namesIn = val => val.replace(/\([^()]*\)/g, '').split(/[\s,]+/)
+    .filter(t => /^[a-z][\w-]*$/i.test(t) && !WORDS.has(t));
+  const loopBad = [];
+
+  const LOOPED = {
+    /* THE COIN'S FACES ARE ONE METAL, AND IT HAS AN EDGE. It was gold one side and mint the other
+       — a counter, not a coin — and paper-thin edge-on. The look lives in `.cn-coin b`, so a face
+       rule that sets its own background or colour is the mint side coming back; and the thickness
+       is the stack of discs inside the coin, so fewer than four is a coin that vanishes when it
+       turns. */
+    coin: (m) => {
+      const bad = [];
+      rules.filter(r => /^\.cn-[ht]$/.test(r.sel) && !r.cond).forEach(r => r.decls
+        .filter(d => /^(background|background-color|color|border|border-color)$/.test(d.prop))
+        .forEach(d => bad.push('line ' + r.line + '  ' + r.sel + ' sets its own ' + d.prop
+          + ' — the two faces of the coin are one metal, drawn once in `.cn-coin b`')));
+      const coin = (m.match(/<div class="cn-coin">([\s\S]*?)<\/div>/) || [])[1] || '';
+      const discs = (coin.match(/<i><\/i>/g) || []).length;
+      if (discs < 4) bad.push('the coin holds ' + discs + ' edge discs — fewer than four and it is '
+        + 'a hairline whenever it is edge-on (tools/coin.py prints them)');
+      return bad;
+    },
+  };
+
+  Object.keys(LOOPED).forEach(id => {
+    const m = markup(id);
+    if (!m) { loopBad.push('#splash-' + id + ' is not in index.html — this check cannot see it'); return; }
+    const classes = new Set();
+    for (const c of m.matchAll(/class="([^"]+)"/g)) c[1].split(/\s+/).forEach(x => x && classes.add(x));
+    const ours = r => r.sel.includes('#splash-' + id)
+      || [...classes].some(c => new RegExp('\\.' + c + '(?![\\w-])').test(r.sel));
+    const mine = rules.filter(r => ours(r) && !/^\d|^from$|^to$/.test(r.sel));
+    const moving = mine.filter(r => !/reduced-motion/.test(r.cond));
+    const used = new Set();
+    moving.forEach(r => r.decls.forEach(d => {
+      const p = d.prop.toLowerCase();
+      if (p === 'animation' && d.val !== 'none') {
+        d.val.split(/,(?![^()]*\))/).forEach(part => {
+          namesIn(part).forEach(n => used.add(n));
+          if (!/\binfinite\b/.test(part) && !r.decls.some(x => x.prop === 'animation-iteration-count'
+              && /infinite/.test(x.val))) {
+            loopBad.push('line ' + r.line + '  ' + r.sel + '  →  `' + part.trim() + '` ends — a splash '
+              + 'built as a loop must not have an animation that stops');
+          }
+        });
+      }
+      if (p === 'animation-name') namesIn(d.val).forEach(n => used.add(n));
+      if (p === 'animation-duration' && !r.decls.some(x => x.prop === 'animation-iteration-count'
+          && /infinite/.test(x.val))) {
+        loopBad.push('line ' + r.line + '  ' + r.sel + '  gives a duration and no `infinite` — it plays once');
+      }
+    }));
+    for (const s of m.matchAll(/animation-name:\s*([\w-]+)/g)) used.add(s[1]);
+    used.forEach(n => {
+      if (!frames[n]) { loopBad.push('#splash-' + id + ' names `' + n + '` and no @keyframes has that name'); return; }
+      const other = [...frames[n]].filter(p => p !== 'transform' && p !== 'opacity'
+        && p !== 'animation-timing-function');
+      if (other.length) loopBad.push('@keyframes ' + n + ' (#splash-' + id + ') animates ' + other.join(', ')
+        + ' — only transform and opacity run on the compositor');
+    });
+    if (!used.size) loopBad.push('#splash-' + id + ' has no animation at all that this check can find');
+    if (!mine.some(r => /reduced-motion/.test(r.cond) && r.decls.some(d => d.prop === 'animation' && d.val === 'none'))) {
+      loopBad.push('#splash-' + id + ' has no reduced-motion rule turning its animation off');
+    }
+    LOOPED[id](m).forEach(x => loopBad.push('#splash-' + id + ': ' + x));
+  });
+  say('A SPLASH BUILT AS ONE LOOP THAT IS NOT ONE — ' + Object.keys(LOOPED).join(', '), loopBad);
+}
+
 console.log('');
 console.log('rules read: ' + rules.length);
 console.log(fail

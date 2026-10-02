@@ -67,7 +67,8 @@ for i, c in enumerate(SEQ):
                 % (i, pct(land[i] + 0.05), pct(land[i] + 0.12), end, pct(T * FADE / 100) if last else pct(land[i + 1] + 0.01)))
     says.append('<span style="animation-name: cn-s%d">%s</span>' % (i, text))
 
-print('    <div class="cn-stage"><div class="cn-coin"><b class="cn-h">H</b><b class="cn-t">T</b></div><i class="cn-shadow"></i></div>')
+# six edge discs before the faces: the coin's thickness, seen when it is edge-on (style.css says why)
+print('    <div class="cn-stage"><div class="cn-coin">' + '<i></i>' * 6 + '<b class="cn-h">H</b><b class="cn-t">T</b></div><i class="cn-shadow"></i></div>')
 print('    <div class="cn-row">' + ''.join(marks) + '</div>')
 print('    <div class="cn-bar"><i></i></div>')
 print('    <div class="cn-say">' + ''.join(says) + '</div>')

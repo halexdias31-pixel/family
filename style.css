@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-02-tag-colours";
+  --css-version: "2026-10-03-animB";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6956,12 +6956,59 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    Transform and opacity only, so the compositor runs all of it. */
 #splash-coin .cn-stage { position: relative; width: 3.4rem; height: 6rem; margin: 0 auto;
         perspective: 16rem; display: flex; align-items: flex-end; justify-content: center; }
-.cn-coin { position: relative; width: 3.4rem; height: 3.4rem; transform-style: preserve-3d;
+/* ---------- AND NOW IT LOOKS LIKE ONE --------------------------------------------------------------
+   ASKED FOR AS "make the coin look more like a coin". The toss was right and the object was not: a
+   flat #e8c15f disc with an H on one side and a MINT one with a T on the other, both on one plane.
+   Gold on one face and teal on the other is a counter, not a coin, and with `backface-visibility`
+   doing the flip the two faces shared a plane — so edge-on, twice a toss, the coin was a hairline.
+
+   ONE METAL, BOTH FACES, built in three layers that a struck coin has:
+     the MILLED EDGE  the face's own background, a repeating conic of light and dark ridges, of
+                      which only a thin ring shows round the outside;
+     the RAISED RIM   `::before`, inset a little, a bevelled border lit from the top left and shaded
+                      bottom right, round a field with a specular highlight in the same corner;
+     a RING OF DOTS   `::after`, a dotted border inside the rim — the generic ornament, and on
+                      purpose nothing more. No head, no date, no legend: a coin that looked like a
+                      real currency would be a picture of somebody else's money.
+   The letter is embossed — light above-left, shade below-right — rather than printed on.
+
+   THICKNESS IS SIX DISCS STACKED IN Z inside the `preserve-3d` coin, with the faces just outside
+   them at ±.15rem. Face-on they are behind the face and invisible; edge-on they ARE the coin, a gold
+   band about .3rem deep. Nothing new moves: the discs ride the toss that was already there, so the
+   whole thing is still one transform on one element.
+
+   THE TALLY KEEPS ITS TEAL T. The chips and the caption are a code, not the coin — they only need
+   H and T to be told apart at a glance, which gold on gold would not do.
+
+   COLOURS ARE THIS COIN'S OWN, so they are named on it and offered to nothing else. */
+.cn-coin { --cn-hi: #fff4cc; --cn-gold: #e8c15f; --cn-mid: #c99a3a; --cn-deep: #9a6f1d;
+           --cn-dark: #6e4e12;
+           position: relative; width: 3.4rem; height: 3.4rem; transform-style: preserve-3d;
            animation: cn-toss 9s linear infinite; }
 .cn-coin b { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center;
-             font: 700 1.2rem var(--mono); backface-visibility: hidden; }
-.cn-h { background: #e8c15f; border: 3px solid #a8873a; color: #6b5420; }
-.cn-t { background: #6fd8c4; border: 3px solid #3f9a88; color: #1d5147; transform: rotateX(180deg); }
+             font: 700 1.3rem var(--mono); color: var(--cn-mid);
+             text-shadow: -1px -1px 0 var(--cn-hi), 1px 1px 0 var(--cn-dark);
+             background: repeating-conic-gradient(var(--cn-deep) 0 4deg, var(--cn-gold) 4deg 8deg);
+             backface-visibility: hidden; }
+/* z-index -1 is under the letter and above the milled background, because the face's own
+   transform makes it the stacking context both layers sit in. */
+.cn-coin b::before, .cn-coin b::after { content: ''; position: absolute; border-radius: 50%;
+                                         z-index: -1; }
+.cn-coin b::before { inset: .14rem; border: .17rem solid var(--cn-mid);
+                     border-color: var(--cn-hi) var(--cn-deep) var(--cn-deep) var(--cn-hi);
+                     background: radial-gradient(circle at 34% 28%, var(--cn-hi) 0,
+                                 var(--cn-gold) 26%, var(--cn-mid) 70%, var(--cn-deep) 100%); }
+.cn-coin b::after { inset: .5rem; border: .11rem dotted var(--cn-deep); opacity: .7; }
+.cn-h { transform: translateZ(.15rem); }
+.cn-t { transform: rotateX(180deg) translateZ(.15rem); }
+.cn-coin i { position: absolute; inset: .06rem; border-radius: 50%; background: var(--cn-deep);
+             box-shadow: inset 0 0 0 .1rem var(--cn-mid); }
+.cn-coin i:nth-child(1) { transform: translateZ(-.125rem); }
+.cn-coin i:nth-child(2) { transform: translateZ(-.075rem); }
+.cn-coin i:nth-child(3) { transform: translateZ(-.025rem); }
+.cn-coin i:nth-child(4) { transform: translateZ(.025rem); }
+.cn-coin i:nth-child(5) { transform: translateZ(.075rem); }
+.cn-coin i:nth-child(6) { transform: translateZ(.125rem); }
 .cn-shadow { position: absolute; bottom: -.45rem; left: 50%; width: 3rem; height: .5rem;
              margin-left: -1.5rem; border-radius: 50%; background: rgb(244 241 232 / .35);
              animation: cn-shadow 9s linear infinite; }
