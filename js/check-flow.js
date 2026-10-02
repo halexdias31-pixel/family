@@ -3406,6 +3406,7 @@ check('the camera card starts itself and offers the gallery', async () => {
      · signed in, no festive card — the reported case, where page 0 is the camera
      · signed out — no viewfinder, so nothing to ask for even on its own page
      · a festive card above the camera — the front door is page 2 and the camera page 1
+     · a festive card and no post at all — nothing under the camera, so it must not be the front door
      · to another column and back — on a post it asks nothing; on the camera page that IS arriving
      · refused — a repaint on the camera page does not ask again behind your back; the button does
      · a prompt still up when a repaint lands — one ask, and the stream reaches the card on screen */
