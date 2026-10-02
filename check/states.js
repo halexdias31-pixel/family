@@ -1718,10 +1718,10 @@ const STATES = {
       wants: 'the hand-over card, with no rack on the screen',
       leave: () => { scrabble = null; scrabblePaint(); } },
 
-    /* ---------- THE FIVE CLASSROOM GAMES, EACH ON ITS BUSIEST CARD ----------------------------
-       FOUR OF THEM ARE INSIDE THE WORD GAMES WIDGET NOW and are reached through its dropdown.
+    /* ---------- THE FOUR CLASSROOM GAMES, EACH ON ITS BUSIEST CARD ----------------------------
+       ALL FOUR ARE INSIDE THE WORD GAMES WIDGET NOW and are reached through its dropdown.
        EVERY ONE OPENS ON A SINGLE BUTTON, which is the only state `go()` reaches — so everything
-       these games are (a clock, Taboo's forbidden words, Alibi's six questions) is past it and
+       these games are (a clock, Taboo's forbidden words, 20 Questions' count) is past it and
        nothing would measure it without a state. Entered through the app's own handlers, and then
        given the LONGEST entry its deck holds: a round is dealt at random, so a state that measured
        whatever came up would measure a different card every run, and the one worth measuring is
@@ -1785,32 +1785,9 @@ const STATES = {
       wants: 'the count, Yes and No, and no secret on the screen',
       leave: () => { PARTY.twq = null; twqPaint(); } },
 
-    { name: 'an alibi case card',
-      enter: () => {
-        goPage('games', (n => { if (n < 0) throw new Error('no alibi widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'alibi')), true);
-        ACTIONS['alb-start'](document.createElement('button'));
-        const long = l => l.reduce((a, b) => (b.length > a.length ? b : a), '');
-        Object.assign(PARTY.alb, { crime: long(ALB_CRIMES), time: long(ALB_TIMES), place: long(ALB_PLACES) });
-        albPaint();
-      },
-      expect: () => !!document.querySelector('#s-games #alb-card .alb-facts')
-                 && !document.querySelector('#s-games #alb-card .alb-qs'),
-      wants: 'the crime, the time and the alibi, with no questions on it',
-      leave: () => { partyHold_('alb'); PARTY.alb = null; albPaint(); } },
-
-    /* THE SIX LONGEST QUESTIONS, for the same reason: six of a hundred and twenty chosen at random
-       is a list a different height every run. */
-    { name: 'an alibi interview',
-      enter: () => {
-        goPage('games', (n => { if (n < 0) throw new Error('no alibi widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'alibi')), true);
-        ACTIONS['alb-start'](document.createElement('button'));
-        PARTY.alb.qs = ALB_QUESTIONS.slice().sort((a, b) => b.length - a.length).slice(0, ALB_ASK);
-        ACTIONS['alb-next'](document.createElement('button'));
-      },
-      expect: () => document.querySelectorAll('#s-games #alb-card .alb-qs li').length === ALB_ASK
-                 && !!document.querySelector('#s-games #alb-card .party-clock'),
-      wants: 'suspect 1, the clock and six questions',
-      leave: () => { partyHold_('alb'); PARTY.alb = null; albPaint(); } },
+    /* `an alibi case card` AND `an alibi interview` WERE HERE, and went with the game ("delete alibi
+       game.") — a state that enters a widget nobody can open fails loudly, which is right, and a
+       state measuring nothing has no business being kept to say so. */
     /* ---------- A WORD SEARCH PART-FOUND, AND A SENTENCE PART-BUILT ------------------------------
        Both widgets OPEN on a fresh deal, which is the one state `go()` reaches — and a fresh deal is
        the state with nothing struck through, nothing highlighted, no start ring and an empty strip.

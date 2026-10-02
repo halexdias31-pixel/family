@@ -1137,8 +1137,8 @@ const WIDGETS = [
      its card taken out of the document, so its own stop is exactly the "column left" case each one
      already handles — Articulate's clock stops, a party game pauses, Imposter hides its word.
 
-     ALIBI AND HERD MENTALITY ARE NOT IN IT. Alibi is an interview with a case file and two suspects
-     rather than a word to get across, and Herd Mentality is a question everybody answers at once. */
+     HERD MENTALITY IS NOT IN IT. It is a question everybody answers at once rather than a word to
+     get across. (Alibi was not in it either, and is deleted — see where its card was, below.) */
   { id: 'wordgames', kind: 'game', name: 'Word games', start: () => initWordGames?.(),
     stop: () => { if (typeof wordGamesStop_ === 'function') wordGamesStop_(); },
     into: 'wg-slot', what: 'The game',
@@ -1194,20 +1194,9 @@ const WIDGETS = [
     </div>
   </div>` },
 
-  /* ---------- ALIBI — THE ONE CLASSROOM GAME THAT IS NOT A WORD GAME ------------------------------
-     The note over `PARTY` in games.js is the argument for its engine. Its four siblings moved into
-     the Word games widget above; this one is an interview rather than a word, so it kept its card. */
-  { id: 'alibi', kind: 'game', name: 'Alibi', start: () => partyStart_?.('alb'),
-    stop: () => { if (typeof partyStop_ === 'function') partyStop_('alb'); },
-    into: 'alb-card', what: 'The case',
-    html: `<div class="card">
-    <h3>Alibi</h3>
-    <p class="sub">Detectives question two suspects separately and look for where the stories differ.</p>
-    <div id="alb-card" class="art"></div>
-    <div id="alb-acts" class="party-acts"></div>
-    <p class="note" id="alb-said" style="text-align:center;margin:.5rem 0 0"></p>
-  </div>` },
-
+  /* `alibi` WAS HERE, a card of its own between Scrabble and the maze, and is deleted on request
+     ("delete alibi game.") — the note where its engine was in games.js says what went with it. A
+     star on it no longer matches a widget, so `savedWidgets_` simply stops drawing it. */
   { id: 'maze', kind: 'game', name: 'Maze', start: () => initMaze?.(),
     into: 'maze-grid', what: 'The maze',
     html: `<div class="card">

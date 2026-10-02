@@ -254,7 +254,7 @@ function boot(opts) {
          when this hook was built, which is the fault CLAUDE.md records about a state seeding
          `DATA.students` before that assignment. */
       'DATA: () => DATA,' +
-      /* THE FIVE CLASSROOM GAMES' ROUNDS, as a getter for the same reason — a journey asks whether a
+      /* THE FOUR CLASSROOM GAMES' ROUNDS, as a getter for the same reason — a journey asks whether a
          repaint kept the round, and only the state can say that the clock did not move while the
          column was away. */
       'PARTY: () => (typeof PARTY !== "undefined" ? PARTY : null),' +
@@ -1036,8 +1036,8 @@ check('the word search hides every word where it says, and two taps find it', as
 });
 
 
-/* ---------- THE FIVE CLASSROOM GAMES: A ROUND SURVIVES A REPAINT, AND WAITS WHILE YOU ARE AWAY -----
-   JUST A MINUTE, TABOO, HOT SEAT, 20 QUESTIONS AND ALIBI were asked to keep their round through a
+/* ---------- THE FOUR CLASSROOM GAMES: A ROUND SURVIVES A REPAINT, AND WAITS WHILE YOU ARE AWAY -----
+   JUST A MINUTE, TABOO, HOT SEAT AND 20 QUESTIONS were asked to keep their round through a
    repaint — which is a stop and a start a moment apart — and to stop their clock when the column is
    left. Those pull against each other, because both arrive as the same `stop`, and every way of
    getting it wrong draws perfectly: a repaint that pauses the round under somebody's finger, a
@@ -1047,9 +1047,9 @@ check('the word search hides every word where it says, and two taps find it', as
 /* A COLUMN'S WIDGETS ARE STARTED AND STOPPED FROM `afterSlide_`, about 300ms after the move, so a
    journey asking what leaving did has to wait that long first. */
 const LEAVE_MS = 700;
-/* `k` IS WHICH WORD GAME THE WIDGET OPENS ON. Four of these five live inside the one Word games
-   widget now, which draws only the game chosen; the choice is the device's, so it is set there
-   before the column is reached. Alibi kept its own card and passes nothing. */
+/* `k` IS WHICH WORD GAME THE WIDGET OPENS ON. All four live inside the one Word games widget, which
+   draws only the game chosen; the choice is the device's, so it is set there before the column is
+   reached. Alibi was the one that passed nothing, because it kept a card of its own; it is deleted. */
 const partyBoot_ = async (k) => {
   const { w } = boot();
   await wait(300);
@@ -1249,30 +1249,24 @@ check('the word games are one widget, and switching game pauses the one left', a
   return bad;
 });
 
-check('alibi shows the case, then the same questions to each suspect on their own clock', async () => {
-  const { t, d, press, text, P } = await partyBoot_();
-  if (!d.getElementById('alb-card')) return ['Alibi did not draw on the Games column'];
+/* ---------- ALIBI IS DELETED, AND NOTHING OF IT IS LEFT TO PRESS -------------------------------------
+   Asked for as "delete alibi game." Its journey was here — a case, two suspects on two clocks, a
+   verdict — and went with it. What replaces it asks the one thing a deletion can get wrong without
+   anything drawing badly: a card left in the roster, or a handler left answering a button nothing
+   draws any more, which is a door to nowhere that `check-doors` would only find from the other end. */
+check('alibi is gone from the Games column, its handlers and its round state', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t || !t.allWidgets) return ['the widget roster is not exported'];
   const bad = [];
-  press('alb-start');
-  const s = P().alb;
-  if (!s) return ['New case did not open one'];
-  const c = text('alb');
-  if (c.indexOf(s.crime) === -1 || c.indexOf(s.time) === -1 || c.indexOf(s.place) === -1) bad.push('the case card is missing the crime, the time or the place');
-  if (s.qs.some(q => c.indexOf(q) !== -1)) bad.push('the questions are on the card the suspects take out of the room');
-  press('alb-next');
-  const one = [...d.querySelectorAll('#alb-card .alb-qs li')].map(li => li.textContent);
-  if (s.who !== 1 || !s.ends || one.length !== 6) bad.push('suspect 1 is not being questioned on a clock with six questions');
-  t.repaint(true);
-  await wait(50);
-  if (P().alb.who !== 1 || !P().alb.ends) bad.push('a repaint lost suspect 1\'s interview');
-  s.ends = Date.now() + 30000;
-  press('alb-next');
-  const two = [...d.querySelectorAll('#alb-card .alb-qs li')].map(li => li.textContent);
-  if (s.who !== 2) bad.push('Next did not bring in suspect 2');
-  if (s.left !== 120000 || Math.abs((s.ends - Date.now()) - 120000) > 1000) bad.push('suspect 2 did not get a clock of their own');
-  if (one.join('|') !== two.join('|')) bad.push('the two suspects were asked different questions');
-  press('alb-next');
-  if (s.phase !== 'verdict' || s.ends) bad.push('the verdict did not follow suspect 2, or left a clock running');
+  if (t.allWidgets().some(x => String(x.id) === 'alibi')) bad.push('alibi is still a widget');
+  ['alb-start', 'alb-next'].forEach(a => { if (t.ACTIONS[a]) bad.push(a + ' still has a handler'); });
+  const P = t.PARTY();
+  if (P && 'alb' in P) bad.push('PARTY still keeps a slot for an alibi round');
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  if (w.document.getElementById('alb-card')) bad.push('an alibi card is still drawn on the Games column');
   return bad;
 });
 
