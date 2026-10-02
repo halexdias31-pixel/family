@@ -111,6 +111,9 @@ function boot(cb) {
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
       ' filterHit, facetOwn_, bucketHas_, bucketDeclares_, STUFF, paperLabels_, stuffHay_, norm,' +
       ' stuffNarrow_, FACET_NEEDS_FIRST, fiveDayLabel_, tagOf_,' +
+      /* THE LIST THE APP DRAWS, SORTED, AND THE LAST-RESORT QUESTION -- so 4e can ask what a person
+         is shown once a paper is chosen, through the same two functions the screen asks. */
+      ' stuffFiltered, overFacet_,' +
       ' chipShow_, qTags_,' +
       ' RETIRED_FACETS, waveOf,' +
       /* A THUNK, NOT THE OBJECT. `load()` ends with `DATA = d` — it REPLACES the payload — so a
@@ -146,6 +149,44 @@ boot(f => {
     return done();
   }
   const facets = f.facetList();
+
+  /* ---------- 0. WHAT THE FIND SCREEN HOLDS IS WHAT THE OWNER SAID IT HOLDS ------------------------
+     ASKED FOR AS *"Get rid of booking places ... So finder now will become just learning stuff"* and
+     *"Get rid of links that's almost redundant now."* Neither is a question about a number, so the
+     rules below could not see either: 127 links and 13 venues answered every facet perfectly well.
+     Measured before the change, over the real files, Find's first question read `Booking, Places |
+     Learning | Links | Shop`.
+
+     ON THE REAL FILES, WHICH IS WHY IT IS HERE. This harness serves every `data/**.json` the app
+     asks for from disk, so a fetch of `data/settings/links.json` that came back would put the 127
+     links straight into `items` — the half `check-flow.js`'s inline payload cannot see. And the
+     fixture's venue is a production-shaped row now that the fixture sends `kinds: []`.
+
+     A KIND AND A DOOR, NOT A WHITELIST OF DOORS. `Shop` is still a door until its column exists
+     (see `shop` in KINDS), and Friends and Paperwork appear for the people they belong to; a list of
+     allowed answers would be wrong the day any of those moves. What is refused is what the owner
+     named, and a door that is two groups joined by a comma — one chip, which is how `Booking,
+     Places` was drawn. */
+  const GONE = { venue: 'booking places', link: 'links' };
+  const kindsHeld = {};
+  items.forEach(x => { kindsHeld[x.kind] = (kindsHeld[x.kind] || 0) + 1; });
+  Object.keys(GONE).forEach(k => {
+    if (kindsHeld[k]) {
+      bad.push(kindsHeld[k] + ' item(s) of kind `' + k + '` are in the list Find draws — the owner asked '
+               + 'for ' + GONE[k] + ' to be taken off it. See FUNNEL_NOT_FOR and the note where `link` was '
+               + 'in KINDS.');
+    }
+  });
+  const forF = facets.find(x => x.field === 'forLabel');
+  const doors = forF ? f.facetValues(items, forF).map(v => String(v.show || v.value)) : [];
+  if (!doors.length) bad.push('`What for` draws no answers over ' + items.length + ' items, so the doors '
+                              + 'could not be read — not a pass');
+  doors.filter(d => /,|^(Links|Places)$/.test(d)).forEach(d => {
+    bad.push('Find\'s first question offers "' + d + '" — a door the owner asked to be rid of, or two '
+             + 'groups drawn as one chip');
+  });
+  console.log('\nWHAT FIND HOLDS: ' + Object.keys(kindsHeld).map(k => k + ' ' + kindsHeld[k]).join(' · ')
+              + '\n  first question: ' + doors.join(' | '));
 
   facets.forEach(facet => {
     const vals = f.facetValues(items, facet);
@@ -211,6 +252,11 @@ boot(f => {
      check-library.js, and the same one that let `resource_type` sit in it after the rename. */
   const SERIES_WORDS = ['Summer', 'Autumn', 'January', 'February', 'March', 'April', 'May', 'June',
                         'July', 'August', 'September', 'October', 'November', 'December'];
+  /* A MONTH WORD AND A YEAR IN ONE STRING — the `June 2024` pill. Read by the card rule in 4 and the
+     Paper-answer rule in 4f, so the two cannot disagree about what "fused" means. */
+  const MONTHS_LC = SERIES_WORDS.slice(2).map(m => m.toLowerCase());
+  const fusedDate_ = s => /\b(19|20)\d{2}\b/.test(String(s))
+    && MONTHS_LC.some(m => new RegExp('\\b' + m + '\\b', 'i').test(String(s)));
   /* ---------- THE SITTING IS TWO QUESTIONS NOW, SO THE RULE IS THREE ------------------------------
      REPORTED AS "some tags are like summer 2018 when it should just be summer then 2018", and
      `examWave` was split into `examSeries` and `examYear` over one reader, `sittingOf_`. THEN THE
@@ -247,7 +293,7 @@ boot(f => {
   } else if (f.facetOwn_ && f.waveOf) {
     const waves = {}, monthsSeen = {}, yearsSeen = {};
     let dated = 0, monthless = 0;
-    const lost = {}, clash = {};
+    const lost = {}, clash = {}, fusedTag = {}, unsplit = {}, tagsRead = {};
     items.forEach(x => {
       const w = String(f.waveOf(x) || '');
       if (w) waves[w] = 1;
@@ -261,19 +307,51 @@ boot(f => {
         /* THE CARD AND THE FOLDER SAY THE SAME MONTH. The card's sitting tag is cut from the paper's
            name; the Month answer once read the date column first, and ten AQA papers said `June 2024`
            on the card and sat in the `May` folder. */
+        /* ---------- AND THE CARD SAYS THEM AS TWO TAGS, THE WAY THE FOLDERS ASK THEM --------------
+           REPORTED AS *"Fix this why it say June and year in same chip"*: the sitting was ONE pill,
+           `June 2024`, under a funnel that asks Year and then Month. So the card's tags are read
+           here as the two folders read them -- a year tag that is the Year answer, a month tag that
+           is the Month answer -- and no tag of any colour may carry a month word and a year at once.
+           THE OLD READ WAS A REGEX FOR THE FUSED PILL, and with the pill split it would match nothing
+           and pass silently: the clash rule would have gone on printing green over cards it no
+           longer read. So the split is asserted, not assumed: a dated card with no month tag is a
+           failure of its own. */
         if (ms.length && f.qTags_) {
-          const tag = (f.qTags_(x) || []).find(t => t.tag === 'sitting');
-          const m = tag && /^(?:\d{1,2}\s+)?([A-Za-z]+)\s+(?:19|20)\d{2}$/.exec(String(tag.text));
-          if (m && ms.indexOf(m[1]) === -1) clash[(x.row && x.row.paper_id) || x.id || '?'] = m[1] + ' / ' + ms[0];
+          const id = (x.row && x.row.paper_id) || x.id || '?';
+          if (!tagsRead[id]) {
+            tagsRead[id] = 1;
+            const tags = f.qTags_(x) || [];
+            tags.forEach(t => { if (fusedDate_(t.text)) fusedTag[id] = (t.tag || 'plain') + ' "' + t.text + '"'; });
+            const sit = tags.filter(t => t.tag === 'sitting').map(t => String(t.text));
+            const mTag = sit.find(t => MONTHS_LC.indexOf(t.split(/\s+/).pop().toLowerCase()) !== -1);
+            const yTag = sit.find(t => /^(19|20)\d{2}$/.test(t));
+            if (!mTag || !yTag) unsplit[id] = sit.join(' + ') || '(no sitting tag)';
+            const mWord = mTag ? mTag.split(/\s+/).pop() : '';
+            if (mWord && ms.indexOf(mWord) === -1) clash[id] = mWord + ' / ' + ms[0];
+            if (yTag && ys.indexOf(yTag) === -1) clash[id] = yTag + ' / ' + ys[0];
+          }
         }
       }
     });
     const clashes = Object.keys(clash);
     if (clashes.length) {
-      bad.push(clashes.length + ' paper(s) whose card says one month and whose Month answer says '
+      bad.push(clashes.length + ' paper(s) whose card says one month or year and whose folder says '
                + 'another (card / folder): ' + clashes.slice(0, 6).map(k => k + ' ' + clash[k]).join(', ')
                + ' — a paper is filed under the month it prints. See sittingMonth_().');
     }
+    const fusedIds = Object.keys(fusedTag);
+    if (fusedIds.length) {
+      bad.push(fusedIds.length + ' card(s) carry a tag holding a month and a year together: '
+               + fusedIds.slice(0, 6).map(k => k + ' ' + fusedTag[k]).join(', ')
+               + ' — the funnel asks Year and then Month, so the card says them as two tags. See qTags_.');
+    }
+    const unsplitIds = Object.keys(unsplit);
+    if (unsplitIds.length) {
+      bad.push(unsplitIds.length + ' dated card(s) do not show the year and the month as two sitting tags: '
+               + unsplitIds.slice(0, 6).map(k => k + ' ' + unsplit[k]).join(', ') + '. See sittingParts_.');
+    }
+    console.log('  Card sitting tags: ' + Object.keys(tagsRead).length + ' dated paper(s) read as a year tag '
+                + 'and a month tag; ' + fusedIds.length + ' fused');
     const oddWave = Object.keys(waves).filter(v => {
       const m = /^([A-Za-z]+) ((?:19|20)\d{2})$/.exec(v);
       return !m || SERIES_WORDS.indexOf(m[1]) === -1;
@@ -525,12 +603,91 @@ boot(f => {
   };
   if (f.stuffNarrow_) {
     chains('in the whole library', items, []);
-    const pid = 'P-1MA1-1705-1H';
-    if (onePaper.length) chains('inside one paper', onePaper, [{ field: 'paperId', value: pid }]);
-    console.log('  ' + chained + ' answer(s) pressed inside their bucket, through the whole chain');
+    /* ---------- AND NOT INSIDE ONE PAPER ANY MORE, WHICH IS SAID RATHER THAN SKIPPED ---------------
+       THIS PRESSED THE QUESTION NUMBERS INSIDE `P-1MA1-1705-1H` -- `1–10`, then `1–2`, then `1` --
+       and they were the only buckets a paper ever had. The owner retired both questions (*"no more
+       asking for questions 1-10 or question part 1 or b."*) and a paper now ends the funnel (see
+       `FACET_ENDS`), so inside one paper there is nothing to press. That is asserted in 4e below
+       rather than assumed here: this line only says why the second state is gone. */
+    console.log('  ' + chained + ' answer(s) pressed inside their bucket, through the whole chain'
+                + ' (none inside one paper: a paper ends the funnel, see 4e)');
     if (!chained) bad.push('no answer was drawn inside any bucket, so the chain rule proves nothing');
   } else {
     bad.push('`stuffNarrow_` is not declared, so an answer inside a bucket cannot be pressed — not a pass');
+  }
+
+  /* ---------- 4e. AFTER PAPER, THE PAPER -- ITS QUESTIONS, IN ORDER, AND NOTHING MORE ASKED ------------
+     ASKED FOR AS *"no more asking for questions 1-10 or question part 1 or b."* Before it, GCSE ·
+     Foundation · 2024 · June · Paper 1 went on to `1–10 | 11–20 | 21–30`, then `1–2 | 3–4 | …`, then
+     `1 | 2`. Three halves, each one a way it can come back:
+
+       THE QUESTIONS ARE NOT LIVE.  `qNumber` and `qPart`, and the row's own spellings `question` and
+                                   `part`, must not be in `facetList()` -- a sheet row switched back on
+                                   is refused by `RETIRED_FACETS`, and this is what says so if that goes.
+       NOTHING IS ASKED.           EVERY paper, reached the way a thumb reaches it -- Year, Month, then
+                                   Paper -- asks nothing more, through `nextFacet` and the last resort
+                                   both. Measured with only the two retired: 495 of 496 asked nothing
+                                   and one asked `What you need`. That one is why `FACET_ENDS` exists.
+       IT IS THE WHOLE PAPER, IN ORDER.  The drawn list holds every question of that paper and nothing
+                                   else, question numbers never going backwards -- which is what makes
+                                   it safe to stop asking: the order IS the question number. */
+  ['qNumber', 'qPart', 'question', 'part'].forEach(old => {
+    if (facets.find(x => x.field === old)) {
+      bad.push('`' + old + '` is a live question again — the owner asked for "no more asking for '
+               + 'questions 1-10 or question part 1 or b." See RETIRED_FACETS.');
+    }
+  });
+  if (f.stuffFiltered && f.nextFacet && syear && smonth) {
+    const was = { q: f.STUFF.q, filters: f.STUFF.filters.slice() };
+    const byPaper = {};
+    items.forEach(x => { const id = x.row && x.row.paper_id; if (id && x.kind === 'question') (byPaper[id] = byPaper[id] || []).push(x); });
+    const after = {}, out = [];
+    let walkedP = 0;
+    try {
+      Object.keys(byPaper).forEach(id => {
+        const one = byPaper[id][0];
+        const y = f.facetOwn_(syear, one)[0], m = f.facetOwn_(smonth, one)[0];
+        f.STUFF.q = '';
+        f.STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }]
+          .concat(y ? [{ field: 'examYear', value: y }] : [])
+          .concat(m ? [{ field: 'examMonth', value: m }] : [])
+          .concat([{ field: 'paperId', value: id }]);
+        const list = f.stuffFiltered();
+        walkedP++;
+        const next = f.nextFacet(list) || (f.overFacet_ && f.overFacet_(list));
+        if (next) {
+          after[next.field] = (after[next.field] || 0) + 1;
+          if (out.length < 6) out.push(id + ' asks `' + next.field + '`: ' + f.facetValues(list, next)
+            .map(v => (v.show || v.value) + ' ' + v.n).join(' | '));
+        }
+        const want = byPaper[id].length;
+        if (list.length !== want || list.some(x => !x.row || x.row.paper_id !== id)) {
+          bad.push(id + ': choosing the paper draws ' + list.length + ' item(s) where the paper has ' + want
+                   + ' question(s) — after Paper the list is the paper, whole');
+        }
+        for (let i = 1; i < list.length; i++) {
+          const a = Number(list[i - 1].qNumber), b = Number(list[i].qNumber);
+          if (isFinite(a) && isFinite(b) && b < a) {
+            bad.push(id + ': question ' + list[i].qNumber + ' is drawn after question ' + list[i - 1].qNumber
+                     + ' — the paper\'s own order is the only thing left to find a question by. See stuffSorted_.');
+            break;
+          }
+        }
+      });
+    } finally { f.STUFF.q = was.q; f.STUFF.filters = was.filters; }
+    const askedAfter = Object.keys(after);
+    if (askedAfter.length) {
+      bad.push(askedAfter.map(k => after[k] + ' paper(s) ask `' + k + '`').join(', ') + ' once the paper '
+               + 'is chosen — after Paper the list is the answer. See FACET_ENDS. ' + out.join('; '));
+    }
+    console.log('  After Paper: ' + walkedP + ' paper(s) chosen through Year and Month; '
+                + (askedAfter.length ? askedAfter.length + ' question(s) still asked' : 'nothing more asked')
+                + ', each the whole paper in question order');
+    if (walkedP < 100) bad.push('only ' + walkedP + ' paper(s) could be chosen, so the after-Paper rule '
+                                + 'measures almost nothing — not a pass');
+  } else {
+    bad.push('`stuffFiltered` or `nextFacet` is not declared, or the sitting is not two questions, so what '
+             + 'follows Paper cannot be read — not a pass');
   }
 
   /* ---------- 5. TWO FACETS, ONE MEANING --------------------------------------------------------
@@ -869,6 +1026,110 @@ boot(f => {
     bad.push('`facetValues` is not declared, so the paper labels cannot be checked — not a pass');
   }
 
+  /* ---------- 4f. A CHIP'S HALF OF THE DATE IS NOT SAID AGAIN, AND NO ANSWER FUSES THE TWO -------------
+     REPORTED AS *"Fix this why it say June and year in same chip"*. The card's tag is asserted in 4;
+     this is the other half, the Paper answers and the chips they make. Measured before the fix, Year
+     skipped and `June` pressed: `Paper 1 — June 2023 | Paper 1 — June 2024` -- the month the person
+     had just chosen, read back fused to the year they had not.
+
+     EVERY YEAR FOLDER A THUMB CAN REACH OVER PAST PAPERS, found by answering the funnel's own
+     questions rather than named here, so a subject or a level added next term is walked with nothing
+     to change. At each one, the three routes that say something: a year with the month skipped, a
+     month with the year skipped, and both. Every Paper answer drawn there -- inside its bucket where
+     the list is long -- and the chip it makes when pressed:
+
+       never says the year a Year chip said, nor the month a Month chip said,
+       never carries a month word and a year together,
+       and reads on the chip exactly as it read on the button.
+
+     NOT THE ROUTE WITH BOTH FOLDERS SKIPPED. `Doesn't matter` twice is a person choosing to see every
+     sitting at once, nothing above the answers has said either half, and `— June 2023` is then the only
+     thing telling two Paper 1s apart; that route keeps the date as the paper prints it, and the count
+     of such answers is printed rather than failed. */
+  if (f.nextFacet && f.stuffNarrow_ && f.chipShow_ && syear && smonth) {
+    const paperF = facets.find(x => x.field === 'paperId');
+    const was = { q: f.STUFF.q, filters: f.STUFF.filters.slice() };
+    const listAt = chips => { f.STUFF.q = ''; f.STUFF.filters = chips.slice(); return f.stuffNarrow_(items, chips, [], null); };
+    const chipOf = (v, field) => Object.assign({ field: field, value: v.value }, v.bucket ? { bucket: true } : {});
+    const folders = [];
+    const seenAt = new Set();
+    const find = (chips, depth) => {
+      const k = JSON.stringify(chips);
+      if (seenAt.has(k) || folders.length >= 60) return;
+      seenAt.add(k);
+      const list = listAt(chips);
+      const next = list.length ? f.nextFacet(list) : null;
+      if (!next) return;
+      if (next.field === 'examYear') { folders.push(chips); return; }
+      if (depth <= 0) return;
+      f.facetValues(list, next).forEach(v => find(chips.concat([chipOf(v, next.field)]), depth - 1));
+    };
+    let read = 0, unsaid = 0;
+    try {
+      find([{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' },
+            { field: 'documentType', value: 'Past paper' }], 6);
+      const labelsAt = chips => {
+        const out = [];
+        const list = listAt(chips);
+        f.facetValues(list, paperF).forEach(v => {
+          if (!v.bucket) { out.push({ chips: chips, v: v }); return; }
+          const inside = chips.concat([chipOf(v, 'paperId')]);
+          f.facetValues(listAt(inside), paperF).filter(w => !w.bucket).forEach(w => out.push({ chips: inside, v: w }));
+        });
+        return out;
+      };
+      folders.forEach(at => {
+        const here = listAt(at);
+        const years = {}, months = {};
+        here.forEach(x => {
+          f.facetOwn_(syear, x).forEach(y => { years[y] = 1; });
+          f.facetOwn_(smonth, x).forEach(m => { months[m] = 1; });
+        });
+        const routes = [];
+        Object.keys(years).forEach(y => {
+          routes.push([{ field: 'examYear', value: y }, { field: 'examMonth', any: true }]);
+          Object.keys(months).forEach(m => routes.push([{ field: 'examYear', value: y }, { field: 'examMonth', value: m }]));
+        });
+        Object.keys(months).forEach(m => routes.push([{ field: 'examYear', any: true }, { field: 'examMonth', value: m }]));
+        routes.forEach(route => {
+          const chips = at.concat(route);
+          const sayY = route[0].any ? '' : route[0].value, sayM = route[1].any ? '' : route[1].value;
+          labelsAt(chips).forEach(({ chips: c, v }) => {
+            const show = String(v.show || v.value);
+            read++;
+            const where = c.filter(x => x.field !== 'forLabel' && x.field !== 'kindLabel')
+              .map(x => x.any ? x.field + ' skipped' : x.value).join(' · ');
+            if (sayY && new RegExp('\\b' + sayY + '\\b').test(show)) {
+              bad.push(where + ': the Paper answer "' + show + '" says the year the Year chip above it already said. See sittingUnsaid_().');
+            }
+            if (sayM && new RegExp('\\b' + sayM + '\\b', 'i').test(show)) {
+              bad.push(where + ': the Paper answer "' + show + '" says the month the Month chip above it already said. See sittingUnsaid_().');
+            }
+            if (fusedDate_(show)) {
+              bad.push(where + ': the Paper answer "' + show + '" holds a month and a year together — the funnel asks them as two folders.');
+            }
+            const pressed = c.concat([{ field: 'paperId', value: v.value }]);
+            f.STUFF.filters = pressed.slice();
+            const chip = f.chipShow_(pressed[pressed.length - 1], pressed.length - 1);
+            if (chip !== show) {
+              bad.push(where + ': pressing "' + show + '" makes a chip reading "' + chip + '" — a chip says what its button said.');
+            }
+          });
+        });
+        /* AND THE ROUTE THAT KEEPS THE PRINTED DATE, counted. */
+        labelsAt(at.concat([{ field: 'examYear', any: true }, { field: 'examMonth', any: true }]))
+          .forEach(({ v }) => { if (fusedDate_(v.show || v.value)) unsaid++; });
+      });
+    } finally { f.STUFF.q = was.q; f.STUFF.filters = was.filters; }
+    console.log('  Paper answers under a Year or Month chip: ' + read + ' read at ' + folders.length
+                + ' year folder(s), none repeating a chip or fusing the date; ' + unsaid
+                + ' keep the printed date with both folders skipped');
+    if (!read) bad.push('no Paper answer was read under a Year or Month chip, so the half-a-date rule proves nothing');
+  } else {
+    bad.push('`chipShow_`, `nextFacet` or `stuffNarrow_` is not declared, or the sitting is not two '
+             + 'questions, so the Paper answers under a Year or Month chip cannot be read — not a pass');
+  }
+
   /* ---------- A SATs PAPER IS `Paper 1` ON THE MENU, ON THE CHIP AND ON THE CARD ----------------------
      REPORTED AS *"When I do maths sats with Jp, the tags come out with full paper name and which paper
      is on the menu."* Measured: Maths · Past paper · KS2 SATs offered `Paper 1: Arithmetic — May 2019`
@@ -937,7 +1198,11 @@ boot(f => {
          the six KS2 papers reading their whole names -- `Paper 1: Arithmetic — May 2019` -- on the
          menu and on the chip, while every check here walked only the years. With the year skipped
          the date is the one thing that tells two papers apart, so it may stay; the qualifier may not.
-         Walked with the Month skipped too and with it answered, because both are a thumb's route. */
+         Walked with the Month skipped too and with it answered, because both are a thumb's route.
+         AND ONLY THE HALF OF THE DATE NOBODY HAS SAID -- *"Fix this why it say June and year in same
+         chip"*. With `May` pressed the answer is `Paper 1 · 2019`, the year alone; only with BOTH
+         folders skipped does the printed `— May 2019` stay, because then nothing above it has said
+         either half and the two together are what tells the papers apart. See `sittingUnsaid_`. */
       const months = f.facetValues(kept, byField('examMonth') || yearF).filter(v => !v.bucket);
       const routes = [[{ field: 'examYear', any: true }, { field: 'examMonth', any: true }]]
         .concat(months.map(m => [{ field: 'examYear', any: true }, { field: 'examMonth', value: m.value }]));
@@ -951,9 +1216,12 @@ boot(f => {
           f.facetValues(list, paperF).forEach(a => {
             skipped++;
             const show = String(a.show || a.value);
-            if (!/^Paper \d+( [\u2014\u2013] [A-Za-z]+ (19|20)\d{2})?$/.test(show)) {
+            const shape = route[1].any ? /^Paper \d+( [\u2014\u2013] [A-Za-z]+ (19|20)\d{2})?$/
+                                       : /^Paper \d+( \u00b7 (19|20)\d{2})?$/;
+            if (!shape.test(show)) {
               bad.push(say + ': the Paper answer reads ' + JSON.stringify(show) + ' — the number, and the '
-                       + 'date where two years share it, and nothing else. See nameForms_().');
+                       + 'half of the date no chip has said where two years share it, and nothing else. '
+                       + 'See nameForms_() and sittingUnsaid_().');
             }
             f.STUFF.filters = doors.concat([{ field: 'paperId', value: a.value }]);
             const chip = f.chipShow_(f.STUFF.filters[f.STUFF.filters.length - 1], f.STUFF.filters.length - 1);

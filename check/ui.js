@@ -304,6 +304,22 @@ const ACCEPTED_TAP = [
 const MIN_CONTRAST      = 4.5;
 const MIN_CONTRAST_BIG  = 3.0;
 
+/* ---------- A BOARD IS SQUARES OF ONE SIZE ---------------------------------------------------------
+   REPORTED AS "maz game is glitched", AND NOTHING HERE COULD SEE IT. The maze's south wall was the
+   class `ws` and the word search's grid is the bare `.ws`, so 71 of its 121 squares were laid out
+   as grids of their own — 16.6px tall in 24.7px rows at 390, 12.1 against 19.3 at 320. Doubled
+   walls, walls that missed each other, gaps in the outer edge. No tap target changed, nothing
+   scrolled sideways, no text lost contrast: every rule in this file passed it, at every width.
+
+   SO EVERY BOARD IS ASKED THE ONE THING A BOARD PROMISES. These are the six grids on the Games
+   column whose children are its squares — chess, Connect 4, Othello, the maze, the word search and
+   Scrabble — and on every one of them, at every width, all squares measured 0.02px apart or less
+   when this was written. Half a pixel is the tolerance: sub-pixel layout and nothing else, the
+   argument `ragged` makes below. A board that is not on the screen being measured is not counted;
+   a GAMES column with none on it is a selector that stopped finding them, and says so. */
+const BOARDS = '.chess, .c4, .oth, .mz, .ws, .scr';
+const BOARD_TOL = 0.5;
+
 /* ---------- A CUSTOM PROPERTY NOTHING ANYWHERE SETS ---------------------------------------------
    THE ONE CHECK HERE THAT IS NOT A MEASUREMENT, because it is the one question the running page
    cannot answer about itself. It took three wrong answers to work out why.
@@ -1048,6 +1064,10 @@ function inspect(opts) {
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 
   let failures = 0;
+  /* HOW MANY BOARDS THE RULE ABOVE `BOARDS` ACTUALLY MEASURED, printed with the summary — a count
+     rather than a silence, because "no board was a mess" and "no board was found" both print no
+     finding. */
+  let boardsMeasured = 0;
   const rows = [];
 
   /* ---------- ASK THE APP WHICH COLUMNS IT HAS, ONCE, BEFORE MEASURING ANY OF THEM ---------------
@@ -1220,58 +1240,73 @@ function inspect(opts) {
            has a class attached to it. Rows carry what was found; the report decides what it means. */
         rows.push({ width, id: label, as: who.as, counted, guessed, ...found });
 
-        /* ---------- THE FILM IS ON THE PICTURES AND ON NOTHING ELSE -------------------------------
-           ASKED FOR AS "make the ig clone have a grainy look to it" — see `.post, .reel` in
-           style.css. The look is a `filter` and a `mask-image` on the picture itself, so there is
-           no overlay to steal a tap and nothing for the tap rules above to see. Two ways it can go
-           wrong, and neither is a layout fault any other rule here measures: a selector that stops
-           matching (the feed goes back to clean photographs, which measures perfectly), and one
-           that matches too much (a caption, a tile, or a CHAT clip — `post-vid` is on those too —
-           drawn grainy). So it is asked of the rendered page, on every screen: whatever carries
-           the grain mask must be a post's or a reel's own `<img>`/`<video>`, and on the two columns
-           that have them every one of those must carry it. The grain is told from any other mask
-           by its `feTurbulence`, which nothing else in this stylesheet names. */
-        const film = await page.evaluate(sid => {
+        /* ---------- THE PICTURES ARE DRAWN AS THEY WERE TAKEN ------------------------------------
+           THIS PLACE HELD THE OPPOSITE RULE FOR A DAY. "FILM LOOK" required a grain `mask-image`
+           and a warm `filter` on every post picture and reel clip, because the owner had asked for
+           "a grainy look ... like 1999 or 2003"; then asked *"remove the 2002 grainy effect on the
+           posts"*, and the CSS went. Turned round rather than deleted, because the reason it was
+           written still holds the other way up: a look that is two properties ON THE PICTURE is
+           invisible to every layout rule in this file — it measures perfectly — so a filter or a
+           mask put back on these pictures, by any selector, would be noticed by nothing else.
+           ONLY THE PICTURES, NOT EVERY ELEMENT. The old rule walked the whole screen to catch the
+           grain leaking onto a caption; with no grain left there is nothing to leak, and these are
+           the only elements the look was ever on. `.post-face` (the avatar) is not a picture of the
+           post and was never in scope. AND NONE TO MEASURE IS NOT A PASS: the fixture's post
+           carries photographs and the reel column always has its clips, so finding none on either
+           is a selector that stopped reaching its subject. */
+        const tinted = await page.evaluate(sid => {
           const host = document.getElementById('s-' + sid);
           if (!host) return [];
+          const pics = [...host.querySelectorAll('.post img, .post video, .post-preview img, '
+                                                + '.post-preview video, .reel video')]
+            .filter(el => /\bpost-(pic|cell)\b/.test(el.className) || el.classList.contains('feed-vid'));
           const out = [];
-          /* TWO TESTS, ONE STRICTER THAN THE OTHER, ON PURPOSE. Over-reach is asked of the grain
-             ALONE — a caption that picked up the mask and not the filter is still a dirty caption,
-             and requiring both would let it through. Under-reach asks for BOTH, because a picture
-             that kept the grain and lost the colour is half the look. */
-          const grainy = el => {
+          pics.forEach(el => {
             const st = getComputedStyle(el);
-            return /feTurbulence/.test(st.maskImage || st.webkitMaskImage || '');
-          };
-          const grained = el => grainy(el) && getComputedStyle(el).filter !== 'none';
-          /* `.post-preview` is the composer's preview, drawn by the card's own renderer — see the
-             note in style.css. It is on the feed's first page and has pictures only while a link is
-             typed into the composer, so no state measures it; it is named so a typed link is not
-             reported as a fault. */
-          const media = el => /^(IMG|VIDEO)$/.test(el.tagName)
-            && (el.closest('.post, .post-preview') && /\bpost-(pic|cell)\b/.test(el.className)
-                || el.closest('.reel') && el.classList.contains('feed-vid'));
-          host.querySelectorAll('*').forEach(el => {
-            if (grainy(el) && !media(el)) {
-              out.push(`${el.tagName.toLowerCase()}.${String(el.className).split(/\s+/)[0] || ''} `
-                       + `carries the film grain and is not a post's or a reel's picture`);
+            const mask = st.maskImage || st.webkitMaskImage || 'none';
+            if (st.filter !== 'none' || mask !== 'none') {
+              out.push(`${el.tagName.toLowerCase()}.${el.className.split(/\s+/)[0]} is drawn through `
+                       + (st.filter !== 'none' ? `filter ${st.filter.slice(0, 60)}` : `a mask`)
+                       + ` rather than as it was taken`);
             }
           });
-          const want = [...host.querySelectorAll('.post img, .post video, .post-preview img, '
-                                                + '.post-preview video, .reel video')].filter(media);
-          want.forEach(el => {
-            if (!grained(el)) out.push(`${el.tagName.toLowerCase()}.${el.className.split(/\s+/)[0]} `
-                                     + `is a post's or a reel's picture and is drawn without the film`);
-          });
-          /* AND ONE THAT IS NOT THERE AT ALL IS NOT A PASS. The feed's fixture post carries
-             photographs, so finding none there means this rule could not reach its subject. */
-          if (sid === 'feed' && !want.length) out.push('the feed drew no post picture to measure');
-          /* The reel column too: its clips are in the code's own list whatever the fixture says, so
-             a reel column with no clip to measure is a selector that stopped finding them. */
-          if (sid === 'reel' && !want.length) out.push('the reel column drew no clip to measure');
+          if (sid === 'feed' && !pics.length) out.push('the feed drew no post picture to measure');
+          if (sid === 'reel' && !pics.length) out.push('the reel column drew no clip to measure');
           return out;
         }, id);
-        if (film.length) rows.push({ width, id: label, as: who.as, film });
+        if (tinted.length) rows.push({ width, id: label, as: who.as, tinted });
+
+        /* EVERY SQUARE OF EVERY BOARD ONE SIZE — see `BOARDS`. `getBoundingClientRect` and not
+           `offsetWidth`, because a cell 24.72px wide and one 24.7px wide are one size and integer
+           rounding would call them two; a translate (Connect 4's falling counter) moves a box
+           without resizing it, so a counter caught mid-drop is still measured at its own size. */
+        const boards = await page.evaluate(({ sid, sel, tol }) => {
+          const host = document.getElementById('s-' + sid);
+          const out = [];
+          let n = 0;
+          if (!host) return { out, n };
+          host.querySelectorAll(sel).forEach(b => {
+            const kids = [...b.children];
+            if (kids.length < 4) return;
+            const sz = kids.map(k => k.getBoundingClientRect());
+            if (!sz.some(r => r.width > 0)) return;
+            n++;
+            const ws = sz.map(r => r.width), hs = sz.map(r => r.height);
+            const spread = a => Math.max(...a) - Math.min(...a);
+            if (spread(ws) > tol || spread(hs) > tol) {
+              const name = b.id ? '#' + b.id : '.' + String(b.className).split(/\s+/)[0];
+              const odd = sz.filter(r => Math.abs(r.height - Math.max(...hs)) > tol
+                                      || Math.abs(r.width - Math.max(...ws)) > tol).length;
+              out.push(`${name}: ${odd} of ${kids.length} squares are not the board's size — `
+                + `${Math.min(...ws).toFixed(1)}-${Math.max(...ws).toFixed(1)}px wide, `
+                + `${Math.min(...hs).toFixed(1)}-${Math.max(...hs).toFixed(1)}px tall`);
+            }
+          });
+          if (sid === 'games' && !n) out.push('the Games column drew no board to measure');
+          return { out, n };
+        }, { sid: id, sel: BOARDS, tol: BOARD_TOL });
+        boardsMeasured += boards.n;
+        if (boards.out.length) rows.push({ width, id: label, as: who.as, boards: boards.out });
 
         if (SHOTS) await page.screenshot({
           path: path.join(__dirname, 'shots',
@@ -1433,7 +1468,8 @@ function inspect(opts) {
     /* THE SCREEN NEVER DREW. Grouped like the rest so one broken card across four widths and two
        visitors is one line to fix rather than eight, and so it is counted exactly once. */
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
-    (r.film || []).forEach(f => add('FILM LOOK', f, at));
+    (r.tinted || []).forEach(f => add('PICTURE NOT AS TAKEN', f, at));
+    (r.boards || []).forEach(f => add('BOARD SQUARES OF MORE THAN ONE SIZE', f, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
     (r.hidden || []).forEach(o => add(o.tol ? 'OUT OF REACH, INSIDE THE APP\'S OWN FLOOR (known)'
@@ -1486,6 +1522,7 @@ function inspect(opts) {
             + `${SIZES.length} sizes (${SIZES.map(([w, h]) => w + 'x' + h).join(', ')}) x `
             + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as === 'in' ? 'signed in'
                                                                 : 'signed out').join(' and ')})\n`);
+  console.log(`boards measured square by square: ${boardsMeasured}\n`);
 
   /* EVERY FINDING THAT IS NOT KNOWN IS A FAILURE, counted once per distinct fault rather than once
      per place it was seen — the same 38px button on nine screens is one thing to fix, which is the

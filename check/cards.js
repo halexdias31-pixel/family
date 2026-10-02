@@ -43,6 +43,19 @@ const WIDTH = 320;
 const PHONE_H = 568;
 const PORT = Number(process.env.CARDS_PORT || 8129);  /* overridable: parallel runs in worktrees share one machine */
 const SHOTS = process.argv.includes('--shots');
+/* ---------- THE CARD'S OWN TYPESETTER, NOT A COPY OF IT -------------------------------------------
+   `typeset_` turns every stored fraction into a stacked `.frac` when the app draws a card, so the
+   markup a card lays out is no longer the markup in the row. A stacked fraction is an inline-block
+   two lines tall that is as wide as its wider half, and a mixed number holds its whole part on its
+   line -- both are things that could push a 320px column sideways, and `cardHtml` below laying out
+   the stored row would have measured the slanted form the app no longer draws. Cut out of find.js
+   by name with the one cutter the repository has, as `check-typeset.js` does. */
+const typeset_ = (() => {
+  const { cutFrom } = require(path.join(ROOT, 'js', 'check-marks-load.js'));
+  const body = cutFrom(fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8'), 'typeset_');
+  if (!body) { console.log('check/cards.js: cannot find typeset_ in find.js — renamed?'); process.exit(1); }
+  return eval('(' + body + ')');
+})();
 
 /* ---------- WHAT COUNTS AS A FAILURE, AND IT IS DELIBERATELY ONE THING ----------------------------
    A ROW WIDER THAN THE COLUMN IT IS IN. Not "wider than the window" — see CLAUDE.md on why that
@@ -104,9 +117,14 @@ function cardHtml(r, stems) {
      or brackets -- because what this file measures is whether the card's content fits a 320px
      column, and a pill holding `Study of religion and dialogues (Christianity) (2018 materials)` is
      content. A copy of the cutting, not of the colours: no colour changes a width. */
+  /* THE DATE IS TWO TAGS NOW, the year and then the month -- `sittingParts_` in find.js, asked for as
+     *"Fix this why it say June and year in same chip"*. Two short pills wrap differently from one long
+     one, so the copy cuts it the same way or it measures a card nobody draws. */
+  const MONTH_RE = /^((?:\d{1,2}\s+)?(January|February|March|April|May|June|July|August|September|October|November|December))\s+((?:19|20)\d{2})$/i;
   const tagBits = [r.band_value || r.key_stage || '']
     .concat(String(r.name || '').split(/\s[\u2014\u2013]\s|\s*:\s*/))
-    .map(t => String(t).trim()).filter(Boolean);
+    .map(t => String(t).trim()).filter(Boolean)
+    .reduce((out, t) => { const m = MONTH_RE.exec(t); return out.concat(m ? [m[3], m[1]] : [t]); }, []);
   const tags = `<span class="qtags">${tagBits.map(t => `<span class="qtag">${t}</span>`).join('')}</span>`;
   return `<div class="qcard" data-row="${r.row_id}">
     <div class="qcard-top"><b>Q${r.question || ''}${r.part || ''}</b>
@@ -114,9 +132,9 @@ function cardHtml(r, stems) {
     <p class="qcard-sub">${tags}</p>
     <div class="qsheet">
       ${pre.filter(p => p.html).map(p => `<div class="qsheet-stem${String(p.placeholder) === 'True' ? ' is-standin' : ''}"
-        >${p.html || ''}</div>`).join('')}
-      ${r.lead ? `<div class="qsheet-lead">${r.lead}</div>` : ''}
-      <div class="qsheet-part"><div class="qsheet-pb">${r.html || ''}</div></div>
+        >${typeset_(p.html)}</div>`).join('')}
+      ${r.lead ? `<div class="qsheet-lead">${typeset_(r.lead)}</div>` : ''}
+      <div class="qsheet-part"><div class="qsheet-pb">${typeset_(r.html)}</div></div>
     </div>
   </div>${figs ? `<div class="qcard qfig" data-row="${r.row_id}#fig">
     <div class="qcard-top"><b>Figure · Q${r.question || ''}${r.part || ''}</b></div>

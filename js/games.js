@@ -763,14 +763,18 @@ function feedSlide(it) {
 /* ==================================================================================================
    CONNECT 4, OTHELLO AND HERD MENTALITY
 
-   THREE GAMES, ONE SHAPE. Each is a `WIDGETS` entry in map.js naming an `init` in here, drawn into
-   an id the card already contains — the same arrangement Flabby Pird and Times Tables use, because
-   a fourth way of starting a game is a fourth thing to remember when one of them stops working.
+   THREE GAMES, ONE SHAPE. Each has an `init` in here, drawn into an id its markup already contains
+   — the same arrangement Flabby Pird and Times Tables use, because a fourth way of starting a game
+   is a fourth thing to remember when one of them stops working. Connect 4 and Othello are `WIDGETS`
+   entries in map.js that name theirs; Herd Mentality is a game inside Word games now, and the
+   `herd` row of `WORD_GAMES` names `initHerd` instead.
 
    NOTHING RUNS BETWEEN TURNS. No animation loop, no timer, no interval — the board is redrawn when
    somebody taps and sits still otherwise. That is why none of these three needs a `stop`, and it is
    worth saying out loud: `stop` exists for Flabby Pird because sixty frames a second behind a screen
    nobody is looking at is a flat battery. A board that only moves when tapped costs nothing parked.
+   STILL TRUE NOW CONNECT 4'S COUNTERS FALL: the drop is a CSS animation on the one counter just
+   played, which the browser runs once and finishes — there is nothing here to start or to stop.
 
    THE BOARDS ARE BUTTONS, NOT A CANVAS. A canvas would mean hit-testing taps against pixel
    coordinates and redrawing to show a hover; a grid of real `<button>`s gets the tap target, the
@@ -800,7 +804,10 @@ function initConnect4() {
   /* REBUILT FROM NOTHING EVERY TIME THE WIDGET OPENS. Coming back to a board you left half-played
      sounds kind and is not: the widget is reopened by a swipe, so "where was I" would be answered
      by a game you had forgotten starting. */
-  c4 = { cells: new Array(C4_W * C4_H).fill(0), turn: 1, over: false, said: 'Red starts — tap a column.' };
+  /* `last` IS THE COUNTER JUST PLAYED, which is the one that falls — see `c4Paint`. `win` is the
+     line that ended the game, which is ringed. */
+  c4 = { cells: new Array(C4_W * C4_H).fill(0), turn: 1, over: false, said: 'Red starts — tap a column.',
+         last: null, win: null };
   c4Paint();
 }
 
@@ -813,30 +820,43 @@ function c4Drop_(cells, x) {
 }
 
 /* FOUR IN A LINE THROUGH A SQUARE, checked in the four directions that matter. Eight would be
-   double-counting: a line and its reverse are the same line. */
-function c4Wins_(cells, x, y, who) {
+   double-counting: a line and its reverse are the same line.
+
+   IT RETURNS THE SQUARES, NOT A YES. It answered true or false, so "Red wins." appeared under a
+   board that did not say where — and on a full board of 42 discs, finding the four that did it is
+   a game of its own. Now it hands back every square of every line of four or more through the
+   counter just played (a drop can finish two lines at once, or join two and one into five), and an
+   empty list is the old false. */
+function c4Line_(cells, x, y, who) {
   const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
-  return dirs.some(([dx, dy]) => {
-    let n = 1;
+  const won = [];
+  dirs.forEach(([dx, dy]) => {
+    const line = [y * C4_W + x];
     for (const s of [1, -1]) {
       for (let i = 1; i < 4; i++) {
         const nx = x + dx * i * s, ny = y + dy * i * s;
         if (nx < 0 || nx >= C4_W || ny < 0 || ny >= C4_H) break;
         if (cells[ny * C4_W + nx] !== who) break;
-        n++;
+        line.push(ny * C4_W + nx);
       }
     }
-    return n >= 4;
+    if (line.length >= 4) line.forEach(i => { if (won.indexOf(i) < 0) won.push(i); });
   });
+  return won;
 }
 
 function c4Play_(x) {
   if (!c4 || c4.over) return;
   const y = c4Drop_(c4.cells, x);
+  /* A FULL COLUMN PLAYS NOTHING, SO NOTHING FALLS: `last` is not set, and the paint that showed the
+     previous counter has already spent it — see `c4Paint`. */
   if (y < 0) { c4.said = 'That column is full.'; return; }
   c4.cells[y * C4_W + x] = c4.turn;
-  if (c4Wins_(c4.cells, x, y, c4.turn)) {
+  c4.last = { x, y };
+  const line = c4Line_(c4.cells, x, y, c4.turn);
+  if (line.length) {
     c4.over = true;
+    c4.win = line;
     c4.said = C4_NAME[c4.turn] + ' wins.';
   } else if (c4.cells.every(Boolean)) {
     c4.over = true; c4.said = 'Full board — a draw.';
@@ -860,21 +880,54 @@ function c4Play_(x) {
    nothing presses, which is `orderPrints` — and the three rules are four lines somebody can write
    again if a solo mode is ever wanted. */
 
+/* ---------- THE COUNTER FALLS, AND THE FOUR THAT WON ARE RINGED --------------------------------------
+   ASKED FOR AS "refine connect 4 add dropping animation of counters." A counter used to appear in
+   its square: the board is rebuilt through `innerHTML` on every tap, so there was no moment between
+   the empty square and the full one for anything to move in.
+
+   SO THE ONE NEW COUNTER IS MARKED, AND CSS DROPS IT. `c4-new` goes on the square just played and
+   `--c4-fall` says how many rows it falls — its own row plus one, so it starts one row above the top
+   edge, where `.c4`'s `overflow: hidden` keeps it out of sight until it enters. The rebuilt board is
+   otherwise identical, so only that counter moves; the forty-one that were already there do not
+   twitch. The fall, the small bounce and the reduced-motion exemption are all in style.css.
+
+   `last` IS SPENT BY THE PAINT THAT SHOWS IT. A board painted again for any other reason — a
+   refused tap on a full column, a repaint — must not drop the same counter twice, so the mark is
+   read once here and cleared.
+
+   THE WIN IS RINGED (`c4-win`) because "Red wins." under a board does not say where. Both class
+   names carry the `c4-` prefix for the reason the maze's walls now do: a bare `.new` or `.win` is a
+   name any later component can take without knowing, and the maze found out what that costs.
+
+   THE TURN HAS A DISC BESIDE IT, in the side's own colour — two people at one phone glance at the
+   line under the board to see whose go it is, and a red disc is read before the word "Red" is. Not
+   on a draw, which is nobody's. `aria-hidden`, because the sentence already says the colour. */
 function c4Paint() {
   const host = $('c4-board');
   if (!host || !c4) return;
+  const last = c4.last;
+  c4.last = null;
+  const win = c4.win || [];
   let html = '';
   for (let y = 0; y < C4_H; y++) {
     for (let x = 0; x < C4_W; x++) {
       const v = c4At(x, y);
+      const fell = last && last.x === x && last.y === y;
       /* THE WHOLE COLUMN IS ONE TARGET, so every square in it carries the same `data-x` and the
          same label. A screen reader hears "column 4" six times rather than 42 unnamed squares. */
-      html += `<button class="c4-cell${v ? (v === 1 ? ' p1' : ' p2') : ''}" data-do="c4-drop"
-        data-x="${x}" aria-label="Column ${x + 1}"${c4.over ? ' disabled' : ''}></button>`;
+      html += `<button class="c4-cell${v ? (v === 1 ? ' p1' : ' p2') : ''}${fell ? ' c4-new' : ''}${
+        win.indexOf(y * C4_W + x) >= 0 ? ' c4-win' : ''}" data-do="c4-drop"
+        data-x="${x}" aria-label="Column ${x + 1}"${fell ? ` style="--c4-fall:${y + 1}"` : ''}${
+        c4.over ? ' disabled' : ''}></button>`;
     }
   }
   host.innerHTML = html;
-  const said = $('c4-said'); if (said) said.textContent = c4.said;
+  const said = $('c4-said');
+  if (said) {
+    const draw = c4.over && !win.length;
+    said.innerHTML = (draw ? '' : `<i class="c4-turn ${c4.turn === 1 ? 'p1' : 'p2'}" aria-hidden="true"></i>`)
+      + esc(c4.said);
+  }
 }
 
 on('c4-drop', el => {
@@ -1423,18 +1476,32 @@ function mzShortest_(cells) {
   return dist[MAZE_N * MAZE_N - 1];
 }
 
+/* ---------- A MAZE IS KEPT UNTIL IT IS FINISHED, OR UNTIL `New maze` ------------------------------
+   IT WAS REBUILT FROM NOTHING EVERY TIME THE WIDGET STARTED, for the reason `initConnect4` gives:
+   the widget is reopened by a swipe, so a half-walked maze would be answering "where was I" about a
+   game you had forgotten starting. That argument is about a swipe. What it also caught was a
+   REPAINT — `startScreen_` starts every widget on the column again whenever a payload lands or
+   anything saves — and measured, a repaint mid-walk dealt different cells and put you back at the
+   top left with nought moves, under a finger that was halfway to the exit. Word Search, Scramble
+   and Scrabble all keep theirs; this was the one that did not.
+
+   SO `start` KEEPS A MAZE THAT IS STILL BEING WALKED and deals only when there is none or the last
+   one is finished — a finished maze has nothing left to do but be replaced, and the next time the
+   column starts is the natural moment. `New maze` is the one thing that throws a walk away, which
+   is the one thing that should. */
 function initMaze() {
   if (!$('maze-grid')) return;
-  /* REBUILT FROM NOTHING EVERY TIME THE WIDGET OPENS, for the reason `initConnect4` gives: the
-     widget is reopened by a swipe, so a half-walked maze would be answering "where was I" about a
-     game you had forgotten starting. */
+  if (!maze || maze.over) mzDeal_();
+  mazePaint();
+}
+
+function mzDeal_() {
   const cells = mzBuild_();
   /* NOTHING SAID AT THE START, because the line under the heading already says where you are going
      and this sat under it repeating it word for word -- which is the fault CLAUDE.md records where
      every widget printed its own name twice. It speaks when there is something to say. */
   maze = { cells, x: 0, y: 0, moves: 0, best: mzShortest_(cells),
            trail: { 0: true }, over: false, said: '' };
-  mazePaint();
 }
 
 function mzMove_(k) {
@@ -1465,11 +1532,19 @@ function mazePaint() {
   for (let y = 0; y < MAZE_N; y++) {
     for (let x = 0; x < MAZE_N; x++) {
       const v = maze.cells[mzAt_(x, y)];
+      /* THE WALLS ARE `mz-n`/`mz-e`/`mz-s`/`mz-w`, AND THEY WERE `wn`/`we`/`ws`/`ww`. Reported as
+         "maz game is glitched." The word search arrived with its grid on the bare class `.ws` —
+         `display: grid`, a top margin and a max width — and every maze cell with a south wall
+         carried `ws` too, so 71 of 121 cells became small grids of their own: 16.6px tall in a
+         24.7px row, doubled walls, walls that did not meet, gaps in the outer edge and a squashed
+         gold square. Nothing threw and nothing overflowed. A two-letter class with no prefix is a
+         name any later component can take without knowing, so the prefix is the fix rather than
+         renaming the word search: the maze's own names now say whose they are. */
       const cls = ['mz-cell'];
-      if (v & MZ_N) cls.push('wn');
-      if (v & MZ_E) cls.push('we');
-      if (v & MZ_S) cls.push('ws');
-      if (v & MZ_W) cls.push('ww');
+      if (v & MZ_N) cls.push('mz-n');
+      if (v & MZ_E) cls.push('mz-e');
+      if (v & MZ_S) cls.push('mz-s');
+      if (v & MZ_W) cls.push('mz-w');
       if (maze.trail[mzAt_(x, y)]) cls.push('been');
       if (x === maze.x && y === maze.y) cls.push('you');
       if (x === MAZE_N - 1 && y === MAZE_N - 1) cls.push('out');
@@ -1488,19 +1563,44 @@ function mazePaint() {
 }
 
 on('maze-go', el => { mzMove_(el.getAttribute('data-d')); mazePaint(); });
-on('maze-again', () => { initMaze(); });
+on('maze-again', () => { mzDeal_(); mazePaint(); });
 
-/* THE ARROW KEYS, AND ONLY WHERE THE MAZE IS THE THING IN FRONT OF YOU. Guarded on the element
-   existing the way Flabby Pird's is, and on the press not being inside a field — arrows in a
-   textarea move the caret, and a game stealing that would break typing on a screen it is not even
-   on. `preventDefault` only once a move was possible, so an arrow that does nothing here still does
-   whatever it would have done. */
+/* THE ARROW KEYS, AND ONLY WHERE THE MAZE IS THE THING IN FRONT OF YOU. Guarded on the press not
+   being inside a field — arrows in a textarea move the caret, and a game stealing that would break
+   typing on a screen it is not even on.
+
+   "IN FRONT OF YOU" WAS `$('maze-grid')` EXISTING, AND IT EXISTS ALMOST EVERYWHERE. All of the
+   Games column's pages are built, it is drawn whenever Tools or Saved is beside you, and its
+   markup stays in the document once drawn. Measured: two arrow presses on the Find column moved a
+   maze nobody could see. So it asks `dropOnFront_` in book.js — "on the screen you are on, on the
+   page in front of you", which is exactly this question and was lifted out of the drop-down code so
+   there would be one copy of it — and asks it of every copy of the grid, because a starred maze is
+   on the Saved column too.
+
+   AND ONE KEY IS ONE MOVE. The pager listens for the same four keys on `window`, which this
+   `document` listener runs before — and measured on the maze page, ArrowDown walked the maze AND
+   turned the column to the next widget. So while a maze is being walked in front of you the arrows
+   are the maze's, `stopPropagation` keeps them from the pager, and that holds when a wall stops the
+   move too: a key that moved you on one press and threw you off the page on the next would be
+   worse than either. A FINISHED maze gives them back, so arrowing away from "Out in 38" works. */
+function mzInFront_() {
+  if (typeof AT === 'undefined') return false;
+  const sheet = $('sheet');
+  if (sheet && !sheet.classList.contains('hidden')) return false;
+  return [...document.querySelectorAll('[id="maze-grid"]')].some(g => (typeof dropOnFront_ === 'function'
+    ? dropOnFront_(g)
+    : !!(g.closest('.screen') && g.closest('.screen').id === 's-' + AT)));
+}
+
 document.addEventListener('keydown', e => {
-  if (!maze || !$('maze-grid')) return;
-  if (e.target && e.target.closest && e.target.closest('input, textarea, select')) return;
+  if (!maze || maze.over) return;
+  if (e.metaKey || e.ctrlKey || e.altKey) return;
+  const t = e.target;
+  if (t && (t.isContentEditable || (t.closest && t.closest('input, textarea, select')))) return;
   const k = { ArrowUp: 'n', ArrowRight: 'e', ArrowDown: 's', ArrowLeft: 'w' }[e.key];
-  if (!k) return;
+  if (!k || !mzInFront_()) return;
   e.preventDefault();
+  e.stopPropagation();
   mzMove_(k);
   mazePaint();
 });
@@ -2859,7 +2959,7 @@ on('imp-again', () => { impDeal_(IMP.n || impCount_()); impPaint(); });
 on('imp-players', () => { IMP = { phase: 'idle', n: 0, at: 0, shown: false, imp: 0, first: 0, cat: '', word: '' }; impPaint(); });
 
 /* ==================================================================================================
-   FIVE CLASSROOM GAMES — Just a Minute, Taboo, Hot Seat, 20 Questions and Alibi.
+   FOUR CLASSROOM GAMES — Just a Minute, Taboo, Hot Seat and 20 Questions.
 
    ASKED FOR AS A LIST, in the owner's own descriptions:
      "Just a Minute - A student speaks continuously about a random topic for 60 seconds without
@@ -2869,15 +2969,15 @@ on('imp-players', () => { IMP = { phase: 'idle', n: 0, at: 0, shown: false, imp:
       behind them."
      "20 Questions - The class asks up to 20 yes or no questions to deduce a secret person, place,
       or thing."
-     "Alibi - Detectives interrogate two suspects separately to find inconsistencies in their
-      shared story."
+   THE LIST HAD A FIFTH, ALIBI, AND IT IS GONE — see the note where its section was, above
+   `PARTY_GAMES`.
 
    NOT `ROUND_GAMES`, AND THE REASON IS ONE LINE OF `initRound`. That engine throws the round away
    every time the widget starts — `roundAt[k] = null` — and a widget starts on every `repaint`,
    which runs whenever a payload lands or anything saves. Articulate and Charades live with that;
-   these five were asked to keep their round through a repaint, and changing `initRound` under two
+   these four were asked to keep their round through a repaint, and changing `initRound` under two
    games nobody asked about is a change nobody asked for. So the clock is written once more, here,
-   for five — which is the same argument `ROUND_GAMES` makes for two.
+   for four — which is the same argument `ROUND_GAMES` makes for two.
 
    THE CLOCK IS A DEADLINE, NOT A COUNTDOWN. `setInterval(…, 1000)` with `left--` loses up to a
    second every time it is cleared and set again, and `toolsStart_` clears and sets every widget on
@@ -3136,203 +3236,7 @@ const TWQ_DECK = {
   ],
 };
 
-/* ALIBI'S FOUR LISTS ARE DEALT SEPARATELY, so a case is one of each: what happened, when, and where
-   the two suspects say they were. The "crimes" are the kind a classroom can laugh about — a biscuit,
-   a hamster, a moustache on a photograph — because the game is the questioning, not the crime. */
-const ALB_CRIMES = [
-  'The last chocolate biscuit vanished from the staffroom tin.',
-  'Somebody let the class hamster out of its cage.',
-  'The head teacher’s favourite mug turned up in the sandpit.',
-  'Every pencil in Class 4 was sharpened down to a stub.',
-  'The school trophy went missing from the glass cabinet.',
-  'A whole birthday cake disappeared from the kitchen.',
-  'The garden gnome was moved to the roof of the shed.',
-  'Somebody ate the cherry off the top of every cupcake.',
-  'The TV remote was found inside the fridge.',
-  'All the left shoes in the house were hidden.',
-  'The dog was given a bath in the paddling pool without asking.',
-  'Somebody drew a moustache on the family photo.',
-  'The last slice of pizza was eaten and the box put back.',
-  'The class register was found in the lost property box.',
-  'The neighbour’s prize marrow went missing before the show.',
-  'Somebody swapped the sugar for salt.',
-  'The football went over the fence and never came back.',
-  'Every cushion on the sofa was turned inside out.',
-  'The library book was returned with a jam stain on page 40.',
-  'The goldfish has a new castle and nobody bought one.',
-  'The swing in the park was tied in a knot.',
-  'Somebody hid the Wi-Fi router in the airing cupboard.',
-  'The spare key under the mat has gone.',
-  'A trail of muddy footprints leads to the bath.',
-  'The ice lollies in the freezer were all half-eaten.',
-  'The bunting for the school fair is wrapped round a tree.',
-  'Somebody set every clock in the house ten minutes fast.',
-  'The class plant was watered with orange squash.',
-  'A painting in the hall was hung upside down.',
-  'The cat is wearing a bow tie and nobody knows why.',
-  'Somebody used all the hot water before school.',
-  'The cereal box was put back with one cornflake inside.',
-  'A sandcastle competition entry was flattened overnight.',
-  'The bake sale money tin is five pounds short.',
-  'The new trampoline has a sock stuck in the springs.',
-  'Somebody ate the decorations off the gingerbread house.',
-  'The snowman’s carrot nose has disappeared.',
-  'The whiteboard pens have all run dry overnight.',
-  'Somebody changed the password on the family tablet.',
-  'The hamster wheel was found in the dolls’ house.',
-  'The best felt-tip pens were left with their lids off.',
-  'Every sock in the drawer has lost its partner.',
-  'Somebody let the air out of the bike tyres.',
-  'The class quiz answers were seen on the photocopier.',
-  'The chocolate coins from the advent calendar are gone.',
-  'A school jumper was found on the scarecrow.',
-  'The lunchtime bell rang ten minutes early.',
-  'Somebody hid the board game dice.',
-  'The garden was covered in glitter.',
-  'The last pancake was taken from the plate.',
-  'A recorder was left in the fish tank.',
-  'Somebody filled the welly boots with rice.',
-  'The shop window display was rearranged into a smiley face.',
-  'The baking competition cake had a bite taken out of it.',
-  'The tortoise escaped and was found in the kitchen.',
-  'Every ball in the PE cupboard has gone flat.',
-  'Somebody ate the strawberries meant for the jam.',
-  'The best seat on the bus was saved with a lunchbox.',
-  'The class pet stick insect is missing.',
-  'The doorbell was rung and nobody was there, three times.',
-  'Somebody wrote the answers to the spelling test on the window.',
-  'The washing on the line was rearranged by colour.',
-  'The jigsaw is finished but one piece is missing.',
-  'The family car was washed with washing-up liquid and is now foamy.',
-  'Somebody took the batteries out of the clock.',
-  'The garden hose was left on all night.',
-  'The cake for the school fair has a fingerprint in the icing.',
-  'Somebody stuck googly eyes on every apple in the bowl.',
-  'The sports day medals were found in the bin.',
-  'The chalk drawings on the playground were washed off.',
-  'Somebody ate the last of the birthday sweets.',
-  'The paper aeroplane landed on the head teacher.',
-  'A biscuit was dunked and lost in Grandma’s tea.',
-  'The pet rabbit was found in the neighbour’s garden.',
-  'Somebody hid the TV remote inside a slipper.',
-  'All the coat pegs were swapped round.',
-  'The football team’s kit came back pink from the wash.',
-  'Somebody blew out the candles before the birthday song.',
-  'The class story was finished with a different ending.',
-  'The biscuit tin was refilled with sprouts.',
-  'A bag of flour exploded in the kitchen.',
-  'Somebody ate the crusts off every sandwich.',
-  'The lemonade has gone flat because the lid was left off.',
-  'The new library book has a bookmark made of bacon.',
-  'Somebody painted the fence the wrong colour.',
-  'The family photo album is missing its holiday pictures.',
-  'The class register says somebody was in two places at once.',
-  'The tooth under a pillow was swapped for a button.',
-  'The dog’s ball was hidden in the washing machine.',
-  'Somebody wore the school mascot costume to the shops.',
-  'The plant on the windowsill has been turned round every day.',
-  'The bread was put in the toaster and forgotten.',
-  'Every pen in the pot is a different colour from its lid.',
-  'The bath overflowed while the tap was running.',
-  'The last chocolate in the box was a coffee one and somebody swapped it.',
-  'Somebody put a whoopee cushion on the head teacher’s chair.',
-  'The stairs were turned into a slide with a duvet.',
-  'All the apples were taken from the tree next door.',
-  'The scooter was left on the front path again.',
-  'Somebody used the good scissors to cut paper.',
-  'The ketchup bottle was put back empty.',
-  'The garden swing was moved two metres to the left.',
-  'The shopping list now says “sweets” twenty times.',
-  'Somebody fed the cat twice this morning.',
-  'The sandpit has a hole in it as deep as a bucket.',
-  'Grandad’s glasses were found in the biscuit tin.',
-  'The pencil case was stuffed with grass.',
-  'A drawing on the fridge has been signed by somebody else.',
-  'The kite is stuck at the top of the tallest tree.',
-  'Somebody opened every door of the advent calendar at once.',
-  'The class goldfish was given a new name without a vote.',
-  'The ice rink tickets went missing on the morning of the trip.',
-  'Somebody ate the marshmallows meant for the campfire.',
-  'The pirate costume for the school play has lost its hat.',
-  'A trail of crumbs leads from the kitchen to the garden.',
-  'The robot vacuum was found stuck under the bed.',
-  'Somebody hid every teaspoon in the house.',
-  'The Lego tower in the front room was knocked down.',
-  'The last yoghurt was eaten and the pot put back in the fridge.',
-  'Every book on the shelf is now in alphabetical order by colour.',
-  'The snow on the trampoline was made into a giant face.',
-];
-
-const ALB_TIMES = [
-  'last Saturday at 3 pm', 'yesterday at lunchtime', 'on Tuesday after school',
-  'this morning before breakfast', 'on Sunday afternoon', 'last night at about 8 pm',
-  'on Friday at break time', 'on Wednesday at 4.30 pm', 'during the school assembly',
-  'on Monday just after tea', 'on the first day of half term', 'last Thursday at 6 pm',
-  'on Saturday morning at 10', 'yesterday at 5 pm', 'this afternoon at 2',
-  'during the fire drill', 'on bonfire night', 'on the last day of term',
-  'during the bake sale', 'on Sunday morning at 9', 'after swimming club on Wednesday',
-  'on Friday evening', 'during the school trip', 'at tea time yesterday',
-];
-
-const ALB_PLACES = [
-  'at the park feeding the ducks', 'at the swimming pool', 'at the library',
-  'at Grandma’s house', 'at the cinema', 'at the shops with an adult', 'at football practice',
-  'at a friend’s birthday party', 'at the bowling alley', 'at the beach',
-  'at the dentist’s', 'at the bus stop', 'in the school playground', 'at a café',
-  'at the zoo', 'at the garden centre', 'on a bike ride', 'at the museum', 'at the farm shop',
-  'in the back garden', 'at a music lesson', 'at the ice rink', 'at Scouts', 'at the leisure centre',
-  'on a dog walk', 'at a car boot sale', 'at the barber’s', 'at the train station',
-  'at the pet shop', 'at the skate park', 'at a picnic', 'at the allotment', 'at the post office',
-  'at gymnastics', 'at a play rehearsal', 'at the supermarket', 'at the fair', 'at the vet’s',
-  'at the theatre', 'at a cousin’s house', 'at a sports match', 'on a nature walk',
-  'at the trampoline park', 'at the climbing wall', 'at an art club', 'at the aquarium',
-];
-
-const ALB_QUESTIONS = [
-  'What time did you meet?', 'Who arrived first?', 'What were you wearing?',
-  'What was your friend wearing?', 'How did you get there?', 'How did you get home?',
-  'What did you eat?', 'What did you drink?', 'Who paid?', 'How much did it cost?',
-  'What was the weather like?', 'Did you see anybody you knew?', 'What did you talk about?',
-  'What colour was the front door?', 'Was it busy or quiet?', 'Did anybody take a photo?',
-  'What was the funniest thing that happened?', 'What did you buy?', 'Where did you sit?',
-  'Which of you was carrying a bag?', 'What was in the bag?', 'Did anything go wrong?',
-  'What time did you leave?', 'Did you stop anywhere on the way?', 'Who else was there?',
-  'What music was playing?', 'Was anybody there wearing a hat?', 'What did you see out of the window?',
-  'Did you lose anything?', 'Did you hear any loud noises?', 'What was the last thing you said to each other?',
-  'Who suggested going there?', 'What were you planning to do afterwards?', 'Did you use a phone?',
-  'Who did you phone or message?', 'Was there a dog?', 'What did the person serving look like?',
-  'What did you do first?', 'What did you do last?', 'How long were you there?',
-  'Did you get wet?', 'Were you hot or cold?', 'Did either of you fall over?',
-  'What shoes were you wearing?', 'Did you play a game? Who won?', 'Did you see a clock?',
-  'What did you smell?', 'What colour was the car you came in?', 'Who opened the door?',
-  'What was on the table?', 'Did you share anything?', 'Who was in charge?',
-  'What did you laugh about?', 'Did you argue about anything?', 'What did you leave behind?',
-  'What number was the bus?', 'Was there a queue?', 'What did you have in your pockets?',
-  'Who carried the shopping?', 'Did you wash your hands?', 'Did you see any animals?',
-  'What did you spend your money on?', 'Was it light or dark when you left?',
-  'What was the first thing you noticed when you arrived?', 'Who went to the toilet first?',
-  'Did anybody ask you a question?', 'Which way did you walk?', 'What did you pass on the way?',
-  'Who chose what you ate?', 'Was there a television on?', 'What was on the television?',
-  'Did you take a coat?', 'What colour were the walls?', 'Did you see a clock tower?',
-  'What did you do with your rubbish?', 'Who had the keys?', 'Did you go upstairs?',
-  'What did you hear a grown-up say?', 'How many people were in your group?', 'Did you win anything?',
-  'What was written on the sign outside?', 'Did you get a receipt?', 'Was there a puddle anywhere?',
-  'What did your friend order?', 'Who said goodbye first?', 'What did you do while you waited?',
-  'Did either of you get a text?', 'What was the best part?', 'What was the worst part?',
-  'Did you see anything strange?', 'Did you take the stairs or the lift?', 'Was the radio on in the car?',
-  'Did you hold anything for your friend?', 'What did you forget?', 'Did anybody sneeze?',
-  'Did you see a bike?', 'What did you have for pudding?', 'How did you know what time it was?',
-  'Were the lights on?', 'Who sat on the left?', 'Did you have an umbrella?',
-  'What was the person in front of you wearing?', 'Did you drop anything?', 'Did you make any plans?',
-  'Who laughed the loudest?', 'What was in your friend’s hands?', 'Was there a window open?',
-  'What did you see on the way home?', 'Did you sing anything?', 'Did you tell anybody where you were going?',
-  'Who did you wave to?', 'What did you buy as a treat?', 'What was the shop assistant’s name badge?',
-  'Did you see a police car?', 'Was it raining when you arrived?', 'Who was the last to leave?',
-  'Did you write anything down?', 'What game were people playing nearby?', 'Did you have a drink with ice?',
-  'What did you do with your coat?', 'Did you get a ticket?', 'Where did you put your bags?',
-];
-
-const PARTY = { jam: null, tab: null, hot: null, twq: null, alb: null };
+const PARTY = { jam: null, tab: null, hot: null, twq: null };
 const PARTY_TICK = {};
 
 /* EVERY ROUND IS DEALT FROM A SHUFFLED PILE, refilled when it runs out — `herdShuffle_` for the
@@ -3680,104 +3584,24 @@ on('twq-ask', () => {
 });
 on('twq-reveal', () => { if (PARTY.twq && PARTY.twq.phase === 'play') { PARTY.twq.phase = 'done'; twqPaint(); } });
 
-/* ---------- ALIBI ---------------------------------------------------------------------------------
-   THE CASE IS READ BY EVERYBODY, THE QUESTIONS ONLY BY THE DETECTIVES. The suspects take the case
-   out of the room to agree their story — what happened, when, and where they say they both were —
-   so the card that starts a case shows those three and nothing else. The questions come up once the
-   first suspect is back and the phone is with the detectives: a suspect who had read them could
-   rehearse the answers, which is the one way to make the game impossible to lose.
+/* ---------- ALIBI WAS HERE, AND IS DELETED ON REQUEST -------------------------------------------
+   ASKED FOR IN THE SAME LIST AS THE OTHER FOUR, and then: "delete alibi game." A case card, two
+   suspects interviewed on two clocks, the same six questions to each and a verdict — the one game
+   on this engine that was an interview rather than a word, which is why it had kept a card of its
+   own when the other four moved into Word games.
 
-   THE SAME SIX QUESTIONS FOR BOTH SUSPECTS, drawn fresh for every case. That is the game — the same
-   question asked twice is where the two stories come apart — and six is what two minutes holds.
-
-   TWO MINUTES EACH. The timer is per suspect, so the second interview starts its own clock from the
-   top rather than inheriting what the first one left. */
-const ALB_SECS = 120, ALB_ASK = 6;
-
-function albPaint() {
-  const { card, acts, said } = partyBits_('alb');
-  if (!card) return;
-  const s = PARTY.alb;
-  if (!s) {
-    card.innerHTML = `<button class="art-go" data-do="alb-start">New case</button>`;
-    if (acts) acts.innerHTML = '';
-    if (said) said.textContent = 'You need two suspects and at least one detective.';
-    return;
-  }
-  const facts = `<p class="alb-crime">${esc(s.crime)}</p>
-    <dl class="alb-facts"><dt>When</dt><dd>${esc(s.time)}</dd>
-      <dt>Your alibi</dt><dd>You were together ${esc(s.place)}</dd></dl>`;
-  if (s.phase === 'case') {
-    card.innerHTML = `<p class="art-cat-of">The case</p>${facts}`;
-    if (acts) acts.innerHTML = `<button class="btn" data-do="alb-next">Question suspect 1</button>`;
-    if (said) said.textContent = 'Suspects: agree your story outside. Detectives: wait here.';
-    return;
-  }
-  if (s.phase === 'verdict') {
-    card.innerHTML = `<p class="art-over">The verdict</p>
-      <p class="imp-pass">Did the two stories match? Detectives decide: guilty or not guilty.</p>
-      <ol class="alb-qs">${s.qs.map(q => `<li>${esc(q)}</li>`).join('')}</ol>`;
-    if (acts) acts.innerHTML = `<button class="btn" data-do="alb-start">New case</button>`;
-    if (said) said.textContent = '';
-    return;
-  }
-  const who = 'Suspect ' + s.who + ' of 2';
-  const next = s.who === 1 ? 'Question suspect 2' : 'The verdict';
-  if (s.left <= 0) {
-    card.innerHTML = `<p class="art-over">Time</p><p class="imp-pass">Time is up for suspect ${s.who}.</p>`;
-    if (acts) acts.innerHTML = `<button class="btn" data-do="alb-next">${next}</button>`;
-    if (said) said.textContent = '';
-    return;
-  }
-  if (!s.run) {
-    card.innerHTML = partyHeld_('alb', 'Paused · ' + who, '');
-    if (acts) acts.innerHTML = '';
-    if (said) said.textContent = '';
-    return;
-  }
-  card.innerHTML = `<p class="art-cat-of">${esc(who)}</p>
-    <p class="party-clock" id="alb-left">${partyClock_(s)}</p>
-    <ol class="alb-qs">${s.qs.map(q => `<li>${esc(q)}</li>`).join('')}</ol>`;
-  if (acts) acts.innerHTML = `<button class="btn quiet" data-do="alb-next">${next}</button>`;
-  if (said) said.textContent = 'Ask every question. Write down what they say.';
-}
-
-on('alb-start', () => {
-  partyHold_('alb');
-  const qs = herdShuffle_(ALB_QUESTIONS).slice(0, ALB_ASK);
-  PARTY.alb = { phase: 'case', crime: partyDraw_('albc', ALB_CRIMES),
-                time: partyDraw_('albt', ALB_TIMES), place: partyDraw_('albp', ALB_PLACES),
-                qs: qs, who: 0, left: 0, ends: 0, run: false };
-  albPaint();
-});
-/* ONE HANDLER WALKS THE CASE FORWARD: the case → suspect 1 → suspect 2 → the verdict. Ending an
-   interview early is the same press as the clock ending it, because both mean the detectives are
-   done with this suspect. */
-on('alb-next', () => {
-  const s = PARTY.alb;
-  if (!s || (s.phase !== 'case' && s.phase !== 'go')) return;
-  partyHold_('alb');
-  if (s.phase === 'case' || s.who === 1) {
-    s.who = s.phase === 'case' ? 1 : 2;
-    s.phase = 'go';
-    s.left = ALB_SECS * 1000;
-    partyRun_('alb');
-  } else {
-    s.phase = 'verdict';
-    s.run = false;
-  }
-  albPaint();
-});
+   DELETED RATHER THAN SWITCHED OFF, for `c4Reply_`'s reason: a dormant game behind a flag is a
+   second mode nothing presses. The four decks went with it — 121 crimes, 24 times, 46 places and
+   122 questions — because a deck nothing deals is weight on every phone for nobody. `an alibi` is
+   still an Articulate card, and should be: that one is a word to describe, not this game. */
 
 /* WHAT EACH GAME DOES WHEN ITS CLOCK RUNS OUT, and how it draws. Read by the tick, `partyStart_` and
-   `partyStop_`, so a sixth timed game is a row here. Alibi's interview ends on the card that says
-   "Time" and does not move on by itself: the detectives decide when the next suspect comes in. */
+   `partyStop_`, so a fifth timed game is a row here. */
 const PARTY_GAMES = {
   jam: { paint: jamPaint, end: s => { s.phase = 'done'; } },
   tab: { paint: tabPaint, end: s => { s.phase = 'done'; } },
   hot: { paint: hotPaint, end: s => { s.phase = 'done'; } },
   twq: { paint: twqPaint, end: () => {} },
-  alb: { paint: albPaint, end: () => {} },
 };
 
 /* ==================================================================================================
@@ -4563,8 +4387,9 @@ document.addEventListener('input', tmtKeep_);
 document.addEventListener('change', tmtKeep_);
 
 /* ==================================================================================================
-   WORD GAMES — Articulate, Charades, Taboo, Hot Seat, Just a Minute, 20 Questions and Imposter in one
-   widget. The note over the `wordgames` entry in map.js is the argument; this is the switch.
+   WORD GAMES — Articulate, Charades, Taboo, Hot Seat, Just a Minute, 20 Questions, Imposter and Herd
+   Mentality in one widget. The note over the `wordgames` entry in map.js is the argument; this is
+   the switch.
 
    EACH BODY IS THE CARD IT USED TO BE, minus its own `.card` and heading: a sentence, the game's
    `<k>-card` and whatever its engine builds round it. The engines find their parts by id exactly as
@@ -4605,6 +4430,25 @@ const WORD_GAMES = [
     <div id="imp-card" class="art"></div>
     <div id="imp-acts" class="art-row"></div>
     <p class="note" id="imp-said" style="text-align:center;margin:.5rem 0 0"></p>` },
+  /* HERD MENTALITY, MOVED IN BY THE OWNER — "heard mentality is a word game so should go there." It
+     was left out of the merge on the builder's reasoning (a question everybody answers at once is
+     not a word to get across), and that was a call nobody had asked for. Its engine is untouched:
+     `initHerd` deals into `#herd-q` exactly as it did on its own card.
+
+     THE WRAPPER CARRIES TWO NAMES AND BOTH ARE LOAD-BEARING. `id="herd-card"` because every game in
+     this list draws into a `<k>-card`, and `check-flow.js` asks for one per option in the dropdown;
+     `class="herd-card"` because `.herd-card .herd-q` is what sets the question large enough to be
+     read across a table — without it the question drops to body text and the game is a phone one
+     person reads to themselves.
+
+     NO `stop`, because nothing runs: no clock, no secret on the screen. A question left up when the
+     column goes is a question anybody may see. */
+  { k: 'herd', name: 'Herd Mentality', start: () => initHerd(), stop: () => {},
+    body: `<div id="herd-card" class="herd-card">
+    <p class="sub">Everybody answers. You want to match the room, not be right.</p>
+    <p class="herd-q" id="herd-q"></p>
+    <button class="btn" data-do="herd-next">Next question</button>
+    </div>` },
 ];
 
 /* A party game's body is its sentence and the frame `PARTY_GAMES[k].paint` fills — the same three

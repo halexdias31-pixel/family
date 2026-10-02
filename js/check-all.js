@@ -124,6 +124,12 @@ const SUITE = [
      and it is here because it caught a live one: the library spells a fraction with U+2044, a
      phone types `/`, and `5/9` was marked wrong against `5⁄9` on a paper somebody was sitting. */
   { file: 'check-marking.js', what: 'a right answer marked right, a wrong one wrong' },
+  /* ---------- AND WHETHER THE MATHS ON A CARD LOOKS LIKE MATHS ------------------------------------
+     "no x2 or x^2 ... it shouldnt be 4/5 it should be 4 over the five." `typeset_` stacks what the
+     library stores as a fraction; this runs it over every row and fails on the maths it cannot know
+     is maths -- a plain `5/8`, a `?/24`, a `cm3` -- and counts what is left on purpose, 1st Class
+     Maths' lost powers among it, rather than going quiet about them. */
+  { file: 'check-typeset.js', what: 'fractions stacked, powers raised, no plain-text maths' },
   { file: 'check-chess.js',   what: 'the chess move generator, counted by perft' },
   /* ---------- AND EVERY TIMESTAMP ANYBODY SEES ---------------------------------------------------
      `parseWhen` read `2026-09-15` as 26 September 2015, because its day-month-year match was not

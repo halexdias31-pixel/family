@@ -1,5 +1,7 @@
 ## The Feed's photographs and clips are grainy now, and the look is two properties rather than an overlay
 
+**SUPERSEDED, 2 October.** The owner asked for it off: *"remove the 2002 grainy effect on the posts"*. The film is gone from the posts, the composer's preview and the reels, the reel clip's black backing went with it, and `check/ui.js` FILM LOOK was turned round into PICTURE NOT AS TAKEN. See the note titled "The grain is off the Feed and the Reels, and the camera waits for its page". What follows is kept as the record of what was there.
+
 **Asked for as "make the ig clone have a grainy look to it. like breaking bad but more. like 1999 or
 2003 you knooow like light phone."** These get an early-digital-camera look: fine grain, colour gone
 warm and a little faded, a touch more contrast, and darker corners.

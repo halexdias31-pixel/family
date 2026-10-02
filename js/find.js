@@ -121,28 +121,26 @@ const KINDS = {
                          && norm((x.row || {}).title) === norm(USER.name))
                         ? meCard()
                         : findCard({ kind: x.kind, row: x.row }) },
-  /* ---------- A VENUE IS IN TWO GROUPS, AND THAT IS WHAT PUTS IT BACK IN THE FUNNEL -------------
-     ASKED FOR AS "add venues to finder". `FUNNEL_NOT_FOR` drops anything whose group list is
-     EXACTLY `['Booking']` — and its own note says the array form "has been supported since a tutor
-     was two things", so a second group is the mechanism rather than a workaround. `asList_` splits
-     this cell, so two groups is a comma.
+  /* ---------- A VENUE IS A BOOKING THING AGAIN, AND THAT IS WHAT TAKES IT OFF FIND -------------
+     IT WAS `Booking, Places` — two groups, which was the mechanism behind "add venues to finder":
+     `FUNNEL_NOT_FOR` drops a kind whose group list is EXACTLY `['Booking']`, and a second group was
+     the comma that got past it. The first Find question then read `Booking, Places (13) | Learning
+     | Links | Shop`, and `asList_` does not split the code's own cell, so the door was ONE chip with
+     a comma in its name. Every check missed it because `check/fixture.json` sent a `kinds` tab
+     production does not have, and its rows put the venue under `places` instead.
 
-     PLACES, NOT LEARNING, and the distinction is the one the two doors are for. `What for` takes
-     somebody from the whole app to a department; a venue is not a thing you learn from, it is
-     somewhere you go. Putting it under Learning would have made that door mean two things.
+     TAKEN BACK OUT ON THE OWNER'S WORD: *"Get rid of booking places. Get rid of shop tag. I will
+     make a new coloumn for shop stuff. So finder now will become just learning stuff."* So the one
+     group is the whole change, and `FUNNEL_NOT_FOR` does the rest with nothing added to it.
 
-     IT STAYS IN BOOKING TOO, which is what keeps the booking form's dropdown and the pricing
-     working: `venueRows` is unchanged and `Booking · Venues` still answers. This adds a second
-     door onto the same rows rather than moving them.
+     NOTHING GOES DARK. A venue is still a row in `stuffItemsRaw_`, so a STARRED venue is still on
+     Saved (`collItems_` reads `stuffItemsAll_`), and the booking form's venue dropdown and the
+     pricing read `venueRows` and never read this. `check-flow.js` asks both halves.
 
-     AND IT MAKES A DEAD FACET REACHABLE. `borough` has sat in `FACETS` with a note saying it "is
-     only ever asked once you are looking at venues" — which, with venues out of the funnel, was
-     never. It is a live question again with nothing added.
-
-     WHAT IS NOT DONE HERE: the drawn picture per venue. Asked for in the same message as "later",
-     so it is a task rather than this commit — `findCard` already draws `image` where a row has
-     one, which is where a drawing would go. */
-  venue:   { group: 'Booking, Places', label: 'Venues',
+     AND `borough` GOES QUIET WITH IT. `Where` was answered by eleven venues and by nothing else —
+     measured over the real venues and the real shop — so its row in `data/settings/facets.json` is
+     switched off rather than left to be asked of nobody. */
+  venue:   { group: 'Booking', label: 'Venues',
              card: x => findCard({ kind: x.kind, row: x.row }) },
   subject: { group: 'Booking', label: 'Subjects', card: x => findCard({ kind: x.kind, row: x.row }) },
   /* A LEVEL IS THE FOURTH THING A BOOKING IS ASSEMBLED FROM — who, where, what, and how far on —
@@ -361,64 +359,20 @@ const KINDS = {
   tool: { group: 'Tools', label: 'Tools', card: x => widgetCard_(x) },
   game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
 
-  /* ---------- LINKS ARE NOT LEARNING ---------------------------------------------------------------
-     THEY WERE FILED UNDER IT and most of them are not: the categories on that tab run Apple, Google,
-     Money, Admin, Tools, Social, download, videos. A bookmark to a bank is not a resource for a
-     lesson, and burying the lot behind "What for · Learning" meant somebody looking for one had to
-     answer a question wrongly to get there. */
-  link: { group: 'Links', label: 'Links', card: x => {
-    const l = x.row;
+  /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND -----------------------------------
+     ASKED FOR AS *"Get rid of links that's almost redundant now."* It was its own door, `Links`, 127
+     bookmarks in 25 categories read off `data/settings/links.json` on every load — a bank, a
+     download site and the BBC beside the past papers. Its card drew each site's own favicon and
+     refused to link anything that was not an absolute http(s) address; both halves went with it
+     (`faviconFor`, `faviconAlt` and `hostOf_` in links.js had no other caller).
 
-    /* The colour went with the shape it filled. A link's `colour` column is still read by the
-       editor, and nothing draws with it any more — the site's own logo decides what a link looks
-       like, which is the whole point of using it. */
-    const initials = String(l.title || '').replace(/[^A-Za-z0-9 ]/g, '')
-      .split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
-    const icon = faviconFor(l.url);
-    const alt = faviconAlt(l.url);
-
-    /* IS THERE ACTUALLY AN ADDRESS. `hostOf_` already answers this for the favicon and the answer
-       was thrown away for the href — so a row whose `url` cell holds "corbetmaths" rather than an
-       address became `<a href="corbetmaths">`, which a browser reads as RELATIVE: it resolves
-       against this site and opens a 404 on our own domain. A tile that looks exactly like the
-       eighty that work, and fails in a way that blames us.
-       A row with no address is not a link yet, so it is not drawn as one — it is a card that says
-       what is missing. */
-    /* ONLY AN ABSOLUTE ADDRESS LEAVES. `hostOf_` said there was a host; this also says the scheme is
-       http or https — see the `surfaces` tab. An external site is the one exception to nothing
-       opening over this app, and `l.url` comes out of the links tab, so it is whatever somebody
-       typed. Anything else is this app opening itself in a tab, and it falls through to a card that
-       does not leave. */
-    const goes = !!hostOf_(l.url) && /^https?:\/\//i.test(String(l.url || ''));
-    const open = goes ? `<a class="card tap" href="${esc(l.url)}" target="_blank" rel="noopener">`
-                      : `<div class="card">`;
-    const shut = goes ? '</a>' : '</div>';
-    return `${open}
-      <div class="thing">
-        <span class="thing-pic art">
-          ${/* THE SITE'S OWN LOGO, AND NOTHING ELSE. The coloured shape with initials used to sit
-                underneath as a fallback — and a fallback that is always drawn is not a fallback, it
-                is the thing you see whenever the logo is slow, and a "W" in a brown square is the
-                app inventing a mark for a site that already has one.
-                Two services, tried in order: DuckDuckGo keeps nothing and is asked first; Google's
-                has seen everything and returns a globe rather than a 404, which is what makes it
-                the right last resort. `onerror` is cleared before the retry, or a second failure
-                loops on the same handler. */''}
-          ${icon ? `<img class="fav" src="${esc(icon)}" alt="" loading="lazy"
-                        onerror="this.onerror=null;${alt ? `this.src='${esc(alt)}'`
-                                                         : 'this.remove()'}">`
-                 : `<span class="fav-none">${esc(initials)}</span>`}
-        </span>
-        <div class="thing-body">
-          <h3>${esc(l.title)}</h3>
-          <p class="sub">${mark(l.category || 'Link')} <span class="faint">· ${goes
-            ? 'opens elsewhere'
-            : 'no address yet'}</span></p>
-        </div>
-      </div>
-    ${shut}`;
-
-  } },
+     NOTHING ELSE READ THE LIST. The mapper in `stuffItemsRaw_` was the only reader of `DATA.links`,
+     so the fetch, the mapping in `settingsInto_`, the `Category` question and its `facets.json` row
+     all went in the same change. `data/settings/links.json` STAYS IN THE REPOSITORY, unread, as the
+     archive of what the tab held. The one link the owner had asked for by name, the periodic
+     table, was a Drive PDF; the cheat sheet tool draws a periodic table of its own (`M50` in
+     mat.js), which never read this list. Putting links back is this entry, the mapper and the
+     fetch: three places, all named in the history note. */
 
   /* A resource and a shop row share a card: to somebody looking for one they are the same kind of
      thing — a picture, a name, what it belongs to, and what it costs if it costs anything. */
@@ -450,6 +404,14 @@ const KINDS = {
      names them, with their answers under them — `paperBody_` calls the same `answerBlock_`. And
      `paperText_(id)` already folds every question's words into the
      paper's own haystack, which is why searching `surds` finds the paper rather than nothing. */
+  /* ---------- THE SHOP DOOR STAYS, FOR NOW, AND ON PURPOSE ----------------------------------------
+     THE OWNER ASKED FOR IT TO GO in the same sentence as the venues — *"Get rid of shop tag. I will
+     make a new coloumn for shop stuff."* — and the second half is why it has not. Measured: 62 shop
+     rows, 22 of them wearables (reachable through the wardrobe on Settings) and FORTY Things —
+     pencils, kits, bundles — whose ONLY way onto a screen is this door. Taking it out before the
+     column exists is a deletion of forty products wearing a tidy-up's clothes, which is the sentence
+     `FUNNEL_NOT_FOR` already writes about Booking. So it leaves in the change that builds the column,
+     and until then it is untouched: same group, same label, same card. */
   shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => thingCard_(x, c) },
 };
 
@@ -895,10 +857,15 @@ function bucketTable_(pairs) {
 
 /* WHAT YOU ARE HERE TO DO WITH IT. The eight kinds are three errands, and which errand somebody is
    on is the thing they know before they know anything else. */
+/* `People & places` (Tutors, Venues) WAS A THIRD ROW, and nothing could answer it: a tutor is
+   `Booking` alone and a venue is again, so `FUNNEL_NOT_FOR` keeps both out of every list this
+   grouping is asked of. It showed up only under `check/fixture.json`'s old `kinds` rows, which
+   filed them under `people` and `places` where production files them nowhere. */
+/* `Links` left `Read or watch it` with the links themselves — see the note where `link` was in
+   `KINDS`. */
 const KIND_BUCKET = bucketTable_([
   ['Work through it',  ['Questions', 'Quizzes', 'Practicals']],
-  ['Read or watch it', ['Links', 'Films', 'Resources']],
-  ['People & places',  ['Tutors', 'Venues']],
+  ['Read or watch it', ['Films', 'Resources']],
 ]);
 
 /* THE FOUR SCIENCES ARE ONE ANSWER UNTIL SOMEBODY WANTS ONE OF THEM. Maths and English are not
@@ -949,14 +916,8 @@ const NEEDS_BUCKET = bucketTable_([
   ['A lab',           ['Lab']],
 ]);
 
-/* HOW THE PART IS NUMBERED, which is the only thing this answer has ever said. `Ai` and `Aii` are
-   a letter with a roman under it, so they belong with the letters — that is where a person looks
-   for them on the paper. */
-const PART_BUCKET = bucketTable_([
-  ['Numbered', ['1', '2', '3', '4', '5', '6', '7', '8', '9']],
-  ['Lettered', ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'Ai', 'Aii', 'Bi', 'Bii', 'Ci', 'Cii']],
-  ['Roman',    ['I', 'Ii', 'Iii', 'Iv', 'V']],
-]);
+/* `PART_BUCKET` WAS HERE — Numbered, Lettered and Roman, the grouping for the `Question part`
+   answers. The question is retired (see `RETIRED_FACETS`), so the table had nothing left to group. */
 
 /* THE WEIGHT CLASSES, GROUPED THE WAY BOXING GROUPS THEM. Sixteen divisions is the sport's own
    fragmentation — light, super and plain of nearly everything — and nobody outside it thinks in
@@ -1075,11 +1036,12 @@ const FACETS = [
     bucketOf: KIND_BUCKET, bucketOrder: KIND_BUCKET.order, label: 'What kind',   always: true,
     of: x => x.kindLabel || kindOf_(x).label },
   /* Only venues have one, so it is only ever asked once you are looking at venues — which is the
-     coverage rule doing the work that a per-kind filter list would otherwise have to. */
+     coverage rule doing the work that a per-kind filter list would otherwise have to.
+     VENUES ARE OFF FIND, so nothing in the funnel answers it and its `facets.json` row is OFF. The
+     reader stays: it is one line, and a `kinds` row putting venues back puts the question back. */
   { field: 'borough',   label: 'Where',       of: x => x.borough || '' },
-  /* Only links have one, so it is only ever asked once you are looking at links — the coverage
-     rule again, doing what a per-kind filter list would otherwise need code for. */
-  { field: 'category',  label: 'Category',    of: x => x.category || '' },
+  /* `category` WAS HERE — `Category`, the links' own question. It went with the links; see
+     `RETIRED_FACETS`, which stops a sheet row reading the column back off whatever else has one. */
   { field: 'subject',
     bucketOf: SUBJECT_BUCKET, bucketOrder: SUBJECT_BUCKET.order,   label: 'Subject',     of: x => x.subject },
   /* ---------- THE QUESTION THE FUNNEL HAD NEVER ASKED --------------------------------------------
@@ -1369,7 +1331,15 @@ const FACETS = [
      `paperId` and `qPart` behind `qNumber`, so both are only ever asked inside ONE paper — which is
      what stops `Question part` offering a paper's `a, b, c` beside another's `1, 2, 3`. Measured: 20
      distinct part values across the library, and within a paper the only mixing is a letter with the
-     roman sub-parts under it, which is what an exam paper prints. */
+     roman sub-parts under it, which is what an exam paper prints.
+
+     ---------- AND THEY ARE RETIRED, BOTH, ON THE OWNER'S WORD ------------------------------------
+     *"no more asking for questions 1-10 or question part 1 or b."* Measured on GCSE · Foundation ·
+     2024 · June · Paper 1 before the change: `1–10 | 11–20 | 21–30`, then `1–2 | 3–4 | …`, then
+     `1 | 2` — three more taps inside one paper, which has at most 63 questions and a median of 8.
+     A paper is short enough to read in order, and it IS in order: `stuffSorted_` sorts by `qNumber`
+     and then `qPart`, so both fields stay on every item and only the QUESTIONS go. The rows are off in
+     `data/settings/facets.json` and `RETIRED_FACETS` keeps them off. */
   /* ---------- THE FACET THAT IS ALWAYS TOO BIG TO ASK, DELIBERATELY ---------------------------
      202 ANSWERS. It will never be offered as a question — `FACET_MAX_ANSWERS` is 40 — and that is
      not a flaw in it, it is what makes it a COLLECTION. `collectionAxes_` picks up exactly the
@@ -1423,7 +1393,10 @@ const FACETS = [
     bucketOrder: FIVE_WEEKS },
   { field: 'paperId',   label: 'Paper', folder: true,
     of: x => (x.row && x.row.paper_id) || '',
-    showOf: (id, ids) => paperLabel_(id, ids) },
+    /* `said` IS WHAT THE YEAR AND MONTH CHIPS HAVE ALREADY SAID, and the label drops it — see
+       `sittingUnsaid_`. Absent on every caller that labels a paper on its own (the bundle, the
+       basket, a bucket's key), which keep the whole name. */
+    showOf: (id, ids, said) => sittingUnsaid_(paperLabel_(id, ids), said) },
   { field: 'slot',      label: 'Goes on',     of: x => x.slot },
   /* ---------- "FREE" AND "NOT PRICED" ARE DIFFERENT ANSWERS, AND THIS SAID FREE TO BOTH -------
      MEASURED: 3,262 OF 3,265 ITEMS ANSWERED `Free`. Every mapper in `stuffItems` used to write
@@ -1513,8 +1486,13 @@ let FACET_LIVE = null, FACET_FROM = null;
 
    SO THE TABLE IS KEYED ON THE FIELD NAME, beside the facet it belongs to rather than inside the
    builder, and a column the sheet invents tomorrow still gets the alphabet with nothing to add
-   here. One entry today; the shape is what matters. */
-const SHEET_BUCKETS = { qPart: PART_BUCKET };
+   here. One entry today; the shape is what matters.
+
+   NONE TODAY. `qPart` was the one entry and it is retired with `qNumber` — *"no more asking for
+   questions 1-10 or question part 1 or b."* The table stays EMPTY rather than going, because the
+   shape is still what a sheet-invented column with its own vocabulary would need, and
+   `facetFromSheet_` reads it either way. */
+const SHEET_BUCKETS = {};
 
 const facetFromSheet_ = f => ({
   field: f.field,
@@ -1571,6 +1549,19 @@ const RETIRED_FACETS = {
   examSeries: 'the owner asked for months rather than seasons -- "I don\'t want it to ask summer or '
             + 'autumn I\'d rather it just do the months" -- so `examMonth` asks it. A sheet row naming '
             + '`examSeries` would offer `Summer` beside `May` and `June`, two vocabularies for one fact.',
+  category: 'the links\' own question, and the links are gone -- "Get rid of links that\'s almost '
+          + 'redundant now." A sheet row naming `category` would read that column off whatever else '
+          + 'carries one and offer it as a question nobody wrote a label for.',
+  /* ---------- THE QUESTION NUMBER AND THE PART, IN BOTH SPELLINGS ----------------------------------
+     ALL FOUR, because `FACET_NEEDS_FIRST` said why: the sheet may name the item's field (`qNumber`,
+     `qPart`) or the row's column (`question`, `part`), and both read the same numbers. Retiring two
+     of the four would leave the owner's sentence one renamed row away from coming back. The fields
+     stay on every item -- `stuffSorted_` puts a paper's questions in order by them. */
+  qNumber: 'the owner: "no more asking for questions 1-10 or question part 1 or b." After Paper the '
+         + 'list is the paper\'s own questions, in the order the paper prints them.',
+  qPart: 'retired with `qNumber`, on the same words: "no more asking for ... question part 1 or b."',
+  question: 'the row\'s spelling of `qNumber` -- the same question numbers, and retired with them.',
+  part: 'the row\'s spelling of `qPart` -- the same question parts, and retired with them.',
 };
 
 function facetList() {
@@ -1756,6 +1747,63 @@ function filterHit(x, f) {
  * recorded. A name with no separator in it has one form and comes back unchanged, so every
  * one-word answer in the app (`Maths`, `Higher`, `Summer 2017`) is untouched by construction.
  */
+/* ==================================================================================================
+   A SITTING IS A YEAR AND A MONTH, AND THE FUNNEL ASKS THEM APART.
+
+   REPORTED AS *"Fix this why it say June and year in same chip"*. The funnel asks Year and then Month
+   as two folders, and three places went on saying both in one pill: the card's sitting tag (`June
+   2024`), and the Paper answers once one of the two had been said by a chip — Year skipped, `June`
+   pressed, and the answers read `Paper 1 — June 2023 | Paper 1 — June 2024`: the June the person had
+   just chosen, read back to them twice, fused to the one thing they had not.
+
+   THREE SMALL READERS, ONE PER JOB:
+     `sittingParts_`   `June 2024` -> the year and the month, or null for anything else (`Specimen`,
+                       `Sample`, a 5-a-day's `1 June`). Read off the date a paper's name prints after
+                       its spaced dash, which is the only place it is written.
+     `sittingSaid_`    which of the two the chips in front of a list have already said. A `Doesn't
+                       matter` says nothing, and neither does a bucket — `2023 & 2024` is two years.
+     `sittingUnsaid_`  a Paper answer with the said half dropped: `Paper 1 — June 2023` under a `June`
+                       chip is `Paper 1 · 2023`, under a `2023` chip `Paper 1 · June`, and under both
+                       `Paper 1`. A middle dot, because what is left is one fact beside the number
+                       rather than a date; `SITTING_CUT_` below is what lets `nameForms_` still cut
+                       there, so `shortLabels_` drops it too wherever the answers on screen let it.
+
+   A BUNDLE'S TITLE KEEPS `June 2017`. It is a sentence about a set of papers, not an answer anybody
+   presses, and it reads as one. */
+function sittingParts_(date) {
+  const m = /^((?:\d{1,2}\s+)?([A-Za-z]+))\s+((?:19|20)\d{2})$/.exec(String(date == null ? '' : date).trim());
+  if (!m || !MONTH_NAMES.some(n => n.toLowerCase() === m[2].toLowerCase())) return null;
+  return { year: m[3], month: m[1], word: m[2] };
+}
+function sittingSaid_(filters) {
+  const said = { year: '', month: '' };
+  (filters || []).forEach(c => {
+    if (!c || c.any || c.bucket) return;
+    if (c.field === 'examYear') said.year = String(c.value == null ? '' : c.value);
+    else if (c.field === 'examMonth') said.month = String(c.value == null ? '' : c.value);
+  });
+  return said;
+}
+function sittingUnsaid_(label, said) {
+  const s = String(label == null ? '' : label);
+  if (!said || (!said.year && !said.month)) return s;
+  const dash = /\s[—–]\s/.exec(s);
+  const parts = dash ? sittingParts_(s.slice(dash.index + dash[0].length)) : null;
+  if (!parts) return s;
+  const left = [];
+  if (!(said.year && said.year === parts.year)) left.push(parts.year);
+  if (!(said.month && spellKey_(said.month) === spellKey_(parts.word))) left.push(parts.month);
+  if (left.length === 2) return s;
+  return s.slice(0, dash.index) + (left.length ? ' · ' + left[0] : '');
+}
+
+/* WHERE A NAME'S DATE STARTS: the spaced long dash it is printed after, or -- once `sittingUnsaid_`
+   has dropped half of it -- the middle dot before the lone year or month that is left. Only before
+   a WHOLE year or month at the very end, so `Paper 1 · Foundation — June 2024`'s first dot, which is
+   a rung `paperLabels_` put there, is never mistaken for a date. */
+const SITTING_CUT_ = new RegExp('\\s[\\u2014\\u2013]\\s|\\s\\u00b7\\s(?=(?:(?:19|20)\\d{2}|'
+                               + MONTH_NAMES.join('|') + ')$)');
+
 function nameForms_(s) {
   const full = String(s == null ? '' : s).trim();
   const out = [];
@@ -1767,8 +1815,10 @@ function nameForms_(s) {
   };
   /* AN EM DASH WITH SPACES ROUND IT, and an en dash for the same reason. NOT a plain hyphen: this
      library writes `A-Level` and `Capture-recapture`, and cutting at those would offer `A` as an
-     answer. A dash that is a separator is spaced and long; a dash inside a word is neither. */
-  cut(/\s[—–]\s/);
+     answer. A dash that is a separator is spaced and long; a dash inside a word is neither.
+     AND THE DOT BEFORE HALF A DATE, which is the same cut once a chip has said the other half --
+     see `SITTING_CUT_`. */
+  cut(SITTING_CUT_);
   cut(/\s*[:(]/);
   out.sort((a, b) => a.length - b.length);
   /* ---------- AND THE NUMBER WITH ITS DATE, WHEN THE YEAR WAS SKIPPED -----------------------------
@@ -1783,7 +1833,7 @@ function nameForms_(s) {
      route: forty Paper questions drawing whole names became six. Not a prefix, and still no word
      the paper did not print. */
   const q = /\s*[:(]/.exec(full);
-  const d = /\s[—–]\s/.exec(full);
+  const d = SITTING_CUT_.exec(full);
   if (q && q.index && d && q.index < d.index) {
     const v = full.slice(0, q.index).trim() + full.slice(d.index);
     if (v !== full && out.indexOf(v) === -1) out.splice(1, 0, v);
@@ -2090,6 +2140,7 @@ const FACET_BAND_BY = 10;
                  owner edits with no deploy. A table in code over a list the sheet owns is two
                  things to keep in step and the code's copy is the one that goes stale — the fault
                  this file records under `MESSAGING`, under `kinds` and under `childrenOf`.
+                 (Gone with the links since; the reasoning stands for the next sheet-owned list.)
 
    A BUCKET IS A REAL ANSWER, NOT A VIEW. It becomes a chip with the same X, `filterHit` tests
    membership rather than equality, and `nextFacet` asks the question AGAIN over what is left — so
@@ -2571,7 +2622,12 @@ function facetTally_(items, facet) {
      change, so the WeakMap key already differs in practice — this is the half that makes that an
      argument rather than a coincidence. */
   const within = facetWithin_(facet);
-  const had = perList[facet.field + '|' + within];
+  /* AND ON WHAT THE YEAR AND MONTH CHIPS HAVE SAID, which a Paper answer's LABEL now depends on
+     (`sittingUnsaid_`). Same argument as the bucket: the list differs in practice, and this makes it
+     one. Only a facet that labels its answers reads it, so every other key is unchanged. */
+  const said = sittingSaid_(STUFF.filters);
+  const tallyKey = facet.field + '|' + within + (facet.showOf ? '|' + said.year + '|' + said.month : '');
+  const had = perList[tallyKey];
   /* KEYED ON THE FACET OBJECT AS WELL AS ITS NAME. `facetList()` rebuilds when the `facets` tab
      changes, and a relabelled facet with a new `of` under an old name would otherwise read a stale
      tally — the same identity test, one level further in. */
@@ -2703,7 +2759,9 @@ function facetTally_(items, facet) {
      it against the answers beside it rather than against the library — see `paperLabels_`. */
   if (facet.showOf) {
     const ids = values.map(v => v.value);
-    values.forEach(v => { v.text = facet.showOf(v.value, ids); });
+    /* AND WHAT THE CHIPS HAVE SAID, so a Paper answer under a `June` chip does not say June again.
+       See `sittingUnsaid_`; `said` is in the memo key above for the same reason. */
+    values.forEach(v => { v.text = facet.showOf(v.value, ids, said); });
   }
   /* ---------- AND THE LABEL IS THE SHORTEST FORM THAT IS STILL UNIQUE ---------------------------
      `show` IS WHAT IS DRAWN; `value` GOES ON STILL BEING WHAT IS MATCHED. See `shortLabels_`. */
@@ -2748,7 +2806,7 @@ function facetTally_(items, facet) {
        both were fixed in the data while the rule stayed as it was. The rule is the fix. */
     split: values.length < 2 || !items.length ? 0 : (items.length - top) / items.length,
   };
-  perList[facet.field + '|' + within] = out;
+  perList[tallyKey] = out;
   return out;
 }
 
@@ -2922,13 +2980,32 @@ function fiveDayLabel_(id, ids) {
   return d.day + ' ' + d.month + (mixed ? ' · ' + name : '');
 }
 
+/* ---------- THE FOUR QUESTION-NUMBER ENTRIES LEFT WITH THE QUESTIONS --------------------------------
+   `question`, `qNumber`, `part` and `qPart` were held here behind `paperId` — the note above is why,
+   and it is still the reason a question number means nothing outside its paper. The owner then took
+   the questions themselves away (*"no more asking for questions 1-10 or question part 1 or b."*), and
+   `RETIRED_FACETS` refuses all four spellings, so an entry here would be a rule about a question that
+   can no longer be asked. If one ever comes back, it comes back with its line here. */
 const FACET_NEEDS_FIRST = {
   fiveDay:  'fiveMonth',
-  question: 'paperId',
-  qNumber:  'paperId',
-  part:     'question',
-  qPart:    'qNumber',
 };
+
+/* ---------- A PAPER IS THE LAST FOLDER, AND WHAT IS INSIDE IT IS THE LIST ------------------------------
+   THE OWNER'S WORDS: *"no more asking for questions 1-10 or question part 1 or b."* Retiring those two
+   questions was most of it, and measuring what was left found the rest. Over all 496 papers, reached
+   the way a thumb reaches them (Year, then Month, then Paper), 495 asked nothing more — and one, AQA
+   Physics Paper 2 Higher, June 2023, asked `What you need: Printed sheet 25 | Protractor 1`: a
+   question splitting one paper's 26 questions by what to bring, which is the same tap inside a paper
+   in a different coat.
+
+   SO A LEAF ANSWER HERE ENDS THE FUNNEL, by rule rather than by whichever facets happen to be thin
+   inside a paper today. A paper is at most 63 questions (median 7), they are already in the paper's
+   own order (`stuffSorted_`), and they are what the person came for. A 5-a-day's `Day` is its paper
+   under another name (see `folderOpened_`), so it ends the funnel the same way. A BUCKET does not —
+   `O–P` is seven papers, and the question is asked again inside it — and neither does `Doesn't
+   matter`, which is a skip rather than a paper. `whyThisQuestion` reads the same function. */
+const FACET_ENDS = { paperId: true, fiveDay: true };
+const funnelEnded_ = () => (STUFF.filters || []).some(f => f && FACET_ENDS[f.field] && !f.any && !f.bucket);
 
 /* ---------- A FOLDER WITH ONE ANSWER THAT A CHIP ALREADY OPENED IS NOT ASKED AGAIN ----------------
    A 5-a-day `Day` is its paper's id -- the same folder under another name -- so asking `Paper` over
@@ -2944,6 +3021,7 @@ function folderOpened_(items, facet) {
 }
 
 function nextFacet(items) {
+  if (funnelEnded_()) return null;
   const asked = STUFF.filters.map(f => f.field);
   /* ---------- A BUCKET IS HALF AN ANSWER, SO THE QUESTION IS ASKED AGAIN -----------------------
      `11–20` narrows to ten questions and does not say which, and `Grades 4–6` narrows to three
@@ -3011,6 +3089,9 @@ function nextFacet(items) {
    a facet has to pass is unchanged: not asked, enough coverage, and it must still narrow.
 ================================================================================================== */
 function overFacet_(items) {
+  /* THE LAST RESORT DOES NOT REOPEN A PAPER. See `FACET_ENDS`: inside one paper the list is the
+     answer, and a question this function found would be the same tap `nextFacet` just refused. */
+  if (funnelEnded_()) return null;
   const asked = STUFF.filters.map(f => f.field);
   let best = null;
   for (const facet of facetList()) {
@@ -3072,6 +3153,7 @@ function whyThisQuestion(all) {
     const min = isFinite(f.min) ? f.min : FACET_COVERAGE;
     let why;
     if (asked.indexOf(f.field) !== -1) why = 'asked already';
+    else if (!all && funnelEnded_()) why = 'a paper is chosen — its questions are the list (FACET_ENDS)';
     else if (vals.length < (f.folder ? 1 : 2)) why = (vals.length ? 'one answer' : 'nobody can answer it')
                                     + ' — nothing to decide';
     else if (folderOpened_(items, f)) why = 'one answer, and a chip already opened that folder';
@@ -4055,6 +4137,292 @@ function boxerCard_(x) {
 }
 
 
+/* ==================================================================================================
+   `typeset_` — A FRACTION IS DRAWN OVER ITS LINE, AND A POWER IS RAISED.
+
+   ASKED FOR AS "refine questions in the finder to make sure they are looking right e.g. no x2 or
+   x^2, it should look how its supposed to look ... same with fractions. it shouldnt be 4/5 it
+   should be 4 over the five like how it is supposed to be."
+
+   THE LIBRARY STORES A FRACTION AS `<sup>4</sup>&frasl;<sub>5</sub>` -- 442 rows in 100 papers --
+   and the card drew it exactly as stored: a small raised 4, a slanted bar, a small lowered 5. A
+   comment in style.css called that form "right for a bare fraction inside a sentence". That was a
+   builder's choice and never the owner's, and the owner has now said which one is right: on this
+   site a fraction looks the way the paper prints it, numerator over a bar over denominator.
+
+   AT DRAW TIME, NOT IN THE STORE, and that is deliberate rather than lazy. The stored shape is
+   load-bearing somewhere other than the screen: `tools/set-accept.py` reads `2<sup>2</sup>&frasl;`
+   as "a digit, then a numerator, so the digit is a whole number" when it writes `accept`, and that
+   one rule is two wrong-mark faults long (docs/history 026 -- `22/15` for 2 2/15). Rewriting 442
+   rows into spans would hand that tool a shape it has never seen. The marker reads `accept` and
+   nothing else, and this function is never shown `accept`, so no mark can move because of it.
+
+   WHAT IT DOES, IN THE ORDER IT DOES IT:
+
+     x^2, x^(n+1), 10^-3   a caret IN TEXT becomes a raised power. Never inside a tag, so an
+                           attribute holding a `^` is not rewritten into markup; never inside an
+                           <svg>, whose text is not prose. `e^(4x^2)` is a power with a power in
+                           it, so the string is read again from the caret it just replaced.
+     <sup>a</sup>&frasl;<sub>b</sub>
+                           stacked: a over a rule over b. The same for U+2044 and `&#8260;`,
+                           which are the same character written two other ways.
+     3<sup>4</sup>&frasl;<sub>5</sub>
+                           a MIXED NUMBER, the whole part kept on the fraction's line by
+                           `.frac-mixed`. A whole number before the numerator is the library's
+                           own convention, the one set-accept.py relies on -- not a guess made here.
+     3x<sup>2</sup>&frasl;<sub>(x + 2)</sub>
+                           NOT a mixed number: the superscript after a letter is a POWER, so the
+                           numerator is the whole term 3x² and not the 2. Q12(a) of the June 2020
+                           Paper 3 answer is written exactly so, and the first draft of this
+                           stacked "2 over (x + 2)" with a 3x standing outside it -- a different
+                           expression, and a wrong one, that looked perfectly typeset.
+     (x + 1) &frasl; 3     the operands either side of a bare slash are the TERMS touching it --
+                           a bracket, an element, a run of letters and digits -- because an
+                           expression has no markup saying where its numerator starts.
+                           `sin B &frasl; 6.5` takes the `sin` with it; a numerator of `B` alone
+                           would draw sin(B/6.5).
+
+   ONE PAIR OF BRACKETS ROUND A WHOLE NUMERATOR OR DENOMINATOR GOES, because a stacked fraction's
+   rule is the bracket: `(n − 1) over (n + 1)` is how a calculator writes it, not how a paper
+   prints it. Only when the pair encloses the WHOLE operand -- `(x + 2)(x − 4)` keeps both.
+
+   WHAT IT LEAVES ALONE: a slash INSIDE a superscript (`A<sup>1/3</sup>`, `1.3<sup>1&frasl;6</sup>`)
+   is a fractional index, and a stacked fraction at superscript size is unreadable on a phone --
+   the paper sets those inline too. And anything it cannot read both sides of is left exactly as
+   it came, slanted, which is what it was yesterday: a fallback, not a fault.
+
+   A HIDDEN SLASH BETWEEN THE TWO HALVES (`.frac-s`), so a screen reader says "4 slash 5" rather
+   than "4 5", and copying the question pastes 4/5 rather than 45.
+
+   ONE FUNCTION, EVERY PLACE QUESTION MARKUP IS DRAWN: the stems, the lead, the part, the answer
+   and each tapped choice. `node js/check-typeset.js` cuts it out of this file and runs it over
+   every row of the library, and `check-flow` asks a real card whether all five came out stacked.
+================================================================================================== */
+function typeset_(html) {
+  let s = String(html == null ? '' : html);
+  /* NOTHING TO DO IS THE COMMON CASE -- most of the library is prose -- so it is the first thing
+     asked, before a regex is built or a tag is read. */
+  if (s.indexOf('^') === -1 && !/&frasl;|\u2044|&#8260;/.test(s)) return s;
+
+  /* AN ELEMENT A TERM MAY BE MADE OF. `<p>` and `<li>` are not -- they are where a term ends. */
+  const INLINE = /^(i|b|em|strong|sup|sub|span|u|var|small)$/;
+  /* ENTITIES THAT ARE OPERATORS OR SPACES, so a term stops at them. Everything else written as an
+     entity -- &radic;, &pi;, &deg;, &theta; -- is part of the number it touches. */
+  const OP = /^(minus|times|divide|plusmn|middot|cdot|sdot|nbsp|ensp|emsp|thinsp|mdash|ndash|frasl|lt|gt|le|ge|ne|asymp|equiv|approx|rarr|larr|harr|rArr|hellip|amp|quot|lsquo|rsquo|ldquo|rdquo|there4|#8260|#8722|#160)$/;
+  /* A CHARACTER A TERM MAY BE MADE OF: digits, letters, Greek, the root and infinity, primes, the
+     degree sign, the superscript digits a pasted ² arrives as, and the vulgar fractions. NOT the
+     full stop -- that is taken only between two digits, so `10.7.` ends a sentence after the 7. */
+  const ATOM = /[0-9A-Za-z\u00b0\u00b2\u00b3\u00b9\u00bc-\u00be\u0307\u0370-\u03ff\u2070-\u209f\u2032\u2033\u2150-\u215e\u221a\u221e]/;
+  const PAIR = { '(': ')', '[': ']', '{': '}' }, BACK = { ')': '(', ']': '[', '}': '{' };
+  const FN = /^(sin|cos|tan|log|ln|lg|exp)$/;
+
+  /* WHERE A POSITION SITS: inside a tag, inside an <svg>, and how many <sup>/<sub> deep. Read from
+     the start each time, because the string changes under it as fractions are drawn. */
+  const where = p => {
+    const re = /<(\/?)([a-zA-Z][\w-]*)[^>]*>/g;
+    let m, deep = 0, raw = 0;
+    while ((m = re.exec(s)) && m.index < p) {
+      if (p < m.index + m[0].length) return { tag: true, deep: deep, raw: raw > 0 };
+      const n = m[2].toLowerCase(), by = m[1] ? -1 : (/\/>$/.test(m[0]) ? 0 : 1);
+      if (n === 'sup' || n === 'sub') deep += by;
+      if (n === 'svg' || n === 'math' || n === 'script' || n === 'style') raw += by;
+    }
+    return { tag: false, deep: deep, raw: raw > 0 };
+  };
+  /* THE ELEMENT CLOSING AT `end` (just past `</name>`): where its own opening tag starts. Counted,
+     not matched, because a numerator holds superscripts of its own -- d<sup>2</sup>y. */
+  const openOf = (end, name) => {
+    const re = new RegExp('<(/?)' + name + '\\b[^>]*>', 'gi'), all = [];
+    let m;
+    while ((m = re.exec(s)) && m.index < end) all.push(m);
+    for (let k = all.length - 1, d = 0; k >= 0; k--) {
+      d += all[k][1] ? 1 : -1;
+      if (d === 0) return all[k].index;
+    }
+    return -1;
+  };
+  /* AND THE OTHER WAY: the element opening at `at`, and just past its closing tag. */
+  const shutOf = (at, name) => {
+    const re = new RegExp('<(/?)' + name + '\\b[^>]*>', 'gi');
+    re.lastIndex = at;
+    for (let m, d = 0; (m = re.exec(s));) {
+      d += m[1] ? -1 : 1;
+      if (d === 0) return m.index + m[0].length;
+    }
+    return -1;
+  };
+  /* BRACKETS, counted in the text and stepping over tags, on any string -- `bare` asks it of an
+     operand rather than of the whole. */
+  const brFwd = (t, at) => {
+    const o = t[at], c = PAIR[o];
+    for (let i = at, d = 0; i < t.length; i++) {
+      if (t[i] === '<') { const g = t.indexOf('>', i); if (g < 0) return -1; i = g; continue; }
+      if (t[i] === o) d++;
+      else if (t[i] === c && --d === 0) return i;
+    }
+    return -1;
+  };
+  const brBack = at => {
+    const c = s[at], o = BACK[c];
+    for (let i = at, d = 0; i >= 0; i--) {
+      if (s[i] === '>') { const l = s.lastIndexOf('<', i); if (l < 0) return -1; i = l; continue; }
+      if (s[i] === c) d++;
+      else if (s[i] === o && --d === 0) return i;
+    }
+    return -1;
+  };
+  /* THE TERM ENDING AT `end`, read leftwards: elements, bracket groups, entities that are not
+     operators, and the characters above, until a space or an operator. Returns where it starts. */
+  const termBack = end => {
+    let i = end;
+    while (i > 0) {
+      const c = s[i - 1];
+      if (c === '>') {
+        const l = s.lastIndexOf('<', i - 1), t = /^<\/([a-zA-Z]\w*)>$/.exec(s.slice(l, i));
+        if (!t || !INLINE.test(t[1].toLowerCase())) break;
+        const o = openOf(i, t[1].toLowerCase());
+        if (o < 0) break;
+        i = o;
+      } else if (BACK[c]) {
+        const o = brBack(i - 1);
+        if (o < 0) break;
+        i = o;
+      } else if (c === ';') {
+        const a = s.lastIndexOf('&', i - 1), e = a < 0 ? null : /^&(#?\w+);$/.exec(s.slice(a, i));
+        if (!e || OP.test(e[1])) break;
+        i = a;
+      } else if (c === '.' && /\d/.test(s[i - 2] || '') && /\d/.test(s[i] || '')) {
+        i--;
+      } else if (ATOM.test(c)) {
+        i--;
+      } else break;
+    }
+    return i;
+  };
+  /* AND THE TERM STARTING AT `from`, read rightwards. Returns where it ends. */
+  const TAG = /<([a-zA-Z]\w*)\b[^>]*>/y;
+  const termFwd = from => {
+    let i = from;
+    while (i < s.length) {
+      const c = s[i];
+      if (c === '<') {
+        TAG.lastIndex = i;
+        const t = TAG.exec(s);
+        if (!t || !INLINE.test(t[1].toLowerCase())) break;
+        const z = shutOf(i, t[1].toLowerCase());
+        if (z < 0) break;
+        i = z;
+      } else if (PAIR[c]) {
+        const z = brFwd(s, i);
+        if (z < 0) break;
+        i = z + 1;
+      } else if (c === '&') {
+        const e = /^&(#?\w+);/.exec(s.slice(i, i + 12));
+        if (!e || OP.test(e[1])) break;
+        i += e[0].length;
+      } else if (c === '.' && /\d/.test(s[i - 1] || '') && /\d/.test(s[i + 1] || '')) {
+        i++;
+      } else if (ATOM.test(c)) {
+        i++;
+      } else break;
+    }
+    return i;
+  };
+  const GAP = /^(?:\s|&nbsp;)+/;
+  const gapBack = at => {
+    let i = at;
+    for (;;) {
+      if (i > 0 && /\s/.test(s[i - 1])) i--;
+      else if (s.slice(i - 6, i) === '&nbsp;') i -= 6;
+      else return i;
+    }
+  };
+  const bare = t => {
+    const u = t.replace(/^(?:\s|&nbsp;)+|(?:\s|&nbsp;)+$/g, '');
+    return u[0] === '(' && brFwd(u, 0) === u.length - 1 ? u.slice(1, -1) : u;
+  };
+  const stack = (n, d) => '<span class="frac"><span class="frac-n">' + bare(n)
+    + '</span><span class="frac-s">/</span><span class="frac-d">' + bare(d) + '</span></span>';
+
+  /* ---------- POWERS FIRST, so `x^(5/2)` is a power before anything looks at its slash ---------- */
+  for (let from = 0; ;) {
+    const p = s.indexOf('^', from);
+    if (p === -1) break;
+    from = p + 1;
+    const w = where(p);
+    if (w.tag || w.raw) continue;
+    let exp = '', end = p + 1;
+    if (PAIR[s[p + 1]]) {
+      const z = brFwd(s, p + 1);
+      if (z < 0) continue;
+      exp = s.slice(p + 2, z);
+      end = z + 1;
+    } else {
+      const t = /^(?:-|&minus;|\u2212|\+)?(?:\d+(?:\.\d+)?|[A-Za-z\u0370-\u03ff]+|[\u00bc-\u00be\u2150-\u215e]|<i>[^<]*<\/i>)/
+        .exec(s.slice(p + 1, p + 40));
+      if (!t) continue;
+      exp = t[0];
+      end = p + 1 + t[0].length;
+    }
+    if (!exp.trim()) continue;
+    /* A HYPHEN IN AN INDEX IS A MINUS SIGN, and set as one: 4<sup>−2</sup>, not 4<sup>-2</sup>. */
+    s = s.slice(0, p) + '<sup>' + exp.replace(/^-/, '&minus;') + '</sup>' + s.slice(end);
+    from = p;
+  }
+
+  /* ---------- THEN EVERY FRACTION SLASH, left to right -------------------------------------------- */
+  const SL = /&frasl;|\u2044|&#8260;/g;
+  for (let from = 0; ;) {
+    SL.lastIndex = from;
+    const m = SL.exec(s);
+    if (!m) break;
+    const p = m.index, q = p + m[0].length;
+    from = q;
+    const w = where(p);
+    if (w.tag || w.raw || w.deep) continue;
+    /* THE TOP. */
+    const le = gapBack(p);
+    let ls = termBack(le), whole = '', num;
+    if (ls === le) continue;
+    if (s.slice(le - 6, le) === '</sup>') {
+      const o = openOf(le, 'sup');
+      const pre = s.slice(ls, o), inner = s.slice(s.indexOf('>', o) + 1, le - 6);
+      if (!pre) num = inner;
+      else if (/^\(?\d+\)?$/.test(pre)) { whole = pre; num = inner; }
+      else num = s.slice(ls, le);
+    } else {
+      const f = /(sin|cos|tan|log|ln|lg|exp)(?:\s|&nbsp;)+$/.exec(s.slice(0, ls));
+      if (f && !/[A-Za-z]/.test(s[f.index - 1] || '')) ls = f.index;
+      num = s.slice(ls, le);
+    }
+    /* THE BOTTOM. */
+    const g = GAP.exec(s.slice(q, q + 40));
+    const rs = q + (g ? g[0].length : 0);
+    let re, den;
+    if (/^<sub\b/i.test(s.slice(rs, rs + 5))) {
+      re = shutOf(rs, 'sub');
+      if (re < 0) continue;
+      den = s.slice(s.indexOf('>', rs) + 1, re - 6);
+    } else {
+      re = termFwd(rs);
+      if (re === rs) continue;
+      if (FN.test(s.slice(rs, re))) {
+        const h = GAP.exec(s.slice(re, re + 40));
+        const more = h ? termFwd(re + h[0].length) : re;
+        if (h && more > re + h[0].length) re = more;
+      }
+      den = s.slice(rs, re);
+    }
+    const out = whole ? '<span class="frac-mixed">' + whole + stack(num, den) + '</span>' : stack(num, den);
+    s = s.slice(0, ls) + out + s.slice(re);
+    /* FROM WHERE THIS ONE STARTED, not after it: a fraction inside its numerator was inside a
+       <sup> a moment ago and skipped as an index, and it is in a span now and should be drawn. */
+    from = ls;
+  }
+  return s;
+}
+
+
 /* ---------- THE ANSWER, SHOWN ------------------------------------------------------------------
    IT WAS BEHIND A `<details>` AND IT IS NOT ANY MORE, at the owner's decision. The argument for
    hiding it is written out below because it is a real argument and somebody will make it again:
@@ -4073,7 +4441,8 @@ function boxerCard_(x) {
 
    THE ANSWER GOES IN RAW AND THE NOTE IS ESCAPED, which is not an oversight. `html` and `lead` two
    lines above are inserted raw because a question is typeset — fractions, indices, tables — and an
-   answer is the same material: `S(r.answer)` on the backend keeps whatever was written. An
+   answer is the same material: `S(r.answer)` on the backend keeps whatever was written. Raw, and
+   through `typeset_`, which redraws a fraction stacked and a caret as a power and nothing else. An
    examiner's note is a paragraph of prose, so it is escaped like every other sentence on this card.
    Both come from the owner's own spreadsheet, which is the same trust as the question itself.
 
@@ -4115,7 +4484,7 @@ function answerBlock_(x) {
     <div class="qans-head">
       <span>Answer</span>${kind ? `<em>${esc(kind)}</em>` : ''}
     </div>
-    <div class="qans-body">${x.answer}</div>
+    <div class="qans-body">${typeset_(x.answer)}</div>
     ${x.examinerNote ? `<p class="qans-note">${esc(x.examinerNote)}</p>` : ''}
   </div>`;
 }
@@ -5092,7 +5461,7 @@ function choiceBox_(x) {
       /* THE OPTION'S OWN MARKUP, as the question's html is drawn: it is committed library content
          and carries the italics and superscripts an equation needs. */
       return `<button type="button" class="quiz-opt qp-opt${cls}" data-do="qp-choose"
-        data-n="${n}" aria-pressed="${on}">${c}</button>`;
+        data-n="${n}" aria-pressed="${on}">${typeset_(c)}</button>`;
     }).join('')}</div>
   </div>${right.length ? `<div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">
     <span class="qp-verdict" role="status" aria-live="polite">${done
@@ -5677,7 +6046,17 @@ function qTags_(x) {
   qTagOf_('tier', x).forEach(v => {
     if (!new RegExp('\\b' + v.replace(/[^A-Za-z0-9]/g, '') + '\\b', 'i').test(head)) add('tier', v);
   });
-  add('sitting', date);
+  /* ---------- THE SITTING IS TWO TAGS, THE YEAR AND THEN THE MONTH -------------------------------
+     REPORTED AS *"Fix this why it say June and year in same chip"*, over a card wearing one purple
+     `June 2024` pill. The funnel had already been taken apart -- it asks Year and then Month, two
+     folders, two chips -- and the card above the question still said both in one. So the date is
+     cut the same way: the year, then the month, each a tag in the sitting's colour, in the order
+     the funnel asks them. A date that is not a month and a year (`Specimen`, `Sample`) is one fact
+     and stays one tag. A 5-a-day's `1 June` never reaches here: it is a DAY, its own Day answer,
+     and the branch above draws it whole. */
+  const sat = sittingParts_(date);
+  if (sat) { add('sitting', sat.year); add('sitting', sat.month); }
+  else add('sitting', date);
   /* `Biology Paper 2`, `GPS Paper 1`, `Specimen paper 1`: what comes before `Paper N` says which of
      several papers this is -- so it stays WITH the number, `Biology Paper 2` in red, which is what
      the Paper answer and its chip already say. `Specimen` is a KIND of paper rather than a part of
@@ -5733,10 +6112,10 @@ function questionCard_(x) {
              problem the split was supposed to solve. Drawn only when the row says one: a paper
              whose insert is a single part prints no heading, which is why this needed no
              migration. */''}${
-          p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${p.html || ''}</div>`).join('')}
-      ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
+          p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${typeset_(p.html)}</div>`).join('')}
+      ${x.lead ? `<div class="qsheet-lead">${typeset_(x.lead)}</div>` : ''}
       <div class="qsheet-part">
-        <div class="qsheet-pb">${x.html || ''}${
+        <div class="qsheet-pb">${typeset_(x.html)}${
           /* NO PICTURE HERE. The diagram, the pen and the question's photographs are the NEXT page
              — see `questionFigCard_`. The answer box stays on this card, under the words. */''}</div>
       </div>
@@ -6010,6 +6389,8 @@ function stuffItems() {
                      this change had to undo that half in the same commit.
      · VENUES      — the booking form's venue dropdown, which is the only thing anybody did with
                      one. The slip card is not drawn anywhere now, and that is the real cost.
+                     (They came back as `Booking, Places` on "add venues to finder" and left again
+                     on "get rid of booking places" — see the note on `venue` in `KINDS`.)
      · SUBJECTS
        AND LEVELS  — the same: dropdowns on the form. `subjectRows` and `levelRows` still build,
                      because the booking form and the pricing read them.
@@ -6054,10 +6435,6 @@ function stuffItemsRaw_() {
       kind: 'venue', name: v.title, key: v.title, sub: v.subtitle || '', image: v.image,
       cost: priced_(v.bestRate), row: v, borough: v.borough || v.city || '',
     })),
-    /* A LINK IS A THING YOU ARE LOOKING FOR TOO. It lives on its own tab as a wall of tiles —
-       which is the right way to SCAN ninety of them — and it was reachable no other way, so
-       somebody who half-remembers "that BBC one" had to know which tab to go to before they could
-       search for it. Here it is searchable and filterable like everything else. */
     /* The widgets, findable like everything else. Searching "timer" now finds the timer, which on
        a tab it never could.
 
@@ -6111,26 +6488,17 @@ function stuffItemsRaw_() {
        reactions, same share, same admin controls — so the two could drift without either looking
        wrong on its own. `DATA.posts` is still read by the feed, which is the one place that draws
        them now. */
-    /* ---------- A LINK'S OWN WORDS, WHICH THE SEARCH BOX COULD NOT SEE --------------------------
-       MEASURED: **115 of the 127 links carry a `description` and not one of them was searchable.**
-       The haystack in `stuffFind` is `name + sub + subject + slot + grade + text`, and a link had
-       no `text`, so it was findable by its title and by nothing else. Typing `periodic` found the
-       periodic table only because somebody had the sense to call it "Periodic table"; typing
-       `past papers` found nothing, on a list holding four sites that are nothing but past papers.
+    /* ---------- THE LINKS WERE BUILT HERE, AND THEY ARE GONE FROM THE APP --------------------------
+       ASKED FOR AS *"Get rid of links that's almost redundant now."* This was the only reader of
+       `DATA.links`, with a long note on making a link's description searchable — 115 of 127 carried
+       one and none could be found by it. See the note where `link` was in `KINDS`.
 
-       FOURTH TIME THIS FILE RECORDS THE SAME SENTENCE — after `topics`, after `company` and after
-       the practical guides: the words are in the row, the search box cannot see them, and a screen
-       whose whole job is finding things returns nothing for the thing it holds.
-
-       THE CATEGORY IS IN IT TOO, because "science" and "revision" are what somebody types when
-       they do not remember what a site is called, and the category is the only place either word
-       appears. Built onto the item, not matched per keystroke — `stuffItems` is memoised and runs
-       once; `stuffFind` runs on every letter. */
-    ...(DATA.links || []).filter(l => l.title).map(l => ({
-      kind: 'link', name: l.title, key: 'link:' + l.title, sub: '', image: '',
-      row: l, category: l.category || '',
-      text: plainText_((l.description || '') + ' ' + (l.category || '')),
-    })),
+       NOT `stuffItemsBuild_`, BECAUSE A LINK IS NOT KEPT ON SAVED EITHER. Venues went the other way
+       — filtered off Find and still built here, so a starred one stays on Saved. A link is not
+       filtered, it is gone: the list is not fetched any more, so there is nothing to build, and a
+       link somebody starred leaves Saved with the rest. That is the owner's call taken whole rather
+       than half, and it is said here so it is not rediscovered as the favourites fault this file
+       records above `stuffItemsAll_`. */
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
       subject: x.name, row: x,
@@ -8445,7 +8813,10 @@ function chipShow_(f, i) {
       asList_(v).forEach(one => { if (one && !seen.has(String(one))) { seen.add(String(one)); ids.push(String(one)); } });
     });
     if (!seen.has(String(f.value))) ids.push(String(f.value));
-    const values = ids.map(v => ({ value: v, text: facet.showOf(v, ids) }));
+    /* WHAT THE CHIPS BEFORE IT SAID, the same `said` the answer row was drawn with — so a Paper chip
+       pressed under `June` reads `Paper 1 · 2023` exactly as its button did. */
+    const said = sittingSaid_(before);
+    const values = ids.map(v => ({ value: v, text: facet.showOf(v, ids, said) }));
     shortLabels_(values);
     const mine = values.find(v => v.value === String(f.value));
     show = mine ? (mine.show || mine.text) : '';
@@ -8462,7 +8833,8 @@ function chipShow_(f, i) {
    because they are where you go rather than what something is. The colours are tokens at `:root`
    (`--tag-paper` and the rest), because three components draw them. */
 const TAG_OF = {
-  paperId: 'paper', qNumber: 'paper', qPart: 'paper', fiveDay: 'paper',
+  /* `qNumber` and `qPart` were red too, and are retired as questions — see `RETIRED_FACETS`. */
+  paperId: 'paper', fiveDay: 'paper',
   subject: 'subject',
   level: 'level', keystage: 'level', yearGroup: 'level', bandValue: 'level', fiveLevel: 'level',
   examMonth: 'sitting', examYear: 'sitting', year: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
@@ -9610,6 +9982,14 @@ function stuffQuestion() {
        SO IT SAYS WHICH OF THE TWO IT MEANS. With a collection on offer the way on is the line
        above, and the sentence points at it instead of contradicting it. */
     const n = items.length === 1 ? 'one' : items.length;
+    /* AND WHEN A PAPER ENDED IT, IT SAYS SO. `FACET_ENDS` stops the funnel the moment a paper is
+       chosen — *"no more asking for questions 1-10 or question part 1 or b."* — so what is left is not
+       "nothing to narrow" but the paper itself, in its own order, which is the thing the person came
+       for and the sentence should say. */
+    if (funnelEnded_()) {
+      return `<p class="faint" style="margin:.6rem 0 0">That is the paper, in order.
+        Swipe up for ${items.length === 1 ? 'its one question' : 'its ' + n + ' questions'}.</p>` + adding;
+    }
     return `<p class="faint" style="margin:.6rem 0 0">Nothing left to narrow.
       Swipe up for the ${n}.</p>` + adding;
   }

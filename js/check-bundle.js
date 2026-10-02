@@ -283,12 +283,15 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
      every bound, and only the wholeness test keeps it out. */
   [{ name: 'GCSE · Algebra', filters: DOORS.slice(0, 3).concat([{ field: 'level', value: 'GCSE' },
                                                                    { field: 'topicArea', value: 'Algebra' }]) },
-   /* BY QUESTION NUMBER, NOT BY TOPIC: a past paper answers no topic question any more (see
-      `topicShown_`), and the first ten questions of three papers is the same shape — three papers
-      inside every bound, none of them whole. */
-   { name: 'June 2017 · Higher · Q1–10', filters: cases[0].filters.concat([{ field: 'qNumber', value: '1–10', bucket: true }]) },
+   /* BY THE SEARCH BOX, NOT BY QUESTION NUMBER AND NOT BY TOPIC. A past paper answers no topic
+      question any more (see `topicShown_`), and this case was `Q1–10` until the owner retired the
+      question number (*"no more asking for questions 1-10 or question part 1 or b."*) — a `qNumber`
+      chip now matches nothing, so `filterHit` lets everything through and the list WAS whole papers.
+      Typing `work out` over the same sitting is the same shape a person can still reach: measured,
+      17 questions from both papers (10 of 29, 7 of 28), inside every bound, neither whole. */
+   { name: 'June 2017 · Higher · "work out"', filters: cases[0].filters, q: 'work out' },
   ].forEach(t => {
-    narrow(t.filters);
+    narrow(t.filters, t.q);
     if (b.stuffFiltered().length < 10) {
       bad.push(t.name + ' returned ' + b.stuffFiltered().length + ' items, so this wholeness case '
                + 'measures nothing — NOT a pass');

@@ -125,7 +125,7 @@ function payload() {
       { title: 'Mitcham library', bestRate: 26, maxCapacity: 4, minCapacity: 1, rooms: [],
         borough: 'Merton', avail: {} },
     ],
-    students: [], resources: [], posts: [], links: [], shop: [], trips: [], exams: [],
+    students: [], resources: [], posts: [], shop: [], trips: [], exams: [],
     birthdays: [], orders: [], widgets: [], laws: [], brand: {}, landmarks: [],
     intervals: [{ rel: 'Current', term: 'Autumn 1', label: 'Autumn 1', weeks: 6,
                   startDate: '01/09/2026', endDate: '18/10/2026', kind: 'term' }],
@@ -136,7 +136,7 @@ function payload() {
     dropdowns: { levels: ['GCSE', 'A-Level'], subjects: ['Maths', 'English Language'],
                  days: ['Mon', 'Wed', 'Fri'], times: ['16:00', '17:00', '18:00'],
                  boroughs: ['Merton'], locations: ['Colliers Wood Library', 'Mitcham library'],
-                 services: ['Group'], linkCategories: [], topics: [], checklists: {}, focus: {} },
+                 services: ['Group'], topics: [], checklists: {}, focus: {} },
     multipliers: { levels: {}, subjects: {}, subjectsEta: {}, days: {}, times: {}, services: {},
                    students: {}, weeks: {}, baseRate: 0 },
     /* ---------- PRICED, SO THE JOURNEYS BELOW ARE NOT PASSING ON AN EMPTY ROOM --------------------
@@ -217,6 +217,14 @@ function boot(opts) {
     w.HTMLMediaElement.prototype.play = function () { return Promise.resolve(); };
     w.HTMLMediaElement.prototype.load = function () {};
   } catch (e) {}
+  /* ---------- AND WHAT A JOURNEY NEEDS IN PLACE BEFORE THE FIRST LINE OF THE APP RUNS ------------
+     `data.js` READS `familyUser` AT LOAD and `boot.js` starts the first screen and the payload in
+     its last lines, so a journey that signs in with `__t.USER` afterwards has already missed the
+     boot it is asking about. That was exactly the camera's fault: the prompt came from the repaint
+     the payload's arrival makes, for somebody signed in from the moment the page opened — a path no
+     journey here could stand on. So a journey may hand the window over first, the way `check/ui.js`
+     uses `addInitScript`: seed storage, or stand in for a browser API jsdom does not have. */
+  if (typeof opts.before === 'function') opts.before(w);
   const src = ORDER.map(n => fs.readFileSync(path.join(dir, n + '.js'), 'utf8')).join('\n');
   try {
     w.eval(src + '\n;window.__t = {' +
@@ -254,7 +262,7 @@ function boot(opts) {
          when this hook was built, which is the fault CLAUDE.md records about a state seeding
          `DATA.students` before that assignment. */
       'DATA: () => DATA,' +
-      /* THE FIVE CLASSROOM GAMES' ROUNDS, as a getter for the same reason — a journey asks whether a
+      /* THE FOUR CLASSROOM GAMES' ROUNDS, as a getter for the same reason — a journey asks whether a
          repaint kept the round, and only the state can say that the clock did not move while the
          column was away. */
       'PARTY: () => (typeof PARTY !== "undefined" ? PARTY : null),' +
@@ -351,11 +359,24 @@ function boot(opts) {
       'ss: () => SS, setSs: v => { SS = v; }, ssOrders: ssOrders_, ssRight: ssRight_,' +
       'SS_SENTENCES: SS_SENTENCES, ssDeal: ssDeal_, ssPaint: ssPaint,' +
       'ws: () => WS, setWs: v => { WS = v; }, wsBuild: wsBuild_, wsRude: wsRude_,' +
+      /* THE MAZE BEING WALKED, as a getter because `New maze` replaces it — a journey asks
+         whether a repaint kept the same one, which only the object itself can say. */
+      'maze: () => (typeof maze !== "undefined" ? maze : null),' +
       'WS_THEMES: WS_THEMES, WS_DIRS: WS_DIRS, WS_FORWARD: WS_FORWARD, wsPaint: wsPaint,' +
       'allWidgets: typeof allWidgets === "function" ? allWidgets : null,' +
       'widgetsOf: typeof widgetsOf_ === "function" ? widgetsOf_ : null,' +
       'savedWidgets: typeof savedWidgets_ === "function" ? savedWidgets_ : null,' +
       'star: k => FAVS.add(String(k)),' +
+      /* WHAT THE FIND SCREEN OFFERS AGAINST WHAT THE APP HOLDS, and the Saved column that reads the
+         second. Two lists on purpose: a kind taken off Find must leave the first and stay in the
+         second, or a starred thing vanishes from the one list whose job is to keep it. `doors` is
+         the first question's answers as the funnel draws them. */
+      'funnelItems: typeof stuffItems === "function" ? stuffItems : null,' +
+      'allItems: typeof stuffItemsAll_ === "function" ? stuffItemsAll_ : null,' +
+      'savedPages: typeof savedPages_ === "function" ? savedPages_ : null,' +
+      'doors: () => facetValues(stuffItems(), facetList().find(f => f.field === "forLabel"))' +
+      '  .map(v => String(v.show || v.value)),' +
+      'facetFields: () => facetList().map(f => f.field),' +
       /* THE BASKET, AND ITS ARITHMETIC. `cartMoney_` is the one place a line's price is worked out
          — print plus the laminate upgrade — and `CART` is the list it works it out from. Exposed
          together so a journey can put a line in the basket and ask what it costs, which is the
@@ -365,6 +386,11 @@ function boot(opts) {
       'lamPrice: typeof laminatePrice === "function" ? laminatePrice : null,' +
       'basket: typeof cartCard_ === "function" ? cartCard_ : null,' +
       'PAGE: () => PAGE,' +
+      /* WHICH COLUMN IS IN FRONT. A `let` in the app's one scope, and jsdom's `eval` runs each call
+         in a scope of its own — measured: `w.eval("AT")` is "AT is not defined" — so only a function
+         built in the same evaluation can read it. The camera journey asks it to know that the load
+         it is watching is the one that opens on the feed. */
+      'AT: () => AT,' +
       /* A landmark rasterised at one bearing, so the test above can compare four of them. */
       'tiles: (ring, bearing) => {' +
       '  if (typeof owWorld !== "function") return 0;' +
@@ -1036,8 +1062,263 @@ check('the word search hides every word where it says, and two taps find it', as
 });
 
 
-/* ---------- THE FIVE CLASSROOM GAMES: A ROUND SURVIVES A REPAINT, AND WAITS WHILE YOU ARE AWAY -----
-   JUST A MINUTE, TABOO, HOT SEAT, 20 QUESTIONS AND ALIBI were asked to keep their round through a
+/* ---------- CONTEST: THE LAST CARD ON THE GAMES COLUMN, AND NOTHING ON IT TO PRESS -----------------
+   ASKED FOR AS "make a widget in games column purley dedicatied for contest. make it a place holder
+   for now." Two things a placeholder can get wrong without drawing badly: arriving anywhere but
+   LAST, which moves every page `PAGE.games` has remembered by one, and growing a control before
+   there is anything behind it, which is a button that does nothing. */
+check('the contest placeholder is the last card on the Games column, says so, and has nothing to press', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  const roster = t.widgetsOf('game').map(x => String(x.id));
+  if (roster.indexOf('contest') === -1) return ['there is no contest widget on the Games column'];
+  if (roster[roster.length - 1] !== 'contest') bad.push('contest is not the last game: ' + roster.join(', '));
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const slot = w.document.querySelector('#s-games #wgt-contest');
+  if (!slot) return bad.concat(['the contest card did not draw on the Games column']);
+  const h = slot.querySelector('h3');
+  if (!h || h.textContent.trim() !== 'Contest') bad.push('the card is not headed Contest');
+  if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
+  const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
+  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  return bad;
+});
+
+/* ---------- CONNECT 4: ONE COUNTER FALLS, INTO THE RIGHT SQUARE, AND THE FOUR THAT WON ARE RINGED ---
+   ASKED FOR AS "refine connect 4 add dropping animation of counters." The fall itself is CSS and
+   only a browser can play it — what can go wrong here is WHICH square falls: none (the mark is
+   lost), more than one (every counter on the board jumps on every tap), the wrong one (a counter
+   drops into a square gravity would not put it in), or the same one again on a refused tap. Each of
+   those draws a perfectly good board, so this asks the marks. And a win that rings three, or five
+   of a line of four, is a ring that points at the wrong thing. There was no Connect 4 journey
+   before this one. */
+check('connect 4 drops exactly the counter just played into the lowest empty square, and rings the four that win', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  const d = w.document;
+  const W = 7, H = 6;
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'connect4');
+  if (at < 0) return ['there is no Connect 4 on the Games column'];
+  t.goPage('games', at, true);
+  const cells = () => [...d.querySelectorAll('#s-games #c4-board .c4-cell')];
+  if (cells().length !== W * H) return ['the board did not draw ' + (W * H) + ' squares'];
+  const bad = [];
+  const tap = x => { const el = d.createElement('button'); el.setAttribute('data-x', String(x)); t.ACTIONS['c4-drop'](el); };
+  const lowest = x => { for (let y = H - 1; y >= 0; y--) { const c = cells()[y * W + x]; if (!c.classList.contains('p1') && !c.classList.contains('p2')) return y; } return -1; };
+  const fallen = () => cells().map((c, i) => c.classList.contains('c4-new') ? i : -1).filter(i => i >= 0);
+  const said = () => d.querySelector('#s-games #c4-said');
+
+  /* ONE TAP, ONE COUNTER FALLING, WHERE GRAVITY PUTS IT — twice in one column, so "lowest empty"
+     is asked of a column that is not empty. */
+  [[3, 'p1'], [3, 'p2'], [4, 'p1']].forEach(([x, side]) => {
+    const y = lowest(x);
+    tap(x);
+    const f = fallen();
+    if (f.length !== 1) { bad.push('a tap in column ' + (x + 1) + ' marked ' + f.length + ' counters to fall'); return; }
+    if (f[0] !== y * W + x) bad.push('a tap in column ' + (x + 1) + ' dropped square ' + f[0] + ', not row ' + (y + 1) + ' of that column');
+    const c = cells()[f[0]];
+    if (!c.classList.contains(side)) bad.push('the counter that fell in column ' + (x + 1) + ' is not ' + side);
+    if (!/--c4-fall:\s*\d/.test(c.getAttribute('style') || '') || Number((c.getAttribute('style').match(/--c4-fall:\s*(\d+)/) || [])[1]) !== y + 1) {
+      bad.push('the counter that fell to row ' + (y + 1) + ' says it falls "' + c.getAttribute('style') + '"');
+    }
+  });
+  /* WHOSE GO IT IS, AS A DISC IN THAT SIDE'S COLOUR — Yellow after three counters. */
+  const disc = said() && said().querySelector('.c4-turn');
+  if (!disc || !disc.classList.contains('p2') || disc.getAttribute('aria-hidden') !== 'true') {
+    bad.push('after three counters the line reads "' + (said() || {}).innerHTML + '" — wanted a hidden yellow disc beside Yellow\'s go');
+  }
+
+  /* A FULL COLUMN PLAYS NOTHING, SO NOTHING FALLS — not even the counter that fell last time. */
+  for (let i = 0; i < H; i++) tap(0);
+  tap(0);
+  if (!/full/.test(said().textContent)) bad.push('a tap on a full column reads "' + said().textContent + '"');
+  if (fallen().length) bad.push('a tap on a full column dropped a counter again: square ' + fallen().join(', '));
+
+  /* A WIN RINGS EXACTLY THE FOUR. Red down column 1, Yellow beside it. */
+  t.ACTIONS['c4-again'](d.createElement('button'));
+  if (cells().some(c => c.classList.contains('p1') || c.classList.contains('p2'))) bad.push('New game left counters on the board');
+  [0, 1, 0, 1, 0, 1, 0].forEach(tap);
+  const rung = cells().map((c, i) => c.classList.contains('c4-win') ? i : -1).filter(i => i >= 0);
+  const four = [2, 3, 4, 5].map(y => y * W);
+  if (rung.join(',') !== four.join(',')) bad.push('four Red counters down column 1 rang squares ' + rung.join(', ') + ', wanted ' + four.join(', '));
+  if (!/Red wins/.test(said().textContent) || !said().querySelector('.c4-turn.p1')) bad.push('the win reads "' + said().innerHTML + '"');
+  if (cells().some(c => !c.disabled)) bad.push('a won board can still be played');
+  return bad;
+});
+
+/* ---------- THE MAZE: ITS WALLS ARE ITS OWN, ITS WALK SURVIVES A REPAINT, ITS KEYS ARE ITS OWN -----
+   REPORTED AS "maz game is glitched." Three faults, and every one of them drew without a complaint
+   from anything here — there was no maze journey at all.
+     · THE WALLS. The south wall was the class `ws`, and the word search's grid is the bare `.ws`, so
+       71 of 121 cells were laid out as small grids of their own. Asked here of the stylesheet itself:
+       no rule whose subject names one of a maze cell's classes may be anybody's but the maze's. That
+       is the fault as a rule rather than as the one class it happened to — a `.you` or an `.out`
+       added for some other card tomorrow is the same collision. (`check/ui.js` asks the other half,
+       in a real browser: that every square of a board is one size.)
+     · THE WALK. A repaint dealt a new maze under a finger halfway to the exit.
+     · THE KEYS. On the maze's page ArrowDown walked the maze AND turned the column; on Find, two
+       arrows walked a maze nobody could see.
+   The walk is played through the pad's own handler, along the shortest route read back off the
+   drawn walls — so a wall drawn on the wrong side, or on one side of a doorway only, is a route
+   this cannot finish. */
+check('the maze draws its own walls, keeps a walk through a repaint, and has the arrow keys only in front', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.maze || !t.widgetsOf) return ['the maze is not exported'];
+  const d = w.document;
+  const N = 11;
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'maze');
+  if (at < 0) return ['there is no maze on the Games column'];
+  t.goPage('games', at, true);
+  await wait(50);
+  const grid = () => d.querySelector('#s-games #maze-grid');
+  if (!grid() || grid().children.length !== N * N) return ['the maze did not draw ' + (N * N) + ' squares'];
+  const bad = [];
+
+  /* 1. NO RULE BUT THE MAZE'S REACHES A MAZE SQUARE. Every selector in the stylesheet whose subject
+     — its last compound, the element it styles — names a class some maze square carries, and that
+     matches one, must be the maze's own (`.mz…`). jsdom matches selectors exactly as a browser does
+     for everything here; one it cannot parse is skipped rather than guessed at. */
+  {
+    const css = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const cells = [...grid().children];
+    const theirs = new Set();
+    cells.forEach(c => c.classList.forEach(k => theirs.add(k)));
+    const foreign = new Set();
+    for (const m of css.matchAll(/([^{}@;]+)\{/g)) {
+      m[1].split(',').map(x => x.trim()).filter(Boolean).forEach(sel => {
+        if (/^(from|to|\d+%)$/.test(sel) || /::/.test(sel)) return;
+        const subject = sel.split(/[\s>+~]+/).pop();
+        const named = (subject.match(/\.[\w-]+/g) || []).map(x => x.slice(1));
+        if (!named.some(k => theirs.has(k))) return;
+        if (/\.mz\b|\.mz-/.test(sel)) return;
+        let hit = false;
+        try { hit = cells.some(c => c.matches(sel)); } catch (e) { return; }
+        if (hit) foreign.add(sel);
+      });
+    }
+    if (foreign.size) bad.push('a rule that is not the maze\'s reaches a maze square: ' + [...foreign].join(' | '));
+  }
+
+  /* THE WALLS AS DRAWN, read back off the squares' classes, and both sides of every wall agreeing. */
+  const walls = () => {
+    const out = [];
+    [...grid().children].forEach((c, i) => {
+      let v = 0;
+      if (c.classList.contains('mz-n')) v |= 1;
+      if (c.classList.contains('mz-e')) v |= 2;
+      if (c.classList.contains('mz-s')) v |= 4;
+      if (c.classList.contains('mz-w')) v |= 8;
+      out[i] = v;
+    });
+    return out;
+  };
+  const STEP = { n: [0, -1, 1, 4], e: [1, 0, 2, 8], s: [0, 1, 4, 1], w: [-1, 0, 8, 2] };
+  const route = (cells, from) => {
+    const prev = new Array(N * N).fill(null);
+    prev[from] = '';
+    const q = [from];
+    for (let i = 0; i < q.length; i++) {
+      const a = q[i], x = a % N, y = (a / N) | 0;
+      Object.keys(STEP).forEach(k => {
+        const [dx, dy, bit] = STEP[k];
+        const nx = x + dx, ny = y + dy, b = ny * N + nx;
+        if (cells[a] & bit || nx < 0 || ny < 0 || nx >= N || ny >= N || prev[b] !== null) return;
+        prev[b] = k; q.push(b);
+      });
+    }
+    if (prev[N * N - 1] === null) return null;
+    const steps = [];
+    for (let b = N * N - 1; b !== from;) {
+      const k = prev[b]; steps.unshift(k);
+      b -= STEP[k][1] * N + STEP[k][0];
+    }
+    return steps;
+  };
+  {
+    const c = walls();
+    const oneSided = [];
+    for (let i = 0; i < N * N; i++) {
+      const x = i % N, y = (i / N) | 0;
+      if (x < N - 1 && !!(c[i] & 2) !== !!(c[i + 1] & 8)) oneSided.push((x + 1) + ',' + (y + 1) + ' east');
+      if (y < N - 1 && !!(c[i] & 4) !== !!(c[i + N] & 1)) oneSided.push((x + 1) + ',' + (y + 1) + ' south');
+    }
+    if (oneSided.length) bad.push('walls drawn on one side of a doorway only: ' + oneSided.slice(0, 5).join(', '));
+    if (c.filter(v => v & 4).length === 0) bad.push('no square carries a south wall, so the wall classes were not read');
+  }
+
+  /* 2. THE KEYS, ON THE MAZE'S PAGE AND OFF IT. ArrowUp from the top left is always a wall: the
+     maze must not move, and the press must not reach the pager either. */
+  const key = k => d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+  const page = () => t.PAGE().games;
+  const m0 = t.maze();
+  key('ArrowUp');
+  if (t.maze().moves !== 0) bad.push('ArrowUp into the outer wall counted a move');
+  if (page() !== at) bad.push('ArrowUp on the maze page turned the column from the maze to page ' + page());
+  t.goPage('games', at, true);
+  const open0 = walls()[0] & 2 ? 'ArrowDown' : 'ArrowRight';
+  key(open0);
+  if (t.maze().moves !== 1) bad.push(open0 + ' on the maze page did not move the walker');
+  if (page() !== at) bad.push(open0 + ' on the maze page also turned the column, to page ' + page());
+  t.goPage('games', at, true);
+  /* OFF IT: on the Find column the Games column is drawn as a neighbour, grid and all. */
+  t.go('stuff', false, true);
+  await wait(LEAVE_MS);
+  const was = t.maze().moves;
+  ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].forEach(key);
+  if (t.maze().moves !== was) bad.push('arrow keys on another column walked the maze from ' + was + ' to ' + t.maze().moves + ' moves');
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  t.goPage('games', at, true);
+  await wait(50);
+
+  /* 3. A REPAINT KEEPS THE WALK. */
+  if (t.maze() !== m0) bad.push('coming back to the column dealt a new maze');
+  const drawn = walls().join(',');
+  t.repaint(true);
+  await wait(50);
+  if (t.maze() !== m0 || t.maze().moves !== 1) bad.push('a repaint threw the walk away: moves ' + (t.maze() || {}).moves);
+  if (walls().join(',') !== drawn) bad.push('a repaint drew different walls');
+
+  /* 4. NEW MAZE STARTS AGAIN, and the shortest route read off the drawn walls finishes it. */
+  const press = dd => { const el = d.createElement('button'); el.setAttribute('data-d', dd); t.ACTIONS['maze-go'](el); };
+  t.ACTIONS['maze-again'](d.createElement('button'));
+  const m1 = t.maze();
+  if (m1 === m0 || m1.moves !== 0 || m1.x !== 0 || m1.y !== 0) bad.push('New maze did not start a fresh one at the top left');
+  const way = route(walls(), 0);
+  if (!way) return bad.concat(['the drawn walls have no way from the top left to the bottom right']);
+  if (way.length !== m1.best) bad.push('the shortest way through the drawn walls is ' + way.length + ' and the maze says ' + m1.best);
+  const half = way.length >> 1;
+  way.slice(0, half).forEach(press);
+  t.repaint(true);
+  await wait(50);
+  if (t.maze() !== m1 || t.maze().moves !== half) bad.push('a repaint halfway threw the walk away');
+  way.slice(half).forEach(press);
+  const said = String((d.querySelector('#s-games #maze-said') || {}).textContent || '');
+  if (!t.maze().over || t.maze().moves !== m1.best) bad.push('the shortest route did not finish the maze in ' + m1.best);
+  if (!/the shortest way there is/.test(said)) bad.push('finishing in the fewest moves says "' + said + '"');
+
+  /* 5. A FINISHED MAZE GIVES THE KEYS BACK, and the next start deals another. */
+  key('ArrowUp');
+  if (page() === at) bad.push('ArrowUp on a finished maze still did not reach the pager');
+  t.goPage('games', at, true);
+  t.repaint(true);
+  await wait(50);
+  if (t.maze() === m1 || t.maze().over) bad.push('a finished maze was not replaced at the next start');
+  return bad;
+});
+
+/* ---------- THE FOUR CLASSROOM GAMES: A ROUND SURVIVES A REPAINT, AND WAITS WHILE YOU ARE AWAY -----
+   JUST A MINUTE, TABOO, HOT SEAT AND 20 QUESTIONS were asked to keep their round through a
    repaint — which is a stop and a start a moment apart — and to stop their clock when the column is
    left. Those pull against each other, because both arrive as the same `stop`, and every way of
    getting it wrong draws perfectly: a repaint that pauses the round under somebody's finger, a
@@ -1047,9 +1328,9 @@ check('the word search hides every word where it says, and two taps find it', as
 /* A COLUMN'S WIDGETS ARE STARTED AND STOPPED FROM `afterSlide_`, about 300ms after the move, so a
    journey asking what leaving did has to wait that long first. */
 const LEAVE_MS = 700;
-/* `k` IS WHICH WORD GAME THE WIDGET OPENS ON. Four of these five live inside the one Word games
-   widget now, which draws only the game chosen; the choice is the device's, so it is set there
-   before the column is reached. Alibi kept its own card and passes nothing. */
+/* `k` IS WHICH WORD GAME THE WIDGET OPENS ON. All four live inside the one Word games widget, which
+   draws only the game chosen; the choice is the device's, so it is set there before the column is
+   reached. Alibi was the one that passed nothing, because it kept a card of its own; it is deleted. */
 const partyBoot_ = async (k) => {
   const { w } = boot();
   await wait(300);
@@ -1211,7 +1492,8 @@ check('20 questions keeps the secret from the room and counts to twenty', async 
 });
 
 /* ---------- THE WORD GAMES ARE ONE WIDGET, AND SWITCHING GAME IS A LEAVE ---------------------------
-   Asked for as "Merge word games into one widget. Like articulate and charades". Three things can
+   Asked for as "Merge word games into one widget. Like articulate and charades", and then Herd
+   Mentality moved in as the eighth: "heard mentality is a word game so should go there." Three things can
    go wrong and all of them draw perfectly: the dropdown offering a game the slot cannot draw, a
    game switched away from going on running where nobody can see it, and the old game's card left
    in the slot beside the new one. */
@@ -1219,20 +1501,36 @@ check('the word games are one widget, and switching game pauses the one left', a
   const { t, d, press, text, P } = await partyBoot_('tab');
   const bad = [];
   const ids = t.allWidgets().map(x => x.id);
-  ['articulate', 'charades', 'taboo', 'hotseat', 'justaminute', 'twentyq', 'imposter'].forEach(id => {
+  ['articulate', 'charades', 'taboo', 'hotseat', 'justaminute', 'twentyq', 'imposter', 'herd'].forEach(id => {
     if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own beside Word games');
   });
   if (ids.indexOf('wordgames') === -1) return bad.concat(['there is no Word games widget']);
   const sel = d.getElementById('wg-pick');
   if (!sel) return bad.concat(['the Word games widget has no game dropdown']);
   const offered = [...sel.options].map(o => o.value);
-  if (offered.length !== 7) bad.push('the dropdown offers ' + offered.length + ' games, wanted 7');
+  if (offered.length !== 8) bad.push('the dropdown offers ' + offered.length + ' games, wanted 8');
+  /* HERD MENTALITY IS THE EIGHTH — "heard mentality is a word game so should go there." Asked by
+     name, because a count of eight is also seven games and a stray. */
+  if (offered.indexOf('herd') === -1) bad.push('Herd Mentality is not in the dropdown');
   for (const k of offered) {
     sel.value = k;
     t.ACTIONS['wg-pick'](sel);
     if (!d.getElementById(k + '-card')) bad.push('choosing ' + k + ' did not draw its card');
     const others = offered.filter(o => o !== k && d.getElementById(o + '-card'));
     if (others.length) bad.push('choosing ' + k + ' left ' + others.join(', ') + ' in the slot too');
+  }
+  /* AND IT DEALS IN THE SLOT, IN ITS OWN LARGE TYPE. The question is read across a table, and
+     `.herd-card .herd-q` is the rule that makes it large — a wrapper without that class still draws,
+     at body-text size, which no assertion about ids would notice. */
+  sel.value = 'herd'; t.ACTIONS['wg-pick'](sel);
+  const hq = d.querySelector('#wg-slot .herd-card #herd-q');
+  if (!hq) bad.push('Herd Mentality drew without the .herd-card wrapper its question type hangs off');
+  else {
+    const q1 = hq.textContent.trim();
+    if (!q1) bad.push('choosing Herd Mentality dealt no question');
+    press('herd-next');
+    const q2 = String((d.getElementById('herd-q') || {}).textContent || '').trim();
+    if (!q2 || q2 === q1) bad.push('Next question did not deal another: "' + q1 + '" then "' + q2 + '"');
   }
   sel.value = 'tab'; t.ACTIONS['wg-pick'](sel);
   press('tab-start');
@@ -1249,30 +1547,24 @@ check('the word games are one widget, and switching game pauses the one left', a
   return bad;
 });
 
-check('alibi shows the case, then the same questions to each suspect on their own clock', async () => {
-  const { t, d, press, text, P } = await partyBoot_();
-  if (!d.getElementById('alb-card')) return ['Alibi did not draw on the Games column'];
+/* ---------- ALIBI IS DELETED, AND NOTHING OF IT IS LEFT TO PRESS -------------------------------------
+   Asked for as "delete alibi game." Its journey was here — a case, two suspects on two clocks, a
+   verdict — and went with it. What replaces it asks the one thing a deletion can get wrong without
+   anything drawing badly: a card left in the roster, or a handler left answering a button nothing
+   draws any more, which is a door to nowhere that `check-doors` would only find from the other end. */
+check('alibi is gone from the Games column, its handlers and its round state', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t || !t.allWidgets) return ['the widget roster is not exported'];
   const bad = [];
-  press('alb-start');
-  const s = P().alb;
-  if (!s) return ['New case did not open one'];
-  const c = text('alb');
-  if (c.indexOf(s.crime) === -1 || c.indexOf(s.time) === -1 || c.indexOf(s.place) === -1) bad.push('the case card is missing the crime, the time or the place');
-  if (s.qs.some(q => c.indexOf(q) !== -1)) bad.push('the questions are on the card the suspects take out of the room');
-  press('alb-next');
-  const one = [...d.querySelectorAll('#alb-card .alb-qs li')].map(li => li.textContent);
-  if (s.who !== 1 || !s.ends || one.length !== 6) bad.push('suspect 1 is not being questioned on a clock with six questions');
-  t.repaint(true);
-  await wait(50);
-  if (P().alb.who !== 1 || !P().alb.ends) bad.push('a repaint lost suspect 1\'s interview');
-  s.ends = Date.now() + 30000;
-  press('alb-next');
-  const two = [...d.querySelectorAll('#alb-card .alb-qs li')].map(li => li.textContent);
-  if (s.who !== 2) bad.push('Next did not bring in suspect 2');
-  if (s.left !== 120000 || Math.abs((s.ends - Date.now()) - 120000) > 1000) bad.push('suspect 2 did not get a clock of their own');
-  if (one.join('|') !== two.join('|')) bad.push('the two suspects were asked different questions');
-  press('alb-next');
-  if (s.phase !== 'verdict' || s.ends) bad.push('the verdict did not follow suspect 2, or left a clock running');
+  if (t.allWidgets().some(x => String(x.id) === 'alibi')) bad.push('alibi is still a widget');
+  ['alb-start', 'alb-next'].forEach(a => { if (t.ACTIONS[a]) bad.push(a + ' still has a handler'); });
+  const P = t.PARTY();
+  if (P && 'alb' in P) bad.push('PARTY still keeps a slot for an alibi round');
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  if (w.document.getElementById('alb-card')) bad.push('an alibi card is still drawn on the Games column');
   return bad;
 });
 
@@ -1438,6 +1730,49 @@ check("the flyer maker is an admin's and nobody else's", async () => {
   if (!t.widgetFor(fly)) bad.push('an admin may not open the flyer maker');
   if (!t.widgetsOf('tool').some(x => x.id === 'flyers')) bad.push('the Tools column does not offer an admin the flyer maker');
   if (!t.savedWidgets().some(x => x.id === 'flyers')) bad.push('an admin who starred the flyer maker does not find it on Saved');
+  return bad;
+});
+
+/* ---------- VENUES ARE OFF FIND, AND A STARRED VENUE IS STILL ON SAVED -----------------------------
+   ASKED FOR AS *"Get rid of booking places ... So finder now will become just learning stuff."* The
+   venue kind was `Booking, Places`, a second group whose only job was to get past `FUNNEL_NOT_FOR`,
+   and Find's first question read `Booking, Places | Learning | Links | Shop` — one chip with a
+   comma in it. No check saw it, because `check/fixture.json` sent a `kinds` tab production does not
+   have. THIS PAYLOAD SENDS NONE, which is what production sends, so the code's own groups decide.
+
+   THREE QUESTIONS, ONE PER WAY IT CAN GO WRONG: a venue in the list Find draws; a door whose name is
+   two groups joined by a comma (the code's own cell is not split by `asList_`, so a comma there is a
+   chip, never two); and a venue somebody starred going missing from Saved, which reads every item
+   the app holds rather than the funnel's list. */
+check('venues are off Find, and a starred venue is still on Saved', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.funnelItems || !t.allItems || !t.savedPages || !t.doors || !t.star) {
+    return ['the funnel\'s two lists and the Saved column are not exported'];
+  }
+  const bad = [];
+  const all = t.allItems().filter(x => x.kind === 'venue');
+  if (!all.length) return ['the payload\'s two venues are not items at all, so nothing here measures anything'];
+  const found = t.funnelItems().filter(x => x.kind === 'venue');
+  if (found.length) {
+    bad.push(found.length + ' venue(s) are still in the list Find draws (' + found.map(x => x.name).join(', ')
+             + ') — the owner asked for booking places to be taken off it. See `venue` in KINDS.');
+  }
+  const doors = t.doors();
+  const fused = doors.filter(d => /,/.test(d));
+  if (fused.length) bad.push('Find\'s first question offers ' + fused.map(d => '"' + d + '"').join(', ')
+                             + ' — two groups drawn as one door');
+  if (doors.some(d => /^(Places|Booking)$/i.test(d))) {
+    bad.push('Find\'s first question still offers ' + doors.join(' | '));
+  }
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.star(all[0].key);
+  const saved = t.savedPages().join('');
+  if (saved.indexOf(all[0].name) === -1) {
+    bad.push('"' + all[0].name + '" was starred and is not on the Saved column — taking a kind off Find '
+             + 'must not take it off the list of things somebody kept. See `collItems_`.');
+  }
   return bad;
 });
 
@@ -3374,6 +3709,183 @@ check('the camera card starts itself and offers the gallery', async () => {
   return bad;
 });
 
+/* ---------- THE CAMERA ASKS FOR NOTHING UNTIL SOMEBODY SWIPES UP TO IT ------------------------------
+   REPORTED AS *"the website seems to ask you for permission to use camera when you first load into it
+   even though the camera widget is above the front door widget. it should only go when you swipe to
+   go up."* Reproduced: the payload's arrival calls `repaint`, and `repaint` runs `startScreen_`
+   BEFORE `paintPager` — which is what moves the feed to its front door. For that moment the feed is
+   still on page 0, page 0 IS the camera when the calendar has no festive card, and `feedCamWatch_`
+   asked for it. The column then settled on the newest post with the prompt over it.
+
+   NOTHING HERE HAD EVER STOOD IN FOR `getUserMedia`, which is why it was never caught. jsdom has no
+   `mediaDevices`, so `camStart_` said "no camera support" and returned — and a camera that can never
+   start cannot be caught starting early. So this stands in for it through `boot`'s `before`, counts
+   the ASKS (each one is a prompt on a phone that has not said yes) and the streams still OPEN (each
+   one is a recording light), because "asked once" and "left nothing running" are both the promise.
+
+   EVERY WAY IN, each on a fresh app, because the fault depended on the first paint and a reused app
+   has had its first paint:
+     · signed in, no festive card — the reported case, where page 0 is the camera
+     · signed out — no viewfinder, so nothing to ask for even on its own page
+     · a festive card above the camera — the front door is page 2 and the camera page 1
+     · a festive card and no post at all — nothing under the camera, so it must not be the front door
+     · to another column and back — on a post it asks nothing; on the camera page that IS arriving
+     · refused — a repaint on the camera page does not ask again behind your back; the button does
+     · a prompt still up when a repaint lands — one ask, and the stream reaches the card on screen */
+const camBoot_ = o => {
+  const gum = { asks: 0, open: 0, hold: null };
+  const p = payload();
+  if (!o.festive) p.festive = [];
+  /* TWO POSTS UNDER THE CAMERA, because the front door is "the newest post" and `payload()` has
+     none — with no post below it the camera is the last page, and the column cannot open past it. */
+  if (!o.noPosts) {
+    p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
+      image: '', media: [], caption: 'Post ' + i, body: '', location: '', when: '0' + i + '/09/2026',
+      at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false,
+      reactions: {}, comments: { total: 0, list: [] } }));
+  }
+  const b = boot({ payload: p, before: w => {
+    try { if (o.user) w.localStorage.setItem('familyUser', JSON.stringify(o.user)); } catch (e) {}
+    const stream = () => {
+      let on = true;
+      gum.open++;
+      const track = { kind: 'video', stop() { if (on) { on = false; gum.open--; } } };
+      return { getTracks: () => [track], getVideoTracks: () => [track] };
+    };
+    Object.defineProperty(w.navigator, 'mediaDevices', { configurable: true, value: {
+      getUserMedia: () => {
+        gum.asks++;
+        if (o.refuse) return Promise.reject(Object.assign(new Error('refused'), { name: 'NotAllowedError' }));
+        if (o.slow) return new Promise(ok => { gum.hold = () => ok(stream()); });
+        return Promise.resolve(stream());
+      },
+      enumerateDevices: () => Promise.resolve([]),
+    } });
+  } });
+  b.gum = gum;
+  b.at = () => (b.w.__t && typeof b.w.__t.AT === 'function' ? b.w.__t.AT() : '?');
+  b.page = () => (b.w.__t.PAGE() || {}).feed;
+  b.cam = () => (typeof b.w.feedCamAt_ === 'function' ? b.w.feedCamAt_() : -1);
+  return b;
+};
+/* PAST `afterSlide_`'s 300ms and any settle, which is when `goPage` runs `feedCamWatch_`. */
+const CAM_SLIDE = 700;
+
+check('the camera asks for nothing until somebody swipes up to it', async () => {
+  const bad = [];
+  const rasa = { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] };
+
+  /* ---------- SIGNED IN, NO FESTIVE CARD: THE ONE THAT WAS REPORTED ---------------------------- */
+  {
+    const b = camBoot_({ user: rasa });
+    await wait(400);
+    if (!b.w.__t || typeof b.w.feedCamAt_ !== 'function') {
+      return ['the app did not load, so the camera was NOT checked — not a pass'];
+    }
+    if (!b.w.document.getElementById('cam-view')) {
+      return ['no viewfinder was drawn for somebody signed in, so there was nothing to catch starting — not a pass'];
+    }
+    if (b.at() !== 'feed') bad.push(`the app opened on ${b.at()}, not the feed, so this was not the first load reported`);
+    if (b.gum.asks) {
+      bad.push(`opening the app asked for the camera ${b.gum.asks} time(s) — it is one swipe UP from the front door and nobody swiped`);
+    }
+    if (b.page() !== b.cam() + 1) bad.push(`the feed opened on page ${b.page()}, not the newest post at ${b.cam() + 1}`);
+    const before = b.gum.asks;
+    b.w.__t.repaint(); await wait(CAM_SLIDE);
+    if (b.gum.asks !== before) bad.push('a repaint on the front door asked for the camera');
+
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    if (b.gum.asks !== before + 1) bad.push(`swiping up to the camera asked ${b.gum.asks - before} time(s), not once`);
+    if (b.gum.open !== 1) bad.push(`swiping up to the camera left ${b.gum.open} stream(s) open, not one`);
+    b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE);
+    if (b.gum.open) bad.push('swiping back down to the newest post left the camera running');
+
+    /* AWAY AND BACK, ON A POST: the column remembers where it was, and that is not the camera. */
+    b.w.__t.go('stuff'); await wait(CAM_SLIDE);
+    b.w.__t.go('feed'); await wait(CAM_SLIDE);
+    if (b.gum.asks !== before + 1) bad.push('coming back to the feed on the newest post asked for the camera again');
+
+    /* AWAY AND BACK, ON THE CAMERA PAGE: that IS arriving at it, and it starts — the camera has
+       started on arrival rather than on a tap since the note over `camStart_` was written. */
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.go('stuff'); await wait(CAM_SLIDE);
+    if (b.gum.open) bad.push('leaving the feed from the camera page left the camera running');
+    b.w.__t.go('feed'); await wait(CAM_SLIDE);
+    if (b.gum.asks !== before + 3) bad.push(`coming back to the feed on the camera page asked ${b.gum.asks - before - 2} time(s), not once`);
+    if (b.gum.open !== 1) bad.push(`coming back to the camera page left ${b.gum.open} stream(s) open, not one`);
+  }
+
+  /* ---------- SIGNED OUT ------------------------------------------------------------------------ */
+  {
+    const b = camBoot_({});
+    await wait(400);
+    if (b.gum.asks) bad.push('signed out, opening the app asked for the camera');
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    if (b.gum.asks) bad.push('signed out, the camera page asked for a camera it draws no viewfinder for');
+  }
+
+  /* ---------- A FESTIVE CARD ABOVE THE CAMERA ---------------------------------------------------- */
+  {
+    const b = camBoot_({ user: rasa, festive: true });
+    await wait(400);
+    if (b.cam() !== 1) bad.push(`with one festive card the camera is page ${b.cam()}, not 1, so that case was NOT checked`);
+    if (b.gum.asks) bad.push('with a festive card above the camera, opening the app asked for it');
+    if (b.page() !== 2) bad.push(`with a festive card the feed opened on page ${b.page()}, not the newest post at 2`);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    if (b.gum.asks !== 1) bad.push(`with a festive card, swiping up to the camera asked ${b.gum.asks} time(s), not once`);
+  }
+
+  /* ---------- A FESTIVE CARD AND NO POST AT ALL ---------------------------------------------------
+     With nothing under the camera, "the page after the camera" does not exist, and `pageHome_`'s
+     clamp put the column ON the camera — the reported prompt arriving by a second road. */
+  {
+    const b = camBoot_({ user: rasa, festive: true, noPosts: true });
+    await wait(400);
+    if (b.gum.asks) bad.push('with a festive card and no posts, opening the app asked for the camera');
+    if (b.page() === b.cam()) bad.push('with a festive card and no posts, the feed opened ON the camera page');
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    if (b.gum.asks !== 1) bad.push(`with a festive card and no posts, turning to the camera asked ${b.gum.asks} time(s), not once`);
+  }
+
+  /* ---------- REFUSED, THEN A REPAINT -------------------------------------------------------------
+     The inbox landing and the profile refresh each repaint, and a repaint redraws the card — so a
+     camera that was refused used to be asked for again by whatever landed next, which is a prompt on
+     Safari that nobody swiped for. */
+  {
+    const b = camBoot_({ user: rasa, refuse: true });
+    await wait(400);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    if (b.gum.asks !== 1) bad.push(`refused: swiping up asked ${b.gum.asks} time(s), not once`);
+    b.w.__t.repaint(); await wait(CAM_SLIDE);
+    if (b.gum.asks !== 1) bad.push('refused: a repaint on the camera page asked again — a prompt nobody swiped for');
+    const on = b.w.document.getElementById('cam-on');
+    if (!on || on.hidden) bad.push('refused: after a repaint the card has no `Try the camera again`');
+    const said = (b.w.document.getElementById('cam-said') || {}).textContent || '';
+    if (!said.trim()) bad.push('refused: after a repaint the card no longer says why the camera did not start');
+    if (on) { b.w.__t.ACTIONS['cam-on'](on); await wait(50); }
+    if (b.gum.asks !== 2) bad.push('refused: `Try the camera again` did not ask again');
+    b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    if (b.gum.asks !== 3) bad.push('refused: swiping down and back up to the camera did not ask again');
+  }
+
+  /* ---------- THE PROMPT STILL UP WHEN A REPAINT LANDS --------------------------------------------
+     `CAM_STREAM` is null until somebody answers, so a repaint in that moment used to ask a second
+     time — and when both were granted the first stream was overwritten and never stopped. */
+  {
+    const b = camBoot_({ user: rasa, slow: true });
+    await wait(400);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.repaint(); await wait(50);
+    if (b.gum.asks !== 1) bad.push(`a repaint while the prompt was up asked again — ${b.gum.asks} asks for one card`);
+    if (b.gum.hold) { b.gum.hold(); await wait(50); }
+    if (b.gum.open !== 1) bad.push(`the prompt answered left ${b.gum.open} stream(s) open, not one`);
+    const v = b.w.document.getElementById('cam-view');
+    if (!v || !v.srcObject) bad.push('the stream granted after a repaint went to the card that was replaced, not the one on the screen');
+  }
+  return bad;
+});
+
 check('the friend search still works for a student', async () => {
   /* THE OTHER HALF OF GUARDING THE CHILDREN LIST. Restricting who receives it is only right if the
      people who need it still have it — and `friend-add` matches an EXACT handle, so a student with
@@ -3729,6 +4241,53 @@ check('an age range reads sensibly with both ends, one end, or neither', async (
   if (!/>Ages 8–16</.test(facts)) bad.push('a tutor who teaches 8 to 16 has no "Ages 8–16" chip under At a glance');
   const none = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { ageMin: '', ageMax: '' }) }) || '');
   if (/>Ages?\b|>Adults<|>All ages</.test(none)) bad.push('a tutor who has said nothing about ages is drawn with an age chip anyway');
+  return bad;
+});
+
+/* ---------- A FRACTION ON A CARD IS DRAWN OVER ITS LINE, IN ALL FIVE PLACES A CARD DRAWS MATHS ----
+   ASKED FOR AS "it shouldnt be 4/5 it should be 4 over the five like how it is supposed to be."
+   `check-typeset.js` proves `typeset_` stacks a fraction; it cannot prove the CARD calls it, and a
+   card that typesets the part and forgets the answer draws half its fractions slanted, which is
+   exactly what the owner kept seeing. So this builds one card through the app's own
+   `questionCard_` with a stored fraction in the stem, the lead, the part, the answer and both
+   choices, and asks each region of the drawn card for its stacked fraction.
+
+   AND THE MARKER'S COLUMN COMES OUT UNTOUCHED. `accept` is what a typed answer is compared with,
+   and the typesetter must never see it: a `5/9` stacked into spans in `data-accept` would mark
+   every right answer wrong. */
+check('a fraction is drawn stacked in the stem, lead, part, answer and choices, and accept is not', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.questionCard_ !== 'function') return ['questionCard_ is not reachable — renamed?'];
+  const half = '<sup>1</sup>&frasl;<sub>2</sub>';
+  const base = { kind: 'question', key: 'q-typeset', name: 'Q9', marks: 2,
+    row: { row_id: 'Q-TYPESET-9', paper_id: 'P-TYPESET', subject: 'Maths', name: 'Typeset' },
+    stems: [{ html: '<p>Stem ' + half + '</p>' }], lead: '<p>Lead ' + half + '</p>',
+    html: '<p>Work out 3<sup>4</sup>&frasl;<sub>5</sub> and <i>x</i>^2</p>',
+    answer: '<b><sup>32</sup>&frasl;<sub>15</sub></b>' };
+  const draw = x => { const d = w.document.createElement('div'); d.innerHTML = w.questionCard_(x, 0); return d; };
+  const tapped = draw(Object.assign({}, base, {
+    choices: [half, '<sup>1</sup>&frasl;<sub>3</sub>'], choiceRight: [1] }));
+  [['.qsheet-stem', 'the stem'], ['.qsheet-lead', 'the lead'], ['.qsheet-pb', 'the part'],
+   ['.qans-body', 'the answer']].forEach(([sel, what]) => {
+    const el = tapped.querySelector(sel);
+    if (!el) bad.push(what + ' was not drawn at all');
+    else if (!el.querySelector('.frac .frac-n') || !el.querySelector('.frac .frac-d')) bad.push(what + ' drew its fraction slanted: ' + el.innerHTML.slice(0, 120));
+  });
+  const opts = [...tapped.querySelectorAll('.quiz-opt')];
+  if (opts.length !== 2) bad.push('the two choices drew as ' + opts.length + ' buttons');
+  else if (opts.some(b => !b.querySelector('.frac .frac-n'))) bad.push('a choice drew its fraction slanted');
+  const part = tapped.querySelector('.qsheet-pb');
+  if (part && !part.querySelector('.frac-mixed')) bad.push('3 4/5 is not kept together as a mixed number');
+  if (part && !/x<\/i><sup>2<\/sup>/.test(part.innerHTML)) bad.push('x^2 was not raised: ' + part.innerHTML);
+  /* THE TYPED BOX: no choices, an `accept`, and the attribute the marker reads must be byte for byte
+     what the row says. */
+  const typed = draw(Object.assign({}, base, { accept: '32/15 | 2 2\u204415' }));
+  const mark = typed.querySelector('.qp-mark');
+  if (!mark) bad.push('a row with an accept drew no Check');
+  else if (mark.getAttribute('data-accept') !== '32/15 | 2 2\u204415') bad.push('accept reached the marker changed: ' + mark.getAttribute('data-accept'));
+  if (base.html.indexOf('&frasl;') === -1) bad.push('drawing the card rewrote the stored row');
   return bad;
 });
 

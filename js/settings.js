@@ -50,8 +50,12 @@
 /* THE TABS THIS FILE OWNS. Named as paths under `data/`, because `libraryExtraRows_` fetches
    `data/<name>.json` and `settings/brand` is `data/settings/brand.json` — one fetch machine rather
    than a second one beside it, which is the `documents_()` / `factsNow_` argument again. */
+/* `settings/links` WAS ON THIS LIST, fetched on every load — 27 KB for the Links door on Find, its
+   only reader. The owner asked for the links to go (*"Get rid of links that's almost redundant
+   now"*), so the fetch went with the door. `data/settings/links.json` stays in the repository as the
+   archive of what the tab held; `check-settings.js` lists it among the files on disk and not fetched. */
 const SETTINGS_TABS = ['settings/brand', 'settings/facets', 'settings/kinds', 'settings/laws',
-                       'settings/facts', 'settings/splashes', 'settings/links',
+                       'settings/facts', 'settings/splashes',
                        'settings/campaigns', 'settings/copy', 'settings/columns',
                        'settings/spotlight'];
 
@@ -62,7 +66,8 @@ const setNorm_ = v => libS(v).toLowerCase().trim();
 
 /* A ROW NUMBER THE SHEET WOULD HAVE GIVEN. `doGet` sends `r._row` as a link's id and as a fact's
    tie-break, and a file has no such thing — so it is the line the row is on, which is what the
-   sheet's own number was. Stable across loads, which is all either caller needs it for. */
+   sheet's own number was. Stable across loads, which is all either caller needs it for. (The link
+   half went with the links; the facts still sort on it.) */
 const setRow_ = i => i + 2;
 
 function settingsInto_(d, extra) {
@@ -161,29 +166,10 @@ function settingsInto_(d, extra) {
       .map(r => 'is-' + setNorm_(r.splash_id));
   }
 
-  /* --- the link tiles ---------------------------------------------------------------------------
-     `fields` IS NOT REBUILT and that is deliberate. The backend packs every editable column onto
-     each link for an admin form that no version of this app has ever opened — `updateLink`,
-     `addLink` and `deleteLink` have zero callers. `find.js` reads `title`, `category` and the whole
-     `row`; nothing reads `fields`. Copying it across would be carrying the wreckage of a dead
-     surface onto every phone. */
-  const links = extra['settings/links'];
-  if (links && links.length) {
-    d.links = [];
-    d.dropdowns = d.dropdowns || {};
-    const cats = d.dropdowns.linkCategories = d.dropdowns.linkCategories || [];
-    links.forEach((r, i) => {
-      const title = libS(r.name);
-      if (!title) return;
-      const category = libS(r.category) || 'General';
-      if (cats.indexOf(category) === -1) cats.push(category);
-      d.links.push({
-        id: setRow_(i), rowIndex: setRow_(i), title: title, category: category,
-        url: libS(r.url), colour: libS(r.colour),
-        description: libS(r.description), image: libS(r.photo),
-      });
-    });
-  }
+  /* --- the link tiles WERE MAPPED HERE --------------------------------------------------------------
+     into `d.links` and `d.dropdowns.linkCategories`, the backend's shape, for the Links door on Find.
+     The door is gone, so is the fetch above, and nothing anywhere read `linkCategories` — the admin
+     link form it was built for was never opened by any version of this app. */
 
   /* --- the campaigns, and the words they say ----------------------------------------------------
      ONE PASS OVER `copy`, INDEXED BY CAMPAIGN, so the phone never joins two lists itself — and

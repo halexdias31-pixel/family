@@ -487,7 +487,8 @@ function doGet(e) {
          instead of a payload: no tutors, no library, nothing, for as long as the claim sat there.
          Found by `check-profile.js`'s family case, whose second family carries exactly such a row. */
       claims: [],
-      links: [], shop: [], promotions: [], intervals: [], landmarks: [],
+      /* `links: []` WAS FIRST ON THIS LINE. See "`links` IS NOT SENT AT ALL NOW" below. */
+      shop: [], promotions: [], intervals: [], landmarks: [],
       campaigns: [],
       /* What the search funnel asks and what it calls it — see SCHEMA.facets. */
       facets: [],
@@ -533,7 +534,8 @@ function doGet(e) {
         focus: optionFocus(),
         times: (opts.start_time || []).map(fmtTime), boroughs: opts.borough || [],
         locations: venuesTab.map(v => S(v.name)).filter(Boolean),
-        services: opts.service || [], linkCategories: [], topics: [], checklists: {},
+        /* `linkCategories: []` went with the links: sent empty, and read by nothing in `js/`. */
+        services: opts.service || [], topics: [], checklists: {},
       },
       /* `subjects` holds the subject surcharges, which is what its name says.
          It used to be sent EMPTY, with the real figures under `subjectsEta` — a key meaning
@@ -1604,10 +1606,18 @@ function doGet(e) {
        6,233 cells compared cell by cell against the workbook, 0 different. Nothing writes to it,
        nothing here computes with it, and the phone was its only reader.
 
-       THE EMPTY DECLARATION IN THE PAYLOAD LITERAL STAYS, exactly as `boxers` and `fights` did when
+       THE EMPTY DECLARATION IN THE PAYLOAD LITERAL STAYED, exactly as `boxers` and `fights` did when
        the library left: `check-payload.js` builds its "sent" set from this file alone, so dropping
-       the key would report it read-and-never-sent — a true sentence about doget.gs and a false one
-       about the app, which fills it from the repo. */
+       the key would have reported it read-and-never-sent — a true sentence about doget.gs and a
+       false one about the app, which filled it from the repo.
+
+       ---------- `links` IS NOT SENT AT ALL NOW ----------------------------------------------------
+       THE OWNER ASKED FOR THE LINKS TO GO — *"Get rid of links that's almost redundant now"* — and
+       the Links door on Find was the only reader of `DATA.links`. With it gone the empty declaration
+       is the other half of the same sentence: a key sent and read by nothing, which `check-payload.js`
+       lists as weight. So it left the literal in the same change, and the phone no longer fetches
+       `data/settings/links.json` either. A backend that has not been synced yet still sends `[]`,
+       which nothing reads — so the two can be deployed in either order. */
 
     /* The shop holds both kinds of stock, but wearables only exist as rows once they've been
        seeded — so a freshly deployed site showed one bike and nothing else, which looks exactly

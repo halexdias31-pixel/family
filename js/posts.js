@@ -546,6 +546,23 @@ function postsBlocks() {
    is three states to keep in step for no gain anybody can see.
 ================================================================================================== */
 let CAM_STREAM = null;
+/* ---------- A QUESTION STILL OPEN, AND AN ANSWER THAT WAS NO ---------------------------------------
+   `CAM_STREAM` IS NULL FOR THE WHOLE TIME THE PROMPT IS UP, and "is there a stream" was the only
+   thing `camStart_` asked before asking the browser. So anything that called it in that window asked
+   a second time: the inbox landing and the profile refresh each `repaint`, and a repaint on the
+   camera page runs `startScreen_`. Two grants were two streams, the second overwrote the first in
+   `CAM_STREAM`, and the first was never stopped — a recording light nothing could turn off. Measured
+   by the audit with the browser refusing: one swipe up, two asks, the second from the inbox repaint.
+   `CAM_ASKING` is the question being open; while it is, nobody asks it again.
+
+   `CAM_FAILED` IS THE LAST ANSWER BEING NO, on this visit to the page. Chrome remembers a refusal and
+   answers the next ask itself, but Safari may put the prompt up again — so a repaint after a refusal
+   was a prompt nobody swiped for, which is the report this was written for arriving by another road.
+   Held until the page is left (`feedCamWatch_`, `camStop_`) or `Try the camera again` is pressed,
+   and drawn back onto every redrawn card by `camFailed_`, so a repaint cannot quietly turn the
+   sentence saying why back into "Starting the camera…". */
+let CAM_ASKING = false;
+let CAM_FAILED = null;
 /* ---------- WHICH WAY IT IS POINTING, AND WHY IT IS A VARIABLE NOW --------------------------------
    IT WAS `{ ideal: 'environment' }` WRITTEN INTO `camStart_` and there was no way to change it, so
    a phone whose front camera is the one you want could take a photograph of the wall behind you and
@@ -768,38 +785,53 @@ async function camStart_() {
   const c = $('cam-still');
   if (c && !c.hidden) return;
 
-  const said = $('cam-said'), retry = $('cam-on');
+  /* ONE QUESTION AT A TIME, AND A NO IS NOT ASKED AGAIN BEHIND YOUR BACK — see `CAM_ASKING` and
+     `CAM_FAILED` where they are declared. The open question will put its answer on whichever card is
+     on the screen when it comes back (below), so a repaint in the meantime has nothing to do; a
+     remembered refusal has its sentence and its button drawn back onto the fresh card instead. */
+  if (CAM_ASKING) return;
+  if (CAM_FAILED) { camFailed_(CAM_FAILED); return; }
+
+  let said = $('cam-said'), retry = $('cam-on');
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
     if (said) said.textContent = 'This browser has no camera support.';
     if (retry) retry.hidden = true;          // nothing a retry could change
     return;
   }
   if (retry) retry.disabled = true;
+  CAM_ASKING = true;
   try {
     /* THE BACK CAMERA IF THERE IS ONE. `ideal` rather than `exact` so a laptop with one front
        camera gets that rather than an OverconstrainedError. */
     CAM_STREAM = await navigator.mediaDevices.getUserMedia({
       video: { facingMode: { ideal: CAM_FACE } }, audio: false });
   } catch (err) {
+    CAM_ASKING = false;
     CAM_STREAM = null;
-    if (said) said.textContent = camWhy_(err);
-    /* THE WAY BACK APPEARS ONLY NOW. Until something fails there is nothing to retry, and a button
-       offering to start a camera that is already running is the thing this replaced. */
-    if (retry) { retry.hidden = false; retry.disabled = false; }
-    const off = $('cam-off');
-    if (off) { off.hidden = false; const t = off.querySelector('.sub'); if (t) t.textContent = 'The camera did not start.'; }
-    /* A 44px BUTTON THAT WAS NOT THERE A MOMENT AGO IS A CHANGE OF HEIGHT LIKE ANY OTHER. */
-    camSettle_();
+    /* REMEMBERED ONLY IF IT IS STILL THE PAGE IN FRONT. A refusal that lands after the page was left
+       belongs to a visit that is over, and the next swipe up is a fresh ask. */
+    CAM_FAILED = feedCamHere_() ? err : null;
+    camFailed_(err);
     return;
   }
+  CAM_ASKING = false;
 
   /* THE COLUMN MAY HAVE LEFT WHILE THE PROMPT WAS UP. `camStop_` ran with CAM_STREAM still null, so
      it stopped nothing, and this stream would have stayed live behind a screen nobody is looking at
      — a recording light on for nothing, which is the exact thing camStop_ exists to prevent. */
   if (!feedCamHere_()) { camStop_(true); return; }
 
-  v.srcObject = CAM_STREAM;
-  try { await v.play(); } catch (e) {}
+  /* ---------- AND THE CARD MAY HAVE BEEN DRAWN AGAIN WHILE IT WAS UP --------------------------------
+     `v`, `said` and `retry` were found before the prompt, and a repaint in the meantime replaced all
+     three — so the stream went into a `<video>` no longer in the document while the one on the screen
+     said "Starting the camera…" until something else repainted. Found again here, after the wait,
+     which is the half `CAM_ASKING` makes necessary: the repaint no longer asks a second time, so this
+     answer is the only one that will arrive. */
+  const now = $('cam-view');
+  if (!now) { camStop_(true); return; }
+  said = $('cam-said'); retry = $('cam-on');
+  now.srcObject = CAM_STREAM;
+  try { await now.play(); } catch (e) {}
   $('cam-off') && ($('cam-off').hidden = true);
   if (retry) { retry.hidden = true; retry.disabled = false; }
   camLive_(true);
@@ -810,6 +842,22 @@ async function camStart_() {
      fingerprint — so asking at boot would hide the flip control on every phone that has two
      cameras. Asked here, a frame after the prompt was granted, the list is the real one. */
   camWays_();
+}
+
+/* ---------- WHAT THE CARD SAYS WHEN THE CAMERA DID NOT START -----------------------------------------
+   DRAWN FROM TWO PLACES NOW: the ask that failed, and every card redrawn after it while the refusal
+   is remembered. A repaint puts back a card reading "Starting the camera…" with its retry hidden, and
+   `camStart_` no longer asks again behind it — so without this the card would claim to be starting a
+   camera nobody is asking for, with no way to ask. */
+function camFailed_(err) {
+  const said = $('cam-said'), retry = $('cam-on'), off = $('cam-off');
+  if (said) said.textContent = camWhy_(err);
+  /* THE WAY BACK APPEARS ONLY NOW. Until something fails there is nothing to retry, and a button
+     offering to start a camera that is already running is the thing this replaced. */
+  if (retry) { retry.hidden = false; retry.disabled = false; }
+  if (off) { off.hidden = false; const t = off.querySelector('.sub'); if (t) t.textContent = 'The camera did not start.'; }
+  /* A 44px BUTTON THAT WAS NOT THERE A MOMENT AGO IS A CHANGE OF HEIGHT LIKE ANY OTHER. */
+  camSettle_();
 }
 
 /* ---------- THE TWO SHUTTERS ARE ONE FACT: IS THERE A LIVE STREAM ---------------------------------
@@ -873,7 +921,10 @@ async function camFlip_() {
 }
 
 on('cam-flip', () => camFlip_());
-on('cam-on', () => camStart_());
+/* THE ONE DOOR THAT ASKS AGAIN ON THE SPOT. A refusal is remembered so that a repaint does not ask
+   behind your back — see `CAM_FAILED` — and pressing `Try the camera again` is the opposite of behind
+   your back, so it forgets it first. */
+on('cam-on', () => { CAM_FAILED = null; camStart_(); });
 
 /* ---------- A PICTURE OUT OF THE GALLERY ----------------------------------------------------------
    DRAWN INTO THE SAME CANVAS A SHOT USES, so `Again` and `Save it` work on it without knowing where
@@ -1343,6 +1394,10 @@ function camStop_(keepShown) {
   const v = $('cam-view');
   if (v) { try { v.srcObject = null; } catch (e) {} }
   if (keepShown) return;
+  /* LEAVING THE COLUMN FORGETS A REFUSAL, like swiping off the page does in `feedCamWatch_`. Not on
+     `keepShown`: that is the picker, the flip and the page turn letting the hardware go, and a picked
+     photograph posted from a refused camera must not have `camAgain_` ask behind it. */
+  CAM_FAILED = null;
 
   camRecMark_(false);
   camLive_(false);
@@ -2025,8 +2080,30 @@ function feedColumn_() {
 screen('feed', () => pages('feed', feedColumn_()));
 
 /* IS THE CAMERA ON THE SCREEN, which is the only moment it should be running. */
+/* ---------- AND NOT BEFORE THE FEED HAS BEEN OPENED AT ITS FRONT DOOR ------------------------------
+   REPORTED AS *"the website seems to ask you for permission to use camera when you first load into it
+   even though the camera widget is above the front door widget. it should only go when you swipe to
+   go up."* It did, and every step of it was right on its own. The payload lands and `load()` calls
+   `repaint`, which runs `startScreen_` BEFORE `paintPager` — its order is documented and shared by
+   every column — and `paintPager` is what calls `pageHome_`, which is what moves the feed to the
+   newest post. So for that one call the feed was still on page 0, page 0 IS the camera on any day the
+   calendar has no festive card, `LOADED` had just become true, and this answered yes. The prompt went
+   up, and a moment later the column settled on the newest post underneath it. Measured in Chromium,
+   signed in: one `getUserMedia` at 560ms with `PAGE.feed` 0 and `PAGE_OPENED.feed` false, from
+   `camStart_ < feedCamWatch_ < startScreen_ < repaint < load`.
+
+   `PAGE_OPENED.feed` IS THE FACT THAT WAS MISSING. Until `pageHome_` has put the column at its front
+   door, `PAGE.feed` is not a page anybody chose — it is the 0 the object started with — so it is not
+   evidence that the camera is in front. After it, every move is a swipe, a `goPage` or an arrival at
+   the column where it was left, which are the moments the camera is meant to start. Asked here
+   rather than by reordering `repaint`, because this is the one question every caller asks — the
+   repaint, the arrival, the page turn and the stream coming back from a prompt — so it covers any
+   early caller nobody has written yet as well as the one that was found. ABSENT `PAGE_OPENED` READS
+   AS NO: a camera that cannot tell whether it is in front stays off, which is the direction a
+   permission prompt should fail in. `check-flow.js` stands in for `getUserMedia` and counts. */
 function feedCamHere_() {
   return typeof AT !== 'undefined' && AT === 'feed' && LOADED
+    && typeof PAGE_OPENED !== 'undefined' && !!PAGE_OPENED.feed
     && (PAGE.feed || 0) === feedCamAt_();
 }
 /* START IT ON ITS PAGE AND LET IT GO ON EVERY OTHER. Booked from `goPage` on every turn and from
@@ -2036,6 +2113,9 @@ function feedCamHere_() {
    returns early over a held picture. Leaving the COLUMN is what resets the card, as it always did. */
 function feedCamWatch_() {
   if (feedCamHere_()) { camStart_(); return; }
+  /* OFF ITS PAGE, A REFUSAL IS FORGOTTEN. Coming back up to it is a swipe, and a swipe is somebody
+     asking for the camera — see `CAM_FAILED`. */
+  CAM_FAILED = null;
   if (CAM_STREAM || (CAM_REC && CAM_REC.state === 'recording')) camStop_(true);
 }
 

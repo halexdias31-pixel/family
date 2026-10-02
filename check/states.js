@@ -185,6 +185,72 @@ const STATES = {
         return new Set(tops).size < tops.length;
       },
       wants: 'the Month question, bare month names only, drawn as chips sharing a line' },
+    /* ---------- THE PAPER FOLDER WITH THE YEAR SKIPPED ------------------------------------------------
+       *"Fix this why it say June and year in same chip"* — with `Doesn't matter` on Year and a month
+       pressed, the Paper answers read `Paper 1 — May 2017 | Paper 1 — May 2018 | …`: the month the
+       person had just chosen, said again on every answer, fused to the year. Now they read `Paper 1 ·
+       2017 | Paper 1 · 2018 | …`, the half nobody has said. GCSE Higher in May is the route that
+       draws them as answers rather than letter ranges: four sittings, one Paper 1 each. */
+    { name: 'the paper folder with the year skipped',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'subject', value: 'Maths' },
+                         { field: 'documentType', value: 'Past paper' },
+                         { field: 'level', value: 'GCSE' },
+                         { field: 'topicArea', any: true },
+                         { field: 'topic', any: true },
+                         { field: 'tier', value: 'Higher' },
+                         { field: 'examYear', any: true },
+                         { field: 'examMonth', value: 'May' }];
+        paintStuff();
+        goPage('stuff', 0, true);
+      },
+      expect: () => {
+        const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
+        const txt = r => r.textContent.replace(/\s+/g, ' ').trim();
+        if (rows.length < 2 || !rows.every(r => r.dataset.field === 'paperId')) return false;
+        if (rows.some(r => /\bMay\b/i.test(txt(r)))) return false;
+        return rows.every(r => /· (19|20)\d{2}\b/.test(txt(r)));
+      },
+      wants: 'the Paper question, each answer its number and its year, and no answer saying May again' },
+    /* ---------- A PAPER CHOSEN, AND NOTHING MORE ASKED -----------------------------------------------
+       ASKED FOR AS *"no more asking for questions 1-10 or question part 1 or b."* This route used to go
+       on to `Question number 1–10 | 11–20 | 21–30`, then `1–2 | 3–4`, then `1 | 2`. Now the paper is the
+       last folder (`FACET_ENDS`): the funnel page draws no answers and says to swipe up, and the next
+       page is the paper's first question. The state turns to that page, so the card a thumb lands on
+       is what gets measured — and the funnel page is asked about from there, since it is still in
+       the strip. */
+    { name: 'a paper chosen',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'subject', value: 'Maths' },
+                         { field: 'documentType', value: 'Past paper' },
+                         { field: 'level', value: 'GCSE' },
+                         { field: 'topicArea', any: true },
+                         { field: 'topic', any: true },
+                         { field: 'tier', value: 'Higher' },
+                         { field: 'examYear', value: '2017' },
+                         { field: 'examMonth', value: 'June' },
+                         { field: 'paperId', value: 'P-1MA1-1706-2H' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      /* AND THE CARD'S SITTING IS TWO TAGS, `2017` THEN `June` — *"Fix this why it say June and year
+         in same chip"* was a screenshot of one purple `June 2024` pill on exactly this card. */
+      expect: () => {
+        const rows = document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]');
+        const groups = document.querySelector('#stuff-groups');
+        const card = document.querySelector('#s-stuff .page.on .qcard') || document.querySelector('#s-stuff .qcard');
+        const sit = card ? [...card.querySelectorAll('.qtag[data-tag="sitting"]')].map(t => t.textContent.trim()) : [];
+        return !!groups && rows.length === 0 && /That is the paper, in order/.test(groups.textContent)
+               && !!card && sit.join('|') === '2017|June';
+      },
+      wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it, its sitting tagged 2017 then June',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- AN ANSWER ONE LETTER LONG ---------------------------------------------------------
        A CHIP IS AS WIDE AS ITS WORDS, and the letter ranges `bucketValues_` groups a long list into
        are often a single letter — `S` among the topics here, `G` and `P` among the English papers.
@@ -1718,10 +1784,10 @@ const STATES = {
       wants: 'the hand-over card, with no rack on the screen',
       leave: () => { scrabble = null; scrabblePaint(); } },
 
-    /* ---------- THE FIVE CLASSROOM GAMES, EACH ON ITS BUSIEST CARD ----------------------------
-       FOUR OF THEM ARE INSIDE THE WORD GAMES WIDGET NOW and are reached through its dropdown.
+    /* ---------- THE FOUR CLASSROOM GAMES, EACH ON ITS BUSIEST CARD ----------------------------
+       ALL FOUR ARE INSIDE THE WORD GAMES WIDGET NOW and are reached through its dropdown.
        EVERY ONE OPENS ON A SINGLE BUTTON, which is the only state `go()` reaches — so everything
-       these games are (a clock, Taboo's forbidden words, Alibi's six questions) is past it and
+       these games are (a clock, Taboo's forbidden words, 20 Questions' count) is past it and
        nothing would measure it without a state. Entered through the app's own handlers, and then
        given the LONGEST entry its deck holds: a round is dealt at random, so a state that measured
        whatever came up would measure a different card every run, and the one worth measuring is
@@ -1785,32 +1851,9 @@ const STATES = {
       wants: 'the count, Yes and No, and no secret on the screen',
       leave: () => { PARTY.twq = null; twqPaint(); } },
 
-    { name: 'an alibi case card',
-      enter: () => {
-        goPage('games', (n => { if (n < 0) throw new Error('no alibi widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'alibi')), true);
-        ACTIONS['alb-start'](document.createElement('button'));
-        const long = l => l.reduce((a, b) => (b.length > a.length ? b : a), '');
-        Object.assign(PARTY.alb, { crime: long(ALB_CRIMES), time: long(ALB_TIMES), place: long(ALB_PLACES) });
-        albPaint();
-      },
-      expect: () => !!document.querySelector('#s-games #alb-card .alb-facts')
-                 && !document.querySelector('#s-games #alb-card .alb-qs'),
-      wants: 'the crime, the time and the alibi, with no questions on it',
-      leave: () => { partyHold_('alb'); PARTY.alb = null; albPaint(); } },
-
-    /* THE SIX LONGEST QUESTIONS, for the same reason: six of a hundred and twenty chosen at random
-       is a list a different height every run. */
-    { name: 'an alibi interview',
-      enter: () => {
-        goPage('games', (n => { if (n < 0) throw new Error('no alibi widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'alibi')), true);
-        ACTIONS['alb-start'](document.createElement('button'));
-        PARTY.alb.qs = ALB_QUESTIONS.slice().sort((a, b) => b.length - a.length).slice(0, ALB_ASK);
-        ACTIONS['alb-next'](document.createElement('button'));
-      },
-      expect: () => document.querySelectorAll('#s-games #alb-card .alb-qs li').length === ALB_ASK
-                 && !!document.querySelector('#s-games #alb-card .party-clock'),
-      wants: 'suspect 1, the clock and six questions',
-      leave: () => { partyHold_('alb'); PARTY.alb = null; albPaint(); } },
+    /* `an alibi case card` AND `an alibi interview` WERE HERE, and went with the game ("delete alibi
+       game.") — a state that enters a widget nobody can open fails loudly, which is right, and a
+       state measuring nothing has no business being kept to say so. */
     /* ---------- A WORD SEARCH PART-FOUND, AND A SENTENCE PART-BUILT ------------------------------
        Both widgets OPEN on a fresh deal, which is the one state `go()` reaches — and a fresh deal is
        the state with nothing struck through, nothing highlighted, no start ring and an empty strip.
@@ -1861,6 +1904,37 @@ const STATES = {
                  && !!document.querySelector('#s-games [data-do="ss-check"][disabled]'),
       wants: 'the longest sentence half built, its used chips dimmed and Check not yet pressable',
       leave: () => { SS = window.__seedSs || null; if (!SS) ssDeal_(ssBand_()); ssPaint(); } },
+
+    /* ---------- A CONNECT 4 GAME, WON --------------------------------------------------------------
+       THE WIDGET OPENS ON AN EMPTY BOARD, which is the one state `go()` reaches — and an empty board
+       has no counter, no falling counter and no ring, so nothing "refine connect 4 add dropping
+       animation of counters" added would ever be measured or pressed. Played through the board's
+       own handler, Red down the first column, so the four that won are ringed, the line under the
+       board carries its disc, and the last counter is the one that fell.
+
+       AND THE EXPECTATION ASKS THE BROWSER WHAT ONLY A BROWSER KNOWS: that the counter marked to
+       fall really has the `c4-drop` animation on its `::after`. `check-flow.js` can ask which
+       square is marked; it cannot ask whether the stylesheet still does anything with the mark. */
+    { name: 'a connect 4 game, won',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'connect4');
+        if (n < 0) throw new Error('no connect 4 widget in the roster');
+        goPage('games', n, true);
+        initConnect4();
+        [0, 1, 0, 1, 0, 1, 0].forEach(x => {
+          const b = document.createElement('button');
+          b.setAttribute('data-x', String(x));
+          ACTIONS['c4-drop'](b);
+        });
+      },
+      expect: () => {
+        const fell = document.querySelector('#s-games .c4-cell.c4-new');
+        return document.querySelectorAll('#s-games .c4-cell.c4-win').length === 4
+          && !!document.querySelector('#s-games #c4-said .c4-turn.p1')
+          && !!fell && getComputedStyle(fell, '::after').animationName === 'c4-drop';
+      },
+      wants: 'four counters ringed, a red disc beside Red wins, and the last counter under the drop',
+      leave: () => { initConnect4(); } },
   ],
 
   /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------
