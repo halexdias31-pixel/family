@@ -1481,6 +1481,10 @@ const STATES = {
       },
       expect: () => {
         const phone = (innerWidth === 320 && innerHeight === 568) || (innerWidth === 390 && innerHeight === 844);
+        /* NOT WALKED AT ALL AWAY FROM THE PHONES. Each view is a full `matPaint`, which lays out the
+           A4 sheet off screen to measure the gauge — two hundred of them per visitor per size, and
+           with all four sizes walked `check/ui.js` ran past `check-all`'s ten-minute limit. */
+        if (!phone) return !!document.querySelector('#s-tools #mat-group');
         const sub = document.querySelector('#s-tools #mat-subject');
         const lev = document.querySelector('#s-tools #mat-level');
         const box = document.querySelector('#s-tools #mat-box');
@@ -1497,7 +1501,7 @@ const STATES = {
             for (const g of gs) {
               if (g) fire(grp, g);
               views++;
-              if (!phone || miss) continue;
+              if (miss) continue;
               paneReach_([pane]);
               const zoom = Math.min(...[...pane.children].map(k => Number(k.style.zoom || 1)));
               const rows = document.querySelectorAll('#s-tools .mat-list label:not(.off)').length;
