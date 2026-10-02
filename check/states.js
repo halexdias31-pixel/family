@@ -185,6 +185,36 @@ const STATES = {
         return new Set(tops).size < tops.length;
       },
       wants: 'the Month question, bare month names only, drawn as chips sharing a line' },
+    /* ---------- THE PAPER FOLDER WITH THE YEAR SKIPPED ------------------------------------------------
+       *"Fix this why it say June and year in same chip"* — with `Doesn't matter` on Year and a month
+       pressed, the Paper answers read `Paper 1 — May 2017 | Paper 1 — May 2018 | …`: the month the
+       person had just chosen, said again on every answer, fused to the year. Now they read `Paper 1 ·
+       2017 | Paper 1 · 2018 | …`, the half nobody has said. GCSE Higher in May is the route that
+       draws them as answers rather than letter ranges: four sittings, one Paper 1 each. */
+    { name: 'the paper folder with the year skipped',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' },
+                         { field: 'kindLabel', value: 'Questions' },
+                         { field: 'subject', value: 'Maths' },
+                         { field: 'documentType', value: 'Past paper' },
+                         { field: 'level', value: 'GCSE' },
+                         { field: 'topicArea', any: true },
+                         { field: 'topic', any: true },
+                         { field: 'tier', value: 'Higher' },
+                         { field: 'examYear', any: true },
+                         { field: 'examMonth', value: 'May' }];
+        paintStuff();
+        goPage('stuff', 0, true);
+      },
+      expect: () => {
+        const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
+        const txt = r => r.textContent.replace(/\s+/g, ' ').trim();
+        if (rows.length < 2 || !rows.every(r => r.dataset.field === 'paperId')) return false;
+        if (rows.some(r => /\bMay\b/i.test(txt(r)))) return false;
+        return rows.every(r => /· (19|20)\d{2}\b/.test(txt(r)));
+      },
+      wants: 'the Paper question, each answer its number and its year, and no answer saying May again' },
     /* ---------- A PAPER CHOSEN, AND NOTHING MORE ASKED -----------------------------------------------
        ASKED FOR AS *"no more asking for questions 1-10 or question part 1 or b."* This route used to go
        on to `Question number 1–10 | 11–20 | 21–30`, then `1–2 | 3–4`, then `1 | 2`. Now the paper is the
@@ -209,13 +239,17 @@ const STATES = {
         paintStuff();
         goPage('stuff', stuffFirstResult_(), true);
       },
+      /* AND THE CARD'S SITTING IS TWO TAGS, `2017` THEN `June` — *"Fix this why it say June and year
+         in same chip"* was a screenshot of one purple `June 2024` pill on exactly this card. */
       expect: () => {
         const rows = document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]');
         const groups = document.querySelector('#stuff-groups');
+        const card = document.querySelector('#s-stuff .page.on .qcard') || document.querySelector('#s-stuff .qcard');
+        const sit = card ? [...card.querySelectorAll('.qtag[data-tag="sitting"]')].map(t => t.textContent.trim()) : [];
         return !!groups && rows.length === 0 && /That is the paper, in order/.test(groups.textContent)
-               && document.querySelectorAll('#s-stuff .qcard').length > 0;
+               && !!card && sit.join('|') === '2017|June';
       },
-      wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it',
+      wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it, its sitting tagged 2017 then June',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- AN ANSWER ONE LETTER LONG ---------------------------------------------------------
        A CHIP IS AS WIDE AS ITS WORDS, and the letter ranges `bucketValues_` groups a long list into

@@ -1393,7 +1393,10 @@ const FACETS = [
     bucketOrder: FIVE_WEEKS },
   { field: 'paperId',   label: 'Paper', folder: true,
     of: x => (x.row && x.row.paper_id) || '',
-    showOf: (id, ids) => paperLabel_(id, ids) },
+    /* `said` IS WHAT THE YEAR AND MONTH CHIPS HAVE ALREADY SAID, and the label drops it — see
+       `sittingUnsaid_`. Absent on every caller that labels a paper on its own (the bundle, the
+       basket, a bucket's key), which keep the whole name. */
+    showOf: (id, ids, said) => sittingUnsaid_(paperLabel_(id, ids), said) },
   { field: 'slot',      label: 'Goes on',     of: x => x.slot },
   /* ---------- "FREE" AND "NOT PRICED" ARE DIFFERENT ANSWERS, AND THIS SAID FREE TO BOTH -------
      MEASURED: 3,262 OF 3,265 ITEMS ANSWERED `Free`. Every mapper in `stuffItems` used to write
@@ -1744,6 +1747,63 @@ function filterHit(x, f) {
  * recorded. A name with no separator in it has one form and comes back unchanged, so every
  * one-word answer in the app (`Maths`, `Higher`, `Summer 2017`) is untouched by construction.
  */
+/* ==================================================================================================
+   A SITTING IS A YEAR AND A MONTH, AND THE FUNNEL ASKS THEM APART.
+
+   REPORTED AS *"Fix this why it say June and year in same chip"*. The funnel asks Year and then Month
+   as two folders, and three places went on saying both in one pill: the card's sitting tag (`June
+   2024`), and the Paper answers once one of the two had been said by a chip — Year skipped, `June`
+   pressed, and the answers read `Paper 1 — June 2023 | Paper 1 — June 2024`: the June the person had
+   just chosen, read back to them twice, fused to the one thing they had not.
+
+   THREE SMALL READERS, ONE PER JOB:
+     `sittingParts_`   `June 2024` -> the year and the month, or null for anything else (`Specimen`,
+                       `Sample`, a 5-a-day's `1 June`). Read off the date a paper's name prints after
+                       its spaced dash, which is the only place it is written.
+     `sittingSaid_`    which of the two the chips in front of a list have already said. A `Doesn't
+                       matter` says nothing, and neither does a bucket — `2023 & 2024` is two years.
+     `sittingUnsaid_`  a Paper answer with the said half dropped: `Paper 1 — June 2023` under a `June`
+                       chip is `Paper 1 · 2023`, under a `2023` chip `Paper 1 · June`, and under both
+                       `Paper 1`. A middle dot, because what is left is one fact beside the number
+                       rather than a date; `SITTING_CUT_` below is what lets `nameForms_` still cut
+                       there, so `shortLabels_` drops it too wherever the answers on screen let it.
+
+   A BUNDLE'S TITLE KEEPS `June 2017`. It is a sentence about a set of papers, not an answer anybody
+   presses, and it reads as one. */
+function sittingParts_(date) {
+  const m = /^((?:\d{1,2}\s+)?([A-Za-z]+))\s+((?:19|20)\d{2})$/.exec(String(date == null ? '' : date).trim());
+  if (!m || !MONTH_NAMES.some(n => n.toLowerCase() === m[2].toLowerCase())) return null;
+  return { year: m[3], month: m[1], word: m[2] };
+}
+function sittingSaid_(filters) {
+  const said = { year: '', month: '' };
+  (filters || []).forEach(c => {
+    if (!c || c.any || c.bucket) return;
+    if (c.field === 'examYear') said.year = String(c.value == null ? '' : c.value);
+    else if (c.field === 'examMonth') said.month = String(c.value == null ? '' : c.value);
+  });
+  return said;
+}
+function sittingUnsaid_(label, said) {
+  const s = String(label == null ? '' : label);
+  if (!said || (!said.year && !said.month)) return s;
+  const dash = /\s[—–]\s/.exec(s);
+  const parts = dash ? sittingParts_(s.slice(dash.index + dash[0].length)) : null;
+  if (!parts) return s;
+  const left = [];
+  if (!(said.year && said.year === parts.year)) left.push(parts.year);
+  if (!(said.month && spellKey_(said.month) === spellKey_(parts.word))) left.push(parts.month);
+  if (left.length === 2) return s;
+  return s.slice(0, dash.index) + (left.length ? ' · ' + left[0] : '');
+}
+
+/* WHERE A NAME'S DATE STARTS: the spaced long dash it is printed after, or -- once `sittingUnsaid_`
+   has dropped half of it -- the middle dot before the lone year or month that is left. Only before
+   a WHOLE year or month at the very end, so `Paper 1 · Foundation — June 2024`'s first dot, which is
+   a rung `paperLabels_` put there, is never mistaken for a date. */
+const SITTING_CUT_ = new RegExp('\\s[\\u2014\\u2013]\\s|\\s\\u00b7\\s(?=(?:(?:19|20)\\d{2}|'
+                               + MONTH_NAMES.join('|') + ')$)');
+
 function nameForms_(s) {
   const full = String(s == null ? '' : s).trim();
   const out = [];
@@ -1755,8 +1815,10 @@ function nameForms_(s) {
   };
   /* AN EM DASH WITH SPACES ROUND IT, and an en dash for the same reason. NOT a plain hyphen: this
      library writes `A-Level` and `Capture-recapture`, and cutting at those would offer `A` as an
-     answer. A dash that is a separator is spaced and long; a dash inside a word is neither. */
-  cut(/\s[—–]\s/);
+     answer. A dash that is a separator is spaced and long; a dash inside a word is neither.
+     AND THE DOT BEFORE HALF A DATE, which is the same cut once a chip has said the other half --
+     see `SITTING_CUT_`. */
+  cut(SITTING_CUT_);
   cut(/\s*[:(]/);
   out.sort((a, b) => a.length - b.length);
   /* ---------- AND THE NUMBER WITH ITS DATE, WHEN THE YEAR WAS SKIPPED -----------------------------
@@ -1771,7 +1833,7 @@ function nameForms_(s) {
      route: forty Paper questions drawing whole names became six. Not a prefix, and still no word
      the paper did not print. */
   const q = /\s*[:(]/.exec(full);
-  const d = /\s[—–]\s/.exec(full);
+  const d = SITTING_CUT_.exec(full);
   if (q && q.index && d && q.index < d.index) {
     const v = full.slice(0, q.index).trim() + full.slice(d.index);
     if (v !== full && out.indexOf(v) === -1) out.splice(1, 0, v);
@@ -2560,7 +2622,12 @@ function facetTally_(items, facet) {
      change, so the WeakMap key already differs in practice — this is the half that makes that an
      argument rather than a coincidence. */
   const within = facetWithin_(facet);
-  const had = perList[facet.field + '|' + within];
+  /* AND ON WHAT THE YEAR AND MONTH CHIPS HAVE SAID, which a Paper answer's LABEL now depends on
+     (`sittingUnsaid_`). Same argument as the bucket: the list differs in practice, and this makes it
+     one. Only a facet that labels its answers reads it, so every other key is unchanged. */
+  const said = sittingSaid_(STUFF.filters);
+  const tallyKey = facet.field + '|' + within + (facet.showOf ? '|' + said.year + '|' + said.month : '');
+  const had = perList[tallyKey];
   /* KEYED ON THE FACET OBJECT AS WELL AS ITS NAME. `facetList()` rebuilds when the `facets` tab
      changes, and a relabelled facet with a new `of` under an old name would otherwise read a stale
      tally — the same identity test, one level further in. */
@@ -2692,7 +2759,9 @@ function facetTally_(items, facet) {
      it against the answers beside it rather than against the library — see `paperLabels_`. */
   if (facet.showOf) {
     const ids = values.map(v => v.value);
-    values.forEach(v => { v.text = facet.showOf(v.value, ids); });
+    /* AND WHAT THE CHIPS HAVE SAID, so a Paper answer under a `June` chip does not say June again.
+       See `sittingUnsaid_`; `said` is in the memo key above for the same reason. */
+    values.forEach(v => { v.text = facet.showOf(v.value, ids, said); });
   }
   /* ---------- AND THE LABEL IS THE SHORTEST FORM THAT IS STILL UNIQUE ---------------------------
      `show` IS WHAT IS DRAWN; `value` GOES ON STILL BEING WHAT IS MATCHED. See `shortLabels_`. */
@@ -2737,7 +2806,7 @@ function facetTally_(items, facet) {
        both were fixed in the data while the rule stayed as it was. The rule is the fix. */
     split: values.length < 2 || !items.length ? 0 : (items.length - top) / items.length,
   };
-  perList[facet.field + '|' + within] = out;
+  perList[tallyKey] = out;
   return out;
 }
 
@@ -5690,7 +5759,17 @@ function qTags_(x) {
   qTagOf_('tier', x).forEach(v => {
     if (!new RegExp('\\b' + v.replace(/[^A-Za-z0-9]/g, '') + '\\b', 'i').test(head)) add('tier', v);
   });
-  add('sitting', date);
+  /* ---------- THE SITTING IS TWO TAGS, THE YEAR AND THEN THE MONTH -------------------------------
+     REPORTED AS *"Fix this why it say June and year in same chip"*, over a card wearing one purple
+     `June 2024` pill. The funnel had already been taken apart -- it asks Year and then Month, two
+     folders, two chips -- and the card above the question still said both in one. So the date is
+     cut the same way: the year, then the month, each a tag in the sitting's colour, in the order
+     the funnel asks them. A date that is not a month and a year (`Specimen`, `Sample`) is one fact
+     and stays one tag. A 5-a-day's `1 June` never reaches here: it is a DAY, its own Day answer,
+     and the branch above draws it whole. */
+  const sat = sittingParts_(date);
+  if (sat) { add('sitting', sat.year); add('sitting', sat.month); }
+  else add('sitting', date);
   /* `Biology Paper 2`, `GPS Paper 1`, `Specimen paper 1`: what comes before `Paper N` says which of
      several papers this is -- so it stays WITH the number, `Biology Paper 2` in red, which is what
      the Paper answer and its chip already say. `Specimen` is a KIND of paper rather than a part of
@@ -8447,7 +8526,10 @@ function chipShow_(f, i) {
       asList_(v).forEach(one => { if (one && !seen.has(String(one))) { seen.add(String(one)); ids.push(String(one)); } });
     });
     if (!seen.has(String(f.value))) ids.push(String(f.value));
-    const values = ids.map(v => ({ value: v, text: facet.showOf(v, ids) }));
+    /* WHAT THE CHIPS BEFORE IT SAID, the same `said` the answer row was drawn with — so a Paper chip
+       pressed under `June` reads `Paper 1 · 2023` exactly as its button did. */
+    const said = sittingSaid_(before);
+    const values = ids.map(v => ({ value: v, text: facet.showOf(v, ids, said) }));
     shortLabels_(values);
     const mine = values.find(v => v.value === String(f.value));
     show = mine ? (mine.show || mine.text) : '';

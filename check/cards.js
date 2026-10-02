@@ -104,9 +104,14 @@ function cardHtml(r, stems) {
      or brackets -- because what this file measures is whether the card's content fits a 320px
      column, and a pill holding `Study of religion and dialogues (Christianity) (2018 materials)` is
      content. A copy of the cutting, not of the colours: no colour changes a width. */
+  /* THE DATE IS TWO TAGS NOW, the year and then the month -- `sittingParts_` in find.js, asked for as
+     *"Fix this why it say June and year in same chip"*. Two short pills wrap differently from one long
+     one, so the copy cuts it the same way or it measures a card nobody draws. */
+  const MONTH_RE = /^((?:\d{1,2}\s+)?(January|February|March|April|May|June|July|August|September|October|November|December))\s+((?:19|20)\d{2})$/i;
   const tagBits = [r.band_value || r.key_stage || '']
     .concat(String(r.name || '').split(/\s[\u2014\u2013]\s|\s*:\s*/))
-    .map(t => String(t).trim()).filter(Boolean);
+    .map(t => String(t).trim()).filter(Boolean)
+    .reduce((out, t) => { const m = MONTH_RE.exec(t); return out.concat(m ? [m[3], m[1]] : [t]); }, []);
   const tags = `<span class="qtags">${tagBits.map(t => `<span class="qtag">${t}</span>`).join('')}</span>`;
   return `<div class="qcard" data-row="${r.row_id}">
     <div class="qcard-top"><b>Q${r.question || ''}${r.part || ''}</b>
