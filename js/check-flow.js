@@ -254,7 +254,7 @@ function boot(opts) {
          when this hook was built, which is the fault CLAUDE.md records about a state seeding
          `DATA.students` before that assignment. */
       'DATA: () => DATA,' +
-      /* THE FIVE CLASSROOM GAMES' ROUNDS, as a getter for the same reason — a journey asks whether a
+      /* THE FOUR CLASSROOM GAMES' ROUNDS, as a getter for the same reason — a journey asks whether a
          repaint kept the round, and only the state can say that the clock did not move while the
          column was away. */
       'PARTY: () => (typeof PARTY !== "undefined" ? PARTY : null),' +
@@ -351,6 +351,9 @@ function boot(opts) {
       'ss: () => SS, setSs: v => { SS = v; }, ssOrders: ssOrders_, ssRight: ssRight_,' +
       'SS_SENTENCES: SS_SENTENCES, ssDeal: ssDeal_, ssPaint: ssPaint,' +
       'ws: () => WS, setWs: v => { WS = v; }, wsBuild: wsBuild_, wsRude: wsRude_,' +
+      /* THE MAZE BEING WALKED, as a getter because `New maze` replaces it — a journey asks
+         whether a repaint kept the same one, which only the object itself can say. */
+      'maze: () => (typeof maze !== "undefined" ? maze : null),' +
       'WS_THEMES: WS_THEMES, WS_DIRS: WS_DIRS, WS_FORWARD: WS_FORWARD, wsPaint: wsPaint,' +
       'allWidgets: typeof allWidgets === "function" ? allWidgets : null,' +
       'widgetsOf: typeof widgetsOf_ === "function" ? widgetsOf_ : null,' +
@@ -1046,8 +1049,263 @@ check('the word search hides every word where it says, and two taps find it', as
 });
 
 
-/* ---------- THE FIVE CLASSROOM GAMES: A ROUND SURVIVES A REPAINT, AND WAITS WHILE YOU ARE AWAY -----
-   JUST A MINUTE, TABOO, HOT SEAT, 20 QUESTIONS AND ALIBI were asked to keep their round through a
+/* ---------- CONTEST: THE LAST CARD ON THE GAMES COLUMN, AND NOTHING ON IT TO PRESS -----------------
+   ASKED FOR AS "make a widget in games column purley dedicatied for contest. make it a place holder
+   for now." Two things a placeholder can get wrong without drawing badly: arriving anywhere but
+   LAST, which moves every page `PAGE.games` has remembered by one, and growing a control before
+   there is anything behind it, which is a button that does nothing. */
+check('the contest placeholder is the last card on the Games column, says so, and has nothing to press', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  const roster = t.widgetsOf('game').map(x => String(x.id));
+  if (roster.indexOf('contest') === -1) return ['there is no contest widget on the Games column'];
+  if (roster[roster.length - 1] !== 'contest') bad.push('contest is not the last game: ' + roster.join(', '));
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const slot = w.document.querySelector('#s-games #wgt-contest');
+  if (!slot) return bad.concat(['the contest card did not draw on the Games column']);
+  const h = slot.querySelector('h3');
+  if (!h || h.textContent.trim() !== 'Contest') bad.push('the card is not headed Contest');
+  if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
+  const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
+  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  return bad;
+});
+
+/* ---------- CONNECT 4: ONE COUNTER FALLS, INTO THE RIGHT SQUARE, AND THE FOUR THAT WON ARE RINGED ---
+   ASKED FOR AS "refine connect 4 add dropping animation of counters." The fall itself is CSS and
+   only a browser can play it — what can go wrong here is WHICH square falls: none (the mark is
+   lost), more than one (every counter on the board jumps on every tap), the wrong one (a counter
+   drops into a square gravity would not put it in), or the same one again on a refused tap. Each of
+   those draws a perfectly good board, so this asks the marks. And a win that rings three, or five
+   of a line of four, is a ring that points at the wrong thing. There was no Connect 4 journey
+   before this one. */
+check('connect 4 drops exactly the counter just played into the lowest empty square, and rings the four that win', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  const d = w.document;
+  const W = 7, H = 6;
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'connect4');
+  if (at < 0) return ['there is no Connect 4 on the Games column'];
+  t.goPage('games', at, true);
+  const cells = () => [...d.querySelectorAll('#s-games #c4-board .c4-cell')];
+  if (cells().length !== W * H) return ['the board did not draw ' + (W * H) + ' squares'];
+  const bad = [];
+  const tap = x => { const el = d.createElement('button'); el.setAttribute('data-x', String(x)); t.ACTIONS['c4-drop'](el); };
+  const lowest = x => { for (let y = H - 1; y >= 0; y--) { const c = cells()[y * W + x]; if (!c.classList.contains('p1') && !c.classList.contains('p2')) return y; } return -1; };
+  const fallen = () => cells().map((c, i) => c.classList.contains('c4-new') ? i : -1).filter(i => i >= 0);
+  const said = () => d.querySelector('#s-games #c4-said');
+
+  /* ONE TAP, ONE COUNTER FALLING, WHERE GRAVITY PUTS IT — twice in one column, so "lowest empty"
+     is asked of a column that is not empty. */
+  [[3, 'p1'], [3, 'p2'], [4, 'p1']].forEach(([x, side]) => {
+    const y = lowest(x);
+    tap(x);
+    const f = fallen();
+    if (f.length !== 1) { bad.push('a tap in column ' + (x + 1) + ' marked ' + f.length + ' counters to fall'); return; }
+    if (f[0] !== y * W + x) bad.push('a tap in column ' + (x + 1) + ' dropped square ' + f[0] + ', not row ' + (y + 1) + ' of that column');
+    const c = cells()[f[0]];
+    if (!c.classList.contains(side)) bad.push('the counter that fell in column ' + (x + 1) + ' is not ' + side);
+    if (!/--c4-fall:\s*\d/.test(c.getAttribute('style') || '') || Number((c.getAttribute('style').match(/--c4-fall:\s*(\d+)/) || [])[1]) !== y + 1) {
+      bad.push('the counter that fell to row ' + (y + 1) + ' says it falls "' + c.getAttribute('style') + '"');
+    }
+  });
+  /* WHOSE GO IT IS, AS A DISC IN THAT SIDE'S COLOUR — Yellow after three counters. */
+  const disc = said() && said().querySelector('.c4-turn');
+  if (!disc || !disc.classList.contains('p2') || disc.getAttribute('aria-hidden') !== 'true') {
+    bad.push('after three counters the line reads "' + (said() || {}).innerHTML + '" — wanted a hidden yellow disc beside Yellow\'s go');
+  }
+
+  /* A FULL COLUMN PLAYS NOTHING, SO NOTHING FALLS — not even the counter that fell last time. */
+  for (let i = 0; i < H; i++) tap(0);
+  tap(0);
+  if (!/full/.test(said().textContent)) bad.push('a tap on a full column reads "' + said().textContent + '"');
+  if (fallen().length) bad.push('a tap on a full column dropped a counter again: square ' + fallen().join(', '));
+
+  /* A WIN RINGS EXACTLY THE FOUR. Red down column 1, Yellow beside it. */
+  t.ACTIONS['c4-again'](d.createElement('button'));
+  if (cells().some(c => c.classList.contains('p1') || c.classList.contains('p2'))) bad.push('New game left counters on the board');
+  [0, 1, 0, 1, 0, 1, 0].forEach(tap);
+  const rung = cells().map((c, i) => c.classList.contains('c4-win') ? i : -1).filter(i => i >= 0);
+  const four = [2, 3, 4, 5].map(y => y * W);
+  if (rung.join(',') !== four.join(',')) bad.push('four Red counters down column 1 rang squares ' + rung.join(', ') + ', wanted ' + four.join(', '));
+  if (!/Red wins/.test(said().textContent) || !said().querySelector('.c4-turn.p1')) bad.push('the win reads "' + said().innerHTML + '"');
+  if (cells().some(c => !c.disabled)) bad.push('a won board can still be played');
+  return bad;
+});
+
+/* ---------- THE MAZE: ITS WALLS ARE ITS OWN, ITS WALK SURVIVES A REPAINT, ITS KEYS ARE ITS OWN -----
+   REPORTED AS "maz game is glitched." Three faults, and every one of them drew without a complaint
+   from anything here — there was no maze journey at all.
+     · THE WALLS. The south wall was the class `ws`, and the word search's grid is the bare `.ws`, so
+       71 of 121 cells were laid out as small grids of their own. Asked here of the stylesheet itself:
+       no rule whose subject names one of a maze cell's classes may be anybody's but the maze's. That
+       is the fault as a rule rather than as the one class it happened to — a `.you` or an `.out`
+       added for some other card tomorrow is the same collision. (`check/ui.js` asks the other half,
+       in a real browser: that every square of a board is one size.)
+     · THE WALK. A repaint dealt a new maze under a finger halfway to the exit.
+     · THE KEYS. On the maze's page ArrowDown walked the maze AND turned the column; on Find, two
+       arrows walked a maze nobody could see.
+   The walk is played through the pad's own handler, along the shortest route read back off the
+   drawn walls — so a wall drawn on the wrong side, or on one side of a doorway only, is a route
+   this cannot finish. */
+check('the maze draws its own walls, keeps a walk through a repaint, and has the arrow keys only in front', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.maze || !t.widgetsOf) return ['the maze is not exported'];
+  const d = w.document;
+  const N = 11;
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'maze');
+  if (at < 0) return ['there is no maze on the Games column'];
+  t.goPage('games', at, true);
+  await wait(50);
+  const grid = () => d.querySelector('#s-games #maze-grid');
+  if (!grid() || grid().children.length !== N * N) return ['the maze did not draw ' + (N * N) + ' squares'];
+  const bad = [];
+
+  /* 1. NO RULE BUT THE MAZE'S REACHES A MAZE SQUARE. Every selector in the stylesheet whose subject
+     — its last compound, the element it styles — names a class some maze square carries, and that
+     matches one, must be the maze's own (`.mz…`). jsdom matches selectors exactly as a browser does
+     for everything here; one it cannot parse is skipped rather than guessed at. */
+  {
+    const css = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const cells = [...grid().children];
+    const theirs = new Set();
+    cells.forEach(c => c.classList.forEach(k => theirs.add(k)));
+    const foreign = new Set();
+    for (const m of css.matchAll(/([^{}@;]+)\{/g)) {
+      m[1].split(',').map(x => x.trim()).filter(Boolean).forEach(sel => {
+        if (/^(from|to|\d+%)$/.test(sel) || /::/.test(sel)) return;
+        const subject = sel.split(/[\s>+~]+/).pop();
+        const named = (subject.match(/\.[\w-]+/g) || []).map(x => x.slice(1));
+        if (!named.some(k => theirs.has(k))) return;
+        if (/\.mz\b|\.mz-/.test(sel)) return;
+        let hit = false;
+        try { hit = cells.some(c => c.matches(sel)); } catch (e) { return; }
+        if (hit) foreign.add(sel);
+      });
+    }
+    if (foreign.size) bad.push('a rule that is not the maze\'s reaches a maze square: ' + [...foreign].join(' | '));
+  }
+
+  /* THE WALLS AS DRAWN, read back off the squares' classes, and both sides of every wall agreeing. */
+  const walls = () => {
+    const out = [];
+    [...grid().children].forEach((c, i) => {
+      let v = 0;
+      if (c.classList.contains('mz-n')) v |= 1;
+      if (c.classList.contains('mz-e')) v |= 2;
+      if (c.classList.contains('mz-s')) v |= 4;
+      if (c.classList.contains('mz-w')) v |= 8;
+      out[i] = v;
+    });
+    return out;
+  };
+  const STEP = { n: [0, -1, 1, 4], e: [1, 0, 2, 8], s: [0, 1, 4, 1], w: [-1, 0, 8, 2] };
+  const route = (cells, from) => {
+    const prev = new Array(N * N).fill(null);
+    prev[from] = '';
+    const q = [from];
+    for (let i = 0; i < q.length; i++) {
+      const a = q[i], x = a % N, y = (a / N) | 0;
+      Object.keys(STEP).forEach(k => {
+        const [dx, dy, bit] = STEP[k];
+        const nx = x + dx, ny = y + dy, b = ny * N + nx;
+        if (cells[a] & bit || nx < 0 || ny < 0 || nx >= N || ny >= N || prev[b] !== null) return;
+        prev[b] = k; q.push(b);
+      });
+    }
+    if (prev[N * N - 1] === null) return null;
+    const steps = [];
+    for (let b = N * N - 1; b !== from;) {
+      const k = prev[b]; steps.unshift(k);
+      b -= STEP[k][1] * N + STEP[k][0];
+    }
+    return steps;
+  };
+  {
+    const c = walls();
+    const oneSided = [];
+    for (let i = 0; i < N * N; i++) {
+      const x = i % N, y = (i / N) | 0;
+      if (x < N - 1 && !!(c[i] & 2) !== !!(c[i + 1] & 8)) oneSided.push((x + 1) + ',' + (y + 1) + ' east');
+      if (y < N - 1 && !!(c[i] & 4) !== !!(c[i + N] & 1)) oneSided.push((x + 1) + ',' + (y + 1) + ' south');
+    }
+    if (oneSided.length) bad.push('walls drawn on one side of a doorway only: ' + oneSided.slice(0, 5).join(', '));
+    if (c.filter(v => v & 4).length === 0) bad.push('no square carries a south wall, so the wall classes were not read');
+  }
+
+  /* 2. THE KEYS, ON THE MAZE'S PAGE AND OFF IT. ArrowUp from the top left is always a wall: the
+     maze must not move, and the press must not reach the pager either. */
+  const key = k => d.body.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+  const page = () => t.PAGE().games;
+  const m0 = t.maze();
+  key('ArrowUp');
+  if (t.maze().moves !== 0) bad.push('ArrowUp into the outer wall counted a move');
+  if (page() !== at) bad.push('ArrowUp on the maze page turned the column from the maze to page ' + page());
+  t.goPage('games', at, true);
+  const open0 = walls()[0] & 2 ? 'ArrowDown' : 'ArrowRight';
+  key(open0);
+  if (t.maze().moves !== 1) bad.push(open0 + ' on the maze page did not move the walker');
+  if (page() !== at) bad.push(open0 + ' on the maze page also turned the column, to page ' + page());
+  t.goPage('games', at, true);
+  /* OFF IT: on the Find column the Games column is drawn as a neighbour, grid and all. */
+  t.go('stuff', false, true);
+  await wait(LEAVE_MS);
+  const was = t.maze().moves;
+  ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].forEach(key);
+  if (t.maze().moves !== was) bad.push('arrow keys on another column walked the maze from ' + was + ' to ' + t.maze().moves + ' moves');
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  t.goPage('games', at, true);
+  await wait(50);
+
+  /* 3. A REPAINT KEEPS THE WALK. */
+  if (t.maze() !== m0) bad.push('coming back to the column dealt a new maze');
+  const drawn = walls().join(',');
+  t.repaint(true);
+  await wait(50);
+  if (t.maze() !== m0 || t.maze().moves !== 1) bad.push('a repaint threw the walk away: moves ' + (t.maze() || {}).moves);
+  if (walls().join(',') !== drawn) bad.push('a repaint drew different walls');
+
+  /* 4. NEW MAZE STARTS AGAIN, and the shortest route read off the drawn walls finishes it. */
+  const press = dd => { const el = d.createElement('button'); el.setAttribute('data-d', dd); t.ACTIONS['maze-go'](el); };
+  t.ACTIONS['maze-again'](d.createElement('button'));
+  const m1 = t.maze();
+  if (m1 === m0 || m1.moves !== 0 || m1.x !== 0 || m1.y !== 0) bad.push('New maze did not start a fresh one at the top left');
+  const way = route(walls(), 0);
+  if (!way) return bad.concat(['the drawn walls have no way from the top left to the bottom right']);
+  if (way.length !== m1.best) bad.push('the shortest way through the drawn walls is ' + way.length + ' and the maze says ' + m1.best);
+  const half = way.length >> 1;
+  way.slice(0, half).forEach(press);
+  t.repaint(true);
+  await wait(50);
+  if (t.maze() !== m1 || t.maze().moves !== half) bad.push('a repaint halfway threw the walk away');
+  way.slice(half).forEach(press);
+  const said = String((d.querySelector('#s-games #maze-said') || {}).textContent || '');
+  if (!t.maze().over || t.maze().moves !== m1.best) bad.push('the shortest route did not finish the maze in ' + m1.best);
+  if (!/the shortest way there is/.test(said)) bad.push('finishing in the fewest moves says "' + said + '"');
+
+  /* 5. A FINISHED MAZE GIVES THE KEYS BACK, and the next start deals another. */
+  key('ArrowUp');
+  if (page() === at) bad.push('ArrowUp on a finished maze still did not reach the pager');
+  t.goPage('games', at, true);
+  t.repaint(true);
+  await wait(50);
+  if (t.maze() === m1 || t.maze().over) bad.push('a finished maze was not replaced at the next start');
+  return bad;
+});
+
+/* ---------- THE FOUR CLASSROOM GAMES: A ROUND SURVIVES A REPAINT, AND WAITS WHILE YOU ARE AWAY -----
+   JUST A MINUTE, TABOO, HOT SEAT AND 20 QUESTIONS were asked to keep their round through a
    repaint — which is a stop and a start a moment apart — and to stop their clock when the column is
    left. Those pull against each other, because both arrive as the same `stop`, and every way of
    getting it wrong draws perfectly: a repaint that pauses the round under somebody's finger, a
@@ -1057,9 +1315,9 @@ check('the word search hides every word where it says, and two taps find it', as
 /* A COLUMN'S WIDGETS ARE STARTED AND STOPPED FROM `afterSlide_`, about 300ms after the move, so a
    journey asking what leaving did has to wait that long first. */
 const LEAVE_MS = 700;
-/* `k` IS WHICH WORD GAME THE WIDGET OPENS ON. Four of these five live inside the one Word games
-   widget now, which draws only the game chosen; the choice is the device's, so it is set there
-   before the column is reached. Alibi kept its own card and passes nothing. */
+/* `k` IS WHICH WORD GAME THE WIDGET OPENS ON. All four live inside the one Word games widget, which
+   draws only the game chosen; the choice is the device's, so it is set there before the column is
+   reached. Alibi was the one that passed nothing, because it kept a card of its own; it is deleted. */
 const partyBoot_ = async (k) => {
   const { w } = boot();
   await wait(300);
@@ -1221,7 +1479,8 @@ check('20 questions keeps the secret from the room and counts to twenty', async 
 });
 
 /* ---------- THE WORD GAMES ARE ONE WIDGET, AND SWITCHING GAME IS A LEAVE ---------------------------
-   Asked for as "Merge word games into one widget. Like articulate and charades". Three things can
+   Asked for as "Merge word games into one widget. Like articulate and charades", and then Herd
+   Mentality moved in as the eighth: "heard mentality is a word game so should go there." Three things can
    go wrong and all of them draw perfectly: the dropdown offering a game the slot cannot draw, a
    game switched away from going on running where nobody can see it, and the old game's card left
    in the slot beside the new one. */
@@ -1229,20 +1488,36 @@ check('the word games are one widget, and switching game pauses the one left', a
   const { t, d, press, text, P } = await partyBoot_('tab');
   const bad = [];
   const ids = t.allWidgets().map(x => x.id);
-  ['articulate', 'charades', 'taboo', 'hotseat', 'justaminute', 'twentyq', 'imposter'].forEach(id => {
+  ['articulate', 'charades', 'taboo', 'hotseat', 'justaminute', 'twentyq', 'imposter', 'herd'].forEach(id => {
     if (ids.indexOf(id) !== -1) bad.push(id + ' is still a widget of its own beside Word games');
   });
   if (ids.indexOf('wordgames') === -1) return bad.concat(['there is no Word games widget']);
   const sel = d.getElementById('wg-pick');
   if (!sel) return bad.concat(['the Word games widget has no game dropdown']);
   const offered = [...sel.options].map(o => o.value);
-  if (offered.length !== 7) bad.push('the dropdown offers ' + offered.length + ' games, wanted 7');
+  if (offered.length !== 8) bad.push('the dropdown offers ' + offered.length + ' games, wanted 8');
+  /* HERD MENTALITY IS THE EIGHTH — "heard mentality is a word game so should go there." Asked by
+     name, because a count of eight is also seven games and a stray. */
+  if (offered.indexOf('herd') === -1) bad.push('Herd Mentality is not in the dropdown');
   for (const k of offered) {
     sel.value = k;
     t.ACTIONS['wg-pick'](sel);
     if (!d.getElementById(k + '-card')) bad.push('choosing ' + k + ' did not draw its card');
     const others = offered.filter(o => o !== k && d.getElementById(o + '-card'));
     if (others.length) bad.push('choosing ' + k + ' left ' + others.join(', ') + ' in the slot too');
+  }
+  /* AND IT DEALS IN THE SLOT, IN ITS OWN LARGE TYPE. The question is read across a table, and
+     `.herd-card .herd-q` is the rule that makes it large — a wrapper without that class still draws,
+     at body-text size, which no assertion about ids would notice. */
+  sel.value = 'herd'; t.ACTIONS['wg-pick'](sel);
+  const hq = d.querySelector('#wg-slot .herd-card #herd-q');
+  if (!hq) bad.push('Herd Mentality drew without the .herd-card wrapper its question type hangs off');
+  else {
+    const q1 = hq.textContent.trim();
+    if (!q1) bad.push('choosing Herd Mentality dealt no question');
+    press('herd-next');
+    const q2 = String((d.getElementById('herd-q') || {}).textContent || '').trim();
+    if (!q2 || q2 === q1) bad.push('Next question did not deal another: "' + q1 + '" then "' + q2 + '"');
   }
   sel.value = 'tab'; t.ACTIONS['wg-pick'](sel);
   press('tab-start');
@@ -1259,30 +1534,24 @@ check('the word games are one widget, and switching game pauses the one left', a
   return bad;
 });
 
-check('alibi shows the case, then the same questions to each suspect on their own clock', async () => {
-  const { t, d, press, text, P } = await partyBoot_();
-  if (!d.getElementById('alb-card')) return ['Alibi did not draw on the Games column'];
+/* ---------- ALIBI IS DELETED, AND NOTHING OF IT IS LEFT TO PRESS -------------------------------------
+   Asked for as "delete alibi game." Its journey was here — a case, two suspects on two clocks, a
+   verdict — and went with it. What replaces it asks the one thing a deletion can get wrong without
+   anything drawing badly: a card left in the roster, or a handler left answering a button nothing
+   draws any more, which is a door to nowhere that `check-doors` would only find from the other end. */
+check('alibi is gone from the Games column, its handlers and its round state', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t || !t.allWidgets) return ['the widget roster is not exported'];
   const bad = [];
-  press('alb-start');
-  const s = P().alb;
-  if (!s) return ['New case did not open one'];
-  const c = text('alb');
-  if (c.indexOf(s.crime) === -1 || c.indexOf(s.time) === -1 || c.indexOf(s.place) === -1) bad.push('the case card is missing the crime, the time or the place');
-  if (s.qs.some(q => c.indexOf(q) !== -1)) bad.push('the questions are on the card the suspects take out of the room');
-  press('alb-next');
-  const one = [...d.querySelectorAll('#alb-card .alb-qs li')].map(li => li.textContent);
-  if (s.who !== 1 || !s.ends || one.length !== 6) bad.push('suspect 1 is not being questioned on a clock with six questions');
-  t.repaint(true);
-  await wait(50);
-  if (P().alb.who !== 1 || !P().alb.ends) bad.push('a repaint lost suspect 1\'s interview');
-  s.ends = Date.now() + 30000;
-  press('alb-next');
-  const two = [...d.querySelectorAll('#alb-card .alb-qs li')].map(li => li.textContent);
-  if (s.who !== 2) bad.push('Next did not bring in suspect 2');
-  if (s.left !== 120000 || Math.abs((s.ends - Date.now()) - 120000) > 1000) bad.push('suspect 2 did not get a clock of their own');
-  if (one.join('|') !== two.join('|')) bad.push('the two suspects were asked different questions');
-  press('alb-next');
-  if (s.phase !== 'verdict' || s.ends) bad.push('the verdict did not follow suspect 2, or left a clock running');
+  if (t.allWidgets().some(x => String(x.id) === 'alibi')) bad.push('alibi is still a widget');
+  ['alb-start', 'alb-next'].forEach(a => { if (t.ACTIONS[a]) bad.push(a + ' still has a handler'); });
+  const P = t.PARTY();
+  if (P && 'alb' in P) bad.push('PARTY still keeps a slot for an alibi round');
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  if (w.document.getElementById('alb-card')) bad.push('an alibi card is still drawn on the Games column');
   return bad;
 });
 

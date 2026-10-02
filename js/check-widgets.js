@@ -180,6 +180,9 @@ const ACCEPTED_ENGINE = {
            + 'games.js starts them from initWordGames, which is the starter a widget names.',
   initImposter: 'Imposter is a game inside the Word games widget; WORD_GAMES in games.js starts it '
               + 'from initWordGames, which is the starter a widget names.',
+  initHerd: 'Herd Mentality is a game inside the Word games widget since the owner moved it there '
+          + '("heard mentality is a word game so should go there."); WORD_GAMES in games.js starts '
+          + 'it from initWordGames, which is the starter a widget names.',
 };
 
 const starters = widgets.map(w => String(w.start || '')).join(' ');
@@ -249,8 +252,8 @@ if (acceptedEngine.length) {
    20 Questions' secrets — and the argument is the same for all six: the answer to one game must not
    be the answer to another an hour later. So every pair is compared, not just the first two. Taboo's
    FORBIDDEN words are not dealt and are not compared; Imposter's deck is left out deliberately, and
-   the note over `IMP_DECK` says why. Alibi's four lists are not words anybody guesses, so they are
-   checked for repeats within themselves and nothing else.
+   the note over `IMP_DECK` says why. A list that is dealt but never guessed goes in `OWN_ONLY` below
+   and is checked for repeats within itself and nothing else.
 
    THE COMPARISON IGNORES A LEADING ARTICLE, because `a countdown` and `Countdown` are the same word
    to a room and different strings to a checker — which is the `spellKey_` argument one file along.
@@ -278,13 +281,15 @@ if (acceptedEngine.length) {
     ['ART_DECK', 'articulate'], ['CHA_DECK', 'charades'], ['JAM_DECK', 'just a minute'],
     ['TABOO_DECK', 'taboo', c => c[0]], ['HOT_DECK', 'hot seat'], ['TWQ_DECK', '20 questions'],
   ];
-  const OWN_ONLY = ['ALB_CRIMES', 'ALB_TIMES', 'ALB_PLACES', 'ALB_QUESTIONS'];
+  /* EMPTY SINCE ALIBI WENT. Its four lists — crimes, times, places and questions — were the only
+     decks on the column that nobody guesses, and they were deleted with the game ("delete alibi
+     game."). The list stays because the rule is still right for the next such deck, and naming a
+     deck here is the whole of adding one. */
+  const OWN_ONLY = [];
   /* AT LEAST 120 OF WHATEVER A ROUND IS ABOUT, which the owner asked for: below that a class gets
-     the same card twice in an afternoon. Alibi's times and places are not on this list — a case is
-     one of each of three lists, so 24 times by 46 places by 121 crimes is fifty thousand cases, and
-     a longer list of afternoons would add nothing anybody notices. */
+     the same card twice in an afternoon. */
   const FLOOR = 120;
-  const SIZED = ['JAM_DECK', 'TABOO_DECK', 'HOT_DECK', 'TWQ_DECK', 'ALB_CRIMES', 'ALB_QUESTIONS'];
+  const SIZED = ['JAM_DECK', 'TABOO_DECK', 'HOT_DECK', 'TWQ_DECK'];
 
   const read = {};
   const unread = [];

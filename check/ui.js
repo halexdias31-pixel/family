@@ -304,6 +304,22 @@ const ACCEPTED_TAP = [
 const MIN_CONTRAST      = 4.5;
 const MIN_CONTRAST_BIG  = 3.0;
 
+/* ---------- A BOARD IS SQUARES OF ONE SIZE ---------------------------------------------------------
+   REPORTED AS "maz game is glitched", AND NOTHING HERE COULD SEE IT. The maze's south wall was the
+   class `ws` and the word search's grid is the bare `.ws`, so 71 of its 121 squares were laid out
+   as grids of their own — 16.6px tall in 24.7px rows at 390, 12.1 against 19.3 at 320. Doubled
+   walls, walls that missed each other, gaps in the outer edge. No tap target changed, nothing
+   scrolled sideways, no text lost contrast: every rule in this file passed it, at every width.
+
+   SO EVERY BOARD IS ASKED THE ONE THING A BOARD PROMISES. These are the six grids on the Games
+   column whose children are its squares — chess, Connect 4, Othello, the maze, the word search and
+   Scrabble — and on every one of them, at every width, all squares measured 0.02px apart or less
+   when this was written. Half a pixel is the tolerance: sub-pixel layout and nothing else, the
+   argument `ragged` makes below. A board that is not on the screen being measured is not counted;
+   a GAMES column with none on it is a selector that stopped finding them, and says so. */
+const BOARDS = '.chess, .c4, .oth, .mz, .ws, .scr';
+const BOARD_TOL = 0.5;
+
 /* ---------- A CUSTOM PROPERTY NOTHING ANYWHERE SETS ---------------------------------------------
    THE ONE CHECK HERE THAT IS NOT A MEASUREMENT, because it is the one question the running page
    cannot answer about itself. It took three wrong answers to work out why.
@@ -1048,6 +1064,10 @@ function inspect(opts) {
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
 
   let failures = 0;
+  /* HOW MANY BOARDS THE RULE ABOVE `BOARDS` ACTUALLY MEASURED, printed with the summary — a count
+     rather than a silence, because "no board was a mess" and "no board was found" both print no
+     finding. */
+  let boardsMeasured = 0;
   const rows = [];
 
   /* ---------- ASK THE APP WHICH COLUMNS IT HAS, ONCE, BEFORE MEASURING ANY OF THEM ---------------
@@ -1273,6 +1293,38 @@ function inspect(opts) {
         }, id);
         if (film.length) rows.push({ width, id: label, as: who.as, film });
 
+        /* EVERY SQUARE OF EVERY BOARD ONE SIZE — see `BOARDS`. `getBoundingClientRect` and not
+           `offsetWidth`, because a cell 24.72px wide and one 24.7px wide are one size and integer
+           rounding would call them two; a translate (Connect 4's falling counter) moves a box
+           without resizing it, so a counter caught mid-drop is still measured at its own size. */
+        const boards = await page.evaluate(({ sid, sel, tol }) => {
+          const host = document.getElementById('s-' + sid);
+          const out = [];
+          let n = 0;
+          if (!host) return { out, n };
+          host.querySelectorAll(sel).forEach(b => {
+            const kids = [...b.children];
+            if (kids.length < 4) return;
+            const sz = kids.map(k => k.getBoundingClientRect());
+            if (!sz.some(r => r.width > 0)) return;
+            n++;
+            const ws = sz.map(r => r.width), hs = sz.map(r => r.height);
+            const spread = a => Math.max(...a) - Math.min(...a);
+            if (spread(ws) > tol || spread(hs) > tol) {
+              const name = b.id ? '#' + b.id : '.' + String(b.className).split(/\s+/)[0];
+              const odd = sz.filter(r => Math.abs(r.height - Math.max(...hs)) > tol
+                                      || Math.abs(r.width - Math.max(...ws)) > tol).length;
+              out.push(`${name}: ${odd} of ${kids.length} squares are not the board's size — `
+                + `${Math.min(...ws).toFixed(1)}-${Math.max(...ws).toFixed(1)}px wide, `
+                + `${Math.min(...hs).toFixed(1)}-${Math.max(...hs).toFixed(1)}px tall`);
+            }
+          });
+          if (sid === 'games' && !n) out.push('the Games column drew no board to measure');
+          return { out, n };
+        }, { sid: id, sel: BOARDS, tol: BOARD_TOL });
+        boardsMeasured += boards.n;
+        if (boards.out.length) rows.push({ width, id: label, as: who.as, boards: boards.out });
+
         if (SHOTS) await page.screenshot({
           path: path.join(__dirname, 'shots',
             `${id}${state.name ? '-' + state.name.replace(/\s+/g, '-') : ''}`
@@ -1434,6 +1486,7 @@ function inspect(opts) {
        visitors is one line to fix rather than eight, and so it is counted exactly once. */
     if (r.drawFailed) add('SCREEN DID NOT DRAW', r.drawFailed, at);
     (r.film || []).forEach(f => add('FILM LOOK', f, at));
+    (r.boards || []).forEach(f => add('BOARD SQUARES OF MORE THAN ONE SIZE', f, at));
     (r.overflow || []).forEach(o => add('SIDEWAYS SCROLL',
       `${o.tag}.${o.cls.split(/\s+/)[0] || ''} overflows by ${o.by}px`, at));
     (r.hidden || []).forEach(o => add(o.tol ? 'OUT OF REACH, INSIDE THE APP\'S OWN FLOOR (known)'
@@ -1486,6 +1539,7 @@ function inspect(opts) {
             + `${SIZES.length} sizes (${SIZES.map(([w, h]) => w + 'x' + h).join(', ')}) x `
             + `${VISITORS.length} visitors: ${VISITORS.map(v => v.as === 'in' ? 'signed in'
                                                                 : 'signed out').join(' and ')})\n`);
+  console.log(`boards measured square by square: ${boardsMeasured}\n`);
 
   /* EVERY FINDING THAT IS NOT KNOWN IS A FAILURE, counted once per distinct fault rather than once
      per place it was seen — the same 38px button on nine screens is one thing to fix, which is the

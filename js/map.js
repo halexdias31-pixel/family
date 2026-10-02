@@ -1122,23 +1122,25 @@ const WIDGETS = [
   /* A PAD, NOT A SWIPE. Up, down, left and right are the four gestures this app navigates by, so a
      maze that read them would fight the pager on the one screen it lives on -- see `initMaze`. The
      four buttons are 44px in px, which is the one measurement in this app that does not scale. */
-  /* ---------- WORD GAMES — SEVEN GAMES, ONE WIDGET ---------------------------------------------------
+  /* ---------- WORD GAMES — EIGHT GAMES, ONE WIDGET ---------------------------------------------------
      ASKED FOR AS "Merge word games into one widget. Like articulate and charades". They were seven
      cards in a row on the Games column — Articulate, Charades, Taboo, Hot Seat, Just a Minute, 20
      Questions and Imposter — every one a round of somebody saying words while the room guesses, and
-     seven swipes to get past them to the maze.
+     seven swipes to get past them to the maze. Herd Mentality is the eighth, moved in afterwards.
 
      ONE CARD, A DROPDOWN, AND THE CHOSEN GAME UNDERNEATH. `WORD_GAMES` in games.js holds each game's
      body and its own start and stop, and nothing about the engines changed: `ROUND_GAMES`, `PARTY`
      and Imposter each still draw into their own `<k>-card`, which is simply inside `#wg-slot` now.
      The choice is remembered on the device.
 
-     `stop` STOPS ALL SEVEN, not just the one on screen. A game switched away from mid-round has had
+     `stop` STOPS ALL EIGHT, not just the one on screen. A game switched away from mid-round has had
      its card taken out of the document, so its own stop is exactly the "column left" case each one
      already handles — Articulate's clock stops, a party game pauses, Imposter hides its word.
 
-     ALIBI AND HERD MENTALITY ARE NOT IN IT. Alibi is an interview with a case file and two suspects
-     rather than a word to get across, and Herd Mentality is a question everybody answers at once. */
+     HERD MENTALITY WAS LEFT OUT, AND THE OWNER PUT IT IN — "heard mentality is a word game so should
+     go there." It was kept separate on the builder's reasoning, that a question everybody answers at
+     once is not a word to get across; that was a call nobody had asked for, and the owner's line
+     overrides it. Alibi was the other one left out, and is deleted — see where its card was, below. */
   { id: 'wordgames', kind: 'game', name: 'Word games', start: () => initWordGames?.(),
     stop: () => { if (typeof wordGamesStop_ === 'function') wordGamesStop_(); },
     into: 'wg-slot', what: 'The game',
@@ -1194,20 +1196,9 @@ const WIDGETS = [
     </div>
   </div>` },
 
-  /* ---------- ALIBI — THE ONE CLASSROOM GAME THAT IS NOT A WORD GAME ------------------------------
-     The note over `PARTY` in games.js is the argument for its engine. Its four siblings moved into
-     the Word games widget above; this one is an interview rather than a word, so it kept its card. */
-  { id: 'alibi', kind: 'game', name: 'Alibi', start: () => partyStart_?.('alb'),
-    stop: () => { if (typeof partyStop_ === 'function') partyStop_('alb'); },
-    into: 'alb-card', what: 'The case',
-    html: `<div class="card">
-    <h3>Alibi</h3>
-    <p class="sub">Detectives question two suspects separately and look for where the stories differ.</p>
-    <div id="alb-card" class="art"></div>
-    <div id="alb-acts" class="party-acts"></div>
-    <p class="note" id="alb-said" style="text-align:center;margin:.5rem 0 0"></p>
-  </div>` },
-
+  /* `alibi` WAS HERE, a card of its own between Scrabble and the maze, and is deleted on request
+     ("delete alibi game.") — the note where its engine was in games.js says what went with it. A
+     star on it no longer matches a widget, so `savedWidgets_` simply stops drawing it. */
   { id: 'maze', kind: 'game', name: 'Maze', start: () => initMaze?.(),
     into: 'maze-grid', what: 'The maze',
     html: `<div class="card">
@@ -1260,18 +1251,9 @@ const WIDGETS = [
     <p class="note" id="ss-said" style="text-align:center;margin:.4rem 0 0"></p>
   </div>` },
 
-  /* NO SCORING AND NO TIMER, deliberately — see the note on `initHerd`. Everybody answers out loud
-     and the room decides; an app keeping score would make somebody operate it instead of play. */
-  { id: 'herd', kind: 'game', name: 'Herd Mentality', start: () => initHerd?.(),
-    into: 'herd-q', what: 'The question',
-    html: `<div class="card herd-card">
-    <h3>Herd Mentality</h3>
-    <p class="sub">Everybody answers. You want to match the room, not be right.</p>
-    <p class="herd-q" id="herd-q"></p>
-    ${/* `herd-count` WAS HERE — "3 of 20 · round 2". See `initHerd`: a scoreboard for a game with
-         no score, on a deal that has no end. */''}
-    <button class="btn" data-do="herd-next">Next question</button>
-  </div>` },
+  /* `herd` WAS HERE, Herd Mentality's own card, and it is a game inside Word games now — see the
+     note over the `wordgames` entry above. Its engine and its markup moved unchanged; a star on the
+     old id stops matching, as it did for the seven before it. */
 
   /* `stop` IS THE CLIP. This card deals a fact on a tap and some of those facts are videos, so
      leaving the column with one playing left it playing — the same fault the Reels column had,
@@ -1285,6 +1267,35 @@ const WIDGETS = [
     <p class="sub">Something worth knowing. Tap for another.</p>
     <div id="feed-screen" class="feed" data-do="feed-tap"></div>
   </div>` },
+
+  /* ---------- CONTEST — A PLACEHOLDER, AND IT SAYS SO --------------------------------------------
+     ASKED FOR AS "make a widget in games column purley dedicatied for contest. make it a place holder
+     for now." So it is the card and the slot, and nothing that can be pressed. That is `drill`'s
+     argument, on the Tools column further down: a placeholder that looks finished is worse than an
+     empty one, because somebody taps the thing that looks like a control and the app reads as broken
+     rather than as unbuilt. No `start`, no `into`, no button, so `check/press.js` finds nothing
+     that does nothing.
+
+     LAST ON THE COLUMN, AND APPENDED RATHER THAN PLACED. `PAGE.games` remembers a page by its index,
+     so an entry inserted anywhere above would move every saved position after it by one — somebody
+     who left the column on the maze would come back to the card before it.
+
+     NOT `solid`, so the funnel does not offer it as a search result: a card that says "not built
+     yet" is not an answer to anybody's question. */
+  { id: 'contest', kind: 'game', name: 'Contest', what: 'The contest',
+    /* A GETTER, SO THE NAME IS THE SHEET'S. `brand('name')` is read when the card is drawn rather
+       than when this file loads, which is before the payload has said what the business is called.
+       THE BRAND'S OWN FULL STOP ENDS THE SENTENCE, so the line does not break before a dash and
+       start its second row with one, which is what "… on @family. — coming soon" did at 390. A
+       name in the sheet without one gets one, so the sentence ends either way. */
+    get html() {
+      const house = String(typeof brand === 'function' ? brand('name', '@family.') : '@family.');
+      return `<div class="card">
+    <h3>Contest</h3>
+    <p class="sub">Coming soon: a competition for everyone on ${esc(house)}${/[.!?]$/.test(house) ? '' : '.'}</p>
+    <p class="empty">Not built yet.</p>
+  </div>`;
+    } },
   /* `solid` — AN INSTRUMENT, NOT A CARD.
      The pane is frosted glass because most of what sits on it is CONTENT: a post, a receipt, a list
      of things to find, and glass says "this is a surface something is written on".

@@ -1784,10 +1784,10 @@ const STATES = {
       wants: 'the hand-over card, with no rack on the screen',
       leave: () => { scrabble = null; scrabblePaint(); } },
 
-    /* ---------- THE FIVE CLASSROOM GAMES, EACH ON ITS BUSIEST CARD ----------------------------
-       FOUR OF THEM ARE INSIDE THE WORD GAMES WIDGET NOW and are reached through its dropdown.
+    /* ---------- THE FOUR CLASSROOM GAMES, EACH ON ITS BUSIEST CARD ----------------------------
+       ALL FOUR ARE INSIDE THE WORD GAMES WIDGET NOW and are reached through its dropdown.
        EVERY ONE OPENS ON A SINGLE BUTTON, which is the only state `go()` reaches — so everything
-       these games are (a clock, Taboo's forbidden words, Alibi's six questions) is past it and
+       these games are (a clock, Taboo's forbidden words, 20 Questions' count) is past it and
        nothing would measure it without a state. Entered through the app's own handlers, and then
        given the LONGEST entry its deck holds: a round is dealt at random, so a state that measured
        whatever came up would measure a different card every run, and the one worth measuring is
@@ -1851,32 +1851,9 @@ const STATES = {
       wants: 'the count, Yes and No, and no secret on the screen',
       leave: () => { PARTY.twq = null; twqPaint(); } },
 
-    { name: 'an alibi case card',
-      enter: () => {
-        goPage('games', (n => { if (n < 0) throw new Error('no alibi widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'alibi')), true);
-        ACTIONS['alb-start'](document.createElement('button'));
-        const long = l => l.reduce((a, b) => (b.length > a.length ? b : a), '');
-        Object.assign(PARTY.alb, { crime: long(ALB_CRIMES), time: long(ALB_TIMES), place: long(ALB_PLACES) });
-        albPaint();
-      },
-      expect: () => !!document.querySelector('#s-games #alb-card .alb-facts')
-                 && !document.querySelector('#s-games #alb-card .alb-qs'),
-      wants: 'the crime, the time and the alibi, with no questions on it',
-      leave: () => { partyHold_('alb'); PARTY.alb = null; albPaint(); } },
-
-    /* THE SIX LONGEST QUESTIONS, for the same reason: six of a hundred and twenty chosen at random
-       is a list a different height every run. */
-    { name: 'an alibi interview',
-      enter: () => {
-        goPage('games', (n => { if (n < 0) throw new Error('no alibi widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'alibi')), true);
-        ACTIONS['alb-start'](document.createElement('button'));
-        PARTY.alb.qs = ALB_QUESTIONS.slice().sort((a, b) => b.length - a.length).slice(0, ALB_ASK);
-        ACTIONS['alb-next'](document.createElement('button'));
-      },
-      expect: () => document.querySelectorAll('#s-games #alb-card .alb-qs li').length === ALB_ASK
-                 && !!document.querySelector('#s-games #alb-card .party-clock'),
-      wants: 'suspect 1, the clock and six questions',
-      leave: () => { partyHold_('alb'); PARTY.alb = null; albPaint(); } },
+    /* `an alibi case card` AND `an alibi interview` WERE HERE, and went with the game ("delete alibi
+       game.") — a state that enters a widget nobody can open fails loudly, which is right, and a
+       state measuring nothing has no business being kept to say so. */
     /* ---------- A WORD SEARCH PART-FOUND, AND A SENTENCE PART-BUILT ------------------------------
        Both widgets OPEN on a fresh deal, which is the one state `go()` reaches — and a fresh deal is
        the state with nothing struck through, nothing highlighted, no start ring and an empty strip.
@@ -1927,6 +1904,37 @@ const STATES = {
                  && !!document.querySelector('#s-games [data-do="ss-check"][disabled]'),
       wants: 'the longest sentence half built, its used chips dimmed and Check not yet pressable',
       leave: () => { SS = window.__seedSs || null; if (!SS) ssDeal_(ssBand_()); ssPaint(); } },
+
+    /* ---------- A CONNECT 4 GAME, WON --------------------------------------------------------------
+       THE WIDGET OPENS ON AN EMPTY BOARD, which is the one state `go()` reaches — and an empty board
+       has no counter, no falling counter and no ring, so nothing "refine connect 4 add dropping
+       animation of counters" added would ever be measured or pressed. Played through the board's
+       own handler, Red down the first column, so the four that won are ringed, the line under the
+       board carries its disc, and the last counter is the one that fell.
+
+       AND THE EXPECTATION ASKS THE BROWSER WHAT ONLY A BROWSER KNOWS: that the counter marked to
+       fall really has the `c4-drop` animation on its `::after`. `check-flow.js` can ask which
+       square is marked; it cannot ask whether the stylesheet still does anything with the mark. */
+    { name: 'a connect 4 game, won',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'connect4');
+        if (n < 0) throw new Error('no connect 4 widget in the roster');
+        goPage('games', n, true);
+        initConnect4();
+        [0, 1, 0, 1, 0, 1, 0].forEach(x => {
+          const b = document.createElement('button');
+          b.setAttribute('data-x', String(x));
+          ACTIONS['c4-drop'](b);
+        });
+      },
+      expect: () => {
+        const fell = document.querySelector('#s-games .c4-cell.c4-new');
+        return document.querySelectorAll('#s-games .c4-cell.c4-win').length === 4
+          && !!document.querySelector('#s-games #c4-said .c4-turn.p1')
+          && !!fell && getComputedStyle(fell, '::after').animationName === 'c4-drop';
+      },
+      wants: 'four counters ringed, a red disc beside Red wins, and the last counter under the drop',
+      leave: () => { initConnect4(); } },
   ],
 
   /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------

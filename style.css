@@ -11103,9 +11103,68 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    CONNECT 4 IS RED AND YELLOW because that is what is in the box, and Othello is red and blue
    because that is what was asked for — its own discs are black and white, and black is the one pair
    this ground cannot carry. */
-.c4 { --c4-a: #c4392f; --c4-b: #e0b23c; }
-.c4-cell.p1 { background: var(--c4-a); }
-.c4-cell.p2 { background: var(--c4-b); }
+/* AND ON THE TURN DISC under the board, which is outside `.c4` and so would not inherit them —
+   it is the same component's colour, named in the same place. */
+.c4, .c4-turn { --c4-a: #c4392f; --c4-b: #e0b23c; }
+
+/* ---------- THE COUNTER IS A DISC IN A HOLE, NOT THE HOLE'S OWN COLOUR ------------------------------
+   IT WAS `.c4-cell.p1 { background: red }` — the square WAS the counter. That is fine for a counter
+   that appears and wrong for one that falls: animate the square and the hole goes with it, so the
+   slot the counter is falling into shows the board's gap colour for a third of a second rather than
+   an empty hole. So the square stays a hole (`--sunk`, from the rule above) and the counter is its
+   `::after`, which is what moves. Positioned, so a counter falling past the empty holes above it
+   is drawn over them, which is how it looks through the front of a real board. */
+.c4-cell { position: relative; }
+.c4-cell.p1::after, .c4-cell.p2::after {
+  content: ''; position: absolute; inset: 0; border-radius: 50%;
+}
+.c4-cell.p1::after { background: var(--c4-a); }
+.c4-cell.p2::after { background: var(--c4-b); }
+
+/* ---------- THE DROP ---------------------------------------------------------------------------------
+   ASKED FOR AS "refine connect 4 add dropping animation of counters." From one row above the top
+   edge into its own square: `--c4-fall` is its row plus one, set on the square by `c4Paint`, and a
+   row is the counter's own height plus the board's 3px gap — so `100%` here is one square, and the
+   distance is right at every width without a pixel written down. `.c4`'s `overflow: hidden` is what
+   hides it until it enters.
+
+   GRAVITY, THEN ONE SMALL BOUNCE. It accelerates down (ease-in), lands at 70%, rises a seventh of a
+   square and settles. The time grows with the distance — 190ms into the top row of a nearly full
+   column, 440ms to the bottom of an empty one — because a counter that falls six rows in the time it falls one
+   reads as sliding, not dropping.
+
+   TRANSFORM ONLY, so it is the compositor's work and costs no layout: a board rebuilt on every tap
+   must not also be re-laid-out sixty times a second while a counter falls. And NOT FOR ANYBODY WHO
+   HAS ASKED FOR LESS MOTION, for whom the counter is simply there, as it always was. */
+.c4 { overflow: hidden; }
+.c4-cell.c4-new::after {
+  animation: c4-drop calc(140ms + var(--c4-fall, 1) * 50ms) both;
+}
+@keyframes c4-drop {
+  0%   { transform: translateY(calc((100% + 3px) * var(--c4-fall, 1) * -1));
+         animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
+  70%  { transform: translateY(0); animation-timing-function: cubic-bezier(0, .55, .45, 1); }
+  85%  { transform: translateY(-14%); animation-timing-function: cubic-bezier(.55, 0, 1, .45); }
+  100% { transform: translateY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .c4-cell.c4-new::after { animation: none; }
+}
+
+/* THE FOUR THAT WON, RINGED in the app's ink rather than its gold: gold is the yellow counter's own
+   colour near enough to vanish on it, and a ring that shows on one side's win and not the other's is
+   no ring. Inset on the counter and out into the 3px gap, so it reads on red, on yellow and against
+   the board. */
+.c4-cell.c4-win::after { box-shadow: inset 0 0 0 3px var(--ink), 0 0 0 2px var(--ink); }
+
+/* WHOSE GO IT IS, as a disc beside the sentence. In `em`, because it sits in a line of text and is
+   that line's size at every width; not a control, so not 44px. */
+.c4-turn {
+  display: inline-block; width: .85em; height: .85em; border-radius: 50%;
+  margin-right: .45em; vertical-align: -.08em;
+}
+.c4-turn.p1 { background: var(--c4-a); }
+.c4-turn.p2 { background: var(--c4-b); }
 
 .oth { border-radius: var(--r-sm); --oth-a: #c4392f; --oth-b: #3f7fd0; }
 .oth-cell { border-radius: 12%; }
@@ -11142,10 +11201,16 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   background: var(--sunk); border-radius: var(--r-sm); overflow: hidden;
 }
 .mz-cell { display: block; min-width: 0; min-height: 0; }
-.mz-cell.wn { border-top: 2px solid var(--mz-wall); }
-.mz-cell.we { border-right: 2px solid var(--mz-wall); }
-.mz-cell.ws { border-bottom: 2px solid var(--mz-wall); }
-.mz-cell.ww { border-left: 2px solid var(--mz-wall); }
+/* `mz-` ON THE WALLS, BECAUSE `.ws` IS THE WORD SEARCH'S GRID. These were `.wn` `.we` `.ws` `.ww`,
+   and the word search's bare `.ws { display: grid; margin: .55rem auto 0; max-width: 24rem }`
+   landed on every maze cell with a south wall: 71 of 121 cells 16.6px tall in 24.7px rows at 390,
+   so walls doubled, missed each other and left gaps in the outer edge. See `mazePaint`.
+   `check/ui.js` now asks that every square of a board is one size, which is the measurement that
+   would have caught it on the first run. */
+.mz-cell.mz-n { border-top: 2px solid var(--mz-wall); }
+.mz-cell.mz-e { border-right: 2px solid var(--mz-wall); }
+.mz-cell.mz-s { border-bottom: 2px solid var(--mz-wall); }
+.mz-cell.mz-w { border-left: 2px solid var(--mz-wall); }
 /* WHERE YOU HAVE BEEN, which is the whole playability on a card this size: without it a dead end
    looks exactly like a corridor you have not tried yet. Faint, because it is a memory rather than
    part of the maze. */
@@ -11589,11 +11654,10 @@ button.scr-sq { cursor: pointer; }
 .imp-step:disabled { opacity: .35; cursor: default; }
 .imp-pass { margin: 0; font: 400 1rem/1.35 var(--font); color: var(--ink); max-width: 18rem; }
 
-/* ---------- JUST A MINUTE, TABOO, HOT SEAT, 20 QUESTIONS, ALIBI ------------------------------------
+/* ---------- JUST A MINUTE, TABOO, HOT SEAT, 20 QUESTIONS ----------------------------------------------
    THE ARTICULATE CARD AGAIN, for Imposter's reason: one thing read across a room, with a gold button
-   under it. What is new is a clock big enough to read from the back of the room, Taboo's five
-   forbidden words, and Alibi's case and questions — which are read by the person holding the phone,
-   so they are left-aligned prose rather than one big word.
+   under it. What is new is a clock big enough to read from the back of the room and Taboo's five
+   forbidden words. (Alibi's case and question list had rules here too, and went with the game.)
 
    THE CLOCK IS `--mono`, so the digits do not change width as they count and the line does not
    twitch four times a second. */
@@ -11623,14 +11687,6 @@ button.scr-sq { cursor: pointer; }
 /* HOT SEAT'S WORD IS READ FROM ACROSS A ROOM, so it is bigger than Articulate's, which is read by
    the person holding the phone. */
 .art-word.hot-word { font-size: clamp(1.8rem, 9vw, 2.6rem); }
-.alb-crime { margin: 0; font: 600 1rem/1.35 var(--font); color: var(--ink); max-width: 18rem; }
-.alb-facts { display: grid; grid-template-columns: auto 1fr; gap: .2rem .6rem; margin: 0;
-             text-align: left; max-width: 18rem; font: 400 .88rem/1.3 var(--font); }
-.alb-facts dt { color: var(--gold); font-weight: 600; }
-.alb-facts dd { margin: 0; color: var(--ink); }
-.alb-qs { margin: 0; padding-left: 1.3rem; text-align: left; max-width: 18rem;
-          font: 400 .9rem/1.35 var(--font); color: var(--ink); }
-.alb-qs li + li { margin-top: .15rem; }
 
 /* ==================================================================================================
    SHARING A BOOKING IS PRINTING IT — THE ELEMENT ON THE SCREEN, NOT A DRAWING OF IT.
