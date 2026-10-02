@@ -351,7 +351,7 @@ function orderLine_(c, i, full, under) {
   if (c.kind === 'print') {
     if (full) {
       const p = cartPrint_(c);
-      bits.push(c.pages ? c.pages + ' pages' : 'pages not counted yet');
+      bits.push(c.pages ? c.pages + ' page' + (c.pages === 1 ? '' : 's') : 'pages not counted yet');
       bits.push(p === null ? 'priced when sent' : money(p));
     }
     if (c.laminate) {
@@ -364,7 +364,14 @@ function orderLine_(c, i, full, under) {
     bits.push(money(Number(c.money)));
   }
   const name = under && c.short ? c.short : (c.name || c.key);
-  return (i + 1) + '. ' + String(name) + (bits.length ? ' — ' + bits.join(', ') : '');
+  /* ---------- A CHEAT SHEET CARRIES ITS PIECES, AND THE MESSAGE LISTS THEM -------------------------
+     A PAPER IS A FILE THE OWNER ALREADY HAS; A CHEAT SHEET IS A PAGE SOMEBODY BUILT on their phone,
+     and its key (`mat:` and a list of ids) means nothing to a person. So the names ride on the line
+     (`mat-cart` in mat.js) and go out on the line below it, in both the full and the short build —
+     dropping them to fit would leave an order nobody can fulfil. Measured against the cap: all 77
+     pieces' names together are about 1,400 characters, and a sheet holds a page's worth, nearer 20. */
+  const parts = Array.isArray(c.parts) && c.parts.length ? '\n   pieces: ' + c.parts.join(', ') : '';
+  return (i + 1) + '. ' + String(name) + (bits.length ? ' — ' + bits.join(', ') : '') + parts;
 }
 
 /* WHERE IT GOES. The login reply carries `address` and `postcode` for exactly this — the note in

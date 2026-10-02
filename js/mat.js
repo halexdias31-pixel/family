@@ -1481,6 +1481,102 @@ function matSubjectOrder(list) {
 }
 const matSubjects = parts => matSubjectOrder(parts || matParts());
 
+/* ---------- THE PIECES A GROUP AT A TIME --------------------------------------------------------------
+   ASKED FOR AS *"the cheat sheet maker shouldnt be as long as it is. you need to think a way to make it
+   fit on screen without scrolling"*. The scroller inside the card had already gone (that was the
+   second half of the same note, and `.widget-squeeze` with it), which left the card as tall as its
+   list — and the list was the whole library. Measured on `check/fixture.json` before this: it opened
+   on Maths · Every level, 57 rows, a card of 1206px in a 532px pane at 320x568, and `paneReach_` hit
+   its 0.7 floor and still had to let the pane scroll. GCSE Higher was 34 rows, 825px against 532;
+   every Maths level but the Y1/Y2 mocks scrolled at 320, and Every subject · Every level was 80 rows.
+
+   A SHORTER LIST IS THE ONLY FIX THAT IS A FIX. Smaller rows were spent long ago (44px is the floor —
+   see `.mat-list label`), more columns do not fit at 320, and zooming the card further is the thing
+   the floor exists to stop. So the list is cut by TOPIC, which is the next question somebody making
+   a sheet has after subject and level — "the algebra bits" — and a third select asks it.
+
+   EIGHT ROWS AT MOST IN ANY VIEW, ruler included, at every subject and level — four lines of two.
+   The audit allowed twelve. Measured at 320x568: twelve rows is six lines and a card drawn at about
+   0.79; ten drew at 0.858 signed out, and at 0.798 SIGNED IN, where the card carries its star tile
+   and is 60px taller for it. Eight is the number that clears 0.85 for both visitors. `check/states.js`
+   holds the 0.85 floor, sweeping every subject × level × group at 320x568 and 390x844 as both;
+   `check-flow` holds the count, so a piece added to a full group fails before anybody draws it.
+   Seven pieces is the most any group below carries at Every level, so the ruler makes eight.
+
+   IN CODE, NOT ON THE SHEET, for now. `data/cheatsheet.json` has no group column and the drawings
+   these ids name are in this file anyway; a piece added in code and forgotten here lands in
+   `Other` rather than nowhere, and `check-flow` names it so it does not stay there.
+
+   SHORT NAMES, because the option carries its tick count too and the select shows about eighteen
+   characters at 320: `Calculus` holds the vectors and the mechanics, `Geometry` the shapes and
+   angles, `Spelling` the words.
+
+   THE ORDER HERE IS THE ORDER OF THE SELECT — number before algebra before calculus, roughly the
+   order the topics are met in. Grouped by subject only because the ids are; a group is one name
+   whatever subject is chosen, so "Every subject" offers all of them in this order. */
+const MAT_GROUPS = [
+  ['Number',               ['M02', 'M03', 'M04', 'M05', 'M10', 'M52', 'M28']],
+  ['Fractions & %',        ['M11', 'M31', 'M22', 'M12G', 'M12H', 'M23', 'M24']],
+  ['Algebra',              ['M25', 'M26', 'M15', 'M37', 'M41', 'M36']],
+  ['Graphs & rates',       ['M17', 'M16', 'M42', 'M12F']],
+  ['Geometry',             ['M07', 'M08', 'M09', 'M20', 'M30']],
+  ['Area & volume',        ['M21', 'M06', 'M12A', 'M12B', 'M12C', 'M12D', 'M12E']],
+  ['Trigonometry',         ['M19', 'M13', 'M14', 'M29', 'M38', 'M39', 'M40']],
+  ['Data & chance',        ['M18', 'M27', 'M49', 'M45', 'M46', 'M47']],
+  ['Calculus',             ['M32', 'M33', 'M34', 'M35', 'M48', 'M43', 'M44']],
+  ['Spelling',             ['E02', 'E07', 'E08', 'E21']],
+  ['Grammar',              ['E03', 'E04', 'E05', 'E06']],
+  ['Writing',              ['E11', 'E12', 'E13', 'E14', 'E17', 'E18', 'E22']],
+  ['Reading',              ['E09', 'E10', 'E15', 'E16', 'E19', 'E20']],
+  ['Chemistry',            ['M50', 'M51']],
+];
+const MAT_GROUP_OTHER = 'Other';
+const MAT_GROUP_BY = {};
+MAT_GROUPS.forEach(([g, ids]) => ids.forEach(id => { MAT_GROUP_BY[id] = g; }));
+/* THE RULER IS IN EVERY GROUP, for the reason it is in every subject: it goes down the edge of any
+   sheet, so it is offered wherever you are rather than filed under one topic you might never open. */
+const matGroupOf = c => (!c || c.edge) ? '' : (MAT_GROUP_BY[c.id] || MAT_GROUP_OTHER);
+/* WHICH GROUP IS ON THE SCREEN. Empty until settled, and `matSettle` puts it on the first group the
+   subject and level have pieces in — a group that has emptied (Calculus at SATs) is not left showing. */
+let MAT_GROUP = '';
+const matInGroup = c => { const g = matGroupOf(c); return !g || g === MAT_GROUP; };
+/* THE GROUPS THIS SUBJECT AND LEVEL HAVE PIECES IN, in the table's order — asked of `matShown`, so a
+   group appears exactly when the paper could carry something from it. */
+function matGroupChoices(parts) {
+  const has = {};
+  (parts || matParts()).forEach(c => { const g = matGroupOf(c); if (g && matShown(c)) has[g] = true; });
+  return MAT_GROUPS.map(x => x[0]).concat(MAT_GROUP_OTHER).filter(g => has[g]);
+}
+
+/* ---------- AND WHERE IT OPENS FOR A STUDENT -----------------------------------------------------------
+   "OPEN ON THE STUDENT'S OWN LEVEL WHEN KNOWN" — the audit's default, taken. Nothing on a person's row
+   says their level, so it is read off the sessions they are booked into as the client, newest first:
+   a student in a GCSE Maths group gets the GCSE Maths sheet. `USER.level` is asked first in case the
+   login reply ever carries one. A tutor's own sessions are not theirs to study, so only `client`
+   counts. Anything that does not name a level this tool has falls through to Every level, which is
+   what it opened on before — so a visitor nobody knows anything about sees no change at all. */
+function matOwnLevel_(parts) {
+  if (typeof USER === 'undefined' || !USER) return null;
+  const known = matLevelChoices(parts).map(o => o.v.split('|')[0]);
+  const fit = l => known.find(k => norm(k) === norm(l)) || '';
+  const own = fit(USER.level || (USER.profile || {}).level || '');
+  if (own) return { level: own, subject: '' };
+  let jobs = [];
+  try { jobs = (DATA.liveJobs || DATA.jobs || []).filter(j => j && norm(j.client) === norm(USER.name)); }
+  catch (e) { jobs = []; }
+  jobs.sort((a, b) => String(b.startDate || '').localeCompare(String(a.startDate || '')));
+  const subs = matSubjects(parts);
+  for (const j of jobs) {
+    const level = fit(j.level);
+    if (!level) continue;
+    /* "English Language", "(Single) Chemistry" — the bookable names — carry this tool's subject as a
+       word inside them, or carry nothing it knows. */
+    const subject = subs.find(s => norm(j.subject).indexOf(norm(s)) !== -1) || '';
+    return { level, subject };
+  }
+  return null;
+}
+
 /* ---------- ONE LIST OF LEVELS, AND THE TIER INSIDE IT -----------------------------------------------
    THE LEVEL WAS TEN PILLS AND THE TIER WAS TWO MORE, IN A ROW THAT CAME AND WENT. Measured on a
    320x568 phone: four rows of pills, 288px of a 534px pane, before a single piece was on the screen
@@ -1554,6 +1650,10 @@ function matSettle(parts) {
   if (MAT_SUBJECT !== 'all' && subs.indexOf(MAT_SUBJECT) === -1) MAT_SUBJECT = subs[0] || 'all';
   if (matLevelChoices(parts).map(o => o.v).indexOf(matLevelValue()) === -1) MAT_LEVEL = 'all';
   MAT_SHOW = (MAT_LEVEL !== 'all' && matTierSplits(MAT_LEVEL)) ? MAT_TIER : 'H';
+  /* THE GROUP LAST, because which groups have pieces is a question about the subject, the level
+     and the tier just settled — and it reads `matShown`, which reads `MAT_SHOW`. */
+  const groups = matGroupChoices(parts);
+  if (groups.indexOf(MAT_GROUP) === -1) MAT_GROUP = groups[0] || '';
 }
 
 /* THE OPTIONS ARE WRITTEN ONLY WHEN THEY CHANGE. `matPaint` runs on every tick — and this is called from inside the select's own `change`
@@ -1587,6 +1687,25 @@ function matChoices(parts) {
       .map(o => `<option value="${esc(o.v)}">${esc(o.say)}</option>`).join(''));
     lev.value = matLevelValue();
   }
+  /* THE GROUP, WITH WHAT IS TICKED IN EACH ON ITS OWN OPTION. Ticks are kept across groups — the
+     sheet is everything ticked at this subject and level, whichever group is on the screen — so a
+     group you are not looking at can hold half the sheet, and the only place left to say so without
+     a row of its own is the option label: "Algebra · 3✓". A tick and not the word "ticked": at 320
+     the select shows eighteen characters at 16px, and "Trigonometry · 2 t…" was what the word left. Counted through `matShown`, the same
+     test the paper uses, so the counts add up to the gauge's piece count and never to more. */
+  const grp = $('mat-group');
+  if (grp) {
+    const groups = matGroupChoices(parts);
+    const ticked = g => parts.filter(c => !c.edge && matGroupOf(c) === g && matShown(c)
+      && MAT_ON.indexOf(c.id) !== -1).length;
+    matOptions_(grp, groups.map(g => {
+      const n = ticked(g);
+      return `<option value="${esc(g)}">${esc(g + (n ? ' · ' + n + '✓' : ''))}</option>`;
+    }).join(''));
+    grp.value = MAT_GROUP;
+    /* ONE GROUP IS NO CHOICE — the subject select's own rule. Science is two pieces in one group. */
+    (grp.closest('.mat-sel') || grp).hidden = groups.length < 2;
+  }
   /* "GIVEN IN THE EXAM" ONLY WHERE SOMETHING IS. It was a row of three pills — All, Not given,
      Given — shown on every level, SATs included, where nothing on the list is marked given and the
      middle pill hid the lot. It is one box now, offered only when a piece on this list is one the
@@ -1609,7 +1728,7 @@ const MAT_KEEP_AT = 'matChoice';
 function matRemember() {
   try {
     localStorage.setItem(MAT_KEEP_AT, JSON.stringify({
-      s: MAT_SUBJECT, l: MAT_LEVEL, t: MAT_TIER, x: MAT_EXAM, on: MAT_ON }));
+      s: MAT_SUBJECT, l: MAT_LEVEL, t: MAT_TIER, x: MAT_EXAM, g: MAT_GROUP, on: MAT_ON }));
   } catch (e) { /* a phone that will not store it simply opens fresh next time */ }
 }
 function matRecall() {
@@ -1620,6 +1739,8 @@ function matRecall() {
     if (typeof v.l === 'string') MAT_LEVEL = v.l;
     if (v.t === 'F' || v.t === 'H') MAT_TIER = v.t;
     MAT_EXAM = v.x === 'not' ? 'not' : 'all';
+    /* A GROUP FROM BEFORE GROUPS EXISTED IS NO GROUP, and `matSettle` picks the first. */
+    if (typeof v.g === 'string') MAT_GROUP = v.g;
     if (Array.isArray(v.on)) MAT_ON = v.on.map(String);
     return true;
   } catch (e) { return false; }
@@ -1661,7 +1782,13 @@ function initMat() {
      middle of — and what they chose LAST time comes first, before the sheet's `start_on`. */
   if (!MAT_TOUCHED) {
     if (matRecall()) MAT_TOUCHED = true;
-    else MAT_ON = matStart();
+    else {
+      MAT_ON = matStart();
+      /* A STUDENT'S OWN LEVEL, when their sessions say it — see `matOwnLevel_`. Not marked as a
+         choice: nobody chose it, so a later visit with a new booking may answer differently. */
+      const own = matOwnLevel_(matParts());
+      if (own) { MAT_LEVEL = own.level; if (own.subject) MAT_SUBJECT = own.subject; }
+    }
   }
   box.innerHTML = `
     <div class="mat-pick">
@@ -1675,6 +1802,10 @@ function initMat() {
         aria-label="Subject"></select></label>
       <label class="mat-sel"><select id="mat-level" data-do="mat-level"
         aria-label="Level"></select></label>
+      ${/* THE THIRD QUESTION, WHICH TOPIC — see `MAT_GROUPS`. It is what keeps the list under the
+            fold of a 320x568 phone, and it says on each option how much of the sheet is in it. */''}
+      <label class="mat-sel"><select id="mat-group" data-do="mat-group"
+        aria-label="Topic"></select></label>
     </div>
     <label class="check mat-given" id="mat-given" hidden><input type="checkbox" data-do="mat-exam">
       <span class="box"></span><span>Skip what the exam gives you</span></label>
@@ -1691,7 +1822,18 @@ function initMat() {
     <div class="mat-list" id="mat-list"></div>
     <div class="mat-gauge" id="mat-gauge"><i></i></div>
     <p class="mat-said" id="mat-said"></p>
-    <button class="btn" data-do="mat-print" id="mat-go">Print the sheet</button>`;
+    ${/* ---------- PRINT IT YOURSELF, OR HAVE IT PRINTED --------------------------------------------
+          ASKED FOR AS *"add an upgrade to lamination for cheat sheet orders that are added to cart"*,
+          which needs the sheet to be something the basket can hold first — it could only print.
+          The trolley is a TILE BESIDE the button rather than a second full-width button under it:
+          the sheet is a thing, a thing's actions are tiles, and a second 44px row is height this
+          card has just been cut down to fit without. `mat-cart` is the same door the shop's trolley
+          is, and the basket line it makes is a `print` line — which is what gives it the laminate
+          switch, priced by the sheet's own rate, with nothing new in the basket to learn it. */''}
+    <div class="mat-do">
+      <button class="btn" data-do="mat-print" id="mat-go">Print the sheet</button>
+      ${tile_({ icon: 'cart', label: 'Have it printed', note: 'into your basket', act: 'mat-cart' })}
+    </div>`;
 
   /* ONE LIBRARY, SO NO HEADINGS. The list was split into "Components" and "Flyers" while a flyer
      could be ticked onto the sheet; with the flyer maker its own tool again there is one library
@@ -1708,11 +1850,14 @@ function initMat() {
       c.inExam === true ? ' class="given"' : ''}><input
        type="checkbox" data-do="mat-tick"
        data-id="${esc(c.id)}"${MAT_ON.indexOf(c.id) !== -1 ? ' checked' : ''}>
-     <b class="mat-face">${esc(c.face || c.name)}</b>${
+     <span class="mat-txt"><b class="mat-face">${esc(c.face || c.name)}</b>${
        /* A NOTE BELONGS TO THE COMPONENT, NOT TO THE TOOL. "The ruler and protractor print at true
           size" was a line in a paragraph above the whole list, which is where a fact about two
-          items out of twenty-five goes to be ignored. On the two rows it is about, it is read. */
-       notes}</label>`;
+          items out of twenty-five goes to be ignored. On the two rows it is about, it is read.
+          INSIDE THE ROW'S 44px NOW, under the face in the same cell, rather than a grid line of its
+          own below it — that line was 15px a note and, with groups, the last thing between a
+          ten-row group and a card drawn at 0.83 on a 320x568 phone. See `.mat-txt`. */
+       notes}</span></label>`;
   }).join('');
   matPaint();
 }
@@ -1731,6 +1876,14 @@ on('mat-level', el => {
   const [l, t] = String(el.value || 'all').split('|');
   MAT_LEVEL = l || 'all';
   if (t === 'F' || t === 'H') MAT_TIER = t;
+  matPaint();
+  matRemember();
+});
+/* A GROUP CHANGES WHAT IS LISTED AND NOTHING ELSE — the paper is every tick at this subject and
+   level, whichever group is showing, so the gauge does not move when this does. */
+on('mat-group', el => {
+  MAT_TOUCHED = true;
+  MAT_GROUP = String(el.value || '');
   matPaint();
   matRemember();
 });
@@ -1786,7 +1939,10 @@ function matPaint() {
   if (list) list.querySelectorAll('label').forEach(el => {
     const id = el.getAttribute('data-id');
     const show = matShown(byId[id]);
-    el.classList.toggle('off', !show);
+    /* LISTED IS SHOWN AND IN THE GROUP; PRINTED IS SHOWN. The group cuts the list and not the
+       paper — see `MAT_GROUPS` — so `listed` below still counts the whole level, which is what
+       "nothing here for this level yet" is a sentence about. */
+    el.classList.toggle('off', !(show && matInGroup(byId[id])));
     const tick = el.querySelector('input');
     if (tick) tick.checked = MAT_ON.indexOf(id) !== -1;
     /* PIECES, NOT THE RULER. The ruler is offered under every subject and level, so counting it made
@@ -1936,12 +2092,64 @@ function matPaint() {
             ? 'all given in the exam' : 'nothing here for this level yet')
         : 'tick pieces'}`;
   $('mat-go').disabled = over || !n;
+  /* ---------- AND WHAT THE BASKET WOULD BE GIVEN ----------------------------------------------------
+     THE SAME SHEET THE PRINT BUTTON WOULD PRINT, described rather than drawn — `mat-cart` reads it,
+     so the basket can never hold a sheet the gauge did not pass. The KEY is the subject, the level
+     and the sorted ids, which is what makes two presses on one sheet one line and a changed sheet a
+     new one. The NAME says subject, level and how many pieces, because that is how the owner tells
+     six cheat sheets in one order apart; the PIECE NAMES go with it so the order message lists
+     them and the sheet can be rebuilt from the message alone. The ruler is in the list when it is
+     ticked — it is on the paper — and not in the count, which is the gauge's. */
+  const say = [MAT_SUBJECT === 'all' ? 'every subject' : MAT_SUBJECT,
+               MAT_LEVEL === 'all' ? 'every level' : MAT_LEVEL + tierWord].join(' · ');
+  MAT_ORDER = {
+    ok: !over && n > 0,
+    key: 'mat:' + MAT_SUBJECT + '|' + matLevelValue() + '|' + on_.map(c => c.id).sort().join(','),
+    name: 'Cheat sheet — ' + say + ' (' + n + ' piece' + (n === 1 ? '' : 's') + ')',
+    parts: on_.map(c => c.name),
+  };
+  /* THE TROLLEY FILLS WHEN THIS EXACT SHEET IS IN THE BASKET, and empties the moment a tick makes it
+     a different sheet — the bundle's trolley rule (`cartPaint_`), for one line rather than several. */
+  const trolley = list.closest('#mat-box') && list.closest('#mat-box').querySelector('[data-do="mat-cart"]');
+  if (trolley) {
+    const inCart = typeof CART !== 'undefined' && CART.some(c => c.kind === 'print' && c.key === MAT_ORDER.key);
+    tileSet_(trolley, inCart ? { label: 'In your basket', note: '', on: true, off: false }
+                             : { label: 'Have it printed', note: 'into your basket', on: false,
+                                 off: !MAT_ORDER.ok });
+  }
   /* WHAT GOES TO THE PRINTER is the sheet exactly as it was measured — slots grown, top row marked —
      kept as markup so `mat-print` prints the page the gauge was talking about rather than a second
      rendering of it. */
   MAT_SHEET = probe.innerHTML;
   probe.remove();
 }
+
+/* THE SHEET AS A BASKET LINE — see the note where `matPaint` fills it. Empty until the first paint. */
+let MAT_ORDER = { ok: false, key: '', name: '', parts: [] };
+
+/* ---------- INTO THE BASKET, AS A PRINTED PAGE ----------------------------------------------------------
+   A `print` LINE, ONE PAGE, NO PRICE STORED — `cartPrint_` prices it from `print_rate_per_page` every
+   time it is asked, and `lamControl_` offers it the laminate switch at `laminate_rate_per_page`,
+   both off the Ledger config. Nothing here knows a rate, which is the point: the owner's figure is
+   the only figure, and a rate typed into this file would be a second one that goes stale.
+
+   SIGNED OUT, IT SAYS SO AND GOES TO SIGN IN — `cart-add`'s own two lines, because the basket is a
+   person's and the order goes out as a message from them. Refused, not greyed, when the sheet is
+   empty or over the page: the same rule the Print button is disabled by, said in words for
+   somebody who pressed anyway. */
+on('mat-cart', el => {
+  if (!USER) { toast('Sign in first'); go('account'); return; }
+  const o = MAT_ORDER;
+  if (!o.ok) { toast('Tick some pieces that fit on one page first'); return; }
+  if (CART.some(c => c.kind === 'print' && c.key === o.key)) { toast('Already in your basket'); return; }
+  CART.push({ key: o.key, kind: 'print', name: o.name, pages: 1, cost: 0, parts: o.parts.slice() });
+  cartSave();
+  if (typeof cartPaint_ === 'function') cartPaint_();
+  tileSet_(el, { label: 'In your basket', note: '', on: true });
+  /* THE UPGRADE IS NAMED ONLY WHEN IT IS OFFERED — a rate of 0 in the Ledger means no laminating. */
+  toast('Cheat sheet in your basket' + (typeof laminateOffered_ === 'function' && laminateOffered_()
+    ? ' — laminate it there' : ''));
+});
 
 /* ---------- THERE IS NO PREVIEW ---------------------------------------------------------------------
    ASKED FOR AS "same for cheat sheet maker" — the preview removed, as for the flyer. It was an A4 page

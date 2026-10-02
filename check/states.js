@@ -1413,9 +1413,23 @@ const STATES = {
         lev.value = 'GCSE|H'; lev.dispatchEvent(new Event('change', { bubbles: true }));
         /* FIVE PIECES TICKED BY HAND — there is no Fill button any more (the owner took it off), so
            the pieces go on the way a person puts them on, through the list's own boxes. */
-        const boxes = [...document.querySelectorAll('#s-tools .mat-list label:not(.off) input:not(:checked)')].slice(0, 5);
-        if (boxes.length < 5) throw new Error('fewer than five pieces offered for GCSE Higher');
-        boxes.forEach(b => b.click());
+        /* A TOPIC AT A TIME NOW (`MAT_GROUPS`), and no GCSE topic holds five, so the ticks are taken
+           across the topics the way a person would make a sheet — and the view is put back on the
+           first, Number, which is where the negative number line asserted below lives. */
+        const grp = document.querySelector('#s-tools #mat-group');
+        if (!grp) throw new Error('the cheat sheet maker has no topic select');
+        const topics = [...grp.options].map(o => o.value);
+        let ticked = 0;
+        for (const g of topics) {
+          if (ticked >= 5) break;
+          grp.value = g; grp.dispatchEvent(new Event('change', { bubbles: true }));
+          const boxes = [...document.querySelectorAll('#s-tools .mat-list label:not(.off):not([data-id="M01"]) input:not(:checked)')]
+            .slice(0, 5 - ticked);
+          boxes.forEach(b => b.click());
+          ticked += boxes.length;
+        }
+        if (ticked < 5) throw new Error('fewer than five pieces offered for GCSE Higher');
+        grp.value = topics[0]; grp.dispatchEvent(new Event('change', { bubbles: true }));
       },
       expect: () => !document.querySelector('#s-tools #mat-fill, #s-tools #mat-clear')
         && document.querySelectorAll('#s-tools .mat-list input:checked').length >= 5
@@ -1438,6 +1452,71 @@ const STATES = {
       wants: 'a subject and a level chosen, five pieces ticked, no Fill or Clear, the negative number line offered, the list not a scroller, and Print ready',
       leave: () => {
         MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
+        MAT_GROUP = '';
+        try { localStorage.removeItem('matChoice'); } catch (e) {}
+        matPaint();
+      } },
+    /* ---------- AND EVERY VIEW OF IT FITS, WHICH IS WHAT THE OWNER ASKED -------------------------------
+       ASKED FOR AS *"the cheat sheet maker shouldnt be as long as it is. you need to think a way to
+       make it fit on screen without scrolling"*. It was 1206px in a 532px pane at 320x568 on the view
+       it opened on. The answer was a third select, the topic, that cuts the list to eight rows at most
+       (`MAT_GROUPS` in mat.js) — and a fit is a property of every view, not of the one a state
+       happens to land on, so this walks the lot: every subject the select offers, every level of
+       it, every topic of that, set through the selects' own `change` events. After each, the app's
+       own `paneReach_` is asked to fit the pane, and the answer must be: nothing scrolls, and the
+       card was not drawn smaller than 0.85 to get there. 0.85 rather than `PANE_ZOOM_MIN`'s 0.7,
+       because a card that "fits" at 0.7 is the thing the owner was complaining about wearing a
+       smaller font.
+       AT THE TWO PHONES, 320x568 and 390x844, which are the sizes the complaint is about; a tablet
+       and a laptop pass this trivially and are measured for everything else as before.
+       `MAT_FIT_MISS` NAMES THE FIRST VIEW THAT FAILED, because `expect` can only say yes or no and
+       "some view did not fit" is a sentence nobody can act on. Read it in the page, or run
+       `node check/ui.js --screen=tools` with a console.log of it. */
+    { name: 'the cheat sheet maker, every subject, level and topic',
+      enter: () => {
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'mat');
+        if (n < 0) throw new Error('no cheat sheet widget in the roster');
+        goPage('tools', n, true);
+        if (!document.querySelector('#s-tools #mat-group')) throw new Error('the cheat sheet maker has no topic select');
+      },
+      expect: () => {
+        const phone = (innerWidth === 320 && innerHeight === 568) || (innerWidth === 390 && innerHeight === 844);
+        const sub = document.querySelector('#s-tools #mat-subject');
+        const lev = document.querySelector('#s-tools #mat-level');
+        const box = document.querySelector('#s-tools #mat-box');
+        const pane = box && box.closest('.pane');
+        if (!sub || !lev || !pane) return false;
+        const fire = (el, v) => { el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); };
+        let miss = '', views = 0;
+        for (const s of [...sub.options].map(o => o.value)) {
+          fire(sub, s);
+          for (const l of [...lev.options].map(o => o.value)) {
+            fire(lev, l);
+            const grp = document.querySelector('#s-tools #mat-group');
+            const gs = grp && !grp.closest('[hidden]') ? [...grp.options].map(o => o.value) : [''];
+            for (const g of gs) {
+              if (g) fire(grp, g);
+              views++;
+              if (!phone || miss) continue;
+              paneReach_([pane]);
+              const zoom = Math.min(...[...pane.children].map(k => Number(k.style.zoom || 1)));
+              const rows = document.querySelectorAll('#s-tools .mat-list label:not(.off)').length;
+              if (pane.scrollHeight - pane.clientHeight > 2 || zoom < 0.85 || rows > 8) {
+                miss = `${s} · ${l} · ${g || '(one topic)'}: ${rows} rows, ${pane.scrollHeight}px in `
+                     + `${pane.clientHeight}px at zoom ${zoom}`;
+              }
+            }
+          }
+        }
+        window.MAT_FIT_MISS = miss;
+        /* MORE THAN A HANDFUL OF VIEWS, or the walk did not walk — a select that lost its options
+           would pass this with one view measured. */
+        return !miss && views > 50;
+      },
+      wants: 'every subject × level × topic of the cheat sheet maker fitting its pane at 320x568 and 390x844 with no scroll and no zoom below 0.85 (window.MAT_FIT_MISS names the first that did not)',
+      leave: () => {
+        MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
+        MAT_GROUP = '';
         try { localStorage.removeItem('matChoice'); } catch (e) {}
         matPaint();
       } },

@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-02-tag-colours";
+  --css-version: "2026-10-03-cheat";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -8027,14 +8027,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    THE ARROW IS DRAWN, because the global rule takes the platform's off (`appearance: none`) and a
    select with nothing on it reads as a text box. On the wrapper rather than the control, since a
    `select` cannot hold a pseudo-element; `pointer-events: none` so a tap on it opens the list. */
-.mat-pick { display: grid; gap: .4rem; margin-bottom: .45rem; }
+.mat-pick { display: grid; gap: .3rem; margin-bottom: .35rem; }
 .mat-sel { position: relative; min-width: 0; display: block; }
 .mat-sel select { font-size: 16px; padding-right: 1.8rem; text-overflow: ellipsis; }
 .mat-sel::after { content: '▾'; position: absolute; right: .7rem; top: 50%;
                   transform: translateY(-50%); color: var(--dim); pointer-events: none; }
 /* THE BOX IS THE APP'S OWN CHECKBOX — `.check`, a 44px row with the tick drawn — and tighter than
    its usual padding, because it sits between two rows of controls rather than in a form of them. */
-.check.mat-given { padding: .2rem 0; font-size: .74rem; color: var(--dim); }
+/* NO PADDING NOW, because the row is already 44px and there are three selects above it rather than
+   two: the .2rem either side was the box's air in a form, and on this card it was the last few
+   pixels between a ten-row group and the 0.85 floor (see `MAT_GROUPS`). */
+.check.mat-given { padding: 0; font-size: .74rem; color: var(--dim); }
 /* ---------- SHORTER ROWS, SO MORE OF THEM FIT ACROSS ----------------------------------------------
    9rem WAS THE WIDTH A THREE-WORD NAME NEEDED. A face is rarely more than eight characters, so the
    column can be narrower and a phone gets three where it got two — twenty-five rows in nine lines
@@ -8079,7 +8082,15 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-list label { display: grid; grid-template-columns: auto minmax(0, 1fr);
                   grid-template-rows: minmax(44px, auto); column-gap: .4rem; align-items: center;
                   font-size: .72rem; color: var(--ink); cursor: pointer; }
-.mat-list label .mat-note { grid-column: 1 / -1; margin-top: -.6rem; padding-bottom: .3rem; }
+/* ---------- AND THE NOTE IS INSIDE THE 44px, UNDER THE FACE ------------------------------------
+   IT HAD A GRID LINE OF ITS OWN across the whole row, tucked up by .6rem — 15px of height per note,
+   and with the list cut into groups of twelve (`MAT_GROUPS` in mat.js) the notes were the difference
+   between a ten-row group fitting a 320x568 pane at 0.84 and at 0.85, the floor `check/states.js`
+   holds. The face is one line of .82rem and a note one or two of .62rem: both together are under
+   44px, so stacked in the face's own cell they cost the row nothing. The tick stays centred on the
+   44px line, which is what the note above was protecting. */
+.mat-list label .mat-txt { display: grid; min-width: 0; align-content: center; }
+.mat-list label .mat-note { margin: 0; }
 /* THE MATHS, SET AS MATHS. Mono keeps the columns of the list from jittering as the glyphs change
    width, and it is the face of the block rather than a label about it, so it takes the row's ink
    rather than the muted grey a caption would.
@@ -8132,9 +8143,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-gauge { height: .45rem; background: var(--sunk); border-radius: 3px; overflow: hidden; }
 .mat-gauge i { display: block; height: 100%; background: var(--good); transition: width .15s; }
 .mat-gauge.over i { background: var(--bad); }
-.mat-said { margin: .35rem 0 .6rem; font-size: .72rem; color: var(--dim); }
+.mat-said { margin: .3rem 0 .45rem; font-size: .72rem; color: var(--dim); }
 .mat-said b { color: var(--ink); }
 .mat-said.over b { color: var(--bad); }
+/* PRINT AND THE TROLLEY ON ONE ROW. The button keeps the width it had less one tile and a gap; the
+   tile is the app's own 44px plate (`.tile`), so nothing here sets a tap size. */
+.mat-do { display: flex; align-items: center; gap: .4rem; }
+.mat-do .btn { flex: 1 1 auto; min-width: 0; margin: 0; }
+.mat-do .tile { flex: none; }
 
 /* ---------- THE PAPER --------------------------------------------------------------------------- */
 /* ---------- THE PRINT SHEET IS A SHEET OF PAPER, AND PAPER DOES NOT REFLOW ------------------------
