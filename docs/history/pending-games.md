@@ -47,8 +47,9 @@ names on that wrapper are needed:
 Without that entry the orphan-engine check fails, because no widget's `start` names it any more.
 
 **Checked.** The word-games journey now expects eight games and names `herd` among the ids that
-must no longer be widgets. It also chooses Herd and asks three things: a question is dealt inside
-`#wg-slot .herd-card`, and `Next question` deals a different one. Two mutations proved it:
+must no longer be widgets. It also chooses Herd and asks three more: the game draws inside
+`#wg-slot .herd-card`, a question is dealt there, and `Next question` deals a different one. Two
+mutations proved it:
 - dropping the `herd-card` class failed with "drew without the .herd-card wrapper";
 - renaming the row's key failed with "Herd Mentality is not in the dropdown".
 
@@ -154,7 +155,10 @@ nothing to stop.
 - **A new lab state, `a connect 4 game, won`,** in `check/states.js`. In a real browser it expects
   the four rings, the disc, and `animationName === 'c4-drop'` on the falling counter's `::after`.
   That last one is the half check-flow cannot ask: whether the stylesheet still does anything with
-  the mark.
+  the mark. With the `.c4-cell.c4-new::after` animation rule deleted, `check/ui.js` refused the
+  state at all four widths ("was entered and shows no … the last counter under the drop") and
+  exited 1. Restored, all 12 Games states and all 96 combinations passed, and `check/press.js`
+  pressed 77 actions on the column with nothing inert.
 - **Screenshots** at 320 and 390 show play in progress, a counter caught mid-fall, and a diagonal
   win. Sampling the animation with it paused gave: the disc's bottom edge exactly at the board's top
   edge at 0%, landed at 70%, 4.9px up at 85%, and settled at 100%.
