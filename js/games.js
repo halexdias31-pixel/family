@@ -4804,14 +4804,17 @@ function ktLine_(n) {
   const words = [];
   let len = 0;
   while (len < 38) {
-    let w = fresh.length && Math.random() < 0.6 ? pick(fresh) : pick(pool);
     /* NOT THE SAME WORD TWICE RUNNING. The home row's dictionary is thirty words, and the first
-       screenshot drew "alas alas" — which is practising one word, not the row. */
-    if (words.length && w === words[words.length - 1].toLowerCase().replace(/[^a-z']/g, '') && pool.length > 1) {
-      w = pick(pool.filter(x => x !== w));
+       screenshot drew "alas alas" — which is practising one word, not the row. Asked of the word as
+       it will be drawn, names included: the first guard ran before a name was chosen and the journey
+       caught "Friday Friday". */
+    const was = words.length ? words[words.length - 1].toLowerCase().replace(/[^a-z']/g, '') : '';
+    let w = '';
+    for (let tries = 0; tries < 8 && (!w || w.toLowerCase() === was); tries++) {
+      w = L.caps && Math.random() < 0.15 ? pick(KT_NAMES)
+        : fresh.length && Math.random() < 0.6 ? pick(fresh) : pick(pool);
     }
-    if (L.caps && Math.random() < 0.15) w = pick(KT_NAMES);
-    else if (L.caps && (!words.length || Math.random() < 0.3)) w = w[0].toUpperCase() + w.slice(1);
+    if (L.caps && (!words.length || Math.random() < 0.3)) w = w[0].toUpperCase() + w.slice(1);
     /* MARKS BETWEEN WORDS, not a mark per word: one gap in three, and a full stop or a question mark
        starts the next word with a capital, as a sentence would. */
     if (L.marks && words.length && Math.random() < 0.3) {
