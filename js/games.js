@@ -4671,3 +4671,352 @@ on('wg-pick', el => {
   wordGamesStop_();
   initWordGames();
 });
+
+/* ==================================================================================================
+   TOUCH TYPING — the `typing` widget on the Tools column. The note over its entry in map.js says why
+   it is a tool; this is the engine.
+
+   ASKED FOR AS *"Add a widget for keyboard practice with no eyes like that one website in links"*
+   and again as *"add keyboard tool widget."* The website is L082 in data/settings/links.json,
+   TypingClub, "Learn to touch-type." So it is that shape and nothing bigger: a line to copy, a
+   keyboard drawn on the card with each key in the colour of the finger that presses it and the NEXT
+   key lit, so the eyes stay on the screen and the hands learn where things are by themselves. WPM
+   and accuracy under it, and a ladder of five lessons that opens one rung at a time.
+
+   `kt-`, NOT `tt-`. `.tt` and `#tt-*` are the Times Tables sprint (map.js, docs/history/235), and a
+   second widget sharing a prefix is a stylesheet rule that lands on both.
+
+   NO `stop`, ON PURPOSE. There is no clock running: WPM is worked out from the time of the first and
+   the latest keystroke, at the keystroke, so a card nobody is typing into costs nothing — and a
+   widget with no `stop` is drawn with its page, five pages ahead, rather than popping in on arrival.
+   See `drawWidget_` in find.js for why that matters. */
+
+/* THE LADDER. `keys` is every letter the lesson may use; `fresh` is what it adds, and a line leans
+   towards words that hold one, because a home-row word in the top-row lesson practises nothing new.
+   Capitals and punctuation add no LETTERS — they add the shift key and the marks — so they are
+   flags rather than a longer `keys`. */
+const KT_HOME = 'asdfghjkl', KT_TOP = 'qwertyuiop', KT_LOW = 'zxcvbnm';
+const KT_LESSONS = [
+  { name: 'Home row',    keys: KT_HOME,                          fresh: KT_HOME },
+  { name: 'Top row',     keys: KT_HOME + KT_TOP,                 fresh: KT_TOP },
+  { name: 'Bottom row',  keys: KT_HOME + KT_TOP + KT_LOW,        fresh: KT_LOW },
+  { name: 'Capitals',    keys: KT_HOME + KT_TOP + KT_LOW,        fresh: '', caps: true },
+  { name: 'Punctuation', keys: KT_HOME + KT_TOP + KT_LOW + "'",  fresh: "'", caps: true, marks: true },
+];
+/* "AS ACCURACY HOLDS": three lines at nine in ten or better opens the next rung. Speed is not asked
+   for — a touch typist who is accurate gets fast, and one who is fast and looking at their hands has
+   learnt the wrong thing, which is the whole of what this widget is for. */
+const KT_HOLD = 0.9, KT_LINES_TO_OPEN = 3;
+
+/* ONE LIST, FILTERED PER LESSON, rather than five lists. A word in the home-row list with a `t` in it
+   would be a key the lesson has not taught yet, and five hand-kept lists are five chances to write
+   one; filtering by `keys` makes that impossible. The home-row words are first because only they
+   survive the first filter — nine letters and no vowel but `a` is a short dictionary. */
+const KT_WORDS = (
+  'a as ad add all ask asks dad fad fall falls flag flags flask gas glad glass had half hall has ' +
+  'lad lads lag lass sad salad shall flash dash hash sash slash alas gala jags ' +
+  'the they their there here her were we you your it is to too at of off out our quite quiet ' +
+  'type tree free fire wire write route power pretty paper party report opera equal usual ' +
+  'house south photo tissue trip ship shop stop sure true what that this with sheet ' +
+  'zebra zero zone box fox mix next six exam extra van vote very cave move back black cabin ' +
+  'blank bank came come name climb maze lazy jazz and for have from will one would about which ' +
+  'when make can like time just know take people into year good some could them see other than ' +
+  'then now look only over think also after use two how work first well way even new want because ' +
+  "any these give day most don't it's can't won't isn't we're you're that's let's"
+).split(' ');
+/* Capitals are practised on names as well as on the first word of a sentence, because a name is
+   where a capital turns up in the middle of a line. */
+const KT_NAMES = ['London', 'Paris', 'Monday', 'Friday', 'Sam', 'Kit', 'Zoe', 'Max', 'Ben', 'June'];
+
+/* THE KEYBOARD, AND WHICH FINGER OWNS EACH KEY. Columns, not keys, decide the finger: the index
+   fingers take two columns each and the right little finger takes everything past the `o`. 0-3 are
+   the left hand little to index, 4-7 the right hand index to little, 8 the thumbs. */
+const KT_ROWS = ['qwertyuiop', "asdfghjkl;'", 'zxcvbnm,./'];
+const KT_COL_FINGER = [0, 1, 2, 3, 3, 4, 4, 5, 6, 7, 7];
+/* WHAT A SHIFTED MARK IS UNDER. A capital is its own letter; these are not. */
+const KT_SHIFTED = { '?': '/', ':': ';', '"': "'", '<': ',', '>': '.' };
+
+function ktFinger_(base) {
+  if (base === ' ') return 8;
+  for (const row of KT_ROWS) { const i = row.indexOf(base); if (i >= 0) return KT_COL_FINGER[i]; }
+  return -1;
+}
+/* The keycap a character is on, and whether shift is held for it. */
+function ktCap_(ch) {
+  if (KT_SHIFTED[ch]) return { base: KT_SHIFTED[ch], shift: true };
+  const lo = ch.toLowerCase();
+  return { base: lo, shift: lo !== ch };
+}
+
+/* ---------- KEPT ON THE DEVICE, UNDER WHOEVER IS SIGNED IN ----------------------------------------
+   The timetable's rule and its key pattern: `whoIs_` is the same answer the answer boxes use, so two
+   students sharing a laptop climb two ladders. Signed out it still works under the bare key. Kept:
+   the lesson somebody is on, how far up they have opened, how many lines each lesson has held, and
+   the best speed — the LINE itself is not kept, because a half-typed line from last week is not
+   something anybody wants to come back to.
+   A FUNCTION, NOT A `const` ARROW like `tmtKey_`, so it reaches `window` and a journey can clear it
+   without a hook of its own in check-flow's export list. */
+function ktKey_() { const w = typeof whoIs_ === 'function' ? whoIs_() : ''; return 'kt' + (w ? ':' + w : ''); }
+function ktRead_() {
+  try {
+    const p = JSON.parse(localStorage.getItem(ktKey_()) || 'null');
+    if (p && Array.isArray(p.held)) {
+      p.open = Math.max(0, Math.min(KT_LESSONS.length - 1, Number(p.open) || 0));
+      p.at = Math.max(0, Math.min(p.open, Number(p.at) || 0));
+      while (p.held.length < KT_LESSONS.length) p.held.push(0);
+      return p;
+    }
+  } catch (e) {}
+  return { at: 0, open: 0, held: KT_LESSONS.map(() => 0), best: 0, lines: 0 };
+}
+function ktSave_(p) {
+  try { localStorage.setItem(ktKey_(), JSON.stringify(p)); }
+  catch (e) { /* A browser keeping nothing still types — it just forgets the ladder on reload. */ }
+}
+
+/* THE LINE IN HAND. In memory, and stamped with who it belongs to, so a sign-in on the same machine
+   does not hand the next person the last one's half-finished line and score. `ktNow_` is a function
+   for the same reason `ktKey_` is: a journey reads the line through it. */
+let KT = null;
+function ktFresh_(who, p, said, last) {
+  return { who, p, line: ktLine_(p.at), pos: 0, right: 0, wrong: 0, t0: 0, t1: 0, miss: '',
+           said: said || '', last: last || null };
+}
+function ktNow_() {
+  const who = ktKey_();
+  if (!KT || KT.who !== who) KT = ktFresh_(who, ktRead_());
+  return KT;
+}
+
+/* A LINE OF ABOUT FORTY CHARACTERS — two rows of the card on a 320 phone, one on a laptop. */
+function ktLine_(n) {
+  const L = KT_LESSONS[n] || KT_LESSONS[0];
+  const fits = w => [...w.toLowerCase()].every(c => L.keys.includes(c));
+  const pool = KT_WORDS.filter(fits);
+  const fresh = L.fresh ? pool.filter(w => [...w].some(c => L.fresh.includes(c))) : [];
+  const pick = a => a[Math.floor(Math.random() * a.length)];
+  const words = [];
+  let len = 0;
+  while (len < 38) {
+    let w = fresh.length && Math.random() < 0.6 ? pick(fresh) : pick(pool);
+    if (L.caps && Math.random() < 0.15) w = pick(KT_NAMES);
+    else if (L.caps && (!words.length || Math.random() < 0.3)) w = w[0].toUpperCase() + w.slice(1);
+    /* MARKS BETWEEN WORDS, not a mark per word: one gap in three, and a full stop or a question mark
+       starts the next word with a capital, as a sentence would. */
+    if (L.marks && words.length && Math.random() < 0.3) {
+      const m = pick([',', ',', '.', '?', ';', ':']);
+      words[words.length - 1] += m;
+      if (m === '.' || m === '?') w = w[0].toUpperCase() + w.slice(1);
+    }
+    words.push(w);
+    len += w.length + 1;
+  }
+  return words.join(' ') + (L.marks ? '.' : '');
+}
+
+/* ---------- WHAT A LINE SCORES ------------------------------------------------------------------
+   WPM IS THE TYPISTS' WORD — five characters, spaces included — so a line of short words and a line
+   of long ones are measured alike. Accuracy is right keys over all keys. A wrong key does NOT move
+   the line on — the cursor waits for the right one, keybr's rule rather than TypingClub's — and is
+   counted, so a line cannot be finished by mashing and the next key lit is always the one wanted. */
+function ktWpm_(s) {
+  const ms = (s.t1 || 0) - (s.t0 || 0);
+  return ms > 0 && s.right > 1 ? Math.round((s.right / 5) / (ms / 60000)) : 0;
+}
+function ktAcc_(s) {
+  const all = s.right + s.wrong;
+  return all ? s.right / all : 1;
+}
+
+/* ONE KEY. `ch` is the character typed, from whichever door it came in by. */
+function ktType_(ch) {
+  const s = ktNow_();
+  const want = s.line[s.pos];
+  if (want === undefined) return;
+  const now = Date.now();
+  if (!s.t0) s.t0 = now;
+  s.t1 = now;
+  if (ch === want) { s.pos++; s.right++; s.miss = ''; }
+  else { s.wrong++; s.miss = ch; }
+  if (s.pos >= s.line.length) ktDone_(s);
+}
+
+function ktDone_(s) {
+  const p = s.p;
+  const wpm = ktWpm_(s), acc = ktAcc_(s);
+  p.lines = (p.lines || 0) + 1;
+  p.best = Math.max(p.best || 0, wpm);
+  let said = `Last line: ${wpm} wpm, ${Math.round(acc * 100)}% right.`;
+  if (acc >= KT_HOLD) {
+    p.held[p.at] = (p.held[p.at] || 0) + 1;
+    if (p.at === p.open && p.open < KT_LESSONS.length - 1 && p.held[p.at] >= KT_LINES_TO_OPEN) {
+      p.open++;
+      said += ` ${KT_LESSONS[p.open].name} is open.`;
+    }
+  } else {
+    said += ` Under ${Math.round(KT_HOLD * 100)}% does not count — slow down, eyes on the screen.`;
+  }
+  ktSave_(p);
+  KT = ktFresh_(s.who, p, said, { wpm, acc });
+}
+
+/* ---------- DRAWN ---------------------------------------------------------------------------------
+   THE KEYBOARD IS A PICTURE, NOT A KEYPAD. It is `aria-hidden` and nothing on it can be pressed: on
+   a laptop the keys are under the fingers, and on a phone the phone's own keyboard is the one being
+   typed on. So its keys are about 18px at 320 and that is not a breach of the 44px rule — nothing
+   on it is a target. The one target is the line, which is what focuses the hidden box. */
+function ktKeyHtml_(base, label, next, miss, extra) {
+  const f = ktFinger_(base);
+  const cls = ['kt-k', 'f' + (f < 0 ? 8 : f)];
+  if (KT_ROWS[1].indexOf(base) >= 0 && KT_ROWS[1].indexOf(base) < 10) cls.push('home');
+  if (base === 'f' || base === 'j') cls.push('bump');
+  if (next) cls.push('next');
+  if (miss) cls.push('miss');
+  if (extra) cls.push(extra);
+  return `<span class="${cls.join(' ')}">${esc(label)}</span>`;
+}
+
+function ktBoardHtml_(want, miss) {
+  const w = want ? ktCap_(want) : null;
+  const m = miss ? ktCap_(miss).base : '';
+  /* SHIFT ON THE OTHER HAND, which is the rule a touch typist is taught: the left little finger holds
+     shift for a letter the right hand types, and the other way round. */
+  const wf = w ? ktFinger_(w.base) : -1;
+  const shL = !!(w && w.shift && wf >= 4 && wf <= 7), shR = !!(w && w.shift && wf >= 0 && wf <= 3);
+  const row = r => [...r].map(c => ktKeyHtml_(c, c, !!w && w.base === c, m === c)).join('');
+  /* THE SHIFTS ARE NAMED BY A KEY ON THEIR OWN SIDE — `z` and `/` — only so `ktFinger_` gives them
+     the left and right little finger's colours without a second table. */
+  return `<div class="kt-kb" aria-hidden="true">
+    <div class="kt-r kt-r1">${row(KT_ROWS[0])}</div>
+    <div class="kt-r kt-r2">${row(KT_ROWS[1])}</div>
+    <div class="kt-r kt-r3">${ktKeyHtml_('z', '⇧', shL, false, 'kt-sh')}${row(KT_ROWS[2])}${
+      ktKeyHtml_('/', '⇧', shR, false, 'kt-sh')}</div>
+    <div class="kt-r kt-r4">${ktKeyHtml_(' ', 'space', !!w && w.base === ' ', m === ' ', 'kt-sp')}</div>
+  </div>`;
+}
+
+function ktViewHtml_() {
+  const s = ktNow_(), p = s.p;
+  const L = KT_LESSONS[p.at];
+  const cur = s.line[s.pos] === undefined ? '' : s.line[s.pos];
+  const wpm = s.pos ? ktWpm_(s) : (s.last ? s.last.wpm : 0);
+  const acc = s.right + s.wrong ? ktAcc_(s) : (s.last ? s.last.acc : 1);
+  /* THE RUNGS ARE A PICKER, the timetable's day chips: 44px, the open ones pressable, the shut ones
+     drawn and disabled so the ladder can be seen before it is climbed. */
+  const rungs = KT_LESSONS.map((l, i) => {
+    const shut = i > p.open;
+    return `<button type="button" class="kt-rung${i === p.at ? ' on' : ''}${(p.held[i] || 0) >= KT_LINES_TO_OPEN ? ' held' : ''}"
+             data-do="kt-lesson" data-n="${i}" aria-pressed="${i === p.at}"${shut ? ' disabled' : ''}
+             aria-label="${esc(l.name)}${shut ? ' (not open yet)' : ''}">${i + 1}</button>`;
+  }).join('');
+  const toGo = p.at === p.open && p.open < KT_LESSONS.length - 1
+    ? Math.max(0, KT_LINES_TO_OPEN - (p.held[p.at] || 0)) : 0;
+  /* THE LINE IS ONE BUTTON WITH NO WHITESPACE INSIDE IT — the spans run on — because a gap between
+     them in the markup is a space drawn in the middle of the line that nobody is meant to type. */
+  return `<div class="kt-rungs">${rungs}</div>
+    <p class="kt-lesson"><b>${esc(L.name)}</b>${toGo
+      ? ` <span class="faint">· ${toGo} more line${toGo === 1 ? '' : 's'} at ${Math.round(KT_HOLD * 100)}% opens ${esc(KT_LESSONS[p.at + 1].name)}</span>`
+      : ''}</p>
+    <button type="button" class="kt-line" data-do="kt-focus" aria-label="Type this line: ${esc(s.line)}"><span class="kt-done">${
+      esc(s.line.slice(0, s.pos))}</span><span class="kt-cur${s.miss ? ' miss' : ''}${cur === ' ' ? ' sp' : ''}">${
+      esc(cur)}</span><span class="kt-rest">${esc(s.line.slice(s.pos + 1))}</span></button>
+    <p class="kt-hint"><span class="kt-go">Tap the line, then type.</span><span class="kt-on">Eyes here, not on your hands.</span></p>
+    <div class="kt-stats"><span><b class="kt-wpm">${wpm}</b> wpm</span><span><b class="kt-acc">${
+      Math.round(acc * 100)}%</b> right</span>${p.best ? `<span class="faint">best ${p.best}</span>` : ''}</div>
+    ${ktBoardHtml_(cur, s.miss)}
+    <p class="note kt-said" aria-live="polite">${esc(s.said || '')}</p>
+    <p class="faint kt-real">Made for a real keyboard. A phone's own keys work, but the point is not looking down.</p>`;
+}
+
+/* EVERY COPY, BY CLASS — the Saved column draws this markup again, the timetable's reason. And THE
+   BOX IS KEPT: only `.kt-view` is rewritten, because rewriting the hidden input on every keystroke
+   would take the focus away from it and the next key would land on the page. */
+function ktPaint_() {
+  const html = ktViewHtml_();
+  document.querySelectorAll('.kt-box').forEach(el => {
+    let v = el.querySelector(':scope > .kt-view');
+    if (!v) {
+      el.innerHTML = `<input class="kt-in" type="text" autocomplete="off" autocapitalize="off"
+        autocorrect="off" spellcheck="false" enterkeyhint="next" aria-label="Type here">
+        <div class="kt-view"></div>`;
+      v = el.querySelector(':scope > .kt-view');
+    }
+    v.innerHTML = html;
+    el.classList.toggle('typing', document.activeElement === el.querySelector('.kt-in'));
+  });
+}
+function initTyping() { ktPaint_(); }
+
+/* ---------- HOW KEYS GET IN ------------------------------------------------------------------------
+   THROUGH A HIDDEN BOX THAT HAS THE FOCUS, which is what keeps the app's own key listeners out of
+   it: the pager's arrows (shell.js) and the maze's (games.js) both stand down inside an input.
+
+   AND ON `keydown`, IN THE CAPTURE PHASE, with the event stopped there. Not every listener stands
+   down: Flabby Pird's takes the space bar with `preventDefault` whenever its canvas is anywhere in
+   the document, and the games column's pages sit in the document beside this one — so a space typed
+   here could be eaten before it reached the box. Caught on the way DOWN, at the document, nothing
+   further along ever sees it.
+
+   `input` IS THE SECOND DOOR, for a phone. Its keyboard sends `keydown` with the key "Unidentified"
+   and puts the character straight into the box, so whatever arrives there is read and the box is
+   emptied. A key handled on `keydown` is `preventDefault`ed, so it never arrives twice. */
+document.addEventListener('keydown', e => {
+  const el = e.target;
+  if (!el || !el.classList || !el.classList.contains('kt-in')) return;
+  if (e.ctrlKey || e.metaKey || e.altKey || e.isComposing) return;
+  if (e.key === 'Backspace') { e.preventDefault(); e.stopPropagation(); return; }
+  if (!e.key || e.key.length !== 1) return;     // Tab, Escape, the arrows: theirs, not ours
+  e.preventDefault();
+  e.stopPropagation();
+  ktType_(e.key);
+  ktPaint_();
+}, true);
+
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (!el || !el.classList || !el.classList.contains('kt-in')) return;
+  const got = String(el.value || '');
+  el.value = '';
+  if (!got) return;
+  [...got].forEach(ktType_);
+  ktPaint_();
+});
+
+/* THE CARD SAYS WHETHER IT IS LISTENING. A typist who clicked elsewhere and goes on typing is typing
+   into nothing, so the hint under the line changes and the line loses its lit letter. */
+document.addEventListener('focusin', e => {
+  if (e.target && e.target.classList && e.target.classList.contains('kt-in')) {
+    e.target.closest('.kt-box')?.classList.add('typing');
+  }
+});
+document.addEventListener('focusout', e => {
+  if (e.target && e.target.classList && e.target.classList.contains('kt-in')) {
+    e.target.closest('.kt-box')?.classList.remove('typing');
+  }
+});
+
+/* FOCUSED IN THE TAP ITSELF, synchronously — iOS opens its keyboard only for a focus inside the
+   gesture that asked for it. `preventScroll`, because the pane is a window onto a pager and a
+   browser scrolling a focused box into view moves the pages under the person. */
+function ktFocus_(at) {
+  const box = at && at.closest && at.closest('.kt-box');
+  const input = box && box.querySelector('.kt-in');
+  if (!input) return;
+  try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
+  box.classList.add('typing');
+}
+on('kt-focus', el => ktFocus_(el));
+
+on('kt-lesson', el => {
+  const s = ktNow_();
+  const n = Number(el.dataset.n) || 0;
+  if (n > s.p.open) return;
+  s.p.at = n;
+  ktSave_(s.p);
+  KT = ktFresh_(s.who, s.p);
+  /* THE BOX IS FOUND BEFORE THE REPAINT; the rung pressed is replaced by it. And the typing goes on:
+     a click on a rung took the focus off the hidden box, so it is handed straight back. */
+  const box = el.closest('.kt-box');
+  ktPaint_();
+  if (box) ktFocus_(box);
+});

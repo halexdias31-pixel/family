@@ -1402,6 +1402,119 @@ check('the timetable keeps a week per person, one colour a subject, through a re
   return bad;
 });
 
+/* ---------- TOUCH TYPING: KEYS MOVE THE LINE, A WRONG ONE COUNTS, THE LADDER IS KEPT PER PERSON ------
+   KEPT ON THE DEVICE AND TYPED, NOT TAPPED, so nothing on the wire and no `data-do` says whether it
+   works. So this types the way a keyboard does — `keydown` on the focused hidden box — and the way a
+   phone does — the character arriving in the box on `input` — and asks what the card draws.
+
+   THE WINDOW LISTENER IS THE LEAK TEST. Flabby Pird's space bar and the pager's arrows listen on the
+   document and the window; a printable key typed here that reached one of them is the bug the
+   capture-phase stop exists for, so a listener of the journey's own on the window must hear nothing.
+
+   AND EVERY LESSON'S LINES ARE READ FOR KEYS IT HAS NOT TAUGHT. One word list filtered per lesson is
+   the design; a `t` in a home-row line is that filter gone, and only fifty lines of each would show
+   it, because a line is drawn at random. */
+check('touch typing moves on a right key, counts a wrong one, keeps the ladder per person', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  const d = w.document;
+  if (typeof w.initTyping !== 'function' || typeof w.ktKey_ !== 'function' || typeof w.ktNow_ !== 'function') {
+    return ['the touch-typing widget is not in the app'];
+  }
+  const sam = { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] };
+  const kit = { name: 'Kit Other', personId: 'P8', role: 'student', roles: ['student'] };
+  t.USER(kit); w.localStorage.removeItem(w.ktKey_());
+  t.USER(sam); w.localStorage.removeItem(w.ktKey_());
+  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  await wait(300);
+  /* TO ITS OWN PAGE, the way a swipe arrives: the Tools column keeps only the pages near the one
+     being looked at in the document, and this card is tenth. */
+  const n = w.widgetsOf_('tool').findIndex(x => String(x.id) === 'typing');
+  if (n < 0) return ['there is no typing widget in the Tools roster'];
+  try { t.goPage('tools', n, true); } catch (e) { return ['goPage("tools", ' + n + ') threw: ' + e.message]; }
+  await wait(100);
+  const box = () => d.querySelector('.kt-box');
+  if (!box() || !box().querySelector('.kt-in')) return ['the touch-typing card did not draw on the Tools column with its box'];
+  const bad = [];
+
+  const lessons = w.eval('typeof KT_LESSONS !== "undefined" ? KT_LESSONS : null');
+  (lessons || []).forEach((L, n) => {
+    for (let i = 0; i < 50; i++) {
+      const line = w.ktLine_(n);
+      const stray = [...line].filter(c => /[a-z]/i.test(c) && !L.keys.includes(c.toLowerCase()));
+      const caps = /[A-Z]/.test(line), marks = /[,.;:?']/.test(line.replace(/\.$/, ''));
+      if (stray.length) { bad.push(L.name + ' drew a line with keys it has not taught: "' + line + '"'); break; }
+      if (!L.caps && caps) { bad.push(L.name + ' drew a capital: "' + line + '"'); break; }
+      if (!L.marks && marks) { bad.push(L.name + ' drew a mark: "' + line + '"'); break; }
+    }
+  });
+
+  let heard = 0;
+  const ear = e => { if (e.key && e.key.length === 1) heard++; };
+  w.addEventListener('keydown', ear);
+  const key = k => {
+    const el = box().querySelector('.kt-in');
+    el.dispatchEvent(new w.KeyboardEvent('keydown', { key: k, bubbles: true, cancelable: true }));
+  };
+  const done = () => (box().querySelector('.kt-done') || {}).textContent || '';
+  t.ACTIONS['kt-focus'](box().querySelector('.kt-line'));
+  if (!box().classList.contains('typing')) bad.push('tapping the line does not put the card into typing');
+
+  const line = w.ktNow_().line;
+  for (const c of line.slice(0, 5)) key(c);
+  if (done() !== line.slice(0, 5)) bad.push('five right keys leave "' + done() + '" done, not "' + line.slice(0, 5) + '"');
+  if (heard) bad.push(heard + ' typed keys reached a listener on the window — the space bar is Flabby Pird\'s again');
+
+  const want = line[5];
+  const next = box().querySelector('.kt-k.next');
+  if (!next || next.textContent.trim() !== (want === ' ' ? 'space' : want.toLowerCase())) {
+    bad.push('the key lit is "' + (next ? next.textContent.trim() : 'none') + '" and the next letter is "' + want + '"');
+  }
+  key(want === 'q' ? 'z' : 'q');
+  if (done() !== line.slice(0, 5)) bad.push('a wrong key moved the line on');
+  if (w.ktNow_().wrong !== 1) bad.push('a wrong key was counted ' + w.ktNow_().wrong + ' times, not once');
+  if (!box().querySelector('.kt-k.miss')) bad.push('a wrong key is not shown on the keyboard');
+  if ((box().querySelector('.kt-acc') || {}).textContent === '100%') bad.push('accuracy still reads 100% after a wrong key');
+
+  /* THE PHONE'S DOOR: the character lands in the box, and the box is emptied so the next lands alone. */
+  const inp = box().querySelector('.kt-in');
+  inp.value = want;
+  inp.dispatchEvent(new w.Event('input', { bubbles: true }));
+  if (done() !== line.slice(0, 6)) bad.push('a key that arrives as `input`, as a phone sends it, does not move the line');
+  if (box().querySelector('.kt-in').value) bad.push('the hidden box is not emptied after a phone key');
+  if (d.activeElement !== box().querySelector('.kt-in')) bad.push('the hidden box lost the focus while typing');
+
+  /* THREE CLEAN LINES OPEN THE NEXT RUNG. */
+  for (const c of line.slice(6)) key(c);
+  for (let i = 0; i < 2; i++) for (const c of w.ktNow_().line) key(c);
+  const rung2 = () => box().querySelector('.kt-rung[data-n="1"]');
+  if (!rung2() || rung2().disabled) bad.push('three lines at 90% or better did not open the Top row');
+  let kept = {};
+  try { kept = JSON.parse(w.localStorage.getItem(w.ktKey_()) || '{}'); } catch (e) {}
+  if (kept.open !== 1) bad.push('the ladder on the device says open ' + kept.open + ', not 1');
+
+  /* THROUGH `repaint` AND NOTHING ELSE, the timetable journey's lesson: a half-typed line and the
+     open rung both survive the app's own redraw. */
+  const half = w.ktNow_().line.slice(0, 3);
+  for (const c of half) key(c);
+  try { t.repaint(); } catch (e) { bad.push('repaint threw: ' + e.message); }
+  if (!rung2() || rung2().disabled) bad.push('after a repaint the Top row is shut again');
+  if (done() !== half) bad.push('after a repaint the line in hand reads "' + done() + '" done, not "' + half + '"');
+
+  t.USER(kit);
+  try { t.repaint(); } catch (e) {}
+  if (!rung2() || !rung2().disabled) bad.push('a second person on the machine finds the first one\'s Top row open');
+  if (done()) bad.push('a second person on the machine gets the first one\'s half-typed line');
+  t.USER(sam);
+  try { t.repaint(); } catch (e) {}
+  if (!rung2() || rung2().disabled) bad.push('signing back in does not bring the ladder back');
+
+  w.removeEventListener('keydown', ear);
+  w.localStorage.removeItem(w.ktKey_());
+  return bad;
+});
+
 /* ---------- THE FLYER MAKER IS AN ADMIN'S, AT EVERY DOOR ---------------------------------------------
    ASKED FOR AS *"make a flyer should only be visible to admin"*. `admin: true` on the roster entry is
    the rule and `widgetFor_` is the one place it is asked — this asks it as every other kind of
