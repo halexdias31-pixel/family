@@ -695,6 +695,51 @@ function getMessageFolder_() {
   } catch (e) { return null; }
 }
 
+/* ---------- ONE PICTURE, KEPT IN DRIVE AND SHARED BY LINK ----------------------------------------
+   LIFTED OUT OF `addPost`, where it was a closure called `keep_`, because a profile picture is the
+   same act: a `data:` URL off the phone becomes a file in a folder, readable by anyone with the
+   link, and its address goes into a cell. A second copy would be a second place for the sharing line
+   to be forgotten — and a picture only its owner can open is a broken square on every other phone,
+   which reads as the site failing rather than as a permission.
+
+   ANYTHING THAT IS NOT A `data:` URL IS HANDED BACK AS IT IS, which is what `addPost` relies on: a
+   post may carry an address already in the folder alongside a fresh photograph. Blank is `''`.
+   THROWS on a Drive failure, so each caller says it in its own words through `driveTrouble_`.
+   `name` is the file name without its extension, which this works out from the type. */
+function driveKeep_(folder, raw, name) {
+  const v = S(raw).trim();
+  if (!v) return '';
+  if (!/^data:/i.test(v)) return v;
+  const parts = v.split(',');
+  const type = ((parts[0] || '').match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
+  const ext = ({ 'image/jpeg': 'jpg', 'video/quicktime': 'mov', 'video/x-m4v': 'm4v' })[type]
+    || (type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/gi, '');
+  const blob = Utilities.newBlob(Utilities.base64Decode(parts[1] || ''), type, S(name) + '.' + ext);
+  const file = folder.createFile(blob);
+  file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  /* `#video` IS HOW THE PHONE KNOWS WHICH ELEMENT TO DRAW. A Drive address names no type. */
+  return 'https://drive.google.com/file/d/' + file.getId() + '/view'
+    + (/^video\//i.test(type) ? '#video' : '');
+}
+
+/* ---------- WHERE PROFILE PICTURES GO -----------------------------------------------------------
+   `photos_folder` IN THE CONFIG TAB IF SOMEBODY HAS SET ONE, AND THE POSTS FOLDER IF NOT — the one
+   folder this deployment is already known to be able to write to, because `addPost` proves it on
+   every photograph. So the picker works on the day it is deployed with nothing new to configure, and
+   somebody who would rather keep faces apart from the feed's pictures can say so with one row.
+   A pasted folder URL works as well as a bare id, as it does for the posts folder. Null when neither
+   can be opened, and the caller says which key to set. */
+function getPhotoFolder_() {
+  const cfg = config();
+  let id = S(cfg.photos_folder || cfg.PHOTOS_FOLDER || cfg.photosFolder);
+  const fromUrl = (id.match(/folders\/([\w-]{10,})/) || [])[1];
+  if (fromUrl) id = fromUrl;
+  if (id) {
+    try { return DriveApp.getFolderById(id); } catch (e) { /* a wrong id falls back, below */ }
+  }
+  return getPostFolder();
+}
+
 /* The caps, in DECODED bytes, and the phone enforces the same numbers first (`MSG_CAP_` in me.js) so
    a person is told before a minute of upload rather than after it. 20MB a file is a phone video of
    about a minute; 32MB a message is what keeps the BASE64 body — four thirds of that — under the
