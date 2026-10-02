@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-02-tag-colours";
+  --css-version: "2026-10-03-maths";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -9381,9 +9381,35 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    `inline-block` so it sits in the line of prose it belongs to, and the rule between the two halves
    is a border rather than a character, so it is exactly as wide as the wider half. */
-.frac { display: inline-block; vertical-align: middle; text-align: center; margin: 0 .15em; }
+/* ---------- AND IT IS EVERY FRACTION NOW, NOT ONLY THE LONG ONES ----------------------------------
+   THE PARAGRAPH ABOVE CALLED THE SLANTED FORM RIGHT FOR A BARE FRACTION, and that was a builder's
+   choice the owner has since overruled: "it shouldnt be 4/5 it should be 4 over the five like how
+   it is supposed to be." So `typeset_` in find.js turns every stored `<sup>a</sup>&frasl;<sub>b</sub>`
+   into this markup when the card is drawn -- the stored shape stays, because set-accept.py reads it.
+
+   `.frac-mixed` IS A MIXED NUMBER'S WHOLE PART AND ITS FRACTION, ON ONE LINE. A browser may break a
+   line either side of an inline-block, so without it "3" can end one line and "4 over 5" start the
+   next, which reads as two numbers. The fraction inside wraps normally again, so a long numerator
+   is still free to fold rather than push the card sideways.
+
+   `.frac-s` IS THE SLASH, THERE AND NOT SHOWN: a screen reader says "4 slash 5" instead of "4 5",
+   and copying the question pastes 4/5 instead of 45. Clipped rather than `display: none`, which a
+   screen reader would skip as well.
+
+   ITS OWN WIDTH, CLIPPED TO NOTHING, PINNED TO THE FRACTION'S CORNER. The usual recipe squeezes the
+   box to 1px with `overflow: hidden`, and that is a 7px slash in a 1px box: `check/cards.js` asks
+   every element whether it scrolls sideways when nobody told it could, and it named `.frac-s` on
+   431 cards. Left at its own width and clipped by `clip-path`, nothing overflows anything; pinned
+   to the top-left of a `position: relative` fraction, it sits inside a box that is always wider
+   than one slash. Not an in-flow zero-size box instead: between two block halves that opens a line
+   of its own and pushes the denominator down by a whole line-height. */
+.frac { position: relative; display: inline-block; vertical-align: middle; text-align: center; margin: 0 .15em; }
 .frac-n, .frac-d { display: block; padding: 0 .3em; line-height: 1.25; }
 .frac-n { border-bottom: 1px solid currentColor; }
+.frac-mixed { white-space: nowrap; }
+.frac-mixed .frac { white-space: normal; }
+.frac-s { position: absolute; left: 0; top: 0; clip: rect(0 0 0 0); clip-path: inset(50%);
+          white-space: nowrap; pointer-events: none; }
 
 /* ---------- A PRACTICAL ---------------------------------------------------------------------------
    ON THE BLACK, NOT ON PAPER. The two-palette rule turns on what a thing STANDS IN FOR: a receipt,
