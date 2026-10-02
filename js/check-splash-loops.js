@@ -48,6 +48,8 @@ const ROOT = path.join(__dirname, '..');
 const LOOPS = [
   { id: 'pyth', prefix: 'py-', centreOn: ['py-edge'],
     own: pythOwn_ },
+  { id: 'area', prefix: 'ar-', centreOn: ['ar-ring', 'ar-slot'],
+    own: areaOwn_ },
 ];
 
 let faults = [], said = [];
@@ -237,6 +239,27 @@ function pythOwn_(L, m) {
   if (from.size !== 25) fault(L.id, 'its cells start from ' + from.size + ' different places, not 25');
   if (/class="py-tri"[^>]*style=/.test(m) || rules.some(r => parts(r.sel).includes('.py-tri') && r.decls.animation))
     fault(L.id, 'animates the triangle — the triangle is the subject, and the last thing that moved it erased it');
+}
+
+/* ---------- THE CIRCLE: THE SLICES TRAVEL, AND THE HALVES ARE THE EDGES ---------------------------
+   THE OLD ONE CROSS-FADED, so the first sentence is that every slice has somewhere different to be
+   at the end from where it was at the start, and the slices' keyframes move them rather than fade
+   them. The second is the colour coding the proof rests on: every gold slice lands arc-up (no
+   turn) and every teal one arc-down (half a turn), the same number of each — so the strip's top
+   edge is the gold half of the circle and nothing else, which is what makes "πr" true of it. */
+function areaOwn_(L, m) {
+  const sl = [...m.matchAll(/<path class="ar-sl (ar-top|ar-bot)"[^>]*--from: ([^;]+); --to: ([^;]+);/g)];
+  if (!sl.length) { fault(L.id, 'has no .ar-sl slices with a --from and a --to — nothing travels'); return; }
+  sl.forEach((s, k) => { if (s[2] === s[3]) fault(L.id, 'slice ' + k + ' ends where it starts — it does not travel'); });
+  const top = sl.filter(s => s[1] === 'ar-top'), bot = sl.filter(s => s[1] === 'ar-bot');
+  if (top.length !== bot.length) fault(L.id, top.length + ' gold slices and ' + bot.length + ' teal — the halves must match');
+  top.forEach(s => { if (!/rotate\(0deg\)$/.test(s[3])) fault(L.id, 'a gold slice lands turned (' + s[3] + ') — the gold arcs must be the top edge'); });
+  bot.forEach(s => { if (!/rotate\(180deg\)$/.test(s[3])) fault(L.id, 'a teal slice lands as ' + s[3] + ' — the teal arcs must be the bottom edge'); });
+  if (new Set(sl.map(s => s[3])).size !== sl.length) fault(L.id, 'two slices land in the same place');
+  const fly = rules.find(r => r.sel === '.ar-sl' && !isStill(r));
+  const name = fly && (fly.decls.animation || '').split(/\s+/).find(w => frames[w]);
+  if (!name) fault(L.id, '.ar-sl has no animation — the slices do not move');
+  else if (frames[name].some(st => 'opacity' in st.decls)) fault(L.id, '@keyframes ' + name + ' fades the slices — a cross-fade is the fault this replaced');
 }
 
 console.log('\nTHE SPLASHES THAT ARE ONE SEAMLESS LOOP  (' + LOOPS.length + ')');

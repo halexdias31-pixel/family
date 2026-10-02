@@ -6529,32 +6529,52 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 @keyframes sn-trace { 0% { transform: translateY(0px); } 1.389% { transform: translateY(-0.73px); } 2.778% { transform: translateY(-1.33px); } 4.167% { transform: translateY(-1.8px); } 5.556% { transform: translateY(-2.14px); } 6.944% { transform: translateY(-2.34px); } 8.333% { transform: translateY(-2.41px); } 9.722% { transform: translateY(-2.34px); } 11.11% { transform: translateY(-2.14px); } 12.5% { transform: translateY(-1.8px); } 13.89% { transform: translateY(-1.33px); } 15.28% { transform: translateY(-0.73px); } 16.67% { transform: translateY(0px); } 18.06% { transform: translateY(0.84px); } 19.44% { transform: translateY(1.8px); } 20.83% { transform: translateY(2.86px); } 22.22% { transform: translateY(4.02px); } 23.61% { transform: translateY(5.26px); } 25% { transform: translateY(6.59px); } 26.39% { transform: translateY(7.98px); } 27.78% { transform: translateY(9.43px); } 29.17% { transform: translateY(10.93px); } 30.56% { transform: translateY(12.46px); } 31.94% { transform: translateY(14.02px); } 33.33% { transform: translateY(15.59px); } 34.72% { transform: translateY(17.16px); } 36.11% { transform: translateY(18.71px); } 37.5% { transform: translateY(20.25px); } 38.89% { transform: translateY(21.74px); } 40.28% { transform: translateY(23.2px); } 41.67% { transform: translateY(24.59px); } 43.06% { transform: translateY(25.91px); } 44.44% { transform: translateY(27.16px); } 45.83% { transform: translateY(28.32px); } 47.22% { transform: translateY(29.38px); } 48.61% { transform: translateY(30.33px); } 50% { transform: translateY(31.18px); } 51.39% { transform: translateY(31.9px); } 52.78% { transform: translateY(32.5px); } 54.17% { transform: translateY(32.98px); } 55.56% { transform: translateY(33.31px); } 56.94% { transform: translateY(33.52px); } 58.33% { transform: translateY(33.59px); } 59.72% { transform: translateY(33.52px); } 61.11% { transform: translateY(33.31px); } 62.5% { transform: translateY(32.98px); } 63.89% { transform: translateY(32.5px); } 65.28% { transform: translateY(31.9px); } 66.67% { transform: translateY(31.18px); } 68.06% { transform: translateY(30.33px); } 69.44% { transform: translateY(29.38px); } 70.83% { transform: translateY(28.32px); } 72.22% { transform: translateY(27.16px); } 73.61% { transform: translateY(25.91px); } 75% { transform: translateY(24.59px); } 76.39% { transform: translateY(23.2px); } 77.78% { transform: translateY(21.74px); } 79.17% { transform: translateY(20.25px); } 80.56% { transform: translateY(18.71px); } 81.94% { transform: translateY(17.16px); } 83.33% { transform: translateY(15.59px); } 84.72% { transform: translateY(14.02px); } 86.11% { transform: translateY(12.46px); } 87.5% { transform: translateY(10.93px); } 88.89% { transform: translateY(9.43px); } 90.28% { transform: translateY(7.98px); } 91.67% { transform: translateY(6.59px); } 93.06% { transform: translateY(5.26px); } 94.44% { transform: translateY(4.02px); } 95.83% { transform: translateY(2.86px); } 97.22% { transform: translateY(1.8px); } 98.61% { transform: translateY(0.84px); } 100% { transform: translateY(0px); } }
 .sn-say { margin-top: .7rem; font: 700 .95rem var(--mono); color: #6fd8c4; text-align: center; }
 
-/* ---------- THE CIRCLE, UNROLLED ---------------------------------------------------------------- */
-#splash-area .ar-svg { width: min(66vw, 16rem); height: auto; }
-/* ---------- TWO PICTURES, CROSS-FADED ----------------------------------------------------------
-   Both states are drawn and correct; the splash shows the circle, then the same slices laid out
-   as a rectangle, then back. Nothing travels, so nothing can arrive in the wrong place. */
-.ar-sl { fill: #d98c3a; stroke: #1b1a17; stroke-width: .8; }
-.ar-round .ar-sl:nth-child(even), .ar-strip .ar-sl:nth-child(even) { fill: #c9752a; }
-/* ---------- THE PAYOFF HAS TO LAND INSIDE THE SPLASH ---------------------------------------------
-   SIX SECONDS WITH A ONE-SECOND DELAY meant a splash showed the circle and the first stirrings of
-   the cross-fade and nothing else — Archimedes' proof reduced to a picture of a circle. The strip
-   IS the proof; a version that never reaches it is a decoration.
-   Three seconds, and the delay drops to .3 so the change starts almost at once. */
-.ar-round { animation: ar-a 3s ease-in-out .3s infinite; }
-.ar-strip { opacity: 0; animation: ar-b 3s ease-in-out .3s infinite; }
-/* THE HOLDS WERE TOO LONG AT BOTH ENDS. Twenty-eight per cent flat, then a fade — so a load that
-   catches the start shows a circle sitting still, and Archimedes' proof looks like a logo. The
-   cross-fade starts almost immediately now and the holds are shorter, so whenever somebody arrives
-   something is changing. */
-@keyframes ar-a { 0%, 8% { opacity: 1; } 40%, 68% { opacity: 0; } 96%, 100% { opacity: 1; } }
-@keyframes ar-b { 0%, 8% { opacity: 0; } 40%, 68% { opacity: 1; } 96%, 100% { opacity: 0; } }
-/* THE TWO MEASUREMENTS, shown only while the rectangle is — they mean nothing against a circle. */
-.ar-h, .ar-w { stroke: #6fd8c4; stroke-width: 1.4; opacity: 0;
-               animation: ar-b 3s ease-in-out .3s infinite; }
-.ar-lab { fill: #6fd8c4; font: 700 8px var(--mono); text-anchor: middle; opacity: 0;
-          animation: ar-b 3s ease-in-out .3s infinite; }
-.ar-say { margin-top: .7rem; font: 700 .95rem var(--mono); color: #6fd8c4; text-align: center; }
+/* ---------- THE CIRCLE, UNROLLED -----------------------------------------------------------------
+   GENERATED by tools/area.py, from the same circle as the <svg> in index.html.
+
+   12 slices, the top half gold and the bottom half teal. They travel from the circle into a strip,
+   gold arcs along the top and teal along the bottom, interlocking point to arc. The strip is r tall
+   and its top edge is the gold half's arcs laid end to end — half the circumference, πr, labelled
+   in the colour it came from. So A = πr × r is SEEN: the same pieces, rearranged. Then back.
+
+   WHAT IT REPLACED, and why each piece is the way it is:
+   · THE SLICES MOVE; NOTHING CROSS-FADES. The old splash faded a drawn circle into a drawn strip,
+     so the rearrangement — the proof — never happened, and mid-fade the two overlapped as a
+     double exposure.
+   · TWO COLOURS BY HALF, NOT ALTERNATING BY SLICE. Alternate shading never said which arcs make the
+     top edge; colouring by half is what makes "width = half the circumference" visible.
+   · ONE 6.4s TIMELINE, every animation infinite, starting and ending on the circle — no seam.
+   · THE SLICES MOVE LIKE #splash-ang's CORNERS: point at (0,0), `transform-box: view-box`, origin
+     0 0, one translate-then-rotate string each. Transform and opacity only.
+   · CENTRED. The circle sat at x = 30 of a 96-wide box, 44px left of the caption; circle and strip
+     now share the box's middle, which tools/area.py asserts.
+   The base styles are the finished strip with r and πr marked, which is what reduced motion shows. */
+#splash-area { --ar-top: var(--gold); --ar-bot: #6fd8c4; }
+#splash-area .ar-svg { display: block; width: min(72vw, 17rem); height: auto; margin: 0 auto; }
+.ar-top { --ar: var(--ar-top); } .ar-bot { --ar: var(--ar-bot); } .ar-r { --ar: var(--paper); }
+.ar-ring { fill: none; stroke: var(--paper); stroke-opacity: .22; stroke-width: .4; }
+.ar-slot { fill: var(--ar); fill-opacity: .07; stroke: var(--ar); stroke-opacity: .25; stroke-width: .3; }
+/* A SEAM OF THE PAGE'S OWN BLACK between slices, so the strip still reads as 12 pieces. */
+.ar-sl { fill: var(--ar); fill-opacity: .9; stroke: var(--bg); stroke-width: .5; stroke-linejoin: round;
+         transform-box: view-box; transform-origin: 0 0; transform: var(--to);
+         animation: ar-fly 6.4s cubic-bezier(.55, 0, .3, 1) infinite; animation-delay: var(--d); }
+@keyframes ar-fly {
+  0%        { transform: var(--from); }
+  14.06%, 57.81% { transform: var(--to); }
+  71.87%, 100% { transform: var(--from); }
+}
+.ar-dim { fill: none; stroke: var(--ar); stroke-width: .5; stroke-linecap: round; }
+.ar-lab { fill: var(--ar); font: 700 5.6px var(--mono); text-anchor: middle; dominant-baseline: central; }
+/* THE MEASUREMENTS ARE EARNED: they appear when the last slice lands (1.70s) and go as the first
+   leaves (4.10s) — r and πr mean nothing against a circle. */
+.ar-dim, .ar-lab { animation: ar-lab 6.4s ease-out infinite; }
+@keyframes ar-lab { 0%, 26.56% { opacity: 0; } 31.25%, 59.38% { opacity: 1; }
+                    64.06%, 100% { opacity: 0; } }
+.ar-say { margin-top: .6rem; font: 700 .95rem var(--mono); color: var(--paper); text-align: center; }
+.ar-say b { color: var(--ar); }
+@media (prefers-reduced-motion: reduce) {
+  .ar-sl, .ar-dim, .ar-lab { animation: none; }
+}
 
 /* ---------- THE SIEVE, WHICH IS NOT A GRID -------------------------------------------------------
    IT WAS A FOUR-BY-FOUR BOX OF TILES, and a sieve is not a shape — it is a RUN of numbers you walk
@@ -6770,17 +6790,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
 /* THE WHOLE SET, STILL, for anybody who has asked for that. */
 @media (prefers-reduced-motion: reduce) {
-  /* `.ar-wheel` and `.ar-box` stood in this list after the elements themselves were replaced —
-     a still-motion rule for something that no longer exists, which is harmless and misleading in
-     equal measure. `check-css` found them; the new names are `.ar-round` and `.ar-strip`. */
+  /* THE CIRCLE-AREA SPLASH LEFT THIS LIST when tools/area.py took it over: its own reduced-motion
+     rule sits with its keyframes, so the still is written beside the motion it stills. Before that,
+     `.ar-wheel` and `.ar-box` stood here after the elements were gone — `check-css` found them. */
   .od-svg g, .od-say, .tn-up, .tn-dn, .sn-wave, .sn-arm, .sn-dot, .sn-trace, .sn-guide, .sn-leg,
-  .ar-round, .ar-strip, .ar-h, .ar-w, .ar-lab,
   .sv-o, .sv-x, .hf-p, .ag-tri, .bn-row i, .pa-r, .pa-r i, .fb-sq, .fb-arc,
   .gl-b, .gl-n text { animation: none; opacity: 1; transform: none; }
   .gl-b { fill: #6fd8c4; }
   .fb-arc { stroke-dashoffset: 0; }
-  /* with motion off, show the rectangle — it is the half of the picture that carries the result. */
-  .ar-round { opacity: 0; } .ar-strip, .ar-h, .ar-w, .ar-lab { opacity: 1; }
   .bn-row i:nth-child(2n) { background: #f0b45f; border-color: #ffd48a; }
 }
 

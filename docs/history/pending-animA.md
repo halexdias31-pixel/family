@@ -30,6 +30,32 @@ styles: the 25 cells in the big square, the sum complete.
 PNGs are byte-identical at both widths, and the splash box has 41.6px either side at 320 and 61.6px
 at 390 — centred, nothing clipped.
 
+### The π circle (`#splash-area`, now `tools/area.py`)
+
+**What was wrong.** It was a 3s opacity cross-fade between a drawn 10-slice circle and a drawn strip:
+no slice ever moved, so the rearrangement that IS the proof never happened, and mid-fade (0.9s,
+2.8s) both pictures overlapped as a muddy double exposure. The slices were shaded alternately, so
+nothing said which arcs became the top edge, and "half the circumference = πr" was never shown. The
+circle sat at x = 30 in a 96-wide viewBox, about 44px left of the caption. A comment in the svg
+forbade moving slices because a hand-made transform had once broken.
+
+**What it is now.** `python3 tools/area.py` writes the svg and its rules. 12 slices, the top half
+`--gold` and the bottom half teal. They TRAVEL — each pivoting on its own point, the short way round
+— from the circle down into the interlocking strip: gold arcs along the top, teal along the bottom,
+peeled from 9 o'clock so the circle's top edge is read left to right as the strip's. When the last
+slice lands, `r` appears up the strip's end and `πr` over the gold edge, in gold; they go as the
+slices leave. A faint ring and faint slots stay where the slices are not, so either picture says
+where the pieces belong. Moving the slices was made safe the way `#splash-ang` did it: drawn with
+the point at (0,0), `transform-box: view-box`, one generated translate-then-rotate per slice. The
+generator asserts the interlock (each gold point on the end of a teal arc) and that circle and strip
+share the box's middle. One 6.4s timeline; reduced motion is the strip with r and πr marked; the
+caption is `A = πr × r = πr²` with πr in the gold it measures. The second pass with twice the
+slices (the audit's optional step) was not built: at 320 wide 24 slices are 4px chords and the
+point of the picture, which half went where, is already carried by the colours.
+
+**Measured.** Frames at 0, 0.7, 1.2, 2.5, 4.6, 5.2 and 6.4s at 320 and 390: 0s and 6.4s
+byte-identical at both widths, 45.3px either side at 320 and 69px at 390, nothing clipped.
+
 ### The check
 
 `js/check-splash-loops.js`, in `npm run check`. `npm run splash` asks only whether the picture
@@ -39,5 +65,8 @@ animation infinite and on the splash's one duration; every keyframe's 100% says 
 only `transform` and `opacity` animate; no `stroke-dash*`; every animated selector switched off
 under reduced motion; the drawing centred in its viewBox and inside it. Then one sentence per
 splash. Pythagoras: 9 + 16 cells landing on 25 different places, and the triangle never animated.
+The circle: every slice ends somewhere other than where it starts, the slices' keyframes never touch
+opacity (the cross-fade), and every gold slice lands arc-up and every teal one arc-down, the same
+number of each. Run against the old files it reports "nothing travels".
 Proved by putting the dash wipe back, dropping the 100% stop, restoring the old viewBox and landing
 two cells on one slot — each red for its own reason, green again on the real files.
