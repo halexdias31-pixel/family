@@ -846,6 +846,84 @@ EXTRA_FILES.forEach(name => {
     });
     note.push('data/lego-sets.json holds ' + sets.length + ' set(s), ' + sets.filter(r => r.active).length + ' of them switched on for the shop');
   }
+
+  /* ---------- AND THE OWNER'S NEW ITEMS, WAITING TO BE PASTED -------------------------------------
+     ASKED FOR ACROSS NINE NOTES — "add hour glass to list of items", "gooey louis add this gae to
+     item", "Goggles resealable packets. Chemicals add this stuff to items" and six more — and
+     answered "For sale". The shop tab lives in the Ledger and NOTHING IN THIS REPOSITORY WRITES IT,
+     so the rows ship the way the LEGO sets did: `data/shop-additions.json`, one object per row with
+     every `SCHEMA.shop` column, and `data/shop-additions.csv` beside it in the tab's column order,
+     ready to paste. `data/settings/shop.json` is a stale export nothing reads, which is why it is
+     not where they went — and why it is still the right list to ask "is this id taken".
+
+     WHAT WOULD MAKE THE PASTE GO WRONG, AND ONE THING THAT WOULD MAKE IT DISHONEST:
+       · a column missing, which shifts every cell after it;
+       · an id used twice, or one the shop already has — the practicals' `item_ids` join on it;
+       · I045, which the practicals already name for the cones the shop never stocked;
+       · the CSV saying something the JSON does not;
+       · A PRICE. Nobody told this repository what a sand timer costs, and a number typed here
+         would be read by every phone as the business's price. Blank is what makes the card say
+         "not priced yet" — the owner fills the cells after pasting. */
+  const addF = path.join(__dirname, '..', 'data', 'shop-additions.json');
+  let adds = null;
+  try { adds = JSON.parse(fs.readFileSync(addF, 'utf8')); }
+  catch (e) { fail.push('data/shop-additions.json could not be read or does not parse — ' + e.message.slice(0, 60)); }
+  if (adds !== null) {
+    if (!Array.isArray(adds) || !adds.length) fail.push('data/shop-additions.json holds no rows');
+    else {
+      const taken = new Set();
+      try {
+        JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'settings', 'shop.json'), 'utf8'))
+          .forEach(r => taken.add(String(r.item_id)));
+      } catch (e) { fail.push('data/settings/shop.json could not be read, so the new ids were NOT compared with the shop\'s'); }
+      if (taken.size && !taken.has('I040')) fail.push('data/settings/shop.json does not hold I040 — the id comparison is against the wrong list');
+      const seen = new Set();
+      adds.forEach((r, i) => {
+        const at = 'data/shop-additions.json row ' + (i + 1) + ' (' + (r.item_id || '?') + ')';
+        shopCols.forEach(c => { if (!(c in r)) fail.push(at + ' has no `' + c + '` — the shop tab has that column, so a paste would shift every cell after it'); });
+        const extra = Object.keys(r).filter(k => shopCols.indexOf(k) < 0);
+        if (shopCols.length && extra.length) fail.push(at + ' carries ' + extra.join(', ') + ', which the shop tab has no column for');
+        if (!/^I\d{3}$/.test(String(r.item_id))) fail.push(at + ': an item id is I and three digits');
+        if (seen.has(r.item_id)) fail.push(at + ' repeats an id in the file');
+        if (taken.has(String(r.item_id))) fail.push(at + ' is an id the shop tab already has');
+        if (r.item_id === 'I045') fail.push(at + ': I045 is named by the practicals for the cones — do not reuse it');
+        seen.add(r.item_id);
+        ['price_pence', 'price_ticks', 'price_coins', 'value_pence'].forEach(k => {
+          if (String(r[k] == null ? '' : r[k]).trim() !== '')
+            fail.push(at + ' has `' + k + '` = ' + JSON.stringify(r[k]) + ' — no price was given for it, so it must be blank until the owner fills it');
+        });
+        if (r.active !== true) fail.push(at + ' is not active — these are for sale, as the owner answered');
+        if (!String(r.name || '').trim()) fail.push(at + ' has no name, and doGet drops a row with no name');
+      });
+      /* THE CSV IS WHAT GETS PASTED, so it is held to the JSON cell for cell — in the tab's order. */
+      let csv = null;
+      try { csv = fs.readFileSync(path.join(__dirname, '..', 'data', 'shop-additions.csv'), 'utf8'); }
+      catch (e) { fail.push('data/shop-additions.csv could not be read'); }
+      if (csv !== null) {
+        const cells = line => {
+          const out = []; let cur = '', q = false;
+          for (let k = 0; k < line.length; k++) {
+            const ch = line[k];
+            if (q) { if (ch === '"' && line[k + 1] === '"') { cur += '"'; k++; } else if (ch === '"') q = false; else cur += ch; }
+            else if (ch === '"') q = true; else if (ch === ',') { out.push(cur); cur = ''; } else cur += ch;
+          }
+          out.push(cur); return out;
+        };
+        const lines = csv.replace(/\r/g, '').replace(/\n$/, '').split('\n');
+        if (lines[0] !== shopCols.join(',')) fail.push('data/shop-additions.csv does not open with the shop tab\'s columns in the tab\'s order');
+        if (lines.length - 1 !== adds.length) fail.push('data/shop-additions.csv has ' + (lines.length - 1) + ' rows and the JSON has ' + adds.length);
+        lines.slice(1).forEach((l, i) => {
+          const c = cells(l), r = adds[i] || {};
+          shopCols.forEach((k, j) => {
+            const want = r[k] === true ? 'TRUE' : r[k] === false ? 'FALSE' : String(r[k] == null ? '' : r[k]);
+            if (c[j] !== want) fail.push('data/shop-additions.csv row ' + (i + 1) + ' `' + k + '` reads ' + JSON.stringify(c[j]) + ' where the JSON says ' + JSON.stringify(want));
+          });
+        });
+      }
+      note.push('data/shop-additions.json holds ' + adds.length + ' row(s) for the Ledger shop tab, '
+                + adds.map(r => r.item_id).join(' ') + ' — none priced yet');
+    }
+  }
 }
 
 /* ---------- A SIMPLEST-FORM QUESTION MUST NOT HAVE A FRACTION FOR AN ANSWER -----------------------
