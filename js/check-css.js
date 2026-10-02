@@ -455,6 +455,194 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
   say('A LOADING SCREEN THAT DOES NOT SAY WHOSE APP IT IS', nameless);
 }
 
+/* ---------- 9. A SPLASH BUILT AS ONE SEAMLESS LOOP STAYS ONE ---------------------------------------
+   THREE SPLASHES WERE REBUILT TOGETHER — the coin, the sieve and the blocks — and each had failed in
+   one of the same three ways:
+     A ONE-SHOT WITH A GLOW AFTER IT. The sieve struck its numbers once in 1.2s and then pulsed; the
+     blocks bumped once and then hovered. Because the glow was `infinite`, index.html's replay loop
+     ("IF ANYTHING HERE LOOPS, NOTHING IS TOUCHED") never ran the story again, so a slow load showed
+     the ending and a shimmer for the rest of its life.
+     A PROPERTY THE COMPOSITOR CANNOT RUN. The sieve's strike grew `width` and faded `color`; the
+     blocks' hover animated `box-shadow` and the coin spun by animating `width`. docs/history 055
+     measured that this did not stutter, and that is not a licence: transform and opacity are the
+     only two that cannot.
+     A STILL THAT WAS NOT THE ANSWER. Each has a reduced-motion rule, and it must stay.
+   So a splash named here must: animate only `transform` and `opacity`; give every animation
+   `infinite` (one cycle that ends where it began, rather than a story and an encore); and have a
+   reduced-motion rule that switches its animations off. Then each states the one thing about it
+   that was wrong and is easy to undo — those are below, with what they guard against.
+
+   A REGISTRY RATHER THAN EVERY SPLASH, because 23 of the 39 still animate something else and most
+   of them are fine (055 again). A splash joins this list when it is rebuilt as a loop. */
+{
+  const h = fs.readFileSync(path.join(dir, 'index.html'), 'utf8').replace(/<!--[\s\S]*?-->/g, '');
+  /* THE MARKUP OF ONE SPLASH: from its opening tag to the next splash's, or to `#splash-say`, which
+     follows the last one. */
+  const markup = id => {
+    const a = h.search(new RegExp('<(div|svg) id="splash-' + id + '"'));
+    if (a < 0) return null;
+    const rest = h.slice(a + 10);
+    const b = rest.search(/<(div|svg|p) id="splash-/);
+    return h.slice(a, b < 0 ? h.length : a + 10 + b);
+  };
+  /* KEYFRAMES BY NAME, read off the comment-blanked text so a keyframe described in prose is not a
+     keyframe. Brace-matched, because a regex to the first `}` stops at the end of the first stop —
+     the fault the brace check at the top of this file was written for. */
+  const frames = {};
+  for (const m of bare.matchAll(/@keyframes\s+([\w-]+)\s*\{/g)) {
+    let i = m.index + m[0].length, depth = 1;
+    while (i < bare.length && depth) { if (bare[i] === '{') depth++; else if (bare[i] === '}') depth--; i++; }
+    const body = bare.slice(m.index + m[0].length, i - 1);
+    const props = new Set();
+    for (const s of body.matchAll(/\{([^{}]*)\}/g)) {
+      s[1].split(';').forEach(d => { const k = d.split(':')[0].trim().toLowerCase(); if (k) props.add(k); });
+    }
+    frames[m[1]] = props;
+  }
+  const WORDS = new Set(['linear', 'ease', 'ease-in', 'ease-out', 'ease-in-out', 'infinite', 'both',
+    'forwards', 'backwards', 'none', 'alternate', 'reverse', 'alternate-reverse', 'normal',
+    'running', 'paused', 'step-start', 'step-end', 'end', 'start', 'jump-none', 'jump-both']);
+  const namesIn = val => val.replace(/[\w-]*\([^()]*\)/g, '').split(/[\s,]+/)
+    .filter(t => /^[a-z][\w-]*$/i.test(t) && !WORDS.has(t));
+  const loopBad = [];
+
+  const LOOPED = {
+    /* THE COIN'S FACES ARE ONE METAL, AND IT HAS AN EDGE. It was gold one side and mint the other
+       — a counter, not a coin — and paper-thin edge-on. The look lives in `.cn-coin b`, so a face
+       rule that sets its own background or colour is the mint side coming back; and the thickness
+       is the stack of discs inside the coin, so fewer than four is a coin that vanishes when it
+       turns. */
+    coin: (m) => {
+      const bad = [];
+      rules.filter(r => /^\.cn-[ht]$/.test(r.sel) && !r.cond).forEach(r => r.decls
+        .filter(d => /^(background|background-color|color|border|border-color)$/.test(d.prop))
+        .forEach(d => bad.push('line ' + r.line + '  ' + r.sel + ' sets its own ' + d.prop
+          + ' — the two faces of the coin are one metal, drawn once in `.cn-coin b`')));
+      const coin = (m.match(/<div class="cn-coin">([\s\S]*?)<\/div>/) || [])[1] || '';
+      const discs = (coin.match(/<i><\/i>/g) || []).length;
+      if (discs < 4) bad.push('the coin holds ' + discs + ' edge discs — fewer than four and it is '
+        + 'a hairline whenever it is edge-on (tools/coin.py prints them)');
+      return bad;
+    },
+    /* THE SIEVE IS A SIEVE. tools/sieve.py writes it, and the markup is the only place the maths
+       lives: every composite struck in the colour of its SMALLEST prime factor (that is the prime
+       that removes it), every prime ringed and never struck, nothing struck by a prime above 3
+       (5 × 5 = 25 is past 17, which is why it stops), and the second, lower line only on a number
+       a later prime also divides. A hand edit that moved one strike would still animate perfectly
+       and teach the wrong thing. And the row stays ONE line: `nowrap` on the run. */
+    sieve: (m) => {
+      const bad = [];
+      const least = n => { for (let p = 2; p <= n; p++) if (n % p === 0) return p; };
+      const cells = [...m.matchAll(/<i[^>]*><b[^>]*>(\d+)<\/b>([\s\S]*?)<\/i>/g)];
+      const seen = cells.map(c => +c[1]);
+      if (seen.join() !== '2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17') {
+        bad.push('the row reads ' + seen.join(' ') + ' — it is 2 to 17, in order');
+      }
+      cells.forEach(([, num, rest]) => {
+        const n = +num, p = least(n);
+        const strikes = [...rest.matchAll(/<s class="sv-(\d+)( sv-again)?"/g)].map(s => ({ by: +s[1], again: !!s[2] }));
+        const ringed = /<u class="sv-/.test(rest);
+        if (p === n) {
+          if (strikes.length) bad.push(n + ' is prime and is struck through');
+          if (!ringed) bad.push(n + ' is prime and is not ringed');
+          return;
+        }
+        if (ringed) bad.push(n + ' is not prime and is ringed');
+        const first = strikes.find(s => !s.again);
+        if (!first) bad.push(n + ' is not prime and nothing strikes it');
+        else if (first.by !== p) bad.push(n + ' is struck by ' + first.by + ' — its smallest factor is ' + p
+          + ', so ' + p + ' is the prime that removes it');
+        strikes.filter(s => s.again).forEach(s => {
+          if (n % s.by || s.by === p) bad.push(n + ' has a second line for ' + s.by + ', which does not also divide it');
+        });
+        strikes.forEach(s => { if (s.by > 3) bad.push(n + ' is struck by ' + s.by + ' — the sieve stops at 3, since 5 × 5 > 17'); });
+      });
+      if (!rules.some(r => r.sel === '#splash-sieve .sv-grid' && r.decls.some(d => d.prop === 'flex-wrap' && d.val === 'nowrap'))) {
+        bad.push('`#splash-sieve .sv-grid` no longer says `flex-wrap: nowrap` — at 320px 17 wraps alone onto a second line');
+      }
+      return bad;
+    },
+    /* THE BLOCKS: THE COIN COMES OUT OF THE LAST ONE, THE LETTERS FROM BEHIND, AND SOMETHING HITS
+       THEM. The coin was pinned to the stage by `left: 50%` + 6.2rem while flexbox centred the
+       blocks, so it rose between the seventh and the eighth; inside the eighth it cannot drift. The
+       letters painted over the face because a child paints over its parent's background; the face
+       is `::before` with a z-index now, and a background back on `.mb-block` is that fault again.
+       And the runner is what bumps them — without it the rhythm is blocks twitching on their own. */
+    blocks: (m) => {
+      const bad = [];
+      const blocks = [...m.matchAll(/<span class="mb-block">([\s\S]*?)<\/span>/g)].map(x => x[1]);
+      if (blocks.length !== 8) bad.push(blocks.length + ' blocks — @family. is eight');
+      const holder = blocks.findIndex(b => /class="mb-coin"/.test(b));
+      if (holder !== blocks.length - 1) bad.push(holder < 0
+        ? 'the coin is not inside any block — positioned on the stage, it drifts off the last one'
+        : 'the coin is inside block ' + (holder + 1) + ', not the last one');
+      rules.filter(r => r.sel === '.mb-block' && !r.cond).forEach(r => r.decls
+        .filter(d => /^background/.test(d.prop))
+        .forEach(d => bad.push('line ' + r.line + '  .mb-block paints its own ' + d.prop
+          + ' — the letter, its child, paints over that; the face belongs on `.mb-block::before`')));
+      if (!rules.some(r => r.sel === '.mb-block::before' && r.decls.some(d => d.prop === 'z-index' && +d.val > 0))) {
+        bad.push('`.mb-block::before` has no positive z-index — the face is under the letter, '
+          + 'so the letter shows through the block instead of coming out from behind it');
+      }
+      if (!/class="mb-run"/.test(m)) bad.push('no runner (`.mb-run`) — nothing bumps the blocks');
+      return bad;
+    },
+  };
+
+  Object.keys(LOOPED).forEach(id => {
+    const m = markup(id);
+    if (!m) { loopBad.push('#splash-' + id + ' is not in index.html — this check cannot see it'); return; }
+    const classes = new Set();
+    for (const c of m.matchAll(/class="([^"]+)"/g)) c[1].split(/\s+/).forEach(x => x && classes.add(x));
+    const ours = r => r.sel.includes('#splash-' + id)
+      || [...classes].some(c => new RegExp('\\.' + c + '(?![\\w-])').test(r.sel));
+    const mine = rules.filter(r => ours(r) && !/^\d|^from$|^to$/.test(r.sel));
+    const moving = mine.filter(r => !/reduced-motion/.test(r.cond));
+    const used = new Set();
+    moving.forEach(r => r.decls.forEach(d => {
+      const p = d.prop.toLowerCase();
+      if (p === 'animation' && d.val !== 'none') {
+        d.val.split(/,(?![^()]*\))/).forEach(part => {
+          namesIn(part).forEach(n => used.add(n));
+          if (!/\binfinite\b/.test(part) && !r.decls.some(x => x.prop === 'animation-iteration-count'
+              && /infinite/.test(x.val))) {
+            loopBad.push('line ' + r.line + '  ' + r.sel + '  →  `' + part.trim() + '` ends — a splash '
+              + 'built as a loop must not have an animation that stops');
+          }
+        });
+      }
+      if (p === 'animation-name') namesIn(d.val).forEach(n => used.add(n));
+      if (p === 'animation-duration' && !r.decls.some(x => x.prop === 'animation-iteration-count'
+          && /infinite/.test(x.val))) {
+        loopBad.push('line ' + r.line + '  ' + r.sel + '  gives a duration and no `infinite` — it plays once');
+      }
+    }));
+    /* AN INLINE `animation-name` BEATS THE REDUCED-MOTION RULE. tools/coin.py wrote one on each of
+       twenty elements, and `animation: none` in the stylesheet lost to every one of them — so with
+       less movement asked for, the coin stood still and the tally and the count went on animating.
+       The generators now write `--kf: name` and a rule reads `animation-name: var(--kf)`. */
+    for (const s of m.matchAll(/style="[^"]*animation[\w-]*:\s*([\w-]+)/g)) {
+      loopBad.push('#splash-' + id + ' sets `animation…: ' + s[1] + '` inline — an inline declaration '
+        + 'beats `animation: none` under reduced motion; write `--kf: ' + s[1] + '` instead');
+      used.add(s[1]);
+    }
+    for (const s of m.matchAll(/--kf:\s*([\w-]+)/g)) used.add(s[1]);
+    used.forEach(n => {
+      if (!frames[n]) { loopBad.push('#splash-' + id + ' names `' + n + '` and no @keyframes has that name'); return; }
+      const other = [...frames[n]].filter(p => p !== 'transform' && p !== 'opacity'
+        && p !== 'animation-timing-function');
+      if (other.length) loopBad.push('@keyframes ' + n + ' (#splash-' + id + ') animates ' + other.join(', ')
+        + ' — only transform and opacity run on the compositor');
+    });
+    if (!used.size) loopBad.push('#splash-' + id + ' has no animation at all that this check can find');
+    if (!mine.some(r => /reduced-motion/.test(r.cond) && r.decls.some(d => d.prop === 'animation' && d.val === 'none'))) {
+      loopBad.push('#splash-' + id + ' has no reduced-motion rule turning its animation off');
+    }
+    LOOPED[id](m).forEach(x => loopBad.push('#splash-' + id + ': ' + x));
+  });
+  say('A SPLASH BUILT AS ONE LOOP THAT IS NOT ONE — ' + Object.keys(LOOPED).join(', '), loopBad);
+}
+
 console.log('');
 console.log('rules read: ' + rules.length);
 console.log(fail

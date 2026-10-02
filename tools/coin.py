@@ -46,7 +46,7 @@ for i, c in enumerate(SEQ):
     a = pct(land[i])
     keys.append('@keyframes cn-m%d { 0%%, %s { opacity: 0; transform: scale(.4); } %s { opacity: 1; transform: scale(1.18); } %s, %d%% { opacity: 1; transform: scale(1); } %d%%, 100%% { opacity: 0; transform: scale(1); } }'
                 % (i, pct(land[i] - 0.01), pct(land[i] + 0.1), pct(land[i] + 0.22), END_HOLD, FADE))
-    marks.append('<i class="cn-m is-%s" style="animation-name: cn-m%d">%s</i>' % (c.lower(), i, c))
+    marks.append('<i class="cn-m is-%s" style="--kf: cn-m%d">%s</i>' % (c.lower(), i, c))
 
 # the share of heads so far, as a bar that steps at each landing
 b, h = ['0%%, %s { transform: scaleX(0); }' % pct(land[0] - 0.01)], 0
@@ -65,9 +65,10 @@ for i, c in enumerate(SEQ):
     text = '%d heads in %d · about half' % (h, i + 1) if last else '%d head%s in %d' % (h, '' if h == 1 else 's', i + 1)
     keys.append('@keyframes cn-s%d { 0%%, %s { opacity: 0; } %s, %s { opacity: 1; } %s, 100%% { opacity: 0; } }'
                 % (i, pct(land[i] + 0.05), pct(land[i] + 0.12), end, pct(T * FADE / 100) if last else pct(land[i + 1] + 0.01)))
-    says.append('<span style="animation-name: cn-s%d">%s</span>' % (i, text))
+    says.append('<span style="--kf: cn-s%d">%s</span>' % (i, text))
 
-print('    <div class="cn-stage"><div class="cn-coin"><b class="cn-h">H</b><b class="cn-t">T</b></div><i class="cn-shadow"></i></div>')
+# six edge discs before the faces: the coin's thickness, seen when it is edge-on (style.css says why)
+print('    <div class="cn-stage"><div class="cn-coin">' + '<i></i>' * 6 + '<b class="cn-h">H</b><b class="cn-t">T</b></div><i class="cn-shadow"></i></div>')
 print('    <div class="cn-row">' + ''.join(marks) + '</div>')
 print('    <div class="cn-bar"><i></i></div>')
 print('    <div class="cn-say">' + ''.join(says) + '</div>')

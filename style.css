@@ -5544,60 +5544,80 @@ textarea { touch-action: none; }
 }
 
 /* ==================================================================================================
-   THE SEVENTH SPLASH — a row of blocks, bumped from below.
+   THE SEVENTH SPLASH — a row of blocks, bumped from below. Keyframes, delays and markup written by
+   tools/blocks.py.
 
    A side-scrolling platformer in the sense everybody who has played one recognises: a hard ground,
    chunky blocks floating over it, and something popping out when you hit one from underneath. Each
    block gives up a letter until the row spells the name; the last gives up a coin.
 
-   NOTHING BORROWED BUT THE GRAMMAR. No character, no pipe, no mushroom — a block struck from below
-   that gives something up is a game-design idea forty years old and belongs to nobody. What comes
-   out is this app's own name in its own colours, which is what lets it be affectionate without
-   pretending to be somebody else's.
+   NOTHING BORROWED BUT THE GRAMMAR. No pipe, no mushroom, no ? on a block, and the one character is
+   ours — a student in a gold mortarboard, eight pixels by eleven, drawn in tools/blocks.py. A block
+   struck from below that gives something up is a game-design idea forty years old and belongs to
+   nobody. What comes out is this app's own name in its own colours, which is what lets it be
+   affectionate without pretending to be somebody else's.
+
+   ASKED FOR AS "refine super mario animation", and what was wrong was measured, not guessed:
+     THE COIN WAS ON SCREEN FROM THE FIRST FRAME. `mb-coin … 1.45s both` filled BACKWARDS, so its
+       0% keyframe — opacity 1 — sat on the row for the 1.45s before it was due.
+     AND IN THE WRONG PLACE. It was pinned to the stage at `left: 50%` plus 6.2rem, and the blocks
+       are centred by flexbox, so at 390 it rose from between the seventh block and the eighth and
+       at 320 further off still. It now lives INSIDE the eighth block, so it cannot drift.
+     THE LETTERS CAME OUT OVER THE FACE, not from behind it, because a child paints over its
+       parent's background. The face is now `::before` with a z-index over the letter — inside the
+       block's own stacking context, which its transform makes — so a letter at rest is hidden by
+       the face and rises out over the top edge.
+     NOTHING HIT THE BLOCKS. Now the runner does: it hops under each one, apex on the bump.
+     AND IT RAN ONCE. The bump played in 1.5s and `mb-idle` hovered the row for ever after —
+     animating `box-shadow` — and because the hover was `infinite`, index.html's replay loop never
+     ran the bumps again. Now the whole thing is one loop: run, bump, spell, coin, hold, letters back
+     in, repeat. The hover is gone; nothing needs replaying.
 
    HARD EDGES EVERYWHERE, and that is the whole look: no soft shadows, no gradients that fade, no
    rounded corners. The moment one curve creeps in it stops reading as a game from 1985 and starts
    reading as a modern app doing an impression of one.
+
+   THE LAYOUT IS ARITHMETIC, because the runner's head has to meet the blocks. The row's top is at
+   3.6rem, so a block's underside is at 5.6rem; the ground is the bottom 2.2rem of a 10.6rem stage;
+   the runner is 1.98rem tall standing on it, so its head is at 6.42rem and a hop of .82rem
+   (tools/blocks.py `HOP`) touches 5.6rem exactly. Change one and change the others.
+   `overflow: hidden` is the edge of the "screen" the runner enters and leaves by; everything else
+   stays inside it — the letters rise to 1.45rem and the coin to about .7rem.
 ================================================================================================== */
 #splash-blocks {
   position: relative;
   width: min(88vw, 25rem);
-  height: 11rem;
+  height: 10.6rem;
+  overflow: hidden;
+  /* the row's width: eight blocks and seven gaps. The runner's positions are measured from its
+     left end, so the row is placed by this rather than centred by flexbox and guessed at. */
+  --mb-row: calc(8 * 2rem + 7 * 4px);
 }
 
 .mb-row {
-  position: absolute; left: 0; right: 0; top: 2.2rem;
-  display: flex; justify-content: center; gap: 4px;
+  position: absolute; top: 3.6rem; left: 50%;
+  width: var(--mb-row); margin-left: calc(var(--mb-row) / -2);
+  display: flex; gap: 4px;
 }
 
-/* A BLOCK. Flat colour with a hard light edge on the top and left and a hard dark one on the bottom
-   and right — which is how every sprite of this kind was shaded, because a two-pixel border was all
-   anybody could afford and it turned out to be enough. */
+/* A BLOCK is a box that moves; its FACE is `::before`, drawn over everything inside it. Flat colour
+   with a hard light edge on the top and left and a hard dark one on the bottom and right — which is
+   how every sprite of this kind was shaded, because a two-pixel border was all anybody could afford
+   and it turned out to be enough. */
 .mb-block {
-  position: relative;
+  position: relative; flex: none;
   width: 2rem; height: 2rem;
+  animation: mb-bump 6s steps(4, end) infinite both;
+}
+.mb-block::before {
+  content: ''; position: absolute; inset: 0; z-index: 1;
   background: #c9832f;
   border-top: 3px solid #f0b45f;
   border-left: 3px solid #f0b45f;
   border-right: 3px solid #8a5312;
   border-bottom: 3px solid #8a5312;
-  /* Bumped upward and dropped back, once, when its turn comes — and then a slow breath for as long
-     as the splash is up.
-
-     THE ENTRANCE IS NOT THE PROBLEM AND MUST NOT LOOP. A block that bumps over and over is a block
-     being hit repeatedly, which says something different and quickly becomes irritating. What was
-     wrong is the SILENCE AFTER: the bump takes a third of a second, the splash can be up for eight,
-     and the seven seconds of held stillness read as the page having frozen rather than as a pause.
-
-     So the loop is a second animation, layered after the first, and it is deliberately almost
-     nothing — a hair of vertical drift. Enough that the pixels are never identical two frames
-     running, which is all the eye needs to believe something is still working. */
-  animation: mb-bump .34s steps(4, end) both,
-             mb-idle 1.6s ease-in-out .34s infinite;
 }
-/* THE LETTER, behind the block until it is hit, then rising clear of it and staying. `overflow` is
-   not used to hide it — the block would then clip the letter as it rose. It starts UNDER the block
-   instead and comes out over the top, which is what actually happens. */
+/* THE LETTER, at rest exactly behind its block's face. */
 .mb-block i {
   position: absolute; left: 0; right: 0; top: 0;
   font-family: var(--font);
@@ -5605,56 +5625,48 @@ textarea { touch-action: none; }
   font-size: 1.25rem; line-height: 2rem;
   color: var(--paper);
   text-align: center;
-  opacity: 0;
-  animation: mb-letter .5s cubic-bezier(.2, .9, .3, 1) both;
+  animation: mb-letter 6s linear infinite both;
 }
-/* THE HOVER. Two pixels was the same mistake as the fade — technically animated and visually
-   still. Six pixels and a faint glow reads as a block waiting to be hit, which is what it is. */
-@keyframes mb-idle {
-  0%, 100% { transform: translateY(0);     box-shadow: 0 0 0 rgb(240 180 95 / 0); }
-  50%      { transform: translateY(-6px);  box-shadow: 0 6px 14px rgb(240 180 95 / .35); }
-}
-@keyframes mb-bump {
-  0%   { transform: translateY(0); }
-  40%  { transform: translateY(-11px); }
-  100% { transform: translateY(0); }
-}
-@keyframes mb-letter {
-  0%   { opacity: 0; transform: translateY(0); }
-  25%  { opacity: 1; }
-  100% { opacity: 1; transform: translateY(-2.15rem); }
-}
-
-/* Left to right, one after another, the way somebody running along would hit them. Written out
-   because eight is a number you can see — and both animations on each block share the delay, so a
-   block and its letter cannot come apart. */
-.mb-block:nth-child(1), .mb-block:nth-child(1) i { animation-delay: .15s; }
-.mb-block:nth-child(2), .mb-block:nth-child(2) i { animation-delay: .32s; }
-.mb-block:nth-child(3), .mb-block:nth-child(3) i { animation-delay: .49s; }
-.mb-block:nth-child(4), .mb-block:nth-child(4) i { animation-delay: .66s; }
-.mb-block:nth-child(5), .mb-block:nth-child(5) i { animation-delay: .83s; }
-.mb-block:nth-child(6), .mb-block:nth-child(6) i { animation-delay: 1.0s; }
-.mb-block:nth-child(7), .mb-block:nth-child(7) i { animation-delay: 1.17s; }
-.mb-block:nth-child(8), .mb-block:nth-child(8) i { animation-delay: 1.34s; }
 
 /* THE COIN off the last one. Square, because a circle of this size in a game of that age was a
    square with its corners taken off — and it spins by being squashed flat and back, which is how
-   a coin was animated before anybody could rotate anything. */
+   a coin was animated before anybody could rotate anything. The squash was `width`; it is now
+   `scaleX` on the face, so the box that rises and the face that spins are two elements and two
+   transforms that cannot fight. */
 .mb-coin {
-  position: absolute; top: 2.2rem; left: 50%;
-  margin-left: 6.2rem;
-  width: 14px; height: 14px;
+  position: absolute; left: 50%; top: 50%;
+  width: 14px; height: 14px; margin: -7px 0 0 -7px;
+  animation: mb-coin 6s linear infinite both;
+}
+.mb-coin::before {
+  content: ''; position: absolute; inset: 0;
   background: var(--gold, #f0a93c);
   box-shadow: inset 0 0 0 2px #8a5312;
-  opacity: 0;
-  animation: mb-coin 1s ease-out 1.45s both, mb-spin .18s steps(2, end) 1.45s 5;
+  animation: mb-spin .36s steps(4, end) infinite;
 }
-@keyframes mb-coin {
-  0%   { opacity: 1; transform: translateY(0); }
-  55%  { opacity: 1; transform: translateY(-3.4rem); }
-  100% { opacity: 0; transform: translateY(-2rem); }
+@keyframes mb-spin { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(.28); } }
+
+/* THE RUNNER. `.mb-run` carries it across, `.mb-hop` lifts it, and its two frames — mid-stride and
+   passing — swap by opacity on a beat of their own. Its pixels are paths in two small SVGs drawn
+   with `crispEdges`, so a pixel is a square at every size rather than a blurred box-shadow. */
+.mb-run {
+  position: absolute; bottom: 2.2rem; left: 50%; z-index: 1;
+  margin-left: calc(var(--mb-row) / -2);
+  width: 1.44rem; height: 1.98rem;
+  animation: mb-run 6s linear infinite both;
 }
-@keyframes mb-spin { 0% { width: 14px; } 50% { width: 4px; } 100% { width: 14px; } }
+.mb-hop { position: absolute; inset: 0; animation: mb-hop 6s linear infinite both; }
+.mb-sprite { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.mb-sprite.is-b { opacity: 0; animation: mb-stride .2s steps(1, end) infinite; }
+.mb-sprite.is-a { animation: mb-stride .2s steps(1, end) -.1s infinite; }
+@keyframes mb-stride { 0% { opacity: 0; } 50% { opacity: 1; } }
+/* ITS COLOURS ARE THE APP'S: the gold of the one action, the paper, the ink, the coral. */
+.mb-px-gold { fill: var(--gold); }
+.mb-px-tassel { fill: var(--coral); }
+.mb-px-skin { fill: var(--paper); }
+.mb-px-eye { fill: var(--bg); }
+.mb-px-leg { fill: var(--dim); }
+.mb-px-shoe { fill: var(--ink); }
 
 /* THE GROUND. Solid, with a lighter cap along the top — in these games the ground is a thing you
    stand on, not a line under a picture. */
@@ -5674,11 +5686,32 @@ textarea { touch-action: none; }
     repeating-linear-gradient(0deg,  transparent 0 1rem,   rgb(0 0 0 / .35) 1rem 1.06rem);
 }
 
-/* LESS MOVEMENT: the row already spelt out, the coin gone, the ground where it is. */
+/* THE TIMELINE — from tools/blocks.py. Left to right, .17s apart, the way somebody running along
+   would hit them; a block and its letter share a delay so they cannot come apart. */
+@keyframes mb-run { 0% { transform: translateX(-6rem); opacity: 1; } 8.33% { transform: translateX(0.28rem); opacity: 1; } 28.17% { transform: translateX(calc(7 * (2rem + 4px) + 0.28rem)); opacity: 1; } 35.67% { transform: translateX(calc(7 * (2rem + 4px) + 6.28rem)); opacity: 1; } 36.5% { transform: translateX(calc(7 * (2rem + 4px) + 6.28rem)); opacity: 0; } 37.33%, 98.33% { transform: translateX(-6rem); opacity: 0; } 100% { transform: translateX(-6rem); opacity: 1; } }
+@keyframes mb-hop { 0%, 6.92% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 8.33% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 9.75% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 11.17% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 12.58% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 14% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 15.42% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 16.83% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 18.25% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 19.67% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 21.08% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 22.5% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 23.92% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 25.33% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 26.75% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } 28.17% { transform: translateY(-.82rem); animation-timing-function: cubic-bezier(.4,0,.7,.3); } 29.58%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(.3,.7,.6,1); } }
+@keyframes mb-bump { 0% { transform: translateY(0); } 2.27% { transform: translateY(-11px); } 5.67%, 100% { transform: translateY(0); } }
+@keyframes mb-letter { 0% { transform: translateY(0); animation-timing-function: cubic-bezier(.2,.9,.3,1); } 8.33%, 65% { transform: translateY(-2.15rem); animation-timing-function: ease-in; } 70%, 100% { transform: translateY(0); } }
+@keyframes mb-coin { 0% { transform: translateY(0); opacity: 1; animation-timing-function: ease-out; } 9.17% { transform: translateY(-3.4rem); opacity: 1; animation-timing-function: ease-in; } 16.67% { transform: translateY(-2rem); opacity: 0; } 17.5%, 99.17% { transform: translateY(0); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+.mb-block:nth-child(1), .mb-block:nth-child(1) i { animation-delay: 0.5s; }
+.mb-block:nth-child(2), .mb-block:nth-child(2) i { animation-delay: 0.67s; }
+.mb-block:nth-child(3), .mb-block:nth-child(3) i { animation-delay: 0.84s; }
+.mb-block:nth-child(4), .mb-block:nth-child(4) i { animation-delay: 1.01s; }
+.mb-block:nth-child(5), .mb-block:nth-child(5) i { animation-delay: 1.18s; }
+.mb-block:nth-child(6), .mb-block:nth-child(6) i { animation-delay: 1.35s; }
+.mb-block:nth-child(7), .mb-block:nth-child(7) i { animation-delay: 1.52s; }
+.mb-block:nth-child(8), .mb-block:nth-child(8) i { animation-delay: 1.69s; }
+.mb-coin { animation-delay: 1.8s; }
+
+/* LESS MOVEMENT: the finished still — the row spelt out, the coin gone, the runner standing under
+   the last block it hit. */
 @media (prefers-reduced-motion: reduce) {
-  .mb-block { animation: none; }
-  .mb-block i { animation: none; opacity: 1; transform: translateY(-2.15rem); }
-  .mb-coin { animation: none; opacity: 0; }
+  .mb-block, .mb-block i, .mb-coin, .mb-coin::before, .mb-run, .mb-hop,
+  .mb-sprite.is-a, .mb-sprite.is-b { animation: none; }
+  .mb-block i { transform: translateY(-2.15rem); }
+  .mb-coin { opacity: 0; }
+  .mb-run { transform: translateX(calc(7 * (2rem + 4px) + .28rem)); }
+  .mb-sprite.is-b { opacity: 0; }
 }
 
 /* ==================================================================================================
@@ -6521,31 +6554,89 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    a line through it says "this one is out", which is what the sieve does and what the pencil does
    when a child works one. The number stays readable under the stroke, because seeing WHICH numbers
    went is the whole lesson. */
+/* ---------- THE SIEVE, PRIME BY PRIME — keyframes and markup written by tools/sieve.py ------------
+   ASKED FOR AS "refine what is left is prime animation". It struck 4, 6, 8, 9, 10 … in POSITION
+   order at a fixed step, so the method was never on screen: nothing said that 9 went because of 3
+   and 8 because of 2, and the caption claimed a conclusion the animation had not shown. Now it is
+   the sieve as it is worked: 2 is ringed and its multiples struck in 2's colour, then 3 and its
+   multiples in 3's, then it stops — 5 × 5 = 25 is past 17 — and what is left is ringed. The caption
+   steps with it. One loop: it clears and starts again, so a slow load watches the method, not a
+   finished row with a glow on it (the old glow was `infinite`, so the replay loop never re-ran it).
+
+   A STRIKE IS ITS OWN ELEMENT, AS WIDE AS ITS DIGITS. The old one overhung by 8% each side and grew
+   `width`, so 8-9-10 and 14-15-16 merged into one red bar and three numbers read as one line through
+   nothing in particular. Each `<s>` now ends inside its own number, the gap between numbers stays
+   black, and it draws by `scaleX` from its left end — the pencil travelling, on the compositor.
+   6 and 12 get a SECOND, lower line in 3's colour: 3's walk lands on them too, and a number struck
+   twice is exactly what a child's worked sieve looks like.
+
+   THE COLOURS BELONG TO THIS SPLASH, so they are named on it rather than offered to the sheet. */
+#splash-sieve { --sv-2: #f0b45f; --sv-3: #6cb6ff; --sv-p: #6fd8a0; }
 /* ONE LINE, OR IT IS NOT A RUN. At 1.05rem it wrapped with 17 alone underneath — an orphan that
    reads as a mistake and breaks the left-to-right sweep the line was chosen for. Sized in `vw` so
    it shrinks to fit rather than wrapping, with `nowrap` to make that the only option. */
 #splash-sieve .sv-grid { display: flex; flex-wrap: nowrap; justify-content: center;
                          gap: 0 min(1.6vw, .34rem); max-width: 94vw; }
-.sv-grid i { position: relative; font-style: normal; color: var(--paper);
+.sv-grid i { position: relative; font-style: normal;
              font: 700 min(4.4vw, 1.05rem)/1.7 var(--mono); }
-/* THE STROKE IS A PSEUDO-ELEMENT that grows across the digit — drawn rather than a text-decoration,
-   because a decoration appears all at once and a pencil line travels. */
-.sv-o::after { content: ""; position: absolute; left: -8%; top: 52%; height: 2px; width: 0;
-               background: #d9534f; border-radius: 2px;
-               animation: sv-strike .26s ease-out both;
-               /* THE LAST STRIKE LANDED AT 1.84s of a two-second splash — the sieve only just
-                  finished, and on a fast load somebody saw half a sieve and a caption claiming the
-                  rest were prime. At .07s a step the last one lands at 1.15s, leaving the primes
-                  most of a second to breathe on their own, which is the part worth seeing. */
-               animation-delay: calc(.15s + var(--i) * .07s); }
-@keyframes sv-strike { to { width: 116%; } }
-.sv-o { animation: sv-fade .26s ease-out both; animation-delay: calc(.15s + var(--i) * .07s); }
-@keyframes sv-fade { to { color: #6a6b63; } }
-/* WHAT IS LEFT KEEPS BREATHING, so the answer is the thing still alive on the line. */
-.sv-x { animation: sv-keep 2.2s ease-in-out infinite; animation-delay: calc(1.1s + var(--i) * .05s); }
-@keyframes sv-keep { 0%,100% { color: var(--paper); text-shadow: none; }
-                     50%     { color: #6fd8a0; text-shadow: 0 0 10px rgb(111 216 160 / .5); } }
-.sv-say { margin-top: .8rem; font: 600 .8rem var(--mono); color: #6fd8a0; text-align: center; }
+.sv-grid b { display: block; font: inherit; color: var(--paper); }
+.sv-2 { --sv: var(--sv-2); } .sv-3 { --sv: var(--sv-3); } .sv-p { --sv: var(--sv-p); }
+/* `--kf` names each element's keyframes, and this rule animates them — see `.cn-m` for why the name
+   is never written inline as `animation-name`: an inline declaration beats the reduced-motion rule. */
+.sv-grid s, .sv-grid u, .sv-grid b[style], .sv-say span {
+  animation-name: var(--kf); animation-duration: 7.2s; animation-timing-function: linear;
+  animation-iteration-count: infinite; animation-fill-mode: both; }
+.sv-grid s { position: absolute; left: -.05em; right: -.05em; top: 47%; height: 2px;
+             border-radius: 2px; background: var(--sv); transform-origin: left center;
+             transform: scaleX(0); }
+.sv-grid s.sv-again { top: 70%; }
+/* THE RING sits on the number's own box plus a hair, so 2 and 3 — the one pair of neighbours that
+   are both ringed — keep a gap between their rings at 320px. */
+.sv-grid u { position: absolute; inset: .14em -.06em; border: 2px solid var(--sv);
+             border-radius: 999px; opacity: 0; }
+/* ONE LINE PER STEP, stacked in one place like the coin's count, only the current one showing. */
+.sv-say { position: relative; height: 1.2rem; margin-top: .8rem; justify-self: stretch;
+          font: 600 .8rem var(--mono); text-align: center; }
+.sv-say span { position: absolute; left: 0; right: 0; color: var(--sv); opacity: 0; }
+@keyframes sv-r2 { 0%, 4.86% { transform: scale(.5); opacity: 0; animation-timing-function: ease-out; } 8.33%, 88.89% { transform: scale(1); opacity: 1; } 93.75%, 100% { transform: scale(1.15); opacity: 0; } }
+@keyframes sv-r3 { 0%, 34.03% { transform: scale(.5); opacity: 0; animation-timing-function: ease-out; } 37.5%, 88.89% { transform: scale(1); opacity: 1; } 93.75%, 100% { transform: scale(1.15); opacity: 0; } }
+@keyframes sv-d4 { 0%, 10.42% { opacity: 1; } 13.19%, 88.89% { opacity: .38; } 93.75%, 100% { opacity: 1; } }
+@keyframes sv-x4 { 0%, 10.42% { transform: scaleX(0); opacity: 1; animation-timing-function: ease-out; } 13.19%, 88.89% { transform: scaleX(1); opacity: 1; } 93.75% { transform: scaleX(1); opacity: 0; } 94.44%, 100% { transform: scaleX(0); opacity: 0; } }
+@keyframes sv-r5 { 0%, 59.72% { transform: scale(.5); opacity: 0; animation-timing-function: ease-out; } 63.19%, 88.89% { transform: scale(1); opacity: 1; } 93.75%, 100% { transform: scale(1.15); opacity: 0; } }
+@keyframes sv-d6 { 0%, 12.78% { opacity: 1; } 15.56%, 88.89% { opacity: .38; } 93.75%, 100% { opacity: 1; } }
+@keyframes sv-x6 { 0%, 12.78% { transform: scaleX(0); opacity: 1; animation-timing-function: ease-out; } 15.56%, 88.89% { transform: scaleX(1); opacity: 1; } 93.75% { transform: scaleX(1); opacity: 0; } 94.44%, 100% { transform: scaleX(0); opacity: 0; } }
+@keyframes sv-y6 { 0%, 39.58% { transform: scaleX(0); opacity: 1; animation-timing-function: ease-out; } 42.36%, 88.89% { transform: scaleX(1); opacity: 1; } 93.75% { transform: scaleX(1); opacity: 0; } 94.44%, 100% { transform: scaleX(0); opacity: 0; } }
+@keyframes sv-r7 { 0%, 61.39% { transform: scale(.5); opacity: 0; animation-timing-function: ease-out; } 64.86%, 88.89% { transform: scale(1); opacity: 1; } 93.75%, 100% { transform: scale(1.15); opacity: 0; } }
+@keyframes sv-d8 { 0%, 15.14% { opacity: 1; } 17.92%, 88.89% { opacity: .38; } 93.75%, 100% { opacity: 1; } }
+@keyframes sv-x8 { 0%, 15.14% { transform: scaleX(0); opacity: 1; animation-timing-function: ease-out; } 17.92%, 88.89% { transform: scaleX(1); opacity: 1; } 93.75% { transform: scaleX(1); opacity: 0; } 94.44%, 100% { transform: scaleX(0); opacity: 0; } }
+@keyframes sv-d9 { 0%, 42.36% { opacity: 1; } 45.14%, 88.89% { opacity: .38; } 93.75%, 100% { opacity: 1; } }
+@keyframes sv-x9 { 0%, 42.36% { transform: scaleX(0); opacity: 1; animation-timing-function: ease-out; } 45.14%, 88.89% { transform: scaleX(1); opacity: 1; } 93.75% { transform: scaleX(1); opacity: 0; } 94.44%, 100% { transform: scaleX(0); opacity: 0; } }
+@keyframes sv-d10 { 0%, 17.5% { opacity: 1; } 20.28%, 88.89% { opacity: .38; } 93.75%, 100% { opacity: 1; } }
+@keyframes sv-x10 { 0%, 17.5% { transform: scaleX(0); opacity: 1; animation-timing-function: ease-out; } 20.28%, 88.89% { transform: scaleX(1); opacity: 1; } 93.75% { transform: scaleX(1); opacity: 0; } 94.44%, 100% { transform: scaleX(0); opacity: 0; } }
+@keyframes sv-r11 { 0%, 63.06% { transform: scale(.5); opacity: 0; animation-timing-function: ease-out; } 66.53%, 88.89% { transform: scale(1); opacity: 1; } 93.75%, 100% { transform: scale(1.15); opacity: 0; } }
+@keyframes sv-d12 { 0%, 19.86% { opacity: 1; } 22.64%, 88.89% { opacity: .38; } 93.75%, 100% { opacity: 1; } }
+@keyframes sv-x12 { 0%, 19.86% { transform: scaleX(0); opacity: 1; animation-timing-function: ease-out; } 22.64%, 88.89% { transform: scaleX(1); opacity: 1; } 93.75% { transform: scaleX(1); opacity: 0; } 94.44%, 100% { transform: scaleX(0); opacity: 0; } }
+@keyframes sv-y12 { 0%, 45.14% { transform: scaleX(0); opacity: 1; animation-timing-function: ease-out; } 47.92%, 88.89% { transform: scaleX(1); opacity: 1; } 93.75% { transform: scaleX(1); opacity: 0; } 94.44%, 100% { transform: scaleX(0); opacity: 0; } }
+@keyframes sv-r13 { 0%, 64.72% { transform: scale(.5); opacity: 0; animation-timing-function: ease-out; } 68.19%, 88.89% { transform: scale(1); opacity: 1; } 93.75%, 100% { transform: scale(1.15); opacity: 0; } }
+@keyframes sv-d14 { 0%, 22.22% { opacity: 1; } 25%, 88.89% { opacity: .38; } 93.75%, 100% { opacity: 1; } }
+@keyframes sv-x14 { 0%, 22.22% { transform: scaleX(0); opacity: 1; animation-timing-function: ease-out; } 25%, 88.89% { transform: scaleX(1); opacity: 1; } 93.75% { transform: scaleX(1); opacity: 0; } 94.44%, 100% { transform: scaleX(0); opacity: 0; } }
+@keyframes sv-d15 { 0%, 47.92% { opacity: 1; } 50.69%, 88.89% { opacity: .38; } 93.75%, 100% { opacity: 1; } }
+@keyframes sv-x15 { 0%, 47.92% { transform: scaleX(0); opacity: 1; animation-timing-function: ease-out; } 50.69%, 88.89% { transform: scaleX(1); opacity: 1; } 93.75% { transform: scaleX(1); opacity: 0; } 94.44%, 100% { transform: scaleX(0); opacity: 0; } }
+@keyframes sv-d16 { 0%, 24.58% { opacity: 1; } 27.36%, 88.89% { opacity: .38; } 93.75%, 100% { opacity: 1; } }
+@keyframes sv-x16 { 0%, 24.58% { transform: scaleX(0); opacity: 1; animation-timing-function: ease-out; } 27.36%, 88.89% { transform: scaleX(1); opacity: 1; } 93.75% { transform: scaleX(1); opacity: 0; } 94.44%, 100% { transform: scaleX(0); opacity: 0; } }
+@keyframes sv-r17 { 0%, 66.39% { transform: scale(.5); opacity: 0; animation-timing-function: ease-out; } 69.86%, 88.89% { transform: scale(1); opacity: 1; } 93.75%, 100% { transform: scale(1.15); opacity: 0; } }
+@keyframes sv-s0 { 0%, 30.56% { opacity: 1; } 32.64%, 95.83% { opacity: 0; } 97.92%, 100% { opacity: 1; } }
+@keyframes sv-s1 { 0%, 32.64% { opacity: 0; } 34.72%, 54.86% { opacity: 1; } 56.94%, 100% { opacity: 0; } }
+@keyframes sv-s2 { 0%, 56.94% { opacity: 0; } 59.03%, 91.67% { opacity: 1; } 93.75%, 100% { opacity: 0; } }
+/* LESS MOVEMENT: the finished sieve, still — every strike in the colour of the prime that made it,
+   every prime ringed, the last line of the caption. It was in the shared list below as `.sv-o,
+   .sv-x`, which with the new markup would have been a still of the EMPTY row. */
+@media (prefers-reduced-motion: reduce) {
+  .sv-grid s, .sv-grid u, .sv-grid b[style], .sv-say span { animation: none; }
+  .sv-grid s, .sv-grid u { transform: none; opacity: 1; }
+  .sv-out b { opacity: .38; }
+  .sv-say span:last-child { opacity: 1; }
+}
 
 /* ---------- HALVES ------------------------------------------------------------------------------ */
 #splash-half .hf-svg { width: min(64vw, 15rem); height: auto; }
@@ -6728,7 +6819,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
      rule sits with its keyframes, so the still is written beside the motion it stills. Before that,
      `.ar-wheel` and `.ar-box` stood here after the elements were gone — `check-css` found them. */
   .od-svg g, .od-say, .tn-up, .tn-dn, .sn-wave, .sn-arm, .sn-dot, .sn-trace, .sn-guide, .sn-leg,
+<<<<<<< HEAD
   .sv-o, .sv-x, .hf-p, .ag-tri, .bn-row i, .pa-r, .pa-r i, .fb-sq, .fb-arc,
+=======
+  .ar-round, .ar-strip, .ar-h, .ar-w, .ar-lab,
+  .hf-p, .ag-tri, .bn-row i, .pa-r, .pa-r i, .fb-sq, .fb-arc,
+>>>>>>> worktree-wf_0fec1e32-0c4-2
   .gl-b, .gl-n text { animation: none; opacity: 1; transform: none; }
   .gl-b { fill: #6fd8c4; }
   .fb-arc { stroke-dashoffset: 0; }
@@ -6852,19 +6948,72 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    Transform and opacity only, so the compositor runs all of it. */
 #splash-coin .cn-stage { position: relative; width: 3.4rem; height: 6rem; margin: 0 auto;
         perspective: 16rem; display: flex; align-items: flex-end; justify-content: center; }
-.cn-coin { position: relative; width: 3.4rem; height: 3.4rem; transform-style: preserve-3d;
+/* ---------- AND NOW IT LOOKS LIKE ONE --------------------------------------------------------------
+   ASKED FOR AS "make the coin look more like a coin". The toss was right and the object was not: a
+   flat #e8c15f disc with an H on one side and a MINT one with a T on the other, both on one plane.
+   Gold on one face and teal on the other is a counter, not a coin, and with `backface-visibility`
+   doing the flip the two faces shared a plane — so edge-on, twice a toss, the coin was a hairline.
+
+   ONE METAL, BOTH FACES, built in three layers that a struck coin has:
+     the MILLED EDGE  the face's own background, a repeating conic of light and dark ridges, of
+                      which only a thin ring shows round the outside;
+     the RAISED RIM   `::before`, inset a little, a bevelled border lit from the top left and shaded
+                      bottom right, round a field with a specular highlight in the same corner;
+     a RING OF DOTS   `::after`, a dotted border inside the rim — the generic ornament, and on
+                      purpose nothing more. No head, no date, no legend: a coin that looked like a
+                      real currency would be a picture of somebody else's money.
+   The letter is embossed — light above-left, shade below-right — rather than printed on.
+
+   THICKNESS IS SIX DISCS STACKED IN Z inside the `preserve-3d` coin, with the faces just outside
+   them at ±.15rem. Face-on they are behind the face and invisible; edge-on they ARE the coin, a gold
+   band about .3rem deep. Nothing new moves: the discs ride the toss that was already there, so the
+   whole thing is still one transform on one element.
+
+   THE TALLY KEEPS ITS TEAL T. The chips and the caption are a code, not the coin — they only need
+   H and T to be told apart at a glance, which gold on gold would not do.
+
+   COLOURS ARE THIS COIN'S OWN, so they are named on it and offered to nothing else. */
+.cn-coin { --cn-hi: #fff4cc; --cn-gold: #e8c15f; --cn-mid: #c99a3a; --cn-deep: #9a6f1d;
+           --cn-dark: #6e4e12;
+           position: relative; width: 3.4rem; height: 3.4rem; transform-style: preserve-3d;
            animation: cn-toss 9s linear infinite; }
 .cn-coin b { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center;
-             font: 700 1.2rem var(--mono); backface-visibility: hidden; }
-.cn-h { background: #e8c15f; border: 3px solid #a8873a; color: #6b5420; }
-.cn-t { background: #6fd8c4; border: 3px solid #3f9a88; color: #1d5147; transform: rotateX(180deg); }
+             font: 700 1.3rem var(--mono); color: var(--cn-mid);
+             text-shadow: -1px -1px 0 var(--cn-hi), 1px 1px 0 var(--cn-dark);
+             background: repeating-conic-gradient(var(--cn-deep) 0 4deg, var(--cn-gold) 4deg 8deg);
+             backface-visibility: hidden; }
+/* z-index -1 is under the letter and above the milled background, because the face's own
+   transform makes it the stacking context both layers sit in. */
+.cn-coin b::before, .cn-coin b::after { content: ''; position: absolute; border-radius: 50%;
+                                         z-index: -1; }
+.cn-coin b::before { inset: .14rem; border: .17rem solid var(--cn-mid);
+                     border-color: var(--cn-hi) var(--cn-deep) var(--cn-deep) var(--cn-hi);
+                     background: radial-gradient(circle at 34% 28%, var(--cn-hi) 0,
+                                 var(--cn-gold) 26%, var(--cn-mid) 70%, var(--cn-deep) 100%); }
+.cn-coin b::after { inset: .5rem; border: .11rem dotted var(--cn-deep); opacity: .7; }
+.cn-h { transform: translateZ(.15rem); }
+.cn-t { transform: rotateX(180deg) translateZ(.15rem); }
+.cn-coin i { position: absolute; inset: .06rem; border-radius: 50%; background: var(--cn-deep);
+             box-shadow: inset 0 0 0 .1rem var(--cn-mid); }
+.cn-coin i:nth-child(1) { transform: translateZ(-.125rem); }
+.cn-coin i:nth-child(2) { transform: translateZ(-.075rem); }
+.cn-coin i:nth-child(3) { transform: translateZ(-.025rem); }
+.cn-coin i:nth-child(4) { transform: translateZ(.025rem); }
+.cn-coin i:nth-child(5) { transform: translateZ(.075rem); }
+.cn-coin i:nth-child(6) { transform: translateZ(.125rem); }
 .cn-shadow { position: absolute; bottom: -.45rem; left: 50%; width: 3rem; height: .5rem;
              margin-left: -1.5rem; border-radius: 50%; background: rgb(244 241 232 / .35);
              animation: cn-shadow 9s linear infinite; }
 .cn-row { display: flex; justify-content: center; gap: .28rem; margin-top: 1rem; height: 1.35rem; }
+/* THE KEYFRAMES ARE NAMED BY `--kf`, NOT BY AN INLINE `animation-name`. tools/coin.py used to write
+   `style="animation-name: cn-m3"` on every mark, and an inline declaration beats every rule in this
+   file — including `animation: none` under reduced motion. So for anybody who had asked for less
+   movement, the marks and the count kept animating and only the coin stood still: the still was
+   never the still. The inline style now only names the keyframes in a variable and this rule is
+   what animates, so the reduced-motion rule below wins as written. */
 .cn-m { width: 1.1rem; height: 1.1rem; border-radius: 50%; display: grid; place-items: center;
         font: 700 .62rem/1 var(--mono); font-style: normal; opacity: 0;
-        animation-duration: 9s; animation-timing-function: linear;
+        animation-name: var(--kf); animation-duration: 9s; animation-timing-function: linear;
         animation-iteration-count: infinite; animation-fill-mode: both; }
 .cn-m.is-h { background: #e8c15f; color: #6b5420; }
 .cn-m.is-t { background: #6fd8c4; color: #1d5147; }
@@ -6878,7 +7027,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* ONE LINE PER TOSS, stacked in one place, only the current one showing. */
 .cn-say { position: relative; height: 1.2rem; margin-top: .7rem;
           font: 600 .76rem var(--mono); color: #6fd8c4; text-align: center; }
-.cn-say span { position: absolute; left: 0; right: 0; opacity: 0; animation-duration: 9s;
+.cn-say span { position: absolute; left: 0; right: 0; opacity: 0;
+               animation-name: var(--kf); animation-duration: 9s;
                animation-timing-function: linear; animation-iteration-count: infinite; }
 @keyframes cn-toss { 0% { transform: translateY(0) rotateX(0deg); } 3.33% { transform: translateY(0) rotateX(0deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 5.61% { transform: translateY(-2.4rem) rotateX(360deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 7.88% { transform: translateY(0) rotateX(720deg); animation-timing-function: ease-out; } 8.66% { transform: translateY(-.22rem) rotateX(720deg); animation-timing-function: ease-in; } 9.44% { transform: translateY(0) rotateX(720deg); } 10.67% { transform: translateY(0) rotateX(720deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 12.94% { transform: translateY(-2.4rem) rotateX(1170deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 15.21% { transform: translateY(0) rotateX(1620deg); animation-timing-function: ease-out; } 15.99% { transform: translateY(-.22rem) rotateX(1620deg); animation-timing-function: ease-in; } 16.77% { transform: translateY(0) rotateX(1620deg); } 18.00% { transform: translateY(0) rotateX(1620deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 20.27% { transform: translateY(-2.4rem) rotateX(1980deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 22.55% { transform: translateY(0) rotateX(2340deg); animation-timing-function: ease-out; } 23.32% { transform: translateY(-.22rem) rotateX(2340deg); animation-timing-function: ease-in; } 24.10% { transform: translateY(0) rotateX(2340deg); } 25.33% { transform: translateY(0) rotateX(2340deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 27.61% { transform: translateY(-2.4rem) rotateX(2790deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 29.88% { transform: translateY(0) rotateX(3240deg); animation-timing-function: ease-out; } 30.66% { transform: translateY(-.22rem) rotateX(3240deg); animation-timing-function: ease-in; } 31.44% { transform: translateY(0) rotateX(3240deg); } 32.67% { transform: translateY(0) rotateX(3240deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 34.94% { transform: translateY(-2.4rem) rotateX(3690deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 37.21% { transform: translateY(0) rotateX(4140deg); animation-timing-function: ease-out; } 37.99% { transform: translateY(-.22rem) rotateX(4140deg); animation-timing-function: ease-in; } 38.77% { transform: translateY(0) rotateX(4140deg); } 40.00% { transform: translateY(0) rotateX(4140deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 42.27% { transform: translateY(-2.4rem) rotateX(4590deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 44.55% { transform: translateY(0) rotateX(5040deg); animation-timing-function: ease-out; } 45.32% { transform: translateY(-.22rem) rotateX(5040deg); animation-timing-function: ease-in; } 46.10% { transform: translateY(0) rotateX(5040deg); } 47.33% { transform: translateY(0) rotateX(5040deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 49.61% { transform: translateY(-2.4rem) rotateX(5490deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 51.88% { transform: translateY(0) rotateX(5940deg); animation-timing-function: ease-out; } 52.66% { transform: translateY(-.22rem) rotateX(5940deg); animation-timing-function: ease-in; } 53.44% { transform: translateY(0) rotateX(5940deg); } 54.67% { transform: translateY(0) rotateX(5940deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 56.94% { transform: translateY(-2.4rem) rotateX(6300deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 59.21% { transform: translateY(0) rotateX(6660deg); animation-timing-function: ease-out; } 59.99% { transform: translateY(-.22rem) rotateX(6660deg); animation-timing-function: ease-in; } 60.77% { transform: translateY(0) rotateX(6660deg); } 62.00% { transform: translateY(0) rotateX(6660deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 64.27% { transform: translateY(-2.4rem) rotateX(7110deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 66.55% { transform: translateY(0) rotateX(7560deg); animation-timing-function: ease-out; } 67.32% { transform: translateY(-.22rem) rotateX(7560deg); animation-timing-function: ease-in; } 68.10% { transform: translateY(0) rotateX(7560deg); } 69.33% { transform: translateY(0) rotateX(7560deg); animation-timing-function: cubic-bezier(.2,.7,.4,1); } 71.61% { transform: translateY(-2.4rem) rotateX(7920deg); animation-timing-function: cubic-bezier(.6,0,.8,.3); } 73.88% { transform: translateY(0) rotateX(8280deg); animation-timing-function: ease-out; } 74.66% { transform: translateY(-.22rem) rotateX(8280deg); animation-timing-function: ease-in; } 75.44% { transform: translateY(0) rotateX(8280deg); } 100% { transform: translateY(0) rotateX(8280deg); } }
 @keyframes cn-shadow { 0% { transform: scaleX(1); opacity: .5; } 3.33% { transform: scaleX(1); opacity: .5; } 5.61% { transform: scaleX(.45); opacity: .18; } 7.88% { transform: scaleX(1); opacity: .5; } 10.67% { transform: scaleX(1); opacity: .5; } 12.94% { transform: scaleX(.45); opacity: .18; } 15.21% { transform: scaleX(1); opacity: .5; } 18.00% { transform: scaleX(1); opacity: .5; } 20.27% { transform: scaleX(.45); opacity: .18; } 22.55% { transform: scaleX(1); opacity: .5; } 25.33% { transform: scaleX(1); opacity: .5; } 27.61% { transform: scaleX(.45); opacity: .18; } 29.88% { transform: scaleX(1); opacity: .5; } 32.67% { transform: scaleX(1); opacity: .5; } 34.94% { transform: scaleX(.45); opacity: .18; } 37.21% { transform: scaleX(1); opacity: .5; } 40.00% { transform: scaleX(1); opacity: .5; } 42.27% { transform: scaleX(.45); opacity: .18; } 44.55% { transform: scaleX(1); opacity: .5; } 47.33% { transform: scaleX(1); opacity: .5; } 49.61% { transform: scaleX(.45); opacity: .18; } 51.88% { transform: scaleX(1); opacity: .5; } 54.67% { transform: scaleX(1); opacity: .5; } 56.94% { transform: scaleX(.45); opacity: .18; } 59.21% { transform: scaleX(1); opacity: .5; } 62.00% { transform: scaleX(1); opacity: .5; } 64.27% { transform: scaleX(.45); opacity: .18; } 66.55% { transform: scaleX(1); opacity: .5; } 69.33% { transform: scaleX(1); opacity: .5; } 71.61% { transform: scaleX(.45); opacity: .18; } 73.88% { transform: scaleX(1); opacity: .5; } 100% { transform: scaleX(1); opacity: .5; } }
