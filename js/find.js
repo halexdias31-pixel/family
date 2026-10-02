@@ -975,6 +975,7 @@ const DIVISION_BUCKET = bucketTable_([
    `KS2–GCSE` is four values wide and belongs somewhere; the top of the range is the level somebody
    is working towards, which is what they are choosing a question for. */
 const LEVEL_BUCKET = bucketTable_([
+  ['KS1',     ['KS1 SATs', 'KS1']],
   ['KS2',     ['KS2 SATs', 'KS2']],
   ['KS3',     ['KS3', 'KS2–KS3']],
   ['GCSE',    ['GCSE', 'KS2–GCSE', 'KS3–GCSE']],
