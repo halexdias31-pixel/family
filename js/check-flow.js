@@ -351,6 +351,18 @@ function boot(opts) {
       'matOn: v => { if (v) MAT_ON = v.slice(); return MAT_ON.slice(); },' +
       'matSet: (s, l, tier) => { MAT_SUBJECT = s; MAT_LEVEL = l; if (tier) MAT_TIER = tier;' +
       '  MAT_EXAM = "all"; matSettle(matParts()); return [MAT_SUBJECT, MAT_LEVEL]; },' +
+      /* THE TOPIC GROUPS — the third select — and the state the tool opened on, so a journey can ask
+         what each view lists and where a student lands. `matFresh` forgets every choice the way a
+         first visit on a new device would, so the next `initMat` decides the opening view again. */
+      'matGroupOf: typeof matGroupOf === "function" ? matGroupOf : null,' +
+      'matGroupChoices: typeof matGroupChoices === "function" ? matGroupChoices : null,' +
+      'matInGroup: typeof matInGroup === "function" ? matInGroup : null,' +
+      'matGroup: g => { if (g !== undefined) MAT_GROUP = g; return MAT_GROUP; },' +
+      'matNow: () => ({ subject: MAT_SUBJECT, level: MAT_LEVEL, group: MAT_GROUP }),' +
+      'matFresh: () => { MAT_TOUCHED = false; MAT_SUBJECT = "Maths"; MAT_LEVEL = "all"; MAT_GROUP = "";' +
+      '  MAT_ON = []; try { localStorage.removeItem("matChoice"); } catch (e) {} },' +
+      'matOrder: () => (typeof MAT_ORDER !== "undefined" ? MAT_ORDER : null),' +
+      'orderText: typeof orderText_ === "function" ? orderText_ : null,' +
       /* WHO MAY OPEN A WIDGET, and the two lists that ask it. `star` puts a key in the device's
          favourites the way a press on a star does, without the request. */
       'widgetFor: typeof widgetFor_ === "function" ? widgetFor_ : null,' +
@@ -672,6 +684,223 @@ check('the cheat sheet offers only the pieces of the subject chosen', async () =
     if (/mat-gone/.test(String(t.matDraw(c)))) bad.push(c.id + ' (' + c.name + ') has nothing to draw it');
   });
   t.matSet('Maths', 'all');
+  return bad;
+});
+
+/* ---------- THE PIECES A TOPIC AT A TIME, AND NO VIEW LONGER THAN EIGHT ROWS ----------------------
+   ASKED FOR AS *"the cheat sheet maker shouldnt be as long as it is. you need to think a way to make
+   it fit on screen without scrolling"*. The fit itself is measured in a browser by `check/states.js`;
+   what jsdom can hold is the COUNT that makes the fit possible, at every subject × level × topic:
+   eight rows, ruler included, is the most a 320x568 pane takes at 0.85 signed in (see `MAT_GROUPS`). A piece
+   added to a group that is already full fails here, by name, before anybody draws it. And every
+   piece is FILED — one that falls through to `Other` is a piece nobody added to the table.
+   THEN THE PROMISE THAT MAKES GROUPS BEARABLE: a tick in one topic is still a tick when you are
+   looking at another, it is on the paper either way, and the topic's own option says it is there. */
+check('the cheat sheet lists a topic at a time, eight rows at most, and keeps ticks across topics', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.matGroupOf || !t.matGroupChoices || !t.matInGroup || !t.matGroup) return ['the cheat sheet topic groups are not exported'];
+  const bad = [];
+  const parts = t.matParts();
+  parts.filter(c => !c.edge && t.matGroupOf(c) === 'Other')
+    .forEach(c => bad.push(c.id + ' (' + c.name + ') is in no topic group — add it to MAT_GROUPS'));
+  const subs = t.matSubjects(parts).concat('all');
+  let views = 0;
+  subs.forEach(s => {
+    t.matSet(s, 'all');
+    t.matLevelChoices(parts).forEach(o => {
+      const [l, tier] = o.v.split('|');
+      t.matSet(s, l, tier);
+      t.matGroupChoices(parts).forEach(g => {
+        t.matGroup(g);
+        views++;
+        const rows = parts.filter(c => t.matShown(c) && t.matInGroup(c)).length;
+        if (rows > 8) bad.push(s + ' · ' + o.say + ' · ' + g + ' lists ' + rows + ' rows; eight is what fits a 320x568 phone at 0.85');
+        if (!parts.some(c => !c.edge && t.matShown(c) && t.matInGroup(c))) bad.push(s + ' · ' + o.say + ' offers ' + g + ' and lists nothing in it');
+      });
+    });
+  });
+  if (views < 50) bad.push('only ' + views + ' views were walked — the subject or level lists came back short');
+  t.matSet('Maths', 'all');
+
+  try { t.go('tools', false, true); } catch (e) { return bad.concat('go("tools") threw: ' + e.message); }
+  const doc = w.document;
+  for (let n = 0; n < 20 && !doc.getElementById('mat-group'); n++) await wait(50);
+  const grp = doc.getElementById('mat-group');
+  if (!grp) return bad.concat('the cheat sheet maker draws no topic select');
+  const pick = g => { grp.value = g; t.ACTIONS['mat-group'](grp); };
+  const tickFirst = () => {
+    const box = doc.querySelector('#mat-list label:not(.off):not([data-id="M01"]) input:not(:checked)');
+    if (!box) return '';
+    box.checked = true; t.ACTIONS['mat-tick'](box);
+    return box.getAttribute('data-id');
+  };
+  t.matOn([]); t.matPaint();
+  pick('Number');
+  const a = tickFirst();
+  pick('Algebra');
+  const b = tickFirst();
+  if (!a || !b) return bad.concat('could not tick a piece in Number and one in Algebra');
+  const on = t.matOn();
+  if (on.indexOf(a) === -1 || on.indexOf(b) === -1) bad.push('changing topic dropped a tick: ' + JSON.stringify(on) + ', wanted ' + a + ' and ' + b);
+  const label = [...grp.options].find(o => o.value === 'Number');
+  if (!label || !/1✓/.test(label.textContent)) bad.push('the Number option reads "' + (label && label.textContent) + '" — it should say 1✓ while Algebra is showing');
+  if (doc.querySelector('#mat-list label[data-id="' + a + '"]:not(.off)')) bad.push(a + ' is still listed under Algebra');
+  const said = String((doc.getElementById('mat-said') || {}).textContent || '');
+  if (!/2 pieces/.test(said)) bad.push('the gauge says "' + said + '" — both ticks are on the paper whichever topic is showing');
+  t.matOn([]); t.matPaint();
+  return bad;
+});
+
+/* ---------- A STUDENT OPENS ON THEIR OWN LEVEL --------------------------------------------------------
+   THE AUDIT'S DEFAULT, TAKEN: *"Open on the student's own level when known."* Nothing on a person says
+   their level, so it is read off the sessions they are the client of — this payload's first is GCSE
+   Maths for Rasa Poliksa. A stranger knows nothing and opens on Every level, as before. */
+check('the cheat sheet opens on the signed-in student\'s own level, and on every level for a stranger', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.matFresh || !t.matNow) return ['the cheat sheet opening state is not exported'];
+  const bad = [];
+  const open = async () => {
+    t.matFresh();
+    /* `repaint`, NOT `paint`: `go` starts a column's widgets after its 300ms slide and `repaint`
+       starts them at once, and `initMat` — where the opening view is decided — is a widget start. */
+    try { t.go('tools', false, true); t.repaint(); } catch (e) { bad.push('drawing tools threw: ' + e.message); }
+    await wait(100);
+    return t.matNow();
+  };
+  t.USER(null);
+  let now = await open();
+  if (now.level !== 'all') bad.push('a stranger opens on ' + now.level + ' — nobody is known, so it should be Every level');
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  now = await open();
+  if (now.level !== 'GCSE' || now.subject !== 'Maths') {
+    bad.push('Rasa is booked into GCSE Maths and the cheat sheet opened on ' + now.subject + ' · ' + now.level);
+  }
+  t.USER(null);
+  t.matFresh();
+  return bad;
+});
+
+/* ---------- A CHEAT SHEET INTO THE BASKET, LAMINATED, AND THE ORDER NAMES ITS PIECES -----------------
+   ASKED FOR AS *"add an upgrade to lamination for cheat sheet orders that are added to cart."* The
+   sheet goes in as a one-page `print` line, which is what gives it the laminate switch; the rate is
+   this payload's 0.35 a page with a 0.50 minimum, standing in for the Ledger's `laminate_rate_per_page`
+   (the owner's £1.00 once typed). What must hold: the line says what it is, pressing twice is one
+   line, laminating it puts the price on the line, and the message to the owner lists every piece —
+   the only way the owner can print the sheet somebody built is to rebuild it from that list. And
+   signed out it goes nowhere and says why, as every other basket door does. */
+check('a cheat sheet goes into the basket, laminates, and the order names its pieces', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.matFresh || !t.orderText || !t.CART || !t.cartMoney) return ['the cheat sheet basket door is not exported'];
+  const bad = [];
+  const doc = w.document;
+  t.setCart([]);
+  t.matFresh();
+  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  for (let n = 0; n < 20 && !doc.querySelector('[data-do="mat-cart"]'); n++) await wait(50);
+  const trolley = doc.querySelector('#mat-box [data-do="mat-cart"]');
+  if (!trolley) return ['there is no basket tile beside Print the sheet'];
+  t.matSet('Maths', 'GCSE', 'H');
+  t.matOn(['M01', 'M17', 'M26']);
+  t.matPaint();
+
+  t.USER(null);
+  t.ACTIONS['mat-cart'](trolley);
+  if (t.CART().length) bad.push('signed out, the sheet still went into the basket');
+  const toastEl = doc.getElementById('toast');
+  if (!/sign in/i.test(String(toastEl ? toastEl.textContent : ''))) bad.push('signed out, the toast does not say to sign in');
+
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.ACTIONS['mat-cart'](trolley);
+  t.ACTIONS['mat-cart'](trolley);
+  const cart = t.CART();
+  if (cart.length !== 1) return bad.concat('two presses made ' + cart.length + ' basket lines, not one');
+  const line = cart[0];
+  if (line.kind !== 'print' || line.pages !== 1) bad.push('the sheet went in as ' + line.kind + ' with ' + line.pages + ' pages — it is one printed page');
+  if (!/Maths/.test(line.name) || !/GCSE Higher/.test(line.name) || !/2 pieces/.test(line.name)) {
+    bad.push('the line is called "' + line.name + '" — it should say Maths, GCSE Higher and 2 pieces');
+  }
+  ['Ruler down the edge', 'Straight line', 'Quadratics'].forEach(p => {
+    if ((line.parts || []).indexOf(p) === -1) bad.push('the line does not carry "' + p + '" in its pieces: ' + JSON.stringify(line.parts));
+  });
+
+  /* THE SWITCH IS THE BASKET'S OWN, drawn on the Tools column's basket card. */
+  for (let n = 0; n < 10 && !doc.querySelector('.cart-box [data-do="cart-laminate"]'); n++) await wait(50);
+  const lam = doc.querySelector('.cart-box [data-do="cart-laminate"]');
+  if (!lam) return bad.concat('the cheat sheet line in the basket has no laminate switch');
+  const plain = t.cartMoney(line);
+  t.ACTIONS['cart-laminate'](lam);
+  if (!t.CART()[0].laminate) bad.push('pressing + laminate did not laminate the sheet');
+  const want = Math.round((plain + t.lamPrice(1)) * 100) / 100;
+  if (Math.round(t.cartMoney(t.CART()[0]) * 100) / 100 !== want) {
+    bad.push('laminated, the sheet costs ' + t.cartMoney(t.CART()[0]) + ' and print ' + plain + ' + laminate ' + t.lamPrice(1) + ' is ' + want);
+  }
+  const text = String(t.orderText() || '');
+  ['Ruler down the edge', 'Straight line', 'Quadratics'].forEach(p => {
+    if (text.indexOf(p) === -1) bad.push('the order message does not name "' + p + '" — the owner cannot rebuild the sheet');
+  });
+  if (!/laminated/.test(text)) bad.push('the order message does not say the sheet is laminated');
+  if (/1 pages/.test(text)) bad.push('the order message says "1 pages"');
+  t.setCart([]);
+  t.USER(null);
+  t.matFresh();
+  return bad;
+});
+
+/* ---------- A PENCE PRICE IS MONEY, AND A SHOP LINE IS ONE LINE --------------------------------------
+   ASKED FOR AS *"refine basket to look nicer."*, and the first thing wrong with the basket's look was
+   not a margin: a 30p pencil read "30 cr" and a £14 calculator "1400 cr", because `cart-add` wrote
+   every shop price into the credits field whatever `unit` `doGet` sent with it — and the Send button
+   then asked a student for 1,425 credits. So a pence row goes in as money, a credits row as credits,
+   and a line saved the old way is re-read from the shop row when the basket is drawn.
+   Then the shape: a shop line has no switch, so it has no strip — its ✕ is on the name's line — and
+   the head says what the credits come to in one short line. */
+check('a pence-priced shop item goes in the basket as money, on one line', async () => {
+  const p = payload();
+  p.shop = [{ name: 'Pencil', price: '30', unit: 'p', acquire: 'buy', audience: 'all', inStock: true },
+            { name: 'Sticker sheet', price: '3', unit: '✓ ', acquire: 'ticks', audience: 'all', inStock: true }];
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t;
+  if (!t.CART || !t.setCart || !t.basket || !t.cartMoney) return ['the basket is not exported'];
+  const bad = [];
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.setCart([]);
+  const add = key => {
+    const el = w.document.createElement('button');
+    el.dataset.key = key; el.dataset.kind = 'shop';
+    t.ACTIONS['cart-add'](el);
+  };
+  add('Pencil'); add('Sticker sheet');
+  const pencil = t.CART().find(c => c.key === 'Pencil');
+  if (!pencil) return ['the pencil did not go into the basket'];
+  if (pencil.cost !== 0 || pencil.money !== 0.3) bad.push('a 30p pencil went in as cost ' + pencil.cost + ', money ' + pencil.money + ' — it is £0.30, not 30 credits');
+  const stick = t.CART().find(c => c.key === 'Sticker sheet');
+  if (!stick || stick.cost !== 3) bad.push('a 3-tick sticker sheet lost its price: ' + JSON.stringify(stick));
+  /* A LINE SAVED BEFORE THIS — `cost: 30` for the pencil — comes back as money when drawn. */
+  t.setCart([{ key: 'Pencil', name: 'Pencil', kind: 'shop', cost: 30, money: 0 }]);
+  const html = String(t.basket() || '');
+  if (t.CART()[0].money !== 0.3 || t.CART()[0].cost !== 0) bad.push('a pencil saved as 30 credits is still ' + JSON.stringify(t.CART()[0]) + ' after the basket was drawn');
+  if (/30 cr/.test(html)) bad.push('the basket still draws the pencil as "30 cr"');
+  if (!/£0\.30/.test(html)) bad.push('the basket does not draw the pencil at £0.30');
+  const d = w.document.createElement('div');
+  d.innerHTML = html;
+  const row = [...d.querySelectorAll('.bk-row.is-wide')].find(r => /Pencil/.test(r.textContent));
+  if (!row) return bad.concat('no basket row for the pencil');
+  if (!row.querySelector('.cart-ln [data-do="cart-drop"]')) bad.push('the pencil\'s ✕ is not on its name line');
+  if (row.querySelector('.cart-ctl')) bad.push('the pencil draws a control strip with nothing to hold but its ✕');
+  if (!row.querySelector('.cart-lead')) bad.push('the pencil has no leader to its price');
+  t.setCart([{ key: 'Sticker sheet', name: 'Sticker sheet', kind: 'shop', cost: 3, money: 0 },
+             { key: 'P-X', kind: 'print', name: 'Paper', pages: 0, cost: 0 }]);
+  const head = (() => { const e = w.document.createElement('div'); e.innerHTML = String(t.basket() || '');
+    const h = e.querySelector('.rc-head p'); return h ? h.textContent.trim() : ''; })();
+  if (head.length > 30) bad.push('the basket head reads "' + head + '" — ' + head.length + ' characters, which wraps at 390');
+  t.setCart([]);
   return bad;
 });
 
