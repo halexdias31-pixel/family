@@ -209,21 +209,30 @@ function fillHandles() {
 
    ASKED FOR AS *"handles should be their name and a virtuous describing word. they can randomise it
    but it will follow that general name."* The handles `fillHandles`, `register` and the old typed
-   box made before this are `BrightOtter42`, `halex_steady71` or whatever somebody typed, so this
-   regenerates every one that is not already `<first>_<virtue>` — see `handleMake_` and
-   `handleParts_` in people.gs.
+   box made before this are `BrightOtter42` or whatever somebody typed, so this regenerates every
+   one that is not already the generated shape — see `handleMake_` and `handleParts_` in people.gs.
 
-   A NUMBER IS ONLY THE SHAPE WHEN IT WAS NEEDED. `halex_steady71` reads as the new shape —
-   `steady` is a virtue, and a tail is allowed — but the generator only adds one when every bare
-   word for that name is taken. So a tailed handle is left alone only while that is still true, and
-   renamed to a bare one the moment a bare one is free. That is also what keeps the job safe to run
-   twice: what it writes is either bare, or tailed because nothing bare was free, and either way the
-   second run asks the same question and gets the same answer.
+   A NUMBER IS PART OF THE SHAPE NOW, SO THIS NO LONGER STRIPS ONE. On 1 October a tail was only
+   right while every bare word for that name was taken, and this job renamed `halex_steady71` to a
+   bare `halex_<virtue>` the moment one was free. Then the owner asked for *"their first name, a
+   virtuous adjective and random numbers and maybe an underscore. but all random order"* — every
+   handle Randomise makes carries a number, and the old rule would have stripped it off every one of
+   them on the next run. So the rule is one question: is it the shape (`handleParts_`, which reads
+   every arrangement and the old two-part `<first>_<virtue>`)? Shaped is left alone, whatever order.
+
+   AND THE 2 OCTOBER ASK WAS NOT TO REGENERATE EXISTING HANDLES. A `halex_kind` is still shaped, so
+   this leaves it — a child with no e-mail signs in with the handle, and nobody's sign-in name moves
+   until they press Randomise. What this still renames is what was never the shape at all:
+   `BrightOtter42` and typed ones. Safe to run twice for the same reason as before: what it writes
+   is shaped, and the second run asks the same one question.
 
    THIS OVERWRITES, WHICH `fillHandles` REFUSES TO, AND THE REASON IT MAY IS SIGN-IN. `fillHandles`
    only fills blanks because a handle used to be something you signed in with; `verifyLogin` reads
    the e-mail column and nothing else now, so a new handle locks nobody out. It changes the name
-   friends see, which is what was asked for.
+   friends see, which is what was asked for. (NOT QUITE ANY MORE: since 2 October a row with no
+   e-mail signs in with its handle — which is the other reason a shaped handle is left alone above.
+   An unshaped one on a blank-address row is renamed and that child's sign-in name moves with it;
+   the report names them by id, so whoever runs this can tell them.)
 
    THE OLD ONE GOES ONTO `handle_was`, newest first, where that column exists — the same history
    Randomise keeps (`handleWasWith_`) — because that is a safeguarding column: "who was @foo last
@@ -250,7 +259,7 @@ function renameHandles() {
     const who = S(r.person_id) || '(a row with no id)';
     const has = S(r.handle);
     const parts = handleParts_(has, r.first_name);
-    if (parts && !(parts.tail && handleBareFree_(r, parts.head))) { out.leftAlone++; return; }
+    if (parts) { out.leftAlone++; return; }
     const made = handleMake_(r, undefined, has);
     if (!made) { out.couldNotGenerate.push(who); return; }
     const cells = { handle: made };
@@ -261,8 +270,9 @@ function renameHandles() {
   });
   clearCache();
   out.renamedCount = out.renamed.length;
-  out.means = 'every handle not already <first>_<virtue> was regenerated and the old one put at the '
-            + 'front of handle_was. Sign-in is by e-mail, so nobody is locked out.';
+  out.means = 'every handle that was not a first name and a virtue (with or without a number, in '
+            + 'any order) was regenerated and the old one put at the front of handle_was. Shaped '
+            + 'handles were left alone, so nobody signing in with a handle was moved.';
   return out;
 }
 
