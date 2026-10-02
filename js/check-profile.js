@@ -559,9 +559,15 @@ PEOPLE.forEach(p => {
     last_name: last, full_name: first + ' ' + last, handle: first.toLowerCase() + '_calm' + id.slice(-2),
     username: first.toLowerCase(), email: id.toLowerCase() + '@example.org' });
   f.seed('people', [mk('P-PA', 'client', 'Anna', 'Parent'), mk('P-PB', 'client', 'Bea', 'Parent'),
-                    mk('P-SA', 'student', 'Abe', 'Child'), mk('P-SB', 'student', 'Ben', 'Child')]);
+                    mk('P-SA', 'student', 'Abe', 'Child'), mk('P-SB', 'student', 'Ben', 'Child'),
+                    mk('P-SC', 'student', 'Cal', 'Child')]);
+  /* AND SIBLINGS, ON *"students should be able to see their parents and siblings likewise"*. Cal is
+     Anna's second child, so Abe and Cal see each other; Ben is Bea's, and the only links between
+     him and Anna's children are L3 (asked) and L4 (refused) — so until Abe says yes to Bea, Ben is
+     nobody's brother here. After he does, Abe and Ben share an accepted parent and both appear. */
   f.seed('family', [
     { link_id: 'L1', parent_id: 'P-PA', child_id: 'P-SA', state: 'accepted' },
+    { link_id: 'L5', parent_id: 'P-PA', child_id: 'P-SC', state: 'accepted' },
     { link_id: 'L2', parent_id: 'P-PB', child_id: 'P-SB', state: 'accepted' },
     { link_id: 'L3', parent_id: 'P-PB', child_id: 'P-SA', state: 'asked' },
     { link_id: 'L4', parent_id: 'P-PA', child_id: 'P-SB', state: 'refused' },
@@ -581,9 +587,10 @@ PEOPLE.forEach(p => {
   /* AND STAMPED WITH WHOSE IT IS — the phone draws nothing whose `familyFor` is not the signed-in id. */
   const stamp = (d, label, exp) => { if (S(d.familyFor) !== exp) bad.push('family: ' + label + ' was stamped familyFor [' + S(d.familyFor) + '] — wanted [' + exp + ']'); return d; };
   const S = v => (v === undefined || v === null) ? '' : String(v);
-  const sa = tok('P-SA'), pa = tok('P-PA'), pb = tok('P-PB');
-  if (sa.token) want('the student P-SA', fam(stamp(f.get({ person: 'P-SA', name: sa.name, token: sa.token }), 'P-SA', 'P-SA'), 'P-SA'), 'parent:P-PA');
-  if (pa.token) want('the parent P-PA', fam(stamp(f.get({ person: 'P-PA', name: pa.name, token: pa.token }), 'P-PA', 'P-PA'), 'P-PA'), 'child:P-SA');
+  const sa = tok('P-SA'), pa = tok('P-PA'), pb = tok('P-PB'), sc = tok('P-SC');
+  if (sa.token) want('the student P-SA', fam(stamp(f.get({ person: 'P-SA', name: sa.name, token: sa.token }), 'P-SA', 'P-SA'), 'P-SA'), 'parent:P-PA,sibling:P-SC');
+  if (sc.token) want('the student P-SC', fam(stamp(f.get({ token: sc.token }), 'P-SC', 'P-SC'), 'P-SC'), 'parent:P-PA,sibling:P-SA');
+  if (pa.token) want('the parent P-PA', fam(stamp(f.get({ person: 'P-PA', name: pa.name, token: pa.token }), 'P-PA', 'P-PA'), 'P-PA'), 'child:P-SA,child:P-SC');
   if (pb.token) want('the parent P-PB', fam(stamp(f.get({ person: 'P-PB', name: pb.name, token: pb.token }), 'P-PB', 'P-PB'), 'P-PB'), 'child:P-SB');
   want('a stranger whose URL names P-SA', fam(stamp(f.get({ person: 'P-SA', name: 'Abe Child' }), 'stranger', ''), 'stranger'), '');
   /* THE REQUEST THAT BECOMES A LINK goes to the child it names and nobody else: P-SA has Bea's
@@ -593,6 +600,9 @@ PEOPLE.forEach(p => {
   const sb = tok('P-SB');
   if (sa.token) want('the claims sent to P-SA', claimsOf(f.get({ token: sa.token })), 'Bea Parent');
   if (sb.token) want('the claims sent to P-SB', claimsOf(f.get({ token: sb.token })), '');
+  /* A CHILD OF ANOTHER FAMILY, AND AN ASKED LINK: Ben shares no ACCEPTED parent with Abe or Cal. */
+  if (sb.token) want('the student P-SB (only an asked and a refused link to the other family)',
+    fam(f.get({ token: sb.token }), 'P-SB'), 'parent:P-PB');
   if (pb.token) want('the claims sent to the parent who asked', claimsOf(f.get({ token: pb.token })), '');
   want('the claims sent to a stranger whose URL names P-SA', claimsOf(f.get({ person: 'P-SA', name: 'Abe Child' })), '');
   /* AND ANSWERING IT IS WHAT MAKES THE FAMILY: yes on L3 puts Bea on Abe's list, and Abe's claims
@@ -604,7 +614,8 @@ PEOPLE.forEach(p => {
     const yes = f.post({ action: 'answerClaim', token: sa.token, rowIndex: row, accept: true });
     if (!yes || !yes.success) bad.push('family: P-SA could not accept Bea\'s claim — ' + JSON.stringify(yes));
     const after = f.get({ token: sa.token });
-    want('P-SA after saying yes to Bea', fam(after, 'P-SA after yes'), 'parent:P-PA,parent:P-PB');
+    want('P-SA after saying yes to Bea', fam(after, 'P-SA after yes'), 'parent:P-PA,parent:P-PB,sibling:P-SB,sibling:P-SC');
+    if (sb.token) want('P-SB after Abe said yes to Bea', fam(f.get({ token: sb.token }), 'P-SB after yes'), 'parent:P-PB,sibling:P-SA');
     want('the claims left for P-SA after answering', claimsOf(after), '');
   }
 }

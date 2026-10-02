@@ -3118,6 +3118,23 @@ check('a student sees their parents, a parent their children, on the account col
   if (hs.some(h => h === 'Your child')) bad.push('a family entry for the signed-in person themselves was drawn as a card');
   if (w.__t.accountPages().length !== before + 1) bad.push('one parent added ' + (w.__t.accountPages().length - before) + ' page(s), not 1');
 
+  /* AND A BROTHER OR SISTER, ON *"students should be able to see their parents and siblings
+     likewise"*. `doGet` sends `relation: 'sibling'` for another child of an accepted parent; the
+     column draws it under its own label, once, and the parent's card is still there beside it. A
+     relation this phone has no label for is drawn as nothing, which is what an older phone does
+     with a newer backend's rows. */
+  {
+    const held = D.family;
+    D.family = held.concat([{ personId: 'P-S2', title: 'Sasha Student', relation: 'sibling', handle: 'sasha_kind14', image: '' },
+                            { personId: 'P-X', title: 'Xan Unknownrel', relation: 'cousin', handle: 'xan_odd15', image: '' }]);
+    const hs2 = heads();
+    if (hs2.filter(h => h === 'Your brother or sister').length !== 1) bad.push('a student sent one sibling drew ' + hs2.filter(h => h === 'Your brother or sister').length + ' "Your brother or sister" card(s)');
+    if (!/Sasha Student/.test(names())) bad.push('the sibling\'s name is not on the student\'s account column');
+    if (hs2.filter(h => h === 'Your parent').length !== 1) bad.push('adding a sibling lost or doubled the parent card');
+    if (/Xan Unknownrel/.test(names())) bad.push('a relation with no label (cousin) was drawn anyway');
+    D.family = held;
+  }
+
   /* A PARENT WHO IS ALSO A TUTOR IS DRAWN ONCE, here, and not again in the list of tutors below. */
   /* Seeded rather than taken from the fixture, whose one tutor carries no `personId` — and the
      match between a family entry and a tutor row is by that id and nothing else. */

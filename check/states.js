@@ -764,6 +764,10 @@ const STATES = {
             handle: 'philippa_bright42', image: '' },
           { personId: 'P-fam-child', title: 'Christopher Childerley', relation: 'child',
             handle: 'christopher_calm17', image: '' },
+          /* AND A SIBLING, on *"students should be able to see their parents and siblings
+             likewise"* — the longest of the three labels, so it is the one measured at 320. */
+          { personId: 'P-fam-sib', title: 'Bartholomew Brotherington-Hale', relation: 'sibling',
+            handle: 'bartholomew_kind19', image: '' },
         ];
         paint('account');
         /* ON THE REQUEST, which is the page in front of the family cards: the one with buttons. */
@@ -775,10 +779,11 @@ const STATES = {
         const heads = [...document.querySelectorAll('#s-account .card.is-prof h3')].map(h => h.textContent.trim());
         return heads.filter(h => h === 'Your parent').length === 1
             && heads.filter(h => h === 'Your child').length === 1
+            && heads.filter(h => h === 'Your brother or sister').length === 1
             && document.querySelectorAll('#s-account [data-do="claim-yes"]').length === 1 ? 3 : 0;
       },
-      wants: 'one card headed "Your parent", one headed "Your child", and one request to answer',
-      /* `repaint(true)`, not `paint`: three pages leave the column, so it is placed again — a bare paint
+      wants: 'one card each headed "Your parent", "Your child" and "Your brother or sister", and one request to answer',
+      /* `repaint(true)`, not `paint`: four pages leave the column (a sibling made it four), so it is placed again — a bare paint
          left the card in front sitting where the old page 2 was, and COLUMNS OUT OF LINE said so. */
       leave: () => { DATA.family = window.__FAM_HELD; DATA.familyFor = window.__FAM_FOR; DATA.claims = window.__FAM_CLAIMS; repaint(true); } },
   ],
