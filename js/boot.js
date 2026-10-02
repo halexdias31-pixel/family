@@ -57,3 +57,9 @@ load();
    actually needs first. See the long note over `watchBuild_`: a phone showed a fifteen-hour-old
    Reels column an hour after the new one had deployed, and nothing anywhere could say so. */
 try { watchBuild_(); } catch (e) {}
+
+/* ---------- AND AN ACCOUNT ARRIVING FROM ITS CONFIRMATION EMAIL ---------------------------------
+   `?verify=<token>` is the link `register` mails. AFTER `load()` for the same reason as the line
+   above — the payload is what the app needs first — and it needs nothing from it, so it does not
+   wait for it either. See `verifyFromLink_` in me.js. */
+try { verifyFromLink_(); } catch (e) {}

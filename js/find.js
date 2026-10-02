@@ -8034,7 +8034,12 @@ function accountPages_() {
      children were drawn as "Your child" on the child's column until the new payload landed, and
      for good if it never did. `familyFor` is the id the server built the list for; a list built
      for anybody else, or stamped by nobody, draws nothing. */
-  const famLabel_ = { parent: 'Your parent', child: 'Your child' };
+  /* `sibling` ON *"students should be able to see their parents and siblings likewise"*. Another
+     child of a parent you have ACCEPTED, decided in `doGet` like the other two. "Brother or sister"
+     rather than "sibling" because the people reading it are mostly children, and the app knows no
+     one's gender to pick one of the two. A relation not in this table draws nothing, which is
+     what kept a new backend's `sibling` rows off an older phone instead of drawing them unlabelled. */
+  const famLabel_ = { parent: 'Your parent', child: 'Your child', sibling: 'Your brother or sister' };
   const famMine = !!(USER.personId && DATA.familyFor && String(DATA.familyFor) === String(USER.personId));
   const family = (famMine && Array.isArray(DATA.family) ? DATA.family : [])
     .filter(f => f && f.personId && f.title && famLabel_[f.relation]

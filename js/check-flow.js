@@ -164,7 +164,9 @@ function boot(opts) {
   let html = fs.readFileSync(path.join(dir, '..', 'index.html'), 'utf8')
     .replace(/<script[\s\S]*?<\/script>/g, '');
   const dom = new JSDOM(html, { runScripts: 'outside-only', pretendToBeVisual: true,
-                                url: 'https://example.org/' });
+                                /* A JOURNEY MAY ARRIVE ON AN ADDRESS — `?verify=` is read at boot,
+                                   so the only way to test it is to start there. */
+                                url: opts.url || 'https://example.org/' });
   const w = dom.window;
   /* The handful of browser things jsdom does not provide. Stubs rather than shims: the app must not
      be able to tell, and none of these is what is being tested. */
@@ -2938,6 +2940,112 @@ check('a refusal is a toast and never a banner that outlives it', async () => {
   return bad;
 });
 
+check('the sign-in card is one tile row, and Make an account posts register', async () => {
+  /* ==================================================================================================
+     ASKED FOR AS *"turn the sign in and forgot pin buttons into tiles. same with create account
+     button."* Three things are held here, because each one broke or never existed before:
+       - the three actions are TILES in ONE row on the sign-in card, and the old `No account yet?`
+         card is gone (two doors to one room is the thing this app keeps removing);
+       - the create-account tile OPENS something. It toasted "Registration is the next thing to
+         wire" and posted nothing, which a press-sweep reads as "something happened";
+       - a filled sheet posts `register` with the four fields the backend requires, by the names
+         dopost.gs reads (`first_name`, `last_name`, `email`, `pin`) — and a PIN the backend would
+         refuse is refused here BEFORE anything goes on the wire. */
+  const { w, sent } = boot({ reply: b => b.action === 'register'
+    ? { success: true, name: 'Rae Newcomer', pending: true } : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(120);
+  const row = d.querySelector('#s-account .tile-row');
+  const acts = row ? [...row.querySelectorAll('.tile')].map(x => x.dataset.do) : [];
+  if (acts.join(',') !== 'do-signin,forgot-pin,register') {
+    bad.push('the sign-in card\'s tile row holds ' + JSON.stringify(acts) + ', wanted do-signin, forgot-pin, register');
+  }
+  const loose = [...d.querySelectorAll('#s-account [data-do="do-signin"], #s-account [data-do="forgot-pin"], #s-account [data-do="register"]')]
+    .filter(x => !x.classList.contains('tile'));
+  if (loose.length) bad.push(loose.length + ' sign-in control(s) are still not tiles: ' + loose.map(x => x.dataset.do).join(', '));
+  if (row && [...row.querySelectorAll('.tile')].some(x => !x.querySelector('svg.tile-i'))) {
+    bad.push('a sign-in tile has no mark — TILE_ICONS is missing one of in, key, join');
+  }
+
+  /* ENTER STILL SIGNS IN — the listener clicks `[data-do="do-signin"]`, whatever element that is. */
+  const name = d.getElementById('in-name'), pin = d.getElementById('in-pin');
+  if (name && pin) {
+    name.value = 'x@example.org'; pin.value = '0000';
+    sent.length = 0;
+    pin.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+    await wait(300);
+    if (!sent.some(b => b.action === 'verifyLogin')) bad.push('Enter in the PIN box posted ' + JSON.stringify(sent.map(b => b.action)) + ', not verifyLogin');
+    t.USER(null); t.go('account', false, true); try { w.paint('account'); } catch (e) {} await wait(80);
+  } else bad.push('the sign-in card has no #in-name / #in-pin');
+
+  const reg = d.querySelector('#s-account [data-do="register"]');
+  if (!reg) return bad.concat(['there is no Make an account tile to press']);
+  t.ACTIONS['register'](reg);
+  await wait(50);
+  const sheet = d.getElementById('sheet');
+  if (!sheet || sheet.classList.contains('hidden')) return bad.concat(['pressing Make an account opened no sheet']);
+  const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
+  if (!['reg-first', 'reg-last', 'reg-email', 'reg-pin'].every(id => fill(id, ''))) {
+    return bad.concat(['the register sheet is missing one of its four boxes']);
+  }
+  const go_ = d.querySelector('#sheet-body [data-do="reg-send"]');
+  if (!go_) return bad.concat(['the register sheet has no button']);
+
+  /* A BAD PIN, REFUSED ON THE PHONE. Three digits and a letter are both things the server refuses. */
+  fill('reg-first', 'Rae'); fill('reg-last', 'Newcomer'); fill('reg-email', 'rae@example.org');
+  for (const p of ['123', '12a4', '123456789']) {
+    fill('reg-pin', p);
+    sent.length = 0;
+    t.ACTIONS['reg-send'](go_);
+    await wait(200);
+    if (sent.some(b => b.action === 'register')) bad.push('a PIN of "' + p + '" was posted — the backend refuses it, so the phone should');
+  }
+
+  fill('reg-pin', '0000');
+  sent.length = 0;
+  t.ACTIONS['reg-send'](go_);
+  await wait(300);
+  const post = sent.find(b => b.action === 'register');
+  if (!post) bad.push('a filled sheet posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no register');
+  else {
+    const want = { first_name: 'Rae', last_name: 'Newcomer', email: 'rae@example.org', pin: '0000' };
+    Object.keys(want).forEach(k => { if (post[k] !== want[k]) bad.push('register carried ' + k + ' = ' + JSON.stringify(post[k]) + ', wanted ' + JSON.stringify(want[k])); });
+  }
+  if (!sheet.classList.contains('hidden')) bad.push('the sheet is still open after the account was made');
+  const said = String((d.getElementById('toast') || {}).textContent || '');
+  if (!/link/i.test(said)) bad.push('after registering the toast says ' + JSON.stringify(said) + ' — nothing about the emailed link');
+  return bad;
+});
+
+check('arriving on ?verify= confirms the address once and takes it out of the bar', async () => {
+  /* ==================================================================================================
+     `register` MAILS `?verify=<token>` AND, BEFORE THIS, NOTHING ON THE SITE READ IT. Every account
+     made from the form stayed PENDING and `verifyLogin` refuses PENDING — so the journey above would
+     have passed on an account nobody could ever sign into. This starts the app on that address. */
+  const { w, sent } = boot({ url: 'https://example.org/?verify=Vabc123&post=P9',
+    reply: b => b.action === 'verifyEmail' ? { success: true, name: 'Rae Newcomer' } : { success: true } });
+  await wait(400);
+  const bad = [];
+  const posts = sent.filter(b => b.action === 'verifyEmail');
+  if (posts.length !== 1) bad.push('booting on ?verify= posted verifyEmail ' + posts.length + ' time(s), wanted once');
+  else if (posts[0].token !== 'Vabc123') bad.push('verifyEmail carried token ' + JSON.stringify(posts[0].token) + ', wanted "Vabc123"');
+  /* SINGLE-USE ON THE SERVER, so a refresh must not send it again. The rest of the address stays. */
+  const q = String(w.location.search);
+  if (/verify=/.test(q)) bad.push('the token is still in the address (' + q + '), so a refresh posts it again');
+  if (!/post=P9/.test(q)) bad.push('taking the token out also took the rest of the address (' + q + ')');
+  const said = String((w.document.getElementById('toast') || {}).textContent || '');
+  if (!/confirmed/i.test(said)) bad.push('after verifying the toast says ' + JSON.stringify(said));
+
+  /* AND AN ORDINARY START POSTS NOTHING OF THE KIND. */
+  const plain = boot({});
+  await wait(300);
+  if (plain.sent.some(b => b.action === 'verifyEmail')) bad.push('an ordinary start posted verifyEmail');
+  return bad;
+});
+
 check('each stage tick takes the date it actually happened on', async () => {
   /* ==================================================================================================
      ASKED FOR AS *"The tick boxes have a date for when it got requested. When other things get
@@ -3694,6 +3802,23 @@ check('a student sees their parents, a parent their children, on the account col
   if (!/Pat Parentworth/.test(names())) bad.push('the parent\'s name is not on the student\'s account column');
   if (hs.some(h => h === 'Your child')) bad.push('a family entry for the signed-in person themselves was drawn as a card');
   if (w.__t.accountPages().length !== before + 1) bad.push('one parent added ' + (w.__t.accountPages().length - before) + ' page(s), not 1');
+
+  /* AND A BROTHER OR SISTER, ON *"students should be able to see their parents and siblings
+     likewise"*. `doGet` sends `relation: 'sibling'` for another child of an accepted parent; the
+     column draws it under its own label, once, and the parent's card is still there beside it. A
+     relation this phone has no label for is drawn as nothing, which is what an older phone does
+     with a newer backend's rows. */
+  {
+    const held = D.family;
+    D.family = held.concat([{ personId: 'P-S2', title: 'Sasha Student', relation: 'sibling', handle: 'sasha_kind14', image: '' },
+                            { personId: 'P-X', title: 'Xan Unknownrel', relation: 'cousin', handle: 'xan_odd15', image: '' }]);
+    const hs2 = heads();
+    if (hs2.filter(h => h === 'Your brother or sister').length !== 1) bad.push('a student sent one sibling drew ' + hs2.filter(h => h === 'Your brother or sister').length + ' "Your brother or sister" card(s)');
+    if (!/Sasha Student/.test(names())) bad.push('the sibling\'s name is not on the student\'s account column');
+    if (hs2.filter(h => h === 'Your parent').length !== 1) bad.push('adding a sibling lost or doubled the parent card');
+    if (/Xan Unknownrel/.test(names())) bad.push('a relation with no label (cousin) was drawn anyway');
+    D.family = held;
+  }
 
   /* A PARENT WHO IS ALSO A TUTOR IS DRAWN ONCE, here, and not again in the list of tutors below. */
   /* Seeded rather than taken from the fixture, whose one tutor carries no `personId` — and the

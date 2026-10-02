@@ -618,6 +618,23 @@ const STATES = {
      — the same argument as the films two blocks up. */
   account: [
     { name: '' },
+    /* ---------- THE SHEET THAT MAKES AN ACCOUNT ----------------------------------------------------
+       ASKED FOR AS *"turn the sign in and forgot pin buttons into tiles. same with create account
+       button."* The third tile opens a four-box form a signed-out visitor is the only one to see —
+       and `#sheet` is a sibling of the screens, so without a state of its own neither the measuring
+       pass nor the pressing pass would ever have it open. Entered through the tile's own handler. */
+    { name: 'making an account',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const tile = document.querySelector('#s-account [data-do="register"]');
+        if (!tile) throw new Error('no Make an account tile on the signed-out account column');
+        ACTIONS['register'](tile);
+      },
+      expect: () => ['reg-first', 'reg-last', 'reg-email', 'reg-pin']
+        .filter(id => document.getElementById(id)).length
+        + (document.querySelector('#sheet-body [data-do="reg-send"]') ? 1 : 0) === 5 ? 5 : 0,
+      wants: 'the register sheet open: four boxes and its one button',
+      leave: () => { closeSheet(); } },
     /* ---------- THE HANDLE, WITH EXACTLY ONE `@` IN FRONT OF IT ----------------------------------
        ASKED FOR AS *"each person should have … handle llik \"@_____\""*, and the visible half of that
        had never existed: `doGet` has sent `handle` on every tutor since it was written and the only
@@ -813,6 +830,10 @@ const STATES = {
             handle: 'philippa_bright42', image: '' },
           { personId: 'P-fam-child', title: 'Christopher Childerley', relation: 'child',
             handle: 'christopher_calm17', image: '' },
+          /* AND A SIBLING, on *"students should be able to see their parents and siblings
+             likewise"* — the longest of the three labels, so it is the one measured at 320. */
+          { personId: 'P-fam-sib', title: 'Bartholomew Brotherington-Hale', relation: 'sibling',
+            handle: 'bartholomew_kind19', image: '' },
         ];
         paint('account');
         /* ON THE REQUEST, which is the page in front of the family cards: the one with buttons. */
@@ -824,10 +845,11 @@ const STATES = {
         const heads = [...document.querySelectorAll('#s-account .card.is-prof h3')].map(h => h.textContent.trim());
         return heads.filter(h => h === 'Your parent').length === 1
             && heads.filter(h => h === 'Your child').length === 1
+            && heads.filter(h => h === 'Your brother or sister').length === 1
             && document.querySelectorAll('#s-account [data-do="claim-yes"]').length === 1 ? 3 : 0;
       },
-      wants: 'one card headed "Your parent", one headed "Your child", and one request to answer',
-      /* `repaint(true)`, not `paint`: three pages leave the column, so it is placed again — a bare paint
+      wants: 'one card each headed "Your parent", "Your child" and "Your brother or sister", and one request to answer',
+      /* `repaint(true)`, not `paint`: four pages leave the column (a sibling made it four), so it is placed again — a bare paint
          left the card in front sitting where the old page 2 was, and COLUMNS OUT OF LINE said so. */
       leave: () => { DATA.family = window.__FAM_HELD; DATA.familyFor = window.__FAM_FOR; DATA.claims = window.__FAM_CLAIMS; repaint(true); } },
   ],
