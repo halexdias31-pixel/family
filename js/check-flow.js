@@ -356,6 +356,16 @@ function boot(opts) {
       'widgetsOf: typeof widgetsOf_ === "function" ? widgetsOf_ : null,' +
       'savedWidgets: typeof savedWidgets_ === "function" ? savedWidgets_ : null,' +
       'star: k => FAVS.add(String(k)),' +
+      /* WHAT THE FIND SCREEN OFFERS AGAINST WHAT THE APP HOLDS, and the Saved column that reads the
+         second. Two lists on purpose: a kind taken off Find must leave the first and stay in the
+         second, or a starred thing vanishes from the one list whose job is to keep it. `doors` is
+         the first question's answers as the funnel draws them. */
+      'funnelItems: typeof stuffItems === "function" ? stuffItems : null,' +
+      'allItems: typeof stuffItemsAll_ === "function" ? stuffItemsAll_ : null,' +
+      'savedPages: typeof savedPages_ === "function" ? savedPages_ : null,' +
+      'doors: () => facetValues(stuffItems(), facetList().find(f => f.field === "forLabel"))' +
+      '  .map(v => String(v.show || v.value)),' +
+      'facetFields: () => facetList().map(f => f.field),' +
       /* THE BASKET, AND ITS ARITHMETIC. `cartMoney_` is the one place a line's price is worked out
          — print plus the laminate upgrade — and `CART` is the list it works it out from. Exposed
          together so a journey can put a line in the basket and ask what it costs, which is the
@@ -1438,6 +1448,49 @@ check("the flyer maker is an admin's and nobody else's", async () => {
   if (!t.widgetFor(fly)) bad.push('an admin may not open the flyer maker');
   if (!t.widgetsOf('tool').some(x => x.id === 'flyers')) bad.push('the Tools column does not offer an admin the flyer maker');
   if (!t.savedWidgets().some(x => x.id === 'flyers')) bad.push('an admin who starred the flyer maker does not find it on Saved');
+  return bad;
+});
+
+/* ---------- VENUES ARE OFF FIND, AND A STARRED VENUE IS STILL ON SAVED -----------------------------
+   ASKED FOR AS *"Get rid of booking places ... So finder now will become just learning stuff."* The
+   venue kind was `Booking, Places`, a second group whose only job was to get past `FUNNEL_NOT_FOR`,
+   and Find's first question read `Booking, Places | Learning | Links | Shop` — one chip with a
+   comma in it. No check saw it, because `check/fixture.json` sent a `kinds` tab production does not
+   have. THIS PAYLOAD SENDS NONE, which is what production sends, so the code's own groups decide.
+
+   THREE QUESTIONS, ONE PER WAY IT CAN GO WRONG: a venue in the list Find draws; a door whose name is
+   two groups joined by a comma (the code's own cell is not split by `asList_`, so a comma there is a
+   chip, never two); and a venue somebody starred going missing from Saved, which reads every item
+   the app holds rather than the funnel's list. */
+check('venues are off Find, and a starred venue is still on Saved', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.funnelItems || !t.allItems || !t.savedPages || !t.doors || !t.star) {
+    return ['the funnel\'s two lists and the Saved column are not exported'];
+  }
+  const bad = [];
+  const all = t.allItems().filter(x => x.kind === 'venue');
+  if (!all.length) return ['the payload\'s two venues are not items at all, so nothing here measures anything'];
+  const found = t.funnelItems().filter(x => x.kind === 'venue');
+  if (found.length) {
+    bad.push(found.length + ' venue(s) are still in the list Find draws (' + found.map(x => x.name).join(', ')
+             + ') — the owner asked for booking places to be taken off it. See `venue` in KINDS.');
+  }
+  const doors = t.doors();
+  const fused = doors.filter(d => /,/.test(d));
+  if (fused.length) bad.push('Find\'s first question offers ' + fused.map(d => '"' + d + '"').join(', ')
+                             + ' — two groups drawn as one door');
+  if (doors.some(d => /^(Places|Booking)$/i.test(d))) {
+    bad.push('Find\'s first question still offers ' + doors.join(' | '));
+  }
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.star(all[0].key);
+  const saved = t.savedPages().join('');
+  if (saved.indexOf(all[0].name) === -1) {
+    bad.push('"' + all[0].name + '" was starred and is not on the Saved column — taking a kind off Find '
+             + 'must not take it off the list of things somebody kept. See `collItems_`.');
+  }
   return bad;
 });
 

@@ -121,28 +121,26 @@ const KINDS = {
                          && norm((x.row || {}).title) === norm(USER.name))
                         ? meCard()
                         : findCard({ kind: x.kind, row: x.row }) },
-  /* ---------- A VENUE IS IN TWO GROUPS, AND THAT IS WHAT PUTS IT BACK IN THE FUNNEL -------------
-     ASKED FOR AS "add venues to finder". `FUNNEL_NOT_FOR` drops anything whose group list is
-     EXACTLY `['Booking']` — and its own note says the array form "has been supported since a tutor
-     was two things", so a second group is the mechanism rather than a workaround. `asList_` splits
-     this cell, so two groups is a comma.
+  /* ---------- A VENUE IS A BOOKING THING AGAIN, AND THAT IS WHAT TAKES IT OFF FIND -------------
+     IT WAS `Booking, Places` — two groups, which was the mechanism behind "add venues to finder":
+     `FUNNEL_NOT_FOR` drops a kind whose group list is EXACTLY `['Booking']`, and a second group was
+     the comma that got past it. The first Find question then read `Booking, Places (13) | Learning
+     | Links | Shop`, and `asList_` does not split the code's own cell, so the door was ONE chip with
+     a comma in its name. Every check missed it because `check/fixture.json` sent a `kinds` tab
+     production does not have, and its rows put the venue under `places` instead.
 
-     PLACES, NOT LEARNING, and the distinction is the one the two doors are for. `What for` takes
-     somebody from the whole app to a department; a venue is not a thing you learn from, it is
-     somewhere you go. Putting it under Learning would have made that door mean two things.
+     TAKEN BACK OUT ON THE OWNER'S WORD: *"Get rid of booking places. Get rid of shop tag. I will
+     make a new coloumn for shop stuff. So finder now will become just learning stuff."* So the one
+     group is the whole change, and `FUNNEL_NOT_FOR` does the rest with nothing added to it.
 
-     IT STAYS IN BOOKING TOO, which is what keeps the booking form's dropdown and the pricing
-     working: `venueRows` is unchanged and `Booking · Venues` still answers. This adds a second
-     door onto the same rows rather than moving them.
+     NOTHING GOES DARK. A venue is still a row in `stuffItemsRaw_`, so a STARRED venue is still on
+     Saved (`collItems_` reads `stuffItemsAll_`), and the booking form's venue dropdown and the
+     pricing read `venueRows` and never read this. `check-flow.js` asks both halves.
 
-     AND IT MAKES A DEAD FACET REACHABLE. `borough` has sat in `FACETS` with a note saying it "is
-     only ever asked once you are looking at venues" — which, with venues out of the funnel, was
-     never. It is a live question again with nothing added.
-
-     WHAT IS NOT DONE HERE: the drawn picture per venue. Asked for in the same message as "later",
-     so it is a task rather than this commit — `findCard` already draws `image` where a row has
-     one, which is where a drawing would go. */
-  venue:   { group: 'Booking, Places', label: 'Venues',
+     AND `borough` GOES QUIET WITH IT. `Where` was answered by eleven venues and by nothing else —
+     measured over the real venues and the real shop — so its row in `data/settings/facets.json` is
+     switched off rather than left to be asked of nobody. */
+  venue:   { group: 'Booking', label: 'Venues',
              card: x => findCard({ kind: x.kind, row: x.row }) },
   subject: { group: 'Booking', label: 'Subjects', card: x => findCard({ kind: x.kind, row: x.row }) },
   /* A LEVEL IS THE FOURTH THING A BOOKING IS ASSEMBLED FROM — who, where, what, and how far on —
@@ -450,6 +448,14 @@ const KINDS = {
      names them, with their answers under them — `paperBody_` calls the same `answerBlock_`. And
      `paperText_(id)` already folds every question's words into the
      paper's own haystack, which is why searching `surds` finds the paper rather than nothing. */
+  /* ---------- THE SHOP DOOR STAYS, FOR NOW, AND ON PURPOSE ----------------------------------------
+     THE OWNER ASKED FOR IT TO GO in the same sentence as the venues — *"Get rid of shop tag. I will
+     make a new coloumn for shop stuff."* — and the second half is why it has not. Measured: 62 shop
+     rows, 22 of them wearables (reachable through the wardrobe on Settings) and FORTY Things —
+     pencils, kits, bundles — whose ONLY way onto a screen is this door. Taking it out before the
+     column exists is a deletion of forty products wearing a tidy-up's clothes, which is the sentence
+     `FUNNEL_NOT_FOR` already writes about Booking. So it leaves in the change that builds the column,
+     and until then it is untouched: same group, same label, same card. */
   shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => thingCard_(x, c) },
 };
 
@@ -895,10 +901,13 @@ function bucketTable_(pairs) {
 
 /* WHAT YOU ARE HERE TO DO WITH IT. The eight kinds are three errands, and which errand somebody is
    on is the thing they know before they know anything else. */
+/* `People & places` (Tutors, Venues) WAS A THIRD ROW, and nothing could answer it: a tutor is
+   `Booking` alone and a venue is again, so `FUNNEL_NOT_FOR` keeps both out of every list this
+   grouping is asked of. It showed up only under `check/fixture.json`'s old `kinds` rows, which
+   filed them under `people` and `places` where production files them nowhere. */
 const KIND_BUCKET = bucketTable_([
   ['Work through it',  ['Questions', 'Quizzes', 'Practicals']],
   ['Read or watch it', ['Links', 'Films', 'Resources']],
-  ['People & places',  ['Tutors', 'Venues']],
 ]);
 
 /* THE FOUR SCIENCES ARE ONE ANSWER UNTIL SOMEBODY WANTS ONE OF THEM. Maths and English are not
@@ -1075,7 +1084,9 @@ const FACETS = [
     bucketOf: KIND_BUCKET, bucketOrder: KIND_BUCKET.order, label: 'What kind',   always: true,
     of: x => x.kindLabel || kindOf_(x).label },
   /* Only venues have one, so it is only ever asked once you are looking at venues — which is the
-     coverage rule doing the work that a per-kind filter list would otherwise have to. */
+     coverage rule doing the work that a per-kind filter list would otherwise have to.
+     VENUES ARE OFF FIND, so nothing in the funnel answers it and its `facets.json` row is OFF. The
+     reader stays: it is one line, and a `kinds` row putting venues back puts the question back. */
   { field: 'borough',   label: 'Where',       of: x => x.borough || '' },
   /* Only links have one, so it is only ever asked once you are looking at links — the coverage
      rule again, doing what a per-kind filter list would otherwise need code for. */
@@ -6010,6 +6021,8 @@ function stuffItems() {
                      this change had to undo that half in the same commit.
      · VENUES      — the booking form's venue dropdown, which is the only thing anybody did with
                      one. The slip card is not drawn anywhere now, and that is the real cost.
+                     (They came back as `Booking, Places` on "add venues to finder" and left again
+                     on "get rid of booking places" — see the note on `venue` in `KINDS`.)
      · SUBJECTS
        AND LEVELS  — the same: dropdowns on the form. `subjectRows` and `levelRows` still build,
                      because the booking form and the pricing read them.

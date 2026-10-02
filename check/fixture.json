@@ -67,32 +67,7 @@
    "active": "yes"
   }
  ],
- "kinds": [
-  {
-   "kind": "tutor",
-   "group": "people",
-   "label": "Tutors",
-   "order": 1,
-   "active": true,
-   "null": ""
-  },
-  {
-   "kind": "venue",
-   "group": "places",
-   "label": "Venues",
-   "order": 2,
-   "active": true,
-   "null": ""
-  },
-  {
-   "kind": "receipt",
-   "group": "Booking",
-   "label": "Sessions",
-   "order": 3,
-   "active": true,
-   "null": ""
-  }
- ],
+ "kinds": [],
  "people": [
   {
    "person_id": "P001",
