@@ -1741,8 +1741,10 @@ function filterHit(x, f) {
  * and the rule falls back a rung to `Paper 1 (Non-Calculator)` / `Paper 1: Philosophy of religion
  * and ethics`. Measured both ways.
  *
- * IT NEVER INVENTS A WORD. Every form is a prefix of a name somebody typed, which is the same
- * argument as the spelling vote above: `Hcf And Lcm` is what happens when code writes the label.
+ * IT NEVER INVENTS A WORD. Every form is a prefix of a name somebody typed -- or, for one form, the
+ * number and the date with the qualifier between them dropped (see the end of the function) -- which
+ * is the same argument as the spelling vote above: `Hcf And Lcm` is what happens when code writes
+ * the label.
  *
  * `value` IS UNTOUCHED, and that is the half that makes it safe. `filterHit` matches the chip
  * against `facet.of(x)` through `spellKey_`, so a chip holding a SHORTENED name would find nothing
@@ -1769,6 +1771,23 @@ function nameForms_(s) {
   cut(/\s[—–]\s/);
   cut(/\s*[:(]/);
   out.sort((a, b) => a.length - b.length);
+  /* ---------- AND THE NUMBER WITH ITS DATE, WHEN THE YEAR WAS SKIPPED -----------------------------
+     `Doesn't matter` ON THE YEAR LEFT SIX KS2 PAPERS READING THEIR WHOLE NAMES -- `Paper 1:
+     Arithmetic — May 2019` and five like it, thirty characters each -- because every prefix this
+     cuts collides across the two years: `Paper 1` twice, `Paper 1: Arithmetic` twice. What tells
+     them apart is the date, and the date is at the END. So one more form keeps the number and the
+     date and drops the qualifier between them, `Paper 1 — May 2019`, and goes in at RUNG 1 rather
+     than into the length sort: `shortLabels_` reads every value at the same rung, and sorted by
+     length `Paper 2: Reasoning` ties with `Paper 2 — May 2019` while `Paper 1: Arithmetic` does
+     not, so the date form would never line up across the list. Measured over every maths past-paper
+     route: forty Paper questions drawing whole names became six. Not a prefix, and still no word
+     the paper did not print. */
+  const q = /\s*[:(]/.exec(full);
+  const d = /\s[—–]\s/.exec(full);
+  if (q && q.index && d && q.index < d.index) {
+    const v = full.slice(0, q.index).trim() + full.slice(d.index);
+    if (v !== full && out.indexOf(v) === -1) out.splice(1, 0, v);
+  }
   out.push(full);
   return out;
 }
@@ -1818,9 +1837,13 @@ function nameForms_(s) {
    which `shortLabels_` then trims to `Paper 1 · Foundation`. At `Chemistry · Higher` two papers share no name at all, so
    nothing is appended and `shortLabels_` trims both to `Paper 1` and `Paper 2`.
 
-   WITH NO IDS IT IS THE LIBRARY, MEMOISED, exactly as before — which is what a CHIP needs. A chip
-   sits alone with no siblings to be unique against, so `chipText` must get the form that is
-   unambiguous in the whole library or the chip would read `Paper 1` and name one of twenty. */
+   WITH NO IDS IT IS THE LIBRARY, MEMOISED — the label for anything shown on its own, with nothing
+   beside it to be unique against: `bucketKeyOf_` (which must stay a pure function of the value),
+   the bundle's sort key and name, the basket line, and `chipShow_`'s fallback. It said a CHIP needed
+   this form too, or it would read `Paper 1` and name one of twenty; that was before the owner found
+   `PAPER Paper 1: Arithmetic — May 2019` on a chip over a menu saying `Paper 1`. A chip is labelled
+   now against the chips in front of it -- the list its button was drawn over -- so it reads
+   `Paper 1` exactly where the button did. See `chipShow_`. */
 /* ---------- THE FILE, NOT THE MAPPED LIST — AND THIS IS THE THIRD FUNCTION THAT NEEDED IT --------
    `libraryInto_` DROPS EVERY ROW WHOSE `active` CELL IS NOT ON, so `DATA.questions` holds 174 of
    the file's 691 document rows. Anything that reads a PAPER-LEVEL fact — the code on its cover, the
@@ -1852,9 +1875,23 @@ function libDocRows_() {
 const libIsDoc_ = r => !!r && (String(r.kind || '').toLowerCase() === 'document' || !!r.isDoc);
 
 const PAPER_LABEL = new WeakMap();
+/* ---------- AND ONE MAP PER ANSWER LIST, NOT ONE PER ANSWER ----------------------------------------
+   `showOf` IS CALLED ONCE PER ID WITH THE SAME `ids` ARRAY -- by `facetTally_` and by `chipShow_` --
+   and every call walked all 7,925 rows of the file to label one paper. Measured in Chromium at the
+   8x CPU the repo uses for a phone: a Paper chip with only `What for` and `What kind` in front of it
+   is 496 ids, so 496 walks, 2.3 to 2.8 seconds to draw one chip; and the Paper question over the
+   same list cost 2.6 seconds to tally. The map for a list does not change between its own ids, so
+   it is built once and kept on the ARRAY: both callers build `ids` once and hand that same array
+   to every value, and a new list is a new array with nothing to invalidate. `rows` rides along so
+   a new fetch of the file is a miss rather than a stale label. */
+const PAPER_LABEL_FOR = new WeakMap();
 
 function paperLabels_(ids) {
   const rows = libDocRows_();
+  if (ids && ids.length && typeof ids === 'object') {
+    const hit = PAPER_LABEL_FOR.get(ids);
+    if (hit && hit.rows === rows) return hit.map;
+  }
   const only = ids && ids.length ? new Set(ids.map(String)) : null;
   let map = only ? null : PAPER_LABEL.get(rows);
   if (map) return map;
@@ -1913,6 +1950,7 @@ function paperLabels_(ids) {
       : name + ' \u00b7 ' + extra;
   });
   if (!only) PAPER_LABEL.set(rows, map);
+  else if (typeof ids === 'object') PAPER_LABEL_FOR.set(ids, { rows: rows, map: map });
   return map;
 }
 
@@ -5604,6 +5642,24 @@ function qTags_(x) {
   (level.length ? level : qTagOf_('keystage', x)).forEach(v => add('level', v));
   const sats = level.some(v => /\bSATs\b/i.test(v));
   if (!sats) qTagOf_('examBoard', x).forEach(v => add('board', v));
+  /* ---------- THE SUBJECT IS THE FACET'S WORD, NOT THE ONE IN FRONT OF `Paper N` ------------------
+     IT WAS READ OFF THE NAME, and an AQA Combined Science paper is named `Biology Paper 1` -- so a
+     card reached through the green `Combined Science` chip wore a green `Biology`, which is the
+     funnel's word for a different qualification, while a real GCSE Biology paper (`Paper 1`) wore no
+     subject at all and read the same as Chemistry's. The green tag says what the Subject question
+     says; the name's own word stays with the number it belongs to, `Biology Paper 1`, in red. */
+  qTagOf_('subject', x).forEach(v => add('subject', v));
+  /* ---------- A 5-A-DAY IS NOT TAKEN APART BY ITS NAME -------------------------------------------
+     ITS NAME IS `<type> <level> — <day>`, so the cut below made `5-a-day Foundation` one red pill --
+     a type and a level fused -- and coloured the day as a sitting while the Day answer that reaches
+     it is red. Each fact goes through the facet that asks it and the colour that facet's chip wears,
+     so the card and the funnel cannot disagree about either. */
+  if (fiveADay_(x)) {
+    qTagOf_('documentType', x).forEach(v => add(tagOf_('documentType'), v));
+    qTagOf_('fiveLevel', x).forEach(v => add(tagOf_('fiveLevel'), v));
+    add(tagOf_('fiveDay'), fiveDayLabel_(x.row.paper_id));
+    return out;
+  }
   /* the date and the paper, off the name */
   const dash = /\s[\u2014\u2013]\s/.exec(name);
   const head = dash ? name.slice(0, dash.index).trim() : name;
@@ -5623,13 +5679,16 @@ function qTags_(x) {
   });
   add('sitting', date);
   /* `Biology Paper 2`, `GPS Paper 1`, `Specimen paper 1`: what comes before `Paper N` says which of
-     several papers this is, and `Specimen` is a KIND of paper rather than a subject. The number is
-     written `Paper N` whatever case the name used, so the red tag reads the same on every card. */
+     several papers this is -- so it stays WITH the number, `Biology Paper 2` in red, which is what
+     the Paper answer and its chip already say. `Specimen` is a KIND of paper rather than a part of
+     its name, so it is a type tag of its own. The number is written `Paper N` whatever case the name
+     used, so the red tag reads the same on every card. */
   const subjPaper = exam ? /^(.+?)\s+paper\s+(\S+)$/i.exec(paper) : null;
-  if (subjPaper) {
-    add(/^specimen$/i.test(subjPaper[1]) ? 'type' : 'subject', subjPaper[1]);
+  if (subjPaper && /^specimen$/i.test(subjPaper[1])) {
+    add('type', subjPaper[1]);
     add('paper', 'Paper ' + subjPaper[2]);
-  } else add('paper', paper.replace(/^paper\b/i, 'Paper'));
+  } else if (subjPaper) add('paper', subjPaper[1] + ' Paper ' + subjPaper[2]);
+  else add('paper', paper.replace(/^paper\b/i, 'Paper'));
   add('', what);
   return out;
 }
@@ -8355,33 +8414,37 @@ function stuffCard(x, credits) {
    the LIBRARY-unique form -- right for something standing on its own, and a chip is not on its
    own: the chips in front of it are what narrowed the list the button was drawn over.
 
-   SO IT IS LABELLED AGAINST THE CHIPS BEFORE IT, which is exactly the list the answer row saw:
-   the facet's values over the items those chips leave, through `showOf` and `shortLabels_`, the
-   same two steps `facetTally_` takes. Not against every OTHER chip -- a question-number chip
-   pressed after this one narrows the list to one paper, and the shortest form of one paper on its
-   own is `Paper 1` whatever the year, which would hide the year again when nothing above says it.
-   Memoised on the chip list and the payload, because the chips are redrawn on every tap. */
+   SO IT IS LABELLED AGAINST THE CHIPS BEFORE IT AND THE WORDS IN THE SEARCH BOX, which is exactly
+   the list the answer row saw: the facet's values over the items those leave, through `showOf` and
+   `shortLabels_`, the same two steps `facetTally_` takes. The search words were left out at first,
+   and with `2019` typed the menu read `Paper 1 | Paper 2 | Paper 3` and the chip pressed from it
+   read `Paper 2: Reasoning — May 2019` -- the reported symptom, back behind a search. Not against
+   every OTHER chip -- a question-number chip pressed after this one narrows the list to one paper,
+   and the shortest form of one paper on its own is `Paper 1` whatever the year, which would hide the
+   year again when nothing above says it. Memoised on the chip list, the search and the payload,
+   because the chips are redrawn on every tap. */
 const CHIP_SHOW = { key: null, from: null, out: {} };
 function chipShow_(f, i) {
   const facet = facetBy(f.field);
   if (!facet || !facet.showOf) return f.value;
   const fallback = () => { try { return facet.showOf(f.value) || f.value; } catch (e) { return f.value; } };
   if (typeof i !== 'number') return fallback();
-  const key = JSON.stringify(STUFF.filters.slice(0, i + 1));
+  const key = JSON.stringify([STUFF.q || '', STUFF.filters.slice(0, i + 1)]);
   if (CHIP_SHOW.from !== DATA) { CHIP_SHOW.from = DATA; CHIP_SHOW.out = {}; }
   if (key in CHIP_SHOW.out) return CHIP_SHOW.out[key];
   let show = '';
   try {
     const before = STUFF.filters.slice(0, i).filter(g => g.field !== f.field);
     const credits = USER ? (USER.credits || 0) : 0;
-    const items = stuffNarrow_(stuffItems(), before, [], credits);
+    const items = stuffNarrow_(stuffItems(), before, stuffWords_(STUFF.q), credits);
     const ids = [];
+    const seen = new Set();
     items.forEach(x => {
       let v;
       try { v = facet.of(x); } catch (e) { v = ''; }
-      asList_(v).forEach(one => { if (one && ids.indexOf(String(one)) === -1) ids.push(String(one)); });
+      asList_(v).forEach(one => { if (one && !seen.has(String(one))) { seen.add(String(one)); ids.push(String(one)); } });
     });
-    if (ids.indexOf(String(f.value)) === -1) ids.push(String(f.value));
+    if (!seen.has(String(f.value))) ids.push(String(f.value));
     const values = ids.map(v => ({ value: v, text: facet.showOf(v, ids) }));
     shortLabels_(values);
     const mine = values.find(v => v.value === String(f.value));
@@ -8407,7 +8470,9 @@ const TAG_OF = {
   examBoard: 'board', company: 'board',
   tier: 'tier', division: 'tier',
   topic: 'topic', topicArea: 'topic',
-  needs: 'needs',
+  /* `needs` IS NOT HERE ON PURPOSE. It was, in gold -- and gold is the press colour of every answer,
+     so a resting `What you need` answer read as one already pressed. A calculator is not a kind of
+     paper either; it keeps the plain outline. */
 };
 const tagOf_ = field => TAG_OF[field] || '';
 const tagAttr_ = field => tagOf_(field) ? ` data-tag="${tagOf_(field)}"` : '';
