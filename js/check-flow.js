@@ -3785,6 +3785,53 @@ check('an age range reads sensibly with both ends, one end, or neither', async (
   return bad;
 });
 
+/* ---------- A FRACTION ON A CARD IS DRAWN OVER ITS LINE, IN ALL FIVE PLACES A CARD DRAWS MATHS ----
+   ASKED FOR AS "it shouldnt be 4/5 it should be 4 over the five like how it is supposed to be."
+   `check-typeset.js` proves `typeset_` stacks a fraction; it cannot prove the CARD calls it, and a
+   card that typesets the part and forgets the answer draws half its fractions slanted, which is
+   exactly what the owner kept seeing. So this builds one card through the app's own
+   `questionCard_` with a stored fraction in the stem, the lead, the part, the answer and both
+   choices, and asks each region of the drawn card for its stacked fraction.
+
+   AND THE MARKER'S COLUMN COMES OUT UNTOUCHED. `accept` is what a typed answer is compared with,
+   and the typesetter must never see it: a `5/9` stacked into spans in `data-accept` would mark
+   every right answer wrong. */
+check('a fraction is drawn stacked in the stem, lead, part, answer and choices, and accept is not', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.questionCard_ !== 'function') return ['questionCard_ is not reachable — renamed?'];
+  const half = '<sup>1</sup>&frasl;<sub>2</sub>';
+  const base = { kind: 'question', key: 'q-typeset', name: 'Q9', marks: 2,
+    row: { row_id: 'Q-TYPESET-9', paper_id: 'P-TYPESET', subject: 'Maths', name: 'Typeset' },
+    stems: [{ html: '<p>Stem ' + half + '</p>' }], lead: '<p>Lead ' + half + '</p>',
+    html: '<p>Work out 3<sup>4</sup>&frasl;<sub>5</sub> and <i>x</i>^2</p>',
+    answer: '<b><sup>32</sup>&frasl;<sub>15</sub></b>' };
+  const draw = x => { const d = w.document.createElement('div'); d.innerHTML = w.questionCard_(x, 0); return d; };
+  const tapped = draw(Object.assign({}, base, {
+    choices: [half, '<sup>1</sup>&frasl;<sub>3</sub>'], choiceRight: [1] }));
+  [['.qsheet-stem', 'the stem'], ['.qsheet-lead', 'the lead'], ['.qsheet-pb', 'the part'],
+   ['.qans-body', 'the answer']].forEach(([sel, what]) => {
+    const el = tapped.querySelector(sel);
+    if (!el) bad.push(what + ' was not drawn at all');
+    else if (!el.querySelector('.frac .frac-n') || !el.querySelector('.frac .frac-d')) bad.push(what + ' drew its fraction slanted: ' + el.innerHTML.slice(0, 120));
+  });
+  const opts = [...tapped.querySelectorAll('.quiz-opt')];
+  if (opts.length !== 2) bad.push('the two choices drew as ' + opts.length + ' buttons');
+  else if (opts.some(b => !b.querySelector('.frac .frac-n'))) bad.push('a choice drew its fraction slanted');
+  const part = tapped.querySelector('.qsheet-pb');
+  if (part && !part.querySelector('.frac-mixed')) bad.push('3 4/5 is not kept together as a mixed number');
+  if (part && !/x<\/i><sup>2<\/sup>/.test(part.innerHTML)) bad.push('x^2 was not raised: ' + part.innerHTML);
+  /* THE TYPED BOX: no choices, an `accept`, and the attribute the marker reads must be byte for byte
+     what the row says. */
+  const typed = draw(Object.assign({}, base, { accept: '32/15 | 2 2\u204415' }));
+  const mark = typed.querySelector('.qp-mark');
+  if (!mark) bad.push('a row with an accept drew no Check');
+  else if (mark.getAttribute('data-accept') !== '32/15 | 2 2\u204415') bad.push('accept reached the marker changed: ' + mark.getAttribute('data-accept'));
+  if (base.html.indexOf('&frasl;') === -1) bad.push('drawing the card rewrote the stored row');
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;

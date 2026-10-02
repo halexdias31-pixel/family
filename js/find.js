@@ -4137,6 +4137,292 @@ function boxerCard_(x) {
 }
 
 
+/* ==================================================================================================
+   `typeset_` — A FRACTION IS DRAWN OVER ITS LINE, AND A POWER IS RAISED.
+
+   ASKED FOR AS "refine questions in the finder to make sure they are looking right e.g. no x2 or
+   x^2, it should look how its supposed to look ... same with fractions. it shouldnt be 4/5 it
+   should be 4 over the five like how it is supposed to be."
+
+   THE LIBRARY STORES A FRACTION AS `<sup>4</sup>&frasl;<sub>5</sub>` -- 442 rows in 100 papers --
+   and the card drew it exactly as stored: a small raised 4, a slanted bar, a small lowered 5. A
+   comment in style.css called that form "right for a bare fraction inside a sentence". That was a
+   builder's choice and never the owner's, and the owner has now said which one is right: on this
+   site a fraction looks the way the paper prints it, numerator over a bar over denominator.
+
+   AT DRAW TIME, NOT IN THE STORE, and that is deliberate rather than lazy. The stored shape is
+   load-bearing somewhere other than the screen: `tools/set-accept.py` reads `2<sup>2</sup>&frasl;`
+   as "a digit, then a numerator, so the digit is a whole number" when it writes `accept`, and that
+   one rule is two wrong-mark faults long (docs/history 026 -- `22/15` for 2 2/15). Rewriting 442
+   rows into spans would hand that tool a shape it has never seen. The marker reads `accept` and
+   nothing else, and this function is never shown `accept`, so no mark can move because of it.
+
+   WHAT IT DOES, IN THE ORDER IT DOES IT:
+
+     x^2, x^(n+1), 10^-3   a caret IN TEXT becomes a raised power. Never inside a tag, so an
+                           attribute holding a `^` is not rewritten into markup; never inside an
+                           <svg>, whose text is not prose. `e^(4x^2)` is a power with a power in
+                           it, so the string is read again from the caret it just replaced.
+     <sup>a</sup>&frasl;<sub>b</sub>
+                           stacked: a over a rule over b. The same for U+2044 and `&#8260;`,
+                           which are the same character written two other ways.
+     3<sup>4</sup>&frasl;<sub>5</sub>
+                           a MIXED NUMBER, the whole part kept on the fraction's line by
+                           `.frac-mixed`. A whole number before the numerator is the library's
+                           own convention, the one set-accept.py relies on -- not a guess made here.
+     3x<sup>2</sup>&frasl;<sub>(x + 2)</sub>
+                           NOT a mixed number: the superscript after a letter is a POWER, so the
+                           numerator is the whole term 3x² and not the 2. Q12(a) of the June 2020
+                           Paper 3 answer is written exactly so, and the first draft of this
+                           stacked "2 over (x + 2)" with a 3x standing outside it -- a different
+                           expression, and a wrong one, that looked perfectly typeset.
+     (x + 1) &frasl; 3     the operands either side of a bare slash are the TERMS touching it --
+                           a bracket, an element, a run of letters and digits -- because an
+                           expression has no markup saying where its numerator starts.
+                           `sin B &frasl; 6.5` takes the `sin` with it; a numerator of `B` alone
+                           would draw sin(B/6.5).
+
+   ONE PAIR OF BRACKETS ROUND A WHOLE NUMERATOR OR DENOMINATOR GOES, because a stacked fraction's
+   rule is the bracket: `(n − 1) over (n + 1)` is how a calculator writes it, not how a paper
+   prints it. Only when the pair encloses the WHOLE operand -- `(x + 2)(x − 4)` keeps both.
+
+   WHAT IT LEAVES ALONE: a slash INSIDE a superscript (`A<sup>1/3</sup>`, `1.3<sup>1&frasl;6</sup>`)
+   is a fractional index, and a stacked fraction at superscript size is unreadable on a phone --
+   the paper sets those inline too. And anything it cannot read both sides of is left exactly as
+   it came, slanted, which is what it was yesterday: a fallback, not a fault.
+
+   A HIDDEN SLASH BETWEEN THE TWO HALVES (`.frac-s`), so a screen reader says "4 slash 5" rather
+   than "4 5", and copying the question pastes 4/5 rather than 45.
+
+   ONE FUNCTION, EVERY PLACE QUESTION MARKUP IS DRAWN: the stems, the lead, the part, the answer
+   and each tapped choice. `node js/check-typeset.js` cuts it out of this file and runs it over
+   every row of the library, and `check-flow` asks a real card whether all five came out stacked.
+================================================================================================== */
+function typeset_(html) {
+  let s = String(html == null ? '' : html);
+  /* NOTHING TO DO IS THE COMMON CASE -- most of the library is prose -- so it is the first thing
+     asked, before a regex is built or a tag is read. */
+  if (s.indexOf('^') === -1 && !/&frasl;|\u2044|&#8260;/.test(s)) return s;
+
+  /* AN ELEMENT A TERM MAY BE MADE OF. `<p>` and `<li>` are not -- they are where a term ends. */
+  const INLINE = /^(i|b|em|strong|sup|sub|span|u|var|small)$/;
+  /* ENTITIES THAT ARE OPERATORS OR SPACES, so a term stops at them. Everything else written as an
+     entity -- &radic;, &pi;, &deg;, &theta; -- is part of the number it touches. */
+  const OP = /^(minus|times|divide|plusmn|middot|cdot|sdot|nbsp|ensp|emsp|thinsp|mdash|ndash|frasl|lt|gt|le|ge|ne|asymp|equiv|approx|rarr|larr|harr|rArr|hellip|amp|quot|lsquo|rsquo|ldquo|rdquo|there4|#8260|#8722|#160)$/;
+  /* A CHARACTER A TERM MAY BE MADE OF: digits, letters, Greek, the root and infinity, primes, the
+     degree sign, the superscript digits a pasted ² arrives as, and the vulgar fractions. NOT the
+     full stop -- that is taken only between two digits, so `10.7.` ends a sentence after the 7. */
+  const ATOM = /[0-9A-Za-z\u00b0\u00b2\u00b3\u00b9\u00bc-\u00be\u0307\u0370-\u03ff\u2070-\u209f\u2032\u2033\u2150-\u215e\u221a\u221e]/;
+  const PAIR = { '(': ')', '[': ']', '{': '}' }, BACK = { ')': '(', ']': '[', '}': '{' };
+  const FN = /^(sin|cos|tan|log|ln|lg|exp)$/;
+
+  /* WHERE A POSITION SITS: inside a tag, inside an <svg>, and how many <sup>/<sub> deep. Read from
+     the start each time, because the string changes under it as fractions are drawn. */
+  const where = p => {
+    const re = /<(\/?)([a-zA-Z][\w-]*)[^>]*>/g;
+    let m, deep = 0, raw = 0;
+    while ((m = re.exec(s)) && m.index < p) {
+      if (p < m.index + m[0].length) return { tag: true, deep: deep, raw: raw > 0 };
+      const n = m[2].toLowerCase(), by = m[1] ? -1 : (/\/>$/.test(m[0]) ? 0 : 1);
+      if (n === 'sup' || n === 'sub') deep += by;
+      if (n === 'svg' || n === 'math' || n === 'script' || n === 'style') raw += by;
+    }
+    return { tag: false, deep: deep, raw: raw > 0 };
+  };
+  /* THE ELEMENT CLOSING AT `end` (just past `</name>`): where its own opening tag starts. Counted,
+     not matched, because a numerator holds superscripts of its own -- d<sup>2</sup>y. */
+  const openOf = (end, name) => {
+    const re = new RegExp('<(/?)' + name + '\\b[^>]*>', 'gi'), all = [];
+    let m;
+    while ((m = re.exec(s)) && m.index < end) all.push(m);
+    for (let k = all.length - 1, d = 0; k >= 0; k--) {
+      d += all[k][1] ? 1 : -1;
+      if (d === 0) return all[k].index;
+    }
+    return -1;
+  };
+  /* AND THE OTHER WAY: the element opening at `at`, and just past its closing tag. */
+  const shutOf = (at, name) => {
+    const re = new RegExp('<(/?)' + name + '\\b[^>]*>', 'gi');
+    re.lastIndex = at;
+    for (let m, d = 0; (m = re.exec(s));) {
+      d += m[1] ? -1 : 1;
+      if (d === 0) return m.index + m[0].length;
+    }
+    return -1;
+  };
+  /* BRACKETS, counted in the text and stepping over tags, on any string -- `bare` asks it of an
+     operand rather than of the whole. */
+  const brFwd = (t, at) => {
+    const o = t[at], c = PAIR[o];
+    for (let i = at, d = 0; i < t.length; i++) {
+      if (t[i] === '<') { const g = t.indexOf('>', i); if (g < 0) return -1; i = g; continue; }
+      if (t[i] === o) d++;
+      else if (t[i] === c && --d === 0) return i;
+    }
+    return -1;
+  };
+  const brBack = at => {
+    const c = s[at], o = BACK[c];
+    for (let i = at, d = 0; i >= 0; i--) {
+      if (s[i] === '>') { const l = s.lastIndexOf('<', i); if (l < 0) return -1; i = l; continue; }
+      if (s[i] === c) d++;
+      else if (s[i] === o && --d === 0) return i;
+    }
+    return -1;
+  };
+  /* THE TERM ENDING AT `end`, read leftwards: elements, bracket groups, entities that are not
+     operators, and the characters above, until a space or an operator. Returns where it starts. */
+  const termBack = end => {
+    let i = end;
+    while (i > 0) {
+      const c = s[i - 1];
+      if (c === '>') {
+        const l = s.lastIndexOf('<', i - 1), t = /^<\/([a-zA-Z]\w*)>$/.exec(s.slice(l, i));
+        if (!t || !INLINE.test(t[1].toLowerCase())) break;
+        const o = openOf(i, t[1].toLowerCase());
+        if (o < 0) break;
+        i = o;
+      } else if (BACK[c]) {
+        const o = brBack(i - 1);
+        if (o < 0) break;
+        i = o;
+      } else if (c === ';') {
+        const a = s.lastIndexOf('&', i - 1), e = a < 0 ? null : /^&(#?\w+);$/.exec(s.slice(a, i));
+        if (!e || OP.test(e[1])) break;
+        i = a;
+      } else if (c === '.' && /\d/.test(s[i - 2] || '') && /\d/.test(s[i] || '')) {
+        i--;
+      } else if (ATOM.test(c)) {
+        i--;
+      } else break;
+    }
+    return i;
+  };
+  /* AND THE TERM STARTING AT `from`, read rightwards. Returns where it ends. */
+  const TAG = /<([a-zA-Z]\w*)\b[^>]*>/y;
+  const termFwd = from => {
+    let i = from;
+    while (i < s.length) {
+      const c = s[i];
+      if (c === '<') {
+        TAG.lastIndex = i;
+        const t = TAG.exec(s);
+        if (!t || !INLINE.test(t[1].toLowerCase())) break;
+        const z = shutOf(i, t[1].toLowerCase());
+        if (z < 0) break;
+        i = z;
+      } else if (PAIR[c]) {
+        const z = brFwd(s, i);
+        if (z < 0) break;
+        i = z + 1;
+      } else if (c === '&') {
+        const e = /^&(#?\w+);/.exec(s.slice(i, i + 12));
+        if (!e || OP.test(e[1])) break;
+        i += e[0].length;
+      } else if (c === '.' && /\d/.test(s[i - 1] || '') && /\d/.test(s[i + 1] || '')) {
+        i++;
+      } else if (ATOM.test(c)) {
+        i++;
+      } else break;
+    }
+    return i;
+  };
+  const GAP = /^(?:\s|&nbsp;)+/;
+  const gapBack = at => {
+    let i = at;
+    for (;;) {
+      if (i > 0 && /\s/.test(s[i - 1])) i--;
+      else if (s.slice(i - 6, i) === '&nbsp;') i -= 6;
+      else return i;
+    }
+  };
+  const bare = t => {
+    const u = t.replace(/^(?:\s|&nbsp;)+|(?:\s|&nbsp;)+$/g, '');
+    return u[0] === '(' && brFwd(u, 0) === u.length - 1 ? u.slice(1, -1) : u;
+  };
+  const stack = (n, d) => '<span class="frac"><span class="frac-n">' + bare(n)
+    + '</span><span class="frac-s">/</span><span class="frac-d">' + bare(d) + '</span></span>';
+
+  /* ---------- POWERS FIRST, so `x^(5/2)` is a power before anything looks at its slash ---------- */
+  for (let from = 0; ;) {
+    const p = s.indexOf('^', from);
+    if (p === -1) break;
+    from = p + 1;
+    const w = where(p);
+    if (w.tag || w.raw) continue;
+    let exp = '', end = p + 1;
+    if (PAIR[s[p + 1]]) {
+      const z = brFwd(s, p + 1);
+      if (z < 0) continue;
+      exp = s.slice(p + 2, z);
+      end = z + 1;
+    } else {
+      const t = /^(?:-|&minus;|\u2212|\+)?(?:\d+(?:\.\d+)?|[A-Za-z\u0370-\u03ff]+|[\u00bc-\u00be\u2150-\u215e]|<i>[^<]*<\/i>)/
+        .exec(s.slice(p + 1, p + 40));
+      if (!t) continue;
+      exp = t[0];
+      end = p + 1 + t[0].length;
+    }
+    if (!exp.trim()) continue;
+    /* A HYPHEN IN AN INDEX IS A MINUS SIGN, and set as one: 4<sup>−2</sup>, not 4<sup>-2</sup>. */
+    s = s.slice(0, p) + '<sup>' + exp.replace(/^-/, '&minus;') + '</sup>' + s.slice(end);
+    from = p;
+  }
+
+  /* ---------- THEN EVERY FRACTION SLASH, left to right -------------------------------------------- */
+  const SL = /&frasl;|\u2044|&#8260;/g;
+  for (let from = 0; ;) {
+    SL.lastIndex = from;
+    const m = SL.exec(s);
+    if (!m) break;
+    const p = m.index, q = p + m[0].length;
+    from = q;
+    const w = where(p);
+    if (w.tag || w.raw || w.deep) continue;
+    /* THE TOP. */
+    const le = gapBack(p);
+    let ls = termBack(le), whole = '', num;
+    if (ls === le) continue;
+    if (s.slice(le - 6, le) === '</sup>') {
+      const o = openOf(le, 'sup');
+      const pre = s.slice(ls, o), inner = s.slice(s.indexOf('>', o) + 1, le - 6);
+      if (!pre) num = inner;
+      else if (/^\(?\d+\)?$/.test(pre)) { whole = pre; num = inner; }
+      else num = s.slice(ls, le);
+    } else {
+      const f = /(sin|cos|tan|log|ln|lg|exp)(?:\s|&nbsp;)+$/.exec(s.slice(0, ls));
+      if (f && !/[A-Za-z]/.test(s[f.index - 1] || '')) ls = f.index;
+      num = s.slice(ls, le);
+    }
+    /* THE BOTTOM. */
+    const g = GAP.exec(s.slice(q, q + 40));
+    const rs = q + (g ? g[0].length : 0);
+    let re, den;
+    if (/^<sub\b/i.test(s.slice(rs, rs + 5))) {
+      re = shutOf(rs, 'sub');
+      if (re < 0) continue;
+      den = s.slice(s.indexOf('>', rs) + 1, re - 6);
+    } else {
+      re = termFwd(rs);
+      if (re === rs) continue;
+      if (FN.test(s.slice(rs, re))) {
+        const h = GAP.exec(s.slice(re, re + 40));
+        const more = h ? termFwd(re + h[0].length) : re;
+        if (h && more > re + h[0].length) re = more;
+      }
+      den = s.slice(rs, re);
+    }
+    const out = whole ? '<span class="frac-mixed">' + whole + stack(num, den) + '</span>' : stack(num, den);
+    s = s.slice(0, ls) + out + s.slice(re);
+    /* FROM WHERE THIS ONE STARTED, not after it: a fraction inside its numerator was inside a
+       <sup> a moment ago and skipped as an index, and it is in a span now and should be drawn. */
+    from = ls;
+  }
+  return s;
+}
+
+
 /* ---------- THE ANSWER, SHOWN ------------------------------------------------------------------
    IT WAS BEHIND A `<details>` AND IT IS NOT ANY MORE, at the owner's decision. The argument for
    hiding it is written out below because it is a real argument and somebody will make it again:
@@ -4155,7 +4441,8 @@ function boxerCard_(x) {
 
    THE ANSWER GOES IN RAW AND THE NOTE IS ESCAPED, which is not an oversight. `html` and `lead` two
    lines above are inserted raw because a question is typeset — fractions, indices, tables — and an
-   answer is the same material: `S(r.answer)` on the backend keeps whatever was written. An
+   answer is the same material: `S(r.answer)` on the backend keeps whatever was written. Raw, and
+   through `typeset_`, which redraws a fraction stacked and a caret as a power and nothing else. An
    examiner's note is a paragraph of prose, so it is escaped like every other sentence on this card.
    Both come from the owner's own spreadsheet, which is the same trust as the question itself.
 
@@ -4197,7 +4484,7 @@ function answerBlock_(x) {
     <div class="qans-head">
       <span>Answer</span>${kind ? `<em>${esc(kind)}</em>` : ''}
     </div>
-    <div class="qans-body">${x.answer}</div>
+    <div class="qans-body">${typeset_(x.answer)}</div>
     ${x.examinerNote ? `<p class="qans-note">${esc(x.examinerNote)}</p>` : ''}
   </div>`;
 }
@@ -5174,7 +5461,7 @@ function choiceBox_(x) {
       /* THE OPTION'S OWN MARKUP, as the question's html is drawn: it is committed library content
          and carries the italics and superscripts an equation needs. */
       return `<button type="button" class="quiz-opt qp-opt${cls}" data-do="qp-choose"
-        data-n="${n}" aria-pressed="${on}">${c}</button>`;
+        data-n="${n}" aria-pressed="${on}">${typeset_(c)}</button>`;
     }).join('')}</div>
   </div>${right.length ? `<div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">
     <span class="qp-verdict" role="status" aria-live="polite">${done
@@ -5825,10 +6112,10 @@ function questionCard_(x) {
              problem the split was supposed to solve. Drawn only when the row says one: a paper
              whose insert is a single part prints no heading, which is why this needed no
              migration. */''}${
-          p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${p.html || ''}</div>`).join('')}
-      ${x.lead ? `<div class="qsheet-lead">${x.lead}</div>` : ''}
+          p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${typeset_(p.html)}</div>`).join('')}
+      ${x.lead ? `<div class="qsheet-lead">${typeset_(x.lead)}</div>` : ''}
       <div class="qsheet-part">
-        <div class="qsheet-pb">${x.html || ''}${
+        <div class="qsheet-pb">${typeset_(x.html)}${
           /* NO PICTURE HERE. The diagram, the pen and the question's photographs are the NEXT page
              — see `questionFigCard_`. The answer box stays on this card, under the words. */''}</div>
       </div>

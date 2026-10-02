@@ -1,0 +1,31 @@
+{
+  "_": "Text that LOOKS like plain-text maths and is not: a slash between two whole numbers that is not a fraction, or a letter and a digit that are not a lost power. Kept as written on purpose. Read by tools/typeset-plain-maths.py (which leaves these alone) and by js/check-typeset.js (which accepts these and fails on any other). One reason each, keyed by row and by the exact text. A new row is not on this list, so it fails until somebody decides which it is.",
+  "Q-AQA-7408-2306-3A-016": {
+    "41/42": "n = 41/42 means n is 41 or 42 -- two alternatives in the mark scheme, not forty-one forty-seconds",
+    "43/44": "the same: 43 or 44",
+    "61/62": "the same: 61 or 62",
+    "63/64": "the same: 63 or 64"
+  },
+  "Q-AQA-8464B-2406-2H-033": {
+    "50/50": "fifty-fifty, a ratio said aloud -- and the sentence is about the scheme NOT accepting it written that way"
+  },
+  "Q-AQA-7408-1706-3BA-036": {
+    "0/3": "a mark score, nought out of three, not a fraction anybody works with"
+  },
+  "Q-AQA-7408-2406-1-24": {
+    "60 / 540": "the working as it is keyed into a calculator, 42 000 x 60 / 540, a chain of operations rather than one fraction"
+  },
+  "Q-AQA-7408-2406-1-27": {
+    "12 / 16": "the same: 2.0 x 12 / 16, keyed as a chain"
+  },
+  "Q-AQA-7408-2306-3A-014": {
+    "3 / 2": "truncated to 3 / 2 sf means three or two significant figures"
+  },
+  "Q-AQA-8464P-2306-1H-4-6": {
+    "0/1568": "a count table flattened into a sentence: time 0 minutes, count-rate 1568",
+    "60/98": "the same table: time 60 minutes, count-rate 98"
+  },
+  "Q-STA-KS2-2024-P3-19": {
+    "r1": "remainder 1 in a bus-stop division, which is how KS2 writes a remainder -- not r to the power 1"
+  }
+}
