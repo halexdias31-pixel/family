@@ -1265,10 +1265,32 @@ const FACETS = [
      about the sitting plus a third about the same thing joined up would be the `level`/`stage`
      fault. The bundle still names a sitting `Summer 2017` in its title and its groups; it reads
      `waveOf` directly for that, which is the one reader both facets are built on. */
-  { field: 'examSeries', label: 'Sitting', cmp: seriesCmp_, of: x => sittingOf_(x).series },
-  { field: 'examYear',
+  /* ---------- THE YEAR, THEN THE MONTH, THEN THE PAPER — LIKE THE FOLDERS THEY CAME FROM ------------
+     ASKED FOR AS *"I want it to ask for the year even if there's only one year's worth of the paper.
+     Also I don't want it to ask summer or autumn I'd rather it just do the months. Like may or
+     November. This is a principle I just want it to follow. Like when I'm in my gdrive folder finding
+     the stuff it felt simple and I would have to select the year of the folder even if there was only
+     one option."*
+
+     TWO CHANGES, AND THE SECOND OVERRULES A DECISION ON PURPOSE. The series word (`Summer`) was
+     chosen over the month because an Edexcel summer series sits Paper 1 in May and Papers 2 and 3 in
+     June, so a month splits one series across two answers. That is now what is wanted: May holds
+     Paper 1 and June holds Papers 2 and 3, the way two folders would. The YEAR comes first, as the
+     outer folder does, and the month is asked inside it.
+
+     `folder: true` IS THE PRINCIPLE. An ordinary question is skipped when it has one answer, because a
+     tap that keeps everything narrows nothing -- right for a filter, and wrong for a path. A folder
+     question is asked even with one answer, so the route to a paper is always Year, Month, Paper
+     whatever is in the library: the same three taps for the only 2026 paper as for one of twelve in
+     2019. Coverage still applies -- a list that mostly has no sitting is not asked about one.
+
+     `examSeries` IS RETIRED, see `RETIRED_FACETS`. The bundle's own title still says `Summer 2017`
+     where its papers share one, through `waveOf`. */
+  { field: 'examYear', folder: true,
     bucketOf: waveBucket_, bucketOrder: waveBucket_.order, bucketDesc: true,
     label: 'Year', cmp: (a, b) => Number(b) - Number(a), of: x => sittingOf_(x).year },
+  { field: 'examMonth', folder: true, label: 'Month',
+    cmp: (a, b) => MONTH_NAMES.indexOf(a) - MONTH_NAMES.indexOf(b), of: x => sittingMonth_(x) },
   /* Through `yearOf`, so a paper whose year lives only inside "June 2024" is filterable by year
      without anybody having to type it into a second column to make the filter work. */
   { field: 'year',      label: 'Year',        of: x => yearOf(x) },
@@ -1399,7 +1421,7 @@ const FACETS = [
     showOf: (id, ids) => fiveDayLabel_(id, ids),
     bucketOf: id => { const d = fiveADayOf_(id); return d ? FIVE_WEEKS[Math.min(4, Math.floor((d.day - 1) / 7))] : ''; },
     bucketOrder: FIVE_WEEKS },
-  { field: 'paperId',   label: 'Paper',
+  { field: 'paperId',   label: 'Paper', folder: true,
     of: x => (x.row && x.row.paper_id) || '',
     showOf: (id, ids) => paperLabel_(id, ids) },
   { field: 'slot',      label: 'Goes on',     of: x => x.slot },
@@ -1543,9 +1565,12 @@ const RETIRED_FACETS = {
   paper: 'the "Printed?" facet was deleted for reading a literal — and the `paper` COLUMN it would '
        + 'now read means which paper of the set (1, 2, 3), so the sheet\'s old label sits over '
        + 'completely different data. Use `Paper`, which asks the same thing by name.',
-  examWave: 'the sitting is asked as two questions now, `examSeries` (Summer) and then `examYear` '
-          + '(2018). A sheet row naming `examWave` would read the raw column and offer `Summer 2018` '
+  examWave: 'the sitting is asked as two questions now, `examYear` (2018) and then `examMonth` '
+          + '(June). A sheet row naming `examWave` would read the raw column and offer `Summer 2018` '
           + 'beside them, which is the one answer wearing two questions this split took apart.',
+  examSeries: 'the owner asked for months rather than seasons -- "I don\'t want it to ask summer or '
+            + 'autumn I\'d rather it just do the months" -- so `examMonth` asks it. A sheet row naming '
+            + '`examSeries` would offer `Summer` beside `May` and `June`, two vocabularies for one fact.',
 };
 
 function facetList() {
@@ -2327,6 +2352,25 @@ function bucketLabels_(values, facet) {
     });
     const bands = Object.keys(by).sort((a, b) => lo[a] - lo[b]);
     if (bands.length > 1 && bands.length <= FACET_MAX_SHOWN) return bands;
+    /* ---------- AND INSIDE ONE TEN, RUNS OF NUMBERS -- NEVER THE ALPHABET ----------------------
+       FOUND WALKING ONE WORKSHEET'S QUESTIONS: `1–10` opened onto `1`, `2–3`, `4–5`, `6–7`, `8–9`,
+       and the `1` row held questions 1 AND 10 and, pressed, showed ELEVEN -- 1 and 10 to 19. Ten
+       numbers in one band are one band, so this rule stood down and the alphabet took them: `'10'`
+       sorts between `'1'` and `'2'`, so the first letter-run was `1`, and `bucketHas_` reads a label
+       that is not two numbers round a dash as a PREFIX, which `11` to `19` all have. And the chip
+       above it stands down once the answer inside it arrives -- see `stuffNarrow_` -- so nothing
+       held it to the ten it was opened inside.
+       SO A RUN OF INTEGERS IS ALWAYS CUT AS NUMBERS. Eight to ten of them inside one ten go in pairs
+       -- `1–2` to `9–10` -- and a single left at the end joins the pair before it, so every label is
+       two numbers round a dash and `bucketHas_` reads every one as the range it says. */
+    if (bands.length === 1) {
+      const nums = values.map(v => Number(v.value)).sort((a, b) => a - b);
+      const per = Math.ceil(nums.length / FACET_MAX_SHOWN);
+      const runs = [];
+      for (let i = 0; i < nums.length; i += per) runs.push(nums.slice(i, i + per));
+      if (runs.length > 1 && runs[runs.length - 1].length === 1) runs[runs.length - 2].push(runs.pop()[0]);
+      if (runs.length > 1 && runs.every(r => r.length > 1)) return runs.map(r => r[0] + '–' + r[r.length - 1]);
+    }
   }
 
   /* 3. THE ALPHABET, which cannot fail to answer. */
@@ -2848,6 +2892,19 @@ const FACET_NEEDS_FIRST = {
   qPart:    'qNumber',
 };
 
+/* ---------- A FOLDER WITH ONE ANSWER THAT A CHIP ALREADY OPENED IS NOT ASKED AGAIN ----------------
+   A 5-a-day `Day` is its paper's id -- the same folder under another name -- so asking `Paper` over
+   it with one answer would be the same tap twice. Asked of the value rather than of the two field
+   names, so the next facet that is an identity in disguise is caught by the same line. One function
+   because `whyThisQuestion` has to give the same answer `nextFacet` acts on. */
+function folderOpened_(items, facet) {
+  if (!facet || !facet.folder) return false;
+  const vals = facetValues(items, facet);
+  if (vals.length !== 1) return false;
+  const only = String(vals[0].value || '');
+  return STUFF.filters.some(f => !f.any && String(f.value) === only);
+}
+
 function nextFacet(items) {
   const asked = STUFF.filters.map(f => f.field);
   /* ---------- A BUCKET IS HALF AN ANSWER, SO THE QUESTION IS ASKED AGAIN -----------------------
@@ -2875,7 +2932,8 @@ function nextFacet(items) {
     const first = FACET_NEEDS_FIRST[facet.field];
     if (first && asked.indexOf(first) === -1) continue;
     const vals = facetValues(items, facet).length;
-    if (vals < 2 || vals > FACET_MAX_ANSWERS) continue;
+    if (vals < (facet.folder ? 1 : 2) || vals > FACET_MAX_ANSWERS) continue;
+    if (folderOpened_(items, facet)) continue;
     /* THE THRESHOLD IS THE FACET'S OWN, falling back to the one below. A question the sheet has
        given a lower bar to is one somebody decided is worth asking early even though it is thin. */
     const min = isFinite(facet.min) ? facet.min : FACET_COVERAGE;
@@ -2883,7 +2941,8 @@ function nextFacet(items) {
     /* AND IT HAS TO SPLIT SOMETHING. See `FACET_MIN_MINORITY` — two answers where one of them is
        the whole list is a tap that changes nothing, which is the same complaint the "everything
        agrees" rule above makes about one answer, one step less obvious. */
-    if (!facet.always && facetSplit_(items, facet) < FACET_MIN_MINORITY) continue;
+    /* A FOLDER IS ASKED WHETHER OR NOT IT NARROWS -- that is what makes it a folder. See `examYear`. */
+    if (!facet.always && !facet.folder && facetSplit_(items, facet) < FACET_MIN_MINORITY) continue;
     return facet;
   }
   return null;
@@ -2975,14 +3034,15 @@ function whyThisQuestion(all) {
     const min = isFinite(f.min) ? f.min : FACET_COVERAGE;
     let why;
     if (asked.indexOf(f.field) !== -1) why = 'asked already';
-    else if (vals.length < 2) why = (vals.length ? 'one answer' : 'nobody can answer it')
+    else if (vals.length < (f.folder ? 1 : 2)) why = (vals.length ? 'one answer' : 'nobody can answer it')
                                     + ' — nothing to decide';
+    else if (folderOpened_(items, f)) why = 'one answer, and a chip already opened that folder';
     else if (vals.length > FACET_MAX_ANSWERS)
       why = 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
     else if (cov < min) why = 'thin — needs ' + Math.round(min * 100) + '%';
     /* THE NEW RULE HAS TO BE VISIBLE HERE OR IT IS THE OLD FAULT WEARING A HAT. A question that
        vanishes for a reason nothing prints is exactly what `whyThisQuestion` was written for. */
-    else if (!f.always && facetSplit_(items, f) < FACET_MIN_MINORITY)
+    else if (!f.always && !f.folder && facetSplit_(items, f) < FACET_MIN_MINORITY)
       why = 'lopsided — pressing its commonest answer would leave '
             + Math.round(facetSplit_(items, f) * 1000) / 10 + '% of the list, needs '
             + Math.round(FACET_MIN_MINORITY * 100) + '%';
@@ -6703,6 +6763,48 @@ function waveFromDoc_(x) {
   return series && /^(19|20)\d{2}$/.test(yr) ? series + ' ' + yr : '';
 }
 
+/* ---------- THE MONTH OF A SITTING, FOR THE `Month` QUESTION ------------------------------------------
+   Only for something that HAS a sitting (`sittingOf_` found a year), so a worksheet or a 5-a-day day
+   -- which has a month of its own, asked by `fiveMonth` -- never answers it.
+   THE MONTH THE PAPER PRINTS COMES FIRST, after its spaced dash (`Paper 1 (Non-Calculator) — May
+   2017`), and only then the row's `month`, its `exam_date` and the document row. AQA names a summer
+   series `June 2024` and sits Paper 1 of it on 22 May, so ten papers here say June on the cover and
+   May in the date column -- and reading the date first filed them under May while the card's own
+   tag, cut from the same name, said June 2024. The folder is named the way the paper is: that is
+   what is on the cover and in the file name the owner keeps it under, and the day it was sat is
+   still on the card, in its own words. A phase word (`First wave`) names a SERIES and not a month,
+   so it is never turned into one: a summer paper with no month anywhere answers nothing rather than
+   a guessed May. Memoised on the item, as `sittingOf_` is. */
+const SITTING_MONTH = new WeakMap();
+function sittingMonth_(x) {
+  if (!x || typeof x !== 'object') return '';
+  if (SITTING_MONTH.has(x)) return SITTING_MONTH.get(x);
+  let out = '';
+  if (sittingOf_(x).year) {
+    const r = x.row || x;
+    const doc = docById_(paperIdOf_(r)) || {};
+    const ofDate = v => { const m = /\b(?:19|20)\d{2}-(\d{2})-\d{2}\b/.exec(String(v || '')); return m ? Number(m[1]) : 0; };
+    const ofWord = v => {
+      const i = MONTH_NAMES.findIndex(n => n.slice(0, 3).toLowerCase() === String(v || '').slice(0, 3).toLowerCase());
+      return i < 0 ? 0 : i + 1;
+    };
+    const ofName = v => {
+      const m = /\s[\u2014\u2013]\s(?:\d{1,2}\s+)?([A-Za-z]{3,9})\s+(?:19|20)\d{2}\s*$/.exec(String(v || ''));
+      return m ? ofWord(m[1]) : 0;
+    };
+    const ofWave = v => {
+      const m = /^([A-Za-z]{3,9})\s+(?:19|20)\d{2}$/.exec(String(v || '').trim());
+      return m ? ofWord(m[1]) : ofDate(v);
+    };
+    const n = ofName(doc.name || r.name || x.sub) || Number(r.month || x.month || 0)
+      || ofDate(r.exam_date || x.examDate) || Number(doc.month || 0) || ofDate(doc.exam_date)
+      || ofWave(x.examWave);
+    out = n >= 1 && n <= 12 ? MONTH_NAMES[n - 1] : '';
+  }
+  SITTING_MONTH.set(x, out);
+  return out;
+}
+
 /* ---------- THE SITTING IN ITS TWO HALVES, FOR THE TWO QUESTIONS THAT ASK THEM ----------------------
    `Summer 2018` → `{ series: 'Summer', year: '2018' }`. Split off `waveOf`'s answer rather than
    worked out again from the row, so `examSeries` and `examYear` cannot disagree with each other or
@@ -7691,15 +7793,22 @@ const typePlural_ = t => /(s|day)$/i.test(String(t)) ? String(t) : String(t) + '
    bundle: every Higher GCSE maths paper here is Edexcel, so `Exam board` is skipped as a question
    that cannot narrow — and "Edexcel" is the first word anybody ordering one would say. */
 const BUNDLE_TITLE_FIELDS = ['examBoard', 'company', 'subject', 'level', 'keystage', 'yearGroup',
-                             'bandValue', 'tier', 'documentType', 'sitting', 'examSeries',
-                             'examYear', 'year'];
-/* `sitting` IS NOT A FUNNEL QUESTION ANY MORE — the funnel asks the series and then the year — and
-   it is still the right TITLE word: twelve papers from one sitting are `Summer 2017`, which is how
-   anybody orders them, and `Summer · 2017` reads as two facts. So the title has its own reader over
-   `waveOf`, the one both halves are cut from. Where the papers do not share one sitting the two
-   halves speak for themselves: `Summer` if they share a series, and the `2017 & 2018` chip. A
-   constant rather than an object built per call, because `facetTally_` memoises on the facet. */
-const SITTING_READER_ = { field: 'sitting', label: 'Sitting', of: x => waveOf(x) };
+                             'bandValue', 'tier', 'documentType', 'sitting', 'examYear',
+                             'examMonth', 'year'];
+/* `sitting` IS NOT A FUNNEL QUESTION ANY MORE — the funnel asks the year and then the month — and
+   it is still the right TITLE word: papers from one sitting are `June 2017`, and `2017 · June` reads
+   as two facts. So the title has its own reader that joins the two answers the funnel asked, month
+   first, the way the cover prints it. IT SAID `Summer 2017` UNTIL THE OWNER ASKED FOR MONTHS --
+   "I don't want it to ask summer or autumn I'd rather it just do the months" -- and a title saying
+   the season the funnel no longer offers is the second vocabulary that request took away. `waveOf`
+   stands in only for a paper with a year and no month, which `check-funnel` counts and expects none
+   of. Where the papers do not share one sitting the halves speak for themselves: the `2017` chip,
+   or the `2017 & 2018` bucket. A constant rather than an object built per call, because
+   `facetTally_` memoises on the facet. */
+const SITTING_READER_ = { field: 'sitting', label: 'Sitting', of: x => {
+  const m = sittingMonth_(x), y = sittingOf_(x).year;
+  return m && y ? m + ' ' + y : waveOf(x);
+} };
 function bundleTitle_(items) {
   const parts = [];
   const said = {};
@@ -7708,14 +7817,14 @@ function bundleTitle_(items) {
        twice — measured on the first run, over the owner's own example — and the level is the word
        people use; a worksheet shelf has no level and its key stage is then the only word for it. */
     if (field === 'keystage' && said.level) return;
-    /* THE YEAR ONLY WHERE THE SITTING DID NOT SAY IT. Seven 2017 papers are two sittings, Summer and
-       Autumn, so the sitting has nothing single to say — and "2017" is the word the owner asked with,
-       which `examYear` says first and `year` says only for a row with no sitting. Where the sitting
-       did speak it already carries the series and the year, and `Summer 2017 · Summer · 2017` is one
-       fact three times. `year` is switched off as a funnel QUESTION and `facetBy` still finds it,
+    /* THE YEAR ONLY WHERE THE SITTING DID NOT SAY IT. Seven 2017 papers are three sittings, May,
+       June and November, so the sitting has nothing single to say — and "2017" is the word the owner
+       asked with, which `examYear` says first and `year` says only for a row with no sitting. Where
+       the sitting did speak it already carries the month and the year, and `June 2017 · 2017 · June`
+       is one fact three times. `year` is switched off as a funnel QUESTION and `facetBy` still finds it,
        which is the only thing this needs. */
     if (field === 'year' && (said.sitting || said.examYear)) return;
-    if ((field === 'examSeries' || field === 'examYear') && said.sitting) return;
+    if ((field === 'examMonth' || field === 'examYear') && said.sitting) return;
     const n = parts.length;
     try { titlePart_(field); } finally { if (parts.length > n) said[field] = true; }
   });
@@ -7811,23 +7920,25 @@ function bundleBuild_(items) {
      Grouped, each sitting is ONE line and inside it `Paper 1` IS unique — so the twelve read as
      `Summer 2017   Paper 1 · Paper 2 · Paper 3`, four lines, which is how anybody says them.
 
-     THE SITTING IS `waveOf`'S ANSWER for that paper — the reader the funnel's Sitting and Year
-     questions are both cut from — so the group reads `Summer 2017` and the two chips above it read
-     `Summer` and `2017`, one fact said the same way. Only where EVERY paper has one and there
-     are at least two: a worksheet shelf has no sittings, and one sitting is already in the title.
+     THE SITTING IS THE TITLE'S OWN READER, `SITTING_READER_` — the month and the year the funnel's
+     Month and Year questions ask — so the group reads `June 2017` and the two chips above it read
+     `2017` and `June`, one fact said the same way. It read `Summer 2017` off `waveOf` until the owner
+     asked for months, and a bundle of one year then listed `Summer 2017` over a Month question
+     offering May and June. Only where EVERY paper has one and there are at least two: a worksheet
+     shelf has no sittings, and one sitting is already in the title.
 
      ---------- AND BY TIER, WHERE THE BUNDLE HOLDS BOTH ---------------------------------------------
-     THE OWNER'S OWN EXAMPLE IS WHERE IT SHOWED. Maths · Past paper · Summer 2017 is the three Higher
-     papers AND the Foundation Paper 1, and inside one sitting the two Paper 1s are `Paper 1
+     THE OWNER'S OWN EXAMPLE IS WHERE IT SHOWED. Maths · Past paper · May 2017 is the Higher Paper 1
+     AND the Foundation Paper 1, and inside one sitting the two Paper 1s are `Paper 1
      (Non-Calculator)` and `Paper 1 (Non-calculator)` — one letter's case apart, with the tier that
      actually separates them nowhere on the card. The title cannot say `Higher` either, because the
-     four papers disagree. So a mixed bundle groups on the tier too — `Summer 2017 · Higher` over
-     three papers and `Summer 2017 · Foundation` over one — and inside each, `Paper 1` is unique
+     papers disagree. So a mixed bundle groups on the tier too — `Higher` over one paper and
+     `Foundation` over the other — and inside each, `Paper 1` is unique
      again. The same rule as the sitting: only where every paper has one and they differ, so a
      bundle that is all Higher says so once, in its title, and nowhere else. Read off the document
      row, because a tier is a paper-level fact. */
   const sitOf = id => {
-    try { return String(waveOf(first[id]) || ''); } catch (e) { return ''; }
+    try { return String(SITTING_READER_.of(first[id]) || ''); } catch (e) { return ''; }
   };
   const tierOf = id => String((docById_(id) || {}).tier || '').trim();
   const sits = kept.map(sitOf);
@@ -8291,7 +8402,7 @@ const TAG_OF = {
   paperId: 'paper', qNumber: 'paper', qPart: 'paper', fiveDay: 'paper',
   subject: 'subject',
   level: 'level', keystage: 'level', yearGroup: 'level', bandValue: 'level', fiveLevel: 'level',
-  examSeries: 'sitting', examYear: 'sitting', year: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
+  examMonth: 'sitting', examYear: 'sitting', year: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
   documentType: 'type', practicalType: 'type', boxKind: 'type',
   examBoard: 'board', company: 'board',
   tier: 'tier', division: 'tier',

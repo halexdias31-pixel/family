@@ -110,6 +110,7 @@ function boot(cb) {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
       ' filterHit, facetOwn_, bucketHas_, bucketDeclares_, STUFF, paperLabels_, stuffHay_, norm,' +
+      ' stuffNarrow_, FACET_NEEDS_FIRST,' +
       ' chipShow_, qTags_,' +
       ' RETIRED_FACETS, waveOf,' +
       /* A THUNK, NOT THE OBJECT. `load()` ends with `DATA = d` — it REPLACES the payload — so a
@@ -212,38 +213,67 @@ boot(f => {
                         'July', 'August', 'September', 'October', 'November', 'December'];
   /* ---------- THE SITTING IS TWO QUESTIONS NOW, SO THE RULE IS THREE ------------------------------
      REPORTED AS "some tags are like summer 2018 when it should just be summer then 2018", and
-     `examWave` was split into `examSeries` and `examYear` over one reader, `sittingOf_`, which cuts
-     `waveOf`'s answer in two. So the closed vocabulary is asked of all three, each at the place it
-     can go wrong:
+     `examWave` was split into `examSeries` and `examYear` over one reader, `sittingOf_`. THEN THE
+     SEASON WENT: "I don't want it to ask summer or autumn I'd rather it just do the months. Like may
+     or November" -- so it is `examYear` and then `examMonth`, the year first, as the outer folder.
+     The closed vocabulary is asked of each at the place it can go wrong:
 
-       `waveOf`       over the items, every answer `<series> <year>` — the source both halves are cut
+       `waveOf`       over the items, every answer `<series> <year>` -- the source the year is cut
                       from, and where `First wave` sat on 850 rows. Read off the reader rather than
-                      off a facet, so a bucket can never be mistaken for a spelling.
-       `examSeries`   a series word and nothing else. A year left on it is the fault this split was
-                      made to remove, back in one answer.
+                      off a facet, so a bucket can never be mistaken for a spelling. It still says
+                      `Summer 2017`, because that is the bundle's TITLE word; it is no longer asked.
+       `examMonth`    a month name and nothing else. `Summer` here is the season the owner asked to
+                      be rid of, back as an answer.
        `examYear`     a four-digit year and nothing else, through `facetOwn_` (the column) and not
                       through the drawn answers, which are year PAIRS by design.
 
-     AND THE OLD FACET MUST BE OFF THE FUNNEL. A sheet row naming `examWave` would put `Summer 2018`
-     back beside the two questions, so the run fails if the live list still asks it. */
-  const series = facets.find(x => x.field === 'examSeries');
+     AND THE OLD FACETS MUST BE OFF THE FUNNEL. A row naming `examWave` would put `Summer 2018` back
+     beside them, and one naming `examSeries` would put `Summer` beside `May` and `June`. */
+  const smonth = facets.find(x => x.field === 'examMonth');
   const syear = facets.find(x => x.field === 'examYear');
-  if (facets.find(x => x.field === 'examWave')) {
-    bad.push('`examWave` is still a live question: the sitting is asked as `examSeries` then '
-             + '`examYear`, and a third question joining them up offers "Summer 2018" again');
-  }
-  if (!series || !syear) {
-    bad.push('the sitting is not asked as two questions — `examSeries` ' + (series ? 'is' : 'is NOT')
-             + ' live and `examYear` ' + (syear ? 'is' : 'is NOT') + ' — so "Summer then 2018" '
+  ['examWave', 'examSeries'].forEach(old => {
+    if (facets.find(x => x.field === old)) {
+      bad.push('`' + old + '` is still a live question: the sitting is asked as `examYear` then '
+               + '`examMonth`, and a third question offers "Summer" or "Summer 2018" again');
+    }
+  });
+  if (!smonth || !syear) {
+    bad.push('the sitting is not asked as two questions — `examYear` ' + (syear ? 'is' : 'is NOT')
+             + ' live and `examMonth` ' + (smonth ? 'is' : 'is NOT') + ' — so "2018 then June" '
              + 'has nothing to measure: not a pass');
+  } else if (!syear.folder || !smonth.folder) {
+    bad.push('`examYear` and `examMonth` must both be `folder: true` -- asked even with one answer, '
+             + 'the way the owner opens a year folder that holds one paper. See nextFacet().');
   } else if (f.facetOwn_ && f.waveOf) {
-    const waves = {}, seriesSeen = {}, yearsSeen = {};
+    const waves = {}, monthsSeen = {}, yearsSeen = {};
+    let dated = 0, monthless = 0;
+    const lost = {}, clash = {};
     items.forEach(x => {
       const w = String(f.waveOf(x) || '');
       if (w) waves[w] = 1;
-      f.facetOwn_(series, x).forEach(v => { if (v) seriesSeen[String(v)] = 1; });
-      f.facetOwn_(syear, x).forEach(v => { if (v) yearsSeen[String(v)] = 1; });
+      const ms = f.facetOwn_(smonth, x).filter(Boolean);
+      const ys = f.facetOwn_(syear, x).filter(Boolean);
+      ms.forEach(v => { monthsSeen[String(v)] = 1; });
+      ys.forEach(v => { yearsSeen[String(v)] = 1; });
+      if (ys.length) {
+        dated++;
+        if (!ms.length) { monthless++; lost[(x.row && x.row.paper_id) || x.id || '?'] = 1; }
+        /* THE CARD AND THE FOLDER SAY THE SAME MONTH. The card's sitting tag is cut from the paper's
+           name; the Month answer once read the date column first, and ten AQA papers said `June 2024`
+           on the card and sat in the `May` folder. */
+        if (ms.length && f.qTags_) {
+          const tag = (f.qTags_(x) || []).find(t => t.tag === 'sitting');
+          const m = tag && /^(?:\d{1,2}\s+)?([A-Za-z]+)\s+(?:19|20)\d{2}$/.exec(String(tag.text));
+          if (m && ms.indexOf(m[1]) === -1) clash[(x.row && x.row.paper_id) || x.id || '?'] = m[1] + ' / ' + ms[0];
+        }
+      }
     });
+    const clashes = Object.keys(clash);
+    if (clashes.length) {
+      bad.push(clashes.length + ' paper(s) whose card says one month and whose Month answer says '
+               + 'another (card / folder): ' + clashes.slice(0, 6).map(k => k + ' ' + clash[k]).join(', ')
+               + ' — a paper is filed under the month it prints. See sittingMonth_().');
+    }
     const oddWave = Object.keys(waves).filter(v => {
       const m = /^([A-Za-z]+) ((?:19|20)\d{2})$/.exec(v);
       return !m || SERIES_WORDS.indexOf(m[1]) === -1;
@@ -255,25 +285,120 @@ boot(f => {
                + ' — a second spelling of a sitting splits it into two buttons and hides half the '
                + 'questions behind whichever one nobody picks. See waveOf().');
     }
-    const oddSeries = Object.keys(seriesSeen).filter(v => SERIES_WORDS.indexOf(v) === -1);
-    if (oddSeries.length) {
-      bad.push('the Sitting question offers ' + oddSeries.length + ' answer(s) that are not a series '
-               + 'word: ' + oddSeries.slice(0, 6).map(v => '"' + v + '"').join(', ')
-               + ' — the year belongs to the next question. See sittingOf_().');
+    const MONTHS = SERIES_WORDS.slice(2);
+    const oddMonth = Object.keys(monthsSeen).filter(v => MONTHS.indexOf(v) === -1);
+    if (oddMonth.length) {
+      bad.push('the Month question offers ' + oddMonth.length + ' answer(s) that are not a month: '
+               + oddMonth.slice(0, 6).map(v => '"' + v + '"').join(', ')
+               + ' — the owner asked for May and November, never Summer or Autumn. See sittingMonth_().');
     }
     const oddYear = Object.keys(yearsSeen).filter(v => !/^(19|20)\d{2}$/.test(v));
     if (oddYear.length) {
       bad.push('the Year question offers ' + oddYear.length + ' answer(s) that are not a year: '
                + oddYear.slice(0, 6).map(v => '"' + v + '"').join(', ') + '. See sittingOf_().');
     }
-    if (!Object.keys(seriesSeen).length || !Object.keys(yearsSeen).length) {
-      bad.push('nothing in the library answers the Sitting or the Year question — '
-               + Object.keys(seriesSeen).length + ' series, ' + Object.keys(yearsSeen).length
+    /* A PAPER WITH A YEAR AND NO MONTH IS IN THE YEAR FOLDER AND IN NO MONTH FOLDER INSIDE IT, so the
+       Month question would hide it behind whichever month somebody tapped. Every paper here prints
+       its month on its cover, so the count should be nought -- and a count is printed either way. */
+    console.log('  Month: ' + Object.keys(monthsSeen).length + ' month(s) over ' + dated
+                + ' dated item(s); ' + monthless + ' with a year and no month');
+    if (monthless) {
+      bad.push(monthless + ' item(s) have a sitting year and no month, so the Month folder hides them: '
+               + Object.keys(lost).slice(0, 6).join(', ') + ' — give the paper a `month` or an '
+               + '`exam_date`, or a name ending "— May 2017". See sittingMonth_().');
+    }
+    if (!Object.keys(monthsSeen).length || !Object.keys(yearsSeen).length) {
+      bad.push('nothing in the library answers the Month or the Year question — '
+               + Object.keys(monthsSeen).length + ' months, ' + Object.keys(yearsSeen).length
                + ' years — so this rule proves nothing');
     }
   } else {
     bad.push('`facetOwn_` or `waveOf` is not declared, so the sitting vocabulary cannot be read off '
              + 'the column — not a pass');
+  }
+
+  /* ---------- 4a. YEAR, MONTH, PAPER -- ASKED LIKE FOLDERS, EVEN WITH ONE INSIDE ---------------------
+     ASKED FOR AS *"I want it to ask for the year even if there's only one year's worth of the paper
+     ... Like when I'm in my gdrive folder finding the stuff it felt simple and I would have to select
+     the year of the folder even if there was only one option."* Every other question is skipped
+     with one answer, and the rule that skips them is right for them -- so this one walks the real
+     funnel, through `nextFacet`, to the places where a folder holds exactly one thing, and requires
+     the folder to be asked anyway. Found, not named: a level whose maths past papers are one year,
+     and a month that holds one paper, so a library that grows a second KS1 year moves the walk to
+     whatever is single then. And if nothing in the library is single, that is said, not passed. */
+  if (f.nextFacet && f.stuffNarrow_ && smonth && syear) {
+    const MATHS_PAST = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' },
+                        { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' }];
+    const was = f.STUFF.filters.slice();
+    const asks = chips => {
+      f.STUFF.filters = chips.slice();
+      const facet = f.nextFacet(f.stuffNarrow_(items, chips, [], null));
+      return facet ? facet.field : '(nothing)';
+    };
+    const valuesAt = (chips, facet) => {
+      f.STUFF.filters = chips.slice();
+      return f.facetValues(f.stuffNarrow_(items, chips, [], null), facet);
+    };
+    const paperF = facets.find(x => x.field === 'paperId');
+    let walked = 0;
+    try {
+      const levelF = facets.find(x => x.field === 'level');
+      const levels = levelF ? valuesAt(MATHS_PAST, levelF).filter(v => !v.bucket) : [];
+      levels.forEach(lv => {
+        const at = MATHS_PAST.concat([{ field: 'level', value: lv.value }]);
+        const years = valuesAt(at, syear);
+        if (years.length !== 1 || years[0].bucket) return;
+        /* Tier and anything else the level still splits on come first, as a thumb would meet them. */
+        let chips = at.slice();
+        for (let i = 0; i < 6 && asks(chips) !== 'examYear'; i++) {
+          const q = asks(chips);
+          const facet = facets.find(x => x.field === q);
+          const v = facet && valuesAt(chips, facet)[0];
+          if (!v) break;
+          chips = chips.concat([{ field: q, value: v.value, bucket: v.bucket }]);
+        }
+        walked++;
+        const steps = [['examYear', syear], ['examMonth', smonth], ['paperId', paperF]];
+        steps.forEach(([field, facet]) => {
+          const got = asks(chips);
+          if (got !== field) {
+            bad.push(lv.value + ' maths past papers: the funnel asks `' + got + '` where the `' + field
+                     + '` folder belongs -- ' + valuesAt(chips, facet).length + ' answer(s) in it, and '
+                     + 'a folder is asked even with one. See `folder` and nextFacet().');
+          }
+          const v = facet && valuesAt(chips, facet)[0];
+          if (v) chips = chips.concat([{ field: field, value: v.value, bucket: v.bucket }]);
+        });
+      });
+      /* AND A MONTH THAT HOLDS ONE PAPER, which is the Paper folder asked with one answer. */
+      const tierF = facets.find(x => x.field === 'tier');
+      const gcse = MATHS_PAST.concat([{ field: 'level', value: 'GCSE' }]);
+      const single = [];
+      (tierF ? valuesAt(gcse, tierF) : []).forEach(t => {
+        const at = gcse.concat([{ field: 'tier', value: t.value }]);
+        const ys = valuesAt(at, syear);
+        ys.filter(y => !y.bucket).forEach(y => {
+          const ay = at.concat([{ field: 'examYear', value: y.value }]);
+          valuesAt(ay, smonth).forEach(m => {
+            const am = ay.concat([{ field: 'examMonth', value: m.value }]);
+            if (paperF && valuesAt(am, paperF).length === 1) single.push(am);
+          });
+        });
+      });
+      if (single.length) {
+        walked++;
+        const got = asks(single[0]);
+        if (got !== 'paperId') {
+          bad.push('one paper in ' + single[0].slice(-3).map(c => c.value).join(' · ') + ' and the funnel '
+                   + 'asks `' + got + '` instead of the Paper folder that holds it. See nextFacet().');
+        }
+      }
+    } finally { f.STUFF.filters = was; }
+    console.log('  Folders: ' + walked + ' single-answer walk(s) through Year, Month and Paper');
+    if (!walked) {
+      bad.push('nothing in the library is a year folder or a month folder holding one thing, so the '
+               + 'folder rule has nothing to measure: not a pass');
+    }
   }
 
   /* ---------- 4b. TWO ANSWERS, ONE LABEL --------------------------------------------------------
@@ -353,6 +478,60 @@ boot(f => {
   promises('in the whole library', items);
   const onePaper = items.filter(x => x.row && x.row.paper_id === 'P-1MA1-1705-1H');
   if (onePaper.length) promises('inside one paper', onePaper);
+
+  /* ---------- 4d. AND AN ANSWER INSIDE A BUCKET, PRESSED THROUGH THE WHOLE CHAIN -------------------
+     4c PRESSES EACH ANSWER ON ITS OWN, over the list it was drawn from, and that is blind to the one
+     thing a SECOND chip on a field does: `stuffNarrow_` stands the bucket down once the answer inside
+     it arrives, so the inner answer is then tested against everything the earlier chips kept, not
+     against the ten it was opened inside. FOUND WALKING ONE WORKSHEET: `1–10` opened onto `1`,
+     `2–3`, ..., the `1` row promised 2 and pressing it showed 11 -- 1 and 10 to 19, because the
+     inner rows were cut by the alphabet and read back as a prefix. 4c passed, because inside the
+     ten, `1` really does hold two.
+     SO THIS PRESSES THEM THE WAY A THUMB DOES: the bucket as a chip, then each answer drawn inside
+     it as the next chip, through `stuffNarrow_` over everything -- and the count has to be the one
+     the inner row said. Over the whole library and over one paper, the same two states as 4c. */
+  let chained = 0;
+  const chains = (label, base, doors) => {
+    const was = f.STUFF.filters.slice();
+    try {
+      facets.forEach(facet => {
+        if (facet.collect) return;
+        /* ONLY WHERE THE FUNNEL WOULD ASK IT. `Day` over the whole library is every 5-a-day in seven
+           months, which nobody is ever shown -- `FACET_NEEDS_FIRST` holds it behind Month -- and its
+           weeks then hold forty-nine days apiece. A state no thumb can reach is not a promise. */
+        const first = (f.FACET_NEEDS_FIRST || {})[facet.field];
+        if (first && !doors.some(d => d.field === first)) return;
+        f.STUFF.filters = doors.slice();
+        f.facetValues(base, facet).filter(v => v.bucket).forEach(b => {
+          const outer = doors.concat([{ field: facet.field, value: b.value, bucket: true }]);
+          f.STUFF.filters = outer.slice();
+          const inside = f.stuffNarrow_(items, outer, [], null);
+          f.facetValues(inside, facet).forEach(v => {
+            const chain = outer.concat([{ field: facet.field, value: v.value, bucket: v.bucket }]);
+            const got = f.stuffNarrow_(items, chain, [], null).length;
+            chained++;
+            if (got !== v.n) {
+              bad.push('`' + facet.field + '` opens "' + b.value + '" ' + label + ' onto "'
+                + (v.show || v.value) + '", which says it holds ' + v.n + ' item(s), and pressing '
+                + 'it there returns ' + got + ' — the bucket above it stands down once the answer '
+                + 'inside it arrives, so that answer has to mean the same thing on its own. See '
+                + 'bucketLabels_ and stuffNarrow_.');
+            }
+            f.STUFF.filters = outer.slice();
+          });
+        });
+      });
+    } finally { f.STUFF.filters = was; }
+  };
+  if (f.stuffNarrow_) {
+    chains('in the whole library', items, []);
+    const pid = 'P-1MA1-1705-1H';
+    if (onePaper.length) chains('inside one paper', onePaper, [{ field: 'paperId', value: pid }]);
+    console.log('  ' + chained + ' answer(s) pressed inside their bucket, through the whole chain');
+    if (!chained) bad.push('no answer was drawn inside any bucket, so the chain rule proves nothing');
+  } else {
+    bad.push('`stuffNarrow_` is not declared, so an answer inside a bucket cannot be pressed — not a pass');
+  }
 
   /* ---------- 5. TWO FACETS, ONE MEANING --------------------------------------------------------
      The `level` / `stage` fault ACROSS facets: two questions offering the same answer word but
@@ -654,8 +833,8 @@ boot(f => {
       { say: 'Subject · Biology', on: [['subject', 'Biology']] },
       { say: 'Subject · Chemistry, Tier · Higher',
         on: [['subject', 'Chemistry'], ['tier', 'Higher']] },
-      { say: 'Subject · Physics, Sitting · Summer, Year · 2024',
-        on: [['subject', 'Physics'], ['examSeries', 'Summer'], ['examYear', '2024']] },
+      { say: 'Subject · Physics, Year · 2024, Month · June',
+        on: [['subject', 'Physics'], ['examYear', '2024'], ['examMonth', 'June']] },
       /* THE YEAR IS ASSERTED TOO, AND THAT TOOK MOVING A RUNG. Split in two, the year is a chip of
          its own — and `paperLabels_` used to APPEND its subject and tier rungs after the paper's
          date (`Paper 1 — June 2024 · Foundation`), which left `nameForms_` nothing to cut, so the
@@ -1279,7 +1458,8 @@ function done() {
     console.log('');
     process.exit(1);
   }
-  console.log('OK — every question the funnel asks can be answered more than one way, '
-              + 'no answer is spelled twice, and the sitting has one vocabulary.');
+  console.log('OK — every question the funnel asks can be answered more than one way except the '
+              + 'Year, Month and Paper folders, which are asked even with one; no answer is spelled '
+              + 'twice, and the sitting is asked in months.');
   process.exit(0);
 }

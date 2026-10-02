@@ -171,23 +171,36 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
   if (b.bundleOf_()) bad.push('a bundle is offered for the whole of `What for · Learning`');
 
   /* ---------- 2. THE OWNER'S OWN EXAMPLE, NAMED PAPER FOR PAPER -----------------------------------
-     Edexcel maths past papers from Summer 2017, narrowed the way the funnel narrows — the chips a
-     thumb would set, in order. */
+     Edexcel maths past papers from 2017, narrowed the way the funnel narrows — the chips a thumb
+     would set, in order. It was `Summer 2017` until the owner asked for months rather than seasons:
+     the funnel asks Year and then Month now, so the papers a thumb can reach as one set are the
+     ones in one MONTH folder, and the title says `June 2017` the way the folder does. */
   const DOORS = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' },
                  { field: 'subject', value: 'Maths' }, { field: 'documentType', value: 'Past paper' },
                  { field: 'level', value: 'GCSE' }];
-  const SUMMER = r => String(r.year) === '2017' && ['5', '6'].includes(String(r.month));
+  const JUNE = r => String(r.year) === '2017' && String(r.month) === '6';
   const MATHS = r => r.subject === 'Maths' && r.document_type === 'Past paper';
   const cases = [
-    { name: 'Summer 2017, Higher',
-      filters: DOORS.concat([{ field: 'tier', value: 'Higher' }, { field: 'examSeries', value: 'Summer' },
-                             { field: 'examYear', value: '2017' }]),
-      want: papersIn(r => MATHS(r) && r.tier === 'Higher' && SUMMER(r)), title: ['Edexcel', 'Maths', 'Summer 2017'] },
+    { name: 'June 2017, Higher',
+      filters: DOORS.concat([{ field: 'tier', value: 'Higher' }, { field: 'examYear', value: '2017' },
+                             { field: 'examMonth', value: 'June' }]),
+      want: papersIn(r => MATHS(r) && r.tier === 'Higher' && JUNE(r)), title: ['Edexcel', 'Maths', 'June 2017'],
+      not: ['Summer'] },
     /* BOTH TIERS, WHERE TWO PAPERS SHARE A NAME. `Paper 1 (Non-Calculator)` and `Paper 1
-       (Non-calculator)` are one letter's case apart, so the card has to say which is which. */
-    { name: 'Summer 2017, both tiers',
-      filters: DOORS.concat([{ field: 'examSeries', value: 'Summer' }, { field: 'examYear', value: '2017' }]),
-      want: papersIn(r => MATHS(r) && SUMMER(r)), title: ['Edexcel', 'Maths', 'Summer 2017'] },
+       (Non-calculator)` are one letter's case apart, so the card has to say which is which. May, because
+       that is the month both tiers sat Paper 1 in -- the June folder here holds Higher papers only. */
+    { name: 'May 2017, both tiers',
+      filters: DOORS.concat([{ field: 'examYear', value: '2017' }, { field: 'examMonth', value: 'May' }]),
+      want: papersIn(r => MATHS(r) && String(r.year) === '2017' && String(r.month) === '5'),
+      title: ['Edexcel', 'Maths', 'May 2017'], not: ['Summer'] },
+    /* THE WHOLE YEAR FOLDER, three months in it: the title says the year and no month or season. */
+    { name: '2017, Higher',
+      filters: DOORS.concat([{ field: 'tier', value: 'Higher' }, { field: 'examYear', value: '2017' }]),
+      want: papersIn(r => MATHS(r) && r.tier === 'Higher' && String(r.year) === '2017'),
+      title: ['Edexcel', 'Maths', '2017'], not: ['Summer', 'Autumn', 'June', 'November'],
+      /* AND THE LINES INSIDE IT ARE THE MONTH FOLDERS, `May 2017` / `June 2017` / `November 2017` --
+         they listed `Summer 2017` and `Autumn 2017` under a Month question offering May and June. */
+      groups: ['May 2017', 'June 2017', 'November 2017'] },
     /* THE BUCKET, which is what the Year question offers first: four sittings, twelve papers. */
     { name: '2017 & 2018, Higher',
       filters: DOORS.concat([{ field: 'tier', value: 'Higher' },
@@ -211,6 +224,17 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
     }
     const miss = c.title.filter(word => !String(bun.title).includes(word));
     if (miss.length) bad.push(c.name + ': the title "' + bun.title + '" does not say ' + miss.join(', '));
+    if (c.groups) {
+      const got = [...new Set(bun.papers.map(p => String(p.group || '')))];
+      const want = c.groups;
+      if (got.length !== want.length || want.some(g => got.indexOf(g) === -1)) {
+        bad.push(c.name + ': the bundle groups its papers as [' + got.join(' | ') + '] where the Month '
+                 + 'folders are [' + want.join(' | ') + ']');
+      }
+    }
+    const extra = (c.not || []).filter(word => String(bun.title).includes(word));
+    if (extra.length) bad.push(c.name + ': the title "' + bun.title + '" says ' + extra.join(', ')
+                               + ' — the funnel asks months, and a season in the title is a word it no longer offers');
     /* EVERY LABEL UNIQUE INSIDE THE BUNDLE, where it is read — `short` is the name the basket and
        the order message put under the bundle's title, so two papers sharing one is an order the
        owner cannot fill. Compared as a reader would, case and punctuation folded. */
@@ -262,7 +286,7 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
    /* BY QUESTION NUMBER, NOT BY TOPIC: a past paper answers no topic question any more (see
       `topicShown_`), and the first ten questions of three papers is the same shape — three papers
       inside every bound, none of them whole. */
-   { name: 'Summer 2017 · Higher · Q1–10', filters: cases[0].filters.concat([{ field: 'qNumber', value: '1–10', bucket: true }]) },
+   { name: 'June 2017 · Higher · Q1–10', filters: cases[0].filters.concat([{ field: 'qNumber', value: '1–10', bucket: true }]) },
   ].forEach(t => {
     narrow(t.filters);
     if (b.stuffFiltered().length < 10) {
@@ -308,11 +332,12 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
   }
   /* AND AN OVERLAPPING BUNDLE, which is where "not twice" is actually decided. Pressing the same
      bundle again is stopped before the handler by the tile itself — it is drawn filled and off once
-     every paper is in — so that press proves the tile, not the rule. `2017 & 2018` holds the three
-     Summer 2017 papers already in the basket and nine more; its trolley is live, and pressing it
-     must add the nine and only the nine. */
+     every paper is in — so that press proves the tile, not the rule. `2017 & 2018` holds the two
+     June 2017 papers already in the basket and the rest of both years; its trolley is live, and
+     pressing it must add the rest and only the rest. Found by name rather than by position, so a
+     case added above it cannot quietly make this press a different bundle. */
   const had = b.CART().map(c => Object.assign({}, c));
-  const wide = cases[2];
+  const wide = cases.find(c => c.name === '2017 & 2018, Higher');
   narrow(wide.filters);
   if (!trolley()) {
     bad.push('the overlapping bundle (' + wide.name + ') has no trolley to press');
