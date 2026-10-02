@@ -1415,13 +1415,13 @@ function doPost(e) {
         const kid = hh[0];
         const tos = acceptedParents(S(kid.person_id)).map(p => S(p.email)).filter(Boolean);
         if (!tos.length) return jsonOut(said);
-        let pin = '';
+        let fresh2 = '';
         for (let tries = 0; tries < 20; tries++) {
-          pin = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
-          if (!/^(\d)\1+$/.test(pin) && pin !== '123456' && pin !== '123123') break;
+          fresh2 = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
+          if (!/^(\d)\1+$/.test(fresh2) && fresh2 !== '123456' && fresh2 !== '123123') break;
         }
         const krow = tPeople.rows.find(x => x._row === kid._row);
-        authSetPin_(tPeople, krow, pin);
+        authSetPin_(tPeople, krow, fresh2);
         authClearThrottle_(tPeople, krow);
         clearCache();
         try {
