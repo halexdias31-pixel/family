@@ -1039,6 +1039,71 @@ check('the word search hides every word where it says, and two taps find it', as
 });
 
 
+/* ---------- CONNECT 4: ONE COUNTER FALLS, INTO THE RIGHT SQUARE, AND THE FOUR THAT WON ARE RINGED ---
+   ASKED FOR AS "refine connect 4 add dropping animation of counters." The fall itself is CSS and
+   only a browser can play it — what can go wrong here is WHICH square falls: none (the mark is
+   lost), more than one (every counter on the board jumps on every tap), the wrong one (a counter
+   drops into a square gravity would not put it in), or the same one again on a refused tap. Each of
+   those draws a perfectly good board, so this asks the marks. And a win that rings three, or five
+   of a line of four, is a ring that points at the wrong thing. There was no Connect 4 journey
+   before this one. */
+check('connect 4 drops exactly the counter just played into the lowest empty square, and rings the four that win', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  const d = w.document;
+  const W = 7, H = 6;
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'connect4');
+  if (at < 0) return ['there is no Connect 4 on the Games column'];
+  t.goPage('games', at, true);
+  const cells = () => [...d.querySelectorAll('#s-games #c4-board .c4-cell')];
+  if (cells().length !== W * H) return ['the board did not draw ' + (W * H) + ' squares'];
+  const bad = [];
+  const tap = x => { const el = d.createElement('button'); el.setAttribute('data-x', String(x)); t.ACTIONS['c4-drop'](el); };
+  const lowest = x => { for (let y = H - 1; y >= 0; y--) { const c = cells()[y * W + x]; if (!c.classList.contains('p1') && !c.classList.contains('p2')) return y; } return -1; };
+  const fallen = () => cells().map((c, i) => c.classList.contains('c4-new') ? i : -1).filter(i => i >= 0);
+  const said = () => d.querySelector('#s-games #c4-said');
+
+  /* ONE TAP, ONE COUNTER FALLING, WHERE GRAVITY PUTS IT — twice in one column, so "lowest empty"
+     is asked of a column that is not empty. */
+  [[3, 'p1'], [3, 'p2'], [4, 'p1']].forEach(([x, side]) => {
+    const y = lowest(x);
+    tap(x);
+    const f = fallen();
+    if (f.length !== 1) { bad.push('a tap in column ' + (x + 1) + ' marked ' + f.length + ' counters to fall'); return; }
+    if (f[0] !== y * W + x) bad.push('a tap in column ' + (x + 1) + ' dropped square ' + f[0] + ', not row ' + (y + 1) + ' of that column');
+    const c = cells()[f[0]];
+    if (!c.classList.contains(side)) bad.push('the counter that fell in column ' + (x + 1) + ' is not ' + side);
+    if (!/--c4-fall:\s*\d/.test(c.getAttribute('style') || '') || Number((c.getAttribute('style').match(/--c4-fall:\s*(\d+)/) || [])[1]) !== y + 1) {
+      bad.push('the counter that fell to row ' + (y + 1) + ' says it falls "' + c.getAttribute('style') + '"');
+    }
+  });
+  /* WHOSE GO IT IS, AS A DISC IN THAT SIDE'S COLOUR — Yellow after three counters. */
+  const disc = said() && said().querySelector('.c4-turn');
+  if (!disc || !disc.classList.contains('p2') || disc.getAttribute('aria-hidden') !== 'true') {
+    bad.push('after three counters the line reads "' + (said() || {}).innerHTML + '" — wanted a hidden yellow disc beside Yellow\'s go');
+  }
+
+  /* A FULL COLUMN PLAYS NOTHING, SO NOTHING FALLS — not even the counter that fell last time. */
+  for (let i = 0; i < H; i++) tap(0);
+  tap(0);
+  if (!/full/.test(said().textContent)) bad.push('a tap on a full column reads "' + said().textContent + '"');
+  if (fallen().length) bad.push('a tap on a full column dropped a counter again: square ' + fallen().join(', '));
+
+  /* A WIN RINGS EXACTLY THE FOUR. Red down column 1, Yellow beside it. */
+  t.ACTIONS['c4-again'](d.createElement('button'));
+  if (cells().some(c => c.classList.contains('p1') || c.classList.contains('p2'))) bad.push('New game left counters on the board');
+  [0, 1, 0, 1, 0, 1, 0].forEach(tap);
+  const rung = cells().map((c, i) => c.classList.contains('c4-win') ? i : -1).filter(i => i >= 0);
+  const four = [2, 3, 4, 5].map(y => y * W);
+  if (rung.join(',') !== four.join(',')) bad.push('four Red counters down column 1 rang squares ' + rung.join(', ') + ', wanted ' + four.join(', '));
+  if (!/Red wins/.test(said().textContent) || !said().querySelector('.c4-turn.p1')) bad.push('the win reads "' + said().innerHTML + '"');
+  if (cells().some(c => !c.disabled)) bad.push('a won board can still be played');
+  return bad;
+});
+
 /* ---------- THE MAZE: ITS WALLS ARE ITS OWN, ITS WALK SURVIVES A REPAINT, ITS KEYS ARE ITS OWN -----
    REPORTED AS "maz game is glitched." Three faults, and every one of them drew without a complaint
    from anything here — there was no maze journey at all.

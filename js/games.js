@@ -773,6 +773,8 @@ function feedSlide(it) {
    somebody taps and sits still otherwise. That is why none of these three needs a `stop`, and it is
    worth saying out loud: `stop` exists for Flabby Pird because sixty frames a second behind a screen
    nobody is looking at is a flat battery. A board that only moves when tapped costs nothing parked.
+   STILL TRUE NOW CONNECT 4'S COUNTERS FALL: the drop is a CSS animation on the one counter just
+   played, which the browser runs once and finishes — there is nothing here to start or to stop.
 
    THE BOARDS ARE BUTTONS, NOT A CANVAS. A canvas would mean hit-testing taps against pixel
    coordinates and redrawing to show a hover; a grid of real `<button>`s gets the tap target, the
@@ -802,7 +804,10 @@ function initConnect4() {
   /* REBUILT FROM NOTHING EVERY TIME THE WIDGET OPENS. Coming back to a board you left half-played
      sounds kind and is not: the widget is reopened by a swipe, so "where was I" would be answered
      by a game you had forgotten starting. */
-  c4 = { cells: new Array(C4_W * C4_H).fill(0), turn: 1, over: false, said: 'Red starts — tap a column.' };
+  /* `last` IS THE COUNTER JUST PLAYED, which is the one that falls — see `c4Paint`. `win` is the
+     line that ended the game, which is ringed. */
+  c4 = { cells: new Array(C4_W * C4_H).fill(0), turn: 1, over: false, said: 'Red starts — tap a column.',
+         last: null, win: null };
   c4Paint();
 }
 
@@ -815,30 +820,43 @@ function c4Drop_(cells, x) {
 }
 
 /* FOUR IN A LINE THROUGH A SQUARE, checked in the four directions that matter. Eight would be
-   double-counting: a line and its reverse are the same line. */
-function c4Wins_(cells, x, y, who) {
+   double-counting: a line and its reverse are the same line.
+
+   IT RETURNS THE SQUARES, NOT A YES. It answered true or false, so "Red wins." appeared under a
+   board that did not say where — and on a full board of 42 discs, finding the four that did it is
+   a game of its own. Now it hands back every square of every line of four or more through the
+   counter just played (a drop can finish two lines at once, or join two and one into five), and an
+   empty list is the old false. */
+function c4Line_(cells, x, y, who) {
   const dirs = [[1, 0], [0, 1], [1, 1], [1, -1]];
-  return dirs.some(([dx, dy]) => {
-    let n = 1;
+  const won = [];
+  dirs.forEach(([dx, dy]) => {
+    const line = [y * C4_W + x];
     for (const s of [1, -1]) {
       for (let i = 1; i < 4; i++) {
         const nx = x + dx * i * s, ny = y + dy * i * s;
         if (nx < 0 || nx >= C4_W || ny < 0 || ny >= C4_H) break;
         if (cells[ny * C4_W + nx] !== who) break;
-        n++;
+        line.push(ny * C4_W + nx);
       }
     }
-    return n >= 4;
+    if (line.length >= 4) line.forEach(i => { if (won.indexOf(i) < 0) won.push(i); });
   });
+  return won;
 }
 
 function c4Play_(x) {
   if (!c4 || c4.over) return;
   const y = c4Drop_(c4.cells, x);
+  /* A FULL COLUMN PLAYS NOTHING, SO NOTHING FALLS: `last` is not set, and the paint that showed the
+     previous counter has already spent it — see `c4Paint`. */
   if (y < 0) { c4.said = 'That column is full.'; return; }
   c4.cells[y * C4_W + x] = c4.turn;
-  if (c4Wins_(c4.cells, x, y, c4.turn)) {
+  c4.last = { x, y };
+  const line = c4Line_(c4.cells, x, y, c4.turn);
+  if (line.length) {
     c4.over = true;
+    c4.win = line;
     c4.said = C4_NAME[c4.turn] + ' wins.';
   } else if (c4.cells.every(Boolean)) {
     c4.over = true; c4.said = 'Full board — a draw.';
@@ -862,21 +880,54 @@ function c4Play_(x) {
    nothing presses, which is `orderPrints` — and the three rules are four lines somebody can write
    again if a solo mode is ever wanted. */
 
+/* ---------- THE COUNTER FALLS, AND THE FOUR THAT WON ARE RINGED --------------------------------------
+   ASKED FOR AS "refine connect 4 add dropping animation of counters." A counter used to appear in
+   its square: the board is rebuilt through `innerHTML` on every tap, so there was no moment between
+   the empty square and the full one for anything to move in.
+
+   SO THE ONE NEW COUNTER IS MARKED, AND CSS DROPS IT. `c4-new` goes on the square just played and
+   `--c4-fall` says how many rows it falls — its own row plus one, so it starts one row above the top
+   edge, where `.c4`'s `overflow: hidden` keeps it out of sight until it enters. The rebuilt board is
+   otherwise identical, so only that counter moves; the forty-one that were already there do not
+   twitch. The fall, the small bounce and the reduced-motion exemption are all in style.css.
+
+   `last` IS SPENT BY THE PAINT THAT SHOWS IT. A board painted again for any other reason — a
+   refused tap on a full column, a repaint — must not drop the same counter twice, so the mark is
+   read once here and cleared.
+
+   THE WIN IS RINGED (`c4-win`) because "Red wins." under a board does not say where. Both class
+   names carry the `c4-` prefix for the reason the maze's walls now do: a bare `.new` or `.win` is a
+   name any later component can take without knowing, and the maze found out what that costs.
+
+   THE TURN HAS A DISC BESIDE IT, in the side's own colour — two people at one phone glance at the
+   line under the board to see whose go it is, and a red disc is read before the word "Red" is. Not
+   on a draw, which is nobody's. `aria-hidden`, because the sentence already says the colour. */
 function c4Paint() {
   const host = $('c4-board');
   if (!host || !c4) return;
+  const last = c4.last;
+  c4.last = null;
+  const win = c4.win || [];
   let html = '';
   for (let y = 0; y < C4_H; y++) {
     for (let x = 0; x < C4_W; x++) {
       const v = c4At(x, y);
+      const fell = last && last.x === x && last.y === y;
       /* THE WHOLE COLUMN IS ONE TARGET, so every square in it carries the same `data-x` and the
          same label. A screen reader hears "column 4" six times rather than 42 unnamed squares. */
-      html += `<button class="c4-cell${v ? (v === 1 ? ' p1' : ' p2') : ''}" data-do="c4-drop"
-        data-x="${x}" aria-label="Column ${x + 1}"${c4.over ? ' disabled' : ''}></button>`;
+      html += `<button class="c4-cell${v ? (v === 1 ? ' p1' : ' p2') : ''}${fell ? ' c4-new' : ''}${
+        win.indexOf(y * C4_W + x) >= 0 ? ' c4-win' : ''}" data-do="c4-drop"
+        data-x="${x}" aria-label="Column ${x + 1}"${fell ? ` style="--c4-fall:${y + 1}"` : ''}${
+        c4.over ? ' disabled' : ''}></button>`;
     }
   }
   host.innerHTML = html;
-  const said = $('c4-said'); if (said) said.textContent = c4.said;
+  const said = $('c4-said');
+  if (said) {
+    const draw = c4.over && !win.length;
+    said.innerHTML = (draw ? '' : `<i class="c4-turn ${c4.turn === 1 ? 'p1' : 'p2'}" aria-hidden="true"></i>`)
+      + esc(c4.said);
+  }
 }
 
 on('c4-drop', el => {

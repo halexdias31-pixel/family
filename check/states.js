@@ -1838,6 +1838,37 @@ const STATES = {
                  && !!document.querySelector('#s-games [data-do="ss-check"][disabled]'),
       wants: 'the longest sentence half built, its used chips dimmed and Check not yet pressable',
       leave: () => { SS = window.__seedSs || null; if (!SS) ssDeal_(ssBand_()); ssPaint(); } },
+
+    /* ---------- A CONNECT 4 GAME, WON --------------------------------------------------------------
+       THE WIDGET OPENS ON AN EMPTY BOARD, which is the one state `go()` reaches — and an empty board
+       has no counter, no falling counter and no ring, so nothing "refine connect 4 add dropping
+       animation of counters" added would ever be measured or pressed. Played through the board's
+       own handler, Red down the first column, so the four that won are ringed, the line under the
+       board carries its disc, and the last counter is the one that fell.
+
+       AND THE EXPECTATION ASKS THE BROWSER WHAT ONLY A BROWSER KNOWS: that the counter marked to
+       fall really has the `c4-drop` animation on its `::after`. `check-flow.js` can ask which
+       square is marked; it cannot ask whether the stylesheet still does anything with the mark. */
+    { name: 'a connect 4 game, won',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'connect4');
+        if (n < 0) throw new Error('no connect 4 widget in the roster');
+        goPage('games', n, true);
+        initConnect4();
+        [0, 1, 0, 1, 0, 1, 0].forEach(x => {
+          const b = document.createElement('button');
+          b.setAttribute('data-x', String(x));
+          ACTIONS['c4-drop'](b);
+        });
+      },
+      expect: () => {
+        const fell = document.querySelector('#s-games .c4-cell.c4-new');
+        return document.querySelectorAll('#s-games .c4-cell.c4-win').length === 4
+          && !!document.querySelector('#s-games #c4-said .c4-turn.p1')
+          && !!fell && getComputedStyle(fell, '::after').animationName === 'c4-drop';
+      },
+      wants: 'four counters ringed, a red disc beside Red wins, and the last counter under the drop',
+      leave: () => { initConnect4(); } },
   ],
 
   /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------

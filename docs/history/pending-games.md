@@ -100,3 +100,65 @@ screenshots show a clean maze.
   Scrabble) that its squares are one size, within 0.5px. It prints how many boards it measured: 528
   on the Games screen across 88 combinations. With bare `ws` put back, it reported "#maze-grid: 53
   of 121 squares are not the board's size … 12.1-19.3px tall".
+
+### "refine connect 4 add dropping animation of counters."
+
+**Counters fall now.** Before this, the board was rebuilt through `innerHTML` on every tap, so a
+counter simply appeared in its square.
+
+**How the drop works.** `c4Play_` records `c4.last`, the counter just played. `c4Paint` gives that
+one square `c4-new` and `--c4-fall` (its row plus one), then clears `last`. That clearing is the
+only place the mark is spent, so a later paint (a refused tap on a full column, a repaint) cannot
+drop the same counter twice. The CSS keyframes then:
+- start the counter one row above the top edge, where `.c4 { overflow: hidden }` hides it;
+- accelerate it down;
+- land it at 70%, bounce it up 14% of a square, and settle it.
+
+A row is `100% + 3px`, the counter's own height plus the gap, so no pixel width is written down.
+The time grows with the distance: 190ms into the top row, 440ms to the bottom of an empty column.
+The animation uses transform only. Under `prefers-reduced-motion: reduce` there is no animation and
+the counter just appears; this was confirmed in the browser (`animationName: none`).
+
+**The counter is now the square's `::after`, not the square's own background.** If the square
+itself moved, the hole would travel with it, and the slot the counter is falling into would show
+the board's gap colour. Now the square stays a dark hole and only the disc moves.
+
+**The winning four are ringed.** `c4Wins_` returned only true or false, so "Red wins." gave no
+location. `c4Line_` returns every square of every line of four or more through the last counter,
+and those squares get `c4-win`, an ink ring inside the counter and out into the gap. Ink, not gold,
+because gold nearly disappears on the yellow counter.
+
+**A disc in the turn colour sits beside "Red's go."** It is `aria-hidden`, because the sentence
+already says the colour. There is no disc on a draw. The colour tokens are declared on
+`.c4, .c4-turn`, because the line under the board is outside `.c4` and would not inherit them.
+
+Both new classes carry the `c4-` prefix, for the reason the maze's walls now do.
+
+The "NOTHING RUNS BETWEEN TURNS" note still holds: a CSS animation is not a loop, so there is
+nothing to stop.
+
+**Checked.**
+- **A check-flow journey** (the first for Connect 4) asks four things:
+  - each of three taps marks exactly one counter, in the lowest empty square of that column, in
+    the right colour, with the right `--c4-fall`;
+  - the turn disc is yellow and hidden from screen readers;
+  - a tap on a full column marks nothing;
+  - Red's four down column 1 rings exactly those four, with a red disc, and disables the board.
+
+  Five mutations each failed for the right reason:
+  - marking every counter gave "marked 2 counters to fall";
+  - marking one row up gave "dropped square 31, not row 6";
+  - never spending `last` gave "a tap on a full column dropped a counter again";
+  - ringing three of four gave "rang squares 21, 28, 35";
+  - dropping the disc gave "wanted a hidden yellow disc".
+- **A new lab state, `a connect 4 game, won`,** in `check/states.js`. In a real browser it expects
+  the four rings, the disc, and `animationName === 'c4-drop'` on the falling counter's `::after`.
+  That last one is the half check-flow cannot ask: whether the stylesheet still does anything with
+  the mark.
+- **Screenshots** at 320 and 390 show play in progress, a counter caught mid-fall, and a diagonal
+  win. Sampling the animation with it paused gave: the disc's bottom edge exactly at the board's top
+  edge at 0%, landed at 70%, 4.9px up at 85%, and settled at 100%.
+
+**One thing was left as it was.** Connect 4, like Othello, still deals a new board on every start,
+which includes a repaint. That is the fault the maze had. It was not part of this request, so it is
+left for the owner to decide.
