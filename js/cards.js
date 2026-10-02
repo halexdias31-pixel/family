@@ -328,6 +328,19 @@ function profHeat_(names) {
   const G = 80;
   px.forEach(p => layers.push({ img: 'radial-gradient(circle closest-side, rgba(255,190,90,.6) 0, rgba(255,150,60,.3) 45%, rgba(255,120,40,0) 100%)',
     pos: pos(p[0] - G / 2, p[1] - G / 2, G, G), size: G + 'px ' + G + 'px' }));
+  /* A SMALL GOLD CORE AT EACH VENUE, INSIDE ITS GLOW. ASKED FOR AS *"make the heat map a bit
+     clearer."* Measured on a stand-in tile: seven south-west London venues — Colliers Wood, Sutton,
+     Wimbledon, Tooting, Mitcham, Balham, Morden — fused into one orange blob, because 80px glows at
+     .6 alpha that overlap ARE one patch; that is what a heat map is, and it also meant you could
+     not tell three venues from seven. A 10px solid core per venue keeps the warmth and makes each
+     place countable. The dark ring is what separates two cores that nearly touch, and what keeps a
+     gold dot readable on the gold of its own glow. Still no names — the owner asked for a map
+     *"instead of the tutors at showing names of all places"*, so a dot is the most it may say.
+     THE SAME `pos()` WITH THE SAME CENTRE, so a core's position string is its glow's position
+     string exactly, which is what the account state compares to prove they sit together. */
+  const D = 10, cores = px.map(p => ({
+    img: 'radial-gradient(circle closest-side, var(--gold, #ffb454) 0 55%, rgba(0,0,0,.55) 62% 85%, rgba(0,0,0,0) 100%)',
+    pos: pos(p[0] - D / 2, p[1] - D / 2, D, D), size: D + 'px ' + D + 'px' }));
   const t0x = Math.floor((cx - 220) / 256), t1x = Math.floor((cx + 220) / 256);
   const t0y = Math.floor((cy - 130) / 256), t1y = Math.floor((cy + 130) / 256);
   for (let tx = t0x; tx <= t1x; tx++) for (let ty = t0y; ty <= t1y; ty++) {
@@ -348,6 +361,7 @@ function profHeat_(names) {
       aria-label="${esc('A map of where they tutor' + (areas.length ? ': around ' + areas.join(', ') : ''))}">
       <span class="heat-tiles" style="${esc(bg(tiles))}"></span>
       <span class="heat-glow" style="${esc(bg(layers))}"></span>
+      <span class="heat-core" style="${esc(bg(cores))}"></span>
       <span class="heat-credit">© OpenStreetMap contributors</span>
     </div>${tail}`;
 }
