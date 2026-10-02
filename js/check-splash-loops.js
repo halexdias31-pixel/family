@@ -50,6 +50,10 @@ const LOOPS = [
     own: pythOwn_ },
   { id: 'area', prefix: 'ar-', centreOn: ['ar-ring', 'ar-slot'],
     own: areaOwn_ },
+  /* NO viewBox: the index laws are tiles in a flex row, centred by `justify-content`, so the
+     centring sentence is in indexOwn_ — each group moves half the distance. */
+  { id: 'index', prefix: 'ix-',
+    own: indexOwn_ },
 ];
 
 let faults = [], said = [];
@@ -260,6 +264,60 @@ function areaOwn_(L, m) {
   const name = fly && (fly.decls.animation || '').split(/\s+/).find(w => frames[w]);
   if (!name) fault(L.id, '.ar-sl has no animation — the slices do not move');
   else if (frames[name].some(st => 'opacity' in st.decls)) fault(L.id, '@keyframes ' + name + ' fades the slices — a cross-fade is the fault this replaced');
+}
+
+/* ---------- THE INDEX LAWS: COUNTED WHILE JOINED, AND JOINED EXACTLY -------------------------------
+   THE OLD ONE COUNTED AFTER IT HAD COME APART: the lights ran 3.44s to 5.04s and the groups were
+   together 1.76s to 4.0s, so tiles 4 and 5 lit with the × back between them. So: every tile's light
+   — from the moment it starts to come up to the moment it has gone — sits inside the stretch where
+   both groups are fully joined, and a⁵ is written no earlier than the fifth tile is counted.
+
+   AND IT MOVED BY A NUMBER THAT IGNORED THE ×. 1.5rem, second group only: 1.1px between tiles 3 and
+   4 against 4.4px elsewhere, 11px off centre. So the distance must be the formula, read off the
+   rules, and the two groups must move by plus and minus half of it. */
+function indexOwn_(L, m) {
+  const rule = sel => rules.find(r => r.sel === sel && !isStill(r)) || { decls: {} };
+  const shift = (rule('#splash-index').decls['--ix-shift'] || '').replace(/\s+/g, '');
+  if (shift !== 'calc((2*var(--ix-out)+var(--ix-op)-var(--ix-in))/2)')
+    fault(L.id, '--ix-shift is "' + shift + '", not half of (2 × the gap either side of the × + the × − the gap between tiles) — the joined row will not be evenly spaced');
+  if (rule('.ix-line').decls.gap !== 'var(--ix-out)') fault(L.id, '.ix-line gap is not var(--ix-out) — the distance the groups close is computed from it');
+  if (rule('.ix-g').decls.gap !== 'var(--ix-in)') fault(L.id, '.ix-g gap is not var(--ix-in) — the joined gap must match the gap between tiles');
+  if (rule('.ix-op').decls.width !== 'var(--ix-op)') fault(L.id, '.ix-op width is not var(--ix-op) — the × must be as wide as the distance assumes');
+
+  const name = sel => ((rule(sel).decls.animation || '').split(/\s+/).find(w => frames[w]));
+  const window_ = (fr, isOn) => {
+    // [the last key that is still off before it comes on, the first key that is off again after]
+    if (!fr) return null;
+    const keys = [];
+    fr.forEach(st => st.keys.forEach(k => keys.push([k, isOn(st.decls)])));
+    keys.sort((a, b) => a[0] - b[0]);
+    const on = keys.filter(k => k[1]);
+    if (!on.length) return null;
+    const first = on[0][0], last = on[on.length - 1][0];
+    const before = keys.filter(k => !k[1] && k[0] < first).map(k => k[0]);
+    const after = keys.filter(k => !k[1] && k[0] > last).map(k => k[0]);
+    return { from: before.length ? Math.max(...before) : first, to: after.length ? Math.min(...after) : last, first, last };
+  };
+  const shifted = d => /var\(--ix-shift\)/.test(d.transform || '');
+  const g1 = window_(frames[name('.ix-g1')], shifted), g2 = window_(frames[name('.ix-g2')], shifted);
+  if (!g1 || !g2) { fault(L.id, '.ix-g1 and .ix-g2 do not both move by --ix-shift — the groups never join'); return; }
+  const joined = { from: Math.max(g1.first, g2.first), to: Math.min(g1.last, g2.last) };
+  const lit = d => d.opacity === '1';
+  const tiles = [...m.matchAll(/<i class="(ix-t\d+)">a<b class="ix-n">(\d+)<\/b><\/i>/g)];
+  if (tiles.length !== 5 || tiles.some((t, k) => t[2] !== String(k + 1)))
+    fault(L.id, 'does not number its five tiles 1 to 5 — the exponent is meant to be counted up to');
+  let lastOn = 0;
+  tiles.forEach(t => {
+    const w = window_(frames[name('.' + t[1] + '::after, .' + t[1] + ' .ix-n')], lit);
+    if (!w) { fault(L.id, '.' + t[1] + ' never lights — it is not counted'); return; }
+    lastOn = Math.max(lastOn, w.from);
+    if (w.from < joined.from || w.to > joined.to)
+      fault(L.id, '.' + t[1] + ' is lit from ' + w.from + '% to ' + w.to + '% but the groups are joined only from '
+        + joined.from + '% to ' + joined.to + '% — it is counted while they are apart');
+  });
+  const sum = window_(frames[name('.ix-sum')], lit);
+  if (!sum) fault(L.id, '.ix-sum is not animated — a⁵ shows before anything has been counted');
+  else if (sum.from < lastOn) fault(L.id, 'a⁵ is written at ' + sum.from + '%, before the fifth tile is counted at ' + lastOn + '%');
 }
 
 console.log('\nTHE SPLASHES THAT ARE ONE SEAMLESS LOOP  (' + LOOPS.length + ')');

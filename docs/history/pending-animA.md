@@ -56,6 +56,32 @@ point of the picture, which half went where, is already carried by the colours.
 **Measured.** Frames at 0, 0.7, 1.2, 2.5, 4.6, 5.2 and 6.4s at 320 and 390: 0s and 6.4s
 byte-identical at both widths, 45.3px either side at 320 and 69px at 390, nothing clipped.
 
+### The index laws (`#splash-index`, now `tools/index.py`)
+
+**What was wrong**, measured frame by frame: (a) two clocks — the tiles lit from 3.44s to 5.04s on
+a delayed 4s cycle, but the groups were joined only from 1.76s to 4.0s, so tiles 4 and 5 lit after
+the groups had parted again, with the × back between them; (b) a snap at the seam — `ix-close` and
+`ix-go` had no return leg, so at 4.0s the second group jumped 22px right and the × popped from 0 to
+1 in one frame; (c) the join moved only the second group, by a fixed 1.5rem that ignored the ×'s
+width: 1.1px between tiles 3 and 4 against 4.4px elsewhere, and the row 11px left of centre; (d)
+a⁵ was in the caption from the first frame, so the 5 was never reached. It also had no
+reduced-motion rule at all, and lit the tiles by animating `border-color` and `color`.
+
+**What it is now.** `python3 tools/index.py` writes the markup and the rules from one list of times,
+and asserts the count sits inside the join. One 6s loop: open, the groups close (each by half the
+exact distance, 2·gap-beside-× + × − gap-between-tiles, all four custom properties) as the × fades;
+then, joined, the tiles are counted 1 to 5 at 0.4s steps, each lit by a gold ring fading in over it
+with its numeral under it; a⁵ is written in the caption as the fifth is counted; held; everything
+clears together; the groups part and the × comes back, ending on the first frame. Opacity and
+transform only. Reduced motion shows the joined row, counted, with a⁵ written. Kept to the
+multiplication law only, the audit's default: three laws cycling in one box would need captions
+that change every two seconds on a screen that is up for about two.
+
+**Measured** in the browser at 320 and 390: every gap between tiles 4.05px (320) / 4.44px (390)
+once joined, including between 3 and 4; the row's centre 0.01px from the viewport's at both; at
+5999, 6000 and 6001ms the gaps and the ×'s opacity are identical (no snap). Frames at 0, 0.8, 1.5,
+2.3, 3.4, 4.8, 5.6 and 6s: 0s and 6s byte-identical at both widths.
+
 ### The check
 
 `js/check-splash-loops.js`, in `npm run check`. `npm run splash` asks only whether the picture
@@ -67,6 +93,12 @@ under reduced motion; the drawing centred in its viewBox and inside it. Then one
 splash. Pythagoras: 9 + 16 cells landing on 25 different places, and the triangle never animated.
 The circle: every slice ends somewhere other than where it starts, the slices' keyframes never touch
 opacity (the cross-fade), and every gold slice lands arc-up and every teal one arc-down, the same
-number of each. Run against the old files it reports "nothing travels".
+number of each. Run against the old files it reports "nothing travels". The index laws: the
+distance is the formula and the gaps are the variables it is built from; every tile's light, from
+starting to rise to fully gone, sits inside the stretch where both groups are fully joined; a⁵ is
+written no earlier than the fifth tile; five tiles numbered 1 to 5. Against the old files it
+reports the border-colour animation, both seams, the missing reduced-motion rule and the fixed
+1.5rem; a light moved past the join, the old 1.5rem distance and a⁵ timed with the first tile are
+each red on their own.
 Proved by putting the dash wipe back, dropping the 100% stop, restoring the old viewBox and landing
 two cells on one slot — each red for its own reason, green again on the real files.
