@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-02-tag-colours";
+  --css-version: "2026-10-03-finder";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1206,25 +1206,15 @@ code   { font-family: var(--mono); font-size: .92em; color: var(--dim); }
    THE SCREENS. Only what the seven need — every rule here belongs to something you can point at.
 ================================================================================================ */
 
-/* ---------- LINK TILES --------------------------------------------------------------------------
-   The one place a grid is right: a link is a destination rather than something to read, and a wall
-   of them is faster to scan than a list. The SHAPE says what kind it is, so the categories need no
-   headings at all.
+/* ---------- LINK TILES, AND THEN LINK CARDS, AND NOW NEITHER --------------------------------------
+   `.fav` AND `.fav-none` WERE HERE — a link's favicon filling its square, and the quiet stand-in
+   where a row had no address. Their one producer was the link card on Find, and the links are gone
+   ("Get rid of links that's almost redundant now"). `check-css.js` named `fav-none` as styled and
+   produced by nothing the moment the card went, which is the dead-selector fault it exists for.
 --------------------------------------------------------------------------------------------- */
-/* THE SITE'S OWN LOGO, over the coloured shape that stands in when there is none. Absolutely
-   positioned so the two occupy the same square rather than sitting side by side — and so removing
-   the image on error reveals the shape exactly where the logo was. */
+/* KEPT: a friend's avatar, a wearable's drawing and your own figure all sit in `.thing-pic.art`,
+   and anything layered over them is placed against this box rather than against the card. */
 .thing-pic.art { position: relative; }
-/* THE SITE'S OWN LOGO, filling the square on its own. It used to sit over a coloured shape with
-   initials — and a fallback that is always drawn is not a fallback, it is what you look at whenever
-   the logo is slow. */
-.fav { position: absolute; inset: 10%; width: 80%; height: 80%; object-fit: contain;
-       background: var(--raised); border-radius: 4px; }
-/* Only where there is no address to ask about — a note somebody typed in the link column. Quiet,
-   because it is standing in for a thing that does not exist rather than for one that failed. */
-.fav-none { position: absolute; inset: 10%; display: grid; place-items: center;
-            background: var(--sunk); border: 1px solid var(--line); border-radius: 4px;
-            font-size: .7rem; color: var(--faint); }
 
 /* ---------- THE LIBRARY WALL'S `.tile` WAS STILL HERE, AND IT WAS WINNING ------------------------
    A `.tile` on that wall was a square: a picture above a caption, so `flex-direction: column`.

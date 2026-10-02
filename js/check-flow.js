@@ -125,7 +125,7 @@ function payload() {
       { title: 'Mitcham library', bestRate: 26, maxCapacity: 4, minCapacity: 1, rooms: [],
         borough: 'Merton', avail: {} },
     ],
-    students: [], resources: [], posts: [], links: [], shop: [], trips: [], exams: [],
+    students: [], resources: [], posts: [], shop: [], trips: [], exams: [],
     birthdays: [], orders: [], widgets: [], laws: [], brand: {}, landmarks: [],
     intervals: [{ rel: 'Current', term: 'Autumn 1', label: 'Autumn 1', weeks: 6,
                   startDate: '01/09/2026', endDate: '18/10/2026', kind: 'term' }],
@@ -136,7 +136,7 @@ function payload() {
     dropdowns: { levels: ['GCSE', 'A-Level'], subjects: ['Maths', 'English Language'],
                  days: ['Mon', 'Wed', 'Fri'], times: ['16:00', '17:00', '18:00'],
                  boroughs: ['Merton'], locations: ['Colliers Wood Library', 'Mitcham library'],
-                 services: ['Group'], linkCategories: [], topics: [], checklists: {}, focus: {} },
+                 services: ['Group'], topics: [], checklists: {}, focus: {} },
     multipliers: { levels: {}, subjects: {}, subjectsEta: {}, days: {}, times: {}, services: {},
                    students: {}, weeks: {}, baseRate: 0 },
     /* ---------- PRICED, SO THE JOURNEYS BELOW ARE NOT PASSING ON AN EMPTY ROOM --------------------

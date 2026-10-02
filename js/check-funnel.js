@@ -147,6 +147,44 @@ boot(f => {
   }
   const facets = f.facetList();
 
+  /* ---------- 0. WHAT THE FIND SCREEN HOLDS IS WHAT THE OWNER SAID IT HOLDS ------------------------
+     ASKED FOR AS *"Get rid of booking places ... So finder now will become just learning stuff"* and
+     *"Get rid of links that's almost redundant now."* Neither is a question about a number, so the
+     rules below could not see either: 127 links and 13 venues answered every facet perfectly well.
+     Measured before the change, over the real files, Find's first question read `Booking, Places |
+     Learning | Links | Shop`.
+
+     ON THE REAL FILES, WHICH IS WHY IT IS HERE. This harness serves every `data/**.json` the app
+     asks for from disk, so a fetch of `data/settings/links.json` that came back would put the 127
+     links straight into `items` — the half `check-flow.js`'s inline payload cannot see. And the
+     fixture's venue is a production-shaped row now that the fixture sends `kinds: []`.
+
+     A KIND AND A DOOR, NOT A WHITELIST OF DOORS. `Shop` is still a door until its column exists
+     (see `shop` in KINDS), and Friends and Paperwork appear for the people they belong to; a list of
+     allowed answers would be wrong the day any of those moves. What is refused is what the owner
+     named, and a door that is two groups joined by a comma — one chip, which is how `Booking,
+     Places` was drawn. */
+  const GONE = { venue: 'booking places', link: 'links' };
+  const kindsHeld = {};
+  items.forEach(x => { kindsHeld[x.kind] = (kindsHeld[x.kind] || 0) + 1; });
+  Object.keys(GONE).forEach(k => {
+    if (kindsHeld[k]) {
+      bad.push(kindsHeld[k] + ' item(s) of kind `' + k + '` are in the list Find draws — the owner asked '
+               + 'for ' + GONE[k] + ' to be taken off it. See FUNNEL_NOT_FOR and the note where `link` was '
+               + 'in KINDS.');
+    }
+  });
+  const forF = facets.find(x => x.field === 'forLabel');
+  const doors = forF ? f.facetValues(items, forF).map(v => String(v.show || v.value)) : [];
+  if (!doors.length) bad.push('`What for` draws no answers over ' + items.length + ' items, so the doors '
+                              + 'could not be read — not a pass');
+  doors.filter(d => /,|^(Links|Places)$/.test(d)).forEach(d => {
+    bad.push('Find\'s first question offers "' + d + '" — a door the owner asked to be rid of, or two '
+             + 'groups drawn as one chip');
+  });
+  console.log('\nWHAT FIND HOLDS: ' + Object.keys(kindsHeld).map(k => k + ' ' + kindsHeld[k]).join(' · ')
+              + '\n  first question: ' + doors.join(' | '));
+
   facets.forEach(facet => {
     const vals = f.facetValues(items, facet);
     const cov = f.facetCoverage(items, facet);

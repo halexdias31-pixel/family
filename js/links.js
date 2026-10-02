@@ -15,53 +15,14 @@
 ================================================================================================== */
 
 
-/* ---------- LINK LIBRARY ------------------------------------------------------------------------
-   Tiles, in a grid — the one place a grid is right, because a link is a destination rather than a
-   thing to read, and a wall of them is faster to scan than a list.
-   The shape says what kind it is, which is why the categories no longer need headings.
---------------------------------------------------------------------------------------------- */
-/* ---------- A LINK'S OWN LOGO ---------------------------------------------------------------------
-   The site's favicon, which is the mark it has chosen for itself and the one somebody already
-   recognises. A coloured square with "BB" in it is a thing this app invented; the BBC's own logo is
-   the thing on the tab they had open yesterday.
-
-   DUCKDUCKGO'S SERVICE, not Google's. Both are free and keyless and Google's has slightly better
-   coverage — but fetching a favicon tells whoever serves it which sites this app links to, and on a
-   site used by children that is ninety small disclosures to an advertising company for a marginally
-   better hit rate. DuckDuckGo's exists to answer exactly this and keeps nothing.
-
-   THE SHAPE STAYS, underneath. A favicon is a request to somebody else's server: it can 404, be
-   blocked, or simply not exist for a link that points at a PDF. The coloured shape is drawn first
-   and the logo sits on top of it, so a failure removes the image and reveals what was already
-   there — no handler, no state, nothing to go wrong. */
-/* WHERE TO ASK SECOND. DuckDuckGo keeps nothing and is the right first choice, and its coverage is
-   not complete — a site it has never seen returns nothing at all. Google's has seen everything and
-   returns a globe rather than a 404, which makes it the right LAST resort: by the time it is asked,
-   the alternative is an empty square.
-   Only the hostname goes either way, and only for the links that fail. */
-const faviconAlt = url => {
-  const host = hostOf_(url);
-  return host ? 'https://www.google.com/s2/favicons?sz=64&domain=' + host : '';
-};
-
-/** The hostname of an address, or nothing if it is not one. */
-const hostOf_ = url => {
-  const m = String(url || '').match(/^\s*[a-z][a-z0-9+.-]*:\/\/([^/?#\s]+)/i);
-  if (!m) return '';
-  const host = m[1].replace(/^[^@]*@/, '').replace(/:\d+$/, '');
-  return /\./.test(host) ? host : '';
-};
-
-const faviconFor = url => {
-  /* READ WITH A PATTERN, not with `new URL`. That constructor is the tidy way and it is not
-     everywhere — it is absent from the sandbox this is tested in and from browsers older than the
-     phones some families are using — and when it is missing every link silently loses its logo
-     rather than throwing somewhere anybody would notice.
-     A hostname is the bit between the scheme and the first slash. That is a small enough job to do
-     honestly. */
-  const host = hostOf_(url);
-  return host ? 'https://icons.duckduckgo.com/ip3/' + host + '.ico' : '';
-};
+/* ---------- THE LINKS ARE GONE, AND THEIR LOGOS WITH THEM ------------------------------------------
+   `faviconFor`, `faviconAlt` AND `hostOf_` WERE HERE — a link's own favicon, asked of DuckDuckGo
+   first (it keeps nothing) and Google second (it returns a globe rather than a 404), and the hostname
+   both were built from, read with a pattern because `new URL` is missing from older phones. Their one
+   caller was the link card on Find, and the owner asked for the links to go: *"Get rid of links
+   that's almost redundant now."* Removed rather than left, for the reason `NAMED_COLOURS` gives
+   below — a helper nothing calls is one somebody will trust. If links come back, the privacy half of
+   the old note is the part worth keeping: only the hostname goes out, and DuckDuckGo is asked first. */
 
 /* `LINK_SHAPE` picked a shape and a colour per category — a cart for a shop, a card for a bank,
    a plain square otherwise. It went with the coloured squares: a link wears its own logo now, and
@@ -74,8 +35,9 @@ const faviconFor = url => {
    do something. */
 
 
-/* The Library SCREEN is gone with its tab — every link is a card on Find, searchable and
-   filterable, which the tile wall never was. `libraryTiles` and `libraryPages` went with it. */
+/* The Library SCREEN is gone with its tab — every link became a card on Find, searchable and
+   filterable, which the tile wall never was. `libraryTiles` and `libraryPages` went with it, and the
+   cards on Find have gone since (see the first note in this file). */
 /* ================================================================================================
    AVATARS.
 

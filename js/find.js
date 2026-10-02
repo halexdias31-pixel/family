@@ -359,64 +359,20 @@ const KINDS = {
   tool: { group: 'Tools', label: 'Tools', card: x => widgetCard_(x) },
   game: { group: 'Games', label: 'Games', card: x => widgetCard_(x) },
 
-  /* ---------- LINKS ARE NOT LEARNING ---------------------------------------------------------------
-     THEY WERE FILED UNDER IT and most of them are not: the categories on that tab run Apple, Google,
-     Money, Admin, Tools, Social, download, videos. A bookmark to a bank is not a resource for a
-     lesson, and burying the lot behind "What for · Learning" meant somebody looking for one had to
-     answer a question wrongly to get there. */
-  link: { group: 'Links', label: 'Links', card: x => {
-    const l = x.row;
+  /* ---------- `link` WAS A KIND HERE, AND THE LINKS ARE OFF FIND -----------------------------------
+     ASKED FOR AS *"Get rid of links that's almost redundant now."* It was its own door, `Links`, 127
+     bookmarks in 25 categories read off `data/settings/links.json` on every load — a bank, a
+     download site and the BBC beside the past papers. Its card drew each site's own favicon and
+     refused to link anything that was not an absolute http(s) address; both halves went with it
+     (`faviconFor`, `faviconAlt` and `hostOf_` in links.js had no other caller).
 
-    /* The colour went with the shape it filled. A link's `colour` column is still read by the
-       editor, and nothing draws with it any more — the site's own logo decides what a link looks
-       like, which is the whole point of using it. */
-    const initials = String(l.title || '').replace(/[^A-Za-z0-9 ]/g, '')
-      .split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() || '?';
-    const icon = faviconFor(l.url);
-    const alt = faviconAlt(l.url);
-
-    /* IS THERE ACTUALLY AN ADDRESS. `hostOf_` already answers this for the favicon and the answer
-       was thrown away for the href — so a row whose `url` cell holds "corbetmaths" rather than an
-       address became `<a href="corbetmaths">`, which a browser reads as RELATIVE: it resolves
-       against this site and opens a 404 on our own domain. A tile that looks exactly like the
-       eighty that work, and fails in a way that blames us.
-       A row with no address is not a link yet, so it is not drawn as one — it is a card that says
-       what is missing. */
-    /* ONLY AN ABSOLUTE ADDRESS LEAVES. `hostOf_` said there was a host; this also says the scheme is
-       http or https — see the `surfaces` tab. An external site is the one exception to nothing
-       opening over this app, and `l.url` comes out of the links tab, so it is whatever somebody
-       typed. Anything else is this app opening itself in a tab, and it falls through to a card that
-       does not leave. */
-    const goes = !!hostOf_(l.url) && /^https?:\/\//i.test(String(l.url || ''));
-    const open = goes ? `<a class="card tap" href="${esc(l.url)}" target="_blank" rel="noopener">`
-                      : `<div class="card">`;
-    const shut = goes ? '</a>' : '</div>';
-    return `${open}
-      <div class="thing">
-        <span class="thing-pic art">
-          ${/* THE SITE'S OWN LOGO, AND NOTHING ELSE. The coloured shape with initials used to sit
-                underneath as a fallback — and a fallback that is always drawn is not a fallback, it
-                is the thing you see whenever the logo is slow, and a "W" in a brown square is the
-                app inventing a mark for a site that already has one.
-                Two services, tried in order: DuckDuckGo keeps nothing and is asked first; Google's
-                has seen everything and returns a globe rather than a 404, which is what makes it
-                the right last resort. `onerror` is cleared before the retry, or a second failure
-                loops on the same handler. */''}
-          ${icon ? `<img class="fav" src="${esc(icon)}" alt="" loading="lazy"
-                        onerror="this.onerror=null;${alt ? `this.src='${esc(alt)}'`
-                                                         : 'this.remove()'}">`
-                 : `<span class="fav-none">${esc(initials)}</span>`}
-        </span>
-        <div class="thing-body">
-          <h3>${esc(l.title)}</h3>
-          <p class="sub">${mark(l.category || 'Link')} <span class="faint">· ${goes
-            ? 'opens elsewhere'
-            : 'no address yet'}</span></p>
-        </div>
-      </div>
-    ${shut}`;
-
-  } },
+     NOTHING ELSE READ THE LIST. The mapper in `stuffItemsRaw_` was the only reader of `DATA.links`,
+     so the fetch, the mapping in `settingsInto_`, the `Category` question and its `facets.json` row
+     all went in the same change. `data/settings/links.json` STAYS IN THE REPOSITORY, unread, as the
+     archive of what the tab held. The one link the owner had asked for by name, the periodic
+     table, was a Drive PDF; the cheat sheet tool draws a periodic table of its own (`M50` in
+     mat.js), which never read this list. Putting links back is this entry, the mapper and the
+     fetch: three places, all named in the history note. */
 
   /* A resource and a shop row share a card: to somebody looking for one they are the same kind of
      thing — a picture, a name, what it belongs to, and what it costs if it costs anything. */
@@ -905,9 +861,11 @@ function bucketTable_(pairs) {
    `Booking` alone and a venue is again, so `FUNNEL_NOT_FOR` keeps both out of every list this
    grouping is asked of. It showed up only under `check/fixture.json`'s old `kinds` rows, which
    filed them under `people` and `places` where production files them nowhere. */
+/* `Links` left `Read or watch it` with the links themselves — see the note where `link` was in
+   `KINDS`. */
 const KIND_BUCKET = bucketTable_([
   ['Work through it',  ['Questions', 'Quizzes', 'Practicals']],
-  ['Read or watch it', ['Links', 'Films', 'Resources']],
+  ['Read or watch it', ['Films', 'Resources']],
 ]);
 
 /* THE FOUR SCIENCES ARE ONE ANSWER UNTIL SOMEBODY WANTS ONE OF THEM. Maths and English are not
@@ -1088,9 +1046,8 @@ const FACETS = [
      VENUES ARE OFF FIND, so nothing in the funnel answers it and its `facets.json` row is OFF. The
      reader stays: it is one line, and a `kinds` row putting venues back puts the question back. */
   { field: 'borough',   label: 'Where',       of: x => x.borough || '' },
-  /* Only links have one, so it is only ever asked once you are looking at links — the coverage
-     rule again, doing what a per-kind filter list would otherwise need code for. */
-  { field: 'category',  label: 'Category',    of: x => x.category || '' },
+  /* `category` WAS HERE — `Category`, the links' own question. It went with the links; see
+     `RETIRED_FACETS`, which stops a sheet row reading the column back off whatever else has one. */
   { field: 'subject',
     bucketOf: SUBJECT_BUCKET, bucketOrder: SUBJECT_BUCKET.order,   label: 'Subject',     of: x => x.subject },
   /* ---------- THE QUESTION THE FUNNEL HAD NEVER ASKED --------------------------------------------
@@ -1582,6 +1539,9 @@ const RETIRED_FACETS = {
   examSeries: 'the owner asked for months rather than seasons -- "I don\'t want it to ask summer or '
             + 'autumn I\'d rather it just do the months" -- so `examMonth` asks it. A sheet row naming '
             + '`examSeries` would offer `Summer` beside `May` and `June`, two vocabularies for one fact.',
+  category: 'the links\' own question, and the links are gone -- "Get rid of links that\'s almost '
+          + 'redundant now." A sheet row naming `category` would read that column off whatever else '
+          + 'carries one and offer it as a question nobody wrote a label for.',
 };
 
 function facetList() {
@@ -2101,6 +2061,7 @@ const FACET_BAND_BY = 10;
                  owner edits with no deploy. A table in code over a list the sheet owns is two
                  things to keep in step and the code's copy is the one that goes stale — the fault
                  this file records under `MESSAGING`, under `kinds` and under `childrenOf`.
+                 (Gone with the links since; the reasoning stands for the next sheet-owned list.)
 
    A BUCKET IS A REAL ANSWER, NOT A VIEW. It becomes a chip with the same X, `filterHit` tests
    membership rather than equality, and `nextFacet` asks the question AGAIN over what is left — so
@@ -6067,10 +6028,6 @@ function stuffItemsRaw_() {
       kind: 'venue', name: v.title, key: v.title, sub: v.subtitle || '', image: v.image,
       cost: priced_(v.bestRate), row: v, borough: v.borough || v.city || '',
     })),
-    /* A LINK IS A THING YOU ARE LOOKING FOR TOO. It lives on its own tab as a wall of tiles —
-       which is the right way to SCAN ninety of them — and it was reachable no other way, so
-       somebody who half-remembers "that BBC one" had to know which tab to go to before they could
-       search for it. Here it is searchable and filterable like everything else. */
     /* The widgets, findable like everything else. Searching "timer" now finds the timer, which on
        a tab it never could.
 
@@ -6124,26 +6081,17 @@ function stuffItemsRaw_() {
        reactions, same share, same admin controls — so the two could drift without either looking
        wrong on its own. `DATA.posts` is still read by the feed, which is the one place that draws
        them now. */
-    /* ---------- A LINK'S OWN WORDS, WHICH THE SEARCH BOX COULD NOT SEE --------------------------
-       MEASURED: **115 of the 127 links carry a `description` and not one of them was searchable.**
-       The haystack in `stuffFind` is `name + sub + subject + slot + grade + text`, and a link had
-       no `text`, so it was findable by its title and by nothing else. Typing `periodic` found the
-       periodic table only because somebody had the sense to call it "Periodic table"; typing
-       `past papers` found nothing, on a list holding four sites that are nothing but past papers.
+    /* ---------- THE LINKS WERE BUILT HERE, AND THEY ARE GONE FROM THE APP --------------------------
+       ASKED FOR AS *"Get rid of links that's almost redundant now."* This was the only reader of
+       `DATA.links`, with a long note on making a link's description searchable — 115 of 127 carried
+       one and none could be found by it. See the note where `link` was in `KINDS`.
 
-       FOURTH TIME THIS FILE RECORDS THE SAME SENTENCE — after `topics`, after `company` and after
-       the practical guides: the words are in the row, the search box cannot see them, and a screen
-       whose whole job is finding things returns nothing for the thing it holds.
-
-       THE CATEGORY IS IN IT TOO, because "science" and "revision" are what somebody types when
-       they do not remember what a site is called, and the category is the only place either word
-       appears. Built onto the item, not matched per keystroke — `stuffItems` is memoised and runs
-       once; `stuffFind` runs on every letter. */
-    ...(DATA.links || []).filter(l => l.title).map(l => ({
-      kind: 'link', name: l.title, key: 'link:' + l.title, sub: '', image: '',
-      row: l, category: l.category || '',
-      text: plainText_((l.description || '') + ' ' + (l.category || '')),
-    })),
+       NOT `stuffItemsBuild_`, BECAUSE A LINK IS NOT KEPT ON SAVED EITHER. Venues went the other way
+       — filtered off Find and still built here, so a starred one stays on Saved. A link is not
+       filtered, it is gone: the list is not fetched any more, so there is nothing to build, and a
+       link somebody starred leaves Saved with the rest. That is the owner's call taken whole rather
+       than half, and it is said here so it is not rediscovered as the favourites fault this file
+       records above `stuffItemsAll_`. */
     ...(typeof subjectRows === 'function' ? subjectRows() : []).map(x => ({
       kind: 'subject', name: x.name, key: x.name, sub: '', image: '',
       subject: x.name, row: x,

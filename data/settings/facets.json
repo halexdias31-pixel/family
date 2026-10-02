@@ -26,7 +26,6 @@
 {"field": "needs", "label": "What you need", "sort_order": 150, "min_coverage": "", "note": "a comma-list: compasses and the printed sheet at once", "active": true},
 {"field": "company", "label": "Publisher", "sort_order": 160, "min_coverage": "", "note": "was \"Paper code\", which stopped being true when spec_code was split off. Defers to Exam board, so a board's own name is asked once", "active": true},
 {"field": "borough", "label": "Where", "sort_order": 170, "min_coverage": "", "note": "off: venues only, and venues left Find on \"get rid of booking places\" -- measured, nothing else answers it", "active": false},
-{"field": "category", "label": "Category", "sort_order": 180, "min_coverage": "", "note": "links only; same", "active": true},
 {"field": "slot", "label": "Goes on", "sort_order": 190, "min_coverage": "", "note": "", "active": true},
 {"field": "afford", "label": "Price", "sort_order": 200, "min_coverage": "", "note": "", "active": true},
 {"field": "year", "label": "Year", "sort_order": 999, "min_coverage": "", "note": "off: the sitting is the same fact said better, so asking both narrows twice", "active": false}
