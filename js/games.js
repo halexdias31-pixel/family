@@ -4561,3 +4561,113 @@ function tmtKeep_(e) {
 }
 document.addEventListener('input', tmtKeep_);
 document.addEventListener('change', tmtKeep_);
+
+/* ==================================================================================================
+   WORD GAMES — Articulate, Charades, Taboo, Hot Seat, Just a Minute, 20 Questions and Imposter in one
+   widget. The note over the `wordgames` entry in map.js is the argument; this is the switch.
+
+   EACH BODY IS THE CARD IT USED TO BE, minus its own `.card` and heading: a sentence, the game's
+   `<k>-card` and whatever its engine builds round it. The engines find their parts by id exactly as
+   before, so a body here is the only thing that moved. */
+const WORD_GAMES = [
+  { k: 'art', name: 'Articulate', start: () => initRound('art'), stop: () => roundStop_('art'),
+    body: `<p class="sub">Describe it without saying it. Ninety seconds.</p>
+    <div id="art-card" class="art"></div>
+    <div class="art-row">
+      <button class="btn" data-do="rg-next" data-g="art" data-got="1">Got it</button>
+      <button class="btn quiet" data-do="rg-next" data-g="art" data-got="0">Pass</button>
+    </div>
+    <p class="faint art-meta"><span id="art-left">1:30</span> left &middot;
+      <b id="art-got">0</b> so far</p>
+    <p class="note" id="art-said"></p>
+    <button class="btn quiet" data-do="rg-again" data-g="art">New round</button>` },
+  { k: 'cha', name: 'Charades', start: () => initRound('cha'), stop: () => roundStop_('cha'),
+    body: `<p class="sub">Act it out. No words, no sounds. Three minutes.</p>
+    <div id="cha-card" class="art"></div>
+    <div class="art-row">
+      <button class="btn" data-do="rg-next" data-g="cha" data-got="1">Got it</button>
+      <button class="btn quiet" data-do="rg-next" data-g="cha" data-got="0">Pass</button>
+    </div>
+    <p class="faint art-meta"><span id="cha-left">3:00</span> left &middot;
+      <b id="cha-got">0</b> so far</p>
+    <p class="note" id="cha-said"></p>
+    <button class="btn quiet" data-do="rg-again" data-g="cha">New round</button>` },
+  { k: 'tab', name: 'Taboo', party: true,
+    body: `<p class="sub">Describe the word without the words under it. Sixty seconds.</p>` },
+  { k: 'hot', name: 'Hot Seat', party: true,
+    body: `<p class="sub">The class gives clues; the one in the hot seat guesses. Sixty seconds.</p>` },
+  { k: 'jam', name: 'Just a Minute', party: true,
+    body: `<p class="sub">Talk about the topic for sixty seconds without stopping.</p>` },
+  { k: 'twq', name: '20 Questions', party: true,
+    body: `<p class="sub">Twenty yes-or-no questions to find a person, a place or a thing.</p>` },
+  { k: 'imp', name: 'Imposter', start: () => initImposter(), stop: () => impHide_(),
+    body: `<p class="sub">Three or more, one phone. Everybody knows the word but one of you.</p>
+    <div id="imp-card" class="art"></div>
+    <div id="imp-acts" class="art-row"></div>
+    <p class="note" id="imp-said" style="text-align:center;margin:.5rem 0 0"></p>` },
+];
+
+/* A party game's body is its sentence and the frame `PARTY_GAMES[k].paint` fills — the same three
+   elements for all four, so they are written once here rather than four times above. */
+function wgBody_(g) {
+  if (!g.party) return g.body;
+  return g.body + `
+    <div id="${g.k}-card" class="art"></div>
+    <div id="${g.k}-acts" class="party-acts"></div>
+    <p class="note" id="${g.k}-said" style="text-align:center;margin:.5rem 0 0"></p>`;
+}
+
+function wgGame_(k) { return WORD_GAMES.find(g => g.k === k) || WORD_GAMES[0]; }
+
+/* REMEMBERED ON THE DEVICE, `ws-theme`'s rule: the game a family played last week is the one they
+   open to, and a remembered key nothing answers any more falls back to the first. */
+function wgChosen_() {
+  let k = '';
+  try { k = localStorage.getItem('wg-game') || ''; } catch (e) {}
+  return wgGame_(k).k;
+}
+
+/* WHAT THE WIDGET'S MARKUP CARRIES — read by the getter on the `wordgames` entry in map.js, so a
+   repaint puts the chosen game's card down with everything else rather than an empty slot. */
+function wgOptions_() {
+  const k = wgChosen_();
+  return WORD_GAMES.map(x =>
+    `<option value="${esc(x.k)}"${x.k === k ? ' selected' : ''}>${esc(x.name)}</option>`).join('');
+}
+function wgSlot_() {
+  const g = wgGame_(wgChosen_());
+  return `<div data-g="${esc(g.k)}" class="wg-game">${wgBody_(g)}</div>`;
+}
+
+function initWordGames() {
+  const slot = $('wg-slot'), sel = $('wg-pick');
+  if (!slot) return;
+  const g = wgGame_(wgChosen_());
+  if (sel && sel.value !== g.k) sel.innerHTML = wgOptions_();
+  /* REBUILT ONLY WHEN THE GAME CHANGED. A repaint runs `start` on markup `paint` has just replaced,
+     so the slot is empty and gets its body; a start on a slot already holding this game's body (a
+     second start without a repaint) leaves it alone, which is what keeps a button under a finger. */
+  const now = slot.firstElementChild;
+  if (!now || now.getAttribute('data-g') !== g.k) slot.innerHTML = wgSlot_();
+  if (g.party) partyStart_(g.k);
+  else g.start();
+}
+
+function wordGamesStop_() {
+  WORD_GAMES.forEach(g => {
+    try { if (g.party) partyStop_(g.k); else g.stop(); }
+    catch (e) { console.warn('[word games]', g.k, e); }
+  });
+}
+
+on('wg-pick', el => {
+  const k = wgGame_(el.value).k;
+  try { localStorage.setItem('wg-game', k); } catch (e) {}
+  /* THE OLD GAME IS STOPPED AFTER ITS CARD HAS LEFT THE DOCUMENT, which is the order that makes its
+     own stop read it as "the column is gone": Articulate's clock stops, a party round pauses until
+     somebody comes back and presses Resume, Imposter's word is hidden. */
+  const slot = $('wg-slot');
+  if (slot) slot.innerHTML = '';
+  wordGamesStop_();
+  initWordGames();
+});

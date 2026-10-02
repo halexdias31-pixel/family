@@ -1693,6 +1693,7 @@ const STATES = {
       leave: () => { scrabble = null; scrabblePaint(); } },
 
     /* ---------- THE FIVE CLASSROOM GAMES, EACH ON ITS BUSIEST CARD ----------------------------
+       FOUR OF THEM ARE INSIDE THE WORD GAMES WIDGET NOW and are reached through its dropdown.
        EVERY ONE OPENS ON A SINGLE BUTTON, which is the only state `go()` reaches — so everything
        these games are (a clock, Taboo's forbidden words, Alibi's six questions) is past it and
        nothing would measure it without a state. Entered through the app's own handlers, and then
@@ -1701,7 +1702,9 @@ const STATES = {
        the one that wraps. */
     { name: 'just a minute, mid-round',
       enter: () => {
-        goPage('games', (n => { if (n < 0) throw new Error('no justaminute widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'justaminute')), true);
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        /* ONE OF THE WORD GAMES, chosen through the widget's own dropdown. */
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'jam'; ACTIONS['wg-pick'](sel); }
         ACTIONS['jam-start'](document.createElement('button'));
         PARTY.jam.topic = JAM_DECK.reduce((a, b) => (b.length > a.length ? b : a), '');
         jamPaint();
@@ -1713,7 +1716,9 @@ const STATES = {
 
     { name: 'a taboo card',
       enter: () => {
-        goPage('games', (n => { if (n < 0) throw new Error('no taboo widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'taboo')), true);
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        /* ONE OF THE WORD GAMES, chosen through the widget's own dropdown. */
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'tab'; ACTIONS['wg-pick'](sel); }
         ACTIONS['tab-start'](document.createElement('button'));
         PARTY.tab.card = TABOO_DECK.reduce((a, b) => (b.join('').length > a.join('').length ? b : a));
         tabPaint();
@@ -1727,7 +1732,9 @@ const STATES = {
 
     { name: 'the hot seat word, held up to the class',
       enter: () => {
-        goPage('games', (n => { if (n < 0) throw new Error('no hotseat widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'hotseat')), true);
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        /* ONE OF THE WORD GAMES, chosen through the widget's own dropdown. */
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'hot'; ACTIONS['wg-pick'](sel); }
         ACTIONS['hot-start'](document.createElement('button'));
         const b = document.createElement('button');
         b.setAttribute('data-g', 'hot');
@@ -1741,7 +1748,9 @@ const STATES = {
 
     { name: '20 questions, being asked',
       enter: () => {
-        goPage('games', (n => { if (n < 0) throw new Error('no twentyq widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'twentyq')), true);
+        goPage('games', (n => { if (n < 0) throw new Error('no wordgames widget in the roster'); return n; })(widgetsOf_('game').findIndex(w => String(w.id) === 'wordgames')), true);
+        /* ONE OF THE WORD GAMES, chosen through the widget's own dropdown. */
+        { const sel = document.querySelector('#s-games #wg-pick'); sel.value = 'twq'; ACTIONS['wg-pick'](sel); }
         ['twq-start', 'twq-show', 'twq-hide', 'twq-ask', 'twq-ask', 'twq-ask']
           .forEach(a => ACTIONS[a](document.createElement('button')));
       },

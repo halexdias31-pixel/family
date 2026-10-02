@@ -176,6 +176,10 @@ const ACCEPTED_ENGINE = {
                     + 'the map it draws is used elsewhere in overworld.js. Deleting a working '
                     + 'renderer because one entry point closed is how a codebase loses things it '
                     + 'still needs.',
+  initRound: 'Articulate and Charades are games inside the Word games widget; WORD_GAMES in '
+           + 'games.js starts them from initWordGames, which is the starter a widget names.',
+  initImposter: 'Imposter is a game inside the Word games widget; WORD_GAMES in games.js starts it '
+              + 'from initWordGames, which is the starter a widget names.',
 };
 
 const starters = widgets.map(w => String(w.start || '')).join(' ');
