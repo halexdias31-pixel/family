@@ -5502,6 +5502,83 @@ function satOn_(x) {
        + `${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
 }
 
+/* ==================================================================================================
+   A QUESTION CARD IS LABELLED WITH TAGS, NOT WITH ITS PAPER'S NAME AS ONE LINE OF TEXT.
+
+   ASKED FOR AS *"on the widget cards for questions it has the title of it in one text name when it
+   should still remain as tags labelling it."* The card's second line was `x.sub`, the paper's whole
+   name -- `Paper 1: Arithmetic — May 2019` -- in grey, while the funnel above it had just said the
+   same things as separate coloured tags. So the name is taken apart into the facts it is made of,
+   and each is drawn as a tag in the colour the funnel gives that kind of fact:
+
+     the level         `KS2 SATs`, `GCSE` -- or the key stage where a row has no level
+     the board         `Edexcel`, `AQA`, unless the level already says who sets it (SATs are STA's)
+     the tier          `Higher`, unless the paper's own name already says it
+     the date          what the name prints after its spaced dash: `May 2019`, `1 June`
+     the paper         what it prints before: `Paper 1`, a worksheet's own title, `Biology` + `Paper 2`
+     what it is        the words in the brackets or after the colon: `Arithmetic`, `Non-Calculator`
+
+   THE NAME IS CUT THE WAY `nameForms_` CUTS IT -- a spaced long dash, then a colon or a bracket --
+   so a hyphen inside `A-Level` or `Non-Calculator` is never a separator, for the reason that
+   function gives. Nothing here is a second copy of a column: the date and the paper's title are read
+   off the name because the name is the only place they are written, and everything else is the
+   facet's own `of`, so a tag cannot say a word the chip above it would not.
+
+   NO TAG IS A CONTROL. They are labels, smaller than a chip and not pressable, because a card of
+   44px pills would be a card of nothing but pills; narrowing is what the funnel above is for. */
+function qTagOf_(facetField, x) {
+  const facet = facetBy(facetField);
+  if (!facet) return [];
+  try { return asList_(facet.of(x)).map(v => String(v || '').trim()).filter(Boolean); }
+  catch (e) { return []; }
+}
+function qTags_(x) {
+  const name = String(x.sub || '').trim();
+  const out = [];
+  const add = (tag, text) => {
+    const t = String(text || '').trim();
+    if (!t || out.some(o => norm(o.text) === norm(t))) return;
+    out.push({ tag: tag, text: t });
+  };
+  const level = qTagOf_('level', x);
+  (level.length ? level : qTagOf_('keystage', x)).forEach(v => add('level', v));
+  const sats = level.some(v => /\bSATs\b/i.test(v));
+  if (!sats) qTagOf_('examBoard', x).forEach(v => add('board', v));
+  /* the date and the paper, off the name */
+  const dash = /\s[\u2014\u2013]\s/.exec(name);
+  const head = dash ? name.slice(0, dash.index).trim() : name;
+  const date = dash ? name.slice(dash.index + dash[0].length).trim() : '';
+  /* ONLY AN EXAM PAPER IS TAKEN APART. `Paper 1 (Non-Calculator)` is a number and a qualifier;
+     `Adding Fractions (same denominator)` is ONE worksheet's title, and splitting it would put half a
+     title in red and half in grey. The type says which is which, through the facet, so a sheet a
+     spreadsheet relabels is read the same way the Type question reads it. */
+  const exam = qTagOf_('documentType', x).some(v => /paper/i.test(v));
+  let paper = head, what = '';
+  const colon = /\s*:\s*/.exec(head);
+  const paren = /^(.*?)\s*\(([^)]*)\)\s*$/.exec(head);
+  if (exam && colon && colon.index) { paper = head.slice(0, colon.index); what = head.slice(colon.index + colon[0].length); }
+  else if (exam && paren && paren[1]) { paper = paren[1]; what = paren[2]; }
+  qTagOf_('tier', x).forEach(v => {
+    if (!new RegExp('\\b' + v.replace(/[^A-Za-z0-9]/g, '') + '\\b', 'i').test(head)) add('tier', v);
+  });
+  add('sitting', date);
+  /* `Biology Paper 2`, `GPS Paper 1`, `Specimen paper 1`: what comes before `Paper N` says which of
+     several papers this is, and `Specimen` is a KIND of paper rather than a subject. The number is
+     written `Paper N` whatever case the name used, so the red tag reads the same on every card. */
+  const subjPaper = exam ? /^(.+?)\s+paper\s+(\S+)$/i.exec(paper) : null;
+  if (subjPaper) {
+    add(/^specimen$/i.test(subjPaper[1]) ? 'type' : 'subject', subjPaper[1]);
+    add('paper', 'Paper ' + subjPaper[2]);
+  } else add('paper', paper.replace(/^paper\b/i, 'Paper'));
+  add('', what);
+  return out;
+}
+const qTagsHtml_ = x => {
+  const tags = qTags_(x);
+  return tags.length ? `<span class="qtags">${tags.map(t =>
+    `<span class="qtag"${t.tag ? ` data-tag="${t.tag}"` : ''}>${esc(t.text)}</span>`).join('')}</span>` : '';
+};
+
 function questionCard_(x) {
   const sat = satOn_(x);
   const needs = asList_(x.needs);
@@ -5515,7 +5592,7 @@ function questionCard_(x) {
         Number(x.marks) > 0
           ? `<span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>` : ''}
     </div>
-    <p class="qcard-sub">${esc(x.sub)}${
+    <p class="qcard-sub">${qTagsHtml_(x)}${
       sat ? `<span class="qcard-sat">sat ${esc(sat)}</span>` : ''}${
       /* WHAT TO BRING, WHERE IT IS READ RATHER THAN FILTERED FOR. The funnel can narrow by it, but
          the person who needs this most is the one who has already chosen the question and is about
@@ -5592,7 +5669,7 @@ function questionFigCard_(x) {
   const id = (x.row && x.row.row_id) || x.key || '';
   return `<div class="qcard qfig" data-of="${esc(id)}">
     <div class="qcard-top"><b>Figure · ${esc(x.name)}</b></div>
-    <p class="qcard-sub">${esc(x.sub)}</p>
+    <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">${out.join('')}</div>
   </div>`;
 }
@@ -6537,7 +6614,7 @@ const SERIES_AT = { Summer: 6, Autumn: 11 };
  */
 function waveOf(x) {
   const raw = String((x && x.examWave) || '').trim();
-  if (!raw) return '';
+  if (!raw) return waveFromDoc_(x);
 
   const MONTH = MONTH_NAMES;
 
@@ -6587,6 +6664,43 @@ function waveOf(x) {
   /* Nothing recognisable but a year in it somewhere — better than the whole string. */
   const bare = raw.match(/\b(19|20)\d{2}\b/);
   return bare ? bare[0] : raw;
+}
+
+/* ---------- A PAST PAPER WITH NO SITTING OF ITS OWN TAKES ITS PAPER'S -----------------------------
+   REPORTED AS *"when I do maths sats with Jp, the tags come out with full paper name and which paper
+   is on the menu."* MEASURED: Maths · Past paper · KS2 SATs offered `Paper 1: Arithmetic — May 2019`
+   beside `Paper 1: Arithmetic — May 2024`, because nothing above the Paper question had separated
+   the two years. The SATs question rows carry a `year` and no `exam_wave`, so `waveOf` answered
+   nothing, `Year` had no answer to offer, and the only thing left to tell two papers apart was the
+   date inside their names -- which `shortLabels_` then had to keep.
+
+   TWELVE PAPERS WERE IN THAT STATE: the nine STA SATs papers and the three AQA June 2023 science
+   papers. So the rule reads the paper rather than the twelve being patched: a month on the row,
+   else on its document (`docById_`, off the file), else in the paper's own name, with the row's own
+   year. A month that is a season is a sitting.
+
+   ONLY A PAST PAPER. A worksheet or a specimen is not a sitting -- a Corbettmaths sheet with a
+   copyright year would otherwise grow a `Year` answer that means "when it was printed", which is
+   a different fact under the same word. */
+function waveFromDoc_(x) {
+  const r = (x && x.row) || x || {};
+  const type = String((x && x.documentType) || r.document_type || '').toLowerCase();
+  if (type !== 'past paper') return '';
+  const doc = docById_(paperIdOf_(r)) || {};
+  /* AND THE NAME, WHICH IS WHAT THE COVER PRINTS. Seven of the twelve have no month cell on the
+     document row either -- `Paper 1: Arithmetic — May 2024`, `Paper 1 — June 2023` -- and the month
+     is in the name after its spaced dash, which is the one place every paper in this library states
+     its sitting. Read by the month's name and the four-digit year together, so a worksheet title
+     or a qualifier in brackets cannot be mistaken for one. */
+  const named = /\s[\u2014\u2013]\s([A-Za-z]{3,9})\s+((?:19|20)\d{2})\s*$/.exec(String(doc.name || r.name || ''));
+  const fromName = named ? MONTH_NAMES.findIndex(m => m.toLowerCase().startsWith(named[1].toLowerCase().slice(0, 3))) + 1 : 0;
+  const mth = Number((x && x.month) || r.month || doc.month || 0) || fromName;
+  const yr = yearOf(x) || String(doc.year || '').trim() || (named ? named[2] : '');
+  /* A YEAR WITH NO MONTH IS NOT A SITTING, and it is refused rather than returned bare: `2024` beside
+     `Summer 2024` is a second spelling of one sitting, which `check-funnel.js` rule 4 fails on --
+     it did, on the first version of this function, for exactly the papers the name now settles. */
+  const series = seriesOf_(mth);
+  return series && /^(19|20)\d{2}$/.test(yr) ? series + ' ' + yr : '';
 }
 
 /* ---------- THE SITTING IN ITS TWO HALVES, FOR THE TWO QUESTIONS THAT ASK THEM ----------------------
@@ -8124,21 +8238,84 @@ function stuffCard(x, credits) {
 
 /* WHAT A CHIP READS. The facet's own `showOf` where it has one, so the chip says the same words
    the answer row said; the value itself otherwise, which is every facet but `paperId`. */
-function chipShow_(f) {
+/* ---------- AND THE SAME WORDS, WHICH MEANS THE SAME SHORTENING ------------------------------------
+   REPORTED AS *"the tags come out with full paper name"*: the chip read `PAPER Paper 1: Arithmetic
+   — May 2019` while the button pressed to make it read `Paper 1`. `showOf` with no answer list is
+   the LIBRARY-unique form -- right for something standing on its own, and a chip is not on its
+   own: the chips in front of it are what narrowed the list the button was drawn over.
+
+   SO IT IS LABELLED AGAINST THE CHIPS BEFORE IT, which is exactly the list the answer row saw:
+   the facet's values over the items those chips leave, through `showOf` and `shortLabels_`, the
+   same two steps `facetTally_` takes. Not against every OTHER chip -- a question-number chip
+   pressed after this one narrows the list to one paper, and the shortest form of one paper on its
+   own is `Paper 1` whatever the year, which would hide the year again when nothing above says it.
+   Memoised on the chip list and the payload, because the chips are redrawn on every tap. */
+const CHIP_SHOW = { key: null, from: null, out: {} };
+function chipShow_(f, i) {
   const facet = facetBy(f.field);
-  if (facet && facet.showOf) {
-    try { return facet.showOf(f.value) || f.value; } catch (e) { return f.value; }
-  }
-  return f.value;
+  if (!facet || !facet.showOf) return f.value;
+  const fallback = () => { try { return facet.showOf(f.value) || f.value; } catch (e) { return f.value; } };
+  if (typeof i !== 'number') return fallback();
+  const key = JSON.stringify(STUFF.filters.slice(0, i + 1));
+  if (CHIP_SHOW.from !== DATA) { CHIP_SHOW.from = DATA; CHIP_SHOW.out = {}; }
+  if (key in CHIP_SHOW.out) return CHIP_SHOW.out[key];
+  let show = '';
+  try {
+    const before = STUFF.filters.slice(0, i).filter(g => g.field !== f.field);
+    const credits = USER ? (USER.credits || 0) : 0;
+    const items = stuffNarrow_(stuffItems(), before, [], credits);
+    const ids = [];
+    items.forEach(x => {
+      let v;
+      try { v = facet.of(x); } catch (e) { v = ''; }
+      asList_(v).forEach(one => { if (one && ids.indexOf(String(one)) === -1) ids.push(String(one)); });
+    });
+    if (ids.indexOf(String(f.value)) === -1) ids.push(String(f.value));
+    const values = ids.map(v => ({ value: v, text: facet.showOf(v, ids) }));
+    shortLabels_(values);
+    const mine = values.find(v => v.value === String(f.value));
+    show = mine ? (mine.show || mine.text) : '';
+  } catch (e) { show = ''; }
+  return (CHIP_SHOW.out[key] = show || fallback());
 }
+
+/* ---------- WHAT KIND OF TAG THIS IS, WHICH IS ITS COLOUR ------------------------------------------
+   ASKED FOR AS *"add a colour for each tag. Like paper 1 2 3 etc should be red tags."* One word per
+   KIND of answer rather than per facet, so the four questions that each narrow to one paper are one
+   colour and the three that say who it is for are another. The answer row, the chip it becomes and
+   the tag on the card all read this, so a red `Paper 1` is red wherever it is drawn. A field not
+   named here has no tag and keeps the plain outline -- the two doors above all of them included,
+   because they are where you go rather than what something is. The colours are tokens at `:root`
+   (`--tag-paper` and the rest), because three components draw them. */
+const TAG_OF = {
+  paperId: 'paper', qNumber: 'paper', qPart: 'paper', fiveDay: 'paper',
+  subject: 'subject',
+  level: 'level', keystage: 'level', yearGroup: 'level', bandValue: 'level', fiveLevel: 'level',
+  examSeries: 'sitting', examYear: 'sitting', year: 'sitting', fiveMonth: 'sitting', decade: 'sitting',
+  documentType: 'type', practicalType: 'type', boxKind: 'type',
+  examBoard: 'board', company: 'board',
+  tier: 'tier', division: 'tier',
+  topic: 'topic', topicArea: 'topic',
+  needs: 'needs',
+};
+const tagOf_ = field => TAG_OF[field] || '';
+const tagAttr_ = field => tagOf_(field) ? ` data-tag="${tagOf_(field)}"` : '';
+
+/* THE FIELD'S NAME IS LEFT OFF A CHIP THAT ALREADY STARTS WITH IT. `PAPER Paper 1` says Paper twice
+   on a chip four words wide; the colour says what kind of tag it is now, and `Grade 9` against `9`
+   -- the reason the field is printed at all -- only needs it where the value does not say it. */
+const chipKeyIn_ = (key, show) => !!key && new RegExp('^' + String(key).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(String(show));
 
 /* The chips, and the + that adds one. Drawn with the list rather than with the two selects above
    it, because this row grows and shrinks and a fixed control does not. */
 function filterChips() {
   return `<div class="chips">
-    ${STUFF.filters.map((f, i) => `
-      <button class="chip" data-do="filter-drop" data-i="${i}">
-        <span class="chip-k">${esc((facetBy(f.field) || {}).label || f.field)}</span>
+    ${STUFF.filters.map((f, i) => {
+      const key = (facetBy(f.field) || {}).label || f.field;
+      const show = f.any ? 'any' : chipShow_(f, i);
+      return `
+      <button class="chip" data-do="filter-drop" data-i="${i}"${tagAttr_(f.field)}>
+        ${chipKeyIn_(key, show) ? '' : `<span class="chip-k">${esc(key)}</span>`}
         ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody
              made and has to be able to unmake. A question silently dropped with nothing on screen
              saying so is the funnel "changing its mind" again — the complaint `whyThisQuestion()`
@@ -8149,8 +8326,9 @@ function filterChips() {
              an account number where a paper's name had been. Caught on a screenshot of the tap
              that sets it, one commit after the value changed: the rule moved and its reader did
              not, which is the shape this file records under `resource_type` in `VOCAB`. */''}
-        ${f.any ? 'any' : esc(chipShow_(f))}<span class="chip-x">✕</span>
-      </button>`).join('')}
+        ${esc(show)}<span class="chip-x">✕</span>
+      </button>`;
+    }).join('')}
     ${/* `clear` WAS GREY TEXT ON NOTHING — no border, no fill, the faint colour — sitting at the end
           of a row of bordered chips. It read as a caption rather than a control, which is the one
           thing a control must never do. It is a chip like the others now, with the same ✕ the chips
@@ -9333,7 +9511,7 @@ function stuffQuestion() {
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of
      that name in style.css. One wrapper round the answers AND the way out, so "Doesn't matter" wraps
      onto the end of the last line like any other chip instead of sitting alone underneath. */
-  return '<div class="answers">' + values.map(v => `<div class="row tap counted" data-do="facet-pick"
+  return '<div class="answers">' + values.map(v => `<div class="row tap counted" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
       </div>`).join('') + skip + '</div>';

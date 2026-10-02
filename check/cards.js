@@ -98,10 +98,20 @@ function cardHtml(r, stems) {
   const pics = v => (Array.isArray(v) ? v : String(v || '').split(',').map(x => x.trim()).filter(Boolean))
     .map(src => `<figure class="qpic"><img src="${src}" alt=""></figure>`).join('');
   const figs = pre.map(p => fig(p.diagram) + pics(p.images)).join('') + fig(r.diagram) + pics(r.images);
+  /* ---------- THE SECOND LINE IS TAGS NOW, NOT THE PAPER'S NAME --------------------------------
+     `qTags_` in find.js takes the name apart into the facts it is made of and draws each as a
+     `.qtag`. The same pieces here -- the level, then the name cut at its spaced dash and its colon
+     or brackets -- because what this file measures is whether the card's content fits a 320px
+     column, and a pill holding `Study of religion and dialogues (Christianity) (2018 materials)` is
+     content. A copy of the cutting, not of the colours: no colour changes a width. */
+  const tagBits = [r.band_value || r.key_stage || '']
+    .concat(String(r.name || '').split(/\s[\u2014\u2013]\s|\s*:\s*/))
+    .map(t => String(t).trim()).filter(Boolean);
+  const tags = `<span class="qtags">${tagBits.map(t => `<span class="qtag">${t}</span>`).join('')}</span>`;
   return `<div class="qcard" data-row="${r.row_id}">
     <div class="qcard-top"><b>Q${r.question || ''}${r.part || ''}</b>
       <span>${r.marks || 0} marks</span></div>
-    <p class="qcard-sub">${r.name || ''}</p>
+    <p class="qcard-sub">${tags}</p>
     <div class="qsheet">
       ${pre.filter(p => p.html).map(p => `<div class="qsheet-stem${String(p.placeholder) === 'True' ? ' is-standin' : ''}"
         >${p.html || ''}</div>`).join('')}
@@ -110,7 +120,7 @@ function cardHtml(r, stems) {
     </div>
   </div>${figs ? `<div class="qcard qfig" data-row="${r.row_id}#fig">
     <div class="qcard-top"><b>Figure · Q${r.question || ''}${r.part || ''}</b></div>
-    <p class="qcard-sub">${r.name || ''}</p>
+    <p class="qcard-sub">${tags}</p>
     <div class="qsheet">${figs}</div>
   </div>` : ''}`;
 }

@@ -110,6 +110,7 @@ function boot(cb) {
     w.eval(src + '\n;window.__f = { stuffItems, facetList, facetValues, facetCoverage,' +
       ' facetSplit_, nextFacet, FACET_MIN_MINORITY, FACET_MAX_ANSWERS, FACET_MAX_SHOWN, asList_,' +
       ' filterHit, facetOwn_, bucketHas_, bucketDeclares_, STUFF, paperLabels_, stuffHay_, norm,' +
+      ' chipShow_, qTags_,' +
       ' RETIRED_FACETS, waveOf,' +
       /* A THUNK, NOT THE OBJECT. `load()` ends with `DATA = d` — it REPLACES the payload — so a
          reference captured at eval time is the one from before the settings files landed, and the
@@ -687,6 +688,73 @@ boot(f => {
     });
   } else {
     bad.push('`facetValues` is not declared, so the paper labels cannot be checked — not a pass');
+  }
+
+  /* ---------- A SATs PAPER IS `Paper 1` ON THE MENU, ON THE CHIP AND ON THE CARD ----------------------
+     REPORTED AS *"When I do maths sats with Jp, the tags come out with full paper name and which paper
+     is on the menu."* Measured: Maths · Past paper · KS2 SATs offered `Paper 1: Arithmetic — May 2019`
+     beside `… May 2024`, and the chip it made read `PAPER Paper 1: Arithmetic — May 2019`. Three
+     causes, one per half of this rule:
+
+       the menu   the SATs question rows carry no sitting, so `Year` was never asked and the date had
+                  to stay in the paper's name to tell two years apart -- `waveFromDoc_`
+       the chip   it was labelled against the whole library rather than against the chips before
+                  it -- `chipShow_`
+       the card   the paper's name was one line of text -- `qTags_`
+
+     KS1 AND KS2, because the two were added months apart and only one of them prompted this. Each
+     year is walked on its own, which is what the funnel does once `Year` is asked. */
+  if (typeof f.chipShow_ === 'function' && typeof f.qTags_ === 'function' && f.STUFF) {
+    const byField = fl => f.facetList().find(x => x.field === fl);
+    const paperF = byField('paperId');
+    const yearF = byField('examYear');
+    ['KS1 SATs', 'KS2 SATs'].forEach(level => {
+      /* MATHS, as reported. The English SATs paper is `GPS Paper 1`, and there `GPS` is the word
+         that says which English paper it is rather than a repeat of a chip above it. */
+      const on = [['subject', 'Maths'], ['documentType', 'Past paper'], ['level', level]];
+      const kept = items.filter(x => on.every(([fl, v]) => f.filterHit(x, { field: fl, value: v })));
+      const years = yearF ? f.facetValues(kept, yearF).map(v => String(v.value)) : [];
+      if (!kept.length || !years.length) {
+        bad.push(level + ' past papers offer no Year answer, so their Paper answers have to carry the date'
+                 + ' to tell two sittings apart — see `waveFromDoc_`');
+        return;
+      }
+      years.forEach(yr => {
+        const inYear = kept.filter(x => f.filterHit(x, { field: 'examYear', value: yr }));
+        const answers = f.facetValues(inYear, paperF);
+        answers.forEach(a => {
+          const show = String(a.show || a.value);
+          if (!/^Paper \d+$/.test(show)) {
+            bad.push(level + ' ' + yr + ': the Paper answer reads ' + JSON.stringify(show)
+                     + ' where the chips above it already say the level and the year');
+            return;
+          }
+          const saved = f.STUFF.filters;
+          f.STUFF.filters = on.map(([fl, v]) => ({ field: fl, value: v }))
+            .concat([{ field: 'examYear', value: yr }, { field: 'paperId', value: a.value }]);
+          let chip = '';
+          try { chip = f.chipShow_(f.STUFF.filters[f.STUFF.filters.length - 1], f.STUFF.filters.length - 1); }
+          finally { f.STUFF.filters = saved; }
+          if (chip !== show) {
+            bad.push(level + ' ' + yr + ': pressing ' + JSON.stringify(show) + ' makes a chip reading '
+                     + JSON.stringify(chip) + ' — a chip says what the button it came from said');
+          }
+          const q = inYear.find(x => x.kind === 'question'
+            && f.filterHit(x, { field: 'paperId', value: a.value }));
+          const tags = q ? f.qTags_(q) : [];
+          if (!tags.some(t => t.tag === 'paper' && t.text === show)) {
+            bad.push(level + ' ' + yr + ': a card from ' + JSON.stringify(show) + ' has no red paper tag '
+                     + 'reading it — its tags are ' + JSON.stringify(tags.map(t => t.text)));
+          }
+          if (tags.some(t => /\s[\u2014\u2013]\s/.test(t.text))) {
+            bad.push(level + ' ' + yr + ': a card tag still holds the whole name, dash and all: '
+                     + JSON.stringify(tags.map(t => t.text)));
+          }
+        });
+      });
+    });
+  } else {
+    bad.push('`chipShow_` or `qTags_` is not declared, so the SATs tags cannot be checked — not a pass');
   }
 
   /* ---------- A `facets` ROW NAMING A FIELD NOTHING ANSWERS IS A DEAD ROW ------------------------
