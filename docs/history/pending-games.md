@@ -74,8 +74,8 @@ knowing. After the change, all 121 squares are 19.77px at 320 and 24.7px at 390,
 screenshots show a clean maze.
 
 **Two smaller faults the audit measured are fixed in the same pass.**
-- **The arrow keys.** The maze listened on `document` whenever `#maze-grid` existed, and it exists
-  whenever the Games column is drawn as a neighbour. Two arrows on Find walked a hidden maze. On the
+- **The arrow keys.** The maze listened on `document` whenever `#maze-grid` existed, and it stays
+  in the document once the Games column has been drawn. Two arrows on Find walked a hidden maze. On the
   maze page itself, ArrowDown walked the maze and the pager's `window` listener also turned the
   column. Now `mzInFront_` asks `dropOnFront_` (book.js), the app's one copy of "on the screen you
   are on, on the page in front of you", of every copy of the grid. While a maze is being walked in
@@ -98,9 +98,10 @@ screenshots show a clean maze.
   - the in-front guard removed gave "arrow keys on another column walked the maze from 1 to 4";
   - dealing on every start gave "coming back to the column dealt a new maze".
 - `check/ui.js` now asks every board on a screen (chess, Connect 4, Othello, maze, word search,
-  Scrabble) that its squares are one size, within 0.5px. It prints how many boards it measured: 528
-  on the Games screen across 88 combinations. With bare `ws` put back, it reported "#maze-grid: 53
-  of 121 squares are not the board's size … 12.1-19.3px tall".
+  Scrabble) that its squares are one size, within 0.5px. It prints how many boards it measured:
+  576 on the Games screen across 96 combinations (12 states, 4 widths, 2 visitors). With bare `ws`
+  put back, it reported "#maze-grid: 53 of 121 squares are not the board's size … 12.1-19.3px tall"
+  and exited 1.
 
 ### "refine connect 4 add dropping animation of counters."
 
@@ -126,8 +127,8 @@ the board's gap colour. Now the square stays a dark hole and only the disc moves
 
 **The winning four are ringed.** `c4Wins_` returned only true or false, so "Red wins." gave no
 location. `c4Line_` returns every square of every line of four or more through the last counter,
-and those squares get `c4-win`, an ink ring inside the counter and out into the gap. Ink, not gold,
-because gold nearly disappears on the yellow counter.
+and those squares get `c4-win`, a ring in `--ink` inside the counter and out into the gap. Ink, not
+gold, because gold nearly disappears on the yellow counter.
 
 **A disc in the turn colour sits beside "Red's go."** It is `aria-hidden`, because the sentence
 already says the colour. There is no disc on a draw. The colour tokens are declared on
