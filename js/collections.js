@@ -413,22 +413,35 @@ function cartRow_(c, i, under) {
        line; `.cart-ctl` is the other, and it wraps as a unit rather than a word at a time.
 
        `short` UNDER A TITLE, `name` OTHERWISE — see `cartGroups_`. */
-    sel: `<span class="cart-nm">${esc(under && c.short ? c.short : c.name)}</span>`
-      + ` <span class="cart-ctl">`
-      /* `? pp`, NOT "pages not counted yet" — twenty-one characters beside a laminate switch and a
-         ✕ is the strip wrapping at 320px. The total column already says `tbc` on the same line and
-         the receipt's head says how many are still to price, so the page count only has to say it
-         is the half that is missing. */
-      + (c.kind === 'print' ? `<span class="faint">${c.pages
-          ? esc(c.pages) + 'pp' : '? pp'}</span>` : '')
-      + lamControl_(c)
-      /* ---------- A `<span>` WITH A `data-do` ON IT IS NOT A CONTROL -------------------------------
-         THE ✕ WAS ONE, and it is the third time in this codebase: the docket's delete, the post's
-         ⋯, and this. A span cannot be reached by a keyboard, is not announced as a button, and is
-         invisible to `check/ui.js`, which measures buttons, links and inputs — so its size has
-         never been checked by anything. `.text-drop` gives it the same look either way. */
-      + ` <button class="text-drop" data-do="cart-drop" title="Take this out"
-          data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</button></span>`,
+    /* ---------- ONE STRIP ONLY WHEN IT HOLDS SOMETHING, AND A LEADER TO THE PRICE ---------------------
+       ASKED FOR AS *"refine basket to look nicer."* Measured at 390 with a mixed basket: every shop
+       line was 72px tall because the ✕ sat ALONE on a second row — the strip existed for the laminate
+       switch, and a shop item never has one — and the dashed rule under the name stopped three
+       quarters of the way across, at the end of the value column, with the price floating past it.
+
+       SO A LINE IS A NAME AND A DOTTED LEADER RUNNING TO ITS PRICE, the way a receipt reads, and the
+       ✕ sits at the end of the leader, beside the price it takes away. The strip under it is drawn
+       only when there is a switch to put in it — a paper or a cheat sheet while laminating is
+       offered — and then it runs the full width, so its ✕ lines up under the price. `.bk-v` lays
+       nothing out itself any more (see `.bk-row.is-wide > .bk-v` in style.css): its three parts are
+       placed on the row's own two columns, which is what lets the strip reach past the name column.
+
+       `? pp`, NOT "pages not counted yet" — the total column already says `tbc` on the same line and
+       the receipt's head says how many are still to price. On the name line when there is no strip.
+
+       A `<button>`, NOT A `<span>`, FOR THE ✕ — a span with a `data-do` cannot be reached by a
+       keyboard and is invisible to `check/ui.js`. `short` UNDER A TITLE, `name` OTHERWISE — see
+       `cartGroups_`. */
+    sel: (() => {
+      const lam = lamControl_(c);
+      const pp = c.kind === 'print'
+        ? `<span class="faint cart-pp">${c.pages ? esc(c.pages) + 'pp' : '? pp'}</span>` : '';
+      const drop = `<button class="text-drop" data-do="cart-drop" title="Take this out"
+          data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</button>`;
+      return `<span class="cart-ln"><span class="cart-nm">${esc(under && c.short ? c.short : c.name)}</span>${
+        lam ? '' : pp}<i class="cart-lead" aria-hidden="true"></i>${lam ? '' : drop}</span>${
+        lam ? `<span class="cart-ctl">${pp}${lam}${drop}</span>` : ''}`;
+    })(),
     mul: '',
     rate: '',
     /* CREDITS AND MONEY IN THE SAME COLUMN, because a line costs one or the other and never both —
@@ -493,6 +506,8 @@ function cartCard_() {
 
      `printed ‧ 26 pages` MOVES TO THE PAGES COLUMN, where a receipt puts a quantity, instead of
      trailing after the title in a smaller grey. It was the thing making the line too long. */
+  /* A PENCIL SAVED AS "30 cr" BEFORE PENCE WERE READ AS MONEY is re-read first — see `cartUnits_`. */
+  if (typeof cartUnits_ === 'function') cartUnits_();
   const credits = collCredits_();
   const due  = CART.reduce((n, c) => n + (c.cost || 0), 0);
   /* THROUGH `cartMoney_`, so the laminate upgrade is in the total the moment it is on the line.
@@ -555,9 +570,13 @@ function cartCard_() {
        same change. And with all four callers agreeing, `kind` itself is gone: one line choosing
        between four palettes is one line deciding which of four sets of rules the next control on
        this card has to obey, and the set nobody remembers is the one that gets written wrong. */
-    lines: [due ? due + ' credit' + (due === 1 ? '' : 's') : '',
-            due ? 'you have ' + credits : '',
-            tbc ? tbc + ' to price when sent' : ''].filter(Boolean),
+    /* ---------- ONE SHORT LINE, NOT A WRAPPED ONE ---------------------------------------------------
+       IT READ "1430 credits · you have 5 · 1 to price when sent" and wrapped at 390 — the head of a
+       receipt running to two lines to say what the rows and the terms under them already say. So it
+       says the two figures nothing else on the card does — what the credits come to against what you
+       hold — and `tbc` in the word the price column uses, which the terms line explains. */
+    lines: [due ? due + ' cr of your ' + credits : '',
+            tbc ? tbc + ' tbc' : ''].filter(Boolean),
     rows: rows,
     /* "TO PAY", NOT "COST". The booking card says Cost on a thing nobody has agreed to; this one has
        a Pay button under it and money genuinely about to move. */

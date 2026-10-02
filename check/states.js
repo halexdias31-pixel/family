@@ -1574,17 +1574,33 @@ const STATES = {
                   short: 'Paper 2', pages: 24, cost: 0, from: from },
                 { key: 'P-UNCOUNTED', kind: 'print', name: 'Paper 3 (Calculator) — June 2017 · Higher',
                   short: 'Paper 3', pages: 0, cost: 0, from: from },
+                /* A CHEAT SHEET, as `mat-cart` writes it — one page, its pieces carried — so the
+                   laminate strip is measured on a line that is not a paper. */
+                { key: 'mat:Maths|GCSE|H|M01,M17,M26', kind: 'print', pages: 1, cost: 0,
+                  name: 'Cheat sheet — Maths · GCSE Higher (2 pieces)',
+                  parts: ['Ruler down the edge', 'Straight line', 'Quadratics'] },
                 { key: 'I001', name: 'Trundle wheel, 1 m circumference', kind: 'shop',
                   cost: 0, money: 120000 },
-                { key: 'I026', name: 'Tape measure, 30 m', kind: 'shop', cost: 0, money: 85000 }];
+                { key: 'I026', name: 'Tape measure, 30 m', kind: 'shop', cost: 0, money: 85000 },
+                /* AND THE SHOP LINES THE BASKET MOSTLY HOLDS: a pence-priced one-word item (the line
+                   that was 72px tall with its ✕ alone on a row) and one bought with credits, so the
+                   head's credits line is drawn too. Shaped as `cartPrice_` writes them. */
+                { key: 'Pencil', name: 'Pencil', kind: 'shop', cost: 0, money: 0.3 },
+                { key: 'Sticker sheet', name: 'Sticker sheet', kind: 'shop', cost: 3, money: 0 }];
         const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'cart');
         if (n < 0) throw new Error('no basket widget in the roster');
         goPage('tools', n, true);
         initCart();
       },
+      /* AND A SHOP LINE IS ONE LINE: its ✕ on the name's own line, no strip under it, and the
+         leader drawn — the three things "refine basket to look nicer" changed, asked of the page. */
       expect: () => document.querySelector('#s-tools [data-do="cart-send"]')
-                    && document.querySelector('#s-tools .cart-box .cart-from'),
-      wants: 'a basket holding a bundle under its title, with a way to send the order',
+                    && document.querySelector('#s-tools .cart-box .cart-from')
+                    && [...document.querySelectorAll('#s-tools .cart-box .bk-row.is-wide')]
+                         .filter(r => /Pencil/.test(r.textContent))
+                         .some(r => r.querySelector('.cart-ln [data-do="cart-drop"]') && !r.querySelector('.cart-ctl')
+                                    && r.querySelector('.cart-lead').getBoundingClientRect().width > 8),
+      wants: 'a basket holding a bundle under its title, a cheat sheet and shop lines, each shop line one line with its ✕ and a leader to its price, and a way to send the order',
       /* PUT BACK, because states run in order down one page and an empty basket is what every
          other state on this column expects to find. */
       leave: () => { CART = []; initCart(); } },

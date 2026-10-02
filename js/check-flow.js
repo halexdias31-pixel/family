@@ -826,6 +826,58 @@ check('a cheat sheet goes into the basket, laminates, and the order names its pi
   return bad;
 });
 
+/* ---------- A PENCE PRICE IS MONEY, AND A SHOP LINE IS ONE LINE --------------------------------------
+   ASKED FOR AS *"refine basket to look nicer."*, and the first thing wrong with the basket's look was
+   not a margin: a 30p pencil read "30 cr" and a £14 calculator "1400 cr", because `cart-add` wrote
+   every shop price into the credits field whatever `unit` `doGet` sent with it — and the Send button
+   then asked a student for 1,425 credits. So a pence row goes in as money, a credits row as credits,
+   and a line saved the old way is re-read from the shop row when the basket is drawn.
+   Then the shape: a shop line has no switch, so it has no strip — its ✕ is on the name's line — and
+   the head says what the credits come to in one short line. */
+check('a pence-priced shop item goes in the basket as money, on one line', async () => {
+  const p = payload();
+  p.shop = [{ name: 'Pencil', price: '30', unit: 'p', acquire: 'buy', audience: 'all', inStock: true },
+            { name: 'Sticker sheet', price: '3', unit: '✓ ', acquire: 'ticks', audience: 'all', inStock: true }];
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t;
+  if (!t.CART || !t.setCart || !t.basket || !t.cartMoney) return ['the basket is not exported'];
+  const bad = [];
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.setCart([]);
+  const add = key => {
+    const el = w.document.createElement('button');
+    el.dataset.key = key; el.dataset.kind = 'shop';
+    t.ACTIONS['cart-add'](el);
+  };
+  add('Pencil'); add('Sticker sheet');
+  const pencil = t.CART().find(c => c.key === 'Pencil');
+  if (!pencil) return ['the pencil did not go into the basket'];
+  if (pencil.cost !== 0 || pencil.money !== 0.3) bad.push('a 30p pencil went in as cost ' + pencil.cost + ', money ' + pencil.money + ' — it is £0.30, not 30 credits');
+  const stick = t.CART().find(c => c.key === 'Sticker sheet');
+  if (!stick || stick.cost !== 3) bad.push('a 3-tick sticker sheet lost its price: ' + JSON.stringify(stick));
+  /* A LINE SAVED BEFORE THIS — `cost: 30` for the pencil — comes back as money when drawn. */
+  t.setCart([{ key: 'Pencil', name: 'Pencil', kind: 'shop', cost: 30, money: 0 }]);
+  const html = String(t.basket() || '');
+  if (t.CART()[0].money !== 0.3 || t.CART()[0].cost !== 0) bad.push('a pencil saved as 30 credits is still ' + JSON.stringify(t.CART()[0]) + ' after the basket was drawn');
+  if (/30 cr/.test(html)) bad.push('the basket still draws the pencil as "30 cr"');
+  if (!/£0\.30/.test(html)) bad.push('the basket does not draw the pencil at £0.30');
+  const d = w.document.createElement('div');
+  d.innerHTML = html;
+  const row = [...d.querySelectorAll('.bk-row.is-wide')].find(r => /Pencil/.test(r.textContent));
+  if (!row) return bad.concat('no basket row for the pencil');
+  if (!row.querySelector('.cart-ln [data-do="cart-drop"]')) bad.push('the pencil\'s ✕ is not on its name line');
+  if (row.querySelector('.cart-ctl')) bad.push('the pencil draws a control strip with nothing to hold but its ✕');
+  if (!row.querySelector('.cart-lead')) bad.push('the pencil has no leader to its price');
+  t.setCart([{ key: 'Sticker sheet', name: 'Sticker sheet', kind: 'shop', cost: 3, money: 0 },
+             { key: 'P-X', kind: 'print', name: 'Paper', pages: 0, cost: 0 }]);
+  const head = (() => { const e = w.document.createElement('div'); e.innerHTML = String(t.basket() || '');
+    const h = e.querySelector('.rc-head p'); return h ? h.textContent.trim() : ''; })();
+  if (head.length > 30) bad.push('the basket head reads "' + head + '" — ' + head.length + ' characters, which wraps at 390');
+  t.setCart([]);
+  return bad;
+});
+
 /* ---------- SETTINGS SAVE AGAINST A SERVER OLDER THAN THE SITE ------------------------------------
    REPORTED FROM THE LIVE SITE: "the account settings stuff isnt saving. its saying action not
    recognised". The site was published and the Apps Script was not, so every Save asked the server

@@ -140,6 +140,37 @@ let CART = [];
 try { CART = JSON.parse(localStorage.getItem('familyCart') || '[]'); } catch {}
 const cartSave = () => { try { localStorage.setItem('familyCart', JSON.stringify(CART)); } catch {} };
 
+/* ---------- A SHOP ROW PRICED IN PENCE IS MONEY, NOT CREDITS ----------------------------------------
+   `doGet` SENDS `price` WITH ITS `unit` — `p` for the `price_pence` column, `✓ ` for ticks, `🪙 ` for
+   coins — and this wrote every price into `cost`, the credits field. Measured with the live payload:
+   a 30p pencil sat in the basket as "30 cr", a £14 calculator as "1400 cr", and the Send button read
+   "1425 more credits needed" for a student holding five — an order nobody could ever send, for two
+   things that cost £14.30. A pence price goes into `money` in pounds, which `cartMoney_` already
+   adds into the printing total and the order message already writes as money.
+   ANYTHING ELSE STAYS IN `cost` AS BEFORE. Ticks are their own balance and are still checked against
+   credits here — a fault, but the shop card's, not the basket's, and written up in the history note. */
+function cartPrice_(src) {
+  const n = Number(src && src.price) || 0;
+  return String((src && src.unit) || '').trim() === 'p'
+    ? { cost: 0, money: Math.round(n) / 100 }
+    : { cost: n, money: 0 };
+}
+/* AND A LINE SAVED BEFORE THAT, PUT RIGHT WHEN THE SHOP SAYS WHAT IT WAS. A basket lives in
+   `localStorage`, so a pencil added yesterday is still "30 cr" in somebody's browser; once the payload
+   is here and its row says pence, the line is re-read from it. Only a shop line with a credits figure
+   and no money, and only from a row that says `p` — nothing is guessed when the shop is not loaded. */
+function cartUnits_() {
+  let moved = false;
+  CART.forEach(c => {
+    if (!c || c.kind !== 'shop' || !(Number(c.cost) > 0) || Number(c.money) > 0) return;
+    const src = ((typeof DATA !== 'undefined' && DATA.shop) || []).find(x => norm(x.name) === norm(c.key));
+    if (!src || String(src.unit || '').trim() !== 'p') return;
+    Object.assign(c, cartPrice_(src));
+    moved = true;
+  });
+  if (moved) cartSave();
+}
+
 on('cart-add', el => {
   if (!USER) { toast('Sign in first'); go('account'); return; }
   /* A BUNDLE IS PAPERS, SO IT GOES IN AS PAPERS — see `cartAddBundle_` below. */
@@ -159,7 +190,7 @@ on('cart-add', el => {
   {
     const src = (DATA.shop || []).find(x => norm(x.name) === norm(key));
     if (!src) return;
-    CART.push({ key, name: src.name, kind, cost: Number(src.price) || 0, money: 0 });
+    CART.push(Object.assign({ key, name: src.name, kind }, cartPrice_(src)));
   }
 
   cartSave();

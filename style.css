@@ -10274,13 +10274,40 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    and the strip is the next, wrapping as a unit; the ✕ goes to the strip's far end, beside the
    price it takes away. `min-width: 0` so a long library-wide name wraps inside its column rather
    than pushing the total off the card, which is the fault this document was adopted to fix. */
-.bk-v .cart-nm { display: block; min-width: 0; }
-.bk-v .cart-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: 0 .35rem; }
-.bk-v .cart-ctl .text-drop { margin-left: auto; }
+/* ---------- AND NOW THE NAME RUNS ON A LEADER TO ITS PRICE, AND THE STRIP IS ONLY THERE WHEN USED --
+   ASKED FOR AS *"refine basket to look nicer."* Two faults measured at 390 with a mixed basket. The
+   dashed rule under the name was `.bk-v`'s own bottom border, so it stopped where the value column
+   stopped — three quarters of the way across, with the price past its end — and the row's solid
+   `bk-end` rule ran under it, two lines a line. And a shop line, with no switch to hold, still drew
+   the strip, so its ✕ sat alone on a second row: 72px a line for a one-word name.
+
+   `display: contents` ON THE VALUE CELL hands its three parts to the row's own two columns (the card
+   is `minmax(0, 1fr) max-content` — see `.bk:has(> .is-wide)`): the name line in the first, the price
+   in the second on the same line, and the strip, when there is one, across both. So the leader is a
+   dotted line from the end of the name to the price, the ✕ ends it beside the figure, and a strip's
+   ✕ lines up under the price instead of under nothing. The row's own rule stays the only rule. */
+.bk-row.is-wide > .bk-v { display: contents; }
+.bk-row.is-wide > .bk-t { grid-column: 2; grid-row: 1; }
+.bk-row.is-wide .cart-ln { grid-column: 1; grid-row: 1; display: flex; align-items: baseline;
+                           gap: .35rem; min-width: 0; text-align: left; }
+.bk-row.is-wide .cart-nm { flex: 0 1 auto; min-width: 0; overflow-wrap: break-word; }
+.bk-row.is-wide .cart-pp { flex: none; }
+/* THE LEADER IS AN EMPTY BOX WITH A BOTTOM BORDER, and an empty flex item's baseline is its bottom
+   edge — so on a baseline row its dots sit on the text's baseline without any arithmetic. A floor of
+   a rem so a name that fills the line still points at its price. */
+.bk-row.is-wide .cart-lead { flex: 1 1 1rem; min-width: 1rem; border-bottom: 1px dotted var(--line); }
+.bk-row.is-wide .cart-ln .text-drop { margin: 0; flex: none; }
+.bk-row.is-wide .cart-ctl { grid-column: 1 / -1; grid-row: 2; display: flex; flex-wrap: wrap;
+                            align-items: center; gap: 0 .35rem; }
+/* NO NEGATIVE MARGIN TO PULL THE ✕ FLUSH with the figure: tried, and `check/ui.js` named the line
+   4px wider than its box at every width. The ✕'s own padding is the gap. */
+.bk-row.is-wide .cart-ctl .text-drop { margin-left: auto; }
+/* THE BUNDLE'S CAPTION IS ITS OWN ROW, across both columns. */
+.bk-row.is-wide .cart-from { grid-column: 1 / -1; }
 /* THE BUNDLE A GROUP OF LINES CAME FROM — a caption over them rather than a line of its own to buy,
    so it is the quiet ink and a size down, and it has a little air above it where a second bundle
    starts under the first. */
-.bk-v .cart-from { display: block; margin-top: .25rem; font-size: .92em; color: var(--dim); }
+.bk-v .cart-from { display: block; margin-top: .25rem; font-size: .92em; color: var(--dim); text-align: left; }
 
 /* ==================================================================================================
    DOCUMENTS — the agreements and policies, read in a sheet. See terms.js.
