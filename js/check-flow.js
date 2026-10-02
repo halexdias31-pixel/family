@@ -1452,6 +1452,9 @@ check('touch typing moves on a right key, counts a wrong one, keeps the ladder p
       if (stray.length) { bad.push(L.name + ' drew a line with keys it has not taught: "' + line + '"'); break; }
       if (!L.caps && caps) { bad.push(L.name + ' drew a capital: "' + line + '"'); break; }
       if (!L.marks && marks) { bad.push(L.name + ' drew a mark: "' + line + '"'); break; }
+      /* "alas alas" was the first screenshot's home row: one word practised twice, not the row. */
+      const ws = line.toLowerCase().replace(/[^a-z' ]/g, '').split(' ');
+      if (ws.some((x, j) => j && x === ws[j - 1])) { bad.push(L.name + ' drew a word twice running: "' + line + '"'); break; }
     }
   });
 

@@ -2182,15 +2182,16 @@ button.text-drop { color: var(--bad); }
    chess board's rule and the timetable's. MIRRORED, one hue a finger and the same on both hands:
    a little finger is violet whichever hand it is on, which is how the colour teaches anything —
    eight different hues would be eight things to remember instead of four. None of them is the
-   app's gold, which is kept for the one key that is wanted next.
+   app's gold, which is kept for the one key that is wanted next — and the index fingers were orange
+   until a screenshot of a lit `g` showed an orange key in a gold ring reading as one blob. Pink now.
 
    THE KEYS ARE NOT TARGETS. Nothing on the drawn keyboard can be pressed — see `ktBoardHtml_` — so
    it is sized in rem with the type and is about 18px a key at 320, which is a picture of a
    keyboard and not a breach of the 44px floor. The rungs and the line are the targets, and those
    are px. */
 .kt-box { position: relative;
-          --kt-0: #c46bd1; --kt-1: #5b9bd5; --kt-2: #6cc08a; --kt-3: #d9822b;
-          --kt-4: #d9822b; --kt-5: #6cc08a; --kt-6: #5b9bd5; --kt-7: #c46bd1; --kt-8: #8a8a8a; }
+          --kt-0: #c46bd1; --kt-1: #5b9bd5; --kt-2: #6cc08a; --kt-3: #e8a0bf;
+          --kt-4: #e8a0bf; --kt-5: #6cc08a; --kt-6: #5b9bd5; --kt-7: #c46bd1; --kt-8: #8a8a8a; }
 /* THE BOX THAT TAKES THE KEYS, out of sight and out of the way of a finger. Not `display: none` and
    not `visibility: hidden` — neither can hold the focus, and without the focus a phone shows no
    keyboard. 16px for the same reason every field here is: under it iOS zooms the page on focus. */

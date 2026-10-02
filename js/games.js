@@ -4805,6 +4805,11 @@ function ktLine_(n) {
   let len = 0;
   while (len < 38) {
     let w = fresh.length && Math.random() < 0.6 ? pick(fresh) : pick(pool);
+    /* NOT THE SAME WORD TWICE RUNNING. The home row's dictionary is thirty words, and the first
+       screenshot drew "alas alas" — which is practising one word, not the row. */
+    if (words.length && w === words[words.length - 1].toLowerCase().replace(/[^a-z']/g, '') && pool.length > 1) {
+      w = pick(pool.filter(x => x !== w));
+    }
     if (L.caps && Math.random() < 0.15) w = pick(KT_NAMES);
     else if (L.caps && (!words.length || Math.random() < 0.3)) w = w[0].toUpperCase() + w.slice(1);
     /* MARKS BETWEEN WORDS, not a mark per word: one gap in three, and a full stop or a question mark
@@ -4921,7 +4926,7 @@ function ktViewHtml_() {
      them in the markup is a space drawn in the middle of the line that nobody is meant to type. */
   return `<div class="kt-rungs">${rungs}</div>
     <p class="kt-lesson"><b>${esc(L.name)}</b>${toGo
-      ? ` <span class="faint">· ${toGo} more line${toGo === 1 ? '' : 's'} at ${Math.round(KT_HOLD * 100)}% opens ${esc(KT_LESSONS[p.at + 1].name)}</span>`
+      ? ` <span class="faint">· ${toGo} more at ${Math.round(KT_HOLD * 100)}% opens ${esc(KT_LESSONS[p.at + 1].name)}</span>`
       : ''}</p>
     <button type="button" class="kt-line" data-do="kt-focus" aria-label="Type this line: ${esc(s.line)}"><span class="kt-done">${
       esc(s.line.slice(0, s.pos))}</span><span class="kt-cur${s.miss ? ' miss' : ''}${cur === ' ' ? ' sp' : ''}">${
