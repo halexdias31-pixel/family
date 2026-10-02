@@ -162,3 +162,30 @@ nothing to stop.
 **One thing was left as it was.** Connect 4, like Othello, still deals a new board on every start,
 which includes a repaint. That is the fault the maze had. It was not part of this request, so it is
 left for the owner to decide.
+
+### "make a widget in games column purley dedicatied for contest. make it a place holder for now."
+
+**A `contest` widget is now the last card on the Games column.** It has a heading, one line
+("Coming soon: a competition for everyone on @family.") and "Not built yet." It has no `start`, no
+`into` and no controls.
+
+This follows `drill`'s argument on the Tools column: a placeholder that looks finished is worse
+than an empty one, because a control that does nothing reads as broken.
+
+**It is appended rather than placed.** `PAGE.games` remembers a page by its index, so inserting it
+anywhere above would shift every saved position by one.
+
+**It is not `solid`,** so the funnel does not offer "not built yet" as a search result.
+
+**Two changes from the audit's default wording:**
+- The brand name comes from `brand('name', '@family.')`, through a getter, so the card follows the
+  sheet.
+- The line was "A competition for everyone on @family. — coming soon". At 390 it broke just before
+  the dash, so the second row started with "—". It is now ordered so the brand's own full stop
+  ends it. A sheet name without a full stop gets one added.
+
+**Checked.** The journey `the contest placeholder is the last card on the Games column, says so,
+and has nothing to press` asks four things: `contest` is last in `widgetsOf_('game')`, it is headed
+Contest, it says "Not built yet", and it has no button, `data-do`, field or link inside its slot.
+Moving the entry above `reels` and adding a button failed both halves. Screenshots at 320 and 390
+show the card.

@@ -1267,6 +1267,35 @@ const WIDGETS = [
     <p class="sub">Something worth knowing. Tap for another.</p>
     <div id="feed-screen" class="feed" data-do="feed-tap"></div>
   </div>` },
+
+  /* ---------- CONTEST — A PLACEHOLDER, AND IT SAYS SO --------------------------------------------
+     ASKED FOR AS "make a widget in games column purley dedicatied for contest. make it a place holder
+     for now." So it is the card and the slot, and nothing that can be pressed. That is `drill`'s
+     argument, on the Tools column further down: a placeholder that looks finished is worse than an
+     empty one, because somebody taps the thing that looks like a control and the app reads as broken
+     rather than as unbuilt. No `start`, no `into`, no button, so `check/press.js` finds nothing
+     that does nothing.
+
+     LAST ON THE COLUMN, AND APPENDED RATHER THAN PLACED. `PAGE.games` remembers a page by its index,
+     so an entry inserted anywhere above would move every saved position after it by one — somebody
+     who left the column on the maze would come back to the card before it.
+
+     NOT `solid`, so the funnel does not offer it as a search result: a card that says "not built
+     yet" is not an answer to anybody's question. */
+  { id: 'contest', kind: 'game', name: 'Contest', what: 'The contest',
+    /* A GETTER, SO THE NAME IS THE SHEET'S. `brand('name')` is read when the card is drawn rather
+       than when this file loads, which is before the payload has said what the business is called.
+       THE BRAND'S OWN FULL STOP ENDS THE SENTENCE, so the line does not break before a dash and
+       start its second row with one, which is what "… on @family. — coming soon" did at 390. A
+       name in the sheet without one gets one, so the sentence ends either way. */
+    get html() {
+      const house = String(typeof brand === 'function' ? brand('name', '@family.') : '@family.');
+      return `<div class="card">
+    <h3>Contest</h3>
+    <p class="sub">Coming soon: a competition for everyone on ${esc(house)}${/[.!?]$/.test(house) ? '' : '.'}</p>
+    <p class="empty">Not built yet.</p>
+  </div>`;
+    } },
   /* `solid` — AN INSTRUMENT, NOT A CARD.
      The pane is frosted glass because most of what sits on it is CONTENT: a post, a receipt, a list
      of things to find, and glass says "this is a surface something is written on".

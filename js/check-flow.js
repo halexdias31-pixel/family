@@ -1039,6 +1039,31 @@ check('the word search hides every word where it says, and two taps find it', as
 });
 
 
+/* ---------- CONTEST: THE LAST CARD ON THE GAMES COLUMN, AND NOTHING ON IT TO PRESS -----------------
+   ASKED FOR AS "make a widget in games column purley dedicatied for contest. make it a place holder
+   for now." Two things a placeholder can get wrong without drawing badly: arriving anywhere but
+   LAST, which moves every page `PAGE.games` has remembered by one, and growing a control before
+   there is anything behind it, which is a button that does nothing. */
+check('the contest placeholder is the last card on the Games column, says so, and has nothing to press', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  const roster = t.widgetsOf('game').map(x => String(x.id));
+  if (roster.indexOf('contest') === -1) return ['there is no contest widget on the Games column'];
+  if (roster[roster.length - 1] !== 'contest') bad.push('contest is not the last game: ' + roster.join(', '));
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const slot = w.document.querySelector('#s-games #wgt-contest');
+  if (!slot) return bad.concat(['the contest card did not draw on the Games column']);
+  const h = slot.querySelector('h3');
+  if (!h || h.textContent.trim() !== 'Contest') bad.push('the card is not headed Contest');
+  if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
+  const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
+  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  return bad;
+});
+
 /* ---------- CONNECT 4: ONE COUNTER FALLS, INTO THE RIGHT SQUARE, AND THE FOUR THAT WON ARE RINGED ---
    ASKED FOR AS "refine connect 4 add dropping animation of counters." The fall itself is CSS and
    only a browser can play it — what can go wrong here is WHICH square falls: none (the mark is
