@@ -5017,7 +5017,10 @@ function ktFocus_(at) {
   const input = box && box.querySelector('.kt-in');
   if (!input) return;
   try { input.focus({ preventScroll: true }); } catch (e) { input.focus(); }
-  box.classList.add('typing');
+  /* ONLY IF THE FOCUS TOOK. A card on a page parked off to the side cannot hold it — measured: the
+     focus call returns and `activeElement` is still the body — and a card that said "Eyes here" while
+     nothing was listening would be typed into for a whole line before anybody noticed. */
+  box.classList.toggle('typing', document.activeElement === input);
 }
 on('kt-focus', el => ktFocus_(el));
 

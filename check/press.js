@@ -136,6 +136,12 @@ const ACCEPTED_QUIET = {
                       + 'the moment somebody clicked away mid-sentence.' },
   'qp-ans':      { why: 'the answer box writes to localStorage on `input`, not on a press; a click '
                       + 'on a textarea is a caret being placed.' },
+  /* THE TYPING LINE IS A CARET TOO, with a button round it. Its whole effect is the focus moving to
+     the hidden box, and the rung above it — pressed first, because it is first on the card — hands
+     the focus there as well, so by the time the line is pressed the card is already listening. On
+     its own, on a card that is not, it does change the markup (`.kt-box.typing`); measured. */
+  'kt-focus':    { why: 'puts the focus in the hidden typing box, which the rung pressed before it '
+                      + 'already did — a caret placed twice.' },
 
   /* ---------- NO CAMERA IN A CONTAINER ------------------------------------------------------------
      `cam-shoot` and `cam-video` are reported as DISABLED rather than quiet, which is the shutters
