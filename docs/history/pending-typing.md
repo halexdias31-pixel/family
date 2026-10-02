@@ -64,7 +64,7 @@ built for it, and that is in the questions for the owner.
 
 ### Measured
 
-- `node js/check-flow.js`: 63 of 63. Eight mutations of the engine, each turning the journey red
+- `node js/check-flow.js`: 63 of 63. Eight mutations of the engine (a ninth below), each turning the journey red
   for its own reason and green again when restored: no `stopPropagation` (5 keys reached the
   window), a wrong key moving the line on, `ktKey_` ignoring who is signed in, the hidden box
   rewritten on every paint (focus lost), no per-lesson filter (a home-row line with `w`, `b`, `k`),
@@ -73,6 +73,17 @@ built for it, and that is in the questions for the owner.
   check-flow evaluates the app as one block, so its `const`s never reach `window`: the list came
   back empty and fifty lines of nothing were checked. Found by the no-filter mutation staying
   green. The ladder is read through `ktLesson_` now, and an empty ladder is a failure of its own.
+- **Two things only a picture and the journey found.** The index fingers were orange, and a lit `g`
+  was an orange key in a gold ring that read as one blob — pink now. The first home-row line read
+  "glass flask alas alas jags": a thirty-word dictionary repeats itself, so no word is drawn twice
+  running, and the journey refuses one in fifty lines of every lesson. Its first guard ran before
+  a name was chosen and the journey caught "Friday Friday" on the next run; it asks of the word as
+  drawn now. Ninth mutation: the guard removed, the journey red on all three letter lessons.
+- In a real Chromium, typed with Playwright's keyboard at 320, 390 and 1280: twelve keys moved the
+  line twelve, a wrong key counted once, an ArrowRight inside the box did not turn the Tools page,
+  the box kept the focus, and the document's scroll width equalled the viewport.
+- The `touch typing` state, mutated (the `next` class never set), was reported by `check/ui.js` as
+  "entered and shows no ... — that state was NOT measured" at all four widths, and exit 1.
 - Screenshots at 320, 390 and 1280 of the state, looked at: the keyboard fits the 218px slot at
   320 with no sideways scroll, every key's letter is readable on its finger's tint, and the next
   key and the lit shift are the two things that stand out.
