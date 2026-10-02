@@ -6017,7 +6017,23 @@ function stuffItems() {
    WHAT IT COSTS, WRITTEN WHERE THE CODE WAS so it is not rediscovered as a bug: typing `richmond`
    into Find returns nothing, deliberately, and so does a tutor's name. The fix is this filter, not
    another mapper. */
-const FUNNEL_NOT_FOR = 'Booking';
+/* ---------- AND THE SHOP LEFT WITH IT, ONCE IT HAD A COLUMN TO GO TO ----------------------------
+   ASKED FOR AS *"Get rid of shop tag. I will make a new coloumn for shop stuff. So finder now will
+   become just learning stuff."* The same move as Booking above and the same care: the forty shop
+   Things had ONE way onto a screen, this door, so it came out in the commit that built the Shop
+   column (`shopCards_` in collections.js) and not before. The wearables, which are `Shop` too, have
+   the wardrobe on Settings. A STARRED shop thing stays on Saved — `collItems_` reads
+   `stuffItemsAll_`, which this does not touch.
+
+   A LIST NOW, AND THE TEST IS "EVERY GROUP IT IS IN IS ONE OF THESE". A kind in `Shop` and in
+   `Learning` would still answer `Learning`, which is the array rule the note below defends.
+
+   ONE THING THIS CHANGES THAT IS NOT THE SHOP. `kindOf_` files a kind it does not know under
+   `Shop · Things`, so an unrouted kind used to turn up there looking deliberate — and now leaves
+   Find altogether. Measured on the fixture and the real files: no item today has a kind outside
+   `KINDS` and the `kinds` tab. A new one needs a `kinds` row, which `kindMap_` puts in Learning
+   when it names no group. */
+const FUNNEL_NOT_FOR = ['Booking', 'Shop'];
 
 function stuffItemsBuild_() {
   return stuffItemsAll_().filter(x => {
@@ -6027,7 +6043,7 @@ function stuffItemsBuild_() {
        array form has been supported since a tutor was two things, and a filter that ignored it
        would silently drop a kind from a group it belongs in. */
     const g = asList_(x.groups || kindOf_(x).group);
-    return !(g.length === 1 && g[0] === FUNNEL_NOT_FOR);
+    return !(g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0));
   });
 }
 
