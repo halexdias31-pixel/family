@@ -552,6 +552,23 @@ const STATES = {
      — the same argument as the films two blocks up. */
   account: [
     { name: '' },
+    /* ---------- THE SHEET THAT MAKES AN ACCOUNT ----------------------------------------------------
+       ASKED FOR AS *"turn the sign in and forgot pin buttons into tiles. same with create account
+       button."* The third tile opens a four-box form a signed-out visitor is the only one to see —
+       and `#sheet` is a sibling of the screens, so without a state of its own neither the measuring
+       pass nor the pressing pass would ever have it open. Entered through the tile's own handler. */
+    { name: 'making an account',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const tile = document.querySelector('#s-account [data-do="register"]');
+        if (!tile) throw new Error('no Make an account tile on the signed-out account column');
+        ACTIONS['register'](tile);
+      },
+      expect: () => ['reg-first', 'reg-last', 'reg-email', 'reg-pin']
+        .filter(id => document.getElementById(id)).length
+        + (document.querySelector('#sheet-body [data-do="reg-send"]') ? 1 : 0) === 5 ? 5 : 0,
+      wants: 'the register sheet open: four boxes and its one button',
+      leave: () => { closeSheet(); } },
     /* ---------- THE HANDLE, WITH EXACTLY ONE `@` IN FRONT OF IT ----------------------------------
        ASKED FOR AS *"each person should have … handle llik \"@_____\""*, and the visible half of that
        had never existed: `doGet` has sent `handle` on every tutor since it was written and the only

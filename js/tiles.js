@@ -121,6 +121,21 @@ const TILE_ICONS = {
   save:  '<path d="M3.5 9.5 7.3 13.3 14.8 4.8"/>',
   /* SIGN OUT: a door frame and an arrow leaving it. */
   out:   '<path d="M8.5 2.5h-5v13h5"/><path d="M7.5 9h8.5"/><path d="m13 6 3 3-3 3"/>',
+  /* ---------- AND THE THREE ON THE SIGN-IN CARD ----------------------------------------------
+     ASKED FOR AS *"turn the sign in and forgot pin buttons into tiles. same with create account
+     button."* Three marks this set did not have, drawn at the same 1.4 stroke so the row reads as
+     one set with the Sign out tile a stranger will meet on the far side of signing in.
+
+     SIGN IN IS THE MIRROR OF SIGN OUT: the same door frame, on the other side, with the arrow
+     going into it. Two marks that differ only in direction are learnt as a pair — the padlock
+     argument above. A KEY for the PIN, because a PIN is what opens the account and the tile gets
+     you a new one. A PERSON WITH A PLUS for a new account, which is the mark every phone's
+     contacts app already uses for "add somebody". */
+  in:    '<path d="M9.5 2.5h5v13h-5"/><path d="M2 9h8.5"/><path d="m7.5 6 3 3-3 3"/>',
+  key:   '<circle cx="5.5" cy="9" r="3"/><path d="M8.5 9h7"/><path d="M13.5 9v2.5"/>'
+       + '<path d="M11.2 9v1.8"/>',
+  join:  '<circle cx="7" cy="5.5" r="2.6"/><path d="M2 15.5a5 5 0 0 1 10 0"/>'
+       + '<path d="M14 6v5"/><path d="M11.5 8.5h5"/>',
 };
 
 function tileIcon_(name) {
