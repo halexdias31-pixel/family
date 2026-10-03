@@ -133,7 +133,12 @@ const SUITE = [
      is maths -- a plain `5/8`, a `?/24`, a `cm3` -- and counts what is left on purpose, 1st Class
      Maths' lost powers among it, rather than going quiet about them. */
   { file: 'check-typeset.js', what: 'fractions stacked, powers raised, no plain-text maths' },
-  { file: 'check-chess.js',   what: 'the chess move generator, counted by perft' },
+  /* ---------- AND WHETHER THE ANSWER YOU SEE IS SHORT -------------------------------------------
+     "make answers breaifer ... i want shorter answers." The result is drawn and the working folded
+     under Why; this fails on a result over 120 characters that nobody has given a reason for, and
+     on a split that cost a fraction or a power. */
+  { file: 'check-answers.js', what: 'every answer drawn is a short result, the working folded' },
+  { file: 'check-chess.js',  what: 'the chess move generator, counted by perft' },
   /* ---------- AND EVERY TIMESTAMP ANYBODY SEES ---------------------------------------------------
      `parseWhen` read `2026-09-15` as 26 September 2015, because its day-month-year match was not
      anchored and the engine slid past the four-digit year. A plausible date, wrong by eleven years,
@@ -151,6 +156,12 @@ const SUITE = [
      funnel's tables do not place (which stands a whole question down), a kind missing from
      `What kind`, and a step that tells a child to put their work online. */
   { file: 'check-projects.js', what: 'the projects: topics, the funnel tables, nothing sent online' },
+  /* ---------- AND THE @family. TEXTBOOKS, WHICH ARE RESOURCES -----------------------------------
+     "the @family textbook should be bare bones for now and the textbooks will be in the resources
+     tag in the finder." The bones are the rule — key words, formulas typeset_ can draw, three to
+     five worked lines — and the route is the other half: a kind wearing Resources, the Shelf door
+     that is the only way past 260 rows of boxing, and the file fetched at all. */
+  { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
   { file: 'check-quizzes.js', what: 'the quizzes: an answer that can be reached, and why' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
      A clip whose path is one character wrong does not draw a broken link. The slide stays its own
@@ -311,8 +322,12 @@ for (const c of SUITE) {
     /* TEN MINUTES, NOT FIVE. `check/ui.js` passed 300s on the day ten owner-list items each brought
        their own states, with the other three browser checks running beside it — and a check killed
        by the clock prints FAIL over a report with no finding in it, which reads exactly like a fault
-       in the app. A real hang still ends; ten minutes is about twice what the slowest takes alone. */
-    execFile(process.execPath, [p], { cwd: dir, encoding: 'utf8', timeout: 600000,
+       in the app. A real hang still ends; ten minutes is about twice what the slowest takes alone.
+       AND THEN FIFTEEN. The 3 October batch took `check/ui.js` to 85 states, 524 combinations, and
+       9m47s ALONE on a quiet machine — clean, nothing new — so ten minutes killed it inside the suite
+       every run. Fifteen is the same margin over what it takes now. If it outgrows this too, split
+       the states across two runs rather than raising it again. */
+    execFile(process.execPath, [p], { cwd: dir, encoding: 'utf8', timeout: 900000,
                                       maxBuffer: 32 * 1024 * 1024 },
       (err, stdout, stderr) => done({ ok: !err, out: String(stdout || '') + String(stderr || ''),
                                       secs: ((Date.now() - t0) / 1000).toFixed(1) }));

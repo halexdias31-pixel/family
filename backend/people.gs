@@ -46,6 +46,64 @@ function titlesOf(row) {
   return rolesOf(row).map(x => ROLE_TITLES[x]).filter(Boolean);
 }
 
+/* ---------- THE THREE SELF-CHOSEN ROLES, AS THE WIDGET SEES THEM -----------------------------------
+   Read through `SELF_ROLE_ALIASES`, so `parent` is Client. In `SELF_ROLES`' order, which is the
+   order the card draws them and the order `setMyRoles` writes them. An empty cell is `['client']`
+   because `rolesOf` says so — the default the whole site already treats an empty cell as. */
+function selfRolesOf_(row) {
+  const held = rolesOf(row).map(x => SELF_ROLE_ALIASES[x] || x);
+  return SELF_ROLES.filter(x => held.indexOf(x) !== -1);
+}
+
+/* A TUTOR WHO TICKED THE BOX AND HAS NOT BEEN SAID YES TO — see `LISTED_PENDING`. An admin is never
+   pending: they are the person who says yes, so their own tick is its own approval. */
+function tutorPending_(row) {
+  return !!row && hasRole(row, 'tutor') && !hasRole(row, 'admin')
+    && norm(row.listed) === norm(LISTED_PENDING);
+}
+
+/* ---------- WHAT A PERSON IS ALLOWED TO ACT AS, WHICH IS NOT ALWAYS WHAT THE CELL SAYS -------------
+   `mainRole` picks the most privileged role in the cell, and the cell now takes a tick. So a pending
+   tutor's `tutor` is set aside here, and what is left decides. NOTHING LEFT IS `student`, not
+   `client`: `rolesOf`'s empty-cell default is right for a row nobody has filled in, and wrong for a
+   person whose only claim is one nobody has checked — the least that somebody can do is the right
+   answer while the business decides, and a student may reach the admin, which is who they need.
+   MESSAGING READS THIS, both ways round — the one gate a tick would otherwise have opened on the
+   spot (`tutor → client` is allowed and `student → tutor` is not). */
+function actingRole_(row) {
+  const r = rolesOf(row).filter(x => !(x === 'tutor' && tutorPending_(row)));
+  if (!r.length) return 'student';
+  return ['admin', 'tutor', 'client', 'student'].find(x => r.indexOf(x) !== -1) || 'client';
+}
+
+/* ---------- THE SESSIONS SOMEBODY IS STILL SITTING IN AS A TUTOR, OR AS A CLIENT -------------------
+   WHY UNTICKING HAS TO ASK. Who is in a session is folded from the events (`participantsOf`), not
+   from the `role` cell, so dropping Tutor would not take anybody off a roster — it would leave a
+   tutor teaching on Tuesday whose own app has stopped calling them one: no staff view, no tutor
+   pages, and a family whose tutor reads as nobody. So `setMyRoles` refuses to drop a role while
+   this finds a live seat held in it, and says how many.
+
+   LIVE MEANS: a seat that is not Withdrawn, in a job that is not cancelled by its roster, not
+   `ended` by `closeFinishedJobs`, and whose last date is not already behind us. Matched by display
+   name because that is what an event's `actor` is (see `participantsOf`). */
+function liveSeatsAs_(row, role) {
+  const name = key(personDisplayName(row));
+  if (!name) return [];
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const out = [];
+  read(TAB.jobs).rows.forEach(j => {
+    const id = S(j.job_id) || String(j._row);
+    if (!id || norm(j.status) === 'ended') return;
+    const dates = sessionDatesOf(j).map(parseDate).filter(Boolean).sort((a, b) => a - b);
+    if (dates.length && dates[dates.length - 1] < today) return;
+    if (jobStatusOf(id) === 'cancelled') return;
+    const seat = participantsOf(id).find(p => key(p.name) === name && p.role === role
+                                            && p.status !== 'Withdrawn');
+    if (seat) out.push(id);
+  });
+  return out;
+}
+
 /**
  * Find a person by ID FIRST, then by name.
  *

@@ -435,6 +435,41 @@ const STATES = {
       },
       wants: 'a project split into cards — the card, its materials, its steps, and a share page with a Messages tile',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
+       "the @family textbook should be bare bones for now and the textbooks will be in the resources
+       tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
+       shelf — and then the Measures of spread chapter, because it is the one with everything a
+       chapter can carry: key words, Higher lines, and the standard deviation formulas, whose
+       stacked fractions under a root are the widest thing on any page of the book. The chapters
+       either side are in the DOM beside it, so they are measured too, for a tap target, a contrast
+       ratio and a sideways scroll. */
+    { name: 'a textbook chapter',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook');
+        if (!x) throw new Error('no textbook in the list — data/textbooks.json did not load');
+        const c = (x.row.chapters || []).find(ch => /spread/i.test(ch.title)) || x.row.chapters[0];
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
+                         { field: 'shelf', value: x.shelf }];
+        paintStuff();
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'ch' + c.n)) : 0;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+      },
+      expect: () => {
+        /* THE CHAPTER AND ITS NEIGHBOURS, NOT THE CONTENTS CARD: the pager keeps `STUFF_WIN` pages
+           either side of this one, and the card is nine pages back. The card has a journey of its
+           own in check-flow; this state is about the widest page. */
+        const ch = [...document.querySelectorAll('#s-stuff .card.tb.prac-part')]
+          .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
+        return !!ch && !!ch.querySelector('.tb-words li b')
+               && !!ch.querySelector('.tb-math .frac .frac-d')
+               && !!ch.querySelector('.tb-points li')
+               && !!ch.querySelector('li .tb-h')
+               /* NOTHING BUT THE BOOK ON THIS SHELF — a boxer here would mean the chip did not hold. */
+               && !document.querySelector('#s-stuff .card:not(.tb) .boxer-rec');
+      },
+      wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
        BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,
        with four live buttons; answered, with the right one marked, the wrong one outlined and the
@@ -580,6 +615,69 @@ const STATES = {
                && !card.querySelector('textarea.qp-ans-in');
       },
       wants: 'a question whose options are buttons, with no text box on its card',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AN ANSWER: THE RESULT SHOWN, THE WORKING FOLDED, AND THEN OPENED ---------------------
+       ASKED FOR AS "make answers breaifer ... i want shorter answers." The result is `.qans-body`
+       and the working is one `<details>` under it -- see `answerParts_`. Neither state above ever
+       has an answer on screen: a student's card is shut behind "Show the answer", and the card is
+       taller than the phone, so the answer is below the fold of every picture taken of it. So
+       these press "Show the answer" the way a finger does, bring the answer up, and in the second
+       open the fold -- because the fold's summary is a 44px tap target and the opened working is
+       a table, a fraction and a paragraph at 320px, and both are things `ui.js` measures.
+
+       ONE ROW, NAMED, on purpose: June 2018 Higher 1, question 3 -- "No", then working that holds a
+       stacked fraction. Picked because it was a 207-character paragraph before the rewrite and the
+       pictures should show the change on a real answer, not on whichever sorts first. AFTER A
+       TICK, because the page is drawn by `goPage` and the card is not there to press until then. */
+    { name: 'an answer, its working folded',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+        setTimeout(() => {
+          const card = document.querySelector('#s-stuff .page.on .qcard');
+          const ans = card && card.querySelector('.qans');
+          if (!ans) return;
+          const btn = ans.querySelector('.qp-reveal');
+          if (btn && ans.classList.contains('is-shut')) btn.click();
+          ans.scrollIntoView({ block: 'start', inline: 'nearest' });
+        }, 150);
+      },
+      expect: () => {
+        const ans = document.querySelector('#s-stuff .page.on .qcard .qans');
+        const why = ans && ans.querySelector('details.qans-why');
+        return !!ans && !ans.classList.contains('is-shut') && /^No$/.test(ans.querySelector('.qans-body').textContent.trim())
+               && !!why && !why.open;
+      },
+      wants: 'the answer "No" shown, with its working shut under Why',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'an answer, its working opened',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+        setTimeout(() => {
+          const card = document.querySelector('#s-stuff .page.on .qcard');
+          const ans = card && card.querySelector('.qans');
+          if (!ans) return;
+          const btn = ans.querySelector('.qp-reveal');
+          if (btn && ans.classList.contains('is-shut')) btn.click();
+          const sum = ans.querySelector('details.qans-why > summary');
+          if (sum) sum.click();
+          ans.scrollIntoView({ block: 'start', inline: 'nearest' });
+        }, 150);
+      },
+      expect: () => {
+        const why = document.querySelector('#s-stuff .page.on .qcard .qans details.qans-why');
+        return !!why && why.open && !!why.querySelector('.qans-more .frac');
+      },
+      wants: 'the answer\'s working open under Why, its fraction stacked',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
@@ -1119,6 +1217,42 @@ const STATES = {
           && document.querySelectorAll('#s-settings .page.on .agree-list li').length >= 8;
       },
       wants: 'the agreement, ticked and locked, with its points' },
+
+    /* ---------- YOUR ROLES, WITH A TUTOR TICK WAITING — `rolesCard_` in me.js ---------------------
+       *"each account should have a widget in account settings which say what the roles are … like
+       multiselect."* The lab signs in as an admin, and an admin is never pending — so the state plays
+       a parent who has ticked Tutor and been told to wait: `role`, `roles` and `tutorPending` as the
+       sign-in reply sends them. That is the card's fullest drawing: two ticks of three, two-line
+       labels, and the waiting sentence under the tile — the one row that could wrap at 320 and the
+       three 44px targets that must not shrink with it. `leave` puts the admin back exactly. */
+    { name: 'your roles, a Tutor tick waiting',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_ROLES_WAS = { role: USER.role, roles: USER.roles, tutorPending: USER.tutorPending };
+        Object.assign(USER, { role: 'tutor', roles: ['tutor', 'parent'], tutorPending: true });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.roles-card'));
+        if (at < 0) throw new Error('no roles card on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        const was = window.STATE_ROLES_WAS || {}; delete window.STATE_ROLES_WAS;
+        USER.role = was.role; USER.roles = was.roles;
+        if (was.tutorPending === undefined) delete USER.tutorPending; else USER.tutorPending = was.tutorPending;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const c = document.querySelector('#s-settings .page.on .roles-card');
+        if (!c) return 0;
+        const on = r => { const b = c.querySelector(`[data-role-pick="${r}"]`); return b ? b.checked : null; };
+        return on('tutor') === true && on('client') === true && on('student') === false
+          && !c.querySelector('[data-role-pick="admin"]') && !c.querySelector('.role-admin')
+          && /waiting for @family/.test((c.querySelector('.roles-said') || {}).textContent || '')
+          && !!c.querySelector('.tile[data-do="roles-save"]') ? 1 : 0;
+      },
+      wants: 'three role ticks, Tutor and Client ticked, no Admin tick, the waiting line and a Save tile' },
 
     /* THE ADMIN'S CUT OF AN EXTRA CHILD: a box holding the current figure and a sentence saying it
        in money. The fixture carries no `boss_rate`, so this is the "none set" state, which is the
@@ -2668,6 +2802,109 @@ const STATES = {
          asked to be rid of. Six conversations are six pages. */
       expect: () => pageCount('dm') >= 6,
       wants: 'six conversations, each a page of its own' },
+
+    /* ---------- AND THE STATES THE CHAT POLISH WAS ABOUT ------------------------------------------
+       *"also refine the chat widgetts. looks fine but refine please."* Every fault that pass found
+       was in a state this file had never drawn: the composer with something in it, a refusal, and a
+       thread long enough to need all of the pane. Each is declared here so the widths it was fixed
+       at are measured at every run, not once by hand.
+
+       A LONG THREAD, AND THE COMPOSER STILL ON THE GLASS. The thread used to stop at 22rem; it now
+       takes the pane's own cap less what the head and the composer need, and the pane is `overflow:
+       hidden` — so a wrong sum would put the box you reply in under the bottom edge, where nothing
+       but a screenshot would see it. `expect` asks the geometry directly: the composer's foot is
+       inside the pane, and the thread is taller than the 22rem it used to be held to.
+
+       AND THE CARD IS NOT ZOOMED. A sum that comes out too tall does not clip the composer — it
+       is caught first by `paneReach_` in find.js, which draws a card taller than its pane SMALLER,
+       so the composer stays on the glass at 85% and every 44px target in it becomes 37px. Proved
+       by mutation: with the cap 6rem too generous the first version of this `expect` passed and the
+       only trace was a "known" card-drawn-smaller line. So it asks the card's own `zoom` as well. */
+    { name: 'a long thread',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        MESSAGES = Array.from({ length: 24 }, (_, i) => ({
+          id: 'L' + i, mine: i % 3 === 1, read: true, withId: 'P009', withName: 'Ada Tutor',
+          fromName: i % 3 === 1 ? 'You' : 'Ada Tutor', at: '2026-09-' + (10 + (i >> 3)) + ' 1' + (i % 10) + ':0' + (i % 6),
+          body: i % 5 === 0 ? 'A longer one, the length of a question about Tuesday and what to bring to it.' : 'Short.' }));
+        MSG_PENDING = [];
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
+        paint('dm');
+      },
+      expect: () => {
+        const form = document.querySelector('#s-dm .msg-form');
+        const body = document.querySelector('#s-dm .msg-body');
+        const pane = form && form.closest('.pane');
+        if (!form || !body || !pane) return false;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const zoomed = [].some.call(pane.children, k => k.style.zoom && k.style.zoom !== '1');
+        return !zoomed
+            && form.getBoundingClientRect().bottom <= pane.getBoundingClientRect().bottom + 0.5
+            && body.getBoundingClientRect().height > 22 * rem;
+      },
+      wants: 'a thread taller than 22rem, its composer wholly inside the pane, and the card not zoomed to fit' },
+
+    /* A REFUSAL AND A SEND IN FLIGHT, which are the two pending shapes `messagesHtml_` draws. The
+       refusal's two controls are the 44px targets this file exists to measure, and its sentence is
+       the server's own — the longest is the five-minute one, used here. */
+    { name: 'a refused send',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        MESSAGES = [{ id: 'f1', mine: false, read: true, withId: 'P009', withName: 'Ada Tutor',
+          fromName: 'Ada Tutor', at: '2026-09-16 09:12', body: 'Can you send the homework?' }];
+        MSG_PENDING = [
+          { tmp: 'tmpA', mine: true, read: true, state: 'failed', withId: 'P009', withName: 'Ada Tutor',
+            err: 'One message every five minutes — 3 to go.', fromName: 'Test Admin',
+            body: 'Here it is, sorry for the delay', atMs: Date.now() - 60e3, attachments: [], queue: [] },
+          { tmp: 'tmpB', mine: true, read: true, state: 'sending', withId: 'P009', withName: 'Ada Tutor',
+            fromName: 'Test Admin', body: 'And the second page', atMs: Date.now(), attachments: [], queue: [] }];
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
+        paint('dm');
+      },
+      expect: () => !!document.querySelector('#s-dm .msg.is-failed .msg-fail-why')
+                 && !!document.querySelector('#s-dm [data-do="msg-retry"]')
+                 && !!document.querySelector('#s-dm .msg.is-sending'),
+      wants: 'a refused bubble with its sentence, Retry and Remove, and one still sending',
+      leave: () => { MSG_PENDING = []; } },
+
+    /* THE COMPOSER IN USE: a paragraph typed and two files waiting. The row that wrapped `Send`
+       under the `+` at 320px did it with the box EMPTY; with a paragraph in it the box is at its
+       tallest, and the tray of chips is the one part of the form that only exists here. `leave`
+       empties both, because a queued file counts as typing (`dmTyping_`) and would hold every
+       repaint after this one. */
+    { name: 'a reply being written',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        MESSAGES = [{ id: 'c1', mine: false, read: true, withId: 'P009', withName: 'Ada Tutor',
+          fromName: 'Ada Tutor', at: '2026-09-16 09:12', body: 'Any questions before Tuesday?' }];
+        MSG_PENDING = [];
+        MSG_QUEUE['P009'] = [
+          { name: 'IMG_2041.jpg', type: 'image/png', size: 1000,
+            url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' },
+          { name: 'Worksheet answers, final version.pdf', type: 'application/pdf', size: 1000, url: '#' }];
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
+        paint('dm');
+        const b = document.querySelector('#s-dm .msg-text');
+        if (b) {
+          b.value = 'Yes — question 7, the one about the ratio of the two areas. I did not get how '
+                  + 'they set it up and I tried it three times.';
+          b.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      },
+      /* ONE ROW: the `+`, the box and `Send` share a top edge's worth of line — `Send` sits beside
+         the box rather than under the `+`, which is the wrap this state exists to catch. */
+      expect: () => {
+        const f = document.querySelector('#s-dm .msg-form');
+        const go = f && f.querySelector('.msg-go'), box = f && f.querySelector('.msg-text');
+        return !!(f && f.querySelectorAll('.msg-chip').length === 2 && go && box
+          && go.getBoundingClientRect().left >= box.getBoundingClientRect().right - 0.5);
+      },
+      wants: 'two chips waiting, a paragraph in the box and Send beside it rather than under it',
+      leave: () => {
+        delete MSG_QUEUE['P009'];
+        const b = document.querySelector('#s-dm .msg-text');
+        if (b) { b.value = ''; b.style.height = ''; }
+      } },
   ],
 };
 

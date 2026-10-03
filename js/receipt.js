@@ -580,7 +580,7 @@ on('book-send', el => {
   const joined = typeof joinedJob_ === 'function' ? joinedJob_() : null;
   if (joined && !isWaiting_()) {
     api({ action: 'move', jobId: String(joined.id || joined.jobId || ''),
-          role: 'client', name: USER.name, move: 'Request',
+          role: 'client', name: USER.name, personId: (USER && USER.personId) || '', move: 'Request',
           text: 'asked to join', requestId: 'join-' + (joined.id || '') + '-' + Date.now() })
       .then(d => {
         el.disabled = false;
@@ -842,7 +842,7 @@ on('job-answer', el => {
   if (!yes && !sure_(el, 'Turn it down?')) return;
   el.disabled = true;
   api({ action: 'move', jobId: el.dataset.id, role: 'client',
-        name: USER.name, adminName: USER.name,
+        name: USER.name, personId: (USER && USER.personId) || '', adminName: USER.name,
         move: yes ? 'Accept' : 'Decline',
         requestId: 'ans-' + el.dataset.id + '-' + Date.now() })
     .then(d => {
@@ -868,7 +868,9 @@ on('job-leave', el => {
   if (!sure_(el, paid ? 'Mark unpaid?' : 'Mark paid?')) return;
   el.disabled = true;
   api({ action: 'move', jobId: el.dataset.id, role: 'client',
-        name: USER.name, move: 'Withdraw',
+        /* THE ID AS WELL AS THE NAME — `move` now asks WHO is posting (a tutor seat needs a tutor),
+           and a display name is an editable cell; the gate fills it from the token either way. */
+        name: USER.name, personId: (USER && USER.personId) || '', move: 'Withdraw',
         requestId: 'wd-' + el.dataset.id + '-' + Date.now() })
     .then(d => {
       el.disabled = false;

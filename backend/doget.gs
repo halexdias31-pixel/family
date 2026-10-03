@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-03-a-ownerlist";
+const DOGET_VERSION = "2026-10-03-b-roles";
 
 
 function doGet(e) {
@@ -610,6 +610,10 @@ function doGet(e) {
          read-and-never-sent. Nothing here reads a tab for it. The site works before this line is
          deployed -- the phone fills the key either way -- so the deploy is for the check's sake. */
       projects: [],
+      /* AND `textbooks` IS THE EIGHTH, for the same sentence again: `data/textbooks.json` is
+         filled in on the phone, and this key is here so `check-payload.js` does not report it
+         read-and-never-sent. */
+      textbooks: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
       brand: {},
       /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. The second is the one
@@ -655,6 +659,10 @@ function doGet(e) {
              ARE secret live on rows this loop never touches. */
           personId: S(r.person_id),
           listed: listed,      // so the site can show which ones are hidden, and offer the switch
+          /* AND WHICH OF THE HIDDEN ONES ASKED — a Tutor box ticked in Settings (`LISTED_PENDING`).
+             Only an admin is ever sent an unlisted row, so only an admin reads this; the card says
+             "asked to tutor" where it would say "not listed", and the same Listed switch is the yes. */
+          pending: tutorPending_(r),
           title: name, handle: S(r.handle) || S(r.first_name),
           subtitle: S(r.city) || 'London',
           image: S(r.photo), mediaUrl: S(r.video),

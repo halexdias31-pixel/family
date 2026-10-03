@@ -336,6 +336,16 @@ const KINDS = {
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
+  /* ---------- THE @family. TEXTBOOK IS A RESOURCE, AND THE OWNER SAID WHERE ----------------------
+     ASKED FOR AS "the @family textbook should be bare bones for now and the textbooks will be in the
+     resources tag in the finder. first one can be gcse statistics." So it wears `Resources` beside
+     the boxers and the bouts, and the `Shelf` door below is what keeps one book from being lost
+     under 260 rows of boxing — see `shelf` in FACETS.
+
+     ONE RESULT, ONE PAGE PER CHAPTER, the way a project is one result and four pages: the card is
+     the contents, and `pageParts_` adds a page for each chapter after it. Starring the card keeps
+     the book; a chapter is a page of it, not a thing of its own. */
+  textbook: { group: 'Learning', label: 'Resources', card: x => textbookCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN ---------------------------
      `Tools & games` WAS ONE ANSWER THAT IMMEDIATELY ASKED ITSELF. Choosing it led to a second
@@ -884,7 +894,10 @@ const KIND_BUCKET = bucketTable_([
    folded into anything, because on this library they are most of it and folding the biggest answer
    into a bucket of one is a tap that changes nothing. */
 const SUBJECT_BUCKET = bucketTable_([
-  ['Maths',             ['Maths']],
+  /* `Statistics` IS GCSE STATISTICS — the @family. textbook's subject — and it sits in Maths
+     because a maths tutor is who teaches it and a maths student is who looks for it. Its own row
+     would be a Subject answer holding one book. */
+  ['Maths',             ['Maths', 'Statistics']],
   ['English',           ['English Language']],
   ['Science',           ['Biology', 'Chemistry', 'Physics', 'Combined Science']],
   ['Religious Studies', ['Religious Studies']],
@@ -1053,6 +1066,24 @@ const FACETS = [
   { field: 'kindLabel',
     bucketOf: KIND_BUCKET, bucketOrder: KIND_BUCKET.order, label: 'What kind',   always: true,
     of: x => x.kindLabel || kindOf_(x).label },
+  /* ---------- THE THIRD DOOR: WHICH SHELF OF THE RESOURCES ---------------------------------------
+     THE OWNER'S ROUTE IS "Learning → Resources → @family. textbooks → GCSE Statistics", and without
+     this question there is no third rung to stand on. `Resources` is 260 rows of boxing and one
+     book; every question the funnel asked there was a boxing question, and the book answered none
+     of them — so it was reachable by search and by nothing else.
+
+     `always`, LIKE THE TWO ABOVE, AND FOR THEIR REASON. One book against 260 boxers and bouts is a
+     0.4% split and `FACET_MIN_MINORITY` would refuse the question — correctly for a filter, wrongly
+     for a door. This takes somebody to a department, the way `What kind` does. The coverage rule still
+     applies: nothing outside Resources carries a shelf, so it is never asked of the questions, and
+     with one shelf left it is not asked at all.
+
+     EVERY RESOURCE NAMES ITS SHELF, which is why the boxers and the bouts say `Boxing` in their
+     mappers. A shelf only some of the list had would fail the coverage rule and never be asked. */
+  { field: 'shelf',     label: 'Shelf',       always: true, of: x => x.shelf || '' },
+  /* AND WHICH BOOK, once the shelf is chosen. With one book this has one answer and is not asked,
+     which is right — the list IS the book. The second book makes it a question with no deploy. */
+  { field: 'book',      label: 'Book',        of: x => x.kind === 'textbook' ? x.name : '' },
   /* Only venues have one, so it is only ever asked once you are looking at venues — which is the
      coverage rule doing the work that a per-kind filter list would otherwise have to.
      VENUES ARE OFF FIND, so nothing in the funnel answers it and its `facets.json` row is OFF. The
@@ -3720,6 +3751,98 @@ function projectPart_(x, part) {
    of its own with a guessed recipient. */
 on('proj-share', () => go('dm'));
 
+/* ==================================================================================================
+   THE @family. TEXTBOOK — A CONTENTS CARD, THEN ONE PAGE PER CHAPTER.
+
+   ASKED FOR AS "the @family textbook should be bare bones for now and the textbooks will be in the
+   resources tag in the finder. first one can be gcse statistics." BARE BONES IS THE SPEC, not a
+   first draft of something longer: each chapter is its key words with one line each, its formulas,
+   and a handful of worked lines — a revision sheet you can flick through, not prose pages. So
+   there is nothing on these pages a student has to scroll past to reach the formula.
+
+   DRAWN AS THE APP DRAWS A LONG THING, which is the project's way one kind along: the card you
+   choose from, then the parts as pages after it (`pageParts_`), in `.prac`'s own rules and the
+   guide's `.gd-sec` sections — so a book and a project side by side read as one family and
+   style.css gained only what a book has and they do not: the Higher mark and the formula line.
+
+   THE FORMULAS ARE TYPESET BY `typeset_`, the library's own fraction and power drawing, so `Σfx / Σf`
+   is drawn stacked exactly as a past paper's fraction is — "it shouldnt be 4/5 it should be 4 over
+   the five". The file stores a plain `/` and `^`, which a person can type into a cell; `tbMath_`
+   turns the slash into the `&frasl;` `typeset_` reads AFTER escaping, so nothing in a cell can be
+   markup. `check-textbooks.js` runs the real `typeset_` over every line and fails a slash or a caret
+   that came out unset.
+
+   HIGHER TIER ONLY IS MARKED, NEVER HIDDEN. A Foundation student revising should see that standard
+   deviation exists and that it is not theirs to learn; an `H` beside it says both. A chapter that
+   is Higher all through carries one `H` on its heading rather than one on every line.
+================================================================================================== */
+const tbMath_ = s => tbSub_(typeset_(esc(s).replace(/\//g, '&frasl;')));
+/* A SUBSCRIPT IS DRAWN AS ONE, NOT AS THE FONT'S OWN GLYPH. The cell holds `Q₁` and `rₛ`, which a
+   person can type and read in a spreadsheet — and the screen's mono face draws `₉₀` as two specks,
+   measured at 320px, where `P₉₀` read as `P∘∘`. So a run of Unicode subscript characters becomes a
+   `<sub>` of the ordinary digits at the page's own size. AFTER `typeset_`, because `typeset_` reads
+   a `<sub>` beside a slash as half of a stored fraction, and these characters never appear inside a
+   tag, so the markup it wrote cannot be touched. */
+const TB_SUB = '₀₁₂₃₄₅₆₇₈₉ₐₑₒₓₙₛₜ', TB_SUB_AS = '0123456789aeoxnst';
+const tbSub_ = html => String(html).replace(/[₀-₉ₐₑₒₓₙₛₜ]+/g,
+  run => '<sub>' + [...run].map(c => TB_SUB_AS[TB_SUB.indexOf(c)]).join('') + '</sub>');
+/* THE MARK ITSELF. A letter rather than a colour, because the tier is a fact somebody has to read
+   in a photocopy too; `title` says it in full for anybody who does not know the convention. */
+const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</span>' : '';
+
+function textbookCard_(x) {
+  const b = x.row;
+  const higher = (b.chapters || []).some(c => c.higher || c.words.concat(c.formulas, c.points).some(i => i.higher));
+  return `<div class="card prac tb">
+    <div class="prac-head">
+      <h3>${esc(x.name)}</h3>
+      <span class="prac-flags"><span class="prac-flag is-type">Textbook</span></span>
+    </div>
+    <p class="sub">${esc(['@family.', b.board, b.spec].filter(Boolean).join(' · '))}</p>
+    ${b.summary ? `<p class="prac-aim">${esc(b.summary)}</p>` : ''}
+    <p class="prac-strip">${esc((b.chapters || []).length + ' chapters')}${higher
+      ? ` · ${tbHigher_(true)} = Higher tier only` : ''}</p>
+    <section class="gd-sec tb-toc"><h4>Contents</h4>
+      <ol>${(b.chapters || []).map(c => `<li>${esc(c.title)}${tbHigher_(c.higher)}</li>`).join('')}</ol>
+    </section>
+  </div>`;
+}
+
+/* ONE CHAPTER. `part` is `ch` and the chapter's number — `ch7` — because it also lands in a class
+   name, `is-ch7`, and a colon there would need escaping in every selector that reads it. */
+function textbookPart_(x, part) {
+  const b = x.row, n = Number(String(part || '').slice(2));
+  const c = (b.chapters || []).find(ch => ch.n === n);
+  if (!c) return '';
+  const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
+  return `<div class="card prac prac-part tb is-${esc(part)}">
+    <p class="prac-of">${esc(x.name)} · chapter ${c.n}</p>
+    <h3>${esc(c.title)}${tbHigher_(c.higher)}</h3>
+    ${c.words.length ? `<section class="gd-sec tb-words"><h4>Key words</h4><ul>${
+      c.words.map(w => line(w, `<b>${esc(w.name)}</b> — ${tbSub_(esc(w.text))}`)).join('')}</ul></section>` : ''}
+    ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: a stacked fraction is two lines tall
+         and an `H` trailing it sat alone on a third, measured at 320px. */''}
+    ${c.formulas.length ? `<section class="gd-sec tb-math"><h4>Formulas</h4><ul>${
+      c.formulas.map(f => `<li><span class="tb-fn">${esc(f.name)}${tbHigher_(f.higher)}</span><span class="tb-fm">${
+        tbMath_(f.text)}</span></li>`).join('')}</ul></section>` : ''}
+    ${c.points.length ? `<section class="gd-sec tb-points"><h4>Worked</h4><ul>${
+      c.points.map(p => line(p, tbMath_(p.text))).join('')}</ul></section>` : ''}
+    ${c.topics ? `<p class="prac-note"><b>Topics</b> ${esc(c.topics)}</p>` : ''}
+  </div>`;
+}
+
+/* `textbookText_` — `projectText_`'s move for a book: `frequency density` and `stratified` are what
+   somebody types, and they are only ever inside a chapter. The formulas go in as typed, so `IQR`
+   finds the chapter that defines it. */
+function textbookText_(b) {
+  const parts = [b.summary, b.board, b.spec];
+  (b.chapters || []).forEach(c => {
+    parts.push(c.title);
+    c.words.concat(c.formulas, c.points).forEach(i => parts.push(i.name, i.text));
+  });
+  return plainText_(parts.filter(Boolean).join(' '));
+}
+
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS ------------------------
    The card, then a page per section that has something in it. A REFUSED experiment is its card
    alone: it carries no kit and no method by rule (`check-practicals.js` refuses one that does), and
@@ -3736,6 +3859,11 @@ function pageParts_(x) {
     if (x.row.steps && x.row.steps.length) out.push('steps');
     out.push('share');
     return out;
+  }
+  /* A TEXTBOOK IS ITS CONTENTS CARD AND A PAGE PER CHAPTER, in the chapters' own order — the
+     mapper sorted them by number, so this is the book read front to back. */
+  if (x && x.kind === 'textbook' && x.row) {
+    return [null].concat((x.row.chapters || []).map(c => 'ch' + c.n));
   }
   if (!x || x.kind !== 'practical' || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
@@ -3760,6 +3888,7 @@ function cardPages_(x, credits) {
 }
 function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
+  if (x && x.kind === 'textbook') return textbookPart_(x, part);
   return (x && x.kind === 'question' && part === 'fig') ? questionFigCard_(x) : practicalPart_(x, part);
 }
 
@@ -4560,6 +4689,104 @@ function typeset_(html) {
    tutor's own default -- and nothing about this card has changed. A student named, and the answer
    waits behind one tap that says what is behind it, and opens itself the moment they get it right.
    Neither reader is asked to put up with the other's screen. */
+/* ---------- THE RESULT, AND THE REASON FOR IT, AS TWO THINGS ---------------------------------------
+   ASKED FOR AS "make answers breaifer", and when asked to choose between shorter written answers
+   and hiding the working behind a tap: "i want shorter answers." Measured before this was written:
+   4,309 answers, median 88 characters, 1,019 over 200 and the longest 1,677. A card whose answer is
+   a page of prose has not told you the answer; it has given you something to read to find it.
+
+   THE LIBRARY ALREADY SAID WHERE THE ANSWER STOPS. 3,107 answers are written as a short result, a
+   SPACED em dash, then the explanation -- the result's median length is six characters. So the
+   split is the library's own convention read back, not a summary made up here: everything before
+   the first spaced dash is the answer, and everything after it is why. The answers that had no dash
+   and ran long were rewritten into that shape (tools/answer-brief.py), so ONE rule covers them all.
+
+   ONLY A SPACED DASH. An unspaced one is a range (`8–9`) or part of a word, and an en dash between
+   spaces is the same punctuation typed on a different keyboard, so both count.
+
+   NOT INSIDE A TABLE OR A LIST. A dash in a cell is that cell's business; splitting there would
+   hand the result half a table. Inside inline tags (or a <p>) it is still the answer's own dash,
+   and the tags open at that point are closed on the head and reopened on the why, so neither half
+   is broken markup -- `<b>18 — B1</b>` would otherwise leave a bold open across the fold.
+
+   THE MARK-SCHEME CODES COME OFF WHAT IS SHOWN. B1, M1, A1, P1, C1, cao, oe, ft, isw, awrt are how
+   an examiner apportions marks, and "18 000 B1 cao" reads to a child as part of the answer. They go
+   from the head entirely. In the why they go only where they stand alone ("B1 cao.", "M1 A1,");
+   "M1 for 360 − 220 − 90" keeps its code, because without it the sentence is "for 360 − 220 − 90"
+   and says nothing. Every one of the 122 rows that carry codes was read with this applied.
+
+   ONE FUNCTION, CUT OUT BY NAME by `check-answers.js`, so the limit that check holds is measured
+   on exactly what this draws -- not on a second opinion of where an answer ends. Which is also why
+   everything it needs is declared inside it. */
+function answerParts_(raw) {
+  const s = String(raw || '');
+  const DASH = /\s+(?:—|–|&mdash;|&ndash;|&#8212;|&#8211;)\s+/g;
+  const VOID = /^(?:br|img|hr|wbr|input)$/i;
+  const BLOCK = /^(?:table|thead|tbody|tfoot|tr|td|th|ul|ol|li|dl|dt|dd|div|figure)$/i;
+  const CODE = '(?:[BMAPC][1-5]|SC[1-5]?|cao|oe|ft|isw|awrt)';
+  const RUN = new RegExp('(?:<b>)?\\(?\\b' + CODE + '\\b\\)?(?:</b>)?(?:[\\s,]+(?:<b>)?\\(?\\b' + CODE
+    + '\\b\\)?(?:</b>)?)*', 'g');
+  const seen = t => String(t).replace(/<[^>]*>/g, '').replace(/&nbsp;|&#160;/g, ' ').trim();
+  let head = s, why = '', m;
+  while ((m = DASH.exec(s))) {
+    const before = s.slice(0, m.index);
+    const open = [];
+    const T = /<(\/?)([a-z][a-z0-9]*)\b[^>]*>/gi;
+    let t;
+    while ((t = T.exec(before))) {
+      const name = t[2].toLowerCase();
+      if (VOID.test(name)) continue;
+      if (t[1]) {
+        const k = open.map(o => o[0]).lastIndexOf(name);
+        if (k >= 0) open.splice(k);
+      } else open.push([name, t[0]]);
+    }
+    if (open.some(o => BLOCK.test(o[0]))) continue;
+    if (!seen(before)) continue;
+    head = before + open.slice().reverse().map(o => '</' + o[0] + '>').join('');
+    why = open.map(o => o[1]).join('') + s.slice(m.index + m[0].length);
+    break;
+  }
+  /* THE HEAD: every code, wherever it stands, and the commas it leaves behind. The A-level
+     schemes count marks in brackets instead -- "(1)", "(1 mark)", "[1]", a tick -- and those go
+     too, but only after a space: `1.1(1) × 10³` is a significant figure in brackets, not a mark. */
+  head = head.replace(/\s+(?:\(\d(?: marks?)?\)|\[\d\])|\s*✓/g, '');
+  /* AN ENTITY'S OWN SEMICOLON IS NOT PUNCTUATION. The first version of `tidy` took the `;` off
+     `50&deg;` because it ended the head, and drew "50&deg". Entities are parked while it works. */
+  const tidy = h => h.replace(/&(#?\w+);/g, '&$1\u0001').replace(/<(b|i|em|strong)>\s*<\/\1>/g, '')
+    .replace(/[ \t]+([,;.])/g, '$1').replace(/([,;])(?:\s*[,;])+/g, '$1').replace(/,(\s*[.;])/g, '$1')
+    .replace(/[\s,;:]+((?:<\/[a-z]+>)*)\s*$/i, '$1').replace(/^\s*[,;]\s*/, '').trim()
+    .replace(/\u0001/g, ';');
+  const bare = tidy(head.replace(RUN, ''));
+  /* AN ANSWER THAT IS NOTHING BUT CODES ("B1 — and the scheme accepts 8 or −8") would be drawn as
+     an empty line with the meaning behind the fold, which is worse than leaving the codes in. */
+  if (seen(bare)) head = bare;
+  /* THE WHY: only the codes that stand alone. A code is KEPT where the sentence needs it: "M1 for
+     …", "C1, following through …", "earns the B1 on its own", "and “oe”" -- strip any of those and
+     what is left is a sentence about nothing. A removed run leaves a mark (\u0002) so the clean-up
+     below touches only the places something was taken from, and never a `.31` that happens to
+     start a line. */
+  const KEEP_AFTER = /^[\s,]*(?:for\b|dependent\b|following\b|follows\b|is\b|mark|on\b|&rdquo;|”)/i;
+  const KEEP_BEFORE = /(?:\b(?:the|a|an|its|that|this|of)\s+(?:<b>)?|&ldquo;|“)$/i;
+  why = why.replace(RUN, (run, at, all) =>
+    (KEEP_AFTER.test(all.slice(at + run.length, at + run.length + 16))
+      || KEEP_BEFORE.test(all.slice(Math.max(0, at - 12), at))) ? run : '\u0002');
+  const cap = (a, c) => a + (c || '').toUpperCase();
+  why = why
+    /* "— B1, cao, and nothing else scores" -- a code opening the why, or a sentence. FIRST, or
+       "= 3. B1 cao. The" is read as a code closing a clause and comes out "= 3.. The". */
+    .replace(/^(\s*(?:<[^>]+>)*)\u0002[\s,;:.]*(?:and\s+)?((?:[a-z](?=[a-z]))?)/, (w, a, c) => cap(a, c))
+    .replace(/([.!?]\s+(?:<[^>]+>)*)\u0002[\s,;:.]*(?:and\s+)?((?:[a-z](?=[a-z]))?)/g, (w, a, c) => cap(a, c))
+    /* "36, cao." -- a code closing a clause takes its comma with it. */
+    .replace(/[\s,;]*\u0002[\s,;]*(?=[.!?]|$)/g, '')
+    .replace(/\s*\u0002[\s,;]*/g, ' ');
+  why = tidy(why);
+  /* A WHY THAT STARTS MID-SENTENCE starts with a capital in the fold, which is a box of its own.
+     A WORD, not a letter: "<i>x</i> = 3 is a vertical line" must not become "X = 3". */
+  why = why.replace(/^((?:\s*<[a-z][^>]*>)*\s*)([a-z])(?=[a-z])/, (w, tags, c) => tags + c.toUpperCase());
+  return { head: head, why: seen(why) ? why : '' };
+}
+
 function answerBlock_(x) {
   if (!x || !String(x.answer || '').trim()) return '';
   /* ---------- IT IS THE ROLE THAT DECIDES, AND IT USED TO BE "IS ANYBODY NAMED" ----------------
@@ -4576,13 +4803,33 @@ function answerBlock_(x) {
   /* WHAT KIND OF ANSWER IT IS, beside the word, when the sheet says. A one-mark recall and a
      25-mark essay want different things of you before you open it. */
   const kind = String(x.answerType || '').trim();
+  /* ---------- THE RESULT SHOWN, THE WORKING FOLDED ---------------------------------------------
+     THE `<details>` IS BACK, AND NOT WHERE IT WAS. It used to sit between the question and the
+     whole mark scheme, and the argument above against it still holds: the tutor reads FROM this
+     card, and the result is what they read out. So the result is never folded -- only the working
+     is, under a word that says what it is. A tutor who wants the method taps once; a child who
+     wanted the answer is no longer handed a paragraph to dig it out of.
+
+     ONE FOLD FOR THE WORKING AND THE EXAMINER'S NOTE TOGETHER, because both are "why", and two
+     folds under one answer is the same tax as one long answer paid in taps instead of lines. The
+     note stays escaped and set apart inside it, for the reason `.qans-note` gives.
+
+     SHUT BY DEFAULT, AND NOTHING OPENS IT BUT A FINGER -- not a right answer either. The owner
+     chose "shorter answers" over "hide the working behind a tap", and a fold that springs open on
+     its own is a long answer with a delay. The browser keeps the open state; no flag, no key. */
+  const p = answerParts_(x.answer);
+  const note = x.examinerNote ? `<p class="qans-note">${esc(x.examinerNote)}</p>` : '';
+  const why = (p.why || note)
+    ? `<details class="qans-why"><summary>Why</summary>${
+        p.why ? `<div class="qans-more">${typeset_(p.why)}</div>` : ''}${note}</details>`
+    : '';
   return `<div class="qans${hide ? ' is-shut' : ''}">
     ${hide ? `<button type="button" class="qp-reveal" data-do="qp-reveal">Show the answer</button>` : ''}
     <div class="qans-head">
       <span>Answer</span>${kind ? `<em>${esc(kind)}</em>` : ''}
     </div>
-    <div class="qans-body">${typeset_(x.answer)}</div>
-    ${x.examinerNote ? `<p class="qans-note">${esc(x.examinerNote)}</p>` : ''}
+    <div class="qans-body">${typeset_(p.head)}</div>
+    ${why}
   </div>`;
 }
 
@@ -6729,7 +6976,7 @@ function stuffItemsRaw_() {
          boxing — that is why they share a label — but they are not interchangeable, and a funnel
          that goes from Boxing straight to twenty weight classes has skipped the question anybody
          actually has first. */
-      boxKind: 'Boxers',
+      boxKind: 'Boxers', shelf: 'Boxing',
       subject: 'Boxing', division: divisionOf_(b.bestDivision), row: b,
       /* ---------- `year: b.activeTo` WAS HERE, AND IT WAS HIS LAST YEAR DRAWN AS "Year" ----------
          FOUND BY THE AUDIT THAT ADDED `Decade` and only visible once that question existed: the
@@ -6753,7 +7000,7 @@ function stuffItemsRaw_() {
       key: 'ft:' + (f.id || f.a + f.b + f.date),
       sub: [(f.date || '').slice(0, 4), f.division, f.venue].filter(Boolean).join(' · '),
       image: '',
-      boxKind: 'Fights',
+      boxKind: 'Fights', shelf: 'Boxing',
       subject: 'Boxing', division: divisionOf_(f.division), row: f,
       year: (f.date || '').slice(0, 4),
     })),
@@ -6811,6 +7058,23 @@ function stuffItemsRaw_() {
       text: projectText_(p) + ' ' + topicAtoms_(p.topics).join(' '),
       row: p,
     })),
+
+    /* ---------- THE @family. TEXTBOOKS ------------------------------------------------------
+       ONE ITEM PER BOOK, and the chapters are its pages — `pageParts_`. The topics of every
+       chapter are the book's topics, so the Topic join and the search both reach it from
+       `Histograms` the way they reach a practical. Every word of every chapter is in the
+       haystack: somebody types `frequency density`, not `GCSE Statistics`. */
+    ...(DATA.textbooks || []).map(b => {
+      const topics = (b.chapters || []).map(c => c.topics).filter(Boolean).join(', ');
+      return {
+        kind: 'textbook', name: b.name, key: 'tb:' + b.id,
+        sub: [b.board, b.spec, (b.chapters || []).length + ' chapters'].filter(Boolean).join(' · '),
+        image: '', shelf: '@family. textbooks',
+        subject: b.subject, level: b.level, topics: topics,
+        text: textbookText_(b) + ' ' + topicAtoms_(topics).join(' '),
+        row: b,
+      };
+    }),
 
     /* ---------- THE QUIZZES ----------------------------------------------------------------
        THE JOIN IS `topics` AGAIN, and that sentence is the whole reason this is in the funnel

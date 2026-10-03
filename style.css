@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-03-videos-share";
+  --css-version: "2026-10-03-answers-chat";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1032,6 +1032,18 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .check:active .box { border-color: var(--gold); background: rgb(240 169 60 / .12); }
 .check input:checked + .box { background: var(--gold); border-color: var(--gold); box-shadow: none; }
 .check input:checked + .box::after { color: #1a1409; }
+
+/* ---------- YOUR ROLES: A TICK WITH ITS MEANING UNDER THE WORD ---------------------------------------
+   `rolesCard_` in me.js. The `.check` row is unchanged — same box, same 44px floor — and only the
+   words beside it stack: the role, then what it means here in the card's faint voice, because
+   "Client" alone is this business's word and not the reader's. `min-width: 0` so a long note wraps
+   inside the card at 320 rather than pushing the row wider than it. The box sits at the top of a
+   two-line label, level with the role's own word, rather than floating in the middle of the pair. */
+.roles-card .role-pick { align-items: flex-start; }
+.roles-card .role-pick .box { margin-top: .1rem; }
+.role-pick-say { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.role-pick-say .faint { font-size: .85rem; line-height: 1.35; }
+.roles-card .role-admin, .roles-card .roles-said { margin: .6rem 0 0; }
 
 /* ---------- SMALL THINGS ------------------------------------------------------------------------ */
 .note  { color: var(--dim); font-size: .82rem; }
@@ -2917,6 +2929,21 @@ button.text-drop { color: var(--bad); }
 .msg.run-end .msg-bub { border-bottom-left-radius: .35rem; }
 .msg.mine.run-end .msg-bub { border-bottom-left-radius: 1.05rem;
                              border-bottom-right-radius: .35rem; }
+/* ---------- AND A RUN IS ONE SHAPE, NOT FOUR PEBBLES ------------------------------------------------
+   THE RUNS WERE WORKED OUT AND ONLY HALF DRAWN. `messagesHtml_` has always known which bubble opens
+   a turn and which closes it, and the stylesheet used that for the tail alone — so three of yours
+   in a row were three fully round pills hugging at 2px, which reads as three things touching rather
+   than one turn. Every chat anybody has used tightens the corners where two bubbles of one turn
+   meet, on the speaker's side only, so the run reads as a column with a straight edge and the far
+   side stays soft. Measured on the seeded thread before this: a run of three, nine round corners
+   on the side where they join.
+
+   THE SAME .35rem AS THE TAIL, because a join and a tail are the same idea — "this continues" —
+   and two different small radii side by side would read as a mistake. */
+.msg:not(.run-top):not(.mine) .msg-bub { border-top-left-radius: .35rem; }
+.msg:not(.run-end):not(.mine) .msg-bub { border-bottom-left-radius: .35rem; }
+.msg.mine:not(.run-top) .msg-bub { border-top-right-radius: .35rem; }
+.msg.mine:not(.run-end) .msg-bub { border-bottom-right-radius: .35rem; }
 /* The TEXT of a message. Renamed from `.msg-body`, which the messages widget now uses for its own
    container — two different things under one name, one of them inside the other, is a rule that
    applies to both and was written for neither. */
@@ -2950,17 +2977,41 @@ button.text-drop { color: var(--bad); }
 .msg-form { display: flex; align-items: flex-end; gap: .4rem; flex-wrap: wrap;
             margin: .5rem 0 0; }
 .msg-text {
-  flex: 1 1 8rem; min-width: 0;
-  min-height: 44px; max-height: 40dvh;
+  /* `1 1 0`, NOT `1 1 8rem`. A wrapping row breaks on the BASIS, not on what is left over — and at
+     320px the three bases came to 220px in a 218px row, so `Send` fell onto a line of its own under
+     the `+`, which is how every message on the smallest phone was being written. With a zero basis
+     the box takes whatever the two buttons leave and the row can never wrap for its sake. */
+  flex: 1 1 0; min-width: 0;
+  min-height: 44px; max-height: 30dvh;
   field-sizing: content;
-  padding: .5rem .7rem;
-  background: var(--sunk); border: 1px solid var(--line); border-radius: 1.05rem;
+  /* ONE LINE CENTRED IN 44px. It was `.5rem` top and bottom, which put the first line 8px down a
+     44px box and left 18px under it — the text sat high beside two buttons centred on the same
+     height. In px because the 44 it is centred in is px: (44 − 2 border − ~18 line) / 2. */
+  padding: 11px .85rem;
+  /* HALF THE 44px FLOOR, so an empty box is a pill and a box of six lines is a rounded slab with the
+     same corners — and the same shape as the two buttons either side of it. */
+  background: var(--sunk); border: 1px solid var(--line); border-radius: 22px;
   color: var(--ink); font: inherit; font-size: .88rem; line-height: 1.4;
   resize: none;
 }
 .msg-text:focus { outline: 0; border-color: var(--gold); }
-.msg-text::placeholder { color: var(--faint); opacity: 1; }
-.msg-form .btn.msg-go { width: auto; flex: 0 0 auto; min-height: 44px; padding: 0 1rem; }
+/* THE HINT IS ONE LINE. `field-sizing: content` sizes the box to its placeholder as well as to what
+   is typed, so "Message Ada Tutor…" wrapped at 390px and every EMPTY composer was two lines tall —
+   the one state a box should be at its smallest in. The hint is "Message…" now (see `msgForm_`);
+   `nowrap` is the guard for a translation or a large text setting, and Chromium does not honour
+   an ellipsis on a textarea's placeholder, so none is asked for. */
+.msg-text::placeholder { color: var(--faint); opacity: 1; white-space: nowrap; }
+/* ---------- THREE SHAPES BECAME ONE ---------------------------------------------------------------
+   A square `+`, a pill of a box and a square gold slab, side by side on one 44px line: three
+   shapes for one control, which is most of why the composer read as assembled rather than designed.
+   The box was already round, so the two buttons follow it — a 44px circle for the attachment and a
+   pill for `Send`. Still `.btn`, and still buttons rather than tiles: the composer is a FORM, and a
+   form's controls are buttons (CLAUDE.md, "A THING has tiles; a FORM has buttons").
+
+   44px IN PX, which is this file's rule, and it is also the height of the one-line box, so the
+   three bottoms and the three middles line up while the box is one line tall. */
+.msg-form .btn.msg-go { width: auto; flex: 0 0 auto; min-height: 44px; height: 44px;
+                        padding: 0 .85rem; border-radius: 22px; }
 /* THE NOTE AND THE REFUSAL ARE THE SAME ELEMENT — see `msgForm_`. It takes the whole line under the
    box, and it is not drawn at all when there is nothing to say: an empty paragraph under every
    conversation is a margin nobody asked for. */
@@ -2983,34 +3034,88 @@ button.text-drop { color: var(--bad); }
 /* A PHOTOGRAPH IN THE DISC fills it and loses the gold ring's letter; see `dmFace_`. */
 .dm-av.has-pic { overflow: hidden; padding: 0; }
 .dm-av.has-pic img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.dm-new { margin-left: .35rem; font-size: .66rem; font-weight: 400; color: var(--gold); }
+/* "2 new" AS A BADGE, gold on black like every other count this app wears — it was gold text at
+   the size of a timestamp beside a heading, which read as a footnote to the name rather than as the
+   reason to look. Vertically centred on the heading rather than sat on its baseline. */
+.dm-new { display: inline-block; margin-left: .4rem; padding: .12rem .45rem; border-radius: 999px;
+          background: var(--gold); color: #000; vertical-align: .15em;
+          font-size: .62rem; font-weight: 700; line-height: 1.2; letter-spacing: .02em; }
 .msg.is-sending .msg-bub { opacity: .6; }
-.msg.is-failed .msg-bub { border-color: var(--bad); }
-.msg-fail { color: var(--bad); display: flex; flex-wrap: wrap; align-items: center; gap: 0 .3rem;
-            justify-content: flex-end; }
-/* 44px in px — a tap target, the one measurement here that must not scale. */
-.msg-act { min-height: 44px; padding: 0 .5rem; background: none; border: 0;
-           color: var(--gold); font: inherit; text-decoration: underline; cursor: pointer; }
+/* `.mine.is-failed` AS WELL, because a refusal is only ever on your side and `.msg.mine .msg-bub`
+   sets the gold border at the same (0,3,0) — so which won was decided by which rule came later in
+   this file, which `check/cascade.js` names the first time a state draws a refused bubble. Won by
+   specificity now, not by position. */
+.msg.is-failed .msg-bub, .msg.mine.is-failed .msg-bub { border-color: var(--bad); }
+/* ---------- A REFUSAL SITS UNDER THE BUBBLE IT REFUSED ---------------------------------------------
+   IT RAN THE FULL WIDTH OF THE CARD, left-aligned, under a bubble on the right — so the server's
+   sentence started under the OTHER person's side, and the two controls wrapped onto a line of
+   their own 30px further down. Held to the bubble's own 78% and set on its side, the sentence
+   right-aligned and the two controls straight under it. */
+.msg-fail { color: var(--bad); display: flex; flex-wrap: wrap; align-items: center;
+            justify-content: flex-end; gap: 0 .2rem; max-width: 78%; text-align: right;
+            line-height: 1.35; }
+.msg-fail-why { flex: 1 0 100%; }
+/* 44px in px — a tap target, the one measurement here that must not scale. NO UNDERLINE: two
+   underlined words straight after an underlined-looking red sentence read as more of the sentence.
+   Retry is the gold word and Remove the quiet one, which is the order somebody is likely to want
+   them in. */
+.msg-act { min-height: 44px; min-width: 44px; padding: 0 .55rem; background: none; border: 0;
+           color: var(--gold); font: inherit; font-weight: 600; cursor: pointer; }
+.msg-act + .msg-act { color: var(--dim); font-weight: 400; }
+/* The 44px is the finger's, not the eye's: pulled up into the half-line under the sentence so the
+   two words read as belonging to it rather than as a row of their own 15px further down. */
+.msg-fail .msg-act { margin-block: -8px -6px; }
 
 /* ---------- WHAT WAS SENT WITH IT ------------------------------------------------------------------
    A picture or clip sits inside the bubble at the bubble's own width; a file is a chip that opens
    it. A bubble holding only a picture loses its padding, so the photograph IS the bubble. */
 .msg-att { display: grid; grid-template-columns: minmax(0, 16rem); gap: .3rem; margin: .1rem 0 .3rem; }
+/* A BUBBLE THAT IS ONLY A PICTURE IS THE PICTURE. It kept `.25rem` of padding and its fill, so on
+   your side a photograph sat in a thick gold mount — a frame round the one thing in a chat that
+   needs none, and a different object from the same photograph on their side, which had a dark one.
+   No fill, no outline, no padding: the corners are the bubble's, tail included, and the bubble
+   clips the picture to them rather than the picture carrying a second, rounder set of its own. A file or a clip with no words keeps its plate — those are chips, not
+   pictures, and a chip loose on the card would have no side to be on. */
 .msg-bub.is-bare { padding: .25rem; }
 .msg-bub.is-bare .msg-att { margin: 0; }
+.msg-bub.is-bare:has(> .msg-att > .msg-pic:only-child) {
+  padding: 0; background: none; border-color: transparent; overflow: hidden;
+}
+.msg-bub.is-bare:has(> .msg-att > .msg-pic:only-child) .msg-pic,
+.msg-bub.is-bare:has(> .msg-att > .msg-pic:only-child) .msg-pic img { border-radius: 0; }
 /* 16rem wide whatever the picture's own size — a bubble shrinks to its content, so a small image
    would otherwise make a bubble the width of a thumbnail. The track above caps it. */
 .msg-pic, .msg-vid { display: block; width: 16rem; max-width: 100%; min-width: 0; border-radius: .8rem; }
 .msg-pic img { display: block; width: 100%; border-radius: .8rem; }
 .msg-pic img { height: auto; max-height: 20rem; object-fit: cover; background: var(--sunk); }
 .msg-vid { max-height: 20rem; background: #000; }
-.msg-file { display: flex; align-items: center; gap: .5rem; min-height: 44px; min-width: 0;
-            padding: .3rem .6rem; border-radius: .7rem;
+/* A CLIP THAT WOULD NOT PLAY becomes a link (`postVidFail_` in posts.js) and kept `.msg-vid` — so it
+   was a 16rem black slab with an underlined gold line at its top edge and nothing under it. Drawn as
+   the file chip it now is: a plate, ink, no rule. */
+.msg-body a.msg-vid { display: flex; align-items: center; min-height: 44px; max-height: none;
+  padding: .35rem .75rem; background: var(--sunk); border: 1px solid var(--line);
+  border-radius: .7rem; color: var(--ink); text-decoration: none; font-size: .8rem; }
+/* ---------- A FILE IS A CHIP, NOT A LINK IN A BOX ------------------------------------------------
+   `.msg-body a` MAKES EVERY LINK IN A THREAD GOLD AND UNDERLINED, which is right for a link somebody
+   typed into a sentence and was wrong here: the whole chip is the link, so its name came out as
+   three lines of underlined gold at 320px — the loudest thing in the conversation, for a mark
+   scheme. Ink and no rule, the extension as a small plate of its own, and the name held to two
+   lines; the full name is on the file it opens. (0,2,1) to beat `.msg-body a` at (0,1,1). */
+.msg-body a.msg-file, .msg-file { display: flex; align-items: center; gap: .55rem; min-height: 44px;
+            min-width: 0; padding: .35rem .65rem .35rem .4rem; border-radius: .7rem;
             background: var(--sunk); border: 1px solid var(--line); color: var(--ink);
-            text-decoration: underline; font-size: .8rem; }
-.msg-file span { min-width: 0; overflow-wrap: anywhere; }
+            text-decoration: none; font-size: .8rem; line-height: 1.3; }
+.msg-file span { min-width: 0; overflow-wrap: anywhere;
+                 display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+                 line-clamp: 2; overflow: hidden; }
 .msg-file b, .msg-chip b { flex: 0 0 auto; font-size: .62rem; letter-spacing: .04em;
             color: var(--gold); }
+.msg-file b { display: grid; place-items: center; min-width: 2.3rem; height: 2.3rem;
+              padding: 0 .25rem; border-radius: .45rem; border: 1px solid var(--line); }
+/* THE SAME PLATE IN THE TRAY, at the 2rem a queued photograph's thumbnail already is — so a photo
+   and a PDF waiting to go are two chips of one shape rather than a picture and a loose word. */
+.msg-chip b { display: grid; place-items: center; min-width: 2rem; height: 2rem;
+              padding: 0 .2rem; border-radius: .35rem; border: 1px solid var(--line); }
 
 /* ---------- THE COMPOSER'S TRAY ---------------------------------------------------------------- */
 .msg-queue { flex: 1 0 100%; display: flex; flex-wrap: wrap; gap: .35rem; }
@@ -3023,8 +3128,9 @@ button.text-drop { color: var(--bad); }
                  text-overflow: ellipsis; white-space: nowrap; }
 .msg-chip-x { min-width: 44px; min-height: 44px; background: none; border: 0;
               color: var(--dim); font-size: 1.1rem; cursor: pointer; }
-.msg-form .btn.msg-clip { width: auto; flex: 0 0 auto; min-width: 44px; min-height: 44px;
-                          padding: 0 .7rem; font-size: 1.1rem; }
+.msg-form .btn.msg-clip { width: 44px; flex: 0 0 auto; min-width: 44px; min-height: 44px;
+                          height: 44px; padding: 0; border-radius: 50%; font-size: 1.1rem;
+                          color: var(--gold); }
 
 /* ---------- THE RECEIPT ---------------------------------------------------------------------------
    The breakdown was always a receipt: a list of what you are buying, what each part cost, and a
@@ -4699,6 +4805,28 @@ select[aria-expanded="true"] { border-color: var(--gold); }
   margin: .5rem 0;
 }
 .card:has(> .msg-body) .msg-body { max-height: 22rem; overflow-y: auto; scrollbar-width: none; }
+/* ---------- A CONVERSATION TAKES THE HEIGHT IT IS GIVEN ------------------------------------------
+   22rem WAS A NUMBER FROM THE YOU SCREEN, where a thread sat among a list of settings and had to
+   leave room for them. On the Messages column it is the only card on its page, and 22rem left the
+   card ending halfway down a 390×844 phone — 326px of conversation and 300px of empty glass under
+   the composer, with the thread scrolling inside a box half the size it could have been.
+
+   SO THE CARD IS CAPPED AT THE PANE'S OWN CAP AND THE THREAD TAKES WHAT IS LEFT. The pane's
+   `max-height` is the formula below less its own padding and border, the card's margin and border
+   — written out rather than a percentage, because a pane is `height: fit-content` and a percentage
+   of that resolves to no cap at all (see `.pane`). The thread is the one child that may shrink, so
+   a composer that grows as somebody types takes its lines out of the thread rather than pushing
+   itself past the bottom of the pane, which is `overflow: hidden` and would simply have cut it off.
+
+   A SHORT THREAD IS STILL SHORT. Nothing grows: the card is as tall as what is in it, up to the cap,
+   which is the pane's own rule one level down. */
+#s-dm .card:has(> .msg-body) {
+  display: flex; flex-direction: column;
+  max-height: calc(100dvh - var(--bar) - var(--safe-bottom) - 2.5rem
+                   - var(--pane-pad) - 1rem - 2px - 1rem);
+}
+#s-dm .card:has(> .msg-body) > * { flex: 0 0 auto; }
+#s-dm .card:has(> .msg-body) > .msg-body { flex: 0 1 auto; min-height: 4rem; max-height: none; }
 
 /* ---------- THE ARCADE CABINET ------------------------------------------------------------------
    The Overworld is a map you move along, which is the one widget here that is genuinely a PLACE
@@ -9436,6 +9564,34 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   background: var(--sunk); border-radius: var(--r-sm);
   font: 400 .74rem/1.45 var(--font); color: var(--dim);
 }
+/* ---------- THE WORKING, FOLDED UNDER THE RESULT ---------------------------------------------------
+   ASKED FOR AS "make answers breaifer". The result is `.qans-body` above and is never folded; the
+   explanation and the examiner's note are behind this one word. See `answerParts_` in find.js.
+
+   SMALL TO LOOK AT, 44px TO HIT. A fold that reads as loud as the answer undoes the point of it, so
+   the word is the size of `.qans-head em`; the tap target is still a fingertip, in px, because a
+   fingertip does not scale with the root font. BOTH WAYS: the first version was 44px tall and
+   34px wide at 320, because "+ Why" is three characters and a glyph, and `check/ui.js` said so. `display: inline-flex` on the summary is safe where
+   the comment above warns against flex: the marker is drawn here rather than by the browser, and
+   `list-style: none` plus the WebKit pseudo-element removes the browser's in both engines. */
+.qans-why { margin: 0 0 .3rem; }
+.qans-why > summary {
+  display: inline-flex; align-items: center; gap: .4rem;
+  min-height: 44px; min-width: 64px; padding: 0 .6rem 0 .2rem;
+  list-style: none; cursor: pointer;
+  font: 600 .7rem/1 var(--font); letter-spacing: .04em; color: var(--dim);
+}
+.qans-why > summary::-webkit-details-marker { display: none; }
+.qans-why > summary::before { content: "+"; color: var(--gold); font-weight: 700; }
+.qans-why[open] > summary::before { content: "\2212"; }
+.qans-why > summary:hover { color: var(--gold); }
+.qans-more {
+  font: 400 .8rem/1.5 var(--font); color: var(--dim);
+  padding: 0 0 .4rem .2rem;
+}
+.qans-more p:first-child { margin-top: 0; }
+.qans-more table { border-collapse: collapse; margin: .6rem 0; }
+.qans-more td, .qans-more th { border: 1px solid var(--line); padding: .3rem .5rem; }
 
 /* ==================================================================================================
    QUESTIONS IN THE FUNNEL.
@@ -9965,6 +10121,30 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* `.prac-safety b` AND `.prac-maths b` WERE IN THIS SELECTOR and went with their two rules above.
    `.prac-out` is the card's own "You end up with", which is untouched. */
 .prac-out b { color: var(--gold); font-weight: 600; }
+
+/* ---------- THE @family. TEXTBOOK — WHAT A BOOK HAS THAT A PROJECT DOES NOT -----------------------
+   "the @family textbook should be bare bones for now". Everything else on its pages is `.prac` and
+   the guide's `.gd-sec`, so these are the only three things it adds: the Higher mark, a key word's
+   own term, and a formula drawn on a line of its own.
+
+   THE MARK IS A LETTER IN A BOX, in the flag's own outline and the screen's ink, NOT gold — gold on
+   this card answers one question already (`.prac-flag.is-req`), and Higher is not "the board makes
+   you". `vertical-align: .1em` sits it on the text it qualifies rather than on the line under. */
+.tb-h { display: inline-block; margin-left: .35em; padding: .05rem .28rem; vertical-align: .1em;
+  font: 600 .6rem/1.2 var(--mono); letter-spacing: .04em; color: var(--ink);
+  border: 1px solid var(--line); border-radius: .3rem; }
+.tb-words b { color: var(--ink); font-weight: 600; }
+/* A FORMULA'S NAME ABOVE IT, THE FORMULA IN THE CARD'S OWN INK AND A SIZE UP — it is the thing on
+   the page somebody came for, and a stacked fraction at .8rem is two numbers too small to read.
+   `overflow-wrap: anywhere` because a long standardised-rate formula is one unbreakable run of
+   words on a 320px phone, and `.frac` is inline-block, so it moves to the next line whole. */
+/* NO BULLET ON A FORMULA. Its name is the label, so a dot in front is a third marker for one line,
+   and the indent it costs is width a stacked fraction under a root needs on a 320px phone. */
+.tb-math ul { padding-left: 0; list-style: none; }
+.tb-math li { margin: 0 0 .4rem; }
+.tb-fn { display: block; font-size: .72rem; color: var(--faint); }
+.tb-fm { display: block; font-size: .95rem; line-height: 1.6; color: var(--ink); overflow-wrap: anywhere; }
+.tb-points li { margin: 0 0 .3rem; }
 
 /* ==================================================================================================
    THE GUIDE. FIVE THINGS: the sheet's own title, the drawing, the kit, the method, and a
@@ -11873,7 +12053,7 @@ button.scr-sq { cursor: pointer; }
    block that is still in the document is still readable by anyone who looks. */
 .qans.is-shut > .qans-head,
 .qans.is-shut > .qans-body,
-.qans.is-shut > .qans-note { display: none; }
+.qans.is-shut > .qans-why { display: none; }
 .qans.is-shut { border: 0; padding: 0; }
 .qp-reveal {
   min-height: 44px; width: 100%; padding: 0 1rem;

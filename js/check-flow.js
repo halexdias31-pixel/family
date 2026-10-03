@@ -230,7 +230,7 @@ function boot(opts) {
   const src = ORDER.map(n => fs.readFileSync(path.join(dir, n + '.js'), 'utf8')).join('\n');
   try {
     w.eval(src + '\n;window.__t = {' +
-      'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS,' +
+      'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS, isTutorRole,' +
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
       'TABS, wgChosen: () => wgChosen_(),' +
@@ -414,6 +414,15 @@ function boot(opts) {
          built in the same evaluation can read it. The camera journey asks it to know that the load
          it is watching is the one that opens on the feed. */
       'AT: () => AT,' +
+      /* FIND'S OWN STATE — the search words and the chips. A `const`, so only a function built in
+         this evaluation can hand it over; the textbook journey types into `q` the way the box does. */
+      'STUFF: () => STUFF,' +
+      /* THE MESSAGES COLUMN'S STATE, SEEDED AS AN ANSWER JUST ARRIVED — the same five lets
+         `check/states.js` sets in a browser, and for the same reason they are set together: a seed
+         that leaves `DM_LAST` alone is one poll away from being replaced by the stub's empty answer.
+         Lets, so only a function built in this evaluation can write them (see `AT` above). */
+      'dmSeed: (msgs, pending) => { MESSAGES = msgs; MSG_PENDING = pending || []; DM_ASKED = true;' +
+      '  DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now(); },' +
       /* A landmark rasterised at one bearing, so the test above can compare four of them. */
       'tiles: (ring, bearing) => {' +
       '  if (typeof owWorld !== "function") return 0;' +
@@ -2088,8 +2097,12 @@ check('touch typing moves on a right key, counts a wrong one, keeps the ladder p
   const n = w.widgetsOf_('tool').findIndex(x => String(x.id) === 'typing');
   if (n < 0) return ['there is no typing widget in the Tools roster'];
   try { t.goPage('tools', n, true); } catch (e) { return ['goPage("tools", ' + n + ') threw: ' + e.message]; }
-  await wait(100);
   const box = () => d.querySelector('.kt-box');
+  /* WAITED FOR, NOT SLEPT FOR. A fixed 100ms was enough on a quiet machine and failed this journey
+     in roughly one run in three whenever other work shared the four CPUs — the card draws after the
+     page turn's own frames, and those stretch under load. Polled up to two seconds, so a card that
+     never draws still fails, and one that draws late no longer reads as a broken widget. */
+  for (let i = 0; i < 40 && !(box() && box().querySelector('.kt-in')); i++) await wait(50);
   if (!box() || !box().querySelector('.kt-in')) return ['the touch-typing card did not draw on the Tools column with its box'];
   const bad = [];
 
@@ -4898,6 +4911,62 @@ check('a fraction is drawn stacked in the stem, lead, part, answer and choices, 
   return bad;
 });
 
+/* ---------- THE ANSWER IS ITS RESULT, AND THE WORKING WAITS UNDER "Why" ---------------------------
+   ASKED FOR AS "make answers breaifer", and, given the choice: "i want shorter answers."
+   `check-answers.js` proves `answerParts_` splits right and the library is short; it cannot prove
+   the CARD draws the halves where they belong, and a card that typesets the whole answer into
+   `.qans-body` and adds a fold underneath passes every rule there while showing the paragraph the
+   owner asked to lose. So this draws a card through `questionCard_` and asks the card:
+     * the result in `.qans-body`, codes off it, and nothing of the working
+     * one `<details>`, SHUT, its summary "Why", holding the working (fraction stacked) and the
+       examiner's note
+     * "Show the answer" opening the result and NOT the fold -- shorter answers, not a delay
+     * an answer with no working and no note draws no fold at all: a "Why" that opens on nothing
+       says there is something. */
+check('an answer draws its result, and the working waits shut under Why', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.questionCard_ !== 'function') return ['questionCard_ is not reachable — renamed?'];
+  const draw = x => { const d = w.document.createElement('div'); d.innerHTML = w.questionCard_(x, 0); w.document.body.appendChild(d); return d; };
+  const base = { kind: 'question', key: 'q-why', name: 'Q4', marks: 1,
+    row: { row_id: 'Q-WHY-4', paper_id: 'P-WHY', subject: 'Maths', name: 'Why' },
+    html: '<p>Work out 12 &divide; 4</p>' };
+  const card = draw(Object.assign({}, base, {
+    answer: '<b>3</b> &mdash; B1, cao. A half of 6 is <sup>6</sup>&frasl;<sub>2</sub>, and 12 &divide; 4 = 3.',
+    examinerNote: 'Most candidates were right.' }));
+  const body = card.querySelector('.qans-body');
+  const why = card.querySelectorAll('.qans details.qans-why');
+  if (!body) bad.push('no .qans-body was drawn');
+  else {
+    if (body.textContent.trim() !== '3') bad.push('the result drew as "' + body.textContent.trim() + '", wanted "3"');
+    if (/B1|cao|half/.test(body.textContent)) bad.push('the result carries the code or the working: ' + body.innerHTML);
+  }
+  if (why.length !== 1) bad.push('wanted one Why fold under the answer, found ' + why.length);
+  else {
+    const f = why[0];
+    if (f.open) bad.push('the Why fold is drawn open');
+    const sum = f.querySelector('summary');
+    if (!sum || sum.textContent.trim() !== 'Why') bad.push('the fold\'s summary reads "' + (sum ? sum.textContent.trim() : '(none)') + '", wanted "Why"');
+    const more = f.querySelector('.qans-more');
+    if (!more || !/A half of 6/.test(more.textContent)) bad.push('the working is not inside the fold');
+    else if (!more.querySelector('.frac .frac-n')) bad.push('the working drew its fraction slanted: ' + more.innerHTML.slice(0, 120));
+    if (more && /B1|cao/.test(more.textContent)) bad.push('the lone "B1, cao" was left in the working');
+    if (!f.querySelector('.qans-note')) bad.push('the examiner\'s note is not inside the fold');
+  }
+  /* SHOW THE ANSWER, AS A STUDENT: the result opens, the fold stays shut. */
+  const btn = card.querySelector('[data-do="qp-reveal"]');
+  if (btn && w.__t.ACTIONS['qp-reveal']) {
+    w.__t.ACTIONS['qp-reveal'](btn);
+    if (card.querySelector('.qans').classList.contains('is-shut')) bad.push('"Show the answer" did not show the answer');
+    if (why[0] && why[0].open) bad.push('"Show the answer" opened the working as well');
+  }
+  const bare = draw(Object.assign({}, base, { answer: '<b>3</b>' }));
+  if (bare.querySelector('.qans-why')) bad.push('an answer with no working and no note still drew a Why fold');
+  if (!bare.querySelector('.qans-body') || bare.querySelector('.qans-body').textContent.trim() !== '3') bad.push('a bare answer lost its result');
+  return bad;
+});
+
 /* ---------- A TUTOR'S HOURS ON THEIR CARD ---------------------------------------------------------
    ASKED FOR AS *"tutors availability should appear on their card."* Asked of the card itself, off
    the shape `doGet` really sends — `availGridOut`'s 77 codes with 'TRUE' or '' — because the fixture
@@ -4997,6 +5066,71 @@ check('a picture chosen in Settings posts savePhoto and the preview shows it', a
     if (!sent.some(b => b.action === 'savePhoto' && b.remove === true)) bad.push('Remove posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no savePhoto remove');
     if (!box() || box().querySelector('.pfp-face img') || (t.whoami().profile || {}).photo !== '') bad.push('after Remove the picture is still drawn or still on USER.profile');
   }
+  return bad;
+});
+
+/* ---------- YOUR ROLES, TICKED IN SETTINGS ---------------------------------------------------------
+   ASKED FOR AS *"each account should have a widget in account settings which say what the roles are.
+   they can be either a tutor or client or student. they can be tutor and client and student like
+   multiselect."* The card's own ticks and tile, end to end: what you hold is what is ticked (a
+   `parent` from the sign-in reply is Client), Admin is never a tick, nothing ticked never leaves the
+   phone, a Save posts `setMyRoles` with your id and the ticked words — and the server's answer, not
+   the ticks, is what you are afterwards: a Tutor tick that came back pending leaves the staff test
+   (`isTutorRole`) false, says it is waiting on the card, and still offers the tutor agreement. The
+   server's own rules are `check-profile`'s; this is the phone's half. */
+check('the roles card ticks what you hold, posts setMyRoles, and a waiting Tutor is not staff', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'setMyRoles'
+    ? { success: true, role: 'tutor', roles: ['tutor', 'parent'], tutorPending: true, changed: true }
+    : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk', tutorPending: false,
+           profile: { first_name: 'Pat', last_name: 'Parent' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const bad = [];
+  const card = () => d.querySelector('#s-settings .roles-card');
+  if (!card()) return ['Settings has no Your roles card'];
+  const tick = r => card().querySelector(`[data-role-pick="${r}"]`);
+  ['tutor', 'client', 'student'].forEach(r => { if (!tick(r)) bad.push('the roles card has no ' + r + ' tick'); });
+  if (card().querySelector('[data-role-pick="admin"]')) bad.push('Admin is a tick on the roles card — it is given, not chosen');
+  if (bad.length) return bad;
+  if (!tick('client').checked || tick('tutor').checked || tick('student').checked) {
+    bad.push('a parent signed in sees tutor=' + tick('tutor').checked + ' client=' + tick('client').checked
+      + ' student=' + tick('student').checked + ', wanted only Client ticked');
+  }
+  if (card().querySelector('.role-admin')) bad.push('a parent is told they are also Admin');
+  const save = () => card().querySelector('[data-do="roles-save"]');
+  if (!save()) return bad.concat(['the roles card has no Save tile']);
+  /* NONE TICKED: said on the card, nothing posted. */
+  tick('client').checked = false;
+  sent.length = 0;
+  t.ACTIONS['roles-save'](save());
+  await wait(200);
+  if (sent.some(b => b.action === 'setMyRoles')) bad.push('a Save with nothing ticked was posted');
+  if (!/at least one/i.test(card().querySelector('.roles-said').textContent)) bad.push('a Save with nothing ticked did not say to keep one');
+  /* TUTOR AND CLIENT: posted, with the id. */
+  tick('client').checked = true; tick('tutor').checked = true;
+  sent.length = 0;
+  t.ACTIONS['roles-save'](save());
+  await wait(400);
+  const post = sent.find(b => b.action === 'setMyRoles');
+  if (!post) bad.push('Save posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no setMyRoles');
+  else {
+    if (JSON.stringify(post.roles) !== '["tutor","client"]') bad.push('setMyRoles carried ' + JSON.stringify(post.roles) + ', wanted ["tutor","client"]');
+    if (post.personId !== 'P-C1') bad.push('setMyRoles did not name the signed-in person by id');
+  }
+  const me = t.whoami();
+  if (!me.tutorPending || JSON.stringify(me.roles) !== '["tutor","parent"]') bad.push('USER was not given the server\'s answer — ' + JSON.stringify({ roles: me.roles, tutorPending: me.tutorPending }));
+  if (t.isTutorRole()) bad.push('a Tutor tick the server says is waiting already passes the staff test');
+  if (!card() || !card().querySelector('[data-role-pick="tutor"]').checked) bad.push('after the save the card does not show Tutor ticked');
+  if (!card() || !/waiting for @family/.test(card().querySelector('.roles-said').textContent)) bad.push('the card does not say the Tutor tick is waiting for approval');
+  if (!d.querySelector('#s-settings .card.agree')) bad.push('a waiting tutor is not offered the tutor agreement to sign');
+  /* AND THE ADMIN: told, not ticked. */
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin', 'tutor'], token: 'tk', profile: {} });
+  try { w.paint('settings'); } catch (e) { return bad.concat(['drawing settings for the admin threw: ' + e.message]); }
+  if (!card() || !card().querySelector('.role-admin')) bad.push('an admin is not told Admin is given and kept');
+  else if (!tick('tutor').checked || tick('client').checked) bad.push('an admin holding admin, tutor does not see Tutor alone ticked');
   return bad;
 });
 
@@ -5154,6 +5288,141 @@ check('Projects is a kind in Find beside Practicals: card, materials, steps, and
   return bad;
 });
 
+/* ---------- THE @family. TEXTBOOK, REACHED THE WAY THE OWNER SAID --------------------------------
+   ASKED FOR AS "the @family textbook should be bare bones for now and the textbooks will be in the
+   resources tag in the finder. first one can be gcse statistics." So the route is the claim:
+   Learning → Resources → @family. textbooks → GCSE Statistics, pressed on the REAL answer buttons
+   the funnel draws, over the real file through the real mapper — with the real boxers and bouts
+   beside it, because they are what the book has to be found among, and a Resources holding only
+   the book would never ask the Shelf question at all.
+
+   Then: the list is the book; it is a contents card and one page per chapter in chapter order; a
+   chapter page has its key words, its formulas STACKED by `typeset_`, its worked lines and the
+   Higher mark; typing a word that is only inside a chapter finds it; and the star keeps it on
+   Saved. */
+check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Statistics — contents, chapters, search, star', async () => {
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the textbooks were NOT checked — not a pass'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+    { textbooks: read('textbooks'), boxers: read('boxers'), fights: read('fights'), projects: read('projects') })));
+  const books = made.textbooks || [];
+  if (!books.length) return ['the mapper made no book of data/textbooks.json'];
+  if (!(made.boxers || []).length) return ['the mapper made no boxers, so the shelf the book sits beside is empty — NOT a pass'];
+  const p = payload();
+  /* THE PROJECTS TOO, so `What kind` has a second answer and the Resources press is a real press —
+     the fixture has no library, and with Resources the only kind the question would not be asked. */
+  Object.assign(p, { textbooks: books, boxers: made.boxers, fights: made.fights || [], projects: made.projects || [] });
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t;
+  if (!t.STUFF) return ['Find\'s state is not exported to the journey'];
+  const bad = [];
+  const book = books.find(b => b.name === 'GCSE Statistics');
+  if (!book) return ['data/textbooks.json has no book called GCSE Statistics — names: ' + books.map(b => b.name).join(', ')];
+
+  /* THE ROUTE, ONE PRESS AT A TIME, on whatever the question page draws. A grouped question may
+     draw the BUCKET first (`Read or watch it`), and pressing it is the same route one tap longer,
+     so a bucket that holds the next word on the route is pressed and the question asked again. */
+  t.go('stuff');
+  t.STUFF().filters.length = 0; t.STUFF().q = '';
+  w.paintStuff();
+  const route = ['Learning', 'Resources', '@family. textbooks'];
+  const rungs = ['forLabel', 'kindLabel', 'shelf'];
+  const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
+  const pressed = [];
+  for (let guard = 0; route.length && guard < 8; guard++) {
+    const btns = [...w.document.querySelectorAll('#s-stuff [data-do="facet-pick"]')];
+    let el = btns.find(b => b.dataset.value === route[0]);
+    /* A RUNG EVERYTHING LEFT ALREADY ANSWERS IS SKIPPED BY THE ONE-ANSWER RULE, and that is the
+       route working rather than failing: the fixture has nothing under `What for` but Learning. The
+       question is only allowed to be absent when its one answer IS the next word on the route. */
+    const rung = w.facetList().find(f => f.field === rungs[3 - route.length]);
+    const only = rung ? w.facetValues(w.stuffFiltered(), rung).map(v => String(v.value)) : [];
+    if (!el && only.length === 1 && only[0] === route[0]) {
+      pressed.push('(' + route.shift() + ')');
+      continue;
+    }
+    if (!el) {
+      const grp = (() => { try { return kindFacet.bucketOf(route[0]); } catch (e) { return ''; } })();
+      el = grp && btns.find(b => b.dataset.value === grp && b.dataset.bucket);
+      if (!el) {
+        bad.push('the funnel did not offer "' + route[0] + '" after ' + (pressed.join(' → ') || 'nothing') + ' — it offered '
+          + (btns.map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'no answers'));
+        break;
+      }
+    } else route.shift();
+    pressed.push(el.dataset.value);
+    t.ACTIONS['facet-pick'](el);
+    await wait(20);
+  }
+  if (route.length) return bad;
+  /* THE SHELF HAS TO HAVE BEEN PRESSED, not skipped: one answer there would mean the boxing was
+     not beside it, and the door this journey is about was never on screen. Same for Resources. */
+  if (pressed.indexOf('@family. textbooks') < 0) bad.push('the shelf was never a question — ' + pressed.join(' → '));
+  if (pressed.indexOf('Resources') < 0) bad.push('Resources was never pressed — ' + pressed.join(' → '));
+  /* THE SHELF QUESTION OFFERED BOXING BESIDE IT, or it was not a door — it was the only answer. */
+  const left = w.stuffFiltered();
+  if (left.length !== 1 || left[0].kind !== 'textbook' || left[0].name !== 'GCSE Statistics') {
+    bad.push('after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
+      + left.slice(0, 4).map(x => x.kind + ' ' + x.name).join(', ') + ' — not the book');
+  }
+  /* AND NOTHING ELSE ON RESOURCES FELL OFF THE SHELVES. Pressing `Boxing` keeps only what says
+     Boxing, so a boxer with no shelf would vanish from the route that used to reach him — the door
+     would have cost the boxing what it gave the book. */
+  const shelfFacet = w.facetList().find(f => f.field === 'shelf');
+  const resources = w.stuffItems().filter(i => w.kindOf_(i).label === 'Resources');
+  const unshelved = resources.filter(i => !w.facetValues([i], shelfFacet).length);
+  if (unshelved.length) {
+    bad.push(unshelved.length + ' of ' + resources.length + ' Resources are on no shelf ('
+      + [...new Set(unshelved.map(i => i.kind))].join(', ') + ') — pressing a shelf hides them');
+  }
+  const x = left.find(i => i.kind === 'textbook') || w.stuffItems().find(i => i.kind === 'textbook');
+  if (!x) return bad.concat(['Find offers no textbook at all']);
+
+  /* CARD, THEN A PAGE PER CHAPTER IN ORDER. */
+  const parts = w.pageParts_(x);
+  const want = [null].concat(book.chapters.map(c => 'ch' + c.n));
+  if (JSON.stringify(parts) !== JSON.stringify(want)) bad.push('the book is pages ' + JSON.stringify(parts).slice(0, 80) + ', not the card and ' + book.chapters.length + ' chapters in order');
+  const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
+  const card = box(w.stuffCard(x));
+  if (!card.querySelector('.card.tb')) bad.push('the book card is not drawn as a textbook');
+  else {
+    if (card.querySelector('.prac-flag').textContent.trim() !== 'Textbook') bad.push('the card is not flagged Textbook');
+    const toc = [...card.querySelectorAll('.tb-toc ol > li')].map(li => li.textContent.replace(/H$/, '').trim());
+    if (toc.join('|') !== book.chapters.map(c => c.title).join('|')) bad.push('the contents do not list the chapters in order: ' + toc.slice(0, 3).join(', '));
+    if (card.querySelector('.tb-words, .tb-math')) bad.push('the card carries a chapter — chapters are pages of their own');
+  }
+  /* A CHAPTER WITH FORMULAS, AND THE ONE THAT IS HIGHER ALL THROUGH. */
+  const withMath = book.chapters.find(c => c.formulas.some(f => /\//.test(f.text)));
+  const pg = box(w.stuffPart_(x, 'ch' + withMath.n));
+  if (pg.querySelectorAll('.tb-words li').length !== withMath.words.length) bad.push('chapter ' + withMath.n + ' does not list every key word');
+  if (pg.querySelectorAll('.tb-math li').length !== withMath.formulas.length) bad.push('chapter ' + withMath.n + ' does not list every formula');
+  if (!pg.querySelector('.tb-math .frac .frac-n') || !pg.querySelector('.tb-math .frac .frac-d')) bad.push('chapter ' + withMath.n + '\'s fractions are not stacked — typeset_ was not run over the formulas');
+  if (/&frasl;|\//.test([...pg.querySelectorAll('.tb-fm')].map(e => e.innerHTML.replace(/<span class="frac-s">\/<\/span>/g, '').replace(/<[^>]*>/g, '')).join(''))) bad.push('a slash is left standing in a formula on chapter ' + withMath.n);
+  if (pg.querySelectorAll('.tb-points li').length !== withMath.points.length) bad.push('chapter ' + withMath.n + ' does not list every worked line');
+  const hItems = withMath.words.concat(withMath.formulas, withMath.points).filter(i => i.higher).length;
+  if (pg.querySelectorAll('li .tb-h').length !== hItems) bad.push('chapter ' + withMath.n + ' marks ' + pg.querySelectorAll('li .tb-h').length + ' lines Higher, the file says ' + hItems);
+  const hc = book.chapters.find(c => c.higher);
+  if (hc && !box(w.stuffPart_(x, 'ch' + hc.n)).querySelector('h3 .tb-h')) bad.push('chapter ' + hc.n + ' is Higher all through and its heading does not say so');
+
+  /* SEARCHABLE BY ITS WORDS — one that is only inside a chapter, never in the title. */
+  t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
+  if (!w.stuffFiltered().some(i => i.kind === 'textbook')) bad.push('typing "frequency density" does not find the book — the chapters are not in its haystack');
+  t.STUFF().q = '';
+
+  /* STARRABLE, by the card's own Save tile, and kept on Saved. */
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const fav = box(w.stuffCard(x)).querySelector('[data-do="fav"]');
+  if (!fav) bad.push('the book card has no Save tile');
+  else {
+    t.ACTIONS.fav(fav);
+    if (!t.savedPages().join('').includes('tb-toc')) bad.push('the book was starred and is not on the Saved column');
+  }
+  return bad;
+});
+
 /* ---------- SHARING A BOOKING HANDS OVER A PICTURE OF IT ------------------------------------------
    *"just make sure sharing booking is an identical jpg or png or whatevers best of the booking
    reciept."* It was `window.print()` — a PDF by way of the print dialogue — and this asks the three
@@ -5264,6 +5533,82 @@ check('sharing a booking hands over a PNG of the receipt: share sheet, else down
     if (shared.length !== before + 1 || !((shared[shared.length - 1].files || [])[0] || {}).name)
       bad.push('the sheet\'s Share button did not share the picture');
   }
+  return bad;
+});
+
+/* ---------- THE CHAT, POLISHED: WHAT WAS NEW STAYS MARKED, AND THE COMPOSER FITS ------------------
+   *"also refine the chat widgetts. looks fine but refine please."* Three of the changes are
+   behaviour rather than paint, and this asks each of them of the real column in jsdom:
+
+     1. A MESSAGE THAT ARRIVED UNREAD IS OUTLINED ON THE DRAW THAT READS IT. `dmPages_` marks a
+        thread read before it renders it, so the outline never showed and the head's "2 new" sat
+        over nothing marked new. `fresh` is set by `markRead_`, so it must survive a second paint
+        (the poll's) and go when the server's next answer replaces the objects.
+     2. The composer's hint is "Message…" and the person's name is its `aria-label`.
+     3. A refusal's sentence is its own element, so it can sit on the bubble's side.
+   And the empty inbox names the door that starts a conversation, because the column has none. */
+check('chat: what arrived unread stays outlined, the composer hint fits, a refusal sits on its side', async () => {
+  const bad = [];
+  const { w, sent } = boot();
+  await wait(300);
+  const d = w.document;
+  w.__t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'] });
+  const seed = (list, pending) => w.__t.dmSeed(JSON.parse(JSON.stringify(list)), pending);
+  const m = (id, mine, read, body) => ({ id, mine, read, body, at: '2026-09-16 09:1' + id.slice(-1),
+    withId: 'P009', withName: 'Ada Tutor', fromName: mine ? 'You' : 'Ada Tutor' });
+  seed([m('m1', false, true, 'Tuesday?'), m('m2', true, true, 'Yes.'),
+        m('m3', false, false, 'Great.'), m('m4', false, false, 'Bring a ruler.')]);
+  try { w.__t.repaint(true); w.__t.go('dm', false, true); } catch (e) { return ['opening Messages threw: ' + e.message]; }
+  await wait(80);
+  const col = d.getElementById('s-dm');
+  if (!col || !col.querySelector('.msg-bub')) return ['the Messages column drew no bubbles from a seeded thread: '
+    + (col ? col.textContent.replace(/\s+/g, ' ').trim().slice(0, 100) : 'no #s-dm')];
+  const outlined = () => [].map.call(col.querySelectorAll('.msg.unread .msg-body-text'), p => p.textContent.trim());
+  const head = (col.querySelector('.dm-new') || {}).textContent || '';
+  if (!/2 new/.test(head)) bad.push('the head says "' + head + '", not "2 new"');
+  if (JSON.stringify(outlined()) !== JSON.stringify(['Great.', 'Bring a ruler.'])) {
+    bad.push('the two messages that arrived unread are not the ones outlined — outlined: ' + JSON.stringify(outlined()));
+  }
+  const asked = sent.filter(b => b.action === 'readMessage').map(b => b.messageId).sort();
+  if (JSON.stringify(asked) !== '["m3","m4"]') bad.push('readMessage was asked for ' + JSON.stringify(asked) + ', not m3 and m4');
+  /* THE POLL'S REPAINT: the outline is "new since you arrived", so a second draw keeps it. */
+  w.__t.repaint(true);
+  await wait(30);
+  if (outlined().length !== 2) bad.push('a second paint dropped the outline — it should last until the server answers again');
+  /* THE SERVER'S NEXT ANSWER: the same messages, now read, as fresh objects. Nothing is news. */
+  seed([m('m1', false, true, 'Tuesday?'), m('m2', true, true, 'Yes.'),
+        m('m3', false, true, 'Great.'), m('m4', false, true, 'Bring a ruler.')]);
+  w.__t.repaint(true);
+  await wait(30);
+  if (outlined().length) bad.push('the outline outlived the server saying the messages were read: ' + JSON.stringify(outlined()));
+
+  const box = col.querySelector('.msg-form .msg-text');
+  if (!box) bad.push('the thread has no composer');
+  else {
+    if (box.getAttribute('placeholder') !== 'Message…') bad.push('the composer\'s hint is "' + box.getAttribute('placeholder') + '", not "Message…"');
+    if (!/Ada Tutor/.test(box.getAttribute('aria-label') || '')) bad.push('the composer does not name who it writes to in its aria-label');
+  }
+
+  /* A REFUSAL: its sentence in its own element, beside Retry and Remove. */
+  seed([m('m1', false, true, 'Tuesday?')], [{ tmp: 'tmpX', mine: true, read: true, state: 'failed',
+    err: 'One message every five minutes.', withId: 'P009', withName: 'Ada Tutor', fromName: 'Test Admin',
+    body: 'Here it is', atMs: Date.now(), attachments: [], queue: [] }]);
+  w.__t.repaint(true);
+  await wait(30);
+  const fail = col.querySelector('.msg.is-failed + .msg-fail, .msg.is-failed .msg-fail');
+  if (!fail) bad.push('a failed send drew no refusal under its bubble');
+  else {
+    const why = fail.querySelector('.msg-fail-why');
+    if (!why || !/five minutes/.test(why.textContent)) bad.push('the refusal\'s sentence is not an element of its own');
+    if (!fail.querySelector('[data-do="msg-retry"]') || !fail.querySelector('[data-do="msg-drop"]')) bad.push('the refusal lost Retry or Remove');
+  }
+
+  /* AND AN EMPTY INBOX SAYS HOW ONE STARTS. */
+  seed([]);
+  w.__t.repaint(true);
+  await wait(30);
+  const empty = (col.querySelector('.empty') || {}).textContent || '';
+  if (!/press Message/.test(empty)) bad.push('the empty inbox reads "' + empty.replace(/\s+/g, ' ').trim() + '" and does not say how to start a conversation');
   return bad;
 });
 

@@ -348,7 +348,14 @@ const canTrack = () => hasRole('kid') || hasRole('student') || hasRole('tutor') 
 /* An admin is a tutor with extra powers, so everywhere gated on "tutor" admits an admin too.
    Written once rather than as `USER.role === 'tutor'` at each site, which is how an admin came to
    be refused by half the checks and allowed by the other half. */
-const isTutorRole = () => hasRole('tutor') || hasRole('admin');
+/* AND NOT A TUTOR WHO HAS ONLY TICKED THE BOX. The roles card in Settings lets anybody tick Tutor,
+   and the server holds that tick for the admin (`tutorPending` on the sign-in reply — see
+   `LISTED_PENDING` in constants.gs). This is the app's STAFF test — the open mark scheme, the
+   tutor-only widgets — so a student ticking Tutor to see the answers must get the student's view
+   until somebody has said yes. `tutorHeld_` is the other question, "did they ask", which the
+   agreement card and the roles card want. */
+const tutorHeld_ = () => hasRole('tutor');
+const isTutorRole = () => (tutorHeld_() && !(USER && USER.tutorPending)) || hasRole('admin');
 
 /* THE FOUR WORDS A JOB'S STATUS CAN BE, and nothing else.
      unsent       built, not sent to anyone
