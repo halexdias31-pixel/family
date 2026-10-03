@@ -10334,8 +10334,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    ONCE MARKED THE OTHERS STEP BACK. `is-done` (choiceBox_) is only set when the question is settled,
    which the handler already enforces -- so the unchosen wrong ones fade and stop looking pressable,
    and what is left in full ink is what you picked and what was right. */
-.quiz-opt.qp-opt { position: relative; padding-left: 2.2rem; color: var(--ink);
+.quiz-opt.qp-opt { position: relative; padding-left: 2.2rem;
                    transition: border-color var(--quick) ease, color var(--quick) ease; }
+/* INK ON EVERY OPTION OF A QUESTION CARD, by SPECIFICITY rather than by being written later: the box
+   and card in front make it (0,4,0) against `.quiz-opt.is-ans` and `.quiz-opt.is-picked:not(.is-ans)`
+   (0,2,0 and 0,3,0), so `check/cascade.js` can see why it wins. The faded options below are more
+   specific again. */
+.qcard .qp-choices .quiz-opt.qp-opt { color: var(--ink); }
 @media (hover: hover) {
   .qp-choices:not(.is-done) .quiz-opt.qp-opt:not(.is-picked):hover { border-color: var(--faint); }
 }

@@ -701,10 +701,11 @@ const STATES = {
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
-        window.__qStable = null;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__qStable = null; window.__qCard = null;
         setTimeout(() => {
-          const card = document.querySelector('#s-stuff .page.on .qcard');
+          const hit = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === ansKey_(it));
+          const card = window.__qCard = hit && hit.closest('.qcard');
           const inp = card && card.querySelector('.qp-ans-in');
           const btn = card && card.querySelector('.qp-check');
           if (!inp || !btn) return;
@@ -720,7 +721,7 @@ const STATES = {
       },
       expect: () => {
         const s = window.__qStable;
-        const mark = document.querySelector('#s-stuff .page.on .qcard .qp-mark');
+        const mark = window.__qCard && window.__qCard.querySelector('.qp-mark');
         return !!s && !!mark && mark.classList.contains('is-near')
                && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5);
       },
@@ -738,10 +739,11 @@ const STATES = {
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
-        window.__qStable = null;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__qStable = null; window.__qCard = null;
         setTimeout(() => {
-          const card = document.querySelector('#s-stuff .page.on .qcard');
+          const hit = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === ansKey_(it));
+          const card = window.__qCard = hit && hit.closest('.qcard');
           const inp = card && card.querySelector('.qp-ans-in');
           const btn = card && card.querySelector('.qp-check');
           if (!inp || !btn) return;
@@ -757,7 +759,7 @@ const STATES = {
       },
       expect: () => {
         const s = window.__qStable;
-        const card = document.querySelector('#s-stuff .page.on .qcard');
+        const card = window.__qCard;
         const mark = card && card.querySelector('.qp-mark');
         return !!s && !!mark && mark.classList.contains('is-right')
                && !card.querySelector('.qans').classList.contains('is-shut')
@@ -779,10 +781,11 @@ const STATES = {
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
-        window.__qStable = null;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__qStable = null; window.__qCard = null;
         setTimeout(() => {
-          const card = document.querySelector('#s-stuff .page.on .qcard');
+          const hit = [...document.querySelectorAll('#s-stuff .qp-choices')].find(b => b.getAttribute('data-k') === ansKey_(it));
+          const card = window.__qCard = hit && hit.closest('.qcard');
           const opts = card ? [...card.querySelectorAll('.qp-opt')] : [];
           if (opts.length < 2) return;
           const miss = it.choiceRight[0] === 1 ? 2 : 1;
@@ -796,7 +799,7 @@ const STATES = {
       },
       expect: () => {
         const s = window.__qStable;
-        const box = document.querySelector('#s-stuff .page.on .qcard .qp-choices');
+        const box = window.__qCard && window.__qCard.querySelector('.qp-choices');
         const mark = box && box.nextElementSibling;
         return !!s && !!box && box.classList.contains('is-done')
                && !!box.querySelector('.qp-opt.is-picked:not(.is-ans)') && !!box.querySelector('.qp-opt.is-ans')
