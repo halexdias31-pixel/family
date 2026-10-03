@@ -142,3 +142,16 @@ terms; the duplicate guard in `doGet` removed — each red, green restored.
 
 Deploy: `backend/` must be pulled (`saveTimetable`, `closures`, the `createJob` refusal, the exam
 merge, `AVAIL_HOURS`), and `ensureSchema()` run once for the new `timetable` column on `people`.
+
+### The instruments
+
+- `check/ui.js --part=k/n` deals the screens alternately, and `check-all.js` runs it as two halves
+  side by side — the split its own clock note asked for once 87 states took 11m19s alone. Part 1
+  keeps `UI_PORT`; later parts take a free port. A roster `file` may carry arguments after a space.
+- `check-all.js` lifts an indented `FAIL` / `!` line and the two under it out of a long report, so a
+  journey that breaks only inside the suite can be named from its output.
+- The touch-typing journey polls up to two seconds for its card after `goPage` instead of a fixed
+  100ms, which missed the page fill beside four browsers.
+- `FLOW_ONLY=words node js/check-flow.js` runs the journeys whose names contain those words.
+- `ACCEPTED_TAP` carries the calendar day (`cal-d`), measured 29×31 / 37×34 / 39×36 — seven days
+  across a phone cannot be 44px, and every day can be tapped now that every date is on it.
