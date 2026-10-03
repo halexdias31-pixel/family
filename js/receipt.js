@@ -659,6 +659,16 @@ on('book-send', el => {
     return;
   }
 
+  /* ---------- A TUTOR WITH NO HOURS IS NOT SENT FOR --------------------------------------------
+     The dropdown greys them and the grid shuts, so only a form that arrived with the name already in
+     it reaches here — said where the send is, before a request the server would refuse anyway. */
+  if (spec.tutor && typeof tutorNoHours_ === 'function' && tutorNoHours_(spec.tutor)) {
+    el.disabled = false;
+    if (said) said.textContent = spec.tutor + ' hasn\u2019t set their hours yet, so they cannot be booked by name. '
+      + 'Choose No preference, or another tutor.';
+    return;
+  }
+
   /* THE ONE THAT MATTERS MOST. Asking for a session had no failure path: with no connection the
      button did nothing and the request was never sent, and nobody was told either fact. */
   send_({ action: 'createJob',
@@ -672,6 +682,11 @@ on('book-send', el => {
     personId: USER.personId || '',
     subject: spec.subjects.join(', '), level: spec.level,
     day: spec.day, time: spec.time, location: BOOKING.loc,
+    /* EVERY HOUR TICKED, as the grid's own codes — `m16, m17, f10`. `day`, `time` and `hours` above
+       are the FIRST run (see `bookRuns`), which is all the job row has cells for; the server checks
+       the named tutor's hours and their other sessions against all of them, so a Friday that
+       differs from the Monday is checked as itself. */
+    slots: (Array.isArray(BOOKING.slots) ? BOOKING.slots : []).join(','),
     hosting: spec.hosting, hours: spec.hours, interval: spec.interval,
     requestedTutor: spec.tutor,
     dates: (L && L.sessionDates || []).map(d => fmtDate(d)).join(', '),

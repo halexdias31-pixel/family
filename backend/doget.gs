@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-03-b-roles";
+const DOGET_VERSION = "2026-10-03-c-timesync";
 
 
 function doGet(e) {
@@ -451,6 +451,8 @@ function doGet(e) {
                  'saveRoom',
 
                  'saveTodo', 'saveAvatar', 'register', 'verifyEmail', 'diagnosePeople',
+                 /* The Timetable widget's week, kept on the account. */
+                 'saveTimetable',
                  'listRecords', 'saveRecordsPage',
                  /* The site checks for this to decide whether it may offer the picker. */
                  'folderFiles',
@@ -568,6 +570,8 @@ function doGet(e) {
          cheap — it is one tab of about eighteen rows and a date comparison — and it is the only way
          a thing can appear and disappear on its own without anybody remembering. */
       festive: [],
+      /* THE CLOSED DAYS INSIDE A TERM — filled below by `closures()`. */
+      closures: [],
       trips: [], exams: [], birthdays: [], orders: [], widgets: [], posts: [], laws: [],
       facts: [],
       questions: [], boxers: [], fights: [], herd: [],
@@ -1389,6 +1393,30 @@ function doGet(e) {
         });
       });
 
+      /* ---------- AND THE TWO EXAM DATES A STUDENT KEEPS ON THEIR OWN PAGE ---------------------
+         `exam_small_date` AND `exam_big_date` ARE WRITTEN IN SETTINGS (history 174) and were read by
+         the Journey card alone — while the Calendar, the one surface that is ABOUT dates, read only
+         this tab, which nothing on the phone writes. Two places for one fact, and the Calendar read
+         the empty one. So the two cells join the list here, under the same `maySee` (the student,
+         their family, an admin), as a mock and an exam. NO DUPLICATES: a date the tab already holds
+         for that person is the tab's row — it has the subject and the board — and the cell adds
+         nothing. */
+      const examOn = {};
+      payload.exams.forEach(x => { examOn[S(x.personId) + '|' + S(x.date)] = true; });
+      read(TAB.people).rows.forEach(r => {
+        if (!maySee(r.person_id)) return;
+        [['exam_small_date', 'mock', 'Small exam'], ['exam_big_date', 'exam', 'Big exam']].forEach(([col, kind, label]) => {
+          const d = sheetDate(r[col]);
+          if (!d) return;
+          const k = S(r.person_id) + '|' + fmtDate(d);
+          if (examOn[k]) return;
+          examOn[k] = true;
+          payload.exams.push({ id: S(r.person_id) + ':' + col, personId: S(r.person_id),
+            who: personDisplayName(r), subject: '', label: label, date: fmtDate(d), kind: kind,
+            board: '', rowIndex: 0 });
+        });
+      });
+
       read(TAB.people).rows.forEach(r => {
         const d = sheetDate(r.date_of_birth);
         if (!d) return;
@@ -1514,6 +1542,13 @@ function doGet(e) {
 
     try { payload.festive = festiveOffers(); }
     catch (err) { payload.festive = []; }
+
+    /* THE DAYS NOBODY IS TAUGHT — bank holidays, INSET days, a festive event. See `closures` in
+       booking.gs: the phone's `computeSessionDates` steps over them, so a booking is priced on the
+       sessions that will really run, and the Calendar marks them. Wrapped like the festive block: a
+       holidays tab that cannot be read still leaves the computed bank holidays. */
+    try { payload.closures = closures(); }
+    catch (err) { payload.closures = []; }
 
     /* WHICH LOADING SPLASHES HAVE BEEN RETIRED. Sent as the ones that are OFF rather than the ones
        that are on, so a splash added in code and never entered in the sheet still appears — the

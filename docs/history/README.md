@@ -258,3 +258,7 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [Sharing a booking is a PNG of the receipt on the screen, and a check that compares the pixels](254-sharing-a-booking-is-a-png-of-the-receipt-on-the-screen-and.md)
 - [Videos on Games, a LEGO trade-in placeholder on Tools, and a boxing splash](255-videos-on-games-a-lego-trade-in-placeholder-on-tools-and-a-b.md)
 - [Your roles: three ticks in Settings, and a Tutor tick is a question to the admin](256-your-roles-three-ticks-in-settings-and-a-tutor-tick-is-a-que.md)
+- [The @family. textbook is a resource in Find, and GCSE Statistics is the first](257-the-family-textbook-is-a-resource-in-find-and-gcse-statistic.md)
+- [The chat was refined, and most of what read unfinished only showed in states nobody had drawn](258-the-chat-was-refined-and-most-of-what-read-unfinished-only-s.md)
+- [An answer is its result now, and the working waits under "Why"](259-an-answer-is-its-result-now-and-the-working-waits-under-why.md)
+- [The calendar, the timetable and a tutor's hours read one set of facts, and stopped clashing](260-the-calendar-the-timetable-and-a-tutor-s-hours-read-one-set.md)

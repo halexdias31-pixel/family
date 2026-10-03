@@ -1975,7 +1975,9 @@ const STATES = {
         if (n < 0) throw new Error('no availability widget in the roster');
         goPage('tools', n, true);
       },
-      expect: () => document.querySelectorAll('#s-tools #avail-box .hr').length > 70,
+      /* SEVENTY: seven days of `AVAIL_HOURS`, nine to six — it was seventy-seven while that span
+         ran to seven o'clock, an hour the booking grid never offered. */
+      expect: () => document.querySelectorAll('#s-tools #avail-box .hr').length >= 70,
       wants: 'the week of hours drawn on screen' },
 
     /* ---------- A TIMETABLE WITH A WEEK IN IT ------------------------------------------------------
@@ -1991,8 +1993,11 @@ const STATES = {
           { id: 'T2', at: '10:00', subject: 'English Literature and Language combined', note: '' },
           { id: 'T3', at: '11:15', subject: 'Chemistry', note: 'Bring the revision guide and a calculator, practical write-up due' },
           { id: 'T4', at: '13:30', subject: 'History', note: '' }];
-        localStorage.setItem(tmtKey_(), JSON.stringify({ weekend: true,
-          days: [day, [{ id: 'T5', at: '09:00', subject: 'Maths', note: '' }], [], [], [], [], []] }));
+        const week = { weekend: true,
+          days: [day, [{ id: 'T5', at: '09:00', subject: 'Maths', note: '' }], [], [], [], [], []] };
+        /* ON THE ACCOUNT WHEN SIGNED IN, on the device when not — the two homes `tmtRead_` has. */
+        if (typeof USER !== 'undefined' && USER) USER.timetable = JSON.stringify(week);
+        else localStorage.setItem(tmtKey_(), JSON.stringify(week));
         TMT_DAY = 0; TMT_OPEN = 'T3';
         const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'timetable');
         if (n < 0) throw new Error('no timetable widget in the roster');
@@ -2000,14 +2005,91 @@ const STATES = {
         initTimetable();
       },
       expect: () => document.querySelectorAll('#s-tools .tmt-box .tmt-day').length === 7
-                    && document.querySelectorAll('#s-tools .tmt-box .tmt-row').length === 3
+                    && document.querySelectorAll('#s-tools .tmt-box .tmt-row:not(.is-booked)').length === 3
                     && document.querySelector('#s-tools .tmt-box .tmt-ed .tmt-time'),
       wants: 'seven day chips, three lessons as lines and one open with its time box',
       leave: () => {
         localStorage.removeItem(tmtKey_());
+        if (typeof USER !== 'undefined' && USER) delete USER.timetable;
         TMT_DAY = -1; TMT_OPEN = '';
         initTimetable();
       } },
+
+    /* ---------- THE TIMETABLE WITH YOUR BOOKED SESSIONS LOCKED IN IT ------------------------------
+       `Your week` is folded into the Timetable, so the one week view now holds two kinds of row: what
+       somebody wrote, and a session booked here (`.tmt-row.is-booked`, green, a second line of hours
+       and place). Seeded through the payload — `myJobs_` reads `DATA.liveJobs` — with a session on
+       Monday and Saturday and no dates (a request not yet in the diary is on every week its days come
+       round), between lessons at nine, three and six, so the booked row is measured among the others
+       and the Saturday shows all seven chips with the weekend box unticked. Signed in only: a visitor
+       has no sessions. */
+    { name: 'a timetable with your sessions in it',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__TMT_JOBS = { live: DATA.liveJobs, jobs: DATA.jobs };
+        const mine = { id: 'J-TMT', jobId: 'J-TMT', subject: 'GCSE Physics, triple award', location: 'Colliers Wood Library',
+          day: 'Monday, Saturday', time: '16:00', hours: 2, client: USER.name, tutor: 'Ada Tutor',
+          status: 'active', dates: '', slots: [{ n: 1, client: USER.name, status: 'Booked' }] };
+        DATA.liveJobs = DATA.jobs = [mine];
+        USER.timetable = JSON.stringify({ weekend: false, days: [[
+          { id: 'S1', at: '09:00', subject: 'Maths', note: 'Room 4' },
+          { id: 'S2', at: '15:00', subject: 'English', note: '' },
+          { id: 'S3', at: '18:00', subject: 'Swimming', note: 'Leisure centre' }], [], [], [], [], [], []] });
+        TMT_DAY = 0; TMT_OPEN = '';
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'timetable');
+        if (n < 0) throw new Error('no timetable widget in the roster');
+        goPage('tools', n, true);
+        initTimetable();
+      },
+      expect: () => document.querySelectorAll('#s-tools .tmt-box .tmt-day').length === 7
+                    && document.querySelectorAll('#s-tools .tmt-box .tmt-row.is-booked[data-do="job"]').length === 1
+                    && document.querySelectorAll('#s-tools .tmt-box .tmt-row:not(.is-booked)').length === 3,
+      wants: 'seven chips, the booked session locked between three lessons',
+      leave: () => {
+        const was = window.__TMT_JOBS || {};
+        DATA.liveJobs = was.live; DATA.jobs = was.jobs;
+        delete USER.timetable;
+        TMT_DAY = -1; TMT_OPEN = '';
+        initTimetable();
+      } },
+    /* ---------- A CALENDAR WITH EVERY KIND OF DATE ON IT ----------------------------------------
+       The calendar learned six kinds of date — sessions, terms, half terms, bank holidays, closed
+       days, events — and a key under the month. The fixture holds none of them in THIS month (it
+       has no exams, and the bank holidays it carries are whatever month they fall in), so they are
+       seeded through the payload for the month on screen, several on one day so the dots are
+       measured crowded, and put back on the way out. Signed in, because sessions are somebody's. */
+    { name: 'a calendar with every kind of date',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const now = new Date(), y = now.getFullYear(), m = now.getMonth();
+        const on = n => String(n).padStart(2, '0') + '/' + String(m + 1).padStart(2, '0') + '/' + y;
+        window.__CAL_HELD = { live: DATA.liveJobs, jobs: DATA.jobs, intervals: DATA.intervals,
+          closures: DATA.closures, festive: DATA.festive, exams: DATA.exams };
+        DATA.liveJobs = DATA.jobs = [{ id: 'J-CAL', jobId: 'J-CAL', subject: 'Maths', time: '16:00', day: 'Monday',
+          client: USER.name, tutor: 'Ada Tutor', status: 'active', dates: [on(6), on(13), on(20)].join(', '),
+          location: 'Colliers Wood Library', slots: [] }];
+        DATA.intervals = [{ term: 'Autumn 2', label: 'Autumn 2', kind: 'term', startDate: on(2), endDate: '19/12/' + (y + 1) },
+          { term: 'Half Term', label: 'Half Term', kind: 'half-term', startDate: on(26), endDate: on(28) }];
+        DATA.closures = [{ date: on(13), name: 'Staff training', kind: 'inset' }, { date: on(9), name: 'Bank holiday', kind: 'bank' }];
+        DATA.festive = [{ id: 'H1', name: 'Pumpkin carving', venue: 'Colliers Wood Library', date: on(13) }];
+        DATA.exams = [{ personId: USER.personId, who: USER.name, label: 'Small exam', date: on(13), kind: 'mock' },
+          { personId: USER.personId, who: USER.name, subject: 'Maths', label: 'Paper 1', date: on(15), kind: 'exam' }];
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'calendar');
+        if (n < 0) throw new Error('no calendar widget in the roster');
+        goPage('tools', n, true);
+        initCalendar();
+      },
+      expect: () => document.querySelectorAll('#s-tools .cal-key-box .cal-key span').length === 8
+                    && document.querySelector('#s-tools .cal-d .dot.session')
+                    && document.querySelector('#s-tools .cal-d .dot.halfterm'),
+      wants: 'a month with all eight kinds of dot and an eight-entry key under it',
+      leave: () => {
+        const h = window.__CAL_HELD || {};
+        DATA.liveJobs = h.live; DATA.jobs = h.jobs; DATA.intervals = h.intervals;
+        DATA.closures = h.closures; DATA.festive = h.festive; DATA.exams = h.exams;
+        initCalendar();
+      } },
+
     /* ---------- TOUCH TYPING, HALF WAY ALONG A LINE WITH A KEY WRONG ----------------------------
        KEPT ON THE DEVICE, so no fixture can climb the ladder — seeded through the app's own key with
        three rungs open and the third chosen, so the rungs are measured on, open and shut together.

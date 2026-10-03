@@ -229,7 +229,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-03-b-roles";
+const BACKEND_VERSION = "2026-10-03-c-timesync";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -343,7 +343,14 @@ const SCHEMA = {
     "children", "favourite_colour", "exam_small_date", "exam_big_date",
     /* the app's state, which nobody types into */
     "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
-    "friends", "notepad", "todo"
+    "friends", "notepad", "todo",
+    /* THE TIMETABLE WIDGET'S WEEK — what somebody writes down around their sessions. It lived only on
+       the phone it was typed on, so a tutor's standing week on their laptop was not on their phone.
+       ONE CELL OF JSON, `{ weekend, days: [7 lists of { id, at, subject, note }], colours }`, for the
+       docket's reason: nothing links to a lesson, nothing counts it, nobody else reads it — a tab
+       would be ids and a deletion policy for a scrap of paper. Written by `saveTimetable`, own row
+       only; the sessions BOOKED here are not in it, they are read from `jobs` every time. */
+    "timetable"
   ],
   /* ---------- ONE ROW PER QUALIFICATION --------------------------------------------------------
      A qualification is a subject at a level with a grade, from somewhere, finished in a year (or
@@ -1694,7 +1701,18 @@ const DOB_FIELD = /^dob_[dmy]$/;
    is the opposite arrangement and a deliberate one — the long note over `isoDate_` in core.gs says
    why the same control is wrong for a birthday and right for an exam. */
 const DATE_COLS = ['exam_small_date', 'exam_big_date'];
-const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18,19];
+/* ---------- NINE TILL SIX, THE SAME SPAN AS THE BOOKING GRID -------------------------------------
+   THIS RAN TO 19 AND `SLOT_HOURS` IN js/book.js RUNS TO 18, so a tutor could tick seven o'clock in
+   Settings, see it lit on their own week, and never once be booked for it: the booking grid has no
+   seven o'clock column. One fact in two places that disagreed by an hour — history 125 moved the
+   booking end to six because the owner asked for *"9-6"*, and left this end where it was.
+
+   THE NARROWER ONE WINS, because it is the one the owner chose and the one a family can book. An
+   old `m19` already in somebody's `availability` cell is simply not sent (`availGridOut` walks this
+   list) and goes the next time they save — it could never be booked, so nothing is lost but a tick
+   that promised something false. `check-booking.js` holds the two lists equal now; widen BOTH or
+   neither. */
+const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18];
 
 /* ---------- PEOPLE --------------------------------------------------------------------------- */
 const ROLE_LABEL = { admin: 'Admin', tutor: 'Tutor', client: 'Client', student: 'Student' };
@@ -2725,6 +2743,7 @@ const ACTION_ACCESS = {
 
   // A person acting on their own record. Each handler still checks WHOSE row it is.
   updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self', confirmDetails: 'self',
+  saveTimetable: 'self',
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
   /* YOUR OWN PICTURE. The handler writes `photo` on the row the token resolved to and nowhere else. */
   savePhoto: 'self',

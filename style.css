@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-03-answers-chat";
+  --css-version: "2026-10-03-timesync-all";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -2115,6 +2115,11 @@ button.text-drop { color: var(--bad); }
           background: var(--sunk); border: 1px solid var(--line);
           border-left: 4px solid var(--tmt-c, var(--line)); border-radius: var(--r-sm); font: inherit; }
 .tmt-at { flex: 0 0 auto; font: 600 .8rem/1 var(--mono); color: var(--dim); }
+/* A SESSION BOOKED HERE, LOCKED AMONG YOUR OWN LESSONS. Green on its edge and a wash of it behind,
+   because a session is a subject and green is what a subject is everywhere in this app — the colour
+   `Your week`'s blocks carried before they moved in here. Not a hue from `--tmt-*`: those are handed
+   out to what you typed, and a booking is not yours to recolour. */
+.tmt-row.is-booked { border-left-color: var(--green); background: rgb(61 220 132 / .08); }
 .tmt-what { display: flex; flex-direction: column; flex: 1; min-width: 0; gap: .1rem; }
 .tmt-sub { font-size: .88rem; font-weight: 600; line-height: 1.25; overflow-wrap: anywhere; }
 .tmt-note { font-size: .74rem; line-height: 1.3; color: var(--dim); overflow-wrap: anywhere; }
@@ -2383,6 +2388,20 @@ button.text-drop { color: var(--bad); }
 .dot.exam     { background: var(--bad); }     /* the day that matters most */
 .dot.mock     { background: var(--dim); }     /* the same shape of day, lower stakes */
 .dot.birthday { background: var(--green); }
+/* THE DATES THE CALENDAR LEARNED TO SHOW — sessions, terms, half terms, bank holidays, closed days,
+   events. Existing tokens, one each, so no two kinds share a dot; the key under the month says which
+   is which, because nine colours is past what anybody remembers. */
+.dot.session  { background: var(--tag-level); }
+.dot.term     { background: var(--tag-board); }
+.dot.halfterm { background: var(--tag-type); }
+.dot.bank     { background: var(--tag-sitting); }
+.dot.closed   { background: var(--tag-topic); }
+.dot.festive  { background: var(--pink); }
+/* THE KEY: small, quiet, wrapping — a legend under the month, not a second grid. */
+.cal-key { display: flex; flex-wrap: wrap; gap: .25rem .7rem; margin-top: .45rem;
+           font: 400 .66rem/1.3 var(--mono); color: var(--dim); }
+.cal-key span { display: inline-flex; align-items: center; gap: .3rem; }
+.cal-key .dot { width: 6px; height: 6px; }
 /* Today is already gold, so its dots have to be readable against it. */
 .cal .cal-today .dot { background: #000; opacity: .55; }
 .row .dot { margin-right: .35rem; vertical-align: middle; }
@@ -6656,42 +6675,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .ib-x { flex: 0 0 auto; background: none; border: 0; color: #7a7263; font-size: 1rem;
         padding: .3rem .4rem; cursor: pointer; }
 
-/* ==================================================================================================
-   THE WEEK.
-
-   A grid of hours against days, because that is the shape of the question — "when am I next in" is
-   spatial, and a list of cards makes somebody hold four times in their head to answer it.
-
-   ONE COLUMN PER DAY THAT HAS SOMETHING IN IT, set from the markup, so a week nobody works weekends
-   does not spend a third of a phone on Saturday and Sunday.
-================================================================================================== */
-.wk {
-  display: grid;
-  grid-template-columns: 2.2rem repeat(var(--cols), 1fr);
-  gap: 1px;
-  background: rgb(255 255 255 / .07);
-  border: 1px solid rgb(255 255 255 / .07);
-  border-radius: 6px;
-  overflow: hidden;
-  margin-top: .5rem;
-}
-.wk-h, .wk-t, .wk-c { background: var(--card, #101010); min-height: 2.1rem; }
-.wk-h { font: 700 .62rem/2.1rem var(--mono); text-align: center; color: #8a8578;
-        letter-spacing: .06em; }
-/* The hour, right-aligned against its row so the numbers form a column the eye can run down. */
-.wk-t { font: 400 .6rem/2.1rem var(--mono); text-align: right; padding-right: .3rem;
-        color: #6a6559; }
-.wk-c { padding: .15rem .2rem; }
-/* A booked hour. Green because a session is a SUBJECT, which is what green means everywhere else
-   here — the palette is already carrying that meaning and a new colour would dilute it. */
-.wk-c.is-on { background: rgb(61 220 132 / .16); cursor: pointer; }
-.wk-c.is-on b { display: block; font: 700 .6rem/1.15 var(--mono); color: var(--green);
-                overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.wk-c.is-on span { display: block; font: 400 .55rem/1.1 var(--mono); color: #7fa98d;
-                   overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-/* The head of a block gets a brighter top edge, so a two-hour session reads as one thing starting
-   at a moment rather than as two identical hours. */
-.wk-c.is-on.is-head { box-shadow: inset 0 2px 0 var(--green); }
+/* `.wk` AND ITS PARTS WERE HERE — the grid `Your week` drew. That widget is folded into the Timetable
+   (see `tmtBooked_` in games.js), and its one idea, that a booked session is GREEN because a session
+   is a subject, went with it to `.tmt-row.is-booked`. */
 
 /* ==================================================================================================
    THE OVERWORLD.

@@ -120,6 +120,31 @@ function bookableSpaces() {
 }
 
 
+/* ---------- THE DAYS NOBODY IS TAUGHT, AS A LOOKUP ---------------------------------------------
+   `DATA.closures` IS `closures()` in booking.gs — the England and Wales bank holidays worked out, the
+   INSET and closed days off the holidays tab, and any festive event the business is running — one
+   `{ date: 'dd/mm/yyyy', name, kind }` per day. Turned into a set of midnight times once per payload
+   rather than parsed again for every week of every term. Keyed on the array itself, so a new payload
+   (which REPLACES `DATA`) is a new set without anybody remembering to clear one. */
+let CLOSED_ = { of: null, at: {} };
+function closedOn_(d) {
+  const list = (typeof DATA !== 'undefined' && DATA && Array.isArray(DATA.closures)) ? DATA.closures : [];
+  if (CLOSED_.of !== list) {
+    const at = {};
+    list.forEach(c => { const x = parseDMY(c && c.date); if (x) at[x.getTime()] = c; });
+    CLOSED_ = { of: list, at };
+  }
+  const k = new Date(d); k.setHours(0, 0, 0, 0);
+  return CLOSED_.at[k.getTime()] || null;
+}
+
+/* ---------- AND THE WEEKS THEY FALL IN STILL COUNT AS WEEKS -----------------------------------------
+   A BANK HOLIDAY WAS A SESSION. This walked every week from the first day to the last and returned
+   each one, so the Early May bank holiday — always inside Summer 1 — was a date on the receipt, a
+   session in the count and a share of the price, on a day the library is shut and nobody teaches.
+   The half terms were already out (they are between the windows, not inside one); the single days
+   were not. Now a closed date is stepped over, so the dates, the count and the price are the real
+   ones by construction: `priceFrom` bills `sessionDates.length` and has nothing to change. */
 function computeSessionDates(dayName, endDateStr, startDateStr) {
   const DAYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
   const target = DAYS.indexOf(String(dayName||'').toLowerCase().replace(/s$/,''));
@@ -130,7 +155,10 @@ function computeSessionDates(dayName, endDateStr, startDateStr) {
   const d = (winStart && winStart > today) ? new Date(winStart) : new Date(today);
   while (d.getDay() !== target) d.setDate(d.getDate()+1);
   const out = [];
-  while (d <= end && out.length < 60) { out.push(new Date(d)); d.setDate(d.getDate()+7); }
+  while (d <= end && out.length < 60) {
+    if (!closedOn_(d)) out.push(new Date(d));
+    d.setDate(d.getDate()+7);
+  }
   return out;
 }
 

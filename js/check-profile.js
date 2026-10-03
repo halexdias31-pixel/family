@@ -859,11 +859,164 @@ let roleRules = 0;
   }
 }
 
+/* 14. THE DAYS NOBODY IS TAUGHT, THROUGH THE REAL `doGet`.
+   ASKED FOR as part of *"calander and time table and availability ... it seems they clash"*. The phone
+   steps a booking's dates over `DATA.closures`, so what matters is what `doGet` puts in it: the bank
+   holidays worked out for this year and next, an INSET day typed on the holidays tab, and a festive
+   event the business is running — and NOT an observance nobody switched on, which is most of that
+   tab and would otherwise cancel lessons on Valentine's Day. */
+let closed = 0;
+{
+  const f = backend();
+  const y = new Date().getFullYear();
+  f.seed('holidays', [
+    { holiday_id: 'H1', name: 'Staff training', date: '05/01/' + (y + 1), year: y + 1, kind: 'inset' },
+    { holiday_id: 'H2', name: 'Halloween', date: '31/10/' + y, year: y, kind: 'observance', active: 'TRUE',
+      event_name: 'Pumpkin carving', venue: 'Colliers Wood Library', price_per_child: 12 },
+    { holiday_id: 'H3', name: "Valentine's Day", date: '14/02/' + (y + 1), year: y + 1, kind: 'observance', active: 'FALSE' },
+  ]);
+  const got = {};
+  (f.get({}).closures || []).forEach(c => { got[c.date] = c; });
+  const want = (date, kind, said) => {
+    if (got[date] && got[date].kind === kind) closed++;
+    else bad.push('closures: ' + said + ' (' + date + ') is ' + (got[date] ? 'sent as ' + got[date].kind : 'not sent'));
+  };
+  want('25/12/' + y, 'bank', 'Christmas Day this year');
+  const ny = new Date(y + 1, 0, 1);
+  while (ny.getDay() === 0 || ny.getDay() === 6) ny.setDate(ny.getDate() + 1);
+  want('0' + ny.getDate() + '/01/' + (y + 1), 'bank', "next New Year's Day, on the weekday it is kept");
+  want('05/01/' + (y + 1), 'inset', 'the INSET day typed on the holidays tab');
+  want('31/10/' + y, 'festive', 'the Halloween event the business is running');
+  if (got['14/02/' + (y + 1)]) bad.push("closures: Valentine's Day, an observance nobody switched on, closes teaching");
+}
+
+/* 15. A BOOKING BY NAME, AGAINST THE TUTOR'S WEEK, THROUGH THE REAL `createJob`.
+   ASKED FOR AS *"tutor with no hours wont be bookable"*. The grey cells on the booking grid were
+   advice: `createJob` wrote whatever hours it was sent. Now a named tutor is refused when they have
+   ticked no hours at all, when an hour is outside their week, and when they are already teaching it
+   in the weeks this booking runs — and a refusal writes no job. `No preference` books as before, and
+   an older phone that sends no `slots` is checked off its `day` / `time` / `hours`. */
+let hoursRules = 0;
+{
+  const f = backend();
+  const nia = Object.assign({}, tutor, { person_id: 'P-T2', first_name: 'Nia', last_name: 'Nohours',
+    handle: 'nianohours', email: 'nia@example.org', availability: '' });
+  f.seed('people', [admin, tutor, parent, student, nia]);
+  f.seed('config', [{ key: 'max_open_requests', value: 20 }]);
+  const day = n => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d; };
+  const mondayAfter = n => { const d = day(n); while (d.getDay() !== 1) d.setDate(d.getDate() + 1); return d; };
+  const dmy = d => d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+  const plus = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  /* ADA TEACHES MONDAY 09:00 FOR THREE WEEKS FROM NEXT WEEK — her own tick, a live roster. */
+  const m1 = mondayAfter(7);
+  f.seed('jobs', [{ job_id: 'J-ADA', status: 'active', weekday: 'Monday', start_time: '09:00', hours_per_session: 1,
+    subject: 'Maths', venue: 'Online', session_dates: [m1, plus(m1, 7), plus(m1, 14)].map(dmy).join(', ') }]);
+  f.seed('events', [
+    { event_id: 'E1', job_id: 'J-ADA', actor: 'Pat Parent', role: 'client', action: 'Request' },
+    { event_id: 'E2', job_id: 'J-ADA', actor: 'Ada Tutor', role: 'tutor', action: 'Accept', target: 'Pat Parent' }]);
+  const tk = f.post({ action: 'verifyLogin', email: student.email, pin: '0000' });
+  const jobs = () => f.ev('read(TAB.jobs).rows.length');
+  const ask = (tutorName, extra) => {
+    const was = jobs();
+    const d = f.post(Object.assign({ action: 'createJob', token: tk.token, name: 'Sam Student', personId: 'P-S1',
+      requestedTutor: tutorName, subject: 'Maths', level: 'GCSE', location: 'Online', hours: 1, price: 30 }, extra));
+    return { d, wrote: jobs() - was };
+  };
+  const rule = (ok, said) => { if (ok) hoursRules++; else bad.push('tutor hours: ' + said); };
+  if (!tk || !tk.success) bad.push('tutor hours: the student could not sign in — ' + JSON.stringify(tk));
+  else {
+    let r = ask('Nia Nohours', { day: 'Saturday', time: '11:00', slots: 'sa11', dates: dmy(day(40)) });
+    rule(!r.d.success && /hasn.t set their hours/.test(String(r.d.error)) && !r.wrote,
+      'a tutor with no hours was booked by name, or the refusal wrote a job — ' + JSON.stringify(r.d));
+    r = ask('Ada Tutor', { day: 'Saturday', time: '11:00', slots: 'sa11', dates: dmy(day(40)) });
+    rule(r.d.success && r.wrote === 1, 'Ada could not be booked inside her own week (Saturday 11:00) — ' + JSON.stringify(r.d));
+    r = ask('Ada Tutor', { day: 'Sunday', time: '10:00', slots: 'su10', dates: dmy(day(40)) });
+    rule(!r.d.success && /does not teach at Sunday 10:00/.test(String(r.d.error)) && !r.wrote,
+      'an hour outside Ada\'s week was booked, or refused without naming it — ' + JSON.stringify(r.d));
+    r = ask('Ada Tutor', { day: 'Saturday, Sunday', time: '11:00', slots: 'sa11,su10', dates: dmy(day(47)) });
+    rule(!r.d.success && /does not teach at Sunday 10:00/.test(String(r.d.error)) && !r.wrote,
+      'a booking whose SECOND day is outside Ada\'s week went through — ' + JSON.stringify(r.d));
+    r = ask('Ada Tutor', { day: 'Monday', time: '09:00', slots: 'm09', dates: [plus(m1, 7), plus(m1, 14)].map(dmy).join(', ') });
+    rule(!r.d.success && /already teaching at Monday 9:00|already teaching at Monday 09:00/.test(String(r.d.error)) && !r.wrote,
+      'Monday 09:00 was sold twice in the weeks Ada already teaches it — ' + JSON.stringify(r.d));
+    r = ask('Ada Tutor', { day: 'Monday', time: '09:00', slots: 'm09', dates: [plus(m1, 70), plus(m1, 77)].map(dmy).join(', ') });
+    rule(r.d.success && r.wrote === 1, 'Monday 09:00 after Ada\'s session has ended was refused as busy — ' + JSON.stringify(r.d));
+    r = ask('No preference', { day: 'Sunday', time: '10:00', slots: 'su10', dates: dmy(day(40)) });
+    rule(r.d.success && r.wrote === 1, 'a booking with no tutor named was refused — ' + JSON.stringify(r.d));
+    r = ask('Ada Tutor', { day: 'Sunday', time: '10:00', dates: dmy(day(54)) });
+    rule(!r.d.success && /does not teach at Sunday 10:00/.test(String(r.d.error)) && !r.wrote,
+      'an older phone sending no slots booked Ada outside her week — ' + JSON.stringify(r.d));
+  }
+}
+
+/* 16. THE TIMETABLE, KEPT ON THE ACCOUNT, THROUGH THE REAL `doPost`.
+   It lived on one phone. `saveTimetable` writes the `timetable` cell of the row the TOKEN resolves to
+   (the docket's `savePerson`), so: it lands on yours; a request naming somebody else still lands on
+   yours; signed out is refused with nothing written; something that is not the widget's shape is
+   refused with nothing written; and the sign-in reply carries it back, which is how another phone
+   gets it. */
+let timetables = 0;
+{
+  const f = backend();
+  f.seed('people', PEOPLE);
+  const tk = {};
+  ['P-S1', 'P-C1'].forEach(pid => {
+    const p = PEOPLE.find(x => x.person_id === pid);
+    const d = f.post({ action: 'verifyLogin', email: p.email, pin: '0000' });
+    if (d && d.success) tk[pid] = d; else bad.push('timetable: ' + pid + ' could not sign in — ' + JSON.stringify(d));
+  });
+  const week = subj => JSON.stringify({ weekend: false, colours: {},
+    days: [[{ id: 'L1', at: '09:00', subject: subj, note: '' }], [], [], [], [], [], []] });
+  const rule = (ok, said) => { if (ok) timetables++; else bad.push('timetable: ' + said); };
+  if (tk['P-S1'] && tk['P-C1']) {
+    const parentWas = String(f.row('P-C1').timetable);
+    const mine = f.post({ action: 'saveTimetable', token: tk['P-S1'].token, name: tk['P-S1'].name, personId: 'P-S1', timetable: week('Maths') });
+    rule(mine && mine.success && /Maths/.test(String(f.row('P-S1').timetable)), 'a student could not keep their timetable — ' + JSON.stringify(mine));
+    const other = f.post({ action: 'saveTimetable', token: tk['P-S1'].token, name: 'Pat Parent', personId: 'P-C1', timetable: week('Latin') });
+    rule(String(f.row('P-C1').timetable) === parentWas && /Latin/.test(String(f.row('P-S1').timetable)),
+      'a saveTimetable naming P-C1 wrote the PARENT\'s cell, or not the asker\'s — ' + JSON.stringify(other));
+    const out = f.post({ action: 'saveTimetable', name: 'Sam Student', personId: 'P-S1', timetable: week('Art') });
+    rule(!(out && out.success) && !out.writes, 'saveTimetable with no token was allowed, or wrote');
+    ['not json', JSON.stringify({ days: [[], []] }), JSON.stringify({ days: 'monday' })].forEach(junk => {
+      const was = String(f.row('P-S1').timetable);
+      const d = f.post({ action: 'saveTimetable', token: tk['P-S1'].token, name: tk['P-S1'].name, personId: 'P-S1', timetable: junk });
+      rule(!(d && d.success) && String(f.row('P-S1').timetable) === was, 'a timetable of the wrong shape (' + junk.slice(0, 20) + ') was kept');
+    });
+    const again = f.post({ action: 'verifyLogin', email: student.email, pin: '0000' });
+    rule(again && /Latin/.test(String(again.timetable)), 'the sign-in reply does not carry the timetable back — ' + String(again && again.timetable));
+  }
+}
+
+/* 17. A STUDENT'S TWO EXAM DATES REACH THE CALENDAR, ONCE EACH, THROUGH THE REAL `doGet`.
+   `exam_small_date` and `exam_big_date` are written in Settings and the Calendar read only the exams
+   tab. `doGet` merges the two cells into `exams` now — a mock and an exam — under the tab's own
+   `maySee`, and a date the tab already holds for that person is the tab's row, not a second dot. */
+let examDates = 0;
+{
+  const f = backend();
+  f.seed('people', PEOPLE);
+  f.seed('exams', [{ exam_id: 'X1', person_id: 'P-S1', subject: 'Maths', label: 'Paper 1', exam_date: '10/06/2027', kind: 'exam', active: 'TRUE' }]);
+  const tok = pid => f.post({ action: 'verifyLogin', email: PEOPLE.find(p => p.person_id === pid).email, pin: '0000' });
+  const s = tok('P-S1'), c = tok('P-C1'), a = tok('P-A1');
+  const of = (t, pid) => (f.get({ token: t.token }).exams || []).filter(x => x.personId === pid)
+    .map(x => x.date + ' ' + x.kind + ' ' + (x.subject || x.label)).sort().join(', ');
+  const rule = (ok, said) => { if (ok) examDates++; else bad.push('exam dates: ' + said); };
+  if (s && s.success && c && c.success && a && a.success) {
+    const mine = of(s, 'P-S1');
+    rule(mine === '10/06/2027 exam Maths, 14/05/2027 mock Small exam',
+      'the student\'s own calendar holds [' + mine + '], wanted the tab\'s Maths on 10/06 once and the Small exam on 14/05');
+    rule(of(a, 'P-S1') === mine, 'the admin is not sent the student\'s exam dates');
+    rule(of(c, 'P-S1') === '', 'a parent who is not the student\'s family was sent their exam dates: ' + of(c, 'P-S1'));
+  } else bad.push('exam dates: somebody could not sign in');
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
 console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
-  + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   role rules held: ' + roleRules);
+  + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   role rules held: ' + roleRules
+  + '   closed days sent: ' + closed + '   tutor-hours rules held: ' + hoursRules + '   timetable rules held: ' + timetables
+  + '   exam-date rules held: ' + examDates);
 if (bad.length) {
   console.log('FAILED — a Save that does not stick, or writes what nobody asked, is the one on the screen that only exists to change what the sheet holds.');
   process.exit(1);

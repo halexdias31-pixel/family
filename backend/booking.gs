@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-10-03-b-roles";
+const BOOKING_VERSION = "2026-10-03-c-timesync";
 
 
 /**
@@ -544,9 +544,26 @@ function sendInvite(jobId, fromName, toEmail, toName) {
  * commas, and each of them is busy for the span the job states — see the note inside, and the
  * double booking that reading the cell as one day name allowed.
  */
-function busyHours(tutorName) {
+/* ---------- AND ONLY WHILE THE SESSION IS RUNNING -----------------------------------------------
+   IT HAD NO DATES AT ALL, so a tutor who taught Mondays at ten last spring was busy on Mondays at
+   ten for ever — the grey cell on the booking grid outlived the booking by years — and a tutor
+   booked for next term was busy today. A job counts while its dates are live: from its first
+   session date to its last.
+
+   `from` / `to` IS THE WINDOW BEING ASKED ABOUT, and it defaults to today. `doGet` asks about today,
+   which is what the grid and the card draw. `createJob` asks about the booking's OWN dates, because
+   a booking for next term that clashes with a session starting next term is a double booking even
+   though neither is running yet — and that is the question the grey cells cannot answer and the
+   server can.
+
+   A JOB WITH NO DATES COUNTS, whatever the window. It is a request nobody has put in the diary, and
+   of the two ways to be wrong — offering an hour that is taken, or holding one that is free — only
+   the first sells the same hour twice. */
+function busyHours(tutorName, from, to) {
   const out = {};
   if (!S(tutorName)) return out;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const lo = from || today, hi = to || lo;
   const DAY = { monday: 'm', mon: 'm', tuesday: 'tu', tue: 'tu', wednesday: 'w', wed: 'w',
                 thursday: 'th', thu: 'th', friday: 'f', fri: 'f',
                 saturday: 'sa', sat: 'sa', sunday: 'su', sun: 'su' };
@@ -579,6 +596,9 @@ function busyHours(tutorName) {
 
        The note above this function said "one weekday and one time, repeating". That was true when
        it was written and stopped being true when the grid grew days. */
+    const when = sessionDatesOf(j).map(sheetDate).filter(Boolean).sort((a, b) => a - b);
+    if (when.length && (when[when.length - 1] < lo || when[0] > hi)) return;
+
     const days = String(S(j.weekday)).split(',').map(x => DAY[norm(x)]).filter(Boolean);
     if (!days.length) return;
     const from = Number(String(fmtTime(j.start_time)).split(':')[0]);
@@ -591,6 +611,69 @@ function busyHours(tutorName) {
     });
   });
   return out;
+}
+
+/* ---------- THE HOURS A BOOKING ASKS FOR, AS THE GRID'S OWN CODES -------------------------------------
+   `slots` is what the phone sends now — every hour ticked, `m16,m17,f10`. An older phone sends only
+   the job row's three cells (`day` joined with commas, `time`, `hours`), which is the first run on
+   every named day: the same reading `busyHours` makes of a saved job, and the safe one. */
+const DAY_CODE_ = { monday: 'm', mon: 'm', tuesday: 'tu', tue: 'tu', wednesday: 'w', wed: 'w',
+                    thursday: 'th', thu: 'th', friday: 'f', fri: 'f',
+                    saturday: 'sa', sat: 'sa', sunday: 'su', sun: 'su' };
+function bookingCodes_(body) {
+  const sent = S(body.slots).split(',').map(x => norm(x)).filter(x => /^(m|tu|w|th|f|sa|su)\d{2}$/.test(x));
+  if (sent.length) return sent;
+  const from = Number(String(fmtTime(body.time)).split(':')[0]);
+  if (!S(body.time) || !isFinite(from)) return [];
+  const hours = Math.max(1, N(body.hours) || 1);
+  const out = [];
+  S(body.day).split(',').map(x => DAY_CODE_[norm(x)]).filter(Boolean).forEach(d => {
+    for (let h = from; h < from + hours; h++) out.push(d + String(h).padStart(2, '0'));
+  });
+  return out;
+}
+
+/* A CODE AS A PERSON SAYS IT — `m16` is `Monday 16:00`. */
+function codeSaid_(c) {
+  const p = String(c).replace(/\d+$/, ''), h = String(c).slice(p.length);
+  const day = Object.keys(DAY_CODE_).find(k => DAY_CODE_[k] === p && k.length > 3) || p;
+  return day.charAt(0).toUpperCase() + day.slice(1) + ' ' + h + ':00';
+}
+
+/* ---------- A BOOKING BY NAME MUST FIT THE TUTOR'S WEEK, AND NOT LAND ON ANOTHER SESSION -------------
+   ASKED FOR AS *"tutor with no hours wont be bookable"*, and the grey cells on the booking grid were
+   the only thing standing between a family and a tutor's Sunday: `createJob` wrote whatever hours it
+   was sent. The grid is drawn from a payload that can be an hour old and a request can be built by
+   hand, so the rule is asked again here, of the row itself:
+
+     · NO HOURS AT ALL — the tutor has not said when they teach, so nobody can book them by name.
+     · AN HOUR THEY HAVE NOT TICKED — outside their week.
+     · AN HOUR THEY ARE ALREADY TEACHING — `busyHours` over THIS booking's own dates, so a session
+       next term clashes with one that starts next term even though neither is running today.
+
+   Answers the sentence to send back, or '' to go on. A booking with no tutor named never comes
+   here: the business matches it, which is what `No preference` has always meant. */
+function tutorHoursRefusal_(row, body) {
+  const who = personDisplayName(row);
+  const have = availSet(row.availability);
+  if (!Object.keys(have).length) {
+    return who + ' hasn\u2019t set their hours yet, so they cannot be booked by name. '
+      + 'Choose No preference, or another tutor.';
+  }
+  const codes = bookingCodes_(body);
+  const off = codes.filter(c => !have[c]);
+  if (off.length) {
+    return who + ' does not teach at ' + off.slice(0, 3).map(codeSaid_).join(', ')
+      + (off.length > 3 ? ' and ' + (off.length - 3) + ' more' : '') + '. Pick hours from their week.';
+  }
+  const dates = S(body.dates).split(',').map(sheetDate).filter(Boolean).sort((a, b) => a - b);
+  const busy = busyHours(who, dates[0], dates[dates.length - 1]);
+  const taken = codes.filter(c => busy[c]);
+  if (taken.length) {
+    return who + ' is already teaching at ' + taken.slice(0, 3).map(codeSaid_).join(', ')
+      + ' in those weeks. Pick other hours, or No preference.';
+  }
+  return '';
 }
 
 /* ==================================================================================================
@@ -1086,13 +1169,8 @@ function festiveOffers() {
   const day = 864e5;
 
   return t.rows.filter(r => {
-    if (!ON_(r.active)) return false;
+    if (!festiveReady_(r)) return false;
     const when = sheetDate(r.date);
-    if (!when) return false;
-    /* READY, or not offered. Said as three separate conditions rather than one, because the health
-       report should eventually be able to say WHICH of them is missing. */
-    if (!S(r.venue)) return false;
-    if (!(N(r.price_per_child) > 0)) return false;
 
     const opens = N(r.opens_days) || 21;
     /* A DEFAULT OF ZERO WOULD BE A TRAP: a row where nobody filled the trailing days in would
@@ -1127,6 +1205,96 @@ function festiveOffers() {
       jobId: jobs.length ? S(jobs[0].job_id) : '',
     };
   });
+}
+
+/* READY, or not offered — and, since the calendar learned to close on one, not a closure either.
+   Said as separate conditions rather than one, because the health report should eventually be able
+   to say WHICH of them is missing. Lifted out of `festiveOffers` so `closures` asks the same
+   question: an event the business is actually running, on a date, at a place, for a price. */
+function festiveReady_(r) {
+  if (!ON_(r.active)) return false;
+  if (!sheetDate(r.date)) return false;
+  if (!S(r.venue)) return false;
+  if (!(N(r.price_per_child) > 0)) return false;
+  return true;
+}
+
+/* ==================================================================================================
+   THE DAYS NOBODY IS TAUGHT, INSIDE A TERM.
+
+   ASKED FOR as part of *"calander and time table and availability ... it seems they clash"*. The
+   booking walked every week from the first Monday of a term to the last and charged for each one —
+   so the Early May bank holiday, which always falls inside Summer 1, was a session on the receipt and
+   a session nobody turned up to. The term windows already leave out the half terms; nothing left out
+   the single days.
+
+   THREE KINDS OF DAY, ONE LIST:
+     · ENGLAND AND WALES BANK HOLIDAYS, worked out rather than typed — Easter is computed already for
+       the school year, and the rest are "the first Monday in May" and its kind. Substitute days
+       follow the gov.uk rule: a New Year's Day at the weekend moves to the Monday; Christmas and
+       Boxing Day at the weekend move to the next weekdays not already taken.
+     · INSET AND CLOSED DAYS, which no formula can know: a row on the holidays tab with `kind` set to
+       `inset` or `closed`. The same tab carries a one-off bank holiday — a coronation, a jubilee — as
+       a `bank` row, which is how a year the formula gets wrong is put right without a deploy.
+     · A FESTIVE EVENT THE BUSINESS IS RUNNING (`festiveReady_`), because the tutors and the room are
+       at the party that day.
+
+   SENT AS `DATA.closures`, ONE ROW PER DATE, and `computeSessionDates` on the phone steps over every
+   one of them — so the dates on a receipt, the number of sessions and the price are all the real
+   count, and the Calendar marks the same days from the same list.
+================================================================================================== */
+function bankHolidays(y) {
+  const out = [];
+  const at = (m, d) => new Date(y, m, d);
+  const e = easter(y);
+  const eas = new Date(e.getUTCFullYear(), e.getUTCMonth(), e.getUTCDate());
+  const shift = (d, n) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n);
+  const weekday = d => d.getDay() !== 0 && d.getDay() !== 6;
+  /* The nth Monday of a month (n = -1 for the last), in local time — `nth` above answers in UTC for
+     the school year, and a bank holiday is a local date. */
+  const monday = (m, n) => {
+    if (n > 0) { const f = at(m, 1); return shift(f, ((8 - f.getDay()) % 7) + (n - 1) * 7); }
+    const l = new Date(y, m + 1, 0); return shift(l, -((l.getDay() + 6) % 7));
+  };
+  let ny = at(0, 1);
+  while (!weekday(ny)) ny = shift(ny, 1);
+  out.push({ date: ny, name: "New Year's Day" });
+  out.push({ date: shift(eas, -2), name: 'Good Friday' });
+  out.push({ date: shift(eas, 1), name: 'Easter Monday' });
+  out.push({ date: monday(4, 1), name: 'Early May bank holiday' });
+  out.push({ date: monday(4, -1), name: 'Spring bank holiday' });
+  out.push({ date: monday(7, -1), name: 'Summer bank holiday' });
+  /* CHRISTMAS AND BOXING DAY TAKE THE NEXT TWO WEEKDAYS FROM THE 25TH that the other has not, in
+     order — which is the whole of the substitute rule: on a Saturday Christmas, Monday the 27th and
+     Tuesday the 28th; on a Sunday one, Boxing Day keeps Monday the 26th and Christmas takes Tuesday. */
+  let c = at(11, 25), b = at(11, 26);
+  if (!weekday(c) && !weekday(b)) { c = at(11, 27); b = at(11, 28); }
+  else if (!weekday(c)) { c = at(11, 27); }
+  else if (!weekday(b)) { b = at(11, 28); }
+  out.push({ date: c, name: 'Christmas Day' }, { date: b, name: 'Boxing Day' });
+  return out;
+}
+
+/* EVERY CLOSED DAY FROM LAST YEAR TO NEXT, as `{ date: 'dd/mm/yyyy', name, kind }`. Three calendar
+   years covers any term `doGet` sends (it sends the next twelve months) and every session date a
+   live job can still have. The tab wins a date over the formula, so a moved bank holiday is named
+   the way somebody typed it. */
+function closures() {
+  const byDate = {};
+  const put = (d, name, kind) => { const k = fmtDate(d); if (k) byDate[k] = { date: k, name: S(name), kind: kind }; };
+  const y = new Date().getFullYear();
+  [y - 1, y, y + 1].forEach(yr => bankHolidays(yr).forEach(h => put(h.date, h.name, 'bank')));
+  try {
+    const t = read(TAB.holidays);
+    (t.sheet ? t.rows : []).forEach(r => {
+      const when = sheetDate(r.date);
+      if (!when) return;
+      const k = norm(r.kind);
+      if (k === 'inset' || k === 'closed' || k === 'bank') put(when, r.name || k, k === 'bank' ? 'bank' : 'inset');
+      else if (festiveReady_(r)) put(when, S(r.event_name) || S(r.name), 'festive');
+    });
+  } catch (err) { /* no tab yet: the computed bank holidays are still right */ }
+  return Object.keys(byDate).map(k => byDate[k]);
 }
 
 /* ---------- daily trigger --------------------------------------------------------------------

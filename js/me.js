@@ -188,9 +188,8 @@ function meRest_() {
           one thing on this column you READ rather than act on, and it needs the width.
           `ME_SPLIT` already makes separate panes, so it gets one. */''}
     ${ME_SPLIT}
-    ${/* `Your week` IS A TOOL NOW, in the drawer with the calendar and the notepad — see `WIDGETS`
-          in map.js. It was a card here that, for most people most of the time, said only that there
-          was nothing to show. */''}
+    ${/* `Your week` WAS A CARD HERE, then a tool in the drawer, and is the Timetable's now — the
+          booked sessions are drawn into that week, locked. See the note where it stood in map.js. */''}
     ${ME_SPLIT}
     ${/* ---------- SOMEBODY WANTS TO ADD YOU TO THEIR FAMILY -----------------------------------
           FIRST, ABOVE EVERYTHING. A claim is somebody saying they are your parent, and it sits
