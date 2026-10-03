@@ -145,6 +145,12 @@ const SUITE = [
      perimeter finds the trundle wheel. The export's own spelling, `Perimeter and area`, reached one
      question out of ninety-four — a join that looks like a feature and returns the wrong list. */
   { file: 'check-practicals.js', what: 'the practicals, and the topics they join to' },
+  /* ---------- AND THEIR SIBLING, WHICH IS NOT ONE OF THEM ---------------------------------------
+     "the projects are like practicles, but not practicles." The same join and the same kit rule,
+     plus the three things a project can break that a practical cannot: a subject or level the
+     funnel's tables do not place (which stands a whole question down), a kind missing from
+     `What kind`, and a step that tells a child to put their work online. */
+  { file: 'check-projects.js', what: 'the projects: topics, the funnel tables, nothing sent online' },
   { file: 'check-quizzes.js', what: 'the quizzes: an answer that can be reached, and why' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
      A clip whose path is one character wrong does not draw a broken link. The slide stays its own
