@@ -145,6 +145,12 @@ const SUITE = [
      perimeter finds the trundle wheel. The export's own spelling, `Perimeter and area`, reached one
      question out of ninety-four — a join that looks like a feature and returns the wrong list. */
   { file: 'check-practicals.js', what: 'the practicals, and the topics they join to' },
+  /* ---------- AND THEIR SIBLING, WHICH IS NOT ONE OF THEM ---------------------------------------
+     "the projects are like practicles, but not practicles." The same join and the same kit rule,
+     plus the three things a project can break that a practical cannot: a subject or level the
+     funnel's tables do not place (which stands a whole question down), a kind missing from
+     `What kind`, and a step that tells a child to put their work online. */
+  { file: 'check-projects.js', what: 'the projects: topics, the funnel tables, nothing sent online' },
   { file: 'check-quizzes.js', what: 'the quizzes: an answer that can be reached, and why' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
      A clip whose path is one character wrong does not draw a broken link. The slide stays its own
@@ -268,6 +274,12 @@ const SUITE = [
      both — so only the order in the file decides which wins. The general form reported 1,001
      findings and was the `check-rows.js` noise generator; this reports none. */
   { file: 'check/cascade.js', what: 'which CSS rule wins, and whether order alone decided it', slow: true },
+  /* ---------- AND WHETHER THE PICTURE A FAMILY IS SENT IS THE BOOKING THEY SAW ------------------
+     *"just make sure sharing booking is an identical jpg or png or whatevers best of the booking
+     reciept."* Identical is a claim about pixels, and jsdom has none: `check-flow` proves the share
+     path hands over a PNG file, this proves the PNG is the card. No port — it serves the files
+     through Playwright's own router, so it cannot collide with the five above. */
+  { file: 'check/share.js',   what: 'the shared picture of a booking, against the booking on the screen', slow: true },
 ];
 
 let failed = 0, noted = 0;

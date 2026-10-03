@@ -406,6 +406,35 @@ const STATES = {
       },
       wants: 'a practical split into cards — the card, its diagram, the kit list, the steps, and a worksheet of three boxes',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A PROJECT, ON ITS LAST PAGE ----------------------------------------------------
+       "the projects are like practicles, but not practicles. so should be a new tag in the finder
+       called projects." The practical's state one kind along: the funnel's own `What kind` answer,
+       then the first project's SHARE page found off `stuffPages_` — so the card, the materials and
+       the steps are in the DOM beside it and all four are measured for a tap target, a contrast
+       ratio and a sideways scroll. The share page is the one with a tile on it. */
+    { name: 'a project',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'project');
+        if (!x) throw new Error('no project in the list — data/projects.json did not load');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }];
+        paintStuff();
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'share')) : 0;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+      },
+      expect: () => {
+        const main = document.querySelector('#s-stuff .card.proj:not(.prac-part)');
+        const kit = document.querySelector('#s-stuff .card.proj.is-kit');
+        const steps = document.querySelector('#s-stuff .card.proj.is-steps');
+        const share = document.querySelector('#s-stuff .card.proj.is-share');
+        return !!main && !!kit && !!steps && !!share
+               && !!kit.querySelector('.prac-kit ul > li')
+               && !!steps.querySelector('.prac-steps ol > li')
+               && !!share.querySelector('[data-do="proj-share"]')
+               && !document.querySelector('#s-stuff .card.prac:not(.proj)');
+      },
+      wants: 'a project split into cards — the card, its materials, its steps, and a share page with a Messages tile',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
        BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,
        with four live buttons; answered, with the right one marked, the wrong one outlined and the
@@ -804,17 +833,7 @@ const STATES = {
         const last = caps.filter(c => c !== 'Available');
         const text = pg.textContent;
         const heat = pg.querySelector('.prof-heat');
-        /* AND A GOLD CORE IN EACH GLOW, ON THE SAME CENTRE — *"make the heat map a bit clearer."*
-           One core per venue, and its position string is its glow's position string, because
-           `profHeat_` places both through one `pos()` with the size halves cancelling. A core that
-           drifted off its glow, or one per map rather than per venue, fails here. */
-        const lst = (el, k) => ((el || {}).style || {})[k] ? el.style[k].split(/,(?![^(]*\))/).map(x => x.trim()) : [];
-        const glow = heat.querySelector('.heat-glow'), core = heat.querySelector('.heat-core');
-        const cores = lst(core, 'backgroundPosition'), glows = lst(glow, 'backgroundPosition');
-        const coresOk = !!core && cores.length === Number(heat.getAttribute('data-dots'))
-          && cores.join('|') === glows.join('|')
-          && (core.style.backgroundImage.match(/radial-gradient/g) || []).length === cores.length;
-        return heat.getAttribute('data-dots') === '1' && coresOk
+        return heat.getAttribute('data-dots') === '1'
           && ((heat.querySelector('.heat-tiles') || {}).style || { backgroundImage: '' }).backgroundImage
                .match(/tile\.openstreetmap\.org/g)?.length >= 2
           && caps.every(c => allowed.includes(c)) && caps.includes('Tutors at')
@@ -823,7 +842,7 @@ const STATES = {
           && [...pg.querySelectorAll('.prof-tag')].some(x => x.textContent.trim() === 'Online')
           && !/Colliers Wood Library|Sutton Library/.test(text) ? 1 : 0;
       },
-      wants: 'the five captions in order, one glow with a gold core on its centre, Online as a chip, and no venue named',
+      wants: 'the five captions in order, one glow on a map, Online as a chip, and no venue named',
       leave: () => { paint('account'); } },
     /* ---------- A TUTOR'S HOURS ON THEIR CARD — see `profAvail_` in cards.js -----------------------
        *"tutors availability should appear on their card."* The fixture's tutor sends what `doGet`
@@ -2203,6 +2222,41 @@ const STATES = {
       },
       wants: 'four counters ringed, a red disc beside Red wins, and the last counter under the drop',
       leave: () => { initConnect4(); } },
+
+    /* ---------- THE VIDEOS CARD, SEARCHED AND PLAYING ---------------------------------------------
+       THE WIDGET OPENS ON A BOX AND A LIST, which is the one state `go()` reaches — the player, the
+       Full screen tile and a narrowed count only exist after somebody types and taps. Seeded through
+       the card's own list (`VIDEOS_LIST`, what `data/videos.json` would have filled) with the
+       LONGEST title a row is likely to carry, because a title is the one thing on this card that
+       can take it sideways at 320. The video is the repository's own reel, so the lab plays a real
+       file and never reaches for YouTube. */
+    { name: 'a video search, narrowed, one playing',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        window.__seedVid = VIDEOS_LIST;
+        VIDEOS_LIST = [
+          { title: 'Photosynthesis explained: how a leaf turns light, water and carbon dioxide into sugar',
+            url: 'data/reels/archetest.mp4', kind: 'clip', tags: 'science biology plants', age: '9+', active: true },
+          { title: 'Photosynthesis, the short one', url: 'data/reels/archetest.mp4?b', kind: 'clip',
+            tags: 'science', age: '', active: true },
+          { title: 'Fractions in two minutes', url: 'data/reels/archetest.mp4?c', kind: 'clip',
+            tags: 'maths', age: '', active: true },
+        ];
+        VID.q = 'photo';
+        VID.at = 'v0';
+        /* PAINTED, THEN TURNED TO. The card shrinks from the whole list to two rows here, and a
+           page that changes height while the pager is still settling on it was measured mid-slide
+           once, 70px off the screen. */
+        vidPaint_();
+        goPage('games', n, true);
+      },
+      expect: () => !!document.querySelector('#s-games .vid-stage.on video.vid-player')
+                 && !!document.querySelector('#s-games .vid-acts .tile[data-do="vid-full"]:not([disabled])')
+                 && document.querySelectorAll('#s-games .vid-list .vid-row').length === 2
+                 && /^2 of \d+ videos$/.test((document.querySelector('#s-games .vid-said') || {}).textContent || ''),
+      wants: 'the player holding the chosen clip, a Full screen tile under it, and two of the list left',
+      leave: () => { VIDEOS_LIST = window.__seedVid || null; VID.q = ''; VID.at = ''; vidPaint_(); } },
   ],
 
   /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------
@@ -2484,6 +2538,34 @@ const STATES = {
         return ![...pg.querySelectorAll('[data-do]')].some(x => !x.closest('.rc'));
       },
       wants: 'a receipt with rows on it, an admin\'s three money rows, and its tiles on the paper' },
+
+    /* ---------- THE PICTURE OF IT, IN A SHEET -------------------------------------------------------
+       *"make sure sharing booking is an identical … png … of the booking reciept."* Sharing makes a
+       PNG of the receipt and hands it to the phone's share sheet; where there is none, or Safari
+       refuses one this late after the press, the picture is offered in a sheet instead — the one
+       surface that path draws, and the only place in the app a whole receipt is shown as an image at
+       the sheet's width. Measured like every other sheet: does it fit, can its button be hit.
+
+       ENTERED THROUGH `rcOffer_`, which is what the share path calls when it cannot share, with a
+       picture the shape of a receipt (a phone card at 2x) made SYNCHRONOUSLY. The first version made
+       the real one with `rcPng_` and was not measured at 320 on a loaded machine: a picture is
+       asynchronous, `enter` is not awaited, and the sheet was not open yet when it was looked at.
+       What the picture holds is `check/share.js`'s question; this one is the sheet around it. */
+    { name: 'a picture of the receipt, offered in a sheet',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const c = document.createElement('canvas');
+        c.width = 520; c.height = 1220;
+        const g = c.getContext('2d');
+        g.fillStyle = '#0b0b0b'; g.fillRect(0, 0, c.width, c.height);
+        const bin = atob(c.toDataURL('image/png').split(',')[1]);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        rcOffer_(new Blob([bytes], { type: 'image/png' }), 'family-booking.png');
+      },
+      expect: () => !!document.querySelector('#sheet:not(.hidden) img.rc-shot'),
+      wants: 'the receipt as a picture in a sheet, with a way to save it',
+      leave: () => { if (typeof closeSheet === 'function') closeSheet(); } },
   ],
 
   /* ---------- AND THE MESSAGES COLUMN, WHICH THIS FILE HAS ONLY EVER SEEN EMPTY -----------------

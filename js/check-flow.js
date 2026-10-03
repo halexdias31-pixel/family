@@ -1306,15 +1306,17 @@ check('the word search hides every word where it says, and two taps find it', as
    ASKED FOR AS "make a widget in games column purley dedicatied for contest. make it a place holder
    for now." Two things a placeholder can get wrong without drawing badly: arriving anywhere but
    LAST, which moves every page `PAGE.games` has remembered by one, and growing a control before
-   there is anything behind it, which is a button that does nothing. */
-check('the contest placeholder is the last card on the Games column, says so, and has nothing to press', async () => {
+   there is anything behind it, which is a button that does nothing.
+   "LAST" BECAME "STRAIGHT AFTER `reels`" when Videos was appended behind it, for the same reason —
+   the rule was never that contest is last for ever, it was that nothing was inserted above. */
+check('the contest placeholder comes straight after One more thing on the Games column, says so, and has nothing to press', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t;
   const bad = [];
   const roster = t.widgetsOf('game').map(x => String(x.id));
   if (roster.indexOf('contest') === -1) return ['there is no contest widget on the Games column'];
-  if (roster[roster.length - 1] !== 'contest') bad.push('contest is not the last game: ' + roster.join(', '));
+  if (roster.indexOf('contest') !== roster.indexOf('reels') + 1) bad.push('contest does not come straight after reels: ' + roster.join(', '));
   t.go('games', false, true);
   await wait(LEAVE_MS);
   const slot = w.document.querySelector('#s-games #wgt-contest');
@@ -1324,6 +1326,127 @@ check('the contest placeholder is the last card on the Games column, says so, an
   if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
   const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
   if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  return bad;
+});
+
+/* ---------- LEGO TRADE-IN: THE LAST CARD ON THE TOOLS COLUMN, AND NOTHING ON IT TO PRESS ------------
+   ASKED FOR AS "the lego trade in should be a widget in tools. you dont have to make it just leave a
+   placeholder." The contest journey's two questions on the other column: appended LAST, so no page
+   `PAGE.tools` remembers moves, and no control before there is anything behind one. */
+check('the LEGO trade-in placeholder is the last card on the Tools column, says so, and has nothing to press', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  const roster = t.widgetsOf('tool').map(x => String(x.id));
+  if (roster.indexOf('legotrade') === -1) return ['there is no legotrade widget on the Tools column'];
+  if (roster[roster.length - 1] !== 'legotrade') bad.push('legotrade is not the last tool: ' + roster.join(', '));
+  t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  const slot = w.document.querySelector('#s-tools #wgt-legotrade');
+  if (!slot) return bad.concat(['the LEGO trade-in card did not draw on the Tools column']);
+  const h = slot.querySelector('h3');
+  if (!h || h.textContent.trim() !== 'LEGO trade-in') bad.push('the card is not headed LEGO trade-in');
+  if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
+  const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
+  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  return bad;
+});
+
+/* ---------- VIDEOS: TYPING NARROWS, A TAP PLAYS IN THE CARD, FULL SCREEN ASKS FOR FULL SCREEN -------
+   ASKED FOR AS "videos would be in the games column. its one new widget. its a video searcher you
+   type in. and there should be a full screen button." Each half can fail while the card still draws
+   perfectly well: a box whose list does not change as you type, a row that is tapped and plays
+   nothing (or plays in the wrong element — a YouTube link in a `<video>` is a black box), a switched-
+   off row that shows anyway, and a Full screen tile that is pressed and asks nobody for anything.
+   And the `contest` rule again: the card is appended LAST, so no remembered page moves.
+
+   THE LIST IS THE JOURNEY'S OWN, served where the app asks for `data/videos.json`, so the rows are
+   known here rather than whatever the owner has typed in by the time this runs. The built-in reels
+   ride along, which is the point — the box searches them too. */
+check('the videos widget is last on Games: typing narrows the list, a tap plays it in the card, full screen asks the player', async () => {
+  const rows = [
+    { title: 'How volcanoes erupt', url: 'https://www.youtube.com/watch?v=abcdefghijk', kind: 'clip',
+      tags: 'science earth', age: '7+', notes: '', active: true },
+    { title: 'Fractions in two minutes', url: 'data/reels/fractions.mp4', kind: 'clip',
+      tags: 'maths', age: '', notes: '', active: '' },
+    { title: 'A switched-off volcano', url: 'https://youtu.be/zyxwvutsrqp', kind: 'clip',
+      tags: 'science', age: '', notes: '', active: false },
+  ];
+  let asked = 0;
+  const full = [];
+  const { w } = boot({ before: win => {
+    const f0 = win.fetch;
+    win.fetch = (url, o) => {
+      if (/data\/videos\.json/.test(String(url))) {
+        asked++;
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(rows),
+                                 text: () => Promise.resolve(JSON.stringify(rows)) });
+      }
+      return f0(url, o);
+    };
+    /* JSDOM HAS NO FULL SCREEN, so the journey stands in for it and writes down who asked. */
+    win.HTMLElement.prototype.requestFullscreen = function () { full.push(this.tagName.toLowerCase()); return Promise.resolve(); };
+  } });
+  await wait(300);
+  const t = w.__t;
+  const d = w.document;
+  const bad = [];
+  const roster = t.widgetsOf('game').map(x => String(x.id));
+  if (roster.indexOf('videos') === -1) return ['there is no videos widget on the Games column'];
+  if (roster[roster.length - 1] !== 'videos') bad.push('videos is not the last game: ' + roster.join(', '));
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const box = d.querySelector('#s-games #wgt-videos .vid-box');
+  if (!box) return bad.concat(['the videos card did not draw on the Games column']);
+  if (!asked) bad.push('the card never asked for data/videos.json');
+  const q = box.querySelector('input.vid-q');
+  if (!q) return bad.concat(['there is no search box on the videos card']);
+  const titles = () => [...box.querySelectorAll('.vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
+  const before = titles();
+  if (before.indexOf('How volcanoes erupt') === -1 || before.indexOf('Fractions in two minutes') === -1)
+    bad.push('the listed videos are not in the list: ' + before.join(' | '));
+  if (before.indexOf('A switched-off volcano') !== -1) bad.push('a row with active: false is listed');
+  if (!before.some(x => /^Reel \d/.test(x))) bad.push('the app\'s own reels are not searched: ' + before.join(' | '));
+
+  const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  type('volc');
+  const narrowed = titles();
+  if (narrowed.length !== 1 || narrowed[0] !== 'How volcanoes erupt')
+    bad.push('typing "volc" did not narrow to the one volcano: ' + narrowed.join(' | '));
+  if (!/1 of \d+ videos/.test(box.querySelector('.vid-said').textContent))
+    bad.push('the count does not say how many of how many: ' + box.querySelector('.vid-said').textContent);
+  if (d.querySelector('#s-games #wgt-videos input.vid-q') !== q) bad.push('typing rebuilt the search box, which drops a phone\'s keyboard');
+  type('maths two');
+  if (titles().join() !== 'Fractions in two minutes') bad.push('two words did not narrow to the row holding both: ' + titles().join(' | '));
+  type('zzzz');
+  if (titles().length || !/Nothing matches/.test(box.textContent)) bad.push('a search that matches nothing does not say so');
+
+  /* A TAP ON A YOUTUBE ROW: the nocookie embed, of that id, in the card. */
+  type('volc');
+  t.ACTIONS['vid-play'](box.querySelector('.vid-row[data-do="vid-play"]'));
+  const fr = box.querySelector('.vid-stage iframe.vid-player');
+  if (!fr || !/^https:\/\/www\.youtube-nocookie\.com\/embed\/abcdefghijk\b/.test(fr.getAttribute('src') || ''))
+    bad.push('tapping the YouTube row did not put its nocookie embed in the card: ' + (fr ? fr.getAttribute('src') : 'no iframe'));
+  /* AN MP4 ROW: a `<video>`, inline, on that file. */
+  type('fractions');
+  t.ACTIONS['vid-play'](box.querySelector('.vid-row[data-do="vid-play"]'));
+  const v = box.querySelector('.vid-stage video.vid-player');
+  if (!v || v.getAttribute('src') !== 'data/reels/fractions.mp4' || !v.hasAttribute('playsinline'))
+    bad.push('tapping the mp4 row did not put an inline <video> of it in the card');
+  if (box.querySelector('.vid-stage iframe')) bad.push('the old player was left in the card beside the new one');
+
+  /* FULL SCREEN IS A TILE, and pressing it asks the PLAYER, not the card. */
+  const tile = box.querySelector('.vid-acts .tile[data-do="vid-full"]');
+  if (!tile) bad.push('there is no Full screen tile under the player');
+  else {
+    t.ACTIONS['vid-full'](tile);
+    if (full.join() !== 'video') bad.push('Full screen asked ' + (full.join() || 'nobody') + ' rather than the video');
+  }
+  /* LEAVING STOPS IT: no player left in the card on a column nobody is looking at. */
+  t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  if (d.querySelector('#s-games .vid-stage .vid-player')) bad.push('leaving the Games column left the video in its player');
   return bad;
 });
 
@@ -4955,6 +5078,191 @@ check('the shop is its own column with the basket on top, and Find no longer has
   if (t.AT() !== 'shop') bad.push('"see your basket" went to ' + t.AT() + ', not the Shop column');
   else if (t.PAGE().shop !== t.widgetsOf('shop').findIndex(x => String(x.id) === 'cart')) {
     bad.push('"see your basket" landed on page ' + t.PAGE().shop + ' of the shop, not on the basket');
+  }
+  return bad;
+});
+
+/* ---------- PROJECTS, A KIND OF ITS OWN BESIDE THE PRACTICALS ------------------------------------
+   ASKED FOR AS "the projects are like practicles, but not practicles. so should be a new tag in the
+   finder called projects." Asked of the REAL file through the REAL mapper: the first boot is only
+   there to reach `libraryExtras_`, so the rows the second boot draws are exactly what a phone makes
+   of `data/projects.json` — not a hand-written fixture of what somebody thought the mapper did.
+   Then: Find offers every one, `What kind` names `Projects` beside `Practicals`, a project is four
+   pages (card, materials, steps, share), and the share page's one tile lands on Messages. */
+check('Projects is a kind in Find beside Practicals: card, materials, steps, and a share page to Messages', async () => {
+  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'projects.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the projects were NOT checked — not a pass'];
+  /* THE PRACTICALS TOO, so `What kind` has both siblings to name — the fixture has no library. */
+  const prac = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8'));
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { projects: rows, practicals: prac })));
+  const mapped = made.projects || [];
+  if (!mapped.length) return ['the mapper made nothing of ' + rows.length + ' rows in data/projects.json'];
+  const p = payload();
+  p.projects = mapped;
+  p.practicals = made.practicals || [];
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  const found = w.stuffItems().filter(x => x.kind === 'project');
+  if (found.length !== mapped.length) bad.push('Find offers ' + found.length + ' of ' + mapped.length + ' projects');
+  if (!found.length) return bad;
+
+  /* THE TAG. `What kind` is grouped, so the word sits one tap in, beside the practicals. */
+  const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
+  const shown = items => w.facetValues(items, kindFacet).map(v => String(v.show || v.value));
+  const learning = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning');
+  /* PLACED IN THE GROUPING, because one unplaced kind stands the whole question down to the
+     alphabet — and in the same group as the practicals, which is where the owner will look. */
+  const grp = k => { try { return kindFacet.bucketOf(k); } catch (e) { return ''; } };
+  if (grp('Projects') !== 'Work through it' || grp('Practicals') !== grp('Projects')) {
+    bad.push('`What kind` files Projects under "' + grp('Projects') + '" and Practicals under "' + grp('Practicals') + '"');
+  }
+  const inner = shown(learning);
+  if (inner.indexOf('Projects') < 0 || inner.indexOf('Practicals') < 0) bad.push('`What kind` does not offer Projects beside Practicals — it reads ' + inner.join(' | '));
+
+  const x = found[0];
+  const parts = w.pageParts_(x);
+  if (JSON.stringify(parts) !== JSON.stringify([null, 'kit', 'steps', 'share'])) {
+    bad.push('a project is pages ' + JSON.stringify(parts) + ', not card, materials, steps, share');
+  }
+  const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
+  const card = box(w.stuffCard(x));
+  if (!card.querySelector('.card.proj')) bad.push('the project card is not drawn as a project');
+  else {
+    if (card.querySelector('.prac-flag').textContent.trim() !== 'Project') bad.push('the card is not flagged Project');
+    if (card.textContent.indexOf(x.row.sessions + ' sessions') < 0) bad.push('the card does not say how many sessions');
+    if (card.querySelector('.gd-box, .prac-kit, .prac-steps')) bad.push('the card carries its materials or steps — they are pages of their own');
+  }
+  const kit = box(w.stuffPart_(x, 'kit'));
+  if (kit.querySelectorAll('.prac-kit li').length !== x.row.materials.length) bad.push('the materials page does not list every item');
+  const steps = box(w.stuffPart_(x, 'steps'));
+  if (steps.querySelectorAll('.prac-steps ol > li').length !== x.row.steps.length) bad.push('the steps page does not number every step');
+  const share = box(w.stuffPart_(x, 'share'));
+  if (!/Messages/.test(share.textContent)) bad.push('the share page does not tell them to send it in Messages');
+  if (x.row.share && share.textContent.indexOf(x.row.share.slice(0, 40)) < 0) bad.push('the share page does not carry the row\'s own share note');
+  const tile = share.querySelector('.tile-row [data-do="proj-share"]');
+  if (!tile) bad.push('the share page has no Messages tile');
+  if (typeof t.ACTIONS['proj-share'] !== 'function') bad.push('`proj-share` has no handler');
+  else {
+    t.ACTIONS['proj-share'](tile);
+    await wait(50);
+    if (t.AT() !== 'dm') bad.push('the Messages tile went to ' + t.AT() + ', not Messages');
+  }
+  return bad;
+});
+
+/* ---------- SHARING A BOOKING HANDS OVER A PICTURE OF IT ------------------------------------------
+   *"just make sure sharing booking is an identical jpg or png or whatevers best of the booking
+   reciept."* It was `window.print()` — a PDF by way of the print dialogue — and this asks the three
+   things the plumbing has to do, the three ways out in the order a phone takes them:
+
+     1. a phone that can share files is handed ONE PNG FILE, the receipt's size at 2x, through
+        `navigator.share` — and the SVG it was drawn from is the receipt the tile is on;
+     2. a laptop that cannot share files gets a DOWNLOAD of that PNG, and is told so;
+     3. a share sheet that is refused (Safari, when the picture took too long after the press) puts
+        the picture in a sheet with a Share button of its own.
+
+   JSDOM HAS NO LAYOUT AND NO CANVAS, so both are stood in for: the card's box is given a size, the
+   canvas records what it is asked to draw, and an image "loads" when its source is set. What the
+   picture LOOKS like is `check/share.js`'s question, in a real browser, pixel by pixel. This one is
+   whether the press ends in the right place with the right file — which jsdom answers exactly. */
+check('sharing a booking hands over a PNG of the receipt: share sheet, else download, else a sheet', async () => {
+  const bad = [];
+  const BOX = { left: 12.5, top: 30, width: 300, height: 520, right: 312.5, bottom: 550, x: 12.5, y: 30 };
+  const made = [], clicks = [];
+  const { w } = boot({ before: w => {
+    /* AN IMAGE THAT LOADS, and a canvas that remembers its size and hands back a PNG blob. */
+    w.Image = class { set src(v) { this._src = v; made.push(v); setTimeout(() => this.onload && this.onload(), 0); }
+                      get src() { return this._src; } decode() { return Promise.resolve(); } };
+    w.HTMLCanvasElement.prototype.getContext = function () {
+      return { fillRect() {}, drawImage() {}, set fillStyle(v) {}, get fillStyle() { return ''; } };
+    };
+    w.HTMLCanvasElement.prototype.toBlob = function (cb, type) {
+      const b = new w.Blob(['\x89PNG'], { type });
+      b.__w = this.width; b.__h = this.height;
+      setTimeout(() => cb(b), 0);
+    };
+    /* JSDOM DOES NOT DO PSEUDO-ELEMENTS and says so on the console for every element; answered with
+       the element's own style, whose `content` is empty, so the clone simply adds no `::before`. */
+    const gcs = w.getComputedStyle;
+    w.getComputedStyle = (el, pseudo) => gcs.call(w, el);
+    w.URL.createObjectURL = () => 'blob:receipt';
+    w.URL.revokeObjectURL = () => {};
+    w.HTMLAnchorElement.prototype.click = function () { clicks.push({ href: this.href, download: this.download }); };
+  } });
+  await wait(300);
+  const d = w.document;
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
+  await wait(120);
+  const rc = d.querySelector('#bookr .rc');
+  if (!rc) return ['the booking form draws no .rc — nothing to share'];
+  const tile = rc.querySelector('[data-do="book-share"]');
+  if (!tile) return ['the receipt has no Share tile on it'];
+  rc.getBoundingClientRect = () => BOX;
+  const press = () => w.__t.ACTIONS['book-share'](tile);
+
+  /* ---------- 1. A PHONE: ONE PNG FILE, TO THE SHARE SHEET ----------------------------------------- */
+  const shared = [];
+  w.navigator.canShare = x => !!(x && x.files && x.files.length && x.files[0].type === 'image/png');
+  w.navigator.share = x => { shared.push(x); return Promise.resolve(); };
+  press();
+  await wait(120);
+  if (shared.length !== 1) bad.push('a phone that shares files was handed ' + shared.length + ' shares, not 1');
+  else {
+    const f = (shared[0].files || [])[0];
+    if (!f) bad.push('navigator.share was called with no file');
+    else {
+      if (f.type !== 'image/png') bad.push('the file shared is ' + f.type + ', not image/png');
+      if (!/\.png$/.test(f.name)) bad.push('the file shared is called "' + f.name + '", not a .png');
+      if (!(f instanceof w.File)) bad.push('what was shared is not a File, so a share sheet will not take it');
+    }
+  }
+  const svg = decodeURIComponent((made[made.length - 1] || '').replace(/^data:image\/svg\+xml;charset=utf-8,/, ''));
+  if (!svg) bad.push('no picture was drawn — nothing was set as an image source');
+  else {
+    /* THE RECEIPT'S OWN SIZE, AT TWICE THE PIXELS — the canvas and the SVG both say so. */
+    if (!/<svg[^>]* width="600" height="1040"/.test(svg)) bad.push('the picture is not the receipt at 2x (300x520 → 600x1040): ' + (svg.match(/<svg[^>]*>/) || [''])[0]);
+    if (!/viewBox="0 0 300 520"/.test(svg)) bad.push('the picture is not laid out at the receipt\'s own width');
+    if (!/<foreignObject[^>]*width="300" height="520"/.test(svg)) bad.push('the receipt is not in a foreignObject of its own size');
+    /* AND IT IS THIS RECEIPT: its first row's label is in it. (Whether the tiles are left off is a
+       question about `display`, which jsdom does not compute — `check/share.js` asks it.) */
+    const k = rc.querySelector('.bk-k');
+    if (k && svg.indexOf(k.textContent.trim()) < 0) bad.push('the picture does not hold the receipt\'s first row, "' + k.textContent.trim() + '"');
+  }
+
+  /* ---------- 2. A LAPTOP: NO FILE SHARING, SO A DOWNLOAD ------------------------------------------ */
+  w.navigator.canShare = () => false;
+  shared.length = 0;
+  press();
+  await wait(120);
+  if (shared.length) bad.push('a browser that cannot share files was still sent to navigator.share');
+  const dl = clicks[clicks.length - 1];
+  if (!dl) bad.push('a browser that cannot share files was given no download');
+  else if (!/\.png$/.test(dl.download || '')) bad.push('the download is called "' + dl.download + '", not a .png');
+  const said = (d.getElementById('toast') || {}).textContent || '';
+  if (!/saved/i.test(said)) bad.push('the download said "' + said + '" rather than that it saved a picture');
+
+  /* ---------- 3. A REFUSED SHARE SHEET: THE PICTURE IN A SHEET, WITH ITS OWN SHARE ------------------ */
+  w.navigator.canShare = x => !!(x && x.files);
+  w.navigator.share = x => { shared.push(x); const e = new Error('no'); e.name = 'NotAllowedError'; return Promise.reject(e); };
+  shared.length = 0;
+  press();
+  await wait(150);
+  const sheet = d.getElementById('sheet');
+  const img = sheet && sheet.querySelector('img.rc-shot');
+  if (!sheet || sheet.classList.contains('hidden') || !img) bad.push('a refused share sheet left nothing on the screen — the picture should be offered in a sheet');
+  else if (!sheet.querySelector('[data-do="rc-shot-share"]')) bad.push('the sheet with the picture has no Share button, so a second press cannot open the share sheet');
+  else {
+    const before = shared.length;
+    w.navigator.share = x => { shared.push(x); return Promise.resolve(); };
+    w.__t.ACTIONS['rc-shot-share']();
+    await wait(30);
+    if (shared.length !== before + 1 || !((shared[shared.length - 1].files || [])[0] || {}).name)
+      bad.push('the sheet\'s Share button did not share the picture');
   }
   return bad;
 });
