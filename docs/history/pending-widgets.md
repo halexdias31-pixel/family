@@ -52,3 +52,16 @@ screen on the stage, the card moved above contest, the stop removed) and failed 
 state `a video search, narrowed, one playing` in `check/states.js` puts the longest title and a
 playing reel in front of `check/ui.js` and `check/press.js`. Nothing new was reported at 320, 390,
 768 or 1280.
+
+### "the lego trade in should be a widget in tools. you dont have to make it just leave a placeholder."
+
+**A `legotrade` card is now the last card on the Tools column**, after `calendar`. It copies
+`contest`: a heading, one line ("Coming soon: trade in the LEGO sets you have finished with."),
+"Not built yet." and nothing to press. It is appended because `PAGE.tools` remembers pages by
+index, and it is not `solid`, so the funnel never offers it as a search result. The roster note
+points whoever builds it at `data/lego-sets.json`, where the shop's LEGO rows already are.
+
+**Checked.** The journey `the LEGO trade-in placeholder is the last card on the Tools column…`
+asks that it is last in `widgetsOf_('tool')`, is headed LEGO trade-in, says "Not built yet" and has
+no control. Moving it above `calendar` with a button inside failed both halves. Screenshots at 320
+and 390 show the same card as Contest.

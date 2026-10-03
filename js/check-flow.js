@@ -1329,6 +1329,30 @@ check('the contest placeholder comes straight after One more thing on the Games 
   return bad;
 });
 
+/* ---------- LEGO TRADE-IN: THE LAST CARD ON THE TOOLS COLUMN, AND NOTHING ON IT TO PRESS ------------
+   ASKED FOR AS "the lego trade in should be a widget in tools. you dont have to make it just leave a
+   placeholder." The contest journey's two questions on the other column: appended LAST, so no page
+   `PAGE.tools` remembers moves, and no control before there is anything behind one. */
+check('the LEGO trade-in placeholder is the last card on the Tools column, says so, and has nothing to press', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  const roster = t.widgetsOf('tool').map(x => String(x.id));
+  if (roster.indexOf('legotrade') === -1) return ['there is no legotrade widget on the Tools column'];
+  if (roster[roster.length - 1] !== 'legotrade') bad.push('legotrade is not the last tool: ' + roster.join(', '));
+  t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  const slot = w.document.querySelector('#s-tools #wgt-legotrade');
+  if (!slot) return bad.concat(['the LEGO trade-in card did not draw on the Tools column']);
+  const h = slot.querySelector('h3');
+  if (!h || h.textContent.trim() !== 'LEGO trade-in') bad.push('the card is not headed LEGO trade-in');
+  if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
+  const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
+  if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  return bad;
+});
+
 /* ---------- VIDEOS: TYPING NARROWS, A TAP PLAYS IN THE CARD, FULL SCREEN ASKS FOR FULL SCREEN -------
    ASKED FOR AS "videos would be in the games column. its one new widget. its a video searcher you
    type in. and there should be a full screen button." Each half can fail while the card still draws

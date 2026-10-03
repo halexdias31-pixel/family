@@ -1562,6 +1562,25 @@ const WIDGETS = [
     </div>
     <div id="cal-body" class="cal"></div>
   </div>` },
+
+  /* ---------- LEGO TRADE-IN — A PLACEHOLDER, AND IT SAYS SO --------------------------------------
+     ASKED FOR AS "the lego trade in should be a widget in tools. you dont have to make it just leave
+     a placeholder." So it is `contest`'s shape on the Tools column: a heading, one line on what it
+     will be, "Not built yet." and nothing to press — `drill`'s argument, that a control with nothing
+     behind it reads as broken rather than unbuilt.
+
+     LAST ON THE COLUMN, AND APPENDED RATHER THAN PLACED: `PAGE.tools` remembers a page by its index,
+     so anything inserted above `calendar` would move every saved position after it by one.
+
+     NOT `solid`, so the funnel does not offer "not built yet" as an answer to a search. The sets it
+     will trade against are already listed — `data/lego-sets.json`, the shop's LEGO rows — and that
+     is written here because it is the first thing whoever builds this will need to know. */
+  { id: 'legotrade', kind: 'tool', name: 'LEGO trade-in', what: 'LEGO trade-in',
+    html: `<div class="card">
+    <h3>LEGO trade-in</h3>
+    <p class="sub">Coming soon: trade in the LEGO sets you have finished with.</p>
+    <p class="empty">Not built yet.</p>
+  </div>` },
 ];
 
 
