@@ -4959,6 +4959,119 @@ check('the shop is its own column with the basket on top, and Find no longer has
   return bad;
 });
 
+/* ---------- SHARING A BOOKING HANDS OVER A PICTURE OF IT ------------------------------------------
+   *"just make sure sharing booking is an identical jpg or png or whatevers best of the booking
+   reciept."* It was `window.print()` — a PDF by way of the print dialogue — and this asks the three
+   things the plumbing has to do, the three ways out in the order a phone takes them:
+
+     1. a phone that can share files is handed ONE PNG FILE, the receipt's size at 2x, through
+        `navigator.share` — and the SVG it was drawn from is the receipt the tile is on;
+     2. a laptop that cannot share files gets a DOWNLOAD of that PNG, and is told so;
+     3. a share sheet that is refused (Safari, when the picture took too long after the press) puts
+        the picture in a sheet with a Share button of its own.
+
+   JSDOM HAS NO LAYOUT AND NO CANVAS, so both are stood in for: the card's box is given a size, the
+   canvas records what it is asked to draw, and an image "loads" when its source is set. What the
+   picture LOOKS like is `check/share.js`'s question, in a real browser, pixel by pixel. This one is
+   whether the press ends in the right place with the right file — which jsdom answers exactly. */
+check('sharing a booking hands over a PNG of the receipt: share sheet, else download, else a sheet', async () => {
+  const bad = [];
+  const BOX = { left: 12.5, top: 30, width: 300, height: 520, right: 312.5, bottom: 550, x: 12.5, y: 30 };
+  const made = [], clicks = [];
+  const { w } = boot({ before: w => {
+    /* AN IMAGE THAT LOADS, and a canvas that remembers its size and hands back a PNG blob. */
+    w.Image = class { set src(v) { this._src = v; made.push(v); setTimeout(() => this.onload && this.onload(), 0); }
+                      get src() { return this._src; } decode() { return Promise.resolve(); } };
+    w.HTMLCanvasElement.prototype.getContext = function () {
+      return { fillRect() {}, drawImage() {}, set fillStyle(v) {}, get fillStyle() { return ''; } };
+    };
+    w.HTMLCanvasElement.prototype.toBlob = function (cb, type) {
+      const b = new w.Blob(['\x89PNG'], { type });
+      b.__w = this.width; b.__h = this.height;
+      setTimeout(() => cb(b), 0);
+    };
+    /* JSDOM DOES NOT DO PSEUDO-ELEMENTS and says so on the console for every element; answered with
+       the element's own style, whose `content` is empty, so the clone simply adds no `::before`. */
+    const gcs = w.getComputedStyle;
+    w.getComputedStyle = (el, pseudo) => gcs.call(w, el);
+    w.URL.createObjectURL = () => 'blob:receipt';
+    w.URL.revokeObjectURL = () => {};
+    w.HTMLAnchorElement.prototype.click = function () { clicks.push({ href: this.href, download: this.download }); };
+  } });
+  await wait(300);
+  const d = w.document;
+  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
+  await wait(120);
+  const rc = d.querySelector('#bookr .rc');
+  if (!rc) return ['the booking form draws no .rc — nothing to share'];
+  const tile = rc.querySelector('[data-do="book-share"]');
+  if (!tile) return ['the receipt has no Share tile on it'];
+  rc.getBoundingClientRect = () => BOX;
+  const press = () => w.__t.ACTIONS['book-share'](tile);
+
+  /* ---------- 1. A PHONE: ONE PNG FILE, TO THE SHARE SHEET ----------------------------------------- */
+  const shared = [];
+  w.navigator.canShare = x => !!(x && x.files && x.files.length && x.files[0].type === 'image/png');
+  w.navigator.share = x => { shared.push(x); return Promise.resolve(); };
+  press();
+  await wait(120);
+  if (shared.length !== 1) bad.push('a phone that shares files was handed ' + shared.length + ' shares, not 1');
+  else {
+    const f = (shared[0].files || [])[0];
+    if (!f) bad.push('navigator.share was called with no file');
+    else {
+      if (f.type !== 'image/png') bad.push('the file shared is ' + f.type + ', not image/png');
+      if (!/\.png$/.test(f.name)) bad.push('the file shared is called "' + f.name + '", not a .png');
+      if (!(f instanceof w.File)) bad.push('what was shared is not a File, so a share sheet will not take it');
+    }
+  }
+  const svg = decodeURIComponent((made[made.length - 1] || '').replace(/^data:image\/svg\+xml;charset=utf-8,/, ''));
+  if (!svg) bad.push('no picture was drawn — nothing was set as an image source');
+  else {
+    /* THE RECEIPT'S OWN SIZE, AT TWICE THE PIXELS — the canvas and the SVG both say so. */
+    if (!/<svg[^>]* width="600" height="1040"/.test(svg)) bad.push('the picture is not the receipt at 2x (300x520 → 600x1040): ' + (svg.match(/<svg[^>]*>/) || [''])[0]);
+    if (!/viewBox="0 0 300 520"/.test(svg)) bad.push('the picture is not laid out at the receipt\'s own width');
+    if (!/<foreignObject[^>]*width="300" height="520"/.test(svg)) bad.push('the receipt is not in a foreignObject of its own size');
+    /* AND IT IS THIS RECEIPT: its first row's label is in it. (Whether the tiles are left off is a
+       question about `display`, which jsdom does not compute — `check/share.js` asks it.) */
+    const k = rc.querySelector('.bk-k');
+    if (k && svg.indexOf(k.textContent.trim()) < 0) bad.push('the picture does not hold the receipt\'s first row, "' + k.textContent.trim() + '"');
+  }
+
+  /* ---------- 2. A LAPTOP: NO FILE SHARING, SO A DOWNLOAD ------------------------------------------ */
+  w.navigator.canShare = () => false;
+  shared.length = 0;
+  press();
+  await wait(120);
+  if (shared.length) bad.push('a browser that cannot share files was still sent to navigator.share');
+  const dl = clicks[clicks.length - 1];
+  if (!dl) bad.push('a browser that cannot share files was given no download');
+  else if (!/\.png$/.test(dl.download || '')) bad.push('the download is called "' + dl.download + '", not a .png');
+  const said = (d.getElementById('toast') || {}).textContent || '';
+  if (!/saved/i.test(said)) bad.push('the download said "' + said + '" rather than that it saved a picture');
+
+  /* ---------- 3. A REFUSED SHARE SHEET: THE PICTURE IN A SHEET, WITH ITS OWN SHARE ------------------ */
+  w.navigator.canShare = x => !!(x && x.files);
+  w.navigator.share = x => { shared.push(x); const e = new Error('no'); e.name = 'NotAllowedError'; return Promise.reject(e); };
+  shared.length = 0;
+  press();
+  await wait(150);
+  const sheet = d.getElementById('sheet');
+  const img = sheet && sheet.querySelector('img.rc-shot');
+  if (!sheet || sheet.classList.contains('hidden') || !img) bad.push('a refused share sheet left nothing on the screen — the picture should be offered in a sheet');
+  else if (!sheet.querySelector('[data-do="rc-shot-share"]')) bad.push('the sheet with the picture has no Share button, so a second press cannot open the share sheet');
+  else {
+    const before = shared.length;
+    w.navigator.share = x => { shared.push(x); return Promise.resolve(); };
+    w.__t.ACTIONS['rc-shot-share']();
+    await wait(30);
+    if (shared.length !== before + 1 || !((shared[shared.length - 1].files || [])[0] || {}).name)
+      bad.push('the sheet\'s Share button did not share the picture');
+  }
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;
