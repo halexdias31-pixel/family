@@ -101,6 +101,13 @@ the CSV cell for cell against the JSON in the tab's column order.
   again.
 - **check-bundle** caught the move on its first run: it went to Tools for the Send button. It goes to
   the Shop column now.
+- **check-widgets** had `'tool' or 'game'` written out and called the basket a widget on no column.
+  It now reads every literal `widgetsOf_`/`toolsStart_`/`widgetColumn_` kind out of js/ — fix the
+  rule, not the instance. Mutated the cart to `'shoq'`: red, naming the three kinds it found.
+- **check/states.js `the first shelf`**: with the shelf's cards taken out (headings only), all eight
+  combinations report "could not reach … the shop column has no shelf of things"; green again.
+- **check/cascade.js** saw `.card .sub` against `.thing-body .sub` for the first time — no shop card
+  had ever been rendered for it — and the pair is accepted with its reason.
 - `check/fixture.json` sends ten shop rows shaped as `doGet` sends them (no wearable, so the wardrobe
   is measured as before). It sent none, which is why no check had ever drawn a shop card.
 
