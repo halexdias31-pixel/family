@@ -119,10 +119,10 @@ if (!kindM) {
     fail.push('"' + kindM[2] + '" is not in KIND_BUCKET — one unplaced kind stands `What kind` down to the alphabet');
   }
 }
-/* THE DOOR. Without `always` the balance rule refuses a 1-against-417 split, and the book is
+/* THE DOOR. Without `always` the balance rule refuses a 1-against-260 split, and the book is
    reachable by search alone — the state this door was built to end. */
 const shelfM = /\{\s*field:\s*'shelf',[^}]*\}/.exec(findSrc);
-if (!shelfM) fail.push('FACETS has no `shelf` entry — Resources has no third rung, so the book is under four hundred boxers');
+if (!shelfM) fail.push('FACETS has no `shelf` entry — Resources has no third rung, so the book is under 260 rows of boxing');
 else if (!/always:\s*true/.test(shelfM[0])) {
   fail.push('the `shelf` facet is not `always` — FACET_MIN_MINORITY will refuse one book against the boxing, and the door never opens');
 }

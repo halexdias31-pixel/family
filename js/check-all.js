@@ -155,7 +155,7 @@ const SUITE = [
      "the @family textbook should be bare bones for now and the textbooks will be in the resources
      tag in the finder." The bones are the rule — key words, formulas typeset_ can draw, three to
      five worked lines — and the route is the other half: a kind wearing Resources, the Shelf door
-     that is the only way past four hundred boxers, and the file fetched at all. */
+     that is the only way past 260 rows of boxing, and the file fetched at all. */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
   { file: 'check-quizzes.js', what: 'the quizzes: an answer that can be reached, and why' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------

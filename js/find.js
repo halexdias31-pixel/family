@@ -340,7 +340,7 @@ const KINDS = {
      ASKED FOR AS "the @family textbook should be bare bones for now and the textbooks will be in the
      resources tag in the finder. first one can be gcse statistics." So it wears `Resources` beside
      the boxers and the bouts, and the `Shelf` door below is what keeps one book from being lost
-     under four hundred rows of boxing — see `shelf` in FACETS.
+     under 260 rows of boxing — see `shelf` in FACETS.
 
      ONE RESULT, ONE PAGE PER CHAPTER, the way a project is one result and four pages: the card is
      the contents, and `pageParts_` adds a page for each chapter after it. Starring the card keeps
@@ -1068,13 +1068,13 @@ const FACETS = [
     of: x => x.kindLabel || kindOf_(x).label },
   /* ---------- THE THIRD DOOR: WHICH SHELF OF THE RESOURCES ---------------------------------------
      THE OWNER'S ROUTE IS "Learning → Resources → @family. textbooks → GCSE Statistics", and without
-     this question there is no third rung to stand on. `Resources` is 417 rows of boxing and one
+     this question there is no third rung to stand on. `Resources` is 260 rows of boxing and one
      book; every question the funnel asked there was a boxing question, and the book answered none
      of them — so it was reachable by search and by nothing else.
 
-     `always`, LIKE THE TWO ABOVE, AND FOR THEIR REASON. One book against 417 boxers is a 0.2% split
-     and `FACET_MIN_MINORITY` would refuse the question — correctly for a filter, wrongly for a
-     door. This takes somebody to a department, the way `What kind` does. The coverage rule still
+     `always`, LIKE THE TWO ABOVE, AND FOR THEIR REASON. One book against 260 boxers and bouts is a
+     0.4% split and `FACET_MIN_MINORITY` would refuse the question — correctly for a filter, wrongly
+     for a door. This takes somebody to a department, the way `What kind` does. The coverage rule still
      applies: nothing outside Resources carries a shelf, so it is never asked of the questions, and
      with one shelf left it is not asked at all.
 
