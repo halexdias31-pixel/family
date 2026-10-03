@@ -218,10 +218,8 @@ async function compare(page, a, b) {
   const sessionState = (STATES.booking || []).find(s => s.name === 'a session receipt');
   if (!sessionState) { console.log('check/share.js: check/states.js has no "a session receipt" state — renamed?'); process.exit(1); }
 
-  for (const width of WIDTHS) {
-    /* TALL, so neither receipt is clipped by the pane it is in — a screenshot of a clipped element
-       would be compared against a picture of the whole one and fail for the wrong reason. */
-    const ctx = await browser.newContext({ viewport: { width, height: 2600 }, deviceScaleFactor: 2,
+  const open = async (width, height) => {
+    const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2,
                                            serviceWorkers: 'block' });
     const page = await ctx.newPage();
     const errs = [];
@@ -240,6 +238,51 @@ async function compare(page, a, b) {
     /* THE FONT HAS TO HAVE ARRIVED ON THE SCREEN TOO, or the screenshot is the fallback face and the
        picture the right one — a mismatch that is the screen's fault, not the share's. */
     await page.evaluate(() => document.fonts && document.fonts.ready);
+    return { ctx, page, errs };
+  };
+
+  /* ---------- A REAL PHONE'S HEIGHT, WHERE THE SESSION CARD IS SHRUNK TO FIT ---------------------
+     AT 320x568 THE SAVED SESSION IS DRAWN AT 76% WITH CSS `zoom` (`paneReach_`), and the box the
+     browser reports is the shrunk one while every computed length is the full-size one. Sized off
+     the box, the picture was a 76% window onto a 100% layout — the bottom quarter and the right
+     quarter cut off. It is the full-size card now, which is the same layout with bigger letters;
+     this asks that its size is the card's own size at 2x and that the zoom was really in effect. */
+  {
+    const { ctx, page, errs } = await open(320, 568);
+    await page.evaluate(enter => { go('booking', false, true); (0, eval)('(' + enter + ')')(); }, String(sessionState.enter));
+    await page.waitForTimeout(900);
+    const got = await shareOf(page, 'session');
+    const label = 'session at 320x568';
+    n++;
+    if (got.err) bad.push(label + ': ' + got.err);
+    else {
+      const full = await page.evaluate(() => {
+        const rc = [...document.querySelectorAll('#s-booking .page .rc')]
+          .find(r => /J-UI/.test((r.querySelector('.rc-ref') || {}).textContent || ''));
+        rc.classList.add('rc-snap');
+        const cs = getComputedStyle(rc), b = rc.getBoundingClientRect();
+        const out = { w: parseFloat(cs.width), h: parseFloat(cs.height), z: b.width / parseFloat(cs.width) };
+        rc.classList.remove('rc-snap');
+        return out;
+      });
+      const dims = await page.evaluate(u => new Promise(ok => { const i = new Image();
+        i.onload = () => ok([i.naturalWidth, i.naturalHeight]); i.src = u; }), got.url);
+      const ew = Math.ceil(full.w * 2), eh = Math.ceil(full.h * 2);
+      console.log(`  ${label}: ${dims[0]}x${dims[1]} PNG for a card drawn at ${(full.z * 100).toFixed(0)}% — `
+        + `${full.w.toFixed(1)}x${full.h.toFixed(1)} at full size`);
+      if (full.z > 0.99) bad.push(`${label}: the card was not shrunk to fit, so the zoom case was not exercised`);
+      if (Math.abs(dims[0] - ew) > 1 || Math.abs(dims[1] - eh) > 1)
+        bad.push(`${label}: the picture is ${dims[0]}x${dims[1]} and the full-size card at 2x is ${ew}x${eh} — cropped or shrunk`);
+      if (SHOTS) fs.writeFileSync(path.join(SHOTS, 'session-320x568-shared.png'), Buffer.from(got.url.split(',')[1], 'base64'));
+    }
+    if (errs.length) bad.push(`${label}: the page threw — ${errs[0]}`);
+    await ctx.close();
+  }
+
+  for (const width of WIDTHS) {
+    /* TALL, so neither receipt is clipped by the pane it is in — a screenshot of a clipped element
+       would be compared against a picture of the whole one and fail for the wrong reason. */
+    const { ctx, page, errs } = await open(width, 2600);
 
     for (const pick of ['form', 'session']) {
       await page.evaluate(([pick, enter]) => {

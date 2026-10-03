@@ -2474,6 +2474,32 @@ const STATES = {
         return ![...pg.querySelectorAll('[data-do]')].some(x => !x.closest('.rc'));
       },
       wants: 'a receipt with rows on it, an admin\'s three money rows, and its tiles on the paper' },
+
+    /* ---------- THE PICTURE OF IT, IN A SHEET -------------------------------------------------------
+       *"make sure sharing booking is an identical … png … of the booking reciept."* Sharing makes a
+       PNG of the receipt and hands it to the phone's share sheet; where there is none, or Safari
+       refuses one this late after the press, the picture is offered in a sheet instead — the one
+       surface that path draws, and the only place in the app a whole receipt is shown as an image at
+       the sheet's width. Measured like every other sheet: does it fit, can its button be hit.
+
+       ENTERED THROUGH THE APP'S OWN TWO FUNCTIONS on the receipt the state above left on the screen:
+       `rcPng_` makes the real picture, `rcOffer_` is what the share path calls when it cannot share.
+       Asynchronous, because a picture is — `expect` waits for the image rather than for the call. */
+    { name: 'a picture of the receipt, offered in a sheet',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const rc = [...document.querySelectorAll('#s-booking .page .rc')]
+          .find(r => /J-UI/.test((r.querySelector('.rc-ref') || {}).textContent || ''))
+          || document.querySelector('#s-booking .rc');
+        if (!rc) throw new Error('no receipt on the Booking column to picture');
+        rcPng_(rc).then(p => rcOffer_(p.blob, 'family-booking.png'));
+      },
+      expect: () => {
+        const img = document.querySelector('#sheet:not(.hidden) img.rc-shot');
+        return !!img && img.complete && img.naturalWidth > 100;
+      },
+      wants: 'the receipt as a picture in a sheet, with a way to save it',
+      leave: () => { if (typeof closeSheet === 'function') closeSheet(); } },
   ],
 
   /* ---------- AND THE MESSAGES COLUMN, WHICH THIS FILE HAS ONLY EVER SEEN EMPTY -----------------

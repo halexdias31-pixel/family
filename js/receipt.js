@@ -228,6 +228,20 @@ function rcPng_(rc) {
     clone.classList.remove('rc-snap');
     /* AT THE ORIGIN OF THE PICTURE. Its margin placed it in the column; here there is no column. */
     clone.style.margin = '0';
+    /* ---------- AND AT ITS OWN SIZE, NOT THE SIZE IT WAS SHRUNK TO ----------------------------------
+       A CARD TALLER THAN ITS PANE IS DRAWN SMALLER WITH CSS `zoom` — see `paneReach_` in find.js —
+       and a saved session at 320x568 is 76% of itself. The zoom is a way of fitting a phone's screen,
+       and its width is pinned so the card lays out exactly as it would unzoomed; so the picture takes
+       the same layout at full size, which is the same document with bigger letters. The box on the
+       screen is the zoomed one, so the size of the picture is that box divided back out. */
+    const z = (() => {
+      const cw0 = parseFloat(getComputedStyle(rc).width);
+      return cw0 > 0 && box.width > 0 ? box.width / cw0 : 1;
+    })();
+    if (Math.abs(z - 1) > 0.01) {
+      clone.style.zoom = '1';
+      box = { width: box.width / z, height: box.height / z, left: box.left, top: box.top };
+    }
     clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
     xml = new XMLSerializer().serializeToString(clone);
     behind = rcBehind_(rc);
