@@ -51,7 +51,7 @@ const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
 /* A CHANNEL DIFFERENCE BELOW THIS IS A SHADE OF ANTI-ALIASING; ABOVE IT IS A DIFFERENT PIXEL. */
 const LOUD = 64;
 const MAX_PCT = 0.5;
-const MAX_BLOTS = 10;   /* see `compare`: 0–2 on a true picture, 30 and up with the wrong typeface */
+const MAX_BLOTS = 40;   /* see `compare`: up to 20 on a true picture, 64 and up with the wrong typeface */
 const TYPES = { '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json',
                 '.html': 'text/html', '.woff2': 'font/woff2', '.svg': 'image/svg+xml',
                 '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
@@ -178,8 +178,11 @@ async function compare(page, a, b) {
        fallback monospace is close enough in shape that a page of slightly different glyphs adds up
        to very little — but it is EVERYWHERE, in clumps, and the honest residue is single glyph stems
        a pixel out, scattered. So the picture is cut into 6x6-pixel tiles and a tile with twelve or
-       more wrong pixels (a third of it) is a BLOT. Measured: 0–2 blots on a true picture at either
-       width, 30–80 with the fallback face; a missing row or a wrong answer is a run of them. */
+       more wrong pixels (a third of it) is a BLOT. Measured: 0–20 blots on a true picture at either
+       width, 64–317 with the fallback face. What is left on a true picture is real and is one CSS
+       pixel: the SVG is laid out exactly as the card (an in-page clone measured within 0.3px of it
+       on every element) but painted under a 2x scale, and the browser snaps a box edge or a tick to
+       the device grid from a different origin there than on the screen. */
     const W = x1 - x0, H = y1 - y0, T = 6;
     const tw = Math.ceil(W / T), cnt = new Uint16Array(tw * Math.ceil(H / T));
     const dc = document.createElement('canvas'); dc.width = W; dc.height = H;
@@ -197,7 +200,7 @@ async function compare(page, a, b) {
     dg.putImageData(dd, 0, 0);
     const n = W * H;
     return { aw: AW, ah: AH, bw: BW, bh: BH, dx: best.dx, dy: best.dy, wrong: wrong / n * 100,
-             blots: cnt.filter(v => v >= 12).length, hist: [4, 6, 8, 12].map(k => cnt.filter(v => v >= k).length).join("/"),
+             blots: cnt.filter(v => v >= 12).length,
              any: best.any / n * 100, loud: best.loud / n * 100, diff: dc.toDataURL('image/png') };
   }, [a, b, LOUD]);
 }
@@ -250,8 +253,9 @@ async function compare(page, a, b) {
          picked would photograph it correctly. One row is answered — through the select's own
          `change`, which is what a finger does — with an option that is NOT the first, so a picture
          showing the first option is a picture showing the wrong answer. */
+      let chose = '';
       if (pick === 'form') {
-        const chose = await page.evaluate(() => {
+        chose = await page.evaluate(() => {
           const s = [...document.querySelectorAll('#bookr select.bk-sel:not(:disabled)')]
             .find(x => x.options.length > 2);
           if (!s) return '';
@@ -268,6 +272,36 @@ async function compare(page, a, b) {
       n++;
       if (got.err) { bad.push(label + ': ' + got.err); continue; }
       if (got.type !== 'image/png' || !/\.png$/.test(got.name)) bad.push(`${label}: shared ${got.type} "${got.name}", not a PNG`);
+
+      /* ---------- WHAT IS IN THE PICTURE, READ RATHER THAN LOOKED AT ------------------------------
+         THREE FACTS THE PIXELS ARE TOO CLOSE TO CALL, asked of the SVG `rcPng_` builds — the app's
+         own function on the same element, so this is the picture's source and not a model of it.
+         Measured: with the face left out, the system monospace is near enough in shape that the
+         pixel rule only just fails, and with a select showing its first option instead of the answer
+         the difference is a clipped word in one row — under the noise at 320. Both are certain here.
+           · the receipt's typeface is carried inside it, as a `data:` URL, under its own name
+           · the answer picked on the form is the answer in the picture
+           · no tile and no admin-only money row is in it */
+      const src = await page.evaluate(async pick => {
+        const rc = pick === 'form' ? document.querySelector('#bookr .rc')
+          : [...document.querySelectorAll('#s-booking .page .rc')]
+              .find(r => /J-UI/.test((r.querySelector('.rc-ref') || {}).textContent || ''));
+        const faces = [...document.styleSheets].flatMap(s => { try { return [...s.cssRules]; } catch (e) { return []; } })
+          .filter(r => /^@font-face/i.test(r.cssText)).map(r => r.style.getPropertyValue('font-family'));
+        const p = await rcPng_(rc);
+        return { svg: p.svg, faces };
+      }, pick);
+      const svg = src.svg;
+      src.faces.forEach(f => {
+        const at = svg.indexOf(f);
+        if (at < 0 || !/@font-face[^}]*url\(\s*["']?data:/.test(svg))
+          bad.push(`${label}: the picture does not carry the ${f} face inside it — it will draw in a fallback`);
+      });
+      if (!src.faces.length) bad.push(`${label}: the page declares no @font-face to carry — nothing proved`);
+      const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+      if (chose && svg.indexOf(esc(chose)) < 0) bad.push(`${label}: the answer picked, "${chose}", is not in the picture`);
+      if (/data-do="(book-share|book-send|job-delete)"/.test(svg)) bad.push(`${label}: a tile is in the picture`);
+      if (/Tutor earns|Admin earns/.test(svg)) bad.push(`${label}: an admin's money row is in the picture`);
 
       /* THE SAME ELEMENT, AS THE SCREEN DRAWS IT, with the picture's two exclusions on — and its box
          measured in that state, which is the size the picture has to be. */
@@ -298,11 +332,11 @@ async function compare(page, a, b) {
       const ew = Math.ceil(snap.w * 2), eh = Math.ceil(snap.h * 2);
       const sizeOk = Math.abs(cmp.aw - ew) <= 1 && Math.abs(cmp.ah - eh) <= 1;
       console.log(`  ${label}: ${cmp.aw}x${cmp.ah} PNG for a ${snap.w.toFixed(1)}x${snap.h.toFixed(1)} card, `
-        + `${(got.size / 1024).toFixed(0)} KB — ${cmp.wrong.toFixed(3)}% wrong, ${cmp.blots} blots [${cmp.hist}] `
+        + `${(got.size / 1024).toFixed(0)} KB — ${cmp.wrong.toFixed(3)}% wrong, ${cmp.blots} blots `
         + `(${cmp.loud.toFixed(2)}% strictly at (${cmp.dx},${cmp.dy}), ${cmp.any.toFixed(1)}% off by any shade)`);
       if (!sizeOk) bad.push(`${label}: the picture is ${cmp.aw}x${cmp.ah} and the card at 2x is ${ew}x${eh}`);
       if (cmp.wrong > MAX_PCT) bad.push(`${label}: ${cmp.wrong.toFixed(2)}% of the picture differs from the screen (over ${MAX_PCT}%)`);
-      if (cmp.blots > MAX_BLOTS) bad.push(`${label}: ${cmp.blots} blots — clumps of wrong pixels, where a true picture has 0 to 2 (over ${MAX_BLOTS})`);
+      if (cmp.blots > MAX_BLOTS) bad.push(`${label}: ${cmp.blots} blots — clumps of wrong pixels, where a true picture has up to 20 (over ${MAX_BLOTS})`);
       if (SHOTS) {
         const b64 = u => Buffer.from(u.split(',')[1], 'base64');
         fs.writeFileSync(path.join(SHOTS, `${pick}-${width}-shared.png`), b64(got.url));
