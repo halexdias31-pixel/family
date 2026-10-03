@@ -205,7 +205,14 @@ async function libraryRows_() {
    questions in `data/questions.json` have an EMPTY `accept`, so not one of them can mark itself.
    An exam question is marked against a scheme by a person, which is right for an exam and useless
    for a recap. Written by `tools/quizwrite.py`, whose assertions are the whole safety argument. */
-const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'topics', 'practicals', 'quizzes'];
+/* `projects` IS THE SEVENTH, and the practicals' sibling rather than a kind of practical. ASKED FOR
+   AS "the projects are like practicles, but not practicles. so should be a new tag in the finder
+   called projects." A practical is an afternoon that ends in a reading or a thing on the bench; a
+   project is three or four sessions that end in something a child MADE and keeps -- a film, a
+   board game, a recipe book. Same row shape where the two agree (topics, kit, steps), its own
+   columns where they do not (`sessions`, `makes`, `share`), and its own file so the 82 practicals'
+   rules -- compliance, hazard, IV/DV/CV -- are not asked of a podcast. See `check-projects.js`. */
+const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'topics', 'practicals', 'quizzes', 'projects'];
 let LIBRARY_EXTRA = null;
 
 /* One fetch per tab, all started before this file parsed — see `index.html`. A file that 404s or
@@ -410,6 +417,35 @@ function libraryExtras_(d, extra) {
       });
     });
     d.practicals = out;
+  }
+
+  /* --- the projects -----------------------------------------------------------------------------
+     THE PRACTICALS' MAPPING, CUT TO WHAT A PROJECT HAS. `materials` is `equipment` under the word a
+     child would use, and goes through the same `kitParse_` for the same `Name × qty` reason -- a
+     second parser for one cell format is the second reader this file keeps recording. `steps` is
+     pipe-separated for the comma reason written over `equipment` above.
+
+     `sessions` AND THE TWO AGES GO THROUGH `libNum`, NOT `libN`. A blank is "nobody has said", not
+     nought sessions or an age of zero -- the `cost: 0` fault, which a strip reading "0 sessions"
+     would be. `check-projects.js` refuses the blank anyway; this is what an older phone does with
+     a row somebody pasted in by hand. */
+  if (extra.projects && extra.projects.length) {
+    const out = [];
+    extra.projects.forEach(r => {
+      const id = libS(r.project_id).trim();
+      if (!id || !libOn(r.active)) return;
+      out.push({
+        id: id, name: libS(r.name), summary: libS(r.summary),
+        subject: libS(r.subject), level: libS(r.level),
+        ageMin: libNum(r.age_min), ageMax: libNum(r.age_max), sessions: libNum(r.sessions),
+        makes: libS(r.makes), topics: libS(r.topics),
+        materials: kitParse_(libS(r.materials)),
+        steps: libS(r.steps).split('|').map(s => s.trim()).filter(Boolean),
+        safety: libS(r.safety), share: libS(r.share),
+        order: libS(r.sort_order) === '' ? null : libN(r.sort_order),
+      });
+    });
+    d.projects = out;
   }
 
   /* --- the quizzes ------------------------------------------------------------------------------
