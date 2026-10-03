@@ -71,7 +71,11 @@ const ROOT    = path.resolve(__dirname, '..');
    browser-driven checks together now, where two servers asking for one port is one of them dying on
    EADDRINUSE with a stack trace instead of a report. Overridable for the same reason deploy's is:
    a port is the one thing about a harness that depends on what else is running. */
-const PORT    = Number(process.env.UI_PORT || 8732);
+/* `let`, BECAUSE A SECOND `--part` CANNOT HAVE THE SAME PORT: both halves run at once under
+   check-all, and the first one to bind `UI_PORT` would leave the other failing on EADDRINUSE. Part 1
+   takes `UI_PORT` as it always has; any later part asks the system for a free one (see `serve`), so
+   no second fixed number has to be agreed with the other machines' workers. */
+let PORT      = Number(process.env.UI_PORT || 8732);
 
 const arg   = n => (process.argv.find(a => a.startsWith('--' + n + '=')) || '').split('=')[1];
 
@@ -107,6 +111,11 @@ if (PAYLOAD_AT) {
 }
 const SHOTS = process.argv.includes('--shots');
 const ONLY  = arg('screen');
+/* `--part=1/2` MEASURES EVERY SECOND SCREEN, starting at the first. The note in js/check-all.js asked
+   for exactly this when the run outgrew its fifteen minutes: split the states across two runs rather
+   than raise the clock again. Screens are dealt alternately, so the two heavy columns (Find and
+   Tools) land in different halves. A run with no `--part` measures everything, as before. */
+const PART  = (/^(\d+)\/(\d+)$/.exec(arg('part') || '') || []).slice(1).map(Number);
 
 /* ---------- THE SCREENS, READ OFF THE APP RATHER THAN WRITTEN OUT HERE ---------------------------
    THIS WAS A LIST OF NINE AND ITS OWN NOTE NAMED THE FAULT: *"if you add a screen, add it here —
@@ -393,7 +402,8 @@ function serve() {
       res.writeHead(200, { 'Content-Type': MIME[path.extname(p)] || 'application/octet-stream' });
       fs.createReadStream(p).pipe(res);
     });
-    s.listen(PORT, () => ok(s));
+    const own = PART.length === 2 && PART[0] > 1;
+    s.listen(own ? 0 : PORT, () => { if (own) PORT = s.address().port; ok(s); });
   });
 }
 
@@ -1111,7 +1121,8 @@ function inspect(opts) {
     failures++;
   }
   const SCREENS = found.length ? found : SCREENS_FALLBACK;
-  const screens = ONLY ? [ONLY] : SCREENS;
+  const screens = ONLY ? [ONLY]
+    : PART.length === 2 ? SCREENS.filter((s, i) => i % PART[1] === PART[0] - 1) : SCREENS;
 
   if (SHOTS) fs.mkdirSync(path.join(__dirname, 'shots'), { recursive: true });
 
