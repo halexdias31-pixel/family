@@ -122,7 +122,7 @@ const ONLY  = arg('screen');
    because a silent fallback to nine is exactly the silence this replaces.
 
    `--list` STILL PRINTS WHAT IT FOUND, and there is nothing left to compare it against by eye. */
-const SCREENS_FALLBACK = ['stuff', 'account', 'feed', 'booking', 'tools', 'games', 'reel', 'dm'];
+const SCREENS_FALLBACK = ['stuff', 'account', 'feed', 'booking', 'shop', 'tools', 'games', 'reel', 'dm'];
 
 /* THE SIZES THAT EXIST, AND THE HEIGHT IS HALF OF EACH ONE. 320 is the smallest phone still in use
    and the one everything breaks on first; 390 is the modern iPhone; 768 is a tablet held upright;
