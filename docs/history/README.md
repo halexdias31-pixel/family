@@ -262,3 +262,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The chat was refined, and most of what read unfinished only showed in states nobody had drawn](258-the-chat-was-refined-and-most-of-what-read-unfinished-only-s.md)
 - [An answer is its result now, and the working waits under "Why"](259-an-answer-is-its-result-now-and-the-working-waits-under-why.md)
 - [The calendar, the timetable and a tutor's hours read one set of facts, and stopped clashing](260-the-calendar-the-timetable-and-a-tutor-s-hours-read-one-set.md)
+- [The question card was polished, and marking it no longer moves anything](261-the-question-card-was-polished-and-marking-it-no-longer-move.md)
