@@ -1910,11 +1910,18 @@ function settingsPages_() {
      Thirteen pages is long and in range — games is eleven and tools ten — and nobody walks to it:
      the `Your figure` tile on your own card jumps straight there. */
   pages.push(wardrobeCard_());
+  /* YOUR ROLES, STRAIGHT AFTER THE WARDROBE — the one card every signed-in person has, so it sits
+     behind nothing that comes and goes, and for the wardrobe's own reason it is not inserted in
+     front: every index after it would move. See `rolesCard_`. */
+  pages.push(rolesCard_());
 
   /* AFTER THE WARDROBE, for the reason the wardrobe gives: `PAGE.settings` remembers where somebody
      was, so a card inserted in front moves every index behind it. Each is gated on the role it is
      about, and the server gates it again — a card is not a permission. */
-  if (isTutorRole()) pages.push(agreementCard_());
+  /* `tutorHeld_`, NOT `isTutorRole`: somebody whose Tutor tick is waiting for the admin is exactly
+     who should be reading and signing this — before the yes, not after it. The server's own test in
+     `signAgreement` is `hasRole(me, 'tutor')`, which a pending tutor passes. */
+  if (tutorHeld_() || isAdmin()) pages.push(agreementCard_());
   if (isAdmin()) pages.push(cutCard_());
   if (mayJourney_()) pages.push(journeyCard_());
   /* THE BUSINESS'S OWN PAPERWORK, LAST AND FOR AN ADMIN — see js/records.js. They were a widget on
@@ -1923,6 +1930,84 @@ function settingsPages_() {
 
   return pages;
 }
+
+/* ---------- YOUR ROLES: TUTOR, CLIENT, STUDENT — TICK EVERY ONE THAT IS YOU ------------------------
+   ASKED FOR AS *"each account should have a widget in account settings which say what the roles
+   are. they can be either a tutor or client or student. they can be tutor and client and student
+   like multiselect."*
+
+   THREE `.check` TICKS, the app's own several-of-a-few control — the box the tutor agreement and
+   every yes/no field on this column already draw — and not the `meDrop_` drop-down, which is for a
+   list too long to show. Three answers fit on the card and should be SEEN, because the card's whole
+   job is to say what you are. Each says in a few words what it means here, since "client" is this
+   business's word for the parent who pays, and nobody outside it would guess that.
+
+   A SAVE TILE, NOT A SAVE ON EVERY TICK. Ticking Tutor is the one change here that asks somebody
+   else for something, and a tap that posts on the way past is a request sent by a thumb that was
+   only scrolling. One press, one answer, like every other card on this column.
+
+   ADMIN IS NOT A TICK. It is given, so it is SAID — one line, for an admin only — and the server
+   carries it through whatever the three boxes say (`setMyRoles`). WHAT THE SERVER REFUSES IS NOT
+   REPEATED HERE beyond "at least one", which the card can know without asking: the live-session
+   rule and the child's-account rule come back as the server's own sentence on the line under the
+   tile — the `MESSAGING` argument, that a rule written twice is two rules to keep in step. */
+const ROLE_PICKS = [
+  ['tutor', 'Tutor', 'You teach. @family. approves you before families can book you.'],
+  ['client', 'Client', 'A parent or payer. You book and pay for sessions.'],
+  ['student', 'Student', 'You are the one learning.'],
+];
+/* WHAT THE LINE UNDER THE TILE SAYS WHEN NOTHING HAS JUST HAPPENED — the waiting Tutor, said where
+   the tick is, because the tick alone would look like a yes. */
+function rolesSaid_() {
+  if (USER && USER.tutorPending && tutorHeld_() && !isAdmin())
+    return 'Tutor is waiting for @family. to approve you. Until then you are not on the site and '
+         + 'cannot be booked — fill in your teaching pages meanwhile.';
+  return 'Tick every one that is you. You can be more than one.';
+}
+function rolesCard_() {
+  const held = heldRoles().map(roleOf);
+  return `<div class="card roles-card">
+    <h3>Your roles</h3>
+    ${ROLE_PICKS.map(([r, label, note]) => `<label class="check role-pick">
+      <input type="checkbox" data-role-pick="${r}"${held.indexOf(r) !== -1 ? ' checked' : ''}>
+      <span class="box"></span><span class="role-pick-say"><b>${esc(label)}</b>
+        <span class="faint">${esc(note)}</span></span></label>`).join('')}
+    ${isAdmin() ? '<p class="faint role-admin">You are also Admin. That is given by @family. and '
+                + 'is not changed here.</p>' : ''}
+    <div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'roles-save' })}</div>
+    <p class="faint roles-said" aria-live="polite">${esc(rolesSaid_())}</p>
+  </div>`;
+}
+
+on('roles-save', el => {
+  const card = el.closest('.card');
+  if (!USER || !card) return;
+  const said = card.querySelector('.roles-said');
+  const roles = [].filter.call(card.querySelectorAll('[data-role-pick]'), b => b.checked)
+    .map(b => b.dataset.rolePick);
+  /* THE ONE RULE THE CARD CAN KNOW WITHOUT ASKING. The server refuses it too — this saves a round
+     trip to be told what the screen already shows. */
+  if (!roles.length) { if (said) said.textContent = 'Keep at least one ticked.'; return; }
+  send_({ action: 'setMyRoles', name: USER.name, personId: USER.personId || '', roles },
+        { button: el, where: said || undefined, saying: 'Saving…', lock: card })
+    .then(d => {
+      /* THE SERVER'S ANSWER IS WHAT YOU ARE NOW, not the ticks: it may have kept an admin's
+         `admin`, and only it knows whether the Tutor tick is waiting. Kept like every other field
+         of `USER`, so a reload does not undo it. */
+      USER.role = d.role || USER.role;
+      USER.roles = Array.isArray(d.roles) ? d.roles : USER.roles;
+      USER.tutorPending = !!d.tutorPending;
+      try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      toast(d.changed ? 'Roles saved' : 'Nothing changed');
+      /* THE COLUMN IS DRAWN FROM THE ROLE — which pages of fields, the agreement card — so it is
+         drawn again; then the payload, because who is a tutor is in it. */
+      if (d.changed) { try { repaint(true); } catch (e) {} try { load(); } catch (e) {} }
+      const now = document.querySelector('.roles-card .roles-said');
+      if (now) now.textContent = d.changed && USER.tutorPending ? rolesSaid_()
+                               : d.changed ? 'Saved.' : rolesSaid_();
+    })
+    .catch(() => {});
+});
 
 /* ---------- YOUR JOURNEY — A PLACEHOLDER ----------------------------------------------------------
    ASKED FOR AS *"make a journey widget to go in account settings. its for student to track and

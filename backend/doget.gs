@@ -650,6 +650,10 @@ function doGet(e) {
              ARE secret live on rows this loop never touches. */
           personId: S(r.person_id),
           listed: listed,      // so the site can show which ones are hidden, and offer the switch
+          /* AND WHICH OF THE HIDDEN ONES ASKED — a Tutor box ticked in Settings (`LISTED_PENDING`).
+             Only an admin is ever sent an unlisted row, so only an admin reads this; the card says
+             "asked to tutor" where it would say "not listed", and the same Listed switch is the yes. */
+          pending: tutorPending_(r),
           title: name, handle: S(r.handle) || S(r.first_name),
           subtitle: S(r.city) || 'London',
           image: S(r.photo), mediaUrl: S(r.video),
