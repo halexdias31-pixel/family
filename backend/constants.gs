@@ -2440,11 +2440,11 @@ const RUNNABLE = {
      one is safe to run again and gets more useful the more rows there are — it fills what is blank
      and reports what it left alone, so it is `priceWearables` above rather than a spent id. */
   fillHandles:       () => fillHandles(),
-  /* ---------- AND EVERY HANDLE INTO `<first>_<virtue>` ONCE ----------------------------------------
+  /* ---------- AND EVERY HANDLE THAT WAS NEVER THE GENERATED SHAPE, ONCE ---------------------------
      Unlike `fillHandles` this REPLACES a handle, on the owner's ask ("handles should be their name
-     and a virtuous describing word") — safe because signing in is an e-mail address and a PIN, so
-     nobody is locked out by it. A row already in the shape is left alone, so a second run changes
-     nothing. */
+     and a virtuous describing word"). A row already in the shape — any arrangement of first name,
+     virtue and number, or the 1 October `<first>_<virtue>` — is left alone, so a second run changes
+     nothing and nobody who signs in with their handle is moved by it. */
   renameHandles:     () => renameHandles(),
   /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE.
      All four wrote rows into the `questions` tab, and there is no such tab — the papers are

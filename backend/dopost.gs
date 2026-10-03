@@ -251,7 +251,7 @@ function doPost(e) {
         // person signing themselves up is almost always the one being taught.
         person_id: 'P' + Date.now(), role: 'student',
         first_name: first, last_name: last,
-        /* ---------- THE HANDLE IS GENERATED — `<first>_<virtue>` — see `handleMake_` -----------------
+        /* ---------- THE HANDLE IS GENERATED — first name, virtue, number — see `handleMake_` --------
            It goes through `handleTrouble_`, so the shape, the reserved list, the blocklist and the
            clash are checked exactly once. There is no `username` column any more: it was the handle
            written twice. `?run=fillHandles` fills any row a generator ever gave up on. */
@@ -420,7 +420,7 @@ function doPost(e) {
          ASKED FOR AS *"i have a student who doesnt have an email ... so he can still login."* A child
          is the usual case, and the address cannot be invented: a made-up one is a WRONG cell that
          every notice would post into and report success. So a row whose `email` cell is blank
-         answers to its handle (`<first>_<virtue>`, unique by `handleTrouble_`) and its PIN.
+         answers to its handle (`halex_kind42`, unique by `handleTrouble_`) and its PIN.
 
          ONLY A ROW WITH NO ADDRESS, and that is the rule that keeps this safe: an account that has
          an address can only be reached by it, so a handle typed here can never claim somebody who
@@ -437,7 +437,7 @@ function doPost(e) {
             error: 'That handle is on more than one account — ask us to sort it out.' });
         }
         return jsonOut({ success: false, why: 'not-an-email',
-          error: 'Sign in with the email on your account — or, if you have no email, your handle (like halex_kind).' });
+          error: 'Sign in with the email on your account — or, if you have no email, your handle (like halex_kind42).' });
       }
       const hits = t0.rows.filter(x => norm(x.email) === mail);
       if (hits.length > 1) {
@@ -1989,8 +1989,12 @@ function doPost(e) {
        ASKED FOR AS *"handles should be their name and a virtuous describing word. they can randomise
        it but it will follow that general name."* So there is no box to type a handle into any more:
        the Settings card shows the one you have and a Randomise button, and this is what it presses.
-       It asks `handleMake_` for another `<first>_<virtue>`, never the one you already have, and
-       writes it.
+       It asks `handleMake_` for another, never the one you already have, and writes it. Since
+       *"their first name, a virtuous adjective and random numbers and maybe an underscore. but all
+       random order"* that is a fresh word, a fresh number and a fresh arrangement on every press.
+
+       A CHILD WITH NO E-MAIL SIGNS IN WITH THE HANDLE, so for them this press changes the sign-in
+       name too. The Settings card says so under the tile for exactly those accounts.
 
        THE ROW IS THE TOKEN'S. `accessDenied` writes `body.personId` from the session before this
        runs, so a request naming somebody else's id randomises the asker's own handle — there is no

@@ -1867,10 +1867,25 @@ function settingsPages_() {
     <p class="handle-cap">handle</p>
     <p class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
       esc((USER && (USER.handle || '')) || '')}</span></p>
-    <button class="btn quiet" data-do="handle-shuffle">Randomise</button>
+    ${/* ---------- RANDOMISE IS A TILE, BECAUSE THE HANDLE IS A THING ---------------------------
+          It was a `.btn quiet` beside the PIN form's button, and it is not part of that form: it
+          takes no input and posts nothing typed. CLAUDE.md's rule is that a THING has tiles and a
+          FORM has buttons, and a handle is a thing about you — so the one action on it is a tile,
+          from `tile_`, with the tap target, the mark and the press that come from that one place,
+          and `send_` already knows a tile has no word to swap for "Choosing…".
+
+          THE LINE UNDER IT SAYS WHAT A PRESS MAKES. *"their first name, a virtuous adjective and
+          random numbers and maybe an underscore. but all random order."* — so a person is told the
+          number and the order move too, rather than discovering it. And that a child with no e-mail
+          signs in with the handle: a press changes what they type at sign-in, which is the one
+          thing about this tile somebody could regret, and it is said once here rather than as a
+          confirm that would be the pop-up this app has been asked not to have. */''}
+    <div class="tile-row">${tile_({ icon: 'shuffle', label: 'Randomise', note: 'a new handle',
+                                    act: 'handle-shuffle' })}</div>
     <p class="faint handle-said" style="margin:.6rem 0 0">${esc(
       (HANDLE_SAID.pid && HANDLE_SAID.pid === String(USER.personId || '') && HANDLE_SAID.text)
-      || 'Your first name and a word that suits you. Randomise picks another word.')}</p>
+      || 'Your first name, a word that suits you and a number. Randomise mixes up a new one — '
+       + 'if you sign in with your handle, that is your new sign-in name.')}</p>
     <div class="f-row pin-row" style="--n:3">
       <label class="field"><span>current PIN</span>
         <input id="pin-now" type="password" inputmode="numeric" autocomplete="current-password"></label>
