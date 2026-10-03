@@ -9591,21 +9591,37 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    WHAT IS SCANNED IS THE HEADER ROW — `Q5b` hard left in gold mono, the marks hard right — so a
    list is still something you run an eye down even though each card carries its whole question.
 ================================================================================================== */
+/* ---------- ONE RHYTHM DOWN THE CARD, WHERE THERE WERE FOUR GAPS AND NO REASON BETWEEN THEM ---------
+   ASKED FOR AS "refine the question widget stuff ... make it nice more sleek, fresh stable". Looked
+   at in screenshots at 320 and 390 before anything moved: the gaps down the card were .25, .5, .5 and
+   .5rem, so the tags sat a hair under the reference, the question a hair under the tags, and
+   "YOUR ANSWER" ran straight on from the last line of the question as though it were one more
+   paragraph of it. Three steps now -- tight inside a group (.4rem), a group from the next (.75rem),
+   the question from the answer (1rem) -- so header, question and answer read as three blocks before a
+   word of them is read. The padding grew on the vertical only: at 320 the column is about 222px of
+   text and sideways room is the one thing it cannot spare. */
 .qcard { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
-         padding: .6rem .7rem; margin-bottom: .4rem; }
+         padding: .75rem .7rem .8rem; margin-bottom: .4rem; }
 .qcard-top { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
 .qcard-top b { font: 700 .95rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
-.qcard-top span { font-size: .66rem; color: var(--faint); white-space: nowrap; }
-.qcard-sub { margin: .25rem 0 0; font-size: .7rem; color: var(--dim); }
+/* THE MARKS IN THE FACE OF THE NUMBER THEY BELONG TO, a step quieter than it. They were the body face
+   at .66rem in `--faint`, which read as a stray caption rather than as the other half of the header
+   row somebody runs an eye down. */
+.qcard-top span { font: 500 .68rem/1 var(--mono); color: var(--dim); white-space: nowrap; }
+.qcard-sub { margin: .4rem 0 0; font-size: .7rem; color: var(--dim); }
 /* ---------- THE CARD'S TAGS -------------------------------------------------------------------------
    ASKED FOR AS *"it has the title of it in one text name when it should still remain as tags."* The
    paper's name taken apart into the facts it is made of (`qTags_` in find.js), each in its kind's
    colour. Labels, not controls: smaller than a chip, not pressable, so nothing here is a tap target
    and a card of them is a card that still has room for its question. A tag with no kind -- the words
    after a paper's colon, `Arithmetic` -- keeps the plain outline and the dim ink. */
-.qtags { display: flex; flex-wrap: wrap; gap: .25rem; }
+.qtags { display: flex; flex-wrap: wrap; gap: .3rem .25rem; }
+/* A RADIUS IN px, NOT 999px. A long worksheet title -- "Multiplying and Dividing by 10, 100, 1000
+   etc" -- wraps to two lines at 320, and a 999px radius on a two-line box drew a lozenge with the
+   words running into its pointed ends. 9px is a full pill on a one-line tag (about 17px tall) and a
+   rounded box on a two-line one, so one rule is right for both. */
 .qtag {
-  display: inline-block; padding: .05rem .45rem; border-radius: 999px;
+  display: inline-block; max-width: 100%; padding: .05rem .45rem; border-radius: 9px;
   border: 1px solid var(--tag, var(--chip-line)); color: var(--tag, var(--dim));
   font-size: .64rem; line-height: 1.35;
 }
@@ -9616,7 +9632,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    Dimmer than the subtitle it hangs from, because it is a detail confirming the paper rather than
    the thing you are scanning for. Drawn on the rows that carry `exam_date` and nowhere else —
    see `satOn_` in find.js for why that is almost all of them. */
-.qcard-sat { display: block; margin-top: .1rem; font-size: .62rem; color: var(--faint); }
+.qcard-sat { display: block; margin-top: .35rem; font-size: .62rem; color: var(--faint); }
 
 /* WHAT TO BRING. Gold rather than faint, and that is the one difference from the line above it: a
    sitting date confirms you have the right paper, where "No calculator · Printed sheet" is an
@@ -9626,7 +9642,15 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* `.qcard-peek` AND `.qcard:active` WERE HERE — the clipped first line, and the press animation for
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
    nothing left to open. */
-.qcard .qsheet { margin-top: .5rem; }
+.qcard .qsheet { margin-top: .75rem; }
+/* ---------- THE PICTURE IS ON THE NEXT PAGE, AND THE QUESTION NOW SAYS SO ---------------------------
+   "Write down the mathematical name for the type of angle marked y", with no angle anywhere on the
+   card, reads as a question that failed to load. The figure moved to its own card (history 204) and
+   the words it left behind still point at it, so one quiet line says where it went. A label, not a
+   control -- the page turns the way every page does -- and `--faint`, because `.qcard-needs` above is
+   the only thing on this card allowed the accent. */
+.qsheet-figref { margin: .6rem 0 0; font: 500 .66rem/1.3 var(--font); color: var(--faint);
+                 letter-spacing: .04em; }
 
 /* ---------- THE TYPESETTING, AND IT HAS MOVED TWICE --------------------------------------------
    IT WAS `.qsheet …`, then `.qpaper …`, and it is `.qsheet …` again. Worth writing down, because
@@ -10284,6 +10308,51 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .quiz-opt.is-ans { border-color: var(--gold); color: var(--ink); font-weight: 600; }
 .quiz-opt.is-picked { border-width: 2px; }
 .quiz-opt.is-picked:not(.is-ans) { border-color: var(--red, #ff6b6b); color: var(--ink); }
+
+/* ---------- THE QUESTION CARD'S OPTIONS, WHICH TAKE THE VERDICT'S COLOURS --------------------------
+   `.qp-opt` IS `.quiz-opt` ON A QUESTION CARD (history 218), and on that card it sat directly above a
+   verdict that is green for right and amber for "not yet" -- while the right option was outlined in
+   GOLD and the pressed wrong one in RED. So one screen said the answer in gold and "not yet" in gold,
+   and called a miss red one line above the sentence that was written not to. On the card the options
+   now speak the verdict's language: the right one green with a tick, the pressed miss amber. The
+   recap quiz keeps its own pair; it has no verdict line to disagree with.
+
+   A RING TO SAY "PRESS ME", because a column of dark boxes with grey numbers in them read as a list
+   of facts. Filled when chosen, a tick when it is the answer. Painted by `::before` in the padding
+   the button already has, so the option's own markup -- italics, a stacked fraction -- is untouched:
+   a flex button would have made every text node and `<i>` in it a separate flex item.
+
+   THE PRESS DOES NOT MOVE THE WORDS. `.quiz-opt.is-picked` thickens the border to 2px, which pushes
+   the text in by a pixel on the tap that chose it; here the second pixel is an inset shadow, drawn
+   inside the box, so the option you pressed stays exactly where your finger left it.
+
+   ONCE MARKED THE OTHERS STEP BACK. `is-done` (choiceBox_) is only set when the question is settled,
+   which the handler already enforces -- so the unchosen wrong ones fade and stop looking pressable,
+   and what is left in full ink is what you picked and what was right. */
+.quiz-opt.qp-opt { position: relative; padding-left: 2.2rem; color: var(--ink);
+                   transition: border-color var(--quick) ease, opacity var(--quick) ease; }
+@media (hover: hover) {
+  .qp-choices:not(.is-done) .quiz-opt.qp-opt:not(.is-picked):hover { border-color: var(--faint); }
+}
+.quiz-opt.qp-opt::before {
+  content: ""; position: absolute; left: .75rem; top: 50%; width: 14px; height: 14px;
+  margin-top: -7px; box-sizing: border-box; border: 1.5px solid var(--faint); border-radius: 50%;
+  font: 700 10px/11px var(--font); text-align: center; color: var(--bg);
+}
+.quiz-opt.qp-opt.is-picked { border-width: 1px; border-color: var(--gold);
+                             box-shadow: inset 0 0 0 1px var(--gold); }
+.quiz-opt.qp-opt.is-picked::before { border-color: var(--gold); background: var(--gold); }
+.qp-choices.is-done .quiz-opt.qp-opt { cursor: default; }
+.qp-choices.is-done .quiz-opt.qp-opt:active { transform: none; }
+.qp-choices.is-done .quiz-opt.qp-opt:not(.is-picked):not(.is-ans) { opacity: .5; }
+.qp-choices.is-done .quiz-opt.qp-opt.is-ans { border-color: var(--good); font-weight: 600;
+                                               box-shadow: inset 0 0 0 1px var(--good); }
+.qp-choices.is-done .quiz-opt.qp-opt.is-ans::before { content: "\2713"; border-color: var(--good);
+                                                       background: var(--good); }
+.qp-choices.is-done .quiz-opt.qp-opt.is-picked:not(.is-ans) { border-color: var(--warn);
+                                                               box-shadow: inset 0 0 0 1px var(--warn); }
+.qp-choices.is-done .quiz-opt.qp-opt.is-picked:not(.is-ans)::before { border-color: var(--warn);
+                                                                       background: var(--warn); }
 
 /* A TYPED ANSWER IS ONE LINE, NOT A PAGE. `textarea` is `min-height: 5.8rem` globally and `.gd-box`
    already cuts it for the same reason — these hold `Osmosis` or `2,8,1`. Same shape as that rule:
@@ -11992,9 +12061,9 @@ button.scr-sq { cursor: pointer; }
 
    IT LOOKS LIKE RULED PAPER because that is what it is standing in for. A bordered form field would
    promise a submit button that does not exist. */
-.qp-ans { display: block; margin: .5rem 0 .2rem; }
+.qp-ans { display: block; margin: 1rem 0 .2rem; }
 .qp-ans-k { display: block; font: 600 .62rem/1 var(--font); color: var(--faint);
-            letter-spacing: .08em; text-transform: uppercase; margin-bottom: .3rem; }
+            letter-spacing: .08em; text-transform: uppercase; margin-bottom: .4rem; }
 .qp-ans-in {
   display: block; width: 100%; min-height: 44px; resize: vertical;
   padding: .5rem .6rem; box-sizing: border-box;
@@ -12003,13 +12072,30 @@ button.scr-sq { cursor: pointer; }
   font: 400 .9rem/1.6 var(--font);
 }
 .qp-ans-in:focus { outline: none; border-bottom-color: var(--gold); }
+/* THE RULE UNDER THE BOX TAKES THE VERDICT'S COLOUR, so what was marked and what it was marked as
+   are joined on the screen, not only in the sentence beside the button. `:has` because the verdict
+   comes AFTER the box in the markup and a sibling selector only looks forward; a browser without it
+   keeps the plain rule and loses nothing but this. Cleared by typing -- see the `input` listener in
+   find.js, which takes the verdict off as soon as the answer it was about has changed. */
+.qcard:has(> .qp-mark.is-right) .qp-ans-in { border-bottom-color: var(--good); }
+.qcard:has(> .qp-mark.is-near) .qp-ans-in { border-bottom-color: var(--warn); }
 
 /* ---------- MARKING YOUR OWN WORK ----------------------------------------------------------------
    TAP TARGETS IN px. 44 is the floor and `rem` cannot be trusted to reach it — the root is
    `clamp(13.5px, 3.8vw, 16px)`, so 2.75rem is 40.75px on a phone. Fifth conviction of that rule
    after `.btn.tiny`, `.post-act`, `.fm-adds label` and the filter chips. */
-.qp-mark { display: flex; align-items: center; gap: .6rem; flex-wrap: wrap; margin: .5rem 0 .2rem; }
+/* ---------- AND MARKING MOVES NOTHING --------------------------------------------------------------
+   THE ROW WRAPPED, AND THE CARD JUMPED. `flex-wrap: wrap` let "Not yet — have another go" drop under
+   the button at 320, so pressing Check grew the card by a line -- 21.8px, measured -- and everything
+   under it moved the moment you were told your answer. The verdict stays beside the button now and
+   wraps INSIDE its own slot, two short lines in a 44px row, so the row is the button's height whatever
+   it says. A tapped question's row has no button; its verdict line is reserved instead (below), so
+   the sentence lands in a space that was already there. `check/states.js` measures both. */
+.qp-mark { display: flex; align-items: center; gap: .7rem; flex-wrap: nowrap; margin: .6rem 0 .2rem;
+           min-height: 44px; }
+.qp-choices + .qp-mark { min-height: 1.4rem; margin-top: .45rem; }
 .qp-check {
+  flex: 0 0 auto;
   min-height: 44px; min-width: 88px; padding: 0 1rem;
   background: var(--gold); color: var(--bg); border: 0; border-radius: var(--r-sm);
   font: 600 .78rem/1 var(--font); letter-spacing: .04em; cursor: pointer;
@@ -12018,9 +12104,20 @@ button.scr-sq { cursor: pointer; }
 /* GREEN AND AMBER, NOT GREEN AND RED. The verdict says "not yet" rather than "wrong" and the
    colour has to agree with the words: these are practice sheets a child works through alone, and
    a red cross reads as final where the whole value of self-marking is the next attempt. */
-.qp-verdict { font: 600 .78rem/1.3 var(--font); }
-.qp-mark.is-right .qp-verdict { color: #6ee7a8; }
-.qp-mark.is-near  .qp-verdict { color: var(--gold); }
+/* THE TOKENS RATHER THAN A HEX: `--good` and `--warn` are what this stylesheet means by "worked" and
+   "look again" everywhere else, and the green here was its own `#6ee7a8`, the one place a right
+   answer was a different green from a paid invoice.
+
+   A MARK BESIDE THE WORDS, because colour alone is lost to anyone who cannot tell these two apart
+   and at arm's length to everyone. A tick for right; a turning arrow for "not yet", which says
+   "go round again" -- a cross would say the thing the wording was chosen not to. Drawn by CSS, so a
+   screen reader hears the sentence and not "check mark". "Write something first" has neither: it is
+   not a verdict. */
+.qp-verdict { flex: 1 1 auto; min-width: 0; font: 600 .78rem/1.3 var(--font); color: var(--dim); }
+.qp-mark.is-right .qp-verdict { color: var(--good); }
+.qp-mark.is-near  .qp-verdict { color: var(--warn); }
+.qp-mark.is-right .qp-verdict::before { content: "\2713"; margin-right: .4rem; font-weight: 700; }
+.qp-mark.is-near  .qp-verdict::before { content: "\21BB"; margin-right: .4rem; font-weight: 700; }
 
 /* ---------- `.resume` WAS HERE --------------------------------------------------------------------
    TWO RULES FOR THE "carry on" BLOCK over the funnel's first question. Removed with the feature:
