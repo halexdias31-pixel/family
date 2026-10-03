@@ -395,9 +395,18 @@ for (const c of SUITE) {
          find out what the first run said. Anything a check chose to mark is printed whether or not
          it falls in the last fourteen. */
       const lines = out.split('\n').filter(Boolean);
-      const marked = lines.filter(l => /^!\s/.test(l));
+      /* AND A `FAIL` OR AN INDENTED `!` WITH THE TWO LINES UNDER IT. `check-flow.js` names a broken
+         journey as `  FAIL  <name>` with its reason beneath, and `check/ui.js` a state it could not
+         measure as `  ! …` — both indented, so the test above never saw them, and a journey that
+         failed only inside the suite (a timer starved by four browsers) could not be named from
+         this output at all. */
+      const marked = [];
+      lines.forEach((l, i) => {
+        if (/^!\s/.test(l)) marked.push(l);
+        else if (/^\s+(FAIL|!)\s/.test(l)) marked.push.apply(marked, lines.slice(i, i + 3));
+      });
       const tail = lines.slice(-14);
-      marked.filter(l => tail.indexOf(l) === -1).slice(0, 8)
+      marked.filter(l => tail.indexOf(l) === -1).slice(0, 12)
             .forEach(l => console.log('          ' + l));
       tail.forEach(l => console.log('          ' + l));
       if (lines.length > 14) console.log('          … ' + (lines.length - 14)

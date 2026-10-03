@@ -2092,8 +2092,12 @@ check('touch typing moves on a right key, counts a wrong one, keeps the ladder p
   const n = w.widgetsOf_('tool').findIndex(x => String(x.id) === 'typing');
   if (n < 0) return ['there is no typing widget in the Tools roster'];
   try { t.goPage('tools', n, true); } catch (e) { return ['goPage("tools", ' + n + ') threw: ' + e.message]; }
-  await wait(100);
   const box = () => d.querySelector('.kt-box');
+  /* POLLED, NOT A FIXED 100ms. Inside `npm run check` this journey shares the machine with four
+     browsers, and the page fill after `goPage` missed a fixed tenth of a second there while passing
+     on its own every time — a red that names the harness's clock rather than the app. Two seconds is
+     a ceiling, not a wait: it returns the moment the box is there. */
+  for (let i = 0; i < 40 && !(box() && box().querySelector('.kt-in')); i++) await wait(50);
   if (!box() || !box().querySelector('.kt-in')) return ['the touch-typing card did not draw on the Tools column with its box'];
   const bad = [];
 
