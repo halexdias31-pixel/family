@@ -804,17 +804,7 @@ const STATES = {
         const last = caps.filter(c => c !== 'Available');
         const text = pg.textContent;
         const heat = pg.querySelector('.prof-heat');
-        /* AND A GOLD CORE IN EACH GLOW, ON THE SAME CENTRE — *"make the heat map a bit clearer."*
-           One core per venue, and its position string is its glow's position string, because
-           `profHeat_` places both through one `pos()` with the size halves cancelling. A core that
-           drifted off its glow, or one per map rather than per venue, fails here. */
-        const lst = (el, k) => ((el || {}).style || {})[k] ? el.style[k].split(/,(?![^(]*\))/).map(x => x.trim()) : [];
-        const glow = heat.querySelector('.heat-glow'), core = heat.querySelector('.heat-core');
-        const cores = lst(core, 'backgroundPosition'), glows = lst(glow, 'backgroundPosition');
-        const coresOk = !!core && cores.length === Number(heat.getAttribute('data-dots'))
-          && cores.join('|') === glows.join('|')
-          && (core.style.backgroundImage.match(/radial-gradient/g) || []).length === cores.length;
-        return heat.getAttribute('data-dots') === '1' && coresOk
+        return heat.getAttribute('data-dots') === '1'
           && ((heat.querySelector('.heat-tiles') || {}).style || { backgroundImage: '' }).backgroundImage
                .match(/tile\.openstreetmap\.org/g)?.length >= 2
           && caps.every(c => allowed.includes(c)) && caps.includes('Tutors at')
@@ -823,7 +813,7 @@ const STATES = {
           && [...pg.querySelectorAll('.prof-tag')].some(x => x.textContent.trim() === 'Online')
           && !/Colliers Wood Library|Sutton Library/.test(text) ? 1 : 0;
       },
-      wants: 'the five captions in order, one glow with a gold core on its centre, Online as a chip, and no venue named',
+      wants: 'the five captions in order, one glow on a map, Online as a chip, and no venue named',
       leave: () => { paint('account'); } },
     /* ---------- A TUTOR'S HOURS ON THEIR CARD — see `profAvail_` in cards.js -----------------------
        *"tutors availability should appear on their card."* The fixture's tutor sends what `doGet`

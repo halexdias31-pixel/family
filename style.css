@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-03-owner-batch";
+  --css-version: "2026-10-03-heat-back";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -12014,21 +12014,8 @@ button.scr-sq { cursor: pointer; }
 /* TWO LAYERS, because the tiles are filtered and the glows must not be. OpenStreetMap's standard
    tiles are light; inverting them and turning the hue back round gives a dark street map in the
    app's own palette, and the orange glows go on a separate layer above so they keep their colour. */
-.prof-heat .heat-tiles, .prof-heat .heat-glow, .prof-heat .heat-core { position: absolute; inset: 0; pointer-events: none; }
-/* NOT INVERTED ANY MORE, BECAUSE INVERTING LOST THE STREETS. Asked for as *"make the heat map a bit
-   clearer."* On OpenStreetMap's own colours the old `invert(1) hue-rotate(180deg) brightness(.85)
-   contrast(.9) saturate(.4)` turned white minor roads on #f2efe9 land into rgb(13,13,13) on
-   rgb(26,25,23) — 1.11:1, a street grid nobody could see — because the two colours are 5% apart and
-   inverting keeps them 5% apart at the dark end, where the eye resolves least. Turning the contrast
-   up after an invert only clips both to black.
-   SO THE STRETCH COMES FIRST AND THE MAP IS DARKENED BY IT: `brightness(.46) contrast(4)` maps the
-   narrow light band the tiles live in onto the dark half of the range, keeping the order — streets
-   LIGHTER than the blocks round them, which is how every dark map is drawn. Measured on the same
-   stand-in colours: minor roads 1.62:1 on open land and 2.46:1 on residential (#e0dfdf, most of
-   London at these zooms), water 1.85:1, place labels dark rather than white. `sepia` warms the grey
-   towards the card's gold. This container cannot load real tiles (403), so the phone has the final
-   word on this — tune these two numbers, not the order. */
-.prof-heat .heat-tiles { filter: brightness(.46) contrast(4) saturate(.5) sepia(.25); }
+.prof-heat .heat-tiles, .prof-heat .heat-glow { position: absolute; inset: 0; pointer-events: none; }
+.prof-heat .heat-tiles { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.4); }
 .prof-heat .heat-credit { position: absolute; right: 4px; bottom: 2px; font-size: .5rem; line-height: 1.4;
   color: rgba(255, 255, 255, .72); background: rgba(0, 0, 0, .45); padding: 0 3px; border-radius: 3px; }
 /* ---------- A TUTOR'S WEEK ON THEIR CARD — see `profAvail_` in cards.js ----------------------------
