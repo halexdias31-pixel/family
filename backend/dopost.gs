@@ -1713,7 +1713,9 @@ function doPost(e) {
 
       /* THE POLICY, asked once. Both directions are checked: a rule that lets somebody write but
          not be replied to is a rule that produces a one-sided conversation. */
-      if (!mayMessage(mainRole(me), mainRole(to))) {
+      /* `actingRole_`, NOT `mainRole`: a Tutor box ticked in Settings and not yet approved is not a
+         tutor for this question, or the tick would be a way to reach every family on the site. */
+      if (!mayMessage(actingRole_(me), actingRole_(to))) {
         return jsonOut({ error: 'You cannot message them directly. An admin can pass it on.' });
       }
 
@@ -2248,6 +2250,93 @@ function doPost(e) {
       return jsonOut({ success: true, photo: url });
     }
 
+    /* --- a person says which of the three they are -------------------------------------------------
+       ASKED FOR AS *"each account should have a widget in account settings which say what the roles
+       are. they can be either a tutor or client or student. they can be tutor and client and student
+       like multiselect."*
+
+       ITS OWN ACTION, NOT A FIELD OF `updateProfile`. `role` is in `PROFILE_READONLY` and stays
+       there: that list is "an admin may write the whole cell", and what a person may do to their
+       own is a different, smaller thing — three words of it, under four rules a field allow-list
+       cannot express:
+
+         1. ONLY THE THREE. `admin`, or any other word, is refused by name. What the row already
+            holds outside the three — `admin`, a `ROLE_TITLES` title — is carried through untouched.
+         2. AT LEAST ONE. An empty cell reads as `client` (`rolesOf`), so "none" would save as
+            something the person did not tick.
+         3. A TICKED TUTOR WAITS. `listed` becomes `LISTED_PENDING` and the admin's own Listed switch
+            is the yes. Not for an admin, who is the person saying yes.
+         4. NOTHING IS DROPPED FROM UNDER A SESSION. Unticking Tutor or Client while `liveSeatsAs_`
+            finds a seat in that role is refused, with the count — see there for what it would orphan.
+       And one that is about children: A ROW THAT IS ONLY A STUDENT CANNOT MAKE ITSELF A CLIENT. Client
+       is the parent's role — it pays, books, claims children and may message tutors — and a child's
+       account ticking it would be a child messaging adults the business has not introduced. A Tutor
+       tick is safe from the same row because it waits (rule 3) and `actingRole_` treats it as nothing
+       until it is approved.
+
+       YOUR OWN ROW AND NOBODY ELSE'S: `self`, so `body.personId` is the token's, whatever was posted.
+       EVERY REFUSAL BEFORE ANY WRITE, the `updateProfile` rule: a refusal that had already written
+       the role cell would be a role changed under a toast saying it was not. */
+    if (action === 'setMyRoles') {
+      const t = read(TAB.people);
+      const r = findPerson('', S(body.personId));
+      if (!r) return jsonOut({ error: 'Person not found.' });
+      if (t.headers.indexOf('role') < 0) {
+        return jsonOut({ error: 'The people tab has no `role` column. Run ensureSchema() — nothing was saved.' });
+      }
+      const asked = (Array.isArray(body.roles) ? body.roles : S(body.roles).split(','))
+        .map(x => norm(x)).filter(Boolean).map(x => SELF_ROLE_ALIASES[x] || ROLE_FROM_APP[x] || x);
+      const stray = asked.filter(x => SELF_ROLES.indexOf(x) === -1);
+      if (stray.indexOf('admin') !== -1) {
+        return jsonOut({ error: 'Admin is given by @family., not chosen here. Nothing was changed.' });
+      }
+      if (stray.length) {
+        return jsonOut({ error: 'Only Tutor, Client and Student can be chosen here — not "'
+          + stray.join('", "') + '". Nothing was changed.' });
+      }
+      const want = SELF_ROLES.filter(x => asked.indexOf(x) !== -1);
+      if (!want.length) return jsonOut({ error: 'Keep at least one ticked.' });
+
+      const had = selfRolesOf_(r);
+      const adding = want.filter(x => had.indexOf(x) === -1);
+      const dropping = had.filter(x => want.indexOf(x) === -1);
+      const iAmAdmin = hasRole(r, 'admin');
+
+      /* THE CHILD'S ACCOUNT. Read as `actingRole_`, so a pending Tutor tick does not count as the
+         adult role that would let Client through. */
+      if (adding.indexOf('client') !== -1 && !iAmAdmin && actingRole_(r) === 'student') {
+        return jsonOut({ error: 'A student account cannot make itself a client (a parent or payer). '
+          + 'Ask @family. to change it. Nothing was changed.' });
+      }
+      const stuck = dropping.filter(x => x === 'tutor' || x === 'client')
+        .map(x => ({ role: x, n: liveSeatsAs_(r, x).length })).filter(x => x.n);
+      if (stuck.length) {
+        const s = stuck[0];
+        return jsonOut({ error: 'You are in ' + s.n + (s.n === 1 ? ' session' : ' sessions') + ' as a '
+          + ROLE_LABEL[s.role].toLowerCase() + ' that ' + (s.n === 1 ? 'has' : 'have')
+          + ' not finished. Leave ' + (s.n === 1 ? 'it' : 'them') + ', or ask @family. to hand '
+          + (s.n === 1 ? 'it' : 'them') + ' over, first. Nothing was changed.' });
+      }
+      const gate = adding.indexOf('tutor') !== -1 && !iAmAdmin;
+      if (gate && t.headers.indexOf('listed') < 0) {
+        return jsonOut({ error: 'The people tab has no `listed` column, so a new tutor could not be '
+          + 'held for approval. Run ensureSchema() — nothing was saved.' });
+      }
+
+      if (adding.length || dropping.length) {
+        /* EVERYTHING THAT IS NOT ONE OF THE THREE, KEPT, with admin first so the cell reads the way
+           `mainRole` ranks it — `admin, tutor, head of boxing`, never the title alone. */
+        const rest = rolesOf(r).filter(x => SELF_ROLES.indexOf(SELF_ROLE_ALIASES[x] || x) === -1);
+        const admin = rest.filter(x => x === 'admin'), other = rest.filter(x => x !== 'admin');
+        setCell(t, r, 'role', admin.concat(want, other).join(', '));
+        if (gate) setCell(t, r, 'listed', LISTED_PENDING);
+        /* THE TUTOR LIST IS IN THE STORED PAYLOAD — the same reason `setListed` clears it. */
+        clearCache();
+      }
+      return jsonOut({ success: true, role: toAppRole(mainRole(r)), roles: rolesOf(r).map(toAppRole),
+                       tutorPending: tutorPending_(r), changed: !!(adding.length || dropping.length) });
+    }
+
     if (action === 'saveAvatar') {
       const t = read(TAB.people);
       const r = findPerson(S(body.name), S(body.personId));
@@ -2617,6 +2706,16 @@ function doPost(e) {
             return jsonOut({ error: 'That session is not open to other families.' });
           }
         } else {
+          /* TAKING A SESSION AS ITS TUTOR NEEDS A TUTOR. This asked nothing about who was posting:
+             `role: 'tutor'` in the body was the whole qualification, so any signed-in parent could
+             claim an open job. It mattered less while the role cell was the admin's alone; with a
+             Tutor box in Settings it is the gate — held AND approved (`tutorPending_`), or admin. */
+          const meRow = findPerson(me, S(body.personId));
+          if (!meRow || !(hasRole(meRow, 'admin') || (hasRole(meRow, 'tutor') && !tutorPending_(meRow)))) {
+            return jsonOut({ error: meRow && tutorPending_(meRow)
+              ? 'You can take sessions once @family. has approved you as a tutor.'
+              : 'Only a tutor can take a session.' });
+          }
           // "No preference" IS the client's consent to being matched with someone they didn't
           // pick. Without it, no.
           if (!TRUE_(j.stealable)) return jsonOut({ error: 'This job is not open to other tutors.' });
@@ -2838,6 +2937,14 @@ function doPost(e) {
 
       const jobId = S(body.forceItemId) || ('J-' + Date.now());
       const named = S(body.requestedTutor) && !/^(no preference|any)$/i.test(S(body.requestedTutor));
+      /* A TUTOR WHO TICKED THE BOX AND IS WAITING CANNOT BE BOOKED BY NAME. `doGet` never offers
+         them, so only a hand-built request could name one — and that request is the whole of what
+         stands between a tick in Settings and a family's session. Asked of the row the name finds;
+         a name that finds nobody is left to behave as it always has. */
+      const namedRow = named ? findPerson(S(body.requestedTutor)) : null;
+      if (namedRow && tutorPending_(namedRow)) {
+        return jsonOut({ error: 'That tutor is not taking bookings yet.' });
+      }
       addRow(t, {
         job_id: jobId, status: 'unconfirmed',
         subject: S(body.subject), level: S(body.level), service: S(body.service),
@@ -3590,6 +3697,9 @@ function loginReplyFor_(r, token) {
   const appRole = toAppRole(mainRole(r));
   const appRoles = rolesOf(r).map(toAppRole);
   const out = { success: true, role: appRole, roles: appRoles, name: personDisplayName(r),
+                /* A TUTOR TICK THE BUSINESS HAS NOT SAID YES TO — see `LISTED_PENDING`. The phone
+                   reads it for its staff test (`isTutorRole`) and for the line on the roles card. */
+                tutorPending: tutorPending_(r),
                 /* THE SESSION. Sent once, at sign-in, and never again — the phone keeps it and
                    offers it on every request, and the sheet holds only its digest. */
                 token: token || '',

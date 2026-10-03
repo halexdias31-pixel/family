@@ -871,7 +871,9 @@ function priceLooksWrong(o) {
   /* AND THE TEACHING. The cheapest listed tutor is the floor: nobody on this site works for less,
      so a total that does not cover it is a total that cannot pay for the session it describes. */
   const rates = read(TAB.people).rows
-    .filter(r => hasRole(r, 'tutor') && N(r.rate_per_hour) > 0)
+    /* NOT A PENDING ONE: a rate typed by somebody who ticked Tutor an hour ago is not a rate this
+       business charges, and the cheapest one here is the floor every booking is judged against. */
+    .filter(r => hasRole(r, 'tutor') && !tutorPending_(r) && N(r.rate_per_hour) > 0)
     .map(r => N(r.rate_per_hour));
   const cheapest = rates.length ? Math.min.apply(null, rates) : 0;
 
