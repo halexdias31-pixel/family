@@ -4959,6 +4959,78 @@ check('the shop is its own column with the basket on top, and Find no longer has
   return bad;
 });
 
+/* ---------- PROJECTS, A KIND OF ITS OWN BESIDE THE PRACTICALS ------------------------------------
+   ASKED FOR AS "the projects are like practicles, but not practicles. so should be a new tag in the
+   finder called projects." Asked of the REAL file through the REAL mapper: the first boot is only
+   there to reach `libraryExtras_`, so the rows the second boot draws are exactly what a phone makes
+   of `data/projects.json` — not a hand-written fixture of what somebody thought the mapper did.
+   Then: Find offers every one, `What kind` names `Projects` beside `Practicals`, a project is four
+   pages (card, materials, steps, share), and the share page's one tile lands on Messages. */
+check('Projects is a kind in Find beside Practicals: card, materials, steps, and a share page to Messages', async () => {
+  const rows = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'projects.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the projects were NOT checked — not a pass'];
+  /* THE PRACTICALS TOO, so `What kind` has both siblings to name — the fixture has no library. */
+  const prac = JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', 'practicals.json'), 'utf8'));
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, { projects: rows, practicals: prac })));
+  const mapped = made.projects || [];
+  if (!mapped.length) return ['the mapper made nothing of ' + rows.length + ' rows in data/projects.json'];
+  const p = payload();
+  p.projects = mapped;
+  p.practicals = made.practicals || [];
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  const found = w.stuffItems().filter(x => x.kind === 'project');
+  if (found.length !== mapped.length) bad.push('Find offers ' + found.length + ' of ' + mapped.length + ' projects');
+  if (!found.length) return bad;
+
+  /* THE TAG. `What kind` is grouped, so the word sits one tap in, beside the practicals. */
+  const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
+  const shown = items => w.facetValues(items, kindFacet).map(v => String(v.show || v.value));
+  const learning = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning');
+  /* PLACED IN THE GROUPING, because one unplaced kind stands the whole question down to the
+     alphabet — and in the same group as the practicals, which is where the owner will look. */
+  const grp = k => { try { return kindFacet.bucketOf(k); } catch (e) { return ''; } };
+  if (grp('Projects') !== 'Work through it' || grp('Practicals') !== grp('Projects')) {
+    bad.push('`What kind` files Projects under "' + grp('Projects') + '" and Practicals under "' + grp('Practicals') + '"');
+  }
+  const inner = shown(learning);
+  if (inner.indexOf('Projects') < 0 || inner.indexOf('Practicals') < 0) bad.push('`What kind` does not offer Projects beside Practicals — it reads ' + inner.join(' | '));
+
+  const x = found[0];
+  const parts = w.pageParts_(x);
+  if (JSON.stringify(parts) !== JSON.stringify([null, 'kit', 'steps', 'share'])) {
+    bad.push('a project is pages ' + JSON.stringify(parts) + ', not card, materials, steps, share');
+  }
+  const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
+  const card = box(w.stuffCard(x));
+  if (!card.querySelector('.card.proj')) bad.push('the project card is not drawn as a project');
+  else {
+    if (card.querySelector('.prac-flag').textContent.trim() !== 'Project') bad.push('the card is not flagged Project');
+    if (card.textContent.indexOf(x.row.sessions + ' sessions') < 0) bad.push('the card does not say how many sessions');
+    if (card.querySelector('.gd-box, .prac-kit, .prac-steps')) bad.push('the card carries its materials or steps — they are pages of their own');
+  }
+  const kit = box(w.stuffPart_(x, 'kit'));
+  if (kit.querySelectorAll('.prac-kit li').length !== x.row.materials.length) bad.push('the materials page does not list every item');
+  const steps = box(w.stuffPart_(x, 'steps'));
+  if (steps.querySelectorAll('.prac-steps ol > li').length !== x.row.steps.length) bad.push('the steps page does not number every step');
+  const share = box(w.stuffPart_(x, 'share'));
+  if (!/Messages/.test(share.textContent)) bad.push('the share page does not tell them to send it in Messages');
+  if (x.row.share && share.textContent.indexOf(x.row.share.slice(0, 40)) < 0) bad.push('the share page does not carry the row\'s own share note');
+  const tile = share.querySelector('.tile-row [data-do="proj-share"]');
+  if (!tile) bad.push('the share page has no Messages tile');
+  if (typeof t.ACTIONS['proj-share'] !== 'function') bad.push('`proj-share` has no handler');
+  else {
+    t.ACTIONS['proj-share'](tile);
+    await wait(50);
+    if (t.AT() !== 'dm') bad.push('the Messages tile went to ' + t.AT() + ', not Messages');
+  }
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;
