@@ -4971,6 +4971,94 @@ check('an answer draws its result, and the working waits shut under Why', async 
   return bad;
 });
 
+/* ---------- MARKING AND REVEALING LEAVE THE QUESTION WHERE IT IS -----------------------------------
+   ASKED FOR AS "make it nice more sleek, fresh stable". jsdom lays nothing out, so the PIXELS are
+   `check/states.js`'s to measure ("marked not yet, nothing moved" and its two siblings, in a real
+   browser at four widths). What only this harness can hold cheaply is the half that comes first:
+   the handlers must not REBUILD or INSERT anything above or around the answer. A Check that redrew
+   the card, or a verdict that arrived as a new element, would shift the question in a way no CSS can
+   take back -- and both have been this file's faults elsewhere (the `REEL_HELD` repaint).
+
+   So on a real card, through the real handlers: the header, the tags and the question are the SAME
+   nodes with the same markup after Check, a wrong Check, typing, Check again, "Show the answer" and
+   a tapped option; the card's own children are the same list in the same order; and the verdict
+   writes into a slot that was already there. And typing after a verdict takes it off -- "Correct"
+   beside an answer that has since changed is the app vouching for something it never read. */
+check('marking, revealing and tapping leave the question where it is, and typing clears a stale verdict', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  if (typeof w.questionCard_ !== 'function') return ['questionCard_ is not reachable — renamed?'];
+  const A = w.__t.ACTIONS;
+  ['qp-check', 'qp-reveal', 'qp-choose'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
+  if (bad.length) return bad;
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const still = card => {
+    const top = ['.qcard-top', '.qcard-sub', '.qsheet'].map(s => card.querySelector(s));
+    return { top, html: top.map(n => n && n.outerHTML), kids: [...card.children] };
+  };
+  const same = (a, card, when) => {
+    const b = still(card);
+    a.top.forEach((n, i) => {
+      if (!n) return bad.push(when + ': the card has no ' + ['header', 'tags', 'question'][i]);
+      if (n !== b.top[i]) bad.push(when + ': the ' + ['header', 'tags', 'question'][i] + ' was redrawn rather than left alone');
+      else if (a.html[i] !== b.html[i]) bad.push(when + ': the ' + ['header', 'tags', 'question'][i] + '\'s markup changed');
+    });
+    /* BY THE BLOCK'S FIRST CLASS, which names what it is; `is-near`, `is-done` and `is-shut` are the
+       states marking is SUPPOSED to change. */
+    if (a.kids.length !== b.kids.length || a.kids.some((k, i) => k.classList[0] !== b.kids[i].classList[0])) {
+      bad.push(when + ': the card\'s blocks changed from [' + a.kids.map(k => k.className).join(', ')
+        + '] to [' + b.kids.map(k => k.className).join(', ') + ']');
+    }
+  };
+  const base = { kind: 'question', name: 'Q7', marks: 1,
+    row: { row_id: 'Q-STILL-7', paper_id: 'P-STILL', subject: 'Maths', name: 'Still' },
+    html: '<p>Work out <sup>5</sup>&frasl;<sub>8</sub> of 24</p>', answer: '<b>15</b> &mdash; 24 &divide; 8 &times; 5' };
+  /* TYPED */
+  const typed = draw(Object.assign({}, base, { key: 'q-still-typed', accept: '15' }));
+  const t0 = still(typed);
+  const slot = typed.querySelector('.qp-mark .qp-verdict');
+  if (!slot) bad.push('a typed card has no verdict slot until it is marked, so the verdict arrives as a new line');
+  const inp = typed.querySelector('.qp-ans-in');
+  const chk = typed.querySelector('.qp-check');
+  const type = v => { inp.value = v; inp.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  type('16'); A['qp-check'](chk);
+  const mark = typed.querySelector('.qp-mark');
+  if (!mark.classList.contains('is-near') || !/Not yet/.test(slot.textContent)) bad.push('a wrong answer was not marked "not yet": ' + mark.className + ' / ' + slot.textContent);
+  if (typed.querySelector('.qp-mark .qp-verdict') !== slot) bad.push('the verdict was written into a new element, not the slot');
+  same(t0, typed, 'after a wrong Check');
+  type('15');
+  if (mark.classList.contains('is-near') || mark.classList.contains('is-right') || slot.textContent) bad.push('typing a new answer left the old verdict on it: ' + mark.className + ' / ' + slot.textContent);
+  same(t0, typed, 'after typing');
+  A['qp-check'](chk);
+  if (!mark.classList.contains('is-right')) bad.push('15 was not marked right');
+  same(t0, typed, 'after a right Check');
+  /* REVEALED */
+  const shut = draw(Object.assign({}, base, { key: 'q-still-shut', row: Object.assign({}, base.row, { row_id: 'Q-STILL-8' }) }));
+  const r0 = still(shut);
+  const rev = shut.querySelector('[data-do="qp-reveal"]');
+  if (rev) { A['qp-reveal'](rev); same(r0, shut, 'after "Show the answer"'); }
+  /* TAPPED -- `qp-choose` redraws the box from the stored pick and finds its question by key in the
+     library, which this harness does not load; so the library is this one question for the length of
+     the tap, and put back straight after. */
+  const mc = Object.assign({}, base, { key: 'q-still-mc', row: Object.assign({}, base.row, { row_id: 'Q-STILL-9' }),
+    choices: ['14', '15', '16'], choiceRight: [2] });
+  try { w.localStorage.removeItem(w.ansKey_(mc)); } catch (e) {}
+  const tapped = draw(mc);
+  const m0 = still(tapped);
+  if (!tapped.querySelector('.qp-choices + .qp-mark .qp-verdict')) bad.push('a tapped card has no verdict slot until it is marked');
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [mc];
+  try { A['qp-choose'](tapped.querySelector('.qp-opt[data-n="1"]')); } finally { w.stuffItemsAll_ = held; }
+  const box = tapped.querySelector('.qp-choices');
+  if (!box || !box.classList.contains('is-done')) bad.push('a settled tapped question does not say so (is-done), so its options still look pressable');
+  if (!tapped.querySelector('.qp-opt[data-n="2"].is-ans') || !tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick and the right option');
+  same(m0, tapped, 'after a wrong tap');
+  try { w.localStorage.removeItem(w.ansKey_(mc)); } catch (e) {}
+  return bad;
+});
+
 /* ---------- A TUTOR'S HOURS ON THEIR CARD ---------------------------------------------------------
    ASKED FOR AS *"tutors availability should appear on their card."* Asked of the card itself, off
    the shape `doGet` really sends — `availGridOut`'s 77 codes with 'TRUE' or '' — because the fixture
