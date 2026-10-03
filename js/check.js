@@ -108,6 +108,9 @@ const GLOBALS=new Set(('window document navigator localStorage sessionStorage co
 'speechSynthesis SpeechSynthesisUtterance AudioContext webkitAudioContext caches indexedDB open '+
 'close top self parent frames name status origin atob btoa CSS Function DOMParser XMLHttpRequest '+
 'Notification navigator visualViewport onerror '+
+/* XMLSerializer — sharing a booking puts the receipt's clone in an SVG, and an SVG is XML: an HTML
+   serialisation would leave `<br>` unclosed and the picture would not parse. See `rcPng_`. */
+'XMLSerializer '+
 /* GOOGLE IDENTITY SERVICES. `google.accounts.id` is put on the window by the script me.js appends
    at sign-in time, so it is a global that arrives late rather than a name anybody forgot to
    declare — and me.js already guards it with `if (!window.google)`, which is the right check for

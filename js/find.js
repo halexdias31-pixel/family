@@ -7705,6 +7705,13 @@ function jobPage_(j) {
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
   const admin = typeof isAdmin === 'function' && isAdmin();
   const tiles = (typeof jobTiles_ === 'function' ? jobTiles_({ row: j }) : '')
+    /* ---------- AND SHARE, WHICH THE FORM HAD AND THE BOOKING ITSELF DID NOT -------------------
+       *"make sure sharing booking is an identical … png … of the booking reciept"* — and the one
+       receipt a family actually sends somebody is the session that exists, not the form before it
+       was asked for. The same tile and the same handler as the form's: `book-share` walks up to the
+       `.rc` it is on, so it needs no id. After the client's own two and before an admin's, because
+       it is an ordinary action and those are decisions. */
+    + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
   const foot = tiles.trim() ? `<div class="tile-row rc-tiles">${tiles}</div>` : '';
   return (typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '')

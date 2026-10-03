@@ -15,107 +15,300 @@
 ================================================================================================== */
 
 
-/* ---------- SHARING IS A PRINT OF WHAT IS ON THE SCREEN -------------------------------------------
-   ASKED FOR AS *"can you also wipe everything we know about the sharing reciept? I want the feature
-   fully wiped and remade again. all i want is for when i share a booking/reciept it just shares a
-   pdf of an exact copy of what they are seeing on the screen."*
+/* ---------- SHARING IS A PICTURE OF WHAT IS ON THE SCREEN -----------------------------------------
+   ASKED FOR AS *"just make sure sharing booking is an identical jpg or png or whatevers best of the
+   booking reciept."* It was a PRINT — `window.print()` on this element, so the platform's dialogue
+   made a PDF — and before that it was `receiptCanvas`, a second renderer that drew the card again
+   from its own arithmetic and drifted from the first four separate times (the venue twice, a green
+   card that was cream paper, TO PAY where the screen said COST).
 
-   WHAT WENT: `receiptCanvas`, about two hundred lines of it, and `corsImage_` beside it. It drew
-   the receipt A SECOND TIME onto a canvas — its own column arithmetic, its own fonts, its own
-   palette read off the document, its own rules and dashes — and `js/check-canvas.js` existed for
-   the one fault that arrangement has and nothing else can see: a canvas has no DOM, so a column
-   landing on top of another is invisible to every other instrument here. Both are gone. So is
-   `BOOK_ROWS`, which was the list the card had just drawn, put where the canvas could reach it.
+   WHY A PICTURE AND NOT THE PDF. A PDF is a document you open; what a family does with a booking is
+   drop it into WhatsApp, where a PDF is a grey icon with a file name and a picture is the booking.
+   And the print dialogue was a detour on a phone: share → print → options → share again.
 
-   THE HONEST READING OF *"an exact copy of what they are seeing"* IS THE ELEMENT ITSELF. A second
-   renderer is not a copy of the first, it is a thing that has to be kept in step with it — and this
-   file's own history is the argument: the canvas drew a green terminal of a card that was cream
-   paper, printed the venue and the tutor twice, drew photographs the card had stopped drawing, and
-   said TO PAY where the screen said COST. Every one of those is one document told the answer twice.
+   WHY PNG AND NOT JPEG. A receipt is flat colour and small text, which is exactly what JPEG is worst
+   at — it rings round every letter and smears the hairlines. PNG is lossless, and on a card that is
+   mostly one flat panel it is also the SMALLER file. Drawn at twice the CSS size, so it is as sharp
+   on the phone it is sent to as on the one it was taken on.
 
-   SO IT PRINTS, WHICH IS THE ROUTE THIS APP ALREADY HAS THREE OF. The cheat sheet, the flyer and
-   `quiz-print` all build their paper, put a class on `body` and call `window.print()`; this does
-   the same to an element that is already on the screen. A print dialogue is where every phone and
-   every laptop keeps "save as PDF" and "share" — so the PDF is the platform's, made from the real
-   markup with real text in it, rather than a picture of some pixels.
+   AND IT IS STILL NOT A SECOND RENDERER, which is the lesson the canvas paid for. The picture is the
+   BROWSER drawing the same element: the `.rc` the tile is inside is cloned, every element of the
+   clone is handed the style the browser actually computed for its original, and the clone is put in
+   an SVG `<foreignObject>` — which is HTML, laid out by the same engine — and that SVG is drawn onto
+   a canvas. Nothing here knows what a row, a column or a tick is. A receipt that changes shape
+   tomorrow is shared in its new shape without this file being opened.
 
-   AND IT IS THE `.rc` THE BUTTON IS IN, asked of the DOM rather than remembered. The share tile is
-   printed on the receipt's own foot, so the document to print is the one the control is part of —
-   the same move as `msg-send` walking up to its nearest `.msg-form`, and it means the form, a saved
-   session and a basket all share this handler without any of them being named.
+   WHY NOT html2canvas. It IS a second renderer — it walks the DOM and re-implements CSS painting in
+   canvas calls, and it does not do subgrid, which `.bk` is built on. The receipt would come out
+   with its columns in the wrong places: the canvas's fault again, in somebody else's code.
+
+   `check/share.js` IS THE PROOF, and the only one there can be: it screenshots the element and the
+   picture at the same scale and compares them pixel by pixel. "Identical" is a measurement.
 --------------------------------------------------------------------------------------------- */
 
-/* A4 AT 96dpi, WHICH IS THE ONE PLACE THESE NUMBERS ARE WRITTEN. `@page` in the stylesheet sets the
-   same size and the same margin; a scale computed against a different sheet from the one being
-   printed on is a card that runs off the paper, so the pair is named here and cross-referenced
-   there rather than each being a number somebody typed. */
-const RC_PAGE_W = 794, RC_PAGE_H = 1123, RC_PAGE_M = 38;   /* 210mm x 297mm, 10mm margins */
+/* TWO DEVICE PIXELS TO A CSS PIXEL. A 1x picture of a 330px card is soft on every phone sold this
+   decade, and 3x makes a file twice the size for a difference nobody sees in a chat thumbnail. */
+const RC_SNAP_K = 2;
+
+/* ---------- THE FONT, CARRIED IN THE PICTURE -------------------------------------------------------
+   AN SVG DRAWN AS AN IMAGE MAY NOT FETCH ANYTHING. That is a browser rule, not a choice: an `<img>`
+   is sandboxed, so `@font-face` pointing at `fonts/family-code.woff2` is simply ignored inside it and
+   every letter falls back to the system monospace — the right words in the wrong typeface, which is
+   not "identical" by the first glance.
+
+   SO EVERY FACE THE PAGE DECLARES IS READ OFF THE PAGE'S OWN STYLESHEETS and re-declared with its
+   file inlined as a `data:` URL. Read rather than written out here, so the stylesheet stays the one
+   place a font is named — the `RC_PAGE_W` lesson: a second copy of a fact is a second thing to keep
+   in step. 54 KB once subset, fetched once per page and remembered. */
+let RC_FONTS_ = null;
+function rcFonts_() {
+  if (RC_FONTS_) return RC_FONTS_;
+  const faces = [];
+  [...document.styleSheets].forEach(sh => {
+    let rules = [];
+    /* A STYLESHEET FROM ANOTHER ORIGIN THROWS ON `cssRules` — Google Fonts, if one is ever linked.
+       Skipped rather than fatal: a face that cannot be read falls back, the rest are still carried. */
+    try { rules = [...sh.cssRules]; } catch (e) { return; }
+    rules.forEach(r => {
+      if (r.type !== 5 && !/^@font-face/i.test(r.cssText || '')) return;
+      faces.push({ css: r.cssText, base: sh.href || location.href });
+    });
+  });
+  const inline = url => fetch(url)
+    .then(r => r.ok ? r.blob() : Promise.reject(new Error(r.status)))
+    .then(b => new Promise((ok, no) => {
+      const fr = new FileReader();
+      fr.onload = () => ok(fr.result);
+      fr.onerror = () => no(fr.error);
+      fr.readAsDataURL(b);
+    }));
+  const seen = {};
+  RC_FONTS_ = Promise.all(faces.map(f => {
+    const urls = [];
+    f.css.replace(/url\(\s*(['"]?)([^'")]+)\1\s*\)/g, (m, q, u) => { urls.push(u); return m; });
+    return Promise.all(urls.map(u => {
+      const abs = new URL(u, f.base).href;
+      seen[abs] = seen[abs] || inline(abs).catch(() => '');
+      return seen[abs].then(d => [u, d]);
+    })).then(pairs => pairs.reduce((css, [u, d]) => d ? css.split(u).join(d) : css, f.css));
+  })).then(all => all.join('\n'))
+    /* A FONT THAT WILL NOT LOAD IS NOT A SHARE THAT FAILS. The picture is still the booking, in the
+       fallback face; refusing to share it over a typeface would be the worse answer. Not remembered,
+       so the next press tries again. */
+    .catch(() => { RC_FONTS_ = null; return ''; });
+  return RC_FONTS_;
+}
+
+/* ---------- THE CLONE, WEARING WHAT THE BROWSER COMPUTED ------------------------------------------
+   WHY COMPUTED STYLES RATHER THAN THE STYLESHEET. The obvious move is to put `style.css` in the SVG
+   and let it apply — and it would apply wrongly, two ways. Its media queries would be asked about the
+   SVG's own viewport, which is the width of the CARD, so every `@media (max-width: …)` rule answers
+   as though the phone were 330px wide; and every selector that depends on where the card sits —
+   `#s-booking .rc`, `body.x .rc`, `:root` tokens redefined for the dark scheme — has nothing to
+   match in a document that holds only the card. The computed style is the answer to all of those,
+   already worked out for the place the card actually is.
+
+   `::before` AND `::after` ARE NOT ELEMENTS, so they cannot carry a `style` attribute. Each one that
+   draws anything gets a class of its own and a rule in the SVG's `<style>` — the one thing the
+   stylesheet is still needed for.
+
+   ANIMATION AND TRANSITION ARE TURNED OFF ON THE COPY. The computed value is already the frame on
+   the screen; copying `animation` too would restart it inside the picture from its first frame, and
+   a tick that fades in would be photographed invisible. */
+function rcStyle_(cs) {
+  let s = '';
+  for (let i = 0; i < cs.length; i++) {
+    const p = cs[i];
+    if (/^(animation|transition)/.test(p)) continue;
+    s += p + ':' + cs.getPropertyValue(p) + ';';
+  }
+  return s + 'animation:none;transition:none;';
+}
+
+function rcClone_(el, rules) {
+  if (el.nodeType === 3) return document.createTextNode(el.nodeValue);
+  if (el.nodeType !== 1) return null;
+  const cs = getComputedStyle(el);
+  /* NOT DRAWN IS NOT COPIED. A `display: none` subtree paints nothing on the screen, so leaving it
+     out of the picture is the identity, not a liberty — and it is how the tiles and an admin's money
+     rows stay off it (see `.rc-snap` in the stylesheet). */
+  if (cs.display === 'none') return null;
+  const c = el.cloneNode(false);
+  c.setAttribute('style', rcStyle_(cs));
+  ['::before', '::after'].forEach(p => {
+    const ps = getComputedStyle(el, p);
+    const ct = ps.getPropertyValue('content');
+    if (!ct || ct === 'none' || ct === 'normal') return;
+    const k = 'rcp' + rules.length;
+    c.classList.add(k);
+    rules.push('.' + k + p + '{' + rcStyle_(ps) + '}');
+  });
+  /* A FORM'S ANSWERS LIVE IN PROPERTIES, NOT ATTRIBUTES. The booking form is dropdowns on paper, and
+     `cloneNode` copies the markup the select was DRAWN with — so without this the picture shows the
+     first option of every row rather than what was picked, which is the one thing it is for. */
+  [...el.childNodes].forEach(n => {
+    const k = rcClone_(n, rules);
+    if (k) c.appendChild(k);
+  });
+  if (el.tagName === 'SELECT') {
+    [...c.querySelectorAll('option')].forEach((o, i) => {
+      if (el.options[i] && el.options[i].selected) o.setAttribute('selected', '');
+      else o.removeAttribute('selected');
+    });
+  } else if (el.tagName === 'INPUT') {
+    if (el.type === 'checkbox' || el.type === 'radio') {
+      if (el.checked) c.setAttribute('checked', ''); else c.removeAttribute('checked');
+    } else c.setAttribute('value', el.value);
+  } else if (el.tagName === 'TEXTAREA') {
+    c.textContent = el.value;
+  }
+  return c;
+}
+
+/* ---------- WHAT IS BEHIND THE CORNERS -------------------------------------------------------------
+   THE CARD HAS ROUNDED CORNERS, so the rectangle of the picture has four slivers the card does not
+   cover. Left transparent they turn white in one chat app and black in another; filled with what is
+   behind the card on the screen they are what the screen shows. The nearest ancestor that paints a
+   background is that colour. */
+function rcBehind_(el) {
+  for (let p = el.parentElement; p; p = p.parentElement) {
+    const bg = getComputedStyle(p).backgroundColor;
+    if (bg && !/^(transparent|rgba\(\s*0,\s*0,\s*0,\s*0\s*\))$/.test(bg)) return bg;
+  }
+  return getComputedStyle(document.documentElement).backgroundColor || '#000';
+}
+
+/** The `.rc` as a PNG at `RC_SNAP_K` device pixels per CSS pixel. Resolves `{ blob, w, h, svg }`. */
+function rcPng_(rc) {
+  /* ---------- THE SNAPSHOT IS TAKEN IN ONE GO, SYNCHRONOUSLY ---------------------------------------
+     `.rc-snap` HIDES THE TILES AND AN ADMIN'S TWO EXTRA MONEY ROWS, measured and cloned with it on,
+     then taken off — all inside one task, so the browser never paints the card without them. Same
+     two exclusions the print had, for the same reasons: a picture of a Send button is a control
+     nobody can press, and `Tutor earns` / `Admin earns` must not travel to a family. */
+  rc.classList.add('rc-snap');
+  let box, xml, behind;
+  const rules = [];
+  try {
+    box = rc.getBoundingClientRect();
+    const clone = rcClone_(rc, rules);
+    clone.classList.remove('rc-snap');
+    /* AT THE ORIGIN OF THE PICTURE. Its margin placed it in the column; here there is no column. */
+    clone.style.margin = '0';
+    clone.setAttribute('xmlns', 'http://www.w3.org/1999/xhtml');
+    xml = new XMLSerializer().serializeToString(clone);
+    behind = rcBehind_(rc);
+  } finally {
+    rc.classList.remove('rc-snap');
+  }
+  const w = Math.max(1, box.width), h = Math.max(1, box.height);
+  const cw = Math.ceil(w * RC_SNAP_K), ch = Math.ceil(h * RC_SNAP_K);
+  return rcFonts_().then(fonts => {
+    /* `viewBox` IS THE CSS SIZE AND `width`/`height` THE PIXEL SIZE, so the browser lays the HTML out
+       at the width it had on the screen — the same wraps, the same columns — and rasterises it at
+       twice that. Scaling the bitmap afterwards would be a blurred 1x picture. */
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${cw}" height="${ch}" `
+      + `viewBox="0 0 ${cw / RC_SNAP_K} ${ch / RC_SNAP_K}"><style>${fonts}\n${rules.join('\n')}</style>`
+      + `<foreignObject x="0" y="0" width="${w}" height="${h}">${xml}</foreignObject></svg>`;
+    return new Promise((ok, no) => {
+      const img = new Image();
+      img.onload = () => {
+        /* `decode()` BEFORE DRAWING, where there is one. Safari fires `load` on an SVG image before
+           its embedded font is ready and the first draw comes out in the fallback face. */
+        const ready = img.decode ? img.decode().catch(() => {}) : Promise.resolve();
+        ready.then(() => {
+          try {
+            const cv = document.createElement('canvas');
+            cv.width = cw; cv.height = ch;
+            const g = cv.getContext('2d');
+            g.fillStyle = behind;
+            g.fillRect(0, 0, cw, ch);
+            g.drawImage(img, 0, 0, cw, ch);
+            cv.toBlob(b => b ? ok({ blob: b, w: cw, h: ch, svg })
+                             : no(new Error('the browser made an empty picture')), 'image/png');
+          } catch (e) { no(e); }
+        });
+      };
+      img.onerror = () => no(new Error('the browser could not draw the receipt'));
+      img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+    });
+  });
+}
+
+/* ---------- WHERE THE PICTURE GOES -----------------------------------------------------------------
+   THREE WAYS OUT, IN ORDER, and which one a phone takes is asked rather than guessed:
+
+     1. THE SHARE SHEET, where the platform says it takes files — iPhone and Android, straight to
+        WhatsApp, Messages or mail. `canShare` is the question; `navigator.share` existing is not
+        enough, because desktop Chrome has it and refuses files on some systems.
+     2. A DOWNLOAD — a laptop, where "share" means saving it and attaching it somewhere.
+     3. THE PICTURE IN A SHEET, where neither is possible: a long press on an image saves it on every
+        phone. Not `window.open` — `check-surfaces` refuses a new tab, and a pop-up blocker would
+        turn this press into nothing.
+
+   AND ONE CASE THAT COMES BACK TO THE SHEET. A share sheet may only be opened by a press, and
+   Safari counts the picture being made as time passing since it — so on an iPhone the first
+   `navigator.share` can be refused with `NotAllowedError`. The sheet then offers the picture with a
+   Share button, which is a press of its own. Closing the share sheet without choosing anything is an
+   `AbortError` and means exactly that: nothing to report. */
+let RC_SHOT = null;   /* { file, url } — the last picture made, for the sheet's own Share button */
+
+function rcSave_(blob, name) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  if (!('download' in a)) return rcOffer_(blob, name);
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  /* NOT REVOKED AT ONCE. Some browsers start the download after the click returns, and a URL revoked
+     under it is a zero-byte file. A minute is long enough and costs one picture's memory. */
+  setTimeout(() => URL.revokeObjectURL(url), 60000);
+  toast('Saved a picture of this booking');
+}
+
+function rcOffer_(blob, name) {
+  if (RC_SHOT && RC_SHOT.url) URL.revokeObjectURL(RC_SHOT.url);
+  const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : blob;
+  RC_SHOT = { file, url: URL.createObjectURL(blob), name };
+  const can = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
+  /* A DIALOGUE, SO ITS ACTIONS ARE BUTTONS — CLAUDE.md's rule, and the pay sheet is the precedent. */
+  openSheet('Share this booking', `
+    <img class="rc-shot" src="${RC_SHOT.url}" alt="This booking, as a picture">
+    <p class="note">${can ? 'Press Share to send it.' : 'Press and hold the picture to save it.'}</p>
+    <div class="btn-row">
+      ${can ? '<button class="btn primary" data-do="rc-shot-share">Share</button>' : ''}
+      <a class="btn quiet" href="${RC_SHOT.url}" download="${esc(name)}">Save</a>
+    </div>`);
+}
+
+on('rc-shot-share', () => {
+  if (!RC_SHOT || !navigator.share) return;
+  navigator.share({ files: [RC_SHOT.file], title: 'Booking' })
+    .catch(e => { if (!e || e.name !== 'AbortError') toast('Could not share it — press and hold the picture to save it'); });
+});
+
+function rcHand_(blob, name) {
+  const file = typeof File === 'function' ? new File([blob], name, { type: 'image/png' }) : null;
+  const can = !!(file && navigator.share && navigator.canShare
+                 && (() => { try { return navigator.canShare({ files: [file] }); } catch (e) { return false; } })());
+  if (!can) return rcSave_(blob, name);
+  return navigator.share({ files: [file], title: 'Booking' }).catch(e => {
+    if (e && e.name === 'AbortError') return;
+    rcOffer_(blob, name);
+  });
+}
 
 on('book-share', el => {
-  /* THE DOCUMENT THIS CONTROL IS PART OF. Nothing is cloned and nothing is rebuilt: what prints is
-     the element the person is looking at, with whatever is answered in it at this moment. */
-  const rc = el.closest && el.closest('.rc');
+  /* THE DOCUMENT THIS CONTROL IS PART OF, asked of the DOM rather than remembered — the same move as
+     `msg-send` walking up to its nearest `.msg-form`. The form and a saved session share this handler
+     without either being named. */
+  const rc = el && el.closest && el.closest('.rc');
   if (!rc) return toast('There is nothing to share on this card yet');
-
-  /* ---------- AS BIG AS THE PAPER TAKES, AND NOT ONE PIXEL RESHAPED ------------------------------
-     A PHONE CARD IS ABOUT 312px WIDE and A4 is 794, so printed at its natural size the receipt is a
-     third of the sheet in one corner. Scaled up it fills the page — and a TRANSFORM is what makes
-     that an enlargement rather than a re-layout: setting a width instead would reflow the grid, and
-     a document that re-flows is no longer a copy of what was on the screen.
-
-     THE SMALLER OF THE TWO FITS, so a long receipt shrinks to one page rather than being cut in
-     half by a page break, and a short one does not blow up past the paper. Capped at 3, because
-     beyond that the thing being read is the pixels. */
-  const box = rc.getBoundingClientRect();
-  const k = Math.min(3,
-    (RC_PAGE_W - 2 * RC_PAGE_M) / Math.max(1, box.width),
-    (RC_PAGE_H - 2 * RC_PAGE_M) / Math.max(1, box.height));
-  rc.style.setProperty('--rc-k', String(Math.max(1, k).toFixed(3)));
-  /* ---------- AND ITS WIDTH IS PINNED TO THE ONE IT HAD ON THE SCREEN ----------------------------
-     A PRINT RE-LAYS THE PAGE OUT AT THE PAPER'S WIDTH. Measured: the receipt is 327.6px on a 390px
-     phone and 472 once the page box is A4, so without this the thing printed is a wider re-flow of
-     the card rather than the card — different column widths, different wraps, and a scale computed
-     against a box that no longer exists. Frozen in pixels, so what goes on the paper is the layout
-     that was on the glass and the only thing the transform does is make it bigger. */
-  rc.style.setProperty('--rc-w', box.width.toFixed(1) + 'px');
-  rc.classList.add('rc-print');
-
-  /* ---------- OUT OF THE COLUMN, BECAUSE `absolute` IS RELATIVE TO WHATEVER IS ABOVE IT ----------
-     `.screen` IS `position: absolute` AND `placeCells` PUTS A TRANSFORM ON THE COLUMNS, and either
-     of those makes an ancestor the containing block for an absolutely positioned child — so a
-     receipt pinned to `left: 10mm` landed 10mm from the COLUMN it happens to be parked in, which on
-     a screen whose columns are off-canvas either side is anywhere at all. Measured: x = 101.3 on a
-     page 794 wide.
-
-     THE OTHER THREE PRINTABLE THINGS IN THIS APP ARE CHILDREN OF `body` and never met this, because
-     they build their paper rather than printing something already on screen. This is the one that
-     has to move, and it moves back: a comment node holds its place, so the card returns to exactly
-     where it was whether the dialogue was used or dismissed. */
-  const mark = document.createComment('rc-print');
-  if (rc.parentNode) rc.parentNode.insertBefore(mark, rc);
-  document.body.appendChild(rc);
-  document.body.classList.add('printing-rc');
-
-  /* `afterprint` AND A FOUR-SECOND BACKSTOP, which is what the other three printable things in this
-     app use and for the reason written over `quiz-print`: some browsers never fire the event when
-     the dialogue is dismissed, and a body left with `printing-rc` on it is a blank app. */
-  const done = () => {
-    document.body.classList.remove('printing-rc');
-    rc.classList.remove('rc-print');
-    rc.style.removeProperty('--rc-k');
-    rc.style.removeProperty('--rc-w');
-    /* PUT BACK ONLY IF THE PLACE IS STILL THERE. A repaint between the print and the dismissal
-       rebuilds the column, and re-inserting into a detached tree would leave the card in a document
-       fragment nobody can see. If the mark has gone the card has already been redrawn, so dropping
-       this one is the right answer rather than the lossy one. */
-    if (mark.parentNode) mark.parentNode.insertBefore(rc, mark);
-    else if (rc.parentNode === document.body) rc.remove();
-    if (mark.parentNode) mark.remove();
-    window.removeEventListener('afterprint', done);
-  };
-  window.addEventListener('afterprint', done);
-  setTimeout(done, 4000);
-  window.print();
+  /* SAID AT ONCE, because the picture takes a moment and a press that answers nothing for half a
+     second gets pressed again. */
+  toast('Making a picture of this booking…');
+  rcPng_(rc)
+    .then(p => rcHand_(p.blob, 'family-booking-' + stamp_() + '.png'))
+    .catch(e => toast('Could not make the picture: ' + String((e && e.message) || e)));
 });
 
 /* ==================================================================================================
@@ -257,7 +450,7 @@ function drawBooker_() {
       ${tile_({ icon: 'share', label: 'Share this booking',
                 /* `data: { stage: 'screen' }` WAS HERE and it was the second half of a choice this
                    document made twice, back when sharing drew the receipt again onto a canvas.
-                   Sharing IS the card now — it prints this element — so there is nothing left for
+                   Sharing IS the card now — it pictures this element — so there is nothing left for
                    the button to tell it and nothing left to disagree with. */
                 act: 'book-share' })}
     </div>

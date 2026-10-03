@@ -3555,7 +3555,7 @@ function stepRows_() {
 
 /* `BOOK_ROWS` STOOD HERE and it was a list the card kept for something else to read. `receiptCanvas`
    drew the receipt a second time onto a canvas, and this was how it got the rows the card had
-   actually drawn rather than the priced ones alone. Sharing prints the element now — see
+   actually drawn rather than the priced ones alone. Sharing pictures the element now — see
    `on('book-share')` — so the second renderer is gone and so is the only thing that read this. */
 
 /* ==================================================================================================
