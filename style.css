@@ -9571,9 +9571,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qans-why > summary::before { content: "+"; color: var(--gold); font-weight: 700; }
 .qans-why[open] > summary::before { content: "\2212"; }
 .qans-why > summary:hover { color: var(--gold); }
+/* THE OPENED WORKING HANGS FROM ITS FOLD BY A RULE DOWN THE LEFT, the mark `.quiz-q` and `.qp-guide`
+   already use for "this block belongs to the thing above it". Without it, three paragraphs of dim
+   working read as a second answer starting under the first; with it they read as the inside of
+   "Why". Laid in line with the fold's own + so the two read as one control and its contents. */
 .qans-more {
   font: 400 .8rem/1.5 var(--font); color: var(--dim);
-  padding: 0 0 .4rem .2rem;
+  margin: 0 0 .4rem .3rem; padding: .1rem 0 .1rem .7rem;
+  border-left: 2px solid var(--line);
 }
 .qans-more p:first-child { margin-top: 0; }
 .qans-more table { border-collapse: collapse; margin: .6rem 0; }
@@ -10330,7 +10335,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    which the handler already enforces -- so the unchosen wrong ones fade and stop looking pressable,
    and what is left in full ink is what you picked and what was right. */
 .quiz-opt.qp-opt { position: relative; padding-left: 2.2rem; color: var(--ink);
-                   transition: border-color var(--quick) ease, opacity var(--quick) ease; }
+                   transition: border-color var(--quick) ease, color var(--quick) ease; }
 @media (hover: hover) {
   .qp-choices:not(.is-done) .quiz-opt.qp-opt:not(.is-picked):hover { border-color: var(--faint); }
 }
@@ -10344,7 +10349,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .quiz-opt.qp-opt.is-picked::before { border-color: var(--gold); background: var(--gold); }
 .qp-choices.is-done .quiz-opt.qp-opt { cursor: default; }
 .qp-choices.is-done .quiz-opt.qp-opt:active { transform: none; }
-.qp-choices.is-done .quiz-opt.qp-opt:not(.is-picked):not(.is-ans) { opacity: .5; }
+/* `--faint` AND NOT `opacity`: half-transparent ink on this background measures under 4.5:1, and an
+   option nobody should press any more is still a sentence somebody may want to read. */
+.qp-choices.is-done .quiz-opt.qp-opt:not(.is-picked):not(.is-ans) { color: var(--faint);
+                                                                     border-color: var(--line-soft); }
 .qp-choices.is-done .quiz-opt.qp-opt.is-ans { border-color: var(--good); font-weight: 600;
                                                box-shadow: inset 0 0 0 1px var(--good); }
 .qp-choices.is-done .quiz-opt.qp-opt.is-ans::before { content: "\2713"; border-color: var(--good);

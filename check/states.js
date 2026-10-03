@@ -679,6 +679,136 @@ const STATES = {
       },
       wants: 'the answer\'s working open under Why, its fraction stacked',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- MARKED, AND NOTHING MOVED --------------------------------------------------------
+       ASKED FOR AS "make it nice more sleek, fresh stable". The unstable part was measured before it
+       was fixed: at 320 "Not yet — have another go" wrapped under Check and grew the card by 21.8px,
+       and a tapped wrong option grew it by 13.7px as its verdict line arrived from nowhere -- the
+       card jumped at the moment it told you your answer. Neither is visible in a picture taken
+       afterwards, so these states take the picture's measurements BEFORE the press as well, the way
+       a finger would see it: the question's top, the answer box's top and the card's height, then
+       Check (or the tap), then the same three again. A wrong verdict may move NOTHING; a right one
+       may grow the card only BELOW the box, because it opens the answer, which is the point.
+
+       NAMED ROWS, so the pictures are the same question every run: `Q0664` is 5/8 = ?/24 (typed,
+       accepts 15, its stem a stacked fraction), and the Corbettmaths ×10 question is a one-answer
+       tapped one. The stored answer is cleared first and again on the way out -- a pick left over
+       from an earlier run is a question already settled, and would measure the wrong card. */
+    { name: 'a typed answer, marked not yet, nothing moved',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+        window.__qStable = null;
+        setTimeout(() => {
+          const card = document.querySelector('#s-stuff .page.on .qcard');
+          const inp = card && card.querySelector('.qp-ans-in');
+          const btn = card && card.querySelector('.qp-check');
+          if (!inp || !btn) return;
+          const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
+                            card.querySelector('.qp-ans').getBoundingClientRect().top,
+                            card.getBoundingClientRect().height];
+          const a = at();
+          inp.value = '999999';
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+          btn.click();
+          window.__qStable = { a, b: at() };
+        }, 150);
+      },
+      expect: () => {
+        const s = window.__qStable;
+        const mark = document.querySelector('#s-stuff .page.on .qcard .qp-mark');
+        return !!s && !!mark && mark.classList.contains('is-near')
+               && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5);
+      },
+      wants: 'Q0664 marked "not yet" with the question, the box and the card\'s height exactly where they were before Check',
+      leave: () => {
+        const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
+        try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    { name: 'a typed answer, marked right, the question still',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+        window.__qStable = null;
+        setTimeout(() => {
+          const card = document.querySelector('#s-stuff .page.on .qcard');
+          const inp = card && card.querySelector('.qp-ans-in');
+          const btn = card && card.querySelector('.qp-check');
+          if (!inp || !btn) return;
+          const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
+                            card.querySelector('.qp-ans').getBoundingClientRect().top,
+                            btn.getBoundingClientRect().top];
+          const a = at();
+          inp.value = '15';
+          inp.dispatchEvent(new Event('input', { bubbles: true }));
+          btn.click();
+          window.__qStable = { a, b: at() };
+        }, 150);
+      },
+      expect: () => {
+        const s = window.__qStable;
+        const card = document.querySelector('#s-stuff .page.on .qcard');
+        const mark = card && card.querySelector('.qp-mark');
+        return !!s && !!mark && mark.classList.contains('is-right')
+               && !card.querySelector('.qans').classList.contains('is-shut')
+               && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5);
+      },
+      wants: 'Q0664 marked right and its answer opened, with the question, the box and Check where they were',
+      leave: () => {
+        const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
+        try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    { name: 'a tapped answer, not yet, nothing moved',
+      enter: () => {
+        const id = 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12';
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
+        if (!it) throw new Error(id + ' is not in the library');
+        if (!(it.choiceRight || []).length) throw new Error(id + ' has no credited choice to miss');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+        window.__qStable = null;
+        setTimeout(() => {
+          const card = document.querySelector('#s-stuff .page.on .qcard');
+          const opts = card ? [...card.querySelectorAll('.qp-opt')] : [];
+          if (opts.length < 2) return;
+          const miss = it.choiceRight[0] === 1 ? 2 : 1;
+          const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
+                            card.querySelector('.qp-opt[data-n="' + miss + '"]').getBoundingClientRect().top,
+                            card.getBoundingClientRect().height];
+          const a = at();
+          opts[miss - 1].click();
+          window.__qStable = { a, b: at() };
+        }, 150);
+      },
+      expect: () => {
+        const s = window.__qStable;
+        const box = document.querySelector('#s-stuff .page.on .qcard .qp-choices');
+        const mark = box && box.nextElementSibling;
+        return !!s && !!box && box.classList.contains('is-done')
+               && !!box.querySelector('.qp-opt.is-picked:not(.is-ans)') && !!box.querySelector('.qp-opt.is-ans')
+               && !!mark && mark.classList.contains('is-near')
+               && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5);
+      },
+      wants: 'a wrong tap marked, the right option ticked, and the question, the option and the card\'s height unmoved',
+      leave: () => {
+        const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12');
+        try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
        That one is a roster gate on the phone; this is the PAYLOAD — `doGet` builds `films` inside
