@@ -9994,7 +9994,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    the page somebody came for, and a stacked fraction at .8rem is two numbers too small to read.
    `overflow-wrap: anywhere` because a long standardised-rate formula is one unbreakable run of
    words on a 320px phone, and `.frac` is inline-block, so it moves to the next line whole. */
-.tb-math li { margin: 0 0 .45rem; }
+/* NO BULLET ON A FORMULA. Its name is the label, so a dot in front is a third marker for one line,
+   and the indent it costs is width a stacked fraction under a root needs on a 320px phone. */
+.tb-math ul { padding-left: 0; list-style: none; }
+.tb-math li { margin: 0 0 .4rem; }
 .tb-fn { display: block; font-size: .72rem; color: var(--faint); }
 .tb-fm { display: block; font-size: .95rem; line-height: 1.6; color: var(--ink); overflow-wrap: anywhere; }
 .tb-points li { margin: 0 0 .3rem; }

@@ -3776,7 +3776,16 @@ on('proj-share', () => go('dm'));
    deviation exists and that it is not theirs to learn; an `H` beside it says both. A chapter that
    is Higher all through carries one `H` on its heading rather than one on every line.
 ================================================================================================== */
-const tbMath_ = s => typeset_(esc(s).replace(/\//g, '&frasl;'));
+const tbMath_ = s => tbSub_(typeset_(esc(s).replace(/\//g, '&frasl;')));
+/* A SUBSCRIPT IS DRAWN AS ONE, NOT AS THE FONT'S OWN GLYPH. The cell holds `Q₁` and `rₛ`, which a
+   person can type and read in a spreadsheet — and the screen's mono face draws `₉₀` as two specks,
+   measured at 320px, where `P₉₀` read as `P∘∘`. So a run of Unicode subscript characters becomes a
+   `<sub>` of the ordinary digits at the page's own size. AFTER `typeset_`, because `typeset_` reads
+   a `<sub>` beside a slash as half of a stored fraction, and these characters never appear inside a
+   tag, so the markup it wrote cannot be touched. */
+const TB_SUB = '₀₁₂₃₄₅₆₇₈₉ₐₑₒₓₙₛₜ', TB_SUB_AS = '0123456789aeoxnst';
+const tbSub_ = html => String(html).replace(/[₀-₉ₐₑₒₓₙₛₜ]+/g,
+  run => '<sub>' + [...run].map(c => TB_SUB_AS[TB_SUB.indexOf(c)]).join('') + '</sub>');
 /* THE MARK ITSELF. A letter rather than a colour, because the tier is a fact somebody has to read
    in a photocopy too; `title` says it in full for anybody who does not know the convention. */
 const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</span>' : '';
@@ -3810,10 +3819,12 @@ function textbookPart_(x, part) {
     <p class="prac-of">${esc(x.name)} · chapter ${c.n}</p>
     <h3>${esc(c.title)}${tbHigher_(c.higher)}</h3>
     ${c.words.length ? `<section class="gd-sec tb-words"><h4>Key words</h4><ul>${
-      c.words.map(w => line(w, `<b>${esc(w.name)}</b> ${esc(w.text)}`)).join('')}</ul></section>` : ''}
+      c.words.map(w => line(w, `<b>${esc(w.name)}</b> — ${tbSub_(esc(w.text))}`)).join('')}</ul></section>` : ''}
+    ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: a stacked fraction is two lines tall
+         and an `H` trailing it sat alone on a third, measured at 320px. */''}
     ${c.formulas.length ? `<section class="gd-sec tb-math"><h4>Formulas</h4><ul>${
-      c.formulas.map(f => line(f, `<span class="tb-fn">${esc(f.name)}</span><span class="tb-fm">${
-        tbMath_(f.text)}</span>`)).join('')}</ul></section>` : ''}
+      c.formulas.map(f => `<li><span class="tb-fn">${esc(f.name)}${tbHigher_(f.higher)}</span><span class="tb-fm">${
+        tbMath_(f.text)}</span></li>`).join('')}</ul></section>` : ''}
     ${c.points.length ? `<section class="gd-sec tb-points"><h4>Worked</h4><ul>${
       c.points.map(p => line(p, tbMath_(p.text))).join('')}</ul></section>` : ''}
     ${c.topics ? `<p class="prac-note"><b>Topics</b> ${esc(c.topics)}</p>` : ''}

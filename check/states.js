@@ -435,6 +435,41 @@ const STATES = {
       },
       wants: 'a project split into cards — the card, its materials, its steps, and a share page with a Messages tile',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A TEXTBOOK CHAPTER, REACHED BY ITS SHELF -----------------------------------------
+       "the @family textbook should be bare bones for now and the textbooks will be in the resources
+       tag in the finder." The owner's route as chips — Resources, then the `@family. textbooks`
+       shelf — and then the Measures of spread chapter, because it is the one with everything a
+       chapter can carry: key words, Higher lines, and the standard deviation formulas, whose
+       stacked fractions under a root are the widest thing on any page of the book. The chapters
+       either side are in the DOM beside it, so they are measured too, for a tap target, a contrast
+       ratio and a sideways scroll. */
+    { name: 'a textbook chapter',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook');
+        if (!x) throw new Error('no textbook in the list — data/textbooks.json did not load');
+        const c = (x.row.chapters || []).find(ch => /spread/i.test(ch.title)) || x.row.chapters[0];
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label },
+                         { field: 'shelf', value: x.shelf }];
+        paintStuff();
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'ch' + c.n)) : 0;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+      },
+      expect: () => {
+        /* THE CHAPTER AND ITS NEIGHBOURS, NOT THE CONTENTS CARD: the pager keeps `STUFF_WIN` pages
+           either side of this one, and the card is nine pages back. The card has a journey of its
+           own in check-flow; this state is about the widest page. */
+        const ch = [...document.querySelectorAll('#s-stuff .card.tb.prac-part')]
+          .find(el => /spread/i.test((el.querySelector('h3') || {}).textContent || ''));
+        return !!ch && !!ch.querySelector('.tb-words li b')
+               && !!ch.querySelector('.tb-math .frac .frac-d')
+               && !!ch.querySelector('.tb-points li')
+               && !!ch.querySelector('li .tb-h')
+               /* NOTHING BUT THE BOOK ON THIS SHELF — a boxer here would mean the chip did not hold. */
+               && !document.querySelector('#s-stuff .card:not(.tb) .boxer-rec');
+      },
+      wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
        BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,
        with four live buttons; answered, with the right one marked, the wrong one outlined and the

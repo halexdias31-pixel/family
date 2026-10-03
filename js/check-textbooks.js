@@ -88,7 +88,9 @@ const tsBody = cutFrom(findSrc, 'typeset_');
 let typeset_ = null;
 if (!tsBody) fail.push('typeset_ is not in js/find.js — the formulas were NOT checked, which is not a pass');
 else typeset_ = new Function(tsBody + '\nreturn typeset_;')();
-const RECIPE = "const tbMath_ = s => typeset_(esc(s).replace(/\\//g, '&frasl;'));";
+/* `tbSub_` around it only turns Unicode subscript digits into `<sub>`, which can neither make nor
+   unmake a fraction, so the drawing below leaves it out and the recipe names it. */
+const RECIPE = "const tbMath_ = s => tbSub_(typeset_(esc(s).replace(/\\//g, '&frasl;')));";
 if (findSrc.indexOf(RECIPE) < 0) {
   fail.push('`tbMath_` in js/find.js is not `' + RECIPE + '` — this check draws the formulas the way '
     + 'that line did, so it would be checking a recipe the app no longer uses');
