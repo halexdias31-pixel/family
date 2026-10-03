@@ -221,8 +221,9 @@ cell = lambda v: str(v) if v else '&ndash;'
 q(B, 7, '', 4, '<p>Sal works in a dress shop.<br>She wants to know how well the labels on the dress '
                'hangers agree with the true size of the dresses.</p><p>The table shows information '
                'about some hangers and dresses.</p>'
-               '<table><thead><tr><th scope="col">Label on hanger</th>'
-               + ''.join('<th scope="col">True size %d</th>' % s for s in (10, 12, 14, 16, 18))
+               '<table><thead><tr><th scope="col" rowspan="2">Label</th>'
+               '<th scope="colgroup" colspan="5">True size</th></tr><tr>'
+               + ''.join('<th scope="col">%d</th>' % s for s in (10, 12, 14, 16, 18))
                + '</tr></thead><tbody>'
                + ''.join('<tr><th scope="row">%d</th>%s</tr>' % (s, ''.join('<td>%s</td>' % cell(v) for v in row))
                          for s, row in zip((10, 12, 14, 16, 18), DRESS))
