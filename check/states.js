@@ -2739,6 +2739,109 @@ const STATES = {
          asked to be rid of. Six conversations are six pages. */
       expect: () => pageCount('dm') >= 6,
       wants: 'six conversations, each a page of its own' },
+
+    /* ---------- AND THE STATES THE CHAT POLISH WAS ABOUT ------------------------------------------
+       *"also refine the chat widgetts. looks fine but refine please."* Every fault that pass found
+       was in a state this file had never drawn: the composer with something in it, a refusal, and a
+       thread long enough to need all of the pane. Each is declared here so the widths it was fixed
+       at are measured at every run, not once by hand.
+
+       A LONG THREAD, AND THE COMPOSER STILL ON THE GLASS. The thread used to stop at 22rem; it now
+       takes the pane's own cap less what the head and the composer need, and the pane is `overflow:
+       hidden` — so a wrong sum would put the box you reply in under the bottom edge, where nothing
+       but a screenshot would see it. `expect` asks the geometry directly: the composer's foot is
+       inside the pane, and the thread is taller than the 22rem it used to be held to.
+
+       AND THE CARD IS NOT ZOOMED. A sum that comes out too tall does not clip the composer — it
+       is caught first by `paneReach_` in find.js, which draws a card taller than its pane SMALLER,
+       so the composer stays on the glass at 85% and every 44px target in it becomes 37px. Proved
+       by mutation: with the cap 6rem too generous the first version of this `expect` passed and the
+       only trace was a "known" card-drawn-smaller line. So it asks the card's own `zoom` as well. */
+    { name: 'a long thread',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        MESSAGES = Array.from({ length: 24 }, (_, i) => ({
+          id: 'L' + i, mine: i % 3 === 1, read: true, withId: 'P009', withName: 'Ada Tutor',
+          fromName: i % 3 === 1 ? 'You' : 'Ada Tutor', at: '2026-09-' + (10 + (i >> 3)) + ' 1' + (i % 10) + ':0' + (i % 6),
+          body: i % 5 === 0 ? 'A longer one, the length of a question about Tuesday and what to bring to it.' : 'Short.' }));
+        MSG_PENDING = [];
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
+        paint('dm');
+      },
+      expect: () => {
+        const form = document.querySelector('#s-dm .msg-form');
+        const body = document.querySelector('#s-dm .msg-body');
+        const pane = form && form.closest('.pane');
+        if (!form || !body || !pane) return false;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const zoomed = [].some.call(pane.children, k => k.style.zoom && k.style.zoom !== '1');
+        return !zoomed
+            && form.getBoundingClientRect().bottom <= pane.getBoundingClientRect().bottom + 0.5
+            && body.getBoundingClientRect().height > 22 * rem;
+      },
+      wants: 'a thread taller than 22rem, its composer wholly inside the pane, and the card not zoomed to fit' },
+
+    /* A REFUSAL AND A SEND IN FLIGHT, which are the two pending shapes `messagesHtml_` draws. The
+       refusal's two controls are the 44px targets this file exists to measure, and its sentence is
+       the server's own — the longest is the five-minute one, used here. */
+    { name: 'a refused send',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        MESSAGES = [{ id: 'f1', mine: false, read: true, withId: 'P009', withName: 'Ada Tutor',
+          fromName: 'Ada Tutor', at: '2026-09-16 09:12', body: 'Can you send the homework?' }];
+        MSG_PENDING = [
+          { tmp: 'tmpA', mine: true, read: true, state: 'failed', withId: 'P009', withName: 'Ada Tutor',
+            err: 'One message every five minutes — 3 to go.', fromName: 'Test Admin',
+            body: 'Here it is, sorry for the delay', atMs: Date.now() - 60e3, attachments: [], queue: [] },
+          { tmp: 'tmpB', mine: true, read: true, state: 'sending', withId: 'P009', withName: 'Ada Tutor',
+            fromName: 'Test Admin', body: 'And the second page', atMs: Date.now(), attachments: [], queue: [] }];
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
+        paint('dm');
+      },
+      expect: () => !!document.querySelector('#s-dm .msg.is-failed .msg-fail-why')
+                 && !!document.querySelector('#s-dm [data-do="msg-retry"]')
+                 && !!document.querySelector('#s-dm .msg.is-sending'),
+      wants: 'a refused bubble with its sentence, Retry and Remove, and one still sending',
+      leave: () => { MSG_PENDING = []; } },
+
+    /* THE COMPOSER IN USE: a paragraph typed and two files waiting. The row that wrapped `Send`
+       under the `+` at 320px did it with the box EMPTY; with a paragraph in it the box is at its
+       tallest, and the tray of chips is the one part of the form that only exists here. `leave`
+       empties both, because a queued file counts as typing (`dmTyping_`) and would hold every
+       repaint after this one. */
+    { name: 'a reply being written',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        MESSAGES = [{ id: 'c1', mine: false, read: true, withId: 'P009', withName: 'Ada Tutor',
+          fromName: 'Ada Tutor', at: '2026-09-16 09:12', body: 'Any questions before Tuesday?' }];
+        MSG_PENDING = [];
+        MSG_QUEUE['P009'] = [
+          { name: 'IMG_2041.jpg', type: 'image/png', size: 1000,
+            url: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==' },
+          { name: 'Worksheet answers, final version.pdf', type: 'application/pdf', size: 1000, url: '#' }];
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
+        paint('dm');
+        const b = document.querySelector('#s-dm .msg-text');
+        if (b) {
+          b.value = 'Yes — question 7, the one about the ratio of the two areas. I did not get how '
+                  + 'they set it up and I tried it three times.';
+          b.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      },
+      /* ONE ROW: the `+`, the box and `Send` share a top edge's worth of line — `Send` sits beside
+         the box rather than under the `+`, which is the wrap this state exists to catch. */
+      expect: () => {
+        const f = document.querySelector('#s-dm .msg-form');
+        const go = f && f.querySelector('.msg-go'), box = f && f.querySelector('.msg-text');
+        return !!(f && f.querySelectorAll('.msg-chip').length === 2 && go && box
+          && go.getBoundingClientRect().left >= box.getBoundingClientRect().right - 0.5);
+      },
+      wants: 'two chips waiting, a paragraph in the box and Send beside it rather than under it',
+      leave: () => {
+        delete MSG_QUEUE['P009'];
+        const b = document.querySelector('#s-dm .msg-text');
+        if (b) { b.value = ''; b.style.height = ''; }
+      } },
   ],
 };
 
