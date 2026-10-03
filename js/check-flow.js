@@ -1306,15 +1306,17 @@ check('the word search hides every word where it says, and two taps find it', as
    ASKED FOR AS "make a widget in games column purley dedicatied for contest. make it a place holder
    for now." Two things a placeholder can get wrong without drawing badly: arriving anywhere but
    LAST, which moves every page `PAGE.games` has remembered by one, and growing a control before
-   there is anything behind it, which is a button that does nothing. */
-check('the contest placeholder is the last card on the Games column, says so, and has nothing to press', async () => {
+   there is anything behind it, which is a button that does nothing.
+   "LAST" BECAME "STRAIGHT AFTER `reels`" when Videos was appended behind it, for the same reason —
+   the rule was never that contest is last for ever, it was that nothing was inserted above. */
+check('the contest placeholder comes straight after One more thing on the Games column, says so, and has nothing to press', async () => {
   const { w } = boot();
   await wait(300);
   const t = w.__t;
   const bad = [];
   const roster = t.widgetsOf('game').map(x => String(x.id));
   if (roster.indexOf('contest') === -1) return ['there is no contest widget on the Games column'];
-  if (roster[roster.length - 1] !== 'contest') bad.push('contest is not the last game: ' + roster.join(', '));
+  if (roster.indexOf('contest') !== roster.indexOf('reels') + 1) bad.push('contest does not come straight after reels: ' + roster.join(', '));
   t.go('games', false, true);
   await wait(LEAVE_MS);
   const slot = w.document.querySelector('#s-games #wgt-contest');
@@ -1324,6 +1326,103 @@ check('the contest placeholder is the last card on the Games column, says so, an
   if (!/Not built yet/.test(slot.textContent)) bad.push('the card does not say it is not built yet');
   const live = slot.querySelectorAll('button, [data-do], input, select, textarea, a[href]');
   if (live.length) bad.push('a placeholder has ' + live.length + ' control(s) on it: ' + [...live].map(e => e.outerHTML.slice(0, 60)).join(' | '));
+  return bad;
+});
+
+/* ---------- VIDEOS: TYPING NARROWS, A TAP PLAYS IN THE CARD, FULL SCREEN ASKS FOR FULL SCREEN -------
+   ASKED FOR AS "videos would be in the games column. its one new widget. its a video searcher you
+   type in. and there should be a full screen button." Each half can fail while the card still draws
+   perfectly well: a box whose list does not change as you type, a row that is tapped and plays
+   nothing (or plays in the wrong element — a YouTube link in a `<video>` is a black box), a switched-
+   off row that shows anyway, and a Full screen tile that is pressed and asks nobody for anything.
+   And the `contest` rule again: the card is appended LAST, so no remembered page moves.
+
+   THE LIST IS THE JOURNEY'S OWN, served where the app asks for `data/videos.json`, so the rows are
+   known here rather than whatever the owner has typed in by the time this runs. The built-in reels
+   ride along, which is the point — the box searches them too. */
+check('the videos widget is last on Games: typing narrows the list, a tap plays it in the card, full screen asks the player', async () => {
+  const rows = [
+    { title: 'How volcanoes erupt', url: 'https://www.youtube.com/watch?v=abcdefghijk', kind: 'clip',
+      tags: 'science earth', age: '7+', notes: '', active: true },
+    { title: 'Fractions in two minutes', url: 'data/reels/fractions.mp4', kind: 'clip',
+      tags: 'maths', age: '', notes: '', active: '' },
+    { title: 'A switched-off volcano', url: 'https://youtu.be/zyxwvutsrqp', kind: 'clip',
+      tags: 'science', age: '', notes: '', active: false },
+  ];
+  let asked = 0;
+  const full = [];
+  const { w } = boot({ before: win => {
+    const f0 = win.fetch;
+    win.fetch = (url, o) => {
+      if (/data\/videos\.json/.test(String(url))) {
+        asked++;
+        return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(rows),
+                                 text: () => Promise.resolve(JSON.stringify(rows)) });
+      }
+      return f0(url, o);
+    };
+    /* JSDOM HAS NO FULL SCREEN, so the journey stands in for it and writes down who asked. */
+    win.HTMLElement.prototype.requestFullscreen = function () { full.push(this.tagName.toLowerCase()); return Promise.resolve(); };
+  } });
+  await wait(300);
+  const t = w.__t;
+  const d = w.document;
+  const bad = [];
+  const roster = t.widgetsOf('game').map(x => String(x.id));
+  if (roster.indexOf('videos') === -1) return ['there is no videos widget on the Games column'];
+  if (roster[roster.length - 1] !== 'videos') bad.push('videos is not the last game: ' + roster.join(', '));
+  t.go('games', false, true);
+  await wait(LEAVE_MS);
+  const box = d.querySelector('#s-games #wgt-videos .vid-box');
+  if (!box) return bad.concat(['the videos card did not draw on the Games column']);
+  if (!asked) bad.push('the card never asked for data/videos.json');
+  const q = box.querySelector('input.vid-q');
+  if (!q) return bad.concat(['there is no search box on the videos card']);
+  const titles = () => [...box.querySelectorAll('.vid-list .vid-row .vid-t')].map(e => e.textContent.trim());
+  const before = titles();
+  if (before.indexOf('How volcanoes erupt') === -1 || before.indexOf('Fractions in two minutes') === -1)
+    bad.push('the listed videos are not in the list: ' + before.join(' | '));
+  if (before.indexOf('A switched-off volcano') !== -1) bad.push('a row with active: false is listed');
+  if (!before.some(x => /^Reel \d/.test(x))) bad.push('the app\'s own reels are not searched: ' + before.join(' | '));
+
+  const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
+  type('volc');
+  const narrowed = titles();
+  if (narrowed.length !== 1 || narrowed[0] !== 'How volcanoes erupt')
+    bad.push('typing "volc" did not narrow to the one volcano: ' + narrowed.join(' | '));
+  if (!/1 of \d+ videos/.test(box.querySelector('.vid-said').textContent))
+    bad.push('the count does not say how many of how many: ' + box.querySelector('.vid-said').textContent);
+  if (d.querySelector('#s-games #wgt-videos input.vid-q') !== q) bad.push('typing rebuilt the search box, which drops a phone\'s keyboard');
+  type('maths two');
+  if (titles().join() !== 'Fractions in two minutes') bad.push('two words did not narrow to the row holding both: ' + titles().join(' | '));
+  type('zzzz');
+  if (titles().length || !/Nothing matches/.test(box.textContent)) bad.push('a search that matches nothing does not say so');
+
+  /* A TAP ON A YOUTUBE ROW: the nocookie embed, of that id, in the card. */
+  type('volc');
+  t.ACTIONS['vid-play'](box.querySelector('.vid-row[data-do="vid-play"]'));
+  const fr = box.querySelector('.vid-stage iframe.vid-player');
+  if (!fr || !/^https:\/\/www\.youtube-nocookie\.com\/embed\/abcdefghijk\b/.test(fr.getAttribute('src') || ''))
+    bad.push('tapping the YouTube row did not put its nocookie embed in the card: ' + (fr ? fr.getAttribute('src') : 'no iframe'));
+  /* AN MP4 ROW: a `<video>`, inline, on that file. */
+  type('fractions');
+  t.ACTIONS['vid-play'](box.querySelector('.vid-row[data-do="vid-play"]'));
+  const v = box.querySelector('.vid-stage video.vid-player');
+  if (!v || v.getAttribute('src') !== 'data/reels/fractions.mp4' || !v.hasAttribute('playsinline'))
+    bad.push('tapping the mp4 row did not put an inline <video> of it in the card');
+  if (box.querySelector('.vid-stage iframe')) bad.push('the old player was left in the card beside the new one');
+
+  /* FULL SCREEN IS A TILE, and pressing it asks the PLAYER, not the card. */
+  const tile = box.querySelector('.vid-acts .tile[data-do="vid-full"]');
+  if (!tile) bad.push('there is no Full screen tile under the player');
+  else {
+    t.ACTIONS['vid-full'](tile);
+    if (full.join() !== 'video') bad.push('Full screen asked ' + (full.join() || 'nobody') + ' rather than the video');
+  }
+  /* LEAVING STOPS IT: no player left in the card on a column nobody is looking at. */
+  t.go('tools', false, true);
+  await wait(LEAVE_MS);
+  if (d.querySelector('#s-games .vid-stage .vid-player')) bad.push('leaving the Games column left the video in its player');
   return bad;
 });
 

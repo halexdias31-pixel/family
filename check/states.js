@@ -2193,6 +2193,38 @@ const STATES = {
       },
       wants: 'four counters ringed, a red disc beside Red wins, and the last counter under the drop',
       leave: () => { initConnect4(); } },
+
+    /* ---------- THE VIDEOS CARD, SEARCHED AND PLAYING ---------------------------------------------
+       THE WIDGET OPENS ON A BOX AND A LIST, which is the one state `go()` reaches — the player, the
+       Full screen tile and a narrowed count only exist after somebody types and taps. Seeded through
+       the card's own list (`VIDEOS_LIST`, what `data/videos.json` would have filled) with the
+       LONGEST title a row is likely to carry, because a title is the one thing on this card that
+       can take it sideways at 320. The video is the repository's own reel, so the lab plays a real
+       file and never reaches for YouTube. */
+    { name: 'a video search, narrowed, one playing',
+      enter: () => {
+        const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
+        if (n < 0) throw new Error('no videos widget in the roster');
+        goPage('games', n, true);
+        window.__seedVid = VIDEOS_LIST;
+        VIDEOS_LIST = [
+          { title: 'Photosynthesis explained: how a leaf turns light, water and carbon dioxide into sugar',
+            url: 'data/reels/archetest.mp4', kind: 'clip', tags: 'science biology plants', age: '9+', active: true },
+          { title: 'Photosynthesis, the short one', url: 'data/reels/archetest.mp4?b', kind: 'clip',
+            tags: 'science', age: '', active: true },
+          { title: 'Fractions in two minutes', url: 'data/reels/archetest.mp4?c', kind: 'clip',
+            tags: 'maths', age: '', active: true },
+        ];
+        VID.q = 'photo';
+        VID.at = 'v0';
+        vidPaint_();
+      },
+      expect: () => !!document.querySelector('#s-games .vid-stage.on video.vid-player')
+                 && !!document.querySelector('#s-games .vid-acts .tile[data-do="vid-full"]:not([disabled])')
+                 && document.querySelectorAll('#s-games .vid-list .vid-row').length === 2
+                 && /^2 of \d+ videos$/.test((document.querySelector('#s-games .vid-said') || {}).textContent || ''),
+      wants: 'the player holding the chosen clip, a Full screen tile under it, and two of the list left',
+      leave: () => { VIDEOS_LIST = window.__seedVid || null; VID.q = ''; VID.at = ''; vidPaint_(); } },
   ],
 
   /* ---------- A SCRABBLE GAME PART-WAY THROUGH -------------------------------------------------

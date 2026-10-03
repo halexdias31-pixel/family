@@ -1296,6 +1296,26 @@ const WIDGETS = [
     <p class="empty">Not built yet.</p>
   </div>`;
     } },
+
+  /* ---------- VIDEOS — TYPE, TAP, WATCH -----------------------------------------------------------
+     ASKED FOR AS "videos would be in the games column. its one new widget. its a video searcher you
+     type in. and there should be a full screen button." — and before that as "Video cool videos
+     database for reals and movies". So it is ONE card: a box you type in, a list that narrows as you
+     type, a player in the card, and a Full screen tile under it. The engine is `initVideos` in
+     games.js, with the long note on where the list comes from and why YouTube is embedded here when
+     the reels' embeds were taken out.
+
+     LAST ON THE COLUMN, after `contest`, for `contest`'s own reason: `PAGE.games` remembers a page by
+     its index, and an entry placed anywhere above would move every saved position after it by one.
+
+     NOT `solid`, like every other game: the funnel drawing a search box inside a search result is a
+     search inside a search. `.vid-box` is a class as well as an id — the timetable's reason, the
+     Saved column draws this markup again and `vidPaint_` writes every copy. */
+  { id: 'videos', kind: 'game', name: 'Videos (films, reels and clips)', start: () => initVideos?.(),
+    stop: () => videosStop_?.(),
+    into: 'vid-box', what: 'The videos',
+    html: `<h3>Videos</h3>
+    <div id="vid-box" class="vid-box"></div>` },
   /* `solid` — AN INSTRUMENT, NOT A CARD.
      The pane is frosted glass because most of what sits on it is CONTENT: a post, a receipt, a list
      of things to find, and glass says "this is a surface something is written on".

@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-03-heat-back";
+  --css-version: "2026-10-03-widgets";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -2139,6 +2139,32 @@ button.text-drop { color: var(--bad); }
    it is sized in rem with the type and is about 18px a key at 320, which is a picture of a
    keyboard and not a breach of the 44px floor. The rungs and the line are the targets, and those
    are px. */
+/* ---------- VIDEOS: A BOX, A PLAYER, A TILE, A LIST ----------------------------------------------
+   THE PLAYER IS 16:9 AND STATES IT, so the card does not jump when a video is chosen and an iframe
+   (which has no size of its own worth having — 300x150) fills the width it is given. Black, not
+   `--sunk`, because it is a picture's letterbox and every player's letterbox is black.
+   THE ROWS ARE 44px TALL AT LEAST, in px: a fingertip does not scale with the root font. */
+.vid-box .vid-q { width: 100%; margin: 0 0 .5rem; }
+.vid-stage { display: none; position: relative; width: 100%; aspect-ratio: 16 / 9; background: #000;
+             border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; }
+.vid-stage.on { display: block; }
+.vid-stage .vid-player { position: absolute; inset: 0; width: 100%; height: 100%; border: 0;
+                         background: #000; object-fit: contain; }
+.vid-acts { margin: .45rem 0 0; }
+.vid-stage:not(.on) + .vid-acts { display: none; }
+.vid-said { margin: .45rem 0 .3rem; font-size: .78rem; }
+.vid-list { list-style: none; margin: 0; padding: 0; }
+.vid-list li { margin: 0; padding: 0; }
+.vid-row { display: flex; flex-direction: column; align-items: flex-start; gap: .12rem; width: 100%;
+           min-height: 44px; padding: .45rem .1rem; text-align: left; text-decoration: none;
+           background: none; border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0;
+           color: var(--ink); font: inherit; cursor: pointer; }
+.vid-row .vid-t { font-size: .92rem; line-height: 1.25; overflow-wrap: anywhere; }
+.vid-row .vid-k { font-size: .72rem; color: var(--dim); }
+.vid-row.on .vid-t { color: var(--gold); }
+.vid-row.is-out .vid-k { color: var(--faint); }
+.vid-none { padding: .45rem 0; font-size: .85rem; }
+
 .kt-box { position: relative;
           --kt-0: #c46bd1; --kt-1: #5b9bd5; --kt-2: #6cc08a; --kt-3: #e8a0bf;
           --kt-4: #e8a0bf; --kt-5: #6cc08a; --kt-6: #5b9bd5; --kt-7: #c46bd1; --kt-8: #8a8a8a; }
