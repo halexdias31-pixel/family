@@ -3041,7 +3041,11 @@ button.text-drop { color: var(--bad); }
           background: var(--gold); color: #000; vertical-align: .15em;
           font-size: .62rem; font-weight: 700; line-height: 1.2; letter-spacing: .02em; }
 .msg.is-sending .msg-bub { opacity: .6; }
-.msg.is-failed .msg-bub { border-color: var(--bad); }
+/* `.mine.is-failed` AS WELL, because a refusal is only ever on your side and `.msg.mine .msg-bub`
+   sets the gold border at the same (0,3,0) — so which won was decided by which rule came later in
+   this file, which `check/cascade.js` names the first time a state draws a refused bubble. Won by
+   specificity now, not by position. */
+.msg.is-failed .msg-bub, .msg.mine.is-failed .msg-bub { border-color: var(--bad); }
 /* ---------- A REFUSAL SITS UNDER THE BUBBLE IT REFUSED ---------------------------------------------
    IT RAN THE FULL WIDTH OF THE CARD, left-aligned, under a bubble on the right — so the server's
    sentence started under the OTHER person's side, and the two controls wrapped onto a line of
