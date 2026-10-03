@@ -253,3 +253,8 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [A profile picture picker, a tutor's hours on their card, and a heat map you can read](249-a-profile-picture-picker-a-tutor-s-hours-on-their-card-and-a.md)
 - [A handle is a first name, a virtue and a fresh number, in a random order](250-a-handle-is-a-first-name-a-virtue-and-a-fresh-number-in-a-ra.md)
 - [The shop is a column, the basket is its first page, and Find has no Shop door](251-the-shop-is-a-column-the-basket-is-its-first-page-and-find-h.md)
+- [Functional Skills maths: the first paper, a new Level, and a bucket rule that had no guard](252-functional-skills-maths-the-first-paper-a-new-level-and-a-bu.md)
+- [Projects are a kind of their own in Find, beside the practicals](253-projects-are-a-kind-of-their-own-in-find-beside-the-practica.md)
+- [Sharing a booking is a PNG of the receipt on the screen, and a check that compares the pixels](254-sharing-a-booking-is-a-png-of-the-receipt-on-the-screen-and.md)
+- [Videos on Games, a LEGO trade-in placeholder on Tools, and a boxing splash](255-videos-on-games-a-lego-trade-in-placeholder-on-tools-and-a-b.md)
+- [Your roles: three ticks in Settings, and a Tutor tick is a question to the admin](256-your-roles-three-ticks-in-settings-and-a-tutor-tick-is-a-que.md)
