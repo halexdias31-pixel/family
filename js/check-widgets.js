@@ -101,6 +101,23 @@ const ACCEPTED_UNTITLED = {
 };
 const seen = {};
 
+/* ---------- THE KINDS A COLUMN ASKS FOR, READ OFF THE CODE THAT ASKS ------------------------------
+   THIS WAS `'tool' OR 'game'`, WRITTEN OUT, and the basket's move to the Shop column made it a
+   false red on its first run: `cart` has kind 'shop' and `shopCards_` asks `widgetsOf_('shop')`.
+   A hand-kept list of what the code asks for is the drift this repository keeps paying for, so it
+   is every literal `widgetsOf_('…')` / `toolsStart_('…')` / `widgetColumn_('…')` in js/, comments
+   stripped — a kind nothing asks for is still the fault this rule exists to catch. */
+const ASKED_KINDS = new Set();
+fs.readdirSync(jsDir).filter(f => f.endsWith('.js') && !/^check/.test(f)).forEach(f => {
+  const txt = fs.readFileSync(path.join(jsDir, f), 'utf8').replace(/\/\*[\s\S]*?\*\//g, ' ');
+  for (const m of txt.matchAll(/\b(?:widgetsOf_|toolsStart_|widgetColumn_)\(\s*'([a-z]+)'\s*\)/g)) ASKED_KINDS.add(m[1]);
+});
+if (!ASKED_KINDS.has('tool') || !ASKED_KINDS.has('game')) {
+  console.log('FAILED — could not read which widget kinds the columns ask for (found: '
+              + [...ASKED_KINDS].join(', ') + '), so the kind rule was NOT checked');
+  process.exit(1);
+}
+
 widgets.forEach(w => {
   const id = str(w.id) || '(no id)';
 
@@ -111,9 +128,10 @@ widgets.forEach(w => {
   });
 
   const kind = str(w.kind);
-  if (kind && kind !== 'tool' && kind !== 'game') {
-    badKind.push(id + " has kind '" + kind + "' — `widgetsOf_` only ever asks for 'tool' or 'game', "
-                    + 'so this widget is on no column at all');
+  if (kind && !ASKED_KINDS.has(kind)) {
+    badKind.push(id + " has kind '" + kind + "' — `widgetsOf_` only ever asks for "
+                    + [...ASKED_KINDS].map(k => "'" + k + "'").join(', ')
+                    + ', so this widget is on no column at all');
   }
 
   if (seen[id]) dupes.push(id); else seen[id] = 1;

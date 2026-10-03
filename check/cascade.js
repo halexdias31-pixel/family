@@ -122,6 +122,13 @@ const ACCEPTED = {
   + '`border: 1px solid var(--line-soft)` on all four sides, its own background and its own radius — '
   + 'so the hairline rule for a card in a list is the one that should give way, and it does.',
 
+  '.card .sub || .thing-body .sub || margin':
+    'A SHOP CARD\'S LINE SITS UNDER ITS OWN HEADING. `.card .sub` pulls a subtitle up under a card\'s '
+  + 'h3 with a negative top margin; inside `.thing-body` the h3 already carries its own small gap, '
+  + 'so the thing card sets the subtitle\'s margin outright and the later rule is meant to win. '
+  + 'First reported when the Shop column put shop cards on a screen at all — no fixture had a shop '
+  + 'row before it, so this pair had never been rendered for this check to see.',
+
   '.bk-row.is-bare || .bk-row.is-blank || grid-template-columns':
     'A ROW THAT IS BOTH GETS THE FIVE-TRACK GRID, deliberately. `is-bare` is two tracks for a row '
   + 'with no figures; `is-blank` keeps the three trailing tracks empty so the dash ends where every '
