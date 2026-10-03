@@ -414,6 +414,9 @@ function boot(opts) {
          built in the same evaluation can read it. The camera journey asks it to know that the load
          it is watching is the one that opens on the feed. */
       'AT: () => AT,' +
+      /* FIND'S OWN STATE — the search words and the chips. A `const`, so only a function built in
+         this evaluation can hand it over; the textbook journey types into `q` the way the box does. */
+      'STUFF: () => STUFF,' +
       /* A landmark rasterised at one bearing, so the test above can compare four of them. */
       'tiles: (ring, bearing) => {' +
       '  if (typeof owWorld !== "function") return 0;' +
@@ -5215,6 +5218,141 @@ check('Projects is a kind in Find beside Practicals: card, materials, steps, and
     t.ACTIONS['proj-share'](tile);
     await wait(50);
     if (t.AT() !== 'dm') bad.push('the Messages tile went to ' + t.AT() + ', not Messages');
+  }
+  return bad;
+});
+
+/* ---------- THE @family. TEXTBOOK, REACHED THE WAY THE OWNER SAID --------------------------------
+   ASKED FOR AS "the @family textbook should be bare bones for now and the textbooks will be in the
+   resources tag in the finder. first one can be gcse statistics." So the route is the claim:
+   Learning → Resources → @family. textbooks → GCSE Statistics, pressed on the REAL answer buttons
+   the funnel draws, over the real file through the real mapper — with the real boxers and bouts
+   beside it, because they are what the book has to be found among, and a Resources holding only
+   the book would never ask the Shelf question at all.
+
+   Then: the list is the book; it is a contents card and one page per chapter in chapter order; a
+   chapter page has its key words, its formulas STACKED by `typeset_`, its worked lines and the
+   Higher mark; typing a word that is only inside a chapter finds it; and the star keeps it on
+   Saved. */
+check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Statistics — contents, chapters, search, star', async () => {
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the textbooks were NOT checked — not a pass'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+    { textbooks: read('textbooks'), boxers: read('boxers'), fights: read('fights'), projects: read('projects') })));
+  const books = made.textbooks || [];
+  if (!books.length) return ['the mapper made no book of data/textbooks.json'];
+  if (!(made.boxers || []).length) return ['the mapper made no boxers, so the shelf the book sits beside is empty — NOT a pass'];
+  const p = payload();
+  /* THE PROJECTS TOO, so `What kind` has a second answer and the Resources press is a real press —
+     the fixture has no library, and with Resources the only kind the question would not be asked. */
+  Object.assign(p, { textbooks: books, boxers: made.boxers, fights: made.fights || [], projects: made.projects || [] });
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t;
+  if (!t.STUFF) return ['Find\'s state is not exported to the journey'];
+  const bad = [];
+  const book = books.find(b => b.name === 'GCSE Statistics');
+  if (!book) return ['data/textbooks.json has no book called GCSE Statistics — names: ' + books.map(b => b.name).join(', ')];
+
+  /* THE ROUTE, ONE PRESS AT A TIME, on whatever the question page draws. A grouped question may
+     draw the BUCKET first (`Read or watch it`), and pressing it is the same route one tap longer,
+     so a bucket that holds the next word on the route is pressed and the question asked again. */
+  t.go('stuff');
+  t.STUFF().filters.length = 0; t.STUFF().q = '';
+  w.paintStuff();
+  const route = ['Learning', 'Resources', '@family. textbooks'];
+  const rungs = ['forLabel', 'kindLabel', 'shelf'];
+  const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
+  const pressed = [];
+  for (let guard = 0; route.length && guard < 8; guard++) {
+    const btns = [...w.document.querySelectorAll('#s-stuff [data-do="facet-pick"]')];
+    let el = btns.find(b => b.dataset.value === route[0]);
+    /* A RUNG EVERYTHING LEFT ALREADY ANSWERS IS SKIPPED BY THE ONE-ANSWER RULE, and that is the
+       route working rather than failing: the fixture has nothing under `What for` but Learning. The
+       question is only allowed to be absent when its one answer IS the next word on the route. */
+    const rung = w.facetList().find(f => f.field === rungs[3 - route.length]);
+    const only = rung ? w.facetValues(w.stuffFiltered(), rung).map(v => String(v.value)) : [];
+    if (!el && only.length === 1 && only[0] === route[0]) {
+      pressed.push('(' + route.shift() + ')');
+      continue;
+    }
+    if (!el) {
+      const grp = (() => { try { return kindFacet.bucketOf(route[0]); } catch (e) { return ''; } })();
+      el = grp && btns.find(b => b.dataset.value === grp && b.dataset.bucket);
+      if (!el) {
+        bad.push('the funnel did not offer "' + route[0] + '" after ' + (pressed.join(' → ') || 'nothing') + ' — it offered '
+          + (btns.map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'no answers'));
+        break;
+      }
+    } else route.shift();
+    pressed.push(el.dataset.value);
+    t.ACTIONS['facet-pick'](el);
+    await wait(20);
+  }
+  if (route.length) return bad;
+  /* THE SHELF HAS TO HAVE BEEN PRESSED, not skipped: one answer there would mean the boxing was
+     not beside it, and the door this journey is about was never on screen. Same for Resources. */
+  if (pressed.indexOf('@family. textbooks') < 0) bad.push('the shelf was never a question — ' + pressed.join(' → '));
+  if (pressed.indexOf('Resources') < 0) bad.push('Resources was never pressed — ' + pressed.join(' → '));
+  /* THE SHELF QUESTION OFFERED BOXING BESIDE IT, or it was not a door — it was the only answer. */
+  const left = w.stuffFiltered();
+  if (left.length !== 1 || left[0].kind !== 'textbook' || left[0].name !== 'GCSE Statistics') {
+    bad.push('after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
+      + left.slice(0, 4).map(x => x.kind + ' ' + x.name).join(', ') + ' — not the book');
+  }
+  /* AND NOTHING ELSE ON RESOURCES FELL OFF THE SHELVES. Pressing `Boxing` keeps only what says
+     Boxing, so a boxer with no shelf would vanish from the route that used to reach him — the door
+     would have cost the boxing what it gave the book. */
+  const shelfFacet = w.facetList().find(f => f.field === 'shelf');
+  const resources = w.stuffItems().filter(i => w.kindOf_(i).label === 'Resources');
+  const unshelved = resources.filter(i => !w.facetValues([i], shelfFacet).length);
+  if (unshelved.length) {
+    bad.push(unshelved.length + ' of ' + resources.length + ' Resources are on no shelf ('
+      + [...new Set(unshelved.map(i => i.kind))].join(', ') + ') — pressing a shelf hides them');
+  }
+  const x = left.find(i => i.kind === 'textbook') || w.stuffItems().find(i => i.kind === 'textbook');
+  if (!x) return bad.concat(['Find offers no textbook at all']);
+
+  /* CARD, THEN A PAGE PER CHAPTER IN ORDER. */
+  const parts = w.pageParts_(x);
+  const want = [null].concat(book.chapters.map(c => 'ch' + c.n));
+  if (JSON.stringify(parts) !== JSON.stringify(want)) bad.push('the book is pages ' + JSON.stringify(parts).slice(0, 80) + ', not the card and ' + book.chapters.length + ' chapters in order');
+  const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
+  const card = box(w.stuffCard(x));
+  if (!card.querySelector('.card.tb')) bad.push('the book card is not drawn as a textbook');
+  else {
+    if (card.querySelector('.prac-flag').textContent.trim() !== 'Textbook') bad.push('the card is not flagged Textbook');
+    const toc = [...card.querySelectorAll('.tb-toc ol > li')].map(li => li.textContent.replace(/H$/, '').trim());
+    if (toc.join('|') !== book.chapters.map(c => c.title).join('|')) bad.push('the contents do not list the chapters in order: ' + toc.slice(0, 3).join(', '));
+    if (card.querySelector('.tb-words, .tb-math')) bad.push('the card carries a chapter — chapters are pages of their own');
+  }
+  /* A CHAPTER WITH FORMULAS, AND THE ONE THAT IS HIGHER ALL THROUGH. */
+  const withMath = book.chapters.find(c => c.formulas.some(f => /\//.test(f.text)));
+  const pg = box(w.stuffPart_(x, 'ch' + withMath.n));
+  if (pg.querySelectorAll('.tb-words li').length !== withMath.words.length) bad.push('chapter ' + withMath.n + ' does not list every key word');
+  if (pg.querySelectorAll('.tb-math li').length !== withMath.formulas.length) bad.push('chapter ' + withMath.n + ' does not list every formula');
+  if (!pg.querySelector('.tb-math .frac .frac-n') || !pg.querySelector('.tb-math .frac .frac-d')) bad.push('chapter ' + withMath.n + '\'s fractions are not stacked — typeset_ was not run over the formulas');
+  if (/&frasl;|\//.test([...pg.querySelectorAll('.tb-fm')].map(e => e.innerHTML.replace(/<span class="frac-s">\/<\/span>/g, '').replace(/<[^>]*>/g, '')).join(''))) bad.push('a slash is left standing in a formula on chapter ' + withMath.n);
+  if (pg.querySelectorAll('.tb-points li').length !== withMath.points.length) bad.push('chapter ' + withMath.n + ' does not list every worked line');
+  const hItems = withMath.words.concat(withMath.formulas, withMath.points).filter(i => i.higher).length;
+  if (pg.querySelectorAll('li .tb-h').length !== hItems) bad.push('chapter ' + withMath.n + ' marks ' + pg.querySelectorAll('li .tb-h').length + ' lines Higher, the file says ' + hItems);
+  const hc = book.chapters.find(c => c.higher);
+  if (hc && !box(w.stuffPart_(x, 'ch' + hc.n)).querySelector('h3 .tb-h')) bad.push('chapter ' + hc.n + ' is Higher all through and its heading does not say so');
+
+  /* SEARCHABLE BY ITS WORDS — one that is only inside a chapter, never in the title. */
+  t.STUFF().filters.length = 0; t.STUFF().q = 'frequency density';
+  if (!w.stuffFiltered().some(i => i.kind === 'textbook')) bad.push('typing "frequency density" does not find the book — the chapters are not in its haystack');
+  t.STUFF().q = '';
+
+  /* STARRABLE, by the card's own Save tile, and kept on Saved. */
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const fav = box(w.stuffCard(x)).querySelector('[data-do="fav"]');
+  if (!fav) bad.push('the book card has no Save tile');
+  else {
+    t.ACTIONS.fav(fav);
+    if (!t.savedPages().join('').includes('tb-toc')) bad.push('the book was starred and is not on the Saved column');
   }
   return bad;
 });
