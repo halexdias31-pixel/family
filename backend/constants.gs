@@ -1694,7 +1694,18 @@ const DOB_FIELD = /^dob_[dmy]$/;
    is the opposite arrangement and a deliberate one — the long note over `isoDate_` in core.gs says
    why the same control is wrong for a birthday and right for an exam. */
 const DATE_COLS = ['exam_small_date', 'exam_big_date'];
-const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18,19];
+/* ---------- NINE TILL SIX, THE SAME SPAN AS THE BOOKING GRID -------------------------------------
+   THIS RAN TO 19 AND `SLOT_HOURS` IN js/book.js RUNS TO 18, so a tutor could tick seven o'clock in
+   Settings, see it lit on their own week, and never once be booked for it: the booking grid has no
+   seven o'clock column. One fact in two places that disagreed by an hour — history 125 moved the
+   booking end to six because the owner asked for *"9-6"*, and left this end where it was.
+
+   THE NARROWER ONE WINS, because it is the one the owner chose and the one a family can book. An
+   old `m19` already in somebody's `availability` cell is simply not sent (`availGridOut` walks this
+   list) and goes the next time they save — it could never be booked, so nothing is lost but a tick
+   that promised something false. `check-booking.js` holds the two lists equal now; widen BOTH or
+   neither. */
+const AVAIL_HOURS = [9,10,11,12,13,14,15,16,17,18];
 
 /* ---------- PEOPLE --------------------------------------------------------------------------- */
 const ROLE_LABEL = { admin: 'Admin', tutor: 'Tutor', client: 'Client', student: 'Student' };

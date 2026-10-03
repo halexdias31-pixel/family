@@ -859,11 +859,43 @@ let roleRules = 0;
   }
 }
 
+/* 14. THE DAYS NOBODY IS TAUGHT, THROUGH THE REAL `doGet`.
+   ASKED FOR as part of *"calander and time table and availability ... it seems they clash"*. The phone
+   steps a booking's dates over `DATA.closures`, so what matters is what `doGet` puts in it: the bank
+   holidays worked out for this year and next, an INSET day typed on the holidays tab, and a festive
+   event the business is running — and NOT an observance nobody switched on, which is most of that
+   tab and would otherwise cancel lessons on Valentine's Day. */
+let closed = 0;
+{
+  const f = backend();
+  const y = new Date().getFullYear();
+  f.seed('holidays', [
+    { holiday_id: 'H1', name: 'Staff training', date: '05/01/' + (y + 1), year: y + 1, kind: 'inset' },
+    { holiday_id: 'H2', name: 'Halloween', date: '31/10/' + y, year: y, kind: 'observance', active: 'TRUE',
+      event_name: 'Pumpkin carving', venue: 'Colliers Wood Library', price_per_child: 12 },
+    { holiday_id: 'H3', name: "Valentine's Day", date: '14/02/' + (y + 1), year: y + 1, kind: 'observance', active: 'FALSE' },
+  ]);
+  const got = {};
+  (f.get({}).closures || []).forEach(c => { got[c.date] = c; });
+  const want = (date, kind, said) => {
+    if (got[date] && got[date].kind === kind) closed++;
+    else bad.push('closures: ' + said + ' (' + date + ') is ' + (got[date] ? 'sent as ' + got[date].kind : 'not sent'));
+  };
+  want('25/12/' + y, 'bank', 'Christmas Day this year');
+  const ny = new Date(y + 1, 0, 1);
+  while (ny.getDay() === 0 || ny.getDay() === 6) ny.setDate(ny.getDate() + 1);
+  want('0' + ny.getDate() + '/01/' + (y + 1), 'bank', "next New Year's Day, on the weekday it is kept");
+  want('05/01/' + (y + 1), 'inset', 'the INSET day typed on the holidays tab');
+  want('31/10/' + y, 'festive', 'the Halloween event the business is running');
+  if (got['14/02/' + (y + 1)]) bad.push("closures: Valentine's Day, an observance nobody switched on, closes teaching");
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
 console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
-  + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   role rules held: ' + roleRules);
+  + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   role rules held: ' + roleRules
+  + '   closed days sent: ' + closed);
 if (bad.length) {
   console.log('FAILED — a Save that does not stick, or writes what nobody asked, is the one on the screen that only exists to change what the sheet holds.');
   process.exit(1);

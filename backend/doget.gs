@@ -568,6 +568,8 @@ function doGet(e) {
          cheap — it is one tab of about eighteen rows and a date comparison — and it is the only way
          a thing can appear and disappear on its own without anybody remembering. */
       festive: [],
+      /* THE CLOSED DAYS INSIDE A TERM — filled below by `closures()`. */
+      closures: [],
       trips: [], exams: [], birthdays: [], orders: [], widgets: [], posts: [], laws: [],
       facts: [],
       questions: [], boxers: [], fights: [], herd: [],
@@ -1510,6 +1512,13 @@ function doGet(e) {
 
     try { payload.festive = festiveOffers(); }
     catch (err) { payload.festive = []; }
+
+    /* THE DAYS NOBODY IS TAUGHT — bank holidays, INSET days, a festive event. See `closures` in
+       booking.gs: the phone's `computeSessionDates` steps over them, so a booking is priced on the
+       sessions that will really run, and the Calendar marks them. Wrapped like the festive block: a
+       holidays tab that cannot be read still leaves the computed bank holidays. */
+    try { payload.closures = closures(); }
+    catch (err) { payload.closures = []; }
 
     /* WHICH LOADING SPLASHES HAVE BEEN RETIRED. Sent as the ones that are OFF rather than the ones
        that are on, so a splash added in code and never entered in the sheet still appears — the

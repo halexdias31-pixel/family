@@ -312,9 +312,10 @@ function openJobs_() {
    the shape: seven columns, the hours the business runs, and a block where something sits. A
    calendar spread over a term would say the same thing eleven times.
 
-   WHOSE WEEK IT IS depends on who is looking, and that falls out of what the payload already sends:
-   a client is only sent their own sessions and the open ones, a tutor is sent what they teach, an
-   admin is sent everything. So this draws whatever arrived and needs no rule of its own.
+   WHOSE WEEK IT IS: YOURS. This said it "draws whatever arrived and needs no rule of its own" — and
+   what arrives is your sessions AND everybody's open ones (a family is sent those so it can ask to
+   join), and an admin is sent the lot. So a parent's week held strangers' lessons. It reads
+   `weekSessions_` now, which goes through `myJobs_` exactly as `liveWidgets_` always has.
 
    THE HOURS ARE NOT HARDCODED — the grid runs from the earliest to the latest hour anything is
    actually booked at, so a week with nothing before four in the afternoon does not draw seven empty
@@ -327,28 +328,101 @@ function initWeek() {
   if (el) el.innerHTML = weekGrid();
 }
 
-function weekGrid() {
-  const jobs = (DATA.liveJobs || DATA.jobs || []).filter(j => {
-    /* A session with no day or no time has not been settled yet — a waitlist, or a request nobody
-       has put in the diary. It belongs on the list, not in a grid that says where to be. */
-    return S_(j.day) && S_(j.time);
+/* ---------- WHICH DAYS A SESSION RUNS ON, AND WHETHER IT IS RUNNING ON ONE ------------------------
+   ASKED FOR AS *"i need to fix how calander and time table and availability and all of that should
+   work or be set up or synced. it seems they clash"*. Three of the clashes were here, in the one week
+   that draws your sessions:
+
+     · IT LIT ONLY THE FIRST DAY OF A BOOKING. `norm(j.day).indexOf('mon') === 0` is true for
+       `Monday, Friday` and false for Friday, so a two-day booking showed one day — the fault history
+       124 records `jobGrid_` and `busyHours` both having, fixed in both of them and not here.
+     · IT DREW EVERYBODY'S. `DATA.liveJobs` holds the OPEN sessions of other families as well as your
+       own — `doGet` sends them so a family can ask to join — so a parent's week had strangers'
+       lessons in it. `liveWidgets_` has always gone through `myJobs_`; this did not.
+     · IT IGNORED THE DATES. A booking that finished in July was still on the week in October.
+
+   SO A SESSION IS ON A DAY WHEN THAT DATE IS ONE OF ITS SESSION DATES — the list `computeSessionDates`
+   wrote at booking, which already leaves out the half terms and the bank holidays. A job with no
+   dates yet (a request somebody has not put in the diary) is on every week its weekday comes round,
+   because nothing has said otherwise; one with a start and an end and no list is on the weeks
+   between them. These are the answers the job row can give, read in that order. */
+const DAY3_ = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+/** The days a job runs on, Monday-first indices — every day of `Monday, Friday`, not the first. */
+function jobDays_(j) {
+  return String((j && (j.weekday || j.day)) || '').split(',')
+    .map(x => DAY3_.indexOf(norm(x).slice(0, 3))).filter(i => i !== -1)
+    .filter((i, k, a) => a.indexOf(i) === k);
+}
+
+/** Its session dates as midnight Dates, off the comma list the job row carries. */
+function jobDates_(j) {
+  return String((j && j.dates) || '').split(',').map(x => parseDMY(x.trim())).filter(Boolean);
+}
+
+/** Does this job meet on this date? See the note above for the answers and their order. */
+function jobOn_(j, date) {
+  const d = new Date(date); d.setHours(0, 0, 0, 0);
+  if (jobDays_(j).indexOf((d.getDay() + 6) % 7) === -1) return false;
+  const list = jobDates_(j);
+  if (list.length) return list.some(x => x.getTime() === d.getTime());
+  const from = parseDMY(j.startDate), to = parseDMY(j.endDate);
+  return (!from || d >= from) && (!to || d <= to);
+}
+
+/* The Monday of the week holding `when`, at midnight — the week every "this week" here means. */
+function mondayOf_(when) {
+  const d = new Date(when || Date.now()); d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+}
+
+/* The hour a session starts, off `16:00` or the `4pm` some older rows hold. NaN when there is none. */
+function startHour_(t) {
+  const m = /(\d{1,2})(?::\d{2})?\s*(am|pm)?/i.exec(String(t || ''));
+  if (!m) return NaN;
+  let h = Number(m[1]);
+  if (m[2] && /pm/i.test(m[2]) && h < 12) h += 12;
+  if (m[2] && /am/i.test(m[2]) && h === 12) h = 0;
+  return h;
+}
+
+/* ---------- YOUR SESSIONS, AS THE SEVEN DAYS OF ONE WEEK ------------------------------------------
+   ONE LIST, AND EVERY WEEK OF SESSIONS READS IT, so two views of this week cannot disagree about
+   which sessions are in it.
+
+   YOURS ONLY, through `myJobs_` — the client or the tutor on the row is you. A job with no day or no
+   time has not been settled and is not in a week; a cancelled one is nobody's. Each entry is ONE DAY
+   of one session, so a Monday-and-Friday booking is two entries, each with its own date. */
+function weekSessions_(when) {
+  const mon = mondayOf_(when);
+  const out = [];
+  (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => {
+    if (!S_(j.day || j.weekday) || !S_(j.time)) return;
+    if (/cancel/i.test(String(j.status || ''))) return;
+    const from = startHour_(j.time);
+    if (!isFinite(from)) return;
+    const to = from + Math.max(1, Number(j.hours) || 2);
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(mon); date.setDate(mon.getDate() + i);
+      if (jobOn_(j, date)) out.push({ j, day: i, date, from, to });
+    }
   });
+  return out;
+}
+
+function weekGrid() {
+  const spans = weekSessions_();
   /* ---------- THE GRID, WITHOUT THE CARD AROUND IT ------------------------------------------------
      THIS RETURNED A WHOLE CARD, heading and all, because it was a block in the `You` column. It is a
      widget now — the card and the heading are the widget's, drawn by `WIDGETS` like every other
      tool's — so this returns only the thing that is actually a week. */
-  if (!jobs.length) {
-    return `<p class="sub">Nothing in the diary yet. Sessions appear here once a day and a time are
-      settled.</p>`;
+  if (!spans.length) {
+    return `<p class="sub">Nothing in the diary this week. Sessions appear here once a day and a
+      time are settled.</p>`;
   }
 
-  const DAYS = [['Mon','Mon'],['Tue','Tue'],['Wed','Wed'],['Thu','Thu'],
-                ['Fri','Fri'],['Sat','Sat'],['Sun','Sun']];
-  const hourOf = t => Number(String(t).split(':')[0]) || 0;
-  const spans = jobs.map(j => {
-    const h = hourOf(j.time);
-    return { j, from: h, to: h + Math.max(1, Number(j.hours) || 2) };
-  });
+  const DAYS = DAY3_.map((d, i) => [i, d.charAt(0).toUpperCase() + d.slice(1)]);
   const first = Math.min.apply(null, spans.map(s => s.from));
   const last  = Math.max.apply(null, spans.map(s => s.to));
   const hours = [];
@@ -356,11 +430,10 @@ function weekGrid() {
 
   /* Which days have anything at all. A week where nobody teaches at the weekend should not spend a
      third of a phone screen on Saturday and Sunday. */
-  const used = DAYS.filter(([d]) => spans.some(s => norm(s.j.day).indexOf(norm(d)) === 0));
+  const used = DAYS.filter(([i]) => spans.some(s => s.day === i));
   const days = used.length ? used : DAYS.slice(0, 5);
 
-  const at = (d, h) => spans.find(s =>
-    norm(s.j.day).indexOf(norm(d)) === 0 && h >= s.from && h < s.to);
+  const at = (d, h) => spans.find(s => s.day === d && h >= s.from && h < s.to);
 
   return `<div class="wk" style="--cols:${days.length}">
       <div class="wk-h"></div>
@@ -567,8 +640,9 @@ const SLOT_DAYS = [['m', 'Monday'], ['tu', 'Tuesday'], ['w', 'Wednesday'], ['th'
 
    ---------- AND THE SPAN IT MOVED TO IS THE ONE THE SHEET ALREADY HELD ------------------------------
    ASKED FOR AS *"make it go from 9-6 instead of 10- to 8"*, and the two ends were not equally free
-   to move. `AVAIL_HOURS` in `constants.gs` is `[9 … 19]` — the hours a tutor's own availability
-   grid offers, and the cells `slotGrid` looks a code up in.
+   to move. `AVAIL_HOURS` in `constants.gs` was `[9 … 19]` — the hours a tutor's own availability
+   grid offers, and the cells `slotGrid` looks a code up in. (It is `[9 … 18]` now, the same span as
+   this: a seven o'clock tick could be made and never booked. `check-booking.js` holds the two equal.)
 
    SO THE TWO SPANS DISAGREED AT BOTH ENDS, silently, since the booking grid was written:
 

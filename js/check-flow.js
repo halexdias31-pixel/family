@@ -436,7 +436,11 @@ function boot(opts) {
    Each is a name and a function that returns a list of complaints. No complaints is a pass. They are
    written as questions somebody would actually ask of the app, not as assertions about internals. */
 const checks = [];
-const check = (name, fn) => checks.push({ name, fn });
+/* `FLOW_ONLY=words node js/check-flow.js` runs the journeys whose names contain those words — for
+   working on one; the suite always runs the lot, and says how many it ran. */
+const check = (name, fn) => {
+  if (!process.env.FLOW_ONLY || name.indexOf(process.env.FLOW_ONLY) !== -1) checks.push({ name, fn });
+};
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 check('the app loads and draws without throwing', async () => {
@@ -4910,8 +4914,8 @@ check('a tutor\'s ticked hours are on their card, busy ones greyed, and none mea
   await wait(300);
   if (typeof w.findCard !== 'function') return ['findCard is not reachable, so the card\'s week was NOT checked — not a pass'];
   const avail = {};
-  ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 19; h++) avail[p + String(h).padStart(2, '0')] = ''; });
-  ['m16', 'm17', 'sa10', 'su19'].forEach(c => { avail[c] = 'TRUE'; });
+  ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) avail[p + String(h).padStart(2, '0')] = ''; });
+  ['m16', 'm17', 'sa10', 'su18'].forEach(c => { avail[c] = 'TRUE'; });
   const t = { title: 'Ada Tutor', handle: 'ada', rate: 30, teaches: [], listed: true, personId: 'P-x',
               avail, busy: { m17: 'Maths' } };
   const box = d.createElement('div');
@@ -4922,8 +4926,8 @@ check('a tutor\'s ticked hours are on their card, busy ones greyed, and none mea
   const codeOf = { Monday: 'm', Saturday: 'sa', Sunday: 'su' };
   const cell = (day, h) => box.querySelector(`.prof-week .hr[data-code="${codeOf[day]}${String(h).padStart(2, '0')}"]`);
   const lit = [...box.querySelectorAll('.prof-week .hr.on')];
-  if (lit.length !== 3) bad.push(`${lit.length} hours lit on the card, wanted 3 (Mon 16, Sat 10, Sun 19)`);
-  [['Monday', 16], ['Saturday', 10], ['Sunday', 19]].forEach(([dd, h]) => {
+  if (lit.length !== 3) bad.push(`${lit.length} hours lit on the card, wanted 3 (Mon 16, Sat 10, Sun 18)`);
+  [['Monday', 16], ['Saturday', 10], ['Sunday', 18]].forEach(([dd, h]) => {
     const c = cell(dd, h);
     if (!c || !c.classList.contains('on')) bad.push(`${dd} ${h}:00 is ticked and not lit on the card`);
   });
@@ -4938,7 +4942,7 @@ check('a tutor\'s ticked hours are on their card, busy ones greyed, and none mea
   const shut = rows.filter(r => r.classList.contains('is-shut')).length;
   if (rows.length !== 7 || shut !== 4) bad.push(`${rows.length} days drawn with ${shut} collapsed, wanted 7 with 4 (Tue to Fri) collapsed`);
   const none = d.createElement('div');
-  none.innerHTML = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { avail: Object.assign({}, avail, { m16: '', m17: '', sa10: '', su19: '' }) }) }) || '');
+  none.innerHTML = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { avail: Object.assign({}, avail, { m16: '', m17: '', sa10: '', su18: '' }) }) }) || '');
   if (none.querySelector('.prof-week') || /Available</.test(none.innerHTML)) bad.push('a tutor with no hours ticked is drawn with a week anyway');
   return bad;
 });
@@ -5328,6 +5332,84 @@ check('sharing a booking hands over a PNG of the receipt: share sheet, else down
     await wait(30);
     if (shared.length !== before + 1 || !((shared[shared.length - 1].files || [])[0] || {}).name)
       bad.push('the sheet\'s Share button did not share the picture');
+  }
+  return bad;
+});
+
+/* ---------- THE WEEK OF YOUR SESSIONS: YOURS, EVERY DAY OF THEM, AND ONLY WHILE THEY RUN ---------------
+   ASKED FOR AS *"calander and time table and availability ... it seems they clash"*. `weekSessions_`
+   is what every week of sessions reads, and it had three faults as `weekGrid`: a Monday-and-Friday
+   booking lit Monday only, a stranger's open session was on a parent's week, and a booking that
+   ended in the summer was still there in the autumn. Asked of the real function over jobs shaped as
+   `doGet` sends them — `day` the joined weekday cell, `dates` the comma list of session dates. */
+check('your week holds your sessions only, on every day they run, while their dates are live', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (typeof w.weekSessions_ !== 'function' || typeof w.weekGrid !== 'function') {
+    return ['weekSessions_ / weekGrid are not reachable, so the week was NOT checked — not a pass'];
+  }
+  const mon = w.mondayOf_(new Date());
+  const at = n => { const d = new Date(mon); d.setDate(d.getDate() + n); return d; };
+  const dmy = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+  const job = (id, extra) => Object.assign({ id, jobId: id, subject: id, time: '16:00', hours: 2,
+    client: 'Rasa Poliksa', tutor: 'GeorgePovey', status: 'active', slots: [] }, extra);
+  const D = t.DATA();
+  D.liveJobs = D.jobs = [
+    job('TWO-DAY', { day: 'Monday, Friday', dates: [at(-7), at(-3), at(0), at(4), at(7)].map(dmy).join(', ') }),
+    job('STRANGER', { day: 'Tuesday', client: 'Somebody Else', tutor: 'Sasha Matola', dates: dmy(at(1)) }),
+    job('ENDED', { day: 'Wednesday', dates: [at(-70), at(-63)].map(dmy).join(', ') }),
+    job('NOT-YET', { day: 'Thursday', dates: [at(24), at(31)].map(dmy).join(', ') }),
+    job('UNDATED', { day: 'Saturday', dates: '' }),
+  ];
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'client', roles: ['client'] });
+  const got = w.weekSessions_().map(s => s.j.id + '@' + s.day).sort().join(' ');
+  const want = 'TWO-DAY@0 TWO-DAY@4 UNDATED@5';
+  const bad = [];
+  if (got !== want) bad.push('this week holds [' + got + '], wanted [' + want + '] — both days of the two-day booking, '
+    + 'nothing of a stranger\'s, nothing ended or not yet started, and the undated request on its weekday');
+  const box = w.document.createElement('div');
+  box.innerHTML = w.weekGrid();
+  const heads = [...box.querySelectorAll('.wk-h')].map(x => x.textContent.trim()).filter(Boolean).join(' ');
+  if (heads !== 'Mon Fri Sat') bad.push('the week grid draws the days [' + heads + '], wanted [Mon Fri Sat]');
+  if (box.querySelectorAll('.wk-c.is-on[data-do="job"][data-id="TWO-DAY"]').length !== 4) {
+    bad.push('the two-day booking is ' + box.querySelectorAll('[data-id="TWO-DAY"]').length + ' cells, wanted 4 (two hours on two days), each opening the session');
+  }
+  return bad;
+});
+
+/* ---------- A BANK HOLIDAY IS NOT A SESSION, AND IS NOT CHARGED FOR ---------------------------------
+   `computeSessionDates` walked every week of a term, so the Early May bank holiday inside Summer 1 was
+   a date on the receipt and a share of the price. `DATA.closures` is `closures()` off the backend, and
+   a closed date is stepped over — which the count and the price follow without being told. Asked of
+   a window four weeks out, so the journey does not depend on what month it is run in. */
+check('a closed day inside a term is stepped over, and the price counts the sessions that run', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (typeof w.computeSessionDates !== 'function' || typeof w.priceFrom !== 'function') {
+    return ['computeSessionDates / priceFrom are not reachable, so closures were NOT checked — not a pass'];
+  }
+  const mon = w.mondayOf_(new Date()); mon.setDate(mon.getDate() + 28);
+  const at = n => { const d = new Date(mon); d.setDate(d.getDate() + n); return d; };
+  const dmy = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+  const win = { startDate: dmy(at(-14)), lastSun: dmy(at(20)) };
+  const spec = { subjects: ['Maths'], level: 'GCSE', n: 1, hours: 1, hoursPerWeek: 1, day: 'Monday',
+                 runs: [{ dayName: 'Monday', day: 'm', hours: 1 }], windows: [win], tutor: '' };
+  const D = t.DATA();
+  D.closures = [];
+  const open = w.priceFrom(spec);
+  D.closures = [{ date: dmy(mon), name: 'Early May bank holiday', kind: 'bank' }];
+  const shut = w.priceFrom(spec);
+  const bad = [];
+  const list = L => (L.sessionDates || []).map(dmy).join(', ');
+  if ((open.sessionDates || []).length !== 5) bad.push('with nothing closed the window holds ' + (open.sessionDates || []).length + ' Mondays, wanted 5: ' + list(open));
+  if ((shut.sessionDates || []).length !== 4 || list(shut).indexOf(dmy(mon)) !== -1) {
+    bad.push('with ' + dmy(mon) + ' closed the dates are [' + list(shut) + '] — the bank holiday is still a session');
+  }
+  if (shut.weeksBooked !== 4) bad.push('the price counts ' + shut.weeksBooked + ' sessions, wanted 4');
+  if (!(shut.total > 0) || Math.abs(shut.total * 5 - open.total * 4) > 0.05 * open.total) {
+    bad.push('the total did not follow the count: ' + open.total + ' for 5 sessions, ' + shut.total + ' for 4');
   }
   return bad;
 });

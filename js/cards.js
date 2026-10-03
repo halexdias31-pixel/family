@@ -383,14 +383,12 @@ function profAvail_(t) {
   const b = t.busy;
   if (Array.isArray(b)) b.forEach(c => { busy[norm(c)] = true; });
   else if (b && typeof b === 'object') Object.keys(b).forEach(c => { if (b[c]) busy[norm(c)] = b[c]; });
-  /* THE BOOKING'S SPAN, WIDENED TO WHAT THEY TICKED. `SLOT_HOURS` is nine to six and the tutor's own
-     grid runs to seven (`AVAIL_HOURS`), so a seven o'clock tick would otherwise vanish from the one
-     place that is meant to show it. */
-  const hrs = ticked.map(c => Number((c.match(/\d+$/) || [0])[0])).filter(h => h >= 0 && h < 24);
-  const base = (typeof SLOT_HOURS !== 'undefined' && SLOT_HOURS.length) ? SLOT_HOURS : [9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
-  const lo = Math.min(base[0], ...hrs), hi = Math.max(base[base.length - 1], ...hrs);
-  const hours = [];
-  for (let h = lo; h <= hi; h++) hours.push(h);
+  /* THE BOOKING'S SPAN AND NOTHING WIDER. This widened the week to any hour the tutor had ticked,
+     because their own grid ran to seven and the booking grid stops at six — so a seven o'clock tick
+     was drawn here, lit, as an hour a family could have, and the booking grid had no column for it.
+     The two spans are one now (`AVAIL_HOURS` = `SLOT_HOURS`, held equal by check-booking.js), so the
+     card shows exactly the hours that can be booked. */
+  const hours = (typeof SLOT_HOURS !== 'undefined' && SLOT_HOURS.length) ? SLOT_HOURS : [9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
   const SD = (typeof SLOT_DAYS !== 'undefined' && SLOT_DAYS) || [];
   const days = SD.map(([p, label]) => {
     const cells = hours.map(h => {
