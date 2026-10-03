@@ -605,6 +605,11 @@ function doGet(e) {
          arrives in bulk from `tools/quizwrite.py`, whose assertions are the reason it can be
          trusted to mark a child's answer. */
       quizzes: [],
+      /* AND `projects` IS THE SEVENTH, for the same sentence: `data/projects.json` is filled in
+         on the phone by `libraryExtras_`, and without this key `check-payload.js` would report it
+         read-and-never-sent. Nothing here reads a tab for it. The site works before this line is
+         deployed -- the phone fills the key either way -- so the deploy is for the check's sake. */
+      projects: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
       brand: {},
       /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. The second is the one

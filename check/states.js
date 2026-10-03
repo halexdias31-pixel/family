@@ -406,6 +406,35 @@ const STATES = {
       },
       wants: 'a practical split into cards — the card, its diagram, the kit list, the steps, and a worksheet of three boxes',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A PROJECT, ON ITS LAST PAGE ----------------------------------------------------
+       "the projects are like practicles, but not practicles. so should be a new tag in the finder
+       called projects." The practical's state one kind along: the funnel's own `What kind` answer,
+       then the first project's SHARE page found off `stuffPages_` — so the card, the materials and
+       the steps are in the DOM beside it and all four are measured for a tap target, a contrast
+       ratio and a sideways scroll. The share page is the one with a tile on it. */
+    { name: 'a project',
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'project');
+        if (!x) throw new Error('no project in the list — data/projects.json did not load');
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }];
+        paintStuff();
+        const at = typeof stuffPages_ === 'function'
+          ? Math.max(0, stuffPages_().findIndex(pg => pg.part === 'share')) : 0;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + at);
+      },
+      expect: () => {
+        const main = document.querySelector('#s-stuff .card.proj:not(.prac-part)');
+        const kit = document.querySelector('#s-stuff .card.proj.is-kit');
+        const steps = document.querySelector('#s-stuff .card.proj.is-steps');
+        const share = document.querySelector('#s-stuff .card.proj.is-share');
+        return !!main && !!kit && !!steps && !!share
+               && !!kit.querySelector('.prac-kit ul > li')
+               && !!steps.querySelector('.prac-steps ol > li')
+               && !!share.querySelector('[data-do="proj-share"]')
+               && !document.querySelector('#s-stuff .card.prac:not(.proj)');
+      },
+      wants: 'a project split into cards — the card, its materials, its steps, and a share page with a Messages tile',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
        BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,
        with four live buttons; answered, with the right one marked, the wrong one outlined and the

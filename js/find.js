@@ -306,6 +306,15 @@ const KINDS = {
      that you have forty minutes and no lab. All four of those are questions the funnel already
      asks, so this needed a mapper and a card and nothing else. */
   practical: { group: 'Learning', label: 'Practicals', card: x => practicalCard_(x) },
+  /* ---------- A PROJECT IS THE PRACTICAL'S SIBLING, NOT ONE OF ITS SHAPES ------------------------
+     ASKED FOR AS "the projects are like practicles, but not practicles. so should be a new tag in
+     the finder called projects." So it is a kind of its own beside `practical` rather than a third
+     `practicalType` beside experiment and build: a how-to video has no independent variable, no
+     exam board and no lab, and every one of those is a question the practical card asks.
+
+     FOUND THE SAME WAY, which is the half that is like a practical: the topic, the subject, the
+     level. Mapper, card, pages; nothing in the engine. */
+  project: { group: 'Learning', label: 'Projects', card: x => projectCard_(x) },
   /* A QUIZ IS A THING YOU FIND FOR THE SAME REASON, one step earlier: you know the topic and the
      level and you want five minutes of recall on it. Subject, Topic and Level are all questions
      the funnel already asks, and a quiz carries the library's own spellings of each -- so a KS3
@@ -860,8 +869,14 @@ function bucketTable_(pairs) {
    filed them under `people` and `places` where production files them nowhere. */
 /* `Links` left `Read or watch it` with the links themselves — see the note where `link` was in
    `KINDS`. */
+/* `Projects` JOINS `Work through it`, BESIDE `Practicals`, and it has to be in this table at all:
+   `bucketLabels_` stands the whole grouping down the moment one answer is unplaced, so a kind
+   missing from here turns the app's second question back into the alphabet. `check-projects.js`
+   reads this line for that reason. NOT a bucket of its own — `Make something` holding one kind
+   would be skipped by the one-answer rule, and the word the owner asked to see would never be on
+   screen. */
 const KIND_BUCKET = bucketTable_([
-  ['Work through it',  ['Questions', 'Quizzes', 'Practicals']],
+  ['Work through it',  ['Questions', 'Quizzes', 'Practicals', 'Projects']],
   ['Read or watch it', ['Films', 'Resources']],
 ]);
 
@@ -3636,6 +3651,75 @@ function practicalPart_(x, part) {
   return inner ? `<div class="card prac prac-part is-${part}">${inner}</div>` : '';
 }
 
+/* ==================================================================================================
+   A PROJECT — THREE OR FOUR SESSIONS THAT END IN SOMETHING A CHILD MADE.
+
+   ASKED FOR AS "the projects are like practicles, but not practicles", and the card says which half
+   is which. LIKE a practical: one card you choose from, then the kit and the steps as pages after
+   it, in `.prac`'s own rules — so a project and a practical side by side in a list read as one
+   family, and nothing in style.css had to be written twice. NOT a practical: no exam board, no
+   required/extra flag, no worksheet asking for an independent variable. Its strip says how many
+   SESSIONS, not minutes, because a project is planned across weeks.
+
+   THE LAST PAGE IS "SHARE IT", AND SAVING THE WORK IS NOT IN SCOPE. The owner's older notes asked
+   for "places for them to save videos and stuff"; that is file storage for children's films, with
+   the consent and moderation questions that carries, and it is not built. What is built is the
+   sentence each row's `share` holds — what to send and what to bring — and one tile to Messages,
+   where a tutor already reads what a student writes. `check-projects.js` refuses a step that tells
+   a child to put the work online.
+================================================================================================== */
+function projectCard_(x) {
+  const p = x.row;
+  /* AGES AS A RANGE, because "8+" on a podcast for sixteen-year-olds would be true and useless. */
+  const ages = p.ageMin && p.ageMax ? 'ages ' + p.ageMin + '–' + p.ageMax
+    : p.ageMin ? p.ageMin + '+' : '';
+  const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '',
+                 ages].filter(Boolean).join(' · ');
+  return `<div class="card prac proj">
+    <div class="prac-head">
+      <h3>${esc(x.name)}</h3>
+      <span class="prac-flags"><span class="prac-flag is-type">Project</span></span>
+    </div>
+    <p class="sub">${esc([p.subject, p.level].filter(Boolean).join(' · '))}</p>
+    <p class="prac-aim">${esc(p.summary)}</p>
+    ${strip ? `<p class="prac-strip">${esc(strip)}</p>` : ''}
+    ${p.makes ? `<p class="prac-out"><b>You end up with</b> ${esc(p.makes)}</p>` : ''}
+  </div>`;
+}
+
+function projectPart_(x, part) {
+  const p = x.row;
+  /* THE PRACTICAL'S PAGE HEADING, for its reason: a page you land on from a flick four results
+     away has to say whose page it is. */
+  const head = what => `<p class="prac-of">${esc(x.name)}</p><h3>${what}</h3>`;
+  let inner = '';
+  if (part === 'kit') {
+    inner = `${head('Materials')}<div class="gd"><section class="prac-kit">
+      ${kitList_(p.materials)}</section></div>`;
+  } else if (part === 'steps') {
+    /* THE SAFETY LINE IS UNDER THE STEPS, ONE PARAGRAPH, which is `jobAdminTiles_`'s rule. On a
+       project it is mostly about who is in the shot and what stays offline, which is a thing to
+       read before filming rather than after. */
+    inner = `${head('Steps')}<div class="gd"><section class="prac-steps">
+      <ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>
+      ${p.safety ? `<p class="prac-note"><b>Before you start</b> ${esc(p.safety)}</p>` : ''}`;
+  } else if (part === 'share') {
+    /* A THING HAS TILES: the one action on this page is going to Messages, so it is a tile in a
+       `.tile-row`, not a button — `check-doors` pairs `proj-share` with its handler below. */
+    inner = `${head('Share it')}
+      <p class="prac-aim">When it is finished, send it to your tutor in Messages.</p>
+      ${p.share ? `<p class="prac-out"><b>What to send</b> ${esc(p.share)}</p>` : ''}
+      <div class="tile-row">${tile_({ icon: 'chat', label: 'Messages', note: 'to your tutor',
+        act: 'proj-share' })}</div>`;
+  }
+  return inner ? `<div class="card prac prac-part proj is-${part}">${inner}</div>` : '';
+}
+
+/* TO MESSAGES, AND NOTHING ELSE. Who to write to is the Messages screen's question — it already
+   knows who a student may reach (`MESSAGING` in constants.gs) — so this does not open a composer
+   of its own with a guessed recipient. */
+on('proj-share', () => go('dm'));
+
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS ------------------------
    The card, then a page per section that has something in it. A REFUSED experiment is its card
    alone: it carries no kit and no method by rule (`check-practicals.js` refuses one that does), and
@@ -3644,6 +3728,15 @@ function practicalPart_(x, part) {
    can swipe to that says nothing reads as a fault. Anything that is not a practical is one page. */
 function pageParts_(x) {
   if (questionHasFig_(x)) return [null, 'fig'];
+  /* A PROJECT IS ITS CARD, ITS MATERIALS, ITS STEPS AND "SHARE IT" — the share page always, since
+     every project ends in something to send. */
+  if (x && x.kind === 'project' && x.row) {
+    const out = [null];
+    if (x.row.materials && x.row.materials.length) out.push('kit');
+    if (x.row.steps && x.row.steps.length) out.push('steps');
+    out.push('share');
+    return out;
+  }
   if (!x || x.kind !== 'practical' || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
   /* THE PICTURE IS ITS OWN PAGE, straight after the card — "across the board of all resources the
@@ -3666,6 +3759,7 @@ function cardPages_(x, credits) {
   return out;
 }
 function stuffPart_(x, part) {
+  if (x && x.kind === 'project') return projectPart_(x, part);
   return (x && x.kind === 'question' && part === 'fig') ? questionFigCard_(x) : practicalPart_(x, part);
 }
 
@@ -4719,6 +4813,15 @@ function practicalText_(p) {
                      (p.steps || []).join(' '),
                      (p.risks || []).join(' '), (p.variables || []).join(' '),
                      (p.log || []).join(' ')].filter(Boolean).join(' '));
+}
+
+/* `projectText_` — `practicalText_`'s move for the projects: `podcast`, `stop-motion`, `bearing`
+   and `alt text` are words somebody types, and they are only ever in the summary, the steps and
+   the kit. Both halves of a kit line, for the `[object Object]` reason written above. */
+function projectText_(p) {
+  return plainText_([p.summary, p.makes, p.safety, p.share,
+                     (p.materials || []).map(e => e.name + ' ' + e.qty).join(' '),
+                     (p.steps || []).join(' ')].filter(Boolean).join(' '));
 }
 
 /* `quizText_` — THE SAME MOVE, one data file along, and for the reason `practicalText_` records:
@@ -6689,6 +6792,23 @@ function stuffItemsRaw_() {
          only place that says a trundle wheel is about perimeter, and the words are printed nowhere
          else on the card. See `practicalText_`. */
       text: practicalText_(p) + ' ' + topicAtoms_(p.topics).join(' '),
+      row: p,
+    })),
+
+    /* ---------- THE PROJECTS ---------------------------------------------------------------
+       THE PRACTICALS' JOIN, UNCHANGED: `topics` in the library's own spellings, so a recipe book
+       that scales a recipe from four to six is found by the Topic question that finds a past
+       paper on direct proportion. `check-projects.js` refuses a topic the tree has never heard of.
+
+       `subject` AND `level` ARE THE LIBRARY'S WORDS for the reason the quizzes' note gives below,
+       and `check-projects.js` holds both to the two tables that group them — one value outside
+       `SUBJECT_BUCKET` or `LEVEL_BUCKET` stands that whole question down to the alphabet. */
+    ...(DATA.projects || []).map(p => ({
+      kind: 'project', name: p.name, key: 'pj:' + p.id,
+      sub: [p.subject, p.sessions ? p.sessions + ' sessions' : ''].filter(Boolean).join(' · '),
+      image: '',
+      subject: p.subject, topics: p.topics, level: p.level,
+      text: projectText_(p) + ' ' + topicAtoms_(p.topics).join(' '),
       row: p,
     })),
 
