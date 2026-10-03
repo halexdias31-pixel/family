@@ -376,7 +376,19 @@ function profAvail_(t) {
   if (!t || typeof weekGrid_ !== 'function' || typeof availSet_ !== 'function') return '';
   const on = availSet_(t.avail);
   const ticked = Object.keys(on);
-  if (!ticked.length) return '';
+  /* ---------- NO HOURS IS SAID, NOT LEFT BLANK -------------------------------------------------
+     THIS DREW NOTHING, on the argument that 77 grey cells would read as "never available" and that
+     `slotGrid` treated an empty grid as "nobody has said". The second half changed: *"tutor with no
+     hours wont be bookable."* So a family reading the card needs to know why the name is greyed in
+     the booking form, and an admin looking down the tutors needs to see who has not filled their
+     week in — the one place every tutor is drawn for them. One sentence under the caption, in the
+     card's own warning ink; still no week, because a week of grey says the wrong thing. */
+  if (!ticked.length) {
+    return `<div class="prof-cap">Available</div>
+      <p class="prof-say prof-hid prof-nohours">Hasn\u2019t set their hours yet, so they can\u2019t be
+        booked by name.${typeof isAdmin === 'function' && isAdmin()
+          ? ' They tick them in Settings, under their week.' : ''}</p>`;
+  }
   /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend
      may say nothing; a list of codes is read as well, so no shape of it throws. */
   const busy = {};

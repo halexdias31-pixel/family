@@ -4908,7 +4908,7 @@ check('a fraction is drawn stacked in the stem, lead, part, answer and choices, 
    once held `avail: []` and a card tested against that would have passed by drawing nothing. Three
    answers: a ticked hour is lit, a ticked hour they are already teaching is greyed, and a tutor who
    has ticked nothing gets no caption and no week — not seventy-seven grey cells reading "never". */
-check('a tutor\'s ticked hours are on their card, busy ones greyed, and none means no week', async () => {
+check('a tutor\'s ticked hours are on their card, busy ones greyed, and none says they cannot be booked', async () => {
   const { w } = boot();
   const d = w.document;
   await wait(300);
@@ -4943,7 +4943,12 @@ check('a tutor\'s ticked hours are on their card, busy ones greyed, and none mea
   if (rows.length !== 7 || shut !== 4) bad.push(`${rows.length} days drawn with ${shut} collapsed, wanted 7 with 4 (Tue to Fri) collapsed`);
   const none = d.createElement('div');
   none.innerHTML = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { avail: Object.assign({}, avail, { m16: '', m17: '', sa10: '', su18: '' }) }) }) || '');
-  if (none.querySelector('.prof-week') || /Available</.test(none.innerHTML)) bad.push('a tutor with no hours ticked is drawn with a week anyway');
+  if (none.querySelector('.prof-week')) bad.push('a tutor with no hours ticked is drawn with a week anyway');
+  /* AND SAYS WHY THEY CANNOT BE BOOKED BY NAME — *"tutor with no hours wont be bookable"*. It drew
+     nothing at all, which left the greyed name in the booking form unexplained. */
+  if (!/hasn.t set their hours yet/i.test((none.querySelector('.prof-nohours') || {}).textContent || '')) {
+    bad.push('a tutor with no hours ticked does not say "hasn\'t set their hours yet" on their card');
+  }
   return bad;
 });
 
@@ -5333,6 +5338,78 @@ check('sharing a booking hands over a PNG of the receipt: share sheet, else down
     if (shared.length !== before + 1 || !((shared[shared.length - 1].files || [])[0] || {}).name)
       bad.push('the sheet\'s Share button did not share the picture');
   }
+  return bad;
+});
+
+/* ---------- A TUTOR WITH NO HOURS CANNOT BE BOOKED BY NAME ---------------------------------------------
+   ASKED FOR AS *"tutor with no hours wont be bookable."* An empty grid meant every hour open. Now the
+   tutor dropdown draws them disabled with the reason beside the name, a change that names them
+   anyway is refused, the hour grid shuts every hour and says why, and the send stops before
+   `createJob` — while a tutor WITH hours, and `No preference`, book exactly as before. */
+check('a tutor with no hours is greyed, shuts the grid and is not sent for; No preference still books', async () => {
+  const { w, sent } = boot();
+  await wait(300);
+  const t = w.__t;
+  const st = (t.STEPS || []).find(s => s.id === 'tutor');
+  if (!st || typeof w.stepSelect_ !== 'function' || typeof w.slotGrid !== 'function') {
+    return ['the tutor step / stepSelect_ / slotGrid are not reachable, so this was NOT checked — not a pass'];
+  }
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const D = t.DATA();
+  const avail = {};
+  ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) avail[p + String(h).padStart(2, '0')] = ''; });
+  const some = Object.assign({}, avail, { m16: 'TRUE', m17: 'TRUE' });
+  D.tutors = [
+    { title: 'Nia Nohours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: Object.assign({}, avail) },
+    { title: 'Ada Hours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: some },
+  ];
+  const B = t.BOOKING;
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  B.how = ((t.STEPS.find(s => s.id === 'how') || { options: () => [] }).options().find(k => !/wait/i.test(k))) || '';
+  B.level = 'GCSE'; B.loc = 'Colliers Wood Library'; B.subjects = ['Maths']; B.n = '1';
+  B.hosting = 'No — we book the room'; B.interval = ['Autumn 1'];
+  const bad = [];
+  const box = w.document.createElement('div');
+  box.innerHTML = w.stepSelect_(st);
+  const opt = name => [...box.querySelectorAll('option')].find(o => o.value === name);
+  const nia = opt('Nia Nohours'), ada = opt('Ada Hours');
+  if (!nia) bad.push('a tutor with no hours is not in the list at all — greyed, not absent');
+  else if (!nia.disabled || !/hasn.t set their hours yet/.test(nia.textContent)) {
+    bad.push('Nia (no hours) is offered as "' + nia.textContent.trim() + '"' + (nia.disabled ? '' : ', pressable'));
+  }
+  if (!ada || ada.disabled) bad.push('Ada (hours ticked) cannot be chosen');
+  /* A CHANGE NAMING HER ANYWAY is refused by the handler, not only by the markup. */
+  const sel = w.document.createElement('select');
+  sel.setAttribute('data-do', 'book-set'); sel.setAttribute('data-step', 'tutor');
+  sel.innerHTML = '<option value="Nia Nohours">Nia Nohours</option>';
+  sel.value = 'Nia Nohours';
+  w.document.body.appendChild(sel);
+  sel.dispatchEvent(new w.Event('change', { bubbles: true }));
+  if (B.tutor === 'Nia Nohours') bad.push('a change event naming Nia was taken by the book-set handler');
+  /* THE GRID, NAMED: every hour shut, and why. */
+  B.tutor = 'Nia Nohours';
+  const g = w.slotGrid();
+  if (g.anyOpen || !/hasn.t set their hours yet/.test(g.why)) bad.push('with Nia chosen the grid is ' + (g.anyOpen ? 'open' : 'shut') + ' and says "' + g.why + '"');
+  /* AND THE SEND STOPS BEFORE `createJob`. */
+  B.slots = ['m16'];
+  sent.length = 0;
+  try { t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('book-send threw: ' + e.message); }
+  await wait(200);
+  if (sent.some(x => x.action === 'createJob')) bad.push('a booking naming Nia (no hours) was sent as createJob');
+  /* ADA: her two hours open, the rest shut; and the send carries every ticked hour as `slots`. */
+  B.tutor = 'Ada Hours';
+  const ga = w.slotGrid();
+  const openCodes = ga.rows.flatMap(r => r.hours.filter(h => h.open).map(h => h.code)).join(',');
+  if (openCodes !== 'm16,m17') bad.push('with Ada chosen the open hours are [' + openCodes + '], wanted [m16,m17]');
+  sent.length = 0;
+  try { t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('book-send threw: ' + e.message); }
+  await wait(200);
+  const job = sent.find(x => x.action === 'createJob');
+  if (!job) bad.push('a booking naming Ada (hours ticked) was not sent');
+  else if (job.slots !== 'm16') bad.push('createJob carried slots "' + job.slots + '", wanted "m16" — the server checks every ticked hour');
+  /* NO PREFERENCE: unchanged — nobody's hours are consulted, the venue decides. */
+  B.tutor = 'No preference';
+  if (!w.slotGrid().anyOpen) bad.push('with No preference the grid shuts — a booking nobody named a tutor for must still be bookable');
   return bad;
 });
 

@@ -47,3 +47,33 @@ stepped over, and the price counts the sessions that run*. Each proved by mutati
 `DATA.liveJobs` for `myJobs_`; dates ignored; the closed-day skip removed; the date window removed
 from `busyHours`; 19 put back on `AVAIL_HOURS`; the Boxing Day substitute removed; every observance
 treated as closed; the payload key dropped) — red for the stated reason, green again restored.
+
+### 2. A tutor with no hours is not bookable by name
+
+**The owner's answer: *"tutor with no hours wont be bookable."*** `slotGrid`'s note said an empty
+grid meant every hour open, because "nobody has said anything". A tutor who never opened Settings was
+offered as free all week. Now, one question (`tutorNoHours_`) and four readers:
+
+- **The tutor dropdown** draws them disabled with *"· hasn't set their hours yet"* beside the name —
+  greyed, not absent, for the reason `stepSelect_` gives every option. A generic `off` hook on a
+  step does it, and the `book-set` handler refuses an `off` value however it arrives.
+- **The hour grid** shuts every hour for a named tutor with no hours and says why. `No preference`
+  is untouched; a venue with no hours is still read as open (the owner's sentence was about tutors).
+- **The send** stops before `createJob`, and now sends `slots` — every ticked hour code — because
+  `day` / `time` / `hours` are only the first run.
+- **The card** says *"Hasn't set their hours yet, so they can't be booked by name"* where it drew
+  nothing, and to an admin adds where the hours are ticked — the account column draws every tutor
+  for an admin, so that is where an admin sees who has not filled their week in.
+
+**And the grey cells stop being advice.** `createJob` asks `tutorHoursRefusal_` of the named tutor's
+row before anything is written: no hours at all; an hour outside their ticked week (named back, e.g.
+*"does not teach at Sunday 10:00"*); or an hour they are already teaching in the weeks this booking
+runs (`busyHours` over the booking's own first-to-last dates). An older phone with no `slots` is
+checked off `day` × `time` × `hours`. No tutor named books as before.
+
+Checked: `check-profile.js` §15 through the real `createJob` — eight rules, each a refusal that
+writes no job or a booking that goes through; `check-flow.js` *a tutor with no hours is greyed,
+shuts the grid and is not sent for; No preference still books*, and the card journey now asks for the
+sentence. Mutations: the no-hours refusal, the outside-the-week refusal and the date window removed
+on the server; `off`, the handler guard, the grid's `tNone`, the send guard, `slots` and the card's
+sentence removed on the phone — each red for its reason, green restored.

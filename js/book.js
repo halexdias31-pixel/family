@@ -795,9 +795,13 @@ function slotGrid() {
   const vAvail = availSet_((sp && sp.avail) || (venue && venue.avail));
   const haveT = Object.keys(tAvail).length, haveV = Object.keys(vAvail).length;
 
-  /* NOTHING SET IS NOT THE SAME AS NOTHING FREE. A tutor with no hours in the sheet has not said
-     they are unavailable — nobody has said anything — so every hour is offered and the sheet is
-     the thing to fix. Refusing everything would be the app inventing a constraint. */
+  /* NOTHING SET WAS READ AS EVERYTHING FREE, and for a TUTOR that is over. The old note said a tutor
+     with no hours "has not said they are unavailable — nobody has said anything — so every hour is
+     offered and the sheet is the thing to fix". The owner's answer was the other way: *"tutor with
+     no hours wont be bookable."* A tutor nobody has heard from is not free all week, so a NAMED
+     tutor with an empty grid shuts every hour, and the grid says why. No tutor chosen (`t` null) is
+     unchanged — the business matches it. A VENUE with no hours is still read as open: rooms are
+     the admin's to fill in, and the owner's sentence was about tutors. */
   /* ---------- AND WHAT THE TUTOR IS ALREADY TEACHING ---------------------------------------------
      `avail` says when they CAN work; `busy` says when they already are. Two facts, kept apart on
      purpose — see `busyHours` in booking.gs for why un-ticking the availability cell would be
@@ -807,14 +811,16 @@ function slotGrid() {
      and the moment that session is cancelled the hour comes back on its own, because nothing was
      ever removed from anything. */
   const tBusy = (t && t.busy) || {};
-  const open = code => (!haveT || tAvail[code]) && (!haveV || vAvail[code]) && !tBusy[code];
+  const tNone = !!t && !haveT;
+  const open = code => !tNone && (!haveT || tAvail[code]) && (!haveV || vAvail[code]) && !tBusy[code];
   /* WHY it is not free, so the grid can say. A tutor who does not work Tuesdays and a tutor who is
      already teaching that Tuesday look identical greyed out, and only one of them is worth asking
      about a different week. */
   /* `whyShut` rather than `why` — there is already a `why` below for the grid as a WHOLE ("nobody
      has set any hours yet"), and this is per cell. Two different questions and they were one word
      apart from being the same variable. */
-  const whyShut = code => tBusy[code] ? 'teaching ' + tBusy[code]
+  const whyShut = code => tNone ? 'no hours set'
+    : tBusy[code] ? 'teaching ' + tBusy[code]
     : (haveT && !tAvail[code]) ? 'not available'
     : (haveV && !vAvail[code]) ? 'venue closed' : '';
 
@@ -839,6 +845,7 @@ function slotGrid() {
   const anyOpen = rows.some(r => r.hours.some(h => h.open));
 
   const why = anyOpen ? ''
+    : tNone ? 'That tutor hasn\u2019t set their hours yet, so they cannot be booked by name. Choose No preference, or another tutor.'
     : !haveT && !haveV ? 'Nobody has set any hours yet.'
     : !haveT ? 'That venue is open, but the tutor has no hours set.'
     : !haveV ? 'The tutor has hours, but that venue has none set.'
@@ -1207,6 +1214,17 @@ const BOOK_STEPS = [
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
       return t && t.listed === false ? v + ' · not listed' : v;
     },
+    /* ---------- A TUTOR WITH NO HOURS CANNOT BE CHOSEN, AND SAYS WHY ---------------------------
+       ASKED FOR AS *"tutor with no hours wont be bookable."* An empty availability grid used to
+       mean EVERY HOUR OPEN — `slotGrid`'s old note: "nobody has said anything, so every hour is
+       offered and the sheet is the thing to fix" — which put a tutor who had never opened Settings
+       in front of a family as free all week. Nobody had said they were free either.
+
+       DISABLED, NOT ABSENT, for the reason `stepSelect_` gives every option: a list whose names
+       come and go cannot be learnt, and a family looking for a tutor they were told about should
+       find them, greyed, with the reason beside the name. `No preference` is untouched — a booking
+       nobody has named a tutor for is matched by the business, exactly as before. */
+    off: v => tutorNoHours_(v) ? 'hasn\'t set their hours yet' : '',
     /* ---------- A WAITING LIST HAS NO TUTOR YET, AND THE ROW WAS SHOWING THE LAST ONE -----------
        REPORTED AS *"when i want to do a waitlist session it just defualts to sasha motola and wont
        let change. it should defualt to no preference and not be able to change."* Both halves were
@@ -1221,6 +1239,9 @@ const BOOK_STEPS = [
     fallback: () => isWaiting_() ? 'No preference' : '',
     why: v => {
       if (v === 'No preference') return '';
+      /* AND SAID ON THE ROW TOO, for a name that arrived some other way — a saved form, a tutor who
+         unticked their last hour while somebody had them chosen. The send refuses it as well. */
+      if (tutorNoHours_(v)) return 'hasn\'t set their hours yet, so cannot be booked by name';
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
       if (!t || !BOOKING.subjects.length) return '';
       const teaches = (t.teaches || []).map(x => norm(String(x).replace(/\s*\([^)]*\)/, '')));
@@ -1576,6 +1597,18 @@ const BOOK_STEPS = [
 
 const tutorRow_ = () => (DATA.tutors || []).find(t => norm(t.title) === norm(BOOKING.tutor)) || null;
 
+/* ---------- HAS THIS TUTOR SAID WHEN THEY CAN TEACH -----------------------------------------------
+   One question, four readers: the tutor dropdown greys them, the booking grid shuts every hour, the
+   send refuses, and their card says so. `availSet_` is the one reader of the grid's shapes, so a
+   tutor whose `avail` is `{ m09: '' … }` — all 70 codes and none ticked, which is what `doGet` sends
+   for somebody who never opened Settings — is a tutor with no hours. A name that matches no tutor
+   is not this question's to answer; `No preference` never is. */
+function tutorNoHours_(name) {
+  if (!name || norm(name) === norm('No preference')) return false;
+  const t = (DATA.tutors || []).find(x => norm(x.title) === norm(name));
+  return !!t && !Object.keys(availSet_(t.avail)).length;
+}
+
 /* What the chosen place costs an hour — the ROOM's own rate where there is one, because a small
    room and a large one at the same venue are different prices and the building's single figure
    could only ever be right for one of them. */
@@ -1927,6 +1960,11 @@ document.addEventListener('change', e => {
        select falls back to after every pick — so it must not clear the list somebody has built. */
     bookToggle_(step, el.value);
   } else {
+    /* AN OPTION THE LIST DREW DISABLED IS NOT TAKEN HOWEVER IT ARRIVES — a keyboard, an old
+       browser that lets a disabled option through, a hand-built event. Said, and the row redrawn
+       on what it held. */
+    const no = step.off && el.value ? String(step.off(el.value) || '') : '';
+    if (no) { toast(el.value + ' ' + no); drawBooker(); return; }
     BOOKING[step.id] = el.value || '';
     BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
   }
@@ -2463,8 +2501,12 @@ function stepSelect_(st) {
           third place for one rule, which is how the other two came to disagree. */''}
     <option value=""${(st.multi || !v) ? ' selected' : ''}>${
       st.multi && chosen.length ? esc(chosen.join(', ')) : esc(fb || '—')}</option>
-    ${opts.map(o => `<option value="${esc(o)}"${(!st.multi && isOn(o)) ? ' selected' : ''}
-      >${st.multi && isOn(o) ? '✓ ' : ''}${esc(st.label_ ? st.label_(o) : o)}</option>`).join('')}
+    ${/* AN OPTION THAT CANNOT BE TAKEN IS DRAWN AND DISABLED, its reason beside its name — see `off`
+          on the tutor step. The one already chosen is left pressable, so the row can show it. */''}
+    ${opts.map(o => { const no = st.off ? String(st.off(o) || '') : '';
+      return `<option value="${esc(o)}"${(!st.multi && isOn(o)) ? ' selected' : ''}${
+        no && !isOn(o) ? ' disabled' : ''}>${st.multi && isOn(o) ? '✓ ' : ''}${
+        esc((st.label_ ? st.label_(o) : o) + (no ? ' · ' + no : ''))}</option>`; }).join('')}
   </select>`;
 }
 

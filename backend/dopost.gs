@@ -2945,6 +2945,10 @@ function doPost(e) {
       if (namedRow && tutorPending_(namedRow)) {
         return jsonOut({ error: 'That tutor is not taking bookings yet.' });
       }
+      /* THE GREY CELLS WERE ADVICE, and this makes them a rule — see `tutorHoursRefusal_`. Asked
+         before anything is written, like the two refusals above it. */
+      const outside = namedRow ? tutorHoursRefusal_(namedRow, body) : '';
+      if (outside) return jsonOut({ error: outside });
       addRow(t, {
         job_id: jobId, status: 'unconfirmed',
         subject: S(body.subject), level: S(body.level), service: S(body.service),

@@ -613,6 +613,69 @@ function busyHours(tutorName, from, to) {
   return out;
 }
 
+/* ---------- THE HOURS A BOOKING ASKS FOR, AS THE GRID'S OWN CODES -------------------------------------
+   `slots` is what the phone sends now — every hour ticked, `m16,m17,f10`. An older phone sends only
+   the job row's three cells (`day` joined with commas, `time`, `hours`), which is the first run on
+   every named day: the same reading `busyHours` makes of a saved job, and the safe one. */
+const DAY_CODE_ = { monday: 'm', mon: 'm', tuesday: 'tu', tue: 'tu', wednesday: 'w', wed: 'w',
+                    thursday: 'th', thu: 'th', friday: 'f', fri: 'f',
+                    saturday: 'sa', sat: 'sa', sunday: 'su', sun: 'su' };
+function bookingCodes_(body) {
+  const sent = S(body.slots).split(',').map(x => norm(x)).filter(x => /^(m|tu|w|th|f|sa|su)\d{2}$/.test(x));
+  if (sent.length) return sent;
+  const from = Number(String(fmtTime(body.time)).split(':')[0]);
+  if (!S(body.time) || !isFinite(from)) return [];
+  const hours = Math.max(1, N(body.hours) || 1);
+  const out = [];
+  S(body.day).split(',').map(x => DAY_CODE_[norm(x)]).filter(Boolean).forEach(d => {
+    for (let h = from; h < from + hours; h++) out.push(d + String(h).padStart(2, '0'));
+  });
+  return out;
+}
+
+/* A CODE AS A PERSON SAYS IT — `m16` is `Monday 16:00`. */
+function codeSaid_(c) {
+  const p = String(c).replace(/\d+$/, ''), h = String(c).slice(p.length);
+  const day = Object.keys(DAY_CODE_).find(k => DAY_CODE_[k] === p && k.length > 3) || p;
+  return day.charAt(0).toUpperCase() + day.slice(1) + ' ' + h + ':00';
+}
+
+/* ---------- A BOOKING BY NAME MUST FIT THE TUTOR'S WEEK, AND NOT LAND ON ANOTHER SESSION -------------
+   ASKED FOR AS *"tutor with no hours wont be bookable"*, and the grey cells on the booking grid were
+   the only thing standing between a family and a tutor's Sunday: `createJob` wrote whatever hours it
+   was sent. The grid is drawn from a payload that can be an hour old and a request can be built by
+   hand, so the rule is asked again here, of the row itself:
+
+     · NO HOURS AT ALL — the tutor has not said when they teach, so nobody can book them by name.
+     · AN HOUR THEY HAVE NOT TICKED — outside their week.
+     · AN HOUR THEY ARE ALREADY TEACHING — `busyHours` over THIS booking's own dates, so a session
+       next term clashes with one that starts next term even though neither is running today.
+
+   Answers the sentence to send back, or '' to go on. A booking with no tutor named never comes
+   here: the business matches it, which is what `No preference` has always meant. */
+function tutorHoursRefusal_(row, body) {
+  const who = personDisplayName(row);
+  const have = availSet(row.availability);
+  if (!Object.keys(have).length) {
+    return who + ' hasn\u2019t set their hours yet, so they cannot be booked by name. '
+      + 'Choose No preference, or another tutor.';
+  }
+  const codes = bookingCodes_(body);
+  const off = codes.filter(c => !have[c]);
+  if (off.length) {
+    return who + ' does not teach at ' + off.slice(0, 3).map(codeSaid_).join(', ')
+      + (off.length > 3 ? ' and ' + (off.length - 3) + ' more' : '') + '. Pick hours from their week.';
+  }
+  const dates = S(body.dates).split(',').map(sheetDate).filter(Boolean).sort((a, b) => a - b);
+  const busy = busyHours(who, dates[0], dates[dates.length - 1]);
+  const taken = codes.filter(c => busy[c]);
+  if (taken.length) {
+    return who + ' is already teaching at ' + taken.slice(0, 3).map(codeSaid_).join(', ')
+      + ' in those weeks. Pick other hours, or No preference.';
+  }
+  return '';
+}
+
 /* ==================================================================================================
    THE SCHOOL YEAR, WORKED OUT RATHER THAN TYPED.
 
