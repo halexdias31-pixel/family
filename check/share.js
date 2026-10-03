@@ -140,18 +140,38 @@ async function compare(page, a, b) {
        the select's first option, a gold tick drawn grey — every one of those is wrong over many
        pixels in every direction and survives this untouched. Both figures are printed; the strict
        one is the honest size of the residue, this one is what fails the run. */
-    const near = (x, y) => {
-      const i = (y * AW + x) * 4;
-      let lo = 255;
-      for (let oy = -1; oy <= 1 && lo > LOUD; oy++) for (let ox = -1; ox <= 1; ox++) {
-        const xx = x + best.dx + ox, yy = y + best.dy + oy;
-        if (xx < 0 || yy < 0 || xx >= BW || yy >= BH) continue;
-        const j = (yy * BW + xx) * 4;
-        const m = Math.max(Math.abs(pa[i] - pb[j]), Math.abs(pa[i + 1] - pb[j + 1]), Math.abs(pa[i + 2] - pb[j + 2]));
-        if (m < lo) lo = m;
+    /* BOTH WAYS ROUND. A pixel of the picture with nothing like it near it on the screen, OR a pixel
+       of the screen with nothing like it near it in the picture. One direction alone is half blind:
+       measured, a picture showing "Test Admin" where the screen showed "Nobody yet …" was mostly
+       dark pixels that found dark pixels, and only the strokes of the picture's own letters counted. */
+    /* AND "NEAR" MEANS INSIDE THE RANGE OF THE NEIGHBOURHOOD, NOT EQUAL TO ONE OF IT. An edge that
+       sits at x.75 on the screen is drawn as a pixel three-quarters lit — a value neither the pixel
+       left of it nor right of it has — while the same edge in the picture, at a whole pixel, is fully
+       lit or not at all. Each is a fair drawing of the same edge. So a pixel is matched when every
+       channel lies between the darkest and the brightest of the 3x3 around its partner, give or take
+       LOUD: anti-aliasing is always a value BETWEEN its neighbours, and a wrong glyph, a wrong colour
+       or a missing row is a value outside them. */
+    const near1 = (p, q, PW, QW, QH, x, y, sx, sy) => {
+      const i = (y * PW + x) * 4;
+      let worst = 0;
+      for (let c = 0; c < 3; c++) {
+        let lo = 255, hi = 0;
+        for (let oy = -1; oy <= 1; oy++) for (let ox = -1; ox <= 1; ox++) {
+          const xx = x + sx + ox, yy = y + sy + oy;
+          if (xx < 0 || yy < 0 || xx >= QW || yy >= QH) continue;
+          const v = q[(yy * QW + xx) * 4 + c];
+          if (v < lo) lo = v;
+          if (v > hi) hi = v;
+        }
+        const v = p[i + c];
+        const off = v < lo ? lo - v : v > hi ? v - hi : 0;
+        if (off > worst) worst = off;
       }
-      return lo;
+      return worst;
     };
+    const near = (x, y) => Math.max(
+      near1(pa, pb, AW, BW, BH, x, y, best.dx, best.dy),
+      near1(pb, pa, BW, AW, AH, x + best.dx, y + best.dy, -best.dx, -best.dy));
     /* ---------- AND WHERE THE WRONG PIXELS ARE, WHICH IS WHAT TELLS NOISE FROM A FAULT -----------
        A PERCENTAGE CANNOT TELL THEM APART, measured: with the receipt's own typeface taken out of the
        picture the form came out 0.37% wrong, under a threshold the true picture sits at 0.2% of. The
@@ -177,7 +197,7 @@ async function compare(page, a, b) {
     dg.putImageData(dd, 0, 0);
     const n = W * H;
     return { aw: AW, ah: AH, bw: BW, bh: BH, dx: best.dx, dy: best.dy, wrong: wrong / n * 100,
-             blots: cnt.filter(v => v >= 12).length,
+             blots: cnt.filter(v => v >= 12).length, hist: [4, 6, 8, 12].map(k => cnt.filter(v => v >= k).length).join("/"),
              any: best.any / n * 100, loud: best.loud / n * 100, diff: dc.toDataURL('image/png') };
   }, [a, b, LOUD]);
 }
@@ -278,7 +298,7 @@ async function compare(page, a, b) {
       const ew = Math.ceil(snap.w * 2), eh = Math.ceil(snap.h * 2);
       const sizeOk = Math.abs(cmp.aw - ew) <= 1 && Math.abs(cmp.ah - eh) <= 1;
       console.log(`  ${label}: ${cmp.aw}x${cmp.ah} PNG for a ${snap.w.toFixed(1)}x${snap.h.toFixed(1)} card, `
-        + `${(got.size / 1024).toFixed(0)} KB — ${cmp.wrong.toFixed(3)}% wrong, ${cmp.blots} blots `
+        + `${(got.size / 1024).toFixed(0)} KB — ${cmp.wrong.toFixed(3)}% wrong, ${cmp.blots} blots [${cmp.hist}] `
         + `(${cmp.loud.toFixed(2)}% strictly at (${cmp.dx},${cmp.dy}), ${cmp.any.toFixed(1)}% off by any shade)`);
       if (!sizeOk) bad.push(`${label}: the picture is ${cmp.aw}x${cmp.ah} and the card at 2x is ${ew}x${eh}`);
       if (cmp.wrong > MAX_PCT) bad.push(`${label}: ${cmp.wrong.toFixed(2)}% of the picture differs from the screen (over ${MAX_PCT}%)`);
