@@ -121,9 +121,10 @@ function bookBlocks() {
    `paperIdOf_` and under `factsNow_`: a second reader of one thing is a second chance to disagree
    about it. Tapping Thursday and landing on Tuesday's receipt is what that disagreement looks like.
 
-   `OPEN_JOB` IS THE SECOND HALF, AND IT IS `ASKED_JOB`'S OWN PATTERN. The week grid draws
+   `OPEN_JOB` IS THE SECOND HALF, AND IT IS `ASKED_JOB`'S OWN PATTERN. The week grid drew
    `DATA.liveJobs` — every session, because an admin's week is everybody's — and `myJobs_` returns
-   only the ones you are in. So an admin tapping a session they are neither the tutor nor the client
+   only the ones you are in. (The week is the Timetable's now and reads `myJobs_`; the case stays for
+   any other surface that opens a session somebody is not in.) So an admin tapping a session they are neither the tutor nor the client
    of has no page to be sent to, and sending them nowhere is the silent failure this whole change is
    about. One id, held in memory, drawn as a page: a reload drops it, which is right for something
    you opened rather than something you own. */
@@ -303,86 +304,97 @@ function openJobs_() {
    document: it gets a card of its own.
    The first pane is the asking. Everything after it is one session each, in the order `bookBlocks`
    already puts them — yours first, then the open ones. */
-/* ---------- THE WEEK, AS A GRID -------------------------------------------------------------------
-   WHAT A BOOKING LIST CANNOT TELL YOU: whether Tuesday is free. The cards say when each session is,
-   one at a time, and a person holding four of them is doing the arithmetic in their head — which is
-   the thing a timetable exists to stop.
+/* ---------- `weekGrid` AND `initWeek` STOOD HERE — `Your week`, FOLDED INTO THE TIMETABLE ------------
+   IT WAS A GRID OF HOURS AGAINST DAYS for the sessions booked here, a widget of its own beside the
+   Timetable, where somebody wrote down the rest of their week. Two weeks of one person, side by side,
+   and they never met: asked about as *"calander and time table and availability ... it seems they
+   clash"*. The Timetable draws your booked sessions now, locked, among your own lessons — see
+   `tmtBooked_` in games.js — and a tap on one still opens the session through `job`. What the grid
+   computed is `weekSessions_` below, which is the one reader both used. */
 
-   ONE WEEK, NOT A DATE RANGE. Every session here repeats weekly at the same hour, so the week IS
-   the shape: seven columns, the hours the business runs, and a block where something sits. A
-   calendar spread over a term would say the same thing eleven times.
+/* ---------- WHICH DAYS A SESSION RUNS ON, AND WHETHER IT IS RUNNING ON ONE ------------------------
+   ASKED FOR AS *"i need to fix how calander and time table and availability and all of that should
+   work or be set up or synced. it seems they clash"*. Three of the clashes were here, in the one week
+   that draws your sessions:
 
-   WHOSE WEEK IT IS depends on who is looking, and that falls out of what the payload already sends:
-   a client is only sent their own sessions and the open ones, a tutor is sent what they teach, an
-   admin is sent everything. So this draws whatever arrived and needs no rule of its own.
+     · IT LIT ONLY THE FIRST DAY OF A BOOKING. `norm(j.day).indexOf('mon') === 0` is true for
+       `Monday, Friday` and false for Friday, so a two-day booking showed one day — the fault history
+       124 records `jobGrid_` and `busyHours` both having, fixed in both of them and not here.
+     · IT DREW EVERYBODY'S. `DATA.liveJobs` holds the OPEN sessions of other families as well as your
+       own — `doGet` sends them so a family can ask to join — so a parent's week had strangers'
+       lessons in it. `liveWidgets_` has always gone through `myJobs_`; this did not.
+     · IT IGNORED THE DATES. A booking that finished in July was still on the week in October.
 
-   THE HOURS ARE NOT HARDCODED — the grid runs from the earliest to the latest hour anything is
-   actually booked at, so a week with nothing before four in the afternoon does not draw seven empty
-   morning rows. */
-/* THE WIDGET'S OWN STARTER. `startWidget_` calls this once the container is on screen — see the
-   `week` entry in `WIDGETS`. Kept beside `weekGrid` rather than in map.js, because what it draws is
-   this file's job and map.js only knows where it goes. */
-function initWeek() {
-  const el = $('week-body');
-  if (el) el.innerHTML = weekGrid();
+   SO A SESSION IS ON A DAY WHEN THAT DATE IS ONE OF ITS SESSION DATES — the list `computeSessionDates`
+   wrote at booking, which already leaves out the half terms and the bank holidays. A job with no
+   dates yet (a request somebody has not put in the diary) is on every week its weekday comes round,
+   because nothing has said otherwise; one with a start and an end and no list is on the weeks
+   between them. These are the answers the job row can give, read in that order. */
+const DAY3_ = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+
+/** The days a job runs on, Monday-first indices — every day of `Monday, Friday`, not the first. */
+function jobDays_(j) {
+  return String((j && (j.weekday || j.day)) || '').split(',')
+    .map(x => DAY3_.indexOf(norm(x).slice(0, 3))).filter(i => i !== -1)
+    .filter((i, k, a) => a.indexOf(i) === k);
 }
 
-function weekGrid() {
-  const jobs = (DATA.liveJobs || DATA.jobs || []).filter(j => {
-    /* A session with no day or no time has not been settled yet — a waitlist, or a request nobody
-       has put in the diary. It belongs on the list, not in a grid that says where to be. */
-    return S_(j.day) && S_(j.time);
-  });
-  /* ---------- THE GRID, WITHOUT THE CARD AROUND IT ------------------------------------------------
-     THIS RETURNED A WHOLE CARD, heading and all, because it was a block in the `You` column. It is a
-     widget now — the card and the heading are the widget's, drawn by `WIDGETS` like every other
-     tool's — so this returns only the thing that is actually a week. */
-  if (!jobs.length) {
-    return `<p class="sub">Nothing in the diary yet. Sessions appear here once a day and a time are
-      settled.</p>`;
-  }
-
-  const DAYS = [['Mon','Mon'],['Tue','Tue'],['Wed','Wed'],['Thu','Thu'],
-                ['Fri','Fri'],['Sat','Sat'],['Sun','Sun']];
-  const hourOf = t => Number(String(t).split(':')[0]) || 0;
-  const spans = jobs.map(j => {
-    const h = hourOf(j.time);
-    return { j, from: h, to: h + Math.max(1, Number(j.hours) || 2) };
-  });
-  const first = Math.min.apply(null, spans.map(s => s.from));
-  const last  = Math.max.apply(null, spans.map(s => s.to));
-  const hours = [];
-  for (let h = first; h < last; h++) hours.push(h);
-
-  /* Which days have anything at all. A week where nobody teaches at the weekend should not spend a
-     third of a phone screen on Saturday and Sunday. */
-  const used = DAYS.filter(([d]) => spans.some(s => norm(s.j.day).indexOf(norm(d)) === 0));
-  const days = used.length ? used : DAYS.slice(0, 5);
-
-  const at = (d, h) => spans.find(s =>
-    norm(s.j.day).indexOf(norm(d)) === 0 && h >= s.from && h < s.to);
-
-  return `<div class="wk" style="--cols:${days.length}">
-      <div class="wk-h"></div>
-      ${days.map(([, label]) => `<div class="wk-h">${esc(label)}</div>`).join('')}
-      ${hours.map(h => `
-        <div class="wk-t">${String(h).padStart(2, '0')}</div>
-        ${days.map(([d]) => {
-          const hit = at(d, h);
-          if (!hit) return '<div class="wk-c"></div>';
-          /* THE TOP HOUR CARRIES THE WORDS, the rest of the block is the same colour and empty —
-             so a two-hour session reads as one block rather than as the same label twice. */
-          const head = hit.from === h;
-          return `<div class="wk-c is-on${head ? ' is-head' : ''}"
-                       data-do="job" data-id="${esc(String(hit.j.id || hit.j.jobId || ''))}">
-            ${head ? `<b>${esc(hit.j.subject || 'Session')}</b>
-                      <span>${esc(hit.j.location || '')}</span>` : ''}
-          </div>`;
-        }).join('')}
-      `).join('')}
-    </div>
-    <p class="faint">Tap a block to open it.</p>`;
+/** Its session dates as midnight Dates, off the comma list the job row carries. */
+function jobDates_(j) {
+  return String((j && j.dates) || '').split(',').map(x => parseDMY(x.trim())).filter(Boolean);
 }
+
+/** Does this job meet on this date? See the note above for the answers and their order. */
+function jobOn_(j, date) {
+  const d = new Date(date); d.setHours(0, 0, 0, 0);
+  if (jobDays_(j).indexOf((d.getDay() + 6) % 7) === -1) return false;
+  const list = jobDates_(j);
+  if (list.length) return list.some(x => x.getTime() === d.getTime());
+  const from = parseDMY(j.startDate), to = parseDMY(j.endDate);
+  return (!from || d >= from) && (!to || d <= to);
+}
+
+/* The Monday of the week holding `when`, at midnight — the week every "this week" here means. */
+function mondayOf_(when) {
+  const d = new Date(when || Date.now()); d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  return d;
+}
+
+/* The hour a session starts, off `16:00` or the `4pm` some older rows hold. NaN when there is none. */
+function startHour_(t) {
+  const m = /(\d{1,2})(?::\d{2})?\s*(am|pm)?/i.exec(String(t || ''));
+  if (!m) return NaN;
+  let h = Number(m[1]);
+  if (m[2] && /pm/i.test(m[2]) && h < 12) h += 12;
+  if (m[2] && /am/i.test(m[2]) && h === 12) h = 0;
+  return h;
+}
+
+/* ---------- YOUR SESSIONS, AS THE SEVEN DAYS OF ONE WEEK ------------------------------------------
+   ONE LIST, AND EVERY WEEK OF SESSIONS READS IT, so two views of this week cannot disagree about
+   which sessions are in it.
+
+   YOURS ONLY, through `myJobs_` — the client or the tutor on the row is you. A job with no day or no
+   time has not been settled and is not in a week; a cancelled one is nobody's. Each entry is ONE DAY
+   of one session, so a Monday-and-Friday booking is two entries, each with its own date. */
+function weekSessions_(when) {
+  const mon = mondayOf_(when);
+  const out = [];
+  (typeof myJobs_ === 'function' ? myJobs_() : []).forEach(j => {
+    if (!S_(j.day || j.weekday) || !S_(j.time)) return;
+    if (/cancel/i.test(String(j.status || ''))) return;
+    const from = startHour_(j.time);
+    if (!isFinite(from)) return;
+    const to = from + Math.max(1, Number(j.hours) || 2);
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(mon); date.setDate(mon.getDate() + i);
+      if (jobOn_(j, date)) out.push({ j, day: i, date, from, to });
+    }
+  });
+  return out;
+}
+
 
 /* ---------- REPAINTING BOOK WITHOUT LOSING THE PLACE ----------------------------------------------
    The booker is a card on the first page now, so answering a question means redrawing that page —
@@ -567,8 +579,9 @@ const SLOT_DAYS = [['m', 'Monday'], ['tu', 'Tuesday'], ['w', 'Wednesday'], ['th'
 
    ---------- AND THE SPAN IT MOVED TO IS THE ONE THE SHEET ALREADY HELD ------------------------------
    ASKED FOR AS *"make it go from 9-6 instead of 10- to 8"*, and the two ends were not equally free
-   to move. `AVAIL_HOURS` in `constants.gs` is `[9 … 19]` — the hours a tutor's own availability
-   grid offers, and the cells `slotGrid` looks a code up in.
+   to move. `AVAIL_HOURS` in `constants.gs` was `[9 … 19]` — the hours a tutor's own availability
+   grid offers, and the cells `slotGrid` looks a code up in. (It is `[9 … 18]` now, the same span as
+   this: a seven o'clock tick could be made and never booked. `check-booking.js` holds the two equal.)
 
    SO THE TWO SPANS DISAGREED AT BOTH ENDS, silently, since the booking grid was written:
 
@@ -721,9 +734,13 @@ function slotGrid() {
   const vAvail = availSet_((sp && sp.avail) || (venue && venue.avail));
   const haveT = Object.keys(tAvail).length, haveV = Object.keys(vAvail).length;
 
-  /* NOTHING SET IS NOT THE SAME AS NOTHING FREE. A tutor with no hours in the sheet has not said
-     they are unavailable — nobody has said anything — so every hour is offered and the sheet is
-     the thing to fix. Refusing everything would be the app inventing a constraint. */
+  /* NOTHING SET WAS READ AS EVERYTHING FREE, and for a TUTOR that is over. The old note said a tutor
+     with no hours "has not said they are unavailable — nobody has said anything — so every hour is
+     offered and the sheet is the thing to fix". The owner's answer was the other way: *"tutor with
+     no hours wont be bookable."* A tutor nobody has heard from is not free all week, so a NAMED
+     tutor with an empty grid shuts every hour, and the grid says why. No tutor chosen (`t` null) is
+     unchanged — the business matches it. A VENUE with no hours is still read as open: rooms are
+     the admin's to fill in, and the owner's sentence was about tutors. */
   /* ---------- AND WHAT THE TUTOR IS ALREADY TEACHING ---------------------------------------------
      `avail` says when they CAN work; `busy` says when they already are. Two facts, kept apart on
      purpose — see `busyHours` in booking.gs for why un-ticking the availability cell would be
@@ -733,14 +750,16 @@ function slotGrid() {
      and the moment that session is cancelled the hour comes back on its own, because nothing was
      ever removed from anything. */
   const tBusy = (t && t.busy) || {};
-  const open = code => (!haveT || tAvail[code]) && (!haveV || vAvail[code]) && !tBusy[code];
+  const tNone = !!t && !haveT;
+  const open = code => !tNone && (!haveT || tAvail[code]) && (!haveV || vAvail[code]) && !tBusy[code];
   /* WHY it is not free, so the grid can say. A tutor who does not work Tuesdays and a tutor who is
      already teaching that Tuesday look identical greyed out, and only one of them is worth asking
      about a different week. */
   /* `whyShut` rather than `why` — there is already a `why` below for the grid as a WHOLE ("nobody
      has set any hours yet"), and this is per cell. Two different questions and they were one word
      apart from being the same variable. */
-  const whyShut = code => tBusy[code] ? 'teaching ' + tBusy[code]
+  const whyShut = code => tNone ? 'no hours set'
+    : tBusy[code] ? 'teaching ' + tBusy[code]
     : (haveT && !tAvail[code]) ? 'not available'
     : (haveV && !vAvail[code]) ? 'venue closed' : '';
 
@@ -765,6 +784,7 @@ function slotGrid() {
   const anyOpen = rows.some(r => r.hours.some(h => h.open));
 
   const why = anyOpen ? ''
+    : tNone ? 'That tutor hasn\u2019t set their hours yet, so they cannot be booked by name. Choose No preference, or another tutor.'
     : !haveT && !haveV ? 'Nobody has set any hours yet.'
     : !haveT ? 'That venue is open, but the tutor has no hours set.'
     : !haveV ? 'The tutor has hours, but that venue has none set.'
@@ -1133,6 +1153,17 @@ const BOOK_STEPS = [
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
       return t && t.listed === false ? v + ' · not listed' : v;
     },
+    /* ---------- A TUTOR WITH NO HOURS CANNOT BE CHOSEN, AND SAYS WHY ---------------------------
+       ASKED FOR AS *"tutor with no hours wont be bookable."* An empty availability grid used to
+       mean EVERY HOUR OPEN — `slotGrid`'s old note: "nobody has said anything, so every hour is
+       offered and the sheet is the thing to fix" — which put a tutor who had never opened Settings
+       in front of a family as free all week. Nobody had said they were free either.
+
+       DISABLED, NOT ABSENT, for the reason `stepSelect_` gives every option: a list whose names
+       come and go cannot be learnt, and a family looking for a tutor they were told about should
+       find them, greyed, with the reason beside the name. `No preference` is untouched — a booking
+       nobody has named a tutor for is matched by the business, exactly as before. */
+    off: v => tutorNoHours_(v) ? 'hasn\'t set their hours yet' : '',
     /* ---------- A WAITING LIST HAS NO TUTOR YET, AND THE ROW WAS SHOWING THE LAST ONE -----------
        REPORTED AS *"when i want to do a waitlist session it just defualts to sasha motola and wont
        let change. it should defualt to no preference and not be able to change."* Both halves were
@@ -1147,6 +1178,9 @@ const BOOK_STEPS = [
     fallback: () => isWaiting_() ? 'No preference' : '',
     why: v => {
       if (v === 'No preference') return '';
+      /* AND SAID ON THE ROW TOO, for a name that arrived some other way — a saved form, a tutor who
+         unticked their last hour while somebody had them chosen. The send refuses it as well. */
+      if (tutorNoHours_(v)) return 'hasn\'t set their hours yet, so cannot be booked by name';
       const t = (DATA.tutors || []).find(x => norm(x.title) === norm(v));
       if (!t || !BOOKING.subjects.length) return '';
       const teaches = (t.teaches || []).map(x => norm(String(x).replace(/\s*\([^)]*\)/, '')));
@@ -1502,6 +1536,18 @@ const BOOK_STEPS = [
 
 const tutorRow_ = () => (DATA.tutors || []).find(t => norm(t.title) === norm(BOOKING.tutor)) || null;
 
+/* ---------- HAS THIS TUTOR SAID WHEN THEY CAN TEACH -----------------------------------------------
+   One question, four readers: the tutor dropdown greys them, the booking grid shuts every hour, the
+   send refuses, and their card says so. `availSet_` is the one reader of the grid's shapes, so a
+   tutor whose `avail` is `{ m09: '' … }` — all 70 codes and none ticked, which is what `doGet` sends
+   for somebody who never opened Settings — is a tutor with no hours. A name that matches no tutor
+   is not this question's to answer; `No preference` never is. */
+function tutorNoHours_(name) {
+  if (!name || norm(name) === norm('No preference')) return false;
+  const t = (DATA.tutors || []).find(x => norm(x.title) === norm(name));
+  return !!t && !Object.keys(availSet_(t.avail)).length;
+}
+
 /* What the chosen place costs an hour — the ROOM's own rate where there is one, because a small
    room and a large one at the same venue are different prices and the building's single figure
    could only ever be right for one of them. */
@@ -1853,6 +1899,11 @@ document.addEventListener('change', e => {
        select falls back to after every pick — so it must not clear the list somebody has built. */
     bookToggle_(step, el.value);
   } else {
+    /* AN OPTION THE LIST DREW DISABLED IS NOT TAKEN HOWEVER IT ARRIVES — a keyboard, an old
+       browser that lets a disabled option through, a hand-built event. Said, and the row redrawn
+       on what it held. */
+    const no = step.off && el.value ? String(step.off(el.value) || '') : '';
+    if (no) { toast(el.value + ' ' + no); drawBooker(); return; }
     BOOKING[step.id] = el.value || '';
     BOOKING.done = (BOOKING.done || []).filter(id => id !== step.id);
   }
@@ -2389,8 +2440,12 @@ function stepSelect_(st) {
           third place for one rule, which is how the other two came to disagree. */''}
     <option value=""${(st.multi || !v) ? ' selected' : ''}>${
       st.multi && chosen.length ? esc(chosen.join(', ')) : esc(fb || '—')}</option>
-    ${opts.map(o => `<option value="${esc(o)}"${(!st.multi && isOn(o)) ? ' selected' : ''}
-      >${st.multi && isOn(o) ? '✓ ' : ''}${esc(st.label_ ? st.label_(o) : o)}</option>`).join('')}
+    ${/* AN OPTION THAT CANNOT BE TAKEN IS DRAWN AND DISABLED, its reason beside its name — see `off`
+          on the tutor step. The one already chosen is left pressable, so the row can show it. */''}
+    ${opts.map(o => { const no = st.off ? String(st.off(o) || '') : '';
+      return `<option value="${esc(o)}"${(!st.multi && isOn(o)) ? ' selected' : ''}${
+        no && !isOn(o) ? ' disabled' : ''}>${st.multi && isOn(o) ? '✓ ' : ''}${
+        esc((st.label_ ? st.label_(o) : o) + (no ? ' · ' + no : ''))}</option>`; }).join('')}
   </select>`;
 }
 

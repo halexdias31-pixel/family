@@ -272,7 +272,14 @@ const SUITE = [
      not touch this file — the run prints its own count and this is a label somebody reads instead
      of it. Same fault as "all 18 checks pass", "one of the eighteen names" and the prose over
      `CARD_W` naming 88% and 4% while the code said 80 and 8. */
-  { file: 'check/ui.js',      what: 'every screen, state, width and visitor, measured', slow: true },
+  /* ---------- IN TWO HALVES, BECAUSE THE NOTE BELOW SAID SO --------------------------------------
+     The 3 October time-sync batch added two Tools states (a timetable with sessions in it, a calendar
+     with every kind of date) and took the run to 87 states: 11m19s alone on a shared machine, and
+     past fifteen minutes beside the other browser checks. `--part` deals the screens alternately
+     into two runs that go side by side, each well inside the clock. The `file` carries the
+     argument; see where it is split below. */
+  { file: 'check/ui.js --part=1/2', what: 'every screen, state, width and visitor, measured (half)', slow: true },
+  { file: 'check/ui.js --part=2/2', what: 'every screen, state, width and visitor, measured (half)', slow: true },
   /* ---------- AND WHICH CSS RULE ACTUALLY WINS ----------------------------------------------------
      THIS STYLESHEET HAS LOST THE SAME ARGUMENT SEVEN TIMES — `.price.faint`, `--fly-ink`,
      `.bk-row.is-blank`, `.rc-total`, an SVG `text-anchor`, `.gd-sec p`, and the docket's ＋ written
@@ -315,7 +322,8 @@ const notes = [];
 const running = new Map();
 for (const c of SUITE) {
   if (!c.slow) continue;
-  const p = c.file.includes('/') ? path.join(dir, '..', c.file) : path.join(dir, c.file);
+  const [file, ...args] = c.file.split(' ');
+  const p = file.includes('/') ? path.join(dir, '..', file) : path.join(dir, file);
   if (!fs.existsSync(p)) continue;
   const t0 = Date.now();
   running.set(c.file, new Promise(done => {
@@ -327,7 +335,7 @@ for (const c of SUITE) {
        9m47s ALONE on a quiet machine — clean, nothing new — so ten minutes killed it inside the suite
        every run. Fifteen is the same margin over what it takes now. If it outgrows this too, split
        the states across two runs rather than raising it again. */
-    execFile(process.execPath, [p], { cwd: dir, encoding: 'utf8', timeout: 900000,
+    execFile(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8', timeout: 900000,
                                       maxBuffer: 32 * 1024 * 1024 },
       (err, stdout, stderr) => done({ ok: !err, out: String(stdout || '') + String(stderr || ''),
                                       secs: ((Date.now() - t0) / 1000).toFixed(1) }));
@@ -343,7 +351,10 @@ for (const c of SUITE) {
     /* A CHECK MAY LIVE OUTSIDE `js/`. `check/cards.js` needs a browser, which is what puts it in
        `check/` beside `ui.js` rather than here — and the roster is the only thing that makes a check
        real, so the roster has to be able to name it. A `/` in the entry means "from the repo root". */
-    const p = c.file.includes('/') ? path.join(dir, '..', c.file) : path.join(dir, c.file);
+    /* AN ENTRY MAY CARRY ARGUMENTS after a space — `check/ui.js --part=1/2` — so the path is the
+       first word and the rest go to the process. */
+    const [file, ...args] = c.file.split(' ');
+    const p = file.includes('/') ? path.join(dir, '..', file) : path.join(dir, file);
     if (!fs.existsSync(p)) {
       console.log('  ????  ' + c.file.padEnd(18) + 'not here');
       continue;
@@ -355,7 +366,7 @@ for (const c of SUITE) {
     } else {
       const t0 = Date.now();
       try {
-        out = execFileSync(process.execPath, [p], { cwd: dir, encoding: 'utf8',
+        out = execFileSync(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8',
                                                     timeout: 180000, stdio: ['ignore', 'pipe', 'pipe'] });
       } catch (e) {
         ok = false;
@@ -395,9 +406,18 @@ for (const c of SUITE) {
          find out what the first run said. Anything a check chose to mark is printed whether or not
          it falls in the last fourteen. */
       const lines = out.split('\n').filter(Boolean);
-      const marked = lines.filter(l => /^!\s/.test(l));
+      /* AND A `FAIL` OR AN INDENTED `!` WITH THE TWO LINES UNDER IT. `check-flow.js` names a broken
+         journey as `  FAIL  <name>` with its reason beneath, and `check/ui.js` a state it could not
+         measure as `  ! …` — both indented, so the test above never saw them, and a journey that
+         failed only inside the suite (a timer starved by four browsers) could not be named from
+         this output at all. */
+      const marked = [];
+      lines.forEach((l, i) => {
+        if (/^!\s/.test(l)) marked.push(l);
+        else if (/^\s+(FAIL|!)\s/.test(l)) marked.push.apply(marked, lines.slice(i, i + 3));
+      });
       const tail = lines.slice(-14);
-      marked.filter(l => tail.indexOf(l) === -1).slice(0, 8)
+      marked.filter(l => tail.indexOf(l) === -1).slice(0, 12)
             .forEach(l => console.log('          ' + l));
       tail.forEach(l => console.log('          ' + l));
       if (lines.length > 14) console.log('          … ' + (lines.length - 14)

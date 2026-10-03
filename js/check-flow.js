@@ -445,7 +445,11 @@ function boot(opts) {
    Each is a name and a function that returns a list of complaints. No complaints is a pass. They are
    written as questions somebody would actually ask of the app, not as assertions about internals. */
 const checks = [];
-const check = (name, fn) => checks.push({ name, fn });
+/* `FLOW_ONLY=words node js/check-flow.js` runs the journeys whose names contain those words — for
+   working on one; the suite always runs the lot, and says how many it ran. */
+const check = (name, fn) => {
+  if (!process.env.FLOW_ONLY || name.indexOf(process.env.FLOW_ONLY) !== -1) checks.push({ name, fn });
+};
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
 check('the app loads and draws without throwing', async () => {
@@ -4973,14 +4977,14 @@ check('an answer draws its result, and the working waits shut under Why', async 
    once held `avail: []` and a card tested against that would have passed by drawing nothing. Three
    answers: a ticked hour is lit, a ticked hour they are already teaching is greyed, and a tutor who
    has ticked nothing gets no caption and no week — not seventy-seven grey cells reading "never". */
-check('a tutor\'s ticked hours are on their card, busy ones greyed, and none means no week', async () => {
+check('a tutor\'s ticked hours are on their card, busy ones greyed, and none says they cannot be booked', async () => {
   const { w } = boot();
   const d = w.document;
   await wait(300);
   if (typeof w.findCard !== 'function') return ['findCard is not reachable, so the card\'s week was NOT checked — not a pass'];
   const avail = {};
-  ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 19; h++) avail[p + String(h).padStart(2, '0')] = ''; });
-  ['m16', 'm17', 'sa10', 'su19'].forEach(c => { avail[c] = 'TRUE'; });
+  ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) avail[p + String(h).padStart(2, '0')] = ''; });
+  ['m16', 'm17', 'sa10', 'su18'].forEach(c => { avail[c] = 'TRUE'; });
   const t = { title: 'Ada Tutor', handle: 'ada', rate: 30, teaches: [], listed: true, personId: 'P-x',
               avail, busy: { m17: 'Maths' } };
   const box = d.createElement('div');
@@ -4991,8 +4995,8 @@ check('a tutor\'s ticked hours are on their card, busy ones greyed, and none mea
   const codeOf = { Monday: 'm', Saturday: 'sa', Sunday: 'su' };
   const cell = (day, h) => box.querySelector(`.prof-week .hr[data-code="${codeOf[day]}${String(h).padStart(2, '0')}"]`);
   const lit = [...box.querySelectorAll('.prof-week .hr.on')];
-  if (lit.length !== 3) bad.push(`${lit.length} hours lit on the card, wanted 3 (Mon 16, Sat 10, Sun 19)`);
-  [['Monday', 16], ['Saturday', 10], ['Sunday', 19]].forEach(([dd, h]) => {
+  if (lit.length !== 3) bad.push(`${lit.length} hours lit on the card, wanted 3 (Mon 16, Sat 10, Sun 18)`);
+  [['Monday', 16], ['Saturday', 10], ['Sunday', 18]].forEach(([dd, h]) => {
     const c = cell(dd, h);
     if (!c || !c.classList.contains('on')) bad.push(`${dd} ${h}:00 is ticked and not lit on the card`);
   });
@@ -5007,8 +5011,13 @@ check('a tutor\'s ticked hours are on their card, busy ones greyed, and none mea
   const shut = rows.filter(r => r.classList.contains('is-shut')).length;
   if (rows.length !== 7 || shut !== 4) bad.push(`${rows.length} days drawn with ${shut} collapsed, wanted 7 with 4 (Tue to Fri) collapsed`);
   const none = d.createElement('div');
-  none.innerHTML = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { avail: Object.assign({}, avail, { m16: '', m17: '', sa10: '', su19: '' }) }) }) || '');
-  if (none.querySelector('.prof-week') || /Available</.test(none.innerHTML)) bad.push('a tutor with no hours ticked is drawn with a week anyway');
+  none.innerHTML = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { avail: Object.assign({}, avail, { m16: '', m17: '', sa10: '', su18: '' }) }) }) || '');
+  if (none.querySelector('.prof-week')) bad.push('a tutor with no hours ticked is drawn with a week anyway');
+  /* AND SAYS WHY THEY CANNOT BE BOOKED BY NAME — *"tutor with no hours wont be bookable"*. It drew
+     nothing at all, which left the greyed name in the booking form unexplained. */
+  if (!/hasn.t set their hours yet/i.test((none.querySelector('.prof-nohours') || {}).textContent || '')) {
+    bad.push('a tutor with no hours ticked does not say "hasn\'t set their hours yet" on their card');
+  }
   return bad;
 });
 
@@ -5609,6 +5618,298 @@ check('chat: what arrived unread stays outlined, the composer hint fits, a refus
   await wait(30);
   const empty = (col.querySelector('.empty') || {}).textContent || '';
   if (!/press Message/.test(empty)) bad.push('the empty inbox reads "' + empty.replace(/\s+/g, ' ').trim() + '" and does not say how to start a conversation');
+  return bad;
+});
+
+/* ---------- A TUTOR WITH NO HOURS CANNOT BE BOOKED BY NAME ---------------------------------------------
+   ASKED FOR AS *"tutor with no hours wont be bookable."* An empty grid meant every hour open. Now the
+   tutor dropdown draws them disabled with the reason beside the name, a change that names them
+   anyway is refused, the hour grid shuts every hour and says why, and the send stops before
+   `createJob` — while a tutor WITH hours, and `No preference`, book exactly as before. */
+check('a tutor with no hours is greyed, shuts the grid and is not sent for; No preference still books', async () => {
+  const { w, sent } = boot();
+  await wait(300);
+  const t = w.__t;
+  const st = (t.STEPS || []).find(s => s.id === 'tutor');
+  if (!st || typeof w.stepSelect_ !== 'function' || typeof w.slotGrid !== 'function') {
+    return ['the tutor step / stepSelect_ / slotGrid are not reachable, so this was NOT checked — not a pass'];
+  }
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const D = t.DATA();
+  const avail = {};
+  ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) avail[p + String(h).padStart(2, '0')] = ''; });
+  const some = Object.assign({}, avail, { m16: 'TRUE', m17: 'TRUE' });
+  D.tutors = [
+    { title: 'Nia Nohours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: Object.assign({}, avail) },
+    { title: 'Ada Hours', rate: 14, teaches: ['Maths (GCSE)'], listed: true, avail: some },
+  ];
+  const B = t.BOOKING;
+  Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
+  B.how = ((t.STEPS.find(s => s.id === 'how') || { options: () => [] }).options().find(k => !/wait/i.test(k))) || '';
+  B.level = 'GCSE'; B.loc = 'Colliers Wood Library'; B.subjects = ['Maths']; B.n = '1';
+  B.hosting = 'No — we book the room'; B.interval = ['Autumn 1'];
+  const bad = [];
+  const box = w.document.createElement('div');
+  box.innerHTML = w.stepSelect_(st);
+  const opt = name => [...box.querySelectorAll('option')].find(o => o.value === name);
+  const nia = opt('Nia Nohours'), ada = opt('Ada Hours');
+  if (!nia) bad.push('a tutor with no hours is not in the list at all — greyed, not absent');
+  else if (!nia.disabled || !/hasn.t set their hours yet/.test(nia.textContent)) {
+    bad.push('Nia (no hours) is offered as "' + nia.textContent.trim() + '"' + (nia.disabled ? '' : ', pressable'));
+  }
+  if (!ada || ada.disabled) bad.push('Ada (hours ticked) cannot be chosen');
+  /* A CHANGE NAMING HER ANYWAY is refused by the handler, not only by the markup. */
+  const sel = w.document.createElement('select');
+  sel.setAttribute('data-do', 'book-set'); sel.setAttribute('data-step', 'tutor');
+  sel.innerHTML = '<option value="Nia Nohours">Nia Nohours</option>';
+  sel.value = 'Nia Nohours';
+  w.document.body.appendChild(sel);
+  sel.dispatchEvent(new w.Event('change', { bubbles: true }));
+  if (B.tutor === 'Nia Nohours') bad.push('a change event naming Nia was taken by the book-set handler');
+  /* THE GRID, NAMED: every hour shut, and why. */
+  B.tutor = 'Nia Nohours';
+  const g = w.slotGrid();
+  if (g.anyOpen || !/hasn.t set their hours yet/.test(g.why)) bad.push('with Nia chosen the grid is ' + (g.anyOpen ? 'open' : 'shut') + ' and says "' + g.why + '"');
+  /* AND THE SEND STOPS BEFORE `createJob`. */
+  B.slots = ['m16'];
+  sent.length = 0;
+  try { t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('book-send threw: ' + e.message); }
+  await wait(200);
+  if (sent.some(x => x.action === 'createJob')) bad.push('a booking naming Nia (no hours) was sent as createJob');
+  /* ADA: her two hours open, the rest shut; and the send carries every ticked hour as `slots`. */
+  B.tutor = 'Ada Hours';
+  const ga = w.slotGrid();
+  const openCodes = ga.rows.flatMap(r => r.hours.filter(h => h.open).map(h => h.code)).join(',');
+  if (openCodes !== 'm16,m17') bad.push('with Ada chosen the open hours are [' + openCodes + '], wanted [m16,m17]');
+  sent.length = 0;
+  try { t.ACTIONS['book-send']({ disabled: false, dataset: {} }); } catch (e) { bad.push('book-send threw: ' + e.message); }
+  await wait(200);
+  const job = sent.find(x => x.action === 'createJob');
+  if (!job) bad.push('a booking naming Ada (hours ticked) was not sent');
+  else if (job.slots !== 'm16') bad.push('createJob carried slots "' + job.slots + '", wanted "m16" — the server checks every ticked hour');
+  /* NO PREFERENCE: unchanged — nobody's hours are consulted, the venue decides. */
+  B.tutor = 'No preference';
+  if (!w.slotGrid().anyOpen) bad.push('with No preference the grid shuts — a booking nobody named a tutor for must still be bookable');
+  return bad;
+});
+
+/* ---------- THE WEEK OF YOUR SESSIONS: YOURS, EVERY DAY OF THEM, AND ONLY WHILE THEY RUN ---------------
+   ASKED FOR AS *"calander and time table and availability ... it seems they clash"*. `weekSessions_`
+   is what every week of sessions reads, and it had three faults as `weekGrid`: a Monday-and-Friday
+   booking lit Monday only, a stranger's open session was on a parent's week, and a booking that
+   ended in the summer was still there in the autumn. Asked of the real function over jobs shaped as
+   `doGet` sends them — `day` the joined weekday cell, `dates` the comma list of session dates. */
+check('your week holds your sessions only, on every day they run, while their dates are live', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (typeof w.weekSessions_ !== 'function') {
+    return ['weekSessions_ is not reachable, so the week was NOT checked — not a pass'];
+  }
+  const mon = w.mondayOf_(new Date());
+  const at = n => { const d = new Date(mon); d.setDate(d.getDate() + n); return d; };
+  const dmy = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+  const job = (id, extra) => Object.assign({ id, jobId: id, subject: id, time: '16:00', hours: 2,
+    client: 'Rasa Poliksa', tutor: 'GeorgePovey', status: 'active', slots: [] }, extra);
+  const D = t.DATA();
+  D.liveJobs = D.jobs = [
+    job('TWO-DAY', { day: 'Monday, Friday', dates: [at(-7), at(-3), at(0), at(4), at(7)].map(dmy).join(', ') }),
+    job('STRANGER', { day: 'Tuesday', client: 'Somebody Else', tutor: 'Sasha Matola', dates: dmy(at(1)) }),
+    job('ENDED', { day: 'Wednesday', dates: [at(-70), at(-63)].map(dmy).join(', ') }),
+    job('NOT-YET', { day: 'Thursday', dates: [at(24), at(31)].map(dmy).join(', ') }),
+    job('UNDATED', { day: 'Saturday', dates: '' }),
+  ];
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'client', roles: ['client'] });
+  const got = w.weekSessions_().map(s => s.j.id + '@' + s.day).sort().join(' ');
+  const want = 'TWO-DAY@0 TWO-DAY@4 UNDATED@5';
+  const bad = [];
+  if (got !== want) bad.push('this week holds [' + got + '], wanted [' + want + '] — both days of the two-day booking, '
+    + 'nothing of a stranger\'s, nothing ended or not yet started, and the undated request on its weekday');
+  return bad;
+});
+
+/* ---------- THE TIMETABLE IS THE ONE WEEK: YOUR SESSIONS LOCKED IN IT, AND IT IS ON YOUR ACCOUNT ---------
+   `Your week` drew the sessions booked here and the Timetable what somebody wrote; they are one widget
+   now. Asked of the real handlers: a booked session is in the day's list among the lessons, in time
+   order, as a row that opens the session (`job`) and has no boxes; a Saturday session shows the
+   weekend; `Your week` is not on the Tools column any more. Then the account: a lesson typed while
+   signed in is posted as `saveTimetable` with the person's id and the widget's own shape, a week
+   already on this phone under their key is carried up the first time, a week on the account is drawn
+   from `USER.timetable` on a phone that has nothing, and signed out it stays on the device. */
+check('the timetable holds your booked sessions locked, is saved to your account, and Your week is gone', async () => {
+  const { w, sent } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document;
+  if (typeof w.initTimetable !== 'function' || typeof t.tmtKey !== 'function' || typeof w.weekSessions_ !== 'function') {
+    return ['the timetable / weekSessions_ are not reachable, so this was NOT checked — not a pass'];
+  }
+  const bad = [];
+  const mon = w.mondayOf_(new Date());
+  const at = n => { const x = new Date(mon); x.setDate(x.getDate() + n); return x; };
+  const dmy = x => String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0') + '/' + x.getFullYear();
+  const D = t.DATA();
+  D.liveJobs = D.jobs = [
+    { id: 'J-MON', jobId: 'J-MON', subject: 'Physics', location: 'Mitcham library', day: 'Monday, Saturday',
+      time: '10:00', hours: 2, client: 'Sam Student', tutor: 'GeorgePovey', status: 'active', slots: [],
+      dates: [at(0), at(5), at(7)].map(dmy).join(', ') },
+    { id: 'J-ELSE', jobId: 'J-ELSE', subject: 'Chemistry', day: 'Monday', time: '12:00', hours: 1,
+      client: 'Somebody Else', tutor: 'Sasha Matola', status: 'active', slots: [], dates: dmy(at(0)) },
+  ];
+  const sam = { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' };
+  /* A WEEK ALREADY ON THIS PHONE under Sam's key, from before it was kept on the account. */
+  w.localStorage.setItem('tmt:u:P9', JSON.stringify({ weekend: false,
+    days: [[{ id: 'L1', at: '09:00', subject: 'Maths', note: '' }, { id: 'L2', at: '13:00', subject: 'Art', note: '' }], [], [], [], [], [], []] }));
+  t.USER(sam);
+  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  await wait(300);
+  if (d.querySelector('#week-body')) bad.push('`Your week` is still a widget on the Tools column — it is folded into the Timetable');
+  const box = () => d.querySelector('.tmt-box');
+  if (!box()) return bad.concat('the timetable did not draw on the Tools column');
+  const chip = d.createElement('button'); chip.setAttribute('data-day', '0');
+  t.ACTIONS['tmt-day'](chip);
+  const list = () => [...box().querySelectorAll('.tmt-list > *')].map(r =>
+    (r.classList.contains('is-booked') ? 'BOOKED ' : '') + r.querySelector('.tmt-at').textContent.trim() + ' '
+    + r.querySelector('.tmt-sub').textContent.trim());
+  const got = list().join(', ');
+  if (got !== '09:00 Maths, BOOKED 10:00 Physics, 13:00 Art') {
+    bad.push('Monday reads [' + got + '], wanted [09:00 Maths, BOOKED 10:00 Physics, 13:00 Art] — the phone\'s week carried up, '
+      + 'your session among it in time order, and nobody else\'s');
+  }
+  const row = box().querySelector('.tmt-row.is-booked');
+  if (!row || row.getAttribute('data-do') !== 'job' || row.getAttribute('data-id') !== 'J-MON') {
+    bad.push('the booked session is not a row that opens it (data-do="job" data-id="J-MON")');
+  }
+  if (box().querySelector('.tmt-ed .tmt-in[data-id="J-MON"]')) bad.push('a booked session opened into editable boxes');
+  if (box().querySelectorAll('.tmt-day').length !== 7) bad.push('a session on Saturday did not show the weekend: ' + box().querySelectorAll('.tmt-day').length + ' day chips');
+  /* THE ACCOUNT. The carry-up wrote USER.timetable; give the debounce time and look at the wire. */
+  await wait(1100);
+  const save = sent.filter(x => x.action === 'saveTimetable').pop();
+  if (!save) bad.push('the week on this phone was not carried up to the account (no saveTimetable sent)');
+  else {
+    let shape = null; try { shape = JSON.parse(save.timetable); } catch (e) {}
+    if (save.personId !== 'P9' || !shape || !Array.isArray(shape.days) || shape.days.length !== 7) {
+      bad.push('saveTimetable carried ' + JSON.stringify({ personId: save.personId, days: shape && shape.days && shape.days.length }));
+    }
+    if (shape && JSON.stringify(shape).indexOf('J-MON') !== -1) bad.push('the booked session was SAVED into the timetable — a copy of a booking goes stale');
+  }
+  /* A LESSON TYPED WHILE SIGNED IN IS SENT. */
+  sent.length = 0;
+  t.ACTIONS['tmt-add'](d.createElement('button'));
+  const sub = box().querySelector('.tmt-in[data-f="subject"]');
+  if (sub) { sub.value = 'Latin'; sub.dispatchEvent(new w.Event('input', { bubbles: true })); }
+  await wait(1100);
+  const typed = sent.filter(x => x.action === 'saveTimetable').pop();
+  if (!typed || !/Latin/.test(typed.timetable || '')) bad.push('a lesson typed while signed in was not saved to the account');
+  /* ANOTHER PHONE: nothing on the device, the week on the account. */
+  w.localStorage.removeItem('tmt:u:P9');
+  const onAccount = JSON.stringify({ weekend: false, days: [[{ id: 'L9', at: '15:00', subject: 'Greek', note: '' }], [], [], [], [], [], []] });
+  t.USER(Object.assign({}, sam, { timetable: onAccount }));
+  try { t.repaint(); } catch (e) {}
+  if (!/Greek/.test(box().textContent) || /Maths/.test(box().textContent)) bad.push('a phone with nothing on it did not draw the week kept on the account');
+  /* SIGNED OUT: the device's own, under the bare key, and nothing is sent. */
+  t.USER(null);
+  try { t.repaint(); } catch (e) {}
+  sent.length = 0;
+  w.localStorage.removeItem('tmt');
+  t.ACTIONS['tmt-add'](d.createElement('button'));
+  const sub2 = box().querySelector('.tmt-in[data-f="subject"]');
+  if (sub2) { sub2.value = 'Music'; sub2.dispatchEvent(new w.Event('input', { bubbles: true })); }
+  await wait(1100);
+  if (sent.some(x => x.action === 'saveTimetable')) bad.push('signed out, the timetable was posted to the server');
+  if (!/Music/.test(w.localStorage.getItem('tmt') || '')) bad.push('signed out, the timetable was not kept on the device');
+  if (box().querySelector('.tmt-row.is-booked')) bad.push('signed out, somebody\'s booked session is drawn');
+  return bad;
+});
+
+/* ---------- A BANK HOLIDAY IS NOT A SESSION, AND IS NOT CHARGED FOR ---------------------------------
+   `computeSessionDates` walked every week of a term, so the Early May bank holiday inside Summer 1 was
+   a date on the receipt and a share of the price. `DATA.closures` is `closures()` off the backend, and
+   a closed date is stepped over — which the count and the price follow without being told. Asked of
+   a window four weeks out, so the journey does not depend on what month it is run in. */
+check('a closed day inside a term is stepped over, and the price counts the sessions that run', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (typeof w.computeSessionDates !== 'function' || typeof w.priceFrom !== 'function') {
+    return ['computeSessionDates / priceFrom are not reachable, so closures were NOT checked — not a pass'];
+  }
+  const mon = w.mondayOf_(new Date()); mon.setDate(mon.getDate() + 28);
+  const at = n => { const d = new Date(mon); d.setDate(d.getDate() + n); return d; };
+  const dmy = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+  const win = { startDate: dmy(at(-14)), lastSun: dmy(at(20)) };
+  const spec = { subjects: ['Maths'], level: 'GCSE', n: 1, hours: 1, hoursPerWeek: 1, day: 'Monday',
+                 runs: [{ dayName: 'Monday', day: 'm', hours: 1 }], windows: [win], tutor: '' };
+  const D = t.DATA();
+  D.closures = [];
+  const open = w.priceFrom(spec);
+  D.closures = [{ date: dmy(mon), name: 'Early May bank holiday', kind: 'bank' }];
+  const shut = w.priceFrom(spec);
+  const bad = [];
+  const list = L => (L.sessionDates || []).map(dmy).join(', ');
+  if ((open.sessionDates || []).length !== 5) bad.push('with nothing closed the window holds ' + (open.sessionDates || []).length + ' Mondays, wanted 5: ' + list(open));
+  if ((shut.sessionDates || []).length !== 4 || list(shut).indexOf(dmy(mon)) !== -1) {
+    bad.push('with ' + dmy(mon) + ' closed the dates are [' + list(shut) + '] — the bank holiday is still a session');
+  }
+  if (shut.weeksBooked !== 4) bad.push('the price counts ' + shut.weeksBooked + ' sessions, wanted 4');
+  if (!(shut.total > 0) || Math.abs(shut.total * 5 - open.total * 4) > 0.05 * open.total) {
+    bad.push('the total did not follow the count: ' + open.total + ' for 5 sessions, ' + shut.total + ' for 4');
+  }
+  return bad;
+});
+
+/* ---------- THE CALENDAR SHOWS EVERY DATE THE APP KNOWS ------------------------------------------------
+   It drew exams and birthdays and nothing else. Now: your sessions on their own dates (and nobody
+   else's), a term's first day, every day of a half term, a bank holiday off `DATA.closures`, a festive
+   event, and an exam — each a dot of its own kind, a key under the month naming only the kinds on
+   it, and a tap on a day listing what is on it. Seeded in THIS month so the drawn widget shows it. */
+check('the calendar marks sessions, terms, half terms, bank holidays, events and exams, with a key', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document;
+  if (typeof w.calendarMarks !== 'function' || typeof w.calKey_ !== 'function') {
+    return ['calendarMarks / calKey_ are not reachable, so the calendar was NOT checked — not a pass'];
+  }
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth();
+  const on = n => String(n).padStart(2, '0') + '/' + String(m + 1).padStart(2, '0') + '/' + y;
+  const D = t.DATA();
+  D.liveJobs = D.jobs = [
+    { id: 'J-CAL', jobId: 'J-CAL', subject: 'Maths', time: '16:00', day: 'Monday', client: 'Rasa Poliksa', tutor: 'GeorgePovey',
+      status: 'active', slots: [], dates: [on(3), on(17)].join(', '), location: 'Mitcham library' },
+    { id: 'J-NOT', jobId: 'J-NOT', subject: 'Chemistry', time: '10:00', day: 'Tuesday', client: 'Somebody Else', tutor: 'Sasha Matola',
+      status: 'active', slots: [], dates: on(4) },
+  ];
+  D.intervals = [
+    { term: 'Autumn 2', label: 'Autumn 2', kind: 'term', startDate: on(5), endDate: '19/12/' + (y + 1) },
+    { term: 'October Half Term', label: 'October Half Term', kind: 'half-term', startDate: on(20), endDate: on(22) },
+  ];
+  D.closures = [{ date: on(8), name: 'Staff training', kind: 'inset' }, { date: on(9), name: 'Early May bank holiday', kind: 'bank' }];
+  D.festive = [{ id: 'H1', name: 'Pumpkin carving', holiday: 'Halloween', venue: 'Colliers Wood Library', date: on(25) }];
+  D.exams = [{ personId: 'P1', who: 'Rasa Poliksa', subject: '', label: 'Small exam', date: on(12), kind: 'mock' }];
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'client', roles: ['client'] });
+  const mk = w.calendarMarks(y, m);
+  const kinds = n => (mk[n] || []).map(x => x.kind).sort().join(',');
+  const bad = [];
+  [[3, 'session'], [17, 'session'], [4, ''], [5, 'term'], [20, 'halfterm'], [21, 'halfterm'], [22, 'halfterm'],
+   [8, 'closed'], [9, 'bank'], [25, 'festive'], [12, 'mock']].forEach(([n, want]) => {
+    if (kinds(n) !== want) bad.push('day ' + n + ' carries [' + kinds(n) + '], wanted [' + want + ']');
+  });
+  const key = d.createElement('div');
+  key.innerHTML = w.calKey_(mk);
+  const said = [...key.querySelectorAll('.cal-key span')].map(s => s.textContent.trim()).join(', ');
+  if (said !== 'Session, Mock, Term, Half term, Bank holiday, Closed, Event') bad.push('the key reads [' + said + ']');
+  /* DRAWN, AND A TAP ON A DAY LISTS IT. */
+  try { t.go('tools', false, true); } catch (e) { return bad.concat('go("tools") threw: ' + e.message); }
+  await wait(300);
+  w.initCalendar();
+  const cell = d.querySelector('#cal-body .cal-d[data-d="3"]');
+  if (!cell || !cell.querySelector('.dot.session')) bad.push('the 3rd is not drawn with a session dot');
+  if (!d.querySelector('.cal-key-box .cal-key')) bad.push('no key is drawn under the month');
+  if (cell) {
+    t.ACTIONS['cal-day'](cell);
+    await wait(50);
+    const sheet = d.getElementById('sheet');
+    if (!sheet || !/Session/.test(sheet.textContent) || !/Maths/.test(sheet.textContent)) bad.push('tapping the 3rd does not list the Maths session');
+  }
   return bad;
 });
 

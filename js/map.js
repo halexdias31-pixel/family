@@ -1447,35 +1447,25 @@ const WIDGETS = [
     <textarea id="notepad" placeholder="Jot something down…"></textarea>
     <p class="faint" id="pad-said" style="margin:.35rem 0 0">Saves as you type.</p>
   </div>` },
-  /* ---------- YOUR WEEK ---------------------------------------------------------------------------
-     IT WAS A BLOCK IN THE `You` COLUMN, and for most people it said "Nothing in the diary yet" — a
-     card whose whole content was the announcement that it had nothing to show, on a screen nobody
-     opens to look at their timetable.
-
-     IT IS A TOOL. A calendar is a tool here; a notepad is a tool; a week of your sessions is the
-     same kind of thing — something you go and look at when you want to know when you are somewhere.
-     So it is in the drawer with them, opened when wanted and costing nothing when not.
-
-     `into` AND `start`, LIKE THE CALENDAR. The week is built from `liveJobs`, so it cannot be static
-     `html` the way chess is — the markup is an empty container and `initWeek` fills it at the moment
-     it is opened, which is also the moment its data is freshest. */
+  /* ---------- `Your week` WAS HERE, AND IS IN THE TIMETABLE NOW -------------------------------------
+     A grid of the sessions booked here, built from `liveJobs` on opening. It sat beside the Timetable,
+     which is the week somebody writes down, and the two never met — *"calander and time table and
+     availability ... it seems they clash"*. The Timetable draws the booked sessions now, locked among
+     your own lessons, and tapping one opens it as the grid's blocks did. One week view, not two.
+     REMOVED FROM THE MIDDLE OF THE LIST, which moves every tool after it up one on `PAGE.tools` for
+     anybody whose remembered page was past it — a one-off jump to the next tool, said here because
+     the note over `legotrade` is why nothing is ever inserted above `calendar`. */
   /* ---------- THE `live` WIDGET WAS HERE ------------------------------------------------------------
    ONE WIDGET HOLDING EVERY SESSION. It is one widget PER session now, built from the data by
    `liveWidgets_` in book.js the way `msgWidgets_` builds one per conversation — so each is named
    for itself, counted on its own under Booking, and findable by typing its subject.
    Nothing static is left to declare: a session is not a fixture of the app, it is a row. */
 
-  { id: 'week', kind: 'tool', name: 'Your week', start: () => initWeek?.(),
-    into: 'week-body', what: 'Your week',
-    html: `<div class="card">
-    <h3>Your week</h3>
-    <div id="week-body"></div>
-  </div>` },
-
-  /* ---------- THE TIMETABLE, WHICH IS NOT `Your week` ------------------------------------------
-     `Your week` is the sessions BOOKED here, read off `liveJobs`; this is the week somebody writes
-     down themselves — a school timetable, a tutor's standing hours. Two different facts, so two
-     widgets. Kept on the device; see the note over `tmtRead_` in games.js.
+  /* ---------- THE TIMETABLE, THE ONE WEEK VIEW ----------------------------------------------------
+     The week somebody writes down themselves — a school timetable, a tutor's standing hours — with
+     the sessions BOOKED here drawn into it, locked (`Your week` used to be a second widget for those).
+     Kept on the account when signed in, on the device when not; see the note over `tmtRead_` in
+     games.js.
 
      `.tmt-box` IS A CLASS AS WELL AS AN ID, the basket's reason: the Saved column draws this markup
      again and `tmtPaint_` writes every copy. */

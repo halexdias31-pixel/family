@@ -65,6 +65,9 @@ function backendFile(names) {
 }
 const booking = backendFile(['booking.gs', '30_booking.gs']);
 const constants = backendFile(['constants.gs', '00_constants.gs']);
+/* `sheetDate` LIVES IN core.gs, and `busyHours` reads a job's dates through it — lifted like the rest
+   rather than stubbed, because a stub that parsed `05/10/26` differently would prove the wrong year. */
+const core = backendFile(['core.gs', '10_core.gs']);
 /* ---------- AND IF THEY ARE NOT THERE, THAT IS A FAILURE --------------------------------------
    IT USED TO EXIT 0 HERE, which is the actual reason the broken path went unnoticed for months. A
    checker that cannot find the thing it checks has not checked it, and "I did not check" is not the
@@ -73,9 +76,9 @@ const constants = backendFile(['constants.gs', '00_constants.gs']);
    Anything automated reads the exit code and nothing reads the prose. `check-all.js` printed a tick
    beside this file. `sync.js` pushed. The one signal that would have said otherwise was being
    deliberately suppressed by the file that had the most to lose from it. */
-if (!booking || !constants) {
+if (!booking || !constants || !core) {
   console.log('');
-  console.log('  FAIL — booking.gs or constants.gs could not be found, so NOTHING was checked.');
+  console.log('  FAIL — booking.gs, core.gs or constants.gs could not be found, so NOTHING was checked.');
   console.log('  Looked in: ' + WHERE.join(', '));
   console.log('  This reads the real backend rather than a copy, so it needs the files.');
   process.exit(1);
@@ -130,6 +133,8 @@ try {
     + fn(booking, 'tutorStatusOf')
     + fn(booking, 'bmActionsFor')
     + fn(booking, 'bmApply')
+    + fn(core, 'sheetDate')
+    + fn(booking, 'sessionDatesOf')
     + fn(booking, 'busyHours')
     + `; module.exports = { BM, ACT, set: e => { EVENTS = e },
          setJobs: (j, t) => { JOBS = j; TUTOR_OF = t || {}; },
@@ -434,6 +439,84 @@ RULES.push({
     if (Object.keys(api.busyHours('George')).length) {
       bad.push('a cancelled session still held its hours');
     }
+    return bad;
+  },
+});
+
+/* ---------- THE BANK HOLIDAYS, WORKED OUT, AGAINST THE ONES gov.uk PUBLISHED ------------------------
+   `bankHolidays` IS WHAT `computeSessionDates` STEPS OVER, so a wrong date here is a session charged
+   on a day nobody is taught, or one skipped that should run. Checked against England and Wales as
+   gov.uk lists them — three years with every substitute shape in them: 2026 (Boxing Day on a
+   Saturday), 2027 (both on the weekend) and 2028 (New Year's Day on a Saturday). A one-off like a
+   jubilee is the holidays tab's job, not the formula's, and is not asked here. */
+RULES.push({
+  what: 'the bank holidays are the ones gov.uk publishes, substitutes and all',
+  check: () => {
+    let bh;
+    try {
+      bh = new Function([
+        block(booking, 'const DAY_MS = ', ';'), block(booking, 'const add = ', ';'),
+        fn(booking, 'easter'), fn(booking, 'bankHolidays'), 'return bankHolidays;'].join('\n'))();
+    } catch (err) { return ['bankHolidays could not be run: ' + err.message]; }
+    const WANT = {
+      2026: '01/01 03/04 06/04 04/05 25/05 31/08 25/12 28/12',
+      2027: '01/01 26/03 29/03 03/05 31/05 30/08 27/12 28/12',
+      2028: '03/01 14/04 17/04 01/05 29/05 28/08 25/12 26/12',
+    };
+    const bad = [];
+    Object.keys(WANT).forEach(y => {
+      const got = bh(Number(y)).map(h => h.date).sort((a, b) => a - b)
+        .map(d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0')).join(' ');
+      if (got !== WANT[y]) bad.push(y + ' came out [' + got + '], gov.uk says [' + WANT[y] + ']');
+    });
+    return bad;
+  },
+});
+
+/* ---------- ONE SPAN OF HOURS, IN BOTH LANGUAGES ---------------------------------------------------
+   `AVAIL_HOURS` (constants.gs) IS WHAT A TUTOR CAN TICK and `SLOT_HOURS` (js/book.js) IS WHAT A FAMILY
+   CAN BOOK, and they disagreed: nine to seven against nine to six, so a seven o'clock tick was drawn
+   lit on the tutor's card and could never be booked. Two files in two languages cannot share a
+   constant, so the next best thing is this: both are read off the real source and must be the same
+   list. Widen both or neither. */
+RULES.push({
+  what: 'the hours a tutor can tick are the hours a family can book',
+  check: () => {
+    const bookJs = fs.readFileSync(path.join(dir, 'book.js'), 'utf8');
+    const m = /const SLOT_HOURS = \[\];\s*\n\s*for \(([^)]*)\) SLOT_HOURS\.push\(h\);/.exec(bookJs);
+    if (!m) return ['cannot find SLOT_HOURS in js/book.js, so the two spans were NOT compared'];
+    const slot = new Function('const SLOT_HOURS = []; for (' + m[1] + ') SLOT_HOURS.push(h); return SLOT_HOURS;')();
+    const avail = new Function(block(constants, 'const AVAIL_HOURS = ', ';') + ' return AVAIL_HOURS;')();
+    return slot.join(',') === avail.join(',') ? []
+      : ['AVAIL_HOURS is [' + avail.join(',') + '] and SLOT_HOURS is [' + slot.join(',') + ']'];
+  },
+});
+
+/* ---------- AND ONLY WHILE ITS DATES ARE LIVE ----------------------------------------------------
+   `busyHours` HAD NO DATES, so a session that ended in July greyed its hours on every booking grid for
+   ever, and one booked for next term was busy today. A job counts from its first session date to its
+   last; `from`/`to` asks about a window instead of today, which is what `createJob` does with the
+   booking's own dates. A job with no dates counts whatever the window — see the note on the function. */
+RULES.push({
+  what: 'a tutor is busy only while a session is running, or across the window asked about',
+  check: () => {
+    const bad = [];
+    const LIVE = [REQUEST('Rasa'), REQUEST('George', 'tutor')];
+    const day = n => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d; };
+    const dmy = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0')
+      + '/' + String(d.getFullYear()).slice(-2);
+    const busy = (dates, from, to) => {
+      api.set(LIVE);
+      api.setJobs([{ job_id: 'J', weekday: 'Monday', start_time: '10:00', hours_per_session: 2,
+                     subject: 'Maths', session_dates: dates.map(dmy).join(', ') }], { J: 'George' });
+      return Object.keys(api.busyHours('George', from, to)).length > 0;
+    };
+    if (!busy([day(-14), day(-7), day(7), day(14)])) bad.push('a session running now (dates either side of today) is not busy');
+    if (busy([day(-70), day(-63), day(-56)])) bad.push('a session that ENDED eight weeks ago is still busy today');
+    if (busy([day(21), day(28), day(35)])) bad.push('a session that STARTS in three weeks is already busy today');
+    if (!busy([day(21), day(28), day(35)], day(14), day(42))) bad.push('asked about next term, a session booked for next term is not busy');
+    if (busy([day(-70), day(-63)], day(14), day(42))) bad.push('asked about next term, a session that ended last term is busy');
+    if (!busy([])) bad.push('a session with no dates yet is not busy — it must hold its hours until it has some');
     return bad;
   },
 });
