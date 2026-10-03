@@ -1091,6 +1091,42 @@ const STATES = {
       },
       wants: 'the agreement, ticked and locked, with its points' },
 
+    /* ---------- YOUR ROLES, WITH A TUTOR TICK WAITING — `rolesCard_` in me.js ---------------------
+       *"each account should have a widget in account settings which say what the roles are … like
+       multiselect."* The lab signs in as an admin, and an admin is never pending — so the state plays
+       a parent who has ticked Tutor and been told to wait: `role`, `roles` and `tutorPending` as the
+       sign-in reply sends them. That is the card's fullest drawing: two ticks of three, two-line
+       labels, and the waiting sentence under the tile — the one row that could wrap at 320 and the
+       three 44px targets that must not shrink with it. `leave` puts the admin back exactly. */
+    { name: 'your roles, a Tutor tick waiting',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_ROLES_WAS = { role: USER.role, roles: USER.roles, tutorPending: USER.tutorPending };
+        Object.assign(USER, { role: 'tutor', roles: ['tutor', 'parent'], tutorPending: true });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.roles-card'));
+        if (at < 0) throw new Error('no roles card on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        const was = window.STATE_ROLES_WAS || {}; delete window.STATE_ROLES_WAS;
+        USER.role = was.role; USER.roles = was.roles;
+        if (was.tutorPending === undefined) delete USER.tutorPending; else USER.tutorPending = was.tutorPending;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const c = document.querySelector('#s-settings .page.on .roles-card');
+        if (!c) return 0;
+        const on = r => { const b = c.querySelector(`[data-role-pick="${r}"]`); return b ? b.checked : null; };
+        return on('tutor') === true && on('client') === true && on('student') === false
+          && !c.querySelector('[data-role-pick="admin"]') && !c.querySelector('.role-admin')
+          && /waiting for @family/.test((c.querySelector('.roles-said') || {}).textContent || '')
+          && !!c.querySelector('.tile[data-do="roles-save"]') ? 1 : 0;
+      },
+      wants: 'three role ticks, Tutor and Client ticked, no Admin tick, the waiting line and a Save tile' },
+
     /* THE ADMIN'S CUT OF AN EXTRA CHILD: a box holding the current figure and a sentence saying it
        in money. The fixture carries no `boss_rate`, so this is the "none set" state, which is the
        one a new sheet is in. */

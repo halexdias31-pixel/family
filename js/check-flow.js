@@ -230,7 +230,7 @@ function boot(opts) {
   const src = ORDER.map(n => fs.readFileSync(path.join(dir, n + '.js'), 'utf8')).join('\n');
   try {
     w.eval(src + '\n;window.__t = {' +
-      'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS,' +
+      'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS, isTutorRole,' +
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
       'TABS, wgChosen: () => wgChosen_(),' +
@@ -4874,6 +4874,71 @@ check('a picture chosen in Settings posts savePhoto and the preview shows it', a
     if (!sent.some(b => b.action === 'savePhoto' && b.remove === true)) bad.push('Remove posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no savePhoto remove');
     if (!box() || box().querySelector('.pfp-face img') || (t.whoami().profile || {}).photo !== '') bad.push('after Remove the picture is still drawn or still on USER.profile');
   }
+  return bad;
+});
+
+/* ---------- YOUR ROLES, TICKED IN SETTINGS ---------------------------------------------------------
+   ASKED FOR AS *"each account should have a widget in account settings which say what the roles are.
+   they can be either a tutor or client or student. they can be tutor and client and student like
+   multiselect."* The card's own ticks and tile, end to end: what you hold is what is ticked (a
+   `parent` from the sign-in reply is Client), Admin is never a tick, nothing ticked never leaves the
+   phone, a Save posts `setMyRoles` with your id and the ticked words — and the server's answer, not
+   the ticks, is what you are afterwards: a Tutor tick that came back pending leaves the staff test
+   (`isTutorRole`) false, says it is waiting on the card, and still offers the tutor agreement. The
+   server's own rules are `check-profile`'s; this is the phone's half. */
+check('the roles card ticks what you hold, posts setMyRoles, and a waiting Tutor is not staff', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'setMyRoles'
+    ? { success: true, role: 'tutor', roles: ['tutor', 'parent'], tutorPending: true, changed: true }
+    : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk', tutorPending: false,
+           profile: { first_name: 'Pat', last_name: 'Parent' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const bad = [];
+  const card = () => d.querySelector('#s-settings .roles-card');
+  if (!card()) return ['Settings has no Your roles card'];
+  const tick = r => card().querySelector(`[data-role-pick="${r}"]`);
+  ['tutor', 'client', 'student'].forEach(r => { if (!tick(r)) bad.push('the roles card has no ' + r + ' tick'); });
+  if (card().querySelector('[data-role-pick="admin"]')) bad.push('Admin is a tick on the roles card — it is given, not chosen');
+  if (bad.length) return bad;
+  if (!tick('client').checked || tick('tutor').checked || tick('student').checked) {
+    bad.push('a parent signed in sees tutor=' + tick('tutor').checked + ' client=' + tick('client').checked
+      + ' student=' + tick('student').checked + ', wanted only Client ticked');
+  }
+  if (card().querySelector('.role-admin')) bad.push('a parent is told they are also Admin');
+  const save = () => card().querySelector('[data-do="roles-save"]');
+  if (!save()) return bad.concat(['the roles card has no Save tile']);
+  /* NONE TICKED: said on the card, nothing posted. */
+  tick('client').checked = false;
+  sent.length = 0;
+  t.ACTIONS['roles-save'](save());
+  await wait(200);
+  if (sent.some(b => b.action === 'setMyRoles')) bad.push('a Save with nothing ticked was posted');
+  if (!/at least one/i.test(card().querySelector('.roles-said').textContent)) bad.push('a Save with nothing ticked did not say to keep one');
+  /* TUTOR AND CLIENT: posted, with the id. */
+  tick('client').checked = true; tick('tutor').checked = true;
+  sent.length = 0;
+  t.ACTIONS['roles-save'](save());
+  await wait(400);
+  const post = sent.find(b => b.action === 'setMyRoles');
+  if (!post) bad.push('Save posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no setMyRoles');
+  else {
+    if (JSON.stringify(post.roles) !== '["tutor","client"]') bad.push('setMyRoles carried ' + JSON.stringify(post.roles) + ', wanted ["tutor","client"]');
+    if (post.personId !== 'P-C1') bad.push('setMyRoles did not name the signed-in person by id');
+  }
+  const me = t.whoami();
+  if (!me.tutorPending || JSON.stringify(me.roles) !== '["tutor","parent"]') bad.push('USER was not given the server\'s answer — ' + JSON.stringify({ roles: me.roles, tutorPending: me.tutorPending }));
+  if (t.isTutorRole()) bad.push('a Tutor tick the server says is waiting already passes the staff test');
+  if (!card() || !card().querySelector('[data-role-pick="tutor"]').checked) bad.push('after the save the card does not show Tutor ticked');
+  if (!card() || !/waiting for @family/.test(card().querySelector('.roles-said').textContent)) bad.push('the card does not say the Tutor tick is waiting for approval');
+  if (!d.querySelector('#s-settings .card.agree')) bad.push('a waiting tutor is not offered the tutor agreement to sign');
+  /* AND THE ADMIN: told, not ticked. */
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin', 'tutor'], token: 'tk', profile: {} });
+  try { w.paint('settings'); } catch (e) { return bad.concat(['drawing settings for the admin threw: ' + e.message]); }
+  if (!card() || !card().querySelector('.role-admin')) bad.push('an admin is not told Admin is given and kept');
+  else if (!tick('tutor').checked || tick('client').checked) bad.push('an admin holding admin, tutor does not see Tutor alone ticked');
   return bad;
 });
 
