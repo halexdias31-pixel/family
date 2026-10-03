@@ -473,8 +473,11 @@ function cartCard_() {
   if (!CART.length) {
     /* AND A BUNDLE OF PAPERS, which is the second way in and the one somebody is likelier to be
        looking for — see `bundleOf_` in find.js. */
+    /* "BELOW", BECAUSE THE SHOP IS UNDER IT NOW. This said "a shop card ... in Find", and Find has
+       no shop cards since the Shop column took them; a sentence sending somebody to a door that is
+       gone is the stale-note fault in a place a child reads it. */
     return `<p class="empty">Nothing in your basket yet.<br><span class="faint">The trolley on a
-      shop card, or on a bundle of papers, in Find puts something in it.</span></p>`;
+      shop card below, or on a bundle of papers in Find, puts something in it.</span></p>`;
   }
 
   /* ---------- THE BASKET IS A RECEIPT, BECAUSE IT IS ONE -------------------------------------------

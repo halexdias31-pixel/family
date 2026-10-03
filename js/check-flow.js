@@ -365,6 +365,16 @@ function boot(opts) {
       'lamPrice: typeof laminatePrice === "function" ? laminatePrice : null,' +
       'basket: typeof cartCard_ === "function" ? cartCard_ : null,' +
       'PAGE: () => PAGE,' +
+      /* THE SHOP COLUMN AND THE TWO LISTS IT WAS TAKEN FROM. `shopCards` is what `screen('shop')`
+         draws; `shopFunnel` is what Find offers and `shopAll` what the app holds, so a journey can
+         ask that a shop thing left the first, stayed in the second, and arrived on the column. */
+      'shopCards: typeof shopCards_ === "function" ? shopCards_ : null,' +
+      'shopFunnel: typeof stuffItems === "function" ? stuffItems : null,' +
+      'shopAll: typeof stuffItemsAll_ === "function" ? stuffItemsAll_ : null,' +
+      'shopSaved: typeof savedPages_ === "function" ? savedPages_ : null,' +
+      'shopDoors: () => facetValues(stuffItems(), facetList().find(f => f.field === "forLabel"))' +
+      '  .map(v => String(v.show || v.value)),' +
+      'AT: () => AT,' +
       /* A landmark rasterised at one bearing, so the test above can compare four of them. */
       'tiles: (ring, bearing) => {' +
       '  if (typeof owWorld !== "function") return 0;' +
@@ -3729,6 +3739,88 @@ check('an age range reads sensibly with both ends, one end, or neither', async (
   if (!/>Ages 8–16</.test(facts)) bad.push('a tutor who teaches 8 to 16 has no "Ages 8–16" chip under At a glance');
   const none = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { ageMin: '', ageMax: '' }) }) || '');
   if (/>Ages?\b|>Adults<|>All ages</.test(none)) bad.push('a tutor who has said nothing about ages is drawn with an age chip anyway');
+  return bad;
+});
+
+/* ---------- THE SHOP IS A COLUMN, AND FIND IS LEARNING -------------------------------------------
+   ASKED FOR AS *"Get rid of shop tag. I will make a new coloumn for shop stuff. So finder now will
+   become just learning stuff."* — the door and the column in ONE change, because the shop's things
+   had one way onto a screen and that was the door. So this asks both halves together: a thing that
+   left Find and did not arrive on the column is the deletion the owner was asked about and refused.
+
+   AND WHO SEES WHAT. `doGet` sends `audience` and `inStock` on every row, and before the column read
+   them a signed-out visitor was offered the toner cartridge. The rows below are one of each case,
+   shaped as `doGet` shapes them; `payload()` sends none, which is why no journey had ever drawn one. */
+const shopRow_ = (n, name, kindRaw, audience, inStock, extra) => Object.assign({
+  id: n, rowIndex: n, kind: 'thing', kindRaw: kindRaw, name: name, price: '', unit: '£',
+  acquire: 'buy', audience: audience, level: 0, slot: '', artId: '', description: name + ', for sale.',
+  image: '', inStock: inStock, fields: {} }, extra || {});
+check('the shop is its own column with the basket on top, and Find no longer has a Shop door', async () => {
+  const p = payload();
+  p.shop = [shopRow_(2, 'Gooey Louie (board game)', 'game', 'all', true),
+            shopRow_(3, 'Safety goggles', 'equipment', 'all', true),
+            shopRow_(4, 'Pencil (HB)', 'consumable', 'student', true, { price: '30', unit: 'p' }),
+            shopRow_(5, 'Measuring wheel', 'equipment', 'tutor', true, { acquire: 'loan' }),
+            shopRow_(6, 'Toner cartridge', 'consumable', 'admin', true, { acquire: 'issued' }),
+            shopRow_(7, 'DYU Bike', 'equipment', 'admin', false),
+            shopRow_(8, 'Beanie', 'avatar', 'student', true, { kind: 'wearable', slot: 'hat' })];
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t;
+  if (!t.shopCards || !t.shopFunnel || !t.shopAll || !t.shopSaved || !t.shopDoors || !t.widgetsOf) {
+    return ['the shop column and the funnel\'s lists are not exported, so the shop was NOT checked — not a pass'];
+  }
+  const bad = [];
+  const ids = t.TABS.map(x => x.id);
+  if (ids.indexOf('shop') < 0) return ['there is no `shop` tab at all'];
+  if (ids.indexOf('shop') !== ids.indexOf('booking') + 1) {
+    bad.push('the Shop column is not right of Booking — the order reads ' + ids.join(', '));
+  }
+  if (!t.shopAll().some(x => x.kind === 'shop' && x.name === 'Safety goggles')) {
+    return ['the payload\'s shop rows are not items at all, so nothing here measures anything'];
+  }
+
+  /* FIND: no shop thing in the list it draws, and no `Shop` door on its first question. */
+  const leaked = t.shopFunnel().filter(x => x.kind === 'shop').map(x => x.name);
+  if (leaked.length) bad.push('Find still offers ' + leaked.length + ' shop thing(s): ' + leaked.join(', '));
+  if (t.shopDoors().some(d => /\bShop\b/.test(d))) bad.push('Find\'s first question still has a Shop door: ' + t.shopDoors().join(' | '));
+
+  /* THE COLUMN, SIGNED OUT: the basket first, then the things for everybody, under their group. */
+  const drawn = () => t.shopCards().join('\n');
+  const first = t.shopCards()[0] || '';
+  if (!/cart-box/.test(first)) bad.push('page 0 of the Shop column is not the basket');
+  if (!t.widgetsOf('shop').some(x => String(x.id) === 'cart')) bad.push('the basket is not a widget of the shop');
+  if (t.widgetsOf('tool').some(x => String(x.id) === 'cart')) bad.push('the basket is still on the Tools column as well — two `#cart-box`es on one page');
+  let html = drawn();
+  ['Gooey Louie', 'Safety goggles', 'Pencil (HB)'].forEach(n => {
+    if (html.indexOf(n) < 0) bad.push('signed out, the shop does not draw "' + n + '", which is for everybody');
+  });
+  ['Measuring wheel', 'Toner cartridge', 'DYU Bike', 'Beanie'].forEach(n => {
+    if (html.indexOf(n) >= 0) bad.push('signed out, the shop draws "' + n + '" — a tutor\'s, an admin\'s, a withdrawn row or a wearable');
+  });
+  const games = t.shopCards().find(c => /<h2><span>Games<\/span>/.test(c)) || '';
+  if (games.indexOf('Gooey Louie') < 0) bad.push('Gooey Louie is not under a Games heading — the things are not grouped by their kind');
+  if (!/data-do="cart-add"/.test(html)) bad.push('no thing on the shop has a trolley');
+
+  /* AN ADMIN sees the business's own kit and the admin's rows; nobody sees a withdrawn one. */
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', credits: 0 });
+  html = drawn();
+  ['Measuring wheel', 'Toner cartridge'].forEach(n => {
+    if (html.indexOf(n) < 0) bad.push('an admin is not shown "' + n + '" on the shop');
+  });
+  if (html.indexOf('DYU Bike') >= 0) bad.push('the shop draws a row whose `active` is FALSE');
+
+  /* A STARRED SHOP THING IS STILL ON SAVED, which reads every item and not the funnel's list. */
+  t.star('Safety goggles');
+  if (!t.shopSaved().join('').includes('Safety goggles')) bad.push('a starred shop thing is not on Saved now that Find does not offer it');
+
+  /* AND THE WAY TO IT FROM A BUNDLE: `cart-open` lands on the Shop column, on the basket. */
+  t.ACTIONS['cart-open']();
+  await wait(50);
+  if (t.AT() !== 'shop') bad.push('"see your basket" went to ' + t.AT() + ', not the Shop column');
+  else if (t.PAGE().shop !== t.widgetsOf('shop').findIndex(x => String(x.id) === 'cart')) {
+    bad.push('"see your basket" landed on page ' + t.PAGE().shop + ' of the shop, not on the basket');
+  }
   return bad;
 });
 
