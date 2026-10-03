@@ -581,6 +581,69 @@ const STATES = {
       },
       wants: 'a question whose options are buttons, with no text box on its card',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AN ANSWER: THE RESULT SHOWN, THE WORKING FOLDED, AND THEN OPENED ---------------------
+       ASKED FOR AS "make answers breaifer ... i want shorter answers." The result is `.qans-body`
+       and the working is one `<details>` under it -- see `answerParts_`. Neither state above ever
+       has an answer on screen: a student's card is shut behind "Show the answer", and the card is
+       taller than the phone, so the answer is below the fold of every picture taken of it. So
+       these press "Show the answer" the way a finger does, bring the answer up, and in the second
+       open the fold -- because the fold's summary is a 44px tap target and the opened working is
+       a table, a fraction and a paragraph at 320px, and both are things `ui.js` measures.
+
+       ONE ROW, NAMED, on purpose: June 2018 Higher 1, question 3 -- "No", then working that holds a
+       stacked fraction. Picked because it was a 207-character paragraph before the rewrite and the
+       pictures should show the change on a real answer, not on whichever sorts first. AFTER A
+       TICK, because the page is drawn by `goPage` and the card is not there to press until then. */
+    { name: 'an answer, its working folded',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+        setTimeout(() => {
+          const card = document.querySelector('#s-stuff .page.on .qcard');
+          const ans = card && card.querySelector('.qans');
+          if (!ans) return;
+          const btn = ans.querySelector('.qp-reveal');
+          if (btn && ans.classList.contains('is-shut')) btn.click();
+          ans.scrollIntoView({ block: 'start', inline: 'nearest' });
+        }, 150);
+      },
+      expect: () => {
+        const ans = document.querySelector('#s-stuff .page.on .qcard .qans');
+        const why = ans && ans.querySelector('details.qans-why');
+        return !!ans && !ans.classList.contains('is-shut') && /^No$/.test(ans.querySelector('.qans-body').textContent.trim())
+               && !!why && !why.open;
+      },
+      wants: 'the answer "No" shown, with its working shut under Why',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'an answer, its working opened',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+        setTimeout(() => {
+          const card = document.querySelector('#s-stuff .page.on .qcard');
+          const ans = card && card.querySelector('.qans');
+          if (!ans) return;
+          const btn = ans.querySelector('.qp-reveal');
+          if (btn && ans.classList.contains('is-shut')) btn.click();
+          const sum = ans.querySelector('details.qans-why > summary');
+          if (sum) sum.click();
+          ans.scrollIntoView({ block: 'start', inline: 'nearest' });
+        }, 150);
+      },
+      expect: () => {
+        const why = document.querySelector('#s-stuff .page.on .qcard .qans details.qans-why');
+        return !!why && why.open && !!why.querySelector('.qans-more .frac');
+      },
+      wants: 'the answer\'s working open under Why, its fraction stacked',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
        That one is a roster gate on the phone; this is the PAYLOAD — `doGet` builds `films` inside

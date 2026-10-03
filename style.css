@@ -9454,13 +9454,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    SMALL TO LOOK AT, 44px TO HIT. A fold that reads as loud as the answer undoes the point of it, so
    the word is the size of `.qans-head em`; the tap target is still a fingertip, in px, because a
-   fingertip does not scale with the root font. `display: inline-flex` on the summary is safe where
+   fingertip does not scale with the root font. BOTH WAYS: the first version was 44px tall and
+   34px wide at 320, because "+ Why" is three characters and a glyph, and `check/ui.js` said so. `display: inline-flex` on the summary is safe where
    the comment above warns against flex: the marker is drawn here rather than by the browser, and
    `list-style: none` plus the WebKit pseudo-element removes the browser's in both engines. */
 .qans-why { margin: 0 0 .3rem; }
 .qans-why > summary {
   display: inline-flex; align-items: center; gap: .4rem;
-  min-height: 44px; padding: 0 .2rem;
+  min-height: 44px; min-width: 64px; padding: 0 .6rem 0 .2rem;
   list-style: none; cursor: pointer;
   font: 600 .7rem/1 var(--font); letter-spacing: .04em; color: var(--dim);
 }
