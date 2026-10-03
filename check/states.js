@@ -797,18 +797,62 @@ const STATES = {
         const pg = [...document.querySelectorAll('#s-account .page')].find(p => p.querySelector('.prof-heat'));
         if (!pg) return 0;
         const caps = [...pg.querySelectorAll('.prof-cap')].map(c => c.textContent.trim());
-        const allowed = ['At a glance', 'Teaches', 'Can also teach', 'Qualifications', 'Tutors at'];
+        /* AND `Available` AFTER IT, which is the one caption added since the five were asked for —
+           *"tutors availability should appear on their card."* It is the week, drawn by `profAvail_`
+           only for a tutor who has ticked an hour, so it may follow the map and nothing else may. */
+        const allowed = ['At a glance', 'Teaches', 'Can also teach', 'Qualifications', 'Tutors at', 'Available'];
+        const last = caps.filter(c => c !== 'Available');
         const text = pg.textContent;
         const heat = pg.querySelector('.prof-heat');
-        return heat.getAttribute('data-dots') === '1'
+        /* AND A GOLD CORE IN EACH GLOW, ON THE SAME CENTRE — *"make the heat map a bit clearer."*
+           One core per venue, and its position string is its glow's position string, because
+           `profHeat_` places both through one `pos()` with the size halves cancelling. A core that
+           drifted off its glow, or one per map rather than per venue, fails here. */
+        const lst = (el, k) => ((el || {}).style || {})[k] ? el.style[k].split(/,(?![^(]*\))/).map(x => x.trim()) : [];
+        const glow = heat.querySelector('.heat-glow'), core = heat.querySelector('.heat-core');
+        const cores = lst(core, 'backgroundPosition'), glows = lst(glow, 'backgroundPosition');
+        const coresOk = !!core && cores.length === Number(heat.getAttribute('data-dots'))
+          && cores.join('|') === glows.join('|')
+          && (core.style.backgroundImage.match(/radial-gradient/g) || []).length === cores.length;
+        return heat.getAttribute('data-dots') === '1' && coresOk
           && ((heat.querySelector('.heat-tiles') || {}).style || { backgroundImage: '' }).backgroundImage
                .match(/tile\.openstreetmap\.org/g)?.length >= 2
           && caps.every(c => allowed.includes(c)) && caps.includes('Tutors at')
-          && caps.indexOf('Tutors at') === caps.length - 1
+          && last.indexOf('Tutors at') === last.length - 1
+          && (!caps.includes('Available') || caps.indexOf('Available') === caps.length - 1)
           && [...pg.querySelectorAll('.prof-tag')].some(x => x.textContent.trim() === 'Online')
           && !/Colliers Wood Library|Sutton Library/.test(text) ? 1 : 0;
       },
-      wants: 'the five captions in order, one glow on a map, Online as a chip, and no venue named',
+      wants: 'the five captions in order, one glow with a gold core on its centre, Online as a chip, and no venue named',
+      leave: () => { paint('account'); } },
+    /* ---------- A TUTOR'S HOURS ON THEIR CARD — see `profAvail_` in cards.js -----------------------
+       *"tutors availability should appear on their card."* The fixture's tutor sends what `doGet`
+       sends — 77 codes, nine of them 'TRUE' (Mon 16-18, Tue 10-11, Wed 16, Sat 10-12) — and is
+       already teaching Mon 17. So eight hours lit, Mon 17 greyed, and the three days nothing is
+       ticked on (Thu, Fri, Sun) collapsed rather than drawn as thumb-sized rows of grey. Measured at
+       every width because it is the last thing on a card that is already near its pane's height. */
+    { name: 'a tutor\'s hours on their card',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.prof-week'));
+        if (at < 0) throw new Error('no card on the account column draws a tutor\'s week');
+        goPage('account', at, true);
+      },
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-account .page')].find(p => p.querySelector('.prof-week'));
+        if (!pg) return 0;
+        const wk = pg.querySelector('.prof-week');
+        const cap = wk.previousElementSibling;
+        const rows = [...wk.querySelectorAll('.slot-row:not(.slot-head)')];
+        const busy = wk.querySelector('.hr[data-code="m17"]');
+        return cap && cap.textContent.trim() === 'Available'
+          && wk.querySelectorAll('.hr.on').length === 8
+          && !!busy && !busy.classList.contains('on') && busy.classList.contains('shut')
+          && rows.length === 7 && rows.filter(r => r.classList.contains('is-shut')).length === 3
+          && !wk.querySelector('button, input, label') ? 1 : 0;
+      },
+      wants: 'an Available caption over a week with eight hours lit, Monday 17 greyed as taught, and Thu, Fri and Sun collapsed',
       leave: () => { paint('account'); } },
     /* ---------- YOUR FAMILY, A CARD EACH ------------------------------------------------------------
        ASKED FOR AS *"students should be able to see their parents and likewise"*. `DATA.family` is a
@@ -895,12 +939,49 @@ const STATES = {
         const slots = [...pg.querySelectorAll('.ph-slot')];
         const shown = slots.filter(s => !s.hidden);
         return pg.querySelectorAll('[data-me^="photos_"]').length === 8
-          && !!pg.querySelector('[data-me="photo"]') && !!pg.querySelector('[data-me="video"]')
+          /* THE FACE IS THE PICKER NOW, NOT A LINK BOX — `photoPicker_`, and no `data-me="photo"` beside
+             it, which the card's Save would post with the old address over a picture just chosen. */
+          && !!pg.querySelector('.pfp') && !pg.querySelector('[data-me="photo"]') && !!pg.querySelector('[data-me="video"]')
           && shown.length === 2 && shown.every(s => s.querySelector('.ph-thumb img'))
           && pg.querySelectorAll('[data-do="shelf-more"]').length === 1
           && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 8 : 0;
       },
-      wants: 'the profile photo and video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another' },
+      wants: 'the picture picker and the video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another' },
+    /* ---------- YOUR PICTURE, CHOSEN — `photoPicker_` in me.js ------------------------------------
+       *"everyone should have a profile picture selector widget in account settings"*. Seeded with a
+       picture already kept, so the preview is a photograph rather than the initial and `Remove` is
+       live: a square preview, `Choose photo` and `Remove` as tiles, the hidden file input that takes
+       images, and no link box. At four widths, because the preview sits beside two tap targets and
+       a line of text and is the one row on the card that could wrap at 320. */
+    { name: 'your picture, chosen',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_PFP_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, { photo: 'data/reels/archetest.jpg' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.pfp'));
+        if (at < 0) throw new Error('no picture picker on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const box = pg && pg.querySelector('.pfp');
+        if (!box) return 0;
+        const face = box.querySelector('.pfp-face');
+        const r = face && face.getBoundingClientRect();
+        const rm = box.querySelector('.tile[data-do="pfp-remove"]');
+        const inp = box.querySelector('input.pfp-in[type="file"]');
+        return !!face.querySelector('img') && r.width > 40 && Math.abs(r.width - r.height) < 1
+          && !!box.querySelector('.tile[data-do="pfp-pick"]') && !!rm && !rm.disabled
+          && !!inp && inp.hidden && /image\/\*/.test(inp.accept)
+          && !pg.querySelector('[data-me="photo"]') ? 1 : 0;
+      },
+      wants: 'a square preview of the picture, Choose photo and a live Remove as tiles, a hidden image input, and no link box' },
     /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE, WHICH THE FIXTURE HAD NEVER SENT -------------
        `Group size` AND `Your rate` WERE TWO PAGES WITH A SAVE EACH and are one page now, because
        they are one decision and one monthly clock — asked for as *"…all together. and they can only

@@ -4766,6 +4766,108 @@ check('a fraction is drawn stacked in the stem, lead, part, answer and choices, 
   return bad;
 });
 
+/* ---------- A TUTOR'S HOURS ON THEIR CARD ---------------------------------------------------------
+   ASKED FOR AS *"tutors availability should appear on their card."* Asked of the card itself, off
+   the shape `doGet` really sends — `availGridOut`'s 77 codes with 'TRUE' or '' — because the fixture
+   once held `avail: []` and a card tested against that would have passed by drawing nothing. Three
+   answers: a ticked hour is lit, a ticked hour they are already teaching is greyed, and a tutor who
+   has ticked nothing gets no caption and no week — not seventy-seven grey cells reading "never". */
+check('a tutor\'s ticked hours are on their card, busy ones greyed, and none means no week', async () => {
+  const { w } = boot();
+  const d = w.document;
+  await wait(300);
+  if (typeof w.findCard !== 'function') return ['findCard is not reachable, so the card\'s week was NOT checked — not a pass'];
+  const avail = {};
+  ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 19; h++) avail[p + String(h).padStart(2, '0')] = ''; });
+  ['m16', 'm17', 'sa10', 'su19'].forEach(c => { avail[c] = 'TRUE'; });
+  const t = { title: 'Ada Tutor', handle: 'ada', rate: 30, teaches: [], listed: true, personId: 'P-x',
+              avail, busy: { m17: 'Maths' } };
+  const box = d.createElement('div');
+  box.innerHTML = String(w.findCard({ kind: 'tutor', row: t }) || '');
+  const bad = [];
+  const caps = [...box.querySelectorAll('.prof-cap')].map(c => c.textContent.trim());
+  if (!caps.includes('Available')) bad.push('a tutor with hours ticked has no "Available" caption on their card');
+  const codeOf = { Monday: 'm', Saturday: 'sa', Sunday: 'su' };
+  const cell = (day, h) => box.querySelector(`.prof-week .hr[data-code="${codeOf[day]}${String(h).padStart(2, '0')}"]`);
+  const lit = [...box.querySelectorAll('.prof-week .hr.on')];
+  if (lit.length !== 3) bad.push(`${lit.length} hours lit on the card, wanted 3 (Mon 16, Sat 10, Sun 19)`);
+  [['Monday', 16], ['Saturday', 10], ['Sunday', 19]].forEach(([dd, h]) => {
+    const c = cell(dd, h);
+    if (!c || !c.classList.contains('on')) bad.push(`${dd} ${h}:00 is ticked and not lit on the card`);
+  });
+  const busy = cell('Monday', 17);
+  if (!busy || busy.classList.contains('on') || !busy.classList.contains('shut')) {
+    bad.push('Monday 17:00 is ticked but already taught, and is not greyed on the card');
+  }
+  if (box.querySelector('.prof-week button, .prof-week input, .prof-week label')) bad.push('a cell of the card\'s week is a control, so it can be pressed and is counted as a tap target');
+  if (!/Monday 16:00/.test(((box.querySelector('.prof-week') || {}).getAttribute || (() => ''))
+      .call(box.querySelector('.prof-week'), 'aria-label') || '')) bad.push('the card\'s week does not say its hours to a screen reader');
+  const rows = [...box.querySelectorAll('.prof-week .slot-row:not(.slot-head)')];
+  const shut = rows.filter(r => r.classList.contains('is-shut')).length;
+  if (rows.length !== 7 || shut !== 4) bad.push(`${rows.length} days drawn with ${shut} collapsed, wanted 7 with 4 (Tue to Fri) collapsed`);
+  const none = d.createElement('div');
+  none.innerHTML = String(w.findCard({ kind: 'tutor', row: Object.assign({}, t, { avail: Object.assign({}, avail, { m16: '', m17: '', sa10: '', su19: '' }) }) }) || '');
+  if (none.querySelector('.prof-week') || /Available</.test(none.innerHTML)) bad.push('a tutor with no hours ticked is drawn with a week anyway');
+  return bad;
+});
+
+/* ---------- YOUR PICTURE, CHOSEN IN SETTINGS -------------------------------------------------------
+   ASKED FOR AS *"everyone should have a profile picture selector widget in account settings"*. The
+   page's own change listener and tiles, end to end: a file chosen on the hidden input is posted as
+   `savePhoto` with a JPEG `data:` URL and your own id, the server's address comes back into the
+   preview and into `USER.profile`, and `Remove` posts `remove` and puts the initial back. The crop
+   itself is a canvas, which jsdom has not got — so `pfpPrepare_` is stood in for, and the real one
+   is driven in a browser with a real file (see the history note). And the old link box must be gone,
+   because a hidden `photo` field would be posted by the card's Save and write the old picture back. */
+check('a picture chosen in Settings posts savePhoto and the preview shows it', async () => {
+  const URL_ = 'https://drive.google.com/file/d/FILEabcdefghijklmnopqrstuv/view';
+  const { w, sent } = boot({ reply: b => b.action === 'savePhoto'
+    ? { success: true, photo: b.remove ? '' : URL_ } : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+           profile: { first_name: 'Test', last_name: 'Admin', photo: '' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const bad = [];
+  if (d.querySelector('#s-settings [data-me="photo"]')) bad.push('Settings still draws a box for a photo link beside the picker');
+  const box = () => d.querySelector('#s-settings .pfp');
+  if (!box()) return bad.concat(['Settings has no picture picker on any card']);
+  const inp = box().querySelector('input.pfp-in[type="file"]');
+  if (!inp || !/image\/\*/.test(inp.getAttribute('accept') || '')) bad.push('the picker has no hidden file input taking images');
+  if (!box().querySelector('[data-do="pfp-pick"]')) bad.push('the picker has no Choose photo tile');
+  const rm = box().querySelector('[data-do="pfp-remove"]');
+  if (!rm || !rm.disabled) bad.push('Remove is pressable with no picture to remove');
+  if (!/^T$/.test(String((box().querySelector('.pfp-none') || {}).textContent || '').trim())) bad.push('with no picture the preview is not the initial');
+  if (!inp) return bad;
+  w.pfpPrepare_ = () => Promise.resolve('data:image/jpeg;base64,' + Buffer.from('square').toString('base64'));
+  Object.defineProperty(inp, 'files', { value: [new w.File(['x'], 'me.png', { type: 'image/png' })], configurable: true });
+  sent.length = 0;
+  inp.dispatchEvent(new w.Event('change', { bubbles: true }));
+  await wait(300);
+  const post = sent.find(b => b.action === 'savePhoto');
+  if (!post) bad.push('choosing a file posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no savePhoto');
+  else {
+    if (!/^data:image\/jpeg;base64,/.test(String(post.data || ''))) bad.push('savePhoto carried "' + String(post.data).slice(0, 30) + '", not a JPEG data: URL');
+    if (post.personId !== 'P001') bad.push('savePhoto did not name the signed-in person by id');
+  }
+  const img = box() && box().querySelector('.pfp-face img');
+  if (!img || !/lh3\.googleusercontent\.com\/d\/FILEabcdefghijklmnopqrstuv/.test(img.getAttribute('src') || '')) {
+    bad.push('after the save the preview shows ' + (img ? img.getAttribute('src') : 'no picture') + ', not the kept file');
+  }
+  if ((t.whoami().profile || {}).photo !== URL_) bad.push('USER.profile.photo was not given the kept address, so the next Settings draw shows the old face');
+  const rm2 = box() && box().querySelector('[data-do="pfp-remove"]');
+  if (!rm2 || rm2.disabled) bad.push('with a picture saved, Remove cannot be pressed');
+  else {
+    sent.length = 0;
+    t.ACTIONS['pfp-remove'](rm2);
+    await wait(300);
+    if (!sent.some(b => b.action === 'savePhoto' && b.remove === true)) bad.push('Remove posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no savePhoto remove');
+    if (!box() || box().querySelector('.pfp-face img') || (t.whoami().profile || {}).photo !== '') bad.push('after Remove the picture is still drawn or still on USER.profile');
+  }
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;

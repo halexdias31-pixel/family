@@ -328,6 +328,19 @@ function profHeat_(names) {
   const G = 80;
   px.forEach(p => layers.push({ img: 'radial-gradient(circle closest-side, rgba(255,190,90,.6) 0, rgba(255,150,60,.3) 45%, rgba(255,120,40,0) 100%)',
     pos: pos(p[0] - G / 2, p[1] - G / 2, G, G), size: G + 'px ' + G + 'px' }));
+  /* A SMALL GOLD CORE AT EACH VENUE, INSIDE ITS GLOW. ASKED FOR AS *"make the heat map a bit
+     clearer."* Measured on a stand-in tile: seven south-west London venues — Colliers Wood, Sutton,
+     Wimbledon, Tooting, Mitcham, Balham, Morden — fused into one orange blob, because 80px glows at
+     .6 alpha that overlap ARE one patch; that is what a heat map is, and it also meant you could
+     not tell three venues from seven. A 10px solid core per venue keeps the warmth and makes each
+     place countable. The dark ring is what separates two cores that nearly touch, and what keeps a
+     gold dot readable on the gold of its own glow. Still no names — the owner asked for a map
+     *"instead of the tutors at showing names of all places"*, so a dot is the most it may say.
+     THE SAME `pos()` WITH THE SAME CENTRE, so a core's position string is its glow's position
+     string exactly, which is what the account state compares to prove they sit together. */
+  const D = 10, cores = px.map(p => ({
+    img: 'radial-gradient(circle closest-side, var(--gold, #ffb454) 0 55%, rgba(0,0,0,.55) 62% 85%, rgba(0,0,0,0) 100%)',
+    pos: pos(p[0] - D / 2, p[1] - D / 2, D, D), size: D + 'px ' + D + 'px' }));
   const t0x = Math.floor((cx - 220) / 256), t1x = Math.floor((cx + 220) / 256);
   const t0y = Math.floor((cy - 130) / 256), t1y = Math.floor((cy + 130) / 256);
   for (let tx = t0x; tx <= t1x; tx++) for (let ty = t0y; ty <= t1y; ty++) {
@@ -348,8 +361,75 @@ function profHeat_(names) {
       aria-label="${esc('A map of where they tutor' + (areas.length ? ': around ' + areas.join(', ') : ''))}">
       <span class="heat-tiles" style="${esc(bg(tiles))}"></span>
       <span class="heat-glow" style="${esc(bg(layers))}"></span>
+      <span class="heat-core" style="${esc(bg(cores))}"></span>
       <span class="heat-credit">© OpenStreetMap contributors</span>
     </div>${tail}`;
+}
+
+/* ---------- WHEN THEY TEACH, AS THE RECEIPT'S WEEK ------------------------------------------------
+   ASKED FOR AS *"tutors availability should appear on their card."* `doGet` has sent `avail` on
+   every tutor since the grid was written — the 77 `m09`…`su19` codes as `{ m16: 'TRUE', m17: '' }`
+   (`availGridOut`) — and `busy`, the same codes for hours they are already teaching. The card read
+   neither, so a parent choosing between two tutors had to start a booking with each to find out
+   whether either worked Tuesdays.
+
+   `weekGrid_`, AND THE RECEIPT'S CELL. The same seven rows the booking form, the receipt and the
+   tutor's own Settings week are drawn with, so a week on a card is not a fourth thing to learn; the
+   cell is the receipt's look — lit or `shut` — on a `<span>`, because a card is read, not answered
+   (see the note over the markup for what a disabled button cost).
+
+   A BUSY HOUR IS GREYED, NOT GOLD. It is an hour they said they can teach and somebody already has,
+   so offering it as open is the promise the booking grid would then break; `slotGrid` greys it for
+   the same reason. Its `title` says why, which is what the booking grid's cells do too.
+
+   A DAY WITH NOTHING TICKED COLLAPSES (`shut`, which `weekGrid_` draws as a thin row) and A TUTOR WITH
+   NOTHING TICKED GETS NOTHING — no caption, no empty week. Seventy-seven grey cells read as "never
+   available", which is not what an unfilled grid means: `slotGrid` treats it as "nobody has said",
+   and the card must not say something stronger than the booking will. */
+function profAvail_(t) {
+  if (!t || typeof weekGrid_ !== 'function' || typeof availSet_ !== 'function') return '';
+  const on = availSet_(t.avail);
+  const ticked = Object.keys(on);
+  if (!ticked.length) return '';
+  /* `busy` IS `{ m16: 'Ada' }` OFF `busyHours`, but the fixture once said `[]` and an older backend
+     may say nothing; a list of codes is read as well, so no shape of it throws. */
+  const busy = {};
+  const b = t.busy;
+  if (Array.isArray(b)) b.forEach(c => { busy[norm(c)] = true; });
+  else if (b && typeof b === 'object') Object.keys(b).forEach(c => { if (b[c]) busy[norm(c)] = b[c]; });
+  /* THE BOOKING'S SPAN, WIDENED TO WHAT THEY TICKED. `SLOT_HOURS` is nine to six and the tutor's own
+     grid runs to seven (`AVAIL_HOURS`), so a seven o'clock tick would otherwise vanish from the one
+     place that is meant to show it. */
+  const hrs = ticked.map(c => Number((c.match(/\d+$/) || [0])[0])).filter(h => h >= 0 && h < 24);
+  const base = (typeof SLOT_HOURS !== 'undefined' && SLOT_HOURS.length) ? SLOT_HOURS : [9, 10, 11, 12, 13, 14, 15, 16, 17, 18];
+  const lo = Math.min(base[0], ...hrs), hi = Math.max(base[base.length - 1], ...hrs);
+  const hours = [];
+  for (let h = lo; h <= hi; h++) hours.push(h);
+  const SD = (typeof SLOT_DAYS !== 'undefined' && SLOT_DAYS) || [];
+  const days = SD.map(([p, label]) => {
+    const cells = hours.map(h => {
+      const code = p + String(h).padStart(2, '0');
+      return { h, code, lit: !!on[code] && !busy[code], busy: !!on[code] && !!busy[code] };
+    });
+    return { label, hours: cells, shut: !cells.some(c => c.lit || c.busy) };
+  });
+  /* ---------- SPANS, NOT THE RECEIPT'S DISABLED BUTTONS ---------------------------------------------
+     THE FIRST VERSION USED `jobWeekRows_`'s `<button disabled>`, and `check/ui.js` listed every one
+     of the 77 as a 17x12 tap target — 210 "known" rows at 320 alone, a report nobody would read past,
+     about cells nobody is meant to press. A cell that is not a control should not be marked up as
+     one; it keeps `.hr`'s look and is a `<span>`. A screen reader is given ONE sentence for the whole
+     week instead of 77 cells — "Monday 16:00, 18:00; Tuesday 10:00…" — which is what a parent asking
+     "when are they free" wants read out. */
+  const said = days.map(d => {
+    const hs = d.hours.filter(c => c.lit).map(c => c.h + ':00');
+    return hs.length ? d.label + ' ' + hs.join(', ') : '';
+  }).filter(Boolean).join('; ');
+  return `<div class="prof-cap">Available</div>
+    <div class="prof-week" data-avail="${ticked.length}" role="img"
+      aria-label="${esc(said ? 'Available ' + said : 'No free hours this week')}">${weekGrid_(days, (c, d) =>
+      `<span class="hr${c.lit ? ' on' : ' shut'}${c.busy ? ' is-busy' : ''}" data-code="${esc(c.code)}"
+        title="${esc(d.label + ' ' + c.h + ':00' + (c.busy ? ' — already teaching' : ''))}"></span>`,
+      { chars: 3 })}</div>`;
 }
 
 /* WHAT ONE EXTRA SEAT ADDS TO THE HOURLY RATE — ASKED FOR AS *"a smaller rate to the side so
@@ -551,6 +631,7 @@ function findCard(x) {
       ${/* WHERE THEY WILL TEACH, off the venues tab's own `tutors_happy_here` column, which a tutor
             ticks on their Contact & address page. An older backend sends no key: nothing drawn. */''}
       ${profHeat_(profList_(t.venues))}
+      ${profAvail_(t)}
     </div>`;
 
   /* ---------- A VENUE IS AN ORDINARY CARD ------------------------------------------------------

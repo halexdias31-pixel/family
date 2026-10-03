@@ -1346,6 +1346,10 @@ const CONFIG_DEFAULTS = [
      limit is tied to the key rather than the key being secret — and Giphy answers those same
      search terms with reaction GIFs, which read as a joke where an illustration should be. */
   ['giphy_key', '', 'leave BLANK for Wikimedia Commons photographs (no key needed). A Giphy API key switches the reels to GIFs instead'],
+  /* WHERE A PROFILE PICTURE CHOSEN IN SETTINGS IS KEPT. Blank means the posts folder, which already
+     works — so this is a row for somebody who wants faces kept apart from the feed, not a thing that
+     has to be set before the picker does anything. See `getPhotoFolder_` in content.gs. */
+  ['photos_folder', '', 'Drive folder id (or its URL) for profile pictures chosen in Settings. BLANK uses the posts folder'],
 
   /* PRINTING. The file is free and always will be; this is paper and toner, at cost.
      A rate of 0 switches printing off entirely rather than making it free — a resource offered at
@@ -2692,6 +2696,8 @@ const ACTION_ACCESS = {
   // A person acting on their own record. Each handler still checks WHOSE row it is.
   updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self', confirmDetails: 'self',
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
+  /* YOUR OWN PICTURE. The handler writes `photo` on the row the token resolved to and nowhere else. */
+  savePhoto: 'self',
   myReferral: 'self',        // your own code, and who came through it
   saveExam: 'self', deleteExam: 'self', redeem: 'self',
   /* `likePost` was here. A like is a reaction with one option, so the heart and the 👍 were two

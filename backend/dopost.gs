@@ -1098,25 +1098,8 @@ function doPost(e) {
          sharing line to be forgotten. */
       const stamp = new Date().getTime();
       let n = 0;
-      const keep_ = raw => {
-        const v = S(raw).trim();
-        if (!v) return '';
-        if (!/^data:/i.test(v)) return v;
-        const parts = v.split(',');
-        const type = ((parts[0] || '').match(/data:([^;]+)/) || [])[1] || 'image/jpeg';
-        const ext = ({ 'image/jpeg': 'jpg', 'video/quicktime': 'mov', 'video/x-m4v': 'm4v' })[type]
-          || (type.split('/')[1] || 'jpg').replace(/[^a-z0-9]/gi, '');
-        const blob = Utilities.newBlob(Utilities.base64Decode(parts[1] || ''), type,
-          'post-' + stamp + '-' + (n++) + '.' + ext);
-        const file = folder.createFile(blob);
-        /* Readable by anyone with the link — otherwise the picture is in the folder and shows as
-           a broken image to every client, which is the failure that would look like a bug in the
-           site rather than a permission. */
-        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-        /* `#video` IS HOW THE PHONE KNOWS WHICH ELEMENT TO DRAW. A Drive address names no type. */
-        return 'https://drive.google.com/file/d/' + file.getId() + '/view'
-          + (/^video\//i.test(type) ? '#video' : '');
-      };
+      /* `driveKeep_` in content.gs, shared with `savePhoto` — the sharing line is written once. */
+      const keep_ = raw => driveKeep_(folder, raw, 'post-' + stamp + '-' + (n++));
       const rest = (Array.isArray(body.media) ? body.media : []).filter(x => S(x).trim());
       /* A LIST WITH NOWHERE TO GO IS REFUSED BEFORE ANYTHING IS UPLOADED. Without the column
          `addRow` would drop the rest with a line in the log and the post would go up holding one of
@@ -2206,6 +2189,61 @@ function doPost(e) {
        earned is refused whatever the request says.
        Buying happens here too, in one step with the equipping — a credit is only spent when the
        item is actually put on, so a failed request can never leave someone poorer. --- */
+    /* --- a person changes their own profile picture --------------------------------------------
+       ASKED FOR AS *"everyone should have a profile picture selector widget in account settings"*.
+       `photo` was a box you pasted a link into, so a picture on your phone could not become your
+       face without first being uploaded somewhere else and shared — which nobody but an admin knew
+       how to do. The phone crops it square and sends it here; this keeps it in Drive exactly as a
+       post's photograph is kept (`driveKeep_`) and writes the address into `photo`.
+
+       YOUR OWN ROW AND NOBODY ELSE'S. `self` in `ACTION_ACCESS`, so the gate has already written
+       `body.name` and `body.personId` from the token — a request naming somebody else changes the
+       asker's picture, never theirs, and one with no token never reaches this line.
+
+       ONLY A PICTURE. A `data:` URL that is not `image/*` is refused by name rather than kept: this
+       cell is drawn as an `<img>` on a public card, and a file of any other kind there is a broken
+       square on every phone. A link is refused too — the picker never sends one, and the link box
+       has gone from Settings, so accepting one here would be a second door to the same cell that
+       nothing in the app uses. `remove` blanks the cell, which puts the initial back on the card.
+
+       THE OLD FILE STAYS IN DRIVE. Deleting a file because a cell stopped naming it is how a picture
+       somebody also used in a post goes missing from the feed; a folder with a few spare faces in it
+       costs nothing anybody sees. */
+    if (action === 'savePhoto') {
+      const t = read(TAB.people);
+      const r = findPerson(S(body.name), S(body.personId));
+      if (!r) return jsonOut({ error: 'Person not found.' });
+      if (t.headers.indexOf('photo') < 0) {
+        return jsonOut({ error: 'The people tab has no `photo` column. Run ensureSchema() — nothing was saved.' });
+      }
+      if (body.remove === true || norm(body.remove) === 'true') {
+        setCell(t, r, 'photo', '');
+        return jsonOut({ success: true, photo: '' });
+      }
+      const raw = S(body.data).trim();
+      if (!/^data:image\/[\w.+-]+;base64,/i.test(raw)) {
+        return jsonOut({ error: 'That is not a picture. Choose a photo from your phone.' });
+      }
+      /* A CAP, IN DECODED BYTES, for a body the phone has already redrawn at 600px — about 60KB. Five
+         megabytes is a phone that skipped the crop, and a cell pointing at a 20MB face is a card that
+         takes a minute to draw on a train. */
+      const bytes = Math.floor(raw.split(',')[1].length * 3 / 4);
+      if (bytes > 5 * 1048576) return jsonOut({ error: 'That picture is too big. Try a smaller one.' });
+      const folder = getPhotoFolder_();
+      if (!folder) {
+        return jsonOut({ error: 'No folder for pictures. Add a row to the config tab: key '
+          + '`photos_folder` (or `posts_folder`), value the id from the folder URL.' });
+      }
+      let url = '';
+      try {
+        url = driveKeep_(folder, raw, 'photo-' + (S(r.person_id) || 'person') + '-' + new Date().getTime());
+      } catch (err) {
+        return jsonOut({ error: 'Could not save the picture. ' + driveTrouble_(err) });
+      }
+      setCell(t, r, 'photo', url);
+      return jsonOut({ success: true, photo: url });
+    }
+
     if (action === 'saveAvatar') {
       const t = read(TAB.people);
       const r = findPerson(S(body.name), S(body.personId));

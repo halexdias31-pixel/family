@@ -986,6 +986,22 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   background: var(--sunk); border: 1px solid var(--line);
 }
 .ph-thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+/* ---------- YOUR PICTURE — `photoPicker_` in me.js ----------------------------------------------
+   The square preview beside its two tiles, at the top of the card the `photo` box used to sit in.
+   SQUARE, because a photograph on this site is square and this is the picture as it was kept — the
+   card rounds it into its own circle. 88px: big enough to judge a crop by, small enough that the
+   tiles and their line fit beside it at 320 without the row wrapping. In px because it sits beside
+   two tap targets and should keep its size against them, not shrink with the root. */
+.pfp { display: grid; grid-template-columns: 88px minmax(0, 1fr); gap: .7rem; align-items: center;
+       margin: .1rem 0 .7rem; }
+.pfp-face { width: 88px; height: 88px; border-radius: 6px; overflow: hidden; display: grid; place-items: center;
+            background: var(--sunk); border: 1px solid var(--line); }
+.pfp-face img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.pfp-face .avatar { width: 56px; height: auto; }
+.pfp-none { font-size: 2.2rem; font-weight: 700; color: var(--faint); }
+.pfp-side { min-width: 0; }
+.pfp-side .tile-row { margin: 0; }
+.pfp-said { margin: .35rem 0 0; font-size: .74rem; line-height: 1.3; }
 
 /* The whole row is the target, not the little box. A pixel floor rather than a rem multiple,
    because 2.9rem at a 15px root came out at 43.5px — half a pixel under, which is exactly the
@@ -11998,7 +12014,33 @@ button.scr-sq { cursor: pointer; }
 /* TWO LAYERS, because the tiles are filtered and the glows must not be. OpenStreetMap's standard
    tiles are light; inverting them and turning the hue back round gives a dark street map in the
    app's own palette, and the orange glows go on a separate layer above so they keep their colour. */
-.prof-heat .heat-tiles, .prof-heat .heat-glow { position: absolute; inset: 0; pointer-events: none; }
-.prof-heat .heat-tiles { filter: invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.4); }
+.prof-heat .heat-tiles, .prof-heat .heat-glow, .prof-heat .heat-core { position: absolute; inset: 0; pointer-events: none; }
+/* NOT INVERTED ANY MORE, BECAUSE INVERTING LOST THE STREETS. Asked for as *"make the heat map a bit
+   clearer."* On OpenStreetMap's own colours the old `invert(1) hue-rotate(180deg) brightness(.85)
+   contrast(.9) saturate(.4)` turned white minor roads on #f2efe9 land into rgb(13,13,13) on
+   rgb(26,25,23) — 1.11:1, a street grid nobody could see — because the two colours are 5% apart and
+   inverting keeps them 5% apart at the dark end, where the eye resolves least. Turning the contrast
+   up after an invert only clips both to black.
+   SO THE STRETCH COMES FIRST AND THE MAP IS DARKENED BY IT: `brightness(.46) contrast(4)` maps the
+   narrow light band the tiles live in onto the dark half of the range, keeping the order — streets
+   LIGHTER than the blocks round them, which is how every dark map is drawn. Measured on the same
+   stand-in colours: minor roads 1.62:1 on open land and 2.46:1 on residential (#e0dfdf, most of
+   London at these zooms), water 1.85:1, place labels dark rather than white. `sepia` warms the grey
+   towards the card's gold. This container cannot load real tiles (403), so the phone has the final
+   word on this — tune these two numbers, not the order. */
+.prof-heat .heat-tiles { filter: brightness(.46) contrast(4) saturate(.5) sepia(.25); }
 .prof-heat .heat-credit { position: absolute; right: 4px; bottom: 2px; font-size: .5rem; line-height: 1.4;
   color: rgba(255, 255, 255, .72); background: rgba(0, 0, 0, .45); padding: 0 3px; border-radius: 3px; }
+/* ---------- A TUTOR'S WEEK ON THEIR CARD — see `profAvail_` in cards.js ----------------------------
+   The receipt's week, read rather than answered: the cells are disabled buttons, so they do not
+   take the pointer, shrink when touched or look like something to tick. SLIMMER THAN THE SETTINGS
+   WEEK, which is square because it is a page of its own; this is the last thing on a card that is
+   already near its pane's height, and a day nobody works is a thin rule (`is-shut`) rather than a
+   row. A busy hour is `shut` like an hour they do not work — both are hours that cannot be booked —
+   and says which in its title. */
+.prof-week .slot-grid { gap: 2px; margin: .1rem 0 .3rem; }
+.prof-week .slot-day { flex-basis: 1.9rem; font-size: .62rem; text-transform: none; letter-spacing: 0; color: var(--dim); }
+.prof-week .hr { min-height: 12px; border-radius: 2px; cursor: default; }
+.prof-week .slot-row.is-shut .hr { min-height: 5px; }
+.prof-week .slot-row.is-shut .slot-day { font-size: .52rem; line-height: 1; color: var(--faint); }
+.prof-week .hr:active { transform: none; }
