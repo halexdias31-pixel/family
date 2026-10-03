@@ -133,7 +133,12 @@ const SUITE = [
      is maths -- a plain `5/8`, a `?/24`, a `cm3` -- and counts what is left on purpose, 1st Class
      Maths' lost powers among it, rather than going quiet about them. */
   { file: 'check-typeset.js', what: 'fractions stacked, powers raised, no plain-text maths' },
-  { file: 'check-chess.js',   what: 'the chess move generator, counted by perft' },
+  /* ---------- AND WHETHER THE ANSWER YOU SEE IS SHORT -------------------------------------------
+     "make answers breaifer ... i want shorter answers." The result is drawn and the working folded
+     under Why; this fails on a result over 120 characters that nobody has given a reason for, and
+     on a split that cost a fraction or a power. */
+  { file: 'check-answers.js', what: 'every answer drawn is a short result, the working folded' },
+  { file: 'check-chess.js',  what: 'the chess move generator, counted by perft' },
   /* ---------- AND EVERY TIMESTAMP ANYBODY SEES ---------------------------------------------------
      `parseWhen` read `2026-09-15` as 26 September 2015, because its day-month-year match was not
      anchored and the engine slid past the four-digit year. A plausible date, wrong by eleven years,
