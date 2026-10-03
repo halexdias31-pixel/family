@@ -937,6 +937,12 @@ const LEVEL_BUCKET = bucketTable_([
   ['KS2',     ['KS2 SATs', 'KS2']],
   ['KS3',     ['KS3', 'KS2–KS3']],
   ['GCSE',    ['GCSE', 'KS2–GCSE', 'KS3–GCSE']],
+  /* FUNCTIONAL SKILLS IS ITS OWN QUALIFICATION, NOT A RUNG OF THIS ONE. Level 2 is pitched near a GCSE
+     grade 4 and is sat by adults and apprentices as often as by anyone at school, so filing it under
+     `GCSE` would put a different exam, with a different shape (two sections, a checking mark), under a
+     name it does not carry. It sits beside GCSE because that is where its Level 2 is pitched; Entry
+     Level and Level 1 join it here when their papers arrive, under the same one answer. */
+  ['Functional Skills', ['Functional Skills Entry Level', 'Functional Skills L1', 'Functional Skills L2']],
   ['A-Level', ['A-Level', 'AS', 'GCSE–A-level']],
 ]);
 

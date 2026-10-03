@@ -1494,6 +1494,38 @@ boot(f => {
       bad.push('a bucket holds something its own table does not put in it: ' + leaks.slice(0, 5).join('; '));
     }
 
+    /* ---------- AND A LISTED TABLE PLACES EVERY ANSWER THE LIBRARY GIVES ----------------------------
+       FOUND ADDING THE FIRST FUNCTIONAL SKILLS PAPER, and only because the summary line above was
+       read: `Level` had been `KS1 | KS2 | KS3 | GCSE | A-Level` and one new band value turned it into
+       `A (618) | F (6) | G (4752) | K (353)`. `bucketLabels_` stands the whole grouping down to the
+       alphabet when ONE value has no row in the table -- deliberately, because a grouping that drops
+       an answer hides it -- so six questions nobody had filed rewrote the Level question for all
+       5,750. Nothing failed: the rule above only looks at a facet whose drawn labels are its own, so
+       the moment the table stood down that rule stood down with it.
+
+       SO A TABLE THAT IS WRITTEN OUT (`order` non-empty) MUST PLACE EVERY VALUE AN ITEM GIVES. A
+       computed grouping (`waveBucket_`, an empty `order`) places by arithmetic and is not this rule's
+       business. The repair is one row in the table, and the message names the value. */
+    const unplaced = [];
+    f.facetList().forEach(facet => {
+      const of = facet.bucketOf;
+      if (typeof of !== 'function' || !Array.isArray(of.order) || !of.order.length) return;
+      const lost = {};
+      all.forEach(x => {
+        let vs = [];
+        try { vs = f.facetOwn_(facet, x).filter(Boolean); } catch (e) { return; }
+        vs.forEach(v => { if (!of(v)) lost[v] = (lost[v] || 0) + 1; });
+      });
+      Object.keys(lost).forEach(v => unplaced.push('`' + facet.field + '` "' + v + '" (' + lost[v] + ')'));
+    });
+    console.log('  values a written-out grouping has no row for: ' + unplaced.length);
+    if (unplaced.length) {
+      bad.push(unplaced.length + ' answer(s) have no row in their facet\'s bucket table, so that whole '
+               + 'question is drawn as letter ranges instead of its own groups: '
+               + unplaced.slice(0, 6).join(', ') + ' — add the value to the table (LEVEL_BUCKET and '
+               + 'its neighbours in find.js).');
+    }
+
     /* ---------- AND A QUESTION ASKED INSIDE A BUCKET OFFERS ONLY WHAT IS IN IT -------------------
        FOUND BY WALKING THE FUNNEL AND READING WHAT IT DREW, which is the only way it could have
        been: six chips deep, pressing `Topic · D–F` drew `D–E`, `F`, `I–M`, `N–P` and `S–T`.
