@@ -2162,6 +2162,22 @@ function doPost(e) {
     }
 
     if (action === 'saveTodo')    return savePerson('todo', S(body.todo));
+    /* ---------- THE TIMETABLE, KEPT ON THE ACCOUNT ---------------------------------------------
+       The docket's pattern — `savePerson` on the row the token resolved to, so a request naming
+       somebody else still writes the asker's own cell. Two refusals before anything is written:
+       it must be the widget's shape (a cell of anything else would be read back as an empty week
+       and then saved over), and it must fit a cell — a spreadsheet cell holds 50,000 characters
+       and a week of lessons is a few hundred. */
+    if (action === 'saveTimetable') {
+      const raw = S(body.timetable);
+      let t = null;
+      try { t = JSON.parse(raw); } catch (e) { t = null; }
+      if (!t || !Array.isArray(t.days) || t.days.length !== 7 || !t.days.every(Array.isArray)) {
+        return jsonOut({ error: 'That is not a timetable — nothing was saved.' });
+      }
+      if (raw.length > 40000) return jsonOut({ error: 'That timetable is too long to keep — nothing was saved.' });
+      return savePerson('timetable', raw);
+    }
     // A tutor saying "yes, this is all still true". Dated, so it can go stale on its own.
     if (action === 'confirmDetails') return savePerson('details_confirmed', new Date());
 
@@ -3718,6 +3734,9 @@ function loginReplyFor_(r, token) {
                    reason it is here rather than in the list of seven is that nothing was
                    comparing the two sides until now. */
                 notepad: S(r.notepad), todo: S(r.todo),
+                /* AND THE TIMETABLE, for the same reason: written by `saveTimetable` and read by
+                   nothing until the sign-in reply carries it. */
+                timetable: S(r.timetable),
                 /* THE PHOTOGRAPH. Neither field was in this reply, so the You screen has been
                    falling back to a letter in a circle for everybody since the rewrite — it
                    reads `USER.photo`, and nothing was sending one.

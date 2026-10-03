@@ -77,3 +77,28 @@ shuts the grid and is not sent for; No preference still books*, and the card jou
 sentence. Mutations: the no-hours refusal, the outside-the-week refusal and the date window removed
 on the server; `off`, the handler guard, the grid's `tNone`, the send guard, `slots` and the card's
 sentence removed on the phone — each red for its reason, green restored.
+
+### 3. The Timetable is on the account, holds your sessions, and is the one week view
+
+- **On the account.** A `timetable` column on `people` (SCHEMA, so `ensureSchema` adds it) holds the
+  widget's own JSON; `saveTimetable` (`self`, the docket's `savePerson`, own row only, refuses
+  anything not shaped like a week or over 40,000 characters) writes it, and the sign-in reply carries
+  it back. `tmtSave_` keeps it on the phone first and posts after 900ms, saying so if it fails.
+  Signed out it stays on the device under the bare key, as before. **The first time** a signed-in
+  person opens it with nothing on the account, whatever this phone held under their own key
+  (`tmt:u:<id>`) is carried up — once, because saving fills `USER.timetable`.
+- **Your booked sessions, locked.** `tmtHtml_` reads `weekSessions_` (step 1) for this week and draws
+  each as a green row (`.tmt-row.is-booked`) in time order among the lessons — no boxes, no Remove,
+  never stored in the timetable (a copy of a booking goes stale). Tapping one opens the session
+  through `job`, which is what `Your week`'s blocks did. A session at the weekend shows the weekend.
+- **`Your week` is gone** — the widget, `weekGrid`, `initWeek` and the `.wk` rules. One week view,
+  not two. It was in the middle of `WIDGETS`, so anybody whose remembered Tools page was past it
+  lands one tool along once.
+
+Checked: `check-profile.js` §16 (lands on yours; naming somebody else still lands on yours; signed out
+refused; three wrong shapes refused; the sign-in reply carries it); `check-flow.js` *the timetable
+holds your booked sessions locked, is saved to your account, and Your week is gone*; `check/states.js`
+*a timetable with your sessions in it* (signed in, four widths) and the existing timetable state now
+seeds the account when signed in. The teaching-hours state expects 70 cells (7 × 9–18) now. Mutations:
+no sessions drawn; saving to the device while signed in; no carry-up; the weekend rule; the server's
+shape check; the sign-in reply field; `saveTimetable` opened to `anyone` — each red, green restored.

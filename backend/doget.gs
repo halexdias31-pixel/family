@@ -451,6 +451,8 @@ function doGet(e) {
                  'saveRoom',
 
                  'saveTodo', 'saveAvatar', 'register', 'verifyEmail', 'diagnosePeople',
+                 /* The Timetable widget's week, kept on the account. */
+                 'saveTimetable',
                  'listRecords', 'saveRecordsPage',
                  /* The site checks for this to decide whether it may offer the picker. */
                  'folderFiles',

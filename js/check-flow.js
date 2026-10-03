@@ -5423,8 +5423,8 @@ check('your week holds your sessions only, on every day they run, while their da
   const { w } = boot();
   await wait(300);
   const t = w.__t;
-  if (typeof w.weekSessions_ !== 'function' || typeof w.weekGrid !== 'function') {
-    return ['weekSessions_ / weekGrid are not reachable, so the week was NOT checked — not a pass'];
+  if (typeof w.weekSessions_ !== 'function') {
+    return ['weekSessions_ is not reachable, so the week was NOT checked — not a pass'];
   }
   const mon = w.mondayOf_(new Date());
   const at = n => { const d = new Date(mon); d.setDate(d.getDate() + n); return d; };
@@ -5445,13 +5445,99 @@ check('your week holds your sessions only, on every day they run, while their da
   const bad = [];
   if (got !== want) bad.push('this week holds [' + got + '], wanted [' + want + '] — both days of the two-day booking, '
     + 'nothing of a stranger\'s, nothing ended or not yet started, and the undated request on its weekday');
-  const box = w.document.createElement('div');
-  box.innerHTML = w.weekGrid();
-  const heads = [...box.querySelectorAll('.wk-h')].map(x => x.textContent.trim()).filter(Boolean).join(' ');
-  if (heads !== 'Mon Fri Sat') bad.push('the week grid draws the days [' + heads + '], wanted [Mon Fri Sat]');
-  if (box.querySelectorAll('.wk-c.is-on[data-do="job"][data-id="TWO-DAY"]').length !== 4) {
-    bad.push('the two-day booking is ' + box.querySelectorAll('[data-id="TWO-DAY"]').length + ' cells, wanted 4 (two hours on two days), each opening the session');
+  return bad;
+});
+
+/* ---------- THE TIMETABLE IS THE ONE WEEK: YOUR SESSIONS LOCKED IN IT, AND IT IS ON YOUR ACCOUNT ---------
+   `Your week` drew the sessions booked here and the Timetable what somebody wrote; they are one widget
+   now. Asked of the real handlers: a booked session is in the day's list among the lessons, in time
+   order, as a row that opens the session (`job`) and has no boxes; a Saturday session shows the
+   weekend; `Your week` is not on the Tools column any more. Then the account: a lesson typed while
+   signed in is posted as `saveTimetable` with the person's id and the widget's own shape, a week
+   already on this phone under their key is carried up the first time, a week on the account is drawn
+   from `USER.timetable` on a phone that has nothing, and signed out it stays on the device. */
+check('the timetable holds your booked sessions locked, is saved to your account, and Your week is gone', async () => {
+  const { w, sent } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document;
+  if (typeof w.initTimetable !== 'function' || typeof t.tmtKey !== 'function' || typeof w.weekSessions_ !== 'function') {
+    return ['the timetable / weekSessions_ are not reachable, so this was NOT checked — not a pass'];
   }
+  const bad = [];
+  const mon = w.mondayOf_(new Date());
+  const at = n => { const x = new Date(mon); x.setDate(x.getDate() + n); return x; };
+  const dmy = x => String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0') + '/' + x.getFullYear();
+  const D = t.DATA();
+  D.liveJobs = D.jobs = [
+    { id: 'J-MON', jobId: 'J-MON', subject: 'Physics', location: 'Mitcham library', day: 'Monday, Saturday',
+      time: '10:00', hours: 2, client: 'Sam Student', tutor: 'GeorgePovey', status: 'active', slots: [],
+      dates: [at(0), at(5), at(7)].map(dmy).join(', ') },
+    { id: 'J-ELSE', jobId: 'J-ELSE', subject: 'Chemistry', day: 'Monday', time: '12:00', hours: 1,
+      client: 'Somebody Else', tutor: 'Sasha Matola', status: 'active', slots: [], dates: dmy(at(0)) },
+  ];
+  const sam = { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'], token: 'tk' };
+  /* A WEEK ALREADY ON THIS PHONE under Sam's key, from before it was kept on the account. */
+  w.localStorage.setItem('tmt:u:P9', JSON.stringify({ weekend: false,
+    days: [[{ id: 'L1', at: '09:00', subject: 'Maths', note: '' }, { id: 'L2', at: '13:00', subject: 'Art', note: '' }], [], [], [], [], [], []] }));
+  t.USER(sam);
+  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  await wait(300);
+  if (d.querySelector('#week-body')) bad.push('`Your week` is still a widget on the Tools column — it is folded into the Timetable');
+  const box = () => d.querySelector('.tmt-box');
+  if (!box()) return bad.concat('the timetable did not draw on the Tools column');
+  const chip = d.createElement('button'); chip.setAttribute('data-day', '0');
+  t.ACTIONS['tmt-day'](chip);
+  const list = () => [...box().querySelectorAll('.tmt-list > *')].map(r =>
+    (r.classList.contains('is-booked') ? 'BOOKED ' : '') + r.querySelector('.tmt-at').textContent.trim() + ' '
+    + r.querySelector('.tmt-sub').textContent.trim());
+  const got = list().join(', ');
+  if (got !== '09:00 Maths, BOOKED 10:00 Physics, 13:00 Art') {
+    bad.push('Monday reads [' + got + '], wanted [09:00 Maths, BOOKED 10:00 Physics, 13:00 Art] — the phone\'s week carried up, '
+      + 'your session among it in time order, and nobody else\'s');
+  }
+  const row = box().querySelector('.tmt-row.is-booked');
+  if (!row || row.getAttribute('data-do') !== 'job' || row.getAttribute('data-id') !== 'J-MON') {
+    bad.push('the booked session is not a row that opens it (data-do="job" data-id="J-MON")');
+  }
+  if (box().querySelector('.tmt-ed .tmt-in[data-id="J-MON"]')) bad.push('a booked session opened into editable boxes');
+  if (box().querySelectorAll('.tmt-day').length !== 7) bad.push('a session on Saturday did not show the weekend: ' + box().querySelectorAll('.tmt-day').length + ' day chips');
+  /* THE ACCOUNT. The carry-up wrote USER.timetable; give the debounce time and look at the wire. */
+  await wait(1100);
+  const save = sent.filter(x => x.action === 'saveTimetable').pop();
+  if (!save) bad.push('the week on this phone was not carried up to the account (no saveTimetable sent)');
+  else {
+    let shape = null; try { shape = JSON.parse(save.timetable); } catch (e) {}
+    if (save.personId !== 'P9' || !shape || !Array.isArray(shape.days) || shape.days.length !== 7) {
+      bad.push('saveTimetable carried ' + JSON.stringify({ personId: save.personId, days: shape && shape.days && shape.days.length }));
+    }
+    if (shape && JSON.stringify(shape).indexOf('J-MON') !== -1) bad.push('the booked session was SAVED into the timetable — a copy of a booking goes stale');
+  }
+  /* A LESSON TYPED WHILE SIGNED IN IS SENT. */
+  sent.length = 0;
+  t.ACTIONS['tmt-add'](d.createElement('button'));
+  const sub = box().querySelector('.tmt-in[data-f="subject"]');
+  if (sub) { sub.value = 'Latin'; sub.dispatchEvent(new w.Event('input', { bubbles: true })); }
+  await wait(1100);
+  const typed = sent.filter(x => x.action === 'saveTimetable').pop();
+  if (!typed || !/Latin/.test(typed.timetable || '')) bad.push('a lesson typed while signed in was not saved to the account');
+  /* ANOTHER PHONE: nothing on the device, the week on the account. */
+  w.localStorage.removeItem('tmt:u:P9');
+  const onAccount = JSON.stringify({ weekend: false, days: [[{ id: 'L9', at: '15:00', subject: 'Greek', note: '' }], [], [], [], [], [], []] });
+  t.USER(Object.assign({}, sam, { timetable: onAccount }));
+  try { t.repaint(); } catch (e) {}
+  if (!/Greek/.test(box().textContent) || /Maths/.test(box().textContent)) bad.push('a phone with nothing on it did not draw the week kept on the account');
+  /* SIGNED OUT: the device's own, under the bare key, and nothing is sent. */
+  t.USER(null);
+  try { t.repaint(); } catch (e) {}
+  sent.length = 0;
+  w.localStorage.removeItem('tmt');
+  t.ACTIONS['tmt-add'](d.createElement('button'));
+  const sub2 = box().querySelector('.tmt-in[data-f="subject"]');
+  if (sub2) { sub2.value = 'Music'; sub2.dispatchEvent(new w.Event('input', { bubbles: true })); }
+  await wait(1100);
+  if (sent.some(x => x.action === 'saveTimetable')) bad.push('signed out, the timetable was posted to the server');
+  if (!/Music/.test(w.localStorage.getItem('tmt') || '')) bad.push('signed out, the timetable was not kept on the device');
+  if (box().querySelector('.tmt-row.is-booked')) bad.push('signed out, somebody\'s booked session is drawn');
   return bad;
 });
 

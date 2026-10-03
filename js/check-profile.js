@@ -949,12 +949,50 @@ let hoursRules = 0;
   }
 }
 
+/* 16. THE TIMETABLE, KEPT ON THE ACCOUNT, THROUGH THE REAL `doPost`.
+   It lived on one phone. `saveTimetable` writes the `timetable` cell of the row the TOKEN resolves to
+   (the docket's `savePerson`), so: it lands on yours; a request naming somebody else still lands on
+   yours; signed out is refused with nothing written; something that is not the widget's shape is
+   refused with nothing written; and the sign-in reply carries it back, which is how another phone
+   gets it. */
+let timetables = 0;
+{
+  const f = backend();
+  f.seed('people', PEOPLE);
+  const tk = {};
+  ['P-S1', 'P-C1'].forEach(pid => {
+    const p = PEOPLE.find(x => x.person_id === pid);
+    const d = f.post({ action: 'verifyLogin', email: p.email, pin: '0000' });
+    if (d && d.success) tk[pid] = d; else bad.push('timetable: ' + pid + ' could not sign in — ' + JSON.stringify(d));
+  });
+  const week = subj => JSON.stringify({ weekend: false, colours: {},
+    days: [[{ id: 'L1', at: '09:00', subject: subj, note: '' }], [], [], [], [], [], []] });
+  const rule = (ok, said) => { if (ok) timetables++; else bad.push('timetable: ' + said); };
+  if (tk['P-S1'] && tk['P-C1']) {
+    const parentWas = String(f.row('P-C1').timetable);
+    const mine = f.post({ action: 'saveTimetable', token: tk['P-S1'].token, name: tk['P-S1'].name, personId: 'P-S1', timetable: week('Maths') });
+    rule(mine && mine.success && /Maths/.test(String(f.row('P-S1').timetable)), 'a student could not keep their timetable — ' + JSON.stringify(mine));
+    const other = f.post({ action: 'saveTimetable', token: tk['P-S1'].token, name: 'Pat Parent', personId: 'P-C1', timetable: week('Latin') });
+    rule(String(f.row('P-C1').timetable) === parentWas && /Latin/.test(String(f.row('P-S1').timetable)),
+      'a saveTimetable naming P-C1 wrote the PARENT\'s cell, or not the asker\'s — ' + JSON.stringify(other));
+    const out = f.post({ action: 'saveTimetable', name: 'Sam Student', personId: 'P-S1', timetable: week('Art') });
+    rule(!(out && out.success) && !out.writes, 'saveTimetable with no token was allowed, or wrote');
+    ['not json', JSON.stringify({ days: [[], []] }), JSON.stringify({ days: 'monday' })].forEach(junk => {
+      const was = String(f.row('P-S1').timetable);
+      const d = f.post({ action: 'saveTimetable', token: tk['P-S1'].token, name: tk['P-S1'].name, personId: 'P-S1', timetable: junk });
+      rule(!(d && d.success) && String(f.row('P-S1').timetable) === was, 'a timetable of the wrong shape (' + junk.slice(0, 20) + ') was kept');
+    });
+    const again = f.post({ action: 'verifyLogin', email: student.email, pin: '0000' });
+    rule(again && /Latin/.test(String(again.timetable)), 'the sign-in reply does not carry the timetable back — ' + String(again && again.timetable));
+  }
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
 console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
   + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   role rules held: ' + roleRules
-  + '   closed days sent: ' + closed + '   tutor-hours rules held: ' + hoursRules);
+  + '   closed days sent: ' + closed + '   tutor-hours rules held: ' + hoursRules + '   timetable rules held: ' + timetables);
 if (bad.length) {
   console.log('FAILED — a Save that does not stick, or writes what nobody asked, is the one on the screen that only exists to change what the sheet holds.');
   process.exit(1);

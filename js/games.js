@@ -4149,12 +4149,23 @@ on('scr-pass', () => {
 
 /* ---------- THE TIMETABLE ---------------------------------------------------------------------------
    ASKED FOR AS *"timetable widget ... like weekly timetable"*. A student's school week, or a tutor's
-   standing sessions: a day, a time, a subject, a line of note. Nothing here posts anywhere.
+   standing sessions: a day, a time, a subject, a line of note.
 
-   ON THE DEVICE, UNDER WHOEVER IS SIGNED IN. `whoIs_` is the same answer the answer boxes use, so two
-   students sharing a phone get two timetables and signing out puts the stranger's back. Signed out it
-   still works — under the bare key, exactly as an answer box does — because a timetable is not a thing
-   anybody should need an account to write down.
+   ON THE ACCOUNT WHEN SIGNED IN, ON THE DEVICE WHEN NOT. It began on the device only, under `whoIs_`,
+   and that made it the one week in the app that disagreed with itself across phones: a tutor's week
+   written on a laptop was not on their phone. It is saved to the `timetable` cell on your own row now
+   (`saveTimetable`, the docket's pattern — see `tmtSave_`) and comes back with the sign-in reply.
+   Signed out it still works under the bare key, because a timetable is not a thing anybody should
+   need an account to write down; and the FIRST time somebody signed in opens it with nothing on the
+   account, whatever this phone already held under their key is carried up rather than lost.
+
+   AND YOUR BOOKED SESSIONS ARE IN IT, LOCKED. Asked as part of *"calander and time table and
+   availability ... it seems they clash"*: `Your week` drew the sessions booked here and this drew what
+   somebody wrote, two weeks of one person side by side. The booked ones are read from `jobs` through
+   `weekSessions_` (book.js) every time it is drawn — this week's dates, so a half term or a bank
+   holiday is simply a day without the session — and are never stored here, because a copy of a
+   booking is a copy that goes stale. Tapping one opens the session, as `Your week` did; you write
+   your own lessons around them. `Your week` is gone; this is the one week view.
 
    ONE DAY AT A TIME, AND THAT IS A MEASUREMENT. A seven-column grid of lessons is 35px a column on a
    320px phone, which holds "Ma" of Maths and no time at all. A day is a list, and a week is the chips
@@ -4169,15 +4180,57 @@ let TMT_DAY = -1;      // which day is on screen; -1 until the first draw picks 
 let TMT_OPEN = '';     // the id of the lesson whose boxes are showing
 
 const tmtKey_ = () => 'tmt' + (whoIs_() ? ':' + whoIs_() : '');
+let TMT_TIMER = null;
+
+/* A timetable, or null — from the cell's text, the device's text, or anything else. The shape is
+   checked rather than trusted, because a cell somebody typed into would otherwise be drawn as a week
+   and then saved back over. */
+function tmtParse_(raw) {
+  try {
+    const t = typeof raw === 'string' ? JSON.parse(raw || 'null') : raw;
+    if (t && Array.isArray(t.days) && t.days.length === 7 && t.days.every(Array.isArray)) return t;
+  } catch (e) {}
+  return null;
+}
+const tmtEmpty_ = () => ({ weekend: false, days: [[], [], [], [], [], [], []] });
+function tmtLocal_() {
+  try { return tmtParse_(localStorage.getItem(tmtKey_())); } catch (e) { return null; }
+}
 
 function tmtRead_() {
-  try {
-    const t = JSON.parse(localStorage.getItem(tmtKey_()) || 'null');
-    if (t && Array.isArray(t.days) && t.days.length === 7) return t;
-  } catch (e) {}
-  return { weekend: false, days: [[], [], [], [], [], [], []] };
+  if (typeof USER !== 'undefined' && USER) {
+    const mine = tmtParse_(USER.timetable);
+    if (mine) return mine;
+    /* ---------- THE FIRST TIME ON THE ACCOUNT, WHAT THIS PHONE HELD COMES WITH YOU ----------------
+       Nothing on the account yet, and a week on this phone under your own key — the only place it
+       could have been before today. Carried up once: saving it fills `USER.timetable`, so the next
+       read takes the account's copy and this branch is never reached again. An empty week on the
+       account (everything removed on purpose) is still a week, so it is not re-filled from here. */
+    const here = tmtLocal_();
+    if (here && here.days.some(d => d.length)) { tmtSave_(here); return here; }
+    return tmtEmpty_();
+  }
+  return tmtLocal_() || tmtEmpty_();
 }
+/* ---------- KEPT ON THE PHONE FIRST, THEN SENT ---------------------------------------------------
+   `docketSave`'s order and for its reason: a lesson that waits for a round trip before it is on the
+   list feels broken on a train. Debounced, because a subject typed letter by letter is one intention
+   and not nine writes to a spreadsheet cell. A failure is SAID — a week that looks saved and is not
+   is found out on the other phone, which is the whole reason this is on the account. */
 function tmtSave_(t) {
+  if (typeof USER !== 'undefined' && USER) {
+    USER.timetable = JSON.stringify(t);
+    try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
+    clearTimeout(TMT_TIMER);
+    TMT_TIMER = setTimeout(() => {
+      if (!USER) return;
+      api({ action: 'saveTimetable', name: USER.name, personId: USER.personId || '',
+            timetable: USER.timetable })
+        .then(d => { if (d && d.error) throw new Error(d.error); })
+        .catch(err => toast('Timetable not saved — ' + String((err && err.message) || 'no connection.')));
+    }, 900);
+    return;
+  }
   try { localStorage.setItem(tmtKey_(), JSON.stringify(t)); }
   catch (e) { toast('Not saved — this browser is not keeping anything.'); }
 }
@@ -4260,20 +4313,45 @@ function tmtRow_(l, t) {
     </div>`;
 }
 
+/* ---------- A BOOKED SESSION, LOCKED ----------------------------------------------------------------
+   Its own row and not a lesson: no boxes, no Remove, because it is not this widget's to change — it
+   is a booking, and it is changed where bookings are. Tapping it opens the session (`job`, the
+   handler `Your week`'s blocks used), so the one week view still leads to the receipt. Green on its
+   edge, the colour a session has always been here; the hours and the place on its second line. */
+function tmtBooked_(s) {
+  const hh = h => String(h).padStart(2, '0') + ':00';
+  const id = esc(String(s.j.id || s.j.jobId || ''));
+  return `<button type="button" class="tmt-row is-booked" data-do="job" data-id="${id}">
+      <span class="tmt-at">${hh(s.from)}</span>
+      <span class="tmt-what"><span class="tmt-sub">${esc(s.j.subject || 'Session')}</span><span
+        class="tmt-note">Booked · ${hh(s.from)}\u2013${hh(s.to)}${
+        s.j.location ? ' · ' + esc(s.j.location) : ''}</span></span></button>`;
+}
+
 function tmtHtml_() {
   const t = tmtRead_();
   if (tmtColours_(t)) tmtSave_(t);
-  const shown = t.weekend ? 7 : 5;
+  /* THIS WEEK'S BOOKED SESSIONS, one entry per day each runs — see `weekSessions_`. Signed out there
+     are none, and nothing about the written week depends on them. */
+  const booked = (typeof USER !== 'undefined' && USER && typeof weekSessions_ === 'function')
+    ? weekSessions_() : [];
+  /* A SESSION AT THE WEEKEND SHOWS THE WEEKEND, whether or not the box is ticked — a booking on a
+     Saturday hidden behind a tickbox is the clash this was asked to remove. */
+  const shown = (t.weekend || booked.some(s => s.day > 4)) ? 7 : 5;
   if (TMT_DAY < 0) TMT_DAY = (new Date().getDay() + 6) % 7;      // Monday-first, as SLOT_DAYS is
   if (TMT_DAY >= shown) TMT_DAY = 0;
-  const day = (t.days[TMT_DAY] || []).slice().sort(tmtOrder_);
+  const hh = h => String(h).padStart(2, '0') + ':00';
+  const rows = (t.days[TMT_DAY] || []).map(l => ({ at: l.at || '99', html: () => tmtRow_(l, t) }))
+    .concat(booked.filter(s => s.day === TMT_DAY).map(s => ({ at: hh(s.from), html: () => tmtBooked_(s) })))
+    .sort(tmtOrder_);
   const chips = TMT_DAY_NAMES.slice(0, shown).map((n, i) =>
-    `<button type="button" class="tmt-day${i === TMT_DAY ? ' on' : ''}${(t.days[i] || []).length ? ' has' : ''}"
+    `<button type="button" class="tmt-day${i === TMT_DAY ? ' on' : ''}${
+      (t.days[i] || []).length || booked.some(s => s.day === i) ? ' has' : ''}"
              data-do="tmt-day" data-day="${i}" aria-pressed="${i === TMT_DAY}"
              aria-label="${n}">${n.slice(0, 3)}</button>`).join('');
   return `<div class="tmt">
     <div class="tmt-days n${shown}">${chips}</div>
-    <div class="tmt-list">${day.length ? day.map(l => tmtRow_(l, t)).join('')
+    <div class="tmt-list">${rows.length ? rows.map(r => r.html()).join('')
       : `<p class="faint tmt-none">Nothing on ${TMT_DAY_NAMES[TMT_DAY]}.</p>`}</div>
     ${/* ONE ROW FOR BOTH, because a full Monday at 320 is the card that runs out of height first and
           a line of its own for a tickbox is 44px of it. */''}

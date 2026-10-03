@@ -1877,7 +1877,9 @@ const STATES = {
         if (n < 0) throw new Error('no availability widget in the roster');
         goPage('tools', n, true);
       },
-      expect: () => document.querySelectorAll('#s-tools #avail-box .hr').length > 70,
+      /* SEVENTY: seven days of `AVAIL_HOURS`, nine to six — it was seventy-seven while that span
+         ran to seven o'clock, an hour the booking grid never offered. */
+      expect: () => document.querySelectorAll('#s-tools #avail-box .hr').length >= 70,
       wants: 'the week of hours drawn on screen' },
 
     /* ---------- A TIMETABLE WITH A WEEK IN IT ------------------------------------------------------
@@ -1893,8 +1895,11 @@ const STATES = {
           { id: 'T2', at: '10:00', subject: 'English Literature and Language combined', note: '' },
           { id: 'T3', at: '11:15', subject: 'Chemistry', note: 'Bring the revision guide and a calculator, practical write-up due' },
           { id: 'T4', at: '13:30', subject: 'History', note: '' }];
-        localStorage.setItem(tmtKey_(), JSON.stringify({ weekend: true,
-          days: [day, [{ id: 'T5', at: '09:00', subject: 'Maths', note: '' }], [], [], [], [], []] }));
+        const week = { weekend: true,
+          days: [day, [{ id: 'T5', at: '09:00', subject: 'Maths', note: '' }], [], [], [], [], []] };
+        /* ON THE ACCOUNT WHEN SIGNED IN, on the device when not — the two homes `tmtRead_` has. */
+        if (typeof USER !== 'undefined' && USER) USER.timetable = JSON.stringify(week);
+        else localStorage.setItem(tmtKey_(), JSON.stringify(week));
         TMT_DAY = 0; TMT_OPEN = 'T3';
         const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'timetable');
         if (n < 0) throw new Error('no timetable widget in the roster');
@@ -1902,11 +1907,50 @@ const STATES = {
         initTimetable();
       },
       expect: () => document.querySelectorAll('#s-tools .tmt-box .tmt-day').length === 7
-                    && document.querySelectorAll('#s-tools .tmt-box .tmt-row').length === 3
+                    && document.querySelectorAll('#s-tools .tmt-box .tmt-row:not(.is-booked)').length === 3
                     && document.querySelector('#s-tools .tmt-box .tmt-ed .tmt-time'),
       wants: 'seven day chips, three lessons as lines and one open with its time box',
       leave: () => {
         localStorage.removeItem(tmtKey_());
+        if (typeof USER !== 'undefined' && USER) delete USER.timetable;
+        TMT_DAY = -1; TMT_OPEN = '';
+        initTimetable();
+      } },
+
+    /* ---------- THE TIMETABLE WITH YOUR BOOKED SESSIONS LOCKED IN IT ------------------------------
+       `Your week` is folded into the Timetable, so the one week view now holds two kinds of row: what
+       somebody wrote, and a session booked here (`.tmt-row.is-booked`, green, a second line of hours
+       and place). Seeded through the payload — `myJobs_` reads `DATA.liveJobs` — with a session on
+       Monday and Saturday and no dates (a request not yet in the diary is on every week its days come
+       round), between lessons at nine, three and six, so the booked row is measured among the others
+       and the Saturday shows all seven chips with the weekend box unticked. Signed in only: a visitor
+       has no sessions. */
+    { name: 'a timetable with your sessions in it',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__TMT_JOBS = { live: DATA.liveJobs, jobs: DATA.jobs };
+        const mine = { id: 'J-TMT', jobId: 'J-TMT', subject: 'GCSE Physics, triple award', location: 'Colliers Wood Library',
+          day: 'Monday, Saturday', time: '16:00', hours: 2, client: USER.name, tutor: 'Ada Tutor',
+          status: 'active', dates: '', slots: [{ n: 1, client: USER.name, status: 'Booked' }] };
+        DATA.liveJobs = DATA.jobs = [mine];
+        USER.timetable = JSON.stringify({ weekend: false, days: [[
+          { id: 'S1', at: '09:00', subject: 'Maths', note: 'Room 4' },
+          { id: 'S2', at: '15:00', subject: 'English', note: '' },
+          { id: 'S3', at: '18:00', subject: 'Swimming', note: 'Leisure centre' }], [], [], [], [], [], []] });
+        TMT_DAY = 0; TMT_OPEN = '';
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'timetable');
+        if (n < 0) throw new Error('no timetable widget in the roster');
+        goPage('tools', n, true);
+        initTimetable();
+      },
+      expect: () => document.querySelectorAll('#s-tools .tmt-box .tmt-day').length === 7
+                    && document.querySelectorAll('#s-tools .tmt-box .tmt-row.is-booked[data-do="job"]').length === 1
+                    && document.querySelectorAll('#s-tools .tmt-box .tmt-row:not(.is-booked)').length === 3,
+      wants: 'seven chips, the booked session locked between three lessons',
+      leave: () => {
+        const was = window.__TMT_JOBS || {};
+        DATA.liveJobs = was.live; DATA.jobs = was.jobs;
+        delete USER.timetable;
         TMT_DAY = -1; TMT_OPEN = '';
         initTimetable();
       } },

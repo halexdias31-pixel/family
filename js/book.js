@@ -121,9 +121,10 @@ function bookBlocks() {
    `paperIdOf_` and under `factsNow_`: a second reader of one thing is a second chance to disagree
    about it. Tapping Thursday and landing on Tuesday's receipt is what that disagreement looks like.
 
-   `OPEN_JOB` IS THE SECOND HALF, AND IT IS `ASKED_JOB`'S OWN PATTERN. The week grid draws
+   `OPEN_JOB` IS THE SECOND HALF, AND IT IS `ASKED_JOB`'S OWN PATTERN. The week grid drew
    `DATA.liveJobs` — every session, because an admin's week is everybody's — and `myJobs_` returns
-   only the ones you are in. So an admin tapping a session they are neither the tutor nor the client
+   only the ones you are in. (The week is the Timetable's now and reads `myJobs_`; the case stays for
+   any other surface that opens a session somebody is not in.) So an admin tapping a session they are neither the tutor nor the client
    of has no page to be sent to, and sending them nowhere is the silent failure this whole change is
    about. One id, held in memory, drawn as a page: a reload drops it, which is right for something
    you opened rather than something you own. */
@@ -303,30 +304,13 @@ function openJobs_() {
    document: it gets a card of its own.
    The first pane is the asking. Everything after it is one session each, in the order `bookBlocks`
    already puts them — yours first, then the open ones. */
-/* ---------- THE WEEK, AS A GRID -------------------------------------------------------------------
-   WHAT A BOOKING LIST CANNOT TELL YOU: whether Tuesday is free. The cards say when each session is,
-   one at a time, and a person holding four of them is doing the arithmetic in their head — which is
-   the thing a timetable exists to stop.
-
-   ONE WEEK, NOT A DATE RANGE. Every session here repeats weekly at the same hour, so the week IS
-   the shape: seven columns, the hours the business runs, and a block where something sits. A
-   calendar spread over a term would say the same thing eleven times.
-
-   WHOSE WEEK IT IS: YOURS. This said it "draws whatever arrived and needs no rule of its own" — and
-   what arrives is your sessions AND everybody's open ones (a family is sent those so it can ask to
-   join), and an admin is sent the lot. So a parent's week held strangers' lessons. It reads
-   `weekSessions_` now, which goes through `myJobs_` exactly as `liveWidgets_` always has.
-
-   THE HOURS ARE NOT HARDCODED — the grid runs from the earliest to the latest hour anything is
-   actually booked at, so a week with nothing before four in the afternoon does not draw seven empty
-   morning rows. */
-/* THE WIDGET'S OWN STARTER. `startWidget_` calls this once the container is on screen — see the
-   `week` entry in `WIDGETS`. Kept beside `weekGrid` rather than in map.js, because what it draws is
-   this file's job and map.js only knows where it goes. */
-function initWeek() {
-  const el = $('week-body');
-  if (el) el.innerHTML = weekGrid();
-}
+/* ---------- `weekGrid` AND `initWeek` STOOD HERE — `Your week`, FOLDED INTO THE TIMETABLE ------------
+   IT WAS A GRID OF HOURS AGAINST DAYS for the sessions booked here, a widget of its own beside the
+   Timetable, where somebody wrote down the rest of their week. Two weeks of one person, side by side,
+   and they never met: asked about as *"calander and time table and availability ... it seems they
+   clash"*. The Timetable draws your booked sessions now, locked, among your own lessons — see
+   `tmtBooked_` in games.js — and a tap on one still opens the session through `job`. What the grid
+   computed is `weekSessions_` below, which is the one reader both used. */
 
 /* ---------- WHICH DAYS A SESSION RUNS ON, AND WHETHER IT IS RUNNING ON ONE ------------------------
    ASKED FOR AS *"i need to fix how calander and time table and availability and all of that should
@@ -411,51 +395,6 @@ function weekSessions_(when) {
   return out;
 }
 
-function weekGrid() {
-  const spans = weekSessions_();
-  /* ---------- THE GRID, WITHOUT THE CARD AROUND IT ------------------------------------------------
-     THIS RETURNED A WHOLE CARD, heading and all, because it was a block in the `You` column. It is a
-     widget now — the card and the heading are the widget's, drawn by `WIDGETS` like every other
-     tool's — so this returns only the thing that is actually a week. */
-  if (!spans.length) {
-    return `<p class="sub">Nothing in the diary this week. Sessions appear here once a day and a
-      time are settled.</p>`;
-  }
-
-  const DAYS = DAY3_.map((d, i) => [i, d.charAt(0).toUpperCase() + d.slice(1)]);
-  const first = Math.min.apply(null, spans.map(s => s.from));
-  const last  = Math.max.apply(null, spans.map(s => s.to));
-  const hours = [];
-  for (let h = first; h < last; h++) hours.push(h);
-
-  /* Which days have anything at all. A week where nobody teaches at the weekend should not spend a
-     third of a phone screen on Saturday and Sunday. */
-  const used = DAYS.filter(([i]) => spans.some(s => s.day === i));
-  const days = used.length ? used : DAYS.slice(0, 5);
-
-  const at = (d, h) => spans.find(s => s.day === d && h >= s.from && h < s.to);
-
-  return `<div class="wk" style="--cols:${days.length}">
-      <div class="wk-h"></div>
-      ${days.map(([, label]) => `<div class="wk-h">${esc(label)}</div>`).join('')}
-      ${hours.map(h => `
-        <div class="wk-t">${String(h).padStart(2, '0')}</div>
-        ${days.map(([d]) => {
-          const hit = at(d, h);
-          if (!hit) return '<div class="wk-c"></div>';
-          /* THE TOP HOUR CARRIES THE WORDS, the rest of the block is the same colour and empty —
-             so a two-hour session reads as one block rather than as the same label twice. */
-          const head = hit.from === h;
-          return `<div class="wk-c is-on${head ? ' is-head' : ''}"
-                       data-do="job" data-id="${esc(String(hit.j.id || hit.j.jobId || ''))}">
-            ${head ? `<b>${esc(hit.j.subject || 'Session')}</b>
-                      <span>${esc(hit.j.location || '')}</span>` : ''}
-          </div>`;
-        }).join('')}
-      `).join('')}
-    </div>
-    <p class="faint">Tap a block to open it.</p>`;
-}
 
 /* ---------- REPAINTING BOOK WITHOUT LOSING THE PLACE ----------------------------------------------
    The booker is a card on the first page now, so answering a question means redrawing that page —

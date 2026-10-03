@@ -343,7 +343,14 @@ const SCHEMA = {
     "children", "favourite_colour", "exam_small_date", "exam_big_date",
     /* the app's state, which nobody types into */
     "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
-    "friends", "notepad", "todo"
+    "friends", "notepad", "todo",
+    /* THE TIMETABLE WIDGET'S WEEK — what somebody writes down around their sessions. It lived only on
+       the phone it was typed on, so a tutor's standing week on their laptop was not on their phone.
+       ONE CELL OF JSON, `{ weekend, days: [7 lists of { id, at, subject, note }], colours }`, for the
+       docket's reason: nothing links to a lesson, nothing counts it, nobody else reads it — a tab
+       would be ids and a deletion policy for a scrap of paper. Written by `saveTimetable`, own row
+       only; the sessions BOOKED here are not in it, they are read from `jobs` every time. */
+    "timetable"
   ],
   /* ---------- ONE ROW PER QUALIFICATION --------------------------------------------------------
      A qualification is a subject at a level with a grade, from somewhere, finished in a year (or
@@ -2736,6 +2743,7 @@ const ACTION_ACCESS = {
 
   // A person acting on their own record. Each handler still checks WHOSE row it is.
   updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self', confirmDetails: 'self',
+  saveTimetable: 'self',
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
   /* YOUR OWN PICTURE. The handler writes `photo` on the row the token resolved to and nowhere else. */
   savePhoto: 'self',
