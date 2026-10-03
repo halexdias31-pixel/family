@@ -2482,22 +2482,24 @@ const STATES = {
        surface that path draws, and the only place in the app a whole receipt is shown as an image at
        the sheet's width. Measured like every other sheet: does it fit, can its button be hit.
 
-       ENTERED THROUGH THE APP'S OWN TWO FUNCTIONS on the receipt the state above left on the screen:
-       `rcPng_` makes the real picture, `rcOffer_` is what the share path calls when it cannot share.
-       Asynchronous, because a picture is — `expect` waits for the image rather than for the call. */
+       ENTERED THROUGH `rcOffer_`, which is what the share path calls when it cannot share, with a
+       picture the shape of a receipt (a phone card at 2x) made SYNCHRONOUSLY. The first version made
+       the real one with `rcPng_` and was not measured at 320 on a loaded machine: a picture is
+       asynchronous, `enter` is not awaited, and the sheet was not open yet when it was looked at.
+       What the picture holds is `check/share.js`'s question; this one is the sheet around it. */
     { name: 'a picture of the receipt, offered in a sheet',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        const rc = [...document.querySelectorAll('#s-booking .page .rc')]
-          .find(r => /J-UI/.test((r.querySelector('.rc-ref') || {}).textContent || ''))
-          || document.querySelector('#s-booking .rc');
-        if (!rc) throw new Error('no receipt on the Booking column to picture');
-        rcPng_(rc).then(p => rcOffer_(p.blob, 'family-booking.png'));
+        const c = document.createElement('canvas');
+        c.width = 520; c.height = 1220;
+        const g = c.getContext('2d');
+        g.fillStyle = '#0b0b0b'; g.fillRect(0, 0, c.width, c.height);
+        const bin = atob(c.toDataURL('image/png').split(',')[1]);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        rcOffer_(new Blob([bytes], { type: 'image/png' }), 'family-booking.png');
       },
-      expect: () => {
-        const img = document.querySelector('#sheet:not(.hidden) img.rc-shot');
-        return !!img && img.complete && img.naturalWidth > 100;
-      },
+      expect: () => !!document.querySelector('#sheet:not(.hidden) img.rc-shot'),
       wants: 'the receipt as a picture in a sheet, with a way to save it',
       leave: () => { if (typeof closeSheet === 'function') closeSheet(); } },
   ],
