@@ -750,7 +750,12 @@ function feedColours(seed) {
   const h = hashOf(String(seed || '?'));
   const a = h % 360;
   const b = (a + 25 + (h >> 9) % 40) % 360;
-  return [`hsl(${a} 42% 18%)`, `hsl(${b} 38% 9%)`, `hsl(${a} 60% 62%)`];
+  /* THE THIRD COLOUR IS TEXT — the subject's label — so its lightness is chosen against the card's
+     lightest stop for EVERY hue, not by eye on one. At 62% it passed on the greens and failed on the
+     blues and purples, down to 3.42:1 at hue 240; `check/ui.js` caught it only when a Study fact
+     happened to be dealt, which is why it came and went between runs. Swept over all 360 hues: 68%
+     clears 4.5 by a hair, 70% clears it everywhere with the worst at 5.02:1. */
+  return [`hsl(${a} 42% 18%)`, `hsl(${b} 38% 9%)`, `hsl(${a} 60% 70%)`];
 }
 
 /* The card. The HEADING is the fact, so it takes the space; the body is why, so it is small. */
