@@ -1734,6 +1734,36 @@ const ROLE_TITLES = {
    as the raw lower-case cell in one place and properly in the other. */
 const roleLabel_ = x => ROLE_LABEL[x] || ROLE_TITLES[norm(x)] || x;
 
+/* ---------- THE ROLES A PERSON MAY TICK FOR THEMSELVES, AND THE ONE THEY MAY NOT -------------------
+   ASKED FOR AS *"each account should have a widget in account settings which say what the roles
+   are. they can be either a tutor or client or student. they can be tutor and client and student
+   like multiselect."* So three of `ROLE_LABEL`'s four, and `admin` is not one of them: admin decides
+   who sees everybody's records and whose payload carries every child's name, so it is given in the
+   sheet and nowhere else. `setMyRoles` refuses the word by name rather than dropping it quietly, and
+   KEEPS an admin's `admin` (and any `ROLE_TITLES` title) whatever the three ticks say — the widget
+   edits three words of the cell, never the whole cell.
+
+   THE ALIASES ARE THE PHONE'S `ROLE_ALIASES` (js/core.js), read on the way in so a cell somebody
+   typed as `parent` shows as Client ticked, and written back as the canonical word — which is also
+   the word `hasRole(r, 'client')` asks for; `parent` in a cell has never passed that test. */
+const SELF_ROLES = ['tutor', 'client', 'student'];
+const SELF_ROLE_ALIASES = { teacher: 'tutor', parent: 'client', guardian: 'client',
+                            kid: 'student', child: 'student', pupil: 'student' };
+
+/* ---------- AND A TICKED TUTOR IS A TUTOR THE BUSINESS HAS NOT SAID YES TO YET ---------------------
+   TICKING A BOX IS NOT VETTING. A tutor on this site is somebody a family books into their home
+   and somebody who can message other families; if a tick made that true, anybody signed up as a
+   parent would be one tap from being on the Find screen. So a self-added Tutor writes this word into
+   `listed`, and it is the admin's existing `Listed` switch on the tutor card (`setListed`, which
+   writes `TRUE`) that says yes. No second column and no second switch.
+
+   WHY A THIRD WORD AND NOT `FALSE`. `FALSE` already means "the admin hid this tutor" and a hidden
+   tutor is still a tutor — they keep the staff view and their sessions. `PENDING` is somebody who
+   asked, and the code has to tell the two apart: `tutorPending_` in people.gs reads it, and every
+   reader that only asks `ON_(listed)` treats it as unlisted already, because it is neither blank
+   nor TRUE — so `doGet` sends a pending tutor to the admin alone, marked, with nothing else changed. */
+const LISTED_PENDING = 'PENDING';
+
 /**
  * POSTCODES INTO COORDINATES.
  *
@@ -2698,7 +2728,11 @@ const ACTION_ACCESS = {
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
   /* YOUR OWN PICTURE. The handler writes `photo` on the row the token resolved to and nowhere else. */
   savePhoto: 'self',
-  myReferral: 'self',        // your own code, and who came through it
+  /* YOUR OWN ROLES — the three a person may tick, on the row the token resolved to. The handler
+     refuses `admin`, waits a ticked Tutor for the admin (`LISTED_PENDING`), and will not drop a role
+     somebody is still sitting in a live session as. */
+  setMyRoles: 'self',
+  myReferral: 'self',       // your own code, and who came through it
   saveExam: 'self', deleteExam: 'self', redeem: 'self',
   /* `likePost` was here. A like is a reaction with one option, so the heart and the 👍 were two
      counts of the same gesture. The action is gone rather than left working-but-unused: an

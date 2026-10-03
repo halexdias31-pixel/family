@@ -734,11 +734,136 @@ let photos = 0;
   if (!/getPostFolder\(\)/.test(String(f.ev('getPhotoFolder_')))) bad.push('photo: getPhotoFolder_ no longer falls back to the posts folder');
 }
 
+/* 13. YOUR ROLES, THROUGH THE REAL `doPost` AND `doGet`.
+   ASKED FOR AS *"each account should have a widget in account settings which say what the roles are.
+   they can be either a tutor or client or student. they can be tutor and client and student like
+   multiselect."* `setMyRoles` is the card's one action, and every rule it keeps is asked here of the
+   sheet afterwards rather than of the reply: it lands on YOUR row whoever is named; signed out is
+   refused with nothing written; admin cannot be ticked, and an admin's own admin survives a save;
+   none ticked is refused; a ticked Tutor is held at `listed = PENDING` — not sent to a visitor, sent
+   to the admin marked, not bookable by name, unable to take an open session, unable to message as a
+   tutor — until the admin's Listed switch says yes; a role is not dropped while a live session holds
+   it; and a row that is only a student cannot make itself a client. */
+let roleRules = 0;
+{
+  const f = backend();
+  const kid = Object.assign({}, base, { person_id: 'P-K1', role: 'student', first_name: 'Kit', last_name: 'Kid',
+    handle: 'kitkid', email: 'kid@example.org', listed: '' });
+  const boxer = Object.assign({}, tutor, { person_id: 'P-B1', role: 'tutor, head of boxing', first_name: 'George',
+    last_name: 'Boxer', handle: 'georgeboxer', email: 'boxer@example.org' });
+  /* `listed` BLANK for the parent, as on every row that predates the column — blank MEANS listed,
+     which is exactly why a tick has to write the word rather than leave the cell alone. */
+  const pat = Object.assign({}, parent, { listed: '' });
+  f.seed('people', [admin, tutor, pat, student, kid, boxer]);
+  const future = new Date(); future.setDate(future.getDate() + 30);
+  const ddmm = d => d.getDate() + '/' + (d.getMonth() + 1) + '/' + d.getFullYear();
+  /* ADA IS TEACHING A SESSION NEXT MONTH that Pat has paid for; J-OPEN is a job open to any tutor. */
+  f.seed('jobs', [{ job_id: 'J-LIVE', status: 'active', session_dates: ddmm(future), venue: 'Online' },
+                  { job_id: 'J-OPEN', status: 'unconfirmed', session_dates: ddmm(future), venue: 'Online', stealable: 'TRUE' }]);
+  f.seed('events', [
+    { event_id: 'E1', job_id: 'J-LIVE', actor: 'Pat Parent', role: 'client', action: 'Request' },
+    { event_id: 'E2', job_id: 'J-LIVE', actor: 'Ada Tutor', role: 'tutor', action: 'Accept', target: 'Pat Parent' },
+    { event_id: 'E3', job_id: 'J-LIVE', actor: 'Pat Parent', role: 'client', action: 'Confirm' },
+    { event_id: 'E4', job_id: 'J-OPEN', actor: 'Sam Student', role: 'client', action: 'Request' }]);
+  const tk = {};
+  [admin, tutor, pat, student, kid, boxer].forEach(p => {
+    const d = f.post({ action: 'verifyLogin', email: p.email, pin: '0000' });
+    if (d && d.success) tk[p.person_id] = d; else bad.push('roles: ' + p.person_id + ' could not sign in — ' + JSON.stringify(d));
+  });
+  const set = (pid, roles, extra) => f.post(Object.assign({ action: 'setMyRoles', token: tk[pid] && tk[pid].token,
+    name: tk[pid] && tk[pid].name, personId: pid, roles }, extra || {}));
+  const cell = pid => String(f.row(pid).role);
+  const rule = (ok, said) => { if (ok) roleRules++; else bad.push('roles: ' + said); };
+  if (Object.keys(tk).length === 6) {
+    /* THE SIGN-IN REPLY SAYS WHETHER A TUTOR IS WAITING, so the phone's staff test can ask. */
+    rule(tk['P-T1'].tutorPending === false, 'the sign-in reply carries no tutorPending:false for an approved tutor');
+
+    /* SIGNED OUT: refused, nothing written. */
+    const was = cell('P-C1');
+    const out = f.post({ action: 'setMyRoles', name: 'Pat Parent', personId: 'P-C1', roles: ['client', 'student'] });
+    rule(!(out && out.success) && !out.writes && cell('P-C1') === was, 'setMyRoles with no token was allowed, or wrote');
+
+    /* OWN ROW ONLY: the tutor's token naming the parent's id changes the TUTOR's row. */
+    const pw = cell('P-C1');
+    const other = set('P-T1', ['tutor', 'student'], { personId: 'P-C1', name: 'Pat Parent' });
+    rule(cell('P-C1') === pw, 'a tutor\'s setMyRoles naming P-C1 changed the PARENT\'s roles');
+    rule(other && other.success && cell('P-T1') === 'tutor, student', 'a setMyRoles naming somebody else did not land on the asker\'s own row — '
+      + JSON.stringify(other) + ' / ' + cell('P-T1'));
+
+    /* ADMIN CANNOT BE TICKED — not alone, not beside a real role — and nothing is written. */
+    const grab = set('P-C1', ['client', 'admin']);
+    rule(!(grab && grab.success) && !grab.writes && !/admin/.test(cell('P-C1')), 'a parent ticked themselves Admin — ' + JSON.stringify(grab));
+    rule(/given by @family/.test(String(grab && grab.error)), 'refusing Admin did not say it is given rather than chosen — ' + (grab && grab.error));
+    /* AND AN ADMIN'S OWN ADMIN SURVIVES, with no approval wait on their own Tutor tick. */
+    const ad = set('P-A1', ['client']);
+    rule(ad && ad.success && cell('P-A1') === 'admin, client', 'an admin\'s save did not keep admin — ' + cell('P-A1'));
+    const ad2 = set('P-A1', ['tutor', 'client']);
+    rule(ad2 && ad2.success && !ad2.tutorPending && String(f.row('P-A1').listed) !== 'PENDING', 'an admin\'s own Tutor tick was held for approval');
+
+    /* AT LEAST ONE. */
+    const none = set('P-C1', []);
+    rule(!(none && none.success) && !none.writes, 'a save with nothing ticked was accepted');
+
+    /* A TITLE IS CARRIED THROUGH. */
+    const gb = set('P-B1', ['tutor', 'student']);
+    rule(gb && gb.success && cell('P-B1') === 'tutor, student, head of boxing', 'the title was lost — ' + cell('P-B1'));
+
+    /* THE GATE ON TUTOR. Pat ticks it: role and the PENDING word, nothing else. */
+    const tick = set('P-C1', ['tutor', 'client']);
+    rule(tick && tick.success && tick.tutorPending === true, 'ticking Tutor did not come back pending — ' + JSON.stringify(tick));
+    rule(cell('P-C1') === 'tutor, client' && String(f.row('P-C1').listed) === 'PENDING',
+      'ticking Tutor wrote role "' + cell('P-C1') + '" and listed "' + f.row('P-C1').listed + '" — wanted tutor, client / PENDING');
+    const named = list => (list.tutors || []).find(t => t.personId === 'P-C1');
+    rule(!named(f.get({})), 'a pending tutor was sent to an anonymous visitor');
+    const asAdmin = named(f.get({ token: tk['P-A1'].token }));
+    rule(asAdmin && asAdmin.listed === false && asAdmin.pending === true, 'the admin was not sent the pending tutor, marked pending — '
+      + JSON.stringify(asAdmin && { listed: asAdmin.listed, pending: asAdmin.pending }));
+    const claim = f.post({ action: 'move', token: tk['P-C1'].token, name: 'Pat Parent', personId: 'P-C1', jobId: 'J-OPEN', role: 'tutor', move: 'Request' });
+    rule(!(claim && claim.success), 'a pending tutor took an open session as its tutor');
+    rule(!f.ev('read(TAB.events).rows').some(e => e.job_id === 'J-OPEN' && e.actor === 'Pat Parent'), 'a refused claim still wrote an event');
+    const book = f.post({ action: 'createJob', token: tk['P-S1'].token, name: 'Sam Student', personId: 'P-S1', requestedTutor: 'Pat Parent',
+      subject: 'Maths', level: 'GCSE', day: 'Monday', time: '16:00', location: 'Online', dates: ddmm(future), hours: 2, price: 40 });
+    rule(!(book && book.success) && /not taking bookings/.test(String(book && book.error)), 'a pending tutor could be booked by name — ' + JSON.stringify(book));
+    /* MESSAGING AS WHAT THEY ARE, NOT AS WHAT THEY TICKED: Kit (only a student) ticks Tutor and is still
+       a student to the policy — may not write to a tutor. */
+    const kt = set('P-K1', ['tutor', 'student']);
+    rule(kt && kt.success && kt.tutorPending, 'a student could not ask to tutor — ' + JSON.stringify(kt));
+    rule(f.ev("actingRole_(findPerson('P-K1'))") === 'student', 'a pending tutor who is a student acts as ' + f.ev("actingRole_(findPerson('P-K1'))"));
+    const msg = f.post({ action: 'sendMessage', token: tk['P-K1'].token, name: 'Kit Kid', personId: 'P-K1', to: 'Ada Tutor', toId: 'P-T1', body: 'hello' });
+    rule(!(msg && msg.success), 'a student who ticked Tutor could message a tutor');
+    /* THE YES: the admin's Listed switch, and Pat is a tutor everywhere. */
+    const yes = f.post({ action: 'setListed', token: tk['P-A1'].token, name: 'Hal Admin', personId: 'P-A1', who: 'Pat Parent', whoId: 'P-C1', on: true });
+    rule(yes && yes.success && !f.ev("tutorPending_(findPerson('P-C1'))") && !!named(f.get({})), 'the admin\'s Listed switch did not approve the pending tutor');
+
+    /* A CHILD'S ACCOUNT CANNOT MAKE ITSELF A CLIENT. Kit is a student (with a pending Tutor tick). */
+    const kc = set('P-K1', ['client', 'student']);
+    rule(!(kc && kc.success) && !kc.writes && !/client/.test(cell('P-K1')), 'a student-only account ticked itself Client — ' + JSON.stringify(kc));
+
+    /* NOTHING DROPPED FROM UNDER A SESSION. Ada teaches J-LIVE next month; Pat pays for it. */
+    const adaWas = cell('P-T1');
+    const drop = set('P-T1', ['student']);
+    rule(!(drop && drop.success) && !drop.writes && cell('P-T1') === adaWas && /1 session as a tutor/.test(String(drop && drop.error)),
+      'unticking Tutor under a live session was not refused with the count — ' + JSON.stringify(drop) + ' / ' + cell('P-T1'));
+    const pd = set('P-C1', ['tutor']);
+    rule(!(pd && pd.success) && /as a client/.test(String(pd && pd.error)), 'unticking Client under a paid session was not refused — ' + JSON.stringify(pd));
+    /* …and once the session is over, the same untick goes through. */
+    f.ev("(function(){ const t = read(TAB.jobs); setCell(t, t.rows.find(j => j.job_id === 'J-LIVE'), 'status', 'ended'); })()");
+    const drop2 = set('P-T1', ['student']);
+    rule(drop2 && drop2.success && cell('P-T1') === 'student', 'unticking Tutor after the session ended was still refused — ' + JSON.stringify(drop2));
+
+    /* AND THE ALIASES: a cell typed as `parent` reads as Client and saves as the canonical word. */
+    f.ev("(function(){ const t = read(TAB.people); setCell(t, findPerson('P-B1'), 'role', 'parent'); })()");
+    rule(JSON.stringify(f.ev("selfRolesOf_(findPerson('P-B1'))")) === '["client"]', 'a `parent` cell does not read as Client');
+    const al = set('P-B1', ['client', 'student']);
+    rule(al && al.success && cell('P-B1') === 'client, student', 'a `parent` cell saved as "' + cell('P-B1') + '", wanted client, student');
+  }
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
 console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
-  + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos);
+  + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   role rules held: ' + roleRules);
 if (bad.length) {
   console.log('FAILED — a Save that does not stick, or writes what nobody asked, is the one on the screen that only exists to change what the sheet holds.');
   process.exit(1);

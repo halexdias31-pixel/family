@@ -469,7 +469,7 @@ function findCard(x) {
              funnel, which reads that field as a kind. `profList_` because the shape is not
              something this card gets to assume — see its note. */''}
       <h3>${esc([t.role || 'Tutor'].concat(profList_(t.titles)).join(' · '))}${
-        t.listed === false ? ' <span class="prof-off">· not listed</span>' : ''}</h3>
+        t.listed === false ? ` <span class="prof-off">· ${t.pending ? 'asked to tutor' : 'not listed'}</span>` : ''}</h3>
       ${/* ---------- AND WHAT `· not listed` MEANS, SAID ONCE, WHERE THE MARK IS ------------------
             REPORTED THREE TIMES AS *"i still dont see george"*, AND HE WAS ON THE SCREEN. Measured:
             an admin's account column opens ON the unlisted tutor — `PAGE_HOME.account` is page 1
@@ -487,9 +487,16 @@ function findCard(x) {
             ADMIN ONLY, because nobody else is ever sent an unlisted tutor: `doGet`'s gate is
             `(listed || viewerIsAdmin)`, so a client's payload has no such row and repeating the
             rule here would be the second copy this repository keeps paying for. */''}
+      ${/* A TICKED TUTOR BOX IS A QUESTION TO THE ADMIN, and this is where it is answered — the
+            same switch, so the sentence says what pressing it MEANS for somebody who asked:
+            `setMyRoles` holds them at `PENDING` and `setListed` writing TRUE is the approval. */''}
       ${t.listed === false && isAdmin()
-        ? `<p class="prof-say prof-hid">Clients cannot see them. The crossed-out eye below puts
-             them back on the site.</p>` : ''}
+        ? (t.pending
+          ? `<p class="prof-say prof-hid">They ticked Tutor in their settings. Until you list them
+               they are not on the site, cannot be booked and cannot take a session — the crossed-out
+               eye below approves them.</p>`
+          : `<p class="prof-say prof-hid">Clients cannot see them. The crossed-out eye below puts
+             them back on the site.</p>`) : ''}
       <div class="prof-top">
         ${t.image
           ? `<img class="prof-pic" src="${esc(pic(t.image))}" alt="" loading="lazy">`
@@ -735,7 +742,8 @@ on('set-listed', el => {
       const id = el.dataset.pid || '';
       const t = (DATA.tutors || []).find(x => (id && String(x.personId) === id)
                                            || norm(x.title) === norm(el.dataset.who));
-      if (t) t.listed = on;
+      /* AND NO LONGER PENDING: `setListed` writes TRUE or FALSE over the `PENDING` word either way. */
+      if (t) { t.listed = on; t.pending = false; }
     })
     .catch(err => {
       /* PUT IT BACK. A switch that has not actually flipped must not keep saying it has — this is

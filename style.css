@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-03-videos-share";
+  --css-version: "2026-10-03-roles-videos";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -1032,6 +1032,18 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .check:active .box { border-color: var(--gold); background: rgb(240 169 60 / .12); }
 .check input:checked + .box { background: var(--gold); border-color: var(--gold); box-shadow: none; }
 .check input:checked + .box::after { color: #1a1409; }
+
+/* ---------- YOUR ROLES: A TICK WITH ITS MEANING UNDER THE WORD ---------------------------------------
+   `rolesCard_` in me.js. The `.check` row is unchanged — same box, same 44px floor — and only the
+   words beside it stack: the role, then what it means here in the card's faint voice, because
+   "Client" alone is this business's word and not the reader's. `min-width: 0` so a long note wraps
+   inside the card at 320 rather than pushing the row wider than it. The box sits at the top of a
+   two-line label, level with the role's own word, rather than floating in the middle of the pair. */
+.roles-card .role-pick { align-items: flex-start; }
+.roles-card .role-pick .box { margin-top: .1rem; }
+.role-pick-say { display: flex; flex-direction: column; gap: .15rem; min-width: 0; }
+.role-pick-say .faint { font-size: .85rem; line-height: 1.35; }
+.roles-card .role-admin, .roles-card .roles-said { margin: .6rem 0 0; }
 
 /* ---------- SMALL THINGS ------------------------------------------------------------------------ */
 .note  { color: var(--dim); font-size: .82rem; }
