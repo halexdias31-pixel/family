@@ -4560,6 +4560,104 @@ function typeset_(html) {
    tutor's own default -- and nothing about this card has changed. A student named, and the answer
    waits behind one tap that says what is behind it, and opens itself the moment they get it right.
    Neither reader is asked to put up with the other's screen. */
+/* ---------- THE RESULT, AND THE REASON FOR IT, AS TWO THINGS ---------------------------------------
+   ASKED FOR AS "make answers breaifer", and when asked to choose between shorter written answers
+   and hiding the working behind a tap: "i want shorter answers." Measured before this was written:
+   4,309 answers, median 88 characters, 1,019 over 200 and the longest 1,677. A card whose answer is
+   a page of prose has not told you the answer; it has given you something to read to find it.
+
+   THE LIBRARY ALREADY SAID WHERE THE ANSWER STOPS. 3,107 answers are written as a short result, a
+   SPACED em dash, then the explanation -- the result's median length is six characters. So the
+   split is the library's own convention read back, not a summary made up here: everything before
+   the first spaced dash is the answer, and everything after it is why. The answers that had no dash
+   and ran long were rewritten into that shape (tools/answer-brief.py), so ONE rule covers them all.
+
+   ONLY A SPACED DASH. An unspaced one is a range (`8–9`) or part of a word, and an en dash between
+   spaces is the same punctuation typed on a different keyboard, so both count.
+
+   NOT INSIDE A TABLE OR A LIST. A dash in a cell is that cell's business; splitting there would
+   hand the result half a table. Inside inline tags (or a <p>) it is still the answer's own dash,
+   and the tags open at that point are closed on the head and reopened on the why, so neither half
+   is broken markup -- `<b>18 — B1</b>` would otherwise leave a bold open across the fold.
+
+   THE MARK-SCHEME CODES COME OFF WHAT IS SHOWN. B1, M1, A1, P1, C1, cao, oe, ft, isw, awrt are how
+   an examiner apportions marks, and "18 000 B1 cao" reads to a child as part of the answer. They go
+   from the head entirely. In the why they go only where they stand alone ("B1 cao.", "M1 A1,");
+   "M1 for 360 − 220 − 90" keeps its code, because without it the sentence is "for 360 − 220 − 90"
+   and says nothing. Every one of the 122 rows that carry codes was read with this applied.
+
+   ONE FUNCTION, CUT OUT BY NAME by `check-answers.js`, so the limit that check holds is measured
+   on exactly what this draws -- not on a second opinion of where an answer ends. Which is also why
+   everything it needs is declared inside it. */
+function answerParts_(raw) {
+  const s = String(raw || '');
+  const DASH = /\s+(?:—|–|&mdash;|&ndash;|&#8212;|&#8211;)\s+/g;
+  const VOID = /^(?:br|img|hr|wbr|input)$/i;
+  const BLOCK = /^(?:table|thead|tbody|tfoot|tr|td|th|ul|ol|li|dl|dt|dd|div|figure)$/i;
+  const CODE = '(?:[BMAPC][1-5]|SC[1-5]?|cao|oe|ft|isw|awrt)';
+  const RUN = new RegExp('(?:<b>)?\\(?\\b' + CODE + '\\b\\)?(?:</b>)?(?:[\\s,]+(?:<b>)?\\(?\\b' + CODE
+    + '\\b\\)?(?:</b>)?)*', 'g');
+  const seen = t => String(t).replace(/<[^>]*>/g, '').replace(/&nbsp;|&#160;/g, ' ').trim();
+  let head = s, why = '', m;
+  while ((m = DASH.exec(s))) {
+    const before = s.slice(0, m.index);
+    const open = [];
+    const T = /<(\/?)([a-z][a-z0-9]*)\b[^>]*>/gi;
+    let t;
+    while ((t = T.exec(before))) {
+      const name = t[2].toLowerCase();
+      if (VOID.test(name)) continue;
+      if (t[1]) {
+        const k = open.map(o => o[0]).lastIndexOf(name);
+        if (k >= 0) open.splice(k);
+      } else open.push([name, t[0]]);
+    }
+    if (open.some(o => BLOCK.test(o[0]))) continue;
+    if (!seen(before)) continue;
+    head = before + open.slice().reverse().map(o => '</' + o[0] + '>').join('');
+    why = open.map(o => o[1]).join('') + s.slice(m.index + m[0].length);
+    break;
+  }
+  /* THE HEAD: every code, wherever it stands, and the commas it leaves behind. The A-level
+     schemes count marks in brackets instead -- "(1)", "(1 mark)", "[1]", a tick -- and those go
+     too, but only after a space: `1.1(1) × 10³` is a significant figure in brackets, not a mark. */
+  head = head.replace(/\s+(?:\(\d(?: marks?)?\)|\[\d\])|\s*✓/g, '');
+  /* AN ENTITY'S OWN SEMICOLON IS NOT PUNCTUATION. The first version of `tidy` took the `;` off
+     `50&deg;` because it ended the head, and drew "50&deg". Entities are parked while it works. */
+  const tidy = h => h.replace(/&(#?\w+);/g, '&$1\u0001').replace(/<(b|i|em|strong)>\s*<\/\1>/g, '')
+    .replace(/[ \t]+([,;.])/g, '$1').replace(/([,;])(?:\s*[,;])+/g, '$1').replace(/,(\s*[.;])/g, '$1')
+    .replace(/[\s,;:]+((?:<\/[a-z]+>)*)\s*$/i, '$1').replace(/^\s*[,;]\s*/, '').trim()
+    .replace(/\u0001/g, ';');
+  const bare = tidy(head.replace(RUN, ''));
+  /* AN ANSWER THAT IS NOTHING BUT CODES ("B1 — and the scheme accepts 8 or −8") would be drawn as
+     an empty line with the meaning behind the fold, which is worse than leaving the codes in. */
+  if (seen(bare)) head = bare;
+  /* THE WHY: only the codes that stand alone. A code is KEPT where the sentence needs it: "M1 for
+     …", "C1, following through …", "earns the B1 on its own", "and “oe”" -- strip any of those and
+     what is left is a sentence about nothing. A removed run leaves a mark (\u0002) so the clean-up
+     below touches only the places something was taken from, and never a `.31` that happens to
+     start a line. */
+  const KEEP_AFTER = /^[\s,]*(?:for\b|dependent\b|following\b|follows\b|is\b|mark|on\b|&rdquo;|”)/i;
+  const KEEP_BEFORE = /(?:\b(?:the|a|an|its|that|this|of)\s+(?:<b>)?|&ldquo;|“)$/i;
+  why = why.replace(RUN, (run, at, all) =>
+    (KEEP_AFTER.test(all.slice(at + run.length, at + run.length + 16))
+      || KEEP_BEFORE.test(all.slice(Math.max(0, at - 12), at))) ? run : '\u0002');
+  const cap = (a, c) => a + (c || '').toUpperCase();
+  why = why
+    /* "— B1, cao, and nothing else scores" -- a code opening the why, or a sentence. FIRST, or
+       "= 3. B1 cao. The" is read as a code closing a clause and comes out "= 3.. The". */
+    .replace(/^(\s*(?:<[^>]+>)*)\u0002[\s,;:.]*(?:and\s+)?((?:[a-z](?=[a-z]))?)/, (w, a, c) => cap(a, c))
+    .replace(/([.!?]\s+(?:<[^>]+>)*)\u0002[\s,;:.]*(?:and\s+)?((?:[a-z](?=[a-z]))?)/g, (w, a, c) => cap(a, c))
+    /* "36, cao." -- a code closing a clause takes its comma with it. */
+    .replace(/[\s,;]*\u0002[\s,;]*(?=[.!?]|$)/g, '')
+    .replace(/\s*\u0002[\s,;]*/g, ' ');
+  why = tidy(why);
+  /* A WHY THAT STARTS MID-SENTENCE starts with a capital in the fold, which is a box of its own.
+     A WORD, not a letter: "<i>x</i> = 3 is a vertical line" must not become "X = 3". */
+  why = why.replace(/^((?:\s*<[a-z][^>]*>)*\s*)([a-z])(?=[a-z])/, (w, tags, c) => tags + c.toUpperCase());
+  return { head: head, why: seen(why) ? why : '' };
+}
+
 function answerBlock_(x) {
   if (!x || !String(x.answer || '').trim()) return '';
   /* ---------- IT IS THE ROLE THAT DECIDES, AND IT USED TO BE "IS ANYBODY NAMED" ----------------
@@ -4576,13 +4674,33 @@ function answerBlock_(x) {
   /* WHAT KIND OF ANSWER IT IS, beside the word, when the sheet says. A one-mark recall and a
      25-mark essay want different things of you before you open it. */
   const kind = String(x.answerType || '').trim();
+  /* ---------- THE RESULT SHOWN, THE WORKING FOLDED ---------------------------------------------
+     THE `<details>` IS BACK, AND NOT WHERE IT WAS. It used to sit between the question and the
+     whole mark scheme, and the argument above against it still holds: the tutor reads FROM this
+     card, and the result is what they read out. So the result is never folded -- only the working
+     is, under a word that says what it is. A tutor who wants the method taps once; a child who
+     wanted the answer is no longer handed a paragraph to dig it out of.
+
+     ONE FOLD FOR THE WORKING AND THE EXAMINER'S NOTE TOGETHER, because both are "why", and two
+     folds under one answer is the same tax as one long answer paid in taps instead of lines. The
+     note stays escaped and set apart inside it, for the reason `.qans-note` gives.
+
+     SHUT BY DEFAULT, AND NOTHING OPENS IT BUT A FINGER -- not a right answer either. The owner
+     chose "shorter answers" over "hide the working behind a tap", and a fold that springs open on
+     its own is a long answer with a delay. The browser keeps the open state; no flag, no key. */
+  const p = answerParts_(x.answer);
+  const note = x.examinerNote ? `<p class="qans-note">${esc(x.examinerNote)}</p>` : '';
+  const why = (p.why || note)
+    ? `<details class="qans-why"><summary>Why</summary>${
+        p.why ? `<div class="qans-more">${typeset_(p.why)}</div>` : ''}${note}</details>`
+    : '';
   return `<div class="qans${hide ? ' is-shut' : ''}">
     ${hide ? `<button type="button" class="qp-reveal" data-do="qp-reveal">Show the answer</button>` : ''}
     <div class="qans-head">
       <span>Answer</span>${kind ? `<em>${esc(kind)}</em>` : ''}
     </div>
-    <div class="qans-body">${typeset_(x.answer)}</div>
-    ${x.examinerNote ? `<p class="qans-note">${esc(x.examinerNote)}</p>` : ''}
+    <div class="qans-body">${typeset_(p.head)}</div>
+    ${why}
   </div>`;
 }
 

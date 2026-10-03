@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-03-roles-videos";
+  --css-version: "2026-10-03-answers";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -9448,6 +9448,33 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   background: var(--sunk); border-radius: var(--r-sm);
   font: 400 .74rem/1.45 var(--font); color: var(--dim);
 }
+/* ---------- THE WORKING, FOLDED UNDER THE RESULT ---------------------------------------------------
+   ASKED FOR AS "make answers breaifer". The result is `.qans-body` above and is never folded; the
+   explanation and the examiner's note are behind this one word. See `answerParts_` in find.js.
+
+   SMALL TO LOOK AT, 44px TO HIT. A fold that reads as loud as the answer undoes the point of it, so
+   the word is the size of `.qans-head em`; the tap target is still a fingertip, in px, because a
+   fingertip does not scale with the root font. `display: inline-flex` on the summary is safe where
+   the comment above warns against flex: the marker is drawn here rather than by the browser, and
+   `list-style: none` plus the WebKit pseudo-element removes the browser's in both engines. */
+.qans-why { margin: 0 0 .3rem; }
+.qans-why > summary {
+  display: inline-flex; align-items: center; gap: .4rem;
+  min-height: 44px; padding: 0 .2rem;
+  list-style: none; cursor: pointer;
+  font: 600 .7rem/1 var(--font); letter-spacing: .04em; color: var(--dim);
+}
+.qans-why > summary::-webkit-details-marker { display: none; }
+.qans-why > summary::before { content: "+"; color: var(--gold); font-weight: 700; }
+.qans-why[open] > summary::before { content: "\2212"; }
+.qans-why > summary:hover { color: var(--gold); }
+.qans-more {
+  font: 400 .8rem/1.5 var(--font); color: var(--dim);
+  padding: 0 0 .4rem .2rem;
+}
+.qans-more p:first-child { margin-top: 0; }
+.qans-more table { border-collapse: collapse; margin: .6rem 0; }
+.qans-more td, .qans-more th { border: 1px solid var(--line); padding: .3rem .5rem; }
 
 /* ==================================================================================================
    QUESTIONS IN THE FUNNEL.
@@ -11885,7 +11912,7 @@ button.scr-sq { cursor: pointer; }
    block that is still in the document is still readable by anyone who looks. */
 .qans.is-shut > .qans-head,
 .qans.is-shut > .qans-body,
-.qans.is-shut > .qans-note { display: none; }
+.qans.is-shut > .qans-why { display: none; }
 .qans.is-shut { border: 0; padding: 0; }
 .qp-reveal {
   min-height: 44px; width: 100%; padding: 0 1rem;
