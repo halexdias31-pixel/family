@@ -133,6 +133,42 @@ function rcClone_(el, rules) {
      out of the picture is the identity, not a liberty — and it is how the tiles and an admin's money
      rows stay off it (see `.rc-snap` in the stylesheet). */
   if (cs.display === 'none') return null;
+
+  /* ---------- A CONTROL BECOMES THE WORDS IT SHOWS ----------------------------------------------
+     THE FORM IS DROPDOWNS AND TEXT BOXES ON PAPER, and both keep their answer in a PROPERTY rather
+     than in the markup: `cloneNode` copies the select as it was drawn, so the picture would show the
+     first option of every row rather than the one picked — the one thing the picture is for.
+
+     AND A CONTROL INSIDE A PICTURE SITS DIFFERENTLY. Measured by `check/share.js`: with the answers
+     copied across, every row holding a select or a text box came out a CSS pixel lower than on the
+     screen, because a form control's baseline inside an SVG image is not where the page put it — and
+     those rows are aligned to it. And an empty box's hint came out in the full white of an answer, a
+     document saying somebody had typed "anything else". A picture has nothing to press, so each one
+     is drawn as a box of the same size in the same clothes holding the words it showed: the chosen
+     option, the typed value, or the hint in `::placeholder`'s own ink. */
+  const text = el.tagName === 'SELECT' || el.tagName === 'TEXTAREA'
+    || (el.tagName === 'INPUT'
+        && !/^(checkbox|radio|range|color|file|image|button|submit|reset|hidden)$/i.test(el.type));
+  if (text) {
+    const d = document.createElement('div');
+    let words = el.value, ink = '';
+    if (el.tagName === 'SELECT') {
+      const o = el.options[el.selectedIndex];
+      words = o ? o.text : '';
+    } else if (!el.value && el.placeholder) {
+      words = el.placeholder;
+      /* BOTH PROPERTIES. The computed `-webkit-text-fill-color` is the box's own ink already
+         resolved, and it is what paints — so setting `color` alone left the hint in white. */
+      const hint = getComputedStyle(el, '::placeholder');
+      ink = 'color:' + hint.color + ';-webkit-text-fill-color:'
+        + (hint.getPropertyValue('-webkit-text-fill-color') || hint.color) + ';';
+    }
+    d.textContent = words;
+    d.setAttribute('style', rcStyle_(cs) + ink
+      + (el.tagName === 'TEXTAREA' ? 'white-space:pre-wrap;' : 'white-space:nowrap;'));
+    return d;
+  }
+
   const c = el.cloneNode(false);
   c.setAttribute('style', rcStyle_(cs));
   ['::before', '::after'].forEach(p => {
@@ -143,24 +179,13 @@ function rcClone_(el, rules) {
     c.classList.add(k);
     rules.push('.' + k + p + '{' + rcStyle_(ps) + '}');
   });
-  /* A FORM'S ANSWERS LIVE IN PROPERTIES, NOT ATTRIBUTES. The booking form is dropdowns on paper, and
-     `cloneNode` copies the markup the select was DRAWN with — so without this the picture shows the
-     first option of every row rather than what was picked, which is the one thing it is for. */
   [...el.childNodes].forEach(n => {
     const k = rcClone_(n, rules);
     if (k) c.appendChild(k);
   });
-  if (el.tagName === 'SELECT') {
-    [...c.querySelectorAll('option')].forEach((o, i) => {
-      if (el.options[i] && el.options[i].selected) o.setAttribute('selected', '');
-      else o.removeAttribute('selected');
-    });
-  } else if (el.tagName === 'INPUT') {
-    if (el.type === 'checkbox' || el.type === 'radio') {
-      if (el.checked) c.setAttribute('checked', ''); else c.removeAttribute('checked');
-    } else c.setAttribute('value', el.value);
-  } else if (el.tagName === 'TEXTAREA') {
-    c.textContent = el.value;
+  /* A TICK IS A PROPERTY TOO. */
+  if (el.tagName === 'INPUT') {
+    if (el.checked) c.setAttribute('checked', ''); else c.removeAttribute('checked');
   }
   return c;
 }
