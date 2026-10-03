@@ -51,7 +51,7 @@ const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
 /* A CHANNEL DIFFERENCE BELOW THIS IS A SHADE OF ANTI-ALIASING; ABOVE IT IS A DIFFERENT PIXEL. */
 const LOUD = 64;
 const MAX_PCT = 0.5;
-const MAX_BLOTS = 40;   /* see `compare`: up to 20 on a true picture, 64 and up with the wrong typeface */
+const MAX_BLOTS = 30;   /* see `compare`: up to 20 on a true picture; 40 with a select's answer run past its column, 64+ with the wrong face */
 const TYPES = { '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json',
                 '.html': 'text/html', '.woff2': 'font/woff2', '.svg': 'image/svg+xml',
                 '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
@@ -288,8 +288,14 @@ async function compare(page, a, b) {
               .find(r => /J-UI/.test((r.querySelector('.rc-ref') || {}).textContent || ''));
         const faces = [...document.styleSheets].flatMap(s => { try { return [...s.cssRules]; } catch (e) { return []; } })
           .filter(r => /^@font-face/i.test(r.cssText)).map(r => r.style.getPropertyValue('font-family'));
+        /* EVERY EMPTY BOX'S HINT AND THE INK THE SCREEN DRAWS IT IN — a faint hint and a typed answer
+           are a few pixels apart in a narrow column, too few to count, and saying the wrong one is
+           the document claiming somebody wrote something. */
+        const hints = [...rc.querySelectorAll('input, textarea')]
+          .filter(i => i.placeholder && !i.value && i.getClientRects().length)
+          .map(i => ({ text: i.placeholder, ink: getComputedStyle(i, '::placeholder').color }));
         const p = await rcPng_(rc);
-        return { svg: p.svg, faces };
+        return { svg: p.svg, faces, hints };
       }, pick);
       const svg = src.svg;
       src.faces.forEach(f => {
@@ -300,6 +306,12 @@ async function compare(page, a, b) {
       if (!src.faces.length) bad.push(`${label}: the page declares no @font-face to carry — nothing proved`);
       const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
       if (chose && svg.indexOf(esc(chose)) < 0) bad.push(`${label}: the answer picked, "${chose}", is not in the picture`);
+      src.hints.forEach(h => {
+        const re = new RegExp('-webkit-text-fill-color:\\s*' + h.ink.replace(/[()]/g, '\\$&') + ';[^"]*">'
+          + esc(h.text).replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '<');
+        if (!re.test(svg)) bad.push(`${label}: the empty box's hint "${h.text}" is not in its own faint ink in the picture`);
+      });
+      if (pick === 'form' && !src.hints.length) bad.push(`${label}: the form has no empty box with a hint — nothing proved`);
       if (/data-do="(book-share|book-send|job-delete)"/.test(svg)) bad.push(`${label}: a tile is in the picture`);
       if (/Tutor earns|Admin earns/.test(svg)) bad.push(`${label}: an admin's money row is in the picture`);
 
