@@ -1519,8 +1519,12 @@ const WIDGETS = [
      panel with a paper receipt inside it — two containers for one object"*.
 
      `solid` IS NOT SET, so the funnel does not offer an empty basket as a search result. The column
-     draws it either way — `widgetsOf_` does not read that flag, deliberately. */
-  { id: 'cart', kind: 'tool', name: 'Basket', start: () => initCart?.(),
+     draws it either way — `widgetsOf_` does not read that flag, deliberately.
+
+     AND IT IS THE SHOP'S NOW, NOT THE TOOLS'. `kind: 'shop'` is the whole move: `widgetsOf_('shop')`
+     puts it on top of the Shop column, beside the things that fill it, and Tools stops drawing it.
+     See `shopCards_` in collections.js for why there and why first. */
+  { id: 'cart', kind: 'shop', name: 'Basket', start: () => initCart?.(),
     into: 'cart-box', what: 'What is in it',
     html: `<h3>Basket</h3>
     ${/* BOTH AN ID AND A CLASS. The id is what `into` and `startWidget_` look the widget up by; the

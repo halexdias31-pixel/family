@@ -269,11 +269,13 @@ function cartAddBundle_(el) {
    app that fills it with several lines at once — so the card that did it says where they went. The
    page is asked for by id off the same list the column is built from, because `widgetsOf_` hides
    the admin-only tools from everybody else and a literal index would land on the wrong card. */
+/* THE SHOP NOW, NOT TOOLS. The basket moved to the Shop column's first page; asked for by the same
+   lookup, so the day another widget goes on top of it this still lands on the basket. */
 on('cart-open', () => {
   const n = typeof widgetsOf_ === 'function'
-    ? widgetsOf_('tool').findIndex(w => String(w.id) === 'cart') : -1;
-  go('tools');
-  if (n >= 0) goPage('tools', n, true);
+    ? widgetsOf_('shop').findIndex(w => String(w.id) === 'cart') : -1;
+  go('shop');
+  if (n >= 0) goPage('shop', n, true);
 });
 
 /* ---------- LAMINATE, OR BACK TO PLAIN -----------------------------------------------------------
@@ -315,7 +317,7 @@ on('cart-drop', el => {
    pushing prices off the edge. That is exactly how the two come to disagree about what is in your
    basket.
 
-   The basket is a tool on the Tools column. There is nothing to pop out.
+   The basket is the first page of the Shop column. There is nothing to pop out.
 
    ITS BETTER WORDING SURVIVED. "Pay £0.92" rather than "Send", "N more credits needed" on a button
    that cannot be pressed, and the line about printing being charged at cost — all of it says more

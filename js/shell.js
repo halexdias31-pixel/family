@@ -131,6 +131,21 @@ const TABS = [
      index. `TAB_ORDER` is what puts it last, which is the "for now" the request asked for — moving
      it is one row of `data/settings/columns.json` with no deploy. */
   { id: 'settings', icon: '⚙', label: 'Settings', title: 'Settings' },
+  /* ---------- AND THE SHOP, RIGHT OF BOOKING ----------------------------------------------------
+     ASKED FOR AS "Get rid of shop tag. I will make a new coloumn for shop stuff. So finder now will
+     become just learning stuff." It was an answer to Find's first question, and a shop is a PLACE by
+     this table's own test — see `shopCards_` in collections.js, which also carries the basket now.
+
+     BESIDE BOOKING, NOT BESIDE TOOLS, and measured rather than felt. The basket was a tool, but
+     nothing about it is one: it holds what you are about to pay for, a total and a Send, which is
+     what the booking receipt one column along holds — `cartCard_`'s note already calls them "the
+     same document". The two money columns sit together, two swipes from the front door (`feed`),
+     and the bundle tile on Find that fills the basket (`cart-open`) is three swipes from it either
+     way, so Tools would have bought nothing.
+
+     APPENDED, because this table is append-only; `TAB_ORDER` and `data/settings/columns.json` are
+     what put it second-but-one. */
+  { id: 'shop',    icon: '🛒', label: 'Shop',    title: 'Shop' },
 ];
 
 /* ---------- LEFT TO RIGHT, WHICH IS NOT THE ORDER THEY ARE WRITTEN IN -----------------------------
@@ -146,7 +161,7 @@ const TABS = [
      camera · post · booking · reel · DM · search · profile · tools · games
    `calculator` and `flappy bird` appear on that sheet as the first thing in the last two columns —
    they are widgets standing for what the column holds, not columns of their own. */
-const TAB_ORDER = ['feed', 'booking', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
+const TAB_ORDER = ['feed', 'booking', 'shop', 'reel', 'dm', 'stuff', 'account', 'tools', 'games', 'saved',
                    'spotlight',
                    'settings'];
 TABS.sort((a, b) => TAB_ORDER.indexOf(a.id) - TAB_ORDER.indexOf(b.id));
@@ -360,7 +375,8 @@ function go(id, remember, instant) {
   /* THE TOOLS AND THE GAMES ARE STARTED WHEN THEIR COLUMN ARRIVES, and stopped when it leaves.
      Markup first, `start` second — an id cannot be found before the markup carrying it is in the
      document, which is why this is here and not inside the screen's own draw. */
-  if (typeof toolsStop_ === 'function' && AT !== 'tools' && AT !== 'games' && AT !== 'saved') toolsStop_();
+  if (typeof toolsStop_ === 'function' && AT !== 'tools' && AT !== 'games' && AT !== 'saved'
+      && AT !== 'shop') toolsStop_();
   /* AND THE CAMERA, for the same reason and with more force: a canvas loop behind a screen nobody
      is looking at is a flat battery, and a live camera behind one is a recording light on for
      nothing. */
@@ -442,6 +458,9 @@ function startScreen_(id) {
   else if ((id === 'tools' || id === 'games') && typeof toolsStart_ === 'function') {
     toolsStart_(id === 'tools' ? 'tool' : 'game');
   }
+  /* AND THE SHOP, whose first page is the basket — a widget, with a `start` that draws its lines.
+     Without this the basket arrived as a heading over an empty box. */
+  else if (id === 'shop' && typeof toolsStart_ === 'function') { toolsStart_('shop'); }
   /* ---------- AND A COLUMN WHOSE CARDS JUST GREW IS PLACED AGAIN ---------------------------------
      A WIDGET DRAWS ITSELF IN ITS `start`, which runs here, 300ms after the column was placed — so
      the basket's receipt, the calendar's month and the week's roster all arrive AFTER `goPage` has
@@ -452,7 +471,7 @@ function startScreen_(id) {
      swiped, with nothing wrong in any single step.
      INSTANT, because the slide has already finished and nobody saw the wrong position move; and
      only for the column in front, because a neighbour is placed when it is arrived at. */
-  if ((id === 'saved' || id === 'tools' || id === 'games') && id === AT) {
+  if ((id === 'saved' || id === 'tools' || id === 'games' || id === 'shop') && id === AT) {
     placeCells('y', true, 0, id);
   }
   /* THE CAMERA STARTS ON ARRIVAL rather than on a tap. It waited for a button on the belief that
@@ -1584,6 +1603,9 @@ const PAGER = {
      there is one answer to how many pages there are. It is never nought: signed out it returns the
      one card that says to sign in, which is a page somebody has to be able to be on. */
   settings: () => (typeof settingsPages_ === 'function' ? settingsPages_().length : 1),
+  /* THE SHOP, COUNTED FROM `shopCards_`, the list `screen('shop')` draws. Never nought: the basket
+     is always page 0, and with nothing for sale the shop says so in a page of its own. */
+  shop: () => (typeof shopCards_ === 'function' ? shopCards_().length : 1),
 
   /* ---------- AND `booking` HAD NO ENTRY AT ALL, WHICH IS THE FAULT THE NOTE ABOVE DESCRIBES ------
      `screen('booking')` USES `pages()` AND THERE WAS NO KEY HERE. The paragraph over `tools` says
@@ -1831,7 +1853,7 @@ function applyBrandIcon_() {
    every screen that pages needs an entry or its position is not remembered between visits. Both
    page — `booking` since the receipts became pages, `dm` since the conversations did. */
 const PAGE = { feed: 0, stuff: 0, account: 0, tools: 0, games: 0, reel: 0, booking: 0, dm: 0, make: 0,
-               saved: 0, settings: 0, spotlight: 0 };
+               saved: 0, settings: 0, spotlight: 0, shop: 0 };
 
 /* ==================================================================================================
    A COLUMN MAY HOLD FEWER PAGE ELEMENTS THAN IT HAS PAGES.

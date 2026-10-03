@@ -306,7 +306,7 @@ const STATES = {
 
        AND IT PUTS THE BASKET BACK AS WELL AS THE FUNNEL. `check/press.js` presses the trolley here,
        which writes twelve lines to `localStorage` — and states run in order down one page, so a
-       basket left full would be measured on the Tools column as though somebody had filled it. */
+       basket left full would be measured on the Shop column as though somebody had filled it. */
     { name: 'a bundle of papers',
       enter: () => {
         STUFF.q = '';
@@ -1544,6 +1544,92 @@ const STATES = {
       leave: () => { DATA.spotlight = []; adoptSpotlight_(); paint('spotlight'); } },
   ],
 
+  /* ---------- THE SHOP ------------------------------------------------------------------------
+     THE UNNAMED STATE IS PAGE 0, the basket, empty — which is what every visitor lands on. The two
+     below are what a fixture with no shop rows could never have drawn: a shelf of shop cards, and a
+     basket with something in it. `check/fixture.json` sends ten shop rows now, shaped as `doGet`
+     sends them, for exactly this. */
+  shop: [
+    { name: '' },
+    /* THE FIRST SHELF. Found by its heading rather than by a number, because how many widgets sit
+       above the things is the roster's business — and asked of the cards that are there, tiles and
+       all, since a shelf drawing headings over nothing is the failure that looks finished. */
+    { name: 'the first shelf',
+      enter: () => {
+        const pages = [...document.querySelectorAll('#s-shop .page')];
+        const at = pages.findIndex(pg => pg.querySelector('h2') && pg.querySelector('.favwrap'));
+        if (at < 0) throw new Error('the shop column has no shelf of things');
+        goPage('shop', at, true);
+      },
+      expect: () => {
+        const pg = document.querySelectorAll('#s-shop .page')[PAGE.shop];
+        return !!pg && !!pg.querySelector('h2') && pg.querySelectorAll('.favwrap').length >= 1
+          && !!pg.querySelector('[data-do="cart-add"]');
+      },
+      wants: 'a shelf of the shop under its heading, each thing with a trolley' },
+
+    /* ---------- AND THE BASKET, WHICH A FIXTURE CANNOT REACH AT ALL ---------------------------
+       `CART` LIVES IN `localStorage`, NOT IN THE PAYLOAD, so no fixture can put anything in it:
+       whichever surface the basket has been on, this file has only ever seen it empty. It was a
+       page of the booking column, then a tool — asked for as *"i want the cart to be a tool in the
+       tool column"* — and is the first page of the Shop column now, so the state moved with it
+       again, seeded exactly as before.
+
+       SEEDED THE WAY THE APP FILLS IT. `CART` is what `cartCard_` reads and `cart-add` writes, and
+       `initCart()` is the widget's own `start` — which is what `toolsStart_('shop')` calls when the
+       column arrives, so this is the state a moment after somebody pressed the trolley on a card in Find.
+
+       A PRICE IN THE THOUSANDS ON PURPOSE. The figure column is the thing that breaks here — it is
+       sized in `ch` of a proportional font and drawn in mono — and `£2050.00` is one character
+       wider than `£270.00`, which is the difference between a finding and a pass. */
+    /* ---------- AND WHAT A BUNDLE PUTS IN IT, which is most of what a basket holds now --------------
+       Three papers under the title of the bundle they came from, one of them laminated, and a paper
+       nobody has counted the pages of — so the group's caption, the `✓ laminated` switch, the `? pp`
+       and the `tbc` in the figure column are all on the screen at once. The first version of the
+       laminated switch said `laminated £7.00 · plain` and put the ✕ on a line of its own at 320px;
+       a basket seeded with shop items only could never have shown that. Invented lines, shaped the
+       way `cartAddBundle_` writes them. */
+    { name: 'the basket',
+      enter: () => {
+        const from = 'Edexcel · Maths · GCSE · Higher · Past papers · Summer 2017';
+        CART = [{ key: 'P-1MA1-1705-1H', kind: 'print', name: 'Paper 1 (Non-Calculator) — May 2017 · Higher',
+                  short: 'Paper 1', pages: 20, cost: 0, from: from, laminate: true },
+                { key: 'P-1MA1-1706-2H', kind: 'print', name: 'Paper 2 (Calculator) — June 2017 · Higher',
+                  short: 'Paper 2', pages: 24, cost: 0, from: from },
+                { key: 'P-UNCOUNTED', kind: 'print', name: 'Paper 3 (Calculator) — June 2017 · Higher',
+                  short: 'Paper 3', pages: 0, cost: 0, from: from },
+                /* A CHEAT SHEET, as `mat-cart` writes it — one page, its pieces carried — so the
+                   laminate strip is measured on a line that is not a paper. */
+                { key: 'mat:Maths|GCSE|H|M01,M17,M26', kind: 'print', pages: 1, cost: 0,
+                  name: 'Cheat sheet — Maths · GCSE Higher (2 pieces)',
+                  parts: ['Ruler down the edge', 'Straight line', 'Quadratics'] },
+                { key: 'I001', name: 'Trundle wheel, 1 m circumference', kind: 'shop',
+                  cost: 0, money: 120000 },
+                { key: 'I026', name: 'Tape measure, 30 m', kind: 'shop', cost: 0, money: 85000 },
+                /* AND THE SHOP LINES THE BASKET MOSTLY HOLDS: a pence-priced one-word item (the line
+                   that was 72px tall with its ✕ alone on a row) and one bought with credits, so the
+                   head's credits line is drawn too. Shaped as `cartPrice_` writes them. */
+                { key: 'Pencil', name: 'Pencil', kind: 'shop', cost: 0, money: 0.3 },
+                { key: 'Sticker sheet', name: 'Sticker sheet', kind: 'shop', cost: 3, money: 0 }];
+        const n = widgetsOf_('shop').findIndex(w => String(w.id) === 'cart');
+        if (n < 0) throw new Error('no basket widget on the shop');
+        goPage('shop', n, true);
+        initCart();
+      },
+      /* AND A SHOP LINE IS ONE LINE: its ✕ on the name's own line, no strip under it, and the
+         leader drawn — the three things "refine basket to look nicer" changed, asked of the page. */
+      expect: () => document.querySelector('#s-shop [data-do="cart-send"]')
+                    && document.querySelector('#s-shop .cart-box .cart-from')
+                    && [...document.querySelectorAll('#s-shop .cart-box .bk-row.is-wide')]
+                         .filter(r => /Pencil/.test(r.textContent))
+                         .some(r => r.querySelector('.cart-ln [data-do="cart-drop"]') && !r.querySelector('.cart-ctl')
+                                    && r.querySelector('.cart-lead').getBoundingClientRect().width > 8),
+      wants: 'a basket holding a bundle under its title, a cheat sheet and shop lines, each shop line one line with its ✕ and a leader to its price, and a way to send the order',
+      /* PUT BACK, because states run in order down one page and an empty basket is what every
+         other state on this column expects to find. */
+      leave: () => { CART = []; initCart(); } },
+  ],
+
   tools: [
     { name: '' },
     { name: 'the cheat sheet maker',
@@ -1722,66 +1808,6 @@ const STATES = {
       expect: () => !document.querySelector('#s-tools .fm-sheet')
         && document.querySelector('#s-tools #fm-said b'),
       wants: 'the flyer maker saying what will print, with no preview on the card' },
-
-    /* ---------- AND THE BASKET, WHICH A FIXTURE CANNOT REACH AT ALL ---------------------------
-       `CART` LIVES IN `localStorage`, NOT IN THE PAYLOAD, so no fixture can put anything in it:
-       whichever surface the basket has been on, this file has only ever seen it empty. It was a
-       page of the booking column and is a tool now — asked for as *"i want the cart to be a tool
-       in the tool column"* — so the state moved with it, seeded exactly as before.
-
-       SEEDED THE WAY THE APP FILLS IT. `CART` is what `cartCard_` reads and `cart-add` writes, and
-       `initCart()` is the widget's own `start` — which is what `toolsStart_` calls when the column
-       arrives, so this is the state a moment after somebody pressed the trolley on a card in Find.
-
-       A PRICE IN THE THOUSANDS ON PURPOSE. The figure column is the thing that breaks here — it is
-       sized in `ch` of a proportional font and drawn in mono — and `£2050.00` is one character
-       wider than `£270.00`, which is the difference between a finding and a pass. */
-    /* ---------- AND WHAT A BUNDLE PUTS IN IT, which is most of what a basket holds now --------------
-       Three papers under the title of the bundle they came from, one of them laminated, and a paper
-       nobody has counted the pages of — so the group's caption, the `✓ laminated` switch, the `? pp`
-       and the `tbc` in the figure column are all on the screen at once. The first version of the
-       laminated switch said `laminated £7.00 · plain` and put the ✕ on a line of its own at 320px;
-       a basket seeded with shop items only could never have shown that. Invented lines, shaped the
-       way `cartAddBundle_` writes them. */
-    { name: 'the basket',
-      enter: () => {
-        const from = 'Edexcel · Maths · GCSE · Higher · Past papers · Summer 2017';
-        CART = [{ key: 'P-1MA1-1705-1H', kind: 'print', name: 'Paper 1 (Non-Calculator) — May 2017 · Higher',
-                  short: 'Paper 1', pages: 20, cost: 0, from: from, laminate: true },
-                { key: 'P-1MA1-1706-2H', kind: 'print', name: 'Paper 2 (Calculator) — June 2017 · Higher',
-                  short: 'Paper 2', pages: 24, cost: 0, from: from },
-                { key: 'P-UNCOUNTED', kind: 'print', name: 'Paper 3 (Calculator) — June 2017 · Higher',
-                  short: 'Paper 3', pages: 0, cost: 0, from: from },
-                /* A CHEAT SHEET, as `mat-cart` writes it — one page, its pieces carried — so the
-                   laminate strip is measured on a line that is not a paper. */
-                { key: 'mat:Maths|GCSE|H|M01,M17,M26', kind: 'print', pages: 1, cost: 0,
-                  name: 'Cheat sheet — Maths · GCSE Higher (2 pieces)',
-                  parts: ['Ruler down the edge', 'Straight line', 'Quadratics'] },
-                { key: 'I001', name: 'Trundle wheel, 1 m circumference', kind: 'shop',
-                  cost: 0, money: 120000 },
-                { key: 'I026', name: 'Tape measure, 30 m', kind: 'shop', cost: 0, money: 85000 },
-                /* AND THE SHOP LINES THE BASKET MOSTLY HOLDS: a pence-priced one-word item (the line
-                   that was 72px tall with its ✕ alone on a row) and one bought with credits, so the
-                   head's credits line is drawn too. Shaped as `cartPrice_` writes them. */
-                { key: 'Pencil', name: 'Pencil', kind: 'shop', cost: 0, money: 0.3 },
-                { key: 'Sticker sheet', name: 'Sticker sheet', kind: 'shop', cost: 3, money: 0 }];
-        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'cart');
-        if (n < 0) throw new Error('no basket widget in the roster');
-        goPage('tools', n, true);
-        initCart();
-      },
-      /* AND A SHOP LINE IS ONE LINE: its ✕ on the name's own line, no strip under it, and the
-         leader drawn — the three things "refine basket to look nicer" changed, asked of the page. */
-      expect: () => document.querySelector('#s-tools [data-do="cart-send"]')
-                    && document.querySelector('#s-tools .cart-box .cart-from')
-                    && [...document.querySelectorAll('#s-tools .cart-box .bk-row.is-wide')]
-                         .filter(r => /Pencil/.test(r.textContent))
-                         .some(r => r.querySelector('.cart-ln [data-do="cart-drop"]') && !r.querySelector('.cart-ctl')
-                                    && r.querySelector('.cart-lead').getBoundingClientRect().width > 8),
-      wants: 'a basket holding a bundle under its title, a cheat sheet and shop lines, each shop line one line with its ✕ and a leader to its price, and a way to send the order',
-      /* PUT BACK, because states run in order down one page and an empty basket is what every
-         other state on this column expects to find. */
-      leave: () => { CART = []; initCart(); } },
 
     /* ---------- A TUTOR'S TEACHING HOURS -----------------------------------------------------
        THE SEVENTY-SEVEN CELLS OF A WEEK GRID, on a card nobody had measured, in the one place this

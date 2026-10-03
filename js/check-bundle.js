@@ -389,10 +389,12 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
     const pages = Number(c.pages) || 0;
     return n + r2(pages * rate) + (i === 0 ? Math.max(lamMin, r2(pages * lamRate)) : 0);
   }, 0);
-  b.go('tools');
+  /* THE SHOP COLUMN, where the basket is the first page now — it was a tool, and this went to Tools
+     and asked for a Send button that had moved. */
+  b.go('shop');
   b.initCart();
-  const send = () => w.document.querySelector('#s-tools .cart-box [data-do="cart-send"]');
-  if (!send()) { bad.push('the basket on the Tools column has no Send button'); return done(); }
+  const send = () => w.document.querySelector('#s-shop .cart-box [data-do="cart-send"]');
+  if (!send()) { bad.push('the basket on the Shop column has no Send button'); return done(); }
 
   /* A REFUSAL FIRST. The server's own sentence, and the basket exactly as it was. */
   REPLY = { error: 'One message every five minutes — 3 minutes to go.' };
