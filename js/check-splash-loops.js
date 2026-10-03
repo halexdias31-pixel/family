@@ -54,6 +54,9 @@ const LOOPS = [
      centring sentence is in indexOwn_ — each group moves half the distance. */
   { id: 'index', prefix: 'ix-',
     own: indexOwn_ },
+  /* THE RING: centred on its two corner posts, which the generator places symmetrically. */
+  { id: 'box', prefix: 'bx-', centreOn: ['bx-post'],
+    own: boxOwn_ },
 ];
 
 let faults = [], said = [];
@@ -318,6 +321,69 @@ function indexOwn_(L, m) {
   const sum = window_(frames[name('.ix-sum')], lit);
   if (!sum) fault(L.id, '.ix-sum is not animated — a⁵ shows before anything has been counted');
   else if (sum.from < lastOn) fault(L.id, 'a⁵ is written at ' + sum.from + '%, before the fifth tile is counted at ' + lastOn + '%');
+}
+
+/* ---------- THE RING: ONE BOXER IS ONE BOXER, AND A SPARK IS A PUNCH THAT LANDED -------------------
+   ASKED FOR AS "add a boxing animation loading. like boxing in the ring 8 bit." Four things the
+   generic checks above cannot see, each of which still animates perfectly well:
+     · EIGHT-BIT IS `step-end`. A pose that cross-fades or a boxer that glides between pixels is a
+       modern animation in an old costume, so every animation here holds and jumps.
+     · ONE POSE AT A TIME. Each boxer is three or four drawings swapped by opacity; at every moment
+       of the loop exactly one of a boxer's drawings must be showing — two is a ghost, none is a
+       boxer who blinks out of the ring.
+     · A SPARK IS A PUNCH THAT LANDED. Spark 1 is blue's jab on gold, spark 2 gold's on blue; while
+       either is lit, the one punching is in the jab and the one punched is in the hit. A spark
+       over two boxers in their guard is a firework.
+     · IT IS A RING: three ropes, two corner posts from the floor up, a bell, blue drawn mirrored to
+       face gold, and pixels drawn with `crispEdges` — without it every square blurs at its edges
+       and it stops being eight-bit. */
+function boxOwn_(L, m, mine) {
+  if (!/<svg class="bx-ring"[^>]*shape-rendering="crispEdges"/.test(m))
+    fault(L.id, 'the ring is not drawn with shape-rendering="crispEdges" — the pixels blur at their edges');
+  const ropes = (m.match(/class="bx-rope[ "]/g) || []).length;
+  const posts = [...m.matchAll(/<rect class="bx-post"[^>]*height="(\d+)"/g)].filter(x => +x[1] >= 20).length;
+  if (ropes !== 3) fault(L.id, 'has ' + ropes + ' ropes — a ring has three');
+  if (posts !== 2) fault(L.id, 'has ' + posts + ' corner posts standing on the floor — the ring has two in view');
+  if (!/class="bx-bell"/.test(m)) fault(L.id, 'has no bell');
+  if (!/<g class="bx-r" transform="[^"]*scale\(-1 1\)"/.test(m)) fault(L.id, 'blue is not drawn mirrored — the two would face the same way');
+  mine.filter(r => !isStill(r) && r.decls.animation && r.decls.animation !== 'none').forEach(r => {
+    if (!/\bstep-end\b/.test(r.decls.animation)) fault(L.id, r.sel + ' is not step-end — it glides between pixels or fades between poses, which is not eight-bit');
+  });
+  /* THE VALUE A step-end ANIMATION HOLDS at t: the last stop at or before it. */
+  const held = (name, prop, t) => {
+    let at = -1, v = null;
+    (frames[name] || []).forEach(s => s.keys.forEach(k => {
+      if (k <= t && k >= at && s.decls[prop] !== undefined) { at = k; v = s.decls[prop]; }
+    }));
+    return v;
+  };
+  const POSES = { l: ['guard', 'jab', 'hit'], r: ['guard', 'jab', 'duck', 'hit'] };
+  const who = side => side === 'l' ? 'gold' : 'blue';
+  Object.keys(POSES).forEach(side => POSES[side].forEach(p => {
+    if (!new RegExp('<g class="bx-pose bx-' + side + '-' + p + '"').test(m)) fault(L.id, 'has no ' + p + ' drawing for ' + who(side));
+    if (!frames['bx-' + side + '-' + p]) fault(L.id, 'has no @keyframes bx-' + side + '-' + p);
+  }));
+  let ghosts = 0, gaps = 0;
+  for (let t = 0; t < 100; t += 0.25) {
+    Object.keys(POSES).forEach(side => {
+      const on = POSES[side].filter(p => held('bx-' + side + '-' + p, 'opacity', t) === '1').length;
+      if (on > 1) ghosts++;
+      if (on < 1) gaps++;
+    });
+  }
+  if (ghosts) fault(L.id, 'shows two drawings of one boxer at once at ' + ghosts + ' sampled moments — a ghost');
+  if (gaps) fault(L.id, 'shows no drawing of a boxer at ' + gaps + ' sampled moments — a boxer who blinks out');
+  [['1', 'r', 'l'], ['2', 'l', 'r']].forEach(([n, by, on]) => {
+    let lit = 0, wrong = 0;
+    for (let t = 0; t < 100; t += 0.25) {
+      if (held('bx-spark-' + n, 'opacity', t) !== '1') continue;
+      lit++;
+      if (held('bx-' + by + '-jab', 'opacity', t) !== '1' || held('bx-' + on + '-hit', 'opacity', t) !== '1') wrong++;
+    }
+    if (!lit) fault(L.id, 'spark ' + n + ' never lights — nothing lands');
+    if (wrong) fault(L.id, 'spark ' + n + ' is lit at ' + wrong + ' sampled moments when ' + who(by)
+      + ' is not jabbing or ' + who(on) + ' is not hit — a spark over nothing');
+  });
 }
 
 console.log('\nTHE SPLASHES THAT ARE ONE SEAMLESS LOOP  (' + LOOPS.length + ')');

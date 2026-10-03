@@ -4881,3 +4881,261 @@ on('kt-lesson', el => {
   ktPaint_();
   if (box) ktFocus_(box);
 });
+
+
+/* ==================================================================================================
+   VIDEOS — A SEARCH BOX, A LIST, A PLAYER IN THE CARD, AND A FULL SCREEN TILE
+
+   ASKED FOR AS "videos would be in the games column. its one new widget. its a video searcher you
+   type in. and there should be a full screen button." — and earlier as "Video cool videos database
+   for reals and movies". The roster entry is `videos` in map.js, last on the Games column.
+
+   WHAT IT SEARCHES, AND IT IS THREE LISTS THE APP ALREADY HAS OR THE OWNER FILLS:
+     - `data/videos.json` — the curated database, one row per video: `title`, `url`, `kind`
+       (reel | film | clip), `tags`, `age`, `notes`, `active`. The owner fills it; a row is
+       switched off with `active: false` rather than deleted, the shop's convention.
+     - the reels — `clipsNow_()`, the very list the Reels column and "One more thing" play, so a clip
+       added there turns up here with nothing else to change. A second reader of "which clips are
+       there" is the `factsNow_` lesson.
+     - the films — `DATA.films`, which the backend sends to an admin and to NOBODY ELSE (note 068 in
+       docs/history). `|| []` is the ordinary fallback and here it is also the whole gate, exactly
+       as it is in find.js: nothing in this file decides who may see a film.
+
+   NOT ALL OF YOUTUBE. A live search of YouTube needs a YouTube Data API key in the page, which in a
+   public repository is a published key; that is the owner's decision and it has not been taken. So
+   the box searches what is listed, and says how many it searched, rather than pretending to be
+   YouTube.
+
+   ---------- WHY YOUTUBE IS EMBEDDED HERE WHEN THE REELS' EMBEDS WERE TAKEN OUT ----------------------
+   The owner's word on the reels was "remove the embedded reels. they suck." — see `clipPlayable_`
+   above. What sucked was a COLUMN that autoplays, mutes and pauses, falling through to a Drive or
+   Instagram iframe it could do none of that to. This card does none of that: nothing plays until a
+   row is tapped, and the person then drives the player themselves. A YouTube link has no address a
+   `<video>` can read, so the choice for one is an embed or nothing — and the youtube-NOCOOKIE host,
+   which sets no tracking cookie until the video is actually played. An `.mp4` plays in a `<video>`,
+   as a reel does. A Drive film plays in neither, for the reason note 068 gives (a 3 GB `.mkv`), so
+   its row is a door to Drive, marked as one.
+
+   THE LIST IS FETCHED ON FIRST OPEN, NOT AT BOOT. Every visitor pays for the payload and the
+   library; a list of videos is for the ones who come to this card. `?t=LOAD` is the same stamp the
+   boot fetches carry, so the service worker's exact-URL cache hands back a fresh copy after a deploy
+   and never the old one.
+================================================================================================== */
+const VID_KINDS = ['reel', 'film', 'clip'];
+let VIDEOS_LIST = null;          // null: not asked yet. []: asked, and there is nothing in it
+let VIDEOS_ASKED = null;         // the one request in flight, so two copies of the card ask once
+const VID = { q: '', at: '' };   // what is typed, and the key of the row in the player
+
+/* A ROW IS ONE SHAPE WHEREVER IT CAME FROM, built here once rather than at each reader. `how` is
+   how it plays: `yt` in an iframe, `file` in a `<video>`, `out` a door to somewhere else. */
+function vidHow_(url) {
+  const u = String(url || '').trim();
+  if (vidYouTubeId_(u)) return 'yt';
+  if (typeof clipPlayable_ === 'function' && clipPlayable_(u)
+      && /\.(mp4|webm|m4v|mov|ogv)(?:[?#]|$)/i.test(u)) return 'file';
+  if (/^https?:\/\//i.test(u)) return 'out';
+  return '';
+}
+
+/* EVERY SHAPE A YOUTUBE ADDRESS COMES IN when somebody copies it: the watch page, the share link,
+   a Short, an embed, and the nocookie host itself. An id is eleven characters of [A-Za-z0-9_-]; a
+   match on anything looser would embed a playlist page or a channel as a broken player. */
+function vidYouTubeId_(url) {
+  const u = String(url || '').trim();
+  const m = u.match(/^https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/(?:watch\?(?:[^#]*&)?v=|shorts\/|embed\/|live\/)|youtube-nocookie\.com\/embed\/|youtu\.be\/)([A-Za-z0-9_-]{11})(?![A-Za-z0-9_-])/i);
+  return m ? m[1] : '';
+}
+
+function videosAll_() {
+  const out = [];
+  const seen = new Set();
+  const add = r => {
+    if (!r.title || !r.how || seen.has(r.url)) return;
+    seen.add(r.url);
+    out.push(r);
+  };
+  /* THE OWNER'S LIST FIRST, so a video they typed in AND which is also a reel is shown with their
+     title and tags rather than the reel's — theirs is the one somebody wrote on purpose. */
+  (VIDEOS_LIST || []).forEach((r, i) => {
+    if (!r || typeof r !== 'object') return;
+    if (r.active !== undefined && typeof libOn === 'function' && !libOn(r.active)) return;
+    const url = String(r.url || '').trim();
+    const kind = VID_KINDS.indexOf(String(r.kind || '').toLowerCase()) !== -1
+      ? String(r.kind).toLowerCase() : 'clip';
+    add({ key: 'v' + i, title: String(r.title || '').trim(), url, kind, how: vidHow_(url),
+          tags: String(r.tags || ''), age: String(r.age || '').trim(), notes: String(r.notes || '') });
+  });
+  /* THE REELS, NUMBERED BY ADDRESS rather than by `clipsNow_`'s order, which is dealt at random once
+     per open — "Reel 2" has to be the same reel on the second visit or the number names nothing. A
+     reel with a heading is called by it; the two built-in ones have none. */
+  try {
+    const clips = (typeof clipsNow_ === 'function' ? clipsNow_() : []).slice()
+      .sort((a, b) => String(a.clip).localeCompare(String(b.clip)));
+    clips.forEach((f, i) => {
+      const url = String(f.clip || '').trim();
+      add({ key: 'r' + i, title: f.heading || ('Reel ' + (i + 1)), url, kind: 'reel', how: vidHow_(url),
+            tags: [f.subject, f.body].filter(Boolean).join(' '), age: '', notes: '' });
+    });
+  } catch (e) {}
+  ((typeof DATA !== 'undefined' && DATA.films) || []).forEach((f, i) => {
+    if (!f || !f.title || f.placeholder || !/^https?:\/\//i.test(String(f.url || ''))) return;
+    add({ key: 'f' + (f.id || i), title: String(f.title), url: String(f.url), kind: 'film', how: 'out',
+          tags: [f.year, f.director, f.lead, f.kind, f.audience].filter(Boolean).join(' '),
+          age: f.audience === 'kids' ? 'kids' : '', notes: String(f.notes || '') });
+  });
+  return out;
+}
+
+/* EVERY WORD TYPED HAS TO BE SOMEWHERE IN THE ROW — title, tags, kind, notes. An "any word" match
+   gets LONGER as you type a second word, which is the opposite of what typing into a search box is
+   for; "narrows as you type" was the request. */
+function videosFound_(q) {
+  const words = String(q || '').toLowerCase().split(/\s+/).filter(Boolean);
+  const all = videosAll_();
+  if (!words.length) return all;
+  return all.filter(r => {
+    const hay = [r.title, r.tags, r.kind, r.notes, r.age].join(' ').toLowerCase();
+    return words.every(w => hay.indexOf(w) !== -1);
+  });
+}
+
+function vidPlayer_(r) {
+  if (!r) return '<p class="faint vid-hint">Tap a video to play it here.</p>';
+  if (r.how === 'yt') {
+    /* `referrerpolicy` IS NOT DECORATION: YouTube's embed refuses to play (error 153) for a page
+       that sends no referrer. `autoplay` is allowed because the tap that chose the row is the
+       gesture that asked for it. */
+    return `<iframe class="vid-player" src="https://www.youtube-nocookie.com/embed/${esc(vidYouTubeId_(r.url))}?rel=0&amp;playsinline=1&amp;autoplay=1"
+      title="${esc(r.title)}" allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+      allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe>`;
+  }
+  /* `playsinline`, OR AN IPHONE TAKES EVERY TAP STRAIGHT TO ITS OWN FULL SCREEN and the card never
+     holds the video at all — which would make the Full screen tile the only way NOT to be full
+     screen. */
+  return `<video class="vid-player" src="${esc(r.url)}" controls playsinline preload="metadata"></video>`;
+}
+
+function vidRow_(r) {
+  const flag = r.kind === 'film' ? 'Film' : r.kind === 'reel' ? 'Reel' : 'Clip';
+  const sub = [r.age, r.how === 'out' ? 'opens in a new tab' : ''].filter(Boolean).join(' · ');
+  const inner = `<span class="vid-t">${esc(r.title)}</span>
+      <span class="vid-k">${esc(flag)}${sub ? ' · ' + esc(sub) : ''}</span>`;
+  /* A DOOR IS A LINK, NOT A BUTTON THAT PRETENDS TO PLAY. `out` is absolute http(s), tested in
+     `vidHow_` — `tile_`'s rule for the one way out of this app. */
+  if (r.how === 'out') {
+    return `<li><a class="vid-row is-out" href="${esc(r.url)}" target="_blank" rel="noopener">${inner}</a></li>`;
+  }
+  return `<li><button type="button" class="vid-row${VID.at === r.key ? ' on' : ''}" data-do="vid-play"
+      data-k="${esc(r.key)}">${inner}</button></li>`;
+}
+
+/* THE LIST AND THE PLAYER ARE REPAINTED; THE BOX IS NOT. Rewriting the `<input>` on every keystroke
+   would drop the keyboard on a phone after one letter — the flinch the note over `tile_`'s "filling
+   the shape" records. So the box is built once per copy and only its siblings change. */
+function vidPaint_(only) {
+  const boxes = document.querySelectorAll('.vid-box');
+  if (!boxes.length) return;
+  const all = videosAll_();
+  const found = videosFound_(VID.q);
+  const playing = all.find(r => r.key === VID.at) || null;
+  /* A COUNT RATHER THAN A SILENCE: "3 of 12 videos" says the box searched something, where an
+     empty list under a search box looks exactly like a search that never ran. */
+  const said = VIDEOS_LIST === null && !all.length ? 'Looking for videos…'
+    : !all.length ? 'No videos listed yet.'
+    : found.length === all.length ? all.length + (all.length === 1 ? ' video' : ' videos')
+    : found.length + ' of ' + all.length + ' videos';
+  boxes.forEach(box => {
+    if (!box.querySelector('.vid-q')) {
+      box.innerHTML = `<input class="vid-q" type="search" placeholder="Search videos…"
+        autocomplete="off" enterkeyhint="search" aria-label="Search videos">
+      <div class="vid-stage"></div>
+      <div class="tile-row vid-acts"></div>
+      <p class="faint vid-said"></p>
+      <ul class="vid-list"></ul>`;
+    }
+    const q = box.querySelector('.vid-q');
+    if (q && document.activeElement !== q && q.value !== VID.q) q.value = VID.q;
+    if (only !== 'list') {
+      const stage = box.querySelector('.vid-stage');
+      const want = playing ? playing.key : '';
+      /* ONLY WHEN IT CHANGED: rebuilding the player on a keystroke would restart the video under
+         somebody who is searching for the next one while this one plays. */
+      if (stage && (stage.dataset.k || '') !== want) {
+        stage.innerHTML = vidPlayer_(playing);
+        stage.dataset.k = want;
+        stage.classList.toggle('on', !!playing);
+      }
+      const acts = box.querySelector('.vid-acts');
+      if (acts) acts.innerHTML = tile_({ icon: 'full', label: 'Full screen', act: 'vid-full',
+                                          off: !playing });
+    }
+    box.querySelector('.vid-said').textContent = said;
+    box.querySelector('.vid-list').innerHTML = found.length
+      ? found.slice(0, 40).map(vidRow_).join('')
+      : (all.length ? '<li class="faint vid-none">Nothing matches that.</li>' : '');
+  });
+}
+
+function videosAsk_() {
+  if (VIDEOS_LIST !== null) return Promise.resolve(VIDEOS_LIST);
+  if (VIDEOS_ASKED) return VIDEOS_ASKED;
+  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
+  VIDEOS_ASKED = Promise.resolve()
+    .then(() => fetch('data/videos.json' + stamp, { cache: 'default' }))
+    .then(res => (res && res.ok) ? res.json() : [])
+    .catch(() => [])
+    /* AN ARRAY OR NOTHING. A missing file, a 404 page or a half-written edit is "no list", and the
+       reels and films still search — an empty or broken file must still produce a working card. */
+    .then(rows => { VIDEOS_LIST = Array.isArray(rows) ? rows : []; VIDEOS_ASKED = null; return VIDEOS_LIST; });
+  return VIDEOS_ASKED;
+}
+
+function initVideos() {
+  vidPaint_();
+  videosAsk_().then(() => vidPaint_());
+}
+
+/* LEAVING THE COLUMN STOPS IT — the Reels column's lesson in note 047: a clip somebody turned the
+   sound up on went on talking from a screen two swipes away. An iframe cannot be paused from here,
+   so the player is emptied, and a tap on the row starts it again. */
+function videosStop_() {
+  VID.at = '';
+  if (document.querySelector('.vid-box')) vidPaint_();
+}
+
+document.addEventListener('input', e => {
+  const el = e.target;
+  if (!el || !el.classList || !el.classList.contains('vid-q')) return;
+  VID.q = String(el.value || '');
+  vidPaint_('list');
+});
+
+on('vid-play', el => {
+  VID.at = String(el.dataset.k || '');
+  vidPaint_();
+});
+
+/* ---------- FULL SCREEN, AND THE IPHONE IS THE ONE THAT DOES IT DIFFERENTLY -------------------------
+   `requestFullscreen` on the player itself, so what fills the screen is the picture and not the
+   card with a search box round it. Older Safari wants `webkitRequestFullscreen`; Safari on an iPhone
+   has no element full screen at all and offers ONLY `webkitEnterFullscreen`, which exists on a
+   `<video>` and nowhere else — so a YouTube embed on an iPhone goes full screen from its own button
+   in the player, and this says so rather than doing nothing. */
+on('vid-full', el => {
+  const box = el.closest('.vid-box');
+  const p = box && box.querySelector('.vid-stage .vid-player');
+  if (!p) { toast('Pick a video first.'); return; }
+  const iphone = () => {
+    if (p.webkitEnterFullscreen) { try { p.webkitEnterFullscreen(); return; } catch (e) {} }
+    toast('Use the full screen button in the player.');
+  };
+  try {
+    if (p.requestFullscreen) {
+      const r = p.requestFullscreen();
+      if (r && r.catch) r.catch(iphone);
+      return;
+    }
+    if (p.webkitRequestFullscreen) { p.webkitRequestFullscreen(); return; }
+  } catch (e) {}
+  iphone();
+});

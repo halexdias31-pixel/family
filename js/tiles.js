@@ -145,6 +145,11 @@ const TILE_ICONS = {
      is one more outline in the set rather than the only solid. */
   shuffle: '<path d="M2.5 5h3c3.5 0 4.5 7 8 7h2"/><path d="M2.5 12h3c3.5 0 4.5-7 8-7h2"/>'
          + '<path d="m13.5 3 2 2-2 2"/><path d="m13.5 10 2 2-2 2"/>',
+  /* FULL SCREEN: four corners pushed outward, the mark every video player puts on the button that
+     asked for it — asked for in those words on the Videos widget. Four open paths, so it sits in
+     the set as one more outline. */
+  full:  '<path d="M2.5 6.5v-4h4"/><path d="M11.5 2.5h4v4"/>'
+       + '<path d="M15.5 11.5v4h-4"/><path d="M6.5 15.5h-4v-4"/>',
 };
 
 function tileIcon_(name) {

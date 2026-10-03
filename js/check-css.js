@@ -446,7 +446,15 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
 
       /* Case-insensitively: the readout says it in capitals, and a check that flagged that would be
          reporting a fault that is not there — which is how a report stops being read. */
-      if (!/@family\./i.test(body)) {
+      /* AND AS IT READS ON THE SCREEN, tags and spaces out. The blocks splash spells the name one
+         letter to a block — `<i>@</i>` … `<i>.</i>` — so the raw markup never holds the word, and it
+         passed only because it was the LAST splash and its body ran on into `#splash-say`. The
+         boxing ring was added after it and the blocks went red for a fault that is not there. */
+      /* AND THE LAST SPLASH IS CUT AT `#splash-say`, which is a `<p>` and so not a split point: the
+         last one's body ran on into that line's own @family. and passed whatever it drew. */
+      body = body.split(/<p id="splash-say"/)[0];
+      const shown = body.replace(/<[^>]*>/g, '').replace(/\s+/g, '');
+      if (!/@family\./i.test(body) && !/@family\./i.test(shown)) {
         nameless.push('#splash-' + name + ' never says @family. — a one-in-seven chance of a first '
           + 'impression that does not name the app');
       }
