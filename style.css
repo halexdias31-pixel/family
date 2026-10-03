@@ -12040,7 +12040,12 @@ button.scr-sq { cursor: pointer; }
    and says which in its title. */
 .prof-week .slot-grid { gap: 2px; margin: .1rem 0 .3rem; }
 .prof-week .slot-day { flex-basis: 1.9rem; font-size: .62rem; text-transform: none; letter-spacing: 0; color: var(--dim); }
-.prof-week .hr { min-height: 12px; border-radius: 2px; cursor: default; }
+.prof-week .hr { min-height: 12px; border-radius: 2px; }
+/* THE ARROW, BY SPECIFICITY AND NOT BY ORDER. `.hr.shut` gives a shut hour `not-allowed` everywhere
+   else, and the plain `.prof-week .hr` matched it at the same weight, so only coming later made it
+   win — `check/cascade.js` names exactly that. Nothing here is pressable, shut or open, so both say
+   default at a weight `.hr.shut` cannot reach. */
+.prof-week .hr:not(.shut), .prof-week .hr.shut { cursor: default; }
 .prof-week .slot-row.is-shut .hr { min-height: 5px; }
 .prof-week .slot-row.is-shut .slot-day { font-size: .52rem; line-height: 1; color: var(--faint); }
 .prof-week .hr:active { transform: none; }

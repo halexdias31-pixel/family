@@ -111,6 +111,8 @@ const ACCEPTED_QUIET = {
      Both press a hidden `<input type="file">`, which opens the device's own chooser — a window this
      harness cannot see and nothing on the page changes until a file is chosen. */
   'msg-attach': { why: 'opens the device file chooser; nothing on the page changes until a file is picked.' },
+  'pfp-pick':   { why: 'the profile picture\'s Choose photo: opens the device file chooser, and nothing on the '
+                     + 'page changes until a picture is picked — check-flow drives that half with a file.' },
   'cam-more':   { why: 'keeps the current shot and starts the camera again; with no shot and no camera '
                      + 'in this container there is nothing to keep and nothing to restart.' },
   /* ---------- A BOX WITH NOTHING IN IT ------------------------------------------------------------
