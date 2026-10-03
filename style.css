@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-03-roles-videos";
+  --css-version: "2026-10-03-textbook";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -9977,6 +9977,27 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* `.prac-safety b` AND `.prac-maths b` WERE IN THIS SELECTOR and went with their two rules above.
    `.prac-out` is the card's own "You end up with", which is untouched. */
 .prac-out b { color: var(--gold); font-weight: 600; }
+
+/* ---------- THE @family. TEXTBOOK — WHAT A BOOK HAS THAT A PROJECT DOES NOT -----------------------
+   "the @family textbook should be bare bones for now". Everything else on its pages is `.prac` and
+   the guide's `.gd-sec`, so these are the only three things it adds: the Higher mark, a key word's
+   own term, and a formula drawn on a line of its own.
+
+   THE MARK IS A LETTER IN A BOX, in the flag's own outline and the screen's ink, NOT gold — gold on
+   this card answers one question already (`.prac-flag.is-req`), and Higher is not "the board makes
+   you". `vertical-align: .1em` sits it on the text it qualifies rather than on the line under. */
+.tb-h { display: inline-block; margin-left: .35em; padding: .05rem .28rem; vertical-align: .1em;
+  font: 600 .6rem/1.2 var(--mono); letter-spacing: .04em; color: var(--ink);
+  border: 1px solid var(--line); border-radius: .3rem; }
+.tb-words b { color: var(--ink); font-weight: 600; }
+/* A FORMULA'S NAME ABOVE IT, THE FORMULA IN THE CARD'S OWN INK AND A SIZE UP — it is the thing on
+   the page somebody came for, and a stacked fraction at .8rem is two numbers too small to read.
+   `overflow-wrap: anywhere` because a long standardised-rate formula is one unbreakable run of
+   words on a 320px phone, and `.frac` is inline-block, so it moves to the next line whole. */
+.tb-math li { margin: 0 0 .45rem; }
+.tb-fn { display: block; font-size: .72rem; color: var(--faint); }
+.tb-fm { display: block; font-size: .95rem; line-height: 1.6; color: var(--ink); overflow-wrap: anywhere; }
+.tb-points li { margin: 0 0 .3rem; }
 
 /* ==================================================================================================
    THE GUIDE. FIVE THINGS: the sheet's own title, the drawing, the kit, the method, and a

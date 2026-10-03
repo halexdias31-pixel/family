@@ -610,6 +610,10 @@ function doGet(e) {
          read-and-never-sent. Nothing here reads a tab for it. The site works before this line is
          deployed -- the phone fills the key either way -- so the deploy is for the check's sake. */
       projects: [],
+      /* AND `textbooks` IS THE EIGHTH, for the same sentence again: `data/textbooks.json` is
+         filled in on the phone, and this key is here so `check-payload.js` does not report it
+         read-and-never-sent. */
+      textbooks: [],
       /* An object rather than an array — branding is looked up by name, never iterated. */
       brand: {},
       /* Missing COLUMNS, and — for an admin — what is wrong with the DATA. The second is the one

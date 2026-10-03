@@ -212,7 +212,11 @@ async function libraryRows_() {
    board game, a recipe book. Same row shape where the two agree (topics, kit, steps), its own
    columns where they do not (`sessions`, `makes`, `share`), and its own file so the 82 practicals'
    rules -- compliance, hazard, IV/DV/CV -- are not asked of a podcast. See `check-projects.js`. */
-const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'topics', 'practicals', 'quizzes', 'projects'];
+/* `textbooks` IS THE EIGHTH — "the @family textbook should be bare bones for now and the textbooks
+   will be in the resources tag in the finder." ONE FILE FOR EVERY BOOK, not one file per book, because
+   a file is a name in this list and a name here is a deploy: the second book should be rows, not code.
+   One row per chapter; see the mapper below and `check-textbooks.js`. */
+const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'topics', 'practicals', 'quizzes', 'projects', 'textbooks'];
 let LIBRARY_EXTRA = null;
 
 /* One fetch per tab, all started before this file parsed — see `index.html`. A file that 404s or
@@ -446,6 +450,49 @@ function libraryExtras_(d, extra) {
       });
     });
     d.projects = out;
+  }
+
+  /* --- the textbooks ---------------------------------------------------------------------------
+     ONE ROW PER CHAPTER, GROUPED HERE INTO ONE OBJECT PER BOOK — the quizzes' move below, for the
+     quizzes' reason: a flat file is one a diff can point into, and "chapter 9 of GCSE Statistics"
+     is a line. The row with `chapter: 0` is the TITLE PAGE — name, summary, subject, level, board,
+     spec — so a book's own facts are written once rather than on sixteen rows that could disagree.
+
+     THREE PIPE LISTS, each item `name — the rest`, the em dash being the one separator nothing in
+     a definition or a formula needs. A leading `[H] ` marks Higher tier only, read off here into
+     `higher` so no card has to know the spelling. A whole chapter that is Higher says so in `tier`
+     instead of on every line. `check-textbooks.js` holds the file to all of it.
+
+     ORDERED BY `chapter`, NOT BY LINE. A row pasted at the bottom of the file is chapter 7 if it
+     says 7, which is what the sheet would do with a sort. */
+  if (extra.textbooks && extra.textbooks.length) {
+    const books = {}, order = [];
+    const item = s => {
+      const t = libS(s).trim(), higher = /^\[H\]\s*/.test(t), body = t.replace(/^\[H\]\s*/, '');
+      const at = body.indexOf(' — ');
+      return at < 0 ? { name: '', text: body, higher: higher }
+                    : { name: body.slice(0, at).trim(), text: body.slice(at + 3).trim(), higher: higher };
+    };
+    const list = v => libS(v).split('|').map(s => s.trim()).filter(Boolean).map(item);
+    extra.textbooks.forEach(r => {
+      const id = libS(r.book_id).trim();
+      if (!id || !libOn(r.active)) return;
+      if (!books[id]) { books[id] = { id: id, chapters: [] }; order.push(id); }
+      const b = books[id], n = libN(r.chapter);
+      if (n === 0) {
+        Object.assign(b, { name: libS(r.title), summary: libS(r.summary), subject: libS(r.subject),
+                           level: libS(r.level), board: libS(r.board), spec: libS(r.spec) });
+        return;
+      }
+      b.chapters.push({ n: n, title: libS(r.title), higher: /^higher$/i.test(libS(r.tier).trim()),
+                        topics: libS(r.topics), words: list(r.words), formulas: list(r.formulas),
+                        points: list(r.points).map(p => ({ text: (p.name ? p.name + ' — ' : '') + p.text,
+                                                           higher: p.higher })) });
+    });
+    /* A BOOK WITH NO TITLE PAGE IS NOT A BOOK: it has no name to be found by, so it is left out
+       rather than drawn as a blank card. The check refuses the file first. */
+    d.textbooks = order.map(id => books[id]).filter(b => b.name)
+      .map(b => Object.assign(b, { chapters: b.chapters.sort((p, q) => p.n - q.n) }));
   }
 
   /* --- the quizzes ------------------------------------------------------------------------------

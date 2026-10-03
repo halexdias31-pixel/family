@@ -336,6 +336,16 @@ const KINDS = {
   /* THE BOUTS. `boxers` is who; this is what happened. 157 of them sat in the sheet unread,
      because nothing in the app had ever been told the tab existed. */
   fight: { group: 'Learning', label: 'Resources', card: x => fightCard_(x) },
+  /* ---------- THE @family. TEXTBOOK IS A RESOURCE, AND THE OWNER SAID WHERE ----------------------
+     ASKED FOR AS "the @family textbook should be bare bones for now and the textbooks will be in the
+     resources tag in the finder. first one can be gcse statistics." So it wears `Resources` beside
+     the boxers and the bouts, and the `Shelf` door below is what keeps one book from being lost
+     under four hundred rows of boxing — see `shelf` in FACETS.
+
+     ONE RESULT, ONE PAGE PER CHAPTER, the way a project is one result and four pages: the card is
+     the contents, and `pageParts_` adds a page for each chapter after it. Starring the card keeps
+     the book; a chapter is a page of it, not a thing of its own. */
+  textbook: { group: 'Learning', label: 'Resources', card: x => textbookCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN ---------------------------
      `Tools & games` WAS ONE ANSWER THAT IMMEDIATELY ASKED ITSELF. Choosing it led to a second
@@ -884,7 +894,10 @@ const KIND_BUCKET = bucketTable_([
    folded into anything, because on this library they are most of it and folding the biggest answer
    into a bucket of one is a tap that changes nothing. */
 const SUBJECT_BUCKET = bucketTable_([
-  ['Maths',             ['Maths']],
+  /* `Statistics` IS GCSE STATISTICS — the @family. textbook's subject — and it sits in Maths
+     because a maths tutor is who teaches it and a maths student is who looks for it. Its own row
+     would be a Subject answer holding one book. */
+  ['Maths',             ['Maths', 'Statistics']],
   ['English',           ['English Language']],
   ['Science',           ['Biology', 'Chemistry', 'Physics', 'Combined Science']],
   ['Religious Studies', ['Religious Studies']],
@@ -1053,6 +1066,24 @@ const FACETS = [
   { field: 'kindLabel',
     bucketOf: KIND_BUCKET, bucketOrder: KIND_BUCKET.order, label: 'What kind',   always: true,
     of: x => x.kindLabel || kindOf_(x).label },
+  /* ---------- THE THIRD DOOR: WHICH SHELF OF THE RESOURCES ---------------------------------------
+     THE OWNER'S ROUTE IS "Learning → Resources → @family. textbooks → GCSE Statistics", and without
+     this question there is no third rung to stand on. `Resources` is 417 rows of boxing and one
+     book; every question the funnel asked there was a boxing question, and the book answered none
+     of them — so it was reachable by search and by nothing else.
+
+     `always`, LIKE THE TWO ABOVE, AND FOR THEIR REASON. One book against 417 boxers is a 0.2% split
+     and `FACET_MIN_MINORITY` would refuse the question — correctly for a filter, wrongly for a
+     door. This takes somebody to a department, the way `What kind` does. The coverage rule still
+     applies: nothing outside Resources carries a shelf, so it is never asked of the questions, and
+     with one shelf left it is not asked at all.
+
+     EVERY RESOURCE NAMES ITS SHELF, which is why the boxers and the bouts say `Boxing` in their
+     mappers. A shelf only some of the list had would fail the coverage rule and never be asked. */
+  { field: 'shelf',     label: 'Shelf',       always: true, of: x => x.shelf || '' },
+  /* AND WHICH BOOK, once the shelf is chosen. With one book this has one answer and is not asked,
+     which is right — the list IS the book. The second book makes it a question with no deploy. */
+  { field: 'book',      label: 'Book',        of: x => x.kind === 'textbook' ? x.name : '' },
   /* Only venues have one, so it is only ever asked once you are looking at venues — which is the
      coverage rule doing the work that a per-kind filter list would otherwise have to.
      VENUES ARE OFF FIND, so nothing in the funnel answers it and its `facets.json` row is OFF. The
@@ -3720,6 +3751,87 @@ function projectPart_(x, part) {
    of its own with a guessed recipient. */
 on('proj-share', () => go('dm'));
 
+/* ==================================================================================================
+   THE @family. TEXTBOOK — A CONTENTS CARD, THEN ONE PAGE PER CHAPTER.
+
+   ASKED FOR AS "the @family textbook should be bare bones for now and the textbooks will be in the
+   resources tag in the finder. first one can be gcse statistics." BARE BONES IS THE SPEC, not a
+   first draft of something longer: each chapter is its key words with one line each, its formulas,
+   and a handful of worked lines — a revision sheet you can flick through, not prose pages. So
+   there is nothing on these pages a student has to scroll past to reach the formula.
+
+   DRAWN AS THE APP DRAWS A LONG THING, which is the project's way one kind along: the card you
+   choose from, then the parts as pages after it (`pageParts_`), in `.prac`'s own rules and the
+   guide's `.gd-sec` sections — so a book and a project side by side read as one family and
+   style.css gained only what a book has and they do not: the Higher mark and the formula line.
+
+   THE FORMULAS ARE TYPESET BY `typeset_`, the library's own fraction and power drawing, so `Σfx / Σf`
+   is drawn stacked exactly as a past paper's fraction is — "it shouldnt be 4/5 it should be 4 over
+   the five". The file stores a plain `/` and `^`, which a person can type into a cell; `tbMath_`
+   turns the slash into the `&frasl;` `typeset_` reads AFTER escaping, so nothing in a cell can be
+   markup. `check-textbooks.js` runs the real `typeset_` over every line and fails a slash or a caret
+   that came out unset.
+
+   HIGHER TIER ONLY IS MARKED, NEVER HIDDEN. A Foundation student revising should see that standard
+   deviation exists and that it is not theirs to learn; an `H` beside it says both. A chapter that
+   is Higher all through carries one `H` on its heading rather than one on every line.
+================================================================================================== */
+const tbMath_ = s => typeset_(esc(s).replace(/\//g, '&frasl;'));
+/* THE MARK ITSELF. A letter rather than a colour, because the tier is a fact somebody has to read
+   in a photocopy too; `title` says it in full for anybody who does not know the convention. */
+const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</span>' : '';
+
+function textbookCard_(x) {
+  const b = x.row;
+  const higher = (b.chapters || []).some(c => c.higher || c.words.concat(c.formulas, c.points).some(i => i.higher));
+  return `<div class="card prac tb">
+    <div class="prac-head">
+      <h3>${esc(x.name)}</h3>
+      <span class="prac-flags"><span class="prac-flag is-type">Textbook</span></span>
+    </div>
+    <p class="sub">${esc(['@family.', b.board, b.spec].filter(Boolean).join(' · '))}</p>
+    ${b.summary ? `<p class="prac-aim">${esc(b.summary)}</p>` : ''}
+    <p class="prac-strip">${esc((b.chapters || []).length + ' chapters')}${higher
+      ? ` · ${tbHigher_(true)} = Higher tier only` : ''}</p>
+    <section class="gd-sec tb-toc"><h4>Contents</h4>
+      <ol>${(b.chapters || []).map(c => `<li>${esc(c.title)}${tbHigher_(c.higher)}</li>`).join('')}</ol>
+    </section>
+  </div>`;
+}
+
+/* ONE CHAPTER. `part` is `ch` and the chapter's number — `ch7` — because it also lands in a class
+   name, `is-ch7`, and a colon there would need escaping in every selector that reads it. */
+function textbookPart_(x, part) {
+  const b = x.row, n = Number(String(part || '').slice(2));
+  const c = (b.chapters || []).find(ch => ch.n === n);
+  if (!c) return '';
+  const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
+  return `<div class="card prac prac-part tb is-${esc(part)}">
+    <p class="prac-of">${esc(x.name)} · chapter ${c.n}</p>
+    <h3>${esc(c.title)}${tbHigher_(c.higher)}</h3>
+    ${c.words.length ? `<section class="gd-sec tb-words"><h4>Key words</h4><ul>${
+      c.words.map(w => line(w, `<b>${esc(w.name)}</b> ${esc(w.text)}`)).join('')}</ul></section>` : ''}
+    ${c.formulas.length ? `<section class="gd-sec tb-math"><h4>Formulas</h4><ul>${
+      c.formulas.map(f => line(f, `<span class="tb-fn">${esc(f.name)}</span><span class="tb-fm">${
+        tbMath_(f.text)}</span>`)).join('')}</ul></section>` : ''}
+    ${c.points.length ? `<section class="gd-sec tb-points"><h4>Worked</h4><ul>${
+      c.points.map(p => line(p, tbMath_(p.text))).join('')}</ul></section>` : ''}
+    ${c.topics ? `<p class="prac-note"><b>Topics</b> ${esc(c.topics)}</p>` : ''}
+  </div>`;
+}
+
+/* `textbookText_` — `projectText_`'s move for a book: `frequency density` and `stratified` are what
+   somebody types, and they are only ever inside a chapter. The formulas go in as typed, so `IQR`
+   finds the chapter that defines it. */
+function textbookText_(b) {
+  const parts = [b.summary, b.board, b.spec];
+  (b.chapters || []).forEach(c => {
+    parts.push(c.title);
+    c.words.concat(c.formulas, c.points).forEach(i => parts.push(i.name, i.text));
+  });
+  return plainText_(parts.filter(Boolean).join(' '));
+}
+
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS ------------------------
    The card, then a page per section that has something in it. A REFUSED experiment is its card
    alone: it carries no kit and no method by rule (`check-practicals.js` refuses one that does), and
@@ -3736,6 +3848,11 @@ function pageParts_(x) {
     if (x.row.steps && x.row.steps.length) out.push('steps');
     out.push('share');
     return out;
+  }
+  /* A TEXTBOOK IS ITS CONTENTS CARD AND A PAGE PER CHAPTER, in the chapters' own order — the
+     mapper sorted them by number, so this is the book read front to back. */
+  if (x && x.kind === 'textbook' && x.row) {
+    return [null].concat((x.row.chapters || []).map(c => 'ch' + c.n));
   }
   if (!x || x.kind !== 'practical' || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
@@ -3760,6 +3877,7 @@ function cardPages_(x, credits) {
 }
 function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
+  if (x && x.kind === 'textbook') return textbookPart_(x, part);
   return (x && x.kind === 'question' && part === 'fig') ? questionFigCard_(x) : practicalPart_(x, part);
 }
 
@@ -6729,7 +6847,7 @@ function stuffItemsRaw_() {
          boxing — that is why they share a label — but they are not interchangeable, and a funnel
          that goes from Boxing straight to twenty weight classes has skipped the question anybody
          actually has first. */
-      boxKind: 'Boxers',
+      boxKind: 'Boxers', shelf: 'Boxing',
       subject: 'Boxing', division: divisionOf_(b.bestDivision), row: b,
       /* ---------- `year: b.activeTo` WAS HERE, AND IT WAS HIS LAST YEAR DRAWN AS "Year" ----------
          FOUND BY THE AUDIT THAT ADDED `Decade` and only visible once that question existed: the
@@ -6753,7 +6871,7 @@ function stuffItemsRaw_() {
       key: 'ft:' + (f.id || f.a + f.b + f.date),
       sub: [(f.date || '').slice(0, 4), f.division, f.venue].filter(Boolean).join(' · '),
       image: '',
-      boxKind: 'Fights',
+      boxKind: 'Fights', shelf: 'Boxing',
       subject: 'Boxing', division: divisionOf_(f.division), row: f,
       year: (f.date || '').slice(0, 4),
     })),
@@ -6811,6 +6929,23 @@ function stuffItemsRaw_() {
       text: projectText_(p) + ' ' + topicAtoms_(p.topics).join(' '),
       row: p,
     })),
+
+    /* ---------- THE @family. TEXTBOOKS ------------------------------------------------------
+       ONE ITEM PER BOOK, and the chapters are its pages — `pageParts_`. The topics of every
+       chapter are the book's topics, so the Topic join and the search both reach it from
+       `Histograms` the way they reach a practical. Every word of every chapter is in the
+       haystack: somebody types `frequency density`, not `GCSE Statistics`. */
+    ...(DATA.textbooks || []).map(b => {
+      const topics = (b.chapters || []).map(c => c.topics).filter(Boolean).join(', ');
+      return {
+        kind: 'textbook', name: b.name, key: 'tb:' + b.id,
+        sub: [b.board, b.spec, (b.chapters || []).length + ' chapters'].filter(Boolean).join(' · '),
+        image: '', shelf: '@family. textbooks',
+        subject: b.subject, level: b.level, topics: topics,
+        text: textbookText_(b) + ' ' + topicAtoms_(topics).join(' '),
+        row: b,
+      };
+    }),
 
     /* ---------- THE QUIZZES ----------------------------------------------------------------
        THE JOIN IS `topics` AGAIN, and that sentence is the whole reason this is in the funnel
