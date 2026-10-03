@@ -4907,6 +4907,62 @@ check('a fraction is drawn stacked in the stem, lead, part, answer and choices, 
   return bad;
 });
 
+/* ---------- THE ANSWER IS ITS RESULT, AND THE WORKING WAITS UNDER "Why" ---------------------------
+   ASKED FOR AS "make answers breaifer", and, given the choice: "i want shorter answers."
+   `check-answers.js` proves `answerParts_` splits right and the library is short; it cannot prove
+   the CARD draws the halves where they belong, and a card that typesets the whole answer into
+   `.qans-body` and adds a fold underneath passes every rule there while showing the paragraph the
+   owner asked to lose. So this draws a card through `questionCard_` and asks the card:
+     * the result in `.qans-body`, codes off it, and nothing of the working
+     * one `<details>`, SHUT, its summary "Why", holding the working (fraction stacked) and the
+       examiner's note
+     * "Show the answer" opening the result and NOT the fold -- shorter answers, not a delay
+     * an answer with no working and no note draws no fold at all: a "Why" that opens on nothing
+       says there is something. */
+check('an answer draws its result, and the working waits shut under Why', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.questionCard_ !== 'function') return ['questionCard_ is not reachable — renamed?'];
+  const draw = x => { const d = w.document.createElement('div'); d.innerHTML = w.questionCard_(x, 0); w.document.body.appendChild(d); return d; };
+  const base = { kind: 'question', key: 'q-why', name: 'Q4', marks: 1,
+    row: { row_id: 'Q-WHY-4', paper_id: 'P-WHY', subject: 'Maths', name: 'Why' },
+    html: '<p>Work out 12 &divide; 4</p>' };
+  const card = draw(Object.assign({}, base, {
+    answer: '<b>3</b> &mdash; B1, cao. A half of 6 is <sup>6</sup>&frasl;<sub>2</sub>, and 12 &divide; 4 = 3.',
+    examinerNote: 'Most candidates were right.' }));
+  const body = card.querySelector('.qans-body');
+  const why = card.querySelectorAll('.qans details.qans-why');
+  if (!body) bad.push('no .qans-body was drawn');
+  else {
+    if (body.textContent.trim() !== '3') bad.push('the result drew as "' + body.textContent.trim() + '", wanted "3"');
+    if (/B1|cao|half/.test(body.textContent)) bad.push('the result carries the code or the working: ' + body.innerHTML);
+  }
+  if (why.length !== 1) bad.push('wanted one Why fold under the answer, found ' + why.length);
+  else {
+    const f = why[0];
+    if (f.open) bad.push('the Why fold is drawn open');
+    const sum = f.querySelector('summary');
+    if (!sum || sum.textContent.trim() !== 'Why') bad.push('the fold\'s summary reads "' + (sum ? sum.textContent.trim() : '(none)') + '", wanted "Why"');
+    const more = f.querySelector('.qans-more');
+    if (!more || !/A half of 6/.test(more.textContent)) bad.push('the working is not inside the fold');
+    else if (!more.querySelector('.frac .frac-n')) bad.push('the working drew its fraction slanted: ' + more.innerHTML.slice(0, 120));
+    if (more && /B1|cao/.test(more.textContent)) bad.push('the lone "B1, cao" was left in the working');
+    if (!f.querySelector('.qans-note')) bad.push('the examiner\'s note is not inside the fold');
+  }
+  /* SHOW THE ANSWER, AS A STUDENT: the result opens, the fold stays shut. */
+  const btn = card.querySelector('[data-do="qp-reveal"]');
+  if (btn && w.__t.ACTIONS['qp-reveal']) {
+    w.__t.ACTIONS['qp-reveal'](btn);
+    if (card.querySelector('.qans').classList.contains('is-shut')) bad.push('"Show the answer" did not show the answer');
+    if (why[0] && why[0].open) bad.push('"Show the answer" opened the working as well');
+  }
+  const bare = draw(Object.assign({}, base, { answer: '<b>3</b>' }));
+  if (bare.querySelector('.qans-why')) bad.push('an answer with no working and no note still drew a Why fold');
+  if (!bare.querySelector('.qans-body') || bare.querySelector('.qans-body').textContent.trim() !== '3') bad.push('a bare answer lost its result');
+  return bad;
+});
+
 /* ---------- A TUTOR'S HOURS ON THEIR CARD ---------------------------------------------------------
    ASKED FOR AS *"tutors availability should appear on their card."* Asked of the card itself, off
    the shape `doGet` really sends — `availGridOut`'s 77 codes with 'TRUE' or '' — because the fixture
