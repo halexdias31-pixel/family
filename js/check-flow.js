@@ -5056,6 +5056,13 @@ check('marking, revealing and tapping leave the question where it is, and typing
   if (!tapped.querySelector('.qp-opt[data-n="2"].is-ans') || !tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick and the right option');
   same(m0, tapped, 'after a wrong tap');
   try { w.localStorage.removeItem(w.ansKey_(mc)); } catch (e) {}
+  /* AND THE WORDS SAY WHERE THE PICTURE WENT: a question with a figure points at the next page, and
+     one without says nothing -- a pointer to a page that does not exist is worse than none. */
+  const fig = draw(Object.assign({}, base, { key: 'q-still-fig', diagram: '<svg viewBox="0 0 10 10"></svg>',
+    row: Object.assign({}, base.row, { row_id: 'Q-STILL-10' }) }));
+  if (!fig.querySelector('.qsheet-figref')) bad.push('a question whose figure is on the next page does not say so');
+  if (fig.querySelector('.qsheet svg')) bad.push('the question card drew its figure inline again');
+  if (typed.querySelector('.qsheet-figref')) bad.push('a question with no figure points at a figure page that does not exist');
   return bad;
 });
 
