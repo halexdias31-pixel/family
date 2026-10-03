@@ -2205,7 +2205,6 @@ const STATES = {
       enter: () => {
         const n = widgetsOf_('game').findIndex(w => String(w.id) === 'videos');
         if (n < 0) throw new Error('no videos widget in the roster');
-        goPage('games', n, true);
         window.__seedVid = VIDEOS_LIST;
         VIDEOS_LIST = [
           { title: 'Photosynthesis explained: how a leaf turns light, water and carbon dioxide into sugar',
@@ -2217,7 +2216,11 @@ const STATES = {
         ];
         VID.q = 'photo';
         VID.at = 'v0';
+        /* PAINTED, THEN TURNED TO. The card shrinks from the whole list to two rows here, and a
+           page that changes height while the pager is still settling on it was measured mid-slide
+           once, 70px off the screen. */
         vidPaint_();
+        goPage('games', n, true);
       },
       expect: () => !!document.querySelector('#s-games .vid-stage.on video.vid-player')
                  && !!document.querySelector('#s-games .vid-acts .tile[data-do="vid-full"]:not([disabled])')
