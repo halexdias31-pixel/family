@@ -3777,6 +3777,63 @@ check('a tutor\'s ticked hours are on their card, busy ones greyed, and none mea
   return bad;
 });
 
+/* ---------- YOUR PICTURE, CHOSEN IN SETTINGS -------------------------------------------------------
+   ASKED FOR AS *"everyone should have a profile picture selector widget in account settings"*. The
+   page's own change listener and tiles, end to end: a file chosen on the hidden input is posted as
+   `savePhoto` with a JPEG `data:` URL and your own id, the server's address comes back into the
+   preview and into `USER.profile`, and `Remove` posts `remove` and puts the initial back. The crop
+   itself is a canvas, which jsdom has not got — so `pfpPrepare_` is stood in for, and the real one
+   is driven in a browser with a real file (see the history note). And the old link box must be gone,
+   because a hidden `photo` field would be posted by the card's Save and write the old picture back. */
+check('a picture chosen in Settings posts savePhoto and the preview shows it', async () => {
+  const URL_ = 'https://drive.google.com/file/d/FILEabcdefghijklmnopqrstuv/view';
+  const { w, sent } = boot({ reply: b => b.action === 'savePhoto'
+    ? { success: true, photo: b.remove ? '' : URL_ } : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
+           profile: { first_name: 'Test', last_name: 'Admin', photo: '' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const bad = [];
+  if (d.querySelector('#s-settings [data-me="photo"]')) bad.push('Settings still draws a box for a photo link beside the picker');
+  const box = () => d.querySelector('#s-settings .pfp');
+  if (!box()) return bad.concat(['Settings has no picture picker on any card']);
+  const inp = box().querySelector('input.pfp-in[type="file"]');
+  if (!inp || !/image\/\*/.test(inp.getAttribute('accept') || '')) bad.push('the picker has no hidden file input taking images');
+  if (!box().querySelector('[data-do="pfp-pick"]')) bad.push('the picker has no Choose photo tile');
+  const rm = box().querySelector('[data-do="pfp-remove"]');
+  if (!rm || !rm.disabled) bad.push('Remove is pressable with no picture to remove');
+  if (!/^T$/.test(String((box().querySelector('.pfp-none') || {}).textContent || '').trim())) bad.push('with no picture the preview is not the initial');
+  if (!inp) return bad;
+  w.pfpPrepare_ = () => Promise.resolve('data:image/jpeg;base64,' + Buffer.from('square').toString('base64'));
+  Object.defineProperty(inp, 'files', { value: [new w.File(['x'], 'me.png', { type: 'image/png' })], configurable: true });
+  sent.length = 0;
+  inp.dispatchEvent(new w.Event('change', { bubbles: true }));
+  await wait(300);
+  const post = sent.find(b => b.action === 'savePhoto');
+  if (!post) bad.push('choosing a file posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no savePhoto');
+  else {
+    if (!/^data:image\/jpeg;base64,/.test(String(post.data || ''))) bad.push('savePhoto carried "' + String(post.data).slice(0, 30) + '", not a JPEG data: URL');
+    if (post.personId !== 'P001') bad.push('savePhoto did not name the signed-in person by id');
+  }
+  const img = box() && box().querySelector('.pfp-face img');
+  if (!img || !/lh3\.googleusercontent\.com\/d\/FILEabcdefghijklmnopqrstuv/.test(img.getAttribute('src') || '')) {
+    bad.push('after the save the preview shows ' + (img ? img.getAttribute('src') : 'no picture') + ', not the kept file');
+  }
+  if ((t.whoami().profile || {}).photo !== URL_) bad.push('USER.profile.photo was not given the kept address, so the next Settings draw shows the old face');
+  const rm2 = box() && box().querySelector('[data-do="pfp-remove"]');
+  if (!rm2 || rm2.disabled) bad.push('with a picture saved, Remove cannot be pressed');
+  else {
+    sent.length = 0;
+    t.ACTIONS['pfp-remove'](rm2);
+    await wait(300);
+    if (!sent.some(b => b.action === 'savePhoto' && b.remove === true)) bad.push('Remove posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no savePhoto remove');
+    if (!box() || box().querySelector('.pfp-face img') || (t.whoami().profile || {}).photo !== '') bad.push('after Remove the picture is still drawn or still on USER.profile');
+  }
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;

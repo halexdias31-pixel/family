@@ -119,6 +119,10 @@ const TILE_ICONS = {
   /* SAVE IS A TICK, not a floppy disk: nobody who uses this app has held one, and a tick is what
      every form here already means by "done". */
   save:  '<path d="M3.5 9.5 7.3 13.3 14.8 4.8"/>',
+  /* A CAMERA, FOR CHOOSING YOUR PICTURE: the body, the bump the shutter sits on, and the lens. The
+     word beside it says choose rather than take, because the phone offers its gallery first. */
+  photo: '<rect x="2.5" y="5.5" width="13" height="9" rx="1.5"/><path d="M6.5 5.5 7.5 3.5h3l1 2"/>'
+       + '<circle cx="9" cy="10" r="2.4"/>',
   /* SIGN OUT: a door frame and an arrow leaving it. */
   out:   '<path d="M8.5 2.5h-5v13h5"/><path d="M7.5 9h8.5"/><path d="m13 6 3 3-3 3"/>',
 };

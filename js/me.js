@@ -2529,7 +2529,8 @@ const FIELD_ROWS = [
 ];
 const ROW_LABEL = {
   years_experience: 'years teaching',
-  photo: 'photo link', video: 'video link',
+  /* `photo` HAS NO LABEL because it has no box any more on your own settings — see `photoPicker_`. */
+  video: 'video link',
   travel_km: 'will travel (km)', favourite_colour: 'favourite colour',
   venues_ok: 'venues you teach at',
 };
@@ -3173,6 +3174,136 @@ document.addEventListener('input', e => {
   if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="">` : '';
 });
 
+/* ---------- YOUR PICTURE, CHOSEN RATHER THAN LINKED ---------------------------------------------
+   A SQUARE PREVIEW, `Choose photo` AND `Remove`. The preview is what the picture will be — the
+   photograph cropped square, or with none the face you have without one: your wardrobe figure if you
+   have dressed it, the initial if not, which is the same letter the card draws. Square because a
+   photograph on this site is square (the camera's still, a post's grid, the photo shelf's
+   thumbnails); the card rounds it into its circle itself.
+
+   TILES, BECAUSE THIS IS A THING — your picture — and the two actions are actions ON it, not the
+   buttons of a form: each saves itself, there is nothing to fill in first, and the card's own Save
+   does not touch it. The file input is hidden and `Choose photo` opens it, which is how the camera's
+   `Photos` side opens its own; `accept="image/*"` with no `capture`, so a phone offers the gallery
+   AND the camera rather than forcing one.
+
+   ONE LINE UNDER THE ROW says what happened, the `.me-said` of every other card. */
+function photoPicker_(value) {
+  const v = String(value('photo') || '').trim();
+  return `<div class="pfp">
+    <span class="pfp-face">${pfpFace_(v)}</span>
+    <div class="pfp-side">
+      <div class="tile-row">
+        ${tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' })}
+        ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
+      </div>
+      <p class="faint pfp-said">${v ? 'Your picture on your card.' : 'No picture yet — your card shows this instead.'}</p>
+    </div>
+    <input type="file" class="pfp-in" accept="image/*" hidden>
+  </div>`;
+}
+function pfpFace_(v) {
+  if (v) return `<img src="${esc(pic(v))}" alt="Your profile picture">`;
+  /* THE WARDROBE FIGURE ONLY IF IT HAS BEEN DRESSED. Every handle has a figure — `avatarConfig`
+     seeds one from the hash — but an undressed one is a stranger's face as far as its owner knows,
+     and the initial is what everybody else sees on the card. */
+  if (USER && USER.avatar && typeof avatarFor === 'function') {
+    return avatarFor(USER.handle || USER.name, 56, USER.avatar);
+  }
+  const who = (USER && ((USER.profile && USER.profile.first_name) || USER.name)) || '?';
+  return `<span class="pfp-none">${esc(String(who).trim().slice(0, 1).toUpperCase() || '?')}</span>`;
+}
+
+/* ---------- SQUARE, AND SMALL ENOUGH TO POST ------------------------------------------------------
+   `camItemOf_` FIRST, which is the camera's own reader — it turns whatever the phone hands over
+   (a 12-megapixel original, a PNG screenshot, a HEIC the browser can decode) into a JPEG no more than
+   1600px long. Then the middle square of that, drawn at no more than 600px: a face on a card is 52px
+   and a full-width preview is 390, so 600 is crisp on a 3x screen and about 60KB on the wire, where
+   the original would be four megabytes through Apps Script for the same picture.
+   THE MIDDLE, NOT THE TOP. A portrait's face is usually in the upper half, and a top crop would be
+   right for those and cut the head off every landscape; a centre crop is never badly wrong, and the
+   preview shows exactly what was kept before anybody else sees it. Answers `null` for anything it
+   cannot read, and never rejects. */
+const PFP_SIZE = 600;
+function pfpPrepare_(file) {
+  if (typeof camItemOf_ !== 'function') return Promise.resolve(null);
+  return camItemOf_(file).then(it => {
+    if (!it || it.kind !== 'image' || !it.data) return null;
+    return new Promise(done => {
+      const img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth || 1, h = img.naturalHeight || 1, s = Math.min(w, h);
+        const out = Math.max(1, Math.min(PFP_SIZE, s));
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = out;
+        try {
+          cv.getContext('2d').drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, out, out);
+          done(cv.toDataURL('image/jpeg', 0.85));
+        } catch (e) { done(null); }
+      };
+      img.onerror = () => done(null);
+      img.src = it.data;
+    });
+  }).catch(() => null);
+}
+
+/* WHAT THE SERVER SAID THE PICTURE NOW IS, written everywhere this phone keeps it: your profile (what
+   the Settings page reads), the remembered sign-in (what the next visit reads before the network),
+   and any row of the payload that is you, so your own card on the You column changes too rather than
+   waiting for the next load. Then the picker is redrawn from it. */
+function pfpTake_(box, url) {
+  if (!USER) return;
+  USER.profile = Object.assign({}, USER.profile || {}, { photo: url });
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
+  ['tutors', 'people', 'students', 'clients'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
+    if (r && USER.personId && (r.personId === USER.personId || r.person_id === USER.personId || r.id === USER.personId)) {
+      if ('image' in r) r.image = url;
+      if ('photo' in r) r.photo = url;
+    }
+  }));
+  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''));
+}
+
+on('pfp-pick', el => {
+  const inp = el.closest('.pfp') && el.closest('.pfp').querySelector('.pfp-in');
+  if (inp) inp.click();
+});
+on('pfp-remove', el => {
+  const box = el.closest('.pfp');
+  if (!USER || !box) return;
+  send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, remove: true },
+        { button: el, where: box.querySelector('.pfp-said'), saying: 'Removing…', lock: box })
+    .then(d => { pfpTake_(box, (d && d.photo) || ''); toast('Picture removed'); })
+    .catch(() => {});
+});
+/* `change`, NOT A `data-do` CLICK — a file input reports its choice by changing, the camera's
+   `cam-pick` argument. The value is cleared so choosing the same picture again still fires. */
+document.addEventListener('change', e => {
+  const inp = e.target;
+  if (!inp || !inp.matches || !inp.matches('.pfp-in')) return;
+  const file = (inp.files || [])[0];
+  inp.value = '';
+  const box = inp.closest('.pfp');
+  if (!file || !box || !USER) return;
+  const said = box.querySelector('.pfp-said');
+  const btn = box.querySelector('[data-do="pfp-pick"]');
+  if (said) said.textContent = 'Getting it ready…';
+  pfpPrepare_(file).then(data => {
+    if (!data) { if (said) said.textContent = 'That file is not a picture this phone can read. Try another.'; return; }
+    /* THE PREVIEW CHANGES BEFORE THE UPLOAD, so the crop is seen while it travels; if the server
+       refuses, the line says why and the old picture comes back with the redraw below. */
+    const face = box.querySelector('.pfp-face');
+    if (face) face.innerHTML = `<img src="${esc(data)}" alt="Your profile picture">`;
+    return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
+                 { button: btn, where: said, saying: 'Saving…', lock: box })
+      .then(d => { pfpTake_(box, (d && d.photo) || ''); toast('Picture saved'); })
+      .catch(() => {
+        const was = (USER.profile && USER.profile.photo) || '';
+        if (face) face.innerHTML = pfpFace_(was);
+      });
+  });
+});
+
 /* THE HOUR CODES, WHEREVER THE BACKEND PUT THEM. The group's title is the backend's to choose, so
    this looks for the shape rather than for a name — and answers an empty list when no deployment
    has sent one, which is what the widget reports instead of drawing a week with no hours in it. */
@@ -3235,12 +3366,24 @@ function fieldsHtml(groups, o) {
     /* THE PHOTOGRAPH SHELF GOES UNDER THE REST, not over it as the library one does: the page
        reads profile photo, video, then the others, which is the order somebody thinks of them in. */
     const photos = !timetable && isPhotos_(list);
+    /* ---------- AND `photo` IS A PICTURE YOU CHOOSE, NOT A LINK YOU PASTE ------------------------
+       ASKED FOR AS *"everyone should have a profile picture selector widget in account settings"*.
+       It was a text box captioned `photo link`, so the only way a picture on your phone became your
+       face was to upload it somewhere, share it, copy the address and paste it here — which nobody
+       but an admin knew how to do. `photoPicker_` is drawn where the box was and saves itself
+       through `savePhoto`, so it comes OUT of `rest`: a hidden `data-me="photo"` beside it would be
+       posted by the card's Save with whatever address the page was drawn with, and would write the
+       old picture back over the one just chosen.
+       ONLY ON `data-me`, the one surface that edits YOUR OWN row — the picker posts to the signed-in
+       person's cell whatever form it sits in, so on any other editor it would be the wrong row. */
+    const picture = !timetable && o.attr === 'data-me' && list.indexOf('photo') !== -1;
     const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f))
-                              && !(photos && isPhotoField_(f))
+                              && !(photos && isPhotoField_(f)) && !(picture && f === 'photo')
                               && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
-      : (library ? libraryShelf_(list, value) : '')
+      : (picture ? photoPicker_(value) : '')
+      + (library ? libraryShelf_(list, value) : '')
       + (quals ? qualShelf_(list, value) : '')
       + (wantsDob ? dobBoxes_(value) : '')
       + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneRow_(value) : plain(f, extra))

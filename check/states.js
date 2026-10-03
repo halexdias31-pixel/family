@@ -851,12 +851,49 @@ const STATES = {
         const slots = [...pg.querySelectorAll('.ph-slot')];
         const shown = slots.filter(s => !s.hidden);
         return pg.querySelectorAll('[data-me^="photos_"]').length === 8
-          && !!pg.querySelector('[data-me="photo"]') && !!pg.querySelector('[data-me="video"]')
+          /* THE FACE IS THE PICKER NOW, NOT A LINK BOX — `photoPicker_`, and no `data-me="photo"` beside
+             it, which the card's Save would post with the old address over a picture just chosen. */
+          && !!pg.querySelector('.pfp') && !pg.querySelector('[data-me="photo"]') && !!pg.querySelector('[data-me="video"]')
           && shown.length === 2 && shown.every(s => s.querySelector('.ph-thumb img'))
           && pg.querySelectorAll('[data-do="shelf-more"]').length === 1
           && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 8 : 0;
       },
-      wants: 'the profile photo and video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another' },
+      wants: 'the picture picker and the video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another' },
+    /* ---------- YOUR PICTURE, CHOSEN — `photoPicker_` in me.js ------------------------------------
+       *"everyone should have a profile picture selector widget in account settings"*. Seeded with a
+       picture already kept, so the preview is a photograph rather than the initial and `Remove` is
+       live: a square preview, `Choose photo` and `Remove` as tiles, the hidden file input that takes
+       images, and no link box. At four widths, because the preview sits beside two tap targets and
+       a line of text and is the one row on the card that could wrap at 320. */
+    { name: 'your picture, chosen',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_PFP_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, { photo: 'data/reels/archetest.jpg' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.pfp'));
+        if (at < 0) throw new Error('no picture picker on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const box = pg && pg.querySelector('.pfp');
+        if (!box) return 0;
+        const face = box.querySelector('.pfp-face');
+        const r = face && face.getBoundingClientRect();
+        const rm = box.querySelector('.tile[data-do="pfp-remove"]');
+        const inp = box.querySelector('input.pfp-in[type="file"]');
+        return !!face.querySelector('img') && r.width > 40 && Math.abs(r.width - r.height) < 1
+          && !!box.querySelector('.tile[data-do="pfp-pick"]') && !!rm && !rm.disabled
+          && !!inp && inp.hidden && /image\/\*/.test(inp.accept)
+          && !pg.querySelector('[data-me="photo"]') ? 1 : 0;
+      },
+      wants: 'a square preview of the picture, Choose photo and a live Remove as tiles, a hidden image input, and no link box' },
     /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE, WHICH THE FIXTURE HAD NEVER SENT -------------
        `Group size` AND `Your rate` WERE TWO PAGES WITH A SAVE EACH and are one page now, because
        they are one decision and one monthly clock — asked for as *"…all together. and they can only
