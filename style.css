@@ -3055,7 +3055,7 @@ button.text-drop { color: var(--bad); }
    underlined words straight after an underlined-looking red sentence read as more of the sentence.
    Retry is the gold word and Remove the quiet one, which is the order somebody is likely to want
    them in. */
-.msg-act { min-height: 44px; padding: 0 .55rem; background: none; border: 0;
+.msg-act { min-height: 44px; min-width: 44px; padding: 0 .55rem; background: none; border: 0;
            color: var(--gold); font: inherit; font-weight: 600; cursor: pointer; }
 .msg-act + .msg-act { color: var(--dim); font-weight: 400; }
 /* The 44px is the finger's, not the eye's: pulled up into the half-line under the sentence so the
