@@ -2503,6 +2503,34 @@ const STATES = {
         return ![...pg.querySelectorAll('[data-do]')].some(x => !x.closest('.rc'));
       },
       wants: 'a receipt with rows on it, an admin\'s three money rows, and its tiles on the paper' },
+
+    /* ---------- THE PICTURE OF IT, IN A SHEET -------------------------------------------------------
+       *"make sure sharing booking is an identical … png … of the booking reciept."* Sharing makes a
+       PNG of the receipt and hands it to the phone's share sheet; where there is none, or Safari
+       refuses one this late after the press, the picture is offered in a sheet instead — the one
+       surface that path draws, and the only place in the app a whole receipt is shown as an image at
+       the sheet's width. Measured like every other sheet: does it fit, can its button be hit.
+
+       ENTERED THROUGH `rcOffer_`, which is what the share path calls when it cannot share, with a
+       picture the shape of a receipt (a phone card at 2x) made SYNCHRONOUSLY. The first version made
+       the real one with `rcPng_` and was not measured at 320 on a loaded machine: a picture is
+       asynchronous, `enter` is not awaited, and the sheet was not open yet when it was looked at.
+       What the picture holds is `check/share.js`'s question; this one is the sheet around it. */
+    { name: 'a picture of the receipt, offered in a sheet',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const c = document.createElement('canvas');
+        c.width = 520; c.height = 1220;
+        const g = c.getContext('2d');
+        g.fillStyle = '#0b0b0b'; g.fillRect(0, 0, c.width, c.height);
+        const bin = atob(c.toDataURL('image/png').split(',')[1]);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        rcOffer_(new Blob([bytes], { type: 'image/png' }), 'family-booking.png');
+      },
+      expect: () => !!document.querySelector('#sheet:not(.hidden) img.rc-shot'),
+      wants: 'the receipt as a picture in a sheet, with a way to save it',
+      leave: () => { if (typeof closeSheet === 'function') closeSheet(); } },
   ],
 
   /* ---------- AND THE MESSAGES COLUMN, WHICH THIS FILE HAS ONLY EVER SEEN EMPTY -----------------

@@ -274,6 +274,12 @@ const SUITE = [
      both — so only the order in the file decides which wins. The general form reported 1,001
      findings and was the `check-rows.js` noise generator; this reports none. */
   { file: 'check/cascade.js', what: 'which CSS rule wins, and whether order alone decided it', slow: true },
+  /* ---------- AND WHETHER THE PICTURE A FAMILY IS SENT IS THE BOOKING THEY SAW ------------------
+     *"just make sure sharing booking is an identical jpg or png or whatevers best of the booking
+     reciept."* Identical is a claim about pixels, and jsdom has none: `check-flow` proves the share
+     path hands over a PNG file, this proves the PNG is the card. No port — it serves the files
+     through Playwright's own router, so it cannot collide with the five above. */
+  { file: 'check/share.js',   what: 'the shared picture of a booking, against the booking on the screen', slow: true },
 ];
 
 let failed = 0, noted = 0;

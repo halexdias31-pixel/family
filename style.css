@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-03-heat-back";
+  --css-version: "2026-10-03-share";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -11925,53 +11925,28 @@ button.scr-sq { cursor: pointer; }
 .art-word.hot-word { font-size: clamp(1.8rem, 9vw, 2.6rem); }
 
 /* ==================================================================================================
-   SHARING A BOOKING IS PRINTING IT — THE ELEMENT ON THE SCREEN, NOT A DRAWING OF IT.
+   SHARING A BOOKING IS A PICTURE OF IT — THE ELEMENT ON THE SCREEN, DRAWN BY THE BROWSER.
 
-   ASKED FOR AS *"all i want is for when i share a booking/reciept it just shares a pdf of an exact
-   copy of what they are seeing on the screen."* The old answer redrew the receipt onto a canvas,
-   which is a second renderer and drifted from the first four separate times — the whole account is
-   over `on('book-share')` in receipt.js. What prints here is the `.rc` the share tile is inside.
+   ASKED FOR AS *"just make sure sharing booking is an identical jpg or png or whatevers best of the
+   booking reciept."* It was a print (`body.printing-rc`, A4, `--rc-k` scaling the card onto the
+   sheet) and before that a canvas that redrew the card; both are gone, and the whole account is over
+   `on('book-share')` in receipt.js.
 
-   THE COLUMN IS WHAT CLIPS THE PAGE, FOR THE FOURTH TIME. `body` is a centred 26.5rem column with
-   `overflow-x: clip`, so anything printed inside the app's own markup starts where the COLUMN
-   starts and everything past about 115mm is cut off. The cheat sheet, the flyer and the printed
-   quiz each learned that separately; these are the same three lines.
-
-   `print-color-adjust: exact` IS THE WHOLE OF *"exact copy"*. A browser drops backgrounds when it
-   prints, on the reasonable assumption that a page is black on white — and this document is black
-   and gold. Without it a receipt prints as grey ink on nothing and the gold marks, which are how
-   the week and the stage ticks say anything, disappear.
-
-   AND THE SCALE IS A TRANSFORM RATHER THAN A WIDTH. A width would re-lay the grid out, and a
-   document that re-flows for the paper is no longer a copy of what was on the screen. `--rc-k` is
-   set by the handler from this same page size — see `RC_PAGE_W` in receipt.js, which names the
-   numbers `@page` sets here — so the card is enlarged to the sheet, one page, nothing reshaped.
+   `.rc-snap` IS ON THE CARD FOR ONE SYNCHRONOUS TASK — measured, cloned, taken off — so it is never
+   painted. It hides the same two things the print hid: the tiles, because a picture of a Send button
+   is a control nobody can press, and an admin's `Tutor earns` / `Admin earns`, because sharing is for
+   somebody else and those two lines must not travel. `Client pays` stays: it is what the document is
+   about. Hidden with `display: none` rather than cut from the clone, so the card is MEASURED without
+   them and the picture's height is the height of what is in it.
 ================================================================================================== */
-@media print {
-  @page { size: A4 portrait; margin: 0; }
-  body.printing-rc { max-width: none !important; margin: 0 !important; padding: 0 !important;
-                     overflow: visible !important; }
-  body.printing-rc * { visibility: hidden !important; }
-  body.printing-rc .rc-print,
-  body.printing-rc .rc-print * { visibility: visible !important; }
-  body.printing-rc .rc-print {
-    position: absolute; left: 10mm; top: 10mm; margin: 0;
-    /* THE WIDTH IT HAD ON THE SCREEN, set by the handler — see the note there. `max-width: none`
-       because `body` is a 26.5rem column and the card is moved into it for the print. */
-    width: var(--rc-w, auto); max-width: none;
-    transform: scale(var(--rc-k, 1)); transform-origin: top left;
-    -webkit-print-color-adjust: exact; print-color-adjust: exact;
-  }
-  /* THE TILES ARE ON THE PAPER AND MUST NOT BE ON THE PRINT. `Ask for it` and `Share this booking`
-     are controls printed inside the receipt's own foot — see `bookBreakdown` — so they are part of
-     the element being printed, and a PDF of a booking with a gold Send button on it is a picture of
-     a control nobody can press. Everything else on the card is the document. */
-  body.printing-rc .rc-print .rc-tiles { display: none !important; }
-  /* AND AN ADMIN'S TWO MORE MONEY ROWS. Sharing prints this element for somebody else — a family,
-     usually — and what the tutor earns and what the business keeps are the two lines on the screen
-     that must not travel. `Client pays` stays: it is the figure the document is about. */
-  body.printing-rc .rc-print .rc-more { display: none !important; }
-}
+.rc.rc-snap .rc-tiles,
+.rc.rc-snap .rc-more { display: none !important; }
+
+/* THE PICTURE IN THE SHEET, when the share sheet refused or there is none — see `rcOffer_`. Its
+   own width, never wider than the sheet, and a hairline so a dark card does not vanish into a dark
+   sheet. */
+.rc-shot { display: block; width: 100%; height: auto; margin: 0 0 .6rem;
+           border: 1px solid var(--line); border-radius: var(--r); }
 
 /* ---------- THE TUTOR AGREEMENT (DRAFT) and THE ADMIN'S CUT -------------------------------------
    Two Settings cards (see `agreementCard_` and `cutCard_` in me.js). The draft mark is its own
