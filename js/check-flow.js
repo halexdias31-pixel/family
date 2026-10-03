@@ -2097,8 +2097,12 @@ check('touch typing moves on a right key, counts a wrong one, keeps the ladder p
   const n = w.widgetsOf_('tool').findIndex(x => String(x.id) === 'typing');
   if (n < 0) return ['there is no typing widget in the Tools roster'];
   try { t.goPage('tools', n, true); } catch (e) { return ['goPage("tools", ' + n + ') threw: ' + e.message]; }
-  await wait(100);
   const box = () => d.querySelector('.kt-box');
+  /* WAITED FOR, NOT SLEPT FOR. A fixed 100ms was enough on a quiet machine and failed this journey
+     in roughly one run in three whenever other work shared the four CPUs — the card draws after the
+     page turn's own frames, and those stretch under load. Polled up to two seconds, so a card that
+     never draws still fails, and one that draws late no longer reads as a broken widget. */
+  for (let i = 0; i < 40 && !(box() && box().querySelector('.kt-in')); i++) await wait(50);
   if (!box() || !box().querySelector('.kt-in')) return ['the touch-typing card did not draw on the Tools column with its box'];
   const bad = [];
 
