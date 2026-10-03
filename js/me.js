@@ -1403,13 +1403,25 @@ function markRead_(msgs) {
   if (!USER) return;
   (msgs || []).filter(m => m && !m.mine && !m.read && m.id).forEach(m => {
     m.read = true;                                   /* so a redraw before the reply does not re-ask */
+    /* ---------- AND WHICH ONES THEY WERE STAYS ON THE SCREEN -----------------------------------
+       THE OUTLINE NEVER SHOWED ON THE MESSAGES COLUMN. `dmPages_` marks a thread read BEFORE it
+       renders it — drawing is reading, see the note there — so by the time `messagesHtml_` asked
+       `!m.read` every message already said yes, and the card's head said "2 new" over a thread
+       with nothing in it marked new. `fresh` is "this was unread when you arrived": it lives on
+       the object `loadMessages` will replace, so it lasts exactly until the next answer from the
+       server changes something, which is the moment it stops being news. */
+    m.fresh = true;
     api({ action: 'readMessage', name: USER.name, personId: USER.personId, messageId: m.id })
       .catch(() => { m.read = false; });
   });
 }
 
-const emptyMessages_ = `<p class="empty">Nothing yet.<br><span class="faint">Messages about a
-     session appear here.</span></p>`;
+/* THE EMPTY INBOX SAYS HOW TO START ONE. There is no "new message" button on this column — the
+   picker for WHO is a person's own card, which is the decision recorded over `messageSheet` — so a
+   person looking at an empty Messages column had been told where messages appear and not how one
+   begins. One clause, naming the door that exists. */
+const emptyMessages_ = `<p class="empty">Nothing yet.<br><span class="faint">To write to a tutor,
+     open their card and press Message.</span></p>`;
 
 /* ---------- ONE THREAD PER PERSON ------------------------------------------------------------------
    EVERY MESSAGE WAS IN ONE LIST. A note from a tutor about Tuesday and a note from another parent
@@ -1555,14 +1567,14 @@ const messagesHtml_ = ms => {
                 || !!m.tmp !== !!next.tmp;
     const words = String(m.body || '').trim();
     const state = m.state === 'failed'
-      ? `<p class="msg-when msg-fail">Not sent — ${esc(m.err || 'try again')}
+      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${esc(m.err || 'try again')}</span>
            <button class="msg-act" data-do="msg-retry" data-k="${esc(m.tmp)}">Retry</button>
            <button class="msg-act" data-do="msg-drop" data-k="${esc(m.tmp)}">Remove</button></p>`
       : m.state === 'sending' ? `<p class="faint msg-when">sending…</p>`
       : m.tmp ? `<p class="faint msg-when">sent</p>` : '';
     return `${newDay ? `<p class="msg-day"><span>${esc(dayWord)}</span></p>` : ''}
       <div class="msg${mine ? ' mine' : ''}${runTop ? ' run-top' : ''}${
-        runEnd ? ' run-end' : ''}${!mine && !m.read ? ' unread' : ''}${
+        runEnd ? ' run-end' : ''}${!mine && (!m.read || m.fresh) ? ' unread' : ''}${
         m.state ? ' is-' + m.state : ''}">
       <div class="msg-bub${words ? '' : ' is-bare'}">${msgAttachHtml_(m.attachments)}${
         words ? `<p class="msg-body-text">${mark(words)}</p>` : ''}</div>
@@ -1584,6 +1596,11 @@ const messagesHtml_ = ms => {
    threads and a sheet be on screen at once — ids cannot do that, and the first version of this had
    `#msg-text` in it.
 
+   "Message…", NOT "Message Ada Tutor…". The name wrapped the hint onto a second line at 390px and
+   was clipped mid-letter at 320, in a box whose card already says who it is in its head and whose
+   sheet says it in its title. The name moved to `aria-label`, where a screen reader still gets it
+   and nothing has to fit.
+
    THE NOTE IS PART OF THE FORM. The five-minute gap and the e-mail are things somebody needs to
    know BEFORE pressing send, and they are also where a refusal is printed — so the sentence and the
    place the server answers are one element rather than two to keep in step. */
@@ -1595,7 +1612,7 @@ function msgForm_(to, toId, note, rows) {
       aria-label="Attach a photo, video or file">＋</button>
     <input type="file" class="msg-file-in" multiple hidden aria-label="Choose files to send">
     <textarea class="msg-text" rows="${rows || 1}" maxlength="2000"
-      placeholder="Message ${esc(to)}…"></textarea>
+      placeholder="Message…" aria-label="Message ${esc(to)}"></textarea>
     <button class="btn msg-go" data-do="msg-send"
       data-to="${esc(to)}" data-id="${esc(toId || '')}">Send</button>
     <p class="faint msg-said">${esc(note || '')}</p>
