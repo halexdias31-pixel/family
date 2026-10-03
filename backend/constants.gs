@@ -229,7 +229,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-02-a-noemail";
+const BACKEND_VERSION = "2026-10-03-a-ownerlist";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1346,6 +1346,10 @@ const CONFIG_DEFAULTS = [
      limit is tied to the key rather than the key being secret — and Giphy answers those same
      search terms with reaction GIFs, which read as a joke where an illustration should be. */
   ['giphy_key', '', 'leave BLANK for Wikimedia Commons photographs (no key needed). A Giphy API key switches the reels to GIFs instead'],
+  /* WHERE A PROFILE PICTURE CHOSEN IN SETTINGS IS KEPT. Blank means the posts folder, which already
+     works — so this is a row for somebody who wants faces kept apart from the feed, not a thing that
+     has to be set before the picker does anything. See `getPhotoFolder_` in content.gs. */
+  ['photos_folder', '', 'Drive folder id (or its URL) for profile pictures chosen in Settings. BLANK uses the posts folder'],
 
   /* PRINTING. The file is free and always will be; this is paper and toner, at cost.
      A rate of 0 switches printing off entirely rather than making it free — a resource offered at
@@ -2436,11 +2440,11 @@ const RUNNABLE = {
      one is safe to run again and gets more useful the more rows there are — it fills what is blank
      and reports what it left alone, so it is `priceWearables` above rather than a spent id. */
   fillHandles:       () => fillHandles(),
-  /* ---------- AND EVERY HANDLE INTO `<first>_<virtue>` ONCE ----------------------------------------
+  /* ---------- AND EVERY HANDLE THAT WAS NEVER THE GENERATED SHAPE, ONCE ---------------------------
      Unlike `fillHandles` this REPLACES a handle, on the owner's ask ("handles should be their name
-     and a virtuous describing word") — safe because signing in is an e-mail address and a PIN, so
-     nobody is locked out by it. A row already in the shape is left alone, so a second run changes
-     nothing. */
+     and a virtuous describing word"). A row already in the shape — any arrangement of first name,
+     virtue and number, or the 1 October `<first>_<virtue>` — is left alone, so a second run changes
+     nothing and nobody who signs in with their handle is moved by it. */
   renameHandles:     () => renameHandles(),
   /* `seedPastPapers`, `seedALevelPapers`, `dropOldALevelPapers` and `ensureResourceIds` WERE HERE.
      All four wrote rows into the `questions` tab, and there is no such tab — the papers are
@@ -2692,6 +2696,8 @@ const ACTION_ACCESS = {
   // A person acting on their own record. Each handler still checks WHOSE row it is.
   updateProfile: 'self', saveNotepad: 'self', saveTodo: 'self', confirmDetails: 'self',
   saveAvatar: 'self', saveFriends: 'self', saveScore: 'self', saveTtHighscore: 'self',
+  /* YOUR OWN PICTURE. The handler writes `photo` on the row the token resolved to and nowhere else. */
+  savePhoto: 'self',
   myReferral: 'self',        // your own code, and who came through it
   saveExam: 'self', deleteExam: 'self', redeem: 'self',
   /* `likePost` was here. A like is a reaction with one option, so the heart and the 👍 were two

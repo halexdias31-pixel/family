@@ -413,22 +413,35 @@ function cartRow_(c, i, under) {
        line; `.cart-ctl` is the other, and it wraps as a unit rather than a word at a time.
 
        `short` UNDER A TITLE, `name` OTHERWISE — see `cartGroups_`. */
-    sel: `<span class="cart-nm">${esc(under && c.short ? c.short : c.name)}</span>`
-      + ` <span class="cart-ctl">`
-      /* `? pp`, NOT "pages not counted yet" — twenty-one characters beside a laminate switch and a
-         ✕ is the strip wrapping at 320px. The total column already says `tbc` on the same line and
-         the receipt's head says how many are still to price, so the page count only has to say it
-         is the half that is missing. */
-      + (c.kind === 'print' ? `<span class="faint">${c.pages
-          ? esc(c.pages) + 'pp' : '? pp'}</span>` : '')
-      + lamControl_(c)
-      /* ---------- A `<span>` WITH A `data-do` ON IT IS NOT A CONTROL -------------------------------
-         THE ✕ WAS ONE, and it is the third time in this codebase: the docket's delete, the post's
-         ⋯, and this. A span cannot be reached by a keyboard, is not announced as a button, and is
-         invisible to `check/ui.js`, which measures buttons, links and inputs — so its size has
-         never been checked by anything. `.text-drop` gives it the same look either way. */
-      + ` <button class="text-drop" data-do="cart-drop" title="Take this out"
-          data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</button></span>`,
+    /* ---------- ONE STRIP ONLY WHEN IT HOLDS SOMETHING, AND A LEADER TO THE PRICE ---------------------
+       ASKED FOR AS *"refine basket to look nicer."* Measured at 390 with a mixed basket: every shop
+       line was 72px tall because the ✕ sat ALONE on a second row — the strip existed for the laminate
+       switch, and a shop item never has one — and the dashed rule under the name stopped three
+       quarters of the way across, at the end of the value column, with the price floating past it.
+
+       SO A LINE IS A NAME AND A DOTTED LEADER RUNNING TO ITS PRICE, the way a receipt reads, and the
+       ✕ sits at the end of the leader, beside the price it takes away. The strip under it is drawn
+       only when there is a switch to put in it — a paper or a cheat sheet while laminating is
+       offered — and then it runs the full width, so its ✕ lines up under the price. `.bk-v` lays
+       nothing out itself any more (see `.bk-row.is-wide > .bk-v` in style.css): its three parts are
+       placed on the row's own two columns, which is what lets the strip reach past the name column.
+
+       `? pp`, NOT "pages not counted yet" — the total column already says `tbc` on the same line and
+       the receipt's head says how many are still to price. On the name line when there is no strip.
+
+       A `<button>`, NOT A `<span>`, FOR THE ✕ — a span with a `data-do` cannot be reached by a
+       keyboard and is invisible to `check/ui.js`. `short` UNDER A TITLE, `name` OTHERWISE — see
+       `cartGroups_`. */
+    sel: (() => {
+      const lam = lamControl_(c);
+      const pp = c.kind === 'print'
+        ? `<span class="faint cart-pp">${c.pages ? esc(c.pages) + 'pp' : '? pp'}</span>` : '';
+      const drop = `<button class="text-drop" data-do="cart-drop" title="Take this out"
+          data-key="${esc(c.key)}" data-kind="${esc(c.kind)}">✕</button>`;
+      return `<span class="cart-ln"><span class="cart-nm">${esc(under && c.short ? c.short : c.name)}</span>${
+        lam ? '' : pp}<i class="cart-lead" aria-hidden="true"></i>${lam ? '' : drop}</span>${
+        lam ? `<span class="cart-ctl">${pp}${lam}${drop}</span>` : ''}`;
+    })(),
     mul: '',
     rate: '',
     /* CREDITS AND MONEY IN THE SAME COLUMN, because a line costs one or the other and never both —
@@ -473,8 +486,11 @@ function cartCard_() {
   if (!CART.length) {
     /* AND A BUNDLE OF PAPERS, which is the second way in and the one somebody is likelier to be
        looking for — see `bundleOf_` in find.js. */
+    /* "BELOW", BECAUSE THE SHOP IS UNDER IT NOW. This said "a shop card ... in Find", and Find has
+       no shop cards since the Shop column took them; a sentence sending somebody to a door that is
+       gone is the stale-note fault in a place a child reads it. */
     return `<p class="empty">Nothing in your basket yet.<br><span class="faint">The trolley on a
-      shop card, or on a bundle of papers, in Find puts something in it.</span></p>`;
+      shop card below, or on a bundle of papers in Find, puts something in it.</span></p>`;
   }
 
   /* ---------- THE BASKET IS A RECEIPT, BECAUSE IT IS ONE -------------------------------------------
@@ -493,6 +509,8 @@ function cartCard_() {
 
      `printed ‧ 26 pages` MOVES TO THE PAGES COLUMN, where a receipt puts a quantity, instead of
      trailing after the title in a smaller grey. It was the thing making the line too long. */
+  /* A PENCIL SAVED AS "30 cr" BEFORE PENCE WERE READ AS MONEY is re-read first — see `cartUnits_`. */
+  if (typeof cartUnits_ === 'function') cartUnits_();
   const credits = collCredits_();
   const due  = CART.reduce((n, c) => n + (c.cost || 0), 0);
   /* THROUGH `cartMoney_`, so the laminate upgrade is in the total the moment it is on the line.
@@ -555,9 +573,13 @@ function cartCard_() {
        same change. And with all four callers agreeing, `kind` itself is gone: one line choosing
        between four palettes is one line deciding which of four sets of rules the next control on
        this card has to obey, and the set nobody remembers is the one that gets written wrong. */
-    lines: [due ? due + ' credit' + (due === 1 ? '' : 's') : '',
-            due ? 'you have ' + credits : '',
-            tbc ? tbc + ' to price when sent' : ''].filter(Boolean),
+    /* ---------- ONE SHORT LINE, NOT A WRAPPED ONE ---------------------------------------------------
+       IT READ "1430 credits · you have 5 · 1 to price when sent" and wrapped at 390 — the head of a
+       receipt running to two lines to say what the rows and the terms under them already say. So it
+       says the two figures nothing else on the card does — what the credits come to against what you
+       hold — and `tbc` in the word the price column uses, which the terms line explains. */
+    lines: [due ? due + ' cr of your ' + credits : '',
+            tbc ? tbc + ' tbc' : ''].filter(Boolean),
     rows: rows,
     /* "TO PAY", NOT "COST". The booking card says Cost on a thing nobody has agreed to; this one has
        a Pay button under it and money genuinely about to move. */
@@ -602,6 +624,123 @@ function initCart() { cartPaint_(); }
 
 /* `screen('basket')` WAS HERE. A screen with no tab is a screen nobody can reach — and the basket
    has been a page of Find and a page of Booking since. It is a tool now; see the note above. */
+
+
+/* ==================================================================================================
+   THE SHOP, A COLUMN OF ITS OWN — AND THE BASKET IS ITS FIRST PAGE
+
+   ASKED FOR AS *"Get rid of shop tag. I will make a new coloumn for shop stuff. So finder now will
+   become just learning stuff."* — and, asked whether the Shop door should come off Find before the
+   column existed, the owner chose both in one change. That order is the whole care here: the forty
+   shop Things had exactly one way onto a screen, the `Shop` answer to Find's first question, and
+   taking the door out first would have been a deletion of forty products wearing a tidy-up's
+   clothes. `FUNNEL_NOT_FOR` in find.js takes it out in the same commit as this goes in.
+
+   A PLACE, NOT A QUESTION, which is the test `TABS` in shell.js holds every column to. Nobody
+   narrows their way to a glue stick through "What for · What kind"; they open the shop and look.
+
+   THE BASKET MOVED HERE FROM TOOLS, and it is the same widget, not a copy. It has lived in five
+   places — a column, a sheet, a page of Find, a page of Booking, a tool — and each move was the
+   same argument about a box that is empty most of the time. In the shop it is beside the things that
+   fill it, which is the one home that argument never had. `kind: 'shop'` on the `cart` row of the
+   roster in map.js is the whole move: `widgetsOf_('shop')` draws it here, `widgetsOf_('tool')` stops
+   drawing it there, and `cartPaint_` writes by class, so nothing else had to learn where it went.
+
+   FIRST, NOT LAST. The Things run to several pages, and a basket at the bottom of them is a swipe per
+   page to check what you have just added — which is the one thing a basket is for. On top it is
+   your running total with the shelves under it, and `cart-open` lands on a page whose number does
+   not move when the shop gets longer.
+
+   WHO SEES WHAT, ASKED HERE AND ONLY HERE. `doGet` sends `audience` and `inStock` on every shop row
+   and nothing in js/ read either, so a signed-out visitor was offered the toner cartridge and the
+   tutors' iPad as "Add to basket · free". A row switched off is not for sale; a row for tutors is
+   for tutors (and the admin, as `isTutorRole` already answers); a row for the admin is the admin's.
+   Done on the COLUMN rather than in the shared mapper, because a STARRED row still belongs on Saved
+   whatever this decides — which is the `stuffItemsAll_` argument, one list further along.
+
+   WEARABLES ARE NOT HERE. Buying one and wearing it are one act, and they have the wardrobe on
+   Settings for it — see `shopTiles_`'s note in tiles.js.
+================================================================================================== */
+
+/* THREE TO A PAGE, MEASURED. `.pane` is `overflow: hidden` and caps at 534px on a 320x568 phone;
+   a shop card with its tile row is about 155px there, and a page also carries its group's heading,
+   so three fill the glass and a fourth never fits. Walked over the real shop (the 62-row export plus
+   the twelve additions) as a visitor, a student and an admin: 13, 13 and 20 pages, none of them
+   shrunk by `paneReach_` — once three two-line names on one page had been, at 0.893, which put the
+   tiles at 39px. That was fixed in the names ("White vinegar", not "White vinegar (practical
+   chemical)"), not here: a name that wraps is a longer name than the shelf needs. */
+const SHOP_PER = 3;
+
+/* THE GROUPS, IN THE ORDER A FAMILY LOOKS. The sheet's `kind` cell is the group; the label is how a
+   person says it. A kind not named here still draws — under its own word, after these — because a
+   row somebody typed a new kind into is a row, and silence about it is the fault `kindOf_` records. */
+const SHOP_GROUPS = [['bundle', 'Bundles'], ['game', 'Games'], ['kit', 'Kits'],
+                     ['equipment', 'Equipment'], ['stationery', 'Stationery'],
+                     ['consumable', 'Consumables'], ['service', 'Made to order']];
+
+function shopFor_(r) {
+  if (!r || (typeof isWearable === 'function' ? isWearable(r) : r.kind === 'wearable')) return false;
+  /* `false` ONLY. `ON_` on the backend sends a boolean, and a payload older than that sends nothing —
+     which must mean "on", or every shop on an old backend would empty itself. */
+  if (r.inStock === false) return false;
+  const who = String(r.audience || 'all').trim().toLowerCase();
+  if (who === 'admin') return typeof isAdmin === 'function' && isAdmin();
+  if (who === 'tutor') return typeof isTutorRole === 'function' && isTutorRole();
+  return true;
+}
+
+/* THE THINGS, GROUPED. Each one is the item `stuffItemsAll_` already builds — the card Find drew,
+   tiles and all — looked up by its key, so the shop and every other surface draw one object rather
+   than two that could drift. The row is what says who may see it and which group it is in. */
+function shopGroups_() {
+  const rows = (DATA && DATA.shop) || [];
+  const byKey = {};
+  (typeof stuffItemsAll_ === 'function' ? stuffItemsAll_() : [])
+    .forEach(x => { if (x.kind === 'shop' && x.key && !byKey[x.key]) byKey[x.key] = x; });
+  const groups = {};
+  rows.forEach(r => {
+    if (!shopFor_(r)) return;
+    const x = byKey[r.name];
+    if (!x || x.wearable) return;
+    const k = String(r.kindRaw || 'thing').trim().toLowerCase() || 'thing';
+    (groups[k] || (groups[k] = [])).push(x);
+  });
+  const named = SHOP_GROUPS.map(g => g[0]);
+  const order = named.filter(k => groups[k])
+    .concat(Object.keys(groups).filter(k => named.indexOf(k) < 0).sort());
+  return order.map(k => {
+    const g = SHOP_GROUPS.find(p => p[0] === k);
+    return { kind: k, label: g ? g[1] : k.charAt(0).toUpperCase() + k.slice(1), items: groups[k] };
+  });
+}
+
+function shopCards_() {
+  /* THE BASKET, AND ANY OTHER WIDGET THE ROSTER FILES UNDER THE SHOP, drawn exactly as Tools draws
+     its own — the star on it, the widget in its slot, started by `toolsStart_('shop')`. */
+  const wgts = (typeof widgetsOf_ === 'function' ? widgetsOf_('shop') : [])
+    .map(w => (typeof widgetOnColumn_ === 'function' ? widgetOnColumn_(w) : w.html));
+  /* THE PAYLOAD DID NOT COME — the reason and a Try again, rather than an empty shop that looks open
+     and is not. The basket stays above it: it is on this device and did not need the payload. */
+  if (typeof LOAD_FAILED !== 'undefined' && LOAD_FAILED && typeof nothingHere === 'function') {
+    return wgts.concat([nothingHere()]);
+  }
+  const credits = collCredits_();
+  const out = wgts.slice();
+  shopGroups_().forEach(g => {
+    for (let i = 0; i < g.items.length; i += SHOP_PER) {
+      /* AN `<h2>` BETWEEN CARDS, NOT INSIDE ONE — the rule `check-dead.js` states and `split_` cuts
+         on. Every page of a group carries its name, so a page reached by a long swipe still says
+         which shelf it is. The count is the group's, the way the feed's emoji groups write it. */
+      out.push(`<h2><span>${esc(g.label)}</span><span class="faint">${g.items.length}</span></h2>`
+        + g.items.slice(i, i + SHOP_PER).map(x => stuffCard(x, credits)).join(''));
+    }
+  });
+  if (out.length > wgts.length) return out;
+  return out.concat([`<div class="card"><h3>Shop</h3><p class="note">Nothing in the shop yet.<br>
+    <span class="faint">Things for sale turn up here as they are added.</span></p></div>`]);
+}
+
+screen('shop', () => pages('shop', shopCards_()));
 
 
 /* ---------- THE PAGERS ---------------------------------------------------------------------------

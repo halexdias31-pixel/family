@@ -37,8 +37,9 @@ any name used but never declared. Run it after every change.
 | `js/find.js` | The funnel — the app's main surface. Biggest file at 185 KB. |
 | `js/book.js` | Sessions, seats, payment. |
 
-Nine screens are registered: `stuff` (the funnel, and the root), `account`, `feed`, `booking`,
-`tools`, `games`, `make`, `reel`, `dm`.
+Twelve screens are registered, in `TAB_ORDER` (js/shell.js): `feed`, `booking`, `shop` (things for
+sale and the basket — Find no longer has a Shop door), `reel`, `dm`, `stuff` (the funnel — learning
+only now — and the root), `account`, `tools`, `games`, `saved`, `spotlight`, `settings`.
 
 ### Layout, and why the checks are shaped the way they are
 

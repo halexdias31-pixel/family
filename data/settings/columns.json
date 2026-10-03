@@ -1,13 +1,14 @@
 [
 {"screen": "feed", "label": "Feed", "icon": "🏠", "active": "TRUE", "sort_order": 2, "notes": "what has been posted, with the camera as the page directly above the newest post. The `make` column that held the camera is gone."},
-{"screen": "booking", "label": "Book", "icon": "📅", "active": "TRUE", "sort_order": 3, "notes": "the form, the receipts and the basket."},
-{"screen": "reel", "label": "Reels", "icon": "▶", "active": "TRUE", "sort_order": 4, "notes": "one clip per page."},
-{"screen": "dm", "label": "DMs", "icon": "✉", "active": "TRUE", "sort_order": 5, "notes": "one conversation per page."},
-{"screen": "stuff", "label": "Find", "icon": "🔎", "active": "TRUE", "sort_order": 6, "notes": "the funnel. TAB_HOME — switching this one off leaves go('stuff') with nowhere to land."},
-{"screen": "account", "label": "You", "icon": "👤", "active": "TRUE", "sort_order": 7, "notes": "your account, and a page per person."},
-{"screen": "settings", "label": "Settings", "icon": "\u2699", "active": "TRUE", "sort_order": 8, "notes": "your details, your username and your PIN. One page each. RIGHT OF YOU, because it was eleventh of eleven and reported as \"I don't see it\" \u2014 the one column you reach for from your own account card should not be four swipes past it."},
-{"screen": "tools", "label": "Tools", "icon": "🧰", "active": "TRUE", "sort_order": 9, "notes": "the widgets."},
-{"screen": "games", "label": "Games", "icon": "🎮", "active": "TRUE", "sort_order": 10, "notes": "the arcade."},
-{"screen": "saved", "label": "Saved", "icon": "\u2605", "active": "TRUE", "sort_order": 11, "notes": "what you starred \u2014 widgets first, then anything else."},
-{"screen": "spotlight", "label": "Spotlight", "icon": "\u2726", "active": "TRUE", "sort_order": 12, "notes": "what the business has put in the window \u2014 one list, the same on every phone, and only an admin can change it. AFTER SAVED, which is where it was asked for: the two read alike and the difference is whose list it is."}
+{"screen": "booking", "label": "Book", "icon": "📅", "active": "TRUE", "sort_order": 3, "notes": "the form and the receipts. The basket is on the Shop column."},
+{"screen": "shop", "label": "Shop", "icon": "🛒", "active": "TRUE", "sort_order": 4, "notes": "the shop: the basket on top, then the things for sale grouped by kind. RIGHT OF BOOKING, the other column you pay on. Find no longer has a Shop door."},
+{"screen": "reel", "label": "Reels", "icon": "▶", "active": "TRUE", "sort_order": 5, "notes": "one clip per page."},
+{"screen": "dm", "label": "DMs", "icon": "✉", "active": "TRUE", "sort_order": 6, "notes": "one conversation per page."},
+{"screen": "stuff", "label": "Find", "icon": "🔎", "active": "TRUE", "sort_order": 7, "notes": "the funnel. TAB_HOME — switching this one off leaves go('stuff') with nowhere to land."},
+{"screen": "account", "label": "You", "icon": "👤", "active": "TRUE", "sort_order": 8, "notes": "your account, and a page per person."},
+{"screen": "settings", "label": "Settings", "icon": "\u2699", "active": "TRUE", "sort_order": 9, "notes": "your details, your username and your PIN. One page each. RIGHT OF YOU, because it was eleventh of eleven and reported as \"I don't see it\" \u2014 the one column you reach for from your own account card should not be four swipes past it."},
+{"screen": "tools", "label": "Tools", "icon": "🧰", "active": "TRUE", "sort_order": 10, "notes": "the widgets."},
+{"screen": "games", "label": "Games", "icon": "🎮", "active": "TRUE", "sort_order": 11, "notes": "the arcade."},
+{"screen": "saved", "label": "Saved", "icon": "\u2605", "active": "TRUE", "sort_order": 12, "notes": "what you starred \u2014 widgets first, then anything else."},
+{"screen": "spotlight", "label": "Spotlight", "icon": "\u2726", "active": "TRUE", "sort_order": 13, "notes": "what the business has put in the window \u2014 one list, the same on every phone, and only an admin can change it. AFTER SAVED, which is where it was asked for: the two read alike and the difference is whose list it is."}
 ]

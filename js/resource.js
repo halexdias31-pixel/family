@@ -140,6 +140,37 @@ let CART = [];
 try { CART = JSON.parse(localStorage.getItem('familyCart') || '[]'); } catch {}
 const cartSave = () => { try { localStorage.setItem('familyCart', JSON.stringify(CART)); } catch {} };
 
+/* ---------- A SHOP ROW PRICED IN PENCE IS MONEY, NOT CREDITS ----------------------------------------
+   `doGet` SENDS `price` WITH ITS `unit` — `p` for the `price_pence` column, `✓ ` for ticks, `🪙 ` for
+   coins — and this wrote every price into `cost`, the credits field. Measured with the live payload:
+   a 30p pencil sat in the basket as "30 cr", a £14 calculator as "1400 cr", and the Send button read
+   "1425 more credits needed" for a student holding five — an order nobody could ever send, for two
+   things that cost £14.30. A pence price goes into `money` in pounds, which `cartMoney_` already
+   adds into the printing total and the order message already writes as money.
+   ANYTHING ELSE STAYS IN `cost` AS BEFORE. Ticks are their own balance and are still checked against
+   credits here — a fault, but the shop card's, not the basket's, and written up in the history note. */
+function cartPrice_(src) {
+  const n = Number(src && src.price) || 0;
+  return String((src && src.unit) || '').trim() === 'p'
+    ? { cost: 0, money: Math.round(n) / 100 }
+    : { cost: n, money: 0 };
+}
+/* AND A LINE SAVED BEFORE THAT, PUT RIGHT WHEN THE SHOP SAYS WHAT IT WAS. A basket lives in
+   `localStorage`, so a pencil added yesterday is still "30 cr" in somebody's browser; once the payload
+   is here and its row says pence, the line is re-read from it. Only a shop line with a credits figure
+   and no money, and only from a row that says `p` — nothing is guessed when the shop is not loaded. */
+function cartUnits_() {
+  let moved = false;
+  CART.forEach(c => {
+    if (!c || c.kind !== 'shop' || !(Number(c.cost) > 0) || Number(c.money) > 0) return;
+    const src = ((typeof DATA !== 'undefined' && DATA.shop) || []).find(x => norm(x.name) === norm(c.key));
+    if (!src || String(src.unit || '').trim() !== 'p') return;
+    Object.assign(c, cartPrice_(src));
+    moved = true;
+  });
+  if (moved) cartSave();
+}
+
 on('cart-add', el => {
   if (!USER) { toast('Sign in first'); go('account'); return; }
   /* A BUNDLE IS PAPERS, SO IT GOES IN AS PAPERS — see `cartAddBundle_` below. */
@@ -159,7 +190,7 @@ on('cart-add', el => {
   {
     const src = (DATA.shop || []).find(x => norm(x.name) === norm(key));
     if (!src) return;
-    CART.push({ key, name: src.name, kind, cost: Number(src.price) || 0, money: 0 });
+    CART.push(Object.assign({ key, name: src.name, kind }, cartPrice_(src)));
   }
 
   cartSave();
@@ -238,11 +269,13 @@ function cartAddBundle_(el) {
    app that fills it with several lines at once — so the card that did it says where they went. The
    page is asked for by id off the same list the column is built from, because `widgetsOf_` hides
    the admin-only tools from everybody else and a literal index would land on the wrong card. */
+/* THE SHOP NOW, NOT TOOLS. The basket moved to the Shop column's first page; asked for by the same
+   lookup, so the day another widget goes on top of it this still lands on the basket. */
 on('cart-open', () => {
   const n = typeof widgetsOf_ === 'function'
-    ? widgetsOf_('tool').findIndex(w => String(w.id) === 'cart') : -1;
-  go('tools');
-  if (n >= 0) goPage('tools', n, true);
+    ? widgetsOf_('shop').findIndex(w => String(w.id) === 'cart') : -1;
+  go('shop');
+  if (n >= 0) goPage('shop', n, true);
 });
 
 /* ---------- LAMINATE, OR BACK TO PLAIN -----------------------------------------------------------
@@ -284,7 +317,7 @@ on('cart-drop', el => {
    pushing prices off the edge. That is exactly how the two come to disagree about what is in your
    basket.
 
-   The basket is a tool on the Tools column. There is nothing to pop out.
+   The basket is the first page of the Shop column. There is nothing to pop out.
 
    ITS BETTER WORDING SURVIVED. "Pay £0.92" rather than "Send", "N more credits needed" on a button
    that cannot be pressed, and the line about printing being charged at cost — all of it says more
@@ -351,7 +384,7 @@ function orderLine_(c, i, full, under) {
   if (c.kind === 'print') {
     if (full) {
       const p = cartPrint_(c);
-      bits.push(c.pages ? c.pages + ' pages' : 'pages not counted yet');
+      bits.push(c.pages ? c.pages + ' page' + (c.pages === 1 ? '' : 's') : 'pages not counted yet');
       bits.push(p === null ? 'priced when sent' : money(p));
     }
     if (c.laminate) {
@@ -364,7 +397,14 @@ function orderLine_(c, i, full, under) {
     bits.push(money(Number(c.money)));
   }
   const name = under && c.short ? c.short : (c.name || c.key);
-  return (i + 1) + '. ' + String(name) + (bits.length ? ' — ' + bits.join(', ') : '');
+  /* ---------- A CHEAT SHEET CARRIES ITS PIECES, AND THE MESSAGE LISTS THEM -------------------------
+     A PAPER IS A FILE THE OWNER ALREADY HAS; A CHEAT SHEET IS A PAGE SOMEBODY BUILT on their phone,
+     and its key (`mat:` and a list of ids) means nothing to a person. So the names ride on the line
+     (`mat-cart` in mat.js) and go out on the line below it, in both the full and the short build —
+     dropping them to fit would leave an order nobody can fulfil. Measured against the cap: all 77
+     pieces' names together are about 1,400 characters, and a sheet holds a page's worth, nearer 20. */
+  const parts = Array.isArray(c.parts) && c.parts.length ? '\n   pieces: ' + c.parts.join(', ') : '';
+  return (i + 1) + '. ' + String(name) + (bits.length ? ' — ' + bits.join(', ') : '') + parts;
 }
 
 /* WHERE IT GOES. The login reply carries `address` and `postcode` for exactly this — the note in

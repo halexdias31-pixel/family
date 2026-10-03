@@ -111,6 +111,8 @@ const ACCEPTED_QUIET = {
      Both press a hidden `<input type="file">`, which opens the device's own chooser — a window this
      harness cannot see and nothing on the page changes until a file is chosen. */
   'msg-attach': { why: 'opens the device file chooser; nothing on the page changes until a file is picked.' },
+  'pfp-pick':   { why: 'the profile picture\'s Choose photo: opens the device file chooser, and nothing on the '
+                     + 'page changes until a picture is picked — check-flow drives that half with a file.' },
   'cam-more':   { why: 'keeps the current shot and starts the camera again; with no shot and no camera '
                      + 'in this container there is nothing to keep and nothing to restart.' },
   /* ---------- A BOX WITH NOTHING IN IT ------------------------------------------------------------
@@ -136,6 +138,12 @@ const ACCEPTED_QUIET = {
                       + 'the moment somebody clicked away mid-sentence.' },
   'qp-ans':      { why: 'the answer box writes to localStorage on `input`, not on a press; a click '
                       + 'on a textarea is a caret being placed.' },
+  /* THE TYPING LINE IS A CARET TOO, with a button round it. Its whole effect is the focus moving to
+     the hidden box, and the rung above it — pressed first, because it is first on the card — hands
+     the focus there as well, so by the time the line is pressed the card is already listening. On
+     its own, on a card that is not, it does change the markup (`.kt-box.typing`); measured. */
+  'kt-focus':    { why: 'puts the focus in the hidden typing box, which the rung pressed before it '
+                      + 'already did — a caret placed twice.' },
 
   /* ---------- NO CAMERA IN A CONTAINER ------------------------------------------------------------
      `cam-shoot` and `cam-video` are reported as DISABLED rather than quiet, which is the shutters

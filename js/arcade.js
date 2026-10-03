@@ -244,7 +244,10 @@ function savedWidgets_() {
   /* THROUGH `widgetFor_`. A star outlives the role that made it — `FAVS` is kept on the device
      between payloads — so a flyer starred by an admin must not come back on the Saved column of
      whoever is signed in next. */
-  return allWidgets().filter(w => (w.kind === 'tool' || w.kind === 'game') && isFav(WIDGET_KEY(w)))
+  /* `shop` TOO, since the basket moved there: a basket starred while it was a tool is the same
+     `w:cart` key, and it would have dropped off Saved the day it changed column. */
+  return allWidgets().filter(w => (w.kind === 'tool' || w.kind === 'game' || w.kind === 'shop')
+                               && isFav(WIDGET_KEY(w)))
     .filter(widgetFor_);
 }
 

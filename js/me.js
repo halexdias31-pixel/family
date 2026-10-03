@@ -86,16 +86,32 @@ function signInCard_() {
                  spellcheck="false" placeholder="you@example.com — or your handle if you have no email"></label>
         <label class="field"><span>PIN</span>
           <input id="in-pin" type="password" inputmode="numeric" autocomplete="current-password"></label>
-        <button class="btn" data-do="do-signin">Sign in</button>
-        ${/* ---------- AND THE WAY BACK IN WHEN THE PIN HAS GONE ------------------------------------
-             ASKED FOR AS *"add forgot pin option. it will send an email to their email."*
+        ${/* ---------- THREE TILES, WHERE THERE WERE TWO BUTTONS AND A CARD -------------------------
+             ASKED FOR AS *"turn the sign in and forgot pin buttons into tiles. same with create
+             account button."* This card is a THING in this app's sense — the account you are about
+             to be — and its actions were the last hand-drawn control row on the front door.
+             Settings' Save (1194c6f) and Sign out (4585865) went the same way before it.
 
-             IT TAKES NO SECOND BOX. The address is already typed into the field above — it is the
-             first thing anybody fills in — so asking for it again would be asking somebody who
-             cannot get in to type it twice. It is the same address the new PIN is sent to.
+             ONE ROW, NOT THREE PLACES. `Forgotten your PIN?` was a quiet button under `Sign in`, and
+             `Make an account` was a whole separate card below this one saying "No account yet?" —
+             which, until this change, did nothing but toast that it was not wired. Three ways
+             through one door belong beside each other.
 
-             QUIET, because gold on this card is `Sign in` and there is one of those. */''}
-        <button class="btn quiet" data-do="forgot-pin">Forgotten your PIN?</button>
+             `do-signin` KEEPS ITS NAME, because the Enter listener below clicks
+             `[data-do="do-signin"]`, and `send_` already knows a busy tile has no word to swap.
+             GOLD IS STILL `Sign in` — `buy` is this app's one "the main thing" tone, and there is one
+             of those on this card.
+
+             FORGOT-PIN STILL TAKES NO SECOND BOX (*"add forgot pin option. it will send an email to
+             their email."*). The address is already typed above — it is the first thing anybody
+             fills in — and it is the same address the new PIN is sent to. */''}
+        <div class="tile-row">${tile_({ icon: 'in', label: 'Sign in', tone: 'buy', act: 'do-signin' })}${
+          tile_({ icon: 'key', label: 'Forgotten your PIN?', act: 'forgot-pin' })}${
+          tile_({ icon: 'join', label: 'Make an account', act: 'register' })}</div>
+        ${/* A TILE SHOWS A MARK AND NO WORD — its name is in `title` and `aria-label`, which a finger
+             never reads. On a stranger's first screen that is three marks to guess at, so the card
+             says them once, in the order they sit. One line, under the row, not one per tile. */''}
+        <p class="faint">Sign in · a new PIN by email · make an account.</p>
         ${/* ---------- AND THE OTHER DOOR ----------------------------------------------------------
              DRAWN ONLY WHEN THERE IS AN ID TO DRAW IT FOR. `googleClientId` comes off the payload;
              with no id in the config tab the button is absent rather than present and broken, which
@@ -108,11 +124,8 @@ function signInCard_() {
         ${/* `#in-said` STOOD HERE — a faint grey line carrying a validation, a "Checking…" the
               button already says with a spinner on it, and a refusal that is now a toast. See the
               note over `do-signin`: three jobs, and none of them is still its. */''}
-      </div>
-      <div class="card tap" data-do="register">
-        <h3>No account yet?</h3>
-        <p class="sub">Making one takes a name, an email and a PIN.</p>
       </div>`;
+  /* THE `No account yet?` CARD THAT STOOD HERE is the third tile in the row above now. */
 }
 
 /* ---------- `signOutCard_` WAS HERE ----------------------------------------------------------------
@@ -930,7 +943,94 @@ function avatarSave(change) {
 on('av-colour', el => avatarSave({ [el.dataset.field]: Number(el.dataset.value) }));
 on('av-pick', el => avatarSave({ [el.dataset.slot]: el.dataset.id }));
 
-on('register',    () => toast('Registration is the next thing to wire'));
+/* ---------- MAKING AN ACCOUNT ---------------------------------------------------------------------
+   THIS WAS `toast('Registration is the next thing to wire')`, under a card that said "No account
+   yet?" — so the front door's third way in was a sign that it was not a way in. The backend has had
+   `register` all along (dopost.gs): first name, last name, email, PIN, and it writes a student row
+   marked PENDING and mails a `?verify=` link. Nothing on a phone ever posted it.
+
+   A SHEET, BECAUSE IT IS A SHORT QUESTION WITH AN END — the same reason `friendsSheet` is one. And
+   it is a FORM, so its control is a button, not a tile: the tile that opens it is the thing's action,
+   the button inside is the form's.
+
+   THE PIN RULE IS CHECKED HERE AS WELL AS THERE, and that is a deliberate exception to the argument
+   `forgot-pin` makes about not repeating the server's rules. A wrong PIN is the likeliest mistake on
+   this form, and finding out costs fifteen seconds against Apps Script with every box locked — so the
+   phone says it at once. The server's `/^\d{4,8}$/` still decides; this is the same pattern so the
+   two cannot refuse different things, and `check-flow` holds them together.
+
+   NO `ref`. The backend will record a referral code, but nothing hands one out any more (see
+   `my-referral`, gone), and `?ref=` on this site's address is Stripe's return leg in receipt.js —
+   reading it here would credit a payment reference as an introduction. */
+const REG_PIN = /^\d{4,8}$/;
+function registerSheet_() {
+  openSheet('Make an account', `
+    <label class="field"><span>first name</span>
+      <input id="reg-first" autocomplete="given-name"></label>
+    <label class="field"><span>last name</span>
+      <input id="reg-last" autocomplete="family-name"></label>
+    <label class="field"><span>email</span>
+      <input id="reg-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off"
+             spellcheck="false" placeholder="you@example.com"></label>
+    <label class="field"><span>PIN — 4 to 8 digits</span>
+      <input id="reg-pin" type="password" inputmode="numeric" autocomplete="new-password"></label>
+    <button class="btn" data-do="reg-send">Make my account</button>
+    <p class="faint" style="margin:.6rem 0 0">We email you a link. Open it, then sign in with this
+      email and PIN.</p>`);
+}
+on('register', () => registerSheet_());
+
+on('reg-send', el => {
+  const v = id => ((($(id) || {}).value) || '').trim();
+  const first = v('reg-first'), last = v('reg-last'), email = v('reg-email'), pin = v('reg-pin');
+  if (!first || !last) { toast('Your first and last name, please.'); return; }
+  if (email.indexOf('@') < 0) { toast('An email address, please — the link goes to it.'); return; }
+  if (!REG_PIN.test(pin)) { toast('A PIN is 4 to 8 digits, and nothing else.'); return; }
+  /* THROUGH `send_`, so the button spins, the four boxes lock while it is on the wire (`#sheet-body`
+     is one of the boxes `send_` knows to lock) and a refusal — "That email is already registered" —
+     is toasted in the server's own words. */
+  send_({ action: 'register', first_name: first, last_name: last, email, pin },
+        { button: el, busy: 'Making it…' })
+    .then(() => {
+      closeSheet();
+      /* THE ADDRESS GOES INTO THE SIGN-IN BOX, because the next thing this person does — after the
+         email — is sign in with it, and they have just typed it once. */
+      const box = $('in-name'); if (box) box.value = email;
+      toast('Nearly there — open the link we have emailed you, then sign in.');
+    })
+    .catch(() => {});      // `send_` has already said why
+});
+
+/* ---------- AND THE LINK IN THAT EMAIL ------------------------------------------------------------
+   `register` MAILS `SITE_URL?verify=<token>` AND NOTHING READ IT. So every account made from the
+   form would have stayed PENDING, and `verifyLogin` refuses a PENDING row — a sign-up that worked
+   and an account that could never be used.
+
+   READ ONCE AT START-UP, FROM boot.js, and taken out of the address before anything is sent, the
+   same way a shared `?post=` link should be: the token is single-use (dopost.gs clears it), so a
+   refresh with it still in the bar would post it again and be told the link "has already been used"
+   — a refusal on the screen of somebody whose account is fine.
+
+   NO DATA NEEDED, so it does not wait for `load()`. The two requests run side by side. */
+function verifyFromLink_() {
+  let token = '';
+  try {
+    const q = new URLSearchParams(location.search);
+    token = (q.get('verify') || '').trim();
+    if (!token) return;
+    q.delete('verify');
+    const rest = q.toString();
+    history.replaceState(null, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+  } catch (e) { if (!token) return; }
+  send_({ action: 'verifyEmail', token })
+    .then(d => {
+      toast('Email confirmed' + (d && d.name ? ', ' + String(d.name).split(' ')[0] : '')
+            + ' — now sign in with it and your PIN.');
+      /* TO THE SIGN-IN CARD, which is where the next step is. */
+      try { if (!USER) go('account'); } catch (e) {}
+    })
+    .catch(() => {});      // `send_` has already toasted the server's sentence
+}
 
 /* ---------- FRIENDS ------------------------------------------------------------------------------
    A comma list of handles on the person's own row. Kept as one cell for the same reason the docket
@@ -1767,10 +1867,25 @@ function settingsPages_() {
     <p class="handle-cap">handle</p>
     <p class="handle-now" aria-live="polite"><b aria-hidden="true">@</b><span class="handle-shown">${
       esc((USER && (USER.handle || '')) || '')}</span></p>
-    <button class="btn quiet" data-do="handle-shuffle">Randomise</button>
+    ${/* ---------- RANDOMISE IS A TILE, BECAUSE THE HANDLE IS A THING ---------------------------
+          It was a `.btn quiet` beside the PIN form's button, and it is not part of that form: it
+          takes no input and posts nothing typed. CLAUDE.md's rule is that a THING has tiles and a
+          FORM has buttons, and a handle is a thing about you — so the one action on it is a tile,
+          from `tile_`, with the tap target, the mark and the press that come from that one place,
+          and `send_` already knows a tile has no word to swap for "Choosing…".
+
+          THE LINE UNDER IT SAYS WHAT A PRESS MAKES. *"their first name, a virtuous adjective and
+          random numbers and maybe an underscore. but all random order."* — so a person is told the
+          number and the order move too, rather than discovering it. And that a child with no e-mail
+          signs in with the handle: a press changes what they type at sign-in, which is the one
+          thing about this tile somebody could regret, and it is said once here rather than as a
+          confirm that would be the pop-up this app has been asked not to have. */''}
+    <div class="tile-row">${tile_({ icon: 'shuffle', label: 'Randomise', note: 'a new handle',
+                                    act: 'handle-shuffle' })}</div>
     <p class="faint handle-said" style="margin:.6rem 0 0">${esc(
       (HANDLE_SAID.pid && HANDLE_SAID.pid === String(USER.personId || '') && HANDLE_SAID.text)
-      || 'Your first name and a word that suits you. Randomise picks another word.')}</p>
+      || 'Your first name, a word that suits you and a number. Randomise mixes up a new one — '
+       + 'if you sign in with your handle, that is your new sign-in name.')}</p>
     <div class="f-row pin-row" style="--n:3">
       <label class="field"><span>current PIN</span>
         <input id="pin-now" type="password" inputmode="numeric" autocomplete="current-password"></label>
@@ -2529,7 +2644,8 @@ const FIELD_ROWS = [
 ];
 const ROW_LABEL = {
   years_experience: 'years teaching',
-  photo: 'photo link', video: 'video link',
+  /* `photo` HAS NO LABEL because it has no box any more on your own settings — see `photoPicker_`. */
+  video: 'video link',
   travel_km: 'will travel (km)', favourite_colour: 'favourite colour',
   venues_ok: 'venues you teach at',
 };
@@ -3173,6 +3289,136 @@ document.addEventListener('input', e => {
   if (thumb) thumb.innerHTML = /^https?:\/\/\S+$/i.test(v) ? `<img src="${esc(pic(v))}" alt="">` : '';
 });
 
+/* ---------- YOUR PICTURE, CHOSEN RATHER THAN LINKED ---------------------------------------------
+   A SQUARE PREVIEW, `Choose photo` AND `Remove`. The preview is what the picture will be — the
+   photograph cropped square, or with none the face you have without one: your wardrobe figure if you
+   have dressed it, the initial if not, which is the same letter the card draws. Square because a
+   photograph on this site is square (the camera's still, a post's grid, the photo shelf's
+   thumbnails); the card rounds it into its circle itself.
+
+   TILES, BECAUSE THIS IS A THING — your picture — and the two actions are actions ON it, not the
+   buttons of a form: each saves itself, there is nothing to fill in first, and the card's own Save
+   does not touch it. The file input is hidden and `Choose photo` opens it, which is how the camera's
+   `Photos` side opens its own; `accept="image/*"` with no `capture`, so a phone offers the gallery
+   AND the camera rather than forcing one.
+
+   ONE LINE UNDER THE ROW says what happened, the `.me-said` of every other card. */
+function photoPicker_(value) {
+  const v = String(value('photo') || '').trim();
+  return `<div class="pfp">
+    <span class="pfp-face">${pfpFace_(v)}</span>
+    <div class="pfp-side">
+      <div class="tile-row">
+        ${tile_({ icon: 'photo', label: 'Choose photo', act: 'pfp-pick' })}
+        ${tile_({ icon: 'bin', label: 'Remove', act: 'pfp-remove', off: !v })}
+      </div>
+      <p class="faint pfp-said">${v ? 'Your picture on your card.' : 'No picture yet — your card shows this instead.'}</p>
+    </div>
+    <input type="file" class="pfp-in" accept="image/*" hidden>
+  </div>`;
+}
+function pfpFace_(v) {
+  if (v) return `<img src="${esc(pic(v))}" alt="Your profile picture">`;
+  /* THE WARDROBE FIGURE ONLY IF IT HAS BEEN DRESSED. Every handle has a figure — `avatarConfig`
+     seeds one from the hash — but an undressed one is a stranger's face as far as its owner knows,
+     and the initial is what everybody else sees on the card. */
+  if (USER && USER.avatar && typeof avatarFor === 'function') {
+    return avatarFor(USER.handle || USER.name, 56, USER.avatar);
+  }
+  const who = (USER && ((USER.profile && USER.profile.first_name) || USER.name)) || '?';
+  return `<span class="pfp-none">${esc(String(who).trim().slice(0, 1).toUpperCase() || '?')}</span>`;
+}
+
+/* ---------- SQUARE, AND SMALL ENOUGH TO POST ------------------------------------------------------
+   `camItemOf_` FIRST, which is the camera's own reader — it turns whatever the phone hands over
+   (a 12-megapixel original, a PNG screenshot, a HEIC the browser can decode) into a JPEG no more than
+   1600px long. Then the middle square of that, drawn at no more than 600px: a face on a card is 52px
+   and a full-width preview is 390, so 600 is crisp on a 3x screen and about 60KB on the wire, where
+   the original would be four megabytes through Apps Script for the same picture.
+   THE MIDDLE, NOT THE TOP. A portrait's face is usually in the upper half, and a top crop would be
+   right for those and cut the head off every landscape; a centre crop is never badly wrong, and the
+   preview shows exactly what was kept before anybody else sees it. Answers `null` for anything it
+   cannot read, and never rejects. */
+const PFP_SIZE = 600;
+function pfpPrepare_(file) {
+  if (typeof camItemOf_ !== 'function') return Promise.resolve(null);
+  return camItemOf_(file).then(it => {
+    if (!it || it.kind !== 'image' || !it.data) return null;
+    return new Promise(done => {
+      const img = new Image();
+      img.onload = () => {
+        const w = img.naturalWidth || 1, h = img.naturalHeight || 1, s = Math.min(w, h);
+        const out = Math.max(1, Math.min(PFP_SIZE, s));
+        const cv = document.createElement('canvas');
+        cv.width = cv.height = out;
+        try {
+          cv.getContext('2d').drawImage(img, (w - s) / 2, (h - s) / 2, s, s, 0, 0, out, out);
+          done(cv.toDataURL('image/jpeg', 0.85));
+        } catch (e) { done(null); }
+      };
+      img.onerror = () => done(null);
+      img.src = it.data;
+    });
+  }).catch(() => null);
+}
+
+/* WHAT THE SERVER SAID THE PICTURE NOW IS, written everywhere this phone keeps it: your profile (what
+   the Settings page reads), the remembered sign-in (what the next visit reads before the network),
+   and any row of the payload that is you, so your own card on the You column changes too rather than
+   waiting for the next load. Then the picker is redrawn from it. */
+function pfpTake_(box, url) {
+  if (!USER) return;
+  USER.profile = Object.assign({}, USER.profile || {}, { photo: url });
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch (e) {}
+  ['tutors', 'people', 'students', 'clients'].forEach(k => ((DATA && DATA[k]) || []).forEach(r => {
+    if (r && USER.personId && (r.personId === USER.personId || r.person_id === USER.personId || r.id === USER.personId)) {
+      if ('image' in r) r.image = url;
+      if ('photo' in r) r.photo = url;
+    }
+  }));
+  if (box && box.parentNode) box.outerHTML = photoPicker_(f => (f === 'photo' ? url : ''));
+}
+
+on('pfp-pick', el => {
+  const inp = el.closest('.pfp') && el.closest('.pfp').querySelector('.pfp-in');
+  if (inp) inp.click();
+});
+on('pfp-remove', el => {
+  const box = el.closest('.pfp');
+  if (!USER || !box) return;
+  send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, remove: true },
+        { button: el, where: box.querySelector('.pfp-said'), saying: 'Removing…', lock: box })
+    .then(d => { pfpTake_(box, (d && d.photo) || ''); toast('Picture removed'); })
+    .catch(() => {});
+});
+/* `change`, NOT A `data-do` CLICK — a file input reports its choice by changing, the camera's
+   `cam-pick` argument. The value is cleared so choosing the same picture again still fires. */
+document.addEventListener('change', e => {
+  const inp = e.target;
+  if (!inp || !inp.matches || !inp.matches('.pfp-in')) return;
+  const file = (inp.files || [])[0];
+  inp.value = '';
+  const box = inp.closest('.pfp');
+  if (!file || !box || !USER) return;
+  const said = box.querySelector('.pfp-said');
+  const btn = box.querySelector('[data-do="pfp-pick"]');
+  if (said) said.textContent = 'Getting it ready…';
+  pfpPrepare_(file).then(data => {
+    if (!data) { if (said) said.textContent = 'That file is not a picture this phone can read. Try another.'; return; }
+    /* THE PREVIEW CHANGES BEFORE THE UPLOAD, so the crop is seen while it travels; if the server
+       refuses, the line says why and the old picture comes back with the redraw below. */
+    const face = box.querySelector('.pfp-face');
+    if (face) face.innerHTML = `<img src="${esc(data)}" alt="Your profile picture">`;
+    return send_({ action: 'savePhoto', name: USER.name, personId: USER.personId, data },
+                 { button: btn, where: said, saying: 'Saving…', lock: box })
+      .then(d => { pfpTake_(box, (d && d.photo) || ''); toast('Picture saved'); })
+      .catch(() => {
+        const was = (USER.profile && USER.profile.photo) || '';
+        if (face) face.innerHTML = pfpFace_(was);
+      });
+  });
+});
+
 /* THE HOUR CODES, WHEREVER THE BACKEND PUT THEM. The group's title is the backend's to choose, so
    this looks for the shape rather than for a name — and answers an empty list when no deployment
    has sent one, which is what the widget reports instead of drawing a week with no hours in it. */
@@ -3235,12 +3481,24 @@ function fieldsHtml(groups, o) {
     /* THE PHOTOGRAPH SHELF GOES UNDER THE REST, not over it as the library one does: the page
        reads profile photo, video, then the others, which is the order somebody thinks of them in. */
     const photos = !timetable && isPhotos_(list);
+    /* ---------- AND `photo` IS A PICTURE YOU CHOOSE, NOT A LINK YOU PASTE ------------------------
+       ASKED FOR AS *"everyone should have a profile picture selector widget in account settings"*.
+       It was a text box captioned `photo link`, so the only way a picture on your phone became your
+       face was to upload it somewhere, share it, copy the address and paste it here — which nobody
+       but an admin knew how to do. `photoPicker_` is drawn where the box was and saves itself
+       through `savePhoto`, so it comes OUT of `rest`: a hidden `data-me="photo"` beside it would be
+       posted by the card's Save with whatever address the page was drawn with, and would write the
+       old picture back over the one just chosen.
+       ONLY ON `data-me`, the one surface that edits YOUR OWN row — the picker posts to the signed-in
+       person's cell whatever form it sits in, so on any other editor it would be the wrong row. */
+    const picture = !timetable && o.attr === 'data-me' && list.indexOf('photo') !== -1;
     const rest = list.filter(f => !(library && isLibraryCard_(f)) && !(quals && isQualField_(f))
-                              && !(photos && isPhotoField_(f))
+                              && !(photos && isPhotoField_(f)) && !(picture && f === 'photo')
                               && !(wantsDob && (f === 'date_of_birth' || isDobBox_(f))));
     const body = timetable
       ? availGrid_(list, o.raw || {}, o.readonly || [])
-      : (library ? libraryShelf_(list, value) : '')
+      : (picture ? photoPicker_(value) : '')
+      + (library ? libraryShelf_(list, value) : '')
       + (quals ? qualShelf_(list, value) : '')
       + (wantsDob ? dobBoxes_(value) : '')
       + fieldRows_(rest, (f, extra) => f === 'phone' && wantsPhone ? phoneRow_(value) : plain(f, extra))

@@ -404,14 +404,11 @@ const KINDS = {
      names them, with their answers under them — `paperBody_` calls the same `answerBlock_`. And
      `paperText_(id)` already folds every question's words into the
      paper's own haystack, which is why searching `surds` finds the paper rather than nothing. */
-  /* ---------- THE SHOP DOOR STAYS, FOR NOW, AND ON PURPOSE ----------------------------------------
-     THE OWNER ASKED FOR IT TO GO in the same sentence as the venues — *"Get rid of shop tag. I will
-     make a new coloumn for shop stuff."* — and the second half is why it has not. Measured: 62 shop
-     rows, 22 of them wearables (reachable through the wardrobe on Settings) and FORTY Things —
-     pencils, kits, bundles — whose ONLY way onto a screen is this door. Taking it out before the
-     column exists is a deletion of forty products wearing a tidy-up's clothes, which is the sentence
-     `FUNNEL_NOT_FOR` already writes about Booking. So it leaves in the change that builds the column,
-     and until then it is untouched: same group, same label, same card. */
+  /* ---------- THE SHOP HAS A COLUMN OF ITS OWN, AND THIS IS NOT A DOOR ANY MORE --------------------
+     ASKED FOR AS *"Get rid of shop tag. I will make a new coloumn for shop stuff."* The door stayed
+     for one commit, because forty Things had no other way onto a screen; the Shop column is that way
+     now, and `FUNNEL_NOT_FOR` keeps them off Find. The kind stays so Saved, the basket and the Shop
+     column can still draw a shop row with the same card. */
   shop:  { group: 'Shop',     label: 'Things',    card: (x, c) => thingCard_(x, c) },
 };
 
@@ -6398,7 +6395,23 @@ function stuffItems() {
    WHAT IT COSTS, WRITTEN WHERE THE CODE WAS so it is not rediscovered as a bug: typing `richmond`
    into Find returns nothing, deliberately, and so does a tutor's name. The fix is this filter, not
    another mapper. */
-const FUNNEL_NOT_FOR = 'Booking';
+/* ---------- AND THE SHOP LEFT WITH IT, ONCE IT HAD A COLUMN TO GO TO ----------------------------
+   ASKED FOR AS *"Get rid of shop tag. I will make a new coloumn for shop stuff. So finder now will
+   become just learning stuff."* The same move as Booking above and the same care: the forty shop
+   Things had ONE way onto a screen, this door, so it came out in the commit that built the Shop
+   column (`shopCards_` in collections.js) and not before. The wearables, which are `Shop` too, have
+   the wardrobe on Settings. A STARRED shop thing stays on Saved — `collItems_` reads
+   `stuffItemsAll_`, which this does not touch.
+
+   A LIST NOW, AND THE TEST IS "EVERY GROUP IT IS IN IS ONE OF THESE". A kind in `Shop` and in
+   `Learning` would still answer `Learning`, which is the array rule the note below defends.
+
+   ONE THING THIS CHANGES THAT IS NOT THE SHOP. `kindOf_` files a kind it does not know under
+   `Shop · Things`, so an unrouted kind used to turn up there looking deliberate — and now leaves
+   Find altogether. Measured on the fixture and the real files: no item today has a kind outside
+   `KINDS` and the `kinds` tab. A new one needs a `kinds` row, which `kindMap_` puts in Learning
+   when it names no group. */
+const FUNNEL_NOT_FOR = ['Booking', 'Shop'];
 
 function stuffItemsBuild_() {
   return stuffItemsAll_().filter(x => {
@@ -6408,7 +6421,7 @@ function stuffItemsBuild_() {
        array form has been supported since a tutor was two things, and a filter that ignored it
        would silently drop a kind from a group it belongs in. */
     const g = asList_(x.groups || kindOf_(x).group);
-    return !(g.length === 1 && g[0] === FUNNEL_NOT_FOR);
+    return !(g.length && g.every(k => FUNNEL_NOT_FOR.indexOf(k) >= 0));
   });
 }
 
@@ -8034,7 +8047,12 @@ function accountPages_() {
      children were drawn as "Your child" on the child's column until the new payload landed, and
      for good if it never did. `familyFor` is the id the server built the list for; a list built
      for anybody else, or stamped by nobody, draws nothing. */
-  const famLabel_ = { parent: 'Your parent', child: 'Your child' };
+  /* `sibling` ON *"students should be able to see their parents and siblings likewise"*. Another
+     child of a parent you have ACCEPTED, decided in `doGet` like the other two. "Brother or sister"
+     rather than "sibling" because the people reading it are mostly children, and the app knows no
+     one's gender to pick one of the two. A relation not in this table draws nothing, which is
+     what kept a new backend's `sibling` rows off an older phone instead of drawing them unlabelled. */
+  const famLabel_ = { parent: 'Your parent', child: 'Your child', sibling: 'Your brother or sister' };
   const famMine = !!(USER.personId && DATA.familyFor && String(DATA.familyFor) === String(USER.personId));
   const family = (famMine && Array.isArray(DATA.family) ? DATA.family : [])
     .filter(f => f && f.personId && f.title && famLabel_[f.relation]

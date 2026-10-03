@@ -267,78 +267,125 @@ function handleTrouble_(want, me) {
    their own, and the e-mail address is what they sign in with.
 ================================================================================================ */
 
-/* ---------- A HANDLE IS THEIR FIRST NAME AND A VIRTUE -------------------------------------------
-   ASKED FOR AS *"handles should be their name and a virtuous describing word. they can randomise it
-   but it will follow that general name."* So `halex_kind`: the first name, an underscore, and one
-   word off a list of virtues, all lower case. It replaces `halex_bright42`, whose list mixed virtues
-   with colours and moods (`golden`, `copper`, `lucky`, `sunny`) and whose number was on every
-   handle whether or not anybody needed one.
+/* ---------- A HANDLE IS THEIR FIRST NAME, A VIRTUE AND A NUMBER, IN ANY ORDER ---------------------
+   ASKED FOR AS *"nobosy can actually change their handle specifically, they can just hit randomise.
+   but it will always be like their first name, a virtuous adjective and random numbers and maybe an
+   underscore. but all random order."* So a handle is three parts — the first name, one word off a
+   list of virtues, and a two-digit number drawn fresh every time — laid out in one of
+   `HANDLE_ORDERS`, with an underscore at one of the two joins about half the time: `halex_kind42`,
+   `kindhalex42`, `halex42_kind`, `kind42halex`. All lower case.
+
+   THIS REVERSES 1 OCTOBER, AND SAYS SO. The rule before this one was `<first>_<virtue>` with NO
+   number, because `sam_kind10` beside `sam_kind` is one keystroke apart and reads as the same person
+   (docs/history 222). The owner has now asked for the number on every handle, and the clash check
+   is what still stands between two people who look alike: `handleTrouble_` compares by `key()`,
+   which drops the underscore, so `halexkind42` is refused while `halex_kind42` exists. What it does
+   NOT refuse is `kindhalex42` beside `halex_kind42` — the same three parts in another order. That
+   takes a second Halex who drew the same word AND the same number, and it is the owner's call.
+
+   THE DIGITS ARE NEVER FIRST, which is `HANDLE_SHAPE`'s rule rather than taste: a handle starts with
+   a letter. So of the six orders of three parts only the four in `HANDLE_ORDERS` are drawn.
+
+   ONE UNDERSCORE AT MOST, AND THAT IS ARITHMETIC. `HANDLE_SHAPE` allows twenty characters: the
+   longest word (8), the number (2) and one underscore leave `HANDLE_FIRST_MAX` = 9 for the name. A
+   second underscore would cut every name a letter shorter for a separator nobody asked for — "maybe
+   an underscore". Nine keeps `Alexander`, `Charlotte`, `Elizabeth` and `Sebastian` whole, and every
+   letter a word gains is a letter cut off a child's name, which is why `thoughtful`, `courageous`
+   and `considerate` are not on the list. The first name must START with a letter, so leading digits
+   come off; a name with no ASCII letters left (another script) falls back to `HANDLE_FALLBACK`.
+
+   EXISTING HANDLES ARE NOT REGENERATED. A `halex_kind` made on 1 October is still the shape — see
+   `handleParts_`, which reads every arrangement and the old two-part one — so `?run=renameHandles`
+   leaves it alone, and nobody's sign-in name moves until they press Randomise themselves. That
+   matters because a child with no e-mail signs in WITH the handle.
 
    THE FIRST NAME REVERSES A SAFEGUARDING ARGUMENT THIS FILE USED TO MAKE, AND SAYS SO. The older
    generator used words rather than the name because a handle built from a child's FULL name
-   publishes it wherever the handle is shown. A FIRST name is what the owner asked for, twice, and is
-   much less than a full name, and cards already draw it — but it is not nothing, and it is the
-   owner's call rather than this file's.
-
-   THE NUMBER IS ONLY THERE WHEN IT HAS TO BE, AND A DIFFERENT WORD COMES FIRST. A second Sam does
-   not get `sam_kind10` beside `sam_kind` — that pair is one keystroke apart and reads as the same
-   person, which is the impersonation shape `HANDLE_SHAPE`'s ASCII rule exists to close. He gets
-   `sam_brave`. A two-digit tail is added only when EVERY word on the list is already taken for that
-   name, and then it is the smallest one that is free, so it says "the thirty-first Sam" rather than
-   being noise.
+   publishes it wherever the handle is shown. A FIRST name is what the owner asked for, three times
+   now, and is much less than a full name, and cards already draw it — but it is not nothing, and it
+   is the owner's call rather than this file's.
 
    EVERY WORD IS A VIRTUE A PARENT WOULD BE HAPPY TO SEE BESIDE THEIR CHILD'S NAME, and nothing else
    is: no colour, no mood, no luck. That is a judgement and it is written here because no check can
-   make it. What a check CAN make is the rest — `check-handles.js` puts every word through
-   `handleTrouble_` beside a spread of first names, because the blocklist folds digits onto letters
-   and drops the underscore, so a name and a word can meet across it.
-
-   EIGHT LETTERS AT MOST, AND THAT IS ARITHMETIC RATHER THAN TASTE. `HANDLE_SHAPE` allows twenty
-   characters: the longest word (8), the possible tail (2) and the underscore (1) leave
-   `HANDLE_FIRST_MAX` = 9 for the name. Every letter a word gains is a letter cut off a child's name,
-   which is why `thoughtful`, `courageous` and `considerate` are not here — `generous` and
-   `cheerful` are, and they are where the line falls. Nine keeps `Alexander`, `Charlotte`,
-   `Elizabeth` and `Sebastian` whole. The first name must START with a letter, so leading digits come
-   off; a name with no ASCII letters left (a name in another script) falls back to `HANDLE_FALLBACK`.
+   make it. What a check CAN make is the rest — `check-handles.js` puts every word, in every order
+   and with every number, through `handleTrouble_` beside a spread of first names, because the
+   blocklist folds digits onto letters and drops the underscore, so a name, a number and a word can
+   meet across the joins. Those are refused and the generator draws again, which is why it walks
+   rather than draws once.
 
    THE FALLBACK IS ALSO WHERE A FIRST NAME THE BLOCKLIST REFUSES GOES. Every candidate built on it
-   carries the refused word, so every word and every tail fails; the same walk is then made on the
-   fallback, which keeps the shape asked for with a neutral word where the name would be. */
+   carries the refused word, so every draw fails; the same walk is then made on the fallback, which
+   keeps the shape asked for with a neutral word where the name would be. */
 const HANDLE_ADJ = ['kind', 'brave', 'honest', 'patient', 'gentle', 'loyal', 'humble', 'wise',
                     'fair', 'caring', 'cheerful', 'hopeful', 'generous', 'grateful', 'faithful',
                     'joyful', 'calm', 'steady', 'true', 'careful', 'polite', 'helpful', 'bold',
                     'sincere', 'modest', 'noble', 'diligent', 'earnest', 'upright', 'valiant'];
 const HANDLE_FIRST_MAX = 9;
 const HANDLE_FALLBACK = 'friend';
-/* THE TAIL, WHEN THERE HAS TO BE ONE: ten to ninety-nine, so it is always two digits. A single digit
-   would make `kind7` and `kind70` two handles one keystroke apart. */
+/* THE NUMBER: ten to ninety-nine, so it is always two digits. A single digit would make `kind7` and
+   `kind70` two handles one keystroke apart, and a fixed width is what lets `handleParts_` find
+   where a name that ends in a digit stops. */
 const HANDLE_TAIL_MIN = 10, HANDLE_TAIL_MAX = 99;
+/* THE ORDERS A HANDLE IS DRAWN IN — every arrangement of the three parts that does not start with
+   the number. Named once, because the generator draws from it and `handleParts_` reads by it, and
+   two lists of one rule are two rules the day one of them changes. */
+const HANDLE_ORDERS = [['first', 'virtue', 'nn'], ['virtue', 'first', 'nn'],
+                       ['first', 'nn', 'virtue'], ['virtue', 'nn', 'first']];
+/* HOW OFTEN THERE IS AN UNDERSCORE — "maybe an underscore". Half the draws have none; the other
+   half have one, at either join with the same chance. */
+const HANDLE_UNDERSCORE_ODDS = 0.5;
+/* HOW MANY CANDIDATES A HEAD GETS before the walk moves to the fallback: every word on the list
+   twice, each with its own number, order and underscore. With 4 orders × 90 numbers × 3 joins per
+   word nothing on an ordinary tab is close to running out — the bound is there so a gate that has
+   started refusing everything is reported rather than spun on. */
+const HANDLE_TRIES = 2 * HANDLE_ADJ.length;
 /* HOW MANY EARLIER HANDLES `handle_was` KEEPS. There is no cooldown now, so somebody can press
    Randomise all afternoon — the cell keeps the newest ten rather than growing for ever, which is
    enough to answer "who was @foo last week" about anybody who has not pressed it eleven times since,
-   and every one of the eleven was a first name and a word off this list. */
+   and every one of the eleven was a first name, a word off this list and a number. */
 const HANDLE_WAS_KEEP = 10;
 
-/** The first-name half of a handle: lower-case ASCII letters and digits, starting with a letter,
+/** The first-name part of a handle: lower-case ASCII letters and digits, starting with a letter,
     at most `HANDLE_FIRST_MAX` long. '' when nothing usable is left. */
 function handleFirst_(first) {
   return String(first == null ? '' : first).toLowerCase()
     .replace(/[^a-z0-9]/g, '').replace(/^[0-9]+/, '').slice(0, HANDLE_FIRST_MAX);
 }
 
-/** The pieces of a handle in the generated shape — `{ head, word, tail }` — or null.
-    `<first>_<virtue>`, with a two-digit tail or without one, or the fallback where the name would
-    be. One reader, because `handleIsShaped_` and `renameHandles` both need it and two regexes for
-    one shape are two shapes the day one of them changes. */
+/** The pieces of a handle in the generated shape — `{ head, word, tail, order }` — or null.
+    Any order in `HANDLE_ORDERS`, AND the two-part `<first>_<virtue>` of 1 October with or without
+    its old tail, which is what keeps every handle made before this reading as the shape. One
+    underscore at most, at a join; the fallback where the name would be.
+
+    ONE READER, because `handleIsShaped_` and `renameHandles` both need it and two regexes for one
+    shape are two shapes the day one of them changes. BUILT FROM THE LISTS rather than written as a
+    pattern of letters: `kindhalex42` has no separator to split on, so the only way to find where the
+    virtue ends is to know the virtues — and a regex of alternatives backtracks, so a first name that
+    is itself on the list (somebody called True) is still read the right way round. */
 function handleParts_(h, first) {
+  const s = String(h == null ? '' : h);
+  if (!s || (s.match(/_/g) || []).length > 1) return null;
   const heads = [handleFirst_(first), HANDLE_FALLBACK].filter(Boolean);
-  const m = String(h == null ? '' : h).match(/^([a-z0-9]+)_([a-z]+)(\d{2})?$/);
-  if (!m || heads.indexOf(m[1]) === -1 || HANDLE_ADJ.indexOf(m[2]) === -1) return null;
-  return { head: m[1], word: m[2], tail: m[3] || '' };
+  const part = { first: '(' + heads.join('|') + ')', virtue: '(' + HANDLE_ADJ.join('|') + ')',
+                 nn: '(\\d{2})' };
+  const orders = HANDLE_ORDERS.concat([['first', 'virtue']]);
+  for (let i = 0; i < orders.length; i++) {
+    const m = s.match(new RegExp('^' + orders[i].map(p => part[p]).join('_?') + '$'));
+    if (!m) continue;
+    const got = { head: '', word: '', tail: '', order: orders[i].join('-') };
+    orders[i].forEach((p, j) => {
+      if (p === 'first') got.head = m[j + 1];
+      else if (p === 'virtue') got.word = m[j + 1];
+      else got.tail = m[j + 1];
+    });
+    if (got.tail && (+got.tail < HANDLE_TAIL_MIN || +got.tail > HANDLE_TAIL_MAX)) continue;
+    return got;
+  }
+  return null;
 }
 
-/** Does `h` already have the generated shape for somebody called `first`? Both the bare form and
-    the tailed one are the shape — `?run=renameHandles` asks separately whether a tail was needed. */
+/** Does `h` already have the generated shape for somebody called `first`? Every arrangement, and
+    the 1 October `<first>_<virtue>` — `?run=renameHandles` leaves all of them alone. */
 function handleIsShaped_(h, first) {
   return !!handleParts_(h, first);
 }
@@ -354,6 +401,17 @@ function handleShuffle_(list) {
   return a;
 }
 
+/** One candidate: `head` and `word`, a fresh number, a random order from `HANDLE_ORDERS` and maybe
+    one underscore. Nothing is asked of the gate here — `handleMake_` does that. */
+function handleDraw_(head, word) {
+  const pick = n => Math.floor(Math.random() * n);
+  const nn = String(HANDLE_TAIL_MIN + pick(HANDLE_TAIL_MAX - HANDLE_TAIL_MIN + 1));
+  const order = HANDLE_ORDERS[pick(HANDLE_ORDERS.length)];
+  const parts = order.map(p => (p === 'first' ? head : p === 'virtue' ? word : nn));
+  const join = Math.random() < HANDLE_UNDERSCORE_ODDS ? pick(parts.length - 1) : -1;
+  return parts.map((p, i) => (i && i - 1 === join ? '_' : '') + p).join('');
+}
+
 /**
  * A handle nobody has, or '' if one could not be found.
  *
@@ -364,9 +422,10 @@ function handleShuffle_(list) {
  * caller decides, because `register` writes it into a row it is building and the others into one
  * that exists.
  *
- * EVERY WORD BARE, IN A RANDOM ORDER, BEFORE ANY NUMBER. Then the smallest free tail on the first
- * word drawn. So the walk is at most thirty words and ninety tails a head, and it gives up rather
- * than looping: a gate that has started refusing everything is a fault to report, not to spin on.
+ * A FRESH DRAW EVERY TIME, NOT THE SMALLEST FREE NUMBER. The walk is the words in a random order,
+ * round twice (`HANDLE_TRIES`), each candidate with its own number, order and underscore — for the
+ * name and then the fallback. It gives up rather than looping: a gate that has started refusing
+ * everything is a fault to report, not to spin on.
  */
 function handleMake_(me, first, avoid) {
   const name = handleFirst_(first !== undefined ? first : (me && me.first_name));
@@ -375,24 +434,18 @@ function handleMake_(me, first, avoid) {
   const free = want => key(want) !== skip && !handleTrouble_(want, me || null);
   for (let h = 0; h < heads.length; h++) {
     const words = handleShuffle_(HANDLE_ADJ);
-    for (let i = 0; i < words.length; i++) {
-      const want = heads[h] + '_' + words[i];
-      if (free(want)) return want;
-    }
-    for (let n = HANDLE_TAIL_MIN; n <= HANDLE_TAIL_MAX; n++) {
-      const want = heads[h] + '_' + words[0] + n;
+    for (let i = 0; i < HANDLE_TRIES; i++) {
+      const want = handleDraw_(heads[h], words[i % words.length]);
       if (free(want)) return want;
     }
   }
   return '';
 }
 
-/** Is a handle without a number free for this person? `renameHandles` asks it of a handle that
-    HAS one, because a tail is only right when every bare word is taken — and a number left on
-    somebody after the clash it answered has gone is a number that is now noise. */
-function handleBareFree_(me, head) {
-  return HANDLE_ADJ.some(w => !handleTrouble_(head + '_' + w, me || null));
-}
+/* `handleBareFree_` WAS HERE. It asked whether a handle WITHOUT a number was free, because on
+   1 October a number was only right when every bare word was taken and `renameHandles` stripped
+   one that was no longer needed. A number is on every handle now, so that question would strip the
+   number off every handle Randomise makes — it went rather than stay as a rule nothing should ask. */
 
 /** `handle_was` with `was` added at the front: newest first, comma-separated, the last
     `HANDLE_WAS_KEEP`. Nothing is de-duplicated — a history that says somebody went back to an

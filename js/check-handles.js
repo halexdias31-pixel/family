@@ -4,11 +4,14 @@
    A HANDLE IS THE ONE NAME ON A PERSON THAT EVERYBODY ELSE HAS TO LOOK AT.
 
    NOBODY TYPES ONE ANY MORE. *"handles should be their name and a virtuous describing word. they can
-   randomise it but it will follow that general name."* So `handleMake_` builds every handle — the
-   first name, an underscore, a virtue, and a two-digit number only when every virtue for that name
-   is taken — and the Settings card's Randomise asks it for another word. The cases below are in
+   randomise it but it will follow that general name."* And on 2 October: *"their first name, a
+   virtuous adjective and random numbers and maybe an underscore. but all random order."* So
+   `handleMake_` builds every handle — the first name, a virtue and a fresh two-digit number, in one
+   of the four orders that do not start with the digits, with an underscore at one join about half
+   the time — and the Settings card's Randomise tile asks it for another. The cases below are in
    three parts: the GATE every candidate goes through (`handleTrouble_`), the GENERATOR's own rules
-   (the shape, a word before a number, never the handle you already have), and the two jobs that
+   (two hundred draws all shaped, every order seen, never the handle you already have, every older
+   shape still read as shaped by `handleParts_`), and the two jobs that
    write handles onto rows that exist. `randomiseHandle` itself is run through the real `doPost` in
    `check-profile.js`, which is the file here that already loads the whole backend.
 
@@ -93,13 +96,16 @@ const SRC = [
   grab(people, /const HANDLE_FIRST_MAX[^;]*;/, 'HANDLE_FIRST_MAX'),
   grab(people, /const HANDLE_FALLBACK[^;]*;/, 'HANDLE_FALLBACK'),
   grab(people, /const HANDLE_TAIL_MIN[^;]*;/, 'HANDLE_TAIL_MIN'),
+  grab(people, /const HANDLE_ORDERS\s*=\s*\[[\s\S]*?\]\];/, 'HANDLE_ORDERS'),
+  grab(people, /const HANDLE_UNDERSCORE_ODDS[^;]*;/, 'HANDLE_UNDERSCORE_ODDS'),
+  grab(people, /const HANDLE_TRIES[^;]*;/, 'HANDLE_TRIES'),
   grab(people, /const HANDLE_WAS_KEEP[^;]*;/, 'HANDLE_WAS_KEEP'),
   grab(people, /function handleFirst_\([\s\S]*?\n\}/, 'handleFirst_'),
   grab(people, /function handleParts_\([\s\S]*?\n\}/, 'handleParts_'),
   grab(people, /function handleIsShaped_\([\s\S]*?\n\}/, 'handleIsShaped_'),
   grab(people, /function handleShuffle_\([\s\S]*?\n\}/, 'handleShuffle_'),
   grab(people, /function handleMake_\([\s\S]*?\n\}/, 'handleMake_'),
-  grab(people, /function handleBareFree_\([\s\S]*?\n\}/, 'handleBareFree_'),
+  grab(people, /function handleDraw_\([\s\S]*?\n\}/, 'handleDraw_'),
   grab(people, /function handleWasWith_\([\s\S]*?\n\}/, 'handleWasWith_'),
   /* ---------- AND THE REPAIR JOB, WHICH IS THE ONE THING HERE THAT WRITES -----------------------
      `fillHandles` FILLS A BLANK HANDLE ON EVERY EXISTING ROW, and the fault it must never have is
@@ -169,6 +175,7 @@ new Function('box', PRELUDE + SRC + '\nbox.trouble = handleTrouble_; box.fold = 
            + ' box.TAIL_MIN = HANDLE_TAIL_MIN; box.TAIL_MAX = HANDLE_TAIL_MAX;'
            + ' box.WAS_KEEP = HANDLE_WAS_KEEP; box.wasWith = handleWasWith_;'
            + ' box.first = handleFirst_; box.shaped = handleIsShaped_; box.rename = renameHandles;'
+           + ' box.parts = handleParts_; box.ORDERS = HANDLE_ORDERS; box.TRIES = HANDLE_TRIES;'
            + ' box.fill = fillHandles;'
            /* THE GATE ITSELF, SO THE GENERATOR'S OWN LOOP CAN BE TESTED. `handleTrouble_` is a
               function DECLARATION in this scope, so it can be rebound — and that is the way to reach
@@ -457,120 +464,186 @@ function run() {
     seenAdj[w] = true;
   });
   const longestAdj = box.ADJ.reduce((x, y) => (y.length > x.length ? y : x), '');
+  /* ONE UNDERSCORE, because the generator puts at most one in — "maybe an underscore". */
   const worst = 'a'.repeat(box.FIRST_MAX) + '_' + longestAdj + String(box.TAIL_MAX);
   if (!box.shape.test(worst)) bad.push({ handle: worst, want: 'yes',
-    why: 'the longest name the generator keeps plus the longest word plus a tail is past HANDLE_SHAPE',
+    why: 'the longest name the generator keeps plus the longest word plus a number is past HANDLE_SHAPE',
     said: worst.length + ' characters' });
   /* AND THE OTHER DIRECTION, so the arithmetic is the arithmetic rather than a margin nobody chose:
      one more letter on the name would not fit, or `HANDLE_FIRST_MAX` is cutting names it need not. */
   if (box.shape.test('a'.repeat(box.FIRST_MAX + 1) + '_' + longestAdj + String(box.TAIL_MAX)))
     bad.push({ handle: 'HANDLE_FIRST_MAX', want: String(20 - 1 - longestAdj.length - 2),
-      why: 'first names are cut shorter than the longest word and a tail require',
+      why: 'first names are cut shorter than the longest word, a number and one underscore require',
       said: String(box.FIRST_MAX) });
 
-  /* ---------- EVERY WORD BESIDE A SPREAD OF FIRST NAMES, THROUGH THE GATE ---------------------------
-     `handleFold_` turns digits into letters and drops the underscore, so a first name and a word can
-     meet across it and reduce onto something the blocklist refuses — and the generator would then
-     burn tries on that name in silence. A fact about the list and the names TOGETHER, which nobody
-     reading the list can check. Bare and with the smallest tail, because both are shapes the
-     generator hands out. On an empty tab, so only the shape, the reserved list and the blocklist can
-     refuse. */
+  /* ---------- THE ORDERS: EVERY ONE THAT DOES NOT START WITH THE DIGITS, AND NO OTHER ---------------
+     *"their first name, a virtuous adjective and random numbers and maybe an underscore. but all
+     random order."* Three parts have six orders; `HANDLE_SHAPE` refuses a handle that starts with a
+     digit, so the two that lead with the number are out and the other four are in. A list that lost
+     one would still pass every draw below — it is the list itself that has to be all four. */
+  const ORDER_KEYS = box.ORDERS.map(o => o.join('-'));
+  const WANT_ORDERS = ['first-virtue-nn', 'virtue-first-nn', 'first-nn-virtue', 'virtue-nn-first'];
+  const missingOrder = WANT_ORDERS.filter(o => ORDER_KEYS.indexOf(o) === -1);
+  const digitsFirst = ORDER_KEYS.filter(o => o.indexOf('nn') === 0);
+  if (missingOrder.length || digitsFirst.length || ORDER_KEYS.length !== WANT_ORDERS.length)
+    bad.push({ handle: 'HANDLE_ORDERS', want: WANT_ORDERS.join(', '),
+      why: 'every order of the three parts that does not start with the number, once each',
+      said: ORDER_KEYS.join(', ') });
+
+  /* ---------- EVERY WORD BESIDE A SPREAD OF FIRST NAMES, IN EVERY ORDER, THROUGH THE GATE -------------
+     `handleFold_` turns digits into letters and drops the underscore, so a first name, a number and
+     a word can meet across the joins and reduce onto something the blocklist refuses — `ada` and
+     `55` are `adass` to it. Every such candidate is refused and the generator draws again, so a
+     refusal is not a fault the way it was when every name had exactly thirty candidates; what would
+     be is a share large enough that a name runs out of draws. So this counts them and fails past one
+     in fifty, and prints the count either way. On an empty tab, so only the shape, the reserved
+     list and the blocklist can refuse. */
   box.setRows([]);
   const names = ['halex', 'ada', 'sam', 'pat', 'jo', 'al', 'mo', 'zo', 'lucy', 'kit', box.FALLBACK];
-  const pairs = [];
+  let paired = 0;
+  const refused = [];
+  const joins = (ps) => [ps.join(''), ps[0] + '_' + ps[1] + ps[2], ps[0] + ps[1] + '_' + ps[2]];
   names.forEach(n => box.ADJ.forEach(w => {
-    pairs.push(n + '_' + w);
-    pairs.push(n + '_' + w + String(box.TAIL_MIN));
+    for (let nn = box.TAIL_MIN; nn <= box.TAIL_MAX; nn++) {
+      box.ORDERS.forEach(o => {
+        const ps = o.map(p => (p === 'first' ? n : p === 'virtue' ? w : String(nn)));
+        joins(ps).forEach(h => { paired++; if (box.trouble(h, null)) refused.push(h); });
+      });
+    }
   }));
-  const refused = pairs.filter(w => box.trouble(w, null));
-  if (refused.length) bad.push({ handle: refused.slice(0, 4).join(', '), want: 'yes',
-    why: refused.length + ' of ' + pairs.length + ' generated handles are refused by the very gate '
-       + 'the generator passes them through, so it burns tries on them',
+  if (refused.length * 50 > paired) bad.push({ handle: refused.slice(0, 4).join(', '), want: 'yes',
+    why: refused.length + ' of ' + paired + ' candidates are refused by the very gate the generator '
+       + 'passes them through — past one in fifty a short name can run out of draws',
     said: box.trouble(refused[0], null) });
 
-  /* ---------- THE SHAPE THE OWNER ASKED FOR: `<first>_<virtue>`, AND NO NUMBER WHEN NONE IS NEEDED --
-     *"handles should be their name and a virtuous describing word."* On an empty tab every draw must
-     be exactly that — the first name reduced the way `handleFirst_` says, an underscore, a word off
-     the list, and NOTHING after it. A regex written here rather than read from people.gs, because
-     this is the contract and the generator is what it checks. */
-  const BARE = /^([a-z][a-z0-9]*)_([a-z]+)$/;
+  /* ---------- THE SHAPE THE OWNER ASKED FOR, OVER TWO HUNDRED DRAWS --------------------------------
+     A contract written HERE rather than read from people.gs, because it is the generator being
+     checked and a check that asked `handleParts_` whether `handleMake_` was right would be the code
+     marking its own homework. Every draw, on an empty tab, must be: the first name reduced the way
+     `handleFirst_` says, a virtue, and a two-digit number 10–99, in one of the four orders; at most
+     one underscore and only at a join; never starting with a digit; twenty characters at most; and
+     something the gate itself accepts. Then the two hundred TOGETHER must show all four orders, an
+     underscore and none, and more than one number — a generator that always drew `<first>_<virtue>NN`
+     passes every single-handle rule above and is exactly the fixed order the owner asked to lose. */
+  const WORDS = '(' + box.ADJ.join('|') + ')';
+  const shapeOf = head => {
+    const H = '(' + head + ')';
+    return {
+      'first-virtue-nn': new RegExp('^' + H + '_?' + WORDS + '_?([1-9][0-9])$'),
+      'virtue-first-nn': new RegExp('^' + WORDS + '_?' + H + '_?([1-9][0-9])$'),
+      'first-nn-virtue': new RegExp('^' + H + '_?([1-9][0-9])_?' + WORDS + '$'),
+      'virtue-nn-first': new RegExp('^' + WORDS + '_?([1-9][0-9])_?' + H + '$'),
+    };
+  };
+  const DRAWS = 200;
+  const seenOrders = {}, seenJoins = {}, seenNums = {};
+  let drawn = 0;
   const shapeCases = [
     ['Halex', 'halex'], ['ZOË', 'zo'], ["O'Brien", 'obrien'], ['Mary-Jane', 'maryjane'],
     ['2Pac', 'pac'], ['Charlotte', 'charlotte'], ['Maximilianoaurelius', 'maximilia'],
     ['', box.FALLBACK], ['李', box.FALLBACK],
   ];
-  shapeCases.forEach(([first, head]) => {
-    for (let i = 0; i < 8; i++) {
-      const made = box.make(null, first);
-      const m = made.match(BARE);
-      if (!m || m[1] !== head || box.ADJ.indexOf(m[2]) === -1 || made.length > 20) {
-        bad.push({ handle: made || '(nothing)', want: head + '_<virtue>',
-          why: 'a handle on an empty tab is the first name, an underscore and a virtue — no number, '
-             + 'because nothing is taken', said: 'first name "' + first + '"' });
-        break;
-      }
-    }
-  });
-
-  /* AND WHAT IT RETURNS IS SOMETHING THE GATE ACCEPTS. Ten draws rather than one, because the order
-     the words are tried in is random: a single call passing proves one word. */
-  for (let i = 0; i < 10; i++) {
-    const made = box.make(null, 'Halex');
+  for (let i = 0; i < DRAWS; i++) {
+    const [first, head] = shapeCases[i % shapeCases.length];
+    const made = box.make(null, first);
+    drawn++;
+    const shapes = shapeOf(head);
+    const which = Object.keys(shapes).filter(k => shapes[k].test(made));
+    const unders = (made.match(/_/g) || []).length;
     const no = made ? box.trouble(made, null) : 'it gave up on an empty tab';
-    if (no) { bad.push({ handle: made || '(nothing)', want: 'yes',
-      why: 'the generator returned something its own gate refuses', said: no }); break; }
+    const why = !made ? 'nothing came back'
+      : /^[0-9]/.test(made) ? 'it starts with the digits'
+      : !which.length ? 'it is not the first name, a virtue and a number 10–99 in one of the four orders'
+      : unders > 1 ? 'it has more than one underscore'
+      : made.length > 20 ? 'it is past twenty characters'
+      : no ? 'the gate refuses it: ' + no : '';
+    if (why) {
+      bad.push({ handle: made || '(nothing)', want: head + ', a virtue and NN, in any order',
+        why: why, said: 'first name "' + first + '", draw ' + (i + 1) + ' of ' + DRAWS });
+      break;
+    }
+    which.forEach(k => { seenOrders[k] = true; });
+    seenJoins[unders ? (made.indexOf('_') < made.length / 2 ? 'early' : 'late') : 'none'] = true;
+    seenNums[made.match(/[0-9]{2}/)[0]] = true;
+    /* AND THE PARSER READS IT. `renameHandles` leaves alone what `handleParts_` calls shaped, so a
+       handle Randomise made that the parser could not read would be renamed by the next run of the
+       job — the very thing the owner said must not happen to anybody's handle. */
+    if (!box.shaped(made, first)) {
+      bad.push({ handle: made, want: 'shaped', why: 'handleIsShaped_ does not read a handle the '
+        + 'generator just made, so ?run=renameHandles would regenerate it', said: 'first "' + first + '"' });
+      break;
+    }
   }
+  const lostOrders = WANT_ORDERS.filter(o => !seenOrders[o]);
+  if (drawn === DRAWS && lostOrders.length) bad.push({ handle: 'handleMake_', want: 'all four orders',
+    why: 'in ' + DRAWS + ' draws the generator never laid the parts out as ' + lostOrders.join(', ')
+       + ' — "but all random order"', said: Object.keys(seenOrders).join(', ') || '(none)' });
+  if (drawn === DRAWS && (!seenJoins.none || !(seenJoins.early || seenJoins.late)))
+    bad.push({ handle: 'handleMake_', want: 'some with an underscore and some without',
+      why: '"maybe an underscore" — over ' + DRAWS + ' draws both must appear',
+      said: Object.keys(seenJoins).join(', ') });
+  if (drawn === DRAWS && Object.keys(seenNums).length < 20) bad.push({ handle: 'handleMake_',
+    want: 'a fresh number each draw', why: 'only ' + Object.keys(seenNums).length + ' different numbers in '
+       + DRAWS + ' draws — the number is meant to be random every time, not the smallest free one',
+    said: Object.keys(seenNums).slice(0, 8).join(', ') });
 
-  /* ---------- A DIFFERENT WORD BEFORE A NUMBER ------------------------------------------------------
-     A second Sam must not be `sam_kind10` beside `sam_kind` — that pair is one keystroke apart and
-     reads as the same person. With every bare word but one already taken for that name, the one left
-     is the answer, bare, whichever order the words are drawn in; twenty draws, because a generator
-     that put a tail on the first word it drew would pass a single draw one time in thirty. */
+  /* ---------- A TAKEN WORD-AND-NUMBER IS NEVER HANDED OUT, IN ANY SPELLING -----------------------------
+     The clash check compares by `key()`, which drops the underscore, so with `ada_kind42` held by
+     somebody else the generator must not hand out `adakind42` either — the pair that reads as the same
+     person. With every word in every one of the first two orders taken at one number, twenty draws
+     must still come back free and never match a held one by `key`. */
   const taken = (first, holds) => holds.map((h, i) => ({ person_id: 'T' + i, handle: h,
     first_name: first, last_name: 'Other' + i }));
-  const lastWord = box.ADJ[box.ADJ.length - 1];
-  box.setRows(taken('Sam', box.ADJ.filter(w => w !== lastWord).map(w => 'sam_' + w)));
+  const held = box.ADJ.map(w => 'ada_' + w + '42');
+  box.setRows(taken('Ada', held));
+  const heldKeys = held.map(h => h.replace(/_/g, ''));
   for (let i = 0; i < 20; i++) {
-    const made = box.make(null, 'Sam');
-    if (made !== 'sam_' + lastWord) { bad.push({ handle: made || '(nothing)', want: 'sam_' + lastWord,
-      why: 'a bare word that is free beats a number on a word that is taken', said: made }); break; }
+    const made = box.make(null, 'Ada');
+    if (!made || heldKeys.indexOf(made.replace(/_/g, '')) !== -1) {
+      bad.push({ handle: made || '(nothing)', want: 'a handle nobody holds',
+        why: 'a handle that differs from somebody else\'s only by the underscore is the same name',
+        said: made || '(nothing)' });
+      break;
+    }
   }
-
-  /* ---------- AND THE SMALLEST NUMBER, ONLY WHEN EVERY WORD IS TAKEN -------------------------------
-     With all thirty bare `ada_<word>` taken the answer is a tail, and the smallest free one: `10`
-     here, and `11` once every `ada_<word>10` is taken too. A random tail would pass the first half
-     of this one time in ninety. */
-  box.setRows(taken('Ada', box.ADJ.map(w => 'ada_' + w)));
-  const tailed = box.make(null, 'Ada');
-  const tm = tailed.match(/^ada_([a-z]+)(\d{2})$/);
-  if (!tm || box.ADJ.indexOf(tm[1]) === -1 || tm[2] !== String(box.TAIL_MIN)) bad.push({
-    handle: tailed || '(nothing)', want: 'ada_<virtue>' + box.TAIL_MIN,
-    why: 'with every bare word taken the generator adds the smallest two-digit tail',
-    said: tailed || '(nothing)' });
-  box.setRows(taken('Ada', box.ADJ.map(w => 'ada_' + w)
-    .concat(box.ADJ.map(w => 'ada_' + w + String(box.TAIL_MIN)))));
-  const tailed2 = box.make(null, 'Ada');
-  if (!/^ada_[a-z]+11$/.test(tailed2)) bad.push({ handle: tailed2 || '(nothing)', want: 'ada_<virtue>11',
-    why: 'the tail is the smallest one that is free, not the first one tried or a random one',
-    said: tailed2 || '(nothing)' });
 
   /* ---------- NEVER THE HANDLE YOU ALREADY HAVE -----------------------------------------------------
      Randomise passes the current handle as `avoid`, and the gate cannot refuse it on its own: a
-     person's own row is not a clash with them, so to the gate `ada_kind` is FREE for its owner. With
-     every other bare word taken by somebody else, the only bare answer the gate allows is the one
-     they already have — and pressing Randomise must not hand it back. On an empty tab too, thirty
-     draws, none of them the current one. */
-  const meAda = { person_id: 'ME', handle: 'ada_' + box.ADJ[0], first_name: 'Ada', last_name: 'Me' };
-  box.setRows(taken('Ada', box.ADJ.slice(1).map(w => 'ada_' + w)).concat([meAda]));
-  const notMine = box.make(meAda, undefined, meAda.handle);
-  if (!notMine || notMine === meAda.handle || !/^ada_[a-z]+\d{2}$/.test(notMine)) bad.push({
-    handle: notMine || '(nothing)', want: 'anything but ' + meAda.handle,
-    why: 'with the person\'s own handle the only bare word free, Randomise must still change it — '
-       + 'to a tailed one, since every other word is taken', said: notMine || '(nothing)' });
+     person's own row is not a clash with them, so to the gate `ada_kind42` is FREE for its owner.
+     With a fresh number every press the generator almost never OFFERS the current one, so thirty
+     honest presses would pass a generator that ignored `avoid` entirely. So the dice are fixed:
+     `Math.random` pinned to 0 makes every press draw the same candidates in the same order, the
+     first press on an empty tab says what the first candidate is, and the person is then given
+     exactly that handle — the next press must step past it, and past its spelling without the
+     underscore, which `key()` reads as the same name. Restored in a `finally`, because a pinned
+     `Math.random` left behind would make every later case here deterministic in silence. */
+  const realRandom = Math.random;
+  let firstDraw = '', stepped = '', steppedBare = '';
+  try {
+    Math.random = () => 0;
+    box.setRows([]);
+    firstDraw = box.make(null, 'Ada');
+    const meAda = { person_id: 'ME', handle: firstDraw, first_name: 'Ada', last_name: 'Me' };
+    box.setRows([meAda]);
+    stepped = box.make(meAda, undefined, firstDraw);
+    steppedBare = box.make(meAda, undefined, firstDraw.replace(/_/g, ''));
+  } finally {
+    Math.random = realRandom;
+  }
+  const keyOf = h => String(h || '').replace(/_/g, '');
+  if (!firstDraw || !stepped || keyOf(stepped) === keyOf(firstDraw)) bad.push({
+    handle: stepped || '(nothing)', want: 'anything but ' + firstDraw,
+    why: 'Randomise handed back the handle the person already has', said: stepped || '(nothing)' });
+  if (!steppedBare || keyOf(steppedBare) === keyOf(firstDraw)) bad.push({
+    handle: steppedBare || '(nothing)', want: 'anything but ' + firstDraw + ' in any spelling',
+    why: 'the same handle without its underscore is the same name to findPerson and to sign-in',
+    said: steppedBare || '(nothing)' });
+  /* AND THE HONEST VERSION TOO, thirty presses with real dice, none of them the current handle. */
+  const meAda = { person_id: 'ME', handle: 'ada_kind42', first_name: 'Ada', last_name: 'Me' };
   box.setRows([meAda]);
   for (let i = 0; i < 30; i++) {
     const again = box.make(meAda, undefined, meAda.handle);
-    if (!again || again === meAda.handle) { bad.push({ handle: again || '(nothing)',
+    if (!again || keyOf(again) === 'adakind42') { bad.push({ handle: again || '(nothing)',
       want: 'a different handle', why: 'Randomise handed back the handle the person already has',
       said: again || '(nothing)' }); break; }
   }
@@ -580,27 +653,47 @@ function run() {
      here, because a refused word pasted into this file is the word in one more file. */
   box.setRows([]);
   const blockedName = (consts.match(/HANDLE_BLOCKED\s*=\s*\[\s*'([a-z]+)'/) || [])[1];
+  const fallbackShapes = shapeOf(box.FALLBACK);
+  const isFallback = h => Object.keys(fallbackShapes).some(k => fallbackShapes[k].test(h));
   if (blockedName) {
     const made = box.make(null, blockedName);
-    if (!made || made.indexOf(box.FALLBACK + '_') !== 0) bad.push({ handle: made || '(nothing)',
-      want: box.FALLBACK + '_<virtue>',
+    if (!made || !isFallback(made)) bad.push({ handle: made || '(nothing)',
+      want: box.FALLBACK + ', a virtue and NN',
       why: 'a first name the blocklist refuses must fall back to the neutral head, not give up',
       said: '(a blocked first name)' });
   }
 
   /* ---------- `handleIsShaped_` — WHAT `renameHandles` READS AS ALREADY DONE ----------------------
-     Both the bare form and the tailed one are the shape; the old `<first>_<adjective><NN>` with an
-     adjective that is not a virtue, the older `BrightOtter42`, somebody else's head, a one-digit or
-     three-digit tail and capitals are not. Whether a tail was NEEDED is `renameHandles`' question,
-     asked below. */
+     EVERY ARRANGEMENT, AND THE ONE BEFORE IT. The 1 October `halex_kind` and its tailed form are
+     still the shape — the owner said existing handles are not regenerated, and this is the line that
+     keeps the job from doing it. All four new orders, with and without an underscore at either join.
+     Not the shape: the older `BrightOtter42`, `halex_bright42` (not a virtue), somebody else's head,
+     a one-digit or three-digit number, a number out of 10–99, the digits first, two underscores,
+     capitals, a trailing underscore. */
   [['halex_kind', true], ['halex_kind' + box.TAIL_MIN, true], [box.FALLBACK + '_brave', true],
+   ['halexkind42', true], ['halex_kind42', true], ['halexkind_42', true],
+   ['kindhalex42', true], ['kind_halex42', true], ['kindhalex_42', true],
+   ['halex42kind', true], ['halex_42kind', true], ['halex42_kind', true],
+   ['kind42halex', true], ['kind_42halex', true], ['kind42_halex', true],
+   ['true42halex', true],
    ['BrightOtter42', false], ['halex_bright42', false], ['halex_golden', false], ['ada_kind', false],
-   ['halex_kind4', false], ['halex_kind100', false], ['Halex_kind', false], ['halex_', false],
+   ['halex_kind4', false], ['halex_kind100', false], ['halex_kind05', false], ['Halex_kind', false],
+   ['halex_', false], ['42halexkind', false], ['halex_kind_42', false], ['kind_42_halex', false],
+   ['halex__kind42', false], ['halexkind42_', false],
   ].forEach(([h, want]) => {
-    if (box.shaped(h, 'Halex') !== want) bad.push({ handle: h, want: want ? 'shaped' : 'not shaped',
+    if (box.shaped(h, 'Halex') !== want) bad.push({ handle: h,
+      want: want ? 'shaped' : 'not shaped',
       why: want ? 'renameHandles would regenerate a handle already in the shape on every run'
-                : 'renameHandles would leave a handle that is not <first>_<virtue> alone',
+                : 'renameHandles would leave a handle that is not the generated shape alone',
       said: want ? 'no' : 'yes' });
+  });
+  /* A FIRST NAME THAT IS ALSO A VIRTUE. Somebody called True gets `true` as a head and might get
+     `true` as a word; the parser must read `truekind42` and `kindtrue42` both, which it can only do
+     because a regex of alternatives backtracks. */
+  [['truekind42', 'True'], ['kindtrue42', 'True'], ['truetrue42', 'True']].forEach(([h, first]) => {
+    if (!box.shaped(h, first)) bad.push({ handle: h, want: 'shaped',
+      why: 'a first name that is also on the word list must still read as the shape',
+      said: 'first "' + first + '": no' });
   });
 
   /* ---------- `handle_was`: NEWEST FIRST, AND THE LAST TEN ------------------------------------------
@@ -624,13 +717,13 @@ function run() {
   /* ---------- THE RETRY, AND THE GIVE-UP, WHICH ONLY A STUBBED GATE CAN REACH ---------------------
      The generator's contract is "keep asking until the gate says yes, and give up rather than loop",
      and that is a statement about the loop rather than about the words — so the gate is rebound. A
-     gate that refuses everything must make it give up, and within a bound: every word bare and every
-     tail on one word, for the name and then the fallback. A version that walked every tail on every
-     word would ask thousands of times before saying no, on a request somebody is waiting for. */
+     gate that refuses everything must make it give up, and within a bound: `HANDLE_TRIES` draws for
+     the name and as many for the fallback. A version that walked every number on every word in every
+     order would ask over forty thousand times before saying no, on a request somebody is waiting for. */
   let asked = 0;
   box.setGate(() => { asked++; return 'no'; });
   const gaveUp = box.make(null, 'Halex');
-  const bound = 2 * (box.ADJ.length + (box.TAIL_MAX - box.TAIL_MIN + 1));
+  const bound = 2 * box.TRIES;
   if (gaveUp !== '') bad.push({ handle: String(gaveUp), want: '(nothing)',
     why: 'a gate that refuses everything must make the generator give up, not return a refused '
        + 'handle — `register` writes whatever it hands back',
@@ -669,9 +762,9 @@ function run() {
   if (did.leftAlone !== 1) bad.push({ handle: 'fillHandles', want: '1 left alone',
     why: 'a run that reports nothing left alone reads the same whether it found nothing or '
        + 'rewrote everything', said: String(did.leftAlone) });
-  if (!BARE.test(rows[1].handle) || rows[1].handle.indexOf(box.FALLBACK + '_') !== 0) {
-    bad.push({ handle: 'fillHandles', want: box.FALLBACK + '_<virtue>',
-      why: 'a blank row with no first name gets the fallback head and a virtue',
+  if (!isFallback(rows[1].handle)) {
+    bad.push({ handle: 'fillHandles', want: box.FALLBACK + ', a virtue and NN',
+      why: 'a blank row with no first name gets the fallback head, a virtue and a number',
       said: '"' + rows[1].handle + '"' });
   }
   if (box.wrote().indexOf('username') !== -1) bad.push({ handle: 'fillHandles', want: 'no username',
@@ -699,18 +792,19 @@ function run() {
     said: '(it ran)' });
 
   /* ---------- AND `renameHandles`, WHICH REPLACES ON PURPOSE AND ONLY WHERE THE SHAPE IS WRONG ------
-     It may overwrite because signing in is an e-mail and a PIN. What it must do, row by row:
+     It may overwrite where the handle was never the shape. What it must do, row by row:
 
-       R1 `BrightOtter42`     the oldest shape — becomes `halex_<virtue>`, bare, old one kept
-       R2 `ada_kind`          already the shape — untouched
+       R1 `BrightOtter42`     the oldest shape — becomes the new one, old one kept
+       R2 `ada_kind`          the 1 October shape — untouched. *Existing handles are not regenerated*,
+                              and a child with no e-mail signs in with this.
        R3 blank, no name      the fallback head
-       R4 `sam_steady71`      the last shape: `steady` IS a virtue, so it reads as shaped — but its
-                              number was never needed, so it becomes bare. The case the owner named.
-       R5 `zo_kind10`         shaped, and its number IS needed: every bare `zo_<word>` is taken by the
-                              filler rows, so it is left exactly as it is
+       R4 `sam_steady71`      the 1 October shape with a tail. Until 2 October this job stripped a
+                              tail nobody needed; a number is on every handle now, so it is left
+                              alone — or the job would strip the number off every Randomise press.
+       R5 `kind42zo`          the new shape, digits in the middle, no underscore — untouched
        R6 a full history      the new handle at the front of `handle_was` and the oldest off the end
 
-     And a second run changes nothing, which is what the rule for R4 and R5 together has to give. */
+     And a second run changes nothing. */
   box.setHeaders(['person_id', 'handle', 'handle_was', 'handle_changed_at', 'first_name']);
   const full = Array.from({ length: box.WAS_KEEP }, (_, i) => 'old' + i).join(', ');
   const rrows = [
@@ -718,40 +812,40 @@ function run() {
     { person_id: 'R2', handle: 'ada_kind', first_name: 'Ada' },
     { person_id: 'R3', handle: '', first_name: '' },
     { person_id: 'R4', handle: 'sam_steady71', handle_was: 'samsmith', first_name: 'Sam' },
-    { person_id: 'R5', handle: 'zo_kind' + box.TAIL_MIN, first_name: 'Zo' },
+    { person_id: 'R5', handle: 'kind42zo', first_name: 'Zo' },
     { person_id: 'R6', handle: 'Pat_Typed', handle_was: full, first_name: 'Pat' },
-  ].concat(box.ADJ.map((w, i) => ({ person_id: 'Z' + i, handle: 'zo_' + w, first_name: 'Zo' })));
+  ];
   box.setRows(rrows);
   const ren = box.rename();
   const byId = id => rrows.find(r => r.person_id === id);
   const r1 = byId('R1'), r4 = byId('R4'), r5 = byId('R5'), r6 = byId('R6');
-  if (!/^halex_[a-z]+$/.test(r1.handle) || r1.handle_was !== 'BrightOtter42'
-      || !(r1.handle_changed_at instanceof Date)) {
-    bad.push({ handle: 'renameHandles', want: 'halex_<virtue>, old kept, date written',
-      why: 'the oldest shape must become the new one with no number, the old in handle_was',
+  const halexShapes = shapeOf('halex');
+  if (!Object.keys(halexShapes).some(k => halexShapes[k].test(r1.handle))
+      || r1.handle_was !== 'BrightOtter42' || !(r1.handle_changed_at instanceof Date)) {
+    bad.push({ handle: 'renameHandles', want: 'halex, a virtue and NN; old kept, date written',
+      why: 'the oldest shape must become the new one, the old in handle_was',
       said: r1.handle + ' / was ' + r1.handle_was });
   }
   if (byId('R2').handle !== 'ada_kind') bad.push({ handle: 'renameHandles', want: 'untouched',
-    why: 'a handle already in the shape must be left alone', said: byId('R2').handle });
-  if (!BARE.test(byId('R3').handle) || byId('R3').handle.indexOf(box.FALLBACK + '_') !== 0)
-    bad.push({ handle: 'renameHandles', want: box.FALLBACK + '_<virtue>',
+    why: 'a 1 October handle is still the shape and must not be regenerated', said: byId('R2').handle });
+  if (!isFallback(byId('R3').handle))
+    bad.push({ handle: 'renameHandles', want: box.FALLBACK + ', a virtue and NN',
       why: 'a row with no first name gets the fallback head', said: byId('R3').handle });
-  if (!/^sam_[a-z]+$/.test(r4.handle) || r4.handle_was !== 'sam_steady71, samsmith') {
-    bad.push({ handle: 'renameHandles', want: 'sam_<virtue>, was "sam_steady71, samsmith"',
-      why: 'halex_steady71 is the old shape with a number nobody needed — it must become bare, '
-         + 'and the history must grow at the front rather than be overwritten',
+  if (r4.handle !== 'sam_steady71' || r4.handle_was !== 'samsmith') {
+    bad.push({ handle: 'renameHandles', want: 'sam_steady71, untouched',
+      why: 'a number is part of the shape now — stripping it would strip every Randomise press too',
       said: r4.handle + ' / was ' + r4.handle_was });
   }
-  if (r5.handle !== 'zo_kind' + box.TAIL_MIN) bad.push({ handle: 'renameHandles', want: 'untouched',
-    why: 'a number that IS needed — every bare word taken — must be left alone, or the job '
-       + 'renames it on every run', said: r5.handle });
+  if (r5.handle !== 'kind42zo') bad.push({ handle: 'renameHandles', want: 'untouched',
+    why: 'a handle in one of the new orders must be left alone, or the job renames every '
+       + 'Randomise press', said: r5.handle });
   const r6was = r6.handle_was.split(', ');
   if (r6was.length !== box.WAS_KEEP || r6was[0] !== 'Pat_Typed' || r6was.indexOf('old' + (box.WAS_KEEP - 1)) !== -1)
     bad.push({ handle: 'renameHandles', want: 'Pat_Typed first, ' + box.WAS_KEEP + ' kept',
       why: 'handle_was is the last ten, newest first', said: r6.handle_was });
-  if (ren.renamedCount !== 4 || ['R1', 'R3', 'R4', 'R6'].some(id => ren.renamed.indexOf(id) === -1)
-      || ren.leftAlone !== rrows.length - 4) {
-    bad.push({ handle: 'renameHandles', want: '4 renamed by id, the rest left alone',
+  if (ren.renamedCount !== 3 || ['R1', 'R3', 'R6'].some(id => ren.renamed.indexOf(id) === -1)
+      || ren.leftAlone !== rrows.length - 3) {
+    bad.push({ handle: 'renameHandles', want: '3 renamed by id, the rest left alone',
       why: 'the report names who changed', said: JSON.stringify(ren.renamed) + ' / ' + ren.leftAlone });
   }
   const snap = JSON.stringify(rrows);
@@ -942,8 +1036,11 @@ function run() {
      "all 18 checks pass" fault, which this repository has now recorded four times — including once
      in its own tally of how often it had recorded it. */
   console.log('\nhandles judged by the gate: ' + CASES.length
-    + '  ·  virtues: ' + box.ADJ.length + ', each beside ' + names.length + ' first names, bare and tailed'
-    + '  ·  first names shaped: ' + shapeCases.length
+    + '  ·  virtues: ' + box.ADJ.length + ', each beside ' + names.length + ' first names in '
+    + box.ORDERS.length + ' orders, 3 joins and every number: ' + paired + ' candidates, '
+    + refused.length + ' refused by the gate and drawn again'
+    + '  ·  handles generated and shaped: ' + drawn + ' over ' + shapeCases.length + ' first names, orders seen: '
+    + Object.keys(seenOrders).length + ', numbers seen: ' + Object.keys(seenNums).length
     + '  ·  handle_was histories: ' + WAS.length
     + '  ·  findPerson terms resolved: ' + FINDS.length
     + '  ·  sign-ins checked: ' + SIGNIN.length
@@ -962,9 +1059,10 @@ function run() {
               + 'against. This is the only thing standing between any of them and the sheet.');
     process.exitCode = 1;
   } else {
-    console.log('OK — every handle is a first name and a virtue, a number only when every word is '
-              + 'taken, never the one you have, nobody can be handed a name that already answers to '
-              + 'somebody else, and the pricing month holds.');
+    console.log('OK — every handle is a first name, a virtue and a fresh number in a random order, '
+              + 'never starting with the digits, never the one you have, every older shape still '
+              + 'reads as shaped, nobody can be handed a name that already answers to somebody '
+              + 'else, and the pricing month holds.');
   }
 }
 

@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-02-a-noemail";
+const DOGET_VERSION = "2026-10-03-a-ownerlist";
 
 
 function doGet(e) {
@@ -852,6 +852,20 @@ function doGet(e) {
       });
       add(acceptedParents(meId), 'parent');
       add(acceptedChildren(meId), 'child');
+      /* ---------- AND YOUR BROTHERS AND SISTERS ----------------------------------------------------
+         ASKED FOR AS *"students should be able to see their parents and siblings likewise"*. The
+         first half of that sentence was built (parents and children, above) and the second was not,
+         though `siblingsOf` has existed all along and `payload.students[].siblings` has carried the
+         NAMES — to every student, read by nothing on the phone.
+
+         A SIBLING IS ANOTHER CHILD OF A PARENT YOU HAVE ACCEPTED, and `siblingsOf` walks
+         `acceptedLinks()` both steps, so the rule above holds for the second step too: a parent's
+         unanswered "this is my child" about somebody else makes them nobody's brother. Two children
+         who share no ACCEPTED parent are strangers here, whatever their surnames say.
+
+         SAME CARD, SAME FIELDS, SAME STAMP — `famCard_` is the public half and nothing more, and
+         `familyFor` above covers this list because it is the same list. */
+      add(siblingsOf(meId), 'sibling');
     }
 
     // --- venues -------------------------------------------------------------------------------

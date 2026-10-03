@@ -119,8 +119,32 @@ const TILE_ICONS = {
   /* SAVE IS A TICK, not a floppy disk: nobody who uses this app has held one, and a tick is what
      every form here already means by "done". */
   save:  '<path d="M3.5 9.5 7.3 13.3 14.8 4.8"/>',
+  /* A CAMERA, FOR CHOOSING YOUR PICTURE: the body, the bump the shutter sits on, and the lens. The
+     word beside it says choose rather than take, because the phone offers its gallery first. */
+  photo: '<rect x="2.5" y="5.5" width="13" height="9" rx="1.5"/><path d="M6.5 5.5 7.5 3.5h3l1 2"/>'
+       + '<circle cx="9" cy="10" r="2.4"/>',
   /* SIGN OUT: a door frame and an arrow leaving it. */
   out:   '<path d="M8.5 2.5h-5v13h5"/><path d="M7.5 9h8.5"/><path d="m13 6 3 3-3 3"/>',
+  /* ---------- AND THE THREE ON THE SIGN-IN CARD ----------------------------------------------
+     ASKED FOR AS *"turn the sign in and forgot pin buttons into tiles. same with create account
+     button."* Three marks this set did not have, drawn at the same 1.4 stroke so the row reads as
+     one set with the Sign out tile a stranger will meet on the far side of signing in.
+
+     SIGN IN IS THE MIRROR OF SIGN OUT: the same door frame, on the other side, with the arrow
+     going into it. Two marks that differ only in direction are learnt as a pair — the padlock
+     argument above. A KEY for the PIN, because a PIN is what opens the account and the tile gets
+     you a new one. A PERSON WITH A PLUS for a new account, which is the mark every phone's
+     contacts app already uses for "add somebody". */
+  in:    '<path d="M9.5 2.5h5v13h-5"/><path d="M2 9h8.5"/><path d="m7.5 6 3 3-3 3"/>',
+  key:   '<circle cx="5.5" cy="9" r="3"/><path d="M8.5 9h7"/><path d="M13.5 9v2.5"/>'
+       + '<path d="M11.2 9v1.8"/>',
+  join:  '<circle cx="7" cy="5.5" r="2.6"/><path d="M2 15.5a5 5 0 0 1 10 0"/>'
+       + '<path d="M14 6v5"/><path d="M11.5 8.5h5"/>',
+  /* SHUFFLE: two crossing arrows, the mark every music player puts on "play these in a random
+     order" — which is what Randomise does to the three parts of a handle. Open paths, so it
+     is one more outline in the set rather than the only solid. */
+  shuffle: '<path d="M2.5 5h3c3.5 0 4.5 7 8 7h2"/><path d="M2.5 12h3c3.5 0 4.5-7 8-7h2"/>'
+         + '<path d="m13.5 3 2 2-2 2"/><path d="m13.5 10 2 2-2 2"/>',
 };
 
 function tileIcon_(name) {

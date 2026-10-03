@@ -306,7 +306,7 @@ const STATES = {
 
        AND IT PUTS THE BASKET BACK AS WELL AS THE FUNNEL. `check/press.js` presses the trolley here,
        which writes twelve lines to `localStorage` — and states run in order down one page, so a
-       basket left full would be measured on the Tools column as though somebody had filled it. */
+       basket left full would be measured on the Shop column as though somebody had filled it. */
     { name: 'a bundle of papers',
       enter: () => {
         STUFF.q = '';
@@ -618,6 +618,23 @@ const STATES = {
      — the same argument as the films two blocks up. */
   account: [
     { name: '' },
+    /* ---------- THE SHEET THAT MAKES AN ACCOUNT ----------------------------------------------------
+       ASKED FOR AS *"turn the sign in and forgot pin buttons into tiles. same with create account
+       button."* The third tile opens a four-box form a signed-out visitor is the only one to see —
+       and `#sheet` is a sibling of the screens, so without a state of its own neither the measuring
+       pass nor the pressing pass would ever have it open. Entered through the tile's own handler. */
+    { name: 'making an account',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const tile = document.querySelector('#s-account [data-do="register"]');
+        if (!tile) throw new Error('no Make an account tile on the signed-out account column');
+        ACTIONS['register'](tile);
+      },
+      expect: () => ['reg-first', 'reg-last', 'reg-email', 'reg-pin']
+        .filter(id => document.getElementById(id)).length
+        + (document.querySelector('#sheet-body [data-do="reg-send"]') ? 1 : 0) === 5 ? 5 : 0,
+      wants: 'the register sheet open: four boxes and its one button',
+      leave: () => { closeSheet(); } },
     /* ---------- THE HANDLE, WITH EXACTLY ONE `@` IN FRONT OF IT ----------------------------------
        ASKED FOR AS *"each person should have … handle llik \"@_____\""*, and the visible half of that
        had never existed: `doGet` has sent `handle` on every tutor since it was written and the only
@@ -780,18 +797,62 @@ const STATES = {
         const pg = [...document.querySelectorAll('#s-account .page')].find(p => p.querySelector('.prof-heat'));
         if (!pg) return 0;
         const caps = [...pg.querySelectorAll('.prof-cap')].map(c => c.textContent.trim());
-        const allowed = ['At a glance', 'Teaches', 'Can also teach', 'Qualifications', 'Tutors at'];
+        /* AND `Available` AFTER IT, which is the one caption added since the five were asked for —
+           *"tutors availability should appear on their card."* It is the week, drawn by `profAvail_`
+           only for a tutor who has ticked an hour, so it may follow the map and nothing else may. */
+        const allowed = ['At a glance', 'Teaches', 'Can also teach', 'Qualifications', 'Tutors at', 'Available'];
+        const last = caps.filter(c => c !== 'Available');
         const text = pg.textContent;
         const heat = pg.querySelector('.prof-heat');
-        return heat.getAttribute('data-dots') === '1'
+        /* AND A GOLD CORE IN EACH GLOW, ON THE SAME CENTRE — *"make the heat map a bit clearer."*
+           One core per venue, and its position string is its glow's position string, because
+           `profHeat_` places both through one `pos()` with the size halves cancelling. A core that
+           drifted off its glow, or one per map rather than per venue, fails here. */
+        const lst = (el, k) => ((el || {}).style || {})[k] ? el.style[k].split(/,(?![^(]*\))/).map(x => x.trim()) : [];
+        const glow = heat.querySelector('.heat-glow'), core = heat.querySelector('.heat-core');
+        const cores = lst(core, 'backgroundPosition'), glows = lst(glow, 'backgroundPosition');
+        const coresOk = !!core && cores.length === Number(heat.getAttribute('data-dots'))
+          && cores.join('|') === glows.join('|')
+          && (core.style.backgroundImage.match(/radial-gradient/g) || []).length === cores.length;
+        return heat.getAttribute('data-dots') === '1' && coresOk
           && ((heat.querySelector('.heat-tiles') || {}).style || { backgroundImage: '' }).backgroundImage
                .match(/tile\.openstreetmap\.org/g)?.length >= 2
           && caps.every(c => allowed.includes(c)) && caps.includes('Tutors at')
-          && caps.indexOf('Tutors at') === caps.length - 1
+          && last.indexOf('Tutors at') === last.length - 1
+          && (!caps.includes('Available') || caps.indexOf('Available') === caps.length - 1)
           && [...pg.querySelectorAll('.prof-tag')].some(x => x.textContent.trim() === 'Online')
           && !/Colliers Wood Library|Sutton Library/.test(text) ? 1 : 0;
       },
-      wants: 'the five captions in order, one glow on a map, Online as a chip, and no venue named',
+      wants: 'the five captions in order, one glow with a gold core on its centre, Online as a chip, and no venue named',
+      leave: () => { paint('account'); } },
+    /* ---------- A TUTOR'S HOURS ON THEIR CARD — see `profAvail_` in cards.js -----------------------
+       *"tutors availability should appear on their card."* The fixture's tutor sends what `doGet`
+       sends — 77 codes, nine of them 'TRUE' (Mon 16-18, Tue 10-11, Wed 16, Sat 10-12) — and is
+       already teaching Mon 17. So eight hours lit, Mon 17 greyed, and the three days nothing is
+       ticked on (Thu, Fri, Sun) collapsed rather than drawn as thumb-sized rows of grey. Measured at
+       every width because it is the last thing on a card that is already near its pane's height. */
+    { name: 'a tutor\'s hours on their card',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const pages = [...document.querySelectorAll('#s-account .page')];
+        const at = pages.findIndex(pg => pg.querySelector('.prof-week'));
+        if (at < 0) throw new Error('no card on the account column draws a tutor\'s week');
+        goPage('account', at, true);
+      },
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-account .page')].find(p => p.querySelector('.prof-week'));
+        if (!pg) return 0;
+        const wk = pg.querySelector('.prof-week');
+        const cap = wk.previousElementSibling;
+        const rows = [...wk.querySelectorAll('.slot-row:not(.slot-head)')];
+        const busy = wk.querySelector('.hr[data-code="m17"]');
+        return cap && cap.textContent.trim() === 'Available'
+          && wk.querySelectorAll('.hr.on').length === 8
+          && !!busy && !busy.classList.contains('on') && busy.classList.contains('shut')
+          && rows.length === 7 && rows.filter(r => r.classList.contains('is-shut')).length === 3
+          && !wk.querySelector('button, input, label') ? 1 : 0;
+      },
+      wants: 'an Available caption over a week with eight hours lit, Monday 17 greyed as taught, and Thu, Fri and Sun collapsed',
       leave: () => { paint('account'); } },
     /* ---------- YOUR FAMILY, A CARD EACH ------------------------------------------------------------
        ASKED FOR AS *"students should be able to see their parents and likewise"*. `DATA.family` is a
@@ -813,6 +874,10 @@ const STATES = {
             handle: 'philippa_bright42', image: '' },
           { personId: 'P-fam-child', title: 'Christopher Childerley', relation: 'child',
             handle: 'christopher_calm17', image: '' },
+          /* AND A SIBLING, on *"students should be able to see their parents and siblings
+             likewise"* — the longest of the three labels, so it is the one measured at 320. */
+          { personId: 'P-fam-sib', title: 'Bartholomew Brotherington-Hale', relation: 'sibling',
+            handle: 'bartholomew_kind19', image: '' },
         ];
         paint('account');
         /* ON THE REQUEST, which is the page in front of the family cards: the one with buttons. */
@@ -824,10 +889,11 @@ const STATES = {
         const heads = [...document.querySelectorAll('#s-account .card.is-prof h3')].map(h => h.textContent.trim());
         return heads.filter(h => h === 'Your parent').length === 1
             && heads.filter(h => h === 'Your child').length === 1
+            && heads.filter(h => h === 'Your brother or sister').length === 1
             && document.querySelectorAll('#s-account [data-do="claim-yes"]').length === 1 ? 3 : 0;
       },
-      wants: 'one card headed "Your parent", one headed "Your child", and one request to answer',
-      /* `repaint(true)`, not `paint`: three pages leave the column, so it is placed again — a bare paint
+      wants: 'one card each headed "Your parent", "Your child" and "Your brother or sister", and one request to answer',
+      /* `repaint(true)`, not `paint`: four pages leave the column (a sibling made it four), so it is placed again — a bare paint
          left the card in front sitting where the old page 2 was, and COLUMNS OUT OF LINE said so. */
       leave: () => { DATA.family = window.__FAM_HELD; DATA.familyFor = window.__FAM_FOR; DATA.claims = window.__FAM_CLAIMS; repaint(true); } },
   ],
@@ -873,12 +939,49 @@ const STATES = {
         const slots = [...pg.querySelectorAll('.ph-slot')];
         const shown = slots.filter(s => !s.hidden);
         return pg.querySelectorAll('[data-me^="photos_"]').length === 8
-          && !!pg.querySelector('[data-me="photo"]') && !!pg.querySelector('[data-me="video"]')
+          /* THE FACE IS THE PICKER NOW, NOT A LINK BOX — `photoPicker_`, and no `data-me="photo"` beside
+             it, which the card's Save would post with the old address over a picture just chosen. */
+          && !!pg.querySelector('.pfp') && !pg.querySelector('[data-me="photo"]') && !!pg.querySelector('[data-me="video"]')
           && shown.length === 2 && shown.every(s => s.querySelector('.ph-thumb img'))
           && pg.querySelectorAll('[data-do="shelf-more"]').length === 1
           && pg.querySelectorAll('[data-do="me-save"]').length === 1 ? 8 : 0;
       },
-      wants: 'the profile photo and video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another' },
+      wants: 'the picture picker and the video, then the two filled photograph links with a thumbnail each, eight boxes in the form and one Add another' },
+    /* ---------- YOUR PICTURE, CHOSEN — `photoPicker_` in me.js ------------------------------------
+       *"everyone should have a profile picture selector widget in account settings"*. Seeded with a
+       picture already kept, so the preview is a photograph rather than the initial and `Remove` is
+       live: a square preview, `Choose photo` and `Remove` as tiles, the hidden file input that takes
+       images, and no link box. At four widths, because the preview sits beside two tap targets and
+       a line of text and is the one row on the card that could wrap at 320. */
+    { name: 'your picture, chosen',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_PFP_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, { photo: 'data/reels/archetest.jpg' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.pfp'));
+        if (at < 0) throw new Error('no picture picker on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => {
+        USER.profile = window.STATE_PFP_WAS; delete window.STATE_PFP_WAS;
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const box = pg && pg.querySelector('.pfp');
+        if (!box) return 0;
+        const face = box.querySelector('.pfp-face');
+        const r = face && face.getBoundingClientRect();
+        const rm = box.querySelector('.tile[data-do="pfp-remove"]');
+        const inp = box.querySelector('input.pfp-in[type="file"]');
+        return !!face.querySelector('img') && r.width > 40 && Math.abs(r.width - r.height) < 1
+          && !!box.querySelector('.tile[data-do="pfp-pick"]') && !!rm && !rm.disabled
+          && !!inp && inp.hidden && /image\/\*/.test(inp.accept)
+          && !pg.querySelector('[data-me="photo"]') ? 1 : 0;
+      },
+      wants: 'a square preview of the picture, Choose photo and a live Remove as tiles, a hidden image input, and no link box' },
     /* ---------- THE FOUR FIELDS THAT ARE THE QUOTE, WHICH THE FIXTURE HAD NEVER SENT -------------
        `Group size` AND `Your rate` WERE TWO PAGES WITH A SAVE EACH and are one page now, because
        they are one decision and one monthly clock — asked for as *"…all together. and they can only
@@ -1205,7 +1308,7 @@ const STATES = {
 
        FOUR THINGS TOGETHER, because each on its own passes a card that got one of the others wrong:
        exactly one shown handle and it is `USER.handle`, exactly one `@` in front of it (the `@@ada`
-       fault `check-handles.js` already guards in the fixture), one Randomise button, and nothing to
+       fault `check-handles.js` already guards in the fixture), one Randomise TILE, and nothing to
        type into. Found by asking the DOM, like every other state on this column. */
     { name: 'your handle',
       only: () => typeof USER !== 'undefined' && !!USER && !!USER.handle,
@@ -1223,9 +1326,14 @@ const STATES = {
         return (shown.length === 1 && shown[0].textContent === USER.handle
                 && line && (line.textContent.match(/@/g) || []).length === 1
                 && pg.querySelectorAll('[data-do="handle-shuffle"]').length === 1
+                /* A TILE, NOT A BUTTON — *"a THING has tiles; a FORM has buttons"*, and the handle is a
+                   thing. It was `.btn quiet` until 2 October; one inside a `.tile-row` with its mark
+                   is what `tile_` draws, so this fails if anybody writes the button back by hand. */
+                && pg.querySelectorAll('.tile-row > .tile[data-do="handle-shuffle"] svg.tile-i-shuffle').length === 1
+                && !pg.querySelector('.btn[data-do="handle-shuffle"]')
                 && !pg.querySelector('#handle-new, [data-do="handle-save"]')) ? 1 : 0;
       },
-      wants: 'the handle shown once with one @, a Randomise button, and no box to type a handle into' },
+      wants: 'the handle shown once with one @, a Randomise tile with its mark, and no box to type a handle into' },
 
     /* ---------- THE TWO EXAM DATES, WHICH ONLY A STUDENT IS OFFERED ------------------------------
        ASKED FOR AS *"allow student accounts to be able to write exam dates. like Small exam: _____
@@ -1436,6 +1544,92 @@ const STATES = {
       leave: () => { DATA.spotlight = []; adoptSpotlight_(); paint('spotlight'); } },
   ],
 
+  /* ---------- THE SHOP ------------------------------------------------------------------------
+     THE UNNAMED STATE IS PAGE 0, the basket, empty — which is what every visitor lands on. The two
+     below are what a fixture with no shop rows could never have drawn: a shelf of shop cards, and a
+     basket with something in it. `check/fixture.json` sends ten shop rows now, shaped as `doGet`
+     sends them, for exactly this. */
+  shop: [
+    { name: '' },
+    /* THE FIRST SHELF. Found by its heading rather than by a number, because how many widgets sit
+       above the things is the roster's business — and asked of the cards that are there, tiles and
+       all, since a shelf drawing headings over nothing is the failure that looks finished. */
+    { name: 'the first shelf',
+      enter: () => {
+        const pages = [...document.querySelectorAll('#s-shop .page')];
+        const at = pages.findIndex(pg => pg.querySelector('h2') && pg.querySelector('.favwrap'));
+        if (at < 0) throw new Error('the shop column has no shelf of things');
+        goPage('shop', at, true);
+      },
+      expect: () => {
+        const pg = document.querySelectorAll('#s-shop .page')[PAGE.shop];
+        return !!pg && !!pg.querySelector('h2') && pg.querySelectorAll('.favwrap').length >= 1
+          && !!pg.querySelector('[data-do="cart-add"]');
+      },
+      wants: 'a shelf of the shop under its heading, each thing with a trolley' },
+
+    /* ---------- AND THE BASKET, WHICH A FIXTURE CANNOT REACH AT ALL ---------------------------
+       `CART` LIVES IN `localStorage`, NOT IN THE PAYLOAD, so no fixture can put anything in it:
+       whichever surface the basket has been on, this file has only ever seen it empty. It was a
+       page of the booking column, then a tool — asked for as *"i want the cart to be a tool in the
+       tool column"* — and is the first page of the Shop column now, so the state moved with it
+       again, seeded exactly as before.
+
+       SEEDED THE WAY THE APP FILLS IT. `CART` is what `cartCard_` reads and `cart-add` writes, and
+       `initCart()` is the widget's own `start` — which is what `toolsStart_('shop')` calls when the
+       column arrives, so this is the state a moment after somebody pressed the trolley on a card in Find.
+
+       A PRICE IN THE THOUSANDS ON PURPOSE. The figure column is the thing that breaks here — it is
+       sized in `ch` of a proportional font and drawn in mono — and `£2050.00` is one character
+       wider than `£270.00`, which is the difference between a finding and a pass. */
+    /* ---------- AND WHAT A BUNDLE PUTS IN IT, which is most of what a basket holds now --------------
+       Three papers under the title of the bundle they came from, one of them laminated, and a paper
+       nobody has counted the pages of — so the group's caption, the `✓ laminated` switch, the `? pp`
+       and the `tbc` in the figure column are all on the screen at once. The first version of the
+       laminated switch said `laminated £7.00 · plain` and put the ✕ on a line of its own at 320px;
+       a basket seeded with shop items only could never have shown that. Invented lines, shaped the
+       way `cartAddBundle_` writes them. */
+    { name: 'the basket',
+      enter: () => {
+        const from = 'Edexcel · Maths · GCSE · Higher · Past papers · Summer 2017';
+        CART = [{ key: 'P-1MA1-1705-1H', kind: 'print', name: 'Paper 1 (Non-Calculator) — May 2017 · Higher',
+                  short: 'Paper 1', pages: 20, cost: 0, from: from, laminate: true },
+                { key: 'P-1MA1-1706-2H', kind: 'print', name: 'Paper 2 (Calculator) — June 2017 · Higher',
+                  short: 'Paper 2', pages: 24, cost: 0, from: from },
+                { key: 'P-UNCOUNTED', kind: 'print', name: 'Paper 3 (Calculator) — June 2017 · Higher',
+                  short: 'Paper 3', pages: 0, cost: 0, from: from },
+                /* A CHEAT SHEET, as `mat-cart` writes it — one page, its pieces carried — so the
+                   laminate strip is measured on a line that is not a paper. */
+                { key: 'mat:Maths|GCSE|H|M01,M17,M26', kind: 'print', pages: 1, cost: 0,
+                  name: 'Cheat sheet — Maths · GCSE Higher (2 pieces)',
+                  parts: ['Ruler down the edge', 'Straight line', 'Quadratics'] },
+                { key: 'I001', name: 'Trundle wheel, 1 m circumference', kind: 'shop',
+                  cost: 0, money: 120000 },
+                { key: 'I026', name: 'Tape measure, 30 m', kind: 'shop', cost: 0, money: 85000 },
+                /* AND THE SHOP LINES THE BASKET MOSTLY HOLDS: a pence-priced one-word item (the line
+                   that was 72px tall with its ✕ alone on a row) and one bought with credits, so the
+                   head's credits line is drawn too. Shaped as `cartPrice_` writes them. */
+                { key: 'Pencil', name: 'Pencil', kind: 'shop', cost: 0, money: 0.3 },
+                { key: 'Sticker sheet', name: 'Sticker sheet', kind: 'shop', cost: 3, money: 0 }];
+        const n = widgetsOf_('shop').findIndex(w => String(w.id) === 'cart');
+        if (n < 0) throw new Error('no basket widget on the shop');
+        goPage('shop', n, true);
+        initCart();
+      },
+      /* AND A SHOP LINE IS ONE LINE: its ✕ on the name's own line, no strip under it, and the
+         leader drawn — the three things "refine basket to look nicer" changed, asked of the page. */
+      expect: () => document.querySelector('#s-shop [data-do="cart-send"]')
+                    && document.querySelector('#s-shop .cart-box .cart-from')
+                    && [...document.querySelectorAll('#s-shop .cart-box .bk-row.is-wide')]
+                         .filter(r => /Pencil/.test(r.textContent))
+                         .some(r => r.querySelector('.cart-ln [data-do="cart-drop"]') && !r.querySelector('.cart-ctl')
+                                    && r.querySelector('.cart-lead').getBoundingClientRect().width > 8),
+      wants: 'a basket holding a bundle under its title, a cheat sheet and shop lines, each shop line one line with its ✕ and a leader to its price, and a way to send the order',
+      /* PUT BACK, because states run in order down one page and an empty basket is what every
+         other state on this column expects to find. */
+      leave: () => { CART = []; initCart(); } },
+  ],
+
   tools: [
     { name: '' },
     { name: 'the cheat sheet maker',
@@ -1479,9 +1673,23 @@ const STATES = {
         lev.value = 'GCSE|H'; lev.dispatchEvent(new Event('change', { bubbles: true }));
         /* FIVE PIECES TICKED BY HAND — there is no Fill button any more (the owner took it off), so
            the pieces go on the way a person puts them on, through the list's own boxes. */
-        const boxes = [...document.querySelectorAll('#s-tools .mat-list label:not(.off) input:not(:checked)')].slice(0, 5);
-        if (boxes.length < 5) throw new Error('fewer than five pieces offered for GCSE Higher');
-        boxes.forEach(b => b.click());
+        /* A TOPIC AT A TIME NOW (`MAT_GROUPS`), and no GCSE topic holds five, so the ticks are taken
+           across the topics the way a person would make a sheet — and the view is put back on the
+           first, Number, which is where the negative number line asserted below lives. */
+        const grp = document.querySelector('#s-tools #mat-group');
+        if (!grp) throw new Error('the cheat sheet maker has no topic select');
+        const topics = [...grp.options].map(o => o.value);
+        let ticked = 0;
+        for (const g of topics) {
+          if (ticked >= 5) break;
+          grp.value = g; grp.dispatchEvent(new Event('change', { bubbles: true }));
+          const boxes = [...document.querySelectorAll('#s-tools .mat-list label:not(.off):not([data-id="M01"]) input:not(:checked)')]
+            .slice(0, 5 - ticked);
+          boxes.forEach(b => b.click());
+          ticked += boxes.length;
+        }
+        if (ticked < 5) throw new Error('fewer than five pieces offered for GCSE Higher');
+        grp.value = topics[0]; grp.dispatchEvent(new Event('change', { bubbles: true }));
       },
       expect: () => !document.querySelector('#s-tools #mat-fill, #s-tools #mat-clear')
         && document.querySelectorAll('#s-tools .mat-list input:checked').length >= 5
@@ -1504,6 +1712,75 @@ const STATES = {
       wants: 'a subject and a level chosen, five pieces ticked, no Fill or Clear, the negative number line offered, the list not a scroller, and Print ready',
       leave: () => {
         MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
+        MAT_GROUP = '';
+        try { localStorage.removeItem('matChoice'); } catch (e) {}
+        matPaint();
+      } },
+    /* ---------- AND EVERY VIEW OF IT FITS, WHICH IS WHAT THE OWNER ASKED -------------------------------
+       ASKED FOR AS *"the cheat sheet maker shouldnt be as long as it is. you need to think a way to
+       make it fit on screen without scrolling"*. It was 1206px in a 532px pane at 320x568 on the view
+       it opened on. The answer was a third select, the topic, that cuts the list to eight rows at most
+       (`MAT_GROUPS` in mat.js) — and a fit is a property of every view, not of the one a state
+       happens to land on, so this walks the lot: every subject the select offers, every level of
+       it, every topic of that, set through the selects' own `change` events. After each, the app's
+       own `paneReach_` is asked to fit the pane, and the answer must be: nothing scrolls, and the
+       card was not drawn smaller than 0.85 to get there. 0.85 rather than `PANE_ZOOM_MIN`'s 0.7,
+       because a card that "fits" at 0.7 is the thing the owner was complaining about wearing a
+       smaller font.
+       AT THE TWO PHONES, 320x568 and 390x844, which are the sizes the complaint is about; a tablet
+       and a laptop pass this trivially and are measured for everything else as before.
+       `MAT_FIT_MISS` NAMES THE FIRST VIEW THAT FAILED, because `expect` can only say yes or no and
+       "some view did not fit" is a sentence nobody can act on. Read it in the page, or run
+       `node check/ui.js --screen=tools` with a console.log of it. */
+    { name: 'the cheat sheet maker, every subject, level and topic',
+      enter: () => {
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'mat');
+        if (n < 0) throw new Error('no cheat sheet widget in the roster');
+        goPage('tools', n, true);
+        if (!document.querySelector('#s-tools #mat-group')) throw new Error('the cheat sheet maker has no topic select');
+      },
+      expect: () => {
+        const phone = (innerWidth === 320 && innerHeight === 568) || (innerWidth === 390 && innerHeight === 844);
+        /* NOT WALKED AT ALL AWAY FROM THE PHONES. Each view is a full `matPaint`, which lays out the
+           A4 sheet off screen to measure the gauge — two hundred of them per visitor per size, and
+           with all four sizes walked `check/ui.js` ran past `check-all`'s ten-minute limit. */
+        if (!phone) return !!document.querySelector('#s-tools #mat-group');
+        const sub = document.querySelector('#s-tools #mat-subject');
+        const lev = document.querySelector('#s-tools #mat-level');
+        const box = document.querySelector('#s-tools #mat-box');
+        const pane = box && box.closest('.pane');
+        if (!sub || !lev || !pane) return false;
+        const fire = (el, v) => { el.value = v; el.dispatchEvent(new Event('change', { bubbles: true })); };
+        let miss = '', views = 0;
+        for (const s of [...sub.options].map(o => o.value)) {
+          fire(sub, s);
+          for (const l of [...lev.options].map(o => o.value)) {
+            fire(lev, l);
+            const grp = document.querySelector('#s-tools #mat-group');
+            const gs = grp && !grp.closest('[hidden]') ? [...grp.options].map(o => o.value) : [''];
+            for (const g of gs) {
+              if (g) fire(grp, g);
+              views++;
+              if (miss) continue;
+              paneReach_([pane]);
+              const zoom = Math.min(...[...pane.children].map(k => Number(k.style.zoom || 1)));
+              const rows = document.querySelectorAll('#s-tools .mat-list label:not(.off)').length;
+              if (pane.scrollHeight - pane.clientHeight > 2 || zoom < 0.85 || rows > 8) {
+                miss = `${s} · ${l} · ${g || '(one topic)'}: ${rows} rows, ${pane.scrollHeight}px in `
+                     + `${pane.clientHeight}px at zoom ${zoom}`;
+              }
+            }
+          }
+        }
+        window.MAT_FIT_MISS = miss;
+        /* MORE THAN A HANDFUL OF VIEWS, or the walk did not walk — a select that lost its options
+           would pass this with one view measured. */
+        return !miss && views > 50;
+      },
+      wants: 'every subject × level × topic of the cheat sheet maker fitting its pane at 320x568 and 390x844 with no scroll and no zoom below 0.85 (window.MAT_FIT_MISS names the first that did not)',
+      leave: () => {
+        MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
+        MAT_GROUP = '';
         try { localStorage.removeItem('matChoice'); } catch (e) {}
         matPaint();
       } },
@@ -1531,50 +1808,6 @@ const STATES = {
       expect: () => !document.querySelector('#s-tools .fm-sheet')
         && document.querySelector('#s-tools #fm-said b'),
       wants: 'the flyer maker saying what will print, with no preview on the card' },
-
-    /* ---------- AND THE BASKET, WHICH A FIXTURE CANNOT REACH AT ALL ---------------------------
-       `CART` LIVES IN `localStorage`, NOT IN THE PAYLOAD, so no fixture can put anything in it:
-       whichever surface the basket has been on, this file has only ever seen it empty. It was a
-       page of the booking column and is a tool now — asked for as *"i want the cart to be a tool
-       in the tool column"* — so the state moved with it, seeded exactly as before.
-
-       SEEDED THE WAY THE APP FILLS IT. `CART` is what `cartCard_` reads and `cart-add` writes, and
-       `initCart()` is the widget's own `start` — which is what `toolsStart_` calls when the column
-       arrives, so this is the state a moment after somebody pressed the trolley on a card in Find.
-
-       A PRICE IN THE THOUSANDS ON PURPOSE. The figure column is the thing that breaks here — it is
-       sized in `ch` of a proportional font and drawn in mono — and `£2050.00` is one character
-       wider than `£270.00`, which is the difference between a finding and a pass. */
-    /* ---------- AND WHAT A BUNDLE PUTS IN IT, which is most of what a basket holds now --------------
-       Three papers under the title of the bundle they came from, one of them laminated, and a paper
-       nobody has counted the pages of — so the group's caption, the `✓ laminated` switch, the `? pp`
-       and the `tbc` in the figure column are all on the screen at once. The first version of the
-       laminated switch said `laminated £7.00 · plain` and put the ✕ on a line of its own at 320px;
-       a basket seeded with shop items only could never have shown that. Invented lines, shaped the
-       way `cartAddBundle_` writes them. */
-    { name: 'the basket',
-      enter: () => {
-        const from = 'Edexcel · Maths · GCSE · Higher · Past papers · Summer 2017';
-        CART = [{ key: 'P-1MA1-1705-1H', kind: 'print', name: 'Paper 1 (Non-Calculator) — May 2017 · Higher',
-                  short: 'Paper 1', pages: 20, cost: 0, from: from, laminate: true },
-                { key: 'P-1MA1-1706-2H', kind: 'print', name: 'Paper 2 (Calculator) — June 2017 · Higher',
-                  short: 'Paper 2', pages: 24, cost: 0, from: from },
-                { key: 'P-UNCOUNTED', kind: 'print', name: 'Paper 3 (Calculator) — June 2017 · Higher',
-                  short: 'Paper 3', pages: 0, cost: 0, from: from },
-                { key: 'I001', name: 'Trundle wheel, 1 m circumference', kind: 'shop',
-                  cost: 0, money: 120000 },
-                { key: 'I026', name: 'Tape measure, 30 m', kind: 'shop', cost: 0, money: 85000 }];
-        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'cart');
-        if (n < 0) throw new Error('no basket widget in the roster');
-        goPage('tools', n, true);
-        initCart();
-      },
-      expect: () => document.querySelector('#s-tools [data-do="cart-send"]')
-                    && document.querySelector('#s-tools .cart-box .cart-from'),
-      wants: 'a basket holding a bundle under its title, with a way to send the order',
-      /* PUT BACK, because states run in order down one page and an empty basket is what every
-         other state on this column expects to find. */
-      leave: () => { CART = []; initCart(); } },
 
     /* ---------- A TUTOR'S TEACHING HOURS -----------------------------------------------------
        THE SEVENTY-SEVEN CELLS OF A WEEK GRID, on a card nobody had measured, in the one place this
@@ -1621,6 +1854,41 @@ const STATES = {
         localStorage.removeItem(tmtKey_());
         TMT_DAY = -1; TMT_OPEN = '';
         initTimetable();
+      } },
+    /* ---------- TOUCH TYPING, HALF WAY ALONG A LINE WITH A KEY WRONG ----------------------------
+       KEPT ON THE DEVICE, so no fixture can climb the ladder — seeded through the app's own key with
+       three rungs open and the third chosen, so the rungs are measured on, open and shut together.
+       The line is SET rather than drawn at random, half typed and with a wrong key held, so the
+       measured card carries every class it can: letters done, the lit letter in its miss colour, the
+       wrong key red on the keyboard, a capital's shift lit, a score under the line. And the hidden
+       box FOCUSED, through the app's own handler, because the card draws differently when it is
+       listening and that is the state somebody is looking at it in. */
+    { name: 'touch typing',
+      enter: () => {
+        localStorage.setItem(ktKey_(), JSON.stringify({ at: 3, open: 3, held: [3, 3, 3, 1, 0], best: 41, lines: 10 }));
+        KT = null;
+        const s = ktNow_();
+        s.line = 'Quiet zebras jump over the Lazy fox at London';
+        s.pos = 27; s.right = 27; s.wrong = 2; s.miss = 'k'; s.t0 = Date.now() - 6000; s.t1 = Date.now();
+        s.said = 'Last line: 38 wpm, 95% right.';
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'typing');
+        if (n < 0) throw new Error('no typing widget in the roster');
+        goPage('tools', n, true);
+        initTyping();
+        const line = document.querySelector('#s-tools .kt-box .kt-line');
+        if (line) ACTIONS['kt-focus'](line);
+      },
+      expect: () => document.querySelectorAll('#s-tools .kt-box .kt-rung').length === 5
+                    && document.querySelectorAll('#s-tools .kt-box .kt-rung:disabled').length === 1
+                    && document.querySelectorAll('#s-tools .kt-box .kt-k').length === 34
+                    && document.querySelector('#s-tools .kt-box .kt-k.next')
+                    && document.querySelector('#s-tools .kt-box .kt-k.miss'),
+      wants: 'five rungs with the last shut, a 34-key keyboard with the next key lit and a wrong one red',
+      leave: () => {
+        localStorage.removeItem(ktKey_());
+        KT = null;
+        document.activeElement && document.activeElement.blur && document.activeElement.blur();
+        initTyping();
       } },
   ],
 

@@ -390,9 +390,11 @@ PEOPLE.forEach(p => {
 
 /* 10. RANDOMISE — A NEW WORD FOR YOUR OWN HANDLE, AND NOBODY ELSE'S.
    *"handles should be their name and a virtuous describing word. they can randomise it but it will
-   follow that general name."* The Settings card has no handle box any more; its Randomise button
+   follow that general name."* The Settings card has no handle box any more; its Randomise tile
    posts `randomiseHandle`, and these are the things that action must be, through the real `doPost`:
-   the asker's first name and a virtue with no number (nothing else here is called Ada), never the
+   the asker's first name, a virtue and a fresh two-digit number in a random order, never led by the
+   digits (*"their first name, a virtuous adjective and random numbers and maybe an underscore. but
+   all random order"*, 2 October — it was `ada_<virtue>` with no number until then), never the
    handle they already had, the old one at the FRONT of `handle_was` with the history capped at
    `HANDLE_WAS_KEEP`, what the next sign-in hands back, the asker's own row whatever id is posted, a
    refusal that writes nothing for somebody signed out — and `changeHandle`, the typed box it
@@ -403,11 +405,18 @@ PEOPLE.forEach(p => {
   const shuffle = body => { shuffles++; return b.post(Object.assign({ action: 'randomiseHandle' }, body)); };
   const before = b.row('P-T1').handle;
   const d = shuffle({ token: t.token, name: t.name, personId: 'P-T1' });
-  const m = String(d.handle || '').match(/^ada_([a-z]+)$/);
+  /* THE SHAPE, WRITTEN HERE RATHER THAN ASKED OF `handleParts_`: the asker's first name, a virtue
+     and a number 10–99 in any of the four orders that do not lead with the digits, one underscore at
+     most. Asking the backend's own parser would be the generator marking its own homework. */
+  const W = '(' + VIRTUES.join('|') + ')', N = '([1-9][0-9])';
+  const ADA_SHAPES = [['ada', W, N], [W, 'ada', N], ['ada', N, W], [W, N, 'ada']]
+    .map(ps => new RegExp('^' + ps.join('_?') + '$'));
+  const adaShaped = h => ADA_SHAPES.some(re => re.test(String(h || '')))
+    && (String(h).match(/_/g) || []).length <= 1 && !/^[0-9]/.test(String(h));
   if (!d.success) bad.push('randomiseHandle was refused for a signed-in tutor — ' + d.error);
   else {
-    if (!m || VIRTUES.indexOf(m[1]) === -1) bad.push('randomiseHandle answered "' + d.handle
-      + '" for somebody called Ada — wanted ada_<virtue>, with no number when nothing clashes');
+    if (!adaShaped(d.handle)) bad.push('randomiseHandle answered "' + d.handle
+      + '" for somebody called Ada — wanted ada, a virtue and a two-digit number in a random order');
     if (b.row('P-T1').handle !== d.handle) bad.push('randomiseHandle answered "' + d.handle
       + '" and the row holds "' + b.row('P-T1').handle + '"');
     if (d.was !== before) bad.push('randomiseHandle said the old handle was "' + d.was + '", the row held "' + before + '"');
@@ -420,16 +429,24 @@ PEOPLE.forEach(p => {
   }
   /* PRESSED AGAIN AND AGAIN: never the handle you have, and the history newest first and capped. */
   let prev = b.row('P-T1').handle, same = 0;
+  const orders = [];
   for (let i = 0; i < KEEP + 4; i++) {
     const tk = tokens['P-T1'];
     const e = shuffle({ token: tk.token, name: tk.name, personId: 'P-T1' });
     if (!e.success) { bad.push('randomiseHandle press ' + (i + 2) + ' was refused — ' + e.error); break; }
-    if (e.handle === prev) same++;
+    if (String(e.handle).replace(/_/g, '') === String(prev).replace(/_/g, '')) same++;
+    if (!adaShaped(e.handle)) bad.push('press ' + (i + 2) + ' answered "' + e.handle + '" — not ada, a virtue and NN');
+    orders[ADA_SHAPES.findIndex(re => re.test(e.handle))] = true;
     if (String(b.row('P-T1').handle_was).split(', ')[0] !== prev)
       bad.push('press ' + (i + 2) + ': handle_was does not start with "' + prev + '"');
     prev = e.handle;
   }
   if (same) bad.push('randomiseHandle handed back the handle the person already had, ' + same + ' time(s)');
+  /* MORE THAN ONE ORDER OVER THE PRESSES — "but all random order". Not all four: fourteen presses
+     miss one of four about one run in fourteen, and a check that is red by chance is a red nobody
+     reads. One order in fourteen presses is a fixed order, one chance in sixty million. */
+  if (orders.filter(Boolean).length < 2) bad.push('fourteen Randomise presses all laid the parts out '
+    + 'in one order — the owner asked for a random one');
   const hist = String(b.row('P-T1').handle_was).split(', ');
   if (hist.length !== KEEP) bad.push('after ' + (KEEP + 5) + ' presses handle_was holds ' + hist.length
     + ' handle(s), wanted the last ' + KEEP);
@@ -559,9 +576,15 @@ PEOPLE.forEach(p => {
     last_name: last, full_name: first + ' ' + last, handle: first.toLowerCase() + '_calm' + id.slice(-2),
     username: first.toLowerCase(), email: id.toLowerCase() + '@example.org' });
   f.seed('people', [mk('P-PA', 'client', 'Anna', 'Parent'), mk('P-PB', 'client', 'Bea', 'Parent'),
-                    mk('P-SA', 'student', 'Abe', 'Child'), mk('P-SB', 'student', 'Ben', 'Child')]);
+                    mk('P-SA', 'student', 'Abe', 'Child'), mk('P-SB', 'student', 'Ben', 'Child'),
+                    mk('P-SC', 'student', 'Cal', 'Child')]);
+  /* AND SIBLINGS, ON *"students should be able to see their parents and siblings likewise"*. Cal is
+     Anna's second child, so Abe and Cal see each other; Ben is Bea's, and the only links between
+     him and Anna's children are L3 (asked) and L4 (refused) — so until Abe says yes to Bea, Ben is
+     nobody's brother here. After he does, Abe and Ben share an accepted parent and both appear. */
   f.seed('family', [
     { link_id: 'L1', parent_id: 'P-PA', child_id: 'P-SA', state: 'accepted' },
+    { link_id: 'L5', parent_id: 'P-PA', child_id: 'P-SC', state: 'accepted' },
     { link_id: 'L2', parent_id: 'P-PB', child_id: 'P-SB', state: 'accepted' },
     { link_id: 'L3', parent_id: 'P-PB', child_id: 'P-SA', state: 'asked' },
     { link_id: 'L4', parent_id: 'P-PA', child_id: 'P-SB', state: 'refused' },
@@ -581,9 +604,10 @@ PEOPLE.forEach(p => {
   /* AND STAMPED WITH WHOSE IT IS — the phone draws nothing whose `familyFor` is not the signed-in id. */
   const stamp = (d, label, exp) => { if (S(d.familyFor) !== exp) bad.push('family: ' + label + ' was stamped familyFor [' + S(d.familyFor) + '] — wanted [' + exp + ']'); return d; };
   const S = v => (v === undefined || v === null) ? '' : String(v);
-  const sa = tok('P-SA'), pa = tok('P-PA'), pb = tok('P-PB');
-  if (sa.token) want('the student P-SA', fam(stamp(f.get({ person: 'P-SA', name: sa.name, token: sa.token }), 'P-SA', 'P-SA'), 'P-SA'), 'parent:P-PA');
-  if (pa.token) want('the parent P-PA', fam(stamp(f.get({ person: 'P-PA', name: pa.name, token: pa.token }), 'P-PA', 'P-PA'), 'P-PA'), 'child:P-SA');
+  const sa = tok('P-SA'), pa = tok('P-PA'), pb = tok('P-PB'), sc = tok('P-SC');
+  if (sa.token) want('the student P-SA', fam(stamp(f.get({ person: 'P-SA', name: sa.name, token: sa.token }), 'P-SA', 'P-SA'), 'P-SA'), 'parent:P-PA,sibling:P-SC');
+  if (sc.token) want('the student P-SC', fam(stamp(f.get({ token: sc.token }), 'P-SC', 'P-SC'), 'P-SC'), 'parent:P-PA,sibling:P-SA');
+  if (pa.token) want('the parent P-PA', fam(stamp(f.get({ person: 'P-PA', name: pa.name, token: pa.token }), 'P-PA', 'P-PA'), 'P-PA'), 'child:P-SA,child:P-SC');
   if (pb.token) want('the parent P-PB', fam(stamp(f.get({ person: 'P-PB', name: pb.name, token: pb.token }), 'P-PB', 'P-PB'), 'P-PB'), 'child:P-SB');
   want('a stranger whose URL names P-SA', fam(stamp(f.get({ person: 'P-SA', name: 'Abe Child' }), 'stranger', ''), 'stranger'), '');
   /* THE REQUEST THAT BECOMES A LINK goes to the child it names and nobody else: P-SA has Bea's
@@ -593,6 +617,9 @@ PEOPLE.forEach(p => {
   const sb = tok('P-SB');
   if (sa.token) want('the claims sent to P-SA', claimsOf(f.get({ token: sa.token })), 'Bea Parent');
   if (sb.token) want('the claims sent to P-SB', claimsOf(f.get({ token: sb.token })), '');
+  /* A CHILD OF ANOTHER FAMILY, AND AN ASKED LINK: Ben shares no ACCEPTED parent with Abe or Cal. */
+  if (sb.token) want('the student P-SB (only an asked and a refused link to the other family)',
+    fam(f.get({ token: sb.token }), 'P-SB'), 'parent:P-PB');
   if (pb.token) want('the claims sent to the parent who asked', claimsOf(f.get({ token: pb.token })), '');
   want('the claims sent to a stranger whose URL names P-SA', claimsOf(f.get({ person: 'P-SA', name: 'Abe Child' })), '');
   /* AND ANSWERING IT IS WHAT MAKES THE FAMILY: yes on L3 puts Bea on Abe's list, and Abe's claims
@@ -604,7 +631,8 @@ PEOPLE.forEach(p => {
     const yes = f.post({ action: 'answerClaim', token: sa.token, rowIndex: row, accept: true });
     if (!yes || !yes.success) bad.push('family: P-SA could not accept Bea\'s claim — ' + JSON.stringify(yes));
     const after = f.get({ token: sa.token });
-    want('P-SA after saying yes to Bea', fam(after, 'P-SA after yes'), 'parent:P-PA,parent:P-PB');
+    want('P-SA after saying yes to Bea', fam(after, 'P-SA after yes'), 'parent:P-PA,parent:P-PB,sibling:P-SB,sibling:P-SC');
+    if (sb.token) want('P-SB after Abe said yes to Bea', fam(f.get({ token: sb.token }), 'P-SB after yes'), 'parent:P-PB,sibling:P-SA');
     want('the claims left for P-SA after answering', claimsOf(after), '');
   }
 }
@@ -634,11 +662,83 @@ PEOPLE.forEach(p => {
   if (kitOld && kitOld.success) bad.push('no-email: the old PIN still works after the parent was sent a new one');
 }
 
+/* 12. A PROFILE PICTURE, THROUGH THE REAL `doPost`.
+   ASKED FOR AS *"everyone should have a profile picture selector widget in account settings"*. The
+   phone posts a square JPEG as a `data:` URL; `savePhoto` keeps it in Drive (`driveKeep_`, the helper
+   `addPost` uses) and writes the address into `photo`. A Drive stood in for here: a folder that
+   records what was put in it and whether it was shared, because a file only its owner can open is a
+   broken square on every other phone. Four answers: it lands on YOUR row; a request naming somebody
+   else still lands on yours; signed out is refused with nothing written; and something that is not a
+   picture is refused with nothing written. And `remove` blanks the cell. */
+let photos = 0;
+{
+  const f = backend();
+  f.seed('people', PEOPLE);
+  f.seed('config', [{ key: 'photos_folder', value: 'https://drive.google.com/drive/folders/FOLDER-photos-0001' }]);
+  f.ev(`(function () {
+    const made = [];
+    globalThis.__MADE = made;
+    DriveApp.Access = { ANYONE_WITH_LINK: 'ANYONE_WITH_LINK' };
+    DriveApp.Permission = { VIEW: 'VIEW' };
+    DriveApp.getFolderById = id => (id === 'FOLDER-photos-0001' ? { createFile: blob => {
+      const file = { id: 'FILE' + made.length + '-abcdefghijklmnopqrstu', shared: '', blob,
+        setSharing: (a, p) => { file.shared = a + '/' + p; return file; }, getId: () => file.id };
+      made.push(file); return file; } } : null);
+    Utilities.newBlob = (bytes, type, name) => ({ type, name, size: (bytes || []).length });
+  })()`);
+  const tk = {};
+  ['P-T1', 'P-C1'].forEach(pid => {
+    const p = PEOPLE.find(x => x.person_id === pid);
+    const d = f.post({ action: 'verifyLogin', email: p.email, pin: '0000' });
+    if (d && d.success) tk[pid] = d; else bad.push('photo: ' + pid + ' could not sign in — ' + JSON.stringify(d));
+  });
+  const JPEG = 'data:image/jpeg;base64,' + Buffer.from('a square face, 600 by 600').toString('base64');
+  if (tk['P-T1'] && tk['P-C1']) {
+    const parentWas = f.row('P-C1').photo;
+    const mine = f.post({ action: 'savePhoto', token: tk['P-T1'].token, name: tk['P-T1'].name,
+      personId: 'P-T1', data: JPEG });
+    const made = f.ev('__MADE');
+    if (!mine || !mine.success) bad.push('photo: a signed-in tutor could not save a picture — ' + JSON.stringify(mine));
+    else {
+      photos++;
+      if (!/^https:\/\/drive\.google\.com\/file\/d\/FILE0-/.test(mine.photo)) bad.push('photo: the reply carried "' + mine.photo + '", not the Drive address of the file it kept');
+      if (f.row('P-T1').photo !== mine.photo) bad.push('photo: the reply said ' + mine.photo + ' and the tutor\'s cell holds ' + f.row('P-T1').photo);
+      if (!made.length || made[0].shared !== 'ANYONE_WITH_LINK/VIEW') bad.push('photo: the file was kept but not shared by link, so it is a broken square on every other phone');
+      if (made.length && !/^photo-P-T1-\d+\.jpg$/.test(made[0].blob.name)) bad.push('photo: the file is called "' + (made[0].blob && made[0].blob.name) + '", wanted photo-P-T1-<time>.jpg');
+    }
+    /* SOMEBODY ELSE'S ID POSTED: the gate writes `personId` from the token, so the asker's own row. */
+    const other = f.post({ action: 'savePhoto', token: tk['P-T1'].token, name: 'Pat Parent', personId: 'P-C1', data: JPEG });
+    if (f.row('P-C1').photo !== parentWas) bad.push('photo: a tutor\'s savePhoto naming P-C1 changed the PARENT\'s picture');
+    if (!other || !other.success || f.row('P-T1').photo !== other.photo) bad.push('photo: a savePhoto naming somebody else did not land on the asker\'s own row');
+    else photos++;
+    /* SIGNED OUT: refused, and nothing written — not the cell, and no file in the folder. */
+    const files = f.ev('__MADE.length');
+    const out = f.post({ action: 'savePhoto', name: 'Ada Tutor', personId: 'P-T1', data: JPEG });
+    if (out && out.success) bad.push('photo: savePhoto with no token was allowed');
+    else if (out.writes || f.ev('__MADE.length') !== files) bad.push('photo: a refused savePhoto had already written a cell or a file');
+    /* NOT A PICTURE: refused by name, nothing kept. A link too — the picker never sends one. */
+    [['data:text/html;base64,' + Buffer.from('<b>hi</b>').toString('base64'), 'an HTML file'],
+     ['https://example.org/somebody-else.jpg', 'a link'], ['', 'nothing']].forEach(([data, what]) => {
+      const was = f.row('P-T1').photo, n = f.ev('__MADE.length');
+      const d = f.post({ action: 'savePhoto', token: tk['P-T1'].token, name: tk['P-T1'].name, personId: 'P-T1', data });
+      if (d && d.success) bad.push('photo: ' + what + ' was accepted as a profile picture');
+      if (f.row('P-T1').photo !== was || f.ev('__MADE.length') !== n) bad.push('photo: refusing ' + what + ' still wrote something');
+    });
+    /* REMOVE: the cell is blank, so the card draws the initial again. */
+    const gone = f.post({ action: 'savePhoto', token: tk['P-C1'].token, name: tk['P-C1'].name, personId: 'P-C1', remove: true });
+    if (!gone || !gone.success || f.row('P-C1').photo !== '') bad.push('photo: Remove did not blank the parent\'s picture — ' + JSON.stringify(gone));
+    else photos++;
+    if (f.row('P-T1').photo === '') bad.push('photo: the parent\'s Remove blanked the TUTOR\'s picture');
+  }
+  /* AND THE POSTS FOLDER IS THE FALLBACK, so the picker works with no new row in the config tab. */
+  if (!/getPostFolder\(\)/.test(String(f.ev('getPhotoFolder_')))) bad.push('photo: getPhotoFolder_ no longer falls back to the posts folder');
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
 console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
-  + '   handles randomised: ' + shuffles);
+  + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos);
 if (bad.length) {
   console.log('FAILED — a Save that does not stick, or writes what nobody asked, is the one on the screen that only exists to change what the sheet holds.');
   process.exit(1);
