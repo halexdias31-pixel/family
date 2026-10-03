@@ -164,7 +164,16 @@ function rcClone_(el, rules) {
         + (hint.getPropertyValue('-webkit-text-fill-color') || hint.color) + ';';
     }
     d.textContent = words;
-    d.setAttribute('style', rcStyle_(cs) + ink
+    /* `overflow: clip` WRITTEN, NOT COPIED. A control always clips its own text, and Chrome
+       reports a select's computed overflow as `visible` regardless of the stylesheet — so copied,
+       the picture let "Nobody yet — just open it" run across the next three columns where the
+       screen shows "Nobody yet …".
+
+       `clip` AND NOT `hidden`, measured: an inline-block with `overflow: hidden` takes its
+       baseline from its bottom edge rather than its text, and every label beside a control
+       dropped five pixels. `clip` cuts the paint without making a scroll box, so the baseline
+       stays on the words. */
+    d.setAttribute('style', rcStyle_(cs) + ink + 'overflow:clip;'
       + (el.tagName === 'TEXTAREA' ? 'white-space:pre-wrap;' : 'white-space:nowrap;'));
     return d;
   }

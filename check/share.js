@@ -51,6 +51,7 @@ const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
 /* A CHANNEL DIFFERENCE BELOW THIS IS A SHADE OF ANTI-ALIASING; ABOVE IT IS A DIFFERENT PIXEL. */
 const LOUD = 64;
 const MAX_PCT = 0.5;
+const MAX_BLOTS = 10;   /* see `compare`: 0–2 on a true picture, 30 and up with the wrong typeface */
 const TYPES = { '.css': 'text/css', '.js': 'text/javascript', '.json': 'application/json',
                 '.html': 'text/html', '.woff2': 'font/woff2', '.svg': 'image/svg+xml',
                 '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp' };
@@ -151,21 +152,32 @@ async function compare(page, a, b) {
       }
       return lo;
     };
-    const dc = document.createElement('canvas'); dc.width = x1 - x0; dc.height = y1 - y0;
-    const dg = dc.getContext('2d'); const dd = dg.createImageData(dc.width, dc.height);
+    /* ---------- AND WHERE THE WRONG PIXELS ARE, WHICH IS WHAT TELLS NOISE FROM A FAULT -----------
+       A PERCENTAGE CANNOT TELL THEM APART, measured: with the receipt's own typeface taken out of the
+       picture the form came out 0.37% wrong, under a threshold the true picture sits at 0.2% of. The
+       fallback monospace is close enough in shape that a page of slightly different glyphs adds up
+       to very little — but it is EVERYWHERE, in clumps, and the honest residue is single glyph stems
+       a pixel out, scattered. So the picture is cut into 6x6-pixel tiles and a tile with twelve or
+       more wrong pixels (a third of it) is a BLOT. Measured: 0–2 blots on a true picture at either
+       width, 30–80 with the fallback face; a missing row or a wrong answer is a run of them. */
+    const W = x1 - x0, H = y1 - y0, T = 6;
+    const tw = Math.ceil(W / T), cnt = new Uint16Array(tw * Math.ceil(H / T));
+    const dc = document.createElement('canvas'); dc.width = W; dc.height = H;
+    const dg = dc.getContext('2d'); const dd = dg.createImageData(W, H);
     let wrong = 0;
     for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) {
-      const i = (y * AW + x) * 4, k = ((y - y0) * (x1 - x0) + (x - x0)) * 4;
+      const i = (y * AW + x) * 4, k = ((y - y0) * W + (x - x0)) * 4;
       const bad = near(x, y) > LOUD;
-      if (bad) wrong++;
+      if (bad) { wrong++; cnt[(((y - y0) / T) | 0) * tw + (((x - x0) / T) | 0)]++; }
       /* THE DIFF A PERSON LOOKS AT: the picture dimmed to a quarter, and every pixel that is wrong
          even with the slack in solid red. */
       dd.data[k] = bad ? 255 : pa[i] >> 2; dd.data[k + 1] = bad ? 0 : pa[i + 1] >> 2;
       dd.data[k + 2] = bad ? 0 : pa[i + 2] >> 2; dd.data[k + 3] = 255;
     }
     dg.putImageData(dd, 0, 0);
-    const n = (x1 - x0) * (y1 - y0);
+    const n = W * H;
     return { aw: AW, ah: AH, bw: BW, bh: BH, dx: best.dx, dy: best.dy, wrong: wrong / n * 100,
+             blots: cnt.filter(v => v >= 12).length,
              any: best.any / n * 100, loud: best.loud / n * 100, diff: dc.toDataURL('image/png') };
   }, [a, b, LOUD]);
 }
@@ -266,10 +278,11 @@ async function compare(page, a, b) {
       const ew = Math.ceil(snap.w * 2), eh = Math.ceil(snap.h * 2);
       const sizeOk = Math.abs(cmp.aw - ew) <= 1 && Math.abs(cmp.ah - eh) <= 1;
       console.log(`  ${label}: ${cmp.aw}x${cmp.ah} PNG for a ${snap.w.toFixed(1)}x${snap.h.toFixed(1)} card, `
-        + `${(got.size / 1024).toFixed(0)} KB — ${cmp.wrong.toFixed(3)}% wrong `
+        + `${(got.size / 1024).toFixed(0)} KB — ${cmp.wrong.toFixed(3)}% wrong, ${cmp.blots} blots `
         + `(${cmp.loud.toFixed(2)}% strictly at (${cmp.dx},${cmp.dy}), ${cmp.any.toFixed(1)}% off by any shade)`);
       if (!sizeOk) bad.push(`${label}: the picture is ${cmp.aw}x${cmp.ah} and the card at 2x is ${ew}x${eh}`);
       if (cmp.wrong > MAX_PCT) bad.push(`${label}: ${cmp.wrong.toFixed(2)}% of the picture differs from the screen (over ${MAX_PCT}%)`);
+      if (cmp.blots > MAX_BLOTS) bad.push(`${label}: ${cmp.blots} blots — clumps of wrong pixels, where a true picture has 0 to 2 (over ${MAX_BLOTS})`);
       if (SHOTS) {
         const b64 = u => Buffer.from(u.split(',')[1], 'base64');
         fs.writeFileSync(path.join(SHOTS, `${pick}-${width}-shared.png`), b64(got.url));
