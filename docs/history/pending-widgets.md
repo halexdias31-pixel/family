@@ -65,3 +65,54 @@ points whoever builds it at `data/lego-sets.json`, where the shop's LEGO rows al
 asks that it is last in `widgetsOf_('tool')`, is headed LEGO trade-in, says "Not built yet" and has
 no control. Moving it above `calendar` with a button inside failed both halves. Screenshots at 320
 and 390 show the same card as Contest.
+
+### "add a boxing animation loading. like boxing in the ring 8 bit."
+
+**A new splash, `is-box`: the ring.** It is drawn from the side: three ropes (paper, coral, paper)
+between two corner posts with gold and blue pads, a mat, an apron, and a bell on a bracket over the
+middle. There are two boxers, both original and drawn pixel by pixel in `tools/boxing.py`: no real
+fighter, no game character, nothing on the apron. Gold has gold trunks and dark hair; blue has
+`--tag-level` trunks and gold hair; both wear `--coral` gloves. Every colour is an app token. The
+mat's colour is a `color-mix` of two tokens, named on `.bx-ring`.
+
+**The loop is 4.8s:**
+1. Both bob in their guard, off the beat from each other.
+2. Gold jabs and blue ducks under it, stepping back.
+3. Blue jabs and lands. Gold rocks back and a spark flashes on his face.
+4. Gold jabs and lands, and blue rocks back.
+5. The bell shakes and dings, and both go back to their corners.
+6. Both come out again to exactly where they began.
+
+**Eight-bit in how it moves, not only in how it looks.** Every animation is `step-end`, so a pose
+is swapped, never cross-faded. A boxer moves a whole pixel at a time; the generator writes a stop
+for every pixel of a step. The pixels are paths in one SVG with `shape-rendering: crispEdges`. The
+stage is `min(300px, 94vw)`, so a game pixel is three screen pixels and the ring is 300px wide at
+320. The bell swung by `rotate` in the first draft. A turned bell is off the pixel grid, with soft
+diagonal edges, so it now shakes a pixel each way. Transform and opacity only, one 4.8s clock.
+
+**Reduced motion holds one punch:** gold's jab landed, blue rocked back, the spark lit.
+
+**Registered like the others:** `is-box` in the picker's `kinds`, `#splash-box` in the hidden list
+and its show rule, and a `box` row in `data/settings/splashes.json` so the sheet can turn it off.
+`tools/boxing.py` prints the markup and the `@keyframes` (between `BOXING-FRAMES` markers in
+style.css), as `tools/blocks.py` does.
+
+**Checked.** `js/check-splash-loops.js` now lists `box`. That gives it the seam, one-clock,
+transform/opacity, reduced-motion and centring checks, plus `boxOwn_`, which checks:
+- every animation is `step-end`
+- at every quarter-percent of the loop each boxer shows exactly one drawing (no ghost, no blink)
+- while a spark is lit, the puncher is in the jab and the other is in the hit
+- three ropes, two posts, a bell, blue mirrored, and `crispEdges`
+
+The spark rule found a real fault on its first run. The sparks lit 0.02s and 0.04s before the hit
+poses, so the generator now starts each hit on its spark. Mutations, each red for its reason:
+`linear` on one pose, `crispEdges` removed, a jab keyframe showing at 0% (a ghost and a seam).
+`npm run splash -- is-box`: 31 of 31 frames moved, longest still 0ms. Frames were shot at 0.2,
+0.75, 1.65, 2.62, 3.3 and 4.1s at 320 and 390, plus the reduced-motion still, and looked at.
+
+**And a check that had been passing by accident.** `check-css.js` section 8 (every splash says
+@family.) split the markup at each `<div id="splash-`. The blocks splash spells the name one letter
+to a block, so it never holds the word. It passed only because it was last and its text ran on
+into `#splash-say`. With the ring after it, blocks went red for a fault that is not there. The rule
+now also reads the text as it shows (tags and spaces out), and the last splash is cut at
+`#splash-say`. Taking the ring's own `@family.` out now fails.
