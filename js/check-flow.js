@@ -414,6 +414,12 @@ function boot(opts) {
          built in the same evaluation can read it. The camera journey asks it to know that the load
          it is watching is the one that opens on the feed. */
       'AT: () => AT,' +
+      /* THE MESSAGES COLUMN'S STATE, SEEDED AS AN ANSWER JUST ARRIVED — the same five lets
+         `check/states.js` sets in a browser, and for the same reason they are set together: a seed
+         that leaves `DM_LAST` alone is one poll away from being replaced by the stub's empty answer.
+         Lets, so only a function built in this evaluation can write them (see `AT` above). */
+      'dmSeed: (msgs, pending) => { MESSAGES = msgs; MSG_PENDING = pending || []; DM_ASKED = true;' +
+      '  DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now(); },' +
       /* A landmark rasterised at one bearing, so the test above can compare four of them. */
       'tiles: (ring, bearing) => {' +
       '  if (typeof owWorld !== "function") return 0;' +
@@ -5329,6 +5335,82 @@ check('sharing a booking hands over a PNG of the receipt: share sheet, else down
     if (shared.length !== before + 1 || !((shared[shared.length - 1].files || [])[0] || {}).name)
       bad.push('the sheet\'s Share button did not share the picture');
   }
+  return bad;
+});
+
+/* ---------- THE CHAT, POLISHED: WHAT WAS NEW STAYS MARKED, AND THE COMPOSER FITS ------------------
+   *"also refine the chat widgetts. looks fine but refine please."* Three of the changes are
+   behaviour rather than paint, and this asks each of them of the real column in jsdom:
+
+     1. A MESSAGE THAT ARRIVED UNREAD IS OUTLINED ON THE DRAW THAT READS IT. `dmPages_` marks a
+        thread read before it renders it, so the outline never showed and the head's "2 new" sat
+        over nothing marked new. `fresh` is set by `markRead_`, so it must survive a second paint
+        (the poll's) and go when the server's next answer replaces the objects.
+     2. The composer's hint is "Message…" and the person's name is its `aria-label`.
+     3. A refusal's sentence is its own element, so it can sit on the bubble's side.
+   And the empty inbox names the door that starts a conversation, because the column has none. */
+check('chat: what arrived unread stays outlined, the composer hint fits, a refusal sits on its side', async () => {
+  const bad = [];
+  const { w, sent } = boot();
+  await wait(300);
+  const d = w.document;
+  w.__t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'] });
+  const seed = (list, pending) => w.__t.dmSeed(JSON.parse(JSON.stringify(list)), pending);
+  const m = (id, mine, read, body) => ({ id, mine, read, body, at: '2026-09-16 09:1' + id.slice(-1),
+    withId: 'P009', withName: 'Ada Tutor', fromName: mine ? 'You' : 'Ada Tutor' });
+  seed([m('m1', false, true, 'Tuesday?'), m('m2', true, true, 'Yes.'),
+        m('m3', false, false, 'Great.'), m('m4', false, false, 'Bring a ruler.')]);
+  try { w.__t.repaint(true); w.__t.go('dm', false, true); } catch (e) { return ['opening Messages threw: ' + e.message]; }
+  await wait(80);
+  const col = d.getElementById('s-dm');
+  if (!col || !col.querySelector('.msg-bub')) return ['the Messages column drew no bubbles from a seeded thread: '
+    + (col ? col.textContent.replace(/\s+/g, ' ').trim().slice(0, 100) : 'no #s-dm')];
+  const outlined = () => [].map.call(col.querySelectorAll('.msg.unread .msg-body-text'), p => p.textContent.trim());
+  const head = (col.querySelector('.dm-new') || {}).textContent || '';
+  if (!/2 new/.test(head)) bad.push('the head says "' + head + '", not "2 new"');
+  if (JSON.stringify(outlined()) !== JSON.stringify(['Great.', 'Bring a ruler.'])) {
+    bad.push('the two messages that arrived unread are not the ones outlined — outlined: ' + JSON.stringify(outlined()));
+  }
+  const asked = sent.filter(b => b.action === 'readMessage').map(b => b.messageId).sort();
+  if (JSON.stringify(asked) !== '["m3","m4"]') bad.push('readMessage was asked for ' + JSON.stringify(asked) + ', not m3 and m4');
+  /* THE POLL'S REPAINT: the outline is "new since you arrived", so a second draw keeps it. */
+  w.__t.repaint(true);
+  await wait(30);
+  if (outlined().length !== 2) bad.push('a second paint dropped the outline — it should last until the server answers again');
+  /* THE SERVER'S NEXT ANSWER: the same messages, now read, as fresh objects. Nothing is news. */
+  seed([m('m1', false, true, 'Tuesday?'), m('m2', true, true, 'Yes.'),
+        m('m3', false, true, 'Great.'), m('m4', false, true, 'Bring a ruler.')]);
+  w.__t.repaint(true);
+  await wait(30);
+  if (outlined().length) bad.push('the outline outlived the server saying the messages were read: ' + JSON.stringify(outlined()));
+
+  const box = col.querySelector('.msg-form .msg-text');
+  if (!box) bad.push('the thread has no composer');
+  else {
+    if (box.getAttribute('placeholder') !== 'Message…') bad.push('the composer\'s hint is "' + box.getAttribute('placeholder') + '", not "Message…"');
+    if (!/Ada Tutor/.test(box.getAttribute('aria-label') || '')) bad.push('the composer does not name who it writes to in its aria-label');
+  }
+
+  /* A REFUSAL: its sentence in its own element, beside Retry and Remove. */
+  seed([m('m1', false, true, 'Tuesday?')], [{ tmp: 'tmpX', mine: true, read: true, state: 'failed',
+    err: 'One message every five minutes.', withId: 'P009', withName: 'Ada Tutor', fromName: 'Test Admin',
+    body: 'Here it is', atMs: Date.now(), attachments: [], queue: [] }]);
+  w.__t.repaint(true);
+  await wait(30);
+  const fail = col.querySelector('.msg.is-failed + .msg-fail, .msg.is-failed .msg-fail');
+  if (!fail) bad.push('a failed send drew no refusal under its bubble');
+  else {
+    const why = fail.querySelector('.msg-fail-why');
+    if (!why || !/five minutes/.test(why.textContent)) bad.push('the refusal\'s sentence is not an element of its own');
+    if (!fail.querySelector('[data-do="msg-retry"]') || !fail.querySelector('[data-do="msg-drop"]')) bad.push('the refusal lost Retry or Remove');
+  }
+
+  /* AND AN EMPTY INBOX SAYS HOW ONE STARTS. */
+  seed([]);
+  w.__t.repaint(true);
+  await wait(30);
+  const empty = (col.querySelector('.empty') || {}).textContent || '';
+  if (!/press Message/.test(empty)) bad.push('the empty inbox reads "' + empty.replace(/\s+/g, ' ').trim() + '" and does not say how to start a conversation');
   return bad;
 });
 
