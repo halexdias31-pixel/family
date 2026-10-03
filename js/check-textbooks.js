@@ -226,6 +226,18 @@ rows.forEach((r, line) => {
       if (left) fail.push(where + ' "' + i.text.slice(0, 60) + '" draws a ' + (left === '^' ? 'caret' : 'slash')
         + ' as plain text — typeset_ could not read both sides. Bracket a multi-word operand: (class width)');
     });
+    /* AND A FRACTION THAT CUT A PHRASE IN HALF. `frequency / class width` IS set — as `frequency`
+       over `class`, with `width` left standing after the bar — because `typeset_` takes the TERM
+       touching the slash and a term ends at a space. Nothing comes out unset, so the rule above
+       passes it; this is the one that sees it. A formula only: a worked line is prose, and "the
+       median at n/2 and the quartiles" is a fraction followed by a word on purpose. */
+    f.forEach(i => {
+      const html = tbMath(i.text);
+      if (/<\/span><\/span> [A-Za-z]/.test(html) || /[A-Za-z;] <span class="frac">/.test(html)) {
+        fail.push(where + ' formula "' + i.text.slice(0, 60) + '" stacks one word of a phrase — '
+          + 'typeset_ takes the term touching the slash, so bracket the whole operand: (class width)');
+      }
+    });
   }
 
   String(r.topics || '').split(',').map(t => t.trim()).filter(Boolean).forEach(t => {
