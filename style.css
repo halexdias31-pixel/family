@@ -2388,6 +2388,20 @@ button.text-drop { color: var(--bad); }
 .dot.exam     { background: var(--bad); }     /* the day that matters most */
 .dot.mock     { background: var(--dim); }     /* the same shape of day, lower stakes */
 .dot.birthday { background: var(--green); }
+/* THE DATES THE CALENDAR LEARNED TO SHOW — sessions, terms, half terms, bank holidays, closed days,
+   events. Existing tokens, one each, so no two kinds share a dot; the key under the month says which
+   is which, because nine colours is past what anybody remembers. */
+.dot.session  { background: var(--tag-level); }
+.dot.term     { background: var(--tag-board); }
+.dot.halfterm { background: var(--tag-type); }
+.dot.bank     { background: var(--tag-sitting); }
+.dot.closed   { background: var(--tag-topic); }
+.dot.festive  { background: var(--pink); }
+/* THE KEY: small, quiet, wrapping — a legend under the month, not a second grid. */
+.cal-key { display: flex; flex-wrap: wrap; gap: .25rem .7rem; margin-top: .45rem;
+           font: 400 .66rem/1.3 var(--mono); color: var(--dim); }
+.cal-key span { display: inline-flex; align-items: center; gap: .3rem; }
+.cal-key .dot { width: 6px; height: 6px; }
 /* Today is already gold, so its dots have to be readable against it. */
 .cal .cal-today .dot { background: #000; opacity: .55; }
 .row .dot { margin-right: .35rem; vertical-align: middle; }

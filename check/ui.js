@@ -281,6 +281,15 @@ const ACCEPTED_TAP = [
   + 'because those boards are seven and eight across. What makes it liveable here is that a tap on '
   + 'the wrong square costs nothing: a tile you have just put down comes straight back off with '
   + 'another tap, and nothing is committed until Play.' },
+  { cls: /^cal-d\b/, why:
+    'A MONTH IS SEVEN COLUMNS AND EVERY DAY OF IT CAN BE TAPPED NOW. Seven 44px days need 308px of a '
+  + 'card whose inside is about 210px at 320; measured, a day is 29x31 at 320, 37x34 at 390 and 39x36 '
+  + 'at 768. Before the calendar learned sessions, terms, bank holidays and events, a day was '
+  + 'pressable only when an exam or a birthday fell on it, and the fixture had neither, so nothing '
+  + 'measured these. The alternatives were worse: a week at a time loses the month a family plans '
+  + 'by, and a list of dates is what the calendar was asked to replace. What makes it liveable is '
+  + 'that a tap on the wrong day costs nothing: it opens a sheet that says what is on that day and '
+  + 'is closed again with nothing changed.' },
   { cls: /^ws-c\b/, why:
     'A WORD SEARCH IS A GRID OF LETTERS AND EVERY LETTER IS A PLACE A WORD CAN START OR END. Ten 44px '
   + 'cells need 440px and the narrowest phone here is 320; eight need 352. Measured at 320x568 a ten-letter row '

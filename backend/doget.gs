@@ -1389,6 +1389,30 @@ function doGet(e) {
         });
       });
 
+      /* ---------- AND THE TWO EXAM DATES A STUDENT KEEPS ON THEIR OWN PAGE ---------------------
+         `exam_small_date` AND `exam_big_date` ARE WRITTEN IN SETTINGS (history 174) and were read by
+         the Journey card alone — while the Calendar, the one surface that is ABOUT dates, read only
+         this tab, which nothing on the phone writes. Two places for one fact, and the Calendar read
+         the empty one. So the two cells join the list here, under the same `maySee` (the student,
+         their family, an admin), as a mock and an exam. NO DUPLICATES: a date the tab already holds
+         for that person is the tab's row — it has the subject and the board — and the cell adds
+         nothing. */
+      const examOn = {};
+      payload.exams.forEach(x => { examOn[S(x.personId) + '|' + S(x.date)] = true; });
+      read(TAB.people).rows.forEach(r => {
+        if (!maySee(r.person_id)) return;
+        [['exam_small_date', 'mock', 'Small exam'], ['exam_big_date', 'exam', 'Big exam']].forEach(([col, kind, label]) => {
+          const d = sheetDate(r[col]);
+          if (!d) return;
+          const k = S(r.person_id) + '|' + fmtDate(d);
+          if (examOn[k]) return;
+          examOn[k] = true;
+          payload.exams.push({ id: S(r.person_id) + ':' + col, personId: S(r.person_id),
+            who: personDisplayName(r), subject: '', label: label, date: fmtDate(d), kind: kind,
+            board: '', rowIndex: 0 });
+        });
+      });
+
       read(TAB.people).rows.forEach(r => {
         const d = sheetDate(r.date_of_birth);
         if (!d) return;

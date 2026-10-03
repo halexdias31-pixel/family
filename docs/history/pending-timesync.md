@@ -102,3 +102,43 @@ holds your booked sessions locked, is saved to your account, and Your week is go
 seeds the account when signed in. The teaching-hours state expects 70 cells (7 × 9–18) now. Mutations:
 no sessions drawn; saving to the device while signed in; no carry-up; the weekend rule; the server's
 shape check; the sign-in reply field; `saveTimetable` opened to `anyone` — each red, green restored.
+
+### 4. The Calendar shows every date the app knows
+
+It drew the exams tab (which nothing on the phone writes) and birthdays. `calendarMarks` now also
+reads, and never stores: **your sessions** on their own session dates (`myJobs_`, `jobDates_` — a
+bank holiday or half term is a day without one, and a stranger's open session is not yours);
+**terms** (first and last day) and **half terms** (every day; a long holiday its first and last) off
+`DATA.intervals`; **bank holidays and closed days** off `DATA.closures`, the list the booking steps
+over; **festive events** off `DATA.festive`; and **exams**. A student's `exam_small_date` and
+`exam_big_date` are merged into `DATA.exams` by `doGet` (a mock and an exam, under the tab's own
+`maySee`), skipping a date the tab already holds for that person — so the Calendar reads one list
+and the two Settings dates are no longer a second place the Calendar ignored.
+
+`CAL_KINDS` is the order and the words for the dots, the **key** drawn under the month (only the
+kinds on that month) and the sheet a **tap on a day** opens. Dot colours are existing tokens, one per
+kind.
+
+Checked: `check-flow.js` *the calendar marks sessions, terms, half terms, bank holidays, events and
+exams, with a key* (eleven days asked of the real `calendarMarks`, the key's words, the drawn dot and
+the tap); `check-profile.js` §17 (the student's two dates reach their own payload once each, the
+admin's, and not an unrelated parent's); `check/states.js` *a calendar with every kind of date*.
+Mutations: everybody's jobs for `myJobs_`; closures skipped; the key not drawn; half terms read as
+terms; the duplicate guard in `doGet` removed — each red, green restored.
+
+### What the owner should confirm
+
+- **9 to 6 everywhere.** `AVAIL_HOURS` dropped seven o'clock to match the booking grid the owner set
+  to *"9-6"*. A tutor who had ticked 19:00 loses that tick at their next save (it was never bookable).
+- **Festive events close teaching.** An active, ready festive row (venue and price set) is a closed
+  day for sessions; an observance nobody switched on is not. INSET days are typed on the holidays tab
+  with `kind` = `inset` (or `closed`); a moved or extra bank holiday is a `bank` row there.
+- **Busy means running.** The grid and card grey hours a tutor teaches today; a session booked for
+  next term does not grey this week's grid, but `createJob` refuses a booking whose own weeks clash.
+- **Unpaid requests** with a day and time appear in the Timetable and Calendar as your sessions (the
+  old `Your week` drew them too); a cancelled one does not.
+- **Carry-up** takes the week stored under the signed-in person's own key on that phone only — not a
+  signed-out week on a shared phone.
+
+Deploy: `backend/` must be pulled (`saveTimetable`, `closures`, the `createJob` refusal, the exam
+merge, `AVAIL_HOURS`), and `ensureSchema()` run once for the new `timetable` column on `people`.

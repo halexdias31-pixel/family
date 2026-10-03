@@ -371,11 +371,37 @@ on('timer-set', el => {
 /* `MONTHS` was a second copy of the twelve month names, identical to `MONTH_NAMES` in data.js.
    Two lists of the same twelve words is two places to fix a typo and one of them will be missed. */
 
+/* ---------- EVERY DATE THE APP KNOWS, NOT TWO KINDS OF IT ------------------------------------------
+   ASKED FOR as part of *"calander and time table and availability ... it seems they clash"*. This drew
+   the exams tab and birthdays and nothing else — so a family's sessions, the half term, the bank
+   holiday the booking now skips and the festive afternoon they had been offered were all somewhere
+   else in the app and none of them here, on the one surface that is ABOUT dates. Every kind below is
+   READ, from the place it is written, and none of them is stored by the calendar:
+
+     · YOUR SESSIONS — the session dates of your own jobs (`myJobs_`, `jobDates_`), so a bank holiday
+       or a half term is simply a day without one.
+     · TERMS AND HALF TERMS — `DATA.intervals`: a term's first and last day, every day of a half
+       term, and the first and last day of a longer holiday (six weeks of dots says nothing).
+     · BANK HOLIDAYS AND CLOSED DAYS — `DATA.closures`, the same list `computeSessionDates` steps over.
+     · FESTIVE EVENTS — `DATA.festive`, what is on offer.
+     · EXAMS — `DATA.exams`, which carries a student's own two dates from Settings now as well as the
+       tab's rows, merged on the server with no duplicates (see `doGet`).
+
+   A KIND IS ONE DOT AND ONE LINE OF THE KEY. `CAL_KINDS` is the order and the words, read by the
+   dots, the key under the month and the sheet a tap opens — one list, three readers. */
+const CAL_KINDS = [
+  ['session', 'Session'], ['exam', 'Exam'], ['mock', 'Mock'], ['term', 'Term'],
+  ['halfterm', 'Half term'], ['bank', 'Bank holiday'], ['closed', 'Closed'],
+  ['festive', 'Event'], ['birthday', 'Birthday'],
+];
+const calKindSaid_ = k => (CAL_KINDS.find(x => x[0] === k) || [k, k])[1];
+
 /* Everything that happens, keyed by day of the month. Built once per draw rather than searched
    per cell: forty-two cells against two lists is forty-two scans of them to shade six squares. */
 function calendarMarks(y, m) {
   const out = {};
   const put = (d, mark) => { (out[d] = out[d] || []).push(mark); };
+  const inMonth = d => d && d.getFullYear() === y && d.getMonth() === m;
 
   (DATA.exams || []).forEach(x => {
     const d = parseDMY(x.date);
@@ -392,7 +418,66 @@ function calendarMarks(y, m) {
     put(Number(b.day), { kind: 'birthday', label: b.name + '’s birthday', who: b.name });
   });
 
+  /* YOUR SESSIONS, ON THEIR OWN DATES. A job with no dates yet is not on a calendar: it has a
+     weekday and no day, and the Timetable is where a standing week is drawn. */
+  if (typeof USER !== 'undefined' && USER && typeof myJobs_ === 'function' && typeof jobDates_ === 'function') {
+    myJobs_().forEach(j => {
+      if (/cancel/i.test(String(j.status || ''))) return;
+      jobDates_(j).forEach(d => {
+        if (!inMonth(d)) return;
+        put(d.getDate(), { kind: 'session',
+          label: [j.subject || 'Session', j.time].filter(Boolean).join(' · '),
+          who: j.location || '' });
+      });
+    });
+  }
+
+  /* THE TERMS. A term is two dates that matter — it starts, it ends — and a dot on every weekday of
+     it would cover the month; a half term is a week off and every day of it is the news; a longer
+     holiday is its first and last day, for the term's reason. */
+  const each = (a, b, fn) => {
+    const d = new Date(a);
+    for (let i = 0; d <= b && i < 400; i++) { fn(new Date(d)); d.setDate(d.getDate() + 1); }
+  };
+  (typeof intervals_ === 'function' ? intervals_() : (DATA.intervals || [])).forEach(x => {
+    const a = parseDMY(x.startDate), b = parseDMY(x.endDate);
+    if (!a || !b) return;
+    const name = x.label || x.term || '';
+    if (x.kind === 'half-term') {
+      each(a, b, d => { if (inMonth(d)) put(d.getDate(), { kind: 'halfterm', label: name, who: '' }); });
+    } else {
+      const kind = x.kind === 'holiday' ? 'halfterm' : 'term';
+      if (inMonth(a)) put(a.getDate(), { kind, label: name + ' starts', who: '' });
+      if (inMonth(b)) put(b.getDate(), { kind, label: name + ' ends', who: '' });
+    }
+  });
+
+  /* BANK HOLIDAYS AND CLOSED DAYS — the list the booking steps over. A festive one is drawn below
+     from `DATA.festive`, which says more about it. */
+  (DATA.closures || []).forEach(c => {
+    const d = parseDMY(c && c.date);
+    if (!inMonth(d) || c.kind === 'festive') return;
+    put(d.getDate(), { kind: c.kind === 'bank' ? 'bank' : 'closed', label: c.name || 'Closed', who: '' });
+  });
+
+  (DATA.festive || []).forEach(f => {
+    const d = parseDMY(f && f.date);
+    if (!inMonth(d)) return;
+    put(d.getDate(), { kind: 'festive', label: f.name || f.holiday || 'An event', who: f.venue || '' });
+  });
+
   return out;
+}
+
+/* THE KEY, UNDER THE MONTH: one dot and one word for every kind that is on THIS month, in
+   `CAL_KINDS`' order. Only what is drawn, because a key of nine for a month holding two is a key
+   nobody reads. */
+function calKey_(marks) {
+  const on = {};
+  Object.keys(marks).forEach(d => marks[d].forEach(x => { on[x.kind] = 1; }));
+  const kinds = CAL_KINDS.filter(([k]) => on[k]);
+  return kinds.length ? `<div class="cal-key">${kinds.map(([k, said]) =>
+    `<span><i class="dot ${k}"></i>${esc(said)}</span>`).join('')}</div>` : '';
 }
 
 function initCalendar() {
@@ -421,13 +506,22 @@ function drawCalendar() {
     const on = marks[d] || [];
     /* A DOT PER KIND, not per event. Three exams on one day is one exam dot — the square is a few
        millimetres across, and what it has to say is "something is here". */
-    const kinds = uniq(on.map(x => x.kind));
+    const kinds = CAL_KINDS.map(k => k[0]).filter(k => on.some(x => x.kind === k));
     cells.push(`<span class="cal-d${isToday ? ' cal-today' : ''}${on.length ? ' has' : ''}"
         ${on.length ? `data-do="cal-day" data-d="${d}"` : ''}>${d}${
       kinds.length ? `<span class="cal-dots">${
         kinds.map(k => `<i class="dot ${k}"></i>`).join('')}</span>` : ''}</span>`);
   }
   host.innerHTML = cells.join('');
+  /* THE KEY IS ITS OWN ELEMENT AFTER THE GRID, not a cell of it: `.cal` is a seven-column grid and
+     anything put inside it would be laid out as days. Found or made beside `#cal-body`. */
+  let key = host.parentNode && host.parentNode.querySelector('.cal-key-box');
+  if (!key && host.parentNode) {
+    key = document.createElement('div');
+    key.className = 'cal-key-box';
+    host.parentNode.insertBefore(key, host.nextSibling);
+  }
+  if (key) key.innerHTML = calKey_(marks);
 }
 
 /* CAL_VIEW is filled by initCalendar, which `wake` runs before the screen can be touched — so
@@ -451,7 +545,8 @@ on('cal-fwd', () => {
    is a mark whose meaning you have to remember. */
 on('cal-day', el => {
   const d = Number(el.dataset.d);
-  const on = calendarMarks(calView().y, CAL_VIEW.m)[d] || [];
+  const order = k => CAL_KINDS.findIndex(x => x[0] === k);
+  const on = (calendarMarks(calView().y, CAL_VIEW.m)[d] || []).slice().sort((a, b) => order(a.kind) - order(b.kind));
   openSheet(d + ' ' + MONTH_NAMES[CAL_VIEW.m], on.map(x => `
     ${/* NOT A LABEL AND A VALUE, which is why it is written out rather than built by `row`.
           The label carries a coloured dot and the value carries a second line naming whose exam it
@@ -459,8 +554,7 @@ on('cal-day', el => {
           that formats nothing, and every caller would be passing it the whole row anyway.
           Four shapes cover a sheet; the fifth is where a shared piece stops being shared. */''}
     <div class="row">
-      <span class="k"><i class="dot ${x.kind}"></i> ${esc(
-        x.kind === 'birthday' ? 'Birthday' : x.kind === 'mock' ? 'Mock' : 'Exam')}</span>
+      <span class="k"><i class="dot ${x.kind}"></i> ${esc(calKindSaid_(x.kind))}</span>
       <span class="v">${mark(x.label)}${x.who && x.kind !== 'birthday'
         ? `<br><span class="faint">${esc(x.who)}</span>` : ''}</span>
     </div>`).join(''));

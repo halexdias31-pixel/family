@@ -987,12 +987,36 @@ let timetables = 0;
   }
 }
 
+/* 17. A STUDENT'S TWO EXAM DATES REACH THE CALENDAR, ONCE EACH, THROUGH THE REAL `doGet`.
+   `exam_small_date` and `exam_big_date` are written in Settings and the Calendar read only the exams
+   tab. `doGet` merges the two cells into `exams` now — a mock and an exam — under the tab's own
+   `maySee`, and a date the tab already holds for that person is the tab's row, not a second dot. */
+let examDates = 0;
+{
+  const f = backend();
+  f.seed('people', PEOPLE);
+  f.seed('exams', [{ exam_id: 'X1', person_id: 'P-S1', subject: 'Maths', label: 'Paper 1', exam_date: '10/06/2027', kind: 'exam', active: 'TRUE' }]);
+  const tok = pid => f.post({ action: 'verifyLogin', email: PEOPLE.find(p => p.person_id === pid).email, pin: '0000' });
+  const s = tok('P-S1'), c = tok('P-C1'), a = tok('P-A1');
+  const of = (t, pid) => (f.get({ token: t.token }).exams || []).filter(x => x.personId === pid)
+    .map(x => x.date + ' ' + x.kind + ' ' + (x.subject || x.label)).sort().join(', ');
+  const rule = (ok, said) => { if (ok) examDates++; else bad.push('exam dates: ' + said); };
+  if (s && s.success && c && c.success && a && a.success) {
+    const mine = of(s, 'P-S1');
+    rule(mine === '10/06/2027 exam Maths, 14/05/2027 mock Small exam',
+      'the student\'s own calendar holds [' + mine + '], wanted the tab\'s Maths on 10/06 once and the Small exam on 14/05');
+    rule(of(a, 'P-S1') === mine, 'the admin is not sent the student\'s exam dates');
+    rule(of(c, 'P-S1') === '', 'a parent who is not the student\'s family was sent their exam dates: ' + of(c, 'P-S1'));
+  } else bad.push('exam dates: somebody could not sign in');
+}
+
 console.log(bad.length ? 'WRONG (' + bad.length + ')' : 'WRONG (0)');
 bad.forEach(x => console.log('  ' + x));
 console.log('');
 console.log('people: ' + PEOPLE.length + '   saves: ' + saves + '   changes read back after signing in again: ' + rounds
   + '   handles randomised: ' + shuffles + '   pictures saved: ' + photos + '   role rules held: ' + roleRules
-  + '   closed days sent: ' + closed + '   tutor-hours rules held: ' + hoursRules + '   timetable rules held: ' + timetables);
+  + '   closed days sent: ' + closed + '   tutor-hours rules held: ' + hoursRules + '   timetable rules held: ' + timetables
+  + '   exam-date rules held: ' + examDates);
 if (bad.length) {
   console.log('FAILED — a Save that does not stick, or writes what nobody asked, is the one on the screen that only exists to change what the sheet holds.');
   process.exit(1);

@@ -5577,6 +5577,62 @@ check('a closed day inside a term is stepped over, and the price counts the sess
   return bad;
 });
 
+/* ---------- THE CALENDAR SHOWS EVERY DATE THE APP KNOWS ------------------------------------------------
+   It drew exams and birthdays and nothing else. Now: your sessions on their own dates (and nobody
+   else's), a term's first day, every day of a half term, a bank holiday off `DATA.closures`, a festive
+   event, and an exam — each a dot of its own kind, a key under the month naming only the kinds on
+   it, and a tap on a day listing what is on it. Seeded in THIS month so the drawn widget shows it. */
+check('the calendar marks sessions, terms, half terms, bank holidays, events and exams, with a key', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, d = w.document;
+  if (typeof w.calendarMarks !== 'function' || typeof w.calKey_ !== 'function') {
+    return ['calendarMarks / calKey_ are not reachable, so the calendar was NOT checked — not a pass'];
+  }
+  const now = new Date(), y = now.getFullYear(), m = now.getMonth();
+  const on = n => String(n).padStart(2, '0') + '/' + String(m + 1).padStart(2, '0') + '/' + y;
+  const D = t.DATA();
+  D.liveJobs = D.jobs = [
+    { id: 'J-CAL', jobId: 'J-CAL', subject: 'Maths', time: '16:00', day: 'Monday', client: 'Rasa Poliksa', tutor: 'GeorgePovey',
+      status: 'active', slots: [], dates: [on(3), on(17)].join(', '), location: 'Mitcham library' },
+    { id: 'J-NOT', jobId: 'J-NOT', subject: 'Chemistry', time: '10:00', day: 'Tuesday', client: 'Somebody Else', tutor: 'Sasha Matola',
+      status: 'active', slots: [], dates: on(4) },
+  ];
+  D.intervals = [
+    { term: 'Autumn 2', label: 'Autumn 2', kind: 'term', startDate: on(5), endDate: '19/12/' + (y + 1) },
+    { term: 'October Half Term', label: 'October Half Term', kind: 'half-term', startDate: on(20), endDate: on(22) },
+  ];
+  D.closures = [{ date: on(8), name: 'Staff training', kind: 'inset' }, { date: on(9), name: 'Early May bank holiday', kind: 'bank' }];
+  D.festive = [{ id: 'H1', name: 'Pumpkin carving', holiday: 'Halloween', venue: 'Colliers Wood Library', date: on(25) }];
+  D.exams = [{ personId: 'P1', who: 'Rasa Poliksa', subject: '', label: 'Small exam', date: on(12), kind: 'mock' }];
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'client', roles: ['client'] });
+  const mk = w.calendarMarks(y, m);
+  const kinds = n => (mk[n] || []).map(x => x.kind).sort().join(',');
+  const bad = [];
+  [[3, 'session'], [17, 'session'], [4, ''], [5, 'term'], [20, 'halfterm'], [21, 'halfterm'], [22, 'halfterm'],
+   [8, 'closed'], [9, 'bank'], [25, 'festive'], [12, 'mock']].forEach(([n, want]) => {
+    if (kinds(n) !== want) bad.push('day ' + n + ' carries [' + kinds(n) + '], wanted [' + want + ']');
+  });
+  const key = d.createElement('div');
+  key.innerHTML = w.calKey_(mk);
+  const said = [...key.querySelectorAll('.cal-key span')].map(s => s.textContent.trim()).join(', ');
+  if (said !== 'Session, Mock, Term, Half term, Bank holiday, Closed, Event') bad.push('the key reads [' + said + ']');
+  /* DRAWN, AND A TAP ON A DAY LISTS IT. */
+  try { t.go('tools', false, true); } catch (e) { return bad.concat('go("tools") threw: ' + e.message); }
+  await wait(300);
+  w.initCalendar();
+  const cell = d.querySelector('#cal-body .cal-d[data-d="3"]');
+  if (!cell || !cell.querySelector('.dot.session')) bad.push('the 3rd is not drawn with a session dot');
+  if (!d.querySelector('.cal-key-box .cal-key')) bad.push('no key is drawn under the month');
+  if (cell) {
+    t.ACTIONS['cal-day'](cell);
+    await wait(50);
+    const sheet = d.getElementById('sheet');
+    if (!sheet || !/Session/.test(sheet.textContent) || !/Maths/.test(sheet.textContent)) bad.push('tapping the 3rd does not list the Maths session');
+  }
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;
