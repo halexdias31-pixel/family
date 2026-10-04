@@ -194,7 +194,11 @@ function kpPad_() {
 
 function kpOpen_(inp) {
   if (!inp || inp.getAttribute('inputmode') !== 'none') return;
+  /* FROM ONE BOX STRAIGHT TO ANOTHER, the one left behind is redrawn without its caret — two blinking
+     carets on one screen is two places the next key might go. */
+  const was = KP_AT;
   KP_AT = inp;
+  if (was && was !== inp) kpRender_(was);
   const pad = kpPad_();
   pad.hidden = false;
   document.documentElement.classList.add('kp-up');
@@ -343,11 +347,21 @@ document.addEventListener('focusout', e => {
   }, 0);
 });
 /* A TYPED KEY AND A MOVED CARET REDRAW THE DRAWING. `input` covers what changed the value; `keyup`
-   and `click` cover a laptop's arrow keys and a click that moved the caret without changing a thing. */
-['input', 'keyup', 'click'].forEach(ev => document.addEventListener(ev, e => {
+   covers a laptop's arrow keys. */
+['input', 'keyup'].forEach(ev => document.addEventListener(ev, e => {
   const t = e.target;
   if (t && t.classList && t.classList.contains('kp-in')) kpRender_(t);
 }));
+/* A TAP ON A BOX THAT ALREADY HAS THE FOCUS puts the pad back if ✓ put it away, and the caret back at
+   the end — the tap landed in the input's invisible text, which is laid out nothing like the drawing,
+   so wherever it put the caret is somewhere the student cannot see. */
+document.addEventListener('click', e => {
+  const t = e.target;
+  if (!t || !t.classList || !t.classList.contains('kp-in') || t.getAttribute('inputmode') !== 'none') return;
+  if (KP_AT !== t) return kpOpen_(t);
+  try { t.setSelectionRange(t.value.length, t.value.length); } catch (err) {}
+  kpRender_(t);
+});
 /* AND ENTER IS ✓, on a keyboard that has one. */
 document.addEventListener('keydown', e => {
   const t = e.target;
