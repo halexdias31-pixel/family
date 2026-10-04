@@ -3453,7 +3453,7 @@ function practicalCard_(x) {
      fourteen, in a lab" are different answers and only one of them is permanent. */
   const off = p.excluded;
   return `<div class="card prac${off ? ' is-off' : ''}">
-    <div class="prac-head">
+    <div class="fc-head">
       <h3>${esc(x.name)}</h3>
       ${/* ---------- WHAT KIND OF AFTERNOON THIS IS, BESIDE WHETHER A BOARD DEMANDS IT ----------
             ASKED FOR AS "differentiate between a science experiment and a contraption/art and
@@ -3462,7 +3462,7 @@ function practicalCard_(x) {
             asks for it*, which is two facts in four words.
 
             NEITHER TYPE IS GOLD, DELIBERATELY. Gold in this app means one thing — the answer to
-            the yes/no question is yes — and `.prac-flag.is-req`'s own note says an "Extra" in the
+            the yes/no question is yes — and `.fc-flag.is-req`'s own note says an "Extra" in the
             same colour would make the distinction decorative. Colouring `Build` would put a second
             meaning on the one colour that currently has exactly one, on the same row, an inch
             apart. The word is unambiguous and needs no help.
@@ -3470,27 +3470,27 @@ function practicalCard_(x) {
             THE RAW CELL IS DRAWN FOR A VALUE THE MAP HAS NEVER HEARD OF, which is `tileIcon_`'s
             rule: visibly wrong beats invisible. `check-practicals.js` refuses an unknown value at
             the file, so this is what a phone running an older build does, not what ships. */''}
-      ${/* BOTH FLAGS IN ONE BOX, AND THE MEASUREMENT IS WHY. `.prac-head` is
+      ${/* BOTH FLAGS IN ONE BOX, AND THE MEASUREMENT IS WHY. `.fc-head` is
             `justify-content: space-between`, which distributes the free space between EVERY child
             — so three of them put `Build` hard against the title and `Extra` hard against the
             right edge with fifty-nine pixels of nothing between two chips that belong together.
             Measured at 320px before it was written: `is-type [12→82]`, `is-req [141→256]`. One
             wrapper takes the head back to two children, so the rule keeps meaning what it meant,
             and the pair wraps under a long title as a pair. */''}
-      <span class="prac-flags">${p.practicalType ? `<span class="prac-flag is-type">${
+      <span class="fc-flags">${p.practicalType ? `<span class="fc-flag is-type">${
         esc(PRAC_TYPE[p.practicalType] || p.practicalType)}</span>` : ''
-      }<span class="prac-flag${off ? ' is-no' : p.required ? ' is-req' : ''}">${
+      }<span class="fc-flag${off ? ' is-no' : p.required ? ' is-req' : ''}">${
         off ? 'Not for now' : p.required ? 'Required practical' : 'Extra'}</span></span>
     </div>
     <p class="sub">${esc([p.subject, p.specRef || p.level].filter(Boolean).join(' · '))}</p>
     ${off ? `<p class="prac-no"><b>Why not</b> ${esc(p.excluded)}${p.reconsiderAt
       ? ' <span class="prac-again">Worth another look at ' + p.reconsiderAt + ', in a lab.</span>'
       : ''}</p>` : ''}
-    <p class="prac-aim">${esc(p.aim)}</p>
-    <p class="prac-strip">${esc(strip)}${p.hazard
+    <p class="fc-lede">${esc(p.aim)}</p>
+    <p class="fc-meta">${esc(strip)}${p.hazard
       ? ` <span class="prac-haz haz-${esc(p.hazard.replace(/\s+/g, '-'))}">${
           esc(p.hazard)} hazard</span>` : ''}</p>
-    ${p.outcome ? `<p class="prac-out"><b>You end up with</b> ${esc(p.outcome)}</p>` : ''}
+    ${p.outcome ? `<p class="fc-say"><b>You end up with</b> ${esc(p.outcome)}</p>` : ''}
     ${/* ---------- `wow` STAYS ON THE CARD, WHERE EVERYTHING ELSE MOVED INTO THE GUIDE -----------
           IT ANSWERS EXACTLY ONE QUESTION and its own note says which: which of these do you open a
           session with. That is a fact about CHOOSING between practicals, so it belongs on the thing
@@ -3641,10 +3641,10 @@ function practicalPart_(x, part) {
      back to understand. So the practical's name sits small above the section's own heading.
 
      `.gd` STAYS ROUND THE CONTENT, which is what leaves every rule the guide already had —
-     `.prac-kit ul`, `.gd .prac-steps`, `.gd-sec`, `.prac-tab` — applying unchanged. The markup
+     `.prac-kit ul`, `.gd .prac-steps`, `.fc-sec`, `.prac-tab` — applying unchanged. The markup
      inside each section is the markup it had on the single card, moved, not rewritten; and the
      answer boxes are `guideBox_`'s with the same slots, so every answer already typed comes back. */
-  const head = what => `<p class="prac-of">${esc(x.name)}</p><h3>${what}</h3>`;
+  const head = what => `<p class="fc-kick">${esc(x.name)}</p><h3>${what}</h3>`;
   let inner = '';
   if (part === 'fig') {
     /* THE DRAWING, ON A PAGE OF ITS OWN. `.gd` round it so every `.gd figure` rule applies. */
@@ -3664,7 +3664,7 @@ function practicalPart_(x, part) {
        student to name an independent variable with nothing on the page suggesting one is a
        worksheet with the scaffolding removed. They are CANDIDATES and not answers, which is why the
        boxes still ask. */
-    inner = `${head('Worksheet')}<div class="gd"><section class="gd-sec">
+    inner = `${head('Worksheet')}<div class="gd"><section class="fc-sec">
       ${(p.variables.length || p.log.length) ? `<div class="prac-tab">
         ${p.variables.length ? `<div><h4>Things you could change</h4><ul>${
           p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
@@ -3707,14 +3707,14 @@ function projectCard_(x) {
   const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '',
                  ages].filter(Boolean).join(' · ');
   return `<div class="card prac proj">
-    <div class="prac-head">
+    <div class="fc-head">
       <h3>${esc(x.name)}</h3>
-      <span class="prac-flags"><span class="prac-flag is-type">Project</span></span>
+      <span class="fc-flags"><span class="fc-flag is-type">Project</span></span>
     </div>
     <p class="sub">${esc([p.subject, p.level].filter(Boolean).join(' · '))}</p>
-    <p class="prac-aim">${esc(p.summary)}</p>
-    ${strip ? `<p class="prac-strip">${esc(strip)}</p>` : ''}
-    ${p.makes ? `<p class="prac-out"><b>You end up with</b> ${esc(p.makes)}</p>` : ''}
+    <p class="fc-lede">${esc(p.summary)}</p>
+    ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
+    ${p.makes ? `<p class="fc-say"><b>You end up with</b> ${esc(p.makes)}</p>` : ''}
   </div>`;
 }
 
@@ -3722,7 +3722,7 @@ function projectPart_(x, part) {
   const p = x.row;
   /* THE PRACTICAL'S PAGE HEADING, for its reason: a page you land on from a flick four results
      away has to say whose page it is. */
-  const head = what => `<p class="prac-of">${esc(x.name)}</p><h3>${what}</h3>`;
+  const head = what => `<p class="fc-kick">${esc(x.name)}</p><h3>${what}</h3>`;
   let inner = '';
   if (part === 'kit') {
     inner = `${head('Materials')}<div class="gd"><section class="prac-kit">
@@ -3733,13 +3733,13 @@ function projectPart_(x, part) {
        read before filming rather than after. */
     inner = `${head('Steps')}<div class="gd"><section class="prac-steps">
       <ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>
-      ${p.safety ? `<p class="prac-note"><b>Before you start</b> ${esc(p.safety)}</p>` : ''}`;
+      ${p.safety ? `<p class="fc-note"><b>Before you start</b> ${esc(p.safety)}</p>` : ''}`;
   } else if (part === 'share') {
     /* A THING HAS TILES: the one action on this page is going to Messages, so it is a tile in a
        `.tile-row`, not a button — `check-doors` pairs `proj-share` with its handler below. */
     inner = `${head('Share it')}
-      <p class="prac-aim">When it is finished, send it to your tutor in Messages.</p>
-      ${p.share ? `<p class="prac-out"><b>What to send</b> ${esc(p.share)}</p>` : ''}
+      <p class="fc-lede">When it is finished, send it to your tutor in Messages.</p>
+      ${p.share ? `<p class="fc-say"><b>What to send</b> ${esc(p.share)}</p>` : ''}
       <div class="tile-row">${tile_({ icon: 'chat', label: 'Messages', note: 'to your tutor',
         act: 'proj-share' })}</div>`;
   }
@@ -3762,7 +3762,7 @@ on('proj-share', () => go('dm'));
 
    DRAWN AS THE APP DRAWS A LONG THING, which is the project's way one kind along: the card you
    choose from, then the parts as pages after it (`pageParts_`), in `.prac`'s own rules and the
-   guide's `.gd-sec` sections — so a book and a project side by side read as one family and
+   guide's `.fc-sec` sections — so a book and a project side by side read as one family and
    style.css gained only what a book has and they do not: the Higher mark and the formula line.
 
    THE FORMULAS ARE TYPESET BY `typeset_`, the library's own fraction and power drawing, so `Σfx / Σf`
@@ -3794,15 +3794,15 @@ function textbookCard_(x) {
   const b = x.row;
   const higher = (b.chapters || []).some(c => c.higher || c.words.concat(c.formulas, c.points).some(i => i.higher));
   return `<div class="card prac tb">
-    <div class="prac-head">
+    <div class="fc-head">
       <h3>${esc(x.name)}</h3>
-      <span class="prac-flags"><span class="prac-flag is-type">Textbook</span></span>
+      <span class="fc-flags"><span class="fc-flag is-type">Textbook</span></span>
     </div>
     <p class="sub">${esc(['@family.', b.board, b.spec].filter(Boolean).join(' · '))}</p>
-    ${b.summary ? `<p class="prac-aim">${esc(b.summary)}</p>` : ''}
-    <p class="prac-strip">${esc((b.chapters || []).length + ' chapters')}${higher
+    ${b.summary ? `<p class="fc-lede">${esc(b.summary)}</p>` : ''}
+    <p class="fc-meta">${esc((b.chapters || []).length + ' chapters')}${higher
       ? ` · ${tbHigher_(true)} = Higher tier only` : ''}</p>
-    <section class="gd-sec tb-toc"><h4>Contents</h4>
+    <section class="fc-sec tb-toc"><h4>Contents</h4>
       <ol>${(b.chapters || []).map(c => `<li>${esc(c.title)}${tbHigher_(c.higher)}</li>`).join('')}</ol>
     </section>
   </div>`;
@@ -3816,18 +3816,18 @@ function textbookPart_(x, part) {
   if (!c) return '';
   const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
   return `<div class="card prac prac-part tb is-${esc(part)}">
-    <p class="prac-of">${esc(x.name)} · chapter ${c.n}</p>
+    <p class="fc-kick">${esc(x.name)} · chapter ${c.n}</p>
     <h3>${esc(c.title)}${tbHigher_(c.higher)}</h3>
-    ${c.words.length ? `<section class="gd-sec tb-words"><h4>Key words</h4><ul>${
+    ${c.words.length ? `<section class="fc-sec tb-words"><h4>Key words</h4><ul>${
       c.words.map(w => line(w, `<b>${esc(w.name)}</b> — ${tbSub_(esc(w.text))}`)).join('')}</ul></section>` : ''}
     ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: a stacked fraction is two lines tall
          and an `H` trailing it sat alone on a third, measured at 320px. */''}
-    ${c.formulas.length ? `<section class="gd-sec tb-math"><h4>Formulas</h4><ul>${
+    ${c.formulas.length ? `<section class="fc-sec tb-math"><h4>Formulas</h4><ul>${
       c.formulas.map(f => `<li><span class="tb-fn">${esc(f.name)}${tbHigher_(f.higher)}</span><span class="tb-fm">${
         tbMath_(f.text)}</span></li>`).join('')}</ul></section>` : ''}
-    ${c.points.length ? `<section class="gd-sec tb-points"><h4>Worked</h4><ul>${
+    ${c.points.length ? `<section class="fc-sec tb-points"><h4>Worked</h4><ul>${
       c.points.map(p => line(p, tbMath_(p.text))).join('')}</ul></section>` : ''}
-    ${c.topics ? `<p class="prac-note"><b>Topics</b> ${esc(c.topics)}</p>` : ''}
+    ${c.topics ? `<p class="fc-note"><b>Topics</b> ${esc(c.topics)}</p>` : ''}
   </div>`;
 }
 
@@ -3970,7 +3970,7 @@ function quizRight_(q, typed) {
 function quizCard_(x) {
   const q = x.row;
   return `<div class="card quiz">
-    <div class="prac-head">
+    <div class="fc-head">
       <h3>${esc(q.topic)}</h3>
       <span class="quiz-lvl">${esc(q.tier ? q.level + ' ' + q.tier : q.level)}</span>
     </div>
@@ -4313,15 +4313,15 @@ function filmCard_(x) {
                  f.kind === 'series' ? (f.seasons ? f.seasons + ' seasons' : 'series') : '',
                  f.sizeGb ? f.sizeGb + ' GB' : ''].filter(Boolean).join(' \u00b7 ');
   return `<div class="card film${f.placeholder ? ' is-off' : ''}">
-    <div class="prac-head">
+    <div class="fc-head">
       <h3>${esc(x.name)}</h3>
-      <span class="prac-flag${f.placeholder ? ' is-no' : ''}">${
+      <span class="fc-flag${f.placeholder ? ' is-no' : ''}">${
         f.placeholder ? 'Not uploaded' : f.kind === 'documentary' ? 'Documentary'
         : f.kind === 'series' ? 'Series' : 'Film'}</span>
     </div>
     ${(f.director || f.lead) ? `<p class="sub">${
       esc([f.director ? 'dir. ' + f.director : '', f.lead].filter(Boolean).join(' \u00b7 '))}</p>` : ''}
-    ${strip ? `<p class="prac-strip">${esc(strip)}</p>` : ''}
+    ${strip ? `<p class="fc-meta">${esc(strip)}</p>` : ''}
     ${/* A ROW ASKED FOR BY NAME WHOSE FILE IS NOT THERE SAYS SO, and says it where the link would
           be. The library's `placeholder` column, one table along: a card that states the gap beats
           a link that opens nothing, and it is the reason `There Will Be Blood` is a row at all. */''}
@@ -4337,10 +4337,10 @@ function filmCard_(x) {
              to be. */
           href: f.url })}</div>`}
     ${/* A `<p>` INSIDE A `<p>` IS NOT NESTING, it is the browser closing the first one — so the
-          wrapper is a div. `.prac-note p` is the rule that wants a child, and it is the card's own
+          wrapper is a div. `.fc-note p` is the rule that wants a child, and it is the card's own
           class rather than a new one, which is the sentence one commit old about the guide. */''}
     ${(f.notes && !f.placeholder)
-      ? `<div class="prac-note"><p>${esc(f.notes)}</p></div>` : ''}
+      ? `<div class="fc-note"><p>${esc(f.notes)}</p></div>` : ''}
   </div>`;
 }
 

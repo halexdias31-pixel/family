@@ -2074,7 +2074,7 @@ button.text-drop { color: var(--bad); }
 
    THE SEVENTH CONVICTION OF THIS RULE in this stylesheet, after `.price.faint`, `--fly-ink`,
    `.bk-row.is-blank` losing to `.bk-row.is-bare`, `.rc-total` losing to `.bk-row`,
-   `text-anchor="end"` losing to `.qsheet .num`, and `.gd-sec p` (caught before it was written).
+   `text-anchor="end"` losing to `.qsheet .num`, and `.fc-sec p` (caught before it was written).
    `check/cascade.js` is the rule rather than the seventh repair. */
 .dock-new .btn { width: auto; flex: 0 0 3rem; }
 .dock-new .btn.tiny { font-size: 1.1rem; }
@@ -9953,46 +9953,46 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    back with it. The measurement is kept because it is what says the reachability is real rather
    than assumed. */
 
-.prac-head { display: flex; flex-wrap: wrap; align-items: baseline;
+.fc-head { display: flex; flex-wrap: wrap; align-items: baseline;
              justify-content: space-between; gap: .5rem; }
 /* ---------- `min-width: 0`, AND WITHOUT IT FOUR CARDS RAN PAST THE COLUMN -------------------------
    A FLEX ITEM'S MINIMUM IS `auto`, WHICH IS ITS MIN-CONTENT — the widest unbreakable word, not
    nothing. So a one-word title beside a `flex: 0 0 auto` flag could not shrink to the card, and
    `Photosynthesis`, `Field investigations`, `Chromatography` and `I–V characteristics` each took
-   `.prac-head` and then `.card` up to 19px past a 320px column.
+   `.fc-head` and then `.card` up to 19px past a 320px column.
 
    NOTHING HAD EVER LOOKED. `check/cards.js` lays out every row of `data/questions.json` and
    `check/ui.js` measures nine screens — and a practical card is in neither, because the funnel
    fills five pages either side of where you are and never happened to stop on one of these four.
    That is this file's own "a sample is not a sweep", one data file along, and it is why
    `check/cards.js` now lays these out too. Found by laying all 56 out while adding ten more. */
-.prac-head h3 { margin: 0; min-width: 0; overflow-wrap: break-word; }
+.fc-head h3 { margin: 0; min-width: 0; overflow-wrap: break-word; }
 /* THE ONE THING SOMEBODY SCANS FOR — whether the exam board makes them do this one. It is a flag
    rather than a line of prose because it is the answer to a yes/no question, and it is gold only
    when the answer is yes: an "Extra" in the same colour would make the distinction decorative. */
-.prac-flag { flex: 0 0 auto; font: 600 .64rem/1 var(--mono); letter-spacing: .06em;
+.fc-flag { flex: 0 0 auto; font: 600 .64rem/1 var(--mono); letter-spacing: .06em;
              text-transform: uppercase; color: var(--faint); border: 1px solid var(--line);
              border-radius: .5rem; padding: .22rem .4rem; }
-.prac-flag.is-req { color: var(--gold); border-color: var(--gold); }
+.fc-flag.is-req { color: var(--gold); border-color: var(--gold); }
 /* WHAT KIND OF THING IT IS, IN THE SAME CHIP AS WHETHER A BOARD DEMANDS IT — and deliberately in
    the same quiet ink as `Extra`. Gold answers exactly one yes/no question on this card and giving
    `Build` a colour would put a second meaning on it an inch away; the rule directly above says why
    the negative answer is not coloured either. The word carries it. */
-.prac-flag.is-type { color: var(--dim); }
+.fc-flag.is-type { color: var(--dim); }
 /* THE TWO FLAGS ARE ONE BOX, and it is `flex: 0 0 auto` for the reason the flag itself is: a flag
    that shrinks is a flag with a word cut off. The head row is `space-between`, so without this
    wrapper the free space would open BETWEEN the two chips rather than before them — measured at
    320px, fifty-nine pixels of nothing. `flex-wrap` on the row then drops the pair together under a
    title that needs the whole line, rather than splitting it. */
-.prac-flags { display: flex; flex: 0 0 auto; gap: .3rem; align-items: baseline; }
-.prac-aim { margin: .45rem 0 0; font-size: .86rem; line-height: 1.5; }
+.fc-flags { display: flex; flex: 0 0 auto; gap: .3rem; align-items: baseline; }
+.fc-lede { margin: .45rem 0 0; font-size: .86rem; line-height: 1.5; }
 /* HOW LONG, HOW MANY, WHERE, AND WHETHER IT CAN HAPPEN AT ALL — the four facts that decide whether
    you run this today, on one line, in the mono face the rest of the app uses for measurements. */
-.prac-strip { margin: .35rem 0 0; font: 600 .72rem/1.4 var(--mono); color: var(--gold);
+.fc-meta { margin: .35rem 0 0; font: 600 .72rem/1.4 var(--mono); color: var(--gold);
               letter-spacing: .03em; }
-.prac-out { margin: .5rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--dim); }
-.prac-kit, .prac-steps, .gd-sec { margin: .65rem 0 0; }
-.prac-kit h4, .prac-steps h4, .gd-sec h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono);
+.fc-say { margin: .5rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--dim); }
+.prac-kit, .prac-steps, .fc-sec { margin: .65rem 0 0; }
+.prac-kit h4, .prac-steps h4, .fc-sec h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono);
                                letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
 /* `.prac-kit` IS BACK ON THESE THREE GROUPS, because it holds a list again. The kit was chips —
    "like how Google has chips in documents" — and they were reverted on "the google chip idea didnt
@@ -10004,9 +10004,9 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    class plus a type (0,1,1) that would have out-specified `.kit-chips`' (0,1,0) and indented the
    block by a bullet's width. With no chip rule left there is nothing for it to beat; it is the only
    rule styling that list, as it was before them. */
-.prac-kit ul, .prac-steps ol, .gd-sec ul, .gd-sec ol { margin: 0; padding-left: 1.1rem; }
-.prac-kit li, .prac-steps li, .gd-sec li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
-.prac-kit li, .gd-sec li { margin: 0; }
+.prac-kit ul, .prac-steps ol, .fc-sec ul, .fc-sec ol { margin: 0; padding-left: 1.1rem; }
+.prac-kit li, .prac-steps li, .fc-sec li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
+.prac-kit li, .fc-sec li { margin: 0; }
 .prac-steps li { margin: 0 0 .25rem; }
 /* `.prac-safety` AND `.prac-maths` WERE HERE, and the guide was the only thing that drew either.
    The safety line was a gold-ruled paragraph and its note is worth keeping: the house rule puts one
@@ -10015,15 +10015,15 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    name, the picture, the kit, the method and the three worksheet questions. `safety` and
    `maths_link` are still columns and `check-practicals.js` still counts them, so a guide that wants
    either back needs these two rules and nothing else. */
-.prac-note { margin: .5rem 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
+.fc-note { margin: .5rem 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
 /* `notes` IS A PIPE LIST IN THE DATA AND ONLY ONE CALLER EVER SPLIT IT. That was the guide, which
    no longer draws the practical's notes at all; what produces this class now is a FILM card, with a
    single `<p>` inside it. The rule is unchanged and still right — three asides run together in one
    paragraph is three things nobody reads, so the day anything splits the pipes again each part
    takes its own line. The margin goes on the element rather than on every `p`,
    so a single-note card is unchanged. */
-.prac-note p { margin: 0 0 .3rem; }
-.prac-note p:last-child { margin-bottom: 0; }
+.fc-note p { margin: 0 0 .3rem; }
+.fc-note p:last-child { margin-bottom: 0; }
 
 /* ==================================================================================================
    THE HOME EXPERIMENTS.
@@ -10053,7 +10053,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .prac-tab { display: grid; grid-template-columns: 1fr; gap: .5rem; margin: .65rem 0 0; }
 @media (min-width: 30rem) { .prac-tab { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
 /* A COLUMN LABEL, NOT A SECTION HEAD, AND IT WAS DRAWN AS BOTH. This was byte-for-byte
-   `.gd-sec h4` — same font, same size, same weight, same tracking, same ink — which was invisible
+   `.fc-sec h4` — same font, same size, same weight, same tracking, same ink — which was invisible
    while six sections carried that style and the pair sat side by side at 30rem. With the guide cut
    to three sections it is the only nesting left, and at 320px the table stacks: WORKSHEET, THINGS
    YOU COULD CHANGE and THINGS YOU COULD MEASURE came out as three identical lines, so the section
@@ -10065,13 +10065,13 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    own idiom for a label. Found on a screenshot, which is the only thing that could have: both
    rules are correct and nothing measures wrong.
 
-   AND IT HAS TO OUT-SPECIFY `.gd-sec h4` RATHER THAN OUT-SIT IT. These two labels are `<h4>`s
-   inside a `.prac-tab` inside a `.gd-sec`, so both rules match them, both are (0,1,1), and while
+   AND IT HAS TO OUT-SPECIFY `.fc-sec h4` RATHER THAN OUT-SIT IT. These two labels are `<h4>`s
+   inside a `.prac-tab` inside a `.fc-sec`, so both rules match them, both are (0,1,1), and while
    they said the same thing it did not matter which came later. The moment they differ, order alone
    would decide — which is the `.price.faint` fault this stylesheet has now been convicted of
    eleven times (`.prac-kit ul` four hundred lines up is the tenth), and `check/cascade.js` is the
-   rule that reports it. `.gd-sec .prac-tab h4` is (0,2,1) and wins wherever it is written. */
-.gd-sec .prac-tab h4 { margin: 0 0 .3rem; font: 400 .64rem/1 var(--mono); letter-spacing: .08em;
+   rule that reports it. `.fc-sec .prac-tab h4` is (0,2,1) and wins wherever it is written. */
+.fc-sec .prac-tab h4 { margin: 0 0 .3rem; font: 400 .64rem/1 var(--mono); letter-spacing: .08em;
                text-transform: uppercase; color: var(--faint); }
 .prac-tab ul { margin: 0; padding-left: 1.1rem; }
 .prac-tab li { font-size: .78rem; line-height: 1.5; color: var(--dim); }
@@ -10100,7 +10100,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    nobody can read is a refusal that gets ignored. */
 .prac.is-off { opacity: .72; }
 .prac.is-off h3, .prac.is-off .prac-no { opacity: 1; }
-.prac-flag.is-no { color: var(--red, #ff6b6b); border-color: var(--red, #ff6b6b); }
+.fc-flag.is-no { color: var(--red, #ff6b6b); border-color: var(--red, #ff6b6b); }
 .prac-no { margin: .45rem 0 0; padding-left: .6rem; border-left: 2px solid var(--red, #ff6b6b);
            font-size: .8rem; line-height: 1.5; color: var(--ink); }
 .prac-no b { color: var(--red, #ff6b6b); font-weight: 600; }
@@ -10125,25 +10125,25 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    practical's name sits SMALL above the section's own heading — the name is context and the
    heading is what this page is, which is the order of importance on it. `--faint` and the mono
    label size because it is a caption; the `<h3>` takes the card's ordinary heading rules. The name
-   wraps rather than clipping, for the `.prac-head h3` reason: a long title is one unbreakable
+   wraps rather than clipping, for the `.fc-head h3` reason: a long title is one unbreakable
    flex item's worth of text on a 320px phone. */
-.prac-of { margin: 0 0 .15rem; font: 600 .66rem/1.3 var(--mono); letter-spacing: .06em;
+.fc-kick { margin: 0 0 .15rem; font: 600 .66rem/1.3 var(--mono); letter-spacing: .06em;
   text-transform: uppercase; color: var(--faint); overflow-wrap: anywhere; }
 .prac-part > h3 { margin: 0 0 .55rem; }
 /* The one line on the card that is a recommendation rather than a fact, so it is the one that
    carries the gold. */
 .prac-open { margin: .5rem 0 0; font: 600 .76rem/1.45 var(--mono); color: var(--gold); }
 /* `.prac-safety b` AND `.prac-maths b` WERE IN THIS SELECTOR and went with their two rules above.
-   `.prac-out` is the card's own "You end up with", which is untouched. */
-.prac-out b { color: var(--gold); font-weight: 600; }
+   `.fc-say` is the card's own "You end up with", which is untouched. */
+.fc-say b { color: var(--gold); font-weight: 600; }
 
 /* ---------- THE @family. TEXTBOOK — WHAT A BOOK HAS THAT A PROJECT DOES NOT -----------------------
    "the @family textbook should be bare bones for now". Everything else on its pages is `.prac` and
-   the guide's `.gd-sec`, so these are the only three things it adds: the Higher mark, a key word's
+   the guide's `.fc-sec`, so these are the only three things it adds: the Higher mark, a key word's
    own term, and a formula drawn on a line of its own.
 
    THE MARK IS A LETTER IN A BOX, in the flag's own outline and the screen's ink, NOT gold — gold on
-   this card answers one question already (`.prac-flag.is-req`), and Higher is not "the board makes
+   this card answers one question already (`.fc-flag.is-req`), and Higher is not "the board makes
    you". `vertical-align: .1em` sits it on the text it qualifies rather than on the line under. */
 .tb-h { display: inline-block; margin-left: .35em; padding: .05rem .28rem; vertical-align: .1em;
   font: 600 .6rem/1.2 var(--mono); letter-spacing: .04em; color: var(--ink);
@@ -10213,12 +10213,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    convention `.gd-hint` still follows — a question is a fact, the sentence explaining why it is
    being asked is not — and `.quiz-why` cites it one block down.
 
-   A DESCENDANT RULE FOR IT WOULD HAVE BEEN A TRAP. `.gd-sec p` is one class plus a type, (0,1,1),
-   against `.prac-safety`'s and `.prac-home`'s (0,1,0) — both `<p>` inside a `.gd-sec` — so it
+   A DESCENDANT RULE FOR IT WOULD HAVE BEEN A TRAP. `.fc-sec p` is one class plus a type, (0,1,1),
+   against `.prac-safety`'s and `.prac-home`'s (0,1,0) — both `<p>` inside a `.fc-sec` — so it
    would have won every declaration they made and flattened the gold-ruled warning into ordinary
    body text. Caught before it was written, which is the one place in this stylesheet's list of
    `.price.faint` convictions that reads that way. Those two rules are gone now, so nothing is left
-   for `.gd-sec p` to beat — and it is still the wrong shape to reach for, because the next
+   for `.fc-sec p` to beat — and it is still the wrong shape to reach for, because the next
    paragraph added inside a section is the one it would flatten.
 
    AND A SCREENSHOT IS WHAT FOUND THE FAULT IT FIXED. Before it existed, the guide's maths line and
@@ -10237,7 +10237,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* ==================================================================================================
    THE QUIZ — A RECAP, AND IT BORROWS THE PRACTICAL'S HEAD AND THE ANSWER BOX ON PURPOSE.
 
-   `.prac-head` IS REUSED RATHER THAN COPIED, because a title with a flag beside it is the same
+   `.fc-head` IS REUSED RATHER THAN COPIED, because a title with a flag beside it is the same
    object on both cards — and this stylesheet has already paid for the alternative twice, where
    `.reel .over` was a second description of `.feed-art` and drifted the first time either was
    touched. The flag is a level rather than a compliance word, so only its own class is new.

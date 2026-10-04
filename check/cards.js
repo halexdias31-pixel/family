@@ -314,7 +314,7 @@ function outside(svg, row) {
      on a screen at once: the funnel fills five pages either side of where you are, so `check/ui.js`
      sees whichever ones it happens to stop on, and this file read the other data file.
 
-     IT COST FOUR CARDS, FOUND ON THE RUN THAT ADDED TEN MORE. `.prac-head` is a flex row and a flex
+     IT COST FOUR CARDS, FOUND ON THE RUN THAT ADDED TEN MORE. `.fc-head` is a flex row and a flex
      item's minimum is its MIN-CONTENT -- the widest unbreakable word -- so `Photosynthesis`, `Field
      investigations`, `Chromatography` and `I-V characteristics` beside a `flex: 0 0 auto` flag
      could not shrink, and each took the card up to 19px past a 320px column. Four rows of

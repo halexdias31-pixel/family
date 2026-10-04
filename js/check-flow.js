@@ -5370,7 +5370,7 @@ check('Projects is a kind in Find beside Practicals: card, materials, steps, and
   const card = box(w.stuffCard(x));
   if (!card.querySelector('.card.proj')) bad.push('the project card is not drawn as a project');
   else {
-    if (card.querySelector('.prac-flag').textContent.trim() !== 'Project') bad.push('the card is not flagged Project');
+    if (card.querySelector('.fc-flag').textContent.trim() !== 'Project') bad.push('the card is not flagged Project');
     if (card.textContent.indexOf(x.row.sessions + ' sessions') < 0) bad.push('the card does not say how many sessions');
     if (card.querySelector('.gd-box, .prac-kit, .prac-steps')) bad.push('the card carries its materials or steps — they are pages of their own');
   }
@@ -5493,7 +5493,7 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   const card = box(w.stuffCard(x));
   if (!card.querySelector('.card.tb')) bad.push('the book card is not drawn as a textbook');
   else {
-    if (card.querySelector('.prac-flag').textContent.trim() !== 'Textbook') bad.push('the card is not flagged Textbook');
+    if (card.querySelector('.fc-flag').textContent.trim() !== 'Textbook') bad.push('the card is not flagged Textbook');
     const toc = [...card.querySelectorAll('.tb-toc ol > li')].map(li => li.textContent.replace(/H$/, '').trim());
     if (toc.join('|') !== book.chapters.map(c => c.title).join('|')) bad.push('the contents do not list the chapters in order: ' + toc.slice(0, 3).join(', '));
     if (card.querySelector('.tb-words, .tb-math')) bad.push('the card carries a chapter — chapters are pages of their own');
