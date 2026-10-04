@@ -1225,18 +1225,28 @@ for (const who of VISITORS) {
              is over `stuffPages_`, the app's own list, and each page is asked the right question: a
              question page carries its own answer key; a figure page names its row in `data-of`,
              carries NO answer box (the box stays with the words), and comes straight after its
-             question. */
+             question.
+             AND ITS ANSWER IS A PAGE TOO, after the figure where there is one -- *"answers ... to be
+             their own widget"*. An answer page names its row, carries no answer box, and follows its
+             own question or that question's figure; a question page carries no answer page inside
+             it. Asked FIRST of an answer page, because it carries the answer box's key in `data-k`
+             and would otherwise pass as its question. */
           const look = i => {
             goPage('stuff', first + i, true);
             const el = document.querySelectorAll('#s-stuff > .page')[domIndex_('stuff', first + i)];
             const pg = pages[i], id = pg.x.row.row_id;
             const html = el ? el.innerHTML : '';
             let ok;
-            if (pg.part === 'fig') {
+            if (pg.part === 'ans') {
+              ok = /class="qcard qans-card/.test(html) && html.indexOf('data-of="' + id + '"') !== -1
+                && html.indexOf('qp-ans') === -1
+                && i > 0 && pages[i - 1].x === pg.x && (!pages[i - 1].part || pages[i - 1].part === 'fig');
+            } else if (pg.part === 'fig') {
               ok = html.indexOf('data-of="' + id + '"') !== -1 && html.indexOf('qp-ans') === -1
                 && i > 0 && pages[i - 1].x === pg.x && !pages[i - 1].part;
             } else {
-              ok = html.indexOf(':q:' + id) !== -1 && html.indexOf('class="qcard qfig') === -1;
+              ok = html.indexOf(':q:' + id) !== -1 && html.indexOf('class="qcard qfig') === -1
+                && html.indexOf('qans-card') === -1;
             }
             if (!ok) out.push({ page: i, want: id + (pg.part ? '#' + pg.part : ''),
                                 got: (html.match(/:q:([^"]+)/) || html.match(/data-of="([^"]+)"/) || [])[1]
@@ -1245,15 +1255,18 @@ for (const who of VISITORS) {
           for (let i = 0; i < pages.length; i++) look(i);
           for (let i = pages.length - 1; i >= 0; i--) look(i);
           const items = pages, figs = pages.filter(pg => pg.part === 'fig').length;
-          return { n: items.length, figs: figs, bad: out.slice(0, 4), count: out.length,
+          const answers = pages.filter(pg => pg.part === 'ans').length;
+          return { n: items.length, figs: figs, answers: answers, bad: out.slice(0, 4), count: out.length,
                    held: document.querySelectorAll('#s-stuff > .page').length };
         });
-        walk.push({ from: 'stuff, ' + bad.n + ' pages (' + bad.figs + ' of them figures) over '
-                          + bad.held + ' elements',
-                    dir: 'walk', ok: bad.count === 0 && bad.figs > 0,
+        walk.push({ from: 'stuff, ' + bad.n + ' pages (' + bad.figs + ' of them figures, ' + bad.answers
+                          + ' answers) over ' + bad.held + ' elements',
+                    dir: 'walk', ok: bad.count === 0 && bad.figs > 0 && bad.answers > 0,
                     got: bad.count ? bad.count + ' wrong, first ' + JSON.stringify(bad.bad[0])
-                         : bad.figs ? 'every page its own question or figure' : 'no figure page on a paper that has pictures',
-                    want: 'every page its own question, each figure straight after it' });
+                         : !bad.figs ? 'no figure page on a paper that has pictures'
+                         : !bad.answers ? 'no answer page on a paper that has answers'
+                         : 'every page its own question, figure or answer',
+                    want: 'every page its own question, each figure and then each answer straight after it' });
       }
     }
     swipes.push(...walk);

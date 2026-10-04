@@ -3863,7 +3863,19 @@ function textbookText_(b) {
    what the refusal is for. A section with nothing in it is not drawn as an empty page — a page you
    can swipe to that says nothing reads as a fault. Anything that is not a practical is one page. */
 function pageParts_(x) {
-  if (questionHasFig_(x)) return [null, 'fig'];
+  /* ---------- A QUESTION IS ITS WORDS, ITS FIGURE AND ITS ANSWER, in the order they are used -------
+     ASKED FOR AS *"what I want was answers to be short and to be their own widget"* — the half of 259
+     that was left undone on purpose and has now been asked for twice. The figure page (204) is the
+     precedent and this is the same move one part along: the answer is the page after the question,
+     and after its figure where it has one, because you read the question, look at the picture, and
+     only then want the answer. A row with no answer has no answer page — a page that can only ever
+     say "nothing here" is the empty page the note below refuses. */
+  if (x && x.kind === 'question') {
+    const out = [null];
+    if (questionHasFig_(x)) out.push('fig');
+    if (questionHasAns_(x)) out.push('ans');
+    return out;
+  }
   /* A PROJECT IS ITS CARD, ITS MATERIALS, ITS STEPS AND "SHARE IT" — the share page always, since
      every project ends in something to send. */
   if (x && x.kind === 'project' && x.row) {
@@ -3893,15 +3905,19 @@ function pageParts_(x) {
 /* ---------- AND THE CARD WITH ITS FIGURE, FOR A COLUMN THAT LISTS THINGS ONE PAGE EACH -----------
    Saved and Spotlight draw a kept thing as one page; its picture is its own card now, so it is the
    page after — the same rule as the Find screen. Only the figure: a practical kept on Saved is its
-   card and its drawing, as it was, not the kit, the method and the worksheet too. */
+   card and its drawing, as it was, not the kit, the method and the worksheet too.
+   AND A KEPT QUESTION'S ANSWER, which is the same kind of page as its figure: part of the question
+   rather than a section of a guide. IN `pageParts_`'s ORDER, filtered rather than listed again,
+   because "Show the answer" turns forward by the answer's place in that list — on Saved as on Find
+   — and two lists of one question's pages would be two chances to disagree about where it is. */
 function cardPages_(x, credits) {
-  const out = [stuffCard(x, credits)];
-  if (pageParts_(x).indexOf('fig') >= 0) out.push(stuffPart_(x, 'fig'));
-  return out;
+  return pageParts_(x).filter(p => !p || p === 'fig' || p === 'ans')
+    .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
 }
 function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
   if (x && x.kind === 'textbook') return textbookPart_(x, part);
+  if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
   return (x && x.kind === 'question' && part === 'fig') ? questionFigCard_(x) : practicalPart_(x, part);
 }
 
@@ -4806,26 +4822,22 @@ function answerParts_(raw) {
 
 function answerBlock_(x) {
   if (!x || !String(x.answer || '').trim()) return '';
-  /* ---------- IT IS THE ROLE THAT DECIDES, AND IT USED TO BE "IS ANYBODY NAMED" ----------------
-     `!!whoIs_()` WAS THE TEST, AND WITH THE TYPED NAME GONE THAT MEANT "IS ANYBODY SIGNED IN" --
-     so a tutor signed in as themselves got their own mark schemes shut behind a tap, on the one
-     surface they read FROM. The paragraph above says who the open answer is for and it is not
-     "somebody signed out", it is the tutor.
-
-     `isTutorRole()` IS THE APP'S OWN STAFF TEST -- tutor or admin -- already used by the widget
-     roster for the same kind of question. A student signing in gets the reveal; staff get the
-     paper as it is printed. One fact, read from the role the Ledger already holds, rather than a
-     second thing to switch on and off. */
-  const hide = !(typeof isTutorRole === 'function' && isTutorRole());
-  /* WHAT KIND OF ANSWER IT IS, beside the word, when the sheet says. A one-mark recall and a
-     25-mark essay want different things of you before you open it. */
+  /* WHO MAY SEE THIS IS NOT DECIDED HERE ANY MORE. It was `is-shut` and a reveal button on this
+     block, which hid an answer that was already in the document -- `display: none` over markup
+     anybody could read. The answer is its own page now, and `questionAnsCard_` asks `ansOpen_`
+     before it draws any of this, so a student's page holds no answer to find until it is shown. */
+  /* WHAT KIND OF ANSWER IT IS, over the result, when the sheet says. A one-mark recall and a
+     25-mark essay want different things of you before you open it. It sat beside a gold "Answer"
+     and read as one phrase -- "Answer explain" -- so it is the label the answer box already wears
+     on the question card, `.qp-ans-k`'s small capitals: "ANSWER · EXPLAIN" over the result reads as
+     the other half of "YOUR ANSWER" over the box. */
   const kind = String(x.answerType || '').trim();
   /* ---------- THE RESULT SHOWN, THE WORKING FOLDED ---------------------------------------------
      THE `<details>` IS BACK, AND NOT WHERE IT WAS. It used to sit between the question and the
-     whole mark scheme, and the argument above against it still holds: the tutor reads FROM this
-     card, and the result is what they read out. So the result is never folded -- only the working
-     is, under a word that says what it is. A tutor who wants the method taps once; a child who
-     wanted the answer is no longer handed a paragraph to dig it out of.
+     whole mark scheme, and the argument against it still holds: the tutor reads FROM this card,
+     and the result is what they read out. So the result is never folded -- only the working is,
+     under a word that says what it is. A tutor who wants the method taps once; a child who wanted
+     the answer is no longer handed a paragraph to dig it out of.
 
      ONE FOLD FOR THE WORKING AND THE EXAMINER'S NOTE TOGETHER, because both are "why", and two
      folds under one answer is the same tax as one long answer paid in taps instead of lines. The
@@ -4840,11 +4852,8 @@ function answerBlock_(x) {
     ? `<details class="qans-why"><summary>Why</summary>${
         p.why ? `<div class="qans-more">${typeset_(p.why)}</div>` : ''}${note}</details>`
     : '';
-  return `<div class="qans${hide ? ' is-shut' : ''}">
-    ${hide ? `<button type="button" class="qp-reveal" data-do="qp-reveal">Show the answer</button>` : ''}
-    <div class="qans-head">
-      <span>Answer</span>${kind ? `<em>${esc(kind)}</em>` : ''}
-    </div>
+  return `<div class="qans">
+    <span class="qans-head">Answer${kind ? ` &middot; ${esc(kind)}` : ''}</span>
     <div class="qans-body">${typeset_(p.head)}</div>
     ${why}
   </div>`;
@@ -5868,10 +5877,9 @@ on('qp-choose', (el) => {
     ? box.nextElementSibling : null;
   if (mark) mark.remove();
   box.replaceWith(...wrap.childNodes);
-  /* RIGHT OPENS THE MARK SCHEME, as Check does on a typed answer. */
-  const fresh = card.querySelector('.qp-mark.is-right');
-  const ans = card.querySelector('.qans');
-  if (fresh && ans) ans.classList.remove('is-shut');
+  /* RIGHT OPENS THE ANSWER PAGE, as Check does on a typed answer -- the page after, not this card,
+     so nothing on this card moves for it. */
+  if (card.querySelector('.qp-mark.is-right')) ansShow_(x);
 });
 
 function ansBox_(x) {
@@ -5918,19 +5926,16 @@ on('qp-check', (el) => {
   }
   box.classList.add(verdict ? 'is-right' : 'is-near');
   out.textContent = verdict ? 'Correct' : 'Not yet — have another go';
-  /* THE ANSWER OPENS ITSELF ONCE IT HAS BEEN EARNED. Getting it right and then having to hunt
-     for the method is backwards: the working is the thing worth reading at the moment you know
-     you were right. A wrong one is left shut, because the next thing to do is try again. */
   /* THE ANSWER OPENS ITSELF ONCE IT HAS BEEN EARNED. Having to hunt for the method at the
      moment you have just been told you were right is backwards -- that is when the working is
-     worth reading. A wrong one is left shut, because the next thing to do is try again. */
-  const ans = card.querySelector('.qans');
-  if (verdict && ans) ans.classList.remove('is-shut');
-});
-
-on('qp-reveal', (el) => {
-  const ans = el.closest('.qans');
-  if (ans) ans.classList.remove('is-shut');
+     worth reading. A wrong one is left shut, because the next thing to do is try again. It opens
+     on its own page, the one after, and the page does not turn by itself: "Correct" is what you
+     are reading at that moment, and a screen that slides away from it is the card jumping at the
+     moment it tells you your answer, which is what 261 took out. */
+  if (verdict) {
+    const x = ansItem_(inp.getAttribute('data-k'));
+    if (x) ansShow_(x);
+  }
 });
 
 /* ---------- WHO IS WORKING ---------------------------------------------------------------------
@@ -6468,15 +6473,7 @@ function questionCard_(x) {
   const sat = satOn_(x);
   const needs = asList_(x.needs);
   return `<div class="qcard">
-    <div class="qcard-top">
-      <b>${esc(x.name)}</b>
-      ${/* NOTHING RATHER THAN "0 marks". A Corbettmaths worksheet prints no mark allocation --
-            it is practice, not an exam -- and a row with no `marks` cell was reading "0 marks",
-            which says the question is worth nothing rather than that nobody has said. Same
-            distinction as a blank price reading "free": absent is not zero. */''}${
-        Number(x.marks) > 0
-          ? `<span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>` : ''}
-    </div>
+    ${qHead_(x)}
     <p class="qcard-sub">${qTagsHtml_(x)}${
       sat ? `<span class="qcard-sat">sat ${esc(sat)}</span>` : ''}${
       /* WHAT TO BRING, WHERE IT IS READ RATHER THAN FILTERED FOR. The funnel can narrow by it, but
@@ -6512,11 +6509,35 @@ function questionCard_(x) {
             `pageParts_` asks, so the line and the page that it names cannot disagree. */''}${
         questionHasFig_(x) ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
     </div>
-    ${/* YOUR BOX FIRST, THE MARK SCHEME UNDER IT, and the order is the whole point: an answer you
-          can see before you have written one is not a question. */''}
+    ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. It is the page after -- see
+          `questionAnsCard_` -- and the order is still the whole point: an answer you can see before
+          you have written one is not a question, and now it is not even on the same page. What
+          stays here is ANSWERING, which is a form: the box, Check, the options to tap. */''}
     ${ansBox_(x)}
-    ${answerBlock_(x)}
   </div>`;
+}
+
+/* ---------- ONE HEADER FOR EVERY PAGE OF A QUESTION -------------------------------------------------
+   ASKED FOR AS *"sleekerise the whole widget system in the finder for questions"*. Three builders
+   each wrote their own: the question `Q3` with its marks, the figure `Figure · Q7` in the same gold
+   but reading as a different title with no marks, and the answer a gold "Answer" half way down the
+   card. Turned through, the pages of one question did not read as one question.
+
+   SO THE NUMBER LEADS ON ALL OF THEM AND THE PART FOLLOWS IT, QUIETER: `Q3`, `Q3 · figure`,
+   `Q3 · answer`. A page you land on four results away says first which question it belongs to and
+   then which page of it this is, and the marks sit hard right on every one, because they are a fact
+   of the question rather than of one page of it. The part is an `<em>` so it can be a step dimmer
+   than the number in one rule, without `.qcard-top span` -- the marks' rule -- reaching it.
+
+   NOTHING RATHER THAN "0 marks". A Corbettmaths worksheet prints no mark allocation -- it is
+   practice, not an exam -- and a row with no `marks` cell was reading "0 marks", which says the
+   question is worth nothing rather than that nobody has said. Absent is not zero. */
+function qHead_(x, part) {
+  return `<div class="qcard-top">
+      <b>${esc(x.name)}${part ? `<em class="qcard-part"> &middot; ${esc(part)}</em>` : ''}</b>${
+        Number(x.marks) > 0
+          ? `<span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>` : ''}
+    </div>`;
 }
 
 
@@ -6558,11 +6579,143 @@ function questionFigCard_(x) {
   out.push(pics_(figImgs_(x.images)));
   const id = (x.row && x.row.row_id) || x.key || '';
   return `<div class="qcard qfig" data-of="${esc(id)}">
-    <div class="qcard-top"><b>Figure · ${esc(x.name)}</b></div>
+    ${qHead_(x, 'figure')}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">${out.join('')}</div>
   </div>`;
 }
+
+/* ==================================================================================================
+   THE ANSWER IS ITS OWN CARD, THE PAGE AFTER ITS QUESTION (AND AFTER ITS FIGURE).
+
+   ASKED FOR AS *"what I want was answers to be short and to be their own widget"*, after 259 made
+   them short and left this half undone with a note saying why. The owner read the note and asked
+   again, so its reasoning -- "a page for a one-line result is a swipe to read a word" -- is answered
+   by what the page is FOR rather than by its length: it keeps the answer apart from the question,
+   so that writing your own is the only thing on the page you write it on.
+
+   THE RESULT LARGE AND FIRST, then the "Why" fold with the working and the examiner's note --
+   `answerBlock_`, unchanged in what it draws, so `check-answers.js`'s limits still hold of it.
+
+   NOTHING TO FIND UNTIL IT IS SHOWN. For a student the page says "Answer hidden -- have a go first"
+   and holds the one control that shows it, and the answer is not in the markup at all: the old
+   `is-shut` hid with `display: none` an answer anybody could read in the document, which the
+   stylesheet's own note admitted. `ansOpen_` decides, and it is the rule the card always had: staff
+   see it, a student sees it once they have asked for it or got it right.
+
+   `data-of` NAMES THE ROW, as the figure card does, and `data-k` is the answer box's key, which is
+   what `ansShow_` finds these by to draw them open where they already stand. */
+function questionHasAns_(x) {
+  return !!(x && x.kind === 'question' && String(x.answer || '').trim());
+}
+
+/* ---------- WHO SEES IT OPEN ----------------------------------------------------------------------
+   `isTutorRole()` IS THE APP'S OWN STAFF TEST -- tutor or admin. `!!whoIs_()` was the test once,
+   and with the typed name gone that meant "is anybody signed in", so a tutor signed in as
+   themselves got their own mark schemes shut behind a tap, on the one surface they read FROM.
+
+   A STUDENT, ONCE ASKED FOR OR EARNED, and that is held in `ANS_SHOWN` by the answer box's own key
+   -- which carries who is signed in, so the phone passed to the next student starts shut again. A
+   SET RATHER THAN A CLASS ON AN ELEMENT, because the answer is drawn on a different page from the
+   control that shows it, and pages are built and thrown away as you swipe (`fillStuffPages` keeps
+   eleven): a fact left on an element is gone the moment its page is rebuilt, which is the
+   `REEL_HELD` fault. Kept for the visit and not in `localStorage`: having asked for an answer last
+   week is not having asked for it today.
+
+   A TAPPED QUESTION SETTLED RIGHT IS EARNED FROM WHAT IS STORED, because the pick is stored and its
+   verdict is drawn from it on every paint -- an answer page that came back shut beside a question
+   still saying "Correct" would be two pages of one question disagreeing. */
+const ANS_SHOWN = new Set();
+function ansOpen_(x) {
+  if (typeof isTutorRole === 'function' && isTutorRole()) return true;
+  const k = ansKey_(x);
+  if (ANS_SHOWN.has(k)) return true;
+  if (Array.isArray(x.choices) && x.choices.length >= 2 && (x.choiceRight || []).length) {
+    const right = x.choiceRight.slice().sort((a, b) => a - b).join(',');
+    const picked = String(ansRead_(k) || '').split(',').map(t => parseInt(t, 10)).filter(n => n > 0)
+      .sort((a, b) => a - b).join(',');
+    if (picked && picked === right) return true;
+  }
+  return false;
+}
+
+function questionAnsCard_(x) {
+  const id = (x.row && x.row.row_id) || x.key || '';
+  const k = ansKey_(x);
+  const open = ansOpen_(x);
+  return `<div class="qcard qans-card${open ? '' : ' is-hidden'}" data-of="${esc(id)}" data-k="${esc(k)}">
+    ${qHead_(x, 'answer')}
+    <p class="qcard-sub">${qTagsHtml_(x)}</p>
+    ${open ? answerBlock_(x) : `<div class="qans-wait">
+      <p class="qans-wait-k">Answer hidden &mdash; have a go first</p>
+      ${/* A BUTTON, NOT A TILE, and the rule in CLAUDE.md is why: it is the one control in this
+            card's body, a gate between the student and the answer, where a tile row is the action
+            row UNDER a thing. The part pages carry no tile row -- a figure page has none either --
+            and one tile alone at the foot of a page that says "hidden" reads as decoration. */''}
+      <button type="button" class="qp-reveal" data-do="qa-show" data-k="${esc(k)}">Show the answer</button>
+    </div>`}
+  </div>`;
+}
+
+/* THE QUESTION A KEY BELONGS TO, by the same lookup `qp-choose` makes. */
+function ansItem_(k) {
+  if (!k) return null;
+  try { return stuffItemsAll_().find(it => it && it.kind === 'question' && ansKey_(it) === k) || null; }
+  catch (e) { return null; }
+}
+
+/* ---------- SHOWING IT: REMEMBERED, AND DRAWN OPEN WHEREVER IT ALREADY STANDS -----------------------
+   The page after is usually built already -- `fillStuffPages` fills two either side -- so it is
+   redrawn in place, by its key, on every column it is on. Only the answer card changes; the question
+   card is not touched, which is what keeps "nothing moved" true of the page you are on. */
+function ansShow_(x) {
+  if (!x) return;
+  const k = ansKey_(x);
+  ANS_SHOWN.add(k);
+  document.querySelectorAll('.qans-card.is-hidden').forEach(el => {
+    if (el.getAttribute('data-k') !== k) return;
+    const t = document.createElement('div');
+    t.innerHTML = questionAnsCard_(x);
+    if (t.firstElementChild) el.replaceWith(t.firstElementChild);
+  });
+}
+
+/* THE QUESTION CARD'S TILE: TO THE ANSWER PAGE. `Show the answer` for a student, `The answer` for
+   staff, whose page is open already -- a word promising to show something already shown would be a
+   small untruth on every card a tutor reads. Drawn the same whether or not it has been shown, so
+   pressing it changes nothing on this card. A tile because the question is a THING and this is an
+   action on it; the box, Check and the options above stay buttons, because answering is a form. */
+function questionTiles_(x) {
+  if (!questionHasAns_(x)) return '';
+  const staff = typeof isTutorRole === 'function' && isTutorRole();
+  return tile_({ icon: 'show', label: staff ? 'The answer' : 'Show the answer', note: 'next page',
+                 act: 'qa-go', data: { k: ansKey_(x) } });
+}
+
+/* ---------- AND TURNING TO IT --------------------------------------------------------------------
+   FORWARD BY THE ANSWER'S PLACE AMONG ITS QUESTION'S PAGES -- one, or two past a figure -- from the
+   page the tile is on. Which page that is, is asked of the element (`logIndex_` turns an element's
+   position into a page number past the Find screen's window) rather than read off `PAGE`, because a
+   tile on the page peeking under the one you are on is still that page's tile. The same on Saved,
+   whose pages come from `cardPages_` in `pageParts_`'s own order. */
+on('qa-go', (el) => {
+  const x = ansItem_(el.getAttribute('data-k'));
+  if (!x) return;
+  ansShow_(x);
+  const off = pageParts_(x).indexOf('ans');
+  const pg = el.closest('.page');
+  const host = pg && pg.parentElement;
+  const id = host && host.id ? host.id.replace(/^s-/, '') : '';
+  if (off < 0 || !id || typeof goPage !== 'function') return;
+  const at = [].indexOf.call(host.querySelectorAll(':scope > .page'), pg);
+  const base = typeof logIndex_ === 'function' ? logIndex_(id, at) : at;
+  goPage(id, base + off);
+});
+
+/* ON THE ANSWER PAGE ITSELF it opens where it is -- you are already there. */
+on('qa-show', (el) => {
+  ansShow_(ansItem_(el.getAttribute('data-k')));
+});
 
 /* `topicBy` WAS HERE — a document by id, falling back to its name. Nothing has a document to look
    up any more; see the note above `questionItems`. */
@@ -8928,10 +9081,18 @@ function bundleCard_(b) {
       })()
     : b.printable.map(p => `<li><span class="bundle-name">${esc(p.label)}</span>${pp(p)}</li>`).join('');
   const stray = bundleStrayLine_(b);
-  return `<div class="card bundle">
-      <p class="crumb">Bundle · printed and sent</p>
-      <h3>${esc(b.title || 'These papers')} <span class="faint">— ${esc(b.noun)}</span></h3>
-      <p class="sub">${esc(bundlePriceLine_(b))}</p>
+  /* ---------- THE QUESTION CARD'S HEADER, BECAUSE IT IS THE SAME FAMILY ---------------------------
+     ASKED FOR AS *"sleekerise the whole widget system in the finder for questions"*. This card sat in
+     front of the questions it bundles and spoke a different language: a breadcrumb, a large title
+     with "— 12 papers" trailing it in faint (which wrapped at 320 and left "papers" alone on a
+     line), loose on the glass where every question after it is a bounded card. So it is a `.qcard`
+     too, with the same header row -- what it is, gold, hard left; how many, in the marks' place
+     hard right -- then its title, then what it costs, then the list. Its own name still says
+     "printed and sent", once, in the line about money, which is where that fact is used. */
+  return `<div class="card bundle qcard">
+      <div class="qcard-top"><b>Bundle</b><span>${esc(b.noun)}</span></div>
+      <h3 class="bundle-title">${esc(b.title || 'These papers')}</h3>
+      <p class="bundle-sub">Printed and sent &middot; ${esc(bundlePriceLine_(b))}</p>
       <ol class="bundle-list">${list}</ol>
       ${/* NAMED, NOT DROPPED. A paper the library marks `printable: FALSE` is on the list above the
             card and missing from the bundle, and a card that said "these papers" without saying so

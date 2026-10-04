@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-03-findpolish";
+  --css-version: "2026-10-03-anscard";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -9532,29 +9532,32 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    NOT `display: flex` ON THE SUMMARY IN ONE GO — a flex summary loses its marker box in Safari and
    the element stops being clickable in some older WebKits. `display: block` with the contents laid
    out inside is the arrangement that behaves everywhere. */
-.qans { margin-top: .9rem; border-top: 1px solid var(--line); }
-/* ---------- A HEADING, NOT A CONTROL -------------------------------------------------------------
-   `.qans-open` WAS A `<summary>`: 44px tall, a pointer cursor, and a +/- glyph that swapped on
-   `[open]`. The answer is always shown now — see `answerBlock_` — so all four of those said a
-   thing that is no longer true. A 44px tap target on something nothing taps is the clearest of
-   them: this file's own rule is that 44px means a finger goes here.
-
-   THE WORD STAYS. "Answer" still has to separate the question above it from the mark scheme below,
-   and the rule on `.qans` still draws the line between them. It is a label now, so it loses the
-   height, the cursor and the glyph and keeps the colour and the weight. */
+/* ON ITS OWN PAGE NOW, so the rule that separated it from the question above has nothing to
+   separate: the card's own edge does that. The same gap as the question to its answer box, 1rem. */
+.qans { margin-top: 1rem; }
+/* ---------- A LABEL, AND THE SAME ONE THE ANSWER BOX WEARS ------------------------------------------
+   `.qans-open` WAS A `<summary>`, then `.qans-head` was a gold "Answer" with the answer's kind in
+   faint italics beside it -- which read as one phrase, "Answer explain". The page's header already
+   says `Q3 · answer`, so this is the small-capitals caption `.qp-ans-k` puts over the box on the
+   question card -- "ANSWER · CALCULATION" here, "YOUR ANSWER" there -- the two halves of one act in
+   one voice. A label, not a control: no height, no cursor. */
 .qans-head {
-  display: block;
-  padding: .8rem 0 .4rem;
-  font: 600 .8rem/1.2 var(--font); color: var(--gold);
+  display: block; margin-bottom: .5rem;
+  font: 600 .62rem/1 var(--font); color: var(--faint);
+  letter-spacing: .08em; text-transform: uppercase;
 }
-.qans-head em { margin-left: .5rem; font-style: normal; font-size: .68rem; color: var(--faint); }
 /* THE ANSWER READS AS THE PAPER DOES, because it is the same material — see `answerBlock_`. Both are
    the site's own coding font now: asked for as "the text for questions is still that qwirky text.
    Should be the coding font universally for whole site." Georgia was here to make a question read
    as printed paper; one face across the app won over that. */
-.qans-body { font-family: var(--font); line-height: 1.5; padding-bottom: .4rem; }
+/* THE RESULT, LARGE. It is the one thing on this page, and 259 cut it to a word or a line -- median
+   seven characters, none past 120 -- so it can be the size of a heading without a long one ever
+   filling the screen. Ink and weight rather than gold: gold on this card is the question's number,
+   and an answer in the accent would read as a second title. */
+.qans-body { font: 600 1.3rem/1.35 var(--font); color: var(--ink); padding-bottom: .5rem;
+             overflow-wrap: anywhere; }
 .qans-body p:first-child { margin-top: 0; }
-.qans-body table { border-collapse: collapse; margin: .9rem 0; }
+.qans-body table { border-collapse: collapse; margin: .9rem 0; font-size: .8rem; font-weight: 400; }
 .qans-body td, .qans-body th { border: 1px solid var(--line); padding: .3rem .5rem; }
 /* WHAT THE EXAMINER SAID, set apart from the answer — it is commentary on how it was marked, not
    part of the answer, and reading them as one paragraph is how a hint becomes a requirement. */
@@ -9626,6 +9629,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    at .66rem in `--faint`, which read as a stray caption rather than as the other half of the header
    row somebody runs an eye down. */
 .qcard-top span { font: 500 .68rem/1 var(--mono); color: var(--dim); white-space: nowrap; }
+/* WHICH PAGE OF THE QUESTION THIS IS -- `Q3 · figure`, `Q3 · answer` (`qHead_` in find.js). The
+   number stays the title; the part is the marks' quieter voice in the number's own face, so the two
+   read as one name and a page landed on cold still says first whose page it is. */
+.qcard-top .qcard-part { font-style: normal; font-weight: 500; color: var(--dim); letter-spacing: 0; }
 .qcard-sub { margin: .4rem 0 0; font-size: .7rem; color: var(--dim); }
 /* ---------- THE CARD'S TAGS -------------------------------------------------------------------------
    ASKED FOR AS *"it has the title of it in one text name when it should still remain as tags."* The
@@ -9872,6 +9879,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    card, because it is a disclosure rather than part of the question — but it is on the card, every
    time, because the alternative is this site passing its own question off as the exam board's. */
 .fig-by { margin: .4rem 0 0; font-size: .7rem; line-height: 1.35; opacity: .55; text-align: center; }
+/* UNDER A PEN IT IS A FOOTNOTE, NOT A CAPTION. Centred under a picture it reads as the picture's
+   caption, which is right in a `<figure>`. Under the pen's three buttons it sat centred over a
+   left-aligned "Kept on this phone only", in a different size and a different grey -- two footnotes
+   to one figure, set two ways. One voice for both: `.qpad-note`'s. */
+.qpad > .fig-by { margin: .5rem 0 0; text-align: left; opacity: 1;
+                  font: 400 .62rem/1.4 var(--font); color: var(--faint); }
 /* ==================================================================================================
    BOXING — THE FIGHTER AND THE FIGHT
 
@@ -11383,6 +11396,20 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .card.bundle .bundle-list li::marker { color: var(--faint); font-family: var(--mono); }
 .card.bundle .bundle-name { color: var(--ink); }
 .card.bundle .bundle-off { margin: .35rem 0 0; font-size: .72rem; color: var(--faint); }
+/* ---------- AND IT IS A QUESTION CARD'S SHAPE NOW ----------------------------------------------------
+   `bundleCard_` gives it `.qcard` and the question's header row (find.js says why). `.card` is a
+   ROW in this app -- no box, a hairline under it, and `.card:last-child` / `.page .card` take even
+   that off -- so the box has to be said again at two classes, written after all three so it wins
+   on order as well as on weight. The same edge, radius and padding as the questions after it, which
+   is the whole of "one family": a bundle and the papers in it read as the same kind of thing. */
+.card.qcard.bundle {
+  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
+  padding: .75rem .7rem .8rem; margin-bottom: .4rem;
+}
+/* THE TITLE IS WHAT IS BEING CHOSEN, so it is the one large line -- ink, not gold, because gold is
+   the header's word on every card in this family. It wraps on its middots, which is where it reads. */
+.card.bundle .bundle-title { margin: .6rem 0 0; font: 600 .95rem/1.35 var(--font); color: var(--ink); }
+.card.bundle .bundle-sub { margin: .3rem 0 .4rem; font: 500 .7rem/1.4 var(--mono); color: var(--dim); }
 
 /* ---------- EACH WIDGET IS ITS OWN THING ----------------------------------------------------------
    A CARD EACH, with its own edge, because that is what makes nine tools nine tools rather than one
@@ -12227,10 +12254,13 @@ button.scr-sq { cursor: pointer; }
 /* THE MARK SCHEME, WAITING. Only ever shut when a student is named — see `answerBlock_` for why
    the tutor's own view is untouched. `display: none` rather than height, because a collapsed
    block that is still in the document is still readable by anyone who looks. */
-.qans.is-shut > .qans-head,
-.qans.is-shut > .qans-body,
-.qans.is-shut > .qans-why { display: none; }
-.qans.is-shut { border: 0; padding: 0; }
+/* THE ANSWER, WAITING. `.qans.is-shut` WAS HERE, hiding with `display: none` an answer that was
+   in the document -- "still readable by anyone who looks", as its own note said. The answer page
+   draws no answer at all until it is shown (`questionAnsCard_`), so what is left to style is the
+   sentence saying so and the one control under it. The sentence in the dim of a caption, not a
+   warning: it is an invitation to try, and the house word for a wrong answer is "not yet". */
+.qans-wait { margin-top: 1rem; }
+.qans-wait-k { margin: 0 0 .75rem; font: 500 .8rem/1.45 var(--font); color: var(--dim); }
 .qp-reveal {
   min-height: 44px; width: 100%; padding: 0 1rem;
   background: var(--sunk); color: var(--ink);
@@ -12238,7 +12268,6 @@ button.scr-sq { cursor: pointer; }
   font: 600 .74rem/1 var(--font); letter-spacing: .04em; cursor: pointer;
 }
 .qp-reveal:hover { border-color: var(--gold); color: var(--gold); }
-.qans:not(.is-shut) > .qp-reveal { display: none; }
 
 /* ---------- A DIAGRAM YOU CAN WRITE ON -----------------------------------------------------------
    THE PEN IS OFF UNTIL THE PAD SAYS `is-drawing`, and that is not a nicety. `touch-action: none` is

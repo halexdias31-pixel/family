@@ -476,6 +476,13 @@ function outside(svg, row) {
       if (questionHasFig_(x) && !/<svg|class="qpic/.test(questionFigCard_(x))) {
         inline.push(x.row.row_id + ' has a picture and its figure page draws none');
       }
+      /* AND THE ANSWER IS ITS OWN PAGE TOO -- *"answers ... to be their own widget"*. A result left
+         on the question card measures perfectly, exactly as a picture left there did. */
+      if (/class="qans|qans-body/.test(q)) inline.push(x.row.row_id + ' draws its answer on the question card');
+      if (typeof questionHasAns_ === 'function' && questionHasAns_(x)
+          && !/class="qcard qans-card/.test(questionAnsCard_(x))) {
+        inline.push(x.row.row_id + ' has an answer and no answer page');
+      }
     });
     /* ONE CARD PER PANE, IN BATCHES OF TWO HUNDRED PANES. The first version put two hundred cards
        into ONE pane and reported `Q-1MA1-2406-2F-28a` as 67,622px past the fold -- a card that
