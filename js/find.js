@@ -5804,7 +5804,11 @@ function choiceBox_(x) {
   const done = right.length && picked.length >= need;
   const ok = done && picked.slice().sort((a, b) => a - b).join(',') === right.join(',');
   const who = signedName_();
-  return `<div class="qp-ans qp-choices" data-k="${esc(k)}" data-need="${need}"
+  /* `is-done` SAYS THE QUESTION IS SETTLED, which `qp-choose` below already enforces by ignoring any
+     further tap. Said on the box so the stylesheet can stop the options LOOKING pressable once they
+     are not -- a button that presses in and does nothing is the "door with no handle" this
+     repository keeps writing about. */
+  return `<div class="qp-ans qp-choices${done ? ' is-done' : ''}" data-k="${esc(k)}" data-need="${need}"
       data-right="${esc(right.join(','))}">
     <span class="qp-ans-k">${who ? esc(who) + '&rsquo;s answer' : 'Your answer'}${
       need > 1 ? ' &middot; choose ' + need : ''}</span>
@@ -5941,6 +5945,19 @@ document.addEventListener('input', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
   if (!el) return;
   try { localStorage.setItem(el.getAttribute('data-k') || '', el.value || ''); } catch (err) {}
+  /* A VERDICT IS ABOUT THE ANSWER IT MARKED, and the moment a letter changes it is about an answer
+     that is no longer there. "Correct" beside "16", left from when the box said "15", is the app
+     vouching for something it never read. So typing takes the verdict off -- its words, its colour,
+     the tick -- and leaves the SLOT, which is the row's own height whatever it holds, so nothing
+     under it moves. Check marks the new answer when it is pressed again. */
+  const card = el.closest('.qcard');
+  const mark = card && card.querySelector('.qp-mark[data-accept]');
+  if (mark && (mark.classList.contains('is-right') || mark.classList.contains('is-near')
+      || (mark.querySelector('.qp-verdict') || {}).textContent)) {
+    mark.classList.remove('is-right', 'is-near');
+    const out = mark.querySelector('.qp-verdict');
+    if (out) out.textContent = '';
+  }
 });
 
 
@@ -6472,6 +6489,11 @@ function questionCard_(x) {
           /* NO PICTURE HERE. The diagram, the pen and the question's photographs are the NEXT page
              — see `questionFigCard_`. The answer box stays on this card, under the words. */''}</div>
       </div>
+      ${/* AND THE WORDS SAY WHERE IT WENT. "The angle marked y", with no angle on the card, reads as
+            a question that failed to load; one quiet line, a label rather than a control, because
+            the page turns the way every page does. Asked of the same `questionHasFig_` that
+            `pageParts_` asks, so the line and the page that it names cannot disagree. */''}${
+        questionHasFig_(x) ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
     </div>
     ${/* YOUR BOX FIRST, THE MARK SCHEME UNDER IT, and the order is the whole point: an answer you
           can see before you have written one is not a question. */''}
