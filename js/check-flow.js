@@ -4977,7 +4977,10 @@ check('an answer draws its result, and the working waits shut under Why', async 
     w.document.body.appendChild(page);
     const held = w.stuffItemsAll_;
     w.stuffItemsAll_ = () => [x];
-    try { w.__t.ACTIONS['qa-show'](page.querySelector('[data-do="qa-show"]')); } finally { w.stuffItemsAll_ = held; }
+    const showBtn = page.querySelector('[data-do="qa-show"]');
+    if (!showBtn) bad.push('a student\'s answer page has no "Show the answer" to press');
+    else try { w.__t.ACTIONS['qa-show'](showBtn); } finally { w.stuffItemsAll_ = held; }
+    w.stuffItemsAll_ = held;
     const opened = page.querySelector('.qans-card');
     if (!opened || opened.classList.contains('is-hidden') || !opened.querySelector('.qans-body')) bad.push('"Show the answer" did not show the answer');
     const f = opened && opened.querySelector('details.qans-why');
@@ -5157,7 +5160,9 @@ check('an answer is its own page after its question, hidden from a student until
   d.body.appendChild(tiles);
   const held = w.stuffItemsAll_;
   w.stuffItemsAll_ = () => [base, fig];
-  try { A['qa-go'](tiles.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = held; }
+  const goTile = tiles.querySelector('[data-do="qa-go"]');
+  if (goTile) { try { A['qa-go'](goTile); } finally { w.stuffItemsAll_ = held; } }
+  w.stuffItemsAll_ = held;
   const now = d.querySelector('.qans-card[data-of="Q-ANSP-5"]');
   if (!now || now.classList.contains('is-hidden') || now.textContent.indexOf(SECRET) < 0) bad.push('"Show the answer" on the question did not open its answer page');
   else if (now.querySelector('details.qans-why[open]')) bad.push('showing the answer opened the working as well');
