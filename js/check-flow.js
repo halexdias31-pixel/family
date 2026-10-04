@@ -907,11 +907,14 @@ check('the cheat sheet maker draws a handwriting sheet, lined and squared paper,
   t.setCart([]);
   t.matFresh();
   try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
-  for (let n = 0; n < 20 && !doc.getElementById('mat-kind'); n++) await wait(50);
-  const kind = doc.getElementById('mat-kind');
-  if (!kind) return ['the cheat sheet maker has no sheet-type select'];
-  const kinds = [...kind.options].map(o => o.value).join(',');
-  if (kinds !== 'cheat,hand,lined,grid') bad.push('the sheet type offers ' + kinds + ', not cheat sheet, handwriting, lined and squared');
+  for (let n = 0; n < 20 && !doc.getElementById('mat-subject'); n++) await wait(50);
+  /* THE KINDS ARE A "Practice paper" GROUP IN THE SUBJECT SELECT — a select of their own was the 44px
+     the card did not have at 320x568 (see `initMat`). */
+  const kind = doc.getElementById('mat-subject');
+  if (!kind) return ['the cheat sheet maker has no subject select'];
+  const kinds = [...kind.querySelectorAll('optgroup option')].map(o => o.value).join(',');
+  if (kinds !== 'paper:hand,paper:lined,paper:grid') bad.push('the subject select offers the paper kinds ' + kinds + ', not handwriting, lined and squared');
+  if (kind.closest('[hidden]')) bad.push('the subject select is hidden, so the paper kinds cannot be reached');
 
   const press = (el, v) => { el.value = v; el.dispatchEvent(new w.Event('change', { bubbles: true })); };
   const svgOf = () => { const d = doc.createElement('div'); d.innerHTML = t.matSheet(); return d; };
@@ -940,9 +943,10 @@ check('the cheat sheet maker draws a handwriting sheet, lined and squared paper,
   };
 
   /* ---- HANDWRITING ---- */
-  press(kind, 'hand');
+  press(kind, 'paper:hand');
   if (t.matBlank().kind !== 'hand') return bad.concat('choosing Handwriting did not change the sheet');
   if (!doc.getElementById('mat-cheat').hidden) bad.push('the cheat sheet\'s pieces are still showing under Handwriting');
+  if (!doc.getElementById('mat-level').closest('[hidden]')) bad.push('the level select is still showing under Handwriting');
   if (doc.getElementById('mat-blank').hidden) bad.push('the handwriting questions are hidden under Handwriting');
   const shown = [...doc.querySelectorAll('#mat-blank [data-for]')].filter(e => !e.hidden).map(e => e.getAttribute('data-for'));
   if (shown.some(f => f !== 'hand') || !shown.length) bad.push('under Handwriting the card shows the questions for ' + JSON.stringify(shown));
@@ -1013,7 +1017,7 @@ check('the cheat sheet maker draws a handwriting sheet, lined and squared paper,
   doc.body.classList.remove('printing-mat');
 
   /* ---- LINED ---- */
-  press(kind, 'lined');
+  press(kind, 'paper:lined');
   press(doc.querySelector('#mat-blank select[data-k="line"]'), '10');
   d = svgOf();
   const lines = segs(d, 'mat-ln').filter(s => s[1] === s[3]);
@@ -1023,7 +1027,7 @@ check('the cheat sheet maker draws a handwriting sheet, lined and squared paper,
   inside(d, 'lined');
 
   /* ---- SQUARED ---- */
-  press(kind, 'grid');
+  press(kind, 'paper:grid');
   press(doc.querySelector('#mat-blank select[data-k="grid"]'), '10');
   d = svgOf();
   const g = segs(d, 'mat-ln-grid');
@@ -1036,6 +1040,11 @@ check('the cheat sheet maker draws a handwriting sheet, lined and squared paper,
     if (Math.abs(left - right) > 0.01) bad.push('the grid is ' + left + 'mm from the left and ' + right + 'mm from the right — not centred');
   }
   inside(d, 'squared');
+
+  /* ---- A SUBJECT TAKES IT BACK TO THE CHEAT SHEET ---- */
+  press(kind, 'Maths');
+  if (t.matBlank().kind !== 'cheat' || doc.getElementById('mat-cheat').hidden) bad.push('choosing Maths after squared paper did not bring the cheat sheet back');
+  press(kind, 'paper:grid');
 
   /* ---- REMEMBERED, AND A KIND FROM SOMEWHERE ELSE IS THE CHEAT SHEET ---- */
   const kept = JSON.parse(w.localStorage.getItem('matChoice') || '{}');

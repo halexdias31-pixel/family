@@ -1676,11 +1676,10 @@ function matChoices(parts) {
   const subs = matSubjects(parts);
   if (sub) {
     matOptions_(sub, subs.map(s => `<option value="${esc(s)}">${esc(s)}</option>`).join('')
-      + '<option value="all">Every subject</option>');
+      + '<option value="all">Every subject</option>' + matPaperOptions_());
     sub.value = MAT_SUBJECT;
-    /* ONE SUBJECT IS NO CHOICE, so there is nothing to draw — the sheet's tab can switch every
-       English row off, and a select with one real answer is a control that does nothing. */
-    (sub.closest('.mat-sel') || sub).hidden = subs.length < 2;
+    /* ONE SUBJECT WAS NO CHOICE and the select was hidden — but the practice paper kinds are in it
+       now (`matPaperOptions_`), so there is always a choice and it is always drawn. */
   }
   if (lev) {
     matOptions_(lev, matLevelChoices(parts)
@@ -1990,13 +1989,11 @@ function matBlankPaint_(list) {
   }
 }
 
-on('mat-kind', el => {
-  MAT_TOUCHED = true;
-  const v = String(el.value || '');
-  MAT_KIND = MAT_KINDS.some(k => k.v === v) ? v : 'cheat';
-  matPaint();
-  matRemember();
-});
+/* THE PAPER KINDS AS OPTIONS OF THE SUBJECT SELECT — see the note in `initMat`. Prefixed, so no
+   subject the sheet could ever name is mistaken for one. */
+const MAT_PAPER_AT = 'paper:';
+const matPaperOptions_ = () => '<optgroup label="Practice paper">' + MAT_KINDS.filter(k => k.v !== 'cheat')
+  .map(k => `<option value="${MAT_PAPER_AT}${k.v}">${esc(k.say)}</option>`).join('') + '</optgroup>';
 on('mat-blank', el => {
   MAT_TOUCHED = true;
   matBlankSet_(el.getAttribute('data-k'), el.value);
@@ -2093,17 +2090,6 @@ function initMat() {
     }
   }
   box.innerHTML = `
-    ${/* ---------- WHAT KIND OF SHEET, FIRST, BECAUSE IT DECIDES EVERY QUESTION UNDER IT ----------
-          ASKED FOR AS *"allow cheat sheet maker to make a handwriting worksheet. or lined or grid
-          paper"*. A select and not four pills: one 44px row whatever the number of kinds, and the
-          card was already cut to fit a 320x568 phone without a row to spare (see `MAT_GROUPS`).
-          The cheat sheet's own questions sit in `#mat-cheat` and the paper's in `#mat-blank`, and
-          only one of the two is ever shown — see `matPaint`. */''}
-    <label class="mat-sel mat-kind"><select id="mat-kind" data-do="mat-kind"
-      aria-label="Sheet type">${MAT_KINDS.map(k =>
-        `<option value="${k.v}">${esc(k.say)}</option>`).join('')}</select></label>
-    <div id="mat-blank" class="mat-blank-pick" hidden>${matBlankControls_()}</div>
-    <div id="mat-cheat">
     <div class="mat-pick">
       ${/* SELECTS, IN THE ORDER THE QUESTION IS ASKED: which subject, then which paper. A select
             answers on `change` — the dispatcher in cards.js routes it — and it is a real 44px
@@ -2113,13 +2099,24 @@ function initMat() {
             question it is. */''}
       <label class="mat-sel"><select id="mat-subject" data-do="mat-subject"
         aria-label="Subject"></select></label>
-      <label class="mat-sel"><select id="mat-level" data-do="mat-level"
+      <label class="mat-sel" data-cheat><select id="mat-level" data-do="mat-level"
         aria-label="Level"></select></label>
       ${/* THE THIRD QUESTION, WHICH TOPIC — see `MAT_GROUPS`. It is what keeps the list under the
             fold of a 320x568 phone, and it says on each option how much of the sheet is in it. */''}
-      <label class="mat-sel"><select id="mat-group" data-do="mat-group"
+      <label class="mat-sel" data-cheat><select id="mat-group" data-do="mat-group"
         aria-label="Topic"></select></label>
     </div>
+    ${/* ---------- PRACTICE PAPER IS ASKED FOR IN THE SUBJECT SELECT, NOT A SELECT OF ITS OWN ----------
+          ASKED FOR AS *"allow cheat sheet maker to make a handwriting worksheet. or lined or grid
+          paper"*. The first build gave it a "Sheet type" select above the subject, and that one 44px
+          row was the row the card did not have: `check/states.js` walks every subject × level × topic
+          at 320x568 and the card was already cut to fit at 0.85 without a row to spare (see
+          `MAT_GROUPS`). So the paper kinds are a "Practice paper" group at the foot of the subject's
+          own options — which is also the question a tutor is asking: maths, English, or plain paper.
+          Choosing one hides the level, the topic and the pieces (`#mat-cheat`) and shows the paper's
+          own questions (`#mat-blank`); see `matPaint`. */''}
+    <div id="mat-blank" class="mat-blank-pick" hidden>${matBlankControls_()}</div>
+    <div id="mat-cheat">
     <label class="check mat-given" id="mat-given" hidden><input type="checkbox" data-do="mat-exam">
       <span class="box"></span><span>Skip what the exam gives you</span></label>
     ${/* ---------- THE LIST IS THE WHOLE LIST, AND THE PANE DECIDES WHAT FITS ------------------
@@ -2181,7 +2178,16 @@ function initMat() {
    carries the tier in its value — `GCSE|H` — because they are one choice on the screen. */
 on('mat-subject', el => {
   MAT_TOUCHED = true;
-  MAT_SUBJECT = String(el.value || 'all');
+  /* A PAPER KIND IS NOT A SUBJECT, and choosing one leaves the subject where it was — so coming back
+     from lined paper finds the cheat sheet as it was left. */
+  const v = String(el.value || 'all');
+  if (v.indexOf(MAT_PAPER_AT) === 0) {
+    const k = v.slice(MAT_PAPER_AT.length);
+    MAT_KIND = MAT_KINDS.some(x => x.v === k && k !== 'cheat') ? k : 'cheat';
+    matPaint(); matRemember(); return;
+  }
+  MAT_KIND = 'cheat';
+  MAT_SUBJECT = v;
   matPaint();
   matRemember();
 });
@@ -2247,8 +2253,14 @@ function matPaint() {
   /* ---------- PRACTICE PAPER TAKES THE PAINT FROM HERE ---------------------------------------------
      The picker underneath keeps its ticks while it is hidden — a tutor who looks at lined paper and
      comes back finds their cheat sheet as they left it, which is the subject select's own rule. */
-  const kindSel = $('mat-kind');
-  if (kindSel) kindSel.value = MAT_KIND;
+  const sub = $('mat-subject');
+  if (sub && MAT_KIND !== 'cheat') sub.value = MAT_PAPER_AT + MAT_KIND;
+  const box_ = list.closest('#mat-box');
+  if (box_) box_.querySelectorAll('.mat-pick [data-cheat]').forEach(el => {
+    /* THE TOPIC'S OWN "one group is no choice" WAS DECIDED BY `matChoices` above; only hide here. */
+    if (MAT_KIND !== 'cheat') el.hidden = true;
+    else if (el.querySelector('#mat-level')) el.hidden = false;
+  });
   const cheatBox = $('mat-cheat'), blankBox = $('mat-blank');
   if (cheatBox) cheatBox.hidden = MAT_KIND !== 'cheat';
   if (blankBox) blankBox.hidden = MAT_KIND === 'cheat';

@@ -8765,13 +8765,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-do { display: flex; align-items: center; gap: .4rem; }
 .mat-do .btn { flex: 1 1 auto; min-width: 0; margin: 0; }
 .mat-do .tile { flex: none; }
-/* ---------- WHICH KIND OF SHEET, AND THE PAPER'S OWN QUESTIONS --------------------------------------
-   THE KIND IS ONE MORE `.mat-sel` — the same 44px select with the same drawn arrow, above the
-   subject — and the paper's questions are a `.mat-pick` of their own, stacked for the reason the
-   cheat sheet's are (at 16px two do not fit side by side on a phone). The text box is the global
-   input at 16px; `width: 100%` because an input's intrinsic width is about twenty characters, which
-   at 320 is wider than the card. */
-.mat-kind { margin-bottom: .3rem; }
+/* ---------- THE PAPER'S OWN QUESTIONS ----------------------------------------------------------------
+   THE KIND IS CHOSEN IN THE SUBJECT SELECT (see `initMat`); what it asks next is a stack of its own,
+   laid out as `.mat-pick` is, for the same reason (at 16px two do not fit side by side on a phone).
+   The text box is the global input at 16px; `width: 100%` because an input's intrinsic width is
+   about twenty characters, which at 320 is wider than the card. */
 .mat-blank-pick { display: grid; gap: .3rem; margin-bottom: .35rem; }
 .mat-blank-pick[hidden], .mat-blank-pick [hidden] { display: none; }
 .mat-text { width: 100%; min-width: 0; font-size: 16px; box-sizing: border-box; }
