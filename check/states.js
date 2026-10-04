@@ -1005,7 +1005,9 @@ const STATES = {
        The pager fills pages either side of the one in front as you swipe, so a practical's diagram,
        kit and steps are drawn into the DOM while you are reading its card. Measured on the card:
        its title and its foot, relative to its pane, before and after turning two pages on and
-       back — which is what fills and empties the neighbours. */
+       back. THREE PAGES WAS NOT ENOUGH and the first version measured nothing: with `STUFF_NEAR` at 5
+       every page it passed was already drawn. `STUFF_NEAR + 3` on is far enough that the card's OWN
+       page is emptied, so coming back draws it again from nothing — the moment a card loads. */
     { name: "a practical's pages filled, its card still",
       enter: () => {
         const x = stuffItemsAll_().find(it => it.kind === 'practical' && !it.row.excluded && it.row.diagram);
@@ -1030,18 +1032,27 @@ const STATES = {
           return [h3.getBoundingClientRect().top - t, card.getBoundingClientRect().bottom - t,
                   pane.getBoundingClientRect().height];
         };
+        /* THE PAGES ARE FILLED BY `fillStuffPages`, CALLED HERE RATHER THAN WAITED FOR. The pager
+           fills on the settle after a swipe, which under a loaded machine was later than the half
+           second `check/ui.js` waits — so the first version measured a card mid-swipe on one run
+           in three and reported it missing. Calling the app's own filler (`all`, so the far pages are
+           not left to a timer either) is the same drawing,
+           synchronously. The title node is kept so the expect can tell the card was drawn AGAIN
+           rather than left standing. */
         setTimeout(() => {
           const a = at();
-          goPage('stuff', first + 3, true);
+          const was = page() && page().querySelector('.card.fc .fc-head h3');
+          goPage('stuff', first + STUFF_NEAR + 3, true); fillStuffPages(true);
+          goPage('stuff', first, true); fillStuffPages(true);
           setTimeout(() => {
-            goPage('stuff', first, true);
-            setTimeout(() => { window.__cardStill = { a, b: at() }; }, 80);
-          }, 80);
+            const now = page() && page().querySelector('.card.fc .fc-head h3');
+            window.__cardStill = { a, b: at(), redrawn: !!now && now !== was };
+          }, 60);
         }, 60);
       },
       expect: () => {
         const s = window.__cardStill;
-        return !!s && !!s.a && !!s.b && s.a.every((v, i) => Math.abs(v - s.b[i]) < .5);
+        return !!s && !!s.a && !!s.b && s.redrawn && s.a.every((v, i) => Math.abs(v - s.b[i]) < .5);
       },
       wants: "a practical's card with its title, its foot and its pane's height unchanged after its pages filled",
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
