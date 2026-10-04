@@ -4900,9 +4900,13 @@ check('a fraction is drawn stacked in the stem, lead, part, answer and choices, 
      fraction is asked of what that draws, not of the question card, which no longer carries it. */
   const ansDrawn = w.document.createElement('div');
   ansDrawn.innerHTML = typeof w.answerBlock_ === 'function' ? w.answerBlock_(base) : '';
+  /* AND THE STEM IS ITS OWN PAGE NOW, in front of its parts (`questionStemCard_`), so its fraction
+     is asked of that page. */
+  const stemDrawn = w.document.createElement('div');
+  stemDrawn.innerHTML = typeof w.questionStemCard_ === 'function' ? w.questionStemCard_(base, 0) : '';
   [['.qsheet-stem', 'the stem'], ['.qsheet-lead', 'the lead'], ['.qsheet-pb', 'the part'],
    ['.qans-body', 'the answer']].forEach(([sel, what]) => {
-    const el = (sel === '.qans-body' ? ansDrawn : tapped).querySelector(sel);
+    const el = (sel === '.qans-body' ? ansDrawn : sel === '.qsheet-stem' ? stemDrawn : tapped).querySelector(sel);
     if (!el) bad.push(what + ' was not drawn at all');
     else if (!el.querySelector('.frac .frac-n') || !el.querySelector('.frac .frac-d')) bad.push(what + ' drew its fraction slanted: ' + el.innerHTML.slice(0, 120));
   });

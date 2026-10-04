@@ -3856,7 +3856,7 @@ function textbookText_(b) {
    a worksheet asking somebody to plan an afternoon that has been turned down is inviting exactly
    what the refusal is for. A section with nothing in it is not drawn as an empty page — a page you
    can swipe to that says nothing reads as a fault. Anything that is not a practical is one page. */
-function pageParts_(x) {
+function pageParts_(x, prev) {
   /* ---------- A QUESTION IS ITS WORDS, ITS FIGURE AND ITS ANSWER, in the order they are used -------
      ASKED FOR AS *"what I want was answers to be short and to be their own widget"* — the half of 259
      that was left undone on purpose and has now been asked for twice. The figure page (204) is the
@@ -3864,8 +3864,29 @@ function pageParts_(x) {
      and after its figure where it has one, because you read the question, look at the picture, and
      only then want the answer. A row with no answer has no answer page — a page that can only ever
      say "nothing here" is the empty page the note below refuses. */
+  /* ---------- AND IN THE PAPER'S ORDER, WHICH PUTS THE SHARED OPENING AND ITS FIGURE FIRST ----------
+     ASKED FOR AS *"preserve order of question from exam while at the same time giving diagrams and
+     figures their own widget"*. The figure page gathered EVERY picture a part hangs from -- the
+     stem's and its own -- and put the lot after the part's words, so Q5(a) of the Statistics paper
+     read "is skilled," and then, a page later, the Venn diagram the stem had introduced before it.
+     And it did that for every part: six parts, six copies of the stem and six of its figure.
+
+     SO A STEM IS PAGES OF ITS OWN, ITS WORDS (`stemN`) AND THEN ITS FIGURE (`sfigN`), IN FRONT OF
+     THE FIRST PART THAT HANGS FROM IT, and the part keeps only what is its own: its words, its own
+     figure, its answer. `prev` is the result in front of this one in the strip -- a part whose stem
+     the previous part already showed does not show it again, which is how the paper prints it: Q5,
+     the diagram, (a), (b), (c). With no `prev` (Saved, a check, a result on its own) every stem is
+     drawn, because a part landed on alone still needs the paragraph and the picture it is about. N
+     is the stem's place in `x.stems`, so two parts of one question name the same stem the same way. */
   if (x && x.kind === 'question') {
-    const out = [null];
+    const had = prev && prev.kind === 'question' ? (prev.stems || []).map(stemId_) : [];
+    const out = [];
+    (x.stems || []).forEach((p, i) => {
+      if (!p || had.indexOf(stemId_(p)) >= 0) return;
+      if (String(p.html || '').trim()) out.push('stem' + i);
+      if (stemHasFig_(p)) out.push('sfig' + i);
+    });
+    out.push(null);
     if (questionHasFig_(x)) out.push('fig');
     if (questionHasAns_(x)) out.push('ans');
     return out;
@@ -3905,13 +3926,15 @@ function pageParts_(x) {
    because "Show the answer" turns forward by the answer's place in that list — on Saved as on Find
    — and two lists of one question's pages would be two chances to disagree about where it is. */
 function cardPages_(x, credits) {
-  return pageParts_(x).filter(p => !p || p === 'fig' || p === 'ans')
+  return pageParts_(x).filter(p => !p || p === 'fig' || p === 'ans' || /^s(tem|fig)\d+$/.test(p))
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
 }
 function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
   if (x && x.kind === 'textbook') return textbookPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
+  if (x && x.kind === 'question' && /^stem\d+$/.test(part)) return questionStemCard_(x, +part.slice(4));
+  if (x && x.kind === 'question' && /^sfig\d+$/.test(part)) return questionStemFigCard_(x, +part.slice(4));
   return (x && x.kind === 'question' && part === 'fig') ? questionFigCard_(x) : practicalPart_(x, part);
 }
 
@@ -5131,6 +5154,67 @@ function ansRead_(k) {
   } catch (e) { return ''; }
 }
 
+/* ---------- WHEN YOU LAST DID IT ---------------------------------------------------------------
+   ASKED FOR AS *"when a student does do a question, it should record the date they did it."* So a
+   question somebody has had a go at says `Done 4 Oct` in its header, beside the marks, for the
+   person who did it and nobody else.
+
+   KEPT EXACTLY WHERE THEIR ANSWER IS KEPT, because it is a fact about that answer: `ans:<who>:<key>`
+   holds what they wrote, `done:<who>:<key>` the day they last wrote it, Checked it or tapped an
+   option. `localStorage`, not the sheet -- the answer box is a workbook on this phone and sends
+   nothing (see `ansBox_`), and a date that followed the student to another phone while their
+   answer stayed behind would be a record of work the screen cannot show them.
+
+   SIGNED IN, OR NOTHING. "Per person" needs a person: the signed-out key is everybody who ever
+   picked the phone up, and "Done 4 Oct" on it would be a claim about nobody in particular.
+
+   THE LAST DAY, NOT THE FIRST. Somebody coming back to a question wants to know how long since they
+   last looked at it; the day they first met it is history the stamp would hide that behind.
+
+   `DONE_HELD` IS THE FALLBACK. Private mode THROWS on `localStorage`, and a date that vanished the
+   instant it was written would leave the header blank beside an answer just marked -- so it is held
+   for the visit as well, and read from there when storage will not answer. */
+const DONE_HELD = new Map();
+const doneKeyOf_ = k => ((typeof whoIs_ === 'function' && whoIs_() && /^ans:u:/.test(String(k || '')))
+  ? 'done:' + String(k).slice(4) : '');
+const dayIso_ = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-'
+  + String(d.getDate()).padStart(2, '0');
+function doneRead_(k) {
+  const dk = doneKeyOf_(k);
+  if (!dk) return '';
+  try { const v = localStorage.getItem(dk); if (v) return v; } catch (e) {}
+  return DONE_HELD.get(dk) || '';
+}
+/* `4 Oct`, and the year only when it is not this one -- a stamp from last October that read like
+   this October's would be wrong by a year in the one place a date is the whole message. */
+function doneText_(iso) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''));
+  if (!m) return '';
+  const names = typeof MONTH_NAMES !== 'undefined' ? MONTH_NAMES : [];
+  const mon = String(names[+m[2] - 1] || m[2]).slice(0, 3);
+  return 'Done ' + (+m[3]) + ' ' + mon + (+m[1] !== new Date().getFullYear() ? ' ' + m[1] : '');
+}
+/* THE SLOT IS ALWAYS DRAWN, EMPTY OR NOT, on the question card -- and marking writes into it rather
+   than redrawing the header. 261 made marking move nothing, and a stamp that arrived as a new element
+   on the first Check would be the card jumping at exactly the moment it marks you. On the marks'
+   line, which has room for it at 320. */
+function doneSlot_(x) {
+  const k = ansKey_(x);
+  return `<i class="qcard-done" data-k="${esc(k)}">${esc(doneText_(doneRead_(k)))}</i>`;
+}
+function doneMark_(k) {
+  const dk = doneKeyOf_(k);
+  if (!dk) return;
+  const today = dayIso_(new Date());
+  if (doneRead_(k) === today) return;
+  DONE_HELD.set(dk, today);
+  try { localStorage.setItem(dk, today); } catch (e) {}
+  /* EVERY COLUMN IT IS DRAWN ON, by the answer key -- Find and Saved can both hold the card. */
+  document.querySelectorAll('.qcard-done').forEach(el => {
+    if (el.getAttribute('data-k') === k) el.textContent = doneText_(today);
+  });
+}
+
 /* ---------- MARKING IT -----------------------------------------------------------------------
    THE ONE FAILURE THAT MATTERS IS MARKING A RIGHT ANSWER WRONG. A student has nobody to appeal
    to: told they are wrong when they are right, they either lose the thread or stop believing the
@@ -5440,6 +5524,8 @@ on('qp-choose', (el) => {
   if (need === 1) picked = [n];
   else picked = picked.includes(n) ? picked.filter(v => v !== n) : picked.concat(n);
   try { localStorage.setItem(k, picked.join(',')); } catch (err) {}
+  /* ENOUGH CHOSEN IS AN ATTEMPT, marked or not -- see `doneMark_`. */
+  if (picked.length >= need) doneMark_(k);
   const x = stuffItemsAll_().find(it => ansKey_(it) === k);
   if (!x) return;
   const wrap = document.createElement('div');
@@ -5497,6 +5583,8 @@ on('qp-check', (el) => {
   }
   box.classList.add(verdict ? 'is-right' : 'is-near');
   out.textContent = verdict ? 'Correct' : 'Not yet — have another go';
+  /* MARKED IS DONE, right or not yet -- a wrong answer is still the day they did it. */
+  doneMark_(inp.getAttribute('data-k'));
   /* THE ANSWER OPENS ITSELF ONCE IT HAS BEEN EARNED. Having to hunt for the method at the
      moment you have just been told you were right is backwards -- that is when the working is
      worth reading. A wrong one is left shut, because the next thing to do is try again. It opens
@@ -5538,6 +5626,9 @@ document.addEventListener('input', e => {
   const el = e.target && e.target.closest && e.target.closest('[data-do="qp-ans"]');
   if (!el) return;
   try { localStorage.setItem(el.getAttribute('data-k') || '', el.value || ''); } catch (err) {}
+  /* WRITING AN ANSWER IS DOING THE QUESTION, and 427 of them have no Check to press (no `accept`),
+     so the box is where most of the library is "done". Empty is not an attempt. */
+  if (String(el.value || '').trim()) doneMark_(el.getAttribute('data-k') || '');
   /* A VERDICT IS ABOUT THE ANSWER IT MARKED, and the moment a letter changes it is about an answer
      that is no longer there. "Correct" beside "16", left from when the box said "15", is the app
      vouching for something it never read. So typing takes the verdict off -- its words, its colour,
@@ -6044,7 +6135,7 @@ function questionCard_(x) {
   const sat = satOn_(x);
   const needs = asList_(x.needs);
   return `<div class="qcard">
-    ${qHead_(x)}
+    ${qHead_(x, '', true)}
     <p class="qcard-sub">${qTagsHtml_(x)}${
       sat ? `<span class="qcard-sat">sat ${esc(sat)}</span>` : ''}${
       /* WHAT TO BRING, WHERE IT IS READ RATHER THAN FILTERED FOR. The funnel can narrow by it, but
@@ -6054,20 +6145,9 @@ function questionCard_(x) {
          are different claims and only one of them has been checked. */''}${
       needs.length ? `<span class="qcard-needs">${esc(needs.join(' · '))}</span>` : ''}</p>
     <div class="qsheet">
-      ${/* `is-standin` MARKS A PREAMBLE THAT IS A DESCRIPTION OF THE REAL THING RATHER THAN IT.
-            An AQA English insert is a separate booklet of third-party copyright, so the source is
-            not in the paper and cannot be here either — what is in the row is enough to teach
-            around. A student reading an exam question has to be able to tell at a glance which of
-            the two they are looking at; the same argument as `figCredit_` one screen down. */''}
-      ${(x.stems || []).filter(p => p && (p.html || p.lines)).map(p =>
-        `<div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${
-          /* WHICH PART OF THE SOURCE THIS IS, when the insert has been split into several. Every
-             AQA reading question names a span -- "lines 1 to 6", "from line 20 to the end" -- so
-             a part with no label leaves the student holding four blocks of prose and the same
-             problem the split was supposed to solve. Drawn only when the row says one: a paper
-             whose insert is a single part prints no heading, which is why this needed no
-             migration. */''}${
-          p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${typeset_(p.html)}</div>`).join('')}
+      ${/* NO STEM HERE. The paragraph a part hangs from is its own page in front of the first part
+            that shares it -- `questionStemCard_`, in `pageParts_`'s order -- so six parts of one
+            question no longer print the same paragraph six times. The lead is the part's own. */''}
       ${x.lead ? `<div class="qsheet-lead">${typeset_(x.lead)}</div>` : ''}
       <div class="qsheet-part">
         <div class="qsheet-pb">${typeset_(x.html)}${
@@ -6088,6 +6168,75 @@ function questionCard_(x) {
   </div>`;
 }
 
+/* ---------- THE STEM, ITS OWN PAGE IN FRONT OF ITS PARTS -------------------------------------------
+   `Q5` AND NOT `Q5(a)`: the paragraph belongs to the whole question, so its header is the question's
+   number with no part and no marks -- the marks are each part's. The tags, so a stem landed on cold
+   still says which paper. "Figure on the next page" when its own figure follows, asked of the same
+   `stemHasFig_` `pageParts_` asks, so the line and the page it names cannot disagree.
+
+   `is-standin` MARKS A PREAMBLE THAT IS A DESCRIPTION OF THE REAL THING RATHER THAN IT. An AQA
+   English insert is a separate booklet of third-party copyright, so the source is not in the paper
+   and cannot be here either -- what is in the row is enough to teach around. A student reading an
+   exam question has to be able to tell at a glance which of the two they are looking at; the same
+   argument as `figCredit_`.
+
+   WHICH PART OF THE SOURCE THIS IS, when the insert has been split into several (`lines`). Every
+   AQA reading question names a span -- "lines 1 to 6", "from line 20 to the end" -- so a part with
+   no label leaves the student holding four blocks of prose. Drawn only when the row says one. */
+const stemId_ = p => (p && (p.id || (p.row && p.row.row_id) || p.html || p.diagram)) || '';
+const stemHasFig_ = p => !!(p && (p.diagram || figImgs_(p.images).length));
+const qNum_ = x => 'Q' + ((x.qNumber != null && x.qNumber !== '') ? x.qNumber
+  : String(x.name || '').replace(/^Q(\d+).*$/, '$1'));
+function questionStemCard_(x, i) {
+  const p = (x.stems || [])[i];
+  if (!p) return '';
+  return `<div class="qcard qstem" data-of="${esc(stemId_(p))}">
+    ${qHead_(Object.assign({}, x, { name: qNum_(x), marks: 0 }))}
+    <p class="qcard-sub">${qTagsHtml_(x)}</p>
+    <div class="qsheet">
+      <div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${
+        p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${typeset_(p.html)}</div>${
+      stemHasFig_(p) ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
+    </div>
+  </div>`;
+}
+
+/* ---------- AND THE STEM'S FIGURE, THE PAGE AFTER ITS WORDS ---------------------------------------
+   No question number -- see `figHead_`. `data-of` is the stem's id, because the figure is the
+   stem's, not any one part's; a part that is asked to draw on it gets the pen on its OWN figure
+   page (`questionFigCard_`), where the marks are keyed to that part. */
+function questionStemFigCard_(x, i) {
+  const p = (x.stems || [])[i];
+  if (!p) return '';
+  return `<div class="qcard qfig" data-of="${esc(stemId_(p))}">
+    ${figHead_(figLabel_(p.html))}
+    <p class="qcard-sub">${qTagsHtml_(x)}</p>
+    <div class="qsheet">${p.diagram ? `<figure>${p.diagram}${figCredit_(p)}</figure>` : ''}${
+      pics_(figImgs_(p.images))}</div>
+  </div>`;
+}
+
+/* ---------- A FIGURE'S HEADER CARRIES THE FIGURE'S NAME, NOT A QUESTION NUMBER --------------------
+   ASKED FOR AS *"diagram widgets shouldn't have a question number on them"*. A figure in a paper is
+   captioned by its own name -- "Figure 3" -- and two parts can both be about it; `Q7 · figure` said
+   it was Q7's and made a reader looking for Figure 3 read every header twice. So the name the paper
+   prints, read out of the words that introduce it ("Figure 3 shows the inheritance...") and plain
+   "Figure" where they name none: an Edexcel maths paper numbers no figures at all, and inventing
+   "Figure 1" for it would be a caption the paper does not have. No marks either -- they are the
+   question's, and the figure is not the question.
+
+   `not` is the names already taken by the stems above a part, so a part reading "use Figure 3 to
+   complete Figure 4" names its own drawing Figure 4 rather than the stem's Figure 3. */
+function figLabel_(html, not) {
+  const seen = String(html || '').replace(/<[^>]*>/g, ' ').match(/\bFigure\s+\d+[a-z]?\b/gi) || [];
+  const hit = seen.map(t => 'Figure ' + t.replace(/^figure\s+/i, ''))
+    .find(t => (not || []).indexOf(t) < 0);
+  return hit || 'Figure';
+}
+function figHead_(label) {
+  return `<div class="qcard-top"><b>${esc(label || 'Figure')}</b></div>`;
+}
+
 /* ---------- ONE HEADER FOR EVERY PAGE OF A QUESTION -------------------------------------------------
    ASKED FOR AS *"sleekerise the whole widget system in the finder for questions"*. Three builders
    each wrote their own: the question `Q3` with its marks, the figure `Figure · Q7` in the same gold
@@ -6103,11 +6252,13 @@ function questionCard_(x) {
    NOTHING RATHER THAN "0 marks". A Corbettmaths worksheet prints no mark allocation -- it is
    practice, not an exam -- and a row with no `marks` cell was reading "0 marks", which says the
    question is worth nothing rather than that nobody has said. Absent is not zero. */
-function qHead_(x, part) {
+/* `done` ASKS FOR THE DATE SLOT, and only the question card asks: it is the page you answer on, so
+   it is the page that says when you last did. See `doneSlot_`. */
+function qHead_(x, part, done) {
+  const marks = Number(x.marks) > 0 ? `${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}` : '';
   return `<div class="qcard-top">
       <b>${esc(x.name)}${part ? `<em class="qcard-part"> &middot; ${esc(part)}</em>` : ''}</b>${
-        Number(x.marks) > 0
-          ? `<span>${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}</span>` : ''}
+        done ? `<span>${marks}${doneSlot_(x)}</span>` : marks ? `<span>${marks}</span>` : ''}
     </div>`;
 }
 
@@ -6131,26 +6282,31 @@ function qHead_(x, part) {
    `data-of` NAMES THE ROW, so a check walking the strip can tell the figure of Q6(i) from the one of
    Q6(ii) — the answer box's key does that job on the question card, and this card has no box. */
 const figImgs_ = v => (Array.isArray(v) ? v : topicAtoms_(v));
+/* THE PART'S OWN FIGURE, and only its own: the stems' pictures are the stems' pages now (see
+   `pageParts_`). With one exception that is not a picture but a surface -- a part asked to draw on
+   its stem's diagram ("complete the Venn diagram above") gets that diagram again here, under the pen,
+   because its marks are keyed to the part (`padKey_`) and the stem's page belongs to every part. */
 function questionHasFig_(x) {
   if (!x || x.kind !== 'question') return false;
   if (x.diagram || figImgs_(x.images).length) return true;
-  return (x.stems || []).some(p => p && (p.diagram || figImgs_(p.images).length));
+  const pad = padSource_(x);
+  return !!(pad && pad.from !== 'part');
 }
 function questionFigCard_(x) {
   const pad = padSource_(x);
   const out = [];
-  (x.stems || []).forEach(p => {
-    if (!p) return;
-    if (pad && pad.from === p) out.push(padWrap_(x, p.diagram));
-    else if (p.diagram) out.push(`<figure>${p.diagram}</figure>`);
-    out.push(pics_(figImgs_(p.images)));
-  });
+  const stemNames = (x.stems || []).filter(stemHasFig_).map(p => figLabel_(p.html));
+  let label = figLabel_(String(x.lead || '') + ' ' + String(x.html || ''), stemNames);
+  if (pad && pad.from !== 'part') {
+    out.push(padWrap_(x, pad.svg));
+    label = figLabel_(pad.from.html);
+  }
   if (pad && pad.from === 'part') out.push(padWrap_(x, x.diagram, figCredit_(x, 'p')));
   else if (x.diagram) out.push(`<figure>${x.diagram}${figCredit_(x)}</figure>`);
   out.push(pics_(figImgs_(x.images)));
   const id = (x.row && x.row.row_id) || x.key || '';
   return `<div class="qcard qfig" data-of="${esc(id)}">
-    ${qHead_(x, 'figure')}
+    ${figHead_(label)}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">${out.join('')}</div>
   </div>`;
@@ -6273,7 +6429,10 @@ on('qa-go', (el) => {
   const x = ansItem_(el.getAttribute('data-k'));
   if (!x) return;
   ansShow_(x);
-  const off = pageParts_(x).indexOf('ans');
+  /* FROM THE QUESTION CARD, NOT FROM THE FIRST PAGE: a stem and its figure can stand in front of
+     the card the tile is on (`pageParts_`), so the distance is answer minus card. */
+  const parts = pageParts_(x);
+  const off = parts.indexOf('ans') < 0 ? -1 : parts.indexOf('ans') - parts.indexOf(null);
   const pg = el.closest('.page');
   const host = pg && pg.parentElement;
   const id = host && host.id ? host.id.replace(/^s-/, '') : '';
@@ -7675,7 +7834,9 @@ function stuffPages_() {
   const items = stuffFiltered();
   if (STUFF_PAGES.from === items) return STUFF_PAGES.pages;
   const pages = [];
-  items.forEach(x => pageParts_(x).forEach(part => pages.push({ x: x, part: part })));
+  /* EACH RESULT IS TOLD THE ONE IN FRONT OF IT, so a shared stem is drawn once, before the first of
+     its parts, as the paper prints it -- see `pageParts_`. */
+  items.forEach((x, i) => pageParts_(x, items[i - 1]).forEach(part => pages.push({ x: x, part: part })));
   STUFF_PAGES = { from: items, pages: pages };
   return pages;
 }
