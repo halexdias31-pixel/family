@@ -616,69 +616,114 @@ const STATES = {
       },
       wants: 'a question whose options are buttons, with no text box on its card',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- AN ANSWER: THE RESULT SHOWN, THE WORKING FOLDED, AND THEN OPENED ---------------------
-       ASKED FOR AS "make answers breaifer ... i want shorter answers." The result is `.qans-body`
-       and the working is one `<details>` under it -- see `answerParts_`. Neither state above ever
-       has an answer on screen: a student's card is shut behind "Show the answer", and the card is
-       taller than the phone, so the answer is below the fold of every picture taken of it. So
-       these press "Show the answer" the way a finger does, bring the answer up, and in the second
-       open the fold -- because the fold's summary is a 44px tap target and the opened working is
-       a table, a fraction and a paragraph at 320px, and both are things `ui.js` measures.
+    /* ---------- THE ANSWER PAGE: HIDDEN, TURNED TO, AND OPEN WITH ITS WORKING FOLDED AND OPENED -------
+       ASKED FOR AS "what I want was answers to be short and to be their own widget" -- the answer is
+       the page after its question now (`questionAnsCard_`), the result large and the working under
+       one `<details>`. Four pictures of it, because it has four states a finger can put it in, and
+       each is something `ui.js` measures: the waiting sentence and its 44px control; the page a
+       question's tile turns to; the result with Why shut (the summary is a 44px target); and Why
+       open (a table, a fraction and a paragraph at 320px).
 
        ONE ROW, NAMED, on purpose: June 2018 Higher 1, question 3 -- "No", then working that holds a
-       stacked fraction. Picked because it was a 207-character paragraph before the rewrite and the
-       pictures should show the change on a real answer, not on whichever sorts first. AFTER A
-       TICK, because the page is drawn by `goPage` and the card is not there to press until then. */
+       stacked fraction. Picked because it was a 207-character paragraph before 259's rewrite, so
+       the pictures show the change on a real answer rather than on whichever sorts first. Landed on
+       by `stuffPageOf_(it, 'ans')`, the app's own map from a part to a page. AFTER A TICK, because
+       the page is drawn by `goPage` and is not there to press until then.
+
+       `ANS_SHOWN` IS EMPTIED ON THE WAY IN AND OUT. States run in order down one page, and an answer
+       shown by one would be measured as already shown by the next -- the hidden state would then be
+       a picture of the open one, and pass. */
+    { name: 'an answer, hidden until you have a go',
+      only: () => !(typeof isTutorRole === 'function' && isTutorRole()),
+      enter: () => {
+        ANS_SHOWN.clear();
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
+      },
+      /* AND NOTHING OF THE ANSWER IN THE PAGE AT ALL -- the old `is-shut` hid with CSS an answer
+         that was in the document, so "not visible" is not the test; "not there" is. */
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .qans-card');
+        return !!c && c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
+               && !c.querySelector('.qans, .qans-body') && /Answer hidden/.test(c.textContent)
+               && !!c.querySelector('[data-do="qa-show"]');
+      },
+      wants: 'Q3\'s answer page, after its question: "Answer hidden — have a go first", Show the answer, and no answer in it',
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'the answer, turned to from its question',
+      enter: () => {
+        ANS_SHOWN.clear();
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        const first = typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1;
+        goPage('stuff', first + stuffPageOf_(it), true);
+        window.__ansWant = first + stuffPageOf_(it, 'ans');
+        window.__ansFrom = null;
+        /* THE TILE ON THE QUESTION'S OWN PAGE, pressed as a finger would. */
+        setTimeout(() => {
+          const tile = document.querySelector('#s-stuff .page.on [data-do="qa-go"]');
+          window.__ansFrom = PAGE.stuff;
+          if (tile) tile.click();
+        }, 150);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .qans-card');
+        return window.__ansFrom !== null && PAGE.stuff === window.__ansWant && PAGE.stuff > window.__ansFrom
+               && !!c && !c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
+               && /^No$/.test((c.querySelector('.qans-body') || {}).textContent.trim());
+      },
+      wants: 'the question\'s answer tile pressed, and the page turned forward to its answer, open: "No"',
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'an answer, its working folded',
       enter: () => {
+        ANS_SHOWN.clear();
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
         if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
         setTimeout(() => {
-          const card = document.querySelector('#s-stuff .page.on .qcard');
-          const ans = card && card.querySelector('.qans');
-          if (!ans) return;
-          const btn = ans.querySelector('.qp-reveal');
-          if (btn && ans.classList.contains('is-shut')) btn.click();
-          ans.scrollIntoView({ block: 'start', inline: 'nearest' });
+          const btn = document.querySelector('#s-stuff .page.on .qans-card [data-do="qa-show"]');
+          if (btn) btn.click();
         }, 150);
       },
       expect: () => {
-        const ans = document.querySelector('#s-stuff .page.on .qcard .qans');
+        const ans = document.querySelector('#s-stuff .page.on .qans-card:not(.is-hidden) .qans');
         const why = ans && ans.querySelector('details.qans-why');
-        return !!ans && !ans.classList.contains('is-shut') && /^No$/.test(ans.querySelector('.qans-body').textContent.trim())
-               && !!why && !why.open;
+        return !!ans && /^No$/.test(ans.querySelector('.qans-body').textContent.trim()) && !!why && !why.open;
       },
-      wants: 'the answer "No" shown, with its working shut under Why',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'the answer page showing "No", with its working shut under Why',
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'an answer, its working opened',
       enter: () => {
+        ANS_SHOWN.clear();
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
         if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
         setTimeout(() => {
-          const card = document.querySelector('#s-stuff .page.on .qcard');
-          const ans = card && card.querySelector('.qans');
-          if (!ans) return;
-          const btn = ans.querySelector('.qp-reveal');
-          if (btn && ans.classList.contains('is-shut')) btn.click();
-          const sum = ans.querySelector('details.qans-why > summary');
+          const btn = document.querySelector('#s-stuff .page.on .qans-card [data-do="qa-show"]');
+          if (btn) btn.click();
+          const sum = document.querySelector('#s-stuff .page.on .qans-card details.qans-why > summary');
           if (sum) sum.click();
-          ans.scrollIntoView({ block: 'start', inline: 'nearest' });
         }, 150);
       },
       expect: () => {
-        const why = document.querySelector('#s-stuff .page.on .qcard .qans details.qans-why');
+        const why = document.querySelector('#s-stuff .page.on .qans-card .qans details.qans-why');
         return !!why && why.open && !!why.querySelector('.qans-more .frac');
       },
-      wants: 'the answer\'s working open under Why, its fraction stacked',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'the answer page\'s working open under Why, its fraction stacked',
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- MARKED, AND NOTHING MOVED --------------------------------------------------------
        ASKED FOR AS "make it nice more sleek, fresh stable". The unstable part was measured before it
        was fixed: at 320 "Not yet — have another go" wrapped under Check and grew the card by 21.8px,
@@ -761,14 +806,18 @@ const STATES = {
         const s = window.__qStable;
         const card = window.__qCard;
         const mark = card && card.querySelector('.qp-mark');
-        return !!s && !!mark && mark.classList.contains('is-right')
-               && !card.querySelector('.qans').classList.contains('is-shut')
+        /* THE ANSWER OPENS ON ITS OWN PAGE, the one after -- asked of `ansOpen_`, the one rule the
+           page is drawn by, because the page may not be built yet and is not the one on screen. */
+        const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
+        return !!s && !!mark && mark.classList.contains('is-right') && !!it && ansOpen_(it)
+               && !card.querySelector('.qans')
                && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5);
       },
-      wants: 'Q0664 marked right and its answer opened, with the question, the box and Check where they were',
+      wants: 'Q0664 marked right and its answer page opened, with the question, the box and Check where they were',
       leave: () => {
         const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        ANS_SHOWN.clear();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     { name: 'a tapped answer, not yet, nothing moved',

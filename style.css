@@ -9866,6 +9866,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    card, because it is a disclosure rather than part of the question — but it is on the card, every
    time, because the alternative is this site passing its own question off as the exam board's. */
 .fig-by { margin: .4rem 0 0; font-size: .7rem; line-height: 1.35; opacity: .55; text-align: center; }
+/* UNDER A PEN IT IS A FOOTNOTE, NOT A CAPTION. Centred under a picture it reads as the picture's
+   caption, which is right in a `<figure>`. Under the pen's three buttons it sat centred over a
+   left-aligned "Kept on this phone only", in a different size and a different grey -- two footnotes
+   to one figure, set two ways. One voice for both: `.qpad-note`'s. */
+.qpad > .fig-by { margin: .5rem 0 0; text-align: left; opacity: 1;
+                  font: 400 .62rem/1.4 var(--font); color: var(--faint); }
 /* ==================================================================================================
    BOXING — THE FIGHTER AND THE FIGHT
 
@@ -11310,6 +11316,20 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .card.bundle .bundle-list li::marker { color: var(--faint); font-family: var(--mono); }
 .card.bundle .bundle-name { color: var(--ink); }
 .card.bundle .bundle-off { margin: .35rem 0 0; font-size: .72rem; color: var(--faint); }
+/* ---------- AND IT IS A QUESTION CARD'S SHAPE NOW ----------------------------------------------------
+   `bundleCard_` gives it `.qcard` and the question's header row (find.js says why). `.card` is a
+   ROW in this app -- no box, a hairline under it, and `.card:last-child` / `.page .card` take even
+   that off -- so the box has to be said again at two classes, written after all three so it wins
+   on order as well as on weight. The same edge, radius and padding as the questions after it, which
+   is the whole of "one family": a bundle and the papers in it read as the same kind of thing. */
+.card.qcard.bundle {
+  background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
+  padding: .75rem .7rem .8rem; margin-bottom: .4rem;
+}
+/* THE TITLE IS WHAT IS BEING CHOSEN, so it is the one large line -- ink, not gold, because gold is
+   the header's word on every card in this family. It wraps on its middots, which is where it reads. */
+.card.bundle .bundle-title { margin: .6rem 0 0; font: 600 .95rem/1.35 var(--font); color: var(--ink); }
+.card.bundle .bundle-sub { margin: .3rem 0 .4rem; font: 500 .7rem/1.4 var(--mono); color: var(--dim); }
 
 /* ---------- EACH WIDGET IS ITS OWN THING ----------------------------------------------------------
    A CARD EACH, with its own edge, because that is what makes nine tools nine tools rather than one

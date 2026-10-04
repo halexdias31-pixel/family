@@ -9064,10 +9064,18 @@ function bundleCard_(b) {
       })()
     : b.printable.map(p => `<li><span class="bundle-name">${esc(p.label)}</span>${pp(p)}</li>`).join('');
   const stray = bundleStrayLine_(b);
-  return `<div class="card bundle">
-      <p class="crumb">Bundle · printed and sent</p>
-      <h3>${esc(b.title || 'These papers')} <span class="faint">— ${esc(b.noun)}</span></h3>
-      <p class="sub">${esc(bundlePriceLine_(b))}</p>
+  /* ---------- THE QUESTION CARD'S HEADER, BECAUSE IT IS THE SAME FAMILY ---------------------------
+     ASKED FOR AS *"sleekerise the whole widget system in the finder for questions"*. This card sat in
+     front of the questions it bundles and spoke a different language: a breadcrumb, a large title
+     with "— 12 papers" trailing it in faint (which wrapped at 320 and left "papers" alone on a
+     line), loose on the glass where every question after it is a bounded card. So it is a `.qcard`
+     too, with the same header row -- what it is, gold, hard left; how many, in the marks' place
+     hard right -- then its title, then what it costs, then the list. Its own name still says
+     "printed and sent", once, in the line about money, which is where that fact is used. */
+  return `<div class="card bundle qcard">
+      <div class="qcard-top"><b>Bundle</b><span>${esc(b.noun)}</span></div>
+      <h3 class="bundle-title">${esc(b.title || 'These papers')}</h3>
+      <p class="bundle-sub">Printed and sent &middot; ${esc(bundlePriceLine_(b))}</p>
       <ol class="bundle-list">${list}</ol>
       ${/* NAMED, NOT DROPPED. A paper the library marks `printable: FALSE` is on the list above the
             card and missing from the bundle, and a card that said "these papers" without saying so
