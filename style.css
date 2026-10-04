@@ -12108,9 +12108,9 @@ button.scr-sq { cursor: pointer; }
 .qcard:has(> .qp-mark.is-near) .kp-show { border-bottom-color: var(--warn); }
 /* A SLOT IS A DASHED BOX, the shape Hegarty draws for "something goes here". In `em` so it is the
    size of a digit whether it sits on the line or up in a power. */
-.kp-hole { display: inline-block; width: .62em; height: .9em; vertical-align: middle;
-           border: 1px dashed var(--faint); border-radius: 1px; }
-.kp-show sup .kp-hole { height: .75em; }
+.kp-hole { display: inline-block; width: .75em; height: 1em; min-width: 10px; min-height: 14px;
+           vertical-align: middle; border: 1px dashed var(--dim); border-radius: 1px; }
+.kp-show sup .kp-hole { height: .8em; min-height: 10px; min-width: 8px; }
 .kp-caret { display: inline-block; width: 2px; height: 1.15em; margin: 0 -1px; vertical-align: middle;
             background: var(--gold); animation: kp-blink 1.1s steps(1) infinite; }
 @keyframes kp-blink { 50% { opacity: 0; } }

@@ -791,6 +791,120 @@ const STATES = {
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
+    /* ---------- THE MATHS KEYPAD, UP, WITH A FRACTION HALF BUILT ------------------------------------
+       ASKED FOR AS "make the input better … like hegarty maths … desmos". The pad is one element on
+       <body>, fixed to the foot of the app's column, and it is the one surface in this app that is
+       drawn OVER the screens rather than in one — so it is exactly what `ui.js` has to measure at
+       320: six keys across at 44px, nothing sideways, the caret and the slots inside the box. Q0664
+       is a `calculation` with a scheme, the same row the two marking states use. The keys are CLICKED,
+       not called, so the delegated handler and the pad's own `mousedown` guard are what run — a key
+       that took the focus off the box would close the pad and fail `expect`. Three, then →, then
+       nothing: a fraction with a top and an empty dashed bottom, which is the picture worth looking
+       at. */
+    { name: 'a maths answer, the keypad up, a fraction half built',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__kpCard = null;
+        /* ASKED AGAIN UNTIL THE CARD IS THERE, rather than once at a guessed delay: the page is built
+           by `goPage`, and on a loaded machine 150ms was sometimes before it — measured, once in two
+           runs at 320. Every 20ms, inside `ui.js`'s half second, then `expect` says so. */
+        let tries = 0;
+        const typeIt = () => {
+          const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === ansKey_(it));
+          if (!inp) { if (++tries < 20) setTimeout(typeIt, 20); return; }
+          window.__kpCard = inp.closest('.qcard');
+          inp.focus();
+          /* A HEADLESS PAGE THAT IS NOT THE FRONT WINDOW may take the focus without firing `focusin`;
+             what a focus opens is check-flow's question, and this one is about how the pad looks. */
+          if (KP_AT !== inp) kpOpen_(inp);
+          ['!frac', '3', '!right'].forEach(v => {
+            const k = document.querySelector('#kp .kp-key[data-v="' + v + '"]');
+            if (k) k.click();
+          });
+        };
+        setTimeout(typeIt, 60);
+      },
+      expect: () => {
+        const pad = document.getElementById('kp');
+        const card = window.__kpCard;
+        const show = card && card.querySelector('.kp-show');
+        return !!pad && !pad.hidden && getComputedStyle(pad).display === 'grid'
+               && pad.querySelectorAll('.kp-key').length === 30
+               && !!show && !!show.querySelector('.frac .frac-n') && show.querySelector('.frac .frac-n').textContent.trim() === '3'
+               && !!show.querySelector('.frac-d .kp-hole') && !!show.querySelector('.frac-d .kp-caret');
+      },
+      wants: 'Q0664’s maths box focused, the keypad up with its 30 keys, and 3 over an empty dashed slot with the caret in it',
+      leave: () => {
+        const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
+        try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- AND A WORDED ANSWER, WITH "MARK WITH AI" UNDER IT ------------------------------------
+       The fixture is a deployment with the action and no key (`aiMarking: false`), which is what
+       `doGet` sends until the owner adds one — so this says yes for the length of the state, the way
+       a key in Script Properties would, and puts it back. Q33 of AQA Biology June 2024 Foundation is
+       a three-mark `explain` with a scheme and no `accept`: exactly the question the button is for. */
+    { name: 'a worded answer, Mark with AI under it',
+      enter: () => {
+        const id = 'Q-AQA-8461-2406-1F-033';
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
+        if (!it) throw new Error(id + ' is not in the library');
+        DATA.aiMarking = true;
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__aiKey = ansKey_(it);
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        /* SIGNED IN, IT IS MARKED — by a stand-in for `api` that answers the way `aiMark` does, so the
+           picture is of the verdict and the sentence as they are really drawn, by the real handler.
+           There is no Gemini in a check. Signed out, the press says to sign in, which is the other
+           thing worth seeing. `api` is put back on the way out. */
+        window.__aiApi = api;
+        /* THE FIXTURE'S SIGNED-IN VISITOR HAS NO SESSION TOKEN, which every real sign-in carries — so
+           one is lent for the length of the state, and taken back. */
+        window.__aiTok = !!(typeof USER === 'object' && USER && !USER.token);
+        if (window.__aiTok) USER.token = 'state-token';
+        api = b => (b && b.action === 'aiMark')
+          ? Promise.resolve({ success: true, awarded: 2, available: 3, left: 19,
+              feedback: 'You described the fall after 1968 but not the peak before it.' })
+          : window.__aiApi(b);
+        setTimeout(() => {
+          const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__aiKey);
+          const go = ta && ta.closest('.qcard').querySelector('.qp-ai-go');
+          if (!ta || !go) return;
+          ta.value = 'It rose to a peak in the 1960s and then fell sharply once the vaccine came in.';
+          ta.dispatchEvent(new Event('input', { bubbles: true }));
+          go.click();
+        }, 150);
+      },
+      expect: () => {
+        const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__aiKey);
+        const card = ta && ta.closest('.qcard');
+        const go = card && card.querySelector('.qp-ai-go');
+        const said = card && card.querySelector('.qp-ai .qp-verdict');
+        const why = card && card.querySelector('.qp-ai-why');
+        const marked = (typeof USER === 'object' && USER && USER.token)
+          ? /2 of 3 marks/.test(said.textContent) && /peak/.test(why.textContent)
+          : /Sign in/.test(said.textContent);
+        return !!go && !card.querySelector('.kp-in') && !!said && marked;
+      },
+      wants: 'a three-mark explain question with its textarea, "Mark with AI" under it, and its verdict drawn — 2 of 3 and a sentence signed in, "sign in" signed out',
+      leave: () => {
+        if (window.__aiApi) api = window.__aiApi;
+        if (window.__aiTok && USER) delete USER.token;
+        try { localStorage.removeItem(window.__aiKey); } catch (e) {}
+        DATA.aiMarking = false;
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
        That one is a roster gate on the phone; this is the PAYLOAD — `doGet` builds `films` inside
