@@ -1728,7 +1728,8 @@ const MAT_KEEP_AT = 'matChoice';
 function matRemember() {
   try {
     localStorage.setItem(MAT_KEEP_AT, JSON.stringify({
-      s: MAT_SUBJECT, l: MAT_LEVEL, t: MAT_TIER, x: MAT_EXAM, g: MAT_GROUP, on: MAT_ON }));
+      s: MAT_SUBJECT, l: MAT_LEVEL, t: MAT_TIER, x: MAT_EXAM, g: MAT_GROUP, on: MAT_ON,
+      k: MAT_KIND, p: MAT_BLANK }));
   } catch (e) { /* a phone that will not store it simply opens fresh next time */ }
 }
 function matRecall() {
@@ -1742,6 +1743,11 @@ function matRecall() {
     /* A GROUP FROM BEFORE GROUPS EXISTED IS NO GROUP, and `matSettle` picks the first. */
     if (typeof v.g === 'string') MAT_GROUP = v.g;
     if (Array.isArray(v.on)) MAT_ON = v.on.map(String);
+    /* A KIND THIS VERSION DOES NOT KNOW IS THE CHEAT SHEET, and the paper's settings are each put
+       back through `matBlankSet_`, which refuses a value it does not offer — a stored spacing of
+       7mm from some later version must not draw a sheet nobody can choose. */
+    MAT_KIND = MAT_KINDS.some(k => k.v === v.k) ? v.k : 'cheat';
+    if (v.p && typeof v.p === 'object') Object.keys(v.p).forEach(k => matBlankSet_(k, v.p[k]));
     return true;
   } catch (e) { return false; }
 }
@@ -1791,6 +1797,17 @@ function initMat() {
     }
   }
   box.innerHTML = `
+    ${/* ---------- WHAT KIND OF SHEET, FIRST, BECAUSE IT DECIDES EVERY QUESTION UNDER IT ----------
+          ASKED FOR AS *"allow cheat sheet maker to make a handwriting worksheet. or lined or grid
+          paper"*. A select and not four pills: one 44px row whatever the number of kinds, and the
+          card was already cut to fit a 320x568 phone without a row to spare (see `MAT_GROUPS`).
+          The cheat sheet's own questions sit in `#mat-cheat` and the paper's in `#mat-blank`, and
+          only one of the two is ever shown — see `matPaint`. */''}
+    <label class="mat-sel mat-kind"><select id="mat-kind" data-do="mat-kind"
+      aria-label="Sheet type">${MAT_KINDS.map(k =>
+        `<option value="${k.v}">${esc(k.say)}</option>`).join('')}</select></label>
+    <div id="mat-blank" class="mat-blank-pick" hidden>${matBlankControls_()}</div>
+    <div id="mat-cheat">
     <div class="mat-pick">
       ${/* SELECTS, IN THE ORDER THE QUESTION IS ASKED: which subject, then which paper. A select
             answers on `change` — the dispatcher in cards.js routes it — and it is a real 44px
@@ -1821,6 +1838,7 @@ function initMat() {
           every column has, handing the swipe back to the grid at its end. */''}
     <div class="mat-list" id="mat-list"></div>
     <div class="mat-gauge" id="mat-gauge"><i></i></div>
+    </div>
     <p class="mat-said" id="mat-said"></p>
     ${/* ---------- PRINT IT YOURSELF, OR HAVE IT PRINTED --------------------------------------------
           ASKED FOR AS *"add an upgrade to lamination for cheat sheet orders that are added to cart"*,
@@ -1929,6 +1947,16 @@ function matPaint() {
      late. `matChoices` then draws the selects and the box from that state. */
   matSettle(parts);
   matChoices(parts);
+
+  /* ---------- PRACTICE PAPER TAKES THE PAINT FROM HERE ---------------------------------------------
+     The picker underneath keeps its ticks while it is hidden — a tutor who looks at lined paper and
+     comes back finds their cheat sheet as they left it, which is the subject select's own rule. */
+  const kindSel = $('mat-kind');
+  if (kindSel) kindSel.value = MAT_KIND;
+  const cheatBox = $('mat-cheat'), blankBox = $('mat-blank');
+  if (cheatBox) cheatBox.hidden = MAT_KIND !== 'cheat';
+  if (blankBox) blankBox.hidden = MAT_KIND === 'cheat';
+  if (MAT_KIND !== 'cheat') { matBlankPaint_(list); return; }
 
   /* THE LIST AND THE PAPER ASK ONE QUESTION — `matShown` — and the tick on each row is drawn from
      `MAT_ON` rather than left to the box, so a remembered sheet, which
