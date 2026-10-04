@@ -263,3 +263,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [An answer is its result now, and the working waits under "Why"](259-an-answer-is-its-result-now-and-the-working-waits-under-why.md)
 - [The calendar, the timetable and a tutor's hours read one set of facts, and stopped clashing](260-the-calendar-the-timetable-and-a-tutor-s-hours-read-one-set.md)
 - [The question card was polished, and marking it no longer moves anything](261-the-question-card-was-polished-and-marking-it-no-longer-move.md)
+- [Find's other cards are one system: a shared head, kicker, meta line, section and list](262-find-s-other-cards-are-one-system-a-shared-head-kicker-meta.md)
