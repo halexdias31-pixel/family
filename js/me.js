@@ -2298,7 +2298,7 @@ function send_(body, o) {
      Remembered here and restored in `done()`. */
   const box = o.lock
     ? (typeof o.lock === 'string' ? $(o.lock) : o.lock)
-    : btn && btn.closest('.me-form, .msg-form, .quiz-body, .rc, #drop, #sheet-body, .card');
+    : btn && btn.closest('.me-form, .msg-form, .rc, #drop, #sheet-body, .card');
   const had = document.activeElement;
   const locked = [];
   if (box) {

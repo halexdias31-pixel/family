@@ -3,14 +3,14 @@
 
    THE SIX MARKING FUNCTIONS, CUT OUT OF find.js, FOR WHATEVER WANTS TO TEST THEM.
 
-   THERE ARE TWO CHECKS OVER THE MARKING NOW and they ask different questions: `check-marking.js`
-   asks whether the FUNCTIONS are fair, and `check-quizzes.js` asks whether the DATA they are
-   pointed at can be marked at all. Both have to run the app's own `markAnswer_` rather than a
-   second opinion about what a right answer is — that is the whole reason either of them is worth
-   running — so the extraction is here once instead of in both.
+   SEVERAL CHECKS RUN THE MARKING and they ask different questions: `check-marking.js` asks whether
+   the FUNCTIONS are fair, `check-library.js` whether the DATA they are pointed at can be marked at
+   all. Each has to run the app's own `markAnswer_` rather than a second opinion about what a right
+   answer is — that is the whole reason any of them is worth running — so the extraction is here
+   once instead of in each.
 
-   THE SECOND COPY IS WHAT THIS AVOIDS, and it had already gone wrong. `check-quizzes.js` was
-   written with its own simpler cutter — "to the next top-level declaration" — and it could not find
+   THE SECOND COPY IS WHAT THIS AVOIDS, and it had already gone wrong. A check (since deleted with
+   the feature it served) was written with its own simpler cutter — "to the next top-level declaration" — and it could not find
    `markBare_`, which is a `const` arrow with no block. One extractor that handles both shapes, in
    one place, is this repository's own answer to `documents_()`, `paperIdOf_`, `factsNow_` and
    `childrenOf`.

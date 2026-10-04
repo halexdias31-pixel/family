@@ -4494,7 +4494,7 @@ on('tmt-day', el => {
 });
 
 /* THE BOX IS FOUND BEFORE THE REPAINT, because the repaint replaces the element that was pressed and
-   `closest` on a detached node finds nothing — the quiz's own lesson. */
+   `closest` on a detached node finds nothing. */
 on('tmt-open', el => {
   const want = TMT_OPEN === el.dataset.id ? '' : el.dataset.id;
   tmtShut_();

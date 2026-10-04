@@ -249,7 +249,7 @@ function stateOf(id) {
     store,
     window.__press.fetches,
     /* AND PRINTS, COUNTED THE WAY FETCHES ARE. A print is the one action whose whole effect is
-       OUTSIDE the page: `quiz-print` builds an A4 sheet, appends it to the end of `document.body`,
+       OUTSIDE the page: `mat-print` builds an A4 sheet, appends it to the end of `document.body`,
        calls `window.print()` and takes it away again — so a state read that stops at `#s-<id>` and
        the sheet sees it as a press that did nothing, and one that watched `body` instead would see
        only the few hundred milliseconds the paper is there. What actually happened is that the
@@ -492,9 +492,9 @@ for (const who of VISITORS) {
        `enter` opens a sheet therefore queued NOTHING, because the only other route to a sheet's
        actions is `out.inSheet`, which is collected after a press.
 
-       MEASURED: the quiz sheet's `quiz-pick`, `quiz-check` and `quiz-again` were never pressed, and
+       MEASURED: a sheet's three actions (a feature since deleted) were never pressed, and
        `check/press.js` reported a clean run over 93 actions with the three of them untouched.
-       Proved by breaking `quiz-pick` outright — the mutant survived, which is the definition of a
+       Proved by breaking one of them outright — the mutant survived, which is the definition of a
        check that cannot fail. The practical guide's state was in the same hole and got away with it
        only because the boxes it holds are `qp-ans`, which is pressed on a question card elsewhere.
 

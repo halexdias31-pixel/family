@@ -315,12 +315,6 @@ const KINDS = {
      FOUND THE SAME WAY, which is the half that is like a practical: the topic, the subject, the
      level. Mapper, card, pages; nothing in the engine. */
   project: { group: 'Learning', label: 'Projects', card: x => projectCard_(x) },
-  /* A QUIZ IS A THING YOU FIND FOR THE SAME REASON, one step earlier: you know the topic and the
-     level and you want five minutes of recall on it. Subject, Topic and Level are all questions
-     the funnel already asks, and a quiz carries the library's own spellings of each -- so a KS3
-     cell biology quiz sits with the KS3 cell biology questions rather than behind a door of its
-     own. Mapper, card, sheet; nothing in the engine. */
-  quiz: { group: 'Learning', label: 'Quizzes', card: x => quizCard_(x) },
   /* ---------- THE FILMS, AND THEY ARE ABSENT RATHER THAN HIDDEN --------------------------------
      THERE IS NO `admin` TEST ANYWHERE ON THIS KIND, DELIBERATELY. `doGet` builds `payload.films`
      inside `if (viewerIsAdmin)` and sends `[]` to everybody else — see the note there — so a
@@ -886,7 +880,7 @@ function bucketTable_(pairs) {
    would be skipped by the one-answer rule, and the word the owner asked to see would never be on
    screen. */
 const KIND_BUCKET = bucketTable_([
-  ['Work through it',  ['Questions', 'Quizzes', 'Practicals', 'Projects']],
+  ['Work through it',  ['Questions', 'Practicals', 'Projects']],
   ['Read or watch it', ['Films', 'Resources']],
 ]);
 
@@ -1130,7 +1124,7 @@ const FACETS = [
      tag is the sheet's own title and choosing it is choosing the worksheet. On a past paper or a
      5-a-day the same cell is a label somebody assigned to one question out of thirty, which is a
      judgement drawn as a fact. The `topics` cells stay in the file — the search box still reads
-     them, and practicals and quizzes still join on them — so this is one test to take back out. */
+     them, and practicals and projects still join on them — so this is one test to take back out. */
   { field: 'topicArea',
     bucketOf: AREA_BUCKET, bucketOrder: AREA_BUCKET.order, label: 'Topic area', not: 'subject',
     of: x => topicShown_(x) ? (x.topicArea || topicAreaOf_(x)) : '' },
@@ -3929,408 +3923,6 @@ function stuffPart_(x, part) {
 
 
 /* ==================================================================================================
-   THE QUIZ — A RECAP, WHICH IS A DIFFERENT OBJECT FROM A PAST PAPER.
-
-   ASKED FOR AS "a quiz for each level of each topic in my site. just a quiz so less pressure. sort
-   of like a recap thing. starting with science."
-
-   THE MEASUREMENT IS WHY IT IS NEW CONTENT RATHER THAN A NEW VIEW OF THE LIBRARY. There are 745
-   science questions in `data/questions.json` and **every one of them has an empty `accept`** — so
-   not one can mark itself. That is correct for an exam question, which is marked against a scheme
-   by a person reading working; it makes a recap impossible, because the whole point of a recap is
-   that you find out now. 405 questions were written for this, five per quiz, 81 quizzes.
-
-   IT IS FOUND IN THE FUNNEL AND OPENED IN A SHEET, which is `practicalCard_`'s split one data file
-   along and for its measured reason: `.pane` is `overflow: hidden` and caps at 805px on an 844px
-   phone, so five questions with their choices and their explanations cannot be a card. The card is
-   the search result — what you choose BETWEEN — and the sheet is the thing you work through.
-
-   MARKED BY `markAnswer_`, WHICH IS THE LIBRARY'S OWN MARKER. A typed quiz answer goes through the
-   same function a past-paper answer does, so the fraction slash, the mixed number, the "or
-   equivalent" fold and the accepted band all behave here exactly as they do there. A second
-   marking implementation would be the second reader this file records under `documents_()`,
-   `paperIdOf_` and `factsNow_` — and this is the one surface in the app that tells a child they
-   are wrong, so two of them is two chances to do that unfairly.
-================================================================================================== */
-
-/* ---------- ONE KEY PER QUESTION, THROUGH THE KEY-BUILDER THAT ALREADY EXISTS --------------------
-   `ansKey_(x) + '#' + n` IS `guideBox_`'S SHAPE, for the reason its note gives: `whoIs_` still
-   decides whose answers these are, so two students on one phone get two sets and signing out moves
-   all five together. A second key-builder here would be a third spelling of "whose answer is this".
-
-   AND IT IS THE SAME DRAWER THE PAST PAPERS WRITE INTO, which is what makes "if they answer
-   something, it will be answered next time they come on" true of a quiz as well without anything
-   new being written. */
-const quizKey_ = (x, n) => ansKey_(x) + '#q' + n;
-
-/* ---------- THE SCORE IS READ OFF THE ANSWERS, NEVER STORED ------------------------------------
-   A stored score is a second copy of a fact five keys already hold, and the day they disagree the
-   one somebody sees is the wrong one. This is the `paperMismatches` argument and the `reelPages_`
-   argument: count the thing itself.
-
-   AN UNANSWERED QUESTION IS NOT A WRONG ONE. `markAnswer_` answers `null` for an empty box and
-   that distinction is deliberate there — so the score says "3 of 5 answered, 2 right" rather than
-   marking the two nobody has reached yet as failures. */
-function quizMarks_(x) {
-  const out = { done: 0, right: 0, total: (x.row.qs || []).length };
-  (x.row.qs || []).forEach(q => {
-    const v = ansRead_(quizKey_(x, q.n));
-    if (!String(v || '').trim()) return;
-    out.done++;
-    if (quizRight_(q, v)) out.right++;
-  });
-  return out;
-}
-
-/* ---------- WHAT COUNTS AS RIGHT, AND THE TWO KINDS ARE NOT MARKED THE SAME WAY -----------------
-   A MULTIPLE-CHOICE ANSWER IS COMPARED AS A STRING, character for character, and that is safe only
-   because `tools/quizwrite.py` asserts the answer is one of the choices. Without that assertion a
-   typo in the answer cell would mark every attempt wrong — every one — and it would read as the
-   student being wrong rather than the row being broken, which is the failure this file calls the
-   worse of the two. The assertion is the whole safety argument for this line.
-
-   A TYPED ANSWER GOES THROUGH `markAnswer_`, so it gets every generosity the library's own marking
-   has: the fraction slash, the equivalent fraction, the accepted band, the trailing unit. */
-function quizRight_(q, typed) {
-  if (q.kind === 'typed') return markAnswer_(typed, q.accept) === true;
-  return String(typed || '') === String(q.answer || '');
-}
-
-function quizCard_(x) {
-  const q = x.row;
-  return `<div class="card fc quiz">
-    <div class="fc-head">
-      <h3>${esc(q.topic)}</h3>
-      <span class="fc-flags"><span class="fc-flag is-type">Quiz</span></span>
-    </div>
-    ${/* ---------- THE SAME THREE LINES AS EVERY OTHER KIND ----------------------------------------
-          THE LEVEL WAS A PILL OF ITS OWN (`.quiz-lvl`, round where every other flag is square-ish)
-          in the place where a practical, a project and a textbook say WHAT KIND OF THING this is.
-          Two shapes for one slot, and the slot said two different things. So the flag says `Quiz`
-          like the others' says `Project`, the level joins the subject on the line under the title
-          where every other kind keeps it, and the count is the meta line. */''}
-    <p class="sub">${esc([q.subject, q.tier ? q.level + ' ' + q.tier : q.level].filter(Boolean).join(' · '))}</p>
-    <p class="fc-meta">${q.qs.length} questions</p>
-    ${/* ---------- THE CARD SAYS WHAT DIFFERS, AND NOTHING ELSE ---------------------------------
-          "A quick recap. Nothing is sent anywhere and there is no timer." WAS HERE, on all 81 cards.
-          It is one fact about every quiz in the list, printed once per row — which is the AQA insert
-          fault this file records in full: one sentence describing an insert repeated on every
-          question that used it, when it belongs to the thing they all hang from. The sheet's own
-          intro says it, once, at the moment somebody is about to answer.
-
-          Caught on a screenshot of five cards in a column, all carrying the same sentence. What
-          actually tells two of them apart is the topic, the level chip and how far through you are,
-          and only the third of those is ever worth a line. */''}
-    ${/* ---------- THE QUIZ IS ON THE CARD, AND THE TILE THAT OPENED IT IS GONE -----------------
-          "ok get rid of the other pop up menu" — the second half of "I HATE POP UP", once the
-          practical guide came off its sheet and the quiz was the surface left that was plainly the
-          same object: a thing you read and write into, opened from a card in the funnel.
-
-          `Start` / `Carry on` WENT WITH IT. A tile whose whole job is to reveal what is now drawn
-          underneath it is a control that does nothing — which `check/press.js` is there to report
-          — and the label had a second job the card no longer needs, saying whether you had begun.
-          `quizScore_` says that better, four lines down, and in the block that owns the fact.
-
-          `been` WENT FOR THE SAME REASON AND IT WAS THE SHARPER ONE. It printed "3 of 5 answered
-          so far" on the card while `quizScore_` printed "1 right out of the 3 answered · 2 to go"
-          an inch below it — two sentences about one fact, which is the shape this repository
-          records where the roster's `name` drew an `<h3>` over a widget's own heading, and where a
-          post said "Shared by · 1 family" over a row already saying "Just you". The one that says
-          more, once.
-
-          AND `Print` MOVED RATHER THAN GOING. Its own note was that "a tutor should not have to
-          open a quiz to get at its worksheet" — with nothing to open, that argument is satisfied
-          by the card itself, so the button at the foot of the form is the only copy and there is
-          no tile row left to draw. A FORM has buttons; the card IS the form now. */''}
-    ${quizBody_(x)}
-  </div>`;
-}
-
-/* ---------- ONE QUESTION ------------------------------------------------------------------------
-   THE MARK IS DRAWN FROM THE STORED ANSWER, NOT LEFT ON THE ELEMENT BY THE HANDLER. That is the
-   `REEL_HELD` fault this repository records in full: the first version of the reel's pause mark
-   added its class in the tap handler only, so a repaint rebuilt the markup without it while the
-   state stayed — a column showing a stopped clip with nothing on it saying so. Here the same fault
-   would be a quiz you answered, reopened, and found blank while the score line said 5 of 5.
-
-   THE EXPLANATION IS SHOWN ONCE THE QUESTION HAS BEEN ANSWERED AND NOT BEFORE. It is the whole
-   value of a recap — you find out WHY now rather than at the end — and showing it first would make
-   every question a reading exercise. Right or wrong, it opens: a wrong answer is exactly when the
-   mechanism is worth reading, which is the opposite of `qp-check`'s rule for a past paper and
-   deliberate. There the mark scheme is the answer to a question still being attempted; here there
-   is one attempt and the explanation IS the teaching.
-
-   A CHOICE IS A `<button>` AND NOT A RADIO, and that is the house style rather than a preference:
-   the sheet is a form, a form has buttons, and a 44px target is the one measurement in this
-   stylesheet that does not scale. A radio's own box is 17px whatever the label around it does. */
-function quizRow_(x, q) {
-  const k = quizKey_(x, q.n);
-  const v = ansRead_(k);
-  const done = !!String(v || '').trim();
-  const right = done && quizRight_(q, v);
-  const cls = !done ? '' : right ? ' is-right' : ' is-near';
-  return `<section class="quiz-q${cls}">
-    <p class="quiz-ask"><span class="quiz-n">${esc(q.n)}</span> ${esc(q.ask)}</p>
-    ${q.kind === 'typed'
-      ? `<label class="qp-ans quiz-typed">
-           <span class="qp-ans-k">Your answer</span>
-           <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
-             rows="1" spellcheck="false" autocomplete="off">${esc(v)}</textarea>
-         </label>
-         <button type="button" class="btn quiet quiz-check" data-do="quiz-check"
-           data-key="${esc(x.key)}" data-n="${esc(q.n)}">Check</button>`
-      /* THE CHOSEN ONE IS MARKED, AND SO IS THE RIGHT ONE ONCE IT IS OVER. A wrong answer that
-         only says "wrong" leaves somebody to guess which of the other three it was — and guessing
-         is the thing the explanation underneath exists to replace. */
-      : `<div class="quiz-opts">${q.choices.map(c => {
-          const picked = done && String(v) === String(c);
-          const isAns = done && String(c) === String(q.answer);
-          return `<button type="button" class="quiz-opt${picked ? ' is-picked' : ''}${
-            isAns ? ' is-ans' : ''}" data-do="quiz-pick" data-key="${esc(x.key)}"
-            data-n="${esc(q.n)}" data-v="${esc(c)}"${done ? ' disabled' : ''}>${esc(c)}</button>`;
-        }).join('')}</div>`}
-    ${done ? `<p class="quiz-why"><b>${right ? 'Correct.' : q.kind === 'typed'
-        ? 'Not quite — the answer is ' + esc(q.answer) + '.'
-        : 'Not quite.'}</b> ${esc(q.why)}</p>` : ''}
-  </section>`;
-}
-
-/* ---------- THE ANSWERING BLOCK, WHICH WAS A SHEET AND IS THE BODY OF THE CARD --------------------
-   IT WAS `quizSheet_` AND THE NAME WENT WITH THE SHEET. A function called `quizSheet_` that builds
-   no sheet is the stale name this repository keeps finding — `resource_type` in `VOCAB`, the dead
-   `kind === 'paper'` guard, `.favwrap.is-fav`.
-
-   ITS FIRST LINE WAS A `sub` THE CARD ALREADY DRAWS. `Biology · GCSE Higher` above the intro, with
-   `Biology · 5 questions` and a `GCSE Higher` chip four lines above THAT — invisible while the two
-   were on different surfaces and one fact three times the moment they were on one. The card keeps
-   its own, which carries the question count as well. */
-function quizBody_(x) {
-  const m = quizMarks_(x);
-  return `<div class="gd quiz-body">
-    ${/* ---------- WHAT THIS IS, SAID BEFORE THE FIRST QUESTION -------------------------------
-          "just a quiz so less pressure" IS THE BRIEF and a screen that does not say so reads as a
-          test. Nothing here is sent anywhere, nothing is timed and nothing is reported to a tutor
-          — and all three of those are true, which is why they can be written down. */''}
-    <p class="quiz-intro">Five questions, marked as you go. Nothing is sent anywhere and nothing
-      is timed — it is a recap, so a wrong answer is the useful one.</p>
-    <div class="quiz-score" role="status" aria-live="polite">${quizScore_(m)}</div>
-    ${x.row.qs.map(q => quizRow_(x, q)).join('')}
-    ${/* ANOTHER GO CLEARS THE FIVE KEYS, so the quiz is genuinely blank rather than blanked on
-          screen. It is the one control here that destroys something, which is why it says what it
-          will do rather than carrying a glyph. */''}
-    ${/* THE ONLY COPY NOW. These were buttons at the foot of the sheet AND tiles on the card, on
-          the argument that whoever was already looking at the sheet should not have to close it.
-          There is one surface, so there is one of each, and the house style says which: a FORM has
-          buttons, and this is the foot of a form. */''}
-    <div class="quiz-foot">
-      <button type="button" class="btn quiet" data-do="quiz-print"
-        data-key="${esc(x.key)}">Print this quiz and its answers</button>
-      <button type="button" class="btn quiet" data-do="quiz-again"
-        data-key="${esc(x.key)}">Clear my answers and start again</button>
-    </div>
-  </div>`;
-}
-
-function quizScore_(m) {
-  if (!m.done) return 'Nothing answered yet.';
-  if (m.done < m.total) {
-    return '<b>' + m.right + '</b> right out of the ' + m.done + ' answered · '
-      + (m.total - m.done) + ' to go';
-  }
-  return '<b>' + m.right + ' out of ' + m.total + '</b>'
-    + (m.right === m.total ? ' — all of them.' : '');
-}
-
-/* ---------- FOUND BY KEY, THROUGH THE LIST THE CARD WAS BUILT FROM ------------------------------
-   `stuffItemsAll_()` RATHER THAN `DATA.quizzes`, which is `prac-guide`'s own rule and for its
-   reason: the card came out of that list, and a second lookup into the payload would be a second
-   reader of one list. It is also the list that holds the item the card's `x.key` names, so nothing
-   has to agree about how a key is spelled. */
-function quizFind_(key) {
-  return stuffItemsAll_().find(it => it.key === key && it.kind === 'quiz') || null;
-}
-
-/* `on('quiz-open')` WAS HERE and is gone with the tile that drew its door. `quizFind_` above it
-   stays: the two handlers below still look a quiz up by the key its own markup carries. */
-
-/* ---------- ANSWERING ----------------------------------------------------------------------------
-   THE ROW IS REDRAWN AND THE BLOCK AROUND IT IS NOT, and the argument survived the sheet going.
-   It was that re-rendering the whole sheet puts `#sheet-body`'s scroll back to the top on every
-   answer — five questions in, that throws somebody back to the intro each time they press a
-   button. A card is in a `.pane`, and `paneReach_` gives an overflowing pane `overflow-y: auto`,
-   so the scroller is one box further out and the fault is the same one: rebuilding the card, or
-   the strip it is in, loses where somebody had got to. The one `<section>` that changed is
-   replaced and the score line is updated, which are exactly the two things an answer changes.
-
-   AND BOTH ARE REDRAWN FROM STORAGE rather than patched. `quizRow_` reads the stored answer and
-   works the mark out itself, so the markup after a press is byte-identical to the markup after a
-   repaint — which is what stops the two paths drifting. See the note over `quizRow_`. */
-function quizAnswered_(el, key, n, value) {
-  const x = quizFind_(key);
-  if (!x) return;
-  const q = (x.row.qs || []).find(a => String(a.n) === String(n));
-  if (!q) return;
-  try { localStorage.setItem(quizKey_(x, q.n), value); } catch (e) {}
-  const row = el.closest('.quiz-q');
-  /* ---------- THE SCORE IS FOUND FROM THE ROW, NOT FROM THE SHEET ------------------------------
-     THIS READ `$('sheet-body')`, which was the one place a quiz could be. It is on a card in the
-     funnel now, and the funnel's windowed pager keeps about six result pages in the DOM at once —
-     so an id, or a document-wide `querySelector`, would have updated the FIRST quiz on the screen
-     rather than the one under the thumb. That is the `$('msg-text')` fault this repository records,
-     where a reply typed into the second thread posted to the first.
-
-     ASKED OF THE DOM RATHER THAN REMEMBERED, which is what `msg-send` and `me-save` already do:
-     walk up from the element that was pressed to the block it belongs to. `body` is read before
-     the row is replaced, because `outerHTML` detaches `row` and `closest` on a detached node
-     cannot find its old parents. */
-  const body = el.closest('.quiz-body');
-  if (row) row.outerHTML = quizRow_(x, q);
-  const score = body && body.querySelector('.quiz-score');
-  if (score) score.innerHTML = quizScore_(quizMarks_(x));
-}
-
-on('quiz-pick', el => {
-  quizAnswered_(el, el.getAttribute('data-key') || '', el.getAttribute('data-n') || '',
-                el.getAttribute('data-v') || '');
-});
-
-/* NOTHING TYPED IS NOT A WRONG ANSWER, which is `qp-check`'s own rule and the same sentence: a
-   press on an empty box asks for the answer, it does not award a cross. Storing an empty string
-   would make it one, because `quizMarks_` counts a stored answer as attempted. */
-on('quiz-check', el => {
-  const box = el.closest('.quiz-q');
-  const inp = box && box.querySelector('.qp-ans-in');
-  if (!inp) return;
-  if (!String(inp.value || '').trim()) return toast('Write something first');
-  quizAnswered_(el, el.getAttribute('data-key') || '', el.getAttribute('data-n') || '', inp.value);
-});
-
-on('quiz-again', el => {
-  const x = quizFind_(el.getAttribute('data-key') || '');
-  if (!x) return;
-  (x.row.qs || []).forEach(q => {
-    try { localStorage.removeItem(quizKey_(x, q.n)); } catch (e) {}
-  });
-  /* ---------- REDRAWN IN PLACE, WHERE IT USED TO REOPEN THE SHEET ------------------------------
-     `openSheet(x.name, quizSheet_(x))` was how this repainted: throw the surface away and build it
-     again. With the quiz on a card there is nothing to reopen, and a `paintStuff()` would be worse
-     than nothing — it rebuilds the whole funnel strip to clear five answers, and the note over
-     `cart-drop` makes that argument already: the press IS the change and the state it changed is
-     in `localStorage` rather than on a wire.
-
-     THE BLOCK THE BUTTON IS IN, for the reason above: six quizzes can be in the DOM at once. */
-  const body = el.closest('.quiz-body');
-  if (body) body.outerHTML = quizBody_(x);
-});
-
-/* ==================================================================================================
-   THE PRINTED QUIZ — A4, TWO PAGES, AND NOT THE SCREEN ONE WITH A PRINT BUTTON ON IT.
-
-   ASKED FOR AS "the quizes should open in a new tabe where they are printable."
-
-   A NEW TAB IS THE ONE SURFACE THIS APP REFUSES, and `check-surfaces.js` writes out why at the top
-   of the file: `window.open` asks for pop-up permission, so the first press often does nothing at
-   all on a phone, and the back gesture then leaves the app entirely. Its own note names the
-   replacement in the same breath — *"→ openSheet(). It is part of this page, so closing it puts you
-   back exactly where you were, and the browser's own print still takes it."* Two tools in this app
-   already print that way, the cheat sheet and the flyer, and they print correctly.
-
-   SO WHAT WAS ACTUALLY MISSING IS THE PAPER, not the tab. The screen quiz is a thing you answer
-   with your thumb: four pressable options a fingertip tall, a running score, an explanation that
-   appears when you answer. Printed, every one of those is wrong — a tick box is not 44px, a score
-   of nothing is not worth ink, and the explanation is the answer. A printable quiz is a DIFFERENT
-   DOCUMENT from the same rows, which is the split `questionCard_` and `paperBody_` already record.
-
-   TWO PAGES, AND THE SECOND ONE IS WHY IT IS TWO. Page one is the quiz a student writes on and it
-   carries no answers anywhere; page two is the answer key with the `why` under each. A tutor prints
-   both, hands over the first and keeps the second — and printing the first alone is the ordinary
-   page range every print dialogue has. One page with the answers at the foot is a page you cannot
-   hand to anybody.
-
-   IT IS BUILT FRESH RATHER THAN CLONED, which is the one difference from `mat-print`. That one
-   copies a sheet somebody has configured on screen, so a move would leave the tool broken if the
-   print threw; this is generated from the row every time and there is nothing on screen to damage.
-================================================================================================== */
-
-/* A, B, C, D — a printed choice is circled rather than pressed, so it needs a name to circle. */
-const QZ_LETTERS = 'ABCDEFGH';
-
-function quizPaperQ_(q, n) {
-  const ask = `<p class="qz-ask"><b>${esc(String(n))}.</b> ${esc(q.ask)}</p>`;
-  if (q.kind === 'typed') {
-    /* TWO RULED LINES. A typed answer here is a word or a number — `Osmosis`, `2,8,1` — and a box
-       the depth of the screen one would be most of a page for eight characters. Two rather than one
-       because a child's handwriting is not a browser's line height, and the second line costs 8mm. */
-    return `<div class="qz-q">${ask}<div class="qz-rule"></div><div class="qz-rule"></div></div>`;
-  }
-  return `<div class="qz-q">${ask}
-    <ol class="qz-opts">${q.choices.map((c, i) =>
-      `<li><span class="qz-let">${QZ_LETTERS[i] || '?'}</span>${esc(c)}</li>`).join('')}</ol>
-  </div>`;
-}
-
-function quizPaper_(x) {
-  const q = x.row;
-  const head = esc([q.subject, q.tier ? q.level + ' ' + q.tier : q.level].filter(Boolean).join(' · '));
-  /* NAME AND DATE, because a printed sheet comes back and has to say whose it is. The oldest thing
-     on any worksheet and the one a generated one always forgets. */
-  return `<div class="qz-paper">
-    <section class="qz-sheet">
-      <header class="qz-head">
-        <h1>${esc(q.topic)}</h1>
-        <p class="qz-sub">${head} · ${q.qs.length} questions</p>
-        <p class="qz-who"><span>Name</span><span>Date</span></p>
-      </header>
-      ${q.qs.map((a, i) => quizPaperQ_(a, i + 1)).join('')}
-      ${/* THE FOOT SAYS WHICH QUIZ THIS IS, because a pile of these on a desk is otherwise five
-            sheets of science. The id rather than a pretty line: it is what finds the row again. */''}
-      <p class="qz-foot">${esc(q.id)}</p>
-    </section>
-    <section class="qz-sheet qz-key">
-      <header class="qz-head">
-        <h1>${esc(q.topic)} — answers</h1>
-        <p class="qz-sub">${head}</p>
-      </header>
-      <ol class="qz-ans">${q.qs.map(a => {
-        const letter = a.kind === 'choice'
-          ? QZ_LETTERS[a.choices.indexOf(a.answer)] : '';
-        return `<li><b>${letter ? letter + '. ' : ''}${esc(a.answer)}</b>
-          <span class="qz-why">${esc(a.why)}</span></li>`;
-      }).join('')}</ol>
-      <p class="qz-foot">${esc(q.id)}</p>
-    </section>
-  </div>`;
-}
-
-/* ---------- AND THE PRINT ITSELF, WHICH IS `mat-print`'S SHAPE ------------------------------------
-   THE PAPER GOES AT THE END OF `body` AND NOWHERE ELSE, and the reason is written out over
-   `mat-print`: `body` is a centred 26.5rem column — about 115mm — with `overflow-x: clip`, so a
-   210mm sheet inside the app's own markup starts where the COLUMN starts and everything past 115mm
-   is clipped off the page. Both of the other two printable tools learned that separately.
-
-   `afterprint` AND A FOUR-SECOND BACKSTOP. Some browsers never fire the event — the dialogue is
-   dismissed and nothing says so — and a sheet left at the foot of the body with `printing-quiz`
-   still on is a blank app. The backstop is what the other two use and for the same reason. */
-on('quiz-print', el => {
-  const x = quizFind_(el.getAttribute('data-key') || '');
-  if (!x) return toast('That quiz is not in the list any more');
-  const paper = document.createElement('div');
-  paper.innerHTML = quizPaper_(x);
-  const sheet = paper.firstElementChild;
-  document.body.appendChild(sheet);
-  document.body.classList.add('printing-quiz');
-  const done = () => {
-    document.body.classList.remove('printing-quiz');
-    sheet.remove();
-    window.removeEventListener('afterprint', done);
-  };
-  window.addEventListener('afterprint', done);
-  setTimeout(done, 4000);
-  window.print();
-});
-
-
-/* ==================================================================================================
    `filmCard_` — A THING WITH A LINK ON IT, AND NOTHING THIS APP CAN PLAY.
 
    IT OPENS DRIVE AND DOES NOT EMBED. A `<video>` pointed at Drive was a ladder of three addresses
@@ -5097,27 +4689,6 @@ function projectText_(p) {
                      (p.steps || []).join(' ')].filter(Boolean).join(' '));
 }
 
-/* `quizText_` — THE SAME MOVE, one data file along, and for the reason `practicalText_` records:
-   a quiz whose only searchable text is its own name is findable by somebody who already knows it
-   exists. Typing `osmosis`, `terminal velocity` or `oxygen debt` has to reach the quiz that asks
-   about it, and those words appear in exactly one place — inside the questions.
-
-   THE ANSWERS AND THE EXPLANATIONS GO IN TOO, and that is a deliberate difference from
-   `searchText_`, which is built from the stem, the lead and the part and NEVER from the answer.
-   The reason that rule exists is that a past paper's search must not leak its mark scheme; a
-   recap quiz has no such secret — its whole point is that the explanation is one tap away — and
-   `terminal velocity` being the answer rather than the question should not make it unfindable.
-
-   BUILT ONTO THE ITEM, NOT MATCHED PER KEYSTROKE. `stuffItems` is memoised on the payload and
-   runs once; `stuffFind` runs on every letter. */
-function quizText_(q) {
-  const parts = [q.name, q.subject, q.topic, q.level, q.tier];
-  (q.qs || []).forEach(a => {
-    parts.push(a.ask, a.why, a.answer, (a.choices || []).join(' '));
-  });
-  return plainText_(parts.filter(Boolean).join(' '));
-}
-
 /* `paperText_` AND ITS MEMO WERE HERE. It folded every question's words into its PAPER's search
    haystack, so typing `surds` found the paper rather than nothing — which was necessary exactly
    because the thing in the list was a document with none of its own words on it. The list is the
@@ -5838,12 +5409,12 @@ function choiceBox_(x) {
       data-right="${esc(right.join(','))}">
     <span class="qp-ans-k">${who ? esc(who) + '&rsquo;s answer' : 'Your answer'}${
       need > 1 ? ' &middot; choose ' + need : ''}</span>
-    <div class="quiz-opts">${x.choices.map((c, i) => {
+    <div class="qp-opts">${x.choices.map((c, i) => {
       const n = i + 1, on = picked.includes(n);
       const cls = (on ? ' is-picked' : '') + (done && right.includes(n) ? ' is-ans' : '');
       /* THE OPTION'S OWN MARKUP, as the question's html is drawn: it is committed library content
          and carries the italics and superscripts an equation needs. */
-      return `<button type="button" class="quiz-opt qp-opt${cls}" data-do="qp-choose"
+      return `<button type="button" class="qp-opt${cls}" data-do="qp-choose"
         data-n="${n}" aria-pressed="${on}">${typeset_(c)}</button>`;
     }).join('')}</div>
   </div>${right.length ? `<div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">
@@ -5854,7 +5425,7 @@ function choiceBox_(x) {
 }
 
 /* A tap picks; on "choose two" a second tap adds and a tap on a chosen one takes it back off. Once
-   a marked question is answered it is settled, as a quiz is: changing it after being shown the
+   a marked question is answered it is settled: changing it after being shown the
    answer would make "Correct" a thing anybody can reach. "Start again" is clearing the box. */
 on('qp-choose', (el) => {
   const box = el.closest('.qp-choices');
@@ -7239,8 +6810,9 @@ function stuffItemsRaw_() {
        that scales a recipe from four to six is found by the Topic question that finds a past
        paper on direct proportion. `check-projects.js` refuses a topic the tree has never heard of.
 
-       `subject` AND `level` ARE THE LIBRARY'S WORDS for the reason the quizzes' note gives below,
-       and `check-projects.js` holds both to the two tables that group them — one value outside
+       `subject` AND `level` ARE THE LIBRARY'S WORDS, not new ones: inventing `KS3 Science` as one
+       string would be a third spelling of a fact two columns already carry -- the `needs_print` /
+       `print_required` lesson, which cost 356 rows of disagreement. `check-projects.js` holds both to the two tables that group them — one value outside
        `SUBJECT_BUCKET` or `LEVEL_BUCKET` stands that whole question down to the alphabet. */
     ...(DATA.projects || []).map(p => ({
       kind: 'project', name: p.name, key: 'pj:' + p.id,
@@ -7267,32 +6839,6 @@ function stuffItemsRaw_() {
         row: b,
       };
     }),
-
-    /* ---------- THE QUIZZES ----------------------------------------------------------------
-       THE JOIN IS `topics` AGAIN, and that sentence is the whole reason this is in the funnel
-       rather than on a screen of its own. `tools/quizwrite.py` refuses a topic `data/topics.json`
-       has never heard of, so a quiz, a practical and a past-paper question about cell biology all
-       answer the same Topic question -- which is the join the practicals' own note describes, one
-       data file along.
-
-       `level` AND `tier` ARE THE LIBRARY'S SPELLINGS, not new words. `levelOf_` reads `level` with
-       `band_value` as its first choice, and `Foundation`/`Higher` is what `tier` already holds on
-       1,158 question rows. Inventing `KS3 Science` as one string would have been a third spelling
-       of a fact two columns already carry -- the `needs_print` / `print_required` lesson, which
-       cost 356 rows of disagreement.
-
-       EVERY WORD OF EVERY QUESTION IS IN THE HAYSTACK, for `practicalText_`'s reason measured one
-       commit earlier: a quiz whose only searchable text is its name is findable by somebody who
-       already knows it exists. Typing `osmosis` or `terminal velocity` should reach the quiz that
-       asks about it, and the only place those words appear is inside the questions. */
-    ...(DATA.quizzes || []).map(q => ({
-      kind: 'quiz', name: q.name, key: 'qz:' + q.id,
-      sub: [q.subject, q.qs.length + ' questions'].filter(Boolean).join(' · '),
-      image: '',
-      subject: q.subject, topics: q.topic, level: q.level, tier: q.tier,
-      text: quizText_(q) + ' ' + topicAtoms_(q.topic).join(' '),
-      row: q,
-    })),
 
     /* ---------- ONE ROW PER FILM OR SERIES ------------------------------------------------------
        EMPTY FOR EVERYBODY BUT AN ADMIN, because the payload is — see the `film` entry in `KINDS`.
@@ -7391,7 +6937,7 @@ const topicAtoms_ = v => String(v == null ? '' : v).split(',').map(s => s.trim()
    SO IT IS `spellOne_` AND `spellKey_` IN THE FUNNEL ENGINE, applied to the answers of every facet
    including the ones a spreadsheet invents. See them above `facetTally_`. */
 /* Whether this item's topic is shown in the funnel at all — see the note over the `topicArea`
-   facet. Only questions are narrowed; a practical or a quiz is ABOUT its topic by construction. */
+   facet. Only questions are narrowed; a practical or a project is ABOUT its topic by construction. */
 function topicShown_(x) {
   if (!x || x.kind !== 'question') return true;
   const r = x.row || x;

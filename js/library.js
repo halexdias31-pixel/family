@@ -197,26 +197,18 @@ async function libraryRows_() {
 /* `practicals` JOINED THIS LIST LAST and is the first entry that is not a boxing row or a
    lookup table: 41 experiments, each naming the library's own topics, so a practical and a
    past-paper question about the same thing answer the same question in the funnel. */
-/* `quizzes` IS THE SIXTH, and it is the first list in this repository written FOR the app rather
-   than exported into it. 81 quizzes -- 27 science topics x KS3 / GCSE Foundation / GCSE Higher --
-   five questions each, every one marked the moment it is answered.
-
-   IT IS HERE AND NOT IN THE LIBRARY because of the measurement that prompted it: all 745 science
-   questions in `data/questions.json` have an EMPTY `accept`, so not one of them can mark itself.
-   An exam question is marked against a scheme by a person, which is right for an exam and useless
-   for a recap. Written by `tools/quizwrite.py`, whose assertions are the whole safety argument. */
-/* `projects` IS THE SEVENTH, and the practicals' sibling rather than a kind of practical. ASKED FOR
+/* `projects` IS THE SIXTH, and the practicals' sibling rather than a kind of practical. ASKED FOR
    AS "the projects are like practicles, but not practicles. so should be a new tag in the finder
    called projects." A practical is an afternoon that ends in a reading or a thing on the bench; a
    project is three or four sessions that end in something a child MADE and keeps -- a film, a
    board game, a recipe book. Same row shape where the two agree (topics, kit, steps), its own
    columns where they do not (`sessions`, `makes`, `share`), and its own file so the 82 practicals'
    rules -- compliance, hazard, IV/DV/CV -- are not asked of a podcast. See `check-projects.js`. */
-/* `textbooks` IS THE EIGHTH — "the @family textbook should be bare bones for now and the textbooks
+/* `textbooks` IS THE SEVENTH — "the @family textbook should be bare bones for now and the textbooks
    will be in the resources tag in the finder." ONE FILE FOR EVERY BOOK, not one file per book, because
    a file is a name in this list and a name here is a deploy: the second book should be rows, not code.
    One row per chapter; see the mapper below and `check-textbooks.js`. */
-const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'topics', 'practicals', 'quizzes', 'projects', 'textbooks'];
+const LIB_EXTRA = ['boxers', 'fights', 'cheatsheet', 'topics', 'practicals', 'projects', 'textbooks'];
 let LIBRARY_EXTRA = null;
 
 /* One fetch per tab, all started before this file parsed — see `index.html`. A file that 404s or
@@ -453,8 +445,9 @@ function libraryExtras_(d, extra) {
   }
 
   /* --- the textbooks ---------------------------------------------------------------------------
-     ONE ROW PER CHAPTER, GROUPED HERE INTO ONE OBJECT PER BOOK — the quizzes' move below, for the
-     quizzes' reason: a flat file is one a diff can point into, and "chapter 9 of GCSE Statistics"
+     ONE ROW PER CHAPTER, GROUPED HERE INTO ONE OBJECT PER BOOK, because a flat file is
+     one a diff can point into — one object per line, so the next script can append by splitting on
+     newlines — and "chapter 9 of GCSE Statistics"
      is a line. The row with `chapter: 0` is the TITLE PAGE — name, summary, subject, level, board,
      spec — so a book's own facts are written once rather than on sixteen rows that could disagree.
 
@@ -493,49 +486,6 @@ function libraryExtras_(d, extra) {
        rather than drawn as a blank card. The check refuses the file first. */
     d.textbooks = order.map(id => books[id]).filter(b => b.name)
       .map(b => Object.assign(b, { chapters: b.chapters.sort((p, q) => p.n - q.n) }));
-  }
-
-  /* --- the quizzes ------------------------------------------------------------------------------
-     ONE ROW PER QUESTION, GROUPED HERE INTO ONE OBJECT PER QUIZ. The file is flat for the reason
-     every data file in this repository is — one object per line, so a diff names the rows that
-     changed and the next script can append by splitting on newlines. A nested file would make
-     "question 3 of the KS3 cell biology quiz" a thing no diff can point at.
-
-     `choices` IS A PIPE LIST for the reason the practicals' `equipment` is, recorded above: 14 of
-     its 410 cells hold a comma inside one item, and "sodium chloride, dissolved in water" is one
-     choice that no comma rule can tell from two.
-
-     `accept` IS `markAnswer_`'s OWN COLUMN, spelled the way the library spells it — a pipe list of
-     everything a student will really type. That is not a second marking rule: the quiz sheet calls
-     `markAnswer_` itself, so a fraction slash, a mixed number or a range behaves here exactly as it
-     does on a past paper. A second implementation would be the second reader this file records
-     under `documents_()`, `paperIdOf_` and `factsNow_`. */
-  if (extra.quizzes && extra.quizzes.length) {
-    const byId = {};
-    const order = [];
-    extra.quizzes.forEach(r => {
-      const id = libS(r.quiz_id).trim();
-      const ask = libS(r.ask).trim();
-      if (!id || !ask) return;
-      if (!byId[id]) {
-        byId[id] = {
-          id: id, name: libS(r.name), subject: libS(r.subject), topic: libS(r.topic),
-          level: libS(r.level), tier: libS(r.tier), qs: [],
-        };
-        order.push(id);
-      }
-      byId[id].qs.push({
-        n: libS(r.n), ask: ask, why: libS(r.why),
-        kind: libS(r.kind) === 'typed' ? 'typed' : 'choice',
-        /* AN EMPTY CELL IS NO CHOICES, NOT ONE EMPTY CHOICE. `''.split('|')` is `['']` — a single
-           blank string — so the filter is what makes a typed question have nothing to offer rather
-           than one unlabelled button. Same shape as the `[]` fallback above: absent must read as
-           absent. */
-        choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
-        answer: libS(r.answer), accept: libS(r.accept),
-      });
-    });
-    d.quizzes = order.map(id => byId[id]);
   }
 
   /* --- the boxers ------------------------------------------------------------------------------ */
@@ -689,8 +639,8 @@ function libraryInto_(d, rows) {
          em dash, then the method -- and "16 &mdash; half it." does not equal "16". See
          tools/set-accept.py for why the two are separate columns rather than one parsed twice. */
       accept: libS(r.accept),
-      /* A CLOSED LIST OF OPTIONS, TAPPED RATHER THAN TYPED. `choices` is a pipe list, as the
-         quizzes' is, and may carry inline HTML (`<i>P</i> = <i>I</i><sup>2</sup><i>R</i>`);
+      /* A CLOSED LIST OF OPTIONS, TAPPED RATHER THAN TYPED. `choices` is a pipe list, for the
+         practicals' `equipment` reason (an option can hold a comma), and may carry inline HTML (`<i>P</i> = <i>I</i><sup>2</sup><i>R</i>`);
          `choice_right` is the 1-based positions the mark scheme credits, a comma for "tick two".
          Positions rather than option text, so marking is exact and folds nothing. See `choiceBox_`. */
       choices: libS(r.choices).split('|').map(t => t.trim()).filter(Boolean),
