@@ -56,7 +56,9 @@ const LOOPS = [
     own: indexOwn_ },
   /* THE RING: centred on its two corner posts, which the generator places symmetrically. */
   { id: 'box', prefix: 'bx-', centreOn: ['bx-post'],
-    own: boxOwn_ },
+    own: boxOwn_ },  /* THE ANGLE AT THE CENTRE: centred on its rim, which tools/cent.py places in the box's middle. */
+  { id: 'cent', prefix: 'ct-', centreOn: ['ct-rim'],
+    own: centOwn_ },
 ];
 
 let faults = [], said = [];
@@ -384,6 +386,80 @@ function boxOwn_(L, m, mine) {
     if (wrong) fault(L.id, 'spark ' + n + ' is lit at ' + wrong + ' sampled moments when ' + who(by)
       + ' is not jabbing or ' + who(on) + ' is not hit — a spark over nothing');
   });
+}
+
+/* ---------- THE ANGLE AT THE CENTRE: P IS ON THE CIRCLE, AND THE ANGLE AT P IS HALF THE ONE AT O ----
+   ASKED FOR AS "refine the circle theorems animation". Nothing in the markup says where P is — it is
+   wherever the four keyframes put it — so P is re-derived from them: the end of chord A, the end of
+   chord B and the vertex of the wedge must be one point, on the rim, at every stop AND half-way
+   between stops (the browser interpolates translate, rotate and scale linearly, and a chord that
+   cut inside the circle between samples would be a point leaving the arc). The wedge must open by
+   half the centre angle and be turned to the bisector, which always points at M, the middle of arc
+   AB; the label must stay the same distance from P. And the caption must name the theorem. */
+function centOwn_(L, m) {
+  const num = s => (String(s).match(/-?\d*\.?\d+/g) || []).map(Number);
+  const rim = m.match(/<circle class="ct-rim" cx="([\d.]+)" cy="([\d.]+)" r="([\d.]+)"/);
+  if (!rim) { fault(L.id, 'has no .ct-rim circle to measure P against'); return; }
+  const [cx, cy, r] = rim.slice(1).map(Number);
+  const cen = m.match(/class="ct-cen" d="M([\d.]+) ([\d.]+) L([\d.]+) ([\d.]+) L([\d.]+) ([\d.]+)"/);
+  if (!cen) { fault(L.id, 'has no .ct-cen path — the angle at the centre is not drawn'); return; }
+  const [ax, ay, , , bx, by] = cen.slice(1).map(Number);
+  const ang = (x, y) => Math.atan2(y, x) * 180 / Math.PI;
+  const centre = ((ang(ax - cx, ay - cy) - ang(bx - cx, by - cy)) % 360 + 360) % 360;
+  const mid = (ang(ax - cx, ay - cy) + ang(bx - cx, by - cy)) / 2;
+  const M = [cx + r * Math.cos(mid * Math.PI / 180), cy + r * Math.sin(mid * Math.PI / 180)];
+  const U = +((m.match(/class="ct-ch ct-a" x1="0" y1="0" x2="([\d.]+)"/) || [])[1] || 0);
+  if (!U) { fault(L.id, 'the chords are not drawn from (0,0) along x — P cannot be derived'); return; }
+  const wedge = (m.match(/class="ct-wedge" d="M0 0 L(-?[\d.]+) (-?[\d.]+) A[\d.]+ [\d.]+ 0 0 1 (-?[\d.]+) (-?[\d.]+) Z"/) || []).slice(1).map(Number);
+  if (wedge.length !== 4) fault(L.id, 'the wedge at P is not drawn with its vertex at (0,0)');
+  else {
+    const open = ang(wedge[2], wedge[3]) - ang(wedge[0], wedge[1]);
+    if (Math.abs(open - centre / 2) > 0.2) fault(L.id, 'the wedge at P opens ' + open.toFixed(1) + '° and the centre angle is ' + centre.toFixed(1) + '° — the edge angle must be half');
+    if (Math.abs(ang(wedge[0], wedge[1]) + ang(wedge[2], wedge[3])) > 0.2) fault(L.id, 'the wedge at P is not symmetrical about +x, so turning it to the bisector puts it off the chords');
+  }
+  /* EACH STOP AS [key, translate x, y, rotate, scale] */
+  const read = name => {
+    const out = [];
+    (frames[name] || []).forEach(st => st.keys.forEach(k => {
+      const t = st.decls.transform || '';
+      const tr = num((t.match(/translate\(([^)]*)\)/) || [])[1] || '0 0');
+      const ro = num((t.match(/rotate\(([^)]*)\)/) || [])[1] || '0')[0];
+      const sc = num((t.match(/scale\(([^)]*)\)/) || [])[1] || '1')[0];
+      out.push([k, tr[0], tr[1], ro, sc]);
+    }));
+    return out.sort((a, b) => a[0] - b[0]);
+  };
+  const fa = read('ct-a'), fb = read('ct-b'), fw = read('ct-w'), fx = read('ct-x');
+  if (!fa.length || !fb.length || !fw.length || !fx.length) { fault(L.id, 'is missing one of @keyframes ct-a, ct-b, ct-w, ct-x'); return; }
+  const at = (fr, k) => {                     // linear, as the browser interpolates with `linear`
+    let i = 0;
+    while (i < fr.length - 1 && fr[i + 1][0] < k) i++;
+    const a = fr[i], b = fr[Math.min(i + 1, fr.length - 1)];
+    const u = b[0] === a[0] ? 0 : Math.max(0, Math.min(1, (k - a[0]) / (b[0] - a[0])));
+    return a.map((v, j) => v + (b[j] - v) * u);
+  };
+  const end = q => [q[1] + q[4] * U * Math.cos(q[3] * Math.PI / 180), q[2] + q[4] * U * Math.sin(q[3] * Math.PI / 180)];
+  const keys = new Set();
+  [fa, fb, fw, fx].forEach(fr => fr.forEach((q, i) => { keys.add(q[0]); if (fr[i + 1]) keys.add((q[0] + fr[i + 1][0]) / 2); }));
+  let off = 0, apart = 0, turned = 0, worst = 0, labD = null, labBad = 0, moved = new Set();
+  [...keys].sort((a, b) => a - b).forEach(k => {
+    const pa = end(at(fa, k)), pb = end(at(fb, k)), w = at(fw, k), x = at(fx, k);
+    const d = Math.abs(Math.hypot(pa[0] - cx, pa[1] - cy) - r);
+    worst = Math.max(worst, d);
+    if (d > 0.3) off++;
+    if (Math.hypot(pa[0] - pb[0], pa[1] - pb[1]) > 0.3 || Math.hypot(pa[0] - w[1], pa[1] - w[2]) > 0.3) apart++;
+    const want = ang(M[0] - w[1], M[1] - w[2]);
+    if (Math.abs(((w[3] - want) % 360 + 540) % 360 - 180) > 1) turned++;
+    const ld = Math.hypot(x[1] - w[1], x[2] - w[2]);
+    if (labD === null) labD = ld; else if (Math.abs(ld - labD) > 0.3) labBad++;
+    moved.add(Math.round(pa[0] * 10));
+  });
+  if (off) fault(L.id, 'P leaves the circle at ' + off + ' sampled moments (worst ' + worst.toFixed(2) + ' units off the rim) — the chord does not reach the arc');
+  if (apart) fault(L.id, 'the two chords and the wedge do not meet at one point at ' + apart + ' sampled moments — P comes apart');
+  if (turned) fault(L.id, 'the wedge at P is not turned to the bisector (towards M, the middle of arc AB) at ' + turned + ' sampled moments');
+  if (labBad) fault(L.id, 'the x label drifts away from P at ' + labBad + ' sampled moments');
+  if (moved.size < 10) fault(L.id, 'P takes only ' + moved.size + ' places on the arc — it does not travel');
+  if (!/angle at the centre/i.test(m) || !/twice/i.test(m)) fault(L.id, 'does not name the theorem — the caption must say the angle at the centre is twice the angle at the edge');
 }
 
 console.log('\nTHE SPLASHES THAT ARE ONE SEAMLESS LOOP  (' + LOOPS.length + ')');
