@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-03-timesync-all";
+  --css-version: "2026-10-03-findpolish";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -2287,6 +2287,19 @@ button.text-drop { color: var(--bad); }
 [data-tag="type"]    { --tag: var(--tag-type); }
 [data-tag="topic"]   { --tag: var(--tag-topic); }
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
+/* ---------- WHAT YOU CHOSE, A RULE, THEN WHAT IS ASKED NEXT -------------------------------------------
+   SIX ANSWERS IN, THE TWO WERE ONE CLOUD: the chosen chips are tag-coloured pills and so are the
+   answers under them, and the only thing between the two was the .45rem gap that also sits between
+   any two chips. You could not see where "what you said" stopped and "what it is asking" began
+   without reading every label. A hairline under the chosen ones — only when there are some, so the
+   first question has no rule above nothing — and the same .45rem under it, drawn in `--chip-line`,
+   the edge the chips themselves are drawn in (`--line-soft` and `--line` were both invisible on the
+   pane in the screenshot). Seven pixels, not a row: the note above is why the room is counted. */
+.chips:has(.chip) { padding-bottom: .45rem; border-bottom: 1px solid var(--chip-line); }
+/* THE LAST LINE OF THE FUNNEL — "Nothing left to narrow", "That is the paper" — was an inline
+   `style="margin:.6rem 0 0"` in `--faint`. Its own class now: dim, with the instruction in ink. */
+.find-end { margin: .3rem 0 0; font-size: .8rem; line-height: 1.5; color: var(--dim); }
+.find-end b { color: var(--ink); font-weight: 600; }
 .chip {
   display: flex; align-items: center; gap: .25rem;
   /* ---------- 44px, AND THIS IS THE FOURTH CONVICTION OF THE SAME RULE ---------------------------
@@ -9914,6 +9927,40 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .frac-s { position: absolute; left: 0; top: 0; clip: rect(0 0 0 0); clip-path: inset(50%);
           white-space: nowrap; pointer-events: none; }
 
+/* ==================================================================================================
+   THE FIND CARD — FIVE PARTS, ONE SCALE, EVERY KIND THAT IS NOT A QUESTION
+
+   ASKED FOR AS *"didn't I ask you to sleekerise the whole widget system in the finder for questions
+   and so on?"* — "nice more sleek, fresh stable". The question family has a polish of its own (note
+   261); this is everything else Find draws: practicals and their pages, projects and theirs, the
+   textbook and its chapters, quizzes, films, boxers and fights, and the same cards kept on Saved.
+
+   THEY WERE ONE SYSTEM BY ACCIDENT AND FOUR BY DEFAULT. The practical's `prac-*` classes had become
+   the head, the kicker, the meta line and the section of the project, the textbook, the film and
+   the quiz — under a name that said "practical" — while the boxer was drawn as a SHOP row (a
+   0.92rem title, the record pinned in a corner), the fight as a bare paragraph of names at body
+   size, the quiz with a round level pill where everybody else has a square kind flag, and the film
+   with two rows of tiles. Measured at 390px: four title sizes (17.3, 14.8, 14.8 and 13.6px) for
+   cards that each own a whole page, and nine different gaps between their lines.
+
+   SO THE PARTS HAVE NEUTRAL NAMES AND EVERY KIND IS BUILT FROM THEM:
+
+     `.fc`        on the card — carries the spacing scale below, so every gap is one of three
+     `.fc-head`   the title and its flags (`.fc-flags` > `.fc-flag`): what this is, in one row
+     `.fc-kick`   the small caption above a PAGE's title: whose page this is
+     `.fc-meta`   the gold mono line of numbers that decide whether you read on (30 min · 7+)
+     `.fc-sec`    a section, its `h4` the label (KEY WORDS, THINGS YOU COULD CHANGE)
+     `.fc-list`   the list inside one — bullets for a kit, numbers for an order
+
+   and three kinds of prose: `.fc-lede` (what it is, in ink), `.fc-say` (a labelled line, the label
+   gold: "You end up with") and `.fc-note` (a quiet aside). The kind-specific classes that are left
+   (`prac-haz`, `prac-no`, `tb-*`, `fight-who`, `quiz-*`) are the parts no other kind has.
+
+   THE SCALE IS THREE STEPS, the shape note 261 gave the question card: `--fc-in` between a label
+   and what it labels, `--fc-line` between lines of one group, `--fc-group` between groups. In rem,
+   because none of it is a tap target. */
+.fc { --fc-in: .25rem; --fc-line: .45rem; --fc-group: .8rem; }
+
 /* ---------- A PRACTICAL ---------------------------------------------------------------------------
    ON THE BLACK, NOT ON PAPER. The two-palette rule turns on what a thing STANDS IN FOR: a receipt,
    a job stub or a print sheet is paper and takes the cream tokens. A practical is not a document
@@ -9953,8 +10000,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    back with it. The measurement is kept because it is what says the reachability is real rather
    than assumed. */
 
-.fc-head { display: flex; flex-wrap: wrap; align-items: baseline;
-             justify-content: space-between; gap: .5rem; }
+/* ---------- AND NOW THE FLAGS SIT ABOVE THE TITLE, ALWAYS ----------------------------------------
+   THE WRAP ABOVE WAS RIGHT ABOUT OVERFLOW AND IT GAVE EVERY CARD TWO LAYOUTS. A short title had its
+   flags at the far right of its line; a long one had them dropped to a line of their own, LEFT
+   aligned, between the title and the subject line — so `FIGHT` sat beside `Jack Dempsey v Jess
+   Willard` and alone under `Jack Johnson v James J. Jeffries` one card earlier, and which you got
+   depended on the length of somebody's name. Measured over the fixture at 390px: 7 of 13 Find cards
+   with a head had wrapped.
+
+   SO THE FLAGS ARE THE PAGE'S KICKER: one small row above the title on every card, in the slot a
+   part page uses for whose page it is (`.fc-kick`). Every page of every kind now reads kicker,
+   title, line, numbers. `column-reverse` rather than moving the markup, so a screen reader still
+   hears the title first and the flags after it — the order of importance — and the overflow fault
+   cannot come back: nothing shares a line with the title any more. */
+.fc-head { display: flex; flex-direction: column-reverse; align-items: flex-start;
+           gap: var(--fc-in); }
 /* ---------- `min-width: 0`, AND WITHOUT IT FOUR CARDS RAN PAST THE COLUMN -------------------------
    A FLEX ITEM'S MINIMUM IS `auto`, WHICH IS ITS MIN-CONTENT — the widest unbreakable word, not
    nothing. So a one-word title beside a `flex: 0 0 auto` flag could not shrink to the card, and
@@ -9967,6 +10027,17 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    That is this file's own "a sample is not a sweep", one data file along, and it is why
    `check/cards.js` now lays these out too. Found by laying all 56 out while adding ten more. */
 .fc-head h3 { margin: 0; min-width: 0; overflow-wrap: break-word; }
+/* ONE TITLE SIZE FOR A CARD THAT OWNS A PAGE, and a part page's title is one too — "Steps" under
+   its kicker is the page's name exactly as "Animal behaviour logging" is the card's. It was the
+   browser's own h3 (1.17em, 17.3px) on the cards with a head, 1rem on their pages, 0.92rem on a
+   boxer and 1rem of loose spans on a fight. `.fc` in front so it outranks `.card > h3` instead of
+   tying with it — a tie is what `check/cascade.js` exists to catch. */
+.fc .fc-head h3, .fc.prac-part > h3 { font-size: 1.1rem; font-weight: 650; line-height: 1.3;
+                                      letter-spacing: -.01em; }
+/* THE LINE UNDER THE TITLE SITS UNDER IT. `.card .sub` pulls a subtitle up with a negative margin,
+   which is right under a bare `h3` and wrong under a head row whose flags have wrapped: the subject
+   line was jammed against `EXPERIMENT · EXTRA` with nothing between them. A fixed step instead. */
+.fc .fc-head + .sub { margin: var(--fc-in) 0 0; }
 /* THE ONE THING SOMEBODY SCANS FOR — whether the exam board makes them do this one. It is a flag
    rather than a line of prose because it is the answer to a yes/no question, and it is gold only
    when the answer is yes: an "Extra" in the same colour would make the distinction decorative. */
@@ -9984,15 +10055,15 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    wrapper the free space would open BETWEEN the two chips rather than before them — measured at
    320px, fifty-nine pixels of nothing. `flex-wrap` on the row then drops the pair together under a
    title that needs the whole line, rather than splitting it. */
-.fc-flags { display: flex; flex: 0 0 auto; gap: .3rem; align-items: baseline; }
-.fc-lede { margin: .45rem 0 0; font-size: .86rem; line-height: 1.5; }
+.fc-flags { display: flex; flex-wrap: wrap; flex: 0 0 auto; gap: .3rem; align-items: baseline; }
+.fc-lede { margin: var(--fc-line) 0 0; font-size: .86rem; line-height: 1.5; }
 /* HOW LONG, HOW MANY, WHERE, AND WHETHER IT CAN HAPPEN AT ALL — the four facts that decide whether
    you run this today, on one line, in the mono face the rest of the app uses for measurements. */
-.fc-meta { margin: .35rem 0 0; font: 600 .72rem/1.4 var(--mono); color: var(--gold);
+.fc-meta { margin: var(--fc-line) 0 0; font: 600 .72rem/1.4 var(--mono); color: var(--gold);
               letter-spacing: .03em; }
-.fc-say { margin: .5rem 0 0; font-size: .8rem; line-height: 1.45; color: var(--dim); }
-.prac-kit, .prac-steps, .fc-sec { margin: .65rem 0 0; }
-.prac-kit h4, .prac-steps h4, .fc-sec h4 { margin: 0 0 .3rem; font: 600 .68rem/1 var(--mono);
+.fc-say { margin: var(--fc-line) 0 0; font-size: .8rem; line-height: 1.45; color: var(--dim); }
+.prac-kit, .prac-steps, .fc-sec { margin: var(--fc-group) 0 0; }
+.prac-kit h4, .prac-steps h4, .fc-sec h4 { margin: 0 0 var(--fc-in); font: 600 .68rem/1 var(--mono);
                                letter-spacing: .06em; text-transform: uppercase; color: var(--faint); }
 /* `.prac-kit` IS BACK ON THESE THREE GROUPS, because it holds a list again. The kit was chips —
    "like how Google has chips in documents" — and they were reverted on "the google chip idea didnt
@@ -10004,7 +10075,14 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    class plus a type (0,1,1) that would have out-specified `.kit-chips`' (0,1,0) and indented the
    block by a bullet's width. With no chip rule left there is nothing for it to beat; it is the only
    rule styling that list, as it was before them. */
-.prac-kit ul, .prac-steps ol, .fc-sec ul, .fc-sec ol { margin: 0; padding-left: 1.1rem; }
+.fc-list { margin: 0; padding-left: 1.1rem; }
+/* ---------- A NUMBER IS WIDER THAN A BULLET, AND `10.` IS WIDER STILL -----------------------------
+   EVERY LIST HERE HAD THE BULLET'S 1.1rem INDENT, and a marker hangs in that indent right-aligned —
+   so at 320px the textbook's contents had `10.` to `16.` sticking out past the card's own padding,
+   two characters further left than `1.` to `9.` above them. An ordered list gets the room its
+   numbers need, and a list that reaches ten gets the room for two digits. */
+ol.fc-list { padding-left: 1.5rem; }
+ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .prac-kit li, .prac-steps li, .fc-sec li { font-size: .8rem; line-height: 1.5; color: var(--dim); }
 .prac-kit li, .fc-sec li { margin: 0; }
 .prac-steps li { margin: 0 0 .25rem; }
@@ -10015,7 +10093,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    name, the picture, the kit, the method and the three worksheet questions. `safety` and
    `maths_link` are still columns and `check-practicals.js` still counts them, so a guide that wants
    either back needs these two rules and nothing else. */
-.fc-note { margin: .5rem 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
+.fc-note { margin: var(--fc-line) 0 0; font-size: .76rem; line-height: 1.45; color: var(--faint); }
 /* `notes` IS A PIPE LIST IN THE DATA AND ONLY ONE CALLER EVER SPLIT IT. That was the guide, which
    no longer draws the practical's notes at all; what produces this class now is a FILM card, with a
    single `<p>` inside it. The rule is unchanged and still right — three asides run together in one
@@ -10073,7 +10151,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    rule that reports it. `.fc-sec .prac-tab h4` is (0,2,1) and wins wherever it is written. */
 .fc-sec .prac-tab h4 { margin: 0 0 .3rem; font: 400 .64rem/1 var(--mono); letter-spacing: .08em;
                text-transform: uppercase; color: var(--faint); }
-.prac-tab ul { margin: 0; padding-left: 1.1rem; }
 .prac-tab li { font-size: .78rem; line-height: 1.5; color: var(--dim); }
 
 /* ---------- THE HAZARD WORD ----------------------------------------------------------------------
@@ -10127,12 +10204,12 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    label size because it is a caption; the `<h3>` takes the card's ordinary heading rules. The name
    wraps rather than clipping, for the `.fc-head h3` reason: a long title is one unbreakable
    flex item's worth of text on a 320px phone. */
-.fc-kick { margin: 0 0 .15rem; font: 600 .66rem/1.3 var(--mono); letter-spacing: .06em;
+.fc-kick { margin: 0 0 var(--fc-in); font: 600 .66rem/1.3 var(--mono); letter-spacing: .06em;
   text-transform: uppercase; color: var(--faint); overflow-wrap: anywhere; }
-.prac-part > h3 { margin: 0 0 .55rem; }
+.prac-part > h3 { margin: 0 0 var(--fc-line); }
 /* The one line on the card that is a recommendation rather than a fact, so it is the one that
    carries the gold. */
-.prac-open { margin: .5rem 0 0; font: 600 .76rem/1.45 var(--mono); color: var(--gold); }
+.prac-open { margin: var(--fc-line) 0 0; font: 600 .76rem/1.45 var(--mono); color: var(--gold); }
 /* `.prac-safety b` AND `.prac-maths b` WERE IN THIS SELECTOR and went with their two rules above.
    `.fc-say` is the card's own "You end up with", which is untouched. */
 .fc-say b { color: var(--gold); font-weight: 600; }
@@ -10240,9 +10317,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    `.fc-head` IS REUSED RATHER THAN COPIED, because a title with a flag beside it is the same
    object on both cards — and this stylesheet has already paid for the alternative twice, where
    `.reel .over` was a second description of `.feed-art` and drifted the first time either was
-   touched. The flag is a level rather than a compliance word, so only its own class is new.
+   touched. The flag was a level for a while, in a round pill of its own (`.quiz-lvl`); it says
+   `Quiz` now in the shared `.fc-flag`, and the level is on the line under the title where every
+   other kind keeps it — one slot, one shape, one meaning. See the Find card block.
 
-   THE LEVEL FLAG IS NOT GOLD, and what gold means here has moved without changing the argument. It
+   THE FLAG IS NOT GOLD, and what gold means here has moved without changing the argument. It
    was `Start` — the tile underneath, which the sentence named — and with the quiz drawn on the card
    it is the right answer's own border and the figure in the running score. Either way this is a
    label rather than a thing to press, and `.reel-sound` is the entry recording what happens when
@@ -10254,9 +10333,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    produced, and the argument in it — that a card which looks the same whether you have done it or
    not is a card you cannot choose between — is now carried by the score line itself.
 ================================================================================================== */
-.quiz-lvl { flex: 0 0 auto; font: 600 .64rem/1 var(--mono); letter-spacing: .06em;
-            text-transform: uppercase; color: var(--dim); border: 1px solid var(--line);
-            border-radius: 999px; padding: .22rem .45rem; white-space: nowrap; }
 
 .quiz-intro { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--faint); }
 
@@ -10468,18 +10544,21 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 }
 
 .boxer-nick { font-weight: 400; color: var(--dim); }
-.boxer-rec { font: 600 .72rem/1 var(--mono); color: var(--dim); letter-spacing: .04em; }
+/* `.boxer-rec` HAS NO RULE OF ITS OWN ANY MORE: the record is the card's `.fc-meta` line, gold and
+   mono like every other kind's numbers, and the class stays only as the name a check finds it by. */
 
-.fight-line { margin: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: .4rem; }
-.fight-who { font-style: normal; font-weight: 600; font-size: 1rem; line-height: 1.2; color: var(--dim); }
+/* THE TWO NAMES ARE THE TITLE NOW — an `h3` in the shared head — so they take the title's size and
+   lose the 1rem they set for themselves. The row still wraps between the names rather than inside
+   one, and the `v` keeps its small mono. */
+.fight-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: .1rem .4rem; }
+.fight-who { font-style: normal; font-weight: 600; color: var(--dim); }
 /* THE ONE THAT WON. Colour and weight together, because weight alone is lost at this size on a
    phone and colour alone is lost on paper. */
 .fight-who.won { color: var(--ink); font-weight: 700; }
 .fight-line em { font: 400 .72rem/1 var(--mono); font-style: normal; color: var(--faint); }
-.fight-how { margin: .3rem 0 0; font: 600 .74rem/1 var(--mono); color: var(--gold);
-             letter-spacing: .04em; text-transform: uppercase; }
-/* A NOTE IS A SENTENCE SOMEBODY WROTE, so it reads as prose rather than as another field. */
-.fight-note { margin: .4rem 0 0; font-size: .78rem; line-height: 1.45; color: var(--dim); }
+/* `.fight-how` AND `.fight-note` WERE HERE: the method in gold capitals and the story in its own
+   dim paragraph. They are the shared meta line and lede now — sentence case, like every other
+   kind's — and "a note is a sentence somebody wrote, so it reads as prose" is what `.fc-lede` is. */
 
 /* ==================================================================================================
    THE PAPER PAGE WAS HERE — `.qpaper`, `.qp-head`, `.qp-sec`, `.qp-q`, `.qp-part`, `.qp-body`,

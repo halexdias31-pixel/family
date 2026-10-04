@@ -569,6 +569,22 @@ function fightTiles_(x) {
   return f.video ? tile_({ icon: 'play', label: 'Watch', href: f.video }) : '';
 }
 
+/* ---------- A FILM'S ONE DOOR, IN THE SAME ROW AS ITS STAR ------------------------------------------
+   IT WAS DRAWN INSIDE `filmCard_` AS A TILE ROW OF ITS OWN, which gave a film two rows of tiles and a
+   fight — the same shape, a thing with one Watch — one. Here it is the fight's tile one kind along.
+   A placeholder has no file, so it has no door; the card says why where the tile would have been.
+
+   NO `act`. `tile_` answers an absolute http(s) address with an `<a target="_blank">` and everything
+   else with a button — and that test is where it is so `check-surfaces` can see the address was
+   checked rather than assumed. A Drive link is the one exception the house style leaves open:
+   somebody's Drive is not this app and should not pretend to be. */
+function filmTiles_(x) {
+  const f = x.row || {};
+  if (f.placeholder || !f.url) return '';
+  return tile_({ icon: 'play', label: 'Watch',
+                 note: f.fileKind === 'folder' ? 'opens the folder' : 'opens in Drive', href: f.url });
+}
+
 
 /* THE ONE ENTRY POINT the card builders call. A kind with nothing of its own still gets its admin
    rows, so a spotlight can go on anything findable rather than only on the two kinds that happen to
@@ -604,6 +620,7 @@ function cardActions_(x) {
   if (x.kind === 'level') return levelTiles_(x);
   if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   if (x.kind === 'fight') return fightTiles_(x);
+  if (x.kind === 'film') return filmTiles_(x);
   /* `me` HAS ONE ACTION, SIGN OUT, AND IT IS IN THE SAME ROW AS THE STAR. It was a row of its own
      under the star — *"why is sign out tile under the favourite tile?"* — which made one card carry
      two rows of marks for no reason anybody could see. The old argument was that its own row kept it

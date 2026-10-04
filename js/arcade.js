@@ -260,7 +260,14 @@ function savedCards_() {
   }
   const wgts = savedWidgets_().map(widgetOnColumn_);
   const rest = typeof savedPages_ === 'function' ? savedPages_() : [];
-  const cards = wgts.concat(rest.map(c => `<div class="card is-widget">${c}</div>`));
+  /* ---------- A KEPT CARD IS DRAWN AS FIND DRAWS IT, NOT IN A BOX INSIDE THE PANE'S BOX ------------
+     EACH OF THESE WAS WRAPPED IN `.card.is-widget`, which is a WIDGET'S body — its own border, fill
+     and radius — inside the page's pane, which already draws exactly that. So a practical on Saved
+     sat in a frame inside a frame, 14px narrower each side than the same card on Find, and a page
+     of Saved read as a different card system from the column the card was starred on. Widgets
+     still get their body (`widgetOnColumn_`); a kept thing is the card and its tile row, as Find
+     and the Spotlight column draw it. */
+  const cards = wgts.concat(rest);
   if (cards.length) return cards;
   return [`<div class="card"><h3>Saved</h3><p class="note">Nothing kept yet.<br>
     <span class="faint">Press <b>Save</b> on a tool, a game or anything you find and it turns up

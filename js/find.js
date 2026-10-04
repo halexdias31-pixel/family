@@ -3324,17 +3324,30 @@ function fightCard_(x) {
   const where = [f.venue, f.city].filter(Boolean).join(', ');
   const bout = f.boutTotal > 1 ? `Bout ${f.boutNo} of ${f.boutTotal}` : '';
 
-  return `<div class="card fight">
-    <p class="fight-line">${corner(f.a, wonA)}<em>v</em>${corner(f.b, wonB)}</p>
+  /* ---------- THE SAME HEAD, LINE AND META AS EVERY OTHER KIND ------------------------------------
+     THIS WAS A CARD OF ITS OWN SHAPES: the two names in a bare `<p>` at body size where every other
+     card has a title, the date jammed against them with the sub-line's negative margin and nothing to
+     pull it up under, the method in upper case where every other meta line is in sentence case, and
+     the title and the venue as two `.note` paragraphs a browser's whole default margin apart. Read
+     beside a practical it looked like a different app.
+
+     SO IT IS THE SHARED HEAD (`.fc-head`: the names are the title, `Fight` is the flag), the shared
+     meta line for how it ended, the story as the card's lede, and the title, the venue and the gate
+     as ONE quiet line — three facts about where, read together. Nothing was dropped. */
+  const about = [f.titles, where ? where + (f.attendance ? ' · ' + f.attendance + ' there' : '') : '']
+    .filter(Boolean).join(' · ');
+  return `<div class="card fc fight">
+    <div class="fc-head">
+      <h3 class="fight-line">${corner(f.a, wonA)}<em>v</em>${corner(f.b, wonB)}</h3>
+      <span class="fc-flags"><span class="fc-flag is-type">Fight</span></span>
+    </div>
     <p class="sub">${esc([f.date, f.division, bout].filter(Boolean).join(' · '))}</p>
-    ${how ? `<p class="fight-how">${esc(how)}</p>` : ''}
-    ${f.titles ? `<p class="note">${esc(f.titles)}</p>` : ''}
-    ${where ? `<p class="note">${esc(where)}${
-      f.attendance ? ' · ' + esc(f.attendance) + ' there' : ''}</p>` : ''}
-    ${f.notes ? `<p class="fight-note">${esc(f.notes)}</p>` : ''}
+    ${how ? `<p class="fc-meta">${esc(how)}</p>` : ''}
+    ${f.notes ? `<p class="fc-lede">${esc(f.notes)}</p>` : ''}
+    ${about ? `<p class="fc-note">${esc(about)}</p>` : ''}
     ${/* THE WATCH LINK MOVED into `fightTiles_`, so it sits in the tile row with every other action
           on every other card rather than as a lone button halfway up this one. */''}
-    ${f.verified ? '' : '<p class="note faint">Not checked yet</p>'}
+    ${f.verified ? '' : '<p class="fc-note">Not checked yet</p>'}
   </div>`;
 }
 
@@ -3452,7 +3465,7 @@ function practicalCard_(x) {
      `RECONSIDER AT` IS PART OF THE REFUSAL rather than a separate line, because "no" and "no until
      fourteen, in a lab" are different answers and only one of them is permanent. */
   const off = p.excluded;
-  return `<div class="card prac${off ? ' is-off' : ''}">
+  return `<div class="card fc prac${off ? ' is-off' : ''}">
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
       ${/* ---------- WHAT KIND OF AFTERNOON THIS IS, BESIDE WHETHER A BOARD DEMANDS IT ----------
@@ -3599,7 +3612,7 @@ function guideBox_(x, slot, ask, hint) {
    reads right for both kinds of amount, where `×` is right for a count and wrong for a measure:
    `Lemons: 4`, `Water: 100 ml`, `Lolly sticks: about 10`, `Red cabbage: half`. */
 function kitList_(list) {
-  return `<ul>${list.map(e => `<li>${esc(e.name)}${
+  return `<ul class="fc-list">${list.map(e => `<li>${esc(e.name)}${
     e.qty ? ': ' + esc(e.qty) : ''}</li>`).join('')}</ul>`;
 }
 
@@ -3657,7 +3670,7 @@ function practicalPart_(x, part) {
         and it is bought once.</p>` : ''}`;
   } else if (part === 'steps') {
     inner = `${head('Steps')}<div class="gd"><section class="prac-steps">
-      <ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>`;
+      <ol class="fc-list">${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>`;
   } else if (part === 'work') {
     /* ---------- THE WORKSHEET, AND THE CANDIDATE LISTS ARE PART OF IT ------------------------
        `prac-tab` IS THIS SECTION'S OWN SCAFFOLDING RATHER THAN A FIFTH THING: a box asking a
@@ -3666,9 +3679,9 @@ function practicalPart_(x, part) {
        boxes still ask. */
     inner = `${head('Worksheet')}<div class="gd"><section class="fc-sec">
       ${(p.variables.length || p.log.length) ? `<div class="prac-tab">
-        ${p.variables.length ? `<div><h4>Things you could change</h4><ul>${
+        ${p.variables.length ? `<div><h4>Things you could change</h4><ul class="fc-list">${
           p.variables.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
-        ${p.log.length ? `<div><h4>Things you could measure</h4><ul>${
+        ${p.log.length ? `<div><h4>Things you could measure</h4><ul class="fc-list">${
           p.log.map(e => `<li>${esc(e)}</li>`).join('')}</ul></div>` : ''}
       </div>` : ''}
       ${guideBox_(x, 'iv', 'Independent variable — the one thing you will change',
@@ -3679,7 +3692,7 @@ function practicalPart_(x, part) {
         'Usually the longest of the three. Everything you are NOT changing.')}
     </section></div>`;
   }
-  return inner ? `<div class="card prac prac-part is-${part}">${inner}</div>` : '';
+  return inner ? `<div class="card fc prac prac-part is-${part}">${inner}</div>` : '';
 }
 
 /* ==================================================================================================
@@ -3706,7 +3719,7 @@ function projectCard_(x) {
     : p.ageMin ? p.ageMin + '+' : '';
   const strip = [p.sessions ? p.sessions + (p.sessions === 1 ? ' session' : ' sessions') : '',
                  ages].filter(Boolean).join(' · ');
-  return `<div class="card prac proj">
+  return `<div class="card fc prac proj">
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
       <span class="fc-flags"><span class="fc-flag is-type">Project</span></span>
@@ -3732,7 +3745,7 @@ function projectPart_(x, part) {
        project it is mostly about who is in the shot and what stays offline, which is a thing to
        read before filming rather than after. */
     inner = `${head('Steps')}<div class="gd"><section class="prac-steps">
-      <ol>${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>
+      <ol class="fc-list">${p.steps.map(e => `<li>${esc(e)}</li>`).join('')}</ol></section></div>
       ${p.safety ? `<p class="fc-note"><b>Before you start</b> ${esc(p.safety)}</p>` : ''}`;
   } else if (part === 'share') {
     /* A THING HAS TILES: the one action on this page is going to Messages, so it is a tile in a
@@ -3743,7 +3756,7 @@ function projectPart_(x, part) {
       <div class="tile-row">${tile_({ icon: 'chat', label: 'Messages', note: 'to your tutor',
         act: 'proj-share' })}</div>`;
   }
-  return inner ? `<div class="card prac prac-part proj is-${part}">${inner}</div>` : '';
+  return inner ? `<div class="card fc prac prac-part proj is-${part}">${inner}</div>` : '';
 }
 
 /* TO MESSAGES, AND NOTHING ELSE. Who to write to is the Messages screen's question — it already
@@ -3793,7 +3806,7 @@ const tbHigher_ = on => on ? '<span class="tb-h" title="Higher tier only">H</spa
 function textbookCard_(x) {
   const b = x.row;
   const higher = (b.chapters || []).some(c => c.higher || c.words.concat(c.formulas, c.points).some(i => i.higher));
-  return `<div class="card prac tb">
+  return `<div class="card fc prac tb">
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
       <span class="fc-flags"><span class="fc-flag is-type">Textbook</span></span>
@@ -3803,7 +3816,7 @@ function textbookCard_(x) {
     <p class="fc-meta">${esc((b.chapters || []).length + ' chapters')}${higher
       ? ` · ${tbHigher_(true)} = Higher tier only` : ''}</p>
     <section class="fc-sec tb-toc"><h4>Contents</h4>
-      <ol>${(b.chapters || []).map(c => `<li>${esc(c.title)}${tbHigher_(c.higher)}</li>`).join('')}</ol>
+      <ol class="fc-list">${(b.chapters || []).map(c => `<li>${esc(c.title)}${tbHigher_(c.higher)}</li>`).join('')}</ol>
     </section>
   </div>`;
 }
@@ -3815,17 +3828,17 @@ function textbookPart_(x, part) {
   const c = (b.chapters || []).find(ch => ch.n === n);
   if (!c) return '';
   const line = (i, body) => `<li>${body}${tbHigher_(i.higher)}</li>`;
-  return `<div class="card prac prac-part tb is-${esc(part)}">
+  return `<div class="card fc prac prac-part tb is-${esc(part)}">
     <p class="fc-kick">${esc(x.name)} · chapter ${c.n}</p>
     <h3>${esc(c.title)}${tbHigher_(c.higher)}</h3>
-    ${c.words.length ? `<section class="fc-sec tb-words"><h4>Key words</h4><ul>${
+    ${c.words.length ? `<section class="fc-sec tb-words"><h4>Key words</h4><ul class="fc-list">${
       c.words.map(w => line(w, `<b>${esc(w.name)}</b> — ${tbSub_(esc(w.text))}`)).join('')}</ul></section>` : ''}
     ${/* THE MARK ON THE FORMULA'S NAME, not after the formula: a stacked fraction is two lines tall
          and an `H` trailing it sat alone on a third, measured at 320px. */''}
     ${c.formulas.length ? `<section class="fc-sec tb-math"><h4>Formulas</h4><ul>${
       c.formulas.map(f => `<li><span class="tb-fn">${esc(f.name)}${tbHigher_(f.higher)}</span><span class="tb-fm">${
         tbMath_(f.text)}</span></li>`).join('')}</ul></section>` : ''}
-    ${c.points.length ? `<section class="fc-sec tb-points"><h4>Worked</h4><ul>${
+    ${c.points.length ? `<section class="fc-sec tb-points"><h4>Worked</h4><ul class="fc-list">${
       c.points.map(p => line(p, tbMath_(p.text))).join('')}</ul></section>` : ''}
     ${c.topics ? `<p class="fc-note"><b>Topics</b> ${esc(c.topics)}</p>` : ''}
   </div>`;
@@ -3969,12 +3982,19 @@ function quizRight_(q, typed) {
 
 function quizCard_(x) {
   const q = x.row;
-  return `<div class="card quiz">
+  return `<div class="card fc quiz">
     <div class="fc-head">
       <h3>${esc(q.topic)}</h3>
-      <span class="quiz-lvl">${esc(q.tier ? q.level + ' ' + q.tier : q.level)}</span>
+      <span class="fc-flags"><span class="fc-flag is-type">Quiz</span></span>
     </div>
-    <p class="sub">${esc(q.subject)} · ${q.qs.length} questions</p>
+    ${/* ---------- THE SAME THREE LINES AS EVERY OTHER KIND ----------------------------------------
+          THE LEVEL WAS A PILL OF ITS OWN (`.quiz-lvl`, round where every other flag is square-ish)
+          in the place where a practical, a project and a textbook say WHAT KIND OF THING this is.
+          Two shapes for one slot, and the slot said two different things. So the flag says `Quiz`
+          like the others' says `Project`, the level joins the subject on the line under the title
+          where every other kind keeps it, and the count is the meta line. */''}
+    <p class="sub">${esc([q.subject, q.tier ? q.level + ' ' + q.tier : q.level].filter(Boolean).join(' · '))}</p>
+    <p class="fc-meta">${q.qs.length} questions</p>
     ${/* ---------- THE CARD SAYS WHAT DIFFERS, AND NOTHING ELSE ---------------------------------
           "A quick recap. Nothing is sent anywhere and there is no timer." WAS HERE, on all 81 cards.
           It is one fact about every quiz in the list, printed once per row — which is the AQA insert
@@ -4312,12 +4332,12 @@ function filmCard_(x) {
   const strip = [f.year, f.audience === 'kids' ? 'kids' : '',
                  f.kind === 'series' ? (f.seasons ? f.seasons + ' seasons' : 'series') : '',
                  f.sizeGb ? f.sizeGb + ' GB' : ''].filter(Boolean).join(' \u00b7 ');
-  return `<div class="card film${f.placeholder ? ' is-off' : ''}">
+  return `<div class="card fc film${f.placeholder ? ' is-off' : ''}">
     <div class="fc-head">
       <h3>${esc(x.name)}</h3>
-      <span class="fc-flag${f.placeholder ? ' is-no' : ''}">${
+      <span class="fc-flags"><span class="fc-flag${f.placeholder ? ' is-no' : ' is-type'}">${
         f.placeholder ? 'Not uploaded' : f.kind === 'documentary' ? 'Documentary'
-        : f.kind === 'series' ? 'Series' : 'Film'}</span>
+        : f.kind === 'series' ? 'Series' : 'Film'}</span></span>
     </div>
     ${(f.director || f.lead) ? `<p class="sub">${
       esc([f.director ? 'dir. ' + f.director : '', f.lead].filter(Boolean).join(' \u00b7 '))}</p>` : ''}
@@ -4326,19 +4346,11 @@ function filmCard_(x) {
           be. The library's `placeholder` column, one table along: a card that states the gap beats
           a link that opens nothing, and it is the reason `There Will Be Blood` is a row at all. */''}
     ${f.placeholder
-      ? `<p class="prac-no"><b>Not in the drive yet</b> ${esc(f.notes || '')}</p>`
-      : `<div class="tile-row">${tile_({
-          icon: 'play', label: 'Watch',
-          note: f.fileKind === 'folder' ? 'opens the folder' : 'opens in Drive',
-          /* NO `act`. `tile_` answers an absolute http(s) address with an `<a target="_blank">`
-             and everything else with a button — and that test is where it is so `check-surfaces`
-             can see the address was checked rather than assumed. A Drive link is the one exception
-             the house style leaves open: somebody's Drive is not this app and should not pretend
-             to be. */
-          href: f.url })}</div>`}
-    ${/* A `<p>` INSIDE A `<p>` IS NOT NESTING, it is the browser closing the first one — so the
-          wrapper is a div. `.fc-note p` is the rule that wants a child, and it is the card's own
-          class rather than a new one, which is the sentence one commit old about the guide. */''}
+      ? `<p class="prac-no"><b>Not in the drive yet</b> ${esc(f.notes || '')}</p>` : ''}
+    ${/* ---------- THE WATCH TILE IS IN THE CARD'S ONE ROW NOW, see `filmTiles_` --------------------
+          IT WAS A `.tile-row` OF ITS OWN INSIDE THE CARD, so a film had two rows of tiles — Watch
+          above the notes, the star below the card — where a fight, the same kind of thing with the
+          same one action, has one. The tile and the reason it has no `act` moved with it. */''}
     ${(f.notes && !f.placeholder)
       ? `<div class="fc-note"><p>${esc(f.notes)}</p></div>` : ''}
   </div>`;
@@ -4348,17 +4360,22 @@ function boxerCard_(x) {
   const b = x.row;
   const rec = [b.wins, b.losses, b.draws].join('-') + (b.noContests ? ' (' + b.noContests + ' NC)' : '');
   const years = [b.activeFrom, b.activeTo].filter(Boolean).join('–');
-  return `<div class="card">
-    <div class="thing">
-      <div class="thing-body">
-        <h3>${esc(x.name)}${b.nickname ? ' <span class="boxer-nick">“' + esc(b.nickname) + '”</span>' : ''}</h3>
-        <p class="sub">${esc([b.bestDivision, b.country, years].filter(Boolean).join(' · '))}</p>
-      </div>
-      <span class="boxer-rec">
-        <b>${esc(rec)}</b>
-        <span>${esc(b.winsKo)} KO</span>
-      </span>
+  /* ---------- THE SHARED HEAD, NOT THE SHOP'S ROW ---------------------------------------------------
+     A BOXER WAS DRAWN AS A SHOP THING — `.thing`, a picture slot with no picture and a 0.92rem title
+     — with the record pinned top right in small mono. A boxer is one card to a page, like a
+     practical, so it takes the practical's head: the name is the title at the title's size, `Boxer`
+     is the flag in the slot where every other kind says what it is, and the record is the gold meta
+     line, which is the line this app keeps for the numbers that decide whether you read on. The
+     record still leads with W-L-D, as the note above the card asks. `.boxer-rec` stays on it as
+     the name a check looks for. */
+  return `<div class="card fc boxer">
+    <div class="fc-head">
+      <h3>${esc(x.name)}${b.nickname ? ' <span class="boxer-nick">“' + esc(b.nickname) + '”</span>' : ''}</h3>
+      <span class="fc-flags"><span class="fc-flag is-type">Boxer</span></span>
     </div>
+    <p class="sub">${esc([b.bestDivision, b.country, years].filter(Boolean).join(' · '))}</p>
+    <p class="fc-meta boxer-rec">${esc(rec)}${b.winsKo !== '' && b.winsKo != null
+      ? ' · ' + esc(b.winsKo) + ' KO' : ''}</p>
   </div>`;
 }
 
@@ -10407,7 +10424,7 @@ function stuffQuestion() {
      something a person has to notice on a phone. */
   const facet = nextFacet(items) || overFacet_(items);
   const adding = STUFF.filters.some(f => f.value === 'Friends')
-    ? `<p style="margin:.6rem 0 0"><span class="text-action" data-do="friend-add-open"
+    ? `<p class="find-end"><span class="text-action" data-do="friend-add-open"
         >Add someone by their handle</span></p>` : '';
   if (!facet) {
     /* ---------- "NOTHING LEFT TO NARROW" WAS NOT TRUE, AND IT WAS THE LAST THING ON THE SCREEN ----
@@ -10423,12 +10440,17 @@ function stuffQuestion() {
        chosen — *"no more asking for questions 1-10 or question part 1 or b."* — so what is left is not
        "nothing to narrow" but the paper itself, in its own order, which is the thing the person came
        for and the sentence should say. */
+    /* ---------- ONE CLASS FOR THE LAST LINE, NOT AN INLINE MARGIN ON EACH ------------------------
+       BOTH WERE `<p class="faint" style="margin:.6rem 0 0">`: a margin nobody could find from the
+       stylesheet, in the faintest ink on the screen, for the one sentence that tells you where the
+       results went. `.find-end` sits under the chips on the same rule the chips sit on, and the
+       half that is an instruction — swipe up — is in ink, because that is the half you act on. */
     if (funnelEnded_()) {
-      return `<p class="faint" style="margin:.6rem 0 0">That is the paper, in order.
-        Swipe up for ${items.length === 1 ? 'its one question' : 'its ' + n + ' questions'}.</p>` + adding;
+      return `<p class="find-end">That is the paper, in order.
+        <b>Swipe up for ${items.length === 1 ? 'its one question' : 'its ' + n + ' questions'}.</b></p>` + adding;
     }
-    return `<p class="faint" style="margin:.6rem 0 0">Nothing left to narrow.
-      Swipe up for the ${n}.</p>` + adding;
+    return `<p class="find-end">Nothing left to narrow.
+      <b>Swipe up for the ${n}.</b></p>` + adding;
   }
 
   /* THE FRONT DOOR TO THE BOOKING FORM WAS HERE — a line above the funnel's answers, on the first
