@@ -577,7 +577,7 @@ PEOPLE.forEach(p => {
     username: first.toLowerCase(), email: id.toLowerCase() + '@example.org' });
   f.seed('people', [mk('P-PA', 'client', 'Anna', 'Parent'), mk('P-PB', 'client', 'Bea', 'Parent'),
                     mk('P-SA', 'student', 'Abe', 'Child'), mk('P-SB', 'student', 'Ben', 'Child'),
-                    mk('P-SC', 'student', 'Cal', 'Child')]);
+                    mk('P-SC', 'student', 'Cal', 'Child'), mk('P-AD', 'admin', 'Ada', 'Boss')]);
   /* AND SIBLINGS, ON *"students should be able to see their parents and siblings likewise"*. Cal is
      Anna's second child, so Abe and Cal see each other; Ben is Bea's, and the only links between
      him and Anna's children are L3 (asked) and L4 (refused) — so until Abe says yes to Bea, Ben is
@@ -610,6 +610,24 @@ PEOPLE.forEach(p => {
   if (pa.token) want('the parent P-PA', fam(stamp(f.get({ person: 'P-PA', name: pa.name, token: pa.token }), 'P-PA', 'P-PA'), 'P-PA'), 'child:P-SA,child:P-SC');
   if (pb.token) want('the parent P-PB', fam(stamp(f.get({ person: 'P-PB', name: pb.name, token: pb.token }), 'P-PB', 'P-PB'), 'P-PB'), 'child:P-SB');
   want('a stranger whose URL names P-SA', fam(stamp(f.get({ person: 'P-SA', name: 'Abe Child' }), 'stranger', ''), 'stranger'), '');
+  /* ---------- EVERYONE, ON AN ADMIN'S PEOPLE COLUMN, AND ON NOBODY ELSE'S ------------------------
+     *"Admin should be able to see every one in the people column."* An admin's token is sent every
+     student and client by id, and no private cell; a student, a parent and a stranger are sent
+     nobody. The admin's own row is on `tutors`, so it is not repeated here. */
+  {
+    const ad = tok('P-AD');
+    const ev = d => (Array.isArray(d.everyone) ? d.everyone : []).map(x => x.personId).sort().join(',');
+    if (ad.token) {
+      const d = f.get({ token: ad.token });
+      want('the admin\'s `everyone`', ev(d), 'P-PA,P-PB,P-SA,P-SB,P-SC');
+      if ((d.everyone || []).some(x => Object.keys(x).some(k => ['personId', 'title', 'handle', 'role', 'image'].indexOf(k) === -1)))
+        bad.push('everyone: a field beyond what a card draws was sent — ' + JSON.stringify((d.everyone || [])[0]));
+      if ((d.everyone || []).some(x => !x.title || !x.role)) bad.push('everyone: a row was sent with no name or role');
+    }
+    if (sa.token) want('a student\'s `everyone`', ev(f.get({ token: sa.token })), '');
+    if (pa.token) want('a parent\'s `everyone`', ev(f.get({ token: pa.token })), '');
+    want('a stranger whose URL names the admin', ev(f.get({ person: 'P-AD', name: 'Ada Boss' })), '');
+  }
   /* THE REQUEST THAT BECOMES A LINK goes to the child it names and nobody else: P-SA has Bea's
      unanswered "this is my child" (L3), P-SB has only a REFUSED one (L4), and a stranger naming
      P-SA in the URL has none. This is also the payload that used to be an error — see `claims`. */
@@ -651,8 +669,17 @@ PEOPLE.forEach(p => {
   f.seed('family', [{ link_id: 'L1', parent_id: 'P-NP', child_id: 'P-NK', state: 'accepted' }]);
   const inn = f.post({ action: 'verifyLogin', email: 'Kit_Calm', pin: '0000' });
   if (!inn || !inn.success) bad.push('no-email: a child with no address could not sign in by handle — ' + JSON.stringify(inn));
-  const viaParent = f.post({ action: 'verifyLogin', email: 'pat_calm', pin: '0000' });
-  if (viaParent && viaParent.success) bad.push('no-email: a row that HAS an address was reached by its handle');
+  /* AND A ROW THAT HAS AN ADDRESS ANSWERS TO ITS HANDLE TOO — the reverse of what this said until
+     *"have the students be able to login with their handles too"*. Same person either door: the
+     handle and the address must hand back the same `personId`, or the handle door signs somebody in
+     as somebody else. */
+  const viaHandle = f.post({ action: 'verifyLogin', email: '@Pat_Calm ', pin: '0000' });
+  const viaMail = f.post({ action: 'verifyLogin', email: 'pat@example.org', pin: '0000' });
+  if (!viaHandle || !viaHandle.success) bad.push('handle: a row that HAS an address could not sign in by its handle — ' + JSON.stringify(viaHandle));
+  else if (!viaMail || !viaMail.success || String(viaHandle.personId) !== String(viaMail.personId) || String(viaHandle.personId) !== 'P-NP')
+    bad.push('handle: the handle door and the address door resolved different people — ' + (viaHandle.personId) + ' vs ' + ((viaMail || {}).personId));
+  const noSuch = f.post({ action: 'verifyLogin', email: 'nobody_calm', pin: '0000' });
+  if (noSuch && noSuch.success) bad.push('handle: a handle nobody has signed somebody in');
   f.post({ action: 'forgotPin', who: 'lee_calm' });
   const leeStill = f.post({ action: 'verifyLogin', email: 'lee_calm', pin: '0000' });
   if (!leeStill || !leeStill.success) bad.push('no-email: a child with no linked parent had their PIN changed by a stranger');

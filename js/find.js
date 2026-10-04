@@ -8219,6 +8219,32 @@ function accountPages_() {
     .filter(t => !mineIs_(t))
     .map(withTiles_);
 
+  /* ---------- AND FOR AN ADMIN, EVERYBODY ELSE AS WELL -------------------------------------------
+     ASKED FOR AS *"Admin should be able to see every one in the people column."* `others` is the
+     tutors and admins — the only people `doGet` sends to everybody — so the students and clients
+     who make up most of the tab were on no screen at all, and looking one up meant the spreadsheet.
+
+     THE SERVER IS THE GATE, AS FOR AN UNLISTED TUTOR ABOVE. `DATA.everyone` is built only for an
+     admin's token and carries only what a card draws; `isAdmin()` here is not the protection, it is
+     what stops a list left over from an admin's session being drawn for whoever signs in next on
+     the same phone before the new payload lands (the `familyFor` problem, one key along). A
+     non-admin's column is exactly what it was.
+
+     AFTER THE TUTORS, in the sheet's order: the column was a staff list first and an admin still
+     reads it that way. Family and you are taken out, as they are from `others`, so nobody is drawn
+     twice. `findCard` draws them — one renderer for a person — and the row under each is Message
+     alone: `tutorTiles_` would add the Listed switch, which is a TUTOR's public profile and means
+     nothing on a child. A THING HAS TILES, so it is a tile row and not a button. */
+  const everyone = (typeof isAdmin === 'function' && isAdmin() && Array.isArray(DATA.everyone)
+      ? DATA.everyone : [])
+    .filter(p => p && p.title)
+    .filter(p => !(p.personId && famIds.indexOf(String(p.personId)) !== -1))
+    .filter(p => !mineIs_(p))
+    .map(p => (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: p }) : '')
+      + (typeof tile_ === 'function' ? `<div class="tile-row">${tile_({ icon: 'chat',
+          label: 'Message', note: 'a note to them', act: 'msg-open',
+          data: { to: p.title, id: p.personId || '' } })}</div>` : ''));
+
   /* ---------- THE WRAPPER WENT WHEN THE PASS DID, AND LEAVING IT WOULD HAVE NESTED TWO CARDS -----
      THIS RETURNED `<div class="card is-widget">${html}</div>` AROUND EVERY PAGE. It was the answer
      to "I want them standardised like the other widgets" when a person was a `.pass` — a bare
@@ -8229,7 +8255,7 @@ function accountPages_() {
      `.card.is-widget` itself. Keeping this line would put a widget card inside a widget card —
      two borders, two backgrounds, two lots of padding — which is visibly worse than what was
      reported in the first place and is exactly what "just a normal widget" rules out. */
-  return [me].concat(claimPages, famPages, others);
+  return [me].concat(claimPages, famPages, others, everyone);
 }
 
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept
