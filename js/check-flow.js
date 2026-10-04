@@ -388,6 +388,9 @@ function boot(opts) {
       'funnelItems: typeof stuffItems === "function" ? stuffItems : null,' +
       'allItems: typeof stuffItemsAll_ === "function" ? stuffItemsAll_ : null,' +
       'savedPages: typeof savedPages_ === "function" ? savedPages_ : null,' +
+      /* THE ANSWER BOX'S KEY, a `const` -- so a journey can clear a stored pick it made. `w.ansKey_`
+         is undefined, and the `try` round it in one journey here was clearing nothing. */
+      'ansKey: typeof ansKey_ === "function" ? ansKey_ : null,' +
       'doors: () => facetValues(stuffItems(), facetList().find(f => f.field === "forLabel"))' +
       '  .map(v => String(v.show || v.value)),' +
       'facetFields: () => facetList().map(f => f.field),' +
@@ -4893,9 +4896,13 @@ check('a fraction is drawn stacked in the stem, lead, part, answer and choices, 
   const draw = x => { const d = w.document.createElement('div'); d.innerHTML = w.questionCard_(x, 0); return d; };
   const tapped = draw(Object.assign({}, base, {
     choices: [half, '<sup>1</sup>&frasl;<sub>3</sub>'], choiceRight: [1] }));
+  /* THE ANSWER IS ITS OWN PAGE NOW (`questionAnsCard_`), drawn open by `answerBlock_` -- so its
+     fraction is asked of what that draws, not of the question card, which no longer carries it. */
+  const ansDrawn = w.document.createElement('div');
+  ansDrawn.innerHTML = typeof w.answerBlock_ === 'function' ? w.answerBlock_(base) : '';
   [['.qsheet-stem', 'the stem'], ['.qsheet-lead', 'the lead'], ['.qsheet-pb', 'the part'],
    ['.qans-body', 'the answer']].forEach(([sel, what]) => {
-    const el = tapped.querySelector(sel);
+    const el = (sel === '.qans-body' ? ansDrawn : tapped).querySelector(sel);
     if (!el) bad.push(what + ' was not drawn at all');
     else if (!el.querySelector('.frac .frac-n') || !el.querySelector('.frac .frac-d')) bad.push(what + ' drew its fraction slanted: ' + el.innerHTML.slice(0, 120));
   });
@@ -4931,8 +4938,10 @@ check('an answer draws its result, and the working waits shut under Why', async 
   const { w } = boot();
   await wait(300);
   const bad = [];
-  if (typeof w.questionCard_ !== 'function') return ['questionCard_ is not reachable — renamed?'];
-  const draw = x => { const d = w.document.createElement('div'); d.innerHTML = w.questionCard_(x, 0); w.document.body.appendChild(d); return d; };
+  if (typeof w.answerBlock_ !== 'function') return ['answerBlock_ is not reachable — renamed?'];
+  /* WHAT THE ANSWER PAGE DRAWS ONCE IT IS OPEN. The page itself, shut and opened, is the journey
+     after this one. */
+  const draw = x => { const d = w.document.createElement('div'); d.innerHTML = w.answerBlock_(x); w.document.body.appendChild(d); return d; };
   const base = { kind: 'question', key: 'q-why', name: 'Q4', marks: 1,
     row: { row_id: 'Q-WHY-4', paper_id: 'P-WHY', subject: 'Maths', name: 'Why' },
     html: '<p>Work out 12 &divide; 4</p>' };
@@ -4958,13 +4967,22 @@ check('an answer draws its result, and the working waits shut under Why', async 
     if (more && /B1|cao/.test(more.textContent)) bad.push('the lone "B1, cao" was left in the working');
     if (!f.querySelector('.qans-note')) bad.push('the examiner\'s note is not inside the fold');
   }
-  /* SHOW THE ANSWER, AS A STUDENT: the result opens, the fold stays shut. */
-  const btn = card.querySelector('[data-do="qp-reveal"]');
-  if (btn && w.__t.ACTIONS['qp-reveal']) {
-    w.__t.ACTIONS['qp-reveal'](btn);
-    if (card.querySelector('.qans').classList.contains('is-shut')) bad.push('"Show the answer" did not show the answer');
-    if (why[0] && why[0].open) bad.push('"Show the answer" opened the working as well');
-  }
+  /* SHOW THE ANSWER, AS A STUDENT, ON THE ANSWER PAGE: the result opens, the fold stays shut. */
+  if (typeof w.questionAnsCard_ === 'function' && w.__t.ACTIONS['qa-show']) {
+    const x = Object.assign({}, base, {
+      answer: '<b>3</b> &mdash; B1, cao. A half of 6 is <sup>6</sup>&frasl;<sub>2</sub>, and 12 &divide; 4 = 3.',
+      examinerNote: 'Most candidates were right.' });
+    const page = w.document.createElement('div');
+    page.innerHTML = w.questionAnsCard_(x);
+    w.document.body.appendChild(page);
+    const held = w.stuffItemsAll_;
+    w.stuffItemsAll_ = () => [x];
+    try { w.__t.ACTIONS['qa-show'](page.querySelector('[data-do="qa-show"]')); } finally { w.stuffItemsAll_ = held; }
+    const opened = page.querySelector('.qans-card');
+    if (!opened || opened.classList.contains('is-hidden') || !opened.querySelector('.qans-body')) bad.push('"Show the answer" did not show the answer');
+    const f = opened && opened.querySelector('details.qans-why');
+    if (f && f.open) bad.push('"Show the answer" opened the working as well');
+  } else bad.push('the answer page or its Show the answer has no handler');
   const bare = draw(Object.assign({}, base, { answer: '<b>3</b>' }));
   if (bare.querySelector('.qans-why')) bad.push('an answer with no working and no note still drew a Why fold');
   if (!bare.querySelector('.qans-body') || bare.querySelector('.qans-body').textContent.trim() !== '3') bad.push('a bare answer lost its result');
@@ -4991,7 +5009,7 @@ check('marking, revealing and tapping leave the question where it is, and typing
   const bad = [];
   if (typeof w.questionCard_ !== 'function') return ['questionCard_ is not reachable — renamed?'];
   const A = w.__t.ACTIONS;
-  ['qp-check', 'qp-reveal', 'qp-choose'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
+  ['qp-check', 'qa-go', 'qp-choose'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
   if (bad.length) return bad;
   const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
   const still = card => {
@@ -5034,17 +5052,26 @@ check('marking, revealing and tapping leave the question where it is, and typing
   A['qp-check'](chk);
   if (!mark.classList.contains('is-right')) bad.push('15 was not marked right');
   same(t0, typed, 'after a right Check');
-  /* REVEALED */
-  const shut = draw(Object.assign({}, base, { key: 'q-still-shut', row: Object.assign({}, base.row, { row_id: 'Q-STILL-8' }) }));
+  /* REVEALED -- by the tile under the card, which turns to the answer page. The tile is drawn by
+     `questionTiles_` beside the card as `stuffCard` puts it; the card must not change for it. */
+  const shutX = Object.assign({}, base, { key: 'q-still-shut', row: Object.assign({}, base.row, { row_id: 'Q-STILL-8' }) });
+  const shut = draw(shutX);
   const r0 = still(shut);
-  const rev = shut.querySelector('[data-do="qp-reveal"]');
-  if (rev) { A['qp-reveal'](rev); same(r0, shut, 'after "Show the answer"'); }
+  shut.parentNode.insertAdjacentHTML('beforeend', '<div class="tile-row">' + w.questionTiles_(shutX) + '</div>');
+  const rev = shut.parentNode.querySelector('[data-do="qa-go"]');
+  if (!rev) bad.push('a question with an answer has no tile to its answer page');
+  else {
+    const heldR = w.stuffItemsAll_;
+    w.stuffItemsAll_ = () => [shutX];
+    try { A['qa-go'](rev); } finally { w.stuffItemsAll_ = heldR; }
+    same(r0, shut, 'after "Show the answer"');
+  }
   /* TAPPED -- `qp-choose` redraws the box from the stored pick and finds its question by key in the
      library, which this harness does not load; so the library is this one question for the length of
      the tap, and put back straight after. */
   const mc = Object.assign({}, base, { key: 'q-still-mc', row: Object.assign({}, base.row, { row_id: 'Q-STILL-9' }),
     choices: ['14', '15', '16'], choiceRight: [2] });
-  try { w.localStorage.removeItem(w.ansKey_(mc)); } catch (e) {}
+  try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
   const tapped = draw(mc);
   const m0 = still(tapped);
   if (!tapped.querySelector('.qp-choices + .qp-mark .qp-verdict')) bad.push('a tapped card has no verdict slot until it is marked');
@@ -5055,7 +5082,7 @@ check('marking, revealing and tapping leave the question where it is, and typing
   if (!box || !box.classList.contains('is-done')) bad.push('a settled tapped question does not say so (is-done), so its options still look pressable');
   if (!tapped.querySelector('.qp-opt[data-n="2"].is-ans') || !tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick and the right option');
   same(m0, tapped, 'after a wrong tap');
-  try { w.localStorage.removeItem(w.ansKey_(mc)); } catch (e) {}
+  try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
   /* AND THE WORDS SAY WHERE THE PICTURE WENT: a question with a figure points at the next page, and
      one without says nothing -- a pointer to a page that does not exist is worse than none. */
   const fig = draw(Object.assign({}, base, { key: 'q-still-fig', diagram: '<svg viewBox="0 0 10 10"></svg>',
@@ -5063,6 +5090,102 @@ check('marking, revealing and tapping leave the question where it is, and typing
   if (!fig.querySelector('.qsheet-figref')) bad.push('a question whose figure is on the next page does not say so');
   if (fig.querySelector('.qsheet svg')) bad.push('the question card drew its figure inline again');
   if (typed.querySelector('.qsheet-figref')) bad.push('a question with no figure points at a figure page that does not exist');
+  return bad;
+});
+
+/* ---------- THE ANSWER IS ITS OWN PAGE, AND A STUDENT CANNOT READ IT UNTIL THEY ASK -----------------
+   ASKED FOR AS *"what I want was answers to be short and to be their own widget"*. `check-answers.js`
+   holds what an answer SAYS; this holds where it is and who can see it, through the app's own
+   builders:
+     * the page exists exactly when there is an answer -- [q, ans], [q, fig, ans], [q], [q, fig]
+     * the question card keeps its box and no longer carries the answer, in any form
+     * a student's answer page is hidden and the answer is NOT IN ITS MARKUP (the old `is-shut` hid
+       with CSS an answer anybody could read in the document)
+     * the question's tile opens the page that is already standing, the open survives a redraw (the
+       `REEL_HELD` fault: a fact left on an element dies with it), and it opens only that question
+     * a tapped question settled right has earned it; settled wrong has not
+     * a tutor's page is open without asking
+     * Saved, which draws a kept thing through `cardPages_`, keeps the answer page after the figure
+   Turning the page is a real browser's question -- `check/states.js`, "the answer, turned to from
+   its question" -- because jsdom lays nothing out and has no library to page through. */
+check('an answer is its own page after its question, hidden from a student until shown, and kept on Saved', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const gone = ['pageParts_', 'questionCard_', 'questionAnsCard_', 'questionTiles_', 'cardPages_']
+    .filter(n => typeof w[n] !== 'function');
+  /* `ansKey_` IS A `const`, and only a function declaration reaches the window -- so it comes
+     through `__t`. `w.ansKey_` is undefined, and a `try` around it clears nothing and says nothing. */
+  const ansKey = w.__t.ansKey;
+  if (typeof ansKey !== 'function') gone.push('ansKey_');
+  if (gone.length) return [gone.join(', ') + ' not reachable — renamed? The answer page was NOT checked'];
+  const A = w.__t.ACTIONS;
+  if (!A['qa-go'] || !A['qa-show']) return ['qa-go or qa-show has no handler, so nothing can show an answer page'];
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
+  const SECRET = 'Seventeen-and-a-half';
+  const row = id => ({ row_id: id, paper_id: 'P-ANSP', subject: 'Maths', name: 'Answer page' });
+  const base = { kind: 'question', name: 'Q5', marks: 2, key: 'q-ansp', row: row('Q-ANSP-5'),
+    html: '<p>Work out 35 &divide; 2</p>', answer: '<b>' + SECRET + '</b> &mdash; 35 &divide; 2 = 17.5' };
+  const fig = Object.assign({}, base, { key: 'q-ansp-fig', row: row('Q-ANSP-6'), diagram: '<svg viewBox="0 0 10 10"></svg>' });
+  const none = Object.assign({}, base, { key: 'q-ansp-none', row: row('Q-ANSP-7'), answer: '' });
+  const figOnly = Object.assign({}, fig, { key: 'q-ansp-figonly', row: row('Q-ANSP-8'), answer: '' });
+  const parts = x => JSON.stringify(w.pageParts_(x));
+  [[base, '[null,"ans"]'], [fig, '[null,"fig","ans"]'], [none, '[null]'], [figOnly, '[null,"fig"]']].forEach(([x, want]) => {
+    if (parts(x) !== want) bad.push(x.row.row_id + ' has pages ' + parts(x) + ', wanted ' + want);
+  });
+  /* THE QUESTION CARD: the box, and no answer. */
+  const q = el(w.questionCard_(base));
+  if (q.querySelector('.qans, .qans-body') || q.textContent.indexOf(SECRET) >= 0) bad.push('the question card still draws the answer');
+  if (!q.querySelector('.qp-ans')) bad.push('the question card lost its answer box');
+  if (!el(w.questionTiles_(base)).querySelector('[data-do="qa-go"]')) bad.push('a question with an answer has no tile to its answer page');
+  if (w.questionTiles_(none)) bad.push('a question with no answer offers a tile to an answer page that does not exist');
+  /* HIDDEN, FOR A STUDENT -- signed out is a student here, as on the site. */
+  if (w.__t.isTutorRole()) bad.push('signed out reads as staff, so the hidden page was NOT checked');
+  const hid = el(w.questionAnsCard_(base));
+  const card = hid.querySelector('.qans-card');
+  if (!card || !card.classList.contains('is-hidden')) bad.push('a student\'s answer page is not hidden');
+  if (hid.innerHTML.indexOf(SECRET) >= 0 || hid.innerHTML.indexOf('17.5') >= 0) bad.push('a hidden answer page still carries the answer in its markup');
+  if (!/Answer hidden/.test(hid.textContent)) bad.push('a hidden answer page does not say "Answer hidden": ' + hid.textContent.trim().slice(0, 80));
+  if (!hid.querySelector('[data-do="qa-show"]')) bad.push('a hidden answer page has no "Show the answer"');
+  if (card && card.getAttribute('data-of') !== 'Q-ANSP-5') bad.push('the answer page does not name its row');
+  /* SHOWN FROM THE QUESTION'S TILE, where the page already stands. */
+  d.body.appendChild(hid);
+  const other = el(w.questionAnsCard_(fig));
+  d.body.appendChild(other);
+  const tiles = el(w.questionTiles_(base));
+  d.body.appendChild(tiles);
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [base, fig];
+  try { A['qa-go'](tiles.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = held; }
+  const now = d.querySelector('.qans-card[data-of="Q-ANSP-5"]');
+  if (!now || now.classList.contains('is-hidden') || now.textContent.indexOf(SECRET) < 0) bad.push('"Show the answer" on the question did not open its answer page');
+  else if (now.querySelector('details.qans-why[open]')) bad.push('showing the answer opened the working as well');
+  if (el(w.questionAnsCard_(base)).textContent.indexOf(SECRET) < 0) bad.push('the answer page shut again when it was drawn again');
+  const fig2 = d.querySelector('.qans-card[data-of="Q-ANSP-6"]');
+  if (!fig2 || !fig2.classList.contains('is-hidden')) bad.push('showing one question\'s answer opened another\'s');
+  /* EARNED BY A RIGHT TAP, from what is stored; not by a wrong one. */
+  const mc = Object.assign({}, base, { key: 'q-ansp-mc', row: row('Q-ANSP-9'), choices: ['17', '17.5'], choiceRight: [2] });
+  const shutNow = x => el(w.questionAnsCard_(x)).querySelector('.qans-card.is-hidden') !== null;
+  try {
+    w.localStorage.setItem(ansKey(mc), '1');
+    if (!shutNow(mc)) bad.push('a tapped question answered wrong opened its answer page');
+    w.localStorage.setItem(ansKey(mc), '2');
+    if (shutNow(mc)) bad.push('a tapped question answered right still hides its answer page');
+  } finally { try { w.localStorage.removeItem(ansKey(mc)); } catch (e) {} }
+  /* SAVED: the kept question, then its figure, then its answer. */
+  const pages = w.cardPages_(fig, 0);
+  if (pages.length !== 3) bad.push('Saved draws a question with a figure and an answer as ' + pages.length + ' pages, wanted 3');
+  else {
+    if (!/class="qcard qfig/.test(pages[1])) bad.push('Saved\'s second page of a question is not its figure');
+    if (!/qans-card[^"]*" data-of="Q-ANSP-6"/.test(pages[2])) bad.push('Saved\'s third page of a question is not its answer');
+  }
+  if (w.cardPages_(base, 0).length !== 2) bad.push('Saved does not keep the answer page after a kept question');
+  if (w.cardPages_(none, 0).length !== 1) bad.push('Saved draws an answer page for a question with no answer');
+  /* STAFF SEE IT OPEN, without asking. */
+  w.__t.USER({ name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] });
+  if (!w.__t.isTutorRole()) bad.push('could not sign a tutor in, so the tutor\'s open page was NOT checked');
+  else if (shutNow(Object.assign({}, base, { key: 'q-ansp-tutor', row: row('Q-ANSP-10') }))) bad.push('a tutor\'s answer page is hidden behind "Show the answer"');
   return bad;
 });
 

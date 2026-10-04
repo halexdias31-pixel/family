@@ -611,6 +611,10 @@ function cardActions_(x) {
      by mistake costs a sign-in, not anything saved. */
   if (x.kind === 'me') return tile_({ icon: 'out', label: 'Sign out', act: 'signout' });
   if (x.kind === 'receipt') return jobTiles_(x);
+  /* A QUESTION'S ONE ACTION IS ITS ANSWER, which is a page of its own now and this is the way to
+     it — `questionTiles_` in find.js. The box, Check and the options stay buttons on the card:
+     answering is a form, and turning to the answer is something done to the thing. */
+  if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
   /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. Collections are gone
      from the funnel (see the note where `collectionAxes_` used to be in find.js): a paper is an
      ANSWER to an ordinary question now, so opening one is a tap on the funnel's own answer row and
