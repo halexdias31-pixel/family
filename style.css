@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-04-noquiz";
+  --css-version: "2026-10-03-paper";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -8594,6 +8594,16 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-do { display: flex; align-items: center; gap: .4rem; }
 .mat-do .btn { flex: 1 1 auto; min-width: 0; margin: 0; }
 .mat-do .tile { flex: none; }
+/* ---------- WHICH KIND OF SHEET, AND THE PAPER'S OWN QUESTIONS --------------------------------------
+   THE KIND IS ONE MORE `.mat-sel` — the same 44px select with the same drawn arrow, above the
+   subject — and the paper's questions are a `.mat-pick` of their own, stacked for the reason the
+   cheat sheet's are (at 16px two do not fit side by side on a phone). The text box is the global
+   input at 16px; `width: 100%` because an input's intrinsic width is about twenty characters, which
+   at 320 is wider than the card. */
+.mat-kind { margin-bottom: .3rem; }
+.mat-blank-pick { display: grid; gap: .3rem; margin-bottom: .35rem; }
+.mat-blank-pick[hidden], .mat-blank-pick [hidden] { display: none; }
+.mat-text { width: 100%; min-width: 0; font-size: 16px; box-sizing: border-box; }
 
 /* ---------- THE PAPER --------------------------------------------------------------------------- */
 /* ---------- THE PRINT SHEET IS A SHEET OF PAPER, AND PAPER DOES NOT REFLOW ------------------------
@@ -8782,6 +8792,32 @@ body.has-ib #install-bar { transition: transform .28s ease; }
             padding-top: 1.5mm;
             font: 400 2.7mm/1 var(--mono); color: var(--pa-mid); }
 .mat-foot b { color: var(--pa-ink); }
+/* ---------- PRACTICE PAPER: THE NAME ROW AND THE RULINGS -------------------------------------------
+   EVERY COLOUR IS A `--pa-` TOKEN, the sheet's own palette, so the paper kinds print in exactly the
+   inks the cheat sheet does and "make the lines fainter" is one token, not a hunt.
+   THE RULINGS ARE SVG STROKES IN MILLIMETRES (see `matBlankSvg_` in mat.js) — a stroke prints where
+   a background is dropped. The widths are in viewBox units, which are millimetres: .2mm is the
+   finest line a home printer draws solidly, the baseline is half as heavy again because it is the
+   line everything stands on, and the x-height is dashed because that is how every handwriting book
+   prints it. `vector-effect` is not used: a scaled line would print at the wrong weight. */
+.mat-name { display: grid; grid-template-columns: auto minmax(0, 3fr) auto minmax(0, 1fr);
+            align-items: end; gap: 2mm; font: 400 3mm/1 var(--mono); color: var(--pa-mid); }
+.mat-name i { display: block; height: 0; border-bottom: .25mm solid var(--pa-line); }
+.mat-ruling { display: block; flex: none; overflow: visible; }
+.mat-ln { fill: none; stroke: var(--pa-line); stroke-width: .2; }
+.mat-ln-grid { stroke: var(--pa-rule); stroke-width: .18; }
+.mat-ln-mid { fill: none; stroke: var(--pa-line); stroke-width: .2; stroke-dasharray: 1.2 1; }
+.mat-ln-base { fill: none; stroke: var(--pa-mark); stroke-width: .3; }
+.mat-ln-margin { fill: none; stroke: var(--pa-mark); stroke-width: .25; }
+/* THE WORDS TO TRACE: pale letters with a fine dotted edge — the pale fill is what a pencil goes
+   over, the dots are what a child follows when the pale is too pale to see on a cheap printer.
+   `font-size-adjust: .5` MAKES THE x-HEIGHT HALF THE FONT SIZE IN ANY FACE, and the font size is two
+   bands, so a lower-case `a` fills the middle band exactly whichever face the printing device has —
+   which is the one measurement on a handwriting sheet that has to be right. Where a browser does not
+   know the property, the faces listed are all close to .5 already. */
+.mat-trace { fill: var(--pa-rule-soft); stroke: var(--pa-faint); stroke-width: .18;
+             stroke-dasharray: .45 .4; stroke-linecap: round; font-size-adjust: .5;
+             font-family: "Comic Sans MS", "Comic Neue", "Andika", "Century Gothic", "Trebuchet MS", sans-serif; }
 
 /* ---------- THE COMPONENTS ----------------------------------------------------------------------
    NOTHING HERE IS SAID WITH A BACKGROUND. A browser DROPS background fills when it prints — that is

@@ -1718,6 +1718,249 @@ function matChoices(parts) {
   }
 }
 
+/* ---------- PRACTICE PAPER: A HANDWRITING SHEET, LINED, OR SQUARED ------------------------------------
+   ASKED FOR AS *"allow cheat sheet maker to make a handwriting worksheet. or lined or grid paper."*
+   The same card, the same Print button, the same basket line — a fourth kind of page rather than a
+   fourth tool, because what a tutor wants from it is what they want from the cheat sheet: one sheet
+   of A4, printed now, or printed and laminated by the owner. A laminated handwriting sheet is the
+   one a child writes on in dry-wipe pen forty times, which is the reason the basket door stays.
+
+   THE PAPER'S SETTINGS ARE A CLOSED LIST, not free numbers. Each `MAT_BLANK_OPTS` entry is what a
+   select offers, and `matBlankSet_` refuses anything else — so a value remembered by some later
+   version, or typed into storage by hand, can never draw a ruling nobody can choose here. Only the
+   words to trace are free, and they are trimmed and capped (`MAT_TEXT_MAX`) because they are drawn
+   as rows and a pasted essay would be a page of one sentence's first line. */
+const MAT_KINDS = [
+  { v: 'cheat', say: 'Cheat sheet' },
+  { v: 'hand',  say: 'Handwriting worksheet' },
+  { v: 'lined', say: 'Lined paper' },
+  { v: 'grid',  say: 'Squared paper' },
+];
+const MAT_KIND_WORD = { cheat: 'Cheat sheet', hand: 'Handwriting worksheet', lined: 'Lined paper',
+                        grid: 'Squared paper' };
+let MAT_KIND = 'cheat';
+
+/* `for` IS WHICH KIND OF PAPER ASKS THE QUESTION. One list of controls, each shown only under its own
+   kind (see `matBlankPaint_`), rather than three blocks of markup that would each have to learn the
+   select's 44px and its arrow.
+   THE HANDWRITING SIZES ARE THE BAND, in mm — the standard four-line ruling is three equal bands
+   (ascender, x-height, descender), so one number is the whole ruling: 8mm is a Reception/Year 1
+   page, 6mm Years 2–3, 4mm a junior exercise book. `gap` is how many empty rulings follow each traced
+   one: one is copy-under-the-model, two is the same with room to try again. */
+const MAT_BLANK_OPTS = {
+  size:  { for: 'hand',  say: 'Writing size', opts: [['8', 'Large — 8mm letters'], ['6', 'Medium — 6mm letters'],
+                                                     ['4', 'Small — 4mm letters']] },
+  gap:   { for: 'hand',  say: 'Practice rows', opts: [['1', 'One practice row each'], ['2', 'Two practice rows each']] },
+  line:  { for: 'lined', say: 'Line spacing', opts: [['8', '8mm — standard ruled'], ['6', '6mm — narrow ruled'],
+                                                     ['10', '10mm — wide ruled'], ['12', '12mm — early years']] },
+  grid:  { for: 'grid',  say: 'Square size', opts: [['5', '5mm squares'], ['7', '7mm squares'], ['10', '1cm squares']] },
+};
+const MAT_TEXT_MAX = 120;
+const MAT_TEXT_FIRST = 'The quick brown fox jumps over the lazy dog.';
+const matBlankFresh_ = () => ({ text: MAT_TEXT_FIRST, size: '8', gap: '1', line: '8', grid: '5' });
+let MAT_BLANK = matBlankFresh_();
+
+/* THE ONE DOOR EVERY SETTING COMES IN BY — the select, the text box and `matRecall` all call it — so
+   the closed list is enforced in one place. Answers whether it took the value. */
+function matBlankSet_(k, v) {
+  if (k === 'text') {
+    /* CONTROL CHARACTERS OUT, runs of space to one: the words are drawn on one line each, and a
+       pasted tab or newline would be a gap nobody typed. */
+    MAT_BLANK.text = String(v == null ? '' : v).replace(/[\u0000-\u001f\u007f]+/g, ' ')
+      .replace(/\s+/g, ' ').trim().slice(0, MAT_TEXT_MAX);
+    return true;
+  }
+  const o = MAT_BLANK_OPTS[k];
+  if (!o || !o.opts.some(p => p[0] === String(v))) return false;
+  MAT_BLANK[k] = String(v);
+  return true;
+}
+
+/* THE CONTROLS, ALL OF THEM, each wrapped with the kind it belongs to. Built once by `initMat`;
+   `matBlankPaint_` shows the ones for the kind chosen and sets each value from `MAT_BLANK`. */
+function matBlankControls_() {
+  const sel = k => {
+    const o = MAT_BLANK_OPTS[k];
+    return `<label class="mat-sel" data-for="${o.for}"><select data-do="mat-blank" data-k="${k}"
+      aria-label="${esc(o.say)}">${o.opts.map(p =>
+        `<option value="${esc(p[0])}">${esc(p[1])}</option>`).join('')}</select></label>`;
+  };
+  /* A TEXT BOX AT 16px, the global rule's size, because anything smaller makes iOS zoom the page on
+     focus. It answers on `input` (below), not `change` — `change` waits for the box to lose focus,
+     and the paper should follow the typing. */
+  return `<input type="text" id="mat-text" class="mat-text" data-for="hand" maxlength="${MAT_TEXT_MAX}"
+      autocomplete="off" aria-label="Words to trace" placeholder="Words to trace — or leave blank">
+    ${Object.keys(MAT_BLANK_OPTS).map(sel).join('')}`;
+}
+
+/* ---------- THE RULINGS, AS SVG STROKES ---------------------------------------------------------------
+   A STROKE PRINTS; a background does not (see "A LINE ON PAPER IS A BORDER" in style.css — the ruler
+   printed with every tick missing). An SVG drawn in millimetres is also the one way to put a line at
+   an exact millimetre on the paper: the viewBox is the drawing area in mm and the element is sized
+   in mm, so 1 unit is 1mm whatever the screen thinks a pixel is.
+   `MAT_BLANK_H` IS THE DRAWING'S HEIGHT, inside the head, the name row and the foot — 297 minus the
+   sheet's 11mm of padding is 286, and the head (7.4), the name row (6), the foot (4.2) and three
+   2.8mm gaps take 26 of that. 252 leaves a few mm of slack, because a ruling that ran under the
+   footer would be the kind of fault found at the printer. */
+const MAT_BLANK_H = 252;
+const matN = v => +(+v).toFixed(2);
+
+/* THE FOUR-LINE RULING. Top and bottom (ascender, descender) are the faint lines, the x-height is
+   dashed — the line a child aims the top of an `a` at, and on every printed handwriting book it is
+   the dashed one — and the baseline is the dark one, because it is the line everything sits on.
+   ONE PATH PER KIND OF LINE, not one element per line: a Small page is 60 lines, and four paths
+   with sixty segments between them print faster and diff smaller than sixty elements. */
+function matHandRows_() {
+  const b = +MAT_BLANK.size, pitch = 4 * b, rows = Math.floor((MAT_BLANK_H + b) / pitch);
+  /* WRAPPED BY ESTIMATE, at 0.6em a character. There is no layout to measure in a print probe that
+     jsdom also runs, and an estimate erring wide only makes a row end a word early — a row that ran
+     off the right of the ruling would be the fault. The font is set to 2b with
+     `font-size-adjust: .5` in the stylesheet, so the x-height is b exactly whatever face the
+     printing device has, and 0.6 of 2b is the width allowance per letter. */
+  const per = Math.max(4, Math.floor((MAT_TEXT_W - 6) / (0.6 * 2 * b)));
+  const lines = [];
+  MAT_BLANK.text.split(' ').filter(Boolean).forEach(w => {
+    /* A WORD LONGER THAN A ROW is cut at the row, not left to run off it. */
+    while (w.length > per) { lines.push(w.slice(0, per)); w = w.slice(per); }
+    const last = lines[lines.length - 1];
+    if (last !== undefined && last.length + 1 + w.length <= per) lines[lines.length - 1] = last + ' ' + w;
+    else lines.push(w);
+  });
+  /* THE TRACE ROWS AND THE PRACTICE ROWS, IN TURN, AND THE WORDS COME ROUND AGAIN until the page is
+     full — a sheet that traced its sentence once and then had twenty empty rulings is lined paper
+     with a heading. No words is the plain ruling, every row empty, which is a sheet worth having. */
+  const plan = [];
+  const each = 1 + +MAT_BLANK.gap;
+  for (let r = 0; r < rows; r++) {
+    const k = r % each;
+    plan.push(lines.length && k === 0 ? lines[Math.floor(r / each) % lines.length] : '');
+  }
+  return { b, pitch, plan };
+}
+
+function matBlankSvg_() {
+  const W = MAT_TEXT_W, H = MAT_BLANK_H;
+  const svg = inner => `<svg class="mat-ruling" viewBox="0 0 ${W} ${H}" width="${W}mm" height="${H}mm"
+    style="width:${W}mm;height:${H}mm" aria-hidden="true">${inner}</svg>`;
+  const path = (cls, d) => d ? `<path class="${cls}" d="${d}"/>` : '';
+  if (MAT_KIND === 'hand') {
+    const { b, pitch, plan } = matHandRows_();
+    let top = '', mid = '', base = '', foot = '', words = '';
+    plan.forEach((t, r) => {
+      const y = r * pitch + b / 2;            /* half a band above the first ascender line */
+      top += `M0 ${matN(y)}H${W}`;
+      mid += `M0 ${matN(y + b)}H${W}`;
+      base += `M0 ${matN(y + 2 * b)}H${W}`;
+      foot += `M0 ${matN(y + 3 * b)}H${W}`;
+      if (t) words += `<text class="mat-trace" x="3" y="${matN(y + 2 * b)}" font-size="${2 * b}">${esc(t)}</text>`;
+    });
+    return svg(path('mat-ln', top + foot) + path('mat-ln-mid', mid) + path('mat-ln-base', base) + words);
+  }
+  if (MAT_KIND === 'lined') {
+    /* EXERCISE-BOOK RULING: the lines across, and a margin 25mm in — where the date and the question
+       number go, and the line every UK exercise book has. The first line one spacing down, so the
+       page starts with somewhere to write rather than a line under the name. */
+    const s = +MAT_BLANK.line;
+    let d = '';
+    for (let y = s; y <= H + 0.01; y += s) d += `M0 ${matN(y)}H${W}`;
+    return svg(path('mat-ln', d) + path('mat-ln-margin', `M25 0V${H}`));
+  }
+  /* SQUARED: WHOLE SQUARES ONLY, centred in the drawing. A part-square down one edge is a square a
+     child counts and gets wrong, and a grid hard against the left with 3mm spare on the right reads
+     as printed crooked. */
+  const s = +MAT_BLANK.grid;
+  const nx = Math.floor(W / s), ny = Math.floor(H / s);
+  const x0 = (W - nx * s) / 2, y0 = (H - ny * s) / 2;
+  let d = '';
+  for (let i = 0; i <= nx; i++) d += `M${matN(x0 + i * s)} ${matN(y0)}V${matN(y0 + ny * s)}`;
+  for (let j = 0; j <= ny; j++) d += `M${matN(x0)} ${matN(y0 + j * s)}H${matN(x0 + nx * s)}`;
+  return svg(path('mat-ln mat-ln-grid', d));
+}
+
+/* WHAT THE PAPER SAYS ABOUT ITSELF, for the head, the order and the line under the card. The size is
+   in it because "Lined paper" twice in one basket, at 8mm and 12mm, are two different things to
+   print, and the owner reads the order message to know which. */
+function matBlankSay_() {
+  const opt = k => (MAT_BLANK_OPTS[k].opts.find(p => p[0] === MAT_BLANK[k]) || ['', ''])[1];
+  if (MAT_KIND === 'hand') return { title: 'Handwriting practice', size: opt('size'),
+    parts: [MAT_BLANK.text ? 'Words: ' + MAT_BLANK.text : 'No words — ruling only', opt('size'), opt('gap')] };
+  if (MAT_KIND === 'lined') return { title: 'Lined paper · ' + MAT_BLANK.line + 'mm', size: opt('line'), parts: [opt('line')] };
+  return { title: 'Squared paper · ' + (MAT_BLANK.grid === '10' ? '1cm' : MAT_BLANK.grid + 'mm'), size: opt('grid'),
+    parts: [opt('grid')] };
+}
+
+/* THE PAINT FOR PAPER, called by `matPaint` in place of everything after the choices. It does the
+   three things the cheat sheet's paint does — the sheet for the printer, the sentence under the
+   card, the basket line — and none of the measuring, because a ruling is drawn to fit by
+   construction and has no gauge to fill. */
+function matBlankPaint_(list) {
+  const pick = $('mat-blank');
+  if (pick) {
+    pick.querySelectorAll('[data-for]').forEach(el => { el.hidden = el.getAttribute('data-for') !== MAT_KIND; });
+    pick.querySelectorAll('select[data-k]').forEach(s => { s.value = MAT_BLANK[s.getAttribute('data-k')]; });
+    /* NOT WHILE SOMEBODY IS TYPING IN IT — setting a focused box's value moves the caret to the end. */
+    const t = $('mat-text');
+    if (t && document.activeElement !== t) t.value = MAT_BLANK.text;
+  }
+  const B = matBrand();
+  const say = matBlankSay_();
+  const foot = [B.area, B.phone].filter(Boolean).join('  ·  ');
+  MAT_SHEET = `<div class="mat-sheet is-blank is-${MAT_KIND}">
+    <div class="mat-head"><h3>${esc(say.title)}</h3><span>${esc(B.name)}</span></div>
+    <div class="mat-name"><span>Name</span><i></i><span>Date</span><i></i></div>
+    ${matBlankSvg_()}
+    <div class="mat-foot"><span>${esc(foot)}</span><b>${esc(B.site)}</b></div></div>`;
+  const rows = MAT_KIND === 'hand' ? matHandRows_().plan.length : 0;
+  $('mat-said').className = 'mat-said';
+  $('mat-said').innerHTML = `<b>One A4 page</b> · ${esc(MAT_KIND === 'hand'
+    ? rows + ' rulings' + (MAT_BLANK.text ? '' : ', no words to trace') : say.size)}`;
+  $('mat-go').disabled = false;
+  /* THE BASKET LINE: the same `print` line as a cheat sheet, so the laminate switch comes with it and
+     nothing in the basket learns a new kind. The KEY carries every setting and the words, so two
+     sizes are two lines and the same sheet twice is one; the PARTS are what the owner rebuilds it
+     from, words included. */
+  MAT_ORDER = {
+    ok: true,
+    key: 'paper:' + MAT_KIND + '|' + (MAT_KIND === 'hand' ? MAT_BLANK.size + '|' + MAT_BLANK.gap + '|' + MAT_BLANK.text
+      : MAT_KIND === 'lined' ? MAT_BLANK.line : MAT_BLANK.grid),
+    name: MAT_KIND_WORD[MAT_KIND] + ' — ' + (MAT_KIND === 'hand'
+      ? (MAT_BLANK.text ? '“' + (MAT_BLANK.text.length > 28 ? MAT_BLANK.text.slice(0, 27) + '…' : MAT_BLANK.text) + '”, ' : '')
+        + say.size.split(' — ')[0].toLowerCase()
+      : say.size.split(' — ')[0]),
+    parts: say.parts,
+  };
+  const trolley = list && list.closest('#mat-box') && list.closest('#mat-box').querySelector('[data-do="mat-cart"]');
+  if (trolley) {
+    const inCart = typeof CART !== 'undefined' && CART.some(c => c.kind === 'print' && c.key === MAT_ORDER.key);
+    tileSet_(trolley, inCart ? { label: 'In your basket', note: '', on: true, off: false }
+                             : { label: 'Have it printed', note: 'into your basket', on: false, off: false });
+  }
+}
+
+on('mat-kind', el => {
+  MAT_TOUCHED = true;
+  const v = String(el.value || '');
+  MAT_KIND = MAT_KINDS.some(k => k.v === v) ? v : 'cheat';
+  matPaint();
+  matRemember();
+});
+on('mat-blank', el => {
+  MAT_TOUCHED = true;
+  matBlankSet_(el.getAttribute('data-k'), el.value);
+  matPaint();
+  matRemember();
+});
+/* TYPED INTO, SO NOT THROUGH THE CLICK OR CHANGE DISPATCHER — the search box's own pattern in find.js.
+   Debounced: the sheet is rebuilt on each paint, and a rebuild per keystroke is a box that lags. */
+let matTextTimer = null;
+document.addEventListener('input', e => {
+  if (!e.target || e.target.id !== 'mat-text') return;
+  MAT_TOUCHED = true;
+  matBlankSet_('text', e.target.value);
+  clearTimeout(matTextTimer);
+  matTextTimer = setTimeout(() => { matPaint(); matRemember(); }, 200);
+});
+
 /* ---------- WHERE YOU LEFT IT --------------------------------------------------------------------------
    A TUTOR PRINTS THE SAME SHEET MOST WEEKS. Opening the tool on "Every subject, every level" with
    nothing ticked every time is five choices and a dozen ticks to get back to the page printed last
@@ -2175,7 +2418,7 @@ on('mat-cart', el => {
   if (typeof cartPaint_ === 'function') cartPaint_();
   tileSet_(el, { label: 'In your basket', note: '', on: true });
   /* THE UPGRADE IS NAMED ONLY WHEN IT IS OFFERED — a rate of 0 in the Ledger means no laminating. */
-  toast('Cheat sheet in your basket' + (typeof laminateOffered_ === 'function' && laminateOffered_()
+  toast((MAT_KIND_WORD[MAT_KIND] || 'Cheat sheet') + ' in your basket' + (typeof laminateOffered_ === 'function' && laminateOffered_()
     ? ' — laminate it there' : ''));
 });
 

@@ -362,7 +362,11 @@ function boot(opts) {
       'matGroup: g => { if (g !== undefined) MAT_GROUP = g; return MAT_GROUP; },' +
       'matNow: () => ({ subject: MAT_SUBJECT, level: MAT_LEVEL, group: MAT_GROUP }),' +
       'matFresh: () => { MAT_TOUCHED = false; MAT_SUBJECT = "Maths"; MAT_LEVEL = "all"; MAT_GROUP = "";' +
-      '  MAT_ON = []; try { localStorage.removeItem("matChoice"); } catch (e) {} },' +
+      '  MAT_ON = []; MAT_KIND = "cheat"; MAT_BLANK = matBlankFresh_();' +
+      '  try { localStorage.removeItem("matChoice"); } catch (e) {} },' +
+      /* THE PAPER KINDS — what a journey reads back after pressing the real selects. */
+      'matBlank: () => (typeof MAT_BLANK !== "undefined" ? Object.assign({ kind: MAT_KIND }, MAT_BLANK) : null),' +
+      'matSheet: () => (typeof MAT_SHEET !== "undefined" ? MAT_SHEET : ""),' +
       'matOrder: () => (typeof MAT_ORDER !== "undefined" ? MAT_ORDER : null),' +
       'orderText: typeof orderText_ === "function" ? orderText_ : null,' +
       /* WHO MAY OPEN A WIDGET, and the two lists that ask it. `star` puts a key in the device's
