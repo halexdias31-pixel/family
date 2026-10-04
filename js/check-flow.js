@@ -4899,7 +4899,7 @@ check('a fraction is drawn stacked in the stem, lead, part, answer and choices, 
     if (!el) bad.push(what + ' was not drawn at all');
     else if (!el.querySelector('.frac .frac-n') || !el.querySelector('.frac .frac-d')) bad.push(what + ' drew its fraction slanted: ' + el.innerHTML.slice(0, 120));
   });
-  const opts = [...tapped.querySelectorAll('.quiz-opt')];
+  const opts = [...tapped.querySelectorAll('.qp-opt')];
   if (opts.length !== 2) bad.push('the two choices drew as ' + opts.length + ' buttons');
   else if (opts.some(b => !b.querySelector('.frac .frac-n'))) bad.push('a choice drew its fraction slanted');
   const part = tapped.querySelector('.qsheet-pb');
@@ -5531,7 +5531,7 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
    *"didn't I ask you to sleekerise the whole widget system in the finder for questions and so on?"*
    The answer was one set of parts — `.fc-head` (title and flags), `.fc-kick` (whose page this is),
    `.fc-meta`, `.fc-sec`, `.fc-list` — and every kind moved onto it: the boxer off the shop's `.thing`
-   row, the fight off a bare paragraph of names, the quiz off its round level pill, the film's Watch
+   row, the fight off a bare paragraph of names, the film's Watch
    tile out of a second tile row inside the card.
 
    ASKED OF THE MARKUP, OVER THE REAL FILES THROUGH THE REAL MAPPER, so a kind added tomorrow with a
@@ -5542,7 +5542,7 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
      - the card is `.card.fc`, and its first child is ONE `.fc-head` holding an `h3` and its flags;
      - every page after it is `.card.fc` whose first child is the `.fc-kick` and whose second is
        the page's `h3` — except a picture page, which is the picture;
-     - no shop row (`.thing`), no `.quiz-lvl`, no inline style, no loose `p.note`, and no tile row
+     - no shop row (`.thing`), no inline style, no loose `p.note`, and no tile row
        INSIDE a card: the tiles are the row under it, one row, which `stuffCard` adds;
      - every numbered list is an `.fc-list`, which is what gives `10.` its room. */
 check('every Find kind that is not a question is made of the shared parts: head, kicker, meta, section, list', async () => {
@@ -5552,9 +5552,9 @@ check('every Find kind that is not a question is made of the shared parts: head,
   if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the cards were NOT checked — not a pass'];
   const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
     { textbooks: read('textbooks'), boxers: read('boxers'), fights: read('fights'), projects: read('projects'),
-      practicals: read('practicals'), quizzes: read('quizzes') })));
+      practicals: read('practicals') })));
   const p = payload();
-  ['textbooks', 'boxers', 'fights', 'projects', 'practicals', 'quizzes'].forEach(k => { p[k] = made[k] || []; });
+  ['textbooks', 'boxers', 'fights', 'projects', 'practicals'].forEach(k => { p[k] = made[k] || []; });
   /* THE FILMS ARE THE FIXTURE'S THREE INVENTED ROWS, shaped as `doGet` sends an admin them — a long
      title, a series, and a placeholder with no file, the three ways the card is drawn. */
   p.films = JSON.parse(fs.readFileSync(path.join(dir, '..', 'check', 'fixture.json'), 'utf8')).films || [];
@@ -5566,7 +5566,7 @@ check('every Find kind that is not a question is made of the shared parts: head,
   /* THE CARD'S OWN MARKUP, NOT A DRAWING'S. A practical's diagram is hand-written SVG and some of it
      carries a `style` attribute of its own, which is the drawing's business rather than the card's. */
   const onCard = el => !el.closest('svg, figure');
-  const KINDS_HERE =['practical', 'project', 'textbook', 'quiz', 'film', 'boxer', 'fight'];
+  const KINDS_HERE =['practical', 'project', 'textbook', 'film', 'boxer', 'fight'];
   KINDS_HERE.forEach(kind => {
     const xs = all.filter(x => x.kind === kind);
     if (!xs.length) { bad.push('no ' + kind + ' reached Find, so its card was NOT checked'); return; }
@@ -5581,7 +5581,7 @@ check('every Find kind that is not a question is made of the shared parts: head,
         bad.push(name + '\'s head is not a title and its flags');
       }
       if (card.querySelectorAll('.fc-head').length !== 1) bad.push(name + ' has ' + card.querySelectorAll('.fc-head').length + ' heads');
-      const stray = ['.thing', '.quiz-lvl', '[style]', 'p.note', '.tile-row'].filter(sel => [...card.querySelectorAll(sel)].some(onCard));
+      const stray = ['.thing', '[style]', 'p.note', '.tile-row'].filter(sel => [...card.querySelectorAll(sel)].some(onCard));
       if (stray.length) bad.push(name + ' carries ' + stray.join(', ') + ' inside the card');
       const pages = w.pageParts_(x).filter(Boolean).map(part => ({ part, el: box(w.stuffPart_(x, part)).firstElementChild }));
       pages.forEach(({ part, el }) => {

@@ -34,8 +34,8 @@ const path = require('path');
 const src = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
 
 /* CUT BY NAME, BRACE-COUNTED, AND THE CUTTER IS `check-marks-load.js` — one extractor, because
-   `check-quizzes.js` needs the same six functions to ask a different question of them and its own
-   first attempt at cutting them out could not find `markBare_`. A regex for "the body of a
+   other checks need the same functions to ask different questions of them, and a second cutter
+   written once already could not find `markBare_`. A regex for "the body of a
    function" is really a regex for "up to the next closing brace at the start of a line", which is
    a formatting convention rather than a fact about the code, and this file is checking the one
    thing in the app that must not be approximately right. */

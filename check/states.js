@@ -470,76 +470,6 @@ const STATES = {
       },
       wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
-       BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,
-       with four live buttons; answered, with the right one marked, the wrong one outlined and the
-       explanation underneath — and they have different heights, different colours and different
-       controls. Measuring only the first would be measuring half the feature, which is exactly what
-       `check/ui.js` had been doing to the booking column for as long as the fixture's one job named
-       neither visitor.
-
-       ANSWERED THROUGH `localStorage` RATHER THAN BY PRESSING, which is the door this feature
-       actually uses: `quizRow_` reads the stored answer and works the mark out itself, so seeding
-       the key is the same thing as having pressed the button — and it is what proves the two paths
-       agree. `quizKey_` is the app's own key-builder for the reason the seeded message thread uses
-       `MESSAGES`: a second spelling of that key here would be a second thing to keep in step.
-
-       AND IT PUTS THE FUNNEL BACK, for the reason the guide above does. It opened a SHEET until
-       "ok get rid of the other pop up menu" took the quiz onto its card; a state that opens a
-       surface the app no longer has measures something nobody can see. */
-    { name: 'a quiz',
-      enter: () => {
-        const any = stuffItemsAll_().find(it => it.kind === 'quiz');
-        if (!any) throw new Error('no quiz in the list to draw a card for');
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(any).label }];
-        paintStuff();
-        /* ---------- SEEDED ON THE QUIZ THE SCREEN WILL ACTUALLY SHOW -------------------------
-           NOT ON `stuffItemsAll_()`'s FIRST, which is a different order from the funnel's: the
-           list is sorted before it is paged, so seeding one quiz and landing on another would
-           leave this state measuring an untouched card and reporting the marked states missing.
-           `stuffFiltered()` after the repaint is the order the pages are built from. */
-        const x = stuffFiltered()[0];
-        if (!x) throw new Error('the funnel returned no quiz after filtering to them');
-        /* One right and one wrong, so both marked states are on the screen at once. A quiz where
-           everything is right measures no red, which is half the rules in the block. */
-        const pick = (x.row.qs || []).filter(q => q.kind === 'choice');
-        if (pick.length >= 2) {
-          localStorage.setItem(quizKey_(x, pick[0].n), pick[0].answer);
-          const other = (pick[1].choices || []).find(c => c !== pick[1].answer);
-          if (other) localStorage.setItem(quizKey_(x, pick[1].n), other);
-        }
-        paintStuff();
-        goPage('stuff', typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1);
-      },
-      /* ONE CARD, NOT THE SCREEN, for the reason the guide's own expect records: the windowed
-         pager holds about six result pages at once, so a count across `#s-stuff` counts six
-         quizzes. The seeded one is the first, which is what the `stuffFiltered()[0]` above buys. */
-      expect: () => {
-        const c = document.querySelector('#s-stuff .card.quiz');
-        return !!c && c.querySelectorAll('.quiz-q').length >= 3
-               && !!c.querySelector('.quiz-q.is-right')
-               && !!c.querySelector('.quiz-q.is-near')
-               && !!c.querySelector('.quiz-why');
-      },
-      wants: 'a quiz card with one question right, one wrong, and both explanations drawn',
-      /* ---------- IT CLEARS THE QUIZ IT SEEDED, AND IT USED TO CLEAR A DIFFERENT ONE ------------
-         THIS READ `stuffItemsAll_()`'s FIRST QUIZ, which was the same one `enter` seeded while
-         `enter` read that list too. It does not any more — the seed moved to `stuffFiltered()[0]`,
-         which is the funnel's own order — so looking the quiz up the old way would clear five keys
-         on a quiz nobody touched and leave five behind on the one that was. States run in order
-         down one page, so those would still be there when Tools and Games are measured.
-
-         BOTH ENDS READ THE SAME LIST NOW, which is the only arrangement where they cannot drift —
-         the sentence this repository writes about `documents_()`, `factsNow_` and `childrenOf`. */
-      leave: () => {
-        const x = stuffFiltered()[0];
-        if (x && x.kind === 'quiz') (x.row.qs || []).forEach(q => {
-          try { localStorage.removeItem(quizKey_(x, q.n)); } catch (e) {}
-        });
-        STUFF.filters = [];
-        paintStuff();
-        goPage('stuff', 0);
-      } },
     /* ---------- A DIAGRAM YOU CAN DRAW ON, WITH THE PEN OFF ------------------------------------
        THE SURFACE THE REPORT WAS ABOUT, AND NOTHING HAD EVER RENDERED IT. 169 rows in the library
        want a pen and 26 carry the picture to put one over — and every one of them is inside the
@@ -554,8 +484,8 @@ const STATES = {
        BY `paperId` AND THEN BY POSITION, not by `kindLabel`. Every question in the library is one
        `kindLabel`, so filtering on it and taking the first would land on whichever question sorts
        first — which is not a pen card. The paper is the narrowest chip that reaches this row, and
-       `stuffFiltered()` after the repaint is the order the pages are built from, for the reason the
-       quiz state above records. */
+       `stuffFiltered()` after the repaint is the order the pages are built from: the list is sorted
+       before it is paged, so `stuffItemsAll_()`'s first is not the card the screen shows. */
     { name: 'a diagram you can draw on',
       enter: () => {
         const pen = stuffItemsAll_().find(it => it.kind === 'question'

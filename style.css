@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-03-findpolish";
+  --css-version: "2026-10-03-noquiz";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -9584,8 +9584,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qans-why > summary::before { content: "+"; color: var(--gold); font-weight: 700; }
 .qans-why[open] > summary::before { content: "\2212"; }
 .qans-why > summary:hover { color: var(--gold); }
-/* THE OPENED WORKING HANGS FROM ITS FOLD BY A RULE DOWN THE LEFT, the mark `.quiz-q` and `.qp-guide`
-   already use for "this block belongs to the thing above it". Without it, three paragraphs of dim
+/* THE OPENED WORKING HANGS FROM ITS FOLD BY A RULE DOWN THE LEFT, the mark `.qp-guide`
+   already uses for "this block belongs to the thing above it". Without it, three paragraphs of dim
    working read as a second answer starting under the first; with it they read as the inside of
    "Why". Laid in line with the fold's own + so the two read as one control and its contents. */
 .qans-more {
@@ -9933,7 +9933,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    ASKED FOR AS *"didn't I ask you to sleekerise the whole widget system in the finder for questions
    and so on?"* — "nice more sleek, fresh stable". The question family has a polish of its own (note
    261); this is everything else Find draws: practicals and their pages, projects and theirs, the
-   textbook and its chapters, quizzes, films, boxers and fights, and the same cards kept on Saved.
+   textbook and its chapters, films, boxers and fights, and the same cards kept on Saved.
 
    THEY WERE ONE SYSTEM BY ACCIDENT AND FOUR BY DEFAULT. The practical's `prac-*` classes had become
    the head, the kicker, the meta line and the section of the project, the textbook, the film and
@@ -9955,7 +9955,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 
    and three kinds of prose: `.fc-lede` (what it is, in ink), `.fc-say` (a labelled line, the label
    gold: "You end up with") and `.fc-note` (a quiet aside). The kind-specific classes that are left
-   (`prac-haz`, `prac-no`, `tb-*`, `fight-who`, `quiz-*`) are the parts no other kind has.
+   (`prac-haz`, `prac-no`, `tb-*`, `fight-who`) are the parts no other kind has.
 
    THE SCALE IS THREE STEPS, the shape note 261 gave the question card: `--fc-in` between a label
    and what it labels, `--fc-line` between lines of one group, `--fc-group` between groups. In rem,
@@ -10289,7 +10289,7 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 
    `--dim` IN THE GUIDE MEANS A FACT FROM THE DATABASE AND `--faint` MEANS IT DOES NOT. That is the
    convention `.gd-hint` still follows — a question is a fact, the sentence explaining why it is
-   being asked is not — and `.quiz-why` cites it one block down.
+   being asked is not.
 
    A DESCENDANT RULE FOR IT WOULD HAVE BEEN A TRAP. `.fc-sec p` is one class plus a type, (0,1,1),
    against `.prac-safety`'s and `.prac-home`'s (0,1,0) — both `<p>` inside a `.fc-sec` — so it
@@ -10312,54 +10312,12 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .gd-box .qp-ans-in { min-height: max(44px, 4.2rem); }
 
 
-/* ==================================================================================================
-   THE QUIZ — A RECAP, AND IT BORROWS THE PRACTICAL'S HEAD AND THE ANSWER BOX ON PURPOSE.
+/* ---------- A QUESTION CARD'S CHOICES ---------------------------------------------------------------
+   THESE WERE `.quiz-opts` AND `.quiz-opt` UNTIL THE QUIZZES WENT. The recap quizzes drew the same
+   column of options first and the question card borrowed it under the quizzes' name; with the
+   quizzes deleted ("completely made up bullshit") the name said a feature that no longer exists, so
+   the box is `.qp-opts` and the base rules folded into `.qp-opt`, which every option already carried.
 
-   `.fc-head` IS REUSED RATHER THAN COPIED, because a title with a flag beside it is the same
-   object on both cards — and this stylesheet has already paid for the alternative twice, where
-   `.reel .over` was a second description of `.feed-art` and drifted the first time either was
-   touched. The flag was a level for a while, in a round pill of its own (`.quiz-lvl`); it says
-   `Quiz` now in the shared `.fc-flag`, and the level is on the line under the title where every
-   other kind keeps it — one slot, one shape, one meaning. See the Find card block.
-
-   THE FLAG IS NOT GOLD, and what gold means here has moved without changing the argument. It
-   was `Start` — the tile underneath, which the sentence named — and with the quiz drawn on the card
-   it is the right answer's own border and the figure in the running score. Either way this is a
-   label rather than a thing to press, and `.reel-sound` is the entry recording what happens when
-   something that is not the point takes the colour that says it is.
-
-   `.quiz-say` WAS HERE AND ITS MARKUP HAS GONE. It drew "3 of 5 answered so far" on the card while
-   the quiz was behind a tile; the quiz is on the card now, so `.quiz-score` says that four lines
-   down and says more. Deleted rather than left: `check-css.js` prints a class styled and nowhere
-   produced, and the argument in it — that a card which looks the same whether you have done it or
-   not is a card you cannot choose between — is now carried by the score line itself.
-================================================================================================== */
-
-.quiz-intro { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--faint); }
-
-/* ---------- THE RUNNING SCORE ---------------------------------------------------------------------
-   `aria-live="polite"` IS ON THE ELEMENT IN find.js AND THE REASON IS HERE: this line is the only
-   feedback a screen reader gets that a press did anything, because the mark itself is a colour and
-   a border. A control whose effect is only visual is a control that does nothing for somebody who
-   cannot see it. */
-.quiz-score { margin: .55rem 0 0; padding: .4rem .55rem; border: 1px solid var(--line);
-              border-radius: var(--r-sm); background: var(--sunk);
-              font: 400 .76rem/1.4 var(--mono); color: var(--dim); }
-.quiz-score b { color: var(--ink); font-weight: 600; }
-
-/* ---------- ONE QUESTION --------------------------------------------------------------------------
-   THE STATE IS A RULE DOWN THE LEFT, which is what `.msg.unread` used before it became a bubble and
-   what `.post-cap` uses for a comment of your own: a mark that says "this one" without taking a
-   colour the page means something else by. Gold for right and red for not-yet, matching the
-   `.qp-mark` verdict states one component along, so the two marking surfaces in this app agree. */
-.quiz-q { margin: .7rem 0 0; padding: .55rem 0 .55rem .6rem;
-          border-left: 2px solid var(--line); }
-.quiz-q.is-right { border-left-color: var(--gold); }
-.quiz-q.is-near { border-left-color: var(--red, #ff6b6b); }
-.quiz-ask { margin: 0; font-size: .84rem; line-height: 1.45; color: var(--ink); }
-.quiz-n { font: 600 .7rem/1 var(--mono); color: var(--faint); margin-right: .25rem; }
-
-/* ---------- THE CHOICES ---------------------------------------------------------------------------
    44px IN PX, WHICH IS THE ONE MEASUREMENT IN THIS STYLESHEET THAT DOES NOT SCALE. A fingertip is
    the same size on every screen, and `2.75rem` is 40.75px on a 390px phone — this rule has six
    convictions behind it already (`.btn.tiny`, `.post-act`, `.fm-adds label`, the filter chips,
@@ -10371,178 +10329,64 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 
    TEXT-ALIGN LEFT, because they are sentences rather than labels — a centred paragraph with a
    ragged left edge is the thing that makes a list of options hard to scan. */
-.quiz-opts { display: flex; flex-direction: column; gap: .35rem; margin: .5rem 0 0; }
-.quiz-opt { display: block; width: 100%; min-height: 44px; text-align: left;
-            padding: .5rem .6rem; border: 1px solid var(--line); border-radius: var(--r-sm);
-            background: var(--sunk); color: var(--dim);
-            font: inherit; font-size: .8rem; line-height: 1.4; cursor: pointer; }
-.quiz-opt:active { transform: translateY(1px); }
-/* ---------- ONCE IT IS ANSWERED --------------------------------------------------------------------
-   THE RIGHT ONE IS MARKED WHETHER OR NOT IT WAS CHOSEN, and the note in `quizRow_` says why: an
-   answer that only says "wrong" leaves somebody guessing which of the other three it was, and
-   guessing is exactly what the explanation underneath exists to replace.
-
-   THE CHOSEN WRONG ONE TAKES THE RED, so the two states are distinguishable on one row — the right
-   answer in gold, the one that was pressed outlined in red. Colour AND weight together, which is
-   `.fight-who.won`'s own reason: weight alone is lost at this size on a phone and colour alone is
-   lost on paper. */
-.quiz-opt[disabled] { cursor: default; opacity: 1; }
-.quiz-opt.is-ans { border-color: var(--gold); color: var(--ink); font-weight: 600; }
-.quiz-opt.is-picked { border-width: 2px; }
-.quiz-opt.is-picked:not(.is-ans) { border-color: var(--red, #ff6b6b); color: var(--ink); }
+.qp-opts { display: flex; flex-direction: column; gap: .35rem; margin: .5rem 0 0; }
+.qp-opt { display: block; width: 100%; min-height: 44px; text-align: left;
+          padding: .5rem .6rem; border: 1px solid var(--line); border-radius: var(--r-sm);
+          background: var(--sunk); color: var(--dim);
+          font: inherit; font-size: .8rem; line-height: 1.4; cursor: pointer; }
+.qp-opt:active { transform: translateY(1px); }
+.qp-opt[disabled] { cursor: default; opacity: 1; }
 
 /* ---------- THE QUESTION CARD'S OPTIONS, WHICH TAKE THE VERDICT'S COLOURS --------------------------
-   `.qp-opt` IS `.quiz-opt` ON A QUESTION CARD (history 218), and on that card it sat directly above a
+   ON THE QUESTION CARD THE OPTIONS SIT DIRECTLY ABOVE A
    verdict that is green for right and amber for "not yet" -- while the right option was outlined in
    GOLD and the pressed wrong one in RED. So one screen said the answer in gold and "not yet" in gold,
    and called a miss red one line above the sentence that was written not to. On the card the options
-   now speak the verdict's language: the right one green with a tick, the pressed miss amber. The
-   recap quiz keeps its own pair; it has no verdict line to disagree with.
+   now speak the verdict's language: the right one green with a tick, the pressed miss amber.
 
    A RING TO SAY "PRESS ME", because a column of dark boxes with grey numbers in them read as a list
    of facts. Filled when chosen, a tick when it is the answer. Painted by `::before` in the padding
    the button already has, so the option's own markup -- italics, a stacked fraction -- is untouched:
    a flex button would have made every text node and `<i>` in it a separate flex item.
 
-   THE PRESS DOES NOT MOVE THE WORDS. `.quiz-opt.is-picked` thickens the border to 2px, which pushes
-   the text in by a pixel on the tap that chose it; here the second pixel is an inset shadow, drawn
+   THE PRESS DOES NOT MOVE THE WORDS. A 2px border on the picked option pushes the text in by a
+   pixel on the tap that chose it; so the second pixel is an inset shadow, drawn
    inside the box, so the option you pressed stays exactly where your finger left it.
 
    ONCE MARKED THE OTHERS STEP BACK. `is-done` (choiceBox_) is only set when the question is settled,
    which the handler already enforces -- so the unchosen wrong ones fade and stop looking pressable,
    and what is left in full ink is what you picked and what was right. */
-.quiz-opt.qp-opt { position: relative; padding-left: 2.2rem;
+.qp-opt { position: relative; padding-left: 2.2rem;
                    transition: border-color var(--quick) ease, color var(--quick) ease; }
 /* INK ON EVERY OPTION OF A QUESTION CARD, by SPECIFICITY rather than by being written later: the box
-   and card in front make it (0,4,0) against `.quiz-opt.is-ans` and `.quiz-opt.is-picked:not(.is-ans)`
-   (0,2,0 and 0,3,0), so `check/cascade.js` can see why it wins. The faded options below are more
-   specific again. */
-.qcard .qp-choices .quiz-opt.qp-opt { color: var(--ink); }
+   and card in front make it (0,3,0) against the base `.qp-opt`'s (0,1,0), so `check/cascade.js` can
+   see why it wins. The faded options below are more specific again. */
+.qcard .qp-choices .qp-opt { color: var(--ink); }
 @media (hover: hover) {
-  .qp-choices:not(.is-done) .quiz-opt.qp-opt:not(.is-picked):hover { border-color: var(--faint); }
+  .qp-choices:not(.is-done) .qp-opt:not(.is-picked):hover { border-color: var(--faint); }
 }
-.quiz-opt.qp-opt::before {
+.qp-opt::before {
   content: ""; position: absolute; left: .75rem; top: 50%; width: 14px; height: 14px;
   margin-top: -7px; box-sizing: border-box; border: 1.5px solid var(--faint); border-radius: 50%;
   font: 700 10px/11px var(--font); text-align: center; color: var(--bg);
 }
-.quiz-opt.qp-opt.is-picked { border-width: 1px; border-color: var(--gold);
+.qp-opt.is-picked { border-width: 1px; border-color: var(--gold);
                              box-shadow: inset 0 0 0 1px var(--gold); }
-.quiz-opt.qp-opt.is-picked::before { border-color: var(--gold); background: var(--gold); }
-.qp-choices.is-done .quiz-opt.qp-opt { cursor: default; }
-.qp-choices.is-done .quiz-opt.qp-opt:active { transform: none; }
+.qp-opt.is-picked::before { border-color: var(--gold); background: var(--gold); }
+.qp-choices.is-done .qp-opt { cursor: default; }
+.qp-choices.is-done .qp-opt:active { transform: none; }
 /* `--faint` AND NOT `opacity`: half-transparent ink on this background measures under 4.5:1, and an
    option nobody should press any more is still a sentence somebody may want to read. */
-.qp-choices.is-done .quiz-opt.qp-opt:not(.is-picked):not(.is-ans) { color: var(--faint);
+.qp-choices.is-done .qp-opt:not(.is-picked):not(.is-ans) { color: var(--faint);
                                                                      border-color: var(--line-soft); }
-.qp-choices.is-done .quiz-opt.qp-opt.is-ans { border-color: var(--good); font-weight: 600;
+.qp-choices.is-done .qp-opt.is-ans { border-color: var(--good); font-weight: 600;
                                                box-shadow: inset 0 0 0 1px var(--good); }
-.qp-choices.is-done .quiz-opt.qp-opt.is-ans::before { content: "\2713"; border-color: var(--good);
+.qp-choices.is-done .qp-opt.is-ans::before { content: "\2713"; border-color: var(--good);
                                                        background: var(--good); }
-.qp-choices.is-done .quiz-opt.qp-opt.is-picked:not(.is-ans) { border-color: var(--warn);
+.qp-choices.is-done .qp-opt.is-picked:not(.is-ans) { border-color: var(--warn);
                                                                box-shadow: inset 0 0 0 1px var(--warn); }
-.qp-choices.is-done .quiz-opt.qp-opt.is-picked:not(.is-ans)::before { border-color: var(--warn);
+.qp-choices.is-done .qp-opt.is-picked:not(.is-ans)::before { border-color: var(--warn);
                                                                        background: var(--warn); }
-
-/* A TYPED ANSWER IS ONE LINE, NOT A PAGE. `textarea` is `min-height: 5.8rem` globally and `.gd-box`
-   already cuts it for the same reason — these hold `Osmosis` or `2,8,1`. Same shape as that rule:
-   px at the floor, rem above it. */
-.quiz-typed { margin: .5rem 0 0; }
-.quiz-typed .qp-ans-in { min-height: max(44px, 2.8rem); }
-.quiz-check { margin: .35rem 0 0; width: auto; min-height: 44px; }
-
-/* ---------- WHY --------------------------------------------------------------------------------
-   THE EXPLANATION IS THE POINT OF THE WHOLE FEATURE, so it is body text rather than a footnote.
-   `--dim` because it is content from the row, which is what `--dim` means everywhere else in this
-   block — see the note where `.gd-none` was, which is where that convention is written down. */
-.quiz-why { margin: .5rem 0 0; font-size: .78rem; line-height: 1.5; color: var(--dim); }
-.quiz-why b { color: var(--ink); font-weight: 600; }
-
-/* THE ONE CONTROL HERE THAT DESTROYS SOMETHING, so it is set apart rather than sitting under the
-   last question where a thumb travels. */
-.quiz-foot { margin: 1rem 0 0; padding-top: .7rem; border-top: 1px dashed var(--line); }
-
-/* ==================================================================================================
-   THE PRINTED QUIZ — A4, AND IT IS NOT ON SCREEN AT ALL.
-
-   `.qz-paper` IS APPENDED TO `body` BY `quiz-print` AND REMOVED AFTER, so every rule here lives
-   inside `@media print` except the one that hides it. Building it into the page and hiding it on
-   screen would put two copies of five questions in the document for every quiz card drawn.
-
-   IT IS THE PAPER PALETTE, which is the house rule: *"Everything standing in for PAPER — the
-   receipt, the job stubs, the roster, the print sheet, the calendar — is cream and warm ink."*
-   Never a literal; `--paper` and `--paper-ink` are the tokens. On a printer the ground is the sheet
-   and the ink is what you pay for, so the tokens also happen to be the cheap way round.
-================================================================================================== */
-.qz-paper { display: none; }
-
-@media print {
-  /* ---------- THE COLUMN IS WHAT CLIPS THE PAGE, FOR THE THIRD TIME -------------------------------
-     `body` is a centred 26.5rem column — about 115mm — with `overflow-x: clip` and
-     `position: relative`, so a 210mm sheet inside it starts where the COLUMN starts and everything
-     past 115mm is cut off. The cheat sheet learned this, the flyer learned it separately, and its
-     own note says so: *"one of the two printable tools in this app prints correctly and the other
-     does not. Same three lines, same reason."* Three now, and the same three lines. */
-  body.printing-quiz { max-width: none !important; margin: 0 !important; padding: 0 !important;
-    overflow: visible !important; }
-  body.printing-quiz * { visibility: hidden !important; }
-  body.printing-quiz .qz-paper,
-  body.printing-quiz .qz-paper * { visibility: visible !important; }
-  body.printing-quiz .qz-paper { display: block; position: absolute; left: 0; top: 0;
-    margin: 0; padding: 0; width: 210mm; height: auto !important; overflow: visible !important; }
-
-  /* ---------- ONE SHEET PER PAGE, AND THE BREAK IS DECLARED --------------------------------------
-     `break-after: page` ON THE FIRST AND NOT A MARGIN BIG ENOUGH TO PUSH IT. The answer key has to
-     start on its own sheet whatever the quiz's length turns out to be — five short questions and
-     five long ones are a third of a page apart — and a spacer that works for one is wrong for the
-     other. `break-inside: avoid` on a question stops a stem printing at the foot of one page with
-     its options at the head of the next, which is the one thing that makes a printed quiz
-     unanswerable. */
-  /* 15mm, AND IT IS A MEASUREMENT RATHER THAN A MARGIN SOMEBODY LIKED. At 18mm the two longest
-     quizzes in the library — `QZ-CHE-chemical-analysis-GCSE-H` and `QZ-BIO-ecology-GCSE-H`, five
-     questions whose options wrap — came to 1145px against A4's 1123, so the last question moved to
-     a second sheet with one line on it and the answer key became page THREE. A five-question quiz
-     printed on three sheets is not a quiz somebody prints twice. 15mm is inside every desktop
-     printer's unprintable edge and is what `check/cards.js` now holds the whole set against. */
-  .qz-sheet { width: 210mm; min-height: 297mm; box-sizing: border-box; padding: 15mm 16mm;
-    background: var(--paper); color: var(--paper-ink);
-    font-family: var(--font); }
-  /* The site's coding font, and a point smaller than the serif it replaced on the three text
-     sizes below: monospace is about a quarter wider, so it wraps more, and at the old sizes the
-     magnetism quiz ran 18px past A4 and pushed its answer key onto a third sheet. */
-  .qz-sheet + .qz-sheet { break-before: page; }
-  .qz-q, .qz-ans li { break-inside: avoid; }
-
-  .qz-head { border-bottom: 1.5pt solid var(--paper-ink); padding-bottom: 3mm; margin-bottom: 6mm; }
-  .qz-head h1 { margin: 0; font-size: 17pt; line-height: 1.2; }
-  .qz-sub { margin: 1.5mm 0 0; font-size: 10pt; color: var(--paper-dim); }
-  /* NAME AND DATE, on a rule each. The oldest thing on any worksheet and the one a generated sheet
-     always forgets — a printed quiz comes back and has to say whose it is. */
-  .qz-who { display: flex; gap: 10mm; margin: 6mm 0 0; font-size: 10pt; color: var(--paper-dim); }
-  .qz-who span { flex: 1; border-bottom: .6pt solid var(--paper-rule); padding-bottom: 5mm; }
-
-  .qz-q { margin: 0 0 6mm; }
-  .qz-ask { margin: 0; font-size: 10.5pt; line-height: 1.45; }
-  .qz-ask b { margin-right: 1.5mm; }
-  /* A LETTER PER CHOICE, because a printed option is circled rather than pressed and a circle needs
-     something to go round. `list-style: none` and the letter drawn instead, so the two cannot
-     disagree about which is C. */
-  .qz-opts { list-style: none; margin: 2.5mm 0 0; padding: 0 0 0 6mm; }
-  .qz-opts li { margin: 0 0 1.5mm; font-size: 10pt; line-height: 1.4; }
-  .qz-let { display: inline-block; min-width: 6mm; font-weight: 700; }
-  /* A RULED LINE RATHER THAN A BOX, for a typed answer. It is a word or a number — `Osmosis`,
-     `2,8,1` — and a box the depth of the screen one would be most of a page for eight characters. */
-  .qz-rule { height: 8mm; border-bottom: .6pt solid var(--paper-rule); margin: 2mm 0 0; }
-
-  .qz-ans { margin: 0; padding-left: 7mm; font-size: 10pt; }
-  .qz-ans li { margin: 0 0 5mm; line-height: 1.45; }
-  .qz-why { display: block; margin-top: 1mm; font-size: 10pt; color: var(--paper-dim); }
-
-  .qz-foot { position: absolute; bottom: 10mm; font: 400 8pt var(--mono); color: var(--paper-faint); }
-  .qz-sheet { position: relative; }
-
-  @page { size: A4 portrait; margin: 0; }
-}
 
 .boxer-nick { font-weight: 400; color: var(--dim); }
 /* `.boxer-rec` HAS NO RULE OF ITS OWN ANY MORE: the record is the card's `.fc-meta` line, gold and

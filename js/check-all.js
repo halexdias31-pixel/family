@@ -162,7 +162,6 @@ const SUITE = [
      five worked lines — and the route is the other half: a kind wearing Resources, the Shelf door
      that is the only way past 260 rows of boxing, and the file fetched at all. */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
-  { file: 'check-quizzes.js', what: 'the quizzes: an answer that can be reached, and why' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
      A clip whose path is one character wrong does not draw a broken link. The slide stays its own
      gradient, so a missing file reads as the feature half-working rather than as a file nobody

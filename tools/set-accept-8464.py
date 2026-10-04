@@ -5,8 +5,7 @@
 WHY THERE WAS NONE. Measured across the library: **745 science questions and every one of them has
 an empty `accept`**, so not one of them can mark itself — the card draws an answer box and a mark
 scheme and no Check button. That is correct for most of a science paper, where a mark is earned by
-what is written rather than by a value, and it is what the science quizzes were built for. It is
-NOT correct for a question that asks for a number.
+what is written rather than by a value. It is NOT correct for a question that asks for a number.
 
 THE THIRTEEN, AND WHY TWELVE. `answer_type: 'calculation'` is 13 of the four papers' 126 questions.
 Twelve of them end in a value the mark scheme prints outright. The thirteenth, 05.7 of Chemistry

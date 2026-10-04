@@ -599,22 +599,12 @@ function doGet(e) {
          `check-payload.js` reporting the key as read-and-never-sent, which it would be right
          to do — it cannot tell a key filled in the browser from one nobody sends. */
       practicals: [],
-      /* AND `quizzes` IS THE SIXTH. `data/quizzes.json` is 81 recap quizzes filled in on the phone
-         by `libraryExtras_`, and this line is what stops `check-payload.js` reporting the key as
-         read-and-never-sent -- which it would be right to do, because it cannot tell a key filled
-         in the browser from one nobody sends.
-
-         IT IS NOT A TAB AND IT IS NOT GOING TO BE ONE. The three-question test in CLAUDE.md
-         settles it: it is not secret, the app never writes to it, and nobody hand-edits it -- it
-         arrives in bulk from `tools/quizwrite.py`, whose assertions are the reason it can be
-         trusted to mark a child's answer. */
-      quizzes: [],
-      /* AND `projects` IS THE SEVENTH, for the same sentence: `data/projects.json` is filled in
+      /* AND `projects` IS THE SIXTH, for the same sentence: `data/projects.json` is filled in
          on the phone by `libraryExtras_`, and without this key `check-payload.js` would report it
          read-and-never-sent. Nothing here reads a tab for it. The site works before this line is
          deployed -- the phone fills the key either way -- so the deploy is for the check's sake. */
       projects: [],
-      /* AND `textbooks` IS THE EIGHTH, for the same sentence again: `data/textbooks.json` is
+      /* AND `textbooks` IS THE SEVENTH, for the same sentence again: `data/textbooks.json` is
          filled in on the phone, and this key is here so `check-payload.js` does not report it
          read-and-never-sent. */
       textbooks: [],
