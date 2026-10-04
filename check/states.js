@@ -1004,7 +1004,7 @@ const STATES = {
     /* ---------- AND A CARD'S OWN PAGES FILLING MOVE NOTHING ON IT ----------------------------------
        The pager fills pages either side of the one in front as you swipe, so a practical's diagram,
        kit and steps are drawn into the DOM while you are reading its card. Measured on the card:
-       its title and its tile row, relative to its pane, before and after turning two pages on and
+       its title and its foot, relative to its pane, before and after turning two pages on and
        back — which is what fills and empties the neighbours. */
     { name: "a practical's pages filled, its card still",
       enter: () => {
@@ -1016,14 +1016,18 @@ const STATES = {
         const first = stuffFirstResult_();
         goPage('stuff', first, true);
         window.__cardStill = null;
-        const page = () => document.querySelectorAll('#s-stuff > .page')[first];
+        /* THE PAGE IN FRONT, NOT THE N-TH CHILD: the pager keeps a window of result pages and recycles
+           them, so the strip's children are not numbered by page. */
+        const page = () => document.querySelector('#s-stuff > .page.on');
         const at = () => {
           const pg = page(), pane = pg && pg.querySelector('.pane');
           const h3 = pane && pane.querySelector('.card.fc .fc-head h3');
-          const row = pane && pane.querySelector('.tile-row');
-          if (!h3 || !row) return null;
+          /* THE CARD'S FOOT, NOT THE TILE ROW: signed out there is no star and no admin mark, so
+             there is no row, and a state that measures nothing for a stranger is not measuring. */
+          const card = h3 && h3.closest('.card');
+          if (!card) return null;
           const t = pane.getBoundingClientRect().top;
-          return [h3.getBoundingClientRect().top - t, row.getBoundingClientRect().top - t,
+          return [h3.getBoundingClientRect().top - t, card.getBoundingClientRect().bottom - t,
                   pane.getBoundingClientRect().height];
         };
         setTimeout(() => {
@@ -1031,15 +1035,15 @@ const STATES = {
           goPage('stuff', first + 3, true);
           setTimeout(() => {
             goPage('stuff', first, true);
-            setTimeout(() => { window.__cardStill = { a, b: at() }; }, 120);
-          }, 120);
-        }, 100);
+            setTimeout(() => { window.__cardStill = { a, b: at() }; }, 80);
+          }, 80);
+        }, 60);
       },
       expect: () => {
         const s = window.__cardStill;
         return !!s && !!s.a && !!s.b && s.a.every((v, i) => Math.abs(v - s.b[i]) < .5);
       },
-      wants: "a practical's card with its title, tile row and pane height unchanged after its pages filled",
+      wants: "a practical's card with its title, its foot and its pane's height unchanged after its pages filled",
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
   ],
 
