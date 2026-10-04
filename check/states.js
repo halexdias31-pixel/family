@@ -832,8 +832,215 @@ const STATES = {
         paintStuff();
         goPage('stuff', stuffFirstResult_(), true);
       },
-      expect: () => document.querySelectorAll('#s-stuff .card.film').length >= 2,
-      wants: 'at least two film cards' },
+      /* AND ONE ROW OF TILES. The Watch tile was a `.tile-row` drawn INSIDE the card, above the
+         notes, with the star's row under the card — two rows on one film, where a fight has one.
+         It is `filmTiles_`'s now, so a row inside a film card is that shape coming back. */
+      expect: () => {
+        const films = [...document.querySelectorAll('#s-stuff .card.film')];
+        const live = films.find(c => !c.classList.contains('is-off'));
+        const row = live && live.parentElement && live.parentElement.nextElementSibling;
+        return films.length >= 2 && !films.some(c => c.querySelector('.tile-row'))
+               && !!row && row.classList.contains('tile-row') && !!row.querySelector('a.tile[href]');
+      },
+      wants: 'at least two film cards, each with no tile row inside it, and the Watch tile in the row under the card' },
+    /* ==============================================================================================
+       THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
+
+       ASKED FOR AS *"didn't I ask you to sleekerise the whole widget system in the finder"* — and
+       two kinds in Find had never been on a screen this file drew: the boxer and the fight. The
+       boxer was a SHOP row (a 0.92rem title, the record pinned in a corner) and the fight a loose
+       paragraph of names, and nothing measured either, because no state reached Resources ›
+       Boxing. These do, and each asks for the shared shape rather than just "a card": the title in
+       `.fc-head` at the one title size, the kind flag drawn ABOVE it (the kicker slot every page
+       now has), and the numbers on the gold meta line.
+
+       `fcHead` IS WRITTEN OUT IN EACH, not shared, because these functions are passed to the
+       browser as source one at a time and cannot see each other — the note at the top of the file.
+    ============================================================================================== */
+    { name: 'the boxers, on the shared head',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer')
+               || document.querySelector('#s-stuff .card.fc.boxer');
+        if (!c || c.querySelector('.thing')) return false;
+        const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.fc-head .fc-flag');
+        const rec = c.querySelector('.fc-meta.boxer-rec');
+        if (!h3 || !flag || !rec || flag.textContent.trim() !== 'Boxer') return false;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
+               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
+               && /^\d+-\d+-\d+/.test(rec.textContent.trim());
+      },
+      wants: 'a boxer on the shared head — the name at the title size under a Boxer flag, the record on the meta line, no shop row',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'the fights, on the shared head',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Fights' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      /* AND NO `.note` PARAGRAPHS. The title and the venue were two of them a browser's default
+         margin apart; they are one `.fc-note` line now, and the method is in sentence case like
+         every other meta line rather than in capitals. */
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.fight')
+               || document.querySelector('#s-stuff .card.fc.fight');
+        if (!c || c.querySelector('p.note')) return false;
+        const h3 = c.querySelector('.fc-head > h3.fight-line'), flag = c.querySelector('.fc-head .fc-flag');
+        const how = c.querySelector('.fc-meta');
+        if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fight') return false;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
+               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
+               && getComputedStyle(how).textTransform === 'none';
+      },
+      wants: 'a fight on the shared head — the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
+       `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
+       DOM only as a neighbour and never the page measured. Its list has sixteen numbers, and with a
+       bullet's 1.1rem indent `10.` to `16.` hung out past the card's padding at 320px — a marker is
+       not a box, so no overflow rule could see it. So this asks the arithmetic directly: the list's
+       indent against the width of its widest number, set in the list's own font. */
+    { name: "the textbook's contents, every number inside the card",
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook');
+        if (!x) throw new Error('no textbook in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'shelf', value: x.shelf }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .card.tb:not(.prac-part)');
+        const ol = c && c.querySelector('.tb-toc ol.fc-list');
+        const li = ol && ol.children;
+        if (!li || li.length < 10) return false;
+        const probe = document.createElement('span');
+        probe.textContent = li.length + '. ';
+        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
+        li[li.length - 1].appendChild(probe);
+        const need = probe.getBoundingClientRect().width;
+        probe.remove();
+        return parseFloat(getComputedStyle(ol).paddingLeft) >= need;
+      },
+      wants: "the textbook's contents card, its list indented at least as wide as its widest number",
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE TWO WAYS THE FUNNEL ENDS WITHOUT A QUESTION ------------------------------------
+       NEITHER WAS A STATE. `Nothing matches` is what a search for nothing says, and "Nothing left to
+       narrow" is the last line under the chips when every question is answered — an inline
+       `style="margin:.6rem 0 0"` in the faintest ink until it had a class. Both are measured for
+       contrast here for the first time. */
+    { name: 'a search that matches nothing',
+      enter: () => { STUFF.filters = []; STUFF.q = 'zqxjv nothing is called this'; paintStuff(); goPage('stuff', 0, true); },
+      expect: () => /Nothing matches/.test((document.querySelector('#stuff-groups .empty') || {}).textContent || ''),
+      wants: 'the funnel saying Nothing matches',
+      leave: () => { STUFF.q = ''; paintStuff(); goPage('stuff', 0); } },
+    { name: 'nothing left to narrow',
+      /* ANSWERED BY THE FUNNEL'S OWN ROWS until it stops asking, over the projects — eight things,
+         so it runs out of questions in two or three answers whatever the data says next week. */
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Projects' }];
+        paintStuff();
+        for (let i = 0; i < 8; i++) {
+          const r = document.querySelector('#stuff-groups .answers > .row[data-do="facet-pick"]');
+          if (!r) break;
+          r.click();
+        }
+        goPage('stuff', 0, true);
+      },
+      expect: () => {
+        const end = document.querySelector('#stuff-groups .find-end');
+        const chips = document.querySelector('#stuff-chips .chips');
+        return !!end && /Nothing left to narrow/.test(end.textContent) && !end.hasAttribute('style')
+               && !!end.querySelector('b') && !!chips
+               && parseFloat(getComputedStyle(chips).borderBottomWidth) >= 1;
+      },
+      wants: 'the funnel ending on "Nothing left to narrow" in its own class, with a rule under the chosen chips',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- "STABLE": AN ANSWER PRESSED MOVES NOTHING ABOVE IT ---------------------------------
+       *"nice more sleek, fresh stable"*. Pressing an answer adds a chip and asks the next question,
+       so the list UNDER the chips moves by design — but the search box and the chips already chosen
+       must not move a pixel, or the thing you were about to press next is somewhere else. Measured
+       before and after a real click on the first answer, relative to the pane. */
+    { name: 'an answer pressed, the search box and the chips still',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }];
+        paintStuff();
+        goPage('stuff', 0, true);
+        window.__findStill = null;
+        setTimeout(() => {
+          const pane = document.getElementById('stuff-controls');
+          const at = () => {
+            const top = pane.getBoundingClientRect().top;
+            const q = document.getElementById('stuff-q').getBoundingClientRect().top - top;
+            const chip = document.querySelector('#stuff-chips .chip');
+            return [q, chip ? chip.getBoundingClientRect().top - top : -1,
+                    chip ? chip.getBoundingClientRect().left : -1];
+          };
+          const a = at();
+          const r = document.querySelector('#stuff-groups .answers > .row[data-do="facet-pick"]');
+          if (!r) return;
+          r.click();
+          window.__findStill = { a, b: at(), n: STUFF.filters.length };
+        }, 150);
+      },
+      expect: () => {
+        const s = window.__findStill;
+        return !!s && s.n === 2 && s.a[1] >= 0 && s.a.every((v, i) => Math.abs(v - s.b[i]) < .5);
+      },
+      wants: 'a second chip added with the search box and the first chip exactly where they were',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AND A CARD'S OWN PAGES FILLING MOVE NOTHING ON IT ----------------------------------
+       The pager fills pages either side of the one in front as you swipe, so a practical's diagram,
+       kit and steps are drawn into the DOM while you are reading its card. Measured on the card:
+       its title and its tile row, relative to its pane, before and after turning two pages on and
+       back — which is what fills and empties the neighbours. */
+    { name: "a practical's pages filled, its card still",
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'practical' && !it.row.excluded && it.row.diagram);
+        if (!x) throw new Error('no practical with a diagram');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }];
+        paintStuff();
+        const first = stuffFirstResult_();
+        goPage('stuff', first, true);
+        window.__cardStill = null;
+        const page = () => document.querySelectorAll('#s-stuff > .page')[first];
+        const at = () => {
+          const pg = page(), pane = pg && pg.querySelector('.pane');
+          const h3 = pane && pane.querySelector('.card.fc .fc-head h3');
+          const row = pane && pane.querySelector('.tile-row');
+          if (!h3 || !row) return null;
+          const t = pane.getBoundingClientRect().top;
+          return [h3.getBoundingClientRect().top - t, row.getBoundingClientRect().top - t,
+                  pane.getBoundingClientRect().height];
+        };
+        setTimeout(() => {
+          const a = at();
+          goPage('stuff', first + 3, true);
+          setTimeout(() => {
+            goPage('stuff', first, true);
+            setTimeout(() => { window.__cardStill = { a, b: at() }; }, 120);
+          }, 120);
+        }, 100);
+      },
+      expect: () => {
+        const s = window.__cardStill;
+        return !!s && !!s.a && !!s.b && s.a.every((v, i) => Math.abs(v - s.b[i]) < .5);
+      },
+      wants: "a practical's card with its title, tile row and pane height unchanged after its pages filled",
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
   ],
 
   /* ---------- THE TWO WIDGETS THAT ARE TALLER THAN A SCREEN ------------------------------------
@@ -1795,6 +2002,32 @@ const STATES = {
         widgetsOf_('tool').slice(0, 2).forEach(w => {
           if (isFav(WIDGET_KEY(w))) toggleFav(WIDGET_KEY(w), 'widget');
         });
+        paint('saved');
+      } },
+    /* ---------- THINGS KEPT, DRAWN AS FIND DRAWS THEM ------------------------------------------
+       THE STATE ABOVE KEEPS WIDGETS, and a kept practical, boxer or pencil had never been drawn
+       here. Each was wrapped in `.card.is-widget` — a widget's own framed body — inside the pane,
+       which draws that frame already: a card in a box in a box, 14px narrower each side than the
+       same card on Find. Seeded through `toggleFav`, the app's own writer, one of each kind that is
+       drawn differently; `leave` takes them back off. */
+    { name: 'things kept, drawn as Find draws them',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const all = stuffItemsAll_();
+        window.__keptKeys = ['practical', 'boxer', 'shop']
+          .map(k => all.find(x => x.kind === k && x.key && !(x.row && x.row.excluded)))
+          .filter(Boolean).map(x => x.key);
+        window.__keptKeys.forEach(k => { if (!isFav(k)) toggleFav(k); });
+        paint('saved');
+      },
+      expect: () => (window.__keptKeys || []).length === 3
+                 && document.querySelectorAll('#s-saved .favwrap').length >= 3
+                 && !!document.querySelector('#s-saved .favwrap > .card.fc.prac')
+                 && !!document.querySelector('#s-saved .favwrap > .card.fc.boxer')
+                 && !document.querySelector('#s-saved .card.is-widget .favwrap'),
+      wants: 'a kept practical, boxer and shop thing, each drawn straight into its pane with no widget frame round it',
+      leave: () => {
+        (window.__keptKeys || []).forEach(k => { if (isFav(k)) toggleFav(k); });
         paint('saved');
       } },
   ],

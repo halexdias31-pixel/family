@@ -5527,6 +5527,86 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   return bad;
 });
 
+/* ---------- EVERY FIND KIND THAT IS NOT A QUESTION IS BUILT FROM THE SAME FIVE PARTS ----------------
+   *"didn't I ask you to sleekerise the whole widget system in the finder for questions and so on?"*
+   The answer was one set of parts — `.fc-head` (title and flags), `.fc-kick` (whose page this is),
+   `.fc-meta`, `.fc-sec`, `.fc-list` — and every kind moved onto it: the boxer off the shop's `.thing`
+   row, the fight off a bare paragraph of names, the quiz off its round level pill, the film's Watch
+   tile out of a second tile row inside the card.
+
+   ASKED OF THE MARKUP, OVER THE REAL FILES THROUGH THE REAL MAPPER, so a kind added tomorrow with a
+   card of its own shape is named here by kind. What it LOOKS like is `check/states.js`'s question
+   (the boxer, fight and textbook states measure the title size, the flag above the title, and the
+   list's indent in a real browser); this is whether every kind is made of the same pieces:
+
+     - the card is `.card.fc`, and its first child is ONE `.fc-head` holding an `h3` and its flags;
+     - every page after it is `.card.fc` whose first child is the `.fc-kick` and whose second is
+       the page's `h3` — except a picture page, which is the picture;
+     - no shop row (`.thing`), no `.quiz-lvl`, no inline style, no loose `p.note`, and no tile row
+       INSIDE a card: the tiles are the row under it, one row, which `stuffCard` adds;
+     - every numbered list is an `.fc-list`, which is what gives `10.` its room. */
+check('every Find kind that is not a question is made of the shared parts: head, kicker, meta, section, list', async () => {
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the cards were NOT checked — not a pass'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+    { textbooks: read('textbooks'), boxers: read('boxers'), fights: read('fights'), projects: read('projects'),
+      practicals: read('practicals'), quizzes: read('quizzes') })));
+  const p = payload();
+  ['textbooks', 'boxers', 'fights', 'projects', 'practicals', 'quizzes'].forEach(k => { p[k] = made[k] || []; });
+  /* THE FILMS ARE THE FIXTURE'S THREE INVENTED ROWS, shaped as `doGet` sends an admin them — a long
+     title, a series, and a placeholder with no file, the three ways the card is drawn. */
+  p.films = JSON.parse(fs.readFileSync(path.join(dir, '..', 'check', 'fixture.json'), 'utf8')).films || [];
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const bad = [];
+  const box = html => { const d = w.document.createElement('div'); d.innerHTML = html; return d; };
+  const all = w.stuffItemsAll_();
+  /* THE CARD'S OWN MARKUP, NOT A DRAWING'S. A practical's diagram is hand-written SVG and some of it
+     carries a `style` attribute of its own, which is the drawing's business rather than the card's. */
+  const onCard = el => !el.closest('svg, figure');
+  const KINDS_HERE =['practical', 'project', 'textbook', 'quiz', 'film', 'boxer', 'fight'];
+  KINDS_HERE.forEach(kind => {
+    const xs = all.filter(x => x.kind === kind);
+    if (!xs.length) { bad.push('no ' + kind + ' reached Find, so its card was NOT checked'); return; }
+    xs.forEach(x => {
+      const name = kind + ' "' + x.name + '"';
+      const host = box(w.stuffCard(x));
+      const card = host.querySelector('.favwrap > .card') || host.firstElementChild;
+      if (!card || !card.classList.contains('fc')) { bad.push(name + ' is not a `.card.fc`'); return; }
+      const head = card.firstElementChild;
+      if (!head || !head.classList.contains('fc-head')) bad.push(name + ' does not open on `.fc-head`');
+      else if (!head.querySelector(':scope > h3') || !head.querySelector(':scope > .fc-flags > .fc-flag')) {
+        bad.push(name + '\'s head is not a title and its flags');
+      }
+      if (card.querySelectorAll('.fc-head').length !== 1) bad.push(name + ' has ' + card.querySelectorAll('.fc-head').length + ' heads');
+      const stray = ['.thing', '.quiz-lvl', '[style]', 'p.note', '.tile-row'].filter(sel => [...card.querySelectorAll(sel)].some(onCard));
+      if (stray.length) bad.push(name + ' carries ' + stray.join(', ') + ' inside the card');
+      const pages = w.pageParts_(x).filter(Boolean).map(part => ({ part, el: box(w.stuffPart_(x, part)).firstElementChild }));
+      pages.forEach(({ part, el }) => {
+        if (!el) { bad.push(name + ' page ' + part + ' drew nothing'); return; }
+        if (!el.classList.contains('fc')) bad.push(name + ' page ' + part + ' is not a `.card.fc`');
+        const k = el.firstElementChild, h = k && k.nextElementSibling;
+        if (!k || !k.classList.contains('fc-kick') || !h || h.tagName !== 'H3') {
+          bad.push(name + ' page ' + part + ' does not open on its kicker and then its title');
+        }
+        if ([...el.querySelectorAll('[style], p.note, .thing')].some(onCard)) bad.push(name + ' page ' + part + ' carries a stray shape');
+      });
+      [card].concat(pages.map(pg => pg.el).filter(Boolean)).forEach(el => {
+        el.querySelectorAll('ol').forEach(ol => {
+          if (!ol.classList.contains('fc-list')) bad.push(name + ' has a numbered list that is not an `.fc-list`');
+        });
+      });
+      if (kind === 'film' && !x.row.placeholder) {
+        const row = host.querySelector(':scope > .tile-row');
+        if (!row || !row.querySelector('a.tile[href]')) bad.push(name + '\'s Watch tile is not in the row under the card');
+      }
+    });
+  });
+  return bad.length > 12 ? bad.slice(0, 12).concat(['… and ' + (bad.length - 12) + ' more']) : bad;
+});
+
 /* ---------- SHARING A BOOKING HANDS OVER A PICTURE OF IT ------------------------------------------
    *"just make sure sharing booking is an identical jpg or png or whatevers best of the booking
    reciept."* It was `window.print()` — a PDF by way of the print dialogue — and this asks the three
