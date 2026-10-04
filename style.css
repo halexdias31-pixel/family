@@ -9941,7 +9941,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    0.92rem title, the record pinned in a corner), the fight as a bare paragraph of names at body
    size, the quiz with a round level pill where everybody else has a square kind flag, and the film
    with two rows of tiles. Measured at 390px: four title sizes (17.3, 14.8, 14.8 and 13.6px) for
-   cards that each own a whole page, and nine different gaps between their lines.
+   cards that each own a whole page, and nine different margins between their lines (.15rem to
+   .65rem).
 
    SO THE PARTS HAVE NEUTRAL NAMES AND EVERY KIND IS BUILT FROM THEM:
 
@@ -10005,8 +10006,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    flags at the far right of its line; a long one had them dropped to a line of their own, LEFT
    aligned, between the title and the subject line — so `FIGHT` sat beside `Jack Dempsey v Jess
    Willard` and alone under `Jack Johnson v James J. Jeffries` one card earlier, and which you got
-   depended on the length of somebody's name. Measured over the fixture at 390px: 7 of 13 Find cards
-   with a head had wrapped.
+   depended on the length of somebody's name. Measured over all 435 cards of these kinds with the old
+   wrapping head: 227 wrapped in the 326px pane of a 390px phone, and all 435 at 320px.
 
    SO THE FLAGS ARE THE PAGE'S KICKER: one small row above the title on every card, in the slot a
    part page uses for whose page it is (`.fc-kick`). Every page of every kind now reads kicker,
