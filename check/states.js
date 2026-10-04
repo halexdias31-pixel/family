@@ -1018,9 +1018,10 @@ const STATES = {
         const first = stuffFirstResult_();
         goPage('stuff', first, true);
         window.__cardStill = null;
-        /* THE PAGE IN FRONT, NOT THE N-TH CHILD: the pager keeps a window of result pages and recycles
-           them, so the strip's children are not numbered by page. */
-        const page = () => document.querySelector('#s-stuff > .page.on');
+        /* THE CARD'S PAGE BY THE APP'S OWN `domIndex_`, NOT THE N-TH CHILD AND NOT `.page.on`: the
+           pager keeps a window of result pages and recycles them, so the strip's children are not
+           numbered by page, and `.on` moves on the next frame rather than inside `goPage`. */
+        const page = () => document.querySelectorAll('#s-stuff > .page')[domIndex_('stuff', first)];
         const at = () => {
           const pg = page(), pane = pg && pg.querySelector('.pane');
           const h3 = pane && pane.querySelector('.card.fc .fc-head h3');
@@ -1032,23 +1033,21 @@ const STATES = {
           return [h3.getBoundingClientRect().top - t, card.getBoundingClientRect().bottom - t,
                   pane.getBoundingClientRect().height];
         };
-        /* THE PAGES ARE FILLED BY `fillStuffPages`, CALLED HERE RATHER THAN WAITED FOR. The pager
-           fills on the settle after a swipe, which under a loaded machine was later than the half
-           second `check/ui.js` waits — so the first version measured a card mid-swipe on one run
-           in three and reported it missing. Calling the app's own filler (`all`, so the far pages are
-           not left to a timer either) is the same drawing,
-           synchronously. The title node is kept so the expect can tell the card was drawn AGAIN
-           rather than left standing. */
-        setTimeout(() => {
-          const a = at();
-          const was = page() && page().querySelector('.card.fc .fc-head h3');
-          goPage('stuff', first + STUFF_NEAR + 3, true); fillStuffPages(true);
-          goPage('stuff', first, true); fillStuffPages(true);
-          setTimeout(() => {
-            const now = page() && page().querySelector('.card.fc .fc-head h3');
-            window.__cardStill = { a, b: at(), redrawn: !!now && now !== was };
-          }, 60);
-        }, 60);
+        /* THE PAGES ARE FILLED BY `fillStuffPages`, CALLED HERE RATHER THAN WAITED FOR, AND NOTHING
+           IN THIS STATE WAITS ON A TIMER. The pager fills on the settle after a swipe; the first
+           version waited for it, then waited 60ms twice for its own measurements — and with the
+           whole suite running at once those timers fired after the half second `check/ui.js` gives
+           a state, so it reported the card missing at every width. Calling the app's own filler
+           (`all`, so the far pages are not left to a timer either) is the same drawing, and reading
+           a box forces the layout, so the whole thing is synchronous. The title node is kept so the
+           expect can tell the card was drawn AGAIN rather than left standing. */
+        fillStuffPages(true);
+        const a = at();
+        const was = page() && page().querySelector('.card.fc .fc-head h3');
+        goPage('stuff', first + STUFF_NEAR + 3, true); fillStuffPages(true);
+        goPage('stuff', first, true); fillStuffPages(true);
+        const now = page() && page().querySelector('.card.fc .fc-head h3');
+        window.__cardStill = { a, b: at(), redrawn: !!now && now !== was };
       },
       expect: () => {
         const s = window.__cardStill;
