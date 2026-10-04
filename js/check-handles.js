@@ -968,6 +968,12 @@ function run() {
     { person_id: 'P4', email: '',                pin: '0000', username: 'NoMail', handle: 'sam_kind' },
     { person_id: 'P5', email: '',                pin: '0000', username: 'Twin1',  handle: 'twin_brave' },
     { person_id: 'P6', email: '',                pin: '0000', username: 'Twin2',  handle: 'Twin_Brave' },
+    /* A STUDENT WHO HAS AN ADDRESS, in each shape a handle has had: the 1 October
+       `<first>_<virtue><nn>` and today's shuffled arrangement. *"have the students be able to login
+       with their handles too"* — these two were the ones the handle door turned away. */
+    { person_id: 'P7', email: 'mia@x.com',       pin: '0000', username: 'MiaS',   handle: 'mia_brave33' },
+    { person_id: 'P8', email: 'leo@x.com',       pin: '0000', username: 'LeoS',   handle: '42kind_leo' },
+    { person_id: 'P9', email: 'new@x.com',       pin: '0000', username: 'NewS',   handle: 'nia_calm7', verified: 'PENDING' },
   ];
   /* THE HELPER THE TWO DOORS SHARE (the lock, the PIN, the session) is cut out too, because the
      handler hands every found row to it. */
@@ -1005,7 +1011,15 @@ function run() {
     { body: { email: 'sam_kind', pin: 'wrong' },            want: '', code: 'wrong-pin', why: 'a wrong PIN on a handle is still wrong' },
     { body: { email: 'twin_brave', pin: '0000' },           want: '',   why: 'two blank rows on one handle is refused, not guessed' },
     { body: { email: 'ada_x', pin: '0000' },                want: '', code: 'not-an-email', why: 'a handle nobody has signs nobody in' },
-    { body: { email: 'adal', pin: '0000' },                 want: '', code: 'not-an-email', why: 'a row WITH an address cannot be claimed by its handle or username' },
+    { body: { email: 'adal', pin: '0000' },                 want: '', code: 'not-an-email', why: 'a username is still not a handle, address or not' },
+    { body: { email: 'mia_brave33', pin: '0000' },          want: 'P7', why: 'a student WITH an address signs in by an old-shaped handle' },
+    { body: { email: '42kind_leo', pin: '0000' },           want: 'P8', why: 'a student WITH an address signs in by a new-shaped handle' },
+    { body: { email: 'MIA_Brave33', pin: '0000' },          want: 'P7', why: 'the handle is case-insensitive' },
+    { body: { email: '@mia_brave33', pin: '0000' },         want: 'P7', why: 'the handle as a card prints it, with its @' },
+    { body: { name: 'leo_42kind', pin: '0000' },            want: '', code: 'not-an-email', why: 'the same parts in another order are somebody else\'s handle, not this one' },
+    { body: { email: 'mia_brave33', pin: '9999' },          want: '', code: 'wrong-pin', said: 'Wrong PIN for that handle.', why: 'a wrong PIN by handle is refused, and names the handle even though the row has an address' },
+    { body: { email: 'mia@x.com', pin: '9999' },            want: '', code: 'wrong-pin', said: 'Wrong PIN for that email address.', why: 'the same row by address names the address' },
+    { body: { email: 'nia_calm7', pin: '0000' },            want: '', said: 'Please confirm your email first — check your inbox for the link we sent.', why: 'the PENDING rule holds at the handle door' },
     { body: { email: 'ada@example.com', pin: 'wrong' },    want: '', code: 'wrong-pin', why: 'a wrong PIN is still wrong' },
     { body: { email: 'dup@x.com', pin: '0000' },          want: '',   why: 'two rows on one address is refused, not guessed' },
     { body: { email: 'nobody@x.com', pin: '0000' },       want: '', code: 'no-such-email', why: 'an address nobody has signs nobody in' },
@@ -1021,6 +1035,10 @@ function run() {
        unknown address or the other way round. */
     else if (c.code && (!got || got.why !== c.code)) bad.push({ handle: 'verifyLogin ' + JSON.stringify(c.body),
       want: 'refused as ' + c.code, why: c.why, said: JSON.stringify(got) });
+    /* THE WORDING IS PART OF THE ASK — "the same refusal wording" — so where a case names the
+       sentence, the sentence is compared whole. */
+    else if (c.said && (!got || got.error !== c.said)) bad.push({ handle: 'verifyLogin ' + JSON.stringify(c.body),
+      want: 'refused with "' + c.said + '"', why: c.why, said: JSON.stringify(got) });
   });
 
   /* ---------- THE HEADING NAMES BOTH THINGS, because it checks both -------------------------------

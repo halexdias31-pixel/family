@@ -80,10 +80,17 @@ function signInCard_() {
              is the phone's half of "no case sensitive stuff" — the server folds case anyway, but a
              box that capitalises the first letter of an address reads as though case mattered.
              THE ID STAYS `in-name`, because `forgot-pin`, the Enter-to-submit listener and
-             `check-flow.js` all find the box by it, and renaming it buys nothing but three edits. */''}
+             `check-flow.js` all find the box by it, and renaming it buys nothing but three edits.
+
+             ---------- AND A HANDLE, FOR EVERYBODY ----------
+             ASKED FOR AS *"have the students be able to login with their handles too"*. The handle
+             door was for rows with no address; it is open to every row now (see `verifyLogin`), so
+             the placeholder stopped saying "if you have no email" — that clause told a student with
+             an address that their handle would not work, which is no longer true. `type="text"`
+             stays, because `type="email"` would refuse a handle before it was sent. */''}
         <label class="field"><span>email or handle</span>
           <input id="in-name" type="text" inputmode="email" autocomplete="username" autocapitalize="off"
-                 spellcheck="false" placeholder="you@example.com — or your handle if you have no email"></label>
+                 spellcheck="false" placeholder="you@example.com — or your handle"></label>
         <label class="field"><span>PIN</span>
           <input id="in-pin" type="password" inputmode="numeric" autocomplete="current-password"></label>
         ${/* ---------- THREE TILES, WHERE THERE WERE TWO BUTTONS AND A CARD -------------------------
@@ -665,7 +672,7 @@ function googleSignedIn_(res) {
    deployment too old to carry the action at all, which answers a refusal rather than this. */
 on('forgot-pin', el => {
   const who = (($('in-name') || {}).value || '').trim();
-  if (!who) { toast('Type your email address first — or your handle if you have no email.'); return; }
+  if (!who) { toast('Type your email address or your handle first.'); return; }
   send_({ action: 'forgotPin', who }, { button: el, busy: 'Sending\u2026' })
     .then(d => toast((d && d.message)
       || 'If there is an account with that email, a new PIN is on its way.'));
