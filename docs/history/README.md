@@ -264,3 +264,5 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The calendar, the timetable and a tutor's hours read one set of facts, and stopped clashing](260-the-calendar-the-timetable-and-a-tutor-s-hours-read-one-set.md)
 - [The question card was polished, and marking it no longer moves anything](261-the-question-card-was-polished-and-marking-it-no-longer-move.md)
 - [Find's other cards are one system: a shared head, kicker, meta line, section and list](262-find-s-other-cards-are-one-system-a-shared-head-kicker-meta.md)
+- [The answer is its own page, and the pages of a question read as one question](263-the-answer-is-its-own-page-and-the-pages-of-a-question-read.md)
+- [The quizzes were deleted, and the question card kept their option styling under its own name](264-the-quizzes-were-deleted-and-the-question-card-kept-their-op.md)
