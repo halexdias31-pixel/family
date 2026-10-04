@@ -185,6 +185,9 @@ const SUITE = [
      admin's Saves wrote blanks over five packed cells — and nothing on this roster ever ran
      `updateProfile`. See the header of that file. */
   { file: 'check-profile.js', what: 'your settings, saved and read back through the real backend' },
+  /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
+     press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
+  { file: 'check-aimark.js', what: 'AI marking: the key, the clamp and the daily cap, through the real doPost' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
      The third check here about SAFETY rather than about working, after `check-marking.js` and
      `check-handles.js` — and the only one whose subject is this repository rather than the app.

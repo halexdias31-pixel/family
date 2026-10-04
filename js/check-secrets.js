@@ -57,6 +57,14 @@ const SKIP = new Set(['node_modules', '.git', 'data', 'shots']);
    what keeps `spin`, `pinned` and `pinch` out of it. */
 const RE = /\bpins?\b[^A-Za-z0-9]{0,6}(\d{4,})/gi;
 
+/* ---------- AND A GOOGLE API KEY, WHICH THIS APP HOLDS NOW ----------------------------------------
+   "MARK WITH AI" CALLS GEMINI, and the key for it is `GEMINI_API_KEY` in Script Properties — never a
+   config cell, never a constant, never a comment showing what one looks like. The paragraph above
+   refuses a general secrets search and that still stands: this is not a judgement about entropy but
+   ONE EXACT SHAPE, the one Google issues — `AIza` and thirty-five more characters — so there is
+   nothing to tune and no example of it that is not a key. It is not quoted here either. */
+const GOOGLE_KEY = /\bAIza[0-9A-Za-z_\-]{35}\b/g;
+
 function walk(dir, out) {
   let names;
   try { names = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { return out; }
@@ -93,16 +101,19 @@ function run() {
         if (m[1] === PLACEHOLDER) continue;
         bad.push({ where: path.relative(ROOT, f) + ':' + (i + 1), digits: m[1] });
       }
+      GOOGLE_KEY.lastIndex = 0;
+      if (GOOGLE_KEY.test(line)) bad.push({ where: path.relative(ROOT, f) + ':' + (i + 1), google: true });
     });
   });
 
-  console.log('\nA PIN WRITTEN INTO THE SOURCE  (' + bad.length + ')');
+  console.log('\nA PIN OR A GOOGLE KEY WRITTEN INTO THE SOURCE  (' + bad.length + ')');
   if (!bad.length) console.log('  none');
   /* THE DIGITS ARE NOT PRINTED. A check that names the credential it found is the credential in one
      more place — the same argument `check-handles.js` makes about never quoting a refused word
      back. The line is what somebody needs; they can open it. */
-  bad.forEach(b => console.log('  ' + b.where + '  — ' + b.digits.length
-    + ' digits beside the word "pin", and they are not ' + PLACEHOLDER));
+  bad.forEach(b => console.log('  ' + b.where + '  — ' + (b.google
+    ? 'a Google API key. Revoke it at aistudio.google.com and put the new one in Script Properties'
+    : b.digits.length + ' digits beside the word "pin", and they are not ' + PLACEHOLDER)));
 
   console.log('\nfiles read: ' + files.length + ', PIN literals found: ' + seen);
   if (bad.length) {
