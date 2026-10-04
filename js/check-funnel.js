@@ -1818,6 +1818,43 @@ boot(f => {
       + 'NOT checked — not a pass');
   }
 
+  /* ---------- LEVEL BEFORE KEY STAGE, AND A QUALIFICATION RATHER THAN A GREY AREA --------------------
+     THE OWNER: *"key stage 3 and 4 shouldnt come before like the level … I prefer GCSE or SATs over
+     grey areas."* Four answers, each through the app's own readers:
+       1. Level is ahead of Key stage in the code's order AND in the live order the sheet makes;
+       2. no item with a key stage has no level — 1,160 primary sheets had none, which kept Level
+          under its coverage bar and put Key stage in front of it;
+       3. no item's level is a bare KS1, KS2, KS4 or KS5 — those have a qualification to say;
+       4. inside any one level, Key stage has at most one answer, so it is never asked there —
+          `KS3 | KS4` inside GCSE is the exact screen that was reported. */
+  {
+    const all = f.stuffItems();
+    const ksF = (f.facetList() || []).find(x => x.field === 'keystage');
+    const at = (list, field) => (list || []).findIndex(x => x.field === field);
+    if (typeof f.levelOf !== 'function' || !ksF) {
+      bad.push('`levelOf_` or the `keystage` facet is missing, so Level against Key stage was NOT checked — not a pass');
+    } else {
+      [['the code', f.FACETS], ['the live funnel', f.facetList()]].forEach(([which, list]) => {
+        if (!(at(list, 'level') >= 0 && at(list, 'level') < at(list, 'keystage')))
+          bad.push('in ' + which + ' Key stage comes before Level (level at ' + at(list, 'level') + ', keystage at ' + at(list, 'keystage') + ')');
+      });
+      const ksOf = x => String(x.keystage || '').split(',').map(v => v.trim()).filter(Boolean);
+      const noLevel = all.filter(x => ksOf(x).length && !f.levelOf(x));
+      if (noLevel.length) bad.push(noLevel.length + ' item(s) carry a key stage and no level, e.g. "' + noLevel[0].name + '" (' + noLevel[0].keystage + ')');
+      const bare = all.filter(x => /^KS[1245]$/i.test(String(f.levelOf(x) || '')));
+      if (bare.length) bad.push(bare.length + ' item(s) give a bare key stage as their level, e.g. "' + bare[0].name + '" → ' + f.levelOf(bare[0]));
+      const levels = {};
+      all.forEach(x => { const l = f.levelOf(x); if (l) (levels[l] = levels[l] || []).push(x); });
+      let asked = 0;
+      Object.keys(levels).forEach(l => {
+        const vals = f.facetValues(levels[l], ksF).map(v => v.value);
+        if (vals.length > 1) { asked += 1; bad.push('inside Level ' + l + ' Key stage still asks ' + vals.join(' | ')); }
+      });
+      console.log('Level against Key stage: ' + all.filter(x => ksOf(x).length).length + ' items with a key stage, '
+        + Object.keys(levels).length + ' levels, Key stage asked inside ' + asked + ' of them');
+    }
+  }
+
   done();
 });
 

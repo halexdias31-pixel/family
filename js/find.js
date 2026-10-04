@@ -525,10 +525,13 @@ function thingCard_(x, credits) {
 
                 IT IS A BREADCRUMB, so the separators are middots and the whole line is small, quiet
                 and monospaced. It is a path, not a sentence. */''}
-          <p class="crumb">${[x.company, x.keystage,
+          ${/* THE LEVEL, NOT THE KEY STAGE — `KS3, KS4` on a crumb is the grey area the owner asked
+                to stop seeing; `levelOf_` says GCSE. A stage band IS the level, so it is not said
+                twice. */''}
+          <p class="crumb">${[x.company, levelOf_(x) || x.keystage,
               x.bandType === 'year' ? (x.bandValue && 'Year ' + x.bandValue)
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
-            : x.bandValue, x.tier, yearOf(x)]
+            : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)]
             .filter(Boolean).map(v => esc(String(v))).join(' <span class="faint">·</span> ')}</p>
           <h3>${esc(x.name)}${x.off ? ' <span class="faint">— deleted</span>' : ''}</h3>
           ${/* Its own second line: a resource says its subject, a shop item its description. This
@@ -955,8 +958,11 @@ const DIVISION_BUCKET = bucketTable_([
    `KS2–GCSE` is four values wide and belongs somewhere; the top of the range is the level somebody
    is working towards, which is what they are choosing a question for. */
 const LEVEL_BUCKET = bucketTable_([
-  ['KS1',     ['KS1 SATs', 'KS1']],
-  ['KS2',     ['KS2 SATs', 'KS2']],
+  /* `KS1 SATs` AND `KS2 SATs`, WHERE THESE SAID `KS1` AND `KS2` — *"I prefer GCSE or SATs over grey
+     areas."* The bucket is drawn when Level has more answers than a card holds, and a bucket label
+     reading `KS2` is the key stage the owner asked not to see, one question late. */
+  ['KS1 SATs', ['KS1 SATs', 'KS1']],
+  ['KS2 SATs', ['KS2 SATs', 'KS2']],
   ['KS3',     ['KS3', 'KS2–KS3']],
   ['GCSE',    ['GCSE', 'KS2–GCSE', 'KS3–GCSE']],
   /* FUNCTIONAL SKILLS IS ITS OWN QUALIFICATION, NOT A RUNG OF THIS ONE. Level 2 is pitched near a GCSE
@@ -1169,22 +1175,6 @@ const FACETS = [
      question that most changes what should come next. 412 of 417 rows can answer it, which is
      the other half of what makes a good early question. */
   { field: 'documentType', label: 'Type',     of: x => x.documentType },
-  /* ---------- A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE -------------------------------------
-     PRIMARY WORKSHEETS DO NOT RESPECT THE BOUNDARY. Column addition, times tables, telling the time,
-     naming 2-D shapes — Year 2 meets all of them and Year 6 is still practising them. Forcing one
-     answer meant choosing which half of the audience to hide the sheet from, and KS2 won every
-     time, so a KS1 tutor filtering by key stage saw nothing at all.
-
-     THE MACHINERY WAS ALREADY THERE, HALF OF IT. `asList_` reads an array or a single value and
-     every facet goes through it — matching at `matches_` and counting in `facetValues` — so a facet
-     returning two key stages already filters and counts correctly against both. What it did NOT
-     read was a comma inside a cell, which is how a spreadsheet holds a list: `KS1, KS2` arrived as
-     one answer spelled "KS1, KS2", sitting in the list beside the real ones.
-
-     SO THE SPLIT HAPPENS HERE, not in the sheet and not in the backend, and the column stays
-     something a person can type into. */
-  { field: 'keystage',  label: 'Key stage',
-    of: x => String(x.keystage || '').split(',').map(s => s.trim()).filter(Boolean) },
   /* ---------- THREE BANDS, THREE QUESTIONS, BECAUSE THEY ARE NOT THE SAME QUESTION ----------------
      `band_value` HOLDS A NUMBER AND `band_type` SAYS WHAT KIND OF NUMBER IT IS. A GCSE grade 4 and
      a Year 4 sheet both hold `4`, and asking one question called "Grade" over both would put a
@@ -1235,10 +1225,49 @@ const FACETS = [
      AND `Alevel` IS A MISSPELLING OF A PROPER NOUN. Three spellings were on screen at once —
      `Alevel`, `A-Level`, `A-Level` — reading as three different things. Normalised here rather
      than in the data because the data is bulk-imported and will keep arriving both ways. */
-  /* `not: keystage` — 27 rows have `KS3` typed into the level column, which is what `Key stage`
-     asks and asks of 736. A key stage is not a qualification. */
+  /* `not: keystage` WAS HERE — 27 rows had `KS3` typed into the level column and Key stage asked it
+     first. The deference runs the other way now: Level is asked first and Key stage drops whatever
+     Level already says (see `keystage`, just below). Both ways at once would be each dropping the
+     other's answer. */
   { field: 'level',
-    bucketOf: LEVEL_BUCKET, bucketOrder: LEVEL_BUCKET.order,     label: 'Level',       not: 'keystage', of: x => levelOf_(x) },
+    bucketOf: LEVEL_BUCKET, bucketOrder: LEVEL_BUCKET.order,     label: 'Level',       of: x => levelOf_(x) },
+  /* ---------- A RESOURCE CAN BELONG TO MORE THAN ONE KEY STAGE -------------------------------------
+     PRIMARY WORKSHEETS DO NOT RESPECT THE BOUNDARY. Column addition, times tables, telling the time,
+     naming 2-D shapes — Year 2 meets all of them and Year 6 is still practising them. Forcing one
+     answer meant choosing which half of the audience to hide the sheet from, and KS2 won every
+     time, so a KS1 tutor filtering by key stage saw nothing at all.
+
+     THE MACHINERY WAS ALREADY THERE, HALF OF IT. `asList_` reads an array or a single value and
+     every facet goes through it — matching at `matches_` and counting in `facetValues` — so a facet
+     returning two key stages already filters and counts correctly against both. What it did NOT
+     read was a comma inside a cell, which is how a spreadsheet holds a list: `KS1, KS2` arrived as
+     one answer spelled "KS1, KS2", sitting in the list beside the real ones.
+
+     SO THE SPLIT HAPPENS HERE, not in the sheet and not in the backend, and the column stays
+     something a person can type into.
+
+     ---------- AND IT IS ASKED AFTER LEVEL, AND ONLY ABOUT WHAT LEVEL HAS NOT ALREADY SAID ---------
+     ASKED FOR AS *"Some worksheets are key stage 4 and 3 … key stage 3 and 4 shouldnt come before
+     like the level … I prefer GCSE or SATs over grey areas."* Two faults in that sentence. This
+     entry sat ABOVE `level` here, so wherever the code order stood (no `facets` row, or a sheet that
+     names one and not the other) Key stage was asked first. And where `level` WAS first, it was
+     skipped on every primary worksheet — 1,160 rows with a key stage and no level, under the 50%
+     coverage bar — so the funnel fell through to `KS1 | KS2`, and inside GCSE it asked `KS3 | KS4`
+     of the 737 sheets tagged `KS3, KS4`: a grey area offered after the qualification was chosen.
+
+     SO `levelOf_` NOW READS A KEY STAGE AS ITS QUALIFICATION (`ksLevel_`) where a row has no level,
+     and THIS QUESTION IS SILENT ON ANY ROW WHOSE LEVEL IS A QUALIFICATION — GCSE, SATs, A-level,
+     Functional Skills, anything `LEVEL_BUCKET` files outside `KS3`. Dropping only the key stage the
+     level names was tried first and measured: 17 GCSE-levelled sheets carry `KS2` in the key stage
+     cell, so inside GCSE it still asked `KS2 | KS3`. The qualification is the answer the owner
+     prefers, so where there is one the key stage is not offered beside it. What is left is a row
+     with no qualification behind it, less the key stage its level already says. It stays a facet
+     rather than being retired because the `facets` tab names it. */
+  { field: 'keystage',  label: 'Key stage', of: x => {
+      const lv = levelOf_(x), shelf = LEVEL_BUCKET(lv);
+      if (shelf && shelf !== 'KS3') return [];
+      return keyStagesOf_(x).filter(k => spellKey_(ksLevel_(k)) !== spellKey_(lv));
+    } },
   { field: 'examBoard', label: 'Exam board',  of: x => x.examBoard },
   /* ---------- `A-Level` IS NOT A TIER, AND IT WAS AN ANSWER TO THIS QUESTION ---------------------
      135 ROWS ANSWERED `Tier · A-Level` AND 263 ANSWERED `Level · A-Level`, so pressing the tier
@@ -7120,7 +7149,8 @@ function topicAreaFresh_(x, at) {
  */
 function levelOf_(x) {
   const band = (x && x.bandType === 'stage' && x.bandValue) ? String(x.bandValue) : '';
-  const own  = band || String((x && x.level) || (x && x.row && x.row.level) || '').trim();
+  const own  = band || String((x && x.level) || (x && x.row && x.row.level) || '').trim()
+            || ksFallback_(x);
   if (!own) return '';
   /* ---------- ONLY THE ONE THE GENERAL RULE CANNOT DO -------------------------------------------
      `A LEVEL`, `A-LEVEL`, `ALEVEL` AND `gcse` ARE HANDLED UPSTREAM NOW. `spellKey_` reduces an
@@ -7134,6 +7164,33 @@ function levelOf_(x) {
      like this one resolves MEANINGS. `waveOf` sits on the same side of it. */
   if (/^as(\s*-?\s*level)?$/i.test(own)) return 'AS';
   return own;
+}
+
+/* ---------- A KEY STAGE, SAID AS THE QUALIFICATION AT THE END OF IT -------------------------------
+   *"I prefer GCSE or SATs over grey areas."* KS4 ends in a GCSE, KS2 and KS1 in SATs, KS5 in an
+   A-level; KS3 ends in nothing, so it stays KS3 — inventing an exam for it would be a wrong fact,
+   and a wrong chip is worse than a grey one. The four qualifications are spelled as `LEVEL_BUCKET`
+   spells them, so every answer this makes is already placed in that table. */
+function ksLevel_(k) {
+  const q = { ks1: 'KS1 SATs', ks2: 'KS2 SATs', ks3: 'KS3', ks4: 'GCSE', ks5: 'A-Level' }[spellKey_(k)];
+  return q || String(k || '');
+}
+/* The `key_stage` cell as a list — `KS3, KS4` is two key stages, as the facet has always read it. */
+function keyStagesOf_(x) {
+  return String((x && x.keystage) || '').split(',').map(s => s.trim()).filter(Boolean);
+}
+/* ---------- WHERE A ROW HAS NO LEVEL, ITS KEY STAGE SAYS ONE ---------------------------------------
+   1,160 PRIMARY WORKSHEETS carry `KS2` or `KS1, KS2` and no level at all, which kept the Level
+   question under its coverage bar on every primary list and put Key stage in front of it.
+
+   THE SCHOOL YEAR DECIDES FIRST, because it is a fact about the sheet and a `KS1, KS2` cell is a
+   range: a Year 2 sheet is KS1's, a Year 5 sheet KS2's. Without a year, A RANGE IS FILED UNDER WHAT
+   IT GOES UP TO — `LEVEL_BUCKET`'s own rule — so `KS3, KS4` is GCSE and `KS1, KS2` is KS2 SATs. */
+function ksFallback_(x) {
+  const yr = (x && x.bandType === 'year') ? Number(x.bandValue) : NaN;
+  if (yr >= 1 && yr <= 11) return yr <= 2 ? 'KS1 SATs' : yr <= 6 ? 'KS2 SATs' : yr <= 9 ? 'KS3' : 'GCSE';
+  const ks = keyStagesOf_(x).filter(k => /^ks[1-5]$/i.test(k)).sort();
+  return ks.length ? ksLevel_(ks[ks.length - 1]) : '';
 }
 
 function yearOf(x) {
