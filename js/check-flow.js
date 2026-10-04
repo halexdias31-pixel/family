@@ -5096,6 +5096,169 @@ check('marking, revealing and tapping leave the question where it is, and typing
   return bad;
 });
 
+/* ---------- A FRACTION, TYPED ON THE KEYPAD, MARKED RIGHT --------------------------------------------
+   ASKED FOR AS "make the input better … like hegarty maths … desmos". keypad.js says how; this presses
+   it the way a thumb would, through the real handlers, on a real question card: the box keeps the
+   phone's keyboard down (`inputmode="none"`), the pad has the keys the owner listed, the fraction is
+   drawn STACKED with a dashed slot while it is still empty, and ✓ runs Check — against a scheme of
+   `0.75`, so the keypad's `(3)/(4)` has to go through the bracket fold in `markNorm_` and `markFrac_`'s
+   "or equivalent" to be marked right. A worded question beside it keeps its textarea. */
+check('a fraction typed on the maths keypad is drawn stacked, saved, and marked right against 0.75', async () => {
+  const { w, errs } = boot();
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  if (!A['kp-key']) return ['the keypad has no handler — keypad.js did not load'];
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const base = { kind: 'question', name: 'Q4', marks: 1, answerType: 'calculation', accept: '0.75',
+    row: { row_id: 'Q-KP-4', paper_id: 'P-KP', subject: 'Maths', name: 'Keypad' },
+    html: '<p>Write 0.75 as a fraction.</p>', answer: '<b>3/4</b>' };
+  const x = Object.assign({}, base, { key: 'q-kp-frac' });
+  try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+  const card = draw(x);
+  const inp = card.querySelector('.qp-ans-in');
+  if (!inp || inp.tagName !== 'INPUT' || inp.getAttribute('inputmode') !== 'none') {
+    return ['a calculation’s answer box is ' + (inp ? '<' + inp.tagName.toLowerCase() + ' inputmode="' + inp.getAttribute('inputmode') + '">' : 'missing')
+      + ' — wanted an <input inputmode="none"> so the phone keyboard stays down'];
+  }
+  if (card.querySelector('textarea.qp-ans-in')) bad.push('the maths card drew a textarea as well as the keypad box');
+  if (card.querySelector('.qp-ai')) bad.push('a maths question with a scheme was offered "Mark with AI" — Check is exact there');
+  inp.focus();
+  const pad = d.getElementById('kp');
+  if (!pad || pad.hidden) return bad.concat(['focusing the maths box did not open the keypad']);
+  const key = v => pad.querySelector('.kp-key[data-v="' + v + '"]');
+  const WANT = { '0': 'zero', '9': 'nine', '.': 'point', '-': 'minus', '×': 'times', '÷': 'divide',
+    '!frac': 'fraction', '!pow': 'power', '!sqrt': 'square root', 'π': 'pi', '(': 'open bracket',
+    ')': 'close bracket', 'x': 'the letter x', '!back': 'backspace', '!done': 'the ✓ submit' };
+  Object.keys(WANT).forEach(v => { if (!key(v)) bad.push('the keypad has no ' + WANT[v] + ' key'); });
+  /* 44px IS THE STYLESHEET'S, MEASURED BY check/ui.js IN A REAL BROWSER; jsdom lays nothing out. What
+     this can see is that every key is a button with a handler, and that nothing on the pad would
+     take the focus off the box. */
+  pad.querySelectorAll('.kp-key').forEach(b => {
+    if (b.tagName !== 'BUTTON' || b.getAttribute('type') !== 'button') bad.push('a key is not a <button type="button">: ' + b.outerHTML.slice(0, 60));
+  });
+  const press = v => { const b = key(v); if (b) A['kp-key'](b); else bad.push('no key ' + v + ' to press'); };
+  press('!frac');
+  const show = card.querySelector('.kp-show');
+  if (inp.value !== '()/()') bad.push('the fraction key on an empty box typed "' + inp.value + '", wanted two slots "()/()"');
+  if (!show.querySelector('.frac .frac-n .kp-hole') || !show.querySelector('.frac .frac-d .kp-hole')) bad.push('an empty fraction is not drawn as two dashed slots over a line: ' + show.innerHTML.slice(0, 160));
+  if (!show.querySelector('.frac-n .kp-caret')) bad.push('the caret is not in the top slot after the fraction key');
+  press('3'); press('!right'); press('4');
+  if (inp.value !== '(3)/(4)') bad.push('3, →, 4 into the fraction typed "' + inp.value + '", wanted "(3)/(4)"');
+  const n = show.querySelector('.frac .frac-n'), dd = show.querySelector('.frac .frac-d');
+  if (!n || !dd || n.textContent.trim() !== '3' || dd.textContent.trim() !== '4') bad.push('three quarters is not drawn stacked, 3 over 4: ' + show.innerHTML.slice(0, 200));
+  let kept = null;
+  try { kept = w.localStorage.getItem(w.__t.ansKey(x)); } catch (e) {}
+  if (kept !== '(3)/(4)') bad.push('the keypad’s answer was not saved under ansKey_ (got ' + JSON.stringify(kept) + ') — it has to go through the same input listener a typed one does');
+  press('!done');
+  const mark = card.querySelector('.qp-mark');
+  if (!mark || !mark.classList.contains('is-right')) bad.push('✓ on (3)/(4) against 0.75 did not mark it right: ' + (mark ? mark.className + ' / ' + mark.textContent.trim() : 'no mark row'));
+  if (!pad.hidden) bad.push('✓ left the keypad up');
+  /* ⌫ TAKES AN EMPTY STRUCTURE AWAY WHOLE, and leaves a filled one alone. */
+  const y = Object.assign({}, base, { key: 'q-kp-back', accept: 'x^2', row: Object.assign({}, base.row, { row_id: 'Q-KP-5' }) });
+  try { w.localStorage.removeItem(w.__t.ansKey(y)); } catch (e) {}
+  const c2 = draw(y);
+  const i2 = c2.querySelector('.qp-ans-in');
+  i2.focus();
+  press('x'); press('!pow');
+  if (i2.value !== 'x^()') bad.push('x then the power key typed "' + i2.value + '", wanted "x^()"');
+  if (!c2.querySelector('.kp-show sup .kp-hole')) bad.push('an empty power is not drawn as a raised slot');
+  press('!back');
+  if (i2.value !== 'x') bad.push('⌫ in an empty power left "' + i2.value + '", wanted the whole ^() gone');
+  press('!frac'); press('!back');
+  if (i2.value !== 'x') bad.push('⌫ in an empty fraction after x left "' + i2.value + '"');
+  press('!pow'); press('2'); press('!done');
+  if (i2.value !== 'x^(2)' || !c2.querySelector('.qp-mark.is-right')) bad.push('x^(2) against x^2 was not marked right: ' + i2.value);
+  /* AND A WORDED ANSWER IS STILL WORDS, on the phone's own keyboard. */
+  const wd = draw(Object.assign({}, base, { key: 'q-kp-words', answerType: 'explain', accept: '',
+    row: Object.assign({}, base.row, { row_id: 'Q-KP-6' }) }));
+  const ta = wd.querySelector('.qp-ans-in');
+  if (!ta || ta.tagName !== 'TEXTAREA' || ta.hasAttribute('inputmode')) bad.push('an explain question lost its textarea and the device keyboard');
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  return bad;
+});
+
+/* ---------- MARK WITH AI: OFFERED WHERE IT CAN BE RIGHT, AND QUIET WHERE IT CANNOT ---------------------
+   ASKED FOR AS "add gemini marking system for worded questions." The backend half is
+   `check-aimark.js`; this is the phone's. Through the real `qp-ai` handler and the real `api()`, with
+   the harness's `fetch` playing the server: what is sent (the question, the scheme, the answer, the
+   marks and the person by ID — `check-post.js`'s rule), what is drawn from the reply, that typing
+   takes a verdict off, and that a server with no key greys the button rather than leaving a control
+   that does nothing. And the two ways it is not drawn at all: a deployment without the action, and a
+   payload that says there is no key. */
+check('Mark with AI sends a worded answer by person id, draws marks and a sentence, and greys when there is no key', async () => {
+  const bad = [];
+  const withAi = Object.assign(payload(), { features: ['aiMark'], aiMarking: true });
+  let mode = 'mark';
+  const { w, sent, errs } = boot({ payload: withAi, reply: b => {
+    if (b.action !== 'aiMark') return null;
+    return mode === 'off' ? { success: false, why: 'ai-off', message: 'AI marking isn’t switched on.' }
+      : { success: true, awarded: 2, available: 3, feedback: 'You named faster particles but not the activation energy.', left: 19 };
+  } });
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS;
+  if (!A['qp-ai']) return ['"Mark with AI" has no handler'];
+  w.__t.USER({ name: 'Sam Student', personId: 'P-S1', token: 'tok-1', role: 'student' });
+  const x = { kind: 'question', key: 'q-ai-1', name: 'Q2', marks: 3, answerType: 'explain', accept: '',
+    row: { row_id: 'Q-AI-2', paper_id: 'P-AI', subject: 'Chemistry', name: 'Rates' },
+    html: '<p>Explain why the rate of reaction increases with temperature.</p>',
+    answer: 'Particles move faster &mdash; more frequent collisions; more have the activation energy.' };
+  try { w.localStorage.removeItem(w.__t.ansKey(x)); } catch (e) {}
+  const draw = it => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(it, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const card = draw(x);
+  const go = card.querySelector('.qp-ai-go[data-do="qp-ai"]');
+  if (!go) return ['a worded question with a scheme and a deployment that has aiMark drew no "Mark with AI"'];
+  const ta = card.querySelector('textarea.qp-ans-in');
+  const held = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [x];
+  try {
+    A['qp-ai'](go);
+    if (!/Write something first/.test(card.querySelector('.qp-ai .qp-verdict').textContent)) bad.push('an empty box was sent to be marked');
+    if (sent.some(s => s.action === 'aiMark')) bad.push('an empty box reached the server');
+    ta.value = 'The particles have more energy so they collide more often.';
+    ta.dispatchEvent(new w.Event('input', { bubbles: true }));
+    A['qp-ai'](go);
+    await wait(50);
+  } finally { w.stuffItemsAll_ = held; }
+  const s = sent.find(b => b.action === 'aiMark');
+  if (!s) bad.push('pressing "Mark with AI" sent nothing');
+  else {
+    if (s.personId !== 'P-S1') bad.push('aiMark was sent personId ' + JSON.stringify(s.personId) + ' — a person is named by id, never by a cell they can edit');
+    if (s.marks !== 3) bad.push('aiMark was sent marks ' + s.marks + ', wanted the question’s 3');
+    if (!/rate of reaction/.test(s.question || '')) bad.push('the question’s words were not sent: ' + JSON.stringify(s.question));
+    if (!/activation energy/.test(s.scheme || '') || /&mdash;|<b>/.test(s.scheme || '')) bad.push('the scheme was not sent as plain words: ' + JSON.stringify(s.scheme));
+    if (s.answer !== ta.value) bad.push('the answer sent was not the one in the box');
+  }
+  const row = card.querySelector('.qp-ai');
+  const verdict = row.querySelector('.qp-verdict').textContent;
+  if (!/2 of 3 marks/.test(verdict) || !row.classList.contains('is-near')) bad.push('two of three marks was drawn as "' + verdict + '" / ' + row.className);
+  const why = card.querySelector('.qp-ai-why');
+  if (!why || !/activation energy/.test(why.textContent)) bad.push('the AI’s sentence was not drawn under the row');
+  ta.value += ' Also more successful collisions.';
+  ta.dispatchEvent(new w.Event('input', { bubbles: true }));
+  if (row.querySelector('.qp-verdict').textContent || row.classList.contains('is-near') || (why && why.textContent)) bad.push('typing after an AI mark left the old verdict on a changed answer');
+  /* NO KEY ON THE SERVER: one press, then every AI button on the screen is greyed and says why. */
+  mode = 'off';
+  const other = draw(Object.assign({}, x, { key: 'q-ai-2', row: Object.assign({}, x.row, { row_id: 'Q-AI-3' }) }));
+  w.stuffItemsAll_ = () => [x];
+  try { A['qp-ai'](go); await wait(50); } finally { w.stuffItemsAll_ = held; }
+  [card, other].forEach((c, i) => {
+    const b = c.querySelector('.qp-ai-go');
+    if (!b || !b.disabled || !c.querySelector('.qp-ai.is-off')) bad.push('after "ai-off" the ' + (i ? 'other card’s' : 'pressed') + ' AI button is not greyed');
+  });
+  if (!/switched on/.test(card.querySelector('.qp-ai .qp-verdict').textContent)) bad.push('"ai-off" did not say AI marking isn’t switched on');
+  if (draw(Object.assign({}, x, { key: 'q-ai-4' })).querySelector('.qp-ai')) bad.push('a card drawn after "ai-off" still offers AI marking');
+  if (errs.length) bad.push('errors: ' + errs.join(' | '));
+  /* AND NOT DRAWN AT ALL where the payload says there is no key, or the deployment has no action. */
+  for (const [why2, p] of [['aiMarking: false', { features: ['aiMark'], aiMarking: false }], ['no aiMark in features', { features: [] }]]) {
+    const b2 = boot({ payload: Object.assign(payload(), p) });
+    await wait(300);
+    const h = b2.w.document.createElement('div');
+    h.innerHTML = b2.w.questionCard_(Object.assign({}, x, { key: 'q-ai-5' }), 0);
+    if (h.querySelector('.qp-ai')) bad.push('with ' + why2 + ' the card still drew "Mark with AI"');
+  }
+  return bad;
+});
+
 /* ---------- THE ANSWER IS ITS OWN PAGE, AND A STUDENT CANNOT READ IT UNTIL THEY ASK -----------------
    ASKED FOR AS *"what I want was answers to be short and to be their own widget"*. `check-answers.js`
    holds what an answer SAYS; this holds where it is and who can see it, through the app's own
