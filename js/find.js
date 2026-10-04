@@ -5487,14 +5487,19 @@ function ansBox_(x) {
      the one thing the deleted `workingAs` button was genuinely good for. Changing it is signing
      out, on the You column, where every other fact about who you are already lives. */
   const who = signedName_();
-  return `<label class="qp-ans">
+  /* A MATHS ANSWER GETS THE KEYPAD AND A WORDED ONE THE PHONE'S KEYBOARD — "like hegarty maths …
+     worded answer normal device keyboard". Which is which, the pad, and "Mark with AI" under a
+     worded box are all keypad.js; this only chooses. Both boxes are `.qp-ans-in` with the same
+     `data-k`, so Check, the save on `input` and every check that types into one are unchanged. */
+  const maths = ansMaths_(x);
+  return `<label class="qp-ans${maths ? ' qp-ans-maths' : ''}">
     <span class="qp-ans-k">${who ? esc(who) + '&rsquo;s answer' : 'Your answer'}</span>
-    <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
-      rows="2" spellcheck="false" autocomplete="off">${esc(ansRead_(k))}</textarea>
+    ${maths ? kpField_(k, ansRead_(k)) : `<textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
+      rows="2" spellcheck="false" autocomplete="off">${esc(ansRead_(k))}</textarea>`}
   </label>${can ? `<div class="qp-mark" data-accept="${esc(can)}">
     <button type="button" class="qp-check" data-do="qp-check">Check</button>
     <span class="qp-verdict" role="status" aria-live="polite"></span>
-  </div>` : ''}`;
+  </div>` : aiBox_(x)}`;
 }
 
 /* ---------- THE VERDICT ------------------------------------------------------------------------

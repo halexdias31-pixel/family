@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-04-noquiz";
+  --css-version: "2026-10-03-mathin";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -12082,6 +12082,83 @@ button.scr-sq { cursor: pointer; }
 .qp-mark.is-near  .qp-verdict { color: var(--warn); }
 .qp-mark.is-right .qp-verdict::before { content: "\2713"; margin-right: .4rem; font-weight: 700; }
 .qp-mark.is-near  .qp-verdict::before { content: "\21BB"; margin-right: .4rem; font-weight: 700; }
+
+/* ---------- THE MATHS BOX: THE ANSWER DRAWN, THE INPUT INVISIBLE OVER IT ---------------------------
+   See keypad.js. `.kp-show` is what is read — the same ruled-paper box as `.qp-ans-in`, drawing the
+   value through `typeset_` so a fraction stacks as it does in the question above — and the real
+   `<input>` lies over it with its ink transparent, so it takes the tap and the focus and nothing of
+   its own text shows. 16px on the input because iOS zooms into anything smaller on focus. */
+.kp-field { position: relative; display: block; }
+.kp-show {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 0 .1em;
+  min-height: 52px; padding: .45rem .6rem; box-sizing: border-box;
+  background: var(--sunk); color: var(--ink);
+  border-bottom: 1px solid var(--line); border-radius: var(--r-sm) var(--r-sm) 0 0;
+  font: 400 1.05rem/1.5 var(--font); overflow-wrap: anywhere;
+}
+.kp-field .kp-in {
+  position: absolute; inset: 0; width: 100%; height: 100%; min-height: 0;
+  padding: 0; margin: 0; border: 0; background: transparent;
+  color: transparent; caret-color: transparent; font-size: 16px; resize: none; cursor: text;
+}
+.kp-field .kp-in::selection { background: transparent; }
+.kp-field .kp-in:focus { outline: none; }
+.kp-up .kp-field:focus-within .kp-show { border-bottom-color: var(--gold); }
+.qcard:has(> .qp-mark.is-right) .kp-show { border-bottom-color: var(--good); }
+.qcard:has(> .qp-mark.is-near) .kp-show { border-bottom-color: var(--warn); }
+/* A SLOT IS A DASHED BOX, the shape Hegarty draws for "something goes here". In `em` so it is the
+   size of a digit whether it sits on the line or up in a power. */
+.kp-hole { display: inline-block; width: .62em; height: .9em; vertical-align: middle;
+           border: 1px dashed var(--faint); border-radius: 1px; }
+.kp-show sup .kp-hole { height: .75em; }
+.kp-caret { display: inline-block; width: 2px; height: 1.15em; margin: 0 -1px; vertical-align: middle;
+            background: var(--gold); animation: kp-blink 1.1s steps(1) infinite; }
+@keyframes kp-blink { 50% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .kp-caret { animation: none; } }
+
+/* ---------- THE PAD ---------------------------------------------------------------------------------
+   ONE PAD ON <body>, FIXED TO THE FOOT OF THE APP'S COLUMN like `#toast` and `#sheet` — inside a pane
+   it would ride the pane's transform. Six keys across at 44px, in px, because a fingertip does not
+   scale with the root font: at 320 that is (320 − 32 − 20) ÷ 6 = 44.7px a key, which is why there
+   are six and not seven. Black like the screen, with the structures in gold — the keys that make a
+   maths answer a maths answer are the ones worth finding at a glance. Under the toast (50), which
+   still has to be readable while the pad is up. */
+#kp {
+  position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
+  width: 100%; max-width: var(--app); box-sizing: border-box; z-index: 49;
+  display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px;
+  padding: 8px 16px calc(8px + var(--safe-bottom));
+  background: var(--bg); border-top: 1px solid var(--line);
+  box-shadow: 0 -.4rem 1.2rem rgba(0,0,0,.5);
+}
+#kp[hidden] { display: none; }
+.kp-key {
+  min-height: 44px; min-width: 0; padding: 0;
+  background: var(--sunk); color: var(--ink);
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  font: 500 1.05rem/1 var(--font); cursor: pointer;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent;
+}
+.kp-key:active { background: var(--line); transform: translateY(1px); }
+.kp-key.kp-op { color: var(--gold); }
+.kp-key.kp-mode { color: var(--dim); font-size: .95rem; }
+.kp-key.kp-done { background: var(--gold); color: var(--bg); border-color: var(--gold); font-weight: 700; }
+/* THE FRACTION KEY IS A FRACTION: two boxes and a line, drawn, not a glyph that varies by font. */
+.kp-fr { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; vertical-align: middle; }
+.kp-fr i { display: block; width: 9px; height: 8px; border: 1px solid currentColor; border-radius: 1px; }
+.kp-fr b { display: block; width: 15px; height: 1px; background: currentColor; }
+.kp-pw sup { font-size: .65em; }
+
+/* ---------- MARK WITH AI ------------------------------------------------------------------------------
+   CHECK'S ROW, CHECK'S BUTTON — it is the same act for a worded answer (keypad.js). The feedback is
+   one sentence UNDER the row rather than in the verdict slot, which holds two short lines at most and
+   is where "2 of 3 marks" goes. Greyed, not removed, when the backend says there is no key: the
+   button stays where the student's eye already is and the sentence beside it says why. */
+.qp-ai .qp-ai-go { min-width: 120px; }
+.qp-ai .qp-ai-go[disabled] { background: var(--line); color: var(--dim); cursor: default; }
+.qp-ai.is-busy .qp-verdict { color: var(--dim); }
+.qp-ai-why { margin: 0 0 .3rem; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
+.qp-ai-why:empty { display: none; }
 
 /* ---------- `.resume` WAS HERE --------------------------------------------------------------------
    TWO RULES FOR THE "carry on" BLOCK over the funnel's first question. Removed with the feature:
