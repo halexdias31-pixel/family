@@ -87,10 +87,12 @@ function signInCard_() {
              door was for rows with no address; it is open to every row now (see `verifyLogin`), so
              the placeholder stopped saying "if you have no email" — that clause told a student with
              an address that their handle would not work, which is no longer true. `type="text"`
-             stays, because `type="email"` would refuse a handle before it was sent. */''}
+             stays, because `type="email"` would refuse a handle before it was sent.
+             THE PLACEHOLDER IS ONE OF EACH, SHORT, because the label above already says "email or
+             handle" and the sentence it used to be was cut off at `— or you` on a 320 phone. */''}
         <label class="field"><span>email or handle</span>
           <input id="in-name" type="text" inputmode="email" autocomplete="username" autocapitalize="off"
-                 spellcheck="false" placeholder="you@example.com — or your handle"></label>
+                 spellcheck="false" placeholder="ada@x.com or ada_kind7"></label>
         <label class="field"><span>PIN</span>
           <input id="in-pin" type="password" inputmode="numeric" autocomplete="current-password"></label>
         ${/* ---------- THREE TILES, WHERE THERE WERE TWO BUTTONS AND A CARD -------------------------

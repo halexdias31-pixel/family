@@ -4052,6 +4052,7 @@ check('an admin sees everyone on the people column, and nobody else sees more th
   const evie = w.__t.accountPages().find(h => h.indexOf('>Evie Everystudent<') !== -1) || '';
   if (!/data-do="msg-open"/.test(evie)) bad.push('a student on the admin\'s column has no Message tile');
   if (/data-do="set-listed"/.test(evie)) bad.push('a student on the admin\'s column carries the tutor-only Listed switch');
+  if (/prof-nohours/.test(evie)) bad.push('a student on the admin\'s column is told they "haven\'t set their hours", a tutor\'s warning');
   delete D.everyone;
   if (/Evie Everystudent/.test(all())) bad.push('with no `everyone` key the student was drawn anyway');
   w.__t.USER(null);

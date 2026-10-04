@@ -354,6 +354,10 @@
  "spotlight": [],
  "promotions": [],
  "claims": [],
+ "everyone": [
+  {"personId": "P-E1", "title": "Evie Everystudent-Longername", "handle": "evie_calm31", "role": "Student", "image": ""},
+  {"personId": "P-E2", "title": "Carl Everyclient", "handle": "carl_kind32", "role": "Client", "image": ""}
+ ],
  "validations": {
   "qual_1_level": [
    "GCSE",
