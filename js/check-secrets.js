@@ -48,9 +48,12 @@ const PLACEHOLDER = '0000';
 
 /* WHAT IS READ. Source and prose — the two places a person types an example. `data/` is excluded
    because it is exports and transcriptions rather than anything anybody writes a usage line in, and
-   `node_modules/` because it is not ours. */
+   `node_modules/` because it is not ours. `worktrees` (under `.claude/`) because each one is another
+   branch checked out beside this one, gitignored: reading them failed this branch for a test PIN
+   a worker had not committed anywhere, and walked 17,628 files to do it. Each branch is judged when
+   its own checks run. */
 const EXT = ['.gs', '.js', '.html', '.css', '.md', '.json', '.py', '.sh', '.yml', '.yaml'];
-const SKIP = new Set(['node_modules', '.git', 'data', 'shots']);
+const SKIP = new Set(['node_modules', '.git', 'data', 'shots', 'worktrees']);
 
 /* `pin` then four or more digits, with up to six characters of punctuation between them — which
    covers `pin=0000`, `pin: '0000'`, `"pin": "0000"` and `pin -> 0000` alike. The word boundary is
