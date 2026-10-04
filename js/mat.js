@@ -1732,7 +1732,7 @@ function matChoices(parts) {
    as rows and a pasted essay would be a page of one sentence's first line. */
 const MAT_KINDS = [
   { v: 'cheat', say: 'Cheat sheet' },
-  { v: 'hand',  say: 'Handwriting worksheet' },
+  { v: 'hand',  say: 'Handwriting' },
   { v: 'lined', say: 'Lined paper' },
   { v: 'grid',  say: 'Squared paper' },
 ];
@@ -1745,14 +1745,14 @@ let MAT_KIND = 'cheat';
    select's 44px and its arrow.
    THE HANDWRITING SIZES ARE THE BAND, in mm — the standard four-line ruling is three equal bands
    (ascender, x-height, descender), so one number is the whole ruling: 8mm is a Reception/Year 1
-   page, 6mm Years 2–3, 4mm a junior exercise book. `gap` is how many empty rulings follow each traced
+   page, 6mm Years 2–3, 4mm a junior exercise book. THE LABELS ARE SHORT because a 16px select is about eighteen
+   characters wide on a 320 phone; "Handwriting worksheet" came out as "Handwriting worksh…". `gap` is how many empty rulings follow each traced
    one: one is copy-under-the-model, two is the same with room to try again. */
 const MAT_BLANK_OPTS = {
-  size:  { for: 'hand',  say: 'Writing size', opts: [['8', 'Large — 8mm letters'], ['6', 'Medium — 6mm letters'],
-                                                     ['4', 'Small — 4mm letters']] },
-  gap:   { for: 'hand',  say: 'Practice rows', opts: [['1', 'One practice row each'], ['2', 'Two practice rows each']] },
-  line:  { for: 'lined', say: 'Line spacing', opts: [['8', '8mm — standard ruled'], ['6', '6mm — narrow ruled'],
-                                                     ['10', '10mm — wide ruled'], ['12', '12mm — early years']] },
+  size:  { for: 'hand',  say: 'Writing size', opts: [['8', 'Large · 8mm'], ['6', 'Medium · 6mm'], ['4', 'Small · 4mm']] },
+  gap:   { for: 'hand',  say: 'Practice rows', opts: [['1', '1 practice row'], ['2', '2 practice rows']] },
+  line:  { for: 'lined', say: 'Line spacing', opts: [['8', '8mm · standard'], ['6', '6mm · narrow'],
+                                                     ['10', '10mm · wide'], ['12', '12mm · early years']] },
   grid:  { for: 'grid',  say: 'Square size', opts: [['5', '5mm squares'], ['7', '7mm squares'], ['10', '1cm squares']] },
 };
 const MAT_TEXT_MAX = 120;
@@ -1799,10 +1799,11 @@ function matBlankControls_() {
    an exact millimetre on the paper: the viewBox is the drawing area in mm and the element is sized
    in mm, so 1 unit is 1mm whatever the screen thinks a pixel is.
    `MAT_BLANK_H` IS THE DRAWING'S HEIGHT, inside the head, the name row and the foot — 297 minus the
-   sheet's 11mm of padding is 286, and the head (7.4), the name row (6), the foot (4.2) and three
-   2.8mm gaps take 26 of that. 252 leaves a few mm of slack, because a ruling that ran under the
-   footer would be the kind of fault found at the printer. */
-const MAT_BLANK_H = 252;
+   sheet's 11mm of padding is 286, and the head, the name row, the foot and three 2.8mm gaps take
+   the rest. MEASURED in Chrome rather than added up: at 252 the ruling ended 13.8mm above the
+   footer, so 260 leaves 3mm of slack — kept, because a ruling that ran under the footer would be
+   the kind of fault found at the printer. */
+const MAT_BLANK_H = 260;
 const matN = v => +(+v).toFixed(2);
 
 /* THE FOUR-LINE RULING. Top and bottom (ascender, descender) are the faint lines, the x-height is
@@ -1811,21 +1812,40 @@ const matN = v => +(+v).toFixed(2);
    ONE PATH PER KIND OF LINE, not one element per line: a Small page is 60 lines, and four paths
    with sixty segments between them print faster and diff smaller than sixty elements. */
 function matHandRows_() {
-  const b = +MAT_BLANK.size, pitch = 4 * b, rows = Math.floor((MAT_BLANK_H + b) / pitch);
-  /* WRAPPED BY ESTIMATE, at 0.6em a character. There is no layout to measure in a print probe that
-     jsdom also runs, and an estimate erring wide only makes a row end a word early — a row that ran
-     off the right of the ruling would be the fault. The font is set to 2b with
-     `font-size-adjust: .5` in the stylesheet, so the x-height is b exactly whatever face the
-     printing device has, and 0.6 of 2b is the width allowance per letter. */
-  const per = Math.max(4, Math.floor((MAT_TEXT_W - 6) / (0.6 * 2 * b)));
-  const lines = [];
+  /* A SKIP BETWEEN RULINGS, a band and a half. At one band the descender line of one ruling and the
+     ascender line of the next were a band apart like every other pair, so the page read as
+     continuous lines with a dash every fourth — measured on the first screenshot, where "which four
+     lines are mine" took a second look. The wider gap is what makes each ruling one thing. */
+  const b = +MAT_BLANK.size, skip = 1.5 * b, pitch = 3 * b + skip;
+  const rows = Math.max(1, Math.floor((MAT_BLANK_H - b + skip) / pitch));
+  /* THE RULINGS ARE CENTRED IN THE DRAWING, so the white left over above and below is shared rather
+     than all left under the last one. */
+  const y0 = (MAT_BLANK_H - (rows * pitch - skip)) / 2;
+  /* WRAPPED BY ESTIMATE, at 0.55em a character — a lower-case alphabet in these faces averages
+     about 0.5em, and an estimate erring wide only ends a row a word early, where one erring narrow
+     runs the words off the right of the ruling. */
+  const fs = b / matXRatio_();
+  const per = Math.max(4, Math.floor((MAT_TEXT_W - 6) / (0.55 * fs)));
+  const words = [];
   MAT_BLANK.text.split(' ').filter(Boolean).forEach(w => {
     /* A WORD LONGER THAN A ROW is cut at the row, not left to run off it. */
-    while (w.length > per) { lines.push(w.slice(0, per)); w = w.slice(per); }
-    const last = lines[lines.length - 1];
-    if (last !== undefined && last.length + 1 + w.length <= per) lines[lines.length - 1] = last + ' ' + w;
-    else lines.push(w);
+    while (w.length > per) { words.push(w.slice(0, per)); w = w.slice(per); }
+    if (w) words.push(w);
   });
+  const wrap = n => words.reduce((out, w) => {
+    const last = out[out.length - 1];
+    if (last !== undefined && last.length + 1 + w.length <= n) out[out.length - 1] = last + ' ' + w;
+    else out.push(w);
+    return out;
+  }, []);
+  /* BALANCED, NOT GREEDY. Greedy wrapping left "dog." alone on its own ruling under two full ones —
+     a whole trace row for one word. So the number of rows is the greedy answer and the width is then
+     the narrowest that still needs no more rows than that. */
+  let lines = wrap(per);
+  for (let n = Math.ceil(words.join(' ').length / Math.max(1, lines.length)); n < per; n++) {
+    const tryIt = wrap(n);
+    if (tryIt.length <= lines.length) { lines = tryIt; break; }
+  }
   /* THE TRACE ROWS AND THE PRACTICE ROWS, IN TURN, AND THE WORDS COME ROUND AGAIN until the page is
      full — a sheet that traced its sentence once and then had twenty empty rulings is lined paper
      with a heading. No words is the plain ruling, every row empty, which is a sheet worth having. */
@@ -1835,7 +1855,34 @@ function matHandRows_() {
     const k = r % each;
     plan.push(lines.length && k === 0 ? lines[Math.floor(r / each) % lines.length] : '');
   }
-  return { b, pitch, plan };
+  return { b, pitch, plan, fs, y0 };
+}
+
+/* ---------- THE x-HEIGHT, MEASURED IN THE FACE THAT WILL PRINT --------------------------------------
+   A LOWER-CASE `a` MUST FILL THE MIDDLE BAND EXACTLY — it is the one measurement on a handwriting
+   sheet that has to be right, and it depends on the face, which depends on the device. So the font
+   size is the band divided by the face's own x-height, and the x-height is asked of the browser:
+   `1ex` IS the x-height of the element's font, so a box 1ex tall at 100px is that ratio in pixels.
+   `font-size-adjust: .5` WAS TRIED FIRST and Chrome applied it to SVG text in CSS pixels and then
+   scaled by the viewBox as well — letters 3.8 times the ruling, the size of a pixel in millimetres.
+   Measured once and kept; jsdom has no layout and answers 0, which falls back to .52, the x-height
+   of the sans faces this stack ends in. */
+const MAT_TRACE_FONT = '"Comic Sans MS", "Comic Neue", "Andika", "Century Gothic", "Trebuchet MS", sans-serif';
+let MAT_XR = 0;
+function matXRatio_() {
+  if (MAT_XR) return MAT_XR;
+  try {
+    const i = document.createElement('i');
+    i.style.cssText = 'position:absolute;left:-1000px;top:0;visibility:hidden;display:block;'
+                    + 'font-size:100px;height:1ex;width:1px;font-family:' + MAT_TRACE_FONT;
+    document.body.appendChild(i);
+    const h = i.getBoundingClientRect().height;
+    i.remove();
+    /* A FACE WITH AN x-HEIGHT OUTSIDE A THIRD TO TWO THIRDS OF ITS SIZE is a measurement gone wrong,
+       not a face — kept out rather than drawing letters twice the ruling. */
+    if (h > 33 && h < 67) MAT_XR = h / 100;
+  } catch (e) { /* no layout: the fallback below */ }
+  return MAT_XR || .52;
 }
 
 function matBlankSvg_() {
@@ -1844,15 +1891,16 @@ function matBlankSvg_() {
     style="width:${W}mm;height:${H}mm" aria-hidden="true">${inner}</svg>`;
   const path = (cls, d) => d ? `<path class="${cls}" d="${d}"/>` : '';
   if (MAT_KIND === 'hand') {
-    const { b, pitch, plan } = matHandRows_();
+    const { b, pitch, plan, fs, y0 } = matHandRows_();
     let top = '', mid = '', base = '', foot = '', words = '';
     plan.forEach((t, r) => {
-      const y = r * pitch + b / 2;            /* half a band above the first ascender line */
+      const y = y0 + r * pitch;
       top += `M0 ${matN(y)}H${W}`;
       mid += `M0 ${matN(y + b)}H${W}`;
       base += `M0 ${matN(y + 2 * b)}H${W}`;
       foot += `M0 ${matN(y + 3 * b)}H${W}`;
-      if (t) words += `<text class="mat-trace" x="3" y="${matN(y + 2 * b)}" font-size="${2 * b}">${esc(t)}</text>`;
+      if (t) words += `<text class="mat-trace" x="3" y="${matN(y + 2 * b)}" font-size="${matN(fs)}"
+        font-family='${MAT_TRACE_FONT}'>${esc(t)}</text>`;
     });
     return svg(path('mat-ln', top + foot) + path('mat-ln-mid', mid) + path('mat-ln-base', base) + words);
   }
@@ -1912,8 +1960,13 @@ function matBlankPaint_(list) {
     <div class="mat-foot"><span>${esc(foot)}</span><b>${esc(B.site)}</b></div></div>`;
   const rows = MAT_KIND === 'hand' ? matHandRows_().plan.length : 0;
   $('mat-said').className = 'mat-said';
+  /* A COUNT, NOT THE SETTING AGAIN — the select right above already says "8mm". How many lines or
+     squares the page holds is the thing the select cannot say. */
+  const sq = +MAT_BLANK.grid;
   $('mat-said').innerHTML = `<b>One A4 page</b> · ${esc(MAT_KIND === 'hand'
-    ? rows + ' rulings' + (MAT_BLANK.text ? '' : ', no words to trace') : say.size)}`;
+    ? rows + ' rulings' + (MAT_BLANK.text ? '' : ', no words to trace')
+    : MAT_KIND === 'lined' ? Math.floor(MAT_BLANK_H / +MAT_BLANK.line) + ' lines'
+    : Math.floor(MAT_TEXT_W / sq) + ' × ' + Math.floor(MAT_BLANK_H / sq) + ' squares')}`;
   $('mat-go').disabled = false;
   /* THE BASKET LINE: the same `print` line as a cheat sheet, so the laminate switch comes with it and
      nothing in the basket learns a new kind. The KEY carries every setting and the words, so two
@@ -1925,8 +1978,8 @@ function matBlankPaint_(list) {
       : MAT_KIND === 'lined' ? MAT_BLANK.line : MAT_BLANK.grid),
     name: MAT_KIND_WORD[MAT_KIND] + ' — ' + (MAT_KIND === 'hand'
       ? (MAT_BLANK.text ? '“' + (MAT_BLANK.text.length > 28 ? MAT_BLANK.text.slice(0, 27) + '…' : MAT_BLANK.text) + '”, ' : '')
-        + say.size.split(' — ')[0].toLowerCase()
-      : say.size.split(' — ')[0]),
+        + say.size.split(' · ')[0].toLowerCase()
+      : say.size.split(' · ')[0]),
     parts: say.parts,
   };
   const trolley = list && list.closest('#mat-box') && list.closest('#mat-box').querySelector('[data-do="mat-cart"]');

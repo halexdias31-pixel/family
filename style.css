@@ -8811,13 +8811,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .mat-ln-margin { fill: none; stroke: var(--pa-mark); stroke-width: .25; }
 /* THE WORDS TO TRACE: pale letters with a fine dotted edge — the pale fill is what a pencil goes
    over, the dots are what a child follows when the pale is too pale to see on a cheap printer.
-   `font-size-adjust: .5` MAKES THE x-HEIGHT HALF THE FONT SIZE IN ANY FACE, and the font size is two
-   bands, so a lower-case `a` fills the middle band exactly whichever face the printing device has —
-   which is the one measurement on a handwriting sheet that has to be right. Where a browser does not
-   know the property, the faces listed are all close to .5 already. */
+   THE SIZE AND THE FACE ARE SET ON THE ELEMENT by `matHandRows_`, from the face's own measured
+   x-height (`matXRatio_`), so a lower-case `a` fills the middle band exactly. */
 .mat-trace { fill: var(--pa-rule-soft); stroke: var(--pa-faint); stroke-width: .18;
-             stroke-dasharray: .45 .4; stroke-linecap: round; font-size-adjust: .5;
-             font-family: "Comic Sans MS", "Comic Neue", "Andika", "Century Gothic", "Trebuchet MS", sans-serif; }
+             stroke-dasharray: .45 .4; stroke-linecap: round; }
 
 /* ---------- THE COMPONENTS ----------------------------------------------------------------------
    NOTHING HERE IS SAID WITH A BACKGROUND. A browser DROPS background fills when it prints — that is
