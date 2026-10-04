@@ -442,7 +442,7 @@ function doPost(e) {
 
          `key` FOLDS CASE AND DROPS `_` AND `@`, so `@Halex_Kind42`, `halexkind42` and
          `HALEX_KIND42` are one handle — and so are the 1 October shape (`halex_kind42`) and today's
-         shuffled ones (`42kindhalex`), because the lookup is the cell, not the arrangement. Two
+         shuffled ones (`kind42_halex`), because the lookup is the cell, not the arrangement. Two
          rows on one handle (only possible by hand — `handleTrouble_` refuses it everywhere else) is
          refused, as two rows on one address is. The PENDING rule and the wording live in
          `signInRow_`, unchanged; its wrong-PIN sentence names the half that was typed. */

@@ -972,7 +972,7 @@ function run() {
        `<first>_<virtue><nn>` and today's shuffled arrangement. *"have the students be able to login
        with their handles too"* — these two were the ones the handle door turned away. */
     { person_id: 'P7', email: 'mia@x.com',       pin: '0000', username: 'MiaS',   handle: 'mia_brave33' },
-    { person_id: 'P8', email: 'leo@x.com',       pin: '0000', username: 'LeoS',   handle: '42kind_leo' },
+    { person_id: 'P8', email: 'leo@x.com',       pin: '0000', username: 'LeoS',   handle: 'kind42_leo' },
     { person_id: 'P9', email: 'new@x.com',       pin: '0000', username: 'NewS',   handle: 'nia_calm7', verified: 'PENDING' },
   ];
   /* THE HELPER THE TWO DOORS SHARE (the lock, the PIN, the session) is cut out too, because the
@@ -1013,10 +1013,12 @@ function run() {
     { body: { email: 'ada_x', pin: '0000' },                want: '', code: 'not-an-email', why: 'a handle nobody has signs nobody in' },
     { body: { email: 'adal', pin: '0000' },                 want: '', code: 'not-an-email', why: 'a username is still not a handle, address or not' },
     { body: { email: 'mia_brave33', pin: '0000' },          want: 'P7', why: 'a student WITH an address signs in by an old-shaped handle' },
-    { body: { email: '42kind_leo', pin: '0000' },           want: 'P8', why: 'a student WITH an address signs in by a new-shaped handle' },
+    { body: { email: 'kind42_leo', pin: '0000' },           want: 'P8', why: 'a student WITH an address signs in by a new-shaped handle' },
     { body: { email: 'MIA_Brave33', pin: '0000' },          want: 'P7', why: 'the handle is case-insensitive' },
     { body: { email: '@mia_brave33', pin: '0000' },         want: 'P7', why: 'the handle as a card prints it, with its @' },
-    { body: { name: 'leo_42kind', pin: '0000' },            want: '', code: 'not-an-email', why: 'the same parts in another order are somebody else\'s handle, not this one' },
+    { body: { email: '  mia_brave33 ', pin: '0000' },       want: 'P7', why: 'a handle pasted with spaces round it is the handle' },
+    { body: { email: 'Mia@X.com', pin: '0000' },            want: 'P7', why: 'THE SAME PERSON BY ADDRESS — the handle door and the address door must land on one row, or signing in by handle is signing in as somebody else' },
+    { body: { name: 'leo_kind42', pin: '0000' },            want: '', code: 'not-an-email', why: 'the same parts in another order are somebody else\'s handle, not this one' },
     { body: { email: 'mia_brave33', pin: '9999' },          want: '', code: 'wrong-pin', said: 'Wrong PIN for that handle.', why: 'a wrong PIN by handle is refused, and names the handle even though the row has an address' },
     { body: { email: 'mia@x.com', pin: '9999' },            want: '', code: 'wrong-pin', said: 'Wrong PIN for that email address.', why: 'the same row by address names the address' },
     { body: { email: 'nia_calm7', pin: '0000' },            want: '', said: 'Please confirm your email first — check your inbox for the link we sent.', why: 'the PENDING rule holds at the handle door' },
