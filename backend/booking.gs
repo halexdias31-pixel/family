@@ -1549,14 +1549,14 @@ function authClearThrottle_(t, r) {
 function authResetKey_(r) { return 'AUTH_RESET_' + S(r.person_id || personDisplayName(r)); }
 
 function authResetGet_(r) {
-  let x = null;
-  try { x = JSON.parse(authProps_().getProperty(authResetKey_(r)) || 'null'); } catch (err) {}
-  if (!x || !S(x.pin) || N(x.until) < Date.now()) return null;
-  return x;
+  let held = null;
+  try { held = JSON.parse(authProps_().getProperty(authResetKey_(r)) || 'null'); } catch (err) {}
+  if (!held || !S(held.pin) || N(held.until) < Date.now()) return null;
+  return held;
 }
 
-function authResetPut_(r, x) {
-  try { authProps_().setProperty(authResetKey_(r), JSON.stringify(x)); return true; }
+function authResetPut_(r, held) {
+  try { authProps_().setProperty(authResetKey_(r), JSON.stringify(held)); return true; }
   catch (err) { return false; }
 }
 
@@ -1567,18 +1567,18 @@ function authResetDrop_(r) {
 /* DOES `given` MATCH THE EMAILED PIN — and if it does, it becomes the PIN. `locked` says the lock is
    on, in which case a miss is counted against the emailed PIN rather than the ladder. */
 function authResetUse_(t, r, given, locked) {
-  const x = authResetGet_(r);
-  if (!x) return false;
-  if (S(given) && authSame_(S(x.pin), S(given))) {
-    authSetPin_(t, r, S(x.pin));
+  const held = authResetGet_(r);
+  if (!held) return false;
+  if (S(given) && authSame_(S(held.pin), S(given))) {
+    authSetPin_(t, r, S(held.pin));
     /* THE OLD PIN'S GUESSES SAY NOTHING ABOUT THIS ONE — `authClearThrottle_`'s own argument. */
     authClearThrottle_(t, r);
     authResetDrop_(r);
     return true;
   }
   if (locked) {
-    x.misses = N(x.misses) + 1;
-    if (x.misses >= AUTH.RESET_MISSES) authResetDrop_(r); else authResetPut_(r, x);
+    held.misses = N(held.misses) + 1;
+    if (held.misses >= AUTH.RESET_MISSES) authResetDrop_(r); else authResetPut_(r, held);
   }
   return false;
 }
