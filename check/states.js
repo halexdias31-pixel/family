@@ -1116,7 +1116,9 @@ const STATES = {
             if (k) k.click();
           });
         };
-        setTimeout(typeIt, 60);
+        /* FIRST AT ONCE, in the tick the card is built -- the poll is the fallback, and on a machine
+           loaded to thirty its 20ms steps slipped past ui.js's half second (390, 768 and 1280, one run). */
+        typeIt();
       },
       expect: () => {
         const pad = document.getElementById('kp');
@@ -1175,7 +1177,8 @@ const STATES = {
           ta.dispatchEvent(new Event('input', { bubbles: true }));
           go.click();
         };
-        setTimeout(markIt, 60);
+        /* FIRST AT ONCE, as the keypad's state above now does; the poll is the fallback. */
+        markIt();
       },
       expect: () => {
         const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__aiKey);
