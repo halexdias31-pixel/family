@@ -6436,7 +6436,8 @@ check('the weekly parent email card is an admin\'s, says the switch, and Preview
   if (!sheet || sheet.classList.contains('hidden')) bad.push('Preview did not open the sheet');
   const text = body ? body.textContent.replace(/\s+/g, ' ') : '';
   ['28 Sep – 4 Oct', 'To Pat Parent · pat@example.org', 'Ada’s week: 2 questions', 'Hello Pat,', 'q:Q-2',
-   'Cal Alone — no parent has accepted a link to them', 'nothing has been sent', 'no Sunday booked yet'].forEach(s => {
+   'Cal Alone — no parent has accepted a link to them', 'This preview sent nothing', 'no Sunday booked yet',
+   'On Sunday this email would be written to the digest_log tab, and none sent'].forEach(s => {
     if (text.indexOf(s) === -1) bad.push('the preview sheet does not say "' + s + '"');
   });
   if (text.indexOf('<b>Maths</b>') === -1 || (body && [...body.querySelectorAll('b')].some(b => b.textContent === 'Maths'))) bad.push('a question’s name was drawn as markup in the preview — it came off a phone and must be printed as text');

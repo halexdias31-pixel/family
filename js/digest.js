@@ -48,10 +48,9 @@ const digestWord_ = m => m.charAt(0).toUpperCase() + m.slice(1);
 function digestCard_() {
   const mode = digestModeNow_();
   return `<div class="card digest">
-    <h3>Weekly parent email</h3>
+    <h3 class="digest-mode">Weekly parent email: <b>${esc(digestWord_(mode))}</b></h3>
     <p class="sub">On Sundays, each parent who has accepted a link to a child gets the questions that
       child did that week.</p>
-    <p class="digest-mode">Weekly parent email: <b>${esc(digestWord_(mode))}</b></p>
     <p class="faint"><span class="digest-why">${esc(DIGEST_SAY[mode])}</span> Switched on the config
       tab (<code>weekly_digest</code>); Sundays are booked from the Apps Script editor.</p>
     <div class="tile-row">${tile_({ icon: 'show', label: 'Preview', note: 'this week', act: 'digest-preview' })}</div>
@@ -80,9 +79,14 @@ function digestSheet_(d) {
   /* WHETHER A SUNDAY IS BOOKED IS THE OTHER HALF OF "IS IT ON", and the server can see it. */
   const booked = d.scheduled == null ? '' : d.scheduled ? ' · booked' : ' · no Sunday booked yet';
   const n = emails.length;
-  return `<p class="faint">This week so far, ${esc((d.week && d.week.span) || '')}. ${esc(digestWord_(mode))}
-      · ${esc(when)}${esc(booked)}. ${n} email${n === 1 ? '' : 's'} ${mode === 'send' ? 'would go now' : 'would be written'};
-      nothing has been sent.</p>
+  const these = n === 1 ? 'this email' : 'these ' + n + ' emails';
+  /* WHAT SUNDAY WOULD DO WITH THEM, IN THE MODE IT IS IN — "would be written" under Off was the card
+     promising a log the run would never write. */
+  const sunday = mode === 'send' ? 'On Sunday ' + these + ' would be sent.'
+    : mode === 'preview' ? 'On Sunday ' + these + ' would be written to the digest_log tab, and none sent.'
+    : 'It is off, so on Sunday nothing goes; switched on, ' + these + ' would.';
+  return `<p class="faint">This week so far (${esc((d.week && d.week.span) || '')}). ${esc(n ? sunday : '')}
+      ${esc(when)}${esc(booked)}. This preview sent nothing.</p>
     ${n ? emails.map(m => `<h2>To ${esc(m.parent || '')} · ${esc(m.to || '')}</h2>
       <p><b>${esc(m.subject || '')}</b></p>
       ${digestBody_(m.text)}`).join('')
