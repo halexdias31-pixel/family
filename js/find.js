@@ -6945,11 +6945,13 @@ function questionAnsCard_(x) {
             it is; whether to try first is the tutor's to say out loud, not the app's to say to one of
             them. */''}
       <p class="qans-wait-k">Answer hidden</p>
-      ${/* A BUTTON, NOT A TILE, and the rule in CLAUDE.md is why: it is the one control in this
-            card's body, a gate in front of the answer, where a tile row is the action row UNDER a
-            thing. The part pages carry no tile row -- a figure page has none either -- and one tile
-            alone at the foot of a page that says "hidden" reads as decoration. */''}
-      <button type="button" class="qp-reveal" data-do="qa-show" data-k="${esc(k)}">Show the answer</button>
+      ${/* A TILE, AS ASKED: *"show the answer button should be a tile."* It was a full-width button,
+            argued as the one gate in the card's body rather than an action under a thing. The owner
+            reads it as an action on the question like any other, and the question card's own tile for
+            the same act (`questionTiles_`) is a tile -- so the two pages now offer it in one form, from
+            one renderer, with `check-doors` pairing `qa-show` to its handler. */''}
+      <div class="tile-row">${tile_({ icon: 'show', label: 'Show the answer', note: 'one tap',
+        act: 'qa-show', data: { k: k } })}</div>
     </div>`}
   </div>`;
 }
