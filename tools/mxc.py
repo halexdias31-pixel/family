@@ -236,9 +236,11 @@ def say_html(m):
 grid = ' '.join(['M%s %sV%s' % (f(X(x)), f(Y(YMIN)), f(Y(YMAX))) for x in range(math.ceil(XMIN), math.floor(XMAX) + 1) if x]
               + ['M%s %sH%s' % (f(X(XMIN)), f(Y(y)), f(X(XMAX))) for y in range(math.ceil(YMIN), math.floor(YMAX) + 1) if y])
 AH, AW = 4.5, 2.3                 # arrowhead length and half-width
-arrows = 'M%s %s l%s %s v%s z M%s %s l%s %s h%s z' % (
-    f(X(XMAX)), f(Y(0)), f(-AH), f(-AW), f(2 * AW),
-    f(X(0)), f(Y(YMAX)), f(-AW), f(AH), f(2 * AW))
+# ABSOLUTE, so check-splash-loops.js can read the tips: the plot is centred on the axes INCLUDING the
+# arrows, and a relative path is one it skips.
+arrows = 'M%s %s L%s %s L%s %s Z M%s %s L%s %s L%s %s Z' % (
+    f(X(XMAX)), f(Y(0)), f(X(XMAX) - AH), f(Y(0) - AW), f(X(XMAX) - AH), f(Y(0) + AW),
+    f(X(0)), f(Y(YMAX)), f(X(0) - AW), f(Y(YMAX) + AH), f(X(0) + AW), f(Y(YMAX) + AH))
 L = 100.0                         # the line, drawn long; the clip decides how much of it shows
 def text(t_):
     cls = 'mx-lab ' + t_[4]

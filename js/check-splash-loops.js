@@ -59,6 +59,10 @@ const LOOPS = [
     own: boxOwn_ },  /* THE ANGLE AT THE CENTRE: centred on its rim, which tools/cent.py places in the box's middle. */
   { id: 'cent', prefix: 'ct-', centreOn: ['ct-rim'],
     own: centOwn_ },
+  /* y = mx + c: centred on its two axes, which tools/mxc.py lays so the plot is the middle of the box
+     — the y-axis is left of centre on purpose, because the triangle is right of it. */
+  { id: 'mxc', prefix: 'mx-', centreOn: ['mx-ax', 'mx-ay', 'mx-arrow'],
+    own: mxcOwn_ },
 ];
 
 let faults = [], said = [];
@@ -460,6 +464,259 @@ function centOwn_(L, m) {
   if (labBad) fault(L.id, 'the x label drifts away from P at ' + labBad + ' sampled moments');
   if (moved.size < 10) fault(L.id, 'P takes only ' + moved.size + ' places on the arc — it does not travel');
   if (!/angle at the centre/i.test(m) || !/twice/i.test(m)) fault(L.id, 'does not name the theorem — the caption must say the angle at the centre is twice the angle at the edge');
+}
+
+/* ---------- y = mx + c: THE LINE GOES THROUGH (0, c), AND THE NUMBER IS THE SLOPE ---------------------
+   ASKED FOR AS "refine the gradiant animation". The old one rocked a bar between two angles nobody
+   named; its pivot and its dot were two sets of numbers 0.4px apart, and its end ran out past the
+   axes. Nothing in the markup says where the line is — it is wherever `@keyframes mx-line` puts it
+   — so, as for the angle at the centre, the picture is re-derived from the keyframes:
+
+     · (0, c) IS ONE POINT. The dot sits on the y-axis, above the x-axis, and every stop of the line,
+       the triangle and (one square along) the rise is carried to it — so the browser, interpolating
+       a translate between equal values, puts the line through (0, c) at every frame.
+     · RUN 1, RISE m, ON THE LINE. The run is one square of the grid; the triangle is a unit right
+       triangle stretched by m; at every sampled moment (stops, half-way, and every 0.2%) its top
+       corner and the top of the rise are one point, on the line.
+     · THE NUMBER IS THE SLOPE. Each value under the drawing is fully up only while the line holds
+       at exactly that gradient, for long enough to read; never two at once; the rise's own label
+       says the same value, on the same clock, beside the middle of the rise.
+     · NO WORD IS CROSSED. Every label, while it is showing, stays clear of the line, the rise, the
+       run and the axes — measured as boxes in the mono face against strokes of their real width.
+       c is the exception that proves it: it is written ON its dot, which is drawn over the line.
+     · THE STILL IS ONE CLEAR PICTURE: under reduced motion exactly one value is up and the line,
+       triangle and rise all agree with it. */
+function mxcOwn_(L, m) {
+  const num = s => (String(s).match(/-?\d*\.?\d+(?:e-?\d+)?/g) || []).map(Number);
+  const attr = (s, n) => { const q = s.match(new RegExp('\\s' + n + '="([^"]*)"')); return q ? q[1] : null; };
+  const el = (tag, cls) => {
+    const re = new RegExp('<' + tag + '\\b([^>]*\\sclass="(?:[^"]*\\s)?' + cls + '(?:\\s[^"]*)?"[^>]*)>');
+    const q = m.match(re); return q ? q[1] : null;
+  };
+  const dot = el('circle', 'mx-dot'), ax = el('line', 'mx-ax'), ay = el('line', 'mx-ay');
+  if (!dot || !ax || !ay) { fault(L.id, 'has no .mx-dot, .mx-ax or .mx-ay — there is no (0, c) to measure against'); return; }
+  const P = [+attr(dot, 'cx'), +attr(dot, 'cy')], R0 = +attr(dot, 'r');
+  const x0 = +attr(ay, 'x1'), y0 = +attr(ax, 'y1');
+  if (Math.abs(P[0] - x0) > 0.01) fault(L.id, 'the point the line turns about is at x = ' + P[0] + ', not on the y-axis at ' + x0 + ' — that is not (0, c)');
+  if (!(P[1] < y0 - 1)) fault(L.id, 'the point the line turns about is not above the x-axis — c is meant to be a height you can see');
+
+  /* ONE SQUARE OF THE GRID IS ONE UNIT, and nothing else here says how long "1" is. */
+  const grid = (m.match(/class="mx-grid" d="([^"]+)"/) || [])[1] || '';
+  const gx = [...grid.matchAll(/M(-?[\d.]+) [\d.]+V/g)].map(q => +q[1]).concat([x0]).sort((a, b) => a - b);
+  const steps = gx.slice(1).map((v, i) => v - gx[i]).filter(d => d > 0.01);
+  const u = steps.length ? Math.min(...steps) : 0;
+  if (!u) { fault(L.id, 'has no vertical grid lines — there is no square to call one unit'); return; }
+  if (steps.some(d => Math.abs(d / u - Math.round(d / u)) > 0.01)) fault(L.id, 'its grid lines are not evenly spaced — a square is not one unit');
+
+  const run = el('line', 'mx-run');
+  if (!run) fault(L.id, 'has no .mx-run — the triangle has no run');
+  else if (Math.abs(+attr(run, 'x1') - P[0]) > 0.01 || Math.abs(+attr(run, 'y1') - P[1]) > 0.01
+        || Math.abs(+attr(run, 'x2') - P[0] - u) > 0.01 || Math.abs(+attr(run, 'y2') - P[1]) > 0.01)
+    fault(L.id, 'the run is not one square along from (0, c) — "run 1" would be a different length from the grid');
+  const tri = (m.match(/class="mx-tri" d="M0 0 H(-?[\d.]+) V(-?[\d.]+) Z"/) || []).slice(1).map(Number);
+  if (tri.length !== 2 || Math.abs(tri[0] - u) > 0.01 || Math.abs(tri[1] + u) > 0.01)
+    fault(L.id, 'the triangle is not drawn as run 1, rise 1 from (0,0) — stretching it by m would not give rise m');
+  const rise = el('line', 'mx-rise');
+  const RL = rise ? -(+attr(rise, 'y2')) : 0;
+  if (!rise || +attr(rise, 'x1') || +attr(rise, 'y1') || +attr(rise, 'x2') || !(RL > 0))
+    { fault(L.id, 'the rise is not drawn upright from (0,0) — its length cannot be read off its scale'); return; }
+  const lineEl = el('line', 'mx-line');
+  if (!lineEl || +attr(lineEl, 'y1') || +attr(lineEl, 'y2') || Math.abs(+attr(lineEl, 'x1') + +attr(lineEl, 'x2')) > 0.01)
+    { fault(L.id, 'the line is not drawn along x through (0,0) — where it goes cannot be derived from its turn'); return; }
+  const clip = m.match(/<clipPath id="mx-clip"><rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"\/>/);
+  if (!clip || !/<g clip-path="url\(#mx-clip\)"><line class="mx-line"/.test(m))
+    { fault(L.id, 'the line is not clipped to the plot — it runs out past the axes, which is what the old one did'); return; }
+  const box = clip.slice(1).map(Number), CLIP = [box[0], box[1], box[0] + box[2], box[1] + box[3]];
+
+  /* ---- THE KEYFRAMES, AS [key, tx, ty, rotate, sx, sy] ---- */
+  /* THE LAST RULE NAMING `sel` THAT SETS `prop` — `.mx-line` has one rule for its stroke and another
+     for its motion, and the first of them has no animation in it. */
+  const decl = (sel, prop) => {
+    const r = rules.filter(r => !isStill(r) && parts(r.sel).includes(sel) && r.decls[prop] !== undefined).pop();
+    return r ? r.decls[prop] : '';
+  };
+  const nameOf = sel => (decl(sel, 'animation').split(/\s+/).find(w => frames[w]));
+  const tf = t => {
+    const tr = num((t.match(/translate\(([^)]*)\)/) || [])[1] || '0 0');
+    const sc = num((t.match(/scale\(([^)]*)\)/) || [])[1] || '1');
+    return [tr[0], tr[1] || 0, num((t.match(/rotate\(([^)]*)\)/) || [])[1] || '0')[0], sc[0], sc.length > 1 ? sc[1] : sc[0]];
+  };
+  const read = (name, prop) => {
+    const out = [];
+    (frames[name] || []).forEach(st => st.keys.forEach(k => {
+      if (st.decls[prop] === undefined) return;
+      out.push([k].concat(prop === 'opacity' ? [parseFloat(st.decls.opacity)] : tf(st.decls.transform)));
+    }));
+    return out.sort((a, b) => a[0] - b[0]);
+  };
+  const at = (fr, k) => {                     // linear, as the browser interpolates with `linear`
+    let i = 0;
+    while (i < fr.length - 1 && fr[i + 1][0] < k) i++;
+    const a = fr[i], b = fr[Math.min(i + 1, fr.length - 1)];
+    const w = b[0] === a[0] ? 0 : Math.max(0, Math.min(1, (k - a[0]) / (b[0] - a[0])));
+    return a.map((v, j) => v + (b[j] - v) * w);
+  };
+  const fl = read(nameOf('.mx-line'), 'transform'), ft = read(nameOf('.mx-tri'), 'transform'),
+        fr = read(nameOf('.mx-rise'), 'transform');
+  if (!fl.length || !ft.length || !fr.length) { fault(L.id, 'one of .mx-line, .mx-tri, .mx-rise has no transform keyframes — nothing to derive the picture from'); return; }
+  const dur = parseFloat((decl('.mx-line', 'animation').match(/(\d*\.?\d+)s\b/) || [])[1]);
+  if (!(dur >= 8 && dur <= 10)) fault(L.id, 'loops every ' + dur + 's — it was asked for as an 8 to 10 second loop');
+
+  /* ---- (0, c) IS ONE POINT, IN EVERY KEYFRAME ---- */
+  const near = (a, b, e) => Math.abs(a - b) <= (e || 0.01);
+  const offP = fl.filter(q => !near(q[1], P[0]) || !near(q[2], P[1])).length;
+  if (offP) fault(L.id, 'the line is carried somewhere other than (0, c) at ' + offP + ' keyframes — it turns about a point that is not where it cuts');
+  if (ft.some(q => !near(q[1], P[0]) || !near(q[2], P[1]) || !near(q[4], 1))) fault(L.id, 'the triangle does not start at (0, c), or is stretched sideways — the run would not be 1');
+  if (fr.some(q => !near(q[1], P[0] + u) || !near(q[2], P[1]) || !near(q[4], 1))) fault(L.id, 'the rise is not one square along from (0, c) — it does not stand at the end of the run');
+
+  /* ---- THE NUMBERS ---- */
+  const val = s => {
+    const t = s.replace(/<span class="mx-fr"><b>(\d+)<\/b><b>(\d+)<\/b><\/span>/g, '$1/$2').replace(/<[^>]+>/g, '')
+               .replace(/−/g, '-').replace(/½/g, '1/2').trim();
+    const q = t.match(/^(-?)(\d+)(?:\/(\d+))?$/);
+    return q ? (q[1] ? -1 : 1) * (+q[2]) / (q[3] ? +q[3] : 1) : NaN;
+  };
+  const says = [...m.matchAll(/<i class="mx-v (mx-k\d+)">([\s\S]*?)<\/i>/g)].map(q => ({ k: q[1], v: val(q[2]) }));
+  const rls = [...m.matchAll(/<text class="mx-lab mx-rl (mx-k\d+)" x="([\d.]+)" y="([\d.]+)">([^<]*)<\/text>/g)]
+    .map(q => ({ k: q[1], x: +q[2], y: +q[3], v: val(q[4]) }));
+  if (says.length < 5 || says.some(s => isNaN(s.v))) { fault(L.id, 'has ' + says.length + ' values of m under the drawing, or one that does not read as a number'); return; }
+  const vs = says.map(s => s.v);
+  if (new Set(vs).size !== vs.length) fault(L.id, 'names the same gradient twice');
+  if (!vs.some(v => v < 0) || !vs.includes(0) || !vs.some(v => v > 1) || !vs.some(v => v !== Math.round(v)))
+    fault(L.id, 'its gradients (' + vs.join(', ') + ') do not take in a falling line, a flat one, a steep one and a fraction');
+  const ops = says.map(s => read(nameOf('.' + s.k), 'opacity'));
+  says.forEach((s, i) => { if (!ops[i].length) fault(L.id, 'm = ' + s.v + ' (.' + s.k + ') never fades — it is up all the time or never'); });
+
+  /* EVERY KEYFRAME STOP, EVERY HALF-WAY BETWEEN, AND EVERY 0.2% — the stops alone would never see what
+     the browser draws between them, which is where a linear turn and a linear stretch part. */
+  const keys = new Set();
+  [fl, ft, fr].concat(ops).forEach(f => f.forEach((q, i) => { keys.add(q[0]); if (f[i + 1]) keys.add((q[0] + f[i + 1][0]) / 2); }));
+  for (let k = 0; k <= 100; k += 0.2) keys.add(Math.round(k * 10) / 10);
+  const T = [...keys].sort((a, b) => a - b);
+  const rad = d => d * Math.PI / 180;
+  const slope = q => -Math.tan(rad(q[3]));
+  const offLine = (q, pt) => Math.abs(-(pt[0] - q[1]) * Math.sin(rad(q[3])) + (pt[1] - q[2]) * Math.cos(rad(q[3])));
+  let apart = 0, gapWorst = 0, crowd = 0, wrong = [], up = says.map(() => 0);
+  T.forEach(t => {
+    const l = at(fl, t), tr_ = at(ft, t), ri = at(fr, t);
+    const corner = [tr_[1] + u, tr_[2] - tr_[5] * u], top = [ri[1], ri[2] - ri[5] * RL];
+    const d = Math.max(offLine(l, corner), Math.hypot(corner[0] - top[0], corner[1] - top[1]));
+    gapWorst = Math.max(gapWorst, d);
+    if (d > 0.35) apart++;
+    let sum = 0;
+    says.forEach((s, i) => {
+      const o = ops[i].length ? at(ops[i], t)[1] : 0;
+      sum += o;
+      if (o > 0.999) {
+        up[i]++;
+        const ms = slope(l), mt = tr_[5], mr = ri[5] * RL / u;
+        if (!near(ms, s.v, 0.005) || !near(mt, s.v, 0.005) || !near(mr, s.v, 0.005))
+          wrong.push('m = ' + s.v + ' is up at ' + t + '% while the line is at ' + ms.toFixed(3) + ', the triangle '
+            + mt.toFixed(3) + ', the rise ' + mr.toFixed(3));
+      }
+    });
+    if (sum > 1.001) crowd++;
+  });
+  if (apart) fault(L.id, 'the triangle\'s corner, the top of the rise and the line part at ' + apart + ' sampled moments (worst ' + gapWorst.toFixed(2) + ' units) — rise m does not reach the line');
+  if (wrong.length) fault(L.id, 'shows a number that is not the slope at ' + wrong.length + ' sampled moments, first: ' + wrong[0]);
+  if (crowd) fault(L.id, 'shows two values of m at once at ' + crowd + ' sampled moments');
+  const step = 100 / T.length;
+  says.forEach((s, i) => {
+    /* FULLY UP FOR 8% OF THE LOOP — 0.7s at 9s, long enough to read two characters. Counted on the
+       0.2% grid only, so the extra stop and half-way keys do not inflate it. */
+    const n = T.filter(t => Math.abs(t * 5 - Math.round(t * 5)) < 1e-9 && ops[i].length && at(ops[i], t)[1] > 0.999).length * 0.2;
+    if (n < 8) fault(L.id, 'm = ' + s.v + ' is fully up for ' + n.toFixed(1) + '% of the loop — not long enough to read');
+    const r = rls.find(x => x.k === s.k);
+    if (!s.v) return;                                            // a flat line has no rise to label
+    if (!r) { fault(L.id, 'm = ' + s.v + ' has no label on its rise'); return; }
+    if (!near(r.v, s.v, 1e-9)) fault(L.id, 'the rise is labelled ' + r.v + ' while the caption says m = ' + s.v);
+    if (!near(r.y, P[1] - s.v * u / 2, 0.5) || r.x < P[0] + u + 1)
+      fault(L.id, 'the label ' + r.v + ' is not beside the middle of its rise (' + r.x + ', ' + r.y + ')');
+  });
+
+  /* ---- NO WORD IS CROSSED WHILE IT SHOWS ---- */
+  const styleOf = cls => {                      // the later rule wins, as in the cascade, for one class
+    const o = {};
+    rules.filter(r => !isStill(r) && parts(r.sel).some(p => cls.includes(p.replace(/^\./, '')) && /^\.[\w-]+$/.test(p)))
+      .forEach(r => {
+        if (r.decls.font) { const q = r.decls.font.match(/(\d*\.?\d+)px/); if (q) o.size = +q[1]; }
+        if (r.decls['font-size']) o.size = parseFloat(r.decls['font-size']);
+        if (r.decls['text-anchor']) o.anchor = r.decls['text-anchor'];
+        if (r.decls['stroke-width']) o.sw = parseFloat(r.decls['stroke-width']);
+        if (r.decls.animation) o.anim = r.decls.animation.split(/\s+/).find(w => frames[w]);
+      });
+    return o;
+  };
+  const segBox = (a, b, bx) => {
+    let t0 = 0, t1 = 1, hit = true;
+    const dx = b[0] - a[0], dy = b[1] - a[1];
+    [[-dx, a[0] - bx[0]], [dx, bx[2] - a[0]], [-dy, a[1] - bx[1]], [dy, bx[3] - a[1]]].forEach(([p, q]) => {
+      if (!p) { if (q < 0) hit = false; return; }
+      const r = q / p; if (p < 0) t0 = Math.max(t0, r); else t1 = Math.min(t1, r);
+    });
+    if (hit && t0 <= t1) return 0;
+    const L2 = dx * dx + dy * dy;
+    const pd = c => { const w = L2 ? Math.max(0, Math.min(1, ((c[0] - a[0]) * dx + (c[1] - a[1]) * dy) / L2)) : 0;
+                      return Math.hypot(c[0] - a[0] - w * dx, c[1] - a[1] - w * dy); };
+    const bd = c => Math.hypot(Math.max(bx[0] - c[0], 0, c[0] - bx[2]), Math.max(bx[1] - c[1], 0, c[1] - bx[3]));
+    return Math.min(pd([bx[0], bx[1]]), pd([bx[2], bx[1]]), pd([bx[0], bx[3]]), pd([bx[2], bx[3]]), bd(a), bd(b));
+  };
+  const clipLine = q => {
+    const d = [Math.cos(rad(q[3])), Math.sin(rad(q[3]))];
+    let lo = -1e3, hi = 1e3;
+    [0, 1].forEach(j => {
+      if (Math.abs(d[j]) < 1e-12) return;
+      const r0 = (CLIP[j] - q[1 + j]) / d[j], r1 = (CLIP[j + 2] - q[1 + j]) / d[j];
+      lo = Math.max(lo, Math.min(r0, r1)); hi = Math.min(hi, Math.max(r0, r1));
+    });
+    return [[q[1] + lo * d[0], q[2] + lo * d[1]], [q[1] + hi * d[0], q[2] + hi * d[1]]];
+  };
+  const sw = cls => styleOf(cls).sw || 1;
+  const fixed = [['the x-axis', [[+attr(ax, 'x1'), y0], [+attr(ax, 'x2'), y0]], sw(['mx-ax'])],
+                 ['the y-axis', [[x0, +attr(ay, 'y1')], [x0, +attr(ay, 'y2')]], sw(['mx-ay'])]];
+  if (run) fixed.push(['the run', [[+attr(run, 'x1'), +attr(run, 'y1')], [+attr(run, 'x2'), +attr(run, 'y2')]], sw(['mx-run'])]);
+  const crossed = [];
+  [...m.matchAll(/<text class="(mx-lab[^"]*)" x="([\d.]+)" y="([\d.]+)">([^<]*)<\/text>/g)].forEach(q => {
+    const cls = q[1].split(/\s+/), x = +q[2], y = +q[3], text = q[4];
+    if (near(x, P[0]) && near(y, P[1])) {
+      /* c, ON ITS DOT. Clear of nothing and needing to be: the dot is drawn after the line, so it covers
+         it, and the letter must fit inside the dot. */
+      const s = styleOf(cls).size || 8;
+      if (m.indexOf('class="mx-dot"') < m.indexOf('class="mx-line"')) fault(L.id, 'the dot is drawn under the line — c, written on it, is crossed');
+      if (Math.hypot(0.3 * s, 0.36 * s) > R0) fault(L.id, 'c does not fit inside its dot');
+      return;
+    }
+    const st = styleOf(cls), z = st.size || 8, w = text.length * 0.6 * z, h = 0.72 * z;
+    const x1 = x - (st.anchor === 'start' ? 0 : st.anchor === 'end' ? w : w / 2);
+    const bx = [x1, y - h / 2, x1 + w, y + h / 2];
+    const of = st.anim ? read(st.anim, 'opacity') : [];
+    T.forEach(t => {
+      if (of.length && at(of, t)[1] < 0.25) return;
+      const l = at(fl, t), ri = at(fr, t);
+      [['the line', clipLine(l), sw(['mx-line'])],
+       ['the rise', [[ri[1], ri[2]], [ri[1], ri[2] - ri[5] * RL]], sw(['mx-rise'])]].concat(fixed).forEach(([nm, sg, wd]) => {
+        const g = segBox(sg[0], sg[1], bx) - wd / 2;
+        if (g < 0.8) crossed.push('"' + text + '" (' + cls.slice(1).join(' ') + ') by ' + nm + ' at ' + t + '%, ' + g.toFixed(2) + ' clear');
+      });
+    });
+  });
+  if (crossed.length) fault(L.id, 'a word is crossed or touched while it shows, at ' + crossed.length + ' sampled moments, first: ' + crossed[0]);
+
+  /* ---- THE STILL ---- */
+  const base = sel => tf(decl(sel, 'transform'));
+  const shown = says.filter(s => parseFloat(decl('.' + s.k, 'opacity')) === 1);
+  if (shown.length !== 1) fault(L.id, 'under reduced motion ' + shown.length + ' values of m are up — the still must show exactly one');
+  else {
+    const v = shown[0].v, bl = base('.mx-line'), bt = base('.mx-tri'), br = base('.mx-rise');
+    if (!(v > 0)) fault(L.id, 'the still is m = ' + v + ' — a still with no rising triangle is not the clear picture');
+    if (!near(-Math.tan(rad(bl[2])), v, 0.005) || !near(bt[4], v, 0.005) || !near(br[4] * RL / u, v, 0.005)
+        || !near(bl[0], P[0]) || !near(bl[1], P[1]))
+      fault(L.id, 'the still says m = ' + v + ' but its line, triangle or rise is drawn at another gradient, or off (0, c)');
+  }
+
+  if (!/y = <b class="mx-tm">m<\/b>x \+ <b class="mx-tc">c<\/b>/.test(m) || !/rise ÷ run/.test(m))
+    fault(L.id, 'the caption does not say y = mx + c and m = rise ÷ run');
+  said.push('#splash-mxc: m = ' + vs.join(', ') + '; corner and rise within ' + gapWorst.toFixed(3) + ' of the line');
 }
 
 console.log('\nTHE SPLASHES THAT ARE ONE SEAMLESS LOOP  (' + LOOPS.length + ')');
