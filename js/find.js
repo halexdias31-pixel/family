@@ -340,11 +340,13 @@ const KINDS = {
      the contents, and `pageParts_` adds a page for each chapter after it. Starring the card keeps
      the book; a chapter is a page of it, not a thing of its own. */
   textbook: { group: 'Learning', label: 'Resources', card: x => textbookCard_(x) },
-  /* ---------- THE BIBLE, AND THE ONLY KIND ON FIND THAT NOT EVERYBODY IS SHOWN --------------------
+  /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN -----------
      ASKED FOR AS "i want to add the bible to resources as a book. but only admin can see the bible."
      So it wears `Resources` like the textbook beside it, on a shelf of its own (`Books`), and its
      item exists only for an admin — `bibleItems_` and the long note above `bibleFor_` say why that
-     gate is on the phone and why it is the one exception to Find being the same for every role. */
+     gate is on the phone and why it is the one exception to Find being built the same for every
+     role. NOT THE ONLY ADMIN-ONLY KIND: `film` above is an admin's too, but by the payload — `doGet`
+     sends nobody else a row — so this is the only kind with a role test on the phone. */
   bible: { group: 'Learning', label: 'Resources', card: x => bibleCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN ---------------------------
@@ -3898,11 +3900,15 @@ function textbookText_(b) {
    book and a 7 KB `index.json`. Nothing about it is in the `doGet` payload, and nothing in it is
    fetched until an admin is the one looking.
 
-   THE ONE DELIBERATE EXCEPTION TO "Find shows the same thing to everyone". The owner's own rule is
-   *"No distinction between tutor and student on the finder. All the same."* — and `check-flow`
+   THE ONE EXCEPTION THE PHONE MAKES TO "Find shows the same thing to everyone". The owner's own rule
+   is *"No distinction between tutor and student on the finder. All the same."* — and `check-flow`
    asks it of every role. This is the owner asking for a distinction by name, so it is made in ONE
-   place (`bibleFor_`) and nowhere else: every other item on Find is the same for every role, and
-   the sameness journey now expects the Bible on an admin's list and on nobody else's.
+   place (`bibleFor_`) and nowhere else: every other item on Find is built the same for every role,
+   and the sameness journey expects the Bible on an admin's list and on nobody else's.
+   NOT THE ONLY THING ON FIND AN ADMIN ALONE SEES, and an earlier draft of this note said it was: the
+   films (`Learning · Films`) are an admin's too. But they are absent rather than hidden — `doGet`
+   sends nobody else a row of them — so no code on the phone tells the roles apart for them. The
+   Bible is the one item the PHONE decides on, which is why it is the one `bibleFor_` guards.
 
    GATED ON THE PHONE, NOT ON THE SERVER, AND THAT IS NOT THE FILMS' MISTAKE REPEATED. The films are
    a list the owner wants nobody to see, so `doGet` never sends them to anybody else — a filter on
@@ -3913,40 +3919,48 @@ function textbookText_(b) {
    `bibleFor_` says yes, and `check-flow` records every fetch to prove it.
 
    READ AS THE @family. TEXTBOOK READS, which was the spec: a card, then pages. The card is the
-   cover; the next two pages are the Old and New Testaments, a button per book; choosing one fetches
-   that book (once a visit — `BIBLE.books`) and puts its pages straight after its testament: the
-   chapter numbers, then every chapter, a page or a few each. Swipe on and you read on into the next
-   chapter, as a book does.
+   cover; the next three pages are the lists of books — the Old Testament in two (`bibleOn_` says
+   why), then the New — and choosing one fetches that book (once a visit — `BIBLE.books`) and puts
+   its pages after ALL THREE lists: the chapter numbers, then every chapter, a page or a few each.
+   Swipe on and you read on into the next chapter, as a book does.
+   AFTER ALL THREE, NOT AFTER ITS OWN TESTAMENT, which is where it was first: Genesis's 326 pages
+   then stood between the Old Testament and the New, so with any Old Testament book open the New
+   Testament was 328 swipes away and the cover's "the books are the next pages" was false. Now the
+   lists never move, and the way back up is a tile — every page of a chapter has one to the chapter
+   numbers, and the chapter numbers have one to the list their book is on.
 
    A CHAPTER IS CUT INTO SCREENFULS RATHER THAN SCROLLED. The median chapter is 3,300 characters and
    Psalm 119 is 13,000 — no phone shows either on one card, and "I don't like scrolling … so they
    all fit on screen" is the owner's rule for every widget. So a chapter is pages of whole verses
-   (`bibleCut_`), as many as fit the screen in hand (`bibleBudget_`), each headed with where it is:
-   `Genesis 1`, `2 of 3`.
+   (`bibleCut_`), cut in PIXELS against the screen in hand (`bibleMeasure_`), each headed with where
+   it is: `Genesis 1`, `2 of 3`.
 ================================================================================================== */
 const BIBLE_NAME = 'The Bible (King James Version)';
 /* `Books`, A SHELF OF ITS OWN, BESIDE `@family. textbooks` AND `Boxing`. Not the textbooks' shelf:
    that one is books this business wrote, and the King James is not one of them. "As a book" is the
    owner's word for it, and the next book that is not ours belongs here too. */
 const BIBLE_SHELF = 'Books';
-/* WHAT A PAGE HOLDS, IN CHARACTERS, and what a verse costs on top of its words — the end of its last
-   line, which is half a line on average and nothing a character count sees. `BIBLE_PAGE` is only the
-   fallback for a document with no layout (jsdom, a check); a phone measures its own — `bibleBudget_`. */
+/* ---------- THE THREE NUMBERS FOR A DOCUMENT WITH NO LAYOUT ---------------------------------------
+   A PHONE MEASURES ITS OWN PAGES (`bibleMeasure_`); jsdom and a check have no layout to measure, so
+   they cut by characters instead, and these are those characters: what a page holds, what a verse
+   costs on top of its words (the end of its last line, half a line on average and nothing a
+   character count sees), and the tile row every text page carries, taken off every page's share. */
 const BIBLE_PAGE = 1000;
 const BIBLE_VERSE = 24;
-/* AND THE TILE AT THE FOOT OF A CHAPTER'S LAST PAGE, in the same units: about 80px measured, at the
-   0.55px a character of the reading size costs down the page. Counted into the chapter, so the cut
-   leaves it room rather than drawing the last page smaller to make some. */
 const BIBLE_FOOT = 150;
-/* THE MOST CHAPTER NUMBERS ONE PAGE OFFERS. Sixty 44px buttons is twelve rows at 320px — a page that
-   fits; Psalms' 150 is three pages of fifty rather than one of 150 that would have to scroll. */
+/* AND THE CHAPTER NUMBERS A PAGE OFFERS WITH NOTHING TO MEASURE. A phone fits the grid to its pane —
+   five columns by eight rows at 320x568, six by thirteen at 390x844 — because a fixed sixty was
+   twelve rows at 320 and `paneReach_` drew every number at 40px to fit them. */
 const BIBLE_GRID = 60;
+/* WHERE THE OLD TESTAMENT TURNS THE PAGE — see `bibleOn_`. */
+const BIBLE_OT_TURN = 'Job';
 
 /* EVERYTHING THE READER KNOWS, IN ONE PLACE. `books` IS THE VISIT'S CACHE — a book asked for once is
    held until the page is closed, so going back to Genesis is not a second download. `want` is the
-   last book tapped, so two quick taps open the second rather than whichever file landed last. */
+   last book tapped, so two quick taps open the second rather than whichever file landed last.
+   `screen` is the pane the `plans` were measured against (`bibleScreen_`). */
 const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {},
-                open: 0, want: 0, plans: {}, budget: 0, item: null };
+                open: 0, want: 0, plans: {}, screen: '', item: null };
 
 /* ---------- WHO IS SHOWN IT -----------------------------------------------------------------------
    THE WHOLE EXCEPTION IS THIS LINE. The item list asks it, the fetches ask it again (a book must not
@@ -4031,88 +4045,184 @@ function bibleLoad_(n) {
 const bibleVerse_ = t => esc(String(t == null ? '' : t).replace(/^#\s*/, ''))
   .replace(/\[([^\[\]]*)\]/g, '<i>$1</i>');
 
-/* ---------- HOW MUCH OF A CHAPTER IS A SCREENFUL, ON THIS SCREEN ----------------------------------
-   A FIXED NUMBER WAS RIGHT ON ONE PHONE. Measured with 1,000 characters a page: at 390x844 a page
-   filled 545px of an 807px pane — a third of every screen empty, Genesis 1 five pages where three and
-   a half would do — while at 320x568 the same page was drawn at 0.81 to fit. So the screen is asked,
-   once, when a book is opened: the pane's own ceiling and width (the Find screen's question page is
-   always in the document to ask), less the kicker and the title, in lines of the reading size, times
-   the characters a line holds in a monospaced face (every character 0.6em). That came out within 1%
-   of what was measured — 1,317 against 1,306 at 390, 815 against 827 at 320 — and 95% of it is used,
-   because verses do not break where a budget would like. MEASURED OVER EVERY PAGE OF GENESIS, PSALMS
-   AND ROMANS: on average 85–90% of the pane filled, nothing scrolls, and the longest page is drawn by
-   `paneReach_` at 0.92 at 390 and 0.82 at 320 — a step smaller, never the 0.7 floor. Clamped, so a
-   strange box cannot make a page of one verse or of a whole chapter. */
-function bibleBudget_() {
+/* ---------- ONE VERSE AS A LINE-GROUP, the same markup on the page and in the measuring below ------ */
+const bibleV_ = (v, num) => `<p class="bb-v${/^#/.test(v) ? ' is-para' : ''}"><span class="bb-n">${num}</span> ${bibleVerse_(v)}</p>`;
+
+/* ---------- WHICH PANE THE PAGES ARE CUT FOR --------------------------------------------------------
+   ITS WIDTH AND ITS CEILING, AS ONE WORD. Every result pane on Find is the same box — the page width
+   across, the screen's height less the bar down (`.pane`) — and the question page is always in the
+   document to ask. `''` with no layout, which is jsdom, a check, or a Find screen not yet drawn. */
+function bibleScreen_() {
   try {
     const pane = document.querySelector('#s-stuff .pane');
-    if (!pane) return BIBLE_PAGE;
-    const cs = getComputedStyle(pane);
-    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
-    const room = parseFloat(cs.maxHeight) - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
-    const wide = pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    if (!(rem > 0 && room > 0 && wide > 0)) return BIBLE_PAGE;
-    /* `.88rem` AND `1.55` ARE `.bb-v`'s OWN SIZE AND LEADING in style.css; `4.2rem` is the kicker
-       and the title above the verses. Change one there and this is the line that has to follow. */
-    const px = .88 * rem;
-    const perLine = Math.floor(wide / (px * .6));
-    const lines = (room - 4.2 * rem) / (px * 1.55);
-    return Math.max(500, Math.min(2000, Math.floor(perLine * lines * .95)));
-  } catch (e) { return BIBLE_PAGE; }
+    const cs = pane && pane.offsetWidth > 0 ? getComputedStyle(pane) : null;
+    return cs ? cs.width + 'x' + cs.maxHeight : '';
+  } catch (e) { return ''; }
+}
+
+/* ---------- A BOOK, MEASURED ON THE SCREEN IT WILL BE READ ON --------------------------------------
+   AN ESTIMATE IN CHARACTERS WAS RIGHT ON AVERAGE AND WRONG ON THE PAGE. Pages were cut by a character
+   count worked out from the pane, then `paneReach_` shrank whichever did not fit — and measured over
+   every page of Genesis at 320x568, 57 of 326 were shrunk, six below 90% and the worst to 81%: verse
+   text at 9.7px on one page between pages at 11.9. At 390x844 Genesis 1's third page was 11.9px
+   between two at 13px, and its left edge jumped 13px as the zoom re-centred it. A character count
+   cannot see where a line breaks, and a verse that ends one word into a new line costs a whole line.
+
+   SO THE BROWSER IS ASKED, ONCE, WHEN A BOOK IS OPENED. Four hidden panes, the real pane's width,
+   with the real classes — so the same rules, the same face and the same wrapping:
+     · an empty pane held open by something taller than the screen, whose height is then the room
+       `paneReach_` will judge a page against, read the way it reads it.
+     · a text page holding ONE verse, which is everything on a page that is not verses: the card's
+       padding, the kicker, the title, the tile row. The room left for verses is the room less that.
+     · a page of sixty chapter numbers, which says how many columns a row holds, how far apart the
+       rows are, and what the rest of that page costs — so the grid is cut to whole rows that fit.
+     · every verse of the book, a column a chapter, and each verse's height read off it: from its
+       top to the next verse's top, which carries the space between them, and so counts a little
+       over rather than under. The last verse of a chapter is its own height.
+   ONE WRITE, THEN EVERY READ, INSIDE A BOX THAT CANNOT MOVE ANYTHING ELSE. The first version filled
+   one pane four times and paid four layouts of the whole app for it — on a loaded test machine 1.2s
+   to open Genesis, 2.3s for Psalms, and 0.35s for Philemon's twenty-five verses, because it was the
+   app being laid out again and not the verses. `contain: strict` on a box of fixed size makes it a
+   layout boundary: what is inside is laid out on its own, once, and nothing outside is touched.
+   A failure anywhere is `null`, and the plan falls back to characters — a page drawn a step smaller
+   is the old behaviour, not a broken one. */
+function bibleMeasure_(n) {
+  const b = bibleBook_(n), d = BIBLE.books[n];
+  let box = null;
+  try {
+    /* THE PANE'S WIDTH TO THE FRACTION, AND HALF A PIXEL LESS. `offsetWidth` rounds — 269 for a pane
+       268.8 wide at 320 — and a line of a monospaced face that ends within that fifth of a pixel
+       wraps on the phone and not here: measured, two pages of Genesis drawn 10px past the pane for
+       one word. Narrower can only wrap sooner, which costs room and never fit. The COMPUTED width,
+       not the box on screen, because the screens are moved — and on a turn scaled — by transforms. */
+    const real = document.querySelector('#s-stuff .pane');
+    const wide = real ? parseFloat(getComputedStyle(real).width) - .5 : 0;
+    if (!b || !d || !(wide > 0)) return null;
+    box = document.createElement('div');
+    box.setAttribute('aria-hidden', 'true');
+    box.style.cssText = 'position:fixed;left:-10000px;top:0;width:' + wide + 'px;height:1px;overflow:hidden;'
+      + 'contain:strict;visibility:hidden;pointer-events:none';
+    /* THE LONGEST KICKER AND TITLE THIS BOOK CAN HAVE on the sample page, so a page is never cut for a
+       shorter head than the one it gets. */
+    box.innerHTML = '<div class="pane"><div style="height:9999px"></div></div>'
+      + '<div class="pane">' + bibleTextHtml_(b, b.chapters, [d.chapters[0][0]], 0, '22 of 22', 'bk', '') + '</div>'
+      + '<div class="pane">' + bibleGridHtml_(b, 1, BIBLE_GRID, `chapters ${b.chapters}–${b.chapters} of ${b.chapters}`, 'ot', '') + '</div>'
+      + `<div class="pane"><div class="card fc prac prac-part bible bb-text">${d.chapters.map(vs =>
+          `<div class="bb-verses">${vs.map((v, i) => bibleV_(v, i + 1)).join('')}</div>`).join('')}</div></div>`;
+    document.body.appendChild(box);
+    const panes = box.children;
+    const cs = getComputedStyle(panes[0]);
+    const pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const room = panes[0].clientHeight - pad;
+    const chrome = panes[1].scrollHeight - pad - panes[1].querySelector('.bb-v').getBoundingClientRect().height;
+    const nums = [].slice.call(panes[2].querySelectorAll('.bb-ch')).map(e => e.getBoundingClientRect());
+    const gridChrome = panes[2].scrollHeight - pad - panes[2].querySelector('.bb-grid').getBoundingClientRect().height;
+    const cols = nums.filter(r => Math.abs(r.top - nums[0].top) < 1).length;
+    const pitch = nums.length > cols ? nums[cols].top - nums[0].top : 0;
+    const w = [].slice.call(panes[3].querySelectorAll('.bb-verses')).map(col => {
+      const r = [].slice.call(col.children).map(e => e.getBoundingClientRect());
+      return r.map((q, i) => (i + 1 < r.length ? r[i + 1].top - q.top : q.height));
+    });
+    box.remove();
+    box = null;
+    /* ROWS: the first number's height, then a pitch for each row after it, inside the room the rest
+       of the page leaves. Two pixels short of the room, the margin `paneReach_` forgives. */
+    const rows = pitch > 0 ? Math.max(1, Math.floor((room - 2 - gridChrome - nums[0].height) / pitch) + 1) : 0;
+    if (!(room > 0 && chrome > 0 && cols > 0 && rows > 0) || w.length !== d.chapters.length) return null;
+    return { cap: room - chrome - 2, cols: cols, per: cols * rows, w: w };
+  } catch (e) {
+    if (box && box.parentNode) box.parentNode.removeChild(box);
+    return null;
+  }
 }
 
 /* ---------- A CHAPTER CUT INTO SCREENFULS ---------------------------------------------------------
-   WHOLE VERSES, AND PAGES OF NEARLY EQUAL LENGTH. The number of pages comes from the budget; then a
-   cut goes before whichever verse's MIDDLE crosses the next equal share — so at 390px Genesis 1 is
-   four pages of about 1,200 characters rather than three full ones and a stub of two verses.
-   A TENTH OF A PAGE OF SLACK, shared across them all: a chapter 4.05 budgets long is four pages a
-   per cent over, which the zoom draws at 0.99, rather than five pages a fifth empty. Returns
-   `[from, to)` index pairs into the chapter's verses. */
-function bibleCut_(vs) {
-  const w = vs.map(v => String(v).length + BIBLE_VERSE);
-  const total = w.reduce((a, b) => a + b, 0) + BIBLE_FOOT;
-  const pages = Math.max(1, Math.ceil(total / (BIBLE.budget || BIBLE_PAGE) - .1));
-  const share = total / pages;
-  const out = [];
-  let from = 0, sum = 0;
-  for (let i = 0; i < vs.length; i++) {
-    if (i > from && out.length < pages - 1 && sum + w[i] / 2 > share * (out.length + 1)) {
-      out.push([from, i]);
-      from = i;
+   WHOLE VERSES, AS FEW PAGES AS FIT, AND THOSE PAGES AS EVEN AS THEY CAN BE. `w` is what each verse
+   costs and `cap` what a page holds, in any one unit — pixels on a phone (`bibleMeasure_`),
+   characters with no layout. Filling each page until the next verse would not fit gives the fewest
+   pages; then the smallest page size that still needs no more pages is searched for, and the chapter
+   is cut again at that — so Genesis 1 is three pages of a similar length rather than two full ones
+   and a stub of two verses. NOTHING OVER `cap` but a verse that is taller than a page on its own,
+   which gets a page to itself and is the one thing `paneReach_` is still left to shrink.
+   PURE — it reads nothing but its arguments, so `check-bible.js` cuts every chapter of the Bible
+   through this very function. Returns `[from, to)` index pairs into the chapter's verses. */
+function bibleCut_(w, cap) {
+  const fill = lim => {
+    const out = [];
+    let from = 0, sum = 0;
+    for (let i = 0; i < w.length; i++) {
+      if (i > from && sum + w[i] > lim) { out.push([from, i]); from = i; sum = 0; }
+      sum += w[i];
     }
-    sum += w[i];
+    out.push([from, w.length]);
+    return out;
+  };
+  const pages = fill(cap).length;
+  let lo = 0, hi = Math.max(cap, ...w);
+  for (let k = 0; k < 30 && hi - lo > .5; k++) {
+    const mid = (lo + hi) / 2;
+    if (fill(mid).length <= pages) hi = mid; else lo = mid;
   }
-  out.push([from, vs.length]);
-  return out;
+  return fill(Math.min(hi, cap));
 }
 
-/* THE OPEN BOOK'S PAGES, worked out once per book: its chapter-number pages, then every chapter's.
-   Memoised on the book because `pageParts_` is asked for every result on every new filter. */
+/* THE OPEN BOOK'S PAGES, worked out once per book and screen: its chapter-number pages, then every
+   chapter's. Memoised because `pageParts_` is asked for every result on every new filter.
+   THE GRID IS AS MANY WHOLE ROWS AS THE PANE HOLDS, and then evened out the way a chapter is: Genesis
+   at 320x568 is two pages of twenty-five rather than forty and ten, and each page's count is rounded
+   up to a whole row so the numbers stand in full columns. */
 function biblePlan_(n) {
   if (BIBLE.plans[n]) return BIBLE.plans[n];
   const b = bibleBook_(n), d = BIBLE.books[n];
   if (!b || !d) return null;
-  const per = Math.ceil(b.chapters / Math.ceil(b.chapters / BIBLE_GRID));
+  const m = bibleMeasure_(n);
+  const most = m ? m.per : BIBLE_GRID;
+  let per = Math.ceil(b.chapters / Math.ceil(b.chapters / most));
+  if (m) per = Math.min(most, Math.ceil(per / m.cols) * m.cols);
   const parts = [];
   for (let g = 0; g * per < b.chapters; g++) parts.push(g ? 'bk-' + g : 'bk');
   const grids = parts.length;
-  const cuts = d.chapters.map(bibleCut_);
+  const cuts = d.chapters.map((vs, i) => (m
+    ? bibleCut_(m.w[i], m.cap)
+    : bibleCut_(vs.map(v => String(v).length + BIBLE_VERSE), BIBLE_PAGE - BIBLE_FOOT)));
   cuts.forEach((c, i) => c.forEach((_, k) => parts.push('c' + (i + 1) + (k ? '-' + k : ''))));
-  return (BIBLE.plans[n] = { per: per, grids: grids, cuts: cuts, parts: parts });
+  return (BIBLE.plans[n] = { per: per, grids: grids, cuts: cuts, parts: parts, measured: !!m });
 }
+/* WHICH PAGE OF CHAPTER NUMBERS HOLDS A CHAPTER — where a text page's tile goes back to. */
+const bibleGridOf_ = (plan, ch) => {
+  const g = Math.floor((ch - 1) / Math.max(1, plan.per));
+  return g ? 'bk-' + g : 'bk';
+};
 
-/* THE CARD, THE TWO TESTAMENTS, AND THE OPEN BOOK AFTER ITS OWN TESTAMENT — so the page above a
-   book's chapter numbers is the list it was chosen from, and one swipe back is the way out. */
+/* ---------- THE OLD TESTAMENT ON TWO PAGES, AT THE SEAM EVERY BIBLE HAS -----------------------------
+   THIRTY-NINE 44px BUTTONS DO NOT FIT A SMALL PHONE. At 320x568 they wrapped to eleven rows, 601px in
+   a 507px pane, and `paneReach_` drew the page at 84% — every button 37px, under the fingertip rule
+   the chips were written to keep. A narrower face only moved the number.
+   SO IT IS TWO PAGES ON EVERY SCREEN, not two on a short one: Genesis to Esther (the Law and the
+   histories) and Job to Malachi (the poetry and the prophets), the turn every printed contents page
+   already makes. On every screen because a list whose page count depends on the phone is a contents
+   that changes shape when the phone turns, and because the seam is one a reader knows. Seventeen and
+   twenty-two fit at 320 at full size; the New Testament's twenty-seven always did. */
+function bibleOn_(part) {
+  const ix = BIBLE.index;
+  if (!ix) return [];
+  if (part === 'nt') return ix.books.filter(b => b.testament === 'NT');
+  const ot = ix.books.filter(b => b.testament === 'OT');
+  let k = ot.findIndex(b => b.book === BIBLE_OT_TURN);
+  if (k <= 0) k = Math.ceil(ot.length / 2);
+  return part === 'ot2' ? ot.slice(k) : ot.slice(0, k);
+}
+const bibleListOf_ = b => (b.testament === 'NT' ? 'nt' : bibleOn_('ot2').indexOf(b) >= 0 ? 'ot2' : 'ot');
+
+/* THE CARD, THE THREE LISTS, AND THEN THE OPEN BOOK — see the head of this section for why the book
+   comes after all three rather than after its own testament. */
 function bibleParts_() {
   const plan = BIBLE.open ? biblePlan_(BIBLE.open) : null;
-  const b = plan ? bibleBook_(BIBLE.open) : null;
-  const book = plan ? plan.parts : [];
-  return [null, 'ot'].concat(b && b.testament === 'OT' ? book : [], ['nt'],
-                             b && b.testament === 'NT' ? book : []);
+  return [null, 'ot', 'ot2', 'nt'].concat(plan ? plan.parts : []);
 }
 
 /* ---------- THE COVER ------------------------------------------------------------------------------
-   `data-bb` MARKS THE PAGES THAT CHANGE AFTER THEY ARE DRAWN — the cover and the two lists wait for
+   `data-bb` MARKS THE PAGES THAT CHANGE AFTER THEY ARE DRAWN — the cover and the three lists wait for
    the index, and a list marks the book being fetched — so `bibleRedraw_` can find them on Find and
    on Saved alike and draw them again in place. */
 function bibleCard_(x) {
@@ -4125,7 +4235,7 @@ function bibleCard_(x) {
     </div>
     <p class="sub">The Authorized Version of 1611</p>
     <p class="fc-lede">The Old and New Testaments, whole${t ? ` — ${num(t.books)} books, ${num(t.chapters)} chapters, ${num(t.verses)} verses` : ''}.
-      The books are the next two pages: choose one, then a chapter.</p>
+      The books are the next three pages: choose one, then a chapter.</p>
     <p class="fc-note">Words in <i>italics</i> are the translators' own, added for the sense, as the
       King James prints them.</p>
     ${/* WHO CAN SEE IT, in the colour this app keeps for exactly that (`--admin`), so the owner is
@@ -4134,11 +4244,13 @@ function bibleCard_(x) {
   </div>`;
 }
 
-/* ---------- A TESTAMENT: A BUTTON PER BOOK --------------------------------------------------------
+/* ---------- A LIST OF BOOKS: A BUTTON EACH ---------------------------------------------------------
    BUTTONS, NOT TILES, and this is the house rule read rather than broken: a tile is an action ON a
    thing, and this is a choice AMONG things — the funnel's own answer row, which is buttons for the
-   same reason. The card's actions (the star) are the tile row under the cover, as on every card. */
-function bibleList_(t) {
+   same reason. The card's actions (the star) are the tile row under the cover, as on every card.
+   `part` is `ot`, `ot2` or `nt`; the two Old Testament pages say which books they hold. */
+function bibleList_(part) {
+  const t = part === 'nt' ? 'NT' : 'OT';
   const ix = bibleIndex_();
   const head = `<p class="fc-kick">${esc(BIBLE_NAME)}</p><h3>${esc(bibleTestament_(t))}</h3>`;
   let body;
@@ -4148,9 +4260,13 @@ function bibleList_(t) {
          <div class="bb-books"><button class="bb-book" data-do="bible-retry">Try again</button></div>`
       : '<p class="fc-lede">Opening the list of books…</p>';
   } else {
-    const books = ix.books.filter(b => b.testament === t);
+    const books = bibleOn_(part);
+    const all = ix.books.filter(b => b.testament === t).length;
     const missed = books.filter(b => BIBLE.missed[b.n] && !BIBLE.loading[b.n]).map(b => b.book);
-    body = `<p class="fc-meta">${books.length} books</p>
+    const span = books.length && books.length < all
+      ? `${esc(books[0].book)} to ${esc(books[books.length - 1].book)} · ${books.length} of the ${all} books`
+      : `${books.length} books`;
+    body = `<p class="fc-meta">${span}</p>
       <div class="bb-books">${books.map(b => {
         const on = BIBLE.open === b.n;
         return `<button class="bb-book${on ? ' on' : ''}${BIBLE.loading[b.n] ? ' is-busy' : ''}" data-do="bible-book"
@@ -4159,58 +4275,72 @@ function bibleList_(t) {
       ${missed.length ? `<p class="fc-note bb-miss">${esc(missed.join(', '))} did not arrive. Tap it again
         to try once more.</p>` : ''}`;
   }
-  return `<div class="card fc prac prac-part bible bb-toc is-${t.toLowerCase()}" data-bb="${t.toLowerCase()}">
+  return `<div class="card fc prac prac-part bible bb-toc is-${t.toLowerCase()}" data-bb="${part}">
     ${head}${body}</div>`;
 }
 
 /* ---------- A BOOK: ITS CHAPTER NUMBERS -----------------------------------------------------------
-   THE WAY TO PSALM 119 THAT IS NOT 118 SWIPES. A number a button, 44px, as many to a row as fit. */
-function bibleGrid_(n, g) {
-  const b = bibleBook_(n), plan = biblePlan_(n);
-  if (!b || !plan) return '';
-  const lo = g * plan.per + 1, hi = Math.min(b.chapters, (g + 1) * plan.per);
-  const same = BIBLE.index.books.filter(o => o.testament === b.testament);
+   THE WAY TO PSALM 119 THAT IS NOT 118 SWIPES. A number a button, 44px, as many to a row as fit and
+   as many rows as the pane holds (`biblePlan_`).
+   AND A TILE BACK TO THE LIST THIS BOOK IS ON. The lists stand in front of every open book, so from
+   Genesis's numbers the Old Testament is three swipes back past the New — this is the one tap. */
+function bibleGridHtml_(b, lo, hi, span, list, cls) {
+  const same = BIBLE.index ? BIBLE.index.books.filter(o => o.testament === b.testament) : [b];
   const nums = [];
   for (let c = lo; c <= hi; c++) {
     nums.push(`<button class="bb-ch" data-do="bible-ch" data-ch="${c}" aria-label="${esc(bibleCite_(b, c))}">${c}</button>`);
   }
-  const span = plan.grids > 1 ? `chapters ${lo}–${hi} of ${b.chapters}`
-             : b.chapters + (b.chapters === 1 ? ' chapter' : ' chapters');
-  return `<div class="card fc prac prac-part bible bb-chs is-bk${g ? '-' + g : ''}">
+  return `<div class="card fc prac prac-part bible bb-chs${cls}">
     <p class="fc-kick">${esc(bibleTestament_(b.testament))} · book ${same.indexOf(b) + 1} of ${same.length}</p>
     <h3>${esc(b.book)}</h3>
     <p class="fc-meta">${span} · ${Number(b.verses || 0).toLocaleString('en-GB')} verses</p>
     <div class="bb-grid">${nums.join('')}</div>
+    <div class="tile-row">${tile_({ icon: 'book', label: bibleTestament_(b.testament), note: 'the books',
+      act: 'bible-to', data: { to: list } })}</div>
   </div>`;
+}
+function bibleGrid_(n, g) {
+  const b = bibleBook_(n), plan = biblePlan_(n);
+  if (!b || !plan) return '';
+  const lo = g * plan.per + 1, hi = Math.min(b.chapters, (g + 1) * plan.per);
+  if (lo > hi) return '';
+  const span = plan.grids > 1 ? `chapters ${lo}–${hi} of ${b.chapters}`
+             : b.chapters + (b.chapters === 1 ? ' chapter' : ' chapters');
+  return bibleGridHtml_(b, lo, hi, span, bibleListOf_(b), ' is-bk' + (g ? '-' + g : ''));
 }
 
 /* ---------- A CHAPTER, OR ONE SCREENFUL OF IT ------------------------------------------------------
    THE CITATION IS THE TITLE ON EVERY PAGE — `Genesis 1` — the way a printed Bible's running head
    says where you are whichever page it falls open at; the kicker says which part of the chapter.
    The verse number is small and quiet in front of its verse: it is how you find a place, not what
-   you read. THE WAY BACK TO THE CHAPTER NUMBERS is a tile at the foot of the chapter's last page —
-   the moment somebody decides between reading on and choosing again. */
+   you read.
+   THE WAY BACK TO THE CHAPTER NUMBERS IS ON EVERY PAGE, not only the chapter's last. It was at the
+   foot of the last page alone, and Psalm 119 is twenty-two pages at 320px: from its first page the
+   way out was twenty-one swipes forward or every earlier psalm backward. The tile goes to the page
+   of numbers this chapter is on, and the room for it is taken off every page by the measuring. */
+function bibleTextHtml_(b, ch, vs, from, of, back, cls) {
+  return `<div class="card fc prac prac-part bible bb-text${cls}">
+    <p class="fc-kick">${esc(bibleTestament_(b.testament))}${of ? ' · ' + of : ''}</p>
+    <h3>${esc(bibleCite_(b, ch))}</h3>
+    <div class="bb-verses">${vs.map((v, j) => bibleV_(v, from + j + 1)).join('')}</div>
+    <div class="tile-row">${tile_({ icon: 'book', label: b.book + ' · chapters',
+      note: b.chapters + (b.chapters === 1 ? ' chapter' : ' chapters'), act: 'bible-to', data: { to: back } })}</div>
+  </div>`;
+}
 function bibleText_(n, ch, k) {
   const b = bibleBook_(n), d = BIBLE.books[n], plan = biblePlan_(n);
   const cuts = plan && plan.cuts[ch - 1];
   if (!b || !d || !cuts || !cuts[k]) return '';
   const from = cuts[k][0], to = cuts[k][1];
-  const vs = d.chapters[ch - 1];
-  const last = k === cuts.length - 1;
-  return `<div class="card fc prac prac-part bible bb-text is-c${ch}${k ? '-' + k : ''}">
-    <p class="fc-kick">${esc(bibleTestament_(b.testament))}${cuts.length > 1 ? ` · ${k + 1} of ${cuts.length}` : ''}</p>
-    <h3>${esc(bibleCite_(b, ch))}</h3>
-    <div class="bb-verses">${vs.slice(from, to).map((v, j) =>
-      `<p class="bb-v${/^#/.test(v) ? ' is-para' : ''}"><span class="bb-n">${from + j + 1}</span> ${bibleVerse_(v)}</p>`).join('')}</div>
-    ${last ? `<div class="tile-row">${tile_({ icon: 'book', label: b.book + ' · chapters',
-      note: b.chapters + (b.chapters === 1 ? ' chapter' : ' chapters'), act: 'bible-to', data: { to: 'bk' } })}</div>` : ''}
-  </div>`;
+  return bibleTextHtml_(b, ch, d.chapters[ch - 1].slice(from, to), from,
+    cuts.length > 1 ? (k + 1) + ' of ' + cuts.length : '', bibleGridOf_(plan, ch),
+    ' is-c' + ch + (k ? '-' + k : ''));
 }
 
 /* ONE PAGE OF IT THAT IS NOT THE COVER — `stuffPart_`'s door in. */
 function biblePart_(x, part) {
   const p = String(part || '');
-  if (p === 'ot' || p === 'nt') return bibleList_(p.toUpperCase());
+  if (p === 'ot' || p === 'ot2' || p === 'nt') return bibleList_(p);
   let m = /^bk(?:-(\d+))?$/.exec(p);
   if (m) return bibleGrid_(BIBLE.open, +(m[1] || 0));
   m = /^c(\d+)(?:-(\d+))?$/.exec(p);
@@ -4269,11 +4399,11 @@ function bibleSet_(n) {
   const host = $('stuff-controls');
   const first = host ? stuffFirstResult_() : 0;
   const before = host ? stuffPages_()[(PAGE.stuff || 0) - first] : null;
-  /* THE SCREEN IS MEASURED HERE, AT AN OPENING, and nowhere else: a budget that moved while a book was
-     open would re-cut the pages under your thumb. A different screen since the last opening (the phone
-     turned) cuts every book again the next time it is opened. */
-  const budget = bibleBudget_();
-  if (budget !== BIBLE.budget) { BIBLE.budget = budget; BIBLE.plans = {}; }
+  /* THE SCREEN IS ASKED HERE, AT AN OPENING, and nowhere else: pages re-cut while a book was open
+     would move the verses under your thumb. A different pane since the last opening (the phone
+     turned) forgets every plan, and each book is measured again the next time it is opened. */
+  const screen = bibleScreen_();
+  if (screen !== BIBLE.screen) { BIBLE.screen = screen; BIBLE.plans = {}; }
   BIBLE.open = n;
   STUFF_PAGES = { from: null, pages: [] };
   if (host) {
@@ -4424,7 +4554,7 @@ function pageParts_(x, prev) {
   if (x && x.kind === 'textbook' && x.row) {
     return [null].concat((x.row.chapters || []).map(c => 'ch' + c.n));
   }
-  /* THE BIBLE IS ITS COVER, ITS TWO TESTAMENTS, AND THE OPEN BOOK'S PAGES after its testament — see
+  /* THE BIBLE IS ITS COVER, ITS THREE LISTS OF BOOKS, AND THE OPEN BOOK'S PAGES after them — see
      `bibleParts_`. Which book is open is the reader's state, not the item's, so the item is the same
      object whichever book is being read. */
   if (x && x.kind === 'bible') return bibleParts_();
@@ -4448,11 +4578,11 @@ function pageParts_(x, prev) {
    rather than a section of a guide. IN `pageParts_`'s ORDER, filtered rather than listed again,
    because "Show the answer" turns forward by the answer's place in that list — on Saved as on Find
    — and two lists of one question's pages would be two chances to disagree about where it is. */
-/* AND A KEPT BIBLE'S TWO LISTS OF BOOKS, because the cover alone is a card with no way into the book:
+/* AND A KEPT BIBLE'S THREE LISTS OF BOOKS, because the cover alone is a card with no way into the book:
    a book tapped on Saved opens on Find (`bibleGo_`), and the chapters themselves stay there. */
 function cardPages_(x, credits) {
   return pageParts_(x).filter(p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p)
-                                 || (x.kind === 'bible' && (p === 'ot' || p === 'nt')))
+                                 || (x.kind === 'bible' && /^(ot2?|nt)$/.test(p)))
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
 }
 function stuffPart_(x, part) {
@@ -8057,8 +8187,9 @@ function stuffItemsRaw_() {
     }),
 
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE ---------------------------------------
-       ONE ITEM ON THE `Books` SHELF, or none. The single place on this list where who you are
-       decides what is on it — asked for by name, see the note above `bibleFor_`. Its pages are the
+       ONE ITEM ON THE `Books` SHELF, or none. The single place on this list where code on the phone
+       asks who you are — asked for by name, see the note above `bibleFor_`. (The films below differ
+       by role too, but because the payload does, not because anything here asks.) Its pages are the
        reader's (`bibleParts_`), fetched a book at a time; nothing about it is in the payload. */
     ...bibleItems_(),
 

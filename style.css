@@ -10421,7 +10421,7 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .tb-fm { display: block; font-size: .95rem; line-height: 1.6; color: var(--ink); overflow-wrap: anywhere; }
 .tb-points li { margin: 0 0 .3rem; }
 
-/* ---------- THE BIBLE — A COVER, TWO LISTS OF BOOKS, A BOOK'S CHAPTER NUMBERS, AND ITS PAGES ---------
+/* ---------- THE BIBLE — A COVER, THREE LISTS OF BOOKS, A BOOK'S CHAPTER NUMBERS, AND ITS PAGES -------
    "i want to add the bible to resources as a book." Everything else on its pages is the textbook's
    (`.prac`, `.fc-kick`, `.fc-meta`); these are what a reader needs that a revision sheet does not.
 
@@ -10430,8 +10430,8 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .bb-who { color: var(--admin); }
 
 /* THE BOOKS AS CHIPS THAT WRAP LIKE TEXT — the funnel's own answer row (`.answers`), because choosing a
-   book is the same act as choosing an answer: thirty-nine names in a column would be thirty-nine
-   lines; wrapped, Genesis to Malachi is a dozen. 44px BOTH WAYS, in px, for the fingertip reason the
+   book is the same act as choosing an answer: seventeen names in a column would be seventeen lines;
+   wrapped, Genesis to Esther is five. 44px BOTH WAYS, in px, for the fingertip reason the
    answers give — `Joel` and `Amos` are short words and still a whole finger. THE OUTLINE IS THIS
    CARD'S OWN (`--bb-line`), declared on it the way the chess board's colours are: `--line` is a
    hairline that all but vanishes as a chip's only edge, and the answers' `--chip-line` is kept to
@@ -10446,10 +10446,12 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
   transition: background var(--quick) ease, border-color var(--quick) ease;
 }
 .bb-book:active, .bb-ch:active { background: rgb(255 255 255 / .08); }
-/* THE NARROWEST PHONE GETS A NARROWER CHIP, NOT A SHORTER ONE. At 320x568 the thirty-nine books of
-   the Old Testament were thirteen rows — 703px in a 509px pane, so `paneReach_` drew the whole page at
-   0.72, a hair over its floor. The fingertip rule fixes the height at 44px, so the room has to come out
-   of the width: a smaller face and less padding put four short names on a line where three went. */
+/* THE NARROWEST PHONE GETS A NARROWER CHIP, NOT A SHORTER ONE. The fingertip rule fixes the height at
+   44px, so at 320px the room comes out of the width: a smaller face and less padding put four short
+   names on a line where three went. IT WAS ALSO MEANT TO FIT THE OLD TESTAMENT'S THIRTY-NINE, and did
+   not — 601px in a 507px pane, drawn by `paneReach_` at 84%, every chip 37px — which is why that list
+   is two pages now (`bibleOn_` in find.js). What this still buys is the New Testament: its twenty-seven
+   at the full chip are 10% over at 320x568, and at this one they fit. */
 @media (max-width: 22rem) {
   .bb-books { gap: .25rem .2rem; }
   .bb-book { padding: .2rem .42rem; font-size: .74rem; }
@@ -10467,7 +10469,8 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 @media (prefers-reduced-motion: reduce) { .bb-book.is-busy::before { animation: none; } }
 /* THE CHAPTER NUMBERS, A GRID OF EQUAL SQUARES — as many 44px columns as the card has room for (five
    at 320px, six at 390), so the numbers line up in columns a thumb can run down. Squares, not pills:
-   a number is a place in a sequence, and a grid of them reads as one. */
+   a number is a place in a sequence, and a grid of them reads as one. HOW MANY ROWS a page holds is
+   measured in find.js (`bibleMeasure_`), so a page of them is never drawn smaller to fit. */
 .bb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: .3rem;
   margin: var(--fc-line) 0 0; }
 .bb-ch { padding: 0; border-radius: 8px; font: 600 .84rem/1 var(--mono); font-variant-numeric: tabular-nums; }
@@ -10475,21 +10478,26 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 
 /* ---------- THE TEXT -------------------------------------------------------------------------------
    ONE VERSE A LINE-GROUP, the way the King James has always been set, with a little more room above a
-   verse the 1611 printers marked as starting a paragraph (`is-para`). The reading size is the lede's
-   and a touch more leading, because this is the one card in the app that is read for minutes rather
-   than glanced at. */
+   verse the 1611 printers marked as starting a paragraph (`is-para`).
+   THE BODY SIZE, NOT THE LEDE'S. This was `.88rem` — 11.9px at 320 and 13px at 390, smaller than the
+   textbook's reading text (`.tb-fm`, `.95rem`) on the one card in the app that is read for minutes
+   rather than glanced at. A full `1rem` costs only pages, never fit: a chapter is cut to the screen
+   by measuring these very lines (`bibleMeasure_`), so a bigger face is more pages of the same size. */
 .bb-verses { margin: var(--fc-line) 0 0; }
-.bb-v { margin: 0 0 .32rem; font-size: .88rem; line-height: 1.55; color: var(--ink); }
+.bb-v { margin: 0 0 .32rem; font-size: 1rem; line-height: 1.55; color: var(--ink); }
 .bb-v.is-para { margin-top: .75rem; }
 .bb-v:first-child { margin-top: 0; }
 /* THE VERSE NUMBER, SMALL AND QUIET — how you find a place, not what you read. Raised a little off the
-   line like a printed Bible's, in the faint ink, and never bold. */
-.bb-n { font: 500 .62rem/1 var(--mono); color: var(--faint); vertical-align: .38em;
+   line like a printed Bible's, in the faint ink, and never bold. `.7rem`, up from `.62` with the text:
+   8.4px of grey was a number you had to lean in to find a place by. */
+.bb-n { font: 500 .7rem/1 var(--mono); color: var(--faint); vertical-align: .38em;
   font-variant-numeric: tabular-nums; }
 /* THE WORDS THE TRANSLATORS SUPPLIED, as the King James prints them: italic, and nothing else — not
    dimmer, which would say they matter less, and not coloured, which would say they are a link. */
 .bb-v i { font-style: italic; }
-.bb-text .tile-row { margin-top: var(--fc-group); }
+/* THE WAY BACK UP, ON EVERY PAGE: a text page's tile to its chapter numbers, the numbers' tile to their
+   list of books. */
+.bb-text .tile-row, .bb-chs .tile-row { margin-top: var(--fc-group); }
 
 /* ==================================================================================================
    THE GUIDE. FIVE THINGS: the sheet's own title, the drawing, the kit, the method, and a
