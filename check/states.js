@@ -806,12 +806,18 @@ const STATES = {
         goPage('stuff', first + stuffPageOf_(it), true);
         window.__ansWant = first + stuffPageOf_(it, 'ans');
         window.__ansFrom = null;
-        /* THE TILE ON THE QUESTION'S OWN PAGE, pressed as a finger would. */
-        setTimeout(() => {
+        /* THE TILE ON THE QUESTION'S OWN PAGE, pressed as a finger would -- AT ONCE where it is already
+           drawn (the landing above is instant), so the whole of `ui.js`'s wait goes to the page turning.
+           Pressed after a tick, a loaded run measured the strip still sliding: "PANE OFF THE SCREEN",
+           73px out, a picture of the turn rather than of the page it turned to. */
+        const press = () => {
           const tile = document.querySelector('#s-stuff .page.on [data-do="qa-go"]');
+          if (!tile) return false;
           window.__ansFrom = PAGE.stuff;
-          if (tile) tile.click();
-        }, 150);
+          tile.click();
+          return true;
+        };
+        if (!press()) setTimeout(press, 150);
       },
       /* LANDED ON, AND STILL HIDDEN. *"answers should just stay hidden unless user unhides them"* --
          the question's tile is `To the answer` now and turns the page without revealing it; the
