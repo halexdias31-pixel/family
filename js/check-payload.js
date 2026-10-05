@@ -262,16 +262,34 @@ for (const m of gs.matchAll(/\bpayload\s*\.\s*([A-Za-z_][\w]*)/g)) sent.add(m[1]
    so it is printed and does not fail. Fourteen tabs are in that state today. */
 const rowKeys = new Map();
 {
+  /* A COMMENT AT THE END OF A LINE IS PROSE, and `decomment` only takes whole-line ones. Left in,
+     `image: S(r.image),   // converted on the phone, the way …` made `it` the last word before
+     `media:`, so `media` was not a key — invisible while this only asked whether the fixture HAS
+     every key, and a false "never built" the moment it also asked the reverse (below). Blanked
+     rather than cut, so every position is where it was; a quote opens a string to its own close or
+     to the end of its line, so a `//` inside `'https://…'` is never taken for a comment. */
+  const rs = (src => {
+    const out = src.split('');
+    for (let i = 0; i < out.length; i++) {
+      const c = out[i];
+      if (c === '"' || c === "'" || c === '`') {
+        for (i++; i < out.length && out[i] !== c && (c === '`' || out[i] !== '\n'); i++) if (out[i] === '\\') i++;
+        continue;
+      }
+      if (c === '/' && out[i + 1] === '/') { for (; i < out.length && out[i] !== '\n'; i++) out[i] = ' '; }
+    }
+    return out.join('');
+  })(gs);
   const re = /payload\.([A-Za-z_]\w*)\.push\(\{/g;
   let m;
-  while ((m = re.exec(gs))) {
+  while ((m = re.exec(rs))) {
     const keys = [];
-    let i = gs.indexOf('{', m.index + m[0].length - 1), depth = 0;
-    for (; i < gs.length; i++) {
-      const c = gs[i];
+    let i = rs.indexOf('{', m.index + m[0].length - 1), depth = 0;
+    for (; i < rs.length; i++) {
+      const c = rs[i];
       if (c === '"' || c === "'" || c === '`') {
         const q = c;
-        for (i++; i < gs.length && gs[i] !== q; i++) if (gs[i] === '\\') i++;
+        for (i++; i < rs.length && rs[i] !== q; i++) if (rs[i] === '\\') i++;
         continue;
       }
       if (c === '{' || c === '[') { depth++; continue; }
@@ -287,11 +305,11 @@ const rowKeys = new Map();
          comma at this depth. Testing for `[:,}]` after the name instead would have read `rate` in
          `bestRate: rate,` as a key of its own — the value, counted as a field. What comes BEFORE is
          what settles it. */
-      if (depth === 1 && /[A-Za-z_]/.test(c) && !/\w/.test(gs[i - 1] || '')) {
+      if (depth === 1 && /[A-Za-z_]/.test(c) && !/\w/.test(rs[i - 1] || '')) {
         let j = i - 1;
-        while (j >= 0 && /\s/.test(gs[j])) j--;
-        if (gs[j] === '{' || gs[j] === ',') {
-          const k = /^([A-Za-z_]\w*)\s*[:,}]/.exec(gs.slice(i, i + 80));
+        while (j >= 0 && /\s/.test(rs[j])) j--;
+        if (rs[j] === '{' || rs[j] === ',') {
+          const k = /^([A-Za-z_]\w*)\s*[:,}]/.exec(rs.slice(i, i + 80));
           if (k) { keys.push(k[1]); i += k[1].length - 1; }
         }
       }
@@ -304,6 +322,7 @@ const fxPath = path.join(__dirname, '..', 'check', 'fixture.json');
 const shapeOf = v => Array.isArray(v) ? '[' : (v && typeof v === 'object' ? '{' : null);
 const fxWrong = [];
 const rowWrong = [];
+const rowExtra = [];
 const rowThin = [];
 let fxRead = 0;
 try {
@@ -324,6 +343,16 @@ try {
     rows.forEach(r => Object.keys(r || {}).forEach(x => have.add(x)));
     const miss = keys.filter(x => !have.has(x));
     if (miss.length) rowWrong.push([tab, miss, keys.length, rows.length]);
+    /* ---------- AND THE REVERSE: A KEY THE FIXTURE HAS AND doGet NEVER BUILDS ----------------------
+       THE SAME LIE FROM THE OTHER SIDE, and the one a NEW key makes. `qualsParts` is read by the
+       card and carried by the fixture, so every browser check draws a tutor's qualifications as
+       notation — and if doGet ever stopped building it, every one of those checks would go on
+       drawing notation off the fixture while the live site drew sentences. The forward question
+       ("does the fixture have every key?") is satisfied by a fixture that has MORE, so it could not
+       see that. This can. It found two on its first run: `studying` and `studyingAt`, from the card's
+       old studying row, which doGet stopped sending when that row became a qualification. */
+    const fiction = [...have].filter(x => !keys.includes(x));
+    if (fiction.length) rowExtra.push([tab, fiction]);
   }
 } catch (e) {
   /* A FIXTURE THAT CANNOT BE READ IS NOT A PASS. Every check that serves it is measuring nothing,
@@ -375,6 +404,14 @@ rowWrong.forEach(([tab, miss, sent, n]) => {
   console.log('        the response, not for the spreadsheet.');
 });
 
+console.log('');
+console.log('THE FIXTURE\'S ROWS CARRY KEYS doGet NEVER BUILDS  (' + rowExtra.length + ')');
+if (!rowExtra.length) console.log('  none — every key a fixture row carries, doGet sends.');
+rowExtra.forEach(([tab, extra]) => {
+  console.log('  ' + tab + ': ' + extra.join(', '));
+  console.log('      → every check served this fixture draws something the live site never has.');
+});
+
 if (rowThin.length) {
   console.log('');
   console.log('TABS THE FIXTURE HAS NO ROWS FOR  (' + rowThin.length + ')');
@@ -397,7 +434,7 @@ console.log('keys read: ' + reads.size + '   keys sent: ' + sent.size
    here whenever the failing list was empty — including with five entries sitting in ACCEPTED saying
    the opposite three lines above. A summary that contradicts its own report is worse than no
    summary: the report is what gets skimmed, and this is the line that gets read. */
-console.log(fxWrong.length || rowWrong.length
+console.log(fxWrong.length || rowWrong.length || rowExtra.length
   ? 'FAILED — the fixture is not the payload, so nothing served it was really checked.'
   : readNotSent.length
   ? 'FAILED — each of those is a feature that does nothing and says nothing.'
@@ -405,4 +442,4 @@ console.log(fxWrong.length || rowWrong.length
     ? 'OK — nothing NEW is unsent. ' + accepted.length + ' known dead key'
       + (accepted.length === 1 ? '' : 's') + ' above, each an unbuilt feature rather than a break.'
     : 'OK — everything the site reads, the backend sends.');
-process.exit(readNotSent.length || fxWrong.length || rowWrong.length ? 1 : 0);
+process.exit(readNotSent.length || fxWrong.length || rowWrong.length || rowExtra.length ? 1 : 0);

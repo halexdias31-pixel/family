@@ -5096,6 +5096,109 @@ check('what a tutor teaches is one chip a subject, its levels raised and no brac
   return bad;
 });
 
+/* ---------- A QUALIFICATION, WRITTEN LIKE AN ISOTOPE ------------------------------------------------
+   *"for the qualifications bit, should be for example Maths subscript to it is grade and super script
+   is the level."* `profQualChip_` in cards.js draws the subject with the level raised over the grade
+   lowered on its right, off the `qualsParts` the server sends. Every way this goes wrong draws: the
+   grade raised and the level lowered, a certificate turned into notation, the place quietly dropped
+   instead of moved into the name, a level alone sinking to the subject's line, a second Maths drawn
+   away from the first, or a phone that waits on a backend deploy to draw anything at all. So one
+   tutor is drawn through the app's own `findCard` with each case, and one off an older backend.
+   The STACKING is a layout question jsdom cannot answer — that is `check/states.js`'s
+   "a tutor's qualifications, written like isotopes", measured by `check/ui.js` in a real browser. */
+check('a qualification is written like an isotope: the level raised, the grade lowered, the place in its name', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const draw = row => { const box = d.createElement('div'); box.innerHTML = w.findCard({ kind: 'tutor', row }); return box; };
+  const P = (subject, level, grade, board, received, kind) => ({ subject, level, grade, board, received, kind: kind || 'subject' });
+  /* A CHIP, READ BACK AS WHAT IS DRAWN: the subject is what is outside the stack, the level is the
+     `<sup>` in it and the grade the `<sub>`, and the order inside the stack is the order on screen. */
+  const read = box => {
+    const c = [...box.querySelectorAll('.prof-cap')].find(x => x.textContent.trim() === 'Qualifications');
+    const row = c && c.nextElementSibling;
+    return row ? [...row.querySelectorAll('.prof-tag')].map(el => {
+      const iso = el.querySelector('.prof-iso');
+      const kids = iso ? [...iso.children].map(k => k.tagName.toLowerCase()) : [];
+      return { subject: (el.textContent.replace(iso ? iso.textContent : '', '')).trim(),
+               sup: iso && iso.querySelector('sup') ? iso.querySelector('sup').textContent : null,
+               sub: iso && iso.querySelector('sub') ? iso.querySelector('sub').textContent : null,
+               order: kids.join(','), stray: el.querySelectorAll('sup, sub').length - kids.length,
+               role: el.getAttribute('role'), label: el.getAttribute('aria-label') || '', title: el.getAttribute('title') || '',
+               studying: !!(iso && iso.querySelector('sub i')) };
+    }) : null;
+  };
+  const bad = [];
+  const now = read(draw({ title: 'Iso Tutor', personId: 'P-iso', rate: 30, quals: ['the sentences, which this phone must not draw'],
+    qualsParts: [P('Maths', 'A-Level', 'B', 'Edexcel', '2019'), P('English', 'GCSE', '7', 'Hill Top School', '2016'),
+                 P('PGCE', '', '', 'Institute of Education', '2021', 'cert'), P('Maths', 'GCSE', '9', 'Hill Top School', '2017'),
+                 P('Physics', 'AS', '', '', ''), P('Chemistry', '', 'A', '', ''),
+                 P('Theology', 'Degree', '', 'UWTSD', 'Present'), P('DBS', 'Enhanced', '', '', '', 'cert'), P('', 'GCSE', 'C', '', '')] }));
+  if (!now) return ['the tutor card drew no "Qualifications" row at all'];
+  const by = (s, sup) => now.find(q => q.subject === s && (sup === undefined || q.sup === sup));
+  /* THE ORDER: Maths's two together, where Maths first appears, in the order they were entered — the
+     shelf's own order — and the row with no subject (a level of nothing) not drawn. */
+  const order = now.map(q => q.subject + (q.sup ? '^' + q.sup : ''));
+  const wantOrder = ['Maths^A-Level', 'Maths^GCSE', 'English^GCSE', 'PGCE', 'Physics^AS', 'Chemistry', 'Theology^Degree', 'DBS Enhanced'];
+  if (JSON.stringify(order) !== JSON.stringify(wantOrder)) bad.push('the chips read ' + JSON.stringify(order) + ', wanted ' + JSON.stringify(wantOrder));
+  const maths = by('Maths', 'A-Level');
+  if (!maths) bad.push('no Maths chip with A-Level raised');
+  else {
+    if (maths.sub !== 'B') bad.push('Maths A-Level lowers ' + JSON.stringify(maths.sub) + ' where its grade, "B", belongs');
+    if (maths.order !== 'sup,sub') bad.push('Maths\'s stack is ' + maths.order + ' — the level goes OVER the grade');
+    if (maths.stray) bad.push('a <sup> or <sub> sits outside the stack on the Maths chip');
+    if (maths.role !== 'img') bad.push('the Maths chip is not role="img", so its aria-label is not what a screen reader hears');
+    if (!/^Maths, A-Level, grade B, at Edexcel, 2019$/.test(maths.label)) bad.push('the Maths chip is named ' + JSON.stringify(maths.label) + ' — the board and the year must be in the name, the notation spoken in words');
+    if (maths.title !== maths.label) bad.push('the Maths chip\'s title is not its name — a pointer held over it cannot see the place');
+  }
+  const eng = by('English', 'GCSE');
+  if (!eng || eng.sub !== '7' || !/Hill Top School/.test(eng.label)) bad.push('English is not GCSE over 7 with Hill Top School in its name: ' + JSON.stringify(eng));
+  const pgce = now.find(q => /PGCE/.test(q.subject));
+  if (!pgce) bad.push('the PGCE was not drawn');
+  else {
+    if (pgce.sup !== null || pgce.sub !== null || pgce.order) bad.push('the PGCE is drawn as notation — a certificate is a plain chip');
+    if (pgce.subject !== 'PGCE') bad.push('the PGCE chip reads ' + JSON.stringify(pgce.subject) + ' — the place belongs in its name, not on its face');
+    if (!/Institute of Education/.test(pgce.label)) bad.push('the PGCE chip lost where it was taken: ' + JSON.stringify(pgce.label));
+  }
+  const dbs = now.find(q => /^DBS/.test(q.subject));
+  if (!dbs || dbs.order) bad.push('an Enhanced DBS is notation, or missing — a certificate with a level is still a plain chip');
+  const phy = by('Physics');
+  if (!phy || phy.sup !== 'AS' || phy.sub !== null) bad.push('a level with no grade is not just the raised level: ' + JSON.stringify(phy));
+  const chem = by('Chemistry');
+  if (!chem || chem.sub !== 'A' || chem.sup !== null) bad.push('a grade with no level is not just the lowered grade: ' + JSON.stringify(chem));
+  const theo = by('Theology');
+  if (!theo || !theo.studying || theo.sub !== 'studying' || !/studying now/.test(theo.label)) bad.push('a degree still being studied does not say so in the grade\'s place: ' + JSON.stringify(theo));
+  /* A BACKEND FROM BEFORE THE PARTS: the sentences, as plain chips, exactly as they were. */
+  const old = read(draw({ title: 'Old Backend', personId: 'P-oldq', rate: 30, quals: ['Maths A-Level grade B at Edexcel (2019)', 'PGCE'] }));
+  if (!old || JSON.stringify(old.map(q => q.subject)) !== JSON.stringify(['Maths A-Level grade B at Edexcel (2019)', 'PGCE']) || old.some(q => q.order))
+    bad.push('an older backend\'s sentences are not drawn as they were: ' + JSON.stringify(old));
+  /* A LAW THAT COLOURS A TWO-WORD SUBJECT COLOURS IT WHOLE. The chip holds the subject's last word to
+     its stack with a no-wrap span, and the first build made that split BEFORE colouring — `mark` on
+     "English" and on "Language" apart, so a `laws` row naming "English Language" matched neither half
+     and the subject went uncoloured; "longest first" in `mark` exists to stop exactly that. A `word`
+     or `regex` law is a row anybody with the sheet can add today, so this is not waiting on the
+     retired subject list. Wanted: the coloured span reads the whole phrase; a law on "Maths" alone
+     still leaves "Further" outside the held word, so a long subject can still break between words. */
+  const D = w.__t.DATA(), lawsWere = D.laws;
+  D.laws = [{ kind: 'word', match: 'English Language', colour: 'green' }, { kind: 'word', match: 'Maths', colour: 'green' }];
+  try {
+    const box = draw({ title: 'Law Tutor', personId: 'P-lawq', rate: 30,
+      qualsParts: [P('English Language', 'GCSE', '8', '', '2016'), P('Further Maths', 'A-Level', 'A*', '', '2019')] });
+    const chip = s => [...box.querySelectorAll('.prof-quals .prof-q')].find(c => c.getAttribute('aria-label').startsWith(s + ','));
+    const green = c => c ? [...c.querySelectorAll('.w-green')].filter(x => !x.closest('.prof-iso')).map(x => x.textContent) : null;
+    const held = c => { const e = c && c.querySelector('.prof-q-end'), i = e && e.querySelector('.prof-iso');
+                        return e ? e.textContent.replace(i ? i.textContent : '', '') : null; };
+    const en = chip('English Language'), fm = chip('Further Maths');
+    if (JSON.stringify(green(en)) !== '["English Language"]')
+      bad.push('a law on "English Language" colours its chip as ' + JSON.stringify(green(en)) + ' — the subject split before it was coloured');
+    if (!en || held(en) !== 'English Language' || !en.querySelector('.prof-q-end .prof-iso'))
+      bad.push('"English Language", coloured whole, is not held whole to its stack: ' + JSON.stringify(held(en)));
+    if (JSON.stringify(green(fm)) !== '["Maths"]' || held(fm) !== 'Maths' || !/^Further /.test(fm.textContent))
+      bad.push('"Further Maths" with a law on "Maths" reads ' + JSON.stringify({ green: green(fm), held: held(fm) }) + ' — "Further" belongs outside the held word');
+  } finally { D.laws = lawsWere; }
+  return bad;
+});
+
 /* ---------- AND THE LIBRARY CARDS CARRY NO NOTE, WHATEVER THE BACKEND SAYS ------------------------
    *"for the library card widget, there doesnt need to be a add note to it."* The current backend no
    longer lists `library_note`; the deployed one does, so this plays that older server and wants the
