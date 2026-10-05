@@ -877,14 +877,17 @@ const STATES = {
           ? Promise.resolve({ success: true, awarded: 2, available: 3, left: 19,
               feedback: 'You described the fall after 1968 but not the peak before it.' })
           : window.__aiApi(b);
-        setTimeout(() => {
+        /* POLLED, LIKE THE KEYPAD'S STATE ABOVE: once at 150ms missed the card at 768 on a loaded run. */
+        let tries = 0;
+        const markIt = () => {
           const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__aiKey);
           const go = ta && ta.closest('.qcard').querySelector('.qp-ai-go');
-          if (!ta || !go) return;
+          if (!ta || !go) { if (++tries < 20) setTimeout(markIt, 20); return; }
           ta.value = 'It rose to a peak in the 1960s and then fell sharply once the vaccine came in.';
           ta.dispatchEvent(new Event('input', { bubbles: true }));
           go.click();
-        }, 150);
+        };
+        setTimeout(markIt, 60);
       },
       expect: () => {
         const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__aiKey);
