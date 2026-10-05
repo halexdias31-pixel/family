@@ -1170,6 +1170,10 @@ const STATES = {
           line.className = 'boxer-credit';
           line.innerHTML = boxerCredit_(b, b.imageCredit);
           box.after(line);
+          /* AND THE PANE IS FITTED AGAIN, as it is when a loaded photo's credit is there from the
+             first paint: without it the card was measured at the zoom it had WITHOUT the line, and
+             the rest of this file reported 42px below the fold that no real phone ever has. */
+          try { paneReach_([c.closest('.pane')]); } catch (e) {}
         }
         const a = line.querySelector('a.boxer-src');
         if (!a || a.getAttribute('href') !== boxerCommons_(pic(b.image))) return false;
