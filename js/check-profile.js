@@ -536,13 +536,20 @@ PEOPLE.forEach(p => {
     bad.push('handle: the handle door and the address door resolved different people — ' + (viaHandle.personId) + ' vs ' + ((viaMail || {}).personId));
   const noSuch = f.post({ action: 'verifyLogin', email: 'nobody_calm', pin: '0000' });
   if (noSuch && noSuch.success) bad.push('handle: a handle nobody has signed somebody in');
-  f.post({ action: 'forgotPin', who: 'lee_calm' });
+  /* A CHILD NOBODY CAN BE WRITTEN FOR IS TOLD SO — it said "a new PIN is on its way … the parent's
+     inbox" over an inbox that does not exist. */
+  const leeSaid = f.post({ action: 'forgotPin', who: 'lee_calm' });
+  if (!leeSaid || leeSaid.success || leeSaid.why !== 'no-inbox')
+    bad.push('no-email: forgotPin for a child with no address and no parent did not say nobody could be written to — ' + JSON.stringify(leeSaid));
   const leeStill = f.post({ action: 'verifyLogin', email: 'lee_calm', pin: '0000' });
   if (!leeStill || !leeStill.success) bad.push('no-email: a child with no linked parent had their PIN changed by a stranger');
   const said = f.post({ action: 'forgotPin', who: 'kit_calm' });
   if (!said || !said.success) bad.push('no-email: forgotPin for a linked child did not answer — ' + JSON.stringify(said));
+  /* AND THE OLD PIN STILL WORKS — the reverse of what this said until the emailed PIN went BESIDE
+     the old one (`authResetUse_`): anybody can type a child's handle into "Forgotten your PIN?", and
+     it used to stop the child's PIN working at once. check-signin.js walks the emailed one. */
   const kitOld = f.post({ action: 'verifyLogin', email: 'kit_calm', pin: '0000' });
-  if (kitOld && kitOld.success) bad.push('no-email: the old PIN still works after the parent was sent a new one');
+  if (!kitOld || !kitOld.success) bad.push('no-email: asking for a new PIN stopped the old one working — anybody who knows the handle can lock the child out');
 }
 
 /* 12. A PROFILE PICTURE, THROUGH THE REAL `doPost`.

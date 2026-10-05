@@ -30,8 +30,11 @@ const DOPOST_VERSION = "2026-10-05-c-attempts";
    handle door so the two cannot drift: no PIN set, the lock, the PIN, the unconfirmed address, the
    session. See `verifyLogin`. */
 function signInRow_(t0, r, body, by) {
-  if (!hasPin_(r)) return jsonOut({ success: false, why: 'no-pin',
-    error: 'That account has no PIN set yet — ask us to add one.' });
+  /* A PIN SENT BY "Forgotten your PIN?" IS A PIN THIS ROW HAS, for as long as it lasts — see
+     `authResetUse_`. A row typed in with no PIN whose parent asked for one is exactly who it is for. */
+  const emailed = authResetGet_(r);
+  if (!hasPin_(r) && !emailed) return jsonOut({ success: false, why: 'no-pin',
+    error: 'That account has no PIN set yet — ask a parent or your tutor for one.' });
   /* LOCKED IS ANSWERED BEFORE THE PIN IS LOOKED AT, so guessing costs the same whether the
      guess was right or not — a lock that only applies to wrong answers tells a guesser when
      they have found the right one. */
@@ -39,14 +42,18 @@ function signInRow_(t0, r, body, by) {
      the same words whether the wait is one minute or an hour, so the only thing to do with it
      is keep pressing — which is what makes the wait longer. A number is a thing somebody can
      wait out. See `authWaitMins_`. */
+  /* EXCEPT FOR THE PIN THAT WAS JUST EMAILED, which is the way out of the lock and would otherwise
+     be refused exactly when it was asked for (181). Five misses at it throw it away, so the lock
+     still holds against a guesser — see `authResetUse_`. */
   const wait = authWaitMins_(r);
-  if (wait > 0) {
+  if (wait > 0 && !authResetUse_(t0, r, body.pin, true)) {
     return jsonOut({ success: false,
       error: wait === 1 ? 'Too many wrong PINs. Try again in a minute.'
                         : 'Too many wrong PINs. Try again in ' + wait + ' minutes.' });
   }
-  /* HASHED, AND OLD ROWS MOVED ACROSS AS THEY ARRIVE — see `authCheckPin_`. */
-  if (!authCheckPin_(t0, r, body.pin)) {
+  /* HASHED, AND OLD ROWS MOVED ACROSS AS THEY ARRIVE — see `authCheckPin_`. The emailed PIN is
+     the second thing asked, and using it makes it the PIN. */
+  if (wait <= 0 && !authCheckPin_(t0, r, body.pin) && !authResetUse_(t0, r, body.pin, false)) {
     authWrong_(t0, r);
     /* ---------- A WRONG ADDRESS AND A WRONG PIN SAY DIFFERENT THINGS NOW ---------------------
        ASKED FOR AS *"make the error codes more specific. if its username not recognised then say
@@ -63,9 +70,25 @@ function signInRow_(t0, r, body, by) {
   }
   // Only accounts that WERE asked to confirm are held back. A blank means the account predates
   // this and was never sent a link, so it isn't unverified — it's just older.
+  /* A CHILD WHO MADE THEIR OWN ACCOUNT WITH NO ADDRESS was sent no link — it went to the grown-up
+     whose address they gave (`register`), so "check your inbox" would send them to an inbox they
+     do not have. */
   if (S(r.verified).toUpperCase() === 'PENDING') {
-    return jsonOut({ success: false,
-      error: 'Please confirm your email first — check your inbox for the link we sent.' });
+    return jsonOut({ success: false, why: 'pending',
+      error: S(r.email) ? 'Please confirm your email first — check your inbox for the link we sent.'
+        : 'Nearly there — the grown-up whose email you gave needs to open the link we sent them.' });
+  }
+  /* ---------- A ROW WITH NO ID IS GIVEN ONE BEFORE A SESSION IS MADE FOR IT -------------------------
+     A SESSION IS `{ id }`, AND `authWhoIs_` REFUSES AN EMPTY ONE. So a child typed into the sheet
+     after the last deploy — no `person_id` until `ensureSchema` next ran — was told "Signed in", and
+     the first thing they pressed answered "Signed out — please sign in again", every time. The id is
+     the same shape `ensurePersonIds` gives, written now, once, on the row that needs it. */
+  if (!S(r.person_id)) {
+    const id = 'P' + Date.now() + '-' + r._row;
+    if (!setCell(t0, r, 'person_id', id)) {
+      return jsonOut({ success: false, why: 'server',
+        error: 'Your details are right, but this account has no id and one could not be written — ask us.' });
+    }
   }
   /* ANYTHING ELSE IS SAID AS ITSELF, not folded into one of the sentences above — a sign-in
      that failed on our side must not read as a wrong PIN, or somebody retypes a right one until
@@ -167,12 +190,16 @@ function doPost(e) {
       const mailTaken = !!norm(r.to_email)
         && p.rows.some(x => norm(x.email) === norm(r.to_email));
       if (!peopleNamed(S(body.newName)).length && !mailTaken) {
+        const invFirst = S(body.newName).split(/\s+/)[0] || '';
         addRow(p, {
           /* THE NAME IS SPLIT, because `full_name` is gone (see `SCHEMA.people`): the first word is
              the first name and the rest the last, which is how every row typed by hand reads. */
           person_id: 'P' + Date.now(),
-          first_name: S(body.newName).split(/\s+/)[0] || '',
+          first_name: invFirst,
           last_name: S(body.newName).split(/\s+/).slice(1).join(' '),
+          /* A HANDLE, AS `register` GIVES ONE. This row had none, so every card drew the first name
+             where the handle goes — `@Max` — and `Max` at the sign-in box was refused. */
+          handle: handleMake_(null, invFirst) || '',
           email: S(r.to_email),
           role: 'client', came_from: 'invited', invited_by: S(r.from_person),
           joined_on: new Date(), listed: 'FALSE',
@@ -214,19 +241,44 @@ function doPost(e) {
        a form hands out.
        The checks are for honest collisions rather than attacks — two families with the same name,
        or somebody registering twice because the first attempt seemed not to work. --- */
+    /* ---------- A CHILD WITH NO EMAIL OF THEIR OWN MAKES AN ACCOUNT WITH A GROWN-UP'S --------------
+       ASKED FOR AS *"so all kids can login easily with their handle and pin"*, and the form refused
+       the commonest child there is: no address was "Please give a real email address", and mum's —
+       already on her own account, or on a brother's — was "That email is already registered". So
+       the only way in for a child without an inbox was the owner typing a row into the sheet.
+
+       `parent_email` IS NOT A SIGN-IN ADDRESS. The row's `email` stays blank — an address on two rows
+       locks both out of `verifyLogin` — and the grown-up's goes in a column of its own, which is
+       somewhere to write and nothing more: the confirmation link goes there, so the grown-up says
+       yes before the account works (the same proof `email` gives, held by the person who should hold
+       it for a child), and so do a forgotten PIN and the too-many-guesses warning (`authGrownUps_`).
+       The child signs in with the HANDLE, which the reply carries so the phone can put it straight
+       into the sign-in box. A parent making the account from their own is `makeChild`. */
     if (action === 'register') {
       const first = S(body.first_name), last = S(body.last_name);
       const email = S(body.email), pin = S(body.pin);
+      const grownUp = email ? '' : S(body.parent_email);
       if (!first || !last) return jsonOut({ error: 'Please give a first and last name.' });
-      if (!email || email.indexOf('@') < 0) return jsonOut({ error: 'Please give a real email address.' });
+      if (!email && !grownUp) {
+        return jsonOut({ error: 'Please give your email address — or, with no email of your own, a grown-up\'s.' });
+      }
+      if ((email || grownUp).indexOf('@') < 0) return jsonOut({ error: 'Please give a real email address.' });
       if (!/^\d{4,8}$/.test(pin)) return jsonOut({ error: 'Choose a PIN of 4 to 8 digits.' });
+      /* THE SAME RULE `changePin` HAS — see `pinWeak_`. A form that let you choose 0000 and then
+         refused it when you tried to change it was two rules for one PIN. */
+      if (pinWeak_(pin)) return jsonOut({ error: 'Pick a PIN that is harder to guess than that.' });
 
       const full = (first + ' ' + last).trim();
       const t = read(TAB.people);
+      /* ASKED BEFORE ANYTHING IS WRITTEN: an account whose grown-up's address had nowhere to go would
+         be a child with nobody to confirm them and nobody to send a forgotten PIN to. */
+      if (grownUp && t.headers.indexOf('parent_email') === -1) {
+        return jsonOut({ error: 'The sheet has no column for: parent_email. Run ?setup=1 — nothing was saved.' });
+      }
       if (findPerson(full)) {
         return jsonOut({ error: 'There is already an account in that name. Try logging in, or ask us to help.' });
       }
-      if (t.rows.some(r => S(r.email) && norm(r.email) === norm(email))) {
+      if (email && t.rows.some(r => S(r.email) && norm(r.email) === norm(email))) {
         return jsonOut({ error: 'That email is already registered. Try logging in.' });
       }
 
@@ -249,7 +301,12 @@ function doPost(e) {
       /* BEFORE THE ROW EXISTS, so `handleMake_` is passed no row: there is nothing of this
          person's for a clash to exclude yet. */
       const regHandle = handleMake_(null, first);
-      addRow(t, {
+      /* WITH NO ADDRESS THE HANDLE IS THE ONLY WAY IN, so an account the generator could not name
+         would be an account nobody can sign in to. Said now, with nothing written. */
+      if (!email && !regHandle) {
+        return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
+      }
+      addRow(t, Object.assign({
         // Students by default. A parent booking for a child is the account an admin sets up; a
         // person signing themselves up is almost always the one being taught.
         person_id: 'P' + Date.now(), role: 'student',
@@ -264,7 +321,9 @@ function doPost(e) {
         invited_by: inviter,
         joined_on: new Date(),
         verified: 'PENDING', verify_token: token
-      });
+      /* ONLY WHEN THERE IS ONE: a key the tab has no column for is a lost write, and an account made
+         with an address of its own has nothing to put here. */
+      }, grownUp ? { parent_email: grownUp } : {}));
 
       /* Tell the person who sent them. It is the only thanks the mechanism can give, it costs
          nothing, and somebody who hears that their introduction landed makes another. */
@@ -278,16 +337,33 @@ function doPost(e) {
       }
       // Sent directly rather than through notify(): notify looks the address up on the row, and
       // the point here is to prove that THIS address reaches this person.
+      /* THE HANDLE IS IN IT. It was nowhere: not in this email, not in the reply, only on the
+         account's own card once signed in — which a child with no address cannot reach without it. */
+      const said = regHandle ? '@' + regHandle : '';
       try {
-        MailApp.sendEmail({ to: email, name: '@family.',
-          subject: 'Confirm your @family. account',
-          body: 'Hello ' + first + ',\n\nConfirm your email address by opening this link:\n\n'
-              + SITE_URL + '?verify=' + token
-              + '\n\nThen sign in with this email address and the PIN you chose.\n\n— @family.' });
+        MailApp.sendEmail(email
+          ? { to: email, name: '@family.',
+              subject: 'Confirm your @family. account',
+              body: 'Hello ' + first + ',\n\nConfirm your email address by opening this link:\n\n'
+                  + SITE_URL + '?verify=' + token
+                  + '\n\nThen sign in with this email address' + (said ? ' (or your handle, ' + said + ')' : '')
+                  + ' and the PIN you chose.\n\n— @family.' }
+          : { to: grownUp, name: '@family.',
+              subject: first + ' has made an @family. account',
+              body: 'Hello,\n\n' + full + ' has made an account on @family. and gave this address as '
+                  + 'their grown-up\'s, because they have no email of their own.\n\n'
+                  + 'If that is right, open this link to say yes — their account works from then on:\n\n'
+                  + SITE_URL + '?verify=' + token + '\n\n'
+                  + 'They sign in with their handle, ' + said + ', and the PIN they chose. If they forget '
+                  + 'it, "Forgotten your PIN?" sends a new one to this address.\n\n'
+                  + 'If you have an @family. parent account on this address, opening the link also puts '
+                  + first + ' on it. If you do not know who this is, ignore this email and nothing happens.'
+                  + '\n\n— @family.' });
       } catch (err) {
         return jsonOut({ error: 'Account created, but the confirmation email could not be sent. Please get in touch.' });
       }
-      return jsonOut({ success: true, name: full, pending: true });
+      return jsonOut({ success: true, name: full, pending: true, handle: regHandle || '',
+                       confirmBy: email ? 'self' : 'grown-up' });
     }
 
     /* --- confirming an email address ---------------------------------------------------------
@@ -301,7 +377,35 @@ function doPost(e) {
       if (!r) return jsonOut({ error: 'That confirmation link has already been used, or has expired.' });
       setCell(t, r, 'verified', 'TRUE');
       setCell(t, r, 'verify_token', '');
-      return jsonOut({ success: true, name: personDisplayName(r) });
+      /* ---------- A GROWN-UP SAYING YES TO A CHILD'S ACCOUNT ALSO PUTS THE CHILD ON THEIRS --------------
+         The child named this address (`register` with `parent_email`) and whoever holds it has just
+         opened the link — both halves of what `claimChild` and `answerClaim` ask for, in the other
+         order. So if the address is a PARENT's account (client or admin, `claimChild`'s own test), the
+         link is written accepted. Not a student's: a brother who registered with mum's address holds
+         it on a student row, and that makes him nobody's parent. Two rows on one address is a guess,
+         and is not made. */
+      let linked = '';
+      const grown = norm(r.parent_email);
+      if (!S(r.email) && grown && S(r.person_id)) {
+        const hits = t.rows.filter(x => norm(x.email) === grown);
+        const par = hits.length === 1 ? hits[0] : null;
+        if (par && S(par.person_id) && (hasRole(par, 'client') || hasRole(par, 'admin'))) {
+          const fam = read(TAB.family);
+          const was = fam.rows.find(x => S(x.parent_id) === S(par.person_id) && S(x.child_id) === S(r.person_id));
+          let ok = !!was;
+          if (was && norm(was.state) !== 'accepted') {
+            ok = setCell(fam, was, 'state', 'accepted'); setCell(fam, was, 'answered_on', new Date());
+          } else if (!was) {
+            ok = !!addRow(fam, { link_id: 'F' + Date.now(), parent_id: S(par.person_id), child_id: S(r.person_id),
+                                 child_typed: personDisplayName(r), state: 'accepted',
+                                 asked_on: new Date(), answered_on: new Date() });
+          }
+          if (ok) linked = personDisplayName(par);
+        }
+      }
+      clearCache();
+      return jsonOut({ success: true, name: personDisplayName(r), handle: S(r.handle),
+                       noEmail: !S(r.email), linkedTo: linked });
     }
 
     /* ================================================================================================
@@ -438,7 +542,8 @@ function doPost(e) {
          address cannot be the same string, whichever rows are searched. What stands between a
          guesser and a PIN is the per-person throttle in `signInRow_`, and a handle meets it exactly
          as an address does. Handles were PUBLIC long before this (they are on every card), so the
-         throttle and the six-digit PIN, not the secrecy of the name, were always the guard.
+         throttle, not the secrecy of the name, was always the guard. (This said "and the six-digit
+         PIN" — a PIN is 4 to 8 digits, and the guess a four-digit one survives is the throttle's.)
 
          `key` FOLDS CASE AND DROPS `_` AND `@`, so `@Halex_Kind42`, `halexkind42` and
          `HALEX_KIND42` are one handle — and so are the 1 October shape (`halex_kind42`) and today's
@@ -446,9 +551,10 @@ function doPost(e) {
          rows on one handle (only possible by hand — `handleTrouble_` refuses it everywhere else) is
          refused, as two rows on one address is. The PENDING rule and the wording live in
          `signInRow_`, unchanged; its wrong-PIN sentence names the half that was typed. */
+      /* THROUGH `handleRows_`, the one reader `forgotPin` uses too — which also lets a long first
+         name be spelled out where the handle keeps nine letters of it. */
       if (mail.indexOf('@') === -1) {
-        const h = key(body.email || body.name);
-        const byHandle = h ? t0.rows.filter(x => key(x.handle) === h) : [];
+        const byHandle = handleRows_(t0.rows, body.email || body.name);
         if (byHandle.length === 1) return signInRow_(t0, byHandle[0], body, 'handle');
         if (byHandle.length > 1) {
           return jsonOut({ success: false,
@@ -1379,128 +1485,113 @@ function doPost(e) {
     /* --- a forgotten PIN --------------------------------------------------------------------------
        ASKED FOR AS *"add forgot pin option. it will send an email to their email."*
 
-       IT SAYS THE SAME SENTENCE WHATEVER HAPPENS, and that is the only security this has. A reply
-       that said "no such person" would turn the sign-in card into a machine for confirming who
-       holds an account here — and half the people on this tab are children. So every branch below
-       returns one success, and the difference between them is only whether an email leaves.
+       ---------- IT SAYS WHAT HAPPENED NOW, BECAUSE THE SAME SENTENCE WAS HIDING NOTHING -------------
+       IT ANSWERED ONE SENTENCE WHATEVER HAPPENED — "a new PIN is on its way … (a child with no email:
+       the parent's inbox)" — on the grounds that a reply saying "no such person" would turn this into
+       a machine for confirming who holds an account. Sign-in has said exactly that since 184
+       (`no-such-email`, `not-an-email`), so the sentence protected nothing, and it cost the one
+       person it was written for: a child with no address and no accepted parent was told a PIN was in
+       an inbox that does not exist, and waited. So each case says itself — no such account, nobody to
+       send it to (ask a parent or your tutor), sent a moment ago, could not be sent, sent.
 
-       IT SETS A NEW PIN RATHER THAN SENDING A LINK. A reset link needs a token column, an expiry,
-       a second screen and a route that works when nobody is signed in; a temporary PIN needs none
-       of that and lands in the one place this app already trusts — `authSetPin_` writes the hash
-       and clears the plaintext, exactly as a change from the settings column does.
+       ---------- AND IT NO LONGER TOUCHES THE PIN UNTIL THE NEW ONE IS USED ----------------------------
+       See `authResetUse_` in booking.gs. The request mails a PIN that works BESIDE the old one for a
+       day; anybody may press this with anybody's handle, and now what that costs the child is an email
+       to their grown-up rather than a PIN that stopped working.
 
        SESSIONS ARE NOT ENDED, and that is deliberate and is the opposite of `changePin`. There the
        person asking has proved who they are, so ending every other session removes an intruder.
        Here anybody may ask, so ending sessions would let a stranger sign the owner out of their own
-       phone by typing their name. Whoever reads the email can sign in with what it says; whoever is
-       already signed in stays signed in. */
+       phone by typing their name. */
     if (action === 'forgotPin') {
-      const said = { success: true,
-        message: 'If there is an account with that, a new PIN is on its way. Check your '
-               + 'inbox (a child with no email: the parent\'s inbox), then change it in your settings.' };
-
       const asked = norm(body.who).replace(/^@+/, '');   // `@halex_kind42` as cards print it — see verifyLogin
       if (!asked) return jsonOut({ error: 'Type your email address or your handle first.' });
 
       const tPeople = read(TAB.people);
-      /* ---------- A HANDLE: THE NEW PIN GOES TO THE ACCOUNT'S OWN ADDRESS, OR ITS PARENTS ---------
-         A handle typed here finds its row among EVERY row now, as `verifyLogin` does — the handle
-         door is open to everybody, so the way back through it must be too. Where the PIN goes is
-         the row's own address when it has one: the same inbox the address door below would send to,
-         so typing the handle instead of the address reaches nobody new. A row with NO address sends
-         to each parent who has accepted the link (`acceptedParents`) — the person who would be asked
-         anyway, and a mailbox that is not the child's. Neither means nothing is sent and the admin
-         resets it by hand (`changePin`). The reply is the same sentence in every case, so a
-         stranger typing handles learns nothing. The throttle is cleared as for an address.
-
-         `pin` WAS THE NAME IN THE MAIL BODY HERE, and no `pin` exists in this scope: the
-         ReferenceError was thrown inside the `try` that guards the mail quota, swallowed, and the
-         reply said the PIN was on its way — while the PIN HAD been changed. A child asking for a
-         new PIN was locked out of the old one and never sent the new one. It is `fresh2`. */
-      if (asked.indexOf('@') === -1) {
-        const hk = key(body.who);
-        const hh = hk ? tPeople.rows.filter(x => key(x.handle) === hk) : [];
-        if (hh.length !== 1) return jsonOut(said);
-        const kid = hh[0];
-        const own = S(kid.email);
-        const tos = own ? [own]
-                        : acceptedParents(S(kid.person_id)).map(p => S(p.email)).filter(Boolean);
-        if (!tos.length) return jsonOut(said);
-        let fresh2 = '';
-        for (let tries = 0; tries < 20; tries++) {
-          fresh2 = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
-          if (!/^(\d)\1+$/.test(fresh2) && fresh2 !== '123456' && fresh2 !== '123123') break;
-        }
-        const krow = tPeople.rows.find(x => x._row === kid._row);
-        authSetPin_(tPeople, krow, fresh2);
-        authClearThrottle_(tPeople, krow);
-        clearCache();
-        try {
-          MailApp.sendEmail(own
-            ? { to: own, name: BRAND_NAME,
-                subject: 'Your new ' + BRAND_NAME + ' PIN',
-                body: 'Somebody asked for a new PIN on your ' + BRAND_NAME + ' account, by your handle ('
-                    + S(kid.handle) + ').\n\nYour new PIN is ' + fresh2 + '\n\n'
-                    + 'Sign in with your handle or your email and it, then change it under Settings → Your PIN.\n\n'
-                    + 'If this was not you, sign in and change it now — whoever asked cannot read '
-                    + 'this email, so they do not have it.' }
-            : { to: tos.join(','), name: BRAND_NAME,
-                subject: 'A new ' + BRAND_NAME + ' PIN for ' + S(kid.first_name),
-                body: S(kid.first_name) + ' asked for a new PIN.\n\nThe new PIN is ' + fresh2 + '\n\n'
-                    + 'They sign in with their handle (' + S(kid.handle) + ') and this PIN, and can change it under Settings.' });
-        } catch (err) { /* a mail quota is not a reason to say the account exists */ }
-        return jsonOut(said);
+      /* ---------- THE SAME TWO DOORS AS SIGNING IN, READ THE SAME WAY --------------------------------
+         No `@` is a handle, through `handleRows_` (every row, as `verifyLogin`); an `@` is an address,
+         `norm` on both sides and whole — never `key`, which strips the dots and the `@` and made
+         `halex.dias@x.com` and `halexdias@xcom` one address. TWO ROWS ON ONE IS REFUSED, NOT GUESSED:
+         which of the two accounts would be sent a PIN is exactly the guess `verifyLogin` will not make. */
+      const byHandle = asked.indexOf('@') === -1;
+      const hits = byHandle ? handleRows_(tPeople.rows, body.who)
+                            : tPeople.rows.filter(x => norm(x.email) === asked);
+      if (!hits.length) {
+        return jsonOut(byHandle
+          ? { error: 'No account has that handle. It is on your card once you are in — ask a parent or your tutor for it.', why: 'not-an-email' }
+          : { error: 'No account has that email address.', why: 'no-such-email' });
       }
-      /* ---------- BY THE ADDRESS AND NOTHING ELSE, THE SAME RULE AS SIGNING IN -------------------
-         THIS WAS `findPerson(asked)` AND THEN THE ADDRESS, compared through `key` — which strips
-         every dot and the `@`, so `halex.dias@x.com` and `halexdias@xcom` were one address. With the
-         address now the only thing anybody signs in with (see `verifyLogin`), the box on the card
-         is an address and this reads it exactly as that handler does: `norm` on both sides, whole.
-
-         TWO ROWS ON ONE ADDRESS SENDS NOTHING. Which of the two accounts would get the new PIN is a
-         guess, and the reply is the same sentence either way — so a stranger learns nothing and the
-         owner fixes the sheet. */
-      const hits = tPeople.rows.filter(x => norm(x.email) === asked);
-      const r = hits.length === 1 ? hits[0] : null;
-      if (!r) return jsonOut(said);
-
-      const to = S(r.email);
-      if (!to) return jsonOut(said);
-
-      /* SIX DIGITS, AND NOT ONE OF THE ONES `changePin` REFUSES. Generated rather than chosen, and
-         re-drawn until it passes the same test — a reset that handed somebody 111111 would be the
-         site issuing the PIN it tells people not to pick. */
-      let fresh = '';
-      for (let tries = 0; tries < 20; tries++) {
-        fresh = String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
-        if (!/^(\d)\1+$/.test(fresh) && fresh !== '123456' && fresh !== '123123') break;
+      if (hits.length > 1) {
+        return jsonOut({ error: 'That ' + (byHandle ? 'handle' : 'email address')
+                              + ' is on more than one account — ask us to sort it out.' });
       }
+      const r = hits[0];
 
-      const row = tPeople.rows.find(x => x._row === r._row);
-      authSetPin_(tPeople, row, fresh);
-      /* AND THE THROTTLE GOES WITH IT. Without this the reset is useless exactly when it is
-         needed: somebody who has just been locked out asks for a new PIN, the e-mail arrives,
-         and the site refuses the six digits it just sent for up to an hour because of wrong
-         answers at a PIN that no longer exists. Whoever read that e-mail holds the mailbox,
-         which is a stronger claim than the counter was ever measuring. See
-         `authClearThrottle_`. */
-      authClearThrottle_(tPeople, row);
-      clearCache();
+      /* ---------- WHERE IT GOES: THE ACCOUNT'S OWN ADDRESS, OR ITS GROWN-UPS --------------------------
+         A row with an address is sent to that address whichever door was used — the inbox the address
+         door reaches, so typing the handle instead reaches nobody new. A row with none goes to its
+         accepted parents and the grown-up's address it was made with (`authGrownUps_`) — mailboxes
+         that are not the child's, belonging to the people who would be asked anyway. */
+      const own = S(r.email);
+      const tos = own ? [own] : authGrownUps_(r);
+      if (!tos.length) {
+        return jsonOut({ why: 'no-inbox',
+          error: 'We have no email for this account, so we could not send a new PIN. Ask your parent or '
+               + 'your tutor — they can give you one straight away.' });
+      }
+      const where = own ? 'your inbox' : 'your parent\'s inbox';
 
+      /* ONE A QUARTER OF AN HOUR. Eight presses were eight emails, and the daily mail quota they spend
+         is the same one every booking notice is sent from. */
+      const was = authResetGet_(r);
+      const since = was ? Date.now() - N(was.at) : Infinity;
+      if (since < AUTH.RESET_GAP_MINS * 60000) {
+        const mins = Math.max(1, Math.ceil((AUTH.RESET_GAP_MINS * 60000 - since) / 60000));
+        return jsonOut({ success: true, why: 'already-sent',
+          message: 'A new PIN went to ' + where + ' a few minutes ago — look there, and in spam. You can '
+                 + 'ask again in ' + mins + (mins === 1 ? ' minute.' : ' minutes.') });
+      }
+      /* NO QUOTA, NO CHANGE. Asked first, so a request that cannot be sent says so rather than storing
+         a PIN nobody will ever read. */
+      let quota = 1;
+      try { quota = MailApp.getRemainingDailyQuota(); } catch (err) { quota = 1; }
+      const cannot = { why: 'no-mail', error: 'We could not send the email just now, so nothing has changed. '
+                     + 'Try again later, or ask your tutor for a new PIN.' };
+      if (quota < tos.length) return jsonOut(cannot);
+
+      /* THE SAME PIN AGAIN if one is still waiting, so a grown-up holding two emails holds two copies
+         of one PIN rather than a dead one and a live one. */
+      const fresh = was ? S(was.pin) : authFreshPin_();
+      const handleSaid = S(r.handle) ? '@' + S(r.handle) : '';
       /* NOT `notify`, which looks the person up again by name — the row is already in hand, and a
-         second lookup on a name that may have matched by email is a second chance to send somebody
-         else's PIN to somebody else's inbox. */
+         second lookup on a name is a second chance to send somebody's PIN to somebody else. */
       try {
-        MailApp.sendEmail({ to: to, name: BRAND_NAME,
-          subject: 'Your new ' + BRAND_NAME + ' PIN',
-          body: 'Somebody asked for a new PIN on your ' + BRAND_NAME + ' account.\n\n'
-              + 'Your new PIN is ' + fresh + '\n\n'
-              + 'Sign in with it, then change it under Settings → Your PIN.\n\n'
-              + 'If this was not you, sign in and change it now — whoever asked cannot read '
-              + 'this email, so they do not have it.' });
-      } catch (err) { /* a mail quota is not a reason to tell a stranger the account exists */ }
+        MailApp.sendEmail(own
+          ? { to: own, name: BRAND_NAME,
+              subject: 'Your new ' + BRAND_NAME + ' PIN',
+              body: 'Somebody asked for a new PIN on your ' + BRAND_NAME + ' account'
+                  + (byHandle && handleSaid ? ', by your handle (' + handleSaid + ')' : '') + '.\n\n'
+                  + 'Your new PIN is ' + fresh + '\n\n'
+                  + 'Sign in with ' + (handleSaid ? 'your handle, ' + handleSaid + ', or your email' : 'your email')
+                  + ' and this PIN. It works for a day; your old PIN keeps working too until you use '
+                  + 'this one. Change it under Settings → Signing in.\n\n'
+                  + 'If this was not you, do nothing — your PIN has not changed, and whoever asked '
+                  + 'cannot read this email.' }
+          : { to: tos.join(','), name: BRAND_NAME,
+              subject: 'A new ' + BRAND_NAME + ' PIN for ' + (S(r.first_name) || 'your child'),
+              body: (S(r.first_name) || 'Your child') + ' asked for a new PIN.\n\nThe new PIN is ' + fresh + '\n\n'
+                  + 'They sign in with their handle' + (handleSaid ? ', ' + handleSaid + ',' : '')
+                  + ' and this PIN. It works for a day; their old PIN keeps working too until they use '
+                  + 'this one.\n\nIf they did not ask, do nothing — nothing has changed.' });
+      } catch (err) { return jsonOut(cannot); }
 
-      return jsonOut(said);
+      if (!authResetPut_(r, { pin: fresh, at: Date.now(), until: Date.now() + AUTH.RESET_HOURS * 36e5,
+                              misses: was ? N(was.misses) : 0 })) {
+        return jsonOut(cannot);
+      }
+      return jsonOut({ success: true,
+        message: 'A new PIN is on its way to ' + where + '. Your old PIN still works until you use the new '
+               + 'one. If nothing arrives, ask ' + (own ? 'your tutor.' : 'your parent or your tutor.') });
     }
 
     /* --- ONE MESSAGE TO EVERYBODY WAS HERE -------------------------------------------------------
@@ -2068,19 +2159,148 @@ function doPost(e) {
       return jsonOut({ success: true, handle: made, was: was });
     }
 
+    /* ---------- A PARENT MAKES THEIR CHILD'S ACCOUNT -------------------------------------------------
+       ASKED FOR AS *"so all kids can login easily with their handle and pin."* "Add your child" only
+       ever LINKED an account that already existed — and the only ways an account came to exist were
+       `register` (which wanted the child's own email) and the owner typing a row into the sheet. So a
+       parent of a child with no inbox had nothing to add, and a second child on one family's address
+       was "That email is already registered".
+
+       THE ROW IS MADE HERE, BY THE PARENT, AND IS LINKED ALREADY. No email (it would be a credential,
+       and a made-up one is a wrong cell); a handle from `handleMake_`, so the shape and the clash and
+       the blocklist are asked once as everywhere else; the PIN the parent chose, under `pinWeak_`;
+       `verified` TRUE, because the person vouching for the child is signed in and is their parent.
+       The family link is written `accepted`: `claimChild` waits for the child to say yes because a
+       stranger could be claiming somebody else's child, and here no existing person is being claimed
+       — the child this makes did not exist a second ago.
+
+       THE HANDLE COMES BACK IN THE REPLY so the phone can show it with the PIN, once, to write down;
+       and it is emailed to the parent, without the PIN — the parent chose it, and a PIN in a mailbox is
+       one more copy of it. Every id is made before anything is written, so the person row and the
+       link land together or the refusal comes first. */
+    if (action === 'makeChild') {
+      const me = findPerson('', S(body.personId));
+      if (!me) return jsonOut({ error: 'Not signed in.' });
+      if (!hasRole(me, 'client') && !hasRole(me, 'admin')) {
+        return jsonOut({ error: 'Only a parent can make a child\'s account. Tick Parent under Your roles first.' });
+      }
+      const first = S(body.firstName), last = S(body.lastName), pin = S(body.pin);
+      if (!first || !last) return jsonOut({ error: 'Their first name and their last name, please.' });
+      if (!/^\d{4,8}$/.test(pin)) return jsonOut({ error: 'Choose a PIN of 4 to 8 digits for them.' });
+      if (pinWeak_(pin)) return jsonOut({ error: 'Pick a PIN that is harder to guess than that.' });
+      const full = (first + ' ' + last).trim();
+      const t = read(TAB.people), fam = read(TAB.family);
+      if (!fam.sheet) return jsonOut({ error: 'The family tab could not be opened — nothing was saved.' });
+      const lacking = ['handle', 'pin'].filter(c => t.headers.indexOf(c) === -1);
+      if (lacking.length) {
+        return jsonOut({ error: 'The sheet has no column for: ' + lacking.join(', ') + '. Run ?setup=1 — nothing was saved.' });
+      }
+      if (findPerson(full)) {
+        return jsonOut({ error: 'There is already an account called ' + full + '. If it is your child\'s, '
+                              + 'use "Add your child" to ask them to link it.' });
+      }
+      const handle = handleMake_(null, first);
+      if (!handle) return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
+      const kidId = 'P' + Date.now() + '-k';
+      const kid = addRow(t, {
+        person_id: kidId, role: 'student', first_name: first, last_name: last, handle: handle,
+        email: '', pin: pin, credits: 0, xp: 0, came_from: 'parent', invited_by: S(me.person_id),
+        joined_on: new Date(), verified: 'TRUE',
+      });
+      if (!kid) return jsonOut({ error: 'The people tab could not be opened — nothing was saved.' });
+      const link = addRow(fam, {
+        link_id: 'F' + Date.now(), parent_id: S(me.person_id), child_id: kidId, child_typed: full,
+        state: 'accepted', asked_on: new Date(), answered_on: new Date(),
+      });
+      if (!link) return jsonOut({ error: 'Their account was made, but it could not be put on yours — ask us to link it.' });
+      clearCache();
+      if (S(me.email)) {
+        try {
+          MailApp.sendEmail({ to: S(me.email), name: BRAND_NAME,
+            subject: first + '\'s ' + BRAND_NAME + ' account',
+            body: first + ' has an account on ' + BRAND_NAME + ' now, on yours.\n\n'
+                + 'They sign in with their handle, @' + handle + ', and the PIN you chose.\n\n'
+                + 'If they forget the PIN, "New PIN" on their card on your account gives them a new one '
+                + 'straight away.\n\n— ' + BRAND_NAME });
+        } catch (err) { /* the account is made and the screen shows the handle; a mail quota is not a refusal */ }
+      }
+      return jsonOut({ success: true, name: full, handle: handle, personId: kidId });
+    }
+
+    /* ---------- A NEW PIN FOR SOMEBODY ELSE: THEIR PARENT, OR AN ADMIN -------------------------------
+       A CHILD WITH NO ADDRESS WHO FORGOT THEIR PIN HAD NOBODY WHO COULD HELP IN THE APP. "Forgotten
+       your PIN?" sends to an inbox, and a child with none and no linked parent has none; the admin
+       reset inside `changePin` could never run (see there); so the one remedy was typing four digits
+       into the sheet — which did not lift the lock either, because the wrong-PIN count lives in
+       Script Properties where nobody can see it.
+
+       WHO MAY: an admin, or a parent the child has ACCEPTED — the two people a child would go to.
+       Not for an admin's row, and not your own (yours is Settings → Signing in, which asks for the
+       old one). The target is an id, never a name: the gate has already made `body.personId` the
+       asker, so `targetId` is the only thing on the request about whom.
+
+       WHAT IT DOES is everything a new credential means here, in one place: a PIN drawn by
+       `authFreshPin_`, the throttle cleared, any emailed PIN dropped, every session the child holds
+       ended, a blank handle filled (a row typed into the sheet has none, and a PIN with no handle is
+       still no way in), and an unconfirmed account confirmed — whoever is giving them a PIN is the
+       grown-up vouching for them. The PIN is returned ONCE, to be read out or written down, and is
+       not kept anywhere but the cell. */
+    if (action === 'resetPin') {
+      const me = findPerson('', S(body.personId));
+      if (!me) return jsonOut({ error: 'Not signed in.' });
+      const t = read(TAB.people);
+      const want = S(body.targetId);
+      const kid = want ? t.rows.find(x => S(x.person_id) === want) : null;
+      if (!kid) return jsonOut({ error: 'We could not find that account.' });
+      if (want === S(me.person_id)) {
+        return jsonOut({ error: 'Your own PIN is under Settings → Signing in.' });
+      }
+      const mine = acceptedChildren(S(me.person_id)).some(c => S(c.person_id) === want);
+      if (!hasRole(me, 'admin') && !mine) {
+        return jsonOut({ error: 'Only their parent or an admin can give them a new PIN.' });
+      }
+      if (hasRole(kid, 'admin')) return jsonOut({ error: 'An admin changes their own PIN.' });
+      if (t.headers.indexOf('pin') === -1 || t.headers.indexOf('handle') === -1) {
+        return jsonOut({ error: 'The sheet has no pin or handle column. Run ?setup=1 — nothing was changed.' });
+      }
+      let handle = S(kid.handle);
+      if (!handle) {
+        handle = handleMake_(kid);
+        if (!handle || !setCell(t, kid, 'handle', handle)) {
+          return jsonOut({ error: 'They have no handle and one could not be made — nothing was changed.' });
+        }
+      }
+      const fresh = authFreshPin_();
+      authSetPin_(t, kid, fresh);
+      /* The guesses were at the OLD PIN — a reset that left the lock on would hand a locked-out child
+         a PIN they still cannot use (181). */
+      authClearThrottle_(t, kid);
+      authResetDrop_(kid);
+      authEndSession_(t, kid);
+      if (S(kid.verified).toUpperCase() === 'PENDING') setCell(t, kid, 'verified', 'TRUE');
+      clearCache();
+      notify(personDisplayName(kid), 'Your PIN was changed',
+        'The PIN on your ' + BRAND_NAME + ' account was just changed by ' + personDisplayName(me)
+        + '.\n\nIf you did not ask for that, reply to this message.');
+      return jsonOut({ success: true, name: personDisplayName(kid), first: S(kid.first_name),
+                       handle: handle, pin: fresh });
+    }
+
     if (action === 'changePin') {
       const r = findPerson(S(body.name), S(body.personId));
       if (!r) return jsonOut({ error: 'Not signed in.' });
 
       const now = S(body.currentPin), next = S(body.newPin);
 
-      /* An admin resetting somebody else's PIN skips the old one — they cannot know it, and a
-         forgotten PIN is the commonest reason anyone asks. Their own still needs it. */
-      const asker = S(body.adminName) || S(body.name);
-      const resetting = key(asker) !== key(S(body.name)) && isAdminPerson(asker);
-
+      /* ---------- YOUR OWN PIN, AND NOBODY ELSE'S ---------------------------------------------------
+         AN "ADMIN RESETTING SOMEBODY ELSE'S" BRANCH STOOD HERE AND COULD NEVER RUN. It compared
+         `body.adminName` with `body.name`, and the gate writes BOTH from the token before this line
+         (`accessDenied`) — so `resetting` was always false, an admin's request naming a child was
+         answered "That is not your current PIN", and an admin who typed their own current PIN changed
+         their OWN. `forgotPin`'s comment sent people here for it. Giving somebody else a new PIN is
+         `resetPin` now: its own action, with a target, for an admin or that child's parent. */
       const tPin = read(TAB.people);
-      if (!resetting && !authCheckPin_(tPin, r, now)) {
+      if (!authCheckPin_(tPin, r, now)) {
         return jsonOut({ error: 'That is not your current PIN.' });
       }
       if (!/^[0-9]{4,8}$/.test(next)) {
@@ -2089,9 +2309,10 @@ function doPost(e) {
       if (next === now) {
         return jsonOut({ error: 'That is the PIN you already have.' });
       }
-      /* The obvious ones, refused. Not security theatre: a PIN of 1234 on an account holding a
-         child's address is worth one sentence of friction. */
-      if (/^(\d)\1+$/.test(next) || next === '1234' || next === '0000' || next === '123456') {
+      /* The obvious ones, refused — `pinWeak_`, the one rule `register` and `makeChild` ask too. Not
+         security theatre: a PIN of 1234 on an account holding a child's address is worth one
+         sentence of friction. */
+      if (pinWeak_(next)) {
         return jsonOut({ error: 'Pick something less guessable than that.' });
       }
 
@@ -2102,6 +2323,9 @@ function doPost(e) {
          resetting a locked-out family's PIN would otherwise hand them a PIN they still
          cannot use. See `authClearThrottle_`. */
       authClearThrottle_(t, row);
+      /* AND A PIN STILL WAITING IN SOMEBODY'S INBOX STOPS WORKING: whoever chose this one has just
+         said what the PIN is. See `authResetUse_`. */
+      authResetDrop_(row);
       /* ---------- CHANGING A PIN ENDS EVERY OTHER SESSION -------------------------------------
          SOMEBODY CHANGING A PIN IS OFTEN SOMEBODY WHO THINKS SOMEONE ELSE HAS IT. Leaving old
          tokens working would mean the intruder stays signed in through the very act meant to
@@ -2112,8 +2336,7 @@ function doPost(e) {
       /* Tell them it changed. If it was not them, this is how they find out — and an email nobody
          expected is the only warning an account theft ever gives. */
       notify(personDisplayName(r), 'Your PIN was changed',
-        'The PIN on your @family. account was just changed'
-        + (resetting ? ' by an administrator.' : '.')
+        'The PIN on your @family. account was just changed.'
         + '\n\nIf that was not you, reply to this message.');
 
       /* ---------- AND THE PHONE THAT MADE THE CHANGE IS GIVEN A NEW SESSION -------------------------

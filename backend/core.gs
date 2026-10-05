@@ -161,12 +161,21 @@ function setCell(t, row, field, value) {
    or a name reading `=IMPORTXML(…)` would run with the owner's own permissions the next time the
    sheet recalculates. A leading apostrophe is the sheet's own "this is text": it is not stored as
    part of the value, so every reader gets back exactly what was written.
-   `-` ONLY WHEN IT IS NOT A NUMBER, because `-5` in a credits cell is a number and must stay one. */
+   `-` ONLY WHEN IT IS NOT A NUMBER, because `-5` in a credits cell is a number and must stay one.
+
+   ---------- AND DIGITS THAT START WITH A 0 ARE TEXT, BECAUSE THE 0 IS PART OF THEM ----------------
+   THE SAME PARSE TOOK THE 0 OFF A PIN. A string of digits is read as a number, so a child who chose
+   a PIN starting with 0 had a cell one digit shorter, a reset PIN starting with 0 (one in ten) was
+   refused the moment it was typed, and four noughts became `0`. Nothing that is all digits with a
+   leading 0 is ever meant as a number — a PIN, a phone number typed without spaces, a library card —
+   so the apostrophe goes on and the sheet keeps what was written. `0` alone and `0.5` are numbers and
+   are left alone. See `authPinLost_` in booking.gs for the cells written before this. */
 function cellSafe_(v) {
   if (typeof v !== 'string' || !v) return v;
   const c = v.charAt(0);
   if (c === '=' || c === '+' || c === '@') return "'" + v;
   if (c === '-' && !/^-\d+(\.\d+)?$/.test(v)) return "'" + v;
+  if (/^0\d+$/.test(v)) return "'" + v;
   return v;
 }
 

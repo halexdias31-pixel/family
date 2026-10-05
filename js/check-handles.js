@@ -974,6 +974,14 @@ function run() {
     { person_id: 'P7', email: 'mia@x.com',       pin: '0000', username: 'MiaS',   handle: 'mia_brave33' },
     { person_id: 'P8', email: 'leo@x.com',       pin: '0000', username: 'LeoS',   handle: 'kind42_leo' },
     { person_id: 'P9', email: 'new@x.com',       pin: '0000', username: 'NewS',   handle: 'nia_calm7', verified: 'PENDING' },
+    /* A LONG FIRST NAME. `handleFirst_` keeps nine letters, so Christopher's handle carries
+       `christoph` — and he types his name the way he spells it. */
+    { person_id: 'P10', email: '',               pin: '0000', username: 'ChrisL', handle: 'uprightchristoph_71',
+      first_name: 'Christopher' },
+    /* A HANDLE TYPED INTO THE SHEET BY HAND, not in the generated shape: compared as it stands, so a
+       long first name does not open a second spelling of it. */
+    { person_id: 'P11', email: '',               pin: '0000', username: 'MaxL',   handle: 'maximili_rocks',
+      first_name: 'Maximilian' },
   ];
   /* THE HELPER THE TWO DOORS SHARE (the lock, the PIN, the session) is cut out too, because the
      handler hands every found row to it. */
@@ -984,6 +992,16 @@ function run() {
     process.exit(1);
   }
   const helperSrc = post.slice(helpAt, helpEnd + 3);
+  const HANDLE_LOOKUP = [
+    grab(people, /const HANDLE_ADJ\s*=\s*\[[\s\S]*?\];/, 'HANDLE_ADJ'),
+    grab(people, /const HANDLE_FIRST_MAX[^;]*;/, 'HANDLE_FIRST_MAX'),
+    grab(people, /const HANDLE_FALLBACK[^;]*;/, 'HANDLE_FALLBACK'),
+    grab(people, /const HANDLE_TAIL_MIN[^;]*;/, 'HANDLE_TAIL_MIN'),
+    grab(people, /const HANDLE_ORDERS\s*=\s*\[[\s\S]*?\]\];/, 'HANDLE_ORDERS'),
+    grab(people, /function handleFirst_\([\s\S]*?\n\}/, 'handleFirst_'),
+    grab(people, /function handleParts_\([\s\S]*?\n\}/, 'handleParts_'),
+    grab(people, /function handleRows_\([\s\S]*?\n\}/, 'handleRows_'),
+  ].join('\n');
   const signIn = new Function('body', 'ROWS', `
     const S = v => String(v == null ? '' : v).trim();
     const norm = v => S(v).toLowerCase();
@@ -996,6 +1014,13 @@ function run() {
     const authWrong_ = () => {};
     const authCheckPin_ = (t, r, pin) => S(r.pin) === S(pin);
     const hasPin_ = r => !!(r && S(r.pin));
+    /* THE EMAILED PIN (see check-signin.js, which runs it for real) is nothing here, so what is
+       under test stays which row a typed name lands on. */
+    const authResetGet_ = () => null;
+    const authResetUse_ = () => false;
+    const setCell = (t, r, f, v) => { r[f] = v; return true; };
+    /* THE ONE READER BOTH DOORS USE, cut out of people.gs with what it reaches for. */
+    ` + HANDLE_LOOKUP + `
     const authNewSession_ = () => 'token';
     const loginReplyFor_ = r => ({ success: true, who: r.person_id });
     const action = 'verifyLogin';
@@ -1025,6 +1050,11 @@ function run() {
     { body: { email: 'ada@example.com', pin: 'wrong' },    want: '', code: 'wrong-pin', why: 'a wrong PIN is still wrong' },
     { body: { email: 'dup@x.com', pin: '0000' },          want: '',   why: 'two rows on one address is refused, not guessed' },
     { body: { email: 'nobody@x.com', pin: '0000' },       want: '', code: 'no-such-email', why: 'an address nobody has signs nobody in' },
+    { body: { email: 'uprightchristoph_71', pin: '0000' },  want: 'P10', why: 'a long first name\'s handle as it is stored' },
+    { body: { email: 'uprightchristopher_71', pin: '0000' }, want: 'P10', why: 'THE SAME HANDLE WITH THE WHOLE FIRST NAME SPELLED OUT — the child types their name as they spell it' },
+    { body: { email: '@UprightChristopher71', pin: '0000' }, want: 'P10', why: 'spelled out, with the @, the case and no underscore' },
+    { body: { email: 'uprightchristophe_71', pin: '0000' },  want: '', code: 'not-an-email', why: 'a misspelling of the name is not the name' },
+    { body: { email: 'maximilian_rocks', pin: '0000' },      want: '', code: 'not-an-email', why: 'a hand-typed handle is compared as it stands — no second spelling of it' },
   ];
   SIGNIN.forEach(c => {
     let got;

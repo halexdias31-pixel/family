@@ -448,6 +448,32 @@ function handleIsShaped_(h, first) {
   return !!handleParts_(h, first);
 }
 
+/* ---------- THE ROWS A TYPED HANDLE IS, FOR SIGNING IN AND FOR A FORGOTTEN PIN ----------------------
+   ONE READER FOR THE TWO DOORS THAT TAKE A HANDLE, because `verifyLogin` and `forgotPin` each had the
+   line and a fix made in one would not be in the other. `key` folds case and drops `_` and `@`, so
+   `@Halex_Kind42` and `halexkind42` are one handle.
+
+   AND A LONG FIRST NAME SPELLED OUT. `handleFirst_` keeps nine letters, so Christopher is
+   `uprightchristoph_71` — and a child types their own name the way they spell it, and
+   `uprightchristopher_71` was "Sign in with the email on your account — or your handle". The same
+   handle with the whole first name where the nine letters are answers too. It is the same person's
+   name, so it opens nobody else's row; and it is asked only of a row whose handle IS in the shape,
+   so a handle somebody typed by hand is compared as it stands. */
+function handleRows_(rows, typed) {
+  const want = key(typed);
+  if (!want) return [];
+  return (rows || []).filter(r => {
+    const have = key(r.handle);
+    if (!have) return false;
+    if (have === want) return true;
+    const cut = handleFirst_(r.first_name);
+    const whole = String(r.first_name == null ? '' : r.first_name).toLowerCase()
+      .replace(/[^a-z0-9]/g, '').replace(/^[0-9]+/, '');
+    if (!cut || whole.length <= cut.length || !handleParts_(r.handle, r.first_name)) return false;
+    return have.replace(cut, whole) === want;
+  });
+}
+
 /** The list in a random order. Fisher–Yates, because `sort(() => Math.random() - 0.5)` is the
     famous wrong one: it does not give every order the same chance. */
 function handleShuffle_(list) {
