@@ -179,7 +179,26 @@ function boot(opts) {
   w.prompt = () => opts.prompt !== undefined ? opts.prompt : 'Weekday evenings';
 
   const data = opts.payload || payload();
+  /* ---------- EVERY GET IS WRITTEN DOWN, AND A JOURNEY MAY ANSWER ONE ITSELF ------------------------
+     THE STUB ANSWERED EVERY GET WITH THE PAYLOAD, so a journey could neither serve a real file nor
+     ask what was asked for. The Bible needs both: an admin's reader has to be handed the real
+     `data/bible/` files, and "a student never downloads a book" is a question about what was
+     FETCHED, which only a list of fetches can answer. `serve` returns a body, `null` for a 404, or
+     `undefined` to fall through to the payload as before — so every other journey is unchanged. */
+  const gets = [];
   w.fetch = (url, o) => {
+    if (!(o && o.body)) {
+      gets.push(String(url));
+      const got = typeof opts.serve === 'function' ? opts.serve(String(url)) : undefined;
+      if (got === null) {
+        return Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve('Not found'),
+                                 json: () => Promise.reject(new Error('404')) });
+      }
+      if (got !== undefined) {
+        return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(JSON.stringify(got)),
+                                 json: () => Promise.resolve(got) });
+      }
+    }
     /* ---------- THE STUB HAD NO `text()`, AND THAT HID EVERY WRITE'S SUCCESS PATH ----------------
        `api()` IN shell.js READS `r.text()` AND PARSES IT, deliberately — an Apps Script error page
        is HTML, and reading it as text first is what turns "Unexpected token '<'" into the sentence
@@ -446,7 +465,7 @@ function boot(opts) {
   } catch (e) {
     errs.push('LOAD THREW: ' + e.message);
   }
-  return { w, sent, errs };
+  return { w, sent, errs, gets };
 }
 
 /* ---------- THE JOURNEYS -------------------------------------------------------------------------
@@ -6130,10 +6149,23 @@ check('Find draws the same question family, practical, project and textbook for 
         + '            signed out: …' + other.slice(Math.max(0, k - 60), k + 100).replace(/\s+/g, ' '));
     }
   });
-  /* AND THE SAME ITEMS: nothing on the learning surface is offered to one role and not another. */
-  const offered = u => { t.USER(u); const ks = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort().join('|'); t.USER(null); return ks; };
+  /* AND THE SAME ITEMS: nothing on the learning surface is offered to one role and not another —
+     BUT ONE, BY NAME. *"i want to add the bible to resources as a book. but only admin can see the
+     bible."* is the owner asking for exactly one difference, so this expects it exactly: an admin's
+     list is everybody else's plus `bible:kjv`, and nobody else's has it. Anything else that differs
+     is still a role showing through. */
+  const BIBLE_KEY = 'bible:kjv';
+  const offered = u => { t.USER(u); const ks = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort(); t.USER(null); return ks; };
   const out0 = offered(null);
-  who.slice(1).forEach(([what, u]) => { if (offered(u) !== out0) bad.push(what + ' is offered a different set of learning items from somebody signed out'); });
+  if (out0.indexOf(BIBLE_KEY) >= 0) bad.push('somebody signed out is offered the Bible — it is for admins only');
+  who.slice(1).forEach(([what, u]) => {
+    const got = offered(u);
+    const admin = u && u.role === 'admin';
+    if (admin && got.indexOf(BIBLE_KEY) < 0) bad.push(what + ' is not offered the Bible, which the owner asked an admin to have');
+    if (!admin && got.indexOf(BIBLE_KEY) >= 0) bad.push(what + ' is offered the Bible — it is for admins only');
+    const rest = got.filter(k => k !== BIBLE_KEY).join('|');
+    if (rest !== out0.filter(k => k !== BIBLE_KEY).join('|')) bad.push(what + ' is offered a different set of learning items from somebody signed out');
+  });
   /* AND THE SPOTLIGHT WINDOW, WHICH IS NOT FIND, KEEPS THE ADMIN'S TILE on a learning item already in
      it -- or a question put there before this change could never be taken out (`SPOT_TILES`). */
   const prac = real[0];
