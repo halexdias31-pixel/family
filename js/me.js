@@ -996,13 +996,14 @@ function registerSheet_() {
       <input id="reg-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off"
              spellcheck="false" placeholder="you@example.com"></label>
     <label class="check reg-kid"><input type="checkbox" id="reg-noemail"><span class="box"></span>
-      <span>I have no email — that is a grown-up's</span></label>
+      <span>It's a grown-up's email</span></label>
     <label class="field"><span>PIN — 4 to 8 digits</span>
       <input id="reg-pin" type="password" inputmode="numeric" autocomplete="new-password"></label>
     <button class="btn" data-do="reg-send">Make my account</button>
-    <p class="faint" style="margin:.6rem 0 0">We email a link. Open it, then sign in with the email
-      or your handle and the PIN. With no email of your own, the link goes to your grown-up — or a
-      parent can make your account from theirs, under Settings.</p>`);
+    ${/* THREE LINES AT 320, MEASURED: the first draft was five, and its last two sat under the fold of
+          a sheet nobody scrolls. The tick says whose address it is in four words for the same reason. */''}
+    <p class="faint" style="margin:.6rem 0 0">We email a link to open. Then sign in with your handle
+      or email and the PIN. A parent can also make your account, in Settings.</p>`);
 }
 on('register', () => registerSheet_());
 
