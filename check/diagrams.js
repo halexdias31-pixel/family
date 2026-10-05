@@ -54,10 +54,18 @@ const arg = (name, or) => {
   const a = process.argv.find(x => x.startsWith('--' + name + '='));
   return a ? a.slice(name.length + 3) : or;
 };
-/* 320 because it is the narrowest phone still in use, and the width `check/cards.js` and
+/* ---------- 320 AND 390, AND THE SECOND ONE IS NOT FOR SHOW -------------------------------------
+   320 because it is the narrowest phone still in use, and the width `check/cards.js` and
    `check/ui.js` both open on. The drawing is `min(100%, 20rem)` wide, so at 320 it is about 270px
-   across a 340-unit viewBox and a 13px label is drawn at about 10px — the size a person reads it. */
-const WIDTH = Number(arg('width', 320));
+   across a 340-unit viewBox and a 13px label is drawn at about 10px — the size a person reads it.
+
+   390 because a drawing's geometry scales but its type does not quite: the glyphs are hinted at
+   whatever size they land, so a label clear by a fraction of a pixel at one width can touch at
+   another. MEASURED THE DAY THIS WAS WRITTEN — with every finding at 320 fixed, 390 still named
+   one label, 360 another and 414 a third, each at exactly the half-pixel line. Two widths is not a
+   proof for every phone; it is the narrowest one and the commonest one, and a label has to clear
+   both. `--width=` measures one width alone. */
+const WIDTHS = arg('width', '') ? [Number(arg('width', ''))] : [320, 390];
 /* ---------- THE PORT IS OPTIONAL, AND ZERO WHEN NOBODY NAMES ONE ---------------------------------
    Every browser check here takes its own port from the environment because several worktrees run
    the suite on one machine at once, and two checks on one port is one of them dying on EADDRINUSE.
@@ -451,32 +459,36 @@ function inspect(o) {
      what anybody reads these on; every phone in use is 2x or 3x, and 3 is the iPhone this site is
      tutored from. A half-pixel shift is exactly the size of the tolerance, so a check run at 1x
      would pass labels a phone draws touching. */
-  const page = await browser.newPage({ viewport: { width: WIDTH, height: 900 }, deviceScaleFactor: DPR });
-
   /* IN BATCHES, so one page is an ordinary page and a drawing's gradient ids meet few neighbours. */
   const BATCH = 60;
   const results = [];
-  for (let i = 0; i < list.length; i += BATCH) {
-    const chunk = list.slice(i, i + BATCH);
-    await page.setContent(
-      `<!doctype html><meta charset="utf-8">
-       <link rel="stylesheet" href="http://localhost:${PORT}/style.css">${faceCss()}
-       <body style="margin:0;background:#0b0b0b">
-         <div style="width:${WIDTH}px">${chunk.map((d, k) => cardHtml(d, i + k)).join('')}</div>
-       </body>`, { waitUntil: 'load' });
-    await page.evaluate(() => document.fonts.ready);
-    results.push(...await page.evaluate(inspect, { tol: TOL, ink: INK, opaque: OPAQUE }));
+  for (const W of WIDTHS) {
+    const page = await browser.newPage({ viewport: { width: W, height: 900 }, deviceScaleFactor: DPR });
+    for (let i = 0; i < list.length; i += BATCH) {
+      const chunk = list.slice(i, i + BATCH);
+      await page.setContent(
+        `<!doctype html><meta charset="utf-8">
+         <link rel="stylesheet" href="http://localhost:${PORT}/style.css">${faceCss()}
+         <body style="margin:0;background:#0b0b0b">
+           <div style="width:${W}px">${chunk.map((d, k) => cardHtml(d, i + k)).join('')}</div>
+         </body>`, { waitUntil: 'load' });
+      await page.evaluate(() => document.fonts.ready);
+      results.push(...(await page.evaluate(inspect, { tol: TOL, ink: INK, opaque: OPAQUE }))
+        .map(r => Object.assign(r, { w: W })));
+    }
+    await page.close();
   }
 
   /* ---------- THE NUMBERS FIRST, so a run that measured nothing cannot read as a clean one -------- */
-  const svgs = results.length;
-  const texts = results.reduce((a, r) => a + r.texts, 0);
-  const chars = results.reduce((a, r) => a + r.chars, 0);
-  const guessed = results.reduce((a, r) => a + r.guessed, 0);
+  const first = results.filter(r => r.w === WIDTHS[0]);
+  const svgs = first.length;
+  const texts = first.reduce((a, r) => a + r.texts, 0);
+  const chars = first.reduce((a, r) => a + r.chars, 0);
+  const guessed = first.reduce((a, r) => a + r.guessed, 0);
   const samples = results.reduce((a, r) => a + r.samples, 0);
   console.log('');
   console.log(`${list.length} drawing cell(s) read — ` + Object.keys(files).map(f => `${files[f]} in data/${f}`).join(', ')
-            + ` — holding ${svgs} <svg>, laid out at ${WIDTH}px`);
+            + ` — holding ${svgs} <svg>, laid out at ${WIDTHS.join(' and ')}px, ${DPR}x`);
   console.log(`${texts} label(s), ${chars} glyph box(es), ${samples} stroke sample(s) near a label`
             + (guessed ? `; ${guessed} glyph(s) measured by their advance box because their characters could not be matched` : ''));
   if (!svgs || !texts) {
@@ -484,9 +496,17 @@ function inspect(o) {
     process.exit(1);
   }
 
-  const found = [];
-  results.forEach(r => r.found.forEach(f => found.push(Object.assign({ key: list[r.i].key + (r.n ? ' (svg ' + (r.n + 1) + ')' : ''),
-                                                                         row: list[r.i].key, file: list[r.i].file }, f))));
+  /* ONE LINE PER COLLISION, NOT PER WIDTH: the same label on the same line at 320 and at 390 is one
+     thing to move, printed at its worst and with the widths it was seen at. */
+  const merged = new Map();
+  results.forEach(r => r.found.forEach(f => {
+    const k = [r.i, r.n, f.kind, f.ti, f.tj, f.other].join('|');
+    const had = merged.get(k);
+    if (had) { had.widths.push(r.w); if (f.px > had.px) had.px = f.px; return; }
+    merged.set(k, Object.assign({ key: list[r.i].key + (r.n ? ' (svg ' + (r.n + 1) + ')' : ''),
+                                  row: list[r.i].key, file: list[r.i].file, widths: [r.w] }, f));
+  }));
+  const found = Array.from(merged.values());
   const used = new Set();
   const fresh = found.filter(f => {
     const k = f.row + '|' + f.label;
@@ -508,7 +528,8 @@ function inspect(o) {
     if (!l.length) return;
     console.log('\n' + KINDS[k] + '  (' + l.length + ')');
     l.forEach(f => console.log(`  ${f.key} — "${f.label}" ${k === 'viewbox' ? 'is' : 'and ' + f.other + ' overlap by'} `
-      + `${f.px.toFixed(1)}px${k === 'viewbox' ? ' past the viewBox' : ''}`));
+      + `${f.px.toFixed(1)}px${k === 'viewbox' ? ' past the viewBox' : ''}`
+      + (WIDTHS.length > 1 ? ` (at ${f.widths.join(' and ')})` : '')));
   });
   if (Object.keys(ACCEPTED).length) {
     console.log('\nACCEPTED  (' + Object.keys(ACCEPTED).length + ') — still printed, one reason each');
@@ -523,31 +544,34 @@ function inspect(o) {
     /* AT THE SAME DENSITY AS THE MEASUREMENT, so the picture is the layout that was measured — and a
        1x picture of a 10px letter is too coarse to tell a letter touching a line from one beside
        it, which is the only thing these pictures are for. */
-    const shot = await browser.newPage({ viewport: { width: WIDTH, height: 900 }, deviceScaleFactor: DPR });
-    for (const d of want) {
-      await shot.setContent(
-        `<!doctype html><meta charset="utf-8">
-         <link rel="stylesheet" href="http://localhost:${PORT}/style.css">${faceCss()}
-         <body style="margin:0;background:#0b0b0b">
-           <div style="width:${WIDTH}px">${cardHtml(d, 0)}</div>
-         </body>`, { waitUntil: 'load' });
-      await shot.evaluate(() => document.fonts.ready);
-      /* EACH FINDING RINGED IN RED on the picture, so a person looking at it sees what was
-         measured rather than hunting for it. A drawing with nothing found is drawn untouched. */
-      const marks = (await shot.evaluate(inspect, { tol: TOL, ink: INK, opaque: OPAQUE }))
-        .reduce((a, r) => a.concat(r.found), []);
-      await shot.evaluate(ms => ms.forEach(m => {
-        const d = document.createElement('div');
-        d.style.cssText = 'position:absolute;pointer-events:none;outline:1px solid #f33;'
-          + `left:${m.box.x0 + scrollX - 1}px;top:${m.box.y0 + scrollY - 1}px;`
-          + `width:${m.box.x1 - m.box.x0 + 2}px;height:${m.box.y1 - m.box.y0 + 2}px`;
-        document.body.appendChild(d);
-      }), marks);
-      const fig = await shot.$('figure');
-      const name = d.key.replace(/[^A-Za-z0-9_-]+/g, '_') + '-' + WIDTH + '.png';
-      await fig.screenshot({ path: path.join(SHOTS, name) });
+    for (const W of WIDTHS) {
+      const shot = await browser.newPage({ viewport: { width: W, height: 900 }, deviceScaleFactor: DPR });
+      for (const d of want) {
+        await shot.setContent(
+          `<!doctype html><meta charset="utf-8">
+           <link rel="stylesheet" href="http://localhost:${PORT}/style.css">${faceCss()}
+           <body style="margin:0;background:#0b0b0b">
+             <div style="width:${W}px">${cardHtml(d, 0)}</div>
+           </body>`, { waitUntil: 'load' });
+        await shot.evaluate(() => document.fonts.ready);
+        /* EACH FINDING RINGED IN RED on the picture, so a person looking at it sees what was
+           measured rather than hunting for it. A drawing with nothing found is drawn untouched. */
+        const marks = (await shot.evaluate(inspect, { tol: TOL, ink: INK, opaque: OPAQUE }))
+          .reduce((a, r) => a.concat(r.found), []);
+        await shot.evaluate(ms => ms.forEach(m => {
+          const d = document.createElement('div');
+          d.style.cssText = 'position:absolute;pointer-events:none;outline:1px solid #f33;'
+            + `left:${m.box.x0 + scrollX - 1}px;top:${m.box.y0 + scrollY - 1}px;`
+            + `width:${m.box.x1 - m.box.x0 + 2}px;height:${m.box.y1 - m.box.y0 + 2}px`;
+          document.body.appendChild(d);
+        }), marks);
+        const fig = await shot.$('figure');
+        const name = d.key.replace(/[^A-Za-z0-9_-]+/g, '_') + '-' + W + '.png';
+        await fig.screenshot({ path: path.join(SHOTS, name) });
+      }
+      await shot.close();
     }
-    console.log(`\n${want.length} picture(s) written to ${SHOTS}`);
+    console.log(`\n${want.length * WIDTHS.length} picture(s) written to ${SHOTS}`);
   }
 
   await browser.close();
