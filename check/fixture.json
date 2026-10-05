@@ -103,6 +103,7 @@
     "Head of Boxing"
    ],
    "listed": true,
+   "pending": false,
    "title": "Ada Tutor",
    "handle": "ada",
    "subtitle": "Maths and further maths, GCSE to A-Level",
@@ -148,8 +149,6 @@
     { "subject": "Bible and Theology", "level": "Degree", "grade": "", "board": "University of Wales Trinity Saint David", "received": "Present", "kind": "subject" },
     { "subject": "DBS", "level": "Enhanced", "grade": "", "board": "", "received": "", "kind": "cert" }
    ],
-   "studying": "",
-   "studyingAt": "",
    "actionText": "Book this tutor",
    "personId": "P-@ada",
    "teachesMain": "Maths (GCSE)",
