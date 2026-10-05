@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-checktile";
+  --css-version: "2026-10-05-swipefocus";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -4329,7 +4329,20 @@ select[aria-expanded="true"] { border-color: var(--gold); }
    Only the ends of a run keep their radius, so a single ticked hour is unchanged. This is on the
    receipt too, where the booked run is the one thing on that grid. */
 .hr.on + .hr.on { border-top-left-radius: 0; border-bottom-left-radius: 0; }
-.hr.on:has(+ .hr.on) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+/* ---------- THE LEFT CELL'S CORNERS ARE SQUARED BY THE BRIDGE, NOT BY A `:has()` -----------------
+   THIS WAS `.hr.on:has(+ .hr.on)`, and that one corner-squaring rule was the freeze at the end of
+   every swipe in the app. `on` inside a `:has()` with a sibling combinator makes Chrome invalidate
+   the WHOLE DOCUMENT whenever any element anywhere gains or loses the class `on` — and `placeGrid`
+   moves `on` onto the column and the page in front at every page turn and every column change.
+   Measured from the trace (5 Oct): every release restyled all 4,381–5,054 elements, 53–64ms of
+   CPU at 1x for a page turn, against 261–272 elements and 3–5ms with this rule gone. Nothing about
+   it said navigation, which is why nothing measuring navigation ever looked at it.
+
+   THE SECOND CELL ALREADY PAINTS THE BRIDGE, so it paints over the first cell's two right-hand
+   corners too: the gold block below starts `--r-sm` further left, inside the left cell, and the
+   rounding there is covered by the same gold it was rounding off. Identical on screen, and a run
+   of hours is still squared only on its inside corners. `check/swipe.js` holds the cost: a page
+   turn restyles fewer than a thousand elements. */
 /* ---------- AND THE BRIDGE IS PAINTED BY THE SECOND CELL, LEFTWARDS ------------------------------
    THE FIRST VERSION HUNG IT OFF THE LEFT CELL, reaching `right: -3px` into the gutter — and an
    absolutely positioned child that sticks out to the RIGHT pushes its ancestor's `scrollWidth`, so
@@ -4341,7 +4354,8 @@ select[aria-expanded="true"] { border-color: var(--gold); }
    the LEFT does not enter `scrollWidth` at all. A real asymmetry in the platform rather than a
    trick: the check goes on measuring what it measured, and the picture is identical. */
 .hr.on + .hr.on::before {
-  content: ''; position: absolute; top: -1px; bottom: -1px; left: -3px; width: 3px;
+  content: ''; position: absolute; top: -1px; bottom: -1px;
+  left: calc(-3px - var(--r-sm)); width: calc(3px + var(--r-sm));
   background: var(--gold);
 }
 /* NOT AVAILABLE — greyed, never removed. A grid that changes shape as you choose things cannot be

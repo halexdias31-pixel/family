@@ -383,7 +383,16 @@ function go(id, remember, instant) {
   /* THE CAMERA IS A PAGE OF THE FEED NOW, so leaving the FEED is what lets it go. Turning a page
      within the feed is the other half, and it is `feedCamWatch_` — booked from `goPage` and from
      `startScreen_` below. */
-  if (typeof camStop_ === 'function' && AT !== 'feed') camStop_();
+  /* ---------- ONLY WHEN LEAVING THE FEED, OR WITH A CAMERA ACTUALLY OPEN ------------------------
+     IT WAS EVERY COLUMN CHANGE THAT DID NOT LAND ON THE FEED — Tools to Games, Games to Saved —
+     and `camStop_` resets the camera card's markup whether or not a camera ever started: eight
+     `hidden` flips and a text write on a card nobody can see. Measured from the trace (5 Oct), that
+     forced a layout of the whole document at every sideways release, 3,763–4,913 objects walked for
+     11–19 that had changed, 38–61ms of CPU at 1x, and it is most of why sideways felt heavier than
+     up and down. Leaving the feed still lets everything go exactly as before; a stream still open on
+     any other change (a `getUserMedia` that answered after the column was left) is still closed. */
+  if (typeof camStop_ === 'function' && AT !== 'feed'
+      && (was === 'feed' || (typeof CAM_STREAM !== 'undefined' && CAM_STREAM))) camStop_();
   /* AND THE REEL, which is the third of these and was the one nobody had written. Measured before
      it existed: `go('reel')` then `go('tools')` left a `<video>` with `paused === false` — a clip
      somebody may have turned the sound on for, talking from a screen two swipes away, with no
