@@ -6035,6 +6035,107 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   return bad;
 });
 
+/* ---------- FIND DRAWS THE SAME THING FOR A TUTOR, AN ADMIN, A STUDENT AND SOMEBODY SIGNED OUT --------
+   ASKED FOR AS *"No distinction between tutor and student on the finder. All the same. Remove any
+   nuances about that."* -- and before it, of the answer: *"Should behave the same whether it's a tutor
+   or child. No difference between the two."* The differences that were there (an answer page open for
+   staff, a tile reading "The answer" for them, a gold Spotlight tile for an admin on every question and
+   practical) each looked deliberate where it was written, which is why the rule is asked of the whole
+   family at once rather than of each in turn.
+
+   EVERY PAGE OF A QUESTION FAMILY, drawn by the app's own builders for four visitors -- signed out, a
+   student, a tutor, an admin -- and compared as markup: a stem with words both sides of its figure, a
+   part with a lead, a figure and a box, its answer page hidden and then shown, a tapped question, a
+   worded one with Mark with AI under it, a drawing question on a squared grid, a passage to ring words
+   in; and a real practical, project and textbook through the real mapper.
+
+   WHAT IS ALLOWED TO DIFFER IS WHAT IS A PERSON'S, NOT A ROLE'S, and it is taken out before comparing:
+   the answer box's key and the done date's (`ans:u:<id>:`, whose drawer this is), the name over the box
+   ("Ada's answer" / "Your answer"), and the star (`fav`), which needs somebody signed in to keep it for.
+   Anything else that differs is a role showing through, and the first difference is printed. */
+check('Find draws the same question family, practical, project and textbook for a tutor, an admin, a student and nobody', async () => {
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the real kinds were NOT checked — not a pass'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+    { practicals: read('practicals'), projects: read('projects'), textbooks: read('textbooks') })));
+  const p = payload();
+  Object.assign(p, { practicals: made.practicals || [], projects: made.projects || [], textbooks: made.textbooks || [],
+                     features: (p.features || []).concat(['aiMark']), aiMarking: true });
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  const need = ['pageParts_', 'stuffPart_', 'stuffCard', 'questionAnsCard_', 'ansShow_', 'stuffItems'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The sameness was NOT checked'];
+  const svg = '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>';
+  const row = id => ({ row_id: id, paper_id: 'P-SAME', subject: 'Maths', name: 'Paper 1: Foundation — June 2024' });
+  const stem = { id: 'S-SAME', html: '<p>The diagram shows a triangle.</p><!--fig--><p>AB = 7 cm.</p>', diagram: svg };
+  const fam = [
+    { kind: 'question', name: 'Q9(a)', qNumber: '9', qPart: 'a', marks: 2, key: 'q:Q-SAME-9a', row: row('Q-SAME-9a'), stems: [stem],
+      lead: '<p>Here is a second triangle.</p>', diagram: svg, html: '<p>Work out PR.</p>', answer: '<b>5 cm</b> &mdash; by Pythagoras', accept: '5' },
+    { kind: 'question', name: 'Q9(b)', qNumber: '9', qPart: 'b', marks: 1, key: 'q:Q-SAME-9b', row: row('Q-SAME-9b'), stems: [stem],
+      html: '<p>Which is right?</p>', choices: ['3', '4'], choiceRight: [2], answer: '<b>4</b>' },
+    { kind: 'question', name: 'Q10', qNumber: '10', marks: 3, key: 'q:Q-SAME-10', row: row('Q-SAME-10'), stems: [],
+      answerType: 'explain', html: '<p>Explain why the angles add to 180°.</p>', answer: '<b>Angles on a line</b> &mdash; they make a half turn' },
+    { kind: 'question', name: 'Q11', qNumber: '11', marks: 2, key: 'q:Q-SAME-11', row: Object.assign(row('Q-SAME-11'), { figure: 'grid-blank' }),
+      stems: [], answerType: 'drawing', html: '<p>Draw the graph of y = 2x + 1.</p>', answer: '<b>A straight line</b>' },
+    { kind: 'question', name: 'Q12', qNumber: '12', marks: 1, key: 'q:Q-SAME-12', row: row('Q-SAME-12'), stems: [],
+      answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>', answer: '<b>tall</b>' },
+  ];
+  const real = ['practical', 'project', 'textbook'].map(k => w.stuffItems().find(x => x.kind === k));
+  real.forEach((x, i) => { if (!x) bad.push('no ' + ['practical', 'project', 'textbook'][i] + ' reached Find, so it was NOT compared'); });
+  const items = fam.concat(real.filter(Boolean));
+  /* A PERSON'S, NOT A ROLE'S -- see the note above. */
+  const norm = html => {
+    const h = w.document.createElement('div');
+    h.innerHTML = html;
+    h.querySelectorAll('[data-do="fav"]').forEach(n => n.remove());
+    /* A ROW THAT HELD ONLY THE STAR is the star's, and goes with it. */
+    h.querySelectorAll('.tile-row').forEach(n => { if (!n.children.length) n.remove(); });
+    return h.innerHTML.replace(/u:[A-Za-z0-9_-]+:/g, '').replace(/>[^<>]*(?:’|&rsquo;)s answer/g, '>WHO answer')
+      .replace(/>Your answer/g, '>WHO answer');
+  };
+  const draw = () => {
+    const out = [];
+    items.forEach((x, i) => w.pageParts_(x, i ? items[i - 1] : null).forEach(part => {
+      out.push({ at: (x.row && x.row.row_id || x.key) + '#' + (part || 'card'),
+                 html: norm(part ? w.stuffPart_(x, part) : w.stuffCard(x, 0)) });
+    }));
+    /* AND EVERY ANSWER, SHOWN -- by this visitor's own tap, which is the one way any of them opens. */
+    fam.forEach(x => { w.ansShow_(x); out.push({ at: x.row.row_id + '#ans-shown', html: norm(w.questionAnsCard_(x)) }); });
+    return out;
+  };
+  const who = [
+    ['signed out', null],
+    ['a student', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
+    ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }],
+    ['an admin', { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] }],
+  ];
+  const seen = who.map(([what, u]) => { t.USER(u); return { what, pages: draw() }; });
+  t.USER(null);
+  if (!(seen[2].pages.length && t.isTutorRole)) bad.push('could not draw for a tutor, so the sameness was NOT checked');
+  const base = seen[0];
+  if (base.pages.length < 15) bad.push('only ' + base.pages.length + ' pages were drawn -- the family did not come out whole');
+  seen.slice(1).forEach(s => {
+    if (s.pages.length !== base.pages.length) { bad.push(s.what + ' is drawn ' + s.pages.length + ' pages, signed out ' + base.pages.length); return; }
+    const diffs = s.pages.filter((pg, i) => pg.html !== base.pages[i].html);
+    if (diffs.length) {
+      const pg = diffs[0], other = base.pages[s.pages.indexOf(pg)].html;
+      let k = 0; while (k < pg.html.length && pg.html[k] === other[k]) k++;
+      bad.push(s.what + ' sees ' + diffs.length + ' page(s) differently from somebody signed out, first ' + pg.at + ':\n'
+        + '            ' + s.what + ': …' + pg.html.slice(Math.max(0, k - 60), k + 100).replace(/\s+/g, ' ') + '\n'
+        + '            signed out: …' + other.slice(Math.max(0, k - 60), k + 100).replace(/\s+/g, ' '));
+    }
+  });
+  /* AND THE SAME ITEMS: nothing on the learning surface is offered to one role and not another. */
+  const offered = u => { t.USER(u); const ks = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort().join('|'); t.USER(null); return ks; };
+  const out0 = offered(null);
+  who.slice(1).forEach(([what, u]) => { if (offered(u) !== out0) bad.push(what + ' is offered a different set of learning items from somebody signed out'); });
+  return bad;
+});
+
 /* ---------- THE DAY A STUDENT DID A QUESTION, ON ITS CARD, FOR THEM ------------------------------------
    ASKED FOR AS *"when a student does do a question, it should record the date they did it."* Through
    the real handlers on a real card:
