@@ -362,7 +362,12 @@ function boot(opts) {
       'matGroup: g => { if (g !== undefined) MAT_GROUP = g; return MAT_GROUP; },' +
       'matNow: () => ({ subject: MAT_SUBJECT, level: MAT_LEVEL, group: MAT_GROUP }),' +
       'matFresh: () => { MAT_TOUCHED = false; MAT_SUBJECT = "Maths"; MAT_LEVEL = "all"; MAT_GROUP = "";' +
-      '  MAT_ON = []; try { localStorage.removeItem("matChoice"); } catch (e) {} },' +
+      '  MAT_ON = []; MAT_KIND = "cheat"; MAT_BLANK = matBlankFresh_();' +
+      '  try { localStorage.removeItem("matChoice"); } catch (e) {} },' +
+      /* THE PAPER KINDS — what a journey reads back after pressing the real selects. */
+      'matBlank: () => (typeof MAT_BLANK !== "undefined" ? Object.assign({ kind: MAT_KIND }, MAT_BLANK) : null),' +
+      'matSheet: () => (typeof MAT_SHEET !== "undefined" ? MAT_SHEET : ""),' +
+      'matRecall: typeof matRecall === "function" ? matRecall : null,' +
       'matOrder: () => (typeof MAT_ORDER !== "undefined" ? MAT_ORDER : null),' +
       'orderText: typeof orderText_ === "function" ? orderText_ : null,' +
       /* WHO MAY OPEN A WIDGET, and the two lists that ask it. `star` puts a key in the device's
@@ -875,6 +880,187 @@ check('a cheat sheet goes into the basket, laminates, and the order names its pi
   if (/1 pages/.test(text)) bad.push('the order message says "1 pages"');
   t.setCart([]);
   t.USER(null);
+  t.matFresh();
+  return bad;
+});
+
+/* ---------- PRACTICE PAPER: A HANDWRITING SHEET, LINED, AND SQUARED ------------------------------------
+   ASKED FOR AS *"allow cheat sheet maker to make a handwriting worksheet. or lined or grid paper."*
+   Pressed through the real selects and the real text box, and asked of the sheet the printer would
+   be handed (`MAT_SHEET`), because every fault worth catching is on the paper and not on the card:
+     · the four-line ruling is four lines — ascender, dashed x-height, baseline, descender — per row,
+       and every one of them inside the drawing, so nothing runs under the footer;
+     · the words are on the TRACE rows, in turn with the practice rows, and every word typed is on
+       the page — a wrap that dropped the last word would print a sentence without its end;
+     · squared paper is whole squares at the size chosen; lined paper is the spacing chosen;
+     · a value the select does not offer is refused, so a stored 7mm cannot draw;
+     · no colour is written on the paper as a literal — the sheet's tokens only;
+     · it is one basket line with the laminate switch, named so the owner can tell it from the rest,
+       and it prints through the cheat sheet's own print path. */
+check('the cheat sheet maker draws a handwriting sheet, lined and squared paper, and prints them', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t;
+  if (!t.matFresh || !t.matBlank || !t.matSheet || !t.CART) return ['the practice paper is not exported'];
+  const bad = [];
+  const doc = w.document;
+  t.setCart([]);
+  t.matFresh();
+  try { t.go('tools', false, true); } catch (e) { return ['go("tools") threw: ' + e.message]; }
+  for (let n = 0; n < 20 && !doc.getElementById('mat-subject'); n++) await wait(50);
+  /* THE KINDS ARE A "Practice paper" GROUP IN THE SUBJECT SELECT — a select of their own was the 44px
+     the card did not have at 320x568 (see `initMat`). */
+  const kind = doc.getElementById('mat-subject');
+  if (!kind) return ['the cheat sheet maker has no subject select'];
+  const kinds = [...kind.querySelectorAll('optgroup option')].map(o => o.value).join(',');
+  if (kinds !== 'paper:hand,paper:lined,paper:grid') bad.push('the subject select offers the paper kinds ' + kinds + ', not handwriting, lined and squared');
+  if (kind.closest('[hidden]')) bad.push('the subject select is hidden, so the paper kinds cannot be reached');
+
+  const press = (el, v) => { el.value = v; el.dispatchEvent(new w.Event('change', { bubbles: true })); };
+  const svgOf = () => { const d = doc.createElement('div'); d.innerHTML = t.matSheet(); return d; };
+  /* THE SEGMENTS OF ONE PATH, as [x0, y0, x1, y1] — `M x y H x` and `M x y V y` are all it writes. */
+  const segs = (d, cls) => {
+    const p = d.querySelector('path.' + cls);
+    if (!p) return [];
+    return [...p.getAttribute('d').matchAll(/M(-?[\d.]+) (-?[\d.]+)([HV])(-?[\d.]+)/g)].map(m =>
+      m[3] === 'H' ? [+m[1], +m[2], +m[4], +m[2]] : [+m[1], +m[2], +m[1], +m[4]]);
+  };
+  const inside = (d, name) => {
+    const vb = (d.querySelector('svg.mat-ruling') || { getAttribute: () => '' }).getAttribute('viewBox') || '';
+    const [, , W, H] = vb.split(/\s+/).map(Number);
+    if (!W || !H) { bad.push(name + ': the ruling has no viewBox in millimetres'); return; }
+    /* 260mm IS THE ROOM MEASURED IN CHROME between the name row and the footer (see `MAT_BLANK_H`);
+       a taller drawing pushes the footer off the bottom of the A4 page. */
+    if (H > 260 || W > 184) bad.push(name + ': the ruling is ' + W + ' x ' + H + 'mm — more than the 184 x 260mm the page has room for');
+    d.querySelectorAll('svg.mat-ruling path').forEach(p => {
+      const nums = (p.getAttribute('d').match(/-?[\d.]+/g) || []).map(Number);
+      if (nums.some(v => v < -0.01) || nums.some(v => v > Math.max(W, H) + 0.01)) bad.push(name + ': a line is drawn outside the page');
+    });
+    const ys = [];
+    d.querySelectorAll('svg.mat-ruling path').forEach(p => [...p.getAttribute('d').matchAll(/M[\d.]+ ([\d.]+)H/g)].forEach(m => ys.push(+m[1])));
+    if (ys.some(y => y > H + 0.01)) bad.push(name + ': a line sits ' + Math.max(...ys) + 'mm down a ' + H + 'mm drawing — under the footer');
+    if (/(fill|stroke)="#|style="[^"]*#[0-9a-f]{3}/i.test(d.innerHTML)) bad.push(name + ': a colour is written on the paper as a literal');
+  };
+
+  /* ---- HANDWRITING ---- */
+  press(kind, 'paper:hand');
+  if (t.matBlank().kind !== 'hand') return bad.concat('choosing Handwriting did not change the sheet');
+  if (!doc.getElementById('mat-cheat').hidden) bad.push('the cheat sheet\'s pieces are still showing under Handwriting');
+  if (!doc.getElementById('mat-level').closest('[hidden]')) bad.push('the level select is still showing under Handwriting');
+  if (doc.getElementById('mat-blank').hidden) bad.push('the handwriting questions are hidden under Handwriting');
+  const shown = [...doc.querySelectorAll('#mat-blank [data-for]')].filter(e => !e.hidden).map(e => e.getAttribute('data-for'));
+  if (shown.some(f => f !== 'hand') || !shown.length) bad.push('under Handwriting the card shows the questions for ' + JSON.stringify(shown));
+  const box = doc.getElementById('mat-text');
+  const words = 'Sam can hop and skip to the big red bus stop';
+  box.value = words;
+  box.dispatchEvent(new w.Event('input', { bubbles: true }));
+  await wait(320);
+  let d = svgOf();
+  if (!d.querySelector('.mat-sheet.is-hand')) return bad.concat('the printed sheet is not the handwriting sheet');
+  const top = segs(d, 'mat-ln'), mid = segs(d, 'mat-ln-mid'), base = segs(d, 'mat-ln-base');
+  const rows = base.length;
+  if (!rows) return bad.concat('the handwriting sheet has no baselines');
+  if (mid.length !== rows || top.length !== 2 * rows) {
+    bad.push('the ruling is ' + top.length + ' faint, ' + mid.length + ' dashed and ' + rows + ' baselines — four lines a row is 2:1:1');
+  }
+  const b = +t.matBlank().size;
+  base.forEach((s, i) => {
+    if (Math.abs(s[1] - mid[i][1] - b) > 0.01) bad.push('row ' + (i + 1) + ': the x-height band is ' + (s[1] - mid[i][1]) + 'mm, not ' + b);
+  });
+  inside(d, 'handwriting');
+  const traced = [...d.querySelectorAll('text.mat-trace')];
+  const onPage = traced.map(x => x.textContent).join(' ');
+  words.split(' ').forEach(x => { if (onPage.split(' ').indexOf(x) === -1) bad.push('"' + x + '" was typed and is not on the sheet'); });
+  /* ONE PRACTICE ROW EACH: the trace rows are every other ruling, starting with the first. */
+  const baseYs = base.map(s => s[1]);
+  traced.forEach(x => {
+    const r = baseYs.findIndex(y => Math.abs(y - +x.getAttribute('y')) < 0.01);
+    if (r === -1) bad.push('the words "' + x.textContent + '" do not sit on a baseline');
+    else if (r % 2) bad.push('the words "' + x.textContent + '" are on ruling ' + (r + 1) + ', a practice row');
+  });
+  if (traced.length !== Math.ceil(rows / 2)) bad.push(traced.length + ' trace rows on ' + rows + ' rulings with one practice row each — the words should come round again');
+  const gap = doc.querySelector('#mat-blank select[data-k="gap"]');
+  press(gap, '2');
+  if (svgOf().querySelectorAll('text.mat-trace').length !== Math.ceil(rows / 3)) bad.push('two practice rows each did not leave two empty rulings after each traced one');
+  press(gap, '1');
+  /* A SIZE THE SELECT DOES NOT OFFER IS REFUSED — the one door every setting comes in by. */
+  const size = doc.querySelector('#mat-blank select[data-k="size"]');
+  const fake = doc.createElement('select');
+  fake.setAttribute('data-k', 'size'); fake.innerHTML = '<option value="7">7</option>'; fake.value = '7';
+  t.ACTIONS['mat-blank'](fake);
+  if (t.matBlank().size === '7') bad.push('a 7mm writing size went in although nothing offers it');
+  press(size, '4');
+  if (segs(svgOf(), 'mat-ln-base').length <= rows) bad.push('Small writing did not fit more rulings than Large');
+
+  /* ---- BASKET AND PRINT ---- */
+  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  const trolley = doc.querySelector('#mat-box [data-do="mat-cart"]');
+  if (!trolley) bad.push('there is no basket tile for the handwriting sheet');
+  else {
+    t.ACTIONS['mat-cart'](trolley);
+    const line = t.CART()[0];
+    if (!line) bad.push('the handwriting sheet did not go into the basket');
+    else {
+      if (line.kind !== 'print' || line.pages !== 1) bad.push('the handwriting sheet went in as ' + line.kind + ' with ' + line.pages + ' pages');
+      if (!/Handwriting/.test(line.name)) bad.push('the basket line is called "' + line.name + '" — it does not say handwriting');
+      if (!(line.parts || []).some(p => p.indexOf(words) !== -1)) bad.push('the basket line does not carry the words, so the owner cannot print the same sheet');
+      for (let n = 0; n < 10 && !doc.querySelector('.cart-box [data-do="cart-laminate"]'); n++) await wait(50);
+      if (!doc.querySelector('.cart-box [data-do="cart-laminate"]')) bad.push('the handwriting sheet in the basket has no laminate switch');
+    }
+  }
+  t.setCart([]);
+  t.USER(null);
+  w.print = () => {};
+  t.ACTIONS['mat-print']();
+  if (!doc.querySelector('.mat-paper .mat-sheet.is-hand')) bad.push('Print did not put the handwriting sheet on the paper');
+  doc.querySelectorAll('.mat-paper').forEach(p => p.remove());
+  doc.body.classList.remove('printing-mat');
+
+  /* ---- LINED ---- */
+  press(kind, 'paper:lined');
+  press(doc.querySelector('#mat-blank select[data-k="line"]'), '10');
+  d = svgOf();
+  const lines = segs(d, 'mat-ln').filter(s => s[1] === s[3]);
+  const steps = new Set(lines.slice(1).map((s, i) => +(s[1] - lines[i][1]).toFixed(2)));
+  if (!lines.length || steps.size !== 1 || !steps.has(10)) bad.push('10mm lined paper is spaced ' + JSON.stringify([...steps]));
+  if (!d.querySelector('path.mat-ln-margin')) bad.push('lined paper has no margin');
+  inside(d, 'lined');
+
+  /* ---- SQUARED ---- */
+  press(kind, 'paper:grid');
+  press(doc.querySelector('#mat-blank select[data-k="grid"]'), '10');
+  d = svgOf();
+  const g = segs(d, 'mat-ln-grid');
+  const vx = g.filter(s => s[0] === s[2]).map(s => s[0]), hy = g.filter(s => s[1] === s[3]).map(s => s[1]);
+  const even = xs => new Set(xs.slice(1).map((x, i) => +(x - xs[i]).toFixed(2)));
+  if (!vx.length || !hy.length) bad.push('squared paper has no lines');
+  else {
+    if ([...even(vx)].join() !== '10' || [...even(hy)].join() !== '10') bad.push('1cm squared paper is spaced ' + JSON.stringify([...even(vx), ...even(hy)]));
+    const left = vx[0], right = 184 - vx[vx.length - 1];
+    if (Math.abs(left - right) > 0.01) bad.push('the grid is ' + left + 'mm from the left and ' + right + 'mm from the right — not centred');
+  }
+  inside(d, 'squared');
+
+  /* ---- A SUBJECT TAKES IT BACK TO THE CHEAT SHEET ---- */
+  press(kind, 'Maths');
+  if (t.matBlank().kind !== 'cheat' || doc.getElementById('mat-cheat').hidden) bad.push('choosing Maths after squared paper did not bring the cheat sheet back');
+  press(kind, 'paper:grid');
+
+  /* ---- REMEMBERED, AND A KIND FROM SOMEWHERE ELSE IS THE CHEAT SHEET ---- */
+  const kept = JSON.parse(w.localStorage.getItem('matChoice') || '{}');
+  if (kept.k !== 'grid' || !kept.p || kept.p.grid !== '10') bad.push('the paper choice is not remembered on this device: ' + JSON.stringify({ k: kept.k, p: kept.p }));
+  w.localStorage.setItem('matChoice', JSON.stringify(Object.assign(kept, { k: 'origami', p: { grid: '3', line: 'x' } })));
+  t.matFresh();
+  w.localStorage.setItem('matChoice', JSON.stringify(Object.assign(kept, { k: 'origami', p: { grid: '3', line: 'x' } })));
+  t.matRecall();
+  if (t.matBlank().kind !== 'cheat') bad.push('a stored sheet type nobody offers opened as "' + t.matBlank().kind + '", not the cheat sheet');
+  if (t.matBlank().grid !== '5') bad.push('a stored 3mm square went in although nothing offers it');
+
+  /* ---- AND THE PAPER'S RULES SAY THEIR COLOURS AS TOKENS ---- */
+  const css = fs.readFileSync(path.join(dir, '..', 'style.css'), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '');
+  const mine = [...css.matchAll(/(\.mat-(?:ln[\w-]*|trace|name[\w ]*|ruling)[^{]*)\{([^}]*)\}/g)];
+  if (!mine.length) bad.push('style.css has no rules for the rulings');
+  mine.forEach(m => { if (/#[0-9a-f]{3,8}\b|rgb\(/i.test(m[2])) bad.push(m[1].trim() + ' writes a colour as a literal'); });
   t.matFresh();
   return bad;
 });

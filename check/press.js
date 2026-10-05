@@ -123,6 +123,14 @@ const ACCEPTED_QUIET = {
                    + 'right answer to "post nothing".' },
   'msg-send': { why: 'the message box is empty. Same refusal as `cmt-add`, and the same right one.' },
   'dock-add': { why: 'the to-do box is empty; the handler focuses it and adds no line.' },
+  /* ---------- A QUESTION ABOUT A PAPER NOBODY HAS CHOSEN -------------------------------------------
+     The practice paper's selects (writing size, line spacing, square size) live in `#mat-blank`,
+     which is hidden while the cheat sheet is the kind chosen — and the cheat sheet is what the tool
+     opens on. Pressed hidden, the setting is taken and kept for when the paper is chosen, and the
+     screen rightly does not change. check-flow's practice-paper journey presses each of them with
+     the paper showing and reads the ruling they draw. */
+  'mat-blank': { why: 'a practice-paper setting, hidden while the cheat sheet is chosen; it is kept for '
+                    + 'the paper and the screen rightly stays as it was — check-flow presses it with the paper showing.' },
   /* IT CAME OFF THIS LIST ONCE, WITH THE STATE THAT REACHED IT. The "carry on" block was deleted
      and nothing pressed `pad-clear` again, so the entry would have been a written reason with
      nothing behind it. `stuff · a diagram you can draw on` reaches it again. */
