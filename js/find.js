@@ -8533,10 +8533,10 @@ const S_ = v => String(v == null ? '' : v);
 
    NOT SIGNED IN, NOTHING TO DRAW. The booker needs somebody to book for, and the sessions are
    somebody's own — `bookBlocks` already returns the offers alone in that case, which is right. */
-/* ONE SESSION, OPENED OUT. The receipt, then the way in for somebody not in it yet, then the way
-   to pay once it has been accepted — the same three the sheet used to stack, in the same order,
-   on the page itself. Each guards itself: `joinBlock` draws nothing for a session you are already
-   in. */
+/* ONE SESSION, OPENED OUT — and it is the receipt and nothing else now, with every action on its
+   foot. The way in for somebody not on it yet was a third piece stacked under the paper
+   (`joinBlock`); it is a tile in the same row as Pay and Share, and its seats are a row of the
+   document. See the last note above `jobPage_`. */
 /* ---------- "THE PAPER, AND NOTHING ELSE" WAS TRUE WHILE SOMETHING ELSE ADDED THE TILES ----------
    THE NOTE THAT STOOD HERE said paying and withdrawing are marks in the tile row *under the card*,
    `jobTiles_` in tiles.js, "which is where every other kind keeps its actions". That was exactly
@@ -8581,6 +8581,18 @@ const S_ = v => String(v == null ? '' : v);
    A PAID SESSION OFFERS NO PAY TILE, and that is `jobTiles_`'s own test: Pay is offered while the
    booking is accepted and your seat is not yet Paying or Booked. An empty row is no row at all —
    a foot with nothing on it is a rule under the total pointing at nothing. */
+/* ---------- AND THE WAY IN, FOR SOMEBODY NOT ON IT, IS IN THE SAME ROW -----------------------------
+   ASKED FOR AS *"the session booking thing at the bottom of receipt should be a line in the
+   booking."* After the receipt this used to append `joinBlock(j)` — "2 seats left on this class.
+   £19.00 a seat.", the list's tally, a full-width `Take a seat` and a faint paragraph — on the
+   argument written beside it that the offer was "facts rather than buttons, so it is not a tile".
+   Half right: the facts were facts, and they were ALREADY rows of this paper — `Sharing` and the
+   total — one of them contradicting the block. The button was a button, on a thing.
+
+   SO THE PAGE IS THE RECEIPT, FULL STOP. `jobTiles_` answers "what can you do with this session"
+   for a stranger as well now — `Take a seat` or `Ask to join`, through `joinTile_` — so it lands
+   first in this row exactly where Pay lands for somebody on it, with Share after and an admin's
+   decisions last. Nothing is drawn under the paper for anybody. */
 function jobPage_(j) {
   const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
@@ -8595,10 +8607,7 @@ function jobPage_(j) {
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
   const foot = tiles.trim() ? `<div class="tile-row rc-tiles">${tiles}</div>` : '';
-  return (typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '')
-    /* NOT AN ACTION ON YOUR OWN SESSION: the offer made to somebody who is not in it yet, carrying
-       the seats left and the price. Facts rather than buttons, so it is not a tile. */
-    + (typeof joinBlock === 'function' ? joinBlock(j) : '');
+  return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';
 }
 
 const forIs_ = want => (STUFF.filters || [])

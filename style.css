@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-checktile";
+  --css-version: "2026-10-05-rcjoin";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6487,7 +6487,12 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    entries in `.pane:has(...)` below went with it. */
 
 
-/* ---------- AND THE ASK, under the receipt ------------------------------------------------------- */
+/* ---------- AND THE ASK, which is not under the receipt any more ---------------------------------- */
+/* `.join` AND `.join-say` STOOD HERE — the block a stranger saw under somebody else's session, with
+   the seats, the price, the list's tally and a gold button. *"The session booking thing at the
+   bottom of receipt should be a line in the booking"*: the seats are the receipt's `Sharing` row,
+   the tally its `Can come` row and the button a tile in its foot, so there is nothing under the
+   paper for a rule to style. See `joinBlock`'s tombstone in book.js. */
 /* `.live-row`, `.live-what` AND `.live-stage` STOOD HERE — the line above each roster saying what
    the session is, when, and where it has got to. Nothing draws them. Gone with the stub stylesheet
    above, and found by the same two repairs to `check-css`. */
@@ -6497,8 +6502,6 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    because the only thing that ever kept those figures from a client was this block's own `isAdmin`
    test; the payload keeps them now. */
 
-.join { margin-top: 1rem; }
-.join-say { margin: 0 0 .6rem; }
 
 /* THE GAP BETWEEN THEM, once the glass is gone. On the pane they were rows in a list and the pane
    held them together; standing on the app's own black they are separate objects, and objects need
@@ -7193,21 +7196,43 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    this shows how many offered each slot, longest bar first, with the one everybody offered marked.
    Read by a tutor deciding what day to run it on, which is the only open question a waiting list
    has. */
-.wc { margin: .5rem 0 .7rem; }
-.wc-say { margin: 0 0 .35rem; font-size: .68rem; color: var(--paper-faint);
-          text-transform: uppercase; letter-spacing: .07em; }
+/* ---------- IT IS THE ANSWER CELL OF A RECEIPT ROW NOW, NOT A BLOCK UNDER THE RECEIPT -------------
+   `Can come`, see `jobRows`. So it takes the row's own type rather than setting its own — the
+   `.76rem` and `.72rem` it carried were sized for a block standing alone on black, and inside `.bk`
+   the row is the one place this card's font size is declared (see the note on `.bk`). The heading
+   `.wc-say` went with the block: the row's label in `Q` says what the bars are. It was also the one
+   PAPER colour in this group, on a card that has not been paper since the receipt took the app's
+   own clothes — a token from the wrong palette, which is what CLAUDE.md's two-palette rule is for.
+
+   LEFT-ALIGNED inside a right-aligned column, because a bar grows from the left and a count read
+   down a list wants one edge. `.bk-v` right-aligns a short answer to sit against its figures; a
+   bar has no figures beside it, and the row is bare so it spans to the card's edge anyway. */
+.wc { text-align: left; }
+/* ---------- AND THE BARS TAKE THE THREE FIGURE TRACKS, ON THIS ROW ONLY ---------------------------
+   MEASURED ON ITS FIRST SCREENSHOT: in the answer column alone the bars were 71px wide at 390 and
+   58 at 320, and `Monday evening` came out as `Monda…` over `even…` — the row's own words clipped
+   by the bar they sit on. The answer column on a receipt is sized for `GCSE` and `Autumn 2026`.
+
+   THE ROW IS BARE — no multiplier, no rate, no total — so `is-bare` has already hidden the three
+   spans those tracks hold, and the tracks are empty on this line. The bars START where every answer
+   starts, at track 2, which is the one edge the note over `is-bare` says a reader runs down; they
+   end at the card's edge, where the column heads and the total row already end. The rule that once
+   did this for EVERY bare row was removed for making the dashes end in two places — a dash is a
+   value, and a chart is not, so this is scoped to the one row that draws one. */
+.bk-row.bk-tally .bk-v { grid-column: 2 / -1; }
 .wc-row { position: relative; display: flex; align-items: center; gap: .5rem;
-          padding: .28rem .45rem; border-radius: 5px; background: rgb(0 0 0 / .16);
-          margin-bottom: .22rem; overflow: hidden; }
+          padding: .2rem .4rem; border-radius: 5px; background: rgb(0 0 0 / .16);
+          margin-bottom: .18rem; overflow: hidden; }
+.wc-row:last-child { margin-bottom: 0; }
 /* THE BAR IS BEHIND THE WORDS, not beside them — a row that is both a label and a measurement
    reads faster than a label with a chart next to it, and takes half the width. */
 .wc-row i { position: absolute; inset: 0 auto 0 0; width: var(--f);
             background: rgb(111 216 196 / .18); }
 .wc-row.is-all i { background: rgb(111 216 160 / .3); }
 .wc-n { position: relative; font-variant-numeric: tabular-nums; font-weight: 700;
-        font-size: .72rem; color: #6fd8c4; min-width: 2.1rem; }
+        color: #6fd8c4; min-width: 2.1rem; }
 .wc-row.is-all .wc-n { color: #7fe0a8; }
-.wc-slot { position: relative; font-size: .76rem; }
+.wc-slot { position: relative; }
 
 /* ==================================================================================================
    EIGHT MORE. Same rule as the rest: the drawing is the argument, and each keeps moving after it
