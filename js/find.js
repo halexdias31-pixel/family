@@ -8959,7 +8959,17 @@ function accountPages_() {
       image: f.image || (asTutor || {}).image || '',
       role: famLabel_[f.relation] + (asTutor ? ' · ' + (asTutor.role || 'Tutor') : ''),
     });
-    return asTutor ? withTiles_(row) : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : '');
+    /* ---------- YOUR CHILD'S CARD CARRIES "NEW PIN" ----------------------------------------------
+       A CHILD WITH NO EMAIL WHO FORGETS THEIR PIN HAS ONE PERSON TO ASK, and this is where that
+       person is: their card on the parent's column. A tile, because the PIN is about the child; the
+       press asks first, in a sheet (`kid-pin` in me.js). `resetPin` in dopost.gs holds the rule — a
+       parent the child ACCEPTED — and `DATA.family` holds only accepted links, so the tile is drawn
+       for exactly the people the server will say yes to. */
+    const pinTile = f.relation === 'child' && typeof tile_ === 'function'
+      ? `<div class="tile-row">${tile_({ icon: 'key', label: 'New PIN', note: 'to sign in with',
+          act: 'kid-pin', data: { id: f.personId, name: String(f.title || '').split(' ')[0] } })}</div>` : '';
+    return (asTutor ? withTiles_(row) : (typeof findCard === 'function' ? findCard({ kind: 'tutor', row }) : ''))
+      + pinTile;
   });
 
   const others = (DATA.tutors || [])
@@ -8993,11 +9003,21 @@ function accountPages_() {
     .filter(p => p && p.title)
     .filter(p => !(p.personId && famIds.indexOf(String(p.personId)) !== -1))
     .filter(p => !mineIs_(p))
-    .map(p => Object.assign({}, p, { activity: attemptsLine_(p.personId) }))
+    /* A BLANK HANDLE IS SAID, NOT FILLED WITH THE FIRST NAME. `doGet` printed `@Kit` where Kit had
+       no handle, and `Kit` at the sign-in box was refused — so the one person who could put it right
+       was shown that nothing was wrong. "New PIN" gives them a handle as well as a PIN. */
+    .map(p => Object.assign({}, p, { activity: attemptsLine_(p.personId),
+                                     role: (p.role || 'Client') + (p.handle ? '' : ' · no handle yet') }))
+    /* AND "NEW PIN" BESIDE "MESSAGE" — the admin is who a child with no email and no linked parent
+       goes to, and the only remedy was four digits typed into the sheet, which left the lock on. A
+       row with no id cannot be named to the server, so it gets no tile (it gets one at its first
+       sign-in, or at `?setup=1`). */
     .map(p => (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: p }) : '')
       + (typeof tile_ === 'function' ? `<div class="tile-row">${tile_({ icon: 'chat',
           label: 'Message', note: 'a note to them', act: 'msg-open',
-          data: { to: p.title, id: p.personId || '' } })}</div>` : ''));
+          data: { to: p.title, id: p.personId || '' } })}${p.personId ? tile_({ icon: 'key',
+          label: 'New PIN', note: 'to sign in with', act: 'kid-pin',
+          data: { id: p.personId, name: String(p.title || '').split(' ')[0] } }) : ''}</div>` : ''));
 
   /* ---------- THE WRAPPER WENT WHEN THE PASS DID, AND LEAVING IT WOULD HAVE NESTED TWO CARDS -----
      THIS RETURNED `<div class="card is-widget">${html}</div>` AROUND EVERY PAGE. It was the answer

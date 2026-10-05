@@ -1359,6 +1359,73 @@ const STATES = {
         + (document.querySelector('#sheet-body [data-do="reg-send"]') ? 1 : 0) === 5 ? 5 : 0,
       wants: 'the register sheet open: four boxes and its one button',
       leave: () => { closeSheet(); } },
+    /* ---------- AND WITH "I HAVE NO EMAIL" TICKED ----------------------------------------------------
+       *"so all kids can login easily with their handle and pin."* The tick is a `.check` row inside the
+       sheet, between the email box and the PIN — the one line on the form a child with no address
+       reads — so it is measured ticked at four widths: the label is the longest line on the sheet and
+       320 is where it would wrap under its box. */
+    { name: 'making an account with no email of your own',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const tile = document.querySelector('#s-account [data-do="register"]');
+        if (!tile) throw new Error('no Make an account tile on the signed-out account column');
+        ACTIONS['register'](tile);
+        const tick = document.getElementById('reg-noemail');
+        if (!tick) throw new Error('the register sheet has no no-email tick');
+        tick.checked = true;
+      },
+      expect: () => {
+        const tick = document.getElementById('reg-noemail');
+        const row = tick && tick.closest('label.check');
+        const r = row && row.getBoundingClientRect();
+        return tick && tick.checked && r && r.height >= 44 && !!document.getElementById('reg-email') ? 1 : 0;
+      },
+      wants: 'the register sheet with the no-email tick ticked, a whole 44px row under the email box',
+      leave: () => { closeSheet(); } },
+    /* ---------- A CHILD WITH NO HANDLE, ON AN ADMIN'S PEOPLE COLUMN ------------------------------------
+       The card says "no handle yet" where the handle goes, and carries New PIN beside Message. Seeded
+       into `DATA.everyone`, which the fixture does not carry, because the admin's list is built only
+       for an admin's token. */
+    { name: 'a child with no handle yet, and New PIN',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        window.STATE_EVERY_WAS = DATA.everyone;
+        DATA.everyone = [{ personId: 'P-STATE-KID', title: 'Kit Handleless', handle: '', role: 'Student', image: '' }];
+        paint('account');
+        const at = [...document.querySelectorAll('#s-account .page')]
+          .findIndex(pg => pg.querySelector('[data-do="kid-pin"][data-id="P-STATE-KID"]'));
+        if (at < 0) throw new Error('no New PIN tile for the seeded child on the admin\'s column');
+        goPage('account', at, true);
+      },
+      leave: () => {
+        if (window.STATE_EVERY_WAS === undefined) delete DATA.everyone; else DATA.everyone = window.STATE_EVERY_WAS;
+        delete window.STATE_EVERY_WAS;
+        paint('account');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        return pg && /no handle yet/.test(pg.textContent)
+          && pg.querySelector('.tile[data-do="kid-pin"]') && pg.querySelector('.tile[data-do="msg-open"]') ? 2 : 0;
+      },
+      wants: '"no handle yet" on the card, and New PIN beside Message as tiles' },
+    /* ---------- A NEW PIN, SHOWN ONCE ------------------------------------------------------------------
+       The sheet New PIN ends in: the paper slip with the handle and the six digits, and Done. Drawn the
+       way `kid-pin-go` draws it — `pinSlip_` into the sheet — so the measuring pass sees the slip at 320
+       without posting a reset to anybody. */
+    { name: 'a new PIN, shown once',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        openSheet('A new PIN for Kit', pinSlip_('Kit', 'kit_upright42', ['4', '8', '2', '9', '1', '3'].join(''))
+          + '<p class="faint">Write it down or read it to them — it is not shown again.</p>'
+          + '<button class="btn quiet" data-do="sheet-done">Done</button>');
+      },
+      expect: () => {
+        const slip = document.querySelector('#sheet-body .pin-slip');
+        return slip && slip.querySelectorAll('.pin-slip-v').length === 2
+          && slip.scrollWidth <= slip.clientWidth + 1 ? 2 : 0;
+      },
+      wants: 'the paper slip in the sheet: the handle and the PIN, neither running off the slip',
+      leave: () => { closeSheet(); } },
     /* ---------- THE HANDLE, WITH EXACTLY ONE `@` IN FRONT OF IT ----------------------------------
        ASKED FOR AS *"each person should have … handle llik \"@_____\""*, and the visible half of that
        had never existed: `doGet` has sent `handle` on every tutor since it was written and the only
@@ -1624,6 +1691,30 @@ const STATES = {
      through `expect` rather than measuring the wrong card in silence. */
   settings: [
     { name: '' },
+    /* ---------- YOUR CHILD'S ACCOUNT, MADE: THE SLIP ON THE CARD -----------------------------------------
+       *"so all kids can login easily with their handle and pin."* After "Make their account" the card
+       grows a paper slip with the handle and the PIN, held as `KID_MADE` for the signed-in parent. The
+       admin visitor holds the role the card is for, so it is drawn; the slip is set straight into the
+       state, as `kid-make` sets it, and the page holding the card is turned to. */
+    { name: 'your child\'s account, made',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
+      enter: () => {
+        KID_MADE = { pid: String(USER.personId || ''), name: 'Maximilian', handle: 'maximilian_steady42',
+                     pin: ['0', '7', '3', '9'].join('') };
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.kid-make'));
+        if (at < 0) throw new Error('no "Make your child\'s account" card on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => { KID_MADE = { pid: '', name: '', handle: '', pin: '' }; paint('settings'); },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const slip = pg && pg.querySelector('.kid-make .pin-slip');
+        return slip && slip.querySelectorAll('.pin-slip-v').length === 2
+          && pg.querySelectorAll('.kid-make [data-kid-new]').length === 3
+          && slip.scrollWidth <= slip.clientWidth + 1 ? 2 : 0;
+      },
+      wants: 'the make card with its three boxes, and the slip: the handle and the PIN, neither running off it' },
     /* ---------- THE PHOTOGRAPHS PAGE: THE FACE, THE CLIP, AND A SHELF OF EIGHT ------------------
        Eight boxes are IN the form whether or not they are drawn — `photosIn` rebuilds the whole cell
        from what arrives, so a box missing from the form is a photograph deleted on Save — and only

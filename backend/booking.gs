@@ -1353,7 +1353,17 @@ function closeFinishedJobs() {
 const AUTH = {
   SESSION_DAYS: 30,      // signed in for a month, then the PIN again
   FREE_TRIES: 10,        // nothing happens at all until the eleventh wrong answer
-  WAITS: [1, 2, 5, 15, 60]   // minutes: one rung per wrong answer after that, then the last for ever
+  WAITS: [1, 2, 5, 15, 60],  // minutes: one rung per wrong answer after that, then the last for ever
+  /* A DAY WITH NO WRONG ANSWER STARTS THE COUNT AGAIN. See `authWrong_`: a classmate who typed
+     somebody's public handle eleven times on Monday left that child one typo from an hour's wait on
+     every day after it, because nothing but a successful sign-in ever set the count back. */
+  QUIET_HOURS: 24,
+  /* A PIN SENT BY "Forgotten your PIN?" — see `authResetUse_`. It works beside the old one for a day
+     and becomes the PIN when it is first used; one is sent per quarter of an hour at most; and five
+     wrong tries at it while the account is locked throw it away. */
+  RESET_HOURS: 24,
+  RESET_GAP_MINS: 15,
+  RESET_MISSES: 5
 };
 
 function authProps_() { return PropertiesService.getScriptProperties(); }
@@ -1375,13 +1385,64 @@ function authSame_(a, b) {
 /* CAN THIS PERSON SIGN IN AT ALL: is there a PIN in the cell. */
 function hasPin_(r) { return !!(r && S(r.pin)); }
 
-/* SET OR CHANGE A PIN: the cell, as typed. */
+/* SET OR CHANGE A PIN: the cell, as typed. A PIN that starts with 0 goes in as TEXT — `setCell`
+   writes through `cellSafe_`, which gives a string of digits with a leading 0 the sheet's own
+   apostrophe — so the cell holds the digits that were chosen and not a number one shorter. */
 function authSetPin_(t, r, pin) { setCell(t, r, 'pin', String(pin)); }
+
+/* ---------- A PIN CELL THE SHEET HAS TURNED INTO A NUMBER ----------------------------------------
+   `setValue` PARSES A STRING THE WAY TYPING IT WOULD, and so does a person typing into the sheet:
+   four noughts go in and `0` comes back; a PIN of 0 then three digits comes back three digits long.
+   `read()` hands that number over, `S()` makes it a shorter string, and the child typing the four
+   digits they chose is told "Wrong PIN" until the ladder locks them out. Every PIN typed into the
+   sheet by hand that starts with 0 is in this state, and so was every reset PIN that happened to
+   start with one (about one in ten — see `authFreshPin_`).
+
+   SO A NUMBER CELL ANSWERS TO THE DIGITS IT WAS MADE FROM: 4 to 8 digits typed, the cell is a
+   number, and they are the same number. It is not a second PIN — the only strings it adds are the
+   chosen PIN with more noughts in front. And it is put right on the way through: the cell is written
+   back as the text that was typed, so the row holds a plain text PIN after its first sign-in. A
+   number cell is the only thing this tolerates; a text cell is compared exactly. */
+function authPinLost_(r, given) {
+  const have = r ? r.pin : '';
+  return typeof have === 'number' && /^\d{4,8}$/.test(given) && Number(given) === have;
+}
 
 function authCheckPin_(t, r, pin) {
   const given = S(pin), have = S(r && r.pin);
   if (!given || !have) return false;
-  return authSame_(have, given);
+  if (authSame_(have, given)) return true;
+  if (!authPinLost_(r, given)) return false;
+  /* THE MIGRATION, NOT A CHANGE: the secret is the same one, so nothing about the throttle or the
+     sessions moves — see `PIN_OK` in check-backend.js. */
+  try { authSetPin_(t, r, given); } catch (err) {}
+  return true;
+}
+
+/* ---------- ONE RULE FOR A PIN NOBODY SHOULD HAVE -------------------------------------------------
+   `changePin` REFUSED A RUN OF ONE DIGIT AND THREE COUNTING ONES; `register` REFUSED NOTHING, so a
+   child making an account could choose the four digits every guesser tries first, and the form that
+   changes it would then not let them choose them again. One reader now, for every door that sets a
+   PIN somebody chose — `register`, a parent making a child's account, `changePin`, `makeBrandAccount`
+   — and the PINs this backend draws itself (`authFreshPin_`) are drawn until it says no.
+   The phone checks 4 to 8 digits and nothing else; this sentence is the server's to say. */
+function pinWeak_(pin) {
+  const p = S(pin);
+  const obvious = ['1234', '12345', '123456', '1234567', '12345678', '123123', '4321', '654321'];
+  return /^(\d)\1+$/.test(p) || obvious.indexOf(p) !== -1;
+}
+
+/* ---------- A PIN THIS BACKEND MAKES UP ------------------------------------------------------------
+   SIX DIGITS, NEVER A LEADING 0, NEVER ONE `pinWeak_` REFUSES. The 0 is the half that mattered: the
+   draw was `padStart(6, '0')`, so one reset in ten began with a 0 the sheet then dropped — see
+   `authPinLost_`. Starting the range at 100000 leaves no 0 to drop. */
+function authFreshPin_() {
+  let made = '';
+  for (let tries = 0; tries < 20; tries++) {
+    made = String(100000 + Math.floor(Math.random() * 900000));
+    if (!pinWeak_(made)) break;
+  }
+  return made;
 }
 
 /* ---------- THE THROTTLE, KEPT OFF THE SHEET ---------------------------------------------------
@@ -1406,21 +1467,53 @@ function authLocked_(r) { return authWaitMins_(r) > 0; }
 
 function authWrong_(t, r) {
   const was = authThrottle_(r);
-  const n = N(was.n) + 1;
+  /* ---------- A QUIET DAY WIPES THE SLATE ----------------------------------------------------------
+     `n` WAS WRONG ANSWERS SINCE YOU LAST GOT IN, FOR EVER. Handles are on every card, so anybody who
+     knows a child's handle can type eleven wrong PINs at it — and with nothing setting the count
+     back but a successful sign-in, that child was then one typo of their own from an hour's wait,
+     every day, until they happened to get in first time. `at` is when the last wrong answer was; a
+     day with none starts again from nothing. A guesser gains nothing by it: to be let off the ladder
+     they have to stop for a whole day, which is fewer guesses than the hour-a-time rung allows. */
+  const quiet = N(was.at) > 0 && Date.now() - N(was.at) > AUTH.QUIET_HOURS * 36e5;
+  const n = (quiet ? 0 : N(was.n)) + 1;
   let until = 0, step = -1;
   if (n > AUTH.FREE_TRIES) {
     step = Math.min(n - AUTH.FREE_TRIES - 1, AUTH.WAITS.length - 1);
     until = Date.now() + AUTH.WAITS[step] * 60000;
   }
-  try { authProps_().setProperty(authThrottleKey_(r), JSON.stringify({ n: n, until: until })); } catch (err) {}
+  try {
+    authProps_().setProperty(authThrottleKey_(r), JSON.stringify({ n: n, until: until, at: Date.now() }));
+  } catch (err) {}
   /* Told on the FIRST rung only — an email per guess is a mailbox nobody reads. */
   if (step !== 0) return;
+  const said = 'Somebody has tried the @family. PIN for '
+    + (S(r.handle) ? '@' + S(r.handle) : personDisplayName(r)) + ' ' + n + ' times and got it wrong.\n\n'
+    + 'Signing in is held up for a minute, and for longer on each wrong answer after that.\n';
+  try { notify(personDisplayName(r), 'Too many sign-in attempts', said + 'If that was not you, reply here.'); }
+  catch (err) {}
+  /* ---------- AND A CHILD WITH NO ADDRESS HAS A GROWN-UP WHO IS TOLD ------------------------------
+     `notify` READS THE ROW'S OWN ADDRESS, so for a child with none the warning went nowhere — the
+     account most likely to be guessed at by a classmate was the one nobody heard about. The same
+     grown-ups "Forgotten your PIN?" writes to (`authGrownUps_`). */
+  if (S(r.email)) return;
+  const tos = authGrownUps_(r);
+  if (!tos.length) return;
   try {
-    notify(personDisplayName(r), 'Too many sign-in attempts',
-      'Somebody has tried your @family. PIN ' + n + ' times and got it wrong.\n\n'
-      + 'Signing in is held up for a minute, and for longer on each wrong answer after that.\n'
-      + 'If that was not you, reply here.');
+    MailApp.sendEmail({ to: tos.join(','), name: BRAND_NAME, subject: 'Too many sign-in attempts',
+      body: said + 'If that was ' + (S(r.first_name) || 'them') + ', "New PIN" on their card on your '
+          + 'account gives them a new one at once. If it was not, tell us.' });
   } catch (err) {}
+}
+
+/* ---------- WHO IS WRITTEN TO FOR A CHILD WITH NO ADDRESS OF THEIR OWN -------------------------------
+   Every parent who has ACCEPTED the link (an `asked` row is a claim, not a family), and the address a
+   child gave as a grown-up's when they made their own account (`parent_email`). Read in one place,
+   because the forgotten-PIN mail and the too-many-guesses warning both ask it. */
+function authGrownUps_(r) {
+  const tos = acceptedParents(S(r && r.person_id)).map(p => S(p.email)).filter(Boolean);
+  const typed = S(r && r.parent_email);
+  if (typed && tos.map(norm).indexOf(norm(typed)) === -1) tos.push(typed);
+  return tos;
 }
 
 /* A successful sign-in, a PIN reset by e-mail and a PIN change all clear it: the count is about
@@ -1428,6 +1521,66 @@ function authWrong_(t, r) {
    column went with the people tab's redesign; a lock lives in Script Properties only.) */
 function authClearThrottle_(t, r) {
   try { authProps_().deleteProperty(authThrottleKey_(r)); } catch (err) {}
+}
+
+/* ==================================================================================================
+   A FORGOTTEN PIN IS SENT BESIDE THE OLD ONE, AND REPLACES IT ONLY WHEN IT IS USED
+   --------------------------------------------------------------------------------------------------
+   "FORGOTTEN YOUR PIN?" OVERWROTE THE PIN THE MOMENT ANYBODY ASKED. It is open to anybody (you cannot
+   be signed in to have forgotten), handles are printed on every card, and the tile sits a fingertip
+   from Sign in — so a classmate typing `@kit_kind42` and pressing it, or Kit missing Sign in by four
+   pixels, stopped Kit's PIN working at once while the new one sat in a parent's inbox. Eight presses
+   were eight new PINs and eight emails; once the day's mail quota was spent each press still changed
+   the PIN and sent it to nobody.
+
+   NOW THE REQUEST CHANGES NOTHING ON THE ROW. The new PIN is kept here, in Script Properties beside
+   the throttle — `AUTH_RESET_<person_id>` → `{ pin, until, at, misses }` — and works BESIDE the old one
+   for `AUTH.RESET_HOURS`. Whichever is typed signs you in; the new one, once used, becomes the PIN.
+   A stranger's press costs the child nothing but an email to a grown-up.
+
+   ONE EMAIL PER QUARTER OF AN HOUR (`RESET_GAP_MINS`), and a second request inside the day sends the
+   SAME PIN again rather than a new one, so a parent holding two emails never holds a dead one. It is
+   stored only once the mail has gone (`forgotPin`): a mail that cannot go changes nothing at all.
+
+   AND IT IS STILL THE WAY OUT OF A LOCKOUT (181). The lock is answered before the PIN is looked at,
+   which would refuse the emailed PIN exactly when it was asked for — so while locked, the emailed PIN
+   alone is still compared, and five wrong tries at it throw it away (`RESET_MISSES`): a lock that let
+   a guesser try a six-digit code all day without moving the ladder would be no lock. */
+function authResetKey_(r) { return 'AUTH_RESET_' + S(r.person_id || personDisplayName(r)); }
+
+function authResetGet_(r) {
+  let held = null;
+  try { held = JSON.parse(authProps_().getProperty(authResetKey_(r)) || 'null'); } catch (err) {}
+  if (!held || !S(held.pin) || N(held.until) < Date.now()) return null;
+  return held;
+}
+
+function authResetPut_(r, held) {
+  try { authProps_().setProperty(authResetKey_(r), JSON.stringify(held)); return true; }
+  catch (err) { return false; }
+}
+
+function authResetDrop_(r) {
+  try { authProps_().deleteProperty(authResetKey_(r)); } catch (err) {}
+}
+
+/* DOES `given` MATCH THE EMAILED PIN — and if it does, it becomes the PIN. `locked` says the lock is
+   on, in which case a miss is counted against the emailed PIN rather than the ladder. */
+function authResetUse_(t, r, given, locked) {
+  const held = authResetGet_(r);
+  if (!held) return false;
+  if (S(given) && authSame_(S(held.pin), S(given))) {
+    authSetPin_(t, r, S(held.pin));
+    /* THE OLD PIN'S GUESSES SAY NOTHING ABOUT THIS ONE — `authClearThrottle_`'s own argument. */
+    authClearThrottle_(t, r);
+    authResetDrop_(r);
+    return true;
+  }
+  if (locked) {
+    held.misses = N(held.misses) + 1;
+    if (held.misses >= AUTH.RESET_MISSES) authResetDrop_(r); else authResetPut_(r, held);
+  }
+  return false;
 }
 
 /* ---------- SESSIONS, KEPT OFF THE SHEET -------------------------------------------------------

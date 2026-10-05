@@ -332,6 +332,12 @@ const SCHEMA = {
     "person_id", "role", "first_name", "last_name", "handle", "handle_changed_at", "handle_was",
     /* how to reach them, and how they sign in */
     "email", "phone", "pin", "date_of_birth",
+    /* A GROWN-UP'S ADDRESS, FOR A CHILD WHO HAS NONE — written by `register` when a child makes their
+       own account with no email of their own. NOT a sign-in address: `email` is that, and one address
+       on two rows locks both out. This is only where the confirmation link, a forgotten PIN and the
+       too-many-guesses warning are sent (`authGrownUps_`). Added at the END of a live sheet by
+       `ensureSchema`, like every new column. */
+    "parent_email",
     /* the account */
     "verified", "verify_token", "listed", "details_confirmed", "joined_on", "came_from",
     "invited_by", "referral_code", "account_number", "sort_code",
@@ -2755,11 +2761,11 @@ const ACTION_ACCESS = {
   register: 'anyone', verifyEmail: 'anyone', verifyLogin: 'anyone',
   /* ---------- A FORGOTTEN PIN IS ASKED FOR BY SOMEBODY WHO CANNOT SIGN IN --------------------
      SO IT CANNOT BE `self`, which is the whole point of it. What stops it being a way in is that
-     it never ANSWERS anything: the reply is the same sentence whether the account exists, has no
-     address on file, or was never there at all, and the new PIN goes to the address in the sheet
-     and nowhere else. Somebody who does not hold that mailbox learns nothing and gains nothing —
-     except that they have just locked the real owner out until they read their email, which is
-     the one real cost and is why `authEndSession_` is NOT called here. */
+     the new PIN goes to the address in the sheet (or a child's grown-ups) and nowhere else, so
+     somebody who does not hold that mailbox gains nothing. It used to cost the real owner their PIN
+     — the request overwrote it — and now it does not: the emailed PIN works BESIDE the old one until
+     it is used (`authResetUse_`), so a stranger's press is an email and nothing more. It says which
+     case it was (no such account, nobody to send to, sent), as signing in has since 184. */
   forgotPin: 'anyone',
   /* `broadcast: 'admin'` WAS HERE — one message to everybody — and went with its handler and its
      card on "remove the note to everyone button". An entry with no handler is a door onto nothing. */
@@ -2823,8 +2829,14 @@ const ACTION_ACCESS = {
   listRecords: 'admin', saveRecordsPage: 'admin',
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
   /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can.
-     An admin resetting somebody else's is handled inside, where the old PIN can be waived. */
+     Your own PIN only: the gate writes `body.name` and `body.adminName` from the token, so the
+     "admin resetting somebody else's" branch that was inside could never run. That is `resetPin`. */
   changePin: 'self', signAgreement: 'self',
+  /* A PARENT MAKING THEIR CHILD'S ACCOUNT, and a NEW PIN FOR SOMEBODY ELSE. Both `self`, because
+     who may is a question about two people — a parent and the child they have ACCEPTED, or an admin
+     and anybody who is not one — and only the handler can see both rows. The gate only proves who
+     is asking, and writes them into `body.personId`; the child is `targetId` or does not exist yet. */
+  makeChild: 'self', resetPin: 'self',
   /* A NEW WORD FOR YOUR OWN HANDLE. `self`, and the handler acts on the row the token resolved to
      rather than on anything posted — the gate writes `body.personId` from the token. `changeHandle`,
      which took a typed handle, is gone: see `handleTrouble_`. */
