@@ -551,7 +551,7 @@ const STATES = {
        *"diagram widgets shouldn't have a question number on them"*. One row, named: Q5 of the June 2022
        A-level Statistics paper -- a stem ("Of the 80 people...") with a Venn diagram, then six parts, the
        third of which is "complete the Venn diagram above". Two pictures: the stem's own page, headed
-       `Q5` alone, and the Venn diagram on the page after it, headed `Figure` with no number of either
+       `Q5` with no part (`· 1 of 2`: its table is long enough to be cut), and the Venn diagram on the page after it, headed `Figure` with no number of either
        kind. Both land on the pages in front of (a), where the strip puts them once for all six. */
     { name: 'a multi-part question\'s stem, on its own page in front of its parts',
       enter: () => {
@@ -564,11 +564,11 @@ const STATES = {
       },
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qstem');
-        return !!c && /^Q5$/.test(c.querySelector('.qcard-top').textContent.trim())
+        return !!c && /^Q5( · \d+ of \d+)?$/.test(c.querySelector('.qcard-top').textContent.trim().replace(/\s+/g, ' '))
                && !!c.querySelector('.qsheet-stem') && !c.querySelector('.qp-ans, svg')
                && !!c.querySelector('.qsheet-figref');
       },
-      wants: 'the stem of Q5 on its own page, headed Q5 alone, no box and no picture, saying the figure is next',
+      wants: 'the stem of Q5 on its own page, headed Q5 (1 of 2: its table makes it two), no box and no picture, saying what is next',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'its figure, the page after, with no question number',
       enter: () => {
@@ -586,6 +586,27 @@ const STATES = {
                && !!c.querySelector('figure svg') && !c.querySelector('.qp-ans');
       },
       wants: 'the Venn diagram on its own page, headed Figure, with no question number and no box',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A PART TOO LONG FOR ONE PAGE, CUT BETWEEN PARAGRAPHS --------------------------------------
+       *"each widget is smaller than a phone screen"*. Named: Q3.5 of the June 2024 A-level Biology
+       Paper 3 -- the tallest question card in the library before the cut, 1,241px past a 320 pane. Its
+       first page (`pre0`): the reading, no box, saying it continues; the card after it keeps the ask. */
+    { name: 'a long part\'s first page, cut before its ask',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-AQA-7408-2406-3A-035');
+        if (!it) throw new Error('Q-AQA-7408-2406-3A-035 is not in the library');
+        if (pageParts_(it).indexOf('pre0') < 0) throw new Error('Q-AQA-7408-2406-3A-035 is not cut any more');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'pre0'));
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .qcard.qpre');
+        return !!c && !c.querySelector('.qp-ans') && /Continued on the next page/.test(c.textContent)
+               && /1 of \d/.test(c.querySelector('.qcard-top').textContent);
+      },
+      wants: 'the first page of a long part: its reading, no box, "1 of N", saying it continues',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A QUESTION YOU HAVE DONE, DATED --------------------------------------------------------
        ASKED FOR AS *"when a student does do a question, it should record the date they did it"*. Signed

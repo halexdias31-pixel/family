@@ -5322,6 +5322,11 @@ check('a page too long for a phone is cut between paragraphs, and the ask stays 
     if (text.indexOf('LEAD-FIRST') > text.indexOf('Step 1:') || text.indexOf('Step 8:') > text.indexOf('ASK-LAST')) bad.push('the cut pages are out of order');
     const card = pages[pages.length - 1];
     if (!/ASK-LAST/.test(card.textContent) || !card.querySelector('.qp-ans')) bad.push('the ask and the box are not on the same card');
+    /* THE CUT RUNS FROM THE END: the card has the box and the tiles to make room for, so it takes the
+       ask and only what fits beside them -- here the ask alone, the table too heavy to join it. Cut
+       from the front instead, the card is whatever was left over: the last steps, the table and the
+       ask, which is the long card this exists to stop. */
+    if (/Step \d+:|t \/ s/.test(card.querySelector('.qsheet').textContent)) bad.push('the card took more than the ask beside its box -- the cut ran from the front: ' + card.querySelector('.qsheet').textContent.trim().slice(0, 80));
     pages.slice(0, -1).forEach((p, i) => {
       if (p.querySelector('.qp-ans, .qp-check')) bad.push('pre page ' + i + ' carries an answer box');
       if (!/Continued on the next page/.test(p.textContent)) bad.push('pre page ' + i + ' does not say it continues');

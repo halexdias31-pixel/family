@@ -949,11 +949,17 @@ for (const who of VISITORS) {
     const tall = await page.evaluate(async () => {
       if (typeof stuffItems !== 'function') return null;
       go('stuff', false, true);
-      STUFF.filters = []; STUFF.q = '8464/B/1H';
+      /* A CARD THAT IS STILL TALL. 8464/B/1H Q02.4 was the one, and it stopped being tall when its
+         stem became a page of its own and a long part was cut between paragraphs (`partChunks_`).
+         This worksheet question is one paragraph of 1,173 characters -- a transcription with no
+         breaks in it, which the cut will not break inside -- so it is tall on every phone. */
+      const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-probability-tree-diagrams-12');
+      const facet = FACETS.find(f => f.field === 'paperId');
+      STUFF.q = ''; STUFF.filters = want && facet ? [{ field: 'paperId', value: facet.of(want) }] : [];
       paintStuff(true);
       await new Promise(r => setTimeout(r, 400));
       const items = stuffFiltered();
-      const i = items.findIndex(x => x.row && x.row.row_id === 'Q-AQA-8464B-2406-1H-024');
+      const i = items.findIndex(x => x.row && x.row.row_id === 'Q-1CM-probability-tree-diagrams-12');
       if (i < 0) return null;
       /* BY PAGE, NOT BY RESULT — a practical is four pages, so a result's index is not its page
          once one sorts ahead of it. `stuffPageOf_` is the app's own mapping. */
