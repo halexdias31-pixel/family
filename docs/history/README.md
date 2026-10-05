@@ -271,3 +271,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [Practice paper in the cheat sheet maker, and the circle-theorem splash redrawn](267-practice-paper-in-the-cheat-sheet-maker-and-the-circle-theor.md)
 - [A question reads in the paper's order, a figure is named as the paper names it, a long page is cut, and a done question is dated](268-a-question-reads-in-the-paper-s-order-a-figure-is-named-as-t.md)
 - [The day a question was done is on the sheet, so it follows the student and an admin can see it](269-the-day-a-question-was-done-is-on-the-sheet-so-it-follows-th.md)
+- [A question reads text, figure, text, figure, text; the answer is one tap for everybody; and a drawing question has something to draw on](270-a-question-reads-text-figure-text-figure-text-the-answer-is.md)
