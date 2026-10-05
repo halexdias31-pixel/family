@@ -5666,7 +5666,9 @@ function choiceBox_(x) {
     }).join('')}</div>
   </div>${right.length ? `<div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">
     <span class="qp-verdict" role="status" aria-live="polite">${done
-      ? (ok ? 'Correct' : 'Not yet — the answer has its own page')
+      /* WHERE THE ANSWER IS, NOT WHAT IT IS -- and short enough for one line at 320px: "Not yet --
+         the answer has its own page" wrapped to two there, and the slot is one line tall. */
+      ? (ok ? 'Correct' : 'Not yet — see the answer page')
       : ''}</span>
   </div>` : ''}`;
 }
