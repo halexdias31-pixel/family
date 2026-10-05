@@ -1177,20 +1177,85 @@ const STATES = {
         paintStuff();
         goPage('stuff', stuffFirstResult_(), true);
       },
+      /* ---------- AND THE PROFILE IT BECAME ------------------------------------------------------------
+         ASKED FOR AS *"refine the boxers widget. maybe add image of each boxer ... the wins losses
+         etc."* The record left the gold meta line for a scoreboard of its own, and the photo stands
+         beside the name — so this asks what only a browser can answer about that: the picture box is
+         the 4:5 it was told to be, it sits to the LEFT of the name rather than over it (the grid in
+         style.css, not the markup, puts it there), the scoreboard is whole numbers or says there is no
+         record, and nothing on the card scrolls sideways at this width. The shared head's two rules
+         stay: one title size, the flag above the title. */
       expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer')
-               || document.querySelector('#s-stuff .card.fc.boxer');
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)')
+               || document.querySelector('#s-stuff .card.fc.boxer:not(.is-fights)');
         if (!c || c.querySelector('.thing')) return false;
         const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.fc-head .fc-flag');
-        const rec = c.querySelector('.fc-meta.boxer-rec');
-        if (!h3 || !flag || !rec || flag.textContent.trim() !== 'Boxer') return false;
+        const rec = c.querySelector('.boxer-rec'), frame = c.querySelector('.boxer-pic .boxer-frame');
+        if (!h3 || !flag || !rec || !frame || flag.textContent.trim() !== 'Boxer') return false;
         const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const nums = [...rec.querySelectorAll('.boxer-tally .boxer-n > b')].map(b => b.textContent.trim());
+        const told = nums.length ? nums.length >= 3 && nums.every(n => /^\d+$/.test(n))
+                                 : /No fight record on file/.test(rec.textContent);
+        const f = frame.getBoundingClientRect(), t = h3.getBoundingClientRect();
         return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
-               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
-               && /^\d+-\d+-\d+/.test(rec.textContent.trim());
+               && flag.getBoundingClientRect().bottom <= t.top + .5
+               && told && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
+               && f.right <= t.left + .5
+               && c.scrollWidth <= c.clientWidth + 1;
       },
-      wants: 'a boxer on the shared head — the name at the title size under a Boxer flag, the record on the meta line, no shop row',
+      wants: 'a boxer\'s profile — the name at the title size under a Boxer flag, a 4:5 picture box to its left, the record as a scoreboard of whole numbers (or "no record on file"), nothing scrolling sideways',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT ------------------------------------------
+       THE CREDIT IS A LINK NOW, to the photo's Commons file page — a CC BY or BY-SA licence asks for
+       one — and a link is a tap target, so it is a 44px block rather than a 12px line of small print
+       (`a.boxer-src` in style.css). Only a browser can say how tall a block is, so this asks one, at
+       every width: Ali's credit is a link, at least 44px tall AT ITS OWN SIZE (a profile drawn smaller
+       to fit its pane is the zoom's cost, counted by `check/ui.js` on its own line), straight under
+       the picture and across the card rather than in the photo's column, and its words at least
+       `.62rem` — the size the review measured the old `.56` against and found unreadable.
+
+       THE PICTURE CANNOT ARRIVE HERE. This browser has no route to upload.wikimedia.org, so Ali's
+       photo fails and takes its credit with it — which is `boxerPicFail_` doing its job. So the line
+       is put back under the picture box by the card's own `boxerCredit_`, with the failed address
+       forgotten first, and measured in the real stylesheet; what is measured is exactly the markup
+       the card draws when the photo loads. */
+    { name: 'a boxer photo\'s credit, a link a finger can hit',
+      enter: () => {
+        STUFF.q = 'Muhammad Ali';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
+        const b = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Muhammad Ali');
+        const box = c && c.querySelector('.boxer-pic');
+        if (!c || !b || !b.image || !box || !/Muhammad Ali/.test(c.querySelector('h3').textContent)) return false;
+        let line = c.querySelector('.boxer-credit');
+        if (!line) {
+          BOXER_PIC_DEAD.delete(pic(b.image));
+          line = document.createElement('p');
+          line.className = 'boxer-credit';
+          line.innerHTML = boxerCredit_(b, b.imageCredit);
+          box.after(line);
+          /* AND THE PANE IS FITTED AGAIN, as it is when a loaded photo's credit is there from the
+             first paint: without it the card was measured at the zoom it had WITHOUT the line, and
+             the rest of this file reported 42px below the fold that no real phone ever has. */
+          try { paneReach_([c.closest('.pane')]); } catch (e) {}
+        }
+        const a = line.querySelector('a.boxer-src');
+        if (!a || a.getAttribute('href') !== boxerCommons_(pic(b.image))) return false;
+        let z = 1;
+        for (let e = a; e; e = e.parentElement) { const v = parseFloat(e.style && e.style.zoom); if (v > 0 && v < 1) z *= v; }
+        const r = a.getBoundingClientRect(), p = box.getBoundingClientRect(), k = c.getBoundingClientRect();
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return r.height / z >= 43.5 && r.width / z >= 43.5
+               && r.top >= p.bottom - .5 && r.width >= (k.width - p.width) * .6
+               && parseFloat(getComputedStyle(a).fontSize) >= .62 * rem - .05;
+      },
+      wants: 'Ali\'s photo credit as a link to its Commons file page, a 44px block at its own size, under the picture and across the card, its words at least .62rem',
+      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'the fights, on the shared head',
       enter: () => {
         STUFF.q = '';
@@ -1210,11 +1275,16 @@ const STATES = {
         const how = c.querySelector('.fc-meta');
         if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fight') return false;
         const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        /* AND BOTH CORNERS' FACES, SQUARE, ABOVE THE FLAG — lifted there by `order`, which only a
+           browser lays out. Two because a bout is two boxers, whether either has a photo or not. */
+        const faces = [...c.querySelectorAll('.fight-faces .boxer-pic .boxer-frame')].map(e => e.getBoundingClientRect());
         return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
                && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
-               && getComputedStyle(how).textTransform === 'none';
+               && getComputedStyle(how).textTransform === 'none'
+               && faces.length === 2 && faces.every(r => r.width > 0 && Math.abs(r.width - r.height) < 1.5
+                                                        && r.bottom <= flag.getBoundingClientRect().top + .5);
       },
-      wants: 'a fight on the shared head — the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
+      wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
        `a textbook chapter` lands nine pages past the contents card, so the card itself was in the

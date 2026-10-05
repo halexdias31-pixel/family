@@ -488,7 +488,25 @@ function libraryExtras_(d, extra) {
       .map(b => Object.assign(b, { chapters: b.chapters.sort((p, q) => p.n - q.n) }));
   }
 
-  /* --- the boxers ------------------------------------------------------------------------------ */
+  /* --- the boxers ------------------------------------------------------------------------------
+     ---------- THE RECORD IS `libNum`, NOT `libN`, AND FOURTEEN FIGHTERS ARE WHY -------------------
+     `libN('')` IS 0, which is right for a count nobody could have left blank and wrong for these.
+     Fourteen rows have no record at all and the card drew every one of them as `0-0-0` — an
+     unbeaten fighter who never fought, stated as a fact. `losses_ko` is blank on a hundred rows
+     and would have printed "0 KO" under every loss column, which is the claim that nobody ever
+     stopped Joe Louis. Blank is "not on file", and `null` is how this file says that — the
+     `cost: 0` fault again, recorded over `libNum` itself. Height and reach go the same way: a
+     fighter 0 cm tall is a blank cell, not a measurement.
+
+     `lineal` AND `hall_of_fame` ARE `libTrue`, NOT `libOn`. `libOn` reads BLANK AS ON — right for
+     `active`, where nobody switching a row off means it is live — and it would have put a Hall of
+     Fame badge on the twenty-four fighters whose cell is empty and a "lineal champion" on all 103.
+     An honour is claimed by a cell that says so, never by one that says nothing.
+
+     `image_credit` RIDES WITH `image`. A Commons photograph is free on condition that its author
+     and licence are named wherever it is shown, so the card refuses to draw a photo without its
+     credit — see `boxerPic_` in find.js. A column the mapper dropped would have meant no boxer
+     could ever show a photo, which is the safe failure, but a silent one. */
   if (extra.boxers && extra.boxers.length) {
     const out = [];
     extra.boxers.forEach(r => {
@@ -497,17 +515,17 @@ function libraryExtras_(d, extra) {
         id: libS(r.boxer_id), name: libS(r.name), nickname: libS(r.nickname),
         sex: libS(r.sex), country: libS(r.country), bornIn: libS(r.born_in),
         stance: libS(r.stance), dob: libS(r.dob), dod: libS(r.dod),
-        heightCm: libN(r.height_cm), reachCm: libN(r.reach_cm),
+        heightCm: libNum(r.height_cm), reachCm: libNum(r.reach_cm),
         divisions: libS(r.divisions), bestDivision: libS(r.best_division),
         activeFrom: libS(r.active_from), activeTo: libS(r.active_to), status: libS(r.status),
-        wins: libN(r.wins), winsKo: libN(r.wins_ko),
-        losses: libN(r.losses), lossesKo: libN(r.losses_ko),
-        draws: libN(r.draws), noContests: libN(r.no_contests), recordAsOf: libS(r.record_as_of),
-        worldTitles: libS(r.world_titles), lineal: libOn(r.lineal),
-        hallOfFame: libOn(r.hall_of_fame), ringRank: libS(r.ring_rank),
+        wins: libNum(r.wins), winsKo: libNum(r.wins_ko),
+        losses: libNum(r.losses), lossesKo: libNum(r.losses_ko),
+        draws: libNum(r.draws), noContests: libNum(r.no_contests), recordAsOf: libS(r.record_as_of),
+        worldTitles: libS(r.world_titles), lineal: libTrue(r.lineal),
+        hallOfFame: libTrue(r.hall_of_fame), ringRank: libS(r.ring_rank),
         promoter: libS(r.promoter), trainer: libS(r.trainer),
         notableWins: libS(r.notable_wins), notableLosses: libS(r.notable_losses),
-        image: libS(r.image), notes: libS(r.notes),
+        image: libS(r.image).trim(), imageCredit: libS(r.image_credit).trim(), notes: libS(r.notes),
       });
     });
     d.boxers = out;

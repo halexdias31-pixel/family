@@ -590,6 +590,23 @@ function fightTiles_(x) {
   return f.video ? tile_({ icon: 'play', label: 'Watch', href: f.video }) : '';
 }
 
+/* ---------- A FIGHTER'S ONE DOOR: HIS FIGHTS, ON FILM ----------------------------------------------
+   THE BOUT'S `Watch`, ONE KIND ALONG. A bout carries the search the sheet wrote for it; a fighter
+   has no column of his own for one, and needs none — his name and the word "highlights" is the
+   search anybody would type. Built here rather than stored so a row added tomorrow has the door
+   without anybody filling a cell in.
+
+   A LINK AND NOT A BUTTON, through `tile_`'s `href`, which draws the anchor with its `target` and
+   `rel` — the same reason the fight's tile has no `act`. Nothing inside the app plays it, so it
+   should not pretend to; see `filmTiles_` for the same argument about Drive. */
+function boxerTiles_(x) {
+  const b = x.row || {};
+  const name = String(b.name || x.name || '').trim();
+  if (!name) return '';
+  return tile_({ icon: 'play', label: 'Highlights', note: 'on YouTube',
+                 href: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' boxing highlights') });
+}
+
 /* ---------- A FILM'S ONE DOOR, IN THE SAME ROW AS ITS STAR ------------------------------------------
    IT WAS DRAWN INSIDE `filmCard_` AS A TILE ROW OF ITS OWN, which gave a film two rows of tiles and a
    fight — the same shape, a thing with one Watch — one. Here it is the fight's tile one kind along.
@@ -641,6 +658,7 @@ function cardActions_(x) {
   if (x.kind === 'level') return levelTiles_(x);
   if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   if (x.kind === 'fight') return fightTiles_(x);
+  if (x.kind === 'boxer') return boxerTiles_(x);
   if (x.kind === 'film') return filmTiles_(x);
   /* `me` HAS ONE ACTION, SIGN OUT, AND IT IS IN THE SAME ROW AS THE STAR. It was a row of its own
      under the star — *"why is sign out tile under the favourite tile?"* — which made one card carry

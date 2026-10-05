@@ -3367,12 +3367,38 @@ function fightCard_(x) {
      as ONE quiet line — three facts about where, read together. Nothing was dropped. */
   const about = [f.titles, where ? where + (f.attendance ? ' · ' + f.attendance + ' there' : '') : '']
     .filter(Boolean).join(' · ');
+  /* ---------- THE TWO FACES, SQUARED UP -----------------------------------------------------------
+     ASKED FOR WITH THE BOXER'S PHOTO ("maybe add image of each boxer"), and a bout is two boxers, so
+     it gets both — small, side by side, the winner's frame in gold. Each is `boxerPic_`'s corner:
+     the photo where the boxer's row has one WITH its credit, and the ring placeholder otherwise —
+     mirrored in the blue corner's colours on the right, as the splash draws its second fighter. An
+     opponent with no row at all (52 corners) gets the placeholder with his initials, which is what
+     he is: somebody this library has no picture of.
+
+     LIFTED OVER THE TITLE BY `order`, like the boxer's photo, and hidden from a screen reader: the
+     names are the title already, and two pictures announced as the same two names is the title
+     read twice.
+
+     ONE CREDIT LINE FOR BOTH, each part carrying the address it credits, so a face that fails to
+     load takes its own credit with it and leaves the other's — see `boxerPicFail_`. */
+  const bxA = boxerOf_(f.aId, f.a) || { name: f.a }, bxB = boxerOf_(f.bId, f.b) || { name: f.b };
+  /* EACH CREDIT IS A LINK TO THE PHOTO'S OWN FILE PAGE where one can be named — `boxerCredit_`, the
+     profile's rule, so the two cards cannot credit the same picture two ways. */
+  const credits = [bxA, bxB].filter(bx => boxerPicSrc_(bx)).map(bx =>
+    boxerCredit_(bx, 'Photo of ' + bx.name + ': ' + bx.imageCredit.replace(/^photo:\s*/i, '')));
   return `<div class="card fc fight">
     <div class="fc-head">
       <h3 class="fight-line">${corner(f.a, wonA)}<em>v</em>${corner(f.b, wonB)}</h3>
       <span class="fc-flags"><span class="fc-flag is-type">Fight</span></span>
     </div>
-    <p class="sub">${esc([f.date, f.division, bout].filter(Boolean).join(' · '))}</p>
+    ${/* THE DATE AS THE FIGHTER'S PAGE WRITES IT. This printed the cell — `1971-03-08` — one flick
+          away from his page printing the same bout as `8 Mar 1971`: one fight, two dates, and the
+          ISO one is a database's, not a poster's. `boxerDate_` leaves a cell that is not a date as
+          typed, so "c. 1900" still reads. */''}
+    <p class="sub">${esc([boxerDate_(f.date), f.division, bout].filter(Boolean).join(' · '))}</p>
+    <div class="fight-faces" aria-hidden="true">${boxerPic_(bxA, 'a', wonA)}<span class="fight-v">v</span>${
+      boxerPic_(bxB, 'b', wonB)}</div>
+    ${credits.length ? `<p class="fight-credit">${credits.join(' ')}</p>` : ''}
     ${how ? `<p class="fc-meta">${esc(how)}</p>` : ''}
     ${f.notes ? `<p class="fc-lede">${esc(f.notes)}</p>` : ''}
     ${about ? `<p class="fc-note">${esc(about)}</p>` : ''}
@@ -4558,6 +4584,9 @@ function pageParts_(x, prev) {
      `bibleParts_`. Which book is open is the reader's state, not the item's, so the item is the same
      object whichever book is being read. */
   if (x && x.kind === 'bible') return bibleParts_();
+  /* A BOXER IS THEIR CARD AND, WHERE THEY HAVE ANY, THEIR FIGHTS — seven bouts a page, see
+     `boxerFightPages_`. */
+  if (x && x.kind === 'boxer' && x.row) return [null].concat(boxerFightPages_(x.row));
   if (!x || x.kind !== 'practical' || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
   /* THE PICTURE IS ITS OWN PAGE, straight after the card — "across the board of all resources the
@@ -4589,6 +4618,7 @@ function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
   if (x && x.kind === 'textbook') return textbookPart_(x, part);
   if (x && x.kind === 'bible') return biblePart_(x, part);
+  if (x && x.kind === 'boxer') return boxerPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
   if (x && x.kind === 'question' && /^stem\d+(-\d+)?$/.test(part)) {
     const m = /^stem(\d+)(?:-(\d+))?$/.exec(part);
@@ -4648,26 +4678,606 @@ function filmCard_(x) {
   </div>`;
 }
 
+/* ==================================================================================================
+   THE FIGHTER'S PROFILE — A TALE OF THE TAPE, AND HIS FIGHTS ON THE PAGE AFTER IT.
+
+   ASKED FOR AS *"can you refine the boxers widget. maybe add image of each boxer. and make it look
+   nicer. the wins losses etc. my mate's a boxer and i want to impress him."* The card it replaces
+   was a name, a line and `56-5-0 · 37 KO` in small gold mono — every fact a boxer is judged by, in
+   the size this app keeps for a footnote. So the record is the centrepiece now, and the rest is
+   arranged the way a fight broadcast arranges it: the face and the name, the record, the tape.
+
+   THE CARD, IN THIS ORDER:
+
+     the photo        BESIDE the name, a 4:5 portrait in the left two-fifths, the way a fight poster
+                      or a trading card sets a fighter. It comes after the head in the markup and is
+                      placed by the grid in style.css, so a screen reader hears the name before the
+                      picture and every Find card still opens on its `.fc-head`, which is what
+                      `check-flow`'s shared-parts journey asks of all of them. NOT FULL WIDTH,
+                      measured: a 4:3 photo across the card put the profile at 1,480px on a 390px
+                      phone, and 102 of the 103 rows have no photo — so it would have been the
+                      placeholder, 225px tall, on nearly every page.
+     the head         the shared one: `Boxer` above the name, the nickname under it in quotes.
+     country, weight  the sub-line, with a flag where the country is one this file can name.
+     status           Active, Retired or Deceased, each with the years that status is about.
+     THE RECORD       won, lost, drawn (and no contests when there were any) as the biggest numbers
+                      on the page, the stoppages under the two columns they belong to, one bar for
+                      the split and the KO rate under it.
+     the tape         age or born and died, height, reach, stance, the weights, the career — only
+                      the rows a cell answered, so a sparse row is a short tape, not a form of blanks.
+     titles           the belts in the sheet's own words, the Hall of Fame and lineal as badges.
+
+   AND ONE PAGE AFTER IT, `fights` (see `boxerPart_`): who he beat and who beat him, then every bout
+   in `data/fights.json` he is in, newest first. A PAGE, NOT MORE CARD, because the owner's rule for
+   every widget is that it fits its screen — *"I don't like scrolling ... This goes for all widgets so
+   they all fit on screen"* — and Ali's fourteen bouts are a screen on their own. It is the
+   practicals' answer to the same problem ("Split into widgets"): the next page in the strip, one
+   flick away, headed with whose page it is.
+
+   EVERY CELL CAN BE BLANK. Eight rows have no record (fourteen did at first), sixty-nine no stance,
+   a hundred and two no photo; each part below says what it does with nothing, and the answer is
+   always to leave the part out rather than print a dash or a nought — see the `libNum` note in
+   library.js for the record a blank once turned into `0-0-0`.
+================================================================================================== */
+
+/* ---------- A FLAG FOR THE COUNTRY, WHERE THE COUNTRY IS ONE OF THESE -----------------------------
+   THE SHEET HOLDS A NAME (`USA`, `UK`, `Puerto Rico`) AND A FLAG IS A PAIR OF LETTERS, so something
+   has to join them, and a table is the honest version: every country the file uses today and the
+   ones a new row is likely to add. A country not here gets its name and no flag, which is a complete
+   answer rather than a broken one — there is no guessing a code from a name.
+   `UK` IS GB, because that is the flag; England, Scotland and Wales have flags of their own that are
+   tag sequences most phones draw as a plain black flag, so they are not offered. */
+const BOXER_FLAG = {
+  'usa': 'US', 'united states': 'US', 'uk': 'GB', 'united kingdom': 'GB', 'great britain': 'GB',
+  'england': 'GB', 'scotland': 'GB', 'wales': 'GB', 'northern ireland': 'GB',
+  'mexico': 'MX', 'ukraine': 'UA', 'puerto rico': 'PR', 'argentina': 'AR', 'ireland': 'IE',
+  'germany': 'DE', 'canada': 'CA', 'panama': 'PA', 'philippines': 'PH', 'kazakhstan': 'KZ',
+  'sweden': 'SE', 'italy': 'IT', 'nigeria': 'NG', 'nicaragua': 'NI', 'cuba': 'CU', 'jamaica': 'JM',
+  'australia': 'AU', 'japan': 'JP', 'norway': 'NO', 'netherlands': 'NL', 'france': 'FR',
+  'ghana': 'GH', 'south africa': 'ZA', 'russia': 'RU', 'dominican republic': 'DO', 'venezuela': 'VE',
+  'colombia': 'CO', 'brazil': 'BR', 'thailand': 'TH', 'south korea': 'KR', 'china': 'CN',
+  'new zealand': 'NZ', 'spain': 'ES', 'poland': 'PL', 'uzbekistan': 'UZ', 'belgium': 'BE',
+  'denmark': 'DK', 'hungary': 'HU', 'cameroon': 'CM', 'uganda': 'UG', 'zambia': 'ZM',
+};
+/* TWO REGIONAL-INDICATOR LETTERS ARE A FLAG, which is the whole of the encoding. A computer with no
+   flag glyphs (Windows is one) draws the two letters instead — `US` beside `USA` — which still says
+   it, so there is nothing to detect and nothing to fall back from. */
+function boxerFlag_(country) {
+  const cc = BOXER_FLAG[norm(country)];
+  return cc ? String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '';
+}
+
+/* ---------- A DATE AS A FIGHT POSTER WRITES ONE ---------------------------------------------------
+   `1 Oct 1975`, through `parseWhen` — which reads an ISO date field by field, the fix recorded over
+   it for a date that came out eleven years wrong. A cell that is not an ISO date is printed as it
+   was typed rather than dropped: "c. 1900" is still worth showing. */
+const BOXER_ISO = /^\d{4}-\d{1,2}-\d{1,2}/;
+function boxerDate_(v) {
+  const s = String(v || '').trim();
+  const d = BOXER_ISO.test(s) ? parseWhen(s) : null;
+  return d ? d.getDate() + ' ' + MONTH_NAMES[d.getMonth()].slice(0, 3) + ' ' + d.getFullYear() : s;
+}
+/* WHOLE YEARS BETWEEN TWO DATES, or null when either is not one. A birthday not yet reached in the
+   last year is taken off, which is the one step a subtraction of years gets wrong. */
+function boxerAge_(from, to) {
+  const a = BOXER_ISO.test(String(from || '')) ? parseWhen(from) : null;
+  const b = to instanceof Date ? to : (BOXER_ISO.test(String(to || '')) ? parseWhen(to) : null);
+  if (!a || !b || b < a) return null;
+  let n = b.getFullYear() - a.getFullYear();
+  if (b.getMonth() < a.getMonth() || (b.getMonth() === a.getMonth() && b.getDate() < a.getDate())) n--;
+  return n;
+}
+/* CENTIMETRES, WITH WHAT A BOXING FAN ACTUALLY QUOTES beside them. A reach is said in inches alone
+   ("a 78-inch reach"), a height in feet and inches. Rounded to the inch first and then split, so
+   six foot twelve cannot happen. */
+function boxerCm_(cm, height) {
+  if (!(cm > 0)) return '';
+  const inches = Math.round(cm / 2.54);
+  return cm + ' cm · ' + (height ? Math.floor(inches / 12) + '′ ' + (inches % 12) + '″' : inches + '″');
+}
+/* THE NAMES, SPLIT ON THE PIPE THE SHEET USES FOR EVERY LIST, blanks and repeats taken out. */
+const boxerNames_ = v => String(v || '').split('|').map(s => s.trim())
+  .filter((s, i, a) => s && a.indexOf(s) === i);
+/* TWO LETTERS FOR THE PLACEHOLDER: first and last name, `Muhammad Ali` → `MA`; one word gives one
+   letter. Letters only, so nothing in a name can reach the drawing as anything but text. A `Jr.` or
+   a `III` is not a surname — Floyd Mayweather Jr. is `FM`, not `FJ`.
+
+   AND A SURNAME CAN START WITH A PARTICLE. "Oscar De La Hoya" came out `OH`, because the last word
+   was taken as the surname — and his surname is De La Hoya, which a corner banner writes as `DLH`
+   and an initial writes as `D`. So the surname starts at the first De / La / Del / Van / Von /
+   Da / Di / Du / Le / Der / Den after the first name, and its first letter is the second initial:
+   `OD`. A particle as the FIRST word is a first name and is left alone. */
+const BOXER_PARTICLE = /^(de|la|del|della|van|von|da|di|du|le|der|den|dos|das)$/i;
+function boxerInitials_(name) {
+  const words = String(name || '').split(/\s+/).filter(s => s && !/^(jr|sr|ii|iii|iv)\.?$/i.test(s));
+  const at = words.findIndex((s, i) => i > 0 && BOXER_PARTICLE.test(s));
+  const w = (at > 0 ? words.slice(0, 1).concat(words[at]) : words)
+    .map(s => (s.match(/[A-Za-zÀ-ÿ]/) || [''])[0]).filter(Boolean);
+  return (w.length > 1 ? w[0] + w[w.length - 1] : (w[0] || '?')).toUpperCase();
+}
+
+/* ---------- THE BOXER IN A BOUT'S CORNER ----------------------------------------------------------
+   BY ID, THEN BY NAME, which is `fightCard_`'s order and for its reason: an id beats a name because
+   a name is a cell somebody can edit, and the name is still the fallback because 52 corners have no
+   id yet — the opponents nobody has written a row for. */
+function boxerOf_(id, name) {
+  const all = (DATA && DATA.boxers) || [];
+  return (id && all.find(b => String(b.id) === String(id)))
+      || (name && all.find(b => norm(b.name) === norm(name))) || null;
+}
+
+/* ---------- HIS BOUTS, NEWEST FIRST, EACH ONE READ FROM HIS SIDE ----------------------------------
+   A CORNER IS HIS BY ID, OR BY NAME ONLY WHERE THAT CORNER HAS NO ID. Name alone would hand his
+   fights to any second row somebody typed with the same name and another id; an id that is present
+   always decides, so the two can never disagree.
+
+   W, L, D OR NC FROM THE WINNER — by id where the row has one and by name where it does not,
+   `fightCard_`'s rule again. A bout with no winner is a draw unless its result says no contest.
+
+   NEWEST FIRST, the opposite of how `libraryExtras_` sorts `DATA.fights` (oldest first, so a
+   rivalry reads in order). A fighter's page is read from where his career ended, the way every
+   record is printed; a rivalry from where it began. Both are right, so the copy is sorted here and
+   the shared list is left alone. */
+function boxerBouts_(b) {
+  const id = String((b && b.id) || ''), name = norm(b && b.name);
+  if (!id && !name) return [];
+  const mine = (cid, cname) => (id && cid) ? String(cid) === id : (!cid && !!name && norm(cname) === name);
+  return ((DATA && DATA.fights) || []).map(f => {
+    const side = mine(f.aId, f.a) ? 'a' : mine(f.bId, f.b) ? 'b' : '';
+    if (!side) return null;
+    const me = side === 'a' ? { id: f.aId, n: f.a } : { id: f.bId, n: f.b };
+    const them = side === 'a' ? { id: f.bId, n: f.b } : { id: f.aId, n: f.a };
+    let res;
+    if (f.winnerId) res = String(f.winnerId) === String(me.id || id) ? 'W' : 'L';
+    else if (f.winner) res = norm(f.winner) === norm(me.n) ? 'W' : 'L';
+    else res = /no.?contest|^nc$/i.test(String(f.result || '')) ? 'NC' : 'D';
+    return { f, res, opp: them.n, oppId: them.id };
+  }).filter(Boolean).sort((p, q) => String(q.f.date || '').localeCompare(String(p.f.date || '')));
+}
+/* HOW IT ENDED, as a record writes it: `TKO 14`, `UD 15`, `KO`. The round a stoppage came in; for a
+   decision the distance, which is the scheduled rounds when nobody wrote an end round. A stoppage
+   with no round is the method alone — a scheduled distance beside a KO would read as the round it
+   happened in, and that is a fact nobody wrote down. */
+function boxerHow_(f) {
+  const m = String(f.method || '').trim();
+  const dist = (!m || /^(UD|SD|MD|TD|PTS|D|DRAW)$/i.test(m)) ? (f.rounds || '') : '';
+  return [m, f.endRound || dist].filter(Boolean).join(' ');
+}
+
+/* ---------- THE RECORD BAR'S WIDTHS, WHICH ADD UP TO A HUNDRED EXACTLY ----------------------------
+   EACH SEGMENT ROUNDED ON ITS OWN DRIFTS: three thirds at two places are 99.99. The last segment
+   takes whatever the others left, so the bar always ends at the right-hand edge and `check-flow`
+   can ask for 100 rather than for "about 100". */
+function boxerSplit_(parts) {
+  const live = parts.filter(p => p.n > 0);
+  const total = live.reduce((s, p) => s + p.n, 0);
+  if (!total) return [];
+  let used = 0;
+  return live.map((p, i) => {
+    const w = i === live.length - 1 ? +(100 - used).toFixed(2) : +(p.n / total * 100).toFixed(2);
+    const out = Object.assign({}, p, { x: +used.toFixed(2), w });
+    used += w;
+    return out;
+  });
+}
+
+/* ---------- THE PHOTO, OR A RING WITH NOBODY'S BOXER IN IT ----------------------------------------
+   A FREE PHOTOGRAPH IS FREE ON A CONDITION: its author and licence are named wherever it is shown.
+   So a photo is drawn only WITH its credit, and a row with an address and no credit gets the
+   placeholder — the card cannot be made to show a Commons picture unattributed, whatever the sheet
+   says. `check-library.js` refuses such a row as well, so it is caught before it ships rather than
+   quietly hidden after.
+
+   THE PLACEHOLDER IS ALWAYS IN THE BOX, under the photo. Before the photo arrives it is what the
+   box shows, so nothing jumps and nothing sits grey; if the photo never arrives, `boxerPicFail_`
+   takes the `<img>` out and it is all that is left. Never a broken-picture icon.
+
+   THE BOXER IN IT IS THE SPLASH'S GOLD FIGHTER IN HIS GUARD — `tools/boxing.py`'s `guard` pose,
+   the same paths, painted by the same `.bx-*` rules — so the loading screen and the placeholder are
+   one drawing in one set of colours. NOBODY'S LIKENESS, which is the point that file makes and the
+   one that matters most here: a stand-in that looked like a person would be a picture of the wrong
+   man. His initials beside it say whose page it is. If the splash is regenerated, paste its new
+   guard paths over these. */
+const BOXER_GUARD = '<path class="bx-hair" d="M6 1h4v1h-4zM5 2h6v1h-6zM5 3h2v1h-2zM5 4h1v1h-1zM5 5h1v1h-1z"/>'
+  + '<path class="bx-skin" d="M7 3h5v1h-5zM6 4h4v1h-4zM11 4h1v1h-1zM6 5h6v1h-6zM6 6h4v1h-4zM7 7h2v1h-2zM4 8h6v1h-6zM3 9h8v1h-8zM3 10h5v1h-5zM11 10h1v1h-1zM3 11h5v1h-5zM4 12h5v1h-5zM4 17h2v1h-2zM10 17h2v1h-2zM3 18h2v1h-2zM11 18h2v1h-2zM3 19h2v1h-2zM11 19h2v1h-2z"/>'
+  + '<path class="bx-eye" d="M10 4h1v1h-1z"/>'
+  + '<path class="bx-glove" d="M11 6h3v1h-3zM10 7h5v1h-5zM10 8h5v1h-5zM11 9h3v1h-3zM8 10h3v1h-3zM8 11h4v1h-4zM9 12h3v1h-3z"/>'
+  + '<path class="bx-band" d="M4 13h7v1h-7z"/>'
+  + '<path class="bx-trunks" d="M4 14h7v1h-7zM4 15h7v1h-7zM4 16h3v1h-3zM9 16h3v1h-3z"/>'
+  + '<path class="bx-boot" d="M2 20h3v1h-3zM11 20h3v1h-3zM2 21h3v1h-3zM11 21h4v1h-4z"/>';
+
+/* THE RING, SIDE ON: two posts, three ropes (the middle one red, as the splash's), the pads in each
+   corner's colour, the mat and the apron, and his initials over the top rope like the name on a
+   corner banner. 40 by 50 game pixels, which is the portrait frame's own 4:5, so the drawing fills
+   it without letterboxing; the fight card's square corner crops five pixels off the top and the
+   bottom, which is sky and apron. `crispEdges` keeps every pixel square at any size. The fighter
+   stands on whole pixels — a half-pixel offset is a blurred boxer. */
+function boxerRing_(name, blue) {
+  const ropes = [23, 29, 35].map((y, i) =>
+    `<rect class="bx-rope${i === 1 ? ' bx-rope-mid' : ''}" x="3" y="${y}" width="34" height="1"/>`
+    + `<rect class="bx-pad-l" x="0" y="${y - 1}" width="3" height="3"/>`
+    + `<rect class="bx-pad-r" x="37" y="${y - 1}" width="3" height="3"/>`).join('');
+  /* THE BLUE CORNER IS THE GOLD ONE MIRRORED about the middle of the ring — `.bx-r` gives him the
+     splash's blue trunks and gold hair, exactly as the splash draws its second fighter. */
+  const who = blue ? `<g class="bx-r" transform="translate(29 21) scale(-1 1)">${BOXER_GUARD}</g>`
+                   : `<g class="bx-l" transform="translate(11 21)">${BOXER_GUARD}</g>`;
+  return `<svg class="boxer-ring" viewBox="0 0 40 50" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges" aria-hidden="true">`
+    + `<rect class="bx-post" x="1" y="18" width="2" height="25"/><rect class="bx-post" x="37" y="18" width="2" height="25"/>`
+    + ropes
+    + `<rect class="bx-mat" x="0" y="43" width="40" height="2"/><rect class="bx-mat-edge" x="0" y="43" width="40" height="1"/>`
+    + `<rect class="bx-apron" x="0" y="45" width="40" height="5"/><rect class="bx-apron-band" x="0" y="46" width="40" height="1"/>`
+    + who
+    + `<text class="boxer-ini" x="20" y="15" font-size="10" text-anchor="middle">${esc(boxerInitials_(name))}</text></svg>`;
+}
+
+/* AN ADDRESS THAT ALREADY FAILED ON THIS PHONE IS NOT ASKED FOR AGAIN. A repaint redraws the card,
+   and without this every repaint would put the `<img>` back, watch it fail and take it out — the
+   placeholder flickering behind a picture that is never coming. */
+const BOXER_PIC_DEAD = new Set();
+
+/* THE ADDRESS A CARD MAY SHOW, or nothing. `https` only — the site is served over it and a plain
+   `http` picture is blocked as mixed content, which is a broken box by another route. A Drive link
+   goes through `pic` like every other picture in the app. */
+function boxerPicSrc_(b) {
+  const src = pic((b && b.image) || '');
+  return /^https:\/\//i.test(src) && !!(b && b.imageCredit) && !BOXER_PIC_DEAD.has(src) ? src : '';
+}
+
+/* `corner` IS THE FIGHT CARD'S: 'a' or 'b', the same frame and the same placeholder, square and
+   small, with no caption of its own — the fight card gathers its credits into one line under both
+   faces. The blue corner's stand-in faces left, as the splash's second fighter does, and the
+   winner's frame is gold. */
+function boxerPic_(b, corner, won) {
+  const src = boxerPicSrc_(b);
+  const frame = `<span class="boxer-frame">${boxerRing_(b.name, corner === 'b')}${src
+    ? `<img class="boxer-img" src="${esc(src)}" alt="${esc(b.name)}" loading="lazy" decoding="async">` : ''}</span>`;
+  if (corner) return `<span class="boxer-pic is-small${src ? '' : ' is-none'}${won ? ' won' : ''}">${frame}</span>`;
+  /* THE CREDIT IS A LINE OF ITS OWN UNDER THE PHOTO AND THE NAME, NOT A CAPTION IN THE PHOTO'S
+     COLUMN. As a `<figcaption>` it was four lines in a 134px column on a 320px phone — the photo's
+     column ran 80px past the name's, the record started that much lower, and Ali's profile was drawn
+     at 82% to fit, which put the credit itself at about seven pixels. Across the card it is two
+     lines, the column ends with the photo, and the credit sits directly under the picture it names.
+     The grid puts it there: it is the next element after the photo, so it takes the row below. */
+  return `<figure class="boxer-pic${src ? '' : ' is-none'}">${frame}</figure>${src
+    ? `<p class="boxer-credit">${boxerCredit_(b, b.imageCredit)}</p>` : ''}`;
+}
+
+/* ---------- THE CREDIT LINKS TO THE PHOTO'S FILE PAGE --------------------------------------------
+   THE CREDIT WAS PLAIN TEXT — "Photo: <author>, <licence>, via Wikimedia Commons" — which is enough
+   for a public-domain picture (Ali's is one) and NOT enough for the CC BY and CC BY-SA ones waiting
+   to be added: those licences ask for the author, the licence AND a link to where the work and its
+   licence can be read, "in any reasonable manner based on the medium". On a web page the reasonable
+   manner is the credit being that link. So it is one, to the Commons file page — which names the
+   author, the licence and the licence's own text in one place, and is the page the owner opens to
+   check a photo before trusting it.
+
+   BUILT FROM THE PICTURE'S OWN ADDRESS, NOT STORED. An `upload.wikimedia.org/wikipedia/commons/`
+   address carries the file's name — `…/8/89/Muhammad_Ali_NYWTS.jpg/480px-…` for a thumbnail, the
+   name before the size — so the page is `commons.wikimedia.org/wiki/File:<that name>`. A second
+   column would be a second thing to keep in step with the first; this cannot drift. An address
+   that is not Commons (a Drive photo somebody took) has no such page and its credit stays text —
+   `check-library.js` refuses a CC licence on any picture that is not a Commons file, so a licence
+   that needs the link always has one.
+
+   A 44px BLOCK, NOT A LINK THE SIZE OF ITS SMALL PRINT. It is a tap target like any other, and
+   `check/ui.js` measures it as one — see `.boxer-credit a` in style.css. */
+const BOXER_COMMONS = /^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/(?:thumb\/)?[0-9a-f]\/[0-9a-f]{2}\/([^/?#]+)/i;
+function boxerCommons_(src) {
+  const m = String(src || '').match(BOXER_COMMONS);
+  return m ? 'https://commons.wikimedia.org/wiki/File:' + m[1] : '';
+}
+/* `data-src` IS THE ADDRESS THE CREDIT IS FOR, so a picture that fails takes its own credit away
+   and leaves another's — the fight card has two (`boxerPicFail_`). */
+function boxerCredit_(b, text) {
+  const src = boxerPicSrc_(b), page = boxerCommons_(src);
+  return /^https:\/\/commons\.wikimedia\.org\//.test(page)
+    ? `<a class="boxer-src" data-src="${esc(src)}" href="${esc(page)}" target="_blank" rel="noopener">${esc(text)}</a>`
+    : `<span class="boxer-src" data-src="${esc(src)}">${esc(text)}</span>`;
+}
+
+/* A PICTURE THAT DID NOT COME LEAVES THE RING. `error` does not bubble, so this listens in the
+   capture phase, once, for the whole document — `postVidFail_`'s shape in posts.js. The credit goes
+   with the picture: a credit under a placeholder names a photograph nobody can see. */
+function boxerPicFail_(img) {
+  if (!img || !img.parentNode) return;
+  BOXER_PIC_DEAD.add(img.getAttribute('src') || '');
+  const fig = img.closest('.boxer-pic');
+  const card = img.closest('.card');
+  img.remove();
+  if (fig) fig.classList.add('is-none');
+  /* THE CREDIT FOR THIS PICTURE GOES, BY ITS ADDRESS — on the profile it is the line under the photo,
+     on a fight card one of two, so it is found by `data-src` rather than by where it sits, and a
+     line left with no credit in it goes too. */
+  if (card) card.querySelectorAll('.boxer-credit [data-src], .fight-credit [data-src]').forEach(el => {
+    if (el.getAttribute('data-src') === img.getAttribute('src')) el.remove();
+  });
+  if (card) card.querySelectorAll('.boxer-credit, .fight-credit').forEach(line => {
+    if (!line.querySelector('[data-src]')) line.remove();
+  });
+}
+document.addEventListener('error', e => {
+  const el = e.target;
+  if (el && el.matches && el.matches('img.boxer-img')) boxerPicFail_(el);
+}, true);
+
+/* ---------- WHAT HE IS NOW, AND THE YEARS THAT GO WITH IT -----------------------------------------
+   EACH STATUS CARRIES THE YEARS IT IS ABOUT: an active fighter the year he started, a retired one
+   the year he stopped, a dead one the years he lived. The career's whole span is the tape's
+   `Career` row, so this line never repeats it. A status the sheet does not use is printed as typed,
+   with no years rather than wrong ones. */
+function boxerStatus_(b) {
+  const s = norm(b.status), y = v => (String(v || '').match(/\d{4}/) || [''])[0];
+  if (s === 'active') return { k: 'is-active', t: 'Active' + (y(b.activeFrom) ? ' · since ' + y(b.activeFrom) : '') };
+  if (s === 'retired') return { k: 'is-retired', t: 'Retired' + (y(b.activeTo) ? ' · ' + y(b.activeTo) : '') };
+  if (s === 'deceased') {
+    const born = y(b.dob), died = y(b.dod);
+    return { k: 'is-dead', t: 'Deceased' + (born && died ? ' · ' + born + '–' + died : died ? ' · ' + died : '') };
+  }
+  return b.status ? { k: '', t: b.status } : null;
+}
+
+/* ---------- THE RECORD ---------------------------------------------------------------------------
+   THE NUMBERS ARE THE CENTREPIECE AND THE ONLY BIG TYPE ON THE PAGE. Won in gold, lost in the
+   ring's red, drawn in the quiet ink — the way a record is always coloured, from this app's own
+   tokens, named on the card itself (`--boxer-w` and friends in style.css). No contests get a column
+   only when there were any: a fourth `0` is noise beside three numbers that matter.
+
+   KOs UNDER THE COLUMN THEY BELONG TO, and only when the cell says: `37 KO` under the wins, `1 KO`
+   under the losses. A blank `losses_ko` prints nothing, never `0 KO`.
+
+   THE BAR IS AN SVG, and that is not decoration: its segments' widths are attributes, so they add
+   up to a hundred where a check can read them, and the card carries no `style` — which the
+   shared-parts journey refuses on every Find card. `preserveAspectRatio="none"` stretches it to the
+   card's width.
+
+   NO RECORD ON FILE SAYS SO. Eight fighters have none today — six old-timers whose records are
+   disputed by design, and two current ones nobody has entered — and a line saying that is the
+   truth; three noughts would be a claim. */
+/* ---------- A NOTE TO THE EDITOR IS NOT A NOTE TO THE READER --------------------------------------
+   THE `notes` CELL HOLDS TWO KINDS OF THING and the card printed both. Most qualify the record —
+   "Exhibition bouts excluded", "Record disputed — newspaper-decision era" — and belong under it. The
+   rest are the researchers' to-do list: "ACTIVE — record needs checking" under Usyk's 24-0, "Date
+   of death needs checking" under Ricky Hatton's, "Retirement announced more than once — check"
+   under Fury's. Five of them were on public cards, in the place a fighter's own record is
+   qualified, and to a boxer they read as the site doubting its own numbers.
+
+   THE WORD IS THE SIGN. Every to-do in the file says `check` or `checking` and no qualifying note
+   does, so a note that says either is the editor's and is not drawn. Not cleared from the sheet:
+   it is still the to-do somebody has to do, and `check-library.js` lists every row carrying one
+   so it is a list rather than a silence. */
+const BOXER_EDITOR_NOTE = /\bcheck(ing)?\b/i;
+function boxerNote_(b) {
+  const s = String((b && b.notes) || '').trim();
+  return s && !BOXER_EDITOR_NOTE.test(s) ? s : '';
+}
+function boxerRecord_(b) {
+  const has = v => typeof v === 'number' && isFinite(v);
+  if (!has(b.wins) && !has(b.losses) && !has(b.draws)) {
+    return '<section class="boxer-rec is-none"><p class="fc-note">No fight record on file yet.</p></section>';
+  }
+  const W = b.wins || 0, L = b.losses || 0, D = b.draws || 0, NC = b.noContests || 0;
+  const cols = [
+    { k: 'w', n: W, label: W === 1 ? 'Win' : 'Wins', ko: has(b.winsKo) && W ? b.winsKo : null },
+    { k: 'l', n: L, label: L === 1 ? 'Loss' : 'Losses', ko: has(b.lossesKo) && L ? b.lossesKo : null },
+    { k: 'd', n: D, label: D === 1 ? 'Draw' : 'Draws', ko: null },
+  ].concat(NC ? [{ k: 'nc', n: NC, label: 'NC', say: NC === 1 ? 'no contest' : 'no contests', ko: null }] : []);
+  /* `NC` ON THE SCOREBOARD, because "NO CONTEST" in the label's capitals is wider than a quarter of a
+     320px card; the words are what a screen reader hears. */
+  const said = cols.map(c => c.n + ' ' + (c.say || c.label.toLowerCase())).join(', ');
+  const bar = boxerSplit_(cols);
+  const fights = W + L + D + NC;
+  const koRate = W && has(b.winsKo) ? Math.round(b.winsKo / W * 100) : null;
+  /* THE DATE THE COUNT WAS TAKEN, FOR A FIGHTER STILL FIGHTING. His is the one record that goes out
+     of date; a retired man's `record_as_of` is the day he stopped, which the status already says. A
+     line of its own under the numbers' line rather than a third clause on it: on a 320px phone the
+     three together broke in the middle of the date. */
+  const asOf = norm(b.status) === 'active' && b.recordAsOf ? 'Record as of ' + boxerDate_(b.recordAsOf) : '';
+  const line = [koRate != null ? 'KO rate ' + koRate + '%' : '',
+                fights + (fights === 1 ? ' fight' : ' fights')].filter(Boolean).join(' · ');
+  return `<section class="boxer-rec" aria-label="Record: ${esc(said)}">
+    <div class="boxer-tally">${cols.map(c => `<div class="boxer-n is-${c.k}${c.n ? '' : ' is-zero'}"><b>${c.n}</b><span class="boxer-k">${
+      c.label}</span>${c.ko != null ? `<span class="boxer-ko">${c.ko} KO</span>` : ''}</div>`).join('')}</div>
+    ${bar.length ? `<svg class="boxer-bar" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true">${
+      bar.map(s => `<rect class="is-${s.k}" x="${s.x}" y="0" width="${s.w}" height="4"/>`).join('')}</svg>` : ''}
+    <p class="fc-meta boxer-line">${esc(line)}</p>
+    ${asOf || boxerNote_(b) ? `<p class="fc-note">${esc([asOf, boxerNote_(b)].filter(Boolean).join(' · '))}</p>` : ''}
+  </section>`;
+}
+
+/* ---------- THE WEIGHTS HE BOXED AT, SAID IN ONE LINE WHEN THERE ARE MANY ----------------------------
+   EIGHT WEIGHTS WERE SIX LINES. Pacquiao's row listed every division from Flyweight to Light
+   Middleweight, wrapped down the right-hand half of the tape on a 320px phone, and was the single
+   biggest reason his profile was drawn at 72% to fit its pane — measured over all 103 fighters, it
+   was the tallest row on every card that shrank most. A fan says "an eight-division champion,
+   flyweight to light middleweight", so the card does: the count, the lightest and the heaviest.
+
+   THREE OR FEWER ARE LISTED, because "Featherweight, Super Featherweight, Lightweight" is two lines
+   and every name in it is the answer; four is where the list starts costing more than it says.
+
+   LIGHTEST AND HEAVIEST BY THE SCALE, NOT BY THE CELL'S ORDER. Every row today is typed light to
+   heavy, but a cell is a thing somebody types, and "Heavyweight, Cruiserweight" read first-to-last
+   would say Heavyweight → Cruiserweight. The ladder below puts them in order; a weight it does not
+   know leaves the cell's own order alone rather than guessing where it goes. */
+const BOXER_LADDER = [
+  ['minimumweight', 'strawweight', 'mini flyweight', 'atomweight'], ['light flyweight', 'junior flyweight'],
+  ['flyweight'], ['super flyweight', 'junior bantamweight'], ['bantamweight'],
+  ['super bantamweight', 'junior featherweight'], ['featherweight'], ['super featherweight', 'junior lightweight'],
+  ['lightweight'], ['light welterweight', 'super lightweight', 'junior welterweight'], ['welterweight'],
+  ['light middleweight', 'super welterweight', 'junior middleweight'], ['middleweight'], ['super middleweight'],
+  ['light heavyweight'], ['cruiserweight', 'junior heavyweight'], ['bridgerweight'], ['heavyweight']];
+const boxerRung_ = w => BOXER_LADDER.findIndex(r => r.indexOf(norm(w)) >= 0);
+function boxerWeights_(list) {
+  if (list.length < 2) return list[0] || '';
+  if (list.length <= 3) return list.join(', ');
+  const ranked = list.every(w => boxerRung_(w) >= 0)
+    ? list.slice().sort((p, q) => boxerRung_(p) - boxerRung_(q)) : list;
+  return list.length + ' · ' + ranked[0] + ' → ' + ranked[ranked.length - 1];
+}
+
+/* ---------- THE TALE OF THE TAPE -----------------------------------------------------------------
+   THE ROWS A BROADCAST SHOWS BEFORE THE FIRST BELL, in its order, and only the ones a cell
+   answered — a `dl`, because each is a label and its value, which is exactly what a description
+   list is. Age for the living and the years for the dead, never both: "aged 74" beside a death date
+   is the age he reached, and an age counted to today for a man who died in 2016 would be a number
+   about nobody. */
+function boxerTape_(b) {
+  const dead = !!b.dod || norm(b.status) === 'deceased';
+  const born = [boxerDate_(b.dob), b.bornIn].filter(Boolean).join(' · ');
+  const reached = b.dod ? boxerAge_(b.dob, b.dod) : null;
+  const age = dead ? null : boxerAge_(b.dob, new Date());
+  const y = v => (String(v || '').match(/\d{4}/) || [''])[0];
+  const from = y(b.activeFrom), to = y(b.activeTo);
+  const career = from && to ? from + '–' + to : from ? 'since ' + from : to ? 'to ' + to : '';
+  const weights = String(b.divisions || '').split(/[|,;]/).map(s => s.trim()).filter(Boolean);
+  const rows = [
+    ['Age', age != null ? String(age) : ''],
+    ['Born', born],
+    ['Died', b.dod ? boxerDate_(b.dod) + (reached != null ? ' · aged ' + reached : '') : ''],
+    ['Height', boxerCm_(b.heightCm, true)],
+    ['Reach', boxerCm_(b.reachCm, false)],
+    ['Stance', b.stance],
+    /* EVERY WEIGHT HE BOXED AT, ONLY WHEN THERE WAS MORE THAN ONE — the one he is known at is under
+       his name already, and a tape row repeating it is the same fact twice on one card. */
+    [weights.length > 1 ? 'Weights' : 'Weight', weights.length > 1 ? boxerWeights_(weights) : (!b.bestDivision && weights[0]) || ''],
+    ['Career', career],
+    ['Trainer', b.trainer],
+    ['Promoter', b.promoter],
+    ['Ranked', b.ringRank],
+  ].filter(r => r[1]);
+  if (!rows.length) return '';
+  return `<section class="fc-sec boxer-tape"><h4>Tale of the tape</h4>
+    <dl>${rows.map(r => `<div><dt>${r[0]}</dt><dd>${esc(r[1])}</dd></div>`).join('')}</dl>
+  </section>`;
+}
+
+/* ---------- THE BELTS AND THE HONOURS ------------------------------------------------------------
+   THE TITLES ARE THE SHEET'S OWN SENTENCE — "WBA, WBC, The Ring heavyweight (three reigns)" —
+   because splitting it into belts would lose the reigns and the years written inside it. The Hall
+   of Fame and the lineal title are yes-or-no facts, so they are badges, and gold, because on this
+   card gold is what a fighter won.
+
+   "TITLES" OVER A HALL OF FAME BADGE AND NOTHING ELSE SAID "NO BELTS". `world_titles` was blank on
+   77 of the 103 rows — Tyson, Mayweather, Holyfield, Leonard, Hearns, Durán among them — and on 56
+   of those the section still drew, because the Hall of Fame badge is in it. Read by a boxer, a
+   heading called Titles with no title under it is the claim that the man never won one. The
+   heading is what is under it: Titles when the sheet names a belt, Honours when all it holds is an
+   honour. The blank cells are being filled, and this is what keeps the next blank one honest. */
+function boxerTitles_(b) {
+  const badges = (b.hallOfFame ? '<li class="is-hof">Hall of Fame</li>' : '')
+               + (b.lineal ? '<li>Lineal champion</li>' : '');
+  if (!b.worldTitles && !badges) return '';
+  /* THE BADGES RIDE ON THE HEADING'S LINE, at its right, the way a broadcast pins "HALL OF FAME" to
+     the corner of a fighter's caption. They had a row of their own under the belts, and on a
+     320x568 phone that row was one of the reasons fifty profiles were drawn smaller to fit. */
+  return `<section class="fc-sec boxer-titles"><div class="boxer-titles-head"><h4>${b.worldTitles ? 'Titles' : 'Honours'}</h4>${
+    badges ? `<ul class="boxer-badges">${badges}</ul>` : ''}</div>
+    ${b.worldTitles ? `<p class="boxer-belt">${esc(b.worldTitles)}</p>` : ''}
+  </section>`;
+}
+
+/* WHO HE BEAT AND WHO BEAT HIM, as names: two rows of chips under one heading, the won ones edged
+   in the win colour and the lost ones in the loss colour, so the two lists are told apart before
+   their labels are read. */
+function boxerNotable_(b) {
+  const won = boxerNames_(b.notableWins), lost = boxerNames_(b.notableLosses);
+  if (!won.length && !lost.length) return '';
+  const row = (label, k, names) => names.length ? `<div class="boxer-vs is-${k}"><span class="boxer-vs-k">${
+    label}</span><ul class="boxer-names">${names.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : '';
+  return `<section class="fc-sec boxer-notable"><h4>Notable fights</h4>${row('Beat', 'w', won)}${row('Lost to', 'l', lost)}</section>`;
+}
+
+/* ---------- THE BOUTS ON FILE --------------------------------------------------------------------
+   ONE LINE A BOUT, the way a record is printed: the result in a square, the opponent, then how and
+   when under the name. It is the library's bouts and not his whole career — the famous fights, 157
+   across everybody — so the heading counts the ones HERE rather than posing as the record, which is
+   the box above it. A title fight says so, because that is the first thing a fan asks of a bout.
+
+   THE RESULT IS SAID IN WORDS AND SHOWN AS A LETTER. It was `aria-label` on the square — and an
+   `aria-label` on a plain `<span>`, which has no role, is ignored by most screen readers, so they
+   read "W" or nothing. The square is hidden from them now and a word they DO read stands in its
+   place, off the screen (`.boxer-say`): "Won, Larry Holmes". */
+const BOXER_BOUTS_PAGE = 7;
+function boxerBoutList_(b, n) {
+  const bouts = boxerBouts_(b);
+  if (!bouts.length) return '';
+  const page = n || 1, from = (page - 1) * BOXER_BOUTS_PAGE;
+  const here = bouts.slice(from, from + BOXER_BOUTS_PAGE);
+  if (!here.length) return '';
+  /* THE COUNT IS THE WHOLE FILE'S, and a page that holds part of it says which part. */
+  const count = bouts.length > BOXER_BOUTS_PAGE
+    ? (from + 1) + '–' + (from + here.length) + ' of ' + bouts.length : String(bouts.length);
+  const word = { W: 'Won', L: 'Lost', D: 'Drew', NC: 'No contest' };
+  return `<section class="fc-sec boxer-bouts"><h4>Fights on file · ${count}</h4>
+    <ul>${here.map(o => `<li class="is-${o.res.toLowerCase()}"><span class="boxer-res" aria-hidden="true">${
+      o.res}</span><span class="boxer-say">${word[o.res]}, </span><span class="boxer-opp">${esc(o.opp || 'Unknown')}</span><span class="boxer-how">${
+      esc([boxerHow_(o.f), boxerDate_(o.f.date)].filter(Boolean).join(' · '))}${o.f.titles
+      ? `<span class="boxer-tt" title="${esc(o.f.titles)}">title</span>` : ''}</span></li>`).join('')}</ul>
+  </section>`;
+}
+
 function boxerCard_(x) {
-  const b = x.row;
-  const rec = [b.wins, b.losses, b.draws].join('-') + (b.noContests ? ' (' + b.noContests + ' NC)' : '');
-  const years = [b.activeFrom, b.activeTo].filter(Boolean).join('–');
-  /* ---------- THE SHARED HEAD, NOT THE SHOP'S ROW ---------------------------------------------------
-     A BOXER WAS DRAWN AS A SHOP THING — `.thing`, a picture slot with no picture and a 0.92rem title
-     — with the record pinned top right in small mono. A boxer is one card to a page, like a
-     practical, so it takes the practical's head: the name is the title at the title's size, `Boxer`
-     is the flag in the slot where every other kind says what it is, and the record is the gold meta
-     line, which is the line this app keeps for the numbers that decide whether you read on. The
-     record still leads with W-L-D, as the note above the card asks. `.boxer-rec` stays on it as
-     the name a check looks for. */
+  const b = x.row || {};
+  const flag = boxerFlag_(b.country);
+  /* COUNTRY, THEN THE WEIGHT HE IS KNOWN AT, ONE LINE EACH. They were one line joined by a dot, and
+     beside the photo the column is 134px on a 320px phone: "Ukraine ·" ended one line and
+     "Heavyweight" began the next, the dot hanging off the country it does not belong to. */
+  const where = (b.country ? `<span class="boxer-country">${flag ? `<span class="boxer-flag" aria-hidden="true">${flag}</span>` : ''}${
+    esc(b.country)}</span>` : '') + (b.bestDivision ? `<span class="boxer-weight">${esc(b.bestDivision)}</span>` : '');
+  const st = boxerStatus_(b);
+  /* `.boxer-rec` IS STILL THE RECORD'S NAME, on the whole record box now rather than on one gold
+     line. `check/states.js` looks for it on the textbook's shelf to prove no boxer leaked in, so the
+     name has to go on meaning "a boxer's record is drawn here". */
   return `<div class="card fc boxer">
     <div class="fc-head">
-      <h3>${esc(x.name)}${b.nickname ? ' <span class="boxer-nick">“' + esc(b.nickname) + '”</span>' : ''}</h3>
+      <h3>${esc(b.name || x.name)}${b.nickname ? `<span class="boxer-nick">“${esc(b.nickname)}”</span>` : ''}</h3>
       <span class="fc-flags"><span class="fc-flag is-type">Boxer</span></span>
     </div>
-    <p class="sub">${esc([b.bestDivision, b.country, years].filter(Boolean).join(' · '))}</p>
-    <p class="fc-meta boxer-rec">${esc(rec)}${b.winsKo !== '' && b.winsKo != null
-      ? ' · ' + esc(b.winsKo) + ' KO' : ''}</p>
+    ${where ? `<p class="sub boxer-from">${where}</p>` : ''}
+    ${st ? `<p class="boxer-status ${st.k}">${esc(st.t)}</p>` : ''}
+    ${boxerPic_(b)}
+    ${boxerRecord_(b)}
+    ${boxerTape_(b)}
+    ${boxerTitles_(b)}
+  </div>`;
+}
+
+/* ---------- HIS FIGHTS, THE PAGE AFTER HIS CARD ---------------------------------------------------
+   ONLY WHEN THERE IS SOMETHING ON IT. A page that can only say "nothing here" is the empty page
+   `pageParts_` refuses for a question with no answer, so a fighter with no notable names and no
+   bouts on file is his card and nothing else — which is twenty of them today. */
+function boxerHasFights_(b) {
+  return !!b && (boxerNames_(b.notableWins).length > 0 || boxerNames_(b.notableLosses).length > 0
+                 || boxerBouts_(b).length > 0);
+}
+/* ---------- AND AS MANY PAGES OF THEM AS IT TAKES, SEVEN BOUTS A PAGE -----------------------------
+   ONE PAGE HELD EVERY BOUT, AND ON A REAL SMALL PHONE THAT DID NOT FIT. Measured at 320x568 — an
+   iPhone SE, not the 320x844 the first screenshots were taken at — Ali's fourteen bouts and his six
+   names were drawn at exactly `PANE_ZOOM_MIN`, 70%, with the method and the date at about six
+   pixels; Pacquiao's twelve at 73%. A fighter with fifteen on file would have run past the floor
+   and scrolled, which is the one thing the owner's rule for every widget forbids — *"I don't like
+   scrolling ... This goes for all widgets so they all fit on screen"*.
+
+   SO THE BOUTS ARE PAGED, newest first across the pages: `fights`, then `fights2`, `fights3`, as
+   `pageParts_` lists them. SEVEN, MEASURED: the first page also carries who he beat and who beat
+   him, and seven bouts under six names is what fits a 320x568 pane at full size. It is also the most
+   any fighter but Ali and Pacquiao has, so for everybody else nothing changes — one page, as before. */
+function boxerFightPages_(b) {
+  if (!boxerHasFights_(b)) return [];
+  const n = Math.max(1, Math.ceil(boxerBouts_(b).length / BOXER_BOUTS_PAGE));
+  return Array.from({ length: n }, (_, i) => i ? 'fights' + (i + 1) : 'fights');
+}
+/* HEADED WITH WHOSE PAGE IT IS, as every part page is — `.fc-kick` and then the page's own `h3` —
+   because it is somewhere you can land from a flick four results away. A page after the first
+   says it continues, so a flick that lands on it is not mistaken for the start of his record. */
+function boxerPart_(x, part) {
+  const b = x.row || {};
+  const m = /^fights(\d*)$/.exec(String(part || ''));
+  if (!m) return '';
+  const n = Number(m[1] || 1);
+  return `<div class="card fc prac-part boxer is-fights">
+    <p class="fc-kick">${esc(b.name || x.name)}</p><h3>${n > 1 ? 'Fights, continued' : 'Fights'}</h3>
+    ${n === 1 ? boxerNotable_(b) : ''}
+    ${boxerBoutList_(b, n)}
   </div>`;
 }
 

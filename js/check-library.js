@@ -874,6 +874,69 @@ EXTRA_FILES.forEach(name => {
   }
 });
 
+/* ---------- A BOXER'S PHOTO CARRIES ITS CREDIT, AND HIS RECORD ADDS UP ------------------------------
+   ASKED FOR AS "maybe add image of each boxer". The pictures are Wikimedia Commons files, and a
+   Commons file is free on a CONDITION — its author and licence named wherever it is shown. So a row
+   with an `image` and no `image_credit` is not a small gap, it is a licence broken on every phone
+   that opens the card. `boxerPicSrc_` in find.js refuses to draw such a photo already; this refuses
+   the ROW, so it is caught here before it ships rather than quietly hidden after.
+
+   `https` ONLY, because the site is, and a plain-http picture is blocked as mixed content — a broken
+   box by another route. A credit with no image is printed as a note: harmless, and probably a photo
+   somebody meant to add.
+
+   AND THE RECORD'S PARTS CANNOT EXCEED ITS WHOLE: KOs among the wins no more than the wins, KO losses
+   no more than the losses. The card prints a KO rate off those two cells, and 38 KOs in 37 wins is a
+   KO rate over a hundred per cent on a fighter's own page. A BLANK IS NOT CHECKED — blank means not
+   on file, which the card says in words. */
+{
+  let boxers = [];
+  try { boxers = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'boxers.json'), 'utf8')); }
+  catch (e) { fail.push('data/boxers.json could not be read for the photo and record rules — NOT checked'); }
+  const n = v => (String(v == null ? '' : v).trim() === '' ? null : Number(v));
+  let pics = 0;
+  const todo = [];
+  (Array.isArray(boxers) ? boxers : []).forEach(b => {
+    if (!b || typeof b !== 'object') return;
+    const who = (b.boxer_id || '?') + ' ' + (b.name || '');
+    const img = String(b.image || '').trim(), credit = String(b.image_credit || '').trim();
+    if (img) {
+      pics++;
+      if (!credit) fail.push('data/boxers.json ' + who + ' has an image and no image_credit — a Commons photo may only be shown with its author and licence');
+      if (!/^https:\/\//i.test(img)) fail.push('data/boxers.json ' + who + ' image is not an https address: ' + img.slice(0, 60));
+    } else if (credit) {
+      note.push('data/boxers.json ' + who + ' has an image_credit and no image');
+    }
+    [['wins_ko', 'wins'], ['losses_ko', 'losses']].forEach(([part, whole]) => {
+      const p = n(b[part]), w = n(b[whole]);
+      if (p != null && (!isFinite(p) || p < 0)) fail.push('data/boxers.json ' + who + ' ' + part + ' is not a count: ' + b[part]);
+      else if (p != null && w != null && p > w) fail.push('data/boxers.json ' + who + ' has ' + p + ' ' + part + ' in ' + w + ' ' + whole);
+    });
+    /* ---------- A CC LICENCE NEEDS ITS LINK, AND ONLY A COMMONS FILE HAS ONE TO GIVE ---------------
+       CC BY AND CC BY-SA ASK FOR MORE THAN A NAME: the credit has to point at where the work and its
+       licence can be read. The card makes the credit that link — the Commons file page, named from
+       the picture's own `upload.wikimedia.org/wikipedia/commons/` address (`boxerCredit_`). A
+       picture held anywhere else has no such page, so its credit would be words with nowhere to go:
+       a licence broken on every phone, which is the photo-without-credit fault by another route.
+       Public domain and a photo the owner took need no link, so they are not asked for one. */
+    if (img && /\bCC[ -]?(BY|0)\b|creative commons/i.test(credit)
+        && !/^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/(thumb\/)?[0-9a-f]\/[0-9a-f]{2}\/[^/?#]+/i.test(img)) {
+      fail.push('data/boxers.json ' + who + ' is credited under a CC licence and its image is not a Commons file address, so the card cannot link the credit to the licence: ' + img.slice(0, 70));
+    }
+    /* ---------- THE EDITOR'S TO-DO, LISTED -----------------------------------------------------------
+       A `notes` cell that says check or checking is the researchers' to-do, and the card no longer
+       prints it (`boxerNote_` in find.js) — five of them were under public records, saying the site
+       doubted its own numbers. Kept off the card is not the same as done, so they are listed here,
+       every run, until somebody checks the thing and clears the cell. Printed, not failed: a record
+       waiting for a check is the backlog, not a fault. */
+    if (/\bcheck(ing)?\b/i.test(String(b.notes || ''))) todo.push(who + ' — ' + String(b.notes).trim());
+  });
+  console.log('boxers with a photo: ' + pics + ' of ' + (Array.isArray(boxers) ? boxers.length : 0)
+    + '   (every one credited, or this would have failed)');
+  console.log('boxer rows the editor still has to check: ' + todo.length + '   (kept off the cards; the backlog, not a fault)');
+  todo.forEach(t => console.log('  ' + t));
+}
+
 /* ---------- THE LEGO SETS: A CATALOGUE SHAPED LIKE THE SHOP, WAITING TO BE STOCKED ------------------
    ASKED FOR AS "just database the lego sets ... include rough price ... maybe ill have these items as
    items in the shop". `data/lego-sets.json` is one row per set, carrying EVERY column of the shop tab
