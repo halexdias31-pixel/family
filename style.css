@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-revealtile";
+  --css-version: "2026-10-05-boxers";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6025,8 +6025,10 @@ textarea { touch-action: none; }
    is named on the ring rather than offered to the whole stylesheet.
 ================================================================================================== */
 #splash-box { width: min(300px, 94vw); }
-.bx-ring { --bx-mat: color-mix(in srgb, var(--paper) 14%, var(--bg));
-           display: block; width: 100%; height: auto; aspect-ratio: 100 / 60; overflow: visible; }
+/* THE MAT'S COLOUR IS SHARED WITH THE BOXER CARD'S PLACEHOLDER (`.boxer-ring`, find.js), which draws
+   this ring's posts, ropes, mat and gold fighter at a different size — one drawing, one mat. */
+.bx-ring, .boxer-ring { --bx-mat: color-mix(in srgb, var(--paper) 14%, var(--bg)); }
+.bx-ring { display: block; width: 100%; height: auto; aspect-ratio: 100 / 60; overflow: visible; }
 #splash-box .sp-sig { margin-top: .9rem; }
 
 .bx-post { fill: var(--dim); }
@@ -10570,9 +10572,238 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .qp-choices.is-done .qp-opt.is-picked:not(.is-ans)::before { border-color: var(--warn);
                                                                        background: var(--warn); }
 
-.boxer-nick { font-weight: 400; color: var(--dim); }
-/* `.boxer-rec` HAS NO RULE OF ITS OWN ANY MORE: the record is the card's `.fc-meta` line, gold and
-   mono like every other kind's numbers, and the class stays only as the name a check finds it by. */
+/* ==================================================================================================
+   THE FIGHTER'S PROFILE — the boxer card as a tale of the tape. See the long note over `boxerCard_`
+   in find.js for what is on it and in what order; this is how it looks.
+
+   ASKED FOR AS *"refine the boxers widget. maybe add image of each boxer. and make it look nicer.
+   the wins losses etc."* The record was one small gold line; it is the biggest type on the page now.
+
+   ON THE BLACK, NOT ON PAPER — a fighter's page is read off a phone, like a practical, so it takes
+   the screen's palette. THE RESULT COLOURS ARE THIS CARD'S OWN NAMES for the app's tokens, defined
+   on the card per the house rule: a record is always coloured won / lost / drawn, and nothing else
+   in the app means those three things, so `--boxer-w` is offered here and nowhere else. The fight
+   card carries the same names because its faces are the same frames.
+     --boxer-w    a win      gold, which on this card means "what he won" and nothing else
+     --boxer-l    a loss     the ring's red — the splash's middle rope and gloves
+     --boxer-d    a draw     the quiet ink
+     --boxer-nc   no contest fainter again: it is not a result at all
+================================================================================================== */
+.boxer, .fight { --boxer-w: var(--gold); --boxer-l: var(--coral); --boxer-d: var(--dim);
+                 --boxer-nc: var(--faint); }
+
+/* ---------- THE PROFILE IS A GRID, SO THE PICTURE CAN STAND BESIDE THE NAME ----------------------
+   THE PHOTO COMES AFTER THE HEAD, THE SUB-LINE AND THE STATUS IN THE MARKUP, AND TO THEIR LEFT ON
+   THE SCREEN — a fight poster's layout, the face in the left two-fifths and the name beside it. A
+   grid is the only way to say that without moving the markup, and the markup stays put so a screen
+   reader hears the name first and every Find card opens on its `.fc-head` (see `boxerCard_`).
+
+   FOUR ROWS ON THE RIGHT, THE LAST ONE `1fr`. The picture spans all four; the head, the sub-line and
+   the status take the first three, and when the picture is the taller side it is the fourth row
+   that grows — so the three lines stay packed under each other at the top rather than spreading out
+   down the photo's height. Everything after them (`> *`) spans both columns.
+
+   NOTHING ELSE MOVES: every part of a Find card states its own top margin and none relies on one
+   collapsing into its neighbour's, which is the one thing a grid does differently. `min-width: 0`
+   for `.fc-head h3`'s reason — an item's minimum is its widest word, and 320px is narrower than some.
+
+   THE FIGHTS PAGE IS AN ORDINARY PART PAGE and is left out, so its kicker and title stack as every
+   other part page's do. */
+.card.fc.boxer:not(.is-fights) { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+                                 grid-template-rows: auto auto auto 1fr; column-gap: .85rem; }
+.card.fc.boxer:not(.is-fights) > * { grid-column: 1 / -1; min-width: 0; }
+.card.fc.boxer:not(.is-fights) > .fc-head,
+.card.fc.boxer:not(.is-fights) > .boxer-from,
+.card.fc.boxer:not(.is-fights) > .boxer-status { grid-column: 2; }
+.card.fc.boxer:not(.is-fights) > .boxer-pic { grid-column: 1; grid-row: 1 / span 4; }
+/* THE FIGHT CARD IS A COLUMN, so its two faces can be lifted over the title with `order` — the same
+   markup-stays-put argument, and a flex column is all it needs. */
+.card.fc.fight { display: flex; flex-direction: column; }
+.card.fc.fight > * { min-width: 0; }
+
+/* ---------- THE NAME, THE NICKNAME UNDER IT ------------------------------------------------------
+   THE NICKNAME WAS A DIM SPAN IN THE SAME LINE, so "Muhammad Ali “The Greatest”" wrapped wherever
+   the width said and read as one long name. On a line of its own, in the italic a ring announcer's
+   voice is set in, and gold — it is the one thing on the head a fan would shout. Smaller than the
+   name (`em`, so it follows the title's one size rather than setting a second). */
+.boxer-nick { display: block; margin-top: .2rem; font-size: .78em; font-weight: 500; font-style: italic;
+              color: var(--gold); letter-spacing: 0; }
+.boxer-flag { margin-right: .4em; }
+/* COUNTRY AND WEIGHT, A LINE EACH — see `boxerCard_` for the dot that hung off the country. */
+.boxer-country, .boxer-weight { display: block; }
+
+/* ---------- WHAT HE IS NOW --------------------------------------------------------------------------
+   A STATE, SET AS A LABEL — the mono capitals every label here uses — with a mark before it in the
+   state's colour: a dot, green for a man still fighting (`--good`, the app's word for "live"), the
+   quiet ink for retired, and a dagger for the dead, which is how a record book marks one.
+   NOT A PILL. It was drawn in a bordered pill first and the screenshot at 320px is what ended it:
+   beside the photo the right-hand column is 134px, "† DECEASED · 1942–2016" is wider than that, and
+   a pill that wraps is a box with two lines of capitals in it. A label wraps like words do. The
+   marks are characters for the same reason — they wrap with the words rather than sitting apart. */
+.boxer-status { margin: var(--fc-line) 0 0; font: 600 .62rem/1.45 var(--mono); letter-spacing: .08em;
+                text-transform: uppercase; color: var(--dim); }
+.boxer-status::before { content: "\25CF\00a0"; }
+.boxer-status.is-active { color: var(--good); }
+.boxer-status.is-dead::before { content: "\2020\00a0"; }
+
+/* ---------- THE PHOTO ------------------------------------------------------------------------------
+   A FIXED 4:5 BOX, SO NOTHING JUMPS. The box is its own size before a byte of the picture arrives,
+   and the ring placeholder fills it until then — so a slow photo is a ring that turns into a face,
+   never a gap that turns into a picture and pushes the record down the screen. 4:5 because it is a
+   portrait's shape: a Commons photograph of a fighter is head and shoulders in a tall frame.
+
+   `cover`, AND AIMED A LITTLE HIGH, so a frame that is not quite 4:5 loses chest rather than
+   forehead.
+
+   THE STAGE LIGHT IS THE GOLD AT 16%, from the top — the one flourish on the card, behind the
+   placeholder, because it is the arena the stand-in is standing in.
+
+   `--bx-mat` is the splash's mat, defined beside `.bx-ring` up in the ring's own block so the two
+   drawings share it. */
+.boxer-pic { margin: 0; }
+.boxer-frame { position: relative; display: block; overflow: hidden; aspect-ratio: 4 / 5;
+               border: 1px solid var(--line); border-radius: var(--r);
+               background: radial-gradient(120% 85% at 50% 0%, color-mix(in srgb, var(--gold) 16%, transparent),
+                                           transparent 70%), var(--raised); }
+.boxer-ring, .boxer-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.boxer-img { object-fit: cover; object-position: 50% 30%; background: var(--raised); }
+/* THE FOOT OF A PHOTO SINKS INTO THE PAGE. A hard bottom edge on a bright photograph against the
+   black reads as a sticker; a short fade to the background at a third of its strength reads as a
+   picture set into the card. Only over a photo — the ring placeholder has its own floor. */
+.boxer-pic:not(.is-none) .boxer-frame::after { content: ""; position: absolute; inset: auto 0 0; height: 30%;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--bg) 45%, transparent)); pointer-events: none; }
+.boxer-ini { font-family: var(--mono); font-weight: 700; fill: var(--gold);
+             paint-order: stroke; stroke: var(--bg); stroke-width: 1.4; stroke-linejoin: round; }
+/* THE CREDIT IS SMALL AND IT IS NEVER HIDDEN. The licence makes naming the author and the licence
+   the condition of showing the picture at all, so it is in the faint ink at the caption size every
+   other small print here uses — legible, not decorative — and nothing on the card covers it. */
+.boxer-credit { margin: .3rem 0 0; font: 400 .56rem/1.35 var(--mono); color: var(--faint);
+                overflow-wrap: anywhere; }
+
+/* ---------- THE RECORD: THE BIG NUMBERS -------------------------------------------------------------
+   ONE BOX, THE ONLY BOXED THING ON THE CARD, because it is the one thing on it that is the answer.
+   Every other part is a section with a label; this is the scoreboard. The faint gold wash at the top
+   is the stage light again, at half the strength, so the box belongs to the photo above it.
+
+   THE COLUMNS ARE EQUAL, HOWEVER MANY THERE ARE — three, or four with no contests — through
+   `grid-auto-columns` rather than a count, so a fourth column needs no second rule. A hairline
+   between them, which is how a scoreboard is ruled. */
+.boxer-rec { margin: var(--fc-group) 0 0; padding: .85rem .6rem .7rem; border: 1px solid var(--line);
+             border-radius: var(--r);
+             background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 7%, var(--raised)), var(--sunk) 70%); }
+.boxer-rec.is-none { padding: .6rem .7rem; background: var(--sunk); }
+.boxer-rec.is-none .fc-note { margin: 0; }
+.boxer-tally { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.boxer-n { position: relative; display: flex; flex-direction: column; align-items: center; gap: .3rem;
+           text-align: center; }
+.boxer-n + .boxer-n::before { content: ""; position: absolute; left: 0; top: .2rem; bottom: .2rem;
+                              border-left: 1px solid var(--line); }
+/* THE NUMBERS IN THE APP'S OWN MONO, BIG AND TABULAR, so 56 and 5 sit on the same baseline as the
+   same kind of thing at the same width per digit. 2.4rem is 36px on a 390px phone: a scoreboard,
+   not a headline, and three digits still fit a quarter of a 320px card. */
+.boxer-n b { font: 700 2.4rem/1 var(--mono); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.boxer-n.is-w b { color: var(--boxer-w); }
+.boxer-n.is-l b { color: var(--boxer-l); }
+.boxer-n.is-d b { color: var(--boxer-d); }
+.boxer-n.is-nc b { color: var(--boxer-nc); }
+/* A NOUGHT IS "NONE", AND NONE IS QUIET. Usyk's `0` under LOSSES in the loss colour shouted the one
+   thing he has not got; in the faint ink it reads as what it is, and the gold beside it does the
+   talking. The tally in front so it outranks the colour rules above by specificity rather than by
+   coming after them — `check/cascade.js`'s rule. */
+.boxer-tally .boxer-n.is-zero b { color: var(--faint); }
+.boxer-k { font: 600 .6rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+.boxer-ko { font: 600 .66rem/1 var(--mono); color: var(--dim); }
+/* THE SPLIT, ONE BAR. Rounded ends by clipping the SVG rather than each rect, so a segment that is
+   the whole bar has both ends round and one in the middle has none. */
+.boxer-bar { display: block; width: 100%; height: .4rem; margin: .8rem 0 0; border-radius: .2rem;
+             overflow: hidden; background: var(--line-soft); }
+.boxer-bar .is-w  { fill: var(--boxer-w); }
+.boxer-bar .is-l  { fill: var(--boxer-l); }
+.boxer-bar .is-d  { fill: var(--boxer-d); }
+.boxer-bar .is-nc { fill: var(--boxer-nc); }
+.boxer-rec .boxer-line { text-align: center; }
+.boxer-rec .boxer-line + .fc-note { text-align: center; margin-top: var(--fc-in); }
+
+/* ---------- THE TALE OF THE TAPE ---------------------------------------------------------------------
+   A LABEL AT THE LEFT AND ITS VALUE AT THE RIGHT, ONE HAIRLINE BETWEEN ROWS — the broadcast's
+   graphic, laid flat for one fighter. The value wraps at the right rather than pushing the label:
+   "17 Jan 1942 · Louisville, USA" is two lines on a 320px phone and that is fine. */
+.boxer-tape dl { margin: 0; }
+.boxer-tape dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: .8rem;
+                       padding: .3rem 0; border-bottom: 1px solid var(--line-soft); }
+.boxer-tape dl > div:last-child { border-bottom: 0; }
+.boxer-tape dt { flex: 0 0 auto; font: 600 .62rem/1.5 var(--mono); letter-spacing: .08em;
+                 text-transform: uppercase; color: var(--faint); }
+.boxer-tape dd { margin: 0; min-width: 0; text-align: right; font-size: .8rem; line-height: 1.4;
+                 color: var(--ink); overflow-wrap: anywhere; }
+
+/* ---------- THE BELTS AND THE HONOURS ------------------------------------------------------------------
+   THE TITLES ARE A SENTENCE WITH A GOLD RULE BESIDE IT — the rule `.prac-no` draws in red for a
+   refusal, here in the colour of what he won. The honours are badges in the flag's own shape, gold
+   because they are yes-or-no facts and the yes is the point. */
+.boxer-belt { margin: 0; padding-left: .6rem; border-left: 2px solid var(--boxer-w);
+              font-size: .82rem; line-height: 1.45; color: var(--ink); }
+.boxer .boxer-badges { list-style: none; margin: var(--fc-line) 0 0; padding: 0; display: flex;
+                       flex-wrap: wrap; gap: .35rem; }
+.boxer .boxer-badges li { font: 600 .62rem/1 var(--mono); letter-spacing: .07em; text-transform: uppercase;
+                          color: var(--boxer-w); border: 1px solid var(--boxer-w); border-radius: .5rem;
+                          padding: .3rem .45rem; }
+.boxer .boxer-badges li.is-hof::before { content: "\2605\00a0"; }
+
+/* ---------- WHO HE BEAT, WHO BEAT HIM ----------------------------------------------------------------
+   A LABEL COLUMN AND A WRAPPING ROW OF NAMES, each name edged on the left in the result's colour —
+   so the two rows are told apart at a glance and a long list folds rather than running off the card.
+   `.boxer` in front of the list rules because `.fc-sec li` (0,1,1) would otherwise tie with them and
+   the file's order would decide — the `.price.faint` fault `check/cascade.js` exists to catch. */
+.boxer-vs { display: grid; grid-template-columns: 3.9rem minmax(0, 1fr); gap: .5rem; align-items: baseline;
+            margin: .45rem 0 0; }
+.boxer-vs:first-of-type { margin-top: 0; }
+.boxer-vs-k { font: 600 .62rem/1.9 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.boxer .boxer-names { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3rem; }
+.boxer .boxer-names li { padding: .28rem .45rem; border: 1px solid var(--line); border-left: 2px solid var(--boxer-w);
+                         border-radius: var(--r-sm); font-size: .74rem; line-height: 1.2; color: var(--ink); }
+.boxer .boxer-vs.is-l .boxer-names li { border-left-color: var(--boxer-l); }
+
+/* ---------- HIS FIGHTS ON FILE ---------------------------------------------------------------------
+   THE RESULT IN A SQUARE, THE OPPONENT, AND HOW AND WHEN UNDER THE NAME — a printed record's line in
+   two rows, because the record's single row is a table forty characters wide and a phone is not.
+   A win is a filled gold square, a loss an outlined red one: filled against outlined survives a
+   colour-blind reader and a screenshot in grey, where gold against red alone would not. */
+.boxer .boxer-bouts ul { list-style: none; margin: 0; padding: 0; }
+.boxer .boxer-bouts li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); column-gap: .65rem;
+                         row-gap: .1rem; align-items: center; padding: .36rem 0;
+                         border-bottom: 1px solid var(--line-soft); color: var(--ink); }
+.boxer .boxer-bouts li:last-child { border-bottom: 0; }
+.boxer-res { grid-row: span 2; display: grid; place-items: center; width: 1.6rem; height: 1.6rem;
+             box-sizing: border-box; border: 1px solid var(--line); border-radius: var(--r);
+             font: 700 .68rem/1 var(--mono); color: var(--boxer-d); }
+.boxer .boxer-bouts li.is-w .boxer-res { background: var(--boxer-w); border-color: var(--boxer-w); color: var(--bg); }
+.boxer .boxer-bouts li.is-l .boxer-res { border-color: var(--boxer-l); color: var(--boxer-l); }
+.boxer .boxer-bouts li.is-nc .boxer-res { color: var(--boxer-nc); }
+.boxer-opp { font-size: .82rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.boxer-how { font: 400 .64rem/1.35 var(--mono); color: var(--faint); }
+/* A TITLE FIGHT SAYS SO IN GOLD, after how and when it ended. The belts' own words are its tooltip:
+   "WBA, WBC, The Ring heavyweight" on every line of Ali's is a paragraph, and the fact a fan scans
+   for is only whether the belt was on the line. */
+.boxer-tt { margin-left: .5em; padding: 0 .3em; border: 1px solid currentColor; border-radius: var(--r-sm);
+            font-size: .58rem; letter-spacing: .06em; text-transform: uppercase; color: var(--boxer-w); }
+
+/* ---------- THE FIGHT CARD'S TWO FACES --------------------------------------------------------------
+   THE SAME FRAME AS THE PROFILE'S, SQUARE AND SMALL, either side of a `v`, lifted over the title the
+   way the profile's photo is. The winner's frame is ruled in gold — the same weight-not-label idea
+   as his name in bold under it. A draw leaves both plain. */
+.fight-faces { order: -1; display: flex; align-items: center; justify-content: center; gap: .7rem;
+               margin: 0 0 var(--fc-group); }
+.boxer-pic.is-small { flex: 0 0 auto; width: 5.6rem; margin: 0; }
+.boxer-pic.is-small .boxer-frame { aspect-ratio: 1 / 1; }
+.boxer-pic.is-small.won .boxer-frame { border-color: var(--boxer-w); box-shadow: 0 0 0 1px var(--boxer-w); }
+.fight-v { font: 700 .8rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+/* ONE CREDIT LINE FOR BOTH FACES, centred under them and above the title, at the profile's caption
+   size. Each part is a span so a face that fails can take its own credit away and leave the other. */
+.fight-credit { order: -1; margin: calc(-1 * var(--fc-group) + .35rem) 0 var(--fc-group);
+                font: 400 .6rem/1.4 var(--mono); color: var(--faint); text-align: center; overflow-wrap: anywhere; }
+.fight-credit span + span::before { content: " · "; }
+
 
 /* THE TWO NAMES ARE THE TITLE NOW — an `h3` in the shared head — so they take the title's size and
    lose the 1rem they set for themselves. The row still wraps between the names rather than inside
