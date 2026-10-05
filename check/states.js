@@ -2076,9 +2076,17 @@ const STATES = {
         return pg && pg.querySelectorAll('.biz-item').length === 3
           && pg.querySelectorAll('input[type="date"][data-biz]').length === 3
           && /Due soon/.test((pg.querySelector('.biz-item.is-soon .biz-flag') || {}).textContent || '')
-          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000';
+          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000'
+          /* AND EACH ROW'S TWO BOXES ARE ONE WIDTH. The row is `.lib-row.q-row`, a class pair borrowed
+             from the qualification editor — and when that editor was redrawn, its `.lib-row.q-row` rule
+             went with it and these rows fell back to `.lib-row`'s wide box beside a 7rem one, with
+             nothing here to notice. The rule is back, and this is what says so. */
+          && [...pg.querySelectorAll('.biz-item .lib-row')].every(r => {
+            const w = [...r.children].map(c => c.getBoundingClientRect().width);
+            return w.length === 2 && w[0] > 0 && Math.abs(w[0] - w[1]) <= 1;
+          });
       },
-      wants: 'three insurance items, each with its date box, and the one due soon flagged' },
+      wants: 'three insurance items, each with its date box, the one due soon flagged, and each row\'s two boxes one width' },
 
     /* ---------- THE QUALIFICATIONS: ONE LINE A QUALIFICATION, AND IT FITS ---------------------------
        ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take

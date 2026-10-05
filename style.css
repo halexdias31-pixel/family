@@ -848,7 +848,9 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-ed { display: none; }
 .q-slot.is-open { margin-left: -.6rem; padding-left: calc(.6rem - 2px); border-left: 2px solid var(--gold); }
 .q-slot.is-open > .q-ed { display: block; padding: .1rem 0 .45rem; }
-.q-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .4rem; }
+/* SCOPED TO THE EDITOR, because `.q-row` is also the business records card's (`.lib-row.q-row`,
+   below) — a bare `.q-row` here would set that card's gap from a rule about qualifications. */
+.q-ed .q-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .4rem; }
 /* ---------- THE CAPTION INSIDE THE BOX, OVER THE ANSWER ------------------------------------------------
    Above the box it was a line of its own per row — three lines on an editor of three rows — and a
    placeholder IN the box goes the moment something is chosen, so a chosen `B` alone did not say which
@@ -988,9 +990,13 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .dob-boxes input { min-width: 0; text-align: center; }
 .lib-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 7rem); gap: .6rem; }
 .lib-row label.field, .lib-row input { min-width: 0; }
-/* `.lib-row select` JOINS THE MIN-WIDTH RULE for the reason the inputs do: a select's own idea of its
-   width is its longest option. (The qualification editor's two-up row was `.lib-row.q-row` and is
-   `.q-row` now, beside the rest of that card.) */
+/* TWO EQUAL BOXES RATHER THAN THE WIDE ONE BESIDE A NARROW ONE — the business records card's rows
+   (`bizItem_` in records.js), which borrowed this from the qualification editor. The editor has its
+   own `.q-ed .q-row` now and no `.lib-row`, so this pair is the records card's alone; it stays two
+   classes so it outranks `.lib-row` by count rather than by order.
+   `.lib-row select` JOINS THE MIN-WIDTH RULE for the reason the inputs do: a select's own idea of its
+   width is its longest option. */
+.lib-row.q-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .lib-row select { min-width: 0; }
 /* THE TEACH / CAN TEACH TICKS THAT SAT HERE WENT WITH THE SUMMARY LINES: they were checkboxes read
    per level and per subject, two ways round, and are one three-way control now (`.q-seg`, above). */
