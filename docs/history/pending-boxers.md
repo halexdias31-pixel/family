@@ -198,7 +198,16 @@ each heading, the names on the first page only, a word for a screen reader and t
 it, and the fight card's date; the photo journey asks for the credit as a link to the right file page
 on both cards; the no-photo journey for `OD` and three particle names the file does not hold.
 `check-library.js`: the CC rule and the to-do list. `check/states.js`: *a boxer photo's credit*, a
-44px link under the photo and across the card, its words at least `.62rem`, at every width.
+44px link under the photo and across the card, its words at least `.62rem`, at every width — proved
+by taking the 44px floor off `a.boxer-src` in a copy: the state red at all four widths for both
+visitors; restored, measured. (This browser cannot load the photo, so the state puts the credit line
+back with the card's own `boxerCredit_` and fits the pane again before measuring it.)
+
+`check/ui.js` learned one thing. The screen-reader word on each bout (`.boxer-say`: 1px,
+`overflow: hidden`, `clip-path: inset(50%)`) was reported as a 24px SIDEWAYS SCROLL on every width.
+That is the visually-hidden pattern working, so a box clipped to nothing and no wider than a pixel is
+now the third way of being "told it could", beside the ellipsis; the first run, before the
+exemption, is the red.
 **Fifteen mutations**, each red for its own reason and green on restore (run in a copy of the tree):
 the editor's notes printed; every note hidden; always "Titles"; the weights never folded; the cell's
 order instead of the ladder; one page of fourteen; the names on every page; the credit not a link;
