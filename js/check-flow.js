@@ -5917,6 +5917,124 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
   return bad;
 });
 
+/* ---------- A QUESTION ANSWERED ON A DIAGRAM HAS SOMETHING TO ANSWER ON --------------------------------
+   ASKED FOR AS *"some questions require answers on diagram. So should have a diagram for them to draw
+   on to do it or whatever."* 234 of the 301 drawing and annotating questions had no picture under the
+   pen. Through the app's own builders and handlers:
+     * a drawing question with no picture gets a figure page AFTER its card (the ask first, then the
+       thing to draw on), with the pen over a squared grid, headed "Squared grid" -- never "Figure",
+       never a question number -- and a line saying it is not the paper's figure; marks stored under
+       `padKey_` come back on it
+     * which surface: `figure` naming a coordinate grid is axes; any other grid is squared; nothing
+       is a blank space; an isometric label is blank; `surface` on the row wins, even on a question
+       not answered by drawing; a question's own diagram, or its stem's one diagram, wins over all of
+       it -- the paper's figure is never replaced by a surface
+     * "text": no picture at all -- the part's own words are the surface. Every word a tap target; a
+       tap rings it and stores it under the pen's key, another tap takes the ring off; a redraw keeps
+       the rings; the passage reads exactly as it did (the same text, nothing added inside a word,
+       "don't" one word, a full stop outside the word); the lead is not wrapped; a pre page and the
+       card name a word the same way */
+check('a question answered on a diagram has a surface: a grid under the pen, or its passage to ring words in', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['pageParts_', 'questionCard_', 'questionFigCard_', 'padSource_', 'padSurface_', 'surfaceSvg_', 'circWords_']
+    .filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The surfaces were NOT checked'];
+  const A = w.__t.ACTIONS;
+  if (!A['qw-tap']) return ['qw-tap has no handler, so a word cannot be ringed'];
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
+  const row = (id, extra) => Object.assign({ row_id: id, paper_id: 'P-SURF', subject: 'Maths', name: 'Surface' }, extra || {});
+  const q = (id, extra, rowExtra) => Object.assign({ kind: 'question', name: 'Q8', qNumber: '8', marks: 2, key: 'q:Q-SURF-' + id,
+    row: row('Q-SURF-' + id, rowExtra), stems: [], html: '<p>Draw the graph of y = 2x + 1.</p>' }, extra || {});
+
+  /* ---------- THE FALLBACK GRID ------------------------------------------------------------------ */
+  const grid = q('grid', { answerType: 'drawing' }, { figure: 'grid-blank' });
+  if (JSON.stringify(w.pageParts_(grid)) !== '[null,"fig"]') bad.push('a drawing question with no picture has pages ' + JSON.stringify(w.pageParts_(grid)) + ', wanted [null,"fig"] -- the ask, then the surface');
+  try { w.localStorage.setItem('pad:' + grid.key, JSON.stringify([[20, 20, 200, 200]])); } catch (e) {}
+  const gp = el(w.questionFigCard_(grid));
+  const pad = gp.querySelector('.qcard.qfig .qpad');
+  if (!pad) bad.push('the surface page has no pen');
+  else {
+    if (!pad.querySelector('.qpad-art > svg.qsurf.is-grid')) bad.push('the pen is not over a squared grid: ' + (pad.querySelector('.qpad-art svg') || {}).outerHTML);
+    if (pad.querySelectorAll('svg.qsurf line.grid').length < 30) bad.push('the grid has ' + pad.querySelectorAll('svg.qsurf line.grid').length + ' lines -- that is not squared paper');
+    if (pad.getAttribute('data-k') !== 'pad:' + grid.key) bad.push('the surface\'s marks are kept under ' + pad.getAttribute('data-k') + ', not the pen\'s own key');
+    if (!pad.querySelector('.qpad-g path')) bad.push('a mark stored under the pen\'s key is not drawn back on the surface');
+    if (!/not the paper.s own figure/i.test(pad.textContent)) bad.push('the surface does not say it is not the paper\'s figure');
+  }
+  const gHead = ((gp.querySelector('.qcard-top b') || {}).textContent || '').trim();
+  if (gHead !== 'Squared grid') bad.push('the surface page is headed "' + gHead + '", wanted "Squared grid"');
+  if (/\bQ\d|Figure/.test(gHead)) bad.push('the surface page claims a number or a figure: ' + gHead);
+  try { w.localStorage.removeItem('pad:' + grid.key); } catch (e) {}
+  if (!el(w.questionCard_(grid)).querySelector('.qsheet-figref')) bad.push('the card does not say the surface is on the next page');
+
+  /* ---------- WHICH SURFACE ----------------------------------------------------------------------- */
+  const svgDiag = '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>';
+  [[q('coord', { answerType: 'drawing' }, { figure: 'coordinate-grid' }), 'coord'],
+   [q('none', { answerType: 'annotate' }), 'blank'],
+   [q('hist', { answerType: 'drawing' }, { figure: 'histogram-grid' }), 'grid'],
+   [q('iso', { answerType: 'drawing' }, { figure: 'isometric-dots' }), 'blank'],
+   [q('said', { answerType: 'calculation', surface: 'grid' }), 'grid'],
+   [q('word', { answerType: 'calculation' }, { figure: 'grid-blank' }), '']
+  ].forEach(([x, want]) => {
+    const got = w.padSurface_(x);
+    if (got !== want) bad.push(x.row.row_id + ' gets surface "' + got + '", wanted "' + want + '"');
+  });
+  const coordP = el(w.questionFigCard_(q('coord2', { answerType: 'drawing' }, { figure: 'coordinate-grid' })));
+  if (!coordP.querySelector('svg.qsurf.is-coord line.axis') || (coordP.querySelector('.qcard-top b') || {}).textContent.trim() !== 'Axes') bad.push('a coordinate-grid question is not given axes on a grid, headed Axes');
+  const own = q('own', { answerType: 'drawing', diagram: svgDiag });
+  if (!w.padSource_(own) || w.padSource_(own).from !== 'part' || el(w.questionFigCard_(own)).querySelector('svg.qsurf')) bad.push('a drawing question with its own picture had it replaced by a surface');
+  const stemmed = q('stem', { answerType: 'drawing', stems: [{ id: 'S-SURF', html: '<p>Here is a grid.</p>', diagram: svgDiag }] });
+  if (!w.padSource_(stemmed) || w.padSource_(stemmed).from === 'surface') bad.push('a drawing question under a stem\'s picture had it replaced by a surface');
+  if (w.padSource_(q('plain', { answerType: 'calculation' }))) bad.push('a calculation with no surface named was given something to draw on');
+
+  /* ---------- THE PASSAGE: RING A WORD BY TAPPING IT ------------------------------------------------ */
+  const PASS = '<p>The crumbling castle stood high on the rocky hill. Don&rsquo;t forget the glorious views.</p>';
+  const text = q('text', { answerType: 'annotate', surface: 'text', lead: '<p>LEADWORD sets the scene.</p>',
+    html: '<p>Circle the three <b>adjectives</b> in the passage below.</p>' + PASS });
+  const tk = 'pad:' + text.key + ':words';
+  try { w.localStorage.removeItem(tk); } catch (e) {}
+  if (JSON.stringify(w.pageParts_(text)) !== '[null]') bad.push('a passage question has pages ' + JSON.stringify(w.pageParts_(text)) + ' -- it needs no picture, the passage is the surface');
+  const plain = el(w.questionCard_(Object.assign({}, text, { key: 'q:Q-SURF-text-plain', surface: '', answerType: 'short', row: row('Q-SURF-text-plain') })));
+  const card = el(w.questionCard_(text));
+  const host = card.querySelector('.qsheet-part.is-text[data-circ]');
+  if (!host) bad.push('the passage is not drawn as a surface (.qsheet-part.is-text[data-circ])');
+  else {
+    if (host.getAttribute('data-circ') !== tk) bad.push('the rings are kept under ' + host.getAttribute('data-circ') + ', not beside the pen\'s marks at ' + tk);
+    const words = [...host.querySelectorAll('.qw[data-do="qw-tap"]')].map(s => s.textContent);
+    ['crumbling', 'castle', 'rocky', 'hill', 'Don’t', 'glorious', 'adjectives'].forEach(t => {
+      if (words.indexOf(t) < 0) bad.push('"' + t + '" is not a word you can tap -- the words are ' + JSON.stringify(words.slice(0, 12)));
+    });
+    if (words.some(t => /[.,]/.test(t))) bad.push('a full stop or comma was taken into a word: ' + JSON.stringify(words.filter(t => /[.,]/.test(t))));
+    if (card.querySelector('.qsheet-lead .qw')) bad.push('the lead\'s words were made tappable -- only the part\'s are the surface');
+    const flat = n => n.querySelector('.qsheet-pb').textContent.replace(/\s+/g, ' ').trim();
+    if (flat(card) !== flat(plain)) bad.push('the passage reads differently once it is a surface:\n            ' + flat(card) + '\n            ' + flat(plain));
+    if (!/Tap a word/.test(card.textContent)) bad.push('the page does not say how to ring a word');
+    const word = t => [...card.querySelectorAll('.qw')].find(s => s.textContent === t);
+    const crumbling = word('crumbling');
+    A['qw-tap'](crumbling);
+    let stored = [];
+    try { stored = JSON.parse(w.localStorage.getItem(tk) || '[]'); } catch (e) {}
+    if (!crumbling.classList.contains('is-circled') || crumbling.getAttribute('aria-pressed') !== 'true') bad.push('a tap did not ring "crumbling"');
+    if (stored.length !== 1 || stored[0] !== crumbling.getAttribute('data-w')) bad.push('the ring was not stored: ' + JSON.stringify(stored));
+    A['qw-tap'](word('rocky'));
+    const again = el(w.questionCard_(text));
+    const lit = [...again.querySelectorAll('.qw.is-circled')].map(s => s.textContent).sort().join(',');
+    if (lit !== 'crumbling,rocky') bad.push('a redrawn card rings [' + lit + '], wanted crumbling and rocky');
+    A['qw-tap'](crumbling);
+    if (crumbling.classList.contains('is-circled')) bad.push('a second tap did not take the ring off');
+    const twin = [...again.querySelectorAll('.qw')].find(s => s.textContent === 'crumbling');
+    if (twin && twin.classList.contains('is-circled')) bad.push('the ring came off one copy of the passage and stayed on the other');
+  }
+  try { w.localStorage.removeItem(tk); } catch (e) {}
+  /* A WORD IS NAMED BY ITS BLOCK, so a pre page and the card agree on what to call it. */
+  const named = w.circWords_('<p>One two</p>', 3, []);
+  if (!/data-w="3\.0"[^>]*>One</.test(named) || !/data-w="3\.1"[^>]*>two</.test(named)) bad.push('words are not named by their block and place: ' + named);
+  if (/qw/.test(w.circWords_('<svg><text>Axis</text></svg>', 0, []))) bad.push('words inside a drawing were made tappable');
+  return bad;
+});
+
 /* ---------- THE DAY A STUDENT DID A QUESTION, ON ITS CARD, FOR THEM ------------------------------------
    ASKED FOR AS *"when a student does do a question, it should record the date they did it."* Through
    the real handlers on a real card:

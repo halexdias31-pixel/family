@@ -5038,6 +5038,8 @@ function questionItems() {
          this function dropped all three — the other direction of the fault `check-payload.js`
          exists for: sent, and never read. Only 91 of 3,271 rows carry one today. */
       answer: r.answer || '', answerType: r.answerType || '',
+      /* WHAT TO ANSWER ON when the answer is a mark rather than words -- see `padSurface_`. */
+      surface: r.surface || '',
       accept: r.accept || '',
       choices: r.choices || [], choiceRight: r.choiceRight || [],
       examinerNote: r.examinerNote || '',
@@ -5836,13 +5838,13 @@ document.addEventListener('input', e => {
    picture, at the picture's own coordinates, and a finger draws on it. That is what a printed paper
    is: the figure and the answer space are one object.
 
-   ONLY WHERE THERE IS A REAL PICTURE TO DRAW ON, and that restraint is the whole design. 130
-   questions in the library say "draw" or "annotate" and 128 of them have no figure transcribed
-   yet. Generating a blank grid for those would be worse than leaving them: "on the grid, enlarge
-   triangle T by scale factor -2 with centre (-2, -2)" over squared paper with no axes and no
-   triangle T is a question you cannot answer wearing the clothes of one you can — the same fault
-   as the renderer that printed "not drawn yet" off the `figure` column and was wrong on ~120
-   questions. `check-library.js` prints how many are waiting, so it is a backlog and not a silence.
+   A REAL PICTURE WHERE THERE IS ONE, AND A SURFACE WHERE THERE IS NOT. This paragraph used to say
+   "only where there is a real picture", and argued that a blank grid under "enlarge triangle T" was
+   a question you cannot answer wearing the clothes of one you can. The owner, tutoring from it,
+   decided the other way -- *"some questions require answers on diagram. So should have a diagram for
+   them to draw on"* -- and the reasoning is written where the surfaces are (`padSurface_`): a surface
+   that says it is not the paper's figure, under a pen, beats a word box that cannot hold a line.
+   `check-library.js` prints how many are on their own picture and how many on a surface.
 
    THE PEN IS OFF UNTIL YOU ASK FOR IT. A surface that takes the finger has `touch-action: none`,
    and a `touch-action: none` region taller than the phone is a region you cannot scroll past —
@@ -5879,12 +5881,20 @@ const padWanted_ = x => !!PAD_TYPES[String((x && x.answerType) || '').trim().toL
    asked is the one the part is about.
 
    IT RETURNS THE MARKUP, NOT A FLAG, so `questionFigCard_` can draw the picture in the pad INSTEAD of
-   in its usual figure. Drawing it in both is the fault where every widget printed its name twice. */
+   in its usual figure. Drawing it in both is the fault where every widget printed its name twice.
+
+   AND WHERE THERE IS NO PICTURE, A SURFACE (`from: 'surface'`) -- squared paper, axes or a blank
+   space, by `padSurface_`. Not for "text": that question's surface is its own passage, on the card.
+   A row naming a surface explicitly is given one whatever its `answer_type`; a "text" one draws no
+   picture unless the question is also answered by drawing. */
 function padSource_(x) {
-  if (!x || !padWanted_(x)) return null;
+  if (!x) return null;
+  const surf = padSurface_(x);
+  if (!padWanted_(x) && (!surf || surf === 'text')) return null;
   if (x.diagram) return { svg: x.diagram, from: 'part' };
   const stems = (x.stems || []).filter(p => p && p.diagram);
   if (stems.length === 1) return { svg: stems[0].diagram, from: stems[0] };
+  if (surf && surf !== 'text') return { svg: surfaceSvg_(surf), from: 'surface', surface: surf };
   return null;
 }
 
@@ -6112,6 +6122,165 @@ function padRepaint_(pad, all) {
 }
 
 /* ==================================================================================================
+   A SURFACE TO ANSWER ON, FOR EVERY QUESTION ANSWERED ON ONE.
+
+   ASKED FOR AS *"Also some questions require answers on diagram. So should have a diagram for them to
+   draw on to do it or whatever."* -- the owner, after a lesson on June 2024 Paper 1 Foundation. Of 301
+   questions the sheet says are answered by drawing or annotating, 67 had a picture under the pen; the
+   other 234 drew a box for words and nowhere to put the mark the question asks for.
+
+   THE NOTE ABOVE `padKey_` ARGUED THE OTHER WAY, AND IT WAS RIGHT ABOUT ONE THING. "On the grid,
+   enlarge triangle T" over squared paper with no triangle T is a question you cannot fully answer.
+   What changed is who decides: the owner, teaching from it, wants somewhere to work -- a square grid
+   to sketch the enlargement on, axes to plot the graph on -- over a word box that cannot hold a line
+   at all. So the surface is honest about what it is (its own name in the header, never "Figure", and
+   a line under it saying it is not the paper's), and where the data workflow redraws the paper's own
+   figure, that figure takes the pen and the surface is never drawn.
+
+   WHICH SURFACE, in this order:
+     `surface`   the row says: "grid", "coord", "blank" or "text" (`check-library.js` holds the
+                 vocabulary). Said explicitly, it is a surface whatever the `answer_type`, because it
+                 is somebody's decision about this question.
+     `figure`    the transcriber's label, for a pen question only (`padWanted_`): anything naming a
+                 coordinate grid is axes on a grid; anything else naming a grid (`grid-blank`,
+                 `histogram-grid`, `grid-triangle`, `square-grid`...) is squared paper -- read as a
+                 rule rather than a list of the five spellings there are today; everything else is a
+                 blank space to draw in. An isometric label is blank, not squared: the wrong grid is
+                 worse than none.
+   "text" IS NOT A PICTURE AT ALL -- see `circWords_`: the passage on the card is the surface.
+
+   ONE FUNCTION AND EVERYTHING IT NEEDS INSIDE IT, so `check-library.js` can cut it out by name with
+   `padWanted_` and count what the library gets, rather than keeping a second opinion of the rule. */
+function padSurface_(x) {
+  const KINDS = ['grid', 'coord', 'blank', 'text'];
+  if (!x) return '';
+  const said = String(x.surface || (x.row && x.row.surface) || '').trim().toLowerCase();
+  if (KINDS.indexOf(said) !== -1) return said;
+  if (!padWanted_(x)) return '';
+  const f = String(x.figure || (x.row && x.row.figure) || '').trim().toLowerCase();
+  if (/coordinate/.test(f)) return 'coord';
+  if (/grid/.test(f) && !/isometric/.test(f)) return 'grid';
+  return 'blank';
+}
+/* WHAT EACH IS CALLED in the figure page's header, where a paper figure is called "Figure": a name
+   that says what is on the page, and does not claim to be the paper's. */
+const SURFACE_NAME = { grid: 'Squared grid', coord: 'Axes', blank: 'Space to draw' };
+
+/* ---------- THE SURFACE ITSELF -------------------------------------------------------------------
+   INSIDE `W = 340`, the box every diagram here lays out in (CLAUDE.md), so the pen's overlay maps onto
+   it exactly as it maps onto a transcribed figure. Inked with the classes a transcribed grid already
+   uses -- `.grid` for the squares, `.axis` for the axes, `.ax` for the numbers -- so a surface reads as
+   one more figure in the paper's own ink, on both palettes, with no colour written here.
+
+   THE SQUARES ARE 20 UNITS AND THE GRID STARTS AT 10, so the centre (170) is a line: the axes go
+   through it with -8 to 8 either way, which is the range a Foundation paper's coordinate grids use. */
+function surfaceSvg_(kind) {
+  const S = 20, A = 10, B = 330;
+  const out = [];
+  if (kind === 'grid' || kind === 'coord') {
+    for (let v = A; v <= B; v += S) {
+      out.push(`<line class="grid" x1="${v}" y1="${A}" x2="${v}" y2="${B}"/>`,
+               `<line class="grid" x1="${A}" y1="${v}" x2="${B}" y2="${v}"/>`);
+    }
+  }
+  if (kind === 'coord') {
+    out.push(`<line class="axis" x1="${A}" y1="170" x2="${B}" y2="170"/>`,
+             `<line class="axis" x1="170" y1="${A}" x2="170" y2="${B}"/>`,
+             `<text class="ax" x="${B - 2}" y="164" text-anchor="end">x</text>`,
+             `<text class="ax" x="176" y="${A + 8}">y</text>`);
+    for (let n = -8; n <= 8; n += 2) {
+      if (!n) continue;
+      const at = 170 + n * S;
+      out.push(`<text class="ax" x="${at}" y="182" text-anchor="middle">${n < 0 ? '&minus;' + (-n) : n}</text>`,
+               `<text class="ax" x="164" y="${340 - at + 3}" text-anchor="end">${n < 0 ? '&minus;' + (-n) : n}</text>`);
+    }
+    out.push('<text class="ax" x="164" y="182" text-anchor="end">0</text>');
+  }
+  if (kind === 'blank') {
+    out.push(`<rect class="axis" x="${A}" y="${A}" width="${B - A}" height="${B - A}" rx="8" fill="none" stroke-dasharray="6 6"/>`);
+  }
+  return `<svg class="qsurf is-${kind}" viewBox="0 0 340 340" role="img" aria-label="${SURFACE_NAME[kind] || 'Space to draw'}">${out.join('')}</svg>`;
+}
+
+/* ---------- AND A PASSAGE YOU MARK BY TAPPING ITS WORDS ----------------------------------------------
+   "Circle the three adjectives in the passage below" -- KS2 SATs grammar asks it of a sentence, and the
+   answer is a ring round three words. `surface: "text"` makes the PART'S OWN WORDS the surface: every
+   word a tap target, a tap rings it, another tap takes the ring off.
+
+   A TAP, NOT A PEN, AND THAT WAS DECIDED RATHER THAN DEFAULTED TO:
+     the pager swipes -- a stroke round a word is a drag, and a drag on this screen turns the page
+       unless the pen is locked first (`padArm_`), which is two controls between a child and a
+       circle. A tap is a click, and `PRESS_MOVED` already tells a click from a swipe.
+     a ring drawn in pixels is a ring round whatever was under it at that width -- turn the phone
+       and the passage reflows and yesterday's ring circles the wrong word. A ring stored as the word
+       (its block and its place in it, `3.7`) is the same word at 320px and on a laptop.
+     what the question asks for IS a set of words, so storing one is storing the answer.
+
+   STORED LIKE THE PEN'S MARKS, beside them: `pad:<question>:words`, every read and write wrapped,
+   because private mode throws on `localStorage`; `CIRC_HELD` keeps the visit's rings when it does. */
+const circKey_ = x => padKey_(x) + ':words';
+const CIRC_HELD = new Map();
+function circRead_(k) {
+  try {
+    const raw = localStorage.getItem(k);
+    if (raw !== null) {
+      const v = JSON.parse(raw);
+      return Array.isArray(v) ? v.map(String) : [];
+    }
+  } catch (e) {}
+  return (CIRC_HELD.get(k) || []).slice();
+}
+/* EVERY WORD OF A BLOCK OF MARKUP, WRAPPED, AND NOTHING ELSE TOUCHED. Text between tags only -- never
+   an attribute, never inside a drawing -- and an entity is never cut in half: `&rsquo;` inside
+   "don&rsquo;t" joins the word, any other entity stands alone and is not a word. Punctuation is not
+   part of a word, so ringing "hill" does not ring the full stop after it. */
+function circWords_(html, block, on) {
+  let n = 0, skip = 0;
+  const WORD = /(&(?:rsquo|#8217|apos);)|(&[#\w]+;)|([\p{L}\p{N}]+(?:(?:['’]|&rsquo;|&#8217;|&apos;)[\p{L}\p{N}]+)*)/gu;
+  return String(html || '').replace(/(<[^>]*>)|([^<]+)/g, (m, tag, text) => {
+    if (tag) {
+      if (/^<(svg|script|style)\b/i.test(tag)) skip++;
+      else if (/^<\/(svg|script|style)\b/i.test(tag)) skip = Math.max(0, skip - 1);
+      return tag;
+    }
+    if (skip) return text;
+    return text.replace(WORD, (w, apos, ent, word) => {
+      if (!word) return w;
+      const k = block + '.' + (n++);
+      const lit = on && on.indexOf(k) !== -1;
+      return `<span class="qw${lit ? ' is-circled' : ''}" data-do="qw-tap" data-w="${k}" role="button" aria-pressed="${lit}">${word}</span>`;
+    });
+  });
+}
+
+on('qw-tap', (el) => {
+  const host = el.closest('[data-circ]');
+  if (!host) return;
+  const k = host.getAttribute('data-circ') || '';
+  const w = el.getAttribute('data-w') || '';
+  if (!k || !w) return;
+  const all = circRead_(k);
+  const i = all.indexOf(w);
+  if (i >= 0) all.splice(i, 1); else all.push(w);
+  CIRC_HELD.set(k, all.slice());
+  try {
+    if (all.length) localStorage.setItem(k, JSON.stringify(all)); else localStorage.removeItem(k);
+  } catch (err) {}
+  /* EVERY COPY OF THE WORD, on every page built, by key -- the card and a page of the same question
+     peeking under it are two copies of one passage, and a ring on one only would be the two pages
+     disagreeing. In place, so the passage does not move under the finger. */
+  const lit = i < 0;
+  document.querySelectorAll('[data-circ]').forEach(h => {
+    if (h.getAttribute('data-circ') !== k) return;
+    h.querySelectorAll('.qw').forEach(s => {
+      if (s.getAttribute('data-w') !== w) return;
+      s.classList.toggle('is-circled', lit);
+      s.setAttribute('aria-pressed', lit ? 'true' : 'false');
+    });
+  });
+});
+
+/* ==================================================================================================
    A PICTURE THIS SITE DREW IS LABELLED AS ONE.
 
    SIX QUESTIONS IN THE CORBETTMATHS MONEY SHEET COULD NOT BE ANSWERED AT ALL. "Natalie has these
@@ -6332,7 +6501,7 @@ function questionCard_(x) {
             wrappers they always had, so a part that fits is the markup it always was.
             NO PICTURE HERE. The diagram, the pen and the question's photographs are the NEXT page
             — see `questionFigCard_`. The answer box stays on this card, under the words. */''}
-      ${chunkHtml_(partChunks_(x).slice(-1)[0])}
+      ${chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x))}
       ${/* AND THE WORDS SAY WHERE IT WENT -- when it went AFTER them. "The angle marked y", with no
             angle on the card, reads as a question that failed to load; one quiet line, a label rather
             than a control, because the page turns the way every page does. Asked of the same
@@ -6401,7 +6570,7 @@ function questionPreCard_(x, j) {
     ${qHead_(Object.assign({}, x, { marks: 0 }), (j + 1) + ' of ' + chunks.length)}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">
-      ${chunkHtml_(chunks[j])}
+      ${chunkHtml_(chunks[j], circOf_(x))}
       <p class="qsheet-figref">${partPlan_(x).figAt === j + 1 ? 'Figure' : 'Continued'} on the next page &rarr;</p>
     </div>
   </div>`;
@@ -6537,7 +6706,7 @@ function stemChunks_(p) {
 
      A MARKER        the lead and the html before it  ->  FIGURE  ->  the html after it, with the box.
                      A marker at the very end (every word before the figure): the card, then the figure.
-     NO MARKER,      the figure is the ANSWER SURFACE (a pen question, `padWanted_`): the card, then
+     NO MARKER,      the figure is the ANSWER SURFACE (a pen, `padSource_`): the card, then
      A PEN           the figure to draw on -- you read what to draw before the thing you draw it on,
                      and the words with the box are the ask. Whether or not there is a lead.
      NO MARKER,      lead  ->  FIGURE  ->  the html with the box: the lead is the part's own sentence of
@@ -6557,7 +6726,9 @@ function partPlan_(x) {
   if (had) return had;
   const lead = x.lead ? [{ k: 'lead', h: String(x.lead).replace(FIG_MARK, '') }] : [];
   const fb = figBlocks_(x.html);
-  const pb = fb.blocks.map(h => ({ k: 'pb', h: h }));
+  /* `i` IS THE BLOCK'S PLACE IN THE ROW, carried onto every page it lands on, so a ringed word
+     (`circWords_`) is named the same whichever page the cut put it on. */
+  const pb = fb.blocks.map((h, i) => ({ k: 'pb', h: h, i: i }));
   let plan;
   const split = (before, after) => {
     if (!after.length) {
@@ -6569,7 +6740,7 @@ function partPlan_(x) {
   };
   if (!questionHasFig_(x)) plan = { chunks: packBlocks_(lead.concat(pb), CHUNK_PAGE, PART_LAST), figAt: -1 };
   else if (fb.at >= 0) plan = split(lead.concat(pb.slice(0, fb.at)), pb.slice(fb.at));
-  else if (padWanted_(x)) plan = split(lead.concat(pb), []);
+  else if (padSource_(x)) plan = split(lead.concat(pb), []);
   else if (lead.length) plan = split(lead, pb);
   else {
     const c = packBlocks_(pb, CHUNK_PAGE, PART_LAST);
@@ -6587,15 +6758,22 @@ function partChunks_(x) {
    `.qsheet-part > .qsheet-pb` -- so the typesetting rules and every check reading them still apply. A
    chunk with none of the part's words in it still draws the empty `.qsheet-pb`, as a row with no
    `html` always did. */
-function chunkHtml_(chunk) {
+/* `circ` IS A PASSAGE THAT IS ITS OWN ANSWER SURFACE ("Circle the three adjectives in the passage
+   below") -- `circOf_` -- and then every word of the part is a tap target, block by block so each
+   word keeps its name (`circWords_`), and the page says how it works once, under the words. */
+function chunkHtml_(chunk, circ) {
   const c = chunk || [];
   const lead = c.filter(b => b.k === 'lead').map(b => b.h).join('');
-  const pb = c.filter(b => b.k === 'pb').map(b => b.h).join('');
+  const blocks = c.filter(b => b.k === 'pb');
+  const pb = circ ? blocks.map(b => circWords_(typeset_(b.h), b.i, circ.on)).join('')
+    : typeset_(blocks.map(b => b.h).join(''));
   return `${lead ? `<div class="qsheet-lead">${typeset_(lead)}</div>` : ''}
-      <div class="qsheet-part">
-        <div class="qsheet-pb">${typeset_(pb)}</div>
-      </div>`;
+      <div class="qsheet-part${circ ? ' is-text' : ''}"${circ ? ` data-circ="${esc(circ.k)}"` : ''}>
+        <div class="qsheet-pb">${pb}</div>
+      </div>${circ && blocks.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take
+        the ring off. Kept on this phone only, like the answer box.</p>` : ''}`;
 }
+const circOf_ = x => (padSurface_(x) === 'text' ? { k: circKey_(x), on: circRead_(circKey_(x)) } : null);
 
 /* ---------- AND THE STEM'S FIGURE, THE PAGE AFTER ITS WORDS ---------------------------------------
    No question number -- see `figHead_`. `data-of` is the stem's id, because the figure is the
@@ -6698,7 +6876,14 @@ function questionFigCard_(x) {
   const out = [];
   const stemNames = (x.stems || []).filter(stemHasFig_).map(p => figLabel_(p.html));
   let label = figLabel_(String(x.lead || '') + ' ' + String(x.html || ''), stemNames);
-  if (pad && pad.from !== 'part') {
+  if (pad && pad.from === 'surface') {
+    /* A SURFACE IS NAMED FOR WHAT IT IS AND SAYS IT IS NOT THE PAPER'S -- the `figCredit_` argument:
+       a page that let a generated grid pass as the exam board's figure would be the site speaking in
+       the board's voice. */
+    out.push(padWrap_(x, pad.svg, `<p class="fig-by">Not the paper&rsquo;s own figure &mdash; somewhere to
+      work your answer.</p>`));
+    label = SURFACE_NAME[pad.surface] || 'Space to draw';
+  } else if (pad && pad.from !== 'part') {
     out.push(padWrap_(x, pad.svg));
     label = figLabel_(pad.from.html);
   }

@@ -12422,6 +12422,24 @@ button.scr-sq { cursor: pointer; }
 .qpad-note { margin: .35rem 0 0; font: 400 .62rem/1.4 var(--font); color: var(--faint);
              line-height: 1.4; }
 
+/* ---------- A PASSAGE THAT IS ITS OWN ANSWER SURFACE: RING A WORD BY TAPPING IT ----------------------
+   "Circle the three adjectives in the passage below." `circWords_` makes every word of the part a
+   tap target; see it for why a tap and not a pen.
+
+   THE LINES OPEN UP AND THE WORDS DO NOT MOVE. A ring drawn with `outline` takes no space, so ringing
+   a word moves nothing beside it -- a passage that reflowed under the finger at every tap would put
+   the next word somewhere else. The extra line height is room for the ring above and below, and for
+   the HIT AREA: vertical padding on an inline box grows what a finger can hit without moving a single
+   line, which is as close to the 44px rule as a word in a sentence can come. In px, for that rule's
+   reason. See `ACCEPTED_TAP` in check/ui.js for the rest of the argument.
+
+   GOLD, BECAUSE IT IS YOURS -- the pen's ink (`.qpad-g path`) is gold for the same reason: the paper's
+   own ink is `currentColor`, and a mark you made has to look like one. */
+.qsheet-part.is-text .qsheet-pb { line-height: 2.4; }
+.qw { padding: 9px 0; border-radius: 1em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.qw.is-circled { outline: 2px solid var(--gold); outline-offset: 2px; }
+.qw-note { margin-top: .6rem; }
+
 /* THE METHOD FOR A PRACTICAL, above the questions — read before you start, not beside them. */
 .qp-guide { margin: 0 0 1rem; padding: .8rem .9rem; background: var(--sunk);
             border-left: 2px solid var(--gold); border-radius: 0 var(--r-sm) var(--r-sm) 0; }

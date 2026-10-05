@@ -591,6 +591,74 @@ const STATES = {
       },
       wants: 'the Venn diagram on its own page, headed Figure, with no question number and no box',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A DRAWING QUESTION WITH NO PICTURE: A SQUARED GRID UNDER THE PEN ----------------------
+       *"some questions require answers on diagram. So should have a diagram for them to draw on"*. The
+       first question in the library that `padSource_` gives a SURFACE rather than a figure, and whose
+       surface is squared paper -- found by the app's own rule, not named, so the state follows the
+       data as the data workflow redraws the real figures. On its own page, after the ask, headed
+       "Squared grid", saying it is not the paper's figure. */
+    { name: 'a drawing question\'s squared grid, under the pen',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && typeof padSource_ === 'function'
+          && (padSource_(x) || {}).from === 'surface' && padSurface_(x) === 'grid');
+        if (!it) throw new Error('no question in the library stands on a squared-grid surface');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__surfRow = it.row.row_id;
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'fig'));
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .qcard.qfig');
+        return !!c && c.getAttribute('data-of') === window.__surfRow
+               && !!c.querySelector('.qpad .qpad-art > svg.qsurf.is-grid')
+               && c.querySelector('.qcard-top').textContent.trim() === 'Squared grid'
+               && /not the paper.s own figure/i.test(c.textContent);
+      },
+      wants: 'a squared grid on its own page after its question, under the pen, headed "Squared grid" and saying it is not the paper\'s figure',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A PASSAGE WITH TWO WORDS RINGED -----------------------------------------------------------
+       "Circle the three adjectives in the passage below" -- KS2 grammar, June 2025. NO ROW CARRIES
+       `surface: "text"` YET (the data workflow is writing it), so this gives the real row the value it
+       will carry, for the length of the state, through the app's own memo (`CHUNK_MEMO` keeps a part's
+       pages, and they change when its surface does). Two words are rung through the real handler, as a
+       finger would, and taken off again on the way out with everything else. */
+    { name: 'a passage with two words ringed',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-STA-KS2-2025-GPS1-16');
+        if (!it) throw new Error('Q-STA-KS2-2025-GPS1-16 is not in the library');
+        window.__ringItem = it;
+        window.__ringHad = it.surface;
+        it.surface = 'text';
+        CHUNK_MEMO.delete(it);
+        try { localStorage.removeItem(circKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        setTimeout(() => {
+          ['crumbling', 'rocky'].forEach(t => {
+            const w = [...document.querySelectorAll('#s-stuff .page.on .qw')].find(s => s.textContent === t);
+            if (w) w.click();
+          });
+        }, 150);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .qsheet-part.is-text');
+        const lit = c ? [...c.querySelectorAll('.qw.is-circled')].map(s => s.textContent).sort().join(',') : '';
+        return lit === 'crumbling,rocky';
+      },
+      wants: 'the passage on the question card with "crumbling" and "rocky" ringed in gold, every other word tappable',
+      leave: () => {
+        const it = window.__ringItem;
+        if (it) {
+          try { localStorage.removeItem(circKey_(it)); } catch (e) {}
+          CIRC_HELD.delete(circKey_(it));
+          it.surface = window.__ringHad || '';
+          CHUNK_MEMO.delete(it);
+        }
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- A PART TOO LONG FOR ONE PAGE, CUT BETWEEN PARAGRAPHS --------------------------------------
        *"each widget is smaller than a phone screen"*. Named: Q3.5 of the June 2024 A-level Biology
        Paper 3 -- the tallest question card in the library before the cut, 1,241px past a 320 pane. Its

@@ -637,6 +637,12 @@ function libraryInto_(d, rows) {
       lines: libS(r.lines), order: libN(r.sort_order),
       company: libS(r.company),
       answer: libS(r.answer), answerType: norm(r.answer_type),
+      /* ---------- WHAT A MARK IS MADE ON, WHEN THE ANSWER IS A MARK -------------------------------
+         `grid`, `coord`, `blank` or `text` -- squared paper, axes, a space, or the passage itself to
+         ring words in. Empty on most rows and inferred from `figure` for a drawing question; said
+         here when somebody has decided. See `padSurface_` in find.js. A closed list, held by
+         `check-library.js`. */
+      surface: norm(r.surface),
       /* WHAT A STUDENT COULD TYPE AND BE RIGHT. `answer` is prose for a tutor -- the value, an
          em dash, then the method -- and "16 &mdash; half it." does not equal "16". See
          tools/set-accept.py for why the two are separate columns rather than one parsed twice. */
