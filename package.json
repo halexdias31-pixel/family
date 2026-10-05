@@ -12,6 +12,7 @@
     "check:settings": "node js/check-settings.js",
     "check:widgets": "node js/check-widgets.js",
     "check:ui": "node check/ui.js",
+    "check:diagrams": "node check/diagrams.js",
     "press": "node check/press.js",
     "cascade": "node check/cascade.js",
     "cascade:all": "node check/cascade.js --all",

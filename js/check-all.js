@@ -235,6 +235,14 @@ const SUITE = [
      A sample is not a sweep. This lays every question out in a 320px column and asks whether it
      fits — one page load, no navigation, no lazy fill. */
   { file: 'check/cards.js',   what: 'every question in the library, laid out at phone width', slow: true },
+  /* ---------- AND EVERY LABEL IN EVERY DRAWING, AGAINST ITS OWN LINES ----------------------------
+     REPORTED BY THE OWNER, TUTORING FROM THE JUNE 2024 FOUNDATION PAPER: "the Venn diagram was a bit
+     off. Like P and Q was clashing with lines." `cards.js` above asks whether a label is inside its
+     `<svg>`, and a letter on a circle's rim is. This asks the third question — does any inked line
+     run through a label's glyphs, does it overlap another label — of all 334 drawings in
+     `data/*.json`, at 320 and 390. It found 117 collisions in 54 drawings the day it was written.
+     No port to collide on: unset, `DIAGRAMS_PORT` is 0 and the OS picks a free one. */
+  { file: 'check/diagrams.js', what: 'every label in every drawing, clear of its lines', slow: true },
   /* ---------- AND WHETHER A PUSH ACTUALLY ARRIVES ------------------------------------------------
      REPORTED AS "when i first go on site it shows old reels... then i hard refresh then it works
      fine???" — the service worker decided what a navigation was from `url.pathname === '/'`, and
