@@ -3099,6 +3099,10 @@ button.text-drop { color: var(--bad); }
 /* The 44px is the finger's, not the eye's: pulled up into the half-line under the sentence so the
    two words read as belonging to it rather than as a row of their own 15px further down. */
 .msg-fail .msg-act { margin-block: -8px -6px; }
+/* THE FIX AS A CONTROL, for an admin's refusal — the consent screen or `?setup=1` (see
+   `msgFixLinks_`). An `<a>` is not centred the way a button is, and it is the way forward rather than
+   a way out, so it keeps Retry's gold wherever it falls in the row. */
+.msg-fail a.msg-act { display: inline-flex; align-items: center; text-decoration: none; color: var(--gold); }
 
 /* ---------- WHAT WAS SENT WITH IT ------------------------------------------------------------------
    A picture or clip sits inside the bubble at the bubble's own width; a file is a chip that opens

@@ -2585,6 +2585,38 @@ const STATES = {
         && document.querySelector('#s-tools #fm-said b'),
       wants: 'the flyer maker saying what will print, with no preview on the card' },
 
+    /* ---------- CHECK UPLOADS, ANSWERED — THE ADMIN'S, LIKE THE FLYER ---------------------------
+       The card as it reads on the day it matters: a deployment that can read Drive and not write
+       to it, so two crosses, Google's own sentence under one of them, and the fix as numbered steps
+       with a link. The longest thing on it is that sentence and the folder's name, and both are the
+       server's — which is why the state seeds the reply rather than a tidy one of its own. `leave`
+       puts the card back as it opens, before anybody has pressed it. */
+    { name: 'check uploads, answered',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'uploads');
+        if (n < 0) throw new Error('no Check uploads widget in the roster');
+        goPage('tools', n, true);
+        UPLOADS_SAID = { success: true, ok: false, version: '2026-10-05-chatmedia',
+          checks: [
+            { id: 'column', ok: true, label: 'The messages tab has an attachments column', said: 'Yes — a file’s address has somewhere to go.' },
+            { id: 'scope', ok: false, label: 'This deployment may write to Drive', said: 'It holds drive.readonly — it can read and cannot write.' },
+            { id: 'folder', ok: true, label: 'The posts folder opens', said: '“@family. posts and photographs (2026)”, from POSTS_FOLDER in constants.gs. Its Messages folder is made on the first send.' },
+            { id: 'write', ok: false, label: 'A file can be made there and shared by link', said: 'No — Specified permissions are not sufficient to call DriveApp.Folder.createFile. Required permissions: https://www.googleapis.com/auth/drive' }],
+          steps: [
+            { text: 'In the Apps Script editor, check appsscript.json lists https://www.googleapis.com/auth/drive (Project Settings → Show "appsscript.json"). If it says drive.readonly, sync backend/ from GitHub first.' },
+            { text: 'Open the consent link and press Allow.', href: 'https://accounts.google.com/o/oauth2/auth?client_id=example' },
+            { text: 'Deploy → Manage deployments → edit → Version: New version → Deploy.' },
+            { text: 'Then press Check uploads again.' }] };
+        uploadsPaint_();
+      },
+      expect: () => document.querySelectorAll('#s-tools .up-box .up-row.is-bad').length === 2
+        && document.querySelectorAll('#s-tools .up-box .up-steps li').length === 4
+        && !!document.querySelector('#s-tools .up-box a.tile[href^="https://accounts.google.com"]')
+        && !!document.querySelector('#s-tools .up-box [data-do="uploads-check"]'),
+      wants: 'the Check uploads tile, two ticks, two crosses, four numbered steps and an Allow tile',
+      leave: () => { UPLOADS_SAID = null; uploadsPaint_(); } },
+
     /* ---------- A TUTOR'S TEACHING HOURS -----------------------------------------------------
        THE SEVENTY-SEVEN CELLS OF A WEEK GRID, on a card nobody had measured, in the one place this
        file could not reach before: `widgetsOf_` shows it to a tutor or an admin and to nobody
@@ -3570,6 +3602,42 @@ const STATES = {
                  && !!document.querySelector('#s-dm [data-do="msg-retry"]')
                  && !!document.querySelector('#s-dm .msg.is-sending'),
       wants: 'a refused bubble with its sentence, Retry and Remove, and one still sending',
+      leave: () => { MSG_PENDING = []; } },
+
+    /* ---------- A PHOTOGRAPH THE DEPLOYMENT COULD NOT KEEP, AS AN ADMIN READS IT -----------------
+       *"i cant send images, or videos in the chat to people."* The refusal `sendMessage` gives when
+       Drive says no — the admin's version, because the visitor here IS the admin, and it is the
+       widest thing a bubble's red line ever holds: several lines and a consent address with no
+       space in it for a hundred characters, in 78% of 320px. And the THIRD control, Words only,
+       which is drawn only for `why: 'files'` with something typed — so this is the one state that
+       puts three 44px targets in that row. */
+    { name: 'a photo the deployment could not keep',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        MESSAGES = [{ id: 'k1', mine: false, read: true, withId: 'P009', withName: 'Ada Tutor',
+          fromName: 'Ada Tutor', at: '2026-09-16 09:12', body: 'Could you send a photo of his working?' }];
+        const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+        MSG_PENDING = [{ tmp: 'tmpK', mine: true, read: true, state: 'failed', why: 'files',
+          withId: 'P009', withName: 'Ada Tutor', fromName: 'Test Admin', atMs: Date.now() - 30e3,
+          body: 'Here is page 2',
+          err: 'The file could not be kept, so nothing was sent. Specified permissions are not sufficient '
+             + 'to call DriveApp.Folder.createFolder. Required permissions: https://www.googleapis.com/auth/drive'
+             + '\n\nIt holds drive.readonly — it can read the folder and cannot add to it.'
+             + '\nFIX: Open the consent link and press Allow; then Deploy → Manage deployments → edit → '
+             + 'Version: New version → Deploy. Tools → Check uploads says when it has worked.'
+             + '\nConsent link: https://accounts.google.com/o/oauth2/auth?client_id=1234567890-abcdefghij'
+             + 'klmnopqrstuvwxyz.apps.googleusercontent.com&scope=https://www.googleapis.com/auth/drive',
+          attachments: [{ url: png, type: 'image/png', name: 'page2.png' }],
+          queue: [{ name: 'page2.png', type: 'image/png', size: 1000, url: png }] }];
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
+        paint('dm');
+      },
+      expect: () => !!document.querySelector('#s-dm .msg-fail a.msg-act[href^="https://accounts.google.com"]')
+                 && !document.querySelector('#s-dm .msg-fail a.msg-act[href*="googleapis.com/auth"]')
+                 && !!document.querySelector('#s-dm [data-do="msg-words"]')
+                 && !!document.querySelector('#s-dm [data-do="msg-retry"]')
+                 && !!document.querySelector('#s-dm [data-do="msg-drop"]'),
+      wants: 'the refusal with Retry, Words only, Remove and the consent screen as a fourth control',
       leave: () => { MSG_PENDING = []; } },
 
     /* THE COMPOSER IN USE: a paragraph typed and two files waiting. The row that wrapped `Send`

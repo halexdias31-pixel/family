@@ -1623,17 +1623,20 @@ function msgAttachHtml_(list) {
   }).join('')}</div>`;
 }
 
-/* ---------- A REFUSAL'S ADDRESSES ARE LINKS --------------------------------------------------------
-   AN ADMIN'S REFUSAL CARRIES THE FIX, and the fix is an address — the consent screen, or the site's
-   own `?setup=1` — which as text in a red line is something to copy out by hand on a phone. Only
-   `https://` and `http://` become links; everything else is escaped exactly as before. */
-function msgSaid_(text) {
-  return String(text || '').split(/(https?:\/\/[^\s<>]+)/).map((bit, i) => {
-    if (!(i % 2) || !/^https?:\/\//.test(bit)) return esc(bit);
-    const tail = (bit.match(/[.,;:)]+$/) || [''])[0];
-    const href = bit.slice(0, bit.length - tail.length);
-    return `<a href="${esc(href)}" target="_blank" rel="noopener">${esc(href)}</a>${esc(tail)}`;
-  }).join('');
+/* ---------- AN ADMIN'S REFUSAL CARRIES THE FIX, AND THE FIX IS AN ADDRESS ------------------------
+   The consent screen, or the site's own `?setup=1`. As text in a red line it is something to copy
+   out by hand on a phone; as a link inside the sentence it is a 14px target. So each one becomes one
+   more control beside Retry — 44px, named for where it goes — and the sentence stays the server's.
+   The scope names Google's error quotes (`.../auth/drive`) are addresses too and go nowhere useful,
+   so they stay words. At most two: a refusal is not a page of links. */
+function msgFixLinks_(text) {
+  return (String(text || '').match(/https?:\/\/[^\s<>]+/g) || [])
+    .map(u => u.replace(/[.,;:)]+$/, ''))
+    .filter(u => /^https:\/\//.test(u) && !/googleapis\.com\/auth\//.test(u))
+    .slice(0, 2)
+    .map(u => `<a class="msg-act" href="${esc(u)}" target="_blank" rel="noopener">${
+      /\?setup=1/.test(u) ? 'Open ?setup=1' : /accounts\.google\.com/.test(u) ? 'Allow it' : 'Open the link'}</a>`)
+    .join('');
 }
 
 /* ---------- THE THREAD --------------------------------------------------------------------------
@@ -1655,11 +1658,12 @@ const messagesHtml_ = ms => {
                 || !!m.tmp !== !!next.tmp;
     const words = String(m.body || '').trim();
     const state = m.state === 'failed'
-      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${msgSaid_(m.err || 'try again')}</span>
+      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${esc(m.err || 'try again')}</span>
            <button class="msg-act" data-do="msg-retry" data-k="${esc(m.tmp)}">Retry</button>${
            m.why === 'files' && words && (m.queue || []).length
              ? `<button class="msg-act" data-do="msg-words" data-k="${esc(m.tmp)}">Words only</button>` : ''}
-           <button class="msg-act" data-do="msg-drop" data-k="${esc(m.tmp)}">Remove</button></p>`
+           <button class="msg-act" data-do="msg-drop" data-k="${esc(m.tmp)}">Remove</button>${
+           msgFixLinks_(m.err)}</p>`
       : m.state === 'sending' ? `<p class="faint msg-when">sending…</p>`
       : m.tmp ? `<p class="faint msg-when">sent</p>` : '';
     return `${newDay ? `<p class="msg-day"><span>${esc(dayWord)}</span></p>` : ''}
@@ -1734,24 +1738,28 @@ function uploadsHtml_(d) {
     return tile + `<p class="faint up-said">Makes one test file in the posts folder, shares it and
       bins it, then says what — if anything — is still in the way.</p>`;
   }
-  if (d.error) return tile + `<p class="up-said up-bad">${msgSaid_(d.error)}</p>`;
+  if (d.error) return tile + `<p class="up-said up-bad">${esc(d.error)}</p>`;
   const rows = (d.checks || []).map(c => `<li class="up-row ${c.ok ? 'is-ok' : 'is-bad'}">
       <b class="up-mark" role="img" aria-label="${c.ok ? 'yes' : 'no'}">${c.ok ? '✓' : '✗'}</b>
       <span><span class="up-k">${esc(c.label)}</span>
-      <span class="up-v">${msgSaid_(c.said)}</span></span></li>`).join('');
-  /* `href` is the server's (the consent screen) or this app's own address with `?setup=1`, which
-     the server cannot always name — `ScriptApp.getService()` is blank from some deployments. */
-  const steps = (d.steps || []).map(st => {
+      <span class="up-v">${esc(c.said)}</span></span></li>`).join('');
+  const steps = (d.steps || []).map(st => `<li>${esc(st.text)}</li>`).join('');
+  /* THE ADDRESSES A STEP NEEDS ARE TILES UNDER THE LIST, not links in its sentence — a link in a
+     line of 0.78rem type is a 14px target, and a tile is 44px from the one renderer that guards
+     where it may open. `href` is the server's (the consent screen) or this app's own address with
+     `?setup=1`, which the server cannot always name: `ScriptApp.getService()` is blank from some
+     deployments. `tile_` itself refuses anything that is not an absolute http(s) address. */
+  const go = (d.steps || []).map(st => {
     const href = String(st.href || (st.setup && typeof API === 'string' ? API + '?setup=1' : ''));
-    if (!/^https?:\/\//.test(href)) return `<li>${esc(st.text)}</li>`;
-    return `<li>${esc(st.text)} <a href="${esc(href)}" target="_blank"
-      rel="noopener">${st.setup ? 'Open ?setup=1' : 'Open it'}</a></li>`;
-  }).join('');
+    return href ? tile_({ icon: 'open', href: href,
+      label: st.setup ? 'Open ?setup=1' : 'Allow it', note: st.setup ? 'adds the column' : 'consent' }) : '';
+  }).filter(Boolean).join('');
   return tile + `<ul class="up-list">${rows}</ul>
     <p class="up-said ${d.ok ? 'up-good' : 'up-bad'}">${d.ok
       ? 'Ready — photos, videos and files can be sent in messages.'
       : 'Not yet. In this order:'}</p>
     ${steps ? `<ol class="up-steps">${steps}</ol>` : ''}
+    ${go ? `<div class="tile-row">${go}</div>` : ''}
     <p class="faint up-ver">backend ${esc(d.version || '—')}</p>`;
 }
 
