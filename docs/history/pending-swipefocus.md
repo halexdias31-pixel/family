@@ -43,7 +43,10 @@ which is what makes that read as depth rather than as a column that slipped. A c
 (803–807 px tall at 390×844) is centred too, with 18.5 px above and below and only ~2 px of its
 neighbours showing; clamping it to the old line was measured and rejected because it leaves that card
 15–18 px low with its bottom on the glass. **`COLUMNS OUT OF LINE` in `check/ui.js` is restated**: every
-column's card centred within the same 2 px.
+column's card centred within the same 2 px — proved by putting the top line back (8 findings, the
+worst Messages 198 px off at 320). Its first honest run found the one thing centring added: a column
+REDRAWN with a card of a new height (`paint('saved')` after a star, `dmPoll_`'s repaint every twenty
+seconds) had nothing re-placing it, which a top line never needed. `paint` books one placement now.
 
 ### Out of focus, at the cost the lab allowed
 
