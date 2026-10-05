@@ -546,6 +546,71 @@ const STATES = {
       },
       wants: 'a question whose options are buttons, with no text box on its card',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A MULTI-PART QUESTION WITH A DIAGRAM, IN THE PAPER'S ORDER ------------------------------
+       ASKED FOR AS *"evaluate how questions appear when there's multiple parts and a diagram"* and
+       *"diagram widgets shouldn't have a question number on them"*. One row, named: Q5 of the June 2022
+       A-level Statistics paper -- a stem ("Of the 80 people...") with a Venn diagram, then six parts, the
+       third of which is "complete the Venn diagram above". Two pictures: the stem's own page, headed
+       `Q5` alone, and the Venn diagram on the page after it, headed `Figure` with no number of either
+       kind. Both land on the pages in front of (a), where the strip puts them once for all six. */
+    { name: 'a multi-part question\'s stem, on its own page in front of its parts',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-9MA031-2206-5a');
+        if (!it) throw new Error('Q-9MA031-2206-5a is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'stem0'));
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .qcard.qstem');
+        return !!c && /^Q5$/.test(c.querySelector('.qcard-top').textContent.trim())
+               && !!c.querySelector('.qsheet-stem') && !c.querySelector('.qp-ans, svg')
+               && !!c.querySelector('.qsheet-figref');
+      },
+      wants: 'the stem of Q5 on its own page, headed Q5 alone, no box and no picture, saying the figure is next',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'its figure, the page after, with no question number',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-9MA031-2206-5a');
+        if (!it) throw new Error('Q-9MA031-2206-5a is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'sfig0'));
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .qcard.qfig');
+        return !!c && !/\bQ\d/.test(c.querySelector('.qcard-top').textContent)
+               && /^Figure/.test(c.querySelector('.qcard-top').textContent.trim())
+               && !!c.querySelector('figure svg') && !c.querySelector('.qp-ans');
+      },
+      wants: 'the Venn diagram on its own page, headed Figure, with no question number and no box',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A QUESTION YOU HAVE DONE, DATED --------------------------------------------------------
+       ASKED FOR AS *"when a student does do a question, it should record the date they did it"*. Signed
+       in only -- signed out records nothing, by design (`doneKeyOf_`). The date is written where the
+       app writes it, under the visitor's own key, and taken off again on the way out so no other state
+       is pictured stamped. The expect asks for the stamp in the header's slot, on the marks' line. */
+    { name: 'a question you have done, dated',
+      only: () => typeof whoIs_ === 'function' && !!whoIs_(),
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        window.__doneKey = 'done:' + ansKey_(it).slice(4);
+        try { localStorage.setItem(window.__doneKey, '2026-10-04'); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+      },
+      expect: () => {
+        const s = document.querySelector('#s-stuff .page.on .qcard-top .qcard-done');
+        return !!s && /^Done 4 Oct( \d{4})?$/.test(s.textContent);
+      },
+      wants: 'the question card saying "Done 4 Oct" beside its marks',
+      leave: () => { try { localStorage.removeItem(window.__doneKey); } catch (e) {}
+                     STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE ANSWER PAGE: HIDDEN, TURNED TO, AND OPEN WITH ITS WORKING FOLDED AND OPENED -------
        ASKED FOR AS "what I want was answers to be short and to be their own widget" -- the answer is
        the page after its question now (`questionAnsCard_`), the result large and the working under

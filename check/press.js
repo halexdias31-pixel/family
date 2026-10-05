@@ -1236,14 +1236,30 @@ for (const who of VISITORS) {
             const el = document.querySelectorAll('#s-stuff > .page')[domIndex_('stuff', first + i)];
             const pg = pages[i], id = pg.x.row.row_id;
             const html = el ? el.innerHTML : '';
+            /* ---------- AND A STEM AND ITS FIGURE IN FRONT OF THE PARTS, IN THE PAPER'S ORDER --------
+               *"preserve order of question from exam"*: a shared stem is its own page (`stemN`) and its
+               figure the page after it (`sfigN`), both naming the STEM's row in `data-of`, both
+               standing in front of the part they belong to -- a stem's figure straight after its
+               words where it has words. And *"diagram widgets shouldn't have a question number on
+               them"*: every figure page's header is asked for `Q<digit>` and must not have one. */
+            const stem = /^(stem|sfig)(\d+)$/.exec(pg.part || '');
+            const sid = stem ? (pg.x.stems[+stem[2]] || {}).id : '';
+            const head = ((el && el.querySelector('.qcard-top b')) || {}).textContent || '';
             let ok;
-            if (pg.part === 'ans') {
+            if (stem) {
+              const next = pages[i + 1];
+              ok = !!sid && html.indexOf('data-of="' + sid + '"') !== -1 && html.indexOf('qp-ans') === -1
+                && !!next && next.x === pg.x
+                && (stem[1] === 'stem' ? /class="qcard qstem/.test(html) : !/\bQ\d/.test(head))
+                && (stem[1] === 'stem' || i === 0 || pages[i - 1].x !== pg.x
+                    || pages[i - 1].part === 'stem' + stem[2] || /^sfig/.test(pages[i - 1].part || ''));
+            } else if (pg.part === 'ans') {
               ok = /class="qcard qans-card/.test(html) && html.indexOf('data-of="' + id + '"') !== -1
                 && html.indexOf('qp-ans') === -1
                 && i > 0 && pages[i - 1].x === pg.x && (!pages[i - 1].part || pages[i - 1].part === 'fig');
             } else if (pg.part === 'fig') {
               ok = html.indexOf('data-of="' + id + '"') !== -1 && html.indexOf('qp-ans') === -1
-                && i > 0 && pages[i - 1].x === pg.x && !pages[i - 1].part;
+                && i > 0 && pages[i - 1].x === pg.x && !pages[i - 1].part && !/\bQ\d/.test(head);
             } else {
               ok = html.indexOf(':q:' + id) !== -1 && html.indexOf('class="qcard qfig') === -1
                 && html.indexOf('qans-card') === -1;
@@ -1254,16 +1270,18 @@ for (const who of VISITORS) {
           };
           for (let i = 0; i < pages.length; i++) look(i);
           for (let i = pages.length - 1; i >= 0; i--) look(i);
-          const items = pages, figs = pages.filter(pg => pg.part === 'fig').length;
+          const items = pages, figs = pages.filter(pg => pg.part === 'fig' || /^sfig/.test(pg.part || '')).length;
+          const stems = pages.filter(pg => /^stem/.test(pg.part || '')).length;
           const answers = pages.filter(pg => pg.part === 'ans').length;
-          return { n: items.length, figs: figs, answers: answers, bad: out.slice(0, 4), count: out.length,
+          return { n: items.length, figs: figs, answers: answers, stems: stems, bad: out.slice(0, 4), count: out.length,
                    held: document.querySelectorAll('#s-stuff > .page').length };
         });
-        walk.push({ from: 'stuff, ' + bad.n + ' pages (' + bad.figs + ' of them figures, ' + bad.answers
-                          + ' answers) over ' + bad.held + ' elements',
-                    dir: 'walk', ok: bad.count === 0 && bad.figs > 0 && bad.answers > 0,
+        walk.push({ from: 'stuff, ' + bad.n + ' pages (' + bad.figs + ' of them figures, ' + bad.stems
+                          + ' stems, ' + bad.answers + ' answers) over ' + bad.held + ' elements',
+                    dir: 'walk', ok: bad.count === 0 && bad.figs > 0 && bad.answers > 0 && bad.stems > 0,
                     got: bad.count ? bad.count + ' wrong, first ' + JSON.stringify(bad.bad[0])
                          : !bad.figs ? 'no figure page on a paper that has pictures'
+                         : !bad.stems ? 'no stem page on a paper whose questions share stems'
                          : !bad.answers ? 'no answer page on a paper that has answers'
                          : 'every page its own question, figure or answer',
                     want: 'every page its own question, each figure and then each answer straight after it' });
