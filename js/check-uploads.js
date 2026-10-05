@@ -267,14 +267,19 @@ const SCOPE_WORDS = /googleapis\.com|auth\/drive|Deploy|Apps Script/;
   const owner = W.msg('P-A1', 'P-T1', '', [IMG]);
   if (!/FIX:/.test(owner.error || '') || !/New version/.test(owner.error || '') || !/drive\.readonly/.test(owner.error || '')) {
     fail('read-only', 'the admin was not told the fix: "' + String(owner.error).slice(0, 300) + '"');
-  } else if (!/press Run, then Allow/.test(owner.error)) {
+  } else if (!/run authoriseDrive and press Allow/.test(owner.error)) {
     fail('read-only', 'with no consent link the admin was not sent to the editor: "' + owner.error.slice(0, 300) + '"');
   }
+  /* "ALLOW, THEN A NEW VERSION" WITHOUT THE GATE is the order that takes the site down when one box
+     was left unticked — so the new version is said only after `authoriseDrive` says READY. */
+  const gated = s => /last line says READY[^]*New version/.test(s || '');
+  if (!gated(owner.error)) fail('read-only', 'the admin is told to deploy a new version without waiting for authoriseDrive to say READY: "' + String(owner.error).slice(0, 300) + '"');
   const W2 = world({ scopes: READONLY, consent: 'https://accounts.google.com/o/oauth2/consent-for-check' });
   const linked = W2.msg('P-A1', 'P-T1', '', [IMG]);
   if (!/https:\/\/accounts\.google\.com\/o\/oauth2\/consent-for-check/.test(linked.error || '')) {
     fail('read-only', 'the consent link Apps Script handed over was not in the admin\'s refusal');
   }
+  if (!gated(linked.error) || !/run authoriseDrive/.test(linked.error || '')) fail('read-only', 'with a consent link, the new version is not gated on authoriseDrive saying READY: "' + String(linked.error).slice(0, 300) + '"');
   if (!bad.some(x => /^read-only/.test(x))) said.push('read-only token: nothing kept or written, the parent told it is our side, the admin told the fix and the link');
 }
 
@@ -346,6 +351,8 @@ const WORKS = world({});
   }
   if (!/Allow/.test(steps) || !/New version/.test(steps) || !(ro.steps || []).some(s => s.setup)) {
     fail('check uploads', 'the steps do not say Allow, a new version and ?setup=1: ' + steps);
+  } else if (!/last line says READY[^|]*New version/.test(steps)) {
+    fail('check uploads', 'the new-version step is not gated on authoriseDrive saying READY: ' + steps);
   }
   if (R.w.made.length) fail('check uploads', 'a read-only check somehow made a file');
   if (!bad.some(x => /^check uploads/.test(x))) said.push('check uploads: admin only, four answers, one test file binned, the fix in order when it fails');

@@ -3237,8 +3237,8 @@ async function load() {
            run from the EDITOR can raise the prompt again. */
         ? 'The backend answered with a web page instead of data. Open it in a tab and read what '
           + 'it says — “Authorization is required” means the scopes changed and nobody has '
-          + 'consented yet: run any function from the Apps Script editor once, accept the prompt, '
-          + 'then deploy a new version.'
+          + 'consented yet: run authoriseDrive from the Apps Script editor, accept the prompt with '
+          + 'every box ticked, and deploy a new version once its last line says READY.'
         /* ---------- A PAGE OPENED FROM A FILE CANNOT REACH ANYTHING -------------------------------
            THE COMMONEST CAUSE OF THIS EXACT MESSAGE, and this told people to go and check their
            deployment instead. Double-click index.html and the browser gives the page the origin

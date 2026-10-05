@@ -543,16 +543,23 @@ function holdsScope_(held, name) {
    Allow, and a NEW VERSION is deployed — a deployed version pins the manifest it was made from, so
    an Allow pressed afterwards changes the editor and nothing that is serving the site. The consent
    screen as a link when Apps Script will hand one over (`consentUrl_`), the editor when it will not.
-   `consent` is that link or ''. */
+   `consent` is that link or ''.
+
+   AND THE NEW VERSION WAITS FOR `authoriseDrive` TO SAY READY. This said "press Allow; then Deploy",
+   and the consent screen ticks per permission now: an Allow with one box unticked, followed by a
+   new version, answers every visitor "Authorization is required" — a refusal about one photograph
+   turned into the whole site down. `authoriseDrive`'s last line is the only thing that can tell
+   the two apart before the deploy, so every route to "New version" goes through it. */
 function driveFix_() {
   const consent = consentUrl_();
   return {
     consent: consent,
     say: (consent
-      ? 'Open the consent link and press Allow'
-      : 'In the Apps Script editor choose any function, press Run, then Allow')
-      + '; then Deploy → Manage deployments → edit → Version: New version → Deploy. '
-      + 'Tools → Check uploads says when it has worked.',
+      ? 'Open the consent link and press Allow, ticking every box; then run authoriseDrive in the '
+        + 'Apps Script editor'
+      : 'In the Apps Script editor run authoriseDrive and press Allow, ticking every box')
+      + '. Only when its last line says READY: Deploy → Manage deployments → edit → Version: New '
+      + 'version → Deploy. Tools → Check uploads says when it has worked.',
   };
 }
 
@@ -1067,9 +1074,12 @@ function uploadsCheck_() {
   if (!wrote && !drive && !s.error) {
     steps.push({ text: 'Sync backend/ from GitHub, so appsscript.json in the editor lists '
       + '.../auth/drive and not drive.readonly.' });
-    steps.push({ text: fix.consent ? 'Open the consent link and press Allow.'
-      : 'Choose any function in the editor, press Run, then Allow.', href: fix.consent });
-    steps.push({ text: 'Deploy → Manage deployments → edit → Version: New version → Deploy.' });
+    /* THE THIRD STEP IS GATED — `driveFix_` says why. */
+    steps.push({ text: fix.consent ? 'Open the consent link and press Allow, ticking every box.'
+      : 'In the editor run authoriseDrive and press Allow, ticking every box.', href: fix.consent });
+    steps.push({ text: (fix.consent ? 'Run authoriseDrive in the editor. ' : '')
+      + 'Only when its last line says READY: Deploy → Manage deployments → edit → Version: New '
+      + 'version → Deploy.' });
   } else if (!wrote && !posts) {
     steps.push({ text: 'Add a row to the config tab: key posts_folder, value the id from the '
       + 'folder’s URL.' });

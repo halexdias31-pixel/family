@@ -1046,7 +1046,8 @@ function dataProblems(deep) {
             'This deployment can read the posts folder but not write to it',
             'Posting still works: put photographs in the folder and press ⟳ on the Posts screen. '
             + 'To upload from inside the app, appsscript.json must list .../auth/drive; then run '
-            + 'authoriseDrive from the editor and accept the prompt; then deploy a NEW VERSION — '
+            + 'authoriseDrive from the editor and accept the prompt, ticking every box; only when '
+            + 'its last line says READY, deploy a NEW VERSION — '
             + 'a deployed version pins its manifest, so authorising alone changes nothing.');
       }
     }

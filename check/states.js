@@ -2605,8 +2605,8 @@ const STATES = {
             { id: 'write', ok: false, label: 'A file can be made there and shared by link', said: 'No — Drive refused it for want of permission.' }],
           steps: [
             { text: 'Sync backend/ from GitHub, so appsscript.json in the editor lists .../auth/drive and not drive.readonly.' },
-            { text: 'Open the consent link and press Allow.', href: 'https://accounts.google.com/o/oauth2/auth?client_id=example' },
-            { text: 'Deploy → Manage deployments → edit → Version: New version → Deploy.' }] };
+            { text: 'Open the consent link and press Allow, ticking every box.', href: 'https://accounts.google.com/o/oauth2/auth?client_id=example' },
+            { text: 'Run authoriseDrive in the editor. Only when its last line says READY: Deploy → Manage deployments → edit → Version: New version → Deploy.' }] };
         uploadsPaint_();
       },
       expect: () => document.querySelectorAll('#s-tools .up-box .up-row.is-bad').length === 2
@@ -3621,8 +3621,9 @@ const STATES = {
           body: 'Here is page 2',
           err: 'The file could not be kept, so nothing was sent. Drive refused it: this deployment holds '
              + 'drive.readonly, so it can read the folder and cannot add to it.'
-             + '\nFIX: Open the consent link and press Allow; then Deploy → Manage deployments → edit → '
-             + 'Version: New version → Deploy. Tools → Check uploads says when it has worked.'
+             + '\nFIX: Open the consent link and press Allow, ticking every box; then run authoriseDrive in '
+             + 'the Apps Script editor. Only when its last line says READY: Deploy → Manage deployments → '
+             + 'edit → Version: New version → Deploy. Tools → Check uploads says when it has worked.'
              + '\nConsent link: https://accounts.google.com/o/oauth2/auth?client_id=1234567890-abcdefghij'
              + 'klmnopqrstuvwxyz.apps.googleusercontent.com&scope=https://www.googleapis.com/auth/drive',
           attachments: [{ url: png, type: 'image/png', name: 'page2.png' }],
