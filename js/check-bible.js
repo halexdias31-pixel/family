@@ -18,8 +18,10 @@
      · THE DRAWING — every one of the 31,102 verses through the REAL `bibleVerse_`, cut out of
        find.js by name: no `[` or `]` left standing, one `<i>` per bracket pair, the pilcrow `#` gone,
        and the words left over exactly the verse's own. And a verse that tries to be markup is text.
-     · THE CUT — every chapter through the REAL `bibleCut_` at four screen sizes' budgets: the pages
-       are whole verses, in order, every verse on exactly one, none empty.
+     · THE CUT — every chapter through the REAL `bibleCut_` at four page sizes: the pages are whole
+       verses, in order, every verse on exactly one, none empty; NO PAGE HOLDS MORE THAN A PAGE unless
+       it is one verse alone (the promise that lets a phone draw every page at full size); and the
+       evening-out never costs a page more than the fewest that fit.
      · WHO — read out of the source: the kind wears `Resources` in Learning; the one gate is
        `isAdmin()`; the item builder and every fetch ask it; the payload (`backend/doget.gs`) and the
        boot fetches (`index.html`, `LIB_EXTRA`) say nothing about the Bible at all.
@@ -156,25 +158,36 @@ if (bibleVerse_) {
   if (/<img/.test(evil) || evil.indexOf('<i>and</i>') < 0) fail.push('a verse holding markup is drawn as markup: ' + evil);
 }
 
-/* ---------- THE CUT, AT FOUR SCREENS' BUDGETS ------------------------------------------------------
-   `bibleCut_` reads `BIBLE.budget`, `BIBLE_PAGE`, `BIBLE_VERSE` and `BIBLE_FOOT`, so all four are cut
-   out with it and the budget is set the way a phone sets it. 793 and 1,280 are what 320x568 and
-   390x844 measure (see `bibleBudget_`); 500 and 2,000 are its clamps. */
+/* ---------- THE CUT, AT FOUR PAGE SIZES ------------------------------------------------------------
+   `bibleCut_` IS PURE — a chapter's verse costs and what a page holds, nothing else — so it is cut out
+   of find.js on its own and handed every chapter of the Bible. On a phone the costs are measured
+   pixels (`bibleMeasure_`); here they are what jsdom's fallback uses, characters plus `BIBLE_VERSE`,
+   which have the same shape: a few hundred a verse, the odd one longer than a small page.
+   THE ONE PROMISE THE READER'S SIZE RESTS ON is "no page holds more than a page". Pages were once cut
+   by an estimate and then shrunk by `paneReach_` when the estimate was wrong — 57 of Genesis's 326 at
+   320x568, text at 9.7px on the worst. A page over `cap` that is not a lone verse is that fault back.
+   AND EVENING THE PAGES OUT MUST NOT ADD ONE: the fewest pages that fit is what a greedy fill gives,
+   and the balanced cut is checked against it. 450 is about a 320x568 page in characters, 850 is the
+   fallback, 1,300 about a 390x844 page, and 2,000 a tablet's. */
 const cutSrc = cutFrom(findSrc, 'bibleCut_');
-const consts = ['BIBLE_PAGE', 'BIBLE_VERSE', 'BIBLE_FOOT'].map(n => {
-  const m = new RegExp('const ' + n + ' = (\\d+);').exec(findSrc);
-  if (!m) fail.push(n + ' is not a plain number in js/find.js — the cut was NOT checked');
-  return m ? 'const ' + n + ' = ' + m[1] + ';' : '';
-});
+const verseM = /const BIBLE_VERSE = (\d+);/.exec(findSrc);
+if (!verseM) fail.push('BIBLE_VERSE is not a plain number in js/find.js — the cut was NOT checked');
 let pagesAt = {};
-if (cutSrc && consts.every(Boolean)) {
-  [500, 793, 1280, 2000].forEach(budget => {
-    const bibleCut_ = new Function(consts.join('\n') + '\nconst BIBLE = { budget: ' + budget + ' };\n' + cutSrc + '\nreturn bibleCut_;')();
-    let pages = 0, bad = 0;
-    const firstBad = [];
+if (cutSrc && verseM) {
+  const bibleCut_ = new Function(cutSrc + '\nreturn bibleCut_;')();
+  const greedy = (w, cap) => {
+    let n = 1, sum = 0, from = 0;
+    w.forEach((x, i) => { if (i > from && sum + x > cap) { n++; from = i; sum = 0; } sum += x; });
+    return n;
+  };
+  [450, 850, 1300, 2000].forEach(cap => {
+    let pages = 0, bad = 0, over = 0, extra = 0;
+    const firstBad = [], firstOver = [], firstExtra = [];
     Object.keys(split).forEach(n => split[n].chapters.forEach((ch, ci) => {
-      const cuts = bibleCut_(ch);
+      const w = ch.map(v => String(v).length + Number(verseM[1]));
+      const cuts = bibleCut_(w, cap);
       pages += cuts.length;
+      const where = split[n].book + ' ' + (ci + 1);
       let at = 0, why = '';
       cuts.forEach(([a, b]) => {
         if (why) return;
@@ -183,10 +196,18 @@ if (cutSrc && consts.every(Boolean)) {
         at = b;
       });
       if (!why && at !== ch.length) why = 'the pages end at verse ' + at + ' of ' + ch.length;
-      if (why) { bad++; if (firstBad.length < 3) firstBad.push(split[n].book + ' ' + (ci + 1) + ': ' + why); }
+      if (why) { bad++; if (firstBad.length < 3) firstBad.push(where + ': ' + why); }
+      cuts.forEach(([a, b]) => {
+        const sum = w.slice(a, b).reduce((s, x) => s + x, 0);
+        if (b - a > 1 && sum > cap) { over++; if (firstOver.length < 3) firstOver.push(where + ' verses ' + (a + 1) + '-' + b + ' cost ' + sum); }
+      });
+      const fewest = greedy(w, cap);
+      if (cuts.length > fewest) { extra++; if (firstExtra.length < 3) firstExtra.push(where + ': ' + cuts.length + ' pages where ' + fewest + ' fit'); }
     }));
-    pagesAt[budget] = pages;
-    if (bad) fail.push('at a budget of ' + budget + ', ' + bad + ' chapters are not cut into whole verses in order: ' + firstBad.join(' | '));
+    pagesAt[cap] = pages;
+    if (bad) fail.push('at a page of ' + cap + ', ' + bad + ' chapters are not cut into whole verses in order: ' + firstBad.join(' | '));
+    if (over) fail.push('at a page of ' + cap + ', ' + over + ' pages of more than one verse hold more than a page — a phone would draw them smaller: ' + firstOver.join(' | '));
+    if (extra) fail.push('at a page of ' + cap + ', ' + extra + ' chapters are cut into more pages than fit: ' + firstExtra.join(' | '));
   });
 } else if (!cutSrc) fail.push('bibleCut_ is not in js/find.js — the pages were NOT checked, which is not a pass');
 
@@ -233,7 +254,7 @@ if (libM && /bible/i.test(libM[1])) fail.push('LIB_EXTRA names the Bible — eve
 console.log('THE BIBLE (KJV)  —  ' + books.length + ' books, ' + chapters + ' chapters, ' + verses + ' verses in data/bible/, '
   + seen + ' rows in the archive');
 console.log('  [bracketed] words: ' + pairs + ', drawn as ' + italics + ' italic runs;  pilcrows: ' + paras);
-console.log('  pages at budgets ' + Object.keys(pagesAt).map(b => b + ': ' + pagesAt[b]).join(', '));
+console.log('  pages at page sizes ' + Object.keys(pagesAt).map(b => b + ': ' + pagesAt[b]).join(', '));
 const kb = onDisk.reduce((s, f) => s + fs.statSync(path.join(DIR, f)).size, 0);
 console.log('  ' + onDisk.length + ' book files, ' + Math.round(kb / 1024) + ' KB, the largest '
   + Math.round(Math.max(0, ...onDisk.map(f => fs.statSync(path.join(DIR, f)).size)) / 1024) + ' KB');
@@ -246,4 +267,5 @@ if (fail.length) {
   process.exit(1);
 }
 console.log('\nOK — every verse of the archive is in the split, in order and unchanged; every [word] is drawn in\n'
-  + '     italics; every chapter cuts into whole verses; and only isAdmin() is shown it or fetches it.');
+  + '     italics; every chapter cuts into whole verses, no page over a page and none more than fit; and\n'
+  + '     only isAdmin() is shown it or fetches it.');
