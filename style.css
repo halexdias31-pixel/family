@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-gradsplash";
+  --css-version: "2026-10-05-parentsignup";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -720,7 +720,7 @@ label.field { display: block; margin-bottom: .75rem; }
    version of it already had: it said `.68rem`, `.06em`, lower case and `--dim` under a comment
    claiming it matched this. One selector, one caption style, and the row reads as one more field
    down the same column because it IS one. */
-label.field > span, .dob-cap, .handle-cap {
+label.field > span, .dob-cap, .handle-cap, .reg-cap {
   display: block; margin-bottom: .3rem;
   font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
 }
@@ -771,6 +771,18 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* THE "NO EMAIL" TICK ON THE REGISTER SHEET reads as a line of the form, not as a heading: the
    `.check` row's own size, at the caption's voice. */
 .check.reg-kid { font-size: .9rem; color: var(--dim); padding-top: .2rem; }
+/* ---------- WHO THE ACCOUNT IS FOR: THE FIRST QUESTION ON THE REGISTER SHEET -----------------------
+   Two answers, two buttons, the chosen one gold — `.btn-row .btn.on`, already the app's rule for it.
+   The caption is in `label.field > span`'s group (one caption style, above), and a `<p>`, so its
+   browser margin goes as `.handle-cap`'s does. A field's own gap under the pair, so the boxes that
+   appear below it sit where a next field would.
+
+   "I'M A PARENT OR GUARDIAN" IS TWO LINES AT 320, and `.btn`'s `line-height: 1` was set for one: the
+   two lines touched, and the second sat flush left under a centred first. So a wrapped label is
+   centred and given a line of air, and a little height of its own — the 44px floor is untouched. */
+.reg-cap { margin-top: 0; }
+.reg-who { margin-bottom: .75rem; }
+.reg-who .btn { line-height: 1.2; text-align: center; padding: .35rem .8rem; }
 
 /* ---------- THREE LIBRARY CARDS ON ONE PAGE, WHICH NINE STACKED BOXES CANNOT BE -------------------
    *"there are many different librarys for library card detais so make it smaller so can fit in like

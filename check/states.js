@@ -1486,6 +1486,14 @@ const STATES = {
        button."* The third tile opens a four-box form a signed-out visitor is the only one to see —
        and `#sheet` is a sibling of the screens, so without a state of its own neither the measuring
        pass nor the pressing pass would ever have it open. Entered through the tile's own handler. */
+    /* IT OPENS ON ONE QUESTION NOW — "who is the account for?" — with the boxes under it not yet
+       shown; the walk after 273 found a parent made a student because nobody asked. So the sheet as it
+       opens is the two answers, and the two states after this one are the form each answer draws. */
+    /* `offsetHeight`, NOT `getBoundingClientRect`, IN BOTH EXPECTATIONS BELOW. The sheet opens with a
+       scale from the card it came from (`#sheet`'s transition), and a bounding box is measured through
+       that transform — so on a loaded machine `check/press.js`, which looks 340ms after entering,
+       caught the boxes mid-grow at under 44px and reported the state as never arrived. Layout height is
+       what "is it drawn at full size" means; the tap sizes themselves are `check/ui.js`'s to measure. */
     { name: 'making an account',
       only: () => typeof USER !== 'undefined' && !USER,
       enter: () => {
@@ -1493,10 +1501,37 @@ const STATES = {
         if (!tile) throw new Error('no Make an account tile on the signed-out account column');
         ACTIONS['register'](tile);
       },
-      expect: () => ['reg-first', 'reg-last', 'reg-email', 'reg-pin']
-        .filter(id => document.getElementById(id)).length
-        + (document.querySelector('#sheet-body [data-do="reg-send"]') ? 1 : 0) === 5 ? 5 : 0,
-      wants: 'the register sheet open: four boxes and its one button',
+      expect: () => {
+        const who = [...document.querySelectorAll('#sheet-body [data-do="reg-who"]')]
+          .filter(b => b.offsetHeight >= 44).length;
+        const rest = document.getElementById('reg-rest');
+        return who === 2 && rest && rest.hidden ? 2 : 0;
+      },
+      wants: 'the register sheet open on its question: two 44px answers and nothing else yet',
+      leave: () => { closeSheet(); } },
+    /* ---------- AND ANSWERED "A PARENT" ------------------------------------------------------------
+       The form a parent fills: the two names on one row, their own email, a PIN, the button and the
+       note saying where their child's account is made — and no grown-up's-email tick, which is a
+       student's. 320x568 is where the note ran under the fold before the names shared a row. */
+    { name: 'making an account as a parent',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const tile = document.querySelector('#s-account [data-do="register"]');
+        if (!tile) throw new Error('no Make an account tile on the signed-out account column');
+        ACTIONS['register'](tile);
+        const b = document.querySelector('#sheet-body [data-do="reg-who"][data-who="parent"]');
+        if (!b) throw new Error('the register sheet does not ask who the account is for');
+        ACTIONS['reg-who'](b);
+      },
+      expect: () => {
+        const boxes = ['reg-first', 'reg-last', 'reg-email', 'reg-pin']
+          .filter(id => { const el = document.getElementById(id); return el && el.offsetHeight >= 44; }).length;
+        const send = document.querySelector('#sheet-body [data-do="reg-send"]');
+        const tick = document.getElementById('reg-noemail');
+        return boxes === 4 && send && send.offsetHeight >= 44
+          && tick && tick.closest('.reg-kid').hidden ? 5 : 0;
+      },
+      wants: 'the register sheet answered "a parent": four boxes, its button, and no grown-up\'s-email tick',
       leave: () => { closeSheet(); } },
     /* ---------- AND WITH "I HAVE NO EMAIL" TICKED ----------------------------------------------------
        *"so all kids can login easily with their handle and pin."* The tick is a `.check` row inside the
@@ -1509,6 +1544,10 @@ const STATES = {
         const tile = document.querySelector('#s-account [data-do="register"]');
         if (!tile) throw new Error('no Make an account tile on the signed-out account column');
         ACTIONS['register'](tile);
+        /* A STUDENT'S TICK — the question is answered first, or the row is not drawn at all. */
+        const b = document.querySelector('#sheet-body [data-do="reg-who"][data-who="student"]');
+        if (!b) throw new Error('the register sheet does not ask who the account is for');
+        ACTIONS['reg-who'](b);
         const tick = document.getElementById('reg-noemail');
         if (!tick) throw new Error('the register sheet has no no-email tick');
         tick.checked = true;

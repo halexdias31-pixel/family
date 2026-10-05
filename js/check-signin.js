@@ -25,6 +25,7 @@
    their addresses are on example.org.
 ================================================================================================== */
 'use strict';
+const fs = require('fs'), path = require('path');
 const { backend } = require('./check-gas-load.js');
 
 const bad = [];
@@ -434,10 +435,151 @@ const post = (b, body) => { asked++; return b.post(body); };
   else if (!S(max.handle)) no('the row an invitation makes has no handle — every card draws @Max, which does not sign in');
 }
 
+/* ==================================================================================================
+   8. WHO THE ACCOUNT IS FOR — a parent signs up as a parent, a student as a student, and a student
+      still cannot make themself one
+   --------------------------------------------------------------------------------------------------
+   THE WALK AFTER 273 FOUND IT: a parent who signed up on the phone was written `student`, so Settings
+   never offered "Make your child's account" and ticking Client was refused by the rule that stops a
+   child promoting themself. The form now asks, and `register` writes the role it was told — and the
+   rule stays. Each half is asked of the SHEET afterwards, and then of the next thing the person does.
+   ================================================================================================== */
+let whoRules = 0;
+{
+  const b = fresh();
+  const rule = (ok, said, got) => { if (ok) whoRules++; else no(said, got); };
+  b.seed('people', [
+    person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind80' }),
+    /* A CHILD WHO ALREADY EXISTS, with a parent of her own — the one a stranger's parent account must
+       not be able to reach. */
+    person('P-ELLA', 'student', 'Ella', 'Exists', { email: 'ella@example.org', handle: 'ella_kind81' }),
+    /* A TUTOR, who is not a parent but MAY tick Client — so is the one a refusal may send there. */
+    person('P-TIA', 'tutor', 'Tia', 'Tutor', { email: 'tia@example.org', handle: 'tia_kind82' }),
+  ]);
+  const P1 = ['5', '8', '2', '7', '1', '4'].join(''), P2 = ['4', '1', '9', '3'].join('');
+  const cellOf = (pid, c) => { const r = rowOf(b, x => x.person_id === pid); return r ? r[c] : undefined; };
+  const setSheet = (pid, c, v) => {           // the owner typing into the sheet
+    const h = b.tabs.people[0];
+    const r = b.tabs.people.find((x, i) => i > 0 && x[h.indexOf('person_id')] === pid);
+    if (r) r[h.indexOf(c)] = v;
+  };
+
+  /* A PARENT, AS A PARENT. */
+  const m0 = MAIL.length;
+  const reg = post(b, { action: 'register', who: 'parent', first_name: 'Dana', last_name: 'Brook', email: 'dana@example.org', pin: P1 });
+  const dana = rowOf(b, r => r.first_name === 'Dana');
+  rule(reg.success && dana, 'a parent could not register as a parent', reg);
+  if (dana) {
+    rule(S(dana.role) === 'client', 'a parent who said they were a parent was written "' + S(dana.role) + '", not client — Settings will not offer to make their child\'s account');
+    rule(reg.role === 'parent', 'register\'s reply does not say the account is a parent\'s', reg.role);
+    rule(S(dana.verified).toUpperCase() === 'PENDING', 'a parent\'s account works before the link is opened — the address proves nothing', dana.verified);
+    const mail = mailTo('dana@example.org', m0)[0];
+    rule(mail && /Make your child's account/.test(S(mail.body)), 'the parent\'s confirmation email does not say where their child\'s account is made', mail && mail.body);
+    post(b, { action: 'verifyEmail', token: dana.verify_token });
+    const din = signIn(b, 'dana@example.org', P1);
+    rule(din.success, 'the parent could not sign in after opening the link', din);
+    if (din.token) {
+      /* THE FIRST SIGN-IN SAYS PARENT — the phone's `mayAddChild_` reads exactly these. */
+      rule(din.role === 'parent' && (din.roles || []).indexOf('parent') !== -1,
+        'the parent\'s first sign-in says role ' + JSON.stringify(din.role) + ' / ' + JSON.stringify(din.roles) + ' — the phone draws no "Make your child\'s account"');
+      /* AND THE CARD'S ACTION WORKS ON THAT SAME FIRST SESSION — no reload, no sign-out, no owner. */
+      const kid = post(b, { action: 'makeChild', token: din.token, firstName: 'Ivy', lastName: 'Brook', pin: ZERO });
+      rule(kid.success, 'a parent who signed up on the phone could not make their child\'s account on their first sign-in', kid);
+      /* WHAT A SELF-MADE PARENT CANNOT DO TO A CHILD WHO EXISTS. `makeChild` in her name is refused;
+         `claimChild` only asks, and until Ella answers there is no link, no family card and no New PIN. */
+      const n = b.tabs.people.length;
+      const dup = post(b, { action: 'makeChild', token: din.token, firstName: 'Ella', lastName: 'Exists', pin: ZERO2 });
+      rule(!dup.success && b.tabs.people.length === n && S(cellOf('P-ELLA', 'pin')) === '0',
+        'a parent\'s makeChild in an existing child\'s name made a row or touched hers', dup);
+      const ask = post(b, { action: 'claimChild', token: din.token, firstName: 'Ella', lastName: 'Exists' });
+      const fh = b.tabs.family[0];
+      const link = b.tabs.family.slice(1).find(x => x[fh.indexOf('child_id')] === 'P-ELLA');
+      rule(ask.success && link && link[fh.indexOf('state')] === 'asked', 'claiming an existing child did not stay a question', link);
+      const reset = post(b, { action: 'resetPin', token: din.token, targetId: 'P-ELLA' });
+      rule(!reset.success && S(cellOf('P-ELLA', 'pin')) === '0', 'a parent whose claim nobody answered could give the child a new PIN', reset);
+      const fam = b.get({ token: din.token }).family || [];
+      rule(!fam.some(x => x.personId === 'P-ELLA') && fam.some(x => x.title === 'Ivy Brook'),
+        'the parent\'s family is not "the child they made, and not the one they only asked for"', fam);
+    }
+  }
+
+  /* A STUDENT, AS A STUDENT — and the rule that keeps them one. */
+  const regS = post(b, { action: 'register', who: 'student', first_name: 'Mo', last_name: 'Learner', email: 'mo@example.org', pin: P2 });
+  const mo = rowOf(b, r => r.first_name === 'Mo');
+  rule(regS.success && mo && S(mo.role) === 'student' && regS.role === 'kid', 'a student who said they were a student was written ' + JSON.stringify(mo && mo.role) + ' (reply ' + JSON.stringify(regS.role) + ')', regS);
+  if (mo) {
+    post(b, { action: 'verifyEmail', token: mo.verify_token });
+    const min = signIn(b, 'mo@example.org', P2);
+    rule(min.success && min.role === 'kid', 'the student\'s first sign-in is not a student\'s', min.role);
+    if (min.token) {
+      const up = post(b, { action: 'setMyRoles', token: min.token, roles: ['client', 'student'] });
+      rule(!up.success && S(cellOf(mo.person_id, 'role')) === 'student',
+        'a student who signed up as a student made themself a client — ' + JSON.stringify(up) + ' / ' + cellOf(mo.person_id, 'role'));
+      const n = b.tabs.people.length;
+      const mk = post(b, { action: 'makeChild', token: min.token, firstName: 'Zed', lastName: 'Learner', pin: ZERO2 });
+      rule(!mk.success && b.tabs.people.length === n, 'a student made a child\'s account', mk);
+      /* AND THE REFUSAL DOES NOT SEND THEM TO A TICK THEY WERE JUST REFUSED. It said "Tick Parent
+         under Your roles" — a word the card does not have, and a tick `setMyRoles` turns a student
+         down for two lines above. A student is told who can change it. */
+      rule(!/\bTick\b/i.test(S(mk.error)) && /@family\./.test(S(mk.error)),
+        'a student\'s makeChild refusal sends them to a tick they cannot have, or not to @family.', mk.error);
+
+      /* ---------- THE STALE ROLE: the owner changes it in the sheet, the phone asks `myProfile` --------
+         The walk changed a role in the sheet and the card stayed missing until a sign-out. The phone
+         asks `myProfile` once per app open; it has to carry the role the sheet holds NOW. */
+      const before = post(b, { action: 'myProfile', token: min.token });
+      rule(before.success && before.role === 'kid' && (before.roles || []).join() === 'kid',
+        'myProfile does not say what the person is — the phone cannot correct a stale role', { role: before.role, roles: before.roles });
+      setSheet(mo.person_id, 'role', 'client');
+      const after = post(b, { action: 'myProfile', token: min.token });
+      rule(after.role === 'parent' && (after.roles || []).indexOf('parent') !== -1 && after.tutorPending === false,
+        'after the owner made the student a client in the sheet, myProfile still says ' + JSON.stringify({ role: after.role, roles: after.roles, tutorPending: after.tutorPending }));
+      /* AND IT IS THE ASKER'S OWN ROW — `myProfile` naming the admin's id answers about the asker. */
+      const other = post(b, { action: 'myProfile', token: min.token, personId: 'P-ADM' });
+      rule(other.personId === mo.person_id && other.role !== 'admin', 'myProfile naming the admin answered with the admin\'s role', other);
+    }
+  }
+
+  /* A TUTOR MAY TICK CLIENT, SO A TUTOR IS TOLD THE TICK — by the word the card prints. The card's
+     labels are read from `ROLE_PICKS` in js/me.js, so a refusal and the card cannot drift apart
+     again: "Parent" was the drift, and nothing could see it. */
+  const LABELS = [...fs.readFileSync(path.join(__dirname, 'me.js'), 'utf8')
+    .matchAll(/\[\s*'(?:tutor|client|student)'\s*,\s*'([^']+)'/g)].map(m => m[1]);
+  const tia = signIn(b, 'tia@example.org', PLACE);
+  if (!tia.token) no('the tutor could not sign in, so a tutor\'s makeChild refusal was NOT checked', tia);
+  else {
+    const n = b.tabs.people.length;
+    const tk = post(b, { action: 'makeChild', token: tia.token, firstName: 'Tod', lastName: 'Tutor', pin: ZERO2 });
+    const named = (S(tk.error).match(/\bTick (\w+) under Your roles/) || [])[1];
+    rule(!tk.success && b.tabs.people.length === n && LABELS.length === 3 && named === LABELS[1],
+      'a tutor\'s makeChild refusal names the tick ' + JSON.stringify(named) + ', and the card\'s Client tick is '
+        + JSON.stringify(LABELS[1]) + ' (card labels read: ' + JSON.stringify(LABELS) + ')', tk);
+  }
+
+  /* NO ANSWER (an old phone) IS A STUDENT, AND SO IS ANY WORD BUT `parent`. */
+  const old = post(b, { action: 'register', first_name: 'Ola', last_name: 'Old', email: 'ola@example.org', pin: P2 });
+  rule(old.success && S(cellOf((rowOf(b, r => r.first_name === 'Ola') || {}).person_id, 'role')) === 'student', 'a register with no choice was not a student', old);
+  ['admin', 'tutor', 'client, admin'].forEach((w, i) => {
+    const first = ['Sly', 'Tib', 'Cam'][i];
+    post(b, { action: 'register', who: w, first_name: first, last_name: 'Sneaky', email: first.toLowerCase() + '@example.org', pin: P2 });
+    const r = rowOf(b, x => x.first_name === first);
+    rule(r && S(r.role) === 'student', 'register with who "' + w + '" wrote role ' + JSON.stringify(r && r.role), r);
+  });
+  /* A PARENT WITH ONLY A GROWN-UP'S ADDRESS — refused, nothing written. */
+  const n0 = b.tabs.people.length;
+  const mix = post(b, { action: 'register', who: 'parent', first_name: 'Kim', last_name: 'Mix', parent_email: 'mum@example.org', pin: P2 });
+  rule(!mix.success && b.tabs.people.length === n0 && /own email/.test(S(mix.error)), 'a parent account with only a grown-up\'s address was not refused before writing', mix);
+}
+
+/* EVERY ONE OF SECTION 8'S RULES WAS ASKED, or the count says which were not reached — a parent who
+   could not sign in would otherwise skip the eight questions behind them and print nothing. */
+const WHO_RULES = 26;
+if (whoRules !== WHO_RULES && !bad.length) no('only ' + whoRules + ' of ' + WHO_RULES + ' who-the-account-is-for rules were asked');
+
 console.log('\nWRONG  (' + bad.length + ')');
 if (!bad.length) console.log('  none');
 bad.forEach(x => console.log('  ' + x));
-console.log('\nrequests made: ' + asked + '   emails caught: ' + MAIL.length);
+console.log('\nrequests made: ' + asked + '   emails caught: ' + MAIL.length + '   who-the-account-is-for rules held: ' + whoRules + ' of ' + WHO_RULES);
 if (bad.length) {
   console.log('FAILED — a child who cannot get in, or a classmate who can keep them out, is the whole of what the '
             + 'owner asked to be sure of: "all kids can login easily with their handle and pin".');
@@ -445,5 +587,6 @@ if (bad.length) {
 } else {
   console.log('OK — a child with no email gets an account from a parent or by themselves, signs in by handle and '
             + 'PIN (a 0 in front included), gets a new PIN without anybody else being able to take theirs away, '
-            + 'and a parent or an admin can give them one.');
+            + 'and a parent or an admin can give them one. A parent who signs up as one is a parent from their '
+            + 'first sign-in, and a student still cannot make themself one.');
 }

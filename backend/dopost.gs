@@ -236,11 +236,44 @@ function doPost(e) {
     }
 
     /* --- register ------------------------------------------------------------------------------
-       Anyone may create a CLIENT account. Not a tutor and not an admin: those carry access to other
-       people's details and to money, so they stay something an admin grants rather than something
-       a form hands out.
+       Anyone may create a STUDENT or a CLIENT (parent) account. Not a tutor and not an admin: those
+       carry access to other people's details and to money, so they stay something an admin grants
+       rather than something a form hands out.
        The checks are for honest collisions rather than attacks — two families with the same name,
        or somebody registering twice because the first attempt seemed not to work. --- */
+    /* ---------- WHO THE ACCOUNT IS FOR IS ASKED, AND THE ANSWER IS THE ROLE ----------------------------
+       FOUND BY THE WALK AFTER *"audit the registration process and so on so all kids can login easily
+       with their handle and pin."* A parent who signed up on the phone was written `student` — this
+       said "Anyone may create a CLIENT account" above a row that wrote `role: 'student'` — so Settings
+       never drew "Make your child's account", and ticking Client under Your roles was refused by
+       `setMyRoles`' rule that a student cannot make itself a client. That rule is right and stays: it
+       is what stops a child's account, made by or linked to a parent, promoting itself. The fault was
+       that a parent was a student in the first place. So the form asks — `who: 'parent'` or
+       `'student'` — and the row is written in the role it names, once, at the one moment the person
+       is choosing it.
+
+       NO ANSWER IS A STUDENT. An old phone posts no `who`, and student is what this always wrote —
+       the role that can do least, which is the right thing to give a person who did not say.
+
+       A PARENT'S ACCOUNT NEEDS AN ADDRESS OF ITS OWN. It is what they sign in with, what the link
+       proves, and where a child's account they make is written to (`makeChild`). `parent_email` is a
+       child's door — "a grown-up's address" — so `who: 'parent'` beside it is refused rather than
+       turned quietly into a student.
+
+       WHY A CHILD WHO TICKS PARENT GAINS NOTHING OVER ANY OTHER CHILD. No form can check an age; what
+       matters is what `client` reaches, and every power it has over ANOTHER person goes through that
+       person or through a row nobody else owns:
+         · `makeChild` writes a NEW row, linked to the maker, and refuses a name that is already an
+           account — it cannot reach a child who exists.
+         · `claimChild` only ASKS; nothing is linked until the named child answers yes (`answerClaim`,
+           the child and nobody else). Every child is a request they may refuse, from anybody.
+         · `resetPin` and the family cards follow ACCEPTED links only (`acceptedChildren`).
+         · `doGet` sends a client the same public half of the students list a student gets, and their
+           own family — nothing of anybody else's.
+       What it does add is booking (which needs a card) and messaging a tutor (`MESSAGING`): listed
+       adults the business has put on Find for exactly that, every message kept in the messages tab and
+       reportable. And it is a NEW account — the student account a child already has is untouched, and
+       `setMyRoles` still refuses it Client. */
     /* ---------- A CHILD WITH NO EMAIL OF THEIR OWN MAKES AN ACCOUNT WITH A GROWN-UP'S --------------
        ASKED FOR AS *"so all kids can login easily with their handle and pin"*, and the form refused
        the commonest child there is: no address was "Please give a real email address", and mum's —
@@ -258,7 +291,11 @@ function doPost(e) {
       const first = S(body.first_name), last = S(body.last_name);
       const email = S(body.email), pin = S(body.pin);
       const grownUp = email ? '' : S(body.parent_email);
+      const asParent = norm(body.who) === 'parent';
       if (!first || !last) return jsonOut({ error: 'Please give a first and last name.' });
+      if (asParent && !email) {
+        return jsonOut({ error: 'A parent\'s account needs your own email address — it is what you sign in with. Nothing was saved.' });
+      }
       if (!email && !grownUp) {
         return jsonOut({ error: 'Please give your email address — or, with no email of your own, a grown-up\'s.' });
       }
@@ -307,9 +344,10 @@ function doPost(e) {
         return jsonOut({ error: 'No free handle could be made just now. Nothing was saved — try again.' });
       }
       addRow(t, Object.assign({
-        // Students by default. A parent booking for a child is the account an admin sets up; a
-        // person signing themselves up is almost always the one being taught.
-        person_id: 'P' + Date.now(), role: 'student',
+        /* THE ROLE THEY CHOSE — see the note over this action. It said "Students by default. A parent
+           booking for a child is the account an admin sets up", and that is the sentence the walk
+           found a parent stuck behind: the admin was the only way to Client, and nobody was told. */
+        person_id: 'P' + Date.now(), role: asParent ? 'client' : 'student',
         first_name: first, last_name: last,
         /* ---------- THE HANDLE IS GENERATED — first name, virtue, number — see `handleMake_` --------
            It goes through `handleTrouble_`, so the shape, the reserved list, the blocklist and the
@@ -347,7 +385,13 @@ function doPost(e) {
               body: 'Hello ' + first + ',\n\nConfirm your email address by opening this link:\n\n'
                   + SITE_URL + '?verify=' + token
                   + '\n\nThen sign in with this email address' + (said ? ' (or your handle, ' + said + ')' : '')
-                  + ' and the PIN you chose.\n\n— @family.' }
+                  + ' and the PIN you chose.'
+                  /* THE NEXT STEP, for the person who came for it. A parent's first question once in is
+                     how their child gets an account, and the answer is a card they would otherwise have
+                     to go looking for. */
+                  + (asParent ? '\n\nOnce you are in, Settings → "Make your child\'s account" gives your '
+                              + 'child a handle and a PIN of their own — they need no email.' : '')
+                  + '\n\n— @family.' }
           : { to: grownUp, name: '@family.',
               subject: first + ' has made an @family. account',
               body: 'Hello,\n\n' + full + ' has made an account on @family. and gave this address as '
@@ -362,8 +406,11 @@ function doPost(e) {
       } catch (err) {
         return jsonOut({ error: 'Account created, but the confirmation email could not be sent. Please get in touch.' });
       }
+      /* `role` IN THE APP'S WORD, as the sign-in reply says it, so the phone can tell a parent what
+         comes next without guessing from what it posted. */
       return jsonOut({ success: true, name: full, pending: true, handle: regHandle || '',
-                       confirmBy: email ? 'self' : 'grown-up' });
+                       confirmBy: email ? 'self' : 'grown-up',
+                       role: toAppRole(asParent ? 'client' : 'student') });
     }
 
     /* --- confirming an email address ---------------------------------------------------------
@@ -585,12 +632,23 @@ function doPost(e) {
        served to whoever asks for the same key, and this carries a birthday, a phone number and the
        library-card PINs. `profileOf_` of the row the TOKEN resolved to, and of nobody else — the
        gate has already overwritten `body.personId` with it. */
+    /* ---------- AND YOUR ROLES, WHICH WENT STALE THE SAME WAY ---------------------------------------
+       THE WALK FOUND IT: the owner changed a parent's role to client in the sheet, the parent reloaded,
+       and "Make your child's account" was still missing — it appeared only after signing out and in.
+       The role was the profile's fault exactly: written once by the sign-in reply and kept for thirty
+       days, so a role set by an admin, typed into the sheet or changed on another phone never reached
+       the screens that draw from it. The same three words the sign-in reply carries (`loginReplyFor_`),
+       read the same way, so the two cannot disagree about one row. The phone only DRAWS from these —
+       every action still asks the row the token resolves to, so a stale role was a missing card, never
+       a power. */
     if (action === 'myProfile') {
       const me = findPerson('', S(body.personId));
       if (!me) return jsonOut({ error: 'We could not find your account.' });
       return jsonOut({ success: true, personId: S(me.person_id), profile: profileOf_(me),
                        agreementSignedAt: S(me.agreement_signed_at),
-                       agreementVersion: S(me.agreement_version) });
+                       agreementVersion: S(me.agreement_version),
+                       role: toAppRole(mainRole(me)), roles: rolesOf(me).map(toAppRole),
+                       tutorPending: tutorPending_(me) });
     }
 
     if (action === 'getProfile') {
@@ -2181,8 +2239,19 @@ function doPost(e) {
     if (action === 'makeChild') {
       const me = findPerson('', S(body.personId));
       if (!me) return jsonOut({ error: 'Not signed in.' });
+      /* THE REFUSAL NAMES A TICK THAT EXISTS, AND ONLY TO SOMEBODY WHO MAY TICK IT. It said *"Tick
+         Parent under Your roles"* — the card's word is Client (`ROLE_LABEL`), and the person most
+         likely to be told it, a student, is refused that very tick by `setMyRoles`. So: a student is
+         told who can change it, read as `setMyRoles` reads it (`actingRole_`, so a waiting Tutor
+         tick is still a student); anybody else — a tutor, who may tick Client — is told the tick. The
+         phone never draws this card for either, so it is reached by a stale phone or a request sent
+         straight here; found by the walk after the parent sign-up, which sent one. */
       if (!hasRole(me, 'client') && !hasRole(me, 'admin')) {
-        return jsonOut({ error: 'Only a parent can make a child\'s account. Tick Parent under Your roles first.' });
+        return jsonOut({ error: actingRole_(me) === 'student'
+          ? 'Only a parent can make a child\'s account, and this one is a student\'s. If you are a '
+            + 'parent, ask @family. to change it. Nothing was made.'
+          : 'Only a parent can make a child\'s account. Tick ' + ROLE_LABEL.client
+            + ' under Your roles first. Nothing was made.' });
       }
       const first = S(body.firstName), last = S(body.lastName), pin = S(body.pin);
       if (!first || !last) return jsonOut({ error: 'Their first name and their last name, please.' });

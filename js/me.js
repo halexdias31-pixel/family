@@ -998,31 +998,105 @@ const REG_PIN = /^\d{4,8}$/;
    the grown-up, who says yes; the child signs in with their HANDLE, which the reply carries and the
    sign-in box is filled with. The note under the button says the other way — a parent making the
    account from theirs — because that is the one with no waiting at all. */
+/* ---------- AND WHO THE ACCOUNT IS FOR, ASKED FIRST -------------------------------------------------
+   FOUND BY THE WALK AFTER *"audit the registration process and so on so all kids can login easily
+   with their handle and pin."* A parent who made an account here was made a STUDENT — `register`
+   wrote that for everybody — so Settings never drew "Make your child's account", and ticking Client
+   under Your roles was refused, rightly, by the rule that stops a child making themself a parent.
+   The fault was not the rule; it was that nobody had been asked.
+
+   ONE QUESTION, AND NOTHING ELSE UNTIL IT IS ANSWERED. Two buttons — a FORM's control, so buttons and
+   not tiles, and the chosen one gold: `.btn-row .btn.on`, the two-answer pattern `posting as` already
+   uses. The boxes appear under it once it is answered, so the question cannot be skipped and there is
+   no "you forgot to say" toast to write. Nothing is chosen for you: a default is the answer the walk
+   found wrong, whichever way round it was set.
+
+   THE ANSWER SHAPES THE REST. A parent's account needs an address of its own (it is what they sign
+   in with, and the server refuses `parent_email` beside `who: 'parent'`), so the grown-up's-email tick
+   is a student's only — hidden, and unticked, for a parent. The note under the button says what comes
+   next for the person who chose: a parent's is where their child's account is made.
+
+   THE CHOICE LIVES ON THE ROW (`data-who`), not in a variable: the sheet is the form, a closed sheet
+   forgets it, and a reopened one asks again — which is right for a question about who you are. */
+const REG_NOTE = {
+  parent: 'We email you a link to open. Once you are in, make your child\'s account in Settings — '
+        + 'they need no email.',
+  student: 'We email a link to open. Then sign in with your handle or email and the PIN. A parent '
+         + 'can also make your account, in Settings.',
+};
 function registerSheet_() {
   openSheet('Make an account', `
-    <label class="field"><span>first name</span>
-      <input id="reg-first" autocomplete="given-name"></label>
-    <label class="field"><span>last name</span>
-      <input id="reg-last" autocomplete="family-name"></label>
-    <label class="field"><span>email</span>
-      <input id="reg-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off"
-             spellcheck="false" placeholder="you@example.com"></label>
-    <label class="check reg-kid"><input type="checkbox" id="reg-noemail"><span class="box"></span>
-      <span>It's a grown-up's email</span></label>
-    <label class="field"><span>PIN — 4 to 8 digits</span>
-      <input id="reg-pin" type="password" inputmode="numeric" autocomplete="new-password"></label>
-    <button class="btn" data-do="reg-send">Make my account</button>
-    ${/* THREE LINES AT 320, MEASURED: the first draft was five, and its last two sat under the fold of
-          a sheet nobody scrolls. The tick says whose address it is in four words for the same reason. */''}
-    <p class="faint" style="margin:.6rem 0 0">We email a link to open. Then sign in with your handle
-      or email and the PIN. A parent can also make your account, in Settings.</p>`);
+    ${/* NOT A <label>: a label around buttons hands a tap on its caption to the first button inside,
+          which would answer the question for anybody who touched the words above it. */''}
+    <div class="reg-who" id="reg-who" data-who="" role="group" aria-labelledby="reg-who-cap">
+      <p class="reg-cap" id="reg-who-cap">who is the account for?</p>
+      <div class="btn-row">
+        <button type="button" class="btn quiet" data-do="reg-who" data-who="parent"
+                aria-pressed="false">I'm a parent or guardian</button>
+        <button type="button" class="btn quiet" data-do="reg-who" data-who="student"
+                aria-pressed="false">I'm a student</button>
+      </div>
+    </div>
+    <div id="reg-rest" hidden>
+      ${/* THE TWO NAMES SHARE A ROW, as on "Make your child's account" — measured: with the question
+            above them, four boxes stacked put Make my account under the fold of a 320x568 phone for a
+            student, and the parent's note half under it. A row is 74px back, and a name fits in half
+            of a 320 sheet. */''}
+      <div class="f-row" style="--n:2">
+        <label class="field"><span>first name</span>
+          <input id="reg-first" autocomplete="given-name"></label>
+        <label class="field"><span>last name</span>
+          <input id="reg-last" autocomplete="family-name"></label>
+      </div>
+      <label class="field"><span>email</span>
+        <input id="reg-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off"
+               spellcheck="false" placeholder="you@example.com"></label>
+      <label class="check reg-kid" hidden><input type="checkbox" id="reg-noemail"><span class="box"></span>
+        <span>It's a grown-up's email</span></label>
+      <label class="field"><span>PIN — 4 to 8 digits</span>
+        <input id="reg-pin" type="password" inputmode="numeric" autocomplete="new-password"></label>
+      <button class="btn" data-do="reg-send">Make my account</button>
+      ${/* THREE LINES AT 320, MEASURED: the first draft was five, and its last two sat under the fold
+            of a sheet nobody scrolls. The tick says whose address it is in four words for the same
+            reason. Filled from `REG_NOTE` when the question is answered. */''}
+      <p class="faint" id="reg-note" style="margin:.6rem 0 0"></p>
+    </div>`);
 }
 on('register', () => registerSheet_());
+
+/* `regWho_` IS THE ONE READER of the answer, so the send and the redraw cannot disagree about it. */
+const regWho_ = () => {
+  const w = (($('reg-who') || {}).dataset || {}).who || '';
+  return w === 'parent' || w === 'student' ? w : '';
+};
+on('reg-who', el => {
+  const row = $('reg-who');
+  if (!row || !el) return;
+  const who = el.dataset.who === 'parent' ? 'parent' : 'student';
+  row.dataset.who = who;
+  row.querySelectorAll('[data-do="reg-who"]').forEach(b => {
+    const on_ = b.dataset.who === who;
+    b.classList.toggle('on', on_);
+    b.setAttribute('aria-pressed', on_ ? 'true' : 'false');
+  });
+  const rest = $('reg-rest'); if (rest) rest.hidden = false;
+  const tick = $('reg-noemail'), tickRow = tick && tick.closest('.reg-kid');
+  if (tickRow) tickRow.hidden = who !== 'student';
+  if (tick && who !== 'student') tick.checked = false;
+  const note = $('reg-note'); if (note) note.textContent = REG_NOTE[who];
+});
 
 on('reg-send', el => {
   const v = id => ((($(id) || {}).value) || '').trim();
   const first = v('reg-first'), last = v('reg-last'), email = v('reg-email'), pin = v('reg-pin');
-  const kid = !!($('reg-noemail') || {}).checked;
+  const who = regWho_();
+  /* A STUDENT'S TICK ONLY. The row is hidden for a parent and unticked when it hides, and this asks
+     again rather than trusting that — a parent's address sent as `parent_email` is refused anyway. */
+  const kid = who === 'student' && !!($('reg-noemail') || {}).checked;
+  /* UNREACHABLE FROM THE SHEET — the button is under the question until it is answered — and said
+     anyway, for a button pressed some other way: never posted unanswered, because an unanswered
+     `register` is a student, and that is the fault this question is here to end. */
+  if (!who) { toast('Say who the account is for first — a parent or a student.'); return; }
   if (!first || !last) { toast('Your first and last name, please.'); return; }
   if (email.indexOf('@') < 0) {
     toast(kid ? 'A grown-up\'s email address, please — the link goes to them.'
@@ -1033,7 +1107,7 @@ on('reg-send', el => {
   /* THROUGH `send_`, so the button spins, the four boxes lock while it is on the wire (`#sheet-body`
      is one of the boxes `send_` knows to lock) and a refusal — "That email is already registered" —
      is toasted in the server's own words. */
-  const body = { action: 'register', first_name: first, last_name: last, pin };
+  const body = { action: 'register', who, first_name: first, last_name: last, pin };
   if (kid) body.parent_email = email; else body.email = email;
   send_(body, { button: el, busy: 'Making it…' })
     .then(d => {
@@ -2183,7 +2257,22 @@ on('roles-save', el => {
       if (now) now.textContent = d.changed && USER.tutorPending ? rolesSaid_()
                                : d.changed ? 'Saved.' : rolesSaid_();
     })
-    .catch(() => {});
+    /* A REFUSAL PUTS THE TICKS BACK TO WHAT YOU HOLD. The walk after the parent sign-up found a
+       student's Client box still ticked in gold under the server's *"Nothing was changed"* — a box
+       that says yes over a line that says no, and the box is what the eye reads. The sentence stays
+       (`send_` wrote it); only the ticks move, so the card shows what the server has, which is the
+       card's whole job. NOT ON A LOST REPLY: the server never answered, nothing was decided, and the
+       ticks are still the request somebody is about to send again. */
+    .catch(err => {
+      if (!err || !err.refused) return;
+      const held = heldRoles().map(roleOf);
+      /* THE CARD ON THE PAGE NOW, as the success path asks: the payload arriving mid-request
+         repaints the column, and the card held from the press would then be a detached copy. */
+      const live = document.querySelector('#s-settings .roles-card') || card;
+      [].forEach.call(live.querySelectorAll('[data-role-pick]'), b => {
+        b.checked = held.indexOf(b.dataset.rolePick) !== -1;
+      });
+    });
 });
 
 /* ---------- YOUR JOURNEY — A PLACEHOLDER ----------------------------------------------------------
@@ -2489,7 +2578,15 @@ function send_(body, o) {
     .then(d => {
       /* A REPLY CARRYING AN ERROR IS A FAILURE, and was being treated as success by anything that
          only checked whether the request went through. */
-      if (!d || d.error) throw new Error((d && d.error) || 'That did not work.');
+      /* AND IT IS MARKED `refused` — THE SERVER ANSWERED, AND THE ANSWER WAS NO. A caller can then
+         tell that from a reply that never came: after a refusal what the form shows is a choice the
+         server has turned down, after a lost reply it is still the person's unsent request. Found on
+         the roles card, whose refused Client tick stayed gold under "Nothing was changed". */
+      if (!d || d.error) {
+        const refusal = new Error((d && d.error) || 'That did not work.');
+        refusal.refused = !!(d && d.error);
+        throw refusal;
+      }
       done();
       return d;
     })
@@ -4010,7 +4107,23 @@ function profileRefresh_(loud, onOld) {
       if (d.agreementSignedAt !== undefined) {
         USER.agreementSignedAt = d.agreementSignedAt; USER.agreementVersion = d.agreementVersion;
       }
+      /* ---------- AND THE ROLE, WHICH WENT STALE THE SAME WAY ---------------------------------------
+         FOUND BY THE WALK: the owner made a parent a client in the sheet, the parent reloaded, and
+         "Make your child's account" stayed missing until they signed out and in. `USER.role` and
+         `USER.roles` were the sign-in reply's, kept for the thirty days a session lasts, exactly as
+         `USER.profile` was — and `mayAddChild_`, the roles card and every staff test read them.
+         `myProfile` carries the sheet's three words now; an old server sends none and this keeps
+         what it had. A changed role is a different app — other cards, other columns — so it is the
+         whole `repaint`, which marks every other column stale and draws this one; one that did not
+         change is the settings column alone, as before. The server never trusted these: every action
+         asks the row the token resolves to, so a stale role was a missing card, not a power. */
+      const roleWas = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending]);
+      if (d.role) USER.role = d.role;
+      if (Array.isArray(d.roles) && d.roles.length) USER.roles = d.roles;
+      if (d.tutorPending !== undefined) USER.tutorPending = !!d.tutorPending;
+      const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending]) !== roleWas;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+      if (roleMoved) { try { repaint(); } catch (e) {} return; }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */
       if (typeof screenHasMarkup_ === 'function' && screenHasMarkup_('settings')) {
         try { paint('settings'); placeCells('y', true, 0, 'settings'); } catch (e) {}
