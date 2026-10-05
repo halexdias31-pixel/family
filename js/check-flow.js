@@ -7139,6 +7139,21 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
   else if (!slow.w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" while the index was on its way still misses the Bible after it lands — the cached search was not told');
   st.STUFF().q = '';
 
+  /* AND NOT BEFORE THE LIBRARY. With `data/questions.json` still on its way an admin's Find has to say
+     the questions are still coming — the Bible stands on shelves that arrive with the library, and on
+     its own it turned that sentence into a funnel of one book. The library is held back for good here,
+     which is the slow phone frozen at its worst moment. */
+  const held = boot({ payload: base(), before: seed(admin),
+                      serve: url => (/data\/questions\.json/.test(url) ? new Promise(() => {}) : serve(url)) });
+  await wait(300);
+  held.w.__t.go('stuff');
+  held.w.__t.STUFF().filters = []; held.w.__t.STUFF().q = '';
+  held.w.paintStuff();
+  if (held.w.stuffItemsAll_().some(i => i.kind === 'bible')) bad.push('an admin is offered the Bible before the library has landed');
+  if (!/still coming/.test((held.w.document.getElementById('s-stuff') || {}).textContent || '')) {
+    bad.push('an admin\'s Find with the library still on its way does not say the questions are still coming');
+  }
+
   /* KEPT: the star puts the cover and both lists on Saved. */
   const fav = box(w.stuffCard(x)).querySelector('[data-do="fav"]');
   if (!fav) bad.push('the Bible cover has no Save tile');

@@ -4223,6 +4223,15 @@ function biblePart_(x, part) {
 function bibleItems_() {
   if (!bibleFor_()) return [];
   bibleIndex_();
+  /* ---------- NOT BEFORE THE LIBRARY ----------------------------------------------------------------
+     IT STANDS ON THE RESOURCES SHELVES, AND THE SHELVES ARRIVE WITH THE LIBRARY — the textbooks, the
+     boxers and the bouts are all `libraryExtras_`'s, landing with `data/questions.json`. Offered before
+     then, it was the only thing on an admin's Find for the seconds the library takes, so the screen
+     drew a funnel of one book where it should say "The questions are still coming" (`nothingHere`).
+     Measured, not reasoned: `check/states.js`'s `the library still coming` stopped being reachable for
+     the admin visitor the day this item arrived. The index is still asked for above, so the contents
+     are ready by the time the shelf is. */
+  if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
   const x = { kind: 'bible', name: BIBLE_NAME, key: 'bible:kjv', sub: 'Old and New Testaments',
               image: '', shelf: BIBLE_SHELF, text: bibleWords_(), row: null };
   BIBLE.item = x;

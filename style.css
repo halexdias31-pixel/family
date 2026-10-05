@@ -10437,15 +10437,23 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    hairline that all but vanishes as a chip's only edge, and the answers' `--chip-line` is kept to
    their family by its own rule. */
 .bible { --bb-line: #3a3a3a; }
-.bb-books { display: flex; flex-wrap: wrap; gap: .4rem .35rem; margin: var(--fc-line) 0 0; }
+.bb-books { display: flex; flex-wrap: wrap; gap: .3rem .25rem; margin: var(--fc-line) 0 0; }
 .bb-book, .bb-ch {
-  min-height: 44px; min-width: 44px; margin: 0; padding: .3rem .8rem;
+  min-height: 44px; min-width: 44px; margin: 0; padding: .2rem .55rem;
   display: inline-flex; align-items: center; justify-content: center;
   border: 1px solid var(--bb-line); border-radius: 22px; background: none;
-  color: var(--ink); font: 500 .84rem/1.2 var(--font); cursor: pointer;
+  color: var(--ink); font: 500 .8rem/1.2 var(--font); cursor: pointer;
   transition: background var(--quick) ease, border-color var(--quick) ease;
 }
 .bb-book:active, .bb-ch:active { background: rgb(255 255 255 / .08); }
+/* THE NARROWEST PHONE GETS A NARROWER CHIP, NOT A SHORTER ONE. At 320x568 the thirty-nine books of
+   the Old Testament were thirteen rows — 703px in a 509px pane, so `paneReach_` drew the whole page at
+   0.72, a hair over its floor. The fingertip rule fixes the height at 44px, so the room has to come out
+   of the width: a smaller face and less padding put four short names on a line where three went. */
+@media (max-width: 22rem) {
+  .bb-books { gap: .25rem .2rem; }
+  .bb-book { padding: .2rem .42rem; font-size: .74rem; }
+}
 /* THE OPEN BOOK IS MARKED, in gold, because it is the one the pages after this list belong to. */
 .bb-book.on { border-color: var(--gold); color: var(--gold); }
 /* FETCHING: the same ring `send_`'s busy buttons wear, in front of the name rather than instead of

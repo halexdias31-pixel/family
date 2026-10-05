@@ -1086,6 +1086,46 @@ const STATES = {
                && !!row && row.classList.contains('tile-row') && !!row.querySelector('a.tile[href]');
       },
       wants: 'at least two film cards, each with no tile row inside it, and the Watch tile in the row under the card' },
+    /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN ----------------------------------
+       "i want to add the bible to resources as a book. but only admin can see the bible." `only`, for
+       the films' reason one state up — signed out there is no item, no shelf answer and no fetch, and
+       asking a stranger to reach it would report a fault about the check (check-flow proves the
+       absence; this measures the presence).
+
+       THE TWO PAGES THAT CAN GO WRONG ON A SMALL SCREEN. The Old Testament list is the densest page of
+       it — thirty-nine 44px chips that wrap like text — and Genesis 1 is the reading page, cut to the
+       screen it is on (`bibleBudget_`), with the chapter numbers above it and the chapter's next page
+       below it in the document, so all three are measured: the tap targets, the italics' contrast, and
+       whether a page cut to fit does fit. The book is fetched by the app's own call from the local
+       server, the way a tap fetches it. */
+    { name: 'the Bible, the Old Testament',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        paintStuff();
+        const x = stuffFiltered().find(i => i.kind === 'bible');
+        if (!x) throw new Error('no Bible on the Books shelf for an admin');
+        goPage('stuff', stuffFirstResult_() + Math.max(0, pageParts_(x).indexOf('ot')), true);
+      },
+      expect: () => document.querySelectorAll('#s-stuff .bb-toc.is-ot [data-do="bible-book"]').length === 39,
+      wants: 'the Old Testament page of the Bible, thirty-nine books, a button each' },
+    { name: 'the Bible, Genesis 1',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        paintStuff();
+        bibleLoad_(1).then(d => { if (d) { bibleSet_(1); bibleGo_('c1'); } });
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .card.bb-text.is-c1');
+        return !!c && /In the beginning God created the heaven and the earth\./.test(c.textContent)
+               && !!c.querySelector('.bb-v i') && !/[\[\]]/.test(c.textContent)
+               && !!document.querySelector('#s-stuff .card.bb-chs [data-do="bible-ch"]');
+      },
+      wants: 'Genesis 1 drawn, "In the beginning…" with a supplied word in italics and no bracket, its chapter numbers beside it',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ==============================================================================================
        THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
 
