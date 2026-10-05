@@ -636,18 +636,23 @@ const STATES = {
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'fig'), true);
-        setTimeout(() => {
-          const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
+        /* IN THE TICK THE PAGE IS BUILT, found by its key (`.page.on` comes a frame later), with a
+           tick's grace if it is not there yet -- the timing the answer states above settled on. */
+        const mark = () => {
+          const pad = [...document.querySelectorAll('#s-stuff .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
           const ink = pad && pad.querySelector('.qpad-ink');
-          if (!ink) return;
+          if (!ink) return false;
           const r = ink.getBoundingClientRect();
+          if (!r.width || !r.height) return false;
           const ring = padArc_([200, 150], Math.min(r.width, r.height) * 0.22, r.width / 340, r.height / 340, 0, 2 * Math.PI);
           const marks = [[60, 280, 290, 60], ring];
           try { localStorage.setItem(window.__toolKey, JSON.stringify(marks)); } catch (e) {}
           padRepaint_(pad, marks);
           const c = pad.querySelector('.qpad-tool[data-tool="compass"]');
           if (c) c.click();
-        }, 200);
+          return true;
+        };
+        if (!mark()) setTimeout(mark, 150);
       },
       expect: () => {
         const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
@@ -810,8 +815,11 @@ const STATES = {
            drawn (the landing above is instant), so the whole of `ui.js`'s wait goes to the page turning.
            Pressed after a tick, a loaded run measured the strip still sliding: "PANE OFF THE SCREEN",
            73px out, a picture of the turn rather than of the page it turned to. */
+        /* BY ITS KEY, NOT BY `.page.on`, which is set a frame after the instant landing -- so the tile is
+           found in the same tick the page is built, and a loaded run's timers cannot eat the wait. */
+        const k = ansKey_(it);
         const press = () => {
-          const tile = document.querySelector('#s-stuff .page.on [data-do="qa-go"]');
+          const tile = [...document.querySelectorAll('#s-stuff [data-do="qa-go"]')].find(b => b.getAttribute('data-k') === k);
           if (!tile) return false;
           window.__ansFrom = PAGE.stuff;
           tile.click();
@@ -870,28 +878,35 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
         window.__ansAt = [];
+        window.__ansK = ansKey_(it);
+        /* BY ITS KEY, in the tick the page is built: `.page.on` arrives a frame after an instant
+           landing, and a loaded run's timers are what made the states round here flaky. */
+        const card = () => [...document.querySelectorAll('#s-stuff .qans-card')].find(c => c.getAttribute('data-k') === window.__ansK);
         const at = () => {
-          const t = document.querySelector('#s-stuff .page.on .qans-card .qa-toggle');
-          const c = t && t.closest('.qans-card');
+          const c = card();
+          const t = c && c.querySelector('.qa-toggle');
           if (!t) return null;
           const r = t.getBoundingClientRect(), q = c.getBoundingClientRect();
           return { x: r.left, y: r.top, top: q.top, act: t.getAttribute('data-do') };
         };
         /* IN ONE TICK: the redraw is synchronous and a box read straight after it is laid out, so
            there is nothing to wait for between the presses -- and nothing a slow run can miss. */
-        setTimeout(() => {
+        const run = () => {
+          if (!card()) return false;
           window.__ansAt.push(at());
-          const s = document.querySelector('#s-stuff .page.on .qans-card [data-do="qa-show"]');
+          const s = card().querySelector('[data-do="qa-show"]');
           if (s) s.click();
           window.__ansAt.push(at());
-          const h = document.querySelector('#s-stuff .page.on .qans-card [data-do="qa-hide"]');
+          const h = card().querySelector('[data-do="qa-hide"]');
           if (h) h.click();
           window.__ansAt.push(at());
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const a = window.__ansAt || [];
-        const c = document.querySelector('#s-stuff .page.on .qans-card');
+        const c = [...document.querySelectorAll('#s-stuff .page.on .qans-card')].find(e => e.getAttribute('data-k') === window.__ansK);
         const still = (p, q) => !!p && !!q && Math.abs(p.x - q.x) < 0.5 && Math.abs(p.y - q.y) < 0.5 && Math.abs(p.top - q.top) < 0.5;
         return a.length === 3 && a[0] && a[0].act === 'qa-show' && a[1] && a[1].act === 'qa-hide' && a[2] && a[2].act === 'qa-show'
                && still(a[0], a[1]) && still(a[1], a[2])
