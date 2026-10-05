@@ -2254,7 +2254,10 @@ on('roles-save', el => {
     .catch(err => {
       if (!err || !err.refused) return;
       const held = heldRoles().map(roleOf);
-      [].forEach.call(card.querySelectorAll('[data-role-pick]'), b => {
+      /* THE CARD ON THE PAGE NOW, as the success path asks: the payload arriving mid-request
+         repaints the column, and the card held from the press would then be a detached copy. */
+      const live = document.querySelector('#s-settings .roles-card') || card;
+      [].forEach.call(live.querySelectorAll('[data-role-pick]'), b => {
         b.checked = held.indexOf(b.dataset.rolePick) !== -1;
       });
     });
