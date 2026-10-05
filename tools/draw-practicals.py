@@ -121,10 +121,12 @@ def ph05():
 # ---- PR-PH06  Hooke's law ------------------------------------------------------------------------
 def ph06():
     p = [stand(58, 28, 226, 34, 112), rect(65, 40, 58, 11), cap(94, 34, 'clamp'),
-         spring(112, 51, 124), cap(74, 92, 'spring', 'end'), ln(78, 88, 100, 88),
+         # THE STAND'S ROD RAN THROUGH "spr", and 13 units between the rod and the pointer cannot
+         # hold the word -- so it sits above the pointer, starting just inside the rod.
+         spring(112, 51, 124), cap(68, 82, 'spring', 'start'), ln(78, 88, 100, 88),
          ln(112, 124, 112, 134), rect(94, 134, 36, 13), rect(94, 147, 36, 13),
          cap(112, 176, '100 g masses'),
-         ln(130, 124, 158, 124), head(28, 0, 158, 124, 5.5), cap(152, 116, 'pointer', 'end'),
+         ln(130, 124, 158, 124), head(28, 0, 158, 124, 5.5), cap(155, 116, 'pointer', 'end'),
          rect(164, 28, 18, 208),
          ''.join(ln(164, 36 + 8 * i, 164 + (9 if i % 5 else 15), 36 + 8 * i) for i in range(25)),
          cap(216, 132, 'rule, clamped', 'start'), cap(216, 146, 'beside the spring', 'start'),
@@ -170,7 +172,7 @@ def ph09():
          midhead(sx, sy, sx + 68 * math.sin(math.radians(i)),
                  sy + 68 * math.cos(math.radians(i)), .6),
          arc(ex, ey, 34, 270, 270 - i), lbl(ex - 15, ey - 42, 'i'),
-         arc(ex, ey, 34, 90 - r, 90), lbl(ex + 11, ey + 48, 'r'),
+         arc(ex, ey, 34, 90 - r, 90), lbl(ex + 8, ey + 48, 'r'),       # off the ray, inside its angle
          cap(170, 234, 'both angles are measured from the NORMAL, never from the surface')]
     return svg(244, 'A single ray entering a rectangular glass block, bending towards the normal, '
                     'and leaving parallel to the way it came in', *p)
@@ -222,7 +224,9 @@ def ch06():
          ln(72, 166, 248, 166), cap(292, 170, 'solvent', 'start'),
          ln(262, 166, 286, 166),
          rect(136, 48, 48, 132),                                    # the paper
-         dash(136, 146, 184, 146), cap(110, 150, 'pencil line', 'end'), ln(114, 146, 132, 146),
+         # THE BEAKER WALL RAN THROUGH "pe": 43 units between the wall and the pointer cannot hold
+         # the words, so they sit above the pointer, starting inside the wall.
+         dash(136, 146, 184, 146), cap(73, 141, 'pencil line', 'start'), ln(114, 146, 132, 146),
          circ(146, 146, 3.4), circ(160, 146, 3.4), circ(174, 146, 3.4),
          dash(136, 88, 184, 88), cap(292, 92, 'solvent', 'start'), cap(292, 106, 'front', 'start'),
          ln(188, 88, 286, 88),
@@ -312,7 +316,7 @@ def fn03():
          rect(250, 66, 12, 110), circ(256, 52, 22),
          ln(E[0], E[1], top[0], top[1]), midhead(E[0], E[1], top[0], top[1], .58),
          arc(E[0], E[1], 34, 0, -math.degrees(math.atan2(E[1] - top[1], top[0] - E[0]))),
-         lbl(E[0] + 44, E[1] - 8, 'θ'),
+         lbl(E[0] + 44, E[1] - 4, 'θ'),        # down off the sight line, still inside the angle
          arrow(TOPX + 30, E[1], TOPX + 30, top[1]), cap(312, 86, 'height'),
          cap(312, 100, 'above'), cap(312, 114, 'your eye'),
          arrow(38, E[1], 38, 176), cap(30, 152, 'eye', 'end'), cap(30, 166, 'height', 'end'),
@@ -371,8 +375,10 @@ def fn10():
          ln(41, 98, 299, 98),
          arrow(41, 82, 299, 82), lbl(170, 76, 'w'),
          dash(116, 98, 116, 152), dash(170, 98, 170, 157), dash(224, 98, 224, 152),
-         lbl(108, 130, 'd'), lbl(162, 134, 'd'), lbl(216, 130, 'd'),
-         txt(113, 134, '1', 'num'), txt(167, 138, '2', 'num'), txt(221, 134, '3', 'num'),
+         # EACH d\u2096 FIVE UNITS LEFT OF ITS DASHED LINE, which ran through the subscript, and the
+         # subscript a unit and a half further from the italic d it was overlapping.
+         lbl(103, 130, 'd'), lbl(157, 134, 'd'), lbl(211, 130, 'd'),
+         txt(109.5, 134, '1', 'num'), txt(163.5, 138, '2', 'num'), txt(217.5, 134, '3', 'num'),
          cap(170, 190, 'the depth is different everywhere, so it is meaned —'),
          cap(170, 204, 'width × mean depth is the area the water flows through'),
          cap(170, 226, 'and a float only ever measures the SURFACE, which runs'),
@@ -519,7 +525,9 @@ def ch07():
          path('M 90 150 Q 100 118 110 150'),
          cap(140, 132, 'the pale inner cone', 'start'), ln(116, 128, 136, 128),
          ln(122, 108, 168, 96), circ(118, 109, 5),
-         cap(240, 64, 'the loop, at the'), cap(240, 78, 'EDGE of the flame'),
+         # OFF THE TEST TUBE: centred at 240 both lines ran through its left wall, and they name the
+         # loop, which is to the left anyway.
+         cap(196, 64, 'the loop, at the'), cap(196, 78, 'EDGE of the flame'),
          # the tube the hydroxide tests are done in
          tube(268, 40, 150, 34, 14, 96),
          rect(263, 14, 10, 20), path('M 263 34 L 268 44 L 273 34'),
@@ -540,10 +548,11 @@ def bi01():
          cap(100, 142, 'the specimen', 'end'), ln(104, 146, 132, 152),
          # the coverslip, one edge already in the drop and the rest still up
          poly([(112, 154), (232, 84)]), poly([(114, 158), (234, 88)]),
-         cap(256, 76, 'coverslip', 'start'),
+         # LEFT OF THE NEEDLE, NOT ACROSS IT: at 256 the needle ran through "cov" (check/diagrams.js).
+         cap(226, 72, 'coverslip', 'end'),
          # the needle, holding the far edge up
          ln(233, 86, 274, 62), rect(272, 52, 26, 8),
-         cap(296, 102, 'mounted', 'end'), cap(296, 116, 'needle', 'end'),
+         cap(296, 106, 'mounted', 'end'), cap(296, 120, 'needle', 'end'),
          ln(266, 74, 276, 96),
          arc(112, 156, 62, -30, -4), midhead(196, 110, 178, 126, 1),
          cap(196, 132, 'and then down', 'start'),
@@ -635,7 +644,8 @@ def bi07():
          cap(140, 108, 'thumb', 'end'), cap(140, 176, 'finger', 'end'),
          rect(196, 10, 26, 136),
          ''.join(ln(196, 22 + 11 * k, 196 + (7 if k % 5 else 14), 22 + 11 * k) for k in range(11)),
-         txt(234, 124, '0', 'num'),
+         # ON the zero line it was struck through by it; just above, it still reads as that line's.
+         txt(234, 118, '0', 'num'),
          dash(178, 120, 250, 120),
          cap(288, 60, 'the ZERO mark'), cap(288, 74, 'level with the'),
          cap(288, 88, 'top of the thumb'),
@@ -724,17 +734,21 @@ def fn02():
                  for k in range(3)),
          cap(200, 22, 'the sun is so far away that its', 'start'),
          cap(200, 36, 'rays arrive PARALLEL', 'start'),
-         arc(sx, gy - h, 26, 90 - ang, 90), lbl(sx + 18, gy - h + 34, '\u03b8'),
+         # INSIDE THE ANGLE IT NAMES: at sx + 18 the letter sat on the ray, just outside the wedge.
+         # Centred between the stick and the ray's arrowhead, which a unit further right it crowded.
+         arc(sx, gy - h, 26, 90 - ang, 90), lbl(sx + 6.5, gy - h + 38, '\u03b8'),
          arrow(sx, gy + 14, tipx, gy + 14), cap((sx + tipx) / 2, gy + 34, 'the shadow'),
-         cap(170, gy + 58, '\u03b8 = inverse tan (shadow \u00f7 h): the angle the sun is off'),
-         cap(170, gy + 72, 'vertical AT YOUR PLACE, on the day you measured it'),
+         # FIVE UNITS UP, because the second drawing's rays start at gy + 72 and ran through the
+         # descenders of this line.
+         cap(170, gy + 53, '\u03b8 = inverse tan (shadow \u00f7 h): the angle the sun is off'),
+         cap(170, gy + 67, 'vertical AT YOUR PLACE, on the day you measured it'),
          # the two places, on one side of the Earth so the rays have room
          circ(136, 274, 54),
          ln(136, 220, 136, 196), ln(180, 243, 200, 228),
          dot(136, 220), dot(180, 243),
          ''.join(ln(148 + 26 * k, 176, 158 + 26 * k, 192) for k in range(5)),
          ln(136, 274, 136, 220), ln(136, 274, 180, 243),
-         arc(136, 274, 28, -90, -46), lbl(160, 236, '\u0394'),
+         arc(136, 274, 28, -90, -46), lbl(150, 243, '\u0394'),          # inside the angle, off the rim
          cap(266, 246, 'two places,', 'start'), cap(266, 260, 'one day,', 'start'),
          cap(266, 274, 'two angles', 'start'),
          cap(170, 344, '\u0394 is the same fraction of 360\u00b0 as the distance between'),
@@ -889,7 +903,7 @@ def hm29():
             out.append(ln(cx - 21, oil, cx + 21, oil))
             out.append(ln(cx - 21, oil + 6, cx + 21, oil + 6))
         if dry:
-            out.append(txt(cx, 116, '—', 'lbl'))
+            out.append(txt(cx - 12, 116, '—', 'lbl'))    # beside the nail, which ran through it
         return ''.join(out)
     names = (('water', 88, None), ('salt water', 88, None), ('oil only', None, 84),
              ('dry, sealed', None, None), ('boiled water,', 100, 86))
@@ -1138,7 +1152,9 @@ def hm17():
     pts.append((262, 152))
     p += [poly(pts),
           dot(78 + (262 - 78) * 0.62, 145, 3.6),
-          cap(214, 126, 'wool, tied to ONE coil', 'start'),
+          # ABOVE ITS TICK, NOT PAST IT: started at 214 the words ran through the right-hand person,
+          # and the 80 units between the tick and that person cannot hold them.
+          cap(203, 121, 'wool, tied to ONE coil'),
           ln(196, 130, 210, 130),
           ln(24, 190, 316, 190),
           arrow(78, 208, 262, 208), cap(170, 230, 'measured end to end'),
@@ -1232,7 +1248,7 @@ def hm20():
          ln(152, 76, 174, 76), ln(196, 76, 206, 80),
          ln(196, 66, 288, 78), ln(196, 76, 288, 88),
          head(92, 12, 300, 86, 7),
-         cap(270, 56, 'the straw points'), cap(270, 70, 'BACKWARDS'),
+         cap(270, 54, 'the straw points'), cap(270, 68, 'BACKWARDS'),    # up, off the straw
          cap(170, 232, 'the air goes that way and the car goes the other — which is'),
          cap(170, 246, 'the sentence step 6 is asking for'),
          cap(170, 268, 'three runs and a mean, then change ONE thing: wheel size,'),
@@ -1260,8 +1276,9 @@ def hm21():
          arc(88, 144, 62, 0, -28), lbl(154, 130, 'θ'),
          dash(88, 144, 240, 144),
          ln(258, 88, 258, 124), head(0, -36, 258, 88, 6),
-         cap(292, 100, 'pull back'), cap(292, 114, 'to a MARKED'),
-         cap(292, 128, 'point'),
+         # RIGHT FOUR, because the pull-back arrow at 258 ran through the T of "to".
+         cap(296, 100, 'pull back'), cap(296, 114, 'to a MARKED'),
+         cap(296, 128, 'point'),
          ln(40, 216, 300, 216), rect(52, 216, 30, 8),
          cap(67, 240, 'the firing line'),
          cap(170, 268, 'pulled back by feel, the angle is not the only thing that'),
