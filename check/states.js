@@ -246,16 +246,19 @@ const STATES = {
         goPage('stuff', stuffFirstResult_(), true);
       },
       /* AND THE CARD'S SITTING IS TWO TAGS, `2017` THEN `June` — *"Fix this why it say June and year
-         in same chip"* was a screenshot of one purple `June 2024` pill on exactly this card. */
+         in same chip"* was a screenshot of one purple `June 2024` pill on exactly this card. THEN THE
+         DAY IT WAS SAT, `sat Thursday 8 June`, which was a line of its own under the tags and is a
+         sitting tag now (`qTags_`) -- with no year in it, so it is not the fused pill again. */
       expect: () => {
         const rows = document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]');
         const groups = document.querySelector('#stuff-groups');
         const card = document.querySelector('#s-stuff .page.on .qcard') || document.querySelector('#s-stuff .qcard');
         const sit = card ? [...card.querySelectorAll('.qtag[data-tag="sitting"]')].map(t => t.textContent.trim()) : [];
         return !!groups && rows.length === 0 && /That is the paper, in order/.test(groups.textContent)
-               && !!card && sit.join('|') === '2017|June';
+               && !!card && sit.slice(0, 2).join('|') === '2017|June'
+               && sit.slice(2).every(t => /^sat [A-Z][a-z]+ \d{1,2} [A-Z][a-z]+$/.test(t));
       },
-      wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it, its sitting tagged 2017 then June',
+      wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it, its sitting tagged 2017 then June (then the day it was sat, with no year)',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- AN ANSWER ONE LETTER LONG ---------------------------------------------------------
        A CHIP IS AS WIDE AS ITS WORDS, and the letter ranges `bucketValues_` groups a long list into
