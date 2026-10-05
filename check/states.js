@@ -1350,6 +1350,11 @@ const STATES = {
     /* IT OPENS ON ONE QUESTION NOW — "who is the account for?" — with the boxes under it not yet
        shown; the walk after 273 found a parent made a student because nobody asked. So the sheet as it
        opens is the two answers, and the two states after this one are the form each answer draws. */
+    /* `offsetHeight`, NOT `getBoundingClientRect`, IN BOTH EXPECTATIONS BELOW. The sheet opens with a
+       scale from the card it came from (`#sheet`'s transition), and a bounding box is measured through
+       that transform — so on a loaded machine `check/press.js`, which looks 340ms after entering,
+       caught the boxes mid-grow at under 44px and reported the state as never arrived. Layout height is
+       what "is it drawn at full size" means; the tap sizes themselves are `check/ui.js`'s to measure. */
     { name: 'making an account',
       only: () => typeof USER !== 'undefined' && !USER,
       enter: () => {
@@ -1359,7 +1364,7 @@ const STATES = {
       },
       expect: () => {
         const who = [...document.querySelectorAll('#sheet-body [data-do="reg-who"]')]
-          .filter(b => b.getBoundingClientRect().height >= 44).length;
+          .filter(b => b.offsetHeight >= 44).length;
         const rest = document.getElementById('reg-rest');
         return who === 2 && rest && rest.hidden ? 2 : 0;
       },
@@ -1381,10 +1386,10 @@ const STATES = {
       },
       expect: () => {
         const boxes = ['reg-first', 'reg-last', 'reg-email', 'reg-pin']
-          .filter(id => { const el = document.getElementById(id); return el && el.getBoundingClientRect().height >= 44; }).length;
+          .filter(id => { const el = document.getElementById(id); return el && el.offsetHeight >= 44; }).length;
         const send = document.querySelector('#sheet-body [data-do="reg-send"]');
         const tick = document.getElementById('reg-noemail');
-        return boxes === 4 && send && send.getBoundingClientRect().height >= 44
+        return boxes === 4 && send && send.offsetHeight >= 44
           && tick && tick.closest('.reg-kid').hidden ? 5 : 0;
       },
       wants: 'the register sheet answered "a parent": four boxes, its button, and no grown-up\'s-email tick',
