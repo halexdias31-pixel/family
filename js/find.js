@@ -5347,7 +5347,19 @@ function doneMark_(k) {
   if (doneRead_(k) === today) return;
   DONE_HELD.set(dk, today);
   try { localStorage.setItem(dk, today); } catch (e) {}
-  attemptSend_([{ key: doneQKey_(k), day: today }]);
+  /* AND ITS NAME, FOR THE WEEKLY PARENT EMAIL (backend/digest.gs): the sheet holds a key no parent
+     can read and the backend cannot look up. `Maths · Paper 1 — June 2024 · Q3`, the subject left out
+     when the paper's name already says it. Only here, where the card is in hand — the load's backlog
+     sends keys alone and the email falls back to the key — and absent rather than blank when there
+     is no card, so that request is what it always was. */
+  let label = '';
+  try {
+    const it = stuffItemsAll_().find(y => ansKey_(y) === k);
+    const sub = String((it && it.sub) || ''), subj = String((it && it.subject) || '');
+    if (it) label = [subj && sub.toLowerCase().indexOf(subj.toLowerCase()) === -1 ? subj : '', sub, it.name]
+      .filter(Boolean).join(' · ');
+  } catch (e) {}
+  attemptSend_([Object.assign({ key: doneQKey_(k), day: today }, label ? { label: label } : {})]);
   /* EVERY COLUMN IT IS DRAWN ON, by the answer key -- Find and Saved can both hold the card. */
   document.querySelectorAll('.qcard-done').forEach(el => {
     if (el.getAttribute('data-k') === k) el.textContent = doneText_(today);
