@@ -13,7 +13,7 @@
    and the lab that measured "unstable" on 5 October found (history: pending-swipefocus), is the
    rest of what a thumb does:
 
-     · a peek and a change of mind: 70px held still, or 150px pulled back to 80 and let go moving
+     · a peek and a change of mind: 70px held still, or a drag pulled part of the way back and let go moving
        home — both turned the page, 8 times in 8;
      · a diagonal on a column with nowhere to go up or down — 45° on Saved did nothing, 12 in 12;
      · a second flick on the OTHER axis while the first is still settling — the first one's slide
@@ -112,18 +112,17 @@ async function finger(cdp, { x0, y0, path: at, dur, hold = 0, end = true }) {
   if (end) { ms += 4; const wake = T0 + ms - Date.now(); if (wake > 1) await sleep(wake); await send('touchEnd', 0, 0, ms); }
   return { lift: () => send('touchEnd', 0, 0, Date.now() - T0) };
 }
-async function tap(cdp, x, y) {
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 1, radiusX: 8, radiusY: 8 }] });
-  await sleep(50);
-  await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-}
 /* THE SHAPES A THUMB MAKES. `flick` accelerates to the lift; `still` decelerates to a stop and holds;
    `back` goes out and is pulled part of the way home, still moving home as it lifts. */
 const ease = { flick: t => t * t, still: t => 1 - (1 - t) * (1 - t) };
 const G = {
   flick: (dx, dy, dur = 100) => ({ dur, path: t => [dx * ease.flick(t), dy * ease.flick(t)] }),
   still: (dx, dy, dur = 420, hold = 320) => ({ dur, hold, path: t => [dx * ease.still(t), dy * ease.still(t)] }),
-  back: (dx, dy, out = 150, home = 80) => ({ dur: 450, path: t => {
+  /* PULLED BACK TO A POINT STILL PAST THE BAR — 120px is beyond a third of every step this asks
+     (100px across at 390, 89px down Games), so only the speed home can stop it turning. Pulled back
+     to 80, as the lab first did, it fell under the bar the release now uses and proved nothing about
+     the speed: the mutant without `backing` passed. */
+  back: (dx, dy, out = 180, home = 120) => ({ dur: 450, path: t => {
     const k = t < 0.667 ? out * ease.still(t / 0.667) : out - (out - home) * ((t - 0.667) / 0.333);
     return [Math.sign(dx) * k, Math.sign(dy) * k];
   } }),
@@ -138,12 +137,7 @@ const G = {
    the app has built it), and every axis the grid claims during a gesture, read after the app's own
    `pointermove` has decided it. */
 function RECORDER() {
-  const R = window.__sw = { acts: [], axes: [], downs: [] };
-  /* WHETHER EACH FINGER CAME DOWN ON A CARD STILL SLIDING, read at the moment it did — the harness
-     asking "is it sliding?" and then tapping is two moments, and a loaded machine puts time between. */
-  addEventListener('pointerdown', () => {
-    try { R.downs.push(performance.now() < SLIDE_UNTIL - 60); } catch (e) {}
-  }, { capture: true, passive: true });
+  const R = window.__sw = { acts: [], axes: [] };
   R.arm = () => {
     Object.keys(ACTIONS).forEach(k => {
       const f = ACTIONS[k];
@@ -155,7 +149,7 @@ function RECORDER() {
       try { if (SWIPE.axis && R.axes[R.axes.length - 1] !== SWIPE.axis) R.axes.push(SWIPE.axis); } catch (e) {}
     }, { passive: true });
   };
-  R.reset = () => { R.acts = []; R.axes = []; R.downs = []; };
+  R.reset = () => { R.acts = []; R.axes = []; };
   /* ON A COLUMN AND PAGE, AND STILL. Instant, then waited out until nothing on the column is moving —
      not a fixed sleep, which is either too short on a loaded machine or slow everywhere else. */
   R.place = async (col, p) => {
@@ -188,7 +182,7 @@ function RECORDER() {
   };
   /* WHERE A THUMB CAN LAND AND THE GRID WILL TAKE IT: bare card, not a control, nothing under it that
      scrolls — the spot `check/press.js`'s own touch rules look for. `on` asks for a control instead. */
-  R.spot = (on, ys) => {
+  R.spot = (on, ys, xs) => {
     const host = document.getElementById('s-' + AT);
     const pane = host && host.querySelector(':scope > .page.on > .pane');
     if (!pane) return null;
@@ -205,7 +199,7 @@ function RECORDER() {
     }
     const top = Math.max(60, pr.top), bot = Math.min(pr.bottom, innerHeight - 40);
     for (const fy of ys || [0.5, 0.4, 0.6, 0.3, 0.7, 0.2, 0.8]) {
-      for (const fx of [0.5, 0.35, 0.65, 0.25, 0.75]) {
+      for (const fx of xs || [0.5, 0.35, 0.65, 0.25, 0.75]) {
         const x = Math.round(pr.left + pr.width * fx), y = Math.round(top + (bot - top) * fy);
         const el = document.elementFromPoint(x, y);
         if (!el || !pane.contains(el)) continue;
@@ -256,7 +250,7 @@ async function gesture(env, o) {
   let s0 = null, sp = null;
   for (const p of [].concat(o.p === undefined ? [undefined] : o.p)) {
     s0 = await page.evaluate(([c, p]) => window.__sw.place(c, p), [o.col, p]);
-    sp = await page.evaluate(([on, ys]) => window.__sw.spot(on, ys), [o.on || null, o.ys || null]);
+    sp = await page.evaluate(([on, ys, xs]) => window.__sw.spot(on, ys, xs), [o.on || null, o.ys || null, o.xs || null]);
     if (sp) break;
   }
   if (!sp) return { err: `no spot on ${o.col} pages ${[].concat(o.p)} the grid would take${o.on ? ' (' + o.on + ')' : ''}` };
@@ -337,8 +331,8 @@ async function gesture(env, o) {
     await turn('40px up, held still', { col: 'games', p: GAMES, g: G.still(0, -40) }, same);
     await turn('70px up, held still — a peek, not a turn', { col: 'games', p: GAMES, g: G.still(0, -70) }, same);
     await turn('70px left, held still — a peek, not a turn', { col: 'tools', p: TOOLS, g: G.still(-70, 0) }, same);
-    await turn('150px up, pulled back to 80 and let go moving home', { col: 'games', p: GAMES, g: G.back(0, -1) }, same);
-    await turn('150px left, pulled back to 80 and let go moving home', { col: 'tools', p: TOOLS, g: G.back(-1, 0) }, same);
+    await turn('180px up, pulled back to 120 and let go moving home', { col: 'games', p: GAMES, ys: [0.75, 0.65, 0.55, 0.5], g: G.back(0, -1) }, same);
+    await turn('180px left, pulled back to 120 and let go moving home', { col: 'tools', p: TOOLS, xs: [0.78, 0.7, 0.62], g: G.back(-1, 0) }, same);
     /* AND THE CONTROL: a deliberate drag most of the way, held still, still turns the page. */
     await turn('half a card up, held still', { col: 'games', p: GAMES, g: G.still(0, -Math.round(H * 0.45)) }, down1);
     }
@@ -387,58 +381,48 @@ async function gesture(env, o) {
     if (want('tile')) await turn('up, starting on a tile', { col: 'games', p: GAMES, on: '.tile-row [data-do], .tile[data-do]', g: G.flick(0, -140, 130) }, down1);
 
     /* ---------- 4. A TAP ON A CARD STILL SLIDING IS NOT A PRESS ---------------------------------
-       Flick up, then tap the arriving card's first control where it is DRAWN at that instant. The
-       control afterwards: the same control, tapped once the card has landed, does press — or the
-       rule above would be passing on a control nothing could press. */
+       ASKED OF THE MECHANISM, IN ONE TASK. The first version tapped the arriving card with a real
+       finger 90ms after a flick, and it could not fail: a card still moving at that speed has slid
+       out from under the finger between touch-down and lift, so the click lands on whatever they
+       share and nothing is pressed either way — the mutant with the guard taken out passed. So the
+       page is turned, the arriving card's star is pressed the way a finger presses it (`pointerdown`,
+       `pointerup`, `click`) while the slide is running, and nothing may happen; then the same star,
+       pressed once the card has landed, must answer — or the first half proved nothing. */
     if (want('slide')) {
-      let tried = 0, pressedMid = null, pressedAfter = null;
-      for (let k = 0; k < 3 && !pressedMid; k++) {
-        await page.evaluate(() => window.__sw.place('games', 1));
-        const sp = await page.evaluate(() => window.__sw.spot());
-        if (!sp) break;
-        await page.evaluate(() => window.__sw.reset());
-        await finger(cdp, Object.assign({ x0: sp.x, y0: sp.y }, G.flick(0, -90)));
-        await sleep(90);
-        const c = await page.evaluate(() => {
-          const pg = document.querySelector('#s-' + AT + ' > .page.on');
-          const el = pg && [...pg.querySelectorAll('[data-do="fav"], .tile[data-do]')].find(e => {
-            const r = e.getBoundingClientRect(); return r.width > 20 && r.top > 0 && r.bottom < innerHeight; });
-          if (!el) return null;
-          const r = el.getBoundingClientRect();
-          return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), sliding: performance.now() < SLIDE_UNTIL - 60, act: el.getAttribute('data-do') };
-        });
-        if (!c || !c.sliding) continue;
-        await page.evaluate(() => window.__sw.reset());
-        await tap(cdp, c.x, c.y);
-        await sleep(80);
-        const rec = await page.evaluate(() => ({ acts: window.__sw.acts.map(a => a.act), down: window.__sw.downs[0] }));
-        /* ONLY A TAP WHOSE FINGER CAME DOWN WHILE IT SLID COUNTS — one that landed after is a press. */
-        if (!rec.down) continue;
-        tried++;
-        if (rec.acts.length) pressedMid = rec.acts.join(',');
-        /* AND ONCE IT HAS LANDED, THE SAME CONTROL ANSWERS. */
-        const still = await page.evaluate(() => window.__sw.still());
-        const c2 = await page.evaluate(act => {
-          const pg = document.querySelector('#s-' + AT + ' > .page.on');
-          const el = pg && pg.querySelector('[data-do="' + act + '"]');
-          if (!el) return null;
-          const r = el.getBoundingClientRect();
-          return { x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2) };
-        }, c.act);
-        if (c2 && still) {
-          await page.evaluate(() => window.__sw.reset());
-          await tap(cdp, c2.x, c2.y);
-          await sleep(150);
-          pressedAfter = await page.evaluate(() => window.__sw.acts.map(a => a.act).join(','));
-          /* put the star back the way it was */
-          if (pressedAfter) { await tap(cdp, c2.x, c2.y); await sleep(150); }
-        }
-      }
+      const r = await page.evaluate(async () => {
+        const press = el => {
+          const o = { bubbles: true, cancelable: true, isPrimary: true, pointerType: 'touch', pointerId: 7 };
+          el.dispatchEvent(new PointerEvent('pointerdown', o));
+          el.dispatchEvent(new PointerEvent('pointerup', o));
+          el.click();
+        };
+        await window.__sw.place('games', 1);
+        AXES.y.go((PAGE.games || 0) + 1);
+        placeNow_('y', false, 0);
+        const pg = document.querySelector('#s-games > .page.on');
+        const star = pg && pg.querySelector('[data-do="fav"]');
+        if (!star) return { none: true };
+        const out = { sliding: performance.now() < SLIDE_UNTIL - 60 };
+        window.__sw.reset();
+        press(star);
+        out.mid = window.__sw.acts.map(a => a.act);
+        await window.__sw.still();
+        window.__sw.reset();
+        const again = document.querySelector('#s-games > .page.on [data-do="fav"]');
+        if (again) press(again);
+        out.after = window.__sw.acts.map(a => a.act);
+        /* AND THE STAR PUT BACK THE WAY IT WAS. */
+        if (again && out.after.length) { await window.__sw.still(); press(document.querySelector('#s-games > .page.on [data-do="fav"]')); }
+        return out;
+      });
       reached++;
-      note(`${at} tap mid-slide: ${tried} tap(s) landed while sliding; pressed ${pressedMid || 'nothing'}; after landing pressed ${pressedAfter || 'nothing'}`);
-      if (!tried) fail('REACH', `${at} tap mid-slide`, 'no tap could be made while the card was still sliding — nothing was asked');
-      if (pressedMid) fail('NO PRESS WHILE SLIDING', `${at} games`, `a tap on the card still sliding pressed ${pressedMid}`);
-      if (tried && !pressedAfter) fail('NO PRESS WHILE SLIDING', `${at} games`, 'the same control tapped after the card landed pressed nothing either, so the rule above proved nothing');
+      note(`${at} tap mid-slide: sliding ${r.sliding}; pressed ${(r.mid || []).join(',') || 'nothing'}; after landing pressed ${(r.after || []).join(',') || 'nothing'}`);
+      if (r.none) fail('REACH', `${at} tap mid-slide`, 'the card turned to on Games has no star to press');
+      else if (!r.sliding) fail('REACH', `${at} tap mid-slide`, 'the page turn was not sliding when the star was pressed — nothing was asked');
+      else {
+        if (r.mid.length) fail('NO PRESS WHILE SLIDING', `${at} games`, `a press on the card still sliding ran ${r.mid.join(', ')}`);
+        if (!r.after.length) fail('NO PRESS WHILE SLIDING', `${at} games`, 'the same star pressed after the card landed ran nothing either, so the rule above proved nothing');
+      }
     }
 
     /* ---------- 5. A SECOND GESTURE ON THE OTHER AXIS LEAVES THE FIRST ONE SLIDING ---------------

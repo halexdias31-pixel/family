@@ -21,7 +21,7 @@ screenshots taken to check the result found a tenth.
 | **"it turned the page when I changed my mind"** | 150 px pulled back to 80 and let go moving home: **turned 8/8**; 70 px held still: **turned 8/8** | `far` never looked at the release speed; "far" was `min(56px, 18% of the step)` — 7% of a tall card | a release moving home at ≥ 0.2 px/ms does not turn; a still release needs **a third of the step, between 56 and 120 px**. A flick is unchanged. Both now **stay** (lab and check) |
 | **a card jumped when you swiped again the other way** | sideways then up 40–160 ms later: the arriving column snapped 81–248 px in one frame (12/12); up then sideways: 199–614 px (9/9) | `no-anim` (`transition: none !important`) on whatever was dragged killed *both* axes' slide — there was one transform and one transition | a column's x is `transform` and its y the separate `translate` property, each with its own transition; a drag zeroes only its own axis (`colTransition_`). The other slide is **still running with 335 px / 492 px to go** after a drag frame on the other axis (check). Browsers without `translate` keep the single transform |
 | **the keypad stayed up over the wrong card** | a maths box focused, card swiped away: keypad up and typing into a card off screen, **8/8** | the pad closes on `focusout`, and nothing took the focus away | a focused field whose page is no longer in front is blurred by `placeGrid` — pad and phone keyboard alike. **Closes 2/2** (lab), **let go** (check) |
-| **a tap on a sliding card pressed it** | a star fired on a card mid-flight, 90 ms after the lift | nothing knew a slide was running | a press that starts while the column in front is sliding is swallowed like a drag (`SLIDE_UNTIL`, `PRESS_SLIDING`), the last 60 ms excepted. **Nothing pressed in 5 mid-slide taps; the same star pressed once landed** (check) |
+| **a tap on a sliding card pressed it** | a star fired on a card mid-flight, 90 ms after the lift | nothing knew a slide was running | a press that starts on a card while the column in front is sliding is swallowed like a drag (`SLIDE_UNTIL`, `PRESS_SLIDING`), the last 60 ms excepted — and only on the cards: the first version swallowed a tap on a sheet's backdrop opened over a column still sliding in, and `check/press.js` said so. **Nothing pressed in 5 mid-slide taps; the same star pressed once landed** (check) |
 | **(found by the screenshots) the card lagged the finger** | a sideways drag whose first moves arrived folded together (7 px, then 132 px) left the card **132 px behind the thumb** for the whole gesture | the axis lock took the whole travel at the moment of deciding off what is placed — ten pixels only when every move arrives | it takes the ten pixels of slop and no more (check sends exactly that shape) |
 | (minor) a code jump straight to a deep page of an unvisited column shows the wrong card for a moment | 0.44–1.8 s | `placeCells`' "animation wins" against first-paint requests | **not done** — one caller (`me.js:2687`); worth doing if links straight to widgets arrive |
 
@@ -55,10 +55,14 @@ redrawn every frame (2.4–2.8× the drawing, render passes doubled). Nothing tw
 away carries it.
 
 It **follows the finger**: the card leaving blurs and the card arriving sharpens in step with how far
-the drag has gone (`softDrag_` — check: 30% of the way, 0.61 px and 1.39 px), and at the release both
-are handed to the same duration and curve the column settles on (`softSettle_`). The two panes doing
-that hold `will-change: filter` for the length of the movement only, then let it go (check: no pane
-keeps a layer once still). A pane with a **playing video or an iframe** is dimmed instead of blurred,
+the drag has gone (`softDrag_` — check: 30% of the way, 0.61 px and 1.39 px), and the release finishes
+the change at once (`softSettle_`). **Easing it over the settle was written first and measured out**:
+Chrome cannot run a blur's animation on the compositor, so the main thread ticked two or three panes'
+filters every frame of every settle, and `check/press.js`'s chained flick — a 40 px flick 20–40 ms into
+the first one's settle — read its release speed as 0–0.37 px/ms and lost the page 3 times in 8 (base:
+0). Switched at the release: 22 of 24 across six interleaved runs at a load average of ~30, the same
+as the base commit under the same load (11 of 12). The two panes the finger moves hold
+`will-change: filter` for the length of the movement only (check: no pane keeps a layer once still). A pane with a **playing video or an iframe** is dimmed instead of blurred,
 since it repaints every frame; a paused reel or a canvas at rest is a still picture and is blurred
 like the rest (dimming every canvas left Flabby Pird sharp beside a blurred chessboard). Asking for
 **less motion or less transparency**: dimmed, never blurred, nothing eased. Never blurred: the card in
