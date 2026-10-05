@@ -85,9 +85,12 @@ its point and radius, Mark with AI. The first look caught the bin orphaned on it
   exception in the owner's words (a9e7e59, on the base branch, not this one).
 * **`check/cards.js` called 2,371 question cards "a picture on the card"** on the base branch, because
   Check's tick is an `<svg>`; it strips tile marks by their class first now (a real diagram on a card
-  is still caught: 344 when one is put back, proved). **Four answer and typed-answer states** in
-  `check/states.js` pressed after a 150ms timer and went unreached on a loaded machine (on the base run
-  too); they find their card by key in the tick the page is built now.
+  is still caught: 344 when one is put back, proved). **Every Find state that pressed after a timer**
+  in `check/states.js` (the answer pages, the typed and tapped answers, the ringed passage, the search
+  box, the keypad, Mark with AI) went unreached at random on a machine loaded to an average of 25–30
+  (on the base run too); each finds its card by key in the tick the page is built now, the timer kept
+  as a fallback. And check-flow's camera journey waits for an expected ask instead of a fixed 700ms
+  (its "nothing was asked" waits are unchanged). None of these changes what any check asserts.
 * **The Show/Hide tile sits above the answer**, not under it, so it is in the same place both ways.
 * **Choosing a tool locks the card**; the padlock is still the only way off.
 * **`needs` from the paper's cover counts**: every pen question in a paper whose cover lists a ruler
