@@ -723,6 +723,12 @@ const STATES = {
        `ANS_SHOWN` IS EMPTIED ON THE WAY IN AND OUT. States run in order down one page, and an answer
        shown by one would be measured as already shown by the next -- the hidden state would then be
        a picture of the open one, and pass. */
+    /* THE RESULT EXPECTED IS THE ONE THE APP SAYS, not a word copied in here. These states wanted
+       /^No$/ until the data caught up with "remove all whys" and Q3's head became the whole result
+       ("No: salesmen get £180 each, …") -- the page was right and the check was a stale copy of the
+       data. So the head is asked of `answerParts_` and drawn through `typeset_`, the same two calls
+       `answerBlock_` makes, and the page must show exactly that -- inline in each `expect`, because a
+       state is evaluated in the page as its own source and a helper declared in this file is not there. */
     { name: 'an answer, hidden until it is asked for',
       enter: () => {
         ANS_SHOWN.clear();
@@ -766,9 +772,9 @@ const STATES = {
         const c = document.querySelector('#s-stuff .page.on .qans-card');
         return window.__ansFrom !== null && PAGE.stuff === window.__ansWant && PAGE.stuff > window.__ansFrom
                && !!c && !c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
-               && /^No$/.test((c.querySelector('.qans-body') || {}).textContent.trim());
+               && (c.querySelector('.qans-body') || {}).textContent.trim() === ((t) => { const d = document.createElement('div'); d.innerHTML = typeset_(answerParts_(t).head); return d.textContent.trim(); })((stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1MA1-1811-1H-3') || {}).answer);
       },
-      wants: 'the question\'s answer tile pressed, and the page turned forward to its answer, open: "No"',
+      wants: 'the question\'s answer tile pressed, and the page turned forward to its answer, open: the result answerParts_ gives it',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'an answer, shown, and nothing under it',
       enter: () => {
@@ -788,10 +794,10 @@ const STATES = {
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qans-card:not(.is-hidden)');
         const ans = c && c.querySelector('.qans');
-        return !!ans && /^No$/.test(ans.querySelector('.qans-body').textContent.trim())
+        return !!ans && ans.querySelector('.qans-body').textContent.trim() === ((t) => { const d = document.createElement('div'); d.innerHTML = typeset_(answerParts_(t).head); return d.textContent.trim(); })((stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1MA1-1811-1H-3') || {}).answer)
                && !c.querySelector('details, .qans-why, .qans-more, .qans-note');
       },
-      wants: 'the answer page showing "No" once its button is pressed, and nothing under it',
+      wants: 'the answer page showing its result (the head answerParts_ gives) once its button is pressed, and nothing under it',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- MARKED, AND NOTHING MOVED --------------------------------------------------------
        ASKED FOR AS "make it nice more sleek, fresh stable". The unstable part was measured before it
