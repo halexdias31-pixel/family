@@ -3332,6 +3332,11 @@ check('the sign-in card is one tile row, and Make an account posts register', as
   }
   const go_ = d.querySelector('#sheet-body [data-do="reg-send"]');
   if (!go_) return bad.concat(['the register sheet has no button']);
+  /* WHO IT IS FOR, FIRST — the journey after this one asks the question itself; here it is answered
+     so the rest of the form can be asked about. */
+  const asStudent = d.querySelector('#sheet-body [data-do="reg-who"][data-who="student"]');
+  if (!asStudent) return bad.concat(['the register sheet does not ask who the account is for']);
+  t.ACTIONS['reg-who'](asStudent);
 
   /* A BAD PIN, REFUSED ON THE PHONE. Three digits and a letter are both things the server refuses. */
   fill('reg-first', 'Rae'); fill('reg-last', 'Newcomer'); fill('reg-email', 'rae@example.org');
@@ -3350,7 +3355,7 @@ check('the sign-in card is one tile row, and Make an account posts register', as
   const post = sent.find(b => b.action === 'register');
   if (!post) bad.push('a filled sheet posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no register');
   else {
-    const want = { first_name: 'Rae', last_name: 'Newcomer', email: 'rae@example.org', pin: '0000' };
+    const want = { who: 'student', first_name: 'Rae', last_name: 'Newcomer', email: 'rae@example.org', pin: '0000' };
     Object.keys(want).forEach(k => { if (post[k] !== want[k]) bad.push('register carried ' + k + ' = ' + JSON.stringify(post[k]) + ', wanted ' + JSON.stringify(want[k])); });
   }
   if (!sheet.classList.contains('hidden')) bad.push('the sheet is still open after the account was made');
@@ -3405,6 +3410,9 @@ check('a child with no email makes their own account with a grown-up\'s address,
   if (!open()) return ['there is no Make an account tile to press'];
   await wait(50);
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
+  /* A STUDENT — the grown-up's-email tick is theirs alone (see the next journey for the parent). */
+  const student = () => { const b = d.querySelector('#sheet-body [data-do="reg-who"][data-who="student"]'); if (b) t.ACTIONS['reg-who'](b); return !!b; };
+  if (!student()) return ['the register sheet does not ask who the account is for'];
   const tick = d.getElementById('reg-noemail');
   if (!tick) return ['the register sheet has no "I have no email" tick, so a child with no address has no way in'];
   if (tick.closest('label.check') === null) bad.push('the no-email tick is not the app\'s own .check control');
@@ -3425,6 +3433,7 @@ check('a child with no email makes their own account with a grown-up\'s address,
   await wait(50);
   if (!open()) return bad.concat(['the Make an account tile went after one use']);
   await wait(50);
+  student();
   fill('reg-first', 'Rae'); fill('reg-last', 'Newcomer'); fill('reg-email', 'rae@example.org'); fill('reg-pin', '0000');
   sent.length = 0;
   t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
@@ -3444,6 +3453,133 @@ check('a grown-up opening a no-email child\'s link is told the child\'s handle',
   const bad = [];
   if (!/@ben_kind42/.test(said)) bad.push('the grown-up was told ' + JSON.stringify(said) + ' — not the handle the child signs in with');
   if (/sign in with it/i.test(said)) bad.push('the grown-up was told to sign in with their own address, which signs nobody in for the child');
+  return bad;
+});
+
+/* ==================================================================================================
+   WHO THE ACCOUNT IS FOR. The walk after 273 found a parent who signed up on the phone made a student,
+   with no "Make your child's account" and a Client tick refused. `check-signin.js` §8 asks the backend
+   that `who` decides the role; this asks the phone's half — that the question is asked FIRST and
+   cannot be skipped, that the answer shapes the form and goes on the wire, and that a parent who
+   signed up is shown the make-child card on the first paint after signing in, with no reload.
+================================================================================================== */
+check('Make an account asks who it is for first, and a parent is a parent from the first sign-in', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'register'
+      ? { success: true, name: 'Dana Brook', pending: true, handle: 'dana_kind44', confirmBy: 'self',
+          role: b.who === 'parent' ? 'parent' : 'kid' }
+    : b.action === 'verifyLogin'
+      ? { success: true, name: 'Dana Brook', personId: 'P-DANA', handle: 'dana_kind44', token: 'tk-dana',
+          role: 'parent', roles: ['parent'], tutorPending: false,
+          profile: { first_name: 'Dana', last_name: 'Brook' } }
+    : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(120);
+  const reg = d.querySelector('#s-account [data-do="register"]');
+  if (!reg) return ['there is no Make an account tile to press'];
+  t.ACTIONS['register'](reg);
+  await wait(50);
+  const choice = who => d.querySelector('#sheet-body [data-do="reg-who"][data-who="' + who + '"]');
+  const rest = () => d.getElementById('reg-rest');
+  const tickRow = () => { const x = d.getElementById('reg-noemail'); return x && x.closest('.reg-kid'); };
+  if (!choice('parent') || !choice('student')) return ['the register sheet does not ask "a parent or a student?"'];
+  /* THE QUESTION FIRST: the boxes and the button are not shown, and nothing is chosen for you. */
+  if (!rest() || !rest().hidden) bad.push('the boxes are shown before anybody has said who the account is for');
+  if (d.querySelector('#sheet-body [data-do="reg-who"].on')) bad.push('an answer is already chosen when the sheet opens — the default is the fault this question ends');
+  if (choice('parent').closest('label')) bad.push('the choice is inside a <label>, so a tap on its caption answers it');
+  /* AND A SEND THAT SOMEHOW HAPPENS UNANSWERED POSTS NOTHING. */
+  const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; };
+  fill('reg-first', 'Dana'); fill('reg-last', 'Brook'); fill('reg-email', 'dana@example.org'); fill('reg-pin', '0000');
+  sent.length = 0;
+  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  await wait(200);
+  if (sent.some(b => b.action === 'register')) bad.push('an unanswered sheet posted register — the server would make them a student');
+
+  /* A STUDENT TICKS THE GROWN-UP'S BOX, THEN SAYS PARENT: the tick goes, and is not sent. */
+  t.ACTIONS['reg-who'](choice('student'));
+  if (rest().hidden) bad.push('answering did not show the boxes');
+  if (!tickRow() || tickRow().hidden) bad.push('a student is not offered "It\'s a grown-up\'s email"');
+  d.getElementById('reg-noemail').checked = true;
+  t.ACTIONS['reg-who'](choice('parent'));
+  if (!choice('parent').classList.contains('on') || choice('parent').getAttribute('aria-pressed') !== 'true'
+      || choice('student').classList.contains('on') || choice('student').getAttribute('aria-pressed') !== 'false') {
+    bad.push('the chosen answer is not the gold, pressed one (and the other not)');
+  }
+  if (!tickRow().hidden || d.getElementById('reg-noemail').checked) bad.push('a parent is still offered, or still has ticked, the grown-up\'s-email box');
+  const note = String((d.getElementById('reg-note') || {}).textContent || '');
+  if (!/child's account/.test(note) || !/Settings/.test(note)) bad.push('a parent\'s note does not say where their child\'s account is made: ' + JSON.stringify(note));
+
+  sent.length = 0;
+  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  await wait(300);
+  const post = sent.find(b => b.action === 'register');
+  if (!post) return bad.concat(['the parent\'s form posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no register']);
+  if (post.who !== 'parent') bad.push('the parent\'s register carried who = ' + JSON.stringify(post.who));
+  if (post.email !== 'dana@example.org' || post.parent_email) bad.push('the parent\'s address did not go as their own email: ' + JSON.stringify({ email: post.email, parent_email: post.parent_email }));
+
+  /* THE FIRST SIGN-IN, AND SETTINGS ON THE VERY NEXT PAINT — nothing reloaded, nobody signed out. */
+  t.go('account', false, true);
+  await wait(80);
+  fill('in-name', 'dana@example.org'); fill('in-pin', '0000');
+  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  await wait(300);
+  const u = t.whoami();
+  if (!u || u.role !== 'parent') return bad.concat(['signing in did not leave a parent signed in: ' + JSON.stringify(u && u.role)]);
+  try { t.go('settings', false, true); } catch (e) { return bad.concat(['going to settings threw: ' + e.message]); }
+  await wait(250);
+  if (!d.querySelector('#s-settings .kid-make')) bad.push('a parent who has just signed in for the first time has no "Make your child\'s account" on Settings');
+
+  /* A STUDENT'S POST SAYS STUDENT. */
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(80);
+  t.ACTIONS['register'](d.querySelector('#s-account [data-do="register"]'));
+  await wait(50);
+  t.ACTIONS['reg-who'](choice('student'));
+  fill('reg-first', 'Mo'); fill('reg-last', 'Learner'); fill('reg-email', 'mo@example.org'); fill('reg-pin', '0000');
+  sent.length = 0;
+  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  await wait(300);
+  const post2 = sent.find(b => b.action === 'register');
+  if (!post2 || post2.who !== 'student') bad.push('a student\'s register carried who = ' + JSON.stringify(post2 && post2.who));
+  return bad;
+});
+
+check('a role changed in the sheet reaches the screen on the next open, with no sign-out', async () => {
+  /* THE WALK: the owner made a parent a client in the sheet; the parent reloaded; no card until they
+     signed out and in. Here the phone opens holding a stale `kid` and `myProfile` says `parent`. */
+  const kid = { name: 'Mo Learner', personId: 'P-MO', role: 'kid', roles: ['kid'], token: 'tk-mo',
+                profile: { first_name: 'Mo', last_name: 'Learner' } };
+  const reply = role => b => b.action === 'myProfile'
+    ? Object.assign({ success: true, personId: b.personId || 'P-MO', profile: { first_name: 'Mo', last_name: 'Learner' } },
+                    role ? { role, roles: [role], tutorPending: false } : {})
+    : { success: true, messages: [] };
+  const open = async role => {
+    const b = boot({ reply: reply(role), before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(kid)); } catch (e) {} } });
+    await wait(700);
+    return b;
+  };
+  const bad = [];
+  {
+    const { w, sent } = await open('parent');
+    const t = w.__t, d = w.document;
+    if (!sent.some(b => b.action === 'myProfile')) return ['opening the app signed in did not ask myProfile, so nothing could correct a stale role'];
+    const u = t.whoami();
+    if (!u || u.role !== 'parent' || (u.roles || []).join() !== 'parent') bad.push('the phone kept its stale role after myProfile said parent: ' + JSON.stringify(u && [u.role, u.roles]));
+    let kept = null; try { kept = JSON.parse(w.localStorage.getItem('familyUser') || 'null'); } catch (e) {}
+    if (!kept || kept.role !== 'parent') bad.push('the corrected role was not kept, so the next open starts stale again');
+    try { t.go('settings', false, true); } catch (e) {}
+    await wait(250);
+    if (!d.querySelector('#s-settings .kid-make')) bad.push('after the role was corrected there is still no "Make your child\'s account" — the walk\'s sign-out dance is still needed');
+  }
+  /* AN OLD SERVER SENDS NO ROLE: what the phone had stays. */
+  {
+    const { w } = await open('');
+    const u = w.__t.whoami();
+    if (!u || u.role !== 'kid') bad.push('a myProfile with no role in it wiped the role the phone had: ' + JSON.stringify(u && u.role));
+  }
   return bad;
 });
 
