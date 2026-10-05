@@ -3911,20 +3911,37 @@ function pageParts_(x, prev) {
      the diagram, (a), (b), (c). With no `prev` (Saved, a check, a result on its own) every stem is
      drawn, because a part landed on alone still needs the paragraph and the picture it is about. N
      is the stem's place in `x.stems`, so two parts of one question name the same stem the same way. */
+  /* ---------- AND EVERY FIGURE WHERE THE PAPER PRINTS IT, ON A PAGE OF ITS OWN ----------------------
+     ASKED FOR AS *"a question which begins with text, then diagram, then text then diagram then text.
+     This should break into 5 widgets ... same order but diagram has its own widget."* The figure was
+     always the page AFTER its row's words, so a picture printed between two sentences came after both.
+     Now each row says where its figure stands (`<!--fig-->`, see `figBlocks_`) and the pages are cut
+     on either side of it: `stemPlan_` and `partPlan_` give the words' pages and how many of them come
+     before the figure, and this lays them out. A stem: its words before (`stemN`...), its figure
+     (`sfigN`), its words after (`stemN-J`). A part: its pages before (`preJ`), its figure (`fig`), its
+     pages after, the last of them the card (`null`) with the box; then its answer. */
   if (x && x.kind === 'question') {
     const had = prev && prev.kind === 'question' ? (prev.stems || []).map(stemId_) : [];
     const out = [];
     (x.stems || []).forEach((p, i) => {
       if (!p || had.indexOf(stemId_(p)) >= 0) return;
-      /* A LONG STEM IS SEVERAL PAGES, `stemN`, `stemN-1`, `stemN-2` -- see `stemChunks_`. */
-      if (String(p.html || '').trim()) stemChunks_(p).forEach((c, j) => out.push('stem' + i + (j ? '-' + j : '')));
-      if (stemHasFig_(p)) out.push('sfig' + i);
+      /* A LONG STEM IS SEVERAL PAGES, `stemN`, `stemN-1`, `stemN-2`, numbered straight across its
+         figure -- see `stemPlan_`. */
+      const plan = stemPlan_(p), fig = stemHasFig_(p);
+      plan.chunks.forEach((c, j) => {
+        if (fig && j === plan.figAt) out.push('sfig' + i);
+        out.push('stem' + i + (j ? '-' + j : ''));
+      });
+      if (fig && plan.figAt >= plan.chunks.length) out.push('sfig' + i);
     });
     /* AND A LONG PART IS ITS FIRST PAGES (`preN`) AND THEN THE CARD, which keeps the last of its words
-       with the box -- see `partChunks_`. */
-    partChunks_(x).slice(0, -1).forEach((c, j) => out.push('pre' + j));
-    out.push(null);
-    if (questionHasFig_(x)) out.push('fig');
+       with the box -- with its figure among them where `partPlan_` stands it. */
+    const plan = partPlan_(x);
+    plan.chunks.forEach((c, j) => {
+      if (j === plan.figAt) out.push('fig');
+      out.push(j === plan.chunks.length - 1 ? null : 'pre' + j);
+    });
+    if (plan.figAt >= plan.chunks.length) out.push('fig');
     if (questionHasAns_(x)) out.push('ans');
     return out;
   }
@@ -6316,11 +6333,13 @@ function questionCard_(x) {
             NO PICTURE HERE. The diagram, the pen and the question's photographs are the NEXT page
             — see `questionFigCard_`. The answer box stays on this card, under the words. */''}
       ${chunkHtml_(partChunks_(x).slice(-1)[0])}
-      ${/* AND THE WORDS SAY WHERE IT WENT. "The angle marked y", with no angle on the card, reads as
-            a question that failed to load; one quiet line, a label rather than a control, because
-            the page turns the way every page does. Asked of the same `questionHasFig_` that
-            `pageParts_` asks, so the line and the page that it names cannot disagree. */''}${
-        questionHasFig_(x) ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
+      ${/* AND THE WORDS SAY WHERE IT WENT -- when it went AFTER them. "The angle marked y", with no
+            angle on the card, reads as a question that failed to load; one quiet line, a label rather
+            than a control, because the page turns the way every page does. Asked of the same
+            `partPlan_` that `pageParts_` lays out, so the line and the page that it names cannot
+            disagree. A figure standing in front of the card was the page you just turned past, and
+            pointing forward at it would send you the wrong way. */''}${
+        partPlan_(x).figAt >= partChunks_(x).length ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
     </div>
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. It is the page after -- see
           `questionAnsCard_` -- and the order is still the whole point: an answer you can see before
@@ -6352,17 +6371,21 @@ const qNum_ = x => 'Q' + ((x.qNumber != null && x.qNumber !== '') ? x.qNumber
 function questionStemCard_(x, i, j) {
   const p = (x.stems || [])[i];
   if (!p) return '';
+  const plan = stemPlan_(p);
   const chunks = stemChunks_(p);
   j = Math.min(+j || 0, chunks.length - 1);
   const last = j === chunks.length - 1;
+  /* THE FIGURE IS NEXT when this is the last page in front of it -- the stem's last page where it has
+     no marker, or the page before the marker where it does. */
+  const figNext = stemHasFig_(p) && j === plan.figAt - 1;
   return `<div class="qcard qstem" data-of="${esc(stemId_(p))}">
     ${qHead_(Object.assign({}, x, { name: qNum_(x), marks: 0 }), chunks.length > 1 ? (j + 1) + ' of ' + chunks.length : '')}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">
       <div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${
         p.lines && !j ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${typeset_(chunks[j])}</div>${
-      !last ? '<p class="qsheet-figref">Continued on the next page &rarr;</p>'
-        : stemHasFig_(p) ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
+      figNext ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>'
+        : !last ? '<p class="qsheet-figref">Continued on the next page &rarr;</p>' : ''}
     </div>
   </div>`;
 }
@@ -6379,7 +6402,7 @@ function questionPreCard_(x, j) {
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">
       ${chunkHtml_(chunks[j])}
-      <p class="qsheet-figref">Continued on the next page &rarr;</p>
+      <p class="qsheet-figref">${partPlan_(x).figAt === j + 1 ? 'Figure' : 'Continued'} on the next page &rarr;</p>
     </div>
   </div>`;
 }
@@ -6443,29 +6466,122 @@ function packBlocks_(blocks, page, last) {
   if (cur.length || !out.length) out.unshift(cur);
   return out;
 }
+/* ---------- WHERE THE PAPER PRINTS THE FIGURE: `<!--fig-->` ----------------------------------------
+   ASKED FOR AS *"Let's say there's a question which begins with text, then diagram, then text then
+   diagram then text. This should break into 5 widgets. This is to ensure it's same order but diagram
+   has its own widget."* -- after a lesson on June 2024 Paper 1 Foundation, where a figure printed
+   between two sentences arrived a page AFTER both of them, and the second sentence ("Work out the size
+   of angle x") was read before the angle it is about.
+
+   A ROW HAS ONE FIGURE AND ITS WORDS, AND NOTHING SAID WHERE IN THE WORDS IT GOES. So the data says:
+   the literal HTML comment `<!--fig-->` between two top-level blocks of a row's `html` is where that
+   row's `diagram` / `images` stands. A comment because it is the one mark HTML already promises never
+   to draw -- a row read by anything that does not know the convention (the search haystack's
+   `plainText_`, `typeset_`, a browser) shows nothing for it. `check-library.js` holds the convention
+   at the file: one per row, top level, only on a row with a figure.
+
+   AND IT IS TAKEN OUT HERE, BEFORE ANYTHING IS COUNTED OR DRAWN. `figBlocks_` returns the row's blocks
+   with the marker gone and the number of blocks in front of it; the cutter weighs and the cards draw
+   only those blocks, so the marker is never a character of a page. A marker INSIDE a block (data typed
+   wrongly) stands after that block rather than splitting it -- a paragraph cut in half to make room for
+   a picture is two broken paragraphs. */
+const FIG_MARK = /<!--\s*fig\s*-->/gi;
+function figBlocks_(html) {
+  const out = [];
+  let at = -1;
+  htmlBlocks_(html).forEach(b => {
+    const hit = b.search(/<!--\s*fig\s*-->/i);
+    const clean = b.replace(FIG_MARK, '');
+    const keep = !!clean.trim();
+    if (hit >= 0 && at < 0 && !b.slice(0, hit).trim()) at = out.length;
+    if (keep) out.push(clean);
+    if (hit >= 0 && at < 0) at = out.length;
+  });
+  return { blocks: out, at: at };
+}
+
 /* MEMOISED ON THE OBJECT, because `pageParts_` asks for every result on every new filter and the
    library is seven thousand rows; the html of a row does not change under it. */
 const CHUNK_MEMO = new WeakMap();
-function stemChunks_(p) {
-  if (!p || typeof p !== 'object') return [''];
+/* PACKED A SEGMENT AT A TIME. The figure stands between two segments, so the cut never puts words from
+   both sides of it on one page; an empty segment is no page at all (`packBlocks_` alone would hand
+   back one empty page, which is right for a card that must exist and wrong for a side of a figure). */
+const packSeg_ = (blocks, page, last) => (blocks.length ? packBlocks_(blocks, page, last) : []);
+
+/* ---------- A STEM'S PAGES, AND WHICH OF THEM ITS FIGURE STANDS IN FRONT OF ------------------------
+   `chunks` is the stem's words cut into pages, every page in order across both sides of its figure;
+   `figAt` is how many of them come before the figure -- all of them where the stem has no marker,
+   which is the order it always had: the words, then the picture. */
+function stemPlan_(p) {
+  if (!p || typeof p !== 'object') return { chunks: [], figAt: 0 };
   const had = CHUNK_MEMO.get(p);
   if (had) return had;
-  const out = packBlocks_(htmlBlocks_(p.html).map(h => ({ k: 'pb', h: h })), CHUNK_PAGE, CHUNK_PAGE)
-    .map(c => c.map(b => b.h).join(''));
-  CHUNK_MEMO.set(p, out);
-  return out;
+  const fb = figBlocks_(p.html);
+  const fig = stemHasFig_(p);
+  const at = fig && fb.at >= 0 ? fb.at : fb.blocks.length;
+  const seg = bs => packSeg_(bs.map(h => ({ k: 'pb', h: h })), CHUNK_PAGE, CHUNK_PAGE).map(c => c.map(b => b.h).join(''));
+  const before = seg(fb.blocks.slice(0, at)), after = seg(fb.blocks.slice(at));
+  const plan = { chunks: before.concat(after), figAt: before.length };
+  CHUNK_MEMO.set(p, plan);
+  return plan;
+}
+function stemChunks_(p) {
+  const c = stemPlan_(p).chunks;
+  return c.length ? c : [''];
+}
+
+/* ---------- A PART'S PAGES, AND WHERE ITS FIGURE STANDS AMONG THEM ----------------------------------
+   `chunks` is the part's words cut into pages, the LAST of them the question card with the box;
+   `figAt` is how many come before its figure page (`chunks.length` = after the card; -1 = no figure).
+   In the order the owner described and the paper prints:
+
+     A MARKER        the lead and the html before it  ->  FIGURE  ->  the html after it, with the box.
+                     A marker at the very end (every word before the figure): the card, then the figure.
+     NO MARKER,      the figure is the ANSWER SURFACE (a pen question, `padWanted_`): the card, then
+     A PEN           the figure to draw on -- you read what to draw before the thing you draw it on,
+                     and the words with the box are the ask. Whether or not there is a lead.
+     NO MARKER,      lead  ->  FIGURE  ->  the html with the box: the lead is the part's own sentence of
+     A LEAD          setting ("Here is a grid."), and the ask is what follows the picture.
+     NO MARKER,      the figure IN FRONT OF THE QUESTION CARD -- straight before the page with the ask,
+     NO LEAD         after any long reading cut in front of it -- because the paper prints a part's figure
+                     before its ask far more often than after it. It was after the card, for every part,
+                     until the owner tutored from it.
+
+   THE CUT STILL APPLIES WITHIN EACH SIDE: the side with the box keeps `PART_LAST` (the ask and only
+   what fits beside the box and tiles), the side in front pages of `CHUNK_PAGE`. "N of M" in the
+   header counts the text pages across both sides, so `Q5(a) · 1 of 2` is the words before the figure
+   and `Q5(a) · 2 of 2` the card after it. */
+function partPlan_(x) {
+  if (!x || typeof x !== 'object') return { chunks: [[]], figAt: -1 };
+  const had = CHUNK_MEMO.get(x);
+  if (had) return had;
+  const lead = x.lead ? [{ k: 'lead', h: String(x.lead).replace(FIG_MARK, '') }] : [];
+  const fb = figBlocks_(x.html);
+  const pb = fb.blocks.map(h => ({ k: 'pb', h: h }));
+  let plan;
+  const split = (before, after) => {
+    if (!after.length) {
+      const c = packBlocks_(before, CHUNK_PAGE, PART_LAST);
+      return { chunks: c, figAt: c.length };
+    }
+    const b = packSeg_(before, CHUNK_PAGE, CHUNK_PAGE);
+    return { chunks: b.concat(packBlocks_(after, CHUNK_PAGE, PART_LAST)), figAt: b.length };
+  };
+  if (!questionHasFig_(x)) plan = { chunks: packBlocks_(lead.concat(pb), CHUNK_PAGE, PART_LAST), figAt: -1 };
+  else if (fb.at >= 0) plan = split(lead.concat(pb.slice(0, fb.at)), pb.slice(fb.at));
+  else if (padWanted_(x)) plan = split(lead.concat(pb), []);
+  else if (lead.length) plan = split(lead, pb);
+  else {
+    const c = packBlocks_(pb, CHUNK_PAGE, PART_LAST);
+    plan = { chunks: c, figAt: c.length - 1 };
+  }
+  CHUNK_MEMO.set(x, plan);
+  return plan;
 }
 /* THE LEAD IS ONE BLOCK, kept whole and in its own wrapper: it is the part's own sentence of setting,
    and it is short (`lead` is 436 cells, none past a page). */
 function partChunks_(x) {
-  if (!x || typeof x !== 'object') return [[]];
-  const had = CHUNK_MEMO.get(x);
-  if (had) return had;
-  const blocks = (x.lead ? [{ k: 'lead', h: String(x.lead) }] : [])
-    .concat(htmlBlocks_(x.html).map(h => ({ k: 'pb', h: h })));
-  const out = packBlocks_(blocks, CHUNK_PAGE, PART_LAST);
-  CHUNK_MEMO.set(x, out);
-  return out;
+  return partPlan_(x).chunks;
 }
 /* A CHUNK IN THE WRAPPERS THE CARD ALWAYS USED -- the lead in `.qsheet-lead`, the part's words in
    `.qsheet-part > .qsheet-pb` -- so the typesetting rules and every check reading them still apply. A
@@ -6544,7 +6660,12 @@ function qHead_(x, part, done) {
 
 
 /* ==================================================================================================
-   THE FIGURE IS ITS OWN CARD, THE PAGE STRAIGHT AFTER ITS QUESTION.
+   THE FIGURE IS ITS OWN CARD, WHERE THE PAPER PRINTS IT.
+
+   IT WAS THE PAGE STRAIGHT AFTER ITS QUESTION, and that is now only one of the places it can stand:
+   *"text, then diagram, then text then diagram then text ... same order but diagram has its own
+   widget"*. Where among the words is `partPlan_`'s to say (a `<!--fig-->` in the row, else in front of
+   the ask, else after it for a pen question); what the page draws is this, unchanged.
 
    ASKED FOR AS "across the board of all resources the diagrams should be its own widgets." The
    practicals were already split into pages — card, kit, method, worksheet — and this is the same

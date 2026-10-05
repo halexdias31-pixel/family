@@ -1272,11 +1272,17 @@ for (const who of VISITORS) {
             const sid = stem ? (pg.x.stems[+stem[2]] || {}).id : '';
             const head = ((el && el.querySelector('.qcard-top b')) || {}).textContent || '';
             let ok;
+            /* ---------- AND A FIGURE WHERE THE PAPER PRINTS IT -------------------------------------------
+               *"text, then diagram, then text then diagram then text ... same order but diagram has its
+               own widget"*: a part's figure (`fig`) can stand in front of its card, between its pre
+               pages, or after the card (`partPlan_`), and a stem's (`sfigN`) between its words. So a
+               pre page leads into its own next page -- another pre, the figure, or the card -- and a
+               figure page belongs to the question on one side of it or the other, never to nobody. */
             if (pre) {
               const next = pages[i + 1];
               ok = /class="qcard qpre/.test(html) && html.indexOf('data-of="' + id + '"') !== -1
                 && html.indexOf('qp-ans') === -1 && !!next && next.x === pg.x
-                && (!next.part || /^pre\d+$/.test(next.part));
+                && (!next.part || /^pre\d+$/.test(next.part) || next.part === 'fig');
             } else if (stem) {
               const next = pages[i + 1];
               ok = !!sid && html.indexOf('data-of="' + sid + '"') !== -1 && html.indexOf('qp-ans') === -1
@@ -1290,8 +1296,10 @@ for (const who of VISITORS) {
                 && html.indexOf('qp-ans') === -1
                 && i > 0 && pages[i - 1].x === pg.x && (!pages[i - 1].part || pages[i - 1].part === 'fig');
             } else if (pg.part === 'fig') {
-              ok = html.indexOf('data-of="' + id + '"') !== -1 && html.indexOf('qp-ans') === -1
-                && i > 0 && pages[i - 1].x === pg.x && !pages[i - 1].part && !/\bQ\d/.test(head);
+              const next = pages[i + 1];
+              ok = html.indexOf('data-of="' + id + '"') !== -1 && html.indexOf('qp-ans') === -1 && !/\bQ\d/.test(head)
+                && ((i > 0 && pages[i - 1].x === pg.x && pages[i - 1].part !== 'ans')
+                    || (!!next && next.x === pg.x && (!next.part || /^pre\d+$/.test(next.part))));
             } else {
               ok = html.indexOf(':q:' + id) !== -1 && html.indexOf('class="qcard qfig') === -1
                 && html.indexOf('qans-card') === -1;
@@ -1316,7 +1324,7 @@ for (const who of VISITORS) {
                          : !bad.stems ? 'no stem page on a paper whose questions share stems'
                          : !bad.answers ? 'no answer page on a paper that has answers'
                          : 'every page its own question, figure or answer',
-                    want: 'every page its own question, each figure and then each answer straight after it' });
+                    want: 'every page its own question, each figure beside its own words and each answer straight after its question' });
       }
     }
     swipes.push(...walk);

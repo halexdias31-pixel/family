@@ -515,6 +515,10 @@ function outside(svg, row) {
         const batch = pages.slice(i, i + 200);
         host.innerHTML = batch.map(pg => {
           const html = pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, 0);
+          /* THE FIGURE MARKER IS NEVER A PAGE'S -- `<!--fig-->` says where the figure stands and is
+             taken out before anything is cut or drawn (`figBlocks_`). A comment draws as nothing, so
+             one left in is invisible here too, and has to be asked for in the markup. */
+          if (/<!--\s*fig\s*-->/i.test(html)) inline.push((pg.x.row && pg.x.row.row_id) + (pg.part ? '#' + pg.part : '') + ' draws the <!--fig--> marker');
           return '<section class="page"><div class="pane"><div data-row="' + (pg.x.row && pg.x.row.row_id)
             + (pg.part ? '#' + pg.part : '') + '" data-kind="' + kindOf(pg.part) + '" class="card is-widget">'
             + html + '</div></div></section>';

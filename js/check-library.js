@@ -729,6 +729,57 @@ rows.forEach(r => {
 const drawnHere = rows.filter(r => r && /^family/.test(String(r.diagram_by || ''))).length;
 const chosenHere = rows.filter(r => r && r.diagram_by === 'family-set').length;
 
+/* ---------- WHERE A ROW'S FIGURE STANDS: `<!--fig-->` ----------------------------------------------
+   ASKED FOR AS *"a question which begins with text, then diagram, then text then diagram then text.
+   This should break into 5 widgets ... same order but diagram has its own widget."* A row has one
+   figure and some words, and nothing said where among the words the paper prints it -- so the data
+   says, with the literal comment `<!--fig-->` between two top-level blocks of `html`. `figBlocks_` in
+   find.js reads it and the pages are cut on either side (`stemPlan_`, `partPlan_`).
+
+   THE CONVENTION IS HELD HERE, AT THE FILE, because a misplaced marker draws as nothing at all -- an
+   HTML comment is invisible by design, which is why it was chosen -- and so the only sign of one in
+   the wrong place is a figure in the wrong place:
+     ONLY IN `html`.         `lead` is one block by definition and the other columns are not read for it.
+     ONE PER ROW.            A row has one figure; a second marker is a second figure that does not exist.
+     ON A ROW WITH A FIGURE. A `diagram`, `images`, or -- a question answered by drawing -- the surface
+                             the pen is given. A marker anywhere else places nothing.
+     AT THE TOP LEVEL.       Between two blocks, never inside a paragraph, a table or a list: the app
+                             stands a figure found inside a block AFTER that block rather than cut it,
+                             so the data would be saying one place and the page showing another.
+   And it prints how many rows carry one: the data workflow is putting them in, and a count is how
+   anybody knows it has. */
+const FIG_MARK = /<!--\s*fig\s*-->/gi;
+const FIG_BLOCK = /^(p|div|table|thead|tbody|tfoot|tr|td|th|ul|ol|li|dl|dt|dd|h[1-6]|blockquote|figure|pre|section|span|b|i|em|strong|sup|sub)$/i;
+const FIG_VOID = /^(br|img|hr|input|meta|link|col|wbr|source|area|base|param|track|embed)$/i;
+let marked = 0;
+rows.forEach(r => {
+  if (!r || !r.row_id) return;
+  Object.keys(r).forEach(k => {
+    if (k === 'html' || typeof r[k] !== 'string') return;
+    if (FIG_MARK.test(r[k])) fail.push(`${r.row_id} carries <!--fig--> in \`${k}\`. The marker belongs in \`html\` only.`);
+    FIG_MARK.lastIndex = 0;
+  });
+  const h = String(r.html || '');
+  const hits = h.match(FIG_MARK) || [];
+  if (!hits.length) return;
+  marked++;
+  if (hits.length > 1) fail.push(`${r.row_id} carries ${hits.length} <!--fig--> markers. A row has one figure, so one marker.`);
+  const pen = /^(drawing|annotate)$/i.test(String(r.answer_type || '').trim());
+  if (!r.diagram && !String(r.images || '').trim() && !pen) {
+    fail.push(`${r.row_id} marks where its figure stands and has no figure (no diagram, no images, not a `
+      + `drawing question). Draw the figure or take the marker out.`);
+  }
+  const at = h.search(FIG_MARK);
+  const T = /<(\/?)([a-zA-Z][\w-]*)\b[^>]*?(\/?)>/g;
+  let m, depth = 0;
+  while ((m = T.exec(h)) && m.index < at) {
+    if (FIG_VOID.test(m[2]) || m[3] || !FIG_BLOCK.test(m[2])) continue;
+    depth = m[1] ? Math.max(0, depth - 1) : depth + 1;
+  }
+  if (depth) fail.push(`${r.row_id} puts <!--fig--> inside a block. It goes BETWEEN two top-level blocks — `
+    + `the app stands it after the block it is in, which is not where the row says.`);
+});
+
 /* ---------- WHAT IS STILL STANDING IN FOR SOMETHING ------------------------------------------------
    `placeholder` MARKS A ROW WHOSE CONTENT IS A DESCRIPTION OF THE REAL THING. The AQA English
    inserts are the first: the sources are a separate booklet and third-party copyright, so they are
@@ -1375,6 +1426,8 @@ const withPad = drawQs.filter(r => r.diagram
 console.log(`questions answered by drawing, that you can draw on: ${withPad.length} of ${drawQs.length}`
   + `   (the rest have no picture transcribed yet)`);
 
+console.log(`rows saying where the paper prints their figure (<!--fig-->): ${marked}`
+  + `   (the rest stand it in front of the ask, or after it for a pen question)`);
 const allDocs_ = rows.filter(r => r && r.kind === 'document').length;
 console.log(`papers carrying the date they were sat: ${datedPapers.size} of ${allDocs_}`
   + `   (the rest are known to a month only)`);

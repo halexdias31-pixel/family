@@ -5300,12 +5300,17 @@ check('marking, revealing and tapping leave the question where it is, and typing
   if (!tapped.querySelector('.qp-opt[data-n="2"].is-ans') || !tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick and the right option');
   same(m0, tapped, 'after a wrong tap');
   try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
-  /* AND THE WORDS SAY WHERE THE PICTURE WENT: a question with a figure points at the next page, and
-     one without says nothing -- a pointer to a page that does not exist is worse than none. */
+  /* AND THE WORDS SAY WHERE THE PICTURE WENT: a question whose figure is the page AFTER it (its
+     marker at the end of its words) points at the next page; one whose figure stands in front of it
+     says nothing, and one without a figure says nothing -- a pointer to a page that does not exist,
+     or that you have just turned past, is worse than none. */
   const fig = draw(Object.assign({}, base, { key: 'q-still-fig', diagram: '<svg viewBox="0 0 10 10"></svg>',
-    row: Object.assign({}, base.row, { row_id: 'Q-STILL-10' }) }));
+    html: base.html + '<!--fig-->', row: Object.assign({}, base.row, { row_id: 'Q-STILL-10' }) }));
   if (!fig.querySelector('.qsheet-figref')) bad.push('a question whose figure is on the next page does not say so');
   if (fig.querySelector('.qsheet svg')) bad.push('the question card drew its figure inline again');
+  const figFront = draw(Object.assign({}, base, { key: 'q-still-fig2', diagram: '<svg viewBox="0 0 10 10"></svg>',
+    row: Object.assign({}, base.row, { row_id: 'Q-STILL-11' }) }));
+  if (figFront.querySelector('.qsheet-figref')) bad.push('a question whose figure stands in front of it points forward at it');
   if (typed.querySelector('.qsheet-figref')) bad.push('a question with no figure points at a figure page that does not exist');
   return bad;
 });
@@ -5514,7 +5519,9 @@ check('an answer is its own page after its question, hidden from everybody alike
   const none = Object.assign({}, base, { key: 'q-ansp-none', row: row('Q-ANSP-7'), answer: '' });
   const figOnly = Object.assign({}, fig, { key: 'q-ansp-figonly', row: row('Q-ANSP-8'), answer: '' });
   const parts = x => JSON.stringify(w.pageParts_(x));
-  [[base, '[null,"ans"]'], [fig, '[null,"fig","ans"]'], [none, '[null]'], [figOnly, '[null,"fig"]']].forEach(([x, want]) => {
+  /* A FIGURE WITH NO MARKER AND NO LEAD STANDS IN FRONT OF ITS CARD -- see `partPlan_` -- and the
+     answer is still the page after the card. */
+  [[base, '[null,"ans"]'], [fig, '["fig",null,"ans"]'], [none, '[null]'], [figOnly, '["fig",null]']].forEach(([x, want]) => {
     if (parts(x) !== want) bad.push(x.row.row_id + ' has pages ' + parts(x) + ', wanted ' + want);
   });
   /* THE QUESTION CARD: the box, and no answer. */
@@ -5581,11 +5588,11 @@ check('an answer is its own page after its question, hidden from everybody alike
   if (!typedCard.querySelector('.qp-mark.is-right')) bad.push('17.5 was not marked right, so a right Check was NOT checked');
   if (!shutNow(typedX)) bad.push('a typed answer marked right opened its answer page by itself');
   try { w.localStorage.removeItem(ansKey(typedX)); } catch (e) {}
-  /* SAVED: the kept question, then its figure, then its answer. */
+  /* SAVED: the kept question's figure, then the question, then its answer -- `pageParts_`'s order. */
   const pages = w.cardPages_(fig, 0);
   if (pages.length !== 3) bad.push('Saved draws a question with a figure and an answer as ' + pages.length + ' pages, wanted 3');
   else {
-    if (!/class="qcard qfig/.test(pages[1])) bad.push('Saved\'s second page of a question is not its figure');
+    if (!/class="qcard qfig/.test(pages[0])) bad.push('Saved\'s first page of a question is not its figure, which stands in front of it');
     if (!/qans-card[^"]*" data-of="Q-ANSP-6"/.test(pages[2])) bad.push('Saved\'s third page of a question is not its answer');
   }
   if (w.cardPages_(base, 0).length !== 2) bad.push('Saved does not keep the answer page after a kept question');
@@ -5636,7 +5643,7 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   const parts = (x, prev) => JSON.stringify(w.pageParts_(x, prev));
   [[a, null, '["stem0","sfig0",null,"ans"]', '(a) with nothing in front'],
    [b, a, '[null]', '(b) after (a), which showed the stem'],
-   [c, b, '[null,"fig"]', '(c) after (b)'],
+   [c, b, '["fig",null]', '(c) after (b), its own figure in front of its ask'],
    [b, null, '["stem0","sfig0",null]', '(b) on its own, which still needs its stem'],
    [Object.assign({}, b, { stems: [{ id: 'S-ORD-PIC', diagram: svg }] }), null, '["sfig0",null]', 'a stem that is only a picture']
   ].forEach(([x, prev, want, what]) => {
@@ -5647,7 +5654,7 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   w.stuffFiltered = (() => { const list = [a, b, c]; return () => list; })();
   let strip = '';
   try { strip = w.stuffPages_().map(pg => pg.x.qPart + ':' + (pg.part || 'card')).join(' '); } finally { w.stuffFiltered = heldF; }
-  if (strip !== 'a:stem0 a:sfig0 a:card a:ans b:card c:card c:fig') bad.push('the strip reads "' + strip + '", wanted the paper\'s order: stem, its figure, (a), its answer, (b), (c), its figure');
+  if (strip !== 'a:stem0 a:sfig0 a:card a:ans b:card c:fig c:card') bad.push('the strip reads "' + strip + '", wanted the paper\'s order: stem, its figure, (a), its answer, (b), (c)\'s figure, (c)');
   /* SAVED, which draws a kept part alone, keeps the stem and its figure in front of it. */
   try { if (w.cardPages_(b, 0).length !== 3) bad.push('Saved draws ' + w.cardPages_(b, 0).length + ' pages for a kept part, wanted its stem, the stem\'s figure and the part'); }
   catch (e) { bad.push('cardPages_ threw on a part with a stem: ' + e.message); }
@@ -5669,7 +5676,7 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   [sf, w.questionFigCard_(c), w.questionFigCard_(plain)].forEach(h => {
     if (/\bQ\d/.test(el(h).querySelector('.qcard-top').textContent)) bad.push('a figure page carries a question number: ' + el(h).querySelector('.qcard-top').textContent.trim());
   });
-  if (!el(w.questionCard_(c)).querySelector('.qsheet-figref')) bad.push('(c), whose own figure follows, does not say so');
+  if (el(w.questionCard_(c)).querySelector('.qsheet-figref')) bad.push('(c), whose own figure stands in front of it, points forward at a figure');
   if (el(w.questionCard_(b)).querySelector('.qsheet-figref')) bad.push('(b) points at a figure page it does not have -- the stem\'s figure is in front of it, not after');
   /* THE TILE: from (a)'s card, two pages after a stem and its figure, the answer is ONE page on. */
   const strip2 = el('<div id="s-ordtest"><section class="page"></section><section class="page"></section>'
@@ -5766,6 +5773,146 @@ check('a page too long for a phone is cut between paragraphs, and the ask stays 
     if (!/Continued on the next page/.test(drawn[0].textContent) || !/Figure on the next page/.test(drawn[drawn.length - 1].textContent)) bad.push('a cut stem does not say "continued" then "figure" where it ends');
     const st = drawn.map(p => p.textContent).join(' ');
     [1, 5, 10].forEach(n => { if (st.split('Step ' + n + ':').length !== 2) bad.push('stem step ' + n + ' is not on exactly one page'); });
+  }
+  return bad;
+});
+
+/* ---------- EVERY FIGURE WHERE THE PAPER PRINTS IT, ON A PAGE OF ITS OWN ---------------------------------
+   ASKED FOR AS *"Let's say there's a question which begins with text, then diagram, then text then
+   diagram then text. This should break into 5 widgets. This is to ensure it's same order but diagram
+   has its own widget."* The data marks where a row's figure stands with `<!--fig-->` between two
+   blocks of its `html` (`figBlocks_`); through the app's own builders and its own strip:
+     * the owner's sentence exactly -- stem text, the stem's figure, (a)'s text, (a)'s figure, (a)'s
+       ask with the box -- is FIVE pages and then the answer, in that order
+     * a stem with words on BOTH sides of its figure, and a part with a lead: the stem's words, its
+       figure, the rest of its words (still `Q5`), the lead (`Q5(a)`), the part's figure, the ask --
+       six, because the header changes from Q5 to Q5(a) between the third and the fourth: the stem's
+       words are every part's, the lead is (a)'s, and one page holding both would print (a)'s
+       sentence under a header that says Q5
+     * text pages carry the number (`Q5 · 1 of 2`, `Q5(a) · 2 of 2`), figure pages only the figure's
+       name; the box is on the page with the part's last words and nowhere else; "Figure on the
+       next page" exactly where the next page is a figure
+     * every word once and in order, and the marker NEVER drawn -- not on a page, not in the search
+       haystack
+     * the four placements without a marker: a lead (lead, figure, ask), none (figure, then the
+       card), a pen question (the card, then the figure to draw on), a marker at the very end (the
+       card, then the figure); a marker inside a paragraph stands after it rather than cutting it
+     * the cut still works inside a side: eight paragraphs before the figure are cut into pages in
+       front of it, and no page holds words from both sides
+     * the strip (`stuffPages_`), Saved (`cardPages_`) and the answer tile all agree */
+check('a figure stands where the paper prints it, on its own page: text, figure, text, figure, text', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['pageParts_', 'questionCard_', 'questionStemCard_', 'questionStemFigCard_', 'questionFigCard_',
+                'questionPreCard_', 'stuffPart_', 'stuffPages_', 'cardPages_', 'questionTiles_', 'figBlocks_', 'partPlan_']
+    .filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The figure order was NOT checked'];
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
+  const svg = n => '<svg viewBox="0 0 340 200"><text x="10" y="20">' + n + '</text></svg>';
+  const row = id => ({ row_id: id, paper_id: 'P-FIG', subject: 'Maths', name: 'Paper 1: Foundation — June 2024' });
+  const page = (x, part) => el(part ? w.stuffPart_(x, part) : w.stuffCard(x, 0));
+  const head = pg => ((pg.querySelector('.qcard-top b') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+  const say = pg => { const r = pg.querySelector('.qsheet-figref'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; };
+
+  /* ---------- THE OWNER'S SENTENCE: FIVE PAGES ------------------------------------------------- */
+  const stem5 = { id: 'S-FIG-5', html: '<p>ONE-TEXT A shape is drawn on a grid.</p>', diagram: svg('FIG-ONE') };
+  const q5 = { kind: 'question', name: 'Q5(a)', qNumber: '5', qPart: 'a', marks: 2, key: 'q-fig-5a', row: row('Q-FIG-5a'),
+    stems: [stem5], html: '<p>THREE-TEXT The shape is reflected in the line.</p><!--fig--><p>FIVE-TEXT Work out the size of angle x.</p>',
+    diagram: svg('FIG-FOUR'), answer: '<b>40&deg;</b>', accept: '40' };
+  const want5 = '["stem0","sfig0","pre0","fig",null,"ans"]';
+  if (JSON.stringify(w.pageParts_(q5)) !== want5) bad.push('text, diagram, text, diagram, text has pages ' + JSON.stringify(w.pageParts_(q5)) + ', wanted ' + want5 + ' -- five, in that order, then the answer');
+  else {
+    const drawn = w.pageParts_(q5).map(p => page(q5, p));
+    const words = ['ONE-TEXT', 'FIG-ONE', 'THREE-TEXT', 'FIG-FOUR', 'FIVE-TEXT'];
+    words.forEach((t, i) => { if (drawn[i].textContent.indexOf(t) < 0) bad.push('page ' + (i + 1) + ' of the five does not hold ' + t + ': ' + drawn[i].textContent.replace(/\s+/g, ' ').trim().slice(0, 80)); });
+    const heads = drawn.slice(0, 5).map(head);
+    if (JSON.stringify(heads) !== JSON.stringify(['Q5', 'Figure', 'Q5(a) · 1 of 2', 'Figure', 'Q5(a) · 2 of 2']))
+      bad.push('the five pages are headed ' + JSON.stringify(heads) + ', wanted Q5, Figure, Q5(a) · 1 of 2, Figure, Q5(a) · 2 of 2');
+    if (!drawn[4].querySelector('.qp-ans') || drawn.slice(0, 4).some(p => p.querySelector('.qp-ans'))) bad.push('the box is not on the last of the words alone');
+    if (say(drawn[2]) !== 'Figure on the next page →') bad.push('(a)\'s words before its figure say "' + say(drawn[2]) + '", wanted "Figure on the next page →"');
+    if (say(drawn[4])) bad.push('(a)\'s ask, after its figure, still points forward: "' + say(drawn[4]) + '"');
+    if (!drawn[5].querySelector('.qans-card')) bad.push('the page after the ask is not the answer');
+  }
+
+  /* ---------- A STEM WITH WORDS ON BOTH SIDES OF ITS FIGURE, AND A PART WITH A LEAD -------------- */
+  const stem = { id: 'S-FIG-6', html: '<p>STEM-ONE The diagram shows a triangle ABC.</p><!--fig--><p>STEM-TWO AB = 7 cm and angle C = 90°.</p>', diagram: svg('STEM-FIG') };
+  const a = { kind: 'question', name: 'Q6(a)', qNumber: '6', qPart: 'a', marks: 3, key: 'q-fig-6a', row: row('Q-FIG-6a'),
+    stems: [stem], lead: '<p>PART-LEAD Here is a second triangle, PQR.</p>', diagram: svg('PART-FIG'),
+    html: '<p>PART-ASK Work out the length of PR.</p>', answer: '<b>5 cm</b> &mdash; by Pythagoras' };
+  const want = '["stem0","sfig0","stem0-1","pre0","fig",null,"ans"]';
+  const parts = w.pageParts_(a);
+  if (JSON.stringify(parts) !== want) bad.push('stem text <!--fig--> stem text + lead + figure + ask has pages ' + JSON.stringify(parts) + ', wanted ' + want);
+  else {
+    const drawn = parts.map(p => page(a, p));
+    const heads = drawn.map(head);
+    const wantHeads = ['Q6 · 1 of 2', 'Figure', 'Q6 · 2 of 2', 'Q6(a) · 1 of 2', 'Figure', 'Q6(a) · 2 of 2', 'Q6(a) · answer'];
+    if (JSON.stringify(heads) !== JSON.stringify(wantHeads)) bad.push('the pages are headed ' + JSON.stringify(heads) + ', wanted ' + JSON.stringify(wantHeads));
+    /* EVERY WORD ONCE AND IN ORDER, and the figures between them. */
+    const text = drawn.map(p => p.textContent).join(' | ');
+    const seq = ['STEM-ONE', 'STEM-FIG', 'STEM-TWO', 'PART-LEAD', 'PART-FIG', 'PART-ASK'];
+    seq.forEach(t => { if (text.split(t).length !== 2) bad.push('"' + t + '" is drawn ' + (text.split(t).length - 1) + ' times, wanted once'); });
+    if (seq.some((t, i) => i && text.indexOf(t) < text.indexOf(seq[i - 1]))) bad.push('the words and figures are out of the paper\'s order: ' + seq.map(t => text.indexOf(t)).join(', '));
+    /* FIGURE PAGES: a picture, its name, no number, no box. */
+    [1, 4].forEach(i => {
+      if (!drawn[i].querySelector('.qcard.qfig svg')) bad.push('page ' + (i + 1) + ' is not a figure page with its picture');
+      if (/\bQ\d/.test(drawn[i].querySelector('.qcard-top').textContent)) bad.push('figure page ' + (i + 1) + ' carries a question number');
+    });
+    if (drawn.slice(0, 5).some(p => p.querySelector('.qp-ans')) || !drawn[5].querySelector('.qp-ans')) bad.push('the box is not on the page with the part\'s last words alone');
+    const says = drawn.slice(0, 6).map(say);
+    const wantSays = ['Figure on the next page →', '', '', 'Figure on the next page →', '', ''];
+    if (JSON.stringify(says) !== JSON.stringify(wantSays)) bad.push('the pages\' pointers read ' + JSON.stringify(says) + ', wanted ' + JSON.stringify(wantSays));
+    /* THE MARKER, NEVER DRAWN AND NEVER SEARCHED. */
+    if (drawn.some(p => /<!--\s*fig/.test(p.innerHTML))) bad.push('the <!--fig--> marker is in a drawn page');
+    if (typeof w.plainText_ === 'function' && /fig/i.test(w.plainText_(a.html))) bad.push('the marker reaches the search haystack: ' + w.plainText_(a.html));
+    /* THE STRIP, SAVED AND THE TILE. */
+    const heldF = w.stuffFiltered;
+    w.stuffFiltered = (() => { const list = [a]; return () => list; })();
+    let strip = '';
+    try { strip = w.stuffPages_().map(pg => pg.part || 'card').join(' '); } finally { w.stuffFiltered = heldF; }
+    if (strip !== 'stem0 sfig0 stem0-1 pre0 fig card ans') bad.push('the strip reads "' + strip + '"');
+    const saved = w.cardPages_(a, 0);
+    if (saved.length !== 7 || !/class="qcard qfig/.test(saved[4]) || !/qp-ans/.test(saved[5])) bad.push('Saved draws the question as ' + saved.length + ' pages, not the same seven in the same order');
+    const tiles = el('<div id="s-figtest">' + parts.map(p => p === null
+      ? '<section class="page"><div class="tile-row">' + w.questionTiles_(a) + '</div></section>' : '<section class="page"></section>').join('') + '</div>');
+    d.body.appendChild(tiles);
+    const heldA = w.stuffItemsAll_, heldG = w.goPage;
+    let went = null;
+    w.stuffItemsAll_ = () => [a];
+    w.goPage = (id, to) => { went = to; };
+    try { w.__t.ACTIONS['qa-go'](tiles.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; tiles.remove(); }
+    if (went !== parts.indexOf('ans')) bad.push('the answer tile turned to page ' + went + ', wanted ' + parts.indexOf('ans'));
+  }
+
+  /* ---------- WITHOUT A MARKER, AND WITH ONE IN THE WRONG PLACE ---------------------------------- */
+  const one = (id, extra) => Object.assign({ kind: 'question', name: 'Q7', qNumber: '7', marks: 1, key: 'q-fig-' + id,
+    row: row('Q-FIG-' + id), stems: [], diagram: svg('F'), html: '<p>Ask.</p>' }, extra);
+  [[one('lead', { lead: '<p>Here is a grid.</p>' }), '["pre0","fig",null]', 'a lead and no marker: the lead, the figure, the ask'],
+   [one('none', {}), '["fig",null]', 'no lead and no marker: the figure in front of the card'],
+   [one('pen', { answerType: 'drawing', lead: '<p>Here is a grid.</p>' }), '[null,"fig"]', 'a pen question and no marker: the card, then the figure to draw on'],
+   [one('end', { html: '<p>Ask.</p><!--fig-->' }), '[null,"fig"]', 'a marker at the very end: the card, then the figure'],
+   [one('start', { html: '<!--fig--><p>Ask.</p>' }), '["fig",null]', 'a marker at the very start: the figure, then the card'],
+   [one('nofig', { diagram: '', html: '<p>Before.</p><!--fig--><p>After.</p>' }), '[null]', 'a marker on a row with no figure: nothing to place, one card']
+  ].forEach(([x, want, what]) => {
+    if (JSON.stringify(w.pageParts_(x)) !== want) bad.push(what + ' -- got ' + JSON.stringify(w.pageParts_(x)) + ', wanted ' + want);
+  });
+  const nofig = el(w.questionCard_(one('nofig2', { diagram: '', html: '<p>Before.</p><!--fig--><p>After.</p>' })));
+  if (!/Before\.[\s\S]*After\./.test(nofig.textContent) || /<!--/.test(nofig.innerHTML)) bad.push('a marker on a row with no figure is drawn, or lost the words around it');
+  const inside = w.figBlocks_('<p>One.</p><p>Two <!--fig--> halves.</p><p>Three.</p>');
+  if (inside.at !== 2 || inside.blocks.length !== 3 || /<!--/.test(inside.blocks.join(''))) bad.push('a marker inside a paragraph cut it, or did not stand after it: ' + JSON.stringify(inside));
+
+  /* ---------- THE CUT, INSIDE A SIDE --------------------------------------------------------------- */
+  const para = n => '<p>BEFORE-' + n + ' ' + 'the solution is heated gently and stirred until it is clear. '.repeat(3) + '</p>';
+  const longX = one('long', { html: [1, 2, 3, 4, 5, 6, 7, 8].map(para).join('') + '<!--fig--><p>AFTER-ASK Find the rate.</p>' });
+  const lp = w.pageParts_(longX);
+  const fi = lp.indexOf('fig');
+  if (fi < 2 || lp[fi + 1] !== null || lp.slice(0, fi).some(p => !/^pre\d+$/.test(p))) bad.push('eight paragraphs before a figure were not cut into pages in front of it: ' + JSON.stringify(lp));
+  else {
+    const before = lp.slice(0, fi).map(p => page(longX, p).textContent).join(' ');
+    const after = page(longX, null).textContent;
+    if (/AFTER-ASK/.test(before) || /BEFORE-\d/.test(after)) bad.push('a page holds words from both sides of the figure');
+    [1, 8].forEach(n => { if (before.split('BEFORE-' + n + ' ').length !== 2) bad.push('BEFORE-' + n + ' is not on exactly one page in front of the figure'); });
   }
   return bad;
 });
