@@ -102,9 +102,18 @@ After the review, two more sections:
   NOT DEPLOY on a read-only grant, and on a partial one (Drive ticked, e-mail not). With a showcase
   folder set, the verdict is still the last line.
 
-Nine more mutations, each red for its own reason: no caps, any type, a total cap tighter than the
+- **The site's own instructions (3, 7).** Every "press Allow, then New version" now waits for
+  `authoriseDrive` to say READY: the admin's refusal in a message, Check uploads' third step,
+  `checkEverything`, and the boot page's "Authorization is required" advice. The same order on the
+  owner's steps would take the site down if it were said on the site, so the check asks for it in
+  both the editor wording and the consent-link wording. The two states seed the new sentences. At
+  320 and 390 the steps still fit the Tools card, and at 320 the thread scrolls to the controls, as
+  it did before.
+
+Eleven more mutations, each red for its own reason: no caps, any type, a total cap tighter than the
 phone's, no queue limit, deleted posts counted, caps checked after the upload, the verdict ignoring
-`getAuthorizationStatus`, no verdict line, and a test file that is not shared.
+`getAuthorizationStatus`, no verdict line, a test file that is not shared, the admin's fix sentence
+ungated, and Check uploads' step ungated.
 
 ### After the review: posts, the gate, the triggers and the stamp
 
