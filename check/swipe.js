@@ -285,7 +285,12 @@ async function gesture(env, o) {
       fail('REACH', at, `Tools has ${count.tools} pages and Games ${count.games}; the gestures need three each — nothing was asked`);
       await env.ctx.close(); continue;
     }
-    const one = tabs.find(id => count[id] === 1 && next(id));     // a one-page column with a column after it
+    /* A ONE-PAGE COLUMN WITH A COLUMN AFTER IT — named rather than found first in the row. The feed
+       counts one page while its posts are still arriving and several a moment later, and a 45° drag
+       on a column that HAS a page below is rightly a page turn: found by a run that picked it. Saved
+       and the Spotlight are one card by construction in this fixture; each is asked again just
+       before the gesture. */
+    const one = ['saved', 'spotlight', 'booking', 'dm'].find(id => count[id] === 1 && next(id));
     /* PAGES WITH BARE CARD ON THEM, and a page below each for a turn up to land on. */
     const TOOLS = [1, 2, 4, 5, 6, 7], GAMES = [1, 3, 4, 5, 6];
     if (!one) fail('REACH', at, 'there is no one-page column to ask the diagonal of');
@@ -369,10 +374,10 @@ async function gesture(env, o) {
 
     /* ---------- 2. THE AXIS, AND A DIAGONAL WITH NOWHERE TO GO UP OR DOWN ---------------------- */
     if (want('axis')) {
-    if (one) {
+    if (one && await page.evaluate(id => AXES.y.count(id) <= 1, one)) {
       await turnCol(`45° on ${one} (one page)`, { col: one, g: G.diag(45, -1) }, s => next(s.AT) + '/0');
       await turnCol(`55° on ${one} (one page)`, { col: one, g: G.diag(55, -1) }, s => next(s.AT) + '/0');
-    }
+    } else if (one) fail('REACH', `${at} ${one}`, `${one} had grown past one page by the time the diagonal was asked`);
     await turnCol('25° on tools', { col: 'tools', p: TOOLS, g: G.diag(25, -1) }, nextCol);
     await turn('up, drifting 90px sideways', { col: 'tools', p: TOOLS, g: G.drift(-1, -1) }, down1);
     }
