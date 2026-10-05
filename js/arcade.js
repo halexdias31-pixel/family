@@ -362,9 +362,25 @@ function widgetsLater_() {
     try { next.w.start && next.w.start(); }
     catch (e) { console.warn('[widget]', next.w.id, e); }
     /* A GAP, NOT NOUGHT: `setTimeout(…, 0)` would queue the next start ahead of a touch that is
-       already waiting to be delivered on a busy phone. */
-    if (TOOLS_WAIT.length) TOOLS_WAKE = setTimeout(step, 40);
+       already waiting to be delivered on a busy phone. One frame's worth is enough for it to land. */
+    if (TOOLS_WAIT.length) TOOLS_WAKE = setTimeout(step, 16);
   }, 0);
+}
+
+/* AND A PAGE TURNED TO BEFORE ITS TURN CAME starts its widget NOW, with the ones either side of it —
+   called by `goPage` before the column moves, so a tile that jumps eight widgets down the column
+   arrives at a working widget rather than at its markup waiting in the queue. A turn to a page that
+   is already running costs one walk of a short list. */
+function widgetsNear_(col) {
+  if (!TOOLS_WAIT.length) return;
+  const now = TOOLS_WAIT.filter(q => q.col === col && widgetDistance_(q.w, col) <= 1);
+  if (!now.length) return;
+  TOOLS_WAIT = TOOLS_WAIT.filter(q => now.indexOf(q) === -1);
+  now.forEach(q => {
+    TOOLS_ON.push(q.w);
+    try { q.w.start && q.w.start(); }
+    catch (e) { console.warn('[widget]', q.w.id, e); }
+  });
 }
 
 function toolsStop_() {

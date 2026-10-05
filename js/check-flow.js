@@ -231,6 +231,9 @@ function boot(opts) {
   try {
     w.eval(src + '\n;window.__t = {' +
       'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS, isTutorRole,' +
+      /* WHETHER EVERYTHING BOOKED FOR AFTER A SLIDE HAS RUN, the widget queue included — `woken_`
+         below. A function, because a `let` inside this eval is not reachable from a second one. */
+      'quiet: () => !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length),' +
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
       'TABS, wgChosen: () => wgChosen_(),' +
@@ -446,6 +449,7 @@ function boot(opts) {
   } catch (e) {
     errs.push('LOAD THREW: ' + e.message);
   }
+  LAST_W = w;
   return { w, sent, errs };
 }
 
@@ -1520,7 +1524,7 @@ check('the contest placeholder comes straight after One more thing on the Games 
   if (roster.indexOf('contest') === -1) return ['there is no contest widget on the Games column'];
   if (roster.indexOf('contest') !== roster.indexOf('reels') + 1) bad.push('contest does not come straight after reels: ' + roster.join(', '));
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const slot = w.document.querySelector('#s-games #wgt-contest');
   if (!slot) return bad.concat(['the contest card did not draw on the Games column']);
   const h = slot.querySelector('h3');
@@ -1544,7 +1548,7 @@ check('the LEGO trade-in placeholder is the last card on the Tools column, says 
   if (roster.indexOf('legotrade') === -1) return ['there is no legotrade widget on the Tools column'];
   if (roster[roster.length - 1] !== 'legotrade') bad.push('legotrade is not the last tool: ' + roster.join(', '));
   t.go('tools', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const slot = w.document.querySelector('#s-tools #wgt-legotrade');
   if (!slot) return bad.concat(['the LEGO trade-in card did not draw on the Tools column']);
   const h = slot.querySelector('h3');
@@ -1598,7 +1602,7 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   if (roster.indexOf('videos') === -1) return ['there is no videos widget on the Games column'];
   if (roster[roster.length - 1] !== 'videos') bad.push('videos is not the last game: ' + roster.join(', '));
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const box = d.querySelector('#s-games #wgt-videos .vid-box');
   if (!box) return bad.concat(['the videos card did not draw on the Games column']);
   if (!asked) bad.push('the card never asked for data/videos.json');
@@ -1648,7 +1652,7 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   }
   /* LEAVING STOPS IT: no player left in the card on a column nobody is looking at. */
   t.go('tools', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   if (d.querySelector('#s-games .vid-stage .vid-player')) bad.push('leaving the Games column left the video in its player');
   return bad;
 });
@@ -1668,7 +1672,7 @@ check('connect 4 drops exactly the counter just played into the lowest empty squ
   const d = w.document;
   const W = 7, H = 6;
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'connect4');
   if (at < 0) return ['there is no Connect 4 on the Games column'];
   t.goPage('games', at, true);
@@ -1741,7 +1745,7 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
   const d = w.document;
   const N = 11;
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'maze');
   if (at < 0) return ['there is no maze on the Games column'];
   t.goPage('games', at, true);
@@ -1838,12 +1842,12 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
   t.goPage('games', at, true);
   /* OFF IT: on the Find column the Games column is drawn as a neighbour, grid and all. */
   t.go('stuff', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const was = t.maze().moves;
   ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].forEach(key);
   if (t.maze().moves !== was) bad.push('arrow keys on another column walked the maze from ' + was + ' to ' + t.maze().moves + ' moves');
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   t.goPage('games', at, true);
   await wait(50);
 
@@ -1894,6 +1898,27 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
 /* A COLUMN'S WIDGETS ARE STARTED AND STOPPED FROM `afterSlide_`, about 300ms after the move, so a
    journey asking what leaving did has to wait that long first. */
 const LEAVE_MS = 700;
+/* AND ARRIVING NO LONGER STARTS THEM ALL IN THAT ONE TASK (5 Oct, `widgetsWake_` in arcade.js): the
+   ones in view start at once and the rest one per task behind them, nearest first. Under jsdom a
+   start is ~80ms, so the videos card thirteen pages down the Games column was still waiting its turn
+   at 700ms — measured, and it is not a fault: nobody can see page thirteen without turning to it,
+   and turning to it starts it (`widgetsNear_`). So a journey that has just ARRIVED waits for the
+   column to finish waking as well — `quiet()`: the after-slide jobs and the widget queue both run
+   dry, in the window booted last (the journeys run one at a time). Bounded, so a queue that never
+   drains is a journey that fails on what it asked rather than a run that hangs; after a LEAVE it
+   is already dry and this returns at once.
+   THE CAMERA'S `CAM_SLIDE` WAITS SAY THE SAME THING — "past `afterSlide_`'s 300ms and any settle" —
+   and failed on the unchanged base commit as well under a load average of 30–40 (measured 5 Oct):
+   a fixed sleep is a guess at when a job ran, and `quiet()` is the job having run. */
+let LAST_W = null;
+const woken_ = async () => {
+  for (let k = 0; k < 80; k++) {
+    let quiet = true;
+    try { quiet = !LAST_W || !LAST_W.__t || !LAST_W.__t.quiet || LAST_W.__t.quiet(); } catch (e) { quiet = true; }
+    if (quiet) return;
+    await wait(100);
+  }
+};
 /* `k` IS WHICH WORD GAME THE WIDGET OPENS ON. All four live inside the one Word games widget, which
    draws only the game chosen; the choice is the device's, so it is set there before the column is
    reached. Alibi was the one that passed nothing, because it kept a card of its own; it is deleted. */
@@ -1903,7 +1928,7 @@ const partyBoot_ = async (k) => {
   const t = w.__t;
   if (k) { try { w.localStorage.setItem('wg-game', k); } catch (e) {} }
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const d = w.document;
   const press = (act, attrs) => {
     const el = d.createElement('button');
@@ -1939,13 +1964,13 @@ check('just a minute keeps its round through a repaint and pauses when the colum
   if (text('jam').indexOf(topic) === -1) bad.push('after a repaint the card reads "' + text('jam') + '"');
   /* AWAY: the clock holds, and stays held on the way back. */
   t.go('tools', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const held = P().jam;
   if (held.ends || held.run) bad.push('leaving the column left the clock running');
   const left = held.left;
   await wait(1200);
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   if (P().jam.ends) bad.push('coming back started the clock without anybody pressing Resume');
   if (P().jam.left !== left) bad.push('the minute went on running while the column was away: ' + left + ' became ' + P().jam.left);
   if (!/Resume/.test(text('jam'))) bad.push('a paused round has no Resume: "' + text('jam') + '"');
@@ -1980,7 +2005,7 @@ check('taboo shows a word with four or five forbidden words, and Correct and Pas
   if (P().tab !== s || !P().tab.ends) bad.push('a repaint stopped or replaced the round');
   /* PAUSED, THE WORD IS NOT ON THE CARD — whoever picks the phone up next may be on the other side. */
   t.go('tools', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   if (text('tab').indexOf(s.card[0]) !== -1) bad.push('a paused card still shows the word');
   return bad;
 });
@@ -1996,7 +2021,7 @@ check('a round left for the Saved column, where it is not starred, pauses like a
   if (!P().tab || !P().tab.ends) return ['Start did not begin a round'];
   if (d.querySelector('#s-saved #tab-card')) return ['Taboo is already on the Saved column, so this asks nothing'];
   t.go('saved', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const s = P().tab;
   if (s.ends || s.run) bad.push('the clock went on running behind the Saved column, where the card is not');
   const left = s.left;
@@ -2020,9 +2045,9 @@ check('hot seat shows its word only once the phone faces the class, and hides it
   if (s.score !== 1) bad.push('Got it did not count');
   const word = s.word;
   t.go('tools', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   if (text('hot').indexOf(word) !== -1) bad.push('the word is still up after leaving the column and coming back');
   if (P().hot.ends) bad.push('coming back started the clock by itself');
   return bad;
@@ -2040,9 +2065,9 @@ check('20 questions keeps the secret from the room and counts to twenty', async 
   if (text('twq').indexOf(s.word) === -1) bad.push('Show me did not show the secret');
   /* LEAVING WITH THE SECRET UP HIDES IT. */
   t.go('tools', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   if (text('twq').indexOf(s.word) !== -1) bad.push('the secret is still up after leaving the column');
   press('twq-show');
   press('twq-hide');
@@ -2129,7 +2154,7 @@ check('alibi is gone from the Games column, its handlers and its round state', a
   const P = t.PARTY();
   if (P && 'alb' in P) bad.push('PARTY still keeps a slot for an alibi round');
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   if (w.document.getElementById('alb-card')) bad.push('an alibi card is still drawn on the Games column');
   return bad;
 });
@@ -4640,26 +4665,26 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     }
     if (b.page() !== b.cam() + 1) bad.push(`the feed opened on page ${b.page()}, not the newest post at ${b.cam() + 1}`);
     const before = b.gum.asks;
-    b.w.__t.repaint(); await wait(CAM_SLIDE);
+    b.w.__t.repaint(); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks !== before) bad.push('a repaint on the front door asked for the camera');
 
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks !== before + 1) bad.push(`swiping up to the camera asked ${b.gum.asks - before} time(s), not once`);
     if (b.gum.open !== 1) bad.push(`swiping up to the camera left ${b.gum.open} stream(s) open, not one`);
-    b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE); await woken_();
     if (b.gum.open) bad.push('swiping back down to the newest post left the camera running');
 
     /* AWAY AND BACK, ON A POST: the column remembers where it was, and that is not the camera. */
-    b.w.__t.go('stuff'); await wait(CAM_SLIDE);
-    b.w.__t.go('feed'); await wait(CAM_SLIDE);
+    b.w.__t.go('stuff'); await wait(CAM_SLIDE); await woken_();
+    b.w.__t.go('feed'); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks !== before + 1) bad.push('coming back to the feed on the newest post asked for the camera again');
 
     /* AWAY AND BACK, ON THE CAMERA PAGE: that IS arriving at it, and it starts — the camera has
        started on arrival rather than on a tap since the note over `camStart_` was written. */
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
-    b.w.__t.go('stuff'); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
+    b.w.__t.go('stuff'); await wait(CAM_SLIDE); await woken_();
     if (b.gum.open) bad.push('leaving the feed from the camera page left the camera running');
-    b.w.__t.go('feed'); await wait(CAM_SLIDE);
+    b.w.__t.go('feed'); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks !== before + 3) bad.push(`coming back to the feed on the camera page asked ${b.gum.asks - before - 2} time(s), not once`);
     if (b.gum.open !== 1) bad.push(`coming back to the camera page left ${b.gum.open} stream(s) open, not one`);
   }
@@ -4669,7 +4694,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     const b = camBoot_({});
     await wait(400);
     if (b.gum.asks) bad.push('signed out, opening the app asked for the camera');
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks) bad.push('signed out, the camera page asked for a camera it draws no viewfinder for');
   }
 
@@ -4680,7 +4705,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     if (b.cam() !== 1) bad.push(`with one festive card the camera is page ${b.cam()}, not 1, so that case was NOT checked`);
     if (b.gum.asks) bad.push('with a festive card above the camera, opening the app asked for it');
     if (b.page() !== 2) bad.push(`with a festive card the feed opened on page ${b.page()}, not the newest post at 2`);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks !== 1) bad.push(`with a festive card, swiping up to the camera asked ${b.gum.asks} time(s), not once`);
   }
 
@@ -4692,7 +4717,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     await wait(400);
     if (b.gum.asks) bad.push('with a festive card and no posts, opening the app asked for the camera');
     if (b.page() === b.cam()) bad.push('with a festive card and no posts, the feed opened ON the camera page');
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks !== 1) bad.push(`with a festive card and no posts, turning to the camera asked ${b.gum.asks} time(s), not once`);
   }
 
@@ -4703,9 +4728,9 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
   {
     const b = camBoot_({ user: rasa, refuse: true });
     await wait(400);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks !== 1) bad.push(`refused: swiping up asked ${b.gum.asks} time(s), not once`);
-    b.w.__t.repaint(); await wait(CAM_SLIDE);
+    b.w.__t.repaint(); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks !== 1) bad.push('refused: a repaint on the camera page asked again — a prompt nobody swiped for');
     const on = b.w.document.getElementById('cam-on');
     if (!on || on.hidden) bad.push('refused: after a repaint the card has no `Try the camera again`');
@@ -4713,8 +4738,8 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     if (!said.trim()) bad.push('refused: after a repaint the card no longer says why the camera did not start');
     if (on) { b.w.__t.ACTIONS['cam-on'](on); await wait(50); }
     if (b.gum.asks !== 2) bad.push('refused: `Try the camera again` did not ask again');
-    b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE); await woken_();
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks !== 3) bad.push('refused: swiping down and back up to the camera did not ask again');
   }
 
@@ -4724,7 +4749,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
   {
     const b = camBoot_({ user: rasa, slow: true });
     await wait(400);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
     b.w.__t.repaint(); await wait(50);
     if (b.gum.asks !== 1) bad.push(`a repaint while the prompt was up asked again — ${b.gum.asks} asks for one card`);
     if (b.gum.hold) { b.gum.hold(); await wait(50); }
