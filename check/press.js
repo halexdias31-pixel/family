@@ -954,14 +954,26 @@ for (const who of VISITORS) {
        visible to anything else here -- `check/cards.js` measures the height and `check/ui.js`
        measures the screen, and a card that scrolls perfectly and can never be left measures clean
        in both. */
+    /* ON THE NARROW PHONE. With stems on their own pages and long parts cut, no question page is
+       tall enough at 390 x 844 to need the scroll: `paneReach_` draws a card down to 70% before it
+       scrolls, and the tallest left at 390 comes within a pixel of fitting. At 320 x 568 this one is
+       still 679px past the pane, so the scroll is there to test. Put back straight after. */
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.waitForTimeout(400);
     const tall = await page.evaluate(async () => {
       if (typeof stuffItems !== 'function') return null;
       go('stuff', false, true);
-      STUFF.filters = []; STUFF.q = '8464/B/1H';
+      /* A CARD THAT IS STILL TALL. 8464/B/1H Q02.4 was the one, and it stopped being tall when its
+         stem became a page of its own and a long part was cut between paragraphs (`partChunks_`).
+         This worksheet question is one paragraph of 1,173 characters -- a transcription with no
+         breaks in it, which the cut will not break inside -- so it is tall on every phone. */
+      const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-probability-tree-diagrams-12');
+      const facet = FACETS.find(f => f.field === 'paperId');
+      STUFF.q = ''; STUFF.filters = want && facet ? [{ field: 'paperId', value: facet.of(want) }] : [];
       paintStuff(true);
       await new Promise(r => setTimeout(r, 400));
       const items = stuffFiltered();
-      const i = items.findIndex(x => x.row && x.row.row_id === 'Q-AQA-8464B-2406-1H-024');
+      const i = items.findIndex(x => x.row && x.row.row_id === 'Q-1CM-probability-tree-diagrams-12');
       if (i < 0) return null;
       /* BY PAGE, NOT BY RESULT — a practical is four pages, so a result's index is not its page
          once one sorts ahead of it. `stuffPageOf_` is the app's own mapping. */
@@ -999,6 +1011,8 @@ for (const who of VISITORS) {
       swipes.push({ from: 'stuff · a tall question card, at its bottom', dir: 'touch up',
                     ok: end === tall.page + 1, got: 'page ' + end, want: 'page ' + (tall.page + 1) });
     }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(400);
 
     /* ==================================================================================================
        AND A LINE OF BEST FIT IS A SIDEWAYS DRAG ON A PAGE THAT SLIDES SIDEWAYS.
@@ -1244,14 +1258,40 @@ for (const who of VISITORS) {
             const el = document.querySelectorAll('#s-stuff > .page')[domIndex_('stuff', first + i)];
             const pg = pages[i], id = pg.x.row.row_id;
             const html = el ? el.innerHTML : '';
+            /* ---------- AND A STEM AND ITS FIGURE IN FRONT OF THE PARTS, IN THE PAPER'S ORDER --------
+               *"preserve order of question from exam"*: a shared stem is its own page (`stemN`) and its
+               figure the page after it (`sfigN`), both naming the STEM's row in `data-of`, both
+               standing in front of the part they belong to -- a stem's figure straight after its
+               words where it has words. And *"diagram widgets shouldn't have a question number on
+               them"*: every figure page's header is asked for `Q<digit>` and must not have one. */
+            /* `stemN-J` is a long stem's later page, and `preJ` a long part's first pages -- see
+               `stemChunks_` and `partChunks_`. A `pre` page names its own row and carries no box: the
+               box is on the card, which the pre pages lead straight into. */
+            const stem = /^(stem|sfig)(\d+)(?:-\d+)?$/.exec(pg.part || '');
+            const pre = /^pre\d+$/.test(pg.part || '');
+            const sid = stem ? (pg.x.stems[+stem[2]] || {}).id : '';
+            const head = ((el && el.querySelector('.qcard-top b')) || {}).textContent || '';
             let ok;
-            if (pg.part === 'ans') {
+            if (pre) {
+              const next = pages[i + 1];
+              ok = /class="qcard qpre/.test(html) && html.indexOf('data-of="' + id + '"') !== -1
+                && html.indexOf('qp-ans') === -1 && !!next && next.x === pg.x
+                && (!next.part || /^pre\d+$/.test(next.part));
+            } else if (stem) {
+              const next = pages[i + 1];
+              ok = !!sid && html.indexOf('data-of="' + sid + '"') !== -1 && html.indexOf('qp-ans') === -1
+                && !!next && next.x === pg.x
+                && (stem[1] === 'stem' ? /class="qcard qstem/.test(html) : !/\bQ\d/.test(head))
+                && (stem[1] === 'stem' || i === 0 || pages[i - 1].x !== pg.x
+                    || /^stem/.test(pages[i - 1].part || '') && pages[i - 1].part.split('-')[0] === 'stem' + stem[2]
+                    || /^sfig/.test(pages[i - 1].part || ''));
+            } else if (pg.part === 'ans') {
               ok = /class="qcard qans-card/.test(html) && html.indexOf('data-of="' + id + '"') !== -1
                 && html.indexOf('qp-ans') === -1
                 && i > 0 && pages[i - 1].x === pg.x && (!pages[i - 1].part || pages[i - 1].part === 'fig');
             } else if (pg.part === 'fig') {
               ok = html.indexOf('data-of="' + id + '"') !== -1 && html.indexOf('qp-ans') === -1
-                && i > 0 && pages[i - 1].x === pg.x && !pages[i - 1].part;
+                && i > 0 && pages[i - 1].x === pg.x && !pages[i - 1].part && !/\bQ\d/.test(head);
             } else {
               ok = html.indexOf(':q:' + id) !== -1 && html.indexOf('class="qcard qfig') === -1
                 && html.indexOf('qans-card') === -1;
@@ -1262,16 +1302,18 @@ for (const who of VISITORS) {
           };
           for (let i = 0; i < pages.length; i++) look(i);
           for (let i = pages.length - 1; i >= 0; i--) look(i);
-          const items = pages, figs = pages.filter(pg => pg.part === 'fig').length;
+          const items = pages, figs = pages.filter(pg => pg.part === 'fig' || /^sfig/.test(pg.part || '')).length;
+          const stems = pages.filter(pg => /^stem/.test(pg.part || '')).length;
           const answers = pages.filter(pg => pg.part === 'ans').length;
-          return { n: items.length, figs: figs, answers: answers, bad: out.slice(0, 4), count: out.length,
+          return { n: items.length, figs: figs, answers: answers, stems: stems, bad: out.slice(0, 4), count: out.length,
                    held: document.querySelectorAll('#s-stuff > .page').length };
         });
-        walk.push({ from: 'stuff, ' + bad.n + ' pages (' + bad.figs + ' of them figures, ' + bad.answers
-                          + ' answers) over ' + bad.held + ' elements',
-                    dir: 'walk', ok: bad.count === 0 && bad.figs > 0 && bad.answers > 0,
+        walk.push({ from: 'stuff, ' + bad.n + ' pages (' + bad.figs + ' of them figures, ' + bad.stems
+                          + ' stems, ' + bad.answers + ' answers) over ' + bad.held + ' elements',
+                    dir: 'walk', ok: bad.count === 0 && bad.figs > 0 && bad.answers > 0 && bad.stems > 0,
                     got: bad.count ? bad.count + ' wrong, first ' + JSON.stringify(bad.bad[0])
                          : !bad.figs ? 'no figure page on a paper that has pictures'
+                         : !bad.stems ? 'no stem page on a paper whose questions share stems'
                          : !bad.answers ? 'no answer page on a paper that has answers'
                          : 'every page its own question, figure or answer',
                     want: 'every page its own question, each figure and then each answer straight after it' });
