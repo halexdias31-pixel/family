@@ -30,8 +30,10 @@ What it does now:
   never interpolates it, and the line goes through (0, c) at every frame by construction. A
   clipPath on a still parent keeps the line inside the plot.
 - **It stops at m = −1, −½, 0, ½, 1, 2**, which covers falling, flat, rising and steep. Each stop
-  is held for 10.5% of a 9s loop, about 0.95s. A step between stops takes 5.4%, and the swing back
-  from 2 to −1 takes 10%. Everything uses cosine easing, and the swing ends where 0% starts.
+  is held for 10% of a 10s loop, which is 1s. A step between stops takes 5%. Then the line swings
+  on from 2, anticlockwise over the vertical, to the m = −1 line from the other side, which takes
+  15%. Everything uses cosine easing. A line through its own pivot is the same line half a turn
+  later, so the swing ends on the picture 0% starts with.
 - **A rise-over-run triangle rides on the line.** The run is one grid square from (0, c). The
   triangle is a unit right triangle stretched upright by m, and it flips below the run when m is
   negative. The rise is drawn two units long and shrunk by m/2. Drawing it long and shrinking it,
@@ -45,10 +47,19 @@ What it does now:
   turns about a point passes close to every place around that point, but never across the point
   itself. Any label beside the dot gets crossed at one of the six stops. At m = 0, a label anywhere
   at height c is crossed.
-- **Under the drawing, the half is a built fraction, one over two.** Cascadia's ½ glyph is sized to
-  fit one character cell. At the caption's size on a 320 screen at 1x, its digits were about four
-  pixels tall, the smallest type on the splash for the number the splash is about. Inside the
-  drawing the glyph stays, set at 10 units.
+- **Every half is a built fraction, one over two, under the drawing and in it.** Cascadia's ½ glyph
+  fits two digits and a slash into one character cell. At 320@1x its digits were about four pixels
+  tall in the caption and 5.5px beside the rise, against 13px for the whole numbers. Beside the rise
+  it is now a 1 over a bar over a 2, at 9 units, with the minus in front at the bar's height. It
+  sits by the foot of its rise rather than its middle, because the stack is taller than a half-unit
+  rise, and centred on the middle the line arriving at ½ ran through it.
+- **Each value carries its own "=".** It sits inside the value's cell and fades with it, so between
+  stops the caption reads "m = rise ÷ run" and never ends in a bare "=".
+- **The triangle, run and rise fade out as the line goes through vertical**, where m has no value,
+  and fade in on the far side. They sit in one group, `.mx-rr`, inside the clip: past m = 2 they
+  ride up the line, and they would leave the top of the plot while still half visible.
+- **The y sits above its arrow's tip**, outside the clip. Beside the arrow, every line from m = 4.3
+  to m = 51 on the way over the top ran through it.
 - Only transform and opacity animate. The colours belong to this splash (`--mx-line`, `--mx-m`,
   `--mx-c`), and the axes use `--paper` at an opacity. **Under reduced motion it shows one still: m
   = 2, the triangle at its tallest, and c marked.** `.mx-line` came out of the shared
@@ -62,15 +73,25 @@ arrows. On top of those, `mxcOwn_` re-derives the picture from the keyframes:
 - The dot is on the y-axis and above the x-axis.
 - One grid square is one unit, and the run is one square long.
 - The line, the triangle and the rise are carried to (0, c) and to (1, c) in every keyframe.
-- At every stop, half-way between stops, and every 0.2%, the triangle's corner and the rise's top
-  are one point on the line. The worst gap is 0.097 units.
+- At every stop, half-way between stops, and every 0.2%, while `.mx-rr` shows, the triangle's
+  corner and the rise's top are one point on the line. The worst gap is 0.167 units.
 - Each value is fully up only while the line, triangle and rise all equal it, for at least 8% of
   the loop, and two values are never up together.
-- Each rise label says the caption's value, beside the middle of its rise.
+- Each rise label says the caption's value and sits beside its rise. A built half is read as drawn:
+  one digit above the bar and one below, centred on it, with a minus in front. It must be at least
+  85% of the whole numbers' size.
+- No fraction glyph (½ and its kind) appears anywhere in the splash.
+- No "=" stands outside the values, and every value carries its own.
+- The line's turn never reverses, and never runs faster than 100°/s between two keyframes. The
+  steps peak at 81°/s as sampled.
+- The triangle and the rise are clipped to the plot and fade together as `.mx-rr`.
+- The seam may differ by a half-turn only for `@keyframes mx-line`, named in its `halfTurn` list.
+  Nothing else may differ, and `mxcOwn_` proves the line is drawn symmetric about its pivot.
 - No label is crossed or touched by the line, the rise, the run or an axis while it shows. Labels
   are measured as mono-face boxes against strokes of their real width.
 - The loop is 8 to 10s.
-- The still shows exactly one value, and everything in it agrees with that value.
+- The still shows exactly one value, everything in it agrees with that value, and `.mx-rr` is not
+  hidden.
 
 17 mutations each turned it red for their own reason:
 
@@ -91,6 +112,43 @@ arrows. On top of those, `mxcOwn_` re-derives the picture from the keyframes:
 - the seam
 - reduced motion leaving the triangle moving
 - a 12s loop
+
+#### What the review of the first build found, and what changed
+
+The reviewer seeked frames every 250ms at 320 and 390, at 1x and 2x, and found three faults. All
+three were confirmed and fixed:
+
+1. **The ½ beside the rise could not be read at phone size.** It was the glyph, with 5.5px digits
+   that the halo filled in. Now it is built, as described above.
+2. **The swing from m = 2 back to m = −1 was a rewind.** It turned 108° in 0.9s, peaking at 189°/s,
+   against 60–86°/s for every other move, and it ran back through four stops it had just named. The
+   line now goes on over the top, 72° in 1.5s, peaking at 75°/s. The loop went from 9s to 10s so
+   the holds stay 1s.
+3. **The caption ended in a bare "=" for 18.5% of the loop.** Now the "=" fades with its value.
+
+Run on the reviewed build's own files, the new check names all three. Each of these 16 mutations
+turned it red for its own reason, and the real files are green again:
+
+- the ½ glyph put back beside the rise
+- a built half with its 2 off the bar's centre
+- the built half set at 7
+- the built half moved up by the middle of its rise, where the line crosses it
+- the built half moved 8 units right of its rise
+- the "=" put back outside the values
+- one value without its own "="
+- the swing sent back through the stops (it turns both ways, at 113°/s)
+- the swing over the top squeezed to 6% (187°/s)
+- the line ending 179° on, not 180°
+- the `halfTurn` excuse removed from the list
+- a half-turn claimed for the triangle as well
+- no `.mx-rr` group
+- the triangle and the rise taken out of the clip
+- reduced motion hiding `.mx-rr`
+- the y put back beside its arrow
+
+One change stays green on purpose. If the triangle is sampled straight through vertical, `scale()`
+is written with numbers in the thousands, but nothing visible changes, because the triangle is
+faded out there. The generator avoids those numbers for tidiness, and the check does not ask for it.
 
 ### Post is a tile
 
@@ -130,7 +188,10 @@ arrows. On top of those, `mxcOwn_` re-derives the picture from the keyframes:
    same change.
 3. **A comment's own `Remove` stays an underlined word in its time line.** It is on the comment,
    not the composer, and a bin tile on every line of an admin's thread is a lot of tiles.
-4. **The splash's halves:** the glyph ½ inside the drawing and a stacked 1 over 2 in the caption.
-   Decimals (0.5) read even more plainly, if the owner prefers them.
+4. **The splash's halves are built, 1 over 2, in the drawing and in the caption.** Decimals (0.5)
+   would read more plainly still, if the owner prefers them.
+5. **The line now turns one way only.** Through the 1.5s swing over the top, no gradient is named and
+   the triangle is gone, because a vertical line has no m. If the owner would rather see "m is
+   undefined" there, it is a word to add.
 
 No sheet columns and no backend change. The site deploys by `git push`.
