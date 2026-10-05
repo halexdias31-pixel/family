@@ -1609,7 +1609,8 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   if (before.indexOf('How volcanoes erupt') === -1 || before.indexOf('Fractions in two minutes') === -1)
     bad.push('the listed videos are not in the list: ' + before.join(' | '));
   if (before.indexOf('A switched-off volcano') !== -1) bad.push('a row with active: false is listed');
-  if (!before.some(x => /^Reel \d/.test(x))) bad.push('the app\'s own reels are not searched: ' + before.join(' | '));
+  /* AND NOT THE REELS: *"the video widget shouldn't acknowledge reels."* They were a third list here. */
+  if (before.some(x => /^Reel \d/.test(x))) bad.push('the videos widget lists the app\'s reels, which it was told not to: ' + before.join(' | '));
 
   const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
   type('volc');

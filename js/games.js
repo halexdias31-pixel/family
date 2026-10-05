@@ -5067,13 +5067,12 @@ on('kt-lesson', el => {
    type in. and there should be a full screen button." — and earlier as "Video cool videos database
    for reals and movies". The roster entry is `videos` in map.js, last on the Games column.
 
-   WHAT IT SEARCHES, AND IT IS THREE LISTS THE APP ALREADY HAS OR THE OWNER FILLS:
+   WHAT IT SEARCHES, AND IT IS TWO LISTS THE APP ALREADY HAS OR THE OWNER FILLS:
      - `data/videos.json` — the curated database, one row per video: `title`, `url`, `kind`
-       (reel | film | clip), `tags`, `age`, `notes`, `active`. The owner fills it; a row is
-       switched off with `active: false` rather than deleted, the shop's convention.
-     - the reels — `clipsNow_()`, the very list the Reels column and "One more thing" play, so a clip
-       added there turns up here with nothing else to change. A second reader of "which clips are
-       there" is the `factsNow_` lesson.
+       (film | clip; an old "reel" reads as a clip), `tags`, `age`, `notes`, `active`. The owner
+       fills it; a row is switched off with `active: false` rather than deleted, the shop's convention.
+     - NOT the reels. They were a third list here and were taken out: *"the video widget shouldn't
+       acknowledge reels."* The Reel column is where they live.
      - the films — `DATA.films`, which the backend sends to an admin and to NOBODY ELSE (note 068 in
        docs/history). `|| []` is the ordinary fallback and here it is also the whole gate, exactly
        as it is in find.js: nothing in this file decides who may see a film.
@@ -5098,7 +5097,7 @@ on('kt-lesson', el => {
    boot fetches carry, so the service worker's exact-URL cache hands back a fresh copy after a deploy
    and never the old one.
 ================================================================================================== */
-const VID_KINDS = ['reel', 'film', 'clip'];
+const VID_KINDS = ['film', 'clip'];
 let VIDEOS_LIST = null;          // null: not asked yet. []: asked, and there is nothing in it
 let VIDEOS_ASKED = null;         // the one request in flight, so two copies of the card ask once
 const VID = { q: '', at: '' };   // what is typed, and the key of the row in the player
@@ -5131,8 +5130,8 @@ function videosAll_() {
     seen.add(r.url);
     out.push(r);
   };
-  /* THE OWNER'S LIST FIRST, so a video they typed in AND which is also a reel is shown with their
-     title and tags rather than the reel's — theirs is the one somebody wrote on purpose. */
+  /* THE OWNER'S LIST FIRST, so a video they typed in that is also a film is shown with their title
+     and tags rather than the film's — theirs is the one somebody wrote on purpose. */
   (VIDEOS_LIST || []).forEach((r, i) => {
     if (!r || typeof r !== 'object') return;
     if (r.active !== undefined && typeof libOn === 'function' && !libOn(r.active)) return;
@@ -5142,18 +5141,10 @@ function videosAll_() {
     add({ key: 'v' + i, title: String(r.title || '').trim(), url, kind, how: vidHow_(url),
           tags: String(r.tags || ''), age: String(r.age || '').trim(), notes: String(r.notes || '') });
   });
-  /* THE REELS, NUMBERED BY ADDRESS rather than by `clipsNow_`'s order, which is dealt at random once
-     per open — "Reel 2" has to be the same reel on the second visit or the number names nothing. A
-     reel with a heading is called by it; the two built-in ones have none. */
-  try {
-    const clips = (typeof clipsNow_ === 'function' ? clipsNow_() : []).slice()
-      .sort((a, b) => String(a.clip).localeCompare(String(b.clip)));
-    clips.forEach((f, i) => {
-      const url = String(f.clip || '').trim();
-      add({ key: 'r' + i, title: f.heading || ('Reel ' + (i + 1)), url, kind: 'reel', how: vidHow_(url),
-            tags: [f.subject, f.body].filter(Boolean).join(' '), age: '', notes: '' });
-    });
-  } catch (e) {}
+  /* THE REELS WERE HERE, numbered by address and listed as "Reel 1", "Reel 2". Taken out:
+     *"the video widget shouldn't acknowledge reels."* Reels are the Reel column's, and listing them
+     again here made one thing two places to find it. A row of the owner's own list that was typed
+     with kind "reel" is shown as a clip -- it is still a video somebody chose. */
   ((typeof DATA !== 'undefined' && DATA.films) || []).forEach((f, i) => {
     if (!f || !f.title || f.placeholder || !/^https?:\/\//i.test(String(f.url || ''))) return;
     add({ key: 'f' + (f.id || i), title: String(f.title), url: String(f.url), kind: 'film', how: 'out',
@@ -5193,7 +5184,7 @@ function vidPlayer_(r) {
 }
 
 function vidRow_(r) {
-  const flag = r.kind === 'film' ? 'Film' : r.kind === 'reel' ? 'Reel' : 'Clip';
+  const flag = r.kind === 'film' ? 'Film' : 'Clip';
   const sub = [r.age, r.how === 'out' ? 'opens in a new tab' : ''].filter(Boolean).join(' · ');
   const inner = `<span class="vid-t">${esc(r.title)}</span>
       <span class="vid-k">${esc(flag)}${sub ? ' · ' + esc(sub) : ''}</span>`;
