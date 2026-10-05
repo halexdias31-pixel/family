@@ -417,6 +417,15 @@ function doGet(e) {
          leave the server. Blank stays blank: an unset cell sends '', me.js draws no button, and
          `googleLogin` still refuses, so an unconfigured site behaves exactly as it does today. */
       googleClientId: S(cfg.google_client_id),
+      /* WHETHER "Mark with AI" IS WORTH DRAWING — true when `GEMINI_API_KEY` is in Script Properties.
+         A YES OR NO AND NEVER THE KEY: the key stays on the server, and this is one property read.
+         The payload is cached, so a key added this minute reads false here until the next sheet edit
+         retires the copy; `aiMark` itself answers `why: 'ai-off'` in the meantime, so the phone is
+         never offered a button that does nothing for longer than one press. See keypad.js. */
+      aiMarking: (function () {
+        try { return !!PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY'); }
+        catch (e) { return false; }
+      })(),
       /* WHAT THE SHEET DID when this version first arrived — null on every request but the first
          after a deploy. Sent so it is visible rather than only in a log nobody opens: a schema
          change that failed and a schema change that was never needed look identical from here. */
@@ -476,6 +485,9 @@ function doGet(e) {
                  /* The site checks this before offering the button, so an older deployment says so
                     rather than answering "that action is not recognised" on a payment. */
                  'markPaid', 'joinFestive',
+                 /* The site checks this before it draws "Mark with AI", so a phone ahead of the
+                    deployment shows no button rather than one answering "not recognised". */
+                 'aiMark',
                  /* The site checks this before it offers the ＋ to somebody who is not an admin —
                     so an old deployment says so rather than swallowing their photograph. */
                  'approvePost'],

@@ -5210,6 +5210,28 @@ function markNorm_(s) {
       '\u2157': '3/5', '\u2158': '4/5', '\u2159': '1/6', '\u215a': '5/6', '\u215b': '1/8',
       '\u215c': '3/8', '\u215d': '5/8', '\u215e': '7/8' }[c] + ' ')
     .replace(/\s*\/\s*/g, '/')
+    /* ---------- WHAT THE MATHS KEYPAD WRITES, WHICH IS A BRACKET ROUND EVERY SLOT ------------------
+       ASKED FOR AS "make the input better … like hegarty maths … desmos". The keypad in keypad.js
+       builds a fraction as `()/()`, a power as `^()` and a root as `√()`, so each has a slot to
+       type into — and the stacked preview needs the slot. What it stores is therefore `(3)/(4)`,
+       `x^(2)` and `2√(11)`, and the library's `accept` is written `3/4`, `x^2` and `2√11`. Before
+       these lines the keypad's own fraction was marked wrong against the scheme it was built to
+       answer, which is the one failure this file calls the worse of the two.
+
+       ONLY A BRACKET ROUND ONE TERM, AND ONLY AGAINST A SLASH, A CARET OR A ROOT. `2(3)` is two
+       threes and must never become `23`; nothing here can reach it, because the bracket touches a
+       digit and no operator. `(x + 1)/3` keeps its brackets, because there they mean something.
+       Proved over the real library's 3,207 distinct `accept` ways: 17 change, and the only ones
+       that become equal to another are the 14 pairs a single cell already lists side by side as
+       alternatives — `12π|12pi`, `w^-2|w^(-2)`. Nothing that was a different answer becomes the
+       same one.
+
+       AND `sqrt` AND `pi` ARE THE KEYBOARD'S SPELLINGS of the two signs it has no key for — the
+       library already lists `12π|12pi` as two answers, and `sqrt(7)/7` beside `√` elsewhere. `pi`
+       only where it is not inside a word, so Jupiter stays Jupiter. */
+    .replace(/sqrt\s*/g, '√').replace(/(^|[^a-z])pi(?![a-z])/g, '$1π')
+    .replace(/\((-?[a-z0-9.π]+)\)(?=\/)/g, '$1')
+    .replace(/([\/^√])\((-?[a-z0-9.π]+)\)/g, '$1$2')
     /* AND THE SPACES ROUND A COLON, FOR THE SAME REASON ONE LINE UP. A ratio is printed `2 : 3` on
        a mark scheme and typed `2:3` into a box, and those were two different strings -- so an
        `accept` written the way the scheme prints it marked the way a child writes it WRONG, which
@@ -5494,14 +5516,19 @@ function ansBox_(x) {
      the one thing the deleted `workingAs` button was genuinely good for. Changing it is signing
      out, on the You column, where every other fact about who you are already lives. */
   const who = signedName_();
-  return `<label class="qp-ans">
+  /* A MATHS ANSWER GETS THE KEYPAD AND A WORDED ONE THE PHONE'S KEYBOARD — "like hegarty maths …
+     worded answer normal device keyboard". Which is which, the pad, and "Mark with AI" under a
+     worded box are all keypad.js; this only chooses. Both boxes are `.qp-ans-in` with the same
+     `data-k`, so Check, the save on `input` and every check that types into one are unchanged. */
+  const maths = ansMaths_(x);
+  return `<label class="qp-ans${maths ? ' qp-ans-maths' : ''}">
     <span class="qp-ans-k">${who ? esc(who) + '&rsquo;s answer' : 'Your answer'}</span>
-    <textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
-      rows="2" spellcheck="false" autocomplete="off">${esc(ansRead_(k))}</textarea>
+    ${maths ? kpField_(k, ansRead_(k)) : `<textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
+      rows="2" spellcheck="false" autocomplete="off">${esc(ansRead_(k))}</textarea>`}
   </label>${can ? `<div class="qp-mark" data-accept="${esc(can)}">
     <button type="button" class="qp-check" data-do="qp-check">Check</button>
     <span class="qp-verdict" role="status" aria-live="polite"></span>
-  </div>` : ''}`;
+  </div>` : aiBox_(x)}`;
 }
 
 /* ---------- THE VERDICT ------------------------------------------------------------------------

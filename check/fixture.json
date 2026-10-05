@@ -39,7 +39,8 @@
   "editPost",
   "deletePost",
   "createCheckout",
-  "finalizePayment"
+  "finalizePayment",
+  "aiMark"
  ],
  "constants": {
   "vars": {
@@ -798,6 +799,7 @@
  "profileReadonly": [],
  "termsAccepted": false,
  "googleClientId": "",
+ "aiMarking": false,
  "films": [
   {
    "id": "FX001",
