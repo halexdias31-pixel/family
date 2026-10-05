@@ -317,6 +317,9 @@ function boot(opts) {
          as the press path. Without it only `padArm_` could be checked — and a `padWrap_` that got
          the armed case wrong would put the fault straight back on the next repaint. */
       'padOn: v => { PAD_ON = v; },' +
+      /* AND THE PAD'S KEY, a `const` arrow, so a journey can arm a pad by the key its marks are kept
+         under -- and read those marks back -- without writing the key's format out a second time. */
+      'padKey: typeof padKey_ === "function" ? padKey_ : null,' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
          below checks is unchanged: a client and an admin are told different things. */
@@ -6258,6 +6261,106 @@ check('Find draws the same question family, practical, project and textbook for 
     w.spotSet_(prac.key, false);
     t.USER(null);
   } else bad.push('spotSet_ or spotPages is not reachable, so the window\'s own tile was NOT checked');
+  return bad;
+});
+
+/* ---------- EVERY CONTROL ON A QUESTION'S PAGES IS A TILE ------------------------------------------------
+   ASKED FOR ONE AT A TIME AND THEN ALL AT ONCE: *"check button should be a tile."*, *"lock should be a
+   tile too. same as undo and clear. it should all be tiles."* The house rule said a FORM has buttons,
+   and the pen's bar, Check and Mark with AI were argued as a form's; the owner overruled it for this
+   surface, so the rule is asked of the whole family at once rather than of whichever control somebody
+   remembered.
+
+   EVERY PAGE OF A QUESTION FAMILY, through the app's own builders, signed in so the star is drawn too:
+   a stem with its figure, a part with a box and Check, a tapped question, a worded one with Mark with AI,
+   a maths one on the keypad's box, a drawing question on a squared grid (pen off AND on -- the armed bar
+   is drawn by a different branch), a pen question asking for a ruler and compasses, a passage to ring
+   words in, and every answer page hidden and shown. Every `<button>`, every `[data-do]`, every
+   `role="button"` and every link must be a `.tile` -- or one of the exceptions, each named where it is
+   drawn with the reason:
+     a multiple-choice option     the answer being given, with its own words and maths (`choiceBox_`)
+     a key on the maths keypad    a keyboard (`kpKey_`) -- drawn on the body, listed for completeness
+     a word in a passage          the answer being given, where the sentence put it (`circWords_`)
+     the picture under the pen    the pen's second door while it is off (`padArm_`), not a control
+     the answer box itself        a field, which is typed into rather than pressed
+   And the tiles the owner named must actually be there, so a family that drew none cannot pass. */
+check('every control on a question\'s pages is a tile, bar the options, the keys, the words and the box', async () => {
+  const p = Object.assign(payload(), { aiMarking: true });
+  p.features = (p.features || []).concat(['aiMark']);
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t, bad = [];
+  const need = ['pageParts_', 'stuffPart_', 'stuffCard', 'questionAnsCard_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The tiles were NOT checked'];
+  t.USER({ name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'], token: 'tok' });
+  const svg = '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>';
+  const row = id => ({ row_id: id, paper_id: 'P-TILES', subject: 'Maths', name: 'Paper 1: Foundation — June 2024' });
+  const stem = { id: 'S-TILES', html: '<p>The diagram shows a triangle.</p>', diagram: svg };
+  const fam = [
+    { kind: 'question', name: 'Q4(a)', qNumber: '4', qPart: 'a', marks: 2, key: 'q:Q-TILES-4a', row: row('Q-TILES-4a'), stems: [stem],
+      diagram: svg, html: '<p>Work out PR.</p>', answer: '<b>5 cm</b>', accept: 'five' },
+    { kind: 'question', name: 'Q4(b)', qNumber: '4', qPart: 'b', marks: 1, key: 'q:Q-TILES-4b', row: row('Q-TILES-4b'), stems: [stem],
+      html: '<p>Which is right?</p>', choices: ['3', '4'], choiceRight: [2], answer: '<b>4</b>' },
+    { kind: 'question', name: 'Q5', qNumber: '5', marks: 3, key: 'q:Q-TILES-5', row: row('Q-TILES-5'), stems: [],
+      answerType: 'explain', html: '<p>Explain why the angles add to 180°.</p>', answer: '<b>Angles on a line</b> &mdash; a half turn' },
+    { kind: 'question', name: 'Q6', qNumber: '6', marks: 1, key: 'q:Q-TILES-6', row: row('Q-TILES-6'), stems: [],
+      answerType: 'calculation', html: '<p>Work out 3/4 of 12.</p>', answer: '<b>9</b>', accept: '9' },
+    { kind: 'question', name: 'Q7', qNumber: '7', marks: 2, key: 'q:Q-TILES-7', row: Object.assign(row('Q-TILES-7'), { figure: 'grid-blank' }),
+      stems: [], answerType: 'drawing', html: '<p>Draw the graph of y = 2x + 1.</p>', answer: '<b>A straight line</b>' },
+    { kind: 'question', name: 'Q8', qNumber: '8', marks: 2, key: 'q:Q-TILES-8', row: row('Q-TILES-8'), stems: [], needs: ['Ruler', 'Compass'],
+      answerType: 'drawing', diagram: svg, html: '<p>Use a ruler and compasses to construct the perpendicular bisector of AB.</p>', answer: '<b>Arcs from A and B</b>' },
+    { kind: 'question', name: 'Q9', qNumber: '9', marks: 1, key: 'q:Q-TILES-9', row: row('Q-TILES-9'), stems: [],
+      answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>', answer: '<b>tall</b>' },
+  ];
+  const pages = [];
+  const drawAll = when => fam.forEach((x, i) => w.pageParts_(x, i ? fam[i - 1] : null).forEach(part => {
+    pages.push({ at: x.row.row_id + '#' + (part || 'card') + when, html: part ? w.stuffPart_(x, part) : w.stuffCard(x, 0) });
+  }));
+  drawAll('');
+  /* THE ARMED PEN, which `padWrap_` draws from `PAD_ON` by a different branch. */
+  ['q:Q-TILES-7', 'q:Q-TILES-8'].forEach(k => {
+    const x = fam.find(f => f.key === k);
+    t.padOn(w.__t.padKey ? w.__t.padKey(x) : 'pad:' + k);
+    pages.push({ at: x.row.row_id + '#fig, pen on', html: w.stuffPart_(x, 'fig') });
+  });
+  t.padOn('');
+  /* AND EVERY ANSWER PAGE, SHOWN, then put back. */
+  fam.forEach(x => { w.ansShow_(x); pages.push({ at: x.row.row_id + '#ans-shown', html: w.questionAnsCard_(x) }); w.ansHide_(x); });
+  const EXEMPT = [
+    ['button.qp-opt[data-do="qp-choose"]', 'a multiple-choice option'],
+    ['button.kp-key[data-do="kp-key"]', 'a key on the maths keypad'],
+    ['span.qw[data-do="qw-tap"]', 'a word in a passage to ring'],
+    ['div.qpad-art[data-do="pad-draw"]', 'the picture under the pen, while it is off'],
+    ['textarea.qp-ans-in[data-do="qp-ans"], input.qp-ans-in[data-do="qp-ans"]', 'the answer box'],
+  ];
+  const seen = {};
+  const exempted = {};
+  pages.forEach(pg => {
+    const h = w.document.createElement('div');
+    h.innerHTML = pg.html;
+    h.querySelectorAll('button, [data-do], [role="button"], a[href]').forEach(el => {
+      if (el.classList.contains('tile')) {
+        const k = el.getAttribute('data-do') + (el.getAttribute('data-tool') ? ':' + el.getAttribute('data-tool') : '');
+        seen[k] = (seen[k] || 0) + 1;
+        return;
+      }
+      const ok = EXEMPT.find(([sel]) => el.matches(sel));
+      if (ok) { exempted[ok[1]] = (exempted[ok[1]] || 0) + 1; return; }
+      bad.push(pg.at + ' draws a control that is not a tile: <' + el.tagName.toLowerCase()
+        + ' class="' + (el.getAttribute('class') || '') + '" data-do="' + (el.getAttribute('data-do') || '') + '">');
+    });
+  });
+  /* THE ONES THE OWNER NAMED, which must be there for the rule above to mean anything. */
+  [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-draw', 'the pen\'s lock'], ['pad-undo', 'Undo'],
+   ['pad-clear', 'Clear'], ['qa-go', 'To the answer'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
+   ['fav', 'the star']].forEach(([act, what]) => {
+    if (!seen[act]) bad.push('no ' + what + ' tile (' + act + ') was drawn anywhere in the family, so the rule was NOT asked of it');
+  });
+  ['a multiple-choice option', 'a word in a passage to ring', 'the picture under the pen, while it is off', 'the answer box'].forEach(what => {
+    if (!exempted[what]) bad.push('the family drew no ' + what + ', so its exception was NOT exercised');
+  });
+  t.USER(null);
+  if (!bad.length) console.log('          ' + pages.length + ' pages; tiles: ' + Object.keys(seen).sort().map(k => k + ' ' + seen[k]).join(', '));
   return bad;
 });
 

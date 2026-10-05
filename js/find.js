@@ -5646,7 +5646,14 @@ function choiceBox_(x) {
       const n = i + 1, on = picked.includes(n);
       const cls = (on ? ' is-picked' : '') + (done && right.includes(n) ? ' is-ans' : '');
       /* THE OPTION'S OWN MARKUP, as the question's html is drawn: it is committed library content
-         and carries the italics and superscripts an equation needs. */
+         and carries the italics and superscripts an equation needs.
+
+         NOT A TILE, AND THE ONE EXCEPTION ON THIS PAGE BESIDE THE KEYPAD'S KEYS. The owner made every
+         control on a question's pages a tile (*"it should all be tiles"*) -- Check, Mark with AI, the
+         pen's bar, Show and Hide. An option is not a control done TO the question; it is the answer
+         being given, with its own words and its own maths in it, and a 44px square holding a mark
+         cannot hold "P = I²R". So it stays a full-width button, the way a printed paper prints a box
+         beside each answer. */
       return `<button type="button" class="qp-opt${cls}" data-do="qp-choose"
         data-n="${n}" aria-pressed="${on}">${typeset_(c)}</button>`;
     }).join('')}</div>
@@ -5887,17 +5894,37 @@ const padPath_ = st => {
 };
 
 /* ---------- WHAT THE CONTROL SAYS, IN ONE PLACE --------------------------------------------------
-   THE HANDLER REWRITES THIS BUTTON IN PLACE rather than repainting the card, so the label exists in
-   two places by construction — the markup above and the press below. Written twice they drift, and
-   the drift here is invisible: a pad that says `Draw on it` while the pen is on is a mode you cannot
-   see, which is the fault the gold frame was added for.
+   THE HANDLER REWRITES THIS TILE IN PLACE rather than repainting the card, so its face exists in
+   two places by construction — the markup below and the press in `padArm_`. Written twice they
+   drift, and the drift here is invisible: a pad that says `Draw on it` while the pen is on is a mode
+   you cannot see, which is the fault the gold frame was added for. So the face is one object, handed
+   to `tile_` to draw and to `tileSet_` to rewrite.
 
    `Draw on it` SAID NOTHING ABOUT THE CARD BEING HELD, and that is what the report was about. The
    owner's own sentence is the label: a padlock, and `Lock it to draw`. */
 const PAD_TAP = 'Hold the card still and draw on this';
-const padLockFace_ = pen =>
-  (typeof tileIcon_ === 'function' ? tileIcon_(pen ? 'lock' : 'unlock') : '')
-  + (pen ? 'Done drawing' : 'Lock it to draw');
+const padLockFace_ = pen => ({ icon: pen ? 'lock' : 'unlock',
+  label: pen ? 'Done drawing' : 'Lock it to draw', note: pen ? 'the card moves again' : 'holds the card still',
+  on: !!pen, pressed: !!pen });
+
+/* ---------- THE PEN'S BAR IS A ROW OF TILES ---------------------------------------------------------
+   THESE WERE THREE `<button>`s — a full-width gold `Lock it to draw` on a line of its own and grey
+   `Undo` and `Clear` under it — argued as a FORM's controls, which the house rule gives buttons. The
+   owner, looking at it: *"lock should be a tile too. same as undo and clear. it should all be tiles."*
+   So every control on a question's pages is a tile now, and the rule that sent these to buttons is
+   overruled here for this surface by the person it was written for. One renderer means one tap target,
+   one press animation and one place `check-doors` pairs each `act` with its handler.
+
+   THE LOCK KEEPS ITS LEAD, in the tile's own vocabulary: `tone: 'lead'` is a gold mark while the pen
+   is off (the one thing to press first, as the gold outline said) and a gold FILL while it is on
+   (`.on`), which is the difference between an invitation and a state the frame already argued for.
+   It is a switch, so it says `aria-pressed` as well as lighting up. `.qpad-lock` stays the name the
+   handler and the checks find it by, because the picture carries the same action while the pen is off. */
+const padBar_ = pen => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
+      ${tile_(Object.assign({ act: 'pad-draw', cls: 'qpad-lock', tone: 'lead' }, padLockFace_(pen)))}
+      ${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo' })}
+      ${tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}
+    </div>`;
 
 function padWrap_(x, svg, credit) {
   const k = padKey_(x);
@@ -5927,12 +5954,7 @@ function padWrap_(x, svg, credit) {
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>
       </svg>
     </div>
-    <div class="qpad-bar">
-      <button type="button" class="qpad-btn qpad-lock" data-do="pad-draw" aria-pressed="${pen}">${
-        padLockFace_(pen)}</button>
-      <button type="button" class="qpad-btn" data-do="pad-undo">Undo</button>
-      <button type="button" class="qpad-btn" data-do="pad-clear">Clear</button>
-    </div>${credit || ''}
+    ${padBar_(pen)}${credit || ''}
     <p class="qpad-note">Kept on this phone only, like the answer box.</p>
   </div>`;
 }
@@ -5940,9 +5962,9 @@ function padWrap_(x, svg, credit) {
 /* ---------- ARMING ONE PAD, EVERY PART OF IT TOGETHER --------------------------------------------
    FOUR THINGS MOVE AND THE HANDLER USED TO MOVE THEM IN FOUR PLACES: the class the frame is drawn
    from, the `data-noswipe` the grid reads, the `data-do` that makes the picture itself a door, and
-   the button's own face. Four sites is four chances to leave a pad half-armed — a gold frame over a
-   picture that still hands the finger to the grid, or the other way round — and a half-armed pad is
-   exactly the invisible mode the frame exists to prevent.
+   the lock tile's own face. Four sites is four chances to leave a pad half-armed — a gold frame over
+   a picture that still hands the finger to the grid, or the other way round — and a half-armed pad
+   is exactly the invisible mode the frame exists to prevent.
 
    TURNING ONE ON TURNS EVERY OTHER OFF, which is why this takes a flag rather than toggling: two
    live `touch-action: none` regions on one scroller is the trap twice. */
@@ -5960,9 +5982,11 @@ function padArm_(pad, on) {
     else { art.setAttribute('data-do', 'pad-draw'); art.setAttribute('title', PAD_TAP); }
   }
   /* `.qpad-lock` RATHER THAN THE ACTION, because the art carries the same action when the pen is
-     off and `querySelector` would hand back whichever comes first in the markup. */
+     off and `querySelector` would hand back whichever comes first in the markup. Rewritten through
+     `tileSet_`, which changes the mark, both names and the plate together -- the tile's face is
+     `padLockFace_`'s and nobody else's. */
   const b = pad.querySelector('.qpad-lock');
-  if (b) { b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.innerHTML = padLockFace_(!!on); }
+  if (b) tileSet_(b, padLockFace_(!!on));
 }
 
 /* ---------- THE PEN ------------------------------------------------------------------------------
@@ -6033,12 +6057,12 @@ function padEnd_(e) {
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
 
-/* THE THREE CONTROLS. `Lock it to draw` is a MODE and not an action, so it says which it is with
+/* THE BAR'S TILES. `Lock it to draw` is a MODE and not an action, so it says which it is with
    `aria-pressed` and a class — see the note at the top of this block about why the pen cannot
    simply always be on. Only one pad takes the pen at a time: turning one on turns the last one
    off, because two live `touch-action: none` regions on one scroller is the trap twice. */
 on('pad-draw', (el) => {
-  /* TWO DOORS, ONE HANDLER. `el` is the button in the bar, or — while the pen is off — the
+  /* TWO DOORS, ONE HANDLER. `el` is the lock tile in the bar, or — while the pen is off — the
      PICTURE itself, which carries the same action for the reason written over `padArm_`. Both are
      inside the pad, so neither needs to be told apart here.
 
@@ -6212,6 +6236,8 @@ function circWords_(html, block, on) {
       return tag;
     }
     if (skip) return text;
+    /* NOT TILES, for the reason the multiple-choice options are not (`choiceBox_`): a ringed word is
+       the answer being given, and it has to stay where the sentence put it. */
     return text.replace(WORD, (w, apos, ent, word) => {
       if (!word) return w;
       const k = block + '.' + (n++);
