@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-05-c-attempts";
+const DOGET_VERSION = "2026-10-05-e-qualchip";
 
 
 function doGet(e) {
@@ -149,11 +149,23 @@ function doGet(e) {
          `authCheckPin_` IS THE ONE FUNCTION THAT KNOWS THE ANSWER. It refuses an empty PIN on its
          first line and compares the `pin` cell. Exactly what `verifyLogin` asks, which is the point: one test, one place.
 
-         NO THROTTLE HERE, DELIBERATELY. `authWrong_`'s ladder guards the sign-in door; this is a URL
-         typed by hand by somebody who already holds the spreadsheet, and a lock-out written from a
-         mistyped `?run=` would shut the owner out of the app itself. */
-      if (!who || !hasRole(who, 'admin')
-          || !authCheckPin_(read(TAB.people), who, S(p.pin))) {
+         ---------- AND THE SAME LADDER AS THE SIGN-IN DOOR ---------------------------------------------
+         THERE WAS NO THROTTLE HERE, "DELIBERATELY": this is a URL typed by somebody who already holds
+         the spreadsheet, and a lock-out from a mistyped `?run=` would shut the owner out of the app.
+         But anybody can type a URL. `name=` goes through `findPerson`, so an admin's display name or
+         handle does — and the tutors list publishes both — which made this an unlimited, unlogged
+         guess at an admin's PIN, and an admin's PIN opens every child's details. The ladder is ten
+         free wrong answers, so a mistyped `?run=` costs the owner nothing; the eleventh is the same
+         minute it would be at the sign-in box, because it is the same person's PIN. Locked is
+         answered before the PIN is compared, as there. */
+      const tRun = read(TAB.people);
+      const runWait = who ? authWaitMins_(who) : 0;
+      if (runWait > 0) {
+        return jsonOut({ error: 'Too many wrong PINs. Try again in ' + runWait
+                              + (runWait === 1 ? ' minute.' : ' minutes.') });
+      }
+      if (!who || !hasRole(who, 'admin') || !authCheckPin_(tRun, who, S(p.pin))) {
+        if (who && hasRole(who, 'admin')) authWrong_(tRun, who);
         return jsonOut({ error: 'Name or PIN not recognised, or that person is not an admin.',
                          hint: 'Add &name=Your%20Name&pin=0000 to the URL.' });
       }
@@ -646,6 +658,8 @@ function doGet(e) {
          from the site and can only be switched back on in the spreadsheet — which would make the
          control worse than not having one. */
       if ((listed || viewerIsAdmin) && (hasRole(r, 'tutor') || hasRole(r, 'admin'))) {
+        /* READ ONCE, SENT TWICE — `quals` and `qualsParts` below are one list in two spellings. */
+        const qp = qualsParts_(r);
         payload.tutors.push({
           id: i, type: 'tutor', role: ROLE_LABEL[mainRole(r)] || 'Tutor',
           /* A TITLE IS A SEPARATE FIELD RATHER THAN A LONGER `role` STRING, because `role` is
@@ -674,7 +688,10 @@ function doGet(e) {
              Only an admin is ever sent an unlisted row, so only an admin reads this; the card says
              "asked to tutor" where it would say "not listed", and the same Listed switch is the yes. */
           pending: tutorPending_(r),
-          title: name, handle: S(r.handle) || S(r.first_name),
+          /* THE HANDLE OR NOTHING — never the first name in its place. `@Ada` printed where a handle
+             goes is read as one, typed at the sign-in box, and refused: sign-in matches the `handle`
+             cell and nothing else. A blank is drawn as no handle, which is the truth. */
+          title: name, handle: S(r.handle),
           subtitle: S(r.city) || 'London',
           image: S(r.photo), mediaUrl: S(r.video),
           /* THE OTHER PHOTOGRAPHS, AS A LIST, without the face — `photosList_`. An older phone
@@ -731,23 +748,13 @@ function doGet(e) {
           teaches: teachesOf_(r).all,
           teachesMain: teachesOf_(r).first,
           teachesSpec: teachesOf_(r).main,
-          /* UP TO TEN, OFF THEIR ROWS OF THE `qualifications` TAB — `qualsList_` in core.gs. */
-          quals: qualsList_(r).map(q => {
-            const subj = S(q.subject);
-            if (!subj) return null;
-            const lvl = S(q.level), grd = S(q.grade);
-            /* WHERE, AFTER THE GRADE: "Maths A-Level grade B at Hill Top School". The `board` slot
-               holds the school, college or university now, not the exam board — see `qualLevel_` in
-               me.js. Joined here rather than on the phone so a card and a roster cannot disagree
-               about how a qualification is written. */
-            const brd = S(q.board);
-            /* AND WHEN: "studying now" for `Present`, the year otherwise — the studying row the
-               card used to draw is this qualification now. */
-            const rec = S(q.received);
-            const when = /^present$/i.test(rec) ? '— studying now' : rec ? '(' + rec + ')' : '';
-            return [subj, lvl, grd && ('grade ' + grd), brd && ('at ' + brd), when]
-              .filter(Boolean).join(' ');
-          }).filter(Boolean),
+          /* UP TO TEN, OFF THEIR ROWS OF THE `qualifications` TAB — `qualsList_` in core.gs. TWICE,
+             ONE LIST: `qualsParts` is each qualification as its parts, which the card writes like
+             an isotope (*"Maths subscript to it is grade and super script is the level"*), and
+             `quals` is the same entries as sentences, kept for a phone built before the parts were
+             sent. `qualsParts_` / `qualSentence_` in core.gs say why both, and why `kind`. */
+          quals: qp.map(qualSentence_),
+          qualsParts: qp,
           actionText: '▶ Watch Intro'
         });
       }
@@ -832,21 +839,25 @@ function doGet(e) {
          the subjects a tutor card wants, and two lists naming one person is one card drawn twice. */
       if (viewerIsAdmin && !hasRole(r, 'tutor') && !hasRole(r, 'admin')) {
         payload.everyone.push({
-          personId: S(r.person_id), title: name, handle: S(r.handle) || S(r.first_name),
+          /* THE HANDLE OR NOTHING, as on `tutors` — and an admin's card says "no handle yet" for a
+             blank one, so a hand-typed child is seen to need one ("New PIN" gives it them). */
+          personId: S(r.person_id), title: name, handle: S(r.handle),
           role: ROLE_LABEL[mainRole(r)] || 'Client', image: S(r.photo),
         });
       }
 
       if (hasRole(r, 'student') && maySeeChildren) {
         payload.students.push({
-          /* From the family tab, by ID. This passed the ROW to a function that wanted an id — the
-             row stringified to "[object Object]", matched nobody, and every student on the site
-             has had an empty sibling list ever since, in silence. */
-          siblings: siblingsOf(S(r.person_id)).map(personDisplayName),
+          /* ---------- `siblings` AND `friends` WERE HERE, AND THEY WENT TO EVERY STUDENT ---------------
+             EACH CHILD'S BROTHERS AND SISTERS BY FULL NAME, AND THEIR FRIENDS LIST, sent to anybody
+             signed in as a student — and anybody can be one: `register` is open, and since a child
+             with no email can make an account with a grown-up's, it takes one confirmed link. The
+             phone reads neither (`find.js`, `me.js`, `games.js` and `map.js` read the handle, the
+             score and the avatar). A person's OWN family arrives in `payload.family`, and their own
+             friends on their own row, which is where each belongs. Not sent is not leaked. */
           avatar: S(r.avatar),
           name: S(r.first_name) || name,
-          handle: S(r.handle) || S(r.first_name),
-          friends: S(r.friends),
+          handle: S(r.handle),
           xp: N(r.xp), credits: N(r.credits),
           highscore: N(r.high_score_flappy), ttHighscore: N(r.high_score_tables)
         });
@@ -879,7 +890,7 @@ function doGet(e) {
     if (meAsked && S(meAsked.person_id)) {
       const famCard_ = (r, rel) => ({
         personId: S(r.person_id), title: personDisplayName(r), relation: rel,
-        handle: S(r.handle) || S(r.first_name), image: S(r.photo) || '',
+        handle: S(r.handle), image: S(r.photo) || '',
       });
       /* Once each, and never yourself — a row linked to itself by a slip in the sheet would
          otherwise draw your own card a second time under "Your child". */

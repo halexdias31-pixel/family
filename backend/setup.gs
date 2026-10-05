@@ -403,6 +403,9 @@ function renameValue(arg) {
 
 function makeBrandAccount(pin) {
   const name = brandName();                    // whatever the brand tab says, or "@family."
+  /* THE ONE RULE EVERY OTHER DOOR ASKS (`pinWeak_`), on the account that reaches every control on
+     the site — a brand row on four repeated digits was the one PIN the app refused everywhere else. */
+  if (pin && pinWeak_(pin)) throw new Error('That PIN is too easy to guess. Choose another — nothing was changed.');
   const t = read(TAB.people);
 
   const existing = findPerson(name);
@@ -856,6 +859,17 @@ function ensureSchema() {
   if (seeded.length) report.config = (report.config || 'up to date') + ' | seeded: ' + seeded.join(', ');
   const idsAdded = ensurePersonIds();
   if (idsAdded) report.people = (report.people || 'up to date') + ' | gave ' + idsAdded + ' rows an id';
+  /* ---------- AND A HANDLE, WHICH A ROW TYPED INTO THE SHEET HAS NOT GOT ------------------------
+     `fillHandles` RAN ONLY FROM `?run=fillHandles`, which nobody runs. A child added by hand had no
+     handle — and a child with no address signs in with nothing else — while every card printed their
+     first name where the handle goes, which the sign-in box then refused. So it runs wherever the
+     ids are filled, and on the same terms: a blank is filled, nothing is overwritten. */
+  try {
+    const handles = fillHandles();
+    if (handles && handles.filled) {
+      report.people = (report.people || 'up to date') + ' | gave ' + handles.filled + ' rows a handle';
+    }
+  } catch (err) { report.people = (report.people || 'up to date') + ' | handles not filled: ' + err; }
   const seededItems = seedAvatarItems();
   if (seededItems) report.shop = (report.shop || 'up to date') + ' | seeded ' + seededItems + ' wearables';
   const lists = seedOptions();

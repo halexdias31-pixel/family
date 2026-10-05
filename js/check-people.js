@@ -82,6 +82,11 @@ const SRC = [
   grab(core,   /function qualsIn\([\s\S]*?\n\}/, 'qualsIn'),
   grab(core,   /const teachPhrase_\s*=[^;]*;/, 'teachPhrase_'),
   grab(core,   /function teachesOf_\([\s\S]*?\n\}/, 'teachesOf_'),
+  /* THE SAME ROWS AS PARTS, for the card's isotope notation — and the sentence written off them. */
+  grab(core,   /const QUAL_CERTS\s*=[^;]*;/, 'QUAL_CERTS'),
+  grab(core,   /const QUAL_CERT_LEVELS\s*=[^;]*;/, 'QUAL_CERT_LEVELS'),
+  grab(core,   /function qualsParts_\([\s\S]*?\n\}/, 'qualsParts_'),
+  grab(core,   /function qualSentence_\([\s\S]*?\n\}/, 'qualSentence_'),
   grab(consts, /const PHONE_CODES\s*=[^;]*;/, 'PHONE_CODES'),
   grab(core,   /function phoneOut\([\s\S]*?\n\}/, 'phoneOut'),
   grab(core,   /function phoneIn\([\s\S]*?\n\}/, 'phoneIn'),
@@ -136,6 +141,7 @@ new Function('box', PRELUDE + SRC
   + ' box.qList = qualsList_; box.qOut = qualsOut; box.qIn = qualsIn;'
   + ' box.QMAX = QUAL_MAX; box.QFIELDS = QUAL_FIELDS;'
   + ' box.teaches = teachesOf_; box.phOut = phoneOut; box.phIn = phoneIn;'
+  + ' box.qParts = qualsParts_; box.qSay = qualSentence_; box.CERTS = QUAL_CERTS; box.CERT_LEVELS = QUAL_CERT_LEVELS;'
   + ' box.pOut = photosOut; box.pIn = photosIn; box.pNo = photosRefusal_; box.pList = photosList_;'
   + ' box.PMAX = PHOTO_MAX; box.vWrites = venuesWrites_;')(box);
 
@@ -258,6 +264,61 @@ is('Teach on two levels of one subject is two Teaches, and the rest is Can also 
    box.teaches(ME), { main: ['Maths (GCSE)', 'Maths (A-Level)'], first: 'Maths (GCSE)', all: ['Maths (GCSE)', 'Maths (A-Level)', 'English (KS3)'] });
 store(asRows([{ subject: 'English', level: 'KS3', can_teach: 'TRUE' }]));
 is('no specialism is no Teaches', box.teaches(ME).main, []);
+
+/* ---------- A QUALIFICATION AS ITS PARTS, AND AS THE SENTENCE --------------------------------------
+   *"Maths subscript to it is grade and super script is the level."* The card writes each one like an
+   isotope off `qualsParts`, and a phone from before that reads `quals`. Both are written off ONE list
+   by `qualsParts_`, so this follows what was typed into the boxes all the way to both keys: the same
+   length, the same order, the row with no subject dropped from both, and the sentence byte-for-byte
+   what `doGet` wrote inline before it moved — an older phone must not see a single character move. */
+store(asRows(box.qIn(q7(['Maths', 'A-Level', 'Edexcel', 'B', '2019', 'TRUE', ''],
+                       ['', 'GCSE', '', 'C', ''],
+                       ['English', 'GCSE', 'Hill Top School', '7', '2016'],
+                       ['Bible and Theology', 'Degree', 'UWTSD', '', 'Present'],
+                       ['PGCE', '', 'Institute of Education', '', '2021'],
+                       ['DBS', 'Enhanced', '', '', ''],
+                       ['Safeguarding', 'Standard', '', '', ''],
+                       ['Maths', "Bachelor's degree", 'University of Warwick', '2:1', '2022']))));
+is('each qualification comes out as its parts, in the order typed, the subjectless one dropped',
+   box.qParts(ME),
+   [{ subject: 'Maths', level: 'A-Level', grade: 'B', board: 'Edexcel', received: '2019', kind: 'subject' },
+    { subject: 'English', level: 'GCSE', grade: '7', board: 'Hill Top School', received: '2016', kind: 'subject' },
+    { subject: 'Bible and Theology', level: 'Degree', grade: '', board: 'UWTSD', received: 'Present', kind: 'subject' },
+    { subject: 'PGCE', level: '', grade: '', board: 'Institute of Education', received: '2021', kind: 'cert' },
+    { subject: 'DBS', level: 'Enhanced', grade: '', board: '', received: '', kind: 'cert' },
+    { subject: 'Safeguarding', level: 'Standard', grade: '', board: '', received: '', kind: 'cert' },
+    { subject: 'Maths', level: "Bachelor's degree", grade: '2:1', board: 'University of Warwick', received: '2022', kind: 'subject' }]);
+is('and the sentences are the ones doGet has always sent',
+   box.qParts(ME).map(box.qSay),
+   ['Maths A-Level grade B at Edexcel (2019)', 'English GCSE grade 7 at Hill Top School (2016)',
+    'Bible and Theology Degree at UWTSD — studying now', 'PGCE at Institute of Education (2021)',
+    'DBS Enhanced', 'Safeguarding Standard', "Maths Bachelor's degree grade 2:1 at University of Warwick (2022)"]);
+store(asRows([{ subject: 'first aid' }, { subject: 'Dofe gold' }, { subject: 'pgce ' }]));
+is('a certificate is a certificate however its name is spaced or cased', box.qParts(ME).map(q => q.kind),
+   ['cert', 'cert', 'cert']);
+
+/* THE CERTIFICATES ARE THE TAIL OF THE PHONE'S LISTS, copied — so the copy is held to them. A name
+   here that the shelf does not offer is one the server calls a certificate and nobody can choose;
+   one renamed on the shelf and not here turns a PGCE into notation without anything failing. */
+const listIn = (src, name) => {
+  const body = grab(src, new RegExp('const ' + name + ' = \\[[\\s\\S]*?\\];'), name + ' in js/me.js');
+  return [...body.matchAll(/'([^']*)'|"([^"]*)"/g)].map(m => (m[1] !== undefined ? m[1] : m[2]));
+};
+const SHELF_SUBJECTS = listIn(me, 'QUAL_SUBJECTS'), SHELF_LEVELS = listIn(me, 'QUAL_LEVELS');
+is('the shelf\'s two lists were read', [SHELF_SUBJECTS.length > 20, SHELF_LEVELS.length > 10], [true, true]);
+is('every certificate the server knows is a subject the shelf offers',
+   box.CERTS.filter(c => !SHELF_SUBJECTS.includes(c)), []);
+is('every certificate level the server knows is a level the shelf offers',
+   box.CERT_LEVELS.filter(c => !SHELF_LEVELS.includes(c)), []);
+
+/* AND THE FIXTURE SENDS WHAT doGet SENDS. `check/fixture.json` stands in for the response in every
+   browser check, so its tutor's two keys must be one list in two spellings — a fixture whose
+   sentences and parts disagree measures a card no backend could produce. */
+const FX = JSON.parse(fs.readFileSync(path.join(ROOT, 'check', 'fixture.json'), 'utf8'));
+const fxTutors = (FX.tutors || []).filter(t => Array.isArray(t.qualsParts));
+is('the fixture has a tutor carrying qualsParts', fxTutors.length > 0, true);
+fxTutors.forEach(t => is('the fixture\'s ' + (t.title || t.personId) + ' sends quals and qualsParts as one list',
+  t.quals, t.qualsParts.map(box.qSay)));
 store([], []);
 
 /* ---------- THE VENUES: A SAVE THAT MOVES NOTHING WRITES NOTHING ----------------------------------

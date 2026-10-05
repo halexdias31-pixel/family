@@ -1266,7 +1266,11 @@ function initFlappy() {
      The original was tuned on a 300px-wide canvas, so that is the unit. Proportions hold and the
      difficulty holds with them, which is the whole point of scaling rather than hard-coding. */
   const k = W / 300;
-  const GRAV = 0.45 * k, FLAP = -7 * k, GAP = 110 * k, PIPE_W = 42 * k, SPEED = 2 * k;
+  /* THE GAP IS 98, NOT 110: *"make flappy bird slightly hard. maybe by tightening gap of pipe."*
+     About a ninth narrower -- the bird (radius 9) has 80 units of slack where it had 92 -- so the
+     same flap rhythm still clears it, with less room for a late one. Only the gap moved: gravity,
+     flap and speed are what the game feels like, and the owner asked for harder, not different. */
+  const GRAV = 0.45 * k, FLAP = -7 * k, GAP = 98 * k, PIPE_W = 42 * k, SPEED = 2 * k;
   /* THE FLOOR IS PART OF THE GAME NOW rather than a stripe painted over the bottom of it. The bird
      died at the canvas EDGE while the old panel's two-shade band sat above that line, so the last
      few pixels of every fall were a bird inside the ground. A strip you can hit is what the game

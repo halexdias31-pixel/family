@@ -20,6 +20,14 @@
 const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
 const REPO = path.resolve(__dirname, '..');
 
+/* ---------- WHAT A REAL SHEET DOES TO A STRING, INCLUDING THE 0 IT DROPS ----------------------------
+   THIS KEPT A STRING OF DIGITS THAT STARTS WITH 0 AS A STRING, and a real sheet does not: `setValue`
+   and a person typing both turn it into a number, so four noughts come back `0`. That one kindness
+   was the whole reason no check here could see a child's PIN that started with 0 refused for ever —
+   the harness was storing the PIN the sheet would have mangled. Every seeded PIN in these checks is
+   the `0000` placeholder, so since this line every one of them arrives as the number 0, exactly as a
+   PIN typed into the live sheet does, and signing in at all now proves `authPinLost_`. A leading
+   apostrophe is still text — that is `cellSafe_`'s answer, and the sheet's. */
 function coerce(v) {
   if (typeof v !== 'string') return v;
   if (v.charAt(0) === "'") return v.slice(1);
@@ -29,7 +37,7 @@ function coerce(v) {
   m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
   if (/^(true|false)$/i.test(t)) return /^true$/i.test(t);
-  if (/^-?\d+(\.\d+)?$/.test(t) && !/^0\d/.test(t)) return Number(t);
+  if (/^-?\d+(\.\d+)?$/.test(t)) return Number(t);
   return v;
 }
 
@@ -59,6 +67,14 @@ function backend(extra) {
             return self;
           },
           setNumberFormat: () => self, setBackground: () => self, setFontWeight: () => self,
+          /* `ensureSchema` REWRITES THE OPTIONS TAB through this, so a check that runs it (check-signin:
+             blank handles filled) needs it to empty the cells it covers — not to be a no-op. */
+          clearContent() {
+            for (let i = 0; i < nr; i++) for (let j = 0; j < nc; j++) {
+              const row = grid[r - 1 + i]; if (row && c - 1 + j < row.length) row[c - 1 + j] = '';
+            }
+            return self;
+          },
         };
         return self;
       },

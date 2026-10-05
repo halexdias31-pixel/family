@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-checktile";
+  --css-version: "2026-10-05-qualchip";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -746,6 +746,31 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   font-size: 1.05rem; color: var(--ink); overflow-wrap: anywhere; min-width: 0;
 }
 .handle-now > b { color: var(--gold); font-weight: 600; }
+
+/* ---------- THE SIGN-IN SLIP: A HANDLE AND A PIN, HANDED TO SOMEBODY ON PAPER ---------------------------
+   *"so all kids can login easily with their handle and pin."* What a parent is shown once, after making
+   a child's account or giving them a new PIN — the thing that gets written on the fridge or
+   photographed, so it is drawn as PAPER (`--paper`, `--paper-ink`, `--paper-dim`), never as the black
+   screen and never as a literal. Two labels and two values, the values big enough to read across a
+   kitchen. `overflow-wrap: anywhere` because a handle is up to twenty characters with nothing to break
+   at and a 320 card is the narrowest it is drawn on; `tabular-nums` so a PIN's digits sit in columns
+   somebody can copy one at a time. */
+.pin-slip {
+  background: var(--paper); color: var(--paper-ink);
+  border: 1px solid var(--paper-rule); border-radius: 4px;
+  padding: .75rem .95rem; margin: .8rem 0 .5rem; min-width: 0;
+}
+.pin-slip-k {
+  margin: 0; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--paper-dim);
+}
+.pin-slip-v {
+  margin: .1rem 0 .55rem; font-size: 1.35rem; font-weight: 700; line-height: 1.2;
+  overflow-wrap: anywhere; font-variant-numeric: tabular-nums;
+}
+.pin-slip-v:last-child { margin-bottom: 0; }
+/* THE "NO EMAIL" TICK ON THE REGISTER SHEET reads as a line of the form, not as a heading: the
+   `.check` row's own size, at the caption's voice. */
+.check.reg-kid { font-size: .9rem; color: var(--dim); padding-top: .2rem; }
 
 /* ---------- THREE LIBRARY CARDS ON ONE PAGE, WHICH NINE STACKED BOXES CANNOT BE -------------------
    *"there are many different librarys for library card detais so make it smaller so can fit in like
@@ -6448,6 +6473,38 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   color: var(--dim); letter-spacing: 0;
 }
 .prof-lv span { white-space: nowrap; }
+/* A QUALIFICATION, WRITTEN LIKE AN ISOTOPE — `profQualChip_` in cards.js. *"Maths subscript to it is
+   grade and super script is the level."* The level and the grade are one block on the subject's
+   right, the level over the grade, both left-aligned so they start at the same x as notation does.
+   A COLUMN RATHER THAN A `<sup>` AND A `<sub>` LEFT INLINE: inline, the two sit side by side and a
+   reader pairs them up by squinting; stacked, they share an x and the pair reads as one mark.
+   SAME FLOOR AND THE SAME INK AS THE TEACHES LEVELS (`.prof-lv`): 8px in px, because a browser's own
+   superscript on a .64rem chip is about 7px; `--dim` rather than an opacity, so `check/ui.js`'s
+   contrast rule reads the colour that is actually drawn.
+   NEGATIVE MARGINS SO THE STACK DOES NOT GROW THE CHIP. Two 8px lines are taller than the chip's own
+   line, and `.prof-tags` is a flex row whose items stretch to the tallest — so one tall chip would
+   stretch every chip beside it and leave their words at the top of taller pills. The margin takes the
+   stack's own height out of the line box and lets it sit in the chip's padding, which is what the
+   padding is there for. Measured: 20.8px with the stack and 20.8 without at 320, 22.6 and 22.6 at 390;
+   held there by `check/states.js`'s "a tutor's qualifications, written like isotopes".
+   `1ch` OF AIR BEFORE IT, BECAUSE THAT IS WHAT THE TEACHES LEVEL HAS. Its gap is the `&nbsp;` inside
+   its own 8px mono `<sup>`, and one `ch` of the stack's same 8px mono is that same width. It was `.22em`,
+   measured 1.75px against the Teaches level's 4.69 at both widths: side by side, "Maths ^GCSE" had air
+   and the qualification all but touched its subject — one card, one notation, two distances. The same
+   state now holds the two gaps within half a pixel of each other. */
+.prof-q-end { white-space: nowrap; }
+.prof-iso {
+  display: inline-flex; flex-direction: column; align-items: flex-start;
+  vertical-align: middle; margin: -.6em 0 -.6em 1ch;
+  font-size: max(8px, .84em); line-height: .98; letter-spacing: 0; color: var(--dim);
+}
+.prof-iso sup, .prof-iso sub { display: block; font-size: inherit; line-height: inherit; vertical-align: baseline; }
+/* ONE OF THE TWO KEEPS ITS OWN HALF. *"No grade → just the raised level"* — a level alone, centred
+   like the pair, would sit level with the subject and say nothing about being a level; so the empty
+   half is held open by a margin one line tall, and a level stays up and a grade stays down. */
+.prof-iso sup:only-child { margin-bottom: .98em; }
+.prof-iso sub:only-child { margin-top: .98em; }
+.prof-iso i { font-style: italic; }
 /* THE RATE, UP BY THE NAME AND BIGGER than any row — it is the number a parent opened the card for.
    Gold because it is a price and this app's prices are gold; the `/h` recedes so the figure leads. */
 .prof-rate {

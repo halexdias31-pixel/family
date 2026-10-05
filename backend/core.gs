@@ -161,12 +161,21 @@ function setCell(t, row, field, value) {
    or a name reading `=IMPORTXML(…)` would run with the owner's own permissions the next time the
    sheet recalculates. A leading apostrophe is the sheet's own "this is text": it is not stored as
    part of the value, so every reader gets back exactly what was written.
-   `-` ONLY WHEN IT IS NOT A NUMBER, because `-5` in a credits cell is a number and must stay one. */
+   `-` ONLY WHEN IT IS NOT A NUMBER, because `-5` in a credits cell is a number and must stay one.
+
+   ---------- AND DIGITS THAT START WITH A 0 ARE TEXT, BECAUSE THE 0 IS PART OF THEM ----------------
+   THE SAME PARSE TOOK THE 0 OFF A PIN. A string of digits is read as a number, so a child who chose
+   a PIN starting with 0 had a cell one digit shorter, a reset PIN starting with 0 (one in ten) was
+   refused the moment it was typed, and four noughts became `0`. Nothing that is all digits with a
+   leading 0 is ever meant as a number — a PIN, a phone number typed without spaces, a library card —
+   so the apostrophe goes on and the sheet keeps what was written. `0` alone and `0.5` are numbers and
+   are left alone. See `authPinLost_` in booking.gs for the cells written before this. */
 function cellSafe_(v) {
   if (typeof v !== 'string' || !v) return v;
   const c = v.charAt(0);
   if (c === '=' || c === '+' || c === '@') return "'" + v;
   if (c === '-' && !/^-\d+(\.\d+)?$/.test(v)) return "'" + v;
+  if (/^0\d+$/.test(v)) return "'" + v;
   return v;
 }
 
@@ -1236,6 +1245,50 @@ function teachesOf_(r) {
   /* `main` is EVERY level ticked Teach, in sheet order. `first` is the first of them, for a phone
      built before several were allowed — it reads one string as `teachesMain`. */
   return { main: main, first: main[0] || '', all: all };
+}
+
+/* ---------- A QUALIFICATION AS ITS PARTS, AND THE SENTENCE OFF THE SAME PARTS ----------------------
+   ASKED FOR AS *"for the qualifications bit, should be for example Maths subscript to it is grade and
+   super script is the level."* — so the card writes a qualification the way an isotope is written:
+   `Maths` with `A-Level` raised and `B` lowered beside it, one over the other. A card cannot draw that
+   from `quals`, which is a SENTENCE ("Maths A-Level grade B at Hill Top School (2019)"), and taking the
+   sentence apart again on the phone is guessing where `English Language` stops and its level starts.
+   So the parts are SENT, as `qualsParts`, beside the sentences rather than instead of them: a phone
+   built before this reads `quals` and draws exactly what it drew.
+
+   ONE LIST, BOTH KEYS. `qualsParts_` is the list and `qualSentence_` writes the sentence from one
+   entry of it, so the two keys are the same length, in the same order, with the same rows dropped (a
+   row with no subject is a level of nothing, and the card has never drawn one). The sentence is
+   byte-for-byte what `doGet` wrote inline before it moved here — `check-people.js` holds it to that.
+
+   `kind` IS `cert` FOR A THING HELD RATHER THAN A SUBJECT STUDIED — a PGCE, a DBS, First Aid — and
+   the card draws those as plain chips: `DBS` with `Enhanced` raised over nothing is notation for a
+   certificate that has no grade to lower. Decided by the subject being one of the certificates the
+   shelf offers at the foot of its subject list (`QUAL_SUBJECTS` in me.js), or by the level being one
+   of the three a DBS comes at (`QUAL_LEVELS`). Those are the phone's lists and this is a copy of
+   their tails, so `check-people.js` reads me.js and fails if a name here is not on the shelf there —
+   a certificate renamed on one side and not the other would otherwise turn into notation silently.
+   A DEGREE IS NOT A CERTIFICATE: `Maths` at `Bachelor's degree` with a `2:1` is a subject at a level
+   with a grade, which is exactly what the notation says. */
+const QUAL_CERTS = ['PGCE', 'QTS', 'DBS', 'First Aid', 'DofE Gold'];
+const QUAL_CERT_LEVELS = ['Basic', 'Standard', 'Enhanced'];
+function qualsParts_(r) {
+  const isIn = (list, v) => list.some(x => key(x) === key(v));
+  return qualsList_(r).filter(q => S(q.subject)).map(q => ({
+    subject: S(q.subject), level: S(q.level), grade: S(q.grade), board: S(q.board), received: S(q.received),
+    kind: isIn(QUAL_CERTS, q.subject) || isIn(QUAL_CERT_LEVELS, q.level) ? 'cert' : 'subject'
+  }));
+}
+/* WHERE, AFTER THE GRADE: "Maths A-Level grade B at Hill Top School". The `board` slot holds the
+   school, college or university now, not the exam board — see `qualLevel_` in me.js. AND WHEN:
+   "studying now" for `Present`, the year otherwise — the studying row the card used to draw is this
+   qualification now. Joined on the server so a card and a roster cannot disagree about how a
+   qualification is written. */
+function qualSentence_(p) {
+  const rec = S(p.received);
+  const when = /^present$/i.test(rec) ? '— studying now' : rec ? '(' + rec + ')' : '';
+  return [S(p.subject), S(p.level), S(p.grade) && ('grade ' + S(p.grade)), S(p.board) && ('at ' + S(p.board)), when]
+    .filter(Boolean).join(' ');
 }
 
 /* ---------- A DATE OF BIRTH, AS THREE BOXES AND BACK ----------------------------------------------

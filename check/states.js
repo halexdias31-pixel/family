@@ -1359,6 +1359,73 @@ const STATES = {
         + (document.querySelector('#sheet-body [data-do="reg-send"]') ? 1 : 0) === 5 ? 5 : 0,
       wants: 'the register sheet open: four boxes and its one button',
       leave: () => { closeSheet(); } },
+    /* ---------- AND WITH "I HAVE NO EMAIL" TICKED ----------------------------------------------------
+       *"so all kids can login easily with their handle and pin."* The tick is a `.check` row inside the
+       sheet, between the email box and the PIN — the one line on the form a child with no address
+       reads — so it is measured ticked at four widths: the label is the longest line on the sheet and
+       320 is where it would wrap under its box. */
+    { name: 'making an account with no email of your own',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const tile = document.querySelector('#s-account [data-do="register"]');
+        if (!tile) throw new Error('no Make an account tile on the signed-out account column');
+        ACTIONS['register'](tile);
+        const tick = document.getElementById('reg-noemail');
+        if (!tick) throw new Error('the register sheet has no no-email tick');
+        tick.checked = true;
+      },
+      expect: () => {
+        const tick = document.getElementById('reg-noemail');
+        const row = tick && tick.closest('label.check');
+        const r = row && row.getBoundingClientRect();
+        return tick && tick.checked && r && r.height >= 44 && !!document.getElementById('reg-email') ? 1 : 0;
+      },
+      wants: 'the register sheet with the no-email tick ticked, a whole 44px row under the email box',
+      leave: () => { closeSheet(); } },
+    /* ---------- A CHILD WITH NO HANDLE, ON AN ADMIN'S PEOPLE COLUMN ------------------------------------
+       The card says "no handle yet" where the handle goes, and carries New PIN beside Message. Seeded
+       into `DATA.everyone`, which the fixture does not carry, because the admin's list is built only
+       for an admin's token. */
+    { name: 'a child with no handle yet, and New PIN',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        window.STATE_EVERY_WAS = DATA.everyone;
+        DATA.everyone = [{ personId: 'P-STATE-KID', title: 'Kit Handleless', handle: '', role: 'Student', image: '' }];
+        paint('account');
+        const at = [...document.querySelectorAll('#s-account .page')]
+          .findIndex(pg => pg.querySelector('[data-do="kid-pin"][data-id="P-STATE-KID"]'));
+        if (at < 0) throw new Error('no New PIN tile for the seeded child on the admin\'s column');
+        goPage('account', at, true);
+      },
+      leave: () => {
+        if (window.STATE_EVERY_WAS === undefined) delete DATA.everyone; else DATA.everyone = window.STATE_EVERY_WAS;
+        delete window.STATE_EVERY_WAS;
+        paint('account');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        return pg && /no handle yet/.test(pg.textContent)
+          && pg.querySelector('.tile[data-do="kid-pin"]') && pg.querySelector('.tile[data-do="msg-open"]') ? 2 : 0;
+      },
+      wants: '"no handle yet" on the card, and New PIN beside Message as tiles' },
+    /* ---------- A NEW PIN, SHOWN ONCE ------------------------------------------------------------------
+       The sheet New PIN ends in: the paper slip with the handle and the six digits, and Done. Drawn the
+       way `kid-pin-go` draws it — `pinSlip_` into the sheet — so the measuring pass sees the slip at 320
+       without posting a reset to anybody. */
+    { name: 'a new PIN, shown once',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        openSheet('A new PIN for Kit', pinSlip_('Kit', 'kit_upright42', ['4', '8', '2', '9', '1', '3'].join(''))
+          + '<p class="faint">Write it down or read it to them — it is not shown again.</p>'
+          + '<button class="btn quiet" data-do="sheet-done">Done</button>');
+      },
+      expect: () => {
+        const slip = document.querySelector('#sheet-body .pin-slip');
+        return slip && slip.querySelectorAll('.pin-slip-v').length === 2
+          && slip.scrollWidth <= slip.clientWidth + 1 ? 2 : 0;
+      },
+      wants: 'the paper slip in the sheet: the handle and the PIN, neither running off the slip',
+      leave: () => { closeSheet(); } },
     /* ---------- THE HANDLE, WITH EXACTLY ONE `@` IN FRONT OF IT ----------------------------------
        ASKED FOR AS *"each person should have … handle llik \"@_____\""*, and the visible half of that
        had never existed: `doGet` has sent `handle` on every tutor since it was written and the only
@@ -1503,6 +1570,95 @@ const STATES = {
         paint('account');
         goPage('account', window.__TEACH_AT || 0, true);
       } },
+    /* ---------- A QUALIFICATION, WRITTEN LIKE AN ISOTOPE — see `profQualChip_` in cards.js ---------
+       *"for the qualifications bit, should be for example Maths subscript to it is grade and super
+       script is the level."* `check-flow` reads the markup; what it cannot read is whether the CSS
+       STACKS it — the level over the grade, sharing an x, on the subject's right, inside the pill and
+       without making the pill taller than the chips beside it. So this seeds a tutor with every case
+       (both halves, a level alone, a grade alone, still studying, a long subject, a certificate) in
+       the server's own shape, and measures each chip in the browser at every width — which also puts
+       the notation's contrast and the row's sideways scroll in front of `check/ui.js`. Put back after,
+       the page included, for the reason the state above gives. */
+    { name: 'a tutor\'s qualifications, written like isotopes',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__ISO_HELD = (DATA.tutors || []).slice();
+        window.__ISO_AT = PAGE.account || 0;
+        const P = (subject, level, grade, board, received, kind) => ({ subject, level, grade, board, received, kind: kind || 'subject' });
+        const parts = [P('Maths', 'A-Level', 'B', 'Edexcel', '2019'), P('English', 'GCSE', '7', 'Hill Top School', '2016'),
+                       P('Maths', 'GCSE', '9', 'Hill Top School', '2017'), P('Physics', 'AS', '', '', ''),
+                       P('Chemistry', '', 'A', '', ''), P('Theology', 'Degree', '', 'UWTSD', 'Present'),
+                       P('English Language and Literature', "Master's degree", 'Distinction', 'University of Warwick', '2022'),
+                       P('PGCE', '', '', 'Institute of Education', '2021', 'cert'), P('DBS', 'Enhanced', '', '', '', 'cert')];
+        /* `teachesSpec` IS SET HERE AND NOT BORROWED FROM THE FIXTURE'S TUTOR: the gap below is measured
+           against a Teaches chip on the same card, and a fixture edited to teach nothing would turn that
+           comparison into a silent pass. */
+        DATA.tutors = (DATA.tutors || []).concat([Object.assign({}, (DATA.tutors || [])[0] || {},
+          { personId: 'P-iso', handle: 'iso', title: 'Iso Notation', listed: true, qualsParts: parts,
+            teachesSpec: ['Maths (GCSE)'],
+            quals: parts.map(p => [p.subject, p.level, p.grade && 'grade ' + p.grade].filter(Boolean).join(' ')) })]);
+        paint('account');
+        const n = accountPages_().findIndex(h => /Iso Notation/.test(h));
+        if (n < 0) throw new Error('the seeded tutor is not on the account column');
+        goPage('account', n, true);
+      },
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-account .page')].find(p => /Iso Notation/.test(p.textContent));
+        const row = pg && pg.querySelector('.prof-quals');
+        if (!row) return 0;
+        const box = el => el.getBoundingClientRect();
+        const chips = [...row.querySelectorAll('.prof-tag')];
+        const plain = chips.filter(c => !c.querySelector('.prof-iso'));
+        const iso = chips.filter(c => c.querySelector('.prof-iso'));
+        if (iso.length !== 7 || plain.length !== 2) return 0;
+        const tall = box(plain[0]).height;
+        /* THE SAME AIR AS THE TEACHES LEVEL. The brief said match the Teaches chips, and the first build
+           put the stack 1.75px from its subject where the Teaches level sits 4.69px from its own — on one
+           card, two notations at two distances. Measured from the subject's last letter to the first
+           thing raised, on each kind of chip; no Teaches chip at all is a failure, not a pass. */
+        const gapOf = (subjectNode, notation) => {
+          const r = document.createRange(); r.selectNodeContents(subjectNode);
+          return box(notation).left - r.getBoundingClientRect().right;
+        };
+        const tc = [...pg.querySelectorAll('.prof-teach:not(.prof-quals) .prof-tag')].find(c => c.querySelector('.prof-lv span'));
+        if (!tc || !tc.firstChild) return 0;
+        const teachGap = gapOf(tc.firstChild, tc.querySelector('.prof-lv span'));
+        const ok = iso.every(c => {
+          const b = box(c), st = c.querySelector('.prof-iso'), s = box(st);
+          const up = st.querySelector('sup'), dn = st.querySelector('sub');
+          /* THE SUBJECT'S LAST LETTER, by a range over its own text, so "on its right" is measured
+             against the word and not against the pill. */
+          const word = c.querySelector('.prof-q-end').firstChild;
+          const r = document.createRange(); r.selectNodeContents(word);
+          const w = r.getBoundingClientRect();
+          /* "UP" AND "DOWN" AGAINST THE WORD'S OWN LINE, not the pill's middle: a long subject that
+             wraps at 320 puts the pill's middle between its two lines. */
+          const mid = w.top + w.height / 2;
+          const stacked = up && dn ? box(up).bottom <= box(dn).top + 0.5 && Math.abs(box(up).left - box(dn).left) < 0.5
+            : up ? box(up).top + box(up).height / 2 < mid - 1
+            : dn ? box(dn).top + box(dn).height / 2 > mid + 1 : false;
+          /* ONE LINE OF TEXT IS ONE PLAIN PILL TALL. A subject long enough to wrap is taller because
+             of its words, which is not what is being asked; the stack must still sit beside its last
+             word — the same line — and inside the pill. */
+          const head = c.firstChild && c.firstChild.nodeType === 3 ? c.firstChild : null;
+          let wrapped = false;
+          if (head) {
+            const hr = document.createRange(); hr.selectNodeContents(head);
+            wrapped = [...hr.getClientRects()].some(x => x.width > 0 && Math.abs(x.top - w.top) > w.height / 2);
+          }
+          return stacked && s.left >= w.right - 0.5 && Math.abs((s.top + s.bottom) / 2 - mid) < w.height
+            && Math.abs(gapOf(word, st) - teachGap) < 0.5
+            && (wrapped || Math.abs(b.height - tall) < 0.6)
+            && s.top >= b.top - 0.5 && s.bottom <= b.bottom + 0.5;
+        });
+        return ok ? iso.length : 0;
+      },
+      wants: 'each qualification\'s level over its grade on the subject\'s right, as far from it as a Teaches level is from its own, inside a pill no taller than a plain one',
+      leave: () => {
+        if (window.__ISO_HELD) DATA.tutors = window.__ISO_HELD;
+        paint('account');
+        goPage('account', window.__ISO_AT || 0, true);
+      } },
     /* ---------- WHERE THEY TUTOR, AS A HEAT MAP — see `profHeat_` in cards.js ------------------
        *"just let it be a heat map of the areas"*. The fixture's tutor ticks three: one venue WITH
        coordinates, one WITHOUT (left off rather than guessed), and Online (a chip, not a place). So
@@ -1624,6 +1780,30 @@ const STATES = {
      through `expect` rather than measuring the wrong card in silence. */
   settings: [
     { name: '' },
+    /* ---------- YOUR CHILD'S ACCOUNT, MADE: THE SLIP ON THE CARD -----------------------------------------
+       *"so all kids can login easily with their handle and pin."* After "Make their account" the card
+       grows a paper slip with the handle and the PIN, held as `KID_MADE` for the signed-in parent. The
+       admin visitor holds the role the card is for, so it is drawn; the slip is set straight into the
+       state, as `kid-make` sets it, and the page holding the card is turned to. */
+    { name: 'your child\'s account, made',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
+      enter: () => {
+        KID_MADE = { pid: String(USER.personId || ''), name: 'Maximilian', handle: 'maximilian_steady42',
+                     pin: ['0', '7', '3', '9'].join('') };
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.kid-make'));
+        if (at < 0) throw new Error('no "Make your child\'s account" card on the settings column');
+        goPage('settings', at, true);
+      },
+      leave: () => { KID_MADE = { pid: '', name: '', handle: '', pin: '' }; paint('settings'); },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const slip = pg && pg.querySelector('.kid-make .pin-slip');
+        return slip && slip.querySelectorAll('.pin-slip-v').length === 2
+          && pg.querySelectorAll('.kid-make [data-kid-new]').length === 3
+          && slip.scrollWidth <= slip.clientWidth + 1 ? 2 : 0;
+      },
+      wants: 'the make card with its three boxes, and the slip: the handle and the PIN, neither running off it' },
     /* ---------- THE PHOTOGRAPHS PAGE: THE FACE, THE CLIP, AND A SHELF OF EIGHT ------------------
        Eight boxes are IN the form whether or not they are drawn — `photosIn` rebuilds the whole cell
        from what arrives, so a box missing from the form is a photograph deleted on Save — and only

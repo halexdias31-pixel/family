@@ -1609,7 +1609,8 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   if (before.indexOf('How volcanoes erupt') === -1 || before.indexOf('Fractions in two minutes') === -1)
     bad.push('the listed videos are not in the list: ' + before.join(' | '));
   if (before.indexOf('A switched-off volcano') !== -1) bad.push('a row with active: false is listed');
-  if (!before.some(x => /^Reel \d/.test(x))) bad.push('the app\'s own reels are not searched: ' + before.join(' | '));
+  /* AND NOT THE REELS: *"the video widget shouldn't acknowledge reels."* They were a third list here. */
+  if (before.some(x => /^Reel \d/.test(x))) bad.push('the videos widget lists the app\'s reels, which it was told not to: ' + before.join(' | '));
 
   const type = v => { q.value = v; q.dispatchEvent(new w.Event('input', { bubbles: true })); };
   type('volc');
@@ -3384,6 +3385,212 @@ check('arriving on ?verify= confirms the address once and takes it out of the ba
   return bad;
 });
 
+/* ==================================================================================================
+   EVERY WAY A CHILD GETS IN, ON THE SCREEN. *"so all kids can login easily with their handle and
+   pin."* `check-signin.js` asks the backend through the real `doPost`; these ask the phone's half —
+   that the form posts what the backend reads, that the answer is put where the child will look, and
+   that the tiles are drawn for the people the server will say yes to and nobody else.
+================================================================================================== */
+check('a child with no email makes their own account with a grown-up\'s address, and is handed their handle', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'register'
+    ? (b.parent_email ? { success: true, name: 'Ben Mum', pending: true, handle: 'ben_kind42', confirmBy: 'grown-up' }
+                      : { success: true, name: 'Rae Newcomer', pending: true, handle: 'rae_kind43', confirmBy: 'self' })
+    : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(120);
+  const open = () => { const reg = d.querySelector('#s-account [data-do="register"]'); if (reg) t.ACTIONS['register'](reg); return !!reg; };
+  if (!open()) return ['there is no Make an account tile to press'];
+  await wait(50);
+  const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
+  const tick = d.getElementById('reg-noemail');
+  if (!tick) return ['the register sheet has no "I have no email" tick, so a child with no address has no way in'];
+  if (tick.closest('label.check') === null) bad.push('the no-email tick is not the app\'s own .check control');
+  fill('reg-first', 'Ben'); fill('reg-last', 'Mum'); fill('reg-email', 'mum@example.org'); fill('reg-pin', '0000');
+  tick.checked = true;
+  sent.length = 0;
+  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  await wait(300);
+  const post = sent.find(b => b.action === 'register');
+  if (!post) return bad.concat(['the ticked form posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no register']);
+  if (post.parent_email !== 'mum@example.org') bad.push('the grown-up\'s address went as ' + JSON.stringify(post.parent_email) + ', not parent_email');
+  if (post.email) bad.push('the grown-up\'s address was ALSO sent as the child\'s own email — it would be their sign-in address');
+  const box = d.getElementById('in-name');
+  if (!box || box.value !== '@ben_kind42') bad.push('after registering with no email the sign-in box holds ' + JSON.stringify(box && box.value) + ' — not the handle the child signs in with');
+  const said = String((d.getElementById('toast') || {}).textContent || '');
+  if (!/@ben_kind42/.test(said) || !/grown-up/i.test(said)) bad.push('the toast after a no-email sign-up says ' + JSON.stringify(said) + ' — not the handle and not who opens the link');
+  /* AND UNTICKED IT IS THE ADDRESS IT ALWAYS WAS. */
+  await wait(50);
+  if (!open()) return bad.concat(['the Make an account tile went after one use']);
+  await wait(50);
+  fill('reg-first', 'Rae'); fill('reg-last', 'Newcomer'); fill('reg-email', 'rae@example.org'); fill('reg-pin', '0000');
+  sent.length = 0;
+  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  await wait(300);
+  const post2 = sent.find(b => b.action === 'register');
+  if (!post2 || post2.email !== 'rae@example.org' || post2.parent_email) bad.push('unticked, register posted ' + JSON.stringify(post2));
+  if (box && box.value !== 'rae@example.org') bad.push('unticked, the sign-in box holds ' + JSON.stringify(box.value) + ', not the address');
+  return bad;
+});
+
+check('a grown-up opening a no-email child\'s link is told the child\'s handle', async () => {
+  const { w } = boot({ url: 'https://example.org/?verify=Vkid42',
+    reply: b => b.action === 'verifyEmail'
+      ? { success: true, name: 'Ben Mum', handle: 'ben_kind42', noEmail: true, linkedTo: 'Mia Mum' } : { success: true } });
+  await wait(400);
+  const said = String((w.document.getElementById('toast') || {}).textContent || '');
+  const bad = [];
+  if (!/@ben_kind42/.test(said)) bad.push('the grown-up was told ' + JSON.stringify(said) + ' — not the handle the child signs in with');
+  if (/sign in with it/i.test(said)) bad.push('the grown-up was told to sign in with their own address, which signs nobody in for the child');
+  return bad;
+});
+
+check('a parent makes their child\'s account in Settings and is shown the handle and the PIN on a slip', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'makeChild'
+    ? { success: true, name: 'Ivy Parent', handle: 'ivy_kind42', personId: 'P-IVY' } : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk',
+           profile: { first_name: 'Pat', last_name: 'Parent' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const card = () => d.querySelector('#s-settings .kid-make');
+  if (!card()) return ['a parent\'s Settings has no "Make your child\'s account" card'];
+  const pages = [...d.querySelectorAll('#s-settings .page')];
+  const at = sel => pages.findIndex(p => p.querySelector(sel));
+  const add = pages.findIndex(p => /Add your child/.test(p.textContent));
+  if (add !== -1 && at('.kid-make') > add) bad.push('making a child\'s account comes after linking one — most children here have none');
+  const box = k => card().querySelector('[data-kid-new="' + k + '"]');
+  if (!box('first') || !box('last') || !box('pin')) return bad.concat(['the make card is missing one of first, last, PIN']);
+  if (box('last').value !== 'Parent') bad.push('the last name box is not filled with the parent\'s own (' + JSON.stringify(box('last').value) + ')');
+  if (box('pin').type !== 'password' || box('pin').inputMode !== 'numeric') bad.push('the PIN box is not a numeric password box');
+  box('first').value = 'Ivy';
+  for (const p of ['12a', '123']) {
+    box('pin').value = p;
+    sent.length = 0;
+    t.ACTIONS['kid-make'](card().querySelector('[data-do="kid-make"]'));
+    await wait(150);
+    if (sent.some(b => b.action === 'makeChild')) bad.push('a PIN of "' + p + '" was posted');
+  }
+  box('pin').value = '0000';
+  sent.length = 0;
+  t.ACTIONS['kid-make'](card().querySelector('[data-do="kid-make"]'));
+  await wait(400);
+  const post = sent.find(b => b.action === 'makeChild');
+  if (!post) return bad.concat(['Make their account posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no makeChild']);
+  const want = { firstName: 'Ivy', lastName: 'Parent', pin: '0000', personId: 'P-C1' };
+  Object.keys(want).forEach(k => { if (post[k] !== want[k]) bad.push('makeChild carried ' + k + ' = ' + JSON.stringify(post[k])); });
+  try { w.paint('settings'); } catch (e) {}
+  await wait(100);
+  const slip = card() && card().querySelector('.pin-slip');
+  if (!slip) bad.push('after the account was made there is no slip with the handle and PIN on the card');
+  else {
+    if (!/@ivy_kind42/.test(slip.textContent)) bad.push('the slip does not show the handle the server made');
+    if (!/0000/.test(slip.textContent)) bad.push('the slip does not show the PIN the parent chose');
+  }
+  /* A STUDENT HAS NOBODY TO MAKE AN ACCOUNT FOR. */
+  t.USER({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' });
+  try { t.repaint(true); t.go('settings', false, true); w.paint('settings'); } catch (e) {}
+  await wait(200);
+  if (d.querySelector('#s-settings .kid-make')) bad.push('a student is offered "Make your child\'s account"');
+  /* AND ANOTHER PARENT ON THE SAME PHONE IS NOT SHOWN THE FIRST ONE'S CHILD'S PIN — the slip is held
+     for the parent who made it, by id, and a phone passed along keeps its state. */
+  t.USER({ name: 'Quinn Parent', personId: 'P-C2', role: 'parent', roles: ['parent'], token: 'tk3',
+           profile: { first_name: 'Quinn', last_name: 'Other' } });
+  try { t.repaint(true); t.go('settings', false, true); w.paint('settings'); } catch (e) {}
+  await wait(200);
+  if (!d.querySelector('#s-settings .kid-make')) bad.push('the second parent has no make card to look at');
+  if (d.querySelector('#s-settings .pin-slip')) bad.push('the parent\'s slip was still drawn for the next person signed in on the phone');
+  return bad;
+});
+
+check('New PIN is on a parent\'s child and on an admin\'s people, asks first, and shows the slip once', async () => {
+  const FRESH = ['4', '8', '2', '9', '1', '3'].join('');
+  const { w, sent } = boot({ reply: b => b.action === 'resetPin'
+    ? { success: true, name: 'Kit Parent', first: 'Kit', handle: 'kit_kind41', pin: FRESH } : { success: true } });
+  await wait(400);
+  if (!w.__t.accountPages) return ['accountPages_ is not exported — cannot check the account column'];
+  const t = w.__t, d = w.document, D = t.DATA(), bad = [];
+  const pageOf = name => t.accountPages().find(h => h.indexOf('>' + name + '<') !== -1) || '';
+
+  t.USER({ name: 'Pat Parent', personId: 'P-P', role: 'client', roles: ['client'], token: 'tk' });
+  D.family = [{ personId: 'P-K', title: 'Kit Parent', relation: 'child', handle: 'kit_kind41', image: '' }];
+  D.familyFor = 'P-P';
+  const kit = pageOf('Kit Parent');
+  if (!/data-do="kid-pin"[^>]*data-id="P-K"|data-id="P-K"[^>]*data-do="kid-pin"/.test(kit.replace(/\s+/g, ' ')))
+    bad.push('a parent\'s child card has no New PIN tile for that child');
+  try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing the account column threw: ' + e.message); }
+  await wait(150);
+  const tile = d.querySelector('#s-account [data-do="kid-pin"][data-id="P-K"]');
+  if (!tile) return bad.concat(['no New PIN tile on the screen to press']);
+  if (!tile.classList.contains('tile')) bad.push('New PIN is not a tile — a THING has tiles');
+  sent.length = 0;
+  t.ACTIONS['kid-pin'](tile);
+  await wait(80);
+  const sheet = d.getElementById('sheet');
+  if (!sheet || sheet.classList.contains('hidden')) return bad.concat(['pressing New PIN opened nothing to confirm in']);
+  if (sent.some(b => b.action === 'resetPin')) bad.push('pressing New PIN reset the PIN before asking');
+  const go_ = d.querySelector('#sheet-body [data-do="kid-pin-go"]');
+  if (!go_) return bad.concat(['the New PIN sheet has no button to say yes with']);
+  t.ACTIONS['kid-pin-go'](go_);
+  await wait(300);
+  const post = sent.find(b => b.action === 'resetPin');
+  if (!post || post.targetId !== 'P-K') bad.push('saying yes posted ' + JSON.stringify(post) + ' — wanted resetPin for P-K');
+  const slip = d.querySelector('#sheet-body .pin-slip');
+  if (!slip) bad.push('after the new PIN there is no slip in the sheet');
+  else if (!/@kit_kind41/.test(slip.textContent) || slip.textContent.indexOf(FRESH) === -1) bad.push('the slip does not show the handle and the new PIN: ' + JSON.stringify(slip.textContent.replace(/\s+/g, ' ')));
+  /* A PARENT'S OWN PARENT IS NOT THEIRS TO RESET — and a student's parent card carries no tile. */
+  t.USER({ name: 'Kit Parent', personId: 'P-K', role: 'student', roles: ['student'], token: 'tk3' });
+  D.family = [{ personId: 'P-P', title: 'Pat Parent', relation: 'parent', handle: 'pat_kind40', image: '' }];
+  D.familyFor = 'P-K';
+  if (/data-do="kid-pin"/.test(pageOf('Pat Parent'))) bad.push('a student\'s parent card carries a New PIN tile');
+  delete D.family; delete D.familyFor;
+
+  /* AN ADMIN: everybody who is not staff, "no handle yet" where there is none, and no tile without an id. */
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk2' });
+  D.everyone = [
+    { personId: 'P-E1', title: 'Evie Nohandle', handle: '', role: 'Student', image: '' },
+    { personId: 'P-E2', title: 'Carl Handled', handle: 'carl_kind32', role: 'Client', image: '' },
+    { personId: '', title: 'Noa Noid', handle: 'noa_kind64', role: 'Student', image: '' },
+  ];
+  const evie = pageOf('Evie Nohandle'), carl = pageOf('Carl Handled'), noa = pageOf('Noa Noid');
+  if (!/no handle yet/.test(evie)) bad.push('the admin is not told a child has no handle yet');
+  if (/no handle yet/.test(carl)) bad.push('a person with a handle is said to have none');
+  if (!/data-do="kid-pin"/.test(evie) || !/data-do="kid-pin"/.test(carl)) bad.push('an admin\'s people card has no New PIN tile');
+  if (!/data-do="msg-open"/.test(evie)) bad.push('New PIN pushed Message off the admin\'s card');
+  if (/data-do="kid-pin"/.test(noa)) bad.push('a row with no id was given a New PIN tile that can name nobody to the server');
+  delete D.everyone;
+  t.USER(null);
+  return bad;
+});
+
+check('Forgotten your PIN? says what the server said, including that nobody can be written to', async () => {
+  const { w } = boot({ reply: b => b.action === 'forgotPin'
+    ? (b.who === 'lee_kind42'
+       ? { error: 'We have no email for this account, so we could not send a new PIN. Ask your parent or your tutor — they can give you one straight away.', why: 'no-inbox' }
+       : { success: true, message: 'A new PIN is on its way to your parent\'s inbox. Your old PIN still works until you use the new one.' })
+    : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null); t.go('account', false, true);
+  await wait(120);
+  const box = d.getElementById('in-name'), tile = d.querySelector('#s-account [data-do="forgot-pin"]');
+  if (!box || !tile) return ['the sign-in card has no name box or no forgot-PIN tile'];
+  box.value = 'lee_kind42';
+  t.ACTIONS['forgot-pin'](tile);
+  await wait(300);
+  let said = String((d.getElementById('toast') || {}).textContent || '');
+  if (!/no email for this account/i.test(said)) bad.push('a child nobody can be written to was told ' + JSON.stringify(said));
+  box.value = '@kit_kind41';
+  t.ACTIONS['forgot-pin'](d.querySelector('#s-account [data-do="forgot-pin"]') || tile);
+  await wait(300);
+  said = String((d.getElementById('toast') || {}).textContent || '');
+  if (!/old PIN still works/i.test(said)) bad.push('the sent case toasted ' + JSON.stringify(said) + ' — not the server\'s sentence');
+  return bad;
+});
+
 check('each stage tick takes the date it actually happened on', async () => {
   /* ==================================================================================================
      ASKED FOR AS *"The tick boxes have a date for when it got requested. When other things get
@@ -4886,6 +5093,109 @@ check('what a tutor teaches is one chip a subject, its levels raised and no brac
     teaches: ['Maths (GCSE)', 'Maths (A-Level)'] });
   want('an older backend', old, 'Teaches', ['Maths ^GCSE'], true);
   want('an older backend', old, 'Can also teach', ['Maths ^A-Level'], false);
+  return bad;
+});
+
+/* ---------- A QUALIFICATION, WRITTEN LIKE AN ISOTOPE ------------------------------------------------
+   *"for the qualifications bit, should be for example Maths subscript to it is grade and super script
+   is the level."* `profQualChip_` in cards.js draws the subject with the level raised over the grade
+   lowered on its right, off the `qualsParts` the server sends. Every way this goes wrong draws: the
+   grade raised and the level lowered, a certificate turned into notation, the place quietly dropped
+   instead of moved into the name, a level alone sinking to the subject's line, a second Maths drawn
+   away from the first, or a phone that waits on a backend deploy to draw anything at all. So one
+   tutor is drawn through the app's own `findCard` with each case, and one off an older backend.
+   The STACKING is a layout question jsdom cannot answer — that is `check/states.js`'s
+   "a tutor's qualifications, written like isotopes", measured by `check/ui.js` in a real browser. */
+check('a qualification is written like an isotope: the level raised, the grade lowered, the place in its name', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const draw = row => { const box = d.createElement('div'); box.innerHTML = w.findCard({ kind: 'tutor', row }); return box; };
+  const P = (subject, level, grade, board, received, kind) => ({ subject, level, grade, board, received, kind: kind || 'subject' });
+  /* A CHIP, READ BACK AS WHAT IS DRAWN: the subject is what is outside the stack, the level is the
+     `<sup>` in it and the grade the `<sub>`, and the order inside the stack is the order on screen. */
+  const read = box => {
+    const c = [...box.querySelectorAll('.prof-cap')].find(x => x.textContent.trim() === 'Qualifications');
+    const row = c && c.nextElementSibling;
+    return row ? [...row.querySelectorAll('.prof-tag')].map(el => {
+      const iso = el.querySelector('.prof-iso');
+      const kids = iso ? [...iso.children].map(k => k.tagName.toLowerCase()) : [];
+      return { subject: (el.textContent.replace(iso ? iso.textContent : '', '')).trim(),
+               sup: iso && iso.querySelector('sup') ? iso.querySelector('sup').textContent : null,
+               sub: iso && iso.querySelector('sub') ? iso.querySelector('sub').textContent : null,
+               order: kids.join(','), stray: el.querySelectorAll('sup, sub').length - kids.length,
+               role: el.getAttribute('role'), label: el.getAttribute('aria-label') || '', title: el.getAttribute('title') || '',
+               studying: !!(iso && iso.querySelector('sub i')) };
+    }) : null;
+  };
+  const bad = [];
+  const now = read(draw({ title: 'Iso Tutor', personId: 'P-iso', rate: 30, quals: ['the sentences, which this phone must not draw'],
+    qualsParts: [P('Maths', 'A-Level', 'B', 'Edexcel', '2019'), P('English', 'GCSE', '7', 'Hill Top School', '2016'),
+                 P('PGCE', '', '', 'Institute of Education', '2021', 'cert'), P('Maths', 'GCSE', '9', 'Hill Top School', '2017'),
+                 P('Physics', 'AS', '', '', ''), P('Chemistry', '', 'A', '', ''),
+                 P('Theology', 'Degree', '', 'UWTSD', 'Present'), P('DBS', 'Enhanced', '', '', '', 'cert'), P('', 'GCSE', 'C', '', '')] }));
+  if (!now) return ['the tutor card drew no "Qualifications" row at all'];
+  const by = (s, sup) => now.find(q => q.subject === s && (sup === undefined || q.sup === sup));
+  /* THE ORDER: Maths's two together, where Maths first appears, in the order they were entered — the
+     shelf's own order — and the row with no subject (a level of nothing) not drawn. */
+  const order = now.map(q => q.subject + (q.sup ? '^' + q.sup : ''));
+  const wantOrder = ['Maths^A-Level', 'Maths^GCSE', 'English^GCSE', 'PGCE', 'Physics^AS', 'Chemistry', 'Theology^Degree', 'DBS Enhanced'];
+  if (JSON.stringify(order) !== JSON.stringify(wantOrder)) bad.push('the chips read ' + JSON.stringify(order) + ', wanted ' + JSON.stringify(wantOrder));
+  const maths = by('Maths', 'A-Level');
+  if (!maths) bad.push('no Maths chip with A-Level raised');
+  else {
+    if (maths.sub !== 'B') bad.push('Maths A-Level lowers ' + JSON.stringify(maths.sub) + ' where its grade, "B", belongs');
+    if (maths.order !== 'sup,sub') bad.push('Maths\'s stack is ' + maths.order + ' — the level goes OVER the grade');
+    if (maths.stray) bad.push('a <sup> or <sub> sits outside the stack on the Maths chip');
+    if (maths.role !== 'img') bad.push('the Maths chip is not role="img", so its aria-label is not what a screen reader hears');
+    if (!/^Maths, A-Level, grade B, at Edexcel, 2019$/.test(maths.label)) bad.push('the Maths chip is named ' + JSON.stringify(maths.label) + ' — the board and the year must be in the name, the notation spoken in words');
+    if (maths.title !== maths.label) bad.push('the Maths chip\'s title is not its name — a pointer held over it cannot see the place');
+  }
+  const eng = by('English', 'GCSE');
+  if (!eng || eng.sub !== '7' || !/Hill Top School/.test(eng.label)) bad.push('English is not GCSE over 7 with Hill Top School in its name: ' + JSON.stringify(eng));
+  const pgce = now.find(q => /PGCE/.test(q.subject));
+  if (!pgce) bad.push('the PGCE was not drawn');
+  else {
+    if (pgce.sup !== null || pgce.sub !== null || pgce.order) bad.push('the PGCE is drawn as notation — a certificate is a plain chip');
+    if (pgce.subject !== 'PGCE') bad.push('the PGCE chip reads ' + JSON.stringify(pgce.subject) + ' — the place belongs in its name, not on its face');
+    if (!/Institute of Education/.test(pgce.label)) bad.push('the PGCE chip lost where it was taken: ' + JSON.stringify(pgce.label));
+  }
+  const dbs = now.find(q => /^DBS/.test(q.subject));
+  if (!dbs || dbs.order) bad.push('an Enhanced DBS is notation, or missing — a certificate with a level is still a plain chip');
+  const phy = by('Physics');
+  if (!phy || phy.sup !== 'AS' || phy.sub !== null) bad.push('a level with no grade is not just the raised level: ' + JSON.stringify(phy));
+  const chem = by('Chemistry');
+  if (!chem || chem.sub !== 'A' || chem.sup !== null) bad.push('a grade with no level is not just the lowered grade: ' + JSON.stringify(chem));
+  const theo = by('Theology');
+  if (!theo || !theo.studying || theo.sub !== 'studying' || !/studying now/.test(theo.label)) bad.push('a degree still being studied does not say so in the grade\'s place: ' + JSON.stringify(theo));
+  /* A BACKEND FROM BEFORE THE PARTS: the sentences, as plain chips, exactly as they were. */
+  const old = read(draw({ title: 'Old Backend', personId: 'P-oldq', rate: 30, quals: ['Maths A-Level grade B at Edexcel (2019)', 'PGCE'] }));
+  if (!old || JSON.stringify(old.map(q => q.subject)) !== JSON.stringify(['Maths A-Level grade B at Edexcel (2019)', 'PGCE']) || old.some(q => q.order))
+    bad.push('an older backend\'s sentences are not drawn as they were: ' + JSON.stringify(old));
+  /* A LAW THAT COLOURS A TWO-WORD SUBJECT COLOURS IT WHOLE. The chip holds the subject's last word to
+     its stack with a no-wrap span, and the first build made that split BEFORE colouring — `mark` on
+     "English" and on "Language" apart, so a `laws` row naming "English Language" matched neither half
+     and the subject went uncoloured; "longest first" in `mark` exists to stop exactly that. A `word`
+     or `regex` law is a row anybody with the sheet can add today, so this is not waiting on the
+     retired subject list. Wanted: the coloured span reads the whole phrase; a law on "Maths" alone
+     still leaves "Further" outside the held word, so a long subject can still break between words. */
+  const D = w.__t.DATA(), lawsWere = D.laws;
+  D.laws = [{ kind: 'word', match: 'English Language', colour: 'green' }, { kind: 'word', match: 'Maths', colour: 'green' }];
+  try {
+    const box = draw({ title: 'Law Tutor', personId: 'P-lawq', rate: 30,
+      qualsParts: [P('English Language', 'GCSE', '8', '', '2016'), P('Further Maths', 'A-Level', 'A*', '', '2019')] });
+    const chip = s => [...box.querySelectorAll('.prof-quals .prof-q')].find(c => c.getAttribute('aria-label').startsWith(s + ','));
+    const green = c => c ? [...c.querySelectorAll('.w-green')].filter(x => !x.closest('.prof-iso')).map(x => x.textContent) : null;
+    const held = c => { const e = c && c.querySelector('.prof-q-end'), i = e && e.querySelector('.prof-iso');
+                        return e ? e.textContent.replace(i ? i.textContent : '', '') : null; };
+    const en = chip('English Language'), fm = chip('Further Maths');
+    if (JSON.stringify(green(en)) !== '["English Language"]')
+      bad.push('a law on "English Language" colours its chip as ' + JSON.stringify(green(en)) + ' — the subject split before it was coloured');
+    if (!en || held(en) !== 'English Language' || !en.querySelector('.prof-q-end .prof-iso'))
+      bad.push('"English Language", coloured whole, is not held whole to its stack: ' + JSON.stringify(held(en)));
+    if (JSON.stringify(green(fm)) !== '["Maths"]' || held(fm) !== 'Maths' || !/^Further /.test(fm.textContent))
+      bad.push('"Further Maths" with a law on "Maths" reads ' + JSON.stringify({ green: green(fm), held: held(fm) }) + ' — "Further" belongs outside the held word');
+  } finally { D.laws = lawsWere; }
   return bad;
 });
 

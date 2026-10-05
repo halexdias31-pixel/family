@@ -186,6 +186,10 @@ const SUITE = [
      admin's Saves wrote blanks over five packed cells — and nothing on this roster ever ran
      `updateProfile`. See the header of that file. */
   { file: 'check-profile.js', what: 'your settings, saved and read back through the real backend' },
+  /* EVERY WAY A CHILD GETS IN, FROM THE CHILD'S SIDE. Three audits found a child with no email who
+     could not get an account, a PIN starting with 0 refused for ever and "Forgotten your PIN?"
+     wiping whoever's handle was typed into it — under a green suite. Same backend, same harness. */
+  { file: 'check-signin.js', what: 'a child with no email: made, registered, signed in by handle, a new PIN' },
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp and the daily cap, through the real doPost' },
