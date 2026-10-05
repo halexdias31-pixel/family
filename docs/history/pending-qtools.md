@@ -97,3 +97,36 @@ its point and radius, Mark with AI. The first look caught the bin orphaned on it
   gets the Ruler (that is most of the 69). A tool that is on the pencil-case list is offered.
 * **No protractor tool.** **The 19 tool-asking questions with no pen** are a data fix (a `surface` of
   `blank`, or `answer_type: drawing`), not made here — `data/questions.json` was not touched.
+
+### After review: the lock's frame, the focus, the arrow, and a multiple-choice miss
+
+A review drove the branch with real touch at 320 and 390 and found no blocker. What it found, and
+what was done:
+
+* **The lock tile's frame was the admin yellow.** `.tile.is-lead` was copied from `.tile.is-admin`
+  with only `color` changed, so its border kept `rgb(242 210 75 / .35)` — `--admin` thinned — round a
+  gold padlock, on a tile students see. Both tones are `color-mix(in srgb, var(--token) N%,
+  transparent)` now, which paints the same and names the token. **`check-css` fails a `.tile` rule
+  that writes a `:root` token's colour out as a literal** (red with the yellow put back, naming
+  `--admin`), and reports a rule at its selector's line instead of the end of the rule above it (it
+  had sent the reader twenty lines up, to `.qpad-aid`). Scoped to tiles on purpose: the rest of the
+  sheet holds ~100 such literals, mostly the paper's cream thinned over the black.
+* **Show or Hide from a keyboard dropped the focus to `<body>`**, because `ansSet_` replaces the card.
+  The copy that held the focus hands it to its new toggle (`preventScroll`); a copy that did not
+  leaves it alone. check-flow's Show/Hide journey asserts both (red each way by mutation); in Chromium
+  Enter on Show lands on Hide with `:focus-visible`, and Enter again on Show.
+* **"To the answer" points down.** Right on this screen is the next column; the answer is the page
+  below. A drawing, so the screenshot is the check.
+* **A wrong multiple-choice tap ticked the right option** — the answer on the question card without
+  Show, against *"answers should just stay hidden unless user unhides them"* and *"you should have to
+  click to reveal the answer"*. On the base branch, not added here, and changed here on those words: a
+  miss reads "Not yet — see the answer page" with the pick in amber and nothing ticked; a hit ticks the
+  pick. Still settled after one pick, so "Correct" is not reached by elimination. check-flow asserts no
+  tick and no giveaway words on a miss and the pick alone ticked on a hit; the `check/states.js`
+  wrong-tap state now wants no `.is-ans`. The first wording wrapped to two lines at 320 and was cut.
+* **Not done: the six loci rows** (`Q-1CM-loci-1/-2/-3/-4/-6/-10`, "Construct the locus…"). The tool
+  decider already gives them pen, ruler and compass; they have no surface because their figures — the
+  point A, the points A and B, the lines — were never transcribed (the html holds `× A`), the worksheet
+  says "PRINT THIS ON A4", and its document row is inactive. A blank surface would hand a compass a
+  dashed square with no A to put its point on. The data fix is the owner's: transcribe the figures, or
+  accept `surface: "blank"`.
