@@ -212,6 +212,12 @@ Follow it. It is unusual and it is deliberate.
     pairs every `act` against a handler.
   - **Buttons** are the controls inside a **form or a dialog** — the booking form, the pay sheet,
     the composer. A form's buttons belong to the form.
+  - **On a question's pages, everything is a tile** — the owner, 5 Oct: *"check button should be a
+    tile"*, *"lock should be a tile too. same as undo and clear. it should all be tiles."* So Check,
+    Show/Hide the answer, the pen's lock/undo/clear and its ruler/compass, and Mark with AI are tiles
+    even though they act like a form's controls. The two exceptions are the answer itself — the
+    keypad's keys and the multiple-choice options — because those are what is being written, not
+    actions on it. When in doubt elsewhere, the owner's lean is the same: tile.
   - **Tiles win any tie.** One renderer means one place to fix a tap target; 46 inline buttons is 46
     places to get it wrong. If you are unsure which you are building, it is a thing, and it is tiles.
   - A tile has room for a label and about three words of `note`. When an action needs a real warning
