@@ -269,3 +269,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [Handles sign everybody in, an admin sees everyone, and Level comes before Key stage](265-handles-sign-everybody-in-an-admin-sees-everyone-and-level-c.md)
 - [A maths answer is typed on a keypad and drawn as it is built, and a worded one can be marked by Gemini](266-a-maths-answer-is-typed-on-a-keypad-and-drawn-as-it-is-built.md)
 - [Practice paper in the cheat sheet maker, and the circle-theorem splash redrawn](267-practice-paper-in-the-cheat-sheet-maker-and-the-circle-theor.md)
+- [A question reads in the paper's order, a figure is named as the paper names it, a long page is cut, and a done question is dated](268-a-question-reads-in-the-paper-s-order-a-figure-is-named-as-t.md)
