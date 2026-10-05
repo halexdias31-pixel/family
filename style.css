@@ -819,6 +819,9 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-list:empty { display: none; }
 /* A HAIRLINE BETWEEN SUBJECTS AND NONE BETWEEN ONE SUBJECT'S LINES — the grouping is said once. */
 .q-subj + .q-subj { border-top: 1px dashed var(--line); }
+/* A PRESS THAT ANSWERS, which is the one signal every `[data-do]` here gets; a line has no plate of
+   its own to light, so it is the faintest wash of the card's ink. */
+.q-line:active, .q-line.is-pressed { background: rgb(255 255 255 / .05); }
 .q-line {
   display: grid; grid-template-columns: min(var(--q-w, 10ch), 42%) minmax(0, 1fr) auto;
   align-items: center; column-gap: .45rem;
@@ -871,9 +874,12 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* PRESSED IS GOLD WITH BLACK ON IT, which is what `.hr.on` already does for "this one is chosen". */
 .q-seg-b[aria-pressed="true"] { background: var(--gold); color: #000; font-weight: 650; }
 /* THE TICK AT THE START OF THE ROW AND THE BIN AT THE FAR END — the width of the card between them,
-   which is the tile rows' own rule for keeping a bin away from the thing beside it. */
-.q-tiles { justify-content: space-between; margin-top: .45rem; }
-.q-adds { margin-top: .3rem; }
+   which is the tile rows' own rule for keeping a bin away from the thing beside it.
+   TWO CLASSES, because `.tile-row` sets its own `margin` thousands of lines further down and one class
+   against one class is decided by order alone — the `.price.faint` fault: the margins here would
+   have been written and never drawn. */
+.tile-row.q-tiles { justify-content: space-between; margin-top: .45rem; }
+.tile-row.q-adds { margin-top: .3rem; }
 .q-tip { margin-left: .4rem; font-size: .72rem; color: var(--dim); }
 .q-full { margin: .3rem 0 0; font-size: .74rem; }
 /* AN UNANSWERED DROP-DOWN READS AS A PLACEHOLDER, in the grey of the empty boxes — `Choose` in full ink
