@@ -176,6 +176,9 @@ const WHERE = {
      `favourites` — so a tutor looking up a student finds their attempts beside their row rather than
      in a second spreadsheet. Written by `markDone`, read by `attemptsFor_`; see SCHEMA.attempts. */
   attempts:       { file: 'ledger' },
+  /* WHAT THE WEEKLY PARENT EMAIL SENT, OR WOULD HAVE — see SCHEMA.digest_log. The Ledger beside
+     `attempts`, which is what it reports on, and because the app writes it. */
+  digest_log:     { file: 'ledger' },
   /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: question
      2 of the three-question test at the top of CLAUDE.md, and code cannot be written to at
      runtime. `data/settings/spotlight.json` is the FLOOR beneath it — see `spotNow_`. */
@@ -266,6 +269,8 @@ const TAB = {
   favourites: 'favourites',
   /* Which questions each learner has done, and when — see SCHEMA.attempts. */
   attempts: 'attempts',
+  /* What the weekly parent email sent, or would have — see SCHEMA.digest_log. */
+  digest_log: 'digest_log',
   /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
   spotlight: 'spotlight',
   /* `questions`, `boxers` AND `fights` WERE HERE. All three tabs are gone — see the notes where
@@ -348,6 +353,12 @@ const SCHEMA = {
     "pricing_changed_at", "availability", "agreement_signed_at", "agreement_version",
     /* a family's and a student's own */
     "children", "favourite_colour", "exam_small_date", "exam_big_date",
+    /* THE WEEKLY PARENT EMAIL, PER PARENT — see backend/digest.gs. BLANK IS ON, and only once the
+       owner has switched the email itself on (`weekly_digest` on the config tab): a column every
+       existing row would have to have typed into before anybody got one is a feature that never
+       starts. `no` (or anything that is not blank/yes/true/1, which is `ON_`) is this parent asking
+       to stop, and it is the one cell that does it. Read on the PARENT's row, never the child's. */
+    "weekly_email",
     /* the app's state, which nobody types into */
     "avatar", "avatar_owned", "xp", "credits", "high_score_flappy", "high_score_tables",
     "friends", "notepad", "todo",
@@ -1166,10 +1177,38 @@ const SCHEMA = {
 
      `person_id`, NEVER A NAME — the person is the one the sign-in token resolved to (see
      `accessDenied`), and a name is a cell they can edit. `question_key` is the library's own key,
-     `x.key` in js/find.js, the same string the answer box is stored under. */
+     `x.key` in js/find.js, the same string the answer box is stored under.
+
+     `label` IS WHAT A PARENT CAN READ — `Maths · Paper 1 (Calculator) — June 2024 · Q3` — because a
+     key is `q:Q-9MA031-2206-1` and the weekly email (backend/digest.gs) is read by somebody who has
+     never seen one. The backend cannot look a key up: the library is `data/questions.json` in git,
+     not a tab. So the phone sends the name it is showing as it marks the question, and `markDone`
+     keeps it — set on a new row, filled on an old one the next day it moves, never on a day already
+     covered (that must still write nothing). Blank on every row from before it existed, and on what
+     the load's backlog sends: the email falls back to the key. Appended, so `ensureSchema` adds it
+     at the end of a live tab without moving anything. */
   attempts: [
     "person_id", "question_key",
     "first_done", "last_done", "times",
+    "label",
+  ],
+
+  /* ---------- THE WEEKLY PARENT EMAIL'S RECEIPTS ---------------------------------------------------
+     ONE ROW PER PARENT PER LEARNER PER WEEK, written by `weeklyDigestRun` (backend/digest.gs) and by
+     nothing else. In `preview` it is the whole output — what WOULD have been sent, to whom, with what
+     subject — so the owner can read a real Sunday's worth before a single parent is emailed. In
+     `send` it is the RECEIPT: a row saying `sent` (or `sending`, written just before the send) for
+     this week, this learner and this parent is what stops a second run the same week sending again.
+
+     FOUND BY WHAT IT IS — the week, the learner, the parent — like `attempts`, so no id column.
+     `week_of` is the Monday, written as TEXT (`'2026-09-28`): it is a key compared as a string, and a
+     cell the sheet turned into a date would come back as one in whichever time zone the file is set
+     to. A learner nobody can be told about is a row too, with no parent and the reason in `note`, so
+     the log answers "who did NOT get one" as well as who did. */
+  digest_log: [
+    "week_of", "learner_id", "parent_id",
+    "to", "subject", "questions",
+    "status", "at", "note",
   ],
 
   /* ---------- SPOTLIGHT: THE SAME SHAPE AS A FAVOURITE WITH THE PERSON TAKEN OUT -----------------
@@ -1426,6 +1465,24 @@ const CONFIG_DEFAULTS = [
      its own line, which is the honest way to charge for it — a fee folded invisibly into an hourly
      rate is the thing people find later and mind about. */
   ['travel_on_client', 0, 'set to 1 to add the venue travel cost to what the client pays, as its own line on the receipt. 0 = you absorb it'],
+
+  /* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs ----------------------------------------
+     ASKED FOR AS *"something which triggers every sunday. it checks what the student has done that
+     week and records the questions and send it in an email to parents. for now dont actually make it
+     but make the infrastructure"*. So the switch arrives OFF, and off is checked first: with `off`
+     the Sunday run returns before it reads a tab, and nothing installs the Sunday trigger until the
+     owner runs `installWeeklyDigest` by hand. `preview` writes what would be sent to `digest_log`
+     and sends nothing — the step to sit on for a Sunday or two. `send` emails parents. Anything
+     else typed here is `off`, because a typo must never be the thing that emails forty families.
+
+     THE HOUR IS LONDON'S, read by `installWeeklyDigest` when it books the trigger — so changing it
+     here means running that again. 18 is after the weekend's work and before Monday; a question done
+     at 20:00 on Sunday is in nobody's email (next week starts on Monday), which is the trade an
+     earlier hour makes. THE RESERVE is mail quota left for everything else the site emails — a new
+     PIN at 21:00 on a Sunday must not find the day's quota spent on summaries. */
+  ['weekly_digest', 'off', 'the Sunday email to parents: off (nothing), preview (written to the digest_log tab, nothing sent) or send. Anything else = off'],
+  ['weekly_digest_hour', 18, 'the hour on Sunday, London time, the weekly parent email goes. 0-23, blank = 18. Run installWeeklyDigest again after changing it'],
+  ['weekly_digest_reserve', 10, 'emails a day kept back from the weekly parent email for PIN resets and notices. Blank = 10'],
 
   ['print_rate_per_page', 0.02, 'what a printed page costs. 0.02 = 2p. Set to 0 and no paper copies are offered at all'],
   ['print_minimum', 0, 'the least a print job can cost, whatever the page count. 0 = no minimum'],
@@ -1934,6 +1991,22 @@ const HOUSE_REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
    sent up together on the next load — and a cap keeps one request from being a whole term's work
    written under the lock while every other write waits. Anything over it goes on the load after. */
 const ATTEMPTS_PER_POST = 50;
+/* AND HOW LONG A QUESTION'S NAME MAY BE. A paper's name and a question number are fifty-odd
+   characters; this is room for the longest the library has with a margin, and a ceiling on what one
+   request can put in a cell a parent's email prints. See SCHEMA.attempts. */
+const ATTEMPT_LABEL_MAX = 120;
+
+/* ---------- THE WEEKLY PARENT EMAIL — see backend/digest.gs ------------------------------------------
+   `DIGEST_MODES` is the whole vocabulary of `weekly_digest` on the config tab, OFF FIRST: anything not
+   in it reads as off. `DIGEST_TZ` is whose week it is — London's, the same clock `attemptsUpsert_`
+   writes a day in, so a Sunday's question and a Sunday's email agree about which Sunday. `DIGEST_RUN`
+   is the trigger's handler by name, written once, because the trigger is found and deleted by that
+   string and two spellings of it would leave a Sunday run nobody can remove. `DIGEST_LIST_MAX` is how
+   many questions one email lists before "and N more": a list a parent reads, not a ledger. */
+const DIGEST_MODES = ['off', 'preview', 'send'];
+const DIGEST_TZ = 'Europe/London';
+const DIGEST_RUN = 'weeklyDigestRun';
+const DIGEST_LIST_MAX = 30;
 
 /* ---------- WHAT THE BUSINESS IS CALLED, ON THE SERVER --------------------------------------------
    `brandName()` READ THE `brand` TAB AND THAT TAB IS `data/settings/brand.json` NOW, which the
@@ -2862,6 +2935,10 @@ const ACTION_ACCESS = {
      resolved to, whatever `personId` the body claims — the gate overwrites it before the handler
      runs. Nobody can date a question for somebody else. */
   markDone: 'self',
+  /* WHAT THE WEEKLY PARENT EMAIL WOULD SAY THIS WEEK. Admin and nobody else: the reply is every
+     learner's week and every parent's address. It writes nothing and sends nothing — see
+     backend/digest.gs. */
+  digestPreview: 'admin',
 
   /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
      resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */

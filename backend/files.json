@@ -4,6 +4,7 @@
   "constants.gs",
   "content.gs",
   "core.gs",
+  "digest.gs",
   "doget.gs",
   "dopost.gs",
   "people.gs",
