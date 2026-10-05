@@ -1376,9 +1376,22 @@ function inspect(opts) {
 
        THE TOLERANCE IS SUB-PIXEL LAYOUT AND NOTHING ELSE. Measured across the three sizes the
        spread is 0.3–0.5px, which is `offsetTop` rounding; 2px leaves room for that and no room for
-       a card placed by a different rule. */
+       a card placed by a different rule.
+
+       ---------- AND THE LINE IS THE MIDDLE OF THE SCREEN NOW ------------------------------------
+       ASKED FOR ON 5 OCTOBER: *"focused widgets should be in centre of screen. also those widgets
+       not in focus should actually look slightly out of focus effect."* So `columnShift_` centres the
+       card in front again, and the cards beside it are drawn out of focus, which is what makes two
+       neighbours of different heights read as depth rather than as an edge out of step. THE SAME
+       INSTRUMENT, RESTATED: every column's current card has its CENTRE on the middle of `#screen`,
+       within the same 2px — so a column placed by any other rule (the old top line, a stray offset)
+       is still named, with how far off it is. A card as tall as the screen or taller is skipped:
+       it cannot be centred and is placed at its top. */
     const ragged = await page.evaluate(() => {
-      const tops = [];
+      const offs = [];
+      const sc = document.getElementById('screen');
+      if (!sc) return null;
+      const box = sc.getBoundingClientRect(), mid = box.top + box.height / 2;
       document.querySelectorAll('.screen').forEach(s => {
         const id = s.id.slice(2);
         const pages = s.querySelectorAll(':scope > .page');
@@ -1387,12 +1400,13 @@ function inspect(opts) {
         try { at = domIndex_(id, PAGE[id] || 0); } catch (e) { at = 0; }
         const cur = pages[Math.max(0, Math.min(pages.length - 1, at))];
         if (!cur) return;
-        tops.push({ id, top: +cur.getBoundingClientRect().top.toFixed(1) });
+        const r = cur.getBoundingClientRect();
+        if (r.height >= box.height) return;
+        offs.push({ id, off: +(r.top + r.height / 2 - mid).toFixed(1) });
       });
-      if (tops.length < 2) return null;
-      const lo = tops.reduce((a, b) => a.top < b.top ? a : b);
-      const hi = tops.reduce((a, b) => a.top > b.top ? a : b);
-      return { by: +(hi.top - lo.top).toFixed(1), lo, hi, n: tops.length };
+      if (!offs.length) return null;
+      const worst = offs.reduce((a, b) => Math.abs(a.off) >= Math.abs(b.off) ? a : b);
+      return { by: Math.abs(worst.off), worst, n: offs.length };
     });
     if (ragged && ragged.by > 2) rows.push({ width, id: '—', as: who.as, ragged });
 
@@ -1491,8 +1505,8 @@ function inspect(opts) {
       + `children ${r.docScroll.kids}`,
       `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
     if (r.ragged) add('COLUMNS OUT OF LINE',
-      `the current card starts ${r.ragged.by}px apart across ${r.ragged.n} columns — `
-      + `${r.ragged.hi.id} at ${r.ragged.hi.top}, ${r.ragged.lo.id} at ${r.ragged.lo.top}`,
+      `the current card is not on the middle of the screen across ${r.ragged.n} columns — `
+      + `${r.ragged.worst.id}'s centre is ${r.ragged.worst.off}px from it`,
       `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
     /* THE SCREEN NEVER DREW. Grouped like the rest so one broken card across four widths and two
        visitors is one line to fix rather than eight, and so it is counted exactly once. */
