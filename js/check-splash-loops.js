@@ -63,8 +63,12 @@ const LOOPS = [
   { id: 'cent', prefix: 'ct-', centreOn: ['ct-rim'],
     own: centOwn_ },
   /* y = mx + c: centred on its two axes, which tools/mxc.py lays so the plot is the middle of the box
-     — the y-axis is left of centre on purpose, because the triangle is right of it. */
-  { id: 'mxc', prefix: 'mx-', centreOn: ['mx-ax', 'mx-ay', 'mx-arrow'],
+     — the y-axis is left of centre on purpose, because the triangle is right of it. Its line ends the
+     loop HALF A TURN on from where it began: it swings on over the vertical rather than back through
+     the stops it has named, and a line through its own pivot is the same line half a turn later.
+     `halfTurn` lets that keyframe's seam differ by a multiple of 180° and nothing else; mxcOwn_ is
+     what proves the line is drawn symmetric about its pivot, which is what makes that true. */
+  { id: 'mxc', prefix: 'mx-', centreOn: ['mx-ax', 'mx-ay', 'mx-arrow'], halfTurn: ['mx-line'],
     own: mxcOwn_ },
 ];
 
@@ -122,6 +126,15 @@ const frames = {};         // name -> [{ keys: [0..100], decls }]
 
 const isStill = r => /prefers-reduced-motion:\s*reduce/.test(r.media);
 const parts = sel => sel.split(',').map(s => s.trim());
+
+/* TWO TRANSFORMS THAT DRAW THE SAME LINE: equal once every rotate() is taken modulo 180°, and only for
+   keyframes a splash names in `halfTurn`. Anything else that differs — a translate, a scale — is still
+   a seam. */
+const halfTurn_ = (a, b) => {
+  if (a === undefined || b === undefined) return false;
+  const norm = s => s.replace(/rotate\((-?\d*\.?\d+)deg\)/g, (_, d) => 'rotate(' + ((+d % 180 + 180) % 180).toFixed(3) + 'deg)');
+  return norm(a) === norm(b);
+};
 
 /* ---------- THE MARKUP OF ONE SPLASH -------------------------------------------------------------
    From its opening tag to the `</div>` at the splash's own indent — the same boundary the
@@ -194,6 +207,7 @@ for (const L of LOOPS) {
       const a0 = at(0), a1 = at(100);
       const props = new Set([...Object.keys(a0), ...Object.keys(a1)]);
       props.forEach(p => {
+        if (p === 'transform' && (L.halfTurn || []).includes(name) && halfTurn_(a0[p], a1[p])) return;
         if (a0[p] !== a1[p]) fault(L.id, '@keyframes ' + name + ' ends with ' + p + ': ' + (a1[p] || '(the base value)')
           + ' but starts with ' + (a0[p] || '(the base value)') + ' — the loop snaps at 100% → 0%');
       });
@@ -488,8 +502,24 @@ function centOwn_(L, m) {
        run and the axes — measured as boxes in the mono face against strokes of their real width.
        c is the exception that proves it: it is written ON its dot, which is drawn over the line.
      · THE STILL IS ONE CLEAR PICTURE: under reduced motion exactly one value is up and the line,
-       triangle and rise all agree with it. */
+       triangle and rise all agree with it.
+
+   And three that the review of the first build found by looking, each now a sentence here:
+     · ONE WAY ROUND, AND NO LURCH. The first build swung from m = 2 back to m = -1 — 108° at 189°/s,
+       back through four stops it had just named, against 60-86°/s for every step. The line's turn
+       may never reverse, and never run faster than 100°/s between two keyframes. Going on over the
+       top means passing through vertical, where m has no value: the triangle, run and rise
+       (`.mx-rr`) are faded out there, and the corner-on-the-line sentence is asked only while they
+       show; they must be clipped to the plot, because they ride up past it as they fade.
+     · A HALF IS BUILT, NEVER THE ½ GLYPH. Cascadia's ½ is two digits and a slash in one character
+       cell; at 320@1x its digits were 5.5px against 13px for the whole numbers beside the other
+       rises. A built half is a digit above a bar and a digit below it, centred on it, at no less
+       than 85% of the whole numbers' size, and it may sit anywhere BESIDE its rise rather than by
+       its middle — the stack is taller than a half-unit rise.
+     · NO BARE "=". The caption read "m = rise ÷ run =" with nothing after it for 18.5% of the loop.
+       The "=" belongs inside each value's cell, so it fades with the value. */
 function mxcOwn_(L, m) {
+  m = m.replace(/<!--[\s\S]*?-->/g, '');      // the generator's notes are not part of the picture
   const num = s => (String(s).match(/-?\d*\.?\d+(?:e-?\d+)?/g) || []).map(Number);
   const attr = (s, n) => { const q = s.match(new RegExp('\\s' + n + '="([^"]*)"')); return q ? q[1] : null; };
   const el = (tag, cls) => {
@@ -527,8 +557,16 @@ function mxcOwn_(L, m) {
   if (!lineEl || +attr(lineEl, 'y1') || +attr(lineEl, 'y2') || Math.abs(+attr(lineEl, 'x1') + +attr(lineEl, 'x2')) > 0.01)
     { fault(L.id, 'the line is not drawn along x through (0,0) — where it goes cannot be derived from its turn'); return; }
   const clip = m.match(/<clipPath id="mx-clip"><rect x="([\d.]+)" y="([\d.]+)" width="([\d.]+)" height="([\d.]+)"\/>/);
-  if (!clip || !/<g clip-path="url\(#mx-clip\)"><line class="mx-line"/.test(m))
+  /* THE CLIPPED GROUP IS ONE LINE OF MARKUP, as the generator writes it, so `.` stops at its end. */
+  const clipped = (m.match(/<g clip-path="url\(#mx-clip\)">(.*)<\/g>/) || [])[1] || '';
+  if (!clip || !/class="mx-line"/.test(clipped))
     { fault(L.id, 'the line is not clipped to the plot — it runs out past the axes, which is what the old one did'); return; }
+  if (!/class="mx-tri"/.test(clipped) || !/class="mx-rise"/.test(clipped))
+    fault(L.id, 'the triangle and the rise are not clipped to the plot — past m = 2 they ride up the line and out of the top of the plot while they fade');
+  /* THE TRIANGLE, RUN AND RISE FADE AS ONE, through the middle of the swing over the top. */
+  const rrBody = (m.match(/<g class="mx-rr">(.*?)<\/g>/) || [])[1] || '';
+  if (!/class="mx-tri"/.test(rrBody) || !/class="mx-rise"/.test(rrBody) || !/class="mx-run"/.test(rrBody))
+    fault(L.id, 'the triangle, the run and the rise are not one .mx-rr group — they cannot fade together while the line goes through vertical');
   const box = clip.slice(1).map(Number), CLIP = [box[0], box[1], box[0] + box[2], box[1] + box[3]];
 
   /* ---- THE KEYFRAMES, AS [key, tx, ty, rotate, sx, sy] ---- */
@@ -564,6 +602,22 @@ function mxcOwn_(L, m) {
   if (!fl.length || !ft.length || !fr.length) { fault(L.id, 'one of .mx-line, .mx-tri, .mx-rise has no transform keyframes — nothing to derive the picture from'); return; }
   const dur = parseFloat((decl('.mx-line', 'animation').match(/(\d*\.?\d+)s\b/) || [])[1]);
   if (!(dur >= 8 && dur <= 10)) fault(L.id, 'loops every ' + dur + 's — it was asked for as an 8 to 10 second loop');
+  /* HOW MUCH OF THE TRIANGLE, RUN AND RISE SHOWS at t — 1 throughout if `.mx-rr` never fades. */
+  const fo = nameOf('.mx-rr') ? read(nameOf('.mx-rr'), 'opacity') : [];
+  const shows = t => fo.length ? at(fo, t)[1] : 1;
+
+  /* ---- ONE WAY ROUND, AND NO LURCH ---- */
+  let cw = 0, acw = 0, fastest = 0, fastAt = 0;
+  for (let i = 1; i < fl.length; i++) {
+    const d = fl[i][3] - fl[i - 1][3], dt = (fl[i][0] - fl[i - 1][0]) / 100 * dur;
+    if (d > 1e-6) cw++;
+    if (d < -1e-6) acw++;
+    if (dt > 0 && Math.abs(d) / dt > fastest) { fastest = Math.abs(d) / dt; fastAt = fl[i][0]; }
+  }
+  if (cw && acw) fault(L.id, 'the line turns one way at ' + acw + ' keyframes and back the other at ' + cw
+    + ' — it runs back through gradients it has just named, which is the rewind the first build had');
+  if (fastest > 100) fault(L.id, 'the line turns at ' + Math.round(fastest) + '°/s at ' + fastAt
+    + '% — over 100°/s; the steps between named gradients peak near 84, and the first build\'s 189°/s swing back was the one jolt in the loop');
 
   /* ---- (0, c) IS ONE POINT, IN EVERY KEYFRAME ---- */
   const near = (a, b, e) => Math.abs(a - b) <= (e || 0.01);
@@ -579,9 +633,71 @@ function mxcOwn_(L, m) {
     const q = t.match(/^(-?)(\d+)(?:\/(\d+))?$/);
     return q ? (q[1] ? -1 : 1) * (+q[2]) / (q[3] ? +q[3] : 1) : NaN;
   };
-  const says = [...m.matchAll(/<i class="mx-v (mx-k\d+)">([\s\S]*?)<\/i>/g)].map(q => ({ k: q[1], v: val(q[2]) }));
-  const rls = [...m.matchAll(/<text class="mx-lab mx-rl (mx-k\d+)" x="([\d.]+)" y="([\d.]+)">([^<]*)<\/text>/g)]
-    .map(q => ({ k: q[1], x: +q[2], y: +q[3], v: val(q[4]) }));
+  const glyph = m.replace(/<[^>]+>/g, '').match(/[½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞]/);
+  if (glyph) fault(L.id, 'writes a fraction as the ' + glyph[0] + ' glyph — two digits and a slash in one character cell, about 5.5px tall at 320@1x; build it, a digit over a bar over a digit');
+
+  /* THE CAPTION: "m = rise ÷ run", then one cell holding every value, each with its own "=". */
+  const say = (m.match(/<div class="mx-say">([\s\S]*?)<\/div>/) || [])[1] || '';
+  if (/=\s*$/.test(say.split('<span class="mx-vals">')[0].replace(/<[^>]+>/g, '')))
+    fault(L.id, 'the caption\'s "=" is outside the values, so between stops it reads "m = rise ÷ run =" with nothing after it');
+  const bare = [];
+  const says = [...m.matchAll(/<i class="mx-v (mx-k\d+)">([\s\S]*?)<\/i>/g)].map(q => {
+    if (!/^\s*=/.test(q[2].replace(/<[^>]+>/g, ''))) bare.push('.' + q[1]);
+    return { k: q[1], v: val(q[2].replace(/^((?:\s|<[^>]+>)*)=/, '$1')) };
+  });
+  if (bare.length) fault(L.id, 'the value' + (bare.length > 1 ? 's in ' : ' in ') + bare.join(', ') + ' carr' + (bare.length > 1 ? 'y' : 'ies')
+    + ' no "=" of ' + (bare.length > 1 ? 'their' : 'its') + ' own — the "=" must fade with the value, or the caption ends in a bare "=" between stops');
+
+  /* THE WORDS IN THE DRAWING: each <text> on its own, and each group of them (a built fraction) as one
+     word that fades as one — its classes, its texts and its bar. */
+  const textsIn = (s, off) => [...s.matchAll(/<text class="(mx-lab[^"]*)" x="([\d.]+)" y="([\d.]+)">([^<]*)<\/text>/g)]
+    .map(q => ({ cls: q[1].split(/\s+/), x: +q[2], y: +q[3], text: q[4], at: off + q.index }));
+  const groups = [...m.matchAll(/<g class="([^"]+)">((?:(?!<\/?g\b)[\s\S])*?)<\/g>/g)]
+    .filter(q => /<text\b/.test(q[2]))
+    .map(q => ({ cls: q[1].split(/\s+/), at: q.index, end: q.index + q[0].length, body: q[2], off: q.index + q[0].indexOf('>') + 1 }));
+  const words = textsIn(m, 0).filter(t => !groups.some(g => t.at > g.at && t.at < g.end))
+    .map(t => ({ cls: t.cls, parts: [t], bar: null }))
+    .concat(groups.map(g => {
+      const b = g.body.match(/<line class="mx-fb" x1="([\d.]+)" y1="([\d.]+)" x2="([\d.]+)" y2="([\d.]+)"/);
+      return { cls: g.cls, parts: textsIn(g.body, g.off), bar: b ? b.slice(1).map(Number) : null };
+    }));
+  const kOf = w => w.cls.find(c => /^mx-k\d+$/.test(c));
+  const styleOf = cls => {                      // the later rule wins, as in the cascade, for one class
+    const o = {};
+    rules.filter(r => !isStill(r) && parts(r.sel).some(p => cls.includes(p.replace(/^\./, '')) && /^\.[\w-]+$/.test(p)))
+      .forEach(r => {
+        if (r.decls.font) { const q = r.decls.font.match(/(\d*\.?\d+)px/); if (q) o.size = +q[1]; }
+        if (r.decls['font-size']) o.size = parseFloat(r.decls['font-size']);
+        if (r.decls['text-anchor']) o.anchor = r.decls['text-anchor'];
+        if (r.decls['stroke-width']) o.sw = parseFloat(r.decls['stroke-width']);
+        if (r.decls.animation) o.anim = r.decls.animation.split(/\s+/).find(w => frames[w]);
+      });
+    return o;
+  };
+  /* A WORD'S BOX: each text as a mono-face box at its own size and anchor, and the bar with its stroke. */
+  const swBar = styleOf(['mx-fb']).sw || 1;
+  words.forEach(w => {
+    const bs = w.parts.map(p => {
+      const st = styleOf(p.cls), z = st.size || 8, wd = p.text.length * 0.6 * z, h = 0.72 * z;
+      p.size = z;
+      const x1 = p.x - (st.anchor === 'start' ? 0 : st.anchor === 'end' ? wd : wd / 2);
+      return [x1, p.y - h / 2, x1 + wd, p.y + h / 2];
+    });
+    if (w.bar) bs.push([w.bar[0], w.bar[1] - swBar / 2, w.bar[2], w.bar[3] + swBar / 2]);
+    w.box = [Math.min(...bs.map(b => b[0])), Math.min(...bs.map(b => b[1])), Math.max(...bs.map(b => b[2])), Math.max(...bs.map(b => b[3]))];
+  });
+  /* A BUILT FRACTION READ AS DRAWN: one digit above the bar and one below, both centred on it, and a
+     minus (if any) in front of it at its height. Anything else is not a fraction, and says NaN. */
+  const fracVal = w => {
+    const [x1, yb, x2] = w.bar, mid = (x1 + x2) / 2;
+    const up = w.parts.filter(p => p.y < yb && Math.abs(p.x - mid) < 0.5);
+    const dn = w.parts.filter(p => p.y > yb && Math.abs(p.x - mid) < 0.5);
+    const minus = w.parts.filter(p => p.text === '−' && p.x < x1 && Math.abs(p.y - yb) < 0.5);
+    if (up.length !== 1 || dn.length !== 1 || up.length + dn.length + minus.length !== w.parts.length) return NaN;
+    return (minus.length ? -1 : 1) * val(up[0].text) / val(dn[0].text);
+  };
+  const rls = words.filter(w => kOf(w)).map(w => ({ k: kOf(w), w,
+    v: w.bar ? fracVal(w) : val(w.parts.slice().sort((a, b) => a.x - b.x).map(p => p.text).join('')) }));
   if (says.length < 5 || says.some(s => isNaN(s.v))) { fault(L.id, 'has ' + says.length + ' values of m under the drawing, or one that does not read as a number'); return; }
   const vs = says.map(s => s.v);
   if (new Set(vs).size !== vs.length) fault(L.id, 'names the same gradient twice');
@@ -604,8 +720,12 @@ function mxcOwn_(L, m) {
     const l = at(fl, t), tr_ = at(ft, t), ri = at(fr, t);
     const corner = [tr_[1] + u, tr_[2] - tr_[5] * u], top = [ri[1], ri[2] - ri[5] * RL];
     const d = Math.max(offLine(l, corner), Math.hypot(corner[0] - top[0], corner[1] - top[1]));
-    gapWorst = Math.max(gapWorst, d);
-    if (d > 0.35) apart++;
+    /* ASKED ONLY WHILE THEY SHOW. Through vertical the triangle and rise are carried straight across,
+       unseen, from the m they faded out at to the m they fade in at — nowhere near the line. */
+    if (shows(t) > 0.001) {
+      gapWorst = Math.max(gapWorst, d);
+      if (d > 0.35) apart++;
+    }
     let sum = 0;
     says.forEach((s, i) => {
       const o = ops[i].length ? at(ops[i], t)[1] : 0;
@@ -632,24 +752,21 @@ function mxcOwn_(L, m) {
     const r = rls.find(x => x.k === s.k);
     if (!s.v) return;                                            // a flat line has no rise to label
     if (!r) { fault(L.id, 'm = ' + s.v + ' has no label on its rise'); return; }
-    if (!near(r.v, s.v, 1e-9)) fault(L.id, 'the rise is labelled ' + r.v + ' while the caption says m = ' + s.v);
-    if (!near(r.y, P[1] - s.v * u / 2, 0.5) || r.x < P[0] + u + 1)
-      fault(L.id, 'the label ' + r.v + ' is not beside the middle of its rise (' + r.x + ', ' + r.y + ')');
+    if (!near(r.v, s.v, 1e-9)) fault(L.id, 'the rise is labelled ' + (isNaN(r.v) ? 'with something that is not a number, or not a built fraction,' : r.v) + ' while the caption says m = ' + s.v);
+    /* BESIDE ITS RISE: starting just right of it, and centred somewhere between its foot and its top. A
+       whole number sits by the middle; a built half is taller than its half-unit rise and sits by the
+       foot, where the line arriving at it does not run through it. */
+    const bx = r.w.box, cy = (bx[1] + bx[3]) / 2, foot = P[1], tip = P[1] - s.v * u;
+    if (bx[0] < P[0] + u + 1 || bx[0] > P[0] + u + 6 || cy < Math.min(foot, tip) - 0.01 || cy > Math.max(foot, tip) + 0.01)
+      fault(L.id, 'the label ' + r.v + ' is not beside its rise (box ' + bx.map(v => +v.toFixed(2)).join(' ') + ')');
+    /* AND NO SMALLER THAN THE WHOLE NUMBERS, near enough. */
+    const whole = rls.filter(x => !x.w.bar).map(x => Math.min(...x.w.parts.map(p => p.size)));
+    const least = Math.min(...r.w.parts.map(p => p.size));
+    if (whole.length && least < 0.85 * Math.max(...whole))
+      fault(L.id, 'the label ' + r.v + ' is set at ' + least + ', under 85% of the whole numbers\' ' + Math.max(...whole) + ' — the number the splash is about, in its smallest type');
   });
 
   /* ---- NO WORD IS CROSSED WHILE IT SHOWS ---- */
-  const styleOf = cls => {                      // the later rule wins, as in the cascade, for one class
-    const o = {};
-    rules.filter(r => !isStill(r) && parts(r.sel).some(p => cls.includes(p.replace(/^\./, '')) && /^\.[\w-]+$/.test(p)))
-      .forEach(r => {
-        if (r.decls.font) { const q = r.decls.font.match(/(\d*\.?\d+)px/); if (q) o.size = +q[1]; }
-        if (r.decls['font-size']) o.size = parseFloat(r.decls['font-size']);
-        if (r.decls['text-anchor']) o.anchor = r.decls['text-anchor'];
-        if (r.decls['stroke-width']) o.sw = parseFloat(r.decls['stroke-width']);
-        if (r.decls.animation) o.anim = r.decls.animation.split(/\s+/).find(w => frames[w]);
-      });
-    return o;
-  };
   const segBox = (a, b, bx) => {
     let t0 = 0, t1 = 1, hit = true;
     const dx = b[0] - a[0], dy = b[1] - a[1];
@@ -677,14 +794,14 @@ function mxcOwn_(L, m) {
   const sw = cls => styleOf(cls).sw || 1;
   const fixed = [['the x-axis', [[+attr(ax, 'x1'), y0], [+attr(ax, 'x2'), y0]], sw(['mx-ax'])],
                  ['the y-axis', [[x0, +attr(ay, 'y1')], [x0, +attr(ay, 'y2')]], sw(['mx-ay'])]];
-  if (run) fixed.push(['the run', [[+attr(run, 'x1'), +attr(run, 'y1')], [+attr(run, 'x2'), +attr(run, 'y2')]], sw(['mx-run'])]);
+  const runSeg = run ? ['the run', [[+attr(run, 'x1'), +attr(run, 'y1')], [+attr(run, 'x2'), +attr(run, 'y2')]], sw(['mx-run'])] : null;
   /* READ ONCE: `styleOf` walks every rule in the sheet, and asking it per label per sampled moment made
      this check twenty seconds long. */
   const swLine = sw(['mx-line']), swRise = sw(['mx-rise']);
   const crossed = [];
-  [...m.matchAll(/<text class="(mx-lab[^"]*)" x="([\d.]+)" y="([\d.]+)">([^<]*)<\/text>/g)].forEach(q => {
-    const cls = q[1].split(/\s+/), x = +q[2], y = +q[3], text = q[4];
-    if (near(x, P[0]) && near(y, P[1])) {
+  words.forEach(wd_ => {
+    const [q] = wd_.parts, cls = wd_.cls;
+    if (!wd_.bar && wd_.parts.length === 1 && near(q.x, P[0]) && near(q.y, P[1])) {
       /* c, ON ITS DOT. Clear of nothing and needing to be: the dot is drawn after the line, so it covers
          it, and the letter must fit inside the dot. */
       const s = styleOf(cls).size || 8;
@@ -692,17 +809,19 @@ function mxcOwn_(L, m) {
       if (Math.hypot(0.3 * s, 0.36 * s) > R0) fault(L.id, 'c does not fit inside its dot');
       return;
     }
-    const st = styleOf(cls), z = st.size || 8, w = text.length * 0.6 * z, h = 0.72 * z;
-    const x1 = x - (st.anchor === 'start' ? 0 : st.anchor === 'end' ? w : w / 2);
-    const bx = [x1, y - h / 2, x1 + w, y + h / 2];
-    const of = st.anim ? read(st.anim, 'opacity') : [];
+    const text = wd_.parts.map(p => p.text).join(wd_.bar ? '/' : ''), bx = wd_.box;
+    const st = styleOf(cls), of = st.anim ? read(st.anim, 'opacity') : [];
     T.forEach(t => {
       if (of.length && at(of, t)[1] < 0.25) return;
       const l = at(fl, t), ri = at(fr, t);
-      [['the line', clipLine(l), swLine],
-       ['the rise', [[ri[1], ri[2]], [ri[1], ri[2] - ri[5] * RL]], swRise]].concat(fixed).forEach(([nm, sg, wd]) => {
-        const g = segBox(sg[0], sg[1], bx) - wd / 2;
-        if (g < 0.8) crossed.push('"' + text + '" (' + cls.slice(1).join(' ') + ') by ' + nm + ' at ' + t + '%, ' + g.toFixed(2) + ' clear');
+      const near_ = [['the line', clipLine(l), swLine]].concat(fixed);
+      /* THE RISE AND THE RUN COUNT WHILE THEY SHOW — through vertical they are faded out and the rise is
+         being carried straight across, unseen. */
+      if (shows(t) > 0.001) near_.push(['the rise', [[ri[1], ri[2]], [ri[1], ri[2] - ri[5] * RL]], swRise]);
+      if (shows(t) > 0.001 && runSeg) near_.push(runSeg);
+      near_.forEach(([nm, sg, wdt]) => {
+        const g = segBox(sg[0], sg[1], bx) - wdt / 2;
+        if (g < 0.8) crossed.push('"' + text + '" (' + cls.filter(c => c !== 'mx-lab').join(' ') + ') by ' + nm + ' at ' + t + '%, ' + g.toFixed(2) + ' clear');
       });
     });
   });
@@ -718,11 +837,14 @@ function mxcOwn_(L, m) {
     if (!near(-Math.tan(rad(bl[2])), v, 0.005) || !near(bt[4], v, 0.005) || !near(br[4] * RL / u, v, 0.005)
         || !near(bl[0], P[0]) || !near(bl[1], P[1]))
       fault(L.id, 'the still says m = ' + v + ' but its line, triangle or rise is drawn at another gradient, or off (0, c)');
+    const rr = decl('.mx-rr', 'opacity');
+    if (rr !== '' && parseFloat(rr) !== 1) fault(L.id, 'under reduced motion .mx-rr is at opacity ' + rr + ' — the still\'s triangle, run and rise are hidden');
   }
 
   if (!/y = <b class="mx-tm">m<\/b>x \+ <b class="mx-tc">c<\/b>/.test(m) || !/rise ÷ run/.test(m))
     fault(L.id, 'the caption does not say y = mx + c and m = rise ÷ run');
-  said.push('#splash-mxc: m = ' + vs.join(', ') + '; corner and rise within ' + gapWorst.toFixed(3) + ' of the line');
+  said.push('#splash-mxc: m = ' + vs.join(', ') + '; corner and rise within ' + gapWorst.toFixed(3) + ' of the line; turns one way, at most '
+    + Math.round(fastest) + '°/s');
 }
 
 console.log('\nTHE SPLASHES THAT ARE ONE SEAMLESS LOOP  (' + LOOPS.length + ')');
