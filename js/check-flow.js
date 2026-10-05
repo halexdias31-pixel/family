@@ -3494,6 +3494,13 @@ check('a parent makes their child\'s account in Settings and is shown the handle
   try { t.repaint(true); t.go('settings', false, true); w.paint('settings'); } catch (e) {}
   await wait(200);
   if (d.querySelector('#s-settings .kid-make')) bad.push('a student is offered "Make your child\'s account"');
+  /* AND ANOTHER PARENT ON THE SAME PHONE IS NOT SHOWN THE FIRST ONE'S CHILD'S PIN — the slip is held
+     for the parent who made it, by id, and a phone passed along keeps its state. */
+  t.USER({ name: 'Quinn Parent', personId: 'P-C2', role: 'parent', roles: ['parent'], token: 'tk3',
+           profile: { first_name: 'Quinn', last_name: 'Other' } });
+  try { t.repaint(true); t.go('settings', false, true); w.paint('settings'); } catch (e) {}
+  await wait(200);
+  if (!d.querySelector('#s-settings .kid-make')) bad.push('the second parent has no make card to look at');
   if (d.querySelector('#s-settings .pin-slip')) bad.push('the parent\'s slip was still drawn for the next person signed in on the phone');
   return bad;
 });
