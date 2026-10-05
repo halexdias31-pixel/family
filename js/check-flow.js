@@ -7025,6 +7025,10 @@ check('a boxer without a photo: the ring and his initials, no <img>; no credit m
     if (!ini || ini.textContent.trim() !== 'JL') bad.push('the placeholder\'s initials are "' + (ini ? ini.textContent : '') + '", not JL');
     if (!ring.querySelector('.bx-l .bx-glove')) bad.push('the placeholder has no fighter in it');
   }
+  /* A `Jr.` IS NOT A SURNAME — the placeholder for Floyd Mayweather Jr. says FM. */
+  const fm = a.item('Floyd Mayweather Jr.');
+  const fmi = fm && a.draw(a.w.stuffCard(fm)).querySelector('.boxer-ini');
+  if (fm && (!fmi || fmi.textContent.trim() !== 'FM')) bad.push('Floyd Mayweather Jr.\'s initials are "' + (fmi ? fmi.textContent : '') + '", not FM');
   /* AN ADDRESS WITH NO CREDIT IS NOT DRAWN. */
   const g = a.item('George Foreman');
   const gc = g && a.draw(a.w.stuffCard(g)).querySelector('.card.fc.boxer');

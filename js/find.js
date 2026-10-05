@@ -4169,9 +4169,11 @@ function boxerCm_(cm, height) {
 const boxerNames_ = v => String(v || '').split('|').map(s => s.trim())
   .filter((s, i, a) => s && a.indexOf(s) === i);
 /* TWO LETTERS FOR THE PLACEHOLDER: first and last name, `Muhammad Ali` → `MA`; one word gives one
-   letter. Letters only, so nothing in a name can reach the drawing as anything but text. */
+   letter. Letters only, so nothing in a name can reach the drawing as anything but text. A `Jr.` or
+   a `III` is not a surname — Floyd Mayweather Jr. is `FM`, not `FJ`. */
 function boxerInitials_(name) {
-  const w = String(name || '').split(/\s+/).map(s => (s.match(/[A-Za-zÀ-ÿ]/) || [''])[0]).filter(Boolean);
+  const w = String(name || '').split(/\s+/).filter(s => !/^(jr|sr|ii|iii|iv)\.?$/i.test(s))
+    .map(s => (s.match(/[A-Za-zÀ-ÿ]/) || [''])[0]).filter(Boolean);
   return (w.length > 1 ? w[0] + w[w.length - 1] : (w[0] || '?')).toUpperCase();
 }
 
