@@ -202,6 +202,83 @@ function teachGroups_(list) {
 const teachChip_ = (g, main) => `<span class="prof-tag${main ? ' is-main' : ''}">${mark(g.subject)}${
   g.levels.length ? `<sup class="prof-lv">&nbsp;${g.levels.map(l => `<span>${mark(l)}</span>`).join(', ')}</sup>` : ''}</span>`;
 
+/* ---------- A QUALIFICATION, WRITTEN LIKE AN ISOTOPE -----------------------------------------------
+   ASKED FOR AS *"for the qualifications bit, should be for example Maths subscript to it is grade and
+   super script is the level."* So `Maths` with `A-Level` raised and `B` lowered beside it, the two
+   stacked one over the other — the way ¹⁴₆C is written, with the pair on the right. It was one chip
+   per sentence, "Maths A-Level grade B at Hill Top School (2019)", which was most of a line for one
+   claim and read the same whether the grade was an A* or a U.
+
+   OFF `qualsParts`, NOT OFF THE SENTENCE. Taking "English Language GCSE grade 7" apart on the phone
+   is guessing where the subject stops and the level starts, so the server sends the parts beside the
+   sentences — see `qualsParts_` in core.gs. A backend from before that sends only `quals`, and the
+   chips are then exactly the sentences they always were: nothing here waits on a deploy to draw.
+
+   WHAT IS LEFT OFF THE FACE IS KEPT IN THE NAME. Where it was studied and when it was finished are
+   not in the notation; they are the chip's `aria-label` and its `title`, so a screen reader hears
+   "Maths, A-Level, grade B, at Hill Top School, 2019" rather than "Maths A-Level B", and a pointer
+   held over it shows the same. `role="img"` is what makes the label the thing read — the same
+   arrangement as the area map and the week below, which are also one picture of several facts.
+
+   ONE CHIP PER QUALIFICATION, NOT ONE PER SUBJECT the way `teachGroups_` does it. A level and its
+   grade are one fact; `Maths ^GCSE, A-Level ₉, B` would leave a reader to pair them up by position,
+   and the place and year of each would have to share one label. What grouping was FOR — "Maths"
+   said three times in a row — is answered by order instead: a subject's qualifications sit together,
+   in the order their subject first appears, which is how the tutor's own shelf lays them out (see
+   `qualShelf_` in me.js). The server's order inside a subject is kept, so GCSE stays before A-Level
+   when that is how they were entered.
+
+   A CERTIFICATE IS A PLAIN CHIP — `kind: 'cert'`, decided on the server. A PGCE or an Enhanced DBS is
+   a thing held rather than a subject at a level, and notation over it would be a raised `Enhanced`
+   with nothing lowered under it. No level → just the lowered grade; no grade → just the raised level;
+   neither → the subject alone, which is a plain chip too.
+
+   STILL STUDYING, WITH NO GRADE YET, IS SAID IN THE GRADE'S PLACE. The sentence said "— studying now"
+   and the card would otherwise draw a degree somebody has not finished exactly as one they hold. The
+   form's own grade picker calls the empty answer "None yet", so the lowered slot is where a parent
+   expects to find out — `studying`, set apart from a real grade in italic. A grade already given (a
+   predicted one) wins, and the label still says "studying now". */
+const profQualV_ = v => String(v == null ? '' : v).trim();
+const profQualNow_ = p => /^present$/i.test(profQualV_(p.received));
+function profQualSay_(p) {
+  const v = k => profQualV_(p[k]);
+  return [v('subject'), v('level'), v('grade') && 'grade ' + v('grade'), v('board') && 'at ' + v('board'),
+          profQualNow_(p) ? 'studying now' : v('received')].filter(Boolean).join(', ');
+}
+function profQualChip_(p) {
+  const v = k => profQualV_(p[k]);
+  const subject = v('subject'), level = norm(v('level')) === norm(subject) ? '' : v('level'), grade = v('grade');
+  const say = esc(profQualSay_(p));
+  const low = grade ? mark(grade) : profQualNow_(p) ? '<i>studying</i>' : '';
+  if (p.kind === 'cert' || !(level || low)) {
+    return `<span class="prof-tag" role="img" aria-label="${say}" title="${say}">${
+      mark([subject, level, grade].filter(Boolean).join(' '))}</span>`;
+  }
+  /* THE LAST WORD OF THE SUBJECT IS HELD TO ITS NOTATION, so at 320px a long subject breaks between
+     its own words and never leaves the stack alone at the start of the chip's next line. */
+  const cut = subject.lastIndexOf(' ');
+  return `<span class="prof-tag prof-q" role="img" aria-label="${say}" title="${say}">${
+    cut > 0 ? mark(subject.slice(0, cut)) + ' ' : ''}<span class="prof-q-end">${mark(subject.slice(cut + 1))}<span class="prof-iso">${
+    level ? `<sup>${mark(level)}</sup>` : ''}${low ? `<sub>${low}</sub>` : ''}</span></span></span>`;
+}
+function profQuals_(t) {
+  const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && profQualV_(p.subject)) : [];
+  let chips;
+  if (parts.length) {
+    const at = {}, groups = [];
+    parts.forEach(p => {
+      const k = norm(profQualV_(p.subject));
+      if (!at[k]) groups.push(at[k] = []);
+      at[k].push(p);
+    });
+    chips = [].concat(...groups).map(profQualChip_);
+  } else {
+    chips = profList_(t.quals).map(v => `<span class="prof-tag">${esc(v)}</span>`);
+  }
+  return chips.length
+    ? `<div class="prof-cap">Qualifications</div><div class="prof-tags prof-teach prof-quals">${chips.join('')}</div>` : '';
+}
+
 /* ---------- "1 to 4 students", NOT `minStudents` AND `maxStudents` --------------------------------
    THE SHEET STORES A FLOOR AND A CEILING and a reader wants a range, so the joining happens once
    here rather than on every card that shows one. Three cases and they read differently:
@@ -634,13 +711,11 @@ function findCard(x) {
                   teachGroups_(also).map(g => teachChip_(g, false)).join('')}</div>` : '');
       })()}
       ${/* ---------- QUALIFICATIONS, AS THE SAME CHIPS ---------------------------------------------
-            ASKED FOR AS *"qualifications should also look like google chips."* Each entry of `quals`
-            is already one sentence built by `doget.gs` ("Maths A-Level (Edexcel) grade B"), so a
-            chip is one claim and nothing is re-joined here. A PGCE or a DBS is one of those entries now —
-            the separate "more qualifications" field is gone and `qualsList_` folds it in. */''}
-      ${profList_(t.quals).length
-        ? `<div class="prof-cap">Qualifications</div><div class="prof-tags prof-teach prof-quals">${profList_(t.quals)
-             .map(v => `<span class="prof-tag">${esc(v)}</span>`).join('')}</div>` : ''}
+            ASKED FOR AS *"qualifications should also look like google chips."* One chip a
+            qualification, and since *"Maths subscript to it is grade and super script is the
+            level"* each is written like an isotope — `profQuals_`, above. A PGCE or a DBS is one of
+            these entries — the separate "more qualifications" field is gone — and stays a plain chip. */''}
+      ${profQuals_(t)}
       ${/* WHERE THEY WILL TEACH, off the venues tab's own `tutors_happy_here` column, which a tutor
             ticks on their Contact & address page. An older backend sends no key: nothing drawn. */''}
       ${profHeat_(profList_(t.venues))}

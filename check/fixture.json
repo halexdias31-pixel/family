@@ -137,8 +137,16 @@
     "English (KS3)"
    ],
    "quals": [
-    "MMath",
-    "Bible and Theology at University of Wales Trinity Saint David — studying now"
+    "Maths A-Level grade A* at Hill Top School (2015)",
+    "Maths Master's degree grade First at University of Warwick (2019)",
+    "Bible and Theology Degree at University of Wales Trinity Saint David — studying now",
+    "DBS Enhanced"
+   ],
+   "qualsParts": [
+    { "subject": "Maths", "level": "A-Level", "grade": "A*", "board": "Hill Top School", "received": "2015", "kind": "subject" },
+    { "subject": "Maths", "level": "Master's degree", "grade": "First", "board": "University of Warwick", "received": "2019", "kind": "subject" },
+    { "subject": "Bible and Theology", "level": "Degree", "grade": "", "board": "University of Wales Trinity Saint David", "received": "Present", "kind": "subject" },
+    { "subject": "DBS", "level": "Enhanced", "grade": "", "board": "", "received": "", "kind": "cert" }
    ],
    "studying": "",
    "studyingAt": "",

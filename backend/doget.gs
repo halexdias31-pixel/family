@@ -646,6 +646,8 @@ function doGet(e) {
          from the site and can only be switched back on in the spreadsheet — which would make the
          control worse than not having one. */
       if ((listed || viewerIsAdmin) && (hasRole(r, 'tutor') || hasRole(r, 'admin'))) {
+        /* READ ONCE, SENT TWICE — `quals` and `qualsParts` below are one list in two spellings. */
+        const qp = qualsParts_(r);
         payload.tutors.push({
           id: i, type: 'tutor', role: ROLE_LABEL[mainRole(r)] || 'Tutor',
           /* A TITLE IS A SEPARATE FIELD RATHER THAN A LONGER `role` STRING, because `role` is
@@ -731,23 +733,13 @@ function doGet(e) {
           teaches: teachesOf_(r).all,
           teachesMain: teachesOf_(r).first,
           teachesSpec: teachesOf_(r).main,
-          /* UP TO TEN, OFF THEIR ROWS OF THE `qualifications` TAB — `qualsList_` in core.gs. */
-          quals: qualsList_(r).map(q => {
-            const subj = S(q.subject);
-            if (!subj) return null;
-            const lvl = S(q.level), grd = S(q.grade);
-            /* WHERE, AFTER THE GRADE: "Maths A-Level grade B at Hill Top School". The `board` slot
-               holds the school, college or university now, not the exam board — see `qualLevel_` in
-               me.js. Joined here rather than on the phone so a card and a roster cannot disagree
-               about how a qualification is written. */
-            const brd = S(q.board);
-            /* AND WHEN: "studying now" for `Present`, the year otherwise — the studying row the
-               card used to draw is this qualification now. */
-            const rec = S(q.received);
-            const when = /^present$/i.test(rec) ? '— studying now' : rec ? '(' + rec + ')' : '';
-            return [subj, lvl, grd && ('grade ' + grd), brd && ('at ' + brd), when]
-              .filter(Boolean).join(' ');
-          }).filter(Boolean),
+          /* UP TO TEN, OFF THEIR ROWS OF THE `qualifications` TAB — `qualsList_` in core.gs. TWICE,
+             ONE LIST: `qualsParts` is each qualification as its parts, which the card writes like
+             an isotope (*"Maths subscript to it is grade and super script is the level"*), and
+             `quals` is the same entries as sentences, kept for a phone built before the parts were
+             sent. `qualsParts_` / `qualSentence_` in core.gs say why both, and why `kind`. */
+          quals: qp.map(qualSentence_),
+          qualsParts: qp,
           actionText: '▶ Watch Intro'
         });
       }

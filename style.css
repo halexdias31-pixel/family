@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-checktile";
+  --css-version: "2026-10-05-qualchip";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6448,6 +6448,27 @@ span[data-do]:active { text-decoration-color: var(--gold); }
   color: var(--dim); letter-spacing: 0;
 }
 .prof-lv span { white-space: nowrap; }
+/* A QUALIFICATION, WRITTEN LIKE AN ISOTOPE — `profQualChip_` in cards.js. *"Maths subscript to it is
+   grade and super script is the level."* The level and the grade are one block on the subject's
+   right, the level over the grade, both left-aligned so they start at the same x as notation does.
+   A COLUMN RATHER THAN A `<sup>` AND A `<sub>` LEFT INLINE: inline, the two sit side by side and a
+   reader pairs them up by squinting; stacked, they share an x and the pair reads as one mark.
+   SAME FLOOR AND THE SAME INK AS THE TEACHES LEVELS (`.prof-lv`): 8px in px, because a browser's own
+   superscript on a .64rem chip is about 7px; `--dim` rather than an opacity, so `check/ui.js`'s
+   contrast rule reads the colour that is actually drawn.
+   NEGATIVE MARGINS SO THE STACK DOES NOT GROW THE CHIP. Two 8px lines are taller than the chip's own
+   line, and `.prof-tags` is a flex row whose items stretch to the tallest — so one tall chip would
+   stretch every chip beside it and leave their words at the top of taller pills. The margin takes the
+   stack's own height out of the line box and lets it sit in the chip's padding, which is what the
+   padding is there for; measured in `check-flow`'s journey notes and in the screenshots at 320. */
+.prof-q-end { white-space: nowrap; }
+.prof-iso {
+  display: inline-flex; flex-direction: column; align-items: flex-start;
+  vertical-align: middle; margin: -.6em 0 -.6em .14em;
+  font-size: max(8px, .84em); line-height: .98; letter-spacing: 0; color: var(--dim);
+}
+.prof-iso sup, .prof-iso sub { display: block; font-size: inherit; line-height: inherit; vertical-align: baseline; }
+.prof-iso i { font-style: italic; }
 /* THE RATE, UP BY THE NAME AND BIGGER than any row — it is the number a parent opened the card for.
    Gold because it is a price and this app's prices are gold; the `/h` recedes so the figure leads. */
 .prof-rate {
