@@ -171,13 +171,19 @@ function RECORDER() {
     const wait = ms => new Promise(r => setTimeout(r, ms));
     const t0 = performance.now();
     await wait(120);
+    /* STILL MEANS NOTHING LEFT TO HAPPEN: no column moving, no pane holding a layer, no slide window
+       open, no placement booked, and nothing booked for after the slide — a widget started 300ms after
+       arriving can grow its card, and the column re-centres on it then, not before. */
     for (;;) {
       const host = document.getElementById('s-' + (col || AT));
       const moving = host && host.getAnimations().some(a => a.playState === 'running');
       const panes = [...document.querySelectorAll('#screen .pane')].some(g => g.style.willChange === 'filter');
-      if ((!moving && !panes && performance.now() > SLIDE_UNTIL) || performance.now() - t0 > 4000) break;
+      const booked = !!PLACE_FRAME || !!AFTER_SLIDE || AFTER_SLIDE_JOBS.size > 0
+        || (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length > 0);
+      if ((!moving && !panes && !booked && performance.now() > SLIDE_UNTIL) || performance.now() - t0 > 6000) break;
       await wait(60);
     }
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
     return { AT, P: PAGE[AT] || 0 };
   };
   /* WHERE A THUMB CAN LAND AND THE GRID WILL TAKE IT: bare card, not a control, nothing under it that
