@@ -1462,10 +1462,33 @@ for (const who of VISITORS) {
         await reset();
         await tp.evaluate(() => openSheet('Test', '<p>A short sheet.</p>'));
         await tp.waitForTimeout(700);
-        await tap(fav.x, fav.y);
-        const r = await now();
-        want('settings · favourite colour, one tap on a sheet\'s backdrop over it', !r.open && !r.sheet, said(r),
-             'the sheet closed and no list behind it');
+        /* ---------- THE BACKDROP HAS TO BE WHAT IS OVER THE SELECT ---------------------------------
+           THE CARD IN FRONT IS CENTRED NOW (`columnShift_` in shell.js), so the favourite colour sits
+           in the middle of the screen — and the middle of the screen is under the sheet's BODY, not
+           its backdrop. The tap landed on the sheet, which rightly stayed open, and this reported the
+           app broken: the question was asked of the wrong surface. So the select is the favourite
+           colour when the backdrop is over it, and otherwise the first select on the page in front
+           that the backdrop does cover — and none at all is a failure to reach, not a pass. */
+        const spot = await tp.evaluate(f => {
+          const back = el => !!el && el.id === 'sheet-back';
+          if (back(document.elementFromPoint(f.x, f.y))) return { x: f.x, y: f.y, name: 'favourite colour' };
+          for (const s of document.querySelectorAll('#s-settings .page.on select')) {
+            if (!selVisible_(s)) continue;
+            const r = s.getBoundingClientRect();
+            const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+            if (back(document.elementFromPoint(x, y))) return { x, y, name: s.getAttribute('data-me') || s.name || 'a select' };
+          }
+          return null;
+        }, fav);
+        if (!spot) {
+          want('settings · a select under a sheet\'s backdrop', false, 'every select on the page in front is under the sheet itself',
+               'one select the backdrop covers, to tap');
+        } else {
+          await tap(spot.x, spot.y);
+          const r = await now();
+          want('settings · ' + spot.name.replace(/_/g, ' ') + ', one tap on a sheet\'s backdrop over it', !r.open && !r.sheet, said(r),
+               'the sheet closed and no list behind it');
+        }
       }
       await reset();
       await ctx.close();
