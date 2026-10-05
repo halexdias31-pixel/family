@@ -10676,9 +10676,27 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
              paint-order: stroke; stroke: var(--bg); stroke-width: 1.4; stroke-linejoin: round; }
 /* THE CREDIT IS SMALL AND IT IS NEVER HIDDEN. The licence makes naming the author and the licence
    the condition of showing the picture at all, so it is in the faint ink at the caption size every
-   other small print here uses — legible, not decorative — and nothing on the card covers it. */
-.boxer-credit { margin: .3rem 0 0; font: 400 .56rem/1.35 var(--mono); color: var(--faint);
+   other small print here uses — legible, not decorative — and nothing on the card covers it.
+   `.62rem`, NOT THE `.56` IT WAS: measured, that was 8.3px on a 390px phone and about 6px on a
+   320x568 one once the card had shrunk to fit — a credit nobody can read is a credit in name only.
+   `.62` is the floor the record's labels and the tape's already stand on. */
+.boxer-credit { margin: .3rem 0 0; font: 400 .62rem/1.35 var(--mono); color: var(--faint);
                 overflow-wrap: anywhere; }
+/* ---------- AND IT IS A LINK, SO IT IS A TAP TARGET -------------------------------------------------
+   THE CREDIT LINKS TO THE PHOTO'S COMMONS PAGE (see `boxerCredit_`), and a link the size of
+   `.62rem` small print is a 12px target — the thing `check/ui.js` exists to refuse. So the link is a
+   block at least 44px tall, in px because a fingertip does not scale with the type. The words keep
+   their size and sit at the top of it; under the photo there is room, since the column beside it is
+   the name, the country and the status. Underlined in the line colour, so it reads as a link without
+   shouting louder than the photo it credits. */
+.boxer-src { display: block; color: inherit; overflow-wrap: anywhere; }
+a.boxer-src { min-height: 44px; text-decoration: underline; text-decoration-color: var(--line);
+              text-underline-offset: 2px; }
+/* THE RESULT IN WORDS, FOR A SCREEN READER ONLY — `#splash-say`'s pattern: off the screen rather
+   than hidden, because `display: none` would take it from the reader too. The row is its containing
+   block, so the 1px box sits inside the row it belongs to rather than wherever an ancestor is. */
+.boxer-say { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+             clip-path: inset(50%); white-space: nowrap; }
 
 /* ---------- THE RECORD: THE BIG NUMBERS -------------------------------------------------------------
    ONE BOX, THE ONLY BOXED THING ON THE CARD, because it is the one thing on it that is the answer.
@@ -10770,7 +10788,7 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    A win is a filled gold square, a loss an outlined red one: filled against outlined survives a
    colour-blind reader and a screenshot in grey, where gold against red alone would not. */
 .boxer .boxer-bouts ul { list-style: none; margin: 0; padding: 0; }
-.boxer .boxer-bouts li { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); column-gap: .65rem;
+.boxer .boxer-bouts li { position: relative; display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); column-gap: .65rem;
                          row-gap: .1rem; align-items: center; padding: .36rem 0;
                          border-bottom: 1px solid var(--line-soft); color: var(--ink); }
 .boxer .boxer-bouts li:last-child { border-bottom: 0; }
@@ -10801,11 +10819,12 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .boxer-pic.is-small .boxer-frame { aspect-ratio: 1 / 1; }
 .boxer-pic.is-small.won .boxer-frame { border-color: var(--boxer-w); box-shadow: 0 0 0 1px var(--boxer-w); }
 .fight-v { font: 700 .8rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
-/* ONE CREDIT LINE FOR BOTH FACES, centred under them and above the title, at the profile's caption
-   size. Each part is a span so a face that fails can take its own credit away and leave the other. */
+/* THE CREDITS FOR BOTH FACES, centred under them and above the title, at the profile's caption
+   size. Each is its own `.boxer-src` so a face that fails can take its own credit away and leave the
+   other — and each is a 44px link block now (see `.boxer-src`), so two photos are two lines rather
+   than one line joined by a dot: two tap targets cannot share one line of small print. */
 .fight-credit { order: -1; margin: calc(-1 * var(--fc-group) + .35rem) 0 var(--fc-group);
-                font: 400 .6rem/1.4 var(--mono); color: var(--faint); text-align: center; overflow-wrap: anywhere; }
-.fight-credit span + span::before { content: " · "; }
+                font: 400 .62rem/1.4 var(--mono); color: var(--faint); text-align: center; overflow-wrap: anywhere; }
 
 
 /* THE TWO NAMES ARE THE TITLE NOW — an `h3` in the shared head — so they take the title's size and

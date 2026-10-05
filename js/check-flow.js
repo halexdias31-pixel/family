@@ -6968,6 +6968,25 @@ check('a boxer with a photo: the picture, its credit, the record and a bar that 
   }
   const credit = card.querySelector('.boxer-pic .boxer-credit');
   if (!credit || credit.textContent.trim() !== row.image_credit.trim()) bad.push('the credit under the photo is "' + (credit ? credit.textContent.trim() : 'missing') + '", not the row\'s "' + row.image_credit + '"');
+  /* ---------- AND THE CREDIT IS A LINK TO THE PHOTO'S OWN FILE PAGE --------------------------------
+     A CC BY or CC BY-SA photo is free on condition that its credit links to where the work and its
+     licence can be read, so every Commons picture's credit is that link — the file page, named from
+     the address's own file name (the thumbnail's size prefix is not part of it). Asked of the row's
+     address by this check's own reading, so a wrong derivation in the app cannot agree with itself. */
+  const file = (row.image.match(/\/commons\/(?:thumb\/)?[0-9a-f]\/[0-9a-f]{2}\/([^/?#]+)/) || [])[1];
+  const link = credit && credit.querySelector('a.boxer-src');
+  if (!file) bad.push('Ali\'s image is not a Commons upload address, so the link rule was NOT checked: ' + row.image);
+  else if (!link) bad.push('the credit under a Commons photo is not a link to its file page');
+  else {
+    if (link.getAttribute('href') !== 'https://commons.wikimedia.org/wiki/File:' + file) bad.push('the credit links to ' + link.getAttribute('href') + ', not the file page File:' + file);
+    if (link.getAttribute('target') !== '_blank' || !/noopener/.test(link.getAttribute('rel') || '')) bad.push('the credit link does not open outside the app with rel=noopener');
+  }
+  const flink = (() => {
+    const t = a.w.stuffItemsAll_().find(i => i.kind === 'fight' && i.row.aId === row.boxer_id);
+    const fcard = t && a.draw(a.w.stuffCard(t));
+    return fcard && fcard.querySelector('.fight-credit a.boxer-src');
+  })();
+  if (file && (!flink || flink.getAttribute('href') !== 'https://commons.wikimedia.org/wiki/File:' + file)) bad.push('a fight card with Ali\'s face does not link his credit to the same file page');
   /* THE NUMBERS, AS THE ROW SAYS THEM. */
   const num = k => { const el = card.querySelector('.boxer-tally .boxer-n.is-' + k + ' b'); return el ? el.textContent.trim() : null; };
   [['w', 'wins'], ['l', 'losses'], ['d', 'draws']].forEach(([k, col]) => {
@@ -7029,6 +7048,15 @@ check('a boxer without a photo: the ring and his initials, no <img>; no credit m
   const fm = a.item('Floyd Mayweather Jr.');
   const fmi = fm && a.draw(a.w.stuffCard(fm)).querySelector('.boxer-ini');
   if (fm && (!fmi || fmi.textContent.trim() !== 'FM')) bad.push('Floyd Mayweather Jr.\'s initials are "' + (fmi ? fmi.textContent : '') + '", not FM');
+  /* AND A SURNAME CAN START WITH A PARTICLE — Oscar De La Hoya is OD, not OH. Asked of the function
+     too, for the particle names the file does not hold yet, and for a particle that is a FIRST name. */
+  const odl = a.item('Oscar De La Hoya');
+  const odi = odl && a.draw(a.w.stuffCard(odl)).querySelector('.boxer-ini');
+  if (!odl) bad.push('Oscar De La Hoya is not in Find, so the particle rule was NOT checked on a real row');
+  else if (!odi || odi.textContent.trim() !== 'OD') bad.push('Oscar De La Hoya\'s initials are "' + (odi ? odi.textContent : '') + '", not OD');
+  [['Ingemar Van Der Berg', 'IV'], ['Joe Von Rosen Jr.', 'JV'], ['De Wayne Smith', 'DS'], ['Juan Manuel Marquez', 'JM']].forEach(([n, i]) => {
+    if (a.w.boxerInitials_(n) !== i) bad.push('"' + n + '" gives initials ' + a.w.boxerInitials_(n) + ', not ' + i);
+  });
   /* AN ADDRESS WITH NO CREDIT IS NOT DRAWN. */
   const g = a.item('George Foreman');
   const gc = g && a.draw(a.w.stuffCard(g)).querySelector('.card.fc.boxer');
@@ -7086,14 +7114,33 @@ check('a boxer\'s fights: every bout he is in, newest first, from his side — a
   const his = a.raw.fights.filter(f => f.boxer_a_id === id || f.boxer_b_id === id)
     .sort((p, q) => String(q.date).localeCompare(String(p.date)));
   if (!his.length) return ['data/fights.json has no bout with Ali\'s id — nothing to check'];
+  /* ---------- SEVEN BOUTS A PAGE, AS MANY PAGES AS THAT TAKES --------------------------------------
+     ONE PAGE OF FOURTEEN WAS DRAWN AT 70% ON A 320x568 PHONE — the floor, with the date line at six
+     pixels — so the bouts are paged (`boxerFightPages_`). Asked of the file's count, not of the
+     function's: fourteen bouts are two pages, every page but the last is full, the names he beat
+     and lost to are on the first page only, each page's heading says which bouts it holds, and the
+     pages read in order are every bout once, newest first. */
+  const PER = 7;
+  const wantParts = [null].concat(Array.from({ length: Math.ceil(his.length / PER) }, (_, i) => i ? 'fights' + (i + 1) : 'fights'));
   const parts = a.w.pageParts_(x);
-  if (JSON.stringify(parts) !== JSON.stringify([null, 'fights'])) bad.push('Ali\'s pages are ' + JSON.stringify(parts) + ', not his card and his fights');
-  const pg = a.draw(a.w.stuffPart_(x, 'fights')).firstElementChild;
+  if (JSON.stringify(parts) !== JSON.stringify(wantParts)) bad.push('Ali\'s pages are ' + JSON.stringify(parts) + ', not his card and ' + (wantParts.length - 1) + ' pages of fights for his ' + his.length + ' bouts');
+  const pgs = parts.filter(Boolean).map(part => a.draw(a.w.stuffPart_(x, part)).firstElementChild);
+  const pg = pgs[0];
   if (!pg || !pg.classList.contains('fc')) return bad.concat(['the fights page is not a `.card.fc`']);
-  const k = pg.firstElementChild, h = k && k.nextElementSibling;
-  if (!k || !k.classList.contains('fc-kick') || k.textContent.trim() !== 'Muhammad Ali' || !h || h.tagName !== 'H3') bad.push('the fights page does not open on his name and then its title');
-  const lis = [...pg.querySelectorAll('.boxer-bouts li')];
-  if (lis.length !== his.length) bad.push('the page lists ' + lis.length + ' bouts; the file has ' + his.length + ' with his id');
+  pgs.forEach((p, i) => {
+    const k = p && p.firstElementChild, h = k && k.nextElementSibling;
+    if (!k || !k.classList.contains('fc-kick') || k.textContent.trim() !== 'Muhammad Ali' || !h || h.tagName !== 'H3') bad.push('fights page ' + (i + 1) + ' does not open on his name and then its title');
+    const n = p ? p.querySelectorAll('.boxer-bouts li').length : 0;
+    if (n > PER) bad.push('fights page ' + (i + 1) + ' holds ' + n + ' bouts — more than ' + PER + ' is past what a 320x568 pane shows at full size');
+    if (i < pgs.length - 1 && n !== PER) bad.push('fights page ' + (i + 1) + ' holds ' + n + ' bouts and is not the last — a short page in the middle');
+    const from = i * PER + 1, to = Math.min(his.length, (i + 1) * PER);
+    const h4 = p && p.querySelector('.boxer-bouts h4');
+    if (!h4 || h4.textContent.indexOf(from + '–' + to + ' of ' + his.length) < 0) bad.push('fights page ' + (i + 1) + '\'s heading is "' + (h4 ? h4.textContent : '') + '", not bouts ' + from + '–' + to + ' of ' + his.length);
+    if (i > 0 && p && p.querySelector('.boxer-notable')) bad.push('fights page ' + (i + 1) + ' repeats who he beat — that is the first page\'s');
+  });
+  if (!pg.querySelector('.boxer-notable')) bad.push('the first fights page has lost who he beat and who beat him');
+  const lis = pgs.reduce((all, p) => all.concat(p ? [...p.querySelectorAll('.boxer-bouts li')] : []), []);
+  if (lis.length !== his.length) bad.push('the pages list ' + lis.length + ' bouts; the file has ' + his.length + ' with his id');
   lis.forEach((li, i) => {
     const f = his[i];
     if (!f) return;
@@ -7107,6 +7154,13 @@ check('a boxer\'s fights: every bout he is in, newest first, from his side — a
     if (!li.classList.contains('is-' + want.toLowerCase())) bad.push('bout ' + (i + 1) + ' is not coloured as a ' + want);
     const how = (li.querySelector('.boxer-how') || {}).textContent || '';
     if (f.method && how.indexOf(f.method) !== 0) bad.push('bout ' + (i + 1) + ' does not say how it ended (' + f.method + '): "' + how + '"');
+    /* THE RESULT IN WORDS FOR A SCREEN READER, the letter hidden from it. An `aria-label` on a bare
+       span is ignored by most readers, so the word has to be text they read. */
+    const say = (li.querySelector('.boxer-say') || {}).textContent || '';
+    const word = { W: 'Won', L: 'Lost', D: 'Drew', NC: 'No contest' }[want];
+    if (say.trim().replace(/,$/, '') !== word) bad.push('bout ' + (i + 1) + ' says "' + say + '" to a screen reader, not "' + word + '"');
+    const sq = li.querySelector('.boxer-res');
+    if (sq && (sq.getAttribute('aria-hidden') !== 'true' || sq.hasAttribute('aria-label'))) bad.push('bout ' + (i + 1) + '\'s letter square is read out as well as the word');
   });
   /* A FIGHTER WITH NOTHING FOR THAT PAGE HAS NO SUCH PAGE. */
   const none = a.made.boxers.find(b => !a.w.boxerHasFights_(b));
@@ -7126,7 +7180,78 @@ check('a boxer\'s fights: every bout he is in, newest first, from his side — a
     }
     const cr = fc && fc.querySelector('.fight-credit');
     if (!cr || cr.textContent.indexOf('Ira Rosenberg') < 0) bad.push('the fight card shows Ali\'s photo without its credit');
+    /* THE SAME DATE HIS PAGE PRINTS — `1 Oct 1975`, not the cell's `1975-10-01`. */
+    const sub = fc && fc.querySelector('.sub');
+    if (!sub || sub.textContent.trim().indexOf('1 Oct 1975') !== 0) bad.push('the fight card\'s date line is "' + (sub ? sub.textContent.trim() : '') + '", not the fighter\'s page\'s "1 Oct 1975 …"');
+    if (sub && /\d{4}-\d{2}-\d{2}/.test(sub.textContent)) bad.push('the fight card prints an ISO date: ' + sub.textContent.trim());
   }
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad;
+});
+
+/* ---------- WHAT A BOXER READS ON EVERY FIGHTER'S CARD, ALL 103 OF THEM -----------------------------
+   THREE THINGS THE REVIEW FOUND BY READING THE CARDS AS A BOXER WOULD, each asked of every row in the
+   file rather than of one example, because each was a fault on some rows and not others:
+
+     the editor's to-do   "ACTIVE — record needs checking" was printed under Usyk's 24-0, and four
+                          more like it. A note that says check or checking is the editor's and is not
+                          drawn; EVERY OTHER NOTE IS — "Exhibition bouts excluded" qualifies a record
+                          and belongs under it, so hiding too much is as red as hiding too little.
+     Titles, or Honours   a section headed Titles with only a Hall of Fame badge under it told a boxer
+                          that Tyson never won a belt. The heading is Titles exactly when the row
+                          names one, Honours when it holds only an honour, and no section at all
+                          when it holds neither.
+     the weights          Pacquiao's eight divisions were six lines of the tape. Four or more are the
+                          count and the lightest and heaviest; three or fewer are listed. */
+check('every fighter\'s card: no note to the editor, Titles only over a title, many weights in one line', async () => {
+  const a = await boxerApp_();
+  if (a.fail) return [a.fail];
+  const bad = [];
+  const EDITOR = /\bcheck(ing)?\b/i;
+  let editor = 0, shown = 0, honours = 0, titled = 0, folded = 0;
+  a.raw.boxers.forEach(row => {
+    const x = a.item(row.name);
+    if (!x) { bad.push(row.boxer_id + ' ' + row.name + ' is not in Find'); return; }
+    const card = a.draw(a.w.stuffCard(x)).querySelector('.card.fc.boxer');
+    if (!card) { bad.push(row.name + ' drew no boxer card'); return; }
+    const text = card.textContent.replace(/\s+/g, ' ');
+    const note = String(row.notes || '').trim();
+    if (note && EDITOR.test(note)) {
+      editor++;
+      if (text.indexOf(note) >= 0) bad.push(row.name + '\'s card prints the editor\'s note "' + note + '"');
+    } else if (note) {
+      shown++;
+      /* ONLY WHERE THERE IS A RECORD TO QUALIFY: a fighter with none says so, and that is the line. */
+      if (card.querySelector('.boxer-tally') && text.indexOf(note) < 0) bad.push(row.name + '\'s note "' + note + '" qualifies his record and is not on his card');
+    }
+    const h4 = card.querySelector('.boxer-titles h4');
+    const belt = String(row.world_titles || '').trim();
+    const honour = /^true$/i.test(String(row.hall_of_fame || '').trim()) || /^true$/i.test(String(row.lineal || '').trim());
+    if (belt) {
+      titled++;
+      if (!h4 || h4.textContent.trim() !== 'Titles') bad.push(row.name + ' holds "' + belt + '" under a heading of "' + (h4 ? h4.textContent : 'nothing') + '"');
+    } else if (honour) {
+      honours++;
+      if (!h4 || h4.textContent.trim() !== 'Honours') bad.push(row.name + ' has no belt on file and the section is headed "' + (h4 ? h4.textContent : 'nothing') + '" — Titles over no title says he never won one');
+    } else if (h4) bad.push(row.name + ' has neither a belt nor an honour and still draws "' + h4.textContent + '"');
+    const weights = String(row.divisions || '').split(/[|,;]/).map(s => s.trim()).filter(Boolean);
+    const dd = [...card.querySelectorAll('.boxer-tape dt')].find(d => d.textContent.trim() === 'Weights');
+    const val = dd ? dd.nextElementSibling.textContent.trim() : '';
+    if (weights.length > 3) {
+      folded++;
+      const want = weights.length + ' · ' + weights[0] + ' → ' + weights[weights.length - 1];
+      if (val !== want) bad.push(row.name + '\'s ' + weights.length + ' weights read "' + val + '", not "' + want + '"');
+    } else if (weights.length > 1 && val !== weights.join(', ')) bad.push(row.name + '\'s ' + weights.length + ' weights read "' + val + '", not the list');
+  });
+  /* A RULE THAT FOUND NOTHING TO ASK IS NOT A PASS — print what each one actually looked at. */
+  console.log('          editor\'s notes kept off: ' + editor + ' · notes shown: ' + shown + ' · Titles: ' + titled
+    + ' · Honours: ' + honours + ' · weights folded: ' + folded);
+  if (!editor) bad.push('no row carries an editor\'s note, so that rule was NOT exercised on the real file');
+  if (!shown) bad.push('no row carries a note that qualifies its record, so hiding too much was NOT checked');
+  if (!folded) bad.push('no row has four or more weights, so the folding was NOT checked');
+  /* THE LADDER, NOT THE CELL'S ORDER, decides lightest and heaviest — asked of a cell typed out of order. */
+  const out = a.w.boxerWeights_(['Heavyweight', 'Cruiserweight', 'Light Heavyweight', 'Middleweight']);
+  if (out !== '4 · Middleweight → Heavyweight') bad.push('a cell typed heavy-to-light folds to "' + out + '", not "4 · Middleweight → Heavyweight"');
   if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
   return bad;
 });
