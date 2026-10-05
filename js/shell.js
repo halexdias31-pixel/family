@@ -2496,7 +2496,11 @@ function send(body) {
         : 'The backend does not have `' + act + '` yet. Paste the newest .gs files into Apps '
           + 'Script and deploy. Live version: ' + (DATA.version || 'unknown'));
     }
-    if (d && d.error) throw new Error(d.error);
+    /* THE WHOLE REPLY RIDES ON THE ERROR. A refusal is a sentence for a person and sometimes a fact
+       for the code as well — `sendMessage` says `why: 'files'` when only the photographs stood in
+       the way, and the bubble offers "Words only" on that and nothing else. Recognising the
+       sentence instead would turn a rewording on the server into a button that silently vanishes. */
+    if (d && d.error) { const e = new Error(d.error); e.reply = d; throw e; }
     return d;
   });
 }

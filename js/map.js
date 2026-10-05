@@ -1571,6 +1571,26 @@ const WIDGETS = [
     <p class="sub">Coming soon: trade in the LEGO sets you have finished with.</p>
     <p class="empty">Not built yet.</p>
   </div>` },
+
+  /* ---------- CHECK UPLOADS — FOR AN ADMIN, AFTER A DEPLOY ---------------------------------------
+     ASKED FOR AS *"i cant send images, or videos in the chat to people."* What stood in the way was
+     the owner's to fix — a Ledger column and a Drive scope — and this says, from the deployment
+     that is serving the site, which of them is still undone. See `uploadsHtml_` in me.js and
+     `uploadsCheck_` in content.gs. `admin: true` — the flyer maker's lock — because it names the
+     business's Drive folder and the scopes its Google account has granted.
+     APPENDED, for `legotrade`'s reason above, and an admin's column is the only one it lengthens.
+     NOT `solid`: a diagnostic is not an answer to a search. */
+  { id: 'uploads', kind: 'tool', name: 'Check uploads (photos and videos in messages)', admin: true,
+    start: () => uploadsPaint_?.(),
+    into: 'up-box', what: 'Check uploads',
+    html: `<div class="card">
+    <h3>Check uploads</h3>
+    <p class="sub">Whether a photo or a clip sent in a message can be kept: the Ledger's column, the
+      Drive folder, and what this deployment is allowed to do.</p>
+    ${/* BOTH AN ID AND A CLASS, `cart-box`'s reason: the id is what `into` names, the class is what
+          `uploadsPaint_` writes to. */''}
+    <div id="up-box" class="up-box"></div>
+  </div>` },
 ];
 
 
