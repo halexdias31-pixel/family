@@ -234,11 +234,18 @@ const fail = (rule, where, msg) => found.push({ rule, where, msg });
 const note = s => { if (VERBOSE) console.log('  ' + s); said.push(s); };
 
 /* ONE GESTURE: placed, a spot found, the finger run, the outcome read. */
+/* `p` MAY BE A LIST: the first of those pages with a spot the grid would take is used — a card that
+   is all controls (the cheat-sheet maker at 390) has nowhere a thumb can land to swipe it, and that
+   is the card, not the grid. */
 async function gesture(env, o) {
   const { page, cdp } = env;
-  const s0 = await page.evaluate(([c, p]) => window.__sw.place(c, p), [o.col, o.p]);
-  const sp = await page.evaluate(([on, ys]) => window.__sw.spot(on, ys), [o.on || null, o.ys || null]);
-  if (!sp) return { err: `no spot on ${s0.AT}/${s0.P} the grid would take${o.on ? ' (' + o.on + ')' : ''}` };
+  let s0 = null, sp = null;
+  for (const p of [].concat(o.p === undefined ? [undefined] : o.p)) {
+    s0 = await page.evaluate(([c, p]) => window.__sw.place(c, p), [o.col, p]);
+    sp = await page.evaluate(([on, ys]) => window.__sw.spot(on, ys), [o.on || null, o.ys || null]);
+    if (sp) break;
+  }
+  if (!sp) return { err: `no spot on ${o.col} pages ${[].concat(o.p)} the grid would take${o.on ? ' (' + o.on + ')' : ''}` };
   await page.evaluate(() => window.__sw.reset());
   await finger(cdp, Object.assign({ x0: sp.x, y0: sp.y }, o.g));
   const s1 = await page.evaluate(() => window.__sw.still());
@@ -271,6 +278,8 @@ async function gesture(env, o) {
       await env.ctx.close(); continue;
     }
     const one = tabs.find(id => count[id] === 1 && next(id));     // a one-page column with a column after it
+    /* PAGES WITH BARE CARD ON THEM, and a page below each for a turn up to land on. */
+    const TOOLS = [1, 2, 4, 5, 6, 7], GAMES = [1, 3, 4, 5, 6];
     if (!one) fail('REACH', at, 'there is no one-page column to ask the diagonal of');
 
     /* ---------- 1. ONE CELL, OR BACK WHERE IT WAS -------------------------------------------------
@@ -306,28 +315,28 @@ async function gesture(env, o) {
       if (r.acts.length) fail('NO TAP AFTER A DRAG', `${at} ${name}`, `the gesture pressed ${r.acts.join(', ')}`);
     };
 
-    await turn('flick up', { col: 'tools', p: 1, g: G.flick(0, -90) }, down1);
-    await turn('flick down', { col: 'tools', p: 2, g: G.flick(0, 90) }, up1);
-    await turnCol('flick left', { col: 'tools', p: 1, g: G.flick(-90, 0) }, nextCol);
-    await turnCol('flick right', { col: 'games', p: 1, g: G.flick(90, 0) }, s => prev(s.AT) + '/0');
-    await turn('40px up, held still', { col: 'games', p: 1, g: G.still(0, -40) }, same);
-    await turn('70px up, held still — a peek, not a turn', { col: 'games', p: 1, g: G.still(0, -70) }, same);
-    await turn('70px left, held still — a peek, not a turn', { col: 'tools', p: 1, g: G.still(-70, 0) }, same);
-    await turn('150px up, pulled back to 80 and let go moving home', { col: 'games', p: 1, g: G.back(0, -1) }, same);
-    await turn('150px left, pulled back to 80 and let go moving home', { col: 'tools', p: 1, g: G.back(-1, 0) }, same);
+    await turn('flick up', { col: 'tools', p: TOOLS, g: G.flick(0, -90) }, down1);
+    await turn('flick down', { col: 'tools', p: [2, 4, 5, 6, 7], g: G.flick(0, 90) }, up1);
+    await turnCol('flick left', { col: 'tools', p: TOOLS, g: G.flick(-90, 0) }, nextCol);
+    await turnCol('flick right', { col: 'games', p: GAMES, g: G.flick(90, 0) }, s => prev(s.AT) + '/0');
+    await turn('40px up, held still', { col: 'games', p: GAMES, g: G.still(0, -40) }, same);
+    await turn('70px up, held still — a peek, not a turn', { col: 'games', p: GAMES, g: G.still(0, -70) }, same);
+    await turn('70px left, held still — a peek, not a turn', { col: 'tools', p: TOOLS, g: G.still(-70, 0) }, same);
+    await turn('150px up, pulled back to 80 and let go moving home', { col: 'games', p: GAMES, g: G.back(0, -1) }, same);
+    await turn('150px left, pulled back to 80 and let go moving home', { col: 'tools', p: TOOLS, g: G.back(-1, 0) }, same);
     /* AND THE CONTROL: a deliberate drag most of the way, held still, still turns the page. */
-    await turn('half a card up, held still', { col: 'games', p: 1, g: G.still(0, -Math.round(H * 0.45)) }, down1);
+    await turn('half a card up, held still', { col: 'games', p: GAMES, g: G.still(0, -Math.round(H * 0.45)) }, down1);
 
     /* ---------- 2. THE AXIS, AND A DIAGONAL WITH NOWHERE TO GO UP OR DOWN ---------------------- */
     if (one) {
       await turnCol(`45° on ${one} (one page)`, { col: one, g: G.diag(45, -1) }, s => next(s.AT) + '/0');
       await turnCol(`55° on ${one} (one page)`, { col: one, g: G.diag(55, -1) }, s => next(s.AT) + '/0');
     }
-    await turnCol('25° on tools', { col: 'tools', p: 1, g: G.diag(25, -1) }, nextCol);
-    await turn('up, drifting 90px sideways', { col: 'tools', p: 1, g: G.drift(-1, -1) }, down1);
+    await turnCol('25° on tools', { col: 'tools', p: TOOLS, g: G.diag(25, -1) }, nextCol);
+    await turn('up, drifting 90px sideways', { col: 'tools', p: TOOLS, g: G.drift(-1, -1) }, down1);
 
     /* ---------- 3. A SWIPE THAT BEGINS ON A CONTROL PRESSES NOTHING ----------------------------- */
-    await turn('up, starting on a tile', { col: 'games', p: 1, on: '.tile-row [data-do], .tile[data-do]', g: G.flick(0, -140, 130) }, down1);
+    await turn('up, starting on a tile', { col: 'games', p: GAMES, on: '.tile-row [data-do], .tile[data-do]', g: G.flick(0, -140, 130) }, down1);
 
     /* ---------- 4. A TAP ON A CARD STILL SLIDING IS NOT A PRESS ---------------------------------
        Flick up, then tap the arriving card's first control where it is DRAWN at that instant. The
@@ -391,37 +400,41 @@ async function gesture(env, o) {
        and still on its way. Then once with a real finger for the outcome. */
     {
       const r = await page.evaluate(async () => {
-        const wait = ms => new Promise(res => setTimeout(res, ms));
+        /* EVERYTHING IN ONE TASK, with a style read forcing each step: the slide is started, the drag
+           frame placed, and the first slide asked after — no frame in between for a loaded machine
+           to stretch past the slide's own length. */
         const out = {};
-        const frames = n => new Promise(res => { const f = () => (n-- ? requestAnimationFrame(f) : res()); f(); });
+        await window.__sw.place('games', 1);
         await window.__sw.place('tools', 1);
-        AXES.x.go(TABS.findIndex(t => t.id === 'tools') + 1);
-        await frames(2); await wait(30);
+        const ti = TABS.findIndex(t => t.id === 'tools');
+        AXES.x.go(ti + 1);
+        placeNow_('x', false, 0);
         const host = document.getElementById('s-' + AT);
-        out.xBefore = host.getAnimations().some(a => a.playState === 'running' && a.transitionProperty === 'transform');
+        void getComputedStyle(host).transform;
+        out.xBefore = host.getAnimations().some(a => a.transitionProperty === 'transform');
         SWIPE.live = true; SWIPE.axis = 'y';
         placeCells('y', false, -30);
-        await frames(1);
-        out.xAfter = host.getAnimations().some(a => a.playState === 'running' && a.transitionProperty === 'transform');
+        void getComputedStyle(host).transform;
+        out.xAfter = host.getAnimations().some(a => a.transitionProperty === 'transform');
         out.xLeft = Math.abs(colNow_(host)[0] - colPlaced_(host)[0]);
         SWIPE.live = false; SWIPE.axis = null;
         placeCells('y');
         await window.__sw.still();
         await window.__sw.place('games', 1);
-        AXES.y.go((PAGE.games || 0) + 1);
-        await frames(2); await wait(30);
-        const g = document.getElementById('s-games');
         const yProp = colProp_('y');
-        out.yBefore = g.getAnimations().some(a => a.playState === 'running' && a.transitionProperty === yProp);
+        const g = document.getElementById('s-games');
+        AXES.y.go((PAGE.games || 0) + 1);
+        placeNow_('y', false, 0);
+        void getComputedStyle(g).translate;
+        out.yBefore = g.getAnimations().some(a => a.transitionProperty === yProp);
         SWIPE.live = true; SWIPE.axis = 'x';
         placeCells('x', false, -30);
-        await frames(1);
-        out.yAfter = g.getAnimations().some(a => a.playState === 'running' && a.transitionProperty === yProp);
+        void getComputedStyle(g).translate;
+        out.yAfter = g.getAnimations().some(a => a.transitionProperty === yProp);
         out.yLeft = Math.abs(colNow_(g)[1] - colPlaced_(g)[1]);
         SWIPE.live = false; SWIPE.axis = null;
         placeCells('x');
         await window.__sw.still();
-        out.split = SPLIT_AXES;
         return out;
       });
       reached++;
@@ -432,8 +445,8 @@ async function gesture(env, o) {
         if (!r.yAfter || r.yLeft < 1) fail('OTHER AXIS KEEPS SLIDING', `${at} up then sideways`, 'a sideways drag stopped the vertical slide dead — the column jumps the rest of the way in one frame');
       }
       /* AND WITH A REAL FINGER: sideways, then up 60ms later, lands one column over and one page down. */
-      await page.evaluate(() => window.__sw.place('tools', 1));
-      const sp = await page.evaluate(() => window.__sw.spot());
+      let sp = null;
+      for (const p of TOOLS) { await page.evaluate(p => window.__sw.place('tools', p), p); sp = await page.evaluate(() => window.__sw.spot()); if (sp) break; }
       if (sp) {
         const want = await page.evaluate(() => {
           const id = TABS[TABS.findIndex(t => t.id === AT) + 1].id;
@@ -445,7 +458,7 @@ async function gesture(env, o) {
         const s1 = await page.evaluate(() => window.__sw.still());
         note(`${at} sideways then up 60ms later: ${s1.AT}/${s1.P} (wanted ${want})`);
         if (s1.AT + '/' + s1.P !== want) fail('ONE CELL', `${at} sideways then up`, `landed on ${s1.AT}/${s1.P}, wanted ${want}`);
-      }
+      } else fail('REACH', `${at} sideways then up`, 'no Tools card had a spot the grid would take');
     }
 
     /* ---------- 6. THE CARD IN FRONT IS IN THE MIDDLE OF THE SCREEN ------------------------------
@@ -519,31 +532,50 @@ async function gesture(env, o) {
       if (rest.layers) fail('OUT OF FOCUS', `${at} tools`, `${rest.layers} pane(s) still hold a will-change layer with nothing moving`);
       if (rest.screenFilter) fail('OUT OF FOCUS', `${at} tools`, `${rest.screenFilter} column(s) carry a filter — a blurred layer is redrawn on every frame`);
 
-      /* MID-DRAG, with the finger held half way. */
-      await page.evaluate(() => window.__sw.place('tools', 1));
-      const sp = await page.evaluate(() => window.__sw.spot());
+      /* MID-DRAG, with the finger held half way — on a card with bare card to hold, above one that is
+         blurred rather than dimmed, so both halves of the easing can be read. */
+      let sp = null;
+      for (const p of [4, 5, 6, 1, 2]) {
+        await page.evaluate(p => window.__sw.place('tools', p), p);
+        const ok = await page.evaluate(() => {
+          const a = document.querySelector('#s-tools > .page.on'), b = a && a.nextElementSibling;
+          return !!(b && !b.classList.contains('soft-dim') && !softDim_(a));
+        });
+        sp = ok ? await page.evaluate(() => window.__sw.spot(null, [0.8, 0.7, 0.9, 0.6, 0.5])) : null;
+        if (sp) break;
+      }
       const half = await page.evaluate(() => {
         const a = document.querySelector('#s-tools > .page.on'), b = a && a.nextElementSibling;
         return a && b ? Math.round(Math.abs((b.offsetTop + b.offsetHeight / 2) - (a.offsetTop + a.offsetHeight / 2)) * 0.45) : 0;
       });
-      if (!sp || !half) fail('REACH', `${at} tools/1 mid-drag`, 'no spot or no card below to drag toward');
+      if (!sp || !half) fail('REACH', `${at} tools mid-drag`, 'no Tools card with bare card to hold and a blurred card below it');
       else {
-        const h = await finger(cdp, { x0: sp.x, y0: sp.y, dur: 360, hold: 160, end: false,
-          path: t => [0, -Math.min(half, sp.y - 30) * ease.still(t)] });
-        await sleep(60);
-        const mid = await page.evaluate(() => {
+        const go = Math.min(half, sp.y - 30);
+        const h = await finger(cdp, { x0: sp.x, y0: sp.y, dur: 360, hold: 400, end: false,
+          path: t => [0, -go * ease.still(t)] });
+        /* READ ONCE THE PAGE HAS CAUGHT UP WITH THE FINGER — moves are sent without waiting, and on a
+           loaded machine the last of them can still be queued. */
+        const mid = await page.evaluate(async want => {
+          const wait = ms => new Promise(r => setTimeout(r, ms));
+          for (let k = 0; k < 40 && !(SWIPE.axis && Math.abs(SWIPE.px || 0) >= want); k++) await wait(50);
+          await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
           const a = document.querySelector('#s-tools > .page.on'), b = a && a.nextElementSibling;
           const blur = el => { const m = /blur\(([\d.]+)px\)/.exec(getComputedStyle(el.querySelector(':scope > .pane')).filter || ''); return m ? +m[1] : 0; };
-          return { a: blur(a), b: blur(b), axis: SWIPE.axis, bDim: b.classList.contains('soft-dim') };
-        });
+          const step = Math.abs((b.offsetTop + b.offsetHeight / 2) - (a.offsetTop + a.offsetHeight / 2));
+          return { a: blur(a), b: blur(b), axis: SWIPE.axis, bDim: b.classList.contains('soft-dim'),
+                   f: Math.min(1, Math.abs(SWIPE.px || 0) / step) };
+        }, Math.round((go - 12) * 0.8));
         await h.lift();
         await page.evaluate(() => window.__sw.still());
         reached++;
-        note(`${at} mid-drag: leaving card blur ${mid.a}px, arriving card ${mid.b}px (axis ${mid.axis})`);
-        if (mid.axis !== 'y') fail('REACH', `${at} tools/1 mid-drag`, `the held drag was not the grid's (axis ${mid.axis})`);
+        note(`${at} mid-drag: ${(mid.f * 100).toFixed(0)}% of the way — leaving card blur ${mid.a}px, arriving card ${mid.b}px (axis ${mid.axis})`);
+        if (mid.axis !== 'y') fail('REACH', `${at} tools mid-drag`, `the held drag was not the grid's (axis ${mid.axis})`);
+        else if (!(mid.f > 0.15 && mid.f < 0.85)) fail('REACH', `${at} tools mid-drag`, `the finger was held ${(mid.f * 100).toFixed(0)}% of the way, not part-way`);
         else {
-          if (!(mid.a > 0.2 && mid.a < rest.blurPx - 0.2)) fail('OUT OF FOCUS', `${at} tools/1 mid-drag`, `the card being dragged away is at blur ${mid.a}px half way — it should be easing out of focus with the finger`);
-          if (!mid.bDim && !(mid.b > 0.2 && mid.b < rest.blurPx - 0.2)) fail('OUT OF FOCUS', `${at} tools/1 mid-drag`, `the card coming in is at blur ${mid.b}px half way — it should be easing into focus with the finger`);
+          /* IN STEP WITH THE FINGER: the card leaving at f of the blur, the card arriving at 1 - f. */
+          const wantA = rest.blurPx * mid.f, wantB = rest.blurPx * (1 - mid.f);
+          if (Math.abs(mid.a - wantA) > 0.25) fail('OUT OF FOCUS', `${at} tools mid-drag`, `the card being dragged away is at blur ${mid.a}px ${(mid.f * 100).toFixed(0)}% of the way — it should be about ${wantA.toFixed(2)}px, easing out of focus with the finger`);
+          if (!mid.bDim && Math.abs(mid.b - wantB) > 0.25) fail('OUT OF FOCUS', `${at} tools mid-drag`, `the card coming in is at blur ${mid.b}px ${(mid.f * 100).toFixed(0)}% of the way — it should be about ${wantB.toFixed(2)}px, easing into focus with the finger`);
         }
         const left = await page.evaluate(() => [...document.querySelectorAll('#screen .pane')].filter(g => g.style.willChange || g.style.filter).length);
         if (left) fail('OUT OF FOCUS', `${at} tools after a drag`, `${left} pane(s) kept an inline filter or will-change after the slide ended`);
@@ -558,7 +590,8 @@ async function gesture(env, o) {
         const n = AXES.y.count('tools');
         for (let p = 0; p < n - 1; p++) {
           await window.__sw.place('tools', p);
-          const f = document.querySelector('#s-tools > .page.on input[type="text"], #s-tools > .page.on input:not([type]), #s-tools > .page.on textarea, #s-tools > .page.on input[type="number"]');
+          const f = [...document.querySelectorAll('#s-tools > .page.on input, #s-tools > .page.on textarea')]
+            .find(e => !e.disabled && e.offsetParent && (e.tagName === 'TEXTAREA' || /^(text|search|number|tel|email|url)$/.test(e.type)));
           if (f) { f.focus(); return document.activeElement === f ? p : -1; }
         }
         return -1;
@@ -632,6 +665,9 @@ async function gesture(env, o) {
     if (W === 390) {
       const events = [];
       cdp.on('Tracing.dataCollected', d => events.push(...d.value));
+      /* WARMED UP: both columns visited once, because the first visit after the payload lands is a
+         REPAINT of the column by design (`STALE`) — the cost of new data, not of a swipe. */
+      await page.evaluate(async () => { await window.__sw.place('games', 1); await window.__sw.place('tools', 1); });
       const traced = async (name, code) => {
         events.length = 0;
         await page.evaluate(() => window.__sw.place('tools', 1));
@@ -646,16 +682,37 @@ async function gesture(env, o) {
         if (!a || !b) return fail('REACH', `${at} ${name}`, 'the trace has no marks — nothing was measured');
         const inn = events.filter(e => e.ts >= a.ts && e.ts <= b.ts);
         const style = inn.filter(e => e.name === 'UpdateLayoutTree').map(e => (e.args && e.args.elementCount) || 0);
-        const layout = inn.filter(e => e.name === 'Layout').map(e => ((e.args && e.args.beginData) || {}).totalObjects || 0);
         reached++;
-        note(`${at} ${name}: restyles ${style.join(', ') || 'none'}; layouts walking ${layout.join(', ') || 'none'} objects`);
+        note(`${at} ${name}: restyles ${style.join(', ') || 'none'}`);
         const worst = Math.max(0, ...style);
         if (worst >= 1000) fail('RELEASE COST', `${at} ${name}`, `one style recalculation touched ${worst} elements — something is invalidating the whole document`);
-        return layout;
       };
       await traced('a page turn', "AXES.y.go((PAGE.tools || 0) + 1)");
-      const lay = await traced('a column change', "AXES.x.go(TABS.findIndex(t => t.id === 'tools') + 1)");
-      if (lay && lay.some(n => n >= 1000)) fail('RELEASE COST', `${at} a column change`, `it laid out ${Math.max(...lay)} objects — the whole document, for a change that moves nothing in it`);
+      await traced('a column change', "AXES.x.go(TABS.findIndex(t => t.id === 'tools') + 1)");
+      /* AND THE CAMERA IS LET GO OF ONLY BY LEAVING THE FEED. `camStop_` reset the camera card's
+         markup on every column change, which forced a layout of the whole document at the release
+         (230ms here on the base commit, warmed up). Asked by counting the calls, because a layout's
+         cost is the one number on this machine that load decides. */
+      const cam = await page.evaluate(async () => {
+        if (typeof camStop_ !== 'function') return null;
+        const real = camStop_;
+        let n = 0;
+        window.camStop_ = function () { n++; return real.apply(this, arguments); };
+        const out = {};
+        await window.__sw.place('tools', 1);
+        n = 0; go('games', false); await window.__sw.still(); out.across = n;
+        await window.__sw.place('feed');
+        n = 0; go(TABS[TABS.findIndex(t => t.id === 'feed') + 1].id, false); await window.__sw.still(); out.leaving = n;
+        window.camStop_ = real;
+        return out;
+      });
+      reached++;
+      note(`${at} camStop_: ${cam ? cam.across + ' call(s) from Tools to Games, ' + cam.leaving + ' leaving the feed' : 'not reachable'}`);
+      if (!cam) fail('REACH', `${at} camera`, 'camStop_ is not reachable — nothing was asked');
+      else {
+        if (cam.across) fail('RELEASE COST', `${at} Tools to Games`, `camStop_ ran ${cam.across} time(s) on a column change that never touched the feed — a whole-document layout for a camera that was never on`);
+        if (cam.leaving !== 1) fail('RELEASE COST', `${at} leaving the feed`, `camStop_ ran ${cam.leaving} time(s) leaving the feed, not once — the camera must still be let go`);
+      }
     }
 
     if (env.errs.length) fail('PAGE ERROR', at, env.errs.slice(0, 3).join(' | '));
