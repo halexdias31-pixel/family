@@ -276,10 +276,9 @@ function savedCards_() {
 
 /* STARTED AND STOPPED LIKE THE OTHER TWO COLUMNS. A starred timer is a running timer, and a canvas
    loop behind a screen nobody is looking at is the flat battery `toolsStop_` already exists for. */
-function savedStart_() {
+function savedStart_(arriving) {
   toolsStop_();
-  TOOLS_ON = savedWidgets_();
-  TOOLS_ON.forEach(w => { try { w.start && w.start(); } catch (e) { console.warn('[widget]', w.id, e); } });
+  widgetsWake_(savedWidgets_(), 'saved', arriving);
 }
 
 /* ---------- AND THEN THEY ARE STARTED ---------------------------------------------------------
@@ -295,16 +294,84 @@ function savedStart_() {
    screen nobody is looking at is a flat battery for nothing, and that argument has not changed. */
 let TOOLS_ON = [];
 
-function toolsStart_(kind) {
+function toolsStart_(kind, arriving) {
   toolsStop_();
-  TOOLS_ON = widgetsOf_(kind);
-  TOOLS_ON.forEach(w => {
+  widgetsWake_(widgetsOf_(kind), kind === 'tool' ? 'tools' : kind === 'game' ? 'games' : kind, arriving);
+}
+
+/* ---------- ALL OF THEM STILL, BUT NOT ALL IN ONE TASK WHEN A COLUMN IS ARRIVED AT ----------------
+   REPORTED AS PART OF *"can you make swiping and so on more stable"*, and measured as "the second
+   swipe sometimes doesn't take" on Tools and Games. Every widget's `start` forces a layout of the
+   whole document — 37–64ms of CPU each at 1x, because the document holds every page of every
+   column — and arriving started all of them in ONE task: about 560ms on Games and 800ms on Tools,
+   the cheat-sheet maker alone 226ms. A finger that went down in that window was not answered until
+   it ended: one measured second swipe 450ms after arriving first moved the card 1,425ms after the
+   finger touched.
+
+   SO ON ARRIVAL, THE ONES YOU CAN SEE START NOW — the page in front and one either side — and the
+   rest follow ONE PER TASK, nearest the page in front first, asked again at every step so a column
+   swiped down meanwhile wakes what is now near. Each step waits out a finger on the grid and a
+   settle that is running, as `afterSlide_` does, so a swipe lands between two widgets and never
+   behind all of them. The note above still holds: every widget on the column is running a moment
+   later, and nothing is stopped for having been scrolled past.
+
+   A REPAINT IS NOT AN ARRIVAL and keeps the old shape — everything, now, in one go. It has just
+   replaced every widget's markup, and `check-flow` reads a widget straight after `repaint()`. */
+let TOOLS_WAIT = [];      // { w, col } still to start, on the column TOOLS_ON belongs to
+let TOOLS_WAKE = 0;       // the booked step
+
+function widgetsWake_(list, col, arriving) {
+  const start = w => {
+    TOOLS_ON.push(w);
     try { w.start && w.start(); }
     catch (e) { console.warn('[widget]', w.id, e); }
-  });
+  };
+  if (!arriving) { list.forEach(start); return; }
+  const far = list.filter(w => widgetDistance_(w, col) > 1);
+  list.filter(w => far.indexOf(w) === -1).forEach(start);
+  TOOLS_WAIT = far.map(w => ({ w, col }));
+  if (TOOLS_WAIT.length) widgetsLater_();
+}
+
+/* HOW MANY PAGES FROM THE ONE IN FRONT a widget's slot sits — read off the page that holds
+   `#wgt-<id>`, which is what `widgetOnColumn_` writes, so it holds on Saved where the order is
+   whatever was starred. A slot it cannot find counts as near: starting one too early is the
+   behaviour before this existed. */
+function widgetDistance_(w, col) {
+  try {
+    const slot = $('wgt-' + w.id), host = $('s-' + col);
+    const pg = slot && slot.closest('.page');
+    if (!pg || !host) return 0;
+    const i = [...host.querySelectorAll(':scope > .page')].indexOf(pg);
+    return i < 0 ? 0 : Math.abs(i - domIndex_(col, PAGE[col] || 0));
+  } catch (e) { return 0; }
+}
+
+function widgetsLater_() {
+  if (TOOLS_WAKE) return;
+  TOOLS_WAKE = setTimeout(function step() {
+    TOOLS_WAKE = 0;
+    if (!TOOLS_WAIT.length) return;
+    const now = performance.now();
+    const busy = (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && now < SETTLE_ON.until)
+              || (typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis);
+    if (busy) { TOOLS_WAKE = setTimeout(step, 60); return; }
+    TOOLS_WAIT.sort((a, b) => widgetDistance_(a.w, a.col) - widgetDistance_(b.w, b.col));
+    const next = TOOLS_WAIT.shift();
+    TOOLS_ON.push(next.w);
+    try { next.w.start && next.w.start(); }
+    catch (e) { console.warn('[widget]', next.w.id, e); }
+    /* A GAP, NOT NOUGHT: `setTimeout(…, 0)` would queue the next start ahead of a touch that is
+       already waiting to be delivered on a busy phone. */
+    if (TOOLS_WAIT.length) TOOLS_WAKE = setTimeout(step, 40);
+  }, 0);
 }
 
 function toolsStop_() {
+  /* WHAT IS STILL WAITING IS FORGOTTEN WITH WHAT IS RUNNING — a widget queued for a column that has
+     been left must not start behind the column you are on now. */
+  TOOLS_WAIT = [];
+  if (TOOLS_WAKE) { clearTimeout(TOOLS_WAKE); TOOLS_WAKE = 0; }
   TOOLS_ON.forEach(w => { try { w.stop && w.stop(); } catch (e) {} });
   TOOLS_ON = [];
 }

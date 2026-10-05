@@ -406,7 +406,8 @@ function go(id, remember, instant) {
   /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
      just rebuilt this screen's markup too — and two copies of "what does this screen need running"
      is two places to forget the camera. */
-  afterSlide_(() => startScreen_(AT), 'start');
+  /* `true`: ARRIVING, so a column of widgets starts the ones in view first — see `widgetsWake_`. */
+  afterSlide_(() => startScreen_(AT, true), 'start');
 
   if (AT === 'stuff') {
     const drawn = $('s-stuff') && $('s-stuff').querySelector('.page[data-filled]');
@@ -460,16 +461,16 @@ function go(id, remember, instant) {
    A HOISTED FUNCTION, NOT A CONST. `repaint` is a const defined above this line and calls it; a
    `const` read before its own line throws, including through `typeof`, which is the one check that
    cannot see into a temporal dead zone. A function declaration is hoisted, so this is safe. */
-function startScreen_(id) {
+function startScreen_(id, arriving) {
   /* THE SAVED COLUMN HOLDS WIDGETS TOO, so it starts them — from its own list rather than from a
      kind, because what is on it is whatever was starred. */
-  if (id === 'saved' && typeof savedStart_ === 'function') { savedStart_(); }
+  if (id === 'saved' && typeof savedStart_ === 'function') { savedStart_(arriving); }
   else if ((id === 'tools' || id === 'games') && typeof toolsStart_ === 'function') {
-    toolsStart_(id === 'tools' ? 'tool' : 'game');
+    toolsStart_(id === 'tools' ? 'tool' : 'game', arriving);
   }
   /* AND THE SHOP, whose first page is the basket — a widget, with a `start` that draws its lines.
      Without this the basket arrived as a heading over an empty box. */
-  else if (id === 'shop' && typeof toolsStart_ === 'function') { toolsStart_('shop'); }
+  else if (id === 'shop' && typeof toolsStart_ === 'function') { toolsStart_('shop', arriving); }
   /* ---------- AND A COLUMN WHOSE CARDS JUST GREW IS PLACED AGAIN ---------------------------------
      A WIDGET DRAWS ITSELF IN ITS `start`, which runs here, 300ms after the column was placed — so
      the basket's receipt, the calendar's month and the week's roster all arrive AFTER `goPage` has
