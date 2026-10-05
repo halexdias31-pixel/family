@@ -2239,8 +2239,19 @@ function doPost(e) {
     if (action === 'makeChild') {
       const me = findPerson('', S(body.personId));
       if (!me) return jsonOut({ error: 'Not signed in.' });
+      /* THE REFUSAL NAMES A TICK THAT EXISTS, AND ONLY TO SOMEBODY WHO MAY TICK IT. It said *"Tick
+         Parent under Your roles"* — the card's word is Client (`ROLE_LABEL`), and the person most
+         likely to be told it, a student, is refused that very tick by `setMyRoles`. So: a student is
+         told who can change it, read as `setMyRoles` reads it (`actingRole_`, so a waiting Tutor
+         tick is still a student); anybody else — a tutor, who may tick Client — is told the tick. The
+         phone never draws this card for either, so it is reached by a stale phone or a request sent
+         straight here; found by the walk after the parent sign-up, which sent one. */
       if (!hasRole(me, 'client') && !hasRole(me, 'admin')) {
-        return jsonOut({ error: 'Only a parent can make a child\'s account. Tick Parent under Your roles first.' });
+        return jsonOut({ error: actingRole_(me) === 'student'
+          ? 'Only a parent can make a child\'s account, and this one is a student\'s. If you are a '
+            + 'parent, ask @family. to change it. Nothing was made.'
+          : 'Only a parent can make a child\'s account. Tick ' + ROLE_LABEL.client
+            + ' under Your roles first. Nothing was made.' });
       }
       const first = S(body.firstName), last = S(body.lastName), pin = S(body.pin);
       if (!first || !last) return jsonOut({ error: 'Their first name and their last name, please.' });

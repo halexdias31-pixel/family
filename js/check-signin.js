@@ -25,6 +25,7 @@
    their addresses are on example.org.
 ================================================================================================== */
 'use strict';
+const fs = require('fs'), path = require('path');
 const { backend } = require('./check-gas-load.js');
 
 const bad = [];
@@ -452,6 +453,8 @@ let whoRules = 0;
     /* A CHILD WHO ALREADY EXISTS, with a parent of her own — the one a stranger's parent account must
        not be able to reach. */
     person('P-ELLA', 'student', 'Ella', 'Exists', { email: 'ella@example.org', handle: 'ella_kind81' }),
+    /* A TUTOR, who is not a parent but MAY tick Client — so is the one a refusal may send there. */
+    person('P-TIA', 'tutor', 'Tia', 'Tutor', { email: 'tia@example.org', handle: 'tia_kind82' }),
   ]);
   const P1 = ['5', '8', '2', '7', '1', '4'].join(''), P2 = ['4', '1', '9', '3'].join('');
   const cellOf = (pid, c) => { const r = rowOf(b, x => x.person_id === pid); return r ? r[c] : undefined; };
@@ -515,6 +518,11 @@ let whoRules = 0;
       const n = b.tabs.people.length;
       const mk = post(b, { action: 'makeChild', token: min.token, firstName: 'Zed', lastName: 'Learner', pin: ZERO2 });
       rule(!mk.success && b.tabs.people.length === n, 'a student made a child\'s account', mk);
+      /* AND THE REFUSAL DOES NOT SEND THEM TO A TICK THEY WERE JUST REFUSED. It said "Tick Parent
+         under Your roles" — a word the card does not have, and a tick `setMyRoles` turns a student
+         down for two lines above. A student is told who can change it. */
+      rule(!/\bTick\b/i.test(S(mk.error)) && /@family\./.test(S(mk.error)),
+        'a student\'s makeChild refusal sends them to a tick they cannot have, or not to @family.', mk.error);
 
       /* ---------- THE STALE ROLE: the owner changes it in the sheet, the phone asks `myProfile` --------
          The walk changed a role in the sheet and the card stayed missing until a sign-out. The phone
@@ -530,6 +538,22 @@ let whoRules = 0;
       const other = post(b, { action: 'myProfile', token: min.token, personId: 'P-ADM' });
       rule(other.personId === mo.person_id && other.role !== 'admin', 'myProfile naming the admin answered with the admin\'s role', other);
     }
+  }
+
+  /* A TUTOR MAY TICK CLIENT, SO A TUTOR IS TOLD THE TICK — by the word the card prints. The card's
+     labels are read from `ROLE_PICKS` in js/me.js, so a refusal and the card cannot drift apart
+     again: "Parent" was the drift, and nothing could see it. */
+  const LABELS = [...fs.readFileSync(path.join(__dirname, 'me.js'), 'utf8')
+    .matchAll(/\[\s*'(?:tutor|client|student)'\s*,\s*'([^']+)'/g)].map(m => m[1]);
+  const tia = signIn(b, 'tia@example.org', PLACE);
+  if (!tia.token) no('the tutor could not sign in, so a tutor\'s makeChild refusal was NOT checked', tia);
+  else {
+    const n = b.tabs.people.length;
+    const tk = post(b, { action: 'makeChild', token: tia.token, firstName: 'Tod', lastName: 'Tutor', pin: ZERO2 });
+    const named = (S(tk.error).match(/\bTick (\w+) under Your roles/) || [])[1];
+    rule(!tk.success && b.tabs.people.length === n && LABELS.length === 3 && named === LABELS[1],
+      'a tutor\'s makeChild refusal names the tick ' + JSON.stringify(named) + ', and the card\'s Client tick is '
+        + JSON.stringify(LABELS[1]) + ' (card labels read: ' + JSON.stringify(LABELS) + ')', tk);
   }
 
   /* NO ANSWER (an old phone) IS A STUDENT, AND SO IS ANY WORD BUT `parent`. */
@@ -549,7 +573,7 @@ let whoRules = 0;
 
 /* EVERY ONE OF SECTION 8'S RULES WAS ASKED, or the count says which were not reached — a parent who
    could not sign in would otherwise skip the eight questions behind them and print nothing. */
-const WHO_RULES = 24;
+const WHO_RULES = 26;
 if (whoRules !== WHO_RULES && !bad.length) no('only ' + whoRules + ' of ' + WHO_RULES + ' who-the-account-is-for rules were asked');
 
 console.log('\nWRONG  (' + bad.length + ')');
