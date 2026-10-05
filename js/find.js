@@ -4329,8 +4329,14 @@ function boxerPic_(b, corner, won) {
   const frame = `<span class="boxer-frame">${boxerRing_(b.name, corner === 'b')}${src
     ? `<img class="boxer-img" src="${esc(src)}" alt="${esc(b.name)}" loading="lazy" decoding="async">` : ''}</span>`;
   if (corner) return `<span class="boxer-pic is-small${src ? '' : ' is-none'}${won ? ' won' : ''}">${frame}</span>`;
-  return `<figure class="boxer-pic${src ? '' : ' is-none'}">${frame}${src
-    ? `<figcaption class="boxer-credit">${boxerCredit_(b, b.imageCredit)}</figcaption>` : ''}</figure>`;
+  /* THE CREDIT IS A LINE OF ITS OWN UNDER THE PHOTO AND THE NAME, NOT A CAPTION IN THE PHOTO'S
+     COLUMN. As a `<figcaption>` it was four lines in a 134px column on a 320px phone — the photo's
+     column ran 80px past the name's, the record started that much lower, and Ali's profile was drawn
+     at 82% to fit, which put the credit itself at about seven pixels. Across the card it is two
+     lines, the column ends with the photo, and the credit sits directly under the picture it names.
+     The grid puts it there: it is the next element after the photo, so it takes the row below. */
+  return `<figure class="boxer-pic${src ? '' : ' is-none'}">${frame}</figure>${src
+    ? `<p class="boxer-credit">${boxerCredit_(b, b.imageCredit)}</p>` : ''}`;
 }
 
 /* ---------- THE CREDIT LINKS TO THE PHOTO'S FILE PAGE --------------------------------------------
@@ -4376,13 +4382,15 @@ function boxerPicFail_(img) {
   const card = img.closest('.card');
   img.remove();
   if (fig) fig.classList.add('is-none');
-  if (fig && fig.querySelector('.boxer-credit')) fig.querySelector('.boxer-credit').remove();
-  /* ON A FIGHT CARD THE CREDIT IS SHARED, so it is the line for THIS face that goes. */
-  if (card) card.querySelectorAll('.fight-credit [data-src]').forEach(el => {
+  /* THE CREDIT FOR THIS PICTURE GOES, BY ITS ADDRESS — on the profile it is the line under the photo,
+     on a fight card one of two, so it is found by `data-src` rather than by where it sits, and a
+     line left with no credit in it goes too. */
+  if (card) card.querySelectorAll('.boxer-credit [data-src], .fight-credit [data-src]').forEach(el => {
     if (el.getAttribute('data-src') === img.getAttribute('src')) el.remove();
   });
-  const line = card && card.querySelector('.fight-credit');
-  if (line && !line.querySelector('[data-src]')) line.remove();
+  if (card) card.querySelectorAll('.boxer-credit, .fight-credit').forEach(line => {
+    if (!line.querySelector('[data-src]')) line.remove();
+  });
 }
 document.addEventListener('error', e => {
   const el = e.target;
@@ -4554,9 +4562,12 @@ function boxerTitles_(b) {
   const badges = (b.hallOfFame ? '<li class="is-hof">Hall of Fame</li>' : '')
                + (b.lineal ? '<li>Lineal champion</li>' : '');
   if (!b.worldTitles && !badges) return '';
-  return `<section class="fc-sec boxer-titles"><h4>${b.worldTitles ? 'Titles' : 'Honours'}</h4>
+  /* THE BADGES RIDE ON THE HEADING'S LINE, at its right, the way a broadcast pins "HALL OF FAME" to
+     the corner of a fighter's caption. They had a row of their own under the belts, and on a
+     320x568 phone that row was one of the reasons fifty profiles were drawn smaller to fit. */
+  return `<section class="fc-sec boxer-titles"><div class="boxer-titles-head"><h4>${b.worldTitles ? 'Titles' : 'Honours'}</h4>${
+    badges ? `<ul class="boxer-badges">${badges}</ul>` : ''}</div>
     ${b.worldTitles ? `<p class="boxer-belt">${esc(b.worldTitles)}</p>` : ''}
-    ${badges ? `<ul class="boxer-badges">${badges}</ul>` : ''}
   </section>`;
 }
 

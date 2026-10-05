@@ -10685,13 +10685,14 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 /* ---------- AND IT IS A LINK, SO IT IS A TAP TARGET -------------------------------------------------
    THE CREDIT LINKS TO THE PHOTO'S COMMONS PAGE (see `boxerCredit_`), and a link the size of
    `.62rem` small print is a 12px target — the thing `check/ui.js` exists to refuse. So the link is a
-   block at least 44px tall, in px because a fingertip does not scale with the type. The words keep
-   their size and sit at the top of it; under the photo there is room, since the column beside it is
-   the name, the country and the status. Underlined in the line colour, so it reads as a link without
-   shouting louder than the photo it credits. */
+   block at least 44px tall, in px because a fingertip does not scale with the type, and the words
+   keep their size, centred in it from top to bottom. On the profile it is the full-width line under
+   the photo (see `boxerPic_`), two lines of words in a 44px row. Underlined in the line colour, so
+   it reads as a link without shouting louder than the photo it credits. */
 .boxer-src { display: block; color: inherit; overflow-wrap: anywhere; }
-a.boxer-src { min-height: 44px; text-decoration: underline; text-decoration-color: var(--line);
-              text-underline-offset: 2px; }
+a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decoration: underline;
+              text-decoration-color: var(--line); text-underline-offset: 2px; }
+.fight-credit a.boxer-src { justify-content: center; }
 /* THE RESULT IN WORDS, FOR A SCREEN READER ONLY — `#splash-say`'s pattern: off the screen rather
    than hidden, because `display: none` would take it from the reader too. The row is its containing
    block, so the 1px box sits inside the row it belongs to rather than wherever an ancestor is. */
@@ -10745,10 +10746,13 @@ a.boxer-src { min-height: 44px; text-decoration: underline; text-decoration-colo
 /* ---------- THE TALE OF THE TAPE ---------------------------------------------------------------------
    A LABEL AT THE LEFT AND ITS VALUE AT THE RIGHT, ONE HAIRLINE BETWEEN ROWS — the broadcast's
    graphic, laid flat for one fighter. The value wraps at the right rather than pushing the label:
-   "17 Jan 1942 · Louisville, USA" is two lines on a 320px phone and that is fine. */
+   "17 Jan 1942 · Louisville, USA" is two lines on a 320px phone and that is fine.
+   `.22rem` A ROW, NOT `.3`: on a 320x568 phone fifty profiles were drawn smaller to fit their pane,
+   and the tape's seven rows are the longest run of the card; a hairline between rows is what keeps
+   them apart, so the padding can be the smaller part of the gap without the rows running together. */
 .boxer-tape dl { margin: 0; }
 .boxer-tape dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: .8rem;
-                       padding: .3rem 0; border-bottom: 1px solid var(--line-soft); }
+                       padding: .22rem 0; border-bottom: 1px solid var(--line-soft); }
 .boxer-tape dl > div:last-child { border-bottom: 0; }
 .boxer-tape dt { flex: 0 0 auto; font: 600 .62rem/1.5 var(--mono); letter-spacing: .08em;
                  text-transform: uppercase; color: var(--faint); }
@@ -10761,8 +10765,15 @@ a.boxer-src { min-height: 44px; text-decoration: underline; text-decoration-colo
    because they are yes-or-no facts and the yes is the point. */
 .boxer-belt { margin: 0; padding-left: .6rem; border-left: 2px solid var(--boxer-w);
               font-size: .82rem; line-height: 1.45; color: var(--ink); }
-.boxer .boxer-badges { list-style: none; margin: var(--fc-line) 0 0; padding: 0; display: flex;
-                       flex-wrap: wrap; gap: .35rem; }
+.boxer .boxer-badges { list-style: none; margin: 0; padding: 0; display: flex;
+                       flex-wrap: wrap; justify-content: flex-end; gap: .35rem; }
+/* THE HEADING AND THE BADGES SHARE ONE LINE — the label at the left, the honours pinned at the right
+   (see `boxerTitles_`). It wraps rather than squeezes: two badges beside "Honours" on a 320px phone
+   is wider than the card, and a badge on the next line is still a badge. The heading's own bottom
+   margin moves to the row, so the belts sit the same distance under it either way. */
+.boxer-titles-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+                     gap: .35rem .6rem; margin: 0 0 var(--fc-in); }
+.boxer .boxer-titles-head h4 { margin: 0; }
 .boxer .boxer-badges li { font: 600 .62rem/1 var(--mono); letter-spacing: .07em; text-transform: uppercase;
                           color: var(--boxer-w); border: 1px solid var(--boxer-w); border-radius: .5rem;
                           padding: .3rem .45rem; }

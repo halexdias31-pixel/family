@@ -6966,7 +6966,9 @@ check('a boxer with a photo: the picture, its credit, the record and a bar that 
     if (img.getAttribute('alt') !== row.name) bad.push('the photo\'s alt is "' + img.getAttribute('alt') + '", not his name');
     if (img.getAttribute('loading') !== 'lazy') bad.push('the photo is not lazy-loaded');
   }
-  const credit = card.querySelector('.boxer-pic .boxer-credit');
+  /* THE CREDIT IS THE LINE STRAIGHT AFTER THE PHOTO — across the card under it rather than a caption
+     in its narrow column (see `boxerPic_`), so it is asked for as the photo's next sibling. */
+  const credit = card.querySelector('.boxer-pic + .boxer-credit');
   if (!credit || credit.textContent.trim() !== row.image_credit.trim()) bad.push('the credit under the photo is "' + (credit ? credit.textContent.trim() : 'missing') + '", not the row\'s "' + row.image_credit + '"');
   /* ---------- AND THE CREDIT IS A LINK TO THE PHOTO'S OWN FILE PAGE --------------------------------
      A CC BY or CC BY-SA photo is free on condition that its credit links to where the work and its
