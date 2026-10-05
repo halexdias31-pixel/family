@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-revealtile";
+  --css-version: "2026-10-05-checktile";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -12194,7 +12194,7 @@ button.scr-sq { cursor: pointer; }
 
    IT LOOKS LIKE RULED PAPER because that is what it is standing in for. A bordered form field would
    promise a submit button that does not exist. */
-.qp-ans { display: block; margin: 1rem 0 .2rem; }
+.qp-ans { display: block; margin: .9rem 0 .2rem; }
 .qp-ans-k { display: block; font: 600 .62rem/1 var(--font); color: var(--faint);
             letter-spacing: .08em; text-transform: uppercase; margin-bottom: .4rem; }
 .qp-ans-in {
@@ -12227,13 +12227,7 @@ button.scr-sq { cursor: pointer; }
 .qp-mark { display: flex; align-items: center; gap: .7rem; flex-wrap: nowrap; margin: .6rem 0 .2rem;
            min-height: 44px; }
 .qp-choices + .qp-mark { min-height: 1.4rem; margin-top: .45rem; }
-.qp-check {
-  flex: 0 0 auto;
-  min-height: 44px; min-width: 88px; padding: 0 1rem;
-  background: var(--gold); color: var(--bg); border: 0; border-radius: var(--r-sm);
-  font: 600 .78rem/1 var(--font); letter-spacing: .04em; cursor: pointer;
-}
-.qp-check:active { transform: translateY(1px); }
+/* `.qp-check` IS A TILE NOW and draws as one (`.tile`); the gold 88px button that was here is gone. */
 /* GREEN AND AMBER, NOT GREEN AND RED. The verdict says "not yet" rather than "wrong" and the
    colour has to agree with the words: these are practice sheets a child works through alone, and
    a red cross reads as final where the whole value of self-marking is the next attempt. */
