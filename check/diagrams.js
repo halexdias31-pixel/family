@@ -37,8 +37,8 @@
    `<svg`, so the next file to grow drawings is measured the day it does rather than the day
    somebody remembers this list. Today that is `questions.json` and `practicals.json`.
 
-     node check/diagrams.js                    every drawing, at 320px
-     node check/diagrams.js --width=390        the same at another width
+     node check/diagrams.js                    every drawing, at 320 and 390px, 3x
+     node check/diagrams.js --width=360        one width alone
      node check/diagrams.js --dpr=2            …or another pixel density (3 by default)
      node check/diagrams.js --face="DejaVu Serif"   …or another serif, standing in for Android's
      node check/diagrams.js --shots=DIR        a PNG of every drawing with a finding, into DIR
@@ -122,8 +122,9 @@ const OPAQUE = 0.9;
    to put a label on a line, and moving the label is the way to take one off it. An entry is
    `'ROW|label text|the line, as the report names it': 'reason'` — the LINE as well, so forgiving
    one ruling does not forgive the same label landing on a curve next week. It is still printed on
-   every run, so a forgiven collision is never a silent one. A key that matches nothing is reported as stale, because a reason for a fault that
-   no longer exists is a sentence somebody will trust about the wrong drawing.
+   every run, so a forgiven collision is never a silent one. A key that matches nothing is reported
+   as stale, because a reason for a fault that no longer exists is a sentence somebody will trust
+   about the wrong drawing.
 
    THE ONE KIND HERE IS A LABEL THAT NO POSITION CAN CLEAR. The AQA 7408/3A key reads "experiment
    1" and "experiment 2" beside two sample lines, and each label is about 63 units long on graph
@@ -190,9 +191,11 @@ function serve() {
   });
 }
 
+/* `--face` OVER THE STYLESHEET'S SERIF, for the one question it answers: what a wider face does. */
+const faceCss = () => (FACE ? '<style>figure svg text, figure svg tspan { font-family: '
+  + JSON.stringify(FACE) + ' !important; }</style>' : '');
 /* THE CARD A FIGURE IS DRAWN ON, with the classes the app gives it, so the stylesheet under test is
    the one deciding how wide the drawing is and what size its labels are. */
-const faceCss = () => (FACE ? `<style>figure svg text, figure svg tspan { font-family: ${JSON.stringify(FACE)} !important; }</style>` : '');
 function cardHtml(d, i) {
   return d.wrap === 'gd'
     ? `<div class="card fc prac prac-part is-fig" data-i="${i}"><div class="gd"><figure>${d.svg}</figure></div></div>`
