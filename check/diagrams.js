@@ -39,6 +39,8 @@
 
      node check/diagrams.js                    every drawing, at 320px
      node check/diagrams.js --width=390        the same at another width
+     node check/diagrams.js --dpr=2            …or another pixel density (3 by default)
+     node check/diagrams.js --face="DejaVu Serif"   …or another serif, standing in for Android's
      node check/diagrams.js --shots=DIR        a PNG of every drawing with a finding, into DIR
      node check/diagrams.js --shots=DIR --rows=A,B   …or of these rows, finding or not
 ================================================================================================== */
@@ -62,6 +64,7 @@ const WIDTH = Number(arg('width', 320));
    This one goes a step further: unset, it asks the OS for a free port (`listen(0)`), so a worker who
    has never heard of `DIAGRAMS_PORT` cannot collide with anyone. Set it to pin one. */
 const PORT_WANTED = Number(process.env.DIAGRAMS_PORT || 0);
+const DPR = Number(arg('dpr', 3));
 const FACE = arg('face', '');
 const SHOTS = arg('shots', '');
 const ROWS = arg('rows', '').split(',').map(s => s.trim()).filter(Boolean);
@@ -73,12 +76,19 @@ const ROWS = arg('rows', '').split(',').map(s => s.trim()).filter(Boolean);
      - the box is a rectangle and a glyph is not — P's lower right, 7's lower left, an italic's
        slant all leave corners of the box empty, so a box overlap of a fraction of a pixel is very
        often no overlap of ink at all;
-     - the font: this machine's `serif` is DejaVu Serif, which is WIDER and TALLER than the Times
-       (iOS) or Noto Serif (Android) a phone draws these labels in, so every box here is already an
-       envelope of the one on a phone. That makes this check strict in the right direction: a label
-       that clears a line here clears it there.
+     - sub-pixel placement: the same label lands a fraction of a pixel differently at 320 and 390,
+       and a rule that flips on that is measuring the rounding rather than the drawing.
    Half a pixel is below anything a person can see as touching, and above the rounding. The same
-   number serves the label-against-label and inside-the-box questions, for the same reasons. */
+   number serves the label-against-label and inside-the-box questions, for the same reasons.
+
+   AND THE FONT IS NAMED, BECAUSE IT DECIDES THE ANSWER. Chromium here resolves `serif` to Liberation
+   Serif, which has Times New Roman's metrics — what an iPhone draws these labels in, and what every
+   drawing in the library was laid out against (see the note over `.qsheet .lbl` in style.css).
+   Android's `serif` is Noto Serif, which is wider. `--face="DejaVu Serif"` measures a face of about
+   that width: on 5 October 2026 it found 371 collisions where Times found 108, 117 of them a word
+   running out of its own box — the 183 the stylesheet note records for a monospace face, smaller.
+   That is a decision about the drawings' font, not about where a label sits, so it is printed by
+   that flag and not failed by this run. */
 const TOL = 0.5;
 /* ---------- A STROKE IS INK WHEN AT LEAST HALF OF IT IS PAINTED ----------------------------------
    THE GRAPH PAPER IS NOT A LINE A LABEL CAN CLASH WITH. `.grid` is `stroke-width: .4; opacity: .3`
@@ -419,7 +429,15 @@ function inspect(o) {
   const exe = ['/opt/pw-browsers/chromium-1194/chrome-linux/chrome',
                '/opt/pw-browsers/chromium/chrome-linux/chrome'].find(p => fs.existsSync(p));
   const browser = await chromium.launch(exe ? { executablePath: exe } : {});
-  const page = await browser.newPage({ viewport: { width: WIDTH, height: 900 } });
+  /* ---------- AT A PHONE'S PIXEL DENSITY, BECAUSE THE ANSWER MOVES WITH IT ----------------------
+     MEASURED, NOT ASSUMED: the same label against the same line came out up to half a pixel apart
+     at a device scale of 1 and of 3. Chromium lays SVG text out at the size it will RASTERISE it —
+     font size × the drawing's scale × the device's pixel ratio — and hints the advances at that
+     size, so where each glyph starts depends on how dense the screen is. A desktop at 1x is not
+     what anybody reads these on; every phone in use is 2x or 3x, and 3 is the iPhone this site is
+     tutored from. A half-pixel shift is exactly the size of the tolerance, so a check run at 1x
+     would pass labels a phone draws touching. */
+  const page = await browser.newPage({ viewport: { width: WIDTH, height: 900 }, deviceScaleFactor: DPR });
 
   /* IN BATCHES, so one page is an ordinary page and a drawing's gradient ids meet few neighbours. */
   const BATCH = 60;
@@ -488,9 +506,10 @@ function inspect(o) {
     fs.mkdirSync(SHOTS, { recursive: true });
     const want = ROWS.length ? list.filter(d => ROWS.includes(d.key) || ROWS.includes(d.key.replace(/#stem$/, '')))
                              : list.filter(d => bad.has(d.key));
-    /* AT A PHONE'S PIXEL DENSITY, because a 1x picture of a 10px letter is too coarse to tell a
-       letter touching a line from one beside it — which is the only thing these pictures are for. */
-    const shot = await browser.newPage({ viewport: { width: WIDTH, height: 900 }, deviceScaleFactor: 3 });
+    /* AT THE SAME DENSITY AS THE MEASUREMENT, so the picture is the layout that was measured — and a
+       1x picture of a 10px letter is too coarse to tell a letter touching a line from one beside
+       it, which is the only thing these pictures are for. */
+    const shot = await browser.newPage({ viewport: { width: WIDTH, height: 900 }, deviceScaleFactor: DPR });
     for (const d of want) {
       await shot.setContent(
         `<!doctype html><meta charset="utf-8">
