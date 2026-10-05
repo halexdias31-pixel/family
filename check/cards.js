@@ -125,32 +125,38 @@ function cardHtml(r, stems) {
      *"Fix this why it say June and year in same chip"*. Two short pills wrap differently from one long
      one, so the copy cuts it the same way or it measures a card nobody draws. */
   const MONTH_RE = /^((?:\d{1,2}\s+)?(January|February|March|April|May|June|July|August|September|October|November|December))\s+((?:19|20)\d{2})$/i;
-  const tagBits = [r.band_value || r.key_stage || '']
+  /* `SATs` AND `KS2`, TWO PILLS WHERE THERE WAS ONE -- *"sats is one tag not ks2 sats"* (`levelOf_`). */
+  const lvl = String(r.band_value || r.key_stage || '');
+  const sats = /^ks\s*([12])\s*sats$/i.exec(lvl);
+  const tagBits = (sats ? ['SATs', 'KS' + sats[1]] : [lvl])
     .concat(String(r.name || '').split(/\s[\u2014\u2013]\s|\s*:\s*/))
+    .concat(String(r.needs || '').split(','))
     .map(t => String(t).trim()).filter(Boolean)
     .reduce((out, t) => { const m = MONTH_RE.exec(t); return out.concat(m ? [m[3], m[1]] : [t]); }, []);
-  const tags = `<span class="qtags">${tagBits.map(t => `<span class="qtag">${t}</span>`).join('')}</span>`;
+  /* ---------- AND THE HEAD IS TAGS TOO -----------------------------------------------------------
+     *"the marks should also be a tag. also the question numbers should also be a tag."* The gold
+     header line is gone; `qPage_` in find.js draws what the page is, its number and its marks as the
+     first three pills of the one row, so the copy does the same -- three more pills wrap the row
+     onto another line, and a card one line taller is the thing this file measures. */
+  const head = (kind, num, marks) => `<div class="qtags qcard-tags"><span class="qtag">${kind}</span>${
+    num ? `<span class="qtag">${num}</span>` : ''}${Number(marks) > 0 ? `<span class="qtag">${marks} marks</span>` : ''}${
+    tagBits.map(t => `<span class="qtag">${t}</span>`).join('')}</div>`;
   const stemCards = pre.map(p => (p.html ? `<div class="qcard qstem" data-row="${p.row_id}#stem">
-    <div class="qcard-top"><b>Q${r.question || ''}</b></div>
-    <p class="qcard-sub">${tags}</p>
+    ${head('Question', 'Q' + (r.question || ''), 0)}
     <div class="qsheet"><div class="qsheet-stem${String(p.placeholder) === 'True' ? ' is-standin' : ''}"
         >${typeset_(p.html)}</div></div>
   </div>` : '') + ((p.diagram || p.images) ? `<div class="qcard qfig" data-row="${p.row_id}#sfig">
-    <div class="qcard-top"><b>Figure</b></div>
-    <p class="qcard-sub">${tags}</p>
+    ${head('Figure', '', 0)}
     <div class="qsheet">${fig(p.diagram) + pics(p.images)}</div>
   </div>` : '')).join('');
   return `${stemCards}<div class="qcard" data-row="${r.row_id}">
-    <div class="qcard-top"><b>Q${r.question || ''}${r.part || ''}</b>
-      <span>${r.marks || 0} marks</span></div>
-    <p class="qcard-sub">${tags}</p>
+    ${head('Question', 'Q' + (r.question || '') + (r.part || ''), r.marks)}
     <div class="qsheet">
       ${r.lead ? `<div class="qsheet-lead">${typeset_(r.lead)}</div>` : ''}
       <div class="qsheet-part"><div class="qsheet-pb">${typeset_(r.html)}</div></div>
     </div>
   </div>${figs ? `<div class="qcard qfig" data-row="${r.row_id}#fig">
-    <div class="qcard-top"><b>Figure</b></div>
-    <p class="qcard-sub">${tags}</p>
+    ${head('Figure', '', 0)}
     <div class="qsheet">${figs}</div>
   </div>` : ''}`;
 }
@@ -530,8 +536,11 @@ function outside(svg, row) {
           if ((k === 'fig' || k === 'sfig') && !el.querySelector('svg, .qpic, img')) {
             inline.push(el.dataset.row + ' is a figure page that draws no picture');
           }
-          if ((k === 'fig' || k === 'sfig') && /\bQ\d/.test((el.querySelector('.qcard-top') || {}).textContent || '')) {
-            inline.push(el.dataset.row + ' is a figure page with a question number in its header');
+          /* THE NUMBER IS A TAG NOW (`qPage_`), so a figure page with one is a `number` tag in its row --
+             or a `Q3` anywhere in the row, which is how the gold header used to say it. */
+          const fRow = el.querySelector('.qcard-tags');
+          if ((k === 'fig' || k === 'sfig') && (!fRow || fRow.querySelector('[data-tag="number"]') || /\bQ\d/.test(fRow.textContent))) {
+            inline.push(el.dataset.row + (fRow ? ' is a figure page with a question number in its tag row' : ' is a figure page with no tag row'));
           }
           const h = el.getBoundingClientRect().height;
           if (h > cap) { kinds[k].tall++; tall.push({ row: el.dataset.row, kind: k, px: Math.round(h - cap) }); }
