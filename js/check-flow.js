@@ -6904,6 +6904,48 @@ check('the roles card ticks what you hold, posts setMyRoles, and a waiting Tutor
   return bad;
 });
 
+/* ---------- A REFUSED SAVE PUTS THE TICKS BACK; A LOST REPLY LEAVES THEM ------------------------------
+   THE WALK AFTER THE PARENT SIGN-UP FOUND IT: a student ticks Client, Save, and the server's *"A
+   student account cannot make itself a client … Nothing was changed"* arrived under a Client box
+   still ticked in gold — the box saying yes over the line saying no. The server's half (it refuses,
+   it writes nothing) is `check-signin` §8; this is what the phone draws afterwards. And the other
+   failure, which must NOT do the same: a reply that never came decided nothing, so the ticks are
+   still the request a second Save will send. */
+check('a refused roles save puts the ticks back to what you hold; a lost reply keeps them', async () => {
+  const NO = 'A student account cannot make itself a client (a parent or payer). Ask @family. to change it. Nothing was changed.';
+  const { w, sent } = boot({ reply: b => b.action === 'setMyRoles' ? { error: NO } : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  t.USER({ name: 'Mo Learner', personId: 'P-S1', role: 'kid', roles: ['kid'], token: 'tk', tutorPending: false,
+           profile: { first_name: 'Mo', last_name: 'Learner' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const bad = [];
+  const card = () => d.querySelector('#s-settings .roles-card');
+  if (!card()) return ['Settings has no Your roles card'];
+  const tick = r => card().querySelector(`[data-role-pick="${r}"]`);
+  const ticks = () => ['tutor', 'client', 'student'].filter(r => tick(r) && tick(r).checked).join(',');
+  const line = () => (card().querySelector('.roles-said') || {}).textContent || '';
+  if (ticks() !== 'student') return ['a student signed in sees "' + ticks() + '" ticked, wanted student alone'];
+  /* REFUSED: the server's sentence stays, the ticks go back to what is held. */
+  tick('client').checked = true;
+  sent.length = 0;
+  t.ACTIONS['roles-save'](card().querySelector('[data-do="roles-save"]'));
+  await wait(400);
+  if (!sent.some(b => b.action === 'setMyRoles')) return ['Save with Client ticked posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no setMyRoles'];
+  if (line().indexOf('Nothing was changed') === -1) bad.push('the line under the tile does not carry the server\'s refusal — "' + line() + '"');
+  if (ticks() !== 'student') bad.push('after "Nothing was changed" the card shows "' + ticks() + '" ticked, wanted what the student holds: student');
+  if (JSON.stringify(t.whoami().roles) !== '["kid"]') bad.push('a refusal changed USER.roles to ' + JSON.stringify(t.whoami().roles));
+  /* LOST: nothing was decided, so the ticks are left for the second Save. */
+  w.fetch = () => Promise.reject(new w.TypeError('Failed to fetch'));
+  tick('client').checked = true;
+  t.ACTIONS['roles-save'](card().querySelector('[data-do="roles-save"]'));
+  await wait(400);
+  if (!/did not answer|offline/.test(line())) bad.push('a lost reply did not say so on the card — "' + line() + '"');
+  if (ticks() !== 'client,student') bad.push('a reply that never came took the ticks back to "' + ticks() + '" — a second Save would send what the person did not choose');
+  return bad;
+});
+
 /* ---------- THE SHOP IS A COLUMN, AND FIND IS LEARNING -------------------------------------------
    ASKED FOR AS *"Get rid of shop tag. I will make a new coloumn for shop stuff. So finder now will
    become just learning stuff."* — the door and the column in ONE change, because the shop's things

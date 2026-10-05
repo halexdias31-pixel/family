@@ -2245,7 +2245,19 @@ on('roles-save', el => {
       if (now) now.textContent = d.changed && USER.tutorPending ? rolesSaid_()
                                : d.changed ? 'Saved.' : rolesSaid_();
     })
-    .catch(() => {});
+    /* A REFUSAL PUTS THE TICKS BACK TO WHAT YOU HOLD. The walk after the parent sign-up found a
+       student's Client box still ticked in gold under the server's *"Nothing was changed"* — a box
+       that says yes over a line that says no, and the box is what the eye reads. The sentence stays
+       (`send_` wrote it); only the ticks move, so the card shows what the server has, which is the
+       card's whole job. NOT ON A LOST REPLY: the server never answered, nothing was decided, and the
+       ticks are still the request somebody is about to send again. */
+    .catch(err => {
+      if (!err || !err.refused) return;
+      const held = heldRoles().map(roleOf);
+      [].forEach.call(card.querySelectorAll('[data-role-pick]'), b => {
+        b.checked = held.indexOf(b.dataset.rolePick) !== -1;
+      });
+    });
 });
 
 /* ---------- YOUR JOURNEY — A PLACEHOLDER ----------------------------------------------------------
@@ -2551,7 +2563,15 @@ function send_(body, o) {
     .then(d => {
       /* A REPLY CARRYING AN ERROR IS A FAILURE, and was being treated as success by anything that
          only checked whether the request went through. */
-      if (!d || d.error) throw new Error((d && d.error) || 'That did not work.');
+      /* AND IT IS MARKED `refused` — THE SERVER ANSWERED, AND THE ANSWER WAS NO. A caller can then
+         tell that from a reply that never came: after a refusal what the form shows is a choice the
+         server has turned down, after a lost reply it is still the person's unsent request. Found on
+         the roles card, whose refused Client tick stayed gold under "Nothing was changed". */
+      if (!d || d.error) {
+        const refusal = new Error((d && d.error) || 'That did not work.');
+        refusal.refused = !!(d && d.error);
+        throw refusal;
+      }
       done();
       return d;
     })
