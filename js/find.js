@@ -5991,11 +5991,15 @@ const padToolTile_ = (t, on) => tile_(Object.assign({ act: 'pad-tool', cls: 'qpa
   on: on, pressed: on }, PAD_TOOL_FACE[t]));
 const padToolsOf_ = x => padTools_(x).filter(t => PAD_TOOL_FACE[t]);
 
+/* TWO GROUPS IN THE ROW, so it breaks BETWEEN them and never inside one. Six tiles is 286px and a 390px
+   phone's card has about 288 -- measured, it wrapped Clear alone onto a line of its own, a bin
+   orphaned under a row it belongs to. Held as "the pen and what it draws with" and "taking marks
+   back", the row is four and two at 320 and at 390 alike, and one row wherever there is room. */
 const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
-      ${tile_(Object.assign({ act: 'pad-draw', cls: 'qpad-lock', tone: 'lead' }, padLockFace_(pen)))}${
-      tools.length > 1 ? tools.map(t => padToolTile_(t, pen && t === tool)).join('') : ''}
-      ${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo' })}
-      ${tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}
+      <span class="qpad-group">${tile_(Object.assign({ act: 'pad-draw', cls: 'qpad-lock', tone: 'lead' }, padLockFace_(pen)))}${
+      tools.length > 1 ? tools.map(t => padToolTile_(t, pen && t === tool)).join('') : ''}</span>
+      <span class="qpad-group">${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo' })}${
+      tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}</span>
     </div>`;
 
 function padWrap_(x, svg, credit) {

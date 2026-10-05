@@ -617,6 +617,51 @@ const STATES = {
       },
       wants: 'a squared grid on its own page after its question, under the pen, headed "Squared grid" and saying it is not the paper\'s figure',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A CONSTRUCTION, WITH A RULER'S LINE AND A COMPASS'S RING ON IT -----------------------------
+       *"some questions require a compass or ruler. so should have a tile for these things."* November 2019
+       Higher Paper 1, Q4: "Use a ruler and compasses to construct the line from the point P perpendicular
+       to the line CD" -- the one pen question in the library whose own row asks for compasses, found by
+       id. On its figure page, with the Compass in hand (pressed as a finger would, which also locks the
+       card) and two marks made the way the tools make them: a ruler's two-point line and a closed ring
+       built by the app's own `padArc_` from the ink's real box, so it is round at every width. Measured
+       armed, because the bar's lit tile and the gold-filled lock are what is new here. */
+    { name: 'a construction with the ruler and compass in the pen bar, a line and a circle drawn',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1911-1H-4');
+        if (!it) throw new Error('Q-1MA1-1911-1H-4 is not in the library');
+        if (padToolsOf_(it).join(' ') !== 'pen ruler compass') throw new Error('Q-1MA1-1911-1H-4 is not offered a ruler and compasses: ' + padToolsOf_(it).join(' '));
+        window.__toolKey = padKey_(it);
+        try { localStorage.removeItem(window.__toolKey); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'fig'), true);
+        setTimeout(() => {
+          const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
+          const ink = pad && pad.querySelector('.qpad-ink');
+          if (!ink) return;
+          const r = ink.getBoundingClientRect();
+          const ring = padArc_([200, 150], Math.min(r.width, r.height) * 0.22, r.width / 340, r.height / 340, 0, 2 * Math.PI);
+          const marks = [[60, 280, 290, 60], ring];
+          try { localStorage.setItem(window.__toolKey, JSON.stringify(marks)); } catch (e) {}
+          padRepaint_(pad, marks);
+          const c = pad.querySelector('.qpad-tool[data-tool="compass"]');
+          if (c) c.click();
+        }, 200);
+      },
+      expect: () => {
+        const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
+        const lit = pad && [...pad.querySelectorAll('.qpad-tool.on')].map(b => b.getAttribute('data-tool')).join(' ');
+        return !!pad && pad.classList.contains('is-drawing') && lit === 'compass'
+               && !!pad.querySelector('.qpad-tool[data-tool="ruler"]') && !!pad.querySelector('.qpad-lock.on')
+               && pad.querySelectorAll('.qpad-g path').length === 2;
+      },
+      wants: 'Q4\'s figure under the pen, armed, with Pen, Ruler and Compass in its bar, the Compass lit, and a ruler\'s line and a compass\'s ring on it',
+      leave: () => {
+        try { localStorage.removeItem(window.__toolKey); } catch (e) {}
+        PAD_ON = ''; PAD_TOOL.delete(window.__toolKey);
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- A PASSAGE WITH TWO WORDS RINGED -----------------------------------------------------------
        "Circle the three adjectives in the passage below" -- KS2 grammar, June 2025. NO ROW CARRIES
        `surface: "text"` YET (the data workflow is writing it), so this gives the real row the value it

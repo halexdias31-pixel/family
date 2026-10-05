@@ -12409,6 +12409,10 @@ button.scr-sq { cursor: pointer; }
    and not a rule on `.qpad-lock`, because a tile's `cls` is a name a check finds it by, never a look. */
 .tile.is-lead { color: var(--gold); border-color: rgb(242 210 75 / .35); }
 .tile.is-lead.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+/* TWO GROUPS, AND THE ROW BREAKS BETWEEN THEM: the lock with the tools it arms, then Undo and Clear.
+   Measured at 390 with no groups, six tiles wrapped the bin alone onto a second line. The same gap
+   inside a group as the row puts between them, so one row of six reads as one row. */
+.qpad-group { display: inline-flex; gap: .3rem; }
 /* NOT SENT ANYWHERE, AND THE CARD SAYS SO. `ansBox_` makes the same promise in its label; a pad
    that looked like homework going somewhere would be a promise the app cannot keep. */
 .qpad-note { margin: .35rem 0 0; font: 400 .62rem/1.4 var(--font); color: var(--faint);
