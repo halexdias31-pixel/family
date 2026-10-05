@@ -6910,6 +6910,223 @@ check('every Find kind that is not a question is made of the shared parts: head,
   return bad.length > 12 ? bad.slice(0, 12).concat(['… and ' + (bad.length - 12) + ' more']) : bad;
 });
 
+/* ==================================================================================================
+   THE FIGHTER'S PROFILE — FOUR JOURNEYS OVER THE REAL FILES
+   ASKED FOR AS *"refine the boxers widget. maybe add image of each boxer. and make it look nicer.
+   the wins losses etc."* Each is the claim the card makes, asked of the markup the app draws from
+   `data/boxers.json` and `data/fights.json` through the real mapper — so a cell edited tomorrow is
+   checked tomorrow, and a fixture cannot drift from what ships.
+
+     a photo        Ali (the one row with one): an `<img>` with his name as its alt, the credit from
+                    the row under it word for word, the record's three numbers as the row says, the
+                    KOs under the wins, none under the losses (that cell is blank), and a bar whose
+                    segments add up to 100 exactly.
+     no photo       Joe Louis: the ring placeholder with his initials, and no `<img>` and no credit
+                    anywhere on the card — a placeholder is not a broken picture. With them, the two
+                    rows the licence rule and the blank rule turn on: an address with NO credit draws
+                    the placeholder, and a fighter with no record says so instead of `0-0-0`.
+     a broken URL   an address that fails: the `<img>` goes, the placeholder and nothing else is left,
+                    the credit goes with it, and drawing the card again does not ask for it again.
+     the bouts      Ali's fights page: one line per bout he is in, counted from the file by id rather
+                    than by the function under test, newest first, the right opponent and the right
+                    letter for each — and the fight card's two faces, the winner's framed.
+================================================================================================== */
+const boxerApp_ = async (edit) => {
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const raw = { boxers: read('boxers'), fights: read('fights') };
+  if (edit) edit(raw);
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return { fail: 'libraryExtras_ is not reachable, so the boxers were NOT checked — not a pass' };
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, raw)));
+  if (!(made.boxers || []).length) return { fail: 'the mapper made no boxers of data/boxers.json — NOT a pass' };
+  const p = payload();
+  p.boxers = made.boxers; p.fights = made.fights || [];
+  const { w, errs } = boot({ payload: p });
+  await wait(300);
+  const item = name => w.stuffItemsAll_().find(x => x.kind === 'boxer' && x.name === name);
+  const draw = html => { const d = w.document.createElement('div'); d.innerHTML = html; w.document.body.appendChild(d); return d; };
+  return { w, errs, raw, made, item, draw };
+};
+
+check('a boxer with a photo: the picture, its credit, the record and a bar that adds up to 100', async () => {
+  const a = await boxerApp_();
+  if (a.fail) return [a.fail];
+  const bad = [];
+  const row = a.raw.boxers.find(b => b.name === 'Muhammad Ali');
+  if (!row || !row.image) return ['data/boxers.json has no Muhammad Ali with a photo — this journey has nothing to look at'];
+  const x = a.item('Muhammad Ali');
+  if (!x) return ['Muhammad Ali is not in Find'];
+  const card = a.draw(a.w.stuffCard(x)).querySelector('.card.fc.boxer');
+  if (!card) return ['Ali\'s card is not a `.card.fc.boxer`'];
+  const img = card.querySelector('.boxer-pic img.boxer-img');
+  if (!img) bad.push('no <img> on the card of the one boxer with a photo');
+  else {
+    if (img.getAttribute('src') !== row.image) bad.push('the <img> points at ' + img.getAttribute('src') + ', not the row\'s image');
+    if (img.getAttribute('alt') !== row.name) bad.push('the photo\'s alt is "' + img.getAttribute('alt') + '", not his name');
+    if (img.getAttribute('loading') !== 'lazy') bad.push('the photo is not lazy-loaded');
+  }
+  const credit = card.querySelector('.boxer-pic .boxer-credit');
+  if (!credit || credit.textContent.trim() !== row.image_credit.trim()) bad.push('the credit under the photo is "' + (credit ? credit.textContent.trim() : 'missing') + '", not the row\'s "' + row.image_credit + '"');
+  /* THE NUMBERS, AS THE ROW SAYS THEM. */
+  const num = k => { const el = card.querySelector('.boxer-tally .boxer-n.is-' + k + ' b'); return el ? el.textContent.trim() : null; };
+  [['w', 'wins'], ['l', 'losses'], ['d', 'draws']].forEach(([k, col]) => {
+    if (num(k) !== String(Number(row[col]))) bad.push('the ' + col + ' column reads ' + num(k) + ', the row says ' + row[col]);
+  });
+  const ko = card.querySelector('.boxer-n.is-w .boxer-ko');
+  if (!ko || ko.textContent.trim() !== row.wins_ko + ' KO') bad.push('under the wins: "' + (ko ? ko.textContent.trim() : 'nothing') + '", not "' + row.wins_ko + ' KO"');
+  if (String(row.losses_ko).trim() === '' && card.querySelector('.boxer-n.is-l .boxer-ko')) bad.push('a KO count is printed under the losses and that cell is blank — "0 KO" is a claim nobody made');
+  if (!card.querySelector('.boxer-rec')) bad.push('the record has lost the `.boxer-rec` name the textbook state looks for');
+  const rate = Math.round(Number(row.wins_ko) / Number(row.wins) * 100);
+  if (!new RegExp('KO rate ' + rate + '%').test((card.querySelector('.boxer-line') || {}).textContent || '')) bad.push('the KO rate is not ' + rate + '%');
+  /* THE BAR ADDS UP TO A HUNDRED, and each segment is its share. */
+  const rects = [...card.querySelectorAll('svg.boxer-bar rect')];
+  const total = rects.reduce((s, r) => s + Number(r.getAttribute('width')), 0);
+  if (!rects.length) bad.push('no record bar');
+  else if (Math.abs(total - 100) > 0.001) bad.push('the bar\'s segments add up to ' + total + ', not 100');
+  const all = Number(row.wins) + Number(row.losses) + Number(row.draws) + Number(row.no_contests || 0);
+  const wr = rects.find(r => r.getAttribute('class') === 'is-w');
+  if (wr && Math.abs(Number(wr.getAttribute('width')) - Number(row.wins) / all * 100) > 0.01) bad.push('the win segment is ' + wr.getAttribute('width') + '%, his wins are ' + (Number(row.wins) / all * 100).toFixed(2) + '%');
+  /* THE TAPE ONLY HAS ROWS WITH SOMETHING IN THEM, and the reach is the row's. */
+  const tape = [...card.querySelectorAll('.boxer-tape dt')].map(d => d.textContent.trim());
+  if (row.reach_cm && tape.indexOf('Reach') < 0) bad.push('the tape has no Reach row and the row has ' + row.reach_cm);
+  if (card.querySelectorAll('.boxer-tape dd:empty').length) bad.push('the tape draws an empty value');
+  /* AND THE ACTIONS ARE TILES UNDER THE CARD — the star's row with a Highlights link in it. */
+  const host = a.draw(a.w.stuffCard(x));
+  const hl = host.querySelector(':scope > .tile-row a.tile[href*="youtube.com"]');
+  if (!hl) bad.push('no Highlights tile in the row under the card');
+  else if (hl.getAttribute('target') !== '_blank') bad.push('the Highlights tile does not open somewhere else');
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad;
+});
+
+check('a boxer without a photo: the ring and his initials, no <img>; no credit means no photo; no record says so', async () => {
+  const a = await boxerApp_(raw => {
+    /* TWO ROWS EDITED IN THE COPY, never the file: a photo address with its credit taken away, which
+       the licence rule must refuse to draw. */
+    const g = raw.boxers.find(b => b.name === 'George Foreman');
+    if (g) { g.image = 'https://upload.wikimedia.org/wikipedia/commons/x/xx/Foreman.jpg'; g.image_credit = ''; }
+  });
+  if (a.fail) return [a.fail];
+  const bad = [];
+  const x = a.item('Joe Louis');
+  if (!x) return ['Joe Louis is not in Find'];
+  if (x.row.image) return ['Joe Louis has a photo now — pick another boxer for the no-photo journey'];
+  const card = a.draw(a.w.stuffCard(x)).querySelector('.card.fc.boxer');
+  const fig = card && card.querySelector('.boxer-pic');
+  if (!fig) return ['no picture box on a boxer with no photo — the placeholder was not drawn'];
+  if (!fig.classList.contains('is-none')) bad.push('the picture box is not marked as the placeholder');
+  if (card.querySelector('img')) bad.push('an <img> is on the card of a boxer with no photo');
+  if (card.querySelector('.boxer-credit')) bad.push('a credit is on the card and there is no photo to credit');
+  const ring = fig.querySelector('svg.boxer-ring');
+  if (!ring) bad.push('no ring drawn in the placeholder');
+  else {
+    const ini = ring.querySelector('.boxer-ini');
+    if (!ini || ini.textContent.trim() !== 'JL') bad.push('the placeholder\'s initials are "' + (ini ? ini.textContent : '') + '", not JL');
+    if (!ring.querySelector('.bx-l .bx-glove')) bad.push('the placeholder has no fighter in it');
+  }
+  /* AN ADDRESS WITH NO CREDIT IS NOT DRAWN. */
+  const g = a.item('George Foreman');
+  const gc = g && a.draw(a.w.stuffCard(g)).querySelector('.card.fc.boxer');
+  if (!gc) bad.push('George Foreman is not in Find');
+  else if (gc.querySelector('img')) bad.push('a photo with no credit was drawn — the licence makes the credit the condition of showing it');
+  /* NO RECORD ON FILE IS SAID, NOT ZEROED. */
+  const blank = a.raw.boxers.find(b => String(b.wins).trim() === '' && String(b.losses).trim() === '');
+  const bx = blank && a.item(blank.name);
+  if (!bx) bad.push('no boxer with a blank record reached Find, so that case was NOT checked');
+  else {
+    const bc = a.draw(a.w.stuffCard(bx)).querySelector('.card.fc.boxer');
+    if (bc.querySelector('.boxer-tally')) bad.push(blank.name + ' has no record in the file and the card drew a scoreboard: ' + bc.querySelector('.boxer-tally').textContent.replace(/\s+/g, ' '));
+    if (!/No fight record on file/.test(bc.textContent)) bad.push(blank.name + '\'s card does not say there is no record on file');
+  }
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad;
+});
+
+check('a boxer photo that will not load falls back to the ring, takes its credit, and is not asked for again', async () => {
+  const BROKEN = 'https://example.invalid/no-such-boxer.jpg';
+  const a = await boxerApp_(raw => {
+    const ali = raw.boxers.find(b => b.name === 'Muhammad Ali');
+    if (ali) { ali.image = BROKEN; ali.image_credit = ali.image_credit || 'Photo: test'; }
+  });
+  if (a.fail) return [a.fail];
+  const bad = [];
+  const x = a.item('Muhammad Ali');
+  if (!x) return ['Muhammad Ali is not in Find'];
+  const host = a.draw(a.w.stuffCard(x));
+  const img = host.querySelector('img.boxer-img');
+  if (!img) return ['the card drew no <img> for the broken address, so the fallback was NOT exercised'];
+  /* THE BROWSER'S OWN SIGNAL. `error` does not bubble; the app listens for it in the capture phase on
+     the document, which is the only place a failure on any card can be heard. */
+  img.dispatchEvent(new a.w.Event('error'));
+  const fig = host.querySelector('.boxer-pic');
+  if (host.querySelector('img.boxer-img')) bad.push('the <img> is still on the card after it failed — a broken picture');
+  if (!fig || !fig.classList.contains('is-none')) bad.push('the picture box did not fall back to the placeholder');
+  if (!fig || !fig.querySelector('svg.boxer-ring .boxer-ini')) bad.push('the ring is not there to fall back to');
+  if (host.querySelector('.boxer-credit')) bad.push('the credit stayed under a picture nobody can see');
+  /* AND A REPAINT DOES NOT PUT IT BACK, which would flicker the ring behind a picture never coming. */
+  const again = a.draw(a.w.stuffCard(x));
+  if (again.querySelector('img.boxer-img')) bad.push('drawing the card again asked for the address that already failed');
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad;
+});
+
+check('a boxer\'s fights: every bout he is in, newest first, from his side — and the fight card\'s two faces', async () => {
+  const a = await boxerApp_();
+  if (a.fail) return [a.fail];
+  const bad = [];
+  const x = a.item('Muhammad Ali');
+  if (!x) return ['Muhammad Ali is not in Find'];
+  const id = a.raw.boxers.find(b => b.name === 'Muhammad Ali').boxer_id;
+  /* COUNTED FROM THE FILE, BY ID, not by the function being checked. */
+  const his = a.raw.fights.filter(f => f.boxer_a_id === id || f.boxer_b_id === id)
+    .sort((p, q) => String(q.date).localeCompare(String(p.date)));
+  if (!his.length) return ['data/fights.json has no bout with Ali\'s id — nothing to check'];
+  const parts = a.w.pageParts_(x);
+  if (JSON.stringify(parts) !== JSON.stringify([null, 'fights'])) bad.push('Ali\'s pages are ' + JSON.stringify(parts) + ', not his card and his fights');
+  const pg = a.draw(a.w.stuffPart_(x, 'fights')).firstElementChild;
+  if (!pg || !pg.classList.contains('fc')) return bad.concat(['the fights page is not a `.card.fc`']);
+  const k = pg.firstElementChild, h = k && k.nextElementSibling;
+  if (!k || !k.classList.contains('fc-kick') || k.textContent.trim() !== 'Muhammad Ali' || !h || h.tagName !== 'H3') bad.push('the fights page does not open on his name and then its title');
+  const lis = [...pg.querySelectorAll('.boxer-bouts li')];
+  if (lis.length !== his.length) bad.push('the page lists ' + lis.length + ' bouts; the file has ' + his.length + ' with his id');
+  lis.forEach((li, i) => {
+    const f = his[i];
+    if (!f) return;
+    const opp = f.boxer_a_id === id ? f.boxer_b : f.boxer_a;
+    const want = f.winner_id ? (f.winner_id === id ? 'W' : 'L')
+      : f.winner ? (f.winner === 'Muhammad Ali' ? 'W' : 'L') : 'D';
+    const got = (li.querySelector('.boxer-res') || {}).textContent;
+    const name = (li.querySelector('.boxer-opp') || {}).textContent;
+    if (name !== opp) bad.push('bout ' + (i + 1) + ' (' + f.date + ') names "' + name + '", the other corner is "' + opp + '"');
+    if (got !== want) bad.push('bout ' + (i + 1) + ' against ' + opp + ' on ' + f.date + ' is marked ' + got + ', the file says ' + want);
+    if (!li.classList.contains('is-' + want.toLowerCase())) bad.push('bout ' + (i + 1) + ' is not coloured as a ' + want);
+    const how = (li.querySelector('.boxer-how') || {}).textContent || '';
+    if (f.method && how.indexOf(f.method) !== 0) bad.push('bout ' + (i + 1) + ' does not say how it ended (' + f.method + '): "' + how + '"');
+  });
+  /* A FIGHTER WITH NOTHING FOR THAT PAGE HAS NO SUCH PAGE. */
+  const none = a.made.boxers.find(b => !a.w.boxerHasFights_(b));
+  const nx = none && a.item(none.name);
+  if (nx && a.w.pageParts_(nx).length !== 1) bad.push(none.name + ' has no fights on file and still gets a fights page');
+  /* THE FIGHT CARD: BOTH FACES, THE WINNER'S FRAMED, AND THE CREDIT FOR THE ONE PHOTO. */
+  const thrilla = a.w.stuffItemsAll_().find(i => i.kind === 'fight' && i.row.a === 'Muhammad Ali' && i.row.date === '1975-10-01');
+  if (!thrilla) bad.push('the Thrilla in Manila is not in Find');
+  else {
+    const fc = a.draw(a.w.stuffCard(thrilla)).querySelector('.card.fc.fight');
+    const faces = fc ? [...fc.querySelectorAll('.fight-faces .boxer-pic')] : [];
+    if (faces.length !== 2) bad.push('the fight card has ' + faces.length + ' faces, not 2');
+    else {
+      if (!faces[0].classList.contains('won') || faces[1].classList.contains('won')) bad.push('the winner\'s face is not the one framed');
+      if (!faces[0].querySelector('img')) bad.push('Ali\'s photo is not on the fight card');
+      if (faces[1].querySelector('img') || !faces[1].querySelector('.bx-r')) bad.push('Frazier, who has no photo, is not the blue-corner placeholder');
+    }
+    const cr = fc && fc.querySelector('.fight-credit');
+    if (!cr || cr.textContent.indexOf('Ira Rosenberg') < 0) bad.push('the fight card shows Ali\'s photo without its credit');
+  }
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad;
+});
+
 /* ---------- SHARING A BOOKING HANDS OVER A PICTURE OF IT ------------------------------------------
    *"just make sure sharing booking is an identical jpg or png or whatevers best of the booking
    reciept."* It was `window.print()` — a PDF by way of the print dialogue — and this asks the three

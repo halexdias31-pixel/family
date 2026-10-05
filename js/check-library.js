@@ -874,6 +874,48 @@ EXTRA_FILES.forEach(name => {
   }
 });
 
+/* ---------- A BOXER'S PHOTO CARRIES ITS CREDIT, AND HIS RECORD ADDS UP ------------------------------
+   ASKED FOR AS "maybe add image of each boxer". The pictures are Wikimedia Commons files, and a
+   Commons file is free on a CONDITION — its author and licence named wherever it is shown. So a row
+   with an `image` and no `image_credit` is not a small gap, it is a licence broken on every phone
+   that opens the card. `boxerPicSrc_` in find.js refuses to draw such a photo already; this refuses
+   the ROW, so it is caught here before it ships rather than quietly hidden after.
+
+   `https` ONLY, because the site is, and a plain-http picture is blocked as mixed content — a broken
+   box by another route. A credit with no image is printed as a note: harmless, and probably a photo
+   somebody meant to add.
+
+   AND THE RECORD'S PARTS CANNOT EXCEED ITS WHOLE: KOs among the wins no more than the wins, KO losses
+   no more than the losses. The card prints a KO rate off those two cells, and 38 KOs in 37 wins is a
+   KO rate over a hundred per cent on a fighter's own page. A BLANK IS NOT CHECKED — blank means not
+   on file, which the card says in words. */
+{
+  let boxers = [];
+  try { boxers = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'boxers.json'), 'utf8')); }
+  catch (e) { fail.push('data/boxers.json could not be read for the photo and record rules — NOT checked'); }
+  const n = v => (String(v == null ? '' : v).trim() === '' ? null : Number(v));
+  let pics = 0;
+  (Array.isArray(boxers) ? boxers : []).forEach(b => {
+    if (!b || typeof b !== 'object') return;
+    const who = (b.boxer_id || '?') + ' ' + (b.name || '');
+    const img = String(b.image || '').trim(), credit = String(b.image_credit || '').trim();
+    if (img) {
+      pics++;
+      if (!credit) fail.push('data/boxers.json ' + who + ' has an image and no image_credit — a Commons photo may only be shown with its author and licence');
+      if (!/^https:\/\//i.test(img)) fail.push('data/boxers.json ' + who + ' image is not an https address: ' + img.slice(0, 60));
+    } else if (credit) {
+      note.push('data/boxers.json ' + who + ' has an image_credit and no image');
+    }
+    [['wins_ko', 'wins'], ['losses_ko', 'losses']].forEach(([part, whole]) => {
+      const p = n(b[part]), w = n(b[whole]);
+      if (p != null && (!isFinite(p) || p < 0)) fail.push('data/boxers.json ' + who + ' ' + part + ' is not a count: ' + b[part]);
+      else if (p != null && w != null && p > w) fail.push('data/boxers.json ' + who + ' has ' + p + ' ' + part + ' in ' + w + ' ' + whole);
+    });
+  });
+  console.log('boxers with a photo: ' + pics + ' of ' + (Array.isArray(boxers) ? boxers.length : 0)
+    + '   (every one credited, or this would have failed)');
+}
+
 /* ---------- THE LEGO SETS: A CATALOGUE SHAPED LIKE THE SHOP, WAITING TO BE STOCKED ------------------
    ASKED FOR AS "just database the lego sets ... include rough price ... maybe ill have these items as
    items in the shop". `data/lego-sets.json` is one row per set, carrying EVERY column of the shop tab
