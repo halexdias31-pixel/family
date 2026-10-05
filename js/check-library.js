@@ -302,7 +302,7 @@ const LIST_COLS = new Set(['needs', 'key_stage']);
    row rather than from whenever somebody remembers. So it may be on no row YET without the failure
    below -- and it says so on every run, and says when it can come off this list, so "ahead" is a state
    with an end rather than a second way of enforcing nothing. */
-const VOCAB_AHEAD = new Set(['surface']);
+const VOCAB_AHEAD = new Set([]);
 
 Object.keys(VOCAB).forEach(col => {
   const allowed = new Set(VOCAB[col]);

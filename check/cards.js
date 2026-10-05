@@ -500,7 +500,10 @@ function outside(svg, row) {
       const pages = [];
       items.forEach((x, i) => {
         const q = questionCard_(x, 0);
-        if (/<svg|class="qpad|class="qpic/.test(q)) inline.push(x.row.row_id + ' draws a picture on the question card');
+        /* `qpad` THE PAD, NOT ANY CLASS THAT STARTS WITH IT: the ringed-words note is `qpad-note qw-note`,
+           a line of text under a passage the student rings words in, and a prefix match called all 14
+           of those rows a picture on the question card the day `surface: "text"` reached the data. */
+        if (/<svg|class="qpad["\s]|class="qpic/.test(q)) inline.push(x.row.row_id + ' draws a picture on the question card');
         if (/class="qsheet-stem/.test(q)) inline.push(x.row.row_id + ' prints its stem on the part\'s card');
         if (/class="qans|qans-body/.test(q)) inline.push(x.row.row_id + ' draws its answer on the question card');
         if (typeof questionHasAns_ === 'function' && questionHasAns_(x)
