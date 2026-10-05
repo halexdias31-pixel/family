@@ -90,7 +90,9 @@ does not say the subject twice), and a card not in the library sends exactly wha
 new journey asks the card is an admin's, reads the mode as the server does, is a tile row, posts one
 `digestPreview` and nothing else, shows the emails escaped and who cannot be told, takes the server's
 mode afterwards, and tells a backend without the action to sync. **11 mutations, each red.**
-`check-columns` and `check-rows` now read `digest.gs` too.
+`check-columns` and `check-rows` now read `digest.gs` too. `check/states.js` gains the card and the
+preview sheet as two admin states, so `check/ui.js` measures both at every width and `check/press.js`
+presses the tile — nothing new from either.
 
 Screenshots of the card and the preview at 320 and 390 were looked at: one line of title, the tile
 44px, nothing scrolls sideways; long addresses wrap in the sheet.
