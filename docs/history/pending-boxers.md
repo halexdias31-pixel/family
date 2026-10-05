@@ -89,10 +89,11 @@ drawn; a blank record says so and draws no scoreboard);
 for again on a repaint);
 *a boxer's fights* (every bout with his id, counted from the file, newest first, the other corner's
 name and the right letter, a fighter with nothing gets no page; the Thrilla's two faces, the winner
-framed, Ali's credit). Ten mutations, each red for its own reason and green on restore: the bar's
+framed, Ali's credit). Eleven mutations, each red for its own reason and green on restore: the bar's
 last segment off by one; the credit taken off; `losses_ko` back to `libN`; a photo drawn without its
 credit; the record back to `libN`; the error listener emptied; the failed address not remembered;
-bouts oldest first; the result read from the other corner; the winner's frame on the loser.
+bouts oldest first; the result read from the other corner; the winner's frame on the loser; a `Jr.`
+taken as a surname (Floyd Mayweather Jr. as `FJ`).
 
 `check/states.js`: *the boxers* now asks for the 4:5 box to the LEFT of the name, the scoreboard in
 whole numbers (or "no record on file"), the title size and flag rule, and nothing scrolling sideways;
