@@ -85,6 +85,32 @@ between its own words and never leaves the stack alone on the next line.
   (tutors) from the scan. Its first run found `studying` and `studyingAt` on the fixture tutor, left
   over from the old studying row, and the fixture tutor had no `pending`. All three are fixed.
 
+### After the review
+
+- **The stack was closer to its subject than the Teaches level is.** Measured 1.75px from the subject's
+  last letter against 4.69px for `Maths ^GCSE` on the same card, at 320 and at 390, so the
+  qualification chip all but touched its word where the Teaches chip had air. The Teaches gap is the
+  `&nbsp;` inside its 8px mono `<sup>`, so `.prof-iso` now takes `1ch` of left margin instead of
+  `.22em`: one `ch` of the same 8px mono is the same width. Re-measured at 4.69 and 4.69. Chip height,
+  the raise, the room inside the pill and the 320 wrap did not move. The states.js state now measures
+  both gaps and fails past half a pixel. It seeds its own `teachesSpec` so that a fixture tutor who
+  teaches nothing cannot turn the comparison into a silent pass. Red on `.22em` at all four widths,
+  green on `1ch`.
+- **The subject was coloured in two halves.** The chip cut the subject at its last space *before*
+  `mark()`, so a `laws` row naming "English Language" matched neither "English" nor "Language" and the
+  subject drew plain. This is the fault `mark`'s "longest first" comment exists to prevent. The
+  review called it unable to show today because the subject list is retired, but a `word` or `regex`
+  row is something anybody with the sheet can add now. So the subject is now marked once, whole, and
+  cut at the last space that is neither inside a tag nor inside a coloured span (`profLastGap_`). A
+  phrase coloured whole is held whole to its stack. A colour on "Maths" alone still leaves "Further"
+  outside, so a long subject still breaks between its words. The check-flow journey seeds two `word`
+  laws. It went red on the old renderer (the chip coloured `[]`) and on a cut that ignored depth (the
+  colour ran into the stack), and is green on this one.
+- **The four version stamps are not bumped here.** The backend changed, and `BACKEND_VERSION`,
+  `DOGET_VERSION`, `DOPOST_VERSION` and `BOOKING_VERSION` still read `2026-10-05-c-attempts`. Bumping
+  them is the merger's job: it has to happen once, with every other backend change in the merge, or the
+  You screen reports the untouched ones as "Not deployed". **Bump all four when this note is numbered.**
+
 **Owner action: run `pullFromGitHub` (or the GitHub Assistant) after the merge.** Until the backend is
 deployed, the live site sends no `qualsParts`, and the card draws the sentences exactly as it does
 today.
