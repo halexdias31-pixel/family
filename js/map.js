@@ -1585,9 +1585,10 @@ const WIDGETS = [
     into: 'up-box', what: 'Check uploads',
     html: `<div class="card">
     <h3>Check uploads</h3>
-    <p class="sub">Whether a photo or a clip sent in a message can be kept: the Ledger's column, the
-      Drive folder, and what this deployment is allowed to do.</p>
-    ${/* BOTH AN ID AND A CLASS, `cart-box`'s reason: the id is what `into` names, the class is what
+    ${/* NO BLURB: the line under the tile says what a press does until it is pressed, and then the
+          answer is what the card is for — at 320px a standing paragraph above it was the difference
+          between the steps fitting and the card being drawn at 70%. `mat`'s argument, one tool along.
+          BOTH AN ID AND A CLASS, `cart-box`'s reason: the id is what `into` names, the class is what
           `uploadsPaint_` writes to. */''}
     <div id="up-box" class="up-box"></div>
   </div>` },

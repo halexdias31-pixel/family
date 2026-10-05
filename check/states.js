@@ -2601,20 +2601,19 @@ const STATES = {
           checks: [
             { id: 'column', ok: true, label: 'The messages tab has an attachments column', said: 'Yes — a file’s address has somewhere to go.' },
             { id: 'scope', ok: false, label: 'This deployment may write to Drive', said: 'It holds drive.readonly — it can read and cannot write.' },
-            { id: 'folder', ok: true, label: 'The posts folder opens', said: '“@family. posts and photographs (2026)”, from POSTS_FOLDER in constants.gs. Its Messages folder is made on the first send.' },
+            { id: 'folder', ok: true, label: 'The posts folder opens', said: '“@family. posts and photographs (2026)”, from POSTS_FOLDER in constants.gs.' },
             { id: 'write', ok: false, label: 'A file can be made there and shared by link', said: 'No — Drive refused it for want of permission.' }],
           steps: [
             { text: 'Sync backend/ from GitHub, so appsscript.json in the editor lists .../auth/drive and not drive.readonly.' },
             { text: 'Open the consent link and press Allow.', href: 'https://accounts.google.com/o/oauth2/auth?client_id=example' },
-            { text: 'Deploy → Manage deployments → edit → Version: New version → Deploy.' },
-            { text: 'Then press Check uploads again.' }] };
+            { text: 'Deploy → Manage deployments → edit → Version: New version → Deploy.' }] };
         uploadsPaint_();
       },
       expect: () => document.querySelectorAll('#s-tools .up-box .up-row.is-bad').length === 2
-        && document.querySelectorAll('#s-tools .up-box .up-steps li').length === 4
+        && document.querySelectorAll('#s-tools .up-box .up-steps li').length === 3
         && !!document.querySelector('#s-tools .up-box a.tile[href^="https://accounts.google.com"]')
         && !!document.querySelector('#s-tools .up-box [data-do="uploads-check"]'),
-      wants: 'the Check uploads tile, two ticks, two crosses, four numbered steps and an Allow tile',
+      wants: 'the Check uploads tile, two ticks, two crosses, three numbered steps and an Allow tile',
       leave: () => { UPLOADS_SAID = null; uploadsPaint_(); } },
 
     /* ---------- A TUTOR'S TEACHING HOURS -----------------------------------------------------

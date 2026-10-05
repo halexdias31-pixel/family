@@ -991,7 +991,7 @@ function uploadsCheck_() {
     : 'It holds no Drive scope at all.');
   add('folder', !!posts, 'The posts folder opens',
     posts ? '“' + (name || 'untitled') + '”, from ' + from + (messages
-      ? ', with its Messages folder.' : '. Its Messages folder is made on the first send.')
+      ? ', with its Messages folder.' : '.')
     : 'No — ' + from + ' does not open a folder this account can reach.');
   add('write', wrote, 'A file can be made there and shared by link', wroteSaid);
 
@@ -1011,7 +1011,6 @@ function uploadsCheck_() {
       + 'sit on a shared drive that refuses sharing by link — try a folder in My Drive.' });
   }
   if (!hasColumn) steps.push({ text: 'Open ?setup=1 once to add the column.', href: setupUrl_(), setup: true });
-  if (steps.length) steps.push({ text: 'Then press Check uploads again.' });
 
   return {
     success: true, ok: hasColumn && wrote, version: BACKEND_VERSION,

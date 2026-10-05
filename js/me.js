@@ -1753,8 +1753,9 @@ function uploadsHtml_(d) {
   const tile = `<div class="tile-row">${tile_({ icon: 'tick', label: 'Check uploads', note: 'nothing kept',
     act: 'uploads-check', tone: 'admin' })}</div>`;
   if (!d) {
-    return tile + `<p class="faint up-said">Makes one test file in the posts folder, shares it and
-      bins it, then says what — if anything — is still in the way.</p>`;
+    return tile + `<p class="faint up-said">Whether a photo or a clip sent in a message can be kept:
+      the Ledger's column, the Drive folder and what this deployment may do. One test file is made,
+      shared and binned.</p>`;
   }
   if (d.error) return tile + `<p class="up-said up-bad">${esc(d.error)}</p>`;
   const rows = (d.checks || []).map(c => `<li class="up-row ${c.ok ? 'is-ok' : 'is-bad'}">
