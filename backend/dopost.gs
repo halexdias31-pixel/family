@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-05-c-attempts";
+const DOPOST_VERSION = "2026-10-05-d-kidlogin";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the

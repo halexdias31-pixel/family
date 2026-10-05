@@ -274,3 +274,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [A question reads text, figure, text, figure, text; the answer is one tap for everybody; and a drawing question has something to draw on](270-a-question-reads-text-figure-text-figure-text-the-answer-is.md)
 - [Every label in every drawing is measured against its own lines, and the Venn's P and Q are outside their circles](271-every-label-in-every-drawing-is-measured-against-its-own-lin.md)
 - [The data caught up with the question pages: answers that stand alone, figures where the paper prints them, a surface for every drawing](272-the-data-caught-up-with-the-question-pages.md)
+- [Every child signs in with a handle and a PIN — and a child with no email can get an account at all](273-every-child-signs-in-with-a-handle-and-a-pin-and-a-child-wit.md)
