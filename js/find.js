@@ -527,11 +527,12 @@ function thingCard_(x, credits) {
                 and monospaced. It is a path, not a sentence. */''}
           ${/* THE LEVEL, NOT THE KEY STAGE — `KS3, KS4` on a crumb is the grey area the owner asked
                 to stop seeing; `levelOf_` says GCSE. A stage band IS the level, so it is not said
-                twice. */''}
-          <p class="crumb">${[x.company, levelOf_(x) || x.keystage,
+                twice. AND INSIDE SATs THE KEY STAGE BESIDE IT, as its own word -- `SATs · KS2`,
+                never `KS2 SATs` (`levelSaid_`). */''}
+          <p class="crumb">${[x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
               x.bandType === 'year' ? (x.bandValue && 'Year ' + x.bandValue)
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
-            : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)]
+            : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
             .filter(Boolean).map(v => esc(String(v))).join(' <span class="faint">·</span> ')}</p>
           <h3>${esc(x.name)}${x.off ? ' <span class="faint">— deleted</span>' : ''}</h3>
           ${/* Its own second line: a resource says its subject, a shop item its description. This
@@ -958,11 +959,13 @@ const DIVISION_BUCKET = bucketTable_([
    `KS2–GCSE` is four values wide and belongs somewhere; the top of the range is the level somebody
    is working towards, which is what they are choosing a question for. */
 const LEVEL_BUCKET = bucketTable_([
-  /* `KS1 SATs` AND `KS2 SATs`, WHERE THESE SAID `KS1` AND `KS2` — *"I prefer GCSE or SATs over grey
-     areas."* The bucket is drawn when Level has more answers than a card holds, and a bucket label
-     reading `KS2` is the key stage the owner asked not to see, one question late. */
-  ['KS1 SATs', ['KS1 SATs', 'KS1']],
-  ['KS2 SATs', ['KS2 SATs', 'KS2']],
+  /* `SATs`, ONE ANSWER, WHERE THIS WAS `KS1 SATs` AND `KS2 SATs` -- and before that `KS1` and `KS2`.
+     *"I prefer GCSE or SATs over grey areas"* turned the key stages into qualifications, and joined
+     the two facts into one word to do it. Then: *"why is ks2 sats one tag? it should be sats. if they
+     want to specify key stage then it should be its own thing. sats is one tag not ks2 sats."* So
+     the qualification is `SATs`, the key stage is the `Key stage` question asked inside it (and only
+     there), and every old spelling the data or a bulk import still carries is placed here. */
+  ['SATs',    ['SATs', 'KS1 SATs', 'KS2 SATs', 'KS1', 'KS2']],
   ['KS3',     ['KS3', 'KS2–KS3']],
   ['GCSE',    ['GCSE', 'KS2–GCSE', 'KS3–GCSE']],
   /* FUNCTIONAL SKILLS IS ITS OWN QUALIFICATION, NOT A RUNG OF THIS ONE. Level 2 is pitched near a GCSE
@@ -1262,12 +1265,17 @@ const FACETS = [
      cell, so inside GCSE it still asked `KS2 | KS3`. The qualification is the answer the owner
      prefers, so where there is one the key stage is not offered beside it. What is left is a row
      with no qualification behind it, less the key stage its level already says. It stays a facet
-     rather than being retired because the `facets` tab names it. */
-  { field: 'keystage',  label: 'Key stage', of: x => {
-      const lv = levelOf_(x), shelf = LEVEL_BUCKET(lv);
-      if (shelf && shelf !== 'KS3') return [];
-      return keyStagesOf_(x).filter(k => spellKey_(ksLevel_(k)) !== spellKey_(lv));
-    } },
+     rather than being retired because the `facets` tab names it.
+
+     ---------- AND NOW IT IS ASKED INSIDE SATs, AND ONLY THERE ----------------------------------------
+     *"why is ks2 sats one tag? it should be sats. if they want to specify key stage then it should be
+     its own thing."* The level stopped saying the key stage (`KS2 SATs` is `SATs`), so inside SATs
+     this is the one question that tells a KS1 paper from a KS2 one -- `KS1 | KS2`, off
+     `satsStagesOf_`. Everywhere else it answers nothing, which keeps the GCSE screen the owner
+     reported (`KS3 | KS4` after the qualification was chosen) and the KS3 shelf's ranges from
+     asking a grey area the qualification already settled. `check-funnel` holds both halves. */
+  { field: 'keystage',  label: 'Key stage', of: x =>
+      (LEVEL_BUCKET(levelOf_(x)) === 'SATs' ? satsStagesOf_(x) : []) },
   { field: 'examBoard', label: 'Exam board',  of: x => x.examBoard },
   /* ---------- `A-Level` IS NOT A TIER, AND IT WAS AN ANSWER TO THIS QUESTION ---------------------
      135 ROWS ANSWERED `Tier · A-Level` AND 263 ANSWERED `Level · A-Level`, so pressing the tier
@@ -7870,16 +7878,57 @@ function levelOf_(x) {
      rather than about spelling. That is exactly the line — the engine folds SPELLINGS and a reader
      like this one resolves MEANINGS. `waveOf` sits on the same side of it. */
   if (/^as(\s*-?\s*level)?$/i.test(own)) return 'AS';
+  /* ---------- `KS2 SATs` IS TWO FACTS, AND THE LEVEL IS ONE OF THEM ---------------------------------
+     *"sats is one tag not ks2 sats."* The STA papers carry `band_value: KS2 SATs` and the data is
+     not this file's to rewrite -- the next import would write it back -- so it is read here, where
+     `AS level` is: a MEANING, not a spelling. The qualification is SATs; which key stage is the
+     `Key stage` question's, read by `satsStagesOf_` off the same cell. A bare `KS1` / `KS2` typed
+     into the level column means the same and goes the same way. */
+  if (/^ks\s*[12](\s*sats)?$/i.test(own)) return 'SATs';
   return own;
+}
+
+/* ---------- WHICH KEY STAGE A SATs ROW IS, AND ONLY A SATs ROW -----------------------------------
+   THE KEY STAGE IS ITS OWN QUESTION AGAIN, ASKED INSIDE SATs AND NOWHERE ELSE. Inside GCSE it was the
+   grey area `KS3 | KS4` the owner asked not to see, and it stays silent there; inside SATs it is the
+   one thing that tells a KS1 paper from a KS2 one, now that the level no longer says it.
+
+   THE SCHOOL YEAR DECIDES FIRST, for the reason `ksFallback_` gives: it is a fact about the sheet,
+   where a `KS1, KS2` cell is a range -- a Year 2 sheet is KS1's. Then the band or level that NAMES a
+   key stage (`KS2 SATs`, the STA papers). Then the cell, every KS1 / KS2 in it: a range with no year
+   is reachable from both, which is the multi-valued facet this question was built as. */
+function satsStagesOf_(x) {
+  const yr = (x && x.bandType === 'year') ? Number(x.bandValue) : NaN;
+  if (yr >= 1 && yr <= 6) return [yr <= 2 ? 'KS1' : 'KS2'];
+  const named = /\bks\s*([12])\b/i.exec(String((x && x.bandType === 'stage' && x.bandValue)
+    || (x && x.level) || (x && x.row && x.row.level) || ''));
+  if (named) return ['KS' + named[1]];
+  const out = [];
+  keyStagesOf_(x).forEach(k => {
+    const m = /^ks\s*([12])$/i.exec(k);
+    if (m && out.indexOf('KS' + m[1]) < 0) out.push('KS' + m[1]);
+  });
+  return out.sort();
+}
+/* THE LEVEL AND, INSIDE SATs, THE KEY STAGE BESIDE IT -- `['SATs', 'KS2']`, `['GCSE']` -- for the
+   places that SAY a level rather than filter by it: the card's tags and a result's crumb. Asked of
+   `LEVEL_BUCKET`, the one table that decides what is SATs, so a level the table files there under
+   another spelling still gets its key stage said. */
+function levelSaid_(x) {
+  const lv = levelOf_(x);
+  if (!lv) return [];
+  return LEVEL_BUCKET(lv) === 'SATs' ? [lv].concat(satsStagesOf_(x)) : [lv];
 }
 
 /* ---------- A KEY STAGE, SAID AS THE QUALIFICATION AT THE END OF IT -------------------------------
    *"I prefer GCSE or SATs over grey areas."* KS4 ends in a GCSE, KS2 and KS1 in SATs, KS5 in an
    A-level; KS3 ends in nothing, so it stays KS3 — inventing an exam for it would be a wrong fact,
    and a wrong chip is worse than a grey one. The four qualifications are spelled as `LEVEL_BUCKET`
-   spells them, so every answer this makes is already placed in that table. */
+   spells them, so every answer this makes is already placed in that table.
+   KS1 AND KS2 ARE BOTH `SATs` -- *"sats is one tag not ks2 sats"*. Which of the two is the `Key
+   stage` question's to say, inside SATs; see `satsStagesOf_`. */
 function ksLevel_(k) {
-  const q = { ks1: 'KS1 SATs', ks2: 'KS2 SATs', ks3: 'KS3', ks4: 'GCSE', ks5: 'A-Level' }[spellKey_(k)];
+  const q = { ks1: 'SATs', ks2: 'SATs', ks3: 'KS3', ks4: 'GCSE', ks5: 'A-Level' }[spellKey_(k)];
   return q || String(k || '');
 }
 /* The `key_stage` cell as a list — `KS3, KS4` is two key stages, as the facet has always read it. */
@@ -7892,10 +7941,11 @@ function keyStagesOf_(x) {
 
    THE SCHOOL YEAR DECIDES FIRST, because it is a fact about the sheet and a `KS1, KS2` cell is a
    range: a Year 2 sheet is KS1's, a Year 5 sheet KS2's. Without a year, A RANGE IS FILED UNDER WHAT
-   IT GOES UP TO — `LEVEL_BUCKET`'s own rule — so `KS3, KS4` is GCSE and `KS1, KS2` is KS2 SATs. */
+   IT GOES UP TO — `LEVEL_BUCKET`'s own rule — so `KS3, KS4` is GCSE and `KS1, KS2` is SATs. Years
+   1 to 6 are all SATs; which key stage is `satsStagesOf_`'s, off the same year. */
 function ksFallback_(x) {
   const yr = (x && x.bandType === 'year') ? Number(x.bandValue) : NaN;
-  if (yr >= 1 && yr <= 11) return yr <= 2 ? 'KS1 SATs' : yr <= 6 ? 'KS2 SATs' : yr <= 9 ? 'KS3' : 'GCSE';
+  if (yr >= 1 && yr <= 11) return yr <= 6 ? 'SATs' : yr <= 9 ? 'KS3' : 'GCSE';
   const ks = keyStagesOf_(x).filter(k => /^ks[1-5]$/i.test(k)).sort();
   return ks.length ? ksLevel_(ks[ks.length - 1]) : '';
 }
@@ -9204,10 +9254,11 @@ function bundleTitle_(items) {
   const parts = [];
   const said = {};
   BUNDLE_TITLE_FIELDS.forEach(field => {
-    /* THE KEY STAGE ONLY WHERE THERE IS NO LEVEL. `GCSE · KS4` and `KS2 SATs · KS2` say one thing
-       twice — measured on the first run, over the owner's own example — and the level is the word
-       people use; a worksheet shelf has no level and its key stage is then the only word for it. */
-    if (field === 'keystage' && said.level) return;
+    /* `if (field === 'keystage' && said.level) return;` WAS HERE. `GCSE · KS4` and `KS2 SATs · KS2`
+       said one thing twice, so the key stage was dropped wherever a level spoke. Neither can happen
+       now: the `Key stage` question answers nothing outside SATs, so a GCSE bundle has no key stage
+       to say, and inside SATs the level no longer carries it -- *"sats is one tag not ks2 sats"* --
+       so `SATs · KS2` is two facts, the second the only word for which SATs. */
     /* THE YEAR ONLY WHERE THE SITTING DID NOT SAY IT. Seven 2017 papers are three sittings, May,
        June and November, so the sitting has nothing single to say — and "2017" is the word the owner
        asked with, which `examYear` says first and `year` says only for a row with no sitting. Where

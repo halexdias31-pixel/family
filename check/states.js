@@ -118,11 +118,13 @@ const STATES = {
                          { field: 'kindLabel', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
-                         /* `Level · KS2 SATs`, WHERE THIS WAS `Key stage · KS2` — *"I prefer GCSE or
-                            SATs over grey areas."* A primary sheet's key stage is said as its
-                            qualification now, and Key stage is silent on it (see `keystage` in
-                            find.js), so the old answer reached nothing and the state went unmeasured. */
-                         { field: 'level', value: 'KS2 SATs' },
+                         /* `Level · SATs` AND THEN `Key stage · KS2`. This was `Key stage · KS2`,
+                            then `Level · KS2 SATs` when a primary sheet's key stage became its
+                            qualification -- *"I prefer GCSE or SATs over grey areas"* -- and is two
+                            answers now: *"sats is one tag not ks2 sats"*. The level is SATs and
+                            Key stage is asked inside it, and only there (see `keystage` in find.js). */
+                         { field: 'level', value: 'SATs' },
+                         { field: 'keystage', value: 'KS2' },
                          { field: 'yearGroup', any: true }];
         paintStuff();
         goPage('stuff', 0, true);
