@@ -67,6 +67,11 @@ Of 301, **67** had a picture under the pen. The rest get a surface (`padSurface_
 | **drawn** | in `W = 340`, under the existing pen (`padWrap_`, keyed by `padKey_`, so marks persist), in the transcribed figures' own ink classes. The page is headed by what it is — "Squared grid", "Axes", "Space to draw", never "Figure" — and says "Not the paper's own figure — somewhere to work your answer". The paper's own figure, or a stem's one figure, always wins |
 | **text** | "Circle the three adjectives in the passage below": the part's own words are the surface. Each word a tap target (`circWords_`); a tap rings it, another takes it off; stored beside the pen's marks (`pad:<question>:words`), held for the visit if storage throws |
 
+**Decided, worth a look:** "text" rings the PART's own words, not a stem's and not the lead — of the
+50 KS1/KS2 rows saying "circle" or "underline", none hangs from a stem; the passage is in the row's
+own `html`, and where it is not, the row is multiple choice and already tapped (`choices`). A passage on a stem would
+need the stem's words keyed per part, which is the pen's per-part figure page again (268).
+
 **Why a tap and not a pen, for text:** a stroke round a word is a drag, and a drag on this pager turns
 the page unless the pen is locked first — two controls between a child and a circle; a tap is a
 click, which `PRESS_MOVED` already tells from a swipe. A ring stored in pixels circles whatever was
@@ -104,7 +109,9 @@ tutors and classes; Mark with AI is offered on what the payload says, to anybody
 `constants.gs`); the shop's `audience` column, the people column, bookings, job pages, admin tools.
 
 **Worth a look:** an admin can no longer put a question, practical, project or textbook in the
-Spotlight window from its card. One condition (`adminLearn_` in tiles.js) restores it.
+Spotlight window from its card on Find. The window itself keeps the tile on them (`SPOT_TILES`, set
+while `spotPages` builds), because the window is not Find and anything already in it has to be
+removable from it. One condition (`adminLearn_` in tiles.js) restores the tile on Find.
 
 ### Checked, each proved by mutation and restored
 

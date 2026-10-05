@@ -285,12 +285,16 @@ function tileSet_(el, o) {
    word for those kinds (`kindOf_`), so a kind added to it tomorrow is covered without a list here.
 
    WHAT IT COSTS, WRITTEN WHERE THE TILE WAS: an admin cannot put a question in the Spotlight window
-   from its card. Everything a shop row, a tutor or a class carries is unchanged, and so is anything
-   already in the window. */
+   from its card. Everything a shop row, a tutor or a class carries is unchanged.
+
+   AND THE WINDOW ITSELF KEEPS IT (`SPOT_TILES`, set by `spotPages` while it builds). The Spotlight
+   column is the admin's shop window, not Find, and a question already in it with no tile to take it
+   out would be stuck there: the one control that undoes a spotlight has to be on the spotlight. */
+let SPOT_TILES = false;
 const adminLearn_ = x => typeof kindOf_ === 'function'
   && asList_(kindOf_(x).group).indexOf('Learning') !== -1;
 function adminTiles_(x, t) {
-  if (!isAdmin() || adminLearn_(x)) return '';
+  if (!isAdmin() || (adminLearn_(x) && !SPOT_TILES)) return '';
   /* A `span`, NOT A ROW. These go inside the one row every card has now — see `tilesFor_`. It keeps
      the group for a screen reader, which is the half of the old wrapper worth having. */
   return `<span class="tile-group is-admin" role="group" aria-label="Admin">

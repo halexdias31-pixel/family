@@ -6134,6 +6134,18 @@ check('Find draws the same question family, practical, project and textbook for 
   const offered = u => { t.USER(u); const ks = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort().join('|'); t.USER(null); return ks; };
   const out0 = offered(null);
   who.slice(1).forEach(([what, u]) => { if (offered(u) !== out0) bad.push(what + ' is offered a different set of learning items from somebody signed out'); });
+  /* AND THE SPOTLIGHT WINDOW, WHICH IS NOT FIND, KEEPS THE ADMIN'S TILE on a learning item already in
+     it -- or a question put there before this change could never be taken out (`SPOT_TILES`). */
+  const prac = real[0];
+  if (prac && typeof w.spotSet_ === 'function' && typeof w.spotPages === 'function') {
+    t.USER(who[3][1]);
+    w.spotSet_(prac.key, true);
+    const win = (w.spotPages() || []).join('');
+    if (!/data-do="spot"/.test(win)) bad.push('an admin looking at the Spotlight window has no tile to take a spotlit practical out of it');
+    if (/data-do="spot"/.test(w.stuffCard(prac, 0))) bad.push('the same practical on Find carries the admin\'s Spotlight tile again');
+    w.spotSet_(prac.key, false);
+    t.USER(null);
+  } else bad.push('spotSet_ or spotPages is not reachable, so the window\'s own tile was NOT checked');
   return bad;
 });
 
