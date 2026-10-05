@@ -15,7 +15,7 @@ keep the parts of it that can fail.
 
 | Height | Before, 320x568 | After, 320x568 | Before, 390x844 | After, 390x844 |
 |---|---|---|---|---|
-| the card at full size | **900px** in a 532px pane | **412px** | **932px** in an 802px pane | **418px** |
+| the card at full size | **900px** in a 532px pane | **410px** | **932px** in an 802px pane | **415px** |
 | drawn at | 70% (the floor), **still scrolls 123px** | **100%**, no scroll | 83% | **100%** |
 | one qualification open | 70%, scrolls 123px | 76%, no scroll | 82% | **100%** |
 | adding | 70%, scrolls 183px | 71%, no scroll | 75% | **100%** |
