@@ -66,12 +66,13 @@ C = 1.0                           # the y-intercept — the one number in the pi
 MS = [-1.0, -0.5, 0.0, 0.5, 1.0, 2.0]          # the stops, in the order the line visits them
 SAY = {-1.0: '−1', -0.5: '−½', 0.0: '0', 0.5: '½', 1.0: '1', 2.0: '2'}
 STILL = 2.0                       # reduced motion: the steepest, the triangle at its clearest
-T = 10.0                          # seconds, one whole loop — 9 until the swing over the top needed room
-HOLD = 10.0                       # per cent held at each stop — 1s with the number up
-MOVE = 5.0                        # per cent for each step between neighbouring stops — 0.5s, peaking
-                                  # at 58-84°/s
+T = 9.5                           # seconds, one whole loop — 9 until the swing over the top needed room;
+                                  # 9.5 rather than 10 keeps each hold at the 0.95s the first build had
+HOLD = 10.0                       # per cent held at each stop — 0.95s with the number up
+MOVE = 5.0                        # per cent for each step between neighbouring stops — 0.475s,
+                                  # peaking at 61-88°/s
 OVER = 15.0                       # per cent for the swing from m = 2 on over the vertical to m = -1:
-                                  # 72° in 1.5s, peaking at 75°/s — slower than the fastest step, so
+                                  # 72° in 1.4s, peaking at 79°/s — slower than the fastest step, so
                                   # it is one more move and not a lurch. It was BACK, 10%: 108° the
                                   # other way at 189°/s.
 N_MOVE, N_OVER = 8, 24            # samples per step and per swing

@@ -617,7 +617,7 @@ function mxcOwn_(L, m) {
   if (cw && acw) fault(L.id, 'the line turns one way at ' + acw + ' keyframes and back the other at ' + cw
     + ' — it runs back through gradients it has just named, which is the rewind the first build had');
   if (fastest > 100) fault(L.id, 'the line turns at ' + Math.round(fastest) + '°/s at ' + fastAt
-    + '% — over 100°/s; the steps between named gradients peak near 84, and the first build\'s 189°/s swing back was the one jolt in the loop');
+    + '% — over 100°/s; the steps between named gradients peak near 88, and the first build\'s 189°/s swing back was the one jolt in the loop');
 
   /* ---- (0, c) IS ONE POINT, IN EVERY KEYFRAME ---- */
   const near = (a, b, e) => Math.abs(a - b) <= (e || 0.01);
@@ -745,7 +745,7 @@ function mxcOwn_(L, m) {
   if (crowd) fault(L.id, 'shows two values of m at once at ' + crowd + ' sampled moments');
   const step = 100 / T.length;
   says.forEach((s, i) => {
-    /* FULLY UP FOR 8% OF THE LOOP — 0.8s at 10s, long enough to read two characters. Counted on the
+    /* FULLY UP FOR 8% OF THE LOOP — 0.76s at 9.5s, long enough to read two characters. Counted on the
        0.2% grid only, so the extra stop and half-way keys do not inflate it. */
     const n = T.filter(t => Math.abs(t * 5 - Math.round(t * 5)) < 1e-9 && ops[i].length && at(ops[i], t)[1] > 0.999).length * 0.2;
     if (n < 8) fault(L.id, 'm = ' + s.v + ' is fully up for ' + n.toFixed(1) + '% of the loop — not long enough to read');

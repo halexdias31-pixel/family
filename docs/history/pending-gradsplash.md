@@ -30,7 +30,7 @@ What it does now:
   never interpolates it, and the line goes through (0, c) at every frame by construction. A
   clipPath on a still parent keeps the line inside the plot.
 - **It stops at m = −1, −½, 0, ½, 1, 2**, which covers falling, flat, rising and steep. Each stop
-  is held for 10% of a 10s loop, which is 1s. A step between stops takes 5%. Then the line swings
+  is held for 10% of a 9.5s loop, which is 0.95s. A step between stops takes 5%. Then the line swings
   on from 2, anticlockwise over the vertical, to the m = −1 line from the other side, which takes
   15%. Everything uses cosine easing. A line through its own pivot is the same line half a turn
   later, so the swing ends on the picture 0% starts with.
@@ -83,7 +83,7 @@ arrows. On top of those, `mxcOwn_` re-derives the picture from the keyframes:
 - No fraction glyph (½ and its kind) appears anywhere in the splash.
 - No "=" stands outside the values, and every value carries its own.
 - The line's turn never reverses, and never runs faster than 100°/s between two keyframes. The
-  steps peak at 81°/s as sampled.
+  steps peak at 86°/s as sampled.
 - The triangle and the rise are clipped to the plot and fade together as `.mx-rr`.
 - The seam may differ by a half-turn only for `@keyframes mx-line`, named in its `halfTurn` list.
   Nothing else may differ, and `mxcOwn_` proves the line is drawn symmetric about its pivot.
@@ -122,8 +122,15 @@ three were confirmed and fixed:
    that the halo filled in. Now it is built, as described above.
 2. **The swing from m = 2 back to m = −1 was a rewind.** It turned 108° in 0.9s, peaking at 189°/s,
    against 60–86°/s for every other move, and it ran back through four stops it had just named. The
-   line now goes on over the top, 72° in 1.5s, peaking at 75°/s. The loop went from 9s to 10s so
-   the holds stay 1s.
+   line now goes on over the top, 72° in 1.4s, peaking at 79°/s. The loop went from 9s to 9.5s so
+   the holds stay 0.95s.
+
+**How still it is.** Seeked every 250ms through 10s, the new loop and the old one are equally still:
+48–50% of frames match the one before, and the longest hold is 750ms. Those are the holds, the
+beats where the value is read. `npm run splash` samples in real time and only prints. On this
+loaded machine it counted 22–23 of 39 frames moving, against 26–27 of 39 for the old build, which
+puts the new one just over its one-third line. Frame jitter accounts for the difference, not the
+animation.
 3. **The caption ended in a bare "=" for 18.5% of the loop.** Now the "=" fades with its value.
 
 Run on the reviewed build's own files, the new check names all three. Each of these 16 mutations
@@ -136,8 +143,8 @@ turned it red for its own reason, and the real files are green again:
 - the built half moved 8 units right of its rise
 - the "=" put back outside the values
 - one value without its own "="
-- the swing sent back through the stops (it turns both ways, at 113°/s)
-- the swing over the top squeezed to 6% (187°/s)
+- the swing sent back through the stops (it turns both ways, at 119°/s)
+- the swing over the top squeezed to 6% (197°/s)
 - the line ending 179° on, not 180°
 - the `halfTurn` excuse removed from the list
 - a half-turn claimed for the triangle as well
@@ -190,7 +197,7 @@ faded out there. The generator avoids those numbers for tidiness, and the check 
    not the composer, and a bin tile on every line of an admin's thread is a lot of tiles.
 4. **The splash's halves are built, 1 over 2, in the drawing and in the caption.** Decimals (0.5)
    would read more plainly still, if the owner prefers them.
-5. **The line now turns one way only.** Through the 1.5s swing over the top, no gradient is named and
+5. **The line now turns one way only.** Through the 1.4s swing over the top, no gradient is named and
    the triangle is gone, because a vertical line has no m. If the owner would rather see "m is
    undefined" there, it is a word to add.
 

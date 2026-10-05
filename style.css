@@ -7501,7 +7501,7 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    "m = rise ÷ run = " the same value. c is written ON the point where the line cuts: a line turning
    about that point passes through every place near it except the point itself.
 
-   · ONE 10s TIMELINE; every keyframe starts and ends at m = -1 — no seam. The line ends it half a
+   · ONE 9.5s TIMELINE; every keyframe starts and ends at m = -1 — no seam. The line ends it half a
      turn on from where it began: it swings from m = 2 on over the vertical rather than back through
      the stops it has named (the first build's 108° rewind at 189°/s), and a line through its own
      pivot is the same line half a turn later. The triangle, run and rise (`.mx-rr`) fade out as it
@@ -7540,18 +7540,18 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* c IS WRITTEN ON ITS DOT, in the background colour, so it needs no halo — the dot is the halo. */
 .mx-c { fill: var(--bg); stroke: none; font-size: 7px; }
 .mx-line, .mx-tri, .mx-rise { transform-box: view-box; transform-origin: 0 0; }
-.mx-line { transform: translate(41.5px, 57.5px) rotate(-63.435deg); animation: mx-line 10s linear infinite; }
-.mx-tri { transform: translate(41.5px, 57.5px) scale(1, 2); animation: mx-tri 10s linear infinite; }
-.mx-rise { transform: translate(63.5px, 57.5px) scale(1, 1); animation: mx-rise 10s linear infinite; }
-.mx-rr { opacity: 1; animation: mx-rr 10s linear infinite; }
-.mx-run-lo { opacity: 1; animation: mx-run-lo 10s linear infinite; }
-.mx-run-hi { opacity: 0; animation: mx-run-hi 10s linear infinite; }
-.mx-k0 { opacity: 0; animation: mx-k0 10s linear infinite; }
-.mx-k1 { opacity: 0; animation: mx-k1 10s linear infinite; }
-.mx-k2 { opacity: 0; animation: mx-k2 10s linear infinite; }
-.mx-k3 { opacity: 0; animation: mx-k3 10s linear infinite; }
-.mx-k4 { opacity: 0; animation: mx-k4 10s linear infinite; }
-.mx-k5 { opacity: 1; animation: mx-k5 10s linear infinite; }
+.mx-line { transform: translate(41.5px, 57.5px) rotate(-63.435deg); animation: mx-line 9.5s linear infinite; }
+.mx-tri { transform: translate(41.5px, 57.5px) scale(1, 2); animation: mx-tri 9.5s linear infinite; }
+.mx-rise { transform: translate(63.5px, 57.5px) scale(1, 1); animation: mx-rise 9.5s linear infinite; }
+.mx-rr { opacity: 1; animation: mx-rr 9.5s linear infinite; }
+.mx-run-lo { opacity: 1; animation: mx-run-lo 9.5s linear infinite; }
+.mx-run-hi { opacity: 0; animation: mx-run-hi 9.5s linear infinite; }
+.mx-k0 { opacity: 0; animation: mx-k0 9.5s linear infinite; }
+.mx-k1 { opacity: 0; animation: mx-k1 9.5s linear infinite; }
+.mx-k2 { opacity: 0; animation: mx-k2 9.5s linear infinite; }
+.mx-k3 { opacity: 0; animation: mx-k3 9.5s linear infinite; }
+.mx-k4 { opacity: 0; animation: mx-k4 9.5s linear infinite; }
+.mx-k5 { opacity: 1; animation: mx-k5 9.5s linear infinite; }
 @keyframes mx-line {
   0%, 10% { transform: translate(41.5px, 57.5px) rotate(45deg); }
   10.625% { transform: translate(41.5px, 57.5px) rotate(44.298deg); }
