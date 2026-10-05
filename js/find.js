@@ -5156,21 +5156,9 @@ function whoIs_() {
 
 const ansKey_ = x => 'ans:' + (whoIs_() ? whoIs_() + ':' : '') + ((x && (x.key || x.name)) || '?');
 
-/* ---------- THE KEY IS THE ID AND THE LABEL IS THE NAME, AND THEY WERE THE SAME STRING ---------
-   THE BOX SAID "P001's answer". `whoIs_` answers `u:<person_id>` because an id is stable where a
-   display name is a cell somebody can edit -- exactly right for a key, and unreadable as a label.
-   The old name box printed that id back at whoever was working, which is its own small part of
-   "its confusing": an answer box captioned with an account number.
-
-   FIRST NAME ONLY, because it is a caption on a box rather than a roster line, and because two
-   students swapping a phone recognise "Lucca" faster than they read "Lucca Smith". A person with
-   no name on their row gets nothing rather than a blank possessive. */
-function signedName_() {
-  try {
-    if (typeof USER === 'undefined' || !USER) return '';
-    return String(USER.name || '').trim().split(/\s+/)[0] || '';
-  } catch (e) { return ''; }
-}
+/* `signedName_` WAS HERE -- the first name over the answer box ("Lucca's answer"). Removed with the
+   caption, on *"remove 'names answer'. that is redundant."* The answer is still filed under who is
+   signed in (`ansKey_`); only the words saying so on the box are gone. */
 
 function ansRead_(k) {
   try {
@@ -5645,15 +5633,15 @@ function choiceBox_(x) {
   const picked = String(ansRead_(k) || '').split(',').map(t => parseInt(t, 10)).filter(n => n > 0);
   const done = right.length && picked.length >= need;
   const ok = done && picked.slice().sort((a, b) => a - b).join(',') === right.join(',');
-  const who = signedName_();
   /* `is-done` SAYS THE QUESTION IS SETTLED, which `qp-choose` below already enforces by ignoring any
      further tap. Said on the box so the stylesheet can stop the options LOOKING pressable once they
      are not -- a button that presses in and does nothing is the "door with no handle" this
      repository keeps writing about. */
   return `<div class="qp-ans qp-choices${done ? ' is-done' : ''}" data-k="${esc(k)}" data-need="${need}"
       data-right="${esc(right.join(','))}">
-    <span class="qp-ans-k">${who ? esc(who) + '&rsquo;s answer' : 'Your answer'}${
-      need > 1 ? ' &middot; choose ' + need : ''}</span>
+    ${/* NO "<NAME>'S ANSWER" OVER THE OPTIONS -- *"remove 'names answer'. that is redundant."* The
+          person signed in is on the You column; the only thing worth saying here is how many to pick. */
+      need > 1 ? `<span class="qp-ans-k">Choose ${need}</span>` : ''}
     <div class="qp-opts">${x.choices.map((c, i) => {
       const n = i + 1, on = picked.includes(n);
       const cls = (on ? ' is-picked' : '') + (done && right.includes(n) ? ' is-ans' : '');
@@ -5707,22 +5695,21 @@ function ansBox_(x) {
      box it always had and no button, rather than a Check that shrugs -- a control that sometimes
      does nothing is worse than one that is not there. */
   const can = String(x && x.accept || '').trim();
-  /* THE NAME IS SHOWN AND IS NOT A CONTROL. It is whoever is signed in, so on a phone passed
-     between two students it says at a glance whose drawer this box is writing into -- which is
-     the one thing the deleted `workingAs` button was genuinely good for. Changing it is signing
-     out, on the You column, where every other fact about who you are already lives. */
-  const who = signedName_();
   /* A MATHS ANSWER GETS THE KEYPAD AND A WORDED ONE THE PHONE'S KEYBOARD — "like hegarty maths …
      worded answer normal device keyboard". Which is which, the pad, and "Mark with AI" under a
      worded box are all keypad.js; this only chooses. Both boxes are `.qp-ans-in` with the same
      `data-k`, so Check, the save on `input` and every check that types into one are unchanged. */
   const maths = ansMaths_(x);
-  return `<label class="qp-ans${maths ? ' qp-ans-maths' : ''}">
-    <span class="qp-ans-k">${who ? esc(who) + '&rsquo;s answer' : 'Your answer'}</span>
+  /* NO CAPTION OVER THE BOX. It said "<name>'s answer", and the owner: *"remove 'names answer'.
+     that is redundant."* A box under a question is plainly where the answer goes; the name is still
+     what the answer is filed under (`ansKey_`), and a screen reader still hears "Your answer" from
+     `aria-label`. CHECK IS A TILE -- *"check button should be a tile"* -- one renderer for every
+     action, `.qp-check` kept as the name the keypad's ✓ and the checks find it by. */
+  return `<label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${maths ? kpField_(k, ansRead_(k)) : `<textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
-      rows="2" spellcheck="false" autocomplete="off">${esc(ansRead_(k))}</textarea>`}
+      rows="2" spellcheck="false" autocomplete="off" aria-label="Your answer">${esc(ansRead_(k))}</textarea>`}
   </label>${can ? `<div class="qp-mark" data-accept="${esc(can)}">
-    <button type="button" class="qp-check" data-do="qp-check">Check</button>
+    ${tile_({ icon: 'tick', label: 'Check', note: 'mark it', act: 'qp-check', cls: 'qp-check' })}
     <span class="qp-verdict" role="status" aria-live="polite"></span>
   </div>` : aiBox_(x)}`;
 }

@@ -76,6 +76,9 @@ const TILE_ICONS = {
   undo:  '<path d="M2.8 8.5h8a3.5 3.5 0 1 1 0 7H6"/><path d="M5.5 5.5 2.5 8.5l3 3"/>',
   show:  '<path d="M1.5 8.5S4.2 4 9 4s7.5 4.5 7.5 4.5S13.8 13 9 13s-7.5-4.5-7.5-4.5z"/>'
        + '<circle cx="9" cy="8.5" r="2.2"/>',
+  /* A TICK, FOR CHECK -- "check button should be a tile". Marking your own answer is the act, and
+     a tick is what a teacher's pen puts on a right one. */
+  tick:  '<path d="M3.5 9.5l3.5 3.5 7.5-8"/>',
   hide:  '<path d="M3 3.5 15 14"/>'
        + '<path d="M7 5.1A7.7 7.7 0 0 1 9 4c4.8 0 7.5 4.5 7.5 4.5a14 14 0 0 1-2.6 2.9"/>'
        + '<path d="M11.4 10.6A2.2 2.2 0 0 1 7.5 8.9"/>'
@@ -198,7 +201,9 @@ function tileIcon_(name) {
    to sit on a 40px square, so they ride in the label — "Paper · £0.46 · 23pp" — which is what both
    attributes say and is the only place the price still appears. */
 function tile_(o) {
-  const cls = 'tile' + (o.tone ? ' is-' + o.tone : '') + (o.on ? ' on' : '');
+  /* `cls` IS A NAME A CHECK OR A NEIGHBOUR FINDS THE TILE BY (`.qp-check`), never a look: the tile's
+     appearance is this renderer's alone, which is the point of having one. */
+  const cls = 'tile' + (o.tone ? ' is-' + o.tone : '') + (o.on ? ' on' : '') + (o.cls ? ' ' + o.cls : '');
   const name = o.label + (o.note ? ' · ' + o.note : '');
   const attrs = ` title="${esc(name)}" aria-label="${esc(name)}"`;
   /* A MARK IS REQUIRED. A control with neither word nor mark is a blank square, so anything that
