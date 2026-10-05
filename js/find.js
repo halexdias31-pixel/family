@@ -4491,8 +4491,9 @@ function answerBlock_(x) {
 
      THE EXPLANATION STAYS IN THE DATA, deliberately. `answer` whole and `examiner_note` beside it are
      what "Mark with AI" sends as the scheme (`aiScheme_` in keypad.js reads the row, not this markup),
-     and the working is exactly what a marker needs. Neither is drawn. A head that does not answer on its own ("Yes", "Shown") is a data fault, and the data
-     workflow is rewriting those rows rather than this code guessing at them. */
+     and the working is exactly what a marker needs. Neither is drawn. A head that does not answer on
+     its own ("Yes", "Shown") is a data fault, and the data workflow is rewriting those rows rather
+     than this code guessing at them -- `check-answers.js` prints how many are left. */
   const p = answerParts_(x.answer);
   return `<div class="qans">
     <span class="qans-head">Answer${kind ? ` &middot; ${esc(kind)}` : ''}</span>
