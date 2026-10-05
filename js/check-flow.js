@@ -4962,6 +4962,77 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
   return bad;
 });
 
+/* ---------- POST, UNDER A POST, IS A TILE — AND KEEPS ITS MARK THROUGH THE WAIT ----------------------
+   ASKED FOR AS *"post should be a tile too"*. Three things are held, because each one is a way the
+   change can be half done:
+     · THE COMPOSER'S ONLY CONTROL IS A TILE. Every button in `.cmt-form` is a `.tile`, there is
+       exactly one, and it is still `cmt-add` on the post's own id with the `cmt-go` name — the
+       paper aeroplane drawn, and "Post" in its name, since a tile has no word on it.
+     · AN EMPTY BOX POSTS NOTHING, which is the refusal `check/press.js` already accepts.
+     · THE MARK SURVIVES THE ROUND TRIP. The handler used to write "Posting…" into the control and
+       put the old text back afterwards — on a tile that writes over the aeroplane and restores an
+       empty string. So the press is read twice: at once (busy, disabled, mark still in the
+       element), and after a refusal (not busy, enabled, mark back, the server's sentence under the
+       box) — the refusal because it is the path that keeps the same element rather than
+       repainting it away. Then a comment that goes through posts `addComment` with the words. */
+check('Post under a post is a tile, and a comment keeps its mark through the wait', async () => {
+  const rasa = { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const p = payload();
+  p.festive = [];
+  p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
+    image: '', media: [], caption: 'Post ' + i, body: '', location: '', when: '0' + i + '/09/2026',
+    at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false,
+    reactions: {}, comments: { total: 0, list: [] } }));
+  let refuse = true;
+  const { w, sent } = boot({ payload: p,
+    reply: b => (b.action === 'addComment' && refuse ? { error: 'That is too long to post.' } : { success: true }),
+    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(rasa)); } catch (e) {} } });
+  await wait(400);
+  const d = w.document, bad = [];
+  w.__t.go('feed'); await wait(700);
+  const form = d.querySelector('#s-feed .cmt-form');
+  if (!form) return ['there is no comment composer on the feed for somebody signed in — nothing to press'];
+  const post = form.closest('[data-post]'), id = post ? post.dataset.post : '';
+  const ctl = [...form.querySelectorAll('button, a')];
+  const loose = ctl.filter(x => !x.classList.contains('tile'));
+  if (loose.length) bad.push('the comment composer still has ' + loose.length + ' control(s) that are not tiles: '
+    + loose.map(x => (x.dataset.do || x.tagName) + ' "' + x.textContent.trim() + '"').join(', '));
+  if (ctl.length !== 1) bad.push('the comment composer has ' + ctl.length + ' controls, wanted one — Post');
+  const tile = form.querySelector('.tile[data-do="cmt-add"]');
+  if (!tile) return bad.concat(['there is no cmt-add tile in the comment composer']);
+  if (!tile.classList.contains('cmt-go')) bad.push('the Post tile lost the `cmt-go` name it is found by');
+  if (!id || tile.dataset.id !== id) bad.push('the Post tile carries data-id ' + JSON.stringify(tile.dataset.id) + ' under post ' + JSON.stringify(id));
+  if (!tile.querySelector('svg.tile-i-send')) bad.push('the Post tile has no paper aeroplane — `send` is the mark for sending');
+  if (!/^Post\b/.test(tile.getAttribute('aria-label') || '')) bad.push('the Post tile is named ' + JSON.stringify(tile.getAttribute('aria-label')) + ', not "Post…"');
+
+  const box = form.querySelector('.cmt-text');
+  sent.length = 0;
+  tile.click(); await wait(50);
+  if (sent.some(b => b.action === 'addComment')) bad.push('an empty comment box posted addComment');
+
+  box.value = 'Lovely to see this.';
+  tile.click();
+  if (!tile.disabled || !tile.classList.contains('is-busy')) bad.push('pressed, the Post tile is not disabled and busy while it waits');
+  if (!tile.querySelector('svg.tile-i-send')) bad.push('pressed, the Post tile\'s mark was written over — the old "Posting…" swap');
+  await wait(300);
+  const said = form.querySelector('.cmt-said');
+  if (tile.disabled || tile.classList.contains('is-busy')) bad.push('after a refusal the Post tile is still busy or disabled');
+  if (!tile.querySelector('svg.tile-i-send')) bad.push('after a refusal the Post tile has no mark — the restore put text back over it');
+  if (!said || !/too long/.test(said.textContent)) bad.push('the server\'s refusal is not under the box: ' + JSON.stringify(said && said.textContent));
+
+  refuse = false;
+  sent.length = 0;
+  tile.click(); await wait(300);
+  const c = sent.find(b => b.action === 'addComment');
+  if (!c) bad.push('pressing Post with words in the box posted ' + JSON.stringify(sent.map(b => b.action)) + ', not addComment');
+  else if (c.postId !== id || c.body !== 'Lovely to see this.' || c.personId !== 'P1')
+    bad.push('addComment went out as ' + JSON.stringify({ postId: c.postId, body: c.body, personId: c.personId }));
+  const after = d.querySelector('#s-feed .cmt-form .tile[data-do="cmt-add"]');
+  if (!after || after.classList.contains('is-busy') || !after.querySelector('svg.tile-i-send'))
+    bad.push('after a comment went through, the Post tile on the screen is missing, busy, or has lost its mark');
+  return bad;
+});
+
 check('the friend search still works for a student', async () => {
   /* THE OTHER HALF OF GUARDING THE CHILDREN LIST. Restricting who receives it is only right if the
      people who need it still have it — and `friend-add` matches an EXACT handle, so a student with
