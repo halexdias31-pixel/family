@@ -96,7 +96,10 @@ its rim (named against circle P, 3.1px); 15 laid over 12 (label overlap); E push
 - **Tick numbers on two ruled grids** (`Q-1MA1-2406-2F-24b`, `S-P-1MA1-1706-2H-q20`) sat centred on
   major rulings at 0.55–0.6, so "1" read as a line. With no knockout allowed, each now sits in a
   corner of its intersection, like O: the lower left on 2F-24b, the y numbers upper left on q20
-  (lower left would put the 4 on the curve). The real fix is the knockout convention.
+  (lower left would put the 4 on the curve). 2F-24b's −4 is the one exception, just ABOVE the
+  bottom ruling: below it the glyphs fit but the line box ran 2px out of the drawing, which
+  `check/cards.js` measures — the two checks are deliberately not the same box. The real fix is the
+  knockout convention.
 - **O beside the origin, not below-left,** where a line through the origin cut it: lower right on
   `Q-1MA1-1706-3H-13`, `0` lower right and the y-axis `−1` right of the axis on `Q-STA-KS2-2019-P3-10`.
 - **The voltmeter's wire runs straight through the meter** on three AQA chemistry figures
