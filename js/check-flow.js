@@ -5391,7 +5391,10 @@ check('an answer draws its result and nothing else: no Why, no working, no exami
    nodes with the same markup after Check, a wrong Check, typing, Check again, "Show the answer" and
    a tapped option; the card's own children are the same list in the same order; and the verdict
    writes into a slot that was already there. And typing after a verdict takes it off -- "Correct"
-   beside an answer that has since changed is the app vouching for something it never read. */
+   beside an answer that has since changed is the app vouching for something it never read.
+
+   AND A WRONG TAP SHOWS NO ANSWER: the pick, "Not yet", and no option ticked -- a right tap ticks the
+   pick and nothing else. Here because the tapped card is already here. */
 check('marking, revealing and tapping leave the question where it is, and typing clears a stale verdict', async () => {
   const { w } = boot();
   await wait(300);
@@ -5470,9 +5473,24 @@ check('marking, revealing and tapping leave the question where it is, and typing
   try { A['qp-choose'](tapped.querySelector('.qp-opt[data-n="1"]')); } finally { w.stuffItemsAll_ = held; }
   const box = tapped.querySelector('.qp-choices');
   if (!box || !box.classList.contains('is-done')) bad.push('a settled tapped question does not say so (is-done), so its options still look pressable');
-  if (!tapped.querySelector('.qp-opt[data-n="2"].is-ans') || !tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick and the right option');
+  if (!tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick');
+  /* A MISS DOES NOT SHOW THE ANSWER. It ticked the right option beside it, which is the answer on the
+     question card with nobody pressing Show -- *"answers should just stay hidden unless user unhides
+     them."* Nothing ticked, and no words that name or point at the right one. */
+  const shownBy = tapped.querySelector('.qp-opt.is-ans');
+  if (shownBy) bad.push('a wrong tap ticked option ' + shownBy.getAttribute('data-n') + ' -- the answer shown on the question card without Show');
+  const said = (tapped.querySelector('.qp-verdict') || {}).textContent || '';
+  if (!/^Not yet/.test(said) || /marked|is 15|\b15\b/.test(said)) bad.push('a wrong tap\'s verdict reads "' + said + '" -- "Not yet", and nothing that gives the right one away');
   same(m0, tapped, 'after a wrong tap');
   try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
+  /* AND A RIGHT ONE TICKS THE PICK -- the verdict on what you chose, which is not a reveal. */
+  const mcR = Object.assign({}, mc, { key: 'q-still-mc-r', row: Object.assign({}, base.row, { row_id: 'Q-STILL-10' }) });
+  try { w.localStorage.removeItem(w.__t.ansKey(mcR)); } catch (e) {}
+  const tappedR = draw(mcR);
+  w.stuffItemsAll_ = () => [mcR];
+  try { A['qp-choose'](tappedR.querySelector('.qp-opt[data-n="2"]')); } finally { w.stuffItemsAll_ = held; }
+  if (!tappedR.querySelector('.qp-opt[data-n="2"].is-picked.is-ans') || tappedR.querySelectorAll('.qp-opt.is-ans').length !== 1) bad.push('a right tap did not tick the pick, and only the pick');
+  try { w.localStorage.removeItem(w.__t.ansKey(mcR)); } catch (e) {}
   /* AND THE WORDS SAY WHERE THE PICTURE WENT: a question whose figure is the page AFTER it (its
      marker at the end of its words) points at the next page; one whose figure stands in front of it
      says nothing, and one without a figure says nothing -- a pointer to a page that does not exist,

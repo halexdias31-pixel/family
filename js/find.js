@@ -5644,7 +5644,14 @@ function choiceBox_(x) {
       need > 1 ? `<span class="qp-ans-k">Choose ${need}</span>` : ''}
     <div class="qp-opts">${x.choices.map((c, i) => {
       const n = i + 1, on = picked.includes(n);
-      const cls = (on ? ' is-picked' : '') + (done && right.includes(n) ? ' is-ans' : '');
+      /* THE TICK GOES ON YOUR PICK WHEN IT IS RIGHT, AND NOWHERE WHEN IT IS NOT. A wrong tap used to
+         tick the right option on the spot, and that is the answer shown on the question card with
+         nobody pressing anything -- the owner: *"answers should just stay hidden unless user unhides
+         them"*, and before that *"you should have to click to reveal the answer"*. The verdict is
+         about the pick ("Correct" / "Not yet"); which option the scheme credits is the answer, and it
+         is on the answer page behind Show like every other answer. Still settled after one pick
+         (`qp-choose`): with three wrong options and a free retry, "Correct" is reached by elimination. */
+      const cls = (on ? ' is-picked' : '') + (ok && on ? ' is-ans' : '');
       /* THE OPTION'S OWN MARKUP, as the question's html is drawn: it is committed library content
          and carries the italics and superscripts an equation needs.
 
@@ -5659,14 +5666,15 @@ function choiceBox_(x) {
     }).join('')}</div>
   </div>${right.length ? `<div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">
     <span class="qp-verdict" role="status" aria-live="polite">${done
-      ? (ok ? 'Correct' : 'Not yet — the right ' + (need > 1 ? 'ones are' : 'one is') + ' marked')
+      ? (ok ? 'Correct' : 'Not yet — the answer has its own page')
       : ''}</span>
   </div>` : ''}`;
 }
 
 /* A tap picks; on "choose two" a second tap adds and a tap on a chosen one takes it back off. Once
-   a marked question is answered it is settled: changing it after being shown the
-   answer would make "Correct" a thing anybody can reach. "Start again" is clearing the box. */
+   a marked question is answered it is settled: a second go after "Not yet" -- or after Show on the
+   answer page -- would make "Correct" a thing anybody can reach by elimination. "Start again" is
+   clearing the box. */
 on('qp-choose', (el) => {
   const box = el.closest('.qp-choices');
   const card = el.closest('.qcard');
@@ -5691,8 +5699,9 @@ on('qp-choose', (el) => {
   if (mark) mark.remove();
   box.replaceWith(...wrap.childNodes);
   /* RIGHT DOES NOT OPEN THE ANSWER PAGE ANY MORE. It did, from 263 on; the verdict on this card --
-     "Correct", and the right option marked -- is the answer to "was I right", and the page after
-     opens when somebody taps "Show the answer" and not before. See `ansOpen_`. */
+     "Correct" with your pick ticked, or "Not yet" with nothing ticked -- is the answer to "was I
+     right", and the page after opens when somebody taps "Show the answer" and not before. See
+     `ansOpen_`, and `choiceBox_` for why a wrong pick no longer ticks the right one. */
 });
 
 function ansBox_(x) {

@@ -1069,11 +1069,13 @@ const STATES = {
         const box = window.__qCard && window.__qCard.querySelector('.qp-choices');
         const mark = box && box.nextElementSibling;
         return !!s && !!box && box.classList.contains('is-done')
-               && !!box.querySelector('.qp-opt.is-picked:not(.is-ans)') && !!box.querySelector('.qp-opt.is-ans')
+               /* THE MISS, AND NO TICK ANYWHERE: the right option is the answer, and it waits behind
+                  Show on the answer page like every other one (`choiceBox_`). */
+               && !!box.querySelector('.qp-opt.is-picked:not(.is-ans)') && !box.querySelector('.qp-opt.is-ans')
                && !!mark && mark.classList.contains('is-near')
                && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5);
       },
-      wants: 'a wrong tap marked, the right option ticked, and the question, the option and the card\'s height unmoved',
+      wants: 'a wrong tap marked, no option ticked as the answer, and the question, the option and the card\'s height unmoved',
       leave: () => {
         const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12');
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}

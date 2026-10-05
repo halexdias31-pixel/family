@@ -10536,8 +10536,10 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    inside the box, so the option you pressed stays exactly where your finger left it.
 
    ONCE MARKED THE OTHERS STEP BACK. `is-done` (choiceBox_) is only set when the question is settled,
-   which the handler already enforces -- so the unchosen wrong ones fade and stop looking pressable,
-   and what is left in full ink is what you picked and what was right. */
+   which the handler already enforces -- so the unchosen ones fade and stop looking pressable, and
+   what is left in full ink is what you picked: green with a tick if it was right, amber if not.
+   `.is-ans` IS ONLY EVER YOUR OWN PICK NOW. A miss used to tick the right option beside it, which
+   is the answer shown on the question card without Show -- see `choiceBox_`. */
 .qp-opt { position: relative; padding-left: 2.2rem;
                    transition: border-color var(--quick) ease, color var(--quick) ease; }
 /* INK ON EVERY OPTION OF A QUESTION CARD, by SPECIFICITY rather than by being written later: the box
