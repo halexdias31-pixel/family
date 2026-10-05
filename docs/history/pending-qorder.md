@@ -77,6 +77,7 @@ tile ignoring pre pages; **the date** (signed out unstamped, Check / tap / typin
 same node, per person, private mode, another year) — red for: no stamp on Check, no fallback, a
 signed-out stamp (which also turned 261's "nothing moved" red). `check/press.js` walks stem, stem-figure
 and pre pages and fails a figure page with a question number; its tall-card swipe moved to a row that is
-still tall. `check/cards.js` fails a stem on a part's card, a figure page with no picture or with a
+still tall, at 320 x 568 -- at 390 x 844 no question page is tall enough any more to need the scroll once
+`paneReach_` has drawn it at 70%. `check/cards.js` fails a stem on a part's card, a figure page with no picture or with a
 question number (red on the old `find.js`: 1,193). `check/states.js`: the stem page, its figure, a long
 part's first page, a dated card. Screenshots at 320 and 390 looked at.
