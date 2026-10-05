@@ -109,12 +109,26 @@ const INK = 0.5;
 const OPAQUE = 0.9;
 
 /* ---------- ACCEPTED — labels that do touch a line, each with one written reason -----------------
-   EMPTY, AND IT SHOULD STAY THAT WAY: the convention above (a knockout under the label) is the way
+   SHORT, AND IT SHOULD STAY THAT WAY: the convention above (a knockout under the label) is the way
    to put a label on a line, and moving the label is the way to take one off it. An entry is
    `'ROW|label text': 'reason'`; it is still printed on every run, so a forgiven collision is never
    a silent one. A key that matches nothing is reported as stale, because a reason for a fault that
-   no longer exists is a sentence somebody will trust about the wrong drawing. */
+   no longer exists is a sentence somebody will trust about the wrong drawing.
+
+   THE ONE KIND HERE IS A LABEL THAT NO POSITION CAN CLEAR. The AQA 7408/3A key reads "experiment
+   1" and "experiment 2" beside two sample lines, and each label is about 63 units long on graph
+   paper whose major squares are 45.7 — so wherever it sits it crosses a major ruling, and it cannot
+   leave the square it is in because the sample line it names is part of the drawing. The printed
+   paper puts its key on a white box, which is the knockout convention, and adding one is a change
+   to the drawing rather than to where a label sits. Left for the owner, named here so it is not
+   forgotten: one `fill: var(--raised)` rect behind the key in each of the two rows clears all four. */
+const KEY_ON_PAPER = 'a 63-unit key label on 45.7-unit major squares crosses a ruling wherever it sits, '
+  + 'and its sample line is drawing so it cannot leave the square: needs a knockout box behind the key';
 const ACCEPTED = {
+  'Q-AQA-7408-2306-3A-034|experiment 1': KEY_ON_PAPER,
+  'Q-AQA-7408-2306-3A-034|experiment 2': KEY_ON_PAPER,
+  'Q-AQA-7408-2306-3A-035|experiment 1': KEY_ON_PAPER,
+  'Q-AQA-7408-2306-3A-035|experiment 2': KEY_ON_PAPER,
 };
 
 function diagrams() {
