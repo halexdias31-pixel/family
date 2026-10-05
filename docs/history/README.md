@@ -279,3 +279,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The Bible (King James Version) is a book in Resources, and only an admin is shown it](275-the-bible-king-james-version-is-a-book-in-resources-and-only.md)
 - [The boxer card is a fighter's profile: the photo, the record as the centrepiece, the tape, and his fights](276-the-boxer-card-is-a-fighter-s-profile-the-photo-the-record-a.md)
 - [The y = mx + c splash names six gradients, and Post under a post is a tile](277-the-y-mx-c-splash-names-six-gradients-and-post-under-a-post.md)
+- [A parent who signs up on the phone is a parent — "Make an account" asks who it is for](278-a-parent-who-signs-up-on-the-phone-is-a-parent-make-an-accou.md)
