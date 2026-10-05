@@ -100,3 +100,11 @@ that first stayed green (dropping the repaint) is why the third journey exists. 
 against the real backend at 320×568 and 390×844 (register as a parent → link → first sign-in →
 card; as a student → no card; the owner changes the role in the sheet → reload → card) — every step
 worked, and the screenshots were looked at.
+
+**`npm run check` did not end green, and not because of this.** On a machine at load average ~35
+on four cores, six checks went red. Re-run alone: `check-funnel` and `check-flow` (112 journeys)
+pass; `check/cards.js` is red with 2374 "draws a picture on the question card" — **identically on
+the base commit**, a library-content fault; `check/ui.js` and `check/press.js` stay red only on
+screens this does not touch (stuff, games, tools, feed, a settings pane mid-slide), and every
+register state arrived in both. The state expectations here measure `offsetHeight`, because the
+first full run caught the sheet mid-grow at 340ms.
