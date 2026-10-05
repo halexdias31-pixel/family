@@ -92,13 +92,24 @@ also be left open. Before, the editor shut on Save.
   `qualShut_`, `qualSubjectSync_`, the subject-level `Edit`, the per-subject add links, Cancel, the
   count line and the "Do you tutor …?" caption. Also removed are their CSS and `.lib-row.q-row`.
 - **`tiles.js` gains a `plus` mark.** It is two open strokes at the set's 1.4, the one new icon.
+- **The two tile rows' margins are written as `.tile-row.q-tiles` and `.tile-row.q-adds`.** As single
+  classes they tied with `.tile-row`, which comes later in the file and sets its own `margin`, so the
+  file order alone decided the result and they were never drawn. This is the `.price.faint` fault
+  again, and it was caught by reading the rule, not by a check. `check/cascade.js` only pairs rules
+  that share a class.
 
 ### Decisions the owner may want to confirm
 
 - **Saving as you go, with no Save button.** The brief allowed either. Saving as you go is where the
   tap savings come from. It is safe here because `send_` locks the card during each save. **The
   cost:** on the live site, each answer takes about a second or two to save, and the boxes are dimmed
-  until it finishes. There is also no Cancel. To undo a wrong pick, pick the old answer again.
+  until it finishes. Each save also triggers the same payload refresh that every Save already caused,
+  so there is now one refresh per answer instead of one per editor. There is also no Cancel. To undo
+  a wrong pick, pick the old answer again.
+- **A hint instead of a chevron.** The app's usual sign that a row can be pressed is a `›` at its end
+  (`.row.tap`). Here the end of each line already holds the teaching mark, and the old card was
+  criticised for glyphs that had to be decoded. So the card says "Tap a line to change it." in the
+  empty space beside the `+`, and a pressed line shows a faint wash.
 - **The school and the year are not on the line.** The line shows only what the profile chip shows.
   On a 250px card, there was no room for "Hill Top Sixth Form · 2018" beside the notation without
   cutting it to a few letters.
