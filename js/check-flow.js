@@ -3552,12 +3552,15 @@ check('a role changed in the sheet reaches the screen on the next open, with no 
      signed out and in. Here the phone opens holding a stale `kid` and `myProfile` says `parent`. */
   const kid = { name: 'Mo Learner', personId: 'P-MO', role: 'kid', roles: ['kid'], token: 'tk-mo',
                 profile: { first_name: 'Mo', last_name: 'Learner' } };
-  const reply = role => b => b.action === 'myProfile'
+  /* `say` IS WHAT THE SHEET HOLDS — read at each request, so a journey can change it under the phone. */
+  let say = '';
+  const reply = b => b.action === 'myProfile'
     ? Object.assign({ success: true, personId: b.personId || 'P-MO', profile: { first_name: 'Mo', last_name: 'Learner' } },
-                    role ? { role, roles: [role], tutorPending: false } : {})
+                    say ? { role: say, roles: [say], tutorPending: false } : {})
     : { success: true, messages: [] };
   const open = async role => {
-    const b = boot({ reply: reply(role), before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(kid)); } catch (e) {} } });
+    say = role;
+    const b = boot({ reply, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(kid)); } catch (e) {} } });
     await wait(700);
     return b;
   };
@@ -3579,6 +3582,23 @@ check('a role changed in the sheet reaches the screen on the next open, with no 
     const { w } = await open('');
     const u = w.__t.whoami();
     if (!u || u.role !== 'kid') bad.push('a myProfile with no role in it wiped the role the phone had: ' + JSON.stringify(u && u.role));
+  }
+  /* AND NOT ONLY SETTINGS: the column ON SCREEN when the role changes is drawn again. Made an admin in
+     the sheet while looking at the people column, the phone draws the admin's list of everyone there
+     and then — the role decides a whole column, not one card. */
+  {
+    const { w } = await open('kid');
+    const t = w.__t, d = w.document;
+    t.DATA().everyone = [{ personId: 'P-EVE', title: 'Eve Everyone', handle: 'eve_kind5', role: 'Student', image: '' }];
+    try { t.go('account', false, true); w.paint('account'); } catch (e) { return bad.concat(['drawing the account column threw: ' + e.message]); }
+    await wait(150);
+    const eve = () => /P-EVE|Eve Everyone/.test((d.getElementById('s-account') || {}).innerHTML || '');
+    if (eve()) return bad.concat(['a student is drawn the admin\'s list of everyone, so this cannot ask what a role change redraws']);
+    say = 'admin';
+    w.profileRefresh_();
+    await wait(300);
+    if ((t.whoami() || {}).role !== 'admin') bad.push('the role on the phone did not follow the sheet to admin');
+    else if (!eve()) bad.push('the column on screen when the role changed was not drawn again — it shows the old role until something else repaints it');
   }
   return bad;
 });
