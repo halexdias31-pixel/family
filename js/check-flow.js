@@ -5281,7 +5281,7 @@ check('marking, revealing and tapping leave the question where it is, and typing
     const heldR = w.stuffItemsAll_;
     w.stuffItemsAll_ = () => [shutX];
     try { A['qa-go'](rev); } finally { w.stuffItemsAll_ = heldR; }
-    same(r0, shut, 'after "Show the answer"');
+    same(r0, shut, 'after "To the answer"');
   }
   /* TAPPED -- `qp-choose` redraws the box from the stored pick and finds its question by key in the
      library, which this harness does not load; so the library is this one question for the length of
@@ -5487,8 +5487,10 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
      * the question card keeps its box and no longer carries the answer, in any form
      * the answer page is hidden and the answer is NOT IN ITS MARKUP (the old `is-shut` hid with CSS an
        answer anybody could read in the document)
-     * the question's tile opens the page that is already standing, the open survives a redraw (the
-       `REEL_HELD` fault: a fact left on an element dies with it), and it opens only that question
+     * the question's tile ("To the answer") turns to the page and does NOT open it -- *"answers should
+       just stay hidden unless user unhides them"* -- and the page's own Show tile does; the open
+       survives a redraw (the `REEL_HELD` fault: a fact left on an element dies with it), and it opens
+       only that question. Hide, and every role alike, are the next journey's
      * a tapped question settled right does NOT open it, and neither does a typed answer marked right:
        the card already says "Correct", and a page that opens itself is a reveal nobody pressed
      * a TUTOR's page is hidden exactly as a student's, with the same tile label -- it was open
@@ -5539,7 +5541,10 @@ check('an answer is its own page after its question, hidden from everybody alike
   if (!/Answer hidden/.test(hid.textContent)) bad.push('a hidden answer page does not say "Answer hidden": ' + hid.textContent.trim().slice(0, 80));
   if (!hid.querySelector('[data-do="qa-show"]')) bad.push('a hidden answer page has no "Show the answer"');
   if (card && card.getAttribute('data-of') !== 'Q-ANSP-5') bad.push('the answer page does not name its row');
-  /* SHOWN FROM THE QUESTION'S TILE, where the page already stands. */
+  /* TURNED TO FROM THE QUESTION'S TILE, where the page already stands -- AND STILL HIDDEN. *"answers
+     should just stay hidden unless user unhides them"*: the question's tile turns the page and that is
+     all it does. It used to show the answer as it turned, which made reaching the page and revealing
+     it one tap. */
   d.body.appendChild(hid);
   const other = el(w.questionAnsCard_(fig));
   d.body.appendChild(other);
@@ -5550,8 +5555,16 @@ check('an answer is its own page after its question, hidden from everybody alike
   const goTile = tiles.querySelector('[data-do="qa-go"]');
   if (goTile) { try { A['qa-go'](goTile); } finally { w.stuffItemsAll_ = held; } }
   w.stuffItemsAll_ = held;
+  const turned = d.querySelector('.qans-card[data-of="Q-ANSP-5"]');
+  if (!turned || !turned.classList.contains('is-hidden') || turned.innerHTML.indexOf(SECRET) >= 0)
+    bad.push('the question\'s "To the answer" tile showed the answer as it turned to it -- revealing is the answer page\'s own tap');
+  if (goTile && /show/i.test(goTile.getAttribute('aria-label') || '')) bad.push('the question\'s tile still says it shows the answer: ' + goTile.getAttribute('aria-label'));
+  /* SHOWN BY THE ANSWER PAGE'S OWN TILE, where it stands. */
+  const showT = turned && turned.querySelector('[data-do="qa-show"]');
+  if (!showT) bad.push('the answer page has no Show tile to press');
+  else { w.stuffItemsAll_ = () => [base, fig]; try { A['qa-show'](showT); } finally { w.stuffItemsAll_ = held; } }
   const now = d.querySelector('.qans-card[data-of="Q-ANSP-5"]');
-  if (!now || now.classList.contains('is-hidden') || now.textContent.indexOf(SECRET) < 0) bad.push('"Show the answer" on the question did not open its answer page');
+  if (!now || now.classList.contains('is-hidden') || now.textContent.indexOf(SECRET) < 0) bad.push('"Show the answer" on the answer page did not open it');
   else if (now.querySelector('details, .qans-why')) bad.push('showing the answer drew a Why fold under it');
   if (el(w.questionAnsCard_(base)).textContent.indexOf(SECRET) < 0) bad.push('the answer page shut again when it was drawn again');
   const fig2 = d.querySelector('.qans-card[data-of="Q-ANSP-6"]');
@@ -5604,8 +5617,107 @@ check('an answer is its own page after its question, hidden from everybody alike
     const tx = Object.assign({}, base, { key: 'q-ansp-' + role, row: row('Q-ANSP-' + role) });
     if (!shutNow(tx)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s answer page is open without "Show the answer" -- the owner asked for no difference');
     const tl = el(w.questionTiles_(tx)).querySelector('[data-do="qa-go"]');
-    if (!tl || !/Show the answer/.test(tl.getAttribute('aria-label') || tl.textContent)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s tile does not read "Show the answer": ' + (tl ? (tl.getAttribute('aria-label') || tl.textContent.trim()) : '(none)'));
+    if (!tl || !/To the answer/.test(tl.getAttribute('aria-label') || tl.textContent)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s tile does not read "To the answer": ' + (tl ? (tl.getAttribute('aria-label') || tl.textContent.trim()) : '(none)'));
   });
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- SHOW, HIDE, SHOW: ONE TILE ON THE ANSWER PAGE, THE SAME FOR EVERYBODY -----------------------
+   ASKED FOR AS *"answers should just stay hidden unless user unhides them. and can hide them again.
+   simple is best."* Through the real handlers, on a real answer page in the document, for four
+   visitors -- signed out, a student, a tutor, an admin -- each starting from nothing shown:
+     * hidden: "Answer hidden", the answer NOT IN THE MARKUP, and the one tile is Show (the eye)
+     * Show: the answer drawn, and the same tile slot now Hide (the eye struck through) -- the tile row
+       is the same child of the card in both states, so the thumb finds Hide where it pressed Show
+     * Hide: hidden exactly as before, answer gone from the markup, Show back in the slot
+     * Show again: open again -- the toggle is not a one-way door
+     * drawn afresh after a Hide it is hidden (`ANS_SHOWN` forgot), after a Show it is open, and the
+       next visitor's page is hidden whatever the last one did
+     * the question card's tile ("To the answer") reveals nothing for any of them */
+check('the answer page shows, hides and shows again from one tile, hidden by default, the same for every visitor', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  const need = ['questionAnsCard_', 'questionTiles_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? Show and Hide were NOT checked'];
+  if (!A['qa-show'] || !A['qa-hide'] || !A['qa-go']) return ['qa-show, qa-hide or qa-go has no handler, so the toggle was NOT checked'];
+  const SECRET = 'Forty-two-and-a-quarter';
+  const x = { kind: 'question', name: 'Q8', marks: 1, key: 'q-toggle-8',
+    row: { row_id: 'Q-TOGGLE-8', paper_id: 'P-TOGGLE', subject: 'Maths', name: 'Toggle' },
+    html: '<p>Work out 169 &divide; 4</p>', answer: '<b>' + SECRET + '</b> &mdash; 169 &divide; 4' };
+  const held = w.stuffItemsAll_;
+  const press = (act, from) => {
+    const b = from.querySelector('[data-do="' + act + '"]');
+    if (!b) return false;
+    w.stuffItemsAll_ = () => [x];
+    try { A[act](b); } finally { w.stuffItemsAll_ = held; }
+    return true;
+  };
+  /* WHICH CHILD OF THE CARD THE TILE ROW IS -- "the same place" asked as structure, since jsdom lays
+     nothing out. `check/states.js` measures the pixels. */
+  const slot = card => [...card.children].indexOf(card.querySelector(':scope > .tile-row'));
+  const who = [
+    ['signed out', null],
+    ['a student', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
+    ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }],
+    ['an admin', { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] }],
+  ];
+  for (const [what, u] of who) {
+    w.__t.USER(u);
+    const host = d.createElement('div');
+    host.innerHTML = w.questionAnsCard_(x);
+    d.body.appendChild(host);
+    const card = () => host.querySelector('.qans-card');
+    const hiddenRight = when => {
+      const c = card();
+      if (!c || !c.classList.contains('is-hidden')) return bad.push(what + ', ' + when + ': the page is not hidden');
+      if (c.innerHTML.indexOf(SECRET) >= 0 || c.querySelector('.qans, .qans-body')) bad.push(what + ', ' + when + ': a hidden page still carries the answer in its markup');
+      if (!/Answer hidden/.test(c.textContent)) bad.push(what + ', ' + when + ': a hidden page does not say "Answer hidden"');
+      const t = c.querySelector('.tile-row [data-do="qa-show"]');
+      if (!t || !t.classList.contains('tile')) bad.push(what + ', ' + when + ': a hidden page has no Show tile');
+      else if (!t.querySelector('.tile-i-show')) bad.push(what + ', ' + when + ': the Show tile is not the eye');
+      if (c.querySelector('[data-do="qa-hide"]')) bad.push(what + ', ' + when + ': a hidden page offers Hide');
+    };
+    const shownRight = when => {
+      const c = card();
+      if (!c || c.classList.contains('is-hidden') || c.textContent.indexOf(SECRET) < 0) return bad.push(what + ', ' + when + ': the answer is not shown');
+      const t = c.querySelector('.tile-row [data-do="qa-hide"]');
+      if (!t || !t.classList.contains('tile')) bad.push(what + ', ' + when + ': a shown page has no Hide tile');
+      else if (!t.querySelector('.tile-i-hide')) bad.push(what + ', ' + when + ': the Hide tile is not the struck-through eye');
+      if (c.querySelector('[data-do="qa-show"]')) bad.push(what + ', ' + when + ': a shown page still offers Show');
+      if (/Answer hidden/.test(c.textContent)) bad.push(what + ', ' + when + ': a shown page still says "Answer hidden"');
+    };
+    hiddenRight('as drawn');
+    const s0 = slot(card());
+    /* THE QUESTION'S OWN TILE, pressed first: it turns pages and reveals nothing. */
+    const qt = d.createElement('div');
+    qt.innerHTML = w.questionTiles_(x);
+    d.body.appendChild(qt);
+    w.stuffItemsAll_ = () => [x];
+    try { A['qa-go'](qt.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = held; qt.remove(); }
+    hiddenRight('after the question\'s "To the answer"');
+    if (!press('qa-show', card())) bad.push(what + ': nothing to press to show it');
+    shownRight('after Show');
+    if (slot(card()) !== s0) bad.push(what + ': the tile row moved from child ' + s0 + ' to ' + slot(card()) + ' when the answer was shown');
+    if (w.questionAnsCard_(x).indexOf(SECRET) < 0) bad.push(what + ': the page drawn afresh after Show is shut again');
+    if (!press('qa-hide', card())) bad.push(what + ': nothing to press to hide it');
+    hiddenRight('after Hide');
+    if (slot(card()) !== s0) bad.push(what + ': the tile row moved when the answer was hidden again');
+    if (w.questionAnsCard_(x).indexOf(SECRET) >= 0) bad.push(what + ': the page drawn afresh after Hide is still open -- ANS_SHOWN did not forget it');
+    if (!press('qa-show', card())) bad.push(what + ': nothing to press to show it a second time');
+    shownRight('after Show, Hide, Show');
+    /* AND PUT BACK, so the next visitor starts where everybody starts. */
+    press('qa-hide', card());
+    host.remove();
+  }
+  /* THE NEXT PERSON ON THE PHONE starts hidden whatever the last one did: the key carries who it is. */
+  w.__t.USER(who[1][1]);
+  w.ansShow_(x);
+  w.__t.USER(who[2][1]);
+  if (w.questionAnsCard_(x).indexOf(SECRET) >= 0) bad.push('a tutor\'s page is open because the student before them showed theirs');
+  w.__t.USER(who[1][1]);
+  w.ansHide_(x);
   w.__t.USER(null);
   return bad;
 });

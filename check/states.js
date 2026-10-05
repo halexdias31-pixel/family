@@ -768,13 +768,16 @@ const STATES = {
           if (tile) tile.click();
         }, 150);
       },
+      /* LANDED ON, AND STILL HIDDEN. *"answers should just stay hidden unless user unhides them"* --
+         the question's tile is `To the answer` now and turns the page without revealing it; the
+         page's own Show tile is the one tap that does. */
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qans-card');
         return window.__ansFrom !== null && PAGE.stuff === window.__ansWant && PAGE.stuff > window.__ansFrom
-               && !!c && !c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
-               && (c.querySelector('.qans-body') || {}).textContent.trim() === ((t) => { const d = document.createElement('div'); d.innerHTML = typeset_(answerParts_(t).head); return d.textContent.trim(); })((stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1MA1-1811-1H-3') || {}).answer);
+               && !!c && c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
+               && !c.querySelector('.qans, .qans-body') && !!c.querySelector('.tile[data-do="qa-show"]');
       },
-      wants: 'the question\'s answer tile pressed, and the page turned forward to its answer, open: the result answerParts_ gives it',
+      wants: 'the question\'s "To the answer" tile pressed, and the page turned forward to its answer -- still hidden, Show the answer waiting',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'an answer, shown, and nothing under it',
       enter: () => {
@@ -795,9 +798,55 @@ const STATES = {
         const c = document.querySelector('#s-stuff .page.on .qans-card:not(.is-hidden)');
         const ans = c && c.querySelector('.qans');
         return !!ans && ans.querySelector('.qans-body').textContent.trim() === ((t) => { const d = document.createElement('div'); d.innerHTML = typeset_(answerParts_(t).head); return d.textContent.trim(); })((stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1MA1-1811-1H-3') || {}).answer)
-               && !c.querySelector('details, .qans-why, .qans-more, .qans-note');
+               && !c.querySelector('details, .qans-why, .qans-more, .qans-note')
+               && !!c.querySelector('.tile[data-do="qa-hide"]') && !c.querySelector('[data-do="qa-show"]');
       },
-      wants: 'the answer page showing its result (the head answerParts_ gives) once its button is pressed, and nothing under it',
+      wants: 'the answer page showing its result (the head answerParts_ gives) once its tile is pressed, nothing under it, and Hide the answer where Show was',
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AND HIDDEN AGAIN, WITH THE TILE WHERE THE THUMB LEFT IT -----------------------------
+       *"answers should just stay hidden unless user unhides them. and can hide them again. simple is
+       best."* Show, then Hide, by real clicks; the tile's box is measured at each step, because "the
+       same place" is a fact about pixels and jsdom has none (check-flow holds the markup half). The
+       tile and the card's top may not move by half a pixel either way, and the page ends hidden with
+       no answer in it. */
+    { name: 'an answer shown and hidden again, its tile where it was',
+      enter: () => {
+        ANS_SHOWN.clear();
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
+        window.__ansAt = [];
+        const at = () => {
+          const t = document.querySelector('#s-stuff .page.on .qans-card .qa-toggle');
+          const c = t && t.closest('.qans-card');
+          if (!t) return null;
+          const r = t.getBoundingClientRect(), q = c.getBoundingClientRect();
+          return { x: r.left, y: r.top, top: q.top, act: t.getAttribute('data-do') };
+        };
+        /* IN ONE TICK: the redraw is synchronous and a box read straight after it is laid out, so
+           there is nothing to wait for between the presses -- and nothing a slow run can miss. */
+        setTimeout(() => {
+          window.__ansAt.push(at());
+          const s = document.querySelector('#s-stuff .page.on .qans-card [data-do="qa-show"]');
+          if (s) s.click();
+          window.__ansAt.push(at());
+          const h = document.querySelector('#s-stuff .page.on .qans-card [data-do="qa-hide"]');
+          if (h) h.click();
+          window.__ansAt.push(at());
+        }, 150);
+      },
+      expect: () => {
+        const a = window.__ansAt || [];
+        const c = document.querySelector('#s-stuff .page.on .qans-card');
+        const still = (p, q) => !!p && !!q && Math.abs(p.x - q.x) < 0.5 && Math.abs(p.y - q.y) < 0.5 && Math.abs(p.top - q.top) < 0.5;
+        return a.length === 3 && a[0] && a[0].act === 'qa-show' && a[1] && a[1].act === 'qa-hide' && a[2] && a[2].act === 'qa-show'
+               && still(a[0], a[1]) && still(a[1], a[2])
+               && !!c && c.classList.contains('is-hidden') && !c.querySelector('.qans, .qans-body');
+      },
+      wants: 'Show then Hide pressed on the answer page: the tile in the same place at every step, and the page hidden again with no answer in it',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- MARKED, AND NOTHING MOVED --------------------------------------------------------
        ASKED FOR AS "make it nice more sleek, fresh stable". The unstable part was measured before it

@@ -6888,8 +6888,12 @@ function questionFigCard_(x) {
    all until then: the old `is-shut` hid with `display: none` an answer anybody could read in the
    document. `ansOpen_` decides, and it asks one thing -- has this person, on this visit, asked.
 
+   AND IT GOES BACK. *"answers should just stay hidden unless user unhides them. and can hide them
+   again. simple is best."* Shown, the same tile is `Hide the answer`, and hidden is exactly hidden
+   again: the answer leaves the markup, not just the screen.
+
    `data-of` NAMES THE ROW, as the figure card does, and `data-k` is the answer box's key, which is
-   what `ansShow_` finds these by to draw them open where they already stand. */
+   what `ansSet_` finds these by to redraw them, open or shut, where they already stand. */
 function questionHasAns_(x) {
   return !!(x && x.kind === 'question' && String(x.answer || '').trim());
 }
@@ -6908,7 +6912,8 @@ function questionHasAns_(x) {
        was stored. The question card already says "Correct" -- that is the verdict -- and an answer
        page that opens itself is a reveal nobody pressed.
 
-   WHAT IS LEFT is the tap, held in `ANS_SHOWN` by the answer box's own key -- which carries who is
+   WHAT IS LEFT is the tap -- Show, and Hide to take it back -- held in `ANS_SHOWN` by the answer
+   box's own key -- which carries who is
    signed in, so the phone passed to the next student starts shut again. A SET RATHER THAN A CLASS ON
    AN ELEMENT, because the answer is drawn on a different page from the control that shows it, and
    pages are built and thrown away as you swipe (`fillStuffPages` keeps eleven): a fact left on an
@@ -6923,23 +6928,33 @@ function questionAnsCard_(x) {
   const id = (x.row && x.row.row_id) || x.key || '';
   const k = ansKey_(x);
   const open = ansOpen_(x);
+  /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES ---------------------------------
+     ASKED FOR AS *"answers should just stay hidden unless user unhides them. and can hide them again.
+     simple is best."* So the page has one control and two faces: `Show the answer` (the eye) while it is
+     hidden, `Hide the answer` (the eye struck through) once it is shown. Nothing else on the page
+     offers either, and nothing anywhere else opens it -- the question's own tile only turns to it.
+
+     ABOVE THE ANSWER, NOT UNDER IT, because "the same place" is a promise about where the thumb goes
+     back to. Under it, the tile would sit wherever the answer happened to end -- a word, or a table
+     four rows deep -- and the Hide you reach for would not be where the Show you pressed was. Here the
+     header, the tags and the tile row are the same height either way, so pressing it moves nothing
+     above the answer, and the answer arrives below where the "Answer hidden" line stood.
+
+     A TILE, as the owner asked of the reveal before this (*"show the answer button should be a
+     tile"*): one renderer for every action on a question's pages, `check-doors` pairing each `act`
+     with its handler. */
   return `<div class="qcard qans-card${open ? '' : ' is-hidden'}" data-of="${esc(id)}" data-k="${esc(k)}">
     ${qHead_(x, 'answer')}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
-    ${open ? answerBlock_(x) : `<div class="qans-wait">
-      ${/* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". That was advice to a student, on a page a tutor
-            reads too -- and the owner's word is that the two read the same thing. The page says what
-            it is; whether to try first is the tutor's to say out loud, not the app's to say to one of
-            them. */''}
-      <p class="qans-wait-k">Answer hidden</p>
-      ${/* A TILE, AS ASKED: *"show the answer button should be a tile."* It was a full-width button,
-            argued as the one gate in the card's body rather than an action under a thing. The owner
-            reads it as an action on the question like any other, and the question card's own tile for
-            the same act (`questionTiles_`) is a tile -- so the two pages now offer it in one form, from
-            one renderer, with `check-doors` pairing `qa-show` to its handler. */''}
-      <div class="tile-row">${tile_({ icon: 'show', label: 'Show the answer', note: 'one tap',
-        act: 'qa-show', data: { k: k } })}</div>
-    </div>`}
+    <div class="tile-row qans-tiles">${open
+      ? tile_({ icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } })
+      : tile_({ icon: 'show', label: 'Show the answer', note: 'one tap', act: 'qa-show', cls: 'qa-toggle', data: { k: k } })}${
+      /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". That was advice to a student, on a page a tutor
+         reads too -- and the owner's word is that the two read the same thing. The page says what it
+         is; whether to try first is the tutor's to say out loud, not the app's to say to one of them.
+         Beside the tile rather than over it, so the row is the row's height whichever face it wears. */
+      open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}</div>
+    ${open ? answerBlock_(x) : ''}
   </div>`;
 }
 
@@ -6950,31 +6965,38 @@ function ansItem_(k) {
   catch (e) { return null; }
 }
 
-/* ---------- SHOWING IT: REMEMBERED, AND DRAWN OPEN WHEREVER IT ALREADY STANDS -----------------------
-   The page after is usually built already -- `fillStuffPages` fills two either side -- so it is
-   redrawn in place, by its key, on every column it is on. Only the answer card changes; the question
-   card is not touched, which is what keeps "nothing moved" true of the page you are on. */
-function ansShow_(x) {
+/* ---------- SHOWING IT AND HIDING IT: REMEMBERED, AND DRAWN WHEREVER IT ALREADY STANDS ----------------
+   The page is usually built already -- `fillStuffPages` fills two either side -- so it is redrawn in
+   place, by its key, on every column it is on. Only the answer card changes; the question card is not
+   touched, which is what keeps "nothing moved" true of the page you are on.
+
+   EVERY COPY, SHOWN OR HIDDEN, rather than only the ones in the other state: Saved and Find can both
+   hold the page, and a Hide that redrew only the open copies is the same rule written twice. Redrawing
+   one already in the state asked for draws the same markup again, which costs nothing anybody sees. */
+function ansSet_(x, open) {
   if (!x) return;
   const k = ansKey_(x);
-  ANS_SHOWN.add(k);
-  document.querySelectorAll('.qans-card.is-hidden').forEach(el => {
+  if (open) ANS_SHOWN.add(k); else ANS_SHOWN.delete(k);
+  document.querySelectorAll('.qans-card').forEach(el => {
     if (el.getAttribute('data-k') !== k) return;
     const t = document.createElement('div');
     t.innerHTML = questionAnsCard_(x);
     if (t.firstElementChild) el.replaceWith(t.firstElementChild);
   });
 }
+function ansShow_(x) { ansSet_(x, true); }
+function ansHide_(x) { ansSet_(x, false); }
 
-/* THE QUESTION CARD'S TILE: TO THE ANSWER PAGE, AND IT SHOWS IT. `Show the answer` for everybody.
-   STAFF READ `The answer` HERE, because their page was open already; it is not any more -- see
-   `ansOpen_` -- so there is one label and it is true for all of them: pressing it is asking, which
-   is the one thing that opens the page. Drawn the same whether or not it has been shown, so pressing
-   it changes nothing on this card. A tile because the question is a THING and this is an action on
-   it; the box, Check and the options above stay buttons, because answering is a form. */
+/* THE QUESTION CARD'S TILE: TO THE ANSWER PAGE, AND ONLY TO IT. It used to read `Show the answer` and
+   reveal the page as it turned to it -- one tap that did two things, and the owner's rule now is that
+   revealing is a tap of its own: *"answers should just stay hidden unless user unhides them."* So it
+   says where it goes (`To the answer`, an arrow, "turns the page") and the page it lands on is exactly
+   as it was left -- hidden, unless this person showed it on this visit. One label for everybody: staff
+   read `The answer` here once, when their page was open already, and it is not. Drawn the same whether
+   or not the answer has been shown, so pressing it changes nothing on this card. */
 function questionTiles_(x) {
   if (!questionHasAns_(x)) return '';
-  return tile_({ icon: 'show', label: 'Show the answer', note: 'next page',
+  return tile_({ icon: 'next', label: 'To the answer', note: 'turns the page', cls: 'qa-to',
                  act: 'qa-go', data: { k: ansKey_(x) } });
 }
 
@@ -6983,11 +7005,13 @@ function questionTiles_(x) {
    page the tile is on. Which page that is, is asked of the element (`logIndex_` turns an element's
    position into a page number past the Find screen's window) rather than read off `PAGE`, because a
    tile on the page peeking under the one you are on is still that page's tile. The same on Saved,
-   whose pages come from `cardPages_` in `pageParts_`'s own order. */
+   whose pages come from `cardPages_` in `pageParts_`'s own order.
+
+   IT DOES NOT CALL `ansShow_`, and that absence is the whole of the owner's change: the page turns,
+   and what is on it is the page's own business. */
 on('qa-go', (el) => {
   const x = ansItem_(el.getAttribute('data-k'));
   if (!x) return;
-  ansShow_(x);
   /* FROM THE QUESTION CARD, NOT FROM THE FIRST PAGE: a stem and its figure can stand in front of
      the card the tile is on (`pageParts_`), so the distance is answer minus card. */
   const parts = pageParts_(x);
@@ -7001,9 +7025,12 @@ on('qa-go', (el) => {
   goPage(id, base + off);
 });
 
-/* ON THE ANSWER PAGE ITSELF it opens where it is -- you are already there. */
+/* ON THE ANSWER PAGE ITSELF, THE ONE CONTROL, BOTH WAYS -- you are already there. */
 on('qa-show', (el) => {
   ansShow_(ansItem_(el.getAttribute('data-k')));
+});
+on('qa-hide', (el) => {
+  ansHide_(ansItem_(el.getAttribute('data-k')));
 });
 
 /* `topicBy` WAS HERE — a document by id, falling back to its name. Nothing has a document to look
