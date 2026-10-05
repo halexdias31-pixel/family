@@ -677,7 +677,11 @@ on('forgot-pin', el => {
   if (!who) { toast('Type your email address or your handle first.'); return; }
   send_({ action: 'forgotPin', who }, { button: el, busy: 'Sending\u2026' })
     .then(d => toast((d && d.message)
-      || 'If there is an account with that email, a new PIN is on its way.'));
+      || 'If there is an account with that email, a new PIN is on its way.'))
+    /* A REFUSAL IS A SENTENCE NOW \u2014 "we have no email for this account", "no account has that
+       handle" \u2014 and `send_` has already toasted it. Without this the rejection went unhandled, which
+       was harmless only while the server answered every case with the same success. */
+    .catch(() => {});
 });
 
 on('do-signin', el => {
@@ -971,6 +975,17 @@ on('av-pick', el => avatarSave({ [el.dataset.slot]: el.dataset.id }));
    `my-referral`, gone), and `?ref=` on this site's address is Stripe's return leg in receipt.js —
    reading it here would credit a payment reference as an introduction. */
 const REG_PIN = /^\d{4,8}$/;
+/* ---------- AND A CHILD WITH NO EMAIL OF THEIR OWN --------------------------------------------------
+   ASKED FOR AS *"so all kids can login easily with their handle and pin."* This form was the only way
+   in that did not need the owner, and it refused the commonest child there is: no address was
+   refused, and mum's — already on her own account or a brother's — was "already registered".
+
+   ONE TICK, NOT A SECOND FORM. The box is the same box; the tick says whose address it is, and the
+   post carries it as `parent_email` instead of `email` (see `register` in dopost.gs), so it is never
+   the child's sign-in address and never clashes with the grown-up's own account. The link goes to
+   the grown-up, who says yes; the child signs in with their HANDLE, which the reply carries and the
+   sign-in box is filled with. The note under the button says the other way — a parent making the
+   account from theirs — because that is the one with no waiting at all. */
 function registerSheet_() {
   openSheet('Make an account', `
     <label class="field"><span>first name</span>
@@ -980,31 +995,45 @@ function registerSheet_() {
     <label class="field"><span>email</span>
       <input id="reg-email" type="email" inputmode="email" autocomplete="email" autocapitalize="off"
              spellcheck="false" placeholder="you@example.com"></label>
+    <label class="check reg-kid"><input type="checkbox" id="reg-noemail"><span class="box"></span>
+      <span>I have no email — that is a grown-up's</span></label>
     <label class="field"><span>PIN — 4 to 8 digits</span>
       <input id="reg-pin" type="password" inputmode="numeric" autocomplete="new-password"></label>
     <button class="btn" data-do="reg-send">Make my account</button>
-    <p class="faint" style="margin:.6rem 0 0">We email you a link. Open it, then sign in with this
-      email and PIN.</p>`);
+    <p class="faint" style="margin:.6rem 0 0">We email a link. Open it, then sign in with the email
+      or your handle and the PIN. With no email of your own, the link goes to your grown-up — or a
+      parent can make your account from theirs, under Settings.</p>`);
 }
 on('register', () => registerSheet_());
 
 on('reg-send', el => {
   const v = id => ((($(id) || {}).value) || '').trim();
   const first = v('reg-first'), last = v('reg-last'), email = v('reg-email'), pin = v('reg-pin');
+  const kid = !!($('reg-noemail') || {}).checked;
   if (!first || !last) { toast('Your first and last name, please.'); return; }
-  if (email.indexOf('@') < 0) { toast('An email address, please — the link goes to it.'); return; }
+  if (email.indexOf('@') < 0) {
+    toast(kid ? 'A grown-up\'s email address, please — the link goes to them.'
+              : 'An email address, please — the link goes to it.');
+    return;
+  }
   if (!REG_PIN.test(pin)) { toast('A PIN is 4 to 8 digits, and nothing else.'); return; }
   /* THROUGH `send_`, so the button spins, the four boxes lock while it is on the wire (`#sheet-body`
      is one of the boxes `send_` knows to lock) and a refusal — "That email is already registered" —
      is toasted in the server's own words. */
-  send_({ action: 'register', first_name: first, last_name: last, email, pin },
-        { button: el, busy: 'Making it…' })
-    .then(() => {
+  const body = { action: 'register', first_name: first, last_name: last, pin };
+  if (kid) body.parent_email = email; else body.email = email;
+  send_(body, { button: el, busy: 'Making it…' })
+    .then(d => {
       closeSheet();
       /* THE ADDRESS GOES INTO THE SIGN-IN BOX, because the next thing this person does — after the
-         email — is sign in with it, and they have just typed it once. */
-      const box = $('in-name'); if (box) box.value = email;
-      toast('Nearly there — open the link we have emailed you, then sign in.');
+         email — is sign in with it, and they have just typed it once. FOR A CHILD WITH NO ADDRESS IT
+         IS THE HANDLE, which they have never seen: it is the only thing they will sign in with, and
+         the box is the one place on the screen that stays put while they wait for their grown-up. */
+      const handle = String((d && d.handle) || '');
+      const box = $('in-name'); if (box) box.value = kid && handle ? '@' + handle : email;
+      toast(kid ? 'Nearly there — ask your grown-up to open the link we sent them. You sign in as '
+                  + (handle ? '@' + handle : 'your handle') + '.'
+                : 'Nearly there — open the link we have emailed you, then sign in.');
     })
     .catch(() => {});      // `send_` has already said why
 });
@@ -1032,8 +1061,17 @@ function verifyFromLink_() {
   } catch (e) { if (!token) return; }
   send_({ action: 'verifyEmail', token })
     .then(d => {
-      toast('Email confirmed' + (d && d.name ? ', ' + String(d.name).split(' ')[0] : '')
-            + ' — now sign in with it and your PIN.');
+      /* A GROWN-UP SAYING YES FOR A CHILD WITH NO EMAIL is told the child's handle, not "sign in
+         with it" — the address is theirs, and it signs nobody in for the child. */
+      const first = d && d.name ? String(d.name).split(' ')[0] : '';
+      if (d && d.noEmail) {
+        toast('Confirmed — ' + (first || 'they') + ' can sign in now'
+              + (d.handle ? ' as @' + d.handle : '') + ' with their PIN'
+              + (d.linkedTo ? ', and is on your account.' : '.'));
+        try { if (USER) load(); } catch (e) {}
+      } else {
+        toast('Email confirmed' + (first ? ', ' + first : '') + ' — now sign in with it and your PIN.');
+      }
       /* TO THE SIGN-IN CARD, which is where the next step is. */
       try { if (!USER) go('account'); } catch (e) {}
     })
@@ -1722,6 +1760,105 @@ on('add-child-go', el => {
   }).catch(() => {});
 });
 
+/* ---------- MAKING YOUR CHILD'S ACCOUNT, FROM YOURS ------------------------------------------------
+   ASKED FOR AS *"so all kids can login easily with their handle and pin."* "Add your child" only ever
+   LINKED an account that already existed, and a child with no email had no way to have one — so the
+   card below it asked a parent to type the name of an account nobody could make. This makes it:
+   first name, last name, and a PIN the parent chooses (the same 4 to 8 digits as everywhere, checked
+   here for `REG_PIN`'s reason). `makeChild` in dopost.gs writes the row with no email, a handle of
+   its own drawing, and the family link already accepted.
+
+   THE ANSWER IS A SLIP: the handle and the PIN, once, on paper — the thing a parent writes on the
+   fridge or photographs. Held as STATE (`KID_MADE`, keyed by the parent's id) and drawn from it, for
+   `HANDLE_SAID`'s reason: the payload lands a moment later and repaints this column, and a mark put
+   on the element would be gone before anybody had read it. A reload forgets it, which is right for a
+   PIN on a screen. */
+let KID_MADE = { pid: '', name: '', handle: '', pin: '' };
+
+/* THE SIGN-IN SLIP — the same paper wherever a handle and a PIN are handed to somebody: here, and in
+   the New PIN sheet. Paper, so `--paper` and `--paper-ink`, never a literal. */
+function pinSlip_(first, handle, pin) {
+  return `<div class="pin-slip" aria-live="polite">
+    <p class="pin-slip-k">${esc(first || 'They')} signs in with</p>
+    <p class="pin-slip-v">@${esc(handle)}</p>
+    <p class="pin-slip-k">and the PIN</p>
+    <p class="pin-slip-v">${esc(pin)}</p>
+  </div>`;
+}
+
+function childMakeCard_() {
+  const mine = KID_MADE.pid && USER && KID_MADE.pid === String(USER.personId || '');
+  return `<div class="card kid-card kid-make">
+    <h3>Make your child's account</h3>
+    <p class="sub">No email needed. They sign in with a handle we make for them and a PIN you
+      choose.</p>
+    <div class="f-row" style="--n:2">
+      <label class="field"><input data-kid-new="first" placeholder="First name" autocomplete="off"></label>
+      <label class="field"><input data-kid-new="last" placeholder="Last name" autocomplete="off"
+             value="${esc((USER && USER.profile && USER.profile.last_name) || '')}"></label>
+    </div>
+    <label class="field"><span>a PIN for them — 4 to 8 digits</span>
+      <input data-kid-new="pin" type="password" inputmode="numeric" autocomplete="new-password"></label>
+    <button class="btn quiet" data-do="kid-make">Make their account</button>
+    ${mine ? pinSlip_(KID_MADE.name, KID_MADE.handle, KID_MADE.pin)
+             + '<p class="faint">Write it down or take a photo — the PIN is not shown again. We have '
+             + 'emailed you the handle. They are on your account now.</p>'
+           : '<p class="faint">Already has an account of their own? Add them on the next card.</p>'}
+  </div>`;
+}
+
+on('kid-make', el => {
+  if (!USER) { toast('Sign in first'); return; }
+  const card = (el && el.closest('.card')) || document;
+  const box = k => card.querySelector('[data-kid-new="' + k + '"]');
+  const val = k => ((box(k) || {}).value || '').trim();
+  const first = val('first'), last = val('last'), pin = val('pin');
+  if (!first || !last) { toast('Their first and last name, please'); return; }
+  if (!REG_PIN.test(pin)) { toast('A PIN is 4 to 8 digits, and nothing else.'); return; }
+  send_({ action: 'makeChild', personId: USER.personId || '', firstName: first, lastName: last, pin },
+        { button: el, busy: 'Making it…' })
+    .then(d => {
+      KID_MADE = { pid: String(USER.personId || ''), name: first, handle: String(d.handle || ''), pin };
+      toast(first + '\'s account is made — they sign in as @' + KID_MADE.handle + '.');
+      /* `repaint(true)`: the card grows by a slip, so the column is placed again — see `answerClaim_`. */
+      if (typeof AT !== 'undefined' && AT === 'settings') repaint(true); else STALE.settings = 1;
+      load();
+    })
+    .catch(() => {});
+});
+
+/* ---------- A NEW PIN FOR YOUR CHILD, OR FOR ANYBODY IF YOU ARE AN ADMIN ----------------------------
+   THE TILE IS ON THE CHILD'S CARD — the parent's family column, the admin's everyone column — because
+   the PIN is about that person (a THING has tiles). PRESSING IT ASKS FIRST, in a sheet with its own
+   button (a FORM has buttons): the child's old PIN stops working and every phone they are signed in on
+   is signed out, which is not a thing a thumb scrolling past should do. The answer is the same slip as
+   above, in the same sheet, once. `resetPin` decides who may; this draws the tile for the two people
+   the server will say yes to and nobody else. */
+on('kid-pin', el => {
+  const id = el.getAttribute('data-id') || '', who = el.getAttribute('data-name') || 'them';
+  if (!id) { toast('That account has no id yet — ask us.'); return; }
+  openSheet('A new PIN for ' + who, `
+    <p class="sub">Their old PIN stops working, and they are signed out everywhere. You will see the
+      new one once, to give them.</p>
+    <button class="btn" data-do="kid-pin-go" data-id="${esc(id)}" data-name="${esc(who)}">Make a new PIN</button>`);
+});
+
+on('kid-pin-go', el => {
+  if (!USER) { toast('Sign in first'); return; }
+  const id = el.getAttribute('data-id') || '';
+  send_({ action: 'resetPin', personId: USER.personId || '', targetId: id },
+        { button: el, busy: 'Making it…' })
+    .then(d => {
+      const body = $('sheet-body');
+      if (body) body.innerHTML = pinSlip_(d.first || el.getAttribute('data-name'), d.handle, d.pin)
+        + '<p class="faint">Write it down or read it to them — it is not shown again. They can change it '
+        + 'under Settings once they are in.</p>'
+        + '<button class="btn quiet" data-do="sheet-done">Done</button>';
+    })
+    .catch(() => {});
+});
+on('sheet-done', () => closeSheet());
+
 /* YES AND NO ARE ONE HANDLER WITH A FLAG. Two handlers doing the same call with one word different
    is two places to fix when the call changes, and the second one is always the one forgotten. */
 const answerClaim_ = (el, accept) => {
@@ -1874,7 +2011,9 @@ function settingsPages_() {
      more than once, for no pop-up menus. So the two boxes are on the card, `add-child-go` reads
      them from the card the button is on, and there is nothing to open. For the same people the tile
      was for: a parent, a client or an admin; a student has nobody to add. */
-  if (mayAddChild_()) pages.push(childCard_());
+  /* MAKING THEIR ACCOUNT COMES FIRST — most children here have none — and linking one that exists
+     second. Same people, same test. */
+  if (mayAddChild_()) pages.push(childMakeCard_(), childCard_());
 
   pages.push(`<div class="card">
     <h3>Signing in</h3>

@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-revealtile";
+  --css-version: "2026-10-05-kidlogin";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -746,6 +746,31 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   font-size: 1.05rem; color: var(--ink); overflow-wrap: anywhere; min-width: 0;
 }
 .handle-now > b { color: var(--gold); font-weight: 600; }
+
+/* ---------- THE SIGN-IN SLIP: A HANDLE AND A PIN, HANDED TO SOMEBODY ON PAPER ---------------------------
+   *"so all kids can login easily with their handle and pin."* What a parent is shown once, after making
+   a child's account or giving them a new PIN — the thing that gets written on the fridge or
+   photographed, so it is drawn as PAPER (`--paper`, `--paper-ink`, `--paper-dim`), never as the black
+   screen and never as a literal. Two labels and two values, the values big enough to read across a
+   kitchen. `overflow-wrap: anywhere` because a handle is up to twenty characters with nothing to break
+   at and a 320 card is the narrowest it is drawn on; `tabular-nums` so a PIN's digits sit in columns
+   somebody can copy one at a time. */
+.pin-slip {
+  background: var(--paper); color: var(--paper-ink);
+  border: 1px solid var(--paper-rule); border-radius: 4px;
+  padding: .75rem .95rem; margin: .8rem 0 .5rem; min-width: 0;
+}
+.pin-slip-k {
+  margin: 0; font-size: .7rem; letter-spacing: .06em; text-transform: uppercase; color: var(--paper-dim);
+}
+.pin-slip-v {
+  margin: .1rem 0 .55rem; font-size: 1.35rem; font-weight: 700; line-height: 1.2;
+  overflow-wrap: anywhere; font-variant-numeric: tabular-nums;
+}
+.pin-slip-v:last-child { margin-bottom: 0; }
+/* THE "NO EMAIL" TICK ON THE REGISTER SHEET reads as a line of the form, not as a heading: the
+   `.check` row's own size, at the caption's voice. */
+.check.reg-kid { font-size: .9rem; color: var(--dim); padding-top: .2rem; }
 
 /* ---------- THREE LIBRARY CARDS ON ONE PAGE, WHICH NINE STACKED BOXES CANNOT BE -------------------
    *"there are many different librarys for library card detais so make it smaller so can fit in like

@@ -3384,6 +3384,205 @@ check('arriving on ?verify= confirms the address once and takes it out of the ba
   return bad;
 });
 
+/* ==================================================================================================
+   EVERY WAY A CHILD GETS IN, ON THE SCREEN. *"so all kids can login easily with their handle and
+   pin."* `check-signin.js` asks the backend through the real `doPost`; these ask the phone's half —
+   that the form posts what the backend reads, that the answer is put where the child will look, and
+   that the tiles are drawn for the people the server will say yes to and nobody else.
+================================================================================================== */
+check('a child with no email makes their own account with a grown-up\'s address, and is handed their handle', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'register'
+    ? (b.parent_email ? { success: true, name: 'Ben Mum', pending: true, handle: 'ben_kind42', confirmBy: 'grown-up' }
+                      : { success: true, name: 'Rae Newcomer', pending: true, handle: 'rae_kind43', confirmBy: 'self' })
+    : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(120);
+  const open = () => { const reg = d.querySelector('#s-account [data-do="register"]'); if (reg) t.ACTIONS['register'](reg); return !!reg; };
+  if (!open()) return ['there is no Make an account tile to press'];
+  await wait(50);
+  const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
+  const tick = d.getElementById('reg-noemail');
+  if (!tick) return ['the register sheet has no "I have no email" tick, so a child with no address has no way in'];
+  if (tick.closest('label.check') === null) bad.push('the no-email tick is not the app\'s own .check control');
+  fill('reg-first', 'Ben'); fill('reg-last', 'Mum'); fill('reg-email', 'mum@example.org'); fill('reg-pin', '0000');
+  tick.checked = true;
+  sent.length = 0;
+  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  await wait(300);
+  const post = sent.find(b => b.action === 'register');
+  if (!post) return bad.concat(['the ticked form posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no register']);
+  if (post.parent_email !== 'mum@example.org') bad.push('the grown-up\'s address went as ' + JSON.stringify(post.parent_email) + ', not parent_email');
+  if (post.email) bad.push('the grown-up\'s address was ALSO sent as the child\'s own email — it would be their sign-in address');
+  const box = d.getElementById('in-name');
+  if (!box || box.value !== '@ben_kind42') bad.push('after registering with no email the sign-in box holds ' + JSON.stringify(box && box.value) + ' — not the handle the child signs in with');
+  const said = String((d.getElementById('toast') || {}).textContent || '');
+  if (!/@ben_kind42/.test(said) || !/grown-up/i.test(said)) bad.push('the toast after a no-email sign-up says ' + JSON.stringify(said) + ' — not the handle and not who opens the link');
+  /* AND UNTICKED IT IS THE ADDRESS IT ALWAYS WAS. */
+  await wait(50);
+  if (!open()) return bad.concat(['the Make an account tile went after one use']);
+  await wait(50);
+  fill('reg-first', 'Rae'); fill('reg-last', 'Newcomer'); fill('reg-email', 'rae@example.org'); fill('reg-pin', '0000');
+  sent.length = 0;
+  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  await wait(300);
+  const post2 = sent.find(b => b.action === 'register');
+  if (!post2 || post2.email !== 'rae@example.org' || post2.parent_email) bad.push('unticked, register posted ' + JSON.stringify(post2));
+  if (box && box.value !== 'rae@example.org') bad.push('unticked, the sign-in box holds ' + JSON.stringify(box.value) + ', not the address');
+  return bad;
+});
+
+check('a grown-up opening a no-email child\'s link is told the child\'s handle', async () => {
+  const { w } = boot({ url: 'https://example.org/?verify=Vkid42',
+    reply: b => b.action === 'verifyEmail'
+      ? { success: true, name: 'Ben Mum', handle: 'ben_kind42', noEmail: true, linkedTo: 'Mia Mum' } : { success: true } });
+  await wait(400);
+  const said = String((w.document.getElementById('toast') || {}).textContent || '');
+  const bad = [];
+  if (!/@ben_kind42/.test(said)) bad.push('the grown-up was told ' + JSON.stringify(said) + ' — not the handle the child signs in with');
+  if (/sign in with it/i.test(said)) bad.push('the grown-up was told to sign in with their own address, which signs nobody in for the child');
+  return bad;
+});
+
+check('a parent makes their child\'s account in Settings and is shown the handle and the PIN on a slip', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'makeChild'
+    ? { success: true, name: 'Ivy Parent', handle: 'ivy_kind42', personId: 'P-IVY' } : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk',
+           profile: { first_name: 'Pat', last_name: 'Parent' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const card = () => d.querySelector('#s-settings .kid-make');
+  if (!card()) return ['a parent\'s Settings has no "Make your child\'s account" card'];
+  const pages = [...d.querySelectorAll('#s-settings .page')];
+  const at = sel => pages.findIndex(p => p.querySelector(sel));
+  const add = pages.findIndex(p => /Add your child/.test(p.textContent));
+  if (add !== -1 && at('.kid-make') > add) bad.push('making a child\'s account comes after linking one — most children here have none');
+  const box = k => card().querySelector('[data-kid-new="' + k + '"]');
+  if (!box('first') || !box('last') || !box('pin')) return bad.concat(['the make card is missing one of first, last, PIN']);
+  if (box('last').value !== 'Parent') bad.push('the last name box is not filled with the parent\'s own (' + JSON.stringify(box('last').value) + ')');
+  if (box('pin').type !== 'password' || box('pin').inputMode !== 'numeric') bad.push('the PIN box is not a numeric password box');
+  box('first').value = 'Ivy';
+  for (const p of ['12a', '123']) {
+    box('pin').value = p;
+    sent.length = 0;
+    t.ACTIONS['kid-make'](card().querySelector('[data-do="kid-make"]'));
+    await wait(150);
+    if (sent.some(b => b.action === 'makeChild')) bad.push('a PIN of "' + p + '" was posted');
+  }
+  box('pin').value = '0000';
+  sent.length = 0;
+  t.ACTIONS['kid-make'](card().querySelector('[data-do="kid-make"]'));
+  await wait(400);
+  const post = sent.find(b => b.action === 'makeChild');
+  if (!post) return bad.concat(['Make their account posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no makeChild']);
+  const want = { firstName: 'Ivy', lastName: 'Parent', pin: '0000', personId: 'P-C1' };
+  Object.keys(want).forEach(k => { if (post[k] !== want[k]) bad.push('makeChild carried ' + k + ' = ' + JSON.stringify(post[k])); });
+  try { w.paint('settings'); } catch (e) {}
+  await wait(100);
+  const slip = card() && card().querySelector('.pin-slip');
+  if (!slip) bad.push('after the account was made there is no slip with the handle and PIN on the card');
+  else {
+    if (!/@ivy_kind42/.test(slip.textContent)) bad.push('the slip does not show the handle the server made');
+    if (!/0000/.test(slip.textContent)) bad.push('the slip does not show the PIN the parent chose');
+  }
+  /* A STUDENT HAS NOBODY TO MAKE AN ACCOUNT FOR. */
+  t.USER({ name: 'Sam Student', personId: 'P-S1', role: 'student', roles: ['student'], token: 'tk2' });
+  try { t.repaint(true); t.go('settings', false, true); w.paint('settings'); } catch (e) {}
+  await wait(200);
+  if (d.querySelector('#s-settings .kid-make')) bad.push('a student is offered "Make your child\'s account"');
+  if (d.querySelector('#s-settings .pin-slip')) bad.push('the parent\'s slip was still drawn for the next person signed in on the phone');
+  return bad;
+});
+
+check('New PIN is on a parent\'s child and on an admin\'s people, asks first, and shows the slip once', async () => {
+  const FRESH = ['4', '8', '2', '9', '1', '3'].join('');
+  const { w, sent } = boot({ reply: b => b.action === 'resetPin'
+    ? { success: true, name: 'Kit Parent', first: 'Kit', handle: 'kit_kind41', pin: FRESH } : { success: true } });
+  await wait(400);
+  if (!w.__t.accountPages) return ['accountPages_ is not exported — cannot check the account column'];
+  const t = w.__t, d = w.document, D = t.DATA(), bad = [];
+  const pageOf = name => t.accountPages().find(h => h.indexOf('>' + name + '<') !== -1) || '';
+
+  t.USER({ name: 'Pat Parent', personId: 'P-P', role: 'client', roles: ['client'], token: 'tk' });
+  D.family = [{ personId: 'P-K', title: 'Kit Parent', relation: 'child', handle: 'kit_kind41', image: '' }];
+  D.familyFor = 'P-P';
+  const kit = pageOf('Kit Parent');
+  if (!/data-do="kid-pin"[^>]*data-id="P-K"|data-id="P-K"[^>]*data-do="kid-pin"/.test(kit.replace(/\s+/g, ' ')))
+    bad.push('a parent\'s child card has no New PIN tile for that child');
+  try { t.go('account', false, true); w.paint('account'); } catch (e) { bad.push('drawing the account column threw: ' + e.message); }
+  await wait(150);
+  const tile = d.querySelector('#s-account [data-do="kid-pin"][data-id="P-K"]');
+  if (!tile) return bad.concat(['no New PIN tile on the screen to press']);
+  if (!tile.classList.contains('tile')) bad.push('New PIN is not a tile — a THING has tiles');
+  sent.length = 0;
+  t.ACTIONS['kid-pin'](tile);
+  await wait(80);
+  const sheet = d.getElementById('sheet');
+  if (!sheet || sheet.classList.contains('hidden')) return bad.concat(['pressing New PIN opened nothing to confirm in']);
+  if (sent.some(b => b.action === 'resetPin')) bad.push('pressing New PIN reset the PIN before asking');
+  const go_ = d.querySelector('#sheet-body [data-do="kid-pin-go"]');
+  if (!go_) return bad.concat(['the New PIN sheet has no button to say yes with']);
+  t.ACTIONS['kid-pin-go'](go_);
+  await wait(300);
+  const post = sent.find(b => b.action === 'resetPin');
+  if (!post || post.targetId !== 'P-K') bad.push('saying yes posted ' + JSON.stringify(post) + ' — wanted resetPin for P-K');
+  const slip = d.querySelector('#sheet-body .pin-slip');
+  if (!slip) bad.push('after the new PIN there is no slip in the sheet');
+  else if (!/@kit_kind41/.test(slip.textContent) || slip.textContent.indexOf(FRESH) === -1) bad.push('the slip does not show the handle and the new PIN: ' + JSON.stringify(slip.textContent.replace(/\s+/g, ' ')));
+  /* A PARENT'S OWN PARENT IS NOT THEIRS TO RESET — and a student's parent card carries no tile. */
+  t.USER({ name: 'Kit Parent', personId: 'P-K', role: 'student', roles: ['student'], token: 'tk3' });
+  D.family = [{ personId: 'P-P', title: 'Pat Parent', relation: 'parent', handle: 'pat_kind40', image: '' }];
+  D.familyFor = 'P-K';
+  if (/data-do="kid-pin"/.test(pageOf('Pat Parent'))) bad.push('a student\'s parent card carries a New PIN tile');
+  delete D.family; delete D.familyFor;
+
+  /* AN ADMIN: everybody who is not staff, "no handle yet" where there is none, and no tile without an id. */
+  t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk2' });
+  D.everyone = [
+    { personId: 'P-E1', title: 'Evie Nohandle', handle: '', role: 'Student', image: '' },
+    { personId: 'P-E2', title: 'Carl Handled', handle: 'carl_kind32', role: 'Client', image: '' },
+    { personId: '', title: 'Noa Noid', handle: 'noa_kind64', role: 'Student', image: '' },
+  ];
+  const evie = pageOf('Evie Nohandle'), carl = pageOf('Carl Handled'), noa = pageOf('Noa Noid');
+  if (!/no handle yet/.test(evie)) bad.push('the admin is not told a child has no handle yet');
+  if (/no handle yet/.test(carl)) bad.push('a person with a handle is said to have none');
+  if (!/data-do="kid-pin"/.test(evie) || !/data-do="kid-pin"/.test(carl)) bad.push('an admin\'s people card has no New PIN tile');
+  if (!/data-do="msg-open"/.test(evie)) bad.push('New PIN pushed Message off the admin\'s card');
+  if (/data-do="kid-pin"/.test(noa)) bad.push('a row with no id was given a New PIN tile that can name nobody to the server');
+  delete D.everyone;
+  t.USER(null);
+  return bad;
+});
+
+check('Forgotten your PIN? says what the server said, including that nobody can be written to', async () => {
+  const { w } = boot({ reply: b => b.action === 'forgotPin'
+    ? (b.who === 'lee_kind42'
+       ? { error: 'We have no email for this account, so we could not send a new PIN. Ask your parent or your tutor — they can give you one straight away.', why: 'no-inbox' }
+       : { success: true, message: 'A new PIN is on its way to your parent\'s inbox. Your old PIN still works until you use the new one.' })
+    : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null); t.go('account', false, true);
+  await wait(120);
+  const box = d.getElementById('in-name'), tile = d.querySelector('#s-account [data-do="forgot-pin"]');
+  if (!box || !tile) return ['the sign-in card has no name box or no forgot-PIN tile'];
+  box.value = 'lee_kind42';
+  t.ACTIONS['forgot-pin'](tile);
+  await wait(300);
+  let said = String((d.getElementById('toast') || {}).textContent || '');
+  if (!/no email for this account/i.test(said)) bad.push('a child nobody can be written to was told ' + JSON.stringify(said));
+  box.value = '@kit_kind41';
+  t.ACTIONS['forgot-pin'](d.querySelector('#s-account [data-do="forgot-pin"]') || tile);
+  await wait(300);
+  said = String((d.getElementById('toast') || {}).textContent || '');
+  if (!/old PIN still works/i.test(said)) bad.push('the sent case toasted ' + JSON.stringify(said) + ' — not the server\'s sentence');
+  return bad;
+});
+
 check('each stage tick takes the date it actually happened on', async () => {
   /* ==================================================================================================
      ASKED FOR AS *"The tick boxes have a date for when it got requested. When other things get
