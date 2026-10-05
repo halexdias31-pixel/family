@@ -2080,32 +2080,39 @@ const STATES = {
       },
       wants: 'three insurance items, each with its date box, and the one due soon flagged' },
 
-    /* ---------- THE QUALIFICATIONS: A LIST YOU READ, AND ONE EDITOR AT A TIME ----------------------
-       REPORTED AS *"the current system for adding qualifications is really hard to understand."* The
-       shelf is a read list now — a bold subject, its levels as plain lines, a word button `Edit` on
-       each — and an editor opens in place of the one row being changed. What this asserts is the
-       DATA CONTRACT the redraw must not break, and the SHAPE the owner asked for:
+    /* ---------- THE QUALIFICATIONS: ONE LINE A QUALIFICATION, AND IT FITS ---------------------------
+       ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take
+       up less space."* Measured before: seven qualifications were 900px at 320x568 — drawn at 70%,
+       the floor, and still scrolling. What this asserts, at every width, is the shape and the DATA
+       CONTRACT under it:
        - all seventy `qual_*` boxes in the form, drawn or not, because `qualsIn` rebuilds the person's
          rows from what arrives and a slot missing from the form is a qualification deleted on Save;
-       - Maths once, with its two levels under it, and the degree a level of its own subject;
-       - no checkbox anywhere on the shelf: Teach and Can teach are HIDDEN boxes holding TRUE/FALSE,
-         read here as values — GCSE taught (so both TRUE), A-Level can-teach only;
-       - an `Edit` per level and per subject, no glyph to decode, and no `data-me` on a control that
-         is not an answer.
+       - one line a qualification, each subject named once, the level over the grade in the profile
+         chip's own `.prof-iso`, and the DBS written plain;
+       - Teach and Can teach as HIDDEN TRUE/FALSE boxes, no checkbox and no glyph to decode;
+       - one `+` tile and no Save — every answer saves itself;
+       - AND THE CARD FITS ITS PANE AT FULL SIZE: its own height (a zoomed card's `clientHeight` is
+         still its height at zoom 1) is no more than the pane's. That is the "less space", as a number
+         this file can fail on, rather than as a screenshot somebody has to remember to take.
        FOUND BY ASKING THE DOM for the tenth slot's place box, which exists whether or not it shows. */
     { name: 'the qualifications',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        /* TWO LEVELS OF ONE SUBJECT AND A DEGREE, through `USER.profile`, which is what the column is
-           drawn from. The two Maths records must be ONE subject with two levels under it. Written
-           out in each state rather than shared, because a state is sent to the page as source. */
+        /* THREE SUBJECTS AT TWO LEVELS AND AN ENHANCED DBS, through `USER.profile`, which is what the
+           column is drawn from — the tutor the redesign was measured with. Written out in each state
+           rather than shared, because a state is sent to the page as source. */
         window.STATE_QUAL_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {}, {
-          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8', qual_1_board: 'Hill Top School', qual_1_received: '2017',
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_board: 'Hill Top School', qual_1_received: '2016',
           qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
-          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2019',
-          qual_2_teach: 'TRUE',
-          qual_3: 'Bible and Theology', qual_3_level: 'Degree', qual_3_received: 'Present' });
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2018',
+          qual_2_teach: 'TRUE', qual_2_spec: 'TRUE',
+          qual_3: 'Physics', qual_3_level: 'GCSE', qual_3_grade: '8', qual_3_received: '2016', qual_3_teach: 'TRUE',
+          qual_4: 'Physics', qual_4_level: 'A-Level', qual_4_grade: 'A', qual_4_board: 'Hill Top Sixth Form', qual_4_received: '2018',
+          qual_4_teach: 'TRUE',
+          qual_5: 'English Literature', qual_5_level: 'GCSE', qual_5_grade: '7', qual_5_received: '2016',
+          qual_6: 'English Literature', qual_6_level: 'A-Level', qual_6_grade: 'B', qual_6_received: '2018',
+          qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025' });
         /* A CLEAN COLUMN FIRST — see the agreement state above. */
         document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
@@ -2123,51 +2130,47 @@ const STATES = {
         const pg = document.querySelector('#s-settings .page.on');
         const shelf = pg && pg.querySelector('.q-shelf');
         if (!shelf) return 0;
-        const subjects = [...shelf.querySelectorAll('.q-subj')];
-        const maths = subjects.find(sj => sj.dataset.name === 'Maths');
-        const slotsOf = sj => [...sj.querySelectorAll('.q-levels > .q-slot')];
-        const val = (sl, k) => ((sl && sl.querySelector('[data-me="qual_' + sl.dataset.slot + k + '"]')) || {}).value;
-        const levelOf = lvl => maths && slotsOf(maths).find(sl => val(sl, '_level') === lvl);
+        const lines = [...shelf.querySelectorAll('.q-list .q-line')];
         const flags = [...shelf.querySelectorAll('[data-me$="_spec"], [data-me$="_teach"]')];
+        const card = shelf.closest('.card'), pane = shelf.closest('.pane');
         return pg.querySelectorAll('[data-me^="qual_"]').length === 70
-          /* NO SAVE TILE ON THIS CARD — every editor saves itself. */
           && pg.querySelectorAll('[data-do="me-save"]').length === 0
-          && subjects.length === 2 && !!maths
-          && shelf.querySelectorAll('.q-head').length === 2
-          && slotsOf(maths).length === 2
-          && slotsOf(maths).every(sl => val(sl, '') === 'Maths')
-          && subjects.some(sj => sj.dataset.name === 'Bible and Theology')
+          && lines.length === 7
+          && lines.map(l => l.querySelector('.q-who').textContent.trim()).filter(Boolean).join('|') === 'Maths|Physics|English Literature|DBS'
+          && shelf.querySelectorAll('.q-list .prof-iso sup + sub').length === 6
+          && (lines[6].querySelector('.q-plain') || {}).textContent === 'Enhanced'
+          && shelf.querySelectorAll('.q-list .q-chip').length === 2
           && !shelf.querySelector('input[type="checkbox"]')
           && flags.length === 20 && flags.every(b => b.type === 'hidden')
-          && val(levelOf('A-Level'), '_spec') === 'FALSE' && val(levelOf('A-Level'), '_teach') === 'TRUE'
-          && val(levelOf('GCSE'), '_spec') === 'TRUE' && val(levelOf('GCSE'), '_teach') === 'TRUE'
-          && shelf.querySelectorAll('.q-levels > .q-slot [data-do="qual-edit"]').length === 3
-          && shelf.querySelectorAll('[data-do="qual-subj-edit"]').length === 2
           && !/[✓★▸▾✕]/.test(shelf.textContent)
-          && !shelf.querySelector('.q-seg [data-me], .q-acts [data-me]')
-          /* THE GOLD CHIP ON GCSE ONLY, and nothing open. */
-          && shelf.querySelectorAll('.q-chip').length === 1 && !!levelOf('GCSE').querySelector('.q-chip')
-          && !shelf.querySelector('.is-editing')
-          && !!shelf.querySelector('input[data-me$="_board"]')
+          && shelf.querySelectorAll('.tile[data-do="qual-add"]').length === 1
+          && !shelf.querySelector('.is-open')
+          && !!card && !!pane && card.clientHeight <= pane.clientHeight
           ? 70 : 0;
       },
-      wants: 'Maths drawn once with GCSE and A-Level as read rows under it, a degree as a level of its own subject, Teach as hidden TRUE/FALSE boxes, an Edit per level and subject, and no glyphs or checkboxes' },
-    /* AND THE A-LEVEL EDITOR OPEN, through the page's own `Edit`. One thing open, the three-way control
-       drawn with `Can teach` lit (that is what the A-Level holds), every caption above its box, and
-       `Still studying` offered in Finished. Every other `Edit` is off the page while it is open. */
-    { name: 'the qualifications, one level open',
+      wants: 'seven qualifications as seven lines in the profile chip\'s notation, each subject once, one + tile, Teach as hidden boxes, and the card at full size inside its pane' },
+    /* AND THE PHYSICS A-LEVEL OPEN, through a tap on its own line. One thing open, in place — every
+       other line still on the card — the three-way control with `Can teach` lit (that is what it
+       holds), every box captioned, `Still studying` offered in Finished, and the tick and the bin at
+       opposite ends of their row. */
+    { name: 'the qualifications, one line open',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        /* TWO LEVELS OF ONE SUBJECT AND A DEGREE, through `USER.profile`, which is what the column is
-           drawn from. The two Maths records must be ONE subject with two levels under it. Written
-           out in each state rather than shared, because a state is sent to the page as source. */
+        /* THREE SUBJECTS AT TWO LEVELS AND AN ENHANCED DBS, through `USER.profile`, which is what the
+           column is drawn from — the tutor the redesign was measured with. Written out in each state
+           rather than shared, because a state is sent to the page as source. */
         window.STATE_QUAL_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {}, {
-          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8', qual_1_board: 'Hill Top School', qual_1_received: '2017',
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_board: 'Hill Top School', qual_1_received: '2016',
           qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
-          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2019',
-          qual_2_teach: 'TRUE',
-          qual_3: 'Bible and Theology', qual_3_level: 'Degree', qual_3_received: 'Present' });
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2018',
+          qual_2_teach: 'TRUE', qual_2_spec: 'TRUE',
+          qual_3: 'Physics', qual_3_level: 'GCSE', qual_3_grade: '8', qual_3_received: '2016', qual_3_teach: 'TRUE',
+          qual_4: 'Physics', qual_4_level: 'A-Level', qual_4_grade: 'A', qual_4_board: 'Hill Top Sixth Form', qual_4_received: '2018',
+          qual_4_teach: 'TRUE',
+          qual_5: 'English Literature', qual_5_level: 'GCSE', qual_5_grade: '7', qual_5_received: '2016',
+          qual_6: 'English Literature', qual_6_level: 'A-Level', qual_6_grade: 'B', qual_6_received: '2018',
+          qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025' });
         /* A CLEAN COLUMN FIRST — see the agreement state above. */
         document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
@@ -2175,11 +2178,12 @@ const STATES = {
         const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
         if (at < 0) throw new Error('no qualifications page on the settings column');
         goPage('settings', at, true);
-        /* AND THE A-LEVEL OPENED THROUGH ITS OWN `Edit`. */
-        const slot = [...pages[at].querySelectorAll('.q-slot')].find(sl =>
-          (sl.querySelector('[data-me$="_level"]') || {}).value === 'A-Level');
-        if (!slot) throw new Error('no A-Level row on the qualifications page');
-        slot.querySelector('[data-do="qual-edit"]').click();
+        /* AND THE PHYSICS A-LEVEL OPENED THROUGH ITS OWN LINE. */
+        const slot = [...pages[at].querySelectorAll('.q-list .q-slot')].find(sl =>
+          (sl.querySelector('[data-me$="_level"]') || {}).value === 'A-Level'
+          && (sl.querySelector('select.q-name') || {}).value === 'Physics');
+        if (!slot) throw new Error('no Physics A-Level line on the qualifications page');
+        slot.querySelector('.q-line').click();
       },
       leave: () => {
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
@@ -2190,18 +2194,23 @@ const STATES = {
         const pg = document.querySelector('#s-settings .page.on');
         const shelf = pg && pg.querySelector('.q-shelf');
         if (!shelf) return 0;
-        const open = [...shelf.querySelectorAll('.is-editing')];
+        const open = [...shelf.querySelectorAll('.q-slot.is-open')];
         const ed = open[0] && open[0].querySelector(':scope > .q-ed');
         const visible = el => !!(el.offsetWidth || el.offsetHeight);
-        return shelf.classList.contains('is-editing') && open.length === 1 && !!ed
+        const tick = ed && ed.querySelector('.tile[data-do="qual-done"]'), bin = ed && ed.querySelector('.tile[data-do="qual-drop"]');
+        return open.length === 1 && !!ed && visible(ed)
+          && open[0].querySelector('.q-line').getAttribute('aria-expanded') === 'true'
+          && [...shelf.querySelectorAll('.q-list .q-line')].length === 7
+          && [...shelf.querySelectorAll('.q-list .q-line')].every(visible)
           && ed.querySelectorAll('[data-do="qual-teach"]').length === 3
           && (ed.querySelector('[data-do="qual-teach"][aria-pressed="true"]') || {}).dataset.v === 'teach'
+          && ed.querySelectorAll('label.field').length === 5
           && [...ed.querySelectorAll('label.field')].every(l => !!(l.querySelector(':scope > span') || {}).textContent)
           && [...ed.querySelectorAll('select[data-me$="_received"] option')].some(o => o.textContent === 'Still studying' && o.value === 'Present')
-          && [...shelf.querySelectorAll('[data-do="qual-edit"], [data-do="qual-subj-edit"], [data-do^="qual-add"]')].every(b => !visible(b))
+          && !!tick && !!bin && bin.getBoundingClientRect().left - tick.getBoundingClientRect().right > 60
           ? 1 : 0;
       },
-      wants: 'one editor open in place of the A-Level row, its captions above the boxes, Can teach lit, and every other Edit off the page' },
+      wants: 'the Physics A-Level open in place under its line, the other six lines still there, five captioned boxes, Can teach lit, and the tick and the bin at opposite ends' },
 
     /* ---------- THE THREE DATE-OF-BIRTH BOXES, ON A GROUP THE FIXTURE DID NOT HAVE ---------------
        `check/fixture.json` SENT NO `Contact` GROUP, so nothing in this lab had ever drawn a date of

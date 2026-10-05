@@ -1983,10 +1983,10 @@ function settingsPages_() {
          the two it has never been told about — see the note over it. */
       options: fieldOptions_,
     })}
-      ${/* THE QUALIFICATIONS CARD HAS NO SAVE OF ITS OWN: every editor on its shelf saves itself, in
-            place, a finger's width from the thing being changed — see `qualShelf_`. A second Save at
-            the foot of the card would be two ways to keep one change, and the far one is the one
-            somebody forgets. Only a card that is nothing but the shelf. */
+      ${/* THE QUALIFICATIONS CARD HAS NO SAVE OF ITS OWN: every answer on it is saved the moment it
+            is chosen, through the same `meSave_` — see `qualShelf_`. A Save at the foot of the card
+            would be a second way to keep a change already kept, and the one somebody would wait to
+            press. Only a card that is nothing but the shelf. */
         (groups[g] || []).length && (groups[g] || []).every(isQualField_) ? ''
         : `<div class="tile-row">${tile_({ icon: 'save', label: 'Save', act: 'me-save' })}</div>`}
       <p class="faint me-said"></p></div>
@@ -2611,7 +2611,7 @@ const FIELD_MULTI = { venues_ok: true };
 /* ---------- AND ONE SHELF SLOT'S LIST OFF THE FIRST SLOT'S -------------------------------------
    `FIELD_OPTIONS` sends `qual_1_level` ONCE rather than ten times — see its note in constants.gs —
    so `qual_7_level` asks for `qual_1`'s list here. (What a tutor teaches is no longer a field: it is
-   the three-way Teach / Can teach / No control on each qualification level — see `qualSlot_`.) */
+   the three-way Teach / Can teach / Not teaching control on each qualification — see `qualSlot_`.) */
 function fieldOptions_(f) {
   const v = (typeof DATA !== 'undefined' && DATA && DATA.validations) || {};
   const dd = (typeof DATA !== 'undefined' && DATA && DATA.dropdowns) || {};
@@ -3324,6 +3324,9 @@ function qualSet_(slot, vals) {
    line never saved, emptied); `open` is the slot to open again in the new shelf. */
 function qualRedraw_(shelf, over, open) {
   if (!shelf || !shelf.isConnected) return null;
+  /* A KEYBOARD STAYS WHERE IT WAS. The line that was pressed is replaced, and focus on a removed
+     element falls to the page — so a line opened from the keyboard hands focus to its new self. */
+  const had = shelf.contains(document.activeElement);
   const vals = {}, list = [];
   shelf.querySelectorAll('[data-me]').forEach(b => { list.push(b.dataset.me); vals[b.dataset.me] = b.value; });
   Object.assign(vals, over || {});
@@ -3332,8 +3335,10 @@ function qualRedraw_(shelf, over, open) {
   const next = hold.firstElementChild;
   shelf.replaceWith(next);
   const again = open != null && next.querySelector('.q-list .q-slot[data-slot="' + open + '"]');
-  if (again) qualOpen_(again);
-  else if (typeof placeCells === 'function') { try { placeCells('y', true, 0, 'settings'); } catch (e) {} }
+  if (again) {
+    qualOpen_(again);
+    if (had) { try { again.querySelector('.q-line').focus({ preventScroll: true }); } catch (e) {} }
+  } else if (typeof placeCells === 'function') { try { placeCells('y', true, 0, 'settings'); } catch (e) {} }
   return next;
 }
 /* WHAT SHUTTING THE OPEN LINE PUTS BACK: its last saved answers — a save that failed said so under the
@@ -3351,7 +3356,6 @@ function qualOpen_(slot) {
   const shelf = slot && slot.closest('.q-shelf');
   if (!shelf) return;
   slot.classList.add('is-open');
-  shelf.classList.add('is-editing');
   const line = slot.querySelector(':scope > .q-line');
   if (line) line.setAttribute('aria-expanded', 'true');
   if (!slot.dataset.was) slot.dataset.was = JSON.stringify(slot.dataset.new ? qualBlank_(slot) : qualValues_(slot));
@@ -3857,10 +3861,11 @@ function initAvail() {
    repository already records, which would have written "Saving…" onto the wrong card. */
 on('me-save', el => { meSave_(el); });
 /* ---------- THE SAVE ITSELF, LIFTED OUT SO THE QUALIFICATION EDITORS CAN CALL IT ---------------------
-   The qualifications shelf has no Save tile: each editor's own button saves (see `qualShelf_`). So the
-   round trip is a function both call rather than a second copy of it, and it answers whether the card
-   was kept — `true` once the server has said so, `false` for a refusal said here or there — so an
-   editor can close on a yes and stay open, with every answer in it, on a no. */
+   The qualifications card has no Save tile: each answer on it is saved as it is chosen (see
+   `qualShelf_`). So the round trip is a function both call rather than a second copy of it, and it
+   answers whether the card was kept — `true` once the server has said so, `false` for a refusal said
+   here or there — so a line can take its next answer on a yes and keep the unsaved one in its box,
+   for the tick to try again, on a no. */
 function meSave_(el) {
   return new Promise(resolve => {
   /* AND A THIRD SURFACE, WHICH IS THE SETTINGS COLUMN. Each group the backend sends is a card of
@@ -3882,9 +3887,9 @@ function meSave_(el) {
   /* A QUALIFICATION WITH NO SUBJECT. `Add a subject` left unnamed saved as `:GCSE::8` — a card with
      no name that never counted towards what you teach. Said here, before anything is sent, because
      dropping it on the server would be something typed and gone under a toast saying Saved. */
-  /* ASKED OF EACH SLOT: its hidden `qual_N` is the name that is saved, and any visible box with an
-     answer in it is a qualification. Hidden boxes are skipped because Teach and Can teach are hidden
-     and always hold a word. */
+  /* ASKED OF EACH SLOT: its `qual_N` box (the subject's select) is the name that is saved, and any
+     visible box with an answer in it is a qualification. Hidden boxes are skipped because Teach and
+     Can teach are hidden and always hold a word. */
   const nameless = [...box.querySelectorAll('.q-shelf .q-slot')].some(slot => {
     const n = slot.querySelector('[data-me="qual_' + slot.dataset.slot + '"]');
     return !(n && String(n.value || '').trim())
