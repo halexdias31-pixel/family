@@ -4624,6 +4624,12 @@ const camBoot_ = o => {
 };
 /* PAST `afterSlide_`'s 300ms and any settle, which is when `goPage` runs `feedCamWatch_`. */
 const CAM_SLIDE = 700;
+/* AND LONGER ONLY WHEN THE ANSWER IS NOT IN YET -- for the waits that expect the camera TO be asked.
+   Inside a full `check-all` beside eight browsers and other worktrees' runs, 700ms of wall clock was
+   not always past the slide: "swiping up asked 0 time(s)" on two runs in a row, a different case each
+   time, and never when this journey ran alone. A wait that expects NOTHING to happen keeps the fixed
+   700ms, because absence cannot be polled for. */
+const camAsked_ = async pred => { await wait(CAM_SLIDE); for (let i = 0; i < 40 && !pred(); i++) await wait(100); };
 
 check('the camera asks for nothing until somebody swipes up to it', async () => {
   const bad = [];
@@ -4648,7 +4654,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     b.w.__t.repaint(); await wait(CAM_SLIDE);
     if (b.gum.asks !== before) bad.push('a repaint on the front door asked for the camera');
 
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await camAsked_(() => b.gum.asks === before + 1);
     if (b.gum.asks !== before + 1) bad.push(`swiping up to the camera asked ${b.gum.asks - before} time(s), not once`);
     if (b.gum.open !== 1) bad.push(`swiping up to the camera left ${b.gum.open} stream(s) open, not one`);
     b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE);
@@ -4664,7 +4670,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
     b.w.__t.go('stuff'); await wait(CAM_SLIDE);
     if (b.gum.open) bad.push('leaving the feed from the camera page left the camera running');
-    b.w.__t.go('feed'); await wait(CAM_SLIDE);
+    b.w.__t.go('feed'); await camAsked_(() => b.gum.asks === before + 3);
     if (b.gum.asks !== before + 3) bad.push(`coming back to the feed on the camera page asked ${b.gum.asks - before - 2} time(s), not once`);
     if (b.gum.open !== 1) bad.push(`coming back to the camera page left ${b.gum.open} stream(s) open, not one`);
   }
@@ -4685,7 +4691,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     if (b.cam() !== 1) bad.push(`with one festive card the camera is page ${b.cam()}, not 1, so that case was NOT checked`);
     if (b.gum.asks) bad.push('with a festive card above the camera, opening the app asked for it');
     if (b.page() !== 2) bad.push(`with a festive card the feed opened on page ${b.page()}, not the newest post at 2`);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await camAsked_(() => b.gum.asks === 1);
     if (b.gum.asks !== 1) bad.push(`with a festive card, swiping up to the camera asked ${b.gum.asks} time(s), not once`);
   }
 
@@ -4697,7 +4703,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     await wait(400);
     if (b.gum.asks) bad.push('with a festive card and no posts, opening the app asked for the camera');
     if (b.page() === b.cam()) bad.push('with a festive card and no posts, the feed opened ON the camera page');
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await camAsked_(() => b.gum.asks === 1);
     if (b.gum.asks !== 1) bad.push(`with a festive card and no posts, turning to the camera asked ${b.gum.asks} time(s), not once`);
   }
 
@@ -4708,7 +4714,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
   {
     const b = camBoot_({ user: rasa, refuse: true });
     await wait(400);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await camAsked_(() => b.gum.asks === 1);
     if (b.gum.asks !== 1) bad.push(`refused: swiping up asked ${b.gum.asks} time(s), not once`);
     b.w.__t.repaint(); await wait(CAM_SLIDE);
     if (b.gum.asks !== 1) bad.push('refused: a repaint on the camera page asked again — a prompt nobody swiped for');
@@ -4719,7 +4725,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     if (on) { b.w.__t.ACTIONS['cam-on'](on); await wait(50); }
     if (b.gum.asks !== 2) bad.push('refused: `Try the camera again` did not ask again');
     b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await camAsked_(() => b.gum.asks === 3);
     if (b.gum.asks !== 3) bad.push('refused: swiping down and back up to the camera did not ask again');
   }
 
