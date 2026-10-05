@@ -118,7 +118,11 @@ const STATES = {
                          { field: 'kindLabel', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
-                         { field: 'keystage', value: 'KS2' },
+                         /* `Level · KS2 SATs`, WHERE THIS WAS `Key stage · KS2` — *"I prefer GCSE or
+                            SATs over grey areas."* A primary sheet's key stage is said as its
+                            qualification now, and Key stage is silent on it (see `keystage` in
+                            find.js), so the old answer reached nothing and the state went unmeasured. */
+                         { field: 'level', value: 'KS2 SATs' },
                          { field: 'yearGroup', any: true }];
         paintStuff();
         goPage('stuff', 0, true);

@@ -4024,6 +4024,41 @@ check('a student sees their parents, a parent their children, on the account col
   return bad;
 });
 
+check('an admin sees everyone on the people column, and nobody else sees more than before', async () => {
+  /* ---------- ASKED FOR AS "Admin should be able to see every one in the people column." ---------
+     WHO IS IN `DATA.everyone` IS THE SERVER'S QUESTION and `check-profile.js` asks it through the
+     real `doGet` (admin token only, no private cell). This asks the phone's half: an admin's column
+     draws one card per person sent, with a Message tile under it and no Listed switch; a student
+     handed the same list — `DATA` outlives a sign-out — draws none of it; and nobody is drawn twice. */
+  const { w } = boot();
+  await wait(400);
+  if (!w.__t.accountPages) return ['accountPages_ is not exported — cannot check the account column'];
+  const bad = [];
+  const D = w.__t.DATA();
+  const all = () => w.__t.accountPages().join('');
+  const count = n => w.__t.accountPages().filter(h => h.indexOf('>' + n + '<') !== -1).length;
+  D.everyone = [
+    { personId: 'P-E1', title: 'Evie Everystudent', handle: 'evie_calm31', role: 'Student', image: '' },
+    { personId: 'P-E2', title: 'Carl Everyclient', handle: 'carl_kind32', role: 'Client', image: '' },
+    { personId: 'P-AD', title: 'Ada Admin', handle: 'ada_brave33', role: 'Client', image: '' },
+  ];
+  w.__t.USER({ name: 'Sam Student', personId: 'P-S', role: 'student', roles: ['student'] });
+  if (/Evie Everystudent|Carl Everyclient/.test(all())) bad.push('a student was drawn the admin\'s `everyone` list');
+
+  w.__t.USER({ name: 'Ada Admin', personId: 'P-AD', role: 'admin', roles: ['admin'], token: 'tk' });
+  if (count('Evie Everystudent') !== 1) bad.push('an admin\'s column drew the student ' + count('Evie Everystudent') + ' time(s), not once');
+  if (count('Carl Everyclient') !== 1) bad.push('an admin\'s column drew the client ' + count('Carl Everyclient') + ' time(s), not once');
+  if (count('Ada Admin') !== 1) bad.push('the admin is on ' + count('Ada Admin') + ' pages of their own column, not 1');
+  const evie = w.__t.accountPages().find(h => h.indexOf('>Evie Everystudent<') !== -1) || '';
+  if (!/data-do="msg-open"/.test(evie)) bad.push('a student on the admin\'s column has no Message tile');
+  if (/data-do="set-listed"/.test(evie)) bad.push('a student on the admin\'s column carries the tutor-only Listed switch');
+  if (/prof-nohours/.test(evie)) bad.push('a student on the admin\'s column is told they "haven\'t set their hours", a tutor\'s warning');
+  delete D.everyone;
+  if (/Evie Everystudent/.test(all())) bad.push('with no `everyone` key the student was drawn anyway');
+  w.__t.USER(null);
+  return bad;
+});
+
 check('every pager counts the pages its screen actually draws', async () => {
   /* ---------- THE BUG THIS IS WRITTEN FOR, AND IT HAS HAPPENED THREE TIMES ------------------------
      `PAGER.account` counted `mePages()`. That function fed the old You COLUMN and says so in its

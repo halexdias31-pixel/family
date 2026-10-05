@@ -29,7 +29,7 @@ const DOPOST_VERSION = "2026-10-04-a-noquiz";
 /* The part of signing in that comes after the row has been found, shared by the address door and the
    handle door so the two cannot drift: no PIN set, the lock, the PIN, the unconfirmed address, the
    session. See `verifyLogin`. */
-function signInRow_(t0, r, body) {
+function signInRow_(t0, r, body, by) {
   if (!hasPin_(r)) return jsonOut({ success: false, why: 'no-pin',
     error: 'That account has no PIN set yet — ask us to add one.' });
   /* LOCKED IS ANSWERED BEFORE THE PIN IS LOOKED AT, so guessing costs the same whether the
@@ -56,7 +56,10 @@ function signInRow_(t0, r, body) {
        which half was wrong over that. What still stands between a guesser and a PIN is the
        throttle above, which is untouched. */
     return jsonOut({ success: false, why: 'wrong-pin',
-      error: norm(r.email) ? 'Wrong PIN for that email address.' : 'Wrong PIN for that handle.' });
+      /* `by` IS WHICH DOOR WAS USED, not whether the row has an address: a student with an
+         address who signed in by handle typed a handle, and "wrong PIN for that email address"
+         would name a thing they never typed. Left out, it is the old rule. */
+      error: (by ? by === 'handle' : !norm(r.email)) ? 'Wrong PIN for that handle.' : 'Wrong PIN for that email address.' });
   }
   // Only accounts that WERE asked to confirm are held back. A blank means the account predates
   // this and was never sent a link, so it isn't unverified — it's just older.
@@ -415,29 +418,44 @@ function doPost(e) {
          key, the first match would be somebody signing in as whoever happens to sit higher on the
          tab. `emailRefusal_` stops a duplicate being SAVED from the app; a duplicate typed into the
          sheet by hand is what this answers, in a sentence that says who can fix it. */
-      const mail = norm(body.email || body.name);
+      /* A LEADING `@` IS DROPPED, because every card on the site prints a handle as `@halex_kind42`
+         and that is what somebody copies. No address starts with one, so nothing else changes. */
+      const mail = norm(body.email || body.name).replace(/^@+/, '');
       /* ---------- A PERSON WITH NO ADDRESS SIGNS IN WITH THEIR HANDLE ------------------------------
          ASKED FOR AS *"i have a student who doesnt have an email ... so he can still login."* A child
          is the usual case, and the address cannot be invented: a made-up one is a WRONG cell that
          every notice would post into and report success. So a row whose `email` cell is blank
          answers to its handle (`halex_kind42`, unique by `handleTrouble_`) and its PIN.
 
-         ONLY A ROW WITH NO ADDRESS, and that is the rule that keeps this safe: an account that has
-         an address can only be reached by it, so a handle typed here can never claim somebody who
-         signs in the ordinary way. And the handle is only ever looked up among blank-address rows,
-         so it cannot collide with an address either. Two blank rows on one handle is refused, as
-         two rows on one address is. The throttle is per person, so a guessed handle gets exactly
-         the guesses a guessed address does. */
+         ---------- AND NOW EVERY ROW DOES, ADDRESS OR NOT ------------------------------------------
+         ASKED FOR AS *"have the students be able to login with their handles too"* — the student who
+         HAS an address was the one left out: the box says "email or handle", the handle is on their
+         own profile, and typing it answered "sign in with the email on your account". The first
+         version looked the handle up among blank-address rows ONLY, and its reason was that "an
+         account that has an address can only be reached by it". That reason was about COLLISION, and
+         collision is answered without it: this branch is only taken when what was typed has no `@`,
+         and `HANDLE_SHAPE` (letters, digits, underscores) can never hold one — so a handle and an
+         address cannot be the same string, whichever rows are searched. What stands between a
+         guesser and a PIN is the per-person throttle in `signInRow_`, and a handle meets it exactly
+         as an address does. Handles were PUBLIC long before this (they are on every card), so the
+         throttle and the six-digit PIN, not the secrecy of the name, were always the guard.
+
+         `key` FOLDS CASE AND DROPS `_` AND `@`, so `@Halex_Kind42`, `halexkind42` and
+         `HALEX_KIND42` are one handle — and so are the 1 October shape (`halex_kind42`) and today's
+         shuffled ones (`kind42_halex`), because the lookup is the cell, not the arrangement. Two
+         rows on one handle (only possible by hand — `handleTrouble_` refuses it everywhere else) is
+         refused, as two rows on one address is. The PENDING rule and the wording live in
+         `signInRow_`, unchanged; its wrong-PIN sentence names the half that was typed. */
       if (mail.indexOf('@') === -1) {
         const h = key(body.email || body.name);
-        const noMail = h ? t0.rows.filter(x => !norm(x.email) && key(x.handle) === h) : [];
-        if (noMail.length === 1) return signInRow_(t0, noMail[0], body);
-        if (noMail.length > 1) {
+        const byHandle = h ? t0.rows.filter(x => key(x.handle) === h) : [];
+        if (byHandle.length === 1) return signInRow_(t0, byHandle[0], body, 'handle');
+        if (byHandle.length > 1) {
           return jsonOut({ success: false,
             error: 'That handle is on more than one account — ask us to sort it out.' });
         }
         return jsonOut({ success: false, why: 'not-an-email',
-          error: 'Sign in with the email on your account — or, if you have no email, your handle (like halex_kind42).' });
+          error: 'Sign in with the email on your account — or your handle (like halex_kind42).' });
       }
       const hits = t0.rows.filter(x => norm(x.email) === mail);
       if (hits.length > 1) {
@@ -1381,22 +1399,32 @@ function doPost(e) {
         message: 'If there is an account with that, a new PIN is on its way. Check your '
                + 'inbox (a child with no email: the parent\'s inbox), then change it in your settings.' };
 
-      const asked = norm(body.who);
-      if (!asked) return jsonOut({ error: 'Type your email address, or your handle if you have no email, first.' });
+      const asked = norm(body.who).replace(/^@+/, '');   // `@halex_kind42` as cards print it — see verifyLogin
+      if (!asked) return jsonOut({ error: 'Type your email address or your handle first.' });
 
       const tPeople = read(TAB.people);
-      /* ---------- A PERSON WITH NO ADDRESS: THE NEW PIN GOES TO THEIR PARENT ---------------------
-         A handle typed here finds a row with NO address, and a new PIN is sent to the address of
-         each parent who has accepted the link (`acceptedParents`) — the person who would be asked
-         anyway, and a mailbox that is not the child's. No linked parent means nothing is sent and
-         the admin resets it by hand (`changePin`). The reply is the same sentence either way, so a
-         stranger typing handles learns nothing. The throttle is cleared as for an address. */
+      /* ---------- A HANDLE: THE NEW PIN GOES TO THE ACCOUNT'S OWN ADDRESS, OR ITS PARENTS ---------
+         A handle typed here finds its row among EVERY row now, as `verifyLogin` does — the handle
+         door is open to everybody, so the way back through it must be too. Where the PIN goes is
+         the row's own address when it has one: the same inbox the address door below would send to,
+         so typing the handle instead of the address reaches nobody new. A row with NO address sends
+         to each parent who has accepted the link (`acceptedParents`) — the person who would be asked
+         anyway, and a mailbox that is not the child's. Neither means nothing is sent and the admin
+         resets it by hand (`changePin`). The reply is the same sentence in every case, so a
+         stranger typing handles learns nothing. The throttle is cleared as for an address.
+
+         `pin` WAS THE NAME IN THE MAIL BODY HERE, and no `pin` exists in this scope: the
+         ReferenceError was thrown inside the `try` that guards the mail quota, swallowed, and the
+         reply said the PIN was on its way — while the PIN HAD been changed. A child asking for a
+         new PIN was locked out of the old one and never sent the new one. It is `fresh2`. */
       if (asked.indexOf('@') === -1) {
         const hk = key(body.who);
-        const hh = hk ? tPeople.rows.filter(x => !norm(x.email) && key(x.handle) === hk) : [];
+        const hh = hk ? tPeople.rows.filter(x => key(x.handle) === hk) : [];
         if (hh.length !== 1) return jsonOut(said);
         const kid = hh[0];
-        const tos = acceptedParents(S(kid.person_id)).map(p => S(p.email)).filter(Boolean);
+        const own = S(kid.email);
+        const tos = own ? [own]
+                        : acceptedParents(S(kid.person_id)).map(p => S(p.email)).filter(Boolean);
         if (!tos.length) return jsonOut(said);
         let fresh2 = '';
         for (let tries = 0; tries < 20; tries++) {
@@ -1408,10 +1436,18 @@ function doPost(e) {
         authClearThrottle_(tPeople, krow);
         clearCache();
         try {
-          MailApp.sendEmail({ to: tos.join(','), name: BRAND_NAME,
-            subject: 'A new ' + BRAND_NAME + ' PIN for ' + S(kid.first_name),
-            body: S(kid.first_name) + ' asked for a new PIN.\n\nThe new PIN is ' + pin + '\n\n'
-                + 'They sign in with their handle (' + S(kid.handle) + ') and this PIN, and can change it under Settings.' });
+          MailApp.sendEmail(own
+            ? { to: own, name: BRAND_NAME,
+                subject: 'Your new ' + BRAND_NAME + ' PIN',
+                body: 'Somebody asked for a new PIN on your ' + BRAND_NAME + ' account, by your handle ('
+                    + S(kid.handle) + ').\n\nYour new PIN is ' + fresh2 + '\n\n'
+                    + 'Sign in with your handle or your email and it, then change it under Settings → Your PIN.\n\n'
+                    + 'If this was not you, sign in and change it now — whoever asked cannot read '
+                    + 'this email, so they do not have it.' }
+            : { to: tos.join(','), name: BRAND_NAME,
+                subject: 'A new ' + BRAND_NAME + ' PIN for ' + S(kid.first_name),
+                body: S(kid.first_name) + ' asked for a new PIN.\n\nThe new PIN is ' + fresh2 + '\n\n'
+                    + 'They sign in with their handle (' + S(kid.handle) + ') and this PIN, and can change it under Settings.' });
         } catch (err) { /* a mail quota is not a reason to say the account exists */ }
         return jsonOut(said);
       }

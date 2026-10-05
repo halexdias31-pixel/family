@@ -483,6 +483,8 @@ function doGet(e) {
       /* The signed-in person's own family, both directions — see "YOUR OWN FAMILY" below — and the
          id of the person it was built for, which the phone checks before drawing any of it. */
       family: [], familyFor: '',
+      /* EVERYBODY WHO IS NOT ON `tutors`, for an admin's people column — see "EVERYONE" below. */
+      everyone: [],
       /* ---------- `claims` WAS NEVER IN THIS LITERAL, AND `payload.claims.push` THREW ------------
          A child with one unanswered "this is my child" row — the ordinary first half of linking a
          family — was answered `{ error: "Cannot read properties of undefined (reading 'push')" }`
@@ -796,6 +798,27 @@ function doGet(e) {
             from: parent ? personDisplayName(parent) : S(f.parent_id),
             asked: S(f.asked_on),
           });
+        });
+      }
+
+      /* ---------- EVERYONE, FOR AN ADMIN'S PEOPLE COLUMN ------------------------------------------
+         ASKED FOR AS *"Admin should be able to see every one in the people column."* The column is
+         `accountPages_` in find.js and it walks `tutors` — the tutors and admins, which an admin
+         already gets unlisted ones of. The students and clients were nowhere on it, and the one
+         person who runs the place could not look up a family without opening the spreadsheet.
+
+         ADMIN ONLY, BY THE TOKEN (`viewerIsAdmin` is `meAsked`, never `?name=`), AND ONLY WHAT A
+         CARD DRAWS: an id, a name, a handle, a role and a photograph. No address, phone, PIN, date
+         of birth or bank cell — the `payload.students` lesson above, where the list was right for
+         the first reader and went to every visitor. The ADMIN reads email and phone in the sheet;
+         a payload is a copy on a phone, and a copy is the thing that leaks.
+
+         A TUTOR OR ADMIN ROW IS NOT REPEATED HERE. `tutors` already carries it, with the rate and
+         the subjects a tutor card wants, and two lists naming one person is one card drawn twice. */
+      if (viewerIsAdmin && !hasRole(r, 'tutor') && !hasRole(r, 'admin')) {
+        payload.everyone.push({
+          personId: S(r.person_id), title: name, handle: S(r.handle) || S(r.first_name),
+          role: ROLE_LABEL[mainRole(r)] || 'Client', image: S(r.photo),
         });
       }
 

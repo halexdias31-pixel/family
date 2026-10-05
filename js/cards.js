@@ -374,6 +374,13 @@ function profHeat_(names) {
    and the card must not say something stronger than the booking will. */
 function profAvail_(t) {
   if (!t || typeof weekGrid_ !== 'function' || typeof availSet_ !== 'function') return '';
+  /* ---------- NO `avail` KEY AT ALL IS NOT A TUTOR -----------------------------------------------
+     `doGet` sends `avail` on every tutor row (`availGridOut`, `{}` when nothing is ticked). A
+     student or client on an admin's people column (`DATA.everyone`), a family card, or your own
+     card when you teach nobody carries no such key — and was told it "hasn't set their hours yet,
+     so they can't be booked by name", a tutor's warning on a child. Found in the screenshot of the
+     first admin column that listed everyone. */
+  if (t.avail === undefined) return '';
   const on = availSet_(t.avail);
   const ticked = Object.keys(on);
   /* ---------- NO HOURS IS SAID, NOT LEFT BLANK -------------------------------------------------
