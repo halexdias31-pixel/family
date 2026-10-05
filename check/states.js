@@ -3443,6 +3443,51 @@ const STATES = {
         STALE.booking = 1;
       } },
 
+    /* ---------- AND THE OTHER KIND OF JOINING: A SESSION A FAMILY BOOKED --------------------------
+       THE SAME THREE PIECES, MINUS THE TALLY, AND THE OTHER WORD. `Ask to join` is the tile and
+       `job-join` its handler, and until this state nothing in either instrument had ever drawn it —
+       `check/press.js` pressed `job-take-seat` for the first time with the state above, and would
+       otherwise never press this one at all. `Sharing` is the row that said "Just you" to the very
+       visitor this card offers a seat to; it says the seats now, and this asks that it does. */
+    { name: 'a session with seats, seen by a family not on it',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__RC_WAS = USER;
+        USER = { name: 'Visiting Parent', personId: 'P900', person_id: 'P900',
+                 role: 'parent', roles: ['parent'], handle: 'visitingparent' };
+        DATA.liveJobs = (DATA.liveJobs || []).filter(j => j.id !== 'S-UI').concat([{
+          id: 'S-UI', jobId: 'S-UI', type: 'job', kind: '', status: 'unconfirmed',
+          title: 'GCSE Maths', subject: 'Maths', level: 'GCSE', location: 'Mitcham library',
+          tutor: '', weekday: 'Wednesday', time: '17:00', hours: '1', term: 'Autumn 2026',
+          maxKids: 4, currentKids: 1, dates: '07/10/26, 14/10/26, 21/10/26', createdAt: '22/09/2026',
+          price: 240, slots: [{ n: 1, client: '', status: 'Waiting', chat: '' }],
+          tutorSlots: [], events: [], splitEmails: '', clientHosts: false,
+          canAsk: true, seatsGoing: 3, openToOthers: true, whenCould: null,
+        }]);
+        OPEN_JOB = 'S-UI';
+        STALE.booking = 1;
+        paint('booking');
+        goPage('booking', typeof jobPageAt_ === 'function' ? jobPageAt_('S-UI') : 1, true);
+      },
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-booking .page')]
+          .find(p => /S-UI/.test((p.querySelector('.rc-ref') || {}).textContent || ''));
+        const rc = pg && pg.querySelector('.rc');
+        if (!rc || pg.querySelector('.join')) return false;
+        if (!rc.querySelector('.rc-tiles [data-do="job-join"]')) return false;
+        const sharing = [...rc.querySelectorAll('.bk-row')]
+          .find(r => ((r.querySelector('.bk-k') || {}).textContent || '').trim() === 'Sharing');
+        if (!sharing || !/3 seats free/.test(sharing.textContent)) return false;
+        return ![...pg.querySelectorAll('[data-do]')].some(x => !x.closest('.rc'));
+      },
+      wants: 'a session\'s receipt with Ask to join in its foot and its open seats in Sharing',
+      leave: () => {
+        if (window.__RC_WAS) USER = window.__RC_WAS;
+        window.__RC_WAS = null;
+        OPEN_JOB = '';
+        STALE.booking = 1;
+      } },
+
     /* ---------- THE PICTURE OF IT, IN A SHEET -------------------------------------------------------
        *"make sure sharing booking is an identical … png … of the booking reciept."* Sharing makes a
        PNG of the receipt and hands it to the phone's share sheet; where there is none, or Safari
