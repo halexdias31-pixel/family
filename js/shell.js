@@ -629,6 +629,20 @@ function paint(id) {
     ? html
     : '<p class="empty">Nothing here yet.</p>';
 
+  /* ---------- AND THE COLUMN IS CENTRED ON WHAT WAS JUST DRAWN ------------------------------------
+     WHILE EVERY CARD HUNG FROM ONE TOP LINE, a column redrawn with a taller or shorter card needed
+     nothing: page 0's top did not move. CENTRED (see `columnShift_`), a new height is a new place
+     for the column, and nothing asked for it — `check/ui.js` found Saved 9–11px off the middle
+     after a star was added and taken away, which is `paint('saved')` with no placement behind it,
+     and `dmPoll_` repaints a conversation every twenty seconds the same way. One booked placement,
+     coalesced with whatever else this turn asks for; not before the grid has ever been placed (the
+     boot's own order does that), and not under a finger, whose drag re-centres every column on its
+     next frame anyway. */
+  if (typeof PLACED_ONCE !== 'undefined' && PLACED_ONCE
+      && !(typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis)) {
+    placeCells('y', true, 0, id);
+  }
+
   /* ---------- AND WHETHER THE NEW CARDS FIT THE PANES THEY ARE IN --------------------------------
      `paneWatch_` GIVES AN OVERFLOWING PANE `overflow-y: auto` and watches the card for a later
      change of height. It is booked HERE as well as from `placeNow_` because a `paint` is not always
