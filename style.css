@@ -12388,6 +12388,13 @@ button.scr-sq { cursor: pointer; }
    of best fit in the same colour as the axis it crosses is a line you cannot check. */
 .qpad-g path { fill: none; stroke: var(--gold); stroke-width: 2.5;
                stroke-linecap: round; stroke-linejoin: round; }
+/* THE COMPASS'S POINT AND ITS WIDTH, WHILE IT IS OPEN -- and the ruler's first end. Drawn only during
+   a drag (`padAid_`) and never stored, so they are told from a mark by shape rather than by colour:
+   the point a fat round dot, the width a dashed line, both in the pen's gold because they belong to
+   the hand that is drawing. Widths in screen pixels (`vector-effect` on each), like the pen's. */
+.qpad-aid path { fill: none; stroke: var(--gold); stroke-linecap: round; }
+.qpad-aid .qpad-pin { stroke-width: 7; }
+.qpad-aid .qpad-rad { stroke-width: 1.5; stroke-dasharray: 4 5; opacity: .85; }
 
 /* ---------- THE BAR IS A ROW OF TILES ---------------------------------------------------------------
    `.qpad-btn` WAS HERE -- three word buttons 44px tall, the lock on a full-width line of its own in

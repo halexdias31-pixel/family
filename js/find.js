@@ -5873,6 +5873,59 @@ function padSource_(x) {
   return null;
 }
 
+/* ---------- WHICH TOOLS A QUESTION'S PEN COMES WITH ------------------------------------------------
+   ASKED FOR AS *"some questions require a compass or ruler. so should have a tile for these things. if
+   you cant find those questions dont worry just have the infrastructure set up for it."* The pen is
+   always there; a Ruler and a Compass are added where the QUESTION says so, in either of two places:
+
+     `needs`            what the card already tells you to bring -- the paper's cover and the row's own
+                        cell, unioned (`needsOf_`). "Ruler", "Compass" and "Protractor" are the closed
+                        spellings `check-library.js` holds; "compasses", "pair of compasses", "straight
+                        edge", "angle measurer" and a "geometry set" are read too, in case a cell is
+                        typed the way a paper prints it.
+     the words          the question's own, its lead's and its stems': "Use a ruler", "ruler and
+                        compasses", "construct", "bisector", "locus", "loci". A construction is ruler and
+                        compasses together. NOT "plotting compasses" (a physics field diagram, which has
+                        nothing to do with drawing circles), NOT "construct a table / tree / graph", and
+                        NOT "ruler" as a thing in a word problem ("12 rulers cost...") -- only "use /
+                        with / using a ruler" says it is in your hand.
+
+   `protractor` IS ANSWERED and drawn as nothing: there is no protractor tool, because one that is any
+   use is a scale you lay over a figure and read, not a mark you make, and that is not this bar's kind
+   of tool. Answering it anyway keeps the decision in one place for the day one exists, and lets
+   `check-library.js` count how many questions would have it.
+
+   ONE FUNCTION, NOTHING FROM OUTSIDE IT, so `check-library.js` can cut it out by name and count what
+   the library gets -- the `padSurface_` arrangement. No `{` in a pattern, for the same reason: the
+   cutter counts braces. */
+function padTools_(x) {
+  /* IN ONE ORDER WHATEVER ORDER THEY WERE FOUND IN, so the bar reads Pen, Ruler, Compass on every
+     card and a thumb learns where each one is. */
+  const ORDER = ['pen', 'ruler', 'compass', 'protractor'];
+  const want = { pen: 1 };
+  const add = t => { want[t] = 1; };
+  const out = () => ORDER.filter(t => want[t]);
+  if (!x) return out();
+  const needs = (Array.isArray(x.needs) ? x.needs : String(x.needs || '').split(','))
+    .map(v => String(v == null ? '' : v).trim().toLowerCase()).filter(Boolean);
+  needs.forEach(v => {
+    if (/geometry set|maths set|mathematical instruments/.test(v)) { add('ruler'); add('compass'); add('protractor'); }
+    if (/ruler|straight ?edge/.test(v)) add('ruler');
+    if (/compass/.test(v)) add('compass');
+    if (/protractor|angle measurer/.test(v)) add('protractor');
+  });
+  const words = [x.lead, x.html].concat((x.stems || []).map(p => p && p.html))
+    .map(h => String(h || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z0-9#]+;/gi, ' '))
+    .join(' ').replace(/\s+/g, ' ').toLowerCase().replace(/plotting compass(es)?/g, ' ');
+  if (/\b(use|using|with) (a |an |your )?ruler\b|\bruler and (a pair of )?compasses\b|\bstraight ?edge\b/.test(words)) add('ruler');
+  if (/\bcompasses\b/.test(words)) add('compass');
+  const built = /\bconstruct(ion|ions|ed|ing)?\b/.test(words)
+    && !/\bconstruct(ion|ions|ed|ing)? (an? |the |your )?(\w+ )?(table|tree|graph|chart|diagram|histogram|polygon|sentence|argument)s?\b/.test(words);
+  if (built || /\b(locus|loci|bisector|bisect)\b/.test(words)) { add('ruler'); add('compass'); }
+  if (/\bprotractor\b|\bangle measurer\b/.test(words)) add('protractor');
+  return out();
+}
+
 function padRead_(k) {
   try {
     const v = JSON.parse(localStorage.getItem(k) || '[]');
@@ -5920,8 +5973,27 @@ const padLockFace_ = pen => ({ icon: pen ? 'lock' : 'unlock',
    (`.on`), which is the difference between an invitation and a state the frame already argued for.
    It is a switch, so it says `aria-pressed` as well as lighting up. `.qpad-lock` stays the name the
    handler and the checks find it by, because the picture carries the same action while the pen is off. */
-const padBar_ = pen => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
-      ${tile_(Object.assign({ act: 'pad-draw', cls: 'qpad-lock', tone: 'lead' }, padLockFace_(pen)))}
+/* ---------- AND WHAT THE PEN DRAWS WITH, WHERE THE QUESTION ASKS FOR MORE THAN A PEN -------------------
+   `padTools_` decides which; these are their faces. Each is a switch -- the one in hand is lit (`on`)
+   and pressed -- and only WHILE THE PEN IS ON: with the card free to move nothing is in hand, and a
+   lit Ruler over a picture a finger cannot draw on would say the opposite. Pressing one is also the
+   lock (see `pad-tool`), so lit always means "a drag here makes this".
+
+   DRAWN ONLY WHERE THERE IS A CHOICE. A question that wants nothing but the pen gets the bar it always
+   had -- lock, Undo, Clear -- because a lone Pen tile would be a switch with one position. `protractor`
+   has no face, so a question that asks for one is offered what does exist. */
+const PAD_TOOL_FACE = {
+  pen:     { icon: 'pen',     label: 'Pen',     note: 'draw freehand' },
+  ruler:   { icon: 'ruler',   label: 'Ruler',   note: 'drag a straight line' },
+  compass: { icon: 'compass', label: 'Compass', note: 'press the centre, drag out' },
+};
+const padToolTile_ = (t, on) => tile_(Object.assign({ act: 'pad-tool', cls: 'qpad-tool', data: { tool: t },
+  on: on, pressed: on }, PAD_TOOL_FACE[t]));
+const padToolsOf_ = x => padTools_(x).filter(t => PAD_TOOL_FACE[t]);
+
+const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
+      ${tile_(Object.assign({ act: 'pad-draw', cls: 'qpad-lock', tone: 'lead' }, padLockFace_(pen)))}${
+      tools.length > 1 ? tools.map(t => padToolTile_(t, pen && t === tool)).join('') : ''}
       ${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo' })}
       ${tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}
     </div>`;
@@ -5936,6 +6008,9 @@ function padWrap_(x, svg, credit) {
      the invisible mode this repository already records for the reel that was paused with nothing
      on it saying so. */
   const pen = PAD_ON === k;
+  const tools = padToolsOf_(x);
+  const held = PAD_TOOL.get(k);
+  const tool = held && tools.indexOf(held) !== -1 ? held : 'pen';
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather
      than by parsing a viewBox out of the drawing's markup. `preserveAspectRatio="none"` is what
      makes that exact: 340 units of user space map to the box's width and 340 to its HEIGHT
@@ -5952,9 +6027,10 @@ function padWrap_(x, svg, credit) {
       <svg class="qpad-ink"${pen ? ' data-noswipe' : ''} viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>
+        <g class="qpad-aid"></g>
       </svg>
     </div>
-    ${padBar_(pen)}${credit || ''}
+    ${padBar_(pen, tools, tool)}${credit || ''}
     <p class="qpad-note">Kept on this phone only, like the answer box.</p>
   </div>`;
 }
@@ -5987,6 +6063,13 @@ function padArm_(pad, on) {
      `padLockFace_`'s and nobody else's. */
   const b = pad.querySelector('.qpad-lock');
   if (b) tileSet_(b, padLockFace_(!!on));
+  /* AND THE TOOL IN HAND, lit only while the pen is on -- the same rule `padBar_` draws by, so a
+     repaint and a press cannot disagree about which tile is lit. */
+  const tool = padToolNow_(pad);
+  pad.querySelectorAll('.qpad-tool').forEach(t => {
+    const lit = !!on && t.getAttribute('data-tool') === tool;
+    tileSet_(t, { on: lit, pressed: lit });
+  });
 }
 
 /* ---------- THE PEN ------------------------------------------------------------------------------
@@ -5999,15 +6082,141 @@ function padArm_(pad, on) {
 
    THE STROKE IS BUILT IN THE PICTURE'S COORDINATES AS IT IS DRAWN, and written to storage once, at
    the end. Writing per move would be a `localStorage` write every few milliseconds, which is
-   synchronous and on the main thread. */
+   synchronous and on the main thread.
+
+   AND THE PEN HAS TWO MORE TOOLS, WHICH ARE STILL THE PEN. A ruler's line and a compass's circle
+   are built as the same flat polyline a freehand stroke is (`padPath_`'s format), so Undo, Clear,
+   storage, a repaint and a reload are the code they always were and cannot tell the three apart.
+   What differs is only what a drag MAKES: every point it passes (pen), the two ends (ruler), or a
+   ring round where it began (compass). `PAD_DRAW` holds those three answers and nothing else. */
 let PAD_ON = '';                  // the key of the pad currently taking the pen, '' for none
-let PAD_ST = null;                // the stroke being drawn
+let PAD_ST = null;                // the stroke being drawn, already in the shape it is stored in
+let PAD_GO = null;                // the drag behind it: which tool, on which ink, measured how, from where
+/* WHICH TOOL EACH PAD IS HOLDING, by the pad's key, for the visit: a card is rebuilt on every repaint
+   and a tool left on the element would be dropped with it, the `PAD_ON` argument one line up. */
+const PAD_TOOL = new Map();
 
 function padAt_(ink, e) {
   const r = ink.getBoundingClientRect();
   if (!r.width || !r.height) return null;
   return [Math.round((e.clientX - r.left) / r.width * 340),
           Math.round((e.clientY - r.top) / r.height * 340)];
+}
+
+/* THE TOOL A DRAG ON THIS PAD USES: what was chosen for it, and only if the bar offers that tool.
+   Asked of the bar rather than of `padTools_` again, so a tool the decider did not give this question
+   cannot be drawn with, whatever a stale `PAD_TOOL` entry says -- the tile IS the permission. */
+function padToolNow_(pad) {
+  const t = (pad && PAD_TOOL.get(pad.getAttribute('data-k') || '')) || 'pen';
+  return t !== 'pen' && pad.querySelector('.qpad-tool[data-tool="' + t + '"]') ? t : 'pen';
+}
+
+/* ---------- SCREEN PIXELS, NOT PICTURE UNITS, FOR ANYTHING ROUND ----------------------------------
+   THE INK IS STRETCHED (`preserveAspectRatio="none"`, see `padWrap_`): 340 units are the picture's
+   width AND its height, so on a picture twice as wide as it is tall one unit across is twice one
+   unit down. A circle drawn as "every point 50 units from the centre" would be an ellipse on that
+   picture -- a compass that cannot draw a circle. So the radius and every angle are measured in the
+   box's own pixels (`sx`, `sy`: pixels per unit, read when the drag starts) and only the points are
+   turned back into units. The picture's shape is the drawing's, the same at 320px and on a laptop,
+   so a ring stored that way is round wherever it is drawn again. */
+const PAD_MIN_PX = 4;                     // shorter than this a line or a radius is a slip, not a mark
+const PAD_SWING_PX = 16;                  // nearer the point than this, its angle is noise
+const PAD_ARC_MIN = Math.PI / 6;          // a swing of 30 degrees or more is an arc rather than a circle
+
+/* A RING OR AN ARC AS THE POLYLINE THE PEN STORES: about one point every 4px of screen, at least 8 and
+   at most 120 -- at 120 the chord sits 0.05px inside a 150px radius, which nothing can see. A full turn
+   ends EXACTLY on its first point, so it is closed in storage and not merely by rounding. */
+function padArc_(c, R, sx, sy, a0, span) {
+  const full = Math.abs(span) >= 2 * Math.PI;
+  if (full) span = 2 * Math.PI;
+  const n = Math.max(8, Math.min(120, Math.ceil(Math.abs(span) * R / 4)));
+  const out = [];
+  const put = (x, y) => {
+    if (out.length && out[out.length - 2] === x && out[out.length - 1] === y) return;
+    out.push(x, y);
+  };
+  for (let i = 0; i < n; i++) {
+    const t = a0 + span * i / n;
+    put(Math.round(c[0] + R * Math.cos(t) / sx), Math.round(c[1] + R * Math.sin(t) / sy));
+  }
+  if (full) put(out[0], out[1]);
+  else put(Math.round(c[0] + R * Math.cos(a0 + span) / sx), Math.round(c[1] + R * Math.sin(a0 + span) / sy));
+  return out;
+}
+
+/* ---------- THE COMPASS: THE POINT WHERE YOU PRESS, THE WIDTH WHERE YOU DRAG TO, THE ARC YOU SWING ----
+   A REAL PAIR OF COMPASSES IS SET AND THEN TURNED, and a finger does both in one drag: down on the
+   centre, out to the radius -- a full circle, previewed as it grows -- and then, if the finger swings
+   round the point, the width HOLDS where it was when the swing began (the hinge, not the finger,
+   decides it) and what is drawn is the arc swept. A swing of a full turn or more is a circle again.
+   A construction is mostly arcs -- two from A, two from B, a ruler through where they cross -- and
+   a circle for each would bury the page in rings.
+
+   THE SWING IS COUNTED ONLY WHERE AN ANGLE MEANS SOMETHING: further out than `PAD_SWING_PX` and not
+   back near the point (60% of the furthest yet), because a finger wobbling a millimetre from the
+   centre turns through ninety degrees without meaning to. Unwrapped across the -180/180 seam, so a
+   swing through "west" is one swing. */
+function padSwing_(g, at) {
+  const dx = (at[0] - g.from[0]) * g.sx, dy = (at[1] - g.from[1]) * g.sy;
+  const r = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+  if (r >= Math.max(PAD_SWING_PX, g.rMax * 0.6)) {
+    if (g.a === null) g.a0 = a;
+    else {
+      let d = a - g.a;
+      if (d > Math.PI) d -= 2 * Math.PI; else if (d < -Math.PI) d += 2 * Math.PI;
+      g.sweep += d;
+    }
+    g.a = a;
+  }
+  g.rMax = Math.max(g.rMax, r);
+  if (!g.held) { g.r = r; if (Math.abs(g.sweep) >= PAD_ARC_MIN) g.held = true; }
+  const arc = g.held && Math.abs(g.sweep) >= PAD_ARC_MIN && Math.abs(g.sweep) < 2 * Math.PI;
+  /* THE PENCIL'S END, where the radius line is drawn to: on the ring, in the finger's direction. */
+  g.tip = [g.from[0] + g.r * Math.cos(a) / g.sx, g.from[1] + g.r * Math.sin(a) / g.sy];
+  return padArc_(g.from, g.r, g.sx, g.sy, arc ? g.a0 : a, arc ? g.sweep : 2 * Math.PI);
+}
+
+/* WHAT A DRAG MAKES, BY TOOL. `move` answers the stroke to preview (null: nothing new); `end` answers
+   the stroke to keep (null: nothing -- a tap is a dot to the pen, and to a ruler or a compass a slip). */
+const PAD_DRAW = {
+  pen: {
+    /* ONE POINT PER PIXEL OF THE PICTURE, not one per event. A pointer fires far faster than a
+       finger moves anything visible, and every duplicated point is two more characters in storage
+       for a mark nobody can see. */
+    move: (g, at, st) => {
+      if (st[st.length - 2] === at[0] && st[st.length - 1] === at[1]) return null;
+      st.push(at[0], at[1]);
+      return st;
+    },
+    end: (g, st) => st,
+  },
+  /* A RULER IS ITS TWO ENDS. The live line follows the finger from where it went down; what is kept
+     is that line and nothing of the path the finger took to get there. */
+  ruler: {
+    move: (g, at) => [g.from[0], g.from[1], at[0], at[1]],
+    end: (g, st) => (st.length === 4
+      && Math.hypot((st[2] - st[0]) * g.sx, (st[3] - st[1]) * g.sy) >= PAD_MIN_PX ? st : null),
+  },
+  compass: {
+    move: (g, at) => padSwing_(g, at),
+    end: (g, st) => (g.r >= PAD_MIN_PX && st.length >= 4 ? st : null),
+  },
+};
+
+/* ---------- WHAT IS SHOWN WHILE IT IS DRAWN, AND GONE WHEN IT IS NOT ------------------------------
+   THE POINT AND THE WIDTH: a dot where the compass point went down (or where the ruler's line starts)
+   and, for the compass, a dashed line from it to the pencil -- the radius, live, which is what you
+   watch while you open a pair of compasses. In `.qpad-aid`, beside the marks and never among them, so
+   nothing here is ever stored, undone or redrawn: the group is emptied when the finger lifts. */
+function padAid_(g) {
+  const aid = g.ink.querySelector('.qpad-aid');
+  if (!aid) return;
+  const c = g.from;
+  const pin = `<path class="qpad-pin" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${c[0]} ${c[1]}"/>`;
+  const rad = g.tool === 'compass' && g.tip && g.r >= PAD_MIN_PX
+    ? `<path class="qpad-rad" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}"/>`
+    : '';
+  aid.innerHTML = pin + rad;
 }
 
 document.addEventListener('pointerdown', e => {
@@ -6018,37 +6227,48 @@ document.addEventListener('pointerdown', e => {
   const at = padAt_(ink, e);
   if (!at) return;
   e.preventDefault();
-  PAD_ST = at.slice();
+  const r = ink.getBoundingClientRect();
+  PAD_GO = { tool: padToolNow_(pad), ink: ink, from: at, sx: r.width / 340, sy: r.height / 340,
+             r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null };
+  /* THE PEN AND THE RULER START AS A DOT WHERE THE FINGER WENT DOWN; the compass starts as nothing,
+     because a ring of no width is not a mark -- its point is the aid's. */
+  PAD_ST = PAD_GO.tool === 'compass' ? [] : at.slice();
   const g = ink.querySelector('.qpad-g');
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   path.setAttribute('d', padPath_(PAD_ST));
   path.setAttribute('vector-effect', 'non-scaling-stroke');
   path.setAttribute('data-live', '1');
   if (g) g.appendChild(path);
+  if (PAD_GO.tool !== 'pen') padAid_(PAD_GO);
   try { ink.setPointerCapture(e.pointerId); } catch (err) {}
 });
 
 document.addEventListener('pointermove', e => {
-  if (!PAD_ST) return;
+  if (!PAD_ST || !PAD_GO) return;
   const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
-  if (!ink) return;
+  if (!ink || ink !== PAD_GO.ink) return;
   const at = padAt_(ink, e);
   if (!at) return;
-  /* ONE POINT PER PIXEL OF THE PICTURE, not one per event. A pointer fires far faster than a
-     finger moves anything visible, and every duplicated point is two more characters in storage
-     for a mark nobody can see. */
-  if (PAD_ST[PAD_ST.length - 2] === at[0] && PAD_ST[PAD_ST.length - 1] === at[1]) return;
-  PAD_ST.push(at[0], at[1]);
+  const st = PAD_DRAW[PAD_GO.tool].move(PAD_GO, at, PAD_ST);
+  if (!st) return;
+  PAD_ST = st;
   const live = ink.querySelector('[data-live]');
   if (live) live.setAttribute('d', padPath_(PAD_ST));
+  if (PAD_GO.tool !== 'pen') padAid_(PAD_GO);
 });
 
 function padEnd_(e) {
-  if (!PAD_ST) return;
-  const st = PAD_ST; PAD_ST = null;
-  const ink = document.querySelector('.qpad-ink [data-live]');
-  const pad = ink && ink.closest('.qpad');
-  if (ink) ink.removeAttribute('data-live');
+  if (!PAD_ST || !PAD_GO) { PAD_ST = null; PAD_GO = null; return; }
+  const g = PAD_GO;
+  const st = PAD_DRAW[g.tool].end(g, PAD_ST);
+  PAD_ST = null; PAD_GO = null;
+  const live = g.ink.querySelector('[data-live]');
+  const aid = g.ink.querySelector('.qpad-aid');
+  if (aid) aid.innerHTML = '';
+  /* A SLIP IS TAKEN BACK OFF THE SCREEN as well as never stored: the preview is not a mark. */
+  if (!st) { if (live) live.remove(); return; }
+  if (live) { live.removeAttribute('data-live'); live.setAttribute('d', padPath_(st)); }
+  const pad = g.ink.closest('.qpad');
   if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
   const all = padRead_(k); all.push(st);
@@ -6082,6 +6302,23 @@ on('pad-draw', (el) => {
   [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
   PAD_ON = want ? k : '';
   if (want) padArm_(pad, true);
+});
+
+/* ---------- PEN, RULER, COMPASS: CHOOSING ONE IS ALSO LOCKING THE CARD ------------------------------
+   *"some questions require a compass or ruler. so should have a tile for these things."* Pressing one
+   chooses it for this pad AND arms the pen if it was off -- nobody presses Ruler meaning "but do not
+   let me draw yet", and making them press the padlock as well would be two taps for one intention. It
+   never turns the pen OFF: pressing the tool already in hand leaves it in hand. The padlock is still
+   the one way off, and still the one mode this bar has; the tools are which mark that mode makes. */
+on('pad-tool', (el) => {
+  const pad = el.closest('.qpad'); if (!pad) return;
+  const k = pad.getAttribute('data-k') || '';
+  PAD_TOOL.set(k, el.getAttribute('data-tool') || 'pen');
+  if (PAD_ON !== k) {
+    [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
+    PAD_ON = k;
+  }
+  padArm_(pad, true);
 });
 
 on('pad-undo', (el) => {

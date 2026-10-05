@@ -320,6 +320,9 @@ function boot(opts) {
       /* AND THE PAD'S KEY, a `const` arrow, so a journey can arm a pad by the key its marks are kept
          under -- and read those marks back -- without writing the key's format out a second time. */
       'padKey: typeof padKey_ === "function" ? padKey_ : null,' +
+      /* WHICH TOOL EACH PAD HOLDS, a `const` Map -- so a journey can leave a stale choice behind and
+         ask whether the bar, not the Map, decides what a drag draws. */
+      'padTool: () => (typeof PAD_TOOL !== "undefined" ? PAD_TOOL : null),' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
          below checks is unchanged: a client and an admin are told different things. */
@@ -5018,6 +5021,166 @@ check('a question diagram is pressable exactly while the pen is off', async () =
   return bad;
 });
 
+/* ---------- A RULER AND A COMPASS ON THE PEN, WHERE THE QUESTION ASKS FOR THEM -------------------------
+   ASKED FOR AS *"some questions require a compass or ruler. so should have a tile for these things. if
+   you cant find those questions dont worry just have the infrastructure set up for it."* Through the
+   real pointer listeners and the real handlers, on a pad in the document whose picture is TWICE AS
+   WIDE AS IT IS TALL -- the shape on which a circle drawn in the ink's stretched units comes out an
+   ellipse, which is the one way a compass here can be wrong while looking right on a square grid:
+     * which tools: `padTools_` from `needs` and from the words -- a ruler alone, ruler and compasses,
+       a construction, nothing for a plain drawing, nothing for "plotting compasses" or "12 rulers",
+       and a protractor decided but not drawn (there is no such tool). The bar draws exactly that.
+     * Ruler: pressing it arms the pen and lights it; a drag from A through anywhere to B keeps ONE
+       stroke of two points, A and B, under `padKey_`, and a card drawn again draws it
+     * Compass: pressed on the centre and dragged out, a CLOSED ring -- first point the last -- every
+       point the dragged radius from the centre in SCREEN pixels; and swung through a quarter turn,
+       an open arc of a quarter turn at the width it had when the swing began
+     * the point and the width are shown while dragging and gone after; a tap is a slip, kept nowhere
+     * Undo takes the compass's ring off and then the ruler's line; the pen still draws freehand
+     * a stale choice cannot draw: a compass left in `PAD_TOOL` for a pad whose bar has no Compass is
+       the pen */
+check('a ruler draws a straight line and a compass a round circle or arc, offered where the question asks', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (typeof t.padWrap !== 'function' || typeof w.padTools_ !== 'function' || typeof t.padKey !== 'function'
+      || !A['pad-tool'] || !A['pad-undo'] || typeof t.padTool !== 'function') {
+    return ['padWrap_, padTools_, padKey_, PAD_TOOL or the pad-tool / pad-undo handlers are not reachable — the tools were NOT checked'];
+  }
+  /* ---------- WHICH QUESTIONS GET WHICH TOOLS ---------------------------------------------------- */
+  const q = (html, extra) => Object.assign({ kind: 'question', answerType: 'drawing', html: '<p>' + html + '</p>' }, extra || {});
+  [[q('Reflect the shape in the mirror line.', { needs: ['Ruler'] }), 'pen ruler', 'needs: Ruler'],
+   [q('Use a ruler and compasses to construct the perpendicular from P to the line.'), 'pen ruler compass', '"ruler and compasses" in the words'],
+   [q('Construct the locus of points 3 cm from A.'), 'pen ruler compass', 'a locus'],
+   [q('Draw the perpendicular bisector of AB.', { needs: 'Compass, Ruler' }), 'pen ruler compass', 'a comma-list cell and a bisector'],
+   [q('Draw the graph of y = 2x + 1.'), 'pen', 'a plain drawing question'],
+   [q('The two circles represent plotting compasses. Draw an arrow in each.'), 'pen', 'plotting compasses'],
+   [q('Bradley buys 12 rulers. How much is one ruler?'), 'pen', 'rulers in a word problem'],
+   [q('Construct a frequency tree for this information.'), 'pen', 'constructing a tree'],
+   [q('Measure angle d.', { needs: ['Protractor'] }), 'pen protractor', 'a protractor'],
+   [q('Bisect the angle.', { stems: [{ html: '<p>Use ruler and compasses only.</p>' }] }), 'pen ruler compass', 'a stem that says it']]
+    .forEach(([x, want, what]) => {
+      const got = w.padTools_(x).join(' ');
+      if (got !== want) bad.push(what + ': padTools_ gave "' + got + '", wanted "' + want + '"');
+    });
+  const barOf = x => { const h = d.createElement('div'); h.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
+    return [...h.querySelectorAll('.qpad-tool')].map(b => b.getAttribute('data-tool')).join(' '); };
+  const offered = [[q('Use a ruler.', { key: 'q:T-R' }), 'pen ruler'], [q('Construct the bisector.', { key: 'q:T-C' }), 'pen ruler compass'],
+    [q('Draw the graph.', { key: 'q:T-N' }), ''], [q('Measure the angle.', { key: 'q:T-P', needs: ['Protractor'] }), '']];
+  offered.forEach(([x, want]) => {
+    if (barOf(x) !== want) bad.push('the bar for "' + x.html.replace(/<[^>]*>/g, '') + '" offers [' + barOf(x) + '], wanted [' + want + ']');
+  });
+
+  /* ---------- A PAD IN THE DOCUMENT, 340 x 170 px: ONE UNIT ACROSS IS 1px, ONE UNIT DOWN 0.5px -------- */
+  const x = q('Use a ruler and compasses to construct the bisector of angle ABC.', { key: 'q:Q-TOOLS-1' });
+  const k = t.padKey(x);
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const L = 100, T = 50, W = 340, H = 170;
+  const mount = () => {
+    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    host.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+    return host.querySelector('.qpad');
+  };
+  let pad = mount();
+  const ink = () => pad.querySelector('.qpad-ink');
+  const Ev = w.PointerEvent || w.MouseEvent;
+  const fire = (type, px, py) => ink().dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: px, clientY: py, pointerId: 1 }));
+  const drag = pts => { fire('pointerdown', pts[0][0], pts[0][1]); pts.slice(1).forEach(p => fire('pointermove', p[0], p[1])); fire('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]); };
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return []; } };
+  const tool = name => pad.querySelector('.qpad-tool[data-tool="' + name + '"]');
+  if (!tool('ruler') || !tool('compass') || !tool('pen')) return bad.concat(['the construction question\'s bar has no Pen, Ruler and Compass, so the drawing was NOT checked']);
+
+  /* RULER */
+  A['pad-tool'](tool('ruler'));
+  if (!pad.classList.contains('is-drawing')) bad.push('pressing Ruler did not lock the card for drawing');
+  if (!tool('ruler').classList.contains('on') || tool('ruler').getAttribute('aria-pressed') !== 'true') bad.push('the Ruler tile is not lit and pressed once chosen');
+  if (tool('pen').classList.contains('on') || tool('compass').classList.contains('on')) bad.push('another tool is lit beside the Ruler');
+  /* A (150,100)px is units (50,100); B (300,140)px is units (200,180). The middle of the drag wanders. */
+  drag([[150, 100], [180, 60], [260, 160], [300, 140]]);
+  let s = stored();
+  if (s.length !== 1 || JSON.stringify(s[0]) !== '[50,100,200,180]') bad.push('a ruler drag stored ' + JSON.stringify(s) + ', wanted one stroke [50,100,200,180] -- its two ends and nothing between');
+  if (pad.querySelector('.qpad-aid').innerHTML) bad.push('the ruler\'s anchor is still drawn after the finger lifted');
+  pad = mount();
+  const redrawn = [...pad.querySelectorAll('.qpad-g path')].map(p => p.getAttribute('d'));
+  if (redrawn.join('|') !== 'M50 100L200 180') bad.push('the card drawn again shows ' + JSON.stringify(redrawn) + ', wanted the ruler\'s one line M50 100L200 180');
+  if (!pad.classList.contains('is-drawing') || !tool('ruler').classList.contains('on')) bad.push('a card drawn again lost the pen or the Ruler in hand');
+
+  /* COMPASS: centre (270,135)px = units (170,170); out to (330,135)px, a radius of 60px. */
+  A['pad-tool'](tool('compass'));
+  if (!tool('compass').classList.contains('on') || tool('ruler').classList.contains('on')) bad.push('pressing Compass did not move the light from Ruler to Compass');
+  fire('pointerdown', 270, 135);
+  fire('pointermove', 300, 135);
+  fire('pointermove', 330, 135);
+  const aid = pad.querySelector('.qpad-aid');
+  if (!aid.querySelector('.qpad-pin')) bad.push('the compass\'s point is not shown while it is open');
+  const rad = aid.querySelector('.qpad-rad');
+  if (!rad || rad.getAttribute('d') !== 'M170 170L230 170') bad.push('the live radius is ' + (rad ? rad.getAttribute('d') : 'not drawn') + ', wanted M170 170L230 170');
+  if (!pad.querySelector('.qpad-g [data-live]')) bad.push('the ring is not previewed while it is dragged');
+  fire('pointerup', 330, 135);
+  if (aid.innerHTML) bad.push('the compass\'s point and width are still drawn after the finger lifted');
+  s = stored();
+  const ring = s[1] || [];
+  const off = st => { let worst = 0; for (let i = 0; i < st.length; i += 2) worst = Math.max(worst, Math.abs(Math.hypot((st[i] - 170) * W / 340, (st[i + 1] - 170) * H / 340) - 60)); return worst; };
+  if (s.length !== 2) bad.push('after the compass there are ' + s.length + ' strokes stored, wanted 2');
+  else {
+    if (ring.length < 40) bad.push('the ring has ' + ring.length / 2 + ' points -- not enough to be round');
+    if (ring[0] !== ring[ring.length - 2] || ring[1] !== ring[ring.length - 1]) bad.push('the ring is not closed: it starts at ' + ring.slice(0, 2) + ' and ends at ' + ring.slice(-2));
+    if (off(ring) > 1.2) bad.push('a point of the ring is ' + off(ring).toFixed(2) + 'px off the 60px radius on the screen -- an ellipse on a picture that is not square');
+    const xs = ring.filter((v, i) => !(i % 2)), ys = ring.filter((v, i) => i % 2);
+    if (Math.abs((Math.max(...xs) + Math.min(...xs)) / 2 - 170) > 1 || Math.abs((Math.max(...ys) + Math.min(...ys)) / 2 - 170) > 1) bad.push('the ring is not about the centre that was pressed');
+  }
+  /* AN ARC: out to 60px, then a quarter turn round the point, clockwise on the screen. */
+  const arcPts = [[270, 135], [300, 135], [330, 135]];
+  for (let deg = 10; deg <= 90; deg += 10) arcPts.push([270 + 60 * Math.cos(deg * Math.PI / 180), 135 + 60 * Math.sin(deg * Math.PI / 180)]);
+  drag(arcPts);
+  s = stored();
+  const arc = s[2] || [];
+  if (s.length !== 3) bad.push('after the swing there are ' + s.length + ' strokes, wanted 3');
+  else {
+    if (arc[0] === arc[arc.length - 2] && arc[1] === arc[arc.length - 1]) bad.push('a quarter-turn swing drew a closed ring, not an arc');
+    if (off(arc) > 1.2) bad.push('the arc is ' + off(arc).toFixed(2) + 'px off its 60px width');
+    const ang = (px, py) => Math.atan2((py - 170) * H / 340, (px - 170) * W / 340) * 180 / Math.PI;
+    const a0 = ang(arc[0], arc[1]), a1 = ang(arc[arc.length - 2], arc[arc.length - 1]);
+    if (Math.abs(a0) > 12 || Math.abs(a1 - 90) > 6) bad.push('the arc runs from ' + a0.toFixed(0) + '° to ' + a1.toFixed(0) + '°, wanted about 0° to 90°');
+  }
+  /* A TAP IS A SLIP. */
+  fire('pointerdown', 200, 120); fire('pointerup', 200, 120);
+  if (stored().length !== 3) bad.push('a tap with the compass stored a mark');
+  if (pad.querySelector('.qpad-g [data-live]')) bad.push('a tap with the compass left its preview on the picture');
+  /* UNDO: the arc, then the ring, then the ruler's line is what is left. */
+  A['pad-undo'](pad.querySelector('[data-do="pad-undo"]'));
+  A['pad-undo'](pad.querySelector('[data-do="pad-undo"]'));
+  s = stored();
+  if (s.length !== 1 || JSON.stringify(s[0]) !== '[50,100,200,180]') bad.push('two Undos left ' + JSON.stringify(s).slice(0, 80) + ', wanted only the ruler\'s line');
+  if (pad.querySelectorAll('.qpad-g path').length !== 1) bad.push('two Undos left ' + pad.querySelectorAll('.qpad-g path').length + ' marks on the picture, wanted 1');
+  /* THE PEN, STILL FREEHAND. */
+  A['pad-tool'](tool('pen'));
+  drag([[110, 60], [120, 70], [130, 66]]);
+  s = stored();
+  if (s.length !== 2 || s[1].length !== 6) bad.push('the pen did not keep every point of a freehand stroke: ' + JSON.stringify(s[1] || null));
+  /* A STALE CHOICE CANNOT DRAW. The plain question offers no tools; a Compass left for it is the pen. */
+  const plain = q('Draw the graph.', { key: 'q:Q-TOOLS-2' });
+  const pk = t.padKey(plain);
+  try { w.localStorage.removeItem(pk); } catch (e) {}
+  t.padTool().set(pk, 'compass');
+  host.innerHTML = t.padWrap(plain, '<svg viewBox="0 0 340 170"></svg>', '');
+  pad = host.querySelector('.qpad');
+  pad.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+  if (pad.querySelector('.qpad-tool')) bad.push('a plain drawing question was given tool tiles');
+  A['pad-draw'](pad.querySelector('.qpad-lock'));
+  drag([[150, 100], [200, 100], [250, 120]]);
+  const ps = (() => { try { return JSON.parse(w.localStorage.getItem(pk) || '[]'); } catch (e) { return []; } })();
+  if (ps.length !== 1 || ps[0].length !== 6) bad.push('a pad with no Compass tile drew with a stale compass choice: ' + JSON.stringify(ps).slice(0, 80));
+  A['pad-draw'](pad.querySelector('.qpad-lock'));
+  t.padTool().delete(pk);
+  try { w.localStorage.removeItem(k); w.localStorage.removeItem(pk); } catch (e) {}
+  t.padOn('');
+  host.remove();
+  return bad;
+});
+
 /* ---------- A SWIPE SETTLES AT THE FINGER'S SPEED, WRITTEN ON THE COLUMNS AND NOT THE ROOT ------------
    ASKED FOR AS *"refine the swiping to feel more stable"*, and measured before it was touched: every
    release wrote `--slide` on `<html>`, which re-styled about three thousand elements before the card
@@ -6353,6 +6516,7 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   /* THE ONES THE OWNER NAMED, which must be there for the rule above to mean anything. */
   [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-draw', 'the pen\'s lock'], ['pad-undo', 'Undo'],
    ['pad-clear', 'Clear'], ['qa-go', 'To the answer'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
+   ['pad-tool:pen', 'the Pen'], ['pad-tool:ruler', 'the Ruler'], ['pad-tool:compass', 'the Compass'],
    ['fav', 'the star']].forEach(([act, what]) => {
     if (!seen[act]) bad.push('no ' + what + ' tile (' + act + ') was drawn anywhere in the family, so the rule was NOT asked of it');
   });
