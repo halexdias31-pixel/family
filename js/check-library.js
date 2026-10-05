@@ -1466,7 +1466,13 @@ console.log(`questions answered by drawing: ${drawQs.length} — on their own pi
    with no pen to use it on is the data's to fix (its `answer_type` or `surface`), and it is printed so
    that it is a backlog rather than a silence. "Protractor" is decided and not built -- printed too. */
 const toolsSrc_ = cutFrom(findSrc_, 'padTools_');
-if (!toolsSrc_) fail.push('padTools_ is not in find.js — renamed? The ruler and compass questions were NOT counted.');
+/* SAID AS WELL AS COUNTED: the failures pushed this far down are past the place this file prints them,
+   so a bare `fail.push` would end the run red with no sentence saying why. */
+if (!toolsSrc_) {
+  const why = 'padTools_ is not in find.js — renamed? The ruler and compass questions were NOT counted.';
+  fail.push(why);
+  console.log('\n' + why);
+}
 const padTools_ = toolsSrc_ ? new Function(toolsSrc_ + '\nreturn padTools_;')() : (() => ['pen']);
 const docNeeds_ = {};
 rows.forEach(r => { if (r && r.kind === 'document' && r.needs) docNeeds_[String(r.paper_id)] = String(r.needs); });
