@@ -74,7 +74,7 @@ and the OS picks one.
 | **cleared by moving the label** | **124** | **55** |
 | left, ACCEPTED with a reason | 4 (new, see the key below) | 2 |
 
-**Only labels moved.** In `questions.json`: 43 rows, 94 `<text>` tags, x / y / `text-anchor`
+**Only labels moved.** In `questions.json`: 43 rows, 95 `<text>` tags, x / y / `text-anchor`
 and nothing else (one of them, `Q-1MA1-1711-1H-7`, for a touch only a 414px phone showed) — edited line by line (`json.loads` the line, change `diagram`, `json.dumps` with
 the file's own separators), with every untouched line asserted byte-identical and every touched row
 asserted identical with `diagram` put back. In `practicals.json`: 13 drawings, 28 tags, moved in
@@ -95,13 +95,16 @@ its rim (named against circle P, 3.1px); 15 laid over 12 (label overlap); E push
   checked against its own numbers for this reason.**
 - **Tick numbers on two ruled grids** (`Q-1MA1-2406-2F-24b`, `S-P-1MA1-1706-2H-q20`) sat centred on
   major rulings at 0.55–0.6, so "1" read as a line. With no knockout allowed, each now sits in a
-  corner of its intersection, like O: the lower left on 2F-24b, the y numbers upper left on q20
-  (lower left would put the 4 on the curve). 2F-24b's −4 is the one exception, just ABOVE the
-  bottom ruling: below it the glyphs fit but the line box ran 2px out of the drawing, which
-  `check/cards.js` measures — the two checks are deliberately not the same box. The real fix is the
-  knockout convention.
+  corner of its intersection, the same corner all along an axis: on 2F-24b every y number just
+  above its ruling and every x number, O included, at the lower right; on q20 the y numbers upper
+  left and the x numbers lower left beside an O that stays where the paper prints it. **Tried and
+  undone on 2F-24b:** all of them lower left, like O — the bottom −4 cannot go below the grid's
+  edge (its glyphs fit the viewBox but its line box ran 2px out, which `check/cards.js` measures —
+  the two checks are deliberately not the same box), and lifting just that one crammed −3 and −4
+  into one square. The real fix is the knockout convention.
 - **O beside the origin, not below-left,** where a line through the origin cut it: lower right on
-  `Q-1MA1-1706-3H-13`, `0` lower right and the y-axis `−1` right of the axis on `Q-STA-KS2-2019-P3-10`.
+  `Q-1MA1-1706-3H-13`, and `0` lower right with the y-axis `−1` right of the axis on
+  `Q-STA-KS2-2019-P3-10`. (On 2F-24b O went lower right with its x numbers, for the −1 above it.)
 - **The voltmeter's wire runs straight through the meter** on three AQA chemistry figures
   (`…1F-072`, `…1F-073`, `…1H-061`). V now sits below the wire inside the circle; the drawing
   fault — a wire through a meter symbol — is the owner's.
