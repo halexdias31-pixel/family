@@ -9,20 +9,28 @@
    answers, median 88 characters, 1,019 over 200 and the longest 1,677 -- a card whose answer was a
    page of prose, with the result somewhere inside it.
 
-   THE ANSWER IS TWO THINGS NOW. `answerParts_` in find.js draws the RESULT -- what comes before the
-   first spaced dash, with the mark-scheme codes taken off -- and folds the explanation and any
-   examiner's note under "Why". tools/answer-brief.py put every long answer into that shape. This
-   holds the line on both halves:
+   THE ANSWER IS ITS RESULT, AND NOTHING ELSE IS DRAWN. `answerParts_` in find.js says where the
+   RESULT stops -- what comes before the first spaced dash, with the mark-scheme codes taken off -- and
+   `answerBlock_` draws that head and only that. The explanation and the examiner's note stayed in the
+   data (Mark with AI sends both as its scheme) and left the page on the owner's word: *"Also remove
+   all 'why's. I just want it to have answer."* tools/answer-brief.py put every long answer into the
+   `result — why` shape. This holds the line:
 
      1  `answerParts_` itself, on the cases that shaped it: the spaced dash and only the spaced one,
         a dash inside a table left alone, codes off the result and kept where a sentence needs
         them, an entity's own semicolon kept, a bold opened before the dash closed on each side.
      2  every answer in data/questions.json, drawn through the REAL function, shows a result of
         LIMIT characters or fewer -- unless ACCEPTED names it, with one written reason.
-     3  the split never costs a fraction or a power: `typeset_` over the two halves draws as many
-        stacked fractions and raised powers as it does over the whole.
+     3  the split never cuts a fraction or a power in two: `typeset_` over the two halves draws as
+        many stacked fractions and raised powers as it does over the whole.
      4  a name on ACCEPTED that is no longer over the limit fails too: a reason nobody needs is a
         line that will one day excuse something else.
+     5  `answerBlock_` itself, cut out by name and run over every answer in the library, draws the
+        head typeset and NOTHING ELSE: no fold, no `<details>`, no examiner's note, not one word of
+        the why. A second copy of "where the answer stops" would be the drift this file exists for.
+     And it PRINTS, without failing, how many results are a word that says the working was done
+     rather than what it came to ("Shown", "AO2"): those rows are being rewritten in the data, and a
+     count is how anybody knows when that is finished.
 
    WHY 120. Measured on the drawn results after the rewrite: median 7 characters, 95th percentile
    89. Before it, the 90th percentile was 154 -- so 120 is above every result that is a result and
@@ -53,7 +61,7 @@ const ACCEPTED = {
 };
 
 const src = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
-const missing = ['answerParts_', 'typeset_'].filter(n => !cutFrom(src, n));
+const missing = ['answerParts_', 'typeset_', 'answerBlock_'].filter(n => !cutFrom(src, n));
 if (missing.length) {
   /* A CHECK THAT CANNOT FIND ITS SUBJECT MUST EXIT NON-ZERO -- "I did not check" is not "I checked
      and it was fine". */
@@ -62,6 +70,12 @@ if (missing.length) {
 }
 const answerParts_ = eval('(' + cutFrom(src, 'answerParts_') + ')');
 const typeset_ = eval('(' + cutFrom(src, 'typeset_') + ')');
+/* `answerBlock_` NEEDS `esc` FOR THE KIND'S LABEL, and data.js's is the whole of it: five characters
+   escaped. Written here rather than cut, because data.js is not find.js and the label is not what
+   this measures. */
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+const answerBlock_ = eval('(' + cutFrom(src, 'answerBlock_') + ')');
 
 const ENT = { nbsp: ' ', amp: '&', lt: '<', gt: '>', quot: '"' };
 /* WHAT A READER COUNTS: tags gone, an entity one character, runs of space one space. */
@@ -117,6 +131,11 @@ const lens = [];
 const over = [];
 const lost = [];
 const coded = [];
+const extra = [];
+const bare = [];
+/* A RESULT THAT SAYS THE WORK WAS DONE AND NOT WHAT IT CAME TO. With the why gone from the page,
+   "Shown" is all a reader gets. Printed, not failed -- see the header. */
+const SAYS_NOTHING = /^(?:shown|proof|proven|as shown|see (?:below|above|working)|ao\d)\.?$/i;
 /* THE CODES AN EXAMINER APPORTIONS MARKS WITH, which a child reads as part of the answer. The
    library carries them in 122 rows, all Edexcel 2024; none may reach a drawn result. */
 const CODE = /\b(?:[BMAPC][1-5]|cao|oe|isw|awrt)\b/;
@@ -127,6 +146,17 @@ answered.forEach(r => {
   lens.push(n);
   if (n > LIMIT) over.push({ id: r.row_id, n, head: seen(p.head) });
   if (CODE.test(seen(p.head))) coded.push(`${r.row_id}  ${seen(p.head).slice(0, 80)}`);
+  if (SAYS_NOTHING.test(seen(p.head))) bare.push(r.row_id);
+  /* 5. WHAT THE PAGE DRAWS: the head, typeset, and nothing of the why or the note. A why's words are
+     looked for by a run of them long enough not to be in the head by chance. */
+  const drawn = answerBlock_({ answer: r.answer, answerType: r.answer_type, examinerNote: r.examiner_note });
+  const whyWords = seen(p.why).split(' ').filter(t => t.length > 3).slice(0, 4).join(' ');
+  if (/<details|qans-why|qans-more|qans-note/.test(drawn)
+      || drawn.indexOf(typeset_(p.head)) < 0
+      || (r.examiner_note && seen(drawn).indexOf(seen(esc(r.examiner_note)).slice(0, 40)) >= 0)
+      || (whyWords.split(' ').length >= 3 && seen(drawn).indexOf(whyWords) >= 0 && seen(p.head).indexOf(whyWords) < 0)) {
+    extra.push(`${r.row_id}  ${seen(drawn).slice(0, 90)}`);
+  }
   /* A FRACTION OR A POWER THE SPLIT COST. Typeset whole and typeset in halves must agree. */
   const whole = typeset_(r.answer);
   const halves = typeset_(p.head) + typeset_(p.why);
@@ -155,6 +185,10 @@ Object.keys(ACCEPTED).filter(id => !over.some(o => o.id === id)).forEach(id => f
   `${id} is on ACCEPTED and its result is no longer over ${LIMIT} — take the line off`));
 lost.forEach(l => fail.push('the split lost maths: ' + l));
 coded.forEach(c => fail.push('a mark-scheme code is drawn in the result: ' + c));
+extra.slice(0, 10).forEach(e => fail.push('the answer page draws more than the result: ' + e));
+if (extra.length > 10) fail.push(`... and ${extra.length - 10} more answers drawn with more than their result`);
+console.log(`\nRESULTS THAT SAY THE WORK WAS DONE, NOT WHAT IT CAME TO  (${bare.length})  — being rewritten in the data`);
+console.log(bare.length ? '  ' + bare.slice(0, 8).join(', ') + (bare.length > 8 ? ', …' : '') : '  none');
 
 if (fail.length) {
   console.log(`\nFAIL  (${fail.length})`);
@@ -162,4 +196,5 @@ if (fail.length) {
   process.exit(1);
 }
 console.log(`\nOK — ${CASES.length} cases of the split behave, every result drawn is ${LIMIT} characters or`
-  + `\n     fewer (${Object.keys(ACCEPTED).length} accepted, named above), and no fraction or power was lost to the fold.`);
+  + `\n     fewer (${Object.keys(ACCEPTED).length} accepted, named above), no fraction or power was cut by the split,`
+  + `\n     and all ${answered.length} answers are drawn as their result and nothing else.`);

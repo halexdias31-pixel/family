@@ -5147,73 +5147,62 @@ check('a fraction is drawn stacked in the stem, lead, part, answer and choices, 
   return bad;
 });
 
-/* ---------- THE ANSWER IS ITS RESULT, AND THE WORKING WAITS UNDER "Why" ---------------------------
-   ASKED FOR AS "make answers breaifer", and, given the choice: "i want shorter answers."
-   `check-answers.js` proves `answerParts_` splits right and the library is short; it cannot prove
-   the CARD draws the halves where they belong, and a card that typesets the whole answer into
-   `.qans-body` and adds a fold underneath passes every rule there while showing the paragraph the
-   owner asked to lose. So this draws a card through `questionCard_` and asks the card:
-     * the result in `.qans-body`, codes off it, and nothing of the working
-     * one `<details>`, SHUT, its summary "Why", holding the working (fraction stacked) and the
-       examiner's note
-     * "Show the answer" opening the result and NOT the fold -- shorter answers, not a delay
-     * an answer with no working and no note draws no fold at all: a "Why" that opens on nothing
-       says there is something. */
-check('an answer draws its result, and the working waits shut under Why', async () => {
+/* ---------- THE ANSWER IS ITS RESULT, AND NOTHING ELSE ----------------------------------------------
+   ASKED FOR AS *"Also remove all 'why's. I just want it to have answer."* -- after 259 had folded the
+   working under a "Why" and 263 had put the answer on its own page. `check-answers.js` proves
+   `answerParts_` splits right and every library result is short; it cannot prove the PAGE draws only
+   the head, and a page that typesets the result into `.qans-body` and the working under it passes
+   every rule there while showing exactly the paragraph the owner asked to lose. So, through the
+   app's own builders:
+     * the result in `.qans-body`, codes off it, nothing of the working in it
+     * no `.qans-why`, no `<details>`, no `.qans-more`, no `.qans-note` -- and none of the working's
+       words or the examiner's note anywhere in the page's text
+     * "Show the answer" on the hidden page draws exactly that, and nothing more
+     * the working is still IN THE ROW: Mark with AI sends `answer` and `examinerNote` as the scheme
+       (`aiScheme_`), and an answer page that stopped drawing them must not have stopped sending them */
+check('an answer draws its result and nothing else: no Why, no working, no examiner\'s note', async () => {
   const { w } = boot();
   await wait(300);
   const bad = [];
   if (typeof w.answerBlock_ !== 'function') return ['answerBlock_ is not reachable — renamed?'];
-  /* WHAT THE ANSWER PAGE DRAWS ONCE IT IS OPEN. The page itself, shut and opened, is the journey
-     after this one. */
   const draw = x => { const d = w.document.createElement('div'); d.innerHTML = w.answerBlock_(x); w.document.body.appendChild(d); return d; };
   const base = { kind: 'question', key: 'q-why', name: 'Q4', marks: 1,
     row: { row_id: 'Q-WHY-4', paper_id: 'P-WHY', subject: 'Maths', name: 'Why' },
     html: '<p>Work out 12 &divide; 4</p>' };
-  const card = draw(Object.assign({}, base, {
+  const full = Object.assign({}, base, {
     answer: '<b>3</b> &mdash; B1, cao. A half of 6 is <sup>6</sup>&frasl;<sub>2</sub>, and 12 &divide; 4 = 3.',
-    examinerNote: 'Most candidates were right.' }));
+    examinerNote: 'Most candidates were right.' });
+  const card = draw(full);
   const body = card.querySelector('.qans-body');
-  const why = card.querySelectorAll('.qans details.qans-why');
   if (!body) bad.push('no .qans-body was drawn');
   else {
     if (body.textContent.trim() !== '3') bad.push('the result drew as "' + body.textContent.trim() + '", wanted "3"');
     if (/B1|cao|half/.test(body.textContent)) bad.push('the result carries the code or the working: ' + body.innerHTML);
   }
-  if (why.length !== 1) bad.push('wanted one Why fold under the answer, found ' + why.length);
-  else {
-    const f = why[0];
-    if (f.open) bad.push('the Why fold is drawn open');
-    const sum = f.querySelector('summary');
-    if (!sum || sum.textContent.trim() !== 'Why') bad.push('the fold\'s summary reads "' + (sum ? sum.textContent.trim() : '(none)') + '", wanted "Why"');
-    const more = f.querySelector('.qans-more');
-    if (!more || !/A half of 6/.test(more.textContent)) bad.push('the working is not inside the fold');
-    else if (!more.querySelector('.frac .frac-n')) bad.push('the working drew its fraction slanted: ' + more.innerHTML.slice(0, 120));
-    if (more && /B1|cao/.test(more.textContent)) bad.push('the lone "B1, cao" was left in the working');
-    if (!f.querySelector('.qans-note')) bad.push('the examiner\'s note is not inside the fold');
-  }
-  /* SHOW THE ANSWER, AS A STUDENT, ON THE ANSWER PAGE: the result opens, the fold stays shut. */
+  const extra = sel => card.querySelector(sel);
+  ['.qans-why', 'details', 'summary', '.qans-more', '.qans-note'].forEach(sel => {
+    if (extra(sel)) bad.push('the answer still draws ' + sel + ' -- the owner asked for the answer and nothing else');
+  });
+  if (/A half of 6|Most candidates|Why/.test(card.textContent)) bad.push('the working, the note or the word "Why" is still in the answer\'s text: ' + card.textContent.replace(/\s+/g, ' ').trim().slice(0, 120));
+  /* SHOWN, ON THE ANSWER PAGE: the same block, nothing more. */
   if (typeof w.questionAnsCard_ === 'function' && w.__t.ACTIONS['qa-show']) {
-    const x = Object.assign({}, base, {
-      answer: '<b>3</b> &mdash; B1, cao. A half of 6 is <sup>6</sup>&frasl;<sub>2</sub>, and 12 &divide; 4 = 3.',
-      examinerNote: 'Most candidates were right.' });
     const page = w.document.createElement('div');
-    page.innerHTML = w.questionAnsCard_(x);
+    page.innerHTML = w.questionAnsCard_(full);
     w.document.body.appendChild(page);
     const held = w.stuffItemsAll_;
-    w.stuffItemsAll_ = () => [x];
+    w.stuffItemsAll_ = () => [full];
     const showBtn = page.querySelector('[data-do="qa-show"]');
-    if (!showBtn) bad.push('a student\'s answer page has no "Show the answer" to press');
+    if (!showBtn) bad.push('a hidden answer page has no "Show the answer" to press');
     else try { w.__t.ACTIONS['qa-show'](showBtn); } finally { w.stuffItemsAll_ = held; }
-    w.stuffItemsAll_ = held;
     const opened = page.querySelector('.qans-card');
     if (!opened || opened.classList.contains('is-hidden') || !opened.querySelector('.qans-body')) bad.push('"Show the answer" did not show the answer');
-    const f = opened && opened.querySelector('details.qans-why');
-    if (f && f.open) bad.push('"Show the answer" opened the working as well');
+    else if (opened.querySelector('details, .qans-why, .qans-note') || /A half of 6|Most candidates/.test(opened.textContent)) bad.push('the shown answer page carries the working or the note');
   } else bad.push('the answer page or its Show the answer has no handler');
-  const bare = draw(Object.assign({}, base, { answer: '<b>3</b>' }));
-  if (bare.querySelector('.qans-why')) bad.push('an answer with no working and no note still drew a Why fold');
-  if (!bare.querySelector('.qans-body') || bare.querySelector('.qans-body').textContent.trim() !== '3') bad.push('a bare answer lost its result');
+  /* STILL SENT TO THE MARKER: the explanation left the page, not the row. */
+  if (typeof w.aiScheme_ === 'function') {
+    const sch = w.aiScheme_(full);
+    if (!/half of 6/.test(sch) || !/Most candidates/.test(sch)) bad.push('Mark with AI no longer sends the working and the examiner\'s note as its scheme: ' + sch.slice(0, 120));
+  } else bad.push('aiScheme_ is not reachable, so what the marker is sent was NOT checked');
   return bad;
 });
 
@@ -5484,22 +5473,25 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   return bad;
 });
 
-/* ---------- THE ANSWER IS ITS OWN PAGE, AND A STUDENT CANNOT READ IT UNTIL THEY ASK -----------------
-   ASKED FOR AS *"what I want was answers to be short and to be their own widget"*. `check-answers.js`
-   holds what an answer SAYS; this holds where it is and who can see it, through the app's own
-   builders:
+/* ---------- THE ANSWER IS ITS OWN PAGE, AND NOBODY READS IT UNTIL THEY ASK --------------------------
+   ASKED FOR AS *"what I want was answers to be short and to be their own widget"*, and then *"you
+   should have to click to reveal the answer. Should behave the same whether it's a tutor or child. No
+   difference between the two."* `check-answers.js` holds what an answer SAYS; this holds where it is
+   and who can see it, through the app's own builders:
      * the page exists exactly when there is an answer -- [q, ans], [q, fig, ans], [q], [q, fig]
      * the question card keeps its box and no longer carries the answer, in any form
-     * a student's answer page is hidden and the answer is NOT IN ITS MARKUP (the old `is-shut` hid
-       with CSS an answer anybody could read in the document)
+     * the answer page is hidden and the answer is NOT IN ITS MARKUP (the old `is-shut` hid with CSS an
+       answer anybody could read in the document)
      * the question's tile opens the page that is already standing, the open survives a redraw (the
        `REEL_HELD` fault: a fact left on an element dies with it), and it opens only that question
-     * a tapped question settled right has earned it; settled wrong has not
-     * a tutor's page is open without asking
+     * a tapped question settled right does NOT open it, and neither does a typed answer marked right:
+       the card already says "Correct", and a page that opens itself is a reveal nobody pressed
+     * a TUTOR's page is hidden exactly as a student's, with the same tile label -- it was open
+       without asking, behind a tile that read "The answer"
      * Saved, which draws a kept thing through `cardPages_`, keeps the answer page after the figure
    Turning the page is a real browser's question -- `check/states.js`, "the answer, turned to from
    its question" -- because jsdom lays nothing out and has no library to page through. */
-check('an answer is its own page after its question, hidden from a student until shown, and kept on Saved', async () => {
+check('an answer is its own page after its question, hidden from everybody alike until shown, and kept on Saved', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
@@ -5531,11 +5523,11 @@ check('an answer is its own page after its question, hidden from a student until
   if (!q.querySelector('.qp-ans')) bad.push('the question card lost its answer box');
   if (!el(w.questionTiles_(base)).querySelector('[data-do="qa-go"]')) bad.push('a question with an answer has no tile to its answer page');
   if (w.questionTiles_(none)) bad.push('a question with no answer offers a tile to an answer page that does not exist');
-  /* HIDDEN, FOR A STUDENT -- signed out is a student here, as on the site. */
+  /* HIDDEN, signed out. */
   if (w.__t.isTutorRole()) bad.push('signed out reads as staff, so the hidden page was NOT checked');
   const hid = el(w.questionAnsCard_(base));
   const card = hid.querySelector('.qans-card');
-  if (!card || !card.classList.contains('is-hidden')) bad.push('a student\'s answer page is not hidden');
+  if (!card || !card.classList.contains('is-hidden')) bad.push('an answer page nobody has asked for is not hidden');
   if (hid.innerHTML.indexOf(SECRET) >= 0 || hid.innerHTML.indexOf('17.5') >= 0) bad.push('a hidden answer page still carries the answer in its markup');
   if (!/Answer hidden/.test(hid.textContent)) bad.push('a hidden answer page does not say "Answer hidden": ' + hid.textContent.trim().slice(0, 80));
   if (!hid.querySelector('[data-do="qa-show"]')) bad.push('a hidden answer page has no "Show the answer"');
@@ -5553,19 +5545,42 @@ check('an answer is its own page after its question, hidden from a student until
   w.stuffItemsAll_ = held;
   const now = d.querySelector('.qans-card[data-of="Q-ANSP-5"]');
   if (!now || now.classList.contains('is-hidden') || now.textContent.indexOf(SECRET) < 0) bad.push('"Show the answer" on the question did not open its answer page');
-  else if (now.querySelector('details.qans-why[open]')) bad.push('showing the answer opened the working as well');
+  else if (now.querySelector('details, .qans-why')) bad.push('showing the answer drew a Why fold under it');
   if (el(w.questionAnsCard_(base)).textContent.indexOf(SECRET) < 0) bad.push('the answer page shut again when it was drawn again');
   const fig2 = d.querySelector('.qans-card[data-of="Q-ANSP-6"]');
   if (!fig2 || !fig2.classList.contains('is-hidden')) bad.push('showing one question\'s answer opened another\'s');
-  /* EARNED BY A RIGHT TAP, from what is stored; not by a wrong one. */
+  /* NOT OPENED BY A RIGHT TAP, settled in storage -- nor by a wrong one. */
   const mc = Object.assign({}, base, { key: 'q-ansp-mc', row: row('Q-ANSP-9'), choices: ['17', '17.5'], choiceRight: [2] });
   const shutNow = x => el(w.questionAnsCard_(x)).querySelector('.qans-card.is-hidden') !== null;
   try {
     w.localStorage.setItem(ansKey(mc), '1');
     if (!shutNow(mc)) bad.push('a tapped question answered wrong opened its answer page');
     w.localStorage.setItem(ansKey(mc), '2');
-    if (shutNow(mc)) bad.push('a tapped question answered right still hides its answer page');
+    if (!shutNow(mc)) bad.push('a tapped question answered right opened its answer page by itself -- the card already says Correct, and the page waits for the tap');
   } finally { try { w.localStorage.removeItem(ansKey(mc)); } catch (e) {} }
+  /* AND NOT BY A RIGHT TAP AS IT HAPPENS, through the real handler on a real card. */
+  const mcLive = Object.assign({}, mc, { key: 'q-ansp-mc2', row: row('Q-ANSP-11') });
+  try { w.localStorage.removeItem(ansKey(mcLive)); } catch (e) {}
+  const tapCard = el(w.questionCard_(mcLive));
+  d.body.appendChild(tapCard);
+  const heldT = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [mcLive];
+  try { A['qp-choose'](tapCard.querySelector('.qp-opt[data-n="2"]')); } finally { w.stuffItemsAll_ = heldT; }
+  if (!tapCard.querySelector('.qp-mark.is-right')) bad.push('the right option was not marked Correct, so the tap was NOT checked');
+  if (!shutNow(mcLive)) bad.push('tapping the right option opened the answer page');
+  try { w.localStorage.removeItem(ansKey(mcLive)); } catch (e) {}
+  /* AND NOT BY A TYPED ANSWER MARKED RIGHT. */
+  const typedX = Object.assign({}, base, { key: 'q-ansp-typed', row: row('Q-ANSP-12'), accept: '17.5' });
+  const typedCard = el(w.questionCard_(typedX));
+  d.body.appendChild(typedCard);
+  const inp = typedCard.querySelector('.qp-ans-in');
+  if (inp) { inp.value = '17.5'; inp.dispatchEvent(new w.Event('input', { bubbles: true })); }
+  const heldC = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [typedX];
+  try { if (typedCard.querySelector('.qp-check')) A['qp-check'](typedCard.querySelector('.qp-check')); } finally { w.stuffItemsAll_ = heldC; }
+  if (!typedCard.querySelector('.qp-mark.is-right')) bad.push('17.5 was not marked right, so a right Check was NOT checked');
+  if (!shutNow(typedX)) bad.push('a typed answer marked right opened its answer page by itself');
+  try { w.localStorage.removeItem(ansKey(typedX)); } catch (e) {}
   /* SAVED: the kept question, then its figure, then its answer. */
   const pages = w.cardPages_(fig, 0);
   if (pages.length !== 3) bad.push('Saved draws a question with a figure and an answer as ' + pages.length + ' pages, wanted 3');
@@ -5575,10 +5590,16 @@ check('an answer is its own page after its question, hidden from a student until
   }
   if (w.cardPages_(base, 0).length !== 2) bad.push('Saved does not keep the answer page after a kept question');
   if (w.cardPages_(none, 0).length !== 1) bad.push('Saved draws an answer page for a question with no answer');
-  /* STAFF SEE IT OPEN, without asking. */
-  w.__t.USER({ name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] });
-  if (!w.__t.isTutorRole()) bad.push('could not sign a tutor in, so the tutor\'s open page was NOT checked');
-  else if (shutNow(Object.assign({}, base, { key: 'q-ansp-tutor', row: row('Q-ANSP-10') }))) bad.push('a tutor\'s answer page is hidden behind "Show the answer"');
+  /* A TUTOR AND AN ADMIN ARE ASKED THE SAME: hidden until the tap, behind the same tile. */
+  [['Ada Tutor', 'P002', 'tutor'], ['Ann Admin', 'P001', 'admin']].forEach(([name, pid, role]) => {
+    w.__t.USER({ name: name, personId: pid, role: role, roles: [role] });
+    if (!w.__t.isTutorRole()) { bad.push('could not sign ' + role + ' in, so their answer page was NOT checked'); return; }
+    const tx = Object.assign({}, base, { key: 'q-ansp-' + role, row: row('Q-ANSP-' + role) });
+    if (!shutNow(tx)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s answer page is open without "Show the answer" -- the owner asked for no difference');
+    const tl = el(w.questionTiles_(tx)).querySelector('[data-do="qa-go"]');
+    if (!tl || !/Show the answer/.test(tl.getAttribute('aria-label') || tl.textContent)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s tile does not read "Show the answer": ' + (tl ? (tl.getAttribute('aria-label') || tl.textContent.trim()) : '(none)'));
+  });
+  w.__t.USER(null);
   return bad;
 });
 

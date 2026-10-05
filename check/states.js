@@ -636,13 +636,15 @@ const STATES = {
       wants: 'the question card saying "Done 4 Oct" beside its marks',
       leave: () => { try { localStorage.removeItem(window.__doneKey); } catch (e) {}
                      STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- THE ANSWER PAGE: HIDDEN, TURNED TO, AND OPEN WITH ITS WORKING FOLDED AND OPENED -------
+    /* ---------- THE ANSWER PAGE: HIDDEN, TURNED TO, AND SHOWN ----------------------------------------
        ASKED FOR AS "what I want was answers to be short and to be their own widget" -- the answer is
-       the page after its question now (`questionAnsCard_`), the result large and the working under
-       one `<details>`. Four pictures of it, because it has four states a finger can put it in, and
-       each is something `ui.js` measures: the waiting sentence and its 44px control; the page a
-       question's tile turns to; the result with Why shut (the summary is a 44px target); and Why
-       open (a table, a fraction and a paragraph at 320px).
+       the page after its question (`questionAnsCard_`) -- and then *"remove all 'why's. I just want
+       it to have answer. And you should have to click to reveal the answer. Should behave the same
+       whether it's a tutor or child."* Three pictures, because a finger can put it in three states,
+       and each is something `ui.js` measures: the waiting sentence and its 44px control; the page a
+       question's tile turns to; and the result shown by its own button, with nothing under it. NO
+       `only:` ON ANY OF THEM -- the hidden page used to be skipped for staff, because a tutor's was
+       open; it is the same page for both visitors now, so both are pictured.
 
        ONE ROW, NAMED, on purpose: June 2018 Higher 1, question 3 -- "No", then working that holds a
        stacked fraction. Picked because it was a 207-character paragraph before 259's rewrite, so
@@ -653,8 +655,7 @@ const STATES = {
        `ANS_SHOWN` IS EMPTIED ON THE WAY IN AND OUT. States run in order down one page, and an answer
        shown by one would be measured as already shown by the next -- the hidden state would then be
        a picture of the open one, and pass. */
-    { name: 'an answer, hidden until you have a go',
-      only: () => !(typeof isTutorRole === 'function' && isTutorRole()),
+    { name: 'an answer, hidden until it is asked for',
       enter: () => {
         ANS_SHOWN.clear();
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
@@ -672,7 +673,7 @@ const STATES = {
                && !c.querySelector('.qans, .qans-body') && /Answer hidden/.test(c.textContent)
                && !!c.querySelector('[data-do="qa-show"]');
       },
-      wants: 'Q3\'s answer page, after its question: "Answer hidden — have a go first", Show the answer, and no answer in it',
+      wants: 'Q3\'s answer page, after its question, for whoever is looking: "Answer hidden", Show the answer, and no answer in it',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'the answer, turned to from its question',
       enter: () => {
@@ -701,7 +702,7 @@ const STATES = {
       },
       wants: 'the question\'s answer tile pressed, and the page turned forward to its answer, open: "No"',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'an answer, its working folded',
+    { name: 'an answer, shown, and nothing under it',
       enter: () => {
         ANS_SHOWN.clear();
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
@@ -715,34 +716,14 @@ const STATES = {
           if (btn) btn.click();
         }, 150);
       },
+      /* THE RESULT AND NOTHING ELSE: "No", and no fold, no working, no examiner's note under it. */
       expect: () => {
-        const ans = document.querySelector('#s-stuff .page.on .qans-card:not(.is-hidden) .qans');
-        const why = ans && ans.querySelector('details.qans-why');
-        return !!ans && /^No$/.test(ans.querySelector('.qans-body').textContent.trim()) && !!why && !why.open;
+        const c = document.querySelector('#s-stuff .page.on .qans-card:not(.is-hidden)');
+        const ans = c && c.querySelector('.qans');
+        return !!ans && /^No$/.test(ans.querySelector('.qans-body').textContent.trim())
+               && !c.querySelector('details, .qans-why, .qans-more, .qans-note');
       },
-      wants: 'the answer page showing "No", with its working shut under Why',
-      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    { name: 'an answer, its working opened',
-      enter: () => {
-        ANS_SHOWN.clear();
-        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
-        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
-        const facet = FACETS.find(f => f.field === 'paperId');
-        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
-        paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
-        setTimeout(() => {
-          const btn = document.querySelector('#s-stuff .page.on .qans-card [data-do="qa-show"]');
-          if (btn) btn.click();
-          const sum = document.querySelector('#s-stuff .page.on .qans-card details.qans-why > summary');
-          if (sum) sum.click();
-        }, 150);
-      },
-      expect: () => {
-        const why = document.querySelector('#s-stuff .page.on .qans-card .qans details.qans-why');
-        return !!why && why.open && !!why.querySelector('.qans-more .frac');
-      },
-      wants: 'the answer page\'s working open under Why, its fraction stacked',
+      wants: 'the answer page showing "No" once its button is pressed, and nothing under it',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- MARKED, AND NOTHING MOVED --------------------------------------------------------
        ASKED FOR AS "make it nice more sleek, fresh stable". The unstable part was measured before it
@@ -752,7 +733,8 @@ const STATES = {
        afterwards, so these states take the picture's measurements BEFORE the press as well, the way
        a finger would see it: the question's top, the answer box's top and the card's height, then
        Check (or the tap), then the same three again. A wrong verdict may move NOTHING; a right one
-       may grow the card only BELOW the box, because it opens the answer, which is the point.
+       may grow the card only BELOW the box -- and it does not open the answer page any more: the
+       verdict is "Correct", and the page after waits for its own tap, for everybody.
 
        NAMED ROWS, so the pictures are the same question every run: `Q0664` is 5/8 = ?/24 (typed,
        accepts 15, its stem a stacked fraction), and the Corbettmaths ×10 question is a one-answer
@@ -826,14 +808,15 @@ const STATES = {
         const s = window.__qStable;
         const card = window.__qCard;
         const mark = card && card.querySelector('.qp-mark');
-        /* THE ANSWER OPENS ON ITS OWN PAGE, the one after -- asked of `ansOpen_`, the one rule the
-           page is drawn by, because the page may not be built yet and is not the one on screen. */
+        /* THE ANSWER PAGE STAYS SHUT -- asked of `ansOpen_`, the one rule the page is drawn by, because
+           the page may not be built yet and is not the one on screen. A right answer used to open it;
+           *"you should have to click to reveal the answer"*. */
         const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
-        return !!s && !!mark && mark.classList.contains('is-right') && !!it && ansOpen_(it)
+        return !!s && !!mark && mark.classList.contains('is-right') && !!it && !ansOpen_(it)
                && !card.querySelector('.qans')
                && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5);
       },
-      wants: 'Q0664 marked right and its answer page opened, with the question, the box and Check where they were',
+      wants: 'Q0664 marked right and its answer page still waiting for its tap, with the question, the box and Check where they were',
       leave: () => {
         const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}

@@ -554,7 +554,9 @@ function libraryExtras_(d, extra) {
 function libraryInto_(d, rows) {
   if (!d || !Array.isArray(rows)) return d;
   const cfg = (d.constants && d.constants.vars) || {};
-  const admin = typeof isAdmin === 'function' && isAdmin();
+  /* `const admin = isAdmin()` WAS HERE, declared and never read. Nothing in the library is filtered by
+     who is looking -- an inactive row is dropped for everybody, by `libOn(r.active)` -- and a role
+     sitting unused at the top of the mapper is an invitation to start. */
 
   /* --- the questions ------------------------------------------------------------------------- */
   const qs = [];

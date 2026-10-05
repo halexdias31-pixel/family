@@ -277,8 +277,20 @@ function tileSet_(el, o) {
 
    `x.key` rather than the row's id: the spotlight set is keyed on whatever the CARD is keyed on,
    which for a widget is `w:123` and for a venue is its name. */
+/* ---------- AND NOT ON ANYTHING FIND TEACHES WITH -----------------------------------------------
+   ASKED FOR AS *"No distinction between tutor and student on the finder. All the same. Remove any
+   nuances about that."* A question, a practical, a project or a textbook drew a gold Spotlight tile
+   at the end of its row for an admin and nothing for anybody else, so the owner, signed in as
+   themselves, was never looking at the page a student looks at. The learning group is Find's own
+   word for those kinds (`kindOf_`), so a kind added to it tomorrow is covered without a list here.
+
+   WHAT IT COSTS, WRITTEN WHERE THE TILE WAS: an admin cannot put a question in the Spotlight window
+   from its card. Everything a shop row, a tutor or a class carries is unchanged, and so is anything
+   already in the window. */
+const adminLearn_ = x => typeof kindOf_ === 'function'
+  && asList_(kindOf_(x).group).indexOf('Learning') !== -1;
 function adminTiles_(x, t) {
-  if (!isAdmin()) return '';
+  if (!isAdmin() || adminLearn_(x)) return '';
   /* A `span`, NOT A ROW. These go inside the one row every card has now — see `tilesFor_`. It keeps
      the group for a screen reader, which is the half of the old wrapper worth having. */
   return `<span class="tile-group is-admin" role="group" aria-label="Admin">

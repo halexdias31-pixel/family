@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-donesheet";
+  --css-version: "2026-10-05-qcards";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -9721,22 +9721,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* ---------- THE OPENED QUESTION ------------------------------------------------------------------
    Stem, then lead, then the part, in the order it is printed. The stem is dimmed because it is
    context — somebody who opened 2c wants to find 2c, not read three paragraphs first. */
-/* ---------- THE ANSWER, SHUT UNTIL IT IS ASKED FOR ------------------------------------------------
-   SEE `answerBlock_` in find.js for why this is a `<details>` and not a button with a flag.
-
-   THE SUMMARY IS A TAP TARGET AND IS SIZED LIKE ONE — 44px in px, not rem, for the reason the house
-   style gives: the root here is clamp(13.5px, 3.8vw, 16px), so a fingertip's worth of rem is a
-   different size on every phone and a fingertip is not.
-
-   `list-style: none` PLUS THE WEBKIT PSEUDO-ELEMENT, because Safari draws the disclosure triangle
-   through `::-webkit-details-marker` and ignores `list-style` on a summary entirely. One of the two
-   lines is dead on any given browser and which one depends on the browser, so both stay. The mark is
-   drawn here instead, as a + that becomes a −, which reads at any size and needs no glyph the phone
-   might not have.
-
-   NOT `display: flex` ON THE SUMMARY IN ONE GO — a flex summary loses its marker box in Safari and
-   the element stops being clickable in some older WebKits. `display: block` with the contents laid
-   out inside is the arrangement that behaves everywhere. */
+/* ---------- THE ANSWER: THE RESULT, ON ITS OWN PAGE, AND NOTHING UNDER IT ----------------------
+   `.qans-why`, `.qans-more` AND `.qans-note` WERE HERE -- the "Why" fold, the working hanging from
+   it by a rule down the left, and the examiner's note set apart inside it. Gone with the markup, on
+   the owner's word: *"Also remove all 'why's. I just want it to have answer."* See `answerBlock_`. */
 /* ON ITS OWN PAGE NOW, so the rule that separated it from the question above has nothing to
    separate: the card's own edge does that. The same gap as the question to its answer box, 1rem. */
 .qans { margin-top: 1rem; }
@@ -9764,46 +9752,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qans-body p:first-child { margin-top: 0; }
 .qans-body table { border-collapse: collapse; margin: .9rem 0; font-size: .8rem; font-weight: 400; }
 .qans-body td, .qans-body th { border: 1px solid var(--line); padding: .3rem .5rem; }
-/* WHAT THE EXAMINER SAID, set apart from the answer — it is commentary on how it was marked, not
-   part of the answer, and reading them as one paragraph is how a hint becomes a requirement. */
-.qans-note {
-  margin: .6rem 0 .4rem; padding: .6rem .7rem;
-  background: var(--sunk); border-radius: var(--r-sm);
-  font: 400 .74rem/1.45 var(--font); color: var(--dim);
-}
-/* ---------- THE WORKING, FOLDED UNDER THE RESULT ---------------------------------------------------
-   ASKED FOR AS "make answers breaifer". The result is `.qans-body` above and is never folded; the
-   explanation and the examiner's note are behind this one word. See `answerParts_` in find.js.
-
-   SMALL TO LOOK AT, 44px TO HIT. A fold that reads as loud as the answer undoes the point of it, so
-   the word is the size of `.qans-head em`; the tap target is still a fingertip, in px, because a
-   fingertip does not scale with the root font. BOTH WAYS: the first version was 44px tall and
-   34px wide at 320, because "+ Why" is three characters and a glyph, and `check/ui.js` said so. `display: inline-flex` on the summary is safe where
-   the comment above warns against flex: the marker is drawn here rather than by the browser, and
-   `list-style: none` plus the WebKit pseudo-element removes the browser's in both engines. */
-.qans-why { margin: 0 0 .3rem; }
-.qans-why > summary {
-  display: inline-flex; align-items: center; gap: .4rem;
-  min-height: 44px; min-width: 64px; padding: 0 .6rem 0 .2rem;
-  list-style: none; cursor: pointer;
-  font: 600 .7rem/1 var(--font); letter-spacing: .04em; color: var(--dim);
-}
-.qans-why > summary::-webkit-details-marker { display: none; }
-.qans-why > summary::before { content: "+"; color: var(--gold); font-weight: 700; }
-.qans-why[open] > summary::before { content: "\2212"; }
-.qans-why > summary:hover { color: var(--gold); }
-/* THE OPENED WORKING HANGS FROM ITS FOLD BY A RULE DOWN THE LEFT, the mark `.qp-guide`
-   already uses for "this block belongs to the thing above it". Without it, three paragraphs of dim
-   working read as a second answer starting under the first; with it they read as the inside of
-   "Why". Laid in line with the fold's own + so the two read as one control and its contents. */
-.qans-more {
-  font: 400 .8rem/1.5 var(--font); color: var(--dim);
-  margin: 0 0 .4rem .3rem; padding: .1rem 0 .1rem .7rem;
-  border-left: 2px solid var(--line);
-}
-.qans-more p:first-child { margin-top: 0; }
-.qans-more table { border-collapse: collapse; margin: .6rem 0; }
-.qans-more td, .qans-more th { border: 1px solid var(--line); padding: .3rem .5rem; }
 
 /* ==================================================================================================
    QUESTIONS IN THE FUNNEL.
@@ -12390,14 +12338,11 @@ button.scr-sq { cursor: pointer; }
    filed under. Removed with its handler: the app already knows who is signed in, and two ways of
    saying who you are is two things to keep in step. See `whoIs_` in find.js. */
 
-/* THE MARK SCHEME, WAITING. Only ever shut when a student is named — see `answerBlock_` for why
-   the tutor's own view is untouched. `display: none` rather than height, because a collapsed
-   block that is still in the document is still readable by anyone who looks. */
-/* THE ANSWER, WAITING. `.qans.is-shut` WAS HERE, hiding with `display: none` an answer that was
-   in the document -- "still readable by anyone who looks", as its own note said. The answer page
-   draws no answer at all until it is shown (`questionAnsCard_`), so what is left to style is the
-   sentence saying so and the one control under it. The sentence in the dim of a caption, not a
-   warning: it is an invitation to try, and the house word for a wrong answer is "not yet". */
+/* THE ANSWER, WAITING -- FOR EVERYBODY. `.qans.is-shut` WAS HERE, hiding with `display: none` an
+   answer that was in the document -- "still readable by anyone who looks", as its own note said. The
+   answer page draws no answer at all until it is shown (`questionAnsCard_`), and it is shown to a
+   tutor exactly as to a child: on the tap. What is left to style is the sentence saying so and the
+   one control under it. The sentence in the dim of a caption, not a warning. */
 .qans-wait { margin-top: 1rem; }
 .qans-wait-k { margin: 0 0 .75rem; font: 500 .8rem/1.45 var(--font); color: var(--dim); }
 .qp-reveal {

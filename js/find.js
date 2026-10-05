@@ -3773,10 +3773,14 @@ function projectPart_(x, part) {
   } else if (part === 'share') {
     /* A THING HAS TILES: the one action on this page is going to Messages, so it is a tile in a
        `.tile-row`, not a button — `check-doors` pairs `proj-share` with its handler below. */
+    /* "SEND IT IN MESSAGES", NOT "TO YOUR TUTOR". The page was written to a student, and a tutor
+       opening the same project read an instruction to message themselves. *"No distinction between
+       tutor and student on the finder. All the same."* -- so it says what to do with the thing, and
+       who it goes to is the Messages screen's question, as the note under this function says. */
     inner = `${head('Share it')}
-      <p class="fc-lede">When it is finished, send it to your tutor in Messages.</p>
+      <p class="fc-lede">When it is finished, send it in Messages.</p>
       ${p.share ? `<p class="fc-say"><b>What to send</b> ${esc(p.share)}</p>` : ''}
-      <div class="tile-row">${tile_({ icon: 'chat', label: 'Messages', note: 'to your tutor',
+      <div class="tile-row">${tile_({ icon: 'chat', label: 'Messages', note: 'send it',
         act: 'proj-share' })}</div>`;
   }
   return inner ? `<div class="card fc prac prac-part proj is-${part}">${inner}</div>` : '';
@@ -4474,40 +4478,28 @@ function answerParts_(raw) {
 
 function answerBlock_(x) {
   if (!x || !String(x.answer || '').trim()) return '';
-  /* WHO MAY SEE THIS IS NOT DECIDED HERE ANY MORE. It was `is-shut` and a reveal button on this
-     block, which hid an answer that was already in the document -- `display: none` over markup
-     anybody could read. The answer is its own page now, and `questionAnsCard_` asks `ansOpen_`
-     before it draws any of this, so a student's page holds no answer to find until it is shown. */
-  /* WHAT KIND OF ANSWER IT IS, over the result, when the sheet says. A one-mark recall and a
-     25-mark essay want different things of you before you open it. It sat beside a gold "Answer"
-     and read as one phrase -- "Answer explain" -- so it is the label the answer box already wears
-     on the question card, `.qp-ans-k`'s small capitals: "ANSWER · EXPLAIN" over the result reads as
-     the other half of "YOUR ANSWER" over the box. */
+  /* WHO MAY SEE THIS IS NOT DECIDED HERE. `questionAnsCard_` asks `ansOpen_` before it draws any of
+     this, so a page that has not been shown holds no answer to find. */
+  /* WHAT KIND OF ANSWER IT IS, over the result, when the sheet says -- "ANSWER · EXPLAIN" in the
+     small capitals the answer box's "YOUR ANSWER" wears on the question card. */
   const kind = String(x.answerType || '').trim();
-  /* ---------- THE RESULT SHOWN, THE WORKING FOLDED ---------------------------------------------
-     THE `<details>` IS BACK, AND NOT WHERE IT WAS. It used to sit between the question and the
-     whole mark scheme, and the argument against it still holds: the tutor reads FROM this card,
-     and the result is what they read out. So the result is never folded -- only the working is,
-     under a word that says what it is. A tutor who wants the method taps once; a child who wanted
-     the answer is no longer handed a paragraph to dig it out of.
+  /* ---------- THE ANSWER, AND NOTHING ELSE ------------------------------------------------------
+     ASKED FOR AS *"Also remove all 'why's. I just want it to have answer."* -- the owner, after an
+     hour tutoring a student through June 2024 Paper 1 Foundation from this page. The working sat
+     under a "Why" fold (259) with the examiner's note beside it; both are gone from the page.
 
-     ONE FOLD FOR THE WORKING AND THE EXAMINER'S NOTE TOGETHER, because both are "why", and two
-     folds under one answer is the same tax as one long answer paid in taps instead of lines. The
-     note stays escaped and set apart inside it, for the reason `.qans-note` gives.
+     THE HEAD ONLY, AND `answerParts_` STILL SAYS WHERE IT STOPS. That function is the one definition
+     of the result -- `check-answers.js` cuts it out by name and measures every library answer through
+     it -- so this draws `p.head` and never `p.why`. Not a second rule here about where an answer ends.
 
-     SHUT BY DEFAULT, AND NOTHING OPENS IT BUT A FINGER -- not a right answer either. The owner
-     chose "shorter answers" over "hide the working behind a tap", and a fold that springs open on
-     its own is a long answer with a delay. The browser keeps the open state; no flag, no key. */
+     THE EXPLANATION STAYS IN THE DATA, deliberately. `answer` whole and `examiner_note` beside it are
+     what "Mark with AI" sends as the scheme (`aiScheme_` in keypad.js reads the row, not this markup),
+     and the working is exactly what a marker needs. Neither is drawn. A head that does not answer on its own ("Yes", "Shown") is a data fault, and the data
+     workflow is rewriting those rows rather than this code guessing at them. */
   const p = answerParts_(x.answer);
-  const note = x.examinerNote ? `<p class="qans-note">${esc(x.examinerNote)}</p>` : '';
-  const why = (p.why || note)
-    ? `<details class="qans-why"><summary>Why</summary>${
-        p.why ? `<div class="qans-more">${typeset_(p.why)}</div>` : ''}${note}</details>`
-    : '';
   return `<div class="qans">
     <span class="qans-head">Answer${kind ? ` &middot; ${esc(kind)}` : ''}</span>
     <div class="qans-body">${typeset_(p.head)}</div>
-    ${why}
   </div>`;
 }
 
@@ -5703,9 +5695,9 @@ on('qp-choose', (el) => {
     ? box.nextElementSibling : null;
   if (mark) mark.remove();
   box.replaceWith(...wrap.childNodes);
-  /* RIGHT OPENS THE ANSWER PAGE, as Check does on a typed answer -- the page after, not this card,
-     so nothing on this card moves for it. */
-  if (card.querySelector('.qp-mark.is-right')) ansShow_(x);
+  /* RIGHT DOES NOT OPEN THE ANSWER PAGE ANY MORE. It did, from 263 on; the verdict on this card --
+     "Correct", and the right option marked -- is the answer to "was I right", and the page after
+     opens when somebody taps "Show the answer" and not before. See `ansOpen_`. */
 });
 
 function ansBox_(x) {
@@ -5759,16 +5751,10 @@ on('qp-check', (el) => {
   out.textContent = verdict ? 'Correct' : 'Not yet — have another go';
   /* MARKED IS DONE, right or not yet -- a wrong answer is still the day they did it. */
   doneMark_(inp.getAttribute('data-k'));
-  /* THE ANSWER OPENS ITSELF ONCE IT HAS BEEN EARNED. Having to hunt for the method at the
-     moment you have just been told you were right is backwards -- that is when the working is
-     worth reading. A wrong one is left shut, because the next thing to do is try again. It opens
-     on its own page, the one after, and the page does not turn by itself: "Correct" is what you
-     are reading at that moment, and a screen that slides away from it is the card jumping at the
-     moment it tells you your answer, which is what 261 took out. */
-  if (verdict) {
-    const x = ansItem_(inp.getAttribute('data-k'));
-    if (x) ansShow_(x);
-  }
+  /* A RIGHT ANSWER DOES NOT OPEN THE ANSWER PAGE. It did -- "the answer opens itself once it has
+     been earned" -- and that was a reveal nobody pressed, on the page after the one being read. The
+     owner's rule is one tap, the same for everybody: *"you should have to click to reveal the
+     answer."* "Correct" here is the verdict, and the working it used to open is not drawn at all. */
 });
 
 /* ---------- WHO IS WORKING ---------------------------------------------------------------------
@@ -6615,14 +6601,14 @@ function questionFigCard_(x) {
    by what the page is FOR rather than by its length: it keeps the answer apart from the question,
    so that writing your own is the only thing on the page you write it on.
 
-   THE RESULT LARGE AND FIRST, then the "Why" fold with the working and the examiner's note --
-   `answerBlock_`, unchanged in what it draws, so `check-answers.js`'s limits still hold of it.
+   THE RESULT LARGE, AND NOTHING UNDER IT -- `answerBlock_`. The "Why" fold went on the owner's word:
+   *"Also remove all 'why's. I just want it to have answer."*
 
-   NOTHING TO FIND UNTIL IT IS SHOWN. For a student the page says "Answer hidden -- have a go first"
-   and holds the one control that shows it, and the answer is not in the markup at all: the old
-   `is-shut` hid with `display: none` an answer anybody could read in the document, which the
-   stylesheet's own note admitted. `ansOpen_` decides, and it is the rule the card always had: staff
-   see it, a student sees it once they have asked for it or got it right.
+   ONE PAGE FOR EVERYBODY, SHUT UNTIL IT IS ASKED FOR. *"you should have to click to reveal the answer.
+   Should behave the same whether it's a tutor or child. No difference between the two."* The page
+   says "Answer hidden" and holds the one control that shows it, and the answer is not in the markup at
+   all until then: the old `is-shut` hid with `display: none` an answer anybody could read in the
+   document. `ansOpen_` decides, and it asks one thing -- has this person, on this visit, asked.
 
    `data-of` NAMES THE ROW, as the figure card does, and `data-k` is the answer box's key, which is
    what `ansShow_` finds these by to draw them open where they already stand. */
@@ -6630,34 +6616,29 @@ function questionHasAns_(x) {
   return !!(x && x.kind === 'question' && String(x.answer || '').trim());
 }
 
-/* ---------- WHO SEES IT OPEN ----------------------------------------------------------------------
-   `isTutorRole()` IS THE APP'S OWN STAFF TEST -- tutor or admin. `!!whoIs_()` was the test once,
-   and with the typed name gone that meant "is anybody signed in", so a tutor signed in as
-   themselves got their own mark schemes shut behind a tap, on the one surface they read FROM.
+/* ---------- WHO SEES IT OPEN: WHOEVER ASKED, AND NOBODY ELSE ---------------------------------------
+   THIS USED TO HAVE THREE MORE WAYS IN AND ALL THREE ARE GONE, on the owner's word -- *"you should have
+   to click to reveal the answer. Should behave the same whether it's a tutor or child. No difference
+   between the two."*
 
-   A STUDENT, ONCE ASKED FOR OR EARNED, and that is held in `ANS_SHOWN` by the answer box's own key
-   -- which carries who is signed in, so the phone passed to the next student starts shut again. A
-   SET RATHER THAN A CLASS ON AN ELEMENT, because the answer is drawn on a different page from the
-   control that shows it, and pages are built and thrown away as you swipe (`fillStuffPages` keeps
-   eleven): a fact left on an element is gone the moment its page is rebuilt, which is the
-   `REEL_HELD` fault. Kept for the visit and not in `localStorage`: having asked for an answer last
-   week is not having asked for it today.
+     STAFF SAW IT OPEN (`isTutorRole()`), on the argument that a tutor reads the mark scheme FROM this
+       page. In the lesson that prompted this, the tutor and the child were reading the SAME phone, and
+       an answer that was already open for one of them was open for both -- the reveal was the tutor's
+       to make, and the app had made it for them. There is one page now, the same for a tutor, an admin,
+       a student, a parent and somebody signed out.
+     A TYPED ANSWER MARKED RIGHT opened it (`qp-check`), and a TAPPED ONE SETTLED RIGHT did, from what
+       was stored. The question card already says "Correct" -- that is the verdict -- and an answer
+       page that opens itself is a reveal nobody pressed.
 
-   A TAPPED QUESTION SETTLED RIGHT IS EARNED FROM WHAT IS STORED, because the pick is stored and its
-   verdict is drawn from it on every paint -- an answer page that came back shut beside a question
-   still saying "Correct" would be two pages of one question disagreeing. */
+   WHAT IS LEFT is the tap, held in `ANS_SHOWN` by the answer box's own key -- which carries who is
+   signed in, so the phone passed to the next student starts shut again. A SET RATHER THAN A CLASS ON
+   AN ELEMENT, because the answer is drawn on a different page from the control that shows it, and
+   pages are built and thrown away as you swipe (`fillStuffPages` keeps eleven): a fact left on an
+   element is gone the moment its page is rebuilt, which is the `REEL_HELD` fault. Kept for the visit
+   and not in `localStorage`: having asked for an answer last week is not having asked for it today. */
 const ANS_SHOWN = new Set();
 function ansOpen_(x) {
-  if (typeof isTutorRole === 'function' && isTutorRole()) return true;
-  const k = ansKey_(x);
-  if (ANS_SHOWN.has(k)) return true;
-  if (Array.isArray(x.choices) && x.choices.length >= 2 && (x.choiceRight || []).length) {
-    const right = x.choiceRight.slice().sort((a, b) => a - b).join(',');
-    const picked = String(ansRead_(k) || '').split(',').map(t => parseInt(t, 10)).filter(n => n > 0)
-      .sort((a, b) => a - b).join(',');
-    if (picked && picked === right) return true;
-  }
-  return false;
+  return !!x && ANS_SHOWN.has(ansKey_(x));
 }
 
 function questionAnsCard_(x) {
@@ -6668,11 +6649,15 @@ function questionAnsCard_(x) {
     ${qHead_(x, 'answer')}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     ${open ? answerBlock_(x) : `<div class="qans-wait">
-      <p class="qans-wait-k">Answer hidden &mdash; have a go first</p>
+      ${/* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". That was advice to a student, on a page a tutor
+            reads too -- and the owner's word is that the two read the same thing. The page says what
+            it is; whether to try first is the tutor's to say out loud, not the app's to say to one of
+            them. */''}
+      <p class="qans-wait-k">Answer hidden</p>
       ${/* A BUTTON, NOT A TILE, and the rule in CLAUDE.md is why: it is the one control in this
-            card's body, a gate between the student and the answer, where a tile row is the action
-            row UNDER a thing. The part pages carry no tile row -- a figure page has none either --
-            and one tile alone at the foot of a page that says "hidden" reads as decoration. */''}
+            card's body, a gate in front of the answer, where a tile row is the action row UNDER a
+            thing. The part pages carry no tile row -- a figure page has none either -- and one tile
+            alone at the foot of a page that says "hidden" reads as decoration. */''}
       <button type="button" class="qp-reveal" data-do="qa-show" data-k="${esc(k)}">Show the answer</button>
     </div>`}
   </div>`;
@@ -6701,15 +6686,15 @@ function ansShow_(x) {
   });
 }
 
-/* THE QUESTION CARD'S TILE: TO THE ANSWER PAGE. `Show the answer` for a student, `The answer` for
-   staff, whose page is open already -- a word promising to show something already shown would be a
-   small untruth on every card a tutor reads. Drawn the same whether or not it has been shown, so
-   pressing it changes nothing on this card. A tile because the question is a THING and this is an
-   action on it; the box, Check and the options above stay buttons, because answering is a form. */
+/* THE QUESTION CARD'S TILE: TO THE ANSWER PAGE, AND IT SHOWS IT. `Show the answer` for everybody.
+   STAFF READ `The answer` HERE, because their page was open already; it is not any more -- see
+   `ansOpen_` -- so there is one label and it is true for all of them: pressing it is asking, which
+   is the one thing that opens the page. Drawn the same whether or not it has been shown, so pressing
+   it changes nothing on this card. A tile because the question is a THING and this is an action on
+   it; the box, Check and the options above stay buttons, because answering is a form. */
 function questionTiles_(x) {
   if (!questionHasAns_(x)) return '';
-  const staff = typeof isTutorRole === 'function' && isTutorRole();
-  return tile_({ icon: 'show', label: staff ? 'The answer' : 'Show the answer', note: 'next page',
+  return tile_({ icon: 'show', label: 'Show the answer', note: 'next page',
                  act: 'qa-go', data: { k: ansKey_(x) } });
 }
 
@@ -6902,8 +6887,13 @@ let ITEM_MEMO = { key: null, from: null, items: null };
    Same key on both, so they are filled and dropped together. */
 let ALL_MEMO = { key: null, from: null, items: null };
 
-const itemMemoKey_ = () =>
-  (isAdmin() ? 'a' : '-') + '|' + (USER ? (USER.personId || USER.name || 'u') : '-');
+/* WHO IS SIGNED IN, AND NOT WHETHER THEY ARE AN ADMIN. `isAdmin()` was half of this key, and nothing
+   the items are built from asks it: what an admin is sent that others are not (the films, an unlisted
+   tutor) arrives in the payload, and a new payload is a new `DATA`, which both memos already test by
+   identity. A key naming the role read as though Find drew a different library for one -- *"No
+   distinction between tutor and student on the finder. All the same."* -- and it does not. The person
+   stays: a starred thing and the `me` card are theirs. */
+const itemMemoKey_ = () => (USER ? (USER.personId || USER.name || 'u') : '-');
 
 /* ---------- EVERY ITEM THE APP HAS, INCLUDING THE ONES THE FUNNEL DOES NOT OFFER ------------------
    THE FUNNEL'S EDITORIAL DECISIONS ARE ABOUT WHAT TO OFFER, NOT ABOUT WHAT EXISTS. Booking is not a
@@ -8100,8 +8090,8 @@ function stuffFiltered() {
      A new payload is a new object. That is the whole test, it costs one comparison, and it is the
      same one `allTopics` already uses one level down — which is why THAT was correct and this was
      not. */
-  const key = JSON.stringify([STUFF.q, STUFF.filters,
-                              USER ? USER.credits : -1, isAdmin()]);
+  /* NO ROLE IN THE KEY, for the reason `itemMemoKey_` gives: nothing below filters by one. */
+  const key = JSON.stringify([STUFF.q, STUFF.filters, USER ? USER.credits : -1]);
   if (FIND_MEMO.key === key && FIND_MEMO.from === DATA) return FIND_MEMO.items;
   const all = stuffItems();
   const credits = USER ? (USER.credits || 0) : 0;
@@ -8122,7 +8112,7 @@ function stuffFiltered() {
   const words = stuffWords_(STUFF.q);
   let items = null;
   if (prev.key !== null && prev.from === DATA && prev.all === all && prev.credits === credits
-      && prev.admin === isAdmin() && prev.filters && prev.words
+      && prev.filters && prev.words
       && prev.filters.length <= STUFF.filters.length
       && prev.words.every(w => words.some(n => n.includes(w)))) {
     const same = prev.filters.every((f, i) => JSON.stringify(f) === JSON.stringify(STUFF.filters[i]));
@@ -8135,7 +8125,7 @@ function stuffFiltered() {
   }
   if (!items) items = stuffFind(all, credits);
   FIND_MEMO = { key: key, from: DATA, items: items, total: all.length, all: all, credits: credits,
-                admin: isAdmin(), words: words,
+                words: words,
                 filters: STUFF.filters.map(f => Object.assign({}, f)) };
   return items;
 }
