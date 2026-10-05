@@ -1259,8 +1259,10 @@ function settleLeft_(axis) {
    changes. A blur on the COLUMN, or on anything that is its own layer, is a blurred surface redrawn
    every frame: 2.4–2.8 times the drawing, and the main thread's cadence halved at 390x844 under
    load. So: never on `.screen`, never a standing `will-change`, and `.soft-dim` — a dim with no blur —
-   on a pane holding a video, an iframe or a canvas, which repaint every frame and would carry the
-   blur with each one.
+   on a pane holding a video that is PLAYING, or an iframe (a player whose state this cannot see),
+   which repaint every frame and would carry the blur with each one. A paused reel and a canvas at
+   rest are a still picture like any other and are blurred: dimming every pane that merely HAS a
+   canvas left Flabby Pird sharp beside a blurred chessboard, which read as two cards in focus.
 
    AND IT FOLLOWS THE FINGER. While a card is dragged, the one in front blurs and the one coming in
    sharpens in step with how far it has come (`softDrag_`), so the card arrives in focus rather than
@@ -1283,7 +1285,8 @@ function softMotion_() {
 }
 const glassOf_ = page => (page && page.querySelector(':scope > .pane')) || null;
 /* A PANE THAT REPAINTS ITSELF is dimmed rather than blurred — see above. */
-const softDim_ = page => !!(page && page.querySelector('video, iframe, canvas'));
+const softDim_ = page => !!(page && (page.querySelector('iframe')
+  || [...page.querySelectorAll('video')].some(v => !v.paused && !v.ended)));
 /* AND ONE THE KEYBOARD IS TYPING INTO is left sharp while a finger drags it away. */
 function softKeep_(page) {
   if (!page) return true;

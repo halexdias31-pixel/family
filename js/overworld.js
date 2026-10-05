@@ -561,8 +561,16 @@ addEventListener('pointermove', e => {
          moving 4px a frame, on every swipe. That twitch is the card not being stuck to the finger.
          So the travel at the moment the axis is chosen is taken off what is PLACED, which is what a
          native pager does with its touch slop. What is DECIDED — how far, which page — still reads
-         the whole travel, so the threshold to turn a page is where it always was. */
-      SWIPE.lock = dir;
+         the whole travel, so the threshold to turn a page is where it always was.
+         ---------- THE SLOP, AND NOT A PIXEL MORE ------------------------------------------------
+         IT WAS THE WHOLE TRAVEL AT THE MOMENT OF DECIDING, which is ten pixels only when every move
+         arrives. On a busy phone they arrive folded together: measured on 5 October, a sideways drag
+         whose first two `pointermove`s landed at 7px and then 132px locked at 132 — and the card
+         followed the finger 132px behind it for the whole gesture, a card visibly not under the
+         thumb. A native pager takes off its slop and nothing else, so this does too: ten pixels, the
+         same ten the decision waits for, and any travel past them is placed in that first frame,
+         because that is where the finger already is. */
+      SWIPE.lock = Math.sign(dir) * Math.min(Math.abs(dir), 10);
       SWIPE.last = AXES[axis].count() - 1;
       /* ---------- AND A CARD STILL SETTLING IS CAUGHT WHERE IT IS --------------------------------
          A SWIPE THAT STARTS WHILE THE LAST ONE IS STILL SLIDING used to snap the card to where it

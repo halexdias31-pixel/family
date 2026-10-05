@@ -549,7 +549,7 @@ body {
    about. `--soft-blur` is published by shell.js beside `--card-w`, because the finger eases toward
    the same number this draws.
 
-   `.soft-dim` IS A PANE THAT REPAINTS ITSELF — a video, an iframe, a canvas — where a blur would come
+   `.soft-dim` IS A PANE THAT REPAINTS ITSELF — a video playing, an iframe — where a blur would come
    with every frame it draws. It is dimmed instead, and so is every soft pane for somebody who has
    asked for less motion or less transparency. */
 .page.soft > .pane { filter: blur(var(--soft-blur, 2px)); }

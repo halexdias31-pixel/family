@@ -327,6 +327,36 @@ async function gesture(env, o) {
     /* AND THE CONTROL: a deliberate drag most of the way, held still, still turns the page. */
     await turn('half a card up, held still', { col: 'games', p: GAMES, g: G.still(0, -Math.round(H * 0.45)) }, down1);
 
+    /* ---------- 1b. THE CARD STAYS UNDER THE FINGER WHEN THE MOVES ARRIVE FOLDED TOGETHER ---------
+       Found by these screenshots, not by the lab: on a busy machine the first two moves of a drag
+       arrived at 7px and 132px, the grid took off the whole 132 as "slop", and the card followed the
+       finger 132px behind it for the rest of the gesture. Sent here as exactly that — one move inside
+       the dead zone and the next far past it — so it does not depend on how loaded the machine is.
+       The card may trail by the ten pixels of slop and no more. */
+    {
+      let sp = null;
+      for (const p of TOOLS) { await page.evaluate(p => window.__sw.place('tools', p), p); sp = await page.evaluate(() => window.__sw.spot()); if (sp) break; }
+      if (!sp) fail('REACH', `${at} folded moves`, 'no Tools card had a spot the grid would take');
+      else {
+        const send = (type, x) => cdp.send('Input.dispatchTouchEvent', { type,
+          touchPoints: type === 'touchEnd' ? [] : [{ x, y: sp.y, id: 1, radiusX: 8, radiusY: 8 }] });
+        await send('touchStart', sp.x);
+        await sleep(30); await send('touchMove', sp.x - 6);
+        await sleep(30); await send('touchMove', sp.x - 130);
+        await sleep(30); await send('touchMove', sp.x - 131);
+        const r = await page.evaluate(async () => {
+          await new Promise(res => requestAnimationFrame(() => requestAnimationFrame(res)));
+          return { axis: SWIPE.axis, d: SWIPE.d, px: SWIPE.px };
+        });
+        await send('touchEnd', 0);
+        await page.evaluate(() => window.__sw.still());
+        reached++;
+        note(`${at} folded moves: finger ${r.d}px, card ${(r.px || 0).toFixed(1)}px (axis ${r.axis})`);
+        if (r.axis !== 'x') fail('REACH', `${at} folded moves`, `the drag was not the grid's (axis ${r.axis})`);
+        else if (Math.abs(r.d - r.px) > 10.5) fail('UNDER THE FINGER', `${at} folded moves`, `the finger is ${r.d}px along and the card ${r.px.toFixed(1)}px — it trails by ${Math.abs(r.d - r.px).toFixed(0)}px, more than the ten of slop`);
+      }
+    }
+
     /* ---------- 2. THE AXIS, AND A DIAGONAL WITH NOWHERE TO GO UP OR DOWN ---------------------- */
     if (one) {
       await turnCol(`45° on ${one} (one page)`, { col: one, g: G.diag(45, -1) }, s => next(s.AT) + '/0');
