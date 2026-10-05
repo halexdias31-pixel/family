@@ -4111,10 +4111,10 @@ function filmCard_(x) {
    practicals' answer to the same problem ("Split into widgets"): the next page in the strip, one
    flick away, headed with whose page it is.
 
-   EVERY CELL CAN BE BLANK. Fourteen rows have no record, sixty-nine no stance, a hundred and two no
-   photo; each part below says what it does with nothing, and the answer is always to leave the part
-   out rather than print a dash or a nought — see the `libNum` note in library.js for the record a
-   blank once turned into `0-0-0`.
+   EVERY CELL CAN BE BLANK. Eight rows have no record (fourteen did at first), sixty-nine no stance,
+   a hundred and two no photo; each part below says what it does with nothing, and the answer is
+   always to leave the part out rather than print a dash or a nought — see the `libNum` note in
+   library.js for the record a blank once turned into `0-0-0`.
 ================================================================================================== */
 
 /* ---------- A FLAG FOR THE COUNTRY, WHERE THE COUNTRY IS ONE OF THESE -----------------------------
@@ -4427,8 +4427,9 @@ function boxerStatus_(b) {
    shared-parts journey refuses on every Find card. `preserveAspectRatio="none"` stretches it to the
    card's width.
 
-   NO RECORD ON FILE SAYS SO. Fourteen fighters have none yet, and a line saying that is the truth;
-   three noughts would be a claim. */
+   NO RECORD ON FILE SAYS SO. Eight fighters have none today — six old-timers whose records are
+   disputed by design, and two current ones nobody has entered — and a line saying that is the
+   truth; three noughts would be a claim. */
 /* ---------- A NOTE TO THE EDITOR IS NOT A NOTE TO THE READER --------------------------------------
    THE `notes` CELL HOLDS TWO KINDS OF THING and the card printed both. Most qualify the record —
    "Exhibition bouts excluded", "Record disputed — newspaper-decision era" — and belong under it. The

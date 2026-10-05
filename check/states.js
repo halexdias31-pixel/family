@@ -1136,6 +1136,53 @@ const STATES = {
       },
       wants: 'a boxer\'s profile — the name at the title size under a Boxer flag, a 4:5 picture box to its left, the record as a scoreboard of whole numbers (or "no record on file"), nothing scrolling sideways',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT ------------------------------------------
+       THE CREDIT IS A LINK NOW, to the photo's Commons file page — a CC BY or BY-SA licence asks for
+       one — and a link is a tap target, so it is a 44px block rather than a 12px line of small print
+       (`a.boxer-src` in style.css). Only a browser can say how tall a block is, so this asks one, at
+       every width: Ali's credit is a link, at least 44px tall AT ITS OWN SIZE (a profile drawn smaller
+       to fit its pane is the zoom's cost, counted by `check/ui.js` on its own line), straight under
+       the picture and across the card rather than in the photo's column, and its words at least
+       `.62rem` — the size the review measured the old `.56` against and found unreadable.
+
+       THE PICTURE CANNOT ARRIVE HERE. This browser has no route to upload.wikimedia.org, so Ali's
+       photo fails and takes its credit with it — which is `boxerPicFail_` doing its job. So the line
+       is put back under the picture box by the card's own `boxerCredit_`, with the failed address
+       forgotten first, and measured in the real stylesheet; what is measured is exactly the markup
+       the card draws when the photo loads. */
+    { name: 'a boxer photo\'s credit, a link a finger can hit',
+      enter: () => {
+        STUFF.q = 'Muhammad Ali';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
+        const b = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Muhammad Ali');
+        const pic = c && c.querySelector('.boxer-pic');
+        if (!c || !b || !b.image || !pic || !/Muhammad Ali/.test(c.querySelector('h3').textContent)) return false;
+        let line = c.querySelector('.boxer-credit');
+        if (!line) {
+          BOXER_PIC_DEAD.delete(pic(b.image));
+          line = document.createElement('p');
+          line.className = 'boxer-credit';
+          line.innerHTML = boxerCredit_(b, b.imageCredit);
+          pic.after(line);
+        }
+        const a = line.querySelector('a.boxer-src');
+        if (!a || a.getAttribute('href') !== boxerCommons_(pic(b.image))) return false;
+        let z = 1;
+        for (let e = a; e; e = e.parentElement) { const v = parseFloat(e.style && e.style.zoom); if (v > 0 && v < 1) z *= v; }
+        const r = a.getBoundingClientRect(), p = pic.getBoundingClientRect(), k = c.getBoundingClientRect();
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return r.height / z >= 43.5 && r.width / z >= 43.5
+               && r.top >= p.bottom - .5 && r.width >= (k.width - p.width) * .6
+               && parseFloat(getComputedStyle(a).fontSize) >= .62 * rem - .05;
+      },
+      wants: 'Ali\'s photo credit as a link to its Commons file page, a 44px block at its own size, under the picture and across the card, its words at least .62rem',
+      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'the fights, on the shared head',
       enter: () => {
         STUFF.q = '';
