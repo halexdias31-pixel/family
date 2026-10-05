@@ -1107,6 +1107,12 @@ const STATES = {
         const x = stuffFiltered().find(i => i.kind === 'bible');
         if (!x) throw new Error('no Bible on the Books shelf for an admin');
         goPage('stuff', stuffFirstResult_() + Math.max(0, pageParts_(x).indexOf('ot')), true);
+        /* GENESIS ASKED FOR NOW, for the state after this one. Its `enter` has the 500ms every state
+           gets, and on a machine running four suites at once a 204 KB fetch plus the paint did not
+           land inside it — the state was reported as not arriving at 1280 while it arrived a moment
+           later. Held for the visit, so the next state opens it from memory, as a second tap would.
+           Nothing on THIS page changes: the list is only redrawn by a tap. */
+        bibleLoad_(1);
       },
       expect: () => document.querySelectorAll('#s-stuff .bb-toc.is-ot [data-do="bible-book"]').length === 39,
       wants: 'the Old Testament page of the Bible, thirty-nine books, a button each' },
