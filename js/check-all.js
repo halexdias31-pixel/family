@@ -188,6 +188,9 @@ const SUITE = [
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp and the daily cap, through the real doPost' },
+  /* THE DAY A QUESTION WAS DONE, ON THE SHEET. A learner's record: one row per question, the person
+     from the token, and nobody sent another learner's — through the same backend. */
+  { file: 'check-attempts.js', what: 'done questions: the upsert, the token’s person, and who is sent whose' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
      The third check here about SAFETY rather than about working, after `check-marking.js` and
      `check-handles.js` — and the only one whose subject is this repository rather than the app.
