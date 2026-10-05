@@ -5920,7 +5920,7 @@ function padTools_(x) {
   if (/\b(use|using|with) (a |an |your )?ruler\b|\bruler and (a pair of )?compasses\b|\bstraight ?edge\b/.test(words)) add('ruler');
   if (/\bcompasses\b/.test(words)) add('compass');
   const built = /\bconstruct(ion|ions|ed|ing)?\b/.test(words)
-    && !/\bconstruct(ion|ions|ed|ing)? (an? |the |your )?(\w+ )?(table|tree|graph|chart|diagram|histogram|polygon|sentence|argument)s?\b/.test(words);
+    && !/\bconstruct(ion|ions|ed|ing)? (an? |the |your )?([\w-]+ )?([\w-]+ )?(table|tree|graph|chart|diagram|histogram|polygon|sentence|argument|frequency)s?\b/.test(words);
   if (built || /\b(locus|loci|bisector|bisect)\b/.test(words)) { add('ruler'); add('compass'); }
   if (/\bprotractor\b|\bangle measurer\b/.test(words)) add('protractor');
   return out();

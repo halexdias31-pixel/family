@@ -5063,6 +5063,7 @@ check('a ruler draws a straight line and a compass a round circle or arc, offere
    [q('The two circles represent plotting compasses. Draw an arrow in each.'), 'pen', 'plotting compasses'],
    [q('Bradley buys 12 rulers. How much is one ruler?'), 'pen', 'rulers in a word problem'],
    [q('Construct a frequency tree for this information.'), 'pen', 'constructing a tree'],
+   [q('Construct a two-way table for the data.'), 'pen', 'constructing a two-way table'],
    [q('Measure angle d.', { needs: ['Protractor'] }), 'pen protractor', 'a protractor'],
    [q('Bisect the angle.', { stems: [{ html: '<p>Use ruler and compasses only.</p>' }] }), 'pen ruler compass', 'a stem that says it']]
     .forEach(([x, want, what]) => {
