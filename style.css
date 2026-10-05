@@ -10784,9 +10784,12 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .boxer-how { font: 400 .64rem/1.35 var(--mono); color: var(--faint); }
 /* A TITLE FIGHT SAYS SO IN GOLD, after how and when it ended. The belts' own words are its tooltip:
    "WBA, WBC, The Ring heavyweight" on every line of Ali's is a paragraph, and the fact a fan scans
-   for is only whether the belt was on the line. */
-.boxer-tt { margin-left: .5em; padding: 0 .3em; border: 1px solid currentColor; border-radius: var(--r-sm);
-            font-size: .58rem; letter-spacing: .06em; text-transform: uppercase; color: var(--boxer-w); }
+   for is only whether the belt was on the line. NOT BOXED: it was a gold outlined tag first, and on
+   Ali's page — fourteen title fights out of fourteen — the screenshot was a column of fourteen gold
+   boxes louder than the results beside them. A word in the line's own size, the dot before it in
+   the line's own ink. */
+.boxer-tt { letter-spacing: .06em; text-transform: uppercase; color: var(--boxer-w); }
+.boxer-tt::before { content: "\00a0\00b7\00a0"; color: var(--faint); }
 
 /* ---------- THE FIGHT CARD'S TWO FACES --------------------------------------------------------------
    THE SAME FRAME AS THE PROFILE'S, SQUARE AND SMALL, either side of a `v`, lifted over the title the
