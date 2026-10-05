@@ -6464,10 +6464,15 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .prof-q-end { white-space: nowrap; }
 .prof-iso {
   display: inline-flex; flex-direction: column; align-items: flex-start;
-  vertical-align: middle; margin: -.6em 0 -.6em .14em;
+  vertical-align: middle; margin: -.6em 0 -.6em .22em;
   font-size: max(8px, .84em); line-height: .98; letter-spacing: 0; color: var(--dim);
 }
 .prof-iso sup, .prof-iso sub { display: block; font-size: inherit; line-height: inherit; vertical-align: baseline; }
+/* ONE OF THE TWO KEEPS ITS OWN HALF. *"No grade → just the raised level"* — a level alone, centred
+   like the pair, would sit level with the subject and say nothing about being a level; so the empty
+   half is held open by a margin one line tall, and a level stays up and a grade stays down. */
+.prof-iso sup:only-child { margin-bottom: .98em; }
+.prof-iso sub:only-child { margin-top: .98em; }
 .prof-iso i { font-style: italic; }
 /* THE RATE, UP BY THE NAME AND BIGGER than any row — it is the number a parent opened the card for.
    Gold because it is a price and this app's prices are gold; the `/h` recedes so the figure leads. */
