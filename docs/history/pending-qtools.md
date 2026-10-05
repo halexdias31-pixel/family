@@ -81,7 +81,13 @@ its point and radius, Mark with AI. The first look caught the bin orphaned on it
 ### Decided, worth a look
 
 * **Tiles over the house rule** on a question's pages, on the owner's word; CLAUDE.md's "a FORM has
-  buttons" still stands elsewhere (booking form, pay sheet, composer) and was not edited.
+  buttons" still stands elsewhere (booking form, pay sheet, composer). CLAUDE.md now carries the
+  exception in the owner's words (a9e7e59, on the base branch, not this one).
+* **`check/cards.js` called 2,371 question cards "a picture on the card"** on the base branch, because
+  Check's tick is an `<svg>`; it strips tile marks by their class first now (a real diagram on a card
+  is still caught: 344 when one is put back, proved). **Four answer and typed-answer states** in
+  `check/states.js` pressed after a 150ms timer and went unreached on a loaded machine (on the base run
+  too); they find their card by key in the tick the page is built now.
 * **The Show/Hide tile sits above the answer**, not under it, so it is in the same place both ways.
 * **Choosing a tool locks the card**; the padlock is still the only way off.
 * **`needs` from the paper's cover counts**: every pen question in a paper whose cover lists a ruler
