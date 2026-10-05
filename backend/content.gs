@@ -758,6 +758,73 @@ function driveKeep_(folder, raw, name) {
     + (/^video\//i.test(type) ? '#video' : '');
 }
 
+/* ---------- WHAT A POST MAY PUT IN DRIVE ---------------------------------------------------------
+   NOTHING STOPPED IT, AND NOTHING HAD TO WHILE DRIVE COULD NOT BE WRITTEN. `addPost` is open to any
+   signed-in account (`self` in ACTION_ACCESS), `driveKeep_` keeps any `data:` URL of any type at any
+   size, and the file is shared by link before anybody has approved the post. Under `drive.readonly`
+   every one of those uploads failed, so the gap could not be seen; the manifest asking for `drive`
+   — which messages need — is what made it real. Any registered account could have put about fifty
+   megabytes of anything into the business's Drive per request, as often as it liked, each with a
+   public link. `savePhoto` was capped and `sendMessage` was capped; posts were the open door.
+
+   THE PHONE'S OWN NUMBERS, so nothing the camera card lets through is refused here: a clip up to
+   20MB (`CAM_VID_MAX` in posts.js; a photograph is redrawn at 1600px and is a few hundred KB), and
+   45MB of base64 a post (`CAM_POST_MAX`), which is 33.75MB decoded. A PICTURE OR A CLIP AND NOTHING
+   ELSE: the camera sends `image/jpeg` or the clip's own `video/*`, so a PDF or a zip came from
+   somewhere other than this app. Not `image/svg+xml` — a drawing that can carry script, shared by
+   link from the business's Drive, is not a photograph.
+
+   MEASURED FROM THE BASE64, NOT BY DECODING IT. A refusal should cost nothing, and decoding 30MB to
+   learn it is too big is the expensive half of keeping it. `savePhoto` measures the same way.
+   `''` when the list may go; otherwise the sentence the poster reads. Addresses (a picture already
+   in the folder) are not uploads and pass untouched — `driveKeep_` hands them back as they are. */
+const POST_FILE_MAX  = 20 * 1048576;
+const POST_FILES_MAX = Math.floor(45 * 1048576 * 3 / 4);
+
+function postMediaRefusal_(list) {
+  const ups = (list || []).map(x => S(x).trim()).filter(x => /^data:/i.test(x));
+  let total = 0;
+  for (let i = 0; i < ups.length; i++) {
+    const head = (ups[i].match(/^data:([^;,]*);base64,/i) || [])[1] || '';
+    if (!/^(image\/(jpeg|png|gif|webp|heic|heif)|video\/[\w.+-]+)$/i.test(head)) {
+      return 'A post can hold photos and videos only' + (head ? ' — not ' + head : '') + '. Nothing was posted.';
+    }
+    const bytes = Math.floor((ups[i].length - ups[i].indexOf(',') - 1) * 3 / 4);
+    if (bytes > POST_FILE_MAX) {
+      return (/^video\//i.test(head) ? 'A clip' : 'A picture') + ' in this post is over 20MB — trim it '
+        + 'to about twenty seconds and post again. Nothing was posted.';
+    }
+    total += bytes;
+  }
+  if (total > POST_FILES_MAX) {
+    return 'That is too much to post at once (over 33MB). Post the clips separately. Nothing was posted.';
+  }
+  return '';
+}
+
+/* ---------- HOW MANY POSTS ONE PERSON MAY HAVE WAITING ------------------------------------------
+   THE RATE LIMIT, AND IT IS THE ADMIN. Everybody but an admin posts into a queue (`approved:
+   PENDING`), and each of those posts holds files already in Drive and shared by link — that is how
+   the admin sees what they are approving. So the number a person may have waiting is the number of
+   uploads they can make without anybody looking: five posts, each within the caps above, and then
+   nothing more until the admin has said yes or no to something. A clock would be a second thing to
+   tune; the queue is already the thing that decides.
+
+   ACTIVE ONLY. A waiting post the admin deleted rather than refused is `active: FALSE` and stays
+   `PENDING` for ever — counting it would shut its author out with nothing on their screen saying
+   why. Whose it is is asked the way `doGet` asks it when deciding who may see a waiting post. */
+const POST_WAITING_MAX = 5;
+
+function postsWaitingFor_(t, me) {
+  const id = S(me && me.person_id);
+  if (!id) return 0;
+  return ((t && t.rows) || []).filter(r => {
+    if (norm(r.approved) !== 'pending' || !ON_(r.active)) return false;
+    const p = findPerson(S(r.posted_by) || S(r.author));
+    return !!p && S(p.person_id) === id;
+  }).length;
+}
+
 /* ---------- WHERE PROFILE PICTURES GO -----------------------------------------------------------
    `photos_folder` IN THE CONFIG TAB IF SOMEBODY HAS SET ONE, AND THE POSTS FOLDER IF NOT — the one
    folder this deployment is already known to be able to write to, because `addPost` proves it on

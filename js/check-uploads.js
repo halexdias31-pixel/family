@@ -40,6 +40,10 @@
         browser cannot redraw goes as it is
      7. Check uploads: admin only, four answers, one test file binned, no folder left behind, and
         the fix in order when something is missing — pressed from the Tools column
+     8. posts, which the same scope opened: the phone's own caps, photos and videos only, five
+        waiting a person, and every refusal made before a byte reaches Drive
+     9. `authoriseDrive`'s last line: READY only when the whole manifest is allowed and a file was
+        made and shared, DO NOT DEPLOY otherwise — the one safety net before a new version
 
      node js/check-uploads.js
 ================================================================================================== */
@@ -156,11 +160,19 @@ function world(opts) {
       throw new Error('no network');
     } },
   });
+  /* `NOT_REQUIRED` ONLY WHEN THE TOKEN HOLDS EVERY SCOPE THE MANIFEST LISTS, which is what Apps
+     Script answers — a grant with one box unticked is still `REQUIRED`. `authoriseDrive`'s verdict
+     reads this, so a world that said NOT_REQUIRED regardless could never catch a partial Allow. */
+  const whole = SCOPES.every(s => scopes.indexOf(s) >= 0);
   b.ev(`(function(){
     Utilities.newBlob = (bytes, type, name) => ({ type: type, name: name, size: (bytes || []).length });
-    ScriptApp.getAuthorizationInfo = () => ({ getAuthorizationStatus: () => 'REQUIRED',
+    ScriptApp.getAuthorizationInfo = () => ({ getAuthorizationStatus: () => ${JSON.stringify(whole ? 'NOT_REQUIRED' : 'REQUIRED')},
       getAuthorizationUrl: () => ${JSON.stringify(opts.consent || '')} });
   })()`);
+  if (opts.showcase) {
+    w.folders['SHOWCASE-1'] = { id: 'SHOWCASE-1', name: 'showcase', files: [], kids: [] };
+    b.seed('config', [{ key: 'showcase_folder_id', value: 'SHOWCASE-1' }]);
+  }
   if (opts.noColumn) {
     const g = b.tabs.messages; const at = g[0].indexOf('attachments'); if (at >= 0) g[0].splice(at, 1);
   }
@@ -337,6 +349,95 @@ const WORKS = world({});
   }
   if (R.w.made.length) fail('check uploads', 'a read-only check somehow made a file');
   if (!bad.some(x => /^check uploads/.test(x))) said.push('check uploads: admin only, four answers, one test file binned, the fix in order when it fails');
+}
+
+/* ================================================================================================
+   8. POSTS, NOW THAT DRIVE CAN BE WRITTEN
+   `addPost` is open to any signed-in account and used to keep any `data:` URL at any size, uploaded
+   before it even asked who was posting. Under `drive.readonly` every such upload failed; under the
+   manifest's `drive` it would have been anybody's file host. The caps are the PHONE'S OWN NUMBERS,
+   read out of posts.js, so the first half asks that nothing the camera card lets through is
+   refused, and the second that what it would not let through is.
+   ================================================================================================ */
+{
+  const cam = fs.readFileSync(path.join(ROOT, 'js', 'posts.js'), 'utf8');
+  const mib = n => { const m = new RegExp('const ' + n + '\\s*=\\s*(\\d+)\\s*\\*\\s*1048576').exec(cam); return m ? Number(m[1]) * 1048576 : 0; };
+  const VID = mib('CAM_VID_MAX'), POST = mib('CAM_POST_MAX');
+  if (!VID || !POST) fail('posts', 'could not read CAM_VID_MAX / CAM_POST_MAX out of js/posts.js, so the caps were NOT compared with the phone');
+  else {
+    const W = world({});
+    /* THE BOUNDARIES, ASKED OF THE HELPER DIRECTLY — a 45MB body through `doPost` is a slow way to
+       learn arithmetic. `'A'` is valid base64, so a length is a size. */
+    const g = W.b.ev('globalThis');
+    const clip = (bytes, type) => 'data:' + (type || 'video/mp4') + ';base64,' + 'A'.repeat(Math.ceil(bytes / 3) * 4);
+    const ask = list => { g.__probe = list; const r = W.b.ev('postMediaRefusal_(__probe)'); g.__probe = null; return r; };
+    if (ask([clip(VID - 2)])) fail('posts', 'a clip just under the phone\'s ' + (VID / 1048576) + 'MB is refused: "' + ask([clip(VID - 2)]) + '"');
+    if (!ask([clip(VID + 3)])) fail('posts', 'a clip over ' + (VID / 1048576) + 'MB is let through');
+    /* THE WHOLE POST AT THE PHONE'S LIMIT: two clips whose data URLs come to CAM_POST_MAX characters. */
+    const half = 'data:video/mp4;base64,' + 'A'.repeat(Math.floor((POST / 2 - 22) / 4) * 4);
+    if (ask([half, half])) fail('posts', 'a post the camera card would send (' + Math.round(half.length * 2 / 1048576) + 'MB of base64) is refused: "' + ask([half, half]) + '"');
+    if (!ask([half, half, half])) fail('posts', 'a post of ' + Math.round(half.length * 3 / 1048576) + 'MB of base64 is let through — over the phone\'s ' + (POST / 1048576) + 'MB');
+    ['application/pdf', 'image/svg+xml', 'text/html', 'application/octet-stream'].forEach(t => {
+      if (!/photos and videos only/.test(ask([dataUrl(t, 100)]))) fail('posts', 'a ' + t + ' is let into a post');
+    });
+    if (ask(['https://drive.google.com/file/d/abc/view', dataUrl('image/jpeg', 100)])) fail('posts', 'an address already in the folder, or a photograph, is refused');
+
+    /* THROUGH THE ACTION: refused BEFORE anything is made. */
+    const pdf = W.as('P-C1', { action: 'addPost', data: dataUrl('application/pdf', 2000), caption: 'x' });
+    if (pdf.success) fail('posts', 'a parent posted a PDF into the business\'s Drive');
+    const big = W.as('P-A1', { action: 'addPost', data: dataUrl('image/jpeg', 2000), media: [dataUrl('video/mp4', VID + 1)] });
+    if (big.success || !/over 20MB/.test(big.error || '')) fail('posts', 'a post with a clip over 20MB was ' + JSON.stringify(big).slice(0, 160));
+    if (W.w.made.length) fail('posts', W.w.made.length + ' file(s) were put in Drive by posts that were refused — the check came after the upload');
+
+    /* THE QUEUE: five waiting, the sixth refused with nothing made, a decision frees a place. */
+    const photo = () => ({ action: 'addPost', data: dataUrl('image/jpeg', 3000), caption: 'from the trip' });
+    let ok = 0;
+    for (let i = 0; i < 5; i++) { const d = W.as('P-C1', photo()); if (d.success) ok++; else fail('posts', 'post ' + (i + 1) + ' of 5 was refused: "' + d.error + '"'); }
+    const madeBefore = W.w.made.length;
+    const sixth = W.as('P-C1', photo());
+    if (sixth.success) fail('posts', 'a sixth post went into the queue — nothing limits how much one account uploads unseen');
+    else if (!/5 posts waiting/.test(sixth.error || '')) fail('posts', 'the sixth was refused for the wrong reason: "' + sixth.error + '"');
+    if (W.w.made.length !== madeBefore) fail('posts', 'the refused sixth post still put ' + (W.w.made.length - madeBefore) + ' file(s) in Drive');
+    const unshared = W.w.made.filter(f => f.shared !== 'ANYONE_WITH_LINK/VIEW');
+    if (ok && unshared.length) fail('posts', unshared.length + ' waiting post picture(s) not shared by link — the admin approving it would see a broken square');
+    const posts = W.b.tabs.posts, h = posts[0];
+    const ids = posts.slice(1).filter(r => r[h.indexOf('approved')] === 'PENDING').map(r => r[h.indexOf('post_id')]);
+    /* A WAITING POST THE ADMIN DELETED RATHER THAN REFUSED stays PENDING and inactive — not counted. */
+    W.as('P-A1', { action: 'deletePost', id: ids[0], on: false });
+    const after = W.as('P-C1', photo());
+    if (!after.success) fail('posts', 'a waiting post the admin deleted still counts against its author: "' + after.error + '"');
+    /* AND AN ADMIN IS NOT QUEUED — their posts go straight up, so there is nothing to count. */
+    for (let i = 0; i < 6; i++) { const d = W.as('P-A1', photo()); if (!d.success) { fail('posts', 'an admin\'s post ' + (i + 1) + ' was refused: "' + d.error + '"'); break; } }
+    if (!bad.some(x => /^posts/.test(x))) said.push('posts: the phone\'s own caps (' + (VID / 1048576) + 'MB a clip, ' + (POST / 1048576) + 'MB of base64 a post), photos and videos only, five waiting a person, all before a byte reaches Drive');
+  }
+}
+
+/* ================================================================================================
+   9. AUTHORISEDRIVE: ITS LAST LINE IS THE GATE FOR DEPLOYING
+   A new version whose manifest lists a permission the deployer has not allowed answers every
+   visitor "Authorization is required", and Check uploads runs on that same deployment so cannot
+   say so. The editor's log is the only safety net — so its last line must be a verdict, and READY
+   only when the WHOLE manifest is allowed, not just Drive (the consent screen ticks per permission).
+   ================================================================================================ */
+{
+  const last = W => { const s = String(W.b.ev('authoriseDrive()')); return s.split('\n').pop(); };
+  const full = world({});
+  const yes = last(full);
+  if (!/^READY/.test(yes)) fail('authoriseDrive', 'with every scope allowed the last line is "' + yes + '"');
+  if (full.w.made.length !== 1 || !full.w.made[0].trashed || full.w.made[0].shared !== 'ANYONE_WITH_LINK/VIEW') {
+    fail('authoriseDrive', 'the test file should be made, shared by link and binned — ' + JSON.stringify(full.w.made.map(f => ({ shared: f.shared, trashed: f.trashed }))));
+  }
+  const ro = last(world({ scopes: READONLY }));
+  if (!/^DO NOT DEPLOY/.test(ro) || !/Authorization is required/.test(ro)) fail('authoriseDrive', 'a read-only grant ends "' + ro + '"');
+  /* ONE BOX UNTICKED: Drive allowed, e-mail not. The write works; deploying would still break. */
+  const part = world({ scopes: SCOPES.filter(s => !/script\.send_mail$/.test(s)) });
+  const p = last(part);
+  if (!/^DO NOT DEPLOY/.test(p)) fail('authoriseDrive', 'a partial Allow (Drive yes, e-mail no) ends "' + p + '" — the write passing is not the whole manifest');
+  if (!/Select all|tick every box/.test(p) || !/Advanced/.test(p)) fail('authoriseDrive', 'the refusal does not say how to get through Google\'s two screens: "' + p + '"');
+  /* THE SHOWCASE LINE USED TO COME LAST, after "Can write: yes". */
+  const show = last(world({ showcase: true }));
+  if (!/^READY/.test(show)) fail('authoriseDrive', 'with showcase_folder_id set the last line is "' + show + '"');
+  if (!bad.some(x => /^authoriseDrive/.test(x))) said.push('authoriseDrive: the last line is READY only with the whole manifest allowed and a file made and shared; DO NOT DEPLOY otherwise, showcase or not');
 }
 
 /* ================================================================================================
