@@ -966,7 +966,12 @@ function uploadsCheck_() {
       wrote = true;
       wroteSaid = 'Yes — a test file was made, shared by link and binned.';
     } catch (err) {
-      wroteSaid = 'No — ' + S((err && err.message) || err);
+      /* GOOGLE'S SENTENCE ONLY WHEN IT IS NOT THE SCOPE. The scope has its own row above, and
+         "Specified permissions are not sufficient to call …" under it said the same thing again at
+         four lines long on a 320px card. Anything else — an outage, a shared drive's policy — is
+         news, and goes as Google said it. */
+      const raw = S((err && err.message) || err);
+      wroteSaid = driveDenied_(raw) ? 'No — Drive refused it for want of permission.' : 'No — ' + raw;
     }
     if (probe) {
       try { probe.setTrashed(true); }
@@ -993,9 +998,8 @@ function uploadsCheck_() {
   const steps = [];
   const fix = driveFix_();
   if (!wrote && !drive && !s.error) {
-    steps.push({ text: 'In the Apps Script editor, check appsscript.json lists '
-      + 'https://www.googleapis.com/auth/drive (Project Settings → Show "appsscript.json"). '
-      + 'If it says drive.readonly, sync backend/ from GitHub first.' });
+    steps.push({ text: 'Sync backend/ from GitHub, so appsscript.json in the editor lists '
+      + '.../auth/drive and not drive.readonly.' });
     steps.push({ text: fix.consent ? 'Open the consent link and press Allow.'
       : 'Choose any function in the editor, press Run, then Allow.', href: fix.consent });
     steps.push({ text: 'Deploy → Manage deployments → edit → Version: New version → Deploy.' });

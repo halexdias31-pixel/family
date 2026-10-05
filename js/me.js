@@ -1785,6 +1785,13 @@ function uploadsHtml_(d) {
    two copies of one widget under one id is the `$('msg-text')` fault. */
 function uploadsPaint_() {
   document.querySelectorAll('.up-box').forEach(b => { b.innerHTML = uploadsHtml_(UPLOADS_SAID); });
+  /* A CARD THAT GREW IS PLACED AGAIN — "every grower in the app already calls this", in the note
+     over `paneWatch_`. The answer is four rows and up to five steps under a card that was a tile
+     and a sentence, and `check/ui.js` found the column's pane 2,386px off the glass at 768 the first
+     time the state drew it. Instant, and only for the column in front. */
+  if (typeof placeCells === 'function' && (AT === 'tools' || AT === 'saved')) {
+    try { placeCells('y', true, 0, AT); } catch (e) {}
+  }
 }
 
 on('uploads-check', el => {

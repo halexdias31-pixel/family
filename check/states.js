@@ -2602,9 +2602,9 @@ const STATES = {
             { id: 'column', ok: true, label: 'The messages tab has an attachments column', said: 'Yes — a file’s address has somewhere to go.' },
             { id: 'scope', ok: false, label: 'This deployment may write to Drive', said: 'It holds drive.readonly — it can read and cannot write.' },
             { id: 'folder', ok: true, label: 'The posts folder opens', said: '“@family. posts and photographs (2026)”, from POSTS_FOLDER in constants.gs. Its Messages folder is made on the first send.' },
-            { id: 'write', ok: false, label: 'A file can be made there and shared by link', said: 'No — Specified permissions are not sufficient to call DriveApp.Folder.createFile. Required permissions: https://www.googleapis.com/auth/drive' }],
+            { id: 'write', ok: false, label: 'A file can be made there and shared by link', said: 'No — Drive refused it for want of permission.' }],
           steps: [
-            { text: 'In the Apps Script editor, check appsscript.json lists https://www.googleapis.com/auth/drive (Project Settings → Show "appsscript.json"). If it says drive.readonly, sync backend/ from GitHub first.' },
+            { text: 'Sync backend/ from GitHub, so appsscript.json in the editor lists .../auth/drive and not drive.readonly.' },
             { text: 'Open the consent link and press Allow.', href: 'https://accounts.google.com/o/oauth2/auth?client_id=example' },
             { text: 'Deploy → Manage deployments → edit → Version: New version → Deploy.' },
             { text: 'Then press Check uploads again.' }] };
