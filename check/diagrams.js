@@ -62,6 +62,7 @@ const WIDTH = Number(arg('width', 320));
    This one goes a step further: unset, it asks the OS for a free port (`listen(0)`), so a worker who
    has never heard of `DIAGRAMS_PORT` cannot collide with anyone. Set it to pin one. */
 const PORT_WANTED = Number(process.env.DIAGRAMS_PORT || 0);
+const FACE = arg('face', '');
 const SHOTS = arg('shots', '');
 const ROWS = arg('rows', '').split(',').map(s => s.trim()).filter(Boolean);
 
@@ -157,6 +158,7 @@ function serve() {
 
 /* THE CARD A FIGURE IS DRAWN ON, with the classes the app gives it, so the stylesheet under test is
    the one deciding how wide the drawing is and what size its labels are. */
+const faceCss = () => (FACE ? `<style>figure svg text, figure svg tspan { font-family: ${JSON.stringify(FACE)} !important; }</style>` : '');
 function cardHtml(d, i) {
   return d.wrap === 'gd'
     ? `<div class="card fc prac prac-part is-fig" data-i="${i}"><div class="gd"><figure>${d.svg}</figure></div></div>`
@@ -222,7 +224,7 @@ function inspect(o) {
 
       /* ---------- THE LABELS: one ink box per character, in the text's own coordinates ---------- */
       const texts = [];
-      svg.querySelectorAll('text').forEach(t => {
+      svg.querySelectorAll('text').forEach((t, ti) => {
         if (skipped(t)) return;
         const cs = getComputedStyle(t);
         if (cs.display === 'none' || cs.visibility === 'hidden') return;
@@ -280,7 +282,7 @@ function inspect(o) {
         });
         const env = screen.reduce((a, b) => ({ x0: Math.min(a.x0, b.x0), x1: Math.max(a.x1, b.x1),
                                                y0: Math.min(a.y0, b.y0), y1: Math.max(a.y1, b.y1) }));
-        texts.push({ t, order: order.get(t), boxes, screen, env, inv: m.inverse(), s: scale(m),
+        texts.push({ t, ti, order: order.get(t), boxes, screen, env, inv: m.inverse(), s: scale(m),
                      label: (t.textContent || '').replace(/\s+/g, ' ').trim() });
         res.texts++;
         res.chars += boxes.length;
@@ -323,7 +325,7 @@ function inspect(o) {
       const hit = (tx, sh, pen) => {
         const k = texts.indexOf(tx) + '|' + shapes.indexOf(sh);
         const w = worst.get(k);
-        if (!w || pen > w.px) worst.set(k, { kind: 'stroke', label: tx.label, other: say(sh.el), px: pen, box: tx.env });
+        if (!w || pen > w.px) worst.set(k, { kind: 'stroke', label: tx.label, other: say(sh.el), px: pen, box: tx.env, ti: tx.ti });
       };
       shapes.forEach(sh => {
         if (!sh.strokeInk && !sh.fillInk) return;
@@ -381,7 +383,7 @@ function inspect(o) {
             const oy = Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0);
             px = Math.max(px, Math.min(ox, oy));
           }));
-          if (px > o.tol) res.found.push({ kind: 'label', label: A.label, other: '"' + C.label + '"', px, box: A.env });
+          if (px > o.tol) res.found.push({ kind: 'label', label: A.label, other: '"' + C.label + '"', px, box: A.env, ti: A.ti, tj: C.ti });
         }
       }
 
@@ -398,7 +400,7 @@ function inspect(o) {
       }
       texts.forEach(tx => {
         const px = Math.max(box.x0 - tx.env.x0, tx.env.x1 - box.x1, box.y0 - tx.env.y0, tx.env.y1 - box.y1);
-        if (px > o.tol) res.found.push({ kind: 'viewbox', label: tx.label, other: 'the viewBox', px, box: tx.env });
+        if (px > o.tol) res.found.push({ kind: 'viewbox', label: tx.label, other: 'the viewBox', px, box: tx.env, ti: tx.ti });
       });
     });
   });
@@ -426,7 +428,7 @@ function inspect(o) {
     const chunk = list.slice(i, i + BATCH);
     await page.setContent(
       `<!doctype html><meta charset="utf-8">
-       <link rel="stylesheet" href="http://localhost:${PORT}/style.css">
+       <link rel="stylesheet" href="http://localhost:${PORT}/style.css">${faceCss()}
        <body style="margin:0;background:#0b0b0b">
          <div style="width:${WIDTH}px">${chunk.map((d, k) => cardHtml(d, i + k)).join('')}</div>
        </body>`, { waitUntil: 'load' });
@@ -486,26 +488,29 @@ function inspect(o) {
     fs.mkdirSync(SHOTS, { recursive: true });
     const want = ROWS.length ? list.filter(d => ROWS.includes(d.key) || ROWS.includes(d.key.replace(/#stem$/, '')))
                              : list.filter(d => bad.has(d.key));
+    /* AT A PHONE'S PIXEL DENSITY, because a 1x picture of a 10px letter is too coarse to tell a
+       letter touching a line from one beside it — which is the only thing these pictures are for. */
+    const shot = await browser.newPage({ viewport: { width: WIDTH, height: 900 }, deviceScaleFactor: 3 });
     for (const d of want) {
-      await page.setContent(
+      await shot.setContent(
         `<!doctype html><meta charset="utf-8">
-         <link rel="stylesheet" href="http://localhost:${PORT}/style.css">
+         <link rel="stylesheet" href="http://localhost:${PORT}/style.css">${faceCss()}
          <body style="margin:0;background:#0b0b0b">
            <div style="width:${WIDTH}px">${cardHtml(d, 0)}</div>
          </body>`, { waitUntil: 'load' });
-      await page.evaluate(() => document.fonts.ready);
+      await shot.evaluate(() => document.fonts.ready);
       /* EACH FINDING RINGED IN RED on the picture, so a person looking at it sees what was
          measured rather than hunting for it. A drawing with nothing found is drawn untouched. */
-      const marks = (await page.evaluate(inspect, { tol: TOL, ink: INK, opaque: OPAQUE }))
+      const marks = (await shot.evaluate(inspect, { tol: TOL, ink: INK, opaque: OPAQUE }))
         .reduce((a, r) => a.concat(r.found), []);
-      await page.evaluate(ms => ms.forEach(m => {
+      await shot.evaluate(ms => ms.forEach(m => {
         const d = document.createElement('div');
         d.style.cssText = 'position:absolute;pointer-events:none;outline:1px solid #f33;'
           + `left:${m.box.x0 + scrollX - 1}px;top:${m.box.y0 + scrollY - 1}px;`
           + `width:${m.box.x1 - m.box.x0 + 2}px;height:${m.box.y1 - m.box.y0 + 2}px`;
         document.body.appendChild(d);
       }), marks);
-      const fig = await page.$('figure');
+      const fig = await shot.$('figure');
       const name = d.key.replace(/[^A-Za-z0-9_-]+/g, '_') + '-' + WIDTH + '.png';
       await fig.screenshot({ path: path.join(SHOTS, name) });
     }
