@@ -163,6 +163,13 @@ const SUITE = [
      five worked lines — and the route is the other half: a kind wearing Resources, the Shelf door
      that is the only way past 260 rows of boxing, and the file fetched at all. */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
+  /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN -----------------------------
+     "i want to add the bible to resources as a book. but only admin can see the bible." The split
+     out of `data/archive/bible.json` checked verse by verse against the archive, every `[word]`
+     drawn in italics by the real `bibleVerse_`, every chapter cut into whole verses by the real
+     `bibleCut_`, and the one gate read out of the source. What an admin sees and what a student
+     fetches is the journey in `check-flow`. */
+  { file: 'check-bible.js', what: 'the Bible: a lossless split, italics for [words], whole-verse pages, admin only' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
      A clip whose path is one character wrong does not draw a broken link. The slide stays its own
      gradient, so a missing file reads as the feature half-working rather than as a file nobody

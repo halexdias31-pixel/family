@@ -1086,6 +1086,75 @@ const STATES = {
                && !!row && row.classList.contains('tile-row') && !!row.querySelector('a.tile[href]');
       },
       wants: 'at least two film cards, each with no tile row inside it, and the Watch tile in the row under the card' },
+    /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN ----------------------------------
+       "i want to add the bible to resources as a book. but only admin can see the bible." `only`, for
+       the films' reason one state up — signed out there is no item, no shelf answer and no fetch, and
+       asking a stranger to reach it would report a fault about the check (check-flow proves the
+       absence; this measures the presence).
+
+       EVERY PAGE OF IT IS CUT TO THE SCREEN, AND `check/ui.js` HOLDS IT TO THAT: a Bible page that
+       `paneReach_` had to draw smaller is a failure there, not a known cost (see `A PAGE CUT TO THE
+       SCREEN`). And `ui.js` measures every pane in the strip, not just the one in front, so each state
+       here is the page it names and the pages either side of it:
+         · the Old Testament — the cover and all three lists, which are the densest chip pages: the
+           thirty-nine were drawn at 84% at 320 until they became two pages.
+         · Genesis 1 — the reading page, the chapter numbers in front of it, and the pages after it,
+           every one cut in measured pixels when the book was opened (`bibleMeasure_`).
+         · Psalms's numbers — the one book whose numbers are several pages (five at 320x568), sized
+           to whole rows of the pane, each with a tile back to its list.
+       Each book is fetched by the app's own call from the local server, the way a tap fetches it. */
+    { name: 'the Bible, the Old Testament',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        paintStuff();
+        const x = stuffFiltered().find(i => i.kind === 'bible');
+        if (!x) throw new Error('no Bible on the Books shelf for an admin');
+        goPage('stuff', stuffFirstResult_() + Math.max(0, pageParts_(x).indexOf('ot')), true);
+        /* GENESIS AND PSALMS ASKED FOR NOW, for the states after this one. Their `enter` has the
+           500ms every state gets, and on a machine running four suites at once a 204 KB fetch plus
+           the paint did not land inside it — the state was reported as not arriving at 1280 while it
+           arrived a moment later. Held for the visit, so the next states open them from memory, as a
+           second tap would. Nothing on THIS page changes: the list is only redrawn by a tap. */
+        bibleLoad_(1);
+        bibleLoad_(19);
+      },
+      expect: () => document.querySelectorAll('#s-stuff .bb-toc[data-bb="ot"] [data-do="bible-book"]').length === 17
+                    && document.querySelectorAll('#s-stuff .bb-toc[data-bb="ot2"] [data-do="bible-book"]').length === 22
+                    && document.querySelectorAll('#s-stuff .bb-toc[data-bb="nt"] [data-do="bible-book"]').length === 27,
+      wants: 'the Bible\'s three lists of books — Genesis to Esther, Job to Malachi, the New Testament — a button each' },
+    { name: 'the Bible, Genesis 1',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        paintStuff();
+        bibleLoad_(1).then(d => { if (d) { bibleSet_(1); bibleGo_('c1'); } });
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .card.bb-text.is-c1');
+        return !!c && /In the beginning God created the heaven and the earth\./.test(c.textContent)
+               && !!c.querySelector('.bb-v i') && !/[\[\]]/.test(c.textContent)
+               && !!c.querySelector('.tile-row [data-do="bible-to"]')
+               && !!document.querySelector('#s-stuff .card.bb-chs [data-do="bible-ch"]');
+      },
+      wants: 'Genesis 1 drawn, "In the beginning…" with a supplied word in italics, no bracket, and its tile back to the chapter numbers beside it' },
+    { name: 'the Bible, Psalms\'s chapter numbers',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        paintStuff();
+        bibleLoad_(19).then(d => { if (d) { bibleSet_(19); bibleGo_('bk-1'); } });
+      },
+      expect: () => {
+        const g = document.querySelector('#s-stuff .card.bb-chs.is-bk-1');
+        return !!g && g.querySelectorAll('[data-do="bible-ch"]').length > 0
+               && !!g.querySelector('.tile-row [data-do="bible-to"][data-to="ot2"]');
+      },
+      wants: 'the second page of Psalms\'s chapter numbers, with its tile back to Job to Malachi',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ==============================================================================================
        THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
 
