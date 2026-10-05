@@ -1161,21 +1161,21 @@ const STATES = {
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
         const b = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Muhammad Ali');
-        const pic = c && c.querySelector('.boxer-pic');
-        if (!c || !b || !b.image || !pic || !/Muhammad Ali/.test(c.querySelector('h3').textContent)) return false;
+        const box = c && c.querySelector('.boxer-pic');
+        if (!c || !b || !b.image || !box || !/Muhammad Ali/.test(c.querySelector('h3').textContent)) return false;
         let line = c.querySelector('.boxer-credit');
         if (!line) {
           BOXER_PIC_DEAD.delete(pic(b.image));
           line = document.createElement('p');
           line.className = 'boxer-credit';
           line.innerHTML = boxerCredit_(b, b.imageCredit);
-          pic.after(line);
+          box.after(line);
         }
         const a = line.querySelector('a.boxer-src');
         if (!a || a.getAttribute('href') !== boxerCommons_(pic(b.image))) return false;
         let z = 1;
         for (let e = a; e; e = e.parentElement) { const v = parseFloat(e.style && e.style.zoom); if (v > 0 && v < 1) z *= v; }
-        const r = a.getBoundingClientRect(), p = pic.getBoundingClientRect(), k = c.getBoundingClientRect();
+        const r = a.getBoundingClientRect(), p = box.getBoundingClientRect(), k = c.getBoundingClientRect();
         const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
         return r.height / z >= 43.5 && r.width / z >= 43.5
                && r.top >= p.bottom - .5 && r.width >= (k.width - p.width) * .6

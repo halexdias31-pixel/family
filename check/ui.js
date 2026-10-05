@@ -565,6 +565,19 @@ function inspect(opts) {
        working. */
     if (!el.children.length && /ellipsis/.test(s.textOverflow || '')
         && /hidden|clip/.test(s.overflowX)) continue;
+    /* ---------- AND TEXT KEPT FOR A SCREEN READER IS THE THIRD WAY OF BEING TOLD -------------------
+       THE VISUALLY-HIDDEN PATTERN — a 1px box, `overflow: hidden`, `clip-path: inset(50%)` — is a
+       declaration that the words are NOT to be seen: they are there for a screen reader, and the box
+       is made too small for them on purpose. `scrollWidth` reports the words as overflowing the 1px
+       they were put in, which is the pattern working, exactly as the ellipsis above was. Nothing of
+       it is painted, so nothing can be dragged into view.
+
+       IT ARRIVED WITH THE BOXER'S BOUTS. The W / L square was `aria-label` on a bare `<span>`, which
+       most screen readers ignore, so it is hidden from them and a word they do read stands beside it
+       (`.boxer-say`) — and this rule reported "Won, " as a 24px sideways scroll on every fights page.
+       NARROW ON PURPOSE: clipped to nothing AND no wider than a pixel, so `overflow: hidden` on any
+       visible box is still the fault it always was. */
+    if (/inset\(50%\)/.test(s.clipPath || '') && el.getBoundingClientRect().width <= 1.5) continue;
     const over = el.scrollWidth - el.clientWidth;
     if (over > 1 && el.clientWidth > 0) {
       const box = el.getBoundingClientRect();
