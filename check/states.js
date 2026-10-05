@@ -1503,6 +1503,79 @@ const STATES = {
         paint('account');
         goPage('account', window.__TEACH_AT || 0, true);
       } },
+    /* ---------- A QUALIFICATION, WRITTEN LIKE AN ISOTOPE — see `profQualChip_` in cards.js ---------
+       *"for the qualifications bit, should be for example Maths subscript to it is grade and super
+       script is the level."* `check-flow` reads the markup; what it cannot read is whether the CSS
+       STACKS it — the level over the grade, sharing an x, on the subject's right, inside the pill and
+       without making the pill taller than the chips beside it. So this seeds a tutor with every case
+       (both halves, a level alone, a grade alone, still studying, a long subject, a certificate) in
+       the server's own shape, and measures each chip in the browser at every width — which also puts
+       the notation's contrast and the row's sideways scroll in front of `check/ui.js`. Put back after,
+       the page included, for the reason the state above gives. */
+    { name: 'a tutor\'s qualifications, written like isotopes',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__ISO_HELD = (DATA.tutors || []).slice();
+        window.__ISO_AT = PAGE.account || 0;
+        const P = (subject, level, grade, board, received, kind) => ({ subject, level, grade, board, received, kind: kind || 'subject' });
+        const parts = [P('Maths', 'A-Level', 'B', 'Edexcel', '2019'), P('English', 'GCSE', '7', 'Hill Top School', '2016'),
+                       P('Maths', 'GCSE', '9', 'Hill Top School', '2017'), P('Physics', 'AS', '', '', ''),
+                       P('Chemistry', '', 'A', '', ''), P('Theology', 'Degree', '', 'UWTSD', 'Present'),
+                       P('English Language and Literature', "Master's degree", 'Distinction', 'University of Warwick', '2022'),
+                       P('PGCE', '', '', 'Institute of Education', '2021', 'cert'), P('DBS', 'Enhanced', '', '', '', 'cert')];
+        DATA.tutors = (DATA.tutors || []).concat([Object.assign({}, (DATA.tutors || [])[0] || {},
+          { personId: 'P-iso', handle: 'iso', title: 'Iso Notation', listed: true, qualsParts: parts,
+            quals: parts.map(p => [p.subject, p.level, p.grade && 'grade ' + p.grade].filter(Boolean).join(' ')) })]);
+        paint('account');
+        const n = accountPages_().findIndex(h => /Iso Notation/.test(h));
+        if (n < 0) throw new Error('the seeded tutor is not on the account column');
+        goPage('account', n, true);
+      },
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-account .page')].find(p => /Iso Notation/.test(p.textContent));
+        const row = pg && pg.querySelector('.prof-quals');
+        if (!row) return 0;
+        const box = el => el.getBoundingClientRect();
+        const chips = [...row.querySelectorAll('.prof-tag')];
+        const plain = chips.filter(c => !c.querySelector('.prof-iso'));
+        const iso = chips.filter(c => c.querySelector('.prof-iso'));
+        if (iso.length !== 7 || plain.length !== 2) return 0;
+        const tall = box(plain[0]).height;
+        const ok = iso.every(c => {
+          const b = box(c), st = c.querySelector('.prof-iso'), s = box(st);
+          const up = st.querySelector('sup'), dn = st.querySelector('sub');
+          /* THE SUBJECT'S LAST LETTER, by a range over its own text, so "on its right" is measured
+             against the word and not against the pill. */
+          const word = c.querySelector('.prof-q-end').firstChild;
+          const r = document.createRange(); r.selectNodeContents(word);
+          const w = r.getBoundingClientRect();
+          /* "UP" AND "DOWN" AGAINST THE WORD'S OWN LINE, not the pill's middle: a long subject that
+             wraps at 320 puts the pill's middle between its two lines. */
+          const mid = w.top + w.height / 2;
+          const stacked = up && dn ? box(up).bottom <= box(dn).top + 0.5 && Math.abs(box(up).left - box(dn).left) < 0.5
+            : up ? box(up).top + box(up).height / 2 < mid - 1
+            : dn ? box(dn).top + box(dn).height / 2 > mid + 1 : false;
+          /* ONE LINE OF TEXT IS ONE PLAIN PILL TALL. A subject long enough to wrap is taller because
+             of its words, which is not what is being asked; the stack must still sit beside its last
+             word — the same line — and inside the pill. */
+          const head = c.firstChild && c.firstChild.nodeType === 3 ? c.firstChild : null;
+          let wrapped = false;
+          if (head) {
+            const hr = document.createRange(); hr.selectNodeContents(head);
+            wrapped = [...hr.getClientRects()].some(x => x.width > 0 && Math.abs(x.top - w.top) > w.height / 2);
+          }
+          return stacked && s.left >= w.right - 0.5 && Math.abs((s.top + s.bottom) / 2 - mid) < w.height
+            && (wrapped || Math.abs(b.height - tall) < 0.6)
+            && s.top >= b.top - 0.5 && s.bottom <= b.bottom + 0.5;
+        });
+        return ok ? iso.length : 0;
+      },
+      wants: 'each qualification\'s level over its grade on the subject\'s right, inside a pill no taller than a plain one',
+      leave: () => {
+        if (window.__ISO_HELD) DATA.tutors = window.__ISO_HELD;
+        paint('account');
+        goPage('account', window.__ISO_AT || 0, true);
+      } },
     /* ---------- WHERE THEY TUTOR, AS A HEAT MAP — see `profHeat_` in cards.js ------------------
        *"just let it be a heat map of the areas"*. The fixture's tutor ticks three: one venue WITH
        coordinates, one WITHOUT (left off rather than guessed), and Online (a chip, not a place). So

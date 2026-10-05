@@ -6460,7 +6460,8 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    line, and `.prof-tags` is a flex row whose items stretch to the tallest — so one tall chip would
    stretch every chip beside it and leave their words at the top of taller pills. The margin takes the
    stack's own height out of the line box and lets it sit in the chip's padding, which is what the
-   padding is there for; measured in `check-flow`'s journey notes and in the screenshots at 320. */
+   padding is there for. Measured: 20.8px with the stack and 20.8 without at 320, 22.6 and 22.6 at 390;
+   held there by `check/states.js`'s "a tutor's qualifications, written like isotopes". */
 .prof-q-end { white-space: nowrap; }
 .prof-iso {
   display: inline-flex; flex-direction: column; align-items: flex-start;
