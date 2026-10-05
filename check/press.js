@@ -1242,17 +1242,27 @@ for (const who of VISITORS) {
                standing in front of the part they belong to -- a stem's figure straight after its
                words where it has words. And *"diagram widgets shouldn't have a question number on
                them"*: every figure page's header is asked for `Q<digit>` and must not have one. */
-            const stem = /^(stem|sfig)(\d+)$/.exec(pg.part || '');
+            /* `stemN-J` is a long stem's later page, and `preJ` a long part's first pages -- see
+               `stemChunks_` and `partChunks_`. A `pre` page names its own row and carries no box: the
+               box is on the card, which the pre pages lead straight into. */
+            const stem = /^(stem|sfig)(\d+)(?:-\d+)?$/.exec(pg.part || '');
+            const pre = /^pre\d+$/.test(pg.part || '');
             const sid = stem ? (pg.x.stems[+stem[2]] || {}).id : '';
             const head = ((el && el.querySelector('.qcard-top b')) || {}).textContent || '';
             let ok;
-            if (stem) {
+            if (pre) {
+              const next = pages[i + 1];
+              ok = /class="qcard qpre/.test(html) && html.indexOf('data-of="' + id + '"') !== -1
+                && html.indexOf('qp-ans') === -1 && !!next && next.x === pg.x
+                && (!next.part || /^pre\d+$/.test(next.part));
+            } else if (stem) {
               const next = pages[i + 1];
               ok = !!sid && html.indexOf('data-of="' + sid + '"') !== -1 && html.indexOf('qp-ans') === -1
                 && !!next && next.x === pg.x
                 && (stem[1] === 'stem' ? /class="qcard qstem/.test(html) : !/\bQ\d/.test(head))
                 && (stem[1] === 'stem' || i === 0 || pages[i - 1].x !== pg.x
-                    || pages[i - 1].part === 'stem' + stem[2] || /^sfig/.test(pages[i - 1].part || ''));
+                    || /^stem/.test(pages[i - 1].part || '') && pages[i - 1].part.split('-')[0] === 'stem' + stem[2]
+                    || /^sfig/.test(pages[i - 1].part || ''));
             } else if (pg.part === 'ans') {
               ok = /class="qcard qans-card/.test(html) && html.indexOf('data-of="' + id + '"') !== -1
                 && html.indexOf('qp-ans') === -1

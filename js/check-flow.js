@@ -5280,6 +5280,86 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   return bad;
 });
 
+/* ---------- A PAGE TOO LONG FOR A PHONE IS CUT BETWEEN PARAGRAPHS, AND THE ASK STAYS WITH ITS BOX -------
+   ASKED FOR AS *"each widget is smaller than a phone screen"*. `check/cards.js` measures the pixels
+   over the whole library; this holds the rules of the cut, through the app's own builders:
+     * a part that fits is one card, in the wrappers it always had (`.qsheet-lead`, `.qsheet-pb`)
+     * a long part is `pre0`, `pre1`... and then the card, every word once and in order, the LAST
+       paragraph (the ask) on the card with the box, the pre pages with no box and saying "continued"
+     * a long stem is `stem0`, `stem0-1`... and then its figure; only its first page carries `lines`
+     * a table is never cut, and one block longer than a page stays whole rather than being broken
+     * the answer tile still turns from the card to the answer, past any pre pages in front */
+check('a page too long for a phone is cut between paragraphs, and the ask stays on the card with its box', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['pageParts_', 'questionCard_', 'questionPreCard_', 'questionStemCard_', 'partChunks_', 'htmlBlocks_']
+    .filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The cut was NOT checked'];
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
+  const para = n => '<p>Step ' + n + ': ' + 'the solution is heated gently and stirred until it is clear. '.repeat(3) + '</p>';
+  const table = '<table><tr><th>t / s</th><th>T / °C</th></tr>' + [1, 2, 3, 4, 5, 6].map(i => '<tr><td>' + i + '</td><td>' + (20 + i) + '</td></tr>').join('') + '</table>';
+  const ask = '<p>Calculate the mean rate of temperature rise. ASK-LAST</p>';
+  const row = id => ({ row_id: id, paper_id: 'P-CUT', subject: 'Chemistry', name: 'Cut' });
+  const long = { kind: 'question', name: 'Q2.4', marks: 3, key: 'q-cut-long', row: row('Q-CUT-24'), stems: [],
+    lead: '<p>A student did an experiment. LEAD-FIRST</p>',
+    html: [1, 2, 3, 4, 5, 6, 7, 8].map(para).join('') + table + ask, answer: '<b>0.5 °C/s</b>', accept: '0.5' };
+  const short = { kind: 'question', name: 'Q1', marks: 1, key: 'q-cut-short', row: row('Q-CUT-1'), stems: [],
+    lead: '<p>Lead</p>', html: '<p>Work out 3 + 4</p>' };
+  if (JSON.stringify(w.pageParts_(short)) !== '[null]') bad.push('a short part was cut: ' + JSON.stringify(w.pageParts_(short)));
+  const sc = el(w.questionCard_(short));
+  if (!sc.querySelector('.qsheet-lead') || !sc.querySelector('.qsheet-part > .qsheet-pb') || /of \d/.test(sc.querySelector('.qcard-top b').textContent)) bad.push('a short part lost its wrappers or says "1 of 1"');
+  const parts = w.pageParts_(long);
+  const pre = parts.filter(p => /^pre\d+$/.test(p || ''));
+  if (!pre.length) bad.push('a part of eight paragraphs, a table and an ask was not cut: ' + JSON.stringify(parts));
+  else {
+    if (parts.indexOf(null) !== pre.length) bad.push('the pre pages do not come straight before the card: ' + JSON.stringify(parts));
+    const pages = pre.map(p => el(w.stuffPart_(long, p))).concat([el(w.questionCard_(long))]);
+    const text = pages.map(p => p.querySelector('.qsheet').textContent.replace(/Continued on the next page.*$/m, '')).join(' ');
+    const want = [1, 2, 3, 4, 5, 6, 7, 8].map(n => 'Step ' + n + ':').concat(['LEAD-FIRST', 'ASK-LAST', 't / s']);
+    want.forEach(t => { if (text.split(t).length !== 2) bad.push('"' + t + '" is on ' + (text.split(t).length - 1) + ' pages, wanted exactly one'); });
+    if (text.indexOf('LEAD-FIRST') > text.indexOf('Step 1:') || text.indexOf('Step 8:') > text.indexOf('ASK-LAST')) bad.push('the cut pages are out of order');
+    const card = pages[pages.length - 1];
+    if (!/ASK-LAST/.test(card.textContent) || !card.querySelector('.qp-ans')) bad.push('the ask and the box are not on the same card');
+    pages.slice(0, -1).forEach((p, i) => {
+      if (p.querySelector('.qp-ans, .qp-check')) bad.push('pre page ' + i + ' carries an answer box');
+      if (!/Continued on the next page/.test(p.textContent)) bad.push('pre page ' + i + ' does not say it continues');
+      if (!p.querySelector('.qcard.qpre[data-of="Q-CUT-24"]')) bad.push('pre page ' + i + ' does not name its row');
+    });
+    if (pages.some(p => p.querySelectorAll('table').length > 1 || (p.querySelector('table') && p.querySelectorAll('table tr').length !== 7))) bad.push('the table was cut between its rows');
+    const n = pages.length;
+    if (!new RegExp('^Q2\\.4 · ' + n + ' of ' + n + '$').test(card.querySelector('.qcard-top b').textContent.trim())) bad.push('the card is headed "' + card.querySelector('.qcard-top b').textContent.trim() + '", wanted Q2.4 · ' + n + ' of ' + n);
+    /* THE TILE turns from the card to the answer, past the pre pages in front of it. */
+    const strip = el('<div id="s-cuttest">' + parts.map(p => p === null
+      ? '<section class="page"><div class="tile-row">' + w.questionTiles_(long) + '</div></section>' : '<section class="page"></section>').join('') + '</div>');
+    d.body.appendChild(strip);
+    const heldA = w.stuffItemsAll_, heldG = w.goPage;
+    let went = null;
+    w.stuffItemsAll_ = () => [long];
+    w.goPage = (id, to) => { went = to; };
+    try { w.__t.ACTIONS['qa-go'](strip.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; strip.remove(); }
+    if (went !== parts.indexOf('ans')) bad.push('the answer tile turned to page ' + went + ', wanted ' + parts.indexOf('ans'));
+  }
+  /* ONE BLOCK LONGER THAN A PAGE stays whole. */
+  const one = { kind: 'question', name: 'Q9', key: 'q-cut-one', row: row('Q-CUT-9'), stems: [], html: '<p>' + 'word '.repeat(600) + '</p>' };
+  if (JSON.stringify(w.pageParts_(one)) !== '[null]') bad.push('a single paragraph was cut inside itself: ' + JSON.stringify(w.pageParts_(one)));
+  /* A LONG STEM. */
+  const stem = { id: 'S-CUT-3', lines: 'Lines 1 to 40', html: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(para).join(''), diagram: '<svg viewBox="0 0 10 10"></svg>' };
+  const sp = { kind: 'question', name: 'Q3(a)', qNumber: '3', key: 'q-cut-sp', row: row('Q-CUT-3a'), stems: [stem], html: '<p>Explain.</p>' };
+  const sparts = w.pageParts_(sp);
+  const sPages = sparts.filter(p => /^stem0(-\d+)?$/.test(p || ''));
+  if (sPages.length < 2 || sparts.indexOf('sfig0') !== sPages.length || sPages[1] !== 'stem0-1') bad.push('a ten-paragraph stem was not cut into stem0, stem0-1... before its figure: ' + JSON.stringify(sparts));
+  else {
+    const drawn = sPages.map(p => el(w.stuffPart_(sp, p)));
+    if (!drawn[0].querySelector('.qsheet-lines') || drawn[1].querySelector('.qsheet-lines')) bad.push('the stem\'s "Lines" label is not on its first page alone');
+    if (!/Continued on the next page/.test(drawn[0].textContent) || !/Figure on the next page/.test(drawn[drawn.length - 1].textContent)) bad.push('a cut stem does not say "continued" then "figure" where it ends');
+    const st = drawn.map(p => p.textContent).join(' ');
+    [1, 5, 10].forEach(n => { if (st.split('Step ' + n + ':').length !== 2) bad.push('stem step ' + n + ' is not on exactly one page'); });
+  }
+  return bad;
+});
+
 /* ---------- THE DAY A STUDENT DID A QUESTION, ON ITS CARD, FOR THEM ------------------------------------
    ASKED FOR AS *"when a student does do a question, it should record the date they did it."* Through
    the real handlers on a real card:

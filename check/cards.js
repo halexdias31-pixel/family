@@ -509,7 +509,8 @@ function outside(svg, row) {
         }
         pageParts_(x, items[i - 1]).forEach(part => pages.push({ x: x, part: part }));
       });
-      const kindOf = p => (!p ? 'card' : p.replace(/\d+$/, ''));
+      /* `stem3-2` and `stem0` are both a stem's page; `pre1` a long part's first pages. */
+      const kindOf = p => (!p ? 'card' : p.replace(/\d+(-\d+)?$/, ''));
       for (let i = 0; i < pages.length; i += 200) {
         const batch = pages.slice(i, i + 200);
         host.innerHTML = batch.map(pg => {

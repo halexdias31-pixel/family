@@ -3883,9 +3883,13 @@ function pageParts_(x, prev) {
     const out = [];
     (x.stems || []).forEach((p, i) => {
       if (!p || had.indexOf(stemId_(p)) >= 0) return;
-      if (String(p.html || '').trim()) out.push('stem' + i);
+      /* A LONG STEM IS SEVERAL PAGES, `stemN`, `stemN-1`, `stemN-2` -- see `stemChunks_`. */
+      if (String(p.html || '').trim()) stemChunks_(p).forEach((c, j) => out.push('stem' + i + (j ? '-' + j : '')));
       if (stemHasFig_(p)) out.push('sfig' + i);
     });
+    /* AND A LONG PART IS ITS FIRST PAGES (`preN`) AND THEN THE CARD, which keeps the last of its words
+       with the box -- see `partChunks_`. */
+    partChunks_(x).slice(0, -1).forEach((c, j) => out.push('pre' + j));
     out.push(null);
     if (questionHasFig_(x)) out.push('fig');
     if (questionHasAns_(x)) out.push('ans');
@@ -3926,14 +3930,18 @@ function pageParts_(x, prev) {
    because "Show the answer" turns forward by the answer's place in that list — on Saved as on Find
    — and two lists of one question's pages would be two chances to disagree about where it is. */
 function cardPages_(x, credits) {
-  return pageParts_(x).filter(p => !p || p === 'fig' || p === 'ans' || /^s(tem|fig)\d+$/.test(p))
+  return pageParts_(x).filter(p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p))
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
 }
 function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
   if (x && x.kind === 'textbook') return textbookPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
-  if (x && x.kind === 'question' && /^stem\d+$/.test(part)) return questionStemCard_(x, +part.slice(4));
+  if (x && x.kind === 'question' && /^stem\d+(-\d+)?$/.test(part)) {
+    const m = /^stem(\d+)(?:-(\d+))?$/.exec(part);
+    return questionStemCard_(x, +m[1], +(m[2] || 0));
+  }
+  if (x && x.kind === 'question' && /^pre\d+$/.test(part)) return questionPreCard_(x, +part.slice(3));
   if (x && x.kind === 'question' && /^sfig\d+$/.test(part)) return questionStemFigCard_(x, +part.slice(4));
   return (x && x.kind === 'question' && part === 'fig') ? questionFigCard_(x) : practicalPart_(x, part);
 }
@@ -6134,8 +6142,9 @@ const qTagsHtml_ = x => {
 function questionCard_(x) {
   const sat = satOn_(x);
   const needs = asList_(x.needs);
+  const many = partChunks_(x).length;
   return `<div class="qcard">
-    ${qHead_(x, '', true)}
+    ${qHead_(x, many > 1 ? many + ' of ' + many : '', true)}
     <p class="qcard-sub">${qTagsHtml_(x)}${
       sat ? `<span class="qcard-sat">sat ${esc(sat)}</span>` : ''}${
       /* WHAT TO BRING, WHERE IT IS READ RATHER THAN FILTERED FOR. The funnel can narrow by it, but
@@ -6148,12 +6157,13 @@ function questionCard_(x) {
       ${/* NO STEM HERE. The paragraph a part hangs from is its own page in front of the first part
             that shares it -- `questionStemCard_`, in `pageParts_`'s order -- so six parts of one
             question no longer print the same paragraph six times. The lead is the part's own. */''}
-      ${x.lead ? `<div class="qsheet-lead">${typeset_(x.lead)}</div>` : ''}
-      <div class="qsheet-part">
-        <div class="qsheet-pb">${typeset_(x.html)}${
-          /* NO PICTURE HERE. The diagram, the pen and the question's photographs are the NEXT page
-             — see `questionFigCard_`. The answer box stays on this card, under the words. */''}</div>
-      </div>
+      ${/* THE LAST OF THE WORDS, which is all of them unless the part is too long for one page --
+            then the pages in front (`questionPreCard_`) hold the rest and this keeps the ask, so the
+            question and its box are on one screen. `chunkHtml_` draws the lead and the part in the
+            wrappers they always had, so a part that fits is the markup it always was.
+            NO PICTURE HERE. The diagram, the pen and the question's photographs are the NEXT page
+            — see `questionFigCard_`. The answer box stays on this card, under the words. */''}
+      ${chunkHtml_(partChunks_(x).slice(-1)[0])}
       ${/* AND THE WORDS SAY WHERE IT WENT. "The angle marked y", with no angle on the card, reads as
             a question that failed to load; one quiet line, a label rather than a control, because
             the page turns the way every page does. Asked of the same `questionHasFig_` that
@@ -6187,18 +6197,136 @@ const stemId_ = p => (p && (p.id || (p.row && p.row.row_id) || p.html || p.diagr
 const stemHasFig_ = p => !!(p && (p.diagram || figImgs_(p.images).length));
 const qNum_ = x => 'Q' + ((x.qNumber != null && x.qNumber !== '') ? x.qNumber
   : String(x.name || '').replace(/^Q(\d+).*$/, '$1'));
-function questionStemCard_(x, i) {
+function questionStemCard_(x, i, j) {
   const p = (x.stems || [])[i];
   if (!p) return '';
+  const chunks = stemChunks_(p);
+  j = Math.min(+j || 0, chunks.length - 1);
+  const last = j === chunks.length - 1;
   return `<div class="qcard qstem" data-of="${esc(stemId_(p))}">
-    ${qHead_(Object.assign({}, x, { name: qNum_(x), marks: 0 }))}
+    ${qHead_(Object.assign({}, x, { name: qNum_(x), marks: 0 }), chunks.length > 1 ? (j + 1) + ' of ' + chunks.length : '')}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">
       <div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${
-        p.lines ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${typeset_(p.html)}</div>${
-      stemHasFig_(p) ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
+        p.lines && !j ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${typeset_(chunks[j])}</div>${
+      !last ? '<p class="qsheet-figref">Continued on the next page &rarr;</p>'
+        : stemHasFig_(p) ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
     </div>
   </div>`;
+}
+
+/* ---------- A LONG PART'S FIRST PAGES ---------------------------------------------------------------
+   `Q2.4 · 1 of 2`, the tags, and the words up to the place the card takes over -- the method, the
+   table, the scene -- with "Continued on the next page". No box, no marks and no tiles: the card is
+   still the question, and this is the reading in front of it. */
+function questionPreCard_(x, j) {
+  const chunks = partChunks_(x);
+  if (j >= chunks.length - 1) return '';
+  return `<div class="qcard qpre" data-of="${esc((x.row && x.row.row_id) || x.key || '')}">
+    ${qHead_(Object.assign({}, x, { marks: 0 }), (j + 1) + ' of ' + chunks.length)}
+    <p class="qcard-sub">${qTagsHtml_(x)}</p>
+    <div class="qsheet">
+      ${chunkHtml_(chunks[j])}
+      <p class="qsheet-figref">Continued on the next page &rarr;</p>
+    </div>
+  </div>`;
+}
+
+/* ==================================================================================================
+   A PAGE IS SMALLER THAN A PHONE, SO LONG WORDS ARE CUT BETWEEN PARAGRAPHS.
+
+   ASKED FOR AS *"each widget is smaller than a phone screen"*. Measured by `check/cards.js` through
+   these builders over every page of the library: with the stems on their own pages, 1,188 of 6,730
+   question cards and 29 of 304 stems were still taller than a 320 x 568 pane -- an AQA English
+   insert of 3,900px, an A-level method of eight steps and a table with the ask under it.
+
+   CUT AT THE TOP-LEVEL BLOCKS, NEVER INSIDE ONE. A paragraph, a table, a list, a heading is the
+   smallest thing that can stand on a page by itself; a table cut between its rows is two tables
+   neither of which has its header row, and a sentence cut in half is not reading. So the cutter
+   counts tag depth and only cuts where it returns to the top after a block, and a single block
+   longer than a page stays whole -- the pane scrolls it (`paneReach_`), which is the old behaviour
+   for the one thing that cannot be helped.
+
+   BY A WEIGHT, NOT BY A LAYOUT. Nothing here knows the screen: pages are counted before anything is
+   drawn, by `stuffPages_`, and a cut that moved with the window would renumber every page under the
+   pager when a phone turned. So a block weighs its characters plus a line's worth for each paragraph,
+   row, item or break it holds, and the budgets are set from what fits a 320 x 568 pane at the root's
+   14.8px -- the narrowest phone, so a page that fits there fits everywhere.
+
+   A PART KEEPS ITS LAST WORDS WITH ITS BOX. The cut runs from the end: the card takes the ask and as
+   much in front of it as fits beside the box and the tile row (`PART_LAST`), and the pages before it
+   take the rest. A question and the box you answer it in are on one screen, which is the point. */
+const CHUNK_PAGE = 640;
+const PART_LAST = 300;
+const CHUNK_BLOCK = /^(p|div|table|ul|ol|h[1-6]|blockquote|figure|pre|section|dl)$/i;
+const CHUNK_VOID = /^(br|img|hr|input|meta|link|col|wbr|source|area|base|param|track|embed)$/i;
+function htmlBlocks_(html) {
+  const s = String(html || '');
+  const out = [];
+  const re = /<(\/?)([a-zA-Z][\w-]*)\b[^>]*?(\/?)>/g;
+  let m, depth = 0, from = 0;
+  while ((m = re.exec(s))) {
+    if (CHUNK_VOID.test(m[2]) || m[3]) continue;
+    if (!m[1]) { depth++; continue; }
+    depth = Math.max(0, depth - 1);
+    if (!depth && CHUNK_BLOCK.test(m[2])) { out.push(s.slice(from, re.lastIndex)); from = re.lastIndex; }
+  }
+  if (s.slice(from).trim()) out.push(s.slice(from));
+  return out;
+}
+const chunkWeight_ = h => String(h).replace(/<[^>]*>/g, '').replace(/&[a-z0-9#]+;/gi, 'x')
+  .replace(/\s+/g, ' ').trim().length
+  + 45 * (String(h).match(/<(p|li|tr|br|h[1-6]|div)\b/gi) || []).length
+  + (/<svg|<img/i.test(h) ? 400 : 0);
+/* FROM THE END, the last page first, so the page with the room taken (`last`) is the one that holds
+   the end of the text. Returns lists of blocks, in reading order, never an empty list. */
+function packBlocks_(blocks, page, last) {
+  const out = [];
+  let cur = [], w = 0, cap = last;
+  for (let i = blocks.length - 1; i >= 0; i--) {
+    const bw = chunkWeight_(blocks[i].h);
+    if (cur.length && w + bw > cap) { out.unshift(cur); cur = []; w = 0; cap = page; }
+    cur.unshift(blocks[i]); w += bw;
+  }
+  if (cur.length || !out.length) out.unshift(cur);
+  return out;
+}
+/* MEMOISED ON THE OBJECT, because `pageParts_` asks for every result on every new filter and the
+   library is seven thousand rows; the html of a row does not change under it. */
+const CHUNK_MEMO = new WeakMap();
+function stemChunks_(p) {
+  if (!p || typeof p !== 'object') return [''];
+  const had = CHUNK_MEMO.get(p);
+  if (had) return had;
+  const out = packBlocks_(htmlBlocks_(p.html).map(h => ({ k: 'pb', h: h })), CHUNK_PAGE, CHUNK_PAGE)
+    .map(c => c.map(b => b.h).join(''));
+  CHUNK_MEMO.set(p, out);
+  return out;
+}
+/* THE LEAD IS ONE BLOCK, kept whole and in its own wrapper: it is the part's own sentence of setting,
+   and it is short (`lead` is 436 cells, none past a page). */
+function partChunks_(x) {
+  if (!x || typeof x !== 'object') return [[]];
+  const had = CHUNK_MEMO.get(x);
+  if (had) return had;
+  const blocks = (x.lead ? [{ k: 'lead', h: String(x.lead) }] : [])
+    .concat(htmlBlocks_(x.html).map(h => ({ k: 'pb', h: h })));
+  const out = packBlocks_(blocks, CHUNK_PAGE, PART_LAST);
+  CHUNK_MEMO.set(x, out);
+  return out;
+}
+/* A CHUNK IN THE WRAPPERS THE CARD ALWAYS USED -- the lead in `.qsheet-lead`, the part's words in
+   `.qsheet-part > .qsheet-pb` -- so the typesetting rules and every check reading them still apply. A
+   chunk with none of the part's words in it still draws the empty `.qsheet-pb`, as a row with no
+   `html` always did. */
+function chunkHtml_(chunk) {
+  const c = chunk || [];
+  const lead = c.filter(b => b.k === 'lead').map(b => b.h).join('');
+  const pb = c.filter(b => b.k === 'pb').map(b => b.h).join('');
+  return `${lead ? `<div class="qsheet-lead">${typeset_(lead)}</div>` : ''}
+      <div class="qsheet-part">
+        <div class="qsheet-pb">${typeset_(pb)}</div>
+      </div>`;
 }
 
 /* ---------- AND THE STEM'S FIGURE, THE PAGE AFTER ITS WORDS ---------------------------------------
