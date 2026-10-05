@@ -7738,6 +7738,11 @@ check('a boxer without a photo: the ring and his initials, no <img>; no credit m
        the licence rule must refuse to draw. */
     const g = raw.boxers.find(b => b.name === 'George Foreman');
     if (g) { g.image = 'https://upload.wikimedia.org/wikipedia/commons/x/xx/Foreman.jpg'; g.image_credit = ''; }
+    /* AND JOE LOUIS WITH NO PHOTO, IN THE COPY. He was the no-photo boxer by accident of the file;
+       when the photographs arrived he had one, and the journey stopped testing the placeholder at all.
+       So the case is made here rather than found in the data. */
+    const jl = raw.boxers.find(b => b.name === 'Joe Louis');
+    if (jl) { jl.image = ''; jl.image_credit = ''; }
   });
   if (a.fail) return [a.fail];
   const bad = [];
@@ -7816,8 +7821,13 @@ check('a boxer photo that will not load falls back to the ring, takes its credit
   return bad;
 });
 
-check('a boxer\'s fights: every bout he is in, newest first, from his side — and the fight card\'s two faces', async () => {
-  const a = await boxerApp_();
+check('a boxer\'s fights: every bout they are in, newest first, from their side — and the fight card\'s two faces', async () => {
+  /* FRAZIER WITHOUT HIS PHOTO, IN THE COPY, so the blue corner's placeholder is tested whatever the
+     file holds -- the same reason Joe Louis is made photo-less in the journey above. */
+  const a = await boxerApp_(raw => {
+    const jf = raw.boxers.find(b => b.name === 'Joe Frazier');
+    if (jf) { jf.image = ''; jf.image_credit = ''; }
+  });
   if (a.fail) return [a.fail];
   const bad = [];
   const x = a.item('Muhammad Ali');
