@@ -745,7 +745,7 @@ function mxcOwn_(L, m) {
   if (crowd) fault(L.id, 'shows two values of m at once at ' + crowd + ' sampled moments');
   const step = 100 / T.length;
   says.forEach((s, i) => {
-    /* FULLY UP FOR 8% OF THE LOOP — 0.7s at 9s, long enough to read two characters. Counted on the
+    /* FULLY UP FOR 8% OF THE LOOP — 0.8s at 10s, long enough to read two characters. Counted on the
        0.2% grid only, so the extra stop and half-way keys do not inflate it. */
     const n = T.filter(t => Math.abs(t * 5 - Math.round(t * 5)) < 1e-9 && ops[i].length && at(ops[i], t)[1] > 0.999).length * 0.2;
     if (n < 8) fault(L.id, 'm = ' + s.v + ' is fully up for ' + n.toFixed(1) + '% of the loop — not long enough to read');
