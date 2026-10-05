@@ -1860,8 +1860,11 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
    the foot of a conversation. What they share is the one thing that must not drift: the 44px floor,
    in px, which is this file's rule.
 
-   `quiet`, NOT GOLD, ON `Post`. Gold is the one action on a card, and on a post that is the
-   reaction row directly under the picture. */
+   `Post` IS A TILE NOW — *"post should be a tile too"* — so its 44px and its plate are `.tile`'s, and
+   the `.cmt-form .btn.cmt-go` rule that sized the old button is gone with it. Not gold, for the
+   reason the button was `quiet`: gold is the one action on a card, and on a post that is the
+   reaction row directly under the picture. `align-items: flex-end` keeps it at the foot of a box
+   that has grown to several lines, where the thumb that finished typing already is. */
 .cmt-form { display: flex; align-items: flex-end; gap: .4rem; flex-wrap: wrap; margin: .45rem 0 0; }
 .cmt-text {
   flex: 1 1 7rem; min-width: 0;
@@ -1873,7 +1876,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 }
 .cmt-text:focus { outline: 0; border-color: var(--gold); }
 .cmt-text::placeholder { color: var(--faint); opacity: 1; }
-.cmt-form .btn.cmt-go { width: auto; flex: 0 0 auto; min-height: 44px; padding: 0 .9rem; }
 /* The note and the server's refusal are one element — see `msgForm_` for the argument — and an
    empty one under every post in the feed is a margin nobody asked for. */
 .cmt-said { flex: 1 0 100%; margin: .3rem 0 0; }

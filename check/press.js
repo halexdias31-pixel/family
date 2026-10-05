@@ -119,7 +119,8 @@ const ACCEPTED_QUIET = {
      All four refuse in the same way and it is the right refusal: the box is focused and the handler
      returns. Sending an empty message is not an action, and a toast saying so would be the app
      telling somebody what they can already see. */
-  'cmt-add':  { why: 'the comment box is empty, so the handler focuses it and returns — which is the '
+  /* `cmt-add` IS THE POST TILE NOW ("post should be a tile too") — same act, same refusal. */
+  'cmt-add':  { why: 'the comment box is empty, so the Post tile\'s handler focuses it and returns — which is the '
                    + 'right answer to "post nothing".' },
   'msg-send': { why: 'the message box is empty. Same refusal as `cmt-add`, and the same right one.' },
   'dock-add': { why: 'the to-do box is empty; the handler focuses it and adds no line.' },
