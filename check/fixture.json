@@ -324,8 +324,11 @@
  "landmarks": [],
  "favourites": [],
  "attempts": {
-  "for": "",
-  "mine": {}
+  "for": "P001",
+  "mine": {},
+  "people": {
+   "P-E1": {"n": 12, "last": "2026-10-04"}
+  }
  },
  "festive": [],
  "closures": [
