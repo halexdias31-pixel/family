@@ -1894,6 +1894,50 @@ const STATES = {
       },
       wants: 'three insurance items, each with its date box, and the one due soon flagged' },
 
+    /* ---------- THE WEEKLY PARENT EMAIL: ITS CARD, AND WHAT PREVIEW OPENS ----------------------------
+       The infrastructure for *"something which triggers every sunday"* and emails parents — built and
+       switched off (backend/digest.gs, js/digest.js). The card is the last page of an admin's Settings.
+       The preview is drawn from a reply shaped the way `digestPreviewOut_` answers, with an address
+       long enough that it has to wrap at 320, rather than by posting: the fixture is one payload and
+       has no `digestPreview` to answer with. */
+    { name: 'the weekly parent email card',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.digest'));
+        if (at < 0) throw new Error('no weekly parent email card on the settings column');
+        goPage('settings', at, true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        return !!pg && /Weekly parent email:\s*(Off|Preview|Send)/.test((pg.querySelector('.digest-mode') || {}).textContent || '')
+          && !!pg.querySelector('.tile-row [data-do="digest-preview"]');
+      },
+      wants: 'the mode in its title and one Preview tile' },
+    { name: 'the weekly parent email, previewed',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.digest'));
+        if (at < 0) throw new Error('no weekly parent email card on the settings column');
+        goPage('settings', at, true);
+        const body = 'Hello Pat,\n\nThis week (28 Sep – 4 Oct) Ada did 3 questions — 2 new and 1 done again.\n\n'
+          + 'New this week\n- Maths · Paper 1 (Calculator) — June 2024 · Q1\n- Maths · Paper 31: Statistics — June 2022 · Q4b\n\n'
+          + 'Done again\n- q:Q-9MA031-2206-1\n\nSee them on the site: https://halexdias31-pixel.github.io/family/\n\n'
+          + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.';
+        openSheet('Weekly parent email', digestSheet_({ success: true, mode: 'preview', hour: 18, scheduled: 0,
+          week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
+          emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat.parent.with.a.long.address@example.org',
+                     subject: 'Ada’s week: 3 questions', text: body, html: '', count: 3 }],
+          unreachable: [{ id: 'P-S3', name: 'Cal Alone', count: 1, why: 'no parent has accepted a link to them' }] }));
+      },
+      leave: () => { if (typeof closeSheet === 'function') closeSheet(); },
+      expect: () => {
+        const t = (document.getElementById('sheet-body') || {}).textContent || '';
+        return /To Pat Parent/.test(t) && /Ada’s week: 3 questions/.test(t) && /Nobody to tell/.test(t);
+      },
+      wants: 'each email under its address, its plain body, and who nobody can tell' },
+
     /* ---------- THE QUALIFICATIONS: A LIST YOU READ, AND ONE EDITOR AT A TIME ----------------------
        REPORTED AS *"the current system for adding qualifications is really hard to understand."* The
        shelf is a read list now — a bold subject, its levels as plain lines, a word button `Edit` on
