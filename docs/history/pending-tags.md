@@ -100,9 +100,20 @@ GCSE (4784) | Functional Skills (24) | A-Level (620)`; Key stage is asked inside
   SATs and KS2 as two tags* (the May 2024 Reasoning Q1, which asks for a ruler). Mutations: kind tag
   dropped (stem, figure, grid, SATs states red); `.qcard-needs` back (SATs state red); date back in
   the card (dated state red).
+* **check/states.js `a paper chosen`** — the card's sitting tags are `2017`, `June`, then the day it
+  was sat with no year (mutation: the year left on the day tag → red).
 * **check/cards.js** — its copy of the card draws the row (three page tags, `SATs` + `KS2`, the
-  needs); its figure-number rule reads the row. **check/press.js** — a figure page's head is its kind
-  and number tags.
+  needs); its figure-number rule reads the row (mutation: number and marks on figure pages → 10+
+  figure pages named). **check/press.js** — a figure page's head is its kind and number tags.
+
+**Measured cost, and left as it is.** Every page now carries the needs tags (they were on the
+question card only, as the gold line), and a stem or lead-in page carries `Question` and its number
+as two pills where the header was one line. `check/cards.js`, base against this: question pages
+taller than a 320×568 pane **440 → 488** of 13,270 (cards 330 → 315, stems 24 → 45, lead-in pages
+84 → 119, figures 2 → 9); at 390×844 **6 → 6**. Every one is reachable (the pane scrolls and the
+pager takes over). The cut's budgets (`CHUNK_PAGE`, `PART_LAST`) were not retuned: that renumbers
+pages across the library, and is the owner's call if the 320 figure matters more than one row of
+tags on every page.
 
 **Screenshots** at 320 and 390 in the scratchpad's `build2/tags/`: a non-calculator GCSE question
 (with `Done 4 Oct` beside the star) and its answer page, a calculator question, a part's figure, a
