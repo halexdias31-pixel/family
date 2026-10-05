@@ -939,12 +939,14 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__qStable = null; window.__qCard = null;
-        setTimeout(() => {
+        /* AT ONCE WHERE THE CARD IS ALREADY BUILT, by its key, and after a tick only if not: a loaded run's
+           150ms timer is what left this state unreached (see the answer states above). */
+        const run = () => {
           const hit = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === ansKey_(it));
           const card = window.__qCard = hit && hit.closest('.qcard');
           const inp = card && card.querySelector('.qp-ans-in');
           const btn = card && card.querySelector('.qp-check');
-          if (!inp || !btn) return;
+          if (!inp || !btn) return false;
           const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
                             card.querySelector('.qp-ans').getBoundingClientRect().top,
                             card.getBoundingClientRect().height];
@@ -953,7 +955,9 @@ const STATES = {
           inp.dispatchEvent(new Event('input', { bubbles: true }));
           btn.click();
           window.__qStable = { a, b: at() };
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const s = window.__qStable;
@@ -977,12 +981,14 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__qStable = null; window.__qCard = null;
-        setTimeout(() => {
+        /* AT ONCE WHERE THE CARD IS ALREADY BUILT, by its key, and after a tick only if not: a loaded run's
+           150ms timer is what left this state unreached (see the answer states above). */
+        const run = () => {
           const hit = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === ansKey_(it));
           const card = window.__qCard = hit && hit.closest('.qcard');
           const inp = card && card.querySelector('.qp-ans-in');
           const btn = card && card.querySelector('.qp-check');
-          if (!inp || !btn) return;
+          if (!inp || !btn) return false;
           const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
                             card.querySelector('.qp-ans').getBoundingClientRect().top,
                             btn.getBoundingClientRect().top];
@@ -991,7 +997,9 @@ const STATES = {
           inp.dispatchEvent(new Event('input', { bubbles: true }));
           btn.click();
           window.__qStable = { a, b: at() };
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const s = window.__qStable;
