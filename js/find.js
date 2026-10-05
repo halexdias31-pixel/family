@@ -7239,7 +7239,15 @@ function ansItem_(k) {
 
    EVERY COPY, SHOWN OR HIDDEN, rather than only the ones in the other state: Saved and Find can both
    hold the page, and a Hide that redrew only the open copies is the same rule written twice. Redrawing
-   one already in the state asked for draws the same markup again, which costs nothing anybody sees. */
+   one already in the state asked for draws the same markup again, which costs nothing anybody sees.
+
+   AND THE FOCUS COMES WITH IT. Replacing the card throws away the tile that was just pressed, and a
+   keyboard's focus on a removed element falls back to `<body>` -- so Enter on Show left the next Tab
+   starting from the top of the document, every time, on a toggle whose whole promise is "press it
+   again in the same place". Only the copy that HELD the focus hands it on: a redraw must not pull
+   focus off whatever else somebody is in. `preventScroll`, because the pages are parked side by side
+   with transforms (CLAUDE.md) and a focus that scrolled would slide the strip. In a try, because an
+   old browser that refuses the options object still leaves the answer drawn. */
 function ansSet_(x, open) {
   if (!x) return;
   const k = ansKey_(x);
@@ -7248,7 +7256,11 @@ function ansSet_(x, open) {
     if (el.getAttribute('data-k') !== k) return;
     const t = document.createElement('div');
     t.innerHTML = questionAnsCard_(x);
-    if (t.firstElementChild) el.replaceWith(t.firstElementChild);
+    const card = t.firstElementChild;
+    if (!card) return;
+    const had = el.contains(document.activeElement);
+    el.replaceWith(card);
+    if (had) { try { const tl = card.querySelector('.qa-toggle'); if (tl) tl.focus({ preventScroll: true }); } catch (e) {} }
   });
 }
 function ansShow_(x) { ansSet_(x, true); }

@@ -5870,11 +5870,24 @@ check('the answer page shows, hides and shows again from one tile, hidden by def
     w.stuffItemsAll_ = () => [x];
     try { A['qa-go'](qt.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = held; qt.remove(); }
     hiddenRight('after the question\'s "To the answer"');
+    /* THE FOCUS FOLLOWS THE TOGGLE. `ansSet_` replaces the card, so the tile that was pressed is gone;
+       from a keyboard the focus has to land on the tile that replaced it rather than on `<body>`. And
+       ONLY from the card that held it: a Hide with the focus somewhere else leaves it there. */
+    const named = e => !e ? '(nothing)' : e === d.body ? '<body>'
+      : '<' + e.tagName.toLowerCase() + (e.getAttribute('data-do') ? ' ' + e.getAttribute('data-do') : '') + '>';
+    const showT0 = card().querySelector('[data-do="qa-show"]');
+    if (showT0) showT0.focus();
     if (!press('qa-show', card())) bad.push(what + ': nothing to press to show it');
     shownRight('after Show');
+    if (d.activeElement !== card().querySelector('[data-do="qa-hide"]')) bad.push(what + ': Show threw the focus away -- it is on ' + named(d.activeElement) + ', not on the Hide tile in its place');
     if (slot(card()) !== s0) bad.push(what + ': the tile row moved from child ' + s0 + ' to ' + slot(card()) + ' when the answer was shown');
     if (w.questionAnsCard_(x).indexOf(SECRET) < 0) bad.push(what + ': the page drawn afresh after Show is shut again');
+    const elsewhere = d.createElement('input');
+    d.body.appendChild(elsewhere);
+    elsewhere.focus();
     if (!press('qa-hide', card())) bad.push(what + ': nothing to press to hide it');
+    if (d.activeElement !== elsewhere) bad.push(what + ': a Hide pulled the focus to ' + named(d.activeElement) + ' from a box that held it, outside the card');
+    elsewhere.remove();
     hiddenRight('after Hide');
     if (slot(card()) !== s0) bad.push(what + ': the tile row moved when the answer was hidden again');
     if (w.questionAnsCard_(x).indexOf(SECRET) >= 0) bad.push(what + ': the page drawn afresh after Hide is still open -- ANS_SHOWN did not forget it');
