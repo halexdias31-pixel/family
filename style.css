@@ -10772,13 +10772,21 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    drawn in it, so reusing it would put the bin and the basket in one colour — the exact confusion
    the two-row layout existed to prevent. This is a cooler, brighter yellow: unmistakably yellow,
    and unmistakably not the trolley beside it. */
+/* THE TONE IS THE TOKEN, THINNED -- `color-mix` with `transparent` paints exactly what
+   `rgb(242 210 75 / .07)` did, and names which colour it is. Written out by hand, these five were the
+   pattern `.tile.is-lead` was copied from: it changed its `color` to `--gold` and kept this yellow in
+   its border, so a gold padlock sat in an admin-yellow frame on a tile every student sees. A literal
+   cannot say which token it meant, so nothing could tell. `check-css` now fails a `.tile` rule that
+   writes a token's colour out by hand. */
 .tile.is-admin {
   color: var(--admin);
-  background: rgb(242 210 75 / .07);
-  border-color: rgb(242 210 75 / .22);
+  background: color-mix(in srgb, var(--admin) 7%, transparent);
+  border-color: color-mix(in srgb, var(--admin) 22%, transparent);
 }
-.tile.is-admin:active, .tile.is-admin.is-pressed { background: rgb(242 210 75 / .16); border-color: rgb(242 210 75 / .45); }
-.tile.is-admin.on { background: rgb(242 210 75 / .2); border-color: rgb(242 210 75 / .5); }
+.tile.is-admin:active, .tile.is-admin.is-pressed { background: color-mix(in srgb, var(--admin) 16%, transparent);
+                                                   border-color: color-mix(in srgb, var(--admin) 45%, transparent); }
+.tile.is-admin.on { background: color-mix(in srgb, var(--admin) 20%, transparent);
+                    border-color: color-mix(in srgb, var(--admin) 50%, transparent); }
 
 @media (prefers-reduced-motion: reduce) { .tile:active, .tile.is-pressed { transform: none; } }
 
@@ -12406,8 +12414,13 @@ button.scr-sq { cursor: pointer; }
    says nothing about which to press first, while Undo and Clear act on marks that cannot exist until
    the pen is on. So the lock's mark is gold -- what this app means by "the one thing to press" -- and
    armed it is a gold FILL (`.on`), which is the difference between an invitation and a state. A TONE
-   and not a rule on `.qpad-lock`, because a tile's `cls` is a name a check finds it by, never a look. */
-.tile.is-lead { color: var(--gold); border-color: rgb(242 210 75 / .35); }
+   and not a rule on `.qpad-lock`, because a tile's `cls` is a name a check finds it by, never a look.
+
+   THE FRAME IS GOLD TOO, FROM THE TOKEN. It was `rgb(242 210 75 / .35)` -- `--admin`'s yellow, copied
+   from `.tile.is-admin` with only the `color` changed -- and sampled off a screenshot the border came
+   out (95,84,37) round a (255,180,84) padlock: two yellows on one tile, one of them meaning "only you
+   can see this" on a control every student sees. */
+.tile.is-lead { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 35%, transparent); }
 .tile.is-lead.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
 /* TWO GROUPS, AND THE ROW BREAKS BETWEEN THEM: the lock with the tools it arms, then Undo and Clear.
    Measured at 390 with no groups, six tiles wrapped the bin alone onto a second line. The same gap
