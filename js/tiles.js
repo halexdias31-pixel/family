@@ -163,13 +163,18 @@ const TILE_ICONS = {
      unless user unhides them"*), and an eye on a control that reveals nothing would be the one mark
      in the app that lies. The eye belongs to the tile that does reveal, on the answer page.
 
+     AND IT POINTS DOWN. It pointed right, and on this screen right is a different COLUMN -- a swipe
+     sideways leaves Find for the next screen -- while a question's pages stack downwards ("Swipe up
+     for its questions"), and the answer is the page below its question, or two below past a figure.
+     An arrow is a promise about which way the page will go; this one now keeps it.
+
      THE PEN IS A PENCIL WITH ITS LINE, so it is told from `edit` (a pencil alone, which elsewhere means
      "change this text") by the squiggle it has just drawn. THE RULER IS ON A SLANT with its ticks,
      because a level rectangle with marks along it reads as a battery. THE COMPASS is the pair of
      compasses every geometry set holds -- the hinge, two legs, and the arc it swings between them.
      AI IS A SPARKLE, the mark every phone already puts on "a model did this", so the one tile whose
      verdict is a guess says so before it is pressed. */
-  next:  '<path d="M2.5 8.5h12"/><path d="m10.5 4.5 4 4-4 4"/>',
+  next:  '<path d="M9 2.5v12"/><path d="m5 10.5 4 4 4-4"/>',
   pen:   '<path d="M12.6 2.6 15 5 7.2 12.8l-3.2.8.8-3.2z"/>'
        + '<path d="M9 15.2c1.6-1.2 2.6.6 4 0s1.8-1 2.6-1"/>',
   ruler: '<g transform="rotate(-38 9 8.5)"><rect x="1.5" y="5.8" width="15" height="5.4" rx="1"/>'
