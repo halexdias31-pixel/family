@@ -2907,8 +2907,12 @@ function pressDone_() {
 addEventListener('pointerdown', e => {
   if (!e.isPrimary) return;
   if (e.pointerType === 'mouse' && e.buttons !== 1) return;
-  /* THE LAST 60ms ARE LET THROUGH — by then the card has all but arrived. */
-  PRESS_SLIDING = performance.now() < SLIDE_UNTIL - 60;
+  /* THE LAST 60ms ARE LET THROUGH — by then the card has all but arrived. AND ONLY ON THE CARDS: the
+     sheet, its backdrop, the keypad and the booking drop-down are not in `#screen` and do not move
+     with it. The first version swallowed any tap during a slide, and `check/press.js` caught it
+     closing nothing — a tap on a sheet's backdrop opened over a column still sliding in. */
+  PRESS_SLIDING = performance.now() < SLIDE_UNTIL - 60
+    && !!(e.target && e.target.closest && e.target.closest('#screen'));
   /* AND NOTHING IS LIT UNDER A FINGER THAT IS CATCHING A MOVING CARD rather than pressing it. */
   if (PRESS_SLIDING) { pressClear_(); return; }
   pressMark_(e.target);
