@@ -255,11 +255,33 @@ function profQualChip_(p) {
       mark([subject, level, grade].filter(Boolean).join(' '))}</span>`;
   }
   /* THE LAST WORD OF THE SUBJECT IS HELD TO ITS NOTATION, so at 320px a long subject breaks between
-     its own words and never leaves the stack alone at the start of the chip's next line. */
-  const cut = subject.lastIndexOf(' ');
+     its own words and never leaves the stack alone at the start of the chip's next line.
+     COLOURED FIRST, CUT AFTER. It was cut first and each half coloured on its own, so a `laws` row
+     naming "English Language" matched neither "English" nor "Language" and the subject went plain —
+     the two-halves fault `mark`'s "longest first" exists to prevent, let back in from outside it. Now
+     the whole subject goes through `mark` once and the cut is the last space BETWEEN its coloured
+     words (`profLastGap_`), never one inside a colour; a phrase coloured whole is held whole. */
+  const said = mark(subject), cut = profLastGap_(said);
   return `<span class="prof-tag prof-q" role="img" aria-label="${say}" title="${say}">${
-    cut > 0 ? mark(subject.slice(0, cut)) + ' ' : ''}<span class="prof-q-end">${mark(subject.slice(cut + 1))}<span class="prof-iso">${
+    cut > 0 ? said.slice(0, cut) + ' ' : ''}<span class="prof-q-end">${said.slice(cut + 1)}<span class="prof-iso">${
     level ? `<sup>${mark(level)}</sup>` : ''}${low ? `<sub>${low}</sub>` : ''}</span></span></span>`;
+}
+/* THE LAST SPACE IN `mark`'s HTML THAT IS NEITHER INSIDE A TAG NOR INSIDE A COLOURED SPAN, or -1.
+   `mark` escapes before it wraps, so every `<` here opens a tag and never stands for the letter, and
+   its `<span class="…">` has a space of its own that must not be taken for one between words. Counted
+   as a depth rather than a yes/no, so a span inside a span — should a law ever make one — is still
+   inside, and the cut can never land where it would leave a tag open across the no-wrap span. */
+function profLastGap_(html) {
+  let depth = 0, at = -1;
+  for (let i = 0; i < html.length; i++) {
+    if (html[i] === '<') {
+      const end = html.indexOf('>', i);
+      if (end < 0) break;
+      depth += html[i + 1] === '/' ? -1 : html[end - 1] === '/' ? 0 : 1;
+      i = end;
+    } else if (html[i] === ' ' && depth <= 0) at = i;
+  }
+  return at;
 }
 function profQuals_(t) {
   const parts = Array.isArray(t.qualsParts) ? t.qualsParts.filter(p => p && profQualV_(p.subject)) : [];

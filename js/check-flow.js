@@ -4965,6 +4965,30 @@ check('a qualification is written like an isotope: the level raised, the grade l
   const old = read(draw({ title: 'Old Backend', personId: 'P-oldq', rate: 30, quals: ['Maths A-Level grade B at Edexcel (2019)', 'PGCE'] }));
   if (!old || JSON.stringify(old.map(q => q.subject)) !== JSON.stringify(['Maths A-Level grade B at Edexcel (2019)', 'PGCE']) || old.some(q => q.order))
     bad.push('an older backend\'s sentences are not drawn as they were: ' + JSON.stringify(old));
+  /* A LAW THAT COLOURS A TWO-WORD SUBJECT COLOURS IT WHOLE. The chip holds the subject's last word to
+     its stack with a no-wrap span, and the first build made that split BEFORE colouring — `mark` on
+     "English" and on "Language" apart, so a `laws` row naming "English Language" matched neither half
+     and the subject went uncoloured; "longest first" in `mark` exists to stop exactly that. A `word`
+     or `regex` law is a row anybody with the sheet can add today, so this is not waiting on the
+     retired subject list. Wanted: the coloured span reads the whole phrase; a law on "Maths" alone
+     still leaves "Further" outside the held word, so a long subject can still break between words. */
+  const D = w.__t.DATA(), lawsWere = D.laws;
+  D.laws = [{ kind: 'word', match: 'English Language', colour: 'green' }, { kind: 'word', match: 'Maths', colour: 'green' }];
+  try {
+    const box = draw({ title: 'Law Tutor', personId: 'P-lawq', rate: 30,
+      qualsParts: [P('English Language', 'GCSE', '8', '', '2016'), P('Further Maths', 'A-Level', 'A*', '', '2019')] });
+    const chip = s => [...box.querySelectorAll('.prof-quals .prof-q')].find(c => c.getAttribute('aria-label').startsWith(s + ','));
+    const green = c => c ? [...c.querySelectorAll('.w-green')].filter(x => !x.closest('.prof-iso')).map(x => x.textContent) : null;
+    const held = c => { const e = c && c.querySelector('.prof-q-end'), i = e && e.querySelector('.prof-iso');
+                        return e ? e.textContent.replace(i ? i.textContent : '', '') : null; };
+    const en = chip('English Language'), fm = chip('Further Maths');
+    if (JSON.stringify(green(en)) !== '["English Language"]')
+      bad.push('a law on "English Language" colours its chip as ' + JSON.stringify(green(en)) + ' — the subject split before it was coloured');
+    if (!en || held(en) !== 'English Language' || !en.querySelector('.prof-q-end .prof-iso'))
+      bad.push('"English Language", coloured whole, is not held whole to its stack: ' + JSON.stringify(held(en)));
+    if (JSON.stringify(green(fm)) !== '["Maths"]' || held(fm) !== 'Maths' || !/^Further /.test(fm.textContent))
+      bad.push('"Further Maths" with a law on "Maths" reads ' + JSON.stringify({ green: green(fm), held: held(fm) }) + ' — "Further" belongs outside the held word');
+  } finally { D.laws = lawsWere; }
   return bad;
 });
 
