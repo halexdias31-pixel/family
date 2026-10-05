@@ -706,7 +706,8 @@ function inspect(opts) {
      other here, which is the half that matters: a head that does not sit over its column is exactly
      as much a finding as a value that does not.
 
-     THE WEEK IS THE ONE EXEMPTION AND ONLY ON ONE EDGE. `.bk-row.bk-wk .bk-v` spans two tracks
+     THE WEEK IS ONE OF TWO EXEMPTIONS AND ONLY ON ONE EDGE (the other is a waiting list's tally,
+     beside it below, for the same reason). `.bk-row.bk-wk .bk-v` spans two tracks
      deliberately — ten pressable hours do not fit in the answer column, and the arithmetic is in
      style.css beside the declaration — so its RIGHT edge is allowed to differ and its LEFT edge is
      not, because the left edge is the one the eye tracks down the card.
@@ -727,6 +728,14 @@ function inspect(opts) {
           if (!b.width && !b.height) continue;            // display:none has no box to be wrong
           /* THE WEEK'S RIGHT EDGE, EXEMPT WITH ITS REASON ABOVE. */
           if (edge === 'right' && col === 'bk-v' && row.classList.contains('bk-wk')) continue;
+          /* ---------- AND A WAITING LIST'S TALLY, ON THE SAME EDGE FOR THE WEEK'S REASON ----------
+             `.bk-row.bk-tally .bk-v` IS A CHART, NOT A VALUE: `Can come`'s bars, one per block the
+             families offered, with `Wednesday afternoon` written on the longest. In the answer column
+             alone they were 71px at 390 and the words were clipped by their own bars — measured on
+             the first screenshot — so the row takes the three figure tracks it has nothing to put
+             in. Its LEFT edge is still asked, because that is where every answer starts and the
+             edge the eye runs down; a tally that started anywhere else would be named here. */
+          if (edge === 'right' && col === 'bk-v' && row.classList.contains('bk-tally')) continue;
           /* AND A TOTAL'S LABEL, ON THE SAME EDGE AND FOR THE SAME KIND OF REASON. `.rc-total .bk-k`
              spans every track but the figure's, so `CLIENT PAYS` and `TUTOR EARNS` cannot widen the
              question column and wrap every answer on the card — see the note beside it in
