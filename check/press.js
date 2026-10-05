@@ -946,6 +946,12 @@ for (const who of VISITORS) {
        visible to anything else here -- `check/cards.js` measures the height and `check/ui.js`
        measures the screen, and a card that scrolls perfectly and can never be left measures clean
        in both. */
+    /* ON THE NARROW PHONE. With stems on their own pages and long parts cut, no question page is
+       tall enough at 390 x 844 to need the scroll: `paneReach_` draws a card down to 70% before it
+       scrolls, and the tallest left at 390 comes within a pixel of fitting. At 320 x 568 this one is
+       still 679px past the pane, so the scroll is there to test. Put back straight after. */
+    await page.setViewportSize({ width: 320, height: 568 });
+    await page.waitForTimeout(400);
     const tall = await page.evaluate(async () => {
       if (typeof stuffItems !== 'function') return null;
       go('stuff', false, true);
@@ -997,6 +1003,8 @@ for (const who of VISITORS) {
       swipes.push({ from: 'stuff · a tall question card, at its bottom', dir: 'touch up',
                     ok: end === tall.page + 1, got: 'page ' + end, want: 'page ' + (tall.page + 1) });
     }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.waitForTimeout(400);
 
     /* ==================================================================================================
        AND A LINE OF BEST FIT IS A SIDEWAYS DRAG ON A PAGE THAT SLIDES SIDEWAYS.
