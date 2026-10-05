@@ -73,6 +73,34 @@ fresh one cannot be a power either.
 - **Refresh the role from the payload.** The payload is cached and shared; `myProfile` is per token,
   already asked once per open, and already the place this exact staleness was fixed for the profile.
 
+### The independent walk, and the two things it found
+
+A second walk, in Chromium at 320×568 against the real backend, went through all of it — a parent
+signs up as a parent, confirms, signs in, makes a child with no email; the child signs in on another
+phone with `@IVYCARING46 ` typed any old way; a student signs up as a student and is refused Client
+— **34 steps, 0 failed, 0 page errors.** It noted two small things outside the diff, and both were
+real:
+
+1. **A refused Save left the Client box ticked in gold** under the server's *"… Nothing was
+   changed."* A box saying yes over a line saying no — and the box is what the eye reads. Now a
+   refusal puts the ticks back to what you hold, and the sentence stays. **A lost reply does not**:
+   the server never answered, nothing was decided, and the ticks are still the request a second Save
+   will send. To tell the two apart `send_` marks an error the server actually said
+   (`err.refused`); every other caller ignores the mark, so nothing else moves.
+2. **`makeChild`'s refusal said "Tick Parent under Your roles first."** The card's word is
+   *Client*, and the person most likely to read it, a student, is refused that very tick. Now a
+   student is told *"… this one is a student's. If you are a parent, ask @family. to change it"*;
+   anybody else — a tutor, who may tick Client — is told *"Tick Client"*, by `ROLE_LABEL`'s word.
+   The phone never draws the card for either, so this is reached by a stale phone or a request sent
+   straight to the backend, which is how the walk found it.
+
+Checked: `check-flow` *"a refused roles save puts the ticks back to what you hold; a lost reply keeps
+them"*; `check-signin` §8 two more rules (26 now), the second reading the card's labels from
+`ROLE_PICKS` in me.js so the backend's sentence and the card cannot drift apart again. Mutation-proved
+8 ways: no revert, revert on a lost reply too, no mark, a lost reply marked, the old sentence, a
+student told the tick, a tutor told "Parent", and the card relabelled "Payer" — each red for its own
+reason, green on restore. Screenshots at 320 and 390 of the tick and the refusal.
+
 ### For the owner
 
 - **Deploy the backend** (`backend/dopost.gs` → Apps Script). The four version stamps are not bumped
