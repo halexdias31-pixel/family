@@ -503,7 +503,11 @@ function outside(svg, row) {
         /* `qpad` THE PAD, NOT ANY CLASS THAT STARTS WITH IT: the ringed-words note is `qpad-note qw-note`,
            a line of text under a passage the student rings words in, and a prefix match called all 14
            of those rows a picture on the question card the day `surface: "text"` reached the data. */
-        if (/<svg|class="qpad["\s]|class="qpic/.test(q)) inline.push(x.row.row_id + ' draws a picture on the question card');
+        /* A TILE'S OWN MARK IS NOT A PICTURE. Every tile draws its icon as `<svg class="tile-i …">`, and
+           the day Check became a tile ("check button should be a tile") every markable card carried one
+           -- 2,371 cards called "a picture on the question card". Icons are taken out before asking. */
+        const qNoIcons = q.replace(/<svg class="tile-i[\s\S]*?<\/svg>/g, '');
+        if (/<svg|class="qpad["\s]|class="qpic/.test(qNoIcons)) inline.push(x.row.row_id + ' draws a picture on the question card');
         if (/class="qsheet-stem/.test(q)) inline.push(x.row.row_id + ' prints its stem on the part\'s card');
         if (/class="qans|qans-body/.test(q)) inline.push(x.row.row_id + ' draws its answer on the question card');
         if (typeof questionHasAns_ === 'function' && questionHasAns_(x)
