@@ -874,6 +874,7 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    which is the tile rows' own rule for keeping a bin away from the thing beside it. */
 .q-tiles { justify-content: space-between; margin-top: .45rem; }
 .q-adds { margin-top: .3rem; }
+.q-tip { margin-left: .4rem; font-size: .72rem; color: var(--dim); }
 .q-full { margin: .3rem 0 0; font-size: .74rem; }
 /* AN UNANSWERED DROP-DOWN READS AS A PLACEHOLDER, in the grey of the empty boxes — `Choose` in full ink
    looks like an answer somebody gave. `.lib-row select` already does this for the library shelf. */

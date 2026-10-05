@@ -3124,7 +3124,11 @@ function qualShelf_(list, value) {
       g.slots.map((i, n) => qualSlot_(i, value, { first: n === 0, mine })).join('')}</div>`).join('')}</div>
     <div class="q-pool" hidden>${pool.map(i => qualSlot_(i, value, { mine })).join('')}</div>
     <div class="tile-row q-adds">${tile_({ icon: 'plus', label: 'Add a qualification', act: 'qual-add', off: !pool.length,
-      note: pool.length ? pool.length + ' more fit' : 'ten is the most' })}</div>
+      note: pool.length ? pool.length + ' more fit' : 'ten is the most' })}${
+      /* HOW THE CARD WORKS, IN THE ROOM BESIDE THE `+` — a line of text that costs no line of its own.
+         There is no `Edit` on the card any more, and a list of plain lines does not say by itself
+         that a line can be pressed. */
+      empty ? '' : '<span class="q-tip">Tap a line to change it.</span>'}</div>
     ${pool.length ? '' : `<p class="faint q-full">Ten is the most this card holds — remove one to add another.</p>`}
   </div>`;
 }
