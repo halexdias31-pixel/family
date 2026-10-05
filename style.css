@@ -6461,11 +6461,16 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    stretch every chip beside it and leave their words at the top of taller pills. The margin takes the
    stack's own height out of the line box and lets it sit in the chip's padding, which is what the
    padding is there for. Measured: 20.8px with the stack and 20.8 without at 320, 22.6 and 22.6 at 390;
-   held there by `check/states.js`'s "a tutor's qualifications, written like isotopes". */
+   held there by `check/states.js`'s "a tutor's qualifications, written like isotopes".
+   `1ch` OF AIR BEFORE IT, BECAUSE THAT IS WHAT THE TEACHES LEVEL HAS. Its gap is the `&nbsp;` inside
+   its own 8px mono `<sup>`, and one `ch` of the stack's same 8px mono is that same width. It was `.22em`,
+   measured 1.75px against the Teaches level's 4.69 at both widths: side by side, "Maths ^GCSE" had air
+   and the qualification all but touched its subject — one card, one notation, two distances. The same
+   state now holds the two gaps within half a pixel of each other. */
 .prof-q-end { white-space: nowrap; }
 .prof-iso {
   display: inline-flex; flex-direction: column; align-items: flex-start;
-  vertical-align: middle; margin: -.6em 0 -.6em .22em;
+  vertical-align: middle; margin: -.6em 0 -.6em 1ch;
   font-size: max(8px, .84em); line-height: .98; letter-spacing: 0; color: var(--dim);
 }
 .prof-iso sup, .prof-iso sub { display: block; font-size: inherit; line-height: inherit; vertical-align: baseline; }

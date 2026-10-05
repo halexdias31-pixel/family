@@ -1523,8 +1523,12 @@ const STATES = {
                        P('Chemistry', '', 'A', '', ''), P('Theology', 'Degree', '', 'UWTSD', 'Present'),
                        P('English Language and Literature', "Master's degree", 'Distinction', 'University of Warwick', '2022'),
                        P('PGCE', '', '', 'Institute of Education', '2021', 'cert'), P('DBS', 'Enhanced', '', '', '', 'cert')];
+        /* `teachesSpec` IS SET HERE AND NOT BORROWED FROM THE FIXTURE'S TUTOR: the gap below is measured
+           against a Teaches chip on the same card, and a fixture edited to teach nothing would turn that
+           comparison into a silent pass. */
         DATA.tutors = (DATA.tutors || []).concat([Object.assign({}, (DATA.tutors || [])[0] || {},
           { personId: 'P-iso', handle: 'iso', title: 'Iso Notation', listed: true, qualsParts: parts,
+            teachesSpec: ['Maths (GCSE)'],
             quals: parts.map(p => [p.subject, p.level, p.grade && 'grade ' + p.grade].filter(Boolean).join(' ')) })]);
         paint('account');
         const n = accountPages_().findIndex(h => /Iso Notation/.test(h));
@@ -1541,6 +1545,17 @@ const STATES = {
         const iso = chips.filter(c => c.querySelector('.prof-iso'));
         if (iso.length !== 7 || plain.length !== 2) return 0;
         const tall = box(plain[0]).height;
+        /* THE SAME AIR AS THE TEACHES LEVEL. The brief said match the Teaches chips, and the first build
+           put the stack 1.75px from its subject where the Teaches level sits 4.69px from its own — on one
+           card, two notations at two distances. Measured from the subject's last letter to the first
+           thing raised, on each kind of chip; no Teaches chip at all is a failure, not a pass. */
+        const gapOf = (subjectNode, notation) => {
+          const r = document.createRange(); r.selectNodeContents(subjectNode);
+          return box(notation).left - r.getBoundingClientRect().right;
+        };
+        const tc = [...pg.querySelectorAll('.prof-teach:not(.prof-quals) .prof-tag')].find(c => c.querySelector('.prof-lv span'));
+        if (!tc || !tc.firstChild) return 0;
+        const teachGap = gapOf(tc.firstChild, tc.querySelector('.prof-lv span'));
         const ok = iso.every(c => {
           const b = box(c), st = c.querySelector('.prof-iso'), s = box(st);
           const up = st.querySelector('sup'), dn = st.querySelector('sub');
@@ -1565,12 +1580,13 @@ const STATES = {
             wrapped = [...hr.getClientRects()].some(x => x.width > 0 && Math.abs(x.top - w.top) > w.height / 2);
           }
           return stacked && s.left >= w.right - 0.5 && Math.abs((s.top + s.bottom) / 2 - mid) < w.height
+            && Math.abs(gapOf(word, st) - teachGap) < 0.5
             && (wrapped || Math.abs(b.height - tall) < 0.6)
             && s.top >= b.top - 0.5 && s.bottom <= b.bottom + 0.5;
         });
         return ok ? iso.length : 0;
       },
-      wants: 'each qualification\'s level over its grade on the subject\'s right, inside a pill no taller than a plain one',
+      wants: 'each qualification\'s level over its grade on the subject\'s right, as far from it as a Teaches level is from its own, inside a pill no taller than a plain one',
       leave: () => {
         if (window.__ISO_HELD) DATA.tutors = window.__ISO_HELD;
         paint('account');
