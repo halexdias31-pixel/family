@@ -4355,46 +4355,26 @@ function typeset_(html) {
 }
 
 
-/* ---------- THE ANSWER, SHOWN ------------------------------------------------------------------
-   IT WAS BEHIND A `<details>` AND IT IS NOT ANY MORE, at the owner's decision. The argument for
-   hiding it is written out below because it is a real argument and somebody will make it again:
-   a revision screen that shows the answer under the question has not asked you anything, and the
-   value of a past paper is the gap between reading it and knowing it.
+/* ---------- THE ANSWER: SHOWN, THEN SPLIT BY WHO WAS READING, AND NOW ONE PAGE FOR EVERYBODY ----------
+   THIS WAS ARGUED BOTH WAYS HERE, AND BOTH ARGUMENTS WERE ABOUT A TUTOR AND A STUDENT BEING DIFFERENT
+   READERS. First the answer was open under every question, because a tutor reads the mark scheme FROM
+   this surface and a fold is a tap in the middle of a sentence being spoken. Then a second reader was
+   recognised -- a student on the tutor's phone, for whom an open mark scheme is the answer printed
+   under the question -- and the card turned on who was signed in: open for staff, shut behind a tap
+   for a student, opening itself on a right answer.
 
-   THE ANSWER TO IT is that this is not only a revision screen. It is the surface a tutor reads
-   FROM, in front of somebody, and a disclosure widget between the question and its mark scheme is
-   a tap in the middle of a sentence being spoken. Whoever wants the gap can stop reading; nobody
-   who wants the mark scheme can avoid the tap.
+   THE OWNER SETTLED IT FROM THE OTHER SIDE OF A LESSON: *"you should have to click to reveal the
+   answer. Should behave the same whether it's a tutor or child. No difference between the two."* In the
+   lesson both readers were looking at one phone, so "who is signed in" was never the question -- the
+   reveal belongs to whoever is holding it, and it is one tap for everybody (`ansOpen_`). And *"remove
+   all 'why's. I just want it to have answer"*: the page is the result alone (`answerBlock_`).
 
-   WHAT WENT WITH IT: `<details>` was the only one in this app, and it was chosen because open and
-   shut is the entire state and the browser keeps it for free — no flag, no key, and nothing to
-   survive a repaint. A static block needs even less, so nothing is lost. `.qans-open` in
-   `style.css` styled the summary and has no element left to style.
+   THE ANSWER GOES IN RAW, THROUGH `typeset_`, which is not an oversight. A question is typeset --
+   fractions, indices, tables -- and an answer is the same material: `S(r.answer)` on the backend keeps
+   whatever was written, and it comes from the owner's own spreadsheet, the same trust as the question.
 
-   THE ANSWER GOES IN RAW AND THE NOTE IS ESCAPED, which is not an oversight. `html` and `lead` two
-   lines above are inserted raw because a question is typeset — fractions, indices, tables — and an
-   answer is the same material: `S(r.answer)` on the backend keeps whatever was written. Raw, and
-   through `typeset_`, which redraws a fraction stacked and a caret as a power and nothing else. An
-   examiner's note is a paragraph of prose, so it is escaped like every other sentence on this card.
-   Both come from the owner's own spreadsheet, which is the same trust as the question itself.
-
-   NOTHING AT ALL WHEN THERE IS NO ANSWER. A summary reading "Answer" that opens on emptiness is
-   worse than no summary: it says one exists. */
-/* ---------- AND WHEN IT IS NOT SHOWN, WHICH IS A SECOND READER RATHER THAN A CHANGED MIND ------
-   THE ARGUMENT ABOVE IS ABOUT THE TUTOR AND IT STILL STANDS. A disclosure widget between a
-   question and its mark scheme is a tap in the middle of a sentence being spoken, and that is
-   exactly what this screen is for when somebody is reading FROM it.
-
-   WHAT CHANGED IS THAT THERE IS NOW A SECOND READER: a student working through the paper on the
-   tutor's phone while the tutor is with somebody else, typing into the answer box and pressing
-   Check. For that reader the open mark scheme is not a convenience, it is the answer printed
-   under the question -- and marking your own work against an answer you have already read is not
-   marking.
-
-   SO IT TURNS ON WHO IS WORKING, WHICH IS A FACT THE APP ALREADY HAS. No student named -- the
-   tutor's own default -- and nothing about this card has changed. A student named, and the answer
-   waits behind one tap that says what is behind it, and opens itself the moment they get it right.
-   Neither reader is asked to put up with the other's screen. */
+   NOTHING AT ALL WHEN THERE IS NO ANSWER. A page that says "Answer" and opens on emptiness is worse
+   than no page: it says one exists. */
 /* ---------- THE RESULT, AND THE REASON FOR IT, AS TWO THINGS ---------------------------------------
    ASKED FOR AS "make answers breaifer", and when asked to choose between shorter written answers
    and hiding the working behind a tap: "i want shorter answers." Measured before this was written:
