@@ -240,7 +240,7 @@ const SUITE = [
      off. Like P and Q was clashing with lines." `cards.js` above asks whether a label is inside its
      `<svg>`, and a letter on a circle's rim is. This asks the third question — does any inked line
      run through a label's glyphs, does it overlap another label — of all 334 drawings in
-     `data/*.json`, at 320 and 390. It found 117 collisions in 54 drawings the day it was written.
+     `data/*.json`, at 320 and 390. It found 124 collisions in 55 drawings the day it was written.
      No port to collide on: unset, `DIAGRAMS_PORT` is 0 and the OS picks a free one. */
   { file: 'check/diagrams.js', what: 'every label in every drawing, clear of its lines', slow: true },
   /* ---------- AND WHETHER A PUSH ACTUALLY ARRIVES ------------------------------------------------

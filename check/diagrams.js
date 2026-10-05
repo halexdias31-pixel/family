@@ -93,8 +93,9 @@ const ROWS = arg('rows', '').split(',').map(s => s.trim()).filter(Boolean);
    Serif, which has Times New Roman's metrics — what an iPhone draws these labels in, and what every
    drawing in the library was laid out against (see the note over `.qsheet .lbl` in style.css).
    Android's `serif` is Noto Serif, which is wider. `--face="DejaVu Serif"` measures a face of about
-   that width: on 5 October 2026 it found 371 collisions where Times found 108, 117 of them a word
-   running out of its own box — the 183 the stylesheet note records for a monospace face, smaller.
+   that width: on 5 October 2026 it found 381 collisions in 136 drawings where Times found 124 in
+   55, and after those 124 were cleared it still finds 304, 116 of them a word running out of its
+   own box — the 183 the stylesheet note records for a monospace face, smaller.
    That is a decision about the drawings' font, not about where a label sits, so it is printed by
    that flag and not failed by this run. */
 const TOL = 0.5;

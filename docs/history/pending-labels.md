@@ -113,7 +113,8 @@ its rim (named against circle P, 3.1px); 15 laid over 12 (label overlap); E push
   a person. Shorter words would be the better fix.
 - **Android.** Chromium's `serif` here is Liberation Serif — Times metrics, what an iPhone draws and
   what every drawing was laid out against. Android's Noto Serif is wider: `--face="DejaVu Serif"`
-  (a face of about that width) names **371 collisions, 117 of them a word past its box**. That is a
+  (a face of about that width) named **381 collisions in 136 drawings** before this work and still
+  names **304 in 129** after it, **116 of them a word past its box**. That is a
   font decision for the drawings (a bundled serif), not label placement, so it is a flag and not a
   failure.
 
