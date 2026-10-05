@@ -3921,7 +3921,8 @@ function textbookText_(b) {
    A CHAPTER IS CUT INTO SCREENFULS RATHER THAN SCROLLED. The median chapter is 3,300 characters and
    Psalm 119 is 13,000 — no phone shows either on one card, and "I don't like scrolling … so they
    all fit on screen" is the owner's rule for every widget. So a chapter is pages of whole verses
-   (`bibleCut_`), each headed with where it is: `Genesis 1`, `2 of 3`.
+   (`bibleCut_`), as many as fit the screen in hand (`bibleBudget_`), each headed with where it is:
+   `Genesis 1`, `2 of 3`.
 ================================================================================================== */
 const BIBLE_NAME = 'The Bible (King James Version)';
 /* `Books`, A SHELF OF ITS OWN, BESIDE `@family. textbooks` AND `Boxing`. Not the textbooks' shelf:
@@ -3929,11 +3930,14 @@ const BIBLE_NAME = 'The Bible (King James Version)';
    owner's word for it, and the next book that is not ours belongs here too. */
 const BIBLE_SHELF = 'Books';
 /* WHAT A PAGE HOLDS, IN CHARACTERS, and what a verse costs on top of its words — the end of its last
-   line, which is half a line on average and nothing a character count sees. Measured on the Find
-   pane at 390x844, where 1,000 is about a screenful of the reading size below; at 320x568
-   `paneReach_` draws the same page a little smaller rather than cutting it again. */
+   line, which is half a line on average and nothing a character count sees. `BIBLE_PAGE` is only the
+   fallback for a document with no layout (jsdom, a check); a phone measures its own — `bibleBudget_`. */
 const BIBLE_PAGE = 1000;
 const BIBLE_VERSE = 24;
+/* AND THE TILE AT THE FOOT OF A CHAPTER'S LAST PAGE, in the same units: about 80px measured, at the
+   0.55px a character of the reading size costs down the page. Counted into the chapter, so the cut
+   leaves it room rather than drawing the last page smaller to make some. */
+const BIBLE_FOOT = 150;
 /* THE MOST CHAPTER NUMBERS ONE PAGE OFFERS. Sixty 44px buttons is twelve rows at 320px — a page that
    fits; Psalms' 150 is three pages of fifty rather than one of 150 that would have to scroll. */
 const BIBLE_GRID = 60;
@@ -3942,7 +3946,7 @@ const BIBLE_GRID = 60;
    held until the page is closed, so going back to Genesis is not a second download. `want` is the
    last book tapped, so two quick taps open the second rather than whichever file landed last. */
 const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {},
-                open: 0, want: 0, plans: {}, item: null };
+                open: 0, want: 0, plans: {}, budget: 0, item: null };
 
 /* ---------- WHO IS SHOWN IT -----------------------------------------------------------------------
    THE WHOLE EXCEPTION IS THIS LINE. The item list asks it, the fetches ask it again (a book must not
@@ -4021,15 +4025,47 @@ function bibleLoad_(n) {
 const bibleVerse_ = t => esc(String(t == null ? '' : t).replace(/^#\s*/, ''))
   .replace(/\[([^\[\]]*)\]/g, '<i>$1</i>');
 
+/* ---------- HOW MUCH OF A CHAPTER IS A SCREENFUL, ON THIS SCREEN ----------------------------------
+   A FIXED NUMBER WAS RIGHT ON ONE PHONE. Measured with 1,000 characters a page: at 390x844 a page
+   filled 545px of an 807px pane — a third of every screen empty, Genesis 1 five pages where three and
+   a half would do — while at 320x568 the same page was drawn at 0.81 to fit. So the screen is asked,
+   once, when a book is opened: the pane's own ceiling and width (the Find screen's question page is
+   always in the document to ask), less the kicker and the title, in lines of the reading size, times
+   the characters a line holds in a monospaced face (every character 0.6em). That came out within 1%
+   of what was measured — 1,317 against 1,306 at 390, 815 against 827 at 320 — and 95% of it is used,
+   because verses do not break where a budget would like. MEASURED OVER EVERY PAGE OF GENESIS, PSALMS
+   AND ROMANS: on average 85–90% of the pane filled, nothing scrolls, and the longest page is drawn by
+   `paneReach_` at 0.92 at 390 and 0.82 at 320 — a step smaller, never the 0.7 floor. Clamped, so a
+   strange box cannot make a page of one verse or of a whole chapter. */
+function bibleBudget_() {
+  try {
+    const pane = document.querySelector('#s-stuff .pane');
+    if (!pane) return BIBLE_PAGE;
+    const cs = getComputedStyle(pane);
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const room = parseFloat(cs.maxHeight) - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    const wide = pane.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    if (!(rem > 0 && room > 0 && wide > 0)) return BIBLE_PAGE;
+    /* `.88rem` AND `1.55` ARE `.bb-v`'s OWN SIZE AND LEADING in style.css; `4.2rem` is the kicker
+       and the title above the verses. Change one there and this is the line that has to follow. */
+    const px = .88 * rem;
+    const perLine = Math.floor(wide / (px * .6));
+    const lines = (room - 4.2 * rem) / (px * 1.55);
+    return Math.max(500, Math.min(2000, Math.floor(perLine * lines * .95)));
+  } catch (e) { return BIBLE_PAGE; }
+}
+
 /* ---------- A CHAPTER CUT INTO SCREENFULS ---------------------------------------------------------
    WHOLE VERSES, AND PAGES OF NEARLY EQUAL LENGTH. The number of pages comes from the budget; then a
-   cut goes before whichever verse's MIDDLE crosses the next equal share — so Genesis 1 is three
-   pages of about 1,300 characters rather than two full ones and a stub of one verse. Returns
+   cut goes before whichever verse's MIDDLE crosses the next equal share — so at 390px Genesis 1 is
+   four pages of about 1,200 characters rather than three full ones and a stub of two verses.
+   A TENTH OF A PAGE OF SLACK, shared across them all: a chapter 4.05 budgets long is four pages a
+   per cent over, which the zoom draws at 0.99, rather than five pages a fifth empty. Returns
    `[from, to)` index pairs into the chapter's verses. */
 function bibleCut_(vs) {
   const w = vs.map(v => String(v).length + BIBLE_VERSE);
-  const total = w.reduce((a, b) => a + b, 0);
-  const pages = Math.max(1, Math.ceil(total / BIBLE_PAGE));
+  const total = w.reduce((a, b) => a + b, 0) + BIBLE_FOOT;
+  const pages = Math.max(1, Math.ceil(total / (BIBLE.budget || BIBLE_PAGE) - .1));
   const share = total / pages;
   const out = [];
   let from = 0, sum = 0;
@@ -4218,6 +4254,11 @@ function bibleSet_(n) {
   const host = $('stuff-controls');
   const first = host ? stuffFirstResult_() : 0;
   const before = host ? stuffPages_()[(PAGE.stuff || 0) - first] : null;
+  /* THE SCREEN IS MEASURED HERE, AT AN OPENING, and nowhere else: a budget that moved while a book was
+     open would re-cut the pages under your thumb. A different screen since the last opening (the phone
+     turned) cuts every book again the next time it is opened. */
+  const budget = bibleBudget_();
+  if (budget !== BIBLE.budget) { BIBLE.budget = budget; BIBLE.plans = {}; }
   BIBLE.open = n;
   STUFF_PAGES = { from: null, pages: [] };
   if (host) {
