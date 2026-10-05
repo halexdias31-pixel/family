@@ -5198,9 +5198,11 @@ function ansRead_(k) {
 
    KEPT EXACTLY WHERE THEIR ANSWER IS KEPT, because it is a fact about that answer: `ans:<who>:<key>`
    holds what they wrote, `done:<who>:<key>` the day they last wrote it, Checked it or tapped an
-   option. `localStorage`, not the sheet -- the answer box is a workbook on this phone and sends
-   nothing (see `ansBox_`), and a date that followed the student to another phone while their
-   answer stayed behind would be a record of work the screen cannot show them.
+   option. THAT WAS `localStorage` ONLY, and is now the floor under the sheet's copy: the owner
+   asked for it on the spreadsheet, so a tutor can see it and it follows the student to another
+   phone. The ANSWER still stays here -- see `ansBox_` -- which is why another phone can say
+   `Done 4 Oct` over an empty box: the date is a record that the work happened, not the work. See
+   "AND NOW THE SHEET HAS IT TOO" below.
 
    SIGNED IN, OR NOTHING. "Per person" needs a person: the signed-out key is everybody who ever
    picked the phone up, and "Done 4 Oct" on it would be a claim about nobody in particular.
