@@ -500,7 +500,10 @@ function outside(svg, row) {
       const pages = [];
       items.forEach((x, i) => {
         const q = questionCard_(x, 0);
-        if (/<svg|class="qpad|class="qpic/.test(q)) inline.push(x.row.row_id + ' draws a picture on the question card');
+        /* `qpad` THE PAD, NOT ANY CLASS THAT STARTS WITH IT: the ringed-words note is `qpad-note qw-note`,
+           a line of text under a passage the student rings words in, and a prefix match called all 14
+           of those rows a picture on the question card the day `surface: "text"` reached the data. */
+        if (/<svg|class="qpad["\s]|class="qpic/.test(q)) inline.push(x.row.row_id + ' draws a picture on the question card');
         if (/class="qsheet-stem/.test(q)) inline.push(x.row.row_id + ' prints its stem on the part\'s card');
         if (/class="qans|qans-body/.test(q)) inline.push(x.row.row_id + ' draws its answer on the question card');
         if (typeof questionHasAns_ === 'function' && questionHasAns_(x)
@@ -515,6 +518,10 @@ function outside(svg, row) {
         const batch = pages.slice(i, i + 200);
         host.innerHTML = batch.map(pg => {
           const html = pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, 0);
+          /* THE FIGURE MARKER IS NEVER A PAGE'S -- `<!--fig-->` says where the figure stands and is
+             taken out before anything is cut or drawn (`figBlocks_`). A comment draws as nothing, so
+             one left in is invisible here too, and has to be asked for in the markup. */
+          if (/<!--\s*fig\s*-->/i.test(html)) inline.push((pg.x.row && pg.x.row.row_id) + (pg.part ? '#' + pg.part : '') + ' draws the <!--fig--> marker');
           return '<section class="page"><div class="pane"><div data-row="' + (pg.x.row && pg.x.row.row_id)
             + (pg.part ? '#' + pg.part : '') + '" data-kind="' + kindOf(pg.part) + '" class="card is-widget">'
             + html + '</div></div></section>';

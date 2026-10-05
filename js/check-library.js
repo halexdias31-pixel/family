@@ -101,6 +101,10 @@ const VOCAB = {
                   '2017-06-01', '2018-06-01', '2019-06-01', '2020-06-01',
                   '2021-06-01', '2022-06-01', '2023-06-01', '2024-06-01'],
   answer_type:   ['annotate', 'calculation', 'drawing', 'explain', 'proof', 'short', 'written'],
+  /* WHAT A MARK IS MADE ON -- squared paper, axes, a blank space, or the passage itself. A closed list
+     because each is a different drawing (`surfaceSvg_`) or a different behaviour (`circWords_`), and a
+     fifth spelling would draw as nothing. */
+  surface:       ['blank', 'coord', 'grid', 'text'],
   month:         ['5', '6', '11'],
   /* 4, 5 AND 6 ARE REAL PAPER NUMBERS and it took Edexcel Combined Science to prove it. 1SC0 is six
      papers — biology, chemistry and physics, each sat twice — and its own covers say "Combined
@@ -292,6 +296,13 @@ const strays = [];
    combinations come out of `key_stage` because they were never facts, only an artefact of how this
    loop asked the question. */
 const LIST_COLS = new Set(['needs', 'key_stage']);
+/* ---------- A VOCABULARY WRITTEN BEFORE ITS COLUMN, ON PURPOSE -------------------------------------
+   `surface` IS NEW AND THE FRONT END READS IT BEFORE ANY ROW CARRIES IT: the data workflow is writing
+   it into rows and the app has to be ready on the day it lands, with the list closed from the first
+   row rather than from whenever somebody remembers. So it may be on no row YET without the failure
+   below -- and it says so on every run, and says when it can come off this list, so "ahead" is a state
+   with an end rather than a second way of enforcing nothing. */
+const VOCAB_AHEAD = new Set([]);
 
 Object.keys(VOCAB).forEach(col => {
   const allowed = new Set(VOCAB[col]);
@@ -315,7 +326,11 @@ Object.keys(VOCAB).forEach(col => {
      the subject is fine. `check-booking.js` printed "nothing to check" and exited 0; this printed
      nothing at all. So a name in VOCAB that no row carries is now a failure — either the column was
      renamed and this list did not follow, or the entry is for a column that never existed. */
-  if (!seen) {
+  if (!seen && VOCAB_AHEAD.has(col)) {
+    console.log(`\`${col}\` has its closed list ahead of its data: on no row yet (VOCAB_AHEAD).`);
+  } else if (VOCAB_AHEAD.has(col)) {
+    console.log(`\`${col}\` is on ${seen} row${seen > 1 ? 's' : ''} now and enforced like any column — take it off VOCAB_AHEAD.`);
+  } else if (!seen) {
     fail.push(`VOCAB has a closed list for \`${col}\` and not one row has that column. It has been `
       + `renamed out from under this list, or it never existed — either way the vocabulary for it `
       + `is being enforced on nothing.`);
@@ -728,6 +743,57 @@ rows.forEach(r => {
 });
 const drawnHere = rows.filter(r => r && /^family/.test(String(r.diagram_by || ''))).length;
 const chosenHere = rows.filter(r => r && r.diagram_by === 'family-set').length;
+
+/* ---------- WHERE A ROW'S FIGURE STANDS: `<!--fig-->` ----------------------------------------------
+   ASKED FOR AS *"a question which begins with text, then diagram, then text then diagram then text.
+   This should break into 5 widgets ... same order but diagram has its own widget."* A row has one
+   figure and some words, and nothing said where among the words the paper prints it -- so the data
+   says, with the literal comment `<!--fig-->` between two top-level blocks of `html`. `figBlocks_` in
+   find.js reads it and the pages are cut on either side (`stemPlan_`, `partPlan_`).
+
+   THE CONVENTION IS HELD HERE, AT THE FILE, because a misplaced marker draws as nothing at all -- an
+   HTML comment is invisible by design, which is why it was chosen -- and so the only sign of one in
+   the wrong place is a figure in the wrong place:
+     ONLY IN `html`.         `lead` is one block by definition and the other columns are not read for it.
+     ONE PER ROW.            A row has one figure; a second marker is a second figure that does not exist.
+     ON A ROW WITH A FIGURE. A `diagram`, `images`, or -- a question answered by drawing -- the surface
+                             the pen is given. A marker anywhere else places nothing.
+     AT THE TOP LEVEL.       Between two blocks, never inside a paragraph, a table or a list: the app
+                             stands a figure found inside a block AFTER that block rather than cut it,
+                             so the data would be saying one place and the page showing another.
+   And it prints how many rows carry one: the data workflow is putting them in, and a count is how
+   anybody knows it has. */
+const FIG_MARK = /<!--\s*fig\s*-->/gi;
+const FIG_BLOCK = /^(p|div|table|thead|tbody|tfoot|tr|td|th|ul|ol|li|dl|dt|dd|h[1-6]|blockquote|figure|pre|section|span|b|i|em|strong|sup|sub)$/i;
+const FIG_VOID = /^(br|img|hr|input|meta|link|col|wbr|source|area|base|param|track|embed)$/i;
+let marked = 0;
+rows.forEach(r => {
+  if (!r || !r.row_id) return;
+  Object.keys(r).forEach(k => {
+    if (k === 'html' || typeof r[k] !== 'string') return;
+    if (FIG_MARK.test(r[k])) fail.push(`${r.row_id} carries <!--fig--> in \`${k}\`. The marker belongs in \`html\` only.`);
+    FIG_MARK.lastIndex = 0;
+  });
+  const h = String(r.html || '');
+  const hits = h.match(FIG_MARK) || [];
+  if (!hits.length) return;
+  marked++;
+  if (hits.length > 1) fail.push(`${r.row_id} carries ${hits.length} <!--fig--> markers. A row has one figure, so one marker.`);
+  const pen = /^(drawing|annotate)$/i.test(String(r.answer_type || '').trim());
+  if (!r.diagram && !String(r.images || '').trim() && !pen) {
+    fail.push(`${r.row_id} marks where its figure stands and has no figure (no diagram, no images, not a `
+      + `drawing question). Draw the figure or take the marker out.`);
+  }
+  const at = h.search(FIG_MARK);
+  const T = /<(\/?)([a-zA-Z][\w-]*)\b[^>]*?(\/?)>/g;
+  let m, depth = 0;
+  while ((m = T.exec(h)) && m.index < at) {
+    if (FIG_VOID.test(m[2]) || m[3] || !FIG_BLOCK.test(m[2])) continue;
+    depth = m[1] ? Math.max(0, depth - 1) : depth + 1;
+  }
+  if (depth) fail.push(`${r.row_id} puts <!--fig--> inside a block. It goes BETWEEN two top-level blocks — `
+    + `the app stands it after the block it is in, which is not where the row says.`);
+});
 
 /* ---------- WHAT IS STILL STANDING IN FOR SOMETHING ------------------------------------------------
    `placeholder` MARKS A ROW WHOSE CONTENT IS A DESCRIPTION OF THE REAL THING. The AQA English
@@ -1347,17 +1413,17 @@ console.log(`papers saying whether a calculator is allowed: ${saysCalc} of ${doc
    there IS one: the question's own `diagram`, or a single diagram on a preamble the question sits
    under, which is where a figure shared between parts (a) and (b) lives.
 
-   SO THE ONES WITH NO PICTURE ARE A BACKLOG AND THIS PRINTS THEM. They are not broken — the
-   question and its marks are right, and it reads exactly as it did before pads existed. What they
-   cannot do is be answered in the app, which is invisible from anywhere else: nothing throws, the
-   card draws, and the only tell is that the pen never appears. Same shape and same reason as the
-   `total_marks`, `exam_date` and missing-picture counts above it.
+   SO THE ONES WITH NO PICTURE ARE A BACKLOG AND THIS PRINTS THEM. The question and its marks are
+   right; what is missing is the paper's own figure, which is editorial work with the paper open.
 
-   DELIBERATELY NOT REPAIRED BY GENERATING A GRID. "On the grid, enlarge triangle T by scale factor
-   -2 with centre (-2, -2)" over squared paper with no axes and no triangle T is a question you
-   cannot answer dressed as one you can — the exact fault CLAUDE.md records twice, where a renderer
-   printed "not drawn yet" off the `figure` column and was wrong on ~120 questions. The picture has
-   to be transcribed from the paper; then the pen arrives with nothing else to do. */
+   AND THEY ARE ANSWERABLE IN THE MEANTIME, which this paragraph used to argue against. *"some
+   questions require answers on diagram. So should have a diagram for them to draw on"* -- the owner,
+   tutoring from it -- so a drawing question with no picture gets a SURFACE under the pen (squared
+   paper, axes, a blank space) or, for "circle the words in the passage", its own passage to tap
+   (`padSurface_` in find.js, cut out below by name so this count is the app's rule and not a copy of
+   it). The surface says on its page that it is not the paper's figure, which is the answer to the
+   old objection that a grid with no triangle T dresses one question up as another. The count below
+   says how many stand on each, so the backlog of real figures is still a number. */
 const preDiag_ = {};
 rows.forEach(r => {
   if (!r || r.kind !== 'preamble' || !r.diagram) return;
@@ -1372,9 +1438,27 @@ const drawQs = rows.filter(r => r && r.kind === 'question'
    reason, and the two have to agree or this number is about a different thing than the app does. */
 const withPad = drawQs.filter(r => r.diagram
   || preDiag_[String(r.paper_id) + '\u0000' + String(r.question || '')] === 1);
-console.log(`questions answered by drawing, that you can draw on: ${withPad.length} of ${drawQs.length}`
-  + `   (the rest have no picture transcribed yet)`);
+/* THE APP'S OWN RULE FOR WHICH SURFACE, cut out of find.js by name with the two names it reads. A check
+   that cannot find its subject exits non-zero: "I did not count" is not "there were none". */
+const findSrc_ = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
+const { cutFrom } = require('./check-marks-load.js');
+const surfParts_ = ['PAD_TYPES', 'padWanted_', 'padSurface_'].map(n => cutFrom(findSrc_, n));
+if (surfParts_.some(c => !c)) {
+  fail.push('padSurface_, padWanted_ or PAD_TYPES is not in find.js — renamed? The surfaces were NOT counted.');
+}
+const padSurface_ = surfParts_.some(c => !c) ? (() => '')
+  : new Function(surfParts_.join('\n') + '\nreturn padSurface_;')();
+const onSurface = {};
+drawQs.filter(r => withPad.indexOf(r) === -1).forEach(r => {
+  const k = padSurface_({ answerType: String(r.answer_type || '').trim().toLowerCase(), surface: r.surface, figure: r.figure, row: r }) || 'none';
+  onSurface[k] = (onSurface[k] || 0) + 1;
+});
+console.log(`questions answered by drawing: ${drawQs.length} — on their own picture: ${withPad.length}, `
+  + `on a surface while the picture is transcribed: ${Object.keys(onSurface).sort()
+    .map(k => `${k} ${onSurface[k]}`).join(', ') || 'none'}`);
 
+console.log(`rows saying where the paper prints their figure (<!--fig-->): ${marked}`
+  + `   (the rest stand it in front of the ask, or after it for a pen question)`);
 const allDocs_ = rows.filter(r => r && r.kind === 'document').length;
 console.log(`papers carrying the date they were sat: ${datedPapers.size} of ${allDocs_}`
   + `   (the rest are known to a month only)`);

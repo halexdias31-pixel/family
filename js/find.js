@@ -3773,10 +3773,14 @@ function projectPart_(x, part) {
   } else if (part === 'share') {
     /* A THING HAS TILES: the one action on this page is going to Messages, so it is a tile in a
        `.tile-row`, not a button — `check-doors` pairs `proj-share` with its handler below. */
+    /* "SEND IT IN MESSAGES", NOT "TO YOUR TUTOR". The page was written to a student, and a tutor
+       opening the same project read an instruction to message themselves. *"No distinction between
+       tutor and student on the finder. All the same."* -- so it says what to do with the thing, and
+       who it goes to is the Messages screen's question, as the note under this function says. */
     inner = `${head('Share it')}
-      <p class="fc-lede">When it is finished, send it to your tutor in Messages.</p>
+      <p class="fc-lede">When it is finished, send it in Messages.</p>
       ${p.share ? `<p class="fc-say"><b>What to send</b> ${esc(p.share)}</p>` : ''}
-      <div class="tile-row">${tile_({ icon: 'chat', label: 'Messages', note: 'to your tutor',
+      <div class="tile-row">${tile_({ icon: 'chat', label: 'Messages', note: 'send it',
         act: 'proj-share' })}</div>`;
   }
   return inner ? `<div class="card fc prac prac-part proj is-${part}">${inner}</div>` : '';
@@ -3907,20 +3911,37 @@ function pageParts_(x, prev) {
      the diagram, (a), (b), (c). With no `prev` (Saved, a check, a result on its own) every stem is
      drawn, because a part landed on alone still needs the paragraph and the picture it is about. N
      is the stem's place in `x.stems`, so two parts of one question name the same stem the same way. */
+  /* ---------- AND EVERY FIGURE WHERE THE PAPER PRINTS IT, ON A PAGE OF ITS OWN ----------------------
+     ASKED FOR AS *"a question which begins with text, then diagram, then text then diagram then text.
+     This should break into 5 widgets ... same order but diagram has its own widget."* The figure was
+     always the page AFTER its row's words, so a picture printed between two sentences came after both.
+     Now each row says where its figure stands (`<!--fig-->`, see `figBlocks_`) and the pages are cut
+     on either side of it: `stemPlan_` and `partPlan_` give the words' pages and how many of them come
+     before the figure, and this lays them out. A stem: its words before (`stemN`...), its figure
+     (`sfigN`), its words after (`stemN-J`). A part: its pages before (`preJ`), its figure (`fig`), its
+     pages after, the last of them the card (`null`) with the box; then its answer. */
   if (x && x.kind === 'question') {
     const had = prev && prev.kind === 'question' ? (prev.stems || []).map(stemId_) : [];
     const out = [];
     (x.stems || []).forEach((p, i) => {
       if (!p || had.indexOf(stemId_(p)) >= 0) return;
-      /* A LONG STEM IS SEVERAL PAGES, `stemN`, `stemN-1`, `stemN-2` -- see `stemChunks_`. */
-      if (String(p.html || '').trim()) stemChunks_(p).forEach((c, j) => out.push('stem' + i + (j ? '-' + j : '')));
-      if (stemHasFig_(p)) out.push('sfig' + i);
+      /* A LONG STEM IS SEVERAL PAGES, `stemN`, `stemN-1`, `stemN-2`, numbered straight across its
+         figure -- see `stemPlan_`. */
+      const plan = stemPlan_(p), fig = stemHasFig_(p);
+      plan.chunks.forEach((c, j) => {
+        if (fig && j === plan.figAt) out.push('sfig' + i);
+        out.push('stem' + i + (j ? '-' + j : ''));
+      });
+      if (fig && plan.figAt >= plan.chunks.length) out.push('sfig' + i);
     });
     /* AND A LONG PART IS ITS FIRST PAGES (`preN`) AND THEN THE CARD, which keeps the last of its words
-       with the box -- see `partChunks_`. */
-    partChunks_(x).slice(0, -1).forEach((c, j) => out.push('pre' + j));
-    out.push(null);
-    if (questionHasFig_(x)) out.push('fig');
+       with the box -- with its figure among them where `partPlan_` stands it. */
+    const plan = partPlan_(x);
+    plan.chunks.forEach((c, j) => {
+      if (j === plan.figAt) out.push('fig');
+      out.push(j === plan.chunks.length - 1 ? null : 'pre' + j);
+    });
+    if (plan.figAt >= plan.chunks.length) out.push('fig');
     if (questionHasAns_(x)) out.push('ans');
     return out;
   }
@@ -4334,46 +4355,26 @@ function typeset_(html) {
 }
 
 
-/* ---------- THE ANSWER, SHOWN ------------------------------------------------------------------
-   IT WAS BEHIND A `<details>` AND IT IS NOT ANY MORE, at the owner's decision. The argument for
-   hiding it is written out below because it is a real argument and somebody will make it again:
-   a revision screen that shows the answer under the question has not asked you anything, and the
-   value of a past paper is the gap between reading it and knowing it.
+/* ---------- THE ANSWER: SHOWN, THEN SPLIT BY WHO WAS READING, AND NOW ONE PAGE FOR EVERYBODY ----------
+   THIS WAS ARGUED BOTH WAYS HERE, AND BOTH ARGUMENTS WERE ABOUT A TUTOR AND A STUDENT BEING DIFFERENT
+   READERS. First the answer was open under every question, because a tutor reads the mark scheme FROM
+   this surface and a fold is a tap in the middle of a sentence being spoken. Then a second reader was
+   recognised -- a student on the tutor's phone, for whom an open mark scheme is the answer printed
+   under the question -- and the card turned on who was signed in: open for staff, shut behind a tap
+   for a student, opening itself on a right answer.
 
-   THE ANSWER TO IT is that this is not only a revision screen. It is the surface a tutor reads
-   FROM, in front of somebody, and a disclosure widget between the question and its mark scheme is
-   a tap in the middle of a sentence being spoken. Whoever wants the gap can stop reading; nobody
-   who wants the mark scheme can avoid the tap.
+   THE OWNER SETTLED IT FROM THE OTHER SIDE OF A LESSON: *"you should have to click to reveal the
+   answer. Should behave the same whether it's a tutor or child. No difference between the two."* In the
+   lesson both readers were looking at one phone, so "who is signed in" was never the question -- the
+   reveal belongs to whoever is holding it, and it is one tap for everybody (`ansOpen_`). And *"remove
+   all 'why's. I just want it to have answer"*: the page is the result alone (`answerBlock_`).
 
-   WHAT WENT WITH IT: `<details>` was the only one in this app, and it was chosen because open and
-   shut is the entire state and the browser keeps it for free — no flag, no key, and nothing to
-   survive a repaint. A static block needs even less, so nothing is lost. `.qans-open` in
-   `style.css` styled the summary and has no element left to style.
+   THE ANSWER GOES IN RAW, THROUGH `typeset_`, which is not an oversight. A question is typeset --
+   fractions, indices, tables -- and an answer is the same material: `S(r.answer)` on the backend keeps
+   whatever was written, and it comes from the owner's own spreadsheet, the same trust as the question.
 
-   THE ANSWER GOES IN RAW AND THE NOTE IS ESCAPED, which is not an oversight. `html` and `lead` two
-   lines above are inserted raw because a question is typeset — fractions, indices, tables — and an
-   answer is the same material: `S(r.answer)` on the backend keeps whatever was written. Raw, and
-   through `typeset_`, which redraws a fraction stacked and a caret as a power and nothing else. An
-   examiner's note is a paragraph of prose, so it is escaped like every other sentence on this card.
-   Both come from the owner's own spreadsheet, which is the same trust as the question itself.
-
-   NOTHING AT ALL WHEN THERE IS NO ANSWER. A summary reading "Answer" that opens on emptiness is
-   worse than no summary: it says one exists. */
-/* ---------- AND WHEN IT IS NOT SHOWN, WHICH IS A SECOND READER RATHER THAN A CHANGED MIND ------
-   THE ARGUMENT ABOVE IS ABOUT THE TUTOR AND IT STILL STANDS. A disclosure widget between a
-   question and its mark scheme is a tap in the middle of a sentence being spoken, and that is
-   exactly what this screen is for when somebody is reading FROM it.
-
-   WHAT CHANGED IS THAT THERE IS NOW A SECOND READER: a student working through the paper on the
-   tutor's phone while the tutor is with somebody else, typing into the answer box and pressing
-   Check. For that reader the open mark scheme is not a convenience, it is the answer printed
-   under the question -- and marking your own work against an answer you have already read is not
-   marking.
-
-   SO IT TURNS ON WHO IS WORKING, WHICH IS A FACT THE APP ALREADY HAS. No student named -- the
-   tutor's own default -- and nothing about this card has changed. A student named, and the answer
-   waits behind one tap that says what is behind it, and opens itself the moment they get it right.
-   Neither reader is asked to put up with the other's screen. */
+   NOTHING AT ALL WHEN THERE IS NO ANSWER. A page that says "Answer" and opens on emptiness is worse
+   than no page: it says one exists. */
 /* ---------- THE RESULT, AND THE REASON FOR IT, AS TWO THINGS ---------------------------------------
    ASKED FOR AS "make answers breaifer", and when asked to choose between shorter written answers
    and hiding the working behind a tap: "i want shorter answers." Measured before this was written:
@@ -4474,40 +4475,29 @@ function answerParts_(raw) {
 
 function answerBlock_(x) {
   if (!x || !String(x.answer || '').trim()) return '';
-  /* WHO MAY SEE THIS IS NOT DECIDED HERE ANY MORE. It was `is-shut` and a reveal button on this
-     block, which hid an answer that was already in the document -- `display: none` over markup
-     anybody could read. The answer is its own page now, and `questionAnsCard_` asks `ansOpen_`
-     before it draws any of this, so a student's page holds no answer to find until it is shown. */
-  /* WHAT KIND OF ANSWER IT IS, over the result, when the sheet says. A one-mark recall and a
-     25-mark essay want different things of you before you open it. It sat beside a gold "Answer"
-     and read as one phrase -- "Answer explain" -- so it is the label the answer box already wears
-     on the question card, `.qp-ans-k`'s small capitals: "ANSWER · EXPLAIN" over the result reads as
-     the other half of "YOUR ANSWER" over the box. */
+  /* WHO MAY SEE THIS IS NOT DECIDED HERE. `questionAnsCard_` asks `ansOpen_` before it draws any of
+     this, so a page that has not been shown holds no answer to find. */
+  /* WHAT KIND OF ANSWER IT IS, over the result, when the sheet says -- "ANSWER · EXPLAIN" in the
+     small capitals the answer box's "YOUR ANSWER" wears on the question card. */
   const kind = String(x.answerType || '').trim();
-  /* ---------- THE RESULT SHOWN, THE WORKING FOLDED ---------------------------------------------
-     THE `<details>` IS BACK, AND NOT WHERE IT WAS. It used to sit between the question and the
-     whole mark scheme, and the argument against it still holds: the tutor reads FROM this card,
-     and the result is what they read out. So the result is never folded -- only the working is,
-     under a word that says what it is. A tutor who wants the method taps once; a child who wanted
-     the answer is no longer handed a paragraph to dig it out of.
+  /* ---------- THE ANSWER, AND NOTHING ELSE ------------------------------------------------------
+     ASKED FOR AS *"Also remove all 'why's. I just want it to have answer."* -- the owner, after an
+     hour tutoring a student through June 2024 Paper 1 Foundation from this page. The working sat
+     under a "Why" fold (259) with the examiner's note beside it; both are gone from the page.
 
-     ONE FOLD FOR THE WORKING AND THE EXAMINER'S NOTE TOGETHER, because both are "why", and two
-     folds under one answer is the same tax as one long answer paid in taps instead of lines. The
-     note stays escaped and set apart inside it, for the reason `.qans-note` gives.
+     THE HEAD ONLY, AND `answerParts_` STILL SAYS WHERE IT STOPS. That function is the one definition
+     of the result -- `check-answers.js` cuts it out by name and measures every library answer through
+     it -- so this draws `p.head` and never `p.why`. Not a second rule here about where an answer ends.
 
-     SHUT BY DEFAULT, AND NOTHING OPENS IT BUT A FINGER -- not a right answer either. The owner
-     chose "shorter answers" over "hide the working behind a tap", and a fold that springs open on
-     its own is a long answer with a delay. The browser keeps the open state; no flag, no key. */
+     THE EXPLANATION STAYS IN THE DATA, deliberately. `answer` whole and `examiner_note` beside it are
+     what "Mark with AI" sends as the scheme (`aiScheme_` in keypad.js reads the row, not this markup),
+     and the working is exactly what a marker needs. Neither is drawn. A head that does not answer on
+     its own ("Yes", "Shown") is a data fault, and the data workflow is rewriting those rows rather
+     than this code guessing at them -- `check-answers.js` prints how many are left. */
   const p = answerParts_(x.answer);
-  const note = x.examinerNote ? `<p class="qans-note">${esc(x.examinerNote)}</p>` : '';
-  const why = (p.why || note)
-    ? `<details class="qans-why"><summary>Why</summary>${
-        p.why ? `<div class="qans-more">${typeset_(p.why)}</div>` : ''}${note}</details>`
-    : '';
   return `<div class="qans">
     <span class="qans-head">Answer${kind ? ` &middot; ${esc(kind)}` : ''}</span>
     <div class="qans-body">${typeset_(p.head)}</div>
-    ${why}
   </div>`;
 }
 
@@ -5029,6 +5019,8 @@ function questionItems() {
          this function dropped all three — the other direction of the fault `check-payload.js`
          exists for: sent, and never read. Only 91 of 3,271 rows carry one today. */
       answer: r.answer || '', answerType: r.answerType || '',
+      /* WHAT TO ANSWER ON when the answer is a mark rather than words -- see `padSurface_`. */
+      surface: r.surface || '',
       accept: r.accept || '',
       choices: r.choices || [], choiceRight: r.choiceRight || [],
       examinerNote: r.examinerNote || '',
@@ -5198,9 +5190,11 @@ function ansRead_(k) {
 
    KEPT EXACTLY WHERE THEIR ANSWER IS KEPT, because it is a fact about that answer: `ans:<who>:<key>`
    holds what they wrote, `done:<who>:<key>` the day they last wrote it, Checked it or tapped an
-   option. `localStorage`, not the sheet -- the answer box is a workbook on this phone and sends
-   nothing (see `ansBox_`), and a date that followed the student to another phone while their
-   answer stayed behind would be a record of work the screen cannot show them.
+   option. THAT WAS `localStorage` ONLY, and is now the floor under the sheet's copy: the owner
+   asked for it on the spreadsheet, so a tutor can see it and it follows the student to another
+   phone. The ANSWER still stays here -- see `ansBox_` -- which is why another phone can say
+   `Done 4 Oct` over an empty box: the date is a record that the work happened, not the work. See
+   "AND NOW THE SHEET HAS IT TOO" below.
 
    SIGNED IN, OR NOTHING. "Per person" needs a person: the signed-out key is everybody who ever
    picked the phone up, and "Done 4 Oct" on it would be a claim about nobody in particular.
@@ -5216,11 +5210,118 @@ const doneKeyOf_ = k => ((typeof whoIs_ === 'function' && whoIs_() && /^ans:u:/.
   ? 'done:' + String(k).slice(4) : '');
 const dayIso_ = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-'
   + String(d.getDate()).padStart(2, '0');
+function doneLocal_(dk) {
+  try { const v = localStorage.getItem(dk); if (v) return v; } catch (e) {}
+  return DONE_HELD.get(dk) || '';
+}
+/* ---------- AND NOW THE SHEET HAS IT TOO -------------------------------------------------------------
+   ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone, which is
+   the half 268 left undone: a date in `localStorage` is one a tutor cannot see and one that stays
+   behind when the student picks up another phone. `markDone` keeps one row per person per question
+   in the `attempts` tab, and `DATA.attempts.mine` is that person's rows, sent by `doGet`.
+
+   THE SHEET FIRST, THE PHONE AS THE FLOOR. The card shows the LATER of the two: the sheet's
+   `last_done` when it knows a later day (done on the laptop last night), this phone's copy when it
+   does (done a minute ago, the reply not back yet, or offline). Neither can make the date go
+   backwards, and with no backend at all the card is exactly what it was.
+
+   `for` IS CHECKED, the `familyFor` rule: a payload built for the last student on a shared phone
+   must not date the next one's questions. A person signed in by name alone (no `personId`) has no
+   row on the sheet to be, so they get the phone's copy and nothing is sent. */
+function attemptsMine_() {
+  try {
+    const a = DATA && DATA.attempts;
+    if (!a || !a.mine || typeof a.mine !== 'object' || !USER || !USER.personId
+        || String(a.for || '') !== String(USER.personId)) return {};
+    return a.mine;
+  } catch (e) { return {}; }
+}
+/* THE LIBRARY'S KEY BACK OUT OF THE ANSWER'S KEY — `ans:u:P7:q-12` is question `q-12` for `u:P7`. */
+function doneQKey_(k) {
+  const who = whoIs_();
+  const pre = 'ans:' + who + ':';
+  return who && String(k || '').indexOf(pre) === 0 ? String(k).slice(pre.length) : '';
+}
+const DAY_ISO = /^\d{4}-\d{2}-\d{2}$/;
 function doneRead_(k) {
   const dk = doneKeyOf_(k);
   if (!dk) return '';
-  try { const v = localStorage.getItem(dk); if (v) return v; } catch (e) {}
-  return DONE_HELD.get(dk) || '';
+  const local = doneLocal_(dk);
+  const row = attemptsMine_()[doneQKey_(k)];
+  const sheet = row && DAY_ISO.test(String(row.last || '')) ? String(row.last) : '';
+  return sheet > local ? sheet : (local || sheet);
+}
+
+/* ---------- SENDING IT UP --------------------------------------------------------------------------
+   ONCE PER QUESTION PER DAY, and that is `doneMark_`'s own early return doing the work: the first
+   keystroke, Check or tap of the day stamps today, and every later one finds today already there and
+   stops before the network. So typing an answer is one request, not forty.
+
+   ONLY TO A BACKEND THAT HAS `markDone` — `DATA.features` says so — so a phone ahead of the deploy
+   keeps the date to itself rather than being refused on every Check. A refusal or no connection
+   costs nothing either: the phone's copy is still the floor, and `attemptsSync_` sends what the
+   sheet lacks on the next load. Quietly, like a star: a toast per question would be a toast per
+   question. */
+const ATTEMPTS_PER_POST = 50;
+function attemptsCan_() {
+  try {
+    return !!(USER && USER.personId && USER.token && DATA && Array.isArray(DATA.features)
+      && DATA.features.indexOf('markDone') !== -1);
+  } catch (e) { return false; }
+}
+function attemptsAdopt_(pid, got) {
+  if (!DATA || !got || typeof got !== 'object') return;
+  let a = DATA.attempts;
+  if (!a || !a.mine || String(a.for || '') !== String(pid)) {
+    a = { for: String(pid), mine: {} };
+    try { DATA.attempts = a; } catch (e) { return; }
+  }
+  Object.keys(got).forEach(q => { if (got[q] && DAY_ISO.test(String(got[q].last || ''))) a.mine[q] = got[q]; });
+}
+function attemptSend_(items) {
+  if (!items || !items.length || !attemptsCan_() || typeof api !== 'function') return Promise.resolve(false);
+  const pid = String(USER.personId);
+  return api({ action: 'markDone', personId: pid, items: items.slice(0, ATTEMPTS_PER_POST) })
+    .then(d => {
+      if (!d || !d.success || !d.attempts) return false;
+      attemptsAdopt_(pid, d.attempts);
+      return true;
+    })
+    .catch(() => false);
+}
+
+/* ---------- WHAT THIS PHONE KNOWS AND THE SHEET DOES NOT, SENT ON THE NEXT LOAD ---------------------
+   EVERY DATE 268 EVER STORED IS ON SOMEBODY'S PHONE AND NOWHERE ELSE, and so is any date stamped
+   while offline or before the deploy. Called as each payload lands (`adoptMarks_`): every
+   `done:u:<me>:<key>` whose day the sheet does not have yet goes up in one request, fifty at a time.
+
+   ONLY AGAINST A PAYLOAD BUILT FOR THIS PERSON. A stored anonymous one says nothing about what the
+   sheet holds for them, and comparing against it would send everything every time. Once per person
+   per visit; a failure clears the mark so the next load tries again. */
+let ATTEMPTS_SYNCED = '';
+function attemptsSync_() {
+  if (!attemptsCan_()) return;
+  const pid = String(USER.personId);
+  const a = DATA.attempts;
+  if (!a || !a.mine || String(a.for || '') !== pid || ATTEMPTS_SYNCED === pid) return;
+  const pre = 'done:u:' + pid + ':';
+  const have = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf(pre) === 0) have[k] = localStorage.getItem(k);
+    }
+  } catch (e) {}
+  DONE_HELD.forEach((v, k) => { if (k.indexOf(pre) === 0 && !have[k]) have[k] = v; });
+  const items = Object.keys(have).map(k => ({ key: k.slice(pre.length), day: String(have[k] || '') }))
+    .filter(x => x.key && DAY_ISO.test(x.day) && !(a.mine[x.key] && String(a.mine[x.key].last || '') >= x.day));
+  ATTEMPTS_SYNCED = pid;
+  if (!items.length) return;
+  attemptSend_(items).then(ok => {
+    /* MORE THAN ONE REQUEST'S WORTH: the reply has been adopted, so the next pass finds fewer. */
+    if (!ok) { ATTEMPTS_SYNCED = ''; return; }
+    if (items.length > ATTEMPTS_PER_POST) { ATTEMPTS_SYNCED = ''; attemptsSync_(); }
+  });
 }
 /* `4 Oct`, and the year only when it is not this one -- a stamp from last October that read like
    this October's would be wrong by a year in the one place a date is the whole message. */
@@ -5246,6 +5347,7 @@ function doneMark_(k) {
   if (doneRead_(k) === today) return;
   DONE_HELD.set(dk, today);
   try { localStorage.setItem(dk, today); } catch (e) {}
+  attemptSend_([{ key: doneQKey_(k), day: today }]);
   /* EVERY COLUMN IT IS DRAWN ON, by the answer key -- Find and Saved can both hold the card. */
   document.querySelectorAll('.qcard-done').forEach(el => {
     if (el.getAttribute('data-k') === k) el.textContent = doneText_(today);
@@ -5593,9 +5695,9 @@ on('qp-choose', (el) => {
     ? box.nextElementSibling : null;
   if (mark) mark.remove();
   box.replaceWith(...wrap.childNodes);
-  /* RIGHT OPENS THE ANSWER PAGE, as Check does on a typed answer -- the page after, not this card,
-     so nothing on this card moves for it. */
-  if (card.querySelector('.qp-mark.is-right')) ansShow_(x);
+  /* RIGHT DOES NOT OPEN THE ANSWER PAGE ANY MORE. It did, from 263 on; the verdict on this card --
+     "Correct", and the right option marked -- is the answer to "was I right", and the page after
+     opens when somebody taps "Show the answer" and not before. See `ansOpen_`. */
 });
 
 function ansBox_(x) {
@@ -5649,16 +5751,10 @@ on('qp-check', (el) => {
   out.textContent = verdict ? 'Correct' : 'Not yet — have another go';
   /* MARKED IS DONE, right or not yet -- a wrong answer is still the day they did it. */
   doneMark_(inp.getAttribute('data-k'));
-  /* THE ANSWER OPENS ITSELF ONCE IT HAS BEEN EARNED. Having to hunt for the method at the
-     moment you have just been told you were right is backwards -- that is when the working is
-     worth reading. A wrong one is left shut, because the next thing to do is try again. It opens
-     on its own page, the one after, and the page does not turn by itself: "Correct" is what you
-     are reading at that moment, and a screen that slides away from it is the card jumping at the
-     moment it tells you your answer, which is what 261 took out. */
-  if (verdict) {
-    const x = ansItem_(inp.getAttribute('data-k'));
-    if (x) ansShow_(x);
-  }
+  /* A RIGHT ANSWER DOES NOT OPEN THE ANSWER PAGE. It did -- "the answer opens itself once it has
+     been earned" -- and that was a reveal nobody pressed, on the page after the one being read. The
+     owner's rule is one tap, the same for everybody: *"you should have to click to reveal the
+     answer."* "Correct" here is the verdict, and the working it used to open is not drawn at all. */
 });
 
 /* ---------- WHO IS WORKING ---------------------------------------------------------------------
@@ -5723,13 +5819,13 @@ document.addEventListener('input', e => {
    picture, at the picture's own coordinates, and a finger draws on it. That is what a printed paper
    is: the figure and the answer space are one object.
 
-   ONLY WHERE THERE IS A REAL PICTURE TO DRAW ON, and that restraint is the whole design. 130
-   questions in the library say "draw" or "annotate" and 128 of them have no figure transcribed
-   yet. Generating a blank grid for those would be worse than leaving them: "on the grid, enlarge
-   triangle T by scale factor -2 with centre (-2, -2)" over squared paper with no axes and no
-   triangle T is a question you cannot answer wearing the clothes of one you can — the same fault
-   as the renderer that printed "not drawn yet" off the `figure` column and was wrong on ~120
-   questions. `check-library.js` prints how many are waiting, so it is a backlog and not a silence.
+   A REAL PICTURE WHERE THERE IS ONE, AND A SURFACE WHERE THERE IS NOT. This paragraph used to say
+   "only where there is a real picture", and argued that a blank grid under "enlarge triangle T" was
+   a question you cannot answer wearing the clothes of one you can. The owner, tutoring from it,
+   decided the other way -- *"some questions require answers on diagram. So should have a diagram for
+   them to draw on"* -- and the reasoning is written where the surfaces are (`padSurface_`): a surface
+   that says it is not the paper's figure, under a pen, beats a word box that cannot hold a line.
+   `check-library.js` prints how many are on their own picture and how many on a surface.
 
    THE PEN IS OFF UNTIL YOU ASK FOR IT. A surface that takes the finger has `touch-action: none`,
    and a `touch-action: none` region taller than the phone is a region you cannot scroll past —
@@ -5766,12 +5862,20 @@ const padWanted_ = x => !!PAD_TYPES[String((x && x.answerType) || '').trim().toL
    asked is the one the part is about.
 
    IT RETURNS THE MARKUP, NOT A FLAG, so `questionFigCard_` can draw the picture in the pad INSTEAD of
-   in its usual figure. Drawing it in both is the fault where every widget printed its name twice. */
+   in its usual figure. Drawing it in both is the fault where every widget printed its name twice.
+
+   AND WHERE THERE IS NO PICTURE, A SURFACE (`from: 'surface'`) -- squared paper, axes or a blank
+   space, by `padSurface_`. Not for "text": that question's surface is its own passage, on the card.
+   A row naming a surface explicitly is given one whatever its `answer_type`; a "text" one draws no
+   picture unless the question is also answered by drawing. */
 function padSource_(x) {
-  if (!x || !padWanted_(x)) return null;
+  if (!x) return null;
+  const surf = padSurface_(x);
+  if (!padWanted_(x) && (!surf || surf === 'text')) return null;
   if (x.diagram) return { svg: x.diagram, from: 'part' };
   const stems = (x.stems || []).filter(p => p && p.diagram);
   if (stems.length === 1) return { svg: stems[0].diagram, from: stems[0] };
+  if (surf && surf !== 'text') return { svg: surfaceSvg_(surf), from: 'surface', surface: surf };
   return null;
 }
 
@@ -5999,6 +6103,165 @@ function padRepaint_(pad, all) {
 }
 
 /* ==================================================================================================
+   A SURFACE TO ANSWER ON, FOR EVERY QUESTION ANSWERED ON ONE.
+
+   ASKED FOR AS *"Also some questions require answers on diagram. So should have a diagram for them to
+   draw on to do it or whatever."* -- the owner, after a lesson on June 2024 Paper 1 Foundation. Of 301
+   questions the sheet says are answered by drawing or annotating, 67 had a picture under the pen; the
+   other 234 drew a box for words and nowhere to put the mark the question asks for.
+
+   THE NOTE ABOVE `padKey_` ARGUED THE OTHER WAY, AND IT WAS RIGHT ABOUT ONE THING. "On the grid,
+   enlarge triangle T" over squared paper with no triangle T is a question you cannot fully answer.
+   What changed is who decides: the owner, teaching from it, wants somewhere to work -- a square grid
+   to sketch the enlargement on, axes to plot the graph on -- over a word box that cannot hold a line
+   at all. So the surface is honest about what it is (its own name in the header, never "Figure", and
+   a line under it saying it is not the paper's), and where the data workflow redraws the paper's own
+   figure, that figure takes the pen and the surface is never drawn.
+
+   WHICH SURFACE, in this order:
+     `surface`   the row says: "grid", "coord", "blank" or "text" (`check-library.js` holds the
+                 vocabulary). Said explicitly, it is a surface whatever the `answer_type`, because it
+                 is somebody's decision about this question.
+     `figure`    the transcriber's label, for a pen question only (`padWanted_`): anything naming a
+                 coordinate grid is axes on a grid; anything else naming a grid (`grid-blank`,
+                 `histogram-grid`, `grid-triangle`, `square-grid`...) is squared paper -- read as a
+                 rule rather than a list of the five spellings there are today; everything else is a
+                 blank space to draw in. An isometric label is blank, not squared: the wrong grid is
+                 worse than none.
+   "text" IS NOT A PICTURE AT ALL -- see `circWords_`: the passage on the card is the surface.
+
+   ONE FUNCTION AND EVERYTHING IT NEEDS INSIDE IT, so `check-library.js` can cut it out by name with
+   `padWanted_` and count what the library gets, rather than keeping a second opinion of the rule. */
+function padSurface_(x) {
+  const KINDS = ['grid', 'coord', 'blank', 'text'];
+  if (!x) return '';
+  const said = String(x.surface || (x.row && x.row.surface) || '').trim().toLowerCase();
+  if (KINDS.indexOf(said) !== -1) return said;
+  if (!padWanted_(x)) return '';
+  const f = String(x.figure || (x.row && x.row.figure) || '').trim().toLowerCase();
+  if (/coordinate/.test(f)) return 'coord';
+  if (/grid/.test(f) && !/isometric/.test(f)) return 'grid';
+  return 'blank';
+}
+/* WHAT EACH IS CALLED in the figure page's header, where a paper figure is called "Figure": a name
+   that says what is on the page, and does not claim to be the paper's. */
+const SURFACE_NAME = { grid: 'Squared grid', coord: 'Axes', blank: 'Space to draw' };
+
+/* ---------- THE SURFACE ITSELF -------------------------------------------------------------------
+   INSIDE `W = 340`, the box every diagram here lays out in (CLAUDE.md), so the pen's overlay maps onto
+   it exactly as it maps onto a transcribed figure. Inked with the classes a transcribed grid already
+   uses -- `.grid` for the squares, `.axis` for the axes, `.ax` for the numbers -- so a surface reads as
+   one more figure in the paper's own ink, on both palettes, with no colour written here.
+
+   THE SQUARES ARE 20 UNITS AND THE GRID STARTS AT 10, so the centre (170) is a line: the axes go
+   through it with -8 to 8 either way, which is the range a Foundation paper's coordinate grids use. */
+function surfaceSvg_(kind) {
+  const S = 20, A = 10, B = 330;
+  const out = [];
+  if (kind === 'grid' || kind === 'coord') {
+    for (let v = A; v <= B; v += S) {
+      out.push(`<line class="grid" x1="${v}" y1="${A}" x2="${v}" y2="${B}"/>`,
+               `<line class="grid" x1="${A}" y1="${v}" x2="${B}" y2="${v}"/>`);
+    }
+  }
+  if (kind === 'coord') {
+    out.push(`<line class="axis" x1="${A}" y1="170" x2="${B}" y2="170"/>`,
+             `<line class="axis" x1="170" y1="${A}" x2="170" y2="${B}"/>`,
+             `<text class="ax" x="${B - 2}" y="164" text-anchor="end">x</text>`,
+             `<text class="ax" x="176" y="${A + 8}">y</text>`);
+    for (let n = -8; n <= 8; n += 2) {
+      if (!n) continue;
+      const at = 170 + n * S;
+      out.push(`<text class="ax" x="${at}" y="182" text-anchor="middle">${n < 0 ? '&minus;' + (-n) : n}</text>`,
+               `<text class="ax" x="164" y="${340 - at + 3}" text-anchor="end">${n < 0 ? '&minus;' + (-n) : n}</text>`);
+    }
+    out.push('<text class="ax" x="164" y="182" text-anchor="end">0</text>');
+  }
+  if (kind === 'blank') {
+    out.push(`<rect class="axis" x="${A}" y="${A}" width="${B - A}" height="${B - A}" rx="8" fill="none" stroke-dasharray="6 6"/>`);
+  }
+  return `<svg class="qsurf is-${kind}" viewBox="0 0 340 340" role="img" aria-label="${SURFACE_NAME[kind] || 'Space to draw'}">${out.join('')}</svg>`;
+}
+
+/* ---------- AND A PASSAGE YOU MARK BY TAPPING ITS WORDS ----------------------------------------------
+   "Circle the three adjectives in the passage below" -- KS2 SATs grammar asks it of a sentence, and the
+   answer is a ring round three words. `surface: "text"` makes the PART'S OWN WORDS the surface: every
+   word a tap target, a tap rings it, another tap takes the ring off.
+
+   A TAP, NOT A PEN, AND THAT WAS DECIDED RATHER THAN DEFAULTED TO:
+     the pager swipes -- a stroke round a word is a drag, and a drag on this screen turns the page
+       unless the pen is locked first (`padArm_`), which is two controls between a child and a
+       circle. A tap is a click, and `PRESS_MOVED` already tells a click from a swipe.
+     a ring drawn in pixels is a ring round whatever was under it at that width -- turn the phone
+       and the passage reflows and yesterday's ring circles the wrong word. A ring stored as the word
+       (its block and its place in it, `3.7`) is the same word at 320px and on a laptop.
+     what the question asks for IS a set of words, so storing one is storing the answer.
+
+   STORED LIKE THE PEN'S MARKS, beside them: `pad:<question>:words`, every read and write wrapped,
+   because private mode throws on `localStorage`; `CIRC_HELD` keeps the visit's rings when it does. */
+const circKey_ = x => padKey_(x) + ':words';
+const CIRC_HELD = new Map();
+function circRead_(k) {
+  try {
+    const raw = localStorage.getItem(k);
+    if (raw !== null) {
+      const v = JSON.parse(raw);
+      return Array.isArray(v) ? v.map(String) : [];
+    }
+  } catch (e) {}
+  return (CIRC_HELD.get(k) || []).slice();
+}
+/* EVERY WORD OF A BLOCK OF MARKUP, WRAPPED, AND NOTHING ELSE TOUCHED. Text between tags only -- never
+   an attribute, never inside a drawing -- and an entity is never cut in half: `&rsquo;` inside
+   "don&rsquo;t" joins the word, any other entity stands alone and is not a word. Punctuation is not
+   part of a word, so ringing "hill" does not ring the full stop after it. */
+function circWords_(html, block, on) {
+  let n = 0, skip = 0;
+  const WORD = /(&(?:rsquo|#8217|apos);)|(&[#\w]+;)|([\p{L}\p{N}]+(?:(?:['’]|&rsquo;|&#8217;|&apos;)[\p{L}\p{N}]+)*)/gu;
+  return String(html || '').replace(/(<[^>]*>)|([^<]+)/g, (m, tag, text) => {
+    if (tag) {
+      if (/^<(svg|script|style)\b/i.test(tag)) skip++;
+      else if (/^<\/(svg|script|style)\b/i.test(tag)) skip = Math.max(0, skip - 1);
+      return tag;
+    }
+    if (skip) return text;
+    return text.replace(WORD, (w, apos, ent, word) => {
+      if (!word) return w;
+      const k = block + '.' + (n++);
+      const lit = on && on.indexOf(k) !== -1;
+      return `<span class="qw${lit ? ' is-circled' : ''}" data-do="qw-tap" data-w="${k}" role="button" aria-pressed="${lit}">${word}</span>`;
+    });
+  });
+}
+
+on('qw-tap', (el) => {
+  const host = el.closest('[data-circ]');
+  if (!host) return;
+  const k = host.getAttribute('data-circ') || '';
+  const w = el.getAttribute('data-w') || '';
+  if (!k || !w) return;
+  const all = circRead_(k);
+  const i = all.indexOf(w);
+  if (i >= 0) all.splice(i, 1); else all.push(w);
+  CIRC_HELD.set(k, all.slice());
+  try {
+    if (all.length) localStorage.setItem(k, JSON.stringify(all)); else localStorage.removeItem(k);
+  } catch (err) {}
+  /* EVERY COPY OF THE WORD, on every page built, by key -- the card and a page of the same question
+     peeking under it are two copies of one passage, and a ring on one only would be the two pages
+     disagreeing. In place, so the passage does not move under the finger. */
+  const lit = i < 0;
+  document.querySelectorAll('[data-circ]').forEach(h => {
+    if (h.getAttribute('data-circ') !== k) return;
+    h.querySelectorAll('.qw').forEach(s => {
+      if (s.getAttribute('data-w') !== w) return;
+      s.classList.toggle('is-circled', lit);
+      s.setAttribute('aria-pressed', lit ? 'true' : 'false');
+    });
+  });
+});
+
+/* ==================================================================================================
    A PICTURE THIS SITE DREW IS LABELLED AS ONE.
 
    SIX QUESTIONS IN THE CORBETTMATHS MONEY SHEET COULD NOT BE ANSWERED AT ALL. "Natalie has these
@@ -6219,12 +6482,14 @@ function questionCard_(x) {
             wrappers they always had, so a part that fits is the markup it always was.
             NO PICTURE HERE. The diagram, the pen and the question's photographs are the NEXT page
             — see `questionFigCard_`. The answer box stays on this card, under the words. */''}
-      ${chunkHtml_(partChunks_(x).slice(-1)[0])}
-      ${/* AND THE WORDS SAY WHERE IT WENT. "The angle marked y", with no angle on the card, reads as
-            a question that failed to load; one quiet line, a label rather than a control, because
-            the page turns the way every page does. Asked of the same `questionHasFig_` that
-            `pageParts_` asks, so the line and the page that it names cannot disagree. */''}${
-        questionHasFig_(x) ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
+      ${chunkHtml_(partChunks_(x).slice(-1)[0], circOf_(x))}
+      ${/* AND THE WORDS SAY WHERE IT WENT -- when it went AFTER them. "The angle marked y", with no
+            angle on the card, reads as a question that failed to load; one quiet line, a label rather
+            than a control, because the page turns the way every page does. Asked of the same
+            `partPlan_` that `pageParts_` lays out, so the line and the page that it names cannot
+            disagree. A figure standing in front of the card was the page you just turned past, and
+            pointing forward at it would send you the wrong way. */''}${
+        partPlan_(x).figAt >= partChunks_(x).length ? `<p class="qsheet-figref">${figWhat_(x)} on the next page &rarr;</p>` : ''}
     </div>
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. It is the page after -- see
           `questionAnsCard_` -- and the order is still the whole point: an answer you can see before
@@ -6256,17 +6521,21 @@ const qNum_ = x => 'Q' + ((x.qNumber != null && x.qNumber !== '') ? x.qNumber
 function questionStemCard_(x, i, j) {
   const p = (x.stems || [])[i];
   if (!p) return '';
+  const plan = stemPlan_(p);
   const chunks = stemChunks_(p);
   j = Math.min(+j || 0, chunks.length - 1);
   const last = j === chunks.length - 1;
+  /* THE FIGURE IS NEXT when this is the last page in front of it -- the stem's last page where it has
+     no marker, or the page before the marker where it does. */
+  const figNext = stemHasFig_(p) && j === plan.figAt - 1;
   return `<div class="qcard qstem" data-of="${esc(stemId_(p))}">
     ${qHead_(Object.assign({}, x, { name: qNum_(x), marks: 0 }), chunks.length > 1 ? (j + 1) + ' of ' + chunks.length : '')}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">
       <div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${
         p.lines && !j ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${typeset_(chunks[j])}</div>${
-      !last ? '<p class="qsheet-figref">Continued on the next page &rarr;</p>'
-        : stemHasFig_(p) ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
+      figNext ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>'
+        : !last ? '<p class="qsheet-figref">Continued on the next page &rarr;</p>' : ''}
     </div>
   </div>`;
 }
@@ -6282,8 +6551,8 @@ function questionPreCard_(x, j) {
     ${qHead_(Object.assign({}, x, { marks: 0 }), (j + 1) + ' of ' + chunks.length)}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">
-      ${chunkHtml_(chunks[j])}
-      <p class="qsheet-figref">Continued on the next page &rarr;</p>
+      ${chunkHtml_(chunks[j], circOf_(x))}
+      <p class="qsheet-figref">${partPlan_(x).figAt === j + 1 ? figWhat_(x) : 'Continued'} on the next page &rarr;</p>
     </div>
   </div>`;
 }
@@ -6347,43 +6616,149 @@ function packBlocks_(blocks, page, last) {
   if (cur.length || !out.length) out.unshift(cur);
   return out;
 }
+/* ---------- WHERE THE PAPER PRINTS THE FIGURE: `<!--fig-->` ----------------------------------------
+   ASKED FOR AS *"Let's say there's a question which begins with text, then diagram, then text then
+   diagram then text. This should break into 5 widgets. This is to ensure it's same order but diagram
+   has its own widget."* -- after a lesson on June 2024 Paper 1 Foundation, where a figure printed
+   between two sentences arrived a page AFTER both of them, and the second sentence ("Work out the size
+   of angle x") was read before the angle it is about.
+
+   A ROW HAS ONE FIGURE AND ITS WORDS, AND NOTHING SAID WHERE IN THE WORDS IT GOES. So the data says:
+   the literal HTML comment `<!--fig-->` between two top-level blocks of a row's `html` is where that
+   row's `diagram` / `images` stands. A comment because it is the one mark HTML already promises never
+   to draw -- a row read by anything that does not know the convention (the search haystack's
+   `plainText_`, `typeset_`, a browser) shows nothing for it. `check-library.js` holds the convention
+   at the file: one per row, top level, only on a row with a figure.
+
+   AND IT IS TAKEN OUT HERE, BEFORE ANYTHING IS COUNTED OR DRAWN. `figBlocks_` returns the row's blocks
+   with the marker gone and the number of blocks in front of it; the cutter weighs and the cards draw
+   only those blocks, so the marker is never a character of a page. A marker INSIDE a block (data typed
+   wrongly) stands after that block rather than splitting it -- a paragraph cut in half to make room for
+   a picture is two broken paragraphs. */
+const FIG_MARK = /<!--\s*fig\s*-->/gi;
+function figBlocks_(html) {
+  const out = [];
+  let at = -1;
+  htmlBlocks_(html).forEach(b => {
+    const hit = b.search(/<!--\s*fig\s*-->/i);
+    const clean = b.replace(FIG_MARK, '');
+    const keep = !!clean.trim();
+    if (hit >= 0 && at < 0 && !b.slice(0, hit).trim()) at = out.length;
+    if (keep) out.push(clean);
+    if (hit >= 0 && at < 0) at = out.length;
+  });
+  return { blocks: out, at: at };
+}
+
 /* MEMOISED ON THE OBJECT, because `pageParts_` asks for every result on every new filter and the
    library is seven thousand rows; the html of a row does not change under it. */
 const CHUNK_MEMO = new WeakMap();
-function stemChunks_(p) {
-  if (!p || typeof p !== 'object') return [''];
+/* PACKED A SEGMENT AT A TIME. The figure stands between two segments, so the cut never puts words from
+   both sides of it on one page; an empty segment is no page at all (`packBlocks_` alone would hand
+   back one empty page, which is right for a card that must exist and wrong for a side of a figure). */
+const packSeg_ = (blocks, page, last) => (blocks.length ? packBlocks_(blocks, page, last) : []);
+
+/* ---------- A STEM'S PAGES, AND WHICH OF THEM ITS FIGURE STANDS IN FRONT OF ------------------------
+   `chunks` is the stem's words cut into pages, every page in order across both sides of its figure;
+   `figAt` is how many of them come before the figure -- all of them where the stem has no marker,
+   which is the order it always had: the words, then the picture. */
+function stemPlan_(p) {
+  if (!p || typeof p !== 'object') return { chunks: [], figAt: 0 };
   const had = CHUNK_MEMO.get(p);
   if (had) return had;
-  const out = packBlocks_(htmlBlocks_(p.html).map(h => ({ k: 'pb', h: h })), CHUNK_PAGE, CHUNK_PAGE)
-    .map(c => c.map(b => b.h).join(''));
-  CHUNK_MEMO.set(p, out);
-  return out;
+  const fb = figBlocks_(p.html);
+  const fig = stemHasFig_(p);
+  const at = fig && fb.at >= 0 ? fb.at : fb.blocks.length;
+  const seg = bs => packSeg_(bs.map(h => ({ k: 'pb', h: h })), CHUNK_PAGE, CHUNK_PAGE).map(c => c.map(b => b.h).join(''));
+  const before = seg(fb.blocks.slice(0, at)), after = seg(fb.blocks.slice(at));
+  const plan = { chunks: before.concat(after), figAt: before.length };
+  CHUNK_MEMO.set(p, plan);
+  return plan;
+}
+function stemChunks_(p) {
+  const c = stemPlan_(p).chunks;
+  return c.length ? c : [''];
+}
+
+/* ---------- A PART'S PAGES, AND WHERE ITS FIGURE STANDS AMONG THEM ----------------------------------
+   `chunks` is the part's words cut into pages, the LAST of them the question card with the box;
+   `figAt` is how many come before its figure page (`chunks.length` = after the card; -1 = no figure).
+   In the order the owner described and the paper prints:
+
+     A MARKER        the lead and the html before it  ->  FIGURE  ->  the html after it, with the box.
+                     A marker at the very end (every word before the figure): the card, then the figure.
+     NO MARKER,      the figure is the ANSWER SURFACE (a pen, `padSource_`): the card, then
+     A PEN           the figure to draw on -- you read what to draw before the thing you draw it on,
+                     and the words with the box are the ask. Whether or not there is a lead.
+     NO MARKER,      lead  ->  FIGURE  ->  the html with the box: the lead is the part's own sentence of
+     A LEAD          setting ("Here is a grid."), and the ask is what follows the picture.
+     NO MARKER,      the figure IN FRONT OF THE QUESTION CARD -- straight before the page with the ask,
+     NO LEAD         after any long reading cut in front of it -- because the paper prints a part's figure
+                     before its ask far more often than after it. It was after the card, for every part,
+                     until the owner tutored from it.
+
+   THE CUT STILL APPLIES WITHIN EACH SIDE: the side with the box keeps `PART_LAST` (the ask and only
+   what fits beside the box and tiles), the side in front pages of `CHUNK_PAGE`. "N of M" in the
+   header counts the text pages across both sides, so `Q5(a) · 1 of 2` is the words before the figure
+   and `Q5(a) · 2 of 2` the card after it. */
+function partPlan_(x) {
+  if (!x || typeof x !== 'object') return { chunks: [[]], figAt: -1 };
+  const had = CHUNK_MEMO.get(x);
+  if (had) return had;
+  const lead = x.lead ? [{ k: 'lead', h: String(x.lead).replace(FIG_MARK, '') }] : [];
+  const fb = figBlocks_(x.html);
+  /* `i` IS THE BLOCK'S PLACE IN THE ROW, carried onto every page it lands on, so a ringed word
+     (`circWords_`) is named the same whichever page the cut put it on. */
+  const pb = fb.blocks.map((h, i) => ({ k: 'pb', h: h, i: i }));
+  let plan;
+  const split = (before, after) => {
+    if (!after.length) {
+      const c = packBlocks_(before, CHUNK_PAGE, PART_LAST);
+      return { chunks: c, figAt: c.length };
+    }
+    const b = packSeg_(before, CHUNK_PAGE, CHUNK_PAGE);
+    return { chunks: b.concat(packBlocks_(after, CHUNK_PAGE, PART_LAST)), figAt: b.length };
+  };
+  if (!questionHasFig_(x)) plan = { chunks: packBlocks_(lead.concat(pb), CHUNK_PAGE, PART_LAST), figAt: -1 };
+  else if (fb.at >= 0) plan = split(lead.concat(pb.slice(0, fb.at)), pb.slice(fb.at));
+  else if (padSource_(x)) plan = split(lead.concat(pb), []);
+  else if (lead.length) plan = split(lead, pb);
+  else {
+    const c = packBlocks_(pb, CHUNK_PAGE, PART_LAST);
+    plan = { chunks: c, figAt: c.length - 1 };
+  }
+  CHUNK_MEMO.set(x, plan);
+  return plan;
 }
 /* THE LEAD IS ONE BLOCK, kept whole and in its own wrapper: it is the part's own sentence of setting,
    and it is short (`lead` is 436 cells, none past a page). */
 function partChunks_(x) {
-  if (!x || typeof x !== 'object') return [[]];
-  const had = CHUNK_MEMO.get(x);
-  if (had) return had;
-  const blocks = (x.lead ? [{ k: 'lead', h: String(x.lead) }] : [])
-    .concat(htmlBlocks_(x.html).map(h => ({ k: 'pb', h: h })));
-  const out = packBlocks_(blocks, CHUNK_PAGE, PART_LAST);
-  CHUNK_MEMO.set(x, out);
-  return out;
+  return partPlan_(x).chunks;
 }
 /* A CHUNK IN THE WRAPPERS THE CARD ALWAYS USED -- the lead in `.qsheet-lead`, the part's words in
    `.qsheet-part > .qsheet-pb` -- so the typesetting rules and every check reading them still apply. A
    chunk with none of the part's words in it still draws the empty `.qsheet-pb`, as a row with no
    `html` always did. */
-function chunkHtml_(chunk) {
+/* `circ` IS A PASSAGE THAT IS ITS OWN ANSWER SURFACE ("Circle the three adjectives in the passage
+   below") -- `circOf_` -- and then every word of the part is a tap target, block by block so each
+   word keeps its name (`circWords_`), and the page says how it works once, under the words. */
+function chunkHtml_(chunk, circ) {
   const c = chunk || [];
   const lead = c.filter(b => b.k === 'lead').map(b => b.h).join('');
-  const pb = c.filter(b => b.k === 'pb').map(b => b.h).join('');
+  const blocks = c.filter(b => b.k === 'pb');
+  const pb = circ ? blocks.map(b => circWords_(typeset_(b.h), b.i, circ.on)).join('')
+    : typeset_(blocks.map(b => b.h).join(''));
   return `${lead ? `<div class="qsheet-lead">${typeset_(lead)}</div>` : ''}
-      <div class="qsheet-part">
-        <div class="qsheet-pb">${typeset_(pb)}</div>
-      </div>`;
+      <div class="qsheet-part${circ ? ' is-text' : ''}"${circ ? ` data-circ="${esc(circ.k)}"` : ''}>
+        <div class="qsheet-pb">${pb}</div>
+      </div>${circ && blocks.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take
+        the ring off. Kept on this phone only, like the answer box.</p>` : ''}`;
 }
+const circOf_ = x => (padSurface_(x) === 'text' ? { k: circKey_(x), on: circRead_(circKey_(x)) } : null);
+/* WHAT THE NEXT PAGE IS CALLED, in the words its own header uses: "Figure", or a surface's name -- a
+   pointer saying "Figure" at a page headed "Squared grid" that says it is not the paper's figure would
+   be the two pages disagreeing. */
+const figWhat_ = x => { const p = padSource_(x); return (p && p.from === 'surface' && SURFACE_NAME[p.surface]) || 'Figure'; };
 
 /* ---------- AND THE STEM'S FIGURE, THE PAGE AFTER ITS WORDS ---------------------------------------
    No question number -- see `figHead_`. `data-of` is the stem's id, because the figure is the
@@ -6448,7 +6823,12 @@ function qHead_(x, part, done) {
 
 
 /* ==================================================================================================
-   THE FIGURE IS ITS OWN CARD, THE PAGE STRAIGHT AFTER ITS QUESTION.
+   THE FIGURE IS ITS OWN CARD, WHERE THE PAPER PRINTS IT.
+
+   IT WAS THE PAGE STRAIGHT AFTER ITS QUESTION, and that is now only one of the places it can stand:
+   *"text, then diagram, then text then diagram then text ... same order but diagram has its own
+   widget"*. Where among the words is `partPlan_`'s to say (a `<!--fig-->` in the row, else in front of
+   the ask, else after it for a pen question); what the page draws is this, unchanged.
 
    ASKED FOR AS "across the board of all resources the diagrams should be its own widgets." The
    practicals were already split into pages — card, kit, method, worksheet — and this is the same
@@ -6481,7 +6861,14 @@ function questionFigCard_(x) {
   const out = [];
   const stemNames = (x.stems || []).filter(stemHasFig_).map(p => figLabel_(p.html));
   let label = figLabel_(String(x.lead || '') + ' ' + String(x.html || ''), stemNames);
-  if (pad && pad.from !== 'part') {
+  if (pad && pad.from === 'surface') {
+    /* A SURFACE IS NAMED FOR WHAT IT IS AND SAYS IT IS NOT THE PAPER'S -- the `figCredit_` argument:
+       a page that let a generated grid pass as the exam board's figure would be the site speaking in
+       the board's voice. */
+    out.push(padWrap_(x, pad.svg, `<p class="fig-by">Not the paper&rsquo;s own figure &mdash; somewhere to
+      work your answer.</p>`));
+    label = SURFACE_NAME[pad.surface] || 'Space to draw';
+  } else if (pad && pad.from !== 'part') {
     out.push(padWrap_(x, pad.svg));
     label = figLabel_(pad.from.html);
   }
@@ -6505,14 +6892,14 @@ function questionFigCard_(x) {
    by what the page is FOR rather than by its length: it keeps the answer apart from the question,
    so that writing your own is the only thing on the page you write it on.
 
-   THE RESULT LARGE AND FIRST, then the "Why" fold with the working and the examiner's note --
-   `answerBlock_`, unchanged in what it draws, so `check-answers.js`'s limits still hold of it.
+   THE RESULT LARGE, AND NOTHING UNDER IT -- `answerBlock_`. The "Why" fold went on the owner's word:
+   *"Also remove all 'why's. I just want it to have answer."*
 
-   NOTHING TO FIND UNTIL IT IS SHOWN. For a student the page says "Answer hidden -- have a go first"
-   and holds the one control that shows it, and the answer is not in the markup at all: the old
-   `is-shut` hid with `display: none` an answer anybody could read in the document, which the
-   stylesheet's own note admitted. `ansOpen_` decides, and it is the rule the card always had: staff
-   see it, a student sees it once they have asked for it or got it right.
+   ONE PAGE FOR EVERYBODY, SHUT UNTIL IT IS ASKED FOR. *"you should have to click to reveal the answer.
+   Should behave the same whether it's a tutor or child. No difference between the two."* The page
+   says "Answer hidden" and holds the one control that shows it, and the answer is not in the markup at
+   all until then: the old `is-shut` hid with `display: none` an answer anybody could read in the
+   document. `ansOpen_` decides, and it asks one thing -- has this person, on this visit, asked.
 
    `data-of` NAMES THE ROW, as the figure card does, and `data-k` is the answer box's key, which is
    what `ansShow_` finds these by to draw them open where they already stand. */
@@ -6520,34 +6907,29 @@ function questionHasAns_(x) {
   return !!(x && x.kind === 'question' && String(x.answer || '').trim());
 }
 
-/* ---------- WHO SEES IT OPEN ----------------------------------------------------------------------
-   `isTutorRole()` IS THE APP'S OWN STAFF TEST -- tutor or admin. `!!whoIs_()` was the test once,
-   and with the typed name gone that meant "is anybody signed in", so a tutor signed in as
-   themselves got their own mark schemes shut behind a tap, on the one surface they read FROM.
+/* ---------- WHO SEES IT OPEN: WHOEVER ASKED, AND NOBODY ELSE ---------------------------------------
+   THIS USED TO HAVE THREE MORE WAYS IN AND ALL THREE ARE GONE, on the owner's word -- *"you should have
+   to click to reveal the answer. Should behave the same whether it's a tutor or child. No difference
+   between the two."*
 
-   A STUDENT, ONCE ASKED FOR OR EARNED, and that is held in `ANS_SHOWN` by the answer box's own key
-   -- which carries who is signed in, so the phone passed to the next student starts shut again. A
-   SET RATHER THAN A CLASS ON AN ELEMENT, because the answer is drawn on a different page from the
-   control that shows it, and pages are built and thrown away as you swipe (`fillStuffPages` keeps
-   eleven): a fact left on an element is gone the moment its page is rebuilt, which is the
-   `REEL_HELD` fault. Kept for the visit and not in `localStorage`: having asked for an answer last
-   week is not having asked for it today.
+     STAFF SAW IT OPEN (`isTutorRole()`), on the argument that a tutor reads the mark scheme FROM this
+       page. In the lesson that prompted this, the tutor and the child were reading the SAME phone, and
+       an answer that was already open for one of them was open for both -- the reveal was the tutor's
+       to make, and the app had made it for them. There is one page now, the same for a tutor, an admin,
+       a student, a parent and somebody signed out.
+     A TYPED ANSWER MARKED RIGHT opened it (`qp-check`), and a TAPPED ONE SETTLED RIGHT did, from what
+       was stored. The question card already says "Correct" -- that is the verdict -- and an answer
+       page that opens itself is a reveal nobody pressed.
 
-   A TAPPED QUESTION SETTLED RIGHT IS EARNED FROM WHAT IS STORED, because the pick is stored and its
-   verdict is drawn from it on every paint -- an answer page that came back shut beside a question
-   still saying "Correct" would be two pages of one question disagreeing. */
+   WHAT IS LEFT is the tap, held in `ANS_SHOWN` by the answer box's own key -- which carries who is
+   signed in, so the phone passed to the next student starts shut again. A SET RATHER THAN A CLASS ON
+   AN ELEMENT, because the answer is drawn on a different page from the control that shows it, and
+   pages are built and thrown away as you swipe (`fillStuffPages` keeps eleven): a fact left on an
+   element is gone the moment its page is rebuilt, which is the `REEL_HELD` fault. Kept for the visit
+   and not in `localStorage`: having asked for an answer last week is not having asked for it today. */
 const ANS_SHOWN = new Set();
 function ansOpen_(x) {
-  if (typeof isTutorRole === 'function' && isTutorRole()) return true;
-  const k = ansKey_(x);
-  if (ANS_SHOWN.has(k)) return true;
-  if (Array.isArray(x.choices) && x.choices.length >= 2 && (x.choiceRight || []).length) {
-    const right = x.choiceRight.slice().sort((a, b) => a - b).join(',');
-    const picked = String(ansRead_(k) || '').split(',').map(t => parseInt(t, 10)).filter(n => n > 0)
-      .sort((a, b) => a - b).join(',');
-    if (picked && picked === right) return true;
-  }
-  return false;
+  return !!x && ANS_SHOWN.has(ansKey_(x));
 }
 
 function questionAnsCard_(x) {
@@ -6558,12 +6940,18 @@ function questionAnsCard_(x) {
     ${qHead_(x, 'answer')}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     ${open ? answerBlock_(x) : `<div class="qans-wait">
-      <p class="qans-wait-k">Answer hidden &mdash; have a go first</p>
-      ${/* A BUTTON, NOT A TILE, and the rule in CLAUDE.md is why: it is the one control in this
-            card's body, a gate between the student and the answer, where a tile row is the action
-            row UNDER a thing. The part pages carry no tile row -- a figure page has none either --
-            and one tile alone at the foot of a page that says "hidden" reads as decoration. */''}
-      <button type="button" class="qp-reveal" data-do="qa-show" data-k="${esc(k)}">Show the answer</button>
+      ${/* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". That was advice to a student, on a page a tutor
+            reads too -- and the owner's word is that the two read the same thing. The page says what
+            it is; whether to try first is the tutor's to say out loud, not the app's to say to one of
+            them. */''}
+      <p class="qans-wait-k">Answer hidden</p>
+      ${/* A TILE, AS ASKED: *"show the answer button should be a tile."* It was a full-width button,
+            argued as the one gate in the card's body rather than an action under a thing. The owner
+            reads it as an action on the question like any other, and the question card's own tile for
+            the same act (`questionTiles_`) is a tile -- so the two pages now offer it in one form, from
+            one renderer, with `check-doors` pairing `qa-show` to its handler. */''}
+      <div class="tile-row">${tile_({ icon: 'show', label: 'Show the answer', note: 'one tap',
+        act: 'qa-show', data: { k: k } })}</div>
     </div>`}
   </div>`;
 }
@@ -6591,15 +6979,15 @@ function ansShow_(x) {
   });
 }
 
-/* THE QUESTION CARD'S TILE: TO THE ANSWER PAGE. `Show the answer` for a student, `The answer` for
-   staff, whose page is open already -- a word promising to show something already shown would be a
-   small untruth on every card a tutor reads. Drawn the same whether or not it has been shown, so
-   pressing it changes nothing on this card. A tile because the question is a THING and this is an
-   action on it; the box, Check and the options above stay buttons, because answering is a form. */
+/* THE QUESTION CARD'S TILE: TO THE ANSWER PAGE, AND IT SHOWS IT. `Show the answer` for everybody.
+   STAFF READ `The answer` HERE, because their page was open already; it is not any more -- see
+   `ansOpen_` -- so there is one label and it is true for all of them: pressing it is asking, which
+   is the one thing that opens the page. Drawn the same whether or not it has been shown, so pressing
+   it changes nothing on this card. A tile because the question is a THING and this is an action on
+   it; the box, Check and the options above stay buttons, because answering is a form. */
 function questionTiles_(x) {
   if (!questionHasAns_(x)) return '';
-  const staff = typeof isTutorRole === 'function' && isTutorRole();
-  return tile_({ icon: 'show', label: staff ? 'The answer' : 'Show the answer', note: 'next page',
+  return tile_({ icon: 'show', label: 'Show the answer', note: 'next page',
                  act: 'qa-go', data: { k: ansKey_(x) } });
 }
 
@@ -6792,8 +7180,13 @@ let ITEM_MEMO = { key: null, from: null, items: null };
    Same key on both, so they are filled and dropped together. */
 let ALL_MEMO = { key: null, from: null, items: null };
 
-const itemMemoKey_ = () =>
-  (isAdmin() ? 'a' : '-') + '|' + (USER ? (USER.personId || USER.name || 'u') : '-');
+/* WHO IS SIGNED IN, AND NOT WHETHER THEY ARE AN ADMIN. `isAdmin()` was half of this key, and nothing
+   the items are built from asks it: what an admin is sent that others are not (the films, an unlisted
+   tutor) arrives in the payload, and a new payload is a new `DATA`, which both memos already test by
+   identity. A key naming the role read as though Find drew a different library for one -- *"No
+   distinction between tutor and student on the finder. All the same."* -- and it does not. The person
+   stays: a starred thing and the `me` card are theirs. */
+const itemMemoKey_ = () => (USER ? (USER.personId || USER.name || 'u') : '-');
 
 /* ---------- EVERY ITEM THE APP HAS, INCLUDING THE ONES THE FUNNEL DOES NOT OFFER ------------------
    THE FUNNEL'S EDITORIAL DECISIONS ARE ABOUT WHAT TO OFFER, NOT ABOUT WHAT EXISTS. Booking is not a
@@ -7990,8 +8383,8 @@ function stuffFiltered() {
      A new payload is a new object. That is the whole test, it costs one comparison, and it is the
      same one `allTopics` already uses one level down — which is why THAT was correct and this was
      not. */
-  const key = JSON.stringify([STUFF.q, STUFF.filters,
-                              USER ? USER.credits : -1, isAdmin()]);
+  /* NO ROLE IN THE KEY, for the reason `itemMemoKey_` gives: nothing below filters by one. */
+  const key = JSON.stringify([STUFF.q, STUFF.filters, USER ? USER.credits : -1]);
   if (FIND_MEMO.key === key && FIND_MEMO.from === DATA) return FIND_MEMO.items;
   const all = stuffItems();
   const credits = USER ? (USER.credits || 0) : 0;
@@ -8012,7 +8405,7 @@ function stuffFiltered() {
   const words = stuffWords_(STUFF.q);
   let items = null;
   if (prev.key !== null && prev.from === DATA && prev.all === all && prev.credits === credits
-      && prev.admin === isAdmin() && prev.filters && prev.words
+      && prev.filters && prev.words
       && prev.filters.length <= STUFF.filters.length
       && prev.words.every(w => words.some(n => n.includes(w)))) {
     const same = prev.filters.every((f, i) => JSON.stringify(f) === JSON.stringify(STUFF.filters[i]));
@@ -8025,7 +8418,7 @@ function stuffFiltered() {
   }
   if (!items) items = stuffFind(all, credits);
   FIND_MEMO = { key: key, from: DATA, items: items, total: all.length, all: all, credits: credits,
-                admin: isAdmin(), words: words,
+                words: words,
                 filters: STUFF.filters.map(f => Object.assign({}, f)) };
   return items;
 }
@@ -8613,6 +9006,7 @@ function accountPages_() {
     .filter(p => p && p.title)
     .filter(p => !(p.personId && famIds.indexOf(String(p.personId)) !== -1))
     .filter(p => !mineIs_(p))
+    .map(p => Object.assign({}, p, { activity: attemptsLine_(p.personId) }))
     .map(p => (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: p }) : '')
       + (typeof tile_ === 'function' ? `<div class="tile-row">${tile_({ icon: 'chat',
           label: 'Message', note: 'a note to them', act: 'msg-open',
@@ -8629,6 +9023,24 @@ function accountPages_() {
      two borders, two backgrounds, two lots of padding — which is visibly worse than what was
      reported in the first place and is exactly what "just a normal widget" rules out. */
   return [me].concat(claimPages, famPages, others, everyone);
+}
+
+/* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME ------------------------------
+   `12 questions · last 4 Oct`, off `DATA.attempts.people` — the per-learner summary `doGet` builds
+   for an admin's token and nobody else's. Under the handle, where it does not add a row to a card
+   that is otherwise a name and a picture. Somebody who has done nothing gets nothing, rather than
+   "0 questions", which on a parent's card would read as a complaint about a person who is not a
+   learner at all. `for` is checked as everywhere: a summary left by an admin's session on a shared
+   phone is not drawn for whoever signs in next. */
+function attemptsLine_(pid) {
+  try {
+    const a = DATA && DATA.attempts;
+    if (!pid || !a || !a.people || !USER || String(a.for || '') !== String(USER.personId || '')) return '';
+    const p = a.people[String(pid)];
+    if (!p || !(Number(p.n) > 0)) return '';
+    const last = doneText_(p.last).replace(/^Done /, '');
+    return Number(p.n) + (Number(p.n) === 1 ? ' question' : ' questions') + (last ? ' · last ' + last : '');
+  } catch (e) { return ''; }
 }
 
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept

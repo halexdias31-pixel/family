@@ -2116,6 +2116,9 @@ function goPage(id, to, instant) {
 function adoptMarks_() {
   try { adoptFavourites_(); } catch (e) {}
   try { adoptSpotlight_(); } catch (e) {}
+  /* AND THE DONE DATES THIS PHONE HAS THAT THE SHEET DOES NOT — see `attemptsSync_` in find.js. Here
+     for the same reason as the two above: `DATA` is the payload that has just landed. */
+  try { attemptsSync_(); } catch (e) {}
 }
 
 const pages = (id, cards) =>

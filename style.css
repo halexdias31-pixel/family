@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-qorder";
+  --css-version: "2026-10-05-revealtile";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6259,7 +6259,10 @@ textarea { touch-action: none; }
 /* `.post-edit` WAS IN THIS EXCEPTION LIST and there is no `.post-edit` — the post's ⋯ became a tile
    with everything else you can do to a post. Dropped rather than left: an exception naming nothing
    is a line somebody has to look up to find out it means nothing. */
-span[data-do]:not(.act):not(.chip):not(.react):not(.map-arrow):not(.cal-arrow),
+/* `.qw` IS NOT UNDERLINED EITHER: it is every word of a passage you ring words in (`circWords_`), and
+   a dotted line under every word of a paragraph reads as a paragraph of links -- the screenshot of
+   the first version did. The whole passage is the control and the line under it says how to use it. */
+span[data-do]:not(.act):not(.chip):not(.react):not(.map-arrow):not(.cal-arrow):not(.qw),
 .text-action, .text-drop {
   text-decoration: underline;
   text-decoration-style: dotted;
@@ -6373,6 +6376,9 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    nothing to break at, which at this size is 85px — under the column at every width the app is
    measured at, and one `HANDLE_SHAPE` change away from not being. */
 .prof-handle { font: 400 .7rem/1.2 var(--mono); color: var(--gold); overflow-wrap: anywhere; }
+/* A LEARNER'S DONE QUESTIONS, on an admin's people column — `12 questions · last 4 Oct`. The seat
+   price's ink and size: a fact under the name, quieter than the handle above it. */
+.prof-act { font: 400 .66rem/1.2 var(--mono); color: var(--dim); }
 /* `.prof-dbs` — a green DBS CHECKED or a red NO DBS ON FILE under the name — WAS HERE. Asked to go:
    *"enhanced dbs check shouldnt appear up there. treat it like an extra qualification thing."* A
    tutor who holds one ticks `Enhanced DBS` among their extra qualifications and it is a dashed chip
@@ -9718,22 +9724,10 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 /* ---------- THE OPENED QUESTION ------------------------------------------------------------------
    Stem, then lead, then the part, in the order it is printed. The stem is dimmed because it is
    context — somebody who opened 2c wants to find 2c, not read three paragraphs first. */
-/* ---------- THE ANSWER, SHUT UNTIL IT IS ASKED FOR ------------------------------------------------
-   SEE `answerBlock_` in find.js for why this is a `<details>` and not a button with a flag.
-
-   THE SUMMARY IS A TAP TARGET AND IS SIZED LIKE ONE — 44px in px, not rem, for the reason the house
-   style gives: the root here is clamp(13.5px, 3.8vw, 16px), so a fingertip's worth of rem is a
-   different size on every phone and a fingertip is not.
-
-   `list-style: none` PLUS THE WEBKIT PSEUDO-ELEMENT, because Safari draws the disclosure triangle
-   through `::-webkit-details-marker` and ignores `list-style` on a summary entirely. One of the two
-   lines is dead on any given browser and which one depends on the browser, so both stay. The mark is
-   drawn here instead, as a + that becomes a −, which reads at any size and needs no glyph the phone
-   might not have.
-
-   NOT `display: flex` ON THE SUMMARY IN ONE GO — a flex summary loses its marker box in Safari and
-   the element stops being clickable in some older WebKits. `display: block` with the contents laid
-   out inside is the arrangement that behaves everywhere. */
+/* ---------- THE ANSWER: THE RESULT, ON ITS OWN PAGE, AND NOTHING UNDER IT ----------------------
+   `.qans-why`, `.qans-more` AND `.qans-note` WERE HERE -- the "Why" fold, the working hanging from
+   it by a rule down the left, and the examiner's note set apart inside it. Gone with the markup, on
+   the owner's word: *"Also remove all 'why's. I just want it to have answer."* See `answerBlock_`. */
 /* ON ITS OWN PAGE NOW, so the rule that separated it from the question above has nothing to
    separate: the card's own edge does that. The same gap as the question to its answer box, 1rem. */
 .qans { margin-top: 1rem; }
@@ -9761,46 +9755,6 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .qans-body p:first-child { margin-top: 0; }
 .qans-body table { border-collapse: collapse; margin: .9rem 0; font-size: .8rem; font-weight: 400; }
 .qans-body td, .qans-body th { border: 1px solid var(--line); padding: .3rem .5rem; }
-/* WHAT THE EXAMINER SAID, set apart from the answer — it is commentary on how it was marked, not
-   part of the answer, and reading them as one paragraph is how a hint becomes a requirement. */
-.qans-note {
-  margin: .6rem 0 .4rem; padding: .6rem .7rem;
-  background: var(--sunk); border-radius: var(--r-sm);
-  font: 400 .74rem/1.45 var(--font); color: var(--dim);
-}
-/* ---------- THE WORKING, FOLDED UNDER THE RESULT ---------------------------------------------------
-   ASKED FOR AS "make answers breaifer". The result is `.qans-body` above and is never folded; the
-   explanation and the examiner's note are behind this one word. See `answerParts_` in find.js.
-
-   SMALL TO LOOK AT, 44px TO HIT. A fold that reads as loud as the answer undoes the point of it, so
-   the word is the size of `.qans-head em`; the tap target is still a fingertip, in px, because a
-   fingertip does not scale with the root font. BOTH WAYS: the first version was 44px tall and
-   34px wide at 320, because "+ Why" is three characters and a glyph, and `check/ui.js` said so. `display: inline-flex` on the summary is safe where
-   the comment above warns against flex: the marker is drawn here rather than by the browser, and
-   `list-style: none` plus the WebKit pseudo-element removes the browser's in both engines. */
-.qans-why { margin: 0 0 .3rem; }
-.qans-why > summary {
-  display: inline-flex; align-items: center; gap: .4rem;
-  min-height: 44px; min-width: 64px; padding: 0 .6rem 0 .2rem;
-  list-style: none; cursor: pointer;
-  font: 600 .7rem/1 var(--font); letter-spacing: .04em; color: var(--dim);
-}
-.qans-why > summary::-webkit-details-marker { display: none; }
-.qans-why > summary::before { content: "+"; color: var(--gold); font-weight: 700; }
-.qans-why[open] > summary::before { content: "\2212"; }
-.qans-why > summary:hover { color: var(--gold); }
-/* THE OPENED WORKING HANGS FROM ITS FOLD BY A RULE DOWN THE LEFT, the mark `.qp-guide`
-   already uses for "this block belongs to the thing above it". Without it, three paragraphs of dim
-   working read as a second answer starting under the first; with it they read as the inside of
-   "Why". Laid in line with the fold's own + so the two read as one control and its contents. */
-.qans-more {
-  font: 400 .8rem/1.5 var(--font); color: var(--dim);
-  margin: 0 0 .4rem .3rem; padding: .1rem 0 .1rem .7rem;
-  border-left: 2px solid var(--line);
-}
-.qans-more p:first-child { margin-top: 0; }
-.qans-more table { border-collapse: collapse; margin: .6rem 0; }
-.qans-more td, .qans-more th { border: 1px solid var(--line); padding: .3rem .5rem; }
 
 /* ==================================================================================================
    QUESTIONS IN THE FUNNEL.
@@ -12387,23 +12341,13 @@ button.scr-sq { cursor: pointer; }
    filed under. Removed with its handler: the app already knows who is signed in, and two ways of
    saying who you are is two things to keep in step. See `whoIs_` in find.js. */
 
-/* THE MARK SCHEME, WAITING. Only ever shut when a student is named — see `answerBlock_` for why
-   the tutor's own view is untouched. `display: none` rather than height, because a collapsed
-   block that is still in the document is still readable by anyone who looks. */
-/* THE ANSWER, WAITING. `.qans.is-shut` WAS HERE, hiding with `display: none` an answer that was
-   in the document -- "still readable by anyone who looks", as its own note said. The answer page
-   draws no answer at all until it is shown (`questionAnsCard_`), so what is left to style is the
-   sentence saying so and the one control under it. The sentence in the dim of a caption, not a
-   warning: it is an invitation to try, and the house word for a wrong answer is "not yet". */
+/* THE ANSWER, WAITING -- FOR EVERYBODY. `.qans.is-shut` WAS HERE, hiding with `display: none` an
+   answer that was in the document -- "still readable by anyone who looks", as its own note said. The
+   answer page draws no answer at all until it is shown (`questionAnsCard_`), and it is shown to a
+   tutor exactly as to a child: on the tap. What is left to style is the sentence saying so and the
+   one tile under it. The sentence in the dim of a caption, not a warning. */
 .qans-wait { margin-top: 1rem; }
 .qans-wait-k { margin: 0 0 .75rem; font: 500 .8rem/1.45 var(--font); color: var(--dim); }
-.qp-reveal {
-  min-height: 44px; width: 100%; padding: 0 1rem;
-  background: var(--sunk); color: var(--ink);
-  border: 1px dashed var(--line); border-radius: var(--r-sm);
-  font: 600 .74rem/1 var(--font); letter-spacing: .04em; cursor: pointer;
-}
-.qp-reveal:hover { border-color: var(--gold); color: var(--gold); }
 
 /* ---------- A DIAGRAM YOU CAN WRITE ON -----------------------------------------------------------
    THE PEN IS OFF UNTIL THE PAD SAYS `is-drawing`, and that is not a nicety. `touch-action: none` is
@@ -12473,6 +12417,29 @@ button.scr-sq { cursor: pointer; }
    that looked like homework going somewhere would be a promise the app cannot keep. */
 .qpad-note { margin: .35rem 0 0; font: 400 .62rem/1.4 var(--font); color: var(--faint);
              line-height: 1.4; }
+
+/* ---------- A PASSAGE THAT IS ITS OWN ANSWER SURFACE: RING A WORD BY TAPPING IT ----------------------
+   "Circle the three adjectives in the passage below." `circWords_` makes every word of the part a
+   tap target; see it for why a tap and not a pen.
+
+   THE LINES OPEN UP AND THE WORDS DO NOT MOVE. A ring drawn with `outline` takes no space, so ringing
+   a word moves nothing beside it -- a passage that reflowed under the finger at every tap would put
+   the next word somewhere else. The extra line height is room for the ring above and below, and for
+   the HIT AREA: vertical padding on an inline box grows what a finger can hit without moving a single
+   line, which is as close to the 44px rule as a word in a sentence can come. In px, for that rule's
+   reason. See `ACCEPTED_TAP` in check/ui.js for the rest of the argument.
+
+   GOLD, BECAUSE IT IS YOURS -- the pen's ink (`.qpad-g path`) is gold for the same reason: the paper's
+   own ink is `currentColor`, and a mark you made has to look like one. */
+/* THE HIT AREA IS A PSEUDO-ELEMENT AND NOT PADDING, because an outline is drawn round the padding box:
+   the first version padded the word and its ring came out a tall lozenge reaching into the lines above
+   and below, round the space as much as the word. The `::before` belongs to the span for hit-testing
+   and to nothing for drawing, so the ring hugs the word and the finger still gets the line's height. */
+.qsheet-part.is-text .qsheet-pb { line-height: 2.4; }
+.qw { position: relative; border-radius: .6em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.qw::before { content: ""; position: absolute; inset: -9px -1px; }
+.qw.is-circled { outline: 2px solid var(--gold); outline-offset: 3px; }
+.qw-note { margin-top: .6rem; }
 
 /* THE METHOD FOR A PRACTICAL, above the questions — read before you start, not beside them. */
 .qp-guide { margin: 0 0 1rem; padding: .8rem .9rem; background: var(--sunk);

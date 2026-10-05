@@ -221,7 +221,11 @@ function spotPages() {
   const items = collItems_(isSpot);
   if (!items.length) return [];
   const credits = collCredits_();
-  return [].concat(...items.map(x => cardPages_(x, credits)));
+  /* THE WINDOW'S OWN CARDS KEEP THE ADMIN'S SPOTLIGHT TILE, even on a question -- see `SPOT_TILES` in
+     tiles.js: Find draws a question the same for everybody, and this is not Find. */
+  SPOT_TILES = true;
+  try { return [].concat(...items.map(x => cardPages_(x, credits))); }
+  finally { SPOT_TILES = false; }
 }
 
 /* ---------- AND IT IS A COLUMN AGAIN, WHICH IS THE THIRD TIME IT HAS MOVED -----------------------
@@ -256,8 +260,8 @@ function spotlightCards_() {
      a shop window nobody has dressed rather than as a screen that failed. */
   const admin = typeof isAdmin === 'function' && isAdmin();
   return [`<div class="card"><h3>Spotlight</h3><p class="note">${admin
-    ? `Nothing in the window yet.<br><span class="faint">Press <b>Spotlight</b> on any card — a
-       tutor, a class, a paper — and it turns up here for everybody.</span>`
+    ? `Nothing in the window yet.<br><span class="faint">Press <b>Spotlight</b> on a card — a
+       tutor, a class, a thing in the shop — and it turns up here for everybody.</span>`
     : `Nothing is being featured just now.<br><span class="faint">This is where @family. puts the
        things worth a look.</span>`}</p></div>`];
 }

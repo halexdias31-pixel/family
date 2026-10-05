@@ -234,6 +234,15 @@ const MIN_TAP = 44;
    MATCHED ON CLASS, NOT ON TEXT. A rule written against "10" would accept any 22px control that
    happens to say 10; the class is what the stylesheet acts on. */
 const ACCEPTED_TAP = [
+  { cls: /^qw\b/, why:
+    'A WORD IN A PASSAGE IS THE SIZE OF A WORD, and on a "circle the three adjectives" question the '
+  + 'words ARE the controls -- *"some questions require answers on diagram"*, and for KS2 grammar the '
+  + 'passage is the diagram. A 44px word would be a passage with one word a line. What was done '
+  + 'instead: the passage opens to 2.4 line height and each word carries a 9px reach above and '
+  + 'below (a `::before`, so the ring still hugs the word), which grows the hit area to about 35px '
+  + "tall without moving a line; the width is the word's own and cannot honestly be anything else. What makes it liveable is what makes an hour "
+  + 'cell liveable: a wrong tap costs nothing -- the same tap takes the ring straight back off, and '
+  + 'nothing is sent anywhere.' },
   { cls: /^hr\b/, why:
     'THE HOUR GRID IS THE CONTROL, and it cannot be made of 44px parts. Ten 44px cells need 440px, '
   + 'which is wider than any phone made. Shrinking to fewer hours loses the mornings, and stacking '

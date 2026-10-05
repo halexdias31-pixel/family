@@ -133,11 +133,12 @@ const SUITE = [
      is maths -- a plain `5/8`, a `?/24`, a `cm3` -- and counts what is left on purpose, 1st Class
      Maths' lost powers among it, rather than going quiet about them. */
   { file: 'check-typeset.js', what: 'fractions stacked, powers raised, no plain-text maths' },
-  /* ---------- AND WHETHER THE ANSWER YOU SEE IS SHORT -------------------------------------------
-     "make answers breaifer ... i want shorter answers." The result is drawn and the working folded
-     under Why; this fails on a result over 120 characters that nobody has given a reason for, and
-     on a split that cost a fraction or a power. */
-  { file: 'check-answers.js', what: 'every answer drawn is a short result, the working folded' },
+  /* ---------- AND WHETHER THE ANSWER YOU SEE IS SHORT, AND ALL THERE IS -----------------------------
+     "make answers breaifer ... i want shorter answers", then "remove all 'why's. I just want it to
+     have answer." The result is drawn and the working is not; this fails on a result over 120
+     characters that nobody has given a reason for, on a split that cut a fraction or a power, and on
+     an answer page that draws anything of the working or the examiner's note. */
+  { file: 'check-answers.js', what: 'every answer drawn is a short result, and nothing but the result' },
   { file: 'check-chess.js',  what: 'the chess move generator, counted by perft' },
   /* ---------- AND EVERY TIMESTAMP ANYBODY SEES ---------------------------------------------------
      `parseWhen` read `2026-09-15` as 26 September 2015, because its day-month-year match was not
@@ -188,6 +189,9 @@ const SUITE = [
   /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
      press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
   { file: 'check-aimark.js', what: 'AI marking: the key, the clamp and the daily cap, through the real doPost' },
+  /* THE DAY A QUESTION WAS DONE, ON THE SHEET. A learner's record: one row per question, the person
+     from the token, and nobody sent another learner's — through the same backend. */
+  { file: 'check-attempts.js', what: 'done questions: the upsert, the token’s person, and who is sent whose' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
      The third check here about SAFETY rather than about working, after `check-marking.js` and
      `check-handles.js` — and the only one whose subject is this repository rather than the app.
@@ -232,6 +236,14 @@ const SUITE = [
      A sample is not a sweep. This lays every question out in a 320px column and asks whether it
      fits — one page load, no navigation, no lazy fill. */
   { file: 'check/cards.js',   what: 'every question in the library, laid out at phone width', slow: true },
+  /* ---------- AND EVERY LABEL IN EVERY DRAWING, AGAINST ITS OWN LINES ----------------------------
+     REPORTED BY THE OWNER, TUTORING FROM THE JUNE 2024 FOUNDATION PAPER: "the Venn diagram was a bit
+     off. Like P and Q was clashing with lines." `cards.js` above asks whether a label is inside its
+     `<svg>`, and a letter on a circle's rim is. This asks the third question — does any inked line
+     run through a label's glyphs, does it overlap another label — of all 334 drawings in
+     `data/*.json`, at 320 and 390. It found 124 collisions in 55 drawings the day it was written.
+     No port to collide on: unset, `DIAGRAMS_PORT` is 0 and the OS picks a free one. */
+  { file: 'check/diagrams.js', what: 'every label in every drawing, clear of its lines', slow: true },
   /* ---------- AND WHETHER A PUSH ACTUALLY ARRIVES ------------------------------------------------
      REPORTED AS "when i first go on site it shows old reels... then i hard refresh then it works
      fine???" — the service worker decided what a navigation was from `url.pathname === '/'`, and

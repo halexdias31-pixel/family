@@ -5147,73 +5147,62 @@ check('a fraction is drawn stacked in the stem, lead, part, answer and choices, 
   return bad;
 });
 
-/* ---------- THE ANSWER IS ITS RESULT, AND THE WORKING WAITS UNDER "Why" ---------------------------
-   ASKED FOR AS "make answers breaifer", and, given the choice: "i want shorter answers."
-   `check-answers.js` proves `answerParts_` splits right and the library is short; it cannot prove
-   the CARD draws the halves where they belong, and a card that typesets the whole answer into
-   `.qans-body` and adds a fold underneath passes every rule there while showing the paragraph the
-   owner asked to lose. So this draws a card through `questionCard_` and asks the card:
-     * the result in `.qans-body`, codes off it, and nothing of the working
-     * one `<details>`, SHUT, its summary "Why", holding the working (fraction stacked) and the
-       examiner's note
-     * "Show the answer" opening the result and NOT the fold -- shorter answers, not a delay
-     * an answer with no working and no note draws no fold at all: a "Why" that opens on nothing
-       says there is something. */
-check('an answer draws its result, and the working waits shut under Why', async () => {
+/* ---------- THE ANSWER IS ITS RESULT, AND NOTHING ELSE ----------------------------------------------
+   ASKED FOR AS *"Also remove all 'why's. I just want it to have answer."* -- after 259 had folded the
+   working under a "Why" and 263 had put the answer on its own page. `check-answers.js` proves
+   `answerParts_` splits right and every library result is short; it cannot prove the PAGE draws only
+   the head, and a page that typesets the result into `.qans-body` and the working under it passes
+   every rule there while showing exactly the paragraph the owner asked to lose. So, through the
+   app's own builders:
+     * the result in `.qans-body`, codes off it, nothing of the working in it
+     * no `.qans-why`, no `<details>`, no `.qans-more`, no `.qans-note` -- and none of the working's
+       words or the examiner's note anywhere in the page's text
+     * "Show the answer" on the hidden page draws exactly that, and nothing more
+     * the working is still IN THE ROW: Mark with AI sends `answer` and `examinerNote` as the scheme
+       (`aiScheme_`), and an answer page that stopped drawing them must not have stopped sending them */
+check('an answer draws its result and nothing else: no Why, no working, no examiner\'s note', async () => {
   const { w } = boot();
   await wait(300);
   const bad = [];
   if (typeof w.answerBlock_ !== 'function') return ['answerBlock_ is not reachable — renamed?'];
-  /* WHAT THE ANSWER PAGE DRAWS ONCE IT IS OPEN. The page itself, shut and opened, is the journey
-     after this one. */
   const draw = x => { const d = w.document.createElement('div'); d.innerHTML = w.answerBlock_(x); w.document.body.appendChild(d); return d; };
   const base = { kind: 'question', key: 'q-why', name: 'Q4', marks: 1,
     row: { row_id: 'Q-WHY-4', paper_id: 'P-WHY', subject: 'Maths', name: 'Why' },
     html: '<p>Work out 12 &divide; 4</p>' };
-  const card = draw(Object.assign({}, base, {
+  const full = Object.assign({}, base, {
     answer: '<b>3</b> &mdash; B1, cao. A half of 6 is <sup>6</sup>&frasl;<sub>2</sub>, and 12 &divide; 4 = 3.',
-    examinerNote: 'Most candidates were right.' }));
+    examinerNote: 'Most candidates were right.' });
+  const card = draw(full);
   const body = card.querySelector('.qans-body');
-  const why = card.querySelectorAll('.qans details.qans-why');
   if (!body) bad.push('no .qans-body was drawn');
   else {
     if (body.textContent.trim() !== '3') bad.push('the result drew as "' + body.textContent.trim() + '", wanted "3"');
     if (/B1|cao|half/.test(body.textContent)) bad.push('the result carries the code or the working: ' + body.innerHTML);
   }
-  if (why.length !== 1) bad.push('wanted one Why fold under the answer, found ' + why.length);
-  else {
-    const f = why[0];
-    if (f.open) bad.push('the Why fold is drawn open');
-    const sum = f.querySelector('summary');
-    if (!sum || sum.textContent.trim() !== 'Why') bad.push('the fold\'s summary reads "' + (sum ? sum.textContent.trim() : '(none)') + '", wanted "Why"');
-    const more = f.querySelector('.qans-more');
-    if (!more || !/A half of 6/.test(more.textContent)) bad.push('the working is not inside the fold');
-    else if (!more.querySelector('.frac .frac-n')) bad.push('the working drew its fraction slanted: ' + more.innerHTML.slice(0, 120));
-    if (more && /B1|cao/.test(more.textContent)) bad.push('the lone "B1, cao" was left in the working');
-    if (!f.querySelector('.qans-note')) bad.push('the examiner\'s note is not inside the fold');
-  }
-  /* SHOW THE ANSWER, AS A STUDENT, ON THE ANSWER PAGE: the result opens, the fold stays shut. */
+  const extra = sel => card.querySelector(sel);
+  ['.qans-why', 'details', 'summary', '.qans-more', '.qans-note'].forEach(sel => {
+    if (extra(sel)) bad.push('the answer still draws ' + sel + ' -- the owner asked for the answer and nothing else');
+  });
+  if (/A half of 6|Most candidates|Why/.test(card.textContent)) bad.push('the working, the note or the word "Why" is still in the answer\'s text: ' + card.textContent.replace(/\s+/g, ' ').trim().slice(0, 120));
+  /* SHOWN, ON THE ANSWER PAGE: the same block, nothing more. */
   if (typeof w.questionAnsCard_ === 'function' && w.__t.ACTIONS['qa-show']) {
-    const x = Object.assign({}, base, {
-      answer: '<b>3</b> &mdash; B1, cao. A half of 6 is <sup>6</sup>&frasl;<sub>2</sub>, and 12 &divide; 4 = 3.',
-      examinerNote: 'Most candidates were right.' });
     const page = w.document.createElement('div');
-    page.innerHTML = w.questionAnsCard_(x);
+    page.innerHTML = w.questionAnsCard_(full);
     w.document.body.appendChild(page);
     const held = w.stuffItemsAll_;
-    w.stuffItemsAll_ = () => [x];
+    w.stuffItemsAll_ = () => [full];
     const showBtn = page.querySelector('[data-do="qa-show"]');
-    if (!showBtn) bad.push('a student\'s answer page has no "Show the answer" to press');
+    if (!showBtn) bad.push('a hidden answer page has no "Show the answer" to press');
     else try { w.__t.ACTIONS['qa-show'](showBtn); } finally { w.stuffItemsAll_ = held; }
-    w.stuffItemsAll_ = held;
     const opened = page.querySelector('.qans-card');
     if (!opened || opened.classList.contains('is-hidden') || !opened.querySelector('.qans-body')) bad.push('"Show the answer" did not show the answer');
-    const f = opened && opened.querySelector('details.qans-why');
-    if (f && f.open) bad.push('"Show the answer" opened the working as well');
+    else if (opened.querySelector('details, .qans-why, .qans-note') || /A half of 6|Most candidates/.test(opened.textContent)) bad.push('the shown answer page carries the working or the note');
   } else bad.push('the answer page or its Show the answer has no handler');
-  const bare = draw(Object.assign({}, base, { answer: '<b>3</b>' }));
-  if (bare.querySelector('.qans-why')) bad.push('an answer with no working and no note still drew a Why fold');
-  if (!bare.querySelector('.qans-body') || bare.querySelector('.qans-body').textContent.trim() !== '3') bad.push('a bare answer lost its result');
+  /* STILL SENT TO THE MARKER: the explanation left the page, not the row. */
+  if (typeof w.aiScheme_ === 'function') {
+    const sch = w.aiScheme_(full);
+    if (!/half of 6/.test(sch) || !/Most candidates/.test(sch)) bad.push('Mark with AI no longer sends the working and the examiner\'s note as its scheme: ' + sch.slice(0, 120));
+  } else bad.push('aiScheme_ is not reachable, so what the marker is sent was NOT checked');
   return bad;
 });
 
@@ -5311,12 +5300,17 @@ check('marking, revealing and tapping leave the question where it is, and typing
   if (!tapped.querySelector('.qp-opt[data-n="2"].is-ans') || !tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick and the right option');
   same(m0, tapped, 'after a wrong tap');
   try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
-  /* AND THE WORDS SAY WHERE THE PICTURE WENT: a question with a figure points at the next page, and
-     one without says nothing -- a pointer to a page that does not exist is worse than none. */
+  /* AND THE WORDS SAY WHERE THE PICTURE WENT: a question whose figure is the page AFTER it (its
+     marker at the end of its words) points at the next page; one whose figure stands in front of it
+     says nothing, and one without a figure says nothing -- a pointer to a page that does not exist,
+     or that you have just turned past, is worse than none. */
   const fig = draw(Object.assign({}, base, { key: 'q-still-fig', diagram: '<svg viewBox="0 0 10 10"></svg>',
-    row: Object.assign({}, base.row, { row_id: 'Q-STILL-10' }) }));
+    html: base.html + '<!--fig-->', row: Object.assign({}, base.row, { row_id: 'Q-STILL-10' }) }));
   if (!fig.querySelector('.qsheet-figref')) bad.push('a question whose figure is on the next page does not say so');
   if (fig.querySelector('.qsheet svg')) bad.push('the question card drew its figure inline again');
+  const figFront = draw(Object.assign({}, base, { key: 'q-still-fig2', diagram: '<svg viewBox="0 0 10 10"></svg>',
+    row: Object.assign({}, base.row, { row_id: 'Q-STILL-11' }) }));
+  if (figFront.querySelector('.qsheet-figref')) bad.push('a question whose figure stands in front of it points forward at it');
   if (typed.querySelector('.qsheet-figref')) bad.push('a question with no figure points at a figure page that does not exist');
   return bad;
 });
@@ -5484,22 +5478,25 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
   return bad;
 });
 
-/* ---------- THE ANSWER IS ITS OWN PAGE, AND A STUDENT CANNOT READ IT UNTIL THEY ASK -----------------
-   ASKED FOR AS *"what I want was answers to be short and to be their own widget"*. `check-answers.js`
-   holds what an answer SAYS; this holds where it is and who can see it, through the app's own
-   builders:
+/* ---------- THE ANSWER IS ITS OWN PAGE, AND NOBODY READS IT UNTIL THEY ASK --------------------------
+   ASKED FOR AS *"what I want was answers to be short and to be their own widget"*, and then *"you
+   should have to click to reveal the answer. Should behave the same whether it's a tutor or child. No
+   difference between the two."* `check-answers.js` holds what an answer SAYS; this holds where it is
+   and who can see it, through the app's own builders:
      * the page exists exactly when there is an answer -- [q, ans], [q, fig, ans], [q], [q, fig]
      * the question card keeps its box and no longer carries the answer, in any form
-     * a student's answer page is hidden and the answer is NOT IN ITS MARKUP (the old `is-shut` hid
-       with CSS an answer anybody could read in the document)
+     * the answer page is hidden and the answer is NOT IN ITS MARKUP (the old `is-shut` hid with CSS an
+       answer anybody could read in the document)
      * the question's tile opens the page that is already standing, the open survives a redraw (the
        `REEL_HELD` fault: a fact left on an element dies with it), and it opens only that question
-     * a tapped question settled right has earned it; settled wrong has not
-     * a tutor's page is open without asking
+     * a tapped question settled right does NOT open it, and neither does a typed answer marked right:
+       the card already says "Correct", and a page that opens itself is a reveal nobody pressed
+     * a TUTOR's page is hidden exactly as a student's, with the same tile label -- it was open
+       without asking, behind a tile that read "The answer"
      * Saved, which draws a kept thing through `cardPages_`, keeps the answer page after the figure
    Turning the page is a real browser's question -- `check/states.js`, "the answer, turned to from
    its question" -- because jsdom lays nothing out and has no library to page through. */
-check('an answer is its own page after its question, hidden from a student until shown, and kept on Saved', async () => {
+check('an answer is its own page after its question, hidden from everybody alike until shown, and kept on Saved', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
@@ -5522,7 +5519,9 @@ check('an answer is its own page after its question, hidden from a student until
   const none = Object.assign({}, base, { key: 'q-ansp-none', row: row('Q-ANSP-7'), answer: '' });
   const figOnly = Object.assign({}, fig, { key: 'q-ansp-figonly', row: row('Q-ANSP-8'), answer: '' });
   const parts = x => JSON.stringify(w.pageParts_(x));
-  [[base, '[null,"ans"]'], [fig, '[null,"fig","ans"]'], [none, '[null]'], [figOnly, '[null,"fig"]']].forEach(([x, want]) => {
+  /* A FIGURE WITH NO MARKER AND NO LEAD STANDS IN FRONT OF ITS CARD -- see `partPlan_` -- and the
+     answer is still the page after the card. */
+  [[base, '[null,"ans"]'], [fig, '["fig",null,"ans"]'], [none, '[null]'], [figOnly, '["fig",null]']].forEach(([x, want]) => {
     if (parts(x) !== want) bad.push(x.row.row_id + ' has pages ' + parts(x) + ', wanted ' + want);
   });
   /* THE QUESTION CARD: the box, and no answer. */
@@ -5531,11 +5530,11 @@ check('an answer is its own page after its question, hidden from a student until
   if (!q.querySelector('.qp-ans')) bad.push('the question card lost its answer box');
   if (!el(w.questionTiles_(base)).querySelector('[data-do="qa-go"]')) bad.push('a question with an answer has no tile to its answer page');
   if (w.questionTiles_(none)) bad.push('a question with no answer offers a tile to an answer page that does not exist');
-  /* HIDDEN, FOR A STUDENT -- signed out is a student here, as on the site. */
+  /* HIDDEN, signed out. */
   if (w.__t.isTutorRole()) bad.push('signed out reads as staff, so the hidden page was NOT checked');
   const hid = el(w.questionAnsCard_(base));
   const card = hid.querySelector('.qans-card');
-  if (!card || !card.classList.contains('is-hidden')) bad.push('a student\'s answer page is not hidden');
+  if (!card || !card.classList.contains('is-hidden')) bad.push('an answer page nobody has asked for is not hidden');
   if (hid.innerHTML.indexOf(SECRET) >= 0 || hid.innerHTML.indexOf('17.5') >= 0) bad.push('a hidden answer page still carries the answer in its markup');
   if (!/Answer hidden/.test(hid.textContent)) bad.push('a hidden answer page does not say "Answer hidden": ' + hid.textContent.trim().slice(0, 80));
   if (!hid.querySelector('[data-do="qa-show"]')) bad.push('a hidden answer page has no "Show the answer"');
@@ -5553,32 +5552,61 @@ check('an answer is its own page after its question, hidden from a student until
   w.stuffItemsAll_ = held;
   const now = d.querySelector('.qans-card[data-of="Q-ANSP-5"]');
   if (!now || now.classList.contains('is-hidden') || now.textContent.indexOf(SECRET) < 0) bad.push('"Show the answer" on the question did not open its answer page');
-  else if (now.querySelector('details.qans-why[open]')) bad.push('showing the answer opened the working as well');
+  else if (now.querySelector('details, .qans-why')) bad.push('showing the answer drew a Why fold under it');
   if (el(w.questionAnsCard_(base)).textContent.indexOf(SECRET) < 0) bad.push('the answer page shut again when it was drawn again');
   const fig2 = d.querySelector('.qans-card[data-of="Q-ANSP-6"]');
   if (!fig2 || !fig2.classList.contains('is-hidden')) bad.push('showing one question\'s answer opened another\'s');
-  /* EARNED BY A RIGHT TAP, from what is stored; not by a wrong one. */
+  /* NOT OPENED BY A RIGHT TAP, settled in storage -- nor by a wrong one. */
   const mc = Object.assign({}, base, { key: 'q-ansp-mc', row: row('Q-ANSP-9'), choices: ['17', '17.5'], choiceRight: [2] });
   const shutNow = x => el(w.questionAnsCard_(x)).querySelector('.qans-card.is-hidden') !== null;
   try {
     w.localStorage.setItem(ansKey(mc), '1');
     if (!shutNow(mc)) bad.push('a tapped question answered wrong opened its answer page');
     w.localStorage.setItem(ansKey(mc), '2');
-    if (shutNow(mc)) bad.push('a tapped question answered right still hides its answer page');
+    if (!shutNow(mc)) bad.push('a tapped question answered right opened its answer page by itself -- the card already says Correct, and the page waits for the tap');
   } finally { try { w.localStorage.removeItem(ansKey(mc)); } catch (e) {} }
-  /* SAVED: the kept question, then its figure, then its answer. */
+  /* AND NOT BY A RIGHT TAP AS IT HAPPENS, through the real handler on a real card. */
+  const mcLive = Object.assign({}, mc, { key: 'q-ansp-mc2', row: row('Q-ANSP-11') });
+  try { w.localStorage.removeItem(ansKey(mcLive)); } catch (e) {}
+  const tapCard = el(w.questionCard_(mcLive));
+  d.body.appendChild(tapCard);
+  const heldT = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [mcLive];
+  try { A['qp-choose'](tapCard.querySelector('.qp-opt[data-n="2"]')); } finally { w.stuffItemsAll_ = heldT; }
+  if (!tapCard.querySelector('.qp-mark.is-right')) bad.push('the right option was not marked Correct, so the tap was NOT checked');
+  if (!shutNow(mcLive)) bad.push('tapping the right option opened the answer page');
+  try { w.localStorage.removeItem(ansKey(mcLive)); } catch (e) {}
+  /* AND NOT BY A TYPED ANSWER MARKED RIGHT. */
+  const typedX = Object.assign({}, base, { key: 'q-ansp-typed', row: row('Q-ANSP-12'), accept: '17.5' });
+  const typedCard = el(w.questionCard_(typedX));
+  d.body.appendChild(typedCard);
+  const inp = typedCard.querySelector('.qp-ans-in');
+  if (inp) { inp.value = '17.5'; inp.dispatchEvent(new w.Event('input', { bubbles: true })); }
+  const heldC = w.stuffItemsAll_;
+  w.stuffItemsAll_ = () => [typedX];
+  try { if (typedCard.querySelector('.qp-check')) A['qp-check'](typedCard.querySelector('.qp-check')); } finally { w.stuffItemsAll_ = heldC; }
+  if (!typedCard.querySelector('.qp-mark.is-right')) bad.push('17.5 was not marked right, so a right Check was NOT checked');
+  if (!shutNow(typedX)) bad.push('a typed answer marked right opened its answer page by itself');
+  try { w.localStorage.removeItem(ansKey(typedX)); } catch (e) {}
+  /* SAVED: the kept question's figure, then the question, then its answer -- `pageParts_`'s order. */
   const pages = w.cardPages_(fig, 0);
   if (pages.length !== 3) bad.push('Saved draws a question with a figure and an answer as ' + pages.length + ' pages, wanted 3');
   else {
-    if (!/class="qcard qfig/.test(pages[1])) bad.push('Saved\'s second page of a question is not its figure');
+    if (!/class="qcard qfig/.test(pages[0])) bad.push('Saved\'s first page of a question is not its figure, which stands in front of it');
     if (!/qans-card[^"]*" data-of="Q-ANSP-6"/.test(pages[2])) bad.push('Saved\'s third page of a question is not its answer');
   }
   if (w.cardPages_(base, 0).length !== 2) bad.push('Saved does not keep the answer page after a kept question');
   if (w.cardPages_(none, 0).length !== 1) bad.push('Saved draws an answer page for a question with no answer');
-  /* STAFF SEE IT OPEN, without asking. */
-  w.__t.USER({ name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] });
-  if (!w.__t.isTutorRole()) bad.push('could not sign a tutor in, so the tutor\'s open page was NOT checked');
-  else if (shutNow(Object.assign({}, base, { key: 'q-ansp-tutor', row: row('Q-ANSP-10') }))) bad.push('a tutor\'s answer page is hidden behind "Show the answer"');
+  /* A TUTOR AND AN ADMIN ARE ASKED THE SAME: hidden until the tap, behind the same tile. */
+  [['Ada Tutor', 'P002', 'tutor'], ['Ann Admin', 'P001', 'admin']].forEach(([name, pid, role]) => {
+    w.__t.USER({ name: name, personId: pid, role: role, roles: [role] });
+    if (!w.__t.isTutorRole()) { bad.push('could not sign ' + role + ' in, so their answer page was NOT checked'); return; }
+    const tx = Object.assign({}, base, { key: 'q-ansp-' + role, row: row('Q-ANSP-' + role) });
+    if (!shutNow(tx)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s answer page is open without "Show the answer" -- the owner asked for no difference');
+    const tl = el(w.questionTiles_(tx)).querySelector('[data-do="qa-go"]');
+    if (!tl || !/Show the answer/.test(tl.getAttribute('aria-label') || tl.textContent)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s tile does not read "Show the answer": ' + (tl ? (tl.getAttribute('aria-label') || tl.textContent.trim()) : '(none)'));
+  });
+  w.__t.USER(null);
   return bad;
 });
 
@@ -5615,7 +5643,7 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   const parts = (x, prev) => JSON.stringify(w.pageParts_(x, prev));
   [[a, null, '["stem0","sfig0",null,"ans"]', '(a) with nothing in front'],
    [b, a, '[null]', '(b) after (a), which showed the stem'],
-   [c, b, '[null,"fig"]', '(c) after (b)'],
+   [c, b, '["fig",null]', '(c) after (b), its own figure in front of its ask'],
    [b, null, '["stem0","sfig0",null]', '(b) on its own, which still needs its stem'],
    [Object.assign({}, b, { stems: [{ id: 'S-ORD-PIC', diagram: svg }] }), null, '["sfig0",null]', 'a stem that is only a picture']
   ].forEach(([x, prev, want, what]) => {
@@ -5626,7 +5654,7 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   w.stuffFiltered = (() => { const list = [a, b, c]; return () => list; })();
   let strip = '';
   try { strip = w.stuffPages_().map(pg => pg.x.qPart + ':' + (pg.part || 'card')).join(' '); } finally { w.stuffFiltered = heldF; }
-  if (strip !== 'a:stem0 a:sfig0 a:card a:ans b:card c:card c:fig') bad.push('the strip reads "' + strip + '", wanted the paper\'s order: stem, its figure, (a), its answer, (b), (c), its figure');
+  if (strip !== 'a:stem0 a:sfig0 a:card a:ans b:card c:fig c:card') bad.push('the strip reads "' + strip + '", wanted the paper\'s order: stem, its figure, (a), its answer, (b), (c)\'s figure, (c)');
   /* SAVED, which draws a kept part alone, keeps the stem and its figure in front of it. */
   try { if (w.cardPages_(b, 0).length !== 3) bad.push('Saved draws ' + w.cardPages_(b, 0).length + ' pages for a kept part, wanted its stem, the stem\'s figure and the part'); }
   catch (e) { bad.push('cardPages_ threw on a part with a stem: ' + e.message); }
@@ -5648,7 +5676,7 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   [sf, w.questionFigCard_(c), w.questionFigCard_(plain)].forEach(h => {
     if (/\bQ\d/.test(el(h).querySelector('.qcard-top').textContent)) bad.push('a figure page carries a question number: ' + el(h).querySelector('.qcard-top').textContent.trim());
   });
-  if (!el(w.questionCard_(c)).querySelector('.qsheet-figref')) bad.push('(c), whose own figure follows, does not say so');
+  if (el(w.questionCard_(c)).querySelector('.qsheet-figref')) bad.push('(c), whose own figure stands in front of it, points forward at a figure');
   if (el(w.questionCard_(b)).querySelector('.qsheet-figref')) bad.push('(b) points at a figure page it does not have -- the stem\'s figure is in front of it, not after');
   /* THE TILE: from (a)'s card, two pages after a stem and its figure, the answer is ONE page on. */
   const strip2 = el('<div id="s-ordtest"><section class="page"></section><section class="page"></section>'
@@ -5749,6 +5777,378 @@ check('a page too long for a phone is cut between paragraphs, and the ask stays 
   return bad;
 });
 
+/* ---------- EVERY FIGURE WHERE THE PAPER PRINTS IT, ON A PAGE OF ITS OWN ---------------------------------
+   ASKED FOR AS *"Let's say there's a question which begins with text, then diagram, then text then
+   diagram then text. This should break into 5 widgets. This is to ensure it's same order but diagram
+   has its own widget."* The data marks where a row's figure stands with `<!--fig-->` between two
+   blocks of its `html` (`figBlocks_`); through the app's own builders and its own strip:
+     * the owner's sentence exactly -- stem text, the stem's figure, (a)'s text, (a)'s figure, (a)'s
+       ask with the box -- is FIVE pages and then the answer, in that order
+     * a stem with words on BOTH sides of its figure, and a part with a lead: the stem's words, its
+       figure, the rest of its words (still `Q5`), the lead (`Q5(a)`), the part's figure, the ask --
+       six, because the header changes from Q5 to Q5(a) between the third and the fourth: the stem's
+       words are every part's, the lead is (a)'s, and one page holding both would print (a)'s
+       sentence under a header that says Q5
+     * text pages carry the number (`Q5 · 1 of 2`, `Q5(a) · 2 of 2`), figure pages only the figure's
+       name; the box is on the page with the part's last words and nowhere else; "Figure on the
+       next page" exactly where the next page is a figure
+     * every word once and in order, and the marker NEVER drawn -- not on a page, not in the search
+       haystack
+     * the four placements without a marker: a lead (lead, figure, ask), none (figure, then the
+       card), a pen question (the card, then the figure to draw on), a marker at the very end (the
+       card, then the figure); a marker inside a paragraph stands after it rather than cutting it
+     * the cut still works inside a side: eight paragraphs before the figure are cut into pages in
+       front of it, and no page holds words from both sides
+     * the strip (`stuffPages_`), Saved (`cardPages_`) and the answer tile all agree */
+check('a figure stands where the paper prints it, on its own page: text, figure, text, figure, text', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['pageParts_', 'questionCard_', 'questionStemCard_', 'questionStemFigCard_', 'questionFigCard_',
+                'questionPreCard_', 'stuffPart_', 'stuffPages_', 'cardPages_', 'questionTiles_', 'figBlocks_', 'partPlan_']
+    .filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The figure order was NOT checked'];
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
+  const svg = n => '<svg viewBox="0 0 340 200"><text x="10" y="20">' + n + '</text></svg>';
+  const row = id => ({ row_id: id, paper_id: 'P-FIG', subject: 'Maths', name: 'Paper 1: Foundation — June 2024' });
+  const page = (x, part) => el(part ? w.stuffPart_(x, part) : w.stuffCard(x, 0));
+  const head = pg => ((pg.querySelector('.qcard-top b') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+  const say = pg => { const r = pg.querySelector('.qsheet-figref'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; };
+
+  /* ---------- THE OWNER'S SENTENCE: FIVE PAGES ------------------------------------------------- */
+  const stem5 = { id: 'S-FIG-5', html: '<p>ONE-TEXT A shape is drawn on a grid.</p>', diagram: svg('FIG-ONE') };
+  const q5 = { kind: 'question', name: 'Q5(a)', qNumber: '5', qPart: 'a', marks: 2, key: 'q-fig-5a', row: row('Q-FIG-5a'),
+    stems: [stem5], html: '<p>THREE-TEXT The shape is reflected in the line.</p><!--fig--><p>FIVE-TEXT Work out the size of angle x.</p>',
+    diagram: svg('FIG-FOUR'), answer: '<b>40&deg;</b>', accept: '40' };
+  const want5 = '["stem0","sfig0","pre0","fig",null,"ans"]';
+  if (JSON.stringify(w.pageParts_(q5)) !== want5) bad.push('text, diagram, text, diagram, text has pages ' + JSON.stringify(w.pageParts_(q5)) + ', wanted ' + want5 + ' -- five, in that order, then the answer');
+  else {
+    const drawn = w.pageParts_(q5).map(p => page(q5, p));
+    const words = ['ONE-TEXT', 'FIG-ONE', 'THREE-TEXT', 'FIG-FOUR', 'FIVE-TEXT'];
+    words.forEach((t, i) => { if (drawn[i].textContent.indexOf(t) < 0) bad.push('page ' + (i + 1) + ' of the five does not hold ' + t + ': ' + drawn[i].textContent.replace(/\s+/g, ' ').trim().slice(0, 80)); });
+    const heads = drawn.slice(0, 5).map(head);
+    if (JSON.stringify(heads) !== JSON.stringify(['Q5', 'Figure', 'Q5(a) · 1 of 2', 'Figure', 'Q5(a) · 2 of 2']))
+      bad.push('the five pages are headed ' + JSON.stringify(heads) + ', wanted Q5, Figure, Q5(a) · 1 of 2, Figure, Q5(a) · 2 of 2');
+    if (!drawn[4].querySelector('.qp-ans') || drawn.slice(0, 4).some(p => p.querySelector('.qp-ans'))) bad.push('the box is not on the last of the words alone');
+    if (say(drawn[2]) !== 'Figure on the next page →') bad.push('(a)\'s words before its figure say "' + say(drawn[2]) + '", wanted "Figure on the next page →"');
+    if (say(drawn[4])) bad.push('(a)\'s ask, after its figure, still points forward: "' + say(drawn[4]) + '"');
+    if (!drawn[5].querySelector('.qans-card')) bad.push('the page after the ask is not the answer');
+  }
+
+  /* ---------- A STEM WITH WORDS ON BOTH SIDES OF ITS FIGURE, AND A PART WITH A LEAD -------------- */
+  const stem = { id: 'S-FIG-6', html: '<p>STEM-ONE The diagram shows a triangle ABC.</p><!--fig--><p>STEM-TWO AB = 7 cm and angle C = 90°.</p>', diagram: svg('STEM-FIG') };
+  const a = { kind: 'question', name: 'Q6(a)', qNumber: '6', qPart: 'a', marks: 3, key: 'q-fig-6a', row: row('Q-FIG-6a'),
+    stems: [stem], lead: '<p>PART-LEAD Here is a second triangle, PQR.</p>', diagram: svg('PART-FIG'),
+    html: '<p>PART-ASK Work out the length of PR.</p>', answer: '<b>5 cm</b> &mdash; by Pythagoras' };
+  const want = '["stem0","sfig0","stem0-1","pre0","fig",null,"ans"]';
+  const parts = w.pageParts_(a);
+  if (JSON.stringify(parts) !== want) bad.push('stem text <!--fig--> stem text + lead + figure + ask has pages ' + JSON.stringify(parts) + ', wanted ' + want);
+  else {
+    const drawn = parts.map(p => page(a, p));
+    const heads = drawn.map(head);
+    const wantHeads = ['Q6 · 1 of 2', 'Figure', 'Q6 · 2 of 2', 'Q6(a) · 1 of 2', 'Figure', 'Q6(a) · 2 of 2', 'Q6(a) · answer'];
+    if (JSON.stringify(heads) !== JSON.stringify(wantHeads)) bad.push('the pages are headed ' + JSON.stringify(heads) + ', wanted ' + JSON.stringify(wantHeads));
+    /* EVERY WORD ONCE AND IN ORDER, and the figures between them. */
+    const text = drawn.map(p => p.textContent).join(' | ');
+    const seq = ['STEM-ONE', 'STEM-FIG', 'STEM-TWO', 'PART-LEAD', 'PART-FIG', 'PART-ASK'];
+    seq.forEach(t => { if (text.split(t).length !== 2) bad.push('"' + t + '" is drawn ' + (text.split(t).length - 1) + ' times, wanted once'); });
+    if (seq.some((t, i) => i && text.indexOf(t) < text.indexOf(seq[i - 1]))) bad.push('the words and figures are out of the paper\'s order: ' + seq.map(t => text.indexOf(t)).join(', '));
+    /* FIGURE PAGES: a picture, its name, no number, no box. */
+    [1, 4].forEach(i => {
+      if (!drawn[i].querySelector('.qcard.qfig svg')) bad.push('page ' + (i + 1) + ' is not a figure page with its picture');
+      if (/\bQ\d/.test(drawn[i].querySelector('.qcard-top').textContent)) bad.push('figure page ' + (i + 1) + ' carries a question number');
+    });
+    if (drawn.slice(0, 5).some(p => p.querySelector('.qp-ans')) || !drawn[5].querySelector('.qp-ans')) bad.push('the box is not on the page with the part\'s last words alone');
+    const says = drawn.slice(0, 6).map(say);
+    const wantSays = ['Figure on the next page →', '', '', 'Figure on the next page →', '', ''];
+    if (JSON.stringify(says) !== JSON.stringify(wantSays)) bad.push('the pages\' pointers read ' + JSON.stringify(says) + ', wanted ' + JSON.stringify(wantSays));
+    /* THE MARKER, NEVER DRAWN AND NEVER SEARCHED. */
+    if (drawn.some(p => /<!--\s*fig/.test(p.innerHTML))) bad.push('the <!--fig--> marker is in a drawn page');
+    if (typeof w.plainText_ === 'function' && /fig/i.test(w.plainText_(a.html))) bad.push('the marker reaches the search haystack: ' + w.plainText_(a.html));
+    /* THE STRIP, SAVED AND THE TILE. */
+    const heldF = w.stuffFiltered;
+    w.stuffFiltered = (() => { const list = [a]; return () => list; })();
+    let strip = '';
+    try { strip = w.stuffPages_().map(pg => pg.part || 'card').join(' '); } finally { w.stuffFiltered = heldF; }
+    if (strip !== 'stem0 sfig0 stem0-1 pre0 fig card ans') bad.push('the strip reads "' + strip + '"');
+    const saved = w.cardPages_(a, 0);
+    if (saved.length !== 7 || !/class="qcard qfig/.test(saved[4]) || !/qp-ans/.test(saved[5])) bad.push('Saved draws the question as ' + saved.length + ' pages, not the same seven in the same order');
+    const tiles = el('<div id="s-figtest">' + parts.map(p => p === null
+      ? '<section class="page"><div class="tile-row">' + w.questionTiles_(a) + '</div></section>' : '<section class="page"></section>').join('') + '</div>');
+    d.body.appendChild(tiles);
+    const heldA = w.stuffItemsAll_, heldG = w.goPage;
+    let went = null;
+    w.stuffItemsAll_ = () => [a];
+    w.goPage = (id, to) => { went = to; };
+    try { w.__t.ACTIONS['qa-go'](tiles.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; tiles.remove(); }
+    if (went !== parts.indexOf('ans')) bad.push('the answer tile turned to page ' + went + ', wanted ' + parts.indexOf('ans'));
+  }
+
+  /* ---------- WITHOUT A MARKER, AND WITH ONE IN THE WRONG PLACE ---------------------------------- */
+  const one = (id, extra) => Object.assign({ kind: 'question', name: 'Q7', qNumber: '7', marks: 1, key: 'q-fig-' + id,
+    row: row('Q-FIG-' + id), stems: [], diagram: svg('F'), html: '<p>Ask.</p>' }, extra);
+  [[one('lead', { lead: '<p>Here is a grid.</p>' }), '["pre0","fig",null]', 'a lead and no marker: the lead, the figure, the ask'],
+   [one('none', {}), '["fig",null]', 'no lead and no marker: the figure in front of the card'],
+   [one('pen', { answerType: 'drawing', lead: '<p>Here is a grid.</p>' }), '[null,"fig"]', 'a pen question and no marker: the card, then the figure to draw on'],
+   [one('end', { html: '<p>Ask.</p><!--fig-->' }), '[null,"fig"]', 'a marker at the very end: the card, then the figure'],
+   [one('start', { html: '<!--fig--><p>Ask.</p>' }), '["fig",null]', 'a marker at the very start: the figure, then the card'],
+   [one('nofig', { diagram: '', html: '<p>Before.</p><!--fig--><p>After.</p>' }), '[null]', 'a marker on a row with no figure: nothing to place, one card']
+  ].forEach(([x, want, what]) => {
+    if (JSON.stringify(w.pageParts_(x)) !== want) bad.push(what + ' -- got ' + JSON.stringify(w.pageParts_(x)) + ', wanted ' + want);
+  });
+  const nofig = el(w.questionCard_(one('nofig2', { diagram: '', html: '<p>Before.</p><!--fig--><p>After.</p>' })));
+  if (!/Before\.[\s\S]*After\./.test(nofig.textContent) || /<!--/.test(nofig.innerHTML)) bad.push('a marker on a row with no figure is drawn, or lost the words around it');
+  const inside = w.figBlocks_('<p>One.</p><p>Two <!--fig--> halves.</p><p>Three.</p>');
+  if (inside.at !== 2 || inside.blocks.length !== 3 || /<!--/.test(inside.blocks.join(''))) bad.push('a marker inside a paragraph cut it, or did not stand after it: ' + JSON.stringify(inside));
+
+  /* ---------- THE CUT, INSIDE A SIDE --------------------------------------------------------------- */
+  const para = n => '<p>BEFORE-' + n + ' ' + 'the solution is heated gently and stirred until it is clear. '.repeat(3) + '</p>';
+  const longX = one('long', { html: [1, 2, 3, 4, 5, 6, 7, 8].map(para).join('') + '<!--fig--><p>AFTER-ASK Find the rate.</p>' });
+  const lp = w.pageParts_(longX);
+  const fi = lp.indexOf('fig');
+  if (fi < 2 || lp[fi + 1] !== null || lp.slice(0, fi).some(p => !/^pre\d+$/.test(p))) bad.push('eight paragraphs before a figure were not cut into pages in front of it: ' + JSON.stringify(lp));
+  else {
+    const before = lp.slice(0, fi).map(p => page(longX, p).textContent).join(' ');
+    const after = page(longX, null).textContent;
+    if (/AFTER-ASK/.test(before) || /BEFORE-\d/.test(after)) bad.push('a page holds words from both sides of the figure');
+    [1, 8].forEach(n => { if (before.split('BEFORE-' + n + ' ').length !== 2) bad.push('BEFORE-' + n + ' is not on exactly one page in front of the figure'); });
+  }
+  return bad;
+});
+
+/* ---------- A QUESTION ANSWERED ON A DIAGRAM HAS SOMETHING TO ANSWER ON --------------------------------
+   ASKED FOR AS *"some questions require answers on diagram. So should have a diagram for them to draw
+   on to do it or whatever."* 234 of the 301 drawing and annotating questions had no picture under the
+   pen. Through the app's own builders and handlers:
+     * a drawing question with no picture gets a figure page AFTER its card (the ask first, then the
+       thing to draw on), with the pen over a squared grid, headed "Squared grid" -- never "Figure",
+       never a question number -- and a line saying it is not the paper's figure; marks stored under
+       `padKey_` come back on it
+     * which surface: `figure` naming a coordinate grid is axes; any other grid is squared; nothing
+       is a blank space; an isometric label is blank; `surface` on the row wins, even on a question
+       not answered by drawing; a question's own diagram, or its stem's one diagram, wins over all of
+       it -- the paper's figure is never replaced by a surface
+     * "text": no picture at all -- the part's own words are the surface. Every word a tap target; a
+       tap rings it and stores it under the pen's key, another tap takes the ring off; a redraw keeps
+       the rings; the passage reads exactly as it did (the same text, nothing added inside a word,
+       "don't" one word, a full stop outside the word); the lead is not wrapped; a pre page and the
+       card name a word the same way */
+check('a question answered on a diagram has a surface: a grid under the pen, or its passage to ring words in', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['pageParts_', 'questionCard_', 'questionFigCard_', 'padSource_', 'padSurface_', 'surfaceSvg_', 'circWords_']
+    .filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The surfaces were NOT checked'];
+  const A = w.__t.ACTIONS;
+  if (!A['qw-tap']) return ['qw-tap has no handler, so a word cannot be ringed'];
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
+  const row = (id, extra) => Object.assign({ row_id: id, paper_id: 'P-SURF', subject: 'Maths', name: 'Surface' }, extra || {});
+  const q = (id, extra, rowExtra) => Object.assign({ kind: 'question', name: 'Q8', qNumber: '8', marks: 2, key: 'q:Q-SURF-' + id,
+    row: row('Q-SURF-' + id, rowExtra), stems: [], html: '<p>Draw the graph of y = 2x + 1.</p>' }, extra || {});
+
+  /* ---------- THE FALLBACK GRID ------------------------------------------------------------------ */
+  const grid = q('grid', { answerType: 'drawing' }, { figure: 'grid-blank' });
+  if (JSON.stringify(w.pageParts_(grid)) !== '[null,"fig"]') bad.push('a drawing question with no picture has pages ' + JSON.stringify(w.pageParts_(grid)) + ', wanted [null,"fig"] -- the ask, then the surface');
+  try { w.localStorage.setItem('pad:' + grid.key, JSON.stringify([[20, 20, 200, 200]])); } catch (e) {}
+  const gp = el(w.questionFigCard_(grid));
+  const pad = gp.querySelector('.qcard.qfig .qpad');
+  if (!pad) bad.push('the surface page has no pen');
+  else {
+    if (!pad.querySelector('.qpad-art > svg.qsurf.is-grid')) bad.push('the pen is not over a squared grid: ' + (pad.querySelector('.qpad-art svg') || {}).outerHTML);
+    if (pad.querySelectorAll('svg.qsurf line.grid').length < 30) bad.push('the grid has ' + pad.querySelectorAll('svg.qsurf line.grid').length + ' lines -- that is not squared paper');
+    if (pad.getAttribute('data-k') !== 'pad:' + grid.key) bad.push('the surface\'s marks are kept under ' + pad.getAttribute('data-k') + ', not the pen\'s own key');
+    if (!pad.querySelector('.qpad-g path')) bad.push('a mark stored under the pen\'s key is not drawn back on the surface');
+    if (!/not the paper.s own figure/i.test(pad.textContent)) bad.push('the surface does not say it is not the paper\'s figure');
+  }
+  const gHead = ((gp.querySelector('.qcard-top b') || {}).textContent || '').trim();
+  if (gHead !== 'Squared grid') bad.push('the surface page is headed "' + gHead + '", wanted "Squared grid"');
+  if (/\bQ\d|Figure/.test(gHead)) bad.push('the surface page claims a number or a figure: ' + gHead);
+  try { w.localStorage.removeItem('pad:' + grid.key); } catch (e) {}
+  const ref = (el(w.questionCard_(grid)).querySelector('.qsheet-figref') || {}).textContent || '';
+  if (!/^Squared grid on the next page/.test(ref.trim())) bad.push('the card does not say the squared grid is on the next page, in the words the page is headed with: "' + ref.trim() + '"');
+
+  /* ---------- WHICH SURFACE ----------------------------------------------------------------------- */
+  const svgDiag = '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>';
+  [[q('coord', { answerType: 'drawing' }, { figure: 'coordinate-grid' }), 'coord'],
+   [q('none', { answerType: 'annotate' }), 'blank'],
+   [q('hist', { answerType: 'drawing' }, { figure: 'histogram-grid' }), 'grid'],
+   [q('iso', { answerType: 'drawing' }, { figure: 'isometric-dots' }), 'blank'],
+   [q('said', { answerType: 'calculation', surface: 'grid' }), 'grid'],
+   [q('word', { answerType: 'calculation' }, { figure: 'grid-blank' }), '']
+  ].forEach(([x, want]) => {
+    const got = w.padSurface_(x);
+    if (got !== want) bad.push(x.row.row_id + ' gets surface "' + got + '", wanted "' + want + '"');
+  });
+  const coordP = el(w.questionFigCard_(q('coord2', { answerType: 'drawing' }, { figure: 'coordinate-grid' })));
+  if (!coordP.querySelector('svg.qsurf.is-coord line.axis') || (coordP.querySelector('.qcard-top b') || {}).textContent.trim() !== 'Axes') bad.push('a coordinate-grid question is not given axes on a grid, headed Axes');
+  const own = q('own', { answerType: 'drawing', diagram: svgDiag });
+  if (!w.padSource_(own) || w.padSource_(own).from !== 'part' || el(w.questionFigCard_(own)).querySelector('svg.qsurf')) bad.push('a drawing question with its own picture had it replaced by a surface');
+  const stemmed = q('stem', { answerType: 'drawing', stems: [{ id: 'S-SURF', html: '<p>Here is a grid.</p>', diagram: svgDiag }] });
+  if (!w.padSource_(stemmed) || w.padSource_(stemmed).from === 'surface') bad.push('a drawing question under a stem\'s picture had it replaced by a surface');
+  if (w.padSource_(q('plain', { answerType: 'calculation' }))) bad.push('a calculation with no surface named was given something to draw on');
+
+  /* ---------- THE PASSAGE: RING A WORD BY TAPPING IT ------------------------------------------------ */
+  const PASS = '<p>The crumbling castle stood high on the rocky hill. Don&rsquo;t forget the glorious views.</p>';
+  const text = q('text', { answerType: 'annotate', surface: 'text', lead: '<p>LEADWORD sets the scene.</p>',
+    html: '<p>Circle the three <b>adjectives</b> in the passage below.</p>' + PASS });
+  const tk = 'pad:' + text.key + ':words';
+  try { w.localStorage.removeItem(tk); } catch (e) {}
+  if (JSON.stringify(w.pageParts_(text)) !== '[null]') bad.push('a passage question has pages ' + JSON.stringify(w.pageParts_(text)) + ' -- it needs no picture, the passage is the surface');
+  const plain = el(w.questionCard_(Object.assign({}, text, { key: 'q:Q-SURF-text-plain', surface: '', answerType: 'short', row: row('Q-SURF-text-plain') })));
+  const card = el(w.questionCard_(text));
+  const host = card.querySelector('.qsheet-part.is-text[data-circ]');
+  if (!host) bad.push('the passage is not drawn as a surface (.qsheet-part.is-text[data-circ])');
+  else {
+    if (host.getAttribute('data-circ') !== tk) bad.push('the rings are kept under ' + host.getAttribute('data-circ') + ', not beside the pen\'s marks at ' + tk);
+    const words = [...host.querySelectorAll('.qw[data-do="qw-tap"]')].map(s => s.textContent);
+    ['crumbling', 'castle', 'rocky', 'hill', 'Don’t', 'glorious', 'adjectives'].forEach(t => {
+      if (words.indexOf(t) < 0) bad.push('"' + t + '" is not a word you can tap -- the words are ' + JSON.stringify(words.slice(0, 12)));
+    });
+    if (words.some(t => /[.,]/.test(t))) bad.push('a full stop or comma was taken into a word: ' + JSON.stringify(words.filter(t => /[.,]/.test(t))));
+    if (card.querySelector('.qsheet-lead .qw')) bad.push('the lead\'s words were made tappable -- only the part\'s are the surface');
+    const flat = n => n.querySelector('.qsheet-pb').textContent.replace(/\s+/g, ' ').trim();
+    if (flat(card) !== flat(plain)) bad.push('the passage reads differently once it is a surface:\n            ' + flat(card) + '\n            ' + flat(plain));
+    if (!/Tap a word/.test(card.textContent)) bad.push('the page does not say how to ring a word');
+    const word = t => [...card.querySelectorAll('.qw')].find(s => s.textContent === t);
+    const crumbling = word('crumbling');
+    A['qw-tap'](crumbling);
+    let stored = [];
+    try { stored = JSON.parse(w.localStorage.getItem(tk) || '[]'); } catch (e) {}
+    if (!crumbling.classList.contains('is-circled') || crumbling.getAttribute('aria-pressed') !== 'true') bad.push('a tap did not ring "crumbling"');
+    if (stored.length !== 1 || stored[0] !== crumbling.getAttribute('data-w')) bad.push('the ring was not stored: ' + JSON.stringify(stored));
+    A['qw-tap'](word('rocky'));
+    const again = el(w.questionCard_(text));
+    const lit = [...again.querySelectorAll('.qw.is-circled')].map(s => s.textContent).sort().join(',');
+    if (lit !== 'crumbling,rocky') bad.push('a redrawn card rings [' + lit + '], wanted crumbling and rocky');
+    A['qw-tap'](crumbling);
+    if (crumbling.classList.contains('is-circled')) bad.push('a second tap did not take the ring off');
+    const twin = [...again.querySelectorAll('.qw')].find(s => s.textContent === 'crumbling');
+    if (twin && twin.classList.contains('is-circled')) bad.push('the ring came off one copy of the passage and stayed on the other');
+  }
+  try { w.localStorage.removeItem(tk); } catch (e) {}
+  /* A WORD IS NAMED BY ITS BLOCK, so a pre page and the card agree on what to call it. */
+  const named = w.circWords_('<p>One two</p>', 3, []);
+  if (!/data-w="3\.0"[^>]*>One</.test(named) || !/data-w="3\.1"[^>]*>two</.test(named)) bad.push('words are not named by their block and place: ' + named);
+  if (/qw/.test(w.circWords_('<svg><text>Axis</text></svg>', 0, []))) bad.push('words inside a drawing were made tappable');
+  return bad;
+});
+
+/* ---------- FIND DRAWS THE SAME THING FOR A TUTOR, AN ADMIN, A STUDENT AND SOMEBODY SIGNED OUT --------
+   ASKED FOR AS *"No distinction between tutor and student on the finder. All the same. Remove any
+   nuances about that."* -- and before it, of the answer: *"Should behave the same whether it's a tutor
+   or child. No difference between the two."* The differences that were there (an answer page open for
+   staff, a tile reading "The answer" for them, a gold Spotlight tile for an admin on every question and
+   practical) each looked deliberate where it was written, which is why the rule is asked of the whole
+   family at once rather than of each in turn.
+
+   EVERY PAGE OF A QUESTION FAMILY, drawn by the app's own builders for four visitors -- signed out, a
+   student, a tutor, an admin -- and compared as markup: a stem with words both sides of its figure, a
+   part with a lead, a figure and a box, its answer page hidden and then shown, a tapped question, a
+   worded one with Mark with AI under it, a drawing question on a squared grid, a passage to ring words
+   in; and a real practical, project and textbook through the real mapper.
+
+   WHAT IS ALLOWED TO DIFFER IS WHAT IS A PERSON'S, NOT A ROLE'S, and it is taken out before comparing:
+   the answer box's key and the done date's (`ans:u:<id>:`, whose drawer this is), the name over the box
+   ("Ada's answer" / "Your answer"), and the star (`fav`), which needs somebody signed in to keep it for.
+   Anything else that differs is a role showing through, and the first difference is printed. */
+check('Find draws the same question family, practical, project and textbook for a tutor, an admin, a student and nobody', async () => {
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the real kinds were NOT checked — not a pass'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+    { practicals: read('practicals'), projects: read('projects'), textbooks: read('textbooks') })));
+  const p = payload();
+  Object.assign(p, { practicals: made.practicals || [], projects: made.projects || [], textbooks: made.textbooks || [],
+                     features: (p.features || []).concat(['aiMark']), aiMarking: true });
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t;
+  const bad = [];
+  const need = ['pageParts_', 'stuffPart_', 'stuffCard', 'questionAnsCard_', 'ansShow_', 'stuffItems'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The sameness was NOT checked'];
+  const svg = '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>';
+  const row = id => ({ row_id: id, paper_id: 'P-SAME', subject: 'Maths', name: 'Paper 1: Foundation — June 2024' });
+  const stem = { id: 'S-SAME', html: '<p>The diagram shows a triangle.</p><!--fig--><p>AB = 7 cm.</p>', diagram: svg };
+  const fam = [
+    { kind: 'question', name: 'Q9(a)', qNumber: '9', qPart: 'a', marks: 2, key: 'q:Q-SAME-9a', row: row('Q-SAME-9a'), stems: [stem],
+      lead: '<p>Here is a second triangle.</p>', diagram: svg, html: '<p>Work out PR.</p>', answer: '<b>5 cm</b> &mdash; by Pythagoras', accept: '5' },
+    { kind: 'question', name: 'Q9(b)', qNumber: '9', qPart: 'b', marks: 1, key: 'q:Q-SAME-9b', row: row('Q-SAME-9b'), stems: [stem],
+      html: '<p>Which is right?</p>', choices: ['3', '4'], choiceRight: [2], answer: '<b>4</b>' },
+    { kind: 'question', name: 'Q10', qNumber: '10', marks: 3, key: 'q:Q-SAME-10', row: row('Q-SAME-10'), stems: [],
+      answerType: 'explain', html: '<p>Explain why the angles add to 180°.</p>', answer: '<b>Angles on a line</b> &mdash; they make a half turn' },
+    { kind: 'question', name: 'Q11', qNumber: '11', marks: 2, key: 'q:Q-SAME-11', row: Object.assign(row('Q-SAME-11'), { figure: 'grid-blank' }),
+      stems: [], answerType: 'drawing', html: '<p>Draw the graph of y = 2x + 1.</p>', answer: '<b>A straight line</b>' },
+    { kind: 'question', name: 'Q12', qNumber: '12', marks: 1, key: 'q:Q-SAME-12', row: row('Q-SAME-12'), stems: [],
+      answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>', answer: '<b>tall</b>' },
+  ];
+  const real = ['practical', 'project', 'textbook'].map(k => w.stuffItems().find(x => x.kind === k));
+  real.forEach((x, i) => { if (!x) bad.push('no ' + ['practical', 'project', 'textbook'][i] + ' reached Find, so it was NOT compared'); });
+  const items = fam.concat(real.filter(Boolean));
+  /* A PERSON'S, NOT A ROLE'S -- see the note above. */
+  const norm = html => {
+    const h = w.document.createElement('div');
+    h.innerHTML = html;
+    h.querySelectorAll('[data-do="fav"]').forEach(n => n.remove());
+    /* A ROW THAT HELD ONLY THE STAR is the star's, and goes with it. */
+    h.querySelectorAll('.tile-row').forEach(n => { if (!n.children.length) n.remove(); });
+    return h.innerHTML.replace(/u:[A-Za-z0-9_-]+:/g, '').replace(/>[^<>]*(?:’|&rsquo;)s answer/g, '>WHO answer')
+      .replace(/>Your answer/g, '>WHO answer');
+  };
+  const draw = () => {
+    const out = [];
+    items.forEach((x, i) => w.pageParts_(x, i ? items[i - 1] : null).forEach(part => {
+      out.push({ at: (x.row && x.row.row_id || x.key) + '#' + (part || 'card'),
+                 html: norm(part ? w.stuffPart_(x, part) : w.stuffCard(x, 0)) });
+    }));
+    /* AND EVERY ANSWER, SHOWN -- by this visitor's own tap, which is the one way any of them opens. */
+    fam.forEach(x => { w.ansShow_(x); out.push({ at: x.row.row_id + '#ans-shown', html: norm(w.questionAnsCard_(x)) }); });
+    return out;
+  };
+  const who = [
+    ['signed out', null],
+    ['a student', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
+    ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }],
+    ['an admin', { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] }],
+  ];
+  const seen = who.map(([what, u]) => { t.USER(u); return { what, pages: draw() }; });
+  t.USER(null);
+  if (!(seen[2].pages.length && t.isTutorRole)) bad.push('could not draw for a tutor, so the sameness was NOT checked');
+  const base = seen[0];
+  if (base.pages.length < 15) bad.push('only ' + base.pages.length + ' pages were drawn -- the family did not come out whole');
+  seen.slice(1).forEach(s => {
+    if (s.pages.length !== base.pages.length) { bad.push(s.what + ' is drawn ' + s.pages.length + ' pages, signed out ' + base.pages.length); return; }
+    const diffs = s.pages.filter((pg, i) => pg.html !== base.pages[i].html);
+    if (diffs.length) {
+      const pg = diffs[0], other = base.pages[s.pages.indexOf(pg)].html;
+      let k = 0; while (k < pg.html.length && pg.html[k] === other[k]) k++;
+      bad.push(s.what + ' sees ' + diffs.length + ' page(s) differently from somebody signed out, first ' + pg.at + ':\n'
+        + '            ' + s.what + ': …' + pg.html.slice(Math.max(0, k - 60), k + 100).replace(/\s+/g, ' ') + '\n'
+        + '            signed out: …' + other.slice(Math.max(0, k - 60), k + 100).replace(/\s+/g, ' '));
+    }
+  });
+  /* AND THE SAME ITEMS: nothing on the learning surface is offered to one role and not another. */
+  const offered = u => { t.USER(u); const ks = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort().join('|'); t.USER(null); return ks; };
+  const out0 = offered(null);
+  who.slice(1).forEach(([what, u]) => { if (offered(u) !== out0) bad.push(what + ' is offered a different set of learning items from somebody signed out'); });
+  /* AND THE SPOTLIGHT WINDOW, WHICH IS NOT FIND, KEEPS THE ADMIN'S TILE on a learning item already in
+     it -- or a question put there before this change could never be taken out (`SPOT_TILES`). */
+  const prac = real[0];
+  if (prac && typeof w.spotSet_ === 'function' && typeof w.spotPages === 'function') {
+    t.USER(who[3][1]);
+    w.spotSet_(prac.key, true);
+    const win = (w.spotPages() || []).join('');
+    if (!/data-do="spot"/.test(win)) bad.push('an admin looking at the Spotlight window has no tile to take a spotlit practical out of it');
+    if (/data-do="spot"/.test(w.stuffCard(prac, 0))) bad.push('the same practical on Find carries the admin\'s Spotlight tile again');
+    w.spotSet_(prac.key, false);
+    t.USER(null);
+  } else bad.push('spotSet_ or spotPages is not reachable, so the window\'s own tile was NOT checked');
+  return bad;
+});
+
 /* ---------- THE DAY A STUDENT DID A QUESTION, ON ITS CARD, FOR THEM ------------------------------------
    ASKED FOR AS *"when a student does do a question, it should record the date they did it."* Through
    the real handlers on a real card:
@@ -5832,6 +6232,139 @@ check('a signed-in student\'s attempt is dated on the question card, for them al
     if (slot(draw(fresh)).textContent !== label) bad.push('with storage throwing, the date was not held for the visit');
   } catch (e) { bad.push('with storage throwing, marking threw: ' + e.message); }
   finally { delete w.localStorage; }
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- AND THE SHEET HAS IT: ONE ATTEMPT SENT, THE SHEET'S DATE SHOWN ---------------------------
+   ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone. Through
+   the real handlers on a real card, against a payload carrying `attempts` as `doGet` builds it:
+     * a Check sends ONE `markDone` -- the question's key and today -- and a second Check and typing
+       that day send nothing more; signed out, or to a backend without `markDone`, nothing at all
+     * a question the sheet has and this phone does not shows the SHEET's date; the later of the two
+       wins either way; a payload built for somebody else is not read
+     * on load, what this phone has that the sheet lacks goes up in one request, and what the sheet
+       already has does not
+     * an admin's people column says `N questions · last <d> <Mon>` under a learner, and nobody else's does */
+check('a Check sends one attempt to the sheet, the card shows the sheet\'s date, and what the phone kept is sent up on load', async () => {
+  const now = new Date();
+  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const later = (now.getFullYear() + 1) + '-01-02';                 /* a day the sheet has that the phone cannot */
+  const p = Object.assign(payload(), {
+    features: ['markDone'],
+    attempts: { for: 'P7', mine: {
+      'q-sheet-only': { first: '2001-10-04', last: '2001-10-04', times: 1 },
+      'q-sheet-later': { first: '2001-10-04', last: later, times: 2 },
+      'q-sheet-older': { first: '2001-10-04', last: '2001-10-04', times: 1 },
+      'q-synced': { first: '2001-10-04', last: '2026-09-02', times: 1 },
+    } },
+  });
+  const reply = b => (b.action === 'markDone'
+    ? { success: true, attempts: (b.items || []).reduce((o, it) => { o[it.key] = { first: it.day, last: it.day, times: 1 }; return o; }, {}) }
+    : { success: true });
+  const { w, sent } = boot({ payload: p, reply,
+    /* WHAT THIS PHONE KEPT BEFORE THE SHEET EXISTED: two days the sheet lacks, one it already has. */
+    before: win => {
+      win.localStorage.setItem('done:u:P7:q-offline', '2026-09-01');
+      win.localStorage.setItem('done:u:P7:q-synced', '2026-09-02');
+      win.localStorage.setItem('done:u:P7:q-sheet-older', '2026-09-03');
+      win.localStorage.setItem('done:u:P7:q-sheet-later', '2026-09-04');
+    } });
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const A = w.__t.ACTIONS;
+  if (typeof w.questionCard_ !== 'function' || !A['qp-check'] || typeof w.adoptMarks_ !== 'function'
+      || typeof w.attemptsLine_ !== 'function' || typeof w.findCard !== 'function') {
+    return ['questionCard_, qp-check, adoptMarks_, attemptsLine_ or findCard is not reachable — renamed? The sheet\'s date was NOT checked'];
+  }
+  const marks = () => sent.filter(b => b.action === 'markDone');
+  const base = { kind: 'question', name: 'Q8', marks: 2,
+    row: { row_id: 'Q-SHEET-8', paper_id: 'P-SHEET', subject: 'Maths', name: 'Sheet' },
+    html: '<p>Work out 3 &times; 5</p>', answer: '<b>15</b>', accept: '15' };
+  const q = k => Object.assign({}, base, { key: k });
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const slot = card => (card.querySelector('.qcard-top .qcard-done') || {}).textContent || '';
+  const check_ = card => { card.querySelector('.qp-ans-in').value = '16'; A['qp-check'](card.querySelector('.qp-check')); };
+
+  /* SIGNED OUT: nothing is sent. */
+  w.__t.USER(null);
+  check_(draw(q('q-anon')));
+  await wait(20);
+  if (marks().length) bad.push('signed out, a Check sent markDone: ' + JSON.stringify(marks()));
+
+  /* SIGNED IN, AND THE LOAD'S SYNC: the payload landed before USER was set, so it is asked again here
+     the way the next payload would ask it. */
+  w.__t.USER({ name: 'Lucca Smith', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
+  /* TWICE BEFORE THE REPLY IS BACK, as a stored payload and the fresh one land a moment apart. */
+  w.adoptMarks_();
+  w.adoptMarks_();
+  await wait(30);
+  const sync = marks();
+  if (sync.length !== 1) bad.push('the load sent ' + sync.length + ' markDone request(s) for what the phone kept, wanted 1 — two payloads landing together must not send the backlog twice');
+  else {
+    const keys = (sync[0].items || []).map(i => i.key + '@' + i.day).sort().join(', ');
+    if (keys !== 'q-offline@2026-09-01, q-sheet-older@2026-09-03') bad.push('the load sent ' + keys + ' — wanted the two days the sheet lacks (q-offline, q-sheet-older) and not q-synced, which it has');
+    if (sync[0].token !== 'tok-P7') bad.push('markDone went without the sign-in token, so the server cannot know whose it is');
+  }
+  w.adoptMarks_();
+  await wait(30);
+  if (marks().length !== 1) bad.push('a second payload in the same visit sent the backlog again');
+
+  /* THE SHEET'S DATE ON THE CARD. */
+  const shows = k => slot(draw(q(k)));
+  if (shows('q-sheet-only') !== 'Done 4 Oct 2001') bad.push('a question on the sheet and not on this phone reads "' + shows('q-sheet-only') + '", wanted the sheet\'s "Done 4 Oct 2001"');
+  if (shows('q-sheet-later') !== w.doneText_(later)) bad.push('the sheet\'s later day lost to this phone\'s older one: "' + shows('q-sheet-later') + '", wanted "' + w.doneText_(later) + '"');
+  if (shows('q-sheet-older') !== w.doneText_('2026-09-03')) bad.push('this phone\'s later day lost to the sheet\'s older one: "' + shows('q-sheet-older') + '"');
+
+  /* ONE CHECK, ONE ATTEMPT -- and nothing more that day. */
+  const n0 = marks().length;
+  const card = draw(q('q-fresh'));
+  check_(card);
+  await wait(30);
+  const one = marks().slice(n0);
+  if (one.length !== 1) bad.push('a Check sent ' + one.length + ' markDone request(s), wanted 1');
+  else if (JSON.stringify(one[0].items) !== JSON.stringify([{ key: 'q-fresh', day: today }])) bad.push('a Check sent ' + JSON.stringify(one[0].items) + ' — wanted [{ key: "q-fresh", day: "' + today + '" }]');
+  if (slot(card) !== 'Done ' + now.getDate() + ' ' + mon[now.getMonth()]) bad.push('after the Check the card reads "' + slot(card) + '"');
+  check_(card);
+  const inp = card.querySelector('.qp-ans-in');
+  ['1', '15', '150'].forEach(v => { inp.value = v; inp.dispatchEvent(new w.Event('input', { bubbles: true })); });
+  await wait(30);
+  if (marks().length - n0 !== 1) bad.push('a second Check and three keystrokes the same day sent ' + (marks().length - n0 - 1) + ' more markDone — wanted none: once per question per day');
+  /* TYPING INTO A FRESH BOX: thirty keystrokes, one request. */
+  const fin = draw(Object.assign(q('q-typed'), { accept: '' })).querySelector('.qp-ans-in');
+  const n1 = marks().length;
+  const words = 'because the angles add to 180';
+  for (let i = 1; i <= words.length; i++) { fin.value = words.slice(0, i); fin.dispatchEvent(new w.Event('input', { bubbles: true })); }
+  await wait(30);
+  if (marks().length - n1 !== 1) bad.push('typing an answer sent ' + (marks().length - n1) + ' markDone requests, wanted 1');
+
+  /* A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
+  w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
+  if (shows('q-sheet-only')) bad.push('Ben sees Lucca\'s sheet date: "' + shows('q-sheet-only') + '"');
+
+  /* AN ADMIN'S PEOPLE COLUMN, off the summary only an admin is sent. */
+  w.__t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1' });
+  w.__t.DATA().attempts = { for: 'P1', mine: {}, people: { P7: { n: 12, last: '2001-10-04' }, P9: { n: 1, last: '2001-10-04' } } };
+  const line = w.attemptsLine_('P7');
+  if (line !== '12 questions · last 4 Oct 2001') bad.push('an admin reads "' + line + '" under a learner, wanted "12 questions · last 4 Oct 2001"');
+  if (w.attemptsLine_('P9') !== '1 question · last 4 Oct 2001') bad.push('one question reads "' + w.attemptsLine_('P9') + '"');
+  if (w.attemptsLine_('P5') !== '') bad.push('a person with no attempts reads "' + w.attemptsLine_('P5') + '", wanted nothing');
+  const box = d.createElement('div');
+  box.innerHTML = w.findCard({ kind: 'tutor', row: { title: 'Lucca Smith', handle: 'lucca', role: 'Student', personId: 'P7', activity: line } });
+  const act = box.querySelector('.prof-who .prof-act');
+  if (!act || act.textContent !== line) bad.push('the person card does not draw the line under the name: ' + (act ? act.textContent : 'no .prof-act'));
+  w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
+  if (w.attemptsLine_('P7') !== '') bad.push('a summary built for the admin is drawn for Ben on the same phone: "' + w.attemptsLine_('P7') + '"');
+
+  /* A BACKEND WITHOUT `markDone`: the date stays on the phone and nothing is sent. */
+  w.__t.DATA().features = [];
+  w.__t.USER({ name: 'Lucca Smith', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
+  const n2 = marks().length;
+  check_(draw(q('q-old-backend')));
+  await wait(30);
+  if (marks().length !== n2) bad.push('a backend that does not list markDone was sent it anyway');
   w.__t.USER(null);
   return bad;
 });
