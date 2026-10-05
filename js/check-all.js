@@ -192,6 +192,11 @@ const SUITE = [
   /* THE DAY A QUESTION WAS DONE, ON THE SHEET. A learner's record: one row per question, the person
      from the token, and nobody sent another learner's — through the same backend. */
   { file: 'check-attempts.js', what: 'done questions: the upsert, the token’s person, and who is sent whose' },
+  /* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. *"i cant send
+     images, or videos in the chat"* — the manifest asked for `drive.readonly`, which no harness here
+     could see because every one stubbed Drive as a thing that works. This one's Drive asks for the
+     scope Google asks for, and its token holds what the manifest lists. */
+  { file: 'check-uploads.js', what: 'chat files: the manifest’s scope, the column, the refusals, both sides drawn' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
      The third check here about SAFETY rather than about working, after `check-marking.js` and
      `check-handles.js` — and the only one whose subject is this repository rather than the app.

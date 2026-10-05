@@ -40,7 +40,8 @@
   "deletePost",
   "createCheckout",
   "finalizePayment",
-  "aiMark"
+  "aiMark",
+  "checkUploads"
  ],
  "constants": {
   "vars": {
