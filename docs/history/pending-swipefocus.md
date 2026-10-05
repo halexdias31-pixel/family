@@ -21,7 +21,7 @@ screenshots taken to check the result found a tenth.
 | **"it turned the page when I changed my mind"** | 150 px pulled back to 80 and let go moving home: **turned 8/8**; 70 px held still: **turned 8/8** | `far` never looked at the release speed; "far" was `min(56px, 18% of the step)` — 7% of a tall card | a release moving home at ≥ 0.2 px/ms does not turn; a still release needs **a third of the step, between 56 and 120 px**. A flick is unchanged. Both now **stay** (lab and check) |
 | **a card jumped when you swiped again the other way** | sideways then up 40–160 ms later: the arriving column snapped 81–248 px in one frame (12/12); up then sideways: 199–614 px (9/9) | `no-anim` (`transition: none !important`) on whatever was dragged killed *both* axes' slide — there was one transform and one transition | a column's x is `transform` and its y the separate `translate` property, each with its own transition; a drag zeroes only its own axis (`colTransition_`). The other slide is **still running with 335 px / 492 px to go** after a drag frame on the other axis (check). Browsers without `translate` keep the single transform |
 | **the keypad stayed up over the wrong card** | a maths box focused, card swiped away: keypad up and typing into a card off screen, **8/8** | the pad closes on `focusout`, and nothing took the focus away | a focused field whose page is no longer in front is blurred by `placeGrid` — pad and phone keyboard alike. **Closes 2/2** (lab), **let go** (check) |
-| **a tap on a sliding card pressed it** | a star fired on a card mid-flight, 90 ms after the lift | nothing knew a slide was running | a press that starts on a card while the column in front is sliding is swallowed like a drag (`SLIDE_UNTIL`, `PRESS_SLIDING`), the last 60 ms excepted — and only on the cards: the first version swallowed a tap on a sheet's backdrop opened over a column still sliding in, and `check/press.js` said so. **Nothing pressed in 5 mid-slide taps; the same star pressed once landed** (check) |
+| **a tap on a sliding card pressed it** | a star fired on a card mid-flight, 90 ms after the lift | nothing knew a slide was running | a press that starts on a card while the column in front is sliding is swallowed like a drag (`SLIDE_UNTIL`, `PRESS_SLIDING`), the last 60 ms excepted — and only on the cards: the first version swallowed a tap on a sheet's backdrop opened over a column still sliding in, and `check/press.js` said so. **A press on the arriving card mid-slide runs nothing; the same star pressed once it has landed runs `fav`** (check) |
 | **(found by the screenshots) the card lagged the finger** | a sideways drag whose first moves arrived folded together (7 px, then 132 px) left the card **132 px behind the thumb** for the whole gesture | the axis lock took the whole travel at the moment of deciding off what is placed — ten pixels only when every move arrives | it takes the ten pixels of slop and no more (check sends exactly that shape) |
 | (minor) a code jump straight to a deep page of an unvisited column shows the wrong card for a moment | 0.44–1.8 s | `placeCells`' "animation wins" against first-paint requests | **not done** — one caller (`me.js:2687`); worth doing if links straight to widgets arrive |
 
@@ -74,7 +74,9 @@ added** — "a card is a fixed size" (the note over `CARD_W`) was a refusal for 
 `check/swipe.js`, on the roster (port: `SWIPE_PORT`, unset = the OS picks). Real touch at 390 and 320:
 one card or back for a flick, a 40/70 px still release, a pull-back, half a card; the axis kept for a
 whole gesture; folded moves; 45° and 55° on a one-page column, 25° on Tools, a vertical drift; a swipe
-from a tile pressing nothing; a tap mid-slide pressing nothing and the same tap after landing pressing;
+from a tile pressing nothing; a press mid-slide pressing nothing and the same press after landing
+pressing (asked of the mechanism — a real tap on a card moving that fast slides out from under the
+finger and presses nothing either way, which is how the first version of that rule could not fail);
 the other axis still sliding (asked of the mechanism, in one task, because frames are noise here); a
 real sideways-then-up chain; every column's card centred within 1 px; the blur at rest, mid-drag and
 under reduced motion; a focused field let go; at most three widget starts in a task on arrival; a page
@@ -83,7 +85,9 @@ columns and called once leaving the feed. `--only=` and `--width=` narrow it for
 so.
 
 **Every fix proved by mutation** (`--only=… --width=390`, each fails naming its rule; real files
-green again): the `:has()` rule back → RELEASE COST; `camStop_` unguarded → RELEASE COST; widgets
+green again). Two mutants survived the first round and the rules were rewritten until they died: the
+pull-back went to 80 px, under the new bar, so `backing` was never consulted (it pulls back to 120 px
+now); and the real-finger tap, above. The list: the `:has()` rule back → RELEASE COST; `camStop_` unguarded → RELEASE COST; widgets
 all in one task → WIDGETS A FEW AT A TIME; `backing` off → ONE CELL; the old 56 px bar → ONE CELL;
 the whole-travel lock → UNDER THE FINGER; the nowhere rule off → ONE CELL; `PRESS_SLIDING` off → NO
 PRESS WHILE SLIDING; a drag zeroing every transition → OTHER AXIS KEEPS SLIDING; the old top line →
