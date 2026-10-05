@@ -573,21 +573,23 @@ function driveTrouble_(err, admin) {
       + 'side, not yours, and the admin can see how to fix it.';
   }
 
-  /* THE DIAGNOSIS COMES WITH THE FAILURE.
-     This used to end with "run checkScopes and see" — which is a fifth step, at the end of four,
-     given to somebody who has just failed to post a photograph. The token itself says which step is
-     still undone, and asking it costs one request. */
-  const s = heldScopes_();
-  const out = [raw, ''];
+  /* THE DIAGNOSIS COMES WITH THE FAILURE. This used to end with "run checkScopes and see" — a fifth
+     step, at the end of four, given to somebody who had just failed to post a photograph. The token
+     itself says which step is still undone, and asking it costs one request.
 
+     ONE LINE A PARAGRAPH, AND GOOGLE'S OWN SENTENCE ONLY WHERE IT IS THE NEWS. These used to be
+     hard-wrapped at the editor's width, which in a bubble 78% of a 320px phone wide came out as a
+     ragged column of half-lines, and Google's "Specified permissions are not sufficient …" went
+     first even when the token had already been asked and had answered more plainly. When the scope
+     is the cause, the scope is what is said. */
+  const s = heldScopes_();
   if (s.error) {
     /* It could not even ask. That needs script.external_request, so the manifest has not reached
        this deployment at all — which is a different answer from "the Drive scope is missing", and
        it points at a different step. */
-    out.push('This deployment could not ask Google what it is allowed to do: ' + s.error);
-    out.push('So the manifest has not reached THIS deployment. Sync backend/ (appsscript.json is one');
-    out.push('of its files), then deploy a NEW VERSION: a deployed version pins its manifest.');
-    return out.join('\n');
+    return [raw, 'This deployment could not ask Google what it is allowed to do (' + s.error + '), so '
+      + 'the manifest has not reached it. Sync backend/ — appsscript.json is one of its files — then '
+      + 'deploy a NEW VERSION: a deployed version pins its manifest.'].join('\n');
   }
 
   if (!holdsScope_(s.held, 'drive')) {
@@ -599,21 +601,17 @@ function driveTrouble_(err, admin) {
        running `authoriseDrive` raised no prompt, and every Allow ever pressed granted read-only
        again. The manifest says `drive` now (docs/history, "pending-chatmedia"); what is left is
        somebody pressing Allow for it and a new version carrying it. */
-    out.push('It holds ' + (holdsScope_(s.held, 'drive.readonly')
-      ? 'drive.readonly — it can read the folder and cannot add to it.' : 'no Drive scope at all.'));
     const fix = driveFix_();
-    out.push('FIX: ' + fix.say);
-    if (fix.consent) out.push('Consent link: ' + fix.consent);
-    out.push('Meanwhile a post can still use a photograph already in the folder — the ＋ picker');
-    out.push('only reads, and reading is what this deployment can do.');
-  } else {
-    /* The scope is held and the call still failed. That is a different problem entirely, and
-       sending somebody back round the authorisation loop would waste their afternoon. */
-    out.push('.../auth/drive IS held, so this is not the scope. Most likely the folder in');
-    out.push('`posts_folder` belongs to another account or is on a shared drive that refuses');
-    out.push('sharing by link. Tools → Check uploads names the folder and tries a test file.');
+    return ['Drive refused it: this deployment holds ' + (holdsScope_(s.held, 'drive.readonly')
+      ? 'drive.readonly, so it can read the folder and cannot add to it.' : 'no Drive scope at all.'),
+      'FIX: ' + fix.say]
+      .concat(fix.consent ? ['Consent link: ' + fix.consent] : []).join('\n');
   }
-  return out.join('\n');
+  /* The scope is held and the call still failed. That is a different problem entirely, and
+     sending somebody back round the authorisation loop would waste their afternoon. */
+  return [raw, '.../auth/drive IS held, so this is not the scope. Most likely the folder in '
+    + '`posts_folder` belongs to another account or is on a shared drive that refuses sharing by '
+    + 'link. Tools → Check uploads names the folder and tries a test file.'].join('\n');
 }
 
 /**

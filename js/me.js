@@ -1629,14 +1629,32 @@ function msgAttachHtml_(list) {
    more control beside Retry — 44px, named for where it goes — and the sentence stays the server's.
    The scope names Google's error quotes (`.../auth/drive`) are addresses too and go nowhere useful,
    so they stay words. At most two: a refusal is not a page of links. */
-function msgFixLinks_(text) {
+function msgFixUrls_(text) {
   return (String(text || '').match(/https?:\/\/[^\s<>]+/g) || [])
     .map(u => u.replace(/[.,;:)]+$/, ''))
-    .filter(u => /^https:\/\//.test(u) && !/googleapis\.com\/auth\//.test(u))
-    .slice(0, 2)
-    .map(u => `<a class="msg-act" href="${esc(u)}" target="_blank" rel="noopener">${
-      /\?setup=1/.test(u) ? 'Open ?setup=1' : /accounts\.google\.com/.test(u) ? 'Allow it' : 'Open the link'}</a>`)
+    /* A SCOPE IS NAMED BY WHERE IT STARTS, not by containing the words: the consent screen's own
+       address carries `scope=https://www.googleapis.com/auth/drive` in its query. */
+    .filter(u => /^https:\/\//.test(u) && !/^https:\/\/www\.googleapis\.com\/auth\//.test(u))
+    .slice(0, 2);
+}
+function msgFixLinks_(text) {
+  return msgFixUrls_(text).map(u => `<a class="msg-act" href="${esc(u)}" target="_blank" rel="noopener">${
+    /\?setup=1/.test(u) ? 'Open ?setup=1' : /accounts\.google\.com/.test(u) ? 'Allow it' : 'Open the link'}</a>`)
     .join('');
+}
+/* AND THE SENTENCE WITHOUT THEM. An address that has become a control is not also printed — two
+   hundred characters of consent URL broken across eight lines of a 320px bubble, above a button
+   that goes to the same place. A line that was only a label for it ("Consent link: …") goes; one
+   that used it in a sentence ("Open … once") says where it went instead. */
+function msgFailSaid_(text) {
+  let t = String(text || '');
+  msgFixUrls_(t).forEach(u => {
+    t = t.split('\n').filter(line => {
+      const at = line.indexOf(u);
+      return !(at > 0 && /^[^:]{1,40}:\s*$/.test(line.slice(0, at)) && !line.slice(at + u.length).trim());
+    }).join('\n').split(u).join('the button below');
+  });
+  return t.trim();
 }
 
 /* ---------- THE THREAD --------------------------------------------------------------------------
@@ -1658,7 +1676,7 @@ const messagesHtml_ = ms => {
                 || !!m.tmp !== !!next.tmp;
     const words = String(m.body || '').trim();
     const state = m.state === 'failed'
-      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${esc(m.err || 'try again')}</span>
+      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${esc(msgFailSaid_(m.err) || 'try again')}</span>
            <button class="msg-act" data-do="msg-retry" data-k="${esc(m.tmp)}">Retry</button>${
            m.why === 'files' && words && (m.queue || []).length
              ? `<button class="msg-act" data-do="msg-words" data-k="${esc(m.tmp)}">Words only</button>` : ''}

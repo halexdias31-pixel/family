@@ -3620,9 +3620,8 @@ const STATES = {
         MSG_PENDING = [{ tmp: 'tmpK', mine: true, read: true, state: 'failed', why: 'files',
           withId: 'P009', withName: 'Ada Tutor', fromName: 'Test Admin', atMs: Date.now() - 30e3,
           body: 'Here is page 2',
-          err: 'The file could not be kept, so nothing was sent. Specified permissions are not sufficient '
-             + 'to call DriveApp.Folder.createFolder. Required permissions: https://www.googleapis.com/auth/drive'
-             + '\n\nIt holds drive.readonly — it can read the folder and cannot add to it.'
+          err: 'The file could not be kept, so nothing was sent. Drive refused it: this deployment holds '
+             + 'drive.readonly, so it can read the folder and cannot add to it.'
              + '\nFIX: Open the consent link and press Allow; then Deploy → Manage deployments → edit → '
              + 'Version: New version → Deploy. Tools → Check uploads says when it has worked.'
              + '\nConsent link: https://accounts.google.com/o/oauth2/auth?client_id=1234567890-abcdefghij'
@@ -3632,8 +3631,11 @@ const STATES = {
         DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
         paint('dm');
       },
+      /* AND THE ADDRESS IS NOT ALSO PRINTED: once it is a control, the sentence says "the button
+         below" or drops the line that only labelled it — see `msgFailSaid_`. */
       expect: () => !!document.querySelector('#s-dm .msg-fail a.msg-act[href^="https://accounts.google.com"]')
-                 && !document.querySelector('#s-dm .msg-fail a.msg-act[href*="googleapis.com/auth"]')
+                 && !/accounts\.google\.com|Consent link/.test((document.querySelector('#s-dm .msg-fail-why') || {}).textContent || 'x accounts.google.com')
+                 && !document.querySelector('#s-dm .msg-fail a.msg-act[href^="https://www.googleapis.com/auth"]')
                  && !!document.querySelector('#s-dm [data-do="msg-words"]')
                  && !!document.querySelector('#s-dm [data-do="msg-retry"]')
                  && !!document.querySelector('#s-dm [data-do="msg-drop"]'),
