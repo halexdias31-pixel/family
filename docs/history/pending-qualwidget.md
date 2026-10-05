@@ -92,6 +92,12 @@ also be left open. Before, the editor shut on Save.
   `qualShut_`, `qualSubjectSync_`, the subject-level `Edit`, the per-subject add links, Cancel, the
   count line and the "Do you tutor …?" caption. Also removed are their CSS and `.lib-row.q-row`.
 - **`tiles.js` gains a `plus` mark.** It is two open strokes at the set's 1.4, the one new icon.
+- **The business records card had borrowed `.lib-row.q-row`** from the old editor (`bizItem_` in
+  records.js) to get two equal boxes. Removing the editor's rule removed that card's layout too, and
+  its rows fell back to a wide box beside a 7rem one. No check noticed. The rule is back as the
+  records card's own. The editor's row is now `.q-ed .q-row`. The business-records state in
+  `check/states.js` now asserts that each row's two boxes are the same width. It went red with the
+  rule removed and green with it back.
 - **The two tile rows' margins are written as `.tile-row.q-tiles` and `.tile-row.q-adds`.** As single
   classes they tied with `.tile-row`, which comes later in the file and sets its own `margin`, so the
   file order alone decided the result and they were never drawn. This is the `.price.faint` fault
