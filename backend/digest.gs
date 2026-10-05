@@ -203,8 +203,11 @@ function digestRender_(L, P, week, look) {
   const qs = x => x + ' question' + (x === 1 ? '' : 's');
   const n = L.fresh.length + L.again.length;
   const hello = S(P && P.first) ? 'Hello ' + S(P.first) + ',' : 'Hello,';
-  const lead = 'This week (' + digestSpan_(week) + ') ' + kid + ' did ' + qs(n) + ' on ' + brand
-    + (L.fresh.length && L.again.length ? ': ' + L.fresh.length + ' new, and ' + L.again.length + ' done again.' : '.');
+  /* THE BUSINESS'S NAME ENDS IN A FULL STOP, so it is the sender's name and the last word of the footer
+     and never followed by more punctuation — "on @family.:" and "@family.." are what it reads as
+     anywhere else. */
+  const lead = 'This week (' + digestSpan_(week) + ') ' + kid + ' did ' + qs(n)
+    + (L.fresh.length && L.again.length ? ' — ' + L.fresh.length + ' new and ' + L.again.length + ' done again.' : '.');
 
   /* AT MOST `DIGEST_LIST_MAX`, the new ones first, then "and N more". */
   let room = DIGEST_LIST_MAX;
@@ -216,9 +219,9 @@ function digestRender_(L, P, week, look) {
   if (again.length) parts.push({ head: 'Done again', items: again });
 
   const link = 'See them on the site: ' + site;
-  const foot = 'You get this because you are ' + kid + '’s parent on ' + brand
-    + '. To stop these emails, reply to this one and say so.';
-  const subject = kid + '’s week on ' + brand + ': ' + qs(n);
+  const foot = 'You get this because you are ' + kid + '’s parent on ' + brand + (/[.!?]$/.test(brand) ? '' : '.')
+    + ' To stop these emails, reply to this one and say so.';
+  const subject = kid + '’s week: ' + qs(n);
 
   const text = [hello, '', lead, '']
     .concat(...parts.map(p => [p.head].concat(p.items.map(q => '- ' + q.label), [''])))
