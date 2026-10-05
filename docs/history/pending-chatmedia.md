@@ -42,7 +42,10 @@ not inspected.
 - **A parent was shown fifteen lines of `googleapis.com/auth/...`.** `driveTrouble_(err, admin)`: the
   admin gets the diagnosis and the fix (the consent link when Apps Script hands one over, otherwise
   the editor's Run → Allow, then a new version); everybody else one sentence saying it is the site's
-  side. Same for posts and profile pictures.
+  side. Same for posts and profile pictures. The admin's version is one line a paragraph now, and
+  leads with what the token holds rather than Google's "Specified permissions are not sufficient";
+  on the phone the consent address or `?setup=1` is a 44px control beside Retry (`Allow it`,
+  `Open ?setup=1`) instead of a 14px link inside the red sentence.
 - **A photo over 2MB that the browser cannot redraw — a HEIC in Chrome — was dropped in silence**, and
   any file that could not be read was too. The first is now sent as it is; the second goes back in
   the box with its name said while the rest are sent.
@@ -62,8 +65,10 @@ not inspected.
 - **Check uploads is an admin-only widget on the Tools column**, the flyer maker's lock, appended last
   so nobody's remembered page moves. It asks the deployment that is serving the site (not the
   editor) four questions — the column, the scope, the folder, and whether a test file can be made,
-  shared by link and binned — and lists the fix in order when one fails. It leaves nothing behind:
-  one binned text file, and it does not make the `Messages` folder (the first real send does).
+  shared by link and binned — and lists the fix in order when one fails, with the consent screen and
+  `?setup=1` as tiles. It leaves nothing behind: one binned text file, and it does not make the
+  `Messages` folder (the first real send does). Its answer grows the card, so it places the column
+  again — `check/ui.js` found the pane 2,386px off the glass at 768 before it did.
 
 ### Checks
 
@@ -74,8 +79,8 @@ backend answers: no column, a read-only token, the manifest's own token, one of 
 way, Check uploads admin-only, both sides of the thread drawing an `<img>` and a
 `<video controls playsinline preload="metadata">`, Words only, an unreadable file kept, a HEIC sent.
 Twelve mutations, each red for its own reason. Two `check/states.js` states: the admin's refusal
-with its consent link and three controls (dm), and Check uploads answered with two crosses and four
-steps (tools).
+with Retry, Words only, Remove and Allow it, the address not also printed (dm), and Check uploads
+answered with two crosses, three steps and an Allow tile (tools).
 
 ### OWNER STEPS, in this order
 
