@@ -69,6 +69,16 @@ not inspected.
   `?setup=1` as tiles. It leaves nothing behind: one binned text file, and it does not make the
   `Messages` folder (the first real send does). Its answer grows the card, so it places the column
   again — `check/ui.js` found the pane 2,386px off the glass at 768 before it did.
+- **Five posts waiting per person, and the camera's caps on every post.** Five is a guess at "more
+  than a trip's worth, less than a file host". It is `POST_WAITING_MAX` in content.gs. An admin is
+  never queued.
+- **A waiting post's pictures are still shared by link.** The admin approves a post by looking at it
+  on their phone, and the picture comes from `lh3.googleusercontent.com`. That only works with link
+  sharing, unless that phone's browser happens to be signed in as the Drive's owner. A waiting post
+  is sent only to the admin and its author (`doGet`), so its address reaches nobody else. **A refused
+  post's files stay in Drive, still shared.** Binning them on refusal would close the last gap. It is
+  not done here: `deletePost` keeps pictures on purpose, and a post can carry a picture that was
+  already in the folder before anybody posted it.
 
 ### Checks
 
@@ -82,19 +92,85 @@ Twelve mutations, each red for its own reason. Two `check/states.js` states: the
 with Retry, Words only, Remove and Allow it, the address not also printed (dm), and Check uploads
 answered with two crosses, three steps and an Allow tile (tools).
 
-### OWNER STEPS, in this order
+After the review, two more sections:
+
+- **Posts (8).** The caps are compared with the camera card's own numbers, read out of posts.js, in
+  both directions. A PDF, SVG, HTML or untyped file is refused, and so is a clip over 20MB, with
+  nothing made in Drive. Five waiting posts are allowed and the sixth is refused with nothing made.
+  A deleted waiting post does not count. An admin is not queued.
+- **`authoriseDrive` (9).** READY with every scope allowed, and the test file shared and binned. DO
+  NOT DEPLOY on a read-only grant, and on a partial one (Drive ticked, e-mail not). With a showcase
+  folder set, the verdict is still the last line.
+
+Nine more mutations, each red for its own reason: no caps, any type, a total cap tighter than the
+phone's, no queue limit, deleted posts counted, caps checked after the upload, the verdict ignoring
+`getAuthorizationStatus`, no verdict line, and a test file that is not shared.
+
+### After the review: posts, the gate, the triggers and the stamp
+
+A review of the branch found four things the first pass missed. Each is fixed here or handed to the
+merge, and all four come from the same change: the manifest asking for `drive`.
+
+- **The wider scope opened post uploads, and they had no limits.** `addPost` is open to any
+  signed-in account. `driveKeep_` kept any `data:` URL of any type at any size, uploaded *before* it
+  asked who was posting, and shared it by link while the post was still waiting for approval. Under
+  `drive.readonly` every one of those uploads failed. Under `drive`, any registered account could
+  have put about 50MB of anything into the business's Drive per request, with no limit on how often.
+  Now, before a byte is uploaded: the poster is worked out first; a post holds photos (`jpeg`, `png`,
+  `gif`, `webp`, `heic`) and videos only, and never SVG; a clip may be up to 20MB and a post up to
+  45MB of base64. Those are the camera card's own numbers (`CAM_VID_MAX`, `CAM_POST_MAX`), and the
+  check reads them out of posts.js, so nothing the phone sends is refused. The rate limit is the
+  approval queue: anyone who is not an admin can have **five posts waiting**, and the sixth is
+  refused until the admin has looked at one. A waiting post the admin deleted does not count.
+- **`authoriseDrive`'s log was the only safety net, and it was not a gate.** A new version whose
+  manifest lists a permission the deployer has not allowed answers *every* visitor "Authorization is
+  required". Check uploads cannot catch that, because it runs on that same broken deployment. The
+  log was supposed to end "Can write: yes", but the showcase folder's line came after it, and Google's
+  consent screen has a tick box per permission now. So an Allow with the e-mail box unticked wrote
+  the test file fine and still left the script short. Its last line is now always **READY** or
+  **DO NOT DEPLOY A NEW VERSION YET**. READY needs three things: Apps Script says nothing in the
+  manifest is still to be allowed (`getAuthorizationStatus`), the token holds `drive` by its whole
+  name, and a test file was made, shared by link and binned. The refusal says how to get past both
+  of Google's screens.
+- **The background triggers fail between the sync and the Allow.** Installed triggers run the
+  editor's latest code under the editor's manifest, not the deployed version. That covers the sheet
+  watch (`onSheetChange`, `warmAfterEdit`) and the nightly `closeFinishedJobs` and `geocodeVenues`.
+  From the sync until Allow, the editor's manifest asks for `drive` and nobody has granted it, so
+  every one of them fails with "Authorization is required". While that lasts, edits typed into the
+  sheet stop reaching the site for up to six hours and failure e-mails arrive. Google also disables
+  a trigger that keeps failing. Hence "one sitting" and step 5 below.
+- **FOR THE MERGE: bump all four stamps together** (`BACKEND_VERSION`, `DOGET_VERSION`,
+  `DOPOST_VERSION`, `BOOKING_VERSION`, e.g. `2026-10-05-f-chatmedia`). They are not bumped here
+  because workers do not bump them. This merge cannot skip it, for two reasons:
+  - The payload cache key is `payloadGen_()|BACKEND_VERSION|viewer` and lasts six hours, and
+    `warmPayload` refreshes only the anonymous copy. With the old stamp, an admin can be served a
+    payload built by the old deployment, whose `features` has no `checkUploads`. Step 6 would then
+    say "no Check uploads yet" and send the owner round the loop again.
+  - `autoMigrate` adds missing columns only when `BACKEND_VERSION` moves. With a new stamp, the
+    first request after step 4 adds `attachments` even if step 3 is skipped.
+
+### OWNER STEPS, in this order — STEPS 1 TO 5 IN ONE SITTING
+
+Between step 1 and step 2, every background job is failing (see above). Make that gap minutes, not
+an evening.
 
 1. **Sync `backend/`** into Apps Script once this is on `main` (the GitHub Assistant's ↓ in the editor
    toolbar). Then Project Settings → tick *Show "appsscript.json" manifest file in editor*, open it,
-   and check it lists `https://www.googleapis.com/auth/drive` — not `drive.readonly`.
-2. **Run `ensureSchema`** from the editor's function dropdown (or, once step 4 is done, open the site's
-   `/exec?setup=1` — that runs the DEPLOYED code, so before step 4 it may not know the column). It adds
-   `attachments` to the `messages` tab in the Ledger and changes nothing else.
-3. **In the editor, run any function and press Allow.** If step 2 already asked, that was this step.
-   `authoriseDrive` is the useful one to run: its log should end "Can write: yes". The prompt should
-   now say the script can *see, edit, create and delete* Drive files. Do this BEFORE step 4: a new
-   version whose scopes nobody has allowed answers every visitor with "Authorization is required".
+   and check it lists `https://www.googleapis.com/auth/drive`, not `drive.readonly`.
+2. **Choose `authoriseDrive` in the editor's function dropdown and press Run.**
+   - Google says *"Google hasn't verified this app"*. Press **Advanced**, then **Go to … (unsafe)**.
+     It is your own script.
+   - On the next screen, **tick every box, or Select all**, then Continue. It should say the script
+     can *see, edit, create and delete* your Drive files.
+   - Then read the **last line** of the execution log. **Do not do step 4 unless it starts `READY`.**
+     If it says `DO NOT DEPLOY A NEW VERSION YET`, it says why. Do what it says and run it again.
+3. **Run `ensureSchema`** from the same dropdown. It adds `attachments` to the `messages` tab in the
+   Ledger and changes nothing else. Once step 4 is done, the site's `/exec?setup=1` does the same
+   thing. With the stamp bumped at merge, the first visit after step 4 does it too.
 4. **Deploy → Manage deployments → the pencil on the active deployment → Version: New version →
    Deploy.** Editing the existing deployment keeps the `/exec` address the site calls.
-5. **On the site, signed in as admin: Tools → Check uploads → press it.** Four ticks and "Ready" means
-   photos and videos can be sent in messages; anything else is listed with the step still to do.
+5. **Triggers** (the clock icon in the editor's left bar). If any trigger shows errors since step 1,
+   or is disabled, run **`installTriggers`** once from the dropdown. It clears and reinstalls the
+   nightly jobs and the sheet watch, leaving one of each.
+6. **On the site, signed in as admin: Tools → Check uploads → press it.** Four ticks and "Ready" mean
+   photos and videos can be sent in messages. Anything else is listed with the step still to do.
