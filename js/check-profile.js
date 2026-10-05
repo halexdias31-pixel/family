@@ -31,154 +31,10 @@
    The people are invented, their PINs are 0000 and their addresses are on example.org.
 ================================================================================================== */
 'use strict';
-const fs = require('fs'), path = require('path'), vm = require('vm'), crypto = require('crypto');
-const REPO = path.resolve(__dirname, '..');
 
-function coerce(v) {
-  if (typeof v !== 'string') return v;
-  if (v.charAt(0) === "'") return v.slice(1);
-  const t = v.trim();
-  let m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (m) { const d = new Date(+m[3], +m[2] - 1, +m[1]); return d.getDate() === +m[1] ? d : v; }
-  m = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
-  if (/^(true|false)$/i.test(t)) return /^true$/i.test(t);
-  if (/^-?\d+(\.\d+)?$/.test(t) && !/^0\d/.test(t)) return Number(t);
-  return v;
-}
-
-function backend() {
-  const tabs = {};
-  const log = { writes: 0 };
-  const cache = new Map();
-  const sheetOf = name => {
-    const grid = tabs[name];
-    const rows = () => grid.length, cols = () => grid.reduce((n, r) => Math.max(n, r.length), 0);
-    return {
-      getName: () => name, getLastRow: rows, getLastColumn: cols, getMaxRows: rows, getMaxColumns: cols,
-      getRange(r, c, nr, nc) {
-        nr = nr || 1; nc = nc || 1;
-        const self = {
-          getValues: () => Array.from({ length: nr }, (_, i) => Array.from({ length: nc }, (_, j) => {
-            const v = (grid[r - 1 + i] || [])[c - 1 + j]; return v === undefined ? '' : v; })),
-          getValue: () => self.getValues()[0][0],
-          setValue(v) {
-            log.writes++;
-            while (grid.length < r) grid.push([]);
-            const row = grid[r - 1]; while (row.length < c) row.push('');
-            row[c - 1] = coerce(v); return self;
-          },
-          setValues(vals) {
-            vals.forEach((rw, i) => rw.forEach((v, j) => sheetOf(name).getRange(r + i, c + j).setValue(v)));
-            return self;
-          },
-          setNumberFormat: () => self, setBackground: () => self, setFontWeight: () => self,
-        };
-        return self;
-      },
-      appendRow(vals) { grid.push(vals.map(coerce)); return this; },
-      deleteRow(at) { grid.splice(at - 1, 1); },
-      setFrozenRows() {}, setTabColor() {},
-    };
-  };
-  const book = {
-    getName: () => 'Ledger', getId: () => 'ledger',
-    getSheets: () => Object.keys(tabs).map(sheetOf),
-    getSheetByName: n => (tabs[n] ? sheetOf(n) : null),
-    insertSheet: n => { tabs[n] = [[]]; return sheetOf(n); },
-  };
-  const props = {};
-  let out = null;
-  const sandbox = {
-    console, JSON, Math, Date, String, Number, Boolean, Array, Object, RegExp, Error, isNaN, isFinite,
-    parseInt, parseFloat, encodeURIComponent, decodeURIComponent, Map, Set, Promise, Symbol,
-    SpreadsheetApp: { openById: () => book, getActiveSpreadsheet: () => book, flush: () => {} },
-    PropertiesService: {
-      getScriptProperties: () => ({
-        getProperty: k => (k in props ? props[k] : null),
-        setProperty: (k, v) => { props[k] = String(v); },
-        deleteProperty: k => { delete props[k]; },
-        getProperties: () => Object.assign({}, props),
-      }),
-      getUserProperties() { return this.getScriptProperties(); },
-    },
-    /* A CACHE THAT KEEPS WHAT IT IS GIVEN, so the payload-key rule is asking a real question. */
-    CacheService: { getScriptCache: () => ({
-      get: k => (cache.has(k) ? cache.get(k) : null), put: (k, v) => { cache.set(k, v); },
-      remove: k => { cache.delete(k); }, removeAll: ks => (ks || []).forEach(k => cache.delete(k)),
-      getAll: ks => { const o = {}; (ks || []).forEach(k => { if (cache.has(k)) o[k] = cache.get(k); }); return o; },
-      putAll: o => Object.keys(o || {}).forEach(k => cache.set(k, o[k])),
-    }) },
-    LockService: { getScriptLock: () => ({ tryLock: () => true, waitLock: () => true, releaseLock: () => {} }) },
-    Logger: { log: () => {} },
-    Utilities: {
-      getUuid: () => crypto.randomUUID(), sleep: () => {},
-      formatDate: d => new Date(d).toISOString(),
-      base64Encode: s => Buffer.from(Array.isArray(s) ? s.map(b => b & 255) : String(s)).toString('base64'),
-      base64EncodeWebSafe: s => Buffer.from(Array.isArray(s) ? s.map(b => b & 255) : String(s)).toString('base64url'),
-      base64Decode: s => Array.from(Buffer.from(String(s), 'base64')),
-      newBlob: s => ({ getBytes: () => Array.from(Buffer.from(String(s))), getDataAsString: () => String(s) }),
-      computeDigest: (alg, s) => Array.from(crypto.createHash('sha256').update(String(s)).digest()).map(b => (b > 127 ? b - 256 : b)),
-      DigestAlgorithm: { MD5: 'MD5', SHA_256: 'SHA_256' }, Charset: { UTF_8: 'UTF_8' },
-    },
-    ContentService: {
-      createTextOutput: t => { out = t; const o = { setMimeType: () => o, getContent: () => t }; return o; },
-      MimeType: { JSON: 'JSON', TEXT: 'TEXT', JAVASCRIPT: 'JAVASCRIPT' },
-    },
-    UrlFetchApp: { fetch: () => { throw new Error('no network'); } },
-    MailApp: { sendEmail: () => {}, getRemainingDailyQuota: () => 100 },
-    GmailApp: { sendEmail: () => {} },
-    DriveApp: { getFolderById: () => null, getFileById: () => null },
-    ScriptApp: { getScriptId: () => 'local', getOAuthToken: () => '', getProjectTriggers: () => [],
-      newTrigger: () => ({ timeBased: () => ({ everyMinutes: () => ({ create() {} }), after: () => ({ create() {} }) }),
-                           forSpreadsheet: () => ({ onChange: () => ({ create() {} }) }) }),
-      deleteTrigger: () => {}, getService: () => ({ getUrl: () => '' }),
-      getAuthorizationInfo: () => ({ getAuthorizationStatus: () => 'NOT_REQUIRED' }), AuthMode: { FULL: 'FULL' } },
-    Session: { getActiveUser: () => ({ getEmail: () => '' }), getEffectiveUser: () => ({ getEmail: () => '' }),
-               getScriptTimeZone: () => 'Europe/London' },
-  };
-  sandbox.globalThis = sandbox;
-  const ORDER = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'records', 'doget', 'dopost'];
-  const missing = ORDER.filter(n => !fs.existsSync(path.join(REPO, 'backend', n + '.gs')));
-  if (missing.length) {
-    console.log('backend/' + missing.join('.gs, backend/') + '.gs could not be read, so NOTHING was checked — not a pass.');
-    process.exit(1);
-  }
-  const src = ORDER.map(n => fs.readFileSync(path.join(REPO, 'backend', n + '.gs'), 'utf8')).join('\n;\n');
-  const ctx = vm.createContext(sandbox);
-  vm.runInContext(src, ctx, { filename: 'backend.gs' });
-  const ev = s => vm.runInContext(s, ctx);
-  const SCHEMA = ev('SCHEMA'), TAB = ev('TAB');
-  Object.keys(TAB).forEach(k => { const n = TAB[k]; if (!tabs[n]) tabs[n] = [(SCHEMA[k] || SCHEMA[n] || []).slice()]; });
-  return {
-    ev, tabs, log, cache,
-    seed(name, rows) {
-      const h = tabs[name][0];
-      /* THROUGH `coerce`, as a sheet would store them — a `TRUE` typed into a cell comes back a boolean,
-         and a Save that compared a boolean against the string it posts would rewrite it every time. */
-      rows.forEach(r => tabs[name].push(h.map(c => (r[c] === undefined ? '' : coerce(r[c])))));
-    },
-    row(pid) {
-      const h = tabs.people[0];
-      const r = tabs.people.find((x, i) => i > 0 && x[h.indexOf('person_id')] === pid);
-      const o = {}; h.forEach((c, i) => { o[c] = r[i]; }); return o;
-    },
-    post(body) {
-      ev('clearCache()'); out = null; const w = log.writes;
-      const res = ev('doPost(' + JSON.stringify({ postData: { contents: JSON.stringify(body) } }) + ')');
-      const d = JSON.parse(out !== null ? out : res.getContent());
-      Object.defineProperty(d, 'writes', { value: log.writes - w, enumerable: false });
-      return d;
-    },
-    /* NO `clearCache()` HERE, unlike `post`: the payload-key rule is a question about what the cache
-       hands back, and clearing it before each GET would make every request a miss. */
-    get(params) {
-      out = null;
-      const res = ev('doGet(' + JSON.stringify({ parameter: params || {} }) + ')');
-      return JSON.parse(out !== null ? out : res.getContent());
-    },
-  };
-}
+/* THE HARNESS IS `check-gas-load.js` NOW — written here, lifted out when `check-aimark.js` needed the
+   same backend in the same scope. One copy, so a service stubbed for one check is stubbed for both. */
+const { backend } = require('./check-gas-load.js');
 
 /* ---------- THE PEOPLE -------------------------------------------------------------------------- */
 const base = {
@@ -577,7 +433,7 @@ PEOPLE.forEach(p => {
     username: first.toLowerCase(), email: id.toLowerCase() + '@example.org' });
   f.seed('people', [mk('P-PA', 'client', 'Anna', 'Parent'), mk('P-PB', 'client', 'Bea', 'Parent'),
                     mk('P-SA', 'student', 'Abe', 'Child'), mk('P-SB', 'student', 'Ben', 'Child'),
-                    mk('P-SC', 'student', 'Cal', 'Child')]);
+                    mk('P-SC', 'student', 'Cal', 'Child'), mk('P-AD', 'admin', 'Ada', 'Boss')]);
   /* AND SIBLINGS, ON *"students should be able to see their parents and siblings likewise"*. Cal is
      Anna's second child, so Abe and Cal see each other; Ben is Bea's, and the only links between
      him and Anna's children are L3 (asked) and L4 (refused) — so until Abe says yes to Bea, Ben is
@@ -610,6 +466,24 @@ PEOPLE.forEach(p => {
   if (pa.token) want('the parent P-PA', fam(stamp(f.get({ person: 'P-PA', name: pa.name, token: pa.token }), 'P-PA', 'P-PA'), 'P-PA'), 'child:P-SA,child:P-SC');
   if (pb.token) want('the parent P-PB', fam(stamp(f.get({ person: 'P-PB', name: pb.name, token: pb.token }), 'P-PB', 'P-PB'), 'P-PB'), 'child:P-SB');
   want('a stranger whose URL names P-SA', fam(stamp(f.get({ person: 'P-SA', name: 'Abe Child' }), 'stranger', ''), 'stranger'), '');
+  /* ---------- EVERYONE, ON AN ADMIN'S PEOPLE COLUMN, AND ON NOBODY ELSE'S ------------------------
+     *"Admin should be able to see every one in the people column."* An admin's token is sent every
+     student and client by id, and no private cell; a student, a parent and a stranger are sent
+     nobody. The admin's own row is on `tutors`, so it is not repeated here. */
+  {
+    const ad = tok('P-AD');
+    const ev = d => (Array.isArray(d.everyone) ? d.everyone : []).map(x => x.personId).sort().join(',');
+    if (ad.token) {
+      const d = f.get({ token: ad.token });
+      want('the admin\'s `everyone`', ev(d), 'P-PA,P-PB,P-SA,P-SB,P-SC');
+      if ((d.everyone || []).some(x => Object.keys(x).some(k => ['personId', 'title', 'handle', 'role', 'image'].indexOf(k) === -1)))
+        bad.push('everyone: a field beyond what a card draws was sent — ' + JSON.stringify((d.everyone || [])[0]));
+      if ((d.everyone || []).some(x => !x.title || !x.role)) bad.push('everyone: a row was sent with no name or role');
+    }
+    if (sa.token) want('a student\'s `everyone`', ev(f.get({ token: sa.token })), '');
+    if (pa.token) want('a parent\'s `everyone`', ev(f.get({ token: pa.token })), '');
+    want('a stranger whose URL names the admin', ev(f.get({ person: 'P-AD', name: 'Ada Boss' })), '');
+  }
   /* THE REQUEST THAT BECOMES A LINK goes to the child it names and nobody else: P-SA has Bea's
      unanswered "this is my child" (L3), P-SB has only a REFUSED one (L4), and a stranger naming
      P-SA in the URL has none. This is also the payload that used to be an error — see `claims`. */
@@ -651,8 +525,17 @@ PEOPLE.forEach(p => {
   f.seed('family', [{ link_id: 'L1', parent_id: 'P-NP', child_id: 'P-NK', state: 'accepted' }]);
   const inn = f.post({ action: 'verifyLogin', email: 'Kit_Calm', pin: '0000' });
   if (!inn || !inn.success) bad.push('no-email: a child with no address could not sign in by handle — ' + JSON.stringify(inn));
-  const viaParent = f.post({ action: 'verifyLogin', email: 'pat_calm', pin: '0000' });
-  if (viaParent && viaParent.success) bad.push('no-email: a row that HAS an address was reached by its handle');
+  /* AND A ROW THAT HAS AN ADDRESS ANSWERS TO ITS HANDLE TOO — the reverse of what this said until
+     *"have the students be able to login with their handles too"*. Same person either door: the
+     handle and the address must hand back the same `personId`, or the handle door signs somebody in
+     as somebody else. */
+  const viaHandle = f.post({ action: 'verifyLogin', email: '@Pat_Calm ', pin: '0000' });
+  const viaMail = f.post({ action: 'verifyLogin', email: 'pat@example.org', pin: '0000' });
+  if (!viaHandle || !viaHandle.success) bad.push('handle: a row that HAS an address could not sign in by its handle — ' + JSON.stringify(viaHandle));
+  else if (!viaMail || !viaMail.success || String(viaHandle.personId) !== String(viaMail.personId) || String(viaHandle.personId) !== 'P-NP')
+    bad.push('handle: the handle door and the address door resolved different people — ' + (viaHandle.personId) + ' vs ' + ((viaMail || {}).personId));
+  const noSuch = f.post({ action: 'verifyLogin', email: 'nobody_calm', pin: '0000' });
+  if (noSuch && noSuch.success) bad.push('handle: a handle nobody has signed somebody in');
   f.post({ action: 'forgotPin', who: 'lee_calm' });
   const leeStill = f.post({ action: 'verifyLogin', email: 'lee_calm', pin: '0000' });
   if (!leeStill || !leeStill.success) bad.push('no-email: a child with no linked parent had their PIN changed by a stranger');

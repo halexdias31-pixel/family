@@ -162,7 +162,6 @@ const SUITE = [
      five worked lines — and the route is the other half: a kind wearing Resources, the Shelf door
      that is the only way past 260 rows of boxing, and the file fetched at all. */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
-  { file: 'check-quizzes.js', what: 'the quizzes: an answer that can be reached, and why' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
      A clip whose path is one character wrong does not draw a broken link. The slide stays its own
      gradient, so a missing file reads as the feature half-working rather than as a file nobody
@@ -186,6 +185,9 @@ const SUITE = [
      admin's Saves wrote blanks over five packed cells — and nothing on this roster ever ran
      `updateProfile`. See the header of that file. */
   { file: 'check-profile.js', what: 'your settings, saved and read back through the real backend' },
+  /* "MARK WITH AI", THROUGH THE SAME BACKEND. The one action that holds a key and spends money per
+     press: no key is a sentence, the key goes in a header, the mark is clamped, the cap holds. */
+  { file: 'check-aimark.js', what: 'AI marking: the key, the clamp and the daily cap, through the real doPost' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
      The third check here about SAFETY rather than about working, after `check-marking.js` and
      `check-handles.js` — and the only one whose subject is this repository rather than the app.

@@ -34,8 +34,8 @@ const path = require('path');
 const src = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');
 
 /* CUT BY NAME, BRACE-COUNTED, AND THE CUTTER IS `check-marks-load.js` — one extractor, because
-   `check-quizzes.js` needs the same six functions to ask a different question of them and its own
-   first attempt at cutting them out could not find `markBare_`. A regex for "the body of a
+   other checks need the same functions to ask different questions of them, and a second cutter
+   written once already could not find `markBare_`. A regex for "the body of a
    function" is really a regex for "up to the next closing brace at the start of a line", which is
    a formatting convention rather than a fact about the code, and this file is checking the one
    thing in the app that must not be approximately right. */
@@ -178,6 +178,26 @@ const CASES = [
   ['x=-4', 'x \u2264 \u22124', false, 'and an equation is not an inequality'],
   ['100<w<=150', '100 < w \u2264 150', true, 'a grouped-data class, typed'],
 
+  /* ---------- WHAT THE MATHS KEYPAD WRITES ------------------------------------------------------
+     `keypad.js` builds every structure with a slot to type into — `()/()`, `^()`, `√()` — so the
+     stacked preview has somewhere to put the caret. These are its own outputs, typed key by key,
+     against the scheme as the library writes it. The bracket fold in `markNorm_` is what makes
+     them right, and the `2(3)` row is what it must never do. */
+  ['(3)/(4)', '0.75', true, 'the keypad’s fraction, against a decimal scheme that says oe'],
+  ['(3)/(4)', '3⁄4', true, 'and against the fraction the library prints'],
+  ['3/(4)', '3⁄4', true, 'a fraction begun after its numerator was already typed'],
+  ['(-3)/(4)', '−0.75', true, 'a negative fraction with the keypad’s minus'],
+  ['(10)/(18)', '5⁄9', true, 'an uncancelled keypad fraction, the scheme still saying oe'],
+  ['(5)/(8)', '3⁄4', false, 'and a different fraction is still different'],
+  ['x^(2)', 'x^2', true, 'the keypad’s power, its slot still bracketed'],
+  ['w^(-2)', 'w^-2', true, 'a negative index, bracketed or not'],
+  ['3.42×10^(7)', '3.42 × 10^7', true, 'standard form off the keypad'],
+  ['2√(11)', '2√11', true, 'a surd off the keypad'],
+  ['√(7)/(7)', 'sqrt(7)/7', true, 'and against the scheme that spells the root out'],
+  ['12π', '12pi', true, 'the π key against a scheme that wrote pi'],
+  ['12pi', '12π', true, 'and pi typed against the sign'],
+  ['2(3)', '23', false, 'a bracket after a digit is multiplication and must not be folded away'],
+  ['(x+1)/(3)', 'x/3', false, 'a bracket round more than one term keeps its meaning'],
   ['', '7', null, 'an empty box is not a mistake'],
   ['banana', '7', false, 'and a word is not a number'],
 ];

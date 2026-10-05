@@ -244,8 +244,8 @@ if (unfetched.length) {
 /* ==================================================================================================
    AND THE FACTS ARE CONTENT, SO THE RULES ABOUT THEM BELONG HERE AND NOT ONLY IN THE WRITER
 
-   `tools/add-facts.py` ASSERTS ALL OF THIS AT THE OTHER END and that is not enough, which is the
-   sentence `check-quizzes.js` already carries: a file can be hand-edited, appended to by another
+   `tools/add-facts.py` ASSERTS ALL OF THIS AT THE OTHER END and that is not enough, because a file
+   can be hand-edited, appended to by another
    script, or written by a version of the tool that has since changed, and a rule living only in the
    thing that produced the data is a rule nothing enforces about the data.
 

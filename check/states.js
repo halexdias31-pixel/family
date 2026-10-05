@@ -118,7 +118,11 @@ const STATES = {
                          { field: 'kindLabel', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
-                         { field: 'keystage', value: 'KS2' },
+                         /* `Level · KS2 SATs`, WHERE THIS WAS `Key stage · KS2` — *"I prefer GCSE or
+                            SATs over grey areas."* A primary sheet's key stage is said as its
+                            qualification now, and Key stage is silent on it (see `keystage` in
+                            find.js), so the old answer reached nothing and the state went unmeasured. */
+                         { field: 'level', value: 'KS2 SATs' },
                          { field: 'yearGroup', any: true }];
         paintStuff();
         goPage('stuff', 0, true);
@@ -470,76 +474,6 @@ const STATES = {
       },
       wants: 'a textbook chapter page — key words, stacked formulas, worked lines and the Higher mark',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- A QUIZ, PART-ANSWERED --------------------------------------------------------
-       BOTH STATES OF THE ROW, IN ONE SCREEN. A quiz question is drawn one of two ways — unanswered,
-       with four live buttons; answered, with the right one marked, the wrong one outlined and the
-       explanation underneath — and they have different heights, different colours and different
-       controls. Measuring only the first would be measuring half the feature, which is exactly what
-       `check/ui.js` had been doing to the booking column for as long as the fixture's one job named
-       neither visitor.
-
-       ANSWERED THROUGH `localStorage` RATHER THAN BY PRESSING, which is the door this feature
-       actually uses: `quizRow_` reads the stored answer and works the mark out itself, so seeding
-       the key is the same thing as having pressed the button — and it is what proves the two paths
-       agree. `quizKey_` is the app's own key-builder for the reason the seeded message thread uses
-       `MESSAGES`: a second spelling of that key here would be a second thing to keep in step.
-
-       AND IT PUTS THE FUNNEL BACK, for the reason the guide above does. It opened a SHEET until
-       "ok get rid of the other pop up menu" took the quiz onto its card; a state that opens a
-       surface the app no longer has measures something nobody can see. */
-    { name: 'a quiz',
-      enter: () => {
-        const any = stuffItemsAll_().find(it => it.kind === 'quiz');
-        if (!any) throw new Error('no quiz in the list to draw a card for');
-        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(any).label }];
-        paintStuff();
-        /* ---------- SEEDED ON THE QUIZ THE SCREEN WILL ACTUALLY SHOW -------------------------
-           NOT ON `stuffItemsAll_()`'s FIRST, which is a different order from the funnel's: the
-           list is sorted before it is paged, so seeding one quiz and landing on another would
-           leave this state measuring an untouched card and reporting the marked states missing.
-           `stuffFiltered()` after the repaint is the order the pages are built from. */
-        const x = stuffFiltered()[0];
-        if (!x) throw new Error('the funnel returned no quiz after filtering to them');
-        /* One right and one wrong, so both marked states are on the screen at once. A quiz where
-           everything is right measures no red, which is half the rules in the block. */
-        const pick = (x.row.qs || []).filter(q => q.kind === 'choice');
-        if (pick.length >= 2) {
-          localStorage.setItem(quizKey_(x, pick[0].n), pick[0].answer);
-          const other = (pick[1].choices || []).find(c => c !== pick[1].answer);
-          if (other) localStorage.setItem(quizKey_(x, pick[1].n), other);
-        }
-        paintStuff();
-        goPage('stuff', typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1);
-      },
-      /* ONE CARD, NOT THE SCREEN, for the reason the guide's own expect records: the windowed
-         pager holds about six result pages at once, so a count across `#s-stuff` counts six
-         quizzes. The seeded one is the first, which is what the `stuffFiltered()[0]` above buys. */
-      expect: () => {
-        const c = document.querySelector('#s-stuff .card.quiz');
-        return !!c && c.querySelectorAll('.quiz-q').length >= 3
-               && !!c.querySelector('.quiz-q.is-right')
-               && !!c.querySelector('.quiz-q.is-near')
-               && !!c.querySelector('.quiz-why');
-      },
-      wants: 'a quiz card with one question right, one wrong, and both explanations drawn',
-      /* ---------- IT CLEARS THE QUIZ IT SEEDED, AND IT USED TO CLEAR A DIFFERENT ONE ------------
-         THIS READ `stuffItemsAll_()`'s FIRST QUIZ, which was the same one `enter` seeded while
-         `enter` read that list too. It does not any more — the seed moved to `stuffFiltered()[0]`,
-         which is the funnel's own order — so looking the quiz up the old way would clear five keys
-         on a quiz nobody touched and leave five behind on the one that was. States run in order
-         down one page, so those would still be there when Tools and Games are measured.
-
-         BOTH ENDS READ THE SAME LIST NOW, which is the only arrangement where they cannot drift —
-         the sentence this repository writes about `documents_()`, `factsNow_` and `childrenOf`. */
-      leave: () => {
-        const x = stuffFiltered()[0];
-        if (x && x.kind === 'quiz') (x.row.qs || []).forEach(q => {
-          try { localStorage.removeItem(quizKey_(x, q.n)); } catch (e) {}
-        });
-        STUFF.filters = [];
-        paintStuff();
-        goPage('stuff', 0);
-      } },
     /* ---------- A DIAGRAM YOU CAN DRAW ON, WITH THE PEN OFF ------------------------------------
        THE SURFACE THE REPORT WAS ABOUT, AND NOTHING HAD EVER RENDERED IT. 169 rows in the library
        want a pen and 26 carry the picture to put one over — and every one of them is inside the
@@ -554,8 +488,8 @@ const STATES = {
        BY `paperId` AND THEN BY POSITION, not by `kindLabel`. Every question in the library is one
        `kindLabel`, so filtering on it and taking the first would land on whichever question sorts
        first — which is not a pen card. The paper is the narrowest chip that reaches this row, and
-       `stuffFiltered()` after the repaint is the order the pages are built from, for the reason the
-       quiz state above records. */
+       `stuffFiltered()` after the repaint is the order the pages are built from: the list is sorted
+       before it is paged, so `stuffItemsAll_()`'s first is not the card the screen shows. */
     { name: 'a diagram you can draw on',
       enter: () => {
         const pen = stuffItemsAll_().find(it => it.kind === 'question'
@@ -616,69 +550,200 @@ const STATES = {
       },
       wants: 'a question whose options are buttons, with no text box on its card',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- AN ANSWER: THE RESULT SHOWN, THE WORKING FOLDED, AND THEN OPENED ---------------------
-       ASKED FOR AS "make answers breaifer ... i want shorter answers." The result is `.qans-body`
-       and the working is one `<details>` under it -- see `answerParts_`. Neither state above ever
-       has an answer on screen: a student's card is shut behind "Show the answer", and the card is
-       taller than the phone, so the answer is below the fold of every picture taken of it. So
-       these press "Show the answer" the way a finger does, bring the answer up, and in the second
-       open the fold -- because the fold's summary is a 44px tap target and the opened working is
-       a table, a fraction and a paragraph at 320px, and both are things `ui.js` measures.
+    /* ---------- A MULTI-PART QUESTION WITH A DIAGRAM, IN THE PAPER'S ORDER ------------------------------
+       ASKED FOR AS *"evaluate how questions appear when there's multiple parts and a diagram"* and
+       *"diagram widgets shouldn't have a question number on them"*. One row, named: Q5 of the June 2022
+       A-level Statistics paper -- a stem ("Of the 80 people...") with a Venn diagram, then six parts, the
+       third of which is "complete the Venn diagram above". Two pictures: the stem's own page, headed
+       `Q5` with no part (`· 1 of 2`: its table is long enough to be cut), and the Venn diagram on the page after it, headed `Figure` with no number of either
+       kind. Both land on the pages in front of (a), where the strip puts them once for all six. */
+    { name: 'a multi-part question\'s stem, on its own page in front of its parts',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-9MA031-2206-5a');
+        if (!it) throw new Error('Q-9MA031-2206-5a is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'stem0'));
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .qcard.qstem');
+        return !!c && /^Q5( · \d+ of \d+)?$/.test(c.querySelector('.qcard-top').textContent.trim().replace(/\s+/g, ' '))
+               && !!c.querySelector('.qsheet-stem') && !c.querySelector('.qp-ans, svg')
+               && !!c.querySelector('.qsheet-figref');
+      },
+      wants: 'the stem of Q5 on its own page, headed Q5 (1 of 2: its table makes it two), no box and no picture, saying what is next',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'its figure, the page after, with no question number',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-9MA031-2206-5a');
+        if (!it) throw new Error('Q-9MA031-2206-5a is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'sfig0'));
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .qcard.qfig');
+        return !!c && !/\bQ\d/.test(c.querySelector('.qcard-top').textContent)
+               && /^Figure/.test(c.querySelector('.qcard-top').textContent.trim())
+               && !!c.querySelector('figure svg') && !c.querySelector('.qp-ans');
+      },
+      wants: 'the Venn diagram on its own page, headed Figure, with no question number and no box',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A PART TOO LONG FOR ONE PAGE, CUT BETWEEN PARAGRAPHS --------------------------------------
+       *"each widget is smaller than a phone screen"*. Named: Q3.5 of the June 2024 A-level Biology
+       Paper 3 -- the tallest question card in the library before the cut, 1,241px past a 320 pane. Its
+       first page (`pre0`): the reading, no box, saying it continues; the card after it keeps the ask. */
+    { name: 'a long part\'s first page, cut before its ask',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-AQA-7408-2406-3A-035');
+        if (!it) throw new Error('Q-AQA-7408-2406-3A-035 is not in the library');
+        if (pageParts_(it).indexOf('pre0') < 0) throw new Error('Q-AQA-7408-2406-3A-035 is not cut any more');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'pre0'));
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .qcard.qpre');
+        return !!c && !c.querySelector('.qp-ans') && /Continued on the next page/.test(c.textContent)
+               && /1 of \d/.test(c.querySelector('.qcard-top').textContent);
+      },
+      wants: 'the first page of a long part: its reading, no box, "1 of N", saying it continues',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A QUESTION YOU HAVE DONE, DATED --------------------------------------------------------
+       ASKED FOR AS *"when a student does do a question, it should record the date they did it"*. Signed
+       in only -- signed out records nothing, by design (`doneKeyOf_`). The date is written where the
+       app writes it, under the visitor's own key, and taken off again on the way out so no other state
+       is pictured stamped. The expect asks for the stamp in the header's slot, on the marks' line. */
+    { name: 'a question you have done, dated',
+      only: () => typeof whoIs_ === 'function' && !!whoIs_(),
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        window.__doneKey = 'done:' + ansKey_(it).slice(4);
+        try { localStorage.setItem(window.__doneKey, '2026-10-04'); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+      },
+      expect: () => {
+        const s = document.querySelector('#s-stuff .page.on .qcard-top .qcard-done');
+        return !!s && /^Done 4 Oct( \d{4})?$/.test(s.textContent);
+      },
+      wants: 'the question card saying "Done 4 Oct" beside its marks',
+      leave: () => { try { localStorage.removeItem(window.__doneKey); } catch (e) {}
+                     STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE ANSWER PAGE: HIDDEN, TURNED TO, AND OPEN WITH ITS WORKING FOLDED AND OPENED -------
+       ASKED FOR AS "what I want was answers to be short and to be their own widget" -- the answer is
+       the page after its question now (`questionAnsCard_`), the result large and the working under
+       one `<details>`. Four pictures of it, because it has four states a finger can put it in, and
+       each is something `ui.js` measures: the waiting sentence and its 44px control; the page a
+       question's tile turns to; the result with Why shut (the summary is a 44px target); and Why
+       open (a table, a fraction and a paragraph at 320px).
 
        ONE ROW, NAMED, on purpose: June 2018 Higher 1, question 3 -- "No", then working that holds a
-       stacked fraction. Picked because it was a 207-character paragraph before the rewrite and the
-       pictures should show the change on a real answer, not on whichever sorts first. AFTER A
-       TICK, because the page is drawn by `goPage` and the card is not there to press until then. */
+       stacked fraction. Picked because it was a 207-character paragraph before 259's rewrite, so
+       the pictures show the change on a real answer rather than on whichever sorts first. Landed on
+       by `stuffPageOf_(it, 'ans')`, the app's own map from a part to a page. AFTER A TICK, because
+       the page is drawn by `goPage` and is not there to press until then.
+
+       `ANS_SHOWN` IS EMPTIED ON THE WAY IN AND OUT. States run in order down one page, and an answer
+       shown by one would be measured as already shown by the next -- the hidden state would then be
+       a picture of the open one, and pass. */
+    { name: 'an answer, hidden until you have a go',
+      only: () => !(typeof isTutorRole === 'function' && isTutorRole()),
+      enter: () => {
+        ANS_SHOWN.clear();
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
+      },
+      /* AND NOTHING OF THE ANSWER IN THE PAGE AT ALL -- the old `is-shut` hid with CSS an answer
+         that was in the document, so "not visible" is not the test; "not there" is. */
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .qans-card');
+        return !!c && c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
+               && !c.querySelector('.qans, .qans-body') && /Answer hidden/.test(c.textContent)
+               && !!c.querySelector('[data-do="qa-show"]');
+      },
+      wants: 'Q3\'s answer page, after its question: "Answer hidden — have a go first", Show the answer, and no answer in it',
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'the answer, turned to from its question',
+      enter: () => {
+        ANS_SHOWN.clear();
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        const first = typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1;
+        goPage('stuff', first + stuffPageOf_(it), true);
+        window.__ansWant = first + stuffPageOf_(it, 'ans');
+        window.__ansFrom = null;
+        /* THE TILE ON THE QUESTION'S OWN PAGE, pressed as a finger would. */
+        setTimeout(() => {
+          const tile = document.querySelector('#s-stuff .page.on [data-do="qa-go"]');
+          window.__ansFrom = PAGE.stuff;
+          if (tile) tile.click();
+        }, 150);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .qans-card');
+        return window.__ansFrom !== null && PAGE.stuff === window.__ansWant && PAGE.stuff > window.__ansFrom
+               && !!c && !c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
+               && /^No$/.test((c.querySelector('.qans-body') || {}).textContent.trim());
+      },
+      wants: 'the question\'s answer tile pressed, and the page turned forward to its answer, open: "No"',
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'an answer, its working folded',
       enter: () => {
+        ANS_SHOWN.clear();
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
         if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
         setTimeout(() => {
-          const card = document.querySelector('#s-stuff .page.on .qcard');
-          const ans = card && card.querySelector('.qans');
-          if (!ans) return;
-          const btn = ans.querySelector('.qp-reveal');
-          if (btn && ans.classList.contains('is-shut')) btn.click();
-          ans.scrollIntoView({ block: 'start', inline: 'nearest' });
+          const btn = document.querySelector('#s-stuff .page.on .qans-card [data-do="qa-show"]');
+          if (btn) btn.click();
         }, 150);
       },
       expect: () => {
-        const ans = document.querySelector('#s-stuff .page.on .qcard .qans');
+        const ans = document.querySelector('#s-stuff .page.on .qans-card:not(.is-hidden) .qans');
         const why = ans && ans.querySelector('details.qans-why');
-        return !!ans && !ans.classList.contains('is-shut') && /^No$/.test(ans.querySelector('.qans-body').textContent.trim())
-               && !!why && !why.open;
+        return !!ans && /^No$/.test(ans.querySelector('.qans-body').textContent.trim()) && !!why && !why.open;
       },
-      wants: 'the answer "No" shown, with its working shut under Why',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'the answer page showing "No", with its working shut under Why',
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'an answer, its working opened',
       enter: () => {
+        ANS_SHOWN.clear();
         const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
         if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
         const facet = FACETS.find(f => f.field === 'paperId');
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
-        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
         setTimeout(() => {
-          const card = document.querySelector('#s-stuff .page.on .qcard');
-          const ans = card && card.querySelector('.qans');
-          if (!ans) return;
-          const btn = ans.querySelector('.qp-reveal');
-          if (btn && ans.classList.contains('is-shut')) btn.click();
-          const sum = ans.querySelector('details.qans-why > summary');
+          const btn = document.querySelector('#s-stuff .page.on .qans-card [data-do="qa-show"]');
+          if (btn) btn.click();
+          const sum = document.querySelector('#s-stuff .page.on .qans-card details.qans-why > summary');
           if (sum) sum.click();
-          ans.scrollIntoView({ block: 'start', inline: 'nearest' });
         }, 150);
       },
       expect: () => {
-        const why = document.querySelector('#s-stuff .page.on .qcard .qans details.qans-why');
+        const why = document.querySelector('#s-stuff .page.on .qans-card .qans details.qans-why');
         return !!why && why.open && !!why.querySelector('.qans-more .frac');
       },
-      wants: 'the answer\'s working open under Why, its fraction stacked',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'the answer page\'s working open under Why, its fraction stacked',
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- MARKED, AND NOTHING MOVED --------------------------------------------------------
        ASKED FOR AS "make it nice more sleek, fresh stable". The unstable part was measured before it
        was fixed: at 320 "Not yet — have another go" wrapped under Check and grew the card by 21.8px,
@@ -761,14 +826,18 @@ const STATES = {
         const s = window.__qStable;
         const card = window.__qCard;
         const mark = card && card.querySelector('.qp-mark');
-        return !!s && !!mark && mark.classList.contains('is-right')
-               && !card.querySelector('.qans').classList.contains('is-shut')
+        /* THE ANSWER OPENS ON ITS OWN PAGE, the one after -- asked of `ansOpen_`, the one rule the
+           page is drawn by, because the page may not be built yet and is not the one on screen. */
+        const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
+        return !!s && !!mark && mark.classList.contains('is-right') && !!it && ansOpen_(it)
+               && !card.querySelector('.qans')
                && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5);
       },
-      wants: 'Q0664 marked right and its answer opened, with the question, the box and Check where they were',
+      wants: 'Q0664 marked right and its answer page opened, with the question, the box and Check where they were',
       leave: () => {
         const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        ANS_SHOWN.clear();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
     { name: 'a tapped answer, not yet, nothing moved',
@@ -812,6 +881,123 @@ const STATES = {
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
+    /* ---------- THE MATHS KEYPAD, UP, WITH A FRACTION HALF BUILT ------------------------------------
+       ASKED FOR AS "make the input better … like hegarty maths … desmos". The pad is one element on
+       <body>, fixed to the foot of the app's column, and it is the one surface in this app that is
+       drawn OVER the screens rather than in one — so it is exactly what `ui.js` has to measure at
+       320: six keys across at 44px, nothing sideways, the caret and the slots inside the box. Q0664
+       is a `calculation` with a scheme, the same row the two marking states use. The keys are CLICKED,
+       not called, so the delegated handler and the pad's own `mousedown` guard are what run — a key
+       that took the focus off the box would close the pad and fail `expect`. Three, then →, then
+       nothing: a fraction with a top and an empty dashed bottom, which is the picture worth looking
+       at. */
+    { name: 'a maths answer, the keypad up, a fraction half built',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q0664');
+        if (!it) throw new Error('Q0664 is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__kpCard = null;
+        /* ASKED AGAIN UNTIL THE CARD IS THERE, rather than once at a guessed delay: the page is built
+           by `goPage`, and on a loaded machine 150ms was sometimes before it — measured, once in two
+           runs at 320. Every 20ms, inside `ui.js`'s half second, then `expect` says so. */
+        let tries = 0;
+        const typeIt = () => {
+          const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === ansKey_(it));
+          if (!inp) { if (++tries < 20) setTimeout(typeIt, 20); return; }
+          window.__kpCard = inp.closest('.qcard');
+          inp.focus();
+          /* A HEADLESS PAGE THAT IS NOT THE FRONT WINDOW may take the focus without firing `focusin`;
+             what a focus opens is check-flow's question, and this one is about how the pad looks. */
+          if (KP_AT !== inp) kpOpen_(inp);
+          ['!frac', '3', '!right'].forEach(v => {
+            const k = document.querySelector('#kp .kp-key[data-v="' + v + '"]');
+            if (k) k.click();
+          });
+        };
+        setTimeout(typeIt, 60);
+      },
+      expect: () => {
+        const pad = document.getElementById('kp');
+        const card = window.__kpCard;
+        const show = card && card.querySelector('.kp-show');
+        return !!pad && !pad.hidden && getComputedStyle(pad).display === 'grid'
+               && pad.querySelectorAll('.kp-key').length === 30
+               && !!show && !!show.querySelector('.frac .frac-n') && show.querySelector('.frac .frac-n').textContent.trim() === '3'
+               && !!show.querySelector('.frac-d .kp-hole') && !!show.querySelector('.frac-d .kp-caret');
+      },
+      wants: 'Q0664’s maths box focused, the keypad up with its 30 keys, and 3 over an empty dashed slot with the caret in it',
+      leave: () => {
+        const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
+        try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- AND A WORDED ANSWER, WITH "MARK WITH AI" UNDER IT ------------------------------------
+       The fixture is a deployment with the action and no key (`aiMarking: false`), which is what
+       `doGet` sends until the owner adds one — so this says yes for the length of the state, the way
+       a key in Script Properties would, and puts it back. Q33 of AQA Biology June 2024 Foundation is
+       a three-mark `explain` with a scheme and no `accept`: exactly the question the button is for. */
+    { name: 'a worded answer, Mark with AI under it',
+      enter: () => {
+        const id = 'Q-AQA-8461-2406-1F-033';
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === id);
+        if (!it) throw new Error(id + ' is not in the library');
+        DATA.aiMarking = true;
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        window.__aiKey = ansKey_(it);
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        /* SIGNED IN, IT IS MARKED — by a stand-in for `api` that answers the way `aiMark` does, so the
+           picture is of the verdict and the sentence as they are really drawn, by the real handler.
+           There is no Gemini in a check. Signed out, the press says to sign in, which is the other
+           thing worth seeing. `api` is put back on the way out. */
+        window.__aiApi = api;
+        /* THE FIXTURE'S SIGNED-IN VISITOR HAS NO SESSION TOKEN, which every real sign-in carries — so
+           one is lent for the length of the state, and taken back. */
+        window.__aiTok = !!(typeof USER === 'object' && USER && !USER.token);
+        if (window.__aiTok) USER.token = 'state-token';
+        api = b => (b && b.action === 'aiMark')
+          ? Promise.resolve({ success: true, awarded: 2, available: 3, left: 19,
+              feedback: 'You described the fall after 1968 but not the peak before it.' })
+          : window.__aiApi(b);
+        /* POLLED, LIKE THE KEYPAD'S STATE ABOVE: once at 150ms missed the card at 768 on a loaded run. */
+        let tries = 0;
+        const markIt = () => {
+          const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__aiKey);
+          const go = ta && ta.closest('.qcard').querySelector('.qp-ai-go');
+          if (!ta || !go) { if (++tries < 20) setTimeout(markIt, 20); return; }
+          ta.value = 'It rose to a peak in the 1960s and then fell sharply once the vaccine came in.';
+          ta.dispatchEvent(new Event('input', { bubbles: true }));
+          go.click();
+        };
+        setTimeout(markIt, 60);
+      },
+      expect: () => {
+        const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__aiKey);
+        const card = ta && ta.closest('.qcard');
+        const go = card && card.querySelector('.qp-ai-go');
+        const said = card && card.querySelector('.qp-ai .qp-verdict');
+        const why = card && card.querySelector('.qp-ai-why');
+        const marked = (typeof USER === 'object' && USER && USER.token)
+          ? /2 of 3 marks/.test(said.textContent) && /peak/.test(why.textContent)
+          : /Sign in/.test(said.textContent);
+        return !!go && !card.querySelector('.kp-in') && !!said && marked;
+      },
+      wants: 'a three-mark explain question with its textarea, "Mark with AI" under it, and its verdict drawn — 2 of 3 and a sentence signed in, "sign in" signed out',
+      leave: () => {
+        if (window.__aiApi) api = window.__aiApi;
+        if (window.__aiTok && USER) delete USER.token;
+        try { localStorage.removeItem(window.__aiKey); } catch (e) {}
+        DATA.aiMarking = false;
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- THE FILMS, WHICH ONLY ONE VISITOR HAS ------------------------------------------
        `only:` FOR THE SECOND TIME IN THIS FILE, and for a stronger reason than the flyer widget's.
        That one is a roster gate on the phone; this is the PAYLOAD — `doGet` builds `films` inside
@@ -832,8 +1018,229 @@ const STATES = {
         paintStuff();
         goPage('stuff', stuffFirstResult_(), true);
       },
-      expect: () => document.querySelectorAll('#s-stuff .card.film').length >= 2,
-      wants: 'at least two film cards' },
+      /* AND ONE ROW OF TILES. The Watch tile was a `.tile-row` drawn INSIDE the card, above the
+         notes, with the star's row under the card — two rows on one film, where a fight has one.
+         It is `filmTiles_`'s now, so a row inside a film card is that shape coming back. */
+      expect: () => {
+        const films = [...document.querySelectorAll('#s-stuff .card.film')];
+        const live = films.find(c => !c.classList.contains('is-off'));
+        const row = live && live.parentElement && live.parentElement.nextElementSibling;
+        return films.length >= 2 && !films.some(c => c.querySelector('.tile-row'))
+               && !!row && row.classList.contains('tile-row') && !!row.querySelector('a.tile[href]');
+      },
+      wants: 'at least two film cards, each with no tile row inside it, and the Watch tile in the row under the card' },
+    /* ==============================================================================================
+       THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
+
+       ASKED FOR AS *"didn't I ask you to sleekerise the whole widget system in the finder"* — and
+       two kinds in Find had never been on a screen this file drew: the boxer and the fight. The
+       boxer was a SHOP row (a 0.92rem title, the record pinned in a corner) and the fight a loose
+       paragraph of names, and nothing measured either, because no state reached Resources ›
+       Boxing. These do, and each asks for the shared shape rather than just "a card": the title in
+       `.fc-head` at the one title size, the kind flag drawn ABOVE it (the kicker slot every page
+       now has), and the numbers on the gold meta line.
+
+       `fcHead` IS WRITTEN OUT IN EACH, not shared, because these functions are passed to the
+       browser as source one at a time and cannot see each other — the note at the top of the file.
+    ============================================================================================== */
+    { name: 'the boxers, on the shared head',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer')
+               || document.querySelector('#s-stuff .card.fc.boxer');
+        if (!c || c.querySelector('.thing')) return false;
+        const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.fc-head .fc-flag');
+        const rec = c.querySelector('.fc-meta.boxer-rec');
+        if (!h3 || !flag || !rec || flag.textContent.trim() !== 'Boxer') return false;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
+               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
+               && /^\d+-\d+-\d+/.test(rec.textContent.trim());
+      },
+      wants: 'a boxer on the shared head — the name at the title size under a Boxer flag, the record on the meta line, no shop row',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    { name: 'the fights, on the shared head',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Fights' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      /* AND NO `.note` PARAGRAPHS. The title and the venue were two of them a browser's default
+         margin apart; they are one `.fc-note` line now, and the method is in sentence case like
+         every other meta line rather than in capitals. */
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.fight')
+               || document.querySelector('#s-stuff .card.fc.fight');
+        if (!c || c.querySelector('p.note')) return false;
+        const h3 = c.querySelector('.fc-head > h3.fight-line'), flag = c.querySelector('.fc-head .fc-flag');
+        const how = c.querySelector('.fc-meta');
+        if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fight') return false;
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
+               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
+               && getComputedStyle(how).textTransform === 'none';
+      },
+      wants: 'a fight on the shared head — the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
+       `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
+       DOM only as a neighbour and never the page measured. Its list has sixteen numbers, and with a
+       bullet's 1.1rem indent `10.` to `16.` hung out past the card's padding at 320px — a marker is
+       not a box, so no overflow rule could see it. So this asks the arithmetic directly: the list's
+       indent against the width of its widest number, set in the list's own font. */
+    { name: "the textbook's contents, every number inside the card",
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'textbook');
+        if (!x) throw new Error('no textbook in the list — data/textbooks.json did not load');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }, { field: 'shelf', value: x.shelf }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .card.tb:not(.prac-part)');
+        const ol = c && c.querySelector('.tb-toc ol.fc-list');
+        const li = ol && ol.children;
+        if (!li || li.length < 10) return false;
+        const probe = document.createElement('span');
+        probe.textContent = li.length + '. ';
+        probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre';
+        li[li.length - 1].appendChild(probe);
+        const need = probe.getBoundingClientRect().width;
+        probe.remove();
+        return parseFloat(getComputedStyle(ol).paddingLeft) >= need;
+      },
+      wants: "the textbook's contents card, its list indented at least as wide as its widest number",
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE TWO WAYS THE FUNNEL ENDS WITHOUT A QUESTION ------------------------------------
+       NEITHER WAS A STATE. `Nothing matches` is what a search for nothing says, and "Nothing left to
+       narrow" is the last line under the chips when every question is answered — an inline
+       `style="margin:.6rem 0 0"` in the faintest ink until it had a class. Both are measured for
+       contrast here for the first time. */
+    { name: 'a search that matches nothing',
+      enter: () => { STUFF.filters = []; STUFF.q = 'zqxjv nothing is called this'; paintStuff(); goPage('stuff', 0, true); },
+      expect: () => /Nothing matches/.test((document.querySelector('#stuff-groups .empty') || {}).textContent || ''),
+      wants: 'the funnel saying Nothing matches',
+      leave: () => { STUFF.q = ''; paintStuff(); goPage('stuff', 0); } },
+    { name: 'nothing left to narrow',
+      /* ANSWERED BY THE FUNNEL'S OWN ROWS until it stops asking, over the projects — eight things,
+         so it runs out of questions in two or three answers whatever the data says next week. */
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Projects' }];
+        paintStuff();
+        for (let i = 0; i < 8; i++) {
+          const r = document.querySelector('#stuff-groups .answers > .row[data-do="facet-pick"]');
+          if (!r) break;
+          r.click();
+        }
+        goPage('stuff', 0, true);
+      },
+      expect: () => {
+        const end = document.querySelector('#stuff-groups .find-end');
+        const chips = document.querySelector('#stuff-chips .chips');
+        return !!end && /Nothing left to narrow/.test(end.textContent) && !end.hasAttribute('style')
+               && !!end.querySelector('b') && !!chips
+               && parseFloat(getComputedStyle(chips).borderBottomWidth) >= 1;
+      },
+      wants: 'the funnel ending on "Nothing left to narrow" in its own class, with a rule under the chosen chips',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- "STABLE": AN ANSWER PRESSED MOVES NOTHING ABOVE IT ---------------------------------
+       *"nice more sleek, fresh stable"*. Pressing an answer adds a chip and asks the next question,
+       so the list UNDER the chips moves by design — but the search box and the chips already chosen
+       must not move a pixel, or the thing you were about to press next is somewhere else. Measured
+       before and after a real click on the first answer, relative to the pane. */
+    { name: 'an answer pressed, the search box and the chips still',
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }];
+        paintStuff();
+        goPage('stuff', 0, true);
+        window.__findStill = null;
+        setTimeout(() => {
+          const pane = document.getElementById('stuff-controls');
+          const at = () => {
+            const top = pane.getBoundingClientRect().top;
+            const q = document.getElementById('stuff-q').getBoundingClientRect().top - top;
+            const chip = document.querySelector('#stuff-chips .chip');
+            return [q, chip ? chip.getBoundingClientRect().top - top : -1,
+                    chip ? chip.getBoundingClientRect().left : -1];
+          };
+          const a = at();
+          const r = document.querySelector('#stuff-groups .answers > .row[data-do="facet-pick"]');
+          if (!r) return;
+          r.click();
+          window.__findStill = { a, b: at(), n: STUFF.filters.length };
+        }, 150);
+      },
+      expect: () => {
+        const s = window.__findStill;
+        return !!s && s.n === 2 && s.a[1] >= 0 && s.a.every((v, i) => Math.abs(v - s.b[i]) < .5);
+      },
+      wants: 'a second chip added with the search box and the first chip exactly where they were',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AND A CARD'S OWN PAGES FILLING MOVE NOTHING ON IT ----------------------------------
+       The pager fills pages either side of the one in front as you swipe, so a practical's diagram,
+       kit and steps are drawn into the DOM while you are reading its card. Measured on the card:
+       its title and its foot, relative to its pane, before and after turning two pages on and
+       back. THREE PAGES WAS NOT ENOUGH and the first version measured nothing: with `STUFF_NEAR` at 5
+       every page it passed was already drawn. `STUFF_NEAR + 3` on is far enough that the card's OWN
+       page is emptied, so coming back draws it again from nothing — the moment a card loads. */
+    { name: "a practical's pages filled, its card still",
+      enter: () => {
+        const x = stuffItemsAll_().find(it => it.kind === 'practical' && !it.row.excluded && it.row.diagram);
+        if (!x) throw new Error('no practical with a diagram');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: kindOf_(x).label }];
+        paintStuff();
+        const first = stuffFirstResult_();
+        goPage('stuff', first, true);
+        window.__cardStill = null;
+        /* THE CARD'S PAGE BY THE APP'S OWN `domIndex_`, NOT THE N-TH CHILD AND NOT `.page.on`: the
+           pager keeps a window of result pages and recycles them, so the strip's children are not
+           numbered by page, and `.on` moves on the next frame rather than inside `goPage`. */
+        const page = () => document.querySelectorAll('#s-stuff > .page')[domIndex_('stuff', first)];
+        const at = () => {
+          const pg = page(), pane = pg && pg.querySelector('.pane');
+          const h3 = pane && pane.querySelector('.card.fc .fc-head h3');
+          /* THE CARD'S FOOT, NOT THE TILE ROW: signed out there is no star and no admin mark, so
+             there is no row, and a state that measures nothing for a stranger is not measuring. */
+          const card = h3 && h3.closest('.card');
+          if (!card) return null;
+          const t = pane.getBoundingClientRect().top;
+          return [h3.getBoundingClientRect().top - t, card.getBoundingClientRect().bottom - t,
+                  pane.getBoundingClientRect().height];
+        };
+        /* THE PAGES ARE FILLED BY `fillStuffPages`, CALLED HERE RATHER THAN WAITED FOR, AND NOTHING
+           IN THIS STATE WAITS ON A TIMER. The pager fills on the settle after a swipe; the first
+           version waited for it, then waited 60ms twice for its own measurements — and with the
+           whole suite running at once those timers fired after the half second `check/ui.js` gives
+           a state, so it reported the card missing at every width. Calling the app's own filler
+           (`all`, so the far pages are not left to a timer either) is the same drawing, and reading
+           a box forces the layout, so the whole thing is synchronous. The title node is kept so the
+           expect can tell the card was drawn AGAIN rather than left standing. */
+        fillStuffPages(true);
+        const a = at();
+        const was = page() && page().querySelector('.card.fc .fc-head h3');
+        goPage('stuff', first + STUFF_NEAR + 3, true); fillStuffPages(true);
+        goPage('stuff', first, true); fillStuffPages(true);
+        const now = page() && page().querySelector('.card.fc .fc-head h3');
+        window.__cardStill = { a, b: at(), redrawn: !!now && now !== was };
+      },
+      expect: () => {
+        const s = window.__cardStill;
+        return !!s && !!s.a && !!s.b && s.redrawn && s.a.every((v, i) => Math.abs(v - s.b[i]) < .5);
+      },
+      wants: "a practical's card with its title, its foot and its pane's height unchanged after its pages filled",
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
   ],
 
   /* ---------- THE TWO WIDGETS THAT ARE TALLER THAN A SCREEN ------------------------------------
@@ -1797,6 +2204,32 @@ const STATES = {
         });
         paint('saved');
       } },
+    /* ---------- THINGS KEPT, DRAWN AS FIND DRAWS THEM ------------------------------------------
+       THE STATE ABOVE KEEPS WIDGETS, and a kept practical, boxer or pencil had never been drawn
+       here. Each was wrapped in `.card.is-widget` — a widget's own framed body — inside the pane,
+       which draws that frame already: a card in a box in a box, 14px narrower each side than the
+       same card on Find. Seeded through `toggleFav`, the app's own writer, one of each kind that is
+       drawn differently; `leave` takes them back off. */
+    { name: 'things kept, drawn as Find draws them',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        const all = stuffItemsAll_();
+        window.__keptKeys = ['practical', 'boxer', 'shop']
+          .map(k => all.find(x => x.kind === k && x.key && !(x.row && x.row.excluded)))
+          .filter(Boolean).map(x => x.key);
+        window.__keptKeys.forEach(k => { if (!isFav(k)) toggleFav(k); });
+        paint('saved');
+      },
+      expect: () => (window.__keptKeys || []).length === 3
+                 && document.querySelectorAll('#s-saved .favwrap').length >= 3
+                 && !!document.querySelector('#s-saved .favwrap > .card.fc.prac')
+                 && !!document.querySelector('#s-saved .favwrap > .card.fc.boxer')
+                 && !document.querySelector('#s-saved .card.is-widget .favwrap'),
+      wants: 'a kept practical, boxer and shop thing, each drawn straight into its pane with no widget frame round it',
+      leave: () => {
+        (window.__keptKeys || []).forEach(k => { if (isFav(k)) toggleFav(k); });
+        paint('saved');
+      } },
   ],
 
   /* ---------- THE SHOP WINDOW, EMPTY AND FULL, AND THE EMPTY ONE IS TWO DIFFERENT CARDS --------
@@ -1998,7 +2431,7 @@ const STATES = {
       wants: 'a subject and a level chosen, five pieces ticked, no Fill or Clear, the negative number line offered, the list not a scroller, and Print ready',
       leave: () => {
         MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
-        MAT_GROUP = '';
+        MAT_GROUP = ''; if (typeof MAT_KIND !== 'undefined') MAT_KIND = 'cheat';
         try { localStorage.removeItem('matChoice'); } catch (e) {}
         matPaint();
       } },
@@ -2066,7 +2499,7 @@ const STATES = {
       wants: 'every subject × level × topic of the cheat sheet maker fitting its pane at 320x568 and 390x844 with no scroll and no zoom below 0.85 (window.MAT_FIT_MISS names the first that did not)',
       leave: () => {
         MAT_ON = []; MAT_SUBJECT = 'Maths'; MAT_LEVEL = 'all'; MAT_TIER = 'H'; MAT_EXAM = 'all';
-        MAT_GROUP = '';
+        MAT_GROUP = ''; if (typeof MAT_KIND !== 'undefined') MAT_KIND = 'cheat';
         try { localStorage.removeItem('matChoice'); } catch (e) {}
         matPaint();
       } },

@@ -229,7 +229,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-03-c-timesync";
+const BACKEND_VERSION = "2026-10-05-b-aimark";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -1343,6 +1343,11 @@ const CONFIG_DEFAULTS = [
      THIS IS THE CLIENT ID, NOT THE CLIENT SECRET. The id is public by design: every site using
      Google Sign-In ships it in the page, and it goes to the phone in the payload. The secret is a
      different string, this app has never needed one, and it must never be put in this sheet. */
+  /* ---------- AI MARKING ---------------------------------------------------------------------------
+     THE KEY IS NOT HERE AND MUST NEVER BE: this tab goes to every phone. It is `GEMINI_API_KEY` in
+     Project Settings → Script Properties. These two are the parts that are safe to show. */
+  ['gemini_model', 'gemini-flash-latest', 'the Gemini model that marks worded answers. Blank = gemini-flash-latest. The API KEY never goes here: it is GEMINI_API_KEY in Script Properties'],
+  ['ai_marks_per_day', 20, 'how many answers one person may have marked by AI in a day. Blank = 20. 0 switches AI marking off'],
   ['google_client_id', '', 'Google Sign-In client ID (the PUBLIC one, ending .apps.googleusercontent.com). Blank switches Google sign-in off. Never put the client SECRET here'],
   ['pages_recheck_days', 30, 'how old a resource page count may get before the nightly job re-reads the file'],
 
@@ -2812,6 +2817,9 @@ const ACTION_ACCESS = {
   /* JOINING A FESTIVE EVENT. `self` — anybody signed in may take a place, and the handler checks it
      is their own name going down. */
   joinFestive: 'self',
+  /* MARKING A WORDED ANSWER WITH GEMINI. `self`, because every press costs a request and the cap is
+     per person — counted against the id the token resolved to, which only a signed-in request has. */
+  aiMark: 'self',
 
   /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
      resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */

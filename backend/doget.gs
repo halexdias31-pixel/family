@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-03-c-timesync";
+const DOGET_VERSION = "2026-10-05-b-aimark";
 
 
 function doGet(e) {
@@ -417,6 +417,15 @@ function doGet(e) {
          leave the server. Blank stays blank: an unset cell sends '', me.js draws no button, and
          `googleLogin` still refuses, so an unconfigured site behaves exactly as it does today. */
       googleClientId: S(cfg.google_client_id),
+      /* WHETHER "Mark with AI" IS WORTH DRAWING — true when `GEMINI_API_KEY` is in Script Properties.
+         A YES OR NO AND NEVER THE KEY: the key stays on the server, and this is one property read.
+         The payload is cached, so a key added this minute reads false here until the next sheet edit
+         retires the copy; `aiMark` itself answers `why: 'ai-off'` in the meantime, so the phone is
+         never offered a button that does nothing for longer than one press. See keypad.js. */
+      aiMarking: (function () {
+        try { return !!PropertiesService.getScriptProperties().getProperty('GEMINI_API_KEY'); }
+        catch (e) { return false; }
+      })(),
       /* WHAT THE SHEET DID when this version first arrived — null on every request but the first
          after a deploy. Sent so it is visible rather than only in a log nobody opens: a schema
          change that failed and a schema change that was never needed look identical from here. */
@@ -476,6 +485,9 @@ function doGet(e) {
                  /* The site checks this before offering the button, so an older deployment says so
                     rather than answering "that action is not recognised" on a payment. */
                  'markPaid', 'joinFestive',
+                 /* The site checks this before it draws "Mark with AI", so a phone ahead of the
+                    deployment shows no button rather than one answering "not recognised". */
+                 'aiMark',
                  /* The site checks this before it offers the ＋ to somebody who is not an admin —
                     so an old deployment says so rather than swallowing their photograph. */
                  'approvePost'],
@@ -483,6 +495,8 @@ function doGet(e) {
       /* The signed-in person's own family, both directions — see "YOUR OWN FAMILY" below — and the
          id of the person it was built for, which the phone checks before drawing any of it. */
       family: [], familyFor: '',
+      /* EVERYBODY WHO IS NOT ON `tutors`, for an admin's people column — see "EVERYONE" below. */
+      everyone: [],
       /* ---------- `claims` WAS NEVER IN THIS LITERAL, AND `payload.claims.push` THREW ------------
          A child with one unanswered "this is my child" row — the ordinary first half of linking a
          family — was answered `{ error: "Cannot read properties of undefined (reading 'push')" }`
@@ -599,22 +613,12 @@ function doGet(e) {
          `check-payload.js` reporting the key as read-and-never-sent, which it would be right
          to do — it cannot tell a key filled in the browser from one nobody sends. */
       practicals: [],
-      /* AND `quizzes` IS THE SIXTH. `data/quizzes.json` is 81 recap quizzes filled in on the phone
-         by `libraryExtras_`, and this line is what stops `check-payload.js` reporting the key as
-         read-and-never-sent -- which it would be right to do, because it cannot tell a key filled
-         in the browser from one nobody sends.
-
-         IT IS NOT A TAB AND IT IS NOT GOING TO BE ONE. The three-question test in CLAUDE.md
-         settles it: it is not secret, the app never writes to it, and nobody hand-edits it -- it
-         arrives in bulk from `tools/quizwrite.py`, whose assertions are the reason it can be
-         trusted to mark a child's answer. */
-      quizzes: [],
-      /* AND `projects` IS THE SEVENTH, for the same sentence: `data/projects.json` is filled in
+      /* AND `projects` IS THE SIXTH, for the same sentence: `data/projects.json` is filled in
          on the phone by `libraryExtras_`, and without this key `check-payload.js` would report it
          read-and-never-sent. Nothing here reads a tab for it. The site works before this line is
          deployed -- the phone fills the key either way -- so the deploy is for the check's sake. */
       projects: [],
-      /* AND `textbooks` IS THE EIGHTH, for the same sentence again: `data/textbooks.json` is
+      /* AND `textbooks` IS THE SEVENTH, for the same sentence again: `data/textbooks.json` is
          filled in on the phone, and this key is here so `check-payload.js` does not report it
          read-and-never-sent. */
       textbooks: [],
@@ -806,6 +810,27 @@ function doGet(e) {
             from: parent ? personDisplayName(parent) : S(f.parent_id),
             asked: S(f.asked_on),
           });
+        });
+      }
+
+      /* ---------- EVERYONE, FOR AN ADMIN'S PEOPLE COLUMN ------------------------------------------
+         ASKED FOR AS *"Admin should be able to see every one in the people column."* The column is
+         `accountPages_` in find.js and it walks `tutors` — the tutors and admins, which an admin
+         already gets unlisted ones of. The students and clients were nowhere on it, and the one
+         person who runs the place could not look up a family without opening the spreadsheet.
+
+         ADMIN ONLY, BY THE TOKEN (`viewerIsAdmin` is `meAsked`, never `?name=`), AND ONLY WHAT A
+         CARD DRAWS: an id, a name, a handle, a role and a photograph. No address, phone, PIN, date
+         of birth or bank cell — the `payload.students` lesson above, where the list was right for
+         the first reader and went to every visitor. The ADMIN reads email and phone in the sheet;
+         a payload is a copy on a phone, and a copy is the thing that leaks.
+
+         A TUTOR OR ADMIN ROW IS NOT REPEATED HERE. `tutors` already carries it, with the rate and
+         the subjects a tutor card wants, and two lists naming one person is one card drawn twice. */
+      if (viewerIsAdmin && !hasRole(r, 'tutor') && !hasRole(r, 'admin')) {
+        payload.everyone.push({
+          personId: S(r.person_id), title: name, handle: S(r.handle) || S(r.first_name),
+          role: ROLE_LABEL[mainRole(r)] || 'Client', image: S(r.photo),
         });
       }
 

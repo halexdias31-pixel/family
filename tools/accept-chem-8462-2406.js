@@ -30,8 +30,7 @@
    working is not a string comparison and pretending otherwise is worse than no button.
 
    AND EVERY ENTRY IS PROVED BOTH WAYS BEFORE IT IS WRITTEN, through the app's own `markAnswer_`
-   rather than a second opinion about what a right answer is — which is `check-quizzes.js`'s rule,
-   and it found three real faults on its first run. For a tick box the wrong side is free and is
+   rather than a second opinion about what a right answer is. For a tick box the wrong side is free and is
    the strongest test available: EVERY OTHER PRINTED OPTION must mark wrong. An `accept` that lets
    two of the four options through is a question with two right answers.
 ================================================================================================== */

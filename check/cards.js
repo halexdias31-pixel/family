@@ -43,6 +43,7 @@ const WIDTH = 320;
 const PHONE_H = 568;
 const PORT = Number(process.env.CARDS_PORT || 8129);  /* overridable: parallel runs in worktrees share one machine */
 const SHOTS = process.argv.includes('--shots');
+const ALL = process.argv.includes('--all');
 /* ---------- THE CARD'S OWN TYPESETTER, NOT A COPY OF IT -------------------------------------------
    `typeset_` turns every stored fraction into a stacked `.frac` when the app draws a card, so the
    markup a card lays out is no longer the markup in the row. A stacked fraction is an inline-block
@@ -110,7 +111,10 @@ function cardHtml(r, stems) {
      `questionFigCard_` in find.js. The same split here, or this measures a card nobody draws. */
   const pics = v => (Array.isArray(v) ? v : String(v || '').split(',').map(x => x.trim()).filter(Boolean))
     .map(src => `<figure class="qpic"><img src="${src}" alt=""></figure>`).join('');
-  const figs = pre.map(p => fig(p.diagram) + pics(p.images)).join('') + fig(r.diagram) + pics(r.images);
+  /* AND IN THE PAPER'S ORDER NOW -- each stem its own card, its figure the card after it, then the
+     part and the part's own figure (`pageParts_` in find.js). A figure's header is its name, never a
+     question number. */
+  const figs = fig(r.diagram) + pics(r.images);
   /* ---------- THE SECOND LINE IS TAGS NOW, NOT THE PAPER'S NAME --------------------------------
      `qTags_` in find.js takes the name apart into the facts it is made of and draws each as a
      `.qtag`. The same pieces here -- the level, then the name cut at its spaced dash and its colon
@@ -126,18 +130,26 @@ function cardHtml(r, stems) {
     .map(t => String(t).trim()).filter(Boolean)
     .reduce((out, t) => { const m = MONTH_RE.exec(t); return out.concat(m ? [m[3], m[1]] : [t]); }, []);
   const tags = `<span class="qtags">${tagBits.map(t => `<span class="qtag">${t}</span>`).join('')}</span>`;
-  return `<div class="qcard" data-row="${r.row_id}">
+  const stemCards = pre.map(p => (p.html ? `<div class="qcard qstem" data-row="${p.row_id}#stem">
+    <div class="qcard-top"><b>Q${r.question || ''}</b></div>
+    <p class="qcard-sub">${tags}</p>
+    <div class="qsheet"><div class="qsheet-stem${String(p.placeholder) === 'True' ? ' is-standin' : ''}"
+        >${typeset_(p.html)}</div></div>
+  </div>` : '') + ((p.diagram || p.images) ? `<div class="qcard qfig" data-row="${p.row_id}#sfig">
+    <div class="qcard-top"><b>Figure</b></div>
+    <p class="qcard-sub">${tags}</p>
+    <div class="qsheet">${fig(p.diagram) + pics(p.images)}</div>
+  </div>` : '')).join('');
+  return `${stemCards}<div class="qcard" data-row="${r.row_id}">
     <div class="qcard-top"><b>Q${r.question || ''}${r.part || ''}</b>
       <span>${r.marks || 0} marks</span></div>
     <p class="qcard-sub">${tags}</p>
     <div class="qsheet">
-      ${pre.filter(p => p.html).map(p => `<div class="qsheet-stem${String(p.placeholder) === 'True' ? ' is-standin' : ''}"
-        >${typeset_(p.html)}</div>`).join('')}
       ${r.lead ? `<div class="qsheet-lead">${typeset_(r.lead)}</div>` : ''}
       <div class="qsheet-part"><div class="qsheet-pb">${typeset_(r.html)}</div></div>
     </div>
   </div>${figs ? `<div class="qcard qfig" data-row="${r.row_id}#fig">
-    <div class="qcard-top"><b>Figure · Q${r.question || ''}${r.part || ''}</b></div>
+    <div class="qcard-top"><b>Figure</b></div>
     <p class="qcard-sub">${tags}</p>
     <div class="qsheet">${figs}</div>
   </div>` : ''}`;
@@ -314,7 +326,7 @@ function outside(svg, row) {
      on a screen at once: the funnel fills five pages either side of where you are, so `check/ui.js`
      sees whichever ones it happens to stop on, and this file read the other data file.
 
-     IT COST FOUR CARDS, FOUND ON THE RUN THAT ADDED TEN MORE. `.prac-head` is a flex row and a flex
+     IT COST FOUR CARDS, FOUND ON THE RUN THAT ADDED TEN MORE. `.fc-head` is a flex row and a flex
      item's minimum is its MIN-CONTENT -- the widest unbreakable word -- so `Photosynthesis`, `Field
      investigations`, `Chromatography` and `I-V characteristics` beside a `flex: 0 0 auto` flag
      could not shrink, and each took the card up to 19px past a 320px column. Four rows of
@@ -456,50 +468,78 @@ function outside(svg, row) {
      though it is no longer broken -- and the number is what would say so if a change ever made the
      typical card tall. It is the count of cards that need the scroll, not of cards that are cut
      off, and the line printed below says which. */
-  const qtall = await pracPage.evaluate(width => {
-    if (typeof stuffItems !== 'function' || typeof questionCard_ !== 'function') return -1;
-    const items = stuffItems().filter(x => x.kind === 'question');
-    const host = document.createElement('div');
-    host.style.cssText = 'position:absolute;left:0;top:0;width:' + width + 'px';
-    host.innerHTML = '<section class="page"><div class="pane"></div></section>';
-    document.body.appendChild(host);
-    const cap = parseFloat(getComputedStyle(host.querySelector('.pane')).maxHeight);
-    const tall = [];
-    /* ---------- NO PICTURE ON A QUESTION CARD, AND EVERY PICTURE ON ITS FIGURE PAGE -------------
-       "Across the board of all resources the diagrams should be its own widgets." Asked of the app's
-       own two builders, because a figure left inline measures perfectly: it fits, it clips nothing,
-       and it is the thing that was asked to move. */
-    const inline = [];
-    items.forEach(x => {
-      const q = questionCard_(x, 0);
-      if (/<svg|class="qpad|class="qpic/.test(q)) inline.push(x.row.row_id + ' draws a picture on the question card');
-      if (questionHasFig_(x) && !/<svg|class="qpic/.test(questionFigCard_(x))) {
-        inline.push(x.row.row_id + ' has a picture and its figure page draws none');
-      }
-    });
-    /* ONE CARD PER PANE, IN BATCHES OF TWO HUNDRED PANES. The first version put two hundred cards
-       into ONE pane and reported `Q-1MA1-2406-2F-28a` as 67,622px past the fold -- a card that
-       measures 478px on its own. 67,622 + 534 is the height of the whole batch, because a card is
-       the pane's only child when the app draws it and takes the pane's own box; measured beside a
-       hundred and ninety-nine siblings the first of them reported the lot. A check that cannot be
-       wrong in the flattering direction can still be wrong in the alarming one, and a number that
-       large is the tell. Verified against three cards measured alone: 478, 260 and 361px. */
-    for (let i = 0; i < items.length; i += 200) {
-      host.innerHTML = items.slice(i, i + 200).map(x =>
-        '<section class="page"><div class="pane"><div data-row="' + (x.row && x.row.row_id) + '" '
-        + 'class="card is-widget">' + questionCard_(x, 0) + '</div></div></section>'
-        /* AND ITS FIGURE PAGE, which is a page of its own and has a height of its own. */
-        + (questionHasFig_(x) ? '<section class="page"><div class="pane"><div data-row="'
-          + (x.row && x.row.row_id) + '#fig" class="card is-widget">' + questionFigCard_(x)
-          + '</div></div></section>' : '')).join('');
-      host.querySelectorAll('.card.is-widget').forEach(el => {
-        const h = el.getBoundingClientRect().height;
-        if (h > cap) tall.push({ row: el.dataset.row, px: Math.round(h - cap) });
+  /* ---------- EVERY PAGE OF EVERY QUESTION, AT TWO PHONES, IN THE STRIP'S OWN ORDER ----------------
+     ASKED FOR AS *"giving diagrams and figures their own widget to ensure each widget is smaller than
+     a phone screen"*. So the subject is every PAGE a question takes -- its stem, the stem's figure,
+     the card, its own figure, its answer -- built by the app's own `stuffCard` / `stuffPart_` in
+     `pageParts_`'s order over the results list (so a stem shared by six parts is measured once, as
+     it is drawn once), and the phones are both the narrow one (320 x 568) and an ordinary one
+     (390 x 844). The pane's cap is in `dvh`, so the viewport is set to each phone before measuring.
+
+     A COUNT, BY PAGE KIND, AND THE WORST OF EACH -- printed rather than failed, for the reason the
+     note above gives: `paneReach_` scrolls a tall pane, so it is reachable, and the number is what
+     says whether the split made the typical page fit. */
+  const qtallAt = async (w, h) => {
+    await pracPage.setViewportSize({ width: w, height: h });
+    await pracPage.waitForTimeout(150);
+    return pracPage.evaluate(width => {
+      if (typeof stuffItems !== 'function' || typeof questionCard_ !== 'function'
+          || typeof stuffPart_ !== 'function' || typeof stuffCard !== 'function') return -1;
+      const items = stuffItems().filter(x => x.kind === 'question');
+      const host = document.createElement('div');
+      host.style.cssText = 'position:absolute;left:0;top:0;width:' + width + 'px';
+      host.innerHTML = '<section class="page"><div class="pane"></div></section>';
+      document.body.appendChild(host);
+      const cap = parseFloat(getComputedStyle(host.querySelector('.pane')).maxHeight);
+      const tall = [], kinds = {};
+      /* ---------- NO PICTURE ON A QUESTION CARD, AND EVERY PICTURE ON A FIGURE PAGE ----------------
+         "Across the board of all resources the diagrams should be its own widgets." Asked of the
+         app's own builders, because a figure left inline measures perfectly. And *"diagram widgets
+         shouldn't have a question number on them"*: a figure page's header is asked for one. */
+      const inline = [];
+      const pages = [];
+      items.forEach((x, i) => {
+        const q = questionCard_(x, 0);
+        if (/<svg|class="qpad|class="qpic/.test(q)) inline.push(x.row.row_id + ' draws a picture on the question card');
+        if (/class="qsheet-stem/.test(q)) inline.push(x.row.row_id + ' prints its stem on the part\'s card');
+        if (/class="qans|qans-body/.test(q)) inline.push(x.row.row_id + ' draws its answer on the question card');
+        if (typeof questionHasAns_ === 'function' && questionHasAns_(x)
+            && !/class="qcard qans-card/.test(questionAnsCard_(x))) {
+          inline.push(x.row.row_id + ' has an answer and no answer page');
+        }
+        pageParts_(x, items[i - 1]).forEach(part => pages.push({ x: x, part: part }));
       });
-    }
-    host.remove();
-    return { n: items.length, cap: Math.round(cap), tall, inline };
-  }, WIDTH);
+      /* `stem3-2` and `stem0` are both a stem's page; `pre1` a long part's first pages. */
+      const kindOf = p => (!p ? 'card' : p.replace(/\d+(-\d+)?$/, ''));
+      for (let i = 0; i < pages.length; i += 200) {
+        const batch = pages.slice(i, i + 200);
+        host.innerHTML = batch.map(pg => {
+          const html = pg.part ? stuffPart_(pg.x, pg.part) : stuffCard(pg.x, 0);
+          return '<section class="page"><div class="pane"><div data-row="' + (pg.x.row && pg.x.row.row_id)
+            + (pg.part ? '#' + pg.part : '') + '" data-kind="' + kindOf(pg.part) + '" class="card is-widget">'
+            + html + '</div></div></section>';
+        }).join('');
+        host.querySelectorAll('.card.is-widget').forEach(el => {
+          const k = el.dataset.kind;
+          kinds[k] = kinds[k] || { n: 0, tall: 0 };
+          kinds[k].n++;
+          if ((k === 'fig' || k === 'sfig') && !el.querySelector('svg, .qpic, img')) {
+            inline.push(el.dataset.row + ' is a figure page that draws no picture');
+          }
+          if ((k === 'fig' || k === 'sfig') && /\bQ\d/.test((el.querySelector('.qcard-top') || {}).textContent || '')) {
+            inline.push(el.dataset.row + ' is a figure page with a question number in its header');
+          }
+          const h = el.getBoundingClientRect().height;
+          if (h > cap) { kinds[k].tall++; tall.push({ row: el.dataset.row, kind: k, px: Math.round(h - cap) }); }
+        });
+      }
+      host.remove();
+      return { n: items.length, pages: pages.length, cap: Math.round(cap), tall, inline, kinds };
+    }, w);
+  };
+  const qtall = await qtallAt(WIDTH, PHONE_H);
+  const qtallBig = await qtallAt(390, 844);
+  await pracPage.setViewportSize({ width: WIDTH, height: PHONE_H });
 
   await pracPage.evaluate('window.__measure = ' + measure.toString());
   await pracPage.evaluate('window.__outside = ' + outside.toString());
@@ -626,54 +666,6 @@ function outside(svg, row) {
   }
   bad.push(...await pracPage.evaluate(measure, { slack: SLACK, sel: '.card.prac' }));
 
-  /* ---------- AND EVERY PRINTED QUIZ, ON THE SHEET IT ACTUALLY PRINTS ON --------------------------
-     A PRINTED QUIZ IS A DIFFERENT DOCUMENT FROM THE SCREEN ONE and nothing had ever laid one out.
-     `check/ui.js` measures screens, this file measured cards and guides, and `quizPaper_` is drawn
-     into `document.body` for the length of a print dialogue and taken away again -- so it is on no
-     screen, in no sheet, and in no state any instrument here declares.
-
-     TWO QUESTIONS, AND BOTH HAD ALREADY FAILED ONCE when this was written.
-
-     DOES THE SHEET FIT ITS PAGE. At 18mm of padding the two longest quizzes came to 1145px against
-     A4's 1123: the last question moved to a second sheet carrying one line, and `break-before: page`
-     then put the answer key on page THREE. Five questions on three sheets of paper is not something
-     a tutor prints twice, and nothing about the output is WRONG -- which is exactly why no other
-     rule here could have caught it.
-
-     AND IS THE ANSWER ANYWHERE ON PAGE ONE. The whole reason there are two sheets is that a tutor
-     hands over the first and keeps the second, so a `why` printed on the quiz is the feature
-     failing silently in the one direction that matters. Structurally it cannot happen today; the
-     rule is here so that a future edit to `quizPaper_` cannot make it happen quietly.
-
-     MEASURED UNDER PRINT MEDIA, because every rule that gives those sheets their size lives inside
-     `@media print` -- on screen `.qz-paper` is `display: none` and every box is zero. It is the
-     last thing this page does, so nothing measured above is measured in the wrong medium. */
-  await pracPage.emulateMedia({ media: 'print' });
-  const papers = await pracPage.evaluate(() => {
-    if (typeof quizPaper_ !== 'function' || typeof stuffItems !== 'function') return -1;
-    const A4 = 297 / 25.4 * 96;                       /* 1122.5px, which is what 297mm is at 96dpi */
-    const items = stuffItems().filter(x => x.kind === 'quiz');
-    const over = [], leak = [];
-    document.body.classList.add('printing-quiz');
-    items.forEach(x => {
-      const d = document.createElement('div');
-      d.innerHTML = quizPaper_(x);
-      const paper = d.firstElementChild;
-      document.body.appendChild(paper);
-      const sheets = [].slice.call(paper.querySelectorAll('.qz-sheet'));
-      sheets.forEach((el, i) => {
-        const h = el.getBoundingClientRect().height;
-        if (h > A4 + 1) over.push({ row: x.row.id + (i ? ' — the answers' : ''),
-                                    px: Math.round(h - A4) });
-      });
-      const front = sheets.length ? sheets[0].textContent : '';
-      x.row.qs.forEach(q => { if (q.why && front.indexOf(q.why) >= 0) leak.push(x.row.id + ' q' + q.n); });
-      paper.remove();
-    });
-    document.body.classList.remove('printing-quiz');
-    return { n: items.length, over, leak };
-  });
-  await pracPage.emulateMedia({ media: 'screen' });
   await pracPage.close();
 
   if (SHOTS && bad.length) {
@@ -708,12 +700,6 @@ function outside(svg, row) {
             + `carrying ${guides.drawings} apparatus drawing(s)`);
   console.log(`${guides.lines} kit line(s) drawn across those guides, `
             + `${guides.withQty} of them carrying a quantity`);
-  if (papers === -1 || !papers.n) {
-    console.error('\nthe app laid out no printed quiz at all -- not a pass');
-    process.exit(1);
-  }
-  console.log(`${papers.n} quiz/quizzes laid out as A4, ${papers.n * 2} sheet(s), `
-            + `${papers.over.length} past the page and ${papers.leak.length} with an answer on the quiz`);
 
   const painted = outOfBox.concat(guides.clipped);
   console.log(`${withDiag} question card(s) carry a drawing, and every label in every drawing `
@@ -734,29 +720,20 @@ function outside(svg, row) {
         + 'so the reader never sees that part of it'));
   }
 
-  if (papers.over.length) {
-    console.log('\nPAST THE PAGE  (' + papers.over.length + ')');
-    papers.over.sort((a, b) => b.px - a.px).slice(0, 10).forEach(o => console.log('  ' + o.row
-      + ' — ' + o.px + 'px past A4, so it spills onto a sheet of its own and pushes the answer key '
-      + 'onto a third'));
-    if (papers.over.length > 10) console.log('  … and ' + (papers.over.length - 10) + ' more');
-  }
-
-  if (papers.leak.length) {
-    console.log('\nAN ANSWER ON THE QUIZ ITSELF  (' + papers.leak.length + ')');
-    papers.leak.slice(0, 10).forEach(l => console.log('  ' + l + ' — its explanation is printed on '
-      + 'the sheet the student writes on, which is the whole reason there are two sheets'));
-    if (papers.leak.length > 10) console.log('  … and ' + (papers.leak.length - 10) + ' more');
-  }
-
-  if (qtall !== -1 && qtall.tall.length) {
-    console.log('\nA QUESTION THAT HAS TO BE SCROLLED  (' + qtall.tall.length + ' of ' + qtall.n
-      + ') — reachable, not cut off: see the note above `qtall`');
-    qtall.tall.sort((a, b) => b.px - a.px).slice(0, 8)
-      .forEach(t => console.log('  ' + t.row + ' — ' + t.px + 'px past the ' + qtall.cap
-        + 'px pane, so the pane scrolls and the pager takes over at the end'));
-    if (qtall.tall.length > 8) console.log('  … and ' + (qtall.tall.length - 8) + ' more');
-  }
+  /* EACH PHONE, EACH PAGE KIND: how many there are, how many are taller than the pane, and the worst
+     three of each kind. `--all` prints every one, for somebody working through them. */
+  [[qtall, WIDTH + 'x' + PHONE_H], [qtallBig, '390x844']].forEach(([t, phone]) => {
+    if (t === -1) return;
+    console.log('\nQUESTION PAGES TALLER THAN THE PANE ON A ' + phone + ' PHONE  ('
+      + t.tall.length + ' of ' + t.pages + ' pages, from ' + t.n + ' questions; the pane is ' + t.cap
+      + 'px) — reachable, not cut off: see the note above `qtallAt`');
+    Object.keys(t.kinds).forEach(k => {
+      const list = t.tall.filter(x => x.kind === k).sort((a, b) => b.px - a.px);
+      console.log('  ' + k.padEnd(5) + ' ' + String(t.kinds[k].tall).padStart(5) + ' of '
+        + String(t.kinds[k].n).padStart(5) + (list.length ? '   worst: ' + list.slice(0, ALL ? list.length : 3)
+          .map(x => x.row + ' +' + x.px + 'px').join(', ') : ''));
+    });
+  });
 
   if (practicals.tall.length) {
     console.log('\nA PRACTICAL THAT HAS TO BE SCROLLED  (' + practicals.tall.length + ' of '
@@ -779,15 +756,13 @@ function outside(svg, row) {
     inline.slice(0, 10).forEach(l => console.log('  ' + l));
     if (inline.length > 10) console.log('  … and ' + (inline.length - 10) + ' more');
   }
-  if (!bad.length && !painted.length && !guides.order.length && !inline.length
-      && !papers.over.length && !papers.leak.length) {
+  if (!bad.length && !painted.length && !guides.order.length && !inline.length) {
     /* IT SAID "EVERY QUESTION FITS THE NARROWEST PHONE" AND MEANT ITS WIDTH. That was true and
        read as more than it said, which is the "all 18 checks pass" shape one more time: the
        question pass asks about the column and the count above asks about the fold, and 431 rows
        are past it. The sentence names the axis now. */
     console.log('\nOK — every question, every practical and every guide fits the WIDTH of the\n'
-              + '     narrowest phone, every label in every drawing is inside the drawing, and\n'
-              + '     every printed quiz fits one side of A4 with its answers on the other sheet.'
+              + '     narrowest phone, and every label in every drawing is inside the drawing.'
               + '\n     The picture of a practical comes before the things it is made of, once each,'
               + '\n     and every question\'s picture is on its own figure page, none on the card.'
               /* IT SAID "every practical card fits the pane it is drawn in" AND 77 OF 82 DO NOT.
@@ -797,7 +772,8 @@ function outside(svg, row) {
                  `kind === 'paper'` guard. Both counts are printed rather than claimed now, and
                  neither is a failure: the pane scrolls them. */
               + (qtall !== -1 && qtall.tall.length
-                 ? '\n     ' + qtall.tall.length + ' question cards are taller than the pane and scroll — printed above.' : '')
+                 ? '\n     ' + qtall.tall.length + ' of ' + qtall.pages + ' question pages are taller than a ' + WIDTH + 'x' + PHONE_H
+                   + ' pane and scroll, ' + (qtallBig === -1 ? '?' : qtallBig.tall.length) + ' at 390x844 — printed above.' : '')
               + (practicals.tall.length
                  ? '\n     ' + practicals.tall.length + ' practical cards are too, for the same reason.' : ''));
     process.exit(0);
