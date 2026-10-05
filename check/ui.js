@@ -238,9 +238,9 @@ const ACCEPTED_TAP = [
     'A WORD IN A PASSAGE IS THE SIZE OF A WORD, and on a "circle the three adjectives" question the '
   + 'words ARE the controls -- *"some questions require answers on diagram"*, and for KS2 grammar the '
   + 'passage is the diagram. A 44px word would be a passage with one word a line. What was done '
-  + 'instead: the passage opens to 2.4 line height and each word carries 9px of padding above and '
-  + 'below, which grows the hit area to about 35px tall without moving a line; the width is the '
-  + "word's own and cannot honestly be anything else. What makes it liveable is what makes an hour "
+  + 'instead: the passage opens to 2.4 line height and each word carries a 9px reach above and '
+  + 'below (a `::before`, so the ring still hugs the word), which grows the hit area to about 35px '
+  + "tall without moving a line; the width is the word's own and cannot honestly be anything else. What makes it liveable is what makes an hour "
   + 'cell liveable: a wrong tap costs nothing -- the same tap takes the ring straight back off, and '
   + 'nothing is sent anywhere.' },
   { cls: /^hr\b/, why:

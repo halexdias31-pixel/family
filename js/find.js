@@ -6488,7 +6488,7 @@ function questionCard_(x) {
             `partPlan_` that `pageParts_` lays out, so the line and the page that it names cannot
             disagree. A figure standing in front of the card was the page you just turned past, and
             pointing forward at it would send you the wrong way. */''}${
-        partPlan_(x).figAt >= partChunks_(x).length ? '<p class="qsheet-figref">Figure on the next page &rarr;</p>' : ''}
+        partPlan_(x).figAt >= partChunks_(x).length ? `<p class="qsheet-figref">${figWhat_(x)} on the next page &rarr;</p>` : ''}
     </div>
     ${/* YOUR BOX, AND THE MARK SCHEME IS NOT UNDER IT ANY MORE. It is the page after -- see
           `questionAnsCard_` -- and the order is still the whole point: an answer you can see before
@@ -6551,7 +6551,7 @@ function questionPreCard_(x, j) {
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">
       ${chunkHtml_(chunks[j], circOf_(x))}
-      <p class="qsheet-figref">${partPlan_(x).figAt === j + 1 ? 'Figure' : 'Continued'} on the next page &rarr;</p>
+      <p class="qsheet-figref">${partPlan_(x).figAt === j + 1 ? figWhat_(x) : 'Continued'} on the next page &rarr;</p>
     </div>
   </div>`;
 }
@@ -6754,6 +6754,10 @@ function chunkHtml_(chunk, circ) {
         the ring off. Kept on this phone only, like the answer box.</p>` : ''}`;
 }
 const circOf_ = x => (padSurface_(x) === 'text' ? { k: circKey_(x), on: circRead_(circKey_(x)) } : null);
+/* WHAT THE NEXT PAGE IS CALLED, in the words its own header uses: "Figure", or a surface's name -- a
+   pointer saying "Figure" at a page headed "Squared grid" that says it is not the paper's figure would
+   be the two pages disagreeing. */
+const figWhat_ = x => { const p = padSource_(x); return (p && p.from === 'surface' && SURFACE_NAME[p.surface]) || 'Figure'; };
 
 /* ---------- AND THE STEM'S FIGURE, THE PAGE AFTER ITS WORDS ---------------------------------------
    No question number -- see `figHead_`. `data-of` is the stem's id, because the figure is the

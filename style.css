@@ -6259,7 +6259,10 @@ textarea { touch-action: none; }
 /* `.post-edit` WAS IN THIS EXCEPTION LIST and there is no `.post-edit` — the post's ⋯ became a tile
    with everything else you can do to a post. Dropped rather than left: an exception naming nothing
    is a line somebody has to look up to find out it means nothing. */
-span[data-do]:not(.act):not(.chip):not(.react):not(.map-arrow):not(.cal-arrow),
+/* `.qw` IS NOT UNDERLINED EITHER: it is every word of a passage you ring words in (`circWords_`), and
+   a dotted line under every word of a paragraph reads as a paragraph of links -- the screenshot of
+   the first version did. The whole passage is the control and the line under it says how to use it. */
+span[data-do]:not(.act):not(.chip):not(.react):not(.map-arrow):not(.cal-arrow):not(.qw),
 .text-action, .text-drop {
   text-decoration: underline;
   text-decoration-style: dotted;
@@ -12435,9 +12438,14 @@ button.scr-sq { cursor: pointer; }
 
    GOLD, BECAUSE IT IS YOURS -- the pen's ink (`.qpad-g path`) is gold for the same reason: the paper's
    own ink is `currentColor`, and a mark you made has to look like one. */
+/* THE HIT AREA IS A PSEUDO-ELEMENT AND NOT PADDING, because an outline is drawn round the padding box:
+   the first version padded the word and its ring came out a tall lozenge reaching into the lines above
+   and below, round the space as much as the word. The `::before` belongs to the span for hit-testing
+   and to nothing for drawing, so the ring hugs the word and the finger still gets the line's height. */
 .qsheet-part.is-text .qsheet-pb { line-height: 2.4; }
-.qw { padding: 9px 0; border-radius: 1em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.qw.is-circled { outline: 2px solid var(--gold); outline-offset: 2px; }
+.qw { position: relative; border-radius: .6em; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.qw::before { content: ""; position: absolute; inset: -9px -1px; }
+.qw.is-circled { outline: 2px solid var(--gold); outline-offset: 3px; }
 .qw-note { margin-top: .6rem; }
 
 /* THE METHOD FOR A PRACTICAL, above the questions — read before you start, not beside them. */

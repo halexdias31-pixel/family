@@ -5967,7 +5967,8 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   if (gHead !== 'Squared grid') bad.push('the surface page is headed "' + gHead + '", wanted "Squared grid"');
   if (/\bQ\d|Figure/.test(gHead)) bad.push('the surface page claims a number or a figure: ' + gHead);
   try { w.localStorage.removeItem('pad:' + grid.key); } catch (e) {}
-  if (!el(w.questionCard_(grid)).querySelector('.qsheet-figref')) bad.push('the card does not say the surface is on the next page');
+  const ref = (el(w.questionCard_(grid)).querySelector('.qsheet-figref') || {}).textContent || '';
+  if (!/^Squared grid on the next page/.test(ref.trim())) bad.push('the card does not say the squared grid is on the next page, in the words the page is headed with: "' + ref.trim() + '"');
 
   /* ---------- WHICH SURFACE ----------------------------------------------------------------------- */
   const svgDiag = '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>';
