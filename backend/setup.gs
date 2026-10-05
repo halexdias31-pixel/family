@@ -1533,22 +1533,17 @@ function checkScopes() {
     'script.scriptapp': 'the nightly triggers',
   };
 
-  let held = [];
-  try {
-    const res = UrlFetchApp.fetch(
-      'https://oauth2.googleapis.com/tokeninfo?access_token='
-        + encodeURIComponent(ScriptApp.getOAuthToken()),
-      { muteHttpExceptions: true });
-    const d = JSON.parse(res.getContentText() || '{}');
-    held = String(d.scope || '').split(/\s+/).filter(Boolean);
-  } catch (err) {
-    return { error: 'Could not ask Google what this token holds: ' + err,
+  /* `heldScopes_` and `holdsScope_` in content.gs — one asking of Google, and a scope matched by its
+     WHOLE name. This matched `indexOf('/auth/drive')`, which `drive.readonly` contains, so it called
+     a read-only token able to create and share post photographs. */
+  const s = heldScopes_();
+  if (s.error) {
+    return { error: 'Could not ask Google what this token holds: ' + s.error,
              hint: 'If that mentions permissions, script.external_request is missing too — which '
                  + 'means the manifest has not reached this deployment at all.' };
   }
-
-  const has = name => held.some(x => x.indexOf('/auth/' + name) !== -1
-    || (name === 'drive' && /\/auth\/drive$/.test(x)));
+  const held = s.held;
+  const has = name => holdsScope_(held, name);
 
   const missing = Object.keys(want).filter(k => !has(k));
   return {

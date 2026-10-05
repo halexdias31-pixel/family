@@ -504,83 +504,114 @@ function landmarks() {
   });
 }
 
-function driveTrouble_(err) {
-  const raw = String((err && err.message) || err || '');
-  if (!/permission|authoriz|authoris|scope/i.test(raw)) return raw;
+/* ---------- WHETHER GOOGLE REFUSED A DRIVE CALL FOR WANT OF PERMISSION ---------------------------
+   One test, read by every caller that has to decide between "Drive said no" and "something else
+   went wrong" — the first is the admin's to fix and the second is worth showing as it is. */
+function driveDenied_(raw) {
+  return /permission|authoriz|authoris|scope/i.test(S(raw));
+}
 
-  /* THE DIAGNOSIS COMES WITH THE FAILURE.
-     This used to end with "run checkScopes and see" — which is a fifth step, at the end of four,
-     given to somebody who has just failed to post a photograph. The four steps have been right
-     every time and have not helped, because they do not say WHICH of the four is the one still
-     undone. The token itself does say, and asking it costs one request.
-
-     So it asks, here, and puts the answer in the message. */
-  let held = [];
-  let askFailed = '';
+/* ---------- WHICH SCOPES THE TOKEN IN THIS DEPLOYMENT'S HAND ACTUALLY HOLDS ----------------------
+   `driveTrouble_` AND `checkScopes` EACH ASKED THIS IN THEIR OWN WORDS, and `uploadsCheck_` would
+   have been the third. Google lists a token's scopes if it is asked, which turns "is the manifest
+   in this deployment" from four steps retraced into a list read — so it is asked here, once.
+   `error` is the reason it could not even ask (that needs `script.external_request`). */
+function heldScopes_() {
   try {
     const res = UrlFetchApp.fetch(
       'https://oauth2.googleapis.com/tokeninfo?access_token='
         + encodeURIComponent(ScriptApp.getOAuthToken()),
       { muteHttpExceptions: true });
-    held = String((JSON.parse(res.getContentText() || '{}') || {}).scope || '')
+    const held = String((JSON.parse(res.getContentText() || '{}') || {}).scope || '')
       .split(/\s+/).filter(Boolean);
-  } catch (e2) { askFailed = String((e2 && e2.message) || e2); }
+    return { held: held, error: '' };
+  } catch (err) {
+    return { held: [], error: String((err && err.message) || err) };
+  }
+}
 
-  const hasDrive = held.some(x => /\/auth\/drive$/.test(x));
+/* ---------- ONE SCOPE BY ITS WHOLE NAME, NEVER BY ITS FIRST LETTERS ------------------------------
+   `checkScopes` TESTED `indexOf('/auth/drive')`, and `.../auth/drive.readonly` CONTAINS THAT. So the
+   one report written to say whether this deployment may write to Drive said yes on a token that
+   could only read — on exactly the deployment the photographs were failing on. */
+function holdsScope_(held, name) {
+  return (held || []).some(x => S(x).split('/auth/')[1] === name);
+}
+
+/* ---------- WHAT AN ADMIN DOES ABOUT A DRIVE REFUSAL, AS ONE SENTENCE -----------------------------
+   THE SAME TWO STEPS EVERY TIME, in the order they work: the person who deployed the site presses
+   Allow, and a NEW VERSION is deployed — a deployed version pins the manifest it was made from, so
+   an Allow pressed afterwards changes the editor and nothing that is serving the site. The consent
+   screen as a link when Apps Script will hand one over (`consentUrl_`), the editor when it will not.
+   `consent` is that link or ''. */
+function driveFix_() {
+  const consent = consentUrl_();
+  return {
+    consent: consent,
+    say: (consent
+      ? 'Open the consent link and press Allow'
+      : 'In the Apps Script editor choose any function, press Run, then Allow')
+      + '; then Deploy → Manage deployments → edit → Version: New version → Deploy. '
+      + 'Tools → Check uploads says when it has worked.',
+  };
+}
+
+/* ---------- A DRIVE FAILURE, SAID TO WHOEVER MET IT -----------------------------------------------
+   TWO AUDIENCES AND THIS USED TO SPEAK TO ONE OF THEM. The diagnosis below — the scopes the token
+   holds, the consent link, the editor steps — is right and is the whole of what the admin needs. It
+   went to EVERYBODY: a parent sending a photograph of their child's homework was shown fifteen lines
+   of `https://www.googleapis.com/auth/...` they could do nothing about. `admin` decides which. Anybody
+   else is told it is the site's side and not theirs, in one sentence.
+
+   A FAILURE THAT IS NOT A PERMISSION goes back as Google said it, to both: "Service error: Drive"
+   is somebody else's outage and a Retry is the right answer to it. */
+function driveTrouble_(err, admin) {
+  const raw = String((err && err.message) || err || '');
+  if (!driveDenied_(raw)) return raw;
+  if (!admin) {
+    return 'The site is not allowed to save files to Google Drive at the moment — that is on our '
+      + 'side, not yours, and the admin can see how to fix it.';
+  }
+
+  /* THE DIAGNOSIS COMES WITH THE FAILURE.
+     This used to end with "run checkScopes and see" — which is a fifth step, at the end of four,
+     given to somebody who has just failed to post a photograph. The token itself says which step is
+     still undone, and asking it costs one request. */
+  const s = heldScopes_();
   const out = [raw, ''];
 
-  if (askFailed) {
+  if (s.error) {
     /* It could not even ask. That needs script.external_request, so the manifest has not reached
        this deployment at all — which is a different answer from "the Drive scope is missing", and
        it points at a different step. */
-    out.push('This deployment could not ask Google what it is allowed to do: ' + askFailed);
-    out.push('That check needs script.external_request, which appsscript.json also lists — so the');
-    out.push('manifest has not reached THIS deployment. Paste appsscript.json, save, then deploy a');
-    out.push('NEW VERSION: a deployed version pins its manifest, and authorising does not change it.');
+    out.push('This deployment could not ask Google what it is allowed to do: ' + s.error);
+    out.push('So the manifest has not reached THIS deployment. Sync backend/ (appsscript.json is one');
+    out.push('of its files), then deploy a NEW VERSION: a deployed version pins its manifest.');
     return out.join('\n');
   }
 
-  out.push('What this deployment is actually allowed to do:');
-  held.forEach(x => out.push('  ' + x));
-  out.push('');
-
-  if (!hasDrive) {
-    /* ONE INSTRUCTION. This used to be four, and it was four every time, and it did not work five
-       times running — which is evidence that the list was the problem rather than that it needed
-       repeating.
-       It also claimed the manifest had arrived, on the grounds that `script.external_request` was
-       granted. That was a bad inference: external_request is AUTO-INFERRED from UrlFetchApp, the
-       same way `drive.readonly` above is auto-inferred from reading Drive. The tell is the
-       readonly itself — appsscript.json asks for `drive`, so if it were in this deployment the
-       grant would say `drive` or nothing, never `drive.readonly`.
-       And that in turn means the manifest is beside the point: Apps Script works the scopes out
-       from the code, `authoriseDrive` calls createFile, so RUNNING IT is what raises the prompt. */
-    const readonly = held.some(x => /drive\.readonly$/.test(x));
-    out.push('It has ' + (readonly ? 'drive.readonly — read but not write.' : 'no Drive access.'));
-    out.push('');
-    const url = consentUrl_();
-    if (url) {
-      out.push('GRANT IT HERE:');
-      out.push('  ' + url);
-      out.push('');
-      out.push('That is the consent screen itself. Open it, press Allow, come back and try again.');
-    } else {
-      out.push('ONE THING FIXES THIS, and it has to happen in the Apps Script editor:');
-      out.push('  function dropdown → authoriseDrive → Run → accept the prompt.');
-      out.push('');
-      out.push('Apps Script would normally hand over a link to the consent screen and it has not,');
-      out.push('which means it considers this script already authorised — with a narrower set than');
-      out.push('it now needs. Only a run from the editor re-asks.');
-    }
-    out.push('');
-    out.push('MEANWHILE YOU CAN STILL POST: put photographs in the folder from the Drive app and');
-    out.push('choose them with the ＋ button. Reading the folder is what drive.readonly is for.');
+  if (!holdsScope_(s.held, 'drive')) {
+    /* ---------- THE MANIFEST WAS THE WHOLE CAUSE, AND THIS NOTE USED TO SAY IT COULD NOT BE ------
+       IT SAID "appsscript.json asks for `drive`" AND "Apps Script works the scopes out from the
+       code". Both were false. The manifest listed `drive.readonly`, and an `oauthScopes` list that
+       is written out is the WHOLE list: Apps Script stops inferring scopes from the code the moment
+       one is declared. So `createFile`, `createFolder` and `setSharing` could never be authorised,
+       running `authoriseDrive` raised no prompt, and every Allow ever pressed granted read-only
+       again. The manifest says `drive` now (docs/history, "pending-chatmedia"); what is left is
+       somebody pressing Allow for it and a new version carrying it. */
+    out.push('It holds ' + (holdsScope_(s.held, 'drive.readonly')
+      ? 'drive.readonly — it can read the folder and cannot add to it.' : 'no Drive scope at all.'));
+    const fix = driveFix_();
+    out.push('FIX: ' + fix.say);
+    if (fix.consent) out.push('Consent link: ' + fix.consent);
+    out.push('Meanwhile a post can still use a photograph already in the folder — the ＋ picker');
+    out.push('only reads, and reading is what this deployment can do.');
   } else {
     /* The scope is held and the call still failed. That is a different problem entirely, and
        sending somebody back round the authorisation loop would waste their afternoon. */
-    out.push('.../auth/drive IS among them, so this is not the scope after all. Most likely the');
-    out.push('folder in `posts_folder` belongs to another account, or has been moved to a shared');
-    out.push('drive. Check /exec?run=checkPostsFolder&name=…&pin=…');
+    out.push('.../auth/drive IS held, so this is not the scope. Most likely the folder in');
+    out.push('`posts_folder` belongs to another account or is on a shared drive that refuses');
+    out.push('sharing by link. Tools → Check uploads names the folder and tries a test file.');
   }
   return out.join('\n');
 }
@@ -687,12 +718,19 @@ function getPostFolder() {
    as a permission. The id is unguessable and appears only in the two people's own `messages`
    reply, which is the same exposure every post's photograph already has. */
 function getMessageFolder_() {
+  /* ---------- A FOLDER THAT COULD NOT BE MADE IS NOT A FOLDER THAT IS NOT THERE ----------------
+     THIS CAUGHT EVERYTHING AND RETURNED NULL, and the caller said "No posts folder … add a row to
+     the config tab". On a deployment holding only `drive.readonly` the posts folder opened
+     perfectly; what failed was `createFolder('Messages')`, refused for want of the scope. So the
+     first photograph anybody sent in a message sent the owner to the Ledger to fix a row that was
+     already right. Three answers now, and the caller words each: `{ folder }`, `{ none }` when there
+     is no posts folder at all, and `{ err }` when Drive said no. */
   const posts = getPostFolder();
-  if (!posts) return null;
+  if (!posts) return { none: true };
   try {
     const it = posts.getFoldersByName('Messages');
-    return it.hasNext() ? it.next() : posts.createFolder('Messages');
-  } catch (e) { return null; }
+    return { folder: it.hasNext() ? it.next() : posts.createFolder('Messages') };
+  } catch (err) { return { err: err }; }
 }
 
 /* ---------- ONE PICTURE, KEPT IN DRIVE AND SHARED BY LINK ----------------------------------------
@@ -741,8 +779,10 @@ function getPhotoFolder_() {
 }
 
 /* The caps, in DECODED bytes, and the phone enforces the same numbers first (`MSG_CAP_` in me.js) so
-   a person is told before a minute of upload rather than after it. 20MB a file is a phone video of
-   about a minute; 32MB a message is what keeps the BASE64 body — four thirds of that — under the
+   a person is told before a minute of upload rather than after it. 20MB a file is about TWENTY
+   SECONDS of an iPhone's 1080p video (Apple quotes ~60MB a minute for 1080p30 HEVC), not the "about
+   a minute" this used to say — which is why the phone's refusal says "trim it" rather than leaving
+   somebody to guess. 32MB a message is what keeps the BASE64 body — four thirds of that — under the
    ~50MB an Apps Script web app takes in one POST. A cap at a raw 45MB would be a 60MB body, refused
    by Google with an HTML page rather than by this handler with a sentence. */
 const MSG_FILE_MAX  = 20 * 1024 * 1024;
@@ -766,9 +806,63 @@ function msgAttachOut_(cell) {
   }).filter(a => /^https?:\/\//.test(a.url));
 }
 
-/* `{ error }` or `{ list }`. Every file is decoded and measured BEFORE any is written, so a message
-   whose third file is too big leaves no orphans of the first two in Drive. */
-function msgAttachSave_(files) {
+/* ---------- A FILE WITH NO TYPE IS TYPED BY ITS NAME ---------------------------------------------
+   A PHONE DOES NOT ALWAYS SAY. A clip chosen through "Browse" on an iPhone, or a file shared in from
+   another app, can arrive with an empty `type`, and `readAsDataURL` then labels it
+   `application/octet-stream` — which `msgAttachHtml_` draws as a chip saying "MOV" rather than as a
+   clip that plays. The extension is the one thing such a file still carries. Only when the type is
+   missing or generic: a type the phone did name is believed. */
+function msgTypeOf_(type, name) {
+  const t = S(type).toLowerCase();
+  if (t && t !== 'application/octet-stream') return t;
+  const ext = (S(name).toLowerCase().match(/\.([a-z0-9]{2,5})$/) || [])[1] || '';
+  return ({
+    jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png', gif: 'image/gif', webp: 'image/webp',
+    heic: 'image/heic', heif: 'image/heif',
+    mov: 'video/quicktime', mp4: 'video/mp4', m4v: 'video/x-m4v', webm: 'video/webm', '3gp': 'video/3gpp',
+    pdf: 'application/pdf',
+  })[ext] || t || 'application/octet-stream';
+}
+
+/* ---------- WHERE `?setup=1` IS, FOR THE ADMIN'S SENTENCE ----------------------------------------
+   The address of this web app, so a refusal can say exactly what to open rather than "run setup".
+   `''` from the editor or anywhere `getService` has nothing to say, and the sentence still reads. */
+function setupUrl_() {
+  try {
+    const u = S(ScriptApp.getService().getUrl());
+    return u ? u + '?setup=1' : '';
+  } catch (err) { return ''; }
+}
+
+/* ---------- WHAT A MESSAGE WITH FILES SAYS WHEN THE FILES CANNOT GO -----------------------------
+   ONE SENTENCE FOR THE PERSON, AND THE FIX FOR AN ADMIN — `driveTrouble_`'s two audiences, for the
+   refusal that comes before Drive is even asked: the `attachments` column the files' addresses go
+   into. A parent cannot run `?setup=1` and should not be told to; the owner should be told the
+   address. `why: 'files'` is what the phone reads to offer "Words only" beside Retry, so the reply
+   is a shape rather than a sentence it has to recognise. */
+function msgNoColumn_(admin) {
+  const lead = 'Photos and videos cannot be sent yet, so nothing was sent. ';
+  if (!admin) {
+    return { why: 'files', error: lead + 'The site is missing a column it needs — the admin can see '
+      + 'how to fix it.' };
+  }
+  const url = setupUrl_();
+  return { why: 'files', error: lead + 'The messages tab in the Ledger has no `attachments` column. '
+    + 'Open ' + (url || 'the site\'s /exec address with ?setup=1') + ' once — it adds missing columns and '
+    + 'changes nothing else — then Tools → Check uploads.', setup: true };
+}
+
+/* `{ error, why }` or `{ list }`. Every file is decoded and measured BEFORE any is written, so a
+   message whose third file is too big leaves no orphans of the first two in Drive.
+
+   NOTHING IS SENT UNLESS EVERY FILE IS KEPT. A message is what somebody chose to send together —
+   "here is the homework" and the three pages of it — and arriving with two of the three pages is a
+   message that says something its sender did not. So a file Drive refuses takes the whole message
+   back, and the files already made are BINNED, because the phone keeps every file on the pending
+   bubble for Retry and a Retry would otherwise leave the first photograph in Drive twice. The phone
+   offers "Words only" beside Retry, so the words are never held hostage by a photograph. `admin`
+   decides whether the refusal carries the fix — see `driveTrouble_`. */
+function msgAttachSave_(files, admin) {
   const raw = (Array.isArray(files) ? files : []).filter(f => f && S(f.data));
   if (!raw.length) return { list: [] };
   if (raw.length > MSG_FILES_COUNT) {
@@ -779,7 +873,8 @@ function msgAttachSave_(files) {
   for (let i = 0; i < raw.length; i++) {
     const f = raw[i];
     const parts = S(f.data).split(',');
-    const type = (parts[0].match(/data:([^;]+)/) || [])[1] || S(f.type) || 'application/octet-stream';
+    const name = S(f.name).replace(/[\\/]/g, '-').slice(0, 120) || ('file-' + (i + 1));
+    const type = msgTypeOf_((parts[0].match(/data:([^;]+)/) || [])[1] || S(f.type), name);
     let bytes;
     try { bytes = Utilities.base64Decode(parts[1] || ''); }
     catch (err) { return { error: 'Could not read ' + (S(f.name) || 'a file') + '.' }; }
@@ -788,26 +883,138 @@ function msgAttachSave_(files) {
     }
     total += bytes.length;
     if (total > MSG_FILES_MAX) return { error: 'Those files add up to more than 32MB — send fewer at once.' };
-    const name = S(f.name).replace(/[\\/]/g, '-').slice(0, 120) || ('file-' + (i + 1));
     blobs.push({ blob: Utilities.newBlob(bytes, type, name), type: type, name: name });
   }
-  const folder = getMessageFolder_();
-  if (!folder) {
-    return { error: 'No posts folder, so files have nowhere to go. Add a row to the config tab: '
-      + 'key `posts_folder`, value the id from the folder URL.' };
+  const lead = (blobs.length === 1 ? 'The file' : 'The files') + ' could not be kept, so nothing was sent. ';
+  const got = getMessageFolder_();
+  if (got.none) {
+    return { why: 'files', error: lead + (admin
+      ? 'There is no posts folder for files to go in: add a row to the config tab, key `posts_folder`, '
+        + 'value the id from the folder URL — then Tools → Check uploads.'
+      : 'The site has nowhere to put them yet — the admin can see why.') };
   }
-  const out = [];
+  if (got.err) return { why: 'files', error: lead + driveTrouble_(got.err, admin) };
+  const out = [], made = [];
+  let at = '';
   try {
     blobs.forEach(b => {
-      const file = folder.createFile(b.blob);
+      at = b.name;
+      const file = got.folder.createFile(b.blob);
+      made.push(file);
       file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
       out.push({ url: 'https://drive.google.com/file/d/' + file.getId() + '/view',
                  type: b.type, name: b.name });
     });
   } catch (err) {
-    return { error: 'Could not save the file. ' + driveTrouble_(err) };
+    made.forEach(f => { try { f.setTrashed(true); } catch (e) { /* the bin is a courtesy */ } });
+    /* WHICH ONE, when it was not the first — a refusal about "the files" when two went and the
+       third did not sends somebody looking at the wrong photograph. */
+    const which = made.length && at ? at + ' could not be kept, so nothing was sent. ' : lead;
+    return { why: 'files', error: which + driveTrouble_(err, admin) };
   }
   return { list: out };
+}
+
+/* ---------- CHECK UPLOADS: CAN A PHOTOGRAPH IN A MESSAGE BE KEPT, ASKED OF WHAT IS SERVING ----------
+   ASKED FOR AS *"i cant send images, or videos in the chat to people. i think you need to add
+   something to ledger for that."* Half right, and the half that was not is why this exists: the
+   Ledger needed a column, and the deployment needed a Drive scope its manifest had never asked for —
+   and the only way anybody found that out was by sending a photograph and reading the refusal.
+
+   THE DEPLOYMENT'S OWN ANSWER, NOT THE EDITOR'S. `authoriseDrive` and `checkPostsFolder` run in the
+   editor, which holds whatever the last Allow granted; `/exec` runs the version that was deployed,
+   with the manifest it was deployed with. A check run from the editor passes on exactly the day the
+   site still fails. This is a POST to the site, so it is asked of the thing a family's phone reaches.
+
+   FOUR QUESTIONS, IN THE ORDER A FILE MEETS THEM: is there a column for its address, does the token
+   hold `drive`, does the folder open, and can a file actually be made there and shared by link.
+
+   IT WRITES NOTHING THAT STAYS. One tiny text file is made, shared and BINNED — the three calls a real
+   photograph makes, because a check that only reads passes on precisely the deployment that cannot
+   write (`authoriseDrive`'s own lesson). It does not make the `Messages` folder: that is the first
+   real send's job, and a check that leaves a folder behind has changed what it was measuring.
+
+   `steps` IS THE FIX, IN ORDER, only for what failed — the owner reads a list of what to do next
+   rather than four ticks and a cross to interpret. */
+function uploadsCheck_() {
+  const checks = [];
+  const add = (id, ok, label, said) => checks.push({ id: id, ok: !!ok, label: label, said: S(said) });
+
+  let hasColumn = false;
+  try { hasColumn = read(TAB.messages).headers.indexOf('attachments') >= 0; } catch (err) { /* no tab: no */ }
+  add('column', hasColumn, 'The messages tab has an attachments column',
+    hasColumn ? 'Yes — a file’s address has somewhere to go.'
+              : 'No. ?setup=1 adds it, and changes nothing else.');
+
+  const cfg = config();
+  const from = S(cfg.posts_folder || cfg.POSTS_FOLDER || cfg.postsFolder) ? 'posts_folder in the config tab'
+    : (POSTS_FOLDER ? 'POSTS_FOLDER in constants.gs' : 'the POSTS_FOLDER_ID script property');
+  const posts = getPostFolder();
+  let name = '', messages = null;
+  if (posts) {
+    try { name = S(posts.getName()); } catch (err) { /* opened and nameless is still opened */ }
+    try { const it = posts.getFoldersByName('Messages'); if (it.hasNext()) messages = it.next(); }
+    catch (err) { /* asked again, properly, by the write below */ }
+  }
+
+  let wrote = false;
+  let wroteSaid = 'Not tried — there is no folder to try it in.';
+  if (posts) {
+    let probe = null;
+    try {
+      probe = (messages || posts).createFile('family-upload-check.txt',
+        'Made by Check uploads on the Tools column and binned straight away. Safe to delete.');
+      probe.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      wrote = true;
+      wroteSaid = 'Yes — a test file was made, shared by link and binned.';
+    } catch (err) {
+      wroteSaid = 'No — ' + S((err && err.message) || err);
+    }
+    if (probe) {
+      try { probe.setTrashed(true); }
+      catch (err) { wroteSaid += ' It could not be binned: delete family-upload-check.txt by hand.'; }
+    }
+  }
+
+  /* THE SCOPE IS READ OFF THE TOKEN, AND THE WRITE IS THE EVIDENCE. If Google could not be asked
+     (that needs `script.external_request`) but the write worked, the scope is plainly held — a cross
+     there would be a red that contradicts the green under it. */
+  const s = heldScopes_();
+  const drive = holdsScope_(s.held, 'drive');
+  add('scope', drive || wrote, 'This deployment may write to Drive',
+    drive ? 'It holds .../auth/drive.'
+    : s.error ? 'Google could not be asked (' + s.error + ')' + (wrote ? ', but the test write worked.' : '.')
+    : holdsScope_(s.held, 'drive.readonly') ? 'It holds drive.readonly — it can read and cannot write.'
+    : 'It holds no Drive scope at all.');
+  add('folder', !!posts, 'The posts folder opens',
+    posts ? '“' + (name || 'untitled') + '”, from ' + from + (messages
+      ? ', with its Messages folder.' : '. Its Messages folder is made on the first send.')
+    : 'No — ' + from + ' does not open a folder this account can reach.');
+  add('write', wrote, 'A file can be made there and shared by link', wroteSaid);
+
+  const steps = [];
+  const fix = driveFix_();
+  if (!wrote && !drive && !s.error) {
+    steps.push({ text: 'In the Apps Script editor, check appsscript.json lists '
+      + 'https://www.googleapis.com/auth/drive (Project Settings → Show "appsscript.json"). '
+      + 'If it says drive.readonly, sync backend/ from GitHub first.' });
+    steps.push({ text: fix.consent ? 'Open the consent link and press Allow.'
+      : 'Choose any function in the editor, press Run, then Allow.', href: fix.consent });
+    steps.push({ text: 'Deploy → Manage deployments → edit → Version: New version → Deploy.' });
+  } else if (!wrote && !posts) {
+    steps.push({ text: 'Add a row to the config tab: key posts_folder, value the id from the '
+      + 'folder’s URL.' });
+  } else if (!wrote) {
+    steps.push({ text: 'The scope is not the problem. The folder may belong to another account or '
+      + 'sit on a shared drive that refuses sharing by link — try a folder in My Drive.' });
+  }
+  if (!hasColumn) steps.push({ text: 'Open ?setup=1 once to add the column.', href: setupUrl_(), setup: true });
+  if (steps.length) steps.push({ text: 'Then press Check uploads again.' });
+
+  return {
+    success: true, ok: hasColumn && wrote, version: BACKEND_VERSION,
+    checks: checks, scopes: s.held, steps: steps,
+  };
 }
 
 /* ---------- `pdfPageCount` AND `refreshPageCounts` WERE HERE -------------------------------------

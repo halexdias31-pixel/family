@@ -2822,6 +2822,10 @@ const ACTION_ACCESS = {
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
   listRecords: 'admin', saveRecordsPage: 'admin',
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
+  /* WHETHER A PHOTOGRAPH IN A MESSAGE CAN BE KEPT — the column, the scope, the folder, a test file.
+     Admin: it names the Drive folder and the scopes the deployment holds, which is a view of the
+     business's Google account rather than of the site. */
+  checkUploads: 'admin',
   /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can.
      An admin resetting somebody else's is handled inside, where the old PIN can be waived. */
   changePin: 'self', signAgreement: 'self',

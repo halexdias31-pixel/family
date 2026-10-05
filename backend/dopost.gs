@@ -1134,7 +1134,9 @@ function doPost(e) {
         url = keep_(S(body.data)) || S(body.image).trim();
         rest.forEach(x => { const u = keep_(x); if (u) more.push(u); });
       } catch (err) {
-        return jsonOut({ error: 'Could not save the picture. ' + driveTrouble_(err) });
+        const poster = findPerson(S(body.name), S(body.personId));
+        return jsonOut({ error: 'Could not save the picture. '
+          + driveTrouble_(err, !!poster && hasRole(poster, 'admin')) });
       }
       /* THE FIRST MAY HAVE COME IN THE LIST, from a phone that sent nothing else. */
       if (!url && more.length) url = more.shift();
@@ -1770,10 +1772,10 @@ function doPost(e) {
       /* A FILE WITH NOWHERE TO GO IS REFUSED BEFORE ANYTHING IS UPLOADED — `addRow` would drop the
          column with a line in the log and the message would arrive without the picture it was
          sent for. `addPost`'s `media` rule, one tab along. */
-      if (files.length && t.headers.indexOf('attachments') < 0) {
-        return jsonOut({ error: 'The messages tab has no attachments column yet, so files cannot be '
-          + 'kept. An admin needs to run ?setup=1 once — the words can still be sent on their own.' });
-      }
+      /* `admin` DECIDES WHETHER A REFUSAL CARRIES THE FIX — the parent is told it is the site's side
+         and the owner is told what to open. See `msgNoColumn_` and `driveTrouble_` in content.gs. */
+      const admin = hasRole(me, 'admin');
+      if (files.length && t.headers.indexOf('attachments') < 0) return jsonOut(msgNoColumn_(admin));
       const mine = t.rows.filter(r => S(r.from_id) === S(me.person_id));
       const last = mine.reduce((newest, r) => {
         const at = sheetDate(r.sent_at);
@@ -1790,18 +1792,26 @@ function doPost(e) {
 
       /* Uploaded AFTER every refusal above, so a message turned away by the gap leaves nothing
          behind in Drive. */
-      const saved = msgAttachSave_(files);
-      if (saved.error) return jsonOut({ error: saved.error });
+      const saved = msgAttachSave_(files, admin);
+      /* EVERY REFUSAL FROM HERE ON IS ABOUT THE FILES, so every one offers "Words only". */
+      if (saved.error) return jsonOut({ error: saved.error, why: 'files' });
 
       const id = 'M' + Date.now();
-      addRow(t, {
+      const row = {
         message_id: id,
         from_id: S(me.person_id),
         to_id: S(to.person_id),
         sent_at: new Date(),
         body: text,
-        attachments: msgAttachIn_(saved.list),
-      });
+      };
+      /* ---------- ONLY WHEN THERE IS SOMETHING TO PUT IN IT ----------------------------------------
+         `attachments: ''` WAS WRITTEN ON EVERY MESSAGE, and on a Ledger without the column `addRow`
+         counts a field it has nowhere to put as a miss whatever its value — so `jsonOut` turned a
+         message of plain words into "Nothing was saved for: messages.attachments". The row HAD been
+         written and the e-mail HAD gone; the phone said "Not sent", and Retry ran into the
+         five-minute gap the first send had started. Words never needed the column. */
+      if (saved.list.length) row.attachments = msgAttachIn_(saved.list);
+      addRow(t, row);
       clearCache();
 
       // They find out by email, because nobody sits on a tutoring site waiting for a message.
@@ -1814,6 +1824,11 @@ function doPost(e) {
 
       return jsonOut({ success: true, id: id, attachments: saved.list });
     }
+
+    /* ---------- CHECK UPLOADS ---------------------------------------------------------------------
+       The admin's tile on Tools: can a photograph or a clip in a message be kept, asked of THIS
+       deployment rather than of the editor. Leaves nothing behind — see `uploadsCheck_`. */
+    if (action === 'checkUploads') return jsonOut(uploadsCheck_());
 
     /* Somebody's conversations. Only their own — an admin reading everything does it in the
        sheet, deliberately, rather than through an endpoint that could be pointed anywhere. */
@@ -2296,7 +2311,7 @@ function doPost(e) {
       try {
         url = driveKeep_(folder, raw, 'photo-' + (S(r.person_id) || 'person') + '-' + new Date().getTime());
       } catch (err) {
-        return jsonOut({ error: 'Could not save the picture. ' + driveTrouble_(err) });
+        return jsonOut({ error: 'Could not save the picture. ' + driveTrouble_(err, hasRole(r, 'admin')) });
       }
       setCell(t, r, 'photo', url);
       return jsonOut({ success: true, photo: url });
