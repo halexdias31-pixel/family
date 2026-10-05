@@ -171,6 +171,11 @@ const WHERE = {
   post_comments:  { file: 'ledger' },
   post_reactions: { file: 'ledger' },
   favourites:     { file: 'ledger' },
+  /* THE DAY EACH QUESTION WAS DONE, BY WHOM. The Ledger because it is the only file there is, and
+     because it is where every other record OF a learner already lives — `people`, `exams`,
+     `favourites` — so a tutor looking up a student finds their attempts beside their row rather than
+     in a second spreadsheet. Written by `markDone`, read by `attemptsFor_`; see SCHEMA.attempts. */
+  attempts:       { file: 'ledger' },
   /* WRITTEN BY AN ADMIN FROM THE PHONE, so it is the Ledger rather than a settings file: question
      2 of the three-question test at the top of CLAUDE.md, and code cannot be written to at
      runtime. `data/settings/spotlight.json` is the FLOOR beneath it — see `spotNow_`. */
@@ -259,6 +264,8 @@ const TAB = {
   /* What the funnel's first two questions ANSWER — see SCHEMA.kinds. */
   /* Who starred what — see SCHEMA.favourites. */
   favourites: 'favourites',
+  /* Which questions each learner has done, and when — see SCHEMA.attempts. */
+  attempts: 'attempts',
   /* What the BUSINESS has chosen to put in front of everybody — see SCHEMA.spotlight. */
   spotlight: 'spotlight',
   /* `questions`, `boxers` AND `fights` WERE HERE. All three tabs are gone — see the notes where
@@ -1141,6 +1148,30 @@ const SCHEMA = {
     "at",
   ],
 
+  /* ---------- ATTEMPTS: THE DAY A QUESTION WAS DONE, SO IT FOLLOWS THE STUDENT -------------------
+     ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone. The
+     question card has said `Done 4 Oct` since 268, from `done:<who>:<key>` in `localStorage` — which
+     a tutor cannot see and which stays behind when the student picks up another phone.
+
+     ONE ROW PER PERSON PER QUESTION, never one per attempt. A row per press is a tab that grows by a
+     line every time somebody types into a box, and nothing anybody asked for wants that history:
+     the card wants the last day, a tutor wants how many and how recently. So the row is UPSERTED —
+     `first_done` is set once, `last_done` moves, `times` counts the DAYS it was done on (the phone
+     sends once per question per day, and the server ignores a second send for a day it already has,
+     so a retried request cannot count twice).
+
+     NO ID COLUMN. The row is found by what it IS — this person, this question — the way `records`
+     are found by slug; an invented id would be a third thing to keep in step with the two that
+     already identify it.
+
+     `person_id`, NEVER A NAME — the person is the one the sign-in token resolved to (see
+     `accessDenied`), and a name is a cell they can edit. `question_key` is the library's own key,
+     `x.key` in js/find.js, the same string the answer box is stored under. */
+  attempts: [
+    "person_id", "question_key",
+    "first_done", "last_done", "times",
+  ],
+
   /* ---------- SPOTLIGHT: THE SAME SHAPE AS A FAVOURITE WITH THE PERSON TAKEN OUT -----------------
      A FAVOURITE IS A STATEMENT ABOUT YOU AND A SPOTLIGHT IS A STATEMENT ABOUT THE BUSINESS, which
      is the one difference and it is the whole difference: no `person_id`, one list, the same list
@@ -1896,6 +1927,13 @@ const POSTS_FOLDER = '1piJQHYQ2h3I_f3ullEmDcNn_RGti4VVw';
    Six is also the number that fits: `.react` is a 38px target, and on a 320px phone seven start
    looking like a grid rather than a row. */
 const HOUSE_REACTIONS = ['👍', '❤️', '😂', '😮', '👏', '🎉'];
+
+/* ---------- HOW MANY DONE QUESTIONS ONE `markDone` MAY CARRY ----------------------------------------
+   ONE, NEARLY ALWAYS: the phone sends a question the moment it is first done that day. The batch is
+   for the other case — dates a phone kept while it was offline, or from before this tab existed,
+   sent up together on the next load — and a cap keeps one request from being a whole term's work
+   written under the lock while every other write waits. Anything over it goes on the load after. */
+const ATTEMPTS_PER_POST = 50;
 
 /* ---------- WHAT THE BUSINESS IS CALLED, ON THE SERVER --------------------------------------------
    `brandName()` READ THE `brand` TAB AND THAT TAB IS `data/settings/brand.json` NOW, which the
@@ -2820,6 +2858,10 @@ const ACTION_ACCESS = {
   /* MARKING A WORDED ANSWER WITH GEMINI. `self`, because every press costs a request and the cap is
      per person — counted against the id the token resolved to, which only a signed-in request has. */
   aiMark: 'self',
+  /* THE DAY A QUESTION WAS DONE. `self`: the row written is the one for the person the token
+     resolved to, whatever `personId` the body claims — the gate overwrites it before the handler
+     runs. Nobody can date a question for somebody else. */
+  markDone: 'self',
 
   /* YOUR OWN SETTINGS, AS THE SHEET HOLDS THEM. `self`, and the handler reads only the row the token
      resolved to — see `myProfile` in dopost.gs for why it is a POST rather than part of the payload. */

@@ -3304,6 +3304,51 @@ function doPost(e) {
       return jsonOut({ ok: true, on: TRUE_(body.on) });
     }
 
+    /* ---------- THE DAY A QUESTION WAS DONE, KEPT ON THE SHEET -------------------------------------
+       ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone. One
+       row per person per question, upserted — see SCHEMA.attempts for why it is not a row per press.
+
+       THE PERSON IS THE TOKEN'S. `accessDenied` has already overwritten `body.name` and
+       `body.personId` with whoever the token resolved to, so a request naming another student
+       dates a question for the student who sent it. `check-attempts.js` sends exactly that.
+
+       UNDER THE SCRIPT LOCK, like `aiMarkCount_`: two phones of one student both finding no row
+       and both appending is two rows for one question, and every reader after that has to guess
+       which is the truth. Refused rather than written unlocked — the phone keeps its own copy and
+       sends it again on the next load, so a refusal costs a few minutes and never a date.
+
+       AND IT DOES NOT RETIRE EVERYBODY'S PAYLOAD. Every other write here does, through
+       `POST_WROTE` — and that is right for a price or a post, which every phone shows. A done
+       question is in exactly two payloads: the student's own and an admin's. Bumping the generation
+       for it would make the next visitor of every kind rebuild thirty tabs because a child typed an
+       answer, twenty times an evening. So those two are retired by key (`retirePayloadOf_`) and the
+       flag is put back. */
+    if (action === 'markDone') {
+      const me = findPerson(S(body.name), S(body.personId));
+      if (!me || !S(me.person_id)) return jsonOut({ error: 'Sign in first.' });
+      const items = (Array.isArray(body.items) ? body.items : []).slice(0, ATTEMPTS_PER_POST);
+      if (!items.length) return jsonOut({ error: 'No question to mark as done.' });
+
+      const lock = LockService.getScriptLock();
+      if (!lock.tryLock(5000)) return jsonOut({ error: 'Busy — it will be sent again.', why: 'busy' });
+      let out = {};
+      const wroteBefore = POST_WROTE;
+      try {
+        /* FRESH ROWS UNDER THE LOCK. A copy read before the lock was taken is the copy the other
+           request was about to change. */
+        clearCache();
+        out = attemptsUpsert_(S(me.person_id), items);
+      } finally {
+        lock.releaseLock();
+      }
+      if (out.error) return jsonOut({ error: out.error });
+      if (POST_WROTE && !wroteBefore) {
+        POST_WROTE = false;
+        retirePayloadOf_([S(me.person_id)].concat(adminIds_()));
+      }
+      return jsonOut({ success: true, attempts: out.attempts });
+    }
+
     if (action === 'openWaitlist') {
       const me = findPerson(S(body.name), S(body.personId));
       if (!me) return jsonOut({ error: 'Not signed in.' });
@@ -3981,4 +4026,53 @@ function loginReplyFor_(r, token) {
      things arent updating when i click save". `location` went with it: nothing on the phone reads
      `profile.location`. */
   return jsonOut(out);
+}
+/* ---------- ONE ROW PER PERSON PER QUESTION, UPSERTED -----------------------------------------------
+   `items` is `[{ key, day }]`. Returns `{ attempts: { <key>: { first, last, times } } }` for the
+   keys it was given, or `{ error }` before anything is written.
+
+   THE DAY IS THE PHONE'S, CHECKED. The card says `Done 4 Oct` from the phone's own calendar, and a
+   sheet that wrote the server's day instead would disagree with it every evening after eleven in
+   winter (the server is London; a phone abroad is not). So a well-formed day is believed — unless it
+   is later than tomorrow, which no clock anywhere is, or earlier than this site existed. Anything
+   else is today, London's.
+
+   WHICH CELLS MOVE:
+     · no row                 → a row, first = last = day, times 1          (one append)
+     · a day after `last`     → last = day, times + 1                       (one write: adjacent cells)
+     · a day before `first`   → first = day, times + 1   (an offline copy older than the sheet)
+     · a day already covered  → nothing at all. A retried request, two phones, a re-sent backlog:
+                                none of them can count a day twice, and none of them writes. */
+function attemptsUpsert_(pid, items) {
+  const t = read(TAB.attempts);
+  if (!t.sheet) return { error: 'The sheet has no attempts tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
+  const today = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
+  const tomorrow = Utilities.formatDate(new Date(Date.now() + 864e5), 'Europe/London', 'yyyy-MM-dd');
+  const out = {};
+  items.forEach(it => {
+    const q = S(it && it.key);
+    /* A KEY IS THE LIBRARY'S, short and plain. Anything else is not a question this site drew. */
+    if (!q || q.length > 120) return;
+    let day = S(it && it.day);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > tomorrow || day < '2024-01-01') day = today;
+    const row = t.rows.find(r => key(r.person_id) === key(pid) && S(r.question_key) === q);
+    if (!row) {
+      addRow(t, { person_id: pid, question_key: q, first_done: day, last_done: day, times: 1 });
+      out[q] = { first: day, last: day, times: 1 };
+      return;
+    }
+    const first = isoDate_(row.first_done), last = isoDate_(row.last_done);
+    const v = {};
+    if (!last || day > last) v.last_done = day;
+    if (!first || day < first) v.first_done = day;
+    if (v.last_done || (v.first_done && first)) v.times = (N(row.times) || 0) + 1;
+    if (Object.keys(v).length) setCells(t, row, v);
+    out[q] = { first: v.first_done || first, last: v.last_done || last, times: N(v.times || row.times) || 1 };
+  });
+  return { attempts: out };
+}
+
+/* EVERY ADMIN'S PERSON ID — the other payload a done question appears in (`attemptsFor_`). */
+function adminIds_() {
+  return read(TAB.people).rows.filter(r => hasRole(r, 'admin') && S(r.person_id)).map(r => S(r.person_id));
 }

@@ -490,7 +490,10 @@ function doGet(e) {
                  'aiMark',
                  /* The site checks this before it offers the ＋ to somebody who is not an admin —
                     so an old deployment says so rather than swallowing their photograph. */
-                 'approvePost'],
+                 'approvePost',
+                 /* The phone checks this before it sends a done question, so a phone ahead of the
+                    deployment keeps the date to itself rather than being refused on every Check. */
+                 'markDone'],
       tutors: [], students: [], venues: [], clientClasses: [], liveJobs: [],
       /* The signed-in person's own family, both directions — see "YOUR OWN FAMILY" below — and the
          id of the person it was built for, which the phone checks before drawing any of it. */
@@ -1535,6 +1538,26 @@ function doGet(e) {
         : [];
     } catch (err) { payload.favourites = []; }
 
+    /* ---------- WHICH QUESTIONS THIS PERSON HAS DONE, AND — FOR AN ADMIN — HOW EVERYBODY IS DOING ----
+       THE TOKEN'S PERSON AND NOBODY ELSE'S. `mine` is the signed-in person's own rows; a visitor
+       with no token gets an empty one. `for` is the id it was built for, which the phone checks
+       before drawing any of it — the `familyFor` rule, because a payload left on a shared phone by
+       the last student must not date the next one's questions.
+
+       AN ADMIN ALSO GETS `people`: per learner, how many questions and the last day. A SUMMARY, not
+       the rows — the people column draws two facts per card, and every row for every student would
+       be thousands of entries to the one phone that already has the sheet open in another tab.
+
+       A TUTOR GETS NOTHING EXTRA, and that is a decision rather than an omission. Who a tutor
+       teaches is not a column anywhere: it is folded from the events tab by DISPLAY NAME
+       (`participantsOf`), and the child a parent booked for is a name in `for_children`, blank
+       on most rows. A rule built on that would hand one family's work to whichever tutor shares a
+       name with somebody in their booking. And a tutor's people column does not draw students at
+       all, so there would be nothing to show it on. Admin-only until a booking carries ids. */
+    try {
+      payload.attempts = attemptsFor_(meAsked, viewerIsAdmin);
+    } catch (err) { payload.attempts = { for: '', mine: {} }; }
+
     /* ---------- AND THE SHOP WINDOW, WHICH IS THE SAME LIST FOR EVERYBODY -------------------------
        NOT FILTERED BY PERSON, and that is the one line that makes it a spotlight rather than a
        favourite: `js/collections.js` opens with the argument — a favourite is a statement about
@@ -2052,4 +2075,32 @@ function doGet(e) {
   } catch (err) {
     return jsonOut({ error: err.toString() });
   }
+}
+/* ---------- `payload.attempts`, BUILT FOR ONE VIEWER ------------------------------------------------
+   `{ for, mine: { <question key>: { first, last, times } }, people? }` — see the block in `doGet`
+   that calls this for who gets what. `people` is `{ <person_id>: { n, last } }` and exists only for
+   an admin, so its absence is what every other phone sees. */
+function attemptsFor_(me, isAdmin) {
+  const out = { for: '', mine: {} };
+  if (!me || !S(me.person_id)) return out;
+  const pid = S(me.person_id);
+  out.for = pid;
+  const rows = read(TAB.attempts).rows;
+  rows.forEach(r => {
+    const q = S(r.question_key);
+    if (!q || key(r.person_id) !== key(pid)) return;
+    out.mine[q] = { first: isoDate_(r.first_done), last: isoDate_(r.last_done), times: N(r.times) || 1 };
+  });
+  if (isAdmin) {
+    out.people = {};
+    rows.forEach(r => {
+      const who = S(r.person_id);
+      if (!who || !S(r.question_key)) return;
+      const p = out.people[who] || (out.people[who] = { n: 0, last: '' });
+      p.n++;
+      const l = isoDate_(r.last_done);
+      if (l > p.last) p.last = l;
+    });
+  }
+  return out;
 }
