@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-qualchip";
+  --css-version: "2026-10-05-qualwidget";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -801,78 +801,83 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    a card, which is the "not everything is a card" fault; a hairline between them says the same
    thing for one declaration and no inset. */
 .lib-shelf { display: flex; flex-direction: column; }
-/* ---------- THE QUALIFICATIONS SHELF — see `qualShelf_` in me.js ------------------------------------
-   A LIST YOU READ, AND ONE EDITOR AT A TIME. The subject is a bold heading with `Edit` beside it; each
-   level is two or three plain lines with its own `Edit`, hung under the subject by a rule down the
-   left rather than boxed, because a box would make every level a card of its own. Every control is a
-   word, every word that is pressed is 44px in px, and there is no glyph on the shelf to decode — the
-   summary lines with ✓, ★, ▸ and ✕ on them were what *"really hard to understand"* was about. */
-.q-hint { margin: 0 0 .6rem; font-size: .8rem; color: var(--dim); line-height: 1.4; }
-.q-top { display: flex; align-items: center; gap: .5rem; }
-.q-head { flex: 1 1 auto; min-width: 0; margin: 0; font: 700 .9rem/1.3 var(--font); color: var(--ink);
-  overflow-wrap: anywhere; }
-.q-edit { flex: 0 0 auto; min-width: 44px; min-height: 44px; padding: 0 .35rem; background: none; border: 0;
-  color: var(--gold); font: inherit; font-size: .78rem; cursor: pointer; }
-.q-subj .q-levels { margin: 0 0 .5rem .2rem; padding-left: .65rem; border-left: 2px solid var(--line); }
-.q-subj + .q-subj { border-top: 1px dashed var(--line); padding-top: .35rem; }
-/* A LEVEL'S READ ROW: its lines take what is left, `Edit` keeps its 44px. Line one is the level and
-   the grade in the ink of an answer; line two the place and the year a step quieter; line three the
-   teaching word. */
-.q-read { display: flex; align-items: center; gap: .5rem; min-height: 44px; padding: .2rem 0; }
-.q-lines { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: .1rem; overflow-wrap: anywhere; }
-.q-l1 { font-size: .82rem; color: var(--ink); }
-.q-l2 { font-size: .74rem; color: var(--dim); }
-.q-l3 { font-size: .72rem; }
-.q-can { color: var(--dim); }
+/* ---------- THE QUALIFICATIONS CARD — see `qualShelf_` in me.js ------------------------------------
+   ONE LINE A QUALIFICATION, AND THE LINE IS THE BUTTON. *"can you make the qualifications widget more
+   efficient, elegant, intuitive and take up less space"*: the card it replaced gave every level two or
+   three lines and an `Edit`, every subject a heading and an `Edit` and a `+ Add a … level`, and
+   measured 900px for seven qualifications at 320x568 — drawn at 70%, the floor, and still scrolling.
+   Now each qualification is one 44px line in the profile card's own notation, a subject is named once
+   at the head of its lines, and the only thing on the card to press is a line (or the `+` under them).
+
+   THREE COLUMNS: the subject, as wide as its own name (`--q-w` on its group, in `ch` because the face is
+   monospaced) and never more than 42% of the line; the notation straight after it, as on the profile
+   chip; and the teaching mark at the end. A subject's lines after its first leave the first column
+   empty, so its levels stand in a column under its first one. 44px in px, because a line is a tap
+   target. */
+.q-shelf { display: flex; flex-direction: column; }
+.q-hint { margin: 0 0 .2rem; font-size: .8rem; color: var(--dim); line-height: 1.4; }
+.q-list:empty { display: none; }
+/* A HAIRLINE BETWEEN SUBJECTS AND NONE BETWEEN ONE SUBJECT'S LINES — the grouping is said once. */
+.q-subj + .q-subj { border-top: 1px dashed var(--line); }
+.q-line {
+  display: grid; grid-template-columns: min(var(--q-w, 10ch), 42%) minmax(0, 1fr) auto;
+  align-items: center; column-gap: .45rem;
+  width: 100%; min-height: 44px; padding: .15rem 0;
+  background: none; border: 0; color: var(--ink);
+  font: 400 .82rem/1.2 var(--font); text-align: left; cursor: pointer;
+}
+.q-who { font-weight: 650; overflow-wrap: anywhere; }
+.q-who.is-none { color: var(--dim); font-weight: 400; }
+.q-note { min-width: 0; overflow-wrap: anywhere; }
+.q-plain { color: var(--dim); }
+/* THE NOTATION IS THE PROFILE CHIP'S OWN `.prof-iso`, so the two cannot drift: the same floor, the same
+   ink, the level over the grade at one x. Its negative margins are for sitting inside a pill's padding
+   without making the pill taller; a 44px line has the room, so here they go. */
+.q-line .prof-iso { margin: 0; }
+.q-mark { justify-self: end; }
 /* THE CARD'S OWN GOLD CHIP, so `Teach` here and `Teaches` on the profile read as one fact. */
 .q-chip { display: inline-block; padding: .1rem .5rem; border: 1px solid var(--gold); border-radius: 999px;
   color: var(--ink); font-size: .68rem; }
-.q-slot + .q-slot { border-top: 1px dashed var(--line); }
-.q-add { display: block; min-height: 44px; padding: 0; background: none; border: 0; color: var(--gold);
-  font: inherit; font-size: .78rem; text-align: left; cursor: pointer; }
-.q-add-subj { margin: .2rem 0 .4rem; }
-.q-count { margin: 0; font-size: .74rem; }
-/* ---------- WHICH OF THE TWO SHOWS ------------------------------------------------------------------
-   A slot holds both its read row and its editor; a subject both its heading and its rename box. One
-   class on the element says which, and `.is-editing` on the shelf takes every OTHER `Edit` and `+ Add`
-   off the page, so there is only ever one thing open and nothing to lose by opening a second. */
-.q-slot > .q-ed, .q-subj > .q-subj-ed { display: none; }
-.q-slot.is-editing > .q-ed, .q-subj.is-editing > .q-subj-ed { display: block; }
-.q-slot.is-editing > .q-read, .q-subj.is-editing > .q-top { display: none; }
-.q-shelf.is-editing .q-edit, .q-shelf.is-editing .q-add, .q-shelf.is-editing .q-add-subj { display: none; }
-/* NOTHING SAVED TO REMOVE: a level not saved yet, and a subject not saved yet, go with Cancel. And an
-   empty shelf has no Cancel, because the editor IS the page there. */
-.q-slot[data-new] .q-drop, .q-subj.is-new .q-drop, .q-shelf.is-empty .q-cancel { display: none; }
-/* THE EDITOR: captioned boxes (the caption is `label.field > span`, above the box rather than a
-   placeholder in it), the question with its three-way control, then the buttons. */
-.q-ed { padding: .35rem 0 .5rem; }
-.q-ask { margin: .1rem 0 .5rem; }
-.q-cap { display: block; margin-bottom: .3rem; font-size: .72rem; letter-spacing: .05em;
-  text-transform: uppercase; color: var(--faint); }
+.q-can { color: var(--dim); font-size: .7rem; }
+/* ---------- AN OPEN LINE: ITS EDITOR UNDER IT, AND A GOLD RULE DOWN THE LEFT ----------------------------
+   Gold is what this app means by "the one you are acting on". The rule is pulled into the card's own
+   padding, so nothing in the line moves when it opens — its columns stay on the table's. */
+.q-ed { display: none; }
+.q-slot.is-open { margin-left: -.6rem; padding-left: calc(.6rem - 2px); border-left: 2px solid var(--gold); }
+.q-slot.is-open > .q-ed { display: block; padding: .1rem 0 .45rem; }
+.q-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .4rem; }
+/* ---------- THE CAPTION INSIDE THE BOX, OVER THE ANSWER ------------------------------------------------
+   Above the box it was a line of its own per row — three lines on an editor of three rows — and a
+   placeholder IN the box goes the moment something is chosen, so a chosen `B` alone did not say which
+   question it answered. Inside, small and top-left, it is both kept and free: the box keeps its 44px
+   and the answer sits under the caption. `--dim` rather than the outside captions' `--faint`, because
+   it is set on the box's own black. One more rule than `label.field > span` and so it wins without
+   an `!important`. */
+.q-ed label.field.q-f { position: relative; min-width: 0; margin-bottom: .4rem; }
+.q-ed .q-f > span {
+  position: absolute; top: 5px; left: .6rem; right: .6rem; z-index: 1; margin: 0;
+  font-size: max(9px, .58rem); line-height: 1; color: var(--dim); pointer-events: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.q-ed .q-f > select, .q-ed .q-f > input { min-width: 0; padding: 16px .6rem 4px; }
+/* TEACH / CAN TEACH / NOT TEACHING, ONE CONTROL. Words that say the answer, so the question that sat
+   over it and the sentence that sat under it are not needed; what each does on the profile is its
+   `title`. */
 .q-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line);
   border-radius: var(--r-sm); overflow: hidden; }
 .q-seg-b { min-height: 44px; padding: 0 .3rem; background: var(--sunk); border: 0; color: var(--ink);
-  font: inherit; font-size: .8rem; cursor: pointer; }
+  font: inherit; font-size: .76rem; line-height: 1.15; cursor: pointer; }
 .q-seg-b + .q-seg-b { border-left: 1px solid var(--line); }
 /* PRESSED IS GOLD WITH BLACK ON IT, which is what `.hr.on` already does for "this one is chosen". */
 .q-seg-b[aria-pressed="true"] { background: var(--gold); color: #000; font-weight: 650; }
-.q-say { margin: .35rem 0 0; font-size: .72rem; line-height: 1.35; }
-/* CANCEL AND SAVE SHARE A ROW, REMOVE HAS ONE OF ITS OWN UNDER THEM. The three in one row wrapped
-   Save onto a line by itself at 320 — measured, on a screenshot — and a destructive word sitting
-   beside the button that keeps your work is one slip from it anyway. `order` rather than the markup's
-   order, so the markup still reads Remove, Cancel, Save to a screen reader, which is the sentence. */
-.q-acts { display: flex; flex-wrap: wrap; gap: .4rem; }
-.q-acts .btn { width: auto; flex: 1 1 0; min-width: 0; padding: 0 .6rem; }
-.q-drop { order: 2; flex: 1 1 100%; min-height: 44px; padding: 0; background: none; border: 0; color: var(--bad);
-  font: inherit; font-size: .76rem; text-align: left; cursor: pointer; }
-/* THE OPEN EDITOR IS MARKED: the grey rule down the left turns gold beside it, because gold is what
-   this app means by "the one you are acting on". Pulled over the grey rule rather than beside it. */
-.q-levels > .q-slot.is-editing > .q-ed { margin-left: calc(-.65rem - 2px); padding-left: .65rem;
-  border-left: 2px solid var(--gold); }
+/* THE TICK AT THE START OF THE ROW AND THE BIN AT THE FAR END — the width of the card between them,
+   which is the tile rows' own rule for keeping a bin away from the thing beside it. */
+.q-tiles { justify-content: space-between; margin-top: .45rem; }
+.q-adds { margin-top: .3rem; }
+.q-full { margin: .3rem 0 0; font-size: .74rem; }
 /* AN UNANSWERED DROP-DOWN READS AS A PLACEHOLDER, in the grey of the empty boxes — `Choose` in full ink
-   looks like an answer somebody gave. `.lib-row select` already does this for Level and Grade. */
+   looks like an answer somebody gave. `.lib-row select` already does this for the library shelf. */
 .q-shelf select:has(option[value=""]:checked) { color: var(--faint); }
-.q-subj.is-new > label.field { margin-bottom: .2rem; }
 .lib-card + .lib-card { border-top: 1px dashed var(--line); padding-top: .45rem; }
 /* ---------- AND THE GAPS ARE THE ONLY THING LEFT TO SPEND, BECAUSE 44px IS NOT ------------------
    SIX ROWS OF INPUT AT A 44px FLOOR IS 264px AND THAT IS THE SHELF'S FLOOR. `label.field`'s own
@@ -976,10 +981,9 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .dob-boxes input { min-width: 0; text-align: center; }
 .lib-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 7rem); gap: .6rem; }
 .lib-row label.field, .lib-row input { min-width: 0; }
-/* A QUALIFICATION EDITOR'S FIRST ROW IS TWO EQUAL SELECTS, a level and a grade, rather than the wide
-   box beside a narrow one above it. `.lib-row select` joins the min-width rule for the reason the
-   inputs do: a select's own idea of its width is its longest option. */
-.lib-row.q-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+/* `.lib-row select` JOINS THE MIN-WIDTH RULE for the reason the inputs do: a select's own idea of its
+   width is its longest option. (The qualification editor's two-up row was `.lib-row.q-row` and is
+   `.q-row` now, beside the rest of that card.) */
 .lib-row select { min-width: 0; }
 /* THE TEACH / CAN TEACH TICKS THAT SAT HERE WENT WITH THE SUMMARY LINES: they were checkboxes read
    per level and per subject, two ways round, and are one three-way control now (`.q-seg`, above). */
