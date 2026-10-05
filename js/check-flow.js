@@ -6155,7 +6155,9 @@ check('Find draws the same question family, practical, project and textbook for 
      BUT ONE, BY NAME. *"i want to add the bible to resources as a book. but only admin can see the
      bible."* is the owner asking for exactly one difference, so this expects it exactly: an admin's
      list is everybody else's plus `bible:kjv`, and nobody else's has it. Anything else that differs
-     is still a role showing through. */
+     is still a role showing through. ONE PAYLOAD FOR EVERY ROLE HERE, deliberately: the films are an
+     admin's too, but `doGet` decides that by leaving them out of everybody else's payload, so with
+     the payload held still the only difference left is one the phone made — which is what this asks. */
   const BIBLE_KEY = 'bible:kjv';
   const offered = u => { t.USER(u); const ks = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort(); t.USER(null); return ks; };
   const out0 = offered(null);
@@ -6876,12 +6878,15 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
    no `Books` answer, no card — and not one byte downloaded for a book they were never shown.
 
    AN ADMIN, BY THE OWNER'S ROUTE. Learning → Resources → Books on the real answer buttons; the list
-   is the Bible; its cover and both testaments; Genesis pressed, fetched ONCE, its chapter numbers
-   turned to; chapter 1 pressed and READ — "In the beginning God created the heaven and the earth." —
-   with `[was]` drawn as italics and no bracket anywhere; every verse of Genesis on exactly one page,
-   in order; the tile at the chapter's foot back to the numbers; Genesis again with no second fetch;
-   a New Testament book after its own testament; a book that fails to arrive said on the list without
-   losing the one open; the book names searchable; and the star keeping the cover and both lists. */
+   is the Bible; its cover and three lists (the Old Testament turned at Job, then the New); Genesis
+   pressed, fetched ONCE, its chapter numbers turned to — after all three lists; chapter 1 pressed and
+   READ — "In the beginning God created the heaven and the earth." — with `[was]` drawn as italics and
+   no bracket anywhere; every verse of Genesis on exactly one page, in order; a tile back to the
+   numbers on every page of every chapter, pressed from the middle of one, and the numbers' tile back
+   to the Old Testament; Genesis again with no second fetch; the New Testament still page three and
+   Matthew after it; Psalm 119 back to the page of numbers it is on; a book that fails to arrive said
+   on the list without losing the one open; the book names searchable; the star keeping the cover and
+   all three lists; and signing out from inside it leaving nothing of it on Find. */
 check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is shown it or fetches a byte of it', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
   const one = boot();
@@ -7003,16 +7008,23 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
   }
   const first = w.stuffFirstResult_();
   const parts0 = w.pageParts_(x);
-  if (JSON.stringify(parts0) !== JSON.stringify([null, 'ot', 'nt'])) bad.push('before a book is opened the Bible is pages ' + JSON.stringify(parts0) + ', not the cover and two testaments');
+  /* THE COVER, THEN THREE LISTS: the Old Testament on two pages and the New on one. */
+  const LISTS = [null, 'ot', 'ot2', 'nt'];
+  if (JSON.stringify(parts0) !== JSON.stringify(LISTS)) bad.push('before a book is opened the Bible is pages ' + JSON.stringify(parts0) + ', not the cover and three lists of books');
+  if (!/next three pages/.test(cover ? cover.textContent : '')) bad.push('the cover does not say the books are the next three pages');
 
-  /* BOTH TESTAMENTS, EVERY BOOK, IN ORDER, AS BUTTONS ON THE PAGE. */
+  /* BOTH TESTAMENTS, EVERY BOOK, IN ORDER, AS BUTTONS ON THE PAGE — and the Old Testament turned at
+     Job, so neither of its pages is the thirty-nine that `paneReach_` drew at 84% on a 320px phone. */
   t.goPage('stuff', first + 1);
   await wait(30);
-  const names = sel => [...d.querySelectorAll('#s-stuff .bb-toc.' + sel + ' [data-do="bible-book"]')].map(b => b.textContent.trim());
+  const names = sel => [...d.querySelectorAll('#s-stuff .bb-toc' + sel + ' [data-do="bible-book"]')].map(b => b.textContent.trim());
   const wantOT = index.books.filter(b => b.testament === 'OT').map(b => b.book);
   const wantNT = index.books.filter(b => b.testament === 'NT').map(b => b.book);
-  if (names('is-ot').join('|') !== wantOT.join('|')) bad.push('the Old Testament page lists ' + names('is-ot').length + ' books, not the 39 in order: ' + names('is-ot').slice(0, 4).join(', '));
-  if (names('is-nt').join('|') !== wantNT.join('|')) bad.push('the New Testament page lists ' + names('is-nt').length + ' books, not the 27 in order');
+  const turn = wantOT.indexOf('Job');
+  if (names('[data-bb="ot"]').join('|') !== wantOT.slice(0, turn).join('|')) bad.push('the first Old Testament page lists ' + names('[data-bb="ot"]').length + ' books, not Genesis to Esther in order: ' + names('[data-bb="ot"]').slice(-2).join(', '));
+  if (names('[data-bb="ot2"]').join('|') !== wantOT.slice(turn).join('|')) bad.push('the second Old Testament page lists ' + names('[data-bb="ot2"]').length + ' books, not Job to Malachi in order: ' + names('[data-bb="ot2"]').slice(0, 2).join(', '));
+  if (names('.is-ot').join('|') !== wantOT.join('|')) bad.push('the two Old Testament pages list ' + names('.is-ot').length + ' books between them, not the 39 in order');
+  if (names('.is-nt').join('|') !== wantNT.join('|')) bad.push('the New Testament page lists ' + names('.is-nt').length + ' books, not the 27 in order');
   [...d.querySelectorAll('#s-stuff .bb-toc')].forEach(pg => {
     const k = pg.firstElementChild, h = k && k.nextElementSibling;
     if (!k || !k.classList.contains('fc-kick') || !h || h.tagName !== 'H3') bad.push('a testament page does not open on its kicker and then its title');
@@ -7033,7 +7045,11 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
   const genesis = JSON.parse(fs.readFileSync(path.join(bibleDir, '01-genesis.json'), 'utf8'));
   const parts = w.pageParts_(x);
   const chParts = parts.filter(p => /^c\d+/.test(p || ''));
-  if (parts[2] !== 'bk' || parts[parts.length - 1] !== 'nt' || !chParts.length) bad.push('with Genesis open the Bible is pages ' + JSON.stringify(parts).slice(0, 90) + ' — not the cover, the OT, Genesis, then the NT');
+  /* THE BOOK AFTER ALL THREE LISTS, not after its own testament. Between the Old Testament and the New
+     it put Genesis's every page — 328 swipes at 320px from one list to the other. */
+  if (JSON.stringify(parts.slice(0, 5)) !== JSON.stringify(LISTS.concat(['bk'])) || !/^c\d+/.test(parts[parts.length - 1] || '') || !chParts.length) {
+    bad.push('with Genesis open the Bible is pages ' + JSON.stringify(parts).slice(0, 90) + ' — not the cover, the three lists, then Genesis');
+  }
   const at = p => first + parts.indexOf(p);
   if (t.PAGE().stuff !== at('bk')) bad.push('pressing Genesis did not turn to its chapter numbers — page ' + t.PAGE().stuff + ', the numbers are ' + at('bk'));
   const grid = d.querySelectorAll('#s-stuff .bb-chs [data-do="bible-ch"]');
@@ -7073,17 +7089,22 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
     const i = drawn.findIndex((s, j) => s !== want[j]);
     if (i >= 0) bad.push('Genesis is drawn out of order or altered at ' + want[i].slice(0, 60) + ' — drawn ' + drawn[i].slice(0, 60));
   }
-  /* THE WAY BACK, AT THE FOOT OF THE CHAPTER'S LAST PAGE AND NOWHERE ELSE IN IT. */
+  /* THE WAY BACK UP, ON EVERY PAGE OF EVERY CHAPTER — not only a chapter's last, which left Psalm 119's
+     first page twenty-one swipes from any way out. Pressed from the FIRST page of Genesis 1, which is
+     mid-chapter whenever the chapter is longer than a page. */
   const c1parts = chParts.filter(p => /^c1(-|$)/.test(p));
-  const foot = box(w.stuffPart_(x, c1parts[c1parts.length - 1])).querySelector('[data-do="bible-to"][data-to="bk"]');
-  if (!foot) bad.push('the last page of Genesis 1 has no way back to the chapter numbers');
-  if (c1parts.length > 1 && box(w.stuffPart_(x, c1parts[0])).querySelector('[data-do="bible-to"]')) bad.push('the way back is on every page of the chapter, not its foot');
-  if (foot) {
-    t.goPage('stuff', at(c1parts[c1parts.length - 1]));
-    await wait(30);
-    if (await press('.is-' + c1parts[c1parts.length - 1] + ' [data-do="bible-to"]', 'back to the numbers')) {
-      if (t.PAGE().stuff !== at('bk')) bad.push('the tile at the foot of Genesis 1 did not go back to its chapter numbers');
-    }
+  if (c1parts.length < 2) bad.push('Genesis 1 is one page, so a way out from the middle of a chapter was NOT checked');
+  const noWay = chParts.filter(p => !box(w.stuffPart_(x, p)).querySelector('.tile-row [data-do="bible-to"][data-to="bk"]'));
+  if (noWay.length) bad.push(noWay.length + ' of Genesis\'s ' + chParts.length + ' text pages have no tile back to the chapter numbers, first ' + noWay[0]);
+  t.goPage('stuff', at(c1parts[0]));
+  await wait(30);
+  if (await press('.is-' + c1parts[0] + ' [data-do="bible-to"]', 'back to the numbers from the first page of Genesis 1')) {
+    if (t.PAGE().stuff !== at('bk')) bad.push('the tile on the first page of Genesis 1 did not go back to its chapter numbers');
+  }
+  /* AND THE NUMBERS BACK TO THE LIST THEIR BOOK IS ON — three pages behind them, past the New
+     Testament, which is why it is a tile and not a swipe. */
+  if (await press('.bb-chs.is-bk [data-do="bible-to"]', 'Genesis\'s numbers back to the Old Testament')) {
+    if (t.PAGE().stuff !== at('ot')) bad.push('the tile under Genesis\'s chapter numbers did not go back to the Old Testament page it is listed on — page ' + t.PAGE().stuff + ', the list is ' + at('ot'));
   }
 
   /* GENESIS AGAIN: HELD FOR THE VISIT, SO NOT FETCHED TWICE. */
@@ -7094,15 +7115,33 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
   if (ofBible(a.gets).length !== n0) bad.push('opening Genesis a second time fetched it again — the book is not held for the visit');
   if (t.PAGE().stuff !== at('bk')) bad.push('opening Genesis a second time did not turn to its chapter numbers');
 
-  /* A NEW TESTAMENT BOOK, AFTER ITS OWN TESTAMENT; GENESIS'S PAGES GONE. The New Testament page is
-     past every page of Genesis now, so it is turned to where the pages say it is. */
-  t.goPage('stuff', first + w.pageParts_(x).indexOf('nt'));
+  /* THE NEW TESTAMENT, WHERE IT ALWAYS IS: the lists do not move when a book opens, so it is the page
+     after the two Old Testament ones with Genesis open as with nothing. */
+  if (w.pageParts_(x).indexOf('nt') !== 3) bad.push('with Genesis open the New Testament is page ' + w.pageParts_(x).indexOf('nt') + ' of the Bible, not 3 — a book is standing between the lists');
+  t.goPage('stuff', first + 3);
   await wait(30);
   await press('[data-do="bible-book"][data-n="40"]', 'Matthew');
   const mp = w.pageParts_(x);
-  if (mp[1] !== 'ot' || mp[2] !== 'nt' || mp[3] !== 'bk') bad.push('with Matthew open the Bible is pages ' + JSON.stringify(mp.slice(0, 5)) + ' — Matthew does not follow the New Testament');
+  if (JSON.stringify(mp.slice(0, 5)) !== JSON.stringify(LISTS.concat(['bk']))) bad.push('with Matthew open the Bible is pages ' + JSON.stringify(mp.slice(0, 6)) + ' — not the three lists and then Matthew');
   if (mp.filter(p => /^c\d+$/.test(p || '')).length !== 28) bad.push('Matthew has ' + mp.filter(p => /^c\d+$/.test(p || '')).length + ' chapters\' first pages, not 28');
   if (t.PAGE().stuff !== first + mp.indexOf('bk')) bad.push('pressing Matthew did not turn to its chapter numbers');
+  if (!box(w.stuffPart_(x, 'bk')).querySelector('[data-do="bible-to"][data-to="nt"]')) bad.push('Matthew\'s chapter numbers have no tile back to the New Testament');
+
+  /* PSALMS, WHOSE NUMBERS ARE MORE THAN ONE PAGE: a psalm goes back to the page of numbers it is on,
+     not the first. With no layout to measure (jsdom) a page offers `BIBLE_GRID` numbers — three pages
+     of fifty — so Psalm 119 is on the third. On a phone the pages are the measured pane's rows. */
+  t.goPage('stuff', first + 2);
+  await wait(30);
+  await press('[data-do="bible-book"][data-n="19"]', 'Psalms');
+  const pp = w.pageParts_(x);
+  const grids = pp.filter(p => /^bk/.test(p || ''));
+  if (grids.length < 2) bad.push('Psalms has ' + grids.length + ' page(s) of chapter numbers — the many-page grid was NOT checked');
+  else {
+    const holding = grids.find(g => box(w.stuffPart_(x, g)).querySelector('[data-do="bible-ch"][data-ch="119"]'));
+    const back = box(w.stuffPart_(x, 'c119')).querySelector('[data-do="bible-to"]');
+    if (!holding || !back || back.getAttribute('data-to') !== holding) bad.push('Psalm 119\'s tile goes back to ' + (back && back.getAttribute('data-to')) + ', not ' + holding + ', the page of numbers it is on');
+    if (grids.some(g => !box(w.stuffPart_(x, g)).querySelector('[data-do="bible-to"][data-to="ot2"]'))) bad.push('a page of Psalms\'s numbers has no tile back to the second Old Testament page, where Psalms is listed');
+  }
 
   /* A BOOK THAT DOES NOT COME: said on the list, a toast, and the open book kept. */
   refuse.add('03-leviticus.json');
@@ -7110,7 +7149,7 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
   await wait(30);
   await press('[data-do="bible-book"][data-n="3"]', 'Leviticus');
   await wait(60);
-  if (t.BIBLE().open !== 40) bad.push('a book that failed to arrive changed the open book to ' + t.BIBLE().open);
+  if (t.BIBLE().open !== 19) bad.push('a book that failed to arrive changed the open book to ' + t.BIBLE().open);
   const miss = d.querySelector('#s-stuff .bb-toc.is-ot .bb-miss');
   if (!miss || !/Leviticus/.test(miss.textContent)) bad.push('a book that failed to arrive is not said on the Old Testament page');
   const toastEl = d.getElementById('toast');
@@ -7154,13 +7193,40 @@ check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is s
     bad.push('an admin\'s Find with the library still on its way does not say the questions are still coming');
   }
 
-  /* KEPT: the star puts the cover and both lists on Saved. */
+  /* KEPT: the star puts the cover and all three lists on Saved. */
   const fav = box(w.stuffCard(x)).querySelector('[data-do="fav"]');
   if (!fav) bad.push('the Bible cover has no Save tile');
   else {
     t.ACTIONS.fav(fav);
     const saved = t.savedPages().join('');
-    if (!/card fc prac bible/.test(saved) || !/bb-toc is-ot/.test(saved) || !/bb-toc is-nt/.test(saved)) bad.push('the Bible was starred and Saved does not draw its cover and both lists of books');
+    if (!/card fc prac bible/.test(saved) || !/data-bb="ot"/.test(saved) || !/data-bb="ot2"/.test(saved) || !/data-bb="nt"/.test(saved)) bad.push('the Bible was starred and Saved does not draw its cover and all three lists of books');
+  }
+
+  /* ---------- AND SIGNING OUT FROM INSIDE IT LEAVES NOTHING OF IT ------------------------------------
+     FOUND BY THE REVIEW: an admin signed out on the Books shelf left "WHAT KIND Resources ✕ SHELF
+     Books ✕" and "Nothing matches" on the signed-out Find — the name of the shelf only an admin is
+     shown, on the screen of whoever picks the phone up next. Signed out from the reader as a finger
+     would, on Genesis 1, with the search box holding a word too. */
+  t.go('stuff');
+  t.STUFF().q = 'genesis';
+  t.STUFF().filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+  w.paintStuff();
+  /* TYPED, as a finger types: `paintStuff` never rewrites the box, so the word goes in by hand. */
+  const qBox = d.getElementById('stuff-q');
+  if (!qBox) bad.push('there is no search box on Find, so whether its word is left behind was NOT checked');
+  else qBox.value = 'genesis';
+  if (!t.ACTIONS.signout) bad.push('there is no signout action to press, so signing out from the Bible was NOT checked');
+  else {
+    t.ACTIONS.signout(d.createElement('button'));
+    await wait(60);
+    t.go('stuff');
+    await wait(30);
+    if (t.whoami()) bad.push('pressing sign out left somebody signed in, so what it leaves behind was NOT checked');
+    const f = t.STUFF().filters, said = (d.getElementById('s-stuff') || {}).textContent || '';
+    if (f.length || t.STUFF().q) bad.push('signed out, Find still holds the admin\'s question: ' + JSON.stringify(f) + (t.STUFF().q ? ' and "' + t.STUFF().q + '"' : ''));
+    if (/\bBooks\b/.test(said)) bad.push('signed out, Find still names the Books shelf: …' + said.slice(Math.max(0, said.indexOf('Books') - 60), said.indexOf('Books') + 20).replace(/\s+/g, ' '));
+    if (d.querySelector('#s-stuff .card.bible')) bad.push('signed out, a Bible card is still drawn on Find');
+    if (d.getElementById('stuff-q') && d.getElementById('stuff-q').value) bad.push('signed out, the search box still holds "' + d.getElementById('stuff-q').value + '"');
   }
   return bad;
 });

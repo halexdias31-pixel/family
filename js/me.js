@@ -783,6 +783,18 @@ on('signout', () => {
   try { api({ action: 'signOut' }); } catch (err) {}
   USER = null;
   try { localStorage.removeItem('familyUser'); } catch {}
+  /* ---------- AND WHAT THEY HAD ASKED FIND FOR GOES WITH THEM --------------------------------------
+     THE SEARCH AND THE CHIPS ARE THE PERSON'S, NOT THE PHONE'S. They outlived the sign-out, so the
+     next person to pick the phone up saw the last one's question — and found by the review of the
+     Bible: an admin signed out from inside it left "WHAT KIND Resources ✕ SHELF Books ✕" and
+     "Nothing matches" on a signed-out Find, which is the name of the one shelf only an admin is
+     shown, on the screen of somebody who is not one. Nothing was fetched or drawn, but a shelf
+     nobody else may see was named to them. So Find starts again from its first question, as it
+     does on a fresh visit. `typeof`, because me.js loads before find.js declares `STUFF`. The box is
+     not cleared here: `repaint` below draws Find's controls again from `STUFF.q`. */
+  try {
+    if (typeof STUFF !== 'undefined') { STUFF.q = ''; STUFF.filters = []; }
+  } catch (err) {}
   toast('Signed out');
   repaint();
 });
