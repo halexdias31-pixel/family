@@ -895,6 +895,7 @@ EXTRA_FILES.forEach(name => {
   catch (e) { fail.push('data/boxers.json could not be read for the photo and record rules — NOT checked'); }
   const n = v => (String(v == null ? '' : v).trim() === '' ? null : Number(v));
   let pics = 0;
+  const todo = [];
   (Array.isArray(boxers) ? boxers : []).forEach(b => {
     if (!b || typeof b !== 'object') return;
     const who = (b.boxer_id || '?') + ' ' + (b.name || '');
@@ -911,9 +912,29 @@ EXTRA_FILES.forEach(name => {
       if (p != null && (!isFinite(p) || p < 0)) fail.push('data/boxers.json ' + who + ' ' + part + ' is not a count: ' + b[part]);
       else if (p != null && w != null && p > w) fail.push('data/boxers.json ' + who + ' has ' + p + ' ' + part + ' in ' + w + ' ' + whole);
     });
+    /* ---------- A CC LICENCE NEEDS ITS LINK, AND ONLY A COMMONS FILE HAS ONE TO GIVE ---------------
+       CC BY AND CC BY-SA ASK FOR MORE THAN A NAME: the credit has to point at where the work and its
+       licence can be read. The card makes the credit that link — the Commons file page, named from
+       the picture's own `upload.wikimedia.org/wikipedia/commons/` address (`boxerCredit_`). A
+       picture held anywhere else has no such page, so its credit would be words with nowhere to go:
+       a licence broken on every phone, which is the photo-without-credit fault by another route.
+       Public domain and a photo the owner took need no link, so they are not asked for one. */
+    if (img && /\bCC[ -]?(BY|0)\b|creative commons/i.test(credit)
+        && !/^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/(thumb\/)?[0-9a-f]\/[0-9a-f]{2}\/[^/?#]+/i.test(img)) {
+      fail.push('data/boxers.json ' + who + ' is credited under a CC licence and its image is not a Commons file address, so the card cannot link the credit to the licence: ' + img.slice(0, 70));
+    }
+    /* ---------- THE EDITOR'S TO-DO, LISTED -----------------------------------------------------------
+       A `notes` cell that says check or checking is the researchers' to-do, and the card no longer
+       prints it (`boxerNote_` in find.js) — five of them were under public records, saying the site
+       doubted its own numbers. Kept off the card is not the same as done, so they are listed here,
+       every run, until somebody checks the thing and clears the cell. Printed, not failed: a record
+       waiting for a check is the backlog, not a fault. */
+    if (/\bcheck(ing)?\b/i.test(String(b.notes || ''))) todo.push(who + ' — ' + String(b.notes).trim());
   });
   console.log('boxers with a photo: ' + pics + ' of ' + (Array.isArray(boxers) ? boxers.length : 0)
     + '   (every one credited, or this would have failed)');
+  console.log('boxer rows the editor still has to check: ' + todo.length + '   (kept off the cards; the backlog, not a fault)');
+  todo.forEach(t => console.log('  ' + t));
 }
 
 /* ---------- THE LEGO SETS: A CATALOGUE SHAPED LIKE THE SHOP, WAITING TO BE STOCKED ------------------
