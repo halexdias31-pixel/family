@@ -266,3 +266,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [Find's other cards are one system: a shared head, kicker, meta line, section and list](262-find-s-other-cards-are-one-system-a-shared-head-kicker-meta.md)
 - [The answer is its own page, and the pages of a question read as one question](263-the-answer-is-its-own-page-and-the-pages-of-a-question-read.md)
 - [The quizzes were deleted, and the question card kept their option styling under its own name](264-the-quizzes-were-deleted-and-the-question-card-kept-their-op.md)
+- [Handles sign everybody in, an admin sees everyone, and Level comes before Key stage](265-handles-sign-everybody-in-an-admin-sees-everyone-and-level-c.md)
