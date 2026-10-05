@@ -3978,8 +3978,14 @@ function bibleIndex_() {
       BIBLE.asking = null;
       if (ok) BIBLE.index = d; else BIBLE.failed = true;
       /* THE SEARCH LEARNS THE BOOK NAMES, so typing `psalms` finds the Bible — on the item already
-         built, because the list is memoised and rebuilding Find for sixty-six words is not worth it. */
-      if (ok && BIBLE.item) { BIBLE.item.text = bibleWords_(); delete BIBLE.item._hay; }
+         built, because the list is memoised and rebuilding Find for sixty-six words is not worth it.
+         The cached search is told to forget (`me.js`'s move for the friends list), or a `psalms`
+         typed while the index was on its way would go on answering from the list without them. */
+      if (ok && BIBLE.item) {
+        BIBLE.item.text = bibleWords_();
+        delete BIBLE.item._hay;
+        FIND_MEMO.key = null;
+      }
       bibleRedraw_();
       return BIBLE.index;
     });

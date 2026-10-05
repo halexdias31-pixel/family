@@ -190,14 +190,12 @@ function boot(opts) {
     if (!(o && o.body)) {
       gets.push(String(url));
       const got = typeof opts.serve === 'function' ? opts.serve(String(url)) : undefined;
-      if (got === null) {
-        return Promise.resolve({ ok: false, status: 404, text: () => Promise.resolve('Not found'),
-                                 json: () => Promise.reject(new Error('404')) });
-      }
-      if (got !== undefined) {
-        return Promise.resolve({ ok: true, status: 200, text: () => Promise.resolve(JSON.stringify(got)),
-                                 json: () => Promise.resolve(got) });
-      }
+      /* A PROMISE IS A FILE THAT ARRIVES WHEN THE JOURNEY SAYS — the slow network, on demand. */
+      const answer = v => (v === null
+        ? { ok: false, status: 404, text: () => Promise.resolve('Not found'), json: () => Promise.reject(new Error('404')) }
+        : { ok: true, status: 200, text: () => Promise.resolve(JSON.stringify(v)), json: () => Promise.resolve(v) });
+      if (got && typeof got.then === 'function') return got.then(answer);
+      if (got !== undefined) return Promise.resolve(answer(got));
     }
     /* ---------- THE STUB HAD NO `text()`, AND THAT HID EVERY WRITE'S SUCCESS PATH ----------------
        `api()` IN shell.js READS `r.text()` AND PARSES IT, deliberately — an Apps Script error page
@@ -444,6 +442,10 @@ function boot(opts) {
       /* FIND'S OWN STATE — the search words and the chips. A `const`, so only a function built in
          this evaluation can hand it over; the textbook journey types into `q` the way the box does. */
       'STUFF: () => STUFF,' +
+      /* THE BIBLE READER'S STATE — a `const`, so a getter built here (see `STUFF`): which book is open,
+         whether the index landed, which book failed. The Bible journey asks it rather than the DOM
+         where the DOM cannot say, such as whether a failure changed the open book. */
+      'BIBLE: () => (typeof BIBLE !== "undefined" ? BIBLE : null),' +
       /* THE MESSAGES COLUMN'S STATE, SEEDED AS AN ANSWER JUST ARRIVED — the same five lets
          `check/states.js` sets in a browser, and for the same reason they are set together: a seed
          that leaves `DM_LAST` alone is one poll away from being replaced by the stub's empty answer.
@@ -6858,6 +6860,292 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   else {
     t.ACTIONS.fav(fav);
     if (!t.savedPages().join('').includes('tb-toc')) bad.push('the book was starred and is not on the Saved column');
+  }
+  return bad;
+});
+
+/* ---------- THE BIBLE: AN ADMIN READS GENESIS 1, AND NOBODY ELSE IS SHOWN IT OR SENT IT ------------
+   ASKED FOR AS "i want to add the bible to resources as a book. but only admin can see the bible."
+   Two halves, and the second is the one that matters more:
+
+   NOBODY BUT AN ADMIN. Signed out, a parent, a student and a tutor are each booted SIGNED IN FROM THE
+   FIRST LINE (seeded the way `check/ui.js` seeds its visitor, so the boot that builds Find is theirs),
+   with the real `data/bible/` files there to be fetched. Each walks to Resources and every shelf on
+   it, searches `bible` and `genesis`, and even presses a book button that should not exist. Then the
+   list of everything fetched is read: not one URL under `data/bible/`. Absent is the claim — no item,
+   no `Books` answer, no card — and not one byte downloaded for a book they were never shown.
+
+   AN ADMIN, BY THE OWNER'S ROUTE. Learning → Resources → Books on the real answer buttons; the list
+   is the Bible; its cover and both testaments; Genesis pressed, fetched ONCE, its chapter numbers
+   turned to; chapter 1 pressed and READ — "In the beginning God created the heaven and the earth." —
+   with `[was]` drawn as italics and no bracket anywhere; every verse of Genesis on exactly one page,
+   in order; the tile at the chapter's foot back to the numbers; Genesis again with no second fetch;
+   a New Testament book after its own testament; a book that fails to arrive said on the list without
+   losing the one open; the book names searchable; and the star keeping the cover and both lists. */
+check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is shown it or fetches a byte of it', async () => {
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the shelves were NOT built — not a pass'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+    { textbooks: read('textbooks'), boxers: read('boxers'), fights: read('fights'), projects: read('projects') })));
+  /* THE SHELVES THE BIBLE STANDS BESIDE, so `Books` is pressed among real answers rather than alone. */
+  const base = () => Object.assign(payload(), { textbooks: made.textbooks || [], boxers: made.boxers || [],
+                                                fights: made.fights || [], projects: made.projects || [] });
+  /* THE REAL FILES, SERVED AS THE SITE SERVES THEM, the deploy stamp and all; a name in `refuse` 404s. */
+  const bibleDir = path.join(dir, '..', 'data', 'bible');
+  const refuse = new Set();
+  const serve = url => {
+    const m = /(?:^|\/)data\/bible\/([a-z0-9-]+\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    if (refuse.has(m[1])) return null;
+    const p = path.join(bibleDir, m[1]);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+  };
+  const seed = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
+  const ofBible = gets => gets.filter(u => /data\/bible\//.test(u));
+  const bad = [];
+
+  /* ---------- NOBODY BUT AN ADMIN ---------------------------------------------------------------- */
+  const others = [
+    ['somebody signed out', null],
+    ['a parent', { name: 'Rasa Poliksa', personId: 'P004', role: 'parent', roles: ['parent'] }],
+    ['a student', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
+    ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }],
+  ];
+  for (const [what, u] of others) {
+    const b = boot({ payload: base(), serve, before: u ? seed(u) : undefined });
+    await wait(300);
+    const w = b.w, t = w.__t;
+    if (!t || !t.STUFF) { bad.push(what + ': the app did not load, so it was NOT checked'); continue; }
+    if (u && !(t.whoami() && t.whoami().role === u.role)) { bad.push(what + ' was not signed in at boot, so it was NOT checked'); continue; }
+    t.go('stuff');
+    t.STUFF().q = '';
+    t.STUFF().filters = [{ field: 'kindLabel', value: 'Resources' }];
+    w.paintStuff();
+    await wait(30);
+    const shelf = w.facetList().find(f => f.field === 'shelf');
+    const shelves = shelf ? w.facetValues(w.stuffFiltered(), shelf).map(v => String(v.value)) : [];
+    if (shelves.indexOf('Books') >= 0) bad.push(what + ' is offered the Books shelf');
+    if (shelves.indexOf('@family. textbooks') < 0) bad.push(what + ' was not offered the textbooks shelf — the walk did not reach Resources, so the absence proves nothing');
+    if (w.stuffItemsAll_().some(x => x.kind === 'bible')) bad.push(what + ' has the Bible on the list of everything the app holds');
+    for (const q of ['bible', 'genesis', 'king james']) {
+      t.STUFF().filters = []; t.STUFF().q = q;
+      if (w.stuffFiltered().some(x => x.kind === 'bible')) bad.push(what + ' finds the Bible by searching "' + q + '"');
+    }
+    t.STUFF().q = '';
+    w.paintStuff();
+    if (w.document.querySelector('.card.bible, [data-do^="bible-"]')) bad.push(what + ' has a Bible card or button drawn');
+    /* AND A BUTTON THEY COULD NOT HAVE BEEN SHOWN, PRESSED ANYWAY — the fetch is gated as well. */
+    const fake = w.document.createElement('button');
+    fake.setAttribute('data-n', '1');
+    try { t.ACTIONS['bible-book'](fake); } catch (e) { bad.push(what + ': pressing a Bible book threw ' + e.message); }
+    await wait(60);
+    const got = ofBible(b.gets);
+    if (got.length) bad.push(what + ' fetched ' + got.length + ' file(s) of the Bible: ' + got.slice(0, 3).join(', '));
+    if (!b.gets.length) bad.push(what + ': no fetch was recorded at all, so "nothing of the Bible" proves nothing');
+  }
+
+  /* ---------- AN ADMIN, BY THE ROUTE --------------------------------------------------------------- */
+  const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] };
+  const a = boot({ payload: base(), serve, before: seed(admin) });
+  const w = a.w, t = w.__t, d = w.document;
+  for (let i = 0; i < 40 && !(t && t.BIBLE && t.BIBLE() && t.BIBLE().index); i++) await wait(25);
+  if (!t || !t.BIBLE || !t.BIBLE()) return bad.concat(['the reader\'s state is not exported to the journey']);
+  if (!t.BIBLE().index) return bad.concat(['an admin\'s Find never received data/bible/index.json — fetched: ' + ofBible(a.gets).join(', ')]);
+  const index = JSON.parse(fs.readFileSync(path.join(bibleDir, 'index.json'), 'utf8'));
+  if (ofBible(a.gets).length !== 1) bad.push('an admin\'s boot fetched ' + ofBible(a.gets).length + ' Bible files — the index and no book is the right number');
+
+  t.go('stuff');
+  t.STUFF().filters.length = 0; t.STUFF().q = '';
+  w.paintStuff();
+  const route = ['Learning', 'Resources', 'Books'];
+  const rungs = ['forLabel', 'kindLabel', 'shelf'];
+  const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
+  const pressed = [];
+  for (let guard = 0; route.length && guard < 8; guard++) {
+    const btns = [...d.querySelectorAll('#s-stuff [data-do="facet-pick"]')];
+    let el = btns.find(b => b.dataset.value === route[0]);
+    const rung = w.facetList().find(f => f.field === rungs[3 - route.length]);
+    const only = rung ? w.facetValues(w.stuffFiltered(), rung).map(v => String(v.value)) : [];
+    if (!el && only.length === 1 && only[0] === route[0]) { pressed.push('(' + route.shift() + ')'); continue; }
+    if (!el) {
+      const grp = (() => { try { return kindFacet.bucketOf(route[0]); } catch (e) { return ''; } })();
+      el = grp && btns.find(b => b.dataset.value === grp && b.dataset.bucket);
+      if (!el) {
+        bad.push('the funnel did not offer "' + route[0] + '" to an admin after ' + (pressed.join(' → ') || 'nothing') + ' — it offered '
+          + (btns.map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'no answers'));
+        break;
+      }
+    } else route.shift();
+    pressed.push(el.dataset.value);
+    t.ACTIONS['facet-pick'](el);
+    await wait(20);
+  }
+  if (route.length) return bad;
+  if (pressed.indexOf('Books') < 0) bad.push('the Books shelf was never a question for an admin — ' + pressed.join(' → '));
+  const left = w.stuffFiltered();
+  const x = left.find(i => i.kind === 'bible');
+  if (left.length !== 1 || !x) return bad.concat(['after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
+    + left.slice(0, 4).map(i => i.kind + ' ' + i.name).join(', ') + ' — not the Bible']);
+
+  /* THE COVER, MADE OF THE SHARED PARTS, SAYING WHO CAN SEE IT. */
+  const box = html => { const e = d.createElement('div'); e.innerHTML = html; return e; };
+  const cover = box(w.stuffCard(x)).querySelector('.favwrap > .card') || box(w.stuffCard(x)).firstElementChild;
+  if (!cover || !cover.classList.contains('bible') || !cover.classList.contains('fc')) bad.push('the cover is not a `.card.fc.bible`');
+  else {
+    const h = cover.querySelector(':scope > .fc-head > h3');
+    if (!h || h.textContent.trim() !== 'The Bible (King James Version)') bad.push('the cover is titled "' + (h && h.textContent.trim()) + '"');
+    if (!cover.querySelector(':scope > .fc-head > .fc-flags > .fc-flag')) bad.push('the cover has no flag in its head');
+    if (!/31,102 verses/.test(cover.textContent)) bad.push('the cover does not count the verses — the index did not reach it');
+    if (!cover.querySelector('.bb-who')) bad.push('the cover does not say only admins are shown it');
+    if (cover.querySelector('.tile-row')) bad.push('the cover carries a tile row inside the card');
+  }
+  const first = w.stuffFirstResult_();
+  const parts0 = w.pageParts_(x);
+  if (JSON.stringify(parts0) !== JSON.stringify([null, 'ot', 'nt'])) bad.push('before a book is opened the Bible is pages ' + JSON.stringify(parts0) + ', not the cover and two testaments');
+
+  /* BOTH TESTAMENTS, EVERY BOOK, IN ORDER, AS BUTTONS ON THE PAGE. */
+  t.goPage('stuff', first + 1);
+  await wait(30);
+  const names = sel => [...d.querySelectorAll('#s-stuff .bb-toc.' + sel + ' [data-do="bible-book"]')].map(b => b.textContent.trim());
+  const wantOT = index.books.filter(b => b.testament === 'OT').map(b => b.book);
+  const wantNT = index.books.filter(b => b.testament === 'NT').map(b => b.book);
+  if (names('is-ot').join('|') !== wantOT.join('|')) bad.push('the Old Testament page lists ' + names('is-ot').length + ' books, not the 39 in order: ' + names('is-ot').slice(0, 4).join(', '));
+  if (names('is-nt').join('|') !== wantNT.join('|')) bad.push('the New Testament page lists ' + names('is-nt').length + ' books, not the 27 in order');
+  [...d.querySelectorAll('#s-stuff .bb-toc')].forEach(pg => {
+    const k = pg.firstElementChild, h = k && k.nextElementSibling;
+    if (!k || !k.classList.contains('fc-kick') || !h || h.tagName !== 'H3') bad.push('a testament page does not open on its kicker and then its title');
+  });
+
+  /* GENESIS, PRESSED. */
+  const press = async (sel, n) => {
+    const el = d.querySelector('#s-stuff ' + sel);
+    if (!el) { bad.push('no ' + sel + ' on the screen to press' + (n ? ' (' + n + ')' : '')); return false; }
+    t.ACTIONS[el.getAttribute('data-do')](el);
+    await wait(80);
+    return true;
+  };
+  const before = ofBible(a.gets).length;
+  if (!(await press('[data-do="bible-book"][data-n="1"]', 'Genesis'))) return bad;
+  const gen = ofBible(a.gets).slice(before);
+  if (gen.length !== 1 || !/data\/bible\/01-genesis\.json/.test(gen[0])) bad.push('pressing Genesis fetched ' + JSON.stringify(gen) + ' — not 01-genesis.json once');
+  const genesis = JSON.parse(fs.readFileSync(path.join(bibleDir, '01-genesis.json'), 'utf8'));
+  const parts = w.pageParts_(x);
+  const chParts = parts.filter(p => /^c\d+/.test(p || ''));
+  if (parts[2] !== 'bk' || parts[parts.length - 1] !== 'nt' || !chParts.length) bad.push('with Genesis open the Bible is pages ' + JSON.stringify(parts).slice(0, 90) + ' — not the cover, the OT, Genesis, then the NT');
+  const at = p => first + parts.indexOf(p);
+  if (t.PAGE().stuff !== at('bk')) bad.push('pressing Genesis did not turn to its chapter numbers — page ' + t.PAGE().stuff + ', the numbers are ' + at('bk'));
+  const grid = d.querySelectorAll('#s-stuff .bb-chs [data-do="bible-ch"]');
+  if (grid.length !== 50) bad.push('Genesis offers ' + grid.length + ' chapter numbers, not 50');
+
+  /* CHAPTER 1, PRESSED AND READ. */
+  if (!(await press('[data-do="bible-ch"][data-ch="1"]', 'chapter 1'))) return bad;
+  if (t.PAGE().stuff !== at('c1')) bad.push('pressing 1 did not turn to Genesis 1 — page ' + t.PAGE().stuff + ', Genesis 1 is ' + at('c1'));
+  const c1 = d.querySelector('#s-stuff .card.bb-text.is-c1');
+  if (!c1) bad.push('Genesis 1 is not drawn on the screen after turning to it');
+  else {
+    const h = c1.querySelector('h3');
+    if (!h || h.textContent.trim() !== 'Genesis 1') bad.push('the chapter page is titled "' + (h && h.textContent.trim()) + '", not Genesis 1');
+    const v1 = c1.querySelector('.bb-v');
+    const n1 = v1 && v1.querySelector('.bb-n');
+    if (!v1 || !n1 || n1.textContent.trim() !== '1') bad.push('the first verse does not carry its number 1');
+    const words = v1 ? v1.textContent.replace(/^\s*1\s*/, '').trim() : '';
+    if (words !== 'In the beginning God created the heaven and the earth.') bad.push('Genesis 1:1 reads "' + words + '"');
+    if (!/darkness <i>was<\/i> upon the face of the deep/.test(c1.innerHTML)) bad.push('Genesis 1:2\'s [was] is not drawn as italics');
+    if (/[\[\]]/.test(c1.textContent)) bad.push('a bracket is left standing on Genesis 1');
+    if (/#/.test(c1.textContent)) bad.push('a pilcrow # is drawn on Genesis 1');
+    const k = c1.firstElementChild, t3 = k && k.nextElementSibling;
+    if (!k || !k.classList.contains('fc-kick') || !t3 || t3.tagName !== 'H3') bad.push('a chapter page does not open on its kicker and then its title');
+  }
+  /* EVERY VERSE OF GENESIS ON EXACTLY ONE PAGE, IN ORDER — the pages as the app draws them. */
+  const drawn = [];
+  chParts.forEach(p => {
+    const pg = box(w.stuffPart_(x, p));
+    const ch = Number(/^c(\d+)/.exec(p)[1]);
+    pg.querySelectorAll('.bb-v').forEach(v => drawn.push(ch + ':' + v.querySelector('.bb-n').textContent.trim() + ' '
+      + v.textContent.replace(/^\s*\d+\s*/, '').trim()));
+  });
+  const want = [];
+  genesis.chapters.forEach((vs, ci) => vs.forEach((v, vi) => want.push((ci + 1) + ':' + (vi + 1) + ' ' + v.replace(/^#\s*/, '').replace(/[\[\]]/g, ''))));
+  if (drawn.length !== want.length) bad.push('Genesis is drawn as ' + drawn.length + ' verses across its pages; the book has ' + want.length);
+  else {
+    const i = drawn.findIndex((s, j) => s !== want[j]);
+    if (i >= 0) bad.push('Genesis is drawn out of order or altered at ' + want[i].slice(0, 60) + ' — drawn ' + drawn[i].slice(0, 60));
+  }
+  /* THE WAY BACK, AT THE FOOT OF THE CHAPTER'S LAST PAGE AND NOWHERE ELSE IN IT. */
+  const c1parts = chParts.filter(p => /^c1(-|$)/.test(p));
+  const foot = box(w.stuffPart_(x, c1parts[c1parts.length - 1])).querySelector('[data-do="bible-to"][data-to="bk"]');
+  if (!foot) bad.push('the last page of Genesis 1 has no way back to the chapter numbers');
+  if (c1parts.length > 1 && box(w.stuffPart_(x, c1parts[0])).querySelector('[data-do="bible-to"]')) bad.push('the way back is on every page of the chapter, not its foot');
+  if (foot) {
+    t.goPage('stuff', at(c1parts[c1parts.length - 1]));
+    await wait(30);
+    if (await press('.is-' + c1parts[c1parts.length - 1] + ' [data-do="bible-to"]', 'back to the numbers')) {
+      if (t.PAGE().stuff !== at('bk')) bad.push('the tile at the foot of Genesis 1 did not go back to its chapter numbers');
+    }
+  }
+
+  /* GENESIS AGAIN: HELD FOR THE VISIT, SO NOT FETCHED TWICE. */
+  t.goPage('stuff', first + 1);
+  await wait(30);
+  const n0 = ofBible(a.gets).length;
+  await press('[data-do="bible-book"][data-n="1"]', 'Genesis again');
+  if (ofBible(a.gets).length !== n0) bad.push('opening Genesis a second time fetched it again — the book is not held for the visit');
+  if (t.PAGE().stuff !== at('bk')) bad.push('opening Genesis a second time did not turn to its chapter numbers');
+
+  /* A NEW TESTAMENT BOOK, AFTER ITS OWN TESTAMENT; GENESIS'S PAGES GONE. The New Testament page is
+     past every page of Genesis now, so it is turned to where the pages say it is. */
+  t.goPage('stuff', first + w.pageParts_(x).indexOf('nt'));
+  await wait(30);
+  await press('[data-do="bible-book"][data-n="40"]', 'Matthew');
+  const mp = w.pageParts_(x);
+  if (mp[1] !== 'ot' || mp[2] !== 'nt' || mp[3] !== 'bk') bad.push('with Matthew open the Bible is pages ' + JSON.stringify(mp.slice(0, 5)) + ' — Matthew does not follow the New Testament');
+  if (mp.filter(p => /^c\d+$/.test(p || '')).length !== 28) bad.push('Matthew has ' + mp.filter(p => /^c\d+$/.test(p || '')).length + ' chapters\' first pages, not 28');
+  if (t.PAGE().stuff !== first + mp.indexOf('bk')) bad.push('pressing Matthew did not turn to its chapter numbers');
+
+  /* A BOOK THAT DOES NOT COME: said on the list, a toast, and the open book kept. */
+  refuse.add('03-leviticus.json');
+  t.goPage('stuff', first + 1);
+  await wait(30);
+  await press('[data-do="bible-book"][data-n="3"]', 'Leviticus');
+  await wait(60);
+  if (t.BIBLE().open !== 40) bad.push('a book that failed to arrive changed the open book to ' + t.BIBLE().open);
+  const miss = d.querySelector('#s-stuff .bb-toc.is-ot .bb-miss');
+  if (!miss || !/Leviticus/.test(miss.textContent)) bad.push('a book that failed to arrive is not said on the Old Testament page');
+  const toastEl = d.getElementById('toast');
+  if (!toastEl || !/Leviticus/.test(toastEl.textContent)) bad.push('a book that failed to arrive raised no toast naming it');
+  if (a.errs.length) bad.push('errors while reading: ' + a.errs.slice(0, 3).join(' | '));
+
+  /* THE BOOK NAMES ARE IN THE SEARCH, learned when the index landed. */
+  t.STUFF().filters = []; t.STUFF().q = 'psalms';
+  if (!w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" does not find the Bible — the book names are not in its haystack');
+  t.STUFF().q = '';
+  /* AND WHEN THE INDEX LANDS AFTER FIND WAS BUILT — held back here until the payload is in and the list
+     made, which is the slow-network order. A search typed while it was on its way must not keep its
+     answer once it lands. */
+  let release = null;
+  const late = new Promise(r => { release = r; });
+  const slow = boot({ payload: base(), before: seed(admin),
+                      serve: url => (/data\/bible\/index\.json/.test(url) ? late.then(() => serve(url)) : serve(url)) });
+  await wait(300);
+  const st = slow.w.__t;
+  st.go('stuff');
+  st.STUFF().filters = []; st.STUFF().q = 'psalms';
+  const early = slow.w.stuffFiltered().some(i => i.kind === 'bible');
+  release();
+  await wait(60);
+  if (early) bad.push('"psalms" found the Bible before its index arrived — the late-index case was not reached, so it is NOT checked');
+  else if (!slow.w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" while the index was on its way still misses the Bible after it lands — the cached search was not told');
+  st.STUFF().q = '';
+
+  /* KEPT: the star puts the cover and both lists on Saved. */
+  const fav = box(w.stuffCard(x)).querySelector('[data-do="fav"]');
+  if (!fav) bad.push('the Bible cover has no Save tile');
+  else {
+    t.ACTIONS.fav(fav);
+    const saved = t.savedPages().join('');
+    if (!/card fc prac bible/.test(saved) || !/bb-toc is-ot/.test(saved) || !/bb-toc is-nt/.test(saved)) bad.push('the Bible was starred and Saved does not draw its cover and both lists of books');
   }
   return bad;
 });
