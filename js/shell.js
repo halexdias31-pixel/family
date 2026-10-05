@@ -344,7 +344,8 @@ function go(id, remember, instant) {
      genuinely changes a screen — signing in, a save, a fresh payload — goes through `repaint`,
      which is a different function and still repaints on demand. */
   /* OR IF IT IS STALE — something changed while you were elsewhere. See the note on `STALE`. */
-  if (!screenHasMarkup_(AT) || STALE[AT]) paint(AT);
+  const painted = !screenHasMarkup_(AT) || !!STALE[AT];
+  if (painted) paint(AT);
   /* Anything that needs to start running once its markup exists — a canvas, a board, a clock.
      After paint, because none of it can find an element that has not been drawn yet. */
   /* A hoisted FUNCTION, not a const. The wakers are defined further down with the games they
@@ -406,8 +407,14 @@ function go(id, remember, instant) {
   /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
      just rebuilt this screen's markup too — and two copies of "what does this screen need running"
      is two places to forget the camera. */
-  /* `true`: ARRIVING, so a column of widgets starts the ones in view first — see `widgetsWake_`. */
-  afterSlide_(() => startScreen_(AT, true), 'start');
+  /* `true`: ARRIVING, so a column of widgets starts the ones in view first — see `widgetsWake_`.
+     AND ONLY WHEN SOMETHING ARRIVED. `go` to the column already in front, with nothing repainted,
+     used to book this too, and `toolsStart_` stops and restarts every widget on the column — a
+     Connect 4 game in progress dealt a fresh board 300ms after anything asked for the column it was
+     already on. Measured on 5 October as `check/press.js` states that played a game and then found
+     it gone; spreading the starts over a second (above) made that window wider, and the answer is
+     that it should not exist: nothing that was running was stopped, so nothing needs starting. */
+  if (was !== AT || painted) afterSlide_(() => startScreen_(AT, true), 'start');
 
   if (AT === 'stuff') {
     const drawn = $('s-stuff') && $('s-stuff').querySelector('.page[data-filled]');

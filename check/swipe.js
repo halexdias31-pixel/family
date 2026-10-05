@@ -38,6 +38,11 @@
 
      node check/swipe.js            both widths
      node check/swipe.js --verbose  every gesture, not only the failures
+     node check/swipe.js --only=cell,focus --width=390
+                                    some of it: cell folded axis tile slide other centre focus
+                                    field widgets cost reduced — for proving one rule by mutation
+                                    without waiting six minutes for all of them. A run narrowed
+                                    this way says so, and is never what the roster runs.
    SWIPE_PORT pins the port; unset, the OS picks a free one, so parallel runs cannot collide.
 ================================================================================================== */
 const fs = require('fs');
@@ -51,7 +56,10 @@ const FIXTURE = fs.readFileSync(path.join(__dirname, 'fixture.json'), 'utf8');
 const VERBOSE = process.argv.includes('--verbose');
 const USER = { name: 'Test Admin', personId: 'P001', person_id: 'P001', role: 'admin', roles: ['admin'], handle: 'testadmin' };
 /* THE TWO PHONES THE OWNER'S FAMILIES HOLD: a current iPhone and the small one. */
-const SIZES = [[390, 844], [320, 568]];
+const WIDTH = Number((process.argv.find(a => a.startsWith('--width=')) || '').split('=')[1] || 0);
+const SIZES = [[390, 844], [320, 568]].filter(s => !WIDTH || s[0] === WIDTH);
+const ONLY = ((process.argv.find(a => a.startsWith('--only=')) || '').split('=')[1] || '').split(',').filter(Boolean);
+const want = k => !ONLY.length || ONLY.indexOf(k) !== -1;
 
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json',
                '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.woff2': 'font/woff2',
@@ -315,6 +323,7 @@ async function gesture(env, o) {
       if (r.acts.length) fail('NO TAP AFTER A DRAG', `${at} ${name}`, `the gesture pressed ${r.acts.join(', ')}`);
     };
 
+    if (want('cell')) {
     await turn('flick up', { col: 'tools', p: TOOLS, g: G.flick(0, -90) }, down1);
     await turn('flick down', { col: 'tools', p: [2, 4, 5, 6, 7], g: G.flick(0, 90) }, up1);
     await turnCol('flick left', { col: 'tools', p: TOOLS, g: G.flick(-90, 0) }, nextCol);
@@ -326,6 +335,7 @@ async function gesture(env, o) {
     await turn('150px left, pulled back to 80 and let go moving home', { col: 'tools', p: TOOLS, g: G.back(-1, 0) }, same);
     /* AND THE CONTROL: a deliberate drag most of the way, held still, still turns the page. */
     await turn('half a card up, held still', { col: 'games', p: GAMES, g: G.still(0, -Math.round(H * 0.45)) }, down1);
+    }
 
     /* ---------- 1b. THE CARD STAYS UNDER THE FINGER WHEN THE MOVES ARRIVE FOLDED TOGETHER ---------
        Found by these screenshots, not by the lab: on a busy machine the first two moves of a drag
@@ -333,7 +343,7 @@ async function gesture(env, o) {
        finger 132px behind it for the rest of the gesture. Sent here as exactly that — one move inside
        the dead zone and the next far past it — so it does not depend on how loaded the machine is.
        The card may trail by the ten pixels of slop and no more. */
-    {
+    if (want('folded')) {
       let sp = null;
       for (const p of TOOLS) { await page.evaluate(p => window.__sw.place('tools', p), p); sp = await page.evaluate(() => window.__sw.spot()); if (sp) break; }
       if (!sp) fail('REACH', `${at} folded moves`, 'no Tools card had a spot the grid would take');
@@ -358,21 +368,23 @@ async function gesture(env, o) {
     }
 
     /* ---------- 2. THE AXIS, AND A DIAGONAL WITH NOWHERE TO GO UP OR DOWN ---------------------- */
+    if (want('axis')) {
     if (one) {
       await turnCol(`45° on ${one} (one page)`, { col: one, g: G.diag(45, -1) }, s => next(s.AT) + '/0');
       await turnCol(`55° on ${one} (one page)`, { col: one, g: G.diag(55, -1) }, s => next(s.AT) + '/0');
     }
     await turnCol('25° on tools', { col: 'tools', p: TOOLS, g: G.diag(25, -1) }, nextCol);
     await turn('up, drifting 90px sideways', { col: 'tools', p: TOOLS, g: G.drift(-1, -1) }, down1);
+    }
 
     /* ---------- 3. A SWIPE THAT BEGINS ON A CONTROL PRESSES NOTHING ----------------------------- */
-    await turn('up, starting on a tile', { col: 'games', p: GAMES, on: '.tile-row [data-do], .tile[data-do]', g: G.flick(0, -140, 130) }, down1);
+    if (want('tile')) await turn('up, starting on a tile', { col: 'games', p: GAMES, on: '.tile-row [data-do], .tile[data-do]', g: G.flick(0, -140, 130) }, down1);
 
     /* ---------- 4. A TAP ON A CARD STILL SLIDING IS NOT A PRESS ---------------------------------
        Flick up, then tap the arriving card's first control where it is DRAWN at that instant. The
        control afterwards: the same control, tapped once the card has landed, does press — or the
        rule above would be passing on a control nothing could press. */
-    {
+    if (want('slide')) {
       let tried = 0, pressedMid = null, pressedAfter = null;
       for (let k = 0; k < 3 && !pressedMid; k++) {
         await page.evaluate(() => window.__sw.place('games', 1));
@@ -428,7 +440,7 @@ async function gesture(env, o) {
        are what a loaded machine cannot promise: a slide is started on one axis, a drag frame on the
        other is placed exactly as `pointermove` places it, and the first slide must still be running
        and still on its way. Then once with a real finger for the outcome. */
-    {
+    if (want('other')) {
       const r = await page.evaluate(async () => {
         /* EVERYTHING IN ONE TASK, with a style read forcing each step: the slide is started, the drag
            frame placed, and the first slide asked after — no frame in between for a loaded machine
@@ -495,7 +507,7 @@ async function gesture(env, o) {
        Every column, its first three pages: the pane's centre against `#screen`'s, across and down,
        within a pixel. Down is asked only of a card shorter than the screen — `.pane`'s cap makes that
        every card today, and a card taller than the glass is placed at its top instead. */
-    {
+    if (want('centre')) {
       const off = await page.evaluate(async () => {
         const res = [];
         for (const t of TABS) {
@@ -527,7 +539,7 @@ async function gesture(env, o) {
        away or four pages down carrying it; no pane left holding a layer once nothing moves.
        Mid-drag: the card leaving and the card arriving are both part-way, so the look is following
        the finger rather than snapping at the lift. */
-    {
+    if (want('focus')) {
       const rest = await page.evaluate(async () => {
         await window.__sw.place('tools', 1);
         const blur = el => { const m = /blur\(([\d.]+)px\)/.exec(getComputedStyle(el.querySelector(':scope > .pane')).filter || ''); return m ? +m[1] : 0; };
@@ -615,7 +627,7 @@ async function gesture(env, o) {
     /* ---------- 8. A FIELD ON A CARD THAT HAS GONE IS LET GO OF -----------------------------------
        The keypad and a phone's keyboard both close on `focusout`; nothing took the focus away when
        its card left. A focused field on a Tools card, then a swipe up from bare card. */
-    {
+    if (want('field')) {
       const ok = await page.evaluate(async () => {
         const n = AXES.y.count('tools');
         for (let p = 0; p < n - 1; p++) {
@@ -650,7 +662,7 @@ async function gesture(env, o) {
        one task — a second swipe waited behind every one. Counted per task: a task boundary is a
        `setTimeout(0)` the wrapper books on the first start it sees. And every one of them running
        shortly after, or the cure is a column of dead widgets. */
-    {
+    if (want('widgets')) {
       const r = await page.evaluate(async () => {
         const wait = ms => new Promise(res => setTimeout(res, ms));
         await window.__sw.place('games', 0);
@@ -692,7 +704,7 @@ async function gesture(env, o) {
        `on`, which `placeGrid` moves at every turn — and a column change also laid out the whole
        document, for a camera that was never on. Asked at 390 only: the count does not depend on the
        width, and a trace is the slowest thing here. */
-    if (W === 390) {
+    if (W === 390 && want('cost')) {
       const events = [];
       cdp.on('Tracing.dataCollected', d => events.push(...d.value));
       /* WARMED UP: both columns visited once, because the first visit after the payload lands is a
@@ -750,7 +762,7 @@ async function gesture(env, o) {
   }
 
   /* ---------- 11. LESS MOTION ASKED FOR: DIMMED, NEVER BLURRED -------------------------------------- */
-  {
+  if (want('reduced')) {
     const env = await boot(browser, 390, 844, { reduced: true });
     const r = await env.page.evaluate(async () => {
       await window.__sw.place('tools', 1);
@@ -770,6 +782,7 @@ async function gesture(env, o) {
   server.close();
 
   const secs = ((Date.now() - t0) / 1000).toFixed(0);
+  if (ONLY.length || WIDTH) console.log(`swipe: NARROWED to ${ONLY.join(', ') || 'every rule'} at ${SIZES.map(s => s[0]).join(' and ')} — not the whole check`);
   if (!found.length) {
     console.log(`swipe: ${reached} gestures and measurements at ${SIZES.map(s => s.join('x')).join(' and ')}, ${secs}s`);
     console.log('OK — every swipe lands one card away or back where it was, the card in front is centred, and the cards beside it are out of focus.');
