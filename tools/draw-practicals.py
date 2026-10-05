@@ -735,7 +735,8 @@ def fn02():
          cap(200, 22, 'the sun is so far away that its', 'start'),
          cap(200, 36, 'rays arrive PARALLEL', 'start'),
          # INSIDE THE ANGLE IT NAMES: at sx + 18 the letter sat on the ray, just outside the wedge.
-         arc(sx, gy - h, 26, 90 - ang, 90), lbl(sx + 7.5, gy - h + 38, '\u03b8'),
+         # Centred between the stick and the ray's arrowhead, which a unit further right it crowded.
+         arc(sx, gy - h, 26, 90 - ang, 90), lbl(sx + 6.5, gy - h + 38, '\u03b8'),
          arrow(sx, gy + 14, tipx, gy + 14), cap((sx + tipx) / 2, gy + 34, 'the shadow'),
          # FIVE UNITS UP, because the second drawing's rays start at gy + 72 and ran through the
          # descenders of this line.

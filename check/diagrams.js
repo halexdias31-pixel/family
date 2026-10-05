@@ -119,8 +119,9 @@ const OPAQUE = 0.9;
 /* ---------- ACCEPTED — labels that do touch a line, each with one written reason -----------------
    SHORT, AND IT SHOULD STAY THAT WAY: the convention above (a knockout under the label) is the way
    to put a label on a line, and moving the label is the way to take one off it. An entry is
-   `'ROW|label text': 'reason'`; it is still printed on every run, so a forgiven collision is never
-   a silent one. A key that matches nothing is reported as stale, because a reason for a fault that
+   `'ROW|label text|the line, as the report names it': 'reason'` — the LINE as well, so forgiving
+   one ruling does not forgive the same label landing on a curve next week. It is still printed on
+   every run, so a forgiven collision is never a silent one. A key that matches nothing is reported as stale, because a reason for a fault that
    no longer exists is a sentence somebody will trust about the wrong drawing.
 
    THE ONE KIND HERE IS A LABEL THAT NO POSITION CAN CLEAR. The AQA 7408/3A key reads "experiment
@@ -133,10 +134,10 @@ const OPAQUE = 0.9;
 const KEY_ON_PAPER = 'a 63-unit key label on 45.7-unit major squares crosses a ruling wherever it sits, '
   + 'and its sample line is drawing so it cannot leave the square: needs a knockout box behind the key';
 const ACCEPTED = {
-  'Q-AQA-7408-2306-3A-034|experiment 1': KEY_ON_PAPER,
-  'Q-AQA-7408-2306-3A-034|experiment 2': KEY_ON_PAPER,
-  'Q-AQA-7408-2306-3A-035|experiment 1': KEY_ON_PAPER,
-  'Q-AQA-7408-2306-3A-035|experiment 2': KEY_ON_PAPER,
+  'Q-AQA-7408-2306-3A-034|experiment 1|line (280.3,14)-(280.3,224)': KEY_ON_PAPER,
+  'Q-AQA-7408-2306-3A-034|experiment 2|line (280.3,14)-(280.3,224)': KEY_ON_PAPER,
+  'Q-AQA-7408-2306-3A-035|experiment 1|line (280.3,14)-(280.3,224)': KEY_ON_PAPER,
+  'Q-AQA-7408-2306-3A-035|experiment 2|line (280.3,14)-(280.3,224)': KEY_ON_PAPER,
 };
 
 function diagrams() {
@@ -509,7 +510,7 @@ function inspect(o) {
   const found = Array.from(merged.values());
   const used = new Set();
   const fresh = found.filter(f => {
-    const k = f.row + '|' + f.label;
+    const k = f.row + '|' + f.label + '|' + f.other;
     if (ACCEPTED[k]) { used.add(k); return false; }
     return true;
   });
@@ -556,11 +557,13 @@ function inspect(o) {
         await shot.evaluate(() => document.fonts.ready);
         /* EACH FINDING RINGED IN RED on the picture, so a person looking at it sees what was
            measured rather than hunting for it. A drawing with nothing found is drawn untouched. */
+        /* AN ACCEPTED ONE IN AMBER, so the picture of a forgiven collision does not read as a new one. */
         const marks = (await shot.evaluate(inspect, { tol: TOL, ink: INK, opaque: OPAQUE }))
-          .reduce((a, r) => a.concat(r.found), []);
+          .reduce((a, r) => a.concat(r.found), [])
+          .map(m => Object.assign(m, { ok: !!ACCEPTED[d.key + '|' + m.label + '|' + m.other] }));
         await shot.evaluate(ms => ms.forEach(m => {
           const d = document.createElement('div');
-          d.style.cssText = 'position:absolute;pointer-events:none;outline:1px solid #f33;'
+          d.style.cssText = 'position:absolute;pointer-events:none;outline:1px solid ' + (m.ok ? '#fa0' : '#f33') + ';'
             + `left:${m.box.x0 + scrollX - 1}px;top:${m.box.y0 + scrollY - 1}px;`
             + `width:${m.box.x1 - m.box.x0 + 2}px;height:${m.box.y1 - m.box.y0 + 2}px`;
           document.body.appendChild(d);
