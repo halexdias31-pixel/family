@@ -818,12 +818,17 @@ if (window.visualViewport) {
 addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') return;
   if (!SWIPE.live) return;
+  const axis = SWIPE.axis;
   SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0;
   SWIPE.held = false; SWIPE.px = 0; SWIPE.v = 0; SWIPE.vD = 0; SWIPE.vAt = 0;
   SWIPE.lock = 0; SWIPE.catch = 0;
   SWIPE.id = null;
   if (SWIPE.frame) { cancelAnimationFrame(SWIPE.frame); SWIPE.frame = 0; }
   SWIPE.cells = null;
+  /* AND PUT BACK, as `pointercancel` does. The columns were left where the finger had them, marked
+     `.dragging` with the finger's axis at no transition — which `holdColumn_` reads as a drag still
+     going and refuses to hold. The placement runs on the first frame the page is shown again. */
+  if (axis) { try { placeCells(axis); } catch (e) {} }
 }, { passive: true });
 
 /* ================================================================================================

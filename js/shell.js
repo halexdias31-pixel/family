@@ -1272,12 +1272,12 @@ function settleLeft_(axis) {
    canvas left Flabby Pird sharp beside a blurred chessboard, which read as two cards in focus.
 
    AND IT FOLLOWS THE FINGER. While a card is dragged, the one in front blurs and the one coming in
-   sharpens in step with how far it has come (`softDrag_`), so the card arrives in focus rather than
-   snapping sharp when it lands; at the release both are handed to the same transition the column
-   settles on (`softSettle_`). The two panes doing that are promoted with `will-change: filter` for
-   the length of the movement only — then the blur is the compositor's per frame and nothing is
-   re-rastered — and let go when it ends. Asking for less motion or less transparency, the blur is
-   never drawn: the stylesheet dims instead, and nothing here eases.
+   sharpens in step with how far it has come (`softDrag_`), so the card is already mostly in focus
+   when it is let go; the release finishes the change at once (`softSettle_`, where the version that
+   animated it over the settle is measured and refused). The two panes the finger moves are promoted
+   with `will-change: filter` for the length of the movement only — then the blur is applied to a
+   layer rather than re-rastered every frame — and let go when the slide ends. Asking for less motion
+   or less transparency, the blur is never drawn: the stylesheet dims instead, and nothing here eases.
 
    NEVER BLURRED: the card in front, a card with a text field you are typing in (`softKeep_`), the
    keypad (it is on `<body>`, outside every pane) and a playing video. */
@@ -1337,25 +1337,29 @@ function softDrag_(which, px, stepX) {
   if (b && !softKeep_(b)) { const g = glassOf_(b); softHold_(g); g.style.filter = `blur(${(SOFT_BLUR * (1 - f)).toFixed(2)}px)`; }
 }
 
-/* THE RELEASE, OR ANY PLACEMENT THAT MOVED THE FOCUS: every pane the finger was easing, and every pane
-   whose `.soft` just changed, goes to its class's look on the slide's own clock — `timing` is the
-   settle's curve after a swipe and the tap's otherwise — and is let go of when the slide has ended. */
-function softSettle_(changed, timing, instant) {
+/* THE RELEASE, OR ANY PLACEMENT THAT MOVED THE FOCUS: the panes the finger was easing go to their
+   class's look AT ONCE, as the slide starts — the card arriving sharp, the card leaving soft — and
+   keep their layer until the slide has ended, when it is let go (a layer dropped mid-slide is a
+   re-raster mid-slide).
+
+   ---------- NOT ON THE SLIDE'S CLOCK, AND THAT WAS MEASURED ------------------------------------------
+   THE FIRST VERSION TRANSITIONED THE FILTER over the settle's own duration and curve, which looked
+   right and cost the next swipe. Chrome cannot run a blur's animation on the compositor (a filter
+   that moves pixels), so for the whole settle the MAIN thread ticked two or three panes' filters every
+   frame — and `check/press.js`'s chained flick, a 40px flick 20–40ms into the first one's settle, read
+   its release speed as 0–0.37px/ms and failed to turn the page 3 times in 8. With the filter switched
+   at the release instead: 8 in 8, speeds 0.44–0.57, the same as before any of this. The finger is
+   what eases it (`softDrag_`); the release only finishes what the finger was already doing, and a
+   tap-driven slide simply changes which card is sharp as it starts. */
+function softSettle_(timing, instant) {
   /* NOT UNDER A FINGER: a placement asked for by something else mid-drag must not take the blur the
      finger is easing off the two cards it is between. */
   if (typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis) return;
   SOFT_DRAG = null;
-  const ease = !instant && softMotion_();
-  changed.forEach(page => { const g = glassOf_(page); if (g) SOFT_EASE.add(g); });
   if (!SOFT_EASE.size) return;
-  const tr = ease ? `filter ${timing.d} ${timing.tf} ${timing.delay}` : 'none';
-  SOFT_EASE.forEach(g => {
-    if (ease) g.style.willChange = 'filter';
-    g.style.transition = tr;
-    g.style.filter = '';
-  });
+  SOFT_EASE.forEach(g => { g.style.transition = 'none'; g.style.filter = ''; });
   clearTimeout(SOFT_DONE);
-  const ms = (parseFloat(timing.d) || 0) * (/ms$/.test(timing.d) ? 1 : 1000);
+  const ms = instant ? 0 : (parseFloat(timing.d) || 0) * (/ms$/.test(timing.d) ? 1 : 1000);
   SOFT_DONE = setTimeout(function done() {
     /* A FINGER DOWN AGAIN OWNS THESE NOW — wait for it rather than pull its inline blur away. */
     if (SOFT_DRAG) { SOFT_DONE = setTimeout(done, 120); return; }
@@ -1469,7 +1473,6 @@ function placeGrid(instant, drag) {
     ? { d: settle.dur + 'ms', tf: settle.tf, delay: '-16ms' } : SLIDE_TAP);
   const front = hosts.find(h => h.id === AT);
   const before = front && !instant && !drag ? colPlaced_(front.host) : null;
-  const changed = [];
   hosts.forEach(({ id, i, host, shift }) => {
     const dx = i - ti;
     const at = PAGE[id] || 0;
@@ -1531,7 +1534,7 @@ function placeGrid(instant, drag) {
          the cards ARE, and a finger has not moved the focus until it lets go. */
       if (!drag) {
         const soft = !focused && across <= 1 && d <= 2;
-        if (el.classList.contains('soft') !== soft) { el.classList.toggle('soft', soft); changed.push(el); }
+        el.classList.toggle('soft', soft);
         if (soft) el.classList.toggle('soft-dim', softDim_(el));
       }
       /* DIMMING ON A BLACK SCREEN IS DELETING.
@@ -1553,7 +1556,7 @@ function placeGrid(instant, drag) {
   });
 
   if (drag) { softDrag_(drag.which, drag.px, stepX); return; }
-  softSettle_(changed, settle ? runs(settle.axis) : SLIDE_TAP, instant);
+  softSettle_(settle ? runs(settle.axis) : SLIDE_TAP, instant);
 
   /* A SLIDE THE EYE CAN FOLLOW — the column in front going somewhere new — is a window in which a tap
      is not a press. See `SLIDE_UNTIL`. */

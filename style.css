@@ -544,8 +544,9 @@ body {
    ON THE PANE, NEVER THE COLUMN. A pane is not a layer, so its blur is drawn into the column's tiles
    once and the compositor only moves them — nothing per frame. A filter on `.screen`, which IS a
    layer, is a blurred surface redrawn on every frame of every swipe. NO TRANSITION HERE and no
-   `will-change`: `softSettle_` writes both inline for exactly as long as the focus is moving and
-   then takes them away, and a standing promise of a layer is the memory `.screen`'s own note warns
+   `will-change`: `softDrag_` writes the blur and the layer inline while a finger moves the focus and
+   `softSettle_` takes them away once the slide has ended — a blur's animation cannot run on the
+   compositor, so easing it over the settle was measured costing the next swipe its speed — and a standing promise of a layer is the memory `.screen`'s own note warns
    about. `--soft-blur` is published by shell.js beside `--card-w`, because the finger eases toward
    the same number this draws.
 
