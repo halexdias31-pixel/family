@@ -686,12 +686,19 @@ const STATES = {
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
-        setTimeout(() => {
+        /* AT ONCE, by key, where the page is already built; after a tick only if not -- a loaded run's 150ms
+           timer is what left this state unreached (the answer states above say more). */
+        const k = circKey_(it);
+        const ring = () => {
+          const host = [...document.querySelectorAll('#s-stuff [data-circ]')].find(h => h.getAttribute('data-circ') === k);
+          if (!host) return false;
           ['crumbling', 'rocky'].forEach(t => {
-            const w = [...document.querySelectorAll('#s-stuff .page.on .qw')].find(s => s.textContent === t);
+            const w = [...host.querySelectorAll('.qw')].find(s => s.textContent === t);
             if (w) w.click();
           });
-        }, 150);
+          return true;
+        };
+        if (!ring()) setTimeout(ring, 150);
       },
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qsheet-part.is-text');
@@ -847,10 +854,17 @@ const STATES = {
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
-        setTimeout(() => {
-          const btn = document.querySelector('#s-stuff .page.on .qans-card [data-do="qa-show"]');
-          if (btn) btn.click();
-        }, 150);
+        /* AT ONCE, by key, where the page is already built; after a tick only if not -- a loaded run's 150ms
+           timer is what left this state unreached (the answer states above say more). */
+        const k = ansKey_(it);
+        const show = () => {
+          const c = [...document.querySelectorAll('#s-stuff .qans-card')].find(e => e.getAttribute('data-k') === k);
+          const btn = c && c.querySelector('[data-do="qa-show"]');
+          if (!btn) return false;
+          btn.click();
+          return true;
+        };
+        if (!show()) setTimeout(show, 150);
       },
       /* THE RESULT AND NOTHING ELSE: "No", and no fold, no working, no examiner's note under it. */
       expect: () => {
@@ -1032,11 +1046,13 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__qStable = null; window.__qCard = null;
-        setTimeout(() => {
+        /* AT ONCE, by key, where the page is already built; after a tick only if not -- a loaded run's 150ms
+           timer is what left this state unreached (the answer states above say more). */
+        const run = () => {
           const hit = [...document.querySelectorAll('#s-stuff .qp-choices')].find(b => b.getAttribute('data-k') === ansKey_(it));
           const card = window.__qCard = hit && hit.closest('.qcard');
           const opts = card ? [...card.querySelectorAll('.qp-opt')] : [];
-          if (opts.length < 2) return;
+          if (opts.length < 2) return false;
           const miss = it.choiceRight[0] === 1 ? 2 : 1;
           const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
                             card.querySelector('.qp-opt[data-n="' + miss + '"]').getBoundingClientRect().top,
@@ -1044,7 +1060,9 @@ const STATES = {
           const a = at();
           opts[miss - 1].click();
           window.__qStable = { a, b: at() };
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const s = window.__qStable;
@@ -1345,8 +1363,11 @@ const STATES = {
         paintStuff();
         goPage('stuff', 0, true);
         window.__findStill = null;
-        setTimeout(() => {
+        /* AT ONCE, where the page is already built; after a tick only if not -- a loaded run's 150ms
+           timer is what left this state unreached (the answer states above say more). */
+        const run = () => {
           const pane = document.getElementById('stuff-controls');
+          if (!pane || !document.getElementById('stuff-q')) return false;
           const at = () => {
             const top = pane.getBoundingClientRect().top;
             const q = document.getElementById('stuff-q').getBoundingClientRect().top - top;
@@ -1356,10 +1377,12 @@ const STATES = {
           };
           const a = at();
           const r = document.querySelector('#stuff-groups .answers > .row[data-do="facet-pick"]');
-          if (!r) return;
+          if (!r) return false;
           r.click();
           window.__findStill = { a, b: at(), n: STUFF.filters.length };
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const s = window.__findStill;
