@@ -5836,6 +5836,139 @@ check('a signed-in student\'s attempt is dated on the question card, for them al
   return bad;
 });
 
+/* ---------- AND THE SHEET HAS IT: ONE ATTEMPT SENT, THE SHEET'S DATE SHOWN ---------------------------
+   ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone. Through
+   the real handlers on a real card, against a payload carrying `attempts` as `doGet` builds it:
+     * a Check sends ONE `markDone` -- the question's key and today -- and a second Check and typing
+       that day send nothing more; signed out, or to a backend without `markDone`, nothing at all
+     * a question the sheet has and this phone does not shows the SHEET's date; the later of the two
+       wins either way; a payload built for somebody else is not read
+     * on load, what this phone has that the sheet lacks goes up in one request, and what the sheet
+       already has does not
+     * an admin's people column says `N questions · last <d> <Mon>` under a learner, and nobody else's does */
+check('a Check sends one attempt to the sheet, the card shows the sheet\'s date, and what the phone kept is sent up on load', async () => {
+  const now = new Date();
+  const today = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  const mon = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const later = (now.getFullYear() + 1) + '-01-02';                 /* a day the sheet has that the phone cannot */
+  const p = Object.assign(payload(), {
+    features: ['markDone'],
+    attempts: { for: 'P7', mine: {
+      'q-sheet-only': { first: '2001-10-04', last: '2001-10-04', times: 1 },
+      'q-sheet-later': { first: '2001-10-04', last: later, times: 2 },
+      'q-sheet-older': { first: '2001-10-04', last: '2001-10-04', times: 1 },
+      'q-synced': { first: '2001-10-04', last: '2026-09-02', times: 1 },
+    } },
+  });
+  const reply = b => (b.action === 'markDone'
+    ? { success: true, attempts: (b.items || []).reduce((o, it) => { o[it.key] = { first: it.day, last: it.day, times: 1 }; return o; }, {}) }
+    : { success: true });
+  const { w, sent } = boot({ payload: p, reply,
+    /* WHAT THIS PHONE KEPT BEFORE THE SHEET EXISTED: two days the sheet lacks, one it already has. */
+    before: win => {
+      win.localStorage.setItem('done:u:P7:q-offline', '2026-09-01');
+      win.localStorage.setItem('done:u:P7:q-synced', '2026-09-02');
+      win.localStorage.setItem('done:u:P7:q-sheet-older', '2026-09-03');
+      win.localStorage.setItem('done:u:P7:q-sheet-later', '2026-09-04');
+    } });
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const A = w.__t.ACTIONS;
+  if (typeof w.questionCard_ !== 'function' || !A['qp-check'] || typeof w.adoptMarks_ !== 'function'
+      || typeof w.attemptsLine_ !== 'function' || typeof w.findCard !== 'function') {
+    return ['questionCard_, qp-check, adoptMarks_, attemptsLine_ or findCard is not reachable — renamed? The sheet\'s date was NOT checked'];
+  }
+  const marks = () => sent.filter(b => b.action === 'markDone');
+  const base = { kind: 'question', name: 'Q8', marks: 2,
+    row: { row_id: 'Q-SHEET-8', paper_id: 'P-SHEET', subject: 'Maths', name: 'Sheet' },
+    html: '<p>Work out 3 &times; 5</p>', answer: '<b>15</b>', accept: '15' };
+  const q = k => Object.assign({}, base, { key: k });
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const slot = card => (card.querySelector('.qcard-top .qcard-done') || {}).textContent || '';
+  const check_ = card => { card.querySelector('.qp-ans-in').value = '16'; A['qp-check'](card.querySelector('.qp-check')); };
+
+  /* SIGNED OUT: nothing is sent. */
+  w.__t.USER(null);
+  check_(draw(q('q-anon')));
+  await wait(20);
+  if (marks().length) bad.push('signed out, a Check sent markDone: ' + JSON.stringify(marks()));
+
+  /* SIGNED IN, AND THE LOAD'S SYNC: the payload landed before USER was set, so it is asked again here
+     the way the next payload would ask it. */
+  w.__t.USER({ name: 'Lucca Smith', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
+  /* TWICE BEFORE THE REPLY IS BACK, as a stored payload and the fresh one land a moment apart. */
+  w.adoptMarks_();
+  w.adoptMarks_();
+  await wait(30);
+  const sync = marks();
+  if (sync.length !== 1) bad.push('the load sent ' + sync.length + ' markDone request(s) for what the phone kept, wanted 1 — two payloads landing together must not send the backlog twice');
+  else {
+    const keys = (sync[0].items || []).map(i => i.key + '@' + i.day).sort().join(', ');
+    if (keys !== 'q-offline@2026-09-01, q-sheet-older@2026-09-03') bad.push('the load sent ' + keys + ' — wanted the two days the sheet lacks (q-offline, q-sheet-older) and not q-synced, which it has');
+    if (sync[0].token !== 'tok-P7') bad.push('markDone went without the sign-in token, so the server cannot know whose it is');
+  }
+  w.adoptMarks_();
+  await wait(30);
+  if (marks().length !== 1) bad.push('a second payload in the same visit sent the backlog again');
+
+  /* THE SHEET'S DATE ON THE CARD. */
+  const shows = k => slot(draw(q(k)));
+  if (shows('q-sheet-only') !== 'Done 4 Oct 2001') bad.push('a question on the sheet and not on this phone reads "' + shows('q-sheet-only') + '", wanted the sheet\'s "Done 4 Oct 2001"');
+  if (shows('q-sheet-later') !== w.doneText_(later)) bad.push('the sheet\'s later day lost to this phone\'s older one: "' + shows('q-sheet-later') + '", wanted "' + w.doneText_(later) + '"');
+  if (shows('q-sheet-older') !== w.doneText_('2026-09-03')) bad.push('this phone\'s later day lost to the sheet\'s older one: "' + shows('q-sheet-older') + '"');
+
+  /* ONE CHECK, ONE ATTEMPT -- and nothing more that day. */
+  const n0 = marks().length;
+  const card = draw(q('q-fresh'));
+  check_(card);
+  await wait(30);
+  const one = marks().slice(n0);
+  if (one.length !== 1) bad.push('a Check sent ' + one.length + ' markDone request(s), wanted 1');
+  else if (JSON.stringify(one[0].items) !== JSON.stringify([{ key: 'q-fresh', day: today }])) bad.push('a Check sent ' + JSON.stringify(one[0].items) + ' — wanted [{ key: "q-fresh", day: "' + today + '" }]');
+  if (slot(card) !== 'Done ' + now.getDate() + ' ' + mon[now.getMonth()]) bad.push('after the Check the card reads "' + slot(card) + '"');
+  check_(card);
+  const inp = card.querySelector('.qp-ans-in');
+  ['1', '15', '150'].forEach(v => { inp.value = v; inp.dispatchEvent(new w.Event('input', { bubbles: true })); });
+  await wait(30);
+  if (marks().length - n0 !== 1) bad.push('a second Check and three keystrokes the same day sent ' + (marks().length - n0 - 1) + ' more markDone — wanted none: once per question per day');
+  /* TYPING INTO A FRESH BOX: thirty keystrokes, one request. */
+  const fin = draw(Object.assign(q('q-typed'), { accept: '' })).querySelector('.qp-ans-in');
+  const n1 = marks().length;
+  const words = 'because the angles add to 180';
+  for (let i = 1; i <= words.length; i++) { fin.value = words.slice(0, i); fin.dispatchEvent(new w.Event('input', { bubbles: true })); }
+  await wait(30);
+  if (marks().length - n1 !== 1) bad.push('typing an answer sent ' + (marks().length - n1) + ' markDone requests, wanted 1');
+
+  /* A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
+  w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
+  if (shows('q-sheet-only')) bad.push('Ben sees Lucca\'s sheet date: "' + shows('q-sheet-only') + '"');
+
+  /* AN ADMIN'S PEOPLE COLUMN, off the summary only an admin is sent. */
+  w.__t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1' });
+  w.__t.DATA().attempts = { for: 'P1', mine: {}, people: { P7: { n: 12, last: '2001-10-04' }, P9: { n: 1, last: '2001-10-04' } } };
+  const line = w.attemptsLine_('P7');
+  if (line !== '12 questions · last 4 Oct 2001') bad.push('an admin reads "' + line + '" under a learner, wanted "12 questions · last 4 Oct 2001"');
+  if (w.attemptsLine_('P9') !== '1 question · last 4 Oct 2001') bad.push('one question reads "' + w.attemptsLine_('P9') + '"');
+  if (w.attemptsLine_('P5') !== '') bad.push('a person with no attempts reads "' + w.attemptsLine_('P5') + '", wanted nothing');
+  const box = d.createElement('div');
+  box.innerHTML = w.findCard({ kind: 'tutor', row: { title: 'Lucca Smith', handle: 'lucca', role: 'Student', personId: 'P7', activity: line } });
+  const act = box.querySelector('.prof-who .prof-act');
+  if (!act || act.textContent !== line) bad.push('the person card does not draw the line under the name: ' + (act ? act.textContent : 'no .prof-act'));
+  w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
+  if (w.attemptsLine_('P7') !== '') bad.push('a summary built for the admin is drawn for Ben on the same phone: "' + w.attemptsLine_('P7') + '"');
+
+  /* A BACKEND WITHOUT `markDone`: the date stays on the phone and nothing is sent. */
+  w.__t.DATA().features = [];
+  w.__t.USER({ name: 'Lucca Smith', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
+  const n2 = marks().length;
+  check_(draw(q('q-old-backend')));
+  await wait(30);
+  if (marks().length !== n2) bad.push('a backend that does not list markDone was sent it anyway');
+  w.__t.USER(null);
+  return bad;
+});
+
 /* ---------- A TUTOR'S HOURS ON THEIR CARD ---------------------------------------------------------
    ASKED FOR AS *"tutors availability should appear on their card."* Asked of the card itself, off
    the shape `doGet` really sends — `availGridOut`'s 77 codes with 'TRUE' or '' — because the fixture
