@@ -5216,11 +5216,118 @@ const doneKeyOf_ = k => ((typeof whoIs_ === 'function' && whoIs_() && /^ans:u:/.
   ? 'done:' + String(k).slice(4) : '');
 const dayIso_ = d => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-'
   + String(d.getDate()).padStart(2, '0');
+function doneLocal_(dk) {
+  try { const v = localStorage.getItem(dk); if (v) return v; } catch (e) {}
+  return DONE_HELD.get(dk) || '';
+}
+/* ---------- AND NOW THE SHEET HAS IT TOO -------------------------------------------------------------
+   ASKED FOR AS *"should be saved to a spreadsheet instead of"* being kept only on the phone, which is
+   the half 268 left undone: a date in `localStorage` is one a tutor cannot see and one that stays
+   behind when the student picks up another phone. `markDone` keeps one row per person per question
+   in the `attempts` tab, and `DATA.attempts.mine` is that person's rows, sent by `doGet`.
+
+   THE SHEET FIRST, THE PHONE AS THE FLOOR. The card shows the LATER of the two: the sheet's
+   `last_done` when it knows a later day (done on the laptop last night), this phone's copy when it
+   does (done a minute ago, the reply not back yet, or offline). Neither can make the date go
+   backwards, and with no backend at all the card is exactly what it was.
+
+   `for` IS CHECKED, the `familyFor` rule: a payload built for the last student on a shared phone
+   must not date the next one's questions. A person signed in by name alone (no `personId`) has no
+   row on the sheet to be, so they get the phone's copy and nothing is sent. */
+function attemptsMine_() {
+  try {
+    const a = DATA && DATA.attempts;
+    if (!a || !a.mine || typeof a.mine !== 'object' || !USER || !USER.personId
+        || String(a.for || '') !== String(USER.personId)) return {};
+    return a.mine;
+  } catch (e) { return {}; }
+}
+/* THE LIBRARY'S KEY BACK OUT OF THE ANSWER'S KEY — `ans:u:P7:q-12` is question `q-12` for `u:P7`. */
+function doneQKey_(k) {
+  const who = whoIs_();
+  const pre = 'ans:' + who + ':';
+  return who && String(k || '').indexOf(pre) === 0 ? String(k).slice(pre.length) : '';
+}
+const DAY_ISO = /^\d{4}-\d{2}-\d{2}$/;
 function doneRead_(k) {
   const dk = doneKeyOf_(k);
   if (!dk) return '';
-  try { const v = localStorage.getItem(dk); if (v) return v; } catch (e) {}
-  return DONE_HELD.get(dk) || '';
+  const local = doneLocal_(dk);
+  const row = attemptsMine_()[doneQKey_(k)];
+  const sheet = row && DAY_ISO.test(String(row.last || '')) ? String(row.last) : '';
+  return sheet > local ? sheet : (local || sheet);
+}
+
+/* ---------- SENDING IT UP --------------------------------------------------------------------------
+   ONCE PER QUESTION PER DAY, and that is `doneMark_`'s own early return doing the work: the first
+   keystroke, Check or tap of the day stamps today, and every later one finds today already there and
+   stops before the network. So typing an answer is one request, not forty.
+
+   ONLY TO A BACKEND THAT HAS `markDone` — `DATA.features` says so — so a phone ahead of the deploy
+   keeps the date to itself rather than being refused on every Check. A refusal or no connection
+   costs nothing either: the phone's copy is still the floor, and `attemptsSync_` sends what the
+   sheet lacks on the next load. Quietly, like a star: a toast per question would be a toast per
+   question. */
+const ATTEMPTS_PER_POST = 50;
+function attemptsCan_() {
+  try {
+    return !!(USER && USER.personId && USER.token && DATA && Array.isArray(DATA.features)
+      && DATA.features.indexOf('markDone') !== -1);
+  } catch (e) { return false; }
+}
+function attemptsAdopt_(pid, got) {
+  if (!DATA || !got || typeof got !== 'object') return;
+  let a = DATA.attempts;
+  if (!a || !a.mine || String(a.for || '') !== String(pid)) {
+    a = { for: String(pid), mine: {} };
+    try { DATA.attempts = a; } catch (e) { return; }
+  }
+  Object.keys(got).forEach(q => { if (got[q] && DAY_ISO.test(String(got[q].last || ''))) a.mine[q] = got[q]; });
+}
+function attemptSend_(items) {
+  if (!items || !items.length || !attemptsCan_() || typeof api !== 'function') return Promise.resolve(false);
+  const pid = String(USER.personId);
+  return api({ action: 'markDone', personId: pid, items: items.slice(0, ATTEMPTS_PER_POST) })
+    .then(d => {
+      if (!d || !d.success || !d.attempts) return false;
+      attemptsAdopt_(pid, d.attempts);
+      return true;
+    })
+    .catch(() => false);
+}
+
+/* ---------- WHAT THIS PHONE KNOWS AND THE SHEET DOES NOT, SENT ON THE NEXT LOAD ---------------------
+   EVERY DATE 268 EVER STORED IS ON SOMEBODY'S PHONE AND NOWHERE ELSE, and so is any date stamped
+   while offline or before the deploy. Called as each payload lands (`adoptMarks_`): every
+   `done:u:<me>:<key>` whose day the sheet does not have yet goes up in one request, fifty at a time.
+
+   ONLY AGAINST A PAYLOAD BUILT FOR THIS PERSON. A stored anonymous one says nothing about what the
+   sheet holds for them, and comparing against it would send everything every time. Once per person
+   per visit; a failure clears the mark so the next load tries again. */
+let ATTEMPTS_SYNCED = '';
+function attemptsSync_() {
+  if (!attemptsCan_()) return;
+  const pid = String(USER.personId);
+  const a = DATA.attempts;
+  if (!a || !a.mine || String(a.for || '') !== pid || ATTEMPTS_SYNCED === pid) return;
+  const pre = 'done:u:' + pid + ':';
+  const have = {};
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.indexOf(pre) === 0) have[k] = localStorage.getItem(k);
+    }
+  } catch (e) {}
+  DONE_HELD.forEach((v, k) => { if (k.indexOf(pre) === 0 && !have[k]) have[k] = v; });
+  const items = Object.keys(have).map(k => ({ key: k.slice(pre.length), day: String(have[k] || '') }))
+    .filter(x => x.key && DAY_ISO.test(x.day) && !(a.mine[x.key] && String(a.mine[x.key].last || '') >= x.day));
+  ATTEMPTS_SYNCED = pid;
+  if (!items.length) return;
+  attemptSend_(items).then(ok => {
+    /* MORE THAN ONE REQUEST'S WORTH: the reply has been adopted, so the next pass finds fewer. */
+    if (!ok) { ATTEMPTS_SYNCED = ''; return; }
+    if (items.length > ATTEMPTS_PER_POST) { ATTEMPTS_SYNCED = ''; attemptsSync_(); }
+  });
 }
 /* `4 Oct`, and the year only when it is not this one -- a stamp from last October that read like
    this October's would be wrong by a year in the one place a date is the whole message. */
@@ -5246,6 +5353,7 @@ function doneMark_(k) {
   if (doneRead_(k) === today) return;
   DONE_HELD.set(dk, today);
   try { localStorage.setItem(dk, today); } catch (e) {}
+  attemptSend_([{ key: doneQKey_(k), day: today }]);
   /* EVERY COLUMN IT IS DRAWN ON, by the answer key -- Find and Saved can both hold the card. */
   document.querySelectorAll('.qcard-done').forEach(el => {
     if (el.getAttribute('data-k') === k) el.textContent = doneText_(today);
@@ -8613,6 +8721,7 @@ function accountPages_() {
     .filter(p => p && p.title)
     .filter(p => !(p.personId && famIds.indexOf(String(p.personId)) !== -1))
     .filter(p => !mineIs_(p))
+    .map(p => Object.assign({}, p, { activity: attemptsLine_(p.personId) }))
     .map(p => (typeof findCard === 'function' ? findCard({ kind: 'tutor', row: p }) : '')
       + (typeof tile_ === 'function' ? `<div class="tile-row">${tile_({ icon: 'chat',
           label: 'Message', note: 'a note to them', act: 'msg-open',
@@ -8629,6 +8738,24 @@ function accountPages_() {
      two borders, two backgrounds, two lots of padding — which is visibly worse than what was
      reported in the first place and is exactly what "just a normal widget" rules out. */
   return [me].concat(claimPages, famPages, others, everyone);
+}
+
+/* ---------- HOW A LEARNER IS GETTING ON, IN ONE LINE UNDER THEIR NAME ------------------------------
+   `12 questions · last 4 Oct`, off `DATA.attempts.people` — the per-learner summary `doGet` builds
+   for an admin's token and nobody else's. Under the handle, where it does not add a row to a card
+   that is otherwise a name and a picture. Somebody who has done nothing gets nothing, rather than
+   "0 questions", which on a parent's card would read as a complaint about a person who is not a
+   learner at all. `for` is checked as everywhere: a summary left by an admin's session on a shared
+   phone is not drawn for whoever signs in next. */
+function attemptsLine_(pid) {
+  try {
+    const a = DATA && DATA.attempts;
+    if (!pid || !a || !a.people || !USER || String(a.for || '') !== String(USER.personId || '')) return '';
+    const p = a.people[String(pid)];
+    if (!p || !(Number(p.n) > 0)) return '';
+    const last = doneText_(p.last).replace(/^Done /, '');
+    return Number(p.n) + (Number(p.n) === 1 ? ' question' : ' questions') + (last ? ' · last ' + last : '');
+  } catch (e) { return ''; }
 }
 
 /* THE COLUMN ITSELF. One page when signed out — the sign-in card — and one when signed in. Kept

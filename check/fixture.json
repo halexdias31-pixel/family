@@ -323,6 +323,10 @@
  "cheatsheet": [],
  "landmarks": [],
  "favourites": [],
+ "attempts": {
+  "for": "",
+  "mine": {}
+ },
  "festive": [],
  "closures": [
   {"date":"01/01/2025","name":"New Year's Day","kind":"bank"},

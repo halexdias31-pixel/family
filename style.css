@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-qorder";
+  --css-version: "2026-10-05-donesheet";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6373,6 +6373,9 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    nothing to break at, which at this size is 85px — under the column at every width the app is
    measured at, and one `HANDLE_SHAPE` change away from not being. */
 .prof-handle { font: 400 .7rem/1.2 var(--mono); color: var(--gold); overflow-wrap: anywhere; }
+/* A LEARNER'S DONE QUESTIONS, on an admin's people column — `12 questions · last 4 Oct`. The seat
+   price's ink and size: a fact under the name, quieter than the handle above it. */
+.prof-act { font: 400 .66rem/1.2 var(--mono); color: var(--dim); }
 /* `.prof-dbs` — a green DBS CHECKED or a red NO DBS ON FILE under the name — WAS HERE. Asked to go:
    *"enhanced dbs check shouldnt appear up there. treat it like an extra qualification thing."* A
    tutor who holds one ticks `Enhanced DBS` among their extra qualifications and it is a dashed chip
