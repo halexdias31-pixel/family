@@ -7307,6 +7307,256 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   return bad;
 });
 
+/* ---------- A DRAWING IS THE PERSON'S WHO MADE IT, AS A TYPED ANSWER IS -------------------------------
+   Found by the multi-part audit: the pen's marks and the ringed words were kept per PHONE
+   (`pad:<question>`) while the answer box beside them was kept per person (`ansKey_`), so Ben, signing
+   in after Ali on the same phone, found Ali's lines already on his grid. Through the app's own builders
+   and handlers:
+     * signed out the key is the phone's, `pad:<question>`, as it always was; signed in it carries who,
+       `pad:u:<id>:<question>`, on the pad's `data-k` and the passage's `data-circ` -- the attributes
+       every handler writes through
+     * the phone's old marks MOVE to the first person signed in who opens them: drawn on their pad,
+       stored under their key, and gone from the old one, so the next person opens a clean grid
+     * never over marks somebody already has; the phone's marks wait for a person with none
+     * a second person sees none of the first one's, and Undo on their pad takes only their own mark
+     * the first person signed in again gets theirs back
+     * ring for ring, the same for a passage */
+check('a drawing and a ringed word are kept for whoever is signed in, and the phone\'s old ones move once to the first who opens them', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const t = w.__t;
+  const A = t.ACTIONS;
+  const bad = [];
+  if (typeof w.questionFigCard_ !== 'function' || typeof w.questionCard_ !== 'function' || !t.padKey || !A['pad-undo'] || !A['qw-tap']) {
+    return ['questionFigCard_, questionCard_, padKey_ or the pen\'s handlers are not reachable — renamed? Whose drawing it is was NOT checked'];
+  }
+  const LS = w.localStorage;
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
+  const row = id => ({ row_id: id, paper_id: 'P-WHO', subject: 'Maths', name: 'Whose' });
+  const x = { kind: 'question', name: 'Q8c', qNumber: '8', qPart: 'c', marks: 2, key: 'q:Q-WHO-8c', row: row('Q-WHO-8c'),
+              stems: [], answerType: 'drawing', html: '<p>Draw the graph of y = 2x.</p>' };
+  const OLD = 'pad:q:Q-WHO-8c';
+  const ALI = { name: 'Ali', personId: 'P21', role: 'student', roles: ['student'] };
+  const BEN = { name: 'Ben', personId: 'P22', role: 'student', roles: ['student'] };
+  const CY = { name: 'Cy', personId: 'P23', role: 'student', roles: ['student'] };
+  const got = k => { try { return JSON.parse(LS.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const pad = () => el(w.questionFigCard_(x)).querySelector('.qpad');
+  const lines = p => (p ? p.querySelectorAll('.qpad-g path').length : -1);
+
+  /* SIGNED OUT: THE PHONE'S KEY, AND A LINE LEFT ON IT FROM BEFORE TODAY. */
+  t.USER(null);
+  if (t.padKey(x) !== OLD) bad.push('signed out, the marks are kept under ' + t.padKey(x) + ', not the phone\'s ' + OLD);
+  LS.setItem(OLD, JSON.stringify([[10, 10, 100, 100]]));
+  /* ALI OPENS IT FIRST, AND THE LINE BECOMES HERS. */
+  t.USER(ALI);
+  const kA = t.padKey(x);
+  if (kA !== 'pad:u:P21:q:Q-WHO-8c') bad.push('signed in, the marks are kept under ' + kA + ', not under who is signed in');
+  const pa = pad();
+  if (!pa) return bad.concat(['a drawing question drew no pad']);
+  if (pa.getAttribute('data-k') !== kA) bad.push('Ali\'s pad writes to ' + pa.getAttribute('data-k') + ', not to her key ' + kA);
+  if (lines(pa) !== 1) bad.push('the phone\'s old line is not on the pad of the first person who opened it (' + lines(pa) + ' lines)');
+  if (got(kA).length !== 1) bad.push('the phone\'s old line was not stored under Ali\'s key: ' + JSON.stringify(got(kA)));
+  if (LS.getItem(OLD) !== null) bad.push('the phone\'s old line was COPIED to Ali, not moved — the next person would see it too');
+  LS.setItem(kA, JSON.stringify([[10, 10, 100, 100], [20, 20, 200, 200]]));
+  /* BEN, SAME PHONE: A CLEAN GRID, AND HIS UNDO IS HIS. */
+  t.USER(BEN);
+  const kB = t.padKey(x);
+  const pb = pad();
+  if (lines(pb) !== 0) bad.push('Ben, signed in after Ali on the same phone, sees ' + lines(pb) + ' of her lines');
+  if (pb.getAttribute('data-k') !== kB || kB === kA) bad.push('Ben\'s pad writes to ' + pb.getAttribute('data-k') + ' — Ali\'s key is ' + kA);
+  LS.setItem(kB, JSON.stringify([[5, 5, 50, 50]]));
+  const pb2 = pad();
+  A['pad-undo'](pb2.querySelector('.qpad-undo'));
+  if (got(kB).length !== 0) bad.push('Undo on Ben\'s pad did not take Ben\'s mark: ' + JSON.stringify(got(kB)));
+  if (got(kA).length !== 2) bad.push('Undo on Ben\'s pad touched Ali\'s marks: ' + JSON.stringify(got(kA)));
+  /* THE PHONE DRAWS AGAIN SIGNED OUT; ALI ALREADY HAS MARKS, SO THEY WAIT FOR SOMEBODY WITH NONE. */
+  t.USER(null);
+  LS.setItem(OLD, JSON.stringify([[1, 1, 2, 2]]));
+  t.USER(ALI);
+  const pa2 = pad();
+  if (lines(pa2) !== 2 || got(kA).length !== 2) bad.push('the phone\'s marks were moved over marks Ali already had: ' + JSON.stringify(got(kA)));
+  if (LS.getItem(OLD) === null) bad.push('the phone\'s marks vanished when the person who opened them already had some');
+  t.USER(CY);
+  if (lines(pad()) !== 1 || LS.getItem(OLD) !== null) bad.push('the phone\'s marks did not move to the next person with none');
+  /* ALI AGAIN: HERS, AND ONLY HERS. */
+  t.USER(ALI);
+  if (lines(pad()) !== 2) bad.push('Ali, signed in again, does not get her two lines back (' + lines(pad()) + ')');
+
+  /* ---------- AND A PASSAGE'S RINGS, THE SAME WAY ----------------------------------------------------- */
+  const text = { kind: 'question', name: 'Q9', qNumber: '9', marks: 1, key: 'q:Q-WHO-9', row: row('Q-WHO-9'), stems: [],
+                 answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>' };
+  const OLDW = 'pad:q:Q-WHO-9:words';
+  t.USER(null);
+  const tall = (() => { const h = el(w.questionCard_(text)).querySelector('[data-circ]'); return [...h.querySelectorAll('.qw')].find(s => s.textContent === 'tall').getAttribute('data-w'); })();
+  LS.setItem(OLDW, JSON.stringify([tall]));
+  t.USER(ALI);
+  const hostA = el(w.questionCard_(text)).querySelector('[data-circ]');
+  const kAw = 'pad:u:P21:q:Q-WHO-9:words';
+  if (!hostA || hostA.getAttribute('data-circ') !== kAw) bad.push('Ali\'s rings are kept under ' + (hostA && hostA.getAttribute('data-circ')) + ', not ' + kAw);
+  else {
+    const lit = [...hostA.querySelectorAll('.qw.is-circled')].map(s => s.textContent).join(',');
+    if (lit !== 'tall') bad.push('the phone\'s old ring did not come to the first person who opened the passage: [' + lit + ']');
+    if (LS.getItem(OLDW) !== null) bad.push('the phone\'s old ring was copied, not moved');
+  }
+  t.USER(BEN);
+  const hostB = el(w.questionCard_(text)).querySelector('[data-circ]');
+  if (hostB.querySelectorAll('.qw.is-circled').length) bad.push('Ben sees Ali\'s ringed word');
+  A['qw-tap']([...hostB.querySelectorAll('.qw')].find(s => s.textContent === 'tree'));
+  if (got('pad:u:P22:q:Q-WHO-9:words').length !== 1) bad.push('Ben\'s ring was not stored under his own key');
+  if (JSON.stringify(got(kAw)) !== JSON.stringify([tall])) bad.push('Ben\'s tap changed Ali\'s rings: ' + JSON.stringify(got(kAw)));
+  t.USER(null);
+  [OLD, kA, kB, 'pad:u:P23:q:Q-WHO-8c', OLDW, kAw, 'pad:u:P22:q:Q-WHO-9:words'].forEach(k => { try { LS.removeItem(k); } catch (e) {} });
+  return bad;
+});
+
+/* ---------- "USE YOUR GRAPH" SHOWS YOUR GRAPH -----------------------------------------------------------
+   Found by the multi-part audit, finding 5: June 2024 2F Q24(c) "Use your graph to find estimates..."
+   had no picture, and the graph was the child's own, on (b)'s grid, two swipes back. A part's `uses`
+   names the earlier part whose drawing it needs (tools/set-uses.py). Through the app's own builders and
+   handlers, with the library stood in by `stuffItemsAll_` as the tapped-answer journey does:
+     * a part with no picture gets a page IN FRONT of its words, after its opening: the earlier part's
+       picture, headed with that picture's own name and no question number, the marks on it, no pen, no
+       control, no box -- and a line naming the part the marks came from
+     * whoever is signed in: another person sees their own (none), and is told so
+     * not when the page in front is already that picture (the earlier part with no answer page)
+     * on Saved too (`cardPages_`), and "To the answer" still turns one page from the card
+     * a part whose own figure IS that picture gets the marks UNDER its own pen instead -- no page --
+       and its Undo takes its own mark and never the earlier one; a part that only LOOKS at that picture
+       gets them on its copy, with no pen
+     * a chain on one picture is one picture: (d) uses (c) uses (b) uses (a) shows all three's marks
+     * a loop ends, and a part naming no such part draws exactly what it did
+     * found in review, after the Figure tile and the "not drawn yet" page met this: the Figure tile on
+       (c) shows (b)'s picture WITH this person's marks, not (b)'s empty grid; a part that uses a drawing
+       on a surface ("Use the graph" after (a) drew on axes) is never also "not drawn yet"; and the page
+       in front is headed as the child's ("Your drawing"), not "Figure" */
+check('a part that uses an earlier part\'s drawing shows it, read only, in front of it or under its own pen', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const t = w.__t;
+  const A = t.ACTIONS;
+  const bad = [];
+  const need = ['pageParts_', 'stuffPart_', 'questionFigCard_', 'cardPages_', 'usesOf_', 'questionUsesCard_', 'figsBefore_', 'figMissing_'].filter(n => typeof w[n] !== 'function');
+  if (need.length || !t.padKey || !A['pad-undo']) return [(need.join(', ') || 'padKey_ / pad-undo') + ' not reachable — renamed? "Use your graph" was NOT checked'];
+  const LS = w.localStorage;
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
+  const row = id => ({ row_id: id, paper_id: 'P-USE', subject: 'Maths', name: 'Uses' });
+  const GRID = '<svg viewBox="0 0 340 340"><line class="grid" x1="10" y1="10" x2="330" y2="10"/></svg>';
+  const SCALE = '<svg viewBox="0 0 340 80"><line class="axis" x1="10" y1="40" x2="330" y2="40"/></svg>';
+  const part = (q, p, extra) => Object.assign({ kind: 'question', name: 'Q' + q + p, qNumber: String(q), qPart: p, marks: 2,
+    key: 'q:Q-USE-' + q + p, row: row('Q-USE-' + q + p), stems: [], html: '<p>Part ' + p + '.</p>' }, extra || {});
+  const stem = { id: 'S-USE-24', html: '<p>Here is a table of values.</p>' };
+  const b = part(24, 'b', { answerType: 'annotate', diagram: GRID, html: '<p>On the grid, draw the graph of y = x&sup2; &minus; x.</p>', answer: '<b>a curve</b>', stems: [stem] });
+  const c = part(24, 'c', { uses: 'b', html: '<p>Use your graph to find estimates for the solutions of x&sup2; &minus; x = 4.</p>', answer: '<b>&minus;1.6, 2.6</b>', stems: [stem] });
+  const cAlone = part(24, 'z', { uses: 'q', html: '<p>Names a part that is not there.</p>' });
+  const i6 = part(6, '(i)', { answerType: 'annotate', diagram: SCALE, answer: '<b>&frac12;</b>' });
+  const ii6 = part(6, '(ii)', { answerType: 'annotate', diagram: SCALE, uses: 'i', answer: '<b>0</b>' });
+  const f3 = part(1, '3', { answerType: 'drawing', diagram: GRID, html: '<p>Complete Figure 2.</p>' });
+  const f4 = part(1, '4', { answerType: 'explain', diagram: GRID, uses: '3', html: '<p>How does Figure 2 show it?</p>' });
+  const sa = part(3, 'a', { answerType: 'drawing', diagram: SCALE });
+  const sb = part(3, 'b', { answerType: 'drawing', diagram: SCALE, uses: 'a' });
+  const sc = part(3, 'c', { answerType: 'drawing', diagram: SCALE, uses: 'b' });
+  const sd = part(3, 'd', { uses: 'c', answer: '<b>8 &deg;C</b>' });
+  const l1 = part(4, 'a', { answerType: 'drawing', diagram: GRID, uses: 'b' });
+  const l2 = part(4, 'b', { answerType: 'drawing', diagram: GRID, uses: 'a' });
+  const ax = part(25, 'a', { answerType: 'drawing', surface: 'coord', html: '<p>On the axes, draw the graph of y = 2x.</p>' });
+  const axUse = part(25, 'b', { uses: 'a', html: '<p>Use the graph to find x when y = 6.</p>', answer: '<b>3</b>' });
+  const LIB = [b, c, cAlone, i6, ii6, f3, f4, sa, sb, sc, sd, l1, l2, ax, axUse];
+  const held = w.stuffItemsAll_, heldItems = w.stuffItems;
+  w.stuffItemsAll_ = () => LIB;
+  /* AND `stuffItems`, which `questionParts_` reads -- the Figure tile and "not drawn yet" ask it for a
+     part's question. */
+  w.stuffItems = () => LIB;
+  const put = (x, marks) => LS.setItem(t.padKey(x), JSON.stringify(marks));
+  const ALI = { name: 'Ali', personId: 'P31', role: 'student', roles: ['student'] };
+  const BEN = { name: 'Ben', personId: 'P32', role: 'student', roles: ['student'] };
+  const paths = (root, sel) => (root ? root.querySelectorAll(sel + ' path').length : -1);
+  try {
+    t.USER(ALI);
+    put(b, [[20, 300, 100, 120, 170, 60], [200, 60, 320, 300]]);
+    /* ---------- THE PAGE IN FRONT ---------------------------------------------------------------------- */
+    const pc = w.pageParts_(c);
+    if (JSON.stringify(pc) !== '["stem0","use",null,"ans"]') bad.push('(c) alone has pages ' + JSON.stringify(pc) + ', wanted its opening, then the graph, then its words, then its answer');
+    if (w.pageParts_(c, b).indexOf('use') < 0) bad.push('after (b) and (b)\'s answer page, (c) has no page with the graph');
+    const bNoAns = Object.assign({}, b, { answer: '' });
+    if (w.pageParts_(c, bNoAns).indexOf('use') >= 0) bad.push('straight after (b)\'s own figure page, (c) draws the same picture again');
+    const page = el(w.stuffPart_(c, 'use')).querySelector('.qcard');
+    if (!page) bad.push('the "use" page draws nothing');
+    else {
+      if (!page.classList.contains('qfig') || page.getAttribute('data-of') !== 'Q-USE-24c' || page.getAttribute('data-uses') !== 'Q-USE-24b') bad.push('the "use" page is not (c)\'s figure page naming (b) as where its marks came from: ' + page.outerHTML.slice(0, 120));
+      const head = ((page.querySelector('.qcard-top b') || {}).textContent || '').trim();
+      if (head !== 'Your drawing' || /\bQ\d/.test(page.querySelector('.qcard-top').textContent)) bad.push('the "use" page is headed "' + page.querySelector('.qcard-top').textContent.trim() + '", wanted "Your drawing" and no question number');
+      if (paths(page, '.qpad-was') !== 2) bad.push('the "use" page shows ' + paths(page, '.qpad-was') + ' of the two marks Ali made on (b)');
+      if (!page.querySelector('.qpad-art > svg line.grid')) bad.push('the "use" page does not draw (b)\'s picture under the marks');
+      if (page.querySelector('.qpad, [data-do], .tile, .qp-ans, .qpad-g')) bad.push('the "use" page can be drawn on, pressed or typed into — it is (b)\'s answer, read only');
+      if (!/Your marks from Q24b/.test(page.textContent)) bad.push('the "use" page does not say whose marks these are: "' + page.textContent.replace(/\s+/g, ' ').trim().slice(-120) + '"');
+    }
+    const saved = w.cardPages_(c, 0);
+    if (saved.length !== 4 || !/qfig-uses/.test(saved[1])) bad.push('on Saved, (c) is ' + saved.length + ' pages and the second is not the graph');
+    const off = (() => { const p = w.pageParts_(c); return p.indexOf('ans') - p.indexOf(null); })();
+    if (off !== 1) bad.push('"To the answer" on (c) would turn ' + off + ' pages, not one');
+    /* ---------- THE FIGURE TILE ON (c) OPENS (b)'s PICTURE WITH THE GRAPH ON IT ---------------------- */
+    const sheet = el((w.figsBefore_(c)[0] || {}).html || '');
+    if (paths(sheet.querySelector('.qseen'), '.qpad-was') !== 2) bad.push('the Figure tile on (c) opens (b)\'s grid with ' + paths(sheet.querySelector('.qseen'), '.qpad-was') + ' of Ali\'s two marks — the graph it says to use is not there');
+    if ((w.figsBefore_(c)[0] || {}).label !== 'Your drawing') bad.push('the Figure tile on (c) is titled "' + (w.figsBefore_(c)[0] || {}).label + '" over the child\'s own graph, wanted "Your drawing"');
+    if (!/yours from Q24b/.test(sheet.textContent)) bad.push('the Figure tile on (c) does not say the marks are (b)\'s');
+    if (sheet.querySelector('.qpad')) bad.push('the Figure tile on (c) gives a pen to (b)\'s answer');
+    /* ---------- "USE THE GRAPH" AFTER A SURFACE IS NEVER "NOT DRAWN YET" ------------------------------- */
+    if (w.figMissing_(Object.assign({}, axUse, { uses: '' })) !== true) bad.push('control: without its `uses`, Q25b "Use the graph" is not "not drawn yet" — the case below proves nothing');
+    if (w.figMissing_(axUse)) bad.push('Q25b, which uses (a)\'s graph, is also "the paper prints a figure here — not drawn yet"');
+    const pAx = w.pageParts_(axUse);
+    if (pAx.indexOf('nofig') >= 0 || pAx.indexOf('use') < 0) bad.push('Q25b has pages ' + JSON.stringify(pAx) + ', wanted its graph and no "not drawn yet"');
+    t.USER(BEN);
+    if (el((w.figsBefore_(c)[0] || {}).html || '').querySelector('.qseen, .qpad-was') ) bad.push('Ben\'s Figure tile on (c) shows Ali\'s graph');
+    const benPage = el(w.stuffPart_(c, 'use')).querySelector('.qcard');
+    if (paths(benPage, '.qpad-was') !== 0) bad.push('Ben\'s (c) shows Ali\'s graph');
+    if (!/Nothing drawn on Q24b yet/.test(benPage.textContent)) bad.push('with nothing drawn on (b), the "use" page does not say so');
+    t.USER(ALI);
+    /* ---------- ONE PICTURE, DRAWN ON TWICE: UNDER THE PEN ---------------------------------------------- */
+    put(i6, [[170, 40, 170, 40]]);
+    put(ii6, [[10, 40, 10, 40]]);
+    if (w.pageParts_(ii6).indexOf('use') >= 0) bad.push('(ii), whose own figure is (i)\'s picture, also got a page in front');
+    const padII = el(w.questionFigCard_(ii6)).querySelector('.qpad');
+    if (paths(padII, '.qpad-was') !== 1) bad.push('(ii)\'s scale does not carry (i)\'s cross (' + paths(padII, '.qpad-was') + ')');
+    if (paths(padII, '.qpad-g') !== 1) bad.push('(ii)\'s own marks are ' + paths(padII, '.qpad-g') + ', wanted its one cross');
+    if (!/fainter marks are yours from Q6\(i\)/.test(padII.textContent)) bad.push('(ii)\'s pad does not say the fainter cross is (i)\'s — an Undo that will not take it would look broken');
+    A['pad-undo'](padII.querySelector('.qpad-undo'));
+    if (paths(padII, '.qpad-was') !== 1 || paths(padII, '.qpad-g') !== 0) bad.push('Undo on (ii) did not take (ii)\'s cross alone: ' + paths(padII, '.qpad-was') + ' of (i)\'s left, ' + paths(padII, '.qpad-g') + ' of its own');
+    if (JSON.parse(LS.getItem(t.padKey(i6)) || '[]').length !== 1) bad.push('Undo on (ii) changed what (i) stored');
+    if (paths(el(w.questionFigCard_(i6)).querySelector('.qpad'), '.qpad-was') !== 0) bad.push('(i) shows marks from a part that comes after it');
+    LS.removeItem(t.padKey(i6));
+    if (/fainter marks/.test(el(w.questionFigCard_(ii6)).textContent)) bad.push('with nothing on (i), (ii) still says the fainter marks are (i)\'s');
+    /* ---------- ONE PICTURE, LOOKED AT: ON ITS COPY, NO PEN --------------------------------------------- */
+    put(f3, [[20, 20, 300, 300]]);
+    const fig4 = el(w.questionFigCard_(f4));
+    if (paths(fig4.querySelector('.qseen'), '.qpad-was') !== 1 || fig4.querySelector('.qpad')) bad.push('(4), which only looks at Figure 2, does not show (3)\'s line on it read only');
+    if (!/yours from Q13/.test(fig4.textContent)) bad.push('(4)\'s figure does not say the line on it is (3)\'s');
+    LS.removeItem(t.padKey(f3));
+    if (el(w.questionFigCard_(f4)).querySelector('.qseen') || !el(w.questionFigCard_(f4)).querySelector('figure svg')) bad.push('with nothing drawn on (3), (4) is not its plain figure');
+    /* ---------- A CHAIN ON ONE PICTURE ------------------------------------------------------------------ */
+    put(sa, [[10, 10, 10, 10], [20, 20, 20, 20]]);
+    put(sb, [[5, 70, 330, 10]]);
+    put(sc, [[40, 40, 40, 40]]);
+    if (paths(el(w.questionFigCard_(sb)).querySelector('.qpad'), '.qpad-was') !== 2) bad.push('(b)\'s scatter does not carry (a)\'s points under its pen');
+    if (paths(el(w.questionFigCard_(sc)).querySelector('.qpad'), '.qpad-was') !== 3) bad.push('(c)\'s scatter does not carry (a)\'s points and (b)\'s line under its pen');
+    if (paths(el(w.stuffPart_(sd, 'use')).querySelector('.qseen'), '.qpad-was') !== 4) bad.push('(d)\'s page does not carry (a)\'s, (b)\'s and (c)\'s marks together');
+    /* ---------- A LOOP, AND A PART THAT IS NOT THERE ---------------------------------------------------- */
+    put(l1, [[1, 1, 2, 2]]); put(l2, [[3, 3, 4, 4]]);
+    const loop = el(w.questionFigCard_(l1)).querySelector('.qpad');
+    if (paths(loop, '.qpad-was') !== 1) bad.push('two parts naming each other drew ' + paths(loop, '.qpad-was') + ' earlier marks, wanted the other one\'s and no more');
+    if (JSON.stringify(w.pageParts_(cAlone)) !== '[null]') bad.push('a part naming a part that is not there has pages ' + JSON.stringify(w.pageParts_(cAlone)));
+  } catch (e) {
+    bad.push('threw: ' + e.message);
+  } finally {
+    w.stuffItemsAll_ = held;
+    w.stuffItems = heldItems;
+    [ALI, BEN].forEach(u => { t.USER(u); LIB.forEach(x => { try { LS.removeItem(t.padKey(x)); } catch (e) {} }); });
+    t.USER(null);
+  }
+  return bad;
+});
+
 /* ---------- FIND DRAWS THE SAME THING FOR A TUTOR, AN ADMIN, A STUDENT AND SOMEBODY SIGNED OUT --------
    ASKED FOR AS *"No distinction between tutor and student on the finder. All the same. Remove any
    nuances about that."* -- and before it, of the answer: *"Should behave the same whether it's a tutor

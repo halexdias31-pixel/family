@@ -625,6 +625,81 @@ const STATES = {
       },
       wants: 'a squared grid on its own page after its question, under the pen, tagged "Squared grid" and saying it is not the paper\'s figure',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- "USE YOUR GRAPH", WITH THE GRAPH IN FRONT OF IT --------------------------------------------
+       The multi-part audit's finding 5, on the row it named: June 2024 Foundation Paper 2, Q24(c) "Use your
+       graph to find estimates for the solutions of x^2 - x = 4", whose `uses` is (b). The curve (b) asks
+       for is put on (b)'s grid under whoever is signed in, as the pen stores a stroke -- y = x^2 - x from
+       -2 to 3, placed off the grid's own axes -- and the strip is turned to the page in front of (c): (b)'s
+       picture with the curve on it, no pen, no control, and the line saying whose marks they are. */
+    { name: 'the page in front of "use your graph", with the graph drawn on (b)',
+      enter: () => {
+        const all = stuffItemsAll_();
+        const c = all.find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-2F-24c');
+        const b = all.find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-2F-24b');
+        if (!c || !b) throw new Error('June 2024 2F Q24(b) or (c) is not in the library');
+        if (typeof usesOf_ !== 'function' || usesOf_(c) !== b) throw new Error('Q24(c) does not use (b) -- its `uses` cell is gone');
+        const pts = [];
+        for (let i = 0; i <= 25; i++) {
+          const x = -2 + i / 5;
+          pts.push(Math.round(146.5 + 45 * x), Math.round((194 - 22.5 * (x * x - x)) * 340 / 294));
+        }
+        window.__useKey = padKey_(b);
+        try { localStorage.setItem(window.__useKey, JSON.stringify([pts])); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(c) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(c, 'use'));
+      },
+      expect: () => {
+        const p = document.querySelector('#s-stuff .page.on .qcard.qfig-uses');
+        return !!p && p.getAttribute('data-of') === 'Q-1MA1-2406-2F-24c'
+               && p.querySelectorAll('.qpad-was path').length === 1 && !p.querySelector('.qpad, .tile, .qp-ans')
+               && /Your marks from Q24b/.test(p.textContent);
+      },
+      wants: '(b)\'s grid with the curve drawn on it, read only, on the page in front of "Use your graph", saying the marks are from Q24b',
+      leave: () => {
+        try { localStorage.removeItem(window.__useKey); } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- AND ITS FIGURE TILE, WITH THE SAME GRAPH ON IT ----------------------------------------------
+       Found in review: on Q24(c) the Figure tile opened (b)'s grid EMPTY while the page before showed the
+       child's curve. Now the sheet carries the marks (`figsBefore_`) -- and, measured here because only a
+       browser lays it out, ON the grid: in the sheet `.qpad-art` first took the sheet's whole width while
+       the grid stopped at its 20rem cap, so the ink layer stretched past the picture and the curve sat
+       21px off the axes it was drawn on. The tile is pressed through its own handler, as a finger does. */
+    { name: 'the Figure tile on "use your graph", opening (b)\'s grid with the graph on it',
+      enter: () => {
+        const all = stuffItemsAll_();
+        const c = all.find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-2F-24c');
+        const b = all.find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-2F-24b');
+        if (!c || !b) throw new Error('June 2024 2F Q24(b) or (c) is not in the library');
+        const pts = [];
+        for (let i = 0; i <= 25; i++) {
+          const x = -2 + i / 5;
+          pts.push(Math.round(146.5 + 45 * x), Math.round((194 - 22.5 * (x * x - x)) * 340 / 294));
+        }
+        window.__useKey = padKey_(b);
+        try { localStorage.setItem(window.__useKey, JSON.stringify([pts])); } catch (e) {}
+        const h = document.createElement('div');
+        h.innerHTML = figTile_(c);
+        if (!h.firstElementChild) throw new Error('Q24(c) has no Figure tile');
+        ACTIONS['q-fig'](h.firstElementChild);
+      },
+      expect: () => {
+        const s = document.querySelector('#sheet-body .qfig-sheet .qseen');
+        const art = s && s.querySelector('.qpad-art > svg:first-child');
+        const ink = s && s.querySelector('.qpad-ink');
+        if (!art || !ink) return false;
+        const a = art.getBoundingClientRect(), k = ink.getBoundingClientRect();
+        return s.querySelectorAll('.qpad-was path').length === 1 && !s.querySelector('.qpad')
+               && /yours from Q24b/.test(s.textContent)
+               && Math.abs(a.width - k.width) <= 1 && Math.abs(a.height - k.height) <= 1;
+      },
+      wants: 'the sheet showing (b)\'s grid with the curve on it, read only, the ink exactly the grid\'s size, saying the marks are from Q24b',
+      leave: () => {
+        try { localStorage.removeItem(window.__useKey); } catch (e) {}
+        closeSheet();
+      } },
     /* ---------- A CONSTRUCTION, WITH A RULER'S LINE AND A COMPASS'S RING ON IT -----------------------------
        *"some questions require a compass or ruler. so should have a tile for these things."* November 2019
        Higher Paper 1, Q4: "Use a ruler and compasses to construct the line from the point P perpendicular

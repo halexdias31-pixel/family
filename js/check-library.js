@@ -1594,6 +1594,62 @@ if (toolNoPen.length) {
     + '   (their answer_type is not drawing; a `surface` would give them one)');
 }
 
+/* ---------- "USE YOUR GRAPH" NAMES THE PART WHOSE GRAPH ------------------------------------------------
+   The multi-part audit, finding 5: 2F Q24(c) "Use your graph to find estimates..." drew no picture, and
+   the graph was the child's own, on (b)'s grid. `uses` names that earlier part by its `part` cell, and
+   the app draws its picture with the child's marks in front of (c) -- or under (c)'s own pen, where (c)
+   draws on the same picture (`usesOf_` in find.js; tools/set-uses.py decides the rows, and says why).
+
+   TWO RULES, BOTH FAILURES:
+     a `uses` must name a part of ITS OWN QUESTION that comes BEFORE it and is answered by drawing --
+       anything else is a picture the app cannot find, or marks that do not exist yet, or (pointing
+       forward) the beginning of a loop; a part naming a part that is not there draws as if it named
+       nothing, which is the silent nothing this file exists to refuse
+     a part whose own words say "use your graph" (or diagram, drawing, line of best fit...) after a part
+       of its question answered by drawing must carry one. NOT "use the graph" -- as often the paper's
+       printed graph as the child's -- and not two parts on one printed picture, which say nothing in
+       their words; those are decided in tools/set-uses.py, and printed here as a count. "Your" is the
+       one word that can only mean the child's own, so it is the one this can hold a new paper to. */
+const usesKey_ = p => String(p == null ? '' : p).toLowerCase().replace(/[^a-z0-9]/g, '');
+const penRow_ = r => /^(drawing|annotate)$/i.test(String(r.answer_type || '').trim())
+  || ['grid', 'coord', 'blank'].indexOf(String(r.surface || '').trim().toLowerCase()) !== -1;
+const YOUR_DRAWING = /\b(use|using|from|on) your (graph|diagram|drawing|line of best fit|line|curve|box plot|histogram|tree diagram|venn diagram|scatter (graph|diagram)|cumulative frequency (graph|diagram))\b/i;
+const usesQs_ = {};
+rows.forEach(r => {
+  if (!r || r.kind !== 'question') return;
+  const k = String(r.paper_id) + '\u0000' + String(r.question || '');
+  (usesQs_[k] = usesQs_[k] || []).push(r);
+});
+const usesBad = [], usesMissing = [];
+let usesN = 0;
+rows.forEach(r => {
+  if (r && r.kind !== 'question' && r.uses !== undefined && r.uses !== '') usesBad.push(`${r.row_id} is a ${r.kind} row with a \`uses\` — only a question part can use another`);
+});
+Object.keys(usesQs_).forEach(k => {
+  const xs = usesQs_[k];
+  const at = {};
+  xs.forEach((r, i) => { at[usesKey_(r.part)] = i; });
+  xs.forEach((r, i) => {
+    if (r.uses !== undefined && r.uses !== null && String(r.uses) !== '') {
+      usesN++;
+      const j = at[usesKey_(r.uses)];
+      if (j === undefined) usesBad.push(`${r.row_id} uses "${r.uses}", and its question has no such part`);
+      else if (j === i) usesBad.push(`${r.row_id} uses itself`);
+      else if (j > i) usesBad.push(`${r.row_id} uses "${r.uses}", which comes after it — its marks cannot exist yet`);
+      else if (!penRow_(xs[j])) usesBad.push(`${r.row_id} uses "${r.uses}", which is not answered by drawing — there are no marks to show`);
+      return;
+    }
+    const words = String((r.lead || '') + ' ' + (r.html || '')).replace(/<[^>]*>/g, ' ').replace(/&[a-z0-9#]+;/gi, ' ');
+    if (i && YOUR_DRAWING.test(words) && xs.slice(0, i).some(penRow_)) {
+      usesMissing.push(`${r.row_id} says "${(words.match(YOUR_DRAWING) || [''])[0]}" after a part answered by drawing, and has no \`uses\` — the child's drawing is not shown`);
+    }
+  });
+});
+usesBad.concat(usesMissing).forEach(m => fail.push(m));
+console.log(`parts that show an earlier part's drawing (\`uses\`): ${usesN}`
+  + (usesBad.length + usesMissing.length ? `  — and ${usesBad.length + usesMissing.length} WRONG:` : ''));
+usesBad.concat(usesMissing).forEach(m => console.log('   ' + m));
+
 /* ---------- THE FIGURES THE PAPER PRINTS AND NOBODY HAS DRAWN, COUNTED SO THE COUNT CANNOT GROW -------
    THE MULTI-PART AUDIT, FINDING 4. A part whose words name a figure ("Figure 3", "the graph", "the
    grid", "the table below"…) in a question where no row carries one now gets a page saying so --
@@ -1604,7 +1660,7 @@ if (toolNoPen.length) {
    or `images`, any other part's, and every preamble over it (paper, section, question, letter).
    A CEILING, NOT A RULE: today's count is written below, and a new row that adds to it fails. Drawing
    one lowers the count, and the ceiling should follow it down so the gain is kept. */
-const NOT_DRAWN_MAX = 412;
+const NOT_DRAWN_MAX = 410;
 const nfSrc_ = ['FIG_NAMED', 'figWanted_'].map(n => cutFrom(findSrc_, n));
 if (nfSrc_.some(c => !c)) {
   const why = 'FIG_NAMED or figWanted_ is not in find.js — renamed? The figures not drawn yet were NOT counted.';
@@ -1624,9 +1680,9 @@ rows.forEach(r => {
 });
 const notDrawn = rows.filter(r => {
   if (!r || r.kind !== 'question') return false;
-  /* A PART THAT USES AN EARLIER PART'S DRAWING ("use your graph") names the child's own picture, not
-     one the paper prints -- the app's `figMissing_` stands down for it, and so does the count. */
-  if (String(r.uses || '').trim()) return false;
+  /* A `uses` PART'S FIGURE IS THE CHILD'S OWN DRAWING, shown on its `use` page -- `figMissing_` says
+     the same, and a ledger that counted it would be a backlog nobody can ever draw down. */
+  if (r.uses !== undefined && r.uses !== null && String(r.uses).trim() !== '') return false;
   if (padSurface_({ answerType: String(r.answer_type || '').trim().toLowerCase(), surface: r.surface, figure: r.figure, row: r })) return false;
   const figured = picAt_['q|' + r.paper_id + '|' + String(r.question || '').trim()]
     || (r.section && picAt_['s|' + r.paper_id + '|' + r.section]) || picAt_['p|' + r.paper_id];

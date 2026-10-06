@@ -1333,6 +1333,13 @@ for (const who of VISITORS) {
                 && (stem[1] === 'stem' || i === 0 || pages[i - 1].x !== pg.x
                     || /^stem/.test(pages[i - 1].part || '') && pages[i - 1].part.split('-')[0] === 'stem' + stem[2]
                     || /^sfig/.test(pages[i - 1].part || ''));
+            } else if (pg.part === 'use') {
+              /* AN EARLIER PART'S DRAWING IN FRONT OF A PART THAT USES IT (`usesOf_`): this part's page,
+                 named by its row, a figure page with no box and no question number, and straight in front
+                 of this part's own pages. */
+              const next = pages[i + 1];
+              ok = /class="qcard qfig qfig-uses/.test(html) && html.indexOf('data-of="' + id + '"') !== -1
+                && html.indexOf('qp-ans') === -1 && !/\bQ\d/.test(head) && !!next && next.x === pg.x;
             } else if (pg.part === 'ans') {
               ok = /class="qcard qans-card/.test(html) && html.indexOf('data-of="' + id + '"') !== -1
                 && html.indexOf('qp-ans') === -1
