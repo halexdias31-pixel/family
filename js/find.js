@@ -1497,6 +1497,22 @@ const FACETS = [
     of: x => x.cost == null ? ''
            : x.cost === 0 ? 'Free'
            : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
+  /* ---------- WHICH PAGES OF A QUESTION: ITS ANSWERS ONLY, OR EVERYTHING BUT THEM ----------------
+     ASKED FOR AS *"the answers should appear after their questions … they have their own tag. i
+     could in theory just click answers and only see answers."* An answer page is a page of its
+     question, straight after it -- that order is untouched -- and this is the second way to read
+     the same strip: `Answers` keeps only the answer pages of the questions that have one, `Questions`
+     everything else. Every answer page is still shut behind its own Show (`questionAnsCard_`).
+
+     A FILTER LIKE ANY OTHER, so it is a chip with a ✕ and narrows inside whatever is already chosen
+     (a paper's answers, a topic's). THE ITEM SAYS WHICH IT CAN BE (`of`); WHICH PAGES ARE DRAWN is
+     `stuffPages_`'s, because pages are built there and nowhere upstream.
+
+     `tagOnly`: NEVER ASKED BY THE FUNNEL. It is not a question about what somebody is looking for
+     -- it is a way of reading what they found, and it is reached by tapping an answer page's kind
+     tag (`answersOnly_`). `nextFacet` and `overFacet_` skip it. */
+  { field: 'pageKind',  label: 'Page',        tagOnly: true,
+    of: x => (x && x.kind === 'question' ? (questionHasAns_(x) ? ['Questions', 'Answers'] : ['Questions']) : '') },
 ];
 
 /* ==================================================================================================
@@ -3121,6 +3137,7 @@ function nextFacet(items) {
     .map(f => f.field);
 
   for (const facet of facetList()) {
+    if (facet.tagOnly) continue;
     if (settled.indexOf(facet.field) !== -1) continue;
     /* ---------- NOT UNTIL THE QUESTION IT HANGS OFF HAS BEEN ANSWERED ---------------------------
        See `FACET_NEEDS_FIRST`. Skipped rather than reordered: reordering would ask it later and
@@ -3175,7 +3192,7 @@ function overFacet_(items) {
   const asked = STUFF.filters.map(f => f.field);
   let best = null;
   for (const facet of facetList()) {
-    if (asked.indexOf(facet.field) !== -1) continue;
+    if (facet.tagOnly || asked.indexOf(facet.field) !== -1) continue;
     const vals = facetValues(items, facet).length;
     if (vals <= FACET_MAX_ANSWERS) continue;
     const min = isFinite(facet.min) ? facet.min : FACET_COVERAGE;
@@ -10260,9 +10277,43 @@ function stuffPages_() {
      are built, and not in `stuffFiltered`: every count the funnel makes is of what MATCHED, and the
      parts brought along are reading, not results. */
   const seq = wholeQuestions_(items);
-  seq.forEach((x, i) => pageParts_(x, seq[i - 1]).forEach(part => pages.push({ x: x, part: part })));
+  /* AND ONLY THE ANSWERS, OR ONLY EVERYTHING ELSE, when the `Page` filter says -- see `pageKind`.
+     Built in full and then kept, so every page that is drawn is the page it would have been: a stem
+     is skipped by the same rule either way. */
+  const only = pageOnly_();
+  seq.forEach((x, i) => pageParts_(x, seq[i - 1]).forEach(part => {
+    if (only === 'Answers' ? part !== 'ans' : only === 'Questions' ? part === 'ans' : false) return;
+    pages.push({ x: x, part: part });
+  }));
   STUFF_PAGES = { from: items, pages: pages };
   return pages;
+}
+
+/* THE `Page` FILTER IN FORCE, the last one pressed -- '' when there is none. */
+function pageOnly_() {
+  const f = (STUFF.filters || []).filter(f => f && f.field === 'pageKind' && !f.any).pop();
+  return f ? String(f.value) : '';
+}
+/* ---------- "JUST CLICK ANSWERS AND ONLY SEE ANSWERS" ------------------------------------------------
+   THE ANSWER PAGE'S KIND TAG IS THE DOOR. Tapping it narrows Find to the answer pages of whatever
+   is chosen -- one paper's answers, a topic's -- as the `Page: Answers` chip, so the ✕ on the chip
+   is the way back. A second tap does not stack a second chip. Through `go` when it is pressed on
+   Saved or Spotlight, because the strip it narrows is Find's.
+
+   THE TAG ITSELF IS THE TAG ROW'S, built elsewhere (`qTagsHtml_`): this listens for a tap on a tag
+   reading "Answer" on an answer page, whatever element it is drawn as, so it needs nothing from the
+   row but its words. */
+function answersOnly_() {
+  STUFF.filters = (STUFF.filters || []).filter(f => !(f && f.field === 'pageKind'));
+  STUFF.filters.push({ field: 'pageKind', value: 'Answers' });
+  if (typeof AT !== 'undefined' && AT !== 'stuff' && typeof go === 'function') go('stuff');
+  paintStuff();
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target.closest('.qans-card .qtag') : null;
+    if (t && /^answers?$/i.test(String(t.textContent || '').trim())) answersOnly_();
+  });
 }
 
 /* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER ---------------------

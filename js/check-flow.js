@@ -9467,6 +9467,56 @@ check('multipart: a figure the words name and nobody drew is a "not drawn yet" p
   return bad;
 });
 
+/* THE OWNER: *"they have their own tag. i could in theory just click answers and only see answers."*
+   Tapping an answer page's kind tag narrows Find to answer pages, each still shut behind its Show. The
+   tag row is built elsewhere and may not carry the kind yet, so the tag is put on the page the way the
+   row will draw it -- a `.qtag` reading "Answer" -- and tapped. */
+check('multipart: tapping an answer page\'s Answer tag shows only answer pages, each still hidden', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionAnsCard_', 'stuffPages_', 'nextFacet', 'facetList'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the answers-only view was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  try {
+    S.q = ''; S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    const a = lib.items.find(x => x.name === 'Q8(i)');
+    const host = d.createElement('div');
+    host.innerHTML = w.questionAnsCard_(a);
+    let tag = host.querySelector('.qans-card .qtag[data-tag="kind"]') || [...host.querySelectorAll('.qans-card .qtag')].find(t => /^answers?$/i.test(t.textContent.trim()));
+    if (!tag) {
+      tag = d.createElement('span');
+      tag.className = 'qtag'; tag.setAttribute('data-tag', 'kind'); tag.textContent = 'Answer';
+      (host.querySelector('.qans-card .qcard-sub') || host.querySelector('.qans-card')).appendChild(tag);
+    }
+    d.body.appendChild(host);
+    tag.click();
+    host.remove();
+    const f = S.filters.filter(x => x.field === 'pageKind');
+    if (f.length !== 1 || f[0].value !== 'Answers') bad.push('tapping the Answer tag left the filters as ' + JSON.stringify(S.filters));
+    if (!S.filters.some(x => x.field === 'paperId')) bad.push('tapping the Answer tag threw away the paper already chosen');
+    const pages = w.stuffPages_();
+    const kinds = [...new Set(pages.map(pg => pg.part))];
+    if (!pages.length || kinds.length !== 1 || kinds[0] !== 'ans') bad.push('the answers-only strip holds ' + JSON.stringify(kinds) + ', wanted answer pages and nothing else');
+    const names = pages.map(pg => pg.x.name).join(' ');
+    if (names !== 'Q8(i) Q8(ii)') bad.push('the answers-only strip is "' + names + '", wanted Q8(i) Q8(ii) -- the answers there are, in order');
+    pages.forEach(pg => {
+      const h = d.createElement('div');
+      h.innerHTML = w.stuffPart_(pg.x, 'ans');
+      const c = h.querySelector('.qans-card');
+      if (!c || !c.classList.contains('is-hidden') || /50°|angles on a line/.test(h.textContent)) bad.push(pg.x.name + '\'s answer is open in the answers-only view -- each stays behind its own Show');
+    });
+    /* AND IT IS NEVER ASKED: the funnel offers it to nobody. */
+    if (!w.facetList().some(x => x.field === 'pageKind' && x.tagOnly)) bad.push('the Page filter is not a tag-only facet');
+    S.filters = [];
+    const asked = w.nextFacet(w.stuffFiltered());
+    if (asked && asked.field === 'pageKind') bad.push('the funnel asks "Page" as a question');
+  } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;
