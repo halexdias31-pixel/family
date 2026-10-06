@@ -1,5 +1,14 @@
 /* ==================================================================================================
-   THE WEEKLY PARENT EMAIL, AS AN ADMIN SEES IT — one card on the Settings column.
+   THE PARENT EMAILS, AS AN ADMIN SEES THEM — two cards on the Settings column.
+
+   THE WEEKLY ONE FIRST, then the one after each session (backend/recap.gs), asked for as *"like 2 hours
+   after the end of each session is done it will send an automated email to them of the questions they
+   got done."* Both are switched off on the server, both are switched on the same way — a cell on the
+   config tab and a run in the Apps Script editor — and both cards say so and preview. Everything below
+   about the weekly card is true of the second, which is why it is in this file and not a new one:
+   `index.html` is unchanged, and the two cards cannot drift apart on what a mode means.
+
+   THE WEEKLY CARD:
 
    ASKED FOR AS *"something which triggers every sunday. it checks what the student has done that week
    and records the questions and send it in an email to parents. for now dont actually make it but make
@@ -22,6 +31,7 @@
 
    APPENDED LAST, after the business records, for the wardrobe's reason in `settingsPages_`:
    `PAGE.settings` remembers where somebody was, and a card in front would move every index behind it.
+   The session card goes after the weekly one for the same reason.
 ================================================================================================== */
 /* `got` is the last answer, so the mode on the card is the server's once it has said, and the config
    row in the payload before that. */
@@ -62,7 +72,7 @@ function digestCard_() {
    non-admin cannot use is a card they should not have to swipe past. */
 function digestPages_() {
   if (!(typeof isAdmin === 'function' && isAdmin())) return [];
-  return [digestCard_()];
+  return [digestCard_(), recapCard_()];
 }
 
 /* THE PLAIN BODY AS PARAGRAPHS: a blank line is a paragraph, a line break is a line. Every line through
@@ -90,6 +100,8 @@ function digestSheet_(d) {
     ${n ? emails.map(m => `<h2>To ${esc(m.parent || '')} · ${esc(m.to || '')}</h2>
       <p><b>${esc(m.subject || '')}</b></p>
       ${digestBody_(m.text)}`).join('')
+      /* NO `attempts` TAB IS NOT "NOBODY DID ANYTHING" — the server says which, and the card says it. */
+      : d.attempts === false ? `<p><b>${esc(d.warning || 'The Ledger has no attempts tab.')}</b></p>`
       : '<p>Nobody has done a question yet this week.</p>'}
     ${none.length ? `<h2>Nobody to tell</h2>
       ${none.map(u => `<p>${esc(u.name || u.id || '')} — ${esc(u.why || '')}</p>`).join('')}` : ''}`;
@@ -117,6 +129,117 @@ on('digest-preview', el => {
       if (why) why.textContent = DIGEST_SAY[mode];
       if (said) said.textContent = '';
       openSheet('Weekly parent email', digestSheet_(d));
+    })
+    .catch(() => {});
+});
+
+
+/* ==================================================================================================
+   THE EMAIL AFTER EACH SESSION — the second card, after the weekly one.
+
+   THE SAME CONTRACT AS ABOVE: it says the mode `session_recap` is in and where the switch is, throws
+   nothing, and its one tile asks `recapPreview` — a read of the last seven days that writes, sends and
+   books nothing. NO SWITCH TILE, for the reason at the top of this file; if one is ever wanted it goes
+   on both cards at once, or the two emails are switched two different ways.
+
+   WHAT THE PREVIEW IS FOR is "why did nothing go after Tuesday's lesson?" — so every booked session
+   is under its day with when its email falls due, every email as it would read now with what the log
+   says of it, and everybody nobody can tell with the reason: not paid yet, a name that is nobody's
+   child here, a parent who never confirmed their address, or — the one to look for first — nothing
+   marked that day while signed in as the child, with whose account the questions went on instead.
+   The two tabs it needs are named first when either is missing.
+================================================================================================== */
+const RECAP = { got: null };
+
+function recapModeNow_() {
+  if (RECAP.got && RECAP.got.mode) return digestModeOf_(RECAP.got.mode);
+  const vars = (DATA && DATA.constants && DATA.constants.vars) || {};
+  return digestModeOf_(vars.session_recap);
+}
+/* THE SERVER'S READING OF `session_recap_delay`: whole hours, 0 to 12, anything else 2. */
+function recapDelayNow_() {
+  const vars = (DATA && DATA.constants && DATA.constants.vars) || {};
+  const raw = RECAP.got && RECAP.got.delay != null ? RECAP.got.delay : vars.session_recap_delay;
+  const v = String(raw == null ? '' : raw).trim();
+  return /^\d{1,2}$/.test(v) && Number(v) <= 12 ? Number(v) : 2;
+}
+const recapAfter_ = h => (h === 0 ? 'Within the hour after' : 'About ' + h + ' hour' + (h === 1 ? '' : 's') + ' after');
+/* THE CONFIG TAB'S OWN WORDS FOR EACH MODE, as `DIGEST_SAY` is for Sundays. */
+const RECAP_SAY = {
+  off: 'Nothing is sent and nothing is written.',
+  preview: 'After each session, what would be sent is written to the recap_log tab. Nobody is emailed.',
+  send: 'After each session, parents are emailed.',
+};
+
+function recapCard_() {
+  const mode = recapModeNow_();
+  return `<div class="card recap">
+    <h3 class="recap-mode">Email after each session: <b>${esc(digestWord_(mode))}</b></h3>
+    <p class="sub"><span class="recap-when">${esc(recapAfter_(recapDelayNow_()))}</span> a child’s last booked session
+      of the day, each parent who has accepted a link to them gets the questions that child worked on that day.</p>
+    <p class="faint"><span class="recap-why">${esc(RECAP_SAY[mode])}</span> Switched on the config tab
+      (<code>session_recap</code>); the hourly check is booked from the Apps Script editor
+      (<code>installSessionRecap</code>).</p>
+    <div class="tile-row">${tile_({ icon: 'show', label: 'Preview', note: 'last 7 days', act: 'recap-preview' })}</div>
+    <p class="faint me-said recap-said"></p>
+  </div>`;
+}
+
+/* A SESSION'S STATE AS WORDS: its email is still to come, falls due this hour, or is past its 24 hours.
+   Anything else is the server's reason the session counts for nobody, printed as it came. */
+const RECAP_STATE = { upcoming: 'email still to come', due: 'email due now', past: 'past' };
+
+function recapSheet_(d) {
+  const days = (Array.isArray(d.days) ? d.days : []).filter(x => x && ((x.sessions || []).length
+    || (x.emails || []).length || (x.nobody || []).length));
+  const mode = digestModeOf_(d.mode);
+  const warn = [];
+  if (d.warning) warn.push(d.warning);
+  if (d.scheduled === 0) warn.push('No hourly check is booked yet — run installSessionRecap once in the Apps Script editor.');
+  const booked = d.scheduled == null ? '' : d.scheduled ? ' · checked every hour · booked' : ' · not booked';
+  const line = s => {
+    const head = [s.subject || 'A session', s.time].filter(Boolean).join(' ');
+    const who = (s.learners || []).length ? ' · ' + s.learners.join(', ') : '';
+    const due = s.dueSaid ? ' · email about ' + s.dueSaid : '';
+    return `<p>${esc(head + who + due + ' · ' + (RECAP_STATE[s.state] || s.state || ''))}</p>`;
+  };
+  const status = v => (v && v !== '—' ? v : 'not on the log yet');
+  return `${warn.map(w => `<p><b>${esc(w)}</b></p>`).join('')}
+    <p class="faint">${esc(digestWord_(mode) + booked)}. This preview sent nothing.</p>
+    ${days.length ? days.map(x => `<h2>${esc(x.label || x.day || '')}</h2>
+      ${(x.sessions || []).map(line).join('')}
+      ${(x.emails || []).map(m => `<h3>To ${esc(m.parent || '')} · ${esc(m.to || '')} — ${esc(status(m.status))}</h3>
+        <p><b>${esc(m.subject || '')}</b></p>
+        ${digestBody_(m.text)}`).join('')}
+      ${(x.nobody || []).length ? `<h3>Nobody to tell</h3>
+        ${x.nobody.map(u => `<p>${esc(u.name || '')} — ${esc(u.why || '')}${u.status && u.status !== '—'
+          ? ` <span class="faint">(${esc(u.status)})</span>` : ''}</p>`).join('')}` : ''}`).join('')
+      : '<p>No booked session in the last 7 days. The email follows sessions booked on the site — one that is not booked here sends nothing.</p>'}`;
+}
+
+on('recap-preview', el => {
+  if (!(typeof isAdmin === 'function' && isAdmin())) return;
+  const card = el.closest('.card');
+  const said = card && card.querySelector('.recap-said');
+  /* A BACKEND FROM BEFORE recap.gs says so here, rather than "not recognised" from the server. */
+  if (!(DATA && Array.isArray(DATA.features) && DATA.features.indexOf('recapPreview') !== -1)) {
+    if (said) said.textContent = 'The live backend does not have the email after sessions yet — sync backend/ into Apps Script.';
+    return;
+  }
+  send_({ action: 'recapPreview', name: USER && USER.name, personId: USER && USER.personId },
+        { button: el, where: said, busy: 'Building…' })
+    .then(d => {
+      RECAP.got = d;
+      /* THE CARD'S OWN LINES, IN PLACE — the mode and the delay the server just read. */
+      const mode = recapModeNow_();
+      const b = card && card.querySelector('.recap-mode b');
+      if (b) b.textContent = digestWord_(mode);
+      const why = card && card.querySelector('.recap-why');
+      if (why) why.textContent = RECAP_SAY[mode];
+      const when = card && card.querySelector('.recap-when');
+      if (when) when.textContent = recapAfter_(recapDelayNow_());
+      if (said) said.textContent = '';
+      openSheet('Email after each session', recapSheet_(d));
     })
     .catch(() => {});
 });

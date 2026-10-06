@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-06-answerstag";
+  --css-version: "2026-10-06-sessionrecap";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -610,7 +610,13 @@ body {
   border: 0;
   font-size: .7rem; font-weight: 500;
   letter-spacing: .12em; text-transform: uppercase; color: var(--dim);
+  overflow-wrap: anywhere;
 }
+/* AND A HEADING IN THE SHEET MAY HOLD AN ADDRESS, which has nothing to break at. The preview of the
+   email after each session heads each email `To Pat Parent · pat.parent…@example.org — preview` in an
+   `h3`, and at 320 that line scrolled the whole sheet sideways by 92px (check/ui.js). The weekly
+   preview's address sat in an `h2` small enough to fit, which was luck rather than a rule — so both. */
+#sheet-body h3 { overflow-wrap: anywhere; }
 
 /* ---------- CARDS -------------------------------------------------------------------------------
    Full width, one column, always. On a phone a card is a ROW — two side by side and both are too

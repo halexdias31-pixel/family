@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-06-b-chatmedia";
+const DOPOST_VERSION = "2026-10-06-d-sessionrecap";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3680,6 +3680,20 @@ function doPost(e) {
     if (action === 'digestPreview') {
       try {
         return jsonOut(digestPreviewOut_(new Date()));
+      } catch (err) {
+        return jsonOut({ error: 'The preview could not be built: ' + S(err && err.message || err) });
+      }
+    }
+
+    /* ---------- WHAT THE EMAIL AFTER EACH SESSION WOULD SAY ------------------------------------------
+       ASKED FOR AS *"like 2 hours after the end of each session is done it will send an automated
+       email to them of the questions they got done"* — backend/recap.gs, switched off until the
+       owner says. The same kind of door as the one above: a READ of the last seven days — every
+       booked session, every email it would send, everybody nobody can tell and why — that writes no
+       row, sends no email and books no trigger, whatever `session_recap` says. `admin`. */
+    if (action === 'recapPreview') {
+      try {
+        return jsonOut(recapPreviewOut_(new Date()));
       } catch (err) {
         return jsonOut({ error: 'The preview could not be built: ' + S(err && err.message || err) });
       }

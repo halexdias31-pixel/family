@@ -30,103 +30,15 @@
 ================================================================================================== */
 'use strict';
 const fs = require('fs'), path = require('path');
-const { backend } = require('./check-gas-load.js');
+/* THE WORLD — MailApp, ScriptApp, the lock and a London clock over the real backend — is
+   `check-mail-load.js` now, lifted out of this file when the email after a session needed the same
+   one. The weekly receipt (`digest_log`, keyed by `week_of`) is its default. */
+const { world, cfgSet, rowsOf, at, strip, calls, unquote, mentions } = require('./check-mail-load.js');
 
 const bad = [];
 let asked = 0;
 const REPO = path.resolve(__dirname, '..');
 
-/* ---------- A CALENDAR THAT KNOWS WHERE LONDON IS --------------------------------------------------
-   THE HARNESS'S `formatDate` IS UTC WHATEVER ZONE IT IS ASKED FOR, which is right for what it was
-   written for and would make this check unable to tell a London week from a UTC one — the whole of the
-   BST question. So here `yyyy-MM-dd` is answered in the zone named, by the same tz database a browser
-   uses. A backend that asked for UTC (or never asked) gets UTC, and the summer cases below catch it. */
-const dayIn = (d, tz) => {
-  try {
-    return new Intl.DateTimeFormat('en-CA', { timeZone: tz || 'UTC', year: 'numeric', month: '2-digit', day: '2-digit' })
-      .format(new Date(d));
-  } catch (e) { return new Date(d).toISOString().slice(0, 10); }
-};
-const iso = d => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())).toISOString().slice(0, 10);
-
-/* ---------- MAIL, TRIGGERS AND THE CLOCK, STUBBED ---------------------------------------------------- */
-const RealDate = Date;
-function world(opts) {
-  opts = opts || {};
-  const mail = { sent: [], quota: opts.quota == null ? 100 : opts.quota, fail: false, unreceipted: [], locked: [] };
-  /* THE RECEIPT IS ASKED FOR AT THE MOMENT OF SENDING. At-most-once is "the log says `sending` before
-     the email goes", and a check that only read the log afterwards could not tell that order from the
-     reverse — sending first and writing `sent` after passed it. So the stub looks at the log itself:
-     a row for this address, this week, saying `sending`, or the send is recorded as unreceipted. And
-     the lock: an email sent while the run holds it is the whole mailing holding up the site. */
-  let tabsRef = null;
-  const MailApp = {
-    sendEmail(m) {
-      if (lock.held) mail.locked.push(m && m.to);
-      const g = tabsRef && tabsRef.digest_log, h = g && g[0];
-      const ok = g && g.slice(1).some(r => String(r[h.indexOf('to')]) === String(m && m.to)
-        && String(r[h.indexOf('status')]) === 'sending' && /^'?\d{4}-\d{2}-\d{2}$/.test(String(r[h.indexOf('week_of')])));
-      if (!ok) mail.unreceipted.push(m && m.to);
-      if (mail.fail) throw new Error('Invalid email: ' + (m && m.to));
-      if (mail.quota <= 0) throw new Error('Service invoked too many times for one day: email.');
-      mail.quota--; mail.sent.push(m);
-    },
-    getRemainingDailyQuota: () => mail.quota,
-  };
-  const trig = [];
-  const ScriptApp = {
-    getScriptId: () => 'local', getOAuthToken: () => '', getService: () => ({ getUrl: () => '' }),
-    getAuthorizationInfo: () => ({ getAuthorizationStatus: () => 'NOT_REQUIRED' }), AuthMode: { FULL: 'FULL' },
-    WeekDay: { MONDAY: 'MONDAY', TUESDAY: 'TUESDAY', WEDNESDAY: 'WEDNESDAY', THURSDAY: 'THURSDAY',
-               FRIDAY: 'FRIDAY', SATURDAY: 'SATURDAY', SUNDAY: 'SUNDAY' },
-    getProjectTriggers: () => trig.slice(),
-    deleteTrigger: t => { const i = trig.indexOf(t); if (i >= 0) trig.splice(i, 1); },
-    newTrigger(fn) {
-      const spec = { fn: fn };
-      const make = () => { const t = { spec: spec, getHandlerFunction: () => spec.fn }; trig.push(t); return t; };
-      const clock = {
-        onWeekDay: d => { spec.weekDay = d; return clock; }, atHour: h => { spec.hour = h; return clock; },
-        nearMinute: m => { spec.minute = m; return clock; }, inTimezone: z => { spec.tz = z; return clock; },
-        everyDays: n => { spec.everyDays = n; return clock; }, everyMinutes: n => { spec.everyMinutes = n; return clock; },
-        everyWeeks: n => { spec.everyWeeks = n; return clock; }, after: ms => { spec.after = ms; return clock; },
-        create: make,
-      };
-      return { timeBased: () => clock, forSpreadsheet: () => ({ onChange: () => ({ create: make }) }) };
-    },
-  };
-  const lock = { free: true, held: false };
-  const take = () => { if (!lock.free) return false; lock.held = true; return true; };
-  const LockService = { getScriptLock: () => ({ tryLock: take, waitLock: take, releaseLock: () => { lock.held = false; } }) };
-  const b = backend({ MailApp, ScriptApp, LockService });
-  tabsRef = b.tabs;
-  const G = b.ev('globalThis');
-  const fmt0 = G.Utilities.formatDate;
-  G.Utilities.formatDate = (d, tz, f) => (f === 'yyyy-MM-dd' ? dayIn(d, tz) : fmt0(d, tz, f));
-  /* THE CLOCK. `new Date()` with no argument, inside the backend, is this instant; everything else is a
-     real Date, and a Date the harness made is still `instanceof Date` to the backend's `isoDate_`. */
-  const setClock = ms => {
-    class Clock extends RealDate {
-      constructor(...a) { if (a.length) super(...a); else super(ms); }
-      static now() { return ms; }
-      static [Symbol.hasInstance](x) { return x instanceof RealDate; }
-    }
-    G.Date = Clock;
-  };
-  return { b, mail, trig, lock, G, setClock };
-}
-
-const cfgSet = (b, k, v) => {
-  const g = b.tabs.config, h = g[0], ki = h.indexOf('key'), vi = h.indexOf('value');
-  const r = g.find((x, i) => i > 0 && x[ki] === k);
-  if (r) r[vi] = v;
-  else { const row = h.map(() => ''); row[ki] = k; row[vi] = v; g.push(row); }
-  b.ev('clearCache()');
-};
-const rowsOf = (b, tab) => {
-  const g = b.tabs[tab], h = g[0];
-  return g.slice(1).map(r => { const o = {}; h.forEach((c, i) => { o[c] = r[i] instanceof Date ? iso(r[i]) : r[i]; }); return o; });
-};
-const at = s => new RealDate(s).getTime();
 const run = (b, s) => JSON.parse(JSON.stringify(b.ev('clearCache(); digestRun_(new Date(' + at(s) + '))')));
 
 /* ---------- THE PEOPLE, THE FAMILIES AND A WEEK OF WORK ----------------------------------------------
@@ -508,6 +420,47 @@ function seeded(opts) {
   if (!r.week || r.week.start !== '2026-09-28' || mail.sent.length !== 2) bad.push('weeklyDigestRun on the Sunday clock ran ' + JSON.stringify(r) + ' and sent ' + mail.sent.length);
 }
 
+/* ---------- 5b. NO `attempts` TAB IS NOT A QUIET WEEK ------------------------------------------------------------
+   THE OWNER'S LEDGER HAD NO `attempts` TAB UNTIL 6 OCT, and `read` answers a missing tab with no rows —
+   so this run planned nothing, wrote nothing, and the Preview said "Nobody has done a question yet this
+   week" over a sheet that had never been told what anybody did. It must stop and say why, send nothing,
+   write nothing, and throw from the trigger so the owner is emailed the reason. */
+{
+  const { b, mail, setClock } = seeded();
+  cfgSet(b, 'weekly_digest', 'send');
+  delete b.tabs.attempts;
+  b.ev('clearCache()');
+  asked++;
+  const w0 = b.log.writes;
+  const r = run(b, SUN);
+  if (!/attempts tab/.test(String(r.error)) || !/setup=1/.test(String(r.error))) bad.push('with no attempts tab the Sunday run answered ' + JSON.stringify(r).slice(0, 200) + ' — wanted an error naming the attempts tab and /exec?setup=1');
+  if (mail.sent.length || b.log.writes !== w0) bad.push('with no attempts tab the run sent ' + mail.sent.length + ' and wrote ' + (b.log.writes - w0) + ' cell(s) — it must do neither');
+  setClock(at(SUN));
+  let threw = '';
+  try { b.ev('clearCache(); weeklyDigestRun({})'); } catch (e) { threw = String(e && e.message || e); }
+  if (!/attempts tab/.test(threw)) bad.push('weeklyDigestRun with no attempts tab did not throw saying so: "' + threw + '"');
+  asked++;
+  const tok = b.post({ action: 'verifyLogin', email: 'a1@example.org', pin: '0000' }).token;
+  const pv = b.post({ action: 'digestPreview', token: tok });
+  if (pv.attempts !== false || !/attempts tab/.test(String(pv.warning))) bad.push('the Preview with no attempts tab answered attempts ' + pv.attempts + ', warning "' + pv.warning + '" — wanted false and the reason');
+  /* AND WITH THE TAB, IT SAYS SO THE OTHER WAY. */
+  const ok = seeded();
+  const tok2 = ok.b.post({ action: 'verifyLogin', email: 'a1@example.org', pin: '0000' }).token;
+  const pv2 = ok.b.post({ action: 'digestPreview', token: tok2 });
+  if (pv2.attempts !== true || pv2.warning) bad.push('the Preview with an attempts tab answered attempts ' + pv2.attempts + ', warning "' + pv2.warning + '"');
+}
+{
+  /* TWO EMAILS, TWO "STOP"s. A parent who stopped the email after each session (`session_email` = no,
+     backend/recap.gs) has not stopped Sunday's — `weekly_email` is blank on Pat's row, which is on. */
+  const { b, mail } = seeded();
+  const g = b.tabs.people, h = g[0];
+  g.find((r, i) => i > 0 && r[h.indexOf('person_id')] === 'P-C1')[h.indexOf('session_email')] = 'no';
+  cfgSet(b, 'weekly_digest', 'send');
+  asked++;
+  run(b, SUN);
+  if (!mail.sent.some(m => m.to === 'pat@example.org')) bad.push('Pat, whose session_email says no and weekly_email is blank, was not sent the weekly email — the two opt-outs are separate');
+}
+
 /* ---------- 6. BOOKING THE SUNDAY ---------------------------------------------------------------------------- */
 {
   const { b, trig } = seeded();
@@ -535,7 +488,6 @@ function seeded(opts) {
 /* ---------- 7. NOTHING STARTS IT, AND IT ARRIVES OFF ------------------------------------------------------------ */
 {
   asked++;
-  const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:])\/\/[^\n]*/g, '$1');
   const dir = path.join(REPO, 'backend');
   let files = [];
   try { files = fs.readdirSync(dir).filter(f => f.endsWith('.gs')); } catch (e) {}
@@ -543,17 +495,10 @@ function seeded(opts) {
   const front = fs.readdirSync(path.join(REPO, 'js')).filter(f => f.endsWith('.js') && !/^check/.test(f))
     .map(f => ['js/' + f, strip(fs.readFileSync(path.join(REPO, 'js', f), 'utf8'))]);
   const back = files.map(f => ['backend/' + f, strip(fs.readFileSync(path.join(dir, f), 'utf8'))]);
-  /* NOT ONE CALL, anywhere, to what books or runs it — its own declarations and the run's one caller aside. */
-  const calls = (src, name) => [...src.matchAll(new RegExp('(^|[^\\w.])' + name + '\\s*\\(', 'g'))]
-    .filter(m => !/function\s+$/.test(src.slice(Math.max(0, m.index - 10), m.index + m[1].length)));
-  /* AND NOT ONE BARE MENTION, which is a call waiting to happen: `sunday: installWeeklyDigest,` in
-     RUNNABLE calls nothing in the text and books the Sunday from `?run=sunday`. So every word-bounded
-     use counts, outside the function's own declaration and outside a string — a string naming the
-     handler is the rule below, and "run weeklyDigestRun again" in a message is an instruction to a
-     person. */
-  const unquote = t => t.replace(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g, "''");
-  const mentions = (src0, name) => { const src = unquote(src0); return [...src.matchAll(new RegExp('(^|[^\\w.$])' + name + '(?![\\w$])', 'g'))]
-    .filter(m => !/function\s+$/.test(src.slice(Math.max(0, m.index - 10), m.index + m[1].length))); };
+  /* NOT ONE CALL, anywhere, to what books or runs it — its own declarations and the run's one caller
+     aside — AND NOT ONE BARE MENTION, which is a call waiting to happen: `sunday: installWeeklyDigest,`
+     in RUNNABLE calls nothing in the text and books the Sunday from `?run=sunday`. `calls`, `mentions`
+     and `unquote` are check-mail-load.js's, shared with check-recap.js. */
   back.concat(front).forEach(([f, src]) => {
     ['installWeeklyDigest', 'weeklyDigestRun', 'removeWeeklyDigest'].forEach(n => {
       const c = Math.max(calls(src, n).length, mentions(src, n).length);
