@@ -221,3 +221,11 @@ after-slide jobs to run dry. Green after.
 
 **Still red, and not this branch's:** `check/cards.js` A PICTURE NOT ON ITS OWN FIGURE PAGE — 2371 on
 the base commit, 2374 here (three more library rows merged since); library data, not layout.
+
+**States that finish on their own timer** (`setTimeout(…, 150)` before the real press) did not
+arrive on 1 run in 2 of `press.js --screen=stuff` — on the base commit too. `press.js` and `ui.js`
+now ask a state's `expect` again for up to 2.5s; one that never arrives still fails (proved by forcing
+the ringed passage's `expect` false: 2 states not reached).
+
+**`check-funnel.js` timed out at the roster's 180s in both full runs** under a load average of 13–18;
+alone it passes in 82s. Not this branch's, and its budget is left alone.
