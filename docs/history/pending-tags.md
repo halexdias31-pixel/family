@@ -121,3 +121,26 @@ stem and its figure, a long part's first page, a squared-grid surface, KS2 and K
 an AQA paper with the day it was sat, a Functional Skills Section A, a Corbettmaths 5-a-day, a
 practical (unchanged — practicals use the `.fc` head, not this row), the funnel with a
 `Non-calculator` chip, and Level SATs asking `KS1 | KS2`.
+
+### After review: the measuring copy draws what the app draws
+
+A reviewer read `check/cards.js`'s `cardHtml` against `qPage_` and it was drawing other pills: no
+`data-tag` on anything, `1 marks` on a one-mark question, and `Paper 1 (Non-Calculator)` kept whole
+beside an added `No calculator` where the app draws `Paper 1` and `Non-calculator`. A card measured
+with other pills is a fixture that does not send what `doGet` sends. **Fixed as a rule, not by
+re-copying:** `NEEDS_SAY`, `needsSay_`, `nameNeeds_`, `marksSay_`, `qPartName_` (and the two part
+regexes) are cut out of find.js by name, as `typeset_` already was; the copy reads the cover's needs
+and the printed-sheet columns as `needsOf_` does; and the browser pass compares every question card's
+`kind` / `number` / `marks` / `needs` pills — and any pill with `calculator` in it — with the real
+`questionCard_`. Found on its first run: 1,195 cards differed (`Q11` for `Q1.1`, `Printed sheet`
+missing); **0 of 6,730** now. Mutations: `1 marks` back → 1,298 red; the name not cut → 1,078 red.
+A one-line `const` is taken to its line's end, because `cutFrom` counts braces and `i{1,3}` closed
+the cut halfway through a regex.
+
+**Textbooks have no question pages.** The first `textbook` shot filtered by `Resources` only and
+opened on a boxer. Re-shot with the shelf: the book's card and chapters 2 and 9 are `textbookPart_`'s
+`.fc` cards — no `qPage_`, no tag row — and are unchanged by this work.
+
+**Left for the owner:** the needs lemon (`#f0f08a`) sits near the type lime (`#c3e88d`) when both are
+chosen in the funnel; and `number` shares the paper's red on purpose. Both were picked by looking (see
+above); either is one token at `:root` to move.
