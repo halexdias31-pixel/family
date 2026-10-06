@@ -2390,73 +2390,16 @@ function bucketHas_(facet, bucket, v) {
    SO THE RECOUNT GOES THROUGH `bucketHas_` — the same function `filterHit` uses — over the same
    items. The drawer and the filter cannot disagree because they are asking one function. That is
    `bandOf_`'s own argument and `documents_()`'s before it. */
-function bucketValues_(values, facet, items) {
-  if (values.length <= FACET_MAX_SHOWN) return values;
-
-  const made = bucketLabels_(values, facet);
-  if (!made || made.length < 2) return values;
-
-  /* ONE PASS OVER THE ITEMS, counting each into every bucket it can answer and each bucket once. */
-  const tally = {};
-  made.forEach(b => { tally[b] = 0; });
-  (items || []).forEach(x => {
-    const hit = {};
-    facetOwn_(facet, x).forEach(v => {
-      made.forEach(b => { if (bucketHas_(facet, b, v)) hit[b] = 1; });
-    });
-    Object.keys(hit).forEach(b => { tally[b] += 1; });
-  });
-  return made.map(b => ({ value: b, n: tally[b], bucket: true }));
-}
-
-/* WHICH BUCKETS, AS LABELS, IN THE ORDER THEY SHOULD BE DRAWN. Split out from the counting above so
-   that one function decides the edges and another decides the numbers — the counting is the part
-   that has to agree with `filterHit`, and the edges are the part a facet may override. */
-function bucketLabels_(values, facet) {
-  /* 1. THE FACET'S OWN GROUPING. */
-  if (facet && typeof facet.bucketOf === 'function') {
-    const seen = [];
-    let whole = true;
-    values.forEach(v => {
-      /* A GROUPING THAT THROWS STANDS DOWN RATHER THAN TAKING THE FUNNEL WITH IT. `bucketOf` is a
-         table lookup for eleven of these and a regex over a string for the other two, so nothing
-         here can throw today — and `filterHit` runs the same function per item per chip, so the
-         day one of them is a resolver over a file that has not landed, an unguarded call is the
-         Find screen rather than an ungrouped question. The house rule is fallbacks everywhere. */
-      let k = '';
-      try { k = facet.bucketOf(v.value); } catch (e) { k = ''; }
-      if (!k) { whole = false; return; }
-      if (seen.indexOf(k) === -1) seen.push(k);
-    });
-    /* EVERY VALUE OR NONE. A grouping that places most of them and drops the rest makes those
-       answers unreachable with nothing on screen saying so — the silent absence this codebase keeps
-       producing. One unplaced value and the whole rule stands down to the alphabet, which cannot
-       lose anything. */
-    if (whole && seen.length > 1 && seen.length <= FACET_MAX_SHOWN) {
-      /* THE ORDER THE TABLE WAS WRITTEN IN, because a grouping's rows are a sequence somebody
-         chose — heaviest division first, primary before A-level — and re-sorting them
-         alphabetically throws that away. A computed grouping has no table, so it falls back to
-         its labels; `bucketDesc` turns that round for the sittings, which read newest first
-         everywhere else on this screen. */
-      const order = facet.bucketOrder || [];
-      const out = seen.sort((a, b) => {
-        const ia = order.indexOf(a), ib = order.indexOf(b);
-        if (ia !== ib) return (ia < 0 ? 1e6 : ia) - (ib < 0 ? 1e6 : ib);
-        return a < b ? -1 : a > b ? 1 : 0;
-      });
-      return facet.bucketDesc ? out.reverse() : out;
-    }
-  }
-
-  /* ---------- 2 AND 3 WERE TENS AND THE ALPHABET, AND THEY ARE GONE ------------------------------
-     THE OWNER, 6 Oct: *"I don't want to break up the title of things. Like as you can see it's
-     broken up into letter and so on. I don't want this no more. Just let it all display ... Other
-     categories should reduce how many show up like grade."* A range of letters or numbers is not a
-     category, it is the same list cut where the alphabet happened to fall -- `C`, `E`, `O`, `P`
-     over FOUR topics, measured. So a list either has a real grouping (rule 1: a subject area, a
-     grade band, a level) or it is drawn whole, and a list too long to draw whole is not asked
-     (`FACET_MAX_ANSWERS` in `nextFacet`) until the other questions have narrowed it. */
-  return null;
+/* ---------- AND NOW NOTHING IS GROUPED AT ALL ---------------------------------------------------
+   THE OWNER, 6 Oct, on a screenshot of `Grades 1–3 | Grades 4–6 | Grades 7–9`: *"No more of these
+   artificial categories like grade 1-3."* The same day the letter and number ranges went (*"Just
+   display"*); this takes the facets' own tables with them -- grade bands, subject areas, levels,
+   divisions. A question draws the answers the items actually give, every one, and a list too long
+   to draw whole is not asked (`FACET_MAX_ANSWERS` in `nextFacet`) until the other questions have
+   narrowed it. `bucketHas_` and the tables stay: a chip saved on a phone before this still finds its
+   items, and `check-flow` reads the kind table to route its journeys. */
+function bucketValues_(values) {
+  return values;
 }
 
 

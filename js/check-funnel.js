@@ -611,7 +611,10 @@ boot(f => {
        rather than assumed here: this line only says why the second state is gone. */
     console.log('  ' + chained + ' answer(s) pressed inside their bucket, through the whole chain'
                 + ' (none inside one paper: a paper ends the funnel, see 4e)');
-    if (!chained) bad.push('no answer was drawn inside any bucket, so the chain rule proves nothing');
+    /* NOTHING IS GROUPED SINCE 6 OCT (*"No more of these artificial categories like grade 1-3"*), so
+       there is no answer inside a bucket to press and this proves nothing -- which is now the right
+       answer, not a fault. A bucket drawn at all fails the "cut into ranges" rule further down. */
+    if (!chained) console.log('  no answer is drawn inside a bucket -- the funnel groups nothing any more');
   } else {
     bad.push('`stuffNarrow_` is not declared, so an answer inside a bucket cannot be pressed — not a pass');
   }
@@ -1617,7 +1620,7 @@ boot(f => {
     try { drew = f.facetValues(ten, collapse); } catch (e) { drew = []; }
     if (drew.length !== 10 || drew.some(v => v.bucket)) {
       bad.push('a list no table can split is not drawn whole: ' + drew.length + ' answers, '
-               + drew.filter(v => v.bucket).length + ' of them buckets -- see `bucketLabels_`');
+               + drew.filter(v => v.bucket).length + ' of them buckets -- see `bucketValues_`');
     }
 
     /* ---------- AND A TABLE PLACES EVERY SPELLING OF A VALUE IT LISTS ---------------------------

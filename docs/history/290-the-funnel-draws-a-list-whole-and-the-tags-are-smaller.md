@@ -33,3 +33,13 @@ list, drawn whole"; the bundle state answers `2017` instead of `2017 & 2018`.
 **Found on the way:** the new Corbettmaths sheet and a 1st Class Maths paper were both called "Area
 of Squares and Rectangles", so one could not be picked; ours is named by its cover, "Area of a
 Square / Area of a Rectangle".
+
+### And then the tables went too
+
+Same day, on a screenshot of `Grades 1–3 | Grades 4–6 | Grades 7–9`: *"No more of these artificial
+categories like grade 1-3."* So rule 1 went after rules 2 and 3: `bucketLabels_` is gone and
+`bucketValues_` hands back what it is given. Grade draws `Grade 1` … `Grade 9`, Subject its real
+subjects, Level its real levels. The tables (`GRADE_BUCKET` and the rest) and `bucketHas_` stay —
+an old saved chip still finds its items, and `check-flow` routes journeys by the kind table.
+`check-funnel`'s "an answer inside a bucket, pressed through the chain" rule now says there are no
+buckets rather than failing for want of one.
