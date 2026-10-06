@@ -1152,6 +1152,53 @@ async function gesture(env, o) {
     await env.ctx.close();
   }
 
+  /* ---------- 12. A WIDE WINDOW: CENTRED AT BOTH ENDS, AND EVERY OTHER CARD OUT OF FOCUS ------------
+     The owner, 6 Oct, after the wide window first went in: *"what happened to widgets not in focus
+     should have the not in focus effect. also the widget in focus is always in centre not like how you
+     just did."* The first version slid the row to the window's edge at either end, so Feed sat a third
+     of the way in, and left every card beside the one in front sharp. Neither had a check, which is
+     how both went in; these are the two halves of that sentence. 1280x800 — three columns on the
+     glass — on the FIRST, a middle and the LAST screen, because the ends are where the slide was. */
+  if (want('wide')) {
+    const env = await boot(browser, 1280, 800, {});
+    const r = await env.page.evaluate(async () => {
+      const out = [];
+      const ids = [TABS[0].id, TABS[Math.floor(TABS.length / 2)].id, TABS[TABS.length - 1].id];
+      for (const id of ids) {
+        await window.__sw.place(id, 0);
+        const ti = TABS.findIndex(t => t.id === id);
+        const front = document.querySelector('#s-' + id + ' > .page.on');
+        const pane = front && front.querySelector(':scope > .pane');
+        const blur = p => { const m = /blur\(([\d.]+)px\)/.exec(getComputedStyle(p.querySelector(':scope > .pane')).filter); return m ? +m[1] : 0; };
+        const onGlass = el => { const b = el.getBoundingClientRect(); return b.right > 0 && b.left < innerWidth && b.bottom > 0 && b.top < innerHeight; };
+        /* EVERY OTHER CARD WHOSE PANE IS ON THE GLASS, in this column and the columns beside it. */
+        const others = [...document.querySelectorAll('#screen .page')].filter(p => p !== front
+          && getComputedStyle(p).visibility !== 'hidden' && +getComputedStyle(p.closest('.screen') || p).opacity > 0
+          && p.querySelector(':scope > .pane') && onGlass(p.querySelector(':scope > .pane')));
+        const r = pane && pane.getBoundingClientRect();
+        out.push({ id, wide: document.documentElement.classList.contains('wide'),
+          dx: r ? r.left + r.width / 2 - innerWidth / 2 : null,
+          frontSoft: !!(front && front.classList.contains('soft')), frontBlur: front ? blur(front) : 0,
+          others: others.length, sharp: others.filter(p => !p.classList.contains('soft-dim') && !(p.classList.contains('soft') && blur(p) > 0))
+            .map(p => (p.closest('.screen') || {}).id + '/' + [...p.parentNode.children].indexOf(p)).slice(0, 6),
+          beside: ti > 0 || ti < TABS.length - 1 });
+      }
+      return out;
+    });
+    reached++;
+    r.forEach(o => {
+      note(`1280x800 wide ${o.id}: ${o.dx == null ? 'no card' : o.dx.toFixed(1) + 'px off centre'}, ${o.others} other card(s) on the glass, ${o.sharp.length} sharp`);
+      if (!o.wide) return fail('REACH', `1280x800 ${o.id}`, 'the window was not treated as wide — nothing here was measured');
+      if (o.dx == null) return fail('CENTRED', `1280x800 ${o.id}`, 'there is no card in front to measure');
+      if (Math.abs(o.dx) > 1) fail('CENTRED', `1280x800 ${o.id}`, `the card in front is ${o.dx.toFixed(1)}px off the middle of the window — it is centred on every screen, the first and last included`);
+      if (o.frontSoft || o.frontBlur > 0) fail('OUT OF FOCUS', `1280x800 ${o.id}`, 'the card in front is blurred');
+      if (!o.others) fail('REACH', `1280x800 ${o.id}`, 'no other card is on the glass, so nothing out of focus was measured');
+      if (o.sharp.length) fail('OUT OF FOCUS', `1280x800 ${o.id}`, `${o.sharp.length} card(s) beside or under the one in front are sharp: ${o.sharp.join(', ')}`);
+    });
+    if (env.errs.length) fail('PAGE ERROR', '1280x800 wide', env.errs.slice(0, 3).join(' | '));
+    await env.ctx.close();
+  }
+
   await browser.close();
   server.close();
 
