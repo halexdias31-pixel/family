@@ -103,7 +103,7 @@ function boot() {
   try {
     w.eval(src + '\n;window.__b = { STUFF, stuffFiltered, bundleOf_, paintStuff, stuffFirstResult_,' +
       ' stuffPageCount, frontPages_, pageCount, go, goPage, initCart, cartCard_, orderText_,' +
-      ' printPrice, laminatePrice, money, docById_,' +
+      ' printPrice, laminatePrice, money, docById_, bundlesBySitting_, stuffPages_, facetBy,' +
       ' CART: () => CART, setCart: v => { CART = v; }, USER: () => USER };');
   } catch (e) {
     return { err: 'the app did not load: ' + e.message };
@@ -201,12 +201,9 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
       /* AND THE LINES INSIDE IT ARE THE MONTH FOLDERS, `May 2017` / `June 2017` / `November 2017` --
          they listed `Summer 2017` and `Autumn 2017` under a Month question offering May and June. */
       groups: ['May 2017', 'June 2017', 'November 2017'] },
-    /* THE BUCKET, which is what the Year question offers first: four sittings, twelve papers. */
-    { name: '2017 & 2018, Higher',
-      filters: DOORS.concat([{ field: 'tier', value: 'Higher' },
-                             { field: 'examYear', value: '2017 & 2018', bucket: true }]),
-      want: papersIn(r => MATHS(r) && r.tier === 'Higher' && ['2017', '2018'].includes(String(r.year))),
-      title: ['Edexcel', 'Maths', '2017 & 2018'] },
+    /* `2017 & 2018` WAS HERE — the Year question's bucket. The owner took the buckets out (6 Oct:
+       *"No more of these artificial categories"*), so that filter matches nothing now; the overlap
+       it stood for below is the whole-year folder, which holds the June papers and more. */
   ];
   cases.forEach(c => {
     if (c.want.size < 2) {
@@ -335,12 +332,12 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
   }
   /* AND AN OVERLAPPING BUNDLE, which is where "not twice" is actually decided. Pressing the same
      bundle again is stopped before the handler by the tile itself — it is drawn filled and off once
-     every paper is in — so that press proves the tile, not the rule. `2017 & 2018` holds the two
-     June 2017 papers already in the basket and the rest of both years; its trolley is live, and
+     every paper is in — so that press proves the tile, not the rule. `2017, Higher` holds the two
+     June 2017 papers already in the basket and the rest of that year; its trolley is live, and
      pressing it must add the rest and only the rest. Found by name rather than by position, so a
      case added above it cannot quietly make this press a different bundle. */
   const had = b.CART().map(c => Object.assign({}, c));
-  const wide = cases.find(c => c.name === '2017 & 2018, Higher');
+  const wide = cases.find(c => c.name === '2017, Higher');
   narrow(wide.filters);
   if (!trolley()) {
     bad.push('the overlapping bundle (' + wide.name + ') has no trolley to press');
@@ -354,10 +351,35 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
     }
     if (!sameSet(new Set(keys), wide.want)) {
       bad.push('after the overlapping bundle the basket holds [' + list(new Set(keys)) + '] where '
-               + 'the two sittings are [' + list(wide.want) + ']');
+               + 'the year holds [' + list(wide.want) + ']');
     }
   }
   b.setCart(had);
+
+  /* ---------- 4b. `Bundles` IS A KIND, AND ITS RESULTS ARE BUNDLES ---------------------------------
+     The owner, 6 Oct: *"bundle is a tag option too"*. Chosen under `What kind`, the list is every
+     question on a printable paper, the funnel narrows it as usual, and what is drawn is one bundle per
+     sitting — no question pages, and each bundle exactly that sitting's papers. */
+  {
+    const kind = b.facetBy('kindLabel');
+    narrow(DOORS.map(f => f.field === 'kindLabel' ? { field: 'kindLabel', value: 'Bundles' } : f));
+    const sits = b.bundlesBySitting_();
+    if (!kind) bad.push('there is no `What kind` facet to find `Bundles` under');
+    if (!sits.length) bad.push('`Bundles` under Edexcel · Maths · GCSE drew no bundle at all');
+    if (b.stuffPages_().length) bad.push('`Bundles` still draws ' + b.stuffPages_().length + ' question pages under its bundles');
+    const front = b.frontPages_().filter(h => /class="card bundle/.test(h)).length;
+    if (front !== sits.length) bad.push('`Bundles` found ' + sits.length + ' sittings and drew ' + front + ' bundle cards');
+    const june = papersIn(r => MATHS(r) && r.tier === 'Higher' && JUNE(r));
+    const hit = sits.find(x => [...june].every(id => x.ids.includes(id)));
+    if (!hit) bad.push('no bundle under `Bundles` holds the June 2017 Higher papers');
+    else if (hit.ids.some(id => { const d = b.docById_(id) || {}; return String(d.year) !== '2017' || String(d.month) !== '6'; })) {
+      bad.push('the June 2017 bundle under `Bundles` also holds papers from another sitting: ' + hit.ids.join(', '));
+    }
+    for (let i = 1; i < sits.length; i++) {
+      const y = s => +((b.docById_(s.ids[0]) || {}).year || 0);
+      if (y(sits[i]) > y(sits[i - 1])) { bad.push('`Bundles` are not newest first'); break; }
+    }
+  }
 
   /* ---------- 5. A BASKET SAVED BEFORE BUNDLES STILL DRAWS, AND AN UNCOUNTED PAPER IS NOT FREE ----
      `localStorage` outlives a deploy. A print line with its own `money` from the days of the paper

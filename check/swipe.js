@@ -42,7 +42,7 @@
      node check/swipe.js --verbose  every gesture, not only the failures
      node check/swipe.js --only=cell,focus --width=390
                                     some of it: cell folded axis tile slide other centre focus
-                                    field hold keypad widgets cost reduced — for proving one rule by mutation
+                                    field hold keypad widgets cost flicks reduced — for proving one rule by mutation
                                     without waiting six minutes for all of them. A run narrowed
                                     this way says so, and is never what the roster runs.
    SWIPE_PORT pins the port; unset, the OS picks a free one, so parallel runs cannot collide.
@@ -954,6 +954,180 @@ async function gesture(env, o) {
       else {
         if (cam.across) fail('RELEASE COST', `${at} Tools to Games`, `camStop_ ran ${cam.across} time(s) on a column change that never touched the feed — a whole-document layout for a camera that was never on`);
         if (cam.leaving !== 1) fail('RELEASE COST', `${at} leaving the feed`, `camStop_ ran ${cam.leaving} time(s) leaving the feed, not once — the camera must still be let go`);
+      }
+    }
+
+    /* ---------- 11. A QUICK RUN OF FLICKS: THE WORK, COUNTED ----------------------------------------
+       REPORTED ON 6 OCTOBER, from a phone: *"if i try to scroll quickly up or down its clunky and
+       janky. make it a smooth experience. more stability, smoother, more elegant."* Measured with
+       rapid flicks at 4x CPU, four faults, each asked here by COUNTING the work rather than timing it,
+       because on this machine milliseconds are noise and a count is not:
+
+         · EVERY DRAG FRAME WAS A FULL PLACEMENT — every column restyled and MEASURED again, 8–14ms a
+           frame against 16.7 — to arrive at the numbers the first frame had (`DRAG_PLAN` in
+           shell.js). Asked: frames of a held drag that measure a column or place the grid in full.
+         · A PAGE TURN ON SETTINGS BUILT THE WHOLE COLUMN'S MARKUP FIVE TIMES to count its pages
+           (`countHold_`). Asked: how many times one flick counts them — twice is the floor, once to
+           choose the axis and once at the release.
+         · A TALL CARD STOPPED DEAD THE MOMENT THE THUMB LEFT IT — 0px of travel after a fast flick
+           (`glide_` in overworld.js). Asked: does it carry on after the lift, without turning the
+           page, and does a touch stop it where it is without pressing anything.
+         · TURNING PAGES ON FIND forced a layout of the column for every page it emptied, in single
+           tasks of up to 1.3s (`pane.scrollTop = 0` in `fillStuffPages`). Asked: how many panes that
+           could never scroll were told to.
+       Each one fails with its own name; a rule that could not reach its subject fails as REACH. */
+    if (want('flicks')) {
+      /* A. A HELD VERTICAL DRAG ON TOOLS, from a column at rest. */
+      let sp = null;
+      for (const p of TOOLS) { await page.evaluate(p => window.__sw.place('tools', p), p); sp = await page.evaluate(() => window.__sw.spot()); if (sp) break; }
+      if (!sp) fail('REACH', `${at} drag frames`, 'no Tools card had a spot the grid would take');
+      else {
+        await page.evaluate(() => {
+          const c = window.__swCost = { full: 0, shift: 0, frames: 0, real: {} };
+          const wrap = (name, f) => { const real = window[name]; c.real[name] = real;
+            window[name] = function () { f(arguments); return real.apply(this, arguments); }; };
+          const live = () => SWIPE.live && !!SWIPE.axis;
+          wrap('publishCardWidth_', () => { if (live()) c.full++; });
+          wrap('columnShift_', () => { if (live()) c.shift++; });
+          wrap('placeGrid', a => { if (a[1]) c.frames++; });
+        });
+        const f = await finger(cdp, { x0: sp.x, y0: sp.y, dur: 400, path: t => [0, -150 * t], end: false });
+        await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+        const c = await page.evaluate(() => { const c = window.__swCost;
+          Object.keys(c.real).forEach(n => { window[n] = c.real[n]; }); return { full: c.full, shift: c.shift, frames: c.frames }; });
+        await f.lift();
+        await page.evaluate(() => window.__sw.still());
+        reached++;
+        note(`${at} a held drag: ${c.frames} drag frame(s), ${c.full} full placement(s), ${c.shift} column measurement(s)`);
+        if (c.frames < 6) fail('REACH', `${at} drag frames`, `only ${c.frames} drag frame(s) were placed — the drag was not the grid's`);
+        else if (c.full || c.shift) fail('DRAG FRAME COST', `${at} tools`, `${c.frames} frames of a drag did ${c.full} full placement(s) and ${c.shift} column measurement(s) — a frame under a finger should only move the column`);
+      }
+
+      /* B. ONE FLICK ON SETTINGS, AND HOW MANY TIMES ITS PAGES WERE COUNTED. */
+      if ((count.settings || 0) < 3) fail('REACH', `${at} settings count`, `Settings has ${count.settings} page(s) — nothing to turn`);
+      else {
+        let s2 = null;
+        for (const p of [1, 2, 0, 3]) { await page.evaluate(p => window.__sw.place('settings', p), p); s2 = await page.evaluate(() => window.__sw.spot()); if (s2) break; }
+        if (!s2) fail('REACH', `${at} settings count`, 'no Settings card had a spot the grid would take');
+        else {
+          const p0 = await page.evaluate(() => {
+            const real = pagerNames; window.__swNames = { n: 0, real };
+            window.pagerNames = function (id) { if ((id || AT) === 'settings') window.__swNames.n++; return real.apply(this, arguments); };
+            return PAGE.settings || 0;
+          });
+          await finger(cdp, Object.assign({ x0: s2.x, y0: s2.y }, G.flick(0, -90)));
+          await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+          const r = await page.evaluate(() => { const w = window.__swNames; window.pagerNames = w.real; return { n: w.n, p: PAGE.settings || 0 }; });
+          await page.evaluate(() => window.__sw.still());
+          reached++;
+          note(`${at} a flick on Settings: pages counted ${r.n} time(s), ${p0} → ${r.p}`);
+          if (r.p !== p0 + 1) fail('REACH', `${at} settings count`, `the flick landed on ${r.p}, not ${p0 + 1} — nothing was counted for a turn`);
+          else if (r.n > 2) fail('COUNTED ONCE', `${at} settings`, `one page turn counted the column's pages ${r.n} times — each count builds every settings card`);
+        }
+      }
+
+      /* C. A TALL CARD GLIDES. At 320 only: no question page is tall enough at 390 (see press.js). */
+      if (W === 320) {
+        const tall = await page.evaluate(async () => {
+          if (typeof stuffItems !== 'function') return null;
+          await window.__sw.place('stuff');
+          const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
+          const facet = FACETS.find(f => f.field === 'paperId');
+          if (!want || !facet) return null;
+          STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
+          paintStuff(true);
+          await new Promise(r => setTimeout(r, 400));
+          const items = stuffFiltered();
+          const i = items.findIndex(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
+          if (i < 0) return null;
+          /* ITS TALLEST PAGE — the probability-tree card this used stopped being tall when the 1st
+             Class Maths sheets were transcribed properly; see the same note in press.js. */
+          const at = stuffPageOf_(items[i]) + stuffFirstResult_();
+          let best = null;
+          for (let p = at; p < at + 4; p++) {
+            goPage('stuff', p, true);
+            await window.__sw.still('stuff');
+            const pane = document.querySelector('#s-stuff > .page.on > .pane');
+            const room = pane ? pane.scrollHeight - pane.clientHeight : 0;
+            if (!best || room > best.room) best = { page: PAGE.stuff, room };
+          }
+          goPage('stuff', best.page, true);
+          await window.__sw.still('stuff');
+          return best;
+        });
+        if (!tall || tall.room < 60) fail('REACH', `${at} tall card`, tall ? `the card has ${tall.room}px to scroll — not tall` : 'the tall question card was not found');
+        else {
+          const top = () => page.evaluate(() => Math.round(document.querySelector('#s-stuff > .page.on > .pane').scrollTop));
+          const zero = () => page.evaluate(() => { document.querySelector('#s-stuff > .page.on > .pane').scrollTop = 0; });
+          await zero(); await sleep(150);
+          await finger(cdp, { x0: 160, y0: 420, ...G.flick(0, -110, 80) });
+          const lift = await top();
+          await sleep(700);
+          const later = await top();
+          const pg = await page.evaluate(() => PAGE.stuff);
+          reached++;
+          note(`${at} a fast flick on a tall card: ${lift}px at the lift, ${later}px 700ms later, page ${tall.page} → ${pg}`);
+          if (pg !== tall.page) fail('GLIDE', `${at} tall card`, `the flick turned the page (${tall.page} → ${pg}) — a tall card scrolls before the page turns`);
+          /* SIXTY PIXELS, OR TO THE CARD'S END IF THAT IS NEARER — a glide that reaches the end has glided. */
+          else if (later - lift < Math.min(60, tall.room - lift - 2)) fail('GLIDE', `${at} tall card`, `the card moved ${later - lift}px after the thumb left it — a flick stopped dead at the lift`);
+          /* AND A TOUCH DURING THE GLIDE STOPS IT, AND PRESSES NOTHING. */
+          await zero(); await sleep(150);
+          await page.evaluate(() => window.__sw.reset());
+          await finger(cdp, { x0: 160, y0: 420, ...G.flick(0, -60, 70) });
+          await sleep(30);
+          const t0 = Date.now();
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', timestamp: t0 / 1000, touchPoints: [{ x: 160, y: 300, id: 2, radiusX: 8, radiusY: 8, force: 1 }] });
+          await sleep(40);
+          await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', timestamp: Date.now() / 1000, touchPoints: [] });
+          const held = await top();
+          await sleep(400);
+          const after = await top();
+          const acts = await page.evaluate(() => window.__sw.acts.map(a => a.act));
+          reached++;
+          note(`${at} a touch mid-glide: ${held}px as it lifted, ${after}px 400ms later, acts ${acts.join(',') || '-'}`);
+          if (held < 5) fail('REACH', `${at} glide stopped`, `the card had not moved (${held}px) when the touch landed — nothing to stop`);
+          else if (Math.abs(after - held) > 2) fail('GLIDE', `${at} glide stopped`, `the card went on ${after - held}px after a finger landed on it — a touch should stop a glide`);
+          if (acts.length) fail('GLIDE', `${at} glide stopped`, `the touch that stopped the glide pressed ${acts.join(', ')}`);
+        }
+        await page.evaluate(() => { STUFF.filters = []; STUFF.q = ''; paintStuff(true); });
+      }
+
+      /* D. FIND EMPTIES PAGES WITHOUT ASKING PANES THAT NEVER SCROLLED TO SCROLL. */
+      const fill = await page.evaluate(async () => {
+        if (typeof stuffItems !== 'function') return null;
+        await window.__sw.place('stuff');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
+        if (!want || !facet) return null;
+        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
+        paintStuff(true);
+        await new Promise(r => setTimeout(r, 400));
+        const n = AXES.y.count('stuff');
+        if (n < 10) return { n };
+        goPage('stuff', 6, true);
+        await window.__sw.still('stuff');
+        const d = Object.getOwnPropertyDescriptor(Element.prototype, 'scrollTop');
+        let bad = 0, sets = 0, emptied = 0;
+        const seen = new Set([...document.querySelectorAll('#s-stuff > .page[data-filled="1"]')]);
+        Object.defineProperty(Element.prototype, 'scrollTop', { configurable: true, get: d.get, set(v) {
+          if (this.classList && this.classList.contains('pane') && this.closest('#s-stuff')) { sets++; if (!this.style.overflowY) bad++; }
+          return d.set.call(this, v);
+        } });
+        try {
+          for (const p of [7, 8, 9]) { goPage('stuff', p); await window.__sw.still('stuff'); }
+        } finally { Object.defineProperty(Element.prototype, 'scrollTop', d); }
+        seen.forEach(el => { if (el.dataset.filled !== '1') emptied++; });
+        const out = { n, bad, sets, emptied, p: PAGE.stuff };
+        STUFF.filters = []; STUFF.q = ''; paintStuff(true);
+        return out;
+      });
+      reached++;
+      if (!fill) fail('REACH', `${at} find fill`, 'the paper on the Find screen was not found');
+      else if (fill.n < 10) fail('REACH', `${at} find fill`, `the paper has ${fill.n} pages — too few to empty any`);
+      else {
+        note(`${at} three page turns on Find: ${fill.emptied} page(s) emptied, ${fill.sets} pane scroll(s) set, ${fill.bad} on panes that could not scroll`);
+        if (!fill.emptied) fail('REACH', `${at} find fill`, 'no page was emptied — nothing was asked');
+        else if (fill.bad) fail('FILL COST', `${at} find`, `${fill.bad} pane(s) that could never scroll were set to scroll — each one a forced layout of the column`);
       }
     }
 

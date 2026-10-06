@@ -891,8 +891,11 @@ function bucketTable_(pairs) {
    reads this line for that reason. NOT a bucket of its own — `Make something` holding one kind
    would be skipped by the one-answer rule, and the word the owner asked to see would never be on
    screen. */
+/* `Bundles` IS AN ERRAND OF ITS OWN — printed papers, ordered — so it is placed beside the other two
+   rather than filed under working through something; see `bundlesView_`. */
 const KIND_BUCKET = bucketTable_([
   ['Work through it',  ['Questions', 'Answers', 'Practicals', 'Projects']],
+  ['Order it',         ['Bundles']],
   ['Read or watch it', ['Films', 'Resources']],
 ]);
 
@@ -1061,7 +1064,11 @@ const FACETS = [
     bucketOf: KIND_BUCKET, bucketOrder: KIND_BUCKET.order, label: 'What kind',   always: true,
     of: x => {
       const k = x.kindLabel || kindOf_(x).label;
-      return x && x.kind === 'question' && questionHasAns_(x) ? [k, 'Answers'] : k;
+      if (!x || x.kind !== 'question') return k;
+      const out = [k];
+      if (questionHasAns_(x)) out.push('Answers');
+      if (bundleable_(x)) out.push('Bundles');
+      return out.length > 1 ? out : k;
     } },
   /* ---------- THE THIRD DOOR: WHICH SHELF OF THE RESOURCES ---------------------------------------
      THE OWNER'S ROUTE IS "Learning → Resources → @family. textbooks → GCSE Statistics", and without
@@ -8313,6 +8320,7 @@ function questionPreCard_(x, j) {
    take the rest. A question and the box you answer it in are on one screen, which is the point. */
 const CHUNK_PAGE = 640;
 const PART_LAST = 300;
+const CHUNK_MIN = 160;          // a first page lighter than this joins the next -- see `packBlocks_`
 const CHUNK_BLOCK = /^(p|div|table|ul|ol|h[1-6]|blockquote|figure|pre|section|dl)$/i;
 const CHUNK_VOID = /^(br|img|hr|input|meta|link|col|wbr|source|area|base|param|track|embed)$/i;
 function htmlBlocks_(html) {
@@ -8343,6 +8351,13 @@ function packBlocks_(blocks, page, last) {
     if (cur.length && w + bw > cap) { out.unshift(cur); cur = []; w = 0; cap = page; }
     cur.unshift(blocks[i]); w += bw;
   }
+  /* NO PAGE FOR ONE SENTENCE. The owner, 6 Oct, on Corbettmaths Money Q3: *"it seems like its split
+     into 2 of 2 parts. why? there doesnt seem to be a diagram there"*. Four short lines weighed 363
+     against the card's 300, so "Lauren puts nine 20p pieces into her piggy bank." was given a page
+     of its own -- a swipe to read one sentence, and a "1 of 2" that looks like a missing part. The
+     budgets are guesses on the safe side; what is left over when the cut is this small costs a few
+     lines of scroll on the card at worst, and a page that is nearly empty is never better than that. */
+  if (cur.length && out.length && w < CHUNK_MIN) { out[0] = cur.concat(out[0]); return out; }
   if (cur.length || !out.length) out.unshift(cur);
   return out;
 }
@@ -10504,6 +10519,8 @@ function stuffPages_() {
   /* AND ONLY THE ANSWERS when `Answers` is the kind chosen -- see `kindLabel`. Built in full and then
      kept, so every page that is drawn is the page it would have been. */
   const only = answersView_();
+  /* AND NONE AT ALL when `Bundles` is -- the bundles are the results, drawn in front (`bundlePages_`). */
+  if (bundlesView_()) { STUFF_PAGES = { from: items, pages: pages }; return pages; }
   seq.forEach((x, i) => pageParts_(x, seq[i - 1]).forEach(part => {
     if (only && part !== 'ans') return;
     pages.push({ x: x, part: part });
@@ -11423,7 +11440,7 @@ function bundleNoun_(papers, n) {
 
 const BUNDLE_MEMO = new WeakMap();
 function bundleOf_() {
-  if (!stuffAsked() || !printOffered_()) return null;
+  if (!stuffAsked() || !printOffered_() || bundlesView_()) return null;
   const items = stuffFiltered();
   if (BUNDLE_MEMO.has(items)) return BUNDLE_MEMO.get(items);
   let out = null;
@@ -11432,7 +11449,9 @@ function bundleOf_() {
   return out;
 }
 
-function bundleBuild_(items) {
+/* `min` IS ONE FOR A SITTING ASKED FOR BY NAME (`bundlesBySitting_`): somebody who chose `Bundles`
+   came to order, and the friction `BUNDLE_MIN` keeps off a working journey is the errand here. */
+function bundleBuild_(items, min) {
   if (!items.length) return null;
   /* ---------- WHICH PAPERS ARE WHOLE ON THIS LIST, AND WHAT IS LEFT OVER ------------------------
      Counted per paper over the list's QUESTIONS; anything that is not a question, or has no paper,
@@ -11451,7 +11470,7 @@ function bundleBuild_(items) {
   }
   const whole = paperQuestionCounts_();
   const kept = order.filter(id => count[id] === whole[id]);
-  if (kept.length < BUNDLE_MIN || kept.length > BUNDLE_MAX) return null;
+  if (kept.length < (min || BUNDLE_MIN) || kept.length > BUNDLE_MAX) return null;
   const partial = order.filter(id => count[id] !== whole[id]);
   const strayQs = partial.reduce((n, id) => n + count[id], 0);
   if (strayQs + other > items.length * BUNDLE_STRAY) return null;
@@ -11637,8 +11656,59 @@ function bundleCard_(b) {
 }
 
 function bundlePages_() {
+  if (bundlesView_()) {
+    const all = bundlesBySitting_();
+    if (!all.length) {
+      return [`<div class="card bundle qcard"><div class="qcard-top"><b>Bundle</b></div>
+        <p class="bundle-sub">No whole sitting left on this list to bundle. Take an answer back above —
+          a topic or a single paper narrows it past whole sittings.</p></div>`];
+    }
+    return all.map(bundleCard_);
+  }
   const b = bundleOf_();
   return b ? [bundleCard_(b)] : [];
+}
+
+/* ---------- `Bundles` IS A KIND, BESIDE `Questions` AND `Answers` ----------------------------------
+   THE OWNER, 6 Oct: *"bundle is a tag option too. pick where is appropriate for it to put it."* A
+   bundle had only one way in: narrow the funnel until the list happened to be two to twenty-four
+   whole papers, and a card appeared one swipe from the question. Somebody who came to ORDER papers
+   had to know that.
+
+   SO IT IS AN ANSWER TO THE FIRST QUESTION, `What kind`, where somebody says what they came for — the
+   same place `Answers` went for the same reason. Every question on a printable past paper answers it
+   (`bundleable_`), so the funnel's later questions — subject, level, board, year — narrow it exactly
+   as they narrow the questions. And the results are bundles, not questions: one card per sitting on
+   the list, newest first, each the same card and the same basket line as the one the funnel always
+   offered. Nothing is printed for a paper that is not printable, and nothing is offered at all where
+   printing has no price (`printOffered_`). */
+function bundleable_(x) {
+  const r = (x && x.row) || x || {};
+  return /paper/i.test(String(r.document_type || '')) && String(r.printable || '').toLowerCase() !== 'false'
+    && printOffered_();
+}
+function bundlesView_() {
+  return (STUFF.filters || []).some(f => f && f.field === 'kindLabel' && !f.any && f.value === 'Bundles');
+}
+const BUNDLES_MEMO = new WeakMap();
+function bundlesBySitting_() {
+  if (!printOffered_()) return [];
+  const items = stuffFiltered();
+  if (BUNDLES_MEMO.has(items)) return BUNDLES_MEMO.get(items);
+  const groups = new Map();
+  items.forEach(x => {
+    const r = (x && x.row) || x || {};
+    if (!x || x.kind !== 'question') return;
+    const k = [r.exam_board || r.company, r.subject, r.level, r.year, r.month].join('|');
+    if (!groups.has(k)) groups.set(k, { year: +r.year || 0, month: +r.month || 0, items: [] });
+    groups.get(k).items.push(x);
+  });
+  const out = [...groups.values()]
+    .sort((a, b) => b.year - a.year || b.month - a.month)
+    .map(g => { try { return bundleBuild_(g.items, 1); } catch (e) { return null; } })
+    .filter(Boolean);
+  BUNDLES_MEMO.set(items, out);
+  return out;
 }
 
 /* WHICH PAGE THE QUESTION IS ON. Saved things sit in front of it and their number changes with a
@@ -12858,13 +12928,26 @@ function fillStuffPages(all) {
       const w = showingWidgets() && items[i - first] && items[i - first].row;
       if (w && !w.stop) drawWidget_(w);
     } else if (!near && el.dataset.filled === '1') {
-      pane.innerHTML = '';
-      delete el.dataset.filled;
       /* AND THE SCROLL WITH IT. The pages are a window and their elements are recycled, so a pane
          left scrolled down would hand the next card it stands for to somebody half way through it.
-         `paneReach_` puts the overflow back too, on the next fill. */
-      pane.scrollTop = 0;
-      pane.style.overflowY = '';
+         `paneReach_` puts the overflow back too, on the next fill.
+         ---------- ONLY A PANE THAT COULD HAVE SCROLLED, AND BEFORE ITS MARKUP GOES ------------------
+         `scrollTop = 0` IS A FORCED LAYOUT — the browser has to know how far the box can scroll
+         before it can be told where to — and it ran on EVERY page this loop emptied, straight after
+         the `innerHTML` a fill a line earlier had written, so the whole column was laid out again
+         inside the loop. Part of *"if i try to scroll quickly up or down its clunky and janky"* (6
+         October): a profile of rapid flicks down a paper on the Find screen put two seconds of a
+         thirteen-flick run inside this function at 4x CPU, in single tasks of up to 1.3s — the screen
+         frozen for a beat after a quick run of page turns.
+         Only a pane `paneReach_` made scrollable (`overflow-y: auto` inline) can have been scrolled:
+         every other pane clips, and `scrollHost_` in overworld.js scrolls only a box whose overflow
+         says it may. So the rest are not asked, and the few that are lose their scroll first. */
+      if (pane.style.overflowY) {
+        pane.scrollTop = 0;
+        pane.style.overflowY = '';
+      }
+      pane.innerHTML = '';
+      delete el.dataset.filled;
       changed = true;
     }
   }

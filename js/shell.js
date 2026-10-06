@@ -924,6 +924,91 @@ const AXES = {
 const CARD_W       = 0.84;    // a card, as a fraction of the screen's width
 const EDGE_SHOWING = 0.06;    // how much of the card either side you can see, same units
 
+/* ---------- ON A WIDE WINDOW THE GRID SHOWS MORE OF ITSELF ----------------------------------------
+   ASKED FOR ON 6 OCTOBER: *"on wide screen can see more."* Measured before anything was written, at
+   768x1024, 1280x800 and 1920x1080: every one of them showed the phone — one 410px column (`--app`)
+   in the middle of the window, its neighbours a blurred 23px sliver at each side, and the rest of a
+   laptop black. A 1920 window was 79% empty. Nothing was wrong with the layout; it simply never
+   asked how much room it had.
+
+   THE ANSWER WAS ALREADY THE SHAPE OF THE APP. The screens lie side by side on X and `#screen` clips
+   them to a phone's width — so a wider window does not need a second layout, it needs the clip to
+   be the window. The column stops being capped at `--app`, a card stays a card's width, and the
+   step between screens becomes a card and a gap rather than a share of the window. What was a
+   sliver either side is now whole screens: Feed, Booking and Shop at once on a laptop, five on a
+   1920 monitor, each one sharp and readable, the one in front still centred.
+
+   WHY NOT SEVERAL PAGES OF ONE SCREEN SIDE BY SIDE INSTEAD. Tried on paper and refused: the Find
+   screen keeps a WINDOW of fifteen pages that slides as you turn them (`stuffWindow_` in find.js),
+   so pages wrapped into rows would re-flow every time the window moved, and every vertical sum in
+   this file — `columnShift_`, `stepY_`, the drag threshold — reads one page above the next. The
+   screens are already independent columns with one placer; widening the view of them changes two
+   numbers and touches no gesture.
+
+   HOW MANY ACROSS. An ODD number of whole cards, because the card in front is centred and a pair
+   would put the focus off-centre; as many as fit at `WIDE_CARD_MIN` with `WIDE_EDGE` of the next
+   column still showing, then widened to fill — but never past `WIDE_CARD_MAX`, because a card is
+   written for a phone's line length and a 600px post is a worse post, not a better one. 768 gets
+   one wider card with ~150px of each neighbour readable beside it; 1280 three of 400px; 1920 five of
+   361px. Both limits in REM, read off the root, so they scale with the type the way every other
+   measurement in style.css does; the breakpoint in px, because it is a question about the WINDOW.
+
+   PHONES ARE UNTOUCHED. Below `WIDE_FROM` none of this runs: `WIDE` stays false and every line
+   below takes the branch it took before. */
+const WIDE_FROM     = 700;    // px of WINDOW — a phone held either way, and a small tablet upright, are below it
+const WIDE_CARD_MIN = 21;     // rem — the narrowest card that is put beside another
+const WIDE_CARD_MAX = 28;     // rem — the widest a card grows to fill the room
+const WIDE_EDGE     = 24;     // px — at least this much of the next column shows past the last whole one
+let WIDE = false;
+
+/* SAID ON `<html>` AS `.wide`, which is what lets `body` stop being a phone (style.css, THE WIDE
+   WINDOW). Toggled before anything is measured — `appWidth_` reads `#screen`, whose width IS that
+   class — and only when it changes, so a placement that finds it already right costs a read. */
+function wideSet_() {
+  let w;
+  try { w = matchMedia('(min-width: ' + WIDE_FROM + 'px)').matches; } catch (e) { w = innerWidth >= WIDE_FROM; }
+  if (w !== WIDE || document.documentElement.classList.contains('wide') !== w) {
+    WIDE = w;
+    document.documentElement.classList.toggle('wide', w);
+  }
+  return WIDE;
+}
+
+/* THE CARD'S WIDTH ON A WIDE WINDOW, in px, and how many whole ones fit — see above. */
+function wideCard_() {
+  const W = appWidth_();
+  let rem = 16;
+  try { rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; } catch (e) {}
+  const lo = WIDE_CARD_MIN * rem, hi = WIDE_CARD_MAX * rem;
+  let k = 1;
+  while ((k + 2) * lo + (k + 1) * CELL_GAP + 2 * WIDE_EDGE <= W) k += 2;
+  const card = Math.min(hi, (W - 2 * WIDE_EDGE - (k - 1) * CELL_GAP) / k);
+  return { card: Math.max(lo, card), k: k };
+}
+
+/* ---------- AND AT EITHER END OF THE ROW, THE ROW STOPS AT THE EDGE ---------------------------------
+   THE CARD IN FRONT IS CENTRED, AND ON A PHONE THAT IS THE WHOLE STORY: the first tab has a dark
+   sliver to its left and that sliver says "nothing that way". On a 1280 window the same rule put Feed
+   in the middle with a THIRD of the window empty to its left — measured, 440px of black beside the
+   first screen of the app, which reads as something that failed to draw rather than as an end.
+
+   So on a wide window the whole row is slid, by the same amount for every column, just far enough
+   that the first column starts where a full row of `k` cards would start, and the last one ends
+   where it would end. In the middle of the row this is nought and the card in front is centred as
+   before; at an end the card in front sits nearer that end, as the first item of any list does.
+   One number, added to every column's x by `placeGrid` — so nothing about the spacing changes, and
+   a drag still moves every column together. */
+function wideShift_(ti, n, stepX) {
+  if (!WIDE) return 0;
+  const W = appWidth_(), wc = wideCard_(), c = wc.card;
+  const m = Math.max(0, (W - (wc.k * c + (wc.k - 1) * CELL_GAP)) / 2);
+  const hi = m - W / 2 + c / 2 + ti * stepX;                 // the first column no further right than m
+  const lo = W / 2 - m - c / 2 - (n - 1 - ti) * stepX;       // the last column no further left than W − m
+  /* A ROW SHORTER THAN THE WINDOW has both bounds the wrong way round; it is simply centred. */
+  if (lo > hi) return (lo + hi) / 2;
+  return Math.min(hi, Math.max(lo, 0));
+}
+
 /* THESE TWO COME OUT OF THE SAME WIDTH, which is the whole thing to understand before changing
    either. Across the screen sits: an edge, a gap, the card, a gap, an edge —
 
@@ -1150,7 +1235,13 @@ function stepY_() {
    stylesheet reads `--card-w` and has a fallback for the moment before this runs. Set them apart
    now and you cannot: there is only one of them. */
 function publishCardWidth_() {
-  document.documentElement.style.setProperty('--card-w', (CARD_W * 100).toFixed(2) + '%');
+  /* A WIDE WINDOW'S CARD IS A WIDTH, NOT A SHARE — see THE GRID SHOWS MORE OF ITSELF. `wideSet_`
+     first, because the class it writes is what decides the width `wideCard_` measures. */
+  if (wideSet_()) {
+    document.documentElement.style.setProperty('--card-w', wideCard_().card.toFixed(1) + 'px');
+  } else {
+    document.documentElement.style.setProperty('--card-w', (CARD_W * 100).toFixed(2) + '%');
+  }
   /* AND HOW SOFT A CARD OUT OF FOCUS IS, for the same reason: `softDrag_` eases a card toward the
      number the stylesheet draws `.soft` with, so the two must be one number. Written with the width
      so it is said once per placement and costs nothing when it has not changed. */
@@ -1182,6 +1273,10 @@ function stepX_() {
      wide edge is asking for more than a screen has, and the honest answer is to keep the cards
      apart and show a little less of the neighbour rather than to let them overlap — an overlap is
      the one outcome that looks broken rather than merely tight. */
+  /* ON A WIDE WINDOW: ONE CARD AND ONE GAP. The same 16px as down the column, so the grid is spaced
+     the same both ways — the shares below exist to leave a phone a peek, and a window that shows
+     whole neighbours has no peek to leave. */
+  if (WIDE) return wideCard_().card + CELL_GAP;
   const gap = Math.max(0.005, 0.5 - CARD_W / 2 - EDGE_SHOWING);
   return appWidth_() * (CARD_W + gap);
 }
@@ -1375,22 +1470,35 @@ function softHold_(glass) {
 }
 
 function softDrag_(which, px, stepX) {
-  if (!SOFT_DRAG) SOFT_DRAG = { ok: softMotion_(), b: null, keep: new Map() };
+  /* NOTHING IS BLURRED ON A WIDE WINDOW (see `placeGrid`), so nothing is eased either. */
+  if (!SOFT_DRAG) SOFT_DRAG = { ok: !WIDE && softMotion_(), b: null, keep: new Map() };
   if (!SOFT_DRAG.ok) return;
-  const host = $('s-' + AT);
-  const a = host && host.querySelector(':scope > .page.on');
-  if (!a) return;
-  let b = null, step = 0;
-  if (which === 'x') {
-    const next = TABS[TABS.findIndex(t => t.id === AT) + (px < 0 ? 1 : -1)];
-    const col = next && $('s-' + next.id);
-    b = col ? col.querySelectorAll(':scope > .page')[domIndex_(next.id, PAGE[next.id] || 0)] || null : null;
-    step = stepX;
+  /* THE NEIGHBOUR AND HOW FAR AWAY IT IS, WORKED OUT ONCE A DIRECTION. This read `offsetTop` and
+     `offsetHeight` on every frame of a vertical drag, straight after `colWrite_` had written the
+     column — a forced style-and-layout per frame for two numbers that cannot change while the finger
+     is down. Kept on `SOFT_DRAG`, which lives exactly as long as the gesture. */
+  const key = which + (px < 0 ? '+' : '-');
+  const seen = SOFT_DRAG.near || (SOFT_DRAG.near = new Map());
+  let a, b = null, step = 0;
+  if (seen.has(key)) {
+    ({ a, b, step } = seen.get(key));
   } else {
-    b = px < 0 ? a.nextElementSibling : a.previousElementSibling;
-    if (b && !b.classList.contains('page')) b = null;
-    if (b) step = Math.abs((b.offsetTop + b.offsetHeight / 2) - (a.offsetTop + a.offsetHeight / 2));
+    const host = $('s-' + AT);
+    a = host && host.querySelector(':scope > .page.on');
+    if (!a) return;
+    if (which === 'x') {
+      const next = TABS[TABS.findIndex(t => t.id === AT) + (px < 0 ? 1 : -1)];
+      const col = next && $('s-' + next.id);
+      b = col ? col.querySelectorAll(':scope > .page')[domIndex_(next.id, PAGE[next.id] || 0)] || null : null;
+      step = stepX;
+    } else {
+      b = px < 0 ? a.nextElementSibling : a.previousElementSibling;
+      if (b && !b.classList.contains('page')) b = null;
+      if (b) step = Math.abs((b.offsetTop + b.offsetHeight / 2) - (a.offsetTop + a.offsetHeight / 2));
+    }
+    seen.set(key, { a, b, step });
   }
+  if (!a) return;
   /* THE ONE THE FINGER TURNED AWAY FROM goes back to the look its class gives it. */
   if (SOFT_DRAG.b && SOFT_DRAG.b !== b) { const g = glassOf_(SOFT_DRAG.b); if (g) g.style.filter = ''; }
   SOFT_DRAG.b = b;
@@ -1443,7 +1551,67 @@ let SLIDE_UNTIL = 0;
 /* The two axes still call in — one placer underneath, so a horizontal move and a vertical one
    cannot disagree about where a cell is. */
 
+/* ---------- A DRAG FRAME MOVES THE CARDS AND DOES NOTHING ELSE -----------------------------------
+   REPORTED ON 6 OCTOBER, from a phone: *"if i try to scroll quickly up or down its clunky and janky.
+   make it a smooth experience. more stability, smoother, more elegant."*
+
+   EVERY FRAME OF EVERY DRAG WAS A FULL PLACEMENT. Twelve columns restyled, every page of every column
+   given its position, opacity, visibility and classes again, every column's shift MEASURED again
+   (`columnShift_` reads `offsetTop`, a forced layout), and the card width published on the root — to
+   arrive, on every frame but the first, at exactly the numbers the first frame had worked out, with
+   one of them nudged by the finger. Measured at 4x CPU with rapid flicks on Games and Settings
+   (`check/swipe.js` 'flicks'): 8–14ms a drag frame on average and up to 29ms, against a frame of
+   16.7, so a quick swipe dropped a frame in three while the finger was still on the glass.
+
+   NOTHING ON THAT LIST CAN CHANGE UNDER A FINGER. `PAGE` and `AT` move only on the release; a card
+   that grows mid-drag is `holdColumn_`'s, and it already refuses a column marked `.dragging`. So the
+   first drag frame is the full placement it always was — it switches the finger's axis to no
+   transition, marks `.dragging`, and works out every column's resting place — and that answer is
+   kept as `DRAG_PLAN`. Every frame after it writes the columns the finger is moving (all of them
+   sideways, the one in front up and down) at plan + finger, and eases the focus, and stops.
+   Any placement that is NOT a drag throws the plan away, so the next drag measures afresh; so does a
+   new finger (`pointerdown` in overworld.js), a different axis, or a different page or column.
+
+   AND THE FIRST FRAME NEED NOT MEASURE EITHER, when the last placement has landed. Where every
+   column rests is already written on it — `colPlaced_` reads the inline values the last placement
+   wrote, which is not a layout — so the plan is taken from there, the finger's axis is switched to
+   no transition on the columns it moves, and the card leaves under the thumb in the same frame
+   instead of after a whole placement (7–35ms at 4x, the first frame of every swipe). Only when a
+   placement is still booked (`PLACE_FRAME`), or a column has never been placed, does the first
+   frame fall back to the full one, because then the inline values are not where anything rests. */
+let DRAG_PLAN = null;    // { which, at, page, stepX, cols: [{ host, x, y, front }] } — this drag's sums
+function dragPlan_(drag) {
+  if (PLACE_FRAME) return null;
+  const cols = [];
+  for (const t of TABS) {
+    const host = $('s-' + t.id);
+    if (!host) continue;
+    const at = colPlaced_(host);
+    if (!at || !host._slide) return null;
+    cols.push({ host: host, x: at[0], y: at[1], front: t.id === AT });
+  }
+  if (!cols.some(c => c.front)) return null;
+  cols.forEach(c => {
+    c.host.classList.add('dragging');
+    if (drag.which === 'x') colTransition_(c.host, SLIDE_NONE, null);
+    else if (c.front) colTransition_(c.host, null, SLIDE_NONE);
+  });
+  return { which: drag.which, at: AT, page: PAGE[AT] || 0, stepX: drag.which === 'x' ? stepX_() : 0, cols: cols };
+}
+function dragFast_(drag) {
+  if (!DRAG_PLAN) DRAG_PLAN = dragPlan_(drag);
+  const p = DRAG_PLAN;
+  if (!p || p.which !== drag.which || p.at !== AT || p.page !== (PAGE[AT] || 0)) return false;
+  if (!p.cols.every(c => c.host.isConnected)) return false;
+  const dx = drag.which === 'x' ? drag.px : 0, dy = drag.which === 'y' ? drag.px : 0;
+  p.cols.forEach(c => { if (dx || c.front) colWrite_(c.host, c.x + dx, c.y + (c.front ? dy : 0)); });
+  softDrag_(drag.which, drag.px, p.stepX);
+  return true;
+}
+
 function placeGrid(instant, drag) {
+  if (drag && dragFast_(drag)) return;
+  DRAG_PLAN = null;
   /* Said before anything is measured or moved, so the width the stylesheet draws and the width
      this function spaces by cannot be different on the same frame. Setting a custom property that
      already holds that value costs nothing. */
@@ -1520,7 +1688,7 @@ function placeGrid(instant, drag) {
     hosts.forEach(({ i, host, shift }) => {
       const was = colPlaced_(host);
       if (!was) return;
-      const d = rel.axis === 'x' ? ((i - ti) * stepX) - was[0] : shift - was[1];
+      const d = rel.axis === 'x' ? ((i - ti) * stepX + wideShift_(ti, tabs.length, stepX)) - was[0] : shift - was[1];
       if (Math.abs(d) > Math.abs(D)) D = d;
     });
     const c = settleCurve_(D, rel.v);
@@ -1539,10 +1707,15 @@ function placeGrid(instant, drag) {
     ? { d: settle.dur + 'ms', tf: settle.tf, delay: '-16ms' } : SLIDE_TAP);
   const front = hosts.find(h => h.id === AT);
   const before = front && !instant && !drag ? colPlaced_(front.host) : null;
+  /* THE WHOLE ROW'S SLIDE AT ITS ENDS (nought on a phone) — see `wideShift_` — and, on a wide window,
+     how far from the middle a column can be and still have a card on the glass: half the window and
+     half a card, and one step more, so a column a drag is about to bring in is already drawn. */
+  const sx = wideShift_(ti, tabs.length, stepX);
+  const glass = WIDE ? appWidth_() / 2 + stepX * 1.5 : 0;
   hosts.forEach(({ id, i, host, shift }) => {
     const dx = i - ti;
     const at = PAGE[id] || 0;
-    const x = dx * stepX + dxPx;
+    const x = dx * stepX + sx + dxPx;
 
     /* EACH AXIS ITS OWN CLOCK — see `colWrite_`. The finger's axis follows the finger; the other
        keeps whatever slide it is in the middle of. */
@@ -1553,6 +1726,10 @@ function placeGrid(instant, drag) {
     colWrite_(host, x, shift);
     /* Only the screen in front takes presses. A sliver of the next tab showing at the edge is
        something to look at, not something to tap. */
+    /* STILL TRUE ON A WIDE WINDOW, where the columns beside are whole and readable: a press on one
+       is not a press on what is under the pointer, it is "bring that one to the front" — which
+       `wideFocus_` below answers by where the press landed, so nothing inside a card that is about
+       to slide can be pressed by accident, and a swipe begun over it is still a swipe. */
     host.style.pointerEvents = dx === 0 ? 'auto' : 'none';
     const across = Math.abs(dx);
     /* ---------- THE NEIGHBOUR IS BARELY DIMMED, AND HERE IS WHY -----------------------------
@@ -1568,12 +1745,14 @@ function placeGrid(instant, drag) {
        (THE BLUR THAT NOTE MEANS was a blur on the COLUMN, with nothing beside it to say which card
        was in front. `.soft` below blurs a CARD, by 2px, and the card in front is sharp beside it —
        a soft edge next to a sharp one is still an edge.) */
-    host.style.opacity = across === 0 ? '1' : across === 1 ? '.92' : '0';
+    const onGlass = WIDE && Math.abs(dx * stepX + sx) < glass;
+    host.style.opacity = across === 0 ? '1' : WIDE ? (onGlass ? '1' : '0')
+      : across === 1 ? '.92' : '0';
     /* AND SIDEWAYS, THE SAME. This was 1 — one tab either side — so with four tabs the far one was
        hidden until the swipe reached it, and a quick flick across two showed a blank in between.
        Held to the same 3 as the column, for the same reason and at the same cost: a handful of
        tabs is a handful of cards, and there is no version of this app where that is expensive. */
-    host.style.visibility = across > 3 ? 'hidden' : 'visible';
+    host.style.visibility = across > 3 && !onGlass ? 'hidden' : 'visible';
 
     /* AND EACH PAGE, faded by how far down the column it is. No position — the column does that.
        This distance is an INDEX, not a measurement, so nothing here can be read at a bad moment. */
@@ -1598,8 +1777,12 @@ function placeGrid(instant, drag) {
       el.classList.toggle('far', d > 3);
       /* OUT OF FOCUS — see the note over `SOFT_BLUR`. Not during a drag: the classes describe where
          the cards ARE, and a finger has not moved the focus until it lets go. */
+      /* NOT ON A WIDE WINDOW. The blur says "this one is beside the one you are reading" on a
+         phone, where a neighbour is a sliver; on a window that shows whole screens side by side the
+         neighbours are there to BE read, and a blurred column of text is a column nobody can. The
+         focus is said by a lighter dim there instead (`.wide` in style.css). */
       if (!drag) {
-        const soft = !focused && across <= 1 && d <= 2;
+        const soft = !WIDE && !focused && across <= 1 && d <= 2;
         el.classList.toggle('soft', soft);
         if (soft) el.classList.toggle('soft-dim', softDim_(el));
       }
@@ -1610,7 +1793,11 @@ function placeGrid(instant, drag) {
          was being drawn and could not be seen, which is indistinguishable from it not being there.
          Barely dimmed instead. What says a card is behind rather than beside is its POSITION and
          its edge, both of which are already doing the work. */
-      el.style.opacity = d === 0 ? '1' : d === 1 ? '.9' : d === 2 ? '.75' : '0';
+      /* A TALL WIDE WINDOW SHOWS A FOURTH CARD DOWN, so there nothing near is faded to nothing —
+         it would be a hole in a column you can otherwise read. The focus is said by the stylesheet's
+         lighter dim on the panes instead (THE WIDE WINDOW, style.css). */
+      el.style.opacity = WIDE ? (d <= 3 ? '1' : '0')
+        : d === 0 ? '1' : d === 1 ? '.9' : d === 2 ? '.75' : '0';
       el.style.pointerEvents = d === 0 ? 'auto' : 'none';
       el.style.visibility = d > 3 ? 'hidden' : 'visible';
 
@@ -1621,7 +1808,14 @@ function placeGrid(instant, drag) {
     });
   });
 
-  if (drag) { softDrag_(drag.which, drag.px, stepX); return; }
+  if (drag) {
+    /* THE SUMS THIS FRAME DID, KEPT FOR THE REST OF THE DRAG — see `dragFast_`. The finger's own
+       offset taken back out, so the plan is where each column RESTS. */
+    DRAG_PLAN = { which: drag.which, at: AT, page: PAGE[AT] || 0, stepX: stepX,
+      cols: hosts.map(h => ({ host: h.host, x: (h.i - ti) * stepX, y: h.shift - (h.id === AT ? dyPx : 0), front: h.id === AT })) };
+    softDrag_(drag.which, drag.px, stepX);
+    return;
+  }
   softSettle_(settle ? runs(settle.axis) : SLIDE_TAP, instant);
 
   /* A SLIDE THE EYE CAN FOLLOW — the column in front going somewhere new — is a window in which a tap
@@ -2225,9 +2419,26 @@ function pageHome_(id) {
    only ever asked for its LENGTH -- and `PAGER.stuff` was building 5,226 strings to be counted, on
    every call, on the same hot path as everything else this window is about. A screen whose pages
    have no names may answer with the count itself. */
+/* ---------- AND COUNTED ONCE A HANDLER, NOT FIVE TIMES A FLICK ---------------------------------------
+   A COUNT IS A BUILD on half the columns: `PAGER.settings` is `settingsPages_().length`, which writes
+   every settings card's markup to find out how many there are, and Saved, the Spotlight, the shop,
+   the feed and Messages are the same shape. One page turn asked five times (six on a diagonal) —
+   as the finger chose its axis and again for its last page, then the release, `goPage`, and
+   `paintPager` twice — and on Settings at 4x CPU that was 20–33ms of the release and up to 60ms of
+   the first moving frame (measured on 6 October, rapid flicks): the card frozen under the thumb at
+   the exact moment it should leave. Now twice: once as the axis is chosen, once at the release.
+
+   SO A GESTURE HOLDS THE COUNT (`countHold_`, from overworld.js) for the length of one handler, which
+   is a stretch of code in which nothing adds or removes a page. Outside a hold nothing is kept, so a
+   paint that changes the pages and counts them a line later still sees the new number. */
+let COUNT_HOLD = null;
+function countHold_(on) { COUNT_HOLD = on ? new Map() : null; }
 const pageCount = id => {
+  if (COUNT_HOLD && COUNT_HOLD.has(id)) return COUNT_HOLD.get(id);
   const v = pagerNames(id);
-  return typeof v === 'number' ? Math.max(0, v | 0) : v.length;
+  const n = typeof v === 'number' ? Math.max(0, v | 0) : v.length;
+  if (COUNT_HOLD) COUNT_HOLD.set(id, n);
+  return n;
 };
 
 /**
@@ -2994,6 +3205,74 @@ addEventListener('pointercancel', pressClear_, { passive: true });
 document.addEventListener('focusin', e => holdHere_(e.target), true);
 document.addEventListener('change', e => holdHere_(e.target), true);
 
+/* ---------- ON A WIDE WINDOW, PRESSING A CARD BESIDE THE ONE IN FRONT BRINGS IT TO THE FRONT -------
+   A wide window shows whole screens either side (THE GRID SHOWS MORE OF ITSELF), and a card you can
+   read is a card you will reach for. They still take no presses of their own — `placeGrid` leaves
+   `pointer-events: none` on every card but the one in front — so a press over one lands on the
+   column or on `#screen` behind it, and THIS asks which card was drawn there. By the boxes rather than
+   by `elementFromPoint`, because the thing being asked about is exactly the thing that does not take
+   pointer events.
+
+   AND THE PRESS GOES NO FURTHER THAN THAT. Pressing a star on a card that is still beside the one
+   in front would star a card that is about to slide under the pointer; arriving first and pressing
+   second is the carousel every reader already knows, and it is also what keeps every handler in the
+   app answering for the card in front only, which is what all of them were written to assume.
+
+   A SWIPE THAT ENDS OVER ONE IS NOT A PRESS — `PRESS_MOVED`, the same flag the click handler below
+   reads; this one runs first (window, capture) and leaves it for that one to clear. */
+function wideHit_(x, y) {
+  if (!WIDE) return null;
+  const pages = document.querySelectorAll('#screen > .screen > .page');
+  for (const pg of pages) {
+    if (pg.classList.contains('on') || pg.style.visibility === 'hidden') continue;
+    const host = pg.parentElement;
+    if (!host || host.style.visibility === 'hidden' || host.style.opacity === '0') continue;
+    const r = pg.getBoundingClientRect();
+    if (x < r.left || x > r.right || y < r.top || y > r.bottom) continue;
+    const id = host.id.replace(/^s-/, '');
+    if (!TABS.some(t => t.id === id)) continue;
+    const pos = Array.prototype.indexOf.call(host.querySelectorAll(':scope > .page'), pg);
+    return { id: id, p: logIndex_(id, pos), el: pg };
+  }
+  return null;
+}
+addEventListener('click', e => {
+  if (!WIDE || PRESS_MOVED || PRESS_SLIDING) return;
+  const t = e.target;
+  /* ONLY A PRESS THAT NOTHING IN FRONT TOOK — on the front card it is that card's press. */
+  if (t && t.closest && t.closest('#screen .page.on')) return;
+  if (!(t && t.closest && t.closest('#screen'))) return;
+  const hit = wideHit_(e.clientX, e.clientY);
+  if (!hit) return;
+  try {
+    /* THE PAGE FIRST, while its column is still beside: `goPage` on a column not in front only
+       records where it is and places it, and `go` then slides the whole grid once. */
+    if (PAGER[hit.id] && hit.p !== (PAGE[hit.id] || 0)) goPage(hit.id, hit.p);
+    if (hit.id !== AT) go(hit.id, true);
+  } catch (err) { /* a press that moved nothing is the behaviour before this existed */ }
+}, true);
+
+/* AND THE POINTER SAYS SO BEFORE THE PRESS. One rect test a frame while a mouse moves over the grid,
+   and only on a wide window: the card under it comes up from its dim (`.wide-over` in style.css)
+   and the pointer becomes a hand, which is how a desktop says "this can be pressed". */
+let WIDE_OVER = null, WIDE_OVER_F = 0;
+addEventListener('pointermove', e => {
+  if (!WIDE || e.pointerType !== 'mouse' || WIDE_OVER_F) return;
+  const x = e.clientX, y = e.clientY;
+  WIDE_OVER_F = requestAnimationFrame(() => {
+    WIDE_OVER_F = 0;
+    const onFront = document.elementFromPoint(x, y);
+    const hit = onFront && onFront.closest && onFront.closest('#screen .page.on') ? null : wideHit_(x, y);
+    const el = hit ? hit.el : null;
+    if (el === WIDE_OVER) return;
+    if (WIDE_OVER) WIDE_OVER.classList.remove('wide-over');
+    WIDE_OVER = el;
+    if (el) el.classList.add('wide-over');
+    const scr = $('screen');
+    if (scr) scr.style.cursor = el ? 'pointer' : '';
+  });
+}, { passive: true });
+
 document.addEventListener('click', e => {
   /* FIRST, because a swipe that ends on a tab must not change tab either. */
   if (PRESS_MOVED) {
@@ -3603,14 +3882,7 @@ async function load() {
      Faded by a class rather than removed from the document, so a retry can put it back. */
   splashOff_();
 
-  /* ---------- AND THE OFFER TO KEEP IT --------------------------------------------------------
-     AFTER THE APP HAS DRAWN, not before. Asking somebody to put a thing on their home screen while
-     they are still looking at a loading animation is asking about something they have not seen.
-     Three seconds is long enough to have looked at the feed and short enough to still be there.
-
-     It decides for itself whether to appear at all — installed already, dismissed before, opened
-     from a file, or a browser that cannot do it — so this is one call and no conditions. */
-  setTimeout(() => { try { installBar(); } catch (err) {} }, 3000);
+  /* THE OFFER TO KEEP IT, a bar three seconds in, was here — removed at the owner's word; see me.js. */
 
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW ---------------------------------------
      Every screen but the one in front was drawn before this request came back, so each holds a

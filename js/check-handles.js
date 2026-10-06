@@ -1046,7 +1046,7 @@ function run() {
     { body: { name: 'leo_kind42', pin: '0000' },            want: '', code: 'not-an-email', why: 'the same parts in another order are somebody else\'s handle, not this one' },
     { body: { email: 'mia_brave33', pin: 'wrong' },          want: '', code: 'wrong-pin', said: 'Wrong PIN for that handle.', why: 'a wrong PIN by handle is refused, and names the handle even though the row has an address' },
     { body: { email: 'mia@x.com', pin: 'wrong' },            want: '', code: 'wrong-pin', said: 'Wrong PIN for that email address.', why: 'the same row by address names the address' },
-    { body: { email: 'nia_calm7', pin: '0000' },            want: '', said: 'Please confirm your email first — check your inbox for the link we sent.', why: 'the PENDING rule holds at the handle door' },
+    { body: { email: 'nia_calm7', pin: '0000' },            want: 'P9', why: 'an unconfirmed address does not keep anybody out — the owner, 6 Oct' },
     { body: { email: 'ada@example.com', pin: 'wrong' },    want: '', code: 'wrong-pin', why: 'a wrong PIN is still wrong' },
     { body: { email: 'dup@x.com', pin: '0000' },          want: '',   why: 'two rows on one address is refused, not guessed' },
     { body: { email: 'nobody@x.com', pin: '0000' },       want: '', code: 'no-such-email', why: 'an address nobody has signs nobody in' },

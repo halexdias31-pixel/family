@@ -417,7 +417,7 @@ window.addEventListener('beforeinstallprompt', e => {
      that makes sense instead. */
   e.preventDefault();
   INSTALL_PROMPT = e;
-  try { repaint(); installBar(); } catch (err) {}
+  try { repaint(); } catch (err) {}
 });
 
 /* ALREADY AN APP? `standalone` is how a page knows it was opened from a home screen rather than
@@ -432,88 +432,11 @@ const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent)
      touchscreen — a desktop Safari does not. */
   || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 
-/* AN EARLIER `installBar` STOOD HERE, with its own `#inst-bar` element and its own
-   `on('install-no')` — written in one pass and then written AGAIN in the next, because the first
-   had been forgotten. Both were declared, so JavaScript kept the LAST silently: the first was dead
-   from the moment the second existed, and the stylesheet's `#inst-bar` rules dressed an element
-   nothing produced.
-
-   TWO FUNCTIONS OF ONE NAME IS THE THING `check.js` CANNOT SEE. Both are declared, so nothing is
-   undefined; both are reachable by name, so nothing is unused. It is only visible by reading, or by
-   noticing that a dismissal is remembered under two different keys. */
-
-/* ---------- THE PROMPT EVERYBODY SEES ------------------------------------------------------------
-   A CARD ON THE YOU SCREEN IS NOT A PROMPT. It sat behind a sign-in form and two swipes of a
-   carousel, which means the people who most need it — somebody who has just arrived and has no
-   account — could never see it at all. An install prompt has to find the person; a person does not
-   go looking for an install prompt.
-
-   SO IT IS A BAR, at the bottom, on every screen, signed in or not. It is what every booking site
-   does and the reason they all do it is that it works.
-
-   AND IT GOES AWAY AND STAYS AWAY. Dismissed once, remembered — a bar that comes back after being
-   refused is the thing people leave a site over. Once installed it never appears again, because
-   `isInstalled` is true from then on.
-
-   NOT IMMEDIATELY, EITHER. Three seconds, so it arrives after somebody has seen what the app is
-   rather than over the top of it loading — asking somebody to keep a thing they have not looked at
-   yet is asking too early. */
-const INSTALL_HIDDEN = 'familyInstallHidden';
-
-function installBar() {
-  if (isInstalled()) return;
-  /* SERVED, OR NOT AT ALL. A page opened from a file cannot be installed by either platform, and a
-     bar offering it would be offering something that cannot happen. */
-  if (location.protocol === 'file:') return;
-  try { if (localStorage.getItem(INSTALL_HIDDEN)) return; } catch (err) {}
-  if (document.getElementById('install-bar')) return;
-  if (!INSTALL_PROMPT && !isIOS()) return;          // nothing to offer on this browser
-
-  brandIcon();
-  const el = document.createElement('div');
-  el.id = 'install-bar';
-  el.innerHTML = INSTALL_PROMPT
-    ? `<div class="ib-say"><b>Keep @family. on your phone</b>
-         <span>Opens like an app, no address bar.</span></div>
-       <button class="btn" data-do="install">Add</button>
-       <button class="ib-x" data-do="install-no" aria-label="Not now">✕</button>`
-    /* iOS HAS NO INSTALL API, so the bar can only say where the button is. The share icon is drawn
-       rather than named, because "the share button" is not something everybody can find and the
-       square-with-an-arrow is unmistakable. */
-    /* NO FULL STOP AFTER THE BOLD, and no "below".
-       The stop was a single character that could not fit on the line the bold text filled, so it
-       wrapped — and a lone `.` on its own row is the gap under the message.
-       "Below" was a guess about where Safari's address bar is, and it is a guess that is wrong half
-       the time: it sits at the bottom by default and at the top for anybody who has moved it, which
-       this phone has. Naming the icon and not its position is right wherever the bar happens to be. */
-    : `<div class="ib-say"><b>Keep @family. on your phone</b>
-         <span>Tap <svg viewBox="0 0 24 24" class="ib-share"><path d="M12 3v12M12 3l-4 4M12 3l4 4"
-           fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path
-           d="M5 12v8h14v-8" fill="none" stroke="currentColor" stroke-width="2"
-           stroke-linecap="round"/></svg> then <b>Add to Home Screen</b></span></div>
-       <button class="ib-x" data-do="install-no" aria-label="Not now">✕</button>`;
-  document.body.appendChild(el);
-  /* Added on the next frame so the slide actually animates — an element created and shown in the
-     same tick simply appears. The height is measured once it is in the document and handed to the
-     stylesheet, so the space the app makes is exactly the space the bar takes: a hardcoded number
-     here would be right on one phone and wrong on the next. */
-  requestAnimationFrame(() => {
-    document.documentElement.style.setProperty('--ib', el.offsetHeight + 'px');
-    document.body.classList.add('has-ib');
-    el.classList.add('up');
-  });
-}
-
-on('install-no', () => {
-  /* REMEMBERED, so it is asked once. Somebody who said no is not going to be talked round by being
-     asked again on every page. */
-  try { localStorage.setItem(INSTALL_HIDDEN, '1'); } catch (err) {}
-  const el = document.getElementById('install-bar');
-  /* The gap goes with it, and goes FIRST — so the app slides up as the bar slides out rather than
-     jumping once it has gone. */
-  document.body.classList.remove('has-ib');
-  if (el) { el.classList.remove('up'); setTimeout(() => el.remove(), 250); }
-});
+/* ---------- THE BAR THAT ASKED EVERYBODY TO KEEP IT, GONE ---------------------------------------
+   `installBar` slid down from the top three seconds after every first visit — "Keep @family. on your
+   phone" — with `#install-bar`, `has-ib` and its own `install-no` dismissal. The owner, 6 Oct:
+   *"delete the suggester telling to bookmark"*. The offer stays where somebody can go looking for it,
+   `installCard` on the You screen; nothing interrupts anybody to make it. */
 
 function installCard() {
   /* Asked here because this is the card that offers the install — so the icon is right by the time
@@ -550,9 +473,6 @@ on('install', el => {
     INSTALL_PROMPT = null;
     el.disabled = false;
     if (r && r.outcome === 'accepted') toast('Added to your home screen');
-    const bar = document.getElementById('install-bar');
-    document.body.classList.remove('has-ib');
-    if (bar) bar.remove();
     repaint();
   }).catch(() => { INSTALL_PROMPT = null; el.disabled = false; });
 });
@@ -1118,17 +1038,20 @@ on('reg-send', el => {
          the box is the one place on the screen that stays put while they wait for their grown-up. */
       const handle = String((d && d.handle) || '');
       const box = $('in-name'); if (box) box.value = kid && handle ? '@' + handle : email;
-      toast(kid ? 'Nearly there — ask your grown-up to open the link we sent them. You sign in as '
-                  + (handle ? '@' + handle : 'your handle') + '.'
-                : 'Nearly there — open the link we have emailed you, then sign in.');
+      /* NO WAITING ON THE LINK — see the note over `verifyLogin`'s old PENDING refusal in dopost.gs.
+         The account works now; the link is said as what it is, a confirmation, not a door. */
+      toast(kid ? 'Account made — sign in now as ' + (handle ? '@' + handle : 'your handle')
+                  + ' with your PIN. Your grown-up has been sent a link to confirm.'
+                : 'Account made — sign in now with your PIN. We have also emailed you a link to confirm your address.');
     })
     .catch(() => {});      // `send_` has already said why
 });
 
 /* ---------- AND THE LINK IN THAT EMAIL ------------------------------------------------------------
    `register` MAILS `SITE_URL?verify=<token>` AND NOTHING READ IT. So every account made from the
-   form would have stayed PENDING, and `verifyLogin` refuses a PENDING row — a sign-up that worked
-   and an account that could never be used.
+   form would have stayed PENDING for ever. Signing in no longer waits on it (the owner, 6 Oct), but
+   an unconfirmed address is still one the digest will not mail, and a grown-up's link is what puts a
+   no-email child on their account.
 
    READ ONCE AT START-UP, FROM boot.js, and taken out of the address before anything is sent, the
    same way a shared `?post=` link should be: the token is single-use (dopost.gs clears it), so a

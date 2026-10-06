@@ -25,5 +25,6 @@
 {"splash_id": "coin", "name": "Coin flips", "kind": "proof", "shows": "settling towards a half", "note": "", "active": true},
 {"splash_id": "line", "name": "Number line", "kind": "tool", "shows": "hopping the quarters", "note": "", "active": true},
 {"splash_id": "venn", "name": "Venn", "kind": "proof", "shows": "two sets and the bit in the middle", "note": "", "active": true},
-{"splash_id": "clock", "name": "Clock", "kind": "tool", "shows": "the hands, geared to each other", "note": "", "active": true}
+{"splash_id": "clock", "name": "Clock", "kind": "tool", "shows": "the hands, geared to each other", "note": "", "active": true},
+{"splash_id": "bayes", "name": "Bayes", "kind": "proof", "shows": "100 people, a test, and why a positive is only 50%", "note": "Bayes", "active": true}
 ]

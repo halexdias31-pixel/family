@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-06-b-chatmedia";
+const DOPOST_VERSION = "2026-10-06-c-noverifygate";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -68,16 +68,14 @@ function signInRow_(t0, r, body, by) {
          would name a thing they never typed. Left out, it is the old rule. */
       error: (by ? by === 'handle' : !norm(r.email)) ? 'Wrong PIN for that handle.' : 'Wrong PIN for that email address.' });
   }
-  // Only accounts that WERE asked to confirm are held back. A blank means the account predates
-  // this and was never sent a link, so it isn't unverified — it's just older.
-  /* A CHILD WHO MADE THEIR OWN ACCOUNT WITH NO ADDRESS was sent no link — it went to the grown-up
-     whose address they gave (`register`), so "check your inbox" would send them to an inbox they
-     do not have. */
-  if (S(r.verified).toUpperCase() === 'PENDING') {
-    return jsonOut({ success: false, why: 'pending',
-      error: S(r.email) ? 'Please confirm your email first — check your inbox for the link we sent.'
-        : 'Nearly there — the grown-up whose email you gave needs to open the link we sent them.' });
-  }
+  /* ---------- AN UNCONFIRMED ADDRESS NO LONGER KEEPS ANYBODY OUT -----------------------------------
+     The owner, 6 Oct: *"dont make them have to need to verify their email to login"*. A `PENDING`
+     row used to be refused here until its link was opened, and the link was where sign-ups
+     stalled — a child waiting on a grown-up's inbox, a parent whose mail went to spam. The PIN is
+     the proof of who is signing in; the link proves only that the ADDRESS reaches them. So the row
+     stays `PENDING` until the link is opened, and that still matters where an address is USED —
+     the weekly digest skips a `PENDING` address (digest.gs), and a grown-up's link is what puts a
+     no-email child on their account — but it no longer decides whether somebody may sign in. */
   /* ---------- A ROW WITH NO ID IS GIVEN ONE BEFORE A SESSION IS MADE FOR IT -------------------------
      A SESSION IS `{ id }`, AND `authWhoIs_` REFUSES AN EMPTY ONE. So a child typed into the sheet
      after the last deploy — no `person_id` until `ensureSchema` next ran — was told "Signed in", and
@@ -384,8 +382,8 @@ function doPost(e) {
               subject: 'Confirm your @family. account',
               body: 'Hello ' + first + ',\n\nConfirm your email address by opening this link:\n\n'
                   + SITE_URL + '?verify=' + token
-                  + '\n\nThen sign in with this email address' + (said ? ' (or your handle, ' + said + ')' : '')
-                  + ' and the PIN you chose.'
+                  + '\n\nYou can already sign in with this email address' + (said ? ' (or your handle, ' + said + ')' : '')
+                  + ' and the PIN you chose — the link only confirms the address is yours.'
                   /* THE NEXT STEP, for the person who came for it. A parent's first question once in is
                      how their child gets an account, and the answer is a card they would otherwise have
                      to go looking for. */
@@ -396,7 +394,8 @@ function doPost(e) {
               subject: first + ' has made an @family. account',
               body: 'Hello,\n\n' + full + ' has made an account on @family. and gave this address as '
                   + 'their grown-up\'s, because they have no email of their own.\n\n'
-                  + 'If that is right, open this link to say yes — their account works from then on:\n\n'
+                  + 'Their account works already. If that is right, open this link to confirm your address'
+                  + ' (it also puts them on your @family. parent account if you have one):\n\n'
                   + SITE_URL + '?verify=' + token + '\n\n'
                   + 'They sign in with their handle, ' + said + ', and the PIN they chose. If they forget '
                   + 'it, "Forgotten your PIN?" sends a new one to this address.\n\n'

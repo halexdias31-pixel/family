@@ -240,7 +240,10 @@ on('cart-add', el => {
 function cartAddBundle_(el) {
   const ids = String(el.dataset.ids || '').split(',').map(s => s.trim()).filter(Boolean);
   const from = String(el.dataset.key || '');
-  const b = typeof bundleOf_ === 'function' ? bundleOf_() : null;
+  /* EITHER THE ONE BUNDLE THE FUNNEL OFFERS, OR ONE OF THE SITTINGS `Bundles` LISTS — see find.js. */
+  const offered = [].concat(typeof bundleOf_ === 'function' ? bundleOf_() || [] : [],
+    typeof bundlesBySitting_ === 'function' && bundlesView_() ? bundlesBySitting_() : []);
+  const b = offered.find(x => x && x.ids.join(',') === ids.join(',')) || null;
   const shortOf = {};
   if (b && b.ids.join(',') === ids.join(',')) {
     b.printable.forEach(p => { shortOf[p.id] = p.short || p.label; });
