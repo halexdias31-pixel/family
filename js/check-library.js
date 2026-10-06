@@ -541,7 +541,10 @@ byDoc.forEach((ids, k) => {
    is what declares it, so a scope holding several rows where two share an order — or where any
    lacks one — is a paper whose insert reads differently depending on the order the file happens
    to be in. Proved by mutation, both directions. */
-const scopeOf_ = r => r.paper_id + '|' + (String(r.question || '').trim() ? 'q' + r.question
+/* A LETTER'S OPENING IS ITS OWN SCOPE -- "(d)" of a question, see `stemLetter_` in find.js -- so a
+   question's own opening and its (d) opening are not two rows in one scope demanding a sort_order. */
+const preLetter_ = r => { const p = String(r.part || '').trim().toLowerCase().replace(/[()\s]/g, ''); return /^[a-z]$/.test(p) ? p : ''; };
+const scopeOf_ = r => r.paper_id + '|' + (String(r.question || '').trim() ? 'q' + r.question + (preLetter_(r) ? '(' + preLetter_(r) + ')' : '')
                                           : r.section ? 's' + r.section : 'paper');
 const inScope = {};
 rows.forEach(r => {
@@ -594,6 +597,28 @@ rows.forEach(r => {
      paper that HAS parts and matches none of them is a paragraph nothing will ever draw. A stem
      under a paper with no parts yet is the backlog, and the backlog is already counted below —
      440 document rows are in exactly that state. */
+  /* ---------- A PREAMBLE'S `part` IS ONE LETTER, OR NOTHING ------------------------------------
+     THE "(d)" OPENING (`stemLetter_` in find.js, the multi-part audit's finding 6): a preamble whose
+     `part` is a letter is the opening of that letter's parts, drawn once before (d)(i). Anything
+     else in the column -- "d(i)", "2" -- the app reads as no letter and draws in front of the whole
+     question, which is not what whoever typed it meant. And a letter needs a question to stand in
+     and a part of that letter to stand in front of, or it is a paragraph on no screen. */
+  if (String(r.part || '').trim()) {
+    const L = preLetter_(r);
+    if (!L || !String(r.question || '').trim()) {
+      fail.push(`${r.row_id} is a preamble with part "${r.part}". An opening's part is one letter, the `
+        + `letter whose parts it opens ("d" for d(i) and d(ii)), on a row that names its question.`);
+      return;
+    }
+    if (!paperKeys.has(r.paper_id)) return;
+    const mine = rows.some(q => q && q.kind === 'question' && q.paper_id === r.paper_id
+      && String(q.question) === String(r.question)
+      && String(q.part || '').trim().toLowerCase().replace(/[()\s]/g, '').charAt(0) === L
+      && !/^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/.test(String(q.part || '').trim().toLowerCase()));
+    if (!mine) fail.push(`${r.row_id} opens part (${L}) of ${r.paper_id} Q${r.question}, and that question has `
+      + `no part (${L}) -- the opening is in the file and on no screen.`);
+    return;
+  }
   if (!paperKeys.has(r.paper_id)) return;
   const has = (r.question !== undefined && r.question !== null && r.question !== '')
     ? partKeys.has(r.paper_id + '|' + r.question)
@@ -1568,6 +1593,82 @@ if (toolNoPen.length) {
     + toolNoPen.slice(0, 4).join(', ') + (toolNoPen.length > 4 ? ', …' : '')
     + '   (their answer_type is not drawing; a `surface` would give them one)');
 }
+
+/* ---------- THE FIGURES THE PAPER PRINTS AND NOBODY HAS DRAWN, COUNTED SO THE COUNT CANNOT GROW -------
+   THE MULTI-PART AUDIT, FINDING 4. A part whose words name a figure ("Figure 3", "the graph", "the
+   grid", "the table below"…) in a question where no row carries one now gets a page saying so --
+   `questionNoFigCard_` in find.js -- because a question that reads as complete and cannot be answered
+   is the failure nobody on the phone can see. That page is the stopgap; drawing them is the fix, and
+   this is the ledger: THE APP'S OWN TEST (`FIG_NAMED`, `figWanted_`, cut out of find.js by name, with
+   `padSurface_` from above), run over every part with what its question holds -- its own `diagram`
+   or `images`, any other part's, and every preamble over it (paper, section, question, letter).
+   A CEILING, NOT A RULE: today's count is written below, and a new row that adds to it fails. Drawing
+   one lowers the count, and the ceiling should follow it down so the gain is kept. */
+const NOT_DRAWN_MAX = 412;
+const nfSrc_ = ['FIG_NAMED', 'figWanted_'].map(n => cutFrom(findSrc_, n));
+if (nfSrc_.some(c => !c)) {
+  const why = 'FIG_NAMED or figWanted_ is not in find.js — renamed? The figures not drawn yet were NOT counted.';
+  fail.push(why);
+  console.log(why);
+}
+const figWanted_ = nfSrc_.some(c => !c) ? (() => false) : new Function(nfSrc_.join('\n') + '\nreturn figWanted_;')();
+const hasPic_ = r => !!(String(r.diagram || '').trim() || String(r.images || '').trim());
+const picAt_ = {};
+rows.forEach(r => {
+  if (!r || !hasPic_(r) || (r.kind !== 'question' && r.kind !== 'preamble')) return;
+  const q = String(r.question || '').trim();
+  /* A QUESTION'S PICTURE COVERS ITS QUESTION; A PREAMBLE'S, THE SCOPE IT IS WRITTEN FOR. */
+  const k = r.kind === 'question' || q ? 'q|' + r.paper_id + '|' + q
+    : r.section ? 's|' + r.paper_id + '|' + r.section : 'p|' + r.paper_id;
+  picAt_[k] = true;
+});
+const notDrawn = rows.filter(r => {
+  if (!r || r.kind !== 'question') return false;
+  /* A PART THAT USES AN EARLIER PART'S DRAWING ("use your graph") names the child's own picture, not
+     one the paper prints -- the app's `figMissing_` stands down for it, and so does the count. */
+  if (String(r.uses || '').trim()) return false;
+  if (padSurface_({ answerType: String(r.answer_type || '').trim().toLowerCase(), surface: r.surface, figure: r.figure, row: r })) return false;
+  const figured = picAt_['q|' + r.paper_id + '|' + String(r.question || '').trim()]
+    || (r.section && picAt_['s|' + r.paper_id + '|' + r.section]) || picAt_['p|' + r.paper_id];
+  return figWanted_(String(r.lead || '') + ' ' + String(r.html || ''), !!figured);
+});
+console.log(`parts naming a figure nobody has drawn yet (a "not drawn yet" page each): ${notDrawn.length}`
+  + `   (ceiling ${NOT_DRAWN_MAX})`);
+if (notDrawn.length > NOT_DRAWN_MAX) {
+  const why = `${notDrawn.length - NOT_DRAWN_MAX} more part(s) name a figure nobody has drawn than the ${NOT_DRAWN_MAX} `
+    + `already known -- a new row was added without its picture. Draw it (\`diagram\`), or it shows `
+    + `"not drawn yet". The last in the file: ${notDrawn.slice(-3).map(r => r.row_id).join(', ')}`;
+  fail.push(why);
+  console.log('  ' + why);
+} else if (notDrawn.length < NOT_DRAWN_MAX) {
+  console.log(`   ${NOT_DRAWN_MAX - notDrawn.length} fewer than the ceiling -- lower NOT_DRAWN_MAX to ${notDrawn.length} to keep the gain.`);
+}
+
+/* ---------- ONE SPELLING OF A PART PER QUESTION ---------------------------------------------------
+   THE MULTI-PART AUDIT, FINDING 13: the order of a question's parts is read off how each is spelled,
+   and "bi" beside "b(ii)" used to sort b(ii), b(iii), bi -- (i) last. `partKeys_` in find.js now reads
+   the two as one, so the order would come out right; this is the other half, because a question that
+   says one thing two ways is a transcription that was not looked at twice, and the next reader of the
+   column -- a script, a sheet formula -- will not be as forgiving. Bracketed is "a(i)", bare is "ai";
+   a numeral on its own ("ii") is neither and is allowed beside either. */
+const spellBy_ = {};
+rows.forEach(r => {
+  if (!r || r.kind !== 'question' || !r.part) return;
+  const p = String(r.part).trim();
+  const how = /\(/.test(p) ? 'bracketed' : /^[a-z](i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i.test(p) ? 'bare' : '';
+  if (!how) return;
+  const k = String(r.paper_id) + ' Q' + String(r.question || '');
+  (spellBy_[k] = spellBy_[k] || {})[how] = (spellBy_[k][how] || []).concat(p);
+});
+const mixedSpell_ = Object.keys(spellBy_).filter(k => spellBy_[k].bracketed && spellBy_[k].bare);
+/* SAID AS WELL AS PUSHED, for the reason the tools count below gives: this is past where `fail` prints. */
+mixedSpell_.forEach(k => {
+  const why = `${k} spells its parts two ways — ${spellBy_[k].bracketed.join(', ')} beside `
+    + `${spellBy_[k].bare.join(', ')}. Keep to one per question: a(i), a(ii) or ai, aii.`;
+  fail.push(why);
+  console.log('  ' + why);
+});
+console.log(`questions spelling their parts two ways (bi beside b(ii)): ${mixedSpell_.length}`);
 
 console.log(`rows saying where the paper prints their figure (<!--fig-->): ${marked}`
   + `   (the rest stand it in front of the ask, or after it for a pen question)`);

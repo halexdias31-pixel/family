@@ -9750,6 +9750,487 @@ check('the calendar marks sessions, terms, half terms, bank holidays, events and
   return bad;
 });
 
+/* ==================================================================================================
+   MULTI-PART QUESTIONS — THE FOLLOW-UPS TO THE OWNER'S *"can you see any clashes or bugs or counter
+   intuitive things which occur with current system to keep questions in order while keeping the
+   diagram in its own widget … multiple parts … like 1b 1c 1di 1dii"*. Each journey is one finding of
+   the audit that answered it, through the app's own builders. `FLOW_ONLY=multipart` runs them alone.
+================================================================================================== */
+/* A PAYLOAD ROW, the shape `libraryInto_` hands `questionItems` -- the fields it reads and no more. */
+const mpRow_ = (paper, name, q, part, extra) => Object.assign({ id: 'Q-' + paper + '-' + q + part, paper: paper, paper_id: paper,
+  q: String(q), part: part, kind: 'question', name: name, subject: 'Maths', marks: 1,
+  html: '<p>' + paper + ' Q' + q + part + '</p>' }, extra || {});
+
+/* FINDING 12 AND 13: a question's parts in the order the paper prints them, whatever the spelling and
+   however many, and two papers sharing a name never shuffled together. */
+check('multipart: parts sort by their value within a question, and two papers with one name do not interleave', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.questionItems !== 'function' || typeof w.stuffSorted_ !== 'function') return ['questionItems or stuffSorted_ not reachable — renamed? The order was NOT checked'];
+  const D = w.__t.DATA();
+  const held = D.questions;
+  const same = 'Paper 1 (Non-calculator) — June 2024';
+  const rows = [];
+  const add = (paper, name, q, parts) => parts.forEach(p => rows.push(mpRow_(paper, name, q, p)));
+  /* SHUFFLED ON PURPOSE, so the order out is the sort's and not the file's. */
+  add('P-MP-L', 'Letters', 1, ['j', 'h', 'i']);
+  add('P-MP-R', 'Numerals', 2, ['x', 'ii', 'ix', 'v', 'i', 'iv', 'iii', 'vi', 'viii', 'vii', 'xi']);
+  add('P-MP-N', 'Numbers', 3, ['10', '2', '1', '11', '9']);
+  add('P-MP-A', 'Nested', 4, ['b', 'a(ii)', 'a', 'b(i)', 'a(i)', 'dii', 'di', 'c']);
+  add('P-MP-1H', same, 13, ['b', 'a']);
+  add('P-MP-1F', same, 13, ['b', 'a']);
+  D.questions = rows;
+  let order = [];
+  try { order = w.stuffSorted_(w.questionItems()).map(x => x.row.paper + ':' + x.qPart); }
+  catch (e) { bad.push('sorting threw: ' + e.message); }
+  finally { D.questions = held; }
+  const of = paper => order.filter(o => o.indexOf(paper + ':') === 0).map(o => o.split(':')[1]).join(' ');
+  [['P-MP-L', 'h i j', 'letters h, i, j -- a lone "i" here is the ninth letter, not a numeral'],
+   ['P-MP-R', 'i ii iii iv v vi vii viii ix x xi', 'numerals by value -- "ix" used to sort before "v"'],
+   ['P-MP-N', '1 2 9 10 11', 'numbered parts past 9 -- they sorted 1, 10, 11, 2'],
+   ['P-MP-A', 'a a(i) a(ii) b b(i) c di dii', 'letters, then each letter\'s numerals']].forEach(([p, want, what]) => {
+    if (of(p) !== want) bad.push(what + ': got "' + of(p) + '", wanted "' + want + '"');
+  });
+  /* THE SAME NAME, TWO PAPERS: each paper's parts together. */
+  const twin = order.filter(o => /^P-MP-1[FH]:/.test(o)).map(o => o.replace('P-MP-', '')).join(' ');
+  if (twin !== '1F:a 1F:b 1H:a 1H:b') bad.push('two papers called "' + same + '" read "' + twin + '" -- their parts interleave');
+  return bad;
+});
+
+/* A SMALL LIBRARY OF MULTI-PART QUESTIONS, made into the funnel's own items by `questionItems` and
+   handed to Find as its whole list -- `stuffItems` replaced, so the memo keyed on `DATA` cannot hand
+   back the fixture's. Returns a function that puts everything back. */
+function mpLibrary_(w, rows) {
+  const D = w.__t.DATA();
+  const held = { q: D.questions, si: w.stuffItems, sa: w.stuffItemsAll_ };
+  D.questions = rows;
+  const items = w.questionItems();
+  D.questions = held.q;
+  w.stuffItems = () => items;
+  w.stuffItemsAll_ = () => items;
+  return { items, put: () => { w.stuffItems = held.si; w.stuffItemsAll_ = held.sa; } };
+}
+const MP_SVG = '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>';
+const mpBank_ = () => [
+  { id: 'S-MP-W-8', paper: 'P-MP-W', paper_id: 'P-MP-W', q: '8', kind: 'preamble', name: 'Whole', html: '<p>OA, OB and OC are three straight lines.</p>', diagram: MP_SVG },
+  mpRow_('P-MP-W', 'Whole', 8, 'i', { html: '<p>Work out the size of angle x.</p>', answer: '<b>50°</b>' }),
+  mpRow_('P-MP-W', 'Whole', 8, 'ii', { html: '<p>Give a REASONWORD for your answer.</p>', answer: '<b>angles on a line</b>' }),
+  mpRow_('P-MP-W', 'Whole', 18, '', { html: '<p>Eighteen.</p>' }),
+  { id: 'S-MP-W-1d', paper: 'P-MP-W', paper_id: 'P-MP-W', q: '1', part: 'd', kind: 'preamble', name: 'Whole',
+    html: '<p>A car moves from REST.</p>', diagram: '<svg viewBox="0 0 10 10" class="mp-car"><path d="M0 10 10 0"/></svg>' },
+  mpRow_('P-MP-W', 'Whole', 1, 'c', { html: '<p>One c.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 1, 'd(i)', { html: '<p>One d i.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 1, 'd(ii)', { html: '<p>One d ii.</p>' }),
+  mpRow_('P-MP-V', 'Other', 8, '', { html: '<p>Another paper\'s eight.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 14, 'a', { html: '<p>The graph shows a journey. Work out the speed.</p>', diagram: '<svg viewBox="0 0 10 10" class="mp-graph"><path d="M0 10 10 0"/></svg>' }),
+  mpRow_('P-MP-W', 'Whole', 14, 'b', { html: '<p>Work out an estimate for the distance.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 20, 'a', { html: '<p>Use the graph to find the gradient.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 20, 'b', { html: '<p>From the graph, estimate the value of y when x = 3.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 21, '', { html: '<p>On the grid, draw the line y = 2x.</p>', answerType: 'drawing' }),
+];
+
+/* FINDING 1: a search hit on one part brings the whole question, in order, and lands on the part. */
+check('multipart: a search that finds one part brings its whole question, in order, landing on that part', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  const need = ['questionItems', 'stuffFiltered', 'stuffPages_', 'stuffPageOf_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The whole question was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  try {
+    S.q = 'reasonword'; S.filters = [];
+    const hits = w.stuffFiltered();
+    if (hits.length !== 1 || hits[0].qPart !== 'ii') bad.push('the search should MATCH one part, Q8(ii) -- it matched ' + hits.map(x => x.name).join(', '));
+    const strip = w.stuffPages_().map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' ');
+    const want = 'Q8(i):stem0 Q8(i):sfig0 Q8(i):card Q8(i):ans Q8(ii):card Q8(ii):ans';
+    if (strip !== want) bad.push('the strip reads "' + strip + '", wanted the whole question: "' + want + '"');
+    if (hits[0]) {
+      const at = w.stuffPageOf_(hits[0]);
+      const pg = w.stuffPages_()[at];
+      if (!pg || pg.x !== hits[0] || pg.part) bad.push('turning to the hit lands on page ' + at + ' (' + (pg ? pg.x.name + ':' + pg.part : 'nothing') + '), not on Q8(ii)\'s card');
+      else if (at !== 4) bad.push('the hit is page ' + at + ' -- Q8(i), its answer and the opening should be the four pages in front of it');
+    }
+  } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* FINDING 10: a question's number typed into the box is that question. */
+check('multipart: typing a question reference -- q8, 8ii, 1dii, 1d(ii), Q 8 -- matches that question exactly', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.stuffFiltered !== 'function' || typeof w.questionItems !== 'function') return ['stuffFiltered or questionItems not reachable — the references were NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const names = (q, filters) => {
+    S.q = q; S.filters = filters || [];
+    return w.stuffFiltered().map(x => x.row.paper.slice(-1) + x.name).join(' ');
+  };
+  try {
+    [['q8', [], 'VQ8 WQ8(i) WQ8(ii)', 'both papers\' Q8 and every part -- and not Q18'],
+     ['Q 8', [], 'VQ8 WQ8(i) WQ8(ii)', '"Q 8" with a space'],
+     ['q8ii', [], 'WQ8(ii)', '"q8ii"'], ['8ii', [], 'WQ8(ii)', '"8ii"'], ['q8(ii)', [], 'WQ8(ii)', '"q8(ii)"'],
+     ['1dii', [], 'WQ1d(ii)', '"1dii"'], ['1d(ii)', [], 'WQ1d(ii)', '"1d(ii)"'], ['q1d', [], 'WQ1d(i) WQ1d(ii)', '"q1d", the whole of (d)'],
+     ['q8', [{ field: 'paperId', value: 'P-MP-W' }], 'WQ8(i) WQ8(ii)', '"q8" inside a chosen paper'],
+    ].forEach(([q, f, want, what]) => {
+      const got = names(q, f);
+      if (got !== want) bad.push(what + ' found "' + got + '", wanted "' + want + '"');
+    });
+    /* A BARE NUMBER IS STILL WORDS: "8" is not read as Q8. */
+    if (names('eighteen', []) !== 'WQ18') bad.push('an ordinary word search broke: "eighteen" found "' + names('eighteen', []) + '"');
+  } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* FINDING 8: two kept parts of one question on Saved -- and on Spotlight -- draw its opening once. */
+check('multipart: Saved and Spotlight draw a question\'s opening and its figure once for several kept parts', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['savedPages_', 'spotPages', 'collItems_', 'questionItems'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — Saved was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const eight = lib.items.filter(x => x.row.paper === 'P-MP-W' && String(x.qNumber) === '8');
+  const other = lib.items.find(x => x.row.paper === 'P-MP-V');
+  const heldC = w.collItems_;
+  w.__t.USER({ name: 'Kept', personId: 'P-KEPT', role: 'student', roles: ['student'] });
+  /* KEPT OUT OF ORDER, with another question between them, the way stars are pressed. */
+  w.collItems_ = () => [eight[1], other, eight[0]];
+  const read = html => {
+    const h = d.createElement('div');
+    h.innerHTML = html;
+    const c = h.querySelector('.qcard') || h.firstElementChild;
+    if (!c) return '?';
+    if (c.classList.contains('qstem')) return 'stem';
+    if (c.classList.contains('qfig')) return 'fig';
+    if (c.classList.contains('qans-card')) return 'ans';
+    return ((c.querySelector('.qcard-top b') || {}).textContent || '?').trim().replace(/\s.*$/, '');
+  };
+  try {
+    [['Saved', () => w.savedPages_()], ['Spotlight', () => w.spotPages()]].forEach(([where, f]) => {
+      const got = f().map(read).join(' ');
+      const want = 'stem fig Q8(i) ans Q8(ii) ans Q8';
+      if (got !== want) bad.push(where + ' reads "' + got + '", wanted "' + want + '" -- the opening once, the parts in the paper\'s order');
+    });
+    /* A PART KEPT ALONE STILL HAS ITS OPENING. */
+    w.collItems_ = () => [eight[1]];
+    const alone = w.savedPages_().map(read).join(' ');
+    if (alone !== 'stem fig Q8(ii) ans') bad.push('a part kept alone reads "' + alone + '", wanted its opening and figure in front of it');
+  } finally { w.collItems_ = heldC; lib.put(); }
+  return bad;
+});
+
+/* FINDING 9: "To the answer" says where the answer really is, and the drawing page carries it too. */
+check('multipart: "To the answer" says where the answer is, and the drawing page after a card carries it', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionTiles_', 'questionFigCard_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the tile\'s note was NOT checked'];
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
+  const row = id => ({ row_id: id, paper_id: 'P-MP-T', subject: 'Maths', name: 'Tiles' });
+  const q = (id, extra) => Object.assign({ kind: 'question', name: 'Q' + id, qNumber: id, marks: 2, key: 'q-mp-t' + id,
+    row: row('Q-MP-T-' + id), html: '<p>Do it.</p>', answer: '<b>done</b>' }, extra || {});
+  const plain = q('1');
+  const grid = q('2', { answerType: 'drawing', surface: 'grid', html: '<p>Draw the line y = 2x.</p>' });
+  const front = q('3', { diagram: MP_SVG });
+  const note = h => { const t = el(h).querySelector('[data-do="qa-go"]'); return t ? String(t.getAttribute('aria-label') || '').replace(/^To the answer · /, '') : '(no tile)'; };
+  [[plain, 'next page', 'a card whose answer is the next page'],
+   [grid, 'after the squared grid', 'a card with the grid to draw on between it and its answer'],
+   [front, 'next page', 'a card whose figure stands in front of it']].forEach(([x, want, what]) => {
+    const got = note(w.questionTiles_(x));
+    if (got !== want) bad.push(what + ' says "' + got + '", wanted "' + want + '"');
+  });
+  /* THE DRAWING PAGE: the grid after the card carries the tile; a figure in front of its card does not. */
+  const gf = el(w.questionFigCard_(grid));
+  const gt = gf.querySelector('[data-do="qa-go"]');
+  if (!gt) bad.push('the grid page -- where the child finishes -- has no "To the answer" tile');
+  else if (note(gf.innerHTML) !== 'next page' || gt.getAttribute('data-from') !== 'fig') bad.push('the grid page\'s tile reads "' + note(gf.innerHTML) + '" from "' + gt.getAttribute('data-from') + '", wanted "next page" from the figure');
+  if (el(w.questionFigCard_(front)).querySelector('[data-do="qa-go"]')) bad.push('a figure read on the way to its card carries a tile to the answer');
+  /* AND IT TURNS ONE PAGE ON FROM THE GRID: card page 0, grid page 1, answer page 2. */
+  if (gt) {
+    const strip = el('<div id="s-mptile"><section class="page"></section><section class="page">' + gf.innerHTML + '</section><section class="page"></section></div>');
+    d.body.appendChild(strip);
+    const heldA = w.stuffItemsAll_, heldG = w.goPage;
+    let went = null;
+    w.stuffItemsAll_ = () => [grid];
+    w.goPage = (id, n) => { went = [id, n]; };
+    try { w.__t.ACTIONS['qa-go'](strip.querySelector('[data-do="qa-go"]')); }
+    finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; strip.remove(); }
+    if (!went || went[1] !== 2) bad.push('the grid page\'s tile turned to ' + JSON.stringify(went) + ', wanted page 2 -- the answer is the page after the grid');
+  }
+  return bad;
+});
+
+/* FINDING 2: a Figure tile on a part whose question has a figure in front of it, opening that figure
+   over the card -- and the card, its box and what is typed in it, untouched underneath. */
+check('multipart: a part with a figure behind it has a Figure tile that opens it over the card', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionTiles_', 'stuffCard', 'questionItems'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the Figure tile was NOT checked'];
+  if (!w.__t.ACTIONS['q-fig']) return ['q-fig has no handler — nothing can open a figure over the card'];
+  const lib = mpLibrary_(w, mpBank_());
+  const find = name => lib.items.find(x => x.row.paper === 'P-MP-W' && x.name === name);
+  /* THE CARD AS DRAWN, because the tile stands at the end of the answer box (`ansBox_`), not in the row. */
+  const tileOf = x => { const h = d.createElement('div'); h.innerHTML = w.stuffCard(x, 0); return h.querySelector('[data-do="q-fig"]'); };
+  try {
+    [['Q8(ii)', 'the opening\'s figure, two parts back'], ['Q8(i)', 'the opening\'s figure, one page back'],
+     ['Q14b', 'Q14a\'s own graph, a part back'], ['Q14a', 'its own graph, the page before its card']].forEach(([n, what]) => {
+      if (!find(n)) bad.push(n + ' is not in the library');
+      else if (!tileOf(find(n))) bad.push(n + ' has no Figure tile, though ' + what + ' stands in front of it');
+    });
+    ['Q18', 'Q1c'].forEach(n => { if (find(n) && tileOf(find(n))) bad.push(n + ' offers a Figure tile with no figure in front of its card'); });
+    /* OPENED, OVER A CARD WITH SOMETHING TYPED IN IT. */
+    const x = find('Q14b');
+    const page = d.createElement('section');
+    page.className = 'page';
+    page.innerHTML = '<div class="pane">' + w.stuffCard(x, 0) + '</div>';
+    d.body.appendChild(page);
+    const box = page.querySelector('.qp-ans input, .qp-ans textarea');
+    if (!box) bad.push('the card drew no answer box to type in, so "untouched underneath" was NOT checked');
+    else box.value = '42 km';
+    const t = page.querySelector('[data-do="q-fig"]');
+    if (!t) bad.push('the card as drawn on Find carries no Figure tile');
+    /* BESIDE THE BOX, on its line -- where the keypad, which covers the row under the card on a small
+       phone, cannot cover it (the review of the merge, 1F Q23b at 320x568). */
+    else if (!t.parentElement || !t.parentElement.classList.contains('qp-ans-row') || !t.parentElement.querySelector('.qp-ans'))
+      bad.push('the Figure tile is not at the end of the answer box\'s own line -- under the card, the keypad covers it on a 320px phone');
+    else {
+      w.__t.ACTIONS['q-fig'](t);
+      const sheet = d.getElementById('sheet');
+      if (!sheet || sheet.classList.contains('hidden')) bad.push('pressing Figure opened nothing');
+      else if (!sheet.querySelector('svg.mp-graph')) bad.push('the sheet opened without Q14a\'s graph: ' + sheet.textContent.trim().slice(0, 60));
+      if (!d.body.contains(page) || (box && box.value !== '42 km')) bad.push('opening the figure disturbed the card underneath or what was typed in it');
+      if (typeof w.closeSheet === 'function') w.closeSheet();
+      if (sheet && !sheet.classList.contains('hidden')) bad.push('the figure sheet does not close');
+    }
+    page.remove();
+  } finally { lib.put(); }
+  return bad;
+});
+
+/* FINDING 6, THE OWNER'S OWN EXAMPLE: a "(d)" opening, drawn once before (d)(i), headed Q1(d), its
+   figure after it, and again in front of (d)(ii) opened alone -- never in front of (a) or (c). */
+check('multipart: a (d) opening is drawn once before (d)(i), headed Q1(d), and again before (d)(ii) alone', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionItems', 'stuffPages_', 'pageParts_', 'questionStemCard_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the (d) opening was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  try {
+    S.q = 'q1'; S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    const strip = w.stuffPages_().filter(pg => String(pg.x.qNumber) === '1').map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' ');
+    const want = 'Q1c:card Q1d(i):stem0 Q1d(i):sfig0 Q1d(i):card Q1d(ii):card';
+    if (strip !== want) bad.push('Q1 reads "' + strip + '", wanted "' + want + '" -- the (d) opening once, between (c) and (d)(i)');
+    const di = lib.items.find(x => x.name === 'Q1d(i)'), dii = lib.items.find(x => x.name === 'Q1d(ii)'), c = lib.items.find(x => x.name === 'Q1c');
+    if (dii && JSON.stringify(w.pageParts_(dii)) !== '["stem0","sfig0",null]') bad.push('(d)(ii) opened alone has pages ' + JSON.stringify(w.pageParts_(dii)) + ' -- it needs its (d) opening and figure');
+    if (c && (c.stems || []).length) bad.push('(c) carries the (d) opening, which would stand in front of it');
+    if (di) {
+      const h = d.createElement('div');
+      h.innerHTML = w.questionStemCard_(di, 0);
+      const head = ((h.querySelector('.qcard-top b') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+      if (head !== 'Q1(d)') bad.push('the (d) opening is headed "' + head + '", wanted Q1(d)');
+      if (!/REST/.test(h.textContent)) bad.push('the (d) opening does not draw its words');
+    }
+  } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* FINDING 4: a part whose words name a figure, in a question with none, says so on a page of its own. */
+check('multipart: a figure the words name and nobody drew is a "not drawn yet" page, once per run of parts', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionItems', 'pageParts_', 'stuffPart_', 'stuffPages_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the missing figures were NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const find = name => lib.items.find(x => x.row.paper === 'P-MP-W' && x.name === name);
+  try {
+    const a = find('Q20a');
+    if (!a || JSON.stringify(w.pageParts_(a)) !== '["nofig",null]') bad.push('Q20a, "Use the graph" with no graph anywhere, has pages ' + (a && JSON.stringify(w.pageParts_(a))) + ', wanted the gap and then the card');
+    else {
+      const h = d.createElement('div');
+      h.innerHTML = w.stuffPart_(a, 'nofig');
+      if (!/not drawn yet/.test(h.textContent) || !h.querySelector('.qcard.qfig.is-missing')) bad.push('the gap page does not say "not drawn yet": ' + h.textContent.trim().slice(0, 80));
+    }
+    S.q = 'q20'; S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    const strip = w.stuffPages_().map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' ');
+    if (strip !== 'Q20a:nofig Q20a:card Q20b:card') bad.push('Q20 reads "' + strip + '" -- the gap once, in front of the first part that names it');
+    ['Q14a', 'Q14b', 'Q21'].forEach(n => {
+      const x = find(n);
+      if (x && w.pageParts_(x).indexOf('nofig') >= 0) bad.push(n + ' is given a "not drawn yet" page though its question has a figure, or it is answered on a surface');
+    });
+  } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* THE OWNER: *"they have their own tag. i could in theory just click answers and only see answers."*
+   THE DOOR IS THE REAL ANSWER PAGE'S OWN TILE, found on the card as `questionAnsCard_` draws it -- and
+   if the card has none, this FAILS. It used to put an "Answer" tag on the page itself before tapping it,
+   and so passed over a door nobody could see (the review of the merge). Pressed, it shows only answer
+   pages, in order, OPEN -- choosing the view is asking for them -- with Hide still hiding one, and the
+   same tile, lit and pressed, takes the view off. From Saved, it is that paper's answers. */
+check('multipart: an answer page\'s "Answers only" switch shows only answer pages, open, and pressed again takes it off', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionAnsCard_', 'stuffPages_', 'nextFacet', 'facetList', 'stuffPart_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the answers-only view was NOT checked'];
+  const A = w.__t.ACTIONS;
+  if (!A['qa-only'] || !A['qa-all']) return ['qa-only or qa-all has no handler — the answers-only door goes nowhere'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const card = (x, where) => {
+    const scr = d.getElementById(where || 's-stuff');
+    const host = d.createElement('div');
+    host.className = 'page';
+    host.innerHTML = w.questionAnsCard_(x);
+    scr.appendChild(host);
+    return host;
+  };
+  try {
+    S.q = ''; S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    const a = lib.items.find(x => x.name === 'Q8(i)');
+    const host = card(a);
+    const door = host.querySelector('.qans-card [data-do="qa-only"]');
+    if (!door) { host.remove(); return ['the answer page draws no "Answers only" tile -- nothing on the screen offers answers-only']; }
+    if (!door.classList.contains('tile')) bad.push('the answers-only door is not a tile -- every action on a question\'s pages is (CLAUDE.md)');
+    A['qa-only'](door);
+    host.remove();
+    const f = S.filters.filter(x => x.field === 'pageKind');
+    if (f.length !== 1 || f[0].value !== 'Answers') bad.push('pressing "Answers only" left the filters as ' + JSON.stringify(S.filters));
+    if (!S.filters.some(x => x.field === 'paperId')) bad.push('pressing "Answers only" on Find threw away the paper already chosen');
+    const pages = w.stuffPages_();
+    const kinds = [...new Set(pages.map(pg => pg.part))];
+    if (!pages.length || kinds.length !== 1 || kinds[0] !== 'ans') bad.push('the answers-only strip holds ' + JSON.stringify(kinds) + ', wanted answer pages and nothing else');
+    const names = pages.map(pg => pg.x.name).join(' ');
+    if (names !== 'Q8(i) Q8(ii)') bad.push('the answers-only strip is "' + names + '", wanted Q8(i) Q8(ii) -- the answers there are, in order');
+    pages.forEach(pg => {
+      const h = d.createElement('div');
+      h.innerHTML = w.stuffPart_(pg.x, 'ans');
+      const c = h.querySelector('.qans-card');
+      if (!c || c.classList.contains('is-hidden') || !/50°|angles on a line/.test(h.textContent)) bad.push(pg.x.name + '\'s answer is shut in the answers-only view -- "only see answers" is forty Shows in a row otherwise');
+      const sw = c && c.querySelector('[data-do="qa-all"]');
+      if (!sw || sw.getAttribute('aria-pressed') !== 'true') bad.push(pg.x.name + '\'s answer page in the answers-only view has no lit "Answers only" switch to leave it by');
+    });
+    /* HIDE STILL HIDES ONE. */
+    if (A['qa-hide'] && pages[0]) {
+      const h = card(pages[0].x);
+      const hide = h.querySelector('[data-do="qa-hide"]');
+      if (!hide) bad.push('an open answer in the answers-only view has no Hide');
+      else {
+        A['qa-hide'](hide);
+        const again = d.createElement('div');
+        again.innerHTML = w.stuffPart_(pages[0].x, 'ans');
+        if (!again.querySelector('.qans-card.is-hidden')) bad.push('Hide did not hide an answer in the answers-only view');
+      }
+      h.remove();
+    }
+    /* PRESSED AGAIN, IT TAKES IT OFF, and the paper stays. */
+    const back = card(a);
+    A['qa-all'](back.querySelector('[data-do="qa-all"]') || back);
+    back.remove();
+    if (S.filters.some(x => x.field === 'pageKind')) bad.push('pressing the lit switch left the Page filter on');
+    if (!S.filters.some(x => x.field === 'paperId')) bad.push('pressing the lit switch threw away the paper');
+    /* FROM SAVED: that paper's answers, whatever Find had. */
+    S.q = 'eighteen'; S.filters = [{ field: 'paperId', value: 'P-MP-V' }];
+    const sv = card(a, 's-saved');
+    const sdoor = sv.querySelector('[data-do="qa-only"]');
+    if (!sdoor) bad.push('the answer page on Saved draws no "Answers only" tile');
+    else {
+      A['qa-only'](sdoor);
+      const pid = (S.filters.find(x => x.field === 'paperId') || {}).value;
+      if (pid !== 'P-MP-W' || S.q) bad.push('"Answers only" pressed on Saved narrowed Find to ' + JSON.stringify(S.filters) + ' / "' + S.q + '", wanted that question\'s paper, P-MP-W, and no search');
+    }
+    sv.remove();
+    /* AND IT IS NEVER ASKED: the funnel offers it to nobody. */
+    if (!w.facetList().some(x => x.field === 'pageKind' && x.tagOnly)) bad.push('the Page filter is not a tag-only facet');
+    S.filters = []; S.q = '';
+    const asked = w.nextFacet(w.stuffFiltered());
+    if (asked && asked.field === 'pageKind') bad.push('the funnel asks "Page" as a question');
+  } finally { lib.put(); S.q = ''; S.filters = []; if (w.__t.go) { try { w.__t.go('stuff', false, true); } catch (e) {} } }
+  return bad;
+});
+
+/* THE REVIEW OF THE MERGE WITH THE PEN'S BRANCH, FINDINGS 1 AND 5: a part that USES an earlier part's
+   drawing ("use your graph") is neither "not drawn yet" -- the figure it names is the child's own --
+   nor offered that part's blank paper copy under Figure. A later part that does not use it still is. */
+check('multipart: a "use your graph" part has no "not drawn yet" page and no blank Figure of the part it uses', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionItems', 'pageParts_', 'figsBefore_', 'questionTiles_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — "use your graph" was NOT checked'];
+  const GRID = '<svg viewBox="0 0 10 10" class="mp-axes"><path d="M0 5h10M5 0v10"/></svg>';
+  const rows = mpBank_().concat([
+    mpRow_('P-MP-W', 'Whole', 24, 'a', { html: '<p>Complete the table.</p>' }),
+    mpRow_('P-MP-W', 'Whole', 24, 'b', { html: '<p>On the grid, draw the graph of y = 2x.</p>', answerType: 'annotate', figure: 'grid-blank', diagram: GRID }),
+    mpRow_('P-MP-W', 'Whole', 24, 'c', { html: '<p>Use your graph to find x when y = 3.</p>', uses: 'b' }),
+    mpRow_('P-MP-W', 'Whole', 24, 'd', { html: '<p>Read the value off the graph when x = 1.</p>' }),
+    /* AND ONE WHOSE GRAPH IS DRAWN ON A SURFACE, so nothing in the question is a printed figure. */
+    mpRow_('P-MP-W', 'Whole', 25, 'a', { html: '<p>Draw the line y = x.</p>', answerType: 'drawing', surface: 'coord' }),
+    mpRow_('P-MP-W', 'Whole', 25, 'b', { html: '<p>From the graph, find x when y = 3.</p>', uses: 'a' }),
+  ]);
+  const lib = mpLibrary_(w, rows);
+  const find = n => lib.items.find(x => x.row.paper === 'P-MP-W' && x.name === n);
+  try {
+    const c = find('Q24c'), dd = find('Q24d');
+    if (!c || !dd) return ['Q24c or Q24d did not reach the library'];
+    /* THE ITEM MAY NOT CARRY `uses` UNTIL THE PEN'S BRANCH LANDS; the row does, and both are read. */
+    const b25 = find('Q25b');
+    if (!b25 || w.pageParts_(b25).indexOf('nofig') >= 0) bad.push('Q25b "from the graph", which uses the axes Q25a was drawn on, is given a "The paper prints a figure here -- not drawn yet" page beside the page showing that drawing');
+    if (w.pageParts_(c).indexOf('nofig') >= 0) bad.push('Q24c "use your graph" is given a "not drawn yet" page -- the figure it names is the child\'s own graph on Q24b');
+    const labels = w.figsBefore_(c).map(f => f.html);
+    if (labels.some(h => /mp-axes/.test(h))) bad.push('Q24c\'s Figure opens Q24b\'s blank grid -- the picture it reads is the child\'s drawing, not the paper\'s empty copy');
+    const h = d.createElement('div');
+    h.innerHTML = w.stuffCard(c, 0);
+    if (h.querySelector('[data-do="q-fig"]')) bad.push('Q24c offers a Figure tile with nothing in front of it but the grid it uses');
+    /* A PART THAT DOES NOT SAY IT USES (b) STILL SEES (b)'s PICTURE -- the rule is the column, not the grid. */
+    if (!w.figsBefore_(dd).some(f => /mp-axes/.test(f.html))) bad.push('Q24d, which uses nothing, lost Q24b\'s figure too -- the skip reached past the part that names it');
+  } finally { lib.put(); }
+  return bad;
+});
+
+/* THE REVIEW, FINDING 6: the line above the strip counts what the strip holds -- questions, not the parts
+   that matched -- and names the question when a search found one inside a paper. */
+check('multipart: the line under a chosen paper counts questions, names a searched one, and counts answers in that view', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.paperEnd_ !== 'function' || typeof w.stuffFiltered !== 'function') return ['paperEnd_ or stuffFiltered not reachable — the count was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const say = (q, more) => {
+    S.q = q; S.filters = [{ field: 'paperId', value: 'P-MP-W' }].concat(more || []);
+    return String(w.paperEnd_(w.stuffFiltered())).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  };
+  try {
+    [['q8', [], /swipe up for Q8\./, '"q8" in the paper -- one question with two parts'],
+     ['reasonword', [], /swipe up for Q8\./, 'a word found in Q8(ii) alone -- the strip holds Q8 whole'],
+     ['', [], /Swipe up for its 6 questions\./, 'the whole paper -- Q1, Q8, Q14, Q18, Q20, Q21, each counted once however many parts'],
+     ['', [{ field: 'pageKind', value: 'Answers' }], /Swipe up for its 2 answers\./, 'the answers-only view'],
+    ].forEach(([q, more, want, what]) => {
+      const got = say(q, more);
+      if (!want.test(got)) bad.push(what + ': "' + got + '"');
+    });
+  } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;
