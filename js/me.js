@@ -946,8 +946,9 @@ on('reg-send', el => {
 /* ---------- AND THE LINK IN THAT EMAIL ------------------------------------------------------------
    `register` MAILS `SITE_URL?verify=<token>` AND NOTHING READ IT. So every account made from the
    form would have stayed PENDING for ever. Signing in no longer waits on it (the owner, 6 Oct), but
-   an unconfirmed address is still one the digest will not mail, and a grown-up's link is what puts a
-   no-email child on their account.
+   an unconfirmed address is still one nothing but the link and a forgotten PIN is mailed to, and a
+   grown-up's link is what puts a no-email child on their account — when that account's own address
+   is confirmed (`verifyEmail`, `parentPending`).
 
    READ ONCE AT START-UP, FROM boot.js, and taken out of the address before anything is sent, the
    same way a shared `?post=` link should be: the token is single-use (dopost.gs clears it), so a
@@ -971,9 +972,15 @@ function verifyFromLink_() {
          with it" — the address is theirs, and it signs nobody in for the child. */
       const first = d && d.name ? String(d.name).split(' ')[0] : '';
       if (d && d.noEmail) {
+        /* `parentPending`: THERE IS A PARENT ACCOUNT ON THIS ADDRESS AND NOBODY HAS CONFIRMED IT, so
+           the child was not put on it — it may not be the reader's (see `verifyEmail`). Said as the next
+           step, because the reader is the grown-up the child named, and it is theirs to take. */
         toast('Confirmed — ' + (first || 'they') + ' can sign in now'
               + (d.handle ? ' as @' + d.handle : '') + ' with their PIN'
-              + (d.linkedTo ? ', and is on your account.' : '.'));
+              + (d.linkedTo ? ', and is on your account.'
+                 : d.parentPending ? '. They are not on your account yet: once its own email is confirmed, '
+                                     + 'add them with "Add your child" in Settings.'
+                 : '.'));
         try { if (USER) load(); } catch (e) {}
       } else {
         toast('Email confirmed' + (first ? ', ' + first : '') + ' — now sign in with it and your PIN.');

@@ -576,10 +576,179 @@ let whoRules = 0;
 const WHO_RULES = 26;
 if (whoRules !== WHO_RULES && !bad.length) no('only ' + whoRules + ' of ' + WHO_RULES + ' who-the-account-is-for rules were asked');
 
+/* ==================================================================================================
+   9. AN ADDRESS NOBODY HAS PROVED — it signs in, and it is trusted with nothing else
+   --------------------------------------------------------------------------------------------------
+   THE OWNER, 6 Oct: *"dont make them have to need to verify their email to login"*, and that stays —
+   every row below signs in while PENDING. What the PR #130 review found is what the sign-in refusal
+   had been hiding: a PIN on a self-made row proves who REGISTERED, not who owns the address. So:
+   (a) a grown-up's link puts a child only on a parent row whose own address is confirmed — not on one
+       somebody else registered on that address, who would then `resetPin` the child;
+   (b) the emailed PIN typed back, or Google, proving a PENDING address confirms it and signs everybody
+       else out — the squatter who registered Vic's address keeps no session — but opening your own
+       link signs nobody out;
+   (c) nothing but the link and "Forgotten your PIN?" is mailed to a PENDING address — booking notices,
+       the child's handle and "PIN changed" do not go to a typo's stranger.
+   ================================================================================================== */
+let proofRules = 0;
+{
+  const rule = (ok, said, got) => { if (ok) proofRules++; else no(said, got); };
+  const P1 = ['6', '2', '9', '4', '1'].join(''), P2 = ['3', '8', '1', '5'].join('');
+  const famRow = (b, parent, child) => {
+    const fh = b.tabs.family[0];
+    return b.tabs.family.slice(1).find(x => x[fh.indexOf('parent_id')] === parent && x[fh.indexOf('child_id')] === child);
+  };
+  const live = (b, token) => !!token && !post(b, { action: 'myProfile', token: token }).error;
+  /* ONE MILLISECOND APART. `register` names a row 'P' + Date.now(), so two sign-ups inside one
+     millisecond — which this harness does and a phone never would — are ONE PERSON to every session and
+     every family link: the stranger's `resetPin` on the child was refused as "your own PIN", which
+     passed the rule for the wrong reason, and only on a fast run. Measured on the unfixed backend. */
+  const register = (b, body) => {
+    const was = Date.now();
+    while (Date.now() === was) { /* wait for the clock */ }
+    return post(b, Object.assign({ action: 'register' }, body));
+  };
+
+  /* ---------- (a) THE GROWN-UP'S LINK AND A PARENT ROW SOMEBODY ELSE MADE ON THAT ADDRESS ---------- */
+  {
+    const b = fresh();
+    b.seed('people', [
+      person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind90' }),
+      /* A PARENT FROM BEFORE CONFIRMATION EXISTED: `verified` blank, which is confirmed. */
+      person('P-OLD', 'client', 'Ora', 'Legacy', { email: 'ora@example.org', handle: 'ora_kind91', verified: '' }),
+    ]);
+    register(b, { first_name: 'Ben', last_name: 'Kid', parent_email: 'mum@example.org', pin: ZERO });
+    register(b, { who: 'parent', first_name: 'Eve', last_name: 'Other', email: 'mum@example.org', pin: P1 });
+    const ben = rowOf(b, r => r.first_name === 'Ben'), eve = rowOf(b, r => r.first_name === 'Eve');
+    if (!ben || !eve || ben.person_id === eve.person_id)
+      no('the child or the stranger\'s parent row was not made, or both have one id, so (a) was NOT checked', { ben: ben && ben.person_id, eve: eve && eve.person_id });
+    else {
+      const ein = signIn(b, 'mum@example.org', P1);
+      rule(ein.success && S(eve.verified).toUpperCase() === 'PENDING',
+        'a PENDING parent row could not sign in — the owner asked that nobody waits on an email to sign in', ein);
+      const yes = post(b, { action: 'verifyEmail', token: ben.verify_token });
+      rule(yes.success && !yes.linkedTo && !famRow(b, eve.person_id, ben.person_id),
+        'the grown-up\'s link put the child on a parent row whose own address nobody confirmed — whoever registered it has the child', yes);
+      rule(yes.parentPending === true, 'the grown-up was not told the child waits for their account\'s address to be confirmed', yes);
+      rule(S(rowOf(b, r => r.first_name === 'Ben').verified).toUpperCase() === 'TRUE', 'the child was not confirmed because the parent row was pending');
+      const take = ein.token ? post(b, { action: 'resetPin', token: ein.token, targetId: ben.person_id }) : { success: true };
+      rule(!take.success && !take.pin, 'the PENDING parent row reset the child\'s PIN — the takeover the review reproduced', take);
+      rule(signIn(b, ben.handle, ZERO).success, 'the child held back from the account cannot sign in');
+    }
+    /* A LEGACY PARENT, BLANK `verified`, IS CONFIRMED — the link still puts the child on. */
+    register(b, { first_name: 'Cal', last_name: 'Kid', parent_email: 'ora@example.org', pin: ZERO2 });
+    const cal = rowOf(b, r => r.first_name === 'Cal');
+    const calYes = cal ? post(b, { action: 'verifyEmail', token: cal.verify_token }) : {};
+    rule(calYes.linkedTo === 'Ora Legacy' && !calYes.parentPending && famRow(b, 'P-OLD', cal && cal.person_id),
+      'a parent from before confirmation existed (verified blank) was treated as pending and not given the child', calYes);
+  }
+
+  /* ---------- (b) THE SQUATTER, AND THE OWNER TAKING THE ADDRESS BACK ---------------------------- */
+  {
+    const b = fresh();
+    b.seed('people', [person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind92' })]);
+    const m0 = MAIL.length;
+    register(b, { who: 'parent', first_name: 'Sam', last_name: 'Squat', email: 'vic@example.org', pin: P1 });
+    const confirm = mailTo('vic@example.org', m0)[0];
+    rule(confirm && /did not make this account/.test(S(confirm.body)) && /Forgotten your PIN\?/.test(S(confirm.body)),
+      'the confirmation email does not tell the address\'s owner how to take back an account they did not make', confirm && confirm.body);
+    const squat = signIn(b, 'vic@example.org', P1);
+    if (!live(b, squat.token)) no('the squatter could not sign in, so (b) was NOT checked', squat);
+    else {
+      const m1 = MAIL.length;
+      post(b, { action: 'forgotPin', who: 'vic@example.org' });
+      const emailed = pinIn(mailTo('vic@example.org', m1)[0]);
+      rule(!!emailed, '"Forgotten your PIN?" sent nothing to a PENDING address — it is how its owner proves it and takes it back');
+      const vic = emailed ? signIn(b, 'vic@example.org', emailed) : {};
+      const row = rowOf(b, r => r.email === 'vic@example.org');
+      rule(vic.success && S(row.verified).toUpperCase() === 'TRUE' && !S(row.verify_token),
+        'the emailed PIN typed back did not confirm the address it proved', { vic: vic.success, verified: row.verified });
+      rule(!live(b, squat.token), 'the squatter\'s session outlived the owner taking the address back with the emailed PIN');
+      rule(live(b, vic.token), 'the owner\'s own new session did not survive the sessions being ended');
+      rule(!signIn(b, 'vic@example.org', P1).success, 'the squatter\'s PIN still signs in after the emailed one was used');
+    }
+    /* OPENING YOUR OWN LINK SIGNS NOBODY OUT — it is the registrant confirming their own account. */
+    register(b, { who: 'parent', first_name: 'Rita', last_name: 'Real', email: 'rita@example.org', pin: P2 });
+    const rita = signIn(b, 'rita@example.org', P2);
+    const ritaRow = rowOf(b, r => r.first_name === 'Rita');
+    post(b, { action: 'verifyEmail', token: ritaRow && ritaRow.verify_token });
+    rule(S(rowOf(b, r => r.first_name === 'Rita').verified).toUpperCase() === 'TRUE' && live(b, rita.token),
+      'opening their own confirmation link signed the registrant out of the phone they made the account on');
+    /* A NO-EMAIL CHILD'S PIN WENT TO THEIR GROWN-UP: typing it back proves nothing about the child's row,
+       so the grown-up's link must still be there to open. */
+    register(b, { first_name: 'Kai', last_name: 'Kid', parent_email: 'gran@example.org', pin: ZERO });
+    const kai = rowOf(b, r => r.first_name === 'Kai');
+    const m2 = MAIL.length;
+    post(b, { action: 'forgotPin', who: kai && kai.handle });
+    const kaiPin = pinIn(mailTo('gran@example.org', m2)[0]);
+    const kaiIn = kaiPin ? signIn(b, kai.handle, kaiPin) : {};
+    const kaiNow = rowOf(b, r => r.first_name === 'Kai');
+    rule(kaiIn.success && S(kaiNow.verified).toUpperCase() === 'PENDING' && S(kaiNow.verify_token) === S(kai && kai.verify_token),
+      'a no-email child signing in with the PIN sent to their grown-up confirmed the child and retired the grown-up\'s link', { verified: kaiNow && kaiNow.verified });
+  }
+
+  /* ---------- (b) THE SAME BY GOOGLE, which proves the inbox too ---------------------------------- */
+  {
+    const google = { fetch: () => ({ getResponseCode: () => 200, getContentText: () => JSON.stringify(
+      { sub: 'g-1', aud: 'cid-check', email_verified: 'true', email: 'val@example.org' }) }) };
+    const b = backend({ MailApp: mailApp, UrlFetchApp: google });
+    b.seed('config', [{ key: 'google_client_id', value: 'cid-check' }]);
+    register(b, { who: 'parent', first_name: 'Sid', last_name: 'Squat', email: 'val@example.org', pin: P1 });
+    const squat = signIn(b, 'val@example.org', P1);
+    if (!live(b, squat.token)) no('the squatter could not sign in, so the Google half of (b) was NOT checked', squat);
+    else {
+      const g = post(b, { action: 'googleLogin', credential: 'a-google-token' });
+      const row = rowOf(b, r => r.email === 'val@example.org');
+      rule(g.success && S(row.verified).toUpperCase() === 'TRUE', 'signing in with Google did not confirm the PENDING address', g);
+      rule(!live(b, squat.token), 'the squatter\'s session outlived the owner signing in with Google');
+      rule(live(b, g.token), 'the Google sign-in\'s own session did not survive the others being ended');
+    }
+  }
+
+  /* ---------- (c) A TYPO'D ADDRESS: in, and told nothing ------------------------------------------- */
+  {
+    const b = fresh();
+    b.seed('people', [person('P-ADM', 'admin', 'Hal', 'Admin', { email: 'admin@example.org', handle: 'hal_kind93' })]);
+    register(b, { who: 'parent', first_name: 'Jo', last_name: 'Smith', email: 'jsmith1@example.org', pin: P1 });
+    /* EACH STEP COUNTED FROM ITS OWN MARK, and counted before its rule is asked (not inside an `&&`
+       that may never reach it), so a break names the one path that mailed and not every rule after it. */
+    let m = MAIL.length;
+    const typo = () => { const n = mailTo('jsmith1@example.org', m).length; m = MAIL.length; return n; };
+    const jo = signIn(b, 'jsmith1@example.org', P1);
+    if (!jo.token) no('the parent with a typo could not sign in, so (c) was NOT checked', jo);
+    else {
+      typo();
+      const kid = post(b, { action: 'makeChild', token: jo.token, firstName: 'Lu', lastName: 'Smith', pin: ZERO });
+      rule(kid.success, 'a signed-in parent on a PENDING address could not make their child\'s account', kid);
+      rule(!typo(), 'the child\'s handle was mailed to an address nobody confirmed (makeChild)');
+      const ch = post(b, { action: 'changePin', token: jo.token, currentPin: P1, newPin: P2 });
+      const chMail = typo();
+      rule(ch.success && !chMail, '"Your PIN was changed" (notify) went to an address nobody confirmed', ch);
+      if (kid.handle) for (let i = 0; i < 11; i++) signIn(b, kid.handle, '9');
+      const warned = typo();
+      rule(kid.handle && !warned, 'the too-many-guesses warning named the child\'s handle to a parent whose address nobody confirmed');
+      const said = b.ev('notify("Jo Smith", "A booking", "Tuesday at four")');
+      const told = typo();
+      rule(said === false && !told, 'notify() mailed a PENDING address', said);
+      /* AND "FORGOTTEN YOUR PIN?" STILL GOES — the owner of that inbox proving it is the way in. */
+      const fp = post(b, { action: 'forgotPin', who: 'jsmith1@example.org' });
+      const sent = typo();
+      rule(fp.success && sent === 1, '"Forgotten your PIN?" stopped reaching a PENDING address', fp);
+      /* CONFIRMED, THE SAME notify GOES. */
+      const jrow = rowOf(b, r => r.first_name === 'Jo');
+      post(b, { action: 'verifyEmail', token: jrow.verify_token });
+      rule(b.ev('notify("Jo Smith", "A booking", "Tuesday at four")') === true, 'notify() refused an address once it was confirmed');
+    }
+  }
+}
+const PROOF_RULES = 25;
+if (proofRules !== PROOF_RULES && !bad.length) no('only ' + proofRules + ' of ' + PROOF_RULES + ' unproved-address rules were asked');
+
 console.log('\nWRONG  (' + bad.length + ')');
 if (!bad.length) console.log('  none');
 bad.forEach(x => console.log('  ' + x));
-console.log('\nrequests made: ' + asked + '   emails caught: ' + MAIL.length + '   who-the-account-is-for rules held: ' + whoRules + ' of ' + WHO_RULES);
+console.log('\nrequests made: ' + asked + '   emails caught: ' + MAIL.length + '   who-the-account-is-for rules held: ' + whoRules + ' of ' + WHO_RULES
+          + '   unproved-address rules held: ' + proofRules + ' of ' + PROOF_RULES);
 if (bad.length) {
   console.log('FAILED — a child who cannot get in, or a classmate who can keep them out, is the whole of what the '
             + 'owner asked to be sure of: "all kids can login easily with their handle and pin".');
@@ -588,5 +757,7 @@ if (bad.length) {
   console.log('OK — a child with no email gets an account from a parent or by themselves, signs in by handle and '
             + 'PIN (a 0 in front included), gets a new PIN without anybody else being able to take theirs away, '
             + 'and a parent or an admin can give them one. A parent who signs up as one is a parent from their '
-            + 'first sign-in, and a student still cannot make themself one.');
+            + 'first sign-in, and a student still cannot make themself one. An address nobody has proved signs in '
+            + 'and is trusted with nothing else: no child on it, no mail but the link and a forgotten PIN, and '
+            + 'its owner proving it signs everybody else out.');
 }

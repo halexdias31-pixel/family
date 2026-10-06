@@ -3737,6 +3737,22 @@ check('a grown-up opening a no-email child\'s link is told the child\'s handle',
   return bad;
 });
 
+/* AND WHEN THE PARENT ACCOUNT ON THAT ADDRESS IS STILL PENDING, the child is confirmed and NOT put on it
+   (`verifyEmail`, the PR #130 review: it may be somebody else's account on the grown-up's address). The
+   grown-up is told what is left to do, not left believing the child is on their account. */
+check('a grown-up whose account is unconfirmed is told how to add the child, not that they are on it', async () => {
+  const { w } = boot({ url: 'https://example.org/?verify=Vkid43',
+    reply: b => b.action === 'verifyEmail'
+      ? { success: true, name: 'Ben Mum', handle: 'ben_kind43', noEmail: true, linkedTo: '', parentPending: true } : { success: true } });
+  await wait(400);
+  const said = String((w.document.getElementById('toast') || {}).textContent || '');
+  const bad = [];
+  if (!/@ben_kind43/.test(said)) bad.push('the grown-up was told ' + JSON.stringify(said) + ' — not the handle the child signs in with');
+  if (/is on your account/i.test(said)) bad.push('the grown-up was told the child is on their account, which the backend refused to do: ' + JSON.stringify(said));
+  if (!/confirmed/i.test(said) || !/Add your child/.test(said)) bad.push('the grown-up was not told to confirm their own address and then add the child: ' + JSON.stringify(said));
+  return bad;
+});
+
 /* ==================================================================================================
    WHO THE ACCOUNT IS FOR. The walk after 273 found a parent who signed up on the phone made a student,
    with no "Make your child's account" and a Client tick refused. `check-signin.js` §8 asks the backend
