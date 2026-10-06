@@ -2168,14 +2168,25 @@ const woken_ = async () => {
 /* `k` IS WHICH WORD GAME THE WIDGET OPENS ON. All four live inside the one Word games widget, which
    draws only the game chosen; the choice is the device's, so it is set there before the column is
    reached. Alibi was the one that passed nothing, because it kept a card of its own; it is deleted. */
+/* AND THE GAME'S OWN CARD IS WAITED FOR, NOT GUESSED AT. Six journeys booted with a fixed 300ms and
+   a fixed `LEAVE_MS`, and under a load average of 20-40 they failed together -- "did not draw on the
+   Games column", "PARTY is not reachable" -- every one green alone. Asked for every 100ms, up to 8s:
+   the test harness (`__t`), then the card and the PARTY state the journey is about. A card that never
+   comes still fails, on the journey's own first question. */
 const partyBoot_ = async (k) => {
   const { w } = boot();
-  await wait(300);
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   if (k) { try { w.localStorage.setItem('wg-game', k); } catch (e) {} }
   t.go('games', false, true);
   await wait(LEAVE_MS); await woken_();
   const d = w.document;
+  for (let n = 0; n < 80; n++) {
+    let ready = false;
+    try { ready = (!k || !!d.getElementById(k + '-card')) && !!t.PARTY(); } catch (e) { ready = false; }
+    if (ready) break;
+    await wait(100);
+  }
   const press = (act, attrs) => {
     const el = d.createElement('button');
     Object.keys(attrs || {}).forEach(k => el.setAttribute(k, attrs[k]));
