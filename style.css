@@ -13101,6 +13101,19 @@ button.scr-sq { cursor: pointer; }
    the answer arrives under the row rather than pushing the row down. `.qans-wait` (the block that held
    the sentence over a tile under it) went with that order. */
 .qans-tiles { margin-top: .9rem; }
+/* THE DRAWING PAGE'S WAY ON TO THE ANSWER sits under the grid as the answer page's sits under its
+   header -- one tile, the row's own spacing. See `questionFigCard_`. */
+.qfig-tiles { margin-top: .9rem; }
+/* THE FIGURE OVER THE CARD (`q-fig`): each figure named in the words its own page's header uses when
+   the sheet holds more than one, small and quiet above it -- a caption, not a heading. */
+.qfig-sheet-k { margin: .9rem 0 0; font-size: .85rem; color: var(--dim); }
+.qfig-sheet-k:first-child { margin-top: 0; }
+/* A FIGURE NOBODY HAS DRAWN YET (`questionNoFigCard_`): the space the picture would take, marked out
+   in a dashed rule and saying so -- an outline of the gap rather than a blank page, so it reads as a
+   known hole and not as a figure that failed to load. Screen palette: this is a page of the app, not
+   a stand-in for paper. */
+.qfig-missing { margin: 1rem 0; padding: 2.4rem 1rem; text-align: center; color: var(--dim);
+  border: 1px dashed var(--line); border-radius: .5rem; }
 .qans-wait-k { margin-left: .5rem; font: 500 .8rem/1.45 var(--font); color: var(--dim); }
 
 /* ---------- A DIAGRAM YOU CAN WRITE ON -----------------------------------------------------------

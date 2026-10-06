@@ -1497,6 +1497,22 @@ const FACETS = [
     of: x => x.cost == null ? ''
            : x.cost === 0 ? 'Free'
            : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
+  /* ---------- WHICH PAGES OF A QUESTION: ITS ANSWERS ONLY, OR EVERYTHING BUT THEM ----------------
+     ASKED FOR AS *"the answers should appear after their questions … they have their own tag. i
+     could in theory just click answers and only see answers."* An answer page is a page of its
+     question, straight after it -- that order is untouched -- and this is the second way to read
+     the same strip: `Answers` keeps only the answer pages of the questions that have one, `Questions`
+     everything else. Every answer page is still shut behind its own Show (`questionAnsCard_`).
+
+     A FILTER LIKE ANY OTHER, so it is a chip with a ✕ and narrows inside whatever is already chosen
+     (a paper's answers, a topic's). THE ITEM SAYS WHICH IT CAN BE (`of`); WHICH PAGES ARE DRAWN is
+     `stuffPages_`'s, because pages are built there and nowhere upstream.
+
+     `tagOnly`: NEVER ASKED BY THE FUNNEL. It is not a question about what somebody is looking for
+     -- it is a way of reading what they found, and it is reached by tapping an answer page's kind
+     tag (`answersOnly_`). `nextFacet` and `overFacet_` skip it. */
+  { field: 'pageKind',  label: 'Page',        tagOnly: true,
+    of: x => (x && x.kind === 'question' ? (questionHasAns_(x) ? ['Questions', 'Answers'] : ['Questions']) : '') },
 ];
 
 /* ==================================================================================================
@@ -3121,6 +3137,7 @@ function nextFacet(items) {
     .map(f => f.field);
 
   for (const facet of facetList()) {
+    if (facet.tagOnly) continue;
     if (settled.indexOf(facet.field) !== -1) continue;
     /* ---------- NOT UNTIL THE QUESTION IT HANGS OFF HAS BEEN ANSWERED ---------------------------
        See `FACET_NEEDS_FIRST`. Skipped rather than reordered: reordering would ask it later and
@@ -3175,7 +3192,7 @@ function overFacet_(items) {
   const asked = STUFF.filters.map(f => f.field);
   let best = null;
   for (const facet of facetList()) {
-    if (asked.indexOf(facet.field) !== -1) continue;
+    if (facet.tagOnly || asked.indexOf(facet.field) !== -1) continue;
     const vals = facetValues(items, facet).length;
     if (vals <= FACET_MAX_ANSWERS) continue;
     const min = isFinite(facet.min) ? facet.min : FACET_COVERAGE;
@@ -4561,8 +4578,12 @@ function pageParts_(x, prev) {
     /* AND A LONG PART IS ITS FIRST PAGES (`preN`) AND THEN THE CARD, which keeps the last of its words
        with the box -- with its figure among them where `partPlan_` stands it. */
     const plan = partPlan_(x);
+    /* A FIGURE THE WORDS NAME AND NOBODY HAS DRAWN stands where a figure with no marker would, in
+       front of the card -- once for a run of parts that all name it, as a stem is. See `figMissing_`. */
+    const gap = figMissing_(x) && !(prev && qId_(prev) && qId_(prev) === qId_(x) && figMissing_(prev));
     plan.chunks.forEach((c, j) => {
       if (j === plan.figAt) out.push('fig');
+      if (gap && j === plan.chunks.length - 1) out.push('nofig');
       out.push(j === plan.chunks.length - 1 ? null : 'pre' + j);
     });
     if (plan.figAt >= plan.chunks.length) out.push('fig');
@@ -4612,10 +4633,36 @@ function pageParts_(x, prev) {
    — and two lists of one question's pages would be two chances to disagree about where it is. */
 /* AND A KEPT BIBLE'S THREE LISTS OF BOOKS, because the cover alone is a card with no way into the book:
    a book tapped on Saved opens on Find (`bibleGo_`), and the chapters themselves stay there. */
-function cardPages_(x, credits) {
-  return pageParts_(x).filter(p => !p || p === 'fig' || p === 'ans' || p === 'use' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p)
+/* `prev` IS THE KEPT THING IN FRONT, as on Find -- see `keptPages_`. */
+function cardPages_(x, credits, prev) {
+  return pageParts_(x, prev).filter(p => !p || p === 'fig' || p === 'nofig' || p === 'use' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p)
                                  || (x.kind === 'bible' && /^(ot2?|nt)$/.test(p)))
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
+}
+
+/* ---------- SAVED AND SPOTLIGHT DRAW A QUESTION'S OPENING ONCE, AS FIND DOES -----------------------
+   THE MULTI-PART AUDIT, FINDING 8: keep both parts of 1F Q8 and Saved read opening, figure, (i), its
+   answer, then opening, figure, (ii), its answer -- every kept part was drawn as though it had been
+   landed on alone. 270 questions, 741 extra pages; AQA A-level Physics 3A Q2 was 20 pages on Find and
+   35 on Saved.
+
+   SO THE KEPT PARTS OF ONE QUESTION ARE DRAWN TOGETHER, in the paper's order (`sortKey_`), each told
+   the part in front of it -- `pageParts_`'s own rule for a stem the previous part already showed. In
+   the place the first of them holds in the list, so nothing else on the column moves. A part kept on
+   its own still has its opening in front of it, because nothing in front of it showed it. "To the
+   answer" counts from the page the tile is on (`qa-go`), so it lands the same either way. */
+function keptPages_(items, credits) {
+  const by = {}, done = {}, seq = [];
+  const key = x => x._sk || (x._sk = sortKey_(x));
+  (items || []).forEach(x => { const k = qId_(x); if (k) (by[k] = by[k] || []).push(x); });
+  (items || []).forEach(x => {
+    const k = qId_(x);
+    if (!k) { seq.push(x); return; }
+    if (done[k]) return;
+    done[k] = true;
+    by[k].slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0)).forEach(p => seq.push(p));
+  });
+  return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1])));
 }
 function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
@@ -4624,6 +4671,7 @@ function stuffPart_(x, part) {
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
   if (x && x.kind === 'question' && part === 'use') return questionUsesCard_(x);
+  if (x && x.kind === 'question' && part === 'nofig') return questionNoFigCard_(x);
   if (x && x.kind === 'question' && /^stem\d+(-\d+)?$/.test(part)) {
     const m = /^stem(\d+)(?:-(\d+))?$/.exec(part);
     return questionStemCard_(x, +m[1], +(m[2] || 0));
@@ -5782,6 +5830,57 @@ function paperIdOf_(r) {
   return (r && (r.paperId || r.paper_id || r.paper)) || '';
 }
 
+/* ---------- THE ORDER OF A QUESTION'S PARTS, DECIDED FOR THE WHOLE QUESTION AT ONCE -----------------
+   THE PART WAS SORTED AS LETTERS, and three traps sat in that (the multi-part audit, finding 13 --
+   none live in the bank today, all one transcription away): "ix" sorts before "v", part 10 before
+   part 2, and "bi" beside "b(ii)" reads b(ii), b(iii), bi.
+
+   AND A NUMERAL IS NOT ALWAYS A NUMERAL. "i" is part (i) of Q8 and the ninth letter of a question
+   that runs a to j; "xi" is eleven, or (x)(i). Sorting numerals by value everywhere fixes "ix" and
+   breaks h, i, j. So the reading is decided ONCE PER QUESTION, from every part it has: a question
+   whose every part is a numeral on its own (i, ii ... ix, x, xi) is numbered in numerals and sorts
+   by value; any other is lettered, and each part is its letter then its numeral's value --
+   brackets and spaces dropped first, so "b(ii)" and "bii" are the same part, which also makes a
+   mixed spelling sort right (`check-library.js` still refuses one: the data should not say it two
+   ways). Digits are padded the way `padNums_` pads them, so part 10 follows part 9.
+
+   Keyed by the row, so `questionItems` reads one map; a question's rows are grouped by paper and
+   number, which is exactly what makes them one question. */
+const romanVal_ = s => {
+  const v = { i: 1, v: 5, x: 10 };
+  let n = 0;
+  for (let k = 0; k < s.length; k++) {
+    const a = v[s[k]] || 0, b = v[s[k + 1]] || 0;
+    n += a < b ? -a : a;
+  }
+  return n;
+};
+const partBare_ = p => String(p == null ? '' : p).trim().toLowerCase().replace(/[()\s]/g, '');
+function partKeyOf_(part, numerals) {
+  const s = partBare_(part);
+  if (!s) return '';
+  if (/^\d+$/.test(s)) return padNums_(s);
+  if (numerals && ROMAN_ONLY.test(s)) return padNums_(String(romanVal_(s)));
+  const m = /^([a-z])(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/.exec(s);
+  if (m) return m[1] + (m[2] ? padNums_(String(romanVal_(m[2]))) : '');
+  return padNums_(s);
+}
+function partKeys_(rows) {
+  const by = {};
+  (rows || []).forEach(r => {
+    if (!r || r.kind === 'preamble' || r.kind === 'document') return;
+    const k = paperIdOf_(r) + '|' + (r.q == null ? '' : r.q);
+    (by[k] = by[k] || []).push(r);
+  });
+  const out = new Map();
+  Object.keys(by).forEach(k => {
+    const list = by[k];
+    const numerals = list.every(r => { const s = partBare_(r.part); return !s || ROMAN_ONLY.test(s); });
+    list.forEach(r => out.set(r, partKeyOf_(r.part, numerals)));
+  });
+  return out;
+}
+
 /* ---------- WHAT A QUESTION IS ABOUT, AS WORDS -----------------------------------------------------
    THE SEARCH BOX COULD NOT SEE INSIDE A QUESTION. `hay` was name, sub, subject, slot and grade —
    and a question's name is `Q5b`. So of three thousand rows, not one was findable by what it is
@@ -6072,21 +6171,37 @@ function projectText_(p) {
    not carry one keep the order the file has them in. Inferring it from `lines` would read the
    first number of a span, which is right for "1-6" before "10-19" and silently wrong for a Source
    A / Source B insert where neither part is numbered at all. */
+/* ---------- AND A FOURTH SCOPE, A LETTER: THE "(d)" OPENING ----------------------------------------
+   THE OWNER'S OWN WORRY, the multi-part audit's finding 6: *"1b 1c 1di 1dii"*. A sentence (d)(i) and
+   (d)(ii) both hang from -- "A car moves from rest…" in June 2019 2H Q14 -- had nowhere to go. On
+   (d)(i) it was headed `Q1d(i) · 1 of 2` and lost when (d)(ii) was opened alone; on both, printed
+   twice; as a row for part "d" itself, a card with an answer box under a sentence that asks nothing;
+   and a preamble marked "d" had its letter ignored and stood in front of Q1(a).
+
+   SO A PREAMBLE WHOSE `part` IS A LETTER IS THAT LETTER'S OPENING. It is a stem like any other, one
+   scope further in, so `pageParts_`'s rule does the rest without a line changed: drawn once, in
+   front of the first part whose letter it is (d(i)), not again in front of d(ii) when d(i) went
+   first, and again in front of any of them opened on its own -- with its figure after it, as every
+   stem's is. Headed `Q1(d)`, see `questionStemCard_`. `stemLetter_` is the one reading of the letter,
+   for the index, for the card and for `check-library.js`'s shape rule. */
+const stemLetter_ = p => { const s = partBare_(p && p.part); return /^[a-z]$/.test(s) ? s : ''; };
 function stemIndex_(all) {
-  const at = { paper: {}, section: {}, question: {} };
+  const at = { paper: {}, section: {}, question: {}, letter: {} };
   const put = (bag, key, r) => { (bag[key] || (bag[key] = [])).push(r); };
   all.forEach(r => {
     if (!r || r.kind !== 'preamble') return;
     const pid = paperIdOf_(r);
     if (!pid) return;
-    if (r.q !== undefined && r.q !== null && r.q !== '') put(at.question, pid + '|' + r.q, r);
+    const has = r.q !== undefined && r.q !== null && r.q !== '';
+    if (has && stemLetter_(r)) put(at.letter, pid + '|' + r.q + '|' + stemLetter_(r), r);
+    else if (has) put(at.question, pid + '|' + r.q, r);
     else if (r.section) put(at.section, pid + '|' + r.section, r);
     else put(at.paper, pid, r);
   });
   /* Stable, because `sort` is stable in every engine this runs on and a preamble with no
      `sort_order` must not be reordered against its neighbours by the sort that exists for the
      ones that do. */
-  [at.paper, at.section, at.question].forEach(bag => {
+  [at.paper, at.section, at.question, at.letter].forEach(bag => {
     Object.keys(bag).forEach(k => { bag[k].sort((a, b) => (a.order || 0) - (b.order || 0)); });
   });
   return at;
@@ -6105,7 +6220,12 @@ function preamble_(r, at) {
   const add = xs => (xs || []).forEach(x => { if (x && (x.html || x.diagram)) out.push(x); });
   add(at.paper[pid]);
   if (r.section) add(at.section[pid + '|' + r.section]);
-  if (r.q !== undefined && r.q !== null && r.q !== '') add(at.question[pid + '|' + r.q]);
+  if (r.q !== undefined && r.q !== null && r.q !== '') {
+    add(at.question[pid + '|' + r.q]);
+    /* THE PART'S LETTER, read the way a typed reference is (`qRefBits_`): "d(ii)" and "dii" are (d). */
+    const bits = qRefBits_(partBare_(r.part));
+    if (bits && bits.letter && at.letter) add(at.letter[pid + '|' + r.q + '|' + bits.letter]);
+  }
   return out;
 }
 
@@ -6189,6 +6309,8 @@ function questionItems() {
   const kit = needsIndex_(all);
   /* AND THE CODE ON EACH PAPER'S COVER — see `specIndex_`. Built once per draw, off the file. */
   const spec = specIndex_();
+  /* EACH PART'S PLACE IN ITS QUESTION -- see `partKeys_`. */
+  const partKey = partKeys_(all);
 
   return all.filter(r => r.kind !== 'preamble' && r.kind !== 'document').map(r => {
     const lead = preamble_(r, stems);
@@ -6218,7 +6340,7 @@ function questionItems() {
          the number inside the name. Nothing has written them since the paper card was deleted and
          nothing was visibly wrong — see the note above the sort, which is about why that is not the
          same as nothing being wrong. */
-      qNumber: r.q, qPart: r.part || '',
+      qNumber: r.q, qPart: r.part || '', qPartKey: partKey.get(r) || '',
       /* THE TOPICS, RESOLVED ONCE. `topicOf_` splits the cell and puts every spelling of a topic on
          one button, and doing that inside the facet meant doing it per item per question asked:
          MEASURED at 38 ms to interrogate this one facet across the library. It is a fact about the
@@ -8192,7 +8314,7 @@ function questionStemCard_(x, i, j) {
      no marker, or the page before the marker where it does. */
   const figNext = stemHasFig_(p) && j === plan.figAt - 1;
   return `<div class="qcard qstem" data-of="${esc(stemId_(p))}">
-    ${qHead_(Object.assign({}, x, { name: qNum_(x), marks: 0 }), chunks.length > 1 ? (j + 1) + ' of ' + chunks.length : '')}
+    ${qHead_(Object.assign({}, x, { name: qNum_(x) + (stemLetter_(p) ? '(' + stemLetter_(p) + ')' : ''), marks: 0 }), chunks.length > 1 ? (j + 1) + ' of ' + chunks.length : '')}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">
       <div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${
@@ -8551,10 +8673,56 @@ function questionFigCard_(x) {
   else if (x.diagram) out.push(usesFig_(x) || `<figure>${x.diagram}${figCredit_(x)}</figure>`);
   out.push(pics_(figImgs_(x.images)));
   const id = (x.row && x.row.row_id) || x.key || '';
+  /* THE WAY ON TO THE ANSWER, ON THE PAGE WHERE THE DRAWING IS DONE -- a pen page after its card is
+     where the child finishes, so it is where they look for what comes next (finding 9). Only there:
+     a figure in front of its card is read on the way to the box, and the card has the tile. */
+  const on = pad && partPlan_(x).figAt >= partChunks_(x).length ? questionTiles_(x, 'fig') : '';
   return `<div class="qcard qfig" data-of="${esc(id)}">
     ${figHead_(label)}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
-    <div class="qsheet">${out.join('')}</div>
+    <div class="qsheet">${out.join('')}</div>${on ? `
+    <div class="tile-row qfig-tiles">${on}</div>` : ''}
+  </div>`;
+}
+
+/* ---------- A FIGURE THE PAPER PRINTS AND THIS SITE HAS NOT DRAWN YET -------------------------------
+   THE MULTI-PART AUDIT, FINDING 4: the question refers to a picture that is not there, and nothing on
+   the screen says so -- 1H Q12(i)-(iii) "Write down the letter of the graph…" with none of the nine
+   graphs; about 29 parts in the June 2024 Higher papers. Worse where the nearest figure a swipe back
+   is a different question's. A part that reads as complete and cannot be answered is the one
+   failure a student cannot see.
+
+   SO THE GAP IS A PAGE, where the figure would stand: "The paper prints a figure here -- not drawn
+   yet". Drawing them is data (`diagram` on the row); this is what keeps the gap visible until then,
+   and `check-library.js` counts them with the same two functions, so the backlog cannot quietly
+   grow. A PART QUALIFIES when its own words name a figure (`FIG_NAMED`: "Figure 3", "the graph", "the
+   diagram", "the grid", "the table below"…) and NOTHING in its question is one -- not its own, not
+   an opening's, not another part's -- and it is not answered on a surface (a grid or a passage to
+   ring is somewhere to answer, and is its own page). Words that carry their own `<svg>`, `<img>` or
+   `<table>` already hold what they name. */
+const FIG_NAMED = /\b(?:figure\s*\d+[a-z]?|the\s+(?:graphs?|diagrams?|grid|chart|bar\s+chart|pie\s+chart|scatter\s+(?:graph|diagram)|map)\b|the\s+table\s+below)/i;
+function figWanted_(words, figured) {
+  if (figured) return false;
+  const h = String(words || '');
+  if (/<(svg|img|table)\b/i.test(h)) return false;
+  return FIG_NAMED.test(h.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' '));
+}
+function figMissing_(x) {
+  if (!x || x.kind !== 'question' || padSurface_(x)) return false;
+  const own = p => !!(p && (p.diagram || figImgs_(p.images).length));
+  let figured = own(x) || (x.stems || []).some(stemHasFig_);
+  if (!figured) {
+    const k = qId_(x);
+    figured = !!k && ((questionParts_()[k]) || []).some(own);
+  }
+  return figWanted_(String(x.lead || '') + ' ' + String(x.html || ''), figured);
+}
+function questionNoFigCard_(x) {
+  const id = (x.row && x.row.row_id) || x.key || '';
+  return `<div class="qcard qfig is-missing" data-of="${esc(id)}">
+    ${figHead_(figLabel_(String(x.lead || '') + ' ' + String(x.html || '')))}
+    <p class="qcard-sub">${qTagsHtml_(x)}</p>
+    <div class="qsheet"><p class="qfig-missing">The paper prints a figure here &mdash; not drawn yet.</p></div>
   </div>`;
 }
 
@@ -8694,11 +8862,88 @@ function ansHide_(x) { ansSet_(x, false); }
    as it was left -- hidden, unless this person showed it on this visit. One label for everybody: staff
    read `The answer` here once, when their page was open already, and it is not. Drawn the same whether
    or not the answer has been shown, so pressing it changes nothing on this card. */
-function questionTiles_(x) {
-  if (!questionHasAns_(x)) return '';
-  return tile_({ icon: 'next', label: 'To the answer', note: 'turns the page', cls: 'qa-to',
-                 act: 'qa-go', data: { k: ansKey_(x) } });
+/* ---------- AND ITS NOTE SAYS WHERE THE ANSWER IS, READ OFF THE PAGES THEMSELVES --------------------
+   THE MULTI-PART AUDIT, FINDING 9: the note said "next page" on 219 cards whose next page was the
+   figure or the grid to draw on -- 1F Q3, Q7, Q11c, 3F Q24b. The tile still landed on the answer;
+   the words were wrong about the swipe in between. So the note is worked out from `pageParts_`, the
+   list the strip is built from: "next page" when it is, "after the figure" (or the grid, in the name
+   its own header uses -- `figWhat_`) when one page stands between, and a count when more do.
+
+   `from` IS THE PAGE THE TILE STANDS ON -- the card (`null`), or the drawing page (`'fig'`) for a
+   part whose figure comes after its card: the child finishes on the grid, not on the words, so the
+   way on is where they finish (`questionFigCard_`). No tile where the answer is not ahead. */
+function ansWhere_(x, from) {
+  const parts = pageParts_(x);
+  const a = parts.indexOf('ans'), at = parts.indexOf(from || null);
+  if (a < 0 || at < 0 || a <= at) return '';
+  const between = parts.slice(at + 1, a);
+  if (!between.length) return 'next page';
+  if (between.length === 1 && between[0] === 'fig') return 'after the ' + figWhat_(x).toLowerCase();
+  return (between.length + 1) + ' pages on';
 }
+function questionTiles_(x, from) {
+  const where = questionHasAns_(x) ? ansWhere_(x, from) : '';
+  const fig = from ? '' : figTile_(x);
+  return fig + (where ? tile_({ icon: 'next', label: 'To the answer', note: where, cls: 'qa-to',
+                 act: 'qa-go', data: from ? { k: ansKey_(x), from: from } : { k: ansKey_(x) } }) : '');
+}
+
+/* ==================================================================================================
+   THE FIGURE, OVER THE CARD, ONE TAP AWAY.
+
+   THE MULTI-PART AUDIT, FINDING 2: the question's diagram comes once, in front of part (a), and every
+   later part is further from it -- 1F Q23b is three swipes from its Venn, past (a) and (a)'s answer,
+   and twelve questions have a part nine or more pages after its picture. Swiping back loses the box
+   you were writing in. Copying the figure onto every part was tried before and refused (it is the
+   duplication `pageParts_`'s stems exist to end).
+
+   SO THE CARD OFFERS IT: a `Figure` tile, a tile like every action on a question's pages (CLAUDE.md),
+   that opens the figure in the app's own sheet over the card -- the box, the keypad and whatever is
+   typed stay exactly where they are underneath, and closing the sheet is closing the sheet. ON ANY
+   PART WHOSE QUESTION HAS A FIGURE IN FRONT OF IT: the opening's (`stems`), an earlier part's own
+   (2H Q14b's graph lives on Q14a), or its own where it stands in front of the card. All of them, in
+   the paper's order, because which one a part means is in its words and not in the data -- and a
+   question almost always has one. A drawing surface is not a figure (it is somewhere to answer, and
+   it is the part's own page); nor is a pen's copy -- the sheet shows the paper's picture, not marks.
+
+   The earlier parts are the funnel's own items (`questionParts_`), so Saved, a search and a paper all
+   see the same figures. */
+function figsBefore_(x) {
+  if (!x || x.kind !== 'question') return [];
+  const out = [];
+  const pic = (p, label) => {
+    const html = (p.diagram ? `<figure>${p.diagram}${figCredit_(p)}</figure>` : '') + pics_(figImgs_(p.images));
+    if (html) out.push({ label: label, html: html });
+  };
+  (x.stems || []).forEach(p => { if (stemHasFig_(p)) pic(p, figLabel_(p.html)); });
+  const k = qId_(x);
+  const sib = k ? ((questionParts_()[k]) || []) : [];
+  const at = sib.indexOf(x);
+  const own = p => !!(p.diagram || figImgs_(p.images).length);
+  sib.slice(0, at < 0 ? 0 : at).forEach(p => {
+    if (own(p)) pic(p, figLabel_(String(p.lead || '') + ' ' + String(p.html || '')));
+  });
+  const plan = partPlan_(x);
+  if (own(x) && plan.figAt >= 0 && plan.figAt < plan.chunks.length) pic(x, figLabel_(String(x.lead || '') + ' ' + String(x.html || '')));
+  return out;
+}
+function figTile_(x) {
+  const figs = figsBefore_(x);
+  if (!figs.length) return '';
+  const one = figs.length === 1;
+  return tile_({ icon: 'figure', label: one ? figs[0].label : 'Figures', note: 'over this page', cls: 'q-figt',
+                 act: 'q-fig', data: { key: x.key || '' } });
+}
+on('q-fig', el => {
+  const k = el.getAttribute('data-key');
+  let x = null;
+  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
+  const figs = figsBefore_(x);
+  if (!figs.length) return;
+  /* EACH NAMED WHEN THERE IS MORE THAN ONE, in the words its own page's header uses (`figLabel_`). */
+  openSheet(figs.length === 1 ? figs[0].label : 'Figures', `<div class="qfig-sheet">${figs.map(f =>
+    `${figs.length > 1 ? `<p class="qfig-sheet-k">${esc(f.label)}</p>` : ''}<div class="qsheet">${f.html}</div>`).join('')}</div>`);
+});
 
 /* ---------- AND TURNING TO IT --------------------------------------------------------------------
    FORWARD BY THE ANSWER'S PLACE AMONG ITS QUESTION'S PAGES -- one, or two past a figure -- from the
@@ -8714,8 +8959,10 @@ on('qa-go', (el) => {
   if (!x) return;
   /* FROM THE QUESTION CARD, NOT FROM THE FIRST PAGE: a stem and its figure can stand in front of
      the card the tile is on (`pageParts_`), so the distance is answer minus card. */
+  /* AND FROM THE DRAWING PAGE, for the tile that stands there (`data-from`) -- see `ansWhere_`. */
   const parts = pageParts_(x);
-  const off = parts.indexOf('ans') < 0 ? -1 : parts.indexOf('ans') - parts.indexOf(null);
+  const from = parts.indexOf(el.getAttribute('data-from') || null);
+  const off = parts.indexOf('ans') < 0 || from < 0 ? -1 : parts.indexOf('ans') - from;
   const pg = el.closest('.page');
   const host = pg && pg.parentElement;
   const id = host && host.id ? host.id.replace(/^s-/, '') : '';
@@ -10040,8 +10287,48 @@ function stuffNarrow_(out, filters, words, credits) {
     const list = byField[field].filter((f, i, all) => !(f.bucket && i < all.length - 1));
     out = out.filter(x => list.some(f => filterHit(x, f, credits)));
   });
-  if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
+  /* ---------- "q8", "8ii", "1dii", "1d(ii)", "Q 8" IS A QUESTION, NOT FOUR LETTERS -----------------
+     THE MULTI-PART AUDIT, FINDING 10, in 1F: "q2" gave fifteen results (Q2 and Q20 to Q27, every
+     haystack holding the letters), "q8ii", "8ii" and "1dii" gave nothing, and "Q 8" gave eighteen
+     that had nothing to do with Q8 -- the words "q" and "8" are somewhere in nearly every paper. A
+     tutor typing a question's number is asking for that question, so a box that reads as one is
+     matched exactly, by number and part, inside whatever the funnel has already narrowed to (a paper,
+     if one is chosen). Anything that does not read as one is words, as before. */
+  const ref = words.length ? qRef_(words.join('')) : null;
+  if (ref) out = out.filter(x => qRefHit_(x, ref));
+  else if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
   return out;
+}
+
+/* WHAT A REFERENCE LOOKS LIKE: an optional "q", the number, and a part -- a letter, a numeral, or a
+   letter and a numeral, bracketed or not (`partBare_` takes the brackets off). WITHOUT THE "q" IT HAS
+   TO CARRY A NUMERAL WITH AN "i" IN IT ("8ii", "1dii", "3iv"): a bare "8" is a number somebody may be
+   searching the words for, and "2x" is algebra before it is Q2(x). */
+const QREF_PART = /^([a-z]?)(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/;
+function qRef_(s) {
+  const m = /^(q?)0*(\d+)(.*)$/.exec(String(s || '').toLowerCase().replace(/\s+/g, ''));
+  if (!m) return null;
+  const rest = partBare_(m[3]);
+  const bits = qRefBits_(rest);
+  if (!bits) return null;
+  if (!m[1] && !/i/.test(bits.roman)) return null;
+  return { q: m[2], letter: bits.letter, roman: bits.roman };
+}
+/* ONE READING OF A PART FOR BOTH SIDES, so "8i" typed and a part "i" stored are read the same way --
+   a lone numeral is a numeral, as `qPartBits_` already says of the sheet's spelling. */
+function qRefBits_(s) {
+  if (!s) return { letter: '', roman: '' };
+  if (ROMAN_ONLY.test(s)) return { letter: '', roman: s };
+  const m = QREF_PART.exec(s);
+  return m ? { letter: m[1] || '', roman: m[2] || '' } : null;
+}
+function qRefHit_(x, ref) {
+  if (!x || x.kind !== 'question') return false;
+  if (String(x.qNumber == null ? '' : x.qNumber).replace(/^0+(?=\d)/, '') !== ref.q) return false;
+  const b = qRefBits_(partBare_(x.qPart)) || { letter: '', roman: '' };
+  if (ref.letter && b.letter !== ref.letter) return false;
+  if (ref.roman && b.roman !== ref.roman) return false;
+  return true;
 }
 
 /* ---------- SORTED ONCE, NOT ONCE PER FILTER -----------------------------------------------------
@@ -10078,10 +10365,22 @@ function stuffSorted_(items) {
    two orders become the same order. Eight digits is wider than any number this app holds.
    `\u0000` BETWEEN THE PARTS, because it sorts below every printable character — so a short field
    always loses to a longer one that starts the same way, which is what a tie-break means. */
+/* ---------- AND THE PAPER ITSELF STRAIGHT AFTER ITS NAME, THEN THE PART BY `qPartKey` --------------
+   TWO PAPERS CAN SHARE A NAME. June 2024 1F and 1H are both "Paper 1 (Non-calculator) — June 2024",
+   so with the name first and the number second their parts interleaved: H13a, F13a (the wallet),
+   H13b "these 150 people" -- which reads as if it follows the wallet. Measured by the multi-part
+   audit: 168 questions split that way across the library, only when Tier and Paper were both skipped
+   or in a mixed search. The id is unique, so the second term settles every tie the name leaves.
+
+   THE PART BY ITS VALUE, NOT ITS LETTERS: `qPartKey` is worked out per question by `partKeys_` (see
+   there), because "ix" sorted before "v" and part 10 before part 2 on letters, and the obvious fix --
+   numerals by value everywhere -- puts h, i, j out of order. Anything that is not a question has no
+   key and falls through to the letters, as it always did. */
 const sortKey_ = x => [
   padNums_(String(x.sub || x.name || '').toLowerCase()),
+  x.kind === 'question' ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),
-  String(x.qPart || '').toLowerCase(),
+  x.qPartKey != null ? x.qPartKey : String(x.qPart || '').toLowerCase(),
   padNums_(String(x.name || '').toLowerCase()),
 ].join('\u0000');
 
@@ -10135,7 +10434,9 @@ function stuffFiltered() {
   if (prev.key !== null && prev.from === DATA && prev.all === all && prev.credits === credits
       && prev.filters && prev.words
       && prev.filters.length <= STUFF.filters.length
-      && prev.words.every(w => words.some(n => n.includes(w)))) {
+      && prev.words.every(w => words.some(n => n.includes(w)))
+      /* A QUESTION REFERENCE IS NOT A WORD, so "q8" is not a narrowing of "q" -- see `qRef_`. */
+      && !qRef_(words.join('')) && !qRef_(prev.words.join(''))) {
     const same = prev.filters.every((f, i) => JSON.stringify(f) === JSON.stringify(STUFF.filters[i]));
     const had = {};
     prev.filters.forEach(f => { if (!f.any) had[f.field] = true; });
@@ -10169,9 +10470,90 @@ function stuffPages_() {
   const pages = [];
   /* EACH RESULT IS TOLD THE ONE IN FRONT OF IT, so a shared stem is drawn once, before the first of
      its parts, as the paper prints it -- see `pageParts_`. */
-  items.forEach((x, i) => pageParts_(x, items[i - 1]).forEach(part => pages.push({ x: x, part: part })));
+  /* AND A PART FOUND ON ITS OWN BRINGS ITS WHOLE QUESTION -- see `wholeQuestions_`. Here, where pages
+     are built, and not in `stuffFiltered`: every count the funnel makes is of what MATCHED, and the
+     parts brought along are reading, not results. */
+  const seq = wholeQuestions_(items);
+  /* AND ONLY THE ANSWERS, OR ONLY EVERYTHING ELSE, when the `Page` filter says -- see `pageKind`.
+     Built in full and then kept, so every page that is drawn is the page it would have been: a stem
+     is skipped by the same rule either way. */
+  const only = pageOnly_();
+  seq.forEach((x, i) => pageParts_(x, seq[i - 1]).forEach(part => {
+    if (only === 'Answers' ? part !== 'ans' : only === 'Questions' ? part === 'ans' : false) return;
+    pages.push({ x: x, part: part });
+  }));
   STUFF_PAGES = { from: items, pages: pages };
   return pages;
+}
+
+/* THE `Page` FILTER IN FORCE, the last one pressed -- '' when there is none. */
+function pageOnly_() {
+  const f = (STUFF.filters || []).filter(f => f && f.field === 'pageKind' && !f.any).pop();
+  return f ? String(f.value) : '';
+}
+/* ---------- "JUST CLICK ANSWERS AND ONLY SEE ANSWERS" ------------------------------------------------
+   THE ANSWER PAGE'S KIND TAG IS THE DOOR. Tapping it narrows Find to the answer pages of whatever
+   is chosen -- one paper's answers, a topic's -- as the `Page: Answers` chip, so the ✕ on the chip
+   is the way back. A second tap does not stack a second chip. Through `go` when it is pressed on
+   Saved or Spotlight, because the strip it narrows is Find's.
+
+   THE TAG ITSELF IS THE TAG ROW'S, built elsewhere (`qTagsHtml_`): this listens for a tap on a tag
+   reading "Answer" on an answer page, whatever element it is drawn as, so it needs nothing from the
+   row but its words. */
+function answersOnly_() {
+  STUFF.filters = (STUFF.filters || []).filter(f => !(f && f.field === 'pageKind'));
+  STUFF.filters.push({ field: 'pageKind', value: 'Answers' });
+  if (typeof AT !== 'undefined' && AT !== 'stuff' && typeof go === 'function') go('stuff');
+  paintStuff();
+}
+if (typeof document !== 'undefined') {
+  document.addEventListener('click', e => {
+    const t = e.target && e.target.closest ? e.target.closest('.qans-card .qtag') : null;
+    if (t && /^answers?$/i.test(String(t.textContent || '').trim())) answersOnly_();
+  });
+}
+
+/* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER ---------------------
+   THE MULTI-PART AUDIT, FINDING 1, and the worst of them on a phone: a search or a topic chip found
+   Q8(ii) "Give a reason for your answer" with no Q8(i), and 2H Q14b "Work out an estimate for the
+   distance…" with no graph, because the graph lives on Q14a. In 506 of the 776 multi-part questions
+   the opening and the picture are stored on part (a) -- so a later part reached alone arrived with
+   nothing to work from, and looked complete.
+
+   SO A QUESTION IS DRAWN WHOLE WHEREVER ANY PART OF IT MATCHED: its opening and figures, every part
+   in the paper's order, each part's answer straight after it. In the place its first matching part
+   holds in the results, once however many of its parts matched. The part that matched is reached
+   exactly where it always was -- `stuffPageOf_(x)` lands on it, the earlier parts one swipe behind.
+   THE SIBLINGS ARE THE FUNNEL'S OWN ITEMS (`stuffItems`, in `stuffSorted_`'s order), so a part
+   brought along is the same object a paper filter would have found, and its answer box and its pen
+   are the same ones. Inside a chosen paper nothing changes: every part is already there. */
+const qId_ = x => (x && x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== ''
+  ? paperIdOf_(x.row) + '|' + x.qNumber : '');
+const WHOLE_MEMO = new WeakMap();
+function questionParts_() {
+  const all = stuffSorted_(stuffItems());
+  let by = WHOLE_MEMO.get(all);
+  if (by) return by;
+  by = {};
+  all.forEach(x => { const k = qId_(x); if (k) (by[k] = by[k] || []).push(x); });
+  WHOLE_MEMO.set(all, by);
+  return by;
+}
+function wholeQuestions_(items) {
+  const out = [], done = {};
+  let by = null;
+  (items || []).forEach(x => {
+    const k = qId_(x);
+    if (!k) { out.push(x); return; }
+    by = by || questionParts_();
+    const sib = by[k] || [];
+    /* A RESULT THE FUNNEL'S LIST DOES NOT HOLD (a harness's own item) stands as itself. */
+    if (sib.indexOf(x) < 0) { out.push(x); return; }
+    if (done[k]) return;
+    done[k] = true;
+    sib.forEach(s => out.push(s));
+  });
+  return out;
 }
 
 /* THE PAGE AN ITEM STARTS ON, counted from the first result. For anything that turns to a result by
