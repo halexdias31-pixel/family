@@ -9068,15 +9068,29 @@ function figsBefore_(x) {
     return usesSeen_(svg, [].concat(...by.map(m => m.all)), credit +
       `<p class="qpad-note qseen-from">The marks are yours from ${who} &mdash; change them there.</p>`);
   };
-  const pic = (p, label) => {
+  const pic = (p, label, onlyMarked) => {
     const marked = p.diagram ? seen(p.diagram, figCredit_(p, 'p')) : '';
+    if (onlyMarked && !marked) return;
     const html = (marked || (p.diagram ? `<figure>${p.diagram}${figCredit_(p)}</figure>` : '')) + pics_(figImgs_(p.images));
     if (html) out.push({ label: marked ? usesHead_(label) : label, html: html });
   };
   (x.stems || []).forEach(p => { if (stemHasFig_(p)) pic(p, figLabel_(p.html)); });
   const own = p => !!(p.diagram || figImgs_(p.images).length);
+  /* ---------- AND THE PICTURE A `uses` PART READS, ONLY WITH SOMETHING ON IT -----------------------
+     2F Q24c "use your graph": the figure it reads is the child's drawing. Drawn, the sheet shows it
+     with their marks ("Your drawing", above); not drawn yet, the paper's empty grid is a figure of
+     nothing -- the page in front already says "Nothing drawn on Q24b yet" -- so no Figure for it.
+     Followed down the chain (FSL2 Q3c uses b, b uses a, one scatter diagram), never round a loop. */
+  const bare = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const used = new Set();
+  for (let y = x, n = 0; y && n < 9; n++) {
+    const u = bare(y.uses || (y.row && y.row.uses));
+    if (!u || used.has(u)) break;
+    used.add(u);
+    y = sib.find(p => bare(p.qPart) === u) || null;
+  }
   sib.slice(0, at < 0 ? 0 : at).forEach(p => {
-    if (own(p)) pic(p, figLabel_(String(p.lead || '') + ' ' + String(p.html || '')));
+    if (own(p)) pic(p, figLabel_(String(p.lead || '') + ' ' + String(p.html || '')), used.has(bare(p.qPart)));
   });
   const plan = partPlan_(x);
   if (own(x) && plan.figAt >= 0 && plan.figAt < plan.chunks.length) pic(x, figLabel_(String(x.lead || '') + ' ' + String(x.html || '')));

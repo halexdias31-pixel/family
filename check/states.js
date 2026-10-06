@@ -1268,10 +1268,15 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__kfKey = ansKey_(it);
+        /* AFTER THE COLUMN HAS STOPPED, as a finger would: the box is tapped on a page that is still.
+           Focused 20ms after `goPage`, the slide's own settle (`afterSlide_`) let go of the hold the pad
+           had just lifted the card on (and the page was not yet `.on`, so the lift never ran), and the box sat under the pad at 320 -- a fault of the state's
+           timing, not the app's: opened on the settled page, the lift is 45px and both clear it. */
         let tries = 0;
         const up = () => {
           const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__kfKey);
-          if (!inp) { if (++tries < 20) setTimeout(up, 20); return; }
+          const moving = typeof AFTER_SLIDE !== 'undefined' && (AFTER_SLIDE || AFTER_SLIDE_JOBS.size);
+          if (!inp || moving || !inp.closest('#screen .page.on')) { if (++tries < 60) setTimeout(up, 50); return; }
           inp.focus();
           if (KP_AT !== inp) kpOpen_(inp);
         };
@@ -2274,6 +2279,11 @@ const STATES = {
       enter: () => {
         KID_MADE = { pid: String(USER.personId || ''), name: 'Maximilian', handle: 'maximilian_steady42',
                      pin: ['0', '7', '3', '9'].join('') };
+        /* A FORM LEFT UNSAVED OR SENDING BY WHATEVER RAN BEFORE -- `check/press.js` presses every Save
+           on this column first -- makes `paint` keep the column rather than throw typing away
+           (`settingsKeep_`), so the slip was set and never drawn: "did not arrive" in the full suite,
+           green alone. Cleared as the photographs state below clears them. */
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
         const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.kid-make'));
         if (at < 0) throw new Error('no "Make your child\'s account" card on the settings column');

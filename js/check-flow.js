@@ -7485,8 +7485,8 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
     if (!page) bad.push('the "use" page draws nothing');
     else {
       if (!page.classList.contains('qfig') || page.getAttribute('data-of') !== 'Q-USE-24c' || page.getAttribute('data-uses') !== 'Q-USE-24b') bad.push('the "use" page is not (c)\'s figure page naming (b) as where its marks came from: ' + page.outerHTML.slice(0, 120));
-      const head = ((page.querySelector('.qcard-top b') || {}).textContent || '').trim();
-      if (head !== 'Your drawing' || /\bQ\d/.test(page.querySelector('.qcard-top').textContent)) bad.push('the "use" page is headed "' + page.querySelector('.qcard-top').textContent.trim() + '", wanted "Your drawing" and no question number');
+      const head = tagText(page, 'kind');
+      if (head !== 'Your drawing' || tagText(page, 'number')) bad.push('the "use" page is headed "' + pageHead(page) + '", wanted "Your drawing" and no question number');
       if (paths(page, '.qpad-was') !== 2) bad.push('the "use" page shows ' + paths(page, '.qpad-was') + ' of the two marks Ali made on (b)');
       if (!page.querySelector('.qpad-art > svg line.grid')) bad.push('the "use" page does not draw (b)\'s picture under the marks');
       if (page.querySelector('.qpad, [data-do], .tile, .qp-ans, .qpad-g')) bad.push('the "use" page can be drawn on, pressed or typed into — it is (b)\'s answer, read only');
@@ -10157,7 +10157,7 @@ check('multipart: Saved and Spotlight draw a question\'s opening and its figure 
     if (c.classList.contains('qstem')) return 'stem';
     if (c.classList.contains('qfig')) return 'fig';
     if (c.classList.contains('qans-card')) return 'ans';
-    return ((c.querySelector('.qcard-top b') || {}).textContent || '?').trim().replace(/\s.*$/, '');
+    return (tagText(c, 'number') || '?').replace(/\s.*$/, '');
   };
   try {
     [['Saved', () => w.savedPages_()], ['Spotlight', () => w.spotPages()]].forEach(([where, f]) => {
@@ -10288,7 +10288,7 @@ check('multipart: a (d) opening is drawn once before (d)(i), headed Q1(d), and a
     if (di) {
       const h = d.createElement('div');
       h.innerHTML = w.questionStemCard_(di, 0);
-      const head = ((h.querySelector('.qcard-top b') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+      const head = tagText(h, 'number');
       if (head !== 'Q1(d)') bad.push('the (d) opening is headed "' + head + '", wanted Q1(d)');
       if (!/REST/.test(h.textContent)) bad.push('the (d) opening does not draw its words');
     }
