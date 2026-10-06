@@ -4555,6 +4555,9 @@ function pageParts_(x, prev) {
       });
       if (fig && plan.figAt >= plan.chunks.length) out.push('sfig' + i);
     });
+    /* "USE YOUR GRAPH": THE EARLIER PART'S PICTURE WITH THE CHILD'S MARKS, after the opening and in
+       front of this part's words -- see `usesOf_`. */
+    if (usesPage_(x, prev)) out.push('use');
     /* AND A LONG PART IS ITS FIRST PAGES (`preN`) AND THEN THE CARD, which keeps the last of its words
        with the box -- with its figure among them where `partPlan_` stands it. */
     const plan = partPlan_(x);
@@ -4610,7 +4613,7 @@ function pageParts_(x, prev) {
 /* AND A KEPT BIBLE'S THREE LISTS OF BOOKS, because the cover alone is a card with no way into the book:
    a book tapped on Saved opens on Find (`bibleGo_`), and the chapters themselves stay there. */
 function cardPages_(x, credits) {
-  return pageParts_(x).filter(p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p)
+  return pageParts_(x).filter(p => !p || p === 'fig' || p === 'ans' || p === 'use' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p)
                                  || (x.kind === 'bible' && /^(ot2?|nt)$/.test(p)))
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
 }
@@ -4620,6 +4623,7 @@ function stuffPart_(x, part) {
   if (x && x.kind === 'bible') return biblePart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
+  if (x && x.kind === 'question' && part === 'use') return questionUsesCard_(x);
   if (x && x.kind === 'question' && /^stem\d+(-\d+)?$/.test(part)) {
     const m = /^stem(\d+)(?:-(\d+))?$/.exec(part);
     return questionStemCard_(x, +m[1], +(m[2] || 0));
@@ -6234,6 +6238,8 @@ function questionItems() {
       answer: r.answer || '', answerType: r.answerType || '',
       /* WHAT TO ANSWER ON when the answer is a mark rather than words -- see `padSurface_`. */
       surface: r.surface || '',
+      /* AND WHICH EARLIER PART'S DRAWING IT READS -- see `usesOf_`. */
+      uses: r.uses || '',
       accept: r.accept || '',
       choices: r.choices || [], choiceRight: r.choiceRight || [],
       examinerNote: r.examinerNote || '',
@@ -7261,6 +7267,9 @@ function padWrap_(x, svg, credit) {
   /* DRAWING THE PAD IS OPENING IT, so this is where the phone's old marks become this person's. */
   padAdopt_(k, 'pad:' + padItemKey_(x));
   const marks = padRead_(k);
+  /* AND THE MARKS AN EARLIER PART MADE ON THIS SAME PICTURE, under this part's own and out of reach of
+     its Undo and Clear -- (ii)'s cross goes on the scale (i) already marked. See `usesOf_`. */
+  const was = usesUnder_(x, svg);
   /* THE MODE IS READ OFF `PAD_ON`, NOT LEFT ON THE ELEMENT BY THE PRESS THAT SET IT. A card is
      rebuilt on every repaint, so a class added by the handler alone is a class a repaint throws
      away while the state keeps it — and the state is what `pointerdown` below tests. That leaves
@@ -7285,6 +7294,7 @@ function padWrap_(x, svg, credit) {
   return `<div class="qpad${pen ? ' is-drawing' : ''}" data-k="${esc(k)}">
     <div class="qpad-art"${pen ? '' : ` data-do="pad-draw" title="${esc(PAD_TAP)}"`}>${svg}
       <svg class="qpad-ink"${pen ? ' data-noswipe' : ''} viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
+        ${was.length ? usesInk_(was) : ''}
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>
         <g class="qpad-aid"></g>
@@ -7608,6 +7618,135 @@ function padRepaint_(pad, all) {
   const g = pad.querySelector('.qpad-g');
   if (g) g.innerHTML = (all || [])
     .map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('');
+}
+
+/* ==================================================================================================
+   "USE YOUR GRAPH" SHOWS YOUR GRAPH.
+
+   FOUND BY THE MULTI-PART AUDIT, finding 5. June 2024 2F Q24(b): "On the grid, draw the graph of
+   y = x^2 - x". Q24(c): "Use your graph to find estimates for the solutions of x^2 - x = 4" -- and (c)
+   had no picture at all. The graph it asks about was the child's own, on (b)'s grid, two swipes back
+   past (b)'s answer page; on Saved, or reached by a search, it was nowhere. And the related case the
+   audit named: May 2017 1F Q6(ii) puts a cross on "the probability scale" -- a fresh copy without the
+   cross (i) made, where the paper prints ONE scale with both on it.
+
+   THE ROW SAYS WHICH PART, AND THE APP DOES NOT GUESS. `uses` is the earlier part's own `part` cell
+   (`b`, `i`, `3`) inside the same paper and question; tools/set-uses.py is the deciding, row by row,
+   and says why it is a cell and not a match on the words: half of these say nothing in their words
+   ("Draw y = 2x" on the grid "Draw y = 4" already used), and "the graph" is as often the paper's own
+   as the child's. A part naming no such part, or one that does not exist, draws exactly what it did.
+
+   ONE RULE, TWO PLACES, READ ONLY IN BOTH:
+     this part's own figure IS that picture   the earlier marks go UNDER this part's own, dimmer, out
+                                              of reach of its Undo and Clear (`padWrap_`); or, where
+                                              this part only looks (AQA's "How does Figure 2 show"
+                                              after (3) plotted Figure 2), on its picture (`usesFig_`)
+     it has no such picture                   a page of its own IN FRONT OF IT, after the opening and
+                                              before its words (`use` in `pageParts_`): the earlier
+                                              part's picture with the marks on it, headed with the
+                                              picture's own name, and one line saying whose marks
+                                              they are and where to change them
+   READ ONLY BECAUSE THE MARKS ARE THE EARLIER PART'S ANSWER. A pen here that wrote to (b)'s key would
+   be (b)'s answer changed from (c)'s page; a pen that wrote to (c)'s would be a second graph that (b)
+   never sees. Changing a graph is done where it was drawn.
+
+   AND NOT A PAGE THE STRIP HAS JUST SHOWN: in front of (c) whose previous page is (b)'s own figure
+   (no answer page between them), the picture is already the page before.
+
+   WHOEVER IS SIGNED IN, as the marks are (`padKey_`): Ben's (c) shows Ben's graph, not Ali's. A CHAIN
+   IS ONE PICTURE: FSL2 Q3(c) uses (b), (b) uses (a), all on one scatter diagram, so (c)'s page carries
+   (a)'s points and (b)'s line -- followed while the picture is the same one, never round a loop. */
+const usesPart_ = p => String(p == null ? '' : p).toLowerCase().replace(/[^a-z0-9]/g, '');
+const usesAt_ = (x, part) => paperIdOf_(x.row || x) + '|' + String(x.qNumber == null ? '' : x.qNumber) + '|' + usesPart_(part);
+/* BUILT ONCE PER LIST OF ITEMS, which is once per payload and person (`stuffItemsAll_`'s own memo). */
+let USES_MEMO = { from: null, at: null };
+function usesOf_(x) {
+  if (!x || x.kind !== 'question' || !usesPart_(x.uses)) return null;
+  let all = [];
+  try { all = stuffItemsAll_() || []; } catch (e) { return null; }
+  if (USES_MEMO.from !== all) {
+    const at = new Map();
+    all.forEach(y => { if (y && y.kind === 'question') at.set(usesAt_(y, y.qPart), y); });
+    USES_MEMO = { from: all, at: at };
+  }
+  const y = USES_MEMO.at.get(usesAt_(x, x.uses));
+  return y && y.key !== x.key ? y : null;
+}
+/* A PART'S OWN MARKS, FOR WHOEVER IS SIGNED IN -- opening them anywhere is opening them (`padAdopt_`). */
+function usesMine_(y) {
+  const k = padKey_(y);
+  padAdopt_(k, 'pad:' + padItemKey_(y));
+  return padRead_(k);
+}
+/* EVERY MARK THE PARTS `x` USES MADE ON THE PICTURE `svg`, earliest part first, stopping where the
+   picture changes. The same picture is the same markup: equal strings, so a mark lands on the same
+   point of it -- a different drawing of "the same" figure would put it somewhere else. */
+function usesUnder_(x, svg) {
+  const out = [];
+  const seen = new Set([x && x.key]);
+  let y = usesOf_(x);
+  while (y && !seen.has(y.key)) {
+    seen.add(y.key);
+    const p = padSource_(y);
+    if (!p || p.svg !== svg) break;
+    out.unshift(...usesMine_(y));
+    y = usesOf_(y);
+  }
+  return out;
+}
+/* THE EARLIER MARKS AS AN INK GROUP, beside the pad's own and never inside it: `padRepaint_` rewrites
+   `.qpad-g` from this part's storage, so nothing it does can reach these. */
+const usesInk_ = all => `<g class="qpad-was" vector-effect="non-scaling-stroke">${all.map(st =>
+  `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>`;
+/* A PICTURE WITH MARKS ON IT AND NO PEN: the pad's box and ink layer (`.qpad-art`, `.qpad-ink`) so a
+   mark lands exactly where `padWrap_` drew it, inside `.qseen` rather than `.qpad` -- the class every
+   pen handler and `padArm_` look for, so none of them can arm a picture that is not for drawing on. */
+const usesSeen_ = (svg, all, note) => `<div class="qseen">
+    <div class="qpad-art">${svg}
+      <svg class="qpad-ink" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">${usesInk_(all)}</svg>
+    </div>${note || ''}
+  </div>`;
+/* A PART THAT ONLY LOOKS AT THE PICTURE AN EARLIER PART DREW ON: its own copy, with those marks. */
+function usesFig_(x) {
+  const was = x && x.diagram ? usesUnder_(x, x.diagram) : [];
+  return was.length ? usesSeen_(x.diagram, was, figCredit_(x, 'p')) : '';
+}
+
+/* DOES THIS PART GET THE PAGE IN FRONT -- see the note above. `prev` is the result before it in the
+   strip, as `pageParts_` is told. */
+function usesPage_(x, prev) {
+  const y = usesOf_(x);
+  const p = y && padSource_(y);
+  if (!p) return false;
+  const own = padSource_(x);
+  if ((own && own.svg === p.svg) || (x.diagram && x.diagram === p.svg)) return false;
+  if (prev && prev.key === y.key && pageParts_(prev).slice(-1)[0] === 'fig') return false;
+  return true;
+}
+/* THE PAGE: the earlier part's picture, named as its own figure page names it (a surface by what it
+   is, a paper figure by the name the paper gives it), the marks on it, and one line. `data-of` is THIS
+   part's row, because the page is this part's -- it stands in front of it and only it; `data-uses`
+   names the row the marks came from. */
+function questionUsesCard_(x) {
+  const y = usesOf_(x);
+  const p = y && padSource_(y);
+  if (!p) return '';
+  const all = usesUnder_(y, p.svg).concat(usesMine_(y));
+  const label = p.from === 'surface' ? (SURFACE_NAME[p.surface] || 'Space to draw')
+    : p.from === 'part' ? figLabel_(String(y.lead || '') + ' ' + String(y.html || ''),
+                                    (y.stems || []).filter(stemHasFig_).map(s => figLabel_(s.html)))
+    : figLabel_(p.from.html);
+  const said = all.length
+    ? `Your marks from ${esc(y.name)}, to use here. To change them, go back to ${esc(y.name)}.`
+    : `Nothing drawn on ${esc(y.name)} yet &mdash; this part uses what you draw there.`;
+  const id = (x.row && x.row.row_id) || x.key || '';
+  const from = (y.row && y.row.row_id) || y.key || '';
+  return `<div class="qcard qfig qfig-uses" data-of="${esc(id)}" data-uses="${esc(from)}">
+    ${figHead_(label)}
+    <p class="qcard-sub">${qTagsHtml_(x)}</p>
+    <div class="qsheet">${usesSeen_(p.svg, all,
+      (p.from === 'part' ? figCredit_(y, 'p') : '') + `<p class="qseen-note">${said}</p>`)}</div>
+  </div>`;
 }
 
 /* ==================================================================================================
@@ -8396,7 +8535,8 @@ function questionFigCard_(x) {
     label = figLabel_(pad.from.html);
   }
   if (pad && pad.from === 'part') out.push(padWrap_(x, x.diagram, figCredit_(x, 'p')));
-  else if (x.diagram) out.push(`<figure>${x.diagram}${figCredit_(x)}</figure>`);
+  /* A PICTURE AN EARLIER PART DREW ON, WITH THOSE MARKS -- see `usesFig_`. */
+  else if (x.diagram) out.push(usesFig_(x) || `<figure>${x.diagram}${figCredit_(x)}</figure>`);
   out.push(pics_(figImgs_(x.images)));
   const id = (x.row && x.row.row_id) || x.key || '';
   return `<div class="qcard qfig" data-of="${esc(id)}">

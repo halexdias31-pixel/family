@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-06-qtools";
+  --css-version: "2026-10-06-mppad";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -13177,6 +13177,24 @@ button.scr-sq { cursor: pointer; }
    that looked like homework going somewhere would be a promise the app cannot keep. */
 .qpad-note { margin: .35rem 0 0; font: 400 .62rem/1.4 var(--font); color: var(--faint);
              line-height: 1.4; }
+
+/* ---------- AN EARLIER PART'S MARKS, WHICH THIS PAGE CANNOT CHANGE ------------------------------------
+   "Use your graph" -- see `usesOf_`. Two places: UNDER a pad's own marks (`.qpad .qpad-was`), where
+   they must read as the earlier part's and not as this one's, because Undo and Clear will not touch
+   them -- the same gold at a little over half strength, so the line of (i) is plainly there and plainly
+   not the line you are drawing now; and ON A PICTURE WITH NO PEN (`.qseen`), the page in front of
+   "use your graph", where they are the only marks and are read off -- full gold, the pen's own width,
+   so a value read from your curve is read from the curve you drew.
+
+   `.qseen` IS THE PAD'S BOX WITHOUT THE PAD: `.qpad-art` and `.qpad-ink` place the ink over the
+   picture exactly as they do under a pen, and nothing here takes a finger. */
+.qseen { margin: 1rem 0; }
+.qpad-was path { fill: none; stroke: var(--gold); stroke-width: 2.5;
+                 stroke-linecap: round; stroke-linejoin: round; }
+.qpad .qpad-was path { opacity: .55; }
+.qseen > .fig-by { margin: .5rem 0 0; text-align: left; opacity: 1;
+                   font: 400 .62rem/1.4 var(--font); color: var(--faint); }
+.qseen-note { margin: .5rem 0 0; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
 
 /* ---------- A PASSAGE THAT IS ITS OWN ANSWER SURFACE: RING A WORD BY TAPPING IT ----------------------
    "Circle the three adjectives in the passage below." `circWords_` makes every word of the part a

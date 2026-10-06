@@ -661,6 +661,11 @@ function libraryInto_(d, rows) {
          here when somebody has decided. See `padSurface_` in find.js. A closed list, held by
          `check-library.js`. */
       surface: norm(r.surface),
+      /* WHICH EARLIER PART'S DRAWING THIS ONE NEEDS IN FRONT OF IT -- `b` on "Use your graph to find
+         estimates" after (b) drew the graph. The earlier part's own `part` cell, inside this question.
+         Empty on all but a few dozen rows; see tools/set-uses.py for which and why, and `usesOf_` in
+         find.js for what it draws. */
+      uses: libS(r.uses),
       /* WHAT A STUDENT COULD TYPE AND BE RIGHT. `answer` is prose for a tutor -- the value, an
          em dash, then the method -- and "16 &mdash; half it." does not equal "16". See
          tools/set-accept.py for why the two are separate columns rather than one parsed twice. */
