@@ -10348,12 +10348,13 @@ function wholeQuestions_(items) {
   (items || []).forEach(x => {
     const k = qId_(x);
     if (!k) { out.push(x); return; }
-    if (done[k]) return;
-    done[k] = true;
     by = by || questionParts_();
     const sib = by[k] || [];
     /* A RESULT THE FUNNEL'S LIST DOES NOT HOLD (a harness's own item) stands as itself. */
-    (sib.indexOf(x) >= 0 ? sib : [x]).forEach(s => out.push(s));
+    if (sib.indexOf(x) < 0) { out.push(x); return; }
+    if (done[k]) return;
+    done[k] = true;
+    sib.forEach(s => out.push(s));
   });
   return out;
 }
