@@ -28,7 +28,9 @@
      · THE DRAWING — every one of the 31,102 verses through the REAL `bibleVerse_`, cut out of
        find.js by name: no `[` or `]` left standing, one `<i>` per bracket pair, the pilcrow `#` gone,
        and the words left over exactly the verse's own. And a verse that tries to be markup is text.
-     · THE VERSE LIST — the REAL `bibleVerseList_`, cut out of find.js with the five names it uses,
+       AND THROUGH THE REAL `bibleV_`, which is what the card prints: one paragraph, the pilcrow `¶`
+       exactly where the 1611 text starts one, and after it the verse's own words, every one of them.
+     · THE VERSE LIST — the REAL `bibleVerseList_`, cut out of find.js with the six names it uses,
        run over the real index: one item per archive row, in the archive's order, every key unique and
        every name `Book c:v` (`Psalm`, not `Psalms`), each chapter found where `starts` says, and every
        verse findable by searching its book, its group and its testament.
@@ -235,13 +237,50 @@ if (bibleVerse_) {
   if (/<img/.test(evil) || evil.indexOf('<i>and</i>') < 0) fail.push('a verse holding markup is drawn as markup: ' + evil);
 }
 
+/* ---------- AND THE VERSE AS THE CARD DRAWS IT: `bibleV_`, OVER EVERY VERSE ----------------------------
+   `bibleVerse_` IS THE WORDS AND `bibleV_` IS WHAT A CARD ACTUALLY PRINTS — the paragraph, the pilcrow
+   where the 1611 text starts one, then the words. FOUND BY THE REVIEW: nothing read the second. A
+   precedence slip in it — the words put inside the pilcrow's ternary, `(# ? '¶ ' : words)` — draws every
+   paragraph-opening verse as a bare `¶` (2,936 of them, Genesis 1:6 and John 3:16 among them), and
+   check-bible stayed green because it read `bibleVerse_`, and check-flow stayed green because it
+   compared each card with `bibleV_` itself. So it is cut out here too, beside the function it calls, and
+   every verse goes through it: one paragraph, the pilcrow exactly when the verse starts with `#`, and
+   the words left over exactly the verse's own. */
+const vSrc = cutFrom(findSrc, 'bibleV_');
+let bibleV_ = null, drawnCards = 0, drawnParas = 0;
+if (!vSrc) fail.push('bibleV_ is not in js/find.js — what a verse card prints was NOT checked, which is not a pass');
+else if (verseSrc) bibleV_ = new Function('esc', verseSrc + '\n' + vSrc + '\nreturn bibleV_;')(esc);
+if (bibleV_) {
+  const PARA = '<span class="bb-para" aria-hidden="true">¶</span> ';
+  let bad = 0;
+  const firstBad = [];
+  Object.keys(split).forEach(n => split[n].chapters.forEach((ch, ci) => ch.forEach((v, vi) => {
+    const html = bibleV_(v);
+    const para = /^#/.test(v);
+    const inner = /^<p class="bb-v">([\s\S]*)<\/p>$/.exec(html);
+    const body = inner ? inner[1] : '';
+    const marks = (html.match(/bb-para/g) || []).length;
+    const words = unesc((para && body.indexOf(PARA) === 0 ? body.slice(PARA.length) : body).replace(/<\/?i>/g, ''));
+    const want = v.replace(/^#\s*/, '').replace(/[\[\]]/g, '');
+    const why = !inner ? 'it is not one <p class="bb-v">'
+              : para && body.indexOf(PARA) !== 0 ? 'it opens a paragraph in the 1611 text and does not start with the pilcrow'
+              : marks !== (para ? 1 : 0) ? marks + ' pilcrow(s) on a verse that ' + (para ? 'opens one paragraph' : 'opens none')
+              : words !== want ? 'the words on the card are not the verse\'s own'
+              : '';
+    drawnCards++;
+    if (para && !why) drawnParas++;
+    if (why) { bad++; if (firstBad.length < 4) firstBad.push(split[n].book + ' ' + (ci + 1) + ':' + (vi + 1) + ' — ' + why + ': ' + html.slice(0, 90)); }
+  })));
+  if (bad) fail.push(bad + ' verse cards print the wrong thing, first: ' + firstBad.join(' | '));
+}
+
 /* ---------- THE VERSE LIST, BUILT BY THE REAL FUNCTION OVER THE REAL INDEX ---------------------------
-   `bibleVerseList_` IS PURE — the index in, the items out, through five names and nothing else — so it
-   is cut out of find.js with those five and run here. Every one of the 31,102 items it makes is a card
+   `bibleVerseList_` IS PURE — the index in, the items out, through six names and nothing else — so it
+   is cut out of find.js with those six and run here. Every one of the 31,102 items it makes is a card
    somebody can reach, so each is held to the archive row it stands for: the same verse, in the same
    place in the order, under a key that is its address and a name that is its citation. The key is
    stored in favourites, so a key that moved would be a star that found a different verse. */
-const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_SHELF', 'bibleTestament_', 'bibleCite_', 'bibleVerseList_'];
+const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_SHELF', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
 const listSrc = LIST_NAMES.map(n => cutFrom(findSrc, n));
 let listed = 0;
 if (listSrc.some(s => !s)) {
@@ -406,6 +445,7 @@ if (libM && /bible/i.test(libM[1])) fail.push('LIB_EXTRA names the Bible — eve
 console.log('THE BIBLE (KJV)  —  ' + books.length + ' books, ' + chapters + ' chapters, ' + verses + ' verses in data/bible/, '
   + seen + ' rows in the archive');
 console.log('  [bracketed] words: ' + pairs + ', drawn as ' + italics + ' italic runs;  pilcrows: ' + paras);
+console.log('  ' + drawnCards + ' verses printed as a card by bibleV_, ' + drawnParas + ' of them under the pilcrow');
 console.log('  ' + seenGroups.length + ' groups: ' + seenGroups.map(g => g + ' ' + books.filter(b => b.group === g).length).join(', '));
 console.log('  ' + listed + ' verse cards named from index.json, ' + books.reduce((s, b) => s + ((b.chapterVerses || []).length), 0)
   + ' chapters counted');
@@ -421,5 +461,6 @@ if (fail.length) {
   process.exit(1);
 }
 console.log('\nOK — every verse of the archive is in the split, in order and unchanged; every book is in the group\n'
-  + '     decided for it and every chapter counted; every [word] is drawn in italics; every verse is a card\n'
-  + '     named for its own place; and only isAdmin() is shown it, opens it or fetches it.');
+  + '     decided for it and every chapter counted; every [word] is drawn in italics and every verse card\n'
+  + '     prints its own words under its own pilcrow; every verse is a card named for its own place; and\n'
+  + '     only isAdmin() is shown it, opens it or fetches it.');

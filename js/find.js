@@ -3920,9 +3920,11 @@ const BIBLE_WORDS = 'KJV King James Authorized Version scripture';
    until the page is closed, so a second verse of Genesis is not a second download; `loading` is the
    fetch in flight, so twenty cards of one book drawn at once ask for it once; `missed` is a book that
    did not come. `verses` is the verse list, built once per index (`bibleVerses_`); `rank` is the
-   canonical order of the testaments, groups and books, which the funnel sorts the answers by. */
+   canonical order of the testaments, groups and books, which the funnel sorts the answers by; `hays`
+   is what every verse of each book is searched by, which the cover answers a search with
+   (`bibleHolds_`). */
 const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {},
-                item: null, verses: null, rank: null };
+                item: null, verses: null, rank: null, hays: null };
 
 /* THE SIX FIELDS, read off `FACETS` rather than written out a second time, so a chip on any of them is
    a Bible chip without this file keeping a list in step with that one. */
@@ -3966,17 +3968,14 @@ function bibleIndex_() {
                                    && b.chapterVerses.every(c => Number.isInteger(c) && c > 0)
                                    && b.chapterVerses.reduce((s, c) => s + c, 0) === b.verses);
       BIBLE.asking = null;
-      if (ok) { BIBLE.index = d; BIBLE.rank = bibleRankOf_(d); } else BIBLE.failed = true;
-      /* THE SEARCH LEARNS THE BOOK NAMES, so typing `psalms` finds the Bible — on the item already
-         built, because the list is memoised and rebuilding Find for sixty-six words is not worth it.
-         The cached search and the pages are told to forget (`me.js`'s move for the friends list): a
-         `psalms` typed while the index was on its way would otherwise go on answering from the list
-         without them, and the Books shelf would go on saying "on its way" over a question it can now
-         ask. */
-      if (ok && BIBLE.item) {
-        BIBLE.item.text = bibleWords_();
-        delete BIBLE.item._hay;
-      }
+      if (ok) { BIBLE.index = d; BIBLE.rank = bibleRankOf_(d); BIBLE.hays = d.books.map(bibleHay_); }
+      else BIBLE.failed = true;
+      /* THE SEARCH LEARNS THE BOOKS, so typing `psalms` finds the Bible — through `bibleHolds_`, which
+         reads `BIBLE.hays` and so changes its answer the moment they are here, on the item already
+         built. The cached search and the pages are told to forget (`me.js`'s move for the friends
+         list): a `psalms` typed while the index was on its way would otherwise go on answering from
+         the list that did not have it, and the Books shelf would go on saying "on its way" over a
+         question it can now ask. */
       if (ok) {
         FIND_MEMO.key = null;
         STUFF_PAGES = { from: null, pages: [] };
@@ -3995,18 +3994,48 @@ const bibleTestament_ = t => (t === 'NT' ? 'New Testament' : 'Old Testament');
 /* `Psalm 23`, NOT `Psalms 23` — the book is the Psalms and a chapter of it is a psalm. The one book
    whose chapters are cited by a different word from its title. */
 const bibleCite_ = (b, ch) => (b.book === 'Psalms' ? 'Psalm' : b.book) + ' ' + ch;
-/* THE COVER'S HAYSTACK: its name and the words above, and once the index is here every testament,
-   group and book — so `psalms`, `torah` and `pauline` all find the shelf the Bible is on. */
-const bibleWords_ = () => {
-  const ix = BIBLE.index;
-  const out = [BIBLE_NAME, BIBLE_WORDS];
-  if (ix) {
-    out.push('Old Testament New Testament');
-    ix.books.forEach(b => { if (out.indexOf(b.group) < 0) out.push(b.group); });
-    ix.books.forEach(b => out.push(b.book));
-  }
-  return out.join(' ');
-};
+/* THE WORDS EVERY VERSE OF ONE BOOK CARRIES — its Bible, its testament, its group and its book — so a
+   search that names any of them finds it. One function for the verses (`bibleVerseList_`) and for the
+   cover's search (`bibleHay_`), because those two are the same question and must not be two recipes. */
+const bibleBookWords_ = b => [BIBLE_NAME, BIBLE_WORDS, bibleTestament_(b.testament), b.group, b.book].join(' ');
+/* WHAT EVERY VERSE OF ONE BOOK IS FOUND BY, BAR ITS OWN NUMBERS: a verse's haystack with the `1:3`
+   taken off its name. Built by `stuffHay_` itself from a stand-in verse, so it is the search's own
+   recipe — name, `sub`, words — and not a copy of it that could drift. */
+const bibleHay_ = b => stuffHay_({ name: bibleCite_(b, ''), sub: b.book, text: bibleBookWords_(b) });
+
+/* ---------- A SEARCH KEEPS THE COVER EXACTLY WHEN IT WOULD KEEP A VERSE -------------------------------
+   FOUND BY THE REVIEW. The cover's haystack was every testament, group and book in one string, plus a
+   `sub` of "Old and New Testaments" that no verse had. So it held words no verse holds — `testaments`,
+   `and` — and PAIRS no verse holds, `torah gospels`, `old new`. Typed on the Books shelf, the cover
+   stayed, Translation was asked, and KJV answered "Nothing matches": a door that opened onto a wall.
+   A union of sixty-six books' words is a haystack for a thing that is none of them.
+   SO THE COVER IS ASKED WHAT A VERSE WOULD BE ASKED, of the verses it stands for — and without
+   building them, from the index. A verse's haystack is its book's (`BIBLE.hays`) and its own `c:v`,
+   and nothing else, so: every word in ONE book's, and whatever that book's leaves over inside one
+   `c:v` of it. The same words find the cover before the Bible is open and the verses after, so a
+   search that keeps the cover keeps a verse once KJV is pressed, and one that would keep no verse
+   never offers the shelf. AND `psalm 23` AND `john 3:16` FIND IT NOW, where a number found it only
+   when it happened to be in a book's name (`1 Samuel`). The walk over a book's verses runs only for a
+   word that is digits and colons, stops at the first verse that has it, and is 31,102 short strings
+   at the very worst — one item, an admin's, not a list.
+   BEFORE THE INDEX there are no books to ask, and the cover's own words decide: its name and
+   `BIBLE_WORDS`, which every verse carries too, so it can never promise what the verses lack. */
+function bibleHolds_(x, words) {
+  const ix = BIBLE.index, hays = BIBLE.hays;
+  if (!ix || !hays) return words.every(w => stuffHay_(x).includes(w));
+  return ix.books.some((b, i) => {
+    const rest = words.filter(w => !hays[i].includes(w));
+    if (!rest.length) return true;
+    if (!rest.every(w => /^[\d:]+$/.test(w))) return false;
+    return b.chapterVerses.some((count, ci) => {
+      for (let v = 1; v <= count; v++) {
+        const cv = (ci + 1) + ':' + v;
+        if (rest.every(w => cv.includes(w))) return true;
+      }
+      return false;
+    });
+  });
+}
 
 /* ---------- THE ORDER THE ANSWERS ARE DRAWN IN, WHICH IS THE BIBLE'S ------------------------------
    THE ALPHABET IS WRONG THREE TIMES HERE. `cmpText` puts the New Testament before the Old, `General
@@ -4088,16 +4117,15 @@ const bibleV_ = t => '<p class="bb-v">'
    IN CANONICAL ORDER, and that order is the list's own: `bibleFind_` only ever filters it, so Genesis
    1:1 comes first and Revelation 22:21 last without a sort key. `starts` is where each chapter's
    first verse sits, so `bibleByKey_` finds any verse without a search.
-   PURE — it reads its argument and the five names it uses, nothing else, so `check-bible.js` cuts it
+   PURE — it reads its argument and the six names it uses, nothing else, so `check-bible.js` cuts it
    out and builds the list from the real index. */
 function bibleVerseList_(ix) {
   const num = [], N = i => num[i] || (num[i] = String(i));
   const list = [], starts = [];
   const tr = String(ix.translation), head = 'bible:' + tr.toLowerCase() + ':';
   ix.books.forEach(b => {
-    const testament = bibleTestament_(b.testament);
-    const bb = { n: b.n, book: b.book, testament: testament, group: b.group, translation: tr,
-                 words: [BIBLE_NAME, BIBLE_WORDS, testament, b.group, b.book].join(' ') };
+    const bb = { n: b.n, book: b.book, testament: bibleTestament_(b.testament), group: b.group, translation: tr,
+                 words: bibleBookWords_(b) };
     const at = starts[b.n - 1] = [];
     b.chapterVerses.forEach((count, ci) => {
       const c = ci + 1, cite = bibleCite_(b, c) + ':';
@@ -4218,8 +4246,13 @@ function bibleItems_() {
      the admin visitor the day this item arrived. The index is still asked for above, so the books
      are ready by the time the shelf is. */
   if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
-  const x = { kind: 'bible', name: BIBLE_NAME, key: 'bible:kjv', sub: 'Old and New Testaments',
-              image: '', shelf: BIBLE_SHELF, text: bibleWords_(), row: null };
+  /* NO `sub`, AND ONLY THE WORDS EVERY VERSE CARRIES. It had `sub: 'Old and New Testaments'`, which
+     its card never drew and which put `testaments` and `and` in its haystack and in no verse's. What a
+     search finds it by is `holds` — the verses' words, asked by `bibleHolds_` — which `stuffNarrow_`
+     reads in place of the haystack for an item that stands for others. */
+  const x = { kind: 'bible', name: BIBLE_NAME, key: 'bible:kjv', image: '', shelf: BIBLE_SHELF,
+              text: BIBLE_WORDS, row: null };
+  x.holds = words => bibleHolds_(x, words);
   BIBLE.item = x;
   return [x];
 }
@@ -10371,7 +10404,11 @@ function stuffNarrow_(out, filters, words, credits) {
      if one is chosen). Anything that does not read as one is words, as before. */
   const ref = words.length ? qRef_(words.join('')) : null;
   if (ref) out = out.filter(x => qRefHit_(x, ref));
-  else if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
+  /* AN ITEM THAT STANDS FOR OTHERS IS ASKED ABOUT THEM. `holds(words)` is the Bible's cover, whose
+     31,102 verses are on no list here: its own haystack was every book's words in one string, so it
+     answered `torah gospels` that no verse does (see `bibleHolds_`). Every other item has no `holds`
+     and is asked its haystack, as before. */
+  else if (words.length) out = out.filter(x => x.holds ? x.holds(words) : words.every(w => stuffHay_(x).includes(w)));
   return out;
 }
 
@@ -12263,6 +12300,27 @@ function paintStuff(keepPage) {
   if (chips) chips.innerHTML = filterChips();
   const groups = $('stuff-groups');
   if (groups) groups.innerHTML = stuffQuestion();
+  /* ---------- A NEW QUESTION IS READ FROM THE TOP OF ITS PANE ------------------------------------------
+     FOUND BY THE REVIEW, ON THE BIBLE'S GRIDS. Psalms's 150 chapters are taller than the question's pane
+     on a 320x568 phone even drawn at `PANE_ZOOM_MIN`, so the pane scrolls (`paneReach_`), and you scroll
+     it to reach 119. The tap rewrote `#stuff-groups` INSIDE that same pane and left its `scrollTop`
+     where it was — so Psalm 119's 176 verses opened scrolled down by the same amount: the search box,
+     the chips with the new CHAPTER 119 on them and the first rows of verses all above the glass, and
+     below it a grid of the same coral numbers in the same columns with `119` in the same place.
+     Nothing on the screen had changed, so the natural thing was to tap again — Verse 119, Psalm
+     119:119, a verse nobody chose. Any long grid reached by scrolling did it (Psalms from about 66 at
+     320 and 78 at 360), and a "Doesn't matter" pressed at a grid's foot.
+     SO A REPAINT THAT ANSWERED SOMETHING PUTS ITS PANE BACK AT THE TOP, where the chip that says what
+     just happened is — every one that sends you to the question (`facet-pick`, `facet-skip`,
+     `filter-drop`, `filter-clear`, `bible-go`), in this one place rather than in each. `keepPage` is
+     the repaint that keeps your place (a star, a card redrawn, the index landing), and that is left
+     exactly where it was. The search box's own repaint comes through here too and is harmless: the box
+     is at the top of this pane, so you are already there. `paneReach_` measures the new grid on its
+     deferred pass, from the top, like any other. */
+  if (groups && !keepPage) {
+    const qp = groups.closest('.pane');
+    if (qp && qp.scrollTop) qp.scrollTop = 0;
+  }
 
   const host = $('s-stuff');
   if (!host) return;

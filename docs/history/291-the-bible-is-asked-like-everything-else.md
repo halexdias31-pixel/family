@@ -116,11 +116,13 @@ Learning → Questions, and the six Bible questions are never tallied (`check-fu
    book ranges inside `bibleFind_`; not built now.
 2. A book is fetched when a card of it is drawn, so a funnel step can download the first book of its
    new list (25–75 KB gzipped), once a visit.
-3. Search finds citations and the names of books, groups and testaments — not the words of verses,
-   which are only on the phone for books already fetched. "john 3:16" typed before the Bible is open
-   does not find the cover.
+3. Search finds citations ("psalm 23", "john 3:16") and the names of books, groups and testaments —
+   not the words of verses, which are only on the phone for books already fetched. The cover is kept
+   by a search exactly when a verse would be (`bibleHolds_`, below), so the same words work before
+   the Bible is open and after.
 4. Grids longer than the pane are drawn smaller (to 0.7) and then scroll: 150 targets at 44px need
-   more area than a 320×568 pane has.
+   more area than a 320×568 pane has. A tap on one puts the pane back at its top, where the new chip
+   is (below).
 5. One page per verse: reading a chapter is a swipe per verse. The Verse grid and the Chapter tile are
    the ways to jump.
 6. `bible:kjv:n:c:v` keys are stored in favourites and must never change shape; a second translation
@@ -128,6 +130,39 @@ Learning → Questions, and the six Bible questions are never tallied (`check-fu
 7. A second book on the Books shelf would make the list mixed, so Translation would not be asked
    there; the cover's Open tile is then the way in.
 8. A sheet switching off one Bible row strands the rungs below it; `check-bible` fails if any is off.
+
+### Found by the review, and fixed at the root
+
+- **A search that kept the cover could keep no verse.** The cover's haystack was every testament,
+  group and book in one string, plus `sub: 'Old and New Testaments'` that its card never drew. So
+  `testaments`, `old and new testaments` and `poetry and wisdom` typed on the Books shelf kept it and
+  asked Translation, and KJV then said "Nothing matches"; `torah gospels` and `old new` did the same,
+  because a union of sixty-six books' words holds pairs no single verse holds. Fixed by asking the
+  cover what a verse would be asked: an item may carry `holds(words)`, which `stuffNarrow_` reads in
+  place of its haystack, and the cover's is `bibleHolds_` — every word in ONE book's haystack
+  (`bibleHay_`, built by `stuffHay_` itself from a stand-in verse with its numbers taken off), and
+  whatever that leaves inside one `c:v` of that book. That is exactly a verse's haystack, so it is
+  exact both ways: a search keeps the cover if and only if it would keep a verse, and `psalm 23` and
+  `john 3:16` now find it, where a number found it only when it happened to be in a book's name
+  (`1 Samuel`). The `sub` is gone and `bibleWords_` with it; the verses and the cover read one
+  `bibleBookWords_`. Before the index lands the cover's own words decide — its name and `BIBLE_WORDS`,
+  which every verse carries too.
+- **Nothing compared what a verse card prints with the file.** `check-bible` read `bibleVerse_`, and
+  `check-flow` compared each card with `bibleV_` of the same verse — the function that drew it. A
+  precedence slip in `bibleV_` (the words inside the pilcrow's ternary) printed all 2,936
+  paragraph-opening verses as a bare `¶` and passed everything. Now `check-bible` cuts out `bibleV_`
+  and runs all 31,102 verses through it (one paragraph, the pilcrow exactly when the text starts with
+  `#`, the words exactly the verse's own), and `check-flow` builds the expected markup of Genesis 1
+  from the file itself and pins Genesis 1:6's words.
+- **A grid tapped after scrolling opened the next one scrolled.** On a 320×568 phone Psalms's 150
+  chapters scroll even at 0.7; tapping 119 rewrote the question inside the same pane and kept its
+  `scrollTop`, so Psalm 119's 176 verses opened with the search box, the chips and the first rows
+  above the glass and the same numbers in the same columns below — nothing visibly changed, and the
+  natural second tap chose Psalm 119:119. `paintStuff` now puts the question's pane back at its top on
+  every repaint that changed the question (everything but `keepPage`), which covers `facet-pick`,
+  `facet-skip`, `filter-drop`, `filter-clear` and `bible-go` in one line. `check/press.js` scrolls the
+  real grid to 119 at 320×568, taps it with a real touch, and asks that the pane is at its top with
+  the chips in sight; without the reset it reports the pane 496px down and the chips out of sight.
 
 ### Checks, each proved by mutation and green again after
 

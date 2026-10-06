@@ -461,11 +461,10 @@ function boot(opts) {
          whether the index landed, which book failed. The Bible journey asks it rather than the DOM
          where the DOM cannot say, such as whether a failure changed the open book. */
       'BIBLE: () => (typeof BIBLE !== "undefined" ? BIBLE : null),' +
-      /* AND THE FUNNEL'S OWN MEMO OF WHAT IT TALLIED, the chain that orders the Bible's questions, and
-         the verse as a card draws it — all `const`s, so only this evaluation can hand them over. The
-         Bible journey asks the first whether a question that could not apply was tallied anyway. */
+      /* AND THE FUNNEL'S OWN MEMO OF WHAT IT TALLIED and the chain that orders the Bible's questions —
+         both `const`s, so only this evaluation can hand them over. The Bible journey asks the first
+         whether a question that could not apply was tallied anyway. */
       'FACET_TALLY: () => FACET_TALLY, FACET_NEEDS_FIRST: typeof FACET_NEEDS_FIRST !== "undefined" ? FACET_NEEDS_FIRST : null,' +
-      'bibleV: typeof bibleV_ === "function" ? bibleV_ : null,' +
       /* A FACET BY ITS FIELD -- a `const` arrow, so only this evaluation can hand it over. The tag-row
          journey asks the `needs` facet's `showOf` whether the funnel says the calculator the way the
          card's tag does. */
@@ -8992,13 +8991,20 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   const genesis = JSON.parse(fs.readFileSync(path.join(bibleDir, '01-genesis.json'), 'utf8'));
   const ch1 = w.stuffFiltered();
   same(ch1.map(i => i.key), run(31).map(v => 'bible:kjv:1:1:' + v), 'Genesis 1\'s results');
-  if (!t.bibleV) bad.push('bibleV_ is not exported, so the verses were NOT compared with the file');
+  /* THE FILE'S VERSE AS A CARD MUST PRINT IT, WRITTEN OUT HERE AND NOT ASKED OF `bibleV_`. This compared
+     each card with `bibleV_` of the same verse — the function that drew it, so it was comparing the card
+     with itself, and the review's slip in `bibleV_` (the words inside the pilcrow's ternary, every
+     paragraph-opening verse a bare `¶`) passed it. Escaped, `[word]` in italics, the `#` taken off and
+     the pilcrow printed in front instead: the 1611 conventions, stated by the journey. */
+  const escH = s2 => String(s2).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const printed = raw => '<p class="bb-v">' + (/^#/.test(raw) ? '<span class="bb-para" aria-hidden="true">¶</span> ' : '')
+    + escH(raw.replace(/^#\s*/, '')).replace(/\[([^\[\]]*)\]/g, '<i>$1</i>') + '</p>';
   ch1.forEach((v, i) => {
     const html = w.stuffCard(v);
     const card = box(html);
     const p = card.querySelector('.card.bb-verse .bb-v');
     const text = p ? p.textContent : '';
-    if (!p || (t.bibleV && p.outerHTML !== box(t.bibleV(genesis.chapters[0][i])).firstElementChild.outerHTML)) bad.push(v.name + ' is drawn as "' + text.slice(0, 60) + '", not the file\'s verse');
+    if (!p || p.outerHTML !== box(printed(genesis.chapters[0][i])).firstElementChild.outerHTML) bad.push(v.name + ' is drawn as "' + text.slice(0, 60) + '", not the file\'s verse');
     if (/[\[\]]/.test(text) || /^\s*#/.test(text)) bad.push(v.name + ' shows a bracket or a # — "' + text.slice(0, 60) + '"');
     if (card.querySelector('[data-do="bible-go"]')) bad.push(v.name + ' carries a Chapter tile while Genesis 1 is the list — it would land where you are');
     const tags = [...card.querySelectorAll('.qcard-tags .qtag')].map(s => s.textContent);
@@ -9007,6 +9013,9 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   const v2 = box(w.stuffCard(ch1[1])).querySelector('.bb-v');
   if (!v2 || v2.innerHTML.indexOf('darkness <i>was</i> upon') < 0) bad.push('Genesis 1:2 does not draw "[was]" as italics');
   if (!box(w.stuffCard(ch1[5])).querySelector('.bb-v .bb-para')) bad.push('Genesis 1:6 starts a paragraph in the 1611 text and carries no pilcrow');
+  /* AND ITS WORDS, BY EYE: the first verse under a pilcrow is the one a slip there blanks. */
+  const v6 = box(w.stuffCard(ch1[5])).querySelector('.bb-v');
+  if (!v6 || v6.textContent.indexOf('Let there be a firmament in the midst of the waters') < 0) bad.push('Genesis 1:6 reads "' + (v6 ? v6.textContent.trim().slice(0, 60) : 'nothing') + '" — not "And God said, Let there be a firmament in the midst of the waters"');
   if (box(w.stuffCard(ch1[0])).querySelector('.bb-v .bb-para')) bad.push('Genesis 1:1 carries a pilcrow it does not have');
 
   /* ---------- 5. VERSE 3: ONE CARD, THE LINE THAT SAYS SO, AND ITS CHAPTER TILE ----------------------- */
@@ -9100,6 +9109,44 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   setTo(DOORS.concat([KJV]));
   t.STUFF().q = 'john 3:16';
   same(w.stuffFiltered().slice(0, 3).map(i => i.name), ['John 3:16', 'John 13:16', '1 John 3:16'], '"john 3:16" typed inside the Bible');
+  t.STUFF().q = '';
+
+  /* ---------- 9b. A SEARCH KEEPS THE COVER EXACTLY WHEN IT WOULD KEEP A VERSE ---------------------------
+     FOUND BY THE REVIEW: `testaments`, `old and new testaments` and `poetry and wisdom` typed on the
+     Books shelf kept the cover and asked Translation, and KJV then answered "Nothing matches" — the
+     cover's haystack was every book's words in one string, and a `sub` no verse had. So every search
+     below is asked both ways, by the app's own path: on the Books shelf (is the cover there?) and with
+     KJV pressed (is any verse?). The two answers must be the same answer. The words are the ones the
+     cover's old haystack held — its name, each testament, group and book, `and`, `testaments` — and the
+     pairs that cross a group or a testament, and citations, which a verse's name carries and its
+     book's words do not. */
+  const crossWords = ['bible', 'kjv', 'king james', 'scripture', 'the', '(king', 'version)', 'and', 'testament', 'testaments',
+    'old testament', 'new testament', 'old and new testaments', 'poetry and wisdom', 'poetry & wisdom', 'torah gospels',
+    'old new', 'pauline torah', 'genesis exodus', 'psalm', 'psalm 23', 'psalm 151', 'john 3:16', '1 john 3:16', 'jude 2',
+    'jude 1:26', 'revelation 22:21', 'revelation 22:22', 'esther 8:9', 'genesis 51', '119:176', '119:177', 'fractions']
+    .concat([...new Set(index.books.map(b => b.group))].map(g => g.toLowerCase()), index.books.map(b => b.book.toLowerCase()));
+  /* ASKED OF THE LIST, NOT DRAWN: a drawn verse fetches its book, and Leviticus has to be still to come
+     for step 11's refusal to mean anything. */
+  const asking = (list, q2) => { t.STUFF().filters = list.map(f => Object.assign({}, f)); t.STUFF().q = q2; return w.stuffFiltered(); };
+  const crossBad = [];
+  let crossKept = 0;
+  crossWords.forEach(q2 => {
+    const cover = asking(DOORS, q2).some(i => i.kind === 'bible' && !i.bb);
+    const n = asking(DOORS.concat([KJV]), q2).length;
+    if (cover) crossKept++;
+    if (cover !== (n > 0) && crossBad.length < 6) {
+      crossBad.push('"' + q2 + '" ' + (cover ? 'keeps the cover and KJV leaves no verse' : 'loses the cover and KJV would leave ' + n + ' verses'));
+    }
+  });
+  if (crossBad.length) bad.push('a search on the Books shelf and the same search inside the Bible disagree: ' + crossBad.join(' | '));
+  if (crossKept < index.books.length) bad.push('only ' + crossKept + ' of ' + crossWords.length + ' searches kept the cover — the comparison above was NOT reached for the books, so it is not a pass');
+  /* AND ONE OF THEM BY THE SCREEN: a citation typed on the shelf, Translation asked, KJV pressed. */
+  setTo(DOORS); t.STUFF().q = 'psalm 23'; w.paintStuff();
+  q = asked();
+  if (q.field !== 'bibleTranslation') bad.push('"psalm 23" typed on the Books shelf asks ' + (q.field || 'nothing') + ' — the cover, and Translation, because Psalm 23 is a verse of it');
+  else if (await pick('bibleTranslation', 'KJV')) {
+    if (!w.stuffFiltered().some(i => i.key === 'bible:kjv:19:23:1')) bad.push('"psalm 23" with KJV pressed does not hold Psalm 23:1 — it leaves ' + w.stuffFiltered().slice(0, 3).map(i => i.name).join(', '));
+  }
   t.STUFF().q = '';
 
   /* ---------- 10. EVERY BOOK AND EVERY CHAPTER, WALKED -------------------------------------------------
