@@ -492,8 +492,23 @@ for (const who of VISITORS) {
     }
     /* AND A STATE THAT DID NOT ARRIVE FAILS LOUDLY, for the reason `check/ui.js` gives: a state
        silently not reached is "I did not press it" printed as "I pressed it and it was fine". */
+    /*
+       ASKED AGAIN FOR UP TO 2.5s, NOT ONCE. Several states finish their `enter` on a timer of their
+       own — `setTimeout(…, 150)` before the real press, so the card is placed first — and on a loaded
+       machine that timer, the press and the paint behind it outlast the fixed wait above. Measured on
+       6 October with `check/press.js --screen=stuff`: "a typed answer, marked not yet" did not arrive
+       on 1 run in 2 on the base commit and on this branch alike, with nothing wrong in the app. A
+       state that never arrives still fails, after the 2.5s; one that arrives late is measured. */
     if (state.expect) {
-      const got = await page.evaluate(src => { try { return !!eval('(' + src + ')')(); } catch (e) { return false; } }, String(state.expect));
+      const got = await page.evaluate(async src => {
+        const t0 = performance.now();
+        for (;;) {
+          let ok = false;
+          try { ok = !!eval('(' + src + ')')(); } catch (e) {}
+          if (ok || performance.now() - t0 > 2500) return ok;
+          await new Promise(r => setTimeout(r, 100));
+        }
+      }, String(state.expect));
       if (!got) { console.error('! ' + label + ' did not arrive — wanted ' + (state.wants || 'the state to be on screen')); notEntered++; continue; }
     }
 
