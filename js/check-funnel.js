@@ -1357,7 +1357,14 @@ boot(f => {
 
 
   /* ================================================================================================
-     AND NO QUESTION ANYWHERE DRAWS MORE THAN SEVEN ANSWERS.
+     AND NO QUESTION IS CUT INTO RANGES -- THE SEVEN-ANSWER CAP BELOW IS HISTORY.
+
+     6 OCT, THE OWNER REVERSED IT: *"I don't want to break up the title of things ... I no longer
+     want to have that a-g method or h-n. Just display. Other categories should reduce how many show
+     up like grade."* So the rule now is: a group drawn is a category its facet's own table names
+     (a grade band, a subject area), never `C–E` or `1–10`; and a question ASKED is drawn whole, so
+     it holds at most FACET_MAX_ANSWERS. What the paragraphs below describe is the rule this
+     replaced, kept because it says why the walk is shaped the way it is.
 
      REPORTED: "there are some menus in finder where there are more than 7 options. And so it can't
      display them and asks user to search. I DO NOT LIKE THIS." The funnel used to trim the drawn
@@ -1402,9 +1409,11 @@ boot(f => {
       f.facetList().forEach(facet => {
         let vals = [];
         try { vals = f.facetValues(list, facet); } catch (e) { return; }
-        if (vals.length > CAP) {
-          over.push('`' + facet.field + '` (' + facet.label + ') draws ' + vals.length
-                    + ' answers at ' + (say || 'the top of the funnel'));
+        /* A RANGE IS ANY BUCKET THE FACET'S OWN TABLE DID NOT NAME -- `C–E`, `1–10`, `2023 & 2024`. */
+        const ranged = vals.filter(v => v.bucket && !(f.bucketDeclares_ && f.bucketDeclares_(facet, v.value)));
+        if (ranged.length) {
+          over.push('`' + facet.field + '` (' + facet.label + ') draws ' + ranged.map(v => v.value).slice(0, 4).join(', ')
+                    + ' at ' + (say || 'the top of the funnel'));
         }
         if (vals.length && vals[0].bucket && !groups[facet.field]) {
           groups[facet.field] = { label: facet.label, at: say || 'the top of the funnel',
@@ -1412,8 +1421,18 @@ boot(f => {
         }
       });
     };
+    /* AND THE QUESTION ACTUALLY ASKED IS ONE THAT FITS: drawn whole, so never past FACET_MAX_ANSWERS. */
+    const tooLong = [];
+    const lookAsk = (say, list) => {
+      let facet = null;
+      try { facet = f.nextFacet(list, {}); } catch (e) { facet = null; }
+      if (!facet) return;
+      const n = f.facetValues(list, facet).length;
+      if (n > f.FACET_MAX_ANSWERS) tooLong.push('`' + facet.field + '` asks with ' + n + ' answers at ' + (say || 'the top'));
+    };
     const all = f.stuffItems();
     look('', all);
+    lookAsk('', all);
     /* THE TWO DOORS, EVERY ANSWER. `What for` and `What kind` take somebody from the whole app into
        one department, and the departments hold very different shapes of answer. */
     ['forLabel', 'kindLabel'].forEach(field => {
@@ -1437,14 +1456,19 @@ boot(f => {
       said.push(facet.label + ' · ' + (best.show || best.value));
       list = keep(list, facet, best);
       look(said.join(' → '), list);
+      lookAsk(said.join(' → '), list);
     }
     if (over.length) {
-      bad.push('a question is drawn with more than ' + CAP + ' answers, which is the state the '
-               + 'search-box line used to apologise for: ' + over.slice(0, 8).join('; ')
-               + (over.length > 8 ? '; and ' + (over.length - 8) + ' more' : ''));
+      bad.push('a question is drawn as letter or number ranges rather than as its answers -- the owner, '
+               + '6 Oct: "I no longer want to have that a-g method or h-n. Just display": '
+               + over.slice(0, 8).join('; ') + (over.length > 8 ? '; and ' + (over.length - 8) + ' more' : ''));
     } else {
-      console.log('\nNO QUESTION DRAWS MORE THAN ' + CAP + ' ANSWERS, at '
+      console.log('\nNO QUESTION IS CUT INTO RANGES -- every group drawn is a category its own table names, at '
                   + Object.keys(seenState).length + ' states of the real funnel');
+    }
+    if (tooLong.length) {
+      bad.push('a question is ASKED with more answers than FACET_MAX_ANSWERS, so the whole list is drawn '
+               + 'where the other questions should have narrowed it first: ' + tooLong.slice(0, 6).join('; '));
     }
     /* ---------- AND A DECLARED BUCKET HOLDS EXACTLY WHAT ITS TABLE SAYS --------------------------
        THE MUTANT THAT PROMPTED THIS PASSED EVERYTHING. With the letter ranges keyed on the raw
@@ -1580,31 +1604,20 @@ boot(f => {
                + (outside.length > 6 ? '; and ' + (outside.length - 6) + ' more' : ''));
     }
 
-    /* ---------- AND THE ENGINE ITSELF, ON THE ONE SHAPE THE REAL FACETS DO NOT HAVE -------------
-       EVERY RULE ABOVE WALKS THE LIVE FUNNEL, and the live funnel cannot reach this: a grouping
-       that answers ONE label for every value on the list. `bucketLabels_` rule 1 needs two, so it
-       declines; rule 2 needs integers; and rule 3 used to key the alphabet through `bucketOf`,
-       which for such a grouping is the same string for every value — so it grew its prefix to
-       twelve characters, never found a second run, returned null, and `bucketValues_` handed the
-       list back UNGROUPED. Ten answers drawn, on the one guarantee this whole mechanism is for.
-
-       FOUND BY A REVIEW RATHER THAN BY A RULE, and the fix is that the alphabet keys on what a
-       value is READ as, which always tells values apart. This is the rule, and it is asked of a
-       facet built here rather than of the library, because the eleven declared tables all split
-       what they are given and none of them can reproduce it. A shape that cannot occur in the data
-       is exactly the shape a check has to carry. */
+    /* ---------- AND A LIST NO TABLE CAN SPLIT IS DRAWN WHOLE ------------------------------------
+       A grouping that answers ONE label for every value cannot narrow anything, so `bucketLabels_`
+       stands it down -- and since 6 Oct there is nothing behind it: no tens, no alphabet. Ten
+       answers in, the same ten answers out, none of them a bucket. Asked of a facet built here,
+       because none of the real tables collapses and the shape still has to be held. */
     const collapse = { field: '__collapse', label: 'Collapse', of: x => x.__v || '',
                        bucketOf: () => 'One thing', bucketOrder: ['One thing'] };
     const ten = 'alpha bravo charlie delta echo foxtrot golf hotel india juliet'
       .split(' ').map(v => ({ __v: v }));
     let drew = [];
     try { drew = f.facetValues(ten, collapse); } catch (e) { drew = []; }
-    if (!drew.length) {
-      bad.push('the seven-answer cap cannot be checked against a grouping that collapses - not a pass');
-    } else if (drew.length > CAP) {
-      bad.push('a grouping that answers one label for every value leaves the question ungrouped: '
-               + drew.length + ' answers drawn where the cap is ' + CAP + ' — see `bucketKeyOf_`, '
-               + 'which must key the alphabet on something that tells two values apart');
+    if (drew.length !== 10 || drew.some(v => v.bucket)) {
+      bad.push('a list no table can split is not drawn whole: ' + drew.length + ' answers, '
+               + drew.filter(v => v.bucket).length + ' of them buckets -- see `bucketLabels_`');
     }
 
     /* ---------- AND A TABLE PLACES EVERY SPELLING OF A VALUE IT LISTS ---------------------------

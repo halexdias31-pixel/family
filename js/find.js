@@ -994,30 +994,6 @@ const LEVEL_BUCKET = bucketTable_([
    NEWEST FIRST, which is the order the sitting list is already in and for the reason recorded there:
    the newest paper is the one closest to the specification somebody is actually sitting. */
 
-/* TWO CALENDAR YEARS, AND THE LABEL SAYS SO RATHER THAN IMPLYING SOMETHING TRUER THAT IT IS NOT.
-   THE ACADEMIC YEAR IS THE UNIT A TUTOR ACTUALLY THINKS IN — Autumn 2023 and Summer 2024 are one
-   year's sittings — and it was written that way first and then counted: sixteen sittings across
-   2017 to 2025 fall into NINE academic years, which is past `FACET_MAX_SHOWN`, so rule 1 would
-   stand down and the whole question would go back to letter ranges. Worse, it would stand down at
-   some states and not others, so the sittings would be grouped by academic year on a narrow list
-   and by the alphabet on a wide one — one question with two vocabularies, which is the fault this
-   file records under `level`/`stage` and under `exam_wave`'s three spellings.
-
-   SO IT IS `2023 & 2024` AND NOT `2023–2024`. The pairing is arithmetic over the calendar and an
-   ampersand says exactly that; a dash between two years is how every exam board writes an academic
-   year, and a bucket holding Summer 2023 (the end of 2022/23) under a label reading `2023–2024`
-   would be confidently wrong about the one fact it states. */
-function waveBucket_(v) {
-  const y = (String(v).match(/(19|20)\d{2}/) || [])[0];
-  if (!y) return '';
-  const n = Number(y);
-  const lo = n - ((n + 1) % 2);          /* from the odd year up: 2023 & 2024, 2021 & 2022 */
-  return lo + ' & ' + (lo + 1);
-}
-/* NO TABLE TO ORDER BY, so `bucketLabels_` falls back to sorting the labels themselves — which for
-   `2017 & 2018` … `2025 & 2026` is oldest first. `bucketDesc: true` on the facet turns that round,
-   because this screen lists sittings newest first everywhere else. */
-waveBucket_.order = [];
 
 function decadeBucket_(v) {
   const n = Number((String(v).match(/\d{4}/) || [])[0]);
@@ -1035,7 +1011,6 @@ decadeBucket_.order = ['Before 1930', '1930s & 1940s', '1950s & 1960s',
 /* The 5-a-day levels and weeks, above `FACETS` because it is built as the file loads — see
    `fiveADayOf_` for the rest. */
 const FIVE_LEVELS = ['Foundation', 'Foundation Plus', 'Higher', 'Higher Plus'];
-const FIVE_WEEKS = ['1st–7th', '8th–14th', '15th–21st', '22nd–28th', '29th–31st'];
 
 const FACETS = [
   /* What sort of thing, first. It is the one question that changes which of the others make any
@@ -1338,8 +1313,8 @@ const FACETS = [
 
      `examSeries` IS RETIRED, see `RETIRED_FACETS`. The bundle's own title still says `Summer 2017`
      where its papers share one, through `waveOf`. */
+  /* NO LONGER PAIRED INTO `2023 & 2024` -- the years are drawn as they are (see `bucketLabels_`). */
   { field: 'examYear', folder: true,
-    bucketOf: waveBucket_, bucketOrder: waveBucket_.order, bucketDesc: true,
     label: 'Year', cmp: (a, b) => Number(b) - Number(a), of: x => sittingOf_(x).year },
   { field: 'examMonth', folder: true, label: 'Month',
     cmp: (a, b) => MONTH_NAMES.indexOf(a) - MONTH_NAMES.indexOf(b), of: x => sittingMonth_(x) },
@@ -1481,9 +1456,7 @@ const FACETS = [
   { field: 'fiveMonth', label: 'Month',       of: x => { const d = fiveADay_(x); return d ? d.month : ''; },
     orderOf: v => MONTH_NAMES.indexOf(v) },
   { field: 'fiveDay',   label: 'Day',         of: x => fiveADay_(x) ? x.row.paper_id : '',
-    showOf: (id, ids) => fiveDayLabel_(id, ids),
-    bucketOf: id => { const d = fiveADayOf_(id); return d ? FIVE_WEEKS[Math.min(4, Math.floor((d.day - 1) / 7))] : ''; },
-    bucketOrder: FIVE_WEEKS },
+    showOf: (id, ids) => fiveDayLabel_(id, ids) },
   { field: 'paperId',   label: 'Paper', folder: true,
     of: x => (x.row && x.row.paper_id) || '',
     /* `said` IS WHAT THE YEAR AND MONTH CHIPS HAVE ALREADY SAID, and the label drops it — see
@@ -2181,7 +2154,6 @@ function shortLabels_(values) {
  * the alphabet behind it. `bandOf_` is untouched and is still the one place a band's edges are
  * decided.
  */
-const FACET_BAND_BY = 10;
 
 /* ==================================================================================================
    AND THE SAME MOVE FOR EVERY OTHER KIND OF ANSWER — NEVER MORE THAN SEVEN, EVER.
@@ -2323,8 +2295,8 @@ function bucketKeyOf_(facet, v) {
 
 /* ---------- IS THIS LABEL ONE THE FACET'S OWN GROUPING MADE? -------------------------------------
    A TABLE ENUMERATES ITS LABELS in `bucketOrder` and a computed grouping cannot, so the second test
-   is that it is IDEMPOTENT: `waveBucket_('2023 & 2024')` reads the year out of its own label and
-   answers `2023 & 2024`, and `decadeBucket_('1930s & 1940s')` does the same. Both hold by
+   is that it is IDEMPOTENT: `decadeBucket_('1930s & 1940s')` reads the year out of its own label
+   and answers `1930s & 1940s`. Both hold by
    construction for a grouping that reads a number out of a string, which is what a computed one is.
 
    IT MATTERS BECAUSE A DECLARED LABEL MUST NOT BE READ AS A LETTER RANGE. `LEVEL_BUCKET` files a
@@ -2340,69 +2312,6 @@ function bucketDeclares_(facet, b) {
   try { return facet.bucketOf(b) === b; } catch (e) { return false; }
 }
 
-function alphaBuckets_(values, want, facet) {
-  /* The shortest prefix that tells these values apart. A list that is all `Paper 1 (...)` needs
-     eight characters before it says anything, and stopping at one would give one bucket holding
-     everything — a question with a single answer, which `nextFacet` would then refuse. */
-  let p = 1;
-  const groupsAt = n => {
-    const seen = [];
-    const at = {};
-    values.forEach(v => {
-      const k = alphaKey_(bucketKeyOf_(facet, v.value)).slice(0, n);
-      if (!at[k]) { at[k] = { key: k, n: 0, vals: [] }; seen.push(at[k]); }
-      at[k].n += v.n;
-      at[k].vals.push(v);
-    });
-    return seen.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
-  };
-  let runs = groupsAt(p);
-  while (runs.length < 2 && p < 12) { p += 1; runs = groupsAt(p); }
-  if (runs.length < 2) return null;
-
-  /* ---------- CONTIGUOUS RUNS, BALANCED TWO WAYS AT ONCE ---------------------------------------
-     CONTIGUOUS BECAUSE THE LABEL IS A RANGE, and a range that skips letters is a lie about where
-     things are: `A–C` has to hold everything starting A, B or C or it is not that range.
-
-     TWO TESTS, AND IT NEEDED BOTH — the first version had only the share and measured as doing
-     nothing at all:
-
-       ITS SHARE OF THE ITEMS.  Seven buckets of wildly different sizes is six useless taps and one
-           that changes nothing. Measured on the library's topics, one bucket per letter puts 96 of
-           375 under A and 4 under T–Z. Aiming each at an equal share of the ITEMS behind the
-           answers — not of the answers themselves — is what `FACET_MIN_MINORITY` asks of every
-           other question on this screen.
-
-       ITS SHARE OF THE RUNS.   The share test alone cannot split a list whose weight is all in one
-           place. The eight grades are 27, 90, 186, 174, 443, 54, 261 and 135 against a share of
-           196, so no single run ever reaches it and every one of them landed in the first bucket —
-           one bucket, which `bucketValues_` reads as "cannot split" and hands back untouched. That
-           is the whole facet drawn at full length again, silently, which is the fault this change
-           exists to remove. A ceiling on how many runs one bucket may hold makes a split certain
-           whenever there are two runs to split.
-
-     FOUND BY RE-RUNNING THE AUDIT RATHER THAN BY READING THE CODE, on five facets that came back
-     exactly the length they went in. */
-  const total = runs.reduce((t, r) => t + r.n, 0);
-  const share = total / want;
-  const maxRuns = Math.ceil(runs.length / want);
-  const out = [];
-  let cur = null;
-  runs.forEach(r => {
-    const full = cur && (cur.n >= share || cur.runs >= maxRuns);
-    if (!cur || (full && out.length < want)) {
-      cur = { lo: r.key, hi: r.key, n: 0, runs: 0 };
-      out.push(cur);
-    }
-    cur.hi = r.key;
-    cur.n += r.n;
-    cur.runs += 1;
-  });
-  return out.map(b => ({
-    value: b.lo === b.hi ? b.lo.toUpperCase() : b.lo.toUpperCase() + '\u2013' + b.hi.toUpperCase(),
-    n: b.n,
-  }));
-}
 
 /* ---------- IS THIS VALUE INSIDE THAT BUCKET -----------------------------------------------------
    THE ONE TEST BOTH THE DRAWER AND `filterHit` USE. Three shapes, told apart by the chip itself
@@ -2429,7 +2338,7 @@ function bucketHas_(facet, bucket, v) {
      test below — which is the branch that was refusing it.
 
      `2025–2026` IS A SITTING'S LABEL AND MATCHES THIS SHAPE EXACTLY, which is a trap worth naming
-     even though it cannot fire: rule 1 above answers first for every value `waveBucket_` places,
+     even though it cannot fire: rule 1 above answers first for every value `decadeBucket_` places,
      and the rule that drew those labels only draws them when it places all of them. Were it ever
      reached, `intAnswer_` refuses `Summer 2024` and the answer is a correct false. A declared label
      that is two integers around a dash AND sits on a facet whose values are bare integers is the
@@ -2539,41 +2448,15 @@ function bucketLabels_(values, facet) {
     }
   }
 
-  /* 2. TENS, for a run of plain integers. */
-  if (values.every(v => intAnswer_(v.value))) {
-    const by = {};
-    const lo = {};
-    values.forEach(v => {
-      const k = bandOf_(Number(v.value));
-      by[k] = 1;
-      lo[k] = Math.min(lo[k] === undefined ? Infinity : lo[k], Number(v.value));
-    });
-    const bands = Object.keys(by).sort((a, b) => lo[a] - lo[b]);
-    if (bands.length > 1 && bands.length <= FACET_MAX_SHOWN) return bands;
-    /* ---------- AND INSIDE ONE TEN, RUNS OF NUMBERS -- NEVER THE ALPHABET ----------------------
-       FOUND WALKING ONE WORKSHEET'S QUESTIONS: `1–10` opened onto `1`, `2–3`, `4–5`, `6–7`, `8–9`,
-       and the `1` row held questions 1 AND 10 and, pressed, showed ELEVEN -- 1 and 10 to 19. Ten
-       numbers in one band are one band, so this rule stood down and the alphabet took them: `'10'`
-       sorts between `'1'` and `'2'`, so the first letter-run was `1`, and `bucketHas_` reads a label
-       that is not two numbers round a dash as a PREFIX, which `11` to `19` all have. And the chip
-       above it stands down once the answer inside it arrives -- see `stuffNarrow_` -- so nothing
-       held it to the ten it was opened inside.
-       SO A RUN OF INTEGERS IS ALWAYS CUT AS NUMBERS. Eight to ten of them inside one ten go in pairs
-       -- `1–2` to `9–10` -- and a single left at the end joins the pair before it, so every label is
-       two numbers round a dash and `bucketHas_` reads every one as the range it says. */
-    if (bands.length === 1) {
-      const nums = values.map(v => Number(v.value)).sort((a, b) => a - b);
-      const per = Math.ceil(nums.length / FACET_MAX_SHOWN);
-      const runs = [];
-      for (let i = 0; i < nums.length; i += per) runs.push(nums.slice(i, i + per));
-      if (runs.length > 1 && runs[runs.length - 1].length === 1) runs[runs.length - 2].push(runs.pop()[0]);
-      if (runs.length > 1 && runs.every(r => r.length > 1)) return runs.map(r => r[0] + '–' + r[r.length - 1]);
-    }
-  }
-
-  /* 3. THE ALPHABET, which cannot fail to answer. */
-  const alpha = alphaBuckets_(values, FACET_MAX_SHOWN, facet);
-  return alpha ? alpha.map(b => b.value) : null;
+  /* ---------- 2 AND 3 WERE TENS AND THE ALPHABET, AND THEY ARE GONE ------------------------------
+     THE OWNER, 6 Oct: *"I don't want to break up the title of things. Like as you can see it's
+     broken up into letter and so on. I don't want this no more. Just let it all display ... Other
+     categories should reduce how many show up like grade."* A range of letters or numbers is not a
+     category, it is the same list cut where the alphabet happened to fall -- `C`, `E`, `O`, `P`
+     over FOUR topics, measured. So a list either has a real grouping (rule 1: a subject area, a
+     grade band, a level) or it is drawn whole, and a list too long to draw whole is not asked
+     (`FACET_MAX_ANSWERS` in `nextFacet`) until the other questions have narrowed it. */
+  return null;
 }
 
 
@@ -2582,12 +2465,6 @@ function bucketLabels_(values, facet) {
    question is numbered `4a`. The test has to be on the characters. */
 const intAnswer_ = v => /^\d+$/.test(String(v == null ? '' : v).trim());
 
-/* THE BAND A NUMBER FALLS IN, as a label. One function so the drawer and `bucketHas_` cannot
-   disagree about where the edges are — the fault this file records under `documents_()`. */
-function bandOf_(n) {
-  const lo = Math.floor((n - 1) / FACET_BAND_BY) * FACET_BAND_BY + 1;
-  return lo + '–' + (lo + FACET_BAND_BY - 1);
-}
 
 /* ---------- `FACET_BAND_AT` AND `bandNumbers_` WERE HERE ------------------------------------------
    THEY BANDED A RUN OF PLAIN INTEGERS INTO TENS and did nothing to anything else, which is the
@@ -12247,7 +12124,7 @@ function filterChips() {
       const key = (facetBy(f.field) || {}).label || f.field;
       const show = f.any ? 'any' : chipShow_(f, i);
       return `
-      <button class="chip" data-do="filter-drop" data-i="${i}"${tagAttr_(f.field)}>
+      <button class="chip sm" data-do="filter-drop" data-i="${i}"${tagAttr_(f.field)}>
         ${chipKeyIn_(key, show) ? '' : `<span class="chip-k">${esc(key)}</span>`}
         ${/* A SKIP IS A CHIP LIKE ANY OTHER, with the same ✕, because it is a decision somebody
              made and has to be able to unmake. A question silently dropped with nothing on screen
@@ -12267,7 +12144,7 @@ function filterChips() {
           thing a control must never do. It is a chip like the others now, with the same ✕ the chips
           carry, so the row is a row of things you can press. */''}
     ${STUFF.filters.length > 1
-      ? '<button class="chip is-clear" data-do="filter-clear">'
+      ? '<button class="chip sm is-clear" data-do="filter-clear">'
         + '<span class="chip-k">clear</span><span class="chip-x">✕</span></button>' : ''}
   </div>`;
 }
@@ -13428,7 +13305,7 @@ function stuffQuestion() {
      the block it names in style.css. A bare `.row.tap` here would have been the third conviction of
      the tap-target rule this repo already records twice. `is-skip` takes the fill back off, so it
      reads as the quiet way out of the question rather than a sixth answer. */
-  const skip = `<div class="row tap counted is-skip" data-do="facet-skip"
+  const skip = `<div class="counted row tap is-skip" data-do="facet-skip"
         data-field="${esc(facet.field)}">
         <span class="k">Doesn't matter</span>
       </div>`;
@@ -13454,7 +13331,7 @@ function stuffQuestion() {
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of
      that name in style.css. One wrapper round the answers AND the way out, so "Doesn't matter" wraps
      onto the end of the last line like any other chip instead of sitting alone underneath. */
-  return '<div class="answers">' + values.map(v => `<div class="row tap counted" data-do="facet-pick"${tagAttr_(facet.field)}
+  return '<div class="answers">' + values.map(v => `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)}
         data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
       </div>`).join('') + skip + '</div>';
