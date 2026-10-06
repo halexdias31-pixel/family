@@ -9468,35 +9468,42 @@ check('multipart: a figure the words name and nobody drew is a "not drawn yet" p
 });
 
 /* THE OWNER: *"they have their own tag. i could in theory just click answers and only see answers."*
-   Tapping an answer page's kind tag narrows Find to answer pages, each still shut behind its Show. The
-   tag row is built elsewhere and may not carry the kind yet, so the tag is put on the page the way the
-   row will draw it -- a `.qtag` reading "Answer" -- and tapped. */
-check('multipart: tapping an answer page\'s Answer tag shows only answer pages, each still hidden', async () => {
+   THE DOOR IS THE REAL ANSWER PAGE'S OWN TILE, found on the card as `questionAnsCard_` draws it -- and
+   if the card has none, this FAILS. It used to put an "Answer" tag on the page itself before tapping it,
+   and so passed over a door nobody could see (the review of the merge). Pressed, it shows only answer
+   pages, in order, OPEN -- choosing the view is asking for them -- with Hide still hiding one, and the
+   same tile reading `Questions too` takes the view off. From Saved, it is that paper's answers. */
+check('multipart: an answer page\'s "Answers only" tile shows only answer pages, open, and "Questions too" takes it off', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
   const bad = [];
-  const need = ['questionAnsCard_', 'stuffPages_', 'nextFacet', 'facetList'].filter(n => typeof w[n] !== 'function');
+  const need = ['questionAnsCard_', 'stuffPages_', 'nextFacet', 'facetList', 'stuffPart_'].filter(n => typeof w[n] !== 'function');
   if (need.length) return [need.join(', ') + ' not reachable — the answers-only view was NOT checked'];
+  const A = w.__t.ACTIONS;
+  if (!A['qa-only'] || !A['qa-all']) return ['qa-only or qa-all has no handler — the answers-only door goes nowhere'];
   const lib = mpLibrary_(w, mpBank_());
   const S = w.__t.STUFF();
+  const card = (x, where) => {
+    const scr = d.getElementById(where || 's-stuff');
+    const host = d.createElement('div');
+    host.className = 'page';
+    host.innerHTML = w.questionAnsCard_(x);
+    scr.appendChild(host);
+    return host;
+  };
   try {
     S.q = ''; S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
     const a = lib.items.find(x => x.name === 'Q8(i)');
-    const host = d.createElement('div');
-    host.innerHTML = w.questionAnsCard_(a);
-    let tag = host.querySelector('.qans-card .qtag[data-tag="kind"]') || [...host.querySelectorAll('.qans-card .qtag')].find(t => /^answers?$/i.test(t.textContent.trim()));
-    if (!tag) {
-      tag = d.createElement('span');
-      tag.className = 'qtag'; tag.setAttribute('data-tag', 'kind'); tag.textContent = 'Answer';
-      (host.querySelector('.qans-card .qcard-sub') || host.querySelector('.qans-card')).appendChild(tag);
-    }
-    d.body.appendChild(host);
-    tag.click();
+    const host = card(a);
+    const door = host.querySelector('.qans-card [data-do="qa-only"]');
+    if (!door) { host.remove(); return ['the answer page draws no "Answers only" tile -- nothing on the screen offers answers-only']; }
+    if (!door.classList.contains('tile')) bad.push('the answers-only door is not a tile -- every action on a question\'s pages is (CLAUDE.md)');
+    A['qa-only'](door);
     host.remove();
     const f = S.filters.filter(x => x.field === 'pageKind');
-    if (f.length !== 1 || f[0].value !== 'Answers') bad.push('tapping the Answer tag left the filters as ' + JSON.stringify(S.filters));
-    if (!S.filters.some(x => x.field === 'paperId')) bad.push('tapping the Answer tag threw away the paper already chosen');
+    if (f.length !== 1 || f[0].value !== 'Answers') bad.push('pressing "Answers only" left the filters as ' + JSON.stringify(S.filters));
+    if (!S.filters.some(x => x.field === 'paperId')) bad.push('pressing "Answers only" on Find threw away the paper already chosen');
     const pages = w.stuffPages_();
     const kinds = [...new Set(pages.map(pg => pg.part))];
     if (!pages.length || kinds.length !== 1 || kinds[0] !== 'ans') bad.push('the answers-only strip holds ' + JSON.stringify(kinds) + ', wanted answer pages and nothing else');
@@ -9506,13 +9513,110 @@ check('multipart: tapping an answer page\'s Answer tag shows only answer pages, 
       const h = d.createElement('div');
       h.innerHTML = w.stuffPart_(pg.x, 'ans');
       const c = h.querySelector('.qans-card');
-      if (!c || !c.classList.contains('is-hidden') || /50°|angles on a line/.test(h.textContent)) bad.push(pg.x.name + '\'s answer is open in the answers-only view -- each stays behind its own Show');
+      if (!c || c.classList.contains('is-hidden') || !/50°|angles on a line/.test(h.textContent)) bad.push(pg.x.name + '\'s answer is shut in the answers-only view -- "only see answers" is forty Shows in a row otherwise');
+      if (c && !c.querySelector('[data-do="qa-all"]')) bad.push(pg.x.name + '\'s answer page in the answers-only view has no "Questions too" tile to leave it');
     });
+    /* HIDE STILL HIDES ONE. */
+    if (A['qa-hide'] && pages[0]) {
+      const h = card(pages[0].x);
+      const hide = h.querySelector('[data-do="qa-hide"]');
+      if (!hide) bad.push('an open answer in the answers-only view has no Hide');
+      else {
+        A['qa-hide'](hide);
+        const again = d.createElement('div');
+        again.innerHTML = w.stuffPart_(pages[0].x, 'ans');
+        if (!again.querySelector('.qans-card.is-hidden')) bad.push('Hide did not hide an answer in the answers-only view');
+      }
+      h.remove();
+    }
+    /* "QUESTIONS TOO" TAKES IT OFF, and the paper stays. */
+    const back = card(a);
+    A['qa-all'](back.querySelector('[data-do="qa-all"]') || back);
+    back.remove();
+    if (S.filters.some(x => x.field === 'pageKind')) bad.push('"Questions too" left the Page filter on');
+    if (!S.filters.some(x => x.field === 'paperId')) bad.push('"Questions too" threw away the paper');
+    /* FROM SAVED: that paper's answers, whatever Find had. */
+    S.q = 'eighteen'; S.filters = [{ field: 'paperId', value: 'P-MP-V' }];
+    const sv = card(a, 's-saved');
+    const sdoor = sv.querySelector('[data-do="qa-only"]');
+    if (!sdoor) bad.push('the answer page on Saved draws no "Answers only" tile');
+    else {
+      A['qa-only'](sdoor);
+      const pid = (S.filters.find(x => x.field === 'paperId') || {}).value;
+      if (pid !== 'P-MP-W' || S.q) bad.push('"Answers only" pressed on Saved narrowed Find to ' + JSON.stringify(S.filters) + ' / "' + S.q + '", wanted that question\'s paper, P-MP-W, and no search');
+    }
+    sv.remove();
     /* AND IT IS NEVER ASKED: the funnel offers it to nobody. */
     if (!w.facetList().some(x => x.field === 'pageKind' && x.tagOnly)) bad.push('the Page filter is not a tag-only facet');
-    S.filters = [];
+    S.filters = []; S.q = '';
     const asked = w.nextFacet(w.stuffFiltered());
     if (asked && asked.field === 'pageKind') bad.push('the funnel asks "Page" as a question');
+  } finally { lib.put(); S.q = ''; S.filters = []; if (w.__t.go) { try { w.__t.go('stuff', false, true); } catch (e) {} } }
+  return bad;
+});
+
+/* THE REVIEW OF THE MERGE WITH THE PEN'S BRANCH, FINDINGS 1 AND 5: a part that USES an earlier part's
+   drawing ("use your graph") is neither "not drawn yet" -- the figure it names is the child's own --
+   nor offered that part's blank paper copy under Figure. A later part that does not use it still is. */
+check('multipart: a "use your graph" part has no "not drawn yet" page and no blank Figure of the part it uses', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionItems', 'pageParts_', 'figsBefore_', 'questionTiles_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — "use your graph" was NOT checked'];
+  const GRID = '<svg viewBox="0 0 10 10" class="mp-axes"><path d="M0 5h10M5 0v10"/></svg>';
+  const rows = mpBank_().concat([
+    mpRow_('P-MP-W', 'Whole', 24, 'a', { html: '<p>Complete the table.</p>' }),
+    mpRow_('P-MP-W', 'Whole', 24, 'b', { html: '<p>On the grid, draw the graph of y = 2x.</p>', answerType: 'annotate', figure: 'grid-blank', diagram: GRID }),
+    mpRow_('P-MP-W', 'Whole', 24, 'c', { html: '<p>Use your graph to find x when y = 3.</p>', uses: 'b' }),
+    mpRow_('P-MP-W', 'Whole', 24, 'd', { html: '<p>Read the value off the graph when x = 1.</p>' }),
+    /* AND ONE WHOSE GRAPH IS DRAWN ON A SURFACE, so nothing in the question is a printed figure. */
+    mpRow_('P-MP-W', 'Whole', 25, 'a', { html: '<p>Draw the line y = x.</p>', answerType: 'drawing', surface: 'coord' }),
+    mpRow_('P-MP-W', 'Whole', 25, 'b', { html: '<p>From the graph, find x when y = 3.</p>', uses: 'a' }),
+  ]);
+  const lib = mpLibrary_(w, rows);
+  const find = n => lib.items.find(x => x.row.paper === 'P-MP-W' && x.name === n);
+  try {
+    const c = find('Q24c'), dd = find('Q24d');
+    if (!c || !dd) return ['Q24c or Q24d did not reach the library'];
+    /* THE ITEM MAY NOT CARRY `uses` UNTIL THE PEN'S BRANCH LANDS; the row does, and both are read. */
+    const b25 = find('Q25b');
+    if (!b25 || w.pageParts_(b25).indexOf('nofig') >= 0) bad.push('Q25b "from the graph", which uses the axes Q25a was drawn on, is given a "The paper prints a figure here -- not drawn yet" page beside the page showing that drawing');
+    if (w.pageParts_(c).indexOf('nofig') >= 0) bad.push('Q24c "use your graph" is given a "not drawn yet" page -- the figure it names is the child\'s own graph on Q24b');
+    const labels = w.figsBefore_(c).map(f => f.html);
+    if (labels.some(h => /mp-axes/.test(h))) bad.push('Q24c\'s Figure opens Q24b\'s blank grid -- the picture it reads is the child\'s drawing, not the paper\'s empty copy');
+    const h = d.createElement('div');
+    h.innerHTML = w.questionTiles_(c);
+    if (h.querySelector('[data-do="q-fig"]')) bad.push('Q24c offers a Figure tile with nothing in front of it but the grid it uses');
+    /* A PART THAT DOES NOT SAY IT USES (b) STILL SEES (b)'s PICTURE -- the rule is the column, not the grid. */
+    if (!w.figsBefore_(dd).some(f => /mp-axes/.test(f.html))) bad.push('Q24d, which uses nothing, lost Q24b\'s figure too -- the skip reached past the part that names it');
+  } finally { lib.put(); }
+  return bad;
+});
+
+/* THE REVIEW, FINDING 6: the line above the strip counts what the strip holds -- questions, not the parts
+   that matched -- and names the question when a search found one inside a paper. */
+check('multipart: the line under a chosen paper counts questions, names a searched one, and counts answers in that view', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.paperEnd_ !== 'function' || typeof w.stuffFiltered !== 'function') return ['paperEnd_ or stuffFiltered not reachable — the count was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const say = (q, more) => {
+    S.q = q; S.filters = [{ field: 'paperId', value: 'P-MP-W' }].concat(more || []);
+    return String(w.paperEnd_(w.stuffFiltered())).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  };
+  try {
+    [['q8', [], /swipe up for Q8\./, '"q8" in the paper -- one question with two parts'],
+     ['reasonword', [], /swipe up for Q8\./, 'a word found in Q8(ii) alone -- the strip holds Q8 whole'],
+     ['', [], /Swipe up for its 6 questions\./, 'the whole paper -- Q1, Q8, Q14, Q18, Q20, Q21, each counted once however many parts'],
+     ['', [{ field: 'pageKind', value: 'Answers' }], /Swipe up for its 2 answers\./, 'the answers-only view'],
+    ].forEach(([q, more, want, what]) => {
+      const got = say(q, more);
+      if (!want.test(got)) bad.push(what + ': "' + got + '"');
+    });
   } finally { lib.put(); S.q = ''; S.filters = []; }
   return bad;
 });
