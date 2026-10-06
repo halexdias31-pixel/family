@@ -183,6 +183,11 @@ const TILE_ICONS = {
          + '<path d="M5.6 11.6c2.2 1.3 4.6 1.3 6.8 0"/>',
   spark: '<path d="M8 3c.5 3.3 2.2 5 5.5 5.5-3.3.5-5 2.2-5.5 5.5-.5-3.3-2.2-5-5.5-5.5 3.3-.5 5-2.2 5.5-5.5z"/>'
        + '<path d="M14.5 1.8v3.4M12.8 3.5h3.4"/>',
+  /* THE FIGURE IS A FRAMED PICTURE -- a hill and a sun in a frame, the mark every phone uses for "an
+     image" -- and not `photo`, the camera, which means "take one". It opens the question's figure over
+     the card (`q-fig` in find.js). */
+  figure: '<rect x="2" y="2.5" width="14" height="12" rx="1.5"/><path d="m2.5 13 4.5-5 3.5 3.5 2-2 3 3.2"/>'
+        + '<circle cx="12" cy="6" r="1.2"/>',
 };
 
 function tileIcon_(name) {
@@ -710,6 +715,7 @@ function cardActions_(x) {
      Check, Mark with AI, the pen's lock, its tools, Undo, Clear, Show and Hide — except the keypad's
      keys and the multiple-choice options, which are the answer being given rather than things done
      to it. See `padWrap_` and `choiceBox_` in find.js. */
+  /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART, `Figure` -- which opens it over the card. */
   if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
   /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. Collections are gone
      from the funnel (see the note where `collectionAxes_` used to be in find.js): a paper is an

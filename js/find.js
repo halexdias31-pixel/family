@@ -8601,12 +8601,68 @@ function ansWhere_(x, from) {
   return (between.length + 1) + ' pages on';
 }
 function questionTiles_(x, from) {
-  if (!questionHasAns_(x)) return '';
-  const where = ansWhere_(x, from);
-  if (!where) return '';
-  return tile_({ icon: 'next', label: 'To the answer', note: where, cls: 'qa-to',
-                 act: 'qa-go', data: from ? { k: ansKey_(x), from: from } : { k: ansKey_(x) } });
+  const where = questionHasAns_(x) ? ansWhere_(x, from) : '';
+  const fig = from ? '' : figTile_(x);
+  return fig + (where ? tile_({ icon: 'next', label: 'To the answer', note: where, cls: 'qa-to',
+                 act: 'qa-go', data: from ? { k: ansKey_(x), from: from } : { k: ansKey_(x) } }) : '');
 }
+
+/* ==================================================================================================
+   THE FIGURE, OVER THE CARD, ONE TAP AWAY.
+
+   THE MULTI-PART AUDIT, FINDING 2: the question's diagram comes once, in front of part (a), and every
+   later part is further from it -- 1F Q23b is three swipes from its Venn, past (a) and (a)'s answer,
+   and twelve questions have a part nine or more pages after its picture. Swiping back loses the box
+   you were writing in. Copying the figure onto every part was tried before and refused (it is the
+   duplication `pageParts_`'s stems exist to end).
+
+   SO THE CARD OFFERS IT: a `Figure` tile, a tile like every action on a question's pages (CLAUDE.md),
+   that opens the figure in the app's own sheet over the card -- the box, the keypad and whatever is
+   typed stay exactly where they are underneath, and closing the sheet is closing the sheet. ON ANY
+   PART WHOSE QUESTION HAS A FIGURE IN FRONT OF IT: the opening's (`stems`), an earlier part's own
+   (2H Q14b's graph lives on Q14a), or its own where it stands in front of the card. All of them, in
+   the paper's order, because which one a part means is in its words and not in the data -- and a
+   question almost always has one. A drawing surface is not a figure (it is somewhere to answer, and
+   it is the part's own page); nor is a pen's copy -- the sheet shows the paper's picture, not marks.
+
+   The earlier parts are the funnel's own items (`questionParts_`), so Saved, a search and a paper all
+   see the same figures. */
+function figsBefore_(x) {
+  if (!x || x.kind !== 'question') return [];
+  const out = [];
+  const pic = (p, label) => {
+    const html = (p.diagram ? `<figure>${p.diagram}${figCredit_(p)}</figure>` : '') + pics_(figImgs_(p.images));
+    if (html) out.push({ label: label, html: html });
+  };
+  (x.stems || []).forEach(p => { if (stemHasFig_(p)) pic(p, figLabel_(p.html)); });
+  const k = qId_(x);
+  const sib = k ? ((questionParts_()[k]) || []) : [];
+  const at = sib.indexOf(x);
+  const own = p => !!(p.diagram || figImgs_(p.images).length);
+  sib.slice(0, at < 0 ? 0 : at).forEach(p => {
+    if (own(p)) pic(p, figLabel_(String(p.lead || '') + ' ' + String(p.html || '')));
+  });
+  const plan = partPlan_(x);
+  if (own(x) && plan.figAt >= 0 && plan.figAt < plan.chunks.length) pic(x, figLabel_(String(x.lead || '') + ' ' + String(x.html || '')));
+  return out;
+}
+function figTile_(x) {
+  const figs = figsBefore_(x);
+  if (!figs.length) return '';
+  const one = figs.length === 1;
+  return tile_({ icon: 'figure', label: one ? figs[0].label : 'Figures', note: 'over this page', cls: 'q-figt',
+                 act: 'q-fig', data: { key: x.key || '' } });
+}
+on('q-fig', el => {
+  const k = el.getAttribute('data-key');
+  let x = null;
+  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
+  const figs = figsBefore_(x);
+  if (!figs.length) return;
+  /* EACH NAMED WHEN THERE IS MORE THAN ONE, in the words its own page's header uses (`figLabel_`). */
+  openSheet(figs.length === 1 ? figs[0].label : 'Figures', `<div class="qfig-sheet">${figs.map(f =>
+    `${figs.length > 1 ? `<p class="qfig-sheet-k">${esc(f.label)}</p>` : ''}<div class="qsheet">${f.html}</div>`).join('')}</div>`);
+});
 
 /* ---------- AND TURNING TO IT --------------------------------------------------------------------
    FORWARD BY THE ANSWER'S PLACE AMONG ITS QUESTION'S PAGES -- one, or two past a figure -- from the

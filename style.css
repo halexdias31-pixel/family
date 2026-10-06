@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-06-qtools";
+  --css-version: "2026-10-06-mpnav";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -13101,6 +13101,13 @@ button.scr-sq { cursor: pointer; }
    the answer arrives under the row rather than pushing the row down. `.qans-wait` (the block that held
    the sentence over a tile under it) went with that order. */
 .qans-tiles { margin-top: .9rem; }
+/* THE DRAWING PAGE'S WAY ON TO THE ANSWER sits under the grid as the answer page's sits under its
+   header -- one tile, the row's own spacing. See `questionFigCard_`. */
+.qfig-tiles { margin-top: .9rem; }
+/* THE FIGURE OVER THE CARD (`q-fig`): each figure named in the words its own page's header uses when
+   the sheet holds more than one, small and quiet above it -- a caption, not a heading. */
+.qfig-sheet-k { margin: .9rem 0 0; font-size: .85rem; color: var(--dim); }
+.qfig-sheet-k:first-child { margin-top: 0; }
 .qans-wait-k { margin-left: .5rem; font: 500 .8rem/1.45 var(--font); color: var(--dim); }
 
 /* ---------- A DIAGRAM YOU CAN WRITE ON -----------------------------------------------------------

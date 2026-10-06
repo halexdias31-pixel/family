@@ -9217,6 +9217,8 @@ const mpBank_ = () => [
   mpRow_('P-MP-W', 'Whole', 1, 'd(i)', { html: '<p>One d i.</p>' }),
   mpRow_('P-MP-W', 'Whole', 1, 'd(ii)', { html: '<p>One d ii.</p>' }),
   mpRow_('P-MP-V', 'Other', 8, '', { html: '<p>Another paper\'s eight.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 14, 'a', { html: '<p>The graph shows a journey. Work out the speed.</p>', diagram: '<svg viewBox="0 0 10 10" class="mp-graph"><path d="M0 10 10 0"/></svg>' }),
+  mpRow_('P-MP-W', 'Whole', 14, 'b', { html: '<p>Work out an estimate for the distance.</p>' }),
 ];
 
 /* FINDING 1: a search hit on one part brings the whole question, in order, and lands on the part. */
@@ -9352,6 +9354,51 @@ check('multipart: "To the answer" says where the answer is, and the drawing page
     finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; strip.remove(); }
     if (!went || went[1] !== 2) bad.push('the grid page\'s tile turned to ' + JSON.stringify(went) + ', wanted page 2 -- the answer is the page after the grid');
   }
+  return bad;
+});
+
+/* FINDING 2: a Figure tile on a part whose question has a figure in front of it, opening that figure
+   over the card -- and the card, its box and what is typed in it, untouched underneath. */
+check('multipart: a part with a figure behind it has a Figure tile that opens it over the card', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionTiles_', 'stuffCard', 'questionItems'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the Figure tile was NOT checked'];
+  if (!w.__t.ACTIONS['q-fig']) return ['q-fig has no handler — nothing can open a figure over the card'];
+  const lib = mpLibrary_(w, mpBank_());
+  const find = name => lib.items.find(x => x.row.paper === 'P-MP-W' && x.name === name);
+  const tileOf = x => { const h = d.createElement('div'); h.innerHTML = w.questionTiles_(x); return h.querySelector('[data-do="q-fig"]'); };
+  try {
+    [['Q8(ii)', 'the opening\'s figure, two parts back'], ['Q8(i)', 'the opening\'s figure, one page back'],
+     ['Q14b', 'Q14a\'s own graph, a part back'], ['Q14a', 'its own graph, the page before its card']].forEach(([n, what]) => {
+      if (!find(n)) bad.push(n + ' is not in the library');
+      else if (!tileOf(find(n))) bad.push(n + ' has no Figure tile, though ' + what + ' stands in front of it');
+    });
+    ['Q18', 'Q1c'].forEach(n => { if (find(n) && tileOf(find(n))) bad.push(n + ' offers a Figure tile with no figure in front of its card'); });
+    /* OPENED, OVER A CARD WITH SOMETHING TYPED IN IT. */
+    const x = find('Q14b');
+    const page = d.createElement('section');
+    page.className = 'page';
+    page.innerHTML = '<div class="pane">' + w.stuffCard(x, 0) + '</div>';
+    d.body.appendChild(page);
+    const box = page.querySelector('.qp-ans input, .qp-ans textarea');
+    if (!box) bad.push('the card drew no answer box to type in, so "untouched underneath" was NOT checked');
+    else box.value = '42 km';
+    const t = page.querySelector('[data-do="q-fig"]');
+    if (!t) bad.push('the card as drawn on Find carries no Figure tile');
+    else {
+      w.__t.ACTIONS['q-fig'](t);
+      const sheet = d.getElementById('sheet');
+      if (!sheet || sheet.classList.contains('hidden')) bad.push('pressing Figure opened nothing');
+      else if (!sheet.querySelector('svg.mp-graph')) bad.push('the sheet opened without Q14a\'s graph: ' + sheet.textContent.trim().slice(0, 60));
+      if (!d.body.contains(page) || (box && box.value !== '42 km')) bad.push('opening the figure disturbed the card underneath or what was typed in it');
+      if (typeof w.closeSheet === 'function') w.closeSheet();
+      if (sheet && !sheet.classList.contains('hidden')) bad.push('the figure sheet does not close');
+    }
+    page.remove();
+  } finally { lib.put(); }
   return bad;
 });
 
