@@ -6355,6 +6355,18 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
   if (JSON.stringify(labels) !== JSON.stringify(['Maths · Paper 1 (Calculator) — June 2024 · Q8', 'Biology Paper 2 — June 2023 · Q8'])) {
     bad.push('a Check on a library card sent the labels ' + JSON.stringify(labels) + ' — wanted "Maths · Paper 1 (Calculator) — June 2024 · Q8" and "Biology Paper 2 — June 2023 · Q8", the name a parent reads in the weekly email');
   }
+  /* A PRACTICAL'S WORKSHEET BOX is the card's key with a slot on the end (`guideBox_`), and it was
+     looked up whole, so it found no card and went up nameless — three raw keys in a parent's email
+     for one worksheet. The slot comes off for the lookup and the name says it was the worksheet. */
+  const pr = { kind: 'practical', name: 'Specific heat capacity', key: 'pr:PR-T1', subject: 'Physics', sub: 'AQA required practical' };
+  const n4 = marks().length;
+  w.stuffItemsAll_ = () => [qa, pr];
+  try { w.doneMark_('ans:' + w.whoIs_() + ':pr:PR-T1#iv'); } finally { w.stuffItemsAll_ = heldItems; }
+  await wait(30);
+  const prSent = (((marks().slice(n4)[0] || {}).items) || [])[0] || {};
+  if (prSent.key !== 'pr:PR-T1#iv' || prSent.label !== 'Physics · AQA required practical · Specific heat capacity · Worksheet') {
+    bad.push('a practical’s worksheet box sent ' + JSON.stringify(prSent) + ' — wanted key pr:PR-T1#iv with the label "Physics · AQA required practical · Specific heat capacity · Worksheet"');
+  }
 
   /* A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
   w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
@@ -6395,7 +6407,7 @@ check('the weekly parent email card is an admin\'s, says the switch, and Preview
   const preview = { success: true, mode: 'preview', hour: 18, scheduled: 0,
     week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
     emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s week: 2 questions',
-               text: 'Hello Pat,\n\nThis week (28 Sep – 4 Oct) Ada did 2 questions.\n\nThe questions\n- <b>Maths</b> · Q1\n- q:Q-2',
+               text: 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 2 questions.\n\nThe questions\n- <b>Maths</b> · Q1\n- q:Q-2',
                html: '<p>Hello Pat,</p>', count: 2 }],
     unreachable: [{ id: 'P-S3', name: 'Cal Alone', count: 1, why: 'no parent has accepted a link to them' }] };
   const p = payload();

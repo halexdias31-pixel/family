@@ -1921,9 +1921,9 @@ const STATES = {
         const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.digest'));
         if (at < 0) throw new Error('no weekly parent email card on the settings column');
         goPage('settings', at, true);
-        const body = 'Hello Pat,\n\nThis week (28 Sep – 4 Oct) Ada did 3 questions — 2 new and 1 done again.\n\n'
+        const body = 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 3 questions — 2 new and 1 gone back to.\n\n'
           + 'New this week\n- Maths · Paper 1 (Calculator) — June 2024 · Q1\n- Maths · Paper 31: Statistics — June 2022 · Q4b\n\n'
-          + 'Done again\n- q:Q-9MA031-2206-1\n\nSee them on the site: https://halexdias31-pixel.github.io/family/\n\n'
+          + 'Gone back to\n- q:Q-9MA031-2206-1\n\nAda can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
           + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.';
         openSheet('Weekly parent email', digestSheet_({ success: true, mode: 'preview', hour: 18, scheduled: 0,
           week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },

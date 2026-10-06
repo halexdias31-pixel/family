@@ -2007,6 +2007,12 @@ const DIGEST_MODES = ['off', 'preview', 'send'];
 const DIGEST_TZ = 'Europe/London';
 const DIGEST_RUN = 'weeklyDigestRun';
 const DIGEST_LIST_MAX = 30;
+/* THE SHAPE OF A LIBRARY KEY, the only kind of key the email prints when a question has no name:
+   `q:Q-9MA031-2206-1`, `q:Q-1GK0-2011-1H-6b(i)`, `pr:PR-PH01`. A short prefix, a colon, and letters,
+   digits, dashes, underscores and brackets — no space, no full stop, no `@`, so a "key" that is a
+   sentence or an address (`markDone` takes any 120 characters) is counted and not printed. Measured
+   against every row_id in data/questions.json. The slot after a `#` is gone before this is asked. */
+const DIGEST_KEY_SHAPE = /^[a-z]{1,4}:[A-Za-z0-9][A-Za-z0-9()_-]{0,100}$/;
 
 /* ---------- WHAT THE BUSINESS IS CALLED, ON THE SERVER --------------------------------------------
    `brandName()` READ THE `brand` TAB AND THAT TAB IS `data/settings/brand.json` NOW, which the

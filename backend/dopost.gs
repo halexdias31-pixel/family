@@ -4066,6 +4066,7 @@ function loginReplyFor_(r, token) {
 function attemptsUpsert_(pid, items) {
   const t = read(TAB.attempts);
   if (!t.sheet) return { error: 'The sheet has no attempts tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
+  const hasLabel = t.headers.indexOf('label') !== -1;
   const today = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
   const tomorrow = Utilities.formatDate(new Date(Date.now() + 864e5), 'Europe/London', 'yyyy-MM-dd');
   const out = {};
@@ -4075,10 +4076,16 @@ function attemptsUpsert_(pid, items) {
     if (!q || q.length > 120) return;
     let day = S(it && it.day);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > tomorrow || day < '2024-01-01') day = today;
-    const label = attemptLabel_(it && it.label);
+    /* NO `label` KEY AT ALL WHEN THERE IS NOTHING TO PUT IN IT, OR NOWHERE TO PUT IT. `addRow` reports
+       every key the tab has no column for, and `jsonOut` turns that into "Nothing was saved for:
+       attempts.label" — so on a live tab from before the column (a sync with the version stamps
+       unmoved, `autoMigrate` not yet run) every `markDone` came back an error, labelled or not, while
+       the rows were in fact written. The name is the weekly email's nicety; the day is the record. */
+    const label = hasLabel ? attemptLabel_(it && it.label) : '';
     const row = t.rows.find(r => key(r.person_id) === key(pid) && S(r.question_key) === q);
     if (!row) {
-      addRow(t, { person_id: pid, question_key: q, first_done: day, last_done: day, times: 1, label: label });
+      addRow(t, Object.assign({ person_id: pid, question_key: q, first_done: day, last_done: day, times: 1 },
+                              label ? { label: label } : {}));
       out[q] = { first: day, last: day, times: 1 };
       return;
     }

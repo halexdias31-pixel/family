@@ -50,7 +50,7 @@ function digestCard_() {
   return `<div class="card digest">
     <h3 class="digest-mode">Weekly parent email: <b>${esc(digestWord_(mode))}</b></h3>
     <p class="sub">On Sundays, each parent who has accepted a link to a child gets the questions that
-      child did that week.</p>
+      child worked on that week.</p>
     <p class="faint"><span class="digest-why">${esc(DIGEST_SAY[mode])}</span> Switched on the config
       tab (<code>weekly_digest</code>); Sundays are booked from the Apps Script editor.</p>
     <div class="tile-row">${tile_({ icon: 'show', label: 'Preview', note: 'this week', act: 'digest-preview' })}</div>

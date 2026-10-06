@@ -53,9 +53,20 @@ const iso = d => new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())).
 const RealDate = Date;
 function world(opts) {
   opts = opts || {};
-  const mail = { sent: [], quota: opts.quota == null ? 100 : opts.quota, fail: false };
+  const mail = { sent: [], quota: opts.quota == null ? 100 : opts.quota, fail: false, unreceipted: [], locked: [] };
+  /* THE RECEIPT IS ASKED FOR AT THE MOMENT OF SENDING. At-most-once is "the log says `sending` before
+     the email goes", and a check that only read the log afterwards could not tell that order from the
+     reverse — sending first and writing `sent` after passed it. So the stub looks at the log itself:
+     a row for this address, this week, saying `sending`, or the send is recorded as unreceipted. And
+     the lock: an email sent while the run holds it is the whole mailing holding up the site. */
+  let tabsRef = null;
   const MailApp = {
     sendEmail(m) {
+      if (lock.held) mail.locked.push(m && m.to);
+      const g = tabsRef && tabsRef.digest_log, h = g && g[0];
+      const ok = g && g.slice(1).some(r => String(r[h.indexOf('to')]) === String(m && m.to)
+        && String(r[h.indexOf('status')]) === 'sending' && /^'?\d{4}-\d{2}-\d{2}$/.test(String(r[h.indexOf('week_of')])));
+      if (!ok) mail.unreceipted.push(m && m.to);
       if (mail.fail) throw new Error('Invalid email: ' + (m && m.to));
       if (mail.quota <= 0) throw new Error('Service invoked too many times for one day: email.');
       mail.quota--; mail.sent.push(m);
@@ -83,9 +94,11 @@ function world(opts) {
       return { timeBased: () => clock, forSpreadsheet: () => ({ onChange: () => ({ create: make }) }) };
     },
   };
-  const lock = { free: true };
-  const LockService = { getScriptLock: () => ({ tryLock: () => lock.free, waitLock: () => lock.free, releaseLock: () => {} }) };
+  const lock = { free: true, held: false };
+  const take = () => { if (!lock.free) return false; lock.held = true; return true; };
+  const LockService = { getScriptLock: () => ({ tryLock: take, waitLock: take, releaseLock: () => { lock.held = false; } }) };
   const b = backend({ MailApp, ScriptApp, LockService });
+  tabsRef = b.tabs;
   const G = b.ev('globalThis');
   const fmt0 = G.Utilities.formatDate;
   G.Utilities.formatDate = (d, tz, f) => (f === 'yyyy-MM-dd' ? dayIn(d, tz) : fmt0(d, tz, f));
@@ -239,10 +252,14 @@ function seeded(opts) {
   if (!pat) bad.push('Pat is not sent Ada’s week');
   else {
     if (pat.subject !== 'Ada’s week: 3 questions') bad.push('Pat’s subject is "' + pat.subject + '"');
-    ['Hello Pat,', '28 Sep – 4 Oct', 'Maths · Paper 1 (Calculator) — June 2024 · Q1', 'q:ADA-AGAIN', 'New this week', 'Done again',
-     'https://halexdias31-pixel.github.io/family/', 'To stop these emails'].forEach(s => {
+    ['Hello Pat,', '28 Sep – 4 Oct', 'Maths · Paper 1 (Calculator) — June 2024 · Q1', 'q:ADA-AGAIN', 'New this week', 'Gone back to',
+     'https://halexdias31-pixel.github.io/family/', 'To stop these emails',
+     /* WORDED FOR WHAT THE SHEET KNOWS: a first keystroke is "worked on", not "did"; the run is at 18:00 so
+        the week is "up to 6pm"; and it is the child, not the parent, who can see them on the site. */
+     'Ada worked on 3 questions', '28 Sep – 4 Oct, up to 6pm on Sunday', 'Ada can see them on the site'].forEach(s => {
       if (pat.text.indexOf(s) === -1) bad.push('Pat’s email does not say "' + s + '"');
     });
+    if (/\bdid \d/.test(pat.text) || /See them on the site/.test(pat.text)) bad.push('Pat’s email still says the child "did" N questions, or tells the parent to see them — ' + pat.text.split('\n')[2]);
     if (pat.html.indexOf('Fractions &amp; decimals') === -1) bad.push('the HTML body does not escape a label’s "&"');
     if (/<script|Fractions & decimals/.test(pat.html)) bad.push('the HTML body carries a label unescaped');
   }
@@ -269,6 +286,77 @@ function seeded(opts) {
   if (row('q:L3').label !== 'Late name') bad.push('the next day’s send did not fill a blank label: "' + row('q:L3').label + '"');
   done([{ key: 'q:L3', day: '2026-10-01', label: 'A different name' }]);
   if (row('q:L3').label !== 'Late name') bad.push('a label already on the row was overwritten with "' + row('q:L3').label + '"');
+}
+
+{
+  /* A LIVE TAB FROM BEFORE THE `label` COLUMN — synced, the version stamps unmoved, so `autoMigrate`
+     has not added it. `addRow` reports every key with no column and `jsonOut` makes that an error, so
+     every `markDone` came back "Nothing was saved for: attempts.label", labelled or not, with the row
+     in fact written. The name is a nicety; the day must still save, and say it did. */
+  const { b } = world();
+  b.tabs.attempts[0] = b.tabs.attempts[0].filter(c => c !== 'label');
+  b.seed('people', [{ person_id: 'P-S1', first_name: 'Ada', last_name: 'Pupil', handle: 'adapupil', email: 's1@example.org',
+                       role: 'student', pin: '0000', verified: 'TRUE' }]);
+  const tok = b.post({ action: 'verifyLogin', email: 's1@example.org', pin: '0000' }).token;
+  [[{ key: 'q:N1', day: '2026-09-29', label: 'Maths · Q1' }], [{ key: 'q:N2', day: '2026-09-29' }],
+   [{ key: 'q:N2', day: '2026-09-30', label: 'Maths · Q2' }]].forEach(items => {
+    asked++;
+    const d = b.post({ action: 'markDone', token: tok, items: items });
+    if (!d.success || d.error) bad.push('with no label column, markDone ' + JSON.stringify(items) + ' answered ' + JSON.stringify(d).slice(0, 200) + ' — the day was written and must be reported saved');
+  });
+}
+
+/* ---------- 3b. WHO MAY NOT BE TOLD, AND WHAT MAY NOT BE PRINTED ------------------------------------------ */
+{
+  const { b } = seeded();
+  /* AN ADDRESS NOBODY CONFIRMED. Quin signed up with a typo (verified=PENDING) and an admin linked him
+     to Ada, which writes `accepted` at once: a stranger's inbox, every Sunday. */
+  b.seed('people', [{ person_id: 'P-C8', first_name: 'Quin', last_name: 'Typo', handle: 'quintypo', email: 'quin.tpyo@example.org',
+                      role: 'client', pin: '0000', verified: 'PENDING' }]);
+  b.seed('family', [{ link_id: 'L9', parent_id: 'P-C8', child_id: 'P-S1', child_typed: '', state: 'accepted' }]);
+  /* ONE PRACTICAL'S WORKSHEET, THREE BOXES (`guideBox_`): one question, by its name. */
+  const A = (pid, q, label) => ({ person_id: pid, question_key: q, first_done: '2026-10-01', last_done: '2026-10-01', times: 1, label: label || '' });
+  b.seed('attempts', [
+    A('P-S2', 'pr:PR-PH01#iv', 'Physics · AQA required practical · Specific heat capacity · Worksheet'),
+    A('P-S2', 'pr:PR-PH01#dv', 'Physics · AQA required practical · Specific heat capacity · Worksheet'),
+    A('P-S2', 'pr:PR-PH01#cv'),
+    /* TEXT OFF A PHONE THAT WOULD READ AS THE BUSINESS SPEAKING: a label with a link, a key that is a
+       sentence with an address in it, and a label that is an email address. */
+    A('P-S2', 'q:BEN-2', 'NOTICE FROM @family.: fees overdue, pay today at https://pay-family.example/now'),
+    A('P-S2', 'Tutor says: no homework needed until half term, see www.example.net'),
+    A('P-S2', 'q:BEN-3', 'write to office.family@example.org'),
+  ]);
+  asked++;
+  const plan = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  if (plan.emails.some(m => m.to === 'quin.tpyo@example.org')) bad.push('a parent whose address was never confirmed (verified=PENDING) is emailed — a typo’d address is a stranger’s inbox');
+  const ada = plan.learners.find(x => x.id === 'P-S1') || {};
+  if (!(ada.skipped || []).some(p => p.id === 'P-C8' && /not confirmed/.test(p.why))) bad.push('the unconfirmed parent is not listed as skipped with the reason: ' + JSON.stringify(ada.skipped));
+  if (!(ada.to || []).some(p => p.id === 'P-C1')) bad.push('Pat, confirmed, is no longer told about Ada');
+  asked++;
+  const ben = plan.learners.find(x => x.id === 'P-S2') || {};
+  const prs = (ben.fresh || []).filter(q => /^pr:/.test(q.key));
+  if (prs.length !== 1 || prs[0].key !== 'pr:PR-PH01' || !/Specific heat capacity · Worksheet/.test(prs[0].label)) bad.push('a practical’s three worksheet boxes are ' + JSON.stringify(prs) + ' — wanted one question, pr:PR-PH01, by its name');
+  if (ben.count !== 5) bad.push('Ben’s count is ' + ben.count + ', wanted 5: his own, the practical once, and the three whose text came off his phone');
+  asked++;
+  const bo = plan.emails.find(m => m.to === 'bo@example.org');
+  if (!bo) bad.push('Bo is not sent Ben’s week');
+  else {
+    ['https://pay', 'NOTICE', 'Tutor says', 'www.example.net', 'office.family@', '#iv', '#dv', '#cv'].forEach(x => {
+      if (bo.text.indexOf(x) !== -1 || bo.html.indexOf(x) !== -1) bad.push('Bo’s email prints "' + x + '" — phone text that is a link, an address or a sentence must not go out under the business’s name');
+    });
+    /* A LABEL TURNED AWAY FALLS BACK TO THE KEY WHEN THE KEY IS THE LIBRARY'S SHAPE (q:BEN-2); the key
+       that is a sentence is not printed at all, and is the "1 more". */
+    if (!/Ben worked on 5 questions/.test(bo.text) || !/…and 1 more\./.test(bo.text) || !/- q:BEN-2\n/.test(bo.text)) bad.push('Bo’s email does not count what it does not print ("Ben worked on 5 questions", "- q:BEN-2", "…and 1 more."): ' + bo.text.split('\n').slice(2, 9).join(' / '));
+  }
+  /* AND THE CHILD'S OWN FIRST NAME, which goes in the subject and is a cell the child edits. */
+  asked++;
+  const g = b.tabs.people, h = g[0];
+  g.find((r, i) => i > 0 && r[h.indexOf('person_id')] === 'P-S2')[h.indexOf('first_name')] = 'Pay now at www.pay.example';
+  b.ev('clearCache()');
+  const plan2 = JSON.parse(JSON.stringify(b.ev('digestPlanNow_(digestWeekToSend_(new Date(' + at(SUN) + ')))')));
+  const bo2 = plan2.emails.find(m => m.to === 'bo@example.org') || {};
+  if (/pay\.example|Pay now/.test(String(bo2.subject) + bo2.text + bo2.html)) bad.push('a first name that is a link went out in the email: "' + bo2.subject + '"');
+  if (bo2.subject && !/^Your child’s week/.test(bo2.subject)) bad.push('a first name not fit to print did not fall back to "Your child": "' + bo2.subject + '"');
 }
 
 /* ---------- 4. OFF, PREVIEW, SEND, AND SEND AGAIN ----------------------------------------------------------- */
@@ -356,6 +444,8 @@ function seeded(opts) {
   mail.fail = false;
   run(b, SUN);
   if (mail.sent.length !== 2) bad.push('a failed row is not sent by the next run: ' + mail.sent.length + ' sent');
+  if (mail.unreceipted.length) bad.push('an email went with no `sending` row on the log for it at that moment: ' + mail.unreceipted.join(', ') + ' — the receipt must be written before the send, or a crash between them sends twice');
+  if (mail.locked.length) bad.push('an email was sent while the run held the script lock (' + mail.locked.join(', ') + ') — a mailing under the lock refuses the site’s own writes for a minute on Sunday evening');
   /* AND A ROW LEFT `sending` — a run killed between the receipt and the send — is NOT sent again. */
   const { b: b2, mail: mail2 } = seeded();
   cfgSet(b2, 'weekly_digest', 'send');
@@ -364,13 +454,49 @@ function seeded(opts) {
   if (mail2.sent.some(m => m.to === 'pat@example.org')) bad.push('a row left `sending` was sent again — at most once');
 }
 {
+  /* THE `sent` WRITE FAILS AFTER THE EMAIL WENT — a sheet timeout on the one cell. It was inside the
+     same `try` as the send, so the `catch` wrote `failed` over the receipt and the next run emailed the
+     parent again. It must leave `sending`, and a rerun must count that as sent. */
+  const { b, mail } = seeded();
+  cfgSet(b, 'weekly_digest', 'send');
+  asked++;
+  b.ev('(function () { const real = setCells; let once = true; setCells = function (t, row, v) {'
+     + ' if (once && v && v.status === "sent") { once = false; throw new Error("Service Spreadsheets timed out"); }'
+     + ' return real.apply(this, arguments); }; })()');
+  const r1 = run(b, SUN);
+  const r2 = run(b, '2026-10-05T08:00:00Z');
+  const twice = mail.sent.map(m => m.to).filter((t, i, a) => a.indexOf(t) !== i);
+  const log = rowsOf(b, 'digest_log').filter(r => r.parent_id).map(r => r.parent_id + ':' + r.status).sort().join(', ');
+  if (twice.length || mail.sent.length !== 2) bad.push('a `sent` write that failed after the email went led to ' + mail.sent.length + ' emails (twice to ' + twice.join(', ') + '); log ' + log + ' — at most once');
+  if (r1.failed) bad.push('a send that worked was counted failed because the next sheet write threw: ' + JSON.stringify(r1));
+  if (!/sending/.test(log)) bad.push('the email whose `sent` write failed is not left `sending` on the log: ' + log);
+}
+{
+  /* A RUN THAT DID NOT FINISH THROWS. Google throws a trigger's return value away and emails the owner
+     only on an exception, so a busy lock or a held email returned quietly was a run marked
+     "Completed" — and a held email nobody noticed by next Sunday is never sent. */
+  const thrown = (b, s) => { try { b.ev('clearCache(); weeklyDigestRun({})'); return ''; } catch (e) { return String(e && e.message || e); } };
+  const a = seeded(); cfgSet(a.b, 'weekly_digest', 'send'); a.lock.free = false; a.setClock(at(SUN));
+  asked++;
+  if (!/did not finish/.test(thrown(a.b))) bad.push('weeklyDigestRun with the lock held elsewhere did not throw — the trigger would read "Completed" and nobody be told');
+  const h = seeded({ quota: 11 }); cfgSet(h.b, 'weekly_digest', 'send'); h.setClock(at(SUN));
+  asked++;
+  const why = thrown(h.b);
+  if (!/held 1/.test(why)) bad.push('weeklyDigestRun that held an email for the quota did not throw saying so: "' + why + '"');
+  const ok = seeded(); cfgSet(ok.b, 'weekly_digest', 'send'); ok.setClock(at(SUN));
+  asked++;
+  if (thrown(ok.b)) bad.push('weeklyDigestRun threw on a run that sent everything: ' + thrown(ok.b));
+  const off = seeded(); off.setClock(at(SUN));
+  if (thrown(off.b)) bad.push('weeklyDigestRun threw with the switch off — off is a finished run');
+}
+{
   /* THE LOCK HELD ELSEWHERE: nothing sent, nothing written. */
   const { b, mail, lock } = seeded();
   cfgSet(b, 'weekly_digest', 'send');
   lock.free = false;
   asked++;
   const r = run(b, SUN);
-  if (mail.sent.length || rowsOf(b, 'digest_log').length || !r.error) bad.push('with the lock held by another run it sent ' + mail.sent.length + ' and wrote ' + rowsOf(b, 'digest_log').length + ' — wanted a refusal');
+  if (mail.sent.length || rowsOf(b, 'digest_log').length || !(r.error || r.busy)) bad.push('with the lock held by another run it sent ' + mail.sent.length + ' and wrote ' + rowsOf(b, 'digest_log').length + ' (' + JSON.stringify(r) + ') — wanted nothing, and the run counted busy');
 }
 {
   /* THE TRIGGER'S OWN ENTRY POINT, ON THE CLOCK: a Sunday run with no date handed in sends that week. */
@@ -420,11 +546,19 @@ function seeded(opts) {
   /* NOT ONE CALL, anywhere, to what books or runs it — its own declarations and the run's one caller aside. */
   const calls = (src, name) => [...src.matchAll(new RegExp('(^|[^\\w.])' + name + '\\s*\\(', 'g'))]
     .filter(m => !/function\s+$/.test(src.slice(Math.max(0, m.index - 10), m.index + m[1].length)));
+  /* AND NOT ONE BARE MENTION, which is a call waiting to happen: `sunday: installWeeklyDigest,` in
+     RUNNABLE calls nothing in the text and books the Sunday from `?run=sunday`. So every word-bounded
+     use counts, outside the function's own declaration and outside a string — a string naming the
+     handler is the rule below, and "run weeklyDigestRun again" in a message is an instruction to a
+     person. */
+  const unquote = t => t.replace(/'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g, "''");
+  const mentions = (src0, name) => { const src = unquote(src0); return [...src.matchAll(new RegExp('(^|[^\\w.$])' + name + '(?![\\w$])', 'g'))]
+    .filter(m => !/function\s+$/.test(src.slice(Math.max(0, m.index - 10), m.index + m[1].length))); };
   back.concat(front).forEach(([f, src]) => {
     ['installWeeklyDigest', 'weeklyDigestRun', 'removeWeeklyDigest'].forEach(n => {
-      const c = calls(src, n).length;
+      const c = Math.max(calls(src, n).length, mentions(src, n).length);
       const allowed = f === 'backend/digest.gs' && n === 'removeWeeklyDigest' ? 1 : 0;
-      if (c > allowed) bad.push(f + ' calls ' + n + '() — nothing may book or run the Sunday email but the owner, by hand');
+      if (c > allowed) bad.push(f + ' names ' + n + ' outside its declaration — nothing may book or run the Sunday email but the owner, by hand');
     });
     if (f !== 'backend/digest.gs' && calls(src, 'digestRun_').length) bad.push(f + ' calls digestRun_() — only the trigger’s weeklyDigestRun may');
     if (f !== 'backend/digest.gs' && /DIGEST_RUN|['"]weeklyDigestRun['"]/.test(src) && f !== 'backend/constants.gs') bad.push(f + ' names the Sunday handler — a second place that could book it');
@@ -437,6 +571,9 @@ function seeded(opts) {
   const rn = b => b.ev('Object.keys(typeof RUNNABLE === "object" ? RUNNABLE : {}).join(",")');
   const { b } = world();
   if (/digest|Digest/.test(rn(b))) bad.push('RUNNABLE names a digest function — `?run=` would be a way to start it from a URL');
+  /* ITS VALUES TOO: a key called `sunday` holding installWeeklyDigest is the same door with another name. */
+  if (b.ev('Object.values(typeof RUNNABLE === "object" ? RUNNABLE : {}).some(f => f === installWeeklyDigest || f === weeklyDigestRun || f === digestRun_ || /igest/.test(String(f && f.name)))'))
+    bad.push('a RUNNABLE entry is a digest function under another name — `?run=` would start it from a URL');
   const def = b.ev('(CONFIG_DEFAULTS.find(r => r[0] === "weekly_digest") || [])[1]');
   if (def !== 'off') bad.push('weekly_digest arrives as "' + def + '" on the config tab — it must arrive off');
   if (b.ev('digestMode_(config())') !== 'off') bad.push('an empty config tab is not off');
