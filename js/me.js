@@ -998,7 +998,7 @@ const friendHandles = () =>
 function friendsSheet() {
   openSheet('Add a friend', `
     <label class="field"><span>their handle</span>
-      <input id="fr-add" placeholder="e.g. LuccaD" autocomplete="off"></label>
+      <input id="fr-add" placeholder="e.g. ada_kind42" autocomplete="off"></label>
     <button class="btn" data-do="friend-add">Add</button>
     <p class="faint" id="fr-said" style="margin:.6rem 0 0">
       Exactly as they have it. A search that guesses adds the wrong person, and the wrong person is

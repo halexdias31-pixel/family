@@ -1973,31 +1973,30 @@ const LISTED_PENDING = 'PENDING';
    The rest of the estate is not here because I could not verify it, and a guessed postcode puts a
    venue in the Thames — which looks like a venue rather than a mistake. Add them to the sheet and
    the geocoder picks them up. */
-/* ---------- WHO BELONGS TO WHOM, WHERE IT IS ALREADY KNOWN --------------------------------------
-   THE FAMILY TAB IS EMPTY, and so is every `children` cell on the people tab. Danile, Rasa and
-   Phoebe each have children on this system and nothing anywhere connects them — so a booking could
-   not say who it was for, the calendar could not show a child's exam to their own parent, and
-   `siblingsOf` returned nothing for everybody.
+/* ---------- `KNOWN_FAMILIES` WAS HERE, AND IT WAS REAL CHILDREN'S NAMES IN A PUBLIC REPOSITORY ----
+   A hand-written map of three real parents to their real children, each written out by first and
+   last name, in a file anybody can read. `seedFamilies` (people.gs) wrote it into the `family` tab
+   as ACCEPTED links, once, as the `seed-the-families` migration.
 
-   The proper mechanism is `claimChild`: a parent asks and the CHILD accepts, and nothing is true
-   until both have said so. That is right, and it is right for a stranger. It will not fill this
-   tab any time soon — several of these children have no email address, so the invitation they
-   would have to accept cannot reach them.
+   WHY IT EXISTED. The family tab was empty and every `children` cell on the people tab was blank,
+   so a booking could not say which child it was for, a parent could not see their own child's exam
+   on the calendar, and `siblingsOf` returned nothing for everybody. `claimChild` — a parent asks,
+   the CHILD accepts — could not fill it, because several of those children had no email address
+   for the invitation to reach. A surname rule was rejected too: one family's mother carries a
+   different surname from her children, so it would have missed them entirely.
 
-   YOU KNOW THESE FAMILIES. Written down here, by hand, from the people tab: a surname rule would
-   catch Poliksa and Wickes and miss the Marcondes children entirely, because their mother's row
-   says Cristina. An explicit list is longer and cannot be wrong in a way nobody notices.
+   WHY IT COULD GO WITHOUT CHANGING ANYTHING FOR ANYBODY. Nothing ever read the map at request
+   time — only the seeder did, and the seeder has run: the live `family` tab holds accepted rows
+   for all three families, and every reader (`acceptedLinks`, `childrenOf`, `siblingsOf`,
+   `acceptedParents`) reads that tab — `childNamesOf` falls back to the people tab's own `children`
+   cell, never to this file. And the job the map did by hand has an action of its own now: an
+   admin's `linkChild` writes the same accepted row from the app, a parent's `makeChild` writes it
+   for a child with no email, and `claimChild` covers the rest.
 
-   The seeder below writes them as ACCEPTED, which is the admin saying so rather than the parent
-   claiming. That is a different act from a stranger claiming a child, and for a business where you
-   know every family personally it is the honest one. Names are matched the way this whole file
-   matches names — ignoring case and punctuation — so "JPMarcondes" and "JP Marcondes" are one
-   person. A name that matches nobody is reported rather than skipped. */
-const KNOWN_FAMILIES = {
-  'Danile Cristina': ['LuccaMarcondes', 'TheoMarcondes', 'JPMarcondes'],
-  'RasaPoliksa':     ['JokubasPoliksa'],
-  'PhoebeWickes':    ['AugieWickes', 'MabelWickes'],
-};
+   THE RULE IT BROKE, so it does not come back: NO LEARNER'S NAME IN THIS REPOSITORY. A family is a
+   row in the Ledger, which is private; a fact about a real person is never a constant here. The
+   repository's history still holds the old lines — this removes them from the current files, and
+   that is all a commit can do. */
 
 const KNOWN_POSTCODES = {
   'Colliers Wood Library': 'SW19 2HR',
@@ -2683,9 +2682,8 @@ const RUNNABLE = {
   regeocode:         () => geocodeVenues(true),
   rename:            a => renameValue(a),
   seedOptions:       () => seedOptions(),
-  /* Write the known families into the family tab. Safe to run whenever — it never changes a link
-     that already exists. */
-  seedFamilies:      () => seedFamilies(),
+  /* `seedFamilies` WAS HERE, and went with the hand-written map it wrote — see where
+     `KNOWN_FAMILIES` used to be. An admin links a child to a parent from the app (`linkChild`). */
   /* Fill in the wearable prices the code already holds, for a sheet that ran `seedAvatarItems`
      before it knew which columns the merged tab had. Never overwrites a cell with anything in it,
      so it is safe to run whenever and tells you how many it left alone. */
@@ -2857,16 +2855,12 @@ const MIGRATIONS = [
     what: 'every venue with a postcode gets its coordinates',
     run: () => geocodeVenues() },
 
-  /* THE FAMILIES, WRITTEN DOWN AT LAST.
-     Three parents on this system have children on it and nothing connected them — the family tab
-     was empty and every `children` cell was blank. So a booking could not say which child it was
-     for, a parent could not see their own child's exam on the calendar, and every student had no
-     siblings.
-     Safe to repeat: an existing link is left exactly as it is, whatever it says. */
-  { id: 'seed-the-families',
-    retry: true,
-    what: 'the families we already know get their links, so a booking can say who it is for',
-    run: () => seedFamilies() },
+  /* ---------- `seed-the-families` WAS HERE, AND ITS ID STAYS SPENT ---------------------------------
+     It wrote three families' links into the `family` tab from a hand-written list of real
+     children's names — see where `KNOWN_FAMILIES` used to be for why the list is gone. It has run:
+     the links are on the live tab, and every reader reads them there.
+     THE ID IS NOT REUSED, for the reason the paper migrations below give: a new job under this name
+     would be marked done on every database that ran the old one, and would never run at all. */
 
   /* ---------- THREE PAPER MIGRATIONS WERE HERE, AND THEIR IDS STAY SPENT -------------------------
      `edexcel-maths-past-papers`, `drop-empty-alevel-papers` and `edexcel-alevel-maths-past-papers`

@@ -1,7 +1,7 @@
 """
 THE TWO 2017 HIGHER PAPER 1s, AUDITED QUESTION BY QUESTION AGAINST THE PRINTED PAPERS.
 
-ASKED FOR AS *"for lucca i like to do higher maths papers. im just scared as the papers i do
+ASKED FOR AS *"for [a student] i like to do higher maths papers. im just scared as the papers i do
 typically something is always wrong like your diagrams or something. i just want it to be good."*
 Both papers -- Edexcel 1MA1/1H May 2017 (`P-1MA1-1705-1H`) and November 2017 (`P-1MA1-1711-1H`)
 -- already had every drawing, and that was the problem: a drawing that exists is a drawing nobody

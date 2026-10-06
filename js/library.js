@@ -11,7 +11,7 @@
    and dates of birth, which cannot go in a public repository at any price.
 
    WHAT WAS LEFT BEHIND, and this is the whole of it: `ticks_1`, `ticks_2` and `ticks_3`. 529 cells
-   holding the handles of real people — `MabelW`, `HectorL`, `DanileC`, most of them children. They
+   holding the handles of real people — a first name and an initial each, most of them children. They
    are stripped from `data/questions.json` and they are the reason this file says so twice. A tick
    is a fact about a PERSON and a document; it was never library data, and if it comes back it comes
    back in `Ledger`.

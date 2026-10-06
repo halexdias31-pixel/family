@@ -6,8 +6,8 @@ had answers saved against, a count beside each, a tap setting the `paperId` chip
 answer keys, which really are the only record of which paper anybody worked through — nothing is
 posted anywhere, so `ans:u:<person_id>:q:<row_id>` in `localStorage` is it.
 
-**And the owner's answer was that the question had already been answered**: *"no i dont want lucca
-carry on bullshit. im just saying if they answer something, it will be answered next time they come
+**And the owner's answer was that the question had already been answered**: *"no i dont
+want [their name] carry on bullshit. im just saying if they answer something, it will be answered next time they come
 on."* That is a statement about PERSISTENCE, and persistence is `ansKey_` and `ansRead_` — an answer
 typed into a box is under the signed-in person and comes back in that box on the next visit, on
 every paper, with nothing on any screen to press.

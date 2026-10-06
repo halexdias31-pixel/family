@@ -20,7 +20,7 @@ roster row and a PIN rather than a parallel mechanism.
 **`whoIs_` answers `u:<person_id>` because an id is stable where a display name is a cell somebody
 can edit** — exactly right for a KEY and unreadable as a LABEL. The old name box printed that id
 back at whoever was working: an answer box captioned with an account number. `signedName_` is the
-first name off `USER.name`, so the caption is `Lucca's answer` and the key is still
+first name off `USER.name`, so the caption is `Ada's answer` and the key is still
 `ans:u:P777:q:Q0664`. **Measured in all three states**, and the name is kept rather than reduced to
 "Your answer" because on a phone passed between two students it says at a glance whose drawer the
 box is writing into — which is the one thing the deleted button was genuinely good for.
@@ -39,7 +39,7 @@ reveal, which opens itself the moment Check says they have it. Measured through 
 | | mark scheme | answer key | caption |
 |---|---|---|---|
 | signed out | one tap | `ans:q:Q0664` | Your answer |
-| a student signed in | one tap | `ans:u:P777:q:Q0664` | Lucca's answer |
+| a student signed in | one tap | `ans:u:P777:q:Q0664` | Ada's answer |
 | **the tutor signed in** | **open** | `ans:u:P001:q:Q0664` | Alex's answer |
 
 **The signed-out row is the one behaviour change beyond what was asked**: it was open and is now one

@@ -1137,9 +1137,9 @@ boot(f => {
   }
 
   /* ---------- A SATs PAPER IS `Paper 1` ON THE MENU, ON THE CHIP AND ON THE CARD ----------------------
-     REPORTED AS *"When I do maths sats with Jp, the tags come out with full paper name and which paper
-     is on the menu."* Measured: Maths · Past paper · KS2 SATs offered `Paper 1: Arithmetic — May 2019`
-     beside `… May 2024`, and the chip it made read `PAPER Paper 1: Arithmetic — May 2019`. Three
+     REPORTED AS *"When I do maths sats with [a student], the tags come out with full paper name and
+     which paper is on the menu."* Measured: Maths · Past paper · KS2 SATs offered
+     `Paper 1: Arithmetic — May 2019` beside `… May 2024`, and the chip it made read `PAPER Paper 1: Arithmetic — May 2019`. Three
      causes, one per half of this rule:
 
        the menu   the SATs question rows carry no sitting, so `Year` was never asked and the date had

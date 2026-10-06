@@ -427,8 +427,8 @@ function makeBrandAccount(pin) {
        saying why.
 
        MEASURED ON THE LIVE SHEET: P001 carries `pin`, `pin_hash` AND `pin_salt` all populated, which
-       is this line's output cell for cell — and the reason "I cannot sign in but Danile can" is that
-       Danile is a client, so no brand-account path has ever touched her plaintext cell.
+       is this line's output cell for cell — and the reason "I cannot sign in but <a client> can" is
+       that she is a client, so no brand-account path has ever touched her plaintext cell.
 
        AND `dataProblems` SENT PEOPLE HERE. It tested `!S(brand.pin)` — the cell `authSetPin_`
        deliberately empties — so it reported every correctly hashed admin as having no PIN and told

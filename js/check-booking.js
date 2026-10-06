@@ -239,71 +239,71 @@ const PAID = n => e(n, 'client', 'Confirm');
 const LEAVE = (n, r) => e(n, r || 'client', ACT.WITHDRAW);
 const EDIT = (n, r) => e(n, r || 'client', ACT.EDIT);
 
-const PAID_BOOKING = [REQUEST('Rasa'), REQUEST('George', 'tutor'),
-                      ACCEPT('Rasa', 'George'), PAID('Rasa')];
+const PAID_BOOKING = [REQUEST('Pat'), REQUEST('George', 'tutor'),
+                      ACCEPT('Pat', 'George'), PAID('Pat')];
 
 const SEQUENCES = [
   { what: 'a request nobody has answered',
-    evs: [REQUEST('Rasa'), REQUEST('George', 'tutor')],
-    who: ['Rasa=Waiting', 'George=Waiting'], job: 'unconfirmed' },
+    evs: [REQUEST('Pat'), REQUEST('George', 'tutor')],
+    who: ['Pat=Waiting', 'George=Waiting'], job: 'unconfirmed' },
 
   { what: 'the client accepts the tutor',
-    evs: [REQUEST('Rasa'), REQUEST('George', 'tutor'), ACCEPT('Rasa', 'George')],
-    who: ['Rasa=Agreed', 'George=Agreed'], job: 'unconfirmed' },
+    evs: [REQUEST('Pat'), REQUEST('George', 'tutor'), ACCEPT('Pat', 'George')],
+    who: ['Pat=Agreed', 'George=Agreed'], job: 'unconfirmed' },
 
   { what: 'a paid booking',
     evs: PAID_BOOKING,
-    who: ['Rasa=Booked', 'George=Agreed'], job: 'active' },
+    who: ['Pat=Booked', 'George=Agreed'], job: 'active' },
 
   /* ---------- THE THREE THAT COST MONEY ---------------------------------------------------- */
 
   { what: 'a PAID client edits the terms — their payment must survive',
-    evs: PAID_BOOKING.concat([EDIT('Rasa')]),
-    who: ['Rasa=Booked', 'George=Waiting'], job: 'active' },
+    evs: PAID_BOOKING.concat([EDIT('Pat')]),
+    who: ['Pat=Booked', 'George=Waiting'], job: 'active' },
 
   { what: 'somebody ELSE edits after a client has paid',
     evs: PAID_BOOKING.concat([EDIT('George', 'tutor')]),
-    who: ['Rasa=Booked', 'George=Waiting'], job: 'active' },
+    who: ['Pat=Booked', 'George=Waiting'], job: 'active' },
 
   { what: 'a PAID client withdraws — they must not vanish',
-    evs: PAID_BOOKING.concat([LEAVE('Rasa')]),
-    who: ['Rasa=Withdrawn', 'George=Agreed'], job: 'cancelled', refund: ['Rasa'] },
+    evs: PAID_BOOKING.concat([LEAVE('Pat')]),
+    who: ['Pat=Withdrawn', 'George=Agreed'], job: 'cancelled', refund: ['Pat'] },
 
   { what: 'an edit after a paid withdrawal must not disturb them',
-    evs: PAID_BOOKING.concat([LEAVE('Rasa'), EDIT('George', 'tutor')]),
-    who: ['Rasa=Withdrawn', 'George=Waiting'], job: 'cancelled', refund: ['Rasa'] },
+    evs: PAID_BOOKING.concat([LEAVE('Pat'), EDIT('George', 'tutor')]),
+    who: ['Pat=Withdrawn', 'George=Waiting'], job: 'cancelled', refund: ['Pat'] },
 
   { what: 'they rejoin — the refund is still owed',
-    evs: PAID_BOOKING.concat([LEAVE('Rasa'), REQUEST('Rasa')]),
-    who: ['Rasa=Waiting', 'George=Agreed'], job: 'unconfirmed', refund: ['Rasa'] },
+    evs: PAID_BOOKING.concat([LEAVE('Pat'), REQUEST('Pat')]),
+    who: ['Pat=Waiting', 'George=Agreed'], job: 'unconfirmed', refund: ['Pat'] },
 
   { what: 'they rejoin and pay again — still owed the first one',
-    evs: PAID_BOOKING.concat([LEAVE('Rasa'), REQUEST('Rasa'),
-                              ACCEPT('Rasa', 'George'), PAID('Rasa')]),
-    who: ['Rasa=Booked', 'George=Agreed'], job: 'active', refund: ['Rasa'] },
+    evs: PAID_BOOKING.concat([LEAVE('Pat'), REQUEST('Pat'),
+                              ACCEPT('Pat', 'George'), PAID('Pat')]),
+    who: ['Pat=Booked', 'George=Agreed'], job: 'active', refund: ['Pat'] },
 
   /* ---------- LEAVING, WHERE NO MONEY IS INVOLVED ------------------------------------------- */
 
   { what: 'an unpaid client withdraws — they are simply gone',
-    evs: [REQUEST('Rasa'), REQUEST('George', 'tutor'), LEAVE('Rasa')],
+    evs: [REQUEST('Pat'), REQUEST('George', 'tutor'), LEAVE('Pat')],
     who: ['George=Waiting'], job: 'cancelled', refund: [] },
 
   { what: 'one of two clients withdraws',
-    evs: [REQUEST('Rasa'), REQUEST('Danile'), REQUEST('George', 'tutor'), LEAVE('Rasa')],
-    who: ['Danile=Waiting', 'George=Waiting'], job: 'unconfirmed' },
+    evs: [REQUEST('Pat'), REQUEST('Dee'), REQUEST('George', 'tutor'), LEAVE('Pat')],
+    who: ['Dee=Waiting', 'George=Waiting'], job: 'unconfirmed' },
 
   { what: 'a tutor declines the client',
-    evs: [REQUEST('Rasa'), REQUEST('George', 'tutor'),
-          e('George', 'tutor', ACT.DECLINE, 'Rasa')],
+    evs: [REQUEST('Pat'), REQUEST('George', 'tutor'),
+          e('George', 'tutor', ACT.DECLINE, 'Pat')],
     who: ['George=Waiting'], job: 'cancelled' },
 
   { what: 'an unpaid edit resets everybody',
-    evs: [REQUEST('Rasa'), REQUEST('George', 'tutor'), ACCEPT('Rasa', 'George'), EDIT('Rasa')],
-    who: ['Rasa=Waiting', 'George=Waiting'], job: 'unconfirmed' },
+    evs: [REQUEST('Pat'), REQUEST('George', 'tutor'), ACCEPT('Pat', 'George'), EDIT('Pat')],
+    who: ['Pat=Waiting', 'George=Waiting'], job: 'unconfirmed' },
 
   { what: 'withdrawing and coming back, never having paid',
-    evs: [REQUEST('Rasa'), LEAVE('Rasa'), REQUEST('Rasa')],
-    who: ['Rasa=Waiting'], job: 'unconfirmed', refund: [] },
+    evs: [REQUEST('Pat'), LEAVE('Pat'), REQUEST('Pat')],
+    who: ['Pat=Waiting'], job: 'unconfirmed', refund: [] },
 ];
 
 /* ---------- AND THE LOBBY ITSELF -----------------------------------------------------------------
@@ -405,7 +405,7 @@ RULES.push({
        events at all there are no clients, which IS cancelled. Seeding nothing measured the skip
        rather than the day mapping, and reported "nothing" for every case including the one-day one
        that has always worked. */
-    const LIVE = [REQUEST('Rasa'), REQUEST('George', 'tutor')];
+    const LIVE = [REQUEST('Pat'), REQUEST('George', 'tutor')];
     const busy = (weekday, tutor) => {
       api.set(LIVE);
       api.setJobs([job('J', weekday)], { J: tutor || 'George' });
@@ -434,7 +434,7 @@ RULES.push({
     /* AND A CANCELLED SESSION RELEASES ITS HOURS, which is what `jobStatusOf` is consulted for —
        asserted here because the case above leans on it, and a guard nothing measures is a guard
        that can quietly become the reason a rule passes. */
-    api.set([REQUEST('Rasa'), REQUEST('George', 'tutor'), e('Rasa', 'client', ACT.WITHDRAW)]);
+    api.set([REQUEST('Pat'), REQUEST('George', 'tutor'), e('Pat', 'client', ACT.WITHDRAW)]);
     api.setJobs([job('J', 'Monday, Friday')], { J: 'George' });
     if (Object.keys(api.busyHours('George')).length) {
       bad.push('a cancelled session still held its hours');
@@ -501,7 +501,7 @@ RULES.push({
   what: 'a tutor is busy only while a session is running, or across the window asked about',
   check: () => {
     const bad = [];
-    const LIVE = [REQUEST('Rasa'), REQUEST('George', 'tutor')];
+    const LIVE = [REQUEST('Pat'), REQUEST('George', 'tutor')];
     const day = n => { const d = new Date(); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + n); return d; };
     const dmy = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0')
       + '/' + String(d.getFullYear()).slice(-2);

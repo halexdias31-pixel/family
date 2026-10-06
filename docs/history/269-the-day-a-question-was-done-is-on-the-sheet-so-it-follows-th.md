@@ -77,7 +77,7 @@ generation bumped, the admin not retired, no cap, no future clamp.
 exactly the two days the sheet lacks, once even when two payloads land together; the sheet's date on
 a card the phone never stamped, the sheet's later day over the phone's older one and the reverse;
 one Check one request with `[{ key, day: today }]`, a second Check and keystrokes nothing more,
-thirty keystrokes into a fresh box one request; Ben does not see Lucca's sheet date; the admin's
+thirty keystrokes into a fresh box one request; Ben does not see Ada's sheet date; the admin's
 line, its singular, nothing for nobody, drawn under the name by `findCard`, and not for Ben after
 the admin; a backend without `markDone` sent nothing. Red for: the sheet ignored, the phone always
 winning, no send, the send before the debounce, the sync sending everything, the sync not once per

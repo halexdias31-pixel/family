@@ -1,7 +1,7 @@
 """
 EDEXCEL 1MA1 HIGHER PAPER 3 (CALCULATOR), JUNE 2017 -- EVERY ROW CHECKED AGAINST THE PRINTED PAPER.
 
-ASKED FOR AS *"for lucca i like to do higher maths papers. im just scared as the papers i do typically
+ASKED FOR AS *"for [a student] i like to do higher maths papers. im just scared as the papers i do typically
 something is always wrong like your diagrams or something. i just want it to be good."* Measured
 first: 29 rows, 80 marks, every one answered -- and THIRTEEN carrying a `figure` with `diagram`
 empty. Twelve of those are pictures the paper prints and the transcription lost; the thirteenth,

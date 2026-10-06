@@ -61,7 +61,7 @@ const ORDER = loadOrder_();
    Small but real: two tutors, two venues, an interval, and one job of each kind. Anything the app
    reads has to be here under the name `doGet` actually uses, which is the whole risk of a fake —
    so the names are worth checking against `60_doGet.gs` whenever this file is edited. */
-const seat = (status, client) => ({ n: 1, client: client || 'Rasa Poliksa', status, chat: '' });
+const seat = (status, client) => ({ n: 1, client: client || 'Pat Parent', status, chat: '' });
 
 function payload() {
   const jobs = [
@@ -90,7 +90,7 @@ function payload() {
       subject: 'Maths, English Language', level: 'GCSE', title: 'GCSE Maths, English Language',
       price: 19, tutorPay: 0, location: 'Colliers Wood Library', venue: 'Colliers Wood Library',
       tutor: '', day: '', time: '', weeks: 0, dates: '', maxKids: 4, currentKids: 2,
-      slots: [seat('Waiting', 'Danile Cristina'), seat('Waiting', 'Phoebe Wickes')],
+      slots: [seat('Waiting', 'Dee Parent'), seat('Waiting', 'Fay Parent')],
       tutorSlots: [], events: [], canAsk: true, seatsGoing: 2, openToOthers: true,
       /* `whenCould` IS WHAT `doGet` SENDS ON EVERY WAITING LIST — `waitlistWhen`'s tally of the two
          families' own answers, most popular first — and this list never carried one, so the only
@@ -832,7 +832,7 @@ check('the cheat sheet lists a topic at a time, eight rows at most, and keeps ti
 /* ---------- A STUDENT OPENS ON THEIR OWN LEVEL --------------------------------------------------------
    THE AUDIT'S DEFAULT, TAKEN: *"Open on the student's own level when known."* Nothing on a person says
    their level, so it is read off the sessions they are the client of — this payload's first is GCSE
-   Maths for Rasa Poliksa. A stranger knows nothing and opens on Every level, as before. */
+   Maths for Pat Parent. A stranger knows nothing and opens on Every level, as before. */
 check('the cheat sheet opens on the signed-in student\'s own level, and on every level for a stranger', async () => {
   const { w } = boot();
   await wait(300);
@@ -850,10 +850,10 @@ check('the cheat sheet opens on the signed-in student\'s own level, and on every
   t.USER(null);
   let now = await open();
   if (now.level !== 'all') bad.push('a stranger opens on ' + now.level + ' — nobody is known, so it should be Every level');
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   now = await open();
   if (now.level !== 'GCSE' || now.subject !== 'Maths') {
-    bad.push('Rasa is booked into GCSE Maths and the cheat sheet opened on ' + now.subject + ' · ' + now.level);
+    bad.push('Pat is booked into GCSE Maths and the cheat sheet opened on ' + now.subject + ' · ' + now.level);
   }
   t.USER(null);
   t.matFresh();
@@ -891,7 +891,7 @@ check('a cheat sheet goes into the basket, laminates, and the order names its pi
   const toastEl = doc.getElementById('toast');
   if (!/sign in/i.test(String(toastEl ? toastEl.textContent : ''))) bad.push('signed out, the toast does not say to sign in');
 
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   t.ACTIONS['mat-cart'](trolley);
   t.ACTIONS['mat-cart'](trolley);
   const cart = t.CART();
@@ -1037,7 +1037,7 @@ check('the cheat sheet maker draws a handwriting sheet, lined and squared paper,
   if (segs(svgOf(), 'mat-ln-base').length <= rows) bad.push('Small writing did not fit more rulings than Large');
 
   /* ---- BASKET AND PRINT ---- */
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const trolley = doc.querySelector('#mat-box [data-do="mat-cart"]');
   if (!trolley) bad.push('there is no basket tile for the handwriting sheet');
   else {
@@ -1126,7 +1126,7 @@ check('a pence-priced shop item goes in the basket as money, on one line', async
   const t = w.__t;
   if (!t.CART || !t.setCart || !t.basket || !t.cartMoney) return ['the basket is not exported'];
   const bad = [];
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   t.setCart([]);
   const add = key => {
     const el = w.document.createElement('button');
@@ -2690,7 +2690,7 @@ check("the flyer maker is an admin's and nobody else's", async () => {
   t.star('w:flyers');
   const visitors = [
     ['somebody signed out', null],
-    ['a parent', { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] }],
+    ['a parent', { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] }],
     ['a student', { name: 'Sam Student', personId: 'P9', role: 'student', roles: ['student'] }],
     ['a tutor', { name: 'Ada Tutor', personId: 'P-@ada', role: 'tutor', roles: ['tutor'] }],
   ];
@@ -2742,7 +2742,7 @@ check('venues are off Find, and a starred venue is still on Saved', async () => 
   if (doors.some(d => /^(Places|Booking)$/i.test(d))) {
     bad.push('Find\'s first question still offers ' + doors.join(' | '));
   }
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   t.star(all[0].key);
   const saved = t.savedPages().join('');
   if (saved.indexOf(all[0].name) === -1) {
@@ -2764,7 +2764,7 @@ check('the loading splash comes off', async () => {
 check('every tab draws something', async () => {
   const { w, errs } = boot();
   await wait(300);
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const bad = [];
   /* THE SCREENS THAT EXIST, read off `TABS` rather than written out. This has now been wrong twice
      — once naming `find` after the funnel absorbed it, once naming `book` after the booking form
@@ -2819,7 +2819,7 @@ check('every question the form asks has a row on the paper', async () => {
   const { w } = boot();
   await wait(300);
   if (!w.__t.STEPS) return ['BOOK_STEPS is not exported — cannot check the form'];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
   B.how = 'Instant class';
   B.loc = 'Colliers Wood Library';
@@ -2867,7 +2867,7 @@ check('the paper keeps the same rows whatever is answered', async () => {
   const { w } = boot();
   await wait(300);
   if (!w.__t.paper) return ['bookBreakdown is not exported — cannot check the paper'];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
 
   /* THE QUESTIONS ONLY, which is what has to hold still. A derived line — "Extra subjects", the
@@ -2973,7 +2973,7 @@ check('a price lands on the question that caused it', async () => {
   const { w } = boot();
   await wait(300);
   if (!w.__t.paper) return ['bookBreakdown is not exported — cannot check the paper'];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   Object.assign(w.__t.BOOKING, { how: 'Instant class', loc: 'Colliers Wood Library',
     level: '11+', n: '2', subjects: ['Maths', 'English'] });
 
@@ -3104,7 +3104,7 @@ check('a waiting list is asked everything an instant class is, bar the four it c
   const { w } = boot();
   await wait(300);
   if (!w.__t.STEPS) return ['BOOK_STEPS is not exported — cannot check the form'];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
   /* THE TWO KINDS READ OFF THE STEP, not typed here — the sister journey below records what two
      invented strings cost when the labels changed underneath them. */
@@ -3207,7 +3207,7 @@ check('picking several answers is one open, hanging off the field, over nothing'
   if (!w.__t.bookerCard) return ['bookerCard is not exported — cannot see what the page holds'];
   const panel = w.document.getElementById('drop');
   if (!panel) return ['#drop is not in index.html — the list has nowhere to hang'];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const B = w.__t.BOOKING;
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
   /* `repaint()` BEFORE `go`, because `paintNeighbours` skips a screen that already has markup and
@@ -3327,7 +3327,7 @@ check('a single-choice select opens the booking panel, and choosing closes it wi
   const panel = d.getElementById('drop');
   if (!panel) return ['#drop is not in index.html — a select has nowhere to hang its list'];
   if (typeof w.selOpen_ !== 'function') return ['selOpen_ is not declared, so NOTHING was checked — not a pass'];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
   await wait(120);
   const bad = [];
@@ -3450,7 +3450,7 @@ check('a class books through joinWaitlist, a session through createJob', async (
   for (const [how, action] of pairs) {
     const { w, sent } = boot();
     await wait(300);
-    w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+    w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
     const B = w.__t.BOOKING;
     Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
     B.how = how; B.level = 'GCSE'; B.loc = 'Colliers Wood Library';
@@ -4156,7 +4156,7 @@ check('a day says how many hours it is, in the column that multiplies', async ()
   if (!w.__t.paper) return ['bookBreakdown is not exported — cannot read the card'];
   const B = w.__t.BOOKING;
   const bad = [];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   Object.keys(B).forEach(k => { if (Array.isArray(B[k])) B[k] = []; else B[k] = ''; });
   B.slots = ['m11', 'm12', 'm13', 'w12'];
 
@@ -4404,7 +4404,7 @@ check('a booking you just asked for is still on the screen afterwards', async ()
   const bad = [];
   const { w, sent } = boot({ reply: { success: true, jobId: 'J-ASK' } });
   await wait(300);
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
 
   /* ---------- PAGE ZERO, WHICH IS THE FORM — NOT THE WHOLE COLUMN ------------------------------
      THIS JOINED EVERY PAGE AND ASKED WHETHER `J-ASK` WAS ANYWHERE IN IT, which was a true reading
@@ -4589,7 +4589,7 @@ check('an admin can answer a booking, and only one that is waiting', async () =>
 check('a client can pay once it is accepted, and not before', async () => {
   const { w } = boot();
   await wait(300);
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   if (typeof w.__t.jobTiles !== 'function') return ['jobTiles_ is not exported — cannot check Pay'];
 
   const bad = [];
@@ -4717,7 +4717,7 @@ check('a class with seats offers Take a seat as a tile on its receipt, and its s
   else if (bars !== 2 || !/Monday evening/.test(can)) bad.push('the Can come row draws ' + bars + ' bars ("' + can + '"), wanted the 2 slots sent');
 
   /* AND SOMEBODY ON THE LIST SEES THE TALLY TOO, and is offered no seat they already have. */
-  w.__t.USER({ name: 'Danile Cristina', personId: 'P7', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Dee Parent', personId: 'P7', role: 'parent', roles: ['parent'] });
   const D = w.__t.DATA();
   (D.liveJobs || []).forEach(j => { if (j.id === 'W-LIST') j.canAsk = false; });
   let mine;
@@ -4795,7 +4795,7 @@ check('a session a family booked offers Ask to join as a tile, and says its seat
 check('a festive event shows itself and can be joined', async () => {
   const { w, sent } = boot();
   await wait(300);
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   /* ON POSTS, NOT BOOK. A festive card is the business announcing something with a date on it, which
      is the same voice as a post with a caption — it was only ever on the booking column because
      bookings were. There is no Book column now either way. */
@@ -5055,7 +5055,7 @@ check('every pager counts the pages its screen actually draws', async () => {
 
   /* SIGNED IN, because half these columns draw a sign-in card and nothing else when signed out —
      a roster of one page agrees with anything and proves nothing. */
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   /* AND REPAINTED, BECAUSE THAT IS WHAT SIGNING IN DOES. `__t.USER` only sets the variable; the app
      calls `repaint()` straight after, which marks every other screen stale so `go` redraws it on the
      way in. Without this the journey walks onto screens painted while signed out and reports a
@@ -5202,7 +5202,7 @@ check('each person sees their own figure on a session, and its tiles are on the 
     id: 'J-M', jobId: 'J-M', kind: '', subject: 'Maths', level: 'GCSE', price: 270,
     tutorPay: 135, adminKeeps: 81, tutor: 'Ada Tutor', location: 'Colliers Wood Library',
     dates: '06/10/26, 13/10/26', startDate: '06/10/26', endDate: '13/10/26',
-    slots: [{ n: 1, client: 'Rasa Poliksa', status: 'Booked' }],
+    slots: [{ n: 1, client: 'Pat Parent', status: 'Booked' }],
     tutorSlots: [{ key: 'a', name: 'Ada Tutor', status: 'Confirmed' }], events: [],
   };
   const doc = h => { const d = w.document.createElement('div'); d.innerHTML = h; return d; };
@@ -5210,7 +5210,7 @@ check('each person sees their own figure on a session, and its tiles are on the 
     .map(r => r.querySelector('.bk-k').textContent.trim() + ' ' + r.querySelector('.bk-t').textContent.trim());
 
   /* THE CLIENT: what they pay, and not one other figure. */
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const c = totals(doc(w.__t.jobPage(job)));
   if (c.length !== 1 || !/270\.00/.test(c[0])) bad.push('the client sees ' + JSON.stringify(c) + ', wanted their £270.00 alone');
   if (c.some(x => /135|81\./.test(x))) bad.push('the client is shown what the tutor or the admin takes: ' + JSON.stringify(c));
@@ -5253,10 +5253,10 @@ check('each person sees their own figure on a session, and its tiles are on the 
   const loose = [...ad.querySelectorAll('[data-do]')].filter(x => !x.closest('.rc'));
   if (loose.length) bad.push('actions float outside the paper: ' + loose.map(x => x.dataset.do).join(', '));
   if (!ad.querySelector('.rc .rc-tiles [data-do="job-delete"]')) bad.push('the admin\'s tiles are not on the receipt\'s foot');
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const paid = doc(w.__t.jobPage(job));
   if (paid.querySelector('[data-do="job-pay"]')) bad.push('a session already booked and paid offers Pay');
-  const owed = doc(w.__t.jobPage(Object.assign({}, job, { slots: [{ n: 1, client: 'Rasa Poliksa', status: 'Agreed' }] })));
+  const owed = doc(w.__t.jobPage(Object.assign({}, job, { slots: [{ n: 1, client: 'Pat Parent', status: 'Agreed' }] })));
   if (!owed.querySelector('.rc .rc-tiles [data-do="job-pay"]')) bad.push('an accepted, unpaid session has no Pay on its paper');
 
   /* AND THE FORM: an admin pricing a booking sees the two more rows; nobody else does. */
@@ -5267,7 +5267,7 @@ check('each person sees their own figure on a session, and its tiles are on the 
     if (fa.more.length !== 2 || !/150\.00/.test(fa.more[0].t) || !/40\.00/.test(fa.more[1].t)) {
       bad.push('an admin pricing the form is not shown what the tutor and the business take');
     }
-    w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+    w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
     if (w.__t.formMoney(L).more.length) bad.push('a client pricing the form is shown the split');
   }
   return bad;
@@ -5293,7 +5293,7 @@ check('the camera card starts itself and offers the gallery', async () => {
   if (typeof w.__t.card !== 'function') return [];      // only checkable where the card is exported
 
   const bad = [];
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const html = w.__t.card();
 
   if (!/id="cam-view"/.test(html)) bad.push('the camera card has no viewfinder');
@@ -5414,11 +5414,11 @@ const camAsked_ = async pred => { await wait(CAM_SLIDE); for (let i = 0; i < 40 
 
 check('the camera asks for nothing until somebody swipes up to it', async () => {
   const bad = [];
-  const rasa = { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
 
   /* ---------- SIGNED IN, NO FESTIVE CARD: THE ONE THAT WAS REPORTED ---------------------------- */
   {
-    const b = camBoot_({ user: rasa });
+    const b = camBoot_({ user: pat });
     await wait(400);
     if (!b.w.__t || typeof b.w.feedCamAt_ !== 'function') {
       return ['the app did not load, so the camera was NOT checked — not a pass'];
@@ -5467,7 +5467,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
 
   /* ---------- A FESTIVE CARD ABOVE THE CAMERA ---------------------------------------------------- */
   {
-    const b = camBoot_({ user: rasa, festive: true });
+    const b = camBoot_({ user: pat, festive: true });
     await wait(400);
     if (b.cam() !== 1) bad.push(`with one festive card the camera is page ${b.cam()}, not 1, so that case was NOT checked`);
     if (b.gum.asks) bad.push('with a festive card above the camera, opening the app asked for it');
@@ -5480,7 +5480,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
      With nothing under the camera, "the page after the camera" does not exist, and `pageHome_`'s
      clamp put the column ON the camera — the reported prompt arriving by a second road. */
   {
-    const b = camBoot_({ user: rasa, festive: true, noPosts: true });
+    const b = camBoot_({ user: pat, festive: true, noPosts: true });
     await wait(400);
     if (b.gum.asks) bad.push('with a festive card and no posts, opening the app asked for the camera');
     if (b.page() === b.cam()) bad.push('with a festive card and no posts, the feed opened ON the camera page');
@@ -5493,7 +5493,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
      camera that was refused used to be asked for again by whatever landed next, which is a prompt on
      Safari that nobody swiped for. */
   {
-    const b = camBoot_({ user: rasa, refuse: true });
+    const b = camBoot_({ user: pat, refuse: true });
     await wait(400);
     b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === 1);
     if (b.gum.asks !== 1) bad.push(`refused: swiping up asked ${b.gum.asks} time(s), not once`);
@@ -5514,7 +5514,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
      `CAM_STREAM` is null until somebody answers, so a repaint in that moment used to ask a second
      time — and when both were granted the first stream was overwritten and never stopped. */
   {
-    const b = camBoot_({ user: rasa, slow: true });
+    const b = camBoot_({ user: pat, slow: true });
     await wait(400);
     b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
     b.w.__t.repaint(); await wait(50);
@@ -5541,7 +5541,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
        box) — the refusal because it is the path that keeps the same element rather than
        repainting it away. Then a comment that goes through posts `addComment` with the words. */
 check('Post under a post is a tile, and a comment keeps its mark through the wait', async () => {
-  const rasa = { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const pat = { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] };
   const p = payload();
   p.festive = [];
   p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
@@ -5551,7 +5551,7 @@ check('Post under a post is a tile, and a comment keeps its mark through the wai
   let refuse = true;
   const { w, sent } = boot({ payload: p,
     reply: b => (b.action === 'addComment' && refuse ? { error: 'That is too long to post.' } : { success: true }),
-    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(rasa)); } catch (e) {} } });
+    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(pat)); } catch (e) {} } });
   await wait(400);
   const d = w.document, bad = [];
   w.__t.go('feed'); await wait(700);
@@ -5604,13 +5604,13 @@ check('the friend search still works for a student', async () => {
      no list can never add anybody and the failure is silent: "Nobody has the handle …", which reads
      as the friend not existing rather than as the list not arriving. */
   const p = payload();
-  p.students = [{ name: 'Augie', handle: 'augie', xp: 10, highscore: 3, siblings: [], friends: '' },
-                { name: 'Mabel', handle: 'mabel', xp: 4, highscore: 1, siblings: [], friends: '' }];
+  p.students = [{ name: 'Ben', handle: 'ben', xp: 10, highscore: 3, siblings: [], friends: '' },
+                { name: 'Cy', handle: 'cy', xp: 4, highscore: 1, siblings: [], friends: '' }];
   const { w } = boot({ payload: p });
   await wait(300);
-  w.__t.USER({ name: 'Augie Wickes', personId: 'PS', handle: 'augie', role: 'kid',
+  w.__t.USER({ name: 'Ben Pupil', personId: 'PS', handle: 'ben', role: 'kid',
                roles: ['kid'], friends: '' });
-  const found = (w.__t.whoami() && (p.students || []).find(s => s.handle === 'mabel'));
+  const found = (w.__t.whoami() && (p.students || []).find(s => s.handle === 'cy'));
   return found ? [] : ['a student cannot look up another child by handle — the friend list is unusable'];
 });
 
@@ -5663,7 +5663,7 @@ check('nothing offers to install, and the browser is not left to offer it either
      null],
     ['a parent on Android',
      'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36',
-     { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] }],
+     { name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] }],
   ];
   for (const [who, ua, user] of phones) {
     /* BEFORE THE APP RUNS, because a phone is a phone from its first line — anything asking the
@@ -8027,7 +8027,7 @@ check('a signed-in student\'s attempt is dated on the question card, for them al
   if (slot(out) && slot(out).textContent) bad.push('signed out, a Check stamped the card "' + slot(out).textContent + '"');
   if (stored().length) bad.push('signed out, a date was stored: ' + stored().join(', '));
   /* SIGNED IN. */
-  w.__t.USER({ name: 'Lucca Smith', personId: 'P7', role: 'student', roles: ['student'] });
+  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'] });
   const card = draw(typed);
   if (!slot(card)) return bad.concat(['signed in, the tile row has no date slot, so a date would arrive as a new element']);
   if (card.querySelector('.qcard-done')) bad.push('the date slot is inside the card, not in the tile row beside the star');
@@ -8132,7 +8132,7 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
 
   /* SIGNED IN, AND THE LOAD'S SYNC: the payload landed before USER was set, so it is asked again here
      the way the next payload would ask it. */
-  w.__t.USER({ name: 'Lucca Smith', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
+  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
   /* TWICE BEFORE THE REPLY IS BACK, as a stored payload and the fresh one land a moment apart. */
   w.adoptMarks_();
   w.adoptMarks_();
@@ -8218,7 +8218,7 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
 
   /* A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
   w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
-  if (shows('q-sheet-only')) bad.push('Ben sees Lucca\'s sheet date: "' + shows('q-sheet-only') + '"');
+  if (shows('q-sheet-only')) bad.push('Ben sees Ada\'s sheet date: "' + shows('q-sheet-only') + '"');
 
   /* AN ADMIN'S PEOPLE COLUMN, off the summary only an admin is sent. */
   w.__t.USER({ name: 'Hal Admin', personId: 'P1', role: 'admin', roles: ['admin'], token: 'tok-P1' });
@@ -8228,7 +8228,7 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
   if (w.attemptsLine_('P9') !== '1 question · last 4 Oct 2001') bad.push('one question reads "' + w.attemptsLine_('P9') + '"');
   if (w.attemptsLine_('P5') !== '') bad.push('a person with no attempts reads "' + w.attemptsLine_('P5') + '", wanted nothing');
   const box = d.createElement('div');
-  box.innerHTML = w.findCard({ kind: 'tutor', row: { title: 'Lucca Smith', handle: 'lucca', role: 'Student', personId: 'P7', activity: line } });
+  box.innerHTML = w.findCard({ kind: 'tutor', row: { title: 'Ada Pupil', handle: 'ada', role: 'Student', personId: 'P7', activity: line } });
   const act = box.querySelector('.prof-who .prof-act');
   if (!act || act.textContent !== line) bad.push('the person card does not draw the line under the name: ' + (act ? act.textContent : 'no .prof-act'));
   w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
@@ -8236,7 +8236,7 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
 
   /* A BACKEND WITHOUT `markDone`: the date stays on the phone and nothing is sent. */
   w.__t.DATA().features = [];
-  w.__t.USER({ name: 'Lucca Smith', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
+  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
   const n2 = marks().length;
   check_(draw(q('q-old-backend')));
   await wait(30);
@@ -8977,7 +8977,7 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   t.STUFF().q = '';
 
   /* STARRABLE, by the card's own Save tile, and kept on Saved. */
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const fav = box(w.stuffCard(x)).querySelector('[data-do="fav"]');
   if (!fav) bad.push('the book card has no Save tile');
   else {
@@ -9035,7 +9035,7 @@ check('the Bible: Books → KJV → testament → group → book → chapter →
   /* ---------- NOBODY BUT AN ADMIN ---------------------------------------------------------------- */
   const others = [
     ['somebody signed out', null],
-    ['a parent', { name: 'Rasa Poliksa', personId: 'P004', role: 'parent', roles: ['parent'] }],
+    ['a parent', { name: 'Pat Parent', personId: 'P004', role: 'parent', roles: ['parent'] }],
     ['a student', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
     ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }],
   ];
@@ -9612,7 +9612,7 @@ check('the funnel asks an admin exactly what it asks a parent, the Books shelf a
     try { return JSON.parse(fs.readFileSync(p, 'utf8')); } catch (e) { return undefined; }
   };
   const seed = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
-  const who = [['a parent', { name: 'Rasa Poliksa', personId: 'P004', role: 'parent', roles: ['parent'] }],
+  const who = [['a parent', { name: 'Pat Parent', personId: 'P004', role: 'parent', roles: ['parent'] }],
                ['an admin', { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] }]];
   const STARTS = [
     ['the top', []],
@@ -10170,7 +10170,7 @@ check('sharing a booking hands over a PNG of the receipt: share sheet, else down
   } });
   await wait(300);
   const d = w.document;
-  w.__t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  w.__t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   try { w.__t.repaint(true); w.__t.go('booking', false, true); } catch (e) { return ['opening booking threw: ' + e.message]; }
   await wait(120);
   const rc = d.querySelector('#bookr .rc');
@@ -10331,7 +10331,7 @@ check('a tutor with no hours is greyed, shuts the grid and is not sent for; No p
   if (!st || typeof w.stepSelect_ !== 'function' || typeof w.slotGrid !== 'function') {
     return ['the tutor step / stepSelect_ / slotGrid are not reachable, so this was NOT checked — not a pass'];
   }
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'parent', roles: ['parent'] });
   const D = t.DATA();
   const avail = {};
   ['m', 'tu', 'w', 'th', 'f', 'sa', 'su'].forEach(p => { for (let h = 9; h <= 18; h++) avail[p + String(h).padStart(2, '0')] = ''; });
@@ -10407,7 +10407,7 @@ check('your week holds your sessions only, on every day they run, while their da
   const at = n => { const d = new Date(mon); d.setDate(d.getDate() + n); return d; };
   const dmy = d => String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
   const job = (id, extra) => Object.assign({ id, jobId: id, subject: id, time: '16:00', hours: 2,
-    client: 'Rasa Poliksa', tutor: 'GeorgePovey', status: 'active', slots: [] }, extra);
+    client: 'Pat Parent', tutor: 'GeorgePovey', status: 'active', slots: [] }, extra);
   const D = t.DATA();
   D.liveJobs = D.jobs = [
     job('TWO-DAY', { day: 'Monday, Friday', dates: [at(-7), at(-3), at(0), at(4), at(7)].map(dmy).join(', ') }),
@@ -10416,7 +10416,7 @@ check('your week holds your sessions only, on every day they run, while their da
     job('NOT-YET', { day: 'Thursday', dates: [at(24), at(31)].map(dmy).join(', ') }),
     job('UNDATED', { day: 'Saturday', dates: '' }),
   ];
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'client', roles: ['client'] });
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'client', roles: ['client'] });
   const got = w.weekSessions_().map(s => s.j.id + '@' + s.day).sort().join(' ');
   const want = 'TWO-DAY@0 TWO-DAY@4 UNDATED@5';
   const bad = [];
@@ -10570,7 +10570,7 @@ check('the calendar marks sessions, terms, half terms, bank holidays, events and
   const on = n => String(n).padStart(2, '0') + '/' + String(m + 1).padStart(2, '0') + '/' + y;
   const D = t.DATA();
   D.liveJobs = D.jobs = [
-    { id: 'J-CAL', jobId: 'J-CAL', subject: 'Maths', time: '16:00', day: 'Monday', client: 'Rasa Poliksa', tutor: 'GeorgePovey',
+    { id: 'J-CAL', jobId: 'J-CAL', subject: 'Maths', time: '16:00', day: 'Monday', client: 'Pat Parent', tutor: 'GeorgePovey',
       status: 'active', slots: [], dates: [on(3), on(17)].join(', '), location: 'Mitcham library' },
     { id: 'J-NOT', jobId: 'J-NOT', subject: 'Chemistry', time: '10:00', day: 'Tuesday', client: 'Somebody Else', tutor: 'Sasha Matola',
       status: 'active', slots: [], dates: on(4) },
@@ -10581,8 +10581,8 @@ check('the calendar marks sessions, terms, half terms, bank holidays, events and
   ];
   D.closures = [{ date: on(8), name: 'Staff training', kind: 'inset' }, { date: on(9), name: 'Early May bank holiday', kind: 'bank' }];
   D.festive = [{ id: 'H1', name: 'Pumpkin carving', holiday: 'Halloween', venue: 'Colliers Wood Library', date: on(25) }];
-  D.exams = [{ personId: 'P1', who: 'Rasa Poliksa', subject: '', label: 'Small exam', date: on(12), kind: 'mock' }];
-  t.USER({ name: 'Rasa Poliksa', personId: 'P1', role: 'client', roles: ['client'] });
+  D.exams = [{ personId: 'P1', who: 'Pat Parent', subject: '', label: 'Small exam', date: on(12), kind: 'mock' }];
+  t.USER({ name: 'Pat Parent', personId: 'P1', role: 'client', roles: ['client'] });
   const mk = w.calendarMarks(y, m);
   const kinds = n => (mk[n] || []).map(x => x.kind).sort().join(',');
   const bad = [];

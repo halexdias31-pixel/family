@@ -6420,7 +6420,7 @@ function whoIs_() {
 
 const ansKey_ = x => 'ans:' + (whoIs_() ? whoIs_() + ':' : '') + ((x && (x.key || x.name)) || '?');
 
-/* `signedName_` WAS HERE -- the first name over the answer box ("Lucca's answer"). Removed with the
+/* `signedName_` WAS HERE -- the first name over the answer box ("Ada's answer"). Removed with the
    caption, on *"remove 'names answer'. that is redundant."* The answer is still filed under who is
    signed in (`ansKey_`); only the words saying so on the box are gone. */
 
@@ -10217,9 +10217,9 @@ function waveOf(x) {
 }
 
 /* ---------- A PAST PAPER WITH NO SITTING OF ITS OWN TAKES ITS PAPER'S -----------------------------
-   REPORTED AS *"when I do maths sats with Jp, the tags come out with full paper name and which paper
-   is on the menu."* MEASURED: Maths · Past paper · KS2 SATs offered `Paper 1: Arithmetic — May 2019`
-   beside `Paper 1: Arithmetic — May 2024`, because nothing above the Paper question had separated
+   REPORTED AS *"when I do maths sats with [a student], the tags come out with full paper name and
+   which paper is on the menu."* MEASURED: Maths · Past paper · KS2 SATs offered
+   `Paper 1: Arithmetic — May 2019` beside `Paper 1: Arithmetic — May 2024`, because nothing above the Paper question had separated
    the two years. The SATs question rows carry a `year` and no `exam_wave`, so `waveOf` answered
    nothing, `Year` had no answer to offer, and the only thing left to tell two papers apart was the
    date inside their names -- which `shortLabels_` then had to keep.
@@ -13338,8 +13338,8 @@ function startWidget_(wgt) {
    IT DREW A "<name>, carry on" BLOCK over the funnel's first question, listing the papers this
    person had answers saved against with a count beside each, and a tap set the `paperId` chip.
 
-   REMOVED AT THE OWNER'S WORD: "no i dont want lucca carry on bullshit. im just saying if they
-   answer something, it will be answered next time they come on." That is a statement about
+   REMOVED AT THE OWNER'S WORD: "no i dont want [their name] carry on bullshit. im just saying if
+   they answer something, it will be answered next time they come on." That is a statement about
    PERSISTENCE, and persistence is what `ansKey_` and `ansRead_` already do -- an answer typed
    into a question is in `localStorage` under the signed-in person and comes back in that box on
    the next visit, on every paper, with nothing on any screen to press.

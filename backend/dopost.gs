@@ -3152,7 +3152,7 @@ function doPost(e) {
       // Who this move is about. Named explicitly, or the only person on the other side.
       const wanted = S(body.counterpart);
       // Only an EXPLICIT counterpart names someone. Inferring "the only other person" broke the
-      // lobby: a tutor pressing ✓ to mark themselves ready was recorded as "I accept Danile",
+      // lobby: a tutor pressing ✓ to mark themselves ready was recorded as "I accept <the client>",
       // which readied her too — so one person could ready the whole room. Readying up is about
       // yourself; choosing someone is about them, and the difference is whether you said a name.
       const them = wanted ? others.find(p2 => key(p2.name) === key(wanted)) : null;
@@ -3192,7 +3192,7 @@ function doPost(e) {
          right about it. `participantsOf` adds ANYBODY who acts on a job to the roster — that is how
          a tutor applying becomes a participant — so an Accept written as `actor: Halex Dias` puts
          the admin in the room as a client, on every job they ever answer. Folded and checked:
-         "Rasa=Agreed, GeorgePovey=Agreed, Halex Dias=Agreed", with the admin sitting in a seat on
+         "<client>=Agreed, GeorgePovey=Agreed, Halex Dias=Agreed", with the admin sitting in a seat on
          somebody's tutoring session.
 
          So the decision is recorded ON THE PARTICIPANTS' OWN EVENTS, in the `message` — "accepted
