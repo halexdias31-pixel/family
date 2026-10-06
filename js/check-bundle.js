@@ -201,12 +201,9 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
       /* AND THE LINES INSIDE IT ARE THE MONTH FOLDERS, `May 2017` / `June 2017` / `November 2017` --
          they listed `Summer 2017` and `Autumn 2017` under a Month question offering May and June. */
       groups: ['May 2017', 'June 2017', 'November 2017'] },
-    /* THE BUCKET, which is what the Year question offers first: four sittings, twelve papers. */
-    { name: '2017 & 2018, Higher',
-      filters: DOORS.concat([{ field: 'tier', value: 'Higher' },
-                             { field: 'examYear', value: '2017 & 2018', bucket: true }]),
-      want: papersIn(r => MATHS(r) && r.tier === 'Higher' && ['2017', '2018'].includes(String(r.year))),
-      title: ['Edexcel', 'Maths', '2017 & 2018'] },
+    /* `2017 & 2018` WAS HERE — the Year question's bucket. The owner took the buckets out (6 Oct:
+       *"No more of these artificial categories"*), so that filter matches nothing now; the overlap
+       it stood for below is the whole-year folder, which holds the June papers and more. */
   ];
   cases.forEach(c => {
     if (c.want.size < 2) {
@@ -335,12 +332,12 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
   }
   /* AND AN OVERLAPPING BUNDLE, which is where "not twice" is actually decided. Pressing the same
      bundle again is stopped before the handler by the tile itself — it is drawn filled and off once
-     every paper is in — so that press proves the tile, not the rule. `2017 & 2018` holds the two
-     June 2017 papers already in the basket and the rest of both years; its trolley is live, and
+     every paper is in — so that press proves the tile, not the rule. `2017, Higher` holds the two
+     June 2017 papers already in the basket and the rest of that year; its trolley is live, and
      pressing it must add the rest and only the rest. Found by name rather than by position, so a
      case added above it cannot quietly make this press a different bundle. */
   const had = b.CART().map(c => Object.assign({}, c));
-  const wide = cases.find(c => c.name === '2017 & 2018, Higher');
+  const wide = cases.find(c => c.name === '2017, Higher');
   narrow(wide.filters);
   if (!trolley()) {
     bad.push('the overlapping bundle (' + wide.name + ') has no trolley to press');
@@ -354,7 +351,7 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
     }
     if (!sameSet(new Set(keys), wide.want)) {
       bad.push('after the overlapping bundle the basket holds [' + list(new Set(keys)) + '] where '
-               + 'the two sittings are [' + list(wide.want) + ']');
+               + 'the year holds [' + list(wide.want) + ']');
     }
   }
   b.setCart(had);

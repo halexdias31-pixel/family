@@ -189,8 +189,8 @@ const post = (b, body) => { asked++; return b.post(body); };
     if (!sent.length || sent[0].body.indexOf(ben.verify_token) === -1) no('the confirmation link did not go to the grown-up', sent);
     else if (sent[0].body.indexOf('@' + ben.handle) === -1) no('the grown-up\'s email does not say the handle the child signs in with');
     const early = signIn(b, ben.handle, ZERO);
-    if (early.success) no('the child signed in before the grown-up said yes');
-    else if (early.why !== 'pending' || /inbox for the link/.test(S(early.error))) no('a child with no inbox was told to check their inbox', early);
+    /* THE OWNER, 6 Oct: no waiting on an email to sign in. The child is in before anybody opens it. */
+    if (!early.success) no('the child could not sign in before the grown-up opened the link — an email is not a door', early);
     const yes = post(b, { action: 'verifyEmail', token: ben.verify_token });
     if (!yes.success || yes.linkedTo !== 'Mia Mum') no('the grown-up opening the link did not put the child on their account', yes);
     const inn = signIn(b, ben.handle, ZERO);
@@ -472,7 +472,7 @@ let whoRules = 0;
   if (dana) {
     rule(S(dana.role) === 'client', 'a parent who said they were a parent was written "' + S(dana.role) + '", not client — Settings will not offer to make their child\'s account');
     rule(reg.role === 'parent', 'register\'s reply does not say the account is a parent\'s', reg.role);
-    rule(S(dana.verified).toUpperCase() === 'PENDING', 'a parent\'s account works before the link is opened — the address proves nothing', dana.verified);
+    rule(S(dana.verified).toUpperCase() === 'PENDING', 'a parent\'s address counts as confirmed before the link is opened — the digest would mail a typo', dana.verified);
     const mail = mailTo('dana@example.org', m0)[0];
     rule(mail && /Make your child's account/.test(S(mail.body)), 'the parent\'s confirmation email does not say where their child\'s account is made', mail && mail.body);
     post(b, { action: 'verifyEmail', token: dana.verify_token });

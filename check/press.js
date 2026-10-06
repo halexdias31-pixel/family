@@ -1004,25 +1004,36 @@ for (const who of VISITORS) {
       go('stuff', false, true);
       /* A CARD THAT IS STILL TALL. 8464/B/1H Q02.4 was the one, and it stopped being tall when its
          stem became a page of its own and a long part was cut between paragraphs (`partChunks_`).
-         This worksheet question is one paragraph of 1,173 characters -- a transcription with no
-         breaks in it, which the cut will not break inside -- so it is tall on every phone. */
-      const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-probability-tree-diagrams-12');
+         The next was a probability-tree worksheet question, one 1,173-character paragraph -- until
+         the 1st Class Maths sheets were transcribed properly (6 Oct) and it fitted. This one is
+         `check/cards.js`'s tallest card: 521px past the pane at 320, and still past it at 390. */
+      const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
       const facet = FACETS.find(f => f.field === 'paperId');
       STUFF.q = ''; STUFF.filters = want && facet ? [{ field: 'paperId', value: facet.of(want) }] : [];
       paintStuff(true);
       await new Promise(r => setTimeout(r, 400));
       const items = stuffFiltered();
-      const i = items.findIndex(x => x.row && x.row.row_id === 'Q-1CM-probability-tree-diagrams-12');
+      const i = items.findIndex(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
       if (i < 0) return null;
       /* BY PAGE, NOT BY RESULT — a practical is four pages, so a result's index is not its page
          once one sorts ahead of it. `stuffPageOf_` is the app's own mapping. */
-      goPage('stuff', stuffPageOf_(items[i]) + stuffFirstResult_(), true);
+      /* AND ITS TALLEST PAGE, not its first: a question is a stem page, a card and its answers, and
+         which of them overflows is the transcription's business. Measured, then gone back to. */
+      const at = stuffPageOf_(items[i]) + stuffFirstResult_();
+      let best = null;
+      for (let p = at; p < at + 4; p++) {
+        goPage('stuff', p, true);
+        await new Promise(r => setTimeout(r, 400));
+        const pane = [...document.querySelectorAll('#s-stuff > .page')][domIndex_('stuff', PAGE.stuff || 0)]
+          .querySelector('.pane');
+        const room = pane ? pane.scrollHeight - pane.clientHeight : 0;
+        if (!best || room > best.room) best = { page: PAGE.stuff, room };
+      }
+      goPage('stuff', best.page, true);
       await new Promise(r => setTimeout(r, 600));
-      const pane = [...document.querySelectorAll('#s-stuff > .page')][domIndex_('stuff', PAGE.stuff || 0)]
-        .querySelector('.pane');
-      return { page: PAGE.stuff, room: pane.scrollHeight - pane.clientHeight };
+      return best;
     });
-    if (!tall || tall.room < 200) {
+    if (!tall || tall.room < 60) {      // enough for one swipe to scroll it and stay on the page
       /* A CHECK THAT CANNOT REACH ITS SUBJECT MUST SAY SO. If that row ever stops being tall this
          has to read as "not measured" rather than as a pass. */
       swipes.push({ from: 'stuff · a tall question card', dir: 'touch up', ok: false,

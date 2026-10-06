@@ -1118,17 +1118,20 @@ on('reg-send', el => {
          the box is the one place on the screen that stays put while they wait for their grown-up. */
       const handle = String((d && d.handle) || '');
       const box = $('in-name'); if (box) box.value = kid && handle ? '@' + handle : email;
-      toast(kid ? 'Nearly there — ask your grown-up to open the link we sent them. You sign in as '
-                  + (handle ? '@' + handle : 'your handle') + '.'
-                : 'Nearly there — open the link we have emailed you, then sign in.');
+      /* NO WAITING ON THE LINK — see the note over `verifyLogin`'s old PENDING refusal in dopost.gs.
+         The account works now; the link is said as what it is, a confirmation, not a door. */
+      toast(kid ? 'Account made — sign in now as ' + (handle ? '@' + handle : 'your handle')
+                  + ' with your PIN. Your grown-up has been sent a link to confirm.'
+                : 'Account made — sign in now with your PIN. We have also emailed you a link to confirm your address.');
     })
     .catch(() => {});      // `send_` has already said why
 });
 
 /* ---------- AND THE LINK IN THAT EMAIL ------------------------------------------------------------
    `register` MAILS `SITE_URL?verify=<token>` AND NOTHING READ IT. So every account made from the
-   form would have stayed PENDING, and `verifyLogin` refuses a PENDING row — a sign-up that worked
-   and an account that could never be used.
+   form would have stayed PENDING for ever. Signing in no longer waits on it (the owner, 6 Oct), but
+   an unconfirmed address is still one the digest will not mail, and a grown-up's link is what puts a
+   no-email child on their account.
 
    READ ONCE AT START-UP, FROM boot.js, and taken out of the address before anything is sent, the
    same way a shared `?post=` link should be: the token is single-use (dopost.gs clears it), so a

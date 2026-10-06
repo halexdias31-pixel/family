@@ -8313,6 +8313,7 @@ function questionPreCard_(x, j) {
    take the rest. A question and the box you answer it in are on one screen, which is the point. */
 const CHUNK_PAGE = 640;
 const PART_LAST = 300;
+const CHUNK_MIN = 160;          // a first page lighter than this joins the next -- see `packBlocks_`
 const CHUNK_BLOCK = /^(p|div|table|ul|ol|h[1-6]|blockquote|figure|pre|section|dl)$/i;
 const CHUNK_VOID = /^(br|img|hr|input|meta|link|col|wbr|source|area|base|param|track|embed)$/i;
 function htmlBlocks_(html) {
@@ -8343,6 +8344,13 @@ function packBlocks_(blocks, page, last) {
     if (cur.length && w + bw > cap) { out.unshift(cur); cur = []; w = 0; cap = page; }
     cur.unshift(blocks[i]); w += bw;
   }
+  /* NO PAGE FOR ONE SENTENCE. The owner, 6 Oct, on Corbettmaths Money Q3: *"it seems like its split
+     into 2 of 2 parts. why? there doesnt seem to be a diagram there"*. Four short lines weighed 363
+     against the card's 300, so "Lauren puts nine 20p pieces into her piggy bank." was given a page
+     of its own -- a swipe to read one sentence, and a "1 of 2" that looks like a missing part. The
+     budgets are guesses on the safe side; what is left over when the cut is this small costs a few
+     lines of scroll on the card at worst, and a page that is nearly empty is never better than that. */
+  if (cur.length && out.length && w < CHUNK_MIN) { out[0] = cur.concat(out[0]); return out; }
   if (cur.length || !out.length) out.unshift(cur);
   return out;
 }
