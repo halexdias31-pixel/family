@@ -892,7 +892,7 @@ function bucketTable_(pairs) {
    would be skipped by the one-answer rule, and the word the owner asked to see would never be on
    screen. */
 const KIND_BUCKET = bucketTable_([
-  ['Work through it',  ['Questions', 'Practicals', 'Projects']],
+  ['Work through it',  ['Questions', 'Answers', 'Practicals', 'Projects']],
   ['Read or watch it', ['Films', 'Resources']],
 ]);
 
@@ -1051,9 +1051,18 @@ const FACETS = [
     of: x => x.groups || kindOf_(x).group },
   /* `kindLabel` ON THE ITEM WINS, the same way `groups` does on the line above — so a thing placed
      under a group its kind does not belong to can also say what it is called there. */
+  /* ---------- `Answers` IS A KIND, BESIDE `Questions` ------------------------------------------------
+     THE OWNER, 6 Oct: *"The answers should just be another tag at the start of the funnel menu. You
+     complicated it."* It had been a hidden `Page` filter, reached by an `Answers only` switch tile on
+     every answer page. Now a question that has an answer answers this question twice -- `Questions`
+     and `Answers` -- and choosing `Answers` draws only the answer pages (`answersView_`), in the
+     question's order, open. Nothing else about a question changes. */
   { field: 'kindLabel',
     bucketOf: KIND_BUCKET, bucketOrder: KIND_BUCKET.order, label: 'What kind',   always: true,
-    of: x => x.kindLabel || kindOf_(x).label },
+    of: x => {
+      const k = x.kindLabel || kindOf_(x).label;
+      return x && x.kind === 'question' && questionHasAns_(x) ? [k, 'Answers'] : k;
+    } },
   /* ---------- THE THIRD DOOR: WHICH SHELF OF THE RESOURCES ---------------------------------------
      THE OWNER'S ROUTE IS "Learning → Resources → @family. textbooks → GCSE Statistics", and without
      this question there is no third rung to stand on. `Resources` is 260 rows of boxing and one
@@ -1483,22 +1492,6 @@ const FACETS = [
     of: x => x.cost == null ? ''
            : x.cost === 0 ? 'Free'
            : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
-  /* ---------- WHICH PAGES OF A QUESTION: ITS ANSWERS ONLY, OR EVERYTHING BUT THEM ----------------
-     ASKED FOR AS *"the answers should appear after their questions … they have their own tag. i
-     could in theory just click answers and only see answers."* An answer page is a page of its
-     question, straight after it -- that order is untouched -- and this is the second way to read
-     the same strip: `Answers` keeps only the answer pages of the questions that have one, `Questions`
-     everything else. Every answer page is still shut behind its own Show (`questionAnsCard_`).
-
-     A FILTER LIKE ANY OTHER, so it is a chip with a ✕ and narrows inside whatever is already chosen
-     (a paper's answers, a topic's). THE ITEM SAYS WHICH IT CAN BE (`of`); WHICH PAGES ARE DRAWN is
-     `stuffPages_`'s, because pages are built there and nowhere upstream.
-
-     `tagOnly`: NEVER ASKED BY THE FUNNEL. It is not a question about what somebody is looking for
-     -- it is a way of reading what they found, and it is reached by tapping an answer page's kind
-     tag (`answersOnly_`). `nextFacet` and `overFacet_` skip it. */
-  { field: 'pageKind',  label: 'Page',        tagOnly: true,
-    of: x => (x && x.kind === 'question' ? (questionHasAns_(x) ? ['Questions', 'Answers'] : ['Questions']) : '') },
 ];
 
 /* ==================================================================================================
@@ -2390,73 +2383,16 @@ function bucketHas_(facet, bucket, v) {
    SO THE RECOUNT GOES THROUGH `bucketHas_` — the same function `filterHit` uses — over the same
    items. The drawer and the filter cannot disagree because they are asking one function. That is
    `bandOf_`'s own argument and `documents_()`'s before it. */
-function bucketValues_(values, facet, items) {
-  if (values.length <= FACET_MAX_SHOWN) return values;
-
-  const made = bucketLabels_(values, facet);
-  if (!made || made.length < 2) return values;
-
-  /* ONE PASS OVER THE ITEMS, counting each into every bucket it can answer and each bucket once. */
-  const tally = {};
-  made.forEach(b => { tally[b] = 0; });
-  (items || []).forEach(x => {
-    const hit = {};
-    facetOwn_(facet, x).forEach(v => {
-      made.forEach(b => { if (bucketHas_(facet, b, v)) hit[b] = 1; });
-    });
-    Object.keys(hit).forEach(b => { tally[b] += 1; });
-  });
-  return made.map(b => ({ value: b, n: tally[b], bucket: true }));
-}
-
-/* WHICH BUCKETS, AS LABELS, IN THE ORDER THEY SHOULD BE DRAWN. Split out from the counting above so
-   that one function decides the edges and another decides the numbers — the counting is the part
-   that has to agree with `filterHit`, and the edges are the part a facet may override. */
-function bucketLabels_(values, facet) {
-  /* 1. THE FACET'S OWN GROUPING. */
-  if (facet && typeof facet.bucketOf === 'function') {
-    const seen = [];
-    let whole = true;
-    values.forEach(v => {
-      /* A GROUPING THAT THROWS STANDS DOWN RATHER THAN TAKING THE FUNNEL WITH IT. `bucketOf` is a
-         table lookup for eleven of these and a regex over a string for the other two, so nothing
-         here can throw today — and `filterHit` runs the same function per item per chip, so the
-         day one of them is a resolver over a file that has not landed, an unguarded call is the
-         Find screen rather than an ungrouped question. The house rule is fallbacks everywhere. */
-      let k = '';
-      try { k = facet.bucketOf(v.value); } catch (e) { k = ''; }
-      if (!k) { whole = false; return; }
-      if (seen.indexOf(k) === -1) seen.push(k);
-    });
-    /* EVERY VALUE OR NONE. A grouping that places most of them and drops the rest makes those
-       answers unreachable with nothing on screen saying so — the silent absence this codebase keeps
-       producing. One unplaced value and the whole rule stands down to the alphabet, which cannot
-       lose anything. */
-    if (whole && seen.length > 1 && seen.length <= FACET_MAX_SHOWN) {
-      /* THE ORDER THE TABLE WAS WRITTEN IN, because a grouping's rows are a sequence somebody
-         chose — heaviest division first, primary before A-level — and re-sorting them
-         alphabetically throws that away. A computed grouping has no table, so it falls back to
-         its labels; `bucketDesc` turns that round for the sittings, which read newest first
-         everywhere else on this screen. */
-      const order = facet.bucketOrder || [];
-      const out = seen.sort((a, b) => {
-        const ia = order.indexOf(a), ib = order.indexOf(b);
-        if (ia !== ib) return (ia < 0 ? 1e6 : ia) - (ib < 0 ? 1e6 : ib);
-        return a < b ? -1 : a > b ? 1 : 0;
-      });
-      return facet.bucketDesc ? out.reverse() : out;
-    }
-  }
-
-  /* ---------- 2 AND 3 WERE TENS AND THE ALPHABET, AND THEY ARE GONE ------------------------------
-     THE OWNER, 6 Oct: *"I don't want to break up the title of things. Like as you can see it's
-     broken up into letter and so on. I don't want this no more. Just let it all display ... Other
-     categories should reduce how many show up like grade."* A range of letters or numbers is not a
-     category, it is the same list cut where the alphabet happened to fall -- `C`, `E`, `O`, `P`
-     over FOUR topics, measured. So a list either has a real grouping (rule 1: a subject area, a
-     grade band, a level) or it is drawn whole, and a list too long to draw whole is not asked
-     (`FACET_MAX_ANSWERS` in `nextFacet`) until the other questions have narrowed it. */
-  return null;
+/* ---------- AND NOW NOTHING IS GROUPED AT ALL ---------------------------------------------------
+   THE OWNER, 6 Oct, on a screenshot of `Grades 1–3 | Grades 4–6 | Grades 7–9`: *"No more of these
+   artificial categories like grade 1-3."* The same day the letter and number ranges went (*"Just
+   display"*); this takes the facets' own tables with them -- grade bands, subject areas, levels,
+   divisions. A question draws the answers the items actually give, every one, and a list too long
+   to draw whole is not asked (`FACET_MAX_ANSWERS` in `nextFacet`) until the other questions have
+   narrowed it. `bucketHas_` and the tables stay: a chip saved on a phone before this still finds its
+   items, and `check-flow` reads the kind table to route its journeys. */
+function bucketValues_(values) {
+  return values;
 }
 
 
@@ -8772,8 +8708,13 @@ function questionHasAns_(x) {
    element is gone the moment its page is rebuilt, which is the `REEL_HELD` fault. Kept for the visit
    and not in `localStorage`: having asked for an answer last week is not having asked for it today. */
 const ANS_SHOWN = new Set();
+/* CHOOSING `Answers` IS THE ASK, so in that view every answer is open -- forty pages each reading
+   "Answer hidden" is not *"only see answers"* -- and Hide on one still hides it (`ANS_HID`). */
+const ANS_HID = new Set();
 function ansOpen_(x) {
-  return !!x && ANS_SHOWN.has(ansKey_(x));
+  if (!x) return false;
+  const k = ansKey_(x);
+  return ANS_SHOWN.has(k) || (answersView_() && !ANS_HID.has(k));
 }
 
 function questionAnsCard_(x) {
@@ -8804,9 +8745,7 @@ function questionAnsCard_(x) {
          reads too -- and the owner's word is that the two read the same thing. The page says what it
          is; whether to try first is the tutor's to say out loud, not the app's to say to one of them.
          Beside the tile rather than over it, so the row is the row's height whichever face it wears. */
-      open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}${
-      /* AND THE WAY TO READ ONLY ANSWERS, or back -- see `answersOnly_`. */
-      ansOnlyTile_(k)}</div>
+      open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}</div>
     ${open ? answerBlock_(x) : ''}
   </div>`;
 }
@@ -8837,7 +8776,7 @@ function ansItem_(k) {
 function ansSet_(x, open) {
   if (!x) return;
   const k = ansKey_(x);
-  if (open) ANS_SHOWN.add(k); else ANS_SHOWN.delete(k);
+  if (open) { ANS_SHOWN.add(k); ANS_HID.delete(k); } else { ANS_SHOWN.delete(k); ANS_HID.add(k); }
   document.querySelectorAll('.qans-card').forEach(el => {
     if (el.getAttribute('data-k') !== k) return;
     const t = document.createElement('div');
@@ -10562,73 +10501,20 @@ function stuffPages_() {
      are built, and not in `stuffFiltered`: every count the funnel makes is of what MATCHED, and the
      parts brought along are reading, not results. */
   const seq = wholeQuestions_(items);
-  /* AND ONLY THE ANSWERS, OR ONLY EVERYTHING ELSE, when the `Page` filter says -- see `pageKind`.
-     Built in full and then kept, so every page that is drawn is the page it would have been: a stem
-     is skipped by the same rule either way. */
-  const only = pageOnly_();
+  /* AND ONLY THE ANSWERS when `Answers` is the kind chosen -- see `kindLabel`. Built in full and then
+     kept, so every page that is drawn is the page it would have been. */
+  const only = answersView_();
   seq.forEach((x, i) => pageParts_(x, seq[i - 1]).forEach(part => {
-    if (only === 'Answers' ? part !== 'ans' : only === 'Questions' ? part === 'ans' : false) return;
+    if (only && part !== 'ans') return;
     pages.push({ x: x, part: part });
   }));
   STUFF_PAGES = { from: items, pages: pages };
   return pages;
 }
 
-/* THE `Page` FILTER IN FORCE, the last one pressed -- '' when there is none. */
-function pageOnly_() {
-  const f = (STUFF.filters || []).filter(f => f && f.field === 'pageKind' && !f.any).pop();
-  return f ? String(f.value) : '';
-}
-/* ---------- "JUST CLICK ANSWERS AND ONLY SEE ANSWERS" ------------------------------------------------
-   A TILE ON EVERY ANSWER PAGE IS THE DOOR (`ansOnlyTile_`): `Answers only` narrows Find to the answer
-   pages of whatever is chosen -- one paper's answers, a topic's -- as the `Page: Answers` chip, and on
-   that view the same tile is lit, and pressing it again takes the chip off (so does its ✕). A second
-   press never stacks a second chip.
-
-   IT WAS A TAP ON THE ANSWER PAGE'S KIND TAG, and the review found nobody could reach it: the tag row
-   carried no "Answer" tag, the header's "Q1 · answer" is not a tag, and the journey passed only because
-   it added the tag itself before tapping it -- a green check over a door nobody could see. A tag is a
-   label and not a control here (`qTags_`), so the door is a tile, as every action on a question's pages
-   is (CLAUDE.md). The tag row is free to become a second door the same way: anything carrying
-   `data-do="qa-only"` runs this, and no words are matched.
-
-   FROM SAVED OR SPOTLIGHT the strip it narrows is Find's, and what was chosen on Find has nothing to do
-   with the answer pressed -- so there it is THAT PAPER's answers, and the screen turns to Find.
-
-   AND THE ANSWERS ARE OPEN. Forty-one pages in a row each reading "Answer hidden", one Show per page, is
-   not *"only see answers"*. Choosing the view IS the person asking -- the one tap the owner's rule wants
-   (*"you should have to click to reveal the answer"*) -- so every answer in it is shown for this visit,
-   exactly as forty-one Shows would have shown them, and Hide on any one still hides it. */
-function answersOnly_(el) {
-  const k = el && el.getAttribute ? el.getAttribute('data-k') : '';
-  const scr = el && el.closest ? el.closest('.screen') : null;
-  const elsewhere = !!scr && scr.id !== 's-stuff';
-  if (elsewhere) {
-    const x = ansItem_(k);
-    const pid = x ? paperIdOf_(x.row) : '';
-    STUFF.q = '';
-    STUFF.filters = pid ? [{ field: 'paperId', value: pid }] : [];
-  }
-  STUFF.filters = (STUFF.filters || []).filter(f => !(f && f.field === 'pageKind'));
-  STUFF.filters.push({ field: 'pageKind', value: 'Answers' });
-  try { stuffPages_().forEach(pg => { if (pg.part === 'ans') ANS_SHOWN.add(ansKey_(pg.x)); }); } catch (e) {}
-  if (typeof AT !== 'undefined' && AT !== 'stuff' && typeof go === 'function') go('stuff');
-  if (typeof paintStuff === 'function') paintStuff();
-}
-function answersAll_() {
-  STUFF.filters = (STUFF.filters || []).filter(f => !(f && f.field === 'pageKind'));
-  if (typeof paintStuff === 'function') paintStuff();
-}
-on('qa-only', el => answersOnly_(el));
-on('qa-all', () => answersAll_());
-/* THE TILE IS A SWITCH, as the pen's lock is: one name, `Answers only`, lit and `aria-pressed` while the
-   view is on, and pressing it lit turns it off (`qa-all`). `funnel` because it is the funnel's own act --
-   a narrowing, with a chip. At the row's far end (`.qa-only` in style.css), so it stands in one place
-   whether the answer beside the eye is hidden or shown. */
-function ansOnlyTile_(k) {
-  const on = pageOnly_() === 'Answers';
-  return tile_({ icon: 'funnel', label: 'Answers only', note: on ? 'tap for questions too' : 'skip questions',
-                 act: on ? 'qa-all' : 'qa-only', cls: 'qa-only', on: on, pressed: on, data: on ? null : { k: k } });
+/* IS `Answers` THE KIND CHOSEN? -- the one switch the answers view hangs on. */
+function answersView_() {
+  return (STUFF.filters || []).some(f => f && f.field === 'kindLabel' && !f.any && f.value === 'Answers');
 }
 
 /* ---------- THE LAST LINE UNDER A CHOSEN PAPER COUNTS WHAT THE STRIP HOLDS -------------------------
@@ -10644,7 +10530,7 @@ function paperEnd_(items) {
   const seq = wholeQuestions_(items);
   const qs = new Set(seq.map(x => qId_(x) || x)).size;
   const searched = !!String(STUFF.q || '').trim();
-  if (pageOnly_() === 'Answers') {
+  if (answersView_()) {
     const a = stuffPages_().length;
     return `<p class="find-end">${searched ? 'The answers it found.' : 'The paper&rsquo;s answers, in order.'}
         <b>Swipe up for ${a === 1 ? 'the one answer' : 'its ' + a + ' answers'}.</b></p>`;

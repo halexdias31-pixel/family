@@ -10337,91 +10337,68 @@ check('multipart: a figure the words name and nobody drew is a "not drawn yet" p
   return bad;
 });
 
-/* THE OWNER: *"they have their own tag. i could in theory just click answers and only see answers."*
-   THE DOOR IS THE REAL ANSWER PAGE'S OWN TILE, found on the card as `questionAnsCard_` draws it -- and
-   if the card has none, this FAILS. It used to put an "Answer" tag on the page itself before tapping it,
-   and so passed over a door nobody could see (the review of the merge). Pressed, it shows only answer
-   pages, in order, OPEN -- choosing the view is asking for them -- with Hide still hiding one, and the
-   same tile, lit and pressed, takes the view off. From Saved, it is that paper's answers. */
-check('multipart: an answer page\'s "Answers only" switch shows only answer pages, open, and pressed again takes it off', async () => {
+/* THE OWNER: *"they have their own tag. i could in theory just click answers and only see answers."* --
+   and then, 6 Oct: *"The answers should just be another tag at the start of the funnel menu. You
+   complicated it."* So `Answers` is one of What kind's answers, beside `Questions`. Chosen, the strip is
+   the answer pages only, in order, OPEN -- choosing it is asking for them -- with Hide still hiding one;
+   its chip's cross takes it off. No tile on the answer page offers it any more. */
+check('multipart: "Answers" is a kind at the start of the funnel, and choosing it shows only answer pages, open', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
   const bad = [];
-  const need = ['questionAnsCard_', 'stuffPages_', 'nextFacet', 'facetList', 'stuffPart_'].filter(n => typeof w[n] !== 'function');
-  if (need.length) return [need.join(', ') + ' not reachable — the answers-only view was NOT checked'];
+  const need = ['questionAnsCard_', 'stuffPages_', 'facetValues', 'facetList', 'stuffPart_', 'stuffFiltered'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the answers view was NOT checked'];
   const A = w.__t.ACTIONS;
-  if (!A['qa-only'] || !A['qa-all']) return ['qa-only or qa-all has no handler — the answers-only door goes nowhere'];
   const lib = mpLibrary_(w, mpBank_());
   const S = w.__t.STUFF();
-  const card = (x, where) => {
-    const scr = d.getElementById(where || 's-stuff');
-    const host = d.createElement('div');
-    host.className = 'page';
-    host.innerHTML = w.questionAnsCard_(x);
-    scr.appendChild(host);
-    return host;
-  };
   try {
-    S.q = ''; S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    /* OFFERED AT THE START, as a kind. */
+    S.q = ''; S.filters = [];
+    const kind = w.facetList().find(x => x.field === 'kindLabel');
+    const said = x => { try { return [].concat(kind.of(x)); } catch (e) { return []; } };
+    const withAns = lib.items.find(x => x.name === 'Q8(i)');
+    const kinds = kind ? said(withAns) : [];
+    if (kinds.indexOf('Answers') === -1) bad.push('a question with an answer tells What kind ' + JSON.stringify(kinds) + ' -- no "Answers" beside its own kind');
+    if (kinds.length < 2) bad.push('choosing answers took the question\'s own kind off What kind');
+    const noAns = lib.items.find(x => x.kind === 'question' && !w.questionHasAns_(x));
+    if (noAns && said(noAns).indexOf('Answers') !== -1) bad.push(noAns.name + ' has no answer and still says "Answers"');
+    if (w.facetList().some(x => x.field === 'pageKind')) bad.push('the old hidden Page filter is still a facet');
+    /* AND NO TILE ON THE ANSWER PAGE ANY MORE. */
     const a = lib.items.find(x => x.name === 'Q8(i)');
-    const host = card(a);
-    const door = host.querySelector('.qans-card [data-do="qa-only"]');
-    if (!door) { host.remove(); return ['the answer page draws no "Answers only" tile -- nothing on the screen offers answers-only']; }
-    if (!door.classList.contains('tile')) bad.push('the answers-only door is not a tile -- every action on a question\'s pages is (CLAUDE.md)');
-    A['qa-only'](door);
-    host.remove();
-    const f = S.filters.filter(x => x.field === 'pageKind');
-    if (f.length !== 1 || f[0].value !== 'Answers') bad.push('pressing "Answers only" left the filters as ' + JSON.stringify(S.filters));
-    if (!S.filters.some(x => x.field === 'paperId')) bad.push('pressing "Answers only" on Find threw away the paper already chosen');
+    const h0 = d.createElement('div'); h0.innerHTML = w.questionAnsCard_(a);
+    if (h0.querySelector('[data-do="qa-only"], [data-do="qa-all"]')) bad.push('the answer page still draws the "Answers only" switch');
+    /* CHOSEN: only answer pages, in order, open. */
+    S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Answers' }];
     const pages = w.stuffPages_();
-    const kinds = [...new Set(pages.map(pg => pg.part))];
-    if (!pages.length || kinds.length !== 1 || kinds[0] !== 'ans') bad.push('the answers-only strip holds ' + JSON.stringify(kinds) + ', wanted answer pages and nothing else');
+    const parts = [...new Set(pages.map(pg => pg.part))];
+    if (!pages.length || parts.length !== 1 || parts[0] !== 'ans') bad.push('the Answers strip holds ' + JSON.stringify(parts) + ', wanted answer pages and nothing else');
     const names = pages.map(pg => pg.x.name).join(' ');
-    if (names !== 'Q8(i) Q8(ii)') bad.push('the answers-only strip is "' + names + '", wanted Q8(i) Q8(ii) -- the answers there are, in order');
+    if (names !== 'Q8(i) Q8(ii)') bad.push('the Answers strip is "' + names + '", wanted Q8(i) Q8(ii) -- the answers there are, in order');
     pages.forEach(pg => {
       const h = d.createElement('div');
       h.innerHTML = w.stuffPart_(pg.x, 'ans');
       const c = h.querySelector('.qans-card');
-      if (!c || c.classList.contains('is-hidden') || !/50°|angles on a line/.test(h.textContent)) bad.push(pg.x.name + '\'s answer is shut in the answers-only view -- "only see answers" is forty Shows in a row otherwise');
-      const sw = c && c.querySelector('[data-do="qa-all"]');
-      if (!sw || sw.getAttribute('aria-pressed') !== 'true') bad.push(pg.x.name + '\'s answer page in the answers-only view has no lit "Answers only" switch to leave it by');
+      if (!c || c.classList.contains('is-hidden') || !/50°|angles on a line/.test(h.textContent)) bad.push(pg.x.name + '\'s answer is shut in the Answers view -- "only see answers" is forty Shows in a row otherwise');
     });
     /* HIDE STILL HIDES ONE. */
     if (A['qa-hide'] && pages[0]) {
-      const h = card(pages[0].x);
-      const hide = h.querySelector('[data-do="qa-hide"]');
-      if (!hide) bad.push('an open answer in the answers-only view has no Hide');
+      const host = d.createElement('div'); host.className = 'page';
+      host.innerHTML = w.questionAnsCard_(pages[0].x);
+      d.getElementById('s-stuff').appendChild(host);
+      const hide = host.querySelector('[data-do="qa-hide"]');
+      if (!hide) bad.push('an open answer in the Answers view has no Hide');
       else {
         A['qa-hide'](hide);
         const again = d.createElement('div');
         again.innerHTML = w.stuffPart_(pages[0].x, 'ans');
-        if (!again.querySelector('.qans-card.is-hidden')) bad.push('Hide did not hide an answer in the answers-only view');
+        if (!again.querySelector('.qans-card.is-hidden')) bad.push('Hide did not hide an answer in the Answers view');
       }
-      h.remove();
+      host.remove();
     }
-    /* PRESSED AGAIN, IT TAKES IT OFF, and the paper stays. */
-    const back = card(a);
-    A['qa-all'](back.querySelector('[data-do="qa-all"]') || back);
-    back.remove();
-    if (S.filters.some(x => x.field === 'pageKind')) bad.push('pressing the lit switch left the Page filter on');
-    if (!S.filters.some(x => x.field === 'paperId')) bad.push('pressing the lit switch threw away the paper');
-    /* FROM SAVED: that paper's answers, whatever Find had. */
-    S.q = 'eighteen'; S.filters = [{ field: 'paperId', value: 'P-MP-V' }];
-    const sv = card(a, 's-saved');
-    const sdoor = sv.querySelector('[data-do="qa-only"]');
-    if (!sdoor) bad.push('the answer page on Saved draws no "Answers only" tile');
-    else {
-      A['qa-only'](sdoor);
-      const pid = (S.filters.find(x => x.field === 'paperId') || {}).value;
-      if (pid !== 'P-MP-W' || S.q) bad.push('"Answers only" pressed on Saved narrowed Find to ' + JSON.stringify(S.filters) + ' / "' + S.q + '", wanted that question\'s paper, P-MP-W, and no search');
-    }
-    sv.remove();
-    /* AND IT IS NEVER ASKED: the funnel offers it to nobody. */
-    if (!w.facetList().some(x => x.field === 'pageKind' && x.tagOnly)) bad.push('the Page filter is not a tag-only facet');
-    S.filters = []; S.q = '';
-    const asked = w.nextFacet(w.stuffFiltered());
-    if (asked && asked.field === 'pageKind') bad.push('the funnel asks "Page" as a question');
+    /* AND "Questions" IS AS IT WAS: questions with their answers after them. */
+    S.filters = [{ field: 'paperId', value: 'P-MP-W' }, { field: 'kindLabel', value: 'Questions' }];
+    if (!w.stuffPages_().some(pg => pg.part !== 'ans')) bad.push('choosing Questions shows no question pages');
   } finally { lib.put(); S.q = ''; S.filters = []; if (w.__t.go) { try { w.__t.go('stuff', false, true); } catch (e) {} } }
   return bad;
 });
@@ -10483,7 +10460,7 @@ check('multipart: the line under a chosen paper counts questions, names a search
     [['q8', [], /swipe up for Q8\./, '"q8" in the paper -- one question with two parts'],
      ['reasonword', [], /swipe up for Q8\./, 'a word found in Q8(ii) alone -- the strip holds Q8 whole'],
      ['', [], /Swipe up for its 6 questions\./, 'the whole paper -- Q1, Q8, Q14, Q18, Q20, Q21, each counted once however many parts'],
-     ['', [{ field: 'pageKind', value: 'Answers' }], /Swipe up for its 2 answers\./, 'the answers-only view'],
+     ['', [{ field: 'kindLabel', value: 'Answers' }], /Swipe up for its 2 answers\./, 'the Answers view'],
     ].forEach(([q, more, want, what]) => {
       const got = say(q, more);
       if (!want.test(got)) bad.push(what + ': "' + got + '"');

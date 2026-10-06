@@ -112,3 +112,15 @@ counts the inactive parents. Six figures moved in front of the ask with the exis
 marker (no code reads a `figpos` column). 37 `uses` rows agreed exactly with the pen branch's 39.
 Rejected: thirteen "openings" whose later part stands alone ("a different sequence", "Roy's
 enlargement") — those sentences were part (a)'s own.
+
+### Answers is a kind now, not a switch (6 Oct)
+
+The owner: *"I don't like how you've done the answers system. The answers should just be another
+tag at the start of the funnel menu. You complicated it."* It had become a hidden `pageKind` filter
+(`tagOnly`, never asked), an `Answers only` switch tile on every answer page with two handlers
+(`qa-only`, `qa-all`), and a special route from Saved. All of it is gone. `kindLabel` — What kind,
+the first question — now gives a question that has an answer two values, its own kind and
+`Answers`, so `Answers` sits among Films, Practicals, Projects, Questions and Resources, and is a
+chip like any other. `answersView_()` reads that chip: the strip keeps only the answer pages, in
+order, open (`ansOpen_`; Hide still hides one, through `ANS_HID`). `KIND_BUCKET` lists it beside
+Questions so `check-funnel`'s table rule holds.
