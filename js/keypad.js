@@ -235,17 +235,66 @@ function kpRoom_(inp, pad) {
     if (oy === 'auto' || oy === 'scroll') break;
     el = el.parentNode;
   }
-  if (!el || el === document.body) return;
-  const h = pad.getBoundingClientRect().height;
-  KP_ROOM = { el: el, was: el.style.paddingBottom };
-  el.style.paddingBottom = h + 'px';
-  const over = inp.getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12);
-  if (over > 0) el.scrollTop += over;
+  if (el && el !== document.body) {
+    const h = pad.getBoundingClientRect().height;
+    KP_ROOM = { el: el, was: el.style.paddingBottom };
+    el.style.paddingBottom = h + 'px';
+    const over = inp.getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12);
+    if (over > 0) el.scrollTop += over;
+    /* A SCROLLER WITH NOTHING LEFT TO GIVE leaves the rest to the column, below. */
+    if (inp.getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12) <= 0) return;
+  }
+  kpLift_(inp, pad);
 }
 function kpRoomBack_() {
-  if (!KP_ROOM) return;
-  KP_ROOM.el.style.paddingBottom = KP_ROOM.was;
-  KP_ROOM = null;
+  if (KP_ROOM) {
+    KP_ROOM.el.style.paddingBottom = KP_ROOM.was;
+    KP_ROOM = null;
+  }
+  /* AND THE COLUMN PUT BACK WHERE IT WAS HELD — only if it is still the hold the lift was written on.
+     A swipe away has already let go of it (`placeGrid`), and the card arrived at is centred. */
+  const L = KP_LIFT;
+  KP_LIFT = null;
+  if (L && L.lift) {
+    L.lift = 0;
+    try { if (HOLD_AT === L) placeCells('y', true, 0, L.id); } catch (e) {}
+  }
+}
+
+/* ---------- A CARD WITH NOTHING TO SCROLL IS LIFTED WHOLE -----------------------------------------
+   MEASURED ON 5 OCTOBER, AFTER THE CARD IN FRONT WAS CENTRED: at 320x568 the pad's top is at 315px
+   and every answer box on a paper's question card bottomed out at 317–327px — under the pad on 8
+   pages of 8, against 1 of 8 when cards hung from the top line. A card whose content fits is
+   `overflow: hidden`, so the scroller search above finds nothing and the box stayed where it was,
+   and the hold on focus (`HOLD_AT`) then kept it there.
+
+   SO THE COLUMN GOES UP INSTEAD, by exactly what the box is short of, through the same hold —
+   `columnShift_` reads `lift` — so a box that grows as you type grows downward from a card that is
+   no longer moving, and swiping away lets go of both at once.
+
+   WORKED OUT FROM WHERE THE COLUMN IS GOING, NOT WHERE IT IS DRAWN. A box's distance from the top of
+   its column does not change when the column moves, so: the column's unmoved top, plus the shift it
+   is held at with no lift, plus that distance. A rectangle read off a column still settling would
+   lift by the wrong amount and keep it. */
+let KP_LIFT = null;
+function kpLift_(inp, pad) {
+  try {
+    const pg = inp.closest('#screen .page.on');
+    const host = pg && pg.parentElement;
+    if (!host || host.id !== 's-' + AT) return;
+    if (!HOLD_AT || HOLD_AT.id !== AT || HOLD_AT.p !== (PAGE[AT] || 0)) holdHere_(inp);
+    const h = HOLD_AT;
+    if (!h || h.id !== AT) return;
+    h.lift = 0;
+    const want = columnShift_(host, domIndex_(AT, PAGE[AT] || 0));
+    const base = (host.offsetParent || host.parentElement).getBoundingClientRect().top + host.offsetTop;
+    const fromTop = inp.getBoundingClientRect().bottom - host.getBoundingClientRect().top;
+    const over = base + want + fromTop - (pad.getBoundingClientRect().top - 12);
+    if (!isFinite(over) || over <= 0) return;
+    h.lift = over;
+    KP_LIFT = h;
+    placeCells('y', true, 0, AT);
+  } catch (e) { /* a box left where it was is the behaviour before this existed */ }
 }
 
 /* ---------- WHAT A KEY DOES -----------------------------------------------------------------------

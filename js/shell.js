@@ -1009,7 +1009,11 @@ function columnShift_(host, at) {
   if (h && host.id === 's-' + h.id && (PAGE[h.id] || 0) === h.p && at === domIndex_(h.id, h.p)
       && h.vp === innerWidth + 'x' + innerHeight) {
     const room = boxH - cur.offsetHeight;
-    return (room <= 0 ? 0 : Math.max(0, Math.min(room, h.top))) - cur.offsetTop;
+    /* `lift` IS THE MATHS KEYPAD'S, and only the keypad's — see `kpLift_` in keypad.js. After the
+       clamp, because it is the one case where a card is meant to go above the glass: the phone's own
+       keyboard pushes a page up out of sight to keep the line being typed on in view, and so does
+       this. Taken off again when the pad goes away. */
+    return (room <= 0 ? 0 : Math.max(0, Math.min(room, h.top))) - (h.lift || 0) - cur.offsetTop;
   }
   return Math.max(0, (boxH - cur.offsetHeight) / 2) - cur.offsetTop;
 }
@@ -1035,7 +1039,7 @@ function columnShift_(host, at) {
    KEYED ON THE PAGE'S NUMBER, NOT ITS ELEMENT: the funnel repaints the whole column on a press, and
    the page you are on is the same page in new markup. And on the size of the window, so turning
    the phone round centres again. */
-let HOLD_AT = null;      // { id, p, top, vp } — the card being used, and where its top is held
+let HOLD_AT = null;      // { id, p, top, vp, lift } — the card being used, where its top is held, and how far the keypad lifted it
 
 function holdHere_(t) {
   try {

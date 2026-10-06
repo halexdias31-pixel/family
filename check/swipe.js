@@ -42,7 +42,7 @@
      node check/swipe.js --verbose  every gesture, not only the failures
      node check/swipe.js --only=cell,focus --width=390
                                     some of it: cell folded axis tile slide other centre focus
-                                    field hold widgets cost reduced — for proving one rule by mutation
+                                    field hold keypad widgets cost reduced — for proving one rule by mutation
                                     without waiting six minutes for all of them. A run narrowed
                                     this way says so, and is never what the roster runs.
    SWIPE_PORT pins the port; unset, the OS picks a free one, so parallel runs cannot collide.
@@ -715,6 +715,68 @@ async function gesture(env, o) {
         }
         await page.evaluate(() => { STUFF.filters = []; paintStuff(); goPage('stuff', 0, true); });
       }
+    }
+
+    /* ---------- 8c. THE ANSWER BOX STAYS ABOVE THE KEYPAD ----------------------------------------
+       FOUND BY THE REVIEW OF THIS BRANCH: a card centred on the screen sits lower than one hung from
+       the old top line, and at 320x568 every maths answer box on a paper's question cards ended up
+       under the pad — 8 pages of 8, against 1 of 8 before. `kpRoom_` only scrolled a scroller, and a
+       card whose content fits has none. So: a real tap on each answer box on the first few question
+       pages of one paper, and the box's bottom must be 12px or more above the pad's top — the margin
+       `kpRoom_` itself keeps. AND PUT BACK: the pad closed, the card is where it was before the tap,
+       because a lift that outlives the pad is a card hanging off the top for no reason. */
+    if (want('keypad')) {
+      const PAPER = 'RS1786302107764-481';
+      const pages = await page.evaluate(async id => {
+        await window.__sw.place('stuff', 0);
+        STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: id }]; paintStuff(true);
+        await window.__sw.still('stuff');
+        const host = document.getElementById('s-stuff'), out = [], n = AXES.y.count('stuff');
+        for (let p = 0; p < n && out.length < 5; p++) {
+          goPage('stuff', p, true);
+          await new Promise(r => setTimeout(r, 120));
+          if (host.querySelector(':scope > .page.on .kp-in')) out.push(p);
+        }
+        return out;
+      }, PAPER);
+      if (!pages.length) fail('REACH', `${at} keypad`, `paper ${PAPER} has no question page with a maths answer box — nothing was asked`);
+      let asked = 0, worst = Infinity;
+      for (const p of pages) {
+        const box = await page.evaluate(async p => {
+          try { if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); } catch (e) {}
+          goPage('stuff', p, true);
+          await window.__sw.still('stuff');
+          const inp = document.querySelector('#s-stuff > .page.on .kp-in');
+          const pg = document.querySelector('#s-stuff > .page.on');
+          if (!inp || !pg) return null;
+          const r = inp.getBoundingClientRect();
+          return { x: Math.round(r.left + Math.min(20, r.width / 2)), y: Math.round(r.top + r.height / 2), top: pg.getBoundingClientRect().top };
+        }, p);
+        if (!box || box.y < 5 || box.y > H - 5) continue;
+        const T0 = Date.now();
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', timestamp: T0 / 1000, touchPoints: [{ x: box.x, y: box.y, id: 1, radiusX: 8, radiusY: 8, force: 1 }] });
+        await sleep(50);
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', timestamp: (T0 + 50) / 1000, touchPoints: [] });
+        const r = await page.evaluate(async () => {
+          await window.__sw.still('stuff');
+          const kp = document.getElementById('kp'), inp = document.activeElement;
+          if (!kp || kp.hidden || !inp || !inp.classList || !inp.classList.contains('kp-in')) return { open: false };
+          const gap = kp.getBoundingClientRect().top - inp.getBoundingClientRect().bottom;
+          inp.blur();
+          await new Promise(r => setTimeout(r, 30));
+          await window.__sw.still('stuff');
+          const pg = document.querySelector('#s-stuff > .page.on');
+          return { open: true, gap, top: pg ? pg.getBoundingClientRect().top : NaN, closed: kp.hidden };
+        });
+        if (!r.open) { fail('REACH', `${at} keypad stuff/${p}`, 'a tap on the answer box did not bring the keypad up'); continue; }
+        asked++; reached++;
+        worst = Math.min(worst, r.gap);
+        if (r.gap < 11.5) fail('KEYPAD COVERS', `${at} stuff/${p}`, `the answer box's bottom is ${r.gap.toFixed(1)}px above the pad's top (${r.gap < 0 ? 'under it' : 'too close'}) — the card was not lifted clear`);
+        if (r.closed && Math.abs(r.top - box.top) > 1) fail('KEYPAD COVERS', `${at} stuff/${p}`, `the pad closed and the card is ${(r.top - box.top).toFixed(1)}px from where it was before the tap — the lift outlived the pad`);
+      }
+      if (pages.length && !asked) fail('REACH', `${at} keypad`, 'no answer box was on the screen to tap — nothing was asked');
+      note(`${at} keypad: ${asked} answer box(es) tapped; closest to the pad ${isFinite(worst) ? worst.toFixed(1) + 'px' : '-'}`);
+      await page.evaluate(() => { STUFF.filters = []; paintStuff(true); goPage('stuff', 0, true); });
     }
 
     /* ---------- 9. ARRIVING AT A COLUMN OF WIDGETS STARTS THEM A FEW AT A TIME --------------------
