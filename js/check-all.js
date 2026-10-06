@@ -290,6 +290,17 @@ const SUITE = [
      on a busy container as on an idle one — and because the roster is the only thing that makes a
      check real. Fifty-seven seconds for both visitors. */
   { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true },
+  /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT ----------------------------------------
+     ASKED FOR ON 5 OCTOBER: *"can you make swiping and so on more stable ... focused widgets should
+     be in centre of screen. also those widgets not in focus should actually look slightly out of
+     focus effect."* `press.js` swipes from rest and twice on one axis; what a lab with real touch
+     found unstable was the rest of a thumb — a peek, a change of mind, a diagonal on a one-page
+     column, a second flick on the OTHER axis mid-slide, a tap on a card still moving, a field left
+     focused on a card that went — and the release restyling the whole document. This asks each of
+     those, and the two things the owner asked to see: the card in front centred within a pixel at
+     320 and 390, and the cards beside it out of focus. No port to collide on: unset, `SWIPE_PORT`
+     is 0 and the OS picks a free one. */
+  { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
   /* ---------- AND THE INSTRUMENT THAT WAS NEVER ON THIS LIST --------------------------------------
      `check/ui.js` IS THE APP'S MAIN MEASUREMENT — every combination of screen, state, width and
      visitor, for sideways scroll, tap targets, contrast, JS errors and content below a pane's own

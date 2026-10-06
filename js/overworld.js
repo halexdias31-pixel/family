@@ -387,8 +387,20 @@ function scrollHost_(target, axis, dir) {
 
    A phone's own lists have worked both ways for fifteen years, which is why a swipe that only
    answers to distance feels wrong before anybody can say why. */
-const THROW_PX = 56;          // far enough, in pixels
-const THROW_FRACTION = 0.18;  // ...or this much of the way to the next card, whichever is smaller
+/* ---------- AND "MOST OF THE WAY" HAD BECOME FIFTY-SIX PIXELS ----------------------------------------
+   IT WAS THE SMALLER OF 56px AND 18% OF THE STEP, which is 17% of a sideways step on a 390px phone and
+   about 7% of a tall card — not "most of the way there" by any reading. Measured on 5 October: drag
+   70px, hold still, lift, and the page turned 8 times in 8 on both axes. A peek at the next card
+   became a page turn, which is the app not believing you in the other direction.
+
+   NOW A THIRD OF THE STEP, BETWEEN 56 AND 120px — 100px across a 390px phone, 82px at 320, 120px
+   down a tall card and 75px down a short one. The cap is the old note's point kept: a thumb is the
+   same size in both directions, so a tall card may not ask for three times the travel a wide one
+   does. A FLICK IS UNTOUCHED — forty pixels and gone still turns the page, because `fast` below is
+   the other half and it did not change. */
+const THROW_PX = 56;          // far enough, in pixels, at the least
+const THROW_FRACTION = 0.3;   // ...a third of the way to the next card
+const THROW_MAX = 120;        // ...and never more than this, whichever card it is
 const FLICK = 0.4;            // fast enough, in pixels per millisecond
 
 /* Far enough, for this axis. A fraction of the actual step as well as a flat number, so the same
@@ -420,7 +432,7 @@ const THROW = axis => {
   /* THE ACTUAL STEP, both ways. `innerHeight * 0.5` was a guess at the vertical one and it did not
      match the guess the settle used or the one the axis used — three numbers for one distance. */
   const step = axis === 'x' ? stepX_() : stepY_();
-  return Math.min(THROW_PX, step * THROW_FRACTION) || THROW_PX;
+  return Math.min(THROW_MAX, Math.max(THROW_PX, (step || 0) * THROW_FRACTION));
 };
 
 /* POINTER EVENTS, NOT TOUCH EVENTS.
@@ -503,7 +515,23 @@ addEventListener('pointermove', e => {
      safer wrong answer, because scrolling is the thing people do a thousand times more often. */
   if (!SWIPE.axis) {
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-    const axis = Math.abs(dx) > Math.abs(dy) * 1.4 ? 'x' : 'y';
+    let axis = Math.abs(dx) > Math.abs(dy) * 1.4 ? 'x' : 'y';
+    /* ---------- UNLESS UP AND DOWN HAS NOWHERE TO GO --------------------------------------------
+       "THE SAFER WRONG ANSWER" ABOVE IS SAFE ONLY WHERE THERE IS A VERTICAL TO BE WRONG INTO. On a
+       one-page column — Saved, the Spotlight, Messages, the Find root — or a card already at the
+       end in the direction the thumb went, a diagonal handed to the vertical goes nowhere at all.
+       Measured on 5 October with real touch: a sideways swipe at 40°, 45° or 55° on those columns
+       did nothing 12 times in 12, and a thumb's sideways arc bowing 45px did nothing 3 in 4 (and
+       once went sideways, depending on which coalesced sample first crossed ten pixels). `AXES.y
+       .count()` never refused, because every column has a `PAGER` entry.
+       So a gesture leaning at least half as far sideways as it goes up or down, on a vertical with
+       no page that way and no box under the finger to scroll, belongs to the sideways axis. Up to
+       about 63° from flat — beyond that a thumb is going up, and nothing happening is the answer. */
+    if (axis === 'y' && Math.abs(dx) >= Math.abs(dy) * 0.5) {
+      const n = AXES.y.count(), at = AXES.y.at();
+      const nowhere = n <= 1 || (dy > 0 && at <= 0) || (dy < 0 && at >= n - 1);
+      if (nowhere && !scrollHost_(SWIPE.target, 'y', dy)) axis = 'x';
+    }
     const dir = axis === 'x' ? dx : dy;
     if (!AXES[axis].count() || !axisFree(SWIPE.target, axis, dir)) {
       /* ---------- THE GRID WILL NOT TAKE IT, SO SOMETHING UNDER THE FINGER MIGHT ------------------
@@ -533,8 +561,16 @@ addEventListener('pointermove', e => {
          moving 4px a frame, on every swipe. That twitch is the card not being stuck to the finger.
          So the travel at the moment the axis is chosen is taken off what is PLACED, which is what a
          native pager does with its touch slop. What is DECIDED — how far, which page — still reads
-         the whole travel, so the threshold to turn a page is where it always was. */
-      SWIPE.lock = dir;
+         the whole travel, so the threshold to turn a page is where it always was.
+         ---------- THE SLOP, AND NOT A PIXEL MORE ------------------------------------------------
+         IT WAS THE WHOLE TRAVEL AT THE MOMENT OF DECIDING, which is ten pixels only when every move
+         arrives. On a busy phone they arrive folded together: measured on 5 October, a sideways drag
+         whose first two `pointermove`s landed at 7px and then 132px locked at 132 — and the card
+         followed the finger 132px behind it for the whole gesture, a card visibly not under the
+         thumb. A native pager takes off its slop and nothing else, so this does too: ten pixels, the
+         same ten the decision waits for, and any travel past them is placed in that first frame,
+         because that is where the finger already is. */
+      SWIPE.lock = Math.sign(dir) * Math.min(Math.abs(dir), 10);
       SWIPE.last = AXES[axis].count() - 1;
       /* ---------- AND A CARD STILL SETTLING IS CAUGHT WHERE IT IS --------------------------------
          A SWIPE THAT STARTS WHILE THE LAST ONE IS STILL SLIDING used to snap the card to where it
@@ -571,13 +607,10 @@ addEventListener('pointermove', e => {
   if (e.cancelable) e.preventDefault();
   document.getSelection?.()?.removeAllRanges?.();
   SWIPE.d = travelled;
-  /* ONCE, not on every frame. `classList.add` on a class an element already has does nothing, but
-     asking is still a walk of every cell sixty times a second for an answer that cannot change
-     while the finger is down. */
-  if (!SWIPE.held) {
-    SWIPE.held = true;
-    SWIPE.cells.forEach(el => el.classList.add('no-anim'));
-  }
+  /* `no-anim` WAS ADDED TO THE DRAGGED CELLS HERE, and it switched off every transition on them —
+     including the OTHER axis's slide, which is the jump `colWrite_` in shell.js records. The drag's
+     own placement now zeroes the finger's axis alone, so there is nothing to set up here. */
+  SWIPE.held = true;
 
   /* ONE PLACEMENT PER FRAME THAT IS ACTUALLY DRAWN.
      `pointermove` fires as often as the screen can report a finger, which on a 120Hz phone is
@@ -614,7 +647,7 @@ addEventListener('pointermove', e => {
        whether a finger is on it or not — two would be two things to keep in step, which is how the
        axes came apart in the first place. */
     /* A DRAG AT EXACTLY NOUGHT IS STILL A DRAG. `placeCells` reads a falsy `dragPx` as "not a
-       drag" and books an ordinary placement, which takes `no-anim` off the columns — so the first
+       drag" and books an ordinary placement, which gives the columns their slide back — so the first
        frame after the dead zone, which now lands on 0 by construction, would have slid the grid
        instead of holding it under the finger. A hundredth of a pixel rounds to nothing on screen. */
     placeCells(SWIPE.axis, false, SWIPE.px || 0.01);
@@ -642,13 +675,19 @@ addEventListener('pointerup', e => {
   if (SWIPE.frame) { cancelAnimationFrame(SWIPE.frame); SWIPE.frame = 0; }
   if (!axis || !cells) return;
 
-  cells.forEach(el => el.classList.remove('no-anim'));
   const ax = AXES[axis];
 
   /* FAR ENOUGH, OR FAST ENOUGH — and the flick has to be going the SAME WAY as the drag. A finger
      that pulls back at the last moment has a velocity pointing the other way, and honouring that
      would turn the page somebody just decided against. */
-  const far = Math.abs(d) >= THROW(axis);
+  /* ---------- AND FAR ENOUGH IS NOT ENOUGH IF THE FINGER IS ON ITS WAY BACK ----------------------
+     `fast` above already refuses a flick pointing home; `far` never looked at the speed at all.
+     REPORTED AS PART OF *"can you make swiping and so on more stable"*, and measured on 5 October:
+     drag 150px, pull back to 80px and lift while still moving back — the page turned, 8 times in 8,
+     on both axes, the page somebody had just decided against. A release moving home at 0.2px/ms or
+     more is a change of mind, however far out it was let go. */
+  const backing = Math.abs(v) >= 0.2 && (v < 0) !== (d < 0);
+  const far = Math.abs(d) >= THROW(axis) && !backing;
   const fast = Math.abs(v) >= FLICK && (v < 0) === (d < 0) && Math.abs(d) > 8;
   const going = far || fast;
 
@@ -720,7 +759,6 @@ addEventListener('wheel', e => {
 addEventListener('pointercancel', e => {
   if (!SWIPE.live || (e && e.pointerId !== undefined && e.pointerId !== SWIPE.id)) return;
   const axis = SWIPE.axis;
-  (SWIPE.cells || []).forEach(el => el.classList.remove('no-anim'));
   /* The same reset as `pointerup`, because a cancelled gesture has to leave exactly as little
      behind as a finished one. */
   SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0; SWIPE.cells = null;
@@ -780,13 +818,17 @@ if (window.visualViewport) {
 addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') return;
   if (!SWIPE.live) return;
+  const axis = SWIPE.axis;
   SWIPE.live = false; SWIPE.axis = null; SWIPE.d = 0;
   SWIPE.held = false; SWIPE.px = 0; SWIPE.v = 0; SWIPE.vD = 0; SWIPE.vAt = 0;
   SWIPE.lock = 0; SWIPE.catch = 0;
   SWIPE.id = null;
   if (SWIPE.frame) { cancelAnimationFrame(SWIPE.frame); SWIPE.frame = 0; }
-  (SWIPE.cells || []).forEach(el => el.classList.remove('no-anim'));
   SWIPE.cells = null;
+  /* AND PUT BACK, as `pointercancel` does. The columns were left where the finger had them, marked
+     `.dragging` with the finger's axis at no transition — which `holdColumn_` reads as a drag still
+     going and refuses to hold. The placement runs on the first frame the page is shown again. */
+  if (axis) { try { placeCells(axis); } catch (e) {} }
 }, { passive: true });
 
 /* ================================================================================================

@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-06-tags";
+  --css-version: "2026-10-06-swipefocus";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -499,7 +499,11 @@ body {
      tab tapped from rest jumped about a third of the way in its first frame. The finger's settle has
      its own curve now; this one is only ever a slide nobody was already moving, and it eases out
      of a standstill into place. */
+  /* `translate` AS WELL: a column's sideways position is its `transform` and its vertical one the
+     separate `translate` property, each with its own clock — see `colWrite_` in shell.js. Written
+     inline by `placeGrid` on every placement; this is only what holds before the first one. */
   transition: transform .3s cubic-bezier(.3, 0, .2, 1),
+              translate .3s cubic-bezier(.3, 0, .2, 1),
               opacity .22s ease;
   /* NO `contain` HERE, and this is the fault that broke the whole layout when the screen became a
      column. `contain: paint` does not merely hint — it CLIPS the element to its own box, and it
@@ -532,7 +536,9 @@ body {
    handful of cells it was ever actually for. */
 /* Only screens move, so only screens are worth promising the browser a layer for. A page's
    position is the column's business and it never gets its own transform. */
-.screen { will-change: transform; }
+/* AND `translate`: the column's vertical position is the separate `translate` property now
+   (`colWrite_`, one clock per axis), so a promise naming `transform` alone covered half the move. */
+.screen { will-change: transform, translate; }
 /* A CELL NEVER SCROLLS. It is exactly one screen, so there is nothing past its bottom edge to
    reach — and while it could scroll, a wheel or a drag went to it instead of to the grid, which is
    a few pixels of movement that goes nowhere instead of the next widget.
@@ -555,9 +561,34 @@ body {
    and a browser writing `--a:3` simply never hid anything. */
 .far { visibility: hidden; }
 
-/* Following a finger. The transition is what makes a released cell settle; while the finger is
-   down it has to be off, or every frame is chasing the last one. */
-.no-anim { transition: none !important; }
+/* `.no-anim { transition: none !important }` WAS HERE, on whatever a finger was dragging. It took the
+   transition off BOTH axes, so a column still sliding up stopped dead the moment a sideways drag
+   began — 199–614px in one frame, measured. A drag now zeroes its own axis inline (`colTransition_`
+   in shell.js) and the other one keeps sliding. */
+
+/* ---------- THE CARDS NOT IN FRONT, SLIGHTLY OUT OF FOCUS ----------------------------------------
+   ASKED FOR ON 5 OCTOBER: *"those widgets not in focus should actually look slightly out of focus
+   effect."* `.soft` is written by `placeGrid` on the pages that can be on the glass beside the one
+   in front; the note over `SOFT_BLUR` in shell.js says which, and what each choice here cost when
+   it was measured.
+
+   ON THE PANE, NEVER THE COLUMN. A pane is not a layer, so its blur is drawn into the column's tiles
+   once and the compositor only moves them — nothing per frame. A filter on `.screen`, which IS a
+   layer, is a blurred surface redrawn on every frame of every swipe. NO TRANSITION HERE and no
+   `will-change`: `softDrag_` writes the blur and the layer inline while a finger moves the focus and
+   `softSettle_` takes them away once the slide has ended — a blur's animation cannot run on the
+   compositor, so easing it over the settle was measured costing the next swipe its speed — and a standing promise of a layer is the memory `.screen`'s own note warns
+   about. `--soft-blur` is published by shell.js beside `--card-w`, because the finger eases toward
+   the same number this draws.
+
+   `.soft-dim` IS A PANE THAT REPAINTS ITSELF — a video playing, an iframe — where a blur would come
+   with every frame it draws. It is dimmed instead, and so is every soft pane for somebody who has
+   asked for less motion or less transparency. */
+.page.soft > .pane { filter: blur(var(--soft-blur, 2px)); }
+.page.soft.soft-dim > .pane { filter: none; opacity: .85; }
+@media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
+  .page.soft > .pane { filter: none; opacity: .85; }
+}
 
 /* A SECTION is two lines across the full width with its name between them. Not a heading floating
    above a boxed group — the rules do the separating, so nothing has to be enclosed to be grouped. */
@@ -4447,7 +4478,20 @@ select[aria-expanded="true"] { border-color: var(--gold); }
    Only the ends of a run keep their radius, so a single ticked hour is unchanged. This is on the
    receipt too, where the booked run is the one thing on that grid. */
 .hr.on + .hr.on { border-top-left-radius: 0; border-bottom-left-radius: 0; }
-.hr.on:has(+ .hr.on) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+/* ---------- THE LEFT CELL'S CORNERS ARE SQUARED BY THE BRIDGE, NOT BY A `:has()` -----------------
+   THIS WAS `.hr.on:has(+ .hr.on)`, and that one corner-squaring rule was the freeze at the end of
+   every swipe in the app. `on` inside a `:has()` with a sibling combinator makes Chrome invalidate
+   the WHOLE DOCUMENT whenever any element anywhere gains or loses the class `on` — and `placeGrid`
+   moves `on` onto the column and the page in front at every page turn and every column change.
+   Measured from the trace (5 Oct): every release restyled all 4,381–5,054 elements, 53–64ms of
+   CPU at 1x for a page turn, against 261–272 elements and 3–5ms with this rule gone. Nothing about
+   it said navigation, which is why nothing measuring navigation ever looked at it.
+
+   THE SECOND CELL ALREADY PAINTS THE BRIDGE, so it paints over the first cell's two right-hand
+   corners too: the gold block below starts `--r-sm` further left, inside the left cell, and the
+   rounding there is covered by the same gold it was rounding off. Identical on screen, and a run
+   of hours is still squared only on its inside corners. `check/swipe.js` holds the cost: a page
+   turn restyles fewer than a thousand elements. */
 /* ---------- AND THE BRIDGE IS PAINTED BY THE SECOND CELL, LEFTWARDS ------------------------------
    THE FIRST VERSION HUNG IT OFF THE LEFT CELL, reaching `right: -3px` into the gutter — and an
    absolutely positioned child that sticks out to the RIGHT pushes its ancestor's `scrollWidth`, so
@@ -4459,7 +4503,8 @@ select[aria-expanded="true"] { border-color: var(--gold); }
    the LEFT does not enter `scrollWidth` at all. A real asymmetry in the platform rather than a
    trick: the check goes on measuring what it measured, and the picture is identical. */
 .hr.on + .hr.on::before {
-  content: ''; position: absolute; top: -1px; bottom: -1px; left: -3px; width: 3px;
+  content: ''; position: absolute; top: -1px; bottom: -1px;
+  left: calc(-3px - var(--r-sm)); width: calc(3px + var(--r-sm));
   background: var(--gold);
 }
 /* NOT AVAILABLE — greyed, never removed. A grid that changes shape as you choose things cannot be

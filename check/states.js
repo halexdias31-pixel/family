@@ -3883,7 +3883,8 @@ const STATES = {
      the two rules that were watching — the pane's `scrollHeight` equals its `clientHeight`, so
      nothing is overflowing; it is the PANE that hangs off the bottom, because `columnShift_`
      places the page once and nothing re-placed it when the card grew. (It centred the page on the
-     day those two numbers were taken; it puts every column's card on one line now, and a card that
+     day those two numbers were taken, then put every card on one line, and centres it again since 5
+     October; whichever, a card that
      grows after the placement is still a card the placement never saw.)
 
      THROUGH THE APP'S OWN PICKER, not by drawing on the canvas. `on('cam-pick')` reads

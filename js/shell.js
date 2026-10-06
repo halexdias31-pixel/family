@@ -344,7 +344,8 @@ function go(id, remember, instant) {
      genuinely changes a screen — signing in, a save, a fresh payload — goes through `repaint`,
      which is a different function and still repaints on demand. */
   /* OR IF IT IS STALE — something changed while you were elsewhere. See the note on `STALE`. */
-  if (!screenHasMarkup_(AT) || STALE[AT]) paint(AT);
+  const painted = !screenHasMarkup_(AT) || !!STALE[AT];
+  if (painted) paint(AT);
   /* Anything that needs to start running once its markup exists — a canvas, a board, a clock.
      After paint, because none of it can find an element that has not been drawn yet. */
   /* A hoisted FUNCTION, not a const. The wakers are defined further down with the games they
@@ -383,7 +384,16 @@ function go(id, remember, instant) {
   /* THE CAMERA IS A PAGE OF THE FEED NOW, so leaving the FEED is what lets it go. Turning a page
      within the feed is the other half, and it is `feedCamWatch_` — booked from `goPage` and from
      `startScreen_` below. */
-  if (typeof camStop_ === 'function' && AT !== 'feed') camStop_();
+  /* ---------- ONLY WHEN LEAVING THE FEED, OR WITH A CAMERA ACTUALLY OPEN ------------------------
+     IT WAS EVERY COLUMN CHANGE THAT DID NOT LAND ON THE FEED — Tools to Games, Games to Saved —
+     and `camStop_` resets the camera card's markup whether or not a camera ever started: eight
+     `hidden` flips and a text write on a card nobody can see. Measured from the trace (5 Oct), that
+     forced a layout of the whole document at every sideways release, 3,763–4,913 objects walked for
+     11–19 that had changed, 38–61ms of CPU at 1x, and it is most of why sideways felt heavier than
+     up and down. Leaving the feed still lets everything go exactly as before; a stream still open on
+     any other change (a `getUserMedia` that answered after the column was left) is still closed. */
+  if (typeof camStop_ === 'function' && AT !== 'feed'
+      && (was === 'feed' || (typeof CAM_STREAM !== 'undefined' && CAM_STREAM))) camStop_();
   /* AND THE REEL, which is the third of these and was the one nobody had written. Measured before
      it existed: `go('reel')` then `go('tools')` left a `<video>` with `paused === false` — a clip
      somebody may have turned the sound on for, talking from a screen two swipes away, with no
@@ -397,7 +407,14 @@ function go(id, remember, instant) {
   /* STARTED AFTER THE SLIDE, in one list rather than two. `repaint` needs the same list — it has
      just rebuilt this screen's markup too — and two copies of "what does this screen need running"
      is two places to forget the camera. */
-  afterSlide_(() => startScreen_(AT), 'start');
+  /* `true`: ARRIVING, so a column of widgets starts the ones in view first — see `widgetsWake_`.
+     AND ONLY WHEN SOMETHING ARRIVED. `go` to the column already in front, with nothing repainted,
+     used to book this too, and `toolsStart_` stops and restarts every widget on the column — a
+     Connect 4 game in progress dealt a fresh board 300ms after anything asked for the column it was
+     already on. Measured on 5 October as `check/press.js` states that played a game and then found
+     it gone; spreading the starts over a second (above) made that window wider, and the answer is
+     that it should not exist: nothing that was running was stopped, so nothing needs starting. */
+  if (was !== AT || painted) afterSlide_(() => startScreen_(AT, true), 'start');
 
   if (AT === 'stuff') {
     const drawn = $('s-stuff') && $('s-stuff').querySelector('.page[data-filled]');
@@ -451,16 +468,16 @@ function go(id, remember, instant) {
    A HOISTED FUNCTION, NOT A CONST. `repaint` is a const defined above this line and calls it; a
    `const` read before its own line throws, including through `typeof`, which is the one check that
    cannot see into a temporal dead zone. A function declaration is hoisted, so this is safe. */
-function startScreen_(id) {
+function startScreen_(id, arriving) {
   /* THE SAVED COLUMN HOLDS WIDGETS TOO, so it starts them — from its own list rather than from a
      kind, because what is on it is whatever was starred. */
-  if (id === 'saved' && typeof savedStart_ === 'function') { savedStart_(); }
+  if (id === 'saved' && typeof savedStart_ === 'function') { savedStart_(arriving); }
   else if ((id === 'tools' || id === 'games') && typeof toolsStart_ === 'function') {
-    toolsStart_(id === 'tools' ? 'tool' : 'game');
+    toolsStart_(id === 'tools' ? 'tool' : 'game', arriving);
   }
   /* AND THE SHOP, whose first page is the basket — a widget, with a `start` that draws its lines.
      Without this the basket arrived as a heading over an empty box. */
-  else if (id === 'shop' && typeof toolsStart_ === 'function') { toolsStart_('shop'); }
+  else if (id === 'shop' && typeof toolsStart_ === 'function') { toolsStart_('shop', arriving); }
   /* ---------- AND A COLUMN WHOSE CARDS JUST GREW IS PLACED AGAIN ---------------------------------
      A WIDGET DRAWS ITSELF IN ITS `start`, which runs here, 300ms after the column was placed — so
      the basket's receipt, the calendar's month and the week's roster all arrive AFTER `goPage` has
@@ -611,6 +628,20 @@ function paint(id) {
   el.innerHTML = html !== null
     ? html
     : '<p class="empty">Nothing here yet.</p>';
+
+  /* ---------- AND THE COLUMN IS CENTRED ON WHAT WAS JUST DRAWN ------------------------------------
+     WHILE EVERY CARD HUNG FROM ONE TOP LINE, a column redrawn with a taller or shorter card needed
+     nothing: page 0's top did not move. CENTRED (see `columnShift_`), a new height is a new place
+     for the column, and nothing asked for it — `check/ui.js` found Saved 9–11px off the middle
+     after a star was added and taken away, which is `paint('saved')` with no placement behind it,
+     and `dmPoll_` repaints a conversation every twenty seconds the same way. One booked placement,
+     coalesced with whatever else this turn asks for; not before the grid has ever been placed (the
+     boot's own order does that), and not under a finger, whose drag re-centres every column on its
+     next frame anyway. */
+  if (typeof PLACED_ONCE !== 'undefined' && PLACED_ONCE
+      && !(typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis)) {
+    placeCells('y', true, 0, id);
+  }
 
   /* ---------- AND WHETHER THE NEW CARDS FIT THE PANES THEY ARE IN --------------------------------
      `paneWatch_` GIVES AN OVERFLOWING PANE `overflow-y: auto` and watches the card for a later
@@ -940,75 +971,88 @@ const CELL_GAP   = 16;        // pixels between one card and the next, going DOW
    and why it is not the middle of the screen any more. One number, from `offsetTop`, which the
    browser maintains. And if it is ever read at a bad moment the worst that happens is the column
    sits a little high or low for a frame — never one card on top of another. */
-/* ---------- WHERE A FULL CARD ALREADY SITS, AND THEREFORE WHERE EVERY CARD SITS -----------------
-   REPORTED AS *"when I swipe left and right on certain things I see the edge are slid up or down at
-   times. Happens with games and tools widget too."* Measured at 390x844 before anything was changed,
-   the current card's TOP edge across the eleven columns: make 98, tools 108.5, account 117,
-   booking 125.5, reel 167.5, games 199, settings 223.5, stuff 255, feed 286.5, dm 322.5, saved 343.
-   **A 245px spread.** Screenshotted mid-swipe: the calculator and the chess card side by side with
-   their top edges ninety pixels apart, which is exactly the report.
+/* ---------- THE CARD YOU ARE ON SITS IN THE MIDDLE OF THE SCREEN ---------------------------------
+   ASKED FOR ON 5 OCTOBER: *"focused widgets should be in centre of screen. also those widgets not in
+   focus should actually look slightly out of focus effect."*
 
-   THE CAUSE WAS THE CENTRING AND NOT A DRIFT. Nothing moves during the gesture — sampled every
-   frame of a real drag, every column's translateY is constant — and nothing settles afterwards:
-   four round trips between Tools and Games give the same two numbers every time. It is static, and
-   it is arithmetic: this function centred each column on ITS OWN card, and the cards are different
-   heights, so a card 180px shorter than its neighbour starts 90px lower. Centres agreed; edges
-   never could.
+   IT WAS ONE TOP LINE FOR EVERY COLUMN, and the reason it was is worth keeping in view. Reported
+   before that as *"when I swipe left and right on certain things I see the edge are slid up or down
+   at times"* — each column was centred on its own card, cards are different heights, and a sliver
+   of a neighbour whose top edge sat ninety pixels lower read as a step in the edge (history 131).
+   The fix put every card's TOP on the line `.pane`'s own reserve leaves (37px at 390x844), which
+   lined the edges up and left a short card hanging from the top with the space below it: measured
+   on 5 October, the card in front was 192px off the middle of a 390x844 screen at the median and
+   306px on Saved.
 
-   SO THE TOPS AGREE INSTEAD, and the line they agree on is not invented. `.pane` is capped at
-   `100dvh - var(--bar) - var(--safe-bottom) - 2.5rem`, so the stylesheet already keeps a strip of
-   the screen clear — and the whole of that strip goes ABOVE the card. Two things fall out of it and
-   both are the reason for choosing it over any other line:
+   CENTRED AGAIN, AND WHAT MADE THE EDGES READ AS A FAULT IS NOW THE POINT OF THEM. Two neighbours of
+   different heights no longer share a top edge mid-swipe — their CENTRES agree instead — and the
+   cards either side are drawn out of focus (`.soft`, in `placeGrid`), so a taller card behind a
+   short one reads as depth rather than as a column that slipped. `check/ui.js`'s COLUMNS OUT OF LINE
+   asks the new contract: every column's card centred, within 2px.
 
-     · **the tallest card a pane may hold still fits.** Its bottom lands exactly on the bottom of
-       the screen, so no arrangement of cards can be pushed off — which a line chosen by eye could
-       not promise at any screen height.
-     · **it leaves a sliver of the card above**, 21px at 390x844 against the 23px of the column
-       beside it. The two axes peek by the same amount without either number being told the other.
+   EVERY CARD, NOT ONLY THE SHORT ONES. Clamping to the old line for a card near the cap was
+   measured as the alternative — it keeps 17–21px of the card above on every page, and leaves a
+   cap-height card 15–18px low, its bottom edge on the bottom of the glass. Centred, that card has
+   18.5px above and below at 390x844 and the neighbours show by about two pixels; it is the one case
+   where the peek gives way, and the card filling the screen says "this is the one" without it.
 
-   SPLITTING THE RESERVE — half above, half below, which is what centring a cap-height card gives —
-   was written first and measured: every column lands on 18.5px, and 18.5 minus the column's own
-   16px gap is **two and a half pixels of the card above**. Aligned, and the vertical affordance
-   gone. The reserve is small because the cap is generous, so halving it is halving almost nothing.
+   A CARD TALLER THAN THE SCREEN starts at the top rather than off it — `.pane`'s cap makes that
+   impossible today, and a card whose heading is above the glass is the worst version of wrong.
 
-   The number is read off a real `.pane` rather than re-derived here, because a copy of that
-   expression in this file is two places to edit one cap.
-
-   WHAT IT COSTS, said rather than buried: a card much shorter than the screen no longer floats in
-   the middle of it. The one-page columns are where that shows — Saved's card was at 343 and is at
-   the same line as everything else now, with the space below it rather than split above and below.
-   That is the price of a row of columns reading as a row, and it is one `return` to put back.
-
-   AND THE PEEK ABOVE BECOMES CONSTANT WITH IT, which was the same fault seen down the other axis:
-   the gap above the current card was `top - 16px`, so it varied by 245px between columns exactly as
-   the top edge did. It is the same strip of the previous card on every screen now.
-
-   THE FALLBACK IS THE OLD BEHAVIOUR. No pane on the page, or a cap that does not resolve to a
-   sensible number, and it centres — because a card placed by a rule that did not answer is worse
-   than a card placed by the rule this replaced. */
-function cardTop_(boxH) {
-  const pane = document.querySelector('.pane');
-  if (!pane) return null;
-  const cap = parseFloat(getComputedStyle(pane).maxHeight);
-  const reserve = boxH - cap;
-  /* A cap that does not resolve, or one that leaves so much room that the line would be a third of
-     the way down the screen, is not a cap this can place a card against — so it says so and the
-     caller centres, which is what every card did before this. */
-  if (!(cap > 0) || !(reserve > 0) || reserve > boxH / 3) return null;
-  return reserve;
-}
-
-function columnShift_(host, at, top) {
+   AND A CARD YOU ARE USING IS NOT CENTRED AGAIN — see `HOLD_AT`, just below. */
+function columnShift_(host, at) {
   const pages = host.querySelectorAll(':scope > .page');
   const cur = pages[Math.max(0, Math.min(pages.length - 1, at))];
   if (!cur) return 0;
   const boxH = host.clientHeight || innerHeight;
-  /* `top` is worked out once per placement and handed in — see `placeGrid`. Asking the browser for
-     a computed style once per column per frame is eleven forced style recalculations inside a drag,
-     for one number that cannot differ between them. */
-  const line = top === undefined ? cardTop_(boxH) : top;
-  if (line === null) return boxH / 2 - (cur.offsetTop + cur.offsetHeight / 2);
-  return line - cur.offsetTop;
+  const h = HOLD_AT;
+  if (h && host.id === 's-' + h.id && (PAGE[h.id] || 0) === h.p && at === domIndex_(h.id, h.p)
+      && h.vp === innerWidth + 'x' + innerHeight) {
+    const room = boxH - cur.offsetHeight;
+    /* `lift` IS THE MATHS KEYPAD'S, and only the keypad's — see `kpLift_` in keypad.js. After the
+       clamp, because it is the one case where a card is meant to go above the glass: the phone's own
+       keyboard pushes a page up out of sight to keep the line being typed on in view, and so does
+       this. Taken off again when the pad goes away. */
+    return (room <= 0 ? 0 : Math.max(0, Math.min(room, h.top))) - (h.lift || 0) - cur.offsetTop;
+  }
+  return Math.max(0, (boxH - cur.offsetHeight) / 2) - cur.offsetTop;
+}
+
+/* ---------- ONCE YOU ARE USING A CARD, IT STAYS WHERE IT IS ---------------------------------------
+   CENTRED IS WHERE A CARD ARRIVES, NOT WHERE IT IS PUT BACK EVERY TIME ITS HEIGHT CHANGES. The first
+   version re-centred on every change — the `ResizeObserver` behind `holdColumn_` sees the card in
+   front as well as the ones above it — and measured on 5 October, pressing the funnel's answer
+   shortened the card by its list and moved the search box 38px down the screen at 390x844 (31px at
+   320x568). The search box and the chips staying put when an answer is pressed is a thing the owner
+   asked for by name — *"nice more sleek, fresh stable"*, the state in check/states.js — and that
+   state measures against the pane, so a pane that moved could not fail it. Showing an answer grew
+   its card by 56px and moved the question 28px up from under the finger that pressed it.
+
+   SO A PRESS, A FIELD TAKING FOCUS OR A CHANGE ON THE CARD IN FRONT HOLDS ITS TOP WHERE IT IS, and
+   `columnShift_` keeps that line for as long as you stay on that card: it grows and shrinks
+   DOWNWARD, as a page of paper does, and nothing above your finger moves. Only a card that grows
+   past the bottom of the glass is lifted, by exactly as much as it needs. Arriving anywhere else
+   lets go (`placeGrid`), so the next card is centred, and a card that changes before anybody has
+   touched it — a widget drawing itself as it starts — is still re-centred, because nobody is
+   reading it yet.
+
+   KEYED ON THE PAGE'S NUMBER, NOT ITS ELEMENT: the funnel repaints the whole column on a press, and
+   the page you are on is the same page in new markup. And on the size of the window, so turning
+   the phone round centres again. */
+let HOLD_AT = null;      // { id, p, top, vp, lift } — the card being used, where its top is held, and how far the keypad lifted it
+
+function holdHere_(t) {
+  try {
+    const pg = t && t.closest && t.closest('#screen .page.on');
+    const host = pg && pg.parentElement;
+    if (!host || host.id !== 's-' + AT) return;
+    /* ONCE PER CARD. The first touch says where it is; asking again on every keystroke would force a
+       layout per letter typed, for the answer the first one already gave. */
+    if (HOLD_AT && HOLD_AT.id === AT && HOLD_AT.p === (PAGE[AT] || 0)) return;
+    const at = colPlaced_(host);
+    if (!at) return;
+    HOLD_AT = { id: AT, p: PAGE[AT] || 0, top: at[1] + pg.offsetTop, vp: innerWidth + 'x' + innerHeight };
+  } catch (e) { HOLD_AT = null; }
 }
 
 /* ---------- A CARD ABOVE CHANGED HEIGHT, SO THE COLUMN IS HELD ON THE PAGE YOU ARE READING --------
@@ -1033,7 +1077,9 @@ function columnShift_(host, at, top) {
    instant placement does: with it on, the layout would jump the page and the transform would then
    slide it back over a third of a second, which is the flicker wearing a different coat. MID-SLIDE
    it is left alone, so the running animation simply retargets. And NEVER UNDER A FINGER — a drag
-   writes its own offset into this transform every frame, and `no-anim` is what says one is down.
+   writes its own offset every frame, and `.dragging` (from `placeGrid`) is what says one is down.
+   ONLY THE VERTICAL'S TRANSITION is switched off for it: the sideways one is a separate property
+   now (`colWrite_`), and a column still sliding across must keep sliding.
    AND NEVER WHILE A SLIDE IS BOOKED: `PAGE` may already name the page an animated placement is
    about to go to, and moving the column there now, instantly, would be the slide cancelled a frame
    before it began — the collision `placeCells` exists to make unwriteable. An INSTANT placement
@@ -1043,16 +1089,16 @@ function columnShift_(host, at, top) {
 function holdColumn_(id) {
   try {
     const host = $('s-' + id);
-    if (!host || host.classList.contains('no-anim')) return;
+    if (!host || host.classList.contains('dragging')) return;
     if (PLACE_FRAME && PLACE_WANT && !PLACE_WANT.instant) return;
-    const m = /translate\(\s*(-?[\d.]+)px\s*,\s*(-?[\d.]+)px\s*\)/.exec(host.style.transform || '');
-    if (!m) return;
+    const at = colPlaced_(host);
+    if (!at) return;
     const want = columnShift_(host, domIndex_(id, PAGE[id] || 0));
-    if (!isFinite(want) || Math.abs(parseFloat(m[2]) - want) < 0.5) return;
+    if (!isFinite(want) || Math.abs(at[1] - want) < 0.5) return;
     const moving = typeof host.getAnimations === 'function'
-      && host.getAnimations().some(a => a.playState === 'running');
-    if (!moving) host.style.transition = 'none';
-    host.style.transform = `translate(${m[1]}px, ${want.toFixed(1)}px)`;
+      && host.getAnimations().some(a => a.playState === 'running' && a.transitionProperty === colProp_('y'));
+    if (!moving) colTransition_(host, null, '0s');
+    colWrite_(host, at[0], want);
   } catch (e) { /* a column left where it was is the behaviour before this existed */ }
 }
 
@@ -1105,6 +1151,10 @@ function stepY_() {
    now and you cannot: there is only one of them. */
 function publishCardWidth_() {
   document.documentElement.style.setProperty('--card-w', (CARD_W * 100).toFixed(2) + '%');
+  /* AND HOW SOFT A CARD OUT OF FOCUS IS, for the same reason: `softDrag_` eases a card toward the
+     number the stylesheet draws `.soft` with, so the two must be one number. Written with the width
+     so it is said once per placement and costs nothing when it has not changed. */
+  document.documentElement.style.setProperty('--soft-blur', SOFT_BLUR + 'px');
 }
 
 /* ---------- THE WIDTH THAT MATTERS IS THE APP'S, NOT THE WINDOW'S --------------------------------
@@ -1159,7 +1209,9 @@ function stepX_() {
    to 45-100ms, and the first frame after lift moves about as far as the finger was moving per frame
    rather than 7 to 47 times further. */
 let SETTLE_FROM = null;        // { axis, v, at } — the release the next placement settles from
-let SETTLE_ON = null;          // { dur, tf, until } — the settle the columns are running now
+/* { axis, dur, tf, until } — the settle the columns are running now. THE AXIS IS PART OF IT: a
+   settle is one axis's transition and the other axis keeps its own — see `colWrite_`. */
+let SETTLE_ON = null;
 function settleFrom_(axis, v) {
   SETTLE_FROM = axis ? { axis: axis, v: Number(v) || 0, at: performance.now() } : null;
 }
@@ -1173,24 +1225,220 @@ function settleCurve_(D, v) {
   if (y1 > 1) { x1 = 1 / s; y1 = 1; }
   return { dur: dur, tf: 'cubic-bezier(' + x1.toFixed(3) + ', ' + y1.toFixed(3) + ', .25, 1)' };
 }
+
+/* ---------- EACH AXIS HAS ITS OWN CLOCK ------------------------------------------------------------
+   A COLUMN'S POSITION WAS ONE `transform: translate(x, y)` WITH ONE TRANSITION, so a drag on either
+   axis had to switch that transition off — and switching it off stopped the OTHER axis dead, wherever
+   it had got to. Measured on 5 October with real touch: a flick sideways and then up 40–160ms later
+   snapped the arriving column the rest of its sideways slide in one frame, 81–248px (12 of 12), with
+   its neighbours out of step by up to 215px for a frame or two; a flick up and then sideways snapped
+   the column the rest of its vertical slide, 199–614px in one frame, with the second finger still
+   down (9 of 9). `settleLeft_` caught the drag's own axis; nothing could catch the other one, because
+   there was only one transition to catch. History 202 named it "not done".
+
+   SO X IS `transform` AND Y IS THE SEPARATE `translate` PROPERTY, each with its own transition. A drag
+   writes a zero duration for its own axis only; the other axis is written with the end value it
+   already had, which per the transitions spec leaves a running transition alone. A browser without
+   `translate` (Safari before 14.1, Chrome before 104) keeps the single transform it always had —
+   one slide at a time, exactly the old behaviour rather than a column with no vertical at all. */
+const SPLIT_AXES = (() => {
+  try { return !(window.CSS && window.CSS.supports) || window.CSS.supports('translate', '1px 2px'); }
+  catch (e) { return false; }
+})();
+/* THE SLIDE NOBODY'S FINGER IS IN — a tab tapped, a tile that turns a page — and the stylesheet's
+   `.screen` transition says the same, for the moment before anything is placed. */
+const SLIDE_TAP = { d: '.3s', tf: 'cubic-bezier(.3, 0, .2, 1)', delay: '0s' };
+const SLIDE_NONE = { d: '0s', tf: 'linear', delay: '0s' };
+const colProp_ = axis => (SPLIT_AXES && axis === 'y' ? 'translate' : 'transform');
+
+function colWrite_(host, x, y) {
+  if (SPLIT_AXES) {
+    host.style.transform = `translateX(${x.toFixed(1)}px)`;
+    host.style.translate = `0px ${y.toFixed(1)}px`;
+  } else {
+    host.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+  }
+}
+/* WHERE THE LAST PLACEMENT PUT IT — the inline values, which are where it is going, not where it is
+   drawn mid-slide (that is `colNow_`). `translate: 0px 0px` reads back as `0px`, so a missing second
+   half is nought. */
+function colPlaced_(host) {
+  if (SPLIT_AXES) {
+    const mx = /translateX\(\s*(-?[\d.]+)px/.exec(host.style.transform || '');
+    if (!mx) return null;
+    const t = String(host.style.translate || '').trim().split(/\s+/);
+    return [parseFloat(mx[1]), parseFloat(t[1]) || 0];
+  }
+  const m = /translate\(\s*(-?[\d.]+)px\s*,\s*(-?[\d.]+)px/.exec(host.style.transform || '');
+  return m ? [parseFloat(m[1]), parseFloat(m[2])] : null;
+}
+/* AND WHERE IT IS DRAWN NOW, off the running transitions. `matrix(a, b, c, d, e, f)` — a translate is
+   the last two — parsed rather than handed to `DOMMatrix`, which is one more browser global for
+   `check.js` to be told about for two numbers. */
+function colNow_(host) {
+  const cs = getComputedStyle(host);
+  const m = String(cs.transform || '').match(/matrix\(([^)]+)\)/);
+  const v6 = m ? m[1].split(',').map(Number) : [1, 0, 0, 1, 0, 0];
+  if (!SPLIT_AXES) return [v6[4], v6[5]];
+  const t = String(cs.translate || '').trim().split(/\s+/);
+  return [v6[4], parseFloat(t[1]) || 0];
+}
+/* THE THREE TRANSITIONS, AS LONGHANDS. `x` and `y` are `{ d, tf, delay }`; a `null` keeps what this
+   column had, which is how `holdColumn_` zeroes the vertical without touching a sideways slide. */
+function colTransition_(host, x, y, o) {
+  const t = host._slide || (host._slide = { x: SLIDE_TAP, y: SLIDE_TAP, o: { d: '.22s', tf: 'ease', delay: '0s' } });
+  if (x) t.x = x;
+  if (y) t.y = y;
+  if (o) t.o = o;
+  /* ONE TRANSFORM, ONE CLOCK: whichever axis a finger holds wins, then a settle, then the tap. */
+  const one = t.x === SLIDE_NONE || t.y === SLIDE_NONE ? SLIDE_NONE : (t.x !== SLIDE_TAP ? t.x : t.y);
+  const list = SPLIT_AXES ? [t.x, t.y, t.o] : [one, t.o];
+  host.style.transitionProperty = SPLIT_AXES ? 'transform, translate, opacity' : 'transform, opacity';
+  host.style.transitionDuration = list.map(v => v.d).join(', ');
+  host.style.transitionTimingFunction = list.map(v => v.tf).join(', ');
+  host.style.transitionDelay = list.map(v => v.delay).join(', ');
+}
+
 /* WHERE A SETTLING COLUMN REALLY IS, against where it is going — for a drag that starts before the
-   last one has landed (`SWIPE.catch` in overworld.js). Read only while a transform transition is
+   last one has landed (`SWIPE.catch` in overworld.js). Read only while that axis's transition is
    running on the screen in front, because it is a computed-style read and the answer is nought
    otherwise. The other columns move with it along x and not at all along y, so one answers. */
 function settleLeft_(axis) {
   try {
     const host = $('s-' + AT);
-    if (!host || !host.getAnimations || !host.getAnimations().some(a => a.transitionProperty === 'transform')) return 0;
-    /* `matrix(a, b, c, d, e, f)` — a translate is the last two. Parsed rather than handed to
-       `DOMMatrix`, which is one more browser global for `check.js` to be told about for two numbers. */
-    const cur = (getComputedStyle(host).transform || '').match(/matrix\(([^)]+)\)/);
-    const m = /translate\(\s*(-?[\d.]+)px\s*,\s*(-?[\d.]+)px/.exec(host.style.transform || '');
-    if (!cur || !m) return 0;
-    const v6 = cur[1].split(',').map(Number);
-    const off = axis === 'x' ? v6[4] - parseFloat(m[1]) : v6[5] - parseFloat(m[2]);
+    const prop = colProp_(axis);
+    if (!host || !host.getAnimations || !host.getAnimations().some(a => a.transitionProperty === prop)) return 0;
+    const placed = colPlaced_(host);
+    if (!placed) return 0;
+    const now = colNow_(host);
+    const off = axis === 'x' ? now[0] - placed[0] : now[1] - placed[1];
     return Math.abs(off) < 0.5 ? 0 : off;
   } catch (e) { return 0; }
 }
+
+/* ---------- THE CARDS NOT IN FRONT ARE SLIGHTLY OUT OF FOCUS ---------------------------------------
+   ASKED FOR ON 5 OCTOBER: *"those widgets not in focus should actually look slightly out of focus
+   effect."* `.soft` on a page, written below beside `.on`, and drawn by style.css as a 2px blur on
+   its pane. Which pages: the ones that can be on the glass — up to two above and below the card in
+   front, and the same in the column either side, whose cards peek in at the edges. Nothing further
+   away carries it, so nothing off the screen is blurred.
+
+   WHAT IT COSTS WAS MEASURED BEFORE IT WAS WRITTEN (5 Oct, from the trace). A blur on a PANE costs
+   nothing while the cards move — the pane is not a layer, so the blur is baked into its column's
+   tiles once and the compositor only moves them; the cost is a re-raster of two cards when the focus
+   changes. A blur on the COLUMN, or on anything that is its own layer, is a blurred surface redrawn
+   every frame: 2.4–2.8 times the drawing, and the main thread's cadence halved at 390x844 under
+   load. So: never on `.screen`, never a standing `will-change`, and `.soft-dim` — a dim with no blur —
+   on a pane holding a video that is PLAYING, or an iframe (a player whose state this cannot see),
+   which repaint every frame and would carry the blur with each one. A paused reel and a canvas at
+   rest are a still picture like any other and are blurred: dimming every pane that merely HAS a
+   canvas left Flabby Pird sharp beside a blurred chessboard, which read as two cards in focus.
+
+   AND IT FOLLOWS THE FINGER. While a card is dragged, the one in front blurs and the one coming in
+   sharpens in step with how far it has come (`softDrag_`), so the card is already mostly in focus
+   when it is let go; the release finishes the change at once (`softSettle_`, where the version that
+   animated it over the settle is measured and refused). The two panes the finger moves are promoted
+   with `will-change: filter` for the length of the movement only — then the blur is applied to a
+   layer rather than re-rastered every frame — and let go when the slide ends. Asking for less motion
+   or less transparency, the blur is never drawn: the stylesheet dims instead, and nothing here eases.
+
+   NEVER BLURRED: the card in front, a card with a text field you are typing in (`softKeep_`), the
+   keypad (it is on `<body>`, outside every pane) and a playing video. */
+const SOFT_BLUR = 2;              // px — the stylesheet reads it as `--soft-blur`, published once
+let SOFT_DRAG = null;             // { ok, b, keep } — the gesture the out-of-focus look is following
+const SOFT_EASE = new Set();      // panes carrying an inline filter, will-change and transition
+let SOFT_DONE = 0;
+
+function softMotion_() {
+  try { return !matchMedia('(prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce)').matches; }
+  catch (e) { return true; }
+}
+const glassOf_ = page => (page && page.querySelector(':scope > .pane')) || null;
+/* A PANE THAT REPAINTS ITSELF is dimmed rather than blurred — see above. */
+const softDim_ = page => !!(page && (page.querySelector('iframe')
+  || [...page.querySelectorAll('video')].some(v => !v.paused && !v.ended)));
+/* AND ONE THE KEYBOARD IS TYPING INTO is left sharp while a finger drags it away. */
+function softKeep_(page) {
+  if (!page) return true;
+  if (SOFT_DRAG && SOFT_DRAG.keep.has(page)) return SOFT_DRAG.keep.get(page);
+  const fe = document.activeElement;
+  const k = softDim_(page) || !!(fe && fe !== document.body && page.contains(fe)
+    && /^(INPUT|TEXTAREA|SELECT)$/.test(fe.tagName));
+  if (SOFT_DRAG) SOFT_DRAG.keep.set(page, k);
+  return k;
+}
+function softHold_(glass) {
+  if (!glass) return;
+  if (!SOFT_EASE.has(glass)) SOFT_EASE.add(glass);
+  if (glass.style.willChange !== 'filter') glass.style.willChange = 'filter';
+  if (glass.style.transition !== 'none') glass.style.transition = 'none';
+}
+
+function softDrag_(which, px, stepX) {
+  if (!SOFT_DRAG) SOFT_DRAG = { ok: softMotion_(), b: null, keep: new Map() };
+  if (!SOFT_DRAG.ok) return;
+  const host = $('s-' + AT);
+  const a = host && host.querySelector(':scope > .page.on');
+  if (!a) return;
+  let b = null, step = 0;
+  if (which === 'x') {
+    const next = TABS[TABS.findIndex(t => t.id === AT) + (px < 0 ? 1 : -1)];
+    const col = next && $('s-' + next.id);
+    b = col ? col.querySelectorAll(':scope > .page')[domIndex_(next.id, PAGE[next.id] || 0)] || null : null;
+    step = stepX;
+  } else {
+    b = px < 0 ? a.nextElementSibling : a.previousElementSibling;
+    if (b && !b.classList.contains('page')) b = null;
+    if (b) step = Math.abs((b.offsetTop + b.offsetHeight / 2) - (a.offsetTop + a.offsetHeight / 2));
+  }
+  /* THE ONE THE FINGER TURNED AWAY FROM goes back to the look its class gives it. */
+  if (SOFT_DRAG.b && SOFT_DRAG.b !== b) { const g = glassOf_(SOFT_DRAG.b); if (g) g.style.filter = ''; }
+  SOFT_DRAG.b = b;
+  const f = b && step > 0 ? Math.min(1, Math.abs(px) / step) : 0;
+  if (f < 0.01) return;
+  if (!softKeep_(a)) { const g = glassOf_(a); softHold_(g); g.style.filter = `blur(${(SOFT_BLUR * f).toFixed(2)}px)`; }
+  if (b && !softKeep_(b)) { const g = glassOf_(b); softHold_(g); g.style.filter = `blur(${(SOFT_BLUR * (1 - f)).toFixed(2)}px)`; }
+}
+
+/* THE RELEASE, OR ANY PLACEMENT THAT MOVED THE FOCUS: the panes the finger was easing go to their
+   class's look AT ONCE, as the slide starts — the card arriving sharp, the card leaving soft — and
+   keep their layer until the slide has ended, when it is let go (a layer dropped mid-slide is a
+   re-raster mid-slide).
+
+   ---------- NOT ON THE SLIDE'S CLOCK, AND THAT WAS MEASURED ------------------------------------------
+   THE FIRST VERSION TRANSITIONED THE FILTER over the settle's own duration and curve, which looked
+   right and cost the next swipe. Chrome cannot run a blur's animation on the compositor (a filter
+   that moves pixels), so for the whole settle the MAIN thread ticked two or three panes' filters every
+   frame — and `check/press.js`'s chained flick, a 40px flick 20–40ms into the first one's settle, read
+   its release speed as 0–0.37px/ms and failed to turn the page 3 times in 8. With the filter switched
+   at the release instead: 8 in 8, speeds 0.44–0.57, the same as before any of this. The finger is
+   what eases it (`softDrag_`); the release only finishes what the finger was already doing, and a
+   tap-driven slide simply changes which card is sharp as it starts. */
+function softSettle_(timing, instant) {
+  /* NOT UNDER A FINGER: a placement asked for by something else mid-drag must not take the blur the
+     finger is easing off the two cards it is between. */
+  if (typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis) return;
+  SOFT_DRAG = null;
+  if (!SOFT_EASE.size) return;
+  SOFT_EASE.forEach(g => { g.style.transition = 'none'; g.style.filter = ''; });
+  clearTimeout(SOFT_DONE);
+  const ms = instant ? 0 : (parseFloat(timing.d) || 0) * (/ms$/.test(timing.d) ? 1 : 1000);
+  SOFT_DONE = setTimeout(function done() {
+    /* A FINGER DOWN AGAIN OWNS THESE NOW — wait for it rather than pull its inline blur away. */
+    if (SOFT_DRAG) { SOFT_DONE = setTimeout(done, 120); return; }
+    SOFT_EASE.forEach(g => { g.style.willChange = ''; g.style.transition = ''; g.style.filter = ''; });
+    SOFT_EASE.clear();
+  }, ms + 80);
+}
+
+/* ---------- A TAP ON A CARD STILL SLIDING IS NOT A PRESS --------------------------------------------
+   Measured on 5 October: a tap 90ms after a flick pressed the star on the card arriving under the
+   finger — whatever happens to be under a moving card at that instant. A phone's own lists do the
+   same thing the other way: a touch on a list still gliding stops the glide and presses nothing. So
+   a press that STARTS while the column in front is mid-slide is swallowed, like a drag
+   (`PRESS_SLIDING`, read in the click handler below). The last 60ms are let through, because by then
+   the card has all but arrived and a person tapping it can see what they are tapping. */
+let SLIDE_UNTIL = 0;
 
 /* The two axes still call in — one placer underneath, so a horizontal move and a vertical one
    cannot disagree about where a cell is. */
@@ -1205,8 +1453,6 @@ function placeGrid(instant, drag) {
   const dxPx = (drag && drag.which === 'x') ? drag.px : 0;
   const dyPx = (drag && drag.which === 'y') ? drag.px : 0;
   const stepX = stepX_();
-  /* ONE LINE FOR EVERY COLUMN, read once — see `cardTop_`. */
-  const topLine = cardTop_($('screen') ? $('screen').clientHeight || innerHeight : innerHeight);
 
   /* ---------- THREE PASSES — WRITE, READ, WRITE — AND THAT IS THE WHOLE OF THE SPEED ----------
      THIS WAS ONE LOOP THAT WROTE A COLUMN'S STYLES, THEN MEASURED IT, THEN WROTE THE NEXT ONE. Every
@@ -1247,16 +1493,21 @@ function placeGrid(instant, drag) {
     host.style.top = '0'; host.style.right = '0'; host.style.bottom = '0'; host.style.left = '0';
     host.style.overflow = 'visible';
     host.classList.toggle('on', id === AT);
-    /* No transition while a finger is down — the movement is the finger, not an animation. */
-    host.classList.toggle('no-anim', !!drag);
+    /* A FINGER IS DOWN — read by `holdColumn_`. It used to be `no-anim`, which switched off every
+       transition on the column; a drag now zeroes only its own axis (`colTransition_` below). */
+    host.classList.toggle('dragging', !!drag);
   });
-  /* Slid so the page being read sits in the middle. A vertical drag only ever moves the screen in
-     front; the others have no finger on them. READ ONLY — see the three passes above. */
+  /* A CARD HELD BECAUSE YOU WERE USING IT IS LET GO THE MOMENT ANOTHER ONE IS IN FRONT — see
+     `HOLD_AT`. Before the shifts are read, so the card arrived at is centred. */
+  if (HOLD_AT && (HOLD_AT.id !== AT || (PAGE[AT] || 0) !== HOLD_AT.p)) HOLD_AT = null;
+  /* Slid so the page being read sits in the middle — see `columnShift_`. A vertical drag only ever
+     moves the screen in front; the others have no finger on them. READ ONLY — see the three passes
+     above. */
   hosts.forEach(h => {
-    h.shift = columnShift_(h.host, domIndex_(h.id, PAGE[h.id] || 0), topLine) + (h.id === AT ? dyPx : 0);
+    h.shift = columnShift_(h.host, domIndex_(h.id, PAGE[h.id] || 0)) + (h.id === AT ? dyPx : 0);
   });
   /* THE SETTLE, if this placement is the one a release asked for. The distance is the column that
-     moves furthest along the swipe's axis, read off the transform it has now — the drag's last
+     moves furthest along the swipe's axis, read off where the last placement put it — the drag's last
      position, written inline, so nothing is forced to lay out — against the one it is about to get. */
   /* WHENEVER IT COMES. A window of 150ms was the first version, and on a slow phone the placement a
      release asks for can start later than that — it then fell back to the old curve, whose first
@@ -1267,34 +1518,39 @@ function placeGrid(instant, drag) {
     SETTLE_FROM = null;
     let D = 0;
     hosts.forEach(({ i, host, shift }) => {
-      const m = /translate\(\s*(-?[\d.]+)px\s*,\s*(-?[\d.]+)px/.exec(host.style.transform || '');
-      if (!m) return;
-      const d = rel.axis === 'x' ? ((i - ti) * stepX) - parseFloat(m[1]) : shift - parseFloat(m[2]);
+      const was = colPlaced_(host);
+      if (!was) return;
+      const d = rel.axis === 'x' ? ((i - ti) * stepX) - was[0] : shift - was[1];
       if (Math.abs(d) > Math.abs(D)) D = d;
     });
     const c = settleCurve_(D, rel.v);
     /* SIXTEEN MILLISECONDS IN ALREADY — see the delay below. */
-    SETTLE_ON = { dur: c.dur, tf: c.tf, until: performance.now() + c.dur - 16 };
+    SETTLE_ON = { axis: rel.axis, dur: c.dur, tf: c.tf, until: performance.now() + c.dur - 16 };
   }
   const settle = !instant && !drag && SETTLE_ON && performance.now() < SETTLE_ON.until ? SETTLE_ON : null;
+  /* ON THE COLUMN, NOT THE ROOT — see `settleCurve_`. `transition-duration` does not inherit, so
+     writing it costs eleven elements' style and not three thousand. The opacity fade keeps its own
+     .22s; only the slide is the finger's.
+     A TRANSITION SHOWS NOTHING ON ITS FIRST FRAME — progress nought — so every release began with
+     one frame of the card standing still under a finger that had just been moving it. Starting a
+     frame in (`-16ms`) is the continuation: the card is already one step along when it is first
+     drawn. */
+  const runs = ax => (settle && settle.axis === ax
+    ? { d: settle.dur + 'ms', tf: settle.tf, delay: '-16ms' } : SLIDE_TAP);
+  const front = hosts.find(h => h.id === AT);
+  const before = front && !instant && !drag ? colPlaced_(front.host) : null;
   hosts.forEach(({ id, i, host, shift }) => {
     const dx = i - ti;
     const at = PAGE[id] || 0;
+    const x = dx * stepX + dxPx;
 
-    host.style.transition = instant ? 'none' : '';
-    /* ON THE COLUMN, NOT THE ROOT — see `settleCurve_`. `transition-duration` does not inherit, so
-       writing it costs eleven elements' style and not three thousand. The opacity fade keeps its own
-       .22s; only the slide is the finger's. */
-    if (settle) {
-      host.style.transitionDuration = settle.dur + 'ms, .22s';
-      host.style.transitionTimingFunction = settle.tf + ', ease';
-      /* A TRANSITION SHOWS NOTHING ON ITS FIRST FRAME — progress nought — so every release began with
-         one frame of the card standing still under a finger that had just been moving it. Starting a
-         frame in is the continuation: the card is already one step along when it is first drawn. */
-      host.style.transitionDelay = '-16ms, 0s';
-    }
-    host.style.transform =
-      `translate(${(dx * stepX + dxPx).toFixed(1)}px, ${shift.toFixed(1)}px)`;
+    /* EACH AXIS ITS OWN CLOCK — see `colWrite_`. The finger's axis follows the finger; the other
+       keeps whatever slide it is in the middle of. */
+    colTransition_(host,
+      instant || (drag && drag.which === 'x') ? SLIDE_NONE : runs('x'),
+      instant || (drag && drag.which === 'y' && id === AT) ? SLIDE_NONE : runs('y'),
+      instant ? SLIDE_NONE : { d: '.22s', tf: 'ease', delay: '0s' });
+    colWrite_(host, x, shift);
     /* Only the screen in front takes presses. A sliver of the next tab showing at the edge is
        something to look at, not something to tap. */
     host.style.pointerEvents = dx === 0 ? 'auto' : 'none';
@@ -1308,7 +1564,10 @@ function placeGrid(instant, drag) {
 
        Exactly the fault the blur had: the ONE thing making a card visible was the thing being
        dimmed away, so the card was widened and the gap tightened twice over and neither could
-       help. `.92` keeps the sense of something sitting behind without taking the edge with it. */
+       help. `.92` keeps the sense of something sitting behind without taking the edge with it.
+       (THE BLUR THAT NOTE MEANS was a blur on the COLUMN, with nothing beside it to say which card
+       was in front. `.soft` below blurs a CARD, by 2px, and the card in front is sharp beside it —
+       a soft edge next to a sharp one is still an edge.) */
     host.style.opacity = across === 0 ? '1' : across === 1 ? '.92' : '0';
     /* AND SIDEWAYS, THE SAME. This was 1 — one tab either side — so with four tabs the far one was
        hidden until the swipe reached it, and a quick flick across two showed a blank in between.
@@ -1325,7 +1584,8 @@ function placeGrid(instant, drag) {
       const d = Math.abs(p - at);
       el.style.position = 'static';
       el.style.transform = 'none';
-      el.classList.toggle('on', id === AT && p === at);
+      const focused = id === AT && p === at;
+      el.classList.toggle('on', focused);
       /* ---------- HOW MANY PAGES ARE KEPT VISIBLE EITHER SIDE ----------------------------------
          `.far` is `visibility: hidden`, so this number is exactly how many pages up and down the
          column are drawable at any moment. It was 2, which is what you see when you swipe quickly:
@@ -1336,6 +1596,13 @@ function placeGrid(instant, drag) {
          the gain is that a fast swipe never shows an empty rectangle. Beyond three the cost grows
          and the gain does not: nobody swipes four pages faster than a frame. */
       el.classList.toggle('far', d > 3);
+      /* OUT OF FOCUS — see the note over `SOFT_BLUR`. Not during a drag: the classes describe where
+         the cards ARE, and a finger has not moved the focus until it lets go. */
+      if (!drag) {
+        const soft = !focused && across <= 1 && d <= 2;
+        el.classList.toggle('soft', soft);
+        if (soft) el.classList.toggle('soft-dim', softDim_(el));
+      }
       /* DIMMING ON A BLACK SCREEN IS DELETING.
          This was .5 and .25, which reads as "further away" on paper and is not what happens here:
          the card's fill is #101010 on black, so half of it is rgb(8) and a quarter is rgb(4) —
@@ -1353,6 +1620,31 @@ function placeGrid(instant, drag) {
          it. Nothing to measure and nothing to decide. */
     });
   });
+
+  if (drag) { softDrag_(drag.which, drag.px, stepX); return; }
+  softSettle_(settle ? runs(settle.axis) : SLIDE_TAP, instant);
+
+  /* A SLIDE THE EYE CAN FOLLOW — the column in front going somewhere new — is a window in which a tap
+     is not a press. See `SLIDE_UNTIL`. */
+  if (before && front) {
+    const now = colPlaced_(front.host);
+    if (now && (Math.abs(now[0] - before[0]) > 2 || Math.abs(now[1] - before[1]) > 2)) {
+      SLIDE_UNTIL = performance.now() + (settle ? settle.dur : 300);
+    }
+  }
+
+  /* ---------- A FIELD ON A CARD THAT HAS LEFT IS LET GO OF -----------------------------------------
+     Measured on 5 October: tap a maths answer box, so the keypad comes up, then swipe the card away —
+     the keypad stayed up, typing into a box on a card that was no longer on the screen (8 of 8). The
+     keypad closes on `focusout` (keypad.js) and nothing took the focus away when the page did. So
+     whatever has the focus is blurred once its page is not the one in front, which closes the keypad
+     and a phone's own keyboard alike. A field outside every page — the sheet, the booking form's
+     drop-down — is not a card's and is left alone. */
+  try {
+    const fe = document.activeElement;
+    const pg = fe && fe !== document.body && fe.closest ? fe.closest('#screen .page') : null;
+    if (pg && !pg.classList.contains('on') && typeof fe.blur === 'function') fe.blur();
+  } catch (e) { /* a field that keeps its focus is the behaviour before this existed */ }
 }
 
 /* ==================================================================================================
@@ -2070,6 +2362,10 @@ function goPage(id, to, instant) {
     return !el || el.dataset.filled !== '1';
   })();
   if (bare) fillStuffPages();
+  /* A WIDGET STILL WAITING ITS TURN to start is started now if this is its page — see `widgetsNear_`
+     in arcade.js. Before the placement, for the reason the fill above is: a card that grows after
+     the column was placed is a card the placement never saw. */
+  if (typeof widgetsNear_ === 'function') widgetsNear_(id);
   if (id === AT) placeCells('y', instant);
   if (id === 'stuff' && !bare) afterSlide_(fillStuffPages);
   /* ---------- THE REEL BEING WATCHED IS THE PAGE BEING SHOWN -------------------------------------
@@ -2605,6 +2901,10 @@ function clicks(on) {
    IT IS CLEARED BY THE PRESS IT SWALLOWS, and again by the next `pointerdown`, so a gesture that
    ends without a click cannot eat the tap after it. */
 let PRESS_MOVED = false;
+/* AND A PRESS THAT BEGAN ON A CARD STILL SLIDING — see `SLIDE_UNTIL` above `placeGrid`. Decided at
+   `pointerdown`, because that is when the finger chose what to touch; cleared by the click it
+   swallows and by the next `pointerdown`, exactly as `PRESS_MOVED` is. */
+let PRESS_SLIDING = false;
 
 /* ==================================================================================================
    THE THING YOU PRESSED STAYS LIT UNTIL THE SCREEN HAS ANSWERED.
@@ -2677,16 +2977,37 @@ function pressDone_() {
 addEventListener('pointerdown', e => {
   if (!e.isPrimary) return;
   if (e.pointerType === 'mouse' && e.buttons !== 1) return;
+  /* THE LAST 60ms ARE LET THROUGH — by then the card has all but arrived. AND ONLY ON THE CARDS: the
+     sheet, its backdrop, the keypad and the booking drop-down are not in `#screen` and do not move
+     with it. The first version swallowed any tap during a slide, and `check/press.js` caught it
+     closing nothing — a tap on a sheet's backdrop opened over a column still sliding in. */
+  PRESS_SLIDING = performance.now() < SLIDE_UNTIL - 60
+    && !!(e.target && e.target.closest && e.target.closest('#screen'));
+  /* AND NOTHING IS LIT UNDER A FINGER THAT IS CATCHING A MOVING CARD rather than pressing it. */
+  if (PRESS_SLIDING) { pressClear_(); return; }
   pressMark_(e.target);
 }, { passive: true, capture: true });
 addEventListener('pointercancel', pressClear_, { passive: true });
+/* A FIELD ON THE CARD IN FRONT TAKING FOCUS, OR A SELECT OR A BOX CHANGED ON IT, HOLDS IT TOO — see
+   `HOLD_AT`. A box that grows as you type grows downward, and the line you are typing on stays put.
+   `change` because a select's answer arrives through the app's own list, which is not on the card. */
+document.addEventListener('focusin', e => holdHere_(e.target), true);
+document.addEventListener('change', e => holdHere_(e.target), true);
 
 document.addEventListener('click', e => {
   /* FIRST, because a swipe that ends on a tab must not change tab either. */
   if (PRESS_MOVED) {
     PRESS_MOVED = false;
+    PRESS_SLIDING = false;
     pressClear_();
     if (CLICK_LOG) console.log('[click] swallowed — the finger moved, so this was a swipe');
+    return;
+  }
+  /* A TAP ON A CARD STILL GLIDING STOPS NOTHING AND PRESSES NOTHING — see `SLIDE_UNTIL`. */
+  if (PRESS_SLIDING) {
+    PRESS_SLIDING = false;
+    pressClear_();
+    if (CLICK_LOG) console.log('[click] swallowed — it began on a card still sliding');
     return;
   }
   pressDone_();
@@ -2701,6 +3022,9 @@ document.addEventListener('click', e => {
       handledByChange: !!(d && (d.tagName === 'SELECT' || d.type === 'checkbox')),
     });
   }
+  /* A PRESS ON THE CARD IN FRONT HOLDS IT WHERE IT IS, before the handler below changes it — see
+     `HOLD_AT`. After the two swallows above, because a swipe is not somebody using the card. */
+  holdHere_(e.target);
   const tab = e.target.closest('.tab');
   if (tab) { go(tab.dataset.tab); return; }
 

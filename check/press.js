@@ -403,7 +403,13 @@ for (const who of VISITORS) {
          that did nothing, which is the finding this file exists to make honest. */
       if (el.tagName === 'SELECT') {
         const opts = [...el.options].filter(o => !o.disabled);
-        const next = opts.find(o => o.value !== el.value);
+        /* AN ANSWER, NOT THE BLANK. The booking form's selects open on an empty "Choose…" row, and
+           moving the client from Test Admin to that row is choosing nobody — which the form rightly
+           ignores. It passed until 5 October only because the repaint it caused left the page
+           unplaced (no `on`, no styles) for longer than the 130ms below, and that difference in the
+           markup was read as the press having done something; once `paint` re-placed what it drew,
+           `book-set` read as quiet. The blank is pressed only when there is nothing else. */
+        const next = opts.find(o => o.value !== el.value && o.value !== '') || opts.find(o => o.value !== el.value);
         if (next) { el.value = next.value; el.dispatchEvent(new Event('change', { bubbles: true })); }
       } else if (el.type === 'checkbox' || el.type === 'radio') {
         el.checked = !el.checked;
@@ -487,8 +493,23 @@ for (const who of VISITORS) {
     }
     /* AND A STATE THAT DID NOT ARRIVE FAILS LOUDLY, for the reason `check/ui.js` gives: a state
        silently not reached is "I did not press it" printed as "I pressed it and it was fine". */
+    /*
+       ASKED AGAIN FOR UP TO 2.5s, NOT ONCE. Several states finish their `enter` on a timer of their
+       own — `setTimeout(…, 150)` before the real press, so the card is placed first — and on a loaded
+       machine that timer, the press and the paint behind it outlast the fixed wait above. Measured on
+       6 October with `check/press.js --screen=stuff`: "a typed answer, marked not yet" did not arrive
+       on 1 run in 2 on the base commit and on this branch alike, with nothing wrong in the app. A
+       state that never arrives still fails, after the 2.5s; one that arrives late is measured. */
     if (state.expect) {
-      const got = await page.evaluate(src => { try { return !!eval('(' + src + ')')(); } catch (e) { return false; } }, String(state.expect));
+      const got = await page.evaluate(async src => {
+        const t0 = performance.now();
+        for (;;) {
+          let ok = false;
+          try { ok = !!eval('(' + src + ')')(); } catch (e) {}
+          if (ok || performance.now() - t0 > 2500) return ok;
+          await new Promise(r => setTimeout(r, 100));
+        }
+      }, String(state.expect));
       if (!got) { console.error('! ' + label + ' did not arrive — wanted ' + (state.wants || 'the state to be on screen')); notEntered++; continue; }
     }
 
@@ -511,6 +532,23 @@ for (const who of VISITORS) {
        press. That is the same argument `check/ui.js` makes for adding `#sheet` to its measured
        roots: the declared state IS the app's own door, and a sheet that a state opened is a surface
        somebody is on. */
+    /* ---------- AND EVERY WIDGET ON IT STARTED BEFORE THE QUEUE IS READ ----------------------------
+       ARRIVING AT A COLUMN STARTS ITS WIDGETS A FEW AT A TIME NOW (`widgetsLater_`, arcade.js), and a
+       widget draws most of its controls in `start` — Connect 4's columns, Othello's squares, the
+       round games' Start. Read 300ms after arriving, the queue held the column's `New game` buttons
+       and not the boards they reset, so `c4-again` was pressed on a board nobody had played and read
+       as doing nothing; the base commit started everything at once, the cells were found first in
+       document order, a counter was dropped, and `New game` had something to undo. Measured on
+       6 October: base green, branch 8 quiet (`c4-again`, `oth-again`, `rg-next`, `rg-again`, both
+       visitors), the same screen in the same harness. So the queue waits for the widget queue and
+       the after-slide jobs to run dry — the app's own idea of "arrived" — bounded at 6s. */
+    await page.evaluate(async () => {
+      const t0 = performance.now();
+      const busy = () => (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length > 0)
+        || (typeof AFTER_SLIDE_JOBS !== 'undefined' && AFTER_SLIDE_JOBS.size > 0)
+        || (typeof AFTER_SLIDE !== 'undefined' && !!AFTER_SLIDE);
+      while (busy() && performance.now() - t0 < 6000) await new Promise(r => setTimeout(r, 50));
+    });
     const queue = await page.evaluate(sid => {
       const scr = document.getElementById('s-' + sid);
       const seen = new Set();
@@ -1466,10 +1504,33 @@ for (const who of VISITORS) {
         await reset();
         await tp.evaluate(() => openSheet('Test', '<p>A short sheet.</p>'));
         await tp.waitForTimeout(700);
-        await tap(fav.x, fav.y);
-        const r = await now();
-        want('settings · favourite colour, one tap on a sheet\'s backdrop over it', !r.open && !r.sheet, said(r),
-             'the sheet closed and no list behind it');
+        /* ---------- THE BACKDROP HAS TO BE WHAT IS OVER THE SELECT ---------------------------------
+           THE CARD IN FRONT IS CENTRED NOW (`columnShift_` in shell.js), so the favourite colour sits
+           in the middle of the screen — and the middle of the screen is under the sheet's BODY, not
+           its backdrop. The tap landed on the sheet, which rightly stayed open, and this reported the
+           app broken: the question was asked of the wrong surface. So the select is the favourite
+           colour when the backdrop is over it, and otherwise the first select on the page in front
+           that the backdrop does cover — and none at all is a failure to reach, not a pass. */
+        const spot = await tp.evaluate(f => {
+          const back = el => !!el && el.id === 'sheet-back';
+          if (back(document.elementFromPoint(f.x, f.y))) return { x: f.x, y: f.y, name: 'favourite colour' };
+          for (const s of document.querySelectorAll('#s-settings .page.on select')) {
+            if (!selVisible_(s)) continue;
+            const r = s.getBoundingClientRect();
+            const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
+            if (back(document.elementFromPoint(x, y))) return { x, y, name: s.getAttribute('data-me') || s.name || 'a select' };
+          }
+          return null;
+        }, fav);
+        if (!spot) {
+          want('settings · a select under a sheet\'s backdrop', false, 'every select on the page in front is under the sheet itself',
+               'one select the backdrop covers, to tap');
+        } else {
+          await tap(spot.x, spot.y);
+          const r = await now();
+          want('settings · ' + spot.name.replace(/_/g, ' ') + ', one tap on a sheet\'s backdrop over it', !r.open && !r.sheet, said(r),
+               'the sheet closed and no list behind it');
+        }
       }
       await reset();
       await ctx.close();

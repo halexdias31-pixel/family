@@ -419,6 +419,31 @@ function serve() {
 /* ---------- THE MEASUREMENTS, RUN INSIDE THE PAGE -----------------------------------------------
    One function, passed whole to the browser, because crossing the boundary per element would turn
    two thousand elements into two thousand round trips. */
+/* ---------- NOTHING IS MEASURED WHILE A COLUMN IS STILL SLIDING ----------------------------------
+   A FIXED WAIT WAS ALL THERE WAS — 450ms after `go`, 500ms after a state's `enter` — and on a loaded
+   machine a column's slide outlasts it. Both geometry rules then read a card part-way to where it was
+   sent: PANE OFF THE SCREEN named eleven panes 5–1949px out in one full run of `--part=2/2` and a
+   different set the next, and COLUMNS OUT OF LINE named `games` 3–42px off the middle with its
+   placed shift EXACTLY the one `columnShift_` asked for and one transition still running on the
+   column (traced on 6 October). Both rules are about where a card RESTS. So: no running animation on
+   any column, no placement booked for the next frame, then two frames — bounded at 4s, after which
+   whatever is there is measured and reported as it is. */
+async function settled(page) {
+  try {
+    await page.evaluate(async () => {
+      const t0 = performance.now();
+      for (;;) {
+        const moving = [...document.querySelectorAll('#screen > .screen, .screen')].some(c =>
+          typeof c.getAnimations === 'function' && c.getAnimations().some(a => a.playState === 'running'));
+        const booked = typeof PLACE_FRAME !== 'undefined' && !!PLACE_FRAME;
+        if ((!moving && !booked) || performance.now() - t0 > 4000) break;
+        await new Promise(r => setTimeout(r, 50));
+      }
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    });
+  } catch (e) { /* a page that cannot answer is measured as it stands */ }
+}
+
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
   const found = { overflow: [], hidden: [], offscreen: [], strays: [], shrunk: [],
@@ -1244,9 +1269,22 @@ function inspect(opts) {
         /* AND IT HAS TO HAVE ARRIVED. A state that silently did not happen leaves this measuring
            the previous one twice and reporting it as coverage — which is the whole fault this file
            exists to stop repeating. */
+        /*
+       ASKED AGAIN FOR UP TO 2.5s, NOT ONCE. Several states finish their `enter` on a timer of their
+       own — `setTimeout(…, 150)` before the real press, so the card is placed first — and on a loaded
+       machine that timer, the press and the paint behind it outlast the fixed wait above. Measured on
+       6 October with `check/press.js --screen=stuff`: "a typed answer, marked not yet" did not arrive
+       on 1 run in 2 on the base commit and on this branch alike, with nothing wrong in the app. A
+       state that never arrives still fails, after the 2.5s; one that arrives late is measured. */
         if (state.expect) {
-          const got = await page.evaluate(src => {
-            try { return (0, eval)('(' + src + ')')(); } catch (e) { return 0; }
+          const got = await page.evaluate(async src => {
+            const t0 = performance.now();
+            for (;;) {
+              let ok = 0;
+              try { ok = (0, eval)('(' + src + ')')(); } catch (e) {}
+              if (ok || performance.now() - t0 > 2500) return ok;
+              await new Promise(r => setTimeout(r, 100));
+            }
           }, String(state.expect));
           if (!got) {
             console.warn(`  ! "${label}" at ${width}px was entered and shows no ${state.wants} — `
@@ -1292,6 +1330,7 @@ function inspect(opts) {
           continue;
         }
 
+        await settled(page);
         const { found, counted, guessed } = await page.evaluate(inspect,
           { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
         if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
@@ -1410,9 +1449,23 @@ function inspect(opts) {
 
        THE TOLERANCE IS SUB-PIXEL LAYOUT AND NOTHING ELSE. Measured across the three sizes the
        spread is 0.3–0.5px, which is `offsetTop` rounding; 2px leaves room for that and no room for
-       a card placed by a different rule. */
+       a card placed by a different rule.
+
+       ---------- AND THE LINE IS THE MIDDLE OF THE SCREEN NOW ------------------------------------
+       ASKED FOR ON 5 OCTOBER: *"focused widgets should be in centre of screen. also those widgets
+       not in focus should actually look slightly out of focus effect."* So `columnShift_` centres the
+       card in front again, and the cards beside it are drawn out of focus, which is what makes two
+       neighbours of different heights read as depth rather than as an edge out of step. THE SAME
+       INSTRUMENT, RESTATED: every column's current card has its CENTRE on the middle of `#screen`,
+       within the same 2px — so a column placed by any other rule (the old top line, a stray offset)
+       is still named, with how far off it is. A card as tall as the screen or taller is skipped:
+       it cannot be centred and is placed at its top. */
+    await settled(page);
     const ragged = await page.evaluate(() => {
-      const tops = [];
+      const offs = [];
+      const sc = document.getElementById('screen');
+      if (!sc) return null;
+      const box = sc.getBoundingClientRect(), mid = box.top + box.height / 2;
       document.querySelectorAll('.screen').forEach(s => {
         const id = s.id.slice(2);
         const pages = s.querySelectorAll(':scope > .page');
@@ -1421,12 +1474,13 @@ function inspect(opts) {
         try { at = domIndex_(id, PAGE[id] || 0); } catch (e) { at = 0; }
         const cur = pages[Math.max(0, Math.min(pages.length - 1, at))];
         if (!cur) return;
-        tops.push({ id, top: +cur.getBoundingClientRect().top.toFixed(1) });
+        const r = cur.getBoundingClientRect();
+        if (r.height >= box.height) return;
+        offs.push({ id, off: +(r.top + r.height / 2 - mid).toFixed(1) });
       });
-      if (tops.length < 2) return null;
-      const lo = tops.reduce((a, b) => a.top < b.top ? a : b);
-      const hi = tops.reduce((a, b) => a.top > b.top ? a : b);
-      return { by: +(hi.top - lo.top).toFixed(1), lo, hi, n: tops.length };
+      if (!offs.length) return null;
+      const worst = offs.reduce((a, b) => Math.abs(a.off) >= Math.abs(b.off) ? a : b);
+      return { by: Math.abs(worst.off), worst, n: offs.length };
     });
     if (ragged && ragged.by > 2) rows.push({ width, id: '—', as: who.as, ragged });
 
@@ -1525,8 +1579,8 @@ function inspect(opts) {
       + `children ${r.docScroll.kids}`,
       `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
     if (r.ragged) add('COLUMNS OUT OF LINE',
-      `the current card starts ${r.ragged.by}px apart across ${r.ragged.n} columns — `
-      + `${r.ragged.hi.id} at ${r.ragged.hi.top}, ${r.ragged.lo.id} at ${r.ragged.lo.top}`,
+      `the current card is not on the middle of the screen across ${r.ragged.n} columns — `
+      + `${r.ragged.worst.id}'s centre is ${r.ragged.worst.off}px from it`,
       `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
     /* THE SCREEN NEVER DREW. Grouped like the rest so one broken card across four widths and two
        visitors is one line to fix rather than eight, and so it is counted exactly once. */
