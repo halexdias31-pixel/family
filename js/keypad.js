@@ -104,6 +104,11 @@ const KP_KEYS = [
   { v: '!back', a: 'delete', c: ' kp-mode', t: '\u232b' },
   { v: '!done', a: 'done', c: ' kp-done', t: '\u2713' },
 ];
+/* A KEY IS A BUTTON AND NOT A TILE, the one place on a question's pages the owner's *"it should all be
+   tiles"* does not reach, and on purpose: these are a KEYBOARD. Thirty keys in a grid have to be the
+   grid's size and carry their glyph (7, π, √, a fraction drawn as two boxes) as the whole face; a tile
+   is a 44px plate with an outline mark and its name in `title`, which on a key would be a picture of a
+   7 called "7". Typing is the answer being given, as a multiple-choice option is (`choiceBox_`). */
 const kpKey_ = k => `<button type="button" class="kp-key${k.c || ''}" data-do="kp-key"
   data-v="${esc(k.v != null ? k.v : k.t)}"${k.a ? ` aria-label="${esc(k.a)}"` : ''}>${k.t}</button>`;
 
@@ -392,8 +397,13 @@ document.addEventListener('keydown', e => {
    on the first press, and from then every AI button on the screen is greyed and says so — one press
    wasted, never a button that keeps doing nothing.
 
-   A FORM'S BUTTON, beside Check and shaped like it, because it is the same act on a different kind of
-   answer — the answer box is a form, and its buttons belong to it.
+   A TILE, BESIDE CHECK AND SHAPED LIKE IT, because it is the same act on a different kind of answer.
+   This said "a form's button ... the answer box is a form, and its buttons belong to it" -- the house
+   rule, and Check was a gold button beside it on the same argument. The owner overruled it for a
+   question's pages, one control at a time and then all at once: *"check button should be a tile"*,
+   then *"it should all be tiles."* So Mark with AI is a tile with a sparkle on it (`spark`, the mark
+   every phone puts on "a model did this"), `.qp-ai-go` the name the handler and the checks find it
+   by, and `disabled` when the server says there is no key -- which a tile draws without its plate.
 ================================================================================================== */
 let AI_OFF = false;
 
@@ -413,7 +423,7 @@ function aiWanted_(x) {
 function aiBox_(x) {
   if (!aiWanted_(x) || !aiOffered_()) return '';
   return `<div class="qp-mark qp-ai">
-    <button type="button" class="qp-check qp-ai-go" data-do="qp-ai">Mark with AI</button>
+    ${tile_({ icon: 'spark', label: 'Mark with AI', note: 'out of the marks', act: 'qp-ai', cls: 'qp-ai-go' })}
     <span class="qp-verdict" role="status" aria-live="polite"></span>
   </div><p class="qp-ai-why"></p>`;
 }
@@ -471,9 +481,12 @@ on('qp-ai', (el) => {
   if (!x) { out.textContent = 'Could not find this question'; return; }
   const sent = inp.value;
   el.disabled = true;
+  /* THE TILE'S OWN RING WHILE IT WAITS (`.tile.is-busy`), on the tile as well as the row: a disabled
+     tile loses its plate, which says "nothing to press" -- the wrong sentence for "pressed, marking". */
   box.classList.add('is-busy');
+  el.classList.add('is-busy');
   out.textContent = 'Marking\u2026';
-  const done = () => { el.disabled = AI_OFF; box.classList.remove('is-busy'); };
+  const done = () => { el.disabled = AI_OFF; box.classList.remove('is-busy'); el.classList.remove('is-busy'); };
   api({ action: 'aiMark', personId: USER.personId || '', question: aiQuestion_(x), scheme: aiScheme_(x),
         answer: sent, marks: Number(x.marks) || 1 })
     .then(d => {

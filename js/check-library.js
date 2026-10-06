@@ -1520,6 +1520,55 @@ console.log(`questions answered by drawing: ${drawQs.length} — on their own pi
   + `on a surface while the picture is transcribed: ${Object.keys(onSurface).sort()
     .map(k => `${k} ${onSurface[k]}`).join(', ') || 'none'}`);
 
+/* ---------- A RULER AND A COMPASS ON THE PEN, AND HOW MANY QUESTIONS ASK FOR THEM -----------------------
+   *"some questions require a compass or ruler. so should have a tile for these things. if you cant find
+   those questions dont worry just have the infrastructure set up for it."* The app's own decider
+   (`padTools_`, cut out of find.js by name like `padSurface_` above) run over every question, with the
+   `needs` the card shows -- the paper's cover unioned with the row's own, as `needsOf_` does -- and the
+   words of the row, its lead and its preambles. A COUNT, NOT A RULE: a question asking for a compass
+   with no pen to use it on is the data's to fix (its `answer_type` or `surface`), and it is printed so
+   that it is a backlog rather than a silence. "Protractor" is decided and not built -- printed too. */
+const toolsSrc_ = cutFrom(findSrc_, 'padTools_');
+/* SAID AS WELL AS COUNTED: the failures pushed this far down are past the place this file prints them,
+   so a bare `fail.push` would end the run red with no sentence saying why. */
+if (!toolsSrc_) {
+  const why = 'padTools_ is not in find.js — renamed? The ruler and compass questions were NOT counted.';
+  fail.push(why);
+  console.log('\n' + why);
+}
+const padTools_ = toolsSrc_ ? new Function(toolsSrc_ + '\nreturn padTools_;')() : (() => ['pen']);
+const docNeeds_ = {};
+rows.forEach(r => { if (r && r.kind === 'document' && r.needs) docNeeds_[String(r.paper_id)] = String(r.needs); });
+const preHtml_ = {};
+rows.forEach(r => {
+  if (!r || r.kind !== 'preamble') return;
+  const k = String(r.paper_id) + '\u0000' + String(r.question || '');
+  (preHtml_[k] = preHtml_[k] || []).push({ html: r.html });
+});
+const toolCount = { ruler: 0, compass: 0, protractor: 0 };
+const toolPen = { ruler: 0, compass: 0 };
+const toolNoPen = [];
+rows.forEach(r => {
+  if (!r || r.kind !== 'question') return;
+  const needs = String(docNeeds_[String(r.paper_id)] || '').split(',').concat(String(r.needs || '').split(','));
+  const got = padTools_({ needs: needs, html: r.html, lead: r.lead,
+                          stems: preHtml_[String(r.paper_id) + '\u0000' + String(r.question || '')] || [] });
+  const pen = /^(drawing|annotate)$/i.test(String(r.answer_type || '').trim())
+    || ['grid', 'coord', 'blank'].indexOf(String(r.surface || '').trim().toLowerCase()) !== -1;
+  Object.keys(toolCount).forEach(t => { if (got.indexOf(t) !== -1) toolCount[t]++; });
+  ['ruler', 'compass'].forEach(t => { if (pen && got.indexOf(t) !== -1) toolPen[t]++; });
+  if (!pen && (got.indexOf('ruler') !== -1 || got.indexOf('compass') !== -1)
+      && /construct|locus|loci|bisect|compasses|use a ruler/i.test(String(r.html || ''))) toolNoPen.push(r.row_id);
+});
+console.log(`the pen's tools: a Ruler on ${toolPen.ruler} pen question(s), a Compass on ${toolPen.compass}`
+  + `   (asked for anywhere: ruler ${toolCount.ruler}, compass ${toolCount.compass}; `
+  + `protractor ${toolCount.protractor}, not built)`);
+if (toolNoPen.length) {
+  console.log(`   asking in their own words for a ruler or compasses with no pen to use them on: ${toolNoPen.length} — `
+    + toolNoPen.slice(0, 4).join(', ') + (toolNoPen.length > 4 ? ', …' : '')
+    + '   (their answer_type is not drawing; a `surface` would give them one)');
+}
+
 console.log(`rows saying where the paper prints their figure (<!--fig-->): ${marked}`
   + `   (the rest stand it in front of the ask, or after it for a pen question)`);
 const allDocs_ = rows.filter(r => r && r.kind === 'document').length;

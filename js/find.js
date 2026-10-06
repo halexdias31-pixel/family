@@ -6857,22 +6857,39 @@ function choiceBox_(x) {
       need > 1 ? `<span class="qp-ans-k">Choose ${need}</span>` : ''}
     <div class="qp-opts">${x.choices.map((c, i) => {
       const n = i + 1, on = picked.includes(n);
-      const cls = (on ? ' is-picked' : '') + (done && right.includes(n) ? ' is-ans' : '');
+      /* THE TICK GOES ON YOUR PICK WHEN IT IS RIGHT, AND NOWHERE WHEN IT IS NOT. A wrong tap used to
+         tick the right option on the spot, and that is the answer shown on the question card with
+         nobody pressing anything -- the owner: *"answers should just stay hidden unless user unhides
+         them"*, and before that *"you should have to click to reveal the answer"*. The verdict is
+         about the pick ("Correct" / "Not yet"); which option the scheme credits is the answer, and it
+         is on the answer page behind Show like every other answer. Still settled after one pick
+         (`qp-choose`): with three wrong options and a free retry, "Correct" is reached by elimination. */
+      const cls = (on ? ' is-picked' : '') + (ok && on ? ' is-ans' : '');
       /* THE OPTION'S OWN MARKUP, as the question's html is drawn: it is committed library content
-         and carries the italics and superscripts an equation needs. */
+         and carries the italics and superscripts an equation needs.
+
+         NOT A TILE, AND THE ONE EXCEPTION ON THIS PAGE BESIDE THE KEYPAD'S KEYS. The owner made every
+         control on a question's pages a tile (*"it should all be tiles"*) -- Check, Mark with AI, the
+         pen's bar, Show and Hide. An option is not a control done TO the question; it is the answer
+         being given, with its own words and its own maths in it, and a 44px square holding a mark
+         cannot hold "P = I²R". So it stays a full-width button, the way a printed paper prints a box
+         beside each answer. */
       return `<button type="button" class="qp-opt${cls}" data-do="qp-choose"
         data-n="${n}" aria-pressed="${on}">${typeset_(c)}</button>`;
     }).join('')}</div>
   </div>${right.length ? `<div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">
     <span class="qp-verdict" role="status" aria-live="polite">${done
-      ? (ok ? 'Correct' : 'Not yet — the right ' + (need > 1 ? 'ones are' : 'one is') + ' marked')
+      /* WHERE THE ANSWER IS, NOT WHAT IT IS -- and short enough for one line at 320px: "Not yet --
+         the answer has its own page" wrapped to two there, and the slot is one line tall. */
+      ? (ok ? 'Correct' : 'Not yet — see the answer page')
       : ''}</span>
   </div>` : ''}`;
 }
 
 /* A tap picks; on "choose two" a second tap adds and a tap on a chosen one takes it back off. Once
-   a marked question is answered it is settled: changing it after being shown the
-   answer would make "Correct" a thing anybody can reach. "Start again" is clearing the box. */
+   a marked question is answered it is settled: a second go after "Not yet" -- or after Show on the
+   answer page -- would make "Correct" a thing anybody can reach by elimination. "Start again" is
+   clearing the box. */
 on('qp-choose', (el) => {
   const box = el.closest('.qp-choices');
   const card = el.closest('.qcard');
@@ -6897,8 +6914,9 @@ on('qp-choose', (el) => {
   if (mark) mark.remove();
   box.replaceWith(...wrap.childNodes);
   /* RIGHT DOES NOT OPEN THE ANSWER PAGE ANY MORE. It did, from 263 on; the verdict on this card --
-     "Correct", and the right option marked -- is the answer to "was I right", and the page after
-     opens when somebody taps "Show the answer" and not before. See `ansOpen_`. */
+     "Correct" with your pick ticked, or "Not yet" with nothing ticked -- is the answer to "was I
+     right", and the page after opens when somebody taps "Show the answer" and not before. See
+     `ansOpen_`, and `choiceBox_` for why a wrong pick no longer ticks the right one. */
 });
 
 function ansBox_(x) {
@@ -7079,6 +7097,59 @@ function padSource_(x) {
   return null;
 }
 
+/* ---------- WHICH TOOLS A QUESTION'S PEN COMES WITH ------------------------------------------------
+   ASKED FOR AS *"some questions require a compass or ruler. so should have a tile for these things. if
+   you cant find those questions dont worry just have the infrastructure set up for it."* The pen is
+   always there; a Ruler and a Compass are added where the QUESTION says so, in either of two places:
+
+     `needs`            what the card already tells you to bring -- the paper's cover and the row's own
+                        cell, unioned (`needsOf_`). "Ruler", "Compass" and "Protractor" are the closed
+                        spellings `check-library.js` holds; "compasses", "pair of compasses", "straight
+                        edge", "angle measurer" and a "geometry set" are read too, in case a cell is
+                        typed the way a paper prints it.
+     the words          the question's own, its lead's and its stems': "Use a ruler", "ruler and
+                        compasses", "construct", "bisector", "locus", "loci". A construction is ruler and
+                        compasses together. NOT "plotting compasses" (a physics field diagram, which has
+                        nothing to do with drawing circles), NOT "construct a table / tree / graph", and
+                        NOT "ruler" as a thing in a word problem ("12 rulers cost...") -- only "use /
+                        with / using a ruler" says it is in your hand.
+
+   `protractor` IS ANSWERED and drawn as nothing: there is no protractor tool, because one that is any
+   use is a scale you lay over a figure and read, not a mark you make, and that is not this bar's kind
+   of tool. Answering it anyway keeps the decision in one place for the day one exists, and lets
+   `check-library.js` count how many questions would have it.
+
+   ONE FUNCTION, NOTHING FROM OUTSIDE IT, so `check-library.js` can cut it out by name and count what
+   the library gets -- the `padSurface_` arrangement. No `{` in a pattern, for the same reason: the
+   cutter counts braces. */
+function padTools_(x) {
+  /* IN ONE ORDER WHATEVER ORDER THEY WERE FOUND IN, so the bar reads Pen, Ruler, Compass on every
+     card and a thumb learns where each one is. */
+  const ORDER = ['pen', 'ruler', 'compass', 'protractor'];
+  const want = { pen: 1 };
+  const add = t => { want[t] = 1; };
+  const out = () => ORDER.filter(t => want[t]);
+  if (!x) return out();
+  const needs = (Array.isArray(x.needs) ? x.needs : String(x.needs || '').split(','))
+    .map(v => String(v == null ? '' : v).trim().toLowerCase()).filter(Boolean);
+  needs.forEach(v => {
+    if (/geometry set|maths set|mathematical instruments/.test(v)) { add('ruler'); add('compass'); add('protractor'); }
+    if (/ruler|straight ?edge/.test(v)) add('ruler');
+    if (/compass/.test(v)) add('compass');
+    if (/protractor|angle measurer/.test(v)) add('protractor');
+  });
+  const words = [x.lead, x.html].concat((x.stems || []).map(p => p && p.html))
+    .map(h => String(h || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z0-9#]+;/gi, ' '))
+    .join(' ').replace(/\s+/g, ' ').toLowerCase().replace(/plotting compass(es)?/g, ' ');
+  if (/\b(use|using|with) (a |an |your )?ruler\b|\bruler and (a pair of )?compasses\b|\bstraight ?edge\b/.test(words)) add('ruler');
+  if (/\bcompasses\b/.test(words)) add('compass');
+  const built = /\bconstruct(ion|ions|ed|ing)?\b/.test(words)
+    && !/\bconstruct(ion|ions|ed|ing)? (an? |the |your )?([\w-]+ )?([\w-]+ )?(table|tree|graph|chart|diagram|histogram|polygon|sentence|argument|frequency)s?\b/.test(words);
+  if (built || /\b(locus|loci|bisector|bisect)\b/.test(words)) { add('ruler'); add('compass'); }
+  if (/\bprotractor\b|\bangle measurer\b/.test(words)) add('protractor');
+  return out();
+}
+
 function padRead_(k) {
   try {
     const v = JSON.parse(localStorage.getItem(k) || '[]');
@@ -7100,17 +7171,60 @@ const padPath_ = st => {
 };
 
 /* ---------- WHAT THE CONTROL SAYS, IN ONE PLACE --------------------------------------------------
-   THE HANDLER REWRITES THIS BUTTON IN PLACE rather than repainting the card, so the label exists in
-   two places by construction — the markup above and the press below. Written twice they drift, and
-   the drift here is invisible: a pad that says `Draw on it` while the pen is on is a mode you cannot
-   see, which is the fault the gold frame was added for.
+   THE HANDLER REWRITES THIS TILE IN PLACE rather than repainting the card, so its face exists in
+   two places by construction — the markup below and the press in `padArm_`. Written twice they
+   drift, and the drift here is invisible: a pad that says `Draw on it` while the pen is on is a mode
+   you cannot see, which is the fault the gold frame was added for. So the face is one object, handed
+   to `tile_` to draw and to `tileSet_` to rewrite.
 
    `Draw on it` SAID NOTHING ABOUT THE CARD BEING HELD, and that is what the report was about. The
    owner's own sentence is the label: a padlock, and `Lock it to draw`. */
 const PAD_TAP = 'Hold the card still and draw on this';
-const padLockFace_ = pen =>
-  (typeof tileIcon_ === 'function' ? tileIcon_(pen ? 'lock' : 'unlock') : '')
-  + (pen ? 'Done drawing' : 'Lock it to draw');
+const padLockFace_ = pen => ({ icon: pen ? 'lock' : 'unlock',
+  label: pen ? 'Done drawing' : 'Lock it to draw', note: pen ? 'the card moves again' : 'holds the card still',
+  on: !!pen, pressed: !!pen });
+
+/* ---------- THE PEN'S BAR IS A ROW OF TILES ---------------------------------------------------------
+   THESE WERE THREE `<button>`s — a full-width gold `Lock it to draw` on a line of its own and grey
+   `Undo` and `Clear` under it — argued as a FORM's controls, which the house rule gives buttons. The
+   owner, looking at it: *"lock should be a tile too. same as undo and clear. it should all be tiles."*
+   So every control on a question's pages is a tile now, and the rule that sent these to buttons is
+   overruled here for this surface by the person it was written for. One renderer means one tap target,
+   one press animation and one place `check-doors` pairs each `act` with its handler.
+
+   THE LOCK KEEPS ITS LEAD, in the tile's own vocabulary: `tone: 'lead'` is a gold mark while the pen
+   is off (the one thing to press first, as the gold outline said) and a gold FILL while it is on
+   (`.on`), which is the difference between an invitation and a state the frame already argued for.
+   It is a switch, so it says `aria-pressed` as well as lighting up. `.qpad-lock` stays the name the
+   handler and the checks find it by, because the picture carries the same action while the pen is off. */
+/* ---------- AND WHAT THE PEN DRAWS WITH, WHERE THE QUESTION ASKS FOR MORE THAN A PEN -------------------
+   `padTools_` decides which; these are their faces. Each is a switch -- the one in hand is lit (`on`)
+   and pressed -- and only WHILE THE PEN IS ON: with the card free to move nothing is in hand, and a
+   lit Ruler over a picture a finger cannot draw on would say the opposite. Pressing one is also the
+   lock (see `pad-tool`), so lit always means "a drag here makes this".
+
+   DRAWN ONLY WHERE THERE IS A CHOICE. A question that wants nothing but the pen gets the bar it always
+   had -- lock, Undo, Clear -- because a lone Pen tile would be a switch with one position. `protractor`
+   has no face, so a question that asks for one is offered what does exist. */
+const PAD_TOOL_FACE = {
+  pen:     { icon: 'pen',     label: 'Pen',     note: 'draw freehand' },
+  ruler:   { icon: 'ruler',   label: 'Ruler',   note: 'drag a straight line' },
+  compass: { icon: 'compass', label: 'Compass', note: 'press the centre, drag out' },
+};
+const padToolTile_ = (t, on) => tile_(Object.assign({ act: 'pad-tool', cls: 'qpad-tool', data: { tool: t },
+  on: on, pressed: on }, PAD_TOOL_FACE[t]));
+const padToolsOf_ = x => padTools_(x).filter(t => PAD_TOOL_FACE[t]);
+
+/* TWO GROUPS IN THE ROW, so it breaks BETWEEN them and never inside one. Six tiles is 286px and a 390px
+   phone's card has about 288 -- measured, it wrapped Clear alone onto a line of its own, a bin
+   orphaned under a row it belongs to. Held as "the pen and what it draws with" and "taking marks
+   back", the row is four and two at 320 and at 390 alike, and one row wherever there is room. */
+const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
+      <span class="qpad-group">${tile_(Object.assign({ act: 'pad-draw', cls: 'qpad-lock', tone: 'lead' }, padLockFace_(pen)))}${
+      tools.length > 1 ? tools.map(t => padToolTile_(t, pen && t === tool)).join('') : ''}</span>
+      <span class="qpad-group">${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo' })}${
+      tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}</span>
+    </div>`;
 
 function padWrap_(x, svg, credit) {
   const k = padKey_(x);
@@ -7122,6 +7236,9 @@ function padWrap_(x, svg, credit) {
      the invisible mode this repository already records for the reel that was paused with nothing
      on it saying so. */
   const pen = PAD_ON === k;
+  const tools = padToolsOf_(x);
+  const held = PAD_TOOL.get(k);
+  const tool = held && tools.indexOf(held) !== -1 ? held : 'pen';
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather
      than by parsing a viewBox out of the drawing's markup. `preserveAspectRatio="none"` is what
      makes that exact: 340 units of user space map to the box's width and 340 to its HEIGHT
@@ -7138,14 +7255,10 @@ function padWrap_(x, svg, credit) {
       <svg class="qpad-ink"${pen ? ' data-noswipe' : ''} viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>
+        <g class="qpad-aid"></g>
       </svg>
     </div>
-    <div class="qpad-bar">
-      <button type="button" class="qpad-btn qpad-lock" data-do="pad-draw" aria-pressed="${pen}">${
-        padLockFace_(pen)}</button>
-      <button type="button" class="qpad-btn" data-do="pad-undo">Undo</button>
-      <button type="button" class="qpad-btn" data-do="pad-clear">Clear</button>
-    </div>${credit || ''}
+    ${padBar_(pen, tools, tool)}${credit || ''}
     <p class="qpad-note">Kept on this phone only, like the answer box.</p>
   </div>`;
 }
@@ -7153,9 +7266,9 @@ function padWrap_(x, svg, credit) {
 /* ---------- ARMING ONE PAD, EVERY PART OF IT TOGETHER --------------------------------------------
    FOUR THINGS MOVE AND THE HANDLER USED TO MOVE THEM IN FOUR PLACES: the class the frame is drawn
    from, the `data-noswipe` the grid reads, the `data-do` that makes the picture itself a door, and
-   the button's own face. Four sites is four chances to leave a pad half-armed — a gold frame over a
-   picture that still hands the finger to the grid, or the other way round — and a half-armed pad is
-   exactly the invisible mode the frame exists to prevent.
+   the lock tile's own face. Four sites is four chances to leave a pad half-armed — a gold frame over
+   a picture that still hands the finger to the grid, or the other way round — and a half-armed pad
+   is exactly the invisible mode the frame exists to prevent.
 
    TURNING ONE ON TURNS EVERY OTHER OFF, which is why this takes a flag rather than toggling: two
    live `touch-action: none` regions on one scroller is the trap twice. */
@@ -7173,9 +7286,18 @@ function padArm_(pad, on) {
     else { art.setAttribute('data-do', 'pad-draw'); art.setAttribute('title', PAD_TAP); }
   }
   /* `.qpad-lock` RATHER THAN THE ACTION, because the art carries the same action when the pen is
-     off and `querySelector` would hand back whichever comes first in the markup. */
+     off and `querySelector` would hand back whichever comes first in the markup. Rewritten through
+     `tileSet_`, which changes the mark, both names and the plate together -- the tile's face is
+     `padLockFace_`'s and nobody else's. */
   const b = pad.querySelector('.qpad-lock');
-  if (b) { b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.innerHTML = padLockFace_(!!on); }
+  if (b) tileSet_(b, padLockFace_(!!on));
+  /* AND THE TOOL IN HAND, lit only while the pen is on -- the same rule `padBar_` draws by, so a
+     repaint and a press cannot disagree about which tile is lit. */
+  const tool = padToolNow_(pad);
+  pad.querySelectorAll('.qpad-tool').forEach(t => {
+    const lit = !!on && t.getAttribute('data-tool') === tool;
+    tileSet_(t, { on: lit, pressed: lit });
+  });
 }
 
 /* ---------- THE PEN ------------------------------------------------------------------------------
@@ -7188,15 +7310,141 @@ function padArm_(pad, on) {
 
    THE STROKE IS BUILT IN THE PICTURE'S COORDINATES AS IT IS DRAWN, and written to storage once, at
    the end. Writing per move would be a `localStorage` write every few milliseconds, which is
-   synchronous and on the main thread. */
+   synchronous and on the main thread.
+
+   AND THE PEN HAS TWO MORE TOOLS, WHICH ARE STILL THE PEN. A ruler's line and a compass's circle
+   are built as the same flat polyline a freehand stroke is (`padPath_`'s format), so Undo, Clear,
+   storage, a repaint and a reload are the code they always were and cannot tell the three apart.
+   What differs is only what a drag MAKES: every point it passes (pen), the two ends (ruler), or a
+   ring round where it began (compass). `PAD_DRAW` holds those three answers and nothing else. */
 let PAD_ON = '';                  // the key of the pad currently taking the pen, '' for none
-let PAD_ST = null;                // the stroke being drawn
+let PAD_ST = null;                // the stroke being drawn, already in the shape it is stored in
+let PAD_GO = null;                // the drag behind it: which tool, on which ink, measured how, from where
+/* WHICH TOOL EACH PAD IS HOLDING, by the pad's key, for the visit: a card is rebuilt on every repaint
+   and a tool left on the element would be dropped with it, the `PAD_ON` argument one line up. */
+const PAD_TOOL = new Map();
 
 function padAt_(ink, e) {
   const r = ink.getBoundingClientRect();
   if (!r.width || !r.height) return null;
   return [Math.round((e.clientX - r.left) / r.width * 340),
           Math.round((e.clientY - r.top) / r.height * 340)];
+}
+
+/* THE TOOL A DRAG ON THIS PAD USES: what was chosen for it, and only if the bar offers that tool.
+   Asked of the bar rather than of `padTools_` again, so a tool the decider did not give this question
+   cannot be drawn with, whatever a stale `PAD_TOOL` entry says -- the tile IS the permission. */
+function padToolNow_(pad) {
+  const t = (pad && PAD_TOOL.get(pad.getAttribute('data-k') || '')) || 'pen';
+  return t !== 'pen' && pad.querySelector('.qpad-tool[data-tool="' + t + '"]') ? t : 'pen';
+}
+
+/* ---------- SCREEN PIXELS, NOT PICTURE UNITS, FOR ANYTHING ROUND ----------------------------------
+   THE INK IS STRETCHED (`preserveAspectRatio="none"`, see `padWrap_`): 340 units are the picture's
+   width AND its height, so on a picture twice as wide as it is tall one unit across is twice one
+   unit down. A circle drawn as "every point 50 units from the centre" would be an ellipse on that
+   picture -- a compass that cannot draw a circle. So the radius and every angle are measured in the
+   box's own pixels (`sx`, `sy`: pixels per unit, read when the drag starts) and only the points are
+   turned back into units. The picture's shape is the drawing's, the same at 320px and on a laptop,
+   so a ring stored that way is round wherever it is drawn again. */
+const PAD_MIN_PX = 4;                     // shorter than this a line or a radius is a slip, not a mark
+const PAD_SWING_PX = 16;                  // nearer the point than this, its angle is noise
+const PAD_ARC_MIN = Math.PI / 6;          // a swing of 30 degrees or more is an arc rather than a circle
+
+/* A RING OR AN ARC AS THE POLYLINE THE PEN STORES: about one point every 4px of screen, at least 8 and
+   at most 120 -- at 120 the chord sits 0.05px inside a 150px radius, which nothing can see. A full turn
+   ends EXACTLY on its first point, so it is closed in storage and not merely by rounding. */
+function padArc_(c, R, sx, sy, a0, span) {
+  const full = Math.abs(span) >= 2 * Math.PI;
+  if (full) span = 2 * Math.PI;
+  const n = Math.max(8, Math.min(120, Math.ceil(Math.abs(span) * R / 4)));
+  const out = [];
+  const put = (x, y) => {
+    if (out.length && out[out.length - 2] === x && out[out.length - 1] === y) return;
+    out.push(x, y);
+  };
+  for (let i = 0; i < n; i++) {
+    const t = a0 + span * i / n;
+    put(Math.round(c[0] + R * Math.cos(t) / sx), Math.round(c[1] + R * Math.sin(t) / sy));
+  }
+  if (full) put(out[0], out[1]);
+  else put(Math.round(c[0] + R * Math.cos(a0 + span) / sx), Math.round(c[1] + R * Math.sin(a0 + span) / sy));
+  return out;
+}
+
+/* ---------- THE COMPASS: THE POINT WHERE YOU PRESS, THE WIDTH WHERE YOU DRAG TO, THE ARC YOU SWING ----
+   A REAL PAIR OF COMPASSES IS SET AND THEN TURNED, and a finger does both in one drag: down on the
+   centre, out to the radius -- a full circle, previewed as it grows -- and then, if the finger swings
+   round the point, the width HOLDS where it was when the swing began (the hinge, not the finger,
+   decides it) and what is drawn is the arc swept. A swing of a full turn or more is a circle again.
+   A construction is mostly arcs -- two from A, two from B, a ruler through where they cross -- and
+   a circle for each would bury the page in rings.
+
+   THE SWING IS COUNTED ONLY WHERE AN ANGLE MEANS SOMETHING: further out than `PAD_SWING_PX` and not
+   back near the point (60% of the furthest yet), because a finger wobbling a millimetre from the
+   centre turns through ninety degrees without meaning to. Unwrapped across the -180/180 seam, so a
+   swing through "west" is one swing. */
+function padSwing_(g, at) {
+  const dx = (at[0] - g.from[0]) * g.sx, dy = (at[1] - g.from[1]) * g.sy;
+  const r = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+  if (r >= Math.max(PAD_SWING_PX, g.rMax * 0.6)) {
+    if (g.a === null) g.a0 = a;
+    else {
+      let d = a - g.a;
+      if (d > Math.PI) d -= 2 * Math.PI; else if (d < -Math.PI) d += 2 * Math.PI;
+      g.sweep += d;
+    }
+    g.a = a;
+  }
+  g.rMax = Math.max(g.rMax, r);
+  if (!g.held) { g.r = r; if (Math.abs(g.sweep) >= PAD_ARC_MIN) g.held = true; }
+  const arc = g.held && Math.abs(g.sweep) >= PAD_ARC_MIN && Math.abs(g.sweep) < 2 * Math.PI;
+  /* THE PENCIL'S END, where the radius line is drawn to: on the ring, in the finger's direction. */
+  g.tip = [g.from[0] + g.r * Math.cos(a) / g.sx, g.from[1] + g.r * Math.sin(a) / g.sy];
+  return padArc_(g.from, g.r, g.sx, g.sy, arc ? g.a0 : a, arc ? g.sweep : 2 * Math.PI);
+}
+
+/* WHAT A DRAG MAKES, BY TOOL. `move` answers the stroke to preview (null: nothing new); `end` answers
+   the stroke to keep (null: nothing -- a tap is a dot to the pen, and to a ruler or a compass a slip). */
+const PAD_DRAW = {
+  pen: {
+    /* ONE POINT PER PIXEL OF THE PICTURE, not one per event. A pointer fires far faster than a
+       finger moves anything visible, and every duplicated point is two more characters in storage
+       for a mark nobody can see. */
+    move: (g, at, st) => {
+      if (st[st.length - 2] === at[0] && st[st.length - 1] === at[1]) return null;
+      st.push(at[0], at[1]);
+      return st;
+    },
+    end: (g, st) => st,
+  },
+  /* A RULER IS ITS TWO ENDS. The live line follows the finger from where it went down; what is kept
+     is that line and nothing of the path the finger took to get there. */
+  ruler: {
+    move: (g, at) => [g.from[0], g.from[1], at[0], at[1]],
+    end: (g, st) => (st.length === 4
+      && Math.hypot((st[2] - st[0]) * g.sx, (st[3] - st[1]) * g.sy) >= PAD_MIN_PX ? st : null),
+  },
+  compass: {
+    move: (g, at) => padSwing_(g, at),
+    end: (g, st) => (g.r >= PAD_MIN_PX && st.length >= 4 ? st : null),
+  },
+};
+
+/* ---------- WHAT IS SHOWN WHILE IT IS DRAWN, AND GONE WHEN IT IS NOT ------------------------------
+   THE POINT AND THE WIDTH: a dot where the compass point went down (or where the ruler's line starts)
+   and, for the compass, a dashed line from it to the pencil -- the radius, live, which is what you
+   watch while you open a pair of compasses. In `.qpad-aid`, beside the marks and never among them, so
+   nothing here is ever stored, undone or redrawn: the group is emptied when the finger lifts. */
+function padAid_(g) {
+  const aid = g.ink.querySelector('.qpad-aid');
+  if (!aid) return;
+  const c = g.from;
+  const pin = `<path class="qpad-pin" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${c[0]} ${c[1]}"/>`;
+  const rad = g.tool === 'compass' && g.tip && g.r >= PAD_MIN_PX
+    ? `<path class="qpad-rad" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}"/>`
+    : '';
+  aid.innerHTML = pin + rad;
 }
 
 document.addEventListener('pointerdown', e => {
@@ -7207,37 +7455,48 @@ document.addEventListener('pointerdown', e => {
   const at = padAt_(ink, e);
   if (!at) return;
   e.preventDefault();
-  PAD_ST = at.slice();
+  const r = ink.getBoundingClientRect();
+  PAD_GO = { tool: padToolNow_(pad), ink: ink, from: at, sx: r.width / 340, sy: r.height / 340,
+             r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null };
+  /* THE PEN AND THE RULER START AS A DOT WHERE THE FINGER WENT DOWN; the compass starts as nothing,
+     because a ring of no width is not a mark -- its point is the aid's. */
+  PAD_ST = PAD_GO.tool === 'compass' ? [] : at.slice();
   const g = ink.querySelector('.qpad-g');
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   path.setAttribute('d', padPath_(PAD_ST));
   path.setAttribute('vector-effect', 'non-scaling-stroke');
   path.setAttribute('data-live', '1');
   if (g) g.appendChild(path);
+  if (PAD_GO.tool !== 'pen') padAid_(PAD_GO);
   try { ink.setPointerCapture(e.pointerId); } catch (err) {}
 });
 
 document.addEventListener('pointermove', e => {
-  if (!PAD_ST) return;
+  if (!PAD_ST || !PAD_GO) return;
   const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
-  if (!ink) return;
+  if (!ink || ink !== PAD_GO.ink) return;
   const at = padAt_(ink, e);
   if (!at) return;
-  /* ONE POINT PER PIXEL OF THE PICTURE, not one per event. A pointer fires far faster than a
-     finger moves anything visible, and every duplicated point is two more characters in storage
-     for a mark nobody can see. */
-  if (PAD_ST[PAD_ST.length - 2] === at[0] && PAD_ST[PAD_ST.length - 1] === at[1]) return;
-  PAD_ST.push(at[0], at[1]);
+  const st = PAD_DRAW[PAD_GO.tool].move(PAD_GO, at, PAD_ST);
+  if (!st) return;
+  PAD_ST = st;
   const live = ink.querySelector('[data-live]');
   if (live) live.setAttribute('d', padPath_(PAD_ST));
+  if (PAD_GO.tool !== 'pen') padAid_(PAD_GO);
 });
 
 function padEnd_(e) {
-  if (!PAD_ST) return;
-  const st = PAD_ST; PAD_ST = null;
-  const ink = document.querySelector('.qpad-ink [data-live]');
-  const pad = ink && ink.closest('.qpad');
-  if (ink) ink.removeAttribute('data-live');
+  if (!PAD_ST || !PAD_GO) { PAD_ST = null; PAD_GO = null; return; }
+  const g = PAD_GO;
+  const st = PAD_DRAW[g.tool].end(g, PAD_ST);
+  PAD_ST = null; PAD_GO = null;
+  const live = g.ink.querySelector('[data-live]');
+  const aid = g.ink.querySelector('.qpad-aid');
+  if (aid) aid.innerHTML = '';
+  /* A SLIP IS TAKEN BACK OFF THE SCREEN as well as never stored: the preview is not a mark. */
+  if (!st) { if (live) live.remove(); return; }
+  if (live) { live.removeAttribute('data-live'); live.setAttribute('d', padPath_(st)); }
+  const pad = g.ink.closest('.qpad');
   if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
   const all = padRead_(k); all.push(st);
@@ -7246,12 +7505,12 @@ function padEnd_(e) {
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
 
-/* THE THREE CONTROLS. `Lock it to draw` is a MODE and not an action, so it says which it is with
+/* THE BAR'S TILES. `Lock it to draw` is a MODE and not an action, so it says which it is with
    `aria-pressed` and a class — see the note at the top of this block about why the pen cannot
    simply always be on. Only one pad takes the pen at a time: turning one on turns the last one
    off, because two live `touch-action: none` regions on one scroller is the trap twice. */
 on('pad-draw', (el) => {
-  /* TWO DOORS, ONE HANDLER. `el` is the button in the bar, or — while the pen is off — the
+  /* TWO DOORS, ONE HANDLER. `el` is the lock tile in the bar, or — while the pen is off — the
      PICTURE itself, which carries the same action for the reason written over `padArm_`. Both are
      inside the pad, so neither needs to be told apart here.
 
@@ -7271,6 +7530,23 @@ on('pad-draw', (el) => {
   [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
   PAD_ON = want ? k : '';
   if (want) padArm_(pad, true);
+});
+
+/* ---------- PEN, RULER, COMPASS: CHOOSING ONE IS ALSO LOCKING THE CARD ------------------------------
+   *"some questions require a compass or ruler. so should have a tile for these things."* Pressing one
+   chooses it for this pad AND arms the pen if it was off -- nobody presses Ruler meaning "but do not
+   let me draw yet", and making them press the padlock as well would be two taps for one intention. It
+   never turns the pen OFF: pressing the tool already in hand leaves it in hand. The padlock is still
+   the one way off, and still the one mode this bar has; the tools are which mark that mode makes. */
+on('pad-tool', (el) => {
+  const pad = el.closest('.qpad'); if (!pad) return;
+  const k = pad.getAttribute('data-k') || '';
+  PAD_TOOL.set(k, el.getAttribute('data-tool') || 'pen');
+  if (PAD_ON !== k) {
+    [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
+    PAD_ON = k;
+  }
+  padArm_(pad, true);
 });
 
 on('pad-undo', (el) => {
@@ -7425,6 +7701,8 @@ function circWords_(html, block, on) {
       return tag;
     }
     if (skip) return text;
+    /* NOT TILES, for the reason the multiple-choice options are not (`choiceBox_`): a ringed word is
+       the answer being given, and it has to stay where the sentence put it. */
     return text.replace(WORD, (w, apos, ent, word) => {
       if (!word) return w;
       const k = block + '.' + (n++);
@@ -8101,8 +8379,12 @@ function questionFigCard_(x) {
    all until then: the old `is-shut` hid with `display: none` an answer anybody could read in the
    document. `ansOpen_` decides, and it asks one thing -- has this person, on this visit, asked.
 
+   AND IT GOES BACK. *"answers should just stay hidden unless user unhides them. and can hide them
+   again. simple is best."* Shown, the same tile is `Hide the answer`, and hidden is exactly hidden
+   again: the answer leaves the markup, not just the screen.
+
    `data-of` NAMES THE ROW, as the figure card does, and `data-k` is the answer box's key, which is
-   what `ansShow_` finds these by to draw them open where they already stand. */
+   what `ansSet_` finds these by to redraw them, open or shut, where they already stand. */
 function questionHasAns_(x) {
   return !!(x && x.kind === 'question' && String(x.answer || '').trim());
 }
@@ -8121,7 +8403,8 @@ function questionHasAns_(x) {
        was stored. The question card already says "Correct" -- that is the verdict -- and an answer
        page that opens itself is a reveal nobody pressed.
 
-   WHAT IS LEFT is the tap, held in `ANS_SHOWN` by the answer box's own key -- which carries who is
+   WHAT IS LEFT is the tap -- Show, and Hide to take it back -- held in `ANS_SHOWN` by the answer
+   box's own key -- which carries who is
    signed in, so the phone passed to the next student starts shut again. A SET RATHER THAN A CLASS ON
    AN ELEMENT, because the answer is drawn on a different page from the control that shows it, and
    pages are built and thrown away as you swipe (`fillStuffPages` keeps eleven): a fact left on an
@@ -8136,23 +8419,33 @@ function questionAnsCard_(x) {
   const id = (x.row && x.row.row_id) || x.key || '';
   const k = ansKey_(x);
   const open = ansOpen_(x);
+  /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES ---------------------------------
+     ASKED FOR AS *"answers should just stay hidden unless user unhides them. and can hide them again.
+     simple is best."* So the page has one control and two faces: `Show the answer` (the eye) while it is
+     hidden, `Hide the answer` (the eye struck through) once it is shown. Nothing else on the page
+     offers either, and nothing anywhere else opens it -- the question's own tile only turns to it.
+
+     ABOVE THE ANSWER, NOT UNDER IT, because "the same place" is a promise about where the thumb goes
+     back to. Under it, the tile would sit wherever the answer happened to end -- a word, or a table
+     four rows deep -- and the Hide you reach for would not be where the Show you pressed was. Here the
+     header, the tags and the tile row are the same height either way, so pressing it moves nothing
+     above the answer, and the answer arrives below where the "Answer hidden" line stood.
+
+     A TILE, as the owner asked of the reveal before this (*"show the answer button should be a
+     tile"*): one renderer for every action on a question's pages, `check-doors` pairing each `act`
+     with its handler. */
   return `<div class="qcard qans-card${open ? '' : ' is-hidden'}" data-of="${esc(id)}" data-k="${esc(k)}">
     ${qHead_(x, 'answer')}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
-    ${open ? answerBlock_(x) : `<div class="qans-wait">
-      ${/* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". That was advice to a student, on a page a tutor
-            reads too -- and the owner's word is that the two read the same thing. The page says what
-            it is; whether to try first is the tutor's to say out loud, not the app's to say to one of
-            them. */''}
-      <p class="qans-wait-k">Answer hidden</p>
-      ${/* A TILE, AS ASKED: *"show the answer button should be a tile."* It was a full-width button,
-            argued as the one gate in the card's body rather than an action under a thing. The owner
-            reads it as an action on the question like any other, and the question card's own tile for
-            the same act (`questionTiles_`) is a tile -- so the two pages now offer it in one form, from
-            one renderer, with `check-doors` pairing `qa-show` to its handler. */''}
-      <div class="tile-row">${tile_({ icon: 'show', label: 'Show the answer', note: 'one tap',
-        act: 'qa-show', data: { k: k } })}</div>
-    </div>`}
+    <div class="tile-row qans-tiles">${open
+      ? tile_({ icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } })
+      : tile_({ icon: 'show', label: 'Show the answer', note: 'one tap', act: 'qa-show', cls: 'qa-toggle', data: { k: k } })}${
+      /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". That was advice to a student, on a page a tutor
+         reads too -- and the owner's word is that the two read the same thing. The page says what it
+         is; whether to try first is the tutor's to say out loud, not the app's to say to one of them.
+         Beside the tile rather than over it, so the row is the row's height whichever face it wears. */
+      open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}</div>
+    ${open ? answerBlock_(x) : ''}
   </div>`;
 }
 
@@ -8163,31 +8456,50 @@ function ansItem_(k) {
   catch (e) { return null; }
 }
 
-/* ---------- SHOWING IT: REMEMBERED, AND DRAWN OPEN WHEREVER IT ALREADY STANDS -----------------------
-   The page after is usually built already -- `fillStuffPages` fills two either side -- so it is
-   redrawn in place, by its key, on every column it is on. Only the answer card changes; the question
-   card is not touched, which is what keeps "nothing moved" true of the page you are on. */
-function ansShow_(x) {
+/* ---------- SHOWING IT AND HIDING IT: REMEMBERED, AND DRAWN WHEREVER IT ALREADY STANDS ----------------
+   The page is usually built already -- `fillStuffPages` fills two either side -- so it is redrawn in
+   place, by its key, on every column it is on. Only the answer card changes; the question card is not
+   touched, which is what keeps "nothing moved" true of the page you are on.
+
+   EVERY COPY, SHOWN OR HIDDEN, rather than only the ones in the other state: Saved and Find can both
+   hold the page, and a Hide that redrew only the open copies is the same rule written twice. Redrawing
+   one already in the state asked for draws the same markup again, which costs nothing anybody sees.
+
+   AND THE FOCUS COMES WITH IT. Replacing the card throws away the tile that was just pressed, and a
+   keyboard's focus on a removed element falls back to `<body>` -- so Enter on Show left the next Tab
+   starting from the top of the document, every time, on a toggle whose whole promise is "press it
+   again in the same place". Only the copy that HELD the focus hands it on: a redraw must not pull
+   focus off whatever else somebody is in. `preventScroll`, because the pages are parked side by side
+   with transforms (CLAUDE.md) and a focus that scrolled would slide the strip. In a try, because an
+   old browser that refuses the options object still leaves the answer drawn. */
+function ansSet_(x, open) {
   if (!x) return;
   const k = ansKey_(x);
-  ANS_SHOWN.add(k);
-  document.querySelectorAll('.qans-card.is-hidden').forEach(el => {
+  if (open) ANS_SHOWN.add(k); else ANS_SHOWN.delete(k);
+  document.querySelectorAll('.qans-card').forEach(el => {
     if (el.getAttribute('data-k') !== k) return;
     const t = document.createElement('div');
     t.innerHTML = questionAnsCard_(x);
-    if (t.firstElementChild) el.replaceWith(t.firstElementChild);
+    const card = t.firstElementChild;
+    if (!card) return;
+    const had = el.contains(document.activeElement);
+    el.replaceWith(card);
+    if (had) { try { const tl = card.querySelector('.qa-toggle'); if (tl) tl.focus({ preventScroll: true }); } catch (e) {} }
   });
 }
+function ansShow_(x) { ansSet_(x, true); }
+function ansHide_(x) { ansSet_(x, false); }
 
-/* THE QUESTION CARD'S TILE: TO THE ANSWER PAGE, AND IT SHOWS IT. `Show the answer` for everybody.
-   STAFF READ `The answer` HERE, because their page was open already; it is not any more -- see
-   `ansOpen_` -- so there is one label and it is true for all of them: pressing it is asking, which
-   is the one thing that opens the page. Drawn the same whether or not it has been shown, so pressing
-   it changes nothing on this card. A tile because the question is a THING and this is an action on
-   it; the box, Check and the options above stay buttons, because answering is a form. */
+/* THE QUESTION CARD'S TILE: TO THE ANSWER PAGE, AND ONLY TO IT. It used to read `Show the answer` and
+   reveal the page as it turned to it -- one tap that did two things, and the owner's rule now is that
+   revealing is a tap of its own: *"answers should just stay hidden unless user unhides them."* So it
+   says where it goes (`To the answer`, an arrow, "turns the page") and the page it lands on is exactly
+   as it was left -- hidden, unless this person showed it on this visit. One label for everybody: staff
+   read `The answer` here once, when their page was open already, and it is not. Drawn the same whether
+   or not the answer has been shown, so pressing it changes nothing on this card. */
 function questionTiles_(x) {
   if (!questionHasAns_(x)) return '';
-  return tile_({ icon: 'show', label: 'Show the answer', note: 'next page',
+  return tile_({ icon: 'next', label: 'To the answer', note: 'turns the page', cls: 'qa-to',
                  act: 'qa-go', data: { k: ansKey_(x) } });
 }
 
@@ -8196,11 +8508,13 @@ function questionTiles_(x) {
    page the tile is on. Which page that is, is asked of the element (`logIndex_` turns an element's
    position into a page number past the Find screen's window) rather than read off `PAGE`, because a
    tile on the page peeking under the one you are on is still that page's tile. The same on Saved,
-   whose pages come from `cardPages_` in `pageParts_`'s own order. */
+   whose pages come from `cardPages_` in `pageParts_`'s own order.
+
+   IT DOES NOT CALL `ansShow_`, and that absence is the whole of the owner's change: the page turns,
+   and what is on it is the page's own business. */
 on('qa-go', (el) => {
   const x = ansItem_(el.getAttribute('data-k'));
   if (!x) return;
-  ansShow_(x);
   /* FROM THE QUESTION CARD, NOT FROM THE FIRST PAGE: a stem and its figure can stand in front of
      the card the tile is on (`pageParts_`), so the distance is answer minus card. */
   const parts = pageParts_(x);
@@ -8214,9 +8528,12 @@ on('qa-go', (el) => {
   goPage(id, base + off);
 });
 
-/* ON THE ANSWER PAGE ITSELF it opens where it is -- you are already there. */
+/* ON THE ANSWER PAGE ITSELF, THE ONE CONTROL, BOTH WAYS -- you are already there. */
 on('qa-show', (el) => {
   ansShow_(ansItem_(el.getAttribute('data-k')));
+});
+on('qa-hide', (el) => {
+  ansHide_(ansItem_(el.getAttribute('data-k')));
 });
 
 /* `topicBy` WAS HERE — a document by id, falling back to its name. Nothing has a document to look

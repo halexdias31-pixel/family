@@ -153,6 +153,36 @@ const TILE_ICONS = {
      the set as one more outline. */
   full:  '<path d="M2.5 6.5v-4h4"/><path d="M11.5 2.5h4v4"/>'
        + '<path d="M15.5 11.5v4h-4"/><path d="M6.5 15.5h-4v-4"/>',
+  /* ---------- A QUESTION'S PAGES, WHICH ARE ALL TILES NOW ---------------------------------------
+     ASKED FOR AS *"lock should be a tile too. same as undo and clear. it should all be tiles."* and
+     *"some questions require a compass or ruler. so should have a tile for these things."* Five marks
+     the set did not have, at the same 1.4 stroke so a pen bar reads as one row with the star.
+
+     NEXT IS AN ARROW AND NOT AN EYE. The question card's tile used to be the eye and it SHOWED the
+     answer as it turned the page; it only turns the page now (*"answers should just stay hidden
+     unless user unhides them"*), and an eye on a control that reveals nothing would be the one mark
+     in the app that lies. The eye belongs to the tile that does reveal, on the answer page.
+
+     AND IT POINTS DOWN. It pointed right, and on this screen right is a different COLUMN -- a swipe
+     sideways leaves Find for the next screen -- while a question's pages stack downwards ("Swipe up
+     for its questions"), and the answer is the page below its question, or two below past a figure.
+     An arrow is a promise about which way the page will go; this one now keeps it.
+
+     THE PEN IS A PENCIL WITH ITS LINE, so it is told from `edit` (a pencil alone, which elsewhere means
+     "change this text") by the squiggle it has just drawn. THE RULER IS ON A SLANT with its ticks,
+     because a level rectangle with marks along it reads as a battery. THE COMPASS is the pair of
+     compasses every geometry set holds -- the hinge, two legs, and the arc it swings between them.
+     AI IS A SPARKLE, the mark every phone already puts on "a model did this", so the one tile whose
+     verdict is a guess says so before it is pressed. */
+  next:  '<path d="M9 2.5v12"/><path d="m5 10.5 4 4 4-4"/>',
+  pen:   '<path d="M12.6 2.6 15 5 7.2 12.8l-3.2.8.8-3.2z"/>'
+       + '<path d="M9 15.2c1.6-1.2 2.6.6 4 0s1.8-1 2.6-1"/>',
+  ruler: '<g transform="rotate(-38 9 8.5)"><rect x="1.5" y="5.8" width="15" height="5.4" rx="1"/>'
+       + '<path d="M4.5 5.8v2.2M7.5 5.8v1.4M10.5 5.8v2.2M13.5 5.8v1.4"/></g>',
+  compass: '<circle cx="9" cy="3" r="1.3"/><path d="M8.4 4.2 4.2 15.5"/><path d="M9.6 4.2 13.8 15.5"/>'
+         + '<path d="M5.6 11.6c2.2 1.3 4.6 1.3 6.8 0"/>',
+  spark: '<path d="M8 3c.5 3.3 2.2 5 5.5 5.5-3.3.5-5 2.2-5.5 5.5-.5-3.3-2.2-5-5.5-5.5 3.3-.5 5-2.2 5.5-5.5z"/>'
+       + '<path d="M14.5 1.8v3.4M12.8 3.5h3.4"/>',
 };
 
 function tileIcon_(name) {
@@ -228,7 +258,11 @@ function tile_(o) {
   }
   const data = Object.keys(o.data || {})
     .map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
-  return `<button class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${o.off ? ' disabled' : ''}
+  /* `pressed` IS FOR A TILE THAT IS A SWITCH -- the pen's lock and its Pen / Ruler / Compass -- and is
+     said in `aria-pressed` beside the `on` the eye reads, because a screen reader cannot see a plate
+     go bright. Absent on an ordinary action, which is not pressed or unpressed: it just happens. */
+  const pressed = o.pressed != null ? ` aria-pressed="${o.pressed ? 'true' : 'false'}"` : '';
+  return `<button class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${pressed}${o.off ? ' disabled' : ''}
     >${body}</button>`;
 }
 
@@ -262,6 +296,9 @@ function tileSet_(el, o) {
     if (old) old.outerHTML = tileIcon_(o.icon);
   }
   if (o.on != null) el.classList.toggle('on', !!o.on);
+  /* A SWITCH SAYS SO TWICE, as `tile_` writes it: the plate for the eye and `aria-pressed` for a
+     screen reader. Rewritten in place, the two would drift exactly as the label and the title would. */
+  if (o.pressed != null) el.setAttribute('aria-pressed', o.pressed ? 'true' : 'false');
   if (o.off != null) el.disabled = !!o.off;
 }
 
@@ -668,8 +705,11 @@ function cardActions_(x) {
   if (x.kind === 'me') return tile_({ icon: 'out', label: 'Sign out', act: 'signout' });
   if (x.kind === 'receipt') return jobTiles_(x);
   /* A QUESTION'S ONE ACTION IS ITS ANSWER, which is a page of its own now and this is the way to
-     it — `questionTiles_` in find.js. The box, Check and the options stay buttons on the card:
-     answering is a form, and turning to the answer is something done to the thing. */
+     it — `questionTiles_` in find.js. It TURNS TO the answer page and reveals nothing. Every other
+     control on a question's pages is a tile too, on the owner's word (*"it should all be tiles"*) —
+     Check, Mark with AI, the pen's lock, its tools, Undo, Clear, Show and Hide — except the keypad's
+     keys and the multiple-choice options, which are the answer being given rather than things done
+     to it. See `padWrap_` and `choiceBox_` in find.js. */
   if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
   /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. Collections are gone
      from the funnel (see the note where `collectionAxes_` used to be in find.js): a paper is an

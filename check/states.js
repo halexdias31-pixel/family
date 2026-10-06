@@ -617,6 +617,56 @@ const STATES = {
       },
       wants: 'a squared grid on its own page after its question, under the pen, headed "Squared grid" and saying it is not the paper\'s figure',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A CONSTRUCTION, WITH A RULER'S LINE AND A COMPASS'S RING ON IT -----------------------------
+       *"some questions require a compass or ruler. so should have a tile for these things."* November 2019
+       Higher Paper 1, Q4: "Use a ruler and compasses to construct the line from the point P perpendicular
+       to the line CD" -- the one pen question in the library whose own row asks for compasses, found by
+       id. On its figure page, with the Compass in hand (pressed as a finger would, which also locks the
+       card) and two marks made the way the tools make them: a ruler's two-point line and a closed ring
+       built by the app's own `padArc_` from the ink's real box, so it is round at every width. Measured
+       armed, because the bar's lit tile and the gold-filled lock are what is new here. */
+    { name: 'a construction with the ruler and compass in the pen bar, a line and a circle drawn',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1911-1H-4');
+        if (!it) throw new Error('Q-1MA1-1911-1H-4 is not in the library');
+        if (padToolsOf_(it).join(' ') !== 'pen ruler compass') throw new Error('Q-1MA1-1911-1H-4 is not offered a ruler and compasses: ' + padToolsOf_(it).join(' '));
+        window.__toolKey = padKey_(it);
+        try { localStorage.removeItem(window.__toolKey); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'fig'), true);
+        /* IN THE TICK THE PAGE IS BUILT, found by its key (`.page.on` comes a frame later), with a
+           tick's grace if it is not there yet -- the timing the answer states above settled on. */
+        const mark = () => {
+          const pad = [...document.querySelectorAll('#s-stuff .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
+          const ink = pad && pad.querySelector('.qpad-ink');
+          if (!ink) return false;
+          const r = ink.getBoundingClientRect();
+          if (!r.width || !r.height) return false;
+          const ring = padArc_([200, 150], Math.min(r.width, r.height) * 0.22, r.width / 340, r.height / 340, 0, 2 * Math.PI);
+          const marks = [[60, 280, 290, 60], ring];
+          try { localStorage.setItem(window.__toolKey, JSON.stringify(marks)); } catch (e) {}
+          padRepaint_(pad, marks);
+          const c = pad.querySelector('.qpad-tool[data-tool="compass"]');
+          if (c) c.click();
+          return true;
+        };
+        if (!mark()) setTimeout(mark, 150);
+      },
+      expect: () => {
+        const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
+        const lit = pad && [...pad.querySelectorAll('.qpad-tool.on')].map(b => b.getAttribute('data-tool')).join(' ');
+        return !!pad && pad.classList.contains('is-drawing') && lit === 'compass'
+               && !!pad.querySelector('.qpad-tool[data-tool="ruler"]') && !!pad.querySelector('.qpad-lock.on')
+               && pad.querySelectorAll('.qpad-g path').length === 2;
+      },
+      wants: 'Q4\'s figure under the pen, armed, with Pen, Ruler and Compass in its bar, the Compass lit, and a ruler\'s line and a compass\'s ring on it',
+      leave: () => {
+        try { localStorage.removeItem(window.__toolKey); } catch (e) {}
+        PAD_ON = ''; PAD_TOOL.delete(window.__toolKey);
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- A PASSAGE WITH TWO WORDS RINGED -----------------------------------------------------------
        "Circle the three adjectives in the passage below" -- KS2 grammar, June 2025. NO ROW CARRIES
        `surface: "text"` YET (the data workflow is writing it), so this gives the real row the value it
@@ -636,12 +686,19 @@ const STATES = {
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
-        setTimeout(() => {
+        /* AT ONCE, by key, where the page is already built; after a tick only if not -- a loaded run's 150ms
+           timer is what left this state unreached (the answer states above say more). */
+        const k = circKey_(it);
+        const ring = () => {
+          const host = [...document.querySelectorAll('#s-stuff [data-circ]')].find(h => h.getAttribute('data-circ') === k);
+          if (!host) return false;
           ['crumbling', 'rocky'].forEach(t => {
-            const w = [...document.querySelectorAll('#s-stuff .page.on .qw')].find(s => s.textContent === t);
+            const w = [...host.querySelectorAll('.qw')].find(s => s.textContent === t);
             if (w) w.click();
           });
-        }, 150);
+          return true;
+        };
+        if (!ring()) setTimeout(ring, 150);
       },
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qsheet-part.is-text');
@@ -761,20 +818,32 @@ const STATES = {
         goPage('stuff', first + stuffPageOf_(it), true);
         window.__ansWant = first + stuffPageOf_(it, 'ans');
         window.__ansFrom = null;
-        /* THE TILE ON THE QUESTION'S OWN PAGE, pressed as a finger would. */
-        setTimeout(() => {
-          const tile = document.querySelector('#s-stuff .page.on [data-do="qa-go"]');
+        /* THE TILE ON THE QUESTION'S OWN PAGE, pressed as a finger would -- AT ONCE where it is already
+           drawn (the landing above is instant), so the whole of `ui.js`'s wait goes to the page turning.
+           Pressed after a tick, a loaded run measured the strip still sliding: "PANE OFF THE SCREEN",
+           73px out, a picture of the turn rather than of the page it turned to. */
+        /* BY ITS KEY, NOT BY `.page.on`, which is set a frame after the instant landing -- so the tile is
+           found in the same tick the page is built, and a loaded run's timers cannot eat the wait. */
+        const k = ansKey_(it);
+        const press = () => {
+          const tile = [...document.querySelectorAll('#s-stuff [data-do="qa-go"]')].find(b => b.getAttribute('data-k') === k);
+          if (!tile) return false;
           window.__ansFrom = PAGE.stuff;
-          if (tile) tile.click();
-        }, 150);
+          tile.click();
+          return true;
+        };
+        if (!press()) setTimeout(press, 150);
       },
+      /* LANDED ON, AND STILL HIDDEN. *"answers should just stay hidden unless user unhides them"* --
+         the question's tile is `To the answer` now and turns the page without revealing it; the
+         page's own Show tile is the one tap that does. */
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qans-card');
         return window.__ansFrom !== null && PAGE.stuff === window.__ansWant && PAGE.stuff > window.__ansFrom
-               && !!c && !c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
-               && (c.querySelector('.qans-body') || {}).textContent.trim() === ((t) => { const d = document.createElement('div'); d.innerHTML = typeset_(answerParts_(t).head); return d.textContent.trim(); })((stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1MA1-1811-1H-3') || {}).answer);
+               && !!c && c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
+               && !c.querySelector('.qans, .qans-body') && !!c.querySelector('.tile[data-do="qa-show"]');
       },
-      wants: 'the question\'s answer tile pressed, and the page turned forward to its answer, open: the result answerParts_ gives it',
+      wants: 'the question\'s "To the answer" tile pressed, and the page turned forward to its answer -- still hidden, Show the answer waiting',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'an answer, shown, and nothing under it',
       enter: () => {
@@ -785,19 +854,79 @@ const STATES = {
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
-        setTimeout(() => {
-          const btn = document.querySelector('#s-stuff .page.on .qans-card [data-do="qa-show"]');
-          if (btn) btn.click();
-        }, 150);
+        /* AT ONCE, by key, where the page is already built; after a tick only if not -- a loaded run's 150ms
+           timer is what left this state unreached (the answer states above say more). */
+        const k = ansKey_(it);
+        const show = () => {
+          const c = [...document.querySelectorAll('#s-stuff .qans-card')].find(e => e.getAttribute('data-k') === k);
+          const btn = c && c.querySelector('[data-do="qa-show"]');
+          if (!btn) return false;
+          btn.click();
+          return true;
+        };
+        if (!show()) setTimeout(show, 150);
       },
       /* THE RESULT AND NOTHING ELSE: "No", and no fold, no working, no examiner's note under it. */
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qans-card:not(.is-hidden)');
         const ans = c && c.querySelector('.qans');
         return !!ans && ans.querySelector('.qans-body').textContent.trim() === ((t) => { const d = document.createElement('div'); d.innerHTML = typeset_(answerParts_(t).head); return d.textContent.trim(); })((stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1MA1-1811-1H-3') || {}).answer)
-               && !c.querySelector('details, .qans-why, .qans-more, .qans-note');
+               && !c.querySelector('details, .qans-why, .qans-more, .qans-note')
+               && !!c.querySelector('.tile[data-do="qa-hide"]') && !c.querySelector('[data-do="qa-show"]');
       },
-      wants: 'the answer page showing its result (the head answerParts_ gives) once its button is pressed, and nothing under it',
+      wants: 'the answer page showing its result (the head answerParts_ gives) once its tile is pressed, nothing under it, and Hide the answer where Show was',
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AND HIDDEN AGAIN, WITH THE TILE WHERE THE THUMB LEFT IT -----------------------------
+       *"answers should just stay hidden unless user unhides them. and can hide them again. simple is
+       best."* Show, then Hide, by real clicks; the tile's box is measured at each step, because "the
+       same place" is a fact about pixels and jsdom has none (check-flow holds the markup half). The
+       tile and the card's top may not move by half a pixel either way, and the page ends hidden with
+       no answer in it. */
+    { name: 'an answer shown and hidden again, its tile where it was',
+      enter: () => {
+        ANS_SHOWN.clear();
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
+        window.__ansAt = [];
+        window.__ansK = ansKey_(it);
+        /* BY ITS KEY, in the tick the page is built: `.page.on` arrives a frame after an instant
+           landing, and a loaded run's timers are what made the states round here flaky. */
+        const card = () => [...document.querySelectorAll('#s-stuff .qans-card')].find(c => c.getAttribute('data-k') === window.__ansK);
+        const at = () => {
+          const c = card();
+          const t = c && c.querySelector('.qa-toggle');
+          if (!t) return null;
+          const r = t.getBoundingClientRect(), q = c.getBoundingClientRect();
+          return { x: r.left, y: r.top, top: q.top, act: t.getAttribute('data-do') };
+        };
+        /* IN ONE TICK: the redraw is synchronous and a box read straight after it is laid out, so
+           there is nothing to wait for between the presses -- and nothing a slow run can miss. */
+        const run = () => {
+          if (!card()) return false;
+          window.__ansAt.push(at());
+          const s = card().querySelector('[data-do="qa-show"]');
+          if (s) s.click();
+          window.__ansAt.push(at());
+          const h = card().querySelector('[data-do="qa-hide"]');
+          if (h) h.click();
+          window.__ansAt.push(at());
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
+      },
+      expect: () => {
+        const a = window.__ansAt || [];
+        const c = [...document.querySelectorAll('#s-stuff .page.on .qans-card')].find(e => e.getAttribute('data-k') === window.__ansK);
+        const still = (p, q) => !!p && !!q && Math.abs(p.x - q.x) < 0.5 && Math.abs(p.y - q.y) < 0.5 && Math.abs(p.top - q.top) < 0.5;
+        return a.length === 3 && a[0] && a[0].act === 'qa-show' && a[1] && a[1].act === 'qa-hide' && a[2] && a[2].act === 'qa-show'
+               && still(a[0], a[1]) && still(a[1], a[2])
+               && !!c && c.classList.contains('is-hidden') && !c.querySelector('.qans, .qans-body');
+      },
+      wants: 'Show then Hide pressed on the answer page: the tile in the same place at every step, and the page hidden again with no answer in it',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- MARKED, AND NOTHING MOVED --------------------------------------------------------
        ASKED FOR AS "make it nice more sleek, fresh stable". The unstable part was measured before it
@@ -824,12 +953,14 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__qStable = null; window.__qCard = null;
-        setTimeout(() => {
+        /* AT ONCE WHERE THE CARD IS ALREADY BUILT, by its key, and after a tick only if not: a loaded run's
+           150ms timer is what left this state unreached (see the answer states above). */
+        const run = () => {
           const hit = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === ansKey_(it));
           const card = window.__qCard = hit && hit.closest('.qcard');
           const inp = card && card.querySelector('.qp-ans-in');
           const btn = card && card.querySelector('.qp-check');
-          if (!inp || !btn) return;
+          if (!inp || !btn) return false;
           const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
                             card.querySelector('.qp-ans').getBoundingClientRect().top,
                             card.getBoundingClientRect().height];
@@ -838,7 +969,9 @@ const STATES = {
           inp.dispatchEvent(new Event('input', { bubbles: true }));
           btn.click();
           window.__qStable = { a, b: at() };
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const s = window.__qStable;
@@ -862,12 +995,14 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__qStable = null; window.__qCard = null;
-        setTimeout(() => {
+        /* AT ONCE WHERE THE CARD IS ALREADY BUILT, by its key, and after a tick only if not: a loaded run's
+           150ms timer is what left this state unreached (see the answer states above). */
+        const run = () => {
           const hit = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === ansKey_(it));
           const card = window.__qCard = hit && hit.closest('.qcard');
           const inp = card && card.querySelector('.qp-ans-in');
           const btn = card && card.querySelector('.qp-check');
-          if (!inp || !btn) return;
+          if (!inp || !btn) return false;
           const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
                             card.querySelector('.qp-ans').getBoundingClientRect().top,
                             btn.getBoundingClientRect().top];
@@ -876,7 +1011,9 @@ const STATES = {
           inp.dispatchEvent(new Event('input', { bubbles: true }));
           btn.click();
           window.__qStable = { a, b: at() };
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const s = window.__qStable;
@@ -909,11 +1046,13 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__qStable = null; window.__qCard = null;
-        setTimeout(() => {
+        /* AT ONCE, by key, where the page is already built; after a tick only if not -- a loaded run's 150ms
+           timer is what left this state unreached (the answer states above say more). */
+        const run = () => {
           const hit = [...document.querySelectorAll('#s-stuff .qp-choices')].find(b => b.getAttribute('data-k') === ansKey_(it));
           const card = window.__qCard = hit && hit.closest('.qcard');
           const opts = card ? [...card.querySelectorAll('.qp-opt')] : [];
-          if (opts.length < 2) return;
+          if (opts.length < 2) return false;
           const miss = it.choiceRight[0] === 1 ? 2 : 1;
           const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
                             card.querySelector('.qp-opt[data-n="' + miss + '"]').getBoundingClientRect().top,
@@ -921,18 +1060,22 @@ const STATES = {
           const a = at();
           opts[miss - 1].click();
           window.__qStable = { a, b: at() };
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const s = window.__qStable;
         const box = window.__qCard && window.__qCard.querySelector('.qp-choices');
         const mark = box && box.nextElementSibling;
         return !!s && !!box && box.classList.contains('is-done')
-               && !!box.querySelector('.qp-opt.is-picked:not(.is-ans)') && !!box.querySelector('.qp-opt.is-ans')
+               /* THE MISS, AND NO TICK ANYWHERE: the right option is the answer, and it waits behind
+                  Show on the answer page like every other one (`choiceBox_`). */
+               && !!box.querySelector('.qp-opt.is-picked:not(.is-ans)') && !box.querySelector('.qp-opt.is-ans')
                && !!mark && mark.classList.contains('is-near')
                && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5);
       },
-      wants: 'a wrong tap marked, the right option ticked, and the question, the option and the card\'s height unmoved',
+      wants: 'a wrong tap marked, no option ticked as the answer, and the question, the option and the card\'s height unmoved',
       leave: () => {
         const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12');
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
@@ -975,7 +1118,9 @@ const STATES = {
             if (k) k.click();
           });
         };
-        setTimeout(typeIt, 60);
+        /* FIRST AT ONCE, in the tick the card is built -- the poll is the fallback, and on a machine
+           loaded to thirty its 20ms steps slipped past ui.js's half second (390, 768 and 1280, one run). */
+        typeIt();
       },
       expect: () => {
         const pad = document.getElementById('kp');
@@ -1034,7 +1179,8 @@ const STATES = {
           ta.dispatchEvent(new Event('input', { bubbles: true }));
           go.click();
         };
-        setTimeout(markIt, 60);
+        /* FIRST AT ONCE, as the keypad's state above now does; the poll is the fallback. */
+        markIt();
       },
       expect: () => {
         const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__aiKey);
@@ -1361,8 +1507,11 @@ const STATES = {
         paintStuff();
         goPage('stuff', 0, true);
         window.__findStill = null;
-        setTimeout(() => {
+        /* AT ONCE, where the page is already built; after a tick only if not -- a loaded run's 150ms
+           timer is what left this state unreached (the answer states above say more). */
+        const run = () => {
           const pane = document.getElementById('stuff-controls');
+          if (!pane || !document.getElementById('stuff-q')) return false;
           const at = () => {
             const top = pane.getBoundingClientRect().top;
             const q = document.getElementById('stuff-q').getBoundingClientRect().top - top;
@@ -1372,10 +1521,12 @@ const STATES = {
           };
           const a = at();
           const r = document.querySelector('#stuff-groups .answers > .row[data-do="facet-pick"]');
-          if (!r) return;
+          if (!r) return false;
           r.click();
           window.__findStill = { a, b: at(), n: STUFF.filters.length };
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const s = window.__findStill;

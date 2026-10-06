@@ -109,7 +109,11 @@ const rules = [];
   while ((m = re.exec(bare))) {
     const sel = m[1].trim().replace(/\s+/g, ' ');
     if (!sel || sel.startsWith('@')) continue;
-    const line = bare.slice(0, m.index).split('\n').length;
+    /* AT THE SELECTOR'S FIRST CHARACTER, not at `m.index`: `[^{}]+` starts straight after the last
+       `}`, so it carries every blanked comment line between the two rules, and a rule under a twenty-
+       line comment was reported twenty lines above itself -- at the rule before it. Found by the tile
+       check below sending the reader to `.qpad-aid` for a fault in `.tile.is-lead`. */
+    const line = bare.slice(0, m.index + Math.max(0, m[1].search(/\S/))).split('\n').length;
     /* IS THIS RULE CONDITIONAL? A rule inside `@media` or `@supports` does not simply override the
        one above it — it applies on some screens or in some browsers and not others, so calling it
        an override would be wrong and would train somebody to ignore this report.
@@ -370,6 +374,43 @@ const tapBad = [];
 const hollow = rules.filter(r => !r.decls.length)
   .map(r => 'line ' + r.line + '  ' + r.sel + '  is empty — delete it rather than leave it');
 
+/* ---------- 7b. A TILE'S COLOUR WRITTEN OUT BY HAND -------------------------------------------------
+   `.tile.is-lead` -- the pen's lock, gold because arming is the first step -- was copied from
+   `.tile.is-admin` and only its `color` changed. Its border kept `rgb(242 210 75 / .35)`, which is
+   `--admin` (#f2d24b, "only you can see this") thinned, so a gold padlock sat in an admin-yellow frame
+   on a tile every student sees. Nothing read it, because a literal cannot say which token it meant:
+   two yellows a few steps apart look like one decision in the source and two on the screen.
+
+   SO A `.tile` RULE MAY NOT SPELL OUT A `:root` TOKEN'S COLOUR, as a hex or as `rgb()` at any alpha;
+   `color-mix(in srgb, var(--admin) 22%, transparent)` paints the same thing and names it. SCOPED TO
+   TILES, and that is the reach of the fault rather than a reluctance: one renderer draws every action
+   in the app, so a tile's tone is the one look that is copied most and checked least. The rest of the
+   stylesheet holds ~100 such literals (the paper's cream thinned over the black, mostly), each in its
+   own component, listed by nobody -- a wider version of this is worth having and is not this fix.
+   White and black washes are not tokens and pass: `rgb(255 255 255 / .08)` is a press, not a colour.
+   The tokens are read off `:root` itself, so a token added tomorrow is covered tomorrow. */
+const handTone = [];
+{
+  const root = rules.find(r => r.sel === ':root' && !r.cond);
+  const tok = {};
+  (root ? root.decls : []).forEach(d => {
+    const m = /^--[\w-]+$/.test(d.prop) && /^#([0-9a-f]{6})\b/i.exec(d.val);
+    if (m && !/^(000000|ffffff)$/i.test(m[1])) (tok[m[1].toLowerCase()] = tok[m[1].toLowerCase()] || []).push(d.prop);
+  });
+  if (!Object.keys(tok).length) handTone.push(':root holds no hex colour tokens this check can read — the tiles were NOT checked');
+  const hex = (a, b, c) => [a, b, c].map(n => (+n).toString(16).padStart(2, '0')).join('');
+  rules.filter(r => /\.tile(?![\w-])/.test(r.sel)).forEach(r => r.decls.forEach(d => {
+    if (/^--/.test(d.prop)) return;
+    const seen = [];
+    for (const m of d.val.matchAll(/rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/g)) seen.push([m[0], hex(m[1], m[2], m[3])]);
+    for (const m of d.val.matchAll(/#([0-9a-f]{6})\b/gi)) seen.push([m[0], m[1].toLowerCase()]);
+    seen.forEach(([lit, h]) => {
+      if (tok[h]) handTone.push('line ' + r.line + '  ' + r.sel + '  ' + d.prop + ': `' + lit + '…` is '
+        + tok[h].join(' / ') + ' written out — say `color-mix(in srgb, var(' + tok[h][0] + ') N%, transparent)`');
+    });
+  }));
+}
+
 /* FIRST, because everything below it reads a file it assumes is well formed. A stylesheet with a
    stray brace is not a stylesheet with a fault in it; it is a stylesheet whose later rules the
    browser may have thrown away, and no amount of checking declarations will say so. */
@@ -405,6 +446,7 @@ say('THE SAME PROPERTY TWICE IN ONE RULE — the first never applies', twice);
 say('ONE SELECTOR IN TWO PLACES, disagreeing about a property', dupSel);
 say('A RULE OVERRIDDEN BY A LATER COPY OF ITSELF', order);
 say('PROPERTIES THAT CONTRADICT EACH OTHER', clash);
+say('A TILE THAT WRITES A TOKEN\'S COLOUR OUT BY HAND — a literal cannot say which token it meant', handTone);
 /* SOFT: this is the one section that cannot prove its own findings — see `say` above. */
 say('CLASSES STYLED AND NOWHERE PRODUCED — no literal in the code could assemble these', dead, true);
 say('CLASSES A LITERAL COULD BE ASSEMBLING — ' + [...builtPrefix].sort().join(' ')

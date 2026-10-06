@@ -334,6 +334,12 @@ function boot(opts) {
          as the press path. Without it only `padArm_` could be checked — and a `padWrap_` that got
          the armed case wrong would put the fault straight back on the next repaint. */
       'padOn: v => { PAD_ON = v; },' +
+      /* AND THE PAD'S KEY, a `const` arrow, so a journey can arm a pad by the key its marks are kept
+         under -- and read those marks back -- without writing the key's format out a second time. */
+      'padKey: typeof padKey_ === "function" ? padKey_ : null,' +
+      /* WHICH TOOL EACH PAD HOLDS, a `const` Map -- so a journey can leave a stale choice behind and
+         ask whether the bar, not the Map, decides what a drag draws. */
+      'padTool: () => (typeof PAD_TOOL !== "undefined" ? PAD_TOOL : null),' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
          below checks is unchanged: a client and an admin are told different things. */
@@ -5002,6 +5008,12 @@ const camBoot_ = o => {
 };
 /* PAST `afterSlide_`'s 300ms and any settle, which is when `goPage` runs `feedCamWatch_`. */
 const CAM_SLIDE = 700;
+/* AND LONGER ONLY WHEN THE ANSWER IS NOT IN YET -- for the waits that expect the camera TO be asked.
+   Inside a full `check-all` beside eight browsers and other worktrees' runs, 700ms of wall clock was
+   not always past the slide: "swiping up asked 0 time(s)" on two runs in a row, a different case each
+   time, and never when this journey ran alone. A wait that expects NOTHING to happen keeps the fixed
+   700ms, because absence cannot be polled for. */
+const camAsked_ = async pred => { await wait(CAM_SLIDE); for (let i = 0; i < 40 && !pred(); i++) await wait(100); };
 
 check('the camera asks for nothing until somebody swipes up to it', async () => {
   const bad = [];
@@ -5026,7 +5038,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     b.w.__t.repaint(); await wait(CAM_SLIDE);
     if (b.gum.asks !== before) bad.push('a repaint on the front door asked for the camera');
 
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await camAsked_(() => b.gum.asks === before + 1);
     if (b.gum.asks !== before + 1) bad.push(`swiping up to the camera asked ${b.gum.asks - before} time(s), not once`);
     if (b.gum.open !== 1) bad.push(`swiping up to the camera left ${b.gum.open} stream(s) open, not one`);
     b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE);
@@ -5042,7 +5054,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
     b.w.__t.go('stuff'); await wait(CAM_SLIDE);
     if (b.gum.open) bad.push('leaving the feed from the camera page left the camera running');
-    b.w.__t.go('feed'); await wait(CAM_SLIDE);
+    b.w.__t.go('feed'); await camAsked_(() => b.gum.asks === before + 3);
     if (b.gum.asks !== before + 3) bad.push(`coming back to the feed on the camera page asked ${b.gum.asks - before - 2} time(s), not once`);
     if (b.gum.open !== 1) bad.push(`coming back to the camera page left ${b.gum.open} stream(s) open, not one`);
   }
@@ -5063,7 +5075,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     if (b.cam() !== 1) bad.push(`with one festive card the camera is page ${b.cam()}, not 1, so that case was NOT checked`);
     if (b.gum.asks) bad.push('with a festive card above the camera, opening the app asked for it');
     if (b.page() !== 2) bad.push(`with a festive card the feed opened on page ${b.page()}, not the newest post at 2`);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await camAsked_(() => b.gum.asks === 1);
     if (b.gum.asks !== 1) bad.push(`with a festive card, swiping up to the camera asked ${b.gum.asks} time(s), not once`);
   }
 
@@ -5075,7 +5087,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     await wait(400);
     if (b.gum.asks) bad.push('with a festive card and no posts, opening the app asked for the camera');
     if (b.page() === b.cam()) bad.push('with a festive card and no posts, the feed opened ON the camera page');
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await camAsked_(() => b.gum.asks === 1);
     if (b.gum.asks !== 1) bad.push(`with a festive card and no posts, turning to the camera asked ${b.gum.asks} time(s), not once`);
   }
 
@@ -5086,7 +5098,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
   {
     const b = camBoot_({ user: rasa, refuse: true });
     await wait(400);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await camAsked_(() => b.gum.asks === 1);
     if (b.gum.asks !== 1) bad.push(`refused: swiping up asked ${b.gum.asks} time(s), not once`);
     b.w.__t.repaint(); await wait(CAM_SLIDE);
     if (b.gum.asks !== 1) bad.push('refused: a repaint on the camera page asked again — a prompt nobody swiped for');
@@ -5097,7 +5109,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     if (on) { b.w.__t.ACTIONS['cam-on'](on); await wait(50); }
     if (b.gum.asks !== 2) bad.push('refused: `Try the camera again` did not ask again');
     b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await camAsked_(() => b.gum.asks === 3);
     if (b.gum.asks !== 3) bad.push('refused: swiping down and back up to the camera did not ask again');
   }
 
@@ -5573,6 +5585,167 @@ check('a question diagram is pressable exactly while the pen is off', async () =
   return bad;
 });
 
+/* ---------- A RULER AND A COMPASS ON THE PEN, WHERE THE QUESTION ASKS FOR THEM -------------------------
+   ASKED FOR AS *"some questions require a compass or ruler. so should have a tile for these things. if
+   you cant find those questions dont worry just have the infrastructure set up for it."* Through the
+   real pointer listeners and the real handlers, on a pad in the document whose picture is TWICE AS
+   WIDE AS IT IS TALL -- the shape on which a circle drawn in the ink's stretched units comes out an
+   ellipse, which is the one way a compass here can be wrong while looking right on a square grid:
+     * which tools: `padTools_` from `needs` and from the words -- a ruler alone, ruler and compasses,
+       a construction, nothing for a plain drawing, nothing for "plotting compasses" or "12 rulers",
+       and a protractor decided but not drawn (there is no such tool). The bar draws exactly that.
+     * Ruler: pressing it arms the pen and lights it; a drag from A through anywhere to B keeps ONE
+       stroke of two points, A and B, under `padKey_`, and a card drawn again draws it
+     * Compass: pressed on the centre and dragged out, a CLOSED ring -- first point the last -- every
+       point the dragged radius from the centre in SCREEN pixels; and swung through a quarter turn,
+       an open arc of a quarter turn at the width it had when the swing began
+     * the point and the width are shown while dragging and gone after; a tap is a slip, kept nowhere
+     * Undo takes the compass's ring off and then the ruler's line; the pen still draws freehand
+     * a stale choice cannot draw: a compass left in `PAD_TOOL` for a pad whose bar has no Compass is
+       the pen */
+check('a ruler draws a straight line and a compass a round circle or arc, offered where the question asks', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (typeof t.padWrap !== 'function' || typeof w.padTools_ !== 'function' || typeof t.padKey !== 'function'
+      || !A['pad-tool'] || !A['pad-undo'] || typeof t.padTool !== 'function') {
+    return ['padWrap_, padTools_, padKey_, PAD_TOOL or the pad-tool / pad-undo handlers are not reachable — the tools were NOT checked'];
+  }
+  /* ---------- WHICH QUESTIONS GET WHICH TOOLS ---------------------------------------------------- */
+  const q = (html, extra) => Object.assign({ kind: 'question', answerType: 'drawing', html: '<p>' + html + '</p>' }, extra || {});
+  [[q('Reflect the shape in the mirror line.', { needs: ['Ruler'] }), 'pen ruler', 'needs: Ruler'],
+   [q('Use a ruler and compasses to construct the perpendicular from P to the line.'), 'pen ruler compass', '"ruler and compasses" in the words'],
+   [q('Construct the locus of points 3 cm from A.'), 'pen ruler compass', 'a locus'],
+   [q('Draw the perpendicular bisector of AB.', { needs: 'Compass, Ruler' }), 'pen ruler compass', 'a comma-list cell and a bisector'],
+   [q('Draw the graph of y = 2x + 1.'), 'pen', 'a plain drawing question'],
+   [q('The two circles represent plotting compasses. Draw an arrow in each.'), 'pen', 'plotting compasses'],
+   [q('Bradley buys 12 rulers. How much is one ruler?'), 'pen', 'rulers in a word problem'],
+   [q('Construct a frequency tree for this information.'), 'pen', 'constructing a tree'],
+   [q('Construct a two-way table for the data.'), 'pen', 'constructing a two-way table'],
+   [q('Measure angle d.', { needs: ['Protractor'] }), 'pen protractor', 'a protractor'],
+   [q('Bisect the angle.', { stems: [{ html: '<p>Use ruler and compasses only.</p>' }] }), 'pen ruler compass', 'a stem that says it']]
+    .forEach(([x, want, what]) => {
+      const got = w.padTools_(x).join(' ');
+      if (got !== want) bad.push(what + ': padTools_ gave "' + got + '", wanted "' + want + '"');
+    });
+  const barOf = x => { const h = d.createElement('div'); h.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
+    return [...h.querySelectorAll('.qpad-tool')].map(b => b.getAttribute('data-tool')).join(' '); };
+  const offered = [[q('Use a ruler.', { key: 'q:T-R' }), 'pen ruler'], [q('Construct the bisector.', { key: 'q:T-C' }), 'pen ruler compass'],
+    [q('Draw the graph.', { key: 'q:T-N' }), ''], [q('Measure the angle.', { key: 'q:T-P', needs: ['Protractor'] }), '']];
+  offered.forEach(([x, want]) => {
+    if (barOf(x) !== want) bad.push('the bar for "' + x.html.replace(/<[^>]*>/g, '') + '" offers [' + barOf(x) + '], wanted [' + want + ']');
+  });
+
+  /* ---------- A PAD IN THE DOCUMENT, 340 x 170 px: ONE UNIT ACROSS IS 1px, ONE UNIT DOWN 0.5px -------- */
+  const x = q('Use a ruler and compasses to construct the bisector of angle ABC.', { key: 'q:Q-TOOLS-1' });
+  const k = t.padKey(x);
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const L = 100, T = 50, W = 340, H = 170;
+  const mount = () => {
+    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    host.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+    return host.querySelector('.qpad');
+  };
+  let pad = mount();
+  const ink = () => pad.querySelector('.qpad-ink');
+  const Ev = w.PointerEvent || w.MouseEvent;
+  const fire = (type, px, py) => ink().dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: px, clientY: py, pointerId: 1 }));
+  const drag = pts => { fire('pointerdown', pts[0][0], pts[0][1]); pts.slice(1).forEach(p => fire('pointermove', p[0], p[1])); fire('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]); };
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return []; } };
+  const tool = name => pad.querySelector('.qpad-tool[data-tool="' + name + '"]');
+  if (!tool('ruler') || !tool('compass') || !tool('pen')) return bad.concat(['the construction question\'s bar has no Pen, Ruler and Compass, so the drawing was NOT checked']);
+
+  /* RULER */
+  A['pad-tool'](tool('ruler'));
+  if (!pad.classList.contains('is-drawing')) bad.push('pressing Ruler did not lock the card for drawing');
+  if (!tool('ruler').classList.contains('on') || tool('ruler').getAttribute('aria-pressed') !== 'true') bad.push('the Ruler tile is not lit and pressed once chosen');
+  if (tool('pen').classList.contains('on') || tool('compass').classList.contains('on')) bad.push('another tool is lit beside the Ruler');
+  /* A (150,100)px is units (50,100); B (300,140)px is units (200,180). The middle of the drag wanders. */
+  drag([[150, 100], [180, 60], [260, 160], [300, 140]]);
+  let s = stored();
+  if (s.length !== 1 || JSON.stringify(s[0]) !== '[50,100,200,180]') bad.push('a ruler drag stored ' + JSON.stringify(s) + ', wanted one stroke [50,100,200,180] -- its two ends and nothing between');
+  if (pad.querySelector('.qpad-aid').innerHTML) bad.push('the ruler\'s anchor is still drawn after the finger lifted');
+  pad = mount();
+  const redrawn = [...pad.querySelectorAll('.qpad-g path')].map(p => p.getAttribute('d'));
+  if (redrawn.join('|') !== 'M50 100L200 180') bad.push('the card drawn again shows ' + JSON.stringify(redrawn) + ', wanted the ruler\'s one line M50 100L200 180');
+  if (!pad.classList.contains('is-drawing') || !tool('ruler').classList.contains('on')) bad.push('a card drawn again lost the pen or the Ruler in hand');
+
+  /* COMPASS: centre (270,135)px = units (170,170); out to (330,135)px, a radius of 60px. */
+  A['pad-tool'](tool('compass'));
+  if (!tool('compass').classList.contains('on') || tool('ruler').classList.contains('on')) bad.push('pressing Compass did not move the light from Ruler to Compass');
+  fire('pointerdown', 270, 135);
+  fire('pointermove', 300, 135);
+  fire('pointermove', 330, 135);
+  const aid = pad.querySelector('.qpad-aid');
+  if (!aid.querySelector('.qpad-pin')) bad.push('the compass\'s point is not shown while it is open');
+  const rad = aid.querySelector('.qpad-rad');
+  if (!rad || rad.getAttribute('d') !== 'M170 170L230 170') bad.push('the live radius is ' + (rad ? rad.getAttribute('d') : 'not drawn') + ', wanted M170 170L230 170');
+  if (!pad.querySelector('.qpad-g [data-live]')) bad.push('the ring is not previewed while it is dragged');
+  fire('pointerup', 330, 135);
+  if (aid.innerHTML) bad.push('the compass\'s point and width are still drawn after the finger lifted');
+  s = stored();
+  const ring = s[1] || [];
+  const off = st => { let worst = 0; for (let i = 0; i < st.length; i += 2) worst = Math.max(worst, Math.abs(Math.hypot((st[i] - 170) * W / 340, (st[i + 1] - 170) * H / 340) - 60)); return worst; };
+  if (s.length !== 2) bad.push('after the compass there are ' + s.length + ' strokes stored, wanted 2');
+  else {
+    if (ring.length < 40) bad.push('the ring has ' + ring.length / 2 + ' points -- not enough to be round');
+    if (ring[0] !== ring[ring.length - 2] || ring[1] !== ring[ring.length - 1]) bad.push('the ring is not closed: it starts at ' + ring.slice(0, 2) + ' and ends at ' + ring.slice(-2));
+    if (off(ring) > 1.2) bad.push('a point of the ring is ' + off(ring).toFixed(2) + 'px off the 60px radius on the screen -- an ellipse on a picture that is not square');
+    const xs = ring.filter((v, i) => !(i % 2)), ys = ring.filter((v, i) => i % 2);
+    if (Math.abs((Math.max(...xs) + Math.min(...xs)) / 2 - 170) > 1 || Math.abs((Math.max(...ys) + Math.min(...ys)) / 2 - 170) > 1) bad.push('the ring is not about the centre that was pressed');
+  }
+  /* AN ARC: out to 60px, then a quarter turn round the point, clockwise on the screen. */
+  const arcPts = [[270, 135], [300, 135], [330, 135]];
+  for (let deg = 10; deg <= 90; deg += 10) arcPts.push([270 + 60 * Math.cos(deg * Math.PI / 180), 135 + 60 * Math.sin(deg * Math.PI / 180)]);
+  drag(arcPts);
+  s = stored();
+  const arc = s[2] || [];
+  if (s.length !== 3) bad.push('after the swing there are ' + s.length + ' strokes, wanted 3');
+  else {
+    if (arc[0] === arc[arc.length - 2] && arc[1] === arc[arc.length - 1]) bad.push('a quarter-turn swing drew a closed ring, not an arc');
+    if (off(arc) > 1.2) bad.push('the arc is ' + off(arc).toFixed(2) + 'px off its 60px width');
+    const ang = (px, py) => Math.atan2((py - 170) * H / 340, (px - 170) * W / 340) * 180 / Math.PI;
+    const a0 = ang(arc[0], arc[1]), a1 = ang(arc[arc.length - 2], arc[arc.length - 1]);
+    if (Math.abs(a0) > 12 || Math.abs(a1 - 90) > 6) bad.push('the arc runs from ' + a0.toFixed(0) + '° to ' + a1.toFixed(0) + '°, wanted about 0° to 90°');
+  }
+  /* A TAP IS A SLIP. */
+  fire('pointerdown', 200, 120); fire('pointerup', 200, 120);
+  if (stored().length !== 3) bad.push('a tap with the compass stored a mark');
+  if (pad.querySelector('.qpad-g [data-live]')) bad.push('a tap with the compass left its preview on the picture');
+  /* UNDO: the arc, then the ring, then the ruler's line is what is left. */
+  A['pad-undo'](pad.querySelector('[data-do="pad-undo"]'));
+  A['pad-undo'](pad.querySelector('[data-do="pad-undo"]'));
+  s = stored();
+  if (s.length !== 1 || JSON.stringify(s[0]) !== '[50,100,200,180]') bad.push('two Undos left ' + JSON.stringify(s).slice(0, 80) + ', wanted only the ruler\'s line');
+  if (pad.querySelectorAll('.qpad-g path').length !== 1) bad.push('two Undos left ' + pad.querySelectorAll('.qpad-g path').length + ' marks on the picture, wanted 1');
+  /* THE PEN, STILL FREEHAND. */
+  A['pad-tool'](tool('pen'));
+  drag([[110, 60], [120, 70], [130, 66]]);
+  s = stored();
+  if (s.length !== 2 || s[1].length !== 6) bad.push('the pen did not keep every point of a freehand stroke: ' + JSON.stringify(s[1] || null));
+  /* A STALE CHOICE CANNOT DRAW. The plain question offers no tools; a Compass left for it is the pen. */
+  const plain = q('Draw the graph.', { key: 'q:Q-TOOLS-2' });
+  const pk = t.padKey(plain);
+  try { w.localStorage.removeItem(pk); } catch (e) {}
+  t.padTool().set(pk, 'compass');
+  host.innerHTML = t.padWrap(plain, '<svg viewBox="0 0 340 170"></svg>', '');
+  pad = host.querySelector('.qpad');
+  pad.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+  if (pad.querySelector('.qpad-tool')) bad.push('a plain drawing question was given tool tiles');
+  A['pad-draw'](pad.querySelector('.qpad-lock'));
+  drag([[150, 100], [200, 100], [250, 120]]);
+  const ps = (() => { try { return JSON.parse(w.localStorage.getItem(pk) || '[]'); } catch (e) { return []; } })();
+  if (ps.length !== 1 || ps[0].length !== 6) bad.push('a pad with no Compass tile drew with a stale compass choice: ' + JSON.stringify(ps).slice(0, 80));
+  A['pad-draw'](pad.querySelector('.qpad-lock'));
+  t.padTool().delete(pk);
+  try { w.localStorage.removeItem(k); w.localStorage.removeItem(pk); } catch (e) {}
+  t.padOn('');
+  host.remove();
+  return bad;
+});
+
 /* ---------- A SWIPE SETTLES AT THE FINGER'S SPEED, WRITTEN ON THE COLUMNS AND NOT THE ROOT ------------
    ASKED FOR AS *"refine the swiping to feel more stable"*, and measured before it was touched: every
    release wrote `--slide` on `<html>`, which re-styled about three thousand elements before the card
@@ -5776,7 +5949,10 @@ check('an answer draws its result and nothing else: no Why, no working, no exami
    nodes with the same markup after Check, a wrong Check, typing, Check again, "Show the answer" and
    a tapped option; the card's own children are the same list in the same order; and the verdict
    writes into a slot that was already there. And typing after a verdict takes it off -- "Correct"
-   beside an answer that has since changed is the app vouching for something it never read. */
+   beside an answer that has since changed is the app vouching for something it never read.
+
+   AND A WRONG TAP SHOWS NO ANSWER: the pick, "Not yet", and no option ticked -- a right tap ticks the
+   pick and nothing else. Here because the tapped card is already here. */
 check('marking, revealing and tapping leave the question where it is, and typing clears a stale verdict', async () => {
   const { w } = boot();
   await wait(300);
@@ -5839,7 +6015,7 @@ check('marking, revealing and tapping leave the question where it is, and typing
     const heldR = w.stuffItemsAll_;
     w.stuffItemsAll_ = () => [shutX];
     try { A['qa-go'](rev); } finally { w.stuffItemsAll_ = heldR; }
-    same(r0, shut, 'after "Show the answer"');
+    same(r0, shut, 'after "To the answer"');
   }
   /* TAPPED -- `qp-choose` redraws the box from the stored pick and finds its question by key in the
      library, which this harness does not load; so the library is this one question for the length of
@@ -5855,9 +6031,24 @@ check('marking, revealing and tapping leave the question where it is, and typing
   try { A['qp-choose'](tapped.querySelector('.qp-opt[data-n="1"]')); } finally { w.stuffItemsAll_ = held; }
   const box = tapped.querySelector('.qp-choices');
   if (!box || !box.classList.contains('is-done')) bad.push('a settled tapped question does not say so (is-done), so its options still look pressable');
-  if (!tapped.querySelector('.qp-opt[data-n="2"].is-ans') || !tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick and the right option');
+  if (!tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick');
+  /* A MISS DOES NOT SHOW THE ANSWER. It ticked the right option beside it, which is the answer on the
+     question card with nobody pressing Show -- *"answers should just stay hidden unless user unhides
+     them."* Nothing ticked, and no words that name or point at the right one. */
+  const shownBy = tapped.querySelector('.qp-opt.is-ans');
+  if (shownBy) bad.push('a wrong tap ticked option ' + shownBy.getAttribute('data-n') + ' -- the answer shown on the question card without Show');
+  const said = (tapped.querySelector('.qp-verdict') || {}).textContent || '';
+  if (!/^Not yet/.test(said) || /marked|is 15|\b15\b/.test(said)) bad.push('a wrong tap\'s verdict reads "' + said + '" -- "Not yet", and nothing that gives the right one away');
   same(m0, tapped, 'after a wrong tap');
   try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
+  /* AND A RIGHT ONE TICKS THE PICK -- the verdict on what you chose, which is not a reveal. */
+  const mcR = Object.assign({}, mc, { key: 'q-still-mc-r', row: Object.assign({}, base.row, { row_id: 'Q-STILL-10' }) });
+  try { w.localStorage.removeItem(w.__t.ansKey(mcR)); } catch (e) {}
+  const tappedR = draw(mcR);
+  w.stuffItemsAll_ = () => [mcR];
+  try { A['qp-choose'](tappedR.querySelector('.qp-opt[data-n="2"]')); } finally { w.stuffItemsAll_ = held; }
+  if (!tappedR.querySelector('.qp-opt[data-n="2"].is-picked.is-ans') || tappedR.querySelectorAll('.qp-opt.is-ans').length !== 1) bad.push('a right tap did not tick the pick, and only the pick');
+  try { w.localStorage.removeItem(w.__t.ansKey(mcR)); } catch (e) {}
   /* AND THE WORDS SAY WHERE THE PICTURE WENT: a question whose figure is the page AFTER it (its
      marker at the end of its words) points at the next page; one whose figure stands in front of it
      says nothing, and one without a figure says nothing -- a pointer to a page that does not exist,
@@ -6045,8 +6236,10 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
      * the question card keeps its box and no longer carries the answer, in any form
      * the answer page is hidden and the answer is NOT IN ITS MARKUP (the old `is-shut` hid with CSS an
        answer anybody could read in the document)
-     * the question's tile opens the page that is already standing, the open survives a redraw (the
-       `REEL_HELD` fault: a fact left on an element dies with it), and it opens only that question
+     * the question's tile ("To the answer") turns to the page and does NOT open it -- *"answers should
+       just stay hidden unless user unhides them"* -- and the page's own Show tile does; the open
+       survives a redraw (the `REEL_HELD` fault: a fact left on an element dies with it), and it opens
+       only that question. Hide, and every role alike, are the next journey's
      * a tapped question settled right does NOT open it, and neither does a typed answer marked right:
        the card already says "Correct", and a page that opens itself is a reveal nobody pressed
      * a TUTOR's page is hidden exactly as a student's, with the same tile label -- it was open
@@ -6097,7 +6290,10 @@ check('an answer is its own page after its question, hidden from everybody alike
   if (!/Answer hidden/.test(hid.textContent)) bad.push('a hidden answer page does not say "Answer hidden": ' + hid.textContent.trim().slice(0, 80));
   if (!hid.querySelector('[data-do="qa-show"]')) bad.push('a hidden answer page has no "Show the answer"');
   if (card && card.getAttribute('data-of') !== 'Q-ANSP-5') bad.push('the answer page does not name its row');
-  /* SHOWN FROM THE QUESTION'S TILE, where the page already stands. */
+  /* TURNED TO FROM THE QUESTION'S TILE, where the page already stands -- AND STILL HIDDEN. *"answers
+     should just stay hidden unless user unhides them"*: the question's tile turns the page and that is
+     all it does. It used to show the answer as it turned, which made reaching the page and revealing
+     it one tap. */
   d.body.appendChild(hid);
   const other = el(w.questionAnsCard_(fig));
   d.body.appendChild(other);
@@ -6108,8 +6304,16 @@ check('an answer is its own page after its question, hidden from everybody alike
   const goTile = tiles.querySelector('[data-do="qa-go"]');
   if (goTile) { try { A['qa-go'](goTile); } finally { w.stuffItemsAll_ = held; } }
   w.stuffItemsAll_ = held;
+  const turned = d.querySelector('.qans-card[data-of="Q-ANSP-5"]');
+  if (!turned || !turned.classList.contains('is-hidden') || turned.innerHTML.indexOf(SECRET) >= 0)
+    bad.push('the question\'s "To the answer" tile showed the answer as it turned to it -- revealing is the answer page\'s own tap');
+  if (goTile && /show/i.test(goTile.getAttribute('aria-label') || '')) bad.push('the question\'s tile still says it shows the answer: ' + goTile.getAttribute('aria-label'));
+  /* SHOWN BY THE ANSWER PAGE'S OWN TILE, where it stands. */
+  const showT = turned && turned.querySelector('[data-do="qa-show"]');
+  if (!showT) bad.push('the answer page has no Show tile to press');
+  else { w.stuffItemsAll_ = () => [base, fig]; try { A['qa-show'](showT); } finally { w.stuffItemsAll_ = held; } }
   const now = d.querySelector('.qans-card[data-of="Q-ANSP-5"]');
-  if (!now || now.classList.contains('is-hidden') || now.textContent.indexOf(SECRET) < 0) bad.push('"Show the answer" on the question did not open its answer page');
+  if (!now || now.classList.contains('is-hidden') || now.textContent.indexOf(SECRET) < 0) bad.push('"Show the answer" on the answer page did not open it');
   else if (now.querySelector('details, .qans-why')) bad.push('showing the answer drew a Why fold under it');
   if (el(w.questionAnsCard_(base)).textContent.indexOf(SECRET) < 0) bad.push('the answer page shut again when it was drawn again');
   const fig2 = d.querySelector('.qans-card[data-of="Q-ANSP-6"]');
@@ -6162,8 +6366,120 @@ check('an answer is its own page after its question, hidden from everybody alike
     const tx = Object.assign({}, base, { key: 'q-ansp-' + role, row: row('Q-ANSP-' + role) });
     if (!shutNow(tx)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s answer page is open without "Show the answer" -- the owner asked for no difference');
     const tl = el(w.questionTiles_(tx)).querySelector('[data-do="qa-go"]');
-    if (!tl || !/Show the answer/.test(tl.getAttribute('aria-label') || tl.textContent)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s tile does not read "Show the answer": ' + (tl ? (tl.getAttribute('aria-label') || tl.textContent.trim()) : '(none)'));
+    if (!tl || !/To the answer/.test(tl.getAttribute('aria-label') || tl.textContent)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s tile does not read "To the answer": ' + (tl ? (tl.getAttribute('aria-label') || tl.textContent.trim()) : '(none)'));
   });
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- SHOW, HIDE, SHOW: ONE TILE ON THE ANSWER PAGE, THE SAME FOR EVERYBODY -----------------------
+   ASKED FOR AS *"answers should just stay hidden unless user unhides them. and can hide them again.
+   simple is best."* Through the real handlers, on a real answer page in the document, for four
+   visitors -- signed out, a student, a tutor, an admin -- each starting from nothing shown:
+     * hidden: "Answer hidden", the answer NOT IN THE MARKUP, and the one tile is Show (the eye)
+     * Show: the answer drawn, and the same tile slot now Hide (the eye struck through) -- the tile row
+       is the same child of the card in both states, so the thumb finds Hide where it pressed Show
+     * Hide: hidden exactly as before, answer gone from the markup, Show back in the slot
+     * Show again: open again -- the toggle is not a one-way door
+     * drawn afresh after a Hide it is hidden (`ANS_SHOWN` forgot), after a Show it is open, and the
+       next visitor's page is hidden whatever the last one did
+     * the question card's tile ("To the answer") reveals nothing for any of them */
+check('the answer page shows, hides and shows again from one tile, hidden by default, the same for every visitor', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  const need = ['questionAnsCard_', 'questionTiles_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? Show and Hide were NOT checked'];
+  if (!A['qa-show'] || !A['qa-hide'] || !A['qa-go']) return ['qa-show, qa-hide or qa-go has no handler, so the toggle was NOT checked'];
+  const SECRET = 'Forty-two-and-a-quarter';
+  const x = { kind: 'question', name: 'Q8', marks: 1, key: 'q-toggle-8',
+    row: { row_id: 'Q-TOGGLE-8', paper_id: 'P-TOGGLE', subject: 'Maths', name: 'Toggle' },
+    html: '<p>Work out 169 &divide; 4</p>', answer: '<b>' + SECRET + '</b> &mdash; 169 &divide; 4' };
+  const held = w.stuffItemsAll_;
+  const press = (act, from) => {
+    const b = from.querySelector('[data-do="' + act + '"]');
+    if (!b) return false;
+    w.stuffItemsAll_ = () => [x];
+    try { A[act](b); } finally { w.stuffItemsAll_ = held; }
+    return true;
+  };
+  /* WHICH CHILD OF THE CARD THE TILE ROW IS -- "the same place" asked as structure, since jsdom lays
+     nothing out. `check/states.js` measures the pixels. */
+  const slot = card => [...card.children].indexOf(card.querySelector(':scope > .tile-row'));
+  const who = [
+    ['signed out', null],
+    ['a student', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
+    ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }],
+    ['an admin', { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] }],
+  ];
+  for (const [what, u] of who) {
+    w.__t.USER(u);
+    const host = d.createElement('div');
+    host.innerHTML = w.questionAnsCard_(x);
+    d.body.appendChild(host);
+    const card = () => host.querySelector('.qans-card');
+    const hiddenRight = when => {
+      const c = card();
+      if (!c || !c.classList.contains('is-hidden')) return bad.push(what + ', ' + when + ': the page is not hidden');
+      if (c.innerHTML.indexOf(SECRET) >= 0 || c.querySelector('.qans, .qans-body')) bad.push(what + ', ' + when + ': a hidden page still carries the answer in its markup');
+      if (!/Answer hidden/.test(c.textContent)) bad.push(what + ', ' + when + ': a hidden page does not say "Answer hidden"');
+      const t = c.querySelector('.tile-row [data-do="qa-show"]');
+      if (!t || !t.classList.contains('tile')) bad.push(what + ', ' + when + ': a hidden page has no Show tile');
+      else if (!t.querySelector('.tile-i-show')) bad.push(what + ', ' + when + ': the Show tile is not the eye');
+      if (c.querySelector('[data-do="qa-hide"]')) bad.push(what + ', ' + when + ': a hidden page offers Hide');
+    };
+    const shownRight = when => {
+      const c = card();
+      if (!c || c.classList.contains('is-hidden') || c.textContent.indexOf(SECRET) < 0) return bad.push(what + ', ' + when + ': the answer is not shown');
+      const t = c.querySelector('.tile-row [data-do="qa-hide"]');
+      if (!t || !t.classList.contains('tile')) bad.push(what + ', ' + when + ': a shown page has no Hide tile');
+      else if (!t.querySelector('.tile-i-hide')) bad.push(what + ', ' + when + ': the Hide tile is not the struck-through eye');
+      if (c.querySelector('[data-do="qa-show"]')) bad.push(what + ', ' + when + ': a shown page still offers Show');
+      if (/Answer hidden/.test(c.textContent)) bad.push(what + ', ' + when + ': a shown page still says "Answer hidden"');
+    };
+    hiddenRight('as drawn');
+    const s0 = slot(card());
+    /* THE QUESTION'S OWN TILE, pressed first: it turns pages and reveals nothing. */
+    const qt = d.createElement('div');
+    qt.innerHTML = w.questionTiles_(x);
+    d.body.appendChild(qt);
+    w.stuffItemsAll_ = () => [x];
+    try { A['qa-go'](qt.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = held; qt.remove(); }
+    hiddenRight('after the question\'s "To the answer"');
+    /* THE FOCUS FOLLOWS THE TOGGLE. `ansSet_` replaces the card, so the tile that was pressed is gone;
+       from a keyboard the focus has to land on the tile that replaced it rather than on `<body>`. And
+       ONLY from the card that held it: a Hide with the focus somewhere else leaves it there. */
+    const named = e => !e ? '(nothing)' : e === d.body ? '<body>'
+      : '<' + e.tagName.toLowerCase() + (e.getAttribute('data-do') ? ' ' + e.getAttribute('data-do') : '') + '>';
+    const showT0 = card().querySelector('[data-do="qa-show"]');
+    if (showT0) showT0.focus();
+    if (!press('qa-show', card())) bad.push(what + ': nothing to press to show it');
+    shownRight('after Show');
+    if (d.activeElement !== card().querySelector('[data-do="qa-hide"]')) bad.push(what + ': Show threw the focus away -- it is on ' + named(d.activeElement) + ', not on the Hide tile in its place');
+    if (slot(card()) !== s0) bad.push(what + ': the tile row moved from child ' + s0 + ' to ' + slot(card()) + ' when the answer was shown');
+    if (w.questionAnsCard_(x).indexOf(SECRET) < 0) bad.push(what + ': the page drawn afresh after Show is shut again');
+    const elsewhere = d.createElement('input');
+    d.body.appendChild(elsewhere);
+    elsewhere.focus();
+    if (!press('qa-hide', card())) bad.push(what + ': nothing to press to hide it');
+    if (d.activeElement !== elsewhere) bad.push(what + ': a Hide pulled the focus to ' + named(d.activeElement) + ' from a box that held it, outside the card');
+    elsewhere.remove();
+    hiddenRight('after Hide');
+    if (slot(card()) !== s0) bad.push(what + ': the tile row moved when the answer was hidden again');
+    if (w.questionAnsCard_(x).indexOf(SECRET) >= 0) bad.push(what + ': the page drawn afresh after Hide is still open -- ANS_SHOWN did not forget it');
+    if (!press('qa-show', card())) bad.push(what + ': nothing to press to show it a second time');
+    shownRight('after Show, Hide, Show');
+    /* AND PUT BACK, so the next visitor starts where everybody starts. */
+    press('qa-hide', card());
+    host.remove();
+  }
+  /* THE NEXT PERSON ON THE PHONE starts hidden whatever the last one did: the key carries who it is. */
+  w.__t.USER(who[1][1]);
+  w.ansShow_(x);
+  w.__t.USER(who[2][1]);
+  if (w.questionAnsCard_(x).indexOf(SECRET) >= 0) bad.push('a tutor\'s page is open because the student before them showed theirs');
+  w.__t.USER(who[1][1]);
+  w.ansHide_(x);
   w.__t.USER(null);
   return bad;
 });
@@ -6719,6 +7035,107 @@ check('Find draws the same question family, practical, project and textbook for 
     w.spotSet_(prac.key, false);
     t.USER(null);
   } else bad.push('spotSet_ or spotPages is not reachable, so the window\'s own tile was NOT checked');
+  return bad;
+});
+
+/* ---------- EVERY CONTROL ON A QUESTION'S PAGES IS A TILE ------------------------------------------------
+   ASKED FOR ONE AT A TIME AND THEN ALL AT ONCE: *"check button should be a tile."*, *"lock should be a
+   tile too. same as undo and clear. it should all be tiles."* The house rule said a FORM has buttons,
+   and the pen's bar, Check and Mark with AI were argued as a form's; the owner overruled it for this
+   surface, so the rule is asked of the whole family at once rather than of whichever control somebody
+   remembered.
+
+   EVERY PAGE OF A QUESTION FAMILY, through the app's own builders, signed in so the star is drawn too:
+   a stem with its figure, a part with a box and Check, a tapped question, a worded one with Mark with AI,
+   a maths one on the keypad's box, a drawing question on a squared grid (pen off AND on -- the armed bar
+   is drawn by a different branch), a pen question asking for a ruler and compasses, a passage to ring
+   words in, and every answer page hidden and shown. Every `<button>`, every `[data-do]`, every
+   `role="button"` and every link must be a `.tile` -- or one of the exceptions, each named where it is
+   drawn with the reason:
+     a multiple-choice option     the answer being given, with its own words and maths (`choiceBox_`)
+     a key on the maths keypad    a keyboard (`kpKey_`) -- drawn on the body, listed for completeness
+     a word in a passage          the answer being given, where the sentence put it (`circWords_`)
+     the picture under the pen    the pen's second door while it is off (`padArm_`), not a control
+     the answer box itself        a field, which is typed into rather than pressed
+   And the tiles the owner named must actually be there, so a family that drew none cannot pass. */
+check('every control on a question\'s pages is a tile, bar the options, the keys, the words and the box', async () => {
+  const p = Object.assign(payload(), { aiMarking: true });
+  p.features = (p.features || []).concat(['aiMark']);
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t, bad = [];
+  const need = ['pageParts_', 'stuffPart_', 'stuffCard', 'questionAnsCard_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The tiles were NOT checked'];
+  t.USER({ name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'], token: 'tok' });
+  const svg = '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>';
+  const row = id => ({ row_id: id, paper_id: 'P-TILES', subject: 'Maths', name: 'Paper 1: Foundation — June 2024' });
+  const stem = { id: 'S-TILES', html: '<p>The diagram shows a triangle.</p>', diagram: svg };
+  const fam = [
+    { kind: 'question', name: 'Q4(a)', qNumber: '4', qPart: 'a', marks: 2, key: 'q:Q-TILES-4a', row: row('Q-TILES-4a'), stems: [stem],
+      diagram: svg, html: '<p>Work out PR.</p>', answer: '<b>5 cm</b>', accept: 'five' },
+    { kind: 'question', name: 'Q4(b)', qNumber: '4', qPart: 'b', marks: 1, key: 'q:Q-TILES-4b', row: row('Q-TILES-4b'), stems: [stem],
+      html: '<p>Which is right?</p>', choices: ['3', '4'], choiceRight: [2], answer: '<b>4</b>' },
+    { kind: 'question', name: 'Q5', qNumber: '5', marks: 3, key: 'q:Q-TILES-5', row: row('Q-TILES-5'), stems: [],
+      answerType: 'explain', html: '<p>Explain why the angles add to 180°.</p>', answer: '<b>Angles on a line</b> &mdash; a half turn' },
+    { kind: 'question', name: 'Q6', qNumber: '6', marks: 1, key: 'q:Q-TILES-6', row: row('Q-TILES-6'), stems: [],
+      answerType: 'calculation', html: '<p>Work out 3/4 of 12.</p>', answer: '<b>9</b>', accept: '9' },
+    { kind: 'question', name: 'Q7', qNumber: '7', marks: 2, key: 'q:Q-TILES-7', row: Object.assign(row('Q-TILES-7'), { figure: 'grid-blank' }),
+      stems: [], answerType: 'drawing', html: '<p>Draw the graph of y = 2x + 1.</p>', answer: '<b>A straight line</b>' },
+    { kind: 'question', name: 'Q8', qNumber: '8', marks: 2, key: 'q:Q-TILES-8', row: row('Q-TILES-8'), stems: [], needs: ['Ruler', 'Compass'],
+      answerType: 'drawing', diagram: svg, html: '<p>Use a ruler and compasses to construct the perpendicular bisector of AB.</p>', answer: '<b>Arcs from A and B</b>' },
+    { kind: 'question', name: 'Q9', qNumber: '9', marks: 1, key: 'q:Q-TILES-9', row: row('Q-TILES-9'), stems: [],
+      answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>', answer: '<b>tall</b>' },
+  ];
+  const pages = [];
+  const drawAll = when => fam.forEach((x, i) => w.pageParts_(x, i ? fam[i - 1] : null).forEach(part => {
+    pages.push({ at: x.row.row_id + '#' + (part || 'card') + when, html: part ? w.stuffPart_(x, part) : w.stuffCard(x, 0) });
+  }));
+  drawAll('');
+  /* THE ARMED PEN, which `padWrap_` draws from `PAD_ON` by a different branch. */
+  ['q:Q-TILES-7', 'q:Q-TILES-8'].forEach(k => {
+    const x = fam.find(f => f.key === k);
+    t.padOn(w.__t.padKey ? w.__t.padKey(x) : 'pad:' + k);
+    pages.push({ at: x.row.row_id + '#fig, pen on', html: w.stuffPart_(x, 'fig') });
+  });
+  t.padOn('');
+  /* AND EVERY ANSWER PAGE, SHOWN, then put back. */
+  fam.forEach(x => { w.ansShow_(x); pages.push({ at: x.row.row_id + '#ans-shown', html: w.questionAnsCard_(x) }); w.ansHide_(x); });
+  const EXEMPT = [
+    ['button.qp-opt[data-do="qp-choose"]', 'a multiple-choice option'],
+    ['button.kp-key[data-do="kp-key"]', 'a key on the maths keypad'],
+    ['span.qw[data-do="qw-tap"]', 'a word in a passage to ring'],
+    ['div.qpad-art[data-do="pad-draw"]', 'the picture under the pen, while it is off'],
+    ['textarea.qp-ans-in[data-do="qp-ans"], input.qp-ans-in[data-do="qp-ans"]', 'the answer box'],
+  ];
+  const seen = {};
+  const exempted = {};
+  pages.forEach(pg => {
+    const h = w.document.createElement('div');
+    h.innerHTML = pg.html;
+    h.querySelectorAll('button, [data-do], [role="button"], a[href]').forEach(el => {
+      if (el.classList.contains('tile')) {
+        const k = el.getAttribute('data-do') + (el.getAttribute('data-tool') ? ':' + el.getAttribute('data-tool') : '');
+        seen[k] = (seen[k] || 0) + 1;
+        return;
+      }
+      const ok = EXEMPT.find(([sel]) => el.matches(sel));
+      if (ok) { exempted[ok[1]] = (exempted[ok[1]] || 0) + 1; return; }
+      bad.push(pg.at + ' draws a control that is not a tile: <' + el.tagName.toLowerCase()
+        + ' class="' + (el.getAttribute('class') || '') + '" data-do="' + (el.getAttribute('data-do') || '') + '">');
+    });
+  });
+  /* THE ONES THE OWNER NAMED, which must be there for the rule above to mean anything. */
+  [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-draw', 'the pen\'s lock'], ['pad-undo', 'Undo'],
+   ['pad-clear', 'Clear'], ['qa-go', 'To the answer'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
+   ['pad-tool:pen', 'the Pen'], ['pad-tool:ruler', 'the Ruler'], ['pad-tool:compass', 'the Compass'],
+   ['fav', 'the star']].forEach(([act, what]) => {
+    if (!seen[act]) bad.push('no ' + what + ' tile (' + act + ') was drawn anywhere in the family, so the rule was NOT asked of it');
+  });
+  ['a multiple-choice option', 'a word in a passage to ring', 'the picture under the pen, while it is off', 'the answer box'].forEach(what => {
+    if (!exempted[what]) bad.push('the family drew no ' + what + ', so its exception was NOT exercised');
+  });
+  t.USER(null);
+  if (!bad.length) console.log('          ' + pages.length + ' pages; tiles: ' + Object.keys(seen).sort().map(k => k + ' ' + seen[k]).join(', '));
   return bad;
 });
 
