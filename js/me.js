@@ -2419,7 +2419,8 @@ function send_(body, o) {
 
   /* `is-busy` IS THE SPINNER, and it goes on whether or not there is a `busy` label -- a
      button with no relabel still has to show that it is waiting. See `.btn.is-busy`. */
-  if (btn) { btn.disabled = true; btn.classList.add('is-busy');
+  /* `data-unlocked` — SEE BELOW: a control that queues its own press behind the save is left live. */
+  if (btn) { btn.disabled = !btn.hasAttribute('data-unlocked'); btn.classList.add('is-busy');
              /* A TILE HAS NO WORD TO SWAP — its face is a mark, and writing text over it would lose
                 the mark for good. The ring is the whole of its busy state. */
              if (o.busy && !btn.classList.contains('tile')) { btn.dataset.was = btn.textContent; btn.textContent = o.busy; } }
@@ -2444,7 +2445,15 @@ function send_(body, o) {
 
      AND THE FOCUS COMES BACK. Disabling the box somebody is typing in moves focus to the document,
      so after a refusal the caret would be nowhere and the next keystroke would go to the page.
-     Remembered here and restored in `done()`. */
+     Remembered here and restored in `done()`.
+
+     EXCEPT A CONTROL MARKED `data-unlocked`, WHICH WAITS FOR THE SAVE ITSELF. The qualifications card
+     saves on every answer, and a box's answer is saved on `change` — which fires when the box loses
+     focus, which is the moment a finger lands on the next thing. So "type a school, tap the next line"
+     was a save that locked the card under the finger: the line was disabled between pointerdown and
+     click, the click never happened, and the tutor tapped twice (walked at 320, every run). Those
+     controls stay live and queue their press until the save answers (`qualWhenSaved_` in this file);
+     the boxes are still locked, so what is on the wire is still what is on the screen. */
   const box = o.lock
     ? (typeof o.lock === 'string' ? $(o.lock) : o.lock)
     : btn && btn.closest('.me-form, .msg-form, .rc, #drop, #sheet-body, .card');
@@ -2452,7 +2461,7 @@ function send_(body, o) {
   const locked = [];
   if (box) {
     [].forEach.call(box.querySelectorAll('input, select, textarea, button'), el => {
-      if (el === btn || el.disabled) return;
+      if (el === btn || el.disabled || el.hasAttribute('data-unlocked')) return;
       el.disabled = true;
       locked.push(el);
     });
@@ -3123,7 +3132,7 @@ function qualShelf_(list, value) {
     <div class="q-list">${groups.map(g => `<div class="q-subj" style="--q-w:${wide(g)}ch">${
       g.slots.map((i, n) => qualSlot_(i, value, { first: n === 0, mine })).join('')}</div>`).join('')}</div>
     <div class="q-pool" hidden>${pool.map(i => qualSlot_(i, value, { mine })).join('')}</div>
-    <div class="tile-row q-adds">${tile_({ icon: 'plus', label: 'Add a qualification', act: 'qual-add', off: !pool.length,
+    <div class="tile-row q-adds">${tile_({ icon: 'plus', label: 'Add a qualification', act: 'qual-add', off: !pool.length, data: { unlocked: '' },
       note: pool.length ? pool.length + ' more fit' : 'ten is the most' })}${
       /* HOW THE CARD WORKS, IN THE ROOM BESIDE THE `+` — a line of text that costs no line of its own.
          There is no `Edit` on the card any more, and a list of plain lines does not say by itself
@@ -3147,13 +3156,13 @@ function qualSlot_(i, value, o) {
   const seg = q.spec ? 'spec' : q.teach ? 'teach' : 'no';
   /* THE WORDS SAY WHAT THEY DO ON THE PROFILE, in the title, so the sentence that used to sit under the
      control on every editor is there for whoever asks and gone for everybody else. */
-  const segB = (v, word, why) => `<button type="button" class="q-seg-b" data-do="qual-teach" data-v="${v}"
+  const segB = (v, word, why) => `<button type="button" class="q-seg-b" data-do="qual-teach" data-v="${v}" data-unlocked
       title="${esc(why)}" aria-pressed="${seg === v ? 'true' : 'false'}">${word}</button>`;
   const said = qualSay_(q);
   return `<div class="q-slot" data-slot="${esc(i)}"${q.first ? ' data-first="1"' : ''}>
     <input type="hidden" data-me="${esc(f('_spec'))}" value="${q.spec ? 'TRUE' : 'FALSE'}">
     <input type="hidden" data-me="${esc(f('_teach'))}" value="${q.teach ? 'TRUE' : 'FALSE'}">
-    <button type="button" class="q-line" data-do="qual-open" aria-expanded="false"
+    <button type="button" class="q-line" data-do="qual-open" data-unlocked aria-expanded="false"
       aria-label="${esc(said)}" title="${esc(said)}">${qualFace_(q)}</button>
     <div class="q-ed">
       <div class="q-row">
@@ -3173,8 +3182,9 @@ function qualSlot_(i, value, o) {
         segB('spec', 'Teach', 'Shown in gold under Teaches on your profile')}${
         segB('teach', 'Can teach', 'Listed under Can also teach on your profile')}${
         segB('no', 'Not teaching', 'On your profile as a qualification only')}</div>
-      <div class="tile-row q-tiles">${tile_({ icon: 'save', label: 'Done', act: 'qual-done' })}${
-        tile_({ icon: 'bin', label: 'Remove', note: [q.subject, q.level].filter(Boolean).join(' ') || 'this one', act: 'qual-drop' })}</div>
+      <div class="tile-row q-tiles">${tile_({ icon: 'save', label: 'Done', act: 'qual-done', data: { unlocked: '' } })}${
+        tile_({ icon: 'bin', label: 'Remove', note: [q.subject, q.level].filter(Boolean).join(' ') || 'this one', act: 'qual-drop',
+                data: { unlocked: '' } })}</div>
     </div>
   </div>`;
 }
@@ -3373,6 +3383,7 @@ function qualOpen_(slot) {
    saved every line it finds is in the pool), and a redraw that changes nothing is a control that does
    nothing. Opening an empty slot is what `+` does with the next one, so that is what it does. */
 on('qual-open', el => {
+  if (qualWhenSaved_(el)) return;
   const slot = el.closest('.q-slot'), shelf = el.closest('.q-shelf');
   if (!slot || !shelf) return;
   if (slot.classList.contains('is-open')) return qualDone_(slot);
@@ -3392,7 +3403,7 @@ function qualReopen_(shelf, slot) {
    It saves when a save failed (the answer is still in its box) or a box was typed in and the tick was
    the next thing touched. A line being added with no subject or no level is not a qualification yet,
    so it goes back to the pool unsaved, and the toast says so rather than leaving it to be guessed. */
-on('qual-done', el => { const slot = el.closest('.q-slot'); if (slot) qualDone_(slot); });
+on('qual-done', el => { if (qualWhenSaved_(el)) return; const slot = el.closest('.q-slot'); if (slot) qualDone_(slot); });
 function qualDone_(slot) {
   const shelf = slot.closest('.q-shelf');
   if (!shelf) return;
@@ -3404,6 +3415,43 @@ function qualDone_(slot) {
     return;
   }
   qualCommit_(slot, () => { qualClean_(shelf); qualRedraw_(shelf); });
+}
+/* ---------- A PRESS THAT LANDS WHILE A SAVE IS OUT WAITS FOR IT ---------------------------------------
+   *Walked at 320 and 390, every run:* type a school, then tap another line. The box's `change` is the
+   save, it fires as the box loses focus — under the finger that is already on the next line — and the
+   save locks the card. The line was disabled before its own click arrived, so the press was lost and
+   the tutor tapped twice. The card's controls are `data-unlocked` now (see `send_`), and a press on one
+   while a save is out is remembered and made AFTER the save answers, on the same control as the card
+   is then drawn — the save may have redrawn it (a line that moved subject), so it is found again by
+   its slot, its action and its answer rather than held. Only the last press is kept, which is what a
+   second press means; and none is made if the save failed, because the refusal under the card is what
+   the person needs to read next, not a line opening over it. One save at a time is still the rule:
+   the boxes stay locked, and the queued press runs only once the lock is off. */
+let QUAL_SAVING = null, QUAL_NEXT = null;
+function qualSave_(el) {
+  const p = meSave_(el);
+  QUAL_SAVING = p;
+  const clear = () => { if (QUAL_SAVING === p) QUAL_SAVING = null; };
+  p.then(clear, clear);
+  return p;
+}
+function qualWhenSaved_(el) {
+  if (!QUAL_SAVING || !el) return false;
+  const act = el.dataset.do, v = el.dataset.v || '';
+  const slot = el.closest('.q-slot'), i = slot ? slot.dataset.slot : '';
+  const form = el.closest('.me-form');
+  const mine = QUAL_NEXT = {};
+  QUAL_SAVING.then(ok => {
+    if (QUAL_NEXT !== mine) return;
+    QUAL_NEXT = null;
+    if (!ok) return;
+    const shelf = (form && form.isConnected && form.querySelector('.q-shelf')) || document.querySelector('#s-settings .q-shelf');
+    if (!shelf) return;
+    const again = act === 'qual-add' ? shelf.querySelector('[data-do="qual-add"]')
+      : shelf.querySelector('.q-slot[data-slot="' + i + '"] [data-do="' + act + '"]' + (v ? '[data-v="' + v + '"]' : ''));
+    if (again && !again.disabled && ACTIONS[act]) ACTIONS[act](again);
+  }, () => {});
+  return true;
 }
 /* ---------- ONE SAVE: THE CARD'S OWN ------------------------------------------------------------------
    `meSave_` gathers all seventy boxes and posts them through `send_`, so the tick spins and the card
@@ -3424,7 +3472,7 @@ function qualCommit_(slot, after) {
   let was = {};
   try { was = JSON.parse(slot.dataset.was || '{}'); } catch (e) {}
   const moved = !!slot.dataset.new || norm(was['qual_' + i] || '') !== norm(q.subject);
-  meSave_(slot.querySelector('[data-do="qual-done"]') || slot).then(ok => {
+  qualSave_(slot.querySelector('[data-do="qual-done"]') || slot).then(ok => {
     if (!ok || !slot.isConnected) return;
     slot.dataset.was = JSON.stringify(qualValues_(slot));
     delete slot.dataset.new;
@@ -3439,6 +3487,7 @@ function qualCommit_(slot, after) {
    A SHUT LINE'S CONTROL IS NOT ON THE PAGE, so a press that reached one anyway — one that raced a
    redraw, or `check/press.js` — opens that line first and then answers, rather than doing nothing. */
 on('qual-teach', el => {
+  if (qualWhenSaved_(el)) return;
   let slot = el.closest('.q-slot');
   const shelf = el.closest('.q-shelf'), v = el.dataset.v;
   if (!slot || !shelf) return;
@@ -3468,6 +3517,7 @@ function qualTake_(shelf) {
    handed, and `selOpen_` (book.js) is the same panel every select in the app hangs. Scrolled into the
    pane first, because a list is only hung from a field that can be seen. */
 on('qual-add', el => {
+  if (qualWhenSaved_(el)) return;
   const shelf = el.closest('.q-shelf');
   if (!shelf) return;
   const next = qualRedraw_(shelf, qualOver_(shelf));
@@ -3499,12 +3549,13 @@ function qualRemove_(el, slots, said) {
   if (!shelf || !slots.length) return;
   const was = slots.map(qualValues_);
   slots.forEach(s => qualSet_(s, qualBlank_(s)));
-  meSave_(el).then(ok => {
+  qualSave_(el).then(ok => {
     if (ok) { toast(said); qualRedraw_(shelf); }
     else slots.forEach((s, n) => qualSet_(s, was[n]));
   });
 }
 on('qual-drop', el => {
+  if (qualWhenSaved_(el)) return;
   const slot = el.closest('.q-slot'), shelf = el.closest('.q-shelf');
   if (!slot || !shelf) return;
   if (slot.dataset.new) { qualClean_(shelf); qualRedraw_(shelf, qualBlank_(slot)); return; }

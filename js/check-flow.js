@@ -1312,6 +1312,42 @@ check('a qualification opens in place, and each answer is saved as it is chosen'
   if (!g || g.qual_5_spec !== 'TRUE' || !q.slot(5).classList.contains('is-open')) bad.push('Teach pressed on a shut line did nothing');
   return bad;
 });
+/* A TAP THAT LANDS WHILE A TYPED ANSWER IS SAVING. A box is saved on `change`, which fires as it loses
+   focus — under the finger already on the next line — and the save locks the card. Walked at 320,
+   every run: the school saved, the tapped line was disabled before its click arrived, and nothing
+   opened. Driven here in that order with a real `click()`, which jsdom drops on a disabled button
+   exactly as a browser does (mutation: `data-unlocked` off the line — the line stays shut). */
+check('a tap on another qualification while a typed answer is saving still opens it', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  if (!q.slot(1) || !q.slot(2)) return ['the card has no Maths GCSE and A-Level to work on'];
+  q.A('qual-open', q.line(2));
+  const school = q.box(2, '_board');
+  school.value = 'Kings College';
+  school.dispatchEvent(new q.w.Event('input', { bubbles: true }));
+  q.sent.length = 0;
+  school.dispatchEvent(new q.w.Event('change', { bubbles: true }));
+  if (!q.shelf().closest('.me-form').classList.contains('is-sending')) bad.push('the school\'s change did not start a save, so this journey proves nothing');
+  q.line(1).click();
+  await wait(400);
+  const f = q.last();
+  if (!f || f.qual_2_board !== 'Kings College') bad.push('the typed school was not saved');
+  if (q.posts().length !== 1) bad.push('one typed answer and one tap made ' + q.posts().length + ' saves');
+  const open = [...q.shelf().querySelectorAll('.q-slot.is-open')].map(s => s.dataset.slot);
+  if (JSON.stringify(open) !== '["1"]') bad.push('the tap on Maths GCSE during the save left ' + JSON.stringify(open) + ' open, not the GCSE');
+  /* AND THE TICK, pressed the same way, shuts the line once the save is in. */
+  q.A('qual-open', q.line(2));
+  const s2 = q.box(2, '_board');
+  s2.value = 'Kings College London';
+  s2.dispatchEvent(new q.w.Event('input', { bubbles: true }));
+  s2.dispatchEvent(new q.w.Event('change', { bubbles: true }));
+  q.slot(2).querySelector('[data-do="qual-done"]').click();
+  await wait(400);
+  if ((q.last() || {}).qual_2_board !== 'Kings College London') bad.push('the second school was not saved');
+  if (q.shelf().querySelector('.is-open')) bad.push('the tick pressed during the save did not shut the line');
+  return bad;
+});
 check('adding a qualification: the + asks for the subject, then the level, and saves the moment it has both', async () => {
   let q;
   try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
