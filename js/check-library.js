@@ -1226,47 +1226,108 @@ if (MARKS.missing.length) {
      5AD-F-1029-3, area-of-squares-and-rectangles-12) never listed a bare number, which is the
      convention this holds every row to. */
   const UNITS_ASKED = /\b(?:giv(?:e|ing)|stat(?:e|ing)|includ(?:e|ing)) (?:the |your )?units\b|units of your answer/i;
-  let unitsAsked = 0;
+  /* THE NOTE IS A COUNT OF BOTH, NEVER A SENTENCE. It said "none lists a bare number" whatever the
+     rows said — on the old data it printed that under a FAILED run naming the two rows that did. A
+     line that cannot change is not a measurement, and the one after a red is the one a person reads. */
+  let unitsAsked = 0, unitsBare = 0;
   rows.forEach(r => {
     if (!r || r.kind !== 'question' || !r.accept) return;
     if (!UNITS_ASKED.test(String(r.html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' '))) return;
     unitsAsked++;
     const bare = String(r.accept).split('|').map(w => w.trim()).filter(w => /^-?[\d.,\s\/⁄]+$/.test(w));
-    if (bare.length) fail.push(r.row_id + ' asks for the units and its `accept` lists the bare number '
+    if (!bare.length) return;
+    unitsBare++;
+    fail.push(r.row_id + ' asks for the units and its `accept` lists the bare number '
       + JSON.stringify(bare.join(' | ')) + ' — which marks ANY unit right. Leave only the ways with the unit.');
   });
-  note.push(unitsAsked + ' question(s) ask for the units and can mark themselves; none lists a bare number');
+  note.push(unitsAsked + ' question(s) ask for the units and can mark themselves: '
+    + (unitsAsked - unitsBare) + ' list only ways with the unit, ' + unitsBare + ' list a bare number');
 
-  /* ---------- A ROOT ANSWER GETS THE KEY FOR A ROOT ------------------------------------------------
+  /* ---------- A ROOT OR π ANSWER GETS THE KEY FOR IT ----------------------------------------------
      `ansMaths_` (keypad.js) gives a calculation the maths keypad only when EVERY way in its cell is
      maths-shaped, so one way with letters in it sends the whole row to the phone keyboard — which has
      no √ key. The exact-trig sheet did that four times: `root3/2` beside `√3/2` (two letters in a row,
-     before `markNorm_` learned to fold `root`), and `√3cm` beside `√3 cm` on Q17 (a unit with no space
-     after a root is not one `kpMathsy_` can see). Those four surds were the answers the √ key exists
+     before `markNorm_` learned to fold `root`), and `√3cm` beside `√3 cm` on Q17 (a unit glued to a
+     root, which `kpMathsy_` could not cut off). Those four surds were the answers the √ key exists
      for, and the three rows beside them got the keypad. A row whose cell writes a root the keypad can
-     type is a keypad row; the way that says otherwise is a spelling to take out. */
+     type is a keypad row; the way that says otherwise is a spelling to take out — or a rule to fix.
+
+     AND TAKING THE SPELLING OUT COST A RIGHT ANSWER. `√3cm` came out of Q17 for the keypad's sake and
+     `√3cm` typed was then marked "Not yet", because the marker only took a unit off a bare NUMBER and
+     a root is not one. Both halves were the same fault — a unit after a surd — and both are rules now
+     (`MARK_NUM` in find.js, `KP_LEAD` in keypad.js), so `check-marking.js` holds the marking and this
+     holds the keyboard.
+
+     A ROOT IS READ AS THE MARKER READS IT: `markNorm_` first, so `10 root 2 cm` and `sqrt3` count.
+
+     AND π IS THE KEY BESIDE IT. `15π cm²`, `48π cm²`, `64π cm²` and `400 − 50π cm²` were all on the
+     phone keyboard — which has no π — because a unit after a multiple of π was not one the pad's cut
+     could see, and a raised `²` was not one its end-of-answer strip could. Both are rules in keypad.js
+     now, and this is what keeps them.
+
+     AND ONE ROW BY NAME, because no rule above reaches it: June 2020 Higher Q12(a), an algebraic
+     fraction whose cell was a lost superscript and a sentence. It reached the keypad only because the
+     marker cut it at its first letter, lost it when the `x` fold made `3x2` into `3×2`, and has it
+     again only because its cell is maths now. */
   const kpSrc = fs.readFileSync(path.join(__dirname, 'keypad.js'), 'utf8');
   /* the cutter by its full name: `cutFrom` is destructured further down this file, past where this runs */
-  const kpParts = ['KP_WORDED', 'kpMathsy_', 'ansMaths_'].map(n => require('./check-marks-load.js').cutFrom(kpSrc, n));
+  const kpParts = ['KP_WORDED', 'KP_LEAD', 'kpMathsy_', 'ansMaths_'].map(n => require('./check-marks-load.js').cutFrom(kpSrc, n));
   if (kpParts.some(c => !c)) {
-    fail.push('KP_WORDED, kpMathsy_ or ansMaths_ is not in keypad.js — renamed? No row was checked for which keyboard it gets.');
+    fail.push('KP_WORDED, KP_LEAD, kpMathsy_ or ansMaths_ is not in keypad.js — renamed? No row was checked for which keyboard it gets.');
   } else {
     const KP = eval('(function () { ' + MARKS.source + '\n' + kpParts.join('\n')
-      + '\n; return { kpMathsy_: kpMathsy_, ansMaths_: ansMaths_ }; })()');
-    let rootRows = 0;
+      + '\n; return { kpMathsy_: kpMathsy_, ansMaths_: ansMaths_, markNorm_: markNorm_, markRange_: markRange_ }; })()');
+    let rootRows = 0, rootKeyboard = 0;
     rows.forEach(r => {
       if (!r || r.kind !== 'question' || !r.accept) return;
       const ways = String(r.accept).split('|').map(w => w.trim()).filter(Boolean);
-      if (!ways.some(w => /√|sqrt/i.test(w) && KP.kpMathsy_(w))) return;
+      if (!ways.some(w => /[√π]/.test(KP.markNorm_(w)) && KP.kpMathsy_(w))) return;
       rootRows++;
       const item = { answerType: r.answer_type, accept: r.accept,
                      choices: r.choices ? String(r.choices).split('|') : [] };
       if (KP.ansMaths_(item)) return;
+      rootKeyboard++;
       fail.push(r.row_id + ' writes its answer as a root the keypad can type, and '
         + JSON.stringify(ways.filter(w => !KP.kpMathsy_(w)).join(' | '))
-        + ' sends it to the phone keyboard instead, which has no √ key');
+        + ' sends it to the phone keyboard instead, which has no √ or π key');
     });
-    note.push(rootRows + ' question(s) answer with a root, and every one of them gets the keypad');
+    note.push(rootRows + ' question(s) answer with a root or π: ' + (rootRows - rootKeyboard)
+      + ' get the keypad, ' + rootKeyboard + ' are sent to the phone keyboard');
+    ['Q-1MA1-2006-3H-12a'].forEach(id => {
+      const r = rows.find(x => x && x.row_id === id);
+      if (!r) { fail.push(id + ' is not in the library — renamed? It was checked for the keypad by name.'); return; }
+      const item = { answerType: r.answer_type, accept: r.accept,
+                     choices: r.choices ? String(r.choices).split('|') : [] };
+      if (!KP.ansMaths_(item)) fail.push(id + ' is an algebraic fraction and is sent to the phone keyboard: '
+        + JSON.stringify(String(r.accept || '').split('|').map(w => w.trim()).filter(w => !KP.kpMathsy_(w)).join(' | '))
+        + ' is not maths-shaped');
+    });
+
+    /* ---------- A BAND IS A NUMBER, AND GETS THE KEYS FOR ONE ---------------------------------------
+       `kpMathsy_` used to borrow `markBare_`'s cut — the first number, then anything — and `8.5 to
+       8.9 cm` came out as `8.5`. When `markBare_` stopped cutting an expression to its coefficient
+       (`6` was marked right for `6w² − 10w`), the keypad would have lost every band with it: 79 rows
+       moved to the phone keyboard in the sweep, 59 of them a band like `3.0 to 3.8`, which is a
+       reading off a scale and nothing but digits. The pad has its own cut now (`KP_LEAD`). This is
+       what holds it: a row whose every way is a number or a band the marker reads (`markRange_`) is
+       answered in numbers, and a calculation answered in numbers is a keypad row. */
+    let bandRows = 0, bandKeyboard = 0;
+    rows.forEach(r => {
+      if (!r || r.kind !== 'question' || !r.accept) return;
+      if (String(r.answer_type || '').trim().toLowerCase() !== 'calculation') return;
+      const ways = String(r.accept).split('|').map(w => w.trim()).filter(Boolean);
+      if (!ways.some(w => KP.markRange_(w))) return;
+      if (!ways.every(w => KP.markRange_(w) || /^-?[\d.,\s\/]+°?$/.test(KP.markNorm_(w)))) return;
+      bandRows++;
+      const item = { answerType: r.answer_type, accept: r.accept,
+                     choices: r.choices ? String(r.choices).split('|') : [] };
+      if (KP.ansMaths_(item)) return;
+      bandKeyboard++;
+      fail.push(r.row_id + ' is answered with a band of numbers (' + JSON.stringify(r.accept)
+        + ') and is sent to the phone keyboard instead of the keypad');
+    });
+    note.push(bandRows + ' calculation(s) answer with a band of numbers: ' + (bandRows - bandKeyboard)
+      + ' get the keypad, ' + bandKeyboard + ' are sent to the phone keyboard');
   }
 }
 

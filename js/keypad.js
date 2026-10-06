@@ -59,10 +59,24 @@
    small in both directions: a word answer that gets the pad has an `abc` key, and a maths answer that
    gets the keyboard is what every answer had yesterday. */
 const KP_WORDED = { explain: 1, written: 1, proof: 1, drawing: 1, annotate: 1 };
-/* A UNIT AFTER A SPACE AT THE END IS STILL A UNIT when `markBare_` left it \u2014 it only strips one after
-   a bare number, and `15\u03c0 cm^2` is not one. */
+/* THE NUMBER AT THE FRONT, AND EVERY WORD AFTER IT GOES. This is not the marker's question, and it
+   used to borrow the marker's answer: `markBare_` cut a way at its first letter, and that suited both.
+   It no longer does — cutting `6w² − 10w` to `6` marked a bare 6 RIGHT, so `markBare_` takes off a
+   UNIT now and nothing else. Asked of the keypad, the old cut was the right one: `8.5 to 8.9 cm`,
+   `2 h 5 min` and `6cd` are all answered on the pad, and when this went on calling `markBare_` the
+   sweep over every row moved 79 of them to the phone keyboard — 59 with a band like `3.0 to 3.8`.
+   So the pad keeps its own cut. The number may be a root or a multiple of π (`MARK_NUM`, the
+   marker's), so `√3cm` and `15π cm^2` are maths too — a unit glued to a surd was a way that sent
+   exact-trig Q17 to the keyboard, which has no √ key.
+
+   A UNIT AFTER A SPACE AT THE END IS STILL A UNIT when the cut left it — it only cuts after a number,
+   and `400 − 50π cm²` does not start with one. Its power may be written raised: this took `cm^2`
+   off and left `cm²`, two letters in a row, so that circle's area — an answer in π, the key the pad
+   has and the phone does not — went to the keyboard. */
+const KP_LEAD = new RegExp('^(-?[\\d.,\\/\\s]*' + MARK_NUM + ')\\s*[a-z\u00b0%].*$');
 const kpMathsy_ = w => {
-  const s = markBare_(w).replace(/\u221a|\u03c0/g, '1').replace(/\s+[a-z]{1,3}(?:[\/\^][a-z0-9]+)?$/, '');
+  const s = markNorm_(w).replace(KP_LEAD, '$1').trim().replace(/\u221a|\u03c0/g, '1')
+    .replace(/\s+[a-z]{1,3}(?:[\/\^][a-z0-9]+|[²³])?$/, '');
   return !!s && /[0-9a-z]/.test(s) && !/[a-z]{2,}/.test(s);
 };
 function ansMaths_(x) {
@@ -84,8 +98,12 @@ function ansMaths_(x) {
 
    `v` IS WHAT A KEY TYPES, OR A `!` COMMAND. The label is drawn; the `aria-label` is what a screen
    reader says, because "÷" read aloud is "division sign" on one phone and nothing on another.
-   `x` is the LETTER and `×` the operator, and they are different keys for exactly the reason the
-   marker keeps them apart. The minus types a hyphen, which `markNorm_` folds with the other three. */
+   `x` is the LETTER and `×` the operator, and they are different keys because the marker keeps them
+   apart wherever they could mean different things: `markNorm_` reads a letter `x` as times only with
+   a number on BOTH sides (`2^3 x 11`, the keyboard's way of writing a product of primes), which no
+   algebra writes, so `2x`, `3x^2` and `x = 3` keep their letter. The pad gives the sign its own key
+   rather than leaning on that. The minus types a hyphen, which `markNorm_` folds with the other
+   three. */
 const KP_KEYS = [
   { t: '7' }, { t: '8' }, { t: '9' }, { t: '\u00f7', a: 'divide' },
   { t: '(', a: 'open bracket' }, { t: ')', a: 'close bracket' },

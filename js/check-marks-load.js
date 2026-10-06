@@ -22,8 +22,8 @@
 const fs = require('fs');
 const path = require('path');
 
-const NAMES = ['markNorm_', 'markParts_', 'markNum_', 'markBare_', 'markFrac_', 'markRange_', 'MARK_UNIT', 'markUnitOff_',
-               'markAnswer_'];
+const NAMES = ['markNorm_', 'markParts_', 'markNum_', 'MARK_NUM', 'MARK_SYM', 'MARK_POW', 'MARK_BARE', 'markBare_', 'markFrac_',
+               'markRange_', 'MARK_WORD', 'MARK_UNIT', 'MARK_UNIT_OF', 'markUnitOff_', 'markAnswer_'];
 
 function cutFrom(src, name) {
   let i = src.indexOf('function ' + name + '(');
