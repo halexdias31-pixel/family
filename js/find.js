@@ -6485,8 +6485,26 @@ function attemptsSync_() {
     }
   } catch (e) {}
   DONE_HELD.forEach((v, k) => { if (k.indexOf(pre) === 0 && !have[k]) have[k] = v; });
+  /* ---------- AND EACH ONE'S NAME, WHICH THE BACKLOG USED TO LEAVE BEHIND --------------------------
+     A ROW WITH NO `label` IS A QUESTION NO PARENT CAN READ. The first learner the after-session
+     email was built for did three questions before the Ledger had an `attempts` tab; this load sent
+     them up as bare keys, and the email prints no raw key (recap.gs), so his parent would have read
+     "worked on 3 questions" and nothing else. So the backlog carries the name `doneMark_` would have
+     sent — found the same way (`doneLabel_`, by the answer key this person's card has) — and so does
+     a row the sheet already holds without one: sent with its own last day, which the backend counts
+     as a day already covered (it writes the name and nothing else, see `attemptsUpsert_`). A key no
+     card on this phone answers to goes up without, as before. */
+  const who = typeof whoIs_ === 'function' ? whoIs_() : '';
+  const named = q => who ? doneLabel_('ans:' + who + ':' + q) : '';
   const items = Object.keys(have).map(k => ({ key: k.slice(pre.length), day: String(have[k] || '') }))
     .filter(x => x.key && DAY_ISO.test(x.day) && !(a.mine[x.key] && String(a.mine[x.key].last || '') >= x.day));
+  items.forEach(x => { const l = named(x.key); if (l) x.label = l; });
+  Object.keys(a.mine).forEach(q => {
+    const m = a.mine[q];
+    if (!m || m.named || !DAY_ISO.test(String(m.last || '')) || items.some(x => x.key === q)) return;
+    const l = named(q);
+    if (l) items.push({ key: q, day: String(m.last), label: l });
+  });
   ATTEMPTS_SYNCED = pid;
   if (!items.length) return;
   attemptSend_(items).then(ok => {

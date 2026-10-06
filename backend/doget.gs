@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-06-f-recap";
+const DOGET_VERSION = "2026-10-06-g-names";
 
 
 function doGet(e) {
@@ -2108,6 +2108,9 @@ function attemptsFor_(me, isAdmin) {
     const q = S(r.question_key);
     if (!q || key(r.person_id) !== key(pid)) return;
     out.mine[q] = { first: isoDate_(r.first_done), last: isoDate_(r.last_done), times: N(r.times) || 1 };
+    /* WHETHER THE ROW HAS A NAME, so the phone can send the one it knows (`attemptsSync_`). A flag and
+       not the name: the phone already has the name, and the payload is every visit's. */
+    if (S(r.label)) out.mine[q].named = 1;
   });
   if (isAdmin) {
     out.people = {};

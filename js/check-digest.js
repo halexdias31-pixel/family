@@ -192,10 +192,15 @@ function seeded(opts) {
   if (String(row('q:L2').label).length !== 120) bad.push('a 400-character label was kept at ' + String(row('q:L2').label).length + ' — wanted the cap of 120');
   done([{ key: 'q:L3', day: '2026-09-29' }]);
   if (row('q:L3').label !== '') bad.push('a question sent with no label has "' + row('q:L3').label + '"');
+  /* A NAME FOR A DAY ALREADY COVERED FILLS THE BLANK CELL AND WRITES NOTHING ELSE. This said "that day
+     must still write nothing" until the after-session email (recap.gs) met rows the backlog had sent
+     with no name, and prints no raw key — see `attemptsUpsert_`. Still nothing is counted. */
+  const t0 = Number(row('q:L3').times);
   const same = done([{ key: 'q:L3', day: '2026-09-29', label: 'Late name' }]);
-  if (same.writes !== 0) bad.push('a label arriving for a day already covered wrote ' + same.writes + ' cell(s) — that day must still write nothing');
+  if (same.writes !== 1) bad.push('a name arriving for a day already covered wrote ' + same.writes + ' cell(s) — wanted the one blank name, and nothing else');
+  if (row('q:L3').label !== 'Late name') bad.push('a name for a day already covered did not fill the blank label: "' + row('q:L3').label + '"');
+  if (Number(row('q:L3').times) !== t0) bad.push('naming a row on a covered day counted it: times ' + t0 + ' -> ' + row('q:L3').times);
   done([{ key: 'q:L3', day: '2026-09-30', label: 'Late name' }]);
-  if (row('q:L3').label !== 'Late name') bad.push('the next day’s send did not fill a blank label: "' + row('q:L3').label + '"');
   done([{ key: 'q:L3', day: '2026-10-01', label: 'A different name' }]);
   if (row('q:L3').label !== 'Late name') bad.push('a label already on the row was overwritten with "' + row('q:L3').label + '"');
 }

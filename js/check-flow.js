@@ -8241,6 +8241,52 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
   return bad;
 });
 
+/* ==================================================================================================
+   THE BACKLOG CARRIES EACH QUESTION'S NAME, AND A ROW THE SHEET HOLDS WITHOUT ONE IS SENT ITS NAME.
+   The first learner the after-session email was built for had three rows on the sheet as bare keys —
+   done before the Ledger had an `attempts` tab, sent up by the load with no names — and that email
+   prints no raw key, so his parent would have been told a number and nothing else. `attemptsSync_`
+   now names what it sends (`doneLabel_`, the card this person has for the key), and sends the name
+   for a row the payload says has none (`named`), with that row's own last day — a day the backend
+   already has, where it writes the name alone (check-attempts.js asks that half).
+================================================================================================== */
+check('the load names what it sends, and names a row the sheet holds without a name', async () => {
+  const p = Object.assign(payload(), {
+    features: ['markDone'],
+    attempts: { for: 'P7', mine: {
+      'q:Q-NAME-1': { first: '2026-10-06', last: '2026-10-06', times: 1 },
+      'q:Q-NAME-3': { first: '2026-10-05', last: '2026-10-05', times: 1, named: 1 },
+      'q:Q-NOCARD': { first: '2026-10-06', last: '2026-10-06', times: 1 },
+    } },
+  });
+  const reply = b => (b.action === 'markDone' ? { success: true, attempts: {} } : { success: true });
+  const { w, sent } = boot({ payload: p, reply,
+    before: win => { win.localStorage.setItem('done:u:P7:q:Q-NAME-2', '2026-10-06'); } });
+  await wait(300);
+  if (typeof w.adoptMarks_ !== 'function' || typeof w.doneLabel_ !== 'function') return ['adoptMarks_ or doneLabel_ is not reachable — renamed? Nothing was asked'];
+  /* THE CARDS THIS PHONE HAS, standing in for the library: the lookup is by the item's key, as Find's is. */
+  const card = (k, n) => ({ kind: 'question', key: k, name: n, subject: 'Maths', sub: 'Money', marks: 1, row: { row_id: k.slice(2) } });
+  const cards = [card('q:Q-NAME-1', 'Q1'), card('q:Q-NAME-2', 'Q2'), card('q:Q-NAME-3', 'Q3')];
+  w.stuffItemsAll_ = () => cards;
+  w.__t.USER({ name: 'Ada Pupil', personId: 'P7', role: 'student', roles: ['student'], token: 'tok-P7' });
+  w.adoptMarks_();
+  await wait(40);
+  const bad = [];
+  const m = sent.filter(b => b.action === 'markDone');
+  if (m.length !== 1) return ['the load sent ' + m.length + ' markDone request(s), wanted 1'];
+  const by = {}; (m[0].items || []).forEach(i => { by[i.key] = i; });
+  if (!by['q:Q-NAME-2']) bad.push('the backlog day the sheet lacks (Q-NAME-2) was not sent');
+  else if (!by['q:Q-NAME-2'].label || !/Money/.test(by['q:Q-NAME-2'].label) || !/Q2/.test(by['q:Q-NAME-2'].label)) bad.push('the backlog went up without its name: ' + JSON.stringify(by['q:Q-NAME-2']) + ' — a parent would read a key');
+  if (!by['q:Q-NAME-1']) bad.push('a row the sheet holds without a name (Q-NAME-1) was not sent its name');
+  else {
+    if (by['q:Q-NAME-1'].day !== '2026-10-06') bad.push('the unnamed row was sent day ' + by['q:Q-NAME-1'].day + ' — wanted its own last day, so the backend counts nothing');
+    if (!/Q1/.test(String(by['q:Q-NAME-1'].label || ''))) bad.push('the unnamed row went up without a name: ' + JSON.stringify(by['q:Q-NAME-1']));
+  }
+  if (by['q:Q-NAME-3']) bad.push('a row the sheet already names (Q-NAME-3) was sent again — every visit would send it');
+  if (by['q:Q-NOCARD']) bad.push('a row no card on this phone answers to was sent with nothing to add: ' + JSON.stringify(by['q:Q-NOCARD']));
+  return bad;
+});
+
 /* ---------- THE WEEKLY PARENT EMAIL'S CARD -----------------------------------------------------------
    ASKED FOR AS THE INFRASTRUCTURE FOR *"something which triggers every sunday"* and emails parents —
    built and switched off (backend/digest.gs). The card is how an admin sees which: it says the mode the

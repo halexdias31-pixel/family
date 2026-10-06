@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-06-f-recap";
+const DOPOST_VERSION = "2026-10-06-g-names";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -4398,13 +4398,16 @@ function loginReplyFor_(r, token) {
      · no row                 → a row, first = last = day, times 1          (one append)
      · a day after `last`     → last = day, times + 1                       (one write: adjacent cells)
      · a day before `first`   → first = day, times + 1   (an offline copy older than the sheet)
-     · a day already covered  → nothing at all. A retried request, two phones, a re-sent backlog:
-                                none of them can count a day twice, and none of them writes.
+     · a day already covered  → nothing — unless the row has no name and one came with it, when the
+                                name alone is written. A retried request, two phones, a re-sent
+                                backlog: none of them can count a day twice.
 
-   `label` RIDES ALONG WHERE A ROW IS BEING WRITTEN ANYWAY — on a new row, and on an old one with no
-   label the next time its day moves. Never on its own: a label arriving for a day already covered
-   would be a write the rule above says cannot happen, and the label is for the weekly email, which
-   only reads rows whose day moved this week. See SCHEMA.attempts. */
+   `label` IS WRITTEN WHEREVER THE CELL IS BLANK AND A NAME CAME. It used to ride along only where a
+   row was being written anyway, on the reasoning that the weekly email reads only rows whose day
+   moved this week. The after-session email (recap.gs) reads the day's rows whatever moved, prints no
+   raw key, and met its first learner with three unnamed rows the backlog had sent before the phone
+   sent names — so a name now fills a blank cell on its own, once, and never renames a named row.
+   See SCHEMA.attempts. */
 function attemptsUpsert_(pid, items) {
   const t = read(TAB.attempts);
   if (!t.sheet) return { error: 'The sheet has no attempts tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
@@ -4436,7 +4439,12 @@ function attemptsUpsert_(pid, items) {
     if (!last || day > last) v.last_done = day;
     if (!first || day < first) v.first_done = day;
     if (v.last_done || (v.first_done && first)) v.times = (N(row.times) || 0) + 1;
-    if (Object.keys(v).length && label && !S(row.label)) v.label = label;
+    /* A NAME FILLS A BLANK CELL EVEN ON A DAY ALREADY COVERED — the one write that rule allows. It
+       moves no day and counts nothing, so a retry still cannot count twice; and a row that already has
+       a name keeps it, so a second phone cannot rename it. Rows sent up before the phone sent names
+       (the backlog did not, until `attemptsSync_` was mended) are named the next time their learner
+       loads the site, which is what the after-session email needs to list them. */
+    if (label && !S(row.label)) v.label = label;
     if (Object.keys(v).length) setCells(t, row, v);
     out[q] = { first: v.first_done || first, last: v.last_done || last, times: N(v.times || row.times) || 1 };
   });
