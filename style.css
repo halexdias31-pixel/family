@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-06-wide-bayes";
+  --css-version: "2026-10-06-wide-focus";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -321,16 +321,14 @@ body {
    you read or type into and a sheet the width of a monitor is a wall. */
 html.wide body { max-width: none; box-shadow: none; }
 
-/* THE FOCUS, SAID MORE QUIETLY THAN ON A PHONE. A phone blurs the cards beside the one in front; a
-   wide window shows them to be read, so `placeGrid` leaves them sharp and they are dimmed a little
-   instead — enough that the eye finds the card in front first, not so much that a dark card on black
-   disappears (`.page`'s note in shell.js on what .5 did). Under the pointer one comes up to full,
-   which with the hand cursor is how it says a press will bring it forward (`wideHit_`). On the PANE,
-   like `.soft`, so the column's own opacity and the page's stay the grid's business. */
-html.wide #screen .page:not(.on) > .pane { opacity: .8; transition: opacity .18s ease; }
-html.wide #screen .page.wide-over > .pane { opacity: 1; }
-@media (prefers-reduced-motion: reduce) {
-  html.wide #screen .page:not(.on) > .pane { transition: none; }
+/* THE FOCUS, SAID AS ON A PHONE. The cards beside the one in front are out of focus here too —
+   `.soft`, written by `placeGrid` — after a first version left them sharp and dimmed them to .8
+   instead, and the owner asked for the blur back (6 Oct). Under the pointer, with the hand cursor,
+   one comes HALF into focus: that is how it says a press will bring it forward (`wideHit_`). */
+/* NOT on a pane that is dimmed rather than blurred (`.soft-dim`, a playing video), and not for
+   somebody who asked for less motion or transparency — there `.soft` is a dim and so is this. */
+@media (prefers-reduced-motion: no-preference) and (prefers-reduced-transparency: no-preference) {
+  html.wide #screen .page.soft:not(.soft-dim).wide-over > .pane { filter: blur(calc(var(--soft-blur, 2px) / 2)); }
 }
 
 .hidden { display: none !important; }

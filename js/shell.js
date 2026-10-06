@@ -986,28 +986,11 @@ function wideCard_() {
   return { card: Math.max(lo, card), k: k };
 }
 
-/* ---------- AND AT EITHER END OF THE ROW, THE ROW STOPS AT THE EDGE ---------------------------------
-   THE CARD IN FRONT IS CENTRED, AND ON A PHONE THAT IS THE WHOLE STORY: the first tab has a dark
-   sliver to its left and that sliver says "nothing that way". On a 1280 window the same rule put Feed
-   in the middle with a THIRD of the window empty to its left — measured, 440px of black beside the
-   first screen of the app, which reads as something that failed to draw rather than as an end.
-
-   So on a wide window the whole row is slid, by the same amount for every column, just far enough
-   that the first column starts where a full row of `k` cards would start, and the last one ends
-   where it would end. In the middle of the row this is nought and the card in front is centred as
-   before; at an end the card in front sits nearer that end, as the first item of any list does.
-   One number, added to every column's x by `placeGrid` — so nothing about the spacing changes, and
-   a drag still moves every column together. */
-function wideShift_(ti, n, stepX) {
-  if (!WIDE) return 0;
-  const W = appWidth_(), wc = wideCard_(), c = wc.card;
-  const m = Math.max(0, (W - (wc.k * c + (wc.k - 1) * CELL_GAP)) / 2);
-  const hi = m - W / 2 + c / 2 + ti * stepX;                 // the first column no further right than m
-  const lo = W / 2 - m - c / 2 - (n - 1 - ti) * stepX;       // the last column no further left than W − m
-  /* A ROW SHORTER THAN THE WINDOW has both bounds the wrong way round; it is simply centred. */
-  if (lo > hi) return (lo + hi) / 2;
-  return Math.min(hi, Math.max(lo, 0));
-}
+/* ---------- `wideShift_` WAS HERE: AT EITHER END OF THE ROW, THE ROW SLID TO THE EDGE ------------
+   So that Feed, first in the row, did not sit in the middle of a 1280 window with 440px of black to
+   its left. The owner, 6 Oct: *"the widget in focus is always in centre not like how you just
+   did."* The card in front is the middle of the window on every screen, the first and last
+   included — the empty side IS the end of the row, which is what the dark sliver says on a phone. */
 
 /* THESE TWO COME OUT OF THE SAME WIDTH, which is the whole thing to understand before changing
    either. Across the screen sits: an edge, a gap, the card, a gap, an edge —
@@ -1470,8 +1453,8 @@ function softHold_(glass) {
 }
 
 function softDrag_(which, px, stepX) {
-  /* NOTHING IS BLURRED ON A WIDE WINDOW (see `placeGrid`), so nothing is eased either. */
-  if (!SOFT_DRAG) SOFT_DRAG = { ok: !WIDE && softMotion_(), b: null, keep: new Map() };
+  /* A WIDE WINDOW BLURS ITS NEIGHBOURS TOO NOW (see `placeGrid`), so the finger eases it there as well. */
+  if (!SOFT_DRAG) SOFT_DRAG = { ok: softMotion_(), b: null, keep: new Map() };
   if (!SOFT_DRAG.ok) return;
   /* THE NEIGHBOUR AND HOW FAR AWAY IT IS, WORKED OUT ONCE A DIRECTION. This read `offsetTop` and
      `offsetHeight` on every frame of a vertical drag, straight after `colWrite_` had written the
@@ -1688,7 +1671,7 @@ function placeGrid(instant, drag) {
     hosts.forEach(({ i, host, shift }) => {
       const was = colPlaced_(host);
       if (!was) return;
-      const d = rel.axis === 'x' ? ((i - ti) * stepX + wideShift_(ti, tabs.length, stepX)) - was[0] : shift - was[1];
+      const d = rel.axis === 'x' ? (i - ti) * stepX - was[0] : shift - was[1];
       if (Math.abs(d) > Math.abs(D)) D = d;
     });
     const c = settleCurve_(D, rel.v);
@@ -1707,15 +1690,14 @@ function placeGrid(instant, drag) {
     ? { d: settle.dur + 'ms', tf: settle.tf, delay: '-16ms' } : SLIDE_TAP);
   const front = hosts.find(h => h.id === AT);
   const before = front && !instant && !drag ? colPlaced_(front.host) : null;
-  /* THE WHOLE ROW'S SLIDE AT ITS ENDS (nought on a phone) — see `wideShift_` — and, on a wide window,
-     how far from the middle a column can be and still have a card on the glass: half the window and
-     half a card, and one step more, so a column a drag is about to bring in is already drawn. */
-  const sx = wideShift_(ti, tabs.length, stepX);
+  /* ON A WIDE WINDOW, how far from the middle a column can be and still have a card on the glass:
+     half the window and half a card, and one step more, so a column a drag is about to bring in is
+     already drawn. */
   const glass = WIDE ? appWidth_() / 2 + stepX * 1.5 : 0;
   hosts.forEach(({ id, i, host, shift }) => {
     const dx = i - ti;
     const at = PAGE[id] || 0;
-    const x = dx * stepX + sx + dxPx;
+    const x = dx * stepX + dxPx;
 
     /* EACH AXIS ITS OWN CLOCK — see `colWrite_`. The finger's axis follows the finger; the other
        keeps whatever slide it is in the middle of. */
@@ -1745,7 +1727,7 @@ function placeGrid(instant, drag) {
        (THE BLUR THAT NOTE MEANS was a blur on the COLUMN, with nothing beside it to say which card
        was in front. `.soft` below blurs a CARD, by 2px, and the card in front is sharp beside it —
        a soft edge next to a sharp one is still an edge.) */
-    const onGlass = WIDE && Math.abs(dx * stepX + sx) < glass;
+    const onGlass = WIDE && Math.abs(dx * stepX) < glass;
     host.style.opacity = across === 0 ? '1' : WIDE ? (onGlass ? '1' : '0')
       : across === 1 ? '.92' : '0';
     /* AND SIDEWAYS, THE SAME. This was 1 — one tab either side — so with four tabs the far one was
@@ -1777,12 +1759,14 @@ function placeGrid(instant, drag) {
       el.classList.toggle('far', d > 3);
       /* OUT OF FOCUS — see the note over `SOFT_BLUR`. Not during a drag: the classes describe where
          the cards ARE, and a finger has not moved the focus until it lets go. */
-      /* NOT ON A WIDE WINDOW. The blur says "this one is beside the one you are reading" on a
-         phone, where a neighbour is a sliver; on a window that shows whole screens side by side the
-         neighbours are there to BE read, and a blurred column of text is a column nobody can. The
-         focus is said by a lighter dim there instead (`.wide` in style.css). */
+      /* AND ON A WIDE WINDOW, EVERY CARD ON THE GLASS BUT ONE. It was left sharp there and dimmed a
+         little instead, on the reasoning that whole screens side by side are there to be read. The
+         owner, 6 Oct: *"what happened to widgets not in focus should have the not in focus effect."*
+         The blur is how this app says which card is in front, on every window; a card beside it is
+         a press away (`wideHit_`) and sharpens when it arrives. Which cards: every column on the
+         glass (`onGlass`) and, down each, the three either side that a tall window draws. */
       if (!drag) {
-        const soft = !WIDE && !focused && across <= 1 && d <= 2;
+        const soft = !focused && (WIDE ? (across === 0 || onGlass) && d <= 3 : across <= 1 && d <= 2);
         el.classList.toggle('soft', soft);
         if (soft) el.classList.toggle('soft-dim', softDim_(el));
       }
@@ -1794,8 +1778,7 @@ function placeGrid(instant, drag) {
          Barely dimmed instead. What says a card is behind rather than beside is its POSITION and
          its edge, both of which are already doing the work. */
       /* A TALL WIDE WINDOW SHOWS A FOURTH CARD DOWN, so there nothing near is faded to nothing —
-         it would be a hole in a column you can otherwise read. The focus is said by the stylesheet's
-         lighter dim on the panes instead (THE WIDE WINDOW, style.css). */
+         it would be a hole in a column you can otherwise read. The focus is said by `.soft` above. */
       el.style.opacity = WIDE ? (d <= 3 ? '1' : '0')
         : d === 0 ? '1' : d === 1 ? '.9' : d === 2 ? '.75' : '0';
       el.style.pointerEvents = d === 0 ? 'auto' : 'none';
@@ -3253,7 +3236,7 @@ addEventListener('click', e => {
 }, true);
 
 /* AND THE POINTER SAYS SO BEFORE THE PRESS. One rect test a frame while a mouse moves over the grid,
-   and only on a wide window: the card under it comes up from its dim (`.wide-over` in style.css)
+   and only on a wide window: the card under it comes half into focus (`.wide-over` in style.css)
    and the pointer becomes a hand, which is how a desktop says "this can be pressed". */
 let WIDE_OVER = null, WIDE_OVER_F = 0;
 addEventListener('pointermove', e => {
