@@ -1195,106 +1195,315 @@ check('a settings save still works against a server older than the site', async 
   return bad;
 });
 
-/* ---------- THE QUALIFICATIONS SHELF: TEACH ON SEVERAL LEVELS, CANCEL, REMOVE, ADD, THE CAP ----------
-   REPORTED AS *"the current system for adding qualifications is really hard to understand"*, and the
-   shelf was rebuilt as a read list with one editor at a time. What the rebuild must not lose is the
-   data underneath it, so this drives the page's own handlers and reads the seven hidden and visible
-   `data-me` boxes of each slot — the exact fields `me-save` posts and `qualsIn` rebuilds rows from:
-   - Teach pressed on two levels leaves BOTH Teach (and Can teach) — *"when i tick teach for different
-     levels of same subject it unticks the other one. i dont want that"* — and `No` on one leaves the
-     other alone;
-   - Cancel puts back what `Edit` found;
-   - Remove blanks all seven boxes of its slot and SAVES, so `qualsIn` drops the record;
-   - `+ Add a Maths level` writes Maths into the new slot's hidden name, so it is never typed again;
-   - at ten records there is no add button anywhere, and the count line says why. */
-check('the qualifications shelf keeps Teach per level, cancels, removes, adds and stops at ten', async () => {
+/* ---------- THE QUALIFICATIONS CARD: ONE LINE A QUALIFICATION, EDITED IN PLACE, SAVED AS YOU GO ----------
+   ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take up
+   less space"*. The card is a line per qualification in the profile chip's notation, a line opens its
+   editor under itself, every answer chosen is saved, and one `+` adds. What none of that may lose is
+   the data underneath — so these drive the page's own handlers and read the seven `data-me` boxes of
+   each slot and the fields each save POSTS, which are what `qualsIn` rebuilds the rows from.
+
+   ONE TUTOR FOR ALL FOUR: Maths and Physics at GCSE and A-Level, English Literature at GCSE, a degree
+   still being studied, and an Enhanced DBS — the shelf a real tutor has, plus the two shapes the
+   notation draws differently. Seven records, so three slots are left in the pool. */
+const QUAL_TUTOR = {
+  qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_board: 'Hill Top School', qual_1_received: '2016', qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+  qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2018', qual_2_teach: 'TRUE', qual_2_spec: 'TRUE',
+  qual_3: 'Physics', qual_3_level: 'GCSE', qual_3_grade: '8', qual_3_received: '2016', qual_3_teach: 'TRUE', qual_3_spec: 'FALSE',
+  qual_4: 'Physics', qual_4_level: 'A-Level', qual_4_grade: 'A', qual_4_board: 'Hill Top Sixth Form', qual_4_received: '2018', qual_4_teach: 'TRUE', qual_4_spec: 'FALSE',
+  qual_5: 'English Literature', qual_5_level: 'GCSE', qual_5_grade: '7', qual_5_received: '2016',
+  qual_6: 'Bible and Theology', qual_6_level: "Bachelor's degree", qual_6_received: 'Present',
+  qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025',
+};
+async function qualCard_(profile) {
   const quals = [];
   for (let i = 1; i <= 10; i++) ['', '_level', '_board', '_grade', '_received', '_teach', '_spec'].forEach(k => quals.push('qual_' + i + k));
-  const start = profile => {
-    const b = boot({ payload: Object.assign(payload(), { profileFields: { Qualifications: quals } }),
-                     reply: { success: true, changed: 0 } });
-    return wait(300).then(() => {
-      b.w.__t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
-                     profile: Object.assign({ first_name: 'Test', last_name: 'Admin', phone_cc: '+44' }, profile) });
-      b.w.__t.go('settings', false, true); b.w.paint('settings');
-      return wait(300).then(() => b);
-    });
-  };
-  let b;
-  try {
-    b = await start({ qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8',
-                      qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B' });
-  } catch (e) { return ['drawing settings threw: ' + e.message]; }
-  const { w, sent } = b;
-  const t = w.__t, d = w.document;
-  const A = (act, el) => t.ACTIONS[act](el);
-  const shelf = () => d.querySelector('#s-settings .q-shelf');
-  const slot = i => shelf() && shelf().querySelector('.q-slot[data-slot="' + i + '"]');
-  const box = (i, k) => (slot(i) || d).querySelector('[data-me="qual_' + i + k + '"]') || {};
-  const seg = (i, v) => slot(i).querySelector('[data-do="qual-teach"][data-v="' + v + '"]');
-  const bad = [];
-  if (!slot(1) || !slot(2)) return ['the qualifications shelf has no slot 1 or 2 to work on'];
-  if (d.querySelectorAll('#s-settings [data-me^="qual_"]').length !== 70) bad.push('the form does not hold all seventy qual_ boxes');
-
-  /* CANCEL: open the A-Level, change its level and its teaching, cancel, and the slot is as it was. */
-  A('qual-edit', slot(2).querySelector('[data-do="qual-edit"]'));
-  if (!slot(2).classList.contains('is-editing')) bad.push('Edit did not open the A-Level editor');
-  box(2, '_level').value = 'AS';
-  A('qual-teach', seg(2, 'spec'));
-  A('qual-cancel', slot(2).querySelector('[data-do="qual-cancel"]'));
-  if (box(2, '_level').value !== 'A-Level' || box(2, '_spec').value !== 'FALSE' || box(2, '_teach').value !== 'FALSE') {
-    bad.push('Cancel did not put the A-Level back (level ' + box(2, '_level').value + ', spec ' + box(2, '_spec').value + ')');
-  }
-  if (shelf().querySelector('.is-editing') || shelf().classList.contains('is-editing')) bad.push('Cancel left an editor open');
-
-  /* TEACH ON TWO LEVELS: both stay Teach, and Teach is Can teach as well. */
-  A('qual-teach', seg(1, 'spec'));
-  A('qual-teach', seg(2, 'spec'));
-  if (box(1, '_spec').value !== 'TRUE' || box(2, '_spec').value !== 'TRUE') bad.push('Teach on a second level took Teach off the first');
-  if (box(1, '_teach').value !== 'TRUE' || box(2, '_teach').value !== 'TRUE') bad.push('Teach did not carry Can teach with it');
-  /* AND `No` ON ONE LEAVES THE OTHER ALONE. */
-  A('qual-teach', seg(1, 'no'));
-  if (box(1, '_spec').value !== 'FALSE' || box(1, '_teach').value !== 'FALSE') bad.push('No did not set both of its level\'s boxes to FALSE');
-  if (box(2, '_spec').value !== 'TRUE' || box(2, '_teach').value !== 'TRUE') bad.push('No on one level changed the other');
-
-  /* ADD A LEVEL: the subject goes into the new slot's hidden name. */
-  const maths = [...shelf().querySelectorAll('.q-subj')].find(sj => sj.dataset.name === 'Maths');
-  const add = maths && maths.querySelector('[data-do="qual-add-level"]');
-  if (!add) bad.push('Maths has no "+ Add a Maths level"');
-  else {
-    A('qual-add-level', add);
-    const fresh = shelf().querySelector('.q-slot.is-editing');
-    const n = fresh && fresh.dataset.slot;
-    if (!fresh || box(n, '').value !== 'Maths') bad.push('a level added under Maths does not carry Maths into its qual_N');
-    if (fresh) A('qual-cancel', fresh.querySelector('[data-do="qual-cancel"]'));
-    if (n && box(n, '').value !== '') bad.push('Cancel on a new level did not send it back to the pool empty');
-  }
-
-  /* REMOVE: the level's seven boxes are posted blank, so `qualsIn` drops it. */
-  sent.length = 0;
-  A('qual-drop', slot(1).querySelector('[data-do="qual-drop"]'));
+  const b = boot({ payload: Object.assign(payload(), { profileFields: { Qualifications: quals } }),
+                   reply: { success: true, changed: 1 } });
   await wait(300);
-  const post = sent.find(x => x.action === 'updateProfile');
-  if (!post) bad.push('Remove this level did not save');
+  b.w.__t.USER({ name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'], token: 'tk',
+                 profile: Object.assign({ first_name: 'Ada', last_name: 'Tutor', phone_cc: '+44' }, profile || QUAL_TUTOR) });
+  b.w.__t.go('settings', false, true); b.w.paint('settings');
+  await wait(300);
+  const d = b.w.document;
+  const q = {
+    b, w: b.w, d, sent: b.sent,
+    A: (act, el) => b.w.__t.ACTIONS[act](el),
+    shelf: () => d.querySelector('#s-settings .q-shelf'),
+    slot: i => q.shelf() && q.shelf().querySelector('.q-slot[data-slot="' + i + '"]'),
+    box: (i, k) => (q.slot(i) || d).querySelector('[data-me="qual_' + i + k + '"]') || {},
+    line: i => q.slot(i) && q.slot(i).querySelector(':scope > .q-line'),
+    seg: (i, v) => q.slot(i).querySelector('[data-do="qual-teach"][data-v="' + v + '"]'),
+    /* A PICK FROM A LIST, the way `sel-pick` makes one: the value, then `input` and `change`. */
+    pick: (el, v) => { el.value = v; el.dispatchEvent(new b.w.Event('input', { bubbles: true }));
+                       el.dispatchEvent(new b.w.Event('change', { bubbles: true })); },
+    posts: () => b.sent.filter(x => x.action === 'updateProfile'),
+    last: () => { const p = q.posts(); return (p[p.length - 1] || {}).fields || null; },
+    said: () => String((d.getElementById('toast') || {}).textContent || ''),
+  };
+  return q;
+}
+check('the qualifications card reads one line a qualification, written as the profile chip writes it', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  const shelf = q.shelf();
+  if (!shelf) return ['there is no qualifications card on the settings column'];
+  if (q.d.querySelectorAll('#s-settings [data-me^="qual_"]').length !== 70) bad.push('the form does not hold all seventy qual_ boxes');
+  const lines = [...shelf.querySelectorAll('.q-list .q-line')];
+  if (lines.length !== 7) bad.push('seven qualifications drew ' + lines.length + ' lines, not one each');
+  /* THE SUBJECT ONCE, AT THE HEAD OF ITS OWN LINES. */
+  const named = lines.map(l => l.querySelector('.q-who').textContent.trim()).filter(Boolean);
+  const want = ['Maths', 'Physics', 'English Literature', 'Bible and Theology', 'DBS'];
+  if (JSON.stringify(named) !== JSON.stringify(want)) bad.push('the subjects named on the lines are ' + JSON.stringify(named) + ', not each once in order');
+  if (!q.line(2) || q.line(2).querySelector('.q-who').textContent.trim()) bad.push('Maths A-Level repeats its subject');
+  /* THE LEVEL RAISED OVER THE GRADE, in the profile chip's own `.prof-iso`. */
+  const iso = i => { const s = q.line(i) && q.line(i).querySelector('.prof-iso');
+    return s ? [...s.children].map(c => c.tagName + ':' + c.innerHTML).join(' ') : 'plain'; };
+  if (iso(1) !== 'SUP:GCSE SUB:9') bad.push('Maths GCSE 9 is drawn as ' + iso(1) + ', not the level raised over the grade');
+  if (iso(2) !== 'SUP:A-Level SUB:A*') bad.push('Maths A-Level A* is drawn as ' + iso(2));
+  if (iso(6) !== "SUP:Bachelor's degree SUB:<i>studying</i>") bad.push('a degree still being studied is drawn as ' + iso(6) + ', not "studying" in the grade\'s place');
+  /* A CERTIFICATE IS WRITTEN PLAIN, as on the card. */
+  if (iso(7) !== 'plain' || (q.line(7).querySelector('.q-plain') || {}).textContent !== 'Enhanced') bad.push('the Enhanced DBS is drawn as notation rather than plain');
+  /* TEACH AS THE GOLD CHIP, CAN TEACH AS A WORD, NOTHING FOR NOT TEACHING. */
+  const mark = i => { const m = q.line(i).querySelector('.q-mark'); return m.querySelector('.q-chip') ? 'chip' : m.textContent.trim(); };
+  const marks = [1, 2, 3, 4, 5].map(mark);
+  if (JSON.stringify(marks) !== JSON.stringify(['chip', 'chip', 'Can teach', 'Can teach', ''])) bad.push('the teaching marks read ' + JSON.stringify(marks));
+  /* WHAT THE FACE LEAVES OFF IS IN THE LINE'S NAME. */
+  const name = q.line(1).getAttribute('aria-label') || '';
+  if (!/Hill Top School/.test(name) || !/2016/.test(name) || !/teach/.test(name)) bad.push('the Maths GCSE line is named "' + name + '", without its school, year and teaching');
+  /* NOTHING TO PRESS BUT THE LINES AND THE `+`, and nothing open. */
+  const acts = [...new Set([...shelf.querySelectorAll('[data-do]')].filter(b => !b.closest('.q-ed, .q-pool')).map(b => b.dataset.do))].sort();
+  if (JSON.stringify(acts) !== JSON.stringify(['qual-add', 'qual-open'])) bad.push('the read card offers ' + JSON.stringify(acts) + ', not the lines and one +');
+  const add = shelf.querySelector('[data-do="qual-add"]');
+  if (!add || !add.classList.contains('tile') || add.disabled) bad.push('the + is not a live tile');
+  if (shelf.querySelector('.is-open') || shelf.querySelector('input[type="checkbox"]')) bad.push('the card arrived with a line open, or with a checkbox on it');
+  return bad;
+});
+check('a qualification opens in place, and each answer is saved as it is chosen', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  if (!q.slot(4) || !q.slot(5)) return ['the card has no Physics A-Level or English GCSE to work on'];
+  /* ONE TAP OPENS IT, and only it. */
+  q.A('qual-open', q.line(5));
+  q.A('qual-open', q.line(4));
+  const open = [...q.shelf().querySelectorAll('.q-slot.is-open')].map(s => s.dataset.slot);
+  if (JSON.stringify(open) !== '["4"]') bad.push('opening Physics A-Level after English left ' + JSON.stringify(open) + ' open');
+  if (q.line(4).getAttribute('aria-expanded') !== 'true') bad.push('the open line does not say it is expanded');
+  /* A GRADE CHOSEN IS A GRADE SAVED — no Save to find. */
+  q.sent.length = 0;
+  const saidLine = q.shelf().closest('.me-form').querySelector('.me-said');
+  if (saidLine) saidLine.textContent = 'An old refusal';
+  q.pick(q.box(4, '_grade'), 'A*');
+  await wait(300);
+  let f = q.last();
+  if (!f) bad.push('choosing a grade saved nothing');
+  /* THE TOAST IS THE RECEIPT; THE LINE UNDER THE CARD IS FOR A REFUSAL. *Walked:* "Saved" stood under the
+     card for the rest of the session beside a toast saying the same. A success clears the line —
+     including a refusal left there by a save that failed. */
+  const saidNow = q.shelf().closest('.me-form').querySelector('.me-said');
+  if (!saidNow || saidNow.textContent !== '') bad.push('after a save the line under the card says "' + (saidNow && saidNow.textContent) + '", not nothing');
   else {
-    const f = post.fields || {};
-    const blank = ['', '_level', '_grade', '_board', '_received'].every(k => f['qual_1' + k] === '')
-               && f.qual_1_spec === 'FALSE' && f.qual_1_teach === 'FALSE';
-    if (!blank) bad.push('Remove posted slot 1 as ' + JSON.stringify(['', '_level', '_grade', '_spec'].map(k => f['qual_1' + k])));
-    if (Object.keys(f).filter(k => /^qual_/.test(k)).length !== 70) bad.push('Remove did not post all seventy qual_ boxes');
-    if (f.qual_2_level !== 'A-Level') bad.push('Remove took the other level with it');
+    if (f.qual_4_grade !== 'A*' || f.qual_4_level !== 'A-Level' || f.qual_4 !== 'Physics') bad.push('the grade posted Physics as ' + JSON.stringify([f.qual_4, f.qual_4_level, f.qual_4_grade]));
+    if (Object.keys(f).filter(k => /^qual_/.test(k)).length !== 70) bad.push('the grade did not post all seventy qual_ boxes');
   }
-
-  /* TEN RECORDS: no add button anywhere, and the count line says so. */
+  if (!q.slot(4).classList.contains('is-open')) bad.push('the line shut after its grade was saved, so a second answer means opening it again');
+  if (!q.d.querySelector('#s-settings .q-shelf').closest('.me-form').dataset.dirty) bad.push('an open line does not hold the column, so the repaint after a save would shut it');
+  if ((q.line(4).querySelector('.prof-iso sub') || {}).textContent !== 'A*') bad.push('the line does not show the new grade');
+  /* TEACH ON A SECOND LEVEL LEAVES THE FIRST'S — *"it unticks the other one. i dont want that"*. */
+  q.sent.length = 0;
+  q.A('qual-teach', q.seg(4, 'spec'));
+  await wait(300);
+  f = q.last();
+  if (!f) bad.push('Teach saved nothing');
+  else {
+    if (f.qual_4_spec !== 'TRUE' || f.qual_4_teach !== 'TRUE') bad.push('Teach posted ' + JSON.stringify([f.qual_4_spec, f.qual_4_teach]) + ', not Teach and Can teach');
+    if (f.qual_1_spec !== 'TRUE' || f.qual_2_spec !== 'TRUE') bad.push('Teach on Physics took Teach off Maths');
+  }
+  if (!q.line(4).querySelector('.q-chip')) bad.push('the line does not show the gold Teach chip it was just given');
+  /* AND NOT TEACHING IS BOTH BOXES FALSE, ON THIS LINE ONLY. */
+  q.sent.length = 0;
+  q.A('qual-teach', q.seg(4, 'no'));
+  await wait(300);
+  f = q.last();
+  if (!f || f.qual_4_spec !== 'FALSE' || f.qual_4_teach !== 'FALSE') bad.push('Not teaching did not post both of its boxes FALSE');
+  else if (f.qual_3_teach !== 'TRUE') bad.push('Not teaching on the A-Level changed the GCSE');
+  /* A SAVED LINE CANNOT LOSE ITS LEVEL BY A PICK: refused before anything is sent. */
+  q.sent.length = 0;
+  q.pick(q.box(4, '_level'), '');
+  await wait(300);
+  if (q.posts().length) bad.push('a line with its level emptied was saved');
+  if (!/choose a level/i.test(q.said())) bad.push('emptying the level said "' + q.said() + '"');
+  q.pick(q.box(4, '_level'), 'A-Level');
+  await wait(300);
+  /* THE SECOND TAP SHUTS IT, and with nothing left to save it sends nothing. */
+  q.sent.length = 0;
+  q.A('qual-open', q.line(4));
+  await wait(300);
+  if (q.posts().length) bad.push('shutting a line with nothing new in it saved again');
+  if (q.shelf().querySelector('.is-open')) bad.push('the second tap did not shut the line');
+  if (q.shelf().closest('.me-form').dataset.dirty) bad.push('a shut card still holds the column');
+  /* A PRESS THAT REACHES A SHUT LINE'S TEACH — a raced redraw, or `check/press.js` pressing every action
+     in turn — opens that line and answers, rather than doing nothing. */
+  q.sent.length = 0;
+  q.A('qual-teach', q.seg(5, 'spec'));
+  await wait(300);
+  const g = q.last();
+  if (!g || g.qual_5_spec !== 'TRUE' || !q.slot(5).classList.contains('is-open')) bad.push('Teach pressed on a shut line did nothing');
+  return bad;
+});
+/* A TAP THAT LANDS WHILE A TYPED ANSWER IS SAVING. A box is saved on `change`, which fires as it loses
+   focus — under the finger already on the next line — and the save locks the card. Walked at 320,
+   every run: the school saved, the tapped line was disabled before its click arrived, and nothing
+   opened. Driven here in that order with a real `click()`, which jsdom drops on a disabled button
+   exactly as a browser does (mutation: `data-unlocked` off the line — the line stays shut). */
+check('a tap on another qualification while a typed answer is saving still opens it', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  if (!q.slot(1) || !q.slot(2)) return ['the card has no Maths GCSE and A-Level to work on'];
+  q.A('qual-open', q.line(2));
+  const school = q.box(2, '_board');
+  school.value = 'Kings College';
+  school.dispatchEvent(new q.w.Event('input', { bubbles: true }));
+  q.sent.length = 0;
+  school.dispatchEvent(new q.w.Event('change', { bubbles: true }));
+  if (!q.shelf().closest('.me-form').classList.contains('is-sending')) bad.push('the school\'s change did not start a save, so this journey proves nothing');
+  q.line(1).click();
+  await wait(400);
+  const f = q.last();
+  if (!f || f.qual_2_board !== 'Kings College') bad.push('the typed school was not saved');
+  if (q.posts().length !== 1) bad.push('one typed answer and one tap made ' + q.posts().length + ' saves');
+  const open = [...q.shelf().querySelectorAll('.q-slot.is-open')].map(s => s.dataset.slot);
+  if (JSON.stringify(open) !== '["1"]') bad.push('the tap on Maths GCSE during the save left ' + JSON.stringify(open) + ' open, not the GCSE');
+  /* AND THE TICK, pressed the same way, shuts the line once the save is in. */
+  q.A('qual-open', q.line(2));
+  const s2 = q.box(2, '_board');
+  s2.value = 'Kings College London';
+  s2.dispatchEvent(new q.w.Event('input', { bubbles: true }));
+  s2.dispatchEvent(new q.w.Event('change', { bubbles: true }));
+  q.slot(2).querySelector('[data-do="qual-done"]').click();
+  await wait(400);
+  if ((q.last() || {}).qual_2_board !== 'Kings College London') bad.push('the second school was not saved');
+  if (q.shelf().querySelector('.is-open')) bad.push('the tick pressed during the save did not shut the line');
+  return bad;
+});
+/* A CERTIFICATE HAS NO GRADE AND IS NOT TAUGHT. *Walked at 390:* the DBS editor offered Grade and Teach,
+   and Teach would have listed the DBS under Teaches on the profile (`teachesOf_` reads the tick, not
+   the kind). The editor hides both (`.is-cert`, held in a real browser by `check/states.js`); here, the
+   data: a line moved onto DBS posts its grade empty and both teaching boxes FALSE, and wears no mark.
+   Mutation: the reset in `qualCommit_` removed — the A and Can teach go to the sheet under a DBS. */
+check('a qualification moved onto a certificate drops its grade and its teaching', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  if (!q.slot(4)) return ['the card has no Physics A-Level to work on'];
+  q.A('qual-open', q.line(4));
+  if (q.slot(4).classList.contains('is-cert')) bad.push('Physics A-Level is marked a certificate');
+  if (!q.slot(7).classList.contains('is-cert')) bad.push('the Enhanced DBS is not marked a certificate');
+  q.sent.length = 0;
+  q.pick(q.box(4, ''), 'First Aid');
+  await wait(300);
+  const f = q.last();
+  if (!f) bad.push('moving the line onto First Aid saved nothing');
+  else if (f.qual_4 !== 'First Aid' || f.qual_4_grade !== '' || f.qual_4_teach !== 'FALSE' || f.qual_4_spec !== 'FALSE') {
+    bad.push('First Aid posted as ' + JSON.stringify([f.qual_4, f.qual_4_grade, f.qual_4_teach, f.qual_4_spec]) + ', keeping a grade or a teaching tick');
+  }
+  const s4 = q.slot(4);
+  if (!s4 || !s4.classList.contains('is-cert')) bad.push('the line moved onto First Aid is not marked a certificate');
+  if (s4 && s4.querySelector('.q-line .q-mark').textContent.trim()) bad.push('the certificate still wears a teaching mark');
+  return bad;
+});
+check('adding a qualification: the + asks for the subject, then the level, and saves the moment it has both', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  q.sent.length = 0;
+  q.A('qual-add', q.shelf().querySelector('[data-do="qual-add"]'));
+  await wait(100);
+  const fresh = q.shelf().querySelector('.q-subj.is-new .q-slot.is-open[data-new]');
+  if (!fresh) return ['+ did not open a new line'];
+  const n = fresh.dataset.slot;
+  const subj = fresh.querySelector('select.q-name');
+  /* THE SUBJECT'S LIST IS ALREADY OPEN, YOURS FIRST. */
+  if (subj.getAttribute('aria-expanded') !== 'true') bad.push('+ did not open the subject list');
+  const first = subj.querySelector('optgroup');
+  const yours = first ? [...first.querySelectorAll('option')].map(o => o.value) : [];
+  if (!first || first.label !== 'Your subjects' || JSON.stringify(yours) !== JSON.stringify(['Maths', 'Physics', 'English Literature', 'Bible and Theology', 'DBS'])) {
+    bad.push('the subject list does not start with your own subjects (' + JSON.stringify(yours) + ')');
+  }
+  /* A SUBJECT ALONE IS NOT A QUALIFICATION: nothing posted, and the level is asked for next. */
+  q.pick(subj, 'Maths');
+  await wait(100);
+  if (q.posts().length) bad.push('a subject with no level was saved');
+  if ((q.box(n, '_level').getAttribute && q.box(n, '_level').getAttribute('aria-expanded')) !== 'true') bad.push('choosing the subject did not open the level list');
+  q.pick(q.box(n, '_level'), 'AS');
+  await wait(300);
+  const f = q.last();
+  if (!f) bad.push('a subject and a level were not saved');
+  else {
+    if (f['qual_' + n] !== 'Maths' || f['qual_' + n + '_level'] !== 'AS') bad.push('the new line posted as ' + JSON.stringify([f['qual_' + n], f['qual_' + n + '_level']]));
+    if (Object.keys(f).filter(k => /^qual_/.test(k)).length !== 70) bad.push('adding did not post all seventy qual_ boxes');
+    if (f.qual_1 !== 'Maths' || f.qual_7_level !== 'Enhanced') bad.push('adding disturbed the lines already saved');
+  }
+  /* AND IT IS A MATHS LINE NOW — in the Maths group itself, its subject not said a second time, open
+     for its grade, no longer new. Asked as the SAME group as Maths GCSE, because a new line's own face
+     names its subject and a check that read the nearest heading passed with the line left at the foot
+     in a group of its own (mutation: the redraw after the first save removed). */
+  const moved = q.slot(n);
+  if (!moved || !q.slot(1) || moved.closest('.q-subj') !== q.slot(1).closest('.q-subj')
+      || moved.querySelector('.q-who').textContent.trim() || q.shelf().querySelector('.q-subj.is-new')) {
+    bad.push('the new AS did not join the Maths lines');
+  }
+  if (!moved || !moved.classList.contains('is-open') || moved.dataset.new) bad.push('the new line is not open as a saved line for the rest of its answers');
+  /* A LINE THAT NEVER GOT ITS LEVEL GOES BACK UNSAVED. */
+  q.A('qual-add', q.shelf().querySelector('[data-do="qual-add"]'));
+  await wait(100);
+  const half = q.shelf().querySelector('.q-slot[data-new]');
+  q.sent.length = 0;
+  if (half) { q.pick(half.querySelector('select.q-name'), 'Physics'); await wait(100);
+              q.A('qual-done', half.querySelector('[data-do="qual-done"]')); await wait(200); }
+  if (!half || q.posts().length || q.shelf().querySelector('.q-list .q-slot[data-new]')) bad.push('a line with a subject and no level was kept or saved');
+  /* AN EMPTY SLOT REACHED BY A PRESS OPENS AS A NEW LINE — what `+` does with the next one — rather
+     than redrawing the card exactly as it was. */
+  const pooled = q.shelf().querySelector('.q-pool .q-line');
+  if (pooled) { q.A('qual-open', pooled); await wait(100); }
+  if (!pooled || !q.shelf().querySelector('.q-list .q-slot.is-open[data-new]')) bad.push('a press on an empty slot did nothing');
+  /* TEN IS THE MOST: the + is off, and the line under it says why. */
   const ten = {};
   for (let i = 1; i <= 10; i++) Object.assign(ten, { ['qual_' + i]: 'Subject ' + i, ['qual_' + i + '_level']: 'GCSE' });
-  const b10 = await start(ten);
-  const s10 = b10.w.document.querySelector('#s-settings .q-shelf');
-  if (!s10) bad.push('ten records drew no shelf');
+  const q10 = await qualCard_(ten);
+  const add10 = q10.shelf() && q10.shelf().querySelector('[data-do="qual-add"]');
+  if (!add10 || !add10.disabled) bad.push('the + is live at ten qualifications');
+  if (!/ten is the most/i.test((q10.shelf() && q10.shelf().querySelector('.q-full') || {}).textContent || '')) bad.push('nothing says why there is no room for an eleventh');
+  return bad;
+});
+check('removing a qualification: the bin saves at once, and only that one goes', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  q.A('qual-open', q.line(7));
+  q.sent.length = 0;
+  q.A('qual-drop', q.slot(7).querySelector('[data-do="qual-drop"]'));
+  await wait(300);
+  const f = q.last();
+  if (!f) bad.push('the bin did not save');
   else {
-    if (s10.querySelector('[data-do^="qual-add"]')) bad.push('an add button is still drawn at ten records');
-    if (!/10 of 10/.test((s10.querySelector('.q-count') || {}).textContent || '')) bad.push('the count line does not say 10 of 10');
+    const blank = ['', '_level', '_grade', '_board', '_received'].every(k => f['qual_7' + k] === '')
+               && f.qual_7_spec === 'FALSE' && f.qual_7_teach === 'FALSE';
+    if (!blank) bad.push('the bin posted the DBS as ' + JSON.stringify(['', '_level', '_received'].map(k => f['qual_7' + k])));
+    if (Object.keys(f).filter(k => /^qual_/.test(k)).length !== 70) bad.push('the bin did not post all seventy qual_ boxes');
+    if (f.qual_6_level !== "Bachelor's degree" || f.qual_1_grade !== '9') bad.push('the bin took another qualification with it');
   }
+  if (q.shelf().querySelector('.q-list .q-slot[data-slot="7"]')) bad.push('the DBS is still on the card after the bin');
+  if (!/Removed DBS Enhanced/.test(q.said())) bad.push('the bin said "' + q.said() + '"');
+  /* A LINE BEING ADDED WAS NEVER SAVED: its bin only puts it back. */
+  q.A('qual-add', q.shelf().querySelector('[data-do="qual-add"]'));
+  await wait(100);
+  const fresh = q.shelf().querySelector('.q-slot[data-new]');
+  q.sent.length = 0;
+  if (fresh) { q.A('qual-drop', fresh.querySelector('[data-do="qual-drop"]')); await wait(200); }
+  if (!fresh || q.posts().length || q.shelf().querySelector('.q-list .q-slot[data-new]')) bad.push('the bin on an unsaved line saved, or left the line on the card');
   return bad;
 });
 
