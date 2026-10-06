@@ -169,3 +169,65 @@ also be left open. Before, the editor shut on Save.
 
 Screenshots at 320 and 390 for the read card, one line open, and adding are in the build scratchpad,
 under `qualwidget/before/` and `qualwidget/after/`.
+
+### After the walk (6 October)
+
+A tutor walked every step on a touch phone at 320x568 and 390x844 against the real backend. Every
+step worked and the rows were right after each one. The walk found one bug and five design problems.
+
+**The bug: a tap was lost after typing in the school box.** A text box is saved on `change`, and
+`change` fires when the box loses focus. That is the moment a finger lands on the next line. The save
+locked the card, `send_` disabled every button on it, and the tapped line was disabled before its
+click arrived. The school was saved, but the line stayed shut, so the tutor had to tap twice. It
+happened on every run. Now the card's own controls (the lines, `+`, ✓, the bin, and the three-way
+control) carry `data-unlocked`, and `send_` leaves them live. A press on one while a save is out is
+remembered by `qualWhenSaved_` and made once the save answers. It finds the same control again as
+the card is then drawn, by slot, action and answer, because the save may have redrawn it. Only the
+last press is kept. None is made if the save failed, because the refusal under the card is what the
+person should read next. The boxes stay locked, so one save at a time still holds. A `check-flow`
+journey drives it in the walk's order with a real `click()`, which jsdom drops on a disabled button
+just as a browser does. Mutations: taking `data-unlocked` off the line left the line shut, and
+removing the queue saved the second school wrongly. Both went red.
+
+**Fixed:**
+
+- **A certificate's editor offered Grade and Teach / Can teach / Not teaching.** A certificate has
+  neither, and Teach would have listed "DBS Enhanced" under Teaches on the profile. `teachesOf_`
+  reads the tick, not the kind. Now `qualIsCert_` (the test the notation already used) marks the
+  slot `is-cert`. The grade and the three-way control are hidden. Year ("Finished" for a subject)
+  and Issued by ("School, college or uni") share one row. The editor is two rows shorter. A save on a
+  certificate empties its grade and both teaching boxes, so a line moved from Maths onto DBS posts
+  them empty. A certificate's line has no teaching mark. Checks: a `check-flow` journey for the data
+  (mutation: without the reset, `First Aid` posted grade `A` and Can teach) and a `states.js` state,
+  *the qualifications, a certificate open*, for what is drawn.
+- **"New qualification" broke mid-word in a 10ch column**, which is the first thing seen after `+`.
+  A line that is not saved yet now has no face. Its face only repeated what its Subject and Level
+  boxes say right under it. The gold rule marks it, and once it is saved it is redrawn into its group
+  with a face like any other line. That gives back 44px at the tallest moment. Check: the state
+  *the qualifications, one being added*.
+- **"Saved" twice.** After the first save, the line under the card said "Saved" for the rest of the
+  session, beside the toast. On this card, the toast is the receipt and the line is only for a
+  refusal. A success now clears the line, including a refusal left by a save that failed. This is in
+  the `check-flow` journey (mutation: the line said "Saved").
+- **The subject box cut "English Lan" with nothing to say it was cut.** A select in the editor now
+  ends a long name in an ellipsis. The full name is the option's own label.
+
+**Rejected, with reasons:**
+
+- **One shared column width across subjects.** This was tried first and taken out. It made a table
+  and left `Maths` a third of the card away from its own `GCSE` (above, and in `qualShelf_`). The
+  walk's misalignment between groups is the cost of each subject's notation sitting next to its name.
+  That is what the profile chip does.
+- **Centring a level that has no grade.** The profile chip deliberately holds the empty half open, so
+  "a level stays up and a grade stays down" (`.prof-iso sup:only-child` in style.css, from note 274).
+  The card reuses `.prof-iso` so the tutor reads exactly what a parent reads. Centring it here alone
+  would make two notations.
+- **Hiding the face of a saved open line.** The face is the button that shuts the line, and it is the
+  live preview of what the profile will say, redrawn as each box changes. The face is gone only where
+  it said nothing, which is on a line not yet saved.
+- **"English Language" wrapping to two lines at 320.** The subject column is capped at 42% so the
+  notation keeps its room. A long name wraps inside its own line rather than being cut, and the line
+  stays a tap target.
+- **The pane zoom at 320.** This is the app-wide zoom-to-fit, not this card. The certificate editor
+  (two rows fewer) and the faceless new line (44px fewer) take the open card back toward full size.
+  A saved subject's editor is unchanged.
