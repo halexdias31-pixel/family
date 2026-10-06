@@ -52,12 +52,49 @@ What was built, by the audit's finding numbers, each with a check that fails wit
    ceiling (`NOT_DRAWN_MAX`) -- a new row that adds one fails; drawing one lets the ceiling come down.
 9. **Answers only** -- a `Page` facet (`pageKind`: Questions / Answers), `tagOnly` so the funnel never
    asks it; `stuffPages_` keeps only the answer pages (or everything but them). `answersOnly_` applies it
-   and is called by a tap on any `.qtag` reading "Answer" on an answer page -- the tags worker's kind tag,
-   when its row lands. Every answer page is still shut behind its own Show.
+   from the `Answers only` switch tile on every answer page (see the review below).
+
+### After the review of the merge with the pen's branch (mppad)
+
+The review drove the merged tree at 320x568 and 390x844. What it found in this branch's work, and what
+was done:
+
+1. **"Use your graph" got a contradicting page** (3H Q3c, AQA 1H Q2.6): "Nothing drawn on Q3b yet -- this
+   part uses what you draw there" and then "The paper prints a figure here -- not drawn yet". The figure
+   such a part names is the child's own drawing. `figMissing_` now stands down for any part with a `uses`
+   cell (read off the item or its row, so it holds before and after the pen's branch lands), and
+   `check-library.js` skips those rows in the count. On this branch alone the count is still 412 (no row
+   has `uses` yet); after the merge it falls, and `NOT_DRAWN_MAX` should come down to what it prints.
+2. **The answers-only door could not be reached.** No tag read "Answer"; the journey passed because it
+   put the tag on the page itself. A tag here is a label, not a control (`qTags_`), and the tag row is
+   another worker's. So the door is a **tile** -- `Answers only`, a funnel, at the far end of every
+   answer page's row. It is a switch, as the pen's lock is: lit and `aria-pressed` while the view is on,
+   pressed again to leave it (`qa-only` / `qa-all`). Anything the tag row draws with
+   `data-do="qa-only"` will open it too; no words are matched any more. Pressed on Saved or Spotlight it
+   is that question's paper's answers (Find's own choices have nothing to do with it there). The journey
+   now finds the tile on the real card and fails when there is none.
+3. **Answers-only showed "Answer hidden" forty-one times.** Choosing the view is the person asking, so
+   every answer in it is shown for the visit -- exactly as one Show each would have -- and Hide on any one
+   still hides it.
+4. **At 320x568 the keypad covered the Figure tile** (1F Q23b; a tap where it stood typed a 4). The
+   column cannot scroll the row into view -- the pages are a strip on transforms and a card is sized to
+   its screen -- so the tile moved: it stands **at the end of the answer box's own line** (`.qp-ans-row`),
+   visible whenever the box is. Check needs no move: the pad's ✓ is Check. A part answered by tapping
+   options keeps the tile in the row. `check/states.js` has a state that fails if the box or its Figure
+   tile is under the pad, at every width.
+5. **Figure on 2F Q24c opened Q24b's blank grid.** `figsBefore_` now leaves out the part a part `uses`
+   (following the chain), because that picture is the child's drawing -- the pen's branch shows it with
+   the marks on. A later part that does not say it uses (b) still gets (b)'s figure.
+6. **The count above the strip counted matches.** It counts questions now (`paperEnd_`, distinct `qId_`
+   over the whole-question strip), says "In this paper: swipe up for Q23" for a search inside a paper,
+   and "its 41 answers" in the answers view.
+
+Left to the pen worker: the "use" page's heading ("Your graph from Q24b"), and `padAdopt_`'s note.
 
 For the owner to confirm:
-- Until the tag row carries an "Answer" kind tag, nothing on screen offers answers-only; the chip, once
-  applied, has its ✕. If a door is wanted before then, it is one line in the answer card.
+- Answers only opens every answer in the view. Leaving the view leaves those answers shown for the visit
+  (as Show does); a new visit, or another person signed in, starts shut again.
+- The Figure tile now sits beside the answer box rather than in the row under the card.
 - The Figure tile shows every figure in front of the part (usually one). Which one a part means is in
   its words, not the data.
 - 412 "not drawn yet" pages is the real backlog (the audit counted about 400 the same way); most are
