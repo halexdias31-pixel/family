@@ -3894,6 +3894,12 @@ const SPINE_EXTRA = [
   /* `Sharing` IS PUSHED BY `jobRows` AND BY NOTHING ELSE — measured, one push in this file. The
      form asks the question as `Split` and names the answer there. */
   { after: 'Split',   row: 'Sharing',     only: 'receipt' },
+  /* ---------- THE TALLY OF EVERYBODY'S ANSWER TO `When free`, UNDER THAT QUESTION ----------------
+     RECEIPT ONLY, because the form is where ONE family gives its answer and the receipt is where
+     the answers are counted — a row the form could only ever print as a dash. Pinned to the step it
+     tallies rather than to the tail, so on a waiting list it lands under the empty week, which is
+     the week this is the closest thing to. See `jobRows`. */
+  { after: 'When free', row: 'Can come',  only: 'receipt' },
   /* ---------- PINNED TO THE FOOT RATHER THAN TO WHICHEVER QUESTION IS LAST -----------------------
      THESE FIVE HAVE NOW BEEN RE-PINNED TWICE, and both times the row they hung off had moved. They
      were on `Tutor` while `Tutor` was last and went to `For` when it became last; `For` is the
@@ -4650,7 +4656,9 @@ function receiptRow(r) {
                /* THE WEEK'S OWN THREE. `bk-wk` lays the strip out in the answer cell, `is-shut`
                   collapses a day nobody works, `is-off` greys a week that cannot be answered. */
                r.strip ? 'bk-wk' : '', r.strip && r.shut ? 'is-shut' : '',
-               r.strip && r.off ? 'is-off' : '']
+               r.strip && r.off ? 'is-off' : '',
+               /* AND THE LIST'S TALLY, whose bars take the empty figure tracks — see `.bk-tally`. */
+               r.tally ? 'bk-tally' : '']
     .filter(Boolean).join(' ');
   /* A DAY SHOWS ITS HOURS, drawn rather than written — the same row of boxes the picker uses, so
      a day on the receipt and a day in the grid are visibly the same thing.
@@ -4685,6 +4693,8 @@ function receiptRow(r) {
        r.tick ? 'done' : 'not yet'}">✓</span>`
     : r.strip ? r.strip
     : r.sel ? r.sel
+    /* A TALLY IS MARKUP FOR `strip`'S REASON — `whenCouldHtml` draws it, and nothing else does. */
+    : r.tally ? r.tally
     : r.hours
     ? `<span class="bk-hrs">${((slotGrid().rows.find(x => x.prefix === r.hours.day)
         || { hours: [] }).hours).map(h => `<span class="bk-hr${
@@ -4754,7 +4764,9 @@ function receiptRow(r) {
   /* AND A DAY ROW LOSES ITS DASHED UNDERLINE FOR THE SAME REASON THE `When` ROW DID: the underline
      means *an answer goes here*, and on these rows the answer is the row of boxes itself. A dashed
      line under a strip of cells is the card advertising a blank that is already filled in. */
-  const heads = !!r.open || !!r.strip;
+  /* AND A TALLY'S BARS ARE ITS ANSWER IN THE SAME WAY — a dashed "an answer goes here" under a
+     count of answers already given is the card advertising a blank that is full. */
+  const heads = !!r.open || !!r.strip || !!r.tally;
   return `<div class="bk-row ${cls}${bare ? ' is-bare' : ''}${heads ? ' is-head' : ''}">
     <span class="bk-n">${esc(r.n)}</span>
     <span class="bk-k">${esc(r.k)}</span>
@@ -4849,10 +4861,48 @@ function jobRows(j) {
      point is that other families join. `splitEmails` is for a session somebody splits with people
      they know; a list is shared with whoever turns up, which is a different fact and wants
      different words. */
+  /* ---------- AND ON AN OPEN SESSION IT WAS THE OPPOSITE OF TRUE TOO -------------------------------
+     ASKED FOR AS *"the session booking thing at the bottom of receipt should be a line in the
+     booking."* The thing was `joinBlock` — "3 seats going on this one. The family who booked it are
+     happy to share." in a block under the card — and this row, four lines up the same card, said
+     **"Just you"**. One page, two answers to one question, and the one inside the document was the
+     wrong one: `splitEmails` goes only to the family who typed the addresses (see `doGet`), so to
+     anybody else looking at a session it is blank and the fallback spoke for it.
+
+     SO THIS ROW IS THE LINE, and it says the seats the way a waiting list already did. Every
+     ordinary session is written `open_to_others` (see the note where the join question used to be)
+     and the seats decide; a session with seats going is shared with whoever asks, which is the fact
+     the block was there to say. "Just you" is kept for a session with no seat left to share and no
+     list of names — the one case where it is true.
+
+     THE PRICE IS NOT REPEATED HERE. The block said "£19.00 a seat" and the total row of the same
+     card already says `Your seat £19.00` — and on an ordinary session there is no seat price to say,
+     because what a joiner pays is agreed when the family says yes. A figure on two lines of one
+     document is the fault the `Total` alias in `SPINE_ALIAS` was written to remove. */
+  const going = Number(j.seatsGoing) || 0;
+  const seatsFree = 'Open — ' + going + ' seat' + (going === 1 ? '' : 's') + ' free';
   push('Sharing', norm(j.kind) === 'waitlist'
-    ? (Number(j.seatsGoing) > 0 ? 'Open — ' + j.seatsGoing + ' seat'
-        + (Number(j.seatsGoing) === 1 ? '' : 's') + ' free' : 'Full')
-    : (j.splitEmails || 'Just you'));
+    ? (going > 0 ? seatsFree : 'Full')
+    : (j.splitEmails
+      || (going > 0 && TRUEish_(j.openToOthers) ? seatsFree : 'Just you')));
+  /* ---------- WHEN THE FAMILIES ON A LIST CAN COME, AS A LINE OF THE LIST'S OWN PAPER ------------
+     IT WAS DRAWN INSIDE THE JOIN BLOCK, so the only people who ever saw it were the ones `canAsk`
+     lets in — everybody NOT on the list. The tutor, whose one open question it answers (`doGet`
+     says so beside `whenCould`), and the families who gave the answers, never saw it at all.
+
+     IT IS NOT A FORM, whatever it sits next to. Each count is an answer another family already
+     gave on their own booking form — the `When could you come?` step — and a joiner gives theirs
+     the same way, on the form `Take a seat` turns to. So it is a FACT about the class, it goes on
+     the class's paper for everybody the class is shown to, and it sits where the question it
+     tallies sits: pinned after `When free`, under the week a list has not got yet.
+
+     `tally` IS MARKUP, and that is why it is its own field — the same distinction `strip` and `sel`
+     draw. `v` keeps the plain words, so anything that reads a row as text still reads the answer. */
+  const wc = j.whenCould;
+  if (wc && (wc.slots || []).length) {
+    push('Can come', wc.slots.map(s => s.slot + ' ' + s.n + '/' + wc.people).join(', '), '',
+         { free: true, tally: whenCouldHtml(j) });
+  }
   /* ---------- WHEN IT RUNS, AND WHAT THE TERM WOULD COME TO ---------------------------------------
      THE SAVED CARD SHOWED NONE OF IT. The booking form works out the term, its dates and an
      estimate; the card the same list turns into showed "Dates —" and a per-session figure, so the
@@ -5244,15 +5294,16 @@ function jobReceipt(j, foot) {
   });
 }
 
-/* ---------- ASKING TO JOIN SOMEBODY ELSE'S SESSION ------------------------------------------------
-   Under the receipt, because that is where the terms are: the subject, the day, the venue, the price
-   and how many seats are left are all on the document in front of you, and asking to join is
-   agreeing to those. A button on the list would be agreeing to a summary.
+/* ---------- ASKING TO JOIN SOMEBODY ELSE'S SESSION IS A TILE ON ITS PAPER NOW --------------------
+   THE ARGUMENT THAT STOOD HERE STILL HOLDS AND IS WHY THE TILE IS WHERE IT IS: the subject, the day,
+   the venue, the price and how many seats are left are all on the document in front of you, and
+   asking to join is agreeing to those — so the way in belongs on that document, not on a list. It
+   was a block UNDER the paper; it is the receipt's own foot now, `joinTile_` in tiles.js, and the
+   seats are the receipt's `Sharing` row. See `joinBlock`'s tombstone below.
 
-   IT IS AN ASK, AND THE WORD MATTERS. The family whose booking it is has said other people MAY
-   join; they have not said THIS person may. What this sends is a Request — the same move a tutor
-   makes when applying — which lands in the lobby and waits for somebody to say yes. A button
-   labelled "Join" would promise something it cannot deliver. */
+   IT IS STILL AN ASK, AND THE WORD STILL MATTERS. The family whose booking it is has said other
+   people MAY join; they have not said THIS person may. The tile reads `Ask to join`, and `job-join`
+   turns to the form, which sends a Request that waits for somebody to say yes. */
 /* ---------- THE STEP THAT WAS NOT THERE AT ALL ----------------------------------------------------
    ACCEPTED, AND THEN NOTHING. The backend has had `createCheckout` and `finalizePayment` since
    payment was built — Stripe session, verified return leg, the Confirm event that is the only thing
@@ -5296,59 +5347,44 @@ function festiveCard(f) {
 
    WHAT IT IS FOR: the tutor has one question to answer, which is what day suits everybody, and
    until now the only way to answer it was to read the event log by hand. The slot everybody offered
-   is marked, because that is the answer when there is one. */
+   is marked, because that is the answer when there is one.
+
+   IT IS THE ANSWER CELL OF A RECEIPT ROW NOW — `Can come`, see `jobRows` — so the heading it carried
+   ("When the 2 of them can come") went: the row's label says what the bars are, and every count
+   says out of how many. */
 function whenCouldHtml(j) {
-  const w = j.whenCould;
+  const w = j && j.whenCould;
   if (!w || !w.slots || !w.slots.length) return '';
-  return `<div class="wc">
-    <p class="wc-say">When the ${w.people} of them can come</p>
-    ${w.slots.map(s => `<div class="wc-row${s.all ? ' is-all' : ''}">
+  /* A COUNT OUT OF NOBODY IS NOT A BAR. `people` is the number of families who answered, so it is
+     never below a slot's own count — but a payload that sent it blank would draw `Infinity%`. */
+  const of = Math.max(1, Number(w.people) || 0);
+  return `<div class="wc">${w.slots.map(s => `<div class="wc-row${s.all ? ' is-all' : ''}">
       <span class="wc-n">${esc(s.n)}/${esc(w.people)}</span>
       <span class="wc-slot">${esc(s.slot)}</span>
-      <i style="--f:${(s.n / w.people * 100).toFixed(0)}%"></i>
-    </div>`).join('')}
-  </div>`;
+      <i style="--f:${Math.min(100, (Number(s.n) || 0) / of * 100).toFixed(0)}%"></i>
+    </div>`).join('')}</div>`;
 }
 
-function joinBlock(j) {
-  if (!j || !j.canAsk || !USER) return '';
+/* ---------- `joinBlock` STOOD HERE, UNDER THE PAPER, AND IT IS THREE PIECES OF THE PAPER NOW -------
+   ASKED FOR AS *"the session booking thing at the bottom of receipt should be a line in the
+   booking."* It was a block drawn after the receipt on a stranger's view of a session: a sentence
+   with the seats and the seat price, the waiting list's tally, a full-width gold `Take a seat` or
+   `Ask to join`, and a faint sentence about when anybody is charged. Floating on black under a card
+   it plainly belonged to — the fault *"no floating tiles for already booked sessions"* moved the
+   tiles off once already, there for the people booked on it and here for the people who are not.
 
-  /* ---------- TWO KINDS OF JOINING, AND THEY ARE NOT THE SAME ACT --------------------------------
-     A WAITLIST ALREADY SHOWS ITSELF TO EVERYBODY. `joinWaitlist` writes `open_to_others` TRUE, and
-     `doGet` sends any open booking with seats left to every client — no names, just the shape of it.
-     So a class advertises itself the moment somebody starts one, which is exactly right and needed
-     no work.
+   EACH PIECE WENT WHERE ITS KIND GOES:
+     · the seats are the `Sharing` row, which was already the receipt's line about them — and was
+       saying "Just you" on the same page the block said "3 seats going". See `jobRows`.
+     · the seat price is the total row, `Your seat £19.00`, which already said it. Not repeated.
+     · the tally is the `Can come` row, on everybody's copy of the list rather than only on the
+       copy the families NOT on it saw. See `whenCouldHtml` above.
+     · the action is a tile in the receipt's foot — `joinTile_` in tiles.js — beside Share, and the
+       faint sentence is that tile's note. *"It should all be tiles."*
 
-     WHAT WAS WRONG WAS THE BUTTON. It sent `move`/`Request` for both, which is how you ask to share
-     somebody ELSE'S booking: the family who own it decide, nothing is priced, and you become an
-     ordinary participant. On a class that is the wrong act in every particular — there is no family
-     to ask, the seat has a fixed price, and joining is supposed to write you your own receipt at
-     that price and record when you can come. Two doors onto one list, producing two different kinds
-     of record, and only one of them a real waitlist seat.
-
-     ASKING TO SHARE is a request to strangers who booked something. JOINING A LIST is buying a seat
-     in a thing that exists to be joined. The button says which, and goes where it should. */
-  const isList = norm(j.kind) === 'waitlist';
-  const id = esc(String(j.id || j.jobId || ''));
-
-  if (isList) return `<div class="join">
-    <p class="join-say">${esc(j.seatsGoing)} seat${j.seatsGoing === 1 ? '' : 's'} left on this
-      class.${j.price ? ' ' + esc(money(j.price)) + ' a seat.' : ''}</p>
-    ${whenCouldHtml(j)}
-    <button class="btn" data-do="job-take-seat" data-id="${id}">Take a seat</button>
-    <p class="faint">Maths and English, one seat each. Nobody is charged until every seat is
-      taken.</p>
-  </div>`;
-
-  return `<div class="join">
-    <p class="join-say">${esc(j.seatsGoing)} seat${j.seatsGoing === 1 ? '' : 's'} going on this one.
-      The family who booked it are happy to share.</p>
-    <button class="btn" data-do="job-join" data-id="${id}">
-      Ask to join</button>
-    <p class="faint">They will be asked, and you will hear either way. Nothing is charged until it
-      is agreed.</p>
-  </div>`;
-}
+   THE TWO KINDS OF JOINING ARE STILL TWO ACTS, and `joinTile_` carries the argument that was here:
+   joining a LIST is taking a seat in a thing that exists to be joined, asking to SHARE is a request
+   to the family who booked it. Same mark, different word, different handler. */
 
 /**
  * REDRAW WITHOUT MOVING.

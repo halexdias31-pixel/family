@@ -104,6 +104,11 @@ const KP_KEYS = [
   { v: '!back', a: 'delete', c: ' kp-mode', t: '\u232b' },
   { v: '!done', a: 'done', c: ' kp-done', t: '\u2713' },
 ];
+/* A KEY IS A BUTTON AND NOT A TILE, the one place on a question's pages the owner's *"it should all be
+   tiles"* does not reach, and on purpose: these are a KEYBOARD. Thirty keys in a grid have to be the
+   grid's size and carry their glyph (7, π, √, a fraction drawn as two boxes) as the whole face; a tile
+   is a 44px plate with an outline mark and its name in `title`, which on a key would be a picture of a
+   7 called "7". Typing is the answer being given, as a multiple-choice option is (`choiceBox_`). */
 const kpKey_ = k => `<button type="button" class="kp-key${k.c || ''}" data-do="kp-key"
   data-v="${esc(k.v != null ? k.v : k.t)}"${k.a ? ` aria-label="${esc(k.a)}"` : ''}>${k.t}</button>`;
 
@@ -235,17 +240,66 @@ function kpRoom_(inp, pad) {
     if (oy === 'auto' || oy === 'scroll') break;
     el = el.parentNode;
   }
-  if (!el || el === document.body) return;
-  const h = pad.getBoundingClientRect().height;
-  KP_ROOM = { el: el, was: el.style.paddingBottom };
-  el.style.paddingBottom = h + 'px';
-  const over = inp.getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12);
-  if (over > 0) el.scrollTop += over;
+  if (el && el !== document.body) {
+    const h = pad.getBoundingClientRect().height;
+    KP_ROOM = { el: el, was: el.style.paddingBottom };
+    el.style.paddingBottom = h + 'px';
+    const over = inp.getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12);
+    if (over > 0) el.scrollTop += over;
+    /* A SCROLLER WITH NOTHING LEFT TO GIVE leaves the rest to the column, below. */
+    if (inp.getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12) <= 0) return;
+  }
+  kpLift_(inp, pad);
 }
 function kpRoomBack_() {
-  if (!KP_ROOM) return;
-  KP_ROOM.el.style.paddingBottom = KP_ROOM.was;
-  KP_ROOM = null;
+  if (KP_ROOM) {
+    KP_ROOM.el.style.paddingBottom = KP_ROOM.was;
+    KP_ROOM = null;
+  }
+  /* AND THE COLUMN PUT BACK WHERE IT WAS HELD — only if it is still the hold the lift was written on.
+     A swipe away has already let go of it (`placeGrid`), and the card arrived at is centred. */
+  const L = KP_LIFT;
+  KP_LIFT = null;
+  if (L && L.lift) {
+    L.lift = 0;
+    try { if (HOLD_AT === L) placeCells('y', true, 0, L.id); } catch (e) {}
+  }
+}
+
+/* ---------- A CARD WITH NOTHING TO SCROLL IS LIFTED WHOLE -----------------------------------------
+   MEASURED ON 5 OCTOBER, AFTER THE CARD IN FRONT WAS CENTRED: at 320x568 the pad's top is at 315px
+   and every answer box on a paper's question card bottomed out at 317–327px — under the pad on 8
+   pages of 8, against 1 of 8 when cards hung from the top line. A card whose content fits is
+   `overflow: hidden`, so the scroller search above finds nothing and the box stayed where it was,
+   and the hold on focus (`HOLD_AT`) then kept it there.
+
+   SO THE COLUMN GOES UP INSTEAD, by exactly what the box is short of, through the same hold —
+   `columnShift_` reads `lift` — so a box that grows as you type grows downward from a card that is
+   no longer moving, and swiping away lets go of both at once.
+
+   WORKED OUT FROM WHERE THE COLUMN IS GOING, NOT WHERE IT IS DRAWN. A box's distance from the top of
+   its column does not change when the column moves, so: the column's unmoved top, plus the shift it
+   is held at with no lift, plus that distance. A rectangle read off a column still settling would
+   lift by the wrong amount and keep it. */
+let KP_LIFT = null;
+function kpLift_(inp, pad) {
+  try {
+    const pg = inp.closest('#screen .page.on');
+    const host = pg && pg.parentElement;
+    if (!host || host.id !== 's-' + AT) return;
+    if (!HOLD_AT || HOLD_AT.id !== AT || HOLD_AT.p !== (PAGE[AT] || 0)) holdHere_(inp);
+    const h = HOLD_AT;
+    if (!h || h.id !== AT) return;
+    h.lift = 0;
+    const want = columnShift_(host, domIndex_(AT, PAGE[AT] || 0));
+    const base = (host.offsetParent || host.parentElement).getBoundingClientRect().top + host.offsetTop;
+    const fromTop = inp.getBoundingClientRect().bottom - host.getBoundingClientRect().top;
+    const over = base + want + fromTop - (pad.getBoundingClientRect().top - 12);
+    if (!isFinite(over) || over <= 0) return;
+    h.lift = over;
+    KP_LIFT = h;
+    placeCells('y', true, 0, AT);
+  } catch (e) { /* a box left where it was is the behaviour before this existed */ }
 }
 
 /* ---------- WHAT A KEY DOES -----------------------------------------------------------------------
@@ -392,8 +446,13 @@ document.addEventListener('keydown', e => {
    on the first press, and from then every AI button on the screen is greyed and says so — one press
    wasted, never a button that keeps doing nothing.
 
-   A FORM'S BUTTON, beside Check and shaped like it, because it is the same act on a different kind of
-   answer — the answer box is a form, and its buttons belong to it.
+   A TILE, BESIDE CHECK AND SHAPED LIKE IT, because it is the same act on a different kind of answer.
+   This said "a form's button ... the answer box is a form, and its buttons belong to it" -- the house
+   rule, and Check was a gold button beside it on the same argument. The owner overruled it for a
+   question's pages, one control at a time and then all at once: *"check button should be a tile"*,
+   then *"it should all be tiles."* So Mark with AI is a tile with a sparkle on it (`spark`, the mark
+   every phone puts on "a model did this"), `.qp-ai-go` the name the handler and the checks find it
+   by, and `disabled` when the server says there is no key -- which a tile draws without its plate.
 ================================================================================================== */
 let AI_OFF = false;
 
@@ -413,7 +472,7 @@ function aiWanted_(x) {
 function aiBox_(x) {
   if (!aiWanted_(x) || !aiOffered_()) return '';
   return `<div class="qp-mark qp-ai">
-    <button type="button" class="qp-check qp-ai-go" data-do="qp-ai">Mark with AI</button>
+    ${tile_({ icon: 'spark', label: 'Mark with AI', note: 'out of the marks', act: 'qp-ai', cls: 'qp-ai-go' })}
     <span class="qp-verdict" role="status" aria-live="polite"></span>
   </div><p class="qp-ai-why"></p>`;
 }
@@ -471,9 +530,12 @@ on('qp-ai', (el) => {
   if (!x) { out.textContent = 'Could not find this question'; return; }
   const sent = inp.value;
   el.disabled = true;
+  /* THE TILE'S OWN RING WHILE IT WAITS (`.tile.is-busy`), on the tile as well as the row: a disabled
+     tile loses its plate, which says "nothing to press" -- the wrong sentence for "pressed, marking". */
   box.classList.add('is-busy');
+  el.classList.add('is-busy');
   out.textContent = 'Marking\u2026';
-  const done = () => { el.disabled = AI_OFF; box.classList.remove('is-busy'); };
+  const done = () => { el.disabled = AI_OFF; box.classList.remove('is-busy'); el.classList.remove('is-busy'); };
   api({ action: 'aiMark', personId: USER.personId || '', question: aiQuestion_(x), scheme: aiScheme_(x),
         answer: sent, marks: Number(x.marks) || 1 })
     .then(d => {

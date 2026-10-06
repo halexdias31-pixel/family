@@ -41,9 +41,11 @@ const strip = t => t.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
    what is actually on disk. Rather than make somebody rename eight files to satisfy a checker, the
    checker looks for both — a tool that only runs against a naming convention is a tool that does
    not run. */
-const ORDER_ = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'doGet', 'doPost'];
+/* `digest` LAST — the weekly parent email (backend/digest.gs) reads `attempts`, `people` and writes
+   `digest_log`, and a column it named wrong would be an email that silently says nothing. */
+const ORDER_ = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'doGet', 'doPost', 'digest'];
 const NUMBERED = ['00_constants', '10_core', '20_people', '30_booking', '40_content',
-                  '50_setup', '60_doGet', '70_doPost'];
+                  '50_setup', '60_doGet', '70_doPost', '80_digest'];
 /* Each name tried in turn: numbered, plain, and plain lower-cased — `doget.gs` and `doGet.gs` are
    the same file to a person and different to a filesystem. */
 /* AND IN `backend/`, WHICH IS WHERE THEY ARE. The .gs files were moved there and this went on

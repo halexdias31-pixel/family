@@ -16,10 +16,13 @@
    the picture (`.rc-snap`, see receipt.js), so the screenshot is taken with that same class on. Any
    other difference is a fault.
 
-   TWO RECEIPTS AT TWO WIDTHS: the booking form as somebody fills it in (a dozen dropdowns on paper,
-   which is where a clone most easily gets the answer wrong), and a saved session — the state
-   `check/states.js` already builds, entered through its own `enter`, so this cannot drift from what
-   `ui.js` measures. 320 because everything breaks there first; 390 because it is the common phone.
+   THREE RECEIPTS AT TWO WIDTHS: the booking form as somebody fills it in (a dozen dropdowns on paper,
+   which is where a clone most easily gets the answer wrong), a saved session, and somebody else's
+   waiting list as a family not on it sees it — the one with the `Can come` tally's bars and the
+   `Take a seat` tile, since the way in stopped being a block under the paper. The last two are the
+   states `check/states.js` already builds, entered through their own `enter`, so this cannot drift
+   from what `ui.js` measures. 320 because everything breaks there first; 390 because it is the
+   common phone.
 
    NO PORT. The files are served by Playwright's own router on an address that never touches the
    network, because every other browser check here holds a port and this machine runs several
@@ -65,15 +68,22 @@ const ADMIN = { name: 'Test Admin', personId: 'P001', person_id: 'P001',
    `navigator.share` is answered by a stand-in that keeps the file — the phone's share sheet is the
    one thing a headless browser has not got. `canShare` says yes to files, which is the iPhone and
    Android path; the download path is `check-flow`'s. */
+/* ---------- WHICH SAVED RECEIPT EACH PICK IS, BY THE REFERENCE PRINTED ON IT ---------------------
+   `session` is the admin's own (`a session receipt` in check/states.js) and `class` is somebody
+   else's waiting list seen by a family not on it — the receipt that carries a `Can come` tally and
+   a `Take a seat` tile since *"the session booking thing at the bottom of receipt should be a line
+   in the booking"*. Found by the `Session …` line rather than by page, the way the states find them. */
+const REF = { session: 'J-UI', class: 'W-UI' };
+
 async function shareOf(page, pick) {
-  return page.evaluate(async pick => {
+  return page.evaluate(async ([pick, ref]) => {
     window.__shared = null;
     navigator.canShare = d => !!(d && d.files && d.files.length);
     navigator.share = d => { window.__shared = d; return Promise.resolve(); };
     const rc = pick === 'form'
       ? document.querySelector('#bookr .rc')
       : [...document.querySelectorAll('#s-booking .page .rc')]
-          .find(r => /J-UI/.test((r.querySelector('.rc-ref') || {}).textContent || ''));
+          .find(r => new RegExp(ref).test((r.querySelector('.rc-ref') || {}).textContent || ''));
     if (!rc) return { err: 'no ' + pick + ' receipt on the Booking column' };
     const tile = rc.querySelector('[data-do="book-share"]');
     if (!tile) return { err: 'the ' + pick + ' receipt has no Share tile' };
@@ -87,7 +97,7 @@ async function shareOf(page, pick) {
     const url = await new Promise(ok => { const fr = new FileReader(); fr.onload = () => ok(fr.result); fr.readAsDataURL(f); });
     const box = rc.getBoundingClientRect();
     return { name: f.name, type: f.type, size: f.size, url, w: box.width, h: box.height, x: box.left, y: box.top };
-  }, pick);
+  }, [pick, REF[pick] || '']);
 }
 
 /* ---------- IN THE PAGE: TWO PNGs, PIXEL BY PIXEL, AT THE BEST REGISTRATION ---------------------
@@ -217,6 +227,9 @@ async function compare(page, a, b) {
   if (SHOTS) fs.mkdirSync(SHOTS, { recursive: true });
   const sessionState = (STATES.booking || []).find(s => s.name === 'a session receipt');
   if (!sessionState) { console.log('check/share.js: check/states.js has no "a session receipt" state — renamed?'); process.exit(1); }
+  const classState = (STATES.booking || []).find(s => s.name === 'a class with seats, seen by a family not on it');
+  if (!classState) { console.log('check/share.js: check/states.js has no "a class with seats, seen by a family not on it" state — renamed?'); process.exit(1); }
+  const ENTER = { session: String(sessionState.enter), class: String(classState.enter) };
 
   const open = async (width, height) => {
     const ctx = await browser.newContext({ viewport: { width, height }, deviceScaleFactor: 2,
@@ -284,12 +297,14 @@ async function compare(page, a, b) {
        would be compared against a picture of the whole one and fail for the wrong reason. */
     const { ctx, page, errs } = await open(width, 2600);
 
-    for (const pick of ['form', 'session']) {
+    /* `class` LAST, because its state swaps the visitor for a family not on the class and nothing
+       after it on this page needs the admin back. */
+    for (const pick of ['form', 'session', 'class']) {
       await page.evaluate(([pick, enter]) => {
         go('booking', false, true);
-        if (pick === 'session') (0, eval)('(' + enter + ')')();
+        if (enter) (0, eval)('(' + enter + ')')();
         else if (typeof goPage === 'function') goPage('booking', 0, true);
-      }, [pick, String(sessionState.enter)]);
+      }, [pick, ENTER[pick] || '']);
       await page.waitForTimeout(700);
       /* ---------- A FORM WITH AN ANSWER ON IT --------------------------------------------------------
          THE BLANK FORM SHOWS THE FIRST OPTION OF EVERY SELECT, so a clone that forgot what had been
@@ -325,10 +340,10 @@ async function compare(page, a, b) {
            · the receipt's typeface is carried inside it, as a `data:` URL, under its own name
            · the answer picked on the form is the answer in the picture
            · no tile and no admin-only money row is in it */
-      const src = await page.evaluate(async pick => {
+      const src = await page.evaluate(async ([pick, ref]) => {
         const rc = pick === 'form' ? document.querySelector('#bookr .rc')
           : [...document.querySelectorAll('#s-booking .page .rc')]
-              .find(r => /J-UI/.test((r.querySelector('.rc-ref') || {}).textContent || ''));
+              .find(r => new RegExp(ref).test((r.querySelector('.rc-ref') || {}).textContent || ''));
         const faces = [...document.styleSheets].flatMap(s => { try { return [...s.cssRules]; } catch (e) { return []; } })
           .filter(r => /^@font-face/i.test(r.cssText)).map(r => r.style.getPropertyValue('font-family'));
         /* EVERY EMPTY BOX'S HINT AND THE INK THE SCREEN DRAWS IT IN — a faint hint and a typed answer
@@ -339,7 +354,7 @@ async function compare(page, a, b) {
           .map(i => ({ text: i.placeholder, ink: getComputedStyle(i, '::placeholder').color }));
         const p = await rcPng_(rc);
         return { svg: p.svg, faces, hints };
-      }, pick);
+      }, [pick, REF[pick] || '']);
       const svg = src.svg;
       src.faces.forEach(f => {
         const at = svg.indexOf(f);
@@ -355,16 +370,28 @@ async function compare(page, a, b) {
         if (!re.test(svg)) bad.push(`${label}: the empty box's hint "${h.text}" is not in its own faint ink in the picture`);
       });
       if (pick === 'form' && !src.hints.length) bad.push(`${label}: the form has no empty box with a hint — nothing proved`);
-      if (/data-do="(book-share|book-send|job-delete)"/.test(svg)) bad.push(`${label}: a tile is in the picture`);
+      if (/data-do="(book-share|book-send|job-delete|job-take-seat|job-join)"/.test(svg)) bad.push(`${label}: a tile is in the picture`);
       if (/Tutor earns|Admin earns/.test(svg)) bad.push(`${label}: an admin's money row is in the picture`);
+      /* ---------- AND THE CLASS'S TWO LINES ARE IN IT, WHICH IS WHAT IT WAS SHARED FOR ------------
+         THE JOIN OFFER WAS A BLOCK UNDER THE PAPER, so no picture ever carried the seats or the
+         tally — they were not on the document. They are rows of it now, and a picture of a class
+         that says nothing about who can come when is the half a family forwards it for. Asked of
+         the picture's source, as the answer on the form is: the pixel comparison below would pass
+         a card that had lost both rows on the screen AND in the picture. */
+      if (pick === 'class') {
+        if (!/Can come/.test(svg) || (svg.match(/class="wc-row/g) || []).length !== 3) {
+          bad.push(`${label}: the class's Can come tally is not in the picture with its three bars`);
+        }
+        if (!/2 seats free/.test(svg)) bad.push(`${label}: the class's Sharing line, "Open — 2 seats free", is not in the picture`);
+      }
 
       /* THE SAME ELEMENT, AS THE SCREEN DRAWS IT, with the picture's two exclusions on — and its box
          measured in that state, which is the size the picture has to be. */
       const rcSel = pick === 'form' ? '#bookr .rc' : '#s-booking .rc.rc-cmp';
-      const snap = await page.evaluate(pick => {
+      const snap = await page.evaluate(([pick, ref]) => {
         const rc = pick === 'form' ? document.querySelector('#bookr .rc')
           : [...document.querySelectorAll('#s-booking .page .rc')]
-              .find(r => /J-UI/.test((r.querySelector('.rc-ref') || {}).textContent || ''));
+              .find(r => new RegExp(ref).test((r.querySelector('.rc-ref') || {}).textContent || ''));
         rc.classList.add('rc-snap'); rc.classList.add('rc-cmp');
         const b = rc.getBoundingClientRect();
         /* WHAT MUST BE OFF THE PICTURE, AND WHETHER IT IS THERE TO BE LEFT OFF. A run where the card
@@ -372,7 +399,7 @@ async function compare(page, a, b) {
         const off = [...rc.querySelectorAll('.rc-tiles, .rc-more')];
         return { w: b.width, h: b.height, off: off.length,
                  shown: off.filter(x => x.getClientRects().length).length };
-      }, pick);
+      }, [pick, REF[pick] || '']);
       if (!snap.off) bad.push(`${label}: the card has no tiles to leave off the picture — nothing proved`);
       if (snap.shown) bad.push(`${label}: ${snap.shown} of the tiles / admin money rows would be in the picture`);
       if (pick === 'session' && snap.off < 3) bad.push(`${label}: the session card has ${snap.off} of a tile row and two admin money rows`);

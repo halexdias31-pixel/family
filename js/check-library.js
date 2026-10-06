@@ -541,7 +541,10 @@ byDoc.forEach((ids, k) => {
    is what declares it, so a scope holding several rows where two share an order — or where any
    lacks one — is a paper whose insert reads differently depending on the order the file happens
    to be in. Proved by mutation, both directions. */
-const scopeOf_ = r => r.paper_id + '|' + (String(r.question || '').trim() ? 'q' + r.question
+/* A LETTER'S OPENING IS ITS OWN SCOPE -- "(d)" of a question, see `stemLetter_` in find.js -- so a
+   question's own opening and its (d) opening are not two rows in one scope demanding a sort_order. */
+const preLetter_ = r => { const p = String(r.part || '').trim().toLowerCase().replace(/[()\s]/g, ''); return /^[a-z]$/.test(p) ? p : ''; };
+const scopeOf_ = r => r.paper_id + '|' + (String(r.question || '').trim() ? 'q' + r.question + (preLetter_(r) ? '(' + preLetter_(r) + ')' : '')
                                           : r.section ? 's' + r.section : 'paper');
 const inScope = {};
 rows.forEach(r => {
@@ -594,6 +597,28 @@ rows.forEach(r => {
      paper that HAS parts and matches none of them is a paragraph nothing will ever draw. A stem
      under a paper with no parts yet is the backlog, and the backlog is already counted below —
      440 document rows are in exactly that state. */
+  /* ---------- A PREAMBLE'S `part` IS ONE LETTER, OR NOTHING ------------------------------------
+     THE "(d)" OPENING (`stemLetter_` in find.js, the multi-part audit's finding 6): a preamble whose
+     `part` is a letter is the opening of that letter's parts, drawn once before (d)(i). Anything
+     else in the column -- "d(i)", "2" -- the app reads as no letter and draws in front of the whole
+     question, which is not what whoever typed it meant. And a letter needs a question to stand in
+     and a part of that letter to stand in front of, or it is a paragraph on no screen. */
+  if (String(r.part || '').trim()) {
+    const L = preLetter_(r);
+    if (!L || !String(r.question || '').trim()) {
+      fail.push(`${r.row_id} is a preamble with part "${r.part}". An opening's part is one letter, the `
+        + `letter whose parts it opens ("d" for d(i) and d(ii)), on a row that names its question.`);
+      return;
+    }
+    if (!paperKeys.has(r.paper_id)) return;
+    const mine = rows.some(q => q && q.kind === 'question' && q.paper_id === r.paper_id
+      && String(q.question) === String(r.question)
+      && String(q.part || '').trim().toLowerCase().replace(/[()\s]/g, '').charAt(0) === L
+      && !/^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/.test(String(q.part || '').trim().toLowerCase()));
+    if (!mine) fail.push(`${r.row_id} opens part (${L}) of ${r.paper_id} Q${r.question}, and that question has `
+      + `no part (${L}) -- the opening is in the file and on no screen.`);
+    return;
+  }
   if (!paperKeys.has(r.paper_id)) return;
   const has = (r.question !== undefined && r.question !== null && r.question !== '')
     ? partKeys.has(r.paper_id + '|' + r.question)
@@ -873,6 +898,69 @@ EXTRA_FILES.forEach(name => {
               + 'tab stops being walked for every phone on every load');
   }
 });
+
+/* ---------- A BOXER'S PHOTO CARRIES ITS CREDIT, AND HIS RECORD ADDS UP ------------------------------
+   ASKED FOR AS "maybe add image of each boxer". The pictures are Wikimedia Commons files, and a
+   Commons file is free on a CONDITION — its author and licence named wherever it is shown. So a row
+   with an `image` and no `image_credit` is not a small gap, it is a licence broken on every phone
+   that opens the card. `boxerPicSrc_` in find.js refuses to draw such a photo already; this refuses
+   the ROW, so it is caught here before it ships rather than quietly hidden after.
+
+   `https` ONLY, because the site is, and a plain-http picture is blocked as mixed content — a broken
+   box by another route. A credit with no image is printed as a note: harmless, and probably a photo
+   somebody meant to add.
+
+   AND THE RECORD'S PARTS CANNOT EXCEED ITS WHOLE: KOs among the wins no more than the wins, KO losses
+   no more than the losses. The card prints a KO rate off those two cells, and 38 KOs in 37 wins is a
+   KO rate over a hundred per cent on a fighter's own page. A BLANK IS NOT CHECKED — blank means not
+   on file, which the card says in words. */
+{
+  let boxers = [];
+  try { boxers = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'data', 'boxers.json'), 'utf8')); }
+  catch (e) { fail.push('data/boxers.json could not be read for the photo and record rules — NOT checked'); }
+  const n = v => (String(v == null ? '' : v).trim() === '' ? null : Number(v));
+  let pics = 0;
+  const todo = [];
+  (Array.isArray(boxers) ? boxers : []).forEach(b => {
+    if (!b || typeof b !== 'object') return;
+    const who = (b.boxer_id || '?') + ' ' + (b.name || '');
+    const img = String(b.image || '').trim(), credit = String(b.image_credit || '').trim();
+    if (img) {
+      pics++;
+      if (!credit) fail.push('data/boxers.json ' + who + ' has an image and no image_credit — a Commons photo may only be shown with its author and licence');
+      if (!/^https:\/\//i.test(img)) fail.push('data/boxers.json ' + who + ' image is not an https address: ' + img.slice(0, 60));
+    } else if (credit) {
+      note.push('data/boxers.json ' + who + ' has an image_credit and no image');
+    }
+    [['wins_ko', 'wins'], ['losses_ko', 'losses']].forEach(([part, whole]) => {
+      const p = n(b[part]), w = n(b[whole]);
+      if (p != null && (!isFinite(p) || p < 0)) fail.push('data/boxers.json ' + who + ' ' + part + ' is not a count: ' + b[part]);
+      else if (p != null && w != null && p > w) fail.push('data/boxers.json ' + who + ' has ' + p + ' ' + part + ' in ' + w + ' ' + whole);
+    });
+    /* ---------- A CC LICENCE NEEDS ITS LINK, AND ONLY A COMMONS FILE HAS ONE TO GIVE ---------------
+       CC BY AND CC BY-SA ASK FOR MORE THAN A NAME: the credit has to point at where the work and its
+       licence can be read. The card makes the credit that link — the Commons file page, named from
+       the picture's own `upload.wikimedia.org/wikipedia/commons/` address (`boxerCredit_`). A
+       picture held anywhere else has no such page, so its credit would be words with nowhere to go:
+       a licence broken on every phone, which is the photo-without-credit fault by another route.
+       Public domain and a photo the owner took need no link, so they are not asked for one. */
+    if (img && /\bCC[ -]?(BY|0)\b|creative commons/i.test(credit)
+        && !/^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/(thumb\/)?[0-9a-f]\/[0-9a-f]{2}\/[^/?#]+/i.test(img)) {
+      fail.push('data/boxers.json ' + who + ' is credited under a CC licence and its image is not a Commons file address, so the card cannot link the credit to the licence: ' + img.slice(0, 70));
+    }
+    /* ---------- THE EDITOR'S TO-DO, LISTED -----------------------------------------------------------
+       A `notes` cell that says check or checking is the researchers' to-do, and the card no longer
+       prints it (`boxerNote_` in find.js) — five of them were under public records, saying the site
+       doubted its own numbers. Kept off the card is not the same as done, so they are listed here,
+       every run, until somebody checks the thing and clears the cell. Printed, not failed: a record
+       waiting for a check is the backlog, not a fault. */
+    if (/\bcheck(ing)?\b/i.test(String(b.notes || ''))) todo.push(who + ' — ' + String(b.notes).trim());
+  });
+  console.log('boxers with a photo: ' + pics + ' of ' + (Array.isArray(boxers) ? boxers.length : 0)
+    + '   (every one credited, or this would have failed)');
+  console.log('boxer rows the editor still has to check: ' + todo.length + '   (kept off the cards; the backlog, not a fault)');
+  todo.forEach(t => console.log('  ' + t));
+}
 
 /* ---------- THE LEGO SETS: A CATALOGUE SHAPED LIKE THE SHOP, WAITING TO BE STOCKED ------------------
    ASKED FOR AS "just database the lego sets ... include rough price ... maybe ill have these items as
@@ -1456,6 +1544,187 @@ drawQs.filter(r => withPad.indexOf(r) === -1).forEach(r => {
 console.log(`questions answered by drawing: ${drawQs.length} — on their own picture: ${withPad.length}, `
   + `on a surface while the picture is transcribed: ${Object.keys(onSurface).sort()
     .map(k => `${k} ${onSurface[k]}`).join(', ') || 'none'}`);
+
+/* ---------- A RULER AND A COMPASS ON THE PEN, AND HOW MANY QUESTIONS ASK FOR THEM -----------------------
+   *"some questions require a compass or ruler. so should have a tile for these things. if you cant find
+   those questions dont worry just have the infrastructure set up for it."* The app's own decider
+   (`padTools_`, cut out of find.js by name like `padSurface_` above) run over every question, with the
+   `needs` the card shows -- the paper's cover unioned with the row's own, as `needsOf_` does -- and the
+   words of the row, its lead and its preambles. A COUNT, NOT A RULE: a question asking for a compass
+   with no pen to use it on is the data's to fix (its `answer_type` or `surface`), and it is printed so
+   that it is a backlog rather than a silence. "Protractor" is decided and not built -- printed too. */
+const toolsSrc_ = cutFrom(findSrc_, 'padTools_');
+/* SAID AS WELL AS COUNTED: the failures pushed this far down are past the place this file prints them,
+   so a bare `fail.push` would end the run red with no sentence saying why. */
+if (!toolsSrc_) {
+  const why = 'padTools_ is not in find.js — renamed? The ruler and compass questions were NOT counted.';
+  fail.push(why);
+  console.log('\n' + why);
+}
+const padTools_ = toolsSrc_ ? new Function(toolsSrc_ + '\nreturn padTools_;')() : (() => ['pen']);
+const docNeeds_ = {};
+rows.forEach(r => { if (r && r.kind === 'document' && r.needs) docNeeds_[String(r.paper_id)] = String(r.needs); });
+const preHtml_ = {};
+rows.forEach(r => {
+  if (!r || r.kind !== 'preamble') return;
+  const k = String(r.paper_id) + '\u0000' + String(r.question || '');
+  (preHtml_[k] = preHtml_[k] || []).push({ html: r.html });
+});
+const toolCount = { ruler: 0, compass: 0, protractor: 0 };
+const toolPen = { ruler: 0, compass: 0 };
+const toolNoPen = [];
+rows.forEach(r => {
+  if (!r || r.kind !== 'question') return;
+  const needs = String(docNeeds_[String(r.paper_id)] || '').split(',').concat(String(r.needs || '').split(','));
+  const got = padTools_({ needs: needs, html: r.html, lead: r.lead,
+                          stems: preHtml_[String(r.paper_id) + '\u0000' + String(r.question || '')] || [] });
+  const pen = /^(drawing|annotate)$/i.test(String(r.answer_type || '').trim())
+    || ['grid', 'coord', 'blank'].indexOf(String(r.surface || '').trim().toLowerCase()) !== -1;
+  Object.keys(toolCount).forEach(t => { if (got.indexOf(t) !== -1) toolCount[t]++; });
+  ['ruler', 'compass'].forEach(t => { if (pen && got.indexOf(t) !== -1) toolPen[t]++; });
+  if (!pen && (got.indexOf('ruler') !== -1 || got.indexOf('compass') !== -1)
+      && /construct|locus|loci|bisect|compasses|use a ruler/i.test(String(r.html || ''))) toolNoPen.push(r.row_id);
+});
+console.log(`the pen's tools: a Ruler on ${toolPen.ruler} pen question(s), a Compass on ${toolPen.compass}`
+  + `   (asked for anywhere: ruler ${toolCount.ruler}, compass ${toolCount.compass}; `
+  + `protractor ${toolCount.protractor}, not built)`);
+if (toolNoPen.length) {
+  console.log(`   asking in their own words for a ruler or compasses with no pen to use them on: ${toolNoPen.length} — `
+    + toolNoPen.slice(0, 4).join(', ') + (toolNoPen.length > 4 ? ', …' : '')
+    + '   (their answer_type is not drawing; a `surface` would give them one)');
+}
+
+/* ---------- "USE YOUR GRAPH" NAMES THE PART WHOSE GRAPH ------------------------------------------------
+   The multi-part audit, finding 5: 2F Q24(c) "Use your graph to find estimates..." drew no picture, and
+   the graph was the child's own, on (b)'s grid. `uses` names that earlier part by its `part` cell, and
+   the app draws its picture with the child's marks in front of (c) -- or under (c)'s own pen, where (c)
+   draws on the same picture (`usesOf_` in find.js; tools/set-uses.py decides the rows, and says why).
+
+   TWO RULES, BOTH FAILURES:
+     a `uses` must name a part of ITS OWN QUESTION that comes BEFORE it and is answered by drawing --
+       anything else is a picture the app cannot find, or marks that do not exist yet, or (pointing
+       forward) the beginning of a loop; a part naming a part that is not there draws as if it named
+       nothing, which is the silent nothing this file exists to refuse
+     a part whose own words say "use your graph" (or diagram, drawing, line of best fit...) after a part
+       of its question answered by drawing must carry one. NOT "use the graph" -- as often the paper's
+       printed graph as the child's -- and not two parts on one printed picture, which say nothing in
+       their words; those are decided in tools/set-uses.py, and printed here as a count. "Your" is the
+       one word that can only mean the child's own, so it is the one this can hold a new paper to. */
+const usesKey_ = p => String(p == null ? '' : p).toLowerCase().replace(/[^a-z0-9]/g, '');
+const penRow_ = r => /^(drawing|annotate)$/i.test(String(r.answer_type || '').trim())
+  || ['grid', 'coord', 'blank'].indexOf(String(r.surface || '').trim().toLowerCase()) !== -1;
+const YOUR_DRAWING = /\b(use|using|from|on) your (graph|diagram|drawing|line of best fit|line|curve|box plot|histogram|tree diagram|venn diagram|scatter (graph|diagram)|cumulative frequency (graph|diagram))\b/i;
+const usesQs_ = {};
+rows.forEach(r => {
+  if (!r || r.kind !== 'question') return;
+  const k = String(r.paper_id) + '\u0000' + String(r.question || '');
+  (usesQs_[k] = usesQs_[k] || []).push(r);
+});
+const usesBad = [], usesMissing = [];
+let usesN = 0;
+rows.forEach(r => {
+  if (r && r.kind !== 'question' && r.uses !== undefined && r.uses !== '') usesBad.push(`${r.row_id} is a ${r.kind} row with a \`uses\` — only a question part can use another`);
+});
+Object.keys(usesQs_).forEach(k => {
+  const xs = usesQs_[k];
+  const at = {};
+  xs.forEach((r, i) => { at[usesKey_(r.part)] = i; });
+  xs.forEach((r, i) => {
+    if (r.uses !== undefined && r.uses !== null && String(r.uses) !== '') {
+      usesN++;
+      const j = at[usesKey_(r.uses)];
+      if (j === undefined) usesBad.push(`${r.row_id} uses "${r.uses}", and its question has no such part`);
+      else if (j === i) usesBad.push(`${r.row_id} uses itself`);
+      else if (j > i) usesBad.push(`${r.row_id} uses "${r.uses}", which comes after it — its marks cannot exist yet`);
+      else if (!penRow_(xs[j])) usesBad.push(`${r.row_id} uses "${r.uses}", which is not answered by drawing — there are no marks to show`);
+      return;
+    }
+    const words = String((r.lead || '') + ' ' + (r.html || '')).replace(/<[^>]*>/g, ' ').replace(/&[a-z0-9#]+;/gi, ' ');
+    if (i && YOUR_DRAWING.test(words) && xs.slice(0, i).some(penRow_)) {
+      usesMissing.push(`${r.row_id} says "${(words.match(YOUR_DRAWING) || [''])[0]}" after a part answered by drawing, and has no \`uses\` — the child's drawing is not shown`);
+    }
+  });
+});
+usesBad.concat(usesMissing).forEach(m => fail.push(m));
+console.log(`parts that show an earlier part's drawing (\`uses\`): ${usesN}`
+  + (usesBad.length + usesMissing.length ? `  — and ${usesBad.length + usesMissing.length} WRONG:` : ''));
+usesBad.concat(usesMissing).forEach(m => console.log('   ' + m));
+
+/* ---------- THE FIGURES THE PAPER PRINTS AND NOBODY HAS DRAWN, COUNTED SO THE COUNT CANNOT GROW -------
+   THE MULTI-PART AUDIT, FINDING 4. A part whose words name a figure ("Figure 3", "the graph", "the
+   grid", "the table below"…) in a question where no row carries one now gets a page saying so --
+   `questionNoFigCard_` in find.js -- because a question that reads as complete and cannot be answered
+   is the failure nobody on the phone can see. That page is the stopgap; drawing them is the fix, and
+   this is the ledger: THE APP'S OWN TEST (`FIG_NAMED`, `figWanted_`, cut out of find.js by name, with
+   `padSurface_` from above), run over every part with what its question holds -- its own `diagram`
+   or `images`, any other part's, and every preamble over it (paper, section, question, letter).
+   A CEILING, NOT A RULE: today's count is written below, and a new row that adds to it fails. Drawing
+   one lowers the count, and the ceiling should follow it down so the gain is kept. */
+const NOT_DRAWN_MAX = 410;
+const nfSrc_ = ['FIG_NAMED', 'figWanted_'].map(n => cutFrom(findSrc_, n));
+if (nfSrc_.some(c => !c)) {
+  const why = 'FIG_NAMED or figWanted_ is not in find.js — renamed? The figures not drawn yet were NOT counted.';
+  fail.push(why);
+  console.log(why);
+}
+const figWanted_ = nfSrc_.some(c => !c) ? (() => false) : new Function(nfSrc_.join('\n') + '\nreturn figWanted_;')();
+const hasPic_ = r => !!(String(r.diagram || '').trim() || String(r.images || '').trim());
+const picAt_ = {};
+rows.forEach(r => {
+  if (!r || !hasPic_(r) || (r.kind !== 'question' && r.kind !== 'preamble')) return;
+  const q = String(r.question || '').trim();
+  /* A QUESTION'S PICTURE COVERS ITS QUESTION; A PREAMBLE'S, THE SCOPE IT IS WRITTEN FOR. */
+  const k = r.kind === 'question' || q ? 'q|' + r.paper_id + '|' + q
+    : r.section ? 's|' + r.paper_id + '|' + r.section : 'p|' + r.paper_id;
+  picAt_[k] = true;
+});
+const notDrawn = rows.filter(r => {
+  if (!r || r.kind !== 'question') return false;
+  /* A `uses` PART'S FIGURE IS THE CHILD'S OWN DRAWING, shown on its `use` page -- `figMissing_` says
+     the same, and a ledger that counted it would be a backlog nobody can ever draw down. */
+  if (r.uses !== undefined && r.uses !== null && String(r.uses).trim() !== '') return false;
+  if (padSurface_({ answerType: String(r.answer_type || '').trim().toLowerCase(), surface: r.surface, figure: r.figure, row: r })) return false;
+  const figured = picAt_['q|' + r.paper_id + '|' + String(r.question || '').trim()]
+    || (r.section && picAt_['s|' + r.paper_id + '|' + r.section]) || picAt_['p|' + r.paper_id];
+  return figWanted_(String(r.lead || '') + ' ' + String(r.html || ''), !!figured);
+});
+console.log(`parts naming a figure nobody has drawn yet (a "not drawn yet" page each): ${notDrawn.length}`
+  + `   (ceiling ${NOT_DRAWN_MAX})`);
+if (notDrawn.length > NOT_DRAWN_MAX) {
+  const why = `${notDrawn.length - NOT_DRAWN_MAX} more part(s) name a figure nobody has drawn than the ${NOT_DRAWN_MAX} `
+    + `already known -- a new row was added without its picture. Draw it (\`diagram\`), or it shows `
+    + `"not drawn yet". The last in the file: ${notDrawn.slice(-3).map(r => r.row_id).join(', ')}`;
+  fail.push(why);
+  console.log('  ' + why);
+} else if (notDrawn.length < NOT_DRAWN_MAX) {
+  console.log(`   ${NOT_DRAWN_MAX - notDrawn.length} fewer than the ceiling -- lower NOT_DRAWN_MAX to ${notDrawn.length} to keep the gain.`);
+}
+
+/* ---------- ONE SPELLING OF A PART PER QUESTION ---------------------------------------------------
+   THE MULTI-PART AUDIT, FINDING 13: the order of a question's parts is read off how each is spelled,
+   and "bi" beside "b(ii)" used to sort b(ii), b(iii), bi -- (i) last. `partKeys_` in find.js now reads
+   the two as one, so the order would come out right; this is the other half, because a question that
+   says one thing two ways is a transcription that was not looked at twice, and the next reader of the
+   column -- a script, a sheet formula -- will not be as forgiving. Bracketed is "a(i)", bare is "ai";
+   a numeral on its own ("ii") is neither and is allowed beside either. */
+const spellBy_ = {};
+rows.forEach(r => {
+  if (!r || r.kind !== 'question' || !r.part) return;
+  const p = String(r.part).trim();
+  const how = /\(/.test(p) ? 'bracketed' : /^[a-z](i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i.test(p) ? 'bare' : '';
+  if (!how) return;
+  const k = String(r.paper_id) + ' Q' + String(r.question || '');
+  (spellBy_[k] = spellBy_[k] || {})[how] = (spellBy_[k][how] || []).concat(p);
+});
+const mixedSpell_ = Object.keys(spellBy_).filter(k => spellBy_[k].bracketed && spellBy_[k].bare);
+/* SAID AS WELL AS PUSHED, for the reason the tools count below gives: this is past where `fail` prints. */
+mixedSpell_.forEach(k => {
+  const why = `${k} spells its parts two ways — ${spellBy_[k].bracketed.join(', ')} beside `
+    + `${spellBy_[k].bare.join(', ')}. Keep to one per question: a(i), a(ii) or ai, aii.`;
+  fail.push(why);
+  console.log('  ' + why);
+});
+console.log(`questions spelling their parts two ways (bi beside b(ii)): ${mixedSpell_.length}`);
 
 console.log(`rows saying where the paper prints their figure (<!--fig-->): ${marked}`
   + `   (the rest stand it in front of the ask, or after it for a pen question)`);

@@ -224,7 +224,7 @@ function spotPages() {
   /* THE WINDOW'S OWN CARDS KEEP THE ADMIN'S SPOTLIGHT TILE, even on a question -- see `SPOT_TILES` in
      tiles.js: Find draws a question the same for everybody, and this is not Find. */
   SPOT_TILES = true;
-  try { return [].concat(...items.map(x => cardPages_(x, credits))); }
+  try { return keptPages_(items, credits); }
   finally { SPOT_TILES = false; }
 }
 
@@ -307,7 +307,8 @@ function spotlightCards_() {
 function savedPages_() {
   if (!USER) return [];
   const credits = collCredits_();
-  return [].concat(...collItems_(isFav).map(x => cardPages_(x, credits)));
+  /* A QUESTION'S KEPT PARTS TOGETHER, ITS OPENING ONCE -- see `keptPages_`. */
+  return keptPages_(collItems_(isFav), credits);
 }
 
 

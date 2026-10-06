@@ -14,6 +14,8 @@
     "check:ui": "node check/ui.js",
     "check:diagrams": "node check/diagrams.js",
     "press": "node check/press.js",
+    "swipe": "node check/swipe.js",
+    "swipe:verbose": "node check/swipe.js --verbose",
     "cascade": "node check/cascade.js",
     "cascade:all": "node check/cascade.js --all",
     "press:verbose": "node check/press.js --verbose",

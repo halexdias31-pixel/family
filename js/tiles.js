@@ -122,6 +122,9 @@ const TILE_ICONS = {
   /* SAVE IS A TICK, not a floppy disk: nobody who uses this app has held one, and a tick is what
      every form here already means by "done". */
   save:  '<path d="M3.5 9.5 7.3 13.3 14.8 4.8"/>',
+  /* ADD IS A PLUS, the one mark every phone already puts on "one more of these" — the qualifications
+     card's `+` under its list (see `qualShelf_` in me.js). Two strokes, open, the set's 1.4. */
+  plus:  '<path d="M9 3.5v11"/><path d="M3.5 9h11"/>',
   /* A CAMERA, FOR CHOOSING YOUR PICTURE: the body, the bump the shutter sits on, and the lens. The
      word beside it says choose rather than take, because the phone offers its gallery first. */
   photo: '<rect x="2.5" y="5.5" width="13" height="9" rx="1.5"/><path d="M6.5 5.5 7.5 3.5h3l1 2"/>'
@@ -153,6 +156,44 @@ const TILE_ICONS = {
      the set as one more outline. */
   full:  '<path d="M2.5 6.5v-4h4"/><path d="M11.5 2.5h4v4"/>'
        + '<path d="M15.5 11.5v4h-4"/><path d="M6.5 15.5h-4v-4"/>',
+  /* ---------- A QUESTION'S PAGES, WHICH ARE ALL TILES NOW ---------------------------------------
+     ASKED FOR AS *"lock should be a tile too. same as undo and clear. it should all be tiles."* and
+     *"some questions require a compass or ruler. so should have a tile for these things."* Five marks
+     the set did not have, at the same 1.4 stroke so a pen bar reads as one row with the star.
+
+     NEXT IS AN ARROW AND NOT AN EYE. The question card's tile used to be the eye and it SHOWED the
+     answer as it turned the page; it only turns the page now (*"answers should just stay hidden
+     unless user unhides them"*), and an eye on a control that reveals nothing would be the one mark
+     in the app that lies. The eye belongs to the tile that does reveal, on the answer page.
+
+     AND IT POINTS DOWN. It pointed right, and on this screen right is a different COLUMN -- a swipe
+     sideways leaves Find for the next screen -- while a question's pages stack downwards ("Swipe up
+     for its questions"), and the answer is the page below its question, or two below past a figure.
+     An arrow is a promise about which way the page will go; this one now keeps it.
+
+     THE PEN IS A PENCIL WITH ITS LINE, so it is told from `edit` (a pencil alone, which elsewhere means
+     "change this text") by the squiggle it has just drawn. THE RULER IS ON A SLANT with its ticks,
+     because a level rectangle with marks along it reads as a battery. THE COMPASS is the pair of
+     compasses every geometry set holds -- the hinge, two legs, and the arc it swings between them.
+     AI IS A SPARKLE, the mark every phone already puts on "a model did this", so the one tile whose
+     verdict is a guess says so before it is pressed. */
+  next:  '<path d="M9 2.5v12"/><path d="m5 10.5 4 4 4-4"/>',
+  pen:   '<path d="M12.6 2.6 15 5 7.2 12.8l-3.2.8.8-3.2z"/>'
+       + '<path d="M9 15.2c1.6-1.2 2.6.6 4 0s1.8-1 2.6-1"/>',
+  ruler: '<g transform="rotate(-38 9 8.5)"><rect x="1.5" y="5.8" width="15" height="5.4" rx="1"/>'
+       + '<path d="M4.5 5.8v2.2M7.5 5.8v1.4M10.5 5.8v2.2M13.5 5.8v1.4"/></g>',
+  compass: '<circle cx="9" cy="3" r="1.3"/><path d="M8.4 4.2 4.2 15.5"/><path d="M9.6 4.2 13.8 15.5"/>'
+         + '<path d="M5.6 11.6c2.2 1.3 4.6 1.3 6.8 0"/>',
+  spark: '<path d="M8 3c.5 3.3 2.2 5 5.5 5.5-3.3.5-5 2.2-5.5 5.5-.5-3.3-2.2-5-5.5-5.5 3.3-.5 5-2.2 5.5-5.5z"/>'
+       + '<path d="M14.5 1.8v3.4M12.8 3.5h3.4"/>',
+  /* THE FIGURE IS A FRAMED PICTURE -- a hill and a sun in a frame, the mark every phone uses for "an
+     image" -- and not `photo`, the camera, which means "take one". It opens the question's figure over
+     the card (`q-fig` in find.js). */
+  /* A FUNNEL, the narrowing the app is named around -- the `Answers only` switch on an
+     answer page (`ansOnlyTile_` in find.js), which put a chip on Find and take it off. */
+  funnel: '<path d="M2.5 3h13l-5 6v5.5l-3-1.5V9z"/>',
+  figure: '<rect x="2" y="2.5" width="14" height="12" rx="1.5"/><path d="m2.5 13 4.5-5 3.5 3.5 2-2 3 3.2"/>'
+        + '<circle cx="12" cy="6" r="1.2"/>',
 };
 
 function tileIcon_(name) {
@@ -228,7 +269,11 @@ function tile_(o) {
   }
   const data = Object.keys(o.data || {})
     .map(k => ` data-${k}="${esc(String(o.data[k]))}"`).join('');
-  return `<button class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${o.off ? ' disabled' : ''}
+  /* `pressed` IS FOR A TILE THAT IS A SWITCH -- the pen's lock and its Pen / Ruler / Compass -- and is
+     said in `aria-pressed` beside the `on` the eye reads, because a screen reader cannot see a plate
+     go bright. Absent on an ordinary action, which is not pressed or unpressed: it just happens. */
+  const pressed = o.pressed != null ? ` aria-pressed="${o.pressed ? 'true' : 'false'}"` : '';
+  return `<button class="${cls}" data-do="${esc(o.act)}"${data}${attrs}${pressed}${o.off ? ' disabled' : ''}
     >${body}</button>`;
 }
 
@@ -262,6 +307,9 @@ function tileSet_(el, o) {
     if (old) old.outerHTML = tileIcon_(o.icon);
   }
   if (o.on != null) el.classList.toggle('on', !!o.on);
+  /* A SWITCH SAYS SO TWICE, as `tile_` writes it: the plate for the eye and `aria-pressed` for a
+     screen reader. Rewritten in place, the two would drift exactly as the label and the title would. */
+  if (o.pressed != null) el.setAttribute('aria-pressed', o.pressed ? 'true' : 'false');
   if (o.off != null) el.disabled = !!o.off;
 }
 
@@ -590,6 +638,23 @@ function fightTiles_(x) {
   return f.video ? tile_({ icon: 'play', label: 'Watch', href: f.video }) : '';
 }
 
+/* ---------- A FIGHTER'S ONE DOOR: HIS FIGHTS, ON FILM ----------------------------------------------
+   THE BOUT'S `Watch`, ONE KIND ALONG. A bout carries the search the sheet wrote for it; a fighter
+   has no column of his own for one, and needs none — his name and the word "highlights" is the
+   search anybody would type. Built here rather than stored so a row added tomorrow has the door
+   without anybody filling a cell in.
+
+   A LINK AND NOT A BUTTON, through `tile_`'s `href`, which draws the anchor with its `target` and
+   `rel` — the same reason the fight's tile has no `act`. Nothing inside the app plays it, so it
+   should not pretend to; see `filmTiles_` for the same argument about Drive. */
+function boxerTiles_(x) {
+  const b = x.row || {};
+  const name = String(b.name || x.name || '').trim();
+  if (!name) return '';
+  return tile_({ icon: 'play', label: 'Highlights', note: 'on YouTube',
+                 href: 'https://www.youtube.com/results?search_query=' + encodeURIComponent(name + ' boxing highlights') });
+}
+
 /* ---------- A FILM'S ONE DOOR, IN THE SAME ROW AS ITS STAR ------------------------------------------
    IT WAS DRAWN INSIDE `filmCard_` AS A TILE ROW OF ITS OWN, which gave a film two rows of tiles and a
    fight — the same shape, a thing with one Watch — one. Here it is the fight's tile one kind along.
@@ -641,6 +706,7 @@ function cardActions_(x) {
   if (x.kind === 'level') return levelTiles_(x);
   if (x.kind === 'tool' || x.kind === 'game') return widgetTiles_(x);
   if (x.kind === 'fight') return fightTiles_(x);
+  if (x.kind === 'boxer') return boxerTiles_(x);
   if (x.kind === 'film') return filmTiles_(x);
   /* `me` HAS ONE ACTION, SIGN OUT, AND IT IS IN THE SAME ROW AS THE STAR. It was a row of its own
      under the star — *"why is sign out tile under the favourite tile?"* — which made one card carry
@@ -650,8 +716,13 @@ function cardActions_(x) {
   if (x.kind === 'me') return tile_({ icon: 'out', label: 'Sign out', act: 'signout' });
   if (x.kind === 'receipt') return jobTiles_(x);
   /* A QUESTION'S ONE ACTION IS ITS ANSWER, which is a page of its own now and this is the way to
-     it — `questionTiles_` in find.js. The box, Check and the options stay buttons on the card:
-     answering is a form, and turning to the answer is something done to the thing. */
+     it — `questionTiles_` in find.js. It TURNS TO the answer page and reveals nothing. Every other
+     control on a question's pages is a tile too, on the owner's word (*"it should all be tiles"*) —
+     Check, Mark with AI, the pen's lock, its tools, Undo, Clear, Show and Hide — except the keypad's
+     keys and the multiple-choice options, which are the answer being given rather than things done
+     to it. See `padWrap_` and `choiceBox_` in find.js. */
+  /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART AND IT IS ANSWERED BY TAPPING AN OPTION,
+     `Figure` -- which opens it over the card. A typed box carries it at its own end instead (`ansBox_`). */
   if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
   /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. Collections are gone
      from the funnel (see the note where `collectionAxes_` used to be in find.js): a paper is an
@@ -676,12 +747,19 @@ function cardActions_(x) {
 
    ORDER: pay, then leave. The same order they stood in, and for the same reason — one is what most
    people came to do, the other is looked for deliberately. */
+/* ---------- AND FOR SOMEBODY NOT IN IT, THE ONE ACTION IS GETTING IN ------------------------------
+   THIS RETURNED NOTHING FOR A SESSION THAT IS NOT YOURS, and the way in was `joinBlock` in book.js —
+   a gold button under the paper with a paragraph either side of it. *"The session booking thing at
+   the bottom of receipt should be a line in the booking"*, and *"it should all be tiles"*: so the
+   seats are the receipt's `Sharing` row and getting in is a tile in the same foot as Share, where
+   anybody already on the session finds Pay and Withdraw. Same question — what can you do with this
+   session — answered in one place for everybody who can see it. */
 function jobTiles_(x) {
   const j = x.row || {};
   const id = String(j.id || j.jobId || '');
   if (!id || !USER) return '';
   const mine = (j.slots || []).some(sl => norm(sl.client) === norm(USER.name));
-  if (!mine) return '';
+  if (!mine) return joinTile_(j, id);
   const paid = (j.slots || []).some(sl =>
     norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
   const owed = typeof jobAccepted_ === 'function' && jobAccepted_(j) && !paid;
@@ -692,6 +770,40 @@ function jobTiles_(x) {
     ${tile_({ icon: 'undo', label: 'Withdraw from this',
               act: 'job-leave', data: { id: id, paid: paid ? '1' : '' } })}
   `;
+}
+
+/* ---------- TWO KINDS OF JOINING, AND THEY ARE NOT THE SAME ACT -----------------------------------
+   CARRIED OVER FROM `joinBlock`, WHOSE ARGUMENT IT WAS. A waiting list shows itself to everybody —
+   `joinWaitlist` writes `open_to_others` TRUE and `doGet` sends any open booking with seats left to
+   every client, no names. The fault was the BUTTON: it sent `move`/`Request` for both, which is how
+   you ask to share somebody ELSE'S booking, and on a class that is the wrong act in every
+   particular — there is no family to ask, the seat has a fixed price, and joining writes you your
+   own receipt at that price and records when you can come.
+
+   SO ONE MARK AND TWO WORDS. A person with a plus is `Make an account` on the sign-in card and it is
+   the same gesture here — put me in — so the mark is shared and the LABEL says which act it is:
+   `Take a seat` on a list, `Ask to join` on a session a family booked. Each goes to its own handler
+   in receipt.js, and both turn to the form rather than sending: nothing leaves until the one send
+   button is pressed, with the price and the day questions in front of you.
+
+   `canAsk` IS THE GATE AND IT IS THE SERVER'S. `doGet` computes it — not yours, open, a seat going —
+   *"so the phone does not have to work it out, and so it cannot work it out wrongly and offer a join
+   on something that is not open"*. A full session and one you are already on both offer nothing.
+
+   THE FAINT SENTENCE UNDER THE OLD BUTTON IS THE NOTE. A tile has room for about three words, and
+   each sentence had one fact worth keeping: on a list nobody is charged until it fills, and on a
+   session the family say yes first. The rest of each is said by the form the tile turns to, at the
+   moment it matters — the argument `jobPage_` makes for dropping an admin's paragraph.
+
+   `tone: 'buy'` ON BOTH, because each is the one thing a stranger on this page came to do — the gold
+   `.btn` the block drew said the same, and `Pay` and `Accept` wear it for the same reason. */
+function joinTile_(j, id) {
+  if (!j || !j.canAsk || !id) return '';
+  return norm(j.kind) === 'waitlist'
+    ? tile_({ icon: 'join', label: 'Take a seat', tone: 'buy', note: 'charged once it fills',
+              act: 'job-take-seat', data: { id: id } })
+    : tile_({ icon: 'join', label: 'Ask to join', tone: 'buy', note: 'the family say yes first',
+              act: 'job-join', data: { id: id } });
 }
 
 /* A tap on a tile row that is not on a row. The rows used to sit inside a card whose whole surface

@@ -419,6 +419,31 @@ function serve() {
 /* ---------- THE MEASUREMENTS, RUN INSIDE THE PAGE -----------------------------------------------
    One function, passed whole to the browser, because crossing the boundary per element would turn
    two thousand elements into two thousand round trips. */
+/* ---------- NOTHING IS MEASURED WHILE A COLUMN IS STILL SLIDING ----------------------------------
+   A FIXED WAIT WAS ALL THERE WAS — 450ms after `go`, 500ms after a state's `enter` — and on a loaded
+   machine a column's slide outlasts it. Both geometry rules then read a card part-way to where it was
+   sent: PANE OFF THE SCREEN named eleven panes 5–1949px out in one full run of `--part=2/2` and a
+   different set the next, and COLUMNS OUT OF LINE named `games` 3–42px off the middle with its
+   placed shift EXACTLY the one `columnShift_` asked for and one transition still running on the
+   column (traced on 6 October). Both rules are about where a card RESTS. So: no running animation on
+   any column, no placement booked for the next frame, then two frames — bounded at 4s, after which
+   whatever is there is measured and reported as it is. */
+async function settled(page) {
+  try {
+    await page.evaluate(async () => {
+      const t0 = performance.now();
+      for (;;) {
+        const moving = [...document.querySelectorAll('#screen > .screen, .screen')].some(c =>
+          typeof c.getAnimations === 'function' && c.getAnimations().some(a => a.playState === 'running'));
+        const booked = typeof PLACE_FRAME !== 'undefined' && !!PLACE_FRAME;
+        if ((!moving && !booked) || performance.now() - t0 > 4000) break;
+        await new Promise(r => setTimeout(r, 50));
+      }
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    });
+  } catch (e) { /* a page that cannot answer is measured as it stands */ }
+}
+
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
   const found = { overflow: [], hidden: [], offscreen: [], strays: [], shrunk: [],
@@ -565,6 +590,19 @@ function inspect(opts) {
        working. */
     if (!el.children.length && /ellipsis/.test(s.textOverflow || '')
         && /hidden|clip/.test(s.overflowX)) continue;
+    /* ---------- AND TEXT KEPT FOR A SCREEN READER IS THE THIRD WAY OF BEING TOLD -------------------
+       THE VISUALLY-HIDDEN PATTERN — a 1px box, `overflow: hidden`, `clip-path: inset(50%)` — is a
+       declaration that the words are NOT to be seen: they are there for a screen reader, and the box
+       is made too small for them on purpose. `scrollWidth` reports the words as overflowing the 1px
+       they were put in, which is the pattern working, exactly as the ellipsis above was. Nothing of
+       it is painted, so nothing can be dragged into view.
+
+       IT ARRIVED WITH THE BOXER'S BOUTS. The W / L square was `aria-label` on a bare `<span>`, which
+       most screen readers ignore, so it is hidden from them and a word they do read stands beside it
+       (`.boxer-say`) — and this rule reported "Won, " as a 24px sideways scroll on every fights page.
+       NARROW ON PURPOSE: clipped to nothing AND no wider than a pixel, so `overflow: hidden` on any
+       visible box is still the fault it always was. */
+    if (/inset\(50%\)/.test(s.clipPath || '') && el.getBoundingClientRect().width <= 1.5) continue;
     const over = el.scrollWidth - el.clientWidth;
     if (over > 1 && el.clientWidth > 0) {
       const box = el.getBoundingClientRect();
@@ -636,8 +674,20 @@ function inspect(opts) {
   const panes = live && live.querySelectorAll ? [...live.querySelectorAll('.pane')] : [];
   for (const el of panes) {
     const zk = el.firstElementChild && parseFloat(el.firstElementChild.style.zoom);
-    if (zk > 0 && zk < 1) found.shrunk.push({ cls: String(el.firstElementChild.className || '')
-      .split(/\s+/)[0], z: zk });
+    /* ---------- A PAGE ALREADY CUT TO THE SCREEN IS NOT ALLOWED THE ZOOM -------------------------
+       THE ZOOM IS THE APP'S ANSWER TO A CARD NOBODY SIZED, and it is a known cost for those. A page
+       of the Bible was sized: each book is measured on the screen it is opened on and cut in pixels
+       (`bibleMeasure_` in find.js), its lists are split to fit and its grid is whole rows of the
+       pane. So one of them drawn smaller is the cut being wrong, which this listed as "known" for as
+       long as it was — 57 of Genesis's 326 pages at 320, the worst at 81% — and nobody read it.
+       ONE EXCEPTION, AND IT IS THE TEXT'S: a page holding a single verse taller than the screen
+       (Esther 8:9 at 320) cannot be cut, so it is left to the zoom like any card. */
+    if (zk > 0 && zk < 1) {
+      const card = el.firstElementChild;
+      const cut = card.classList.contains('bible') && card.querySelectorAll('.bb-v').length !== 1;
+      found.shrunk.push({ cls: cut ? [...card.classList].filter(c => /^(bible|bb-|is-)/.test(c)).join('.')
+                                   : String(card.className || '').split(/\s+/)[0], z: zk, cut });
+    }
     const s2 = getComputedStyle(el);
     if (/(auto|scroll)/.test(s2.overflowY)) continue;
     const under = el.scrollHeight - el.clientHeight;
@@ -706,7 +756,8 @@ function inspect(opts) {
      other here, which is the half that matters: a head that does not sit over its column is exactly
      as much a finding as a value that does not.
 
-     THE WEEK IS THE ONE EXEMPTION AND ONLY ON ONE EDGE. `.bk-row.bk-wk .bk-v` spans two tracks
+     THE WEEK IS ONE OF TWO EXEMPTIONS AND ONLY ON ONE EDGE (the other is a waiting list's tally,
+     beside it below, for the same reason). `.bk-row.bk-wk .bk-v` spans two tracks
      deliberately — ten pressable hours do not fit in the answer column, and the arithmetic is in
      style.css beside the declaration — so its RIGHT edge is allowed to differ and its LEFT edge is
      not, because the left edge is the one the eye tracks down the card.
@@ -727,6 +778,14 @@ function inspect(opts) {
           if (!b.width && !b.height) continue;            // display:none has no box to be wrong
           /* THE WEEK'S RIGHT EDGE, EXEMPT WITH ITS REASON ABOVE. */
           if (edge === 'right' && col === 'bk-v' && row.classList.contains('bk-wk')) continue;
+          /* ---------- AND A WAITING LIST'S TALLY, ON THE SAME EDGE FOR THE WEEK'S REASON ----------
+             `.bk-row.bk-tally .bk-v` IS A CHART, NOT A VALUE: `Can come`'s bars, one per block the
+             families offered, with `Wednesday afternoon` written on the longest. In the answer column
+             alone they were 71px at 390 and the words were clipped by their own bars — measured on
+             the first screenshot — so the row takes the three figure tracks it has nothing to put
+             in. Its LEFT edge is still asked, because that is where every answer starts and the
+             edge the eye runs down; a tally that started anywhere else would be named here. */
+          if (edge === 'right' && col === 'bk-v' && row.classList.contains('bk-tally')) continue;
           /* AND A TOTAL'S LABEL, ON THE SAME EDGE AND FOR THE SAME KIND OF REASON. `.rc-total .bk-k`
              spans every track but the figure's, so `CLIENT PAYS` and `TUTOR EARNS` cannot widen the
              question column and wrap every answer on the card — see the note beside it in
@@ -1210,9 +1269,22 @@ function inspect(opts) {
         /* AND IT HAS TO HAVE ARRIVED. A state that silently did not happen leaves this measuring
            the previous one twice and reporting it as coverage — which is the whole fault this file
            exists to stop repeating. */
+        /*
+       ASKED AGAIN FOR UP TO 2.5s, NOT ONCE. Several states finish their `enter` on a timer of their
+       own — `setTimeout(…, 150)` before the real press, so the card is placed first — and on a loaded
+       machine that timer, the press and the paint behind it outlast the fixed wait above. Measured on
+       6 October with `check/press.js --screen=stuff`: "a typed answer, marked not yet" did not arrive
+       on 1 run in 2 on the base commit and on this branch alike, with nothing wrong in the app. A
+       state that never arrives still fails, after the 2.5s; one that arrives late is measured. */
         if (state.expect) {
-          const got = await page.evaluate(src => {
-            try { return (0, eval)('(' + src + ')')(); } catch (e) { return 0; }
+          const got = await page.evaluate(async src => {
+            const t0 = performance.now();
+            for (;;) {
+              let ok = 0;
+              try { ok = (0, eval)('(' + src + ')')(); } catch (e) {}
+              if (ok || performance.now() - t0 > 2500) return ok;
+              await new Promise(r => setTimeout(r, 100));
+            }
           }, String(state.expect));
           if (!got) {
             console.warn(`  ! "${label}" at ${width}px was entered and shows no ${state.wants} — `
@@ -1258,6 +1330,7 @@ function inspect(opts) {
           continue;
         }
 
+        await settled(page);
         const { found, counted, guessed } = await page.evaluate(inspect,
           { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
         if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
@@ -1376,9 +1449,23 @@ function inspect(opts) {
 
        THE TOLERANCE IS SUB-PIXEL LAYOUT AND NOTHING ELSE. Measured across the three sizes the
        spread is 0.3–0.5px, which is `offsetTop` rounding; 2px leaves room for that and no room for
-       a card placed by a different rule. */
+       a card placed by a different rule.
+
+       ---------- AND THE LINE IS THE MIDDLE OF THE SCREEN NOW ------------------------------------
+       ASKED FOR ON 5 OCTOBER: *"focused widgets should be in centre of screen. also those widgets
+       not in focus should actually look slightly out of focus effect."* So `columnShift_` centres the
+       card in front again, and the cards beside it are drawn out of focus, which is what makes two
+       neighbours of different heights read as depth rather than as an edge out of step. THE SAME
+       INSTRUMENT, RESTATED: every column's current card has its CENTRE on the middle of `#screen`,
+       within the same 2px — so a column placed by any other rule (the old top line, a stray offset)
+       is still named, with how far off it is. A card as tall as the screen or taller is skipped:
+       it cannot be centred and is placed at its top. */
+    await settled(page);
     const ragged = await page.evaluate(() => {
-      const tops = [];
+      const offs = [];
+      const sc = document.getElementById('screen');
+      if (!sc) return null;
+      const box = sc.getBoundingClientRect(), mid = box.top + box.height / 2;
       document.querySelectorAll('.screen').forEach(s => {
         const id = s.id.slice(2);
         const pages = s.querySelectorAll(':scope > .page');
@@ -1387,12 +1474,13 @@ function inspect(opts) {
         try { at = domIndex_(id, PAGE[id] || 0); } catch (e) { at = 0; }
         const cur = pages[Math.max(0, Math.min(pages.length - 1, at))];
         if (!cur) return;
-        tops.push({ id, top: +cur.getBoundingClientRect().top.toFixed(1) });
+        const r = cur.getBoundingClientRect();
+        if (r.height >= box.height) return;
+        offs.push({ id, off: +(r.top + r.height / 2 - mid).toFixed(1) });
       });
-      if (tops.length < 2) return null;
-      const lo = tops.reduce((a, b) => a.top < b.top ? a : b);
-      const hi = tops.reduce((a, b) => a.top > b.top ? a : b);
-      return { by: +(hi.top - lo.top).toFixed(1), lo, hi, n: tops.length };
+      if (!offs.length) return null;
+      const worst = offs.reduce((a, b) => Math.abs(a.off) >= Math.abs(b.off) ? a : b);
+      return { by: Math.abs(worst.off), worst, n: offs.length };
     });
     if (ragged && ragged.by > 2) rows.push({ width, id: '—', as: who.as, ragged });
 
@@ -1491,8 +1579,8 @@ function inspect(opts) {
       + `children ${r.docScroll.kids}`,
       `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
     if (r.ragged) add('COLUMNS OUT OF LINE',
-      `the current card starts ${r.ragged.by}px apart across ${r.ragged.n} columns — `
-      + `${r.ragged.hi.id} at ${r.ragged.hi.top}, ${r.ragged.lo.id} at ${r.ragged.lo.top}`,
+      `the current card is not on the middle of the screen across ${r.ragged.n} columns — `
+      + `${r.ragged.worst.id}'s centre is ${r.ragged.worst.off}px from it`,
       `${r.width}px${r.as === 'in' ? ' signed in' : ''}`);
     /* THE SCREEN NEVER DREW. Grouped like the rest so one broken card across four widths and two
        visitors is one line to fix rather than eight, and so it is counted exactly once. */
@@ -1525,7 +1613,12 @@ function inspect(opts) {
       `.${o.col} ${o.edge} edge varies by ${o.by}px down one card — "${o.hi}" against "${o.lo}"`, at));
     (r.offscreen || []).forEach(o => add('PANE OFF THE SCREEN',
       `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} (${o.height}px) sits ${o.by}px outside the viewport`, at));
-    (r.shrunk || []).forEach(o => add('CARD DRAWN SMALLER TO FIT (known)',
+    (r.shrunk || []).filter(o => o.cut).forEach(o => add('A PAGE CUT TO THE SCREEN, DRAWN SMALLER',
+      `.${o.cls} at ${Math.round(o.z * 100)}%`, at,
+      `A BIBLE PAGE IS MEASURED AND CUT TO THE PANE IT IS READ IN (\`bibleMeasure_\` and \`bibleCut_\` in `
+      + `find.js), so \`paneReach_\` should never have to shrink one. One that it did is a page whose cut `
+      + `was wrong — the reading size changing from one page to the next, and its taps under 44px.`));
+    (r.shrunk || []).filter(o => !o.cut).forEach(o => add('CARD DRAWN SMALLER TO FIT (known)',
       `.${o.cls || 'card'} at ${Math.round(o.z * 100)}%`, at,
       `ASKED FOR: "I don't like scrolling. If you need to leave things more compact or smaller font. `
       + `This goes for all widgets so they all fit on screen." \`paneReach_\` in find.js shrinks a card `

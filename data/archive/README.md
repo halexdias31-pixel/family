@@ -24,6 +24,18 @@ distinction this folder draws is exactly "read by the app" against "kept so it i
 | `verbs-command.json` | `Verbs command` | 12 | exam command words — Examine, Evaluate, Analyse — and what each board means by them |
 | `library-readme.json` | `_README` | 8 | the tab-colour guide that sat at the front of the spreadsheet |
 
+## `bible.json` STAYS HERE AND IS THE SOURCE OF `data/bible/`
+
+Asked for as *"i want to add the bible to resources as a book. but only admin can see the bible."*
+The app still reads nothing in this folder: `tools/bible-split.py` reads `bible.json` and writes
+`data/bible/` — one compact file per book (`{book, testament, chapters: [[verse, …], …]}`, one
+chapter per line) and a 7 KB `index.json` — and that is what an admin's Find fetches, a book at a
+time. The ten megabytes here stay as the source; re-run the script after any change to it.
+`js/check-bible.js` compares every one of the 31,102 verses between the two, in order.
+
+The text is copied as it is. `[was]` marks the KJV's italic (supplied) words, which the reader
+draws in italics, and a leading `# ` is the 1611 pilcrow, where the reader starts a paragraph.
+
 ## `topicstuff` HAS LEFT THIS FOLDER — it is `data/topics.json` now
 
 CLAUDE.md recorded that the funnel's `Topic` facet read a free-text cell with **389 distinct

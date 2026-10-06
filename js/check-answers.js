@@ -58,8 +58,6 @@ const LIMIT = 120;
 const ACCEPTED = {
   'Q-AQA-8464B-2406-1H-014': 'two enzymes, each with where it is made and what it makes, is the question: '
     + 'cutting "small intestine" to "gut" to fit would be wrong in the mark scheme\'s own terms',
-  'Q-CBM-cube-numbers-15': 'the result IS the long thing: a 677-digit number the sheet asked for, '
-    + 'which no rewording can shorten and no fold should hide',
 };
 
 const src = fs.readFileSync(path.join(__dirname, 'find.js'), 'utf8');

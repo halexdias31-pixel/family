@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-05-e-qualchip";
+const DOGET_VERSION = "2026-10-06-b-chatmedia";
 
 
 function doGet(e) {
@@ -475,6 +475,11 @@ function doGet(e) {
                  /* The Timetable widget's week, kept on the account. */
                  'saveTimetable',
                  'listRecords', 'saveRecordsPage',
+                 /* The weekly parent email's Preview — the card asks before it posts, so a backend
+                    synced before backend/digest.gs existed says so rather than "not recognised". */
+                 'digestPreview',
+                 /* Tools → Check uploads, so a backend without it says so rather than "not recognised". */
+                 'checkUploads',
                  /* The site checks for this to decide whether it may offer the picker. */
                  'folderFiles',
                  /* `likePost` is deliberately absent. The site checks this list, so a stale copy

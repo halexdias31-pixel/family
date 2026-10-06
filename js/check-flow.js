@@ -91,7 +91,13 @@ function payload() {
       price: 19, tutorPay: 0, location: 'Colliers Wood Library', venue: 'Colliers Wood Library',
       tutor: '', day: '', time: '', weeks: 0, dates: '', maxKids: 4, currentKids: 2,
       slots: [seat('Waiting', 'Danile Cristina'), seat('Waiting', 'Phoebe Wickes')],
-      tutorSlots: [], events: [], canAsk: true, seatsGoing: 2, openToOthers: true },
+      tutorSlots: [], events: [], canAsk: true, seatsGoing: 2, openToOthers: true,
+      /* `whenCould` IS WHAT `doGet` SENDS ON EVERY WAITING LIST — `waitlistWhen`'s tally of the two
+         families' own answers, most popular first — and this list never carried one, so the only
+         thing on the page that answers the tutor's question was drawn by no journey here. The
+         shape is the backend's: `people` who answered, and each phrase with its count. */
+      whenCould: { people: 2, slots: [{ slot: 'Monday evening', n: 2, all: true },
+                                      { slot: 'Saturday morning', n: 1, all: false }] } },
   ];
   /* ---------- `client` IS SENT AND THIS PAYLOAD DID NOT SEND IT --------------------------------
      `doget.gs` CARRIES A NOTE ABOUT THIS EXACT FIELD: *"`myJobs_` ON THE PHONE FILTERS ON
@@ -179,7 +185,24 @@ function boot(opts) {
   w.prompt = () => opts.prompt !== undefined ? opts.prompt : 'Weekday evenings';
 
   const data = opts.payload || payload();
+  /* ---------- EVERY GET IS WRITTEN DOWN, AND A JOURNEY MAY ANSWER ONE ITSELF ------------------------
+     THE STUB ANSWERED EVERY GET WITH THE PAYLOAD, so a journey could neither serve a real file nor
+     ask what was asked for. The Bible needs both: an admin's reader has to be handed the real
+     `data/bible/` files, and "a student never downloads a book" is a question about what was
+     FETCHED, which only a list of fetches can answer. `serve` returns a body, `null` for a 404, or
+     `undefined` to fall through to the payload as before — so every other journey is unchanged. */
+  const gets = [];
   w.fetch = (url, o) => {
+    if (!(o && o.body)) {
+      gets.push(String(url));
+      const got = typeof opts.serve === 'function' ? opts.serve(String(url)) : undefined;
+      /* A PROMISE IS A FILE THAT ARRIVES WHEN THE JOURNEY SAYS — the slow network, on demand. */
+      const answer = v => (v === null
+        ? { ok: false, status: 404, text: () => Promise.resolve('Not found'), json: () => Promise.reject(new Error('404')) }
+        : { ok: true, status: 200, text: () => Promise.resolve(JSON.stringify(v)), json: () => Promise.resolve(v) });
+      if (got && typeof got.then === 'function') return got.then(answer);
+      if (got !== undefined) return Promise.resolve(answer(got));
+    }
     /* ---------- THE STUB HAD NO `text()`, AND THAT HID EVERY WRITE'S SUCCESS PATH ----------------
        `api()` IN shell.js READS `r.text()` AND PARSES IT, deliberately — an Apps Script error page
        is HTML, and reading it as text first is what turns "Unexpected token '<'" into the sentence
@@ -231,6 +254,9 @@ function boot(opts) {
   try {
     w.eval(src + '\n;window.__t = {' +
       'go, USER: v => { USER = v; }, whoami: () => USER, ACTIONS, BOOKING, STEPS: BOOK_STEPS, isTutorRole,' +
+      /* WHETHER EVERYTHING BOOKED FOR AFTER A SLIDE HAS RUN, the widget queue included — `woken_`
+         below. A function, because a `let` inside this eval is not reachable from a second one. */
+      'quiet: () => !AFTER_SLIDE && !AFTER_SLIDE_JOBS.size && !(typeof TOOLS_WAIT !== "undefined" && TOOLS_WAIT.length),' +
       /* THE REAL TAB LIST, so a journey asking "does every tab draw" cannot be asking about tabs
          that no longer exist. It has been wrong twice from being written out by hand. */
       'TABS, wgChosen: () => wgChosen_(),' +
@@ -317,6 +343,12 @@ function boot(opts) {
          as the press path. Without it only `padArm_` could be checked — and a `padWrap_` that got
          the armed case wrong would put the fault straight back on the next repaint. */
       'padOn: v => { PAD_ON = v; },' +
+      /* AND THE PAD'S KEY, a `const` arrow, so a journey can arm a pad by the key its marks are kept
+         under -- and read those marks back -- without writing the key's format out a second time. */
+      'padKey: typeof padKey_ === "function" ? padKey_ : null,' +
+      /* WHICH TOOL EACH PAD HOLDS, a `const` Map -- so a journey can leave a stale choice behind and
+         ask whether the bar, not the Map, decides what a drag draws. */
+      'padTool: () => (typeof PAD_TOOL !== "undefined" ? PAD_TOOL : null),' +
       /* THE CARD ON THE 📷 COLUMN. It was `newPostCard`, which no longer exists — it was a heading,
          a sentence and a tap target, and it is a button on the camera now. The rule the journey
          below checks is unchanged: a client and an admin are told different things. */
@@ -425,6 +457,14 @@ function boot(opts) {
       /* FIND'S OWN STATE — the search words and the chips. A `const`, so only a function built in
          this evaluation can hand it over; the textbook journey types into `q` the way the box does. */
       'STUFF: () => STUFF,' +
+      /* THE BIBLE READER'S STATE — a `const`, so a getter built here (see `STUFF`): which book is open,
+         whether the index landed, which book failed. The Bible journey asks it rather than the DOM
+         where the DOM cannot say, such as whether a failure changed the open book. */
+      'BIBLE: () => (typeof BIBLE !== "undefined" ? BIBLE : null),' +
+      /* A FACET BY ITS FIELD -- a `const` arrow, so only this evaluation can hand it over. The tag-row
+         journey asks the `needs` facet's `showOf` whether the funnel says the calculator the way the
+         card's tag does. */
+      'facetBy: f => facetBy(f),' +
       /* THE MESSAGES COLUMN'S STATE, SEEDED AS AN ANSWER JUST ARRIVED — the same five lets
          `check/states.js` sets in a browser, and for the same reason they are set together: a seed
          that leaves `DM_LAST` alone is one poll away from being replaced by the stub's empty answer.
@@ -446,7 +486,8 @@ function boot(opts) {
   } catch (e) {
     errs.push('LOAD THREW: ' + e.message);
   }
-  return { w, sent, errs };
+  LAST_W = w;
+  return { w, sent, errs, gets };
 }
 
 /* ---------- THE JOURNEYS -------------------------------------------------------------------------
@@ -1162,106 +1203,315 @@ check('a settings save still works against a server older than the site', async 
   return bad;
 });
 
-/* ---------- THE QUALIFICATIONS SHELF: TEACH ON SEVERAL LEVELS, CANCEL, REMOVE, ADD, THE CAP ----------
-   REPORTED AS *"the current system for adding qualifications is really hard to understand"*, and the
-   shelf was rebuilt as a read list with one editor at a time. What the rebuild must not lose is the
-   data underneath it, so this drives the page's own handlers and reads the seven hidden and visible
-   `data-me` boxes of each slot — the exact fields `me-save` posts and `qualsIn` rebuilds rows from:
-   - Teach pressed on two levels leaves BOTH Teach (and Can teach) — *"when i tick teach for different
-     levels of same subject it unticks the other one. i dont want that"* — and `No` on one leaves the
-     other alone;
-   - Cancel puts back what `Edit` found;
-   - Remove blanks all seven boxes of its slot and SAVES, so `qualsIn` drops the record;
-   - `+ Add a Maths level` writes Maths into the new slot's hidden name, so it is never typed again;
-   - at ten records there is no add button anywhere, and the count line says why. */
-check('the qualifications shelf keeps Teach per level, cancels, removes, adds and stops at ten', async () => {
+/* ---------- THE QUALIFICATIONS CARD: ONE LINE A QUALIFICATION, EDITED IN PLACE, SAVED AS YOU GO ----------
+   ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take up
+   less space"*. The card is a line per qualification in the profile chip's notation, a line opens its
+   editor under itself, every answer chosen is saved, and one `+` adds. What none of that may lose is
+   the data underneath — so these drive the page's own handlers and read the seven `data-me` boxes of
+   each slot and the fields each save POSTS, which are what `qualsIn` rebuilds the rows from.
+
+   ONE TUTOR FOR ALL FOUR: Maths and Physics at GCSE and A-Level, English Literature at GCSE, a degree
+   still being studied, and an Enhanced DBS — the shelf a real tutor has, plus the two shapes the
+   notation draws differently. Seven records, so three slots are left in the pool. */
+const QUAL_TUTOR = {
+  qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_board: 'Hill Top School', qual_1_received: '2016', qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+  qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2018', qual_2_teach: 'TRUE', qual_2_spec: 'TRUE',
+  qual_3: 'Physics', qual_3_level: 'GCSE', qual_3_grade: '8', qual_3_received: '2016', qual_3_teach: 'TRUE', qual_3_spec: 'FALSE',
+  qual_4: 'Physics', qual_4_level: 'A-Level', qual_4_grade: 'A', qual_4_board: 'Hill Top Sixth Form', qual_4_received: '2018', qual_4_teach: 'TRUE', qual_4_spec: 'FALSE',
+  qual_5: 'English Literature', qual_5_level: 'GCSE', qual_5_grade: '7', qual_5_received: '2016',
+  qual_6: 'Bible and Theology', qual_6_level: "Bachelor's degree", qual_6_received: 'Present',
+  qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025',
+};
+async function qualCard_(profile) {
   const quals = [];
   for (let i = 1; i <= 10; i++) ['', '_level', '_board', '_grade', '_received', '_teach', '_spec'].forEach(k => quals.push('qual_' + i + k));
-  const start = profile => {
-    const b = boot({ payload: Object.assign(payload(), { profileFields: { Qualifications: quals } }),
-                     reply: { success: true, changed: 0 } });
-    return wait(300).then(() => {
-      b.w.__t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk',
-                     profile: Object.assign({ first_name: 'Test', last_name: 'Admin', phone_cc: '+44' }, profile) });
-      b.w.__t.go('settings', false, true); b.w.paint('settings');
-      return wait(300).then(() => b);
-    });
-  };
-  let b;
-  try {
-    b = await start({ qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8',
-                      qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B' });
-  } catch (e) { return ['drawing settings threw: ' + e.message]; }
-  const { w, sent } = b;
-  const t = w.__t, d = w.document;
-  const A = (act, el) => t.ACTIONS[act](el);
-  const shelf = () => d.querySelector('#s-settings .q-shelf');
-  const slot = i => shelf() && shelf().querySelector('.q-slot[data-slot="' + i + '"]');
-  const box = (i, k) => (slot(i) || d).querySelector('[data-me="qual_' + i + k + '"]') || {};
-  const seg = (i, v) => slot(i).querySelector('[data-do="qual-teach"][data-v="' + v + '"]');
-  const bad = [];
-  if (!slot(1) || !slot(2)) return ['the qualifications shelf has no slot 1 or 2 to work on'];
-  if (d.querySelectorAll('#s-settings [data-me^="qual_"]').length !== 70) bad.push('the form does not hold all seventy qual_ boxes');
-
-  /* CANCEL: open the A-Level, change its level and its teaching, cancel, and the slot is as it was. */
-  A('qual-edit', slot(2).querySelector('[data-do="qual-edit"]'));
-  if (!slot(2).classList.contains('is-editing')) bad.push('Edit did not open the A-Level editor');
-  box(2, '_level').value = 'AS';
-  A('qual-teach', seg(2, 'spec'));
-  A('qual-cancel', slot(2).querySelector('[data-do="qual-cancel"]'));
-  if (box(2, '_level').value !== 'A-Level' || box(2, '_spec').value !== 'FALSE' || box(2, '_teach').value !== 'FALSE') {
-    bad.push('Cancel did not put the A-Level back (level ' + box(2, '_level').value + ', spec ' + box(2, '_spec').value + ')');
-  }
-  if (shelf().querySelector('.is-editing') || shelf().classList.contains('is-editing')) bad.push('Cancel left an editor open');
-
-  /* TEACH ON TWO LEVELS: both stay Teach, and Teach is Can teach as well. */
-  A('qual-teach', seg(1, 'spec'));
-  A('qual-teach', seg(2, 'spec'));
-  if (box(1, '_spec').value !== 'TRUE' || box(2, '_spec').value !== 'TRUE') bad.push('Teach on a second level took Teach off the first');
-  if (box(1, '_teach').value !== 'TRUE' || box(2, '_teach').value !== 'TRUE') bad.push('Teach did not carry Can teach with it');
-  /* AND `No` ON ONE LEAVES THE OTHER ALONE. */
-  A('qual-teach', seg(1, 'no'));
-  if (box(1, '_spec').value !== 'FALSE' || box(1, '_teach').value !== 'FALSE') bad.push('No did not set both of its level\'s boxes to FALSE');
-  if (box(2, '_spec').value !== 'TRUE' || box(2, '_teach').value !== 'TRUE') bad.push('No on one level changed the other');
-
-  /* ADD A LEVEL: the subject goes into the new slot's hidden name. */
-  const maths = [...shelf().querySelectorAll('.q-subj')].find(sj => sj.dataset.name === 'Maths');
-  const add = maths && maths.querySelector('[data-do="qual-add-level"]');
-  if (!add) bad.push('Maths has no "+ Add a Maths level"');
-  else {
-    A('qual-add-level', add);
-    const fresh = shelf().querySelector('.q-slot.is-editing');
-    const n = fresh && fresh.dataset.slot;
-    if (!fresh || box(n, '').value !== 'Maths') bad.push('a level added under Maths does not carry Maths into its qual_N');
-    if (fresh) A('qual-cancel', fresh.querySelector('[data-do="qual-cancel"]'));
-    if (n && box(n, '').value !== '') bad.push('Cancel on a new level did not send it back to the pool empty');
-  }
-
-  /* REMOVE: the level's seven boxes are posted blank, so `qualsIn` drops it. */
-  sent.length = 0;
-  A('qual-drop', slot(1).querySelector('[data-do="qual-drop"]'));
+  const b = boot({ payload: Object.assign(payload(), { profileFields: { Qualifications: quals } }),
+                   reply: { success: true, changed: 1 } });
   await wait(300);
-  const post = sent.find(x => x.action === 'updateProfile');
-  if (!post) bad.push('Remove this level did not save');
+  b.w.__t.USER({ name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'], token: 'tk',
+                 profile: Object.assign({ first_name: 'Ada', last_name: 'Tutor', phone_cc: '+44' }, profile || QUAL_TUTOR) });
+  b.w.__t.go('settings', false, true); b.w.paint('settings');
+  await wait(300);
+  const d = b.w.document;
+  const q = {
+    b, w: b.w, d, sent: b.sent,
+    A: (act, el) => b.w.__t.ACTIONS[act](el),
+    shelf: () => d.querySelector('#s-settings .q-shelf'),
+    slot: i => q.shelf() && q.shelf().querySelector('.q-slot[data-slot="' + i + '"]'),
+    box: (i, k) => (q.slot(i) || d).querySelector('[data-me="qual_' + i + k + '"]') || {},
+    line: i => q.slot(i) && q.slot(i).querySelector(':scope > .q-line'),
+    seg: (i, v) => q.slot(i).querySelector('[data-do="qual-teach"][data-v="' + v + '"]'),
+    /* A PICK FROM A LIST, the way `sel-pick` makes one: the value, then `input` and `change`. */
+    pick: (el, v) => { el.value = v; el.dispatchEvent(new b.w.Event('input', { bubbles: true }));
+                       el.dispatchEvent(new b.w.Event('change', { bubbles: true })); },
+    posts: () => b.sent.filter(x => x.action === 'updateProfile'),
+    last: () => { const p = q.posts(); return (p[p.length - 1] || {}).fields || null; },
+    said: () => String((d.getElementById('toast') || {}).textContent || ''),
+  };
+  return q;
+}
+check('the qualifications card reads one line a qualification, written as the profile chip writes it', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  const shelf = q.shelf();
+  if (!shelf) return ['there is no qualifications card on the settings column'];
+  if (q.d.querySelectorAll('#s-settings [data-me^="qual_"]').length !== 70) bad.push('the form does not hold all seventy qual_ boxes');
+  const lines = [...shelf.querySelectorAll('.q-list .q-line')];
+  if (lines.length !== 7) bad.push('seven qualifications drew ' + lines.length + ' lines, not one each');
+  /* THE SUBJECT ONCE, AT THE HEAD OF ITS OWN LINES. */
+  const named = lines.map(l => l.querySelector('.q-who').textContent.trim()).filter(Boolean);
+  const want = ['Maths', 'Physics', 'English Literature', 'Bible and Theology', 'DBS'];
+  if (JSON.stringify(named) !== JSON.stringify(want)) bad.push('the subjects named on the lines are ' + JSON.stringify(named) + ', not each once in order');
+  if (!q.line(2) || q.line(2).querySelector('.q-who').textContent.trim()) bad.push('Maths A-Level repeats its subject');
+  /* THE LEVEL RAISED OVER THE GRADE, in the profile chip's own `.prof-iso`. */
+  const iso = i => { const s = q.line(i) && q.line(i).querySelector('.prof-iso');
+    return s ? [...s.children].map(c => c.tagName + ':' + c.innerHTML).join(' ') : 'plain'; };
+  if (iso(1) !== 'SUP:GCSE SUB:9') bad.push('Maths GCSE 9 is drawn as ' + iso(1) + ', not the level raised over the grade');
+  if (iso(2) !== 'SUP:A-Level SUB:A*') bad.push('Maths A-Level A* is drawn as ' + iso(2));
+  if (iso(6) !== "SUP:Bachelor's degree SUB:<i>studying</i>") bad.push('a degree still being studied is drawn as ' + iso(6) + ', not "studying" in the grade\'s place');
+  /* A CERTIFICATE IS WRITTEN PLAIN, as on the card. */
+  if (iso(7) !== 'plain' || (q.line(7).querySelector('.q-plain') || {}).textContent !== 'Enhanced') bad.push('the Enhanced DBS is drawn as notation rather than plain');
+  /* TEACH AS THE GOLD CHIP, CAN TEACH AS A WORD, NOTHING FOR NOT TEACHING. */
+  const mark = i => { const m = q.line(i).querySelector('.q-mark'); return m.querySelector('.q-chip') ? 'chip' : m.textContent.trim(); };
+  const marks = [1, 2, 3, 4, 5].map(mark);
+  if (JSON.stringify(marks) !== JSON.stringify(['chip', 'chip', 'Can teach', 'Can teach', ''])) bad.push('the teaching marks read ' + JSON.stringify(marks));
+  /* WHAT THE FACE LEAVES OFF IS IN THE LINE'S NAME. */
+  const name = q.line(1).getAttribute('aria-label') || '';
+  if (!/Hill Top School/.test(name) || !/2016/.test(name) || !/teach/.test(name)) bad.push('the Maths GCSE line is named "' + name + '", without its school, year and teaching');
+  /* NOTHING TO PRESS BUT THE LINES AND THE `+`, and nothing open. */
+  const acts = [...new Set([...shelf.querySelectorAll('[data-do]')].filter(b => !b.closest('.q-ed, .q-pool')).map(b => b.dataset.do))].sort();
+  if (JSON.stringify(acts) !== JSON.stringify(['qual-add', 'qual-open'])) bad.push('the read card offers ' + JSON.stringify(acts) + ', not the lines and one +');
+  const add = shelf.querySelector('[data-do="qual-add"]');
+  if (!add || !add.classList.contains('tile') || add.disabled) bad.push('the + is not a live tile');
+  if (shelf.querySelector('.is-open') || shelf.querySelector('input[type="checkbox"]')) bad.push('the card arrived with a line open, or with a checkbox on it');
+  return bad;
+});
+check('a qualification opens in place, and each answer is saved as it is chosen', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  if (!q.slot(4) || !q.slot(5)) return ['the card has no Physics A-Level or English GCSE to work on'];
+  /* ONE TAP OPENS IT, and only it. */
+  q.A('qual-open', q.line(5));
+  q.A('qual-open', q.line(4));
+  const open = [...q.shelf().querySelectorAll('.q-slot.is-open')].map(s => s.dataset.slot);
+  if (JSON.stringify(open) !== '["4"]') bad.push('opening Physics A-Level after English left ' + JSON.stringify(open) + ' open');
+  if (q.line(4).getAttribute('aria-expanded') !== 'true') bad.push('the open line does not say it is expanded');
+  /* A GRADE CHOSEN IS A GRADE SAVED — no Save to find. */
+  q.sent.length = 0;
+  const saidLine = q.shelf().closest('.me-form').querySelector('.me-said');
+  if (saidLine) saidLine.textContent = 'An old refusal';
+  q.pick(q.box(4, '_grade'), 'A*');
+  await wait(300);
+  let f = q.last();
+  if (!f) bad.push('choosing a grade saved nothing');
+  /* THE TOAST IS THE RECEIPT; THE LINE UNDER THE CARD IS FOR A REFUSAL. *Walked:* "Saved" stood under the
+     card for the rest of the session beside a toast saying the same. A success clears the line —
+     including a refusal left there by a save that failed. */
+  const saidNow = q.shelf().closest('.me-form').querySelector('.me-said');
+  if (!saidNow || saidNow.textContent !== '') bad.push('after a save the line under the card says "' + (saidNow && saidNow.textContent) + '", not nothing');
   else {
-    const f = post.fields || {};
-    const blank = ['', '_level', '_grade', '_board', '_received'].every(k => f['qual_1' + k] === '')
-               && f.qual_1_spec === 'FALSE' && f.qual_1_teach === 'FALSE';
-    if (!blank) bad.push('Remove posted slot 1 as ' + JSON.stringify(['', '_level', '_grade', '_spec'].map(k => f['qual_1' + k])));
-    if (Object.keys(f).filter(k => /^qual_/.test(k)).length !== 70) bad.push('Remove did not post all seventy qual_ boxes');
-    if (f.qual_2_level !== 'A-Level') bad.push('Remove took the other level with it');
+    if (f.qual_4_grade !== 'A*' || f.qual_4_level !== 'A-Level' || f.qual_4 !== 'Physics') bad.push('the grade posted Physics as ' + JSON.stringify([f.qual_4, f.qual_4_level, f.qual_4_grade]));
+    if (Object.keys(f).filter(k => /^qual_/.test(k)).length !== 70) bad.push('the grade did not post all seventy qual_ boxes');
   }
-
-  /* TEN RECORDS: no add button anywhere, and the count line says so. */
+  if (!q.slot(4).classList.contains('is-open')) bad.push('the line shut after its grade was saved, so a second answer means opening it again');
+  if (!q.d.querySelector('#s-settings .q-shelf').closest('.me-form').dataset.dirty) bad.push('an open line does not hold the column, so the repaint after a save would shut it');
+  if ((q.line(4).querySelector('.prof-iso sub') || {}).textContent !== 'A*') bad.push('the line does not show the new grade');
+  /* TEACH ON A SECOND LEVEL LEAVES THE FIRST'S — *"it unticks the other one. i dont want that"*. */
+  q.sent.length = 0;
+  q.A('qual-teach', q.seg(4, 'spec'));
+  await wait(300);
+  f = q.last();
+  if (!f) bad.push('Teach saved nothing');
+  else {
+    if (f.qual_4_spec !== 'TRUE' || f.qual_4_teach !== 'TRUE') bad.push('Teach posted ' + JSON.stringify([f.qual_4_spec, f.qual_4_teach]) + ', not Teach and Can teach');
+    if (f.qual_1_spec !== 'TRUE' || f.qual_2_spec !== 'TRUE') bad.push('Teach on Physics took Teach off Maths');
+  }
+  if (!q.line(4).querySelector('.q-chip')) bad.push('the line does not show the gold Teach chip it was just given');
+  /* AND NOT TEACHING IS BOTH BOXES FALSE, ON THIS LINE ONLY. */
+  q.sent.length = 0;
+  q.A('qual-teach', q.seg(4, 'no'));
+  await wait(300);
+  f = q.last();
+  if (!f || f.qual_4_spec !== 'FALSE' || f.qual_4_teach !== 'FALSE') bad.push('Not teaching did not post both of its boxes FALSE');
+  else if (f.qual_3_teach !== 'TRUE') bad.push('Not teaching on the A-Level changed the GCSE');
+  /* A SAVED LINE CANNOT LOSE ITS LEVEL BY A PICK: refused before anything is sent. */
+  q.sent.length = 0;
+  q.pick(q.box(4, '_level'), '');
+  await wait(300);
+  if (q.posts().length) bad.push('a line with its level emptied was saved');
+  if (!/choose a level/i.test(q.said())) bad.push('emptying the level said "' + q.said() + '"');
+  q.pick(q.box(4, '_level'), 'A-Level');
+  await wait(300);
+  /* THE SECOND TAP SHUTS IT, and with nothing left to save it sends nothing. */
+  q.sent.length = 0;
+  q.A('qual-open', q.line(4));
+  await wait(300);
+  if (q.posts().length) bad.push('shutting a line with nothing new in it saved again');
+  if (q.shelf().querySelector('.is-open')) bad.push('the second tap did not shut the line');
+  if (q.shelf().closest('.me-form').dataset.dirty) bad.push('a shut card still holds the column');
+  /* A PRESS THAT REACHES A SHUT LINE'S TEACH — a raced redraw, or `check/press.js` pressing every action
+     in turn — opens that line and answers, rather than doing nothing. */
+  q.sent.length = 0;
+  q.A('qual-teach', q.seg(5, 'spec'));
+  await wait(300);
+  const g = q.last();
+  if (!g || g.qual_5_spec !== 'TRUE' || !q.slot(5).classList.contains('is-open')) bad.push('Teach pressed on a shut line did nothing');
+  return bad;
+});
+/* A TAP THAT LANDS WHILE A TYPED ANSWER IS SAVING. A box is saved on `change`, which fires as it loses
+   focus — under the finger already on the next line — and the save locks the card. Walked at 320,
+   every run: the school saved, the tapped line was disabled before its click arrived, and nothing
+   opened. Driven here in that order with a real `click()`, which jsdom drops on a disabled button
+   exactly as a browser does (mutation: `data-unlocked` off the line — the line stays shut). */
+check('a tap on another qualification while a typed answer is saving still opens it', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  if (!q.slot(1) || !q.slot(2)) return ['the card has no Maths GCSE and A-Level to work on'];
+  q.A('qual-open', q.line(2));
+  const school = q.box(2, '_board');
+  school.value = 'Kings College';
+  school.dispatchEvent(new q.w.Event('input', { bubbles: true }));
+  q.sent.length = 0;
+  school.dispatchEvent(new q.w.Event('change', { bubbles: true }));
+  if (!q.shelf().closest('.me-form').classList.contains('is-sending')) bad.push('the school\'s change did not start a save, so this journey proves nothing');
+  q.line(1).click();
+  await wait(400);
+  const f = q.last();
+  if (!f || f.qual_2_board !== 'Kings College') bad.push('the typed school was not saved');
+  if (q.posts().length !== 1) bad.push('one typed answer and one tap made ' + q.posts().length + ' saves');
+  const open = [...q.shelf().querySelectorAll('.q-slot.is-open')].map(s => s.dataset.slot);
+  if (JSON.stringify(open) !== '["1"]') bad.push('the tap on Maths GCSE during the save left ' + JSON.stringify(open) + ' open, not the GCSE');
+  /* AND THE TICK, pressed the same way, shuts the line once the save is in. */
+  q.A('qual-open', q.line(2));
+  const s2 = q.box(2, '_board');
+  s2.value = 'Kings College London';
+  s2.dispatchEvent(new q.w.Event('input', { bubbles: true }));
+  s2.dispatchEvent(new q.w.Event('change', { bubbles: true }));
+  q.slot(2).querySelector('[data-do="qual-done"]').click();
+  await wait(400);
+  if ((q.last() || {}).qual_2_board !== 'Kings College London') bad.push('the second school was not saved');
+  if (q.shelf().querySelector('.is-open')) bad.push('the tick pressed during the save did not shut the line');
+  return bad;
+});
+/* A CERTIFICATE HAS NO GRADE AND IS NOT TAUGHT. *Walked at 390:* the DBS editor offered Grade and Teach,
+   and Teach would have listed the DBS under Teaches on the profile (`teachesOf_` reads the tick, not
+   the kind). The editor hides both (`.is-cert`, held in a real browser by `check/states.js`); here, the
+   data: a line moved onto DBS posts its grade empty and both teaching boxes FALSE, and wears no mark.
+   Mutation: the reset in `qualCommit_` removed — the A and Can teach go to the sheet under a DBS. */
+check('a qualification moved onto a certificate drops its grade and its teaching', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  if (!q.slot(4)) return ['the card has no Physics A-Level to work on'];
+  q.A('qual-open', q.line(4));
+  if (q.slot(4).classList.contains('is-cert')) bad.push('Physics A-Level is marked a certificate');
+  if (!q.slot(7).classList.contains('is-cert')) bad.push('the Enhanced DBS is not marked a certificate');
+  q.sent.length = 0;
+  q.pick(q.box(4, ''), 'First Aid');
+  await wait(300);
+  const f = q.last();
+  if (!f) bad.push('moving the line onto First Aid saved nothing');
+  else if (f.qual_4 !== 'First Aid' || f.qual_4_grade !== '' || f.qual_4_teach !== 'FALSE' || f.qual_4_spec !== 'FALSE') {
+    bad.push('First Aid posted as ' + JSON.stringify([f.qual_4, f.qual_4_grade, f.qual_4_teach, f.qual_4_spec]) + ', keeping a grade or a teaching tick');
+  }
+  const s4 = q.slot(4);
+  if (!s4 || !s4.classList.contains('is-cert')) bad.push('the line moved onto First Aid is not marked a certificate');
+  if (s4 && s4.querySelector('.q-line .q-mark').textContent.trim()) bad.push('the certificate still wears a teaching mark');
+  return bad;
+});
+check('adding a qualification: the + asks for the subject, then the level, and saves the moment it has both', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  q.sent.length = 0;
+  q.A('qual-add', q.shelf().querySelector('[data-do="qual-add"]'));
+  await wait(100);
+  const fresh = q.shelf().querySelector('.q-subj.is-new .q-slot.is-open[data-new]');
+  if (!fresh) return ['+ did not open a new line'];
+  const n = fresh.dataset.slot;
+  const subj = fresh.querySelector('select.q-name');
+  /* THE SUBJECT'S LIST IS ALREADY OPEN, YOURS FIRST. */
+  if (subj.getAttribute('aria-expanded') !== 'true') bad.push('+ did not open the subject list');
+  const first = subj.querySelector('optgroup');
+  const yours = first ? [...first.querySelectorAll('option')].map(o => o.value) : [];
+  if (!first || first.label !== 'Your subjects' || JSON.stringify(yours) !== JSON.stringify(['Maths', 'Physics', 'English Literature', 'Bible and Theology', 'DBS'])) {
+    bad.push('the subject list does not start with your own subjects (' + JSON.stringify(yours) + ')');
+  }
+  /* A SUBJECT ALONE IS NOT A QUALIFICATION: nothing posted, and the level is asked for next. */
+  q.pick(subj, 'Maths');
+  await wait(100);
+  if (q.posts().length) bad.push('a subject with no level was saved');
+  if ((q.box(n, '_level').getAttribute && q.box(n, '_level').getAttribute('aria-expanded')) !== 'true') bad.push('choosing the subject did not open the level list');
+  q.pick(q.box(n, '_level'), 'AS');
+  await wait(300);
+  const f = q.last();
+  if (!f) bad.push('a subject and a level were not saved');
+  else {
+    if (f['qual_' + n] !== 'Maths' || f['qual_' + n + '_level'] !== 'AS') bad.push('the new line posted as ' + JSON.stringify([f['qual_' + n], f['qual_' + n + '_level']]));
+    if (Object.keys(f).filter(k => /^qual_/.test(k)).length !== 70) bad.push('adding did not post all seventy qual_ boxes');
+    if (f.qual_1 !== 'Maths' || f.qual_7_level !== 'Enhanced') bad.push('adding disturbed the lines already saved');
+  }
+  /* AND IT IS A MATHS LINE NOW — in the Maths group itself, its subject not said a second time, open
+     for its grade, no longer new. Asked as the SAME group as Maths GCSE, because a new line's own face
+     names its subject and a check that read the nearest heading passed with the line left at the foot
+     in a group of its own (mutation: the redraw after the first save removed). */
+  const moved = q.slot(n);
+  if (!moved || !q.slot(1) || moved.closest('.q-subj') !== q.slot(1).closest('.q-subj')
+      || moved.querySelector('.q-who').textContent.trim() || q.shelf().querySelector('.q-subj.is-new')) {
+    bad.push('the new AS did not join the Maths lines');
+  }
+  if (!moved || !moved.classList.contains('is-open') || moved.dataset.new) bad.push('the new line is not open as a saved line for the rest of its answers');
+  /* A LINE THAT NEVER GOT ITS LEVEL GOES BACK UNSAVED. */
+  q.A('qual-add', q.shelf().querySelector('[data-do="qual-add"]'));
+  await wait(100);
+  const half = q.shelf().querySelector('.q-slot[data-new]');
+  q.sent.length = 0;
+  if (half) { q.pick(half.querySelector('select.q-name'), 'Physics'); await wait(100);
+              q.A('qual-done', half.querySelector('[data-do="qual-done"]')); await wait(200); }
+  if (!half || q.posts().length || q.shelf().querySelector('.q-list .q-slot[data-new]')) bad.push('a line with a subject and no level was kept or saved');
+  /* AN EMPTY SLOT REACHED BY A PRESS OPENS AS A NEW LINE — what `+` does with the next one — rather
+     than redrawing the card exactly as it was. */
+  const pooled = q.shelf().querySelector('.q-pool .q-line');
+  if (pooled) { q.A('qual-open', pooled); await wait(100); }
+  if (!pooled || !q.shelf().querySelector('.q-list .q-slot.is-open[data-new]')) bad.push('a press on an empty slot did nothing');
+  /* TEN IS THE MOST: the + is off, and the line under it says why. */
   const ten = {};
   for (let i = 1; i <= 10; i++) Object.assign(ten, { ['qual_' + i]: 'Subject ' + i, ['qual_' + i + '_level']: 'GCSE' });
-  const b10 = await start(ten);
-  const s10 = b10.w.document.querySelector('#s-settings .q-shelf');
-  if (!s10) bad.push('ten records drew no shelf');
+  const q10 = await qualCard_(ten);
+  const add10 = q10.shelf() && q10.shelf().querySelector('[data-do="qual-add"]');
+  if (!add10 || !add10.disabled) bad.push('the + is live at ten qualifications');
+  if (!/ten is the most/i.test((q10.shelf() && q10.shelf().querySelector('.q-full') || {}).textContent || '')) bad.push('nothing says why there is no room for an eleventh');
+  return bad;
+});
+check('removing a qualification: the bin saves at once, and only that one goes', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  q.A('qual-open', q.line(7));
+  q.sent.length = 0;
+  q.A('qual-drop', q.slot(7).querySelector('[data-do="qual-drop"]'));
+  await wait(300);
+  const f = q.last();
+  if (!f) bad.push('the bin did not save');
   else {
-    if (s10.querySelector('[data-do^="qual-add"]')) bad.push('an add button is still drawn at ten records');
-    if (!/10 of 10/.test((s10.querySelector('.q-count') || {}).textContent || '')) bad.push('the count line does not say 10 of 10');
+    const blank = ['', '_level', '_grade', '_board', '_received'].every(k => f['qual_7' + k] === '')
+               && f.qual_7_spec === 'FALSE' && f.qual_7_teach === 'FALSE';
+    if (!blank) bad.push('the bin posted the DBS as ' + JSON.stringify(['', '_level', '_received'].map(k => f['qual_7' + k])));
+    if (Object.keys(f).filter(k => /^qual_/.test(k)).length !== 70) bad.push('the bin did not post all seventy qual_ boxes');
+    if (f.qual_6_level !== "Bachelor's degree" || f.qual_1_grade !== '9') bad.push('the bin took another qualification with it');
   }
+  if (q.shelf().querySelector('.q-list .q-slot[data-slot="7"]')) bad.push('the DBS is still on the card after the bin');
+  if (!/Removed DBS Enhanced/.test(q.said())) bad.push('the bin said "' + q.said() + '"');
+  /* A LINE BEING ADDED WAS NEVER SAVED: its bin only puts it back. */
+  q.A('qual-add', q.shelf().querySelector('[data-do="qual-add"]'));
+  await wait(100);
+  const fresh = q.shelf().querySelector('.q-slot[data-new]');
+  q.sent.length = 0;
+  if (fresh) { q.A('qual-drop', fresh.querySelector('[data-do="qual-drop"]')); await wait(200); }
+  if (!fresh || q.posts().length || q.shelf().querySelector('.q-list .q-slot[data-new]')) bad.push('the bin on an unsaved line saved, or left the line on the card');
   return bad;
 });
 
@@ -1520,7 +1770,7 @@ check('the contest placeholder comes straight after One more thing on the Games 
   if (roster.indexOf('contest') === -1) return ['there is no contest widget on the Games column'];
   if (roster.indexOf('contest') !== roster.indexOf('reels') + 1) bad.push('contest does not come straight after reels: ' + roster.join(', '));
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const slot = w.document.querySelector('#s-games #wgt-contest');
   if (!slot) return bad.concat(['the contest card did not draw on the Games column']);
   const h = slot.querySelector('h3');
@@ -1544,7 +1794,7 @@ check('the LEGO trade-in placeholder is the last card on the Tools column, says 
   if (roster.indexOf('legotrade') === -1) return ['there is no legotrade widget on the Tools column'];
   if (roster[roster.length - 1] !== 'legotrade') bad.push('legotrade is not the last tool: ' + roster.join(', '));
   t.go('tools', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const slot = w.document.querySelector('#s-tools #wgt-legotrade');
   if (!slot) return bad.concat(['the LEGO trade-in card did not draw on the Tools column']);
   const h = slot.querySelector('h3');
@@ -1598,7 +1848,7 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   if (roster.indexOf('videos') === -1) return ['there is no videos widget on the Games column'];
   if (roster[roster.length - 1] !== 'videos') bad.push('videos is not the last game: ' + roster.join(', '));
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const box = d.querySelector('#s-games #wgt-videos .vid-box');
   if (!box) return bad.concat(['the videos card did not draw on the Games column']);
   if (!asked) bad.push('the card never asked for data/videos.json');
@@ -1648,7 +1898,7 @@ check('the videos widget is last on Games: typing narrows the list, a tap plays 
   }
   /* LEAVING STOPS IT: no player left in the card on a column nobody is looking at. */
   t.go('tools', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   if (d.querySelector('#s-games .vid-stage .vid-player')) bad.push('leaving the Games column left the video in its player');
   return bad;
 });
@@ -1668,7 +1918,7 @@ check('connect 4 drops exactly the counter just played into the lowest empty squ
   const d = w.document;
   const W = 7, H = 6;
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'connect4');
   if (at < 0) return ['there is no Connect 4 on the Games column'];
   t.goPage('games', at, true);
@@ -1741,7 +1991,7 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
   const d = w.document;
   const N = 11;
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const at = t.widgetsOf('game').findIndex(x => String(x.id) === 'maze');
   if (at < 0) return ['there is no maze on the Games column'];
   t.goPage('games', at, true);
@@ -1838,12 +2088,12 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
   t.goPage('games', at, true);
   /* OFF IT: on the Find column the Games column is drawn as a neighbour, grid and all. */
   t.go('stuff', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const was = t.maze().moves;
   ['ArrowRight', 'ArrowDown', 'ArrowLeft', 'ArrowUp'].forEach(key);
   if (t.maze().moves !== was) bad.push('arrow keys on another column walked the maze from ' + was + ' to ' + t.maze().moves + ' moves');
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   t.goPage('games', at, true);
   await wait(50);
 
@@ -1894,17 +2144,49 @@ check('the maze draws its own walls, keeps a walk through a repaint, and has the
 /* A COLUMN'S WIDGETS ARE STARTED AND STOPPED FROM `afterSlide_`, about 300ms after the move, so a
    journey asking what leaving did has to wait that long first. */
 const LEAVE_MS = 700;
+/* AND ARRIVING NO LONGER STARTS THEM ALL IN THAT ONE TASK (5 Oct, `widgetsWake_` in arcade.js): the
+   ones in view start at once and the rest one per task behind them, nearest first. Under jsdom a
+   start is ~80ms, so the videos card thirteen pages down the Games column was still waiting its turn
+   at 700ms — measured, and it is not a fault: nobody can see page thirteen without turning to it,
+   and turning to it starts it (`widgetsNear_`). So a journey that has just ARRIVED waits for the
+   column to finish waking as well — `quiet()`: the after-slide jobs and the widget queue both run
+   dry, in the window booted last (the journeys run one at a time). Bounded, so a queue that never
+   drains is a journey that fails on what it asked rather than a run that hangs; after a LEAVE it
+   is already dry and this returns at once.
+   THE CAMERA'S `CAM_SLIDE` WAITS SAY THE SAME THING — "past `afterSlide_`'s 300ms and any settle" —
+   and failed on the unchanged base commit as well under a load average of 30–40 (measured 5 Oct):
+   a fixed sleep is a guess at when a job ran, and `quiet()` is the job having run. */
+let LAST_W = null;
+const woken_ = async () => {
+  for (let k = 0; k < 80; k++) {
+    let quiet = true;
+    try { quiet = !LAST_W || !LAST_W.__t || !LAST_W.__t.quiet || LAST_W.__t.quiet(); } catch (e) { quiet = true; }
+    if (quiet) return;
+    await wait(100);
+  }
+};
 /* `k` IS WHICH WORD GAME THE WIDGET OPENS ON. All four live inside the one Word games widget, which
    draws only the game chosen; the choice is the device's, so it is set there before the column is
    reached. Alibi was the one that passed nothing, because it kept a card of its own; it is deleted. */
+/* AND THE GAME'S OWN CARD IS WAITED FOR, NOT GUESSED AT. Six journeys booted with a fixed 300ms and
+   a fixed `LEAVE_MS`, and under a load average of 20-40 they failed together -- "did not draw on the
+   Games column", "PARTY is not reachable" -- every one green alone. Asked for every 100ms, up to 8s:
+   the test harness (`__t`), then the card and the PARTY state the journey is about. A card that never
+   comes still fails, on the journey's own first question. */
 const partyBoot_ = async (k) => {
   const { w } = boot();
-  await wait(300);
+  for (let n = 0; n < 80 && !w.__t; n++) await wait(100);
   const t = w.__t;
   if (k) { try { w.localStorage.setItem('wg-game', k); } catch (e) {} }
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const d = w.document;
+  for (let n = 0; n < 80; n++) {
+    let ready = false;
+    try { ready = (!k || !!d.getElementById(k + '-card')) && !!t.PARTY(); } catch (e) { ready = false; }
+    if (ready) break;
+    await wait(100);
+  }
   const press = (act, attrs) => {
     const el = d.createElement('button');
     Object.keys(attrs || {}).forEach(k => el.setAttribute(k, attrs[k]));
@@ -1939,13 +2221,13 @@ check('just a minute keeps its round through a repaint and pauses when the colum
   if (text('jam').indexOf(topic) === -1) bad.push('after a repaint the card reads "' + text('jam') + '"');
   /* AWAY: the clock holds, and stays held on the way back. */
   t.go('tools', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const held = P().jam;
   if (held.ends || held.run) bad.push('leaving the column left the clock running');
   const left = held.left;
   await wait(1200);
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   if (P().jam.ends) bad.push('coming back started the clock without anybody pressing Resume');
   if (P().jam.left !== left) bad.push('the minute went on running while the column was away: ' + left + ' became ' + P().jam.left);
   if (!/Resume/.test(text('jam'))) bad.push('a paused round has no Resume: "' + text('jam') + '"');
@@ -1980,7 +2262,7 @@ check('taboo shows a word with four or five forbidden words, and Correct and Pas
   if (P().tab !== s || !P().tab.ends) bad.push('a repaint stopped or replaced the round');
   /* PAUSED, THE WORD IS NOT ON THE CARD — whoever picks the phone up next may be on the other side. */
   t.go('tools', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   if (text('tab').indexOf(s.card[0]) !== -1) bad.push('a paused card still shows the word');
   return bad;
 });
@@ -1996,7 +2278,7 @@ check('a round left for the Saved column, where it is not starred, pauses like a
   if (!P().tab || !P().tab.ends) return ['Start did not begin a round'];
   if (d.querySelector('#s-saved #tab-card')) return ['Taboo is already on the Saved column, so this asks nothing'];
   t.go('saved', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   const s = P().tab;
   if (s.ends || s.run) bad.push('the clock went on running behind the Saved column, where the card is not');
   const left = s.left;
@@ -2020,9 +2302,9 @@ check('hot seat shows its word only once the phone faces the class, and hides it
   if (s.score !== 1) bad.push('Got it did not count');
   const word = s.word;
   t.go('tools', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   if (text('hot').indexOf(word) !== -1) bad.push('the word is still up after leaving the column and coming back');
   if (P().hot.ends) bad.push('coming back started the clock by itself');
   return bad;
@@ -2040,9 +2322,9 @@ check('20 questions keeps the secret from the room and counts to twenty', async 
   if (text('twq').indexOf(s.word) === -1) bad.push('Show me did not show the secret');
   /* LEAVING WITH THE SECRET UP HIDES IT. */
   t.go('tools', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   if (text('twq').indexOf(s.word) !== -1) bad.push('the secret is still up after leaving the column');
   press('twq-show');
   press('twq-hide');
@@ -2129,7 +2411,7 @@ check('alibi is gone from the Games column, its handlers and its round state', a
   const P = t.PARTY();
   if (P && 'alb' in P) bad.push('PARTY still keeps a slot for an alibi round');
   t.go('games', false, true);
-  await wait(LEAVE_MS);
+  await wait(LEAVE_MS); await woken_();
   if (w.document.getElementById('alb-card')) bad.push('an alibi card is still drawn on the Games column');
   return bad;
 });
@@ -3332,6 +3614,11 @@ check('the sign-in card is one tile row, and Make an account posts register', as
   }
   const go_ = d.querySelector('#sheet-body [data-do="reg-send"]');
   if (!go_) return bad.concat(['the register sheet has no button']);
+  /* WHO IT IS FOR, FIRST — the journey after this one asks the question itself; here it is answered
+     so the rest of the form can be asked about. */
+  const asStudent = d.querySelector('#sheet-body [data-do="reg-who"][data-who="student"]');
+  if (!asStudent) return bad.concat(['the register sheet does not ask who the account is for']);
+  t.ACTIONS['reg-who'](asStudent);
 
   /* A BAD PIN, REFUSED ON THE PHONE. Three digits and a letter are both things the server refuses. */
   fill('reg-first', 'Rae'); fill('reg-last', 'Newcomer'); fill('reg-email', 'rae@example.org');
@@ -3350,7 +3637,7 @@ check('the sign-in card is one tile row, and Make an account posts register', as
   const post = sent.find(b => b.action === 'register');
   if (!post) bad.push('a filled sheet posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no register');
   else {
-    const want = { first_name: 'Rae', last_name: 'Newcomer', email: 'rae@example.org', pin: '0000' };
+    const want = { who: 'student', first_name: 'Rae', last_name: 'Newcomer', email: 'rae@example.org', pin: '0000' };
     Object.keys(want).forEach(k => { if (post[k] !== want[k]) bad.push('register carried ' + k + ' = ' + JSON.stringify(post[k]) + ', wanted ' + JSON.stringify(want[k])); });
   }
   if (!sheet.classList.contains('hidden')) bad.push('the sheet is still open after the account was made');
@@ -3405,6 +3692,9 @@ check('a child with no email makes their own account with a grown-up\'s address,
   if (!open()) return ['there is no Make an account tile to press'];
   await wait(50);
   const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; return !!el; };
+  /* A STUDENT — the grown-up's-email tick is theirs alone (see the next journey for the parent). */
+  const student = () => { const b = d.querySelector('#sheet-body [data-do="reg-who"][data-who="student"]'); if (b) t.ACTIONS['reg-who'](b); return !!b; };
+  if (!student()) return ['the register sheet does not ask who the account is for'];
   const tick = d.getElementById('reg-noemail');
   if (!tick) return ['the register sheet has no "I have no email" tick, so a child with no address has no way in'];
   if (tick.closest('label.check') === null) bad.push('the no-email tick is not the app\'s own .check control');
@@ -3425,6 +3715,7 @@ check('a child with no email makes their own account with a grown-up\'s address,
   await wait(50);
   if (!open()) return bad.concat(['the Make an account tile went after one use']);
   await wait(50);
+  student();
   fill('reg-first', 'Rae'); fill('reg-last', 'Newcomer'); fill('reg-email', 'rae@example.org'); fill('reg-pin', '0000');
   sent.length = 0;
   t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
@@ -3444,6 +3735,153 @@ check('a grown-up opening a no-email child\'s link is told the child\'s handle',
   const bad = [];
   if (!/@ben_kind42/.test(said)) bad.push('the grown-up was told ' + JSON.stringify(said) + ' — not the handle the child signs in with');
   if (/sign in with it/i.test(said)) bad.push('the grown-up was told to sign in with their own address, which signs nobody in for the child');
+  return bad;
+});
+
+/* ==================================================================================================
+   WHO THE ACCOUNT IS FOR. The walk after 273 found a parent who signed up on the phone made a student,
+   with no "Make your child's account" and a Client tick refused. `check-signin.js` §8 asks the backend
+   that `who` decides the role; this asks the phone's half — that the question is asked FIRST and
+   cannot be skipped, that the answer shapes the form and goes on the wire, and that a parent who
+   signed up is shown the make-child card on the first paint after signing in, with no reload.
+================================================================================================== */
+check('Make an account asks who it is for first, and a parent is a parent from the first sign-in', async () => {
+  const { w, sent } = boot({ reply: b => b.action === 'register'
+      ? { success: true, name: 'Dana Brook', pending: true, handle: 'dana_kind44', confirmBy: 'self',
+          role: b.who === 'parent' ? 'parent' : 'kid' }
+    : b.action === 'verifyLogin'
+      ? { success: true, name: 'Dana Brook', personId: 'P-DANA', handle: 'dana_kind44', token: 'tk-dana',
+          role: 'parent', roles: ['parent'], tutorPending: false,
+          profile: { first_name: 'Dana', last_name: 'Brook' } }
+    : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document, bad = [];
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(120);
+  const reg = d.querySelector('#s-account [data-do="register"]');
+  if (!reg) return ['there is no Make an account tile to press'];
+  t.ACTIONS['register'](reg);
+  await wait(50);
+  const choice = who => d.querySelector('#sheet-body [data-do="reg-who"][data-who="' + who + '"]');
+  const rest = () => d.getElementById('reg-rest');
+  const tickRow = () => { const x = d.getElementById('reg-noemail'); return x && x.closest('.reg-kid'); };
+  if (!choice('parent') || !choice('student')) return ['the register sheet does not ask "a parent or a student?"'];
+  /* THE QUESTION FIRST: the boxes and the button are not shown, and nothing is chosen for you. */
+  if (!rest() || !rest().hidden) bad.push('the boxes are shown before anybody has said who the account is for');
+  if (d.querySelector('#sheet-body [data-do="reg-who"].on')) bad.push('an answer is already chosen when the sheet opens — the default is the fault this question ends');
+  if (choice('parent').closest('label')) bad.push('the choice is inside a <label>, so a tap on its caption answers it');
+  /* AND A SEND THAT SOMEHOW HAPPENS UNANSWERED POSTS NOTHING. */
+  const fill = (id, v) => { const el = d.getElementById(id); if (el) el.value = v; };
+  fill('reg-first', 'Dana'); fill('reg-last', 'Brook'); fill('reg-email', 'dana@example.org'); fill('reg-pin', '0000');
+  sent.length = 0;
+  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  await wait(200);
+  if (sent.some(b => b.action === 'register')) bad.push('an unanswered sheet posted register — the server would make them a student');
+
+  /* A STUDENT TICKS THE GROWN-UP'S BOX, THEN SAYS PARENT: the tick goes, and is not sent. */
+  t.ACTIONS['reg-who'](choice('student'));
+  if (rest().hidden) bad.push('answering did not show the boxes');
+  if (!tickRow() || tickRow().hidden) bad.push('a student is not offered "It\'s a grown-up\'s email"');
+  d.getElementById('reg-noemail').checked = true;
+  t.ACTIONS['reg-who'](choice('parent'));
+  if (!choice('parent').classList.contains('on') || choice('parent').getAttribute('aria-pressed') !== 'true'
+      || choice('student').classList.contains('on') || choice('student').getAttribute('aria-pressed') !== 'false') {
+    bad.push('the chosen answer is not the gold, pressed one (and the other not)');
+  }
+  if (!tickRow().hidden || d.getElementById('reg-noemail').checked) bad.push('a parent is still offered, or still has ticked, the grown-up\'s-email box');
+  const note = String((d.getElementById('reg-note') || {}).textContent || '');
+  if (!/child's account/.test(note) || !/Settings/.test(note)) bad.push('a parent\'s note does not say where their child\'s account is made: ' + JSON.stringify(note));
+
+  sent.length = 0;
+  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  await wait(300);
+  const post = sent.find(b => b.action === 'register');
+  if (!post) return bad.concat(['the parent\'s form posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no register']);
+  if (post.who !== 'parent') bad.push('the parent\'s register carried who = ' + JSON.stringify(post.who));
+  if (post.email !== 'dana@example.org' || post.parent_email) bad.push('the parent\'s address did not go as their own email: ' + JSON.stringify({ email: post.email, parent_email: post.parent_email }));
+
+  /* THE FIRST SIGN-IN, AND SETTINGS ON THE VERY NEXT PAINT — nothing reloaded, nobody signed out. */
+  t.go('account', false, true);
+  await wait(80);
+  fill('in-name', 'dana@example.org'); fill('in-pin', '0000');
+  t.ACTIONS['do-signin'](d.querySelector('#s-account [data-do="do-signin"]'));
+  await wait(300);
+  const u = t.whoami();
+  if (!u || u.role !== 'parent') return bad.concat(['signing in did not leave a parent signed in: ' + JSON.stringify(u && u.role)]);
+  try { t.go('settings', false, true); } catch (e) { return bad.concat(['going to settings threw: ' + e.message]); }
+  await wait(250);
+  if (!d.querySelector('#s-settings .kid-make')) bad.push('a parent who has just signed in for the first time has no "Make your child\'s account" on Settings');
+
+  /* A STUDENT'S POST SAYS STUDENT. */
+  t.USER(null);
+  t.go('account', false, true);
+  await wait(80);
+  t.ACTIONS['register'](d.querySelector('#s-account [data-do="register"]'));
+  await wait(50);
+  t.ACTIONS['reg-who'](choice('student'));
+  fill('reg-first', 'Mo'); fill('reg-last', 'Learner'); fill('reg-email', 'mo@example.org'); fill('reg-pin', '0000');
+  sent.length = 0;
+  t.ACTIONS['reg-send'](d.querySelector('#sheet-body [data-do="reg-send"]'));
+  await wait(300);
+  const post2 = sent.find(b => b.action === 'register');
+  if (!post2 || post2.who !== 'student') bad.push('a student\'s register carried who = ' + JSON.stringify(post2 && post2.who));
+  return bad;
+});
+
+check('a role changed in the sheet reaches the screen on the next open, with no sign-out', async () => {
+  /* THE WALK: the owner made a parent a client in the sheet; the parent reloaded; no card until they
+     signed out and in. Here the phone opens holding a stale `kid` and `myProfile` says `parent`. */
+  const kid = { name: 'Mo Learner', personId: 'P-MO', role: 'kid', roles: ['kid'], token: 'tk-mo',
+                profile: { first_name: 'Mo', last_name: 'Learner' } };
+  /* `say` IS WHAT THE SHEET HOLDS — read at each request, so a journey can change it under the phone. */
+  let say = '';
+  const reply = b => b.action === 'myProfile'
+    ? Object.assign({ success: true, personId: b.personId || 'P-MO', profile: { first_name: 'Mo', last_name: 'Learner' } },
+                    say ? { role: say, roles: [say], tutorPending: false } : {})
+    : { success: true, messages: [] };
+  const open = async role => {
+    say = role;
+    const b = boot({ reply, before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(kid)); } catch (e) {} } });
+    await wait(700);
+    return b;
+  };
+  const bad = [];
+  {
+    const { w, sent } = await open('parent');
+    const t = w.__t, d = w.document;
+    if (!sent.some(b => b.action === 'myProfile')) return ['opening the app signed in did not ask myProfile, so nothing could correct a stale role'];
+    const u = t.whoami();
+    if (!u || u.role !== 'parent' || (u.roles || []).join() !== 'parent') bad.push('the phone kept its stale role after myProfile said parent: ' + JSON.stringify(u && [u.role, u.roles]));
+    let kept = null; try { kept = JSON.parse(w.localStorage.getItem('familyUser') || 'null'); } catch (e) {}
+    if (!kept || kept.role !== 'parent') bad.push('the corrected role was not kept, so the next open starts stale again');
+    try { t.go('settings', false, true); } catch (e) {}
+    await wait(250);
+    if (!d.querySelector('#s-settings .kid-make')) bad.push('after the role was corrected there is still no "Make your child\'s account" — the walk\'s sign-out dance is still needed');
+  }
+  /* AN OLD SERVER SENDS NO ROLE: what the phone had stays. */
+  {
+    const { w } = await open('');
+    const u = w.__t.whoami();
+    if (!u || u.role !== 'kid') bad.push('a myProfile with no role in it wiped the role the phone had: ' + JSON.stringify(u && u.role));
+  }
+  /* AND NOT ONLY SETTINGS: the column ON SCREEN when the role changes is drawn again. Made an admin in
+     the sheet while looking at the people column, the phone draws the admin's list of everyone there
+     and then — the role decides a whole column, not one card. */
+  {
+    const { w } = await open('kid');
+    const t = w.__t, d = w.document;
+    t.DATA().everyone = [{ personId: 'P-EVE', title: 'Eve Everyone', handle: 'eve_kind5', role: 'Student', image: '' }];
+    try { t.go('account', false, true); w.paint('account'); } catch (e) { return bad.concat(['drawing the account column threw: ' + e.message]); }
+    await wait(150);
+    const eve = () => /P-EVE|Eve Everyone/.test((d.getElementById('s-account') || {}).innerHTML || '');
+    if (eve()) return bad.concat(['a student is drawn the admin\'s list of everyone, so this cannot ask what a role change redraws']);
+    say = 'admin';
+    w.profileRefresh_();
+    await wait(300);
+    if ((t.whoami() || {}).role !== 'admin') bad.push('the role on the phone did not follow the sheet to admin');
+    else if (!eve()) bad.push('the column on screen when the role changed was not drawn again — it shows the old role until something else repaints it');
+  }
   return bad;
 });
 
@@ -4176,8 +4614,9 @@ check('taking a seat on a class does not go through the ordinary join', async ()
   w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
   try { w.__t.ACTIONS['job']({ dataset: { id: 'W-LIST' } }); }
   catch (e) { return ['opening the class threw: ' + e.message]; }
-  /* `#s-booking` RATHER THAN THE SHEET — see the note on the admin journey above. `joinBlock` is
-     what offers the seat and `jobPage_` draws it, so the control is on the page the app turns to. */
+  /* `#s-booking` RATHER THAN THE SHEET — see the note on the admin journey above. `joinTile_` is
+     what offers the seat and `jobPage_` draws it on the receipt's foot, so the control is on the
+     page the app turns to. Where on the page is the journey after this one's question. */
   const b = w.document.getElementById('s-booking');
   const dos = b ? [...b.querySelectorAll('[data-do]')].map(x => x.dataset.do) : [];
   if (dos.includes('job-join')) {
@@ -4208,6 +4647,144 @@ check('taking a seat on a class does not go through the ordinary join', async ()
   if (!B.loc) bad.push('the venue the class runs at was not filled in');
   if (sent.map(x => x.action).includes('joinWaitlist')) {
     bad.push('it sent joinWaitlist without anybody pressing send');
+  }
+  return bad;
+});
+
+/* ---------- THE WAY IN IS A LINE AND A TILE OF THE PAPER, NOT A BLOCK UNDER IT ----------------------
+   ASKED FOR AS *"the session booking thing at the bottom of receipt should be a line in the
+   booking."* `joinBlock` drew, after the receipt, a sentence with the seats and the seat price, the
+   list's tally, a gold `Take a seat` and a faint paragraph — on black, under a card it belonged to.
+   The journey above asked only that the right ACT was offered somewhere on the column, which the
+   block passed while floating; this asks WHERE, for both kinds of joining:
+
+     · nothing under the paper — no `.join`, and no control on the page outside `.rc`
+     · the act is a TILE in the receipt's own foot (`.rc .rc-tiles`), first, before Share
+     · the seats are a row of the document — `Sharing`, inside `.rc` — and an open session no longer
+       says "Just you" on the page that offers you a seat on it
+     · the list's tally is a `Can come` row of the paper, and it is there for somebody ON the list
+       too, which the block never was — `canAsk` hid it from everybody already in
+
+   PRESSED THROUGH THE TILE ITSELF, not through `ACTIONS`: a tile with the right `data-do` and no
+   `data-id` would pass a lookup and find no class when tapped. */
+const joinPage_ = (w, id) => {
+  w.__t.ACTIONS['job']({ dataset: { id } });
+  return [...w.document.querySelectorAll('#s-booking .page')]
+    .find(p => new RegExp('\\b' + id + '\\b').test((p.querySelector('.rc-ref') || {}).textContent || ''));
+};
+const rowSays_ = (pg, k) => {
+  const r = [...pg.querySelectorAll('.rc .bk-row')]
+    .find(x => ((x.querySelector('.bk-k') || {}).textContent || '').trim() === k);
+  return r ? r.querySelector('.bk-v').textContent.replace(/\s+/g, ' ').trim() : null;
+};
+const onPaperOnly_ = (pg, bad) => {
+  if (pg.querySelector('.join') || pg.ownerDocument.querySelector('#s-booking .join')) {
+    bad.push('a .join block is still drawn under the paper');
+  }
+  const loose = [...pg.querySelectorAll('[data-do]')].filter(x => !x.closest('.rc'));
+  if (loose.length) bad.push('controls float outside the paper: ' + loose.map(x => x.dataset.do).join(', '));
+};
+
+check('a class with seats offers Take a seat as a tile on its receipt, and its seats as a line', async () => {
+  const { w } = boot();
+  await wait(300);
+  w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
+  let pg;
+  try { pg = joinPage_(w, 'W-LIST'); } catch (e) { return ['opening the class threw: ' + e.message]; }
+  if (!pg) return ['the class has no page on the Booking column — nothing to look at'];
+  const bad = [];
+  onPaperOnly_(pg, bad);
+  const foot = [...pg.querySelectorAll('.rc .rc-tiles [data-do]')].map(x => x.dataset.do);
+  const tile = pg.querySelector('.rc .rc-tiles [data-do="job-take-seat"]');
+  if (!tile) bad.push('no Take a seat tile in the receipt\'s foot (the foot holds: ' + foot.join(', ') + ')');
+  else {
+    if (!tile.classList.contains('tile')) bad.push('Take a seat is in the foot but is not a tile');
+    if (tile.dataset.id !== 'W-LIST') bad.push('the Take a seat tile carries no id for the class');
+    if (foot[0] !== 'job-take-seat') bad.push('Take a seat is not first in the foot: ' + foot.join(', '));
+  }
+  if (foot.includes('job-join')) bad.push('a class offers Ask to join, which is the act for a family\'s session');
+  const sharing = rowSays_(pg, 'Sharing');
+  if (sharing == null) bad.push('no Sharing row on the class\'s paper');
+  else if (!/2 seats free/.test(sharing)) bad.push('the Sharing row says "' + sharing + '", wanted the 2 seats going');
+  const seat = [...pg.querySelectorAll('.rc .rc-total .bk-t')].map(x => x.textContent.trim());
+  if (!seat.includes('£19.00')) bad.push('the seat price is not on the paper\'s total row: ' + JSON.stringify(seat));
+  const can = rowSays_(pg, 'Can come');
+  const bars = pg.querySelectorAll('.rc .bk-row.bk-tally .wc-row').length;
+  if (can == null) bad.push('the list\'s tally is not a Can come row of the paper');
+  else if (bars !== 2 || !/Monday evening/.test(can)) bad.push('the Can come row draws ' + bars + ' bars ("' + can + '"), wanted the 2 slots sent');
+
+  /* AND SOMEBODY ON THE LIST SEES THE TALLY TOO, and is offered no seat they already have. */
+  w.__t.USER({ name: 'Danile Cristina', personId: 'P7', role: 'parent', roles: ['parent'] });
+  const D = w.__t.DATA();
+  (D.liveJobs || []).forEach(j => { if (j.id === 'W-LIST') j.canAsk = false; });
+  let mine;
+  try { mine = joinPage_(w, 'W-LIST'); } catch (e) { return bad.concat(['opening it as a member threw: ' + e.message]); }
+  if (!mine) bad.push('the list has no page for a family on it');
+  else {
+    if (mine.querySelector('[data-do="job-take-seat"]')) bad.push('a family already on the list is offered a seat');
+    if (rowSays_(mine, 'Can come') == null) bad.push('a family on the list cannot see when the others can come');
+  }
+
+  /* THE TILE IS WIRED: pressed as a finger would, it fills the form in for this class. */
+  if (tile) {
+    w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
+    (D.liveJobs || []).forEach(j => { if (j.id === 'W-LIST') j.canAsk = true; });
+    const t = joinPage_(w, 'W-LIST').querySelector('.rc-tiles [data-do="job-take-seat"]');
+    t.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
+    await wait(250);
+    if (!/wait/i.test(String(w.__t.BOOKING.how || '')) || !w.__t.BOOKING.joining) {
+      bad.push('pressing the Take a seat tile did not turn to the form for this class');
+    }
+  }
+  return bad;
+});
+
+check('a session a family booked offers Ask to join as a tile, and says its seats are open', async () => {
+  /* ONE MORE SESSION, OPEN, SEEN BY SOMEBODY NOT ON IT — in the shape `doGet` sends a stranger: no
+     names on the seats, no `splitEmails` (that goes only to the family who typed the addresses),
+     `canAsk` worked out by the server. Added to this journey's payload alone, so no other journey's
+     column grows a page. */
+  const p = payload();
+  const open = { id: 'J-OPEN', jobId: 'J-OPEN', type: 'job', kind: '', status: 'unconfirmed',
+    subject: 'Maths', level: 'GCSE', title: 'GCSE Maths', price: 240, location: 'Mitcham library',
+    tutor: '', weekday: 'Wednesday', time: '17:00', hours: '1', term: 'Autumn 1', dates: '',
+    maxKids: 4, currentKids: 1, slots: [{ n: 1, client: '', status: 'Agreed', chat: '' }],
+    tutorSlots: [], events: [], canAsk: true, seatsGoing: 3, openToOthers: true, splitEmails: '',
+    whenCould: null, client: '' };
+  p.jobs.push(open);
+  const { w } = boot({ payload: p });
+  await wait(300);
+  w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
+  let pg;
+  try { pg = joinPage_(w, 'J-OPEN'); } catch (e) { return ['opening the session threw: ' + e.message]; }
+  if (!pg) return ['the open session has no page on the Booking column — nothing to look at'];
+  const bad = [];
+  onPaperOnly_(pg, bad);
+  const foot = [...pg.querySelectorAll('.rc .rc-tiles [data-do]')].map(x => x.dataset.do);
+  const tile = pg.querySelector('.rc .rc-tiles [data-do="job-join"]');
+  if (!tile) bad.push('no Ask to join tile in the receipt\'s foot (the foot holds: ' + foot.join(', ') + ')');
+  else if (tile.dataset.id !== 'J-OPEN' || foot[0] !== 'job-join' || !foot.includes('book-share')) {
+    bad.push('Ask to join is not first beside Share with its id: ' + foot.join(', '));
+  }
+  if (foot.includes('job-take-seat')) bad.push('a family\'s session offers Take a seat, which is the act for a list');
+  const sharing = rowSays_(pg, 'Sharing');
+  if (sharing == null) bad.push('no Sharing row on the session\'s paper');
+  else if (/just you/i.test(sharing) || !/3 seats free/.test(sharing)) {
+    bad.push('the Sharing row says "' + sharing + '" on a session offering you one of its 3 seats');
+  }
+  if (rowSays_(pg, 'Can come') != null) bad.push('a session with a day draws a waiting list\'s tally');
+
+  /* "JUST YOU" IS STILL THE ANSWER WHERE IT IS TRUE: nothing going and nobody named. */
+  const rows = w.__t.jobRows(Object.assign({}, open, { seatsGoing: 0 }));
+  const full = (rows.find(r => r.k === 'Sharing') || {}).v;
+  if (full !== 'Just you') bad.push('a session with no seat going says "' + full + '", wanted "Just you"');
+
+  if (tile) {
+    tile.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
+    await wait(250);
+    if (!/instant/i.test(String(w.__t.BOOKING.how || '')) || !w.__t.BOOKING.joining) {
+      bad.push('pressing the Ask to join tile did not turn to the form for this session');
+    }
   }
   return bad;
 });
@@ -4825,6 +5402,12 @@ const camBoot_ = o => {
 };
 /* PAST `afterSlide_`'s 300ms and any settle, which is when `goPage` runs `feedCamWatch_`. */
 const CAM_SLIDE = 700;
+/* AND LONGER ONLY WHEN THE ANSWER IS NOT IN YET -- for the waits that expect the camera TO be asked.
+   Inside a full `check-all` beside eight browsers and other worktrees' runs, 700ms of wall clock was
+   not always past the slide: "swiping up asked 0 time(s)" on two runs in a row, a different case each
+   time, and never when this journey ran alone. A wait that expects NOTHING to happen keeps the fixed
+   700ms, because absence cannot be polled for. */
+const camAsked_ = async pred => { await wait(CAM_SLIDE); for (let i = 0; i < 40 && !pred(); i++) await wait(100); };
 
 check('the camera asks for nothing until somebody swipes up to it', async () => {
   const bad = [];
@@ -4846,26 +5429,26 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     }
     if (b.page() !== b.cam() + 1) bad.push(`the feed opened on page ${b.page()}, not the newest post at ${b.cam() + 1}`);
     const before = b.gum.asks;
-    b.w.__t.repaint(); await wait(CAM_SLIDE);
+    b.w.__t.repaint(); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks !== before) bad.push('a repaint on the front door asked for the camera');
 
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === before + 1);
     if (b.gum.asks !== before + 1) bad.push(`swiping up to the camera asked ${b.gum.asks - before} time(s), not once`);
     if (b.gum.open !== 1) bad.push(`swiping up to the camera left ${b.gum.open} stream(s) open, not one`);
-    b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE); await woken_();
     if (b.gum.open) bad.push('swiping back down to the newest post left the camera running');
 
     /* AWAY AND BACK, ON A POST: the column remembers where it was, and that is not the camera. */
-    b.w.__t.go('stuff'); await wait(CAM_SLIDE);
-    b.w.__t.go('feed'); await wait(CAM_SLIDE);
+    b.w.__t.go('stuff'); await wait(CAM_SLIDE); await woken_();
+    b.w.__t.go('feed'); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks !== before + 1) bad.push('coming back to the feed on the newest post asked for the camera again');
 
     /* AWAY AND BACK, ON THE CAMERA PAGE: that IS arriving at it, and it starts — the camera has
        started on arrival rather than on a tap since the note over `camStart_` was written. */
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
-    b.w.__t.go('stuff'); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
+    b.w.__t.go('stuff'); await wait(CAM_SLIDE); await woken_();
     if (b.gum.open) bad.push('leaving the feed from the camera page left the camera running');
-    b.w.__t.go('feed'); await wait(CAM_SLIDE);
+    b.w.__t.go('feed'); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === before + 3);
     if (b.gum.asks !== before + 3) bad.push(`coming back to the feed on the camera page asked ${b.gum.asks - before - 2} time(s), not once`);
     if (b.gum.open !== 1) bad.push(`coming back to the camera page left ${b.gum.open} stream(s) open, not one`);
   }
@@ -4875,7 +5458,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     const b = camBoot_({});
     await wait(400);
     if (b.gum.asks) bad.push('signed out, opening the app asked for the camera');
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks) bad.push('signed out, the camera page asked for a camera it draws no viewfinder for');
   }
 
@@ -4886,7 +5469,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     if (b.cam() !== 1) bad.push(`with one festive card the camera is page ${b.cam()}, not 1, so that case was NOT checked`);
     if (b.gum.asks) bad.push('with a festive card above the camera, opening the app asked for it');
     if (b.page() !== 2) bad.push(`with a festive card the feed opened on page ${b.page()}, not the newest post at 2`);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === 1);
     if (b.gum.asks !== 1) bad.push(`with a festive card, swiping up to the camera asked ${b.gum.asks} time(s), not once`);
   }
 
@@ -4898,7 +5481,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     await wait(400);
     if (b.gum.asks) bad.push('with a festive card and no posts, opening the app asked for the camera');
     if (b.page() === b.cam()) bad.push('with a festive card and no posts, the feed opened ON the camera page');
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === 1);
     if (b.gum.asks !== 1) bad.push(`with a festive card and no posts, turning to the camera asked ${b.gum.asks} time(s), not once`);
   }
 
@@ -4909,9 +5492,9 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
   {
     const b = camBoot_({ user: rasa, refuse: true });
     await wait(400);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === 1);
     if (b.gum.asks !== 1) bad.push(`refused: swiping up asked ${b.gum.asks} time(s), not once`);
-    b.w.__t.repaint(); await wait(CAM_SLIDE);
+    b.w.__t.repaint(); await wait(CAM_SLIDE); await woken_();
     if (b.gum.asks !== 1) bad.push('refused: a repaint on the camera page asked again — a prompt nobody swiped for');
     const on = b.w.document.getElementById('cam-on');
     if (!on || on.hidden) bad.push('refused: after a repaint the card has no `Try the camera again`');
@@ -4919,8 +5502,8 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     if (!said.trim()) bad.push('refused: after a repaint the card no longer says why the camera did not start');
     if (on) { b.w.__t.ACTIONS['cam-on'](on); await wait(50); }
     if (b.gum.asks !== 2) bad.push('refused: `Try the camera again` did not ask again');
-    b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam() + 1); await wait(CAM_SLIDE); await woken_();
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_(); await camAsked_(() => b.gum.asks === 3);
     if (b.gum.asks !== 3) bad.push('refused: swiping down and back up to the camera did not ask again');
   }
 
@@ -4930,7 +5513,7 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
   {
     const b = camBoot_({ user: rasa, slow: true });
     await wait(400);
-    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE);
+    b.w.__t.goPage('feed', b.cam()); await wait(CAM_SLIDE); await woken_();
     b.w.__t.repaint(); await wait(50);
     if (b.gum.asks !== 1) bad.push(`a repaint while the prompt was up asked again — ${b.gum.asks} asks for one card`);
     if (b.gum.hold) { b.gum.hold(); await wait(50); }
@@ -4938,6 +5521,77 @@ check('the camera asks for nothing until somebody swipes up to it', async () => 
     const v = b.w.document.getElementById('cam-view');
     if (!v || !v.srcObject) bad.push('the stream granted after a repaint went to the card that was replaced, not the one on the screen');
   }
+  return bad;
+});
+
+/* ---------- POST, UNDER A POST, IS A TILE — AND KEEPS ITS MARK THROUGH THE WAIT ----------------------
+   ASKED FOR AS *"post should be a tile too"*. Three things are held, because each one is a way the
+   change can be half done:
+     · THE COMPOSER'S ONLY CONTROL IS A TILE. Every button in `.cmt-form` is a `.tile`, there is
+       exactly one, and it is still `cmt-add` on the post's own id with the `cmt-go` name — the
+       paper aeroplane drawn, and "Post" in its name, since a tile has no word on it.
+     · AN EMPTY BOX POSTS NOTHING, which is the refusal `check/press.js` already accepts.
+     · THE MARK SURVIVES THE ROUND TRIP. The handler used to write "Posting…" into the control and
+       put the old text back afterwards — on a tile that writes over the aeroplane and restores an
+       empty string. So the press is read twice: at once (busy, disabled, mark still in the
+       element), and after a refusal (not busy, enabled, mark back, the server's sentence under the
+       box) — the refusal because it is the path that keeps the same element rather than
+       repainting it away. Then a comment that goes through posts `addComment` with the words. */
+check('Post under a post is a tile, and a comment keeps its mark through the wait', async () => {
+  const rasa = { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] };
+  const p = payload();
+  p.festive = [];
+  p.posts = [1, 2].map(i => ({ id: 'PO' + i, author: '@family.', handle: '@family.', avatar: '',
+    image: '', media: [], caption: 'Post ' + i, body: '', location: '', when: '0' + i + '/09/2026',
+    at: Date.UTC(2026, 8, i), pinned: false, active: true, waiting: false, refused: false,
+    reactions: {}, comments: { total: 0, list: [] } }));
+  let refuse = true;
+  const { w, sent } = boot({ payload: p,
+    reply: b => (b.action === 'addComment' && refuse ? { error: 'That is too long to post.' } : { success: true }),
+    before: w => { try { w.localStorage.setItem('familyUser', JSON.stringify(rasa)); } catch (e) {} } });
+  await wait(400);
+  const d = w.document, bad = [];
+  w.__t.go('feed'); await wait(700);
+  const form = d.querySelector('#s-feed .cmt-form');
+  if (!form) return ['there is no comment composer on the feed for somebody signed in — nothing to press'];
+  const post = form.closest('[data-post]'), id = post ? post.dataset.post : '';
+  const ctl = [...form.querySelectorAll('button, a')];
+  const loose = ctl.filter(x => !x.classList.contains('tile'));
+  if (loose.length) bad.push('the comment composer still has ' + loose.length + ' control(s) that are not tiles: '
+    + loose.map(x => (x.dataset.do || x.tagName) + ' "' + x.textContent.trim() + '"').join(', '));
+  if (ctl.length !== 1) bad.push('the comment composer has ' + ctl.length + ' controls, wanted one — Post');
+  const tile = form.querySelector('.tile[data-do="cmt-add"]');
+  if (!tile) return bad.concat(['there is no cmt-add tile in the comment composer']);
+  if (!tile.classList.contains('cmt-go')) bad.push('the Post tile lost the `cmt-go` name it is found by');
+  if (!id || tile.dataset.id !== id) bad.push('the Post tile carries data-id ' + JSON.stringify(tile.dataset.id) + ' under post ' + JSON.stringify(id));
+  if (!tile.querySelector('svg.tile-i-send')) bad.push('the Post tile has no paper aeroplane — `send` is the mark for sending');
+  if (!/^Post\b/.test(tile.getAttribute('aria-label') || '')) bad.push('the Post tile is named ' + JSON.stringify(tile.getAttribute('aria-label')) + ', not "Post…"');
+
+  const box = form.querySelector('.cmt-text');
+  sent.length = 0;
+  tile.click(); await wait(50);
+  if (sent.some(b => b.action === 'addComment')) bad.push('an empty comment box posted addComment');
+
+  box.value = 'Lovely to see this.';
+  tile.click();
+  if (!tile.disabled || !tile.classList.contains('is-busy')) bad.push('pressed, the Post tile is not disabled and busy while it waits');
+  if (!tile.querySelector('svg.tile-i-send')) bad.push('pressed, the Post tile\'s mark was written over — the old "Posting…" swap');
+  await wait(300);
+  const said = form.querySelector('.cmt-said');
+  if (tile.disabled || tile.classList.contains('is-busy')) bad.push('after a refusal the Post tile is still busy or disabled');
+  if (!tile.querySelector('svg.tile-i-send')) bad.push('after a refusal the Post tile has no mark — the restore put text back over it');
+  if (!said || !/too long/.test(said.textContent)) bad.push('the server\'s refusal is not under the box: ' + JSON.stringify(said && said.textContent));
+
+  refuse = false;
+  sent.length = 0;
+  tile.click(); await wait(300);
+  const c = sent.find(b => b.action === 'addComment');
+  if (!c) bad.push('pressing Post with words in the box posted ' + JSON.stringify(sent.map(b => b.action)) + ', not addComment');
+  else if (c.postId !== id || c.body !== 'Lovely to see this.' || c.personId !== 'P1')
+    bad.push('addComment went out as ' + JSON.stringify({ postId: c.postId, body: c.body, personId: c.personId }));
+  const after = d.querySelector('#s-feed .cmt-form .tile[data-do="cmt-add"]');
+  if (!after || after.classList.contains('is-busy') || !after.querySelector('svg.tile-i-send'))
+    bad.push('after a comment went through, the Post tile on the screen is missing, busy, or has lost its mark');
   return bad;
 });
 
@@ -5325,6 +5979,167 @@ check('a question diagram is pressable exactly while the pen is off', async () =
   return bad;
 });
 
+/* ---------- A RULER AND A COMPASS ON THE PEN, WHERE THE QUESTION ASKS FOR THEM -------------------------
+   ASKED FOR AS *"some questions require a compass or ruler. so should have a tile for these things. if
+   you cant find those questions dont worry just have the infrastructure set up for it."* Through the
+   real pointer listeners and the real handlers, on a pad in the document whose picture is TWICE AS
+   WIDE AS IT IS TALL -- the shape on which a circle drawn in the ink's stretched units comes out an
+   ellipse, which is the one way a compass here can be wrong while looking right on a square grid:
+     * which tools: `padTools_` from `needs` and from the words -- a ruler alone, ruler and compasses,
+       a construction, nothing for a plain drawing, nothing for "plotting compasses" or "12 rulers",
+       and a protractor decided but not drawn (there is no such tool). The bar draws exactly that.
+     * Ruler: pressing it arms the pen and lights it; a drag from A through anywhere to B keeps ONE
+       stroke of two points, A and B, under `padKey_`, and a card drawn again draws it
+     * Compass: pressed on the centre and dragged out, a CLOSED ring -- first point the last -- every
+       point the dragged radius from the centre in SCREEN pixels; and swung through a quarter turn,
+       an open arc of a quarter turn at the width it had when the swing began
+     * the point and the width are shown while dragging and gone after; a tap is a slip, kept nowhere
+     * Undo takes the compass's ring off and then the ruler's line; the pen still draws freehand
+     * a stale choice cannot draw: a compass left in `PAD_TOOL` for a pad whose bar has no Compass is
+       the pen */
+check('a ruler draws a straight line and a compass a round circle or arc, offered where the question asks', async () => {
+  const { w } = boot();
+  await wait(300);
+  const t = w.__t, A = t.ACTIONS, d = w.document, bad = [];
+  if (typeof t.padWrap !== 'function' || typeof w.padTools_ !== 'function' || typeof t.padKey !== 'function'
+      || !A['pad-tool'] || !A['pad-undo'] || typeof t.padTool !== 'function') {
+    return ['padWrap_, padTools_, padKey_, PAD_TOOL or the pad-tool / pad-undo handlers are not reachable — the tools were NOT checked'];
+  }
+  /* ---------- WHICH QUESTIONS GET WHICH TOOLS ---------------------------------------------------- */
+  const q = (html, extra) => Object.assign({ kind: 'question', answerType: 'drawing', html: '<p>' + html + '</p>' }, extra || {});
+  [[q('Reflect the shape in the mirror line.', { needs: ['Ruler'] }), 'pen ruler', 'needs: Ruler'],
+   [q('Use a ruler and compasses to construct the perpendicular from P to the line.'), 'pen ruler compass', '"ruler and compasses" in the words'],
+   [q('Construct the locus of points 3 cm from A.'), 'pen ruler compass', 'a locus'],
+   [q('Draw the perpendicular bisector of AB.', { needs: 'Compass, Ruler' }), 'pen ruler compass', 'a comma-list cell and a bisector'],
+   [q('Draw the graph of y = 2x + 1.'), 'pen', 'a plain drawing question'],
+   [q('The two circles represent plotting compasses. Draw an arrow in each.'), 'pen', 'plotting compasses'],
+   [q('Bradley buys 12 rulers. How much is one ruler?'), 'pen', 'rulers in a word problem'],
+   [q('Construct a frequency tree for this information.'), 'pen', 'constructing a tree'],
+   [q('Construct a two-way table for the data.'), 'pen', 'constructing a two-way table'],
+   [q('Measure angle d.', { needs: ['Protractor'] }), 'pen protractor', 'a protractor'],
+   [q('Bisect the angle.', { stems: [{ html: '<p>Use ruler and compasses only.</p>' }] }), 'pen ruler compass', 'a stem that says it']]
+    .forEach(([x, want, what]) => {
+      const got = w.padTools_(x).join(' ');
+      if (got !== want) bad.push(what + ': padTools_ gave "' + got + '", wanted "' + want + '"');
+    });
+  const barOf = x => { const h = d.createElement('div'); h.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 340"></svg>', '');
+    return [...h.querySelectorAll('.qpad-tool')].map(b => b.getAttribute('data-tool')).join(' '); };
+  const offered = [[q('Use a ruler.', { key: 'q:T-R' }), 'pen ruler'], [q('Construct the bisector.', { key: 'q:T-C' }), 'pen ruler compass'],
+    [q('Draw the graph.', { key: 'q:T-N' }), ''], [q('Measure the angle.', { key: 'q:T-P', needs: ['Protractor'] }), '']];
+  offered.forEach(([x, want]) => {
+    if (barOf(x) !== want) bad.push('the bar for "' + x.html.replace(/<[^>]*>/g, '') + '" offers [' + barOf(x) + '], wanted [' + want + ']');
+  });
+
+  /* ---------- A PAD IN THE DOCUMENT, 340 x 170 px: ONE UNIT ACROSS IS 1px, ONE UNIT DOWN 0.5px -------- */
+  const x = q('Use a ruler and compasses to construct the bisector of angle ABC.', { key: 'q:Q-TOOLS-1' });
+  const k = t.padKey(x);
+  try { w.localStorage.removeItem(k); } catch (e) {}
+  const host = d.createElement('div');
+  d.body.appendChild(host);
+  const L = 100, T = 50, W = 340, H = 170;
+  const mount = () => {
+    host.innerHTML = t.padWrap(x, '<svg viewBox="0 0 340 170"></svg>', '');
+    host.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+    return host.querySelector('.qpad');
+  };
+  let pad = mount();
+  const ink = () => pad.querySelector('.qpad-ink');
+  const Ev = w.PointerEvent || w.MouseEvent;
+  const fire = (type, px, py) => ink().dispatchEvent(new Ev(type, { bubbles: true, cancelable: true, clientX: px, clientY: py, pointerId: 1 }));
+  const drag = pts => { fire('pointerdown', pts[0][0], pts[0][1]); pts.slice(1).forEach(p => fire('pointermove', p[0], p[1])); fire('pointerup', pts[pts.length - 1][0], pts[pts.length - 1][1]); };
+  const stored = () => { try { return JSON.parse(w.localStorage.getItem(k) || '[]'); } catch (e) { return []; } };
+  const tool = name => pad.querySelector('.qpad-tool[data-tool="' + name + '"]');
+  if (!tool('ruler') || !tool('compass') || !tool('pen')) return bad.concat(['the construction question\'s bar has no Pen, Ruler and Compass, so the drawing was NOT checked']);
+
+  /* RULER */
+  A['pad-tool'](tool('ruler'));
+  if (!pad.classList.contains('is-drawing')) bad.push('pressing Ruler did not lock the card for drawing');
+  if (!tool('ruler').classList.contains('on') || tool('ruler').getAttribute('aria-pressed') !== 'true') bad.push('the Ruler tile is not lit and pressed once chosen');
+  if (tool('pen').classList.contains('on') || tool('compass').classList.contains('on')) bad.push('another tool is lit beside the Ruler');
+  /* A (150,100)px is units (50,100); B (300,140)px is units (200,180). The middle of the drag wanders. */
+  drag([[150, 100], [180, 60], [260, 160], [300, 140]]);
+  let s = stored();
+  if (s.length !== 1 || JSON.stringify(s[0]) !== '[50,100,200,180]') bad.push('a ruler drag stored ' + JSON.stringify(s) + ', wanted one stroke [50,100,200,180] -- its two ends and nothing between');
+  if (pad.querySelector('.qpad-aid').innerHTML) bad.push('the ruler\'s anchor is still drawn after the finger lifted');
+  pad = mount();
+  const redrawn = [...pad.querySelectorAll('.qpad-g path')].map(p => p.getAttribute('d'));
+  if (redrawn.join('|') !== 'M50 100L200 180') bad.push('the card drawn again shows ' + JSON.stringify(redrawn) + ', wanted the ruler\'s one line M50 100L200 180');
+  if (!pad.classList.contains('is-drawing') || !tool('ruler').classList.contains('on')) bad.push('a card drawn again lost the pen or the Ruler in hand');
+
+  /* COMPASS: centre (270,135)px = units (170,170); out to (330,135)px, a radius of 60px. */
+  A['pad-tool'](tool('compass'));
+  if (!tool('compass').classList.contains('on') || tool('ruler').classList.contains('on')) bad.push('pressing Compass did not move the light from Ruler to Compass');
+  fire('pointerdown', 270, 135);
+  fire('pointermove', 300, 135);
+  fire('pointermove', 330, 135);
+  const aid = pad.querySelector('.qpad-aid');
+  if (!aid.querySelector('.qpad-pin')) bad.push('the compass\'s point is not shown while it is open');
+  const rad = aid.querySelector('.qpad-rad');
+  if (!rad || rad.getAttribute('d') !== 'M170 170L230 170') bad.push('the live radius is ' + (rad ? rad.getAttribute('d') : 'not drawn') + ', wanted M170 170L230 170');
+  if (!pad.querySelector('.qpad-g [data-live]')) bad.push('the ring is not previewed while it is dragged');
+  fire('pointerup', 330, 135);
+  if (aid.innerHTML) bad.push('the compass\'s point and width are still drawn after the finger lifted');
+  s = stored();
+  const ring = s[1] || [];
+  const off = st => { let worst = 0; for (let i = 0; i < st.length; i += 2) worst = Math.max(worst, Math.abs(Math.hypot((st[i] - 170) * W / 340, (st[i + 1] - 170) * H / 340) - 60)); return worst; };
+  if (s.length !== 2) bad.push('after the compass there are ' + s.length + ' strokes stored, wanted 2');
+  else {
+    if (ring.length < 40) bad.push('the ring has ' + ring.length / 2 + ' points -- not enough to be round');
+    if (ring[0] !== ring[ring.length - 2] || ring[1] !== ring[ring.length - 1]) bad.push('the ring is not closed: it starts at ' + ring.slice(0, 2) + ' and ends at ' + ring.slice(-2));
+    if (off(ring) > 1.2) bad.push('a point of the ring is ' + off(ring).toFixed(2) + 'px off the 60px radius on the screen -- an ellipse on a picture that is not square');
+    const xs = ring.filter((v, i) => !(i % 2)), ys = ring.filter((v, i) => i % 2);
+    if (Math.abs((Math.max(...xs) + Math.min(...xs)) / 2 - 170) > 1 || Math.abs((Math.max(...ys) + Math.min(...ys)) / 2 - 170) > 1) bad.push('the ring is not about the centre that was pressed');
+  }
+  /* AN ARC: out to 60px, then a quarter turn round the point, clockwise on the screen. */
+  const arcPts = [[270, 135], [300, 135], [330, 135]];
+  for (let deg = 10; deg <= 90; deg += 10) arcPts.push([270 + 60 * Math.cos(deg * Math.PI / 180), 135 + 60 * Math.sin(deg * Math.PI / 180)]);
+  drag(arcPts);
+  s = stored();
+  const arc = s[2] || [];
+  if (s.length !== 3) bad.push('after the swing there are ' + s.length + ' strokes, wanted 3');
+  else {
+    if (arc[0] === arc[arc.length - 2] && arc[1] === arc[arc.length - 1]) bad.push('a quarter-turn swing drew a closed ring, not an arc');
+    if (off(arc) > 1.2) bad.push('the arc is ' + off(arc).toFixed(2) + 'px off its 60px width');
+    const ang = (px, py) => Math.atan2((py - 170) * H / 340, (px - 170) * W / 340) * 180 / Math.PI;
+    const a0 = ang(arc[0], arc[1]), a1 = ang(arc[arc.length - 2], arc[arc.length - 1]);
+    if (Math.abs(a0) > 12 || Math.abs(a1 - 90) > 6) bad.push('the arc runs from ' + a0.toFixed(0) + '° to ' + a1.toFixed(0) + '°, wanted about 0° to 90°');
+  }
+  /* A TAP IS A SLIP. */
+  fire('pointerdown', 200, 120); fire('pointerup', 200, 120);
+  if (stored().length !== 3) bad.push('a tap with the compass stored a mark');
+  if (pad.querySelector('.qpad-g [data-live]')) bad.push('a tap with the compass left its preview on the picture');
+  /* UNDO: the arc, then the ring, then the ruler's line is what is left. */
+  A['pad-undo'](pad.querySelector('[data-do="pad-undo"]'));
+  A['pad-undo'](pad.querySelector('[data-do="pad-undo"]'));
+  s = stored();
+  if (s.length !== 1 || JSON.stringify(s[0]) !== '[50,100,200,180]') bad.push('two Undos left ' + JSON.stringify(s).slice(0, 80) + ', wanted only the ruler\'s line');
+  if (pad.querySelectorAll('.qpad-g path').length !== 1) bad.push('two Undos left ' + pad.querySelectorAll('.qpad-g path').length + ' marks on the picture, wanted 1');
+  /* THE PEN, STILL FREEHAND. */
+  A['pad-tool'](tool('pen'));
+  drag([[110, 60], [120, 70], [130, 66]]);
+  s = stored();
+  if (s.length !== 2 || s[1].length !== 6) bad.push('the pen did not keep every point of a freehand stroke: ' + JSON.stringify(s[1] || null));
+  /* A STALE CHOICE CANNOT DRAW. The plain question offers no tools; a Compass left for it is the pen. */
+  const plain = q('Draw the graph.', { key: 'q:Q-TOOLS-2' });
+  const pk = t.padKey(plain);
+  try { w.localStorage.removeItem(pk); } catch (e) {}
+  t.padTool().set(pk, 'compass');
+  host.innerHTML = t.padWrap(plain, '<svg viewBox="0 0 340 170"></svg>', '');
+  pad = host.querySelector('.qpad');
+  pad.querySelector('.qpad-ink').getBoundingClientRect = () => ({ left: L, top: T, width: W, height: H, right: L + W, bottom: T + H, x: L, y: T });
+  if (pad.querySelector('.qpad-tool')) bad.push('a plain drawing question was given tool tiles');
+  A['pad-draw'](pad.querySelector('.qpad-lock'));
+  drag([[150, 100], [200, 100], [250, 120]]);
+  const ps = (() => { try { return JSON.parse(w.localStorage.getItem(pk) || '[]'); } catch (e) { return []; } })();
+  if (ps.length !== 1 || ps[0].length !== 6) bad.push('a pad with no Compass tile drew with a stale compass choice: ' + JSON.stringify(ps).slice(0, 80));
+  A['pad-draw'](pad.querySelector('.qpad-lock'));
+  t.padTool().delete(pk);
+  try { w.localStorage.removeItem(k); w.localStorage.removeItem(pk); } catch (e) {}
+  t.padOn('');
+  host.remove();
+  return bad;
+});
+
 /* ---------- A SWIPE SETTLES AT THE FINGER'S SPEED, WRITTEN ON THE COLUMNS AND NOT THE ROOT ------------
    ASKED FOR AS *"refine the swiping to feel more stable"*, and measured before it was touched: every
    release wrote `--slide` on `<html>`, which re-styled about three thousand elements before the card
@@ -5516,6 +6331,14 @@ check('an answer draws its result and nothing else: no Why, no working, no exami
   return bad;
 });
 
+/* WHAT A PAGE OF A QUESTION SAYS IT IS: its kind tag and its number tag -- `Question Q4a`, `Figure 3`,
+   `Answer Q4a`, `Question Q5 · 1 of 2`. Those two tags replaced the gold header line (`qPage_` in
+   find.js), so the journeys that read `.qcard-top b` read this instead: the same two facts, in the
+   order the row draws them. `tagText` is one kind's text, or '' where the row has none. */
+const tagText = (root, kind) => (((root && root.querySelector('.qcard-tags .qtag[data-tag="' + kind + '"]')) || {})
+  .textContent || '').replace(/\s+/g, ' ').trim();
+const pageHead = root => [tagText(root, 'kind'), tagText(root, 'number')].filter(Boolean).join(' ');
+
 /* ---------- MARKING AND REVEALING LEAVE THE QUESTION WHERE IT IS -----------------------------------
    ASKED FOR AS "make it nice more sleek, fresh stable". jsdom lays nothing out, so the PIXELS are
    `check/states.js`'s to measure ("marked not yet, nothing moved" and its two siblings, in a real
@@ -5528,7 +6351,10 @@ check('an answer draws its result and nothing else: no Why, no working, no exami
    nodes with the same markup after Check, a wrong Check, typing, Check again, "Show the answer" and
    a tapped option; the card's own children are the same list in the same order; and the verdict
    writes into a slot that was already there. And typing after a verdict takes it off -- "Correct"
-   beside an answer that has since changed is the app vouching for something it never read. */
+   beside an answer that has since changed is the app vouching for something it never read.
+
+   AND A WRONG TAP SHOWS NO ANSWER: the pick, "Not yet", and no option ticked -- a right tap ticks the
+   pick and nothing else. Here because the tapped card is already here. */
 check('marking, revealing and tapping leave the question where it is, and typing clears a stale verdict', async () => {
   const { w } = boot();
   await wait(300);
@@ -5539,16 +6365,18 @@ check('marking, revealing and tapping leave the question where it is, and typing
   ['qp-check', 'qa-go', 'qp-choose'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
   if (bad.length) return bad;
   const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  /* THE TAG ROW AND THE QUESTION. There was a gold header line above the tags; everything it said is a
+     tag now (`qPage_`), so the row is the card's whole head and is held as one block. */
   const still = card => {
-    const top = ['.qcard-top', '.qcard-sub', '.qsheet'].map(s => card.querySelector(s));
+    const top = ['.qcard-tags', '.qsheet'].map(s => card.querySelector(s));
     return { top, html: top.map(n => n && n.outerHTML), kids: [...card.children] };
   };
   const same = (a, card, when) => {
     const b = still(card);
     a.top.forEach((n, i) => {
-      if (!n) return bad.push(when + ': the card has no ' + ['header', 'tags', 'question'][i]);
-      if (n !== b.top[i]) bad.push(when + ': the ' + ['header', 'tags', 'question'][i] + ' was redrawn rather than left alone');
-      else if (a.html[i] !== b.html[i]) bad.push(when + ': the ' + ['header', 'tags', 'question'][i] + '\'s markup changed');
+      if (!n) return bad.push(when + ': the card has no ' + ['tag row', 'question'][i]);
+      if (n !== b.top[i]) bad.push(when + ': the ' + ['tag row', 'question'][i] + ' was redrawn rather than left alone');
+      else if (a.html[i] !== b.html[i]) bad.push(when + ': the ' + ['tag row', 'question'][i] + '\'s markup changed');
     });
     /* BY THE BLOCK'S FIRST CLASS, which names what it is; `is-near`, `is-done` and `is-shut` are the
        states marking is SUPPOSED to change. */
@@ -5591,7 +6419,7 @@ check('marking, revealing and tapping leave the question where it is, and typing
     const heldR = w.stuffItemsAll_;
     w.stuffItemsAll_ = () => [shutX];
     try { A['qa-go'](rev); } finally { w.stuffItemsAll_ = heldR; }
-    same(r0, shut, 'after "Show the answer"');
+    same(r0, shut, 'after "To the answer"');
   }
   /* TAPPED -- `qp-choose` redraws the box from the stored pick and finds its question by key in the
      library, which this harness does not load; so the library is this one question for the length of
@@ -5607,9 +6435,24 @@ check('marking, revealing and tapping leave the question where it is, and typing
   try { A['qp-choose'](tapped.querySelector('.qp-opt[data-n="1"]')); } finally { w.stuffItemsAll_ = held; }
   const box = tapped.querySelector('.qp-choices');
   if (!box || !box.classList.contains('is-done')) bad.push('a settled tapped question does not say so (is-done), so its options still look pressable');
-  if (!tapped.querySelector('.qp-opt[data-n="2"].is-ans') || !tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick and the right option');
+  if (!tapped.querySelector('.qp-opt[data-n="1"].is-picked')) bad.push('the tap did not mark the pick');
+  /* A MISS DOES NOT SHOW THE ANSWER. It ticked the right option beside it, which is the answer on the
+     question card with nobody pressing Show -- *"answers should just stay hidden unless user unhides
+     them."* Nothing ticked, and no words that name or point at the right one. */
+  const shownBy = tapped.querySelector('.qp-opt.is-ans');
+  if (shownBy) bad.push('a wrong tap ticked option ' + shownBy.getAttribute('data-n') + ' -- the answer shown on the question card without Show');
+  const said = (tapped.querySelector('.qp-verdict') || {}).textContent || '';
+  if (!/^Not yet/.test(said) || /marked|is 15|\b15\b/.test(said)) bad.push('a wrong tap\'s verdict reads "' + said + '" -- "Not yet", and nothing that gives the right one away');
   same(m0, tapped, 'after a wrong tap');
   try { w.localStorage.removeItem(w.__t.ansKey(mc)); } catch (e) {}
+  /* AND A RIGHT ONE TICKS THE PICK -- the verdict on what you chose, which is not a reveal. */
+  const mcR = Object.assign({}, mc, { key: 'q-still-mc-r', row: Object.assign({}, base.row, { row_id: 'Q-STILL-10' }) });
+  try { w.localStorage.removeItem(w.__t.ansKey(mcR)); } catch (e) {}
+  const tappedR = draw(mcR);
+  w.stuffItemsAll_ = () => [mcR];
+  try { A['qp-choose'](tappedR.querySelector('.qp-opt[data-n="2"]')); } finally { w.stuffItemsAll_ = held; }
+  if (!tappedR.querySelector('.qp-opt[data-n="2"].is-picked.is-ans') || tappedR.querySelectorAll('.qp-opt.is-ans').length !== 1) bad.push('a right tap did not tick the pick, and only the pick');
+  try { w.localStorage.removeItem(w.__t.ansKey(mcR)); } catch (e) {}
   /* AND THE WORDS SAY WHERE THE PICTURE WENT: a question whose figure is the page AFTER it (its
      marker at the end of its words) points at the next page; one whose figure stands in front of it
      says nothing, and one without a figure says nothing -- a pointer to a page that does not exist,
@@ -5797,8 +6640,10 @@ check('Mark with AI sends a worded answer by person id, draws marks and a senten
      * the question card keeps its box and no longer carries the answer, in any form
      * the answer page is hidden and the answer is NOT IN ITS MARKUP (the old `is-shut` hid with CSS an
        answer anybody could read in the document)
-     * the question's tile opens the page that is already standing, the open survives a redraw (the
-       `REEL_HELD` fault: a fact left on an element dies with it), and it opens only that question
+     * the question's tile ("To the answer") turns to the page and does NOT open it -- *"answers should
+       just stay hidden unless user unhides them"* -- and the page's own Show tile does; the open
+       survives a redraw (the `REEL_HELD` fault: a fact left on an element dies with it), and it opens
+       only that question. Hide, and every role alike, are the next journey's
      * a tapped question settled right does NOT open it, and neither does a typed answer marked right:
        the card already says "Correct", and a page that opens itself is a reveal nobody pressed
      * a TUTOR's page is hidden exactly as a student's, with the same tile label -- it was open
@@ -5839,7 +6684,7 @@ check('an answer is its own page after its question, hidden from everybody alike
   if (q.querySelector('.qans, .qans-body') || q.textContent.indexOf(SECRET) >= 0) bad.push('the question card still draws the answer');
   if (!q.querySelector('.qp-ans')) bad.push('the question card lost its answer box');
   if (!el(w.questionTiles_(base)).querySelector('[data-do="qa-go"]')) bad.push('a question with an answer has no tile to its answer page');
-  if (w.questionTiles_(none)) bad.push('a question with no answer offers a tile to an answer page that does not exist');
+  if (el(w.questionTiles_(none)).querySelector('[data-do="qa-go"]')) bad.push('a question with no answer offers a tile to an answer page that does not exist');
   /* HIDDEN, signed out. */
   if (w.__t.isTutorRole()) bad.push('signed out reads as staff, so the hidden page was NOT checked');
   const hid = el(w.questionAnsCard_(base));
@@ -5849,7 +6694,10 @@ check('an answer is its own page after its question, hidden from everybody alike
   if (!/Answer hidden/.test(hid.textContent)) bad.push('a hidden answer page does not say "Answer hidden": ' + hid.textContent.trim().slice(0, 80));
   if (!hid.querySelector('[data-do="qa-show"]')) bad.push('a hidden answer page has no "Show the answer"');
   if (card && card.getAttribute('data-of') !== 'Q-ANSP-5') bad.push('the answer page does not name its row');
-  /* SHOWN FROM THE QUESTION'S TILE, where the page already stands. */
+  /* TURNED TO FROM THE QUESTION'S TILE, where the page already stands -- AND STILL HIDDEN. *"answers
+     should just stay hidden unless user unhides them"*: the question's tile turns the page and that is
+     all it does. It used to show the answer as it turned, which made reaching the page and revealing
+     it one tap. */
   d.body.appendChild(hid);
   const other = el(w.questionAnsCard_(fig));
   d.body.appendChild(other);
@@ -5860,8 +6708,16 @@ check('an answer is its own page after its question, hidden from everybody alike
   const goTile = tiles.querySelector('[data-do="qa-go"]');
   if (goTile) { try { A['qa-go'](goTile); } finally { w.stuffItemsAll_ = held; } }
   w.stuffItemsAll_ = held;
+  const turned = d.querySelector('.qans-card[data-of="Q-ANSP-5"]');
+  if (!turned || !turned.classList.contains('is-hidden') || turned.innerHTML.indexOf(SECRET) >= 0)
+    bad.push('the question\'s "To the answer" tile showed the answer as it turned to it -- revealing is the answer page\'s own tap');
+  if (goTile && /show/i.test(goTile.getAttribute('aria-label') || '')) bad.push('the question\'s tile still says it shows the answer: ' + goTile.getAttribute('aria-label'));
+  /* SHOWN BY THE ANSWER PAGE'S OWN TILE, where it stands. */
+  const showT = turned && turned.querySelector('[data-do="qa-show"]');
+  if (!showT) bad.push('the answer page has no Show tile to press');
+  else { w.stuffItemsAll_ = () => [base, fig]; try { A['qa-show'](showT); } finally { w.stuffItemsAll_ = held; } }
   const now = d.querySelector('.qans-card[data-of="Q-ANSP-5"]');
-  if (!now || now.classList.contains('is-hidden') || now.textContent.indexOf(SECRET) < 0) bad.push('"Show the answer" on the question did not open its answer page');
+  if (!now || now.classList.contains('is-hidden') || now.textContent.indexOf(SECRET) < 0) bad.push('"Show the answer" on the answer page did not open it');
   else if (now.querySelector('details, .qans-why')) bad.push('showing the answer drew a Why fold under it');
   if (el(w.questionAnsCard_(base)).textContent.indexOf(SECRET) < 0) bad.push('the answer page shut again when it was drawn again');
   const fig2 = d.querySelector('.qans-card[data-of="Q-ANSP-6"]');
@@ -5914,8 +6770,120 @@ check('an answer is its own page after its question, hidden from everybody alike
     const tx = Object.assign({}, base, { key: 'q-ansp-' + role, row: row('Q-ANSP-' + role) });
     if (!shutNow(tx)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s answer page is open without "Show the answer" -- the owner asked for no difference');
     const tl = el(w.questionTiles_(tx)).querySelector('[data-do="qa-go"]');
-    if (!tl || !/Show the answer/.test(tl.getAttribute('aria-label') || tl.textContent)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s tile does not read "Show the answer": ' + (tl ? (tl.getAttribute('aria-label') || tl.textContent.trim()) : '(none)'));
+    if (!tl || !/To the answer/.test(tl.getAttribute('aria-label') || tl.textContent)) bad.push((role === 'admin' ? 'an ' : 'a ') + role + '\'s tile does not read "To the answer": ' + (tl ? (tl.getAttribute('aria-label') || tl.textContent.trim()) : '(none)'));
   });
+  w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- SHOW, HIDE, SHOW: ONE TILE ON THE ANSWER PAGE, THE SAME FOR EVERYBODY -----------------------
+   ASKED FOR AS *"answers should just stay hidden unless user unhides them. and can hide them again.
+   simple is best."* Through the real handlers, on a real answer page in the document, for four
+   visitors -- signed out, a student, a tutor, an admin -- each starting from nothing shown:
+     * hidden: "Answer hidden", the answer NOT IN THE MARKUP, and the one tile is Show (the eye)
+     * Show: the answer drawn, and the same tile slot now Hide (the eye struck through) -- the tile row
+       is the same child of the card in both states, so the thumb finds Hide where it pressed Show
+     * Hide: hidden exactly as before, answer gone from the markup, Show back in the slot
+     * Show again: open again -- the toggle is not a one-way door
+     * drawn afresh after a Hide it is hidden (`ANS_SHOWN` forgot), after a Show it is open, and the
+       next visitor's page is hidden whatever the last one did
+     * the question card's tile ("To the answer") reveals nothing for any of them */
+check('the answer page shows, hides and shows again from one tile, hidden by default, the same for every visitor', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document, A = w.__t.ACTIONS, bad = [];
+  const need = ['questionAnsCard_', 'questionTiles_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? Show and Hide were NOT checked'];
+  if (!A['qa-show'] || !A['qa-hide'] || !A['qa-go']) return ['qa-show, qa-hide or qa-go has no handler, so the toggle was NOT checked'];
+  const SECRET = 'Forty-two-and-a-quarter';
+  const x = { kind: 'question', name: 'Q8', marks: 1, key: 'q-toggle-8',
+    row: { row_id: 'Q-TOGGLE-8', paper_id: 'P-TOGGLE', subject: 'Maths', name: 'Toggle' },
+    html: '<p>Work out 169 &divide; 4</p>', answer: '<b>' + SECRET + '</b> &mdash; 169 &divide; 4' };
+  const held = w.stuffItemsAll_;
+  const press = (act, from) => {
+    const b = from.querySelector('[data-do="' + act + '"]');
+    if (!b) return false;
+    w.stuffItemsAll_ = () => [x];
+    try { A[act](b); } finally { w.stuffItemsAll_ = held; }
+    return true;
+  };
+  /* WHICH CHILD OF THE CARD THE TILE ROW IS -- "the same place" asked as structure, since jsdom lays
+     nothing out. `check/states.js` measures the pixels. */
+  const slot = card => [...card.children].indexOf(card.querySelector(':scope > .tile-row'));
+  const who = [
+    ['signed out', null],
+    ['a student', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
+    ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }],
+    ['an admin', { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] }],
+  ];
+  for (const [what, u] of who) {
+    w.__t.USER(u);
+    const host = d.createElement('div');
+    host.innerHTML = w.questionAnsCard_(x);
+    d.body.appendChild(host);
+    const card = () => host.querySelector('.qans-card');
+    const hiddenRight = when => {
+      const c = card();
+      if (!c || !c.classList.contains('is-hidden')) return bad.push(what + ', ' + when + ': the page is not hidden');
+      if (c.innerHTML.indexOf(SECRET) >= 0 || c.querySelector('.qans, .qans-body')) bad.push(what + ', ' + when + ': a hidden page still carries the answer in its markup');
+      if (!/Answer hidden/.test(c.textContent)) bad.push(what + ', ' + when + ': a hidden page does not say "Answer hidden"');
+      const t = c.querySelector('.tile-row [data-do="qa-show"]');
+      if (!t || !t.classList.contains('tile')) bad.push(what + ', ' + when + ': a hidden page has no Show tile');
+      else if (!t.querySelector('.tile-i-show')) bad.push(what + ', ' + when + ': the Show tile is not the eye');
+      if (c.querySelector('[data-do="qa-hide"]')) bad.push(what + ', ' + when + ': a hidden page offers Hide');
+    };
+    const shownRight = when => {
+      const c = card();
+      if (!c || c.classList.contains('is-hidden') || c.textContent.indexOf(SECRET) < 0) return bad.push(what + ', ' + when + ': the answer is not shown');
+      const t = c.querySelector('.tile-row [data-do="qa-hide"]');
+      if (!t || !t.classList.contains('tile')) bad.push(what + ', ' + when + ': a shown page has no Hide tile');
+      else if (!t.querySelector('.tile-i-hide')) bad.push(what + ', ' + when + ': the Hide tile is not the struck-through eye');
+      if (c.querySelector('[data-do="qa-show"]')) bad.push(what + ', ' + when + ': a shown page still offers Show');
+      if (/Answer hidden/.test(c.textContent)) bad.push(what + ', ' + when + ': a shown page still says "Answer hidden"');
+    };
+    hiddenRight('as drawn');
+    const s0 = slot(card());
+    /* THE QUESTION'S OWN TILE, pressed first: it turns pages and reveals nothing. */
+    const qt = d.createElement('div');
+    qt.innerHTML = w.questionTiles_(x);
+    d.body.appendChild(qt);
+    w.stuffItemsAll_ = () => [x];
+    try { A['qa-go'](qt.querySelector('[data-do="qa-go"]')); } finally { w.stuffItemsAll_ = held; qt.remove(); }
+    hiddenRight('after the question\'s "To the answer"');
+    /* THE FOCUS FOLLOWS THE TOGGLE. `ansSet_` replaces the card, so the tile that was pressed is gone;
+       from a keyboard the focus has to land on the tile that replaced it rather than on `<body>`. And
+       ONLY from the card that held it: a Hide with the focus somewhere else leaves it there. */
+    const named = e => !e ? '(nothing)' : e === d.body ? '<body>'
+      : '<' + e.tagName.toLowerCase() + (e.getAttribute('data-do') ? ' ' + e.getAttribute('data-do') : '') + '>';
+    const showT0 = card().querySelector('[data-do="qa-show"]');
+    if (showT0) showT0.focus();
+    if (!press('qa-show', card())) bad.push(what + ': nothing to press to show it');
+    shownRight('after Show');
+    if (d.activeElement !== card().querySelector('[data-do="qa-hide"]')) bad.push(what + ': Show threw the focus away -- it is on ' + named(d.activeElement) + ', not on the Hide tile in its place');
+    if (slot(card()) !== s0) bad.push(what + ': the tile row moved from child ' + s0 + ' to ' + slot(card()) + ' when the answer was shown');
+    if (w.questionAnsCard_(x).indexOf(SECRET) < 0) bad.push(what + ': the page drawn afresh after Show is shut again');
+    const elsewhere = d.createElement('input');
+    d.body.appendChild(elsewhere);
+    elsewhere.focus();
+    if (!press('qa-hide', card())) bad.push(what + ': nothing to press to hide it');
+    if (d.activeElement !== elsewhere) bad.push(what + ': a Hide pulled the focus to ' + named(d.activeElement) + ' from a box that held it, outside the card');
+    elsewhere.remove();
+    hiddenRight('after Hide');
+    if (slot(card()) !== s0) bad.push(what + ': the tile row moved when the answer was hidden again');
+    if (w.questionAnsCard_(x).indexOf(SECRET) >= 0) bad.push(what + ': the page drawn afresh after Hide is still open -- ANS_SHOWN did not forget it');
+    if (!press('qa-show', card())) bad.push(what + ': nothing to press to show it a second time');
+    shownRight('after Show, Hide, Show');
+    /* AND PUT BACK, so the next visitor starts where everybody starts. */
+    press('qa-hide', card());
+    host.remove();
+  }
+  /* THE NEXT PERSON ON THE PHONE starts hidden whatever the last one did: the key carries who it is. */
+  w.__t.USER(who[1][1]);
+  w.ansShow_(x);
+  w.__t.USER(who[2][1]);
+  if (w.questionAnsCard_(x).indexOf(SECRET) >= 0) bad.push('a tutor\'s page is open because the student before them showed theirs');
+  w.__t.USER(who[1][1]);
+  w.ansHide_(x);
   w.__t.USER(null);
   return bad;
 });
@@ -5972,11 +6940,12 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   const q = el(w.questionCard_(a));
   if (q.querySelector('.qsheet-stem') || /AKU is a genetic/.test(q.textContent)) bad.push('the part\'s card still prints the stem it now follows');
   const s = el(w.questionStemCard_(a, 0));
-  const sHead = (s.querySelector('.qcard-top') || {}).textContent || '';
+  const sHead = pageHead(s);
   if (!s.querySelector('.qcard.qstem[data-of="S-ORD-3"] .qsheet-stem')) bad.push('the stem page does not draw the stem or name its row');
-  if (sHead.replace(/\s+/g, ' ').trim() !== 'Q3') bad.push('the stem page\'s header reads "' + sHead.trim() + '", wanted the question\'s number alone, Q3');
+  if (sHead !== 'Question Q3') bad.push('the stem page is tagged "' + sHead + '", wanted Question and the question\'s number alone, Q3');
+  if (tagText(s, 'marks')) bad.push('the stem page carries the marks "' + tagText(s, 'marks') + '" -- they are each part\'s');
   if (!s.querySelector('.qsheet-figref')) bad.push('a stem whose figure is the next page does not say so');
-  const head = html => ((el(html).querySelector('.qcard-top b') || {}).textContent || '').trim();
+  const head = html => pageHead(el(html));
   const sf = w.questionStemFigCard_(a, 0);
   if (head(sf) !== 'Figure 3') bad.push('the stem\'s figure is headed "' + head(sf) + '", wanted Figure 3');
   if (!el(sf).querySelector('.qfig[data-of="S-ORD-3"] svg')) bad.push('the stem\'s figure page does not draw its picture');
@@ -5984,7 +6953,9 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   const plain = part('d', { stems: [], diagram: svg, html: '<p>Measure the angle.</p>' });
   if (head(w.questionFigCard_(plain)) !== 'Figure') bad.push('a figure the paper does not number is headed "' + head(w.questionFigCard_(plain)) + '", wanted Figure');
   [sf, w.questionFigCard_(c), w.questionFigCard_(plain)].forEach(h => {
-    if (/\bQ\d/.test(el(h).querySelector('.qcard-top').textContent)) bad.push('a figure page carries a question number: ' + el(h).querySelector('.qcard-top').textContent.trim());
+    const row = el(h).querySelector('.qcard-tags');
+    if (!row) bad.push('a figure page has no tag row');
+    else if (tagText(el(h), 'number') || tagText(el(h), 'marks') || /\bQ\d/.test(row.textContent)) bad.push('a figure page carries a question number or marks: ' + row.textContent.replace(/\s+/g, ' ').trim());
   });
   if (el(w.questionCard_(c)).querySelector('.qsheet-figref')) bad.push('(c), whose own figure stands in front of it, points forward at a figure');
   if (el(w.questionCard_(b)).querySelector('.qsheet-figref')) bad.push('(b) points at a figure page it does not have -- the stem\'s figure is in front of it, not after');
@@ -6031,7 +7002,7 @@ check('a page too long for a phone is cut between paragraphs, and the ask stays 
     lead: '<p>Lead</p>', html: '<p>Work out 3 + 4</p>' };
   if (JSON.stringify(w.pageParts_(short)) !== '[null]') bad.push('a short part was cut: ' + JSON.stringify(w.pageParts_(short)));
   const sc = el(w.questionCard_(short));
-  if (!sc.querySelector('.qsheet-lead') || !sc.querySelector('.qsheet-part > .qsheet-pb') || /of \d/.test(sc.querySelector('.qcard-top b').textContent)) bad.push('a short part lost its wrappers or says "1 of 1"');
+  if (!sc.querySelector('.qsheet-lead') || !sc.querySelector('.qsheet-part > .qsheet-pb') || /of \d/.test(tagText(sc, 'number'))) bad.push('a short part lost its wrappers or says "1 of 1"');
   const parts = w.pageParts_(long);
   const pre = parts.filter(p => /^pre\d+$/.test(p || ''));
   if (!pre.length) bad.push('a part of eight paragraphs, a table and an ask was not cut: ' + JSON.stringify(parts));
@@ -6056,7 +7027,7 @@ check('a page too long for a phone is cut between paragraphs, and the ask stays 
     });
     if (pages.some(p => p.querySelectorAll('table').length > 1 || (p.querySelector('table') && p.querySelectorAll('table tr').length !== 7))) bad.push('the table was cut between its rows');
     const n = pages.length;
-    if (!new RegExp('^Q2\\.4 · ' + n + ' of ' + n + '$').test(card.querySelector('.qcard-top b').textContent.trim())) bad.push('the card is headed "' + card.querySelector('.qcard-top b').textContent.trim() + '", wanted Q2.4 · ' + n + ' of ' + n);
+    if (!new RegExp('^Q2\\.4 · ' + n + ' of ' + n + '$').test(tagText(card, 'number'))) bad.push('the card\'s number tag reads "' + tagText(card, 'number') + '", wanted Q2.4 · ' + n + ' of ' + n);
     /* THE TILE turns from the card to the answer, past the pre pages in front of it. */
     const strip = el('<div id="s-cuttest">' + parts.map(p => p === null
       ? '<section class="page"><div class="tile-row">' + w.questionTiles_(long) + '</div></section>' : '<section class="page"></section>').join('') + '</div>');
@@ -6123,7 +7094,7 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
   const svg = n => '<svg viewBox="0 0 340 200"><text x="10" y="20">' + n + '</text></svg>';
   const row = id => ({ row_id: id, paper_id: 'P-FIG', subject: 'Maths', name: 'Paper 1: Foundation — June 2024' });
   const page = (x, part) => el(part ? w.stuffPart_(x, part) : w.stuffCard(x, 0));
-  const head = pg => ((pg.querySelector('.qcard-top b') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+  const head = pg => pageHead(pg);
   const say = pg => { const r = pg.querySelector('.qsheet-figref'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; };
 
   /* ---------- THE OWNER'S SENTENCE: FIVE PAGES ------------------------------------------------- */
@@ -6138,8 +7109,8 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
     const words = ['ONE-TEXT', 'FIG-ONE', 'THREE-TEXT', 'FIG-FOUR', 'FIVE-TEXT'];
     words.forEach((t, i) => { if (drawn[i].textContent.indexOf(t) < 0) bad.push('page ' + (i + 1) + ' of the five does not hold ' + t + ': ' + drawn[i].textContent.replace(/\s+/g, ' ').trim().slice(0, 80)); });
     const heads = drawn.slice(0, 5).map(head);
-    if (JSON.stringify(heads) !== JSON.stringify(['Q5', 'Figure', 'Q5(a) · 1 of 2', 'Figure', 'Q5(a) · 2 of 2']))
-      bad.push('the five pages are headed ' + JSON.stringify(heads) + ', wanted Q5, Figure, Q5(a) · 1 of 2, Figure, Q5(a) · 2 of 2');
+    if (JSON.stringify(heads) !== JSON.stringify(['Question Q5', 'Figure', 'Question Q5(a) · 1 of 2', 'Figure', 'Question Q5(a) · 2 of 2']))
+      bad.push('the five pages are tagged ' + JSON.stringify(heads) + ', wanted Question Q5, Figure, Question Q5(a) · 1 of 2, Figure, Question Q5(a) · 2 of 2');
     if (!drawn[4].querySelector('.qp-ans') || drawn.slice(0, 4).some(p => p.querySelector('.qp-ans'))) bad.push('the box is not on the last of the words alone');
     if (say(drawn[2]) !== 'Figure on the next page →') bad.push('(a)\'s words before its figure say "' + say(drawn[2]) + '", wanted "Figure on the next page →"');
     if (say(drawn[4])) bad.push('(a)\'s ask, after its figure, still points forward: "' + say(drawn[4]) + '"');
@@ -6157,7 +7128,8 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
   else {
     const drawn = parts.map(p => page(a, p));
     const heads = drawn.map(head);
-    const wantHeads = ['Q6 · 1 of 2', 'Figure', 'Q6 · 2 of 2', 'Q6(a) · 1 of 2', 'Figure', 'Q6(a) · 2 of 2', 'Q6(a) · answer'];
+    const wantHeads = ['Question Q6 · 1 of 2', 'Figure', 'Question Q6 · 2 of 2', 'Question Q6(a) · 1 of 2', 'Figure',
+                       'Question Q6(a) · 2 of 2', 'Answer Q6(a)'];
     if (JSON.stringify(heads) !== JSON.stringify(wantHeads)) bad.push('the pages are headed ' + JSON.stringify(heads) + ', wanted ' + JSON.stringify(wantHeads));
     /* EVERY WORD ONCE AND IN ORDER, and the figures between them. */
     const text = drawn.map(p => p.textContent).join(' | ');
@@ -6167,7 +7139,7 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
     /* FIGURE PAGES: a picture, its name, no number, no box. */
     [1, 4].forEach(i => {
       if (!drawn[i].querySelector('.qcard.qfig svg')) bad.push('page ' + (i + 1) + ' is not a figure page with its picture');
-      if (/\bQ\d/.test(drawn[i].querySelector('.qcard-top').textContent)) bad.push('figure page ' + (i + 1) + ' carries a question number');
+      if (tagText(drawn[i], 'number') || /\bQ\d/.test((drawn[i].querySelector('.qcard-tags') || {}).textContent || '')) bad.push('figure page ' + (i + 1) + ' carries a question number');
     });
     if (drawn.slice(0, 5).some(p => p.querySelector('.qp-ans')) || !drawn[5].querySelector('.qp-ans')) bad.push('the box is not on the page with the part\'s last words alone');
     const says = drawn.slice(0, 6).map(say);
@@ -6273,8 +7245,8 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
     if (!pad.querySelector('.qpad-g path')) bad.push('a mark stored under the pen\'s key is not drawn back on the surface');
     if (!/not the paper.s own figure/i.test(pad.textContent)) bad.push('the surface does not say it is not the paper\'s figure');
   }
-  const gHead = ((gp.querySelector('.qcard-top b') || {}).textContent || '').trim();
-  if (gHead !== 'Squared grid') bad.push('the surface page is headed "' + gHead + '", wanted "Squared grid"');
+  const gHead = pageHead(gp);
+  if (gHead !== 'Squared grid') bad.push('the surface page is tagged "' + gHead + '", wanted "Squared grid"');
   if (/\bQ\d|Figure/.test(gHead)) bad.push('the surface page claims a number or a figure: ' + gHead);
   try { w.localStorage.removeItem('pad:' + grid.key); } catch (e) {}
   const ref = (el(w.questionCard_(grid)).querySelector('.qsheet-figref') || {}).textContent || '';
@@ -6293,7 +7265,7 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
     if (got !== want) bad.push(x.row.row_id + ' gets surface "' + got + '", wanted "' + want + '"');
   });
   const coordP = el(w.questionFigCard_(q('coord2', { answerType: 'drawing' }, { figure: 'coordinate-grid' })));
-  if (!coordP.querySelector('svg.qsurf.is-coord line.axis') || (coordP.querySelector('.qcard-top b') || {}).textContent.trim() !== 'Axes') bad.push('a coordinate-grid question is not given axes on a grid, headed Axes');
+  if (!coordP.querySelector('svg.qsurf.is-coord line.axis') || pageHead(coordP) !== 'Axes') bad.push('a coordinate-grid question is not given axes on a grid, tagged Axes');
   const own = q('own', { answerType: 'drawing', diagram: svgDiag });
   if (!w.padSource_(own) || w.padSource_(own).from !== 'part' || el(w.questionFigCard_(own)).querySelector('svg.qsurf')) bad.push('a drawing question with its own picture had it replaced by a surface');
   const stemmed = q('stem', { answerType: 'drawing', stems: [{ id: 'S-SURF', html: '<p>Here is a grid.</p>', diagram: svgDiag }] });
@@ -6346,6 +7318,256 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   return bad;
 });
 
+/* ---------- A DRAWING IS THE PERSON'S WHO MADE IT, AS A TYPED ANSWER IS -------------------------------
+   Found by the multi-part audit: the pen's marks and the ringed words were kept per PHONE
+   (`pad:<question>`) while the answer box beside them was kept per person (`ansKey_`), so Ben, signing
+   in after Ali on the same phone, found Ali's lines already on his grid. Through the app's own builders
+   and handlers:
+     * signed out the key is the phone's, `pad:<question>`, as it always was; signed in it carries who,
+       `pad:u:<id>:<question>`, on the pad's `data-k` and the passage's `data-circ` -- the attributes
+       every handler writes through
+     * the phone's old marks MOVE to the first person signed in who opens them: drawn on their pad,
+       stored under their key, and gone from the old one, so the next person opens a clean grid
+     * never over marks somebody already has; the phone's marks wait for a person with none
+     * a second person sees none of the first one's, and Undo on their pad takes only their own mark
+     * the first person signed in again gets theirs back
+     * ring for ring, the same for a passage */
+check('a drawing and a ringed word are kept for whoever is signed in, and the phone\'s old ones move once to the first who opens them', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const t = w.__t;
+  const A = t.ACTIONS;
+  const bad = [];
+  if (typeof w.questionFigCard_ !== 'function' || typeof w.questionCard_ !== 'function' || !t.padKey || !A['pad-undo'] || !A['qw-tap']) {
+    return ['questionFigCard_, questionCard_, padKey_ or the pen\'s handlers are not reachable — renamed? Whose drawing it is was NOT checked'];
+  }
+  const LS = w.localStorage;
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
+  const row = id => ({ row_id: id, paper_id: 'P-WHO', subject: 'Maths', name: 'Whose' });
+  const x = { kind: 'question', name: 'Q8c', qNumber: '8', qPart: 'c', marks: 2, key: 'q:Q-WHO-8c', row: row('Q-WHO-8c'),
+              stems: [], answerType: 'drawing', html: '<p>Draw the graph of y = 2x.</p>' };
+  const OLD = 'pad:q:Q-WHO-8c';
+  const ALI = { name: 'Ali', personId: 'P21', role: 'student', roles: ['student'] };
+  const BEN = { name: 'Ben', personId: 'P22', role: 'student', roles: ['student'] };
+  const CY = { name: 'Cy', personId: 'P23', role: 'student', roles: ['student'] };
+  const got = k => { try { return JSON.parse(LS.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const pad = () => el(w.questionFigCard_(x)).querySelector('.qpad');
+  const lines = p => (p ? p.querySelectorAll('.qpad-g path').length : -1);
+
+  /* SIGNED OUT: THE PHONE'S KEY, AND A LINE LEFT ON IT FROM BEFORE TODAY. */
+  t.USER(null);
+  if (t.padKey(x) !== OLD) bad.push('signed out, the marks are kept under ' + t.padKey(x) + ', not the phone\'s ' + OLD);
+  LS.setItem(OLD, JSON.stringify([[10, 10, 100, 100]]));
+  /* ALI OPENS IT FIRST, AND THE LINE BECOMES HERS. */
+  t.USER(ALI);
+  const kA = t.padKey(x);
+  if (kA !== 'pad:u:P21:q:Q-WHO-8c') bad.push('signed in, the marks are kept under ' + kA + ', not under who is signed in');
+  const pa = pad();
+  if (!pa) return bad.concat(['a drawing question drew no pad']);
+  if (pa.getAttribute('data-k') !== kA) bad.push('Ali\'s pad writes to ' + pa.getAttribute('data-k') + ', not to her key ' + kA);
+  if (lines(pa) !== 1) bad.push('the phone\'s old line is not on the pad of the first person who opened it (' + lines(pa) + ' lines)');
+  if (got(kA).length !== 1) bad.push('the phone\'s old line was not stored under Ali\'s key: ' + JSON.stringify(got(kA)));
+  if (LS.getItem(OLD) !== null) bad.push('the phone\'s old line was COPIED to Ali, not moved — the next person would see it too');
+  LS.setItem(kA, JSON.stringify([[10, 10, 100, 100], [20, 20, 200, 200]]));
+  /* BEN, SAME PHONE: A CLEAN GRID, AND HIS UNDO IS HIS. */
+  t.USER(BEN);
+  const kB = t.padKey(x);
+  const pb = pad();
+  if (lines(pb) !== 0) bad.push('Ben, signed in after Ali on the same phone, sees ' + lines(pb) + ' of her lines');
+  if (pb.getAttribute('data-k') !== kB || kB === kA) bad.push('Ben\'s pad writes to ' + pb.getAttribute('data-k') + ' — Ali\'s key is ' + kA);
+  LS.setItem(kB, JSON.stringify([[5, 5, 50, 50]]));
+  const pb2 = pad();
+  A['pad-undo'](pb2.querySelector('.qpad-undo'));
+  if (got(kB).length !== 0) bad.push('Undo on Ben\'s pad did not take Ben\'s mark: ' + JSON.stringify(got(kB)));
+  if (got(kA).length !== 2) bad.push('Undo on Ben\'s pad touched Ali\'s marks: ' + JSON.stringify(got(kA)));
+  /* THE PHONE DRAWS AGAIN SIGNED OUT; ALI ALREADY HAS MARKS, SO THEY WAIT FOR SOMEBODY WITH NONE. */
+  t.USER(null);
+  LS.setItem(OLD, JSON.stringify([[1, 1, 2, 2]]));
+  t.USER(ALI);
+  const pa2 = pad();
+  if (lines(pa2) !== 2 || got(kA).length !== 2) bad.push('the phone\'s marks were moved over marks Ali already had: ' + JSON.stringify(got(kA)));
+  if (LS.getItem(OLD) === null) bad.push('the phone\'s marks vanished when the person who opened them already had some');
+  t.USER(CY);
+  if (lines(pad()) !== 1 || LS.getItem(OLD) !== null) bad.push('the phone\'s marks did not move to the next person with none');
+  /* ALI AGAIN: HERS, AND ONLY HERS. */
+  t.USER(ALI);
+  if (lines(pad()) !== 2) bad.push('Ali, signed in again, does not get her two lines back (' + lines(pad()) + ')');
+
+  /* ---------- AND A PASSAGE'S RINGS, THE SAME WAY ----------------------------------------------------- */
+  const text = { kind: 'question', name: 'Q9', qNumber: '9', marks: 1, key: 'q:Q-WHO-9', row: row('Q-WHO-9'), stems: [],
+                 answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>' };
+  const OLDW = 'pad:q:Q-WHO-9:words';
+  t.USER(null);
+  const tall = (() => { const h = el(w.questionCard_(text)).querySelector('[data-circ]'); return [...h.querySelectorAll('.qw')].find(s => s.textContent === 'tall').getAttribute('data-w'); })();
+  LS.setItem(OLDW, JSON.stringify([tall]));
+  t.USER(ALI);
+  const hostA = el(w.questionCard_(text)).querySelector('[data-circ]');
+  const kAw = 'pad:u:P21:q:Q-WHO-9:words';
+  if (!hostA || hostA.getAttribute('data-circ') !== kAw) bad.push('Ali\'s rings are kept under ' + (hostA && hostA.getAttribute('data-circ')) + ', not ' + kAw);
+  else {
+    const lit = [...hostA.querySelectorAll('.qw.is-circled')].map(s => s.textContent).join(',');
+    if (lit !== 'tall') bad.push('the phone\'s old ring did not come to the first person who opened the passage: [' + lit + ']');
+    if (LS.getItem(OLDW) !== null) bad.push('the phone\'s old ring was copied, not moved');
+  }
+  t.USER(BEN);
+  const hostB = el(w.questionCard_(text)).querySelector('[data-circ]');
+  if (hostB.querySelectorAll('.qw.is-circled').length) bad.push('Ben sees Ali\'s ringed word');
+  A['qw-tap']([...hostB.querySelectorAll('.qw')].find(s => s.textContent === 'tree'));
+  if (got('pad:u:P22:q:Q-WHO-9:words').length !== 1) bad.push('Ben\'s ring was not stored under his own key');
+  if (JSON.stringify(got(kAw)) !== JSON.stringify([tall])) bad.push('Ben\'s tap changed Ali\'s rings: ' + JSON.stringify(got(kAw)));
+  t.USER(null);
+  [OLD, kA, kB, 'pad:u:P23:q:Q-WHO-8c', OLDW, kAw, 'pad:u:P22:q:Q-WHO-9:words'].forEach(k => { try { LS.removeItem(k); } catch (e) {} });
+  return bad;
+});
+
+/* ---------- "USE YOUR GRAPH" SHOWS YOUR GRAPH -----------------------------------------------------------
+   Found by the multi-part audit, finding 5: June 2024 2F Q24(c) "Use your graph to find estimates..."
+   had no picture, and the graph was the child's own, on (b)'s grid, two swipes back. A part's `uses`
+   names the earlier part whose drawing it needs (tools/set-uses.py). Through the app's own builders and
+   handlers, with the library stood in by `stuffItemsAll_` as the tapped-answer journey does:
+     * a part with no picture gets a page IN FRONT of its words, after its opening: the earlier part's
+       picture, headed with that picture's own name and no question number, the marks on it, no pen, no
+       control, no box -- and a line naming the part the marks came from
+     * whoever is signed in: another person sees their own (none), and is told so
+     * not when the page in front is already that picture (the earlier part with no answer page)
+     * on Saved too (`cardPages_`), and "To the answer" still turns one page from the card
+     * a part whose own figure IS that picture gets the marks UNDER its own pen instead -- no page --
+       and its Undo takes its own mark and never the earlier one; a part that only LOOKS at that picture
+       gets them on its copy, with no pen
+     * a chain on one picture is one picture: (d) uses (c) uses (b) uses (a) shows all three's marks
+     * a loop ends, and a part naming no such part draws exactly what it did
+     * found in review, after the Figure tile and the "not drawn yet" page met this: the Figure tile on
+       (c) shows (b)'s picture WITH this person's marks, not (b)'s empty grid; a part that uses a drawing
+       on a surface ("Use the graph" after (a) drew on axes) is never also "not drawn yet"; and the page
+       in front is headed as the child's ("Your drawing"), not "Figure" */
+check('a part that uses an earlier part\'s drawing shows it, read only, in front of it or under its own pen', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const t = w.__t;
+  const A = t.ACTIONS;
+  const bad = [];
+  const need = ['pageParts_', 'stuffPart_', 'questionFigCard_', 'cardPages_', 'usesOf_', 'questionUsesCard_', 'figsBefore_', 'figMissing_'].filter(n => typeof w[n] !== 'function');
+  if (need.length || !t.padKey || !A['pad-undo']) return [(need.join(', ') || 'padKey_ / pad-undo') + ' not reachable — renamed? "Use your graph" was NOT checked'];
+  const LS = w.localStorage;
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
+  const row = id => ({ row_id: id, paper_id: 'P-USE', subject: 'Maths', name: 'Uses' });
+  const GRID = '<svg viewBox="0 0 340 340"><line class="grid" x1="10" y1="10" x2="330" y2="10"/></svg>';
+  const SCALE = '<svg viewBox="0 0 340 80"><line class="axis" x1="10" y1="40" x2="330" y2="40"/></svg>';
+  const part = (q, p, extra) => Object.assign({ kind: 'question', name: 'Q' + q + p, qNumber: String(q), qPart: p, marks: 2,
+    key: 'q:Q-USE-' + q + p, row: row('Q-USE-' + q + p), stems: [], html: '<p>Part ' + p + '.</p>' }, extra || {});
+  const stem = { id: 'S-USE-24', html: '<p>Here is a table of values.</p>' };
+  const b = part(24, 'b', { answerType: 'annotate', diagram: GRID, html: '<p>On the grid, draw the graph of y = x&sup2; &minus; x.</p>', answer: '<b>a curve</b>', stems: [stem] });
+  const c = part(24, 'c', { uses: 'b', html: '<p>Use your graph to find estimates for the solutions of x&sup2; &minus; x = 4.</p>', answer: '<b>&minus;1.6, 2.6</b>', stems: [stem] });
+  const cAlone = part(24, 'z', { uses: 'q', html: '<p>Names a part that is not there.</p>' });
+  const i6 = part(6, '(i)', { answerType: 'annotate', diagram: SCALE, answer: '<b>&frac12;</b>' });
+  const ii6 = part(6, '(ii)', { answerType: 'annotate', diagram: SCALE, uses: 'i', answer: '<b>0</b>' });
+  const f3 = part(1, '3', { answerType: 'drawing', diagram: GRID, html: '<p>Complete Figure 2.</p>' });
+  const f4 = part(1, '4', { answerType: 'explain', diagram: GRID, uses: '3', html: '<p>How does Figure 2 show it?</p>' });
+  const sa = part(3, 'a', { answerType: 'drawing', diagram: SCALE });
+  const sb = part(3, 'b', { answerType: 'drawing', diagram: SCALE, uses: 'a' });
+  const sc = part(3, 'c', { answerType: 'drawing', diagram: SCALE, uses: 'b' });
+  const sd = part(3, 'd', { uses: 'c', answer: '<b>8 &deg;C</b>' });
+  const l1 = part(4, 'a', { answerType: 'drawing', diagram: GRID, uses: 'b' });
+  const l2 = part(4, 'b', { answerType: 'drawing', diagram: GRID, uses: 'a' });
+  const ax = part(25, 'a', { answerType: 'drawing', surface: 'coord', html: '<p>On the axes, draw the graph of y = 2x.</p>' });
+  const axUse = part(25, 'b', { uses: 'a', html: '<p>Use the graph to find x when y = 6.</p>', answer: '<b>3</b>' });
+  const LIB = [b, c, cAlone, i6, ii6, f3, f4, sa, sb, sc, sd, l1, l2, ax, axUse];
+  const held = w.stuffItemsAll_, heldItems = w.stuffItems;
+  w.stuffItemsAll_ = () => LIB;
+  /* AND `stuffItems`, which `questionParts_` reads -- the Figure tile and "not drawn yet" ask it for a
+     part's question. */
+  w.stuffItems = () => LIB;
+  const put = (x, marks) => LS.setItem(t.padKey(x), JSON.stringify(marks));
+  const ALI = { name: 'Ali', personId: 'P31', role: 'student', roles: ['student'] };
+  const BEN = { name: 'Ben', personId: 'P32', role: 'student', roles: ['student'] };
+  const paths = (root, sel) => (root ? root.querySelectorAll(sel + ' path').length : -1);
+  try {
+    t.USER(ALI);
+    put(b, [[20, 300, 100, 120, 170, 60], [200, 60, 320, 300]]);
+    /* ---------- THE PAGE IN FRONT ---------------------------------------------------------------------- */
+    const pc = w.pageParts_(c);
+    if (JSON.stringify(pc) !== '["stem0","use",null,"ans"]') bad.push('(c) alone has pages ' + JSON.stringify(pc) + ', wanted its opening, then the graph, then its words, then its answer');
+    if (w.pageParts_(c, b).indexOf('use') < 0) bad.push('after (b) and (b)\'s answer page, (c) has no page with the graph');
+    const bNoAns = Object.assign({}, b, { answer: '' });
+    if (w.pageParts_(c, bNoAns).indexOf('use') >= 0) bad.push('straight after (b)\'s own figure page, (c) draws the same picture again');
+    const page = el(w.stuffPart_(c, 'use')).querySelector('.qcard');
+    if (!page) bad.push('the "use" page draws nothing');
+    else {
+      if (!page.classList.contains('qfig') || page.getAttribute('data-of') !== 'Q-USE-24c' || page.getAttribute('data-uses') !== 'Q-USE-24b') bad.push('the "use" page is not (c)\'s figure page naming (b) as where its marks came from: ' + page.outerHTML.slice(0, 120));
+      const head = tagText(page, 'kind');
+      if (head !== 'Your drawing' || tagText(page, 'number')) bad.push('the "use" page is headed "' + pageHead(page) + '", wanted "Your drawing" and no question number');
+      if (paths(page, '.qpad-was') !== 2) bad.push('the "use" page shows ' + paths(page, '.qpad-was') + ' of the two marks Ali made on (b)');
+      if (!page.querySelector('.qpad-art > svg line.grid')) bad.push('the "use" page does not draw (b)\'s picture under the marks');
+      if (page.querySelector('.qpad, [data-do], .tile, .qp-ans, .qpad-g')) bad.push('the "use" page can be drawn on, pressed or typed into — it is (b)\'s answer, read only');
+      if (!/Your marks from Q24b/.test(page.textContent)) bad.push('the "use" page does not say whose marks these are: "' + page.textContent.replace(/\s+/g, ' ').trim().slice(-120) + '"');
+    }
+    const saved = w.cardPages_(c, 0);
+    if (saved.length !== 4 || !/qfig-uses/.test(saved[1])) bad.push('on Saved, (c) is ' + saved.length + ' pages and the second is not the graph');
+    const off = (() => { const p = w.pageParts_(c); return p.indexOf('ans') - p.indexOf(null); })();
+    if (off !== 1) bad.push('"To the answer" on (c) would turn ' + off + ' pages, not one');
+    /* ---------- THE FIGURE TILE ON (c) OPENS (b)'s PICTURE WITH THE GRAPH ON IT ---------------------- */
+    const sheet = el((w.figsBefore_(c)[0] || {}).html || '');
+    if (paths(sheet.querySelector('.qseen'), '.qpad-was') !== 2) bad.push('the Figure tile on (c) opens (b)\'s grid with ' + paths(sheet.querySelector('.qseen'), '.qpad-was') + ' of Ali\'s two marks — the graph it says to use is not there');
+    if ((w.figsBefore_(c)[0] || {}).label !== 'Your drawing') bad.push('the Figure tile on (c) is titled "' + (w.figsBefore_(c)[0] || {}).label + '" over the child\'s own graph, wanted "Your drawing"');
+    if (!/yours from Q24b/.test(sheet.textContent)) bad.push('the Figure tile on (c) does not say the marks are (b)\'s');
+    if (sheet.querySelector('.qpad')) bad.push('the Figure tile on (c) gives a pen to (b)\'s answer');
+    /* ---------- "USE THE GRAPH" AFTER A SURFACE IS NEVER "NOT DRAWN YET" ------------------------------- */
+    if (w.figMissing_(Object.assign({}, axUse, { uses: '' })) !== true) bad.push('control: without its `uses`, Q25b "Use the graph" is not "not drawn yet" — the case below proves nothing');
+    if (w.figMissing_(axUse)) bad.push('Q25b, which uses (a)\'s graph, is also "the paper prints a figure here — not drawn yet"');
+    const pAx = w.pageParts_(axUse);
+    if (pAx.indexOf('nofig') >= 0 || pAx.indexOf('use') < 0) bad.push('Q25b has pages ' + JSON.stringify(pAx) + ', wanted its graph and no "not drawn yet"');
+    t.USER(BEN);
+    if (el((w.figsBefore_(c)[0] || {}).html || '').querySelector('.qseen, .qpad-was') ) bad.push('Ben\'s Figure tile on (c) shows Ali\'s graph');
+    const benPage = el(w.stuffPart_(c, 'use')).querySelector('.qcard');
+    if (paths(benPage, '.qpad-was') !== 0) bad.push('Ben\'s (c) shows Ali\'s graph');
+    if (!/Nothing drawn on Q24b yet/.test(benPage.textContent)) bad.push('with nothing drawn on (b), the "use" page does not say so');
+    t.USER(ALI);
+    /* ---------- ONE PICTURE, DRAWN ON TWICE: UNDER THE PEN ---------------------------------------------- */
+    put(i6, [[170, 40, 170, 40]]);
+    put(ii6, [[10, 40, 10, 40]]);
+    if (w.pageParts_(ii6).indexOf('use') >= 0) bad.push('(ii), whose own figure is (i)\'s picture, also got a page in front');
+    const padII = el(w.questionFigCard_(ii6)).querySelector('.qpad');
+    if (paths(padII, '.qpad-was') !== 1) bad.push('(ii)\'s scale does not carry (i)\'s cross (' + paths(padII, '.qpad-was') + ')');
+    if (paths(padII, '.qpad-g') !== 1) bad.push('(ii)\'s own marks are ' + paths(padII, '.qpad-g') + ', wanted its one cross');
+    if (!/fainter marks are yours from Q6\(i\)/.test(padII.textContent)) bad.push('(ii)\'s pad does not say the fainter cross is (i)\'s — an Undo that will not take it would look broken');
+    A['pad-undo'](padII.querySelector('.qpad-undo'));
+    if (paths(padII, '.qpad-was') !== 1 || paths(padII, '.qpad-g') !== 0) bad.push('Undo on (ii) did not take (ii)\'s cross alone: ' + paths(padII, '.qpad-was') + ' of (i)\'s left, ' + paths(padII, '.qpad-g') + ' of its own');
+    if (JSON.parse(LS.getItem(t.padKey(i6)) || '[]').length !== 1) bad.push('Undo on (ii) changed what (i) stored');
+    if (paths(el(w.questionFigCard_(i6)).querySelector('.qpad'), '.qpad-was') !== 0) bad.push('(i) shows marks from a part that comes after it');
+    LS.removeItem(t.padKey(i6));
+    if (/fainter marks/.test(el(w.questionFigCard_(ii6)).textContent)) bad.push('with nothing on (i), (ii) still says the fainter marks are (i)\'s');
+    /* ---------- ONE PICTURE, LOOKED AT: ON ITS COPY, NO PEN --------------------------------------------- */
+    put(f3, [[20, 20, 300, 300]]);
+    const fig4 = el(w.questionFigCard_(f4));
+    if (paths(fig4.querySelector('.qseen'), '.qpad-was') !== 1 || fig4.querySelector('.qpad')) bad.push('(4), which only looks at Figure 2, does not show (3)\'s line on it read only');
+    if (!/yours from Q13/.test(fig4.textContent)) bad.push('(4)\'s figure does not say the line on it is (3)\'s');
+    LS.removeItem(t.padKey(f3));
+    if (el(w.questionFigCard_(f4)).querySelector('.qseen') || !el(w.questionFigCard_(f4)).querySelector('figure svg')) bad.push('with nothing drawn on (3), (4) is not its plain figure');
+    /* ---------- A CHAIN ON ONE PICTURE ------------------------------------------------------------------ */
+    put(sa, [[10, 10, 10, 10], [20, 20, 20, 20]]);
+    put(sb, [[5, 70, 330, 10]]);
+    put(sc, [[40, 40, 40, 40]]);
+    if (paths(el(w.questionFigCard_(sb)).querySelector('.qpad'), '.qpad-was') !== 2) bad.push('(b)\'s scatter does not carry (a)\'s points under its pen');
+    if (paths(el(w.questionFigCard_(sc)).querySelector('.qpad'), '.qpad-was') !== 3) bad.push('(c)\'s scatter does not carry (a)\'s points and (b)\'s line under its pen');
+    if (paths(el(w.stuffPart_(sd, 'use')).querySelector('.qseen'), '.qpad-was') !== 4) bad.push('(d)\'s page does not carry (a)\'s, (b)\'s and (c)\'s marks together');
+    /* ---------- A LOOP, AND A PART THAT IS NOT THERE ---------------------------------------------------- */
+    put(l1, [[1, 1, 2, 2]]); put(l2, [[3, 3, 4, 4]]);
+    const loop = el(w.questionFigCard_(l1)).querySelector('.qpad');
+    if (paths(loop, '.qpad-was') !== 1) bad.push('two parts naming each other drew ' + paths(loop, '.qpad-was') + ' earlier marks, wanted the other one\'s and no more');
+    if (JSON.stringify(w.pageParts_(cAlone)) !== '[null]') bad.push('a part naming a part that is not there has pages ' + JSON.stringify(w.pageParts_(cAlone)));
+  } catch (e) {
+    bad.push('threw: ' + e.message);
+  } finally {
+    w.stuffItemsAll_ = held;
+    w.stuffItems = heldItems;
+    [ALI, BEN].forEach(u => { t.USER(u); LIB.forEach(x => { try { LS.removeItem(t.padKey(x)); } catch (e) {} }); });
+    t.USER(null);
+  }
+  return bad;
+});
+
 /* ---------- FIND DRAWS THE SAME THING FOR A TUTOR, AN ADMIN, A STUDENT AND SOMEBODY SIGNED OUT --------
    ASKED FOR AS *"No distinction between tutor and student on the finder. All the same. Remove any
    nuances about that."* -- and before it, of the answer: *"Should behave the same whether it's a tutor
@@ -6362,7 +7584,8 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
 
    WHAT IS ALLOWED TO DIFFER IS WHAT IS A PERSON'S, NOT A ROLE'S, and it is taken out before comparing:
    the answer box's key and the done date's (`ans:u:<id>:`, whose drawer this is), the name over the box
-   ("Ada's answer" / "Your answer"), and the star (`fav`), which needs somebody signed in to keep it for.
+   ("Ada's answer" / "Your answer"), and the star (`fav`) and the date's slot beside it (`.qcard-done`,
+   see `questionTiles_`), which need somebody signed in to keep them for.
    Anything else that differs is a role showing through, and the first difference is printed. */
 check('Find draws the same question family, practical, project and textbook for a tutor, an admin, a student and nobody', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
@@ -6402,8 +7625,8 @@ check('Find draws the same question family, practical, project and textbook for 
   const norm = html => {
     const h = w.document.createElement('div');
     h.innerHTML = html;
-    h.querySelectorAll('[data-do="fav"]').forEach(n => n.remove());
-    /* A ROW THAT HELD ONLY THE STAR is the star's, and goes with it. */
+    h.querySelectorAll('[data-do="fav"], .tile-row .qcard-done').forEach(n => n.remove());
+    /* A ROW THAT HELD ONLY THE STAR (and the date beside it) is the person's, and goes with them. */
     h.querySelectorAll('.tile-row').forEach(n => { if (!n.children.length) n.remove(); });
     return h.innerHTML.replace(/u:[A-Za-z0-9_-]+:/g, '').replace(/>[^<>]*(?:’|&rsquo;)s answer/g, '>WHO answer')
       .replace(/>Your answer/g, '>WHO answer');
@@ -6440,10 +7663,25 @@ check('Find draws the same question family, practical, project and textbook for 
         + '            signed out: …' + other.slice(Math.max(0, k - 60), k + 100).replace(/\s+/g, ' '));
     }
   });
-  /* AND THE SAME ITEMS: nothing on the learning surface is offered to one role and not another. */
-  const offered = u => { t.USER(u); const ks = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort().join('|'); t.USER(null); return ks; };
+  /* AND THE SAME ITEMS: nothing on the learning surface is offered to one role and not another —
+     BUT ONE, BY NAME. *"i want to add the bible to resources as a book. but only admin can see the
+     bible."* is the owner asking for exactly one difference, so this expects it exactly: an admin's
+     list is everybody else's plus `bible:kjv`, and nobody else's has it. Anything else that differs
+     is still a role showing through. ONE PAYLOAD FOR EVERY ROLE HERE, deliberately: the films are an
+     admin's too, but `doGet` decides that by leaving them out of everybody else's payload, so with
+     the payload held still the only difference left is one the phone made — which is what this asks. */
+  const BIBLE_KEY = 'bible:kjv';
+  const offered = u => { t.USER(u); const ks = w.stuffItems().filter(x => w.kindOf_(x).group === 'Learning').map(x => x.key).sort(); t.USER(null); return ks; };
   const out0 = offered(null);
-  who.slice(1).forEach(([what, u]) => { if (offered(u) !== out0) bad.push(what + ' is offered a different set of learning items from somebody signed out'); });
+  if (out0.indexOf(BIBLE_KEY) >= 0) bad.push('somebody signed out is offered the Bible — it is for admins only');
+  who.slice(1).forEach(([what, u]) => {
+    const got = offered(u);
+    const admin = u && u.role === 'admin';
+    if (admin && got.indexOf(BIBLE_KEY) < 0) bad.push(what + ' is not offered the Bible, which the owner asked an admin to have');
+    if (!admin && got.indexOf(BIBLE_KEY) >= 0) bad.push(what + ' is offered the Bible — it is for admins only');
+    const rest = got.filter(k => k !== BIBLE_KEY).join('|');
+    if (rest !== out0.filter(k => k !== BIBLE_KEY).join('|')) bad.push(what + ' is offered a different set of learning items from somebody signed out');
+  });
   /* AND THE SPOTLIGHT WINDOW, WHICH IS NOT FIND, KEEPS THE ADMIN'S TILE on a learning item already in
      it -- or a question put there before this change could never be taken out (`SPOT_TILES`). */
   const prac = real[0];
@@ -6459,13 +7697,216 @@ check('Find draws the same question family, practical, project and textbook for 
   return bad;
 });
 
+/* ---------- EVERY CONTROL ON A QUESTION'S PAGES IS A TILE ------------------------------------------------
+   ASKED FOR ONE AT A TIME AND THEN ALL AT ONCE: *"check button should be a tile."*, *"lock should be a
+   tile too. same as undo and clear. it should all be tiles."* The house rule said a FORM has buttons,
+   and the pen's bar, Check and Mark with AI were argued as a form's; the owner overruled it for this
+   surface, so the rule is asked of the whole family at once rather than of whichever control somebody
+   remembered.
+
+   EVERY PAGE OF A QUESTION FAMILY, through the app's own builders, signed in so the star is drawn too:
+   a stem with its figure, a part with a box and Check, a tapped question, a worded one with Mark with AI,
+   a maths one on the keypad's box, a drawing question on a squared grid (pen off AND on -- the armed bar
+   is drawn by a different branch), a pen question asking for a ruler and compasses, a passage to ring
+   words in, and every answer page hidden and shown. Every `<button>`, every `[data-do]`, every
+   `role="button"` and every link must be a `.tile` -- or one of the exceptions, each named where it is
+   drawn with the reason:
+     a multiple-choice option     the answer being given, with its own words and maths (`choiceBox_`)
+     a key on the maths keypad    a keyboard (`kpKey_`) -- drawn on the body, listed for completeness
+     a word in a passage          the answer being given, where the sentence put it (`circWords_`)
+     the picture under the pen    the pen's second door while it is off (`padArm_`), not a control
+     the answer box itself        a field, which is typed into rather than pressed
+   And the tiles the owner named must actually be there, so a family that drew none cannot pass. */
+check('every control on a question\'s pages is a tile, bar the options, the keys, the words and the box', async () => {
+  const p = Object.assign(payload(), { aiMarking: true });
+  p.features = (p.features || []).concat(['aiMark']);
+  const { w } = boot({ payload: p });
+  await wait(300);
+  const t = w.__t, bad = [];
+  const need = ['pageParts_', 'stuffPart_', 'stuffCard', 'questionAnsCard_', 'ansShow_', 'ansHide_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The tiles were NOT checked'];
+  t.USER({ name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'], token: 'tok' });
+  const svg = '<svg viewBox="0 0 340 200"><circle cx="20" cy="20" r="9"/></svg>';
+  const row = id => ({ row_id: id, paper_id: 'P-TILES', subject: 'Maths', name: 'Paper 1: Foundation — June 2024' });
+  const stem = { id: 'S-TILES', html: '<p>The diagram shows a triangle.</p>', diagram: svg };
+  const fam = [
+    { kind: 'question', name: 'Q4(a)', qNumber: '4', qPart: 'a', marks: 2, key: 'q:Q-TILES-4a', row: row('Q-TILES-4a'), stems: [stem],
+      diagram: svg, html: '<p>Work out PR.</p>', answer: '<b>5 cm</b>', accept: 'five' },
+    { kind: 'question', name: 'Q4(b)', qNumber: '4', qPart: 'b', marks: 1, key: 'q:Q-TILES-4b', row: row('Q-TILES-4b'), stems: [stem],
+      html: '<p>Which is right?</p>', choices: ['3', '4'], choiceRight: [2], answer: '<b>4</b>' },
+    { kind: 'question', name: 'Q5', qNumber: '5', marks: 3, key: 'q:Q-TILES-5', row: row('Q-TILES-5'), stems: [],
+      answerType: 'explain', html: '<p>Explain why the angles add to 180°.</p>', answer: '<b>Angles on a line</b> &mdash; a half turn' },
+    { kind: 'question', name: 'Q6', qNumber: '6', marks: 1, key: 'q:Q-TILES-6', row: row('Q-TILES-6'), stems: [],
+      answerType: 'calculation', html: '<p>Work out 3/4 of 12.</p>', answer: '<b>9</b>', accept: '9' },
+    { kind: 'question', name: 'Q7', qNumber: '7', marks: 2, key: 'q:Q-TILES-7', row: Object.assign(row('Q-TILES-7'), { figure: 'grid-blank' }),
+      stems: [], answerType: 'drawing', html: '<p>Draw the graph of y = 2x + 1.</p>', answer: '<b>A straight line</b>' },
+    { kind: 'question', name: 'Q8', qNumber: '8', marks: 2, key: 'q:Q-TILES-8', row: row('Q-TILES-8'), stems: [], needs: ['Ruler', 'Compass'],
+      answerType: 'drawing', diagram: svg, html: '<p>Use a ruler and compasses to construct the perpendicular bisector of AB.</p>', answer: '<b>Arcs from A and B</b>' },
+    { kind: 'question', name: 'Q9', qNumber: '9', marks: 1, key: 'q:Q-TILES-9', row: row('Q-TILES-9'), stems: [],
+      answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>', answer: '<b>tall</b>' },
+  ];
+  const pages = [];
+  const drawAll = when => fam.forEach((x, i) => w.pageParts_(x, i ? fam[i - 1] : null).forEach(part => {
+    pages.push({ at: x.row.row_id + '#' + (part || 'card') + when, html: part ? w.stuffPart_(x, part) : w.stuffCard(x, 0) });
+  }));
+  drawAll('');
+  /* THE ARMED PEN, which `padWrap_` draws from `PAD_ON` by a different branch. */
+  ['q:Q-TILES-7', 'q:Q-TILES-8'].forEach(k => {
+    const x = fam.find(f => f.key === k);
+    t.padOn(w.__t.padKey ? w.__t.padKey(x) : 'pad:' + k);
+    pages.push({ at: x.row.row_id + '#fig, pen on', html: w.stuffPart_(x, 'fig') });
+  });
+  t.padOn('');
+  /* AND EVERY ANSWER PAGE, SHOWN, then put back. */
+  fam.forEach(x => { w.ansShow_(x); pages.push({ at: x.row.row_id + '#ans-shown', html: w.questionAnsCard_(x) }); w.ansHide_(x); });
+  const EXEMPT = [
+    ['button.qp-opt[data-do="qp-choose"]', 'a multiple-choice option'],
+    ['button.kp-key[data-do="kp-key"]', 'a key on the maths keypad'],
+    ['span.qw[data-do="qw-tap"]', 'a word in a passage to ring'],
+    ['div.qpad-art[data-do="pad-draw"]', 'the picture under the pen, while it is off'],
+    ['textarea.qp-ans-in[data-do="qp-ans"], input.qp-ans-in[data-do="qp-ans"]', 'the answer box'],
+  ];
+  const seen = {};
+  const exempted = {};
+  pages.forEach(pg => {
+    const h = w.document.createElement('div');
+    h.innerHTML = pg.html;
+    h.querySelectorAll('button, [data-do], [role="button"], a[href]').forEach(el => {
+      if (el.classList.contains('tile')) {
+        const k = el.getAttribute('data-do') + (el.getAttribute('data-tool') ? ':' + el.getAttribute('data-tool') : '');
+        seen[k] = (seen[k] || 0) + 1;
+        return;
+      }
+      const ok = EXEMPT.find(([sel]) => el.matches(sel));
+      if (ok) { exempted[ok[1]] = (exempted[ok[1]] || 0) + 1; return; }
+      bad.push(pg.at + ' draws a control that is not a tile: <' + el.tagName.toLowerCase()
+        + ' class="' + (el.getAttribute('class') || '') + '" data-do="' + (el.getAttribute('data-do') || '') + '">');
+    });
+  });
+  /* THE ONES THE OWNER NAMED, which must be there for the rule above to mean anything. */
+  [['qp-check', 'Check'], ['qp-ai', 'Mark with AI'], ['pad-draw', 'the pen\'s lock'], ['pad-undo', 'Undo'],
+   ['pad-clear', 'Clear'], ['qa-go', 'To the answer'], ['qa-show', 'Show the answer'], ['qa-hide', 'Hide the answer'],
+   ['pad-tool:pen', 'the Pen'], ['pad-tool:ruler', 'the Ruler'], ['pad-tool:compass', 'the Compass'],
+   ['fav', 'the star']].forEach(([act, what]) => {
+    if (!seen[act]) bad.push('no ' + what + ' tile (' + act + ') was drawn anywhere in the family, so the rule was NOT asked of it');
+  });
+  ['a multiple-choice option', 'a word in a passage to ring', 'the picture under the pen, while it is off', 'the answer box'].forEach(what => {
+    if (!exempted[what]) bad.push('the family drew no ' + what + ', so its exception was NOT exercised');
+  });
+  t.USER(null);
+  if (!bad.length) console.log('          ' + pages.length + ' pages; tiles: ' + Object.keys(seen).sort().map(k => k + ' ' + seen[k]).join(', '));
+  return bad;
+});
+
+/* ---------- EVERY FACT ABOUT A PAGE OF A QUESTION IS A TAG, IN ONE ROW AT THE TOP ------------------------
+   ASKED FOR AS *"why do the questions say non calculator but its not a tag? also the marks should also
+   be a tag. also the question numbers should also be a tag. also answers should have the answer tags
+   and questions have the question tag."* and *"why is ks2 sats one tag? it should be sats. if they want
+   to specify key stage then it should be its own thing."* Through the app's own builders, on the five
+   pages that make a question:
+     * the tag row is the card's FIRST block, and nothing of the old head is left -- no gold header
+       (`.qcard-top`), no subtitle (`.qcard-sub`), no `sat …` line, no orange `No calculator` line
+     * the first tag says what the page is -- Question, Answer, the figure's name -- then the number,
+       then the marks; the number and the marks only where they belong (no number on a figure, no
+       marks on a figure or a stem), and nothing rather than "0 marks"
+     * the calculator is ONE tag, `Non-calculator`, though the paper's name AND the cover's cell both
+       say it -- and `Calculator allowed` on a calculator paper -- in the needs colour; the funnel's
+       answer and chip say the same word
+     * a KS2 SATs page says `SATs` and `KS2` as two tags, and nothing anywhere says `KS2 SATs` */
+check('every fact about a page of a question is a tag in one row at the top: what it is, its number, its marks, SATs and KS2, the calculator once', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const t = w.__t;
+  const need = ['questionCard_', 'questionAnsCard_', 'questionFigCard_', 'questionStemCard_', 'questionStemFigCard_', 'qTags_', 'chipShow_']
+    .filter(n => typeof w[n] !== 'function');
+  if (need.length || typeof t.facetBy !== 'function') return [need.concat(['facetBy']).join(', ') + ' not reachable — renamed? The tag row was NOT checked'];
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
+  const row = html => {
+    const card = el(html).querySelector('.qcard');
+    const r = card && card.querySelector('.qcard-tags');
+    return { card, first: card && card.firstElementChild,
+             tags: r ? [...r.querySelectorAll('.qtag')].map(s => ({ tag: s.getAttribute('data-tag') || '', text: s.textContent.trim() })) : [] };
+  };
+  const say = tags => tags.map(x => (x.tag || '-') + ':' + x.text).join(' | ');
+  const svg = '<svg viewBox="0 0 10 10"><text>FIG</text></svg>';
+  const gcse = { kind: 'question', name: 'Q4a', qNumber: '4', qPart: 'a', marks: 2, key: 'q-tags-4a',
+    sub: 'Paper 1 (Non-Calculator) — November 2018', subject: 'Maths', level: 'GCSE', keystage: 'KS4',
+    tier: 'Higher', examBoard: 'Edexcel', documentType: 'Past paper', needs: ['No calculator', 'Protractor'],
+    row: { row_id: 'Q-TAGS-4a', paper_id: 'P-TAGS-1H', name: 'Paper 1 (Non-Calculator) — November 2018' },
+    stems: [{ id: 'S-TAGS-4', html: '<p>A shape is drawn on a grid.</p>', diagram: svg }],
+    html: '<p>Work out the size of angle x.</p>', diagram: svg, answer: '<b>40</b>', accept: '40' };
+  const pages = {
+    question: w.questionCard_(gcse), answer: w.questionAnsCard_(gcse), figure: w.questionFigCard_(gcse),
+    stem: w.questionStemCard_(gcse, 0, 0), stemFigure: w.questionStemFigCard_(gcse, 0),
+  };
+  const want = {
+    question: ['kind:Question', 'number:Q4a', 'marks:2 marks'], answer: ['kind:Answer', 'number:Q4a', 'marks:2 marks'],
+    figure: ['kind:Figure'], stem: ['kind:Question', 'number:Q4'], stemFigure: ['kind:Figure'],
+  };
+  let paperFacts = null;
+  Object.keys(pages).forEach(k => {
+    const r = row(pages[k]);
+    if (!r.card) return bad.push('the ' + k + ' page drew no card');
+    if (!r.first || !r.first.classList.contains('qcard-tags')) bad.push('the ' + k + ' page\'s first block is ' + (r.first ? '.' + r.first.className : 'nothing') + ', not the tag row');
+    ['.qcard-top', '.qcard-sub', '.qcard-needs', '.qcard-sat'].forEach(c => { if (r.card.querySelector(c)) bad.push('the ' + k + ' page still draws ' + c); });
+    const head = r.tags.slice(0, want[k].length).map(x => x.tag + ':' + x.text);
+    if (JSON.stringify(head) !== JSON.stringify(want[k])) bad.push('the ' + k + ' page\'s row starts ' + JSON.stringify(head) + ', wanted ' + JSON.stringify(want[k]));
+    const rest = r.tags.slice(want[k].length);
+    if (rest.some(x => ['kind', 'number', 'marks'].indexOf(x.tag) >= 0)) bad.push('the ' + k + ' page has a page tag past its head: ' + say(r.tags));
+    /* THE PAPER'S FACTS ARE THE SAME ON EVERY PAGE OF IT. */
+    const facts = say(rest);
+    if (paperFacts === null) paperFacts = facts;
+    else if (facts !== paperFacts) bad.push('the ' + k + ' page says the paper as ' + facts + ', the question page as ' + paperFacts);
+    const calc = r.tags.filter(x => /calculator/i.test(x.text));
+    if (calc.length !== 1 || calc[0].tag !== 'needs' || calc[0].text !== 'Non-calculator') bad.push('the ' + k + ' page says the calculator as ' + JSON.stringify(calc) + ' -- wanted ONE needs tag, Non-calculator');
+    const seen = {};
+    r.tags.forEach(x => { if (seen[x.text.toLowerCase()]) bad.push('the ' + k + ' page says "' + x.text + '" twice'); seen[x.text.toLowerCase()] = 1; });
+  });
+  if (paperFacts !== null) {
+    ['level:GCSE', 'board:Edexcel', 'subject:Maths', 'tier:Higher', 'sitting:2018', 'sitting:November', 'paper:Paper 1', 'needs:Protractor']
+      .forEach(f => { if (paperFacts.split(' | ').indexOf(f) < 0) bad.push('the paper\'s facts lack ' + f + ': ' + paperFacts); });
+    if (/KS4/.test(paperFacts)) bad.push('a GCSE page says its key stage -- Key stage is asked inside SATs only: ' + paperFacts);
+  }
+  /* A CALCULATOR PAPER, AND A ROW WITH NO MARKS. */
+  const calcQ = Object.assign({}, gcse, { key: 'q-tags-c', name: 'Q3', marks: '', sub: 'Paper 2 (Calculator) — June 2017', needs: ['Calculator'],
+    row: Object.assign({}, gcse.row, { row_id: 'Q-TAGS-C', name: 'Paper 2 (Calculator) — June 2017' }), stems: [], diagram: '' });
+  const c = row(w.questionCard_(calcQ));
+  if (c.tags.filter(x => /calculator/i.test(x.text)).map(x => x.tag + ':' + x.text).join() !== 'needs:Calculator allowed') bad.push('a calculator paper says ' + say(c.tags.filter(x => /calculator/i.test(x.text))) + ', wanted one needs tag, Calculator allowed');
+  if (c.tags.some(x => x.tag === 'marks' || /\b0 marks?\b/.test(x.text))) bad.push('a row with no marks has a marks tag: ' + say(c.tags));
+  /* THE FUNNEL SAYS THE SAME WORD: the answer and the chip, through the facet's `showOf`. */
+  const nf = t.facetBy('needs');
+  const chip = w.chipShow_({ field: 'needs', value: 'No calculator' });
+  if (!nf || !nf.showOf || nf.showOf('No calculator') !== 'Non-calculator' || chip !== 'Non-calculator') bad.push('the funnel says the calculator as "' + (nf && nf.showOf ? nf.showOf('No calculator') : '?') + '" / chip "' + chip + '", the card as Non-calculator');
+  /* SATs, AND THE KEY STAGE BESIDE IT: a primary worksheet (a school year, a key-stage cell, no level)
+     and an STA paper (`band_value: KS2 SATs`). */
+  const sheet = { kind: 'question', name: 'Q1', qNumber: '1', key: 'q-tags-ws', sub: 'Adding Fractions', subject: 'Maths',
+    bandType: 'year', bandValue: '5', keystage: 'KS2', documentType: 'Worksheet', company: '1stclassmaths',
+    row: { row_id: 'Q-TAGS-WS', paper_id: 'P-TAGS-WS', name: 'Adding Fractions' }, stems: [], html: '<p>1/4 + 2/4</p>' };
+  const sta = Object.assign({}, sheet, { key: 'q-tags-sta', bandType: 'stage', bandValue: 'KS2 SATs', documentType: 'Past paper',
+    sub: 'Paper 1: Arithmetic — May 2024', examBoard: 'STA', marks: 1,
+    row: { row_id: 'Q-TAGS-STA', paper_id: 'P-TAGS-STA', name: 'Paper 1: Arithmetic — May 2024' } });
+  [['a SATs worksheet', sheet, ['kind:Question', 'number:Q1', 'level:SATs', 'level:KS2']],
+   ['an STA paper', sta, ['kind:Question', 'number:Q1', 'marks:1 mark', 'level:SATs', 'level:KS2']]].forEach(([what, x, head]) => {
+    const r = row(w.questionCard_(x));
+    const got = r.tags.slice(0, head.length).map(y => y.tag + ':' + y.text);
+    if (JSON.stringify(got) !== JSON.stringify(head)) bad.push(what + '\'s row starts ' + JSON.stringify(got) + ', wanted ' + JSON.stringify(head));
+    if (r.tags.some(y => /KS\s*\d\s*SATs/i.test(y.text))) bad.push(what + ' still says the key stage inside the level: ' + say(r.tags));
+    if (r.tags.some(y => y.tag === 'board')) bad.push(what + ' names a board beside SATs, which says who sets it: ' + say(r.tags));
+  });
+  return bad;
+});
+
 /* ---------- THE DAY A STUDENT DID A QUESTION, ON ITS CARD, FOR THEM ------------------------------------
    ASKED FOR AS *"when a student does do a question, it should record the date they did it."* Through
-   the real handlers on a real card:
-     * signed out, nothing is recorded -- the signed-out key is everybody, and a date on it is nobody's
+   the real handlers on a real card AND THE TILE ROW UNDER IT, where the date is now -- beside the star,
+   because it is yours like the star is, and the header it sat in became tags (`questionTiles_`):
+     * signed out, nothing is recorded and there is no slot -- the signed-out key is everybody, and a
+       date on it is nobody's
      * signed in, a Check (right or not yet), a tap that chooses enough, and typing into a box that has
-       no Check each write today under `done:<who>:<key>` and show `Done <d> <Mon>` in the header's slot
-     * the slot is filled where it stands: the header is the same node, its number and marks unchanged
+       no Check each write today under `done:<who>:<key>` and show `Done <d> <Mon>` in the tile row's slot
+     * the slot is filled where it stands: the slot is the same node, the tag row untouched
      * it comes back when the card is drawn again, and is the signed-in person's only -- another
        student on the same phone sees a clean card
      * where `localStorage` throws (private mode), the date is held for the visit and still shown
@@ -6489,8 +7930,9 @@ check('a signed-in student\'s attempt is dated on the question card, for them al
     row: { row_id: 'Q-DONE-8', paper_id: 'P-DONE', subject: 'Maths', name: 'Done' },
     html: '<p>Work out 3 &times; 5</p>', answer: '<b>15</b>', accept: '15' };
   const typed = Object.assign({}, base, { key: 'q-done-typed' });
-  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
-  const slot = card => card.querySelector('.qcard-top .qcard-done');
+  /* THE CARD AND ITS TILE ROW, as `stuffCard` puts them -- the date is in the row. */
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>'; d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const slot = card => card.parentNode.querySelector('.tile-row .qcard-done');
   const stored = () => Object.keys(w.localStorage).filter(k => /^done:/.test(k));
   const markIt = card => {
     const inp = card.querySelector('.qp-ans-in');
@@ -6501,19 +7943,24 @@ check('a signed-in student\'s attempt is dated on the question card, for them al
   /* SIGNED OUT. */
   w.__t.USER(null);
   const out = draw(typed);
-  if (!slot(out)) bad.push('the question card has no date slot, so a date would arrive as a new element');
+  if (slot(out)) bad.push('signed out, the tile row has a date slot -- there is nothing it could ever say');
+  if (out.querySelector('.qcard-done')) bad.push('the date slot is inside the card, not in the tile row beside the star');
   markIt(out);
   if (slot(out) && slot(out).textContent) bad.push('signed out, a Check stamped the card "' + slot(out).textContent + '"');
   if (stored().length) bad.push('signed out, a date was stored: ' + stored().join(', '));
   /* SIGNED IN. */
   w.__t.USER({ name: 'Lucca Smith', personId: 'P7', role: 'student', roles: ['student'] });
   const card = draw(typed);
-  const top = card.querySelector('.qcard-top');
-  const b0 = top.querySelector('b').outerHTML;
+  if (!slot(card)) return bad.concat(['signed in, the tile row has no date slot, so a date would arrive as a new element']);
+  if (card.querySelector('.qcard-done')) bad.push('the date slot is inside the card, not in the tile row beside the star');
+  const top = card.querySelector('.qcard-tags');
+  const t0 = top && top.outerHTML;
+  const s0 = slot(card);
   if (slot(card).textContent) bad.push('a question never done is already stamped "' + slot(card).textContent + '"');
   markIt(card);
   if (slot(card).textContent !== label) bad.push('a Check did not stamp the card: "' + slot(card).textContent + '", wanted "' + label + '"');
-  if (card.querySelector('.qcard-top') !== top || top.querySelector('b').outerHTML !== b0) bad.push('stamping the date redrew the header rather than writing into its slot');
+  if (slot(card) !== s0) bad.push('stamping the date drew a new slot rather than writing into the one that was there');
+  if (!top || card.querySelector('.qcard-tags') !== top || top.outerHTML !== t0) bad.push('stamping the date redrew the tag row');
   if (!/Not yet/.test(card.querySelector('.qp-verdict').textContent)) bad.push('the date took the verdict\'s place');
   if (w.localStorage.getItem('done:u:P7:q-done-typed') !== today) bad.push('the date is not stored per person per question: ' + stored().join(', '));
   if (slot(draw(typed)).textContent !== label) bad.push('drawn again, the card forgot the date');
@@ -6594,8 +8041,9 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
     row: { row_id: 'Q-SHEET-8', paper_id: 'P-SHEET', subject: 'Maths', name: 'Sheet' },
     html: '<p>Work out 3 &times; 5</p>', answer: '<b>15</b>', accept: '15' };
   const q = k => Object.assign({}, base, { key: k });
-  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
-  const slot = card => (card.querySelector('.qcard-top .qcard-done') || {}).textContent || '';
+  /* THE CARD AND ITS TILE ROW -- the date is beside the star (`questionTiles_`). */
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>'; d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const slot = card => (card.parentNode.querySelector('.tile-row .qcard-done') || {}).textContent || '';
   const check_ = card => { card.querySelector('.qp-ans-in').value = '16'; A['qp-check'](card.querySelector('.qp-check')); };
 
   /* SIGNED OUT: nothing is sent. */
@@ -6650,6 +8098,34 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
   await wait(30);
   if (marks().length - n1 !== 1) bad.push('typing an answer sent ' + (marks().length - n1) + ' markDone requests, wanted 1');
 
+  /* AND ITS NAME, for the weekly parent email (backend/digest.gs): a card the library holds sends what
+     a parent can read — the subject, the paper, the number — and the subject is not said twice when
+     the paper's name already says it. The cards above are not in the library, and sent no label. */
+  const heldItems = w.stuffItemsAll_;
+  const named = (k, subject, sub) => Object.assign(q(k), { subject: subject, sub: sub });
+  const qa = named('q-named', 'Maths', 'Paper 1 (Calculator) — June 2024');
+  const qb = named('q-named-2', 'Biology', 'Biology Paper 2 — June 2023');
+  const n3 = marks().length;
+  w.stuffItemsAll_ = () => [qa, qb];
+  try { check_(draw(qa)); check_(draw(qb)); } finally { w.stuffItemsAll_ = heldItems; }
+  await wait(30);
+  const labels = marks().slice(n3).map(b => ((b.items || [])[0] || {}).label);
+  if (JSON.stringify(labels) !== JSON.stringify(['Maths · Paper 1 (Calculator) — June 2024 · Q8', 'Biology Paper 2 — June 2023 · Q8'])) {
+    bad.push('a Check on a library card sent the labels ' + JSON.stringify(labels) + ' — wanted "Maths · Paper 1 (Calculator) — June 2024 · Q8" and "Biology Paper 2 — June 2023 · Q8", the name a parent reads in the weekly email');
+  }
+  /* A PRACTICAL'S WORKSHEET BOX is the card's key with a slot on the end (`guideBox_`), and it was
+     looked up whole, so it found no card and went up nameless — three raw keys in a parent's email
+     for one worksheet. The slot comes off for the lookup and the name says it was the worksheet. */
+  const pr = { kind: 'practical', name: 'Specific heat capacity', key: 'pr:PR-T1', subject: 'Physics', sub: 'AQA required practical' };
+  const n4 = marks().length;
+  w.stuffItemsAll_ = () => [qa, pr];
+  try { w.doneMark_('ans:' + w.whoIs_() + ':pr:PR-T1#iv'); } finally { w.stuffItemsAll_ = heldItems; }
+  await wait(30);
+  const prSent = (((marks().slice(n4)[0] || {}).items) || [])[0] || {};
+  if (prSent.key !== 'pr:PR-T1#iv' || prSent.label !== 'Physics · AQA required practical · Specific heat capacity · Worksheet') {
+    bad.push('a practical’s worksheet box sent ' + JSON.stringify(prSent) + ' — wanted key pr:PR-T1#iv with the label "Physics · AQA required practical · Specific heat capacity · Worksheet"');
+  }
+
   /* A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
   w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
   if (shows('q-sheet-only')) bad.push('Ben sees Lucca\'s sheet date: "' + shows('q-sheet-only') + '"');
@@ -6676,6 +8152,75 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
   await wait(30);
   if (marks().length !== n2) bad.push('a backend that does not list markDone was sent it anyway');
   w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- THE WEEKLY PARENT EMAIL'S CARD -----------------------------------------------------------
+   ASKED FOR AS THE INFRASTRUCTURE FOR *"something which triggers every sunday"* and emails parents —
+   built and switched off (backend/digest.gs). The card is how an admin sees which: it says the mode the
+   config row says (anything but preview or send is Off, as on the server), it is an admin's alone, and
+   its one tile asks `digestPreview` — a read — and opens what would be sent, the plain body escaped.
+   It posts nothing else, and a backend without the action is told so rather than asked. */
+check('the weekly parent email card is an admin\'s, says the switch, and Preview opens the emails without sending one', async () => {
+  const preview = { success: true, mode: 'preview', hour: 18, scheduled: 0,
+    week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
+    emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s week: 2 questions',
+               text: 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 2 questions.\n\nThe questions\n- <b>Maths</b> · Q1\n- q:Q-2',
+               html: '<p>Hello Pat,</p>', count: 2 }],
+    unreachable: [{ id: 'P-S3', name: 'Cal Alone', count: 1, why: 'no parent has accepted a link to them' }] };
+  const p = payload();
+  p.features = ['digestPreview'];
+  p.constants.vars.weekly_digest = 'off';
+  const { w, sent } = boot({ payload: p, reply: b => (b.action === 'digestPreview' ? preview : { success: true }) });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  const bad = [];
+  const card = () => d.querySelector('#s-settings .card.digest');
+  const said = () => (card().querySelector('.digest-mode') || {}).textContent || '';
+  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk', profile: {} });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(200);
+  if (card()) bad.push('a parent is shown the weekly parent email card — it is an admin’s');
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', profile: {} });
+  w.paint('settings');
+  await wait(200);
+  if (!card()) return bad.concat(['an admin has no Weekly parent email card on the Settings column']);
+  if (!/Weekly parent email:\s*Off/.test(said())) bad.push('with weekly_digest off the card reads "' + said() + '"');
+  [['Preview', 'Preview'], ['send', 'Send'], ['yes', 'Off'], ['', 'Off']].forEach(([cell, word]) => {
+    t.DATA().constants.vars.weekly_digest = cell;
+    w.paint('settings');
+    if (!new RegExp('Weekly parent email:\\s*' + word).test(said())) bad.push('weekly_digest "' + cell + '" reads "' + said() + '" — wanted ' + word + ', as the server reads it');
+  });
+  t.DATA().constants.vars.weekly_digest = 'off';
+  w.paint('settings');
+  const tile = card().querySelector('.tile-row .tile[data-do="digest-preview"]');
+  if (!tile) return bad.concat(['the card has no Preview tile in a tile row']);
+  if (card().querySelector('button:not(.tile)')) bad.push('the card has a plain button — a thing has tiles');
+  sent.length = 0;
+  t.ACTIONS['digest-preview'](tile);
+  await wait(300);
+  const asks = sent.filter(b => b.action === 'digestPreview');
+  if (asks.length !== 1) bad.push('Preview posted ' + JSON.stringify(sent.map(b => b.action)) + ' — wanted one digestPreview');
+  if (sent.some(b => b.action !== 'digestPreview')) bad.push('Preview posted something besides the read: ' + JSON.stringify(sent.map(b => b.action)));
+  const sheet = d.getElementById('sheet'), body = d.getElementById('sheet-body');
+  if (!sheet || sheet.classList.contains('hidden')) bad.push('Preview did not open the sheet');
+  const text = body ? body.textContent.replace(/\s+/g, ' ') : '';
+  ['28 Sep – 4 Oct', 'To Pat Parent · pat@example.org', 'Ada’s week: 2 questions', 'Hello Pat,', 'q:Q-2',
+   'Cal Alone — no parent has accepted a link to them', 'This preview sent nothing', 'no Sunday booked yet',
+   'On Sunday this email would be written to the digest_log tab, and none sent'].forEach(s => {
+    if (text.indexOf(s) === -1) bad.push('the preview sheet does not say "' + s + '"');
+  });
+  if (text.indexOf('<b>Maths</b>') === -1 || (body && [...body.querySelectorAll('b')].some(b => b.textContent === 'Maths'))) bad.push('a question’s name was drawn as markup in the preview — it came off a phone and must be printed as text');
+  if (!/Weekly parent email:\s*Preview/.test(said())) bad.push('after the preview the card still reads "' + said() + '" — wanted the mode the server just answered with');
+  /* A BACKEND FROM BEFORE digest.gs: told, not asked. */
+  try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
+  t.DATA().features = [];
+  sent.length = 0;
+  t.ACTIONS['digest-preview'](card().querySelector('[data-do="digest-preview"]'));
+  await wait(100);
+  if (sent.some(b => b.action === 'digestPreview')) bad.push('a backend that does not list digestPreview was sent it: ' + JSON.stringify(sent.map(b => b.action)));
+  if (!/sync backend/i.test((card().querySelector('.digest-said') || {}).textContent || '')) bad.push('a backend without the weekly email is not said to need a sync');
+  t.USER(null);
   return bad;
 });
 
@@ -6848,6 +8393,48 @@ check('the roles card ticks what you hold, posts setMyRoles, and a waiting Tutor
   try { w.paint('settings'); } catch (e) { return bad.concat(['drawing settings for the admin threw: ' + e.message]); }
   if (!card() || !card().querySelector('.role-admin')) bad.push('an admin is not told Admin is given and kept');
   else if (!tick('tutor').checked || tick('client').checked) bad.push('an admin holding admin, tutor does not see Tutor alone ticked');
+  return bad;
+});
+
+/* ---------- A REFUSED SAVE PUTS THE TICKS BACK; A LOST REPLY LEAVES THEM ------------------------------
+   THE WALK AFTER THE PARENT SIGN-UP FOUND IT: a student ticks Client, Save, and the server's *"A
+   student account cannot make itself a client … Nothing was changed"* arrived under a Client box
+   still ticked in gold — the box saying yes over the line saying no. The server's half (it refuses,
+   it writes nothing) is `check-signin` §8; this is what the phone draws afterwards. And the other
+   failure, which must NOT do the same: a reply that never came decided nothing, so the ticks are
+   still the request a second Save will send. */
+check('a refused roles save puts the ticks back to what you hold; a lost reply keeps them', async () => {
+  const NO = 'A student account cannot make itself a client (a parent or payer). Ask @family. to change it. Nothing was changed.';
+  const { w, sent } = boot({ reply: b => b.action === 'setMyRoles' ? { error: NO } : { success: true } });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  t.USER({ name: 'Mo Learner', personId: 'P-S1', role: 'kid', roles: ['kid'], token: 'tk', tutorPending: false,
+           profile: { first_name: 'Mo', last_name: 'Learner' } });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(300);
+  const bad = [];
+  const card = () => d.querySelector('#s-settings .roles-card');
+  if (!card()) return ['Settings has no Your roles card'];
+  const tick = r => card().querySelector(`[data-role-pick="${r}"]`);
+  const ticks = () => ['tutor', 'client', 'student'].filter(r => tick(r) && tick(r).checked).join(',');
+  const line = () => (card().querySelector('.roles-said') || {}).textContent || '';
+  if (ticks() !== 'student') return ['a student signed in sees "' + ticks() + '" ticked, wanted student alone'];
+  /* REFUSED: the server's sentence stays, the ticks go back to what is held. */
+  tick('client').checked = true;
+  sent.length = 0;
+  t.ACTIONS['roles-save'](card().querySelector('[data-do="roles-save"]'));
+  await wait(400);
+  if (!sent.some(b => b.action === 'setMyRoles')) return ['Save with Client ticked posted ' + JSON.stringify(sent.map(b => b.action)) + ' and no setMyRoles'];
+  if (line().indexOf('Nothing was changed') === -1) bad.push('the line under the tile does not carry the server\'s refusal — "' + line() + '"');
+  if (ticks() !== 'student') bad.push('after "Nothing was changed" the card shows "' + ticks() + '" ticked, wanted what the student holds: student');
+  if (JSON.stringify(t.whoami().roles) !== '["kid"]') bad.push('a refusal changed USER.roles to ' + JSON.stringify(t.whoami().roles));
+  /* LOST: nothing was decided, so the ticks are left for the second Save. */
+  w.fetch = () => Promise.reject(new w.TypeError('Failed to fetch'));
+  tick('client').checked = true;
+  t.ACTIONS['roles-save'](card().querySelector('[data-do="roles-save"]'));
+  await wait(400);
+  if (!/did not answer|offline/.test(line())) bad.push('a lost reply did not say so on the card — "' + line() + '"');
+  if (ticks() !== 'client,student') bad.push('a reply that never came took the ticks back to "' + ticks() + '" — a second Save would send what the person did not choose');
   return bad;
 });
 
@@ -7140,6 +8727,371 @@ check('the @family. textbook: Learning, Resources, @family. textbooks, GCSE Stat
   return bad;
 });
 
+/* ---------- THE BIBLE: AN ADMIN READS GENESIS 1, AND NOBODY ELSE IS SHOWN IT OR SENT IT ------------
+   ASKED FOR AS "i want to add the bible to resources as a book. but only admin can see the bible."
+   Two halves, and the second is the one that matters more:
+
+   NOBODY BUT AN ADMIN. Signed out, a parent, a student and a tutor are each booted SIGNED IN FROM THE
+   FIRST LINE (seeded the way `check/ui.js` seeds its visitor, so the boot that builds Find is theirs),
+   with the real `data/bible/` files there to be fetched. Each walks to Resources and every shelf on
+   it, searches `bible` and `genesis`, and even presses a book button that should not exist. Then the
+   list of everything fetched is read: not one URL under `data/bible/`. Absent is the claim — no item,
+   no `Books` answer, no card — and not one byte downloaded for a book they were never shown.
+
+   AN ADMIN, BY THE OWNER'S ROUTE. Learning → Resources → Books on the real answer buttons; the list
+   is the Bible; its cover and three lists (the Old Testament turned at Job, then the New); Genesis
+   pressed, fetched ONCE, its chapter numbers turned to — after all three lists; chapter 1 pressed and
+   READ — "In the beginning God created the heaven and the earth." — with `[was]` drawn as italics and
+   no bracket anywhere; every verse of Genesis on exactly one page, in order; a tile back to the
+   numbers on every page of every chapter, pressed from the middle of one, and the numbers' tile back
+   to the Old Testament; Genesis again with no second fetch; the New Testament still page three and
+   Matthew after it; Psalm 119 back to the page of numbers it is on; a book that fails to arrive said
+   on the list without losing the one open; the book names searchable; the star keeping the cover and
+   all three lists; and signing out from inside it leaving nothing of it on Find. */
+check('the Bible: an admin opens Genesis 1 off the Books shelf; nobody else is shown it or fetches a byte of it', async () => {
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return ['libraryExtras_ is not reachable, so the shelves were NOT built — not a pass'];
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({},
+    { textbooks: read('textbooks'), boxers: read('boxers'), fights: read('fights'), projects: read('projects') })));
+  /* THE SHELVES THE BIBLE STANDS BESIDE, so `Books` is pressed among real answers rather than alone. */
+  const base = () => Object.assign(payload(), { textbooks: made.textbooks || [], boxers: made.boxers || [],
+                                                fights: made.fights || [], projects: made.projects || [] });
+  /* THE REAL FILES, SERVED AS THE SITE SERVES THEM, the deploy stamp and all; a name in `refuse` 404s. */
+  const bibleDir = path.join(dir, '..', 'data', 'bible');
+  const refuse = new Set();
+  const serve = url => {
+    const m = /(?:^|\/)data\/bible\/([a-z0-9-]+\.json)(?:\?|$)/.exec(url);
+    if (!m) return undefined;
+    if (refuse.has(m[1])) return null;
+    const p = path.join(bibleDir, m[1]);
+    return fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, 'utf8')) : null;
+  };
+  const seed = u => w => { try { w.localStorage.setItem('familyUser', JSON.stringify(u)); } catch (e) {} };
+  const ofBible = gets => gets.filter(u => /data\/bible\//.test(u));
+  const bad = [];
+
+  /* ---------- NOBODY BUT AN ADMIN ---------------------------------------------------------------- */
+  const others = [
+    ['somebody signed out', null],
+    ['a parent', { name: 'Rasa Poliksa', personId: 'P004', role: 'parent', roles: ['parent'] }],
+    ['a student', { name: 'Sam Student', personId: 'P003', role: 'student', roles: ['student'] }],
+    ['a tutor', { name: 'Ada Tutor', personId: 'P002', role: 'tutor', roles: ['tutor'] }],
+  ];
+  for (const [what, u] of others) {
+    const b = boot({ payload: base(), serve, before: u ? seed(u) : undefined });
+    await wait(300);
+    const w = b.w, t = w.__t;
+    if (!t || !t.STUFF) { bad.push(what + ': the app did not load, so it was NOT checked'); continue; }
+    if (u && !(t.whoami() && t.whoami().role === u.role)) { bad.push(what + ' was not signed in at boot, so it was NOT checked'); continue; }
+    t.go('stuff');
+    t.STUFF().q = '';
+    t.STUFF().filters = [{ field: 'kindLabel', value: 'Resources' }];
+    w.paintStuff();
+    await wait(30);
+    const shelf = w.facetList().find(f => f.field === 'shelf');
+    const shelves = shelf ? w.facetValues(w.stuffFiltered(), shelf).map(v => String(v.value)) : [];
+    if (shelves.indexOf('Books') >= 0) bad.push(what + ' is offered the Books shelf');
+    if (shelves.indexOf('@family. textbooks') < 0) bad.push(what + ' was not offered the textbooks shelf — the walk did not reach Resources, so the absence proves nothing');
+    if (w.stuffItemsAll_().some(x => x.kind === 'bible')) bad.push(what + ' has the Bible on the list of everything the app holds');
+    for (const q of ['bible', 'genesis', 'king james']) {
+      t.STUFF().filters = []; t.STUFF().q = q;
+      if (w.stuffFiltered().some(x => x.kind === 'bible')) bad.push(what + ' finds the Bible by searching "' + q + '"');
+    }
+    t.STUFF().q = '';
+    w.paintStuff();
+    if (w.document.querySelector('.card.bible, [data-do^="bible-"]')) bad.push(what + ' has a Bible card or button drawn');
+    /* AND A BUTTON THEY COULD NOT HAVE BEEN SHOWN, PRESSED ANYWAY — the fetch is gated as well. */
+    const fake = w.document.createElement('button');
+    fake.setAttribute('data-n', '1');
+    try { t.ACTIONS['bible-book'](fake); } catch (e) { bad.push(what + ': pressing a Bible book threw ' + e.message); }
+    await wait(60);
+    const got = ofBible(b.gets);
+    if (got.length) bad.push(what + ' fetched ' + got.length + ' file(s) of the Bible: ' + got.slice(0, 3).join(', '));
+    if (!b.gets.length) bad.push(what + ': no fetch was recorded at all, so "nothing of the Bible" proves nothing');
+  }
+
+  /* ---------- AN ADMIN, BY THE ROUTE --------------------------------------------------------------- */
+  const admin = { name: 'Ann Admin', personId: 'P001', role: 'admin', roles: ['admin'] };
+  const a = boot({ payload: base(), serve, before: seed(admin) });
+  const w = a.w, t = w.__t, d = w.document;
+  for (let i = 0; i < 40 && !(t && t.BIBLE && t.BIBLE() && t.BIBLE().index); i++) await wait(25);
+  if (!t || !t.BIBLE || !t.BIBLE()) return bad.concat(['the reader\'s state is not exported to the journey']);
+  if (!t.BIBLE().index) return bad.concat(['an admin\'s Find never received data/bible/index.json — fetched: ' + ofBible(a.gets).join(', ')]);
+  const index = JSON.parse(fs.readFileSync(path.join(bibleDir, 'index.json'), 'utf8'));
+  if (ofBible(a.gets).length !== 1) bad.push('an admin\'s boot fetched ' + ofBible(a.gets).length + ' Bible files — the index and no book is the right number');
+
+  t.go('stuff');
+  t.STUFF().filters.length = 0; t.STUFF().q = '';
+  w.paintStuff();
+  const route = ['Learning', 'Resources', 'Books'];
+  const rungs = ['forLabel', 'kindLabel', 'shelf'];
+  const kindFacet = w.facetList().find(f => f.field === 'kindLabel');
+  const pressed = [];
+  for (let guard = 0; route.length && guard < 8; guard++) {
+    const btns = [...d.querySelectorAll('#s-stuff [data-do="facet-pick"]')];
+    let el = btns.find(b => b.dataset.value === route[0]);
+    const rung = w.facetList().find(f => f.field === rungs[3 - route.length]);
+    const only = rung ? w.facetValues(w.stuffFiltered(), rung).map(v => String(v.value)) : [];
+    if (!el && only.length === 1 && only[0] === route[0]) { pressed.push('(' + route.shift() + ')'); continue; }
+    if (!el) {
+      const grp = (() => { try { return kindFacet.bucketOf(route[0]); } catch (e) { return ''; } })();
+      el = grp && btns.find(b => b.dataset.value === grp && b.dataset.bucket);
+      if (!el) {
+        bad.push('the funnel did not offer "' + route[0] + '" to an admin after ' + (pressed.join(' → ') || 'nothing') + ' — it offered '
+          + (btns.map(b => b.dataset.field + ':' + b.dataset.value).join(' | ') || 'no answers'));
+        break;
+      }
+    } else route.shift();
+    pressed.push(el.dataset.value);
+    t.ACTIONS['facet-pick'](el);
+    await wait(20);
+  }
+  if (route.length) return bad;
+  if (pressed.indexOf('Books') < 0) bad.push('the Books shelf was never a question for an admin — ' + pressed.join(' → '));
+  const left = w.stuffFiltered();
+  const x = left.find(i => i.kind === 'bible');
+  if (left.length !== 1 || !x) return bad.concat(['after ' + pressed.join(' → ') + ' the list is ' + left.length + ' item(s): '
+    + left.slice(0, 4).map(i => i.kind + ' ' + i.name).join(', ') + ' — not the Bible']);
+
+  /* THE COVER, MADE OF THE SHARED PARTS, SAYING WHO CAN SEE IT. */
+  const box = html => { const e = d.createElement('div'); e.innerHTML = html; return e; };
+  const cover = box(w.stuffCard(x)).querySelector('.favwrap > .card') || box(w.stuffCard(x)).firstElementChild;
+  if (!cover || !cover.classList.contains('bible') || !cover.classList.contains('fc')) bad.push('the cover is not a `.card.fc.bible`');
+  else {
+    const h = cover.querySelector(':scope > .fc-head > h3');
+    if (!h || h.textContent.trim() !== 'The Bible (King James Version)') bad.push('the cover is titled "' + (h && h.textContent.trim()) + '"');
+    if (!cover.querySelector(':scope > .fc-head > .fc-flags > .fc-flag')) bad.push('the cover has no flag in its head');
+    if (!/31,102 verses/.test(cover.textContent)) bad.push('the cover does not count the verses — the index did not reach it');
+    if (!cover.querySelector('.bb-who')) bad.push('the cover does not say only admins are shown it');
+    if (cover.querySelector('.tile-row')) bad.push('the cover carries a tile row inside the card');
+  }
+  const first = w.stuffFirstResult_();
+  const parts0 = w.pageParts_(x);
+  /* THE COVER, THEN THREE LISTS: the Old Testament on two pages and the New on one. */
+  const LISTS = [null, 'ot', 'ot2', 'nt'];
+  if (JSON.stringify(parts0) !== JSON.stringify(LISTS)) bad.push('before a book is opened the Bible is pages ' + JSON.stringify(parts0) + ', not the cover and three lists of books');
+  if (!/next three pages/.test(cover ? cover.textContent : '')) bad.push('the cover does not say the books are the next three pages');
+
+  /* BOTH TESTAMENTS, EVERY BOOK, IN ORDER, AS BUTTONS ON THE PAGE — and the Old Testament turned at
+     Job, so neither of its pages is the thirty-nine that `paneReach_` drew at 84% on a 320px phone. */
+  t.goPage('stuff', first + 1);
+  await wait(30);
+  const names = sel => [...d.querySelectorAll('#s-stuff .bb-toc' + sel + ' [data-do="bible-book"]')].map(b => b.textContent.trim());
+  const wantOT = index.books.filter(b => b.testament === 'OT').map(b => b.book);
+  const wantNT = index.books.filter(b => b.testament === 'NT').map(b => b.book);
+  const turn = wantOT.indexOf('Job');
+  if (names('[data-bb="ot"]').join('|') !== wantOT.slice(0, turn).join('|')) bad.push('the first Old Testament page lists ' + names('[data-bb="ot"]').length + ' books, not Genesis to Esther in order: ' + names('[data-bb="ot"]').slice(-2).join(', '));
+  if (names('[data-bb="ot2"]').join('|') !== wantOT.slice(turn).join('|')) bad.push('the second Old Testament page lists ' + names('[data-bb="ot2"]').length + ' books, not Job to Malachi in order: ' + names('[data-bb="ot2"]').slice(0, 2).join(', '));
+  if (names('.is-ot').join('|') !== wantOT.join('|')) bad.push('the two Old Testament pages list ' + names('.is-ot').length + ' books between them, not the 39 in order');
+  if (names('.is-nt').join('|') !== wantNT.join('|')) bad.push('the New Testament page lists ' + names('.is-nt').length + ' books, not the 27 in order');
+  [...d.querySelectorAll('#s-stuff .bb-toc')].forEach(pg => {
+    const k = pg.firstElementChild, h = k && k.nextElementSibling;
+    if (!k || !k.classList.contains('fc-kick') || !h || h.tagName !== 'H3') bad.push('a testament page does not open on its kicker and then its title');
+  });
+
+  /* GENESIS, PRESSED. */
+  const press = async (sel, n) => {
+    const el = d.querySelector('#s-stuff ' + sel);
+    if (!el) { bad.push('no ' + sel + ' on the screen to press' + (n ? ' (' + n + ')' : '')); return false; }
+    t.ACTIONS[el.getAttribute('data-do')](el);
+    await wait(80);
+    return true;
+  };
+  const before = ofBible(a.gets).length;
+  if (!(await press('[data-do="bible-book"][data-n="1"]', 'Genesis'))) return bad;
+  const gen = ofBible(a.gets).slice(before);
+  if (gen.length !== 1 || !/data\/bible\/01-genesis\.json/.test(gen[0])) bad.push('pressing Genesis fetched ' + JSON.stringify(gen) + ' — not 01-genesis.json once');
+  const genesis = JSON.parse(fs.readFileSync(path.join(bibleDir, '01-genesis.json'), 'utf8'));
+  const parts = w.pageParts_(x);
+  const chParts = parts.filter(p => /^c\d+/.test(p || ''));
+  /* THE BOOK AFTER ALL THREE LISTS, not after its own testament. Between the Old Testament and the New
+     it put Genesis's every page — 328 swipes at 320px from one list to the other. */
+  if (JSON.stringify(parts.slice(0, 5)) !== JSON.stringify(LISTS.concat(['bk'])) || !/^c\d+/.test(parts[parts.length - 1] || '') || !chParts.length) {
+    bad.push('with Genesis open the Bible is pages ' + JSON.stringify(parts).slice(0, 90) + ' — not the cover, the three lists, then Genesis');
+  }
+  const at = p => first + parts.indexOf(p);
+  if (t.PAGE().stuff !== at('bk')) bad.push('pressing Genesis did not turn to its chapter numbers — page ' + t.PAGE().stuff + ', the numbers are ' + at('bk'));
+  const grid = d.querySelectorAll('#s-stuff .bb-chs [data-do="bible-ch"]');
+  if (grid.length !== 50) bad.push('Genesis offers ' + grid.length + ' chapter numbers, not 50');
+
+  /* CHAPTER 1, PRESSED AND READ. */
+  if (!(await press('[data-do="bible-ch"][data-ch="1"]', 'chapter 1'))) return bad;
+  if (t.PAGE().stuff !== at('c1')) bad.push('pressing 1 did not turn to Genesis 1 — page ' + t.PAGE().stuff + ', Genesis 1 is ' + at('c1'));
+  const c1 = d.querySelector('#s-stuff .card.bb-text.is-c1');
+  if (!c1) bad.push('Genesis 1 is not drawn on the screen after turning to it');
+  else {
+    const h = c1.querySelector('h3');
+    if (!h || h.textContent.trim() !== 'Genesis 1') bad.push('the chapter page is titled "' + (h && h.textContent.trim()) + '", not Genesis 1');
+    const v1 = c1.querySelector('.bb-v');
+    const n1 = v1 && v1.querySelector('.bb-n');
+    if (!v1 || !n1 || n1.textContent.trim() !== '1') bad.push('the first verse does not carry its number 1');
+    const words = v1 ? v1.textContent.replace(/^\s*1\s*/, '').trim() : '';
+    if (words !== 'In the beginning God created the heaven and the earth.') bad.push('Genesis 1:1 reads "' + words + '"');
+    if (!/darkness <i>was<\/i> upon the face of the deep/.test(c1.innerHTML)) bad.push('Genesis 1:2\'s [was] is not drawn as italics');
+    if (/[\[\]]/.test(c1.textContent)) bad.push('a bracket is left standing on Genesis 1');
+    if (/#/.test(c1.textContent)) bad.push('a pilcrow # is drawn on Genesis 1');
+    const k = c1.firstElementChild, t3 = k && k.nextElementSibling;
+    if (!k || !k.classList.contains('fc-kick') || !t3 || t3.tagName !== 'H3') bad.push('a chapter page does not open on its kicker and then its title');
+  }
+  /* EVERY VERSE OF GENESIS ON EXACTLY ONE PAGE, IN ORDER — the pages as the app draws them. */
+  const drawn = [];
+  chParts.forEach(p => {
+    const pg = box(w.stuffPart_(x, p));
+    const ch = Number(/^c(\d+)/.exec(p)[1]);
+    pg.querySelectorAll('.bb-v').forEach(v => drawn.push(ch + ':' + v.querySelector('.bb-n').textContent.trim() + ' '
+      + v.textContent.replace(/^\s*\d+\s*/, '').trim()));
+  });
+  const want = [];
+  genesis.chapters.forEach((vs, ci) => vs.forEach((v, vi) => want.push((ci + 1) + ':' + (vi + 1) + ' ' + v.replace(/^#\s*/, '').replace(/[\[\]]/g, ''))));
+  if (drawn.length !== want.length) bad.push('Genesis is drawn as ' + drawn.length + ' verses across its pages; the book has ' + want.length);
+  else {
+    const i = drawn.findIndex((s, j) => s !== want[j]);
+    if (i >= 0) bad.push('Genesis is drawn out of order or altered at ' + want[i].slice(0, 60) + ' — drawn ' + drawn[i].slice(0, 60));
+  }
+  /* THE WAY BACK UP, ON EVERY PAGE OF EVERY CHAPTER — not only a chapter's last, which left Psalm 119's
+     first page twenty-one swipes from any way out. Pressed from the FIRST page of Genesis 1, which is
+     mid-chapter whenever the chapter is longer than a page. */
+  const c1parts = chParts.filter(p => /^c1(-|$)/.test(p));
+  if (c1parts.length < 2) bad.push('Genesis 1 is one page, so a way out from the middle of a chapter was NOT checked');
+  const noWay = chParts.filter(p => !box(w.stuffPart_(x, p)).querySelector('.tile-row [data-do="bible-to"][data-to="bk"]'));
+  if (noWay.length) bad.push(noWay.length + ' of Genesis\'s ' + chParts.length + ' text pages have no tile back to the chapter numbers, first ' + noWay[0]);
+  t.goPage('stuff', at(c1parts[0]));
+  await wait(30);
+  if (await press('.is-' + c1parts[0] + ' [data-do="bible-to"]', 'back to the numbers from the first page of Genesis 1')) {
+    if (t.PAGE().stuff !== at('bk')) bad.push('the tile on the first page of Genesis 1 did not go back to its chapter numbers');
+  }
+  /* AND THE NUMBERS BACK TO THE LIST THEIR BOOK IS ON — three pages behind them, past the New
+     Testament, which is why it is a tile and not a swipe. */
+  if (await press('.bb-chs.is-bk [data-do="bible-to"]', 'Genesis\'s numbers back to the Old Testament')) {
+    if (t.PAGE().stuff !== at('ot')) bad.push('the tile under Genesis\'s chapter numbers did not go back to the Old Testament page it is listed on — page ' + t.PAGE().stuff + ', the list is ' + at('ot'));
+  }
+
+  /* GENESIS AGAIN: HELD FOR THE VISIT, SO NOT FETCHED TWICE. */
+  t.goPage('stuff', first + 1);
+  await wait(30);
+  const n0 = ofBible(a.gets).length;
+  await press('[data-do="bible-book"][data-n="1"]', 'Genesis again');
+  if (ofBible(a.gets).length !== n0) bad.push('opening Genesis a second time fetched it again — the book is not held for the visit');
+  if (t.PAGE().stuff !== at('bk')) bad.push('opening Genesis a second time did not turn to its chapter numbers');
+
+  /* THE NEW TESTAMENT, WHERE IT ALWAYS IS: the lists do not move when a book opens, so it is the page
+     after the two Old Testament ones with Genesis open as with nothing. */
+  if (w.pageParts_(x).indexOf('nt') !== 3) bad.push('with Genesis open the New Testament is page ' + w.pageParts_(x).indexOf('nt') + ' of the Bible, not 3 — a book is standing between the lists');
+  t.goPage('stuff', first + 3);
+  await wait(30);
+  await press('[data-do="bible-book"][data-n="40"]', 'Matthew');
+  const mp = w.pageParts_(x);
+  if (JSON.stringify(mp.slice(0, 5)) !== JSON.stringify(LISTS.concat(['bk']))) bad.push('with Matthew open the Bible is pages ' + JSON.stringify(mp.slice(0, 6)) + ' — not the three lists and then Matthew');
+  if (mp.filter(p => /^c\d+$/.test(p || '')).length !== 28) bad.push('Matthew has ' + mp.filter(p => /^c\d+$/.test(p || '')).length + ' chapters\' first pages, not 28');
+  if (t.PAGE().stuff !== first + mp.indexOf('bk')) bad.push('pressing Matthew did not turn to its chapter numbers');
+  if (!box(w.stuffPart_(x, 'bk')).querySelector('[data-do="bible-to"][data-to="nt"]')) bad.push('Matthew\'s chapter numbers have no tile back to the New Testament');
+
+  /* PSALMS, WHOSE NUMBERS ARE MORE THAN ONE PAGE: a psalm goes back to the page of numbers it is on,
+     not the first. With no layout to measure (jsdom) a page offers `BIBLE_GRID` numbers — three pages
+     of fifty — so Psalm 119 is on the third. On a phone the pages are the measured pane's rows. */
+  t.goPage('stuff', first + 2);
+  await wait(30);
+  await press('[data-do="bible-book"][data-n="19"]', 'Psalms');
+  const pp = w.pageParts_(x);
+  const grids = pp.filter(p => /^bk/.test(p || ''));
+  if (grids.length < 2) bad.push('Psalms has ' + grids.length + ' page(s) of chapter numbers — the many-page grid was NOT checked');
+  else {
+    const holding = grids.find(g => box(w.stuffPart_(x, g)).querySelector('[data-do="bible-ch"][data-ch="119"]'));
+    const back = box(w.stuffPart_(x, 'c119')).querySelector('[data-do="bible-to"]');
+    if (!holding || !back || back.getAttribute('data-to') !== holding) bad.push('Psalm 119\'s tile goes back to ' + (back && back.getAttribute('data-to')) + ', not ' + holding + ', the page of numbers it is on');
+    if (grids.some(g => !box(w.stuffPart_(x, g)).querySelector('[data-do="bible-to"][data-to="ot2"]'))) bad.push('a page of Psalms\'s numbers has no tile back to the second Old Testament page, where Psalms is listed');
+  }
+
+  /* A BOOK THAT DOES NOT COME: said on the list, a toast, and the open book kept. */
+  refuse.add('03-leviticus.json');
+  t.goPage('stuff', first + 1);
+  await wait(30);
+  await press('[data-do="bible-book"][data-n="3"]', 'Leviticus');
+  await wait(60);
+  if (t.BIBLE().open !== 19) bad.push('a book that failed to arrive changed the open book to ' + t.BIBLE().open);
+  const miss = d.querySelector('#s-stuff .bb-toc.is-ot .bb-miss');
+  if (!miss || !/Leviticus/.test(miss.textContent)) bad.push('a book that failed to arrive is not said on the Old Testament page');
+  const toastEl = d.getElementById('toast');
+  if (!toastEl || !/Leviticus/.test(toastEl.textContent)) bad.push('a book that failed to arrive raised no toast naming it');
+  if (a.errs.length) bad.push('errors while reading: ' + a.errs.slice(0, 3).join(' | '));
+
+  /* THE BOOK NAMES ARE IN THE SEARCH, learned when the index landed. */
+  t.STUFF().filters = []; t.STUFF().q = 'psalms';
+  if (!w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" does not find the Bible — the book names are not in its haystack');
+  t.STUFF().q = '';
+  /* AND WHEN THE INDEX LANDS AFTER FIND WAS BUILT — held back here until the payload is in and the list
+     made, which is the slow-network order. A search typed while it was on its way must not keep its
+     answer once it lands. */
+  let release = null;
+  const late = new Promise(r => { release = r; });
+  const slow = boot({ payload: base(), before: seed(admin),
+                      serve: url => (/data\/bible\/index\.json/.test(url) ? late.then(() => serve(url)) : serve(url)) });
+  await wait(300);
+  const st = slow.w.__t;
+  st.go('stuff');
+  st.STUFF().filters = []; st.STUFF().q = 'psalms';
+  const early = slow.w.stuffFiltered().some(i => i.kind === 'bible');
+  release();
+  await wait(60);
+  if (early) bad.push('"psalms" found the Bible before its index arrived — the late-index case was not reached, so it is NOT checked');
+  else if (!slow.w.stuffFiltered().some(i => i.kind === 'bible')) bad.push('typing "psalms" while the index was on its way still misses the Bible after it lands — the cached search was not told');
+  st.STUFF().q = '';
+
+  /* AND NOT BEFORE THE LIBRARY. With `data/questions.json` still on its way an admin's Find has to say
+     the questions are still coming — the Bible stands on shelves that arrive with the library, and on
+     its own it turned that sentence into a funnel of one book. The library is held back for good here,
+     which is the slow phone frozen at its worst moment. */
+  const held = boot({ payload: base(), before: seed(admin),
+                      serve: url => (/data\/questions\.json/.test(url) ? new Promise(() => {}) : serve(url)) });
+  await wait(300);
+  held.w.__t.go('stuff');
+  held.w.__t.STUFF().filters = []; held.w.__t.STUFF().q = '';
+  held.w.paintStuff();
+  if (held.w.stuffItemsAll_().some(i => i.kind === 'bible')) bad.push('an admin is offered the Bible before the library has landed');
+  if (!/still coming/.test((held.w.document.getElementById('s-stuff') || {}).textContent || '')) {
+    bad.push('an admin\'s Find with the library still on its way does not say the questions are still coming');
+  }
+
+  /* KEPT: the star puts the cover and all three lists on Saved. */
+  const fav = box(w.stuffCard(x)).querySelector('[data-do="fav"]');
+  if (!fav) bad.push('the Bible cover has no Save tile');
+  else {
+    t.ACTIONS.fav(fav);
+    const saved = t.savedPages().join('');
+    if (!/card fc prac bible/.test(saved) || !/data-bb="ot"/.test(saved) || !/data-bb="ot2"/.test(saved) || !/data-bb="nt"/.test(saved)) bad.push('the Bible was starred and Saved does not draw its cover and all three lists of books');
+  }
+
+  /* ---------- AND SIGNING OUT FROM INSIDE IT LEAVES NOTHING OF IT ------------------------------------
+     FOUND BY THE REVIEW: an admin signed out on the Books shelf left "WHAT KIND Resources ✕ SHELF
+     Books ✕" and "Nothing matches" on the signed-out Find — the name of the shelf only an admin is
+     shown, on the screen of whoever picks the phone up next. Signed out from the reader as a finger
+     would, on Genesis 1, with the search box holding a word too. */
+  t.go('stuff');
+  t.STUFF().q = 'genesis';
+  t.STUFF().filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+  w.paintStuff();
+  /* TYPED, as a finger types: `paintStuff` never rewrites the box, so the word goes in by hand. */
+  const qBox = d.getElementById('stuff-q');
+  if (!qBox) bad.push('there is no search box on Find, so whether its word is left behind was NOT checked');
+  else qBox.value = 'genesis';
+  if (!t.ACTIONS.signout) bad.push('there is no signout action to press, so signing out from the Bible was NOT checked');
+  else {
+    t.ACTIONS.signout(d.createElement('button'));
+    await wait(60);
+    t.go('stuff');
+    await wait(30);
+    if (t.whoami()) bad.push('pressing sign out left somebody signed in, so what it leaves behind was NOT checked');
+    const f = t.STUFF().filters, said = (d.getElementById('s-stuff') || {}).textContent || '';
+    if (f.length || t.STUFF().q) bad.push('signed out, Find still holds the admin\'s question: ' + JSON.stringify(f) + (t.STUFF().q ? ' and "' + t.STUFF().q + '"' : ''));
+    if (/\bBooks\b/.test(said)) bad.push('signed out, Find still names the Books shelf: …' + said.slice(Math.max(0, said.indexOf('Books') - 60), said.indexOf('Books') + 20).replace(/\s+/g, ' '));
+    if (d.querySelector('#s-stuff .card.bible')) bad.push('signed out, a Bible card is still drawn on Find');
+    if (d.getElementById('stuff-q') && d.getElementById('stuff-q').value) bad.push('signed out, the search box still holds "' + d.getElementById('stuff-q').value + '"');
+  }
+  return bad;
+});
+
 /* ---------- EVERY FIND KIND THAT IS NOT A QUESTION IS BUILT FROM THE SAME FIVE PARTS ----------------
    *"didn't I ask you to sleekerise the whole widget system in the finder for questions and so on?"*
    The answer was one set of parts — `.fc-head` (title and flags), `.fc-kick` (whose page this is),
@@ -7218,6 +9170,364 @@ check('every Find kind that is not a question is made of the shared parts: head,
     });
   });
   return bad.length > 12 ? bad.slice(0, 12).concat(['… and ' + (bad.length - 12) + ' more']) : bad;
+});
+
+/* ==================================================================================================
+   THE FIGHTER'S PROFILE — FOUR JOURNEYS OVER THE REAL FILES
+   ASKED FOR AS *"refine the boxers widget. maybe add image of each boxer. and make it look nicer.
+   the wins losses etc."* Each is the claim the card makes, asked of the markup the app draws from
+   `data/boxers.json` and `data/fights.json` through the real mapper — so a cell edited tomorrow is
+   checked tomorrow, and a fixture cannot drift from what ships.
+
+     a photo        Ali (the one row with one): an `<img>` with his name as its alt, the credit from
+                    the row under it word for word, the record's three numbers as the row says, the
+                    KOs under the wins, none under the losses (that cell is blank), and a bar whose
+                    segments add up to 100 exactly.
+     no photo       Joe Louis: the ring placeholder with his initials, and no `<img>` and no credit
+                    anywhere on the card — a placeholder is not a broken picture. With them, the two
+                    rows the licence rule and the blank rule turn on: an address with NO credit draws
+                    the placeholder, and a fighter with no record says so instead of `0-0-0`.
+     a broken URL   an address that fails: the `<img>` goes, the placeholder and nothing else is left,
+                    the credit goes with it, and drawing the card again does not ask for it again.
+     the bouts      Ali's fights page: one line per bout he is in, counted from the file by id rather
+                    than by the function under test, newest first, the right opponent and the right
+                    letter for each — and the fight card's two faces, the winner's framed.
+================================================================================================== */
+const boxerApp_ = async (edit) => {
+  const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
+  const raw = { boxers: read('boxers'), fights: read('fights') };
+  if (edit) edit(raw);
+  const one = boot();
+  await wait(300);
+  if (typeof one.w.libraryExtras_ !== 'function') return { fail: 'libraryExtras_ is not reachable, so the boxers were NOT checked — not a pass' };
+  const made = JSON.parse(JSON.stringify(one.w.libraryExtras_({}, raw)));
+  if (!(made.boxers || []).length) return { fail: 'the mapper made no boxers of data/boxers.json — NOT a pass' };
+  const p = payload();
+  p.boxers = made.boxers; p.fights = made.fights || [];
+  const { w, errs } = boot({ payload: p });
+  await wait(300);
+  const item = name => w.stuffItemsAll_().find(x => x.kind === 'boxer' && x.name === name);
+  const draw = html => { const d = w.document.createElement('div'); d.innerHTML = html; w.document.body.appendChild(d); return d; };
+  return { w, errs, raw, made, item, draw };
+};
+
+check('a boxer with a photo: the picture, its credit, the record and a bar that adds up to 100', async () => {
+  const a = await boxerApp_();
+  if (a.fail) return [a.fail];
+  const bad = [];
+  const row = a.raw.boxers.find(b => b.name === 'Muhammad Ali');
+  if (!row || !row.image) return ['data/boxers.json has no Muhammad Ali with a photo — this journey has nothing to look at'];
+  const x = a.item('Muhammad Ali');
+  if (!x) return ['Muhammad Ali is not in Find'];
+  const card = a.draw(a.w.stuffCard(x)).querySelector('.card.fc.boxer');
+  if (!card) return ['Ali\'s card is not a `.card.fc.boxer`'];
+  const img = card.querySelector('.boxer-pic img.boxer-img');
+  if (!img) bad.push('no <img> on the card of the one boxer with a photo');
+  else {
+    if (img.getAttribute('src') !== row.image) bad.push('the <img> points at ' + img.getAttribute('src') + ', not the row\'s image');
+    if (img.getAttribute('alt') !== row.name) bad.push('the photo\'s alt is "' + img.getAttribute('alt') + '", not his name');
+    if (img.getAttribute('loading') !== 'lazy') bad.push('the photo is not lazy-loaded');
+  }
+  /* THE CREDIT IS THE LINE STRAIGHT AFTER THE PHOTO — across the card under it rather than a caption
+     in its narrow column (see `boxerPic_`), so it is asked for as the photo's next sibling. */
+  const credit = card.querySelector('.boxer-pic + .boxer-credit');
+  if (!credit || credit.textContent.trim() !== row.image_credit.trim()) bad.push('the credit under the photo is "' + (credit ? credit.textContent.trim() : 'missing') + '", not the row\'s "' + row.image_credit + '"');
+  /* ---------- AND THE CREDIT IS A LINK TO THE PHOTO'S OWN FILE PAGE --------------------------------
+     A CC BY or CC BY-SA photo is free on condition that its credit links to where the work and its
+     licence can be read, so every Commons picture's credit is that link — the file page, named from
+     the address's own file name (the thumbnail's size prefix is not part of it). Asked of the row's
+     address by this check's own reading, so a wrong derivation in the app cannot agree with itself. */
+  const file = (row.image.match(/\/commons\/(?:thumb\/)?[0-9a-f]\/[0-9a-f]{2}\/([^/?#]+)/) || [])[1];
+  const link = credit && credit.querySelector('a.boxer-src');
+  if (!file) bad.push('Ali\'s image is not a Commons upload address, so the link rule was NOT checked: ' + row.image);
+  else if (!link) bad.push('the credit under a Commons photo is not a link to its file page');
+  else {
+    if (link.getAttribute('href') !== 'https://commons.wikimedia.org/wiki/File:' + file) bad.push('the credit links to ' + link.getAttribute('href') + ', not the file page File:' + file);
+    if (link.getAttribute('target') !== '_blank' || !/noopener/.test(link.getAttribute('rel') || '')) bad.push('the credit link does not open outside the app with rel=noopener');
+  }
+  const flink = (() => {
+    const t = a.w.stuffItemsAll_().find(i => i.kind === 'fight' && i.row.aId === row.boxer_id);
+    const fcard = t && a.draw(a.w.stuffCard(t));
+    return fcard && fcard.querySelector('.fight-credit a.boxer-src');
+  })();
+  if (file && (!flink || flink.getAttribute('href') !== 'https://commons.wikimedia.org/wiki/File:' + file)) bad.push('a fight card with Ali\'s face does not link his credit to the same file page');
+  /* THE NUMBERS, AS THE ROW SAYS THEM. */
+  const num = k => { const el = card.querySelector('.boxer-tally .boxer-n.is-' + k + ' b'); return el ? el.textContent.trim() : null; };
+  [['w', 'wins'], ['l', 'losses'], ['d', 'draws']].forEach(([k, col]) => {
+    if (num(k) !== String(Number(row[col]))) bad.push('the ' + col + ' column reads ' + num(k) + ', the row says ' + row[col]);
+  });
+  const ko = card.querySelector('.boxer-n.is-w .boxer-ko');
+  if (!ko || ko.textContent.trim() !== row.wins_ko + ' KO') bad.push('under the wins: "' + (ko ? ko.textContent.trim() : 'nothing') + '", not "' + row.wins_ko + ' KO"');
+  if (String(row.losses_ko).trim() === '' && card.querySelector('.boxer-n.is-l .boxer-ko')) bad.push('a KO count is printed under the losses and that cell is blank — "0 KO" is a claim nobody made');
+  if (!card.querySelector('.boxer-rec')) bad.push('the record has lost the `.boxer-rec` name the textbook state looks for');
+  const rate = Math.round(Number(row.wins_ko) / Number(row.wins) * 100);
+  if (!new RegExp('KO rate ' + rate + '%').test((card.querySelector('.boxer-line') || {}).textContent || '')) bad.push('the KO rate is not ' + rate + '%');
+  /* THE BAR ADDS UP TO A HUNDRED, and each segment is its share. */
+  const rects = [...card.querySelectorAll('svg.boxer-bar rect')];
+  const total = rects.reduce((s, r) => s + Number(r.getAttribute('width')), 0);
+  if (!rects.length) bad.push('no record bar');
+  else if (Math.abs(total - 100) > 0.001) bad.push('the bar\'s segments add up to ' + total + ', not 100');
+  const all = Number(row.wins) + Number(row.losses) + Number(row.draws) + Number(row.no_contests || 0);
+  const wr = rects.find(r => r.getAttribute('class') === 'is-w');
+  if (wr && Math.abs(Number(wr.getAttribute('width')) - Number(row.wins) / all * 100) > 0.01) bad.push('the win segment is ' + wr.getAttribute('width') + '%, his wins are ' + (Number(row.wins) / all * 100).toFixed(2) + '%');
+  /* THE TAPE ONLY HAS ROWS WITH SOMETHING IN THEM, and the reach is the row's. */
+  const tape = [...card.querySelectorAll('.boxer-tape dt')].map(d => d.textContent.trim());
+  if (row.reach_cm && tape.indexOf('Reach') < 0) bad.push('the tape has no Reach row and the row has ' + row.reach_cm);
+  if (card.querySelectorAll('.boxer-tape dd:empty').length) bad.push('the tape draws an empty value');
+  /* AND THE ACTIONS ARE TILES UNDER THE CARD — the star's row with a Highlights link in it. */
+  const host = a.draw(a.w.stuffCard(x));
+  const hl = host.querySelector(':scope > .tile-row a.tile[href*="youtube.com"]');
+  if (!hl) bad.push('no Highlights tile in the row under the card');
+  else if (hl.getAttribute('target') !== '_blank') bad.push('the Highlights tile does not open somewhere else');
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad;
+});
+
+check('a boxer without a photo: the ring and his initials, no <img>; no credit means no photo; no record says so', async () => {
+  const a = await boxerApp_(raw => {
+    /* TWO ROWS EDITED IN THE COPY, never the file: a photo address with its credit taken away, which
+       the licence rule must refuse to draw. */
+    const g = raw.boxers.find(b => b.name === 'George Foreman');
+    if (g) { g.image = 'https://upload.wikimedia.org/wikipedia/commons/x/xx/Foreman.jpg'; g.image_credit = ''; }
+    /* AND JOE LOUIS WITH NO PHOTO, IN THE COPY. He was the no-photo boxer by accident of the file;
+       when the photographs arrived he had one, and the journey stopped testing the placeholder at all.
+       So the case is made here rather than found in the data. */
+    const jl = raw.boxers.find(b => b.name === 'Joe Louis');
+    if (jl) { jl.image = ''; jl.image_credit = ''; }
+  });
+  if (a.fail) return [a.fail];
+  const bad = [];
+  const x = a.item('Joe Louis');
+  if (!x) return ['Joe Louis is not in Find'];
+  if (x.row.image) return ['Joe Louis has a photo now — pick another boxer for the no-photo journey'];
+  const card = a.draw(a.w.stuffCard(x)).querySelector('.card.fc.boxer');
+  const fig = card && card.querySelector('.boxer-pic');
+  if (!fig) return ['no picture box on a boxer with no photo — the placeholder was not drawn'];
+  if (!fig.classList.contains('is-none')) bad.push('the picture box is not marked as the placeholder');
+  if (card.querySelector('img')) bad.push('an <img> is on the card of a boxer with no photo');
+  if (card.querySelector('.boxer-credit')) bad.push('a credit is on the card and there is no photo to credit');
+  const ring = fig.querySelector('svg.boxer-ring');
+  if (!ring) bad.push('no ring drawn in the placeholder');
+  else {
+    const ini = ring.querySelector('.boxer-ini');
+    if (!ini || ini.textContent.trim() !== 'JL') bad.push('the placeholder\'s initials are "' + (ini ? ini.textContent : '') + '", not JL');
+    if (!ring.querySelector('.bx-l .bx-glove')) bad.push('the placeholder has no fighter in it');
+  }
+  /* A `Jr.` IS NOT A SURNAME — the placeholder for Floyd Mayweather Jr. says FM. */
+  const fm = a.item('Floyd Mayweather Jr.');
+  const fmi = fm && a.draw(a.w.stuffCard(fm)).querySelector('.boxer-ini');
+  if (fm && (!fmi || fmi.textContent.trim() !== 'FM')) bad.push('Floyd Mayweather Jr.\'s initials are "' + (fmi ? fmi.textContent : '') + '", not FM');
+  /* AND A SURNAME CAN START WITH A PARTICLE — Oscar De La Hoya is OD, not OH. Asked of the function
+     too, for the particle names the file does not hold yet, and for a particle that is a FIRST name. */
+  const odl = a.item('Oscar De La Hoya');
+  const odi = odl && a.draw(a.w.stuffCard(odl)).querySelector('.boxer-ini');
+  if (!odl) bad.push('Oscar De La Hoya is not in Find, so the particle rule was NOT checked on a real row');
+  else if (!odi || odi.textContent.trim() !== 'OD') bad.push('Oscar De La Hoya\'s initials are "' + (odi ? odi.textContent : '') + '", not OD');
+  [['Ingemar Van Der Berg', 'IV'], ['Joe Von Rosen Jr.', 'JV'], ['De Wayne Smith', 'DS'], ['Juan Manuel Marquez', 'JM']].forEach(([n, i]) => {
+    if (a.w.boxerInitials_(n) !== i) bad.push('"' + n + '" gives initials ' + a.w.boxerInitials_(n) + ', not ' + i);
+  });
+  /* AN ADDRESS WITH NO CREDIT IS NOT DRAWN. */
+  const g = a.item('George Foreman');
+  const gc = g && a.draw(a.w.stuffCard(g)).querySelector('.card.fc.boxer');
+  if (!gc) bad.push('George Foreman is not in Find');
+  else if (gc.querySelector('img')) bad.push('a photo with no credit was drawn — the licence makes the credit the condition of showing it');
+  /* NO RECORD ON FILE IS SAID, NOT ZEROED. */
+  const blank = a.raw.boxers.find(b => String(b.wins).trim() === '' && String(b.losses).trim() === '');
+  const bx = blank && a.item(blank.name);
+  if (!bx) bad.push('no boxer with a blank record reached Find, so that case was NOT checked');
+  else {
+    const bc = a.draw(a.w.stuffCard(bx)).querySelector('.card.fc.boxer');
+    if (bc.querySelector('.boxer-tally')) bad.push(blank.name + ' has no record in the file and the card drew a scoreboard: ' + bc.querySelector('.boxer-tally').textContent.replace(/\s+/g, ' '));
+    if (!/No fight record on file/.test(bc.textContent)) bad.push(blank.name + '\'s card does not say there is no record on file');
+  }
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad;
+});
+
+check('a boxer photo that will not load falls back to the ring, takes its credit, and is not asked for again', async () => {
+  const BROKEN = 'https://example.invalid/no-such-boxer.jpg';
+  const a = await boxerApp_(raw => {
+    const ali = raw.boxers.find(b => b.name === 'Muhammad Ali');
+    if (ali) { ali.image = BROKEN; ali.image_credit = ali.image_credit || 'Photo: test'; }
+  });
+  if (a.fail) return [a.fail];
+  const bad = [];
+  const x = a.item('Muhammad Ali');
+  if (!x) return ['Muhammad Ali is not in Find'];
+  const host = a.draw(a.w.stuffCard(x));
+  const img = host.querySelector('img.boxer-img');
+  if (!img) return ['the card drew no <img> for the broken address, so the fallback was NOT exercised'];
+  /* THE BROWSER'S OWN SIGNAL. `error` does not bubble; the app listens for it in the capture phase on
+     the document, which is the only place a failure on any card can be heard. */
+  img.dispatchEvent(new a.w.Event('error'));
+  const fig = host.querySelector('.boxer-pic');
+  if (host.querySelector('img.boxer-img')) bad.push('the <img> is still on the card after it failed — a broken picture');
+  if (!fig || !fig.classList.contains('is-none')) bad.push('the picture box did not fall back to the placeholder');
+  if (!fig || !fig.querySelector('svg.boxer-ring .boxer-ini')) bad.push('the ring is not there to fall back to');
+  if (host.querySelector('.boxer-credit')) bad.push('the credit stayed under a picture nobody can see');
+  /* AND A REPAINT DOES NOT PUT IT BACK, which would flicker the ring behind a picture never coming. */
+  const again = a.draw(a.w.stuffCard(x));
+  if (again.querySelector('img.boxer-img')) bad.push('drawing the card again asked for the address that already failed');
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad;
+});
+
+check('a boxer\'s fights: every bout they are in, newest first, from their side — and the fight card\'s two faces', async () => {
+  /* FRAZIER WITHOUT HIS PHOTO, IN THE COPY, so the blue corner's placeholder is tested whatever the
+     file holds -- the same reason Joe Louis is made photo-less in the journey above. */
+  const a = await boxerApp_(raw => {
+    const jf = raw.boxers.find(b => b.name === 'Joe Frazier');
+    if (jf) { jf.image = ''; jf.image_credit = ''; }
+  });
+  if (a.fail) return [a.fail];
+  const bad = [];
+  const x = a.item('Muhammad Ali');
+  if (!x) return ['Muhammad Ali is not in Find'];
+  const id = a.raw.boxers.find(b => b.name === 'Muhammad Ali').boxer_id;
+  /* COUNTED FROM THE FILE, BY ID, not by the function being checked. */
+  const his = a.raw.fights.filter(f => f.boxer_a_id === id || f.boxer_b_id === id)
+    .sort((p, q) => String(q.date).localeCompare(String(p.date)));
+  if (!his.length) return ['data/fights.json has no bout with Ali\'s id — nothing to check'];
+  /* ---------- SEVEN BOUTS A PAGE, AS MANY PAGES AS THAT TAKES --------------------------------------
+     ONE PAGE OF FOURTEEN WAS DRAWN AT 70% ON A 320x568 PHONE — the floor, with the date line at six
+     pixels — so the bouts are paged (`boxerFightPages_`). Asked of the file's count, not of the
+     function's: fourteen bouts are two pages, every page but the last is full, the names he beat
+     and lost to are on the first page only, each page's heading says which bouts it holds, and the
+     pages read in order are every bout once, newest first. */
+  const PER = 7;
+  const wantParts = [null].concat(Array.from({ length: Math.ceil(his.length / PER) }, (_, i) => i ? 'fights' + (i + 1) : 'fights'));
+  const parts = a.w.pageParts_(x);
+  if (JSON.stringify(parts) !== JSON.stringify(wantParts)) bad.push('Ali\'s pages are ' + JSON.stringify(parts) + ', not his card and ' + (wantParts.length - 1) + ' pages of fights for his ' + his.length + ' bouts');
+  const pgs = parts.filter(Boolean).map(part => a.draw(a.w.stuffPart_(x, part)).firstElementChild);
+  const pg = pgs[0];
+  if (!pg || !pg.classList.contains('fc')) return bad.concat(['the fights page is not a `.card.fc`']);
+  pgs.forEach((p, i) => {
+    const k = p && p.firstElementChild, h = k && k.nextElementSibling;
+    if (!k || !k.classList.contains('fc-kick') || k.textContent.trim() !== 'Muhammad Ali' || !h || h.tagName !== 'H3') bad.push('fights page ' + (i + 1) + ' does not open on his name and then its title');
+    const n = p ? p.querySelectorAll('.boxer-bouts li').length : 0;
+    if (n > PER) bad.push('fights page ' + (i + 1) + ' holds ' + n + ' bouts — more than ' + PER + ' is past what a 320x568 pane shows at full size');
+    if (i < pgs.length - 1 && n !== PER) bad.push('fights page ' + (i + 1) + ' holds ' + n + ' bouts and is not the last — a short page in the middle');
+    const from = i * PER + 1, to = Math.min(his.length, (i + 1) * PER);
+    const h4 = p && p.querySelector('.boxer-bouts h4');
+    if (!h4 || h4.textContent.indexOf(from + '–' + to + ' of ' + his.length) < 0) bad.push('fights page ' + (i + 1) + '\'s heading is "' + (h4 ? h4.textContent : '') + '", not bouts ' + from + '–' + to + ' of ' + his.length);
+    if (i > 0 && p && p.querySelector('.boxer-notable')) bad.push('fights page ' + (i + 1) + ' repeats who he beat — that is the first page\'s');
+  });
+  if (!pg.querySelector('.boxer-notable')) bad.push('the first fights page has lost who he beat and who beat him');
+  const lis = pgs.reduce((all, p) => all.concat(p ? [...p.querySelectorAll('.boxer-bouts li')] : []), []);
+  if (lis.length !== his.length) bad.push('the pages list ' + lis.length + ' bouts; the file has ' + his.length + ' with his id');
+  lis.forEach((li, i) => {
+    const f = his[i];
+    if (!f) return;
+    const opp = f.boxer_a_id === id ? f.boxer_b : f.boxer_a;
+    const want = f.winner_id ? (f.winner_id === id ? 'W' : 'L')
+      : f.winner ? (f.winner === 'Muhammad Ali' ? 'W' : 'L') : 'D';
+    const got = (li.querySelector('.boxer-res') || {}).textContent;
+    const name = (li.querySelector('.boxer-opp') || {}).textContent;
+    if (name !== opp) bad.push('bout ' + (i + 1) + ' (' + f.date + ') names "' + name + '", the other corner is "' + opp + '"');
+    if (got !== want) bad.push('bout ' + (i + 1) + ' against ' + opp + ' on ' + f.date + ' is marked ' + got + ', the file says ' + want);
+    if (!li.classList.contains('is-' + want.toLowerCase())) bad.push('bout ' + (i + 1) + ' is not coloured as a ' + want);
+    const how = (li.querySelector('.boxer-how') || {}).textContent || '';
+    if (f.method && how.indexOf(f.method) !== 0) bad.push('bout ' + (i + 1) + ' does not say how it ended (' + f.method + '): "' + how + '"');
+    /* THE RESULT IN WORDS FOR A SCREEN READER, the letter hidden from it. An `aria-label` on a bare
+       span is ignored by most readers, so the word has to be text they read. */
+    const say = (li.querySelector('.boxer-say') || {}).textContent || '';
+    const word = { W: 'Won', L: 'Lost', D: 'Drew', NC: 'No contest' }[want];
+    if (say.trim().replace(/,$/, '') !== word) bad.push('bout ' + (i + 1) + ' says "' + say + '" to a screen reader, not "' + word + '"');
+    const sq = li.querySelector('.boxer-res');
+    if (sq && (sq.getAttribute('aria-hidden') !== 'true' || sq.hasAttribute('aria-label'))) bad.push('bout ' + (i + 1) + '\'s letter square is read out as well as the word');
+  });
+  /* A FIGHTER WITH NOTHING FOR THAT PAGE HAS NO SUCH PAGE. */
+  const none = a.made.boxers.find(b => !a.w.boxerHasFights_(b));
+  const nx = none && a.item(none.name);
+  if (nx && a.w.pageParts_(nx).length !== 1) bad.push(none.name + ' has no fights on file and still gets a fights page');
+  /* THE FIGHT CARD: BOTH FACES, THE WINNER'S FRAMED, AND THE CREDIT FOR THE ONE PHOTO. */
+  const thrilla = a.w.stuffItemsAll_().find(i => i.kind === 'fight' && i.row.a === 'Muhammad Ali' && i.row.date === '1975-10-01');
+  if (!thrilla) bad.push('the Thrilla in Manila is not in Find');
+  else {
+    const fc = a.draw(a.w.stuffCard(thrilla)).querySelector('.card.fc.fight');
+    const faces = fc ? [...fc.querySelectorAll('.fight-faces .boxer-pic')] : [];
+    if (faces.length !== 2) bad.push('the fight card has ' + faces.length + ' faces, not 2');
+    else {
+      if (!faces[0].classList.contains('won') || faces[1].classList.contains('won')) bad.push('the winner\'s face is not the one framed');
+      if (!faces[0].querySelector('img')) bad.push('Ali\'s photo is not on the fight card');
+      if (faces[1].querySelector('img') || !faces[1].querySelector('.bx-r')) bad.push('Frazier, who has no photo, is not the blue-corner placeholder');
+    }
+    const cr = fc && fc.querySelector('.fight-credit');
+    if (!cr || cr.textContent.indexOf('Ira Rosenberg') < 0) bad.push('the fight card shows Ali\'s photo without its credit');
+    /* THE SAME DATE HIS PAGE PRINTS — `1 Oct 1975`, not the cell's `1975-10-01`. */
+    const sub = fc && fc.querySelector('.sub');
+    if (!sub || sub.textContent.trim().indexOf('1 Oct 1975') !== 0) bad.push('the fight card\'s date line is "' + (sub ? sub.textContent.trim() : '') + '", not the fighter\'s page\'s "1 Oct 1975 …"');
+    if (sub && /\d{4}-\d{2}-\d{2}/.test(sub.textContent)) bad.push('the fight card prints an ISO date: ' + sub.textContent.trim());
+  }
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad;
+});
+
+/* ---------- WHAT A BOXER READS ON EVERY FIGHTER'S CARD, ALL 103 OF THEM -----------------------------
+   THREE THINGS THE REVIEW FOUND BY READING THE CARDS AS A BOXER WOULD, each asked of every row in the
+   file rather than of one example, because each was a fault on some rows and not others:
+
+     the editor's to-do   "ACTIVE — record needs checking" was printed under Usyk's 24-0, and four
+                          more like it. A note that says check or checking is the editor's and is not
+                          drawn; EVERY OTHER NOTE IS — "Exhibition bouts excluded" qualifies a record
+                          and belongs under it, so hiding too much is as red as hiding too little.
+     Titles, or Honours   a section headed Titles with only a Hall of Fame badge under it told a boxer
+                          that Tyson never won a belt. The heading is Titles exactly when the row
+                          names one, Honours when it holds only an honour, and no section at all
+                          when it holds neither.
+     the weights          Pacquiao's eight divisions were six lines of the tape. Four or more are the
+                          count and the lightest and heaviest; three or fewer are listed. */
+check('every fighter\'s card: no note to the editor, Titles only over a title, many weights in one line', async () => {
+  const a = await boxerApp_();
+  if (a.fail) return [a.fail];
+  const bad = [];
+  const EDITOR = /\bcheck(ing)?\b/i;
+  let editor = 0, shown = 0, honours = 0, titled = 0, folded = 0;
+  a.raw.boxers.forEach(row => {
+    const x = a.item(row.name);
+    if (!x) { bad.push(row.boxer_id + ' ' + row.name + ' is not in Find'); return; }
+    const card = a.draw(a.w.stuffCard(x)).querySelector('.card.fc.boxer');
+    if (!card) { bad.push(row.name + ' drew no boxer card'); return; }
+    const text = card.textContent.replace(/\s+/g, ' ');
+    const note = String(row.notes || '').trim();
+    if (note && EDITOR.test(note)) {
+      editor++;
+      if (text.indexOf(note) >= 0) bad.push(row.name + '\'s card prints the editor\'s note "' + note + '"');
+    } else if (note) {
+      shown++;
+      /* ONLY WHERE THERE IS A RECORD TO QUALIFY: a fighter with none says so, and that is the line. */
+      if (card.querySelector('.boxer-tally') && text.indexOf(note) < 0) bad.push(row.name + '\'s note "' + note + '" qualifies his record and is not on his card');
+    }
+    const h4 = card.querySelector('.boxer-titles h4');
+    const belt = String(row.world_titles || '').trim();
+    const honour = /^true$/i.test(String(row.hall_of_fame || '').trim()) || /^true$/i.test(String(row.lineal || '').trim());
+    if (belt) {
+      titled++;
+      if (!h4 || h4.textContent.trim() !== 'Titles') bad.push(row.name + ' holds "' + belt + '" under a heading of "' + (h4 ? h4.textContent : 'nothing') + '"');
+    } else if (honour) {
+      honours++;
+      if (!h4 || h4.textContent.trim() !== 'Honours') bad.push(row.name + ' has no belt on file and the section is headed "' + (h4 ? h4.textContent : 'nothing') + '" — Titles over no title says he never won one');
+    } else if (h4) bad.push(row.name + ' has neither a belt nor an honour and still draws "' + h4.textContent + '"');
+    const weights = String(row.divisions || '').split(/[|,;]/).map(s => s.trim()).filter(Boolean);
+    const dd = [...card.querySelectorAll('.boxer-tape dt')].find(d => d.textContent.trim() === 'Weights');
+    const val = dd ? dd.nextElementSibling.textContent.trim() : '';
+    if (weights.length > 3) {
+      folded++;
+      const want = weights.length + ' · ' + weights[0] + ' → ' + weights[weights.length - 1];
+      if (val !== want) bad.push(row.name + '\'s ' + weights.length + ' weights read "' + val + '", not "' + want + '"');
+    } else if (weights.length > 1 && val !== weights.join(', ')) bad.push(row.name + '\'s ' + weights.length + ' weights read "' + val + '", not the list');
+  });
+  /* A RULE THAT FOUND NOTHING TO ASK IS NOT A PASS — print what each one actually looked at. */
+  console.log('          editor\'s notes kept off: ' + editor + ' · notes shown: ' + shown + ' · Titles: ' + titled
+    + ' · Honours: ' + honours + ' · weights folded: ' + folded);
+  if (!editor) bad.push('no row carries an editor\'s note, so that rule was NOT exercised on the real file');
+  if (!shown) bad.push('no row carries a note that qualifies its record, so hiding too much was NOT checked');
+  if (!folded) bad.push('no row has four or more weights, so the folding was NOT checked');
+  /* THE LADDER, NOT THE CELL'S ORDER, decides lightest and heaviest — asked of a cell typed out of order. */
+  const out = a.w.boxerWeights_(['Heavyweight', 'Cruiserweight', 'Light Heavyweight', 'Middleweight']);
+  if (out !== '4 · Middleweight → Heavyweight') bad.push('a cell typed heavy-to-light folds to "' + out + '", not "4 · Middleweight → Heavyweight"');
+  if (a.errs.length) bad.push('errors: ' + a.errs.join(' | '));
+  return bad;
 });
 
 /* ---------- SHARING A BOOKING HANDS OVER A PICTURE OF IT ------------------------------------------
@@ -7698,6 +10008,487 @@ check('the calendar marks sessions, terms, half terms, bank holidays, events and
     const sheet = d.getElementById('sheet');
     if (!sheet || !/Session/.test(sheet.textContent) || !/Maths/.test(sheet.textContent)) bad.push('tapping the 3rd does not list the Maths session');
   }
+  return bad;
+});
+
+/* ==================================================================================================
+   MULTI-PART QUESTIONS — THE FOLLOW-UPS TO THE OWNER'S *"can you see any clashes or bugs or counter
+   intuitive things which occur with current system to keep questions in order while keeping the
+   diagram in its own widget … multiple parts … like 1b 1c 1di 1dii"*. Each journey is one finding of
+   the audit that answered it, through the app's own builders. `FLOW_ONLY=multipart` runs them alone.
+================================================================================================== */
+/* A PAYLOAD ROW, the shape `libraryInto_` hands `questionItems` -- the fields it reads and no more. */
+const mpRow_ = (paper, name, q, part, extra) => Object.assign({ id: 'Q-' + paper + '-' + q + part, paper: paper, paper_id: paper,
+  q: String(q), part: part, kind: 'question', name: name, subject: 'Maths', marks: 1,
+  html: '<p>' + paper + ' Q' + q + part + '</p>' }, extra || {});
+
+/* FINDING 12 AND 13: a question's parts in the order the paper prints them, whatever the spelling and
+   however many, and two papers sharing a name never shuffled together. */
+check('multipart: parts sort by their value within a question, and two papers with one name do not interleave', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.questionItems !== 'function' || typeof w.stuffSorted_ !== 'function') return ['questionItems or stuffSorted_ not reachable — renamed? The order was NOT checked'];
+  const D = w.__t.DATA();
+  const held = D.questions;
+  const same = 'Paper 1 (Non-calculator) — June 2024';
+  const rows = [];
+  const add = (paper, name, q, parts) => parts.forEach(p => rows.push(mpRow_(paper, name, q, p)));
+  /* SHUFFLED ON PURPOSE, so the order out is the sort's and not the file's. */
+  add('P-MP-L', 'Letters', 1, ['j', 'h', 'i']);
+  add('P-MP-R', 'Numerals', 2, ['x', 'ii', 'ix', 'v', 'i', 'iv', 'iii', 'vi', 'viii', 'vii', 'xi']);
+  add('P-MP-N', 'Numbers', 3, ['10', '2', '1', '11', '9']);
+  add('P-MP-A', 'Nested', 4, ['b', 'a(ii)', 'a', 'b(i)', 'a(i)', 'dii', 'di', 'c']);
+  add('P-MP-1H', same, 13, ['b', 'a']);
+  add('P-MP-1F', same, 13, ['b', 'a']);
+  D.questions = rows;
+  let order = [];
+  try { order = w.stuffSorted_(w.questionItems()).map(x => x.row.paper + ':' + x.qPart); }
+  catch (e) { bad.push('sorting threw: ' + e.message); }
+  finally { D.questions = held; }
+  const of = paper => order.filter(o => o.indexOf(paper + ':') === 0).map(o => o.split(':')[1]).join(' ');
+  [['P-MP-L', 'h i j', 'letters h, i, j -- a lone "i" here is the ninth letter, not a numeral'],
+   ['P-MP-R', 'i ii iii iv v vi vii viii ix x xi', 'numerals by value -- "ix" used to sort before "v"'],
+   ['P-MP-N', '1 2 9 10 11', 'numbered parts past 9 -- they sorted 1, 10, 11, 2'],
+   ['P-MP-A', 'a a(i) a(ii) b b(i) c di dii', 'letters, then each letter\'s numerals']].forEach(([p, want, what]) => {
+    if (of(p) !== want) bad.push(what + ': got "' + of(p) + '", wanted "' + want + '"');
+  });
+  /* THE SAME NAME, TWO PAPERS: each paper's parts together. */
+  const twin = order.filter(o => /^P-MP-1[FH]:/.test(o)).map(o => o.replace('P-MP-', '')).join(' ');
+  if (twin !== '1F:a 1F:b 1H:a 1H:b') bad.push('two papers called "' + same + '" read "' + twin + '" -- their parts interleave');
+  return bad;
+});
+
+/* A SMALL LIBRARY OF MULTI-PART QUESTIONS, made into the funnel's own items by `questionItems` and
+   handed to Find as its whole list -- `stuffItems` replaced, so the memo keyed on `DATA` cannot hand
+   back the fixture's. Returns a function that puts everything back. */
+function mpLibrary_(w, rows) {
+  const D = w.__t.DATA();
+  const held = { q: D.questions, si: w.stuffItems, sa: w.stuffItemsAll_ };
+  D.questions = rows;
+  const items = w.questionItems();
+  D.questions = held.q;
+  w.stuffItems = () => items;
+  w.stuffItemsAll_ = () => items;
+  return { items, put: () => { w.stuffItems = held.si; w.stuffItemsAll_ = held.sa; } };
+}
+const MP_SVG = '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>';
+const mpBank_ = () => [
+  { id: 'S-MP-W-8', paper: 'P-MP-W', paper_id: 'P-MP-W', q: '8', kind: 'preamble', name: 'Whole', html: '<p>OA, OB and OC are three straight lines.</p>', diagram: MP_SVG },
+  mpRow_('P-MP-W', 'Whole', 8, 'i', { html: '<p>Work out the size of angle x.</p>', answer: '<b>50°</b>' }),
+  mpRow_('P-MP-W', 'Whole', 8, 'ii', { html: '<p>Give a REASONWORD for your answer.</p>', answer: '<b>angles on a line</b>' }),
+  mpRow_('P-MP-W', 'Whole', 18, '', { html: '<p>Eighteen.</p>' }),
+  { id: 'S-MP-W-1d', paper: 'P-MP-W', paper_id: 'P-MP-W', q: '1', part: 'd', kind: 'preamble', name: 'Whole',
+    html: '<p>A car moves from REST.</p>', diagram: '<svg viewBox="0 0 10 10" class="mp-car"><path d="M0 10 10 0"/></svg>' },
+  mpRow_('P-MP-W', 'Whole', 1, 'c', { html: '<p>One c.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 1, 'd(i)', { html: '<p>One d i.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 1, 'd(ii)', { html: '<p>One d ii.</p>' }),
+  mpRow_('P-MP-V', 'Other', 8, '', { html: '<p>Another paper\'s eight.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 14, 'a', { html: '<p>The graph shows a journey. Work out the speed.</p>', diagram: '<svg viewBox="0 0 10 10" class="mp-graph"><path d="M0 10 10 0"/></svg>' }),
+  mpRow_('P-MP-W', 'Whole', 14, 'b', { html: '<p>Work out an estimate for the distance.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 20, 'a', { html: '<p>Use the graph to find the gradient.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 20, 'b', { html: '<p>From the graph, estimate the value of y when x = 3.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 21, '', { html: '<p>On the grid, draw the line y = 2x.</p>', answerType: 'drawing' }),
+];
+
+/* FINDING 1: a search hit on one part brings the whole question, in order, and lands on the part. */
+check('multipart: a search that finds one part brings its whole question, in order, landing on that part', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  const need = ['questionItems', 'stuffFiltered', 'stuffPages_', 'stuffPageOf_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The whole question was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  try {
+    S.q = 'reasonword'; S.filters = [];
+    const hits = w.stuffFiltered();
+    if (hits.length !== 1 || hits[0].qPart !== 'ii') bad.push('the search should MATCH one part, Q8(ii) -- it matched ' + hits.map(x => x.name).join(', '));
+    const strip = w.stuffPages_().map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' ');
+    const want = 'Q8(i):stem0 Q8(i):sfig0 Q8(i):card Q8(i):ans Q8(ii):card Q8(ii):ans';
+    if (strip !== want) bad.push('the strip reads "' + strip + '", wanted the whole question: "' + want + '"');
+    if (hits[0]) {
+      const at = w.stuffPageOf_(hits[0]);
+      const pg = w.stuffPages_()[at];
+      if (!pg || pg.x !== hits[0] || pg.part) bad.push('turning to the hit lands on page ' + at + ' (' + (pg ? pg.x.name + ':' + pg.part : 'nothing') + '), not on Q8(ii)\'s card');
+      else if (at !== 4) bad.push('the hit is page ' + at + ' -- Q8(i), its answer and the opening should be the four pages in front of it');
+    }
+  } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* FINDING 10: a question's number typed into the box is that question. */
+check('multipart: typing a question reference -- q8, 8ii, 1dii, 1d(ii), Q 8 -- matches that question exactly', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.stuffFiltered !== 'function' || typeof w.questionItems !== 'function') return ['stuffFiltered or questionItems not reachable — the references were NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const names = (q, filters) => {
+    S.q = q; S.filters = filters || [];
+    return w.stuffFiltered().map(x => x.row.paper.slice(-1) + x.name).join(' ');
+  };
+  try {
+    [['q8', [], 'VQ8 WQ8(i) WQ8(ii)', 'both papers\' Q8 and every part -- and not Q18'],
+     ['Q 8', [], 'VQ8 WQ8(i) WQ8(ii)', '"Q 8" with a space'],
+     ['q8ii', [], 'WQ8(ii)', '"q8ii"'], ['8ii', [], 'WQ8(ii)', '"8ii"'], ['q8(ii)', [], 'WQ8(ii)', '"q8(ii)"'],
+     ['1dii', [], 'WQ1d(ii)', '"1dii"'], ['1d(ii)', [], 'WQ1d(ii)', '"1d(ii)"'], ['q1d', [], 'WQ1d(i) WQ1d(ii)', '"q1d", the whole of (d)'],
+     ['q8', [{ field: 'paperId', value: 'P-MP-W' }], 'WQ8(i) WQ8(ii)', '"q8" inside a chosen paper'],
+    ].forEach(([q, f, want, what]) => {
+      const got = names(q, f);
+      if (got !== want) bad.push(what + ' found "' + got + '", wanted "' + want + '"');
+    });
+    /* A BARE NUMBER IS STILL WORDS: "8" is not read as Q8. */
+    if (names('eighteen', []) !== 'WQ18') bad.push('an ordinary word search broke: "eighteen" found "' + names('eighteen', []) + '"');
+  } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* FINDING 8: two kept parts of one question on Saved -- and on Spotlight -- draw its opening once. */
+check('multipart: Saved and Spotlight draw a question\'s opening and its figure once for several kept parts', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['savedPages_', 'spotPages', 'collItems_', 'questionItems'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — Saved was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const eight = lib.items.filter(x => x.row.paper === 'P-MP-W' && String(x.qNumber) === '8');
+  const other = lib.items.find(x => x.row.paper === 'P-MP-V');
+  const heldC = w.collItems_;
+  w.__t.USER({ name: 'Kept', personId: 'P-KEPT', role: 'student', roles: ['student'] });
+  /* KEPT OUT OF ORDER, with another question between them, the way stars are pressed. */
+  w.collItems_ = () => [eight[1], other, eight[0]];
+  const read = html => {
+    const h = d.createElement('div');
+    h.innerHTML = html;
+    const c = h.querySelector('.qcard') || h.firstElementChild;
+    if (!c) return '?';
+    if (c.classList.contains('qstem')) return 'stem';
+    if (c.classList.contains('qfig')) return 'fig';
+    if (c.classList.contains('qans-card')) return 'ans';
+    return (tagText(c, 'number') || '?').replace(/\s.*$/, '');
+  };
+  try {
+    [['Saved', () => w.savedPages_()], ['Spotlight', () => w.spotPages()]].forEach(([where, f]) => {
+      const got = f().map(read).join(' ');
+      const want = 'stem fig Q8(i) ans Q8(ii) ans Q8';
+      if (got !== want) bad.push(where + ' reads "' + got + '", wanted "' + want + '" -- the opening once, the parts in the paper\'s order');
+    });
+    /* A PART KEPT ALONE STILL HAS ITS OPENING. */
+    w.collItems_ = () => [eight[1]];
+    const alone = w.savedPages_().map(read).join(' ');
+    if (alone !== 'stem fig Q8(ii) ans') bad.push('a part kept alone reads "' + alone + '", wanted its opening and figure in front of it');
+  } finally { w.collItems_ = heldC; lib.put(); }
+  return bad;
+});
+
+/* FINDING 9: "To the answer" says where the answer really is, and the drawing page carries it too. */
+check('multipart: "To the answer" says where the answer is, and the drawing page after a card carries it', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionTiles_', 'questionFigCard_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the tile\'s note was NOT checked'];
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
+  const row = id => ({ row_id: id, paper_id: 'P-MP-T', subject: 'Maths', name: 'Tiles' });
+  const q = (id, extra) => Object.assign({ kind: 'question', name: 'Q' + id, qNumber: id, marks: 2, key: 'q-mp-t' + id,
+    row: row('Q-MP-T-' + id), html: '<p>Do it.</p>', answer: '<b>done</b>' }, extra || {});
+  const plain = q('1');
+  const grid = q('2', { answerType: 'drawing', surface: 'grid', html: '<p>Draw the line y = 2x.</p>' });
+  const front = q('3', { diagram: MP_SVG });
+  const note = h => { const t = el(h).querySelector('[data-do="qa-go"]'); return t ? String(t.getAttribute('aria-label') || '').replace(/^To the answer · /, '') : '(no tile)'; };
+  [[plain, 'next page', 'a card whose answer is the next page'],
+   [grid, 'after the squared grid', 'a card with the grid to draw on between it and its answer'],
+   [front, 'next page', 'a card whose figure stands in front of it']].forEach(([x, want, what]) => {
+    const got = note(w.questionTiles_(x));
+    if (got !== want) bad.push(what + ' says "' + got + '", wanted "' + want + '"');
+  });
+  /* THE DRAWING PAGE: the grid after the card carries the tile; a figure in front of its card does not. */
+  const gf = el(w.questionFigCard_(grid));
+  const gt = gf.querySelector('[data-do="qa-go"]');
+  if (!gt) bad.push('the grid page -- where the child finishes -- has no "To the answer" tile');
+  else if (note(gf.innerHTML) !== 'next page' || gt.getAttribute('data-from') !== 'fig') bad.push('the grid page\'s tile reads "' + note(gf.innerHTML) + '" from "' + gt.getAttribute('data-from') + '", wanted "next page" from the figure');
+  if (el(w.questionFigCard_(front)).querySelector('[data-do="qa-go"]')) bad.push('a figure read on the way to its card carries a tile to the answer');
+  /* AND IT TURNS ONE PAGE ON FROM THE GRID: card page 0, grid page 1, answer page 2. */
+  if (gt) {
+    const strip = el('<div id="s-mptile"><section class="page"></section><section class="page">' + gf.innerHTML + '</section><section class="page"></section></div>');
+    d.body.appendChild(strip);
+    const heldA = w.stuffItemsAll_, heldG = w.goPage;
+    let went = null;
+    w.stuffItemsAll_ = () => [grid];
+    w.goPage = (id, n) => { went = [id, n]; };
+    try { w.__t.ACTIONS['qa-go'](strip.querySelector('[data-do="qa-go"]')); }
+    finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; strip.remove(); }
+    if (!went || went[1] !== 2) bad.push('the grid page\'s tile turned to ' + JSON.stringify(went) + ', wanted page 2 -- the answer is the page after the grid');
+  }
+  return bad;
+});
+
+/* FINDING 2: a Figure tile on a part whose question has a figure in front of it, opening that figure
+   over the card -- and the card, its box and what is typed in it, untouched underneath. */
+check('multipart: a part with a figure behind it has a Figure tile that opens it over the card', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionTiles_', 'stuffCard', 'questionItems'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the Figure tile was NOT checked'];
+  if (!w.__t.ACTIONS['q-fig']) return ['q-fig has no handler — nothing can open a figure over the card'];
+  const lib = mpLibrary_(w, mpBank_());
+  const find = name => lib.items.find(x => x.row.paper === 'P-MP-W' && x.name === name);
+  /* THE CARD AS DRAWN, because the tile stands at the end of the answer box (`ansBox_`), not in the row. */
+  const tileOf = x => { const h = d.createElement('div'); h.innerHTML = w.stuffCard(x, 0); return h.querySelector('[data-do="q-fig"]'); };
+  try {
+    [['Q8(ii)', 'the opening\'s figure, two parts back'], ['Q8(i)', 'the opening\'s figure, one page back'],
+     ['Q14b', 'Q14a\'s own graph, a part back'], ['Q14a', 'its own graph, the page before its card']].forEach(([n, what]) => {
+      if (!find(n)) bad.push(n + ' is not in the library');
+      else if (!tileOf(find(n))) bad.push(n + ' has no Figure tile, though ' + what + ' stands in front of it');
+    });
+    ['Q18', 'Q1c'].forEach(n => { if (find(n) && tileOf(find(n))) bad.push(n + ' offers a Figure tile with no figure in front of its card'); });
+    /* OPENED, OVER A CARD WITH SOMETHING TYPED IN IT. */
+    const x = find('Q14b');
+    const page = d.createElement('section');
+    page.className = 'page';
+    page.innerHTML = '<div class="pane">' + w.stuffCard(x, 0) + '</div>';
+    d.body.appendChild(page);
+    const box = page.querySelector('.qp-ans input, .qp-ans textarea');
+    if (!box) bad.push('the card drew no answer box to type in, so "untouched underneath" was NOT checked');
+    else box.value = '42 km';
+    const t = page.querySelector('[data-do="q-fig"]');
+    if (!t) bad.push('the card as drawn on Find carries no Figure tile');
+    /* BESIDE THE BOX, on its line -- where the keypad, which covers the row under the card on a small
+       phone, cannot cover it (the review of the merge, 1F Q23b at 320x568). */
+    else if (!t.parentElement || !t.parentElement.classList.contains('qp-ans-row') || !t.parentElement.querySelector('.qp-ans'))
+      bad.push('the Figure tile is not at the end of the answer box\'s own line -- under the card, the keypad covers it on a 320px phone');
+    else {
+      w.__t.ACTIONS['q-fig'](t);
+      const sheet = d.getElementById('sheet');
+      if (!sheet || sheet.classList.contains('hidden')) bad.push('pressing Figure opened nothing');
+      else if (!sheet.querySelector('svg.mp-graph')) bad.push('the sheet opened without Q14a\'s graph: ' + sheet.textContent.trim().slice(0, 60));
+      if (!d.body.contains(page) || (box && box.value !== '42 km')) bad.push('opening the figure disturbed the card underneath or what was typed in it');
+      if (typeof w.closeSheet === 'function') w.closeSheet();
+      if (sheet && !sheet.classList.contains('hidden')) bad.push('the figure sheet does not close');
+    }
+    page.remove();
+  } finally { lib.put(); }
+  return bad;
+});
+
+/* FINDING 6, THE OWNER'S OWN EXAMPLE: a "(d)" opening, drawn once before (d)(i), headed Q1(d), its
+   figure after it, and again in front of (d)(ii) opened alone -- never in front of (a) or (c). */
+check('multipart: a (d) opening is drawn once before (d)(i), headed Q1(d), and again before (d)(ii) alone', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionItems', 'stuffPages_', 'pageParts_', 'questionStemCard_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the (d) opening was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  try {
+    S.q = 'q1'; S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    const strip = w.stuffPages_().filter(pg => String(pg.x.qNumber) === '1').map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' ');
+    const want = 'Q1c:card Q1d(i):stem0 Q1d(i):sfig0 Q1d(i):card Q1d(ii):card';
+    if (strip !== want) bad.push('Q1 reads "' + strip + '", wanted "' + want + '" -- the (d) opening once, between (c) and (d)(i)');
+    const di = lib.items.find(x => x.name === 'Q1d(i)'), dii = lib.items.find(x => x.name === 'Q1d(ii)'), c = lib.items.find(x => x.name === 'Q1c');
+    if (dii && JSON.stringify(w.pageParts_(dii)) !== '["stem0","sfig0",null]') bad.push('(d)(ii) opened alone has pages ' + JSON.stringify(w.pageParts_(dii)) + ' -- it needs its (d) opening and figure');
+    if (c && (c.stems || []).length) bad.push('(c) carries the (d) opening, which would stand in front of it');
+    if (di) {
+      const h = d.createElement('div');
+      h.innerHTML = w.questionStemCard_(di, 0);
+      const head = tagText(h, 'number');
+      if (head !== 'Q1(d)') bad.push('the (d) opening is headed "' + head + '", wanted Q1(d)');
+      if (!/REST/.test(h.textContent)) bad.push('the (d) opening does not draw its words');
+    }
+  } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* FINDING 4: a part whose words name a figure, in a question with none, says so on a page of its own. */
+check('multipart: a figure the words name and nobody drew is a "not drawn yet" page, once per run of parts', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionItems', 'pageParts_', 'stuffPart_', 'stuffPages_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the missing figures were NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const find = name => lib.items.find(x => x.row.paper === 'P-MP-W' && x.name === name);
+  try {
+    const a = find('Q20a');
+    if (!a || JSON.stringify(w.pageParts_(a)) !== '["nofig",null]') bad.push('Q20a, "Use the graph" with no graph anywhere, has pages ' + (a && JSON.stringify(w.pageParts_(a))) + ', wanted the gap and then the card');
+    else {
+      const h = d.createElement('div');
+      h.innerHTML = w.stuffPart_(a, 'nofig');
+      if (!/not drawn yet/.test(h.textContent) || !h.querySelector('.qcard.qfig.is-missing')) bad.push('the gap page does not say "not drawn yet": ' + h.textContent.trim().slice(0, 80));
+    }
+    S.q = 'q20'; S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    const strip = w.stuffPages_().map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' ');
+    if (strip !== 'Q20a:nofig Q20a:card Q20b:card') bad.push('Q20 reads "' + strip + '" -- the gap once, in front of the first part that names it');
+    ['Q14a', 'Q14b', 'Q21'].forEach(n => {
+      const x = find(n);
+      if (x && w.pageParts_(x).indexOf('nofig') >= 0) bad.push(n + ' is given a "not drawn yet" page though its question has a figure, or it is answered on a surface');
+    });
+  } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* THE OWNER: *"they have their own tag. i could in theory just click answers and only see answers."*
+   THE DOOR IS THE REAL ANSWER PAGE'S OWN TILE, found on the card as `questionAnsCard_` draws it -- and
+   if the card has none, this FAILS. It used to put an "Answer" tag on the page itself before tapping it,
+   and so passed over a door nobody could see (the review of the merge). Pressed, it shows only answer
+   pages, in order, OPEN -- choosing the view is asking for them -- with Hide still hiding one, and the
+   same tile, lit and pressed, takes the view off. From Saved, it is that paper's answers. */
+check('multipart: an answer page\'s "Answers only" switch shows only answer pages, open, and pressed again takes it off', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionAnsCard_', 'stuffPages_', 'nextFacet', 'facetList', 'stuffPart_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the answers-only view was NOT checked'];
+  const A = w.__t.ACTIONS;
+  if (!A['qa-only'] || !A['qa-all']) return ['qa-only or qa-all has no handler — the answers-only door goes nowhere'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const card = (x, where) => {
+    const scr = d.getElementById(where || 's-stuff');
+    const host = d.createElement('div');
+    host.className = 'page';
+    host.innerHTML = w.questionAnsCard_(x);
+    scr.appendChild(host);
+    return host;
+  };
+  try {
+    S.q = ''; S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    const a = lib.items.find(x => x.name === 'Q8(i)');
+    const host = card(a);
+    const door = host.querySelector('.qans-card [data-do="qa-only"]');
+    if (!door) { host.remove(); return ['the answer page draws no "Answers only" tile -- nothing on the screen offers answers-only']; }
+    if (!door.classList.contains('tile')) bad.push('the answers-only door is not a tile -- every action on a question\'s pages is (CLAUDE.md)');
+    A['qa-only'](door);
+    host.remove();
+    const f = S.filters.filter(x => x.field === 'pageKind');
+    if (f.length !== 1 || f[0].value !== 'Answers') bad.push('pressing "Answers only" left the filters as ' + JSON.stringify(S.filters));
+    if (!S.filters.some(x => x.field === 'paperId')) bad.push('pressing "Answers only" on Find threw away the paper already chosen');
+    const pages = w.stuffPages_();
+    const kinds = [...new Set(pages.map(pg => pg.part))];
+    if (!pages.length || kinds.length !== 1 || kinds[0] !== 'ans') bad.push('the answers-only strip holds ' + JSON.stringify(kinds) + ', wanted answer pages and nothing else');
+    const names = pages.map(pg => pg.x.name).join(' ');
+    if (names !== 'Q8(i) Q8(ii)') bad.push('the answers-only strip is "' + names + '", wanted Q8(i) Q8(ii) -- the answers there are, in order');
+    pages.forEach(pg => {
+      const h = d.createElement('div');
+      h.innerHTML = w.stuffPart_(pg.x, 'ans');
+      const c = h.querySelector('.qans-card');
+      if (!c || c.classList.contains('is-hidden') || !/50°|angles on a line/.test(h.textContent)) bad.push(pg.x.name + '\'s answer is shut in the answers-only view -- "only see answers" is forty Shows in a row otherwise');
+      const sw = c && c.querySelector('[data-do="qa-all"]');
+      if (!sw || sw.getAttribute('aria-pressed') !== 'true') bad.push(pg.x.name + '\'s answer page in the answers-only view has no lit "Answers only" switch to leave it by');
+    });
+    /* HIDE STILL HIDES ONE. */
+    if (A['qa-hide'] && pages[0]) {
+      const h = card(pages[0].x);
+      const hide = h.querySelector('[data-do="qa-hide"]');
+      if (!hide) bad.push('an open answer in the answers-only view has no Hide');
+      else {
+        A['qa-hide'](hide);
+        const again = d.createElement('div');
+        again.innerHTML = w.stuffPart_(pages[0].x, 'ans');
+        if (!again.querySelector('.qans-card.is-hidden')) bad.push('Hide did not hide an answer in the answers-only view');
+      }
+      h.remove();
+    }
+    /* PRESSED AGAIN, IT TAKES IT OFF, and the paper stays. */
+    const back = card(a);
+    A['qa-all'](back.querySelector('[data-do="qa-all"]') || back);
+    back.remove();
+    if (S.filters.some(x => x.field === 'pageKind')) bad.push('pressing the lit switch left the Page filter on');
+    if (!S.filters.some(x => x.field === 'paperId')) bad.push('pressing the lit switch threw away the paper');
+    /* FROM SAVED: that paper's answers, whatever Find had. */
+    S.q = 'eighteen'; S.filters = [{ field: 'paperId', value: 'P-MP-V' }];
+    const sv = card(a, 's-saved');
+    const sdoor = sv.querySelector('[data-do="qa-only"]');
+    if (!sdoor) bad.push('the answer page on Saved draws no "Answers only" tile');
+    else {
+      A['qa-only'](sdoor);
+      const pid = (S.filters.find(x => x.field === 'paperId') || {}).value;
+      if (pid !== 'P-MP-W' || S.q) bad.push('"Answers only" pressed on Saved narrowed Find to ' + JSON.stringify(S.filters) + ' / "' + S.q + '", wanted that question\'s paper, P-MP-W, and no search');
+    }
+    sv.remove();
+    /* AND IT IS NEVER ASKED: the funnel offers it to nobody. */
+    if (!w.facetList().some(x => x.field === 'pageKind' && x.tagOnly)) bad.push('the Page filter is not a tag-only facet');
+    S.filters = []; S.q = '';
+    const asked = w.nextFacet(w.stuffFiltered());
+    if (asked && asked.field === 'pageKind') bad.push('the funnel asks "Page" as a question');
+  } finally { lib.put(); S.q = ''; S.filters = []; if (w.__t.go) { try { w.__t.go('stuff', false, true); } catch (e) {} } }
+  return bad;
+});
+
+/* THE REVIEW OF THE MERGE WITH THE PEN'S BRANCH, FINDINGS 1 AND 5: a part that USES an earlier part's
+   drawing ("use your graph") is neither "not drawn yet" -- the figure it names is the child's own --
+   nor offered that part's blank paper copy under Figure. A later part that does not use it still is. */
+check('multipart: a "use your graph" part has no "not drawn yet" page and no blank Figure of the part it uses', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionItems', 'pageParts_', 'figsBefore_', 'questionTiles_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — "use your graph" was NOT checked'];
+  const GRID = '<svg viewBox="0 0 10 10" class="mp-axes"><path d="M0 5h10M5 0v10"/></svg>';
+  const rows = mpBank_().concat([
+    mpRow_('P-MP-W', 'Whole', 24, 'a', { html: '<p>Complete the table.</p>' }),
+    mpRow_('P-MP-W', 'Whole', 24, 'b', { html: '<p>On the grid, draw the graph of y = 2x.</p>', answerType: 'annotate', figure: 'grid-blank', diagram: GRID }),
+    mpRow_('P-MP-W', 'Whole', 24, 'c', { html: '<p>Use your graph to find x when y = 3.</p>', uses: 'b' }),
+    mpRow_('P-MP-W', 'Whole', 24, 'd', { html: '<p>Read the value off the graph when x = 1.</p>' }),
+    /* AND ONE WHOSE GRAPH IS DRAWN ON A SURFACE, so nothing in the question is a printed figure. */
+    mpRow_('P-MP-W', 'Whole', 25, 'a', { html: '<p>Draw the line y = x.</p>', answerType: 'drawing', surface: 'coord' }),
+    mpRow_('P-MP-W', 'Whole', 25, 'b', { html: '<p>From the graph, find x when y = 3.</p>', uses: 'a' }),
+  ]);
+  const lib = mpLibrary_(w, rows);
+  const find = n => lib.items.find(x => x.row.paper === 'P-MP-W' && x.name === n);
+  try {
+    const c = find('Q24c'), dd = find('Q24d');
+    if (!c || !dd) return ['Q24c or Q24d did not reach the library'];
+    /* THE ITEM MAY NOT CARRY `uses` UNTIL THE PEN'S BRANCH LANDS; the row does, and both are read. */
+    const b25 = find('Q25b');
+    if (!b25 || w.pageParts_(b25).indexOf('nofig') >= 0) bad.push('Q25b "from the graph", which uses the axes Q25a was drawn on, is given a "The paper prints a figure here -- not drawn yet" page beside the page showing that drawing');
+    if (w.pageParts_(c).indexOf('nofig') >= 0) bad.push('Q24c "use your graph" is given a "not drawn yet" page -- the figure it names is the child\'s own graph on Q24b');
+    const labels = w.figsBefore_(c).map(f => f.html);
+    if (labels.some(h => /mp-axes/.test(h))) bad.push('Q24c\'s Figure opens Q24b\'s blank grid -- the picture it reads is the child\'s drawing, not the paper\'s empty copy');
+    const h = d.createElement('div');
+    h.innerHTML = w.stuffCard(c, 0);
+    if (h.querySelector('[data-do="q-fig"]')) bad.push('Q24c offers a Figure tile with nothing in front of it but the grid it uses');
+    /* A PART THAT DOES NOT SAY IT USES (b) STILL SEES (b)'s PICTURE -- the rule is the column, not the grid. */
+    if (!w.figsBefore_(dd).some(f => /mp-axes/.test(f.html))) bad.push('Q24d, which uses nothing, lost Q24b\'s figure too -- the skip reached past the part that names it');
+  } finally { lib.put(); }
+  return bad;
+});
+
+/* THE REVIEW, FINDING 6: the line above the strip counts what the strip holds -- questions, not the parts
+   that matched -- and names the question when a search found one inside a paper. */
+check('multipart: the line under a chosen paper counts questions, names a searched one, and counts answers in that view', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.paperEnd_ !== 'function' || typeof w.stuffFiltered !== 'function') return ['paperEnd_ or stuffFiltered not reachable — the count was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const say = (q, more) => {
+    S.q = q; S.filters = [{ field: 'paperId', value: 'P-MP-W' }].concat(more || []);
+    return String(w.paperEnd_(w.stuffFiltered())).replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+  };
+  try {
+    [['q8', [], /swipe up for Q8\./, '"q8" in the paper -- one question with two parts'],
+     ['reasonword', [], /swipe up for Q8\./, 'a word found in Q8(ii) alone -- the strip holds Q8 whole'],
+     ['', [], /Swipe up for its 6 questions\./, 'the whole paper -- Q1, Q8, Q14, Q18, Q20, Q21, each counted once however many parts'],
+     ['', [{ field: 'pageKind', value: 'Answers' }], /Swipe up for its 2 answers\./, 'the answers-only view'],
+    ].forEach(([q, more, want, what]) => {
+      const got = say(q, more);
+      if (!want.test(got)) bad.push(what + ': "' + got + '"');
+    });
+  } finally { lib.put(); S.q = ''; S.filters = []; }
   return bad;
 });
 

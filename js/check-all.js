@@ -163,6 +163,13 @@ const SUITE = [
      five worked lines — and the route is the other half: a kind wearing Resources, the Shelf door
      that is the only way past 260 rows of boxing, and the file fetched at all. */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
+  /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN -----------------------------
+     "i want to add the bible to resources as a book. but only admin can see the bible." The split
+     out of `data/archive/bible.json` checked verse by verse against the archive, every `[word]`
+     drawn in italics by the real `bibleVerse_`, every chapter cut into whole verses by the real
+     `bibleCut_`, and the one gate read out of the source. What an admin sees and what a student
+     fetches is the journey in `check-flow`. */
+  { file: 'check-bible.js', what: 'the Bible: a lossless split, italics for [words], whole-verse pages, admin only' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
      A clip whose path is one character wrong does not draw a broken link. The slide stays its own
      gradient, so a missing file reads as the feature half-working rather than as a file nobody
@@ -196,6 +203,15 @@ const SUITE = [
   /* THE DAY A QUESTION WAS DONE, ON THE SHEET. A learner's record: one row per question, the person
      from the token, and nobody sent another learner's — through the same backend. */
   { file: 'check-attempts.js', what: 'done questions: the upsert, the token’s person, and who is sent whose' },
+  /* THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF. Nothing has ever sent one, which is why it is
+     checked: the first real run is a Sunday with families on the other end, and every rule it has
+     fails by emailing — the wrong parent, twice, or at all while it was meant to be off. */
+  { file: 'check-digest.js', what: 'the weekly parent email: a London week, accepted parents only, off/preview/send, sent once' },
+  /* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. *"i cant send
+     images, or videos in the chat"* — the manifest asked for `drive.readonly`, which no harness here
+     could see because every one stubbed Drive as a thing that works. This one's Drive asks for the
+     scope Google asks for, and its token holds what the manifest lists. */
+  { file: 'check-uploads.js', what: 'chat files: the manifest’s scope, the column, the refusals, both sides drawn' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
      The third check here about SAFETY rather than about working, after `check-marking.js` and
      `check-handles.js` — and the only one whose subject is this repository rather than the app.
@@ -274,6 +290,17 @@ const SUITE = [
      on a busy container as on an idle one — and because the roster is the only thing that makes a
      check real. Fifty-seven seconds for both visitors. */
   { file: 'check/press.js',   what: 'press every control and see whether anything happens', slow: true },
+  /* ---------- AND WHAT A THUMB DOES THAT A PRESS DOES NOT ----------------------------------------
+     ASKED FOR ON 5 OCTOBER: *"can you make swiping and so on more stable ... focused widgets should
+     be in centre of screen. also those widgets not in focus should actually look slightly out of
+     focus effect."* `press.js` swipes from rest and twice on one axis; what a lab with real touch
+     found unstable was the rest of a thumb — a peek, a change of mind, a diagonal on a one-page
+     column, a second flick on the OTHER axis mid-slide, a tap on a card still moving, a field left
+     focused on a card that went — and the release restyling the whole document. This asks each of
+     those, and the two things the owner asked to see: the card in front centred within a pixel at
+     320 and 390, and the cards beside it out of focus. No port to collide on: unset, `SWIPE_PORT`
+     is 0 and the OS picks a free one. */
+  { file: 'check/swipe.js',   what: 'a swipe lands one card away or back, centred, the rest out of focus', slow: true },
   /* ---------- AND THE INSTRUMENT THAT WAS NEVER ON THIS LIST --------------------------------------
      `check/ui.js` IS THE APP'S MAIN MEASUREMENT — every combination of screen, state, width and
      visitor, for sideways scroll, tap targets, contrast, JS errors and content below a pane's own
@@ -384,8 +411,12 @@ for (const c of SUITE) {
     } else {
       const t0 = Date.now();
       try {
+        /* FIVE MINUTES FOR A FILE CHECK, NOT THREE. check-flow is 135 journeys now and took 180s on a
+           machine at load 20 -- killed by this limit while every journey passed alone, which printed
+           as a red check with nothing wrong in it. The limit is for a check that has HUNG, and none
+           of these takes a minute on a quiet machine. */
         out = execFileSync(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8',
-                                                    timeout: 180000, stdio: ['ignore', 'pipe', 'pipe'] });
+                                                    timeout: 300000, stdio: ['ignore', 'pipe', 'pipe'] });
       } catch (e) {
         ok = false;
         out = String((e.stdout || '') + (e.stderr || ''));

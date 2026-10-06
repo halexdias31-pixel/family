@@ -310,12 +310,28 @@ function commentsHtml_(p) {
           a conversation that simply stops at sixty with nothing saying so is a conversation
           somebody thinks they have read. */''}
     ${more ? `<p class="faint">${more} more, not shown.</p>` : ''}
+    ${/* ---------- POST IS A TILE ------------------------------------------------------------------
+          ASKED FOR AS *"post should be a tile too"* — after Check on a question card became one, and
+          under the owner's lean that week, "it should all be tiles". It was a `.btn quiet` with the
+          word on it, the one rectangle left under a post whose every other action — Share, Edit, and
+          the admin's Put it up / Not this one — is already a tile in `postTiles_`.
+
+          THE PAPER AEROPLANE, because sending is what it does: `send` is the mark tiles.js keeps for
+          exactly that, so the composer and the booking form's `Ask for it` read as the same act.
+          `cmt-go` and `data-id` stay — `cmt-add` finds the post by `data-id`, and `cmt-go` is the
+          name anything outside this file finds the control by. The box is the only other thing in
+          this composer and it is the words being written, not an action; nothing else here was a
+          button.
+
+          CLAUDE.md files "the composer" under FORMS, which keep buttons. This is the owner's word
+          against that line, for this one composer — a remark under a photograph is a thing's own
+          row, not a sheet — and the line is for the merge to bring into step. */''}
     ${USER
       ? `<div class="cmt-form">
            <textarea class="cmt-text" rows="1" maxlength="2000"
              placeholder="Say something…"></textarea>
-           <button class="btn quiet cmt-go" data-do="cmt-add"
-             data-id="${esc(p.id)}">Post</button>
+           ${tile_({ icon: 'send', label: 'Post', note: 'your comment', act: 'cmt-add', cls: 'cmt-go',
+                     data: { id: p.id } })}
            <p class="faint cmt-said"></p>
          </div>`
       : `<p class="faint">Sign in to say something.</p>`}
@@ -343,10 +359,14 @@ on('cmt-add', el => {
   if (!text) { box && box.focus(); return; }
   if (!USER) { if (said) said.textContent = 'Sign in first.'; return; }
 
+  /* THE RING, NOT A WORD. This said `el.textContent = 'Posting…'` and put the old text back after —
+     right for a button with "Post" on it, and on a tile it writes a word over the paper aeroplane
+     and then "restores" an empty string, so the mark is gone for good after the first comment.
+     `.tile.is-busy` swaps the mark for the spinning ring and keeps the plate, the way `send_` does
+     for every tile it is handed. */
   el.disabled = true;
-  const was = el.textContent;
-  el.textContent = 'Posting…';
-  const done = () => { el.disabled = false; el.textContent = was; };
+  el.classList.add('is-busy');
+  const done = () => { el.disabled = false; el.classList.remove('is-busy'); };
 
   send({ action: 'addComment', name: USER.name, personId: USER.personId,
          postId: el.dataset.id, body: text })
@@ -1022,8 +1042,8 @@ on('cam-shoot', () => {
 /* ==================================================================================================
    THE COLUMN HAS TO BE MEASURED AGAIN WHEN THE CARD CHANGES SIZE.
 
-   `columnShift_` PLACES THE PAGE YOU ARE ON — on the line every column's card starts on — and it
-   runs when the column is placed, not when a card inside it grows. (It CENTRED the page when the
+   `columnShift_` PLACES THE PAGE YOU ARE ON — in the middle of the screen again since 5 October — and it
+   runs when the column is placed, not when a card inside it grows. (It centred the page when the
    numbers below were taken, which is why they are the ones they are; the fault and its fix are the
    same either way, because a card that grows after the placement is a card the placement never
    saw.) This card grows by a lot and on

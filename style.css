@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-05-qualchip";
+  --css-version: "2026-10-06-multipart";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -106,6 +106,35 @@
   --tag-board:   #4fd1c5;
   --tag-type:    #c3e88d;
   --tag-topic:   #ff9e64;
+  /* ---------- AND THE FOUR A QUESTION'S PAGE ADDED -------------------------------------------------
+     *"why do the questions say non calculator but its not a tag? also the marks should also be a tag.
+     also the question numbers should also be a tag. also answers should have the answer tags and
+     questions have the question tag."* Every fact about a page of a question is a tag now (`qPage_`
+     in find.js), and four of those facts had no kind.
+
+     WHAT TO BRING HAS A HUE OF ITS OWN, because it is the one tag on the card a person has to act on
+     before the lesson starts -- it was the only thing on the card in the accent for that reason, and
+     gold is not available to a tag (above). The wheel is nearly full, so it was chosen by LOOKING at
+     a Higher non-calculator card with four candidates side by side: a rose between the tier's pink
+     and the paper's coral made a card of four reds (`Q4a`, `Higher`, `Paper 1`, `Non-calculator`);
+     a sky blue sat beside `GCSE` as a second level; a pale cyan beside `Edexcel` as a second board;
+     a full lemon was a step from gold, which is the press. A PALE LEMON is none of those -- yellow
+     enough to be read first, pale enough to sit away from gold and from the type's lime. Its answers
+     and chips in the funnel wear it too (`tagOf_('needs')`).
+
+     THE OTHER THREE ARE THE PAGE'S OWN AND NOT A CATEGORY, so they spend no hue. What the page is
+     (`Question`, `Answer`, `Figure 3`) is the ink, filled, and leads the row; the marks are the ink,
+     outlined. The number is the paper's red ON PURPOSE rather than a fifth colour: it says WHICH one,
+     as `Paper 1` does, and it is what the funnel's `Question` chip wore while it was a question
+     (`TAG_OF` records it). Named rather than written as `var(--ink)` at the rule, so moving any of
+     them is one line here.
+
+     ONE THEME. This app is a terminal, dark only -- there is no light palette to keep in step -- so
+     these are declared once, like every other tag colour. */
+  --tag-kind:    var(--ink);
+  --tag-number:  var(--tag-paper);
+  --tag-marks:   var(--ink);
+  --tag-needs:   #f0f08a;
 
   /* Everything below is in rem, so it all scales together from the one root above. */
   /* Square, near enough. A terminal has no rounded corners, and this is the single value that
@@ -470,7 +499,11 @@ body {
      tab tapped from rest jumped about a third of the way in its first frame. The finger's settle has
      its own curve now; this one is only ever a slide nobody was already moving, and it eases out
      of a standstill into place. */
+  /* `translate` AS WELL: a column's sideways position is its `transform` and its vertical one the
+     separate `translate` property, each with its own clock — see `colWrite_` in shell.js. Written
+     inline by `placeGrid` on every placement; this is only what holds before the first one. */
   transition: transform .3s cubic-bezier(.3, 0, .2, 1),
+              translate .3s cubic-bezier(.3, 0, .2, 1),
               opacity .22s ease;
   /* NO `contain` HERE, and this is the fault that broke the whole layout when the screen became a
      column. `contain: paint` does not merely hint — it CLIPS the element to its own box, and it
@@ -503,7 +536,9 @@ body {
    handful of cells it was ever actually for. */
 /* Only screens move, so only screens are worth promising the browser a layer for. A page's
    position is the column's business and it never gets its own transform. */
-.screen { will-change: transform; }
+/* AND `translate`: the column's vertical position is the separate `translate` property now
+   (`colWrite_`, one clock per axis), so a promise naming `transform` alone covered half the move. */
+.screen { will-change: transform, translate; }
 /* A CELL NEVER SCROLLS. It is exactly one screen, so there is nothing past its bottom edge to
    reach — and while it could scroll, a wheel or a drag went to it instead of to the grid, which is
    a few pixels of movement that goes nowhere instead of the next widget.
@@ -526,9 +561,34 @@ body {
    and a browser writing `--a:3` simply never hid anything. */
 .far { visibility: hidden; }
 
-/* Following a finger. The transition is what makes a released cell settle; while the finger is
-   down it has to be off, or every frame is chasing the last one. */
-.no-anim { transition: none !important; }
+/* `.no-anim { transition: none !important }` WAS HERE, on whatever a finger was dragging. It took the
+   transition off BOTH axes, so a column still sliding up stopped dead the moment a sideways drag
+   began — 199–614px in one frame, measured. A drag now zeroes its own axis inline (`colTransition_`
+   in shell.js) and the other one keeps sliding. */
+
+/* ---------- THE CARDS NOT IN FRONT, SLIGHTLY OUT OF FOCUS ----------------------------------------
+   ASKED FOR ON 5 OCTOBER: *"those widgets not in focus should actually look slightly out of focus
+   effect."* `.soft` is written by `placeGrid` on the pages that can be on the glass beside the one
+   in front; the note over `SOFT_BLUR` in shell.js says which, and what each choice here cost when
+   it was measured.
+
+   ON THE PANE, NEVER THE COLUMN. A pane is not a layer, so its blur is drawn into the column's tiles
+   once and the compositor only moves them — nothing per frame. A filter on `.screen`, which IS a
+   layer, is a blurred surface redrawn on every frame of every swipe. NO TRANSITION HERE and no
+   `will-change`: `softDrag_` writes the blur and the layer inline while a finger moves the focus and
+   `softSettle_` takes them away once the slide has ended — a blur's animation cannot run on the
+   compositor, so easing it over the settle was measured costing the next swipe its speed — and a standing promise of a layer is the memory `.screen`'s own note warns
+   about. `--soft-blur` is published by shell.js beside `--card-w`, because the finger eases toward
+   the same number this draws.
+
+   `.soft-dim` IS A PANE THAT REPAINTS ITSELF — a video playing, an iframe — where a blur would come
+   with every frame it draws. It is dimmed instead, and so is every soft pane for somebody who has
+   asked for less motion or less transparency. */
+.page.soft > .pane { filter: blur(var(--soft-blur, 2px)); }
+.page.soft.soft-dim > .pane { filter: none; opacity: .85; }
+@media (prefers-reduced-motion: reduce), (prefers-reduced-transparency: reduce) {
+  .page.soft > .pane { filter: none; opacity: .85; }
+}
 
 /* A SECTION is two lines across the full width with its name between them. Not a heading floating
    above a boxed group — the rules do the separating, so nothing has to be enclosed to be grouped. */
@@ -720,7 +780,7 @@ label.field { display: block; margin-bottom: .75rem; }
    version of it already had: it said `.68rem`, `.06em`, lower case and `--dim` under a comment
    claiming it matched this. One selector, one caption style, and the row reads as one more field
    down the same column because it IS one. */
-label.field > span, .dob-cap, .handle-cap {
+label.field > span, .dob-cap, .handle-cap, .reg-cap {
   display: block; margin-bottom: .3rem;
   font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; color: var(--faint);
 }
@@ -771,6 +831,18 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 /* THE "NO EMAIL" TICK ON THE REGISTER SHEET reads as a line of the form, not as a heading: the
    `.check` row's own size, at the caption's voice. */
 .check.reg-kid { font-size: .9rem; color: var(--dim); padding-top: .2rem; }
+/* ---------- WHO THE ACCOUNT IS FOR: THE FIRST QUESTION ON THE REGISTER SHEET -----------------------
+   Two answers, two buttons, the chosen one gold — `.btn-row .btn.on`, already the app's rule for it.
+   The caption is in `label.field > span`'s group (one caption style, above), and a `<p>`, so its
+   browser margin goes as `.handle-cap`'s does. A field's own gap under the pair, so the boxes that
+   appear below it sit where a next field would.
+
+   "I'M A PARENT OR GUARDIAN" IS TWO LINES AT 320, and `.btn`'s `line-height: 1` was set for one: the
+   two lines touched, and the second sat flush left under a centred first. So a wrapped label is
+   centred and given a line of air, and a little height of its own — the 44px floor is untouched. */
+.reg-cap { margin-top: 0; }
+.reg-who { margin-bottom: .75rem; }
+.reg-who .btn { line-height: 1.2; text-align: center; padding: .35rem .8rem; }
 
 /* ---------- THREE LIBRARY CARDS ON ONE PAGE, WHICH NINE STACKED BOXES CANNOT BE -------------------
    *"there are many different librarys for library card detais so make it smaller so can fit in like
@@ -801,78 +873,113 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
    a card, which is the "not everything is a card" fault; a hairline between them says the same
    thing for one declaration and no inset. */
 .lib-shelf { display: flex; flex-direction: column; }
-/* ---------- THE QUALIFICATIONS SHELF — see `qualShelf_` in me.js ------------------------------------
-   A LIST YOU READ, AND ONE EDITOR AT A TIME. The subject is a bold heading with `Edit` beside it; each
-   level is two or three plain lines with its own `Edit`, hung under the subject by a rule down the
-   left rather than boxed, because a box would make every level a card of its own. Every control is a
-   word, every word that is pressed is 44px in px, and there is no glyph on the shelf to decode — the
-   summary lines with ✓, ★, ▸ and ✕ on them were what *"really hard to understand"* was about. */
-.q-hint { margin: 0 0 .6rem; font-size: .8rem; color: var(--dim); line-height: 1.4; }
-.q-top { display: flex; align-items: center; gap: .5rem; }
-.q-head { flex: 1 1 auto; min-width: 0; margin: 0; font: 700 .9rem/1.3 var(--font); color: var(--ink);
-  overflow-wrap: anywhere; }
-.q-edit { flex: 0 0 auto; min-width: 44px; min-height: 44px; padding: 0 .35rem; background: none; border: 0;
-  color: var(--gold); font: inherit; font-size: .78rem; cursor: pointer; }
-.q-subj .q-levels { margin: 0 0 .5rem .2rem; padding-left: .65rem; border-left: 2px solid var(--line); }
-.q-subj + .q-subj { border-top: 1px dashed var(--line); padding-top: .35rem; }
-/* A LEVEL'S READ ROW: its lines take what is left, `Edit` keeps its 44px. Line one is the level and
-   the grade in the ink of an answer; line two the place and the year a step quieter; line three the
-   teaching word. */
-.q-read { display: flex; align-items: center; gap: .5rem; min-height: 44px; padding: .2rem 0; }
-.q-lines { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: .1rem; overflow-wrap: anywhere; }
-.q-l1 { font-size: .82rem; color: var(--ink); }
-.q-l2 { font-size: .74rem; color: var(--dim); }
-.q-l3 { font-size: .72rem; }
-.q-can { color: var(--dim); }
+/* ---------- THE QUALIFICATIONS CARD — see `qualShelf_` in me.js ------------------------------------
+   ONE LINE A QUALIFICATION, AND THE LINE IS THE BUTTON. *"can you make the qualifications widget more
+   efficient, elegant, intuitive and take up less space"*: the card it replaced gave every level two or
+   three lines and an `Edit`, every subject a heading and an `Edit` and a `+ Add a … level`, and
+   measured 900px for seven qualifications at 320x568 — drawn at 70%, the floor, and still scrolling.
+   Now each qualification is one 44px line in the profile card's own notation, a subject is named once
+   at the head of its lines, and the only thing on the card to press is a line (or the `+` under them).
+
+   THREE COLUMNS: the subject, as wide as its own name (`--q-w` on its group, in `ch` because the face is
+   monospaced) and never more than 42% of the line; the notation straight after it, as on the profile
+   chip; and the teaching mark at the end. A subject's lines after its first leave the first column
+   empty, so its levels stand in a column under its first one. 44px in px, because a line is a tap
+   target. */
+.q-shelf { display: flex; flex-direction: column; }
+.q-hint { margin: 0 0 .2rem; font-size: .8rem; color: var(--dim); line-height: 1.4; }
+.q-list:empty { display: none; }
+/* A HAIRLINE BETWEEN SUBJECTS AND NONE BETWEEN ONE SUBJECT'S LINES — the grouping is said once. */
+.q-subj + .q-subj { border-top: 1px dashed var(--line); }
+/* A PRESS THAT ANSWERS, which is the one signal every `[data-do]` here gets; a line has no plate of
+   its own to light, so it is the faintest wash of the card's ink. */
+.q-line:active, .q-line.is-pressed { background: rgb(255 255 255 / .05); }
+.q-line {
+  display: grid; grid-template-columns: min(var(--q-w, 10ch), 42%) minmax(0, 1fr) auto;
+  align-items: center; column-gap: .45rem;
+  width: 100%; min-height: 44px; padding: .15rem 0;
+  background: none; border: 0; color: var(--ink);
+  font: 400 .82rem/1.2 var(--font); text-align: left; cursor: pointer;
+}
+.q-who { font-weight: 650; overflow-wrap: anywhere; }
+.q-who.is-none { color: var(--dim); font-weight: 400; }
+.q-note { min-width: 0; overflow-wrap: anywhere; }
+.q-plain { color: var(--dim); }
+/* THE NOTATION IS THE PROFILE CHIP'S OWN `.prof-iso`, so the two cannot drift: the same floor, the same
+   ink, the level over the grade at one x. Its negative margins are for sitting inside a pill's padding
+   without making the pill taller; a 44px line has the room, so here they go. */
+.q-line .prof-iso { margin: 0; }
+.q-mark { justify-self: end; }
 /* THE CARD'S OWN GOLD CHIP, so `Teach` here and `Teaches` on the profile read as one fact. */
 .q-chip { display: inline-block; padding: .1rem .5rem; border: 1px solid var(--gold); border-radius: 999px;
   color: var(--ink); font-size: .68rem; }
-.q-slot + .q-slot { border-top: 1px dashed var(--line); }
-.q-add { display: block; min-height: 44px; padding: 0; background: none; border: 0; color: var(--gold);
-  font: inherit; font-size: .78rem; text-align: left; cursor: pointer; }
-.q-add-subj { margin: .2rem 0 .4rem; }
-.q-count { margin: 0; font-size: .74rem; }
-/* ---------- WHICH OF THE TWO SHOWS ------------------------------------------------------------------
-   A slot holds both its read row and its editor; a subject both its heading and its rename box. One
-   class on the element says which, and `.is-editing` on the shelf takes every OTHER `Edit` and `+ Add`
-   off the page, so there is only ever one thing open and nothing to lose by opening a second. */
-.q-slot > .q-ed, .q-subj > .q-subj-ed { display: none; }
-.q-slot.is-editing > .q-ed, .q-subj.is-editing > .q-subj-ed { display: block; }
-.q-slot.is-editing > .q-read, .q-subj.is-editing > .q-top { display: none; }
-.q-shelf.is-editing .q-edit, .q-shelf.is-editing .q-add, .q-shelf.is-editing .q-add-subj { display: none; }
-/* NOTHING SAVED TO REMOVE: a level not saved yet, and a subject not saved yet, go with Cancel. And an
-   empty shelf has no Cancel, because the editor IS the page there. */
-.q-slot[data-new] .q-drop, .q-subj.is-new .q-drop, .q-shelf.is-empty .q-cancel { display: none; }
-/* THE EDITOR: captioned boxes (the caption is `label.field > span`, above the box rather than a
-   placeholder in it), the question with its three-way control, then the buttons. */
-.q-ed { padding: .35rem 0 .5rem; }
-.q-ask { margin: .1rem 0 .5rem; }
-.q-cap { display: block; margin-bottom: .3rem; font-size: .72rem; letter-spacing: .05em;
-  text-transform: uppercase; color: var(--faint); }
+.q-can { color: var(--dim); font-size: .7rem; }
+/* ---------- AN OPEN LINE: ITS EDITOR UNDER IT, AND A GOLD RULE DOWN THE LEFT ----------------------------
+   Gold is what this app means by "the one you are acting on". The rule is pulled into the card's own
+   padding, so nothing in the line moves when it opens — its columns stay on the table's. */
+.q-ed { display: none; }
+.q-slot.is-open { margin-left: -.6rem; padding-left: calc(.6rem - 2px); border-left: 2px solid var(--gold); }
+.q-slot.is-open > .q-ed { display: block; padding: .1rem 0 .45rem; }
+/* SCOPED TO THE EDITOR, because `.q-row` is also the business records card's (`.lib-row.q-row`,
+   below) — a bare `.q-row` here would set that card's gap from a rule about qualifications. */
+/* COLUMN GAP ONLY: each box carries its own `margin-bottom`, and the second row wraps the school onto a
+   line of its own — a row gap as well would put two gaps between Finished and the school. */
+.q-ed .q-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: .4rem; }
+.q-ed .q-row > .q-school { grid-column: 1 / -1; }
+/* ---------- A CERTIFICATE: NO GRADE, NO TEACHING, AND THE YEAR BESIDE WHO ISSUED IT — see `qualIsCert_` ----
+   *Walked:* the DBS editor offered Grade and Teach / Can teach / Not teaching, and Teach would have put
+   the DBS under Teaches on the profile. Hidden rather than left out, so a pick that turns a line into a
+   certificate (or back) changes the editor without a redraw; the save empties what is hidden. Two rows
+   fewer, which is what an open line was costing the card at 320. */
+.q-slot.is-cert .q-grade, .q-slot.is-cert .q-seg { display: none; }
+.q-slot.is-cert .q-ed .q-row > .q-school { grid-column: auto; }
+.q-slot.is-cert .q-cap-std, .q-slot:not(.is-cert) .q-cap-cert { display: none; }
+/* ---------- A LINE BEING ADDED HAS NO FACE YET ----------------------------------------------------------
+   Its face would say what its Subject and Level boxes say right under it, and before a subject is
+   chosen it said `New qualification` in the subject's 10ch column — *walked:* "New / qualificat / ion",
+   the first thing anybody saw after pressing `+`. The gold rule and the boxes say which line this is;
+   once it is saved it is redrawn into its subject's group with a face like any other. 44px back on the
+   tallest moment the card has. */
+.q-slot[data-new] > .q-line { display: none; }
+/* ---------- THE CAPTION INSIDE THE BOX, OVER THE ANSWER ------------------------------------------------
+   Above the box it was a line of its own per row — three lines on an editor of three rows — and a
+   placeholder IN the box goes the moment something is chosen, so a chosen `B` alone did not say which
+   question it answered. Inside, small and top-left, it is both kept and free: the box keeps its 44px
+   and the answer sits under the caption. `--dim` rather than the outside captions' `--faint`, because
+   it is set on the box's own black. One more rule than `label.field > span` and so it wins without
+   an `!important`. */
+.q-ed label.field.q-f { position: relative; min-width: 0; margin-bottom: .4rem; }
+.q-ed .q-f > span {
+  position: absolute; top: 5px; left: .6rem; right: .6rem; z-index: 1; margin: 0;
+  font-size: max(9px, .58rem); line-height: 1; color: var(--dim); pointer-events: none;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.q-ed .q-f > select, .q-ed .q-f > input { min-width: 0; padding: 16px .6rem 4px; }
+/* A NAME TOO LONG FOR HALF A 320 CARD ENDS IN AN ELLIPSIS — *walked:* "English Lan", cut with nothing to
+   say it was cut. The full name is the option's own label, one tap away. */
+.q-ed .q-f > select { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* TEACH / CAN TEACH / NOT TEACHING, ONE CONTROL. Words that say the answer, so the question that sat
+   over it and the sentence that sat under it are not needed; what each does on the profile is its
+   `title`. */
 .q-seg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border: 1px solid var(--line);
   border-radius: var(--r-sm); overflow: hidden; }
 .q-seg-b { min-height: 44px; padding: 0 .3rem; background: var(--sunk); border: 0; color: var(--ink);
-  font: inherit; font-size: .8rem; cursor: pointer; }
+  font: inherit; font-size: .76rem; line-height: 1.15; cursor: pointer; }
 .q-seg-b + .q-seg-b { border-left: 1px solid var(--line); }
 /* PRESSED IS GOLD WITH BLACK ON IT, which is what `.hr.on` already does for "this one is chosen". */
 .q-seg-b[aria-pressed="true"] { background: var(--gold); color: #000; font-weight: 650; }
-.q-say { margin: .35rem 0 0; font-size: .72rem; line-height: 1.35; }
-/* CANCEL AND SAVE SHARE A ROW, REMOVE HAS ONE OF ITS OWN UNDER THEM. The three in one row wrapped
-   Save onto a line by itself at 320 — measured, on a screenshot — and a destructive word sitting
-   beside the button that keeps your work is one slip from it anyway. `order` rather than the markup's
-   order, so the markup still reads Remove, Cancel, Save to a screen reader, which is the sentence. */
-.q-acts { display: flex; flex-wrap: wrap; gap: .4rem; }
-.q-acts .btn { width: auto; flex: 1 1 0; min-width: 0; padding: 0 .6rem; }
-.q-drop { order: 2; flex: 1 1 100%; min-height: 44px; padding: 0; background: none; border: 0; color: var(--bad);
-  font: inherit; font-size: .76rem; text-align: left; cursor: pointer; }
-/* THE OPEN EDITOR IS MARKED: the grey rule down the left turns gold beside it, because gold is what
-   this app means by "the one you are acting on". Pulled over the grey rule rather than beside it. */
-.q-levels > .q-slot.is-editing > .q-ed { margin-left: calc(-.65rem - 2px); padding-left: .65rem;
-  border-left: 2px solid var(--gold); }
+/* THE TICK AT THE START OF THE ROW AND THE BIN AT THE FAR END — the width of the card between them,
+   which is the tile rows' own rule for keeping a bin away from the thing beside it.
+   TWO CLASSES, because `.tile-row` sets its own `margin` thousands of lines further down and one class
+   against one class is decided by order alone — the `.price.faint` fault: the margins here would
+   have been written and never drawn. */
+.tile-row.q-tiles { justify-content: space-between; margin-top: .45rem; }
+.tile-row.q-adds { margin-top: .3rem; }
+.q-tip { margin-left: .4rem; font-size: .72rem; color: var(--dim); }
+.q-full { margin: .3rem 0 0; font-size: .74rem; }
 /* AN UNANSWERED DROP-DOWN READS AS A PLACEHOLDER, in the grey of the empty boxes — `Choose` in full ink
-   looks like an answer somebody gave. `.lib-row select` already does this for Level and Grade. */
+   looks like an answer somebody gave. `.lib-row select` already does this for the library shelf. */
 .q-shelf select:has(option[value=""]:checked) { color: var(--faint); }
-.q-subj.is-new > label.field { margin-bottom: .2rem; }
 .lib-card + .lib-card { border-top: 1px dashed var(--line); padding-top: .45rem; }
 /* ---------- AND THE GAPS ARE THE ONLY THING LEFT TO SPEND, BECAUSE 44px IS NOT ------------------
    SIX ROWS OF INPUT AT A 44px FLOOR IS 264px AND THAT IS THE SHELF'S FLOOR. `label.field`'s own
@@ -976,9 +1083,12 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .dob-boxes input { min-width: 0; text-align: center; }
 .lib-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 7rem); gap: .6rem; }
 .lib-row label.field, .lib-row input { min-width: 0; }
-/* A QUALIFICATION EDITOR'S FIRST ROW IS TWO EQUAL SELECTS, a level and a grade, rather than the wide
-   box beside a narrow one above it. `.lib-row select` joins the min-width rule for the reason the
-   inputs do: a select's own idea of its width is its longest option. */
+/* TWO EQUAL BOXES RATHER THAN THE WIDE ONE BESIDE A NARROW ONE — the business records card's rows
+   (`bizItem_` in records.js), which borrowed this from the qualification editor. The editor has its
+   own `.q-ed .q-row` now and no `.lib-row`, so this pair is the records card's alone; it stays two
+   classes so it outranks `.lib-row` by count rather than by order.
+   `.lib-row select` JOINS THE MIN-WIDTH RULE for the reason the inputs do: a select's own idea of its
+   width is its longest option. */
 .lib-row.q-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .lib-row select { min-width: 0; }
 /* THE TEACH / CAN TEACH TICKS THAT SAT HERE WENT WITH THE SUMMARY LINES: they were checkboxes read
@@ -1885,8 +1995,11 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
    the foot of a conversation. What they share is the one thing that must not drift: the 44px floor,
    in px, which is this file's rule.
 
-   `quiet`, NOT GOLD, ON `Post`. Gold is the one action on a card, and on a post that is the
-   reaction row directly under the picture. */
+   `Post` IS A TILE NOW — *"post should be a tile too"* — so its 44px and its plate are `.tile`'s, and
+   the `.cmt-form .btn.cmt-go` rule that sized the old button is gone with it. Not gold, for the
+   reason the button was `quiet`: gold is the one action on a card, and on a post that is the
+   reaction row directly under the picture. `align-items: flex-end` keeps it at the foot of a box
+   that has grown to several lines, where the thumb that finished typing already is. */
 .cmt-form { display: flex; align-items: flex-end; gap: .4rem; flex-wrap: wrap; margin: .45rem 0 0; }
 .cmt-text {
   flex: 1 1 7rem; min-width: 0;
@@ -1898,7 +2011,6 @@ h2 .tutor, h3 .tutor { color: var(--coral); }
 }
 .cmt-text:focus { outline: 0; border-color: var(--gold); }
 .cmt-text::placeholder { color: var(--faint); opacity: 1; }
-.cmt-form .btn.cmt-go { width: auto; flex: 0 0 auto; min-height: 44px; padding: 0 .9rem; }
 /* The note and the server's refusal are one element — see `msgForm_` for the argument — and an
    empty one under every post in the feed is a margin nobody asked for. */
 .cmt-said { flex: 1 0 100%; margin: .3rem 0 0; }
@@ -2301,8 +2413,9 @@ button.text-drop { color: var(--bad); }
    Subject is --green, the palette's own subject colour. Tier is --pink, which was the WEARABLE
    colour -- and free on this screen, because `.card.is-wear > h3` matches nothing (the heading sits
    inside `.thing > .thing-body`, not straight under the card), so no cape heading is pink beside a
-   `Higher` tag. Retarget that rule and tier needs a colour of its own first. `needs` has no kind:
-   it was gold, the press colour, so its answers looked pressed at rest. */
+   `Higher` tag. Retarget that rule and tier needs a colour of its own first. `needs` is a kind of
+   its own, `--tag-needs` (pale lemon): NOT gold, which is the press colour -- when it was gold its
+   answers looked pressed at rest, and that is why it once had no kind at all. See the tokens at `:root`. */
 [data-tag="paper"]   { --tag: var(--tag-paper); }
 [data-tag="subject"] { --tag: var(--green); }
 [data-tag="level"]   { --tag: var(--tag-level); }
@@ -2311,6 +2424,11 @@ button.text-drop { color: var(--bad); }
 [data-tag="board"]   { --tag: var(--tag-board); }
 [data-tag="type"]    { --tag: var(--tag-type); }
 [data-tag="topic"]   { --tag: var(--tag-topic); }
+/* WHAT TO BRING, and the three only a question's page carries -- see the tokens at `:root`. */
+[data-tag="needs"]   { --tag: var(--tag-needs); }
+[data-tag="kind"]    { --tag: var(--tag-kind); }
+[data-tag="number"]  { --tag: var(--tag-number); }
+[data-tag="marks"]   { --tag: var(--tag-marks); }
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
 /* ---------- WHAT YOU CHOSE, A RULE, THEN WHAT IS ASKED NEXT -------------------------------------------
    SIX ANSWERS IN, THE TWO WERE ONE CLOUD: the chosen chips are tag-coloured pills and so are the
@@ -3111,7 +3229,9 @@ button.text-drop { color: var(--bad); }
 .msg-fail { color: var(--bad); display: flex; flex-wrap: wrap; align-items: center;
             justify-content: flex-end; gap: 0 .2rem; max-width: 78%; text-align: right;
             line-height: 1.35; }
-.msg-fail-why { flex: 1 0 100%; }
+/* `pre-line` AND `anywhere` FOR AN ADMIN'S REFUSAL, which carries the fix: a few lines and a
+   consent address with no space in it for a hundred characters, in a column 78% of 320px wide. */
+.msg-fail-why { flex: 1 0 100%; white-space: pre-line; overflow-wrap: anywhere; }
 /* 44px in px — a tap target, the one measurement here that must not scale. NO UNDERLINE: two
    underlined words straight after an underlined-looking red sentence read as more of the sentence.
    Retry is the gold word and Remove the quiet one, which is the order somebody is likely to want
@@ -3122,6 +3242,10 @@ button.text-drop { color: var(--bad); }
 /* The 44px is the finger's, not the eye's: pulled up into the half-line under the sentence so the
    two words read as belonging to it rather than as a row of their own 15px further down. */
 .msg-fail .msg-act { margin-block: -8px -6px; }
+/* THE FIX AS A CONTROL, for an admin's refusal — the consent screen or `?setup=1` (see
+   `msgFixLinks_`). An `<a>` is not centred the way a button is, and it is the way forward rather than
+   a way out, so it keeps Retry's gold wherever it falls in the row. */
+.msg-fail a.msg-act { display: inline-flex; align-items: center; text-decoration: none; color: var(--gold); }
 
 /* ---------- WHAT WAS SENT WITH IT ------------------------------------------------------------------
    A picture or clip sits inside the bubble at the bubble's own width; a file is a chip that opens
@@ -4354,7 +4478,20 @@ select[aria-expanded="true"] { border-color: var(--gold); }
    Only the ends of a run keep their radius, so a single ticked hour is unchanged. This is on the
    receipt too, where the booked run is the one thing on that grid. */
 .hr.on + .hr.on { border-top-left-radius: 0; border-bottom-left-radius: 0; }
-.hr.on:has(+ .hr.on) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+/* ---------- THE LEFT CELL'S CORNERS ARE SQUARED BY THE BRIDGE, NOT BY A `:has()` -----------------
+   THIS WAS `.hr.on:has(+ .hr.on)`, and that one corner-squaring rule was the freeze at the end of
+   every swipe in the app. `on` inside a `:has()` with a sibling combinator makes Chrome invalidate
+   the WHOLE DOCUMENT whenever any element anywhere gains or loses the class `on` — and `placeGrid`
+   moves `on` onto the column and the page in front at every page turn and every column change.
+   Measured from the trace (5 Oct): every release restyled all 4,381–5,054 elements, 53–64ms of
+   CPU at 1x for a page turn, against 261–272 elements and 3–5ms with this rule gone. Nothing about
+   it said navigation, which is why nothing measuring navigation ever looked at it.
+
+   THE SECOND CELL ALREADY PAINTS THE BRIDGE, so it paints over the first cell's two right-hand
+   corners too: the gold block below starts `--r-sm` further left, inside the left cell, and the
+   rounding there is covered by the same gold it was rounding off. Identical on screen, and a run
+   of hours is still squared only on its inside corners. `check/swipe.js` holds the cost: a page
+   turn restyles fewer than a thousand elements. */
 /* ---------- AND THE BRIDGE IS PAINTED BY THE SECOND CELL, LEFTWARDS ------------------------------
    THE FIRST VERSION HUNG IT OFF THE LEFT CELL, reaching `right: -3px` into the gutter — and an
    absolutely positioned child that sticks out to the RIGHT pushes its ancestor's `scrollWidth`, so
@@ -4366,7 +4503,8 @@ select[aria-expanded="true"] { border-color: var(--gold); }
    the LEFT does not enter `scrollWidth` at all. A real asymmetry in the platform rather than a
    trick: the check goes on measuring what it measured, and the picture is identical. */
 .hr.on + .hr.on::before {
-  content: ''; position: absolute; top: -1px; bottom: -1px; left: -3px; width: 3px;
+  content: ''; position: absolute; top: -1px; bottom: -1px;
+  left: calc(-3px - var(--r-sm)); width: calc(3px + var(--r-sm));
   background: var(--gold);
 }
 /* NOT AVAILABLE — greyed, never removed. A grid that changes shape as you choose things cannot be
@@ -6050,8 +6188,10 @@ textarea { touch-action: none; }
    is named on the ring rather than offered to the whole stylesheet.
 ================================================================================================== */
 #splash-box { width: min(300px, 94vw); }
-.bx-ring { --bx-mat: color-mix(in srgb, var(--paper) 14%, var(--bg));
-           display: block; width: 100%; height: auto; aspect-ratio: 100 / 60; overflow: visible; }
+/* THE MAT'S COLOUR IS SHARED WITH THE BOXER CARD'S PLACEHOLDER (`.boxer-ring`, find.js), which draws
+   this ring's posts, ropes, mat and gold fighter at a different size — one drawing, one mat. */
+.bx-ring, .boxer-ring { --bx-mat: color-mix(in srgb, var(--paper) 14%, var(--bg)); }
+.bx-ring { display: block; width: 100%; height: auto; aspect-ratio: 100 / 60; overflow: visible; }
 #splash-box .sp-sig { margin-top: .9rem; }
 
 .bx-post { fill: var(--dim); }
@@ -6544,7 +6684,12 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    entries in `.pane:has(...)` below went with it. */
 
 
-/* ---------- AND THE ASK, under the receipt ------------------------------------------------------- */
+/* ---------- AND THE ASK, which is not under the receipt any more ---------------------------------- */
+/* `.join` AND `.join-say` STOOD HERE — the block a stranger saw under somebody else's session, with
+   the seats, the price, the list's tally and a gold button. *"The session booking thing at the
+   bottom of receipt should be a line in the booking"*: the seats are the receipt's `Sharing` row,
+   the tally its `Can come` row and the button a tile in its foot, so there is nothing under the
+   paper for a rule to style. See `joinBlock`'s tombstone in book.js. */
 /* `.live-row`, `.live-what` AND `.live-stage` STOOD HERE — the line above each roster saying what
    the session is, when, and where it has got to. Nothing draws them. Gone with the stub stylesheet
    above, and found by the same two repairs to `check-css`. */
@@ -6554,8 +6699,6 @@ span[data-do]:active { text-decoration-color: var(--gold); }
    because the only thing that ever kept those figures from a client was this block's own `isAdmin`
    test; the payload keeps them now. */
 
-.join { margin-top: 1rem; }
-.join-say { margin: 0 0 .6rem; }
 
 /* THE GAP BETWEEN THEM, once the glass is gone. On the pane they were rows in a list and the pane
    held them together; standing on the app's own black they are separate objects, and objects need
@@ -7250,21 +7393,43 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    this shows how many offered each slot, longest bar first, with the one everybody offered marked.
    Read by a tutor deciding what day to run it on, which is the only open question a waiting list
    has. */
-.wc { margin: .5rem 0 .7rem; }
-.wc-say { margin: 0 0 .35rem; font-size: .68rem; color: var(--paper-faint);
-          text-transform: uppercase; letter-spacing: .07em; }
+/* ---------- IT IS THE ANSWER CELL OF A RECEIPT ROW NOW, NOT A BLOCK UNDER THE RECEIPT -------------
+   `Can come`, see `jobRows`. So it takes the row's own type rather than setting its own — the
+   `.76rem` and `.72rem` it carried were sized for a block standing alone on black, and inside `.bk`
+   the row is the one place this card's font size is declared (see the note on `.bk`). The heading
+   `.wc-say` went with the block: the row's label in `Q` says what the bars are. It was also the one
+   PAPER colour in this group, on a card that has not been paper since the receipt took the app's
+   own clothes — a token from the wrong palette, which is what CLAUDE.md's two-palette rule is for.
+
+   LEFT-ALIGNED inside a right-aligned column, because a bar grows from the left and a count read
+   down a list wants one edge. `.bk-v` right-aligns a short answer to sit against its figures; a
+   bar has no figures beside it, and the row is bare so it spans to the card's edge anyway. */
+.wc { text-align: left; }
+/* ---------- AND THE BARS TAKE THE THREE FIGURE TRACKS, ON THIS ROW ONLY ---------------------------
+   MEASURED ON ITS FIRST SCREENSHOT: in the answer column alone the bars were 71px wide at 390 and
+   58 at 320, and `Monday evening` came out as `Monda…` over `even…` — the row's own words clipped
+   by the bar they sit on. The answer column on a receipt is sized for `GCSE` and `Autumn 2026`.
+
+   THE ROW IS BARE — no multiplier, no rate, no total — so `is-bare` has already hidden the three
+   spans those tracks hold, and the tracks are empty on this line. The bars START where every answer
+   starts, at track 2, which is the one edge the note over `is-bare` says a reader runs down; they
+   end at the card's edge, where the column heads and the total row already end. The rule that once
+   did this for EVERY bare row was removed for making the dashes end in two places — a dash is a
+   value, and a chart is not, so this is scoped to the one row that draws one. */
+.bk-row.bk-tally .bk-v { grid-column: 2 / -1; }
 .wc-row { position: relative; display: flex; align-items: center; gap: .5rem;
-          padding: .28rem .45rem; border-radius: 5px; background: rgb(0 0 0 / .16);
-          margin-bottom: .22rem; overflow: hidden; }
+          padding: .2rem .4rem; border-radius: 5px; background: rgb(0 0 0 / .16);
+          margin-bottom: .18rem; overflow: hidden; }
+.wc-row:last-child { margin-bottom: 0; }
 /* THE BAR IS BEHIND THE WORDS, not beside them — a row that is both a label and a measurement
    reads faster than a label with a chart next to it, and takes half the width. */
 .wc-row i { position: absolute; inset: 0 auto 0 0; width: var(--f);
             background: rgb(111 216 196 / .18); }
 .wc-row.is-all i { background: rgb(111 216 160 / .3); }
 .wc-n { position: relative; font-variant-numeric: tabular-nums; font-weight: 700;
-        font-size: .72rem; color: #6fd8c4; min-width: 2.1rem; }
+        color: #6fd8c4; min-width: 2.1rem; }
 .wc-row.is-all .wc-n { color: #7fe0a8; }
-.wc-slot { position: relative; font-size: .76rem; }
+.wc-slot { position: relative; }
 
 /* ==================================================================================================
    EIGHT MORE. Same rule as the rest: the drawing is the argument, and each keeps moving after it
@@ -7544,21 +7709,350 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 @keyframes h3-turn { 0% { opacity: 0; } 6%,28% { opacity: 1; } 34%,100% { opacity: 0; } }
 
 /* ---------- y = mx + c -------------------------------------------------------------------------------
-   THE LINE TILTS ABOUT THE POINT WHERE IT CROSSES, and that is the whole separation of m from c: the
-   tilt changes, the crossing does not. `transform-origin` is set to that crossing, so the two cannot
-   come apart however the angles are edited later. */
-#splash-mxc .mx-box { position: relative; width: min(56vw, 13rem); height: 8rem; margin: 0 auto; }
-.mx-ax, .mx-ay { position: absolute; background: rgb(244 241 232 / .28); }
-.mx-ax { left: 0; right: 0; top: 5.4rem; height: 2px; }
-.mx-ay { top: 0; bottom: 0; left: 1.6rem; width: 2px; }
-.mx-line { position: absolute; left: 0; right: 0; top: 3.9rem; height: 3px; border-radius: 2px;
-           background: #6fa8dc; transform-origin: 1.6rem 50%;
-           animation: mx-tilt 4.4s ease-in-out infinite; }
-@keyframes mx-tilt { 0%,100% { transform: rotate(-26deg); } 50% { transform: rotate(14deg); } }
-.mx-dot { position: absolute; left: 1.6rem; top: 3.9rem; width: .55rem; height: .55rem;
-          margin: -.2rem 0 0 -.26rem; border-radius: 50%; background: #e8862c; }
-.mx-say { margin-top: .9rem; font: 700 .88rem var(--mono); color: var(--paper); text-align: center; }
-.mx-say b { color: #6fa8dc; }
+   GENERATED by tools/mxc.py, from the same axes as the <svg> in index.html — edit it there.
+
+   ASKED FOR AS "refine the gradiant animation". It was a bar rocking between two angles about a
+   point near the left of a box: two gradients, neither named, no rise and no run, the line's end
+   rising out past the top of the axes, and the dot and the pivot two different sets of numbers.
+
+   NOW THE LINE STOPS AT SIX GRADIENTS AND SAYS WHICH. m = -1, -1/2, 0, 1/2, 1, 2 — falling, flat,
+   rising, steep — held 10% of the loop each with the number up, and a rise-over-run triangle on
+   the line: run 1 along the grid, rise m to the line, the rise labelled, and under it
+   "m = rise ÷ run = " the same value. c is written ON the point where the line cuts: a line turning
+   about that point passes through every place near it except the point itself.
+
+   · ONE 9.5s TIMELINE; every keyframe starts and ends at m = -1 — no seam. The line ends it half a
+     turn on from where it began: it swings from m = 2 on over the vertical rather than back through
+     the stops it has named (the first build's 108° rewind at 189°/s), and a line through its own
+     pivot is the same line half a turn later. The triangle, run and rise (`.mx-rr`) fade out as it
+     goes through vertical, where m has no value, and in on the far side.
+   · THE HALVES ARE BUILT, 1 over a bar over 2, in the drawing (`.mx-rf`) and the caption (`.mx-fr`):
+     Cascadia's ½ is two digits in one cell, and at 320 it read as a smudge.
+   · THE "=" FADES WITH ITS VALUE, inside each `.mx-v`, so between stops the caption reads
+     "m = rise ÷ run" and never ends in a bare "=".
+   · THE PIVOT IS ONE STRING. `.mx-line` is `translate(P) rotate(-θ)` and P is identical in every
+     keyframe, so the line passes through (0, c) at every frame because nothing interpolates it.
+   · TRANSFORM AND OPACITY ONLY. The triangle is a unit right triangle stretched upright by m; the
+     rise is a two-unit line shrunk by m/2; the numbers fade, never move.
+   · SAMPLED and eased in tools/mxc.py, m = tan θ at every sample, so the line, the triangle and the
+     rise share one parametrisation. check-splash-loops.js re-derives all three from these keyframes
+     and asks that they meet, that each number is up only while the line holds at it, and that no
+     word is crossed by a line while it is showing.
+   · THE COLOURS ARE THIS SPLASH'S OWN — the line, m and c — and the axes are `--paper` at an
+     opacity; they were the paper colour written out as an rgb().
+   · REDUCED MOTION is the base rules below: m = 2, the triangle at its tallest, c marked. */
+#splash-mxc { --mx-line: #6fa8dc; --mx-m: #6fd8a0; --mx-c: #e8862c; }
+#splash-mxc .mx-svg { display: block; width: min(62vw, 14.5rem); height: auto; margin: 0 auto; overflow: hidden; }
+.mx-grid { fill: none; stroke: var(--paper); stroke-opacity: .1; stroke-width: .6; }
+.mx-ax, .mx-ay { stroke: var(--paper); stroke-opacity: .55; stroke-width: 1.1; }
+.mx-arrow { fill: var(--paper); fill-opacity: .55; }
+.mx-tri { fill: var(--mx-m); fill-opacity: .2; }
+.mx-run { stroke: var(--paper); stroke-opacity: .85; stroke-width: 1.6; }
+.mx-rise { stroke: var(--mx-m); stroke-width: 2; }
+.mx-line { stroke: var(--mx-line); stroke-width: 2.4; }
+.mx-dot { fill: var(--mx-c); }
+.mx-lab { font: 700 8px var(--mono); text-anchor: middle; dominant-baseline: central; fill: var(--paper);
+          stroke: var(--bg); stroke-width: 2.4px; paint-order: stroke; stroke-linejoin: round; }
+.mx-name-x, .mx-name-y { fill-opacity: .7; font-weight: 600; }
+.mx-rl { text-anchor: start; fill: var(--mx-m); font-size: 10px; }
+.mx-fd { fill: var(--mx-m); font-size: 9px; }
+.mx-fb { stroke: var(--mx-m); stroke-width: 1.1; }
+/* c IS WRITTEN ON ITS DOT, in the background colour, so it needs no halo — the dot is the halo. */
+.mx-c { fill: var(--bg); stroke: none; font-size: 7px; }
+.mx-line, .mx-tri, .mx-rise { transform-box: view-box; transform-origin: 0 0; }
+.mx-line { transform: translate(41.5px, 57.5px) rotate(-63.435deg); animation: mx-line 9.5s linear infinite; }
+.mx-tri { transform: translate(41.5px, 57.5px) scale(1, 2); animation: mx-tri 9.5s linear infinite; }
+.mx-rise { transform: translate(63.5px, 57.5px) scale(1, 1); animation: mx-rise 9.5s linear infinite; }
+.mx-rr { opacity: 1; animation: mx-rr 9.5s linear infinite; }
+.mx-run-lo { opacity: 1; animation: mx-run-lo 9.5s linear infinite; }
+.mx-run-hi { opacity: 0; animation: mx-run-hi 9.5s linear infinite; }
+.mx-k0 { opacity: 0; animation: mx-k0 9.5s linear infinite; }
+.mx-k1 { opacity: 0; animation: mx-k1 9.5s linear infinite; }
+.mx-k2 { opacity: 0; animation: mx-k2 9.5s linear infinite; }
+.mx-k3 { opacity: 0; animation: mx-k3 9.5s linear infinite; }
+.mx-k4 { opacity: 0; animation: mx-k4 9.5s linear infinite; }
+.mx-k5 { opacity: 1; animation: mx-k5 9.5s linear infinite; }
+@keyframes mx-line {
+  0%, 10% { transform: translate(41.5px, 57.5px) rotate(45deg); }
+  10.625% { transform: translate(41.5px, 57.5px) rotate(44.298deg); }
+  11.25% { transform: translate(41.5px, 57.5px) rotate(42.3deg); }
+  11.875% { transform: translate(41.5px, 57.5px) rotate(39.31deg); }
+  12.5% { transform: translate(41.5px, 57.5px) rotate(35.783deg); }
+  13.125% { transform: translate(41.5px, 57.5px) rotate(32.255deg); }
+  13.75% { transform: translate(41.5px, 57.5px) rotate(29.265deg); }
+  14.375% { transform: translate(41.5px, 57.5px) rotate(27.267deg); }
+  15%, 25% { transform: translate(41.5px, 57.5px) rotate(26.565deg); }
+  25.625% { transform: translate(41.5px, 57.5px) rotate(25.554deg); }
+  26.25% { transform: translate(41.5px, 57.5px) rotate(22.675deg); }
+  26.875% { transform: translate(41.5px, 57.5px) rotate(18.366deg); }
+  27.5% { transform: translate(41.5px, 57.5px) rotate(13.283deg); }
+  28.125% { transform: translate(41.5px, 57.5px) rotate(8.2deg); }
+  28.75% { transform: translate(41.5px, 57.5px) rotate(3.89deg); }
+  29.375% { transform: translate(41.5px, 57.5px) rotate(1.011deg); }
+  30%, 40% { transform: translate(41.5px, 57.5px) rotate(0deg); }
+  40.625% { transform: translate(41.5px, 57.5px) rotate(-1.011deg); }
+  41.25% { transform: translate(41.5px, 57.5px) rotate(-3.89deg); }
+  41.875% { transform: translate(41.5px, 57.5px) rotate(-8.2deg); }
+  42.5% { transform: translate(41.5px, 57.5px) rotate(-13.283deg); }
+  43.125% { transform: translate(41.5px, 57.5px) rotate(-18.366deg); }
+  43.75% { transform: translate(41.5px, 57.5px) rotate(-22.675deg); }
+  44.375% { transform: translate(41.5px, 57.5px) rotate(-25.554deg); }
+  45%, 55% { transform: translate(41.5px, 57.5px) rotate(-26.565deg); }
+  55.625% { transform: translate(41.5px, 57.5px) rotate(-27.267deg); }
+  56.25% { transform: translate(41.5px, 57.5px) rotate(-29.265deg); }
+  56.875% { transform: translate(41.5px, 57.5px) rotate(-32.255deg); }
+  57.5% { transform: translate(41.5px, 57.5px) rotate(-35.783deg); }
+  58.125% { transform: translate(41.5px, 57.5px) rotate(-39.31deg); }
+  58.75% { transform: translate(41.5px, 57.5px) rotate(-42.3deg); }
+  59.375% { transform: translate(41.5px, 57.5px) rotate(-44.298deg); }
+  60%, 70% { transform: translate(41.5px, 57.5px) rotate(-45deg); }
+  70.625% { transform: translate(41.5px, 57.5px) rotate(-45.702deg); }
+  71.25% { transform: translate(41.5px, 57.5px) rotate(-47.7deg); }
+  71.875% { transform: translate(41.5px, 57.5px) rotate(-50.69deg); }
+  72.5% { transform: translate(41.5px, 57.5px) rotate(-54.217deg); }
+  73.125% { transform: translate(41.5px, 57.5px) rotate(-57.745deg); }
+  73.75% { transform: translate(41.5px, 57.5px) rotate(-60.735deg); }
+  74.375% { transform: translate(41.5px, 57.5px) rotate(-62.733deg); }
+  75%, 85% { transform: translate(41.5px, 57.5px) rotate(-63.435deg); }
+  85.625% { transform: translate(41.5px, 57.5px) rotate(-63.741deg); }
+  86.25% { transform: translate(41.5px, 57.5px) rotate(-64.654deg); }
+  86.875% { transform: translate(41.5px, 57.5px) rotate(-66.159deg); }
+  87.5% { transform: translate(41.5px, 57.5px) rotate(-68.229deg); }
+  88.125% { transform: translate(41.5px, 57.5px) rotate(-70.829deg); }
+  88.75% { transform: translate(41.5px, 57.5px) rotate(-73.915deg); }
+  89.375% { transform: translate(41.5px, 57.5px) rotate(-77.434deg); }
+  90% { transform: translate(41.5px, 57.5px) rotate(-81.326deg); }
+  90.625% { transform: translate(41.5px, 57.5px) rotate(-85.524deg); }
+  91.25% { transform: translate(41.5px, 57.5px) rotate(-89.956deg); }
+  91.875% { transform: translate(41.5px, 57.5px) rotate(-94.547deg); }
+  92.5% { transform: translate(41.5px, 57.5px) rotate(-99.217deg); }
+  93.125% { transform: translate(41.5px, 57.5px) rotate(-103.888deg); }
+  93.75% { transform: translate(41.5px, 57.5px) rotate(-108.479deg); }
+  94.375% { transform: translate(41.5px, 57.5px) rotate(-112.911deg); }
+  95% { transform: translate(41.5px, 57.5px) rotate(-117.109deg); }
+  95.625% { transform: translate(41.5px, 57.5px) rotate(-121deg); }
+  96.25% { transform: translate(41.5px, 57.5px) rotate(-124.52deg); }
+  96.875% { transform: translate(41.5px, 57.5px) rotate(-127.606deg); }
+  97.5% { transform: translate(41.5px, 57.5px) rotate(-130.206deg); }
+  98.125% { transform: translate(41.5px, 57.5px) rotate(-132.276deg); }
+  98.75% { transform: translate(41.5px, 57.5px) rotate(-133.781deg); }
+  99.375% { transform: translate(41.5px, 57.5px) rotate(-134.694deg); }
+  100% { transform: translate(41.5px, 57.5px) rotate(-135deg); }
+}
+@keyframes mx-tri {
+  0%, 10% { transform: translate(41.5px, 57.5px) scale(1, -1); }
+  10.625% { transform: translate(41.5px, 57.5px) scale(1, -0.9758); }
+  11.25% { transform: translate(41.5px, 57.5px) scale(1, -0.9099); }
+  11.875% { transform: translate(41.5px, 57.5px) scale(1, -0.8188); }
+  12.5% { transform: translate(41.5px, 57.5px) scale(1, -0.7208); }
+  13.125% { transform: translate(41.5px, 57.5px) scale(1, -0.6311); }
+  13.75% { transform: translate(41.5px, 57.5px) scale(1, -0.5604); }
+  14.375% { transform: translate(41.5px, 57.5px) scale(1, -0.5154); }
+  15%, 25% { transform: translate(41.5px, 57.5px) scale(1, -0.5); }
+  25.625% { transform: translate(41.5px, 57.5px) scale(1, -0.4781); }
+  26.25% { transform: translate(41.5px, 57.5px) scale(1, -0.4178); }
+  26.875% { transform: translate(41.5px, 57.5px) scale(1, -0.332); }
+  27.5% { transform: translate(41.5px, 57.5px) scale(1, -0.2361); }
+  28.125% { transform: translate(41.5px, 57.5px) scale(1, -0.1441); }
+  28.75% { transform: translate(41.5px, 57.5px) scale(1, -0.068); }
+  29.375% { transform: translate(41.5px, 57.5px) scale(1, -0.0176); }
+  30%, 40% { transform: translate(41.5px, 57.5px) scale(1, 0); }
+  40.625% { transform: translate(41.5px, 57.5px) scale(1, 0.0176); }
+  41.25% { transform: translate(41.5px, 57.5px) scale(1, 0.068); }
+  41.875% { transform: translate(41.5px, 57.5px) scale(1, 0.1441); }
+  42.5% { transform: translate(41.5px, 57.5px) scale(1, 0.2361); }
+  43.125% { transform: translate(41.5px, 57.5px) scale(1, 0.332); }
+  43.75% { transform: translate(41.5px, 57.5px) scale(1, 0.4178); }
+  44.375% { transform: translate(41.5px, 57.5px) scale(1, 0.4781); }
+  45%, 55% { transform: translate(41.5px, 57.5px) scale(1, 0.5); }
+  55.625% { transform: translate(41.5px, 57.5px) scale(1, 0.5154); }
+  56.25% { transform: translate(41.5px, 57.5px) scale(1, 0.5604); }
+  56.875% { transform: translate(41.5px, 57.5px) scale(1, 0.6311); }
+  57.5% { transform: translate(41.5px, 57.5px) scale(1, 0.7208); }
+  58.125% { transform: translate(41.5px, 57.5px) scale(1, 0.8188); }
+  58.75% { transform: translate(41.5px, 57.5px) scale(1, 0.9099); }
+  59.375% { transform: translate(41.5px, 57.5px) scale(1, 0.9758); }
+  60%, 70% { transform: translate(41.5px, 57.5px) scale(1, 1); }
+  70.625% { transform: translate(41.5px, 57.5px) scale(1, 1.0248); }
+  71.25% { transform: translate(41.5px, 57.5px) scale(1, 1.099); }
+  71.875% { transform: translate(41.5px, 57.5px) scale(1, 1.2213); }
+  72.5% { transform: translate(41.5px, 57.5px) scale(1, 1.3874); }
+  73.125% { transform: translate(41.5px, 57.5px) scale(1, 1.5846); }
+  73.75% { transform: translate(41.5px, 57.5px) scale(1, 1.7845); }
+  74.375% { transform: translate(41.5px, 57.5px) scale(1, 1.9402); }
+  75%, 85% { transform: translate(41.5px, 57.5px) scale(1, 2); }
+  85.625% { transform: translate(41.5px, 57.5px) scale(1, 2.027); }
+  86.25% { transform: translate(41.5px, 57.5px) scale(1, 2.1111); }
+  86.875% { transform: translate(41.5px, 57.5px) scale(1, 2.2629); }
+  87.5% { transform: translate(41.5px, 57.5px) scale(1, 2.5038); }
+  88.125% { transform: translate(41.5px, 57.5px) scale(1, 2.8763); }
+  88.75% { transform: translate(41.5px, 57.5px) scale(1, 3.4681); }
+  96.25% { transform: translate(41.5px, 57.5px) scale(1, -1.4539); }
+  96.875% { transform: translate(41.5px, 57.5px) scale(1, -1.2983); }
+  97.5% { transform: translate(41.5px, 57.5px) scale(1, -1.1831); }
+  98.125% { transform: translate(41.5px, 57.5px) scale(1, -1.0999); }
+  98.75% { transform: translate(41.5px, 57.5px) scale(1, -1.0435); }
+  99.375% { transform: translate(41.5px, 57.5px) scale(1, -1.0107); }
+  100% { transform: translate(41.5px, 57.5px) scale(1, -1); }
+}
+@keyframes mx-rise {
+  0%, 10% { transform: translate(63.5px, 57.5px) scale(1, -0.5); }
+  10.625% { transform: translate(63.5px, 57.5px) scale(1, -0.4879); }
+  11.25% { transform: translate(63.5px, 57.5px) scale(1, -0.455); }
+  11.875% { transform: translate(63.5px, 57.5px) scale(1, -0.4094); }
+  12.5% { transform: translate(63.5px, 57.5px) scale(1, -0.3604); }
+  13.125% { transform: translate(63.5px, 57.5px) scale(1, -0.3155); }
+  13.75% { transform: translate(63.5px, 57.5px) scale(1, -0.2802); }
+  14.375% { transform: translate(63.5px, 57.5px) scale(1, -0.2577); }
+  15%, 25% { transform: translate(63.5px, 57.5px) scale(1, -0.25); }
+  25.625% { transform: translate(63.5px, 57.5px) scale(1, -0.2391); }
+  26.25% { transform: translate(63.5px, 57.5px) scale(1, -0.2089); }
+  26.875% { transform: translate(63.5px, 57.5px) scale(1, -0.166); }
+  27.5% { transform: translate(63.5px, 57.5px) scale(1, -0.118); }
+  28.125% { transform: translate(63.5px, 57.5px) scale(1, -0.072); }
+  28.75% { transform: translate(63.5px, 57.5px) scale(1, -0.034); }
+  29.375% { transform: translate(63.5px, 57.5px) scale(1, -0.0088); }
+  30%, 40% { transform: translate(63.5px, 57.5px) scale(1, 0); }
+  40.625% { transform: translate(63.5px, 57.5px) scale(1, 0.0088); }
+  41.25% { transform: translate(63.5px, 57.5px) scale(1, 0.034); }
+  41.875% { transform: translate(63.5px, 57.5px) scale(1, 0.072); }
+  42.5% { transform: translate(63.5px, 57.5px) scale(1, 0.118); }
+  43.125% { transform: translate(63.5px, 57.5px) scale(1, 0.166); }
+  43.75% { transform: translate(63.5px, 57.5px) scale(1, 0.2089); }
+  44.375% { transform: translate(63.5px, 57.5px) scale(1, 0.2391); }
+  45%, 55% { transform: translate(63.5px, 57.5px) scale(1, 0.25); }
+  55.625% { transform: translate(63.5px, 57.5px) scale(1, 0.2577); }
+  56.25% { transform: translate(63.5px, 57.5px) scale(1, 0.2802); }
+  56.875% { transform: translate(63.5px, 57.5px) scale(1, 0.3155); }
+  57.5% { transform: translate(63.5px, 57.5px) scale(1, 0.3604); }
+  58.125% { transform: translate(63.5px, 57.5px) scale(1, 0.4094); }
+  58.75% { transform: translate(63.5px, 57.5px) scale(1, 0.455); }
+  59.375% { transform: translate(63.5px, 57.5px) scale(1, 0.4879); }
+  60%, 70% { transform: translate(63.5px, 57.5px) scale(1, 0.5); }
+  70.625% { transform: translate(63.5px, 57.5px) scale(1, 0.5124); }
+  71.25% { transform: translate(63.5px, 57.5px) scale(1, 0.5495); }
+  71.875% { transform: translate(63.5px, 57.5px) scale(1, 0.6107); }
+  72.5% { transform: translate(63.5px, 57.5px) scale(1, 0.6937); }
+  73.125% { transform: translate(63.5px, 57.5px) scale(1, 0.7923); }
+  73.75% { transform: translate(63.5px, 57.5px) scale(1, 0.8923); }
+  74.375% { transform: translate(63.5px, 57.5px) scale(1, 0.9701); }
+  75%, 85% { transform: translate(63.5px, 57.5px) scale(1, 1); }
+  85.625% { transform: translate(63.5px, 57.5px) scale(1, 1.0135); }
+  86.25% { transform: translate(63.5px, 57.5px) scale(1, 1.0556); }
+  86.875% { transform: translate(63.5px, 57.5px) scale(1, 1.1314); }
+  87.5% { transform: translate(63.5px, 57.5px) scale(1, 1.2519); }
+  88.125% { transform: translate(63.5px, 57.5px) scale(1, 1.4382); }
+  88.75% { transform: translate(63.5px, 57.5px) scale(1, 1.734); }
+  96.25% { transform: translate(63.5px, 57.5px) scale(1, -0.727); }
+  96.875% { transform: translate(63.5px, 57.5px) scale(1, -0.6491); }
+  97.5% { transform: translate(63.5px, 57.5px) scale(1, -0.5915); }
+  98.125% { transform: translate(63.5px, 57.5px) scale(1, -0.55); }
+  98.75% { transform: translate(63.5px, 57.5px) scale(1, -0.5217); }
+  99.375% { transform: translate(63.5px, 57.5px) scale(1, -0.5054); }
+  100% { transform: translate(63.5px, 57.5px) scale(1, -0.5); }
+}
+@keyframes mx-rr {
+  0%, 85% { opacity: 1; }
+  85.625% { opacity: 0.833; }
+  86.25% { opacity: 0.667; }
+  86.875% { opacity: 0.5; }
+  87.5% { opacity: 0.333; }
+  88.125% { opacity: 0.167; }
+  88.75%, 96.25% { opacity: 0; }
+  96.875% { opacity: 0.167; }
+  97.5% { opacity: 0.333; }
+  98.125% { opacity: 0.5; }
+  98.75% { opacity: 0.667; }
+  99.375% { opacity: 0.833; }
+  100% { opacity: 1; }
+}
+@keyframes mx-run-lo {
+  0%, 28.75% { opacity: 0; }
+  29.375% { opacity: 0.5; }
+  30%, 85% { opacity: 1; }
+  85.625% { opacity: 0.833; }
+  86.25% { opacity: 0.667; }
+  86.875% { opacity: 0.5; }
+  87.5% { opacity: 0.333; }
+  88.125% { opacity: 0.167; }
+  88.75%, 100% { opacity: 0; }
+}
+@keyframes mx-run-hi {
+  0%, 25% { opacity: 1; }
+  25.625% { opacity: 0.5; }
+  26.25%, 96.25% { opacity: 0; }
+  96.875% { opacity: 0.167; }
+  97.5% { opacity: 0.333; }
+  98.125% { opacity: 0.5; }
+  98.75% { opacity: 0.667; }
+  99.375% { opacity: 0.833; }
+  100% { opacity: 1; }
+}
+@keyframes mx-k0 {
+  0%, 10% { opacity: 1; }
+  10.625% { opacity: 0.5; }
+  11.25%, 96.25% { opacity: 0; }
+  96.875% { opacity: 0.167; }
+  97.5% { opacity: 0.333; }
+  98.125% { opacity: 0.5; }
+  98.75% { opacity: 0.667; }
+  99.375% { opacity: 0.833; }
+  100% { opacity: 1; }
+}
+@keyframes mx-k1 {
+  0%, 13.75% { opacity: 0; }
+  14.375% { opacity: 0.5; }
+  15%, 25% { opacity: 1; }
+  25.625% { opacity: 0.5; }
+  26.25%, 100% { opacity: 0; }
+}
+@keyframes mx-k2 {
+  0%, 28.75% { opacity: 0; }
+  29.375% { opacity: 0.5; }
+  30%, 40% { opacity: 1; }
+  40.625% { opacity: 0.5; }
+  41.25%, 100% { opacity: 0; }
+}
+@keyframes mx-k3 {
+  0%, 43.75% { opacity: 0; }
+  44.375% { opacity: 0.5; }
+  45%, 55% { opacity: 1; }
+  55.625% { opacity: 0.5; }
+  56.25%, 100% { opacity: 0; }
+}
+@keyframes mx-k4 {
+  0%, 58.75% { opacity: 0; }
+  59.375% { opacity: 0.5; }
+  60%, 70% { opacity: 1; }
+  70.625% { opacity: 0.5; }
+  71.25%, 100% { opacity: 0; }
+}
+@keyframes mx-k5 {
+  0%, 73.75% { opacity: 0; }
+  74.375% { opacity: 0.5; }
+  75%, 85% { opacity: 1; }
+  85.625% { opacity: 0.833; }
+  86.25% { opacity: 0.667; }
+  86.875% { opacity: 0.5; }
+  87.5% { opacity: 0.333; }
+  88.125% { opacity: 0.167; }
+  88.75%, 100% { opacity: 0; }
+}
+.mx-eq { margin-top: .7rem; font: 700 .95rem var(--mono); color: var(--paper); text-align: center; }
+.mx-say { margin-top: .3rem; font: 600 .85rem var(--mono); color: var(--paper); text-align: center; }
+.mx-tm { color: var(--mx-m); }
+.mx-tc { color: var(--mx-c); }
+/* THE SIX VALUES IN ONE CELL, so the slot is as wide as the widest and the sentence never shifts
+   when the number changes. Each value carries its own "=", in the caption's type, so it goes when
+   the value goes. */
+.mx-vals { display: inline-grid; justify-items: start; align-items: center; vertical-align: middle; }
+.mx-v { grid-area: 1 / 1; display: inline-flex; align-items: center; gap: 1ch; font-style: normal; }
+.mx-n { display: inline-flex; align-items: center; font-weight: 700; font-size: 1.25em; line-height: 1; color: var(--mx-m); }
+.mx-fr { display: inline-flex; flex-direction: column; align-items: center; font-size: .7em; line-height: 1.05; }
+.mx-fr b + b { border-top: 1px solid currentColor; }
+@media (prefers-reduced-motion: reduce) {
+  .mx-line, .mx-tri, .mx-rise, .mx-rr, .mx-run-lo, .mx-run-hi, .mx-k0, .mx-k1, .mx-k2, .mx-k3, .mx-k4, .mx-k5 { animation: none; }
+}
 
 /* THE "or" BETWEEN THE TWO WAYS IN. A rule either side rather than a word floating in space, so it
    reads as a fork in one card and not as a heading over a second one. */
@@ -8043,8 +8537,11 @@ body.has-ib #install-bar { transition: transform .28s ease; }
 .ck-say { margin-top: .8rem; font: 600 .78rem var(--mono); color: rgb(240 236 224 / .5);
           text-align: center; }
 
+/* `.mx-line` WAS IN THIS LIST, and `transform: none` would now lay the y = mx + c line flat — m = 0,
+   with the triangle, the rise and the number for m = 2 drawn over it. Its still is its own base rules,
+   written by tools/mxc.py with their reduced-motion rule beside them. */
 @media (prefers-reduced-motion: reduce) {
-  .so-row i, .mn-row i, .rp-box span, .or-p, .or-ring, .td-row i, .dw-sun, .h3-say i, .h3-bar span, .mx-line, .pr-arm, .nl-dot,
+  .so-row i, .mn-row i, .rp-box span, .or-p, .or-ring, .td-row i, .dw-sun, .h3-say i, .h3-bar span, .pr-arm, .nl-dot,
   .ck-m, .ck-h { animation: none; opacity: 1; transform: none; }
 }
 
@@ -9836,32 +10333,33 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    text and sideways room is the one thing it cannot spare. */
 .qcard { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
          padding: .75rem .7rem .8rem; margin-bottom: .4rem; }
+/* THE BUNDLE CARD'S HEAD -- `Bundle` and its noun. It was every question page's head too, the gold
+   `Q4a` with `2 marks` hard right; those pages say all of that as tags now (`.qcard-tags` below). */
 .qcard-top { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
 .qcard-top b { font: 700 .95rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
-/* THE MARKS IN THE FACE OF THE NUMBER THEY BELONG TO, a step quieter than it. They were the body face
-   at .66rem in `--faint`, which read as a stray caption rather than as the other half of the header
-   row somebody runs an eye down. */
 .qcard-top span { font: 500 .68rem/1 var(--mono); color: var(--dim); white-space: nowrap; }
-/* WHICH PAGE OF THE QUESTION THIS IS -- `Q3 · figure`, `Q3 · answer` (`qHead_` in find.js). The
-   number stays the title; the part is the marks' quieter voice in the number's own face, so the two
-   read as one name and a page landed on cold still says first whose page it is. */
-.qcard-top .qcard-part { font-style: normal; font-weight: 500; color: var(--dim); letter-spacing: 0; }
-/* ---------- `Done 4 Oct` -- THE DAY YOU LAST DID IT, ON THE MARKS' LINE ------------------------------
+/* ---------- `Done 4 Oct` -- THE DAY YOU LAST DID IT, BESIDE THE STAR ---------------------------------
    ASKED FOR AS *"when a student does do a question, it should record the date they did it"*
-   (`doneSlot_` in find.js). In the marks' own face and voice, after them, because it is the same
-   kind of fact -- about the question, scanned down a list -- and not a verdict: green would read as
-   "Correct", which a date is not. The slot is always there and empty until there is a date, so
-   marking writes into it and the header does not grow. `:empty` takes the gap off with the words. */
-.qcard-top .qcard-done { font-style: normal; color: var(--dim); }
-.qcard-top .qcard-done:not(:empty) { margin-left: .6em; }
-.qcard-sub { margin: .4rem 0 0; font-size: .7rem; color: var(--dim); }
+   (`doneSlot_` in find.js). It sat on the gold header's marks line; the header became tags, and the
+   date is not a tag -- it is yours, like the star, so it is in the row your marks are in
+   (`questionTiles_`). In the marks' old face and voice, not a verdict: green would read as "Correct",
+   which a date is not. The slot is there and empty until there is a date, so marking writes into it;
+   the row is 44px tiles tall whatever it holds, so nothing moves. `:empty` takes the gap off. */
+.tile-row .qcard-done { font: 500 .68rem/1 var(--mono); font-style: normal; color: var(--dim);
+                        white-space: nowrap; }
+.tile-row .qcard-done:not(:empty) { margin-left: .3rem; }
 /* ---------- THE CARD'S TAGS -------------------------------------------------------------------------
    ASKED FOR AS *"it has the title of it in one text name when it should still remain as tags."* The
    paper's name taken apart into the facts it is made of (`qTags_` in find.js), each in its kind's
    colour. Labels, not controls: smaller than a chip, not pressable, so nothing here is a tap target
    and a card of them is a card that still has room for its question. A tag with no kind -- the words
-   after a paper's colon, `Arithmetic` -- keeps the plain outline and the dim ink. */
+   after a paper's colon, `Arithmetic` -- keeps the plain outline and the dim ink.
+
+   AND THEY ARE THE TOP OF THE CARD NOW, nothing above them: *"the marks should also be a tag. also
+   the question numbers should also be a tag."* `.qcard-tags` is the row `qPage_` draws on every page
+   of a question -- what the page is, its number, its marks, the paper's facts, what to bring. */
 .qtags { display: flex; flex-wrap: wrap; gap: .3rem .25rem; }
+.qcard-tags { margin: 0; }
 /* A RADIUS IN px, NOT 999px. A long worksheet title -- "Multiplying and Dividing by 10, 100, 1000
    etc" -- wraps to two lines at 320, and a 999px radius on a two-line box drew a lozenge with the
    words running into its pointed ends. 9px is a full pill on a one-line tag (about 17px tall) and a
@@ -9871,20 +10369,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   border: 1px solid var(--tag, var(--chip-line)); color: var(--tag, var(--dim));
   font-size: .64rem; line-height: 1.35;
 }
+/* WHAT THE PAGE IS LEADS, AND LOOKS IT: SOLID, in the weight a title has, where every other tag is an
+   outline. It is the one word that tells a question from its answer and a figure from both, and it
+   replaced a gold header line -- a tenth tag in the same weight as the nine after it would make the
+   row a list with no first item. A 16% tint was tried first and read in the screenshot as one more
+   grey pill; solid ink with the card's own ground as its letters is the one shape nothing else on
+   the card has. The number is a step heavier too, as the gold number it replaces was the heading. */
+.qtag[data-tag="kind"] { background: var(--tag); color: var(--raised); font-weight: 650; }
+.qtag[data-tag="number"] { font-weight: 650; }
 
-/* THE DAY THE PAPER WAS SAT, UNDER ITS NAME. `display: block` because it is a second line rather
-   than a second clause — the name already ends in a month ("Paper 1 (Non-Calculator) — May 2017")
-   and running an exact date straight on from it reads as one long sentence saying the month twice.
-   Dimmer than the subtitle it hangs from, because it is a detail confirming the paper rather than
-   the thing you are scanning for. Drawn on the rows that carry `exam_date` and nowhere else —
-   see `satOn_` in find.js for why that is almost all of them. */
-.qcard-sat { display: block; margin-top: .35rem; font-size: .62rem; color: var(--faint); }
-
-/* WHAT TO BRING. Gold rather than faint, and that is the one difference from the line above it: a
-   sitting date confirms you have the right paper, where "No calculator · Printed sheet" is an
-   instruction you have to act on before the lesson starts. It is the only thing on this card a
-   person has to DO something about, so it is the only thing wearing the accent. */
-.qcard-needs { display: block; margin-top: .15rem; font-size: .64rem; color: var(--gold); }
+/* `.qcard-sat` AND `.qcard-needs` WERE HERE -- the day the paper was sat, a faint line under the tags,
+   and what to bring, a gold one under that. Both are tags in the row now (`qTags_` in find.js): the
+   day in the sitting's colour, and what to bring in `--tag-needs`, once -- the gold line said "No
+   calculator" under a grey tag that said "Non-Calculator", which is the fault that was reported. */
 /* `.qcard-peek` AND `.qcard:active` WERE HERE — the clipped first line, and the press animation for
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
    nothing left to open. */
@@ -9893,8 +10390,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    "Write down the mathematical name for the type of angle marked y", with no angle anywhere on the
    card, reads as a question that failed to load. The figure moved to its own card (history 204) and
    the words it left behind still point at it, so one quiet line says where it went. A label, not a
-   control -- the page turns the way every page does -- and `--faint`, because `.qcard-needs` above is
-   the only thing on this card allowed the accent. */
+   control -- the page turns the way every page does -- and `--faint`, because it is a pointer and not
+   a fact about the question; the facts are the tags at the top. */
 .qsheet-figref { margin: .6rem 0 0; font: 500 .66rem/1.3 var(--font); color: var(--faint);
                  letter-spacing: .04em; }
 
@@ -10478,6 +10975,84 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .tb-fm { display: block; font-size: .95rem; line-height: 1.6; color: var(--ink); overflow-wrap: anywhere; }
 .tb-points li { margin: 0 0 .3rem; }
 
+/* ---------- THE BIBLE — A COVER, THREE LISTS OF BOOKS, A BOOK'S CHAPTER NUMBERS, AND ITS PAGES -------
+   "i want to add the bible to resources as a book." Everything else on its pages is the textbook's
+   (`.prac`, `.fc-kick`, `.fc-meta`); these are what a reader needs that a revision sheet does not.
+
+   WHO CAN SEE IT, IN THE COLOUR THAT SAYS SO. `--admin` is this app's "only you can see this" (the
+   tile rules near the end of this file), and the cover is the one card on Find that is exactly that. */
+.bb-who { color: var(--admin); }
+
+/* THE BOOKS AS CHIPS THAT WRAP LIKE TEXT — the funnel's own answer row (`.answers`), because choosing a
+   book is the same act as choosing an answer: seventeen names in a column would be seventeen lines;
+   wrapped, Genesis to Esther is five. 44px BOTH WAYS, in px, for the fingertip reason the
+   answers give — `Joel` and `Amos` are short words and still a whole finger. THE OUTLINE IS THIS
+   CARD'S OWN (`--bb-line`), declared on it the way the chess board's colours are: `--line` is a
+   hairline that all but vanishes as a chip's only edge, and the answers' `--chip-line` is kept to
+   their family by its own rule. */
+.bible { --bb-line: #3a3a3a; }
+.bb-books { display: flex; flex-wrap: wrap; gap: .3rem .25rem; margin: var(--fc-line) 0 0; }
+.bb-book, .bb-ch {
+  min-height: 44px; min-width: 44px; margin: 0; padding: .2rem .55rem;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--bb-line); border-radius: 22px; background: none;
+  color: var(--ink); font: 500 .8rem/1.2 var(--font); cursor: pointer;
+  transition: background var(--quick) ease, border-color var(--quick) ease;
+}
+.bb-book:active, .bb-ch:active { background: rgb(255 255 255 / .08); }
+/* THE NARROWEST PHONE GETS A NARROWER CHIP, NOT A SHORTER ONE. The fingertip rule fixes the height at
+   44px, so at 320px the room comes out of the width: a smaller face and less padding put four short
+   names on a line where three went. IT WAS ALSO MEANT TO FIT THE OLD TESTAMENT'S THIRTY-NINE, and did
+   not — 601px in a 507px pane, drawn by `paneReach_` at 84%, every chip 37px — which is why that list
+   is two pages now (`bibleOn_` in find.js). What this still buys is the New Testament: its twenty-seven
+   at the full chip are 10% over at 320x568, and at this one they fit. */
+@media (max-width: 22rem) {
+  .bb-books { gap: .25rem .2rem; }
+  .bb-book { padding: .2rem .42rem; font-size: .74rem; }
+}
+/* THE OPEN BOOK IS MARKED, in gold, because it is the one the pages after this list belong to. */
+.bb-book.on { border-color: var(--gold); color: var(--gold); }
+/* FETCHING: the same ring `send_`'s busy buttons wear, in front of the name rather than instead of
+   it — the name is what says WHICH book is coming. */
+.bb-book.is-busy { cursor: progress; }
+.bb-book.is-busy::before {
+  content: ''; flex: 0 0 auto; width: .8em; height: .8em; margin-right: .45em; border-radius: 50%;
+  border: 2px solid color-mix(in srgb, currentColor 30%, transparent);
+  border-top-color: currentColor; animation: btn-spin .7s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) { .bb-book.is-busy::before { animation: none; } }
+/* THE CHAPTER NUMBERS, A GRID OF EQUAL SQUARES — as many 44px columns as the card has room for (five
+   at 320px, six at 390), so the numbers line up in columns a thumb can run down. Squares, not pills:
+   a number is a place in a sequence, and a grid of them reads as one. HOW MANY ROWS a page holds is
+   measured in find.js (`bibleMeasure_`), so a page of them is never drawn smaller to fit. */
+.bb-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap: .3rem;
+  margin: var(--fc-line) 0 0; }
+.bb-ch { padding: 0; border-radius: 8px; font: 600 .84rem/1 var(--mono); font-variant-numeric: tabular-nums; }
+.bb-miss { color: var(--warn); }
+
+/* ---------- THE TEXT -------------------------------------------------------------------------------
+   ONE VERSE A LINE-GROUP, the way the King James has always been set, with a little more room above a
+   verse the 1611 printers marked as starting a paragraph (`is-para`).
+   THE BODY SIZE, NOT THE LEDE'S. This was `.88rem` — 11.9px at 320 and 13px at 390, smaller than the
+   textbook's reading text (`.tb-fm`, `.95rem`) on the one card in the app that is read for minutes
+   rather than glanced at. A full `1rem` costs only pages, never fit: a chapter is cut to the screen
+   by measuring these very lines (`bibleMeasure_`), so a bigger face is more pages of the same size. */
+.bb-verses { margin: var(--fc-line) 0 0; }
+.bb-v { margin: 0 0 .32rem; font-size: 1rem; line-height: 1.55; color: var(--ink); }
+.bb-v.is-para { margin-top: .75rem; }
+.bb-v:first-child { margin-top: 0; }
+/* THE VERSE NUMBER, SMALL AND QUIET — how you find a place, not what you read. Raised a little off the
+   line like a printed Bible's, in the faint ink, and never bold. `.7rem`, up from `.62` with the text:
+   8.4px of grey was a number you had to lean in to find a place by. */
+.bb-n { font: 500 .7rem/1 var(--mono); color: var(--faint); vertical-align: .38em;
+  font-variant-numeric: tabular-nums; }
+/* THE WORDS THE TRANSLATORS SUPPLIED, as the King James prints them: italic, and nothing else — not
+   dimmer, which would say they matter less, and not coloured, which would say they are a link. */
+.bb-v i { font-style: italic; }
+/* THE WAY BACK UP, ON EVERY PAGE: a text page's tile to its chapter numbers, the numbers' tile to their
+   list of books. */
+.bb-text .tile-row, .bb-chs .tile-row { margin-top: var(--fc-group); }
+
 /* ==================================================================================================
    THE GUIDE. FIVE THINGS: the sheet's own title, the drawing, the kit, the method, and a
    worksheet holding the three variables.
@@ -10593,8 +11168,10 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    inside the box, so the option you pressed stays exactly where your finger left it.
 
    ONCE MARKED THE OTHERS STEP BACK. `is-done` (choiceBox_) is only set when the question is settled,
-   which the handler already enforces -- so the unchosen wrong ones fade and stop looking pressable,
-   and what is left in full ink is what you picked and what was right. */
+   which the handler already enforces -- so the unchosen ones fade and stop looking pressable, and
+   what is left in full ink is what you picked: green with a tick if it was right, amber if not.
+   `.is-ans` IS ONLY EVER YOUR OWN PICK NOW. A miss used to tick the right option beside it, which
+   is the answer shown on the question card without Show -- see `choiceBox_`. */
 .qp-opt { position: relative; padding-left: 2.2rem;
                    transition: border-color var(--quick) ease, color var(--quick) ease; }
 /* INK ON EVERY OPTION OF A QUESTION CARD, by SPECIFICITY rather than by being written later: the box
@@ -10627,9 +11204,271 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
 .qp-choices.is-done .qp-opt.is-picked:not(.is-ans)::before { border-color: var(--warn);
                                                                        background: var(--warn); }
 
-.boxer-nick { font-weight: 400; color: var(--dim); }
-/* `.boxer-rec` HAS NO RULE OF ITS OWN ANY MORE: the record is the card's `.fc-meta` line, gold and
-   mono like every other kind's numbers, and the class stays only as the name a check finds it by. */
+/* ==================================================================================================
+   THE FIGHTER'S PROFILE — the boxer card as a tale of the tape. See the long note over `boxerCard_`
+   in find.js for what is on it and in what order; this is how it looks.
+
+   ASKED FOR AS *"refine the boxers widget. maybe add image of each boxer. and make it look nicer.
+   the wins losses etc."* The record was one small gold line; it is the biggest type on the page now.
+
+   ON THE BLACK, NOT ON PAPER — a fighter's page is read off a phone, like a practical, so it takes
+   the screen's palette. THE RESULT COLOURS ARE THIS CARD'S OWN NAMES for the app's tokens, defined
+   on the card per the house rule: a record is always coloured won / lost / drawn, and nothing else
+   in the app means those three things, so `--boxer-w` is offered here and nowhere else. The fight
+   card carries the same names because its faces are the same frames.
+     --boxer-w    a win      gold, which on this card means "what he won" and nothing else
+     --boxer-l    a loss     the ring's red — the splash's middle rope and gloves
+     --boxer-d    a draw     the quiet ink
+     --boxer-nc   no contest fainter again: it is not a result at all
+================================================================================================== */
+.boxer, .fight { --boxer-w: var(--gold); --boxer-l: var(--coral); --boxer-d: var(--dim);
+                 --boxer-nc: var(--faint); }
+
+/* ---------- THE PROFILE IS A GRID, SO THE PICTURE CAN STAND BESIDE THE NAME ----------------------
+   THE PHOTO COMES AFTER THE HEAD, THE SUB-LINE AND THE STATUS IN THE MARKUP, AND TO THEIR LEFT ON
+   THE SCREEN — a fight poster's layout, the face in the left two-fifths and the name beside it. A
+   grid is the only way to say that without moving the markup, and the markup stays put so a screen
+   reader hears the name first and every Find card opens on its `.fc-head` (see `boxerCard_`).
+
+   FOUR ROWS ON THE RIGHT, THE LAST ONE `1fr`. The picture spans all four; the head, the sub-line and
+   the status take the first three, and when the picture is the taller side it is the fourth row
+   that grows — so the three lines stay packed under each other at the top rather than spreading out
+   down the photo's height. Everything after them (`> *`) spans both columns.
+
+   NOTHING ELSE MOVES: every part of a Find card states its own top margin and none relies on one
+   collapsing into its neighbour's, which is the one thing a grid does differently. `min-width: 0`
+   for `.fc-head h3`'s reason — an item's minimum is its widest word, and 320px is narrower than some.
+
+   THE FIGHTS PAGE IS AN ORDINARY PART PAGE and is left out, so its kicker and title stack as every
+   other part page's do. */
+.card.fc.boxer:not(.is-fights) { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+                                 grid-template-rows: auto auto auto 1fr; column-gap: .85rem; }
+.card.fc.boxer:not(.is-fights) > * { grid-column: 1 / -1; min-width: 0; }
+.card.fc.boxer:not(.is-fights) > .fc-head,
+.card.fc.boxer:not(.is-fights) > .boxer-from,
+.card.fc.boxer:not(.is-fights) > .boxer-status { grid-column: 2; }
+.card.fc.boxer:not(.is-fights) > .boxer-pic { grid-column: 1; grid-row: 1 / span 4; }
+/* THE FIGHT CARD IS A COLUMN, so its two faces can be lifted over the title with `order` — the same
+   markup-stays-put argument, and a flex column is all it needs. */
+.card.fc.fight { display: flex; flex-direction: column; }
+.card.fc.fight > * { min-width: 0; }
+
+/* ---------- THE NAME, THE NICKNAME UNDER IT ------------------------------------------------------
+   THE NICKNAME WAS A DIM SPAN IN THE SAME LINE, so "Muhammad Ali “The Greatest”" wrapped wherever
+   the width said and read as one long name. On a line of its own, in the italic a ring announcer's
+   voice is set in, and gold — it is the one thing on the head a fan would shout. Smaller than the
+   name (`em`, so it follows the title's one size rather than setting a second). */
+.boxer-nick { display: block; margin-top: .2rem; font-size: .78em; font-weight: 500; font-style: italic;
+              color: var(--gold); letter-spacing: 0; }
+.boxer-flag { margin-right: .4em; }
+/* COUNTRY AND WEIGHT, A LINE EACH — see `boxerCard_` for the dot that hung off the country. */
+.boxer-country, .boxer-weight { display: block; }
+
+/* ---------- WHAT HE IS NOW --------------------------------------------------------------------------
+   A STATE, SET AS A LABEL — the mono capitals every label here uses — with a mark before it in the
+   state's colour: a dot, green for a man still fighting (`--good`, the app's word for "live"), the
+   quiet ink for retired, and a dagger for the dead, which is how a record book marks one.
+   NOT A PILL. It was drawn in a bordered pill first and the screenshot at 320px is what ended it:
+   beside the photo the right-hand column is 134px, "† DECEASED · 1942–2016" is wider than that, and
+   a pill that wraps is a box with two lines of capitals in it. A label wraps like words do. The
+   marks are characters for the same reason — they wrap with the words rather than sitting apart. */
+.boxer-status { margin: var(--fc-line) 0 0; font: 600 .62rem/1.45 var(--mono); letter-spacing: .08em;
+                text-transform: uppercase; color: var(--dim); }
+.boxer-status::before { content: "\25CF\00a0"; }
+.boxer-status.is-active { color: var(--good); }
+.boxer-status.is-dead::before { content: "\2020\00a0"; }
+
+/* ---------- THE PHOTO ------------------------------------------------------------------------------
+   A FIXED 4:5 BOX, SO NOTHING JUMPS. The box is its own size before a byte of the picture arrives,
+   and the ring placeholder fills it until then — so a slow photo is a ring that turns into a face,
+   never a gap that turns into a picture and pushes the record down the screen. 4:5 because it is a
+   portrait's shape: a Commons photograph of a fighter is head and shoulders in a tall frame.
+
+   `cover`, AND AIMED A LITTLE HIGH, so a frame that is not quite 4:5 loses chest rather than
+   forehead.
+
+   THE STAGE LIGHT IS THE GOLD AT 16%, from the top — the one flourish on the card, behind the
+   placeholder, because it is the arena the stand-in is standing in.
+
+   `--bx-mat` is the splash's mat, defined beside `.bx-ring` up in the ring's own block so the two
+   drawings share it. */
+.boxer-pic { margin: 0; }
+.boxer-frame { position: relative; display: block; overflow: hidden; aspect-ratio: 4 / 5;
+               border: 1px solid var(--line); border-radius: var(--r);
+               background: radial-gradient(120% 85% at 50% 0%, color-mix(in srgb, var(--gold) 16%, transparent),
+                                           transparent 70%), var(--raised); }
+.boxer-ring, .boxer-img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; }
+.boxer-img { object-fit: cover; object-position: 50% 30%; background: var(--raised); }
+/* THE FOOT OF A PHOTO SINKS INTO THE PAGE. A hard bottom edge on a bright photograph against the
+   black reads as a sticker; a short fade to the background at a third of its strength reads as a
+   picture set into the card. Only over a photo — the ring placeholder has its own floor. */
+.boxer-pic:not(.is-none) .boxer-frame::after { content: ""; position: absolute; inset: auto 0 0; height: 30%;
+  background: linear-gradient(transparent, color-mix(in srgb, var(--bg) 45%, transparent)); pointer-events: none; }
+.boxer-ini { font-family: var(--mono); font-weight: 700; fill: var(--gold);
+             paint-order: stroke; stroke: var(--bg); stroke-width: 1.4; stroke-linejoin: round; }
+/* THE CREDIT IS SMALL AND IT IS NEVER HIDDEN. The licence makes naming the author and the licence
+   the condition of showing the picture at all, so it is in the faint ink at the caption size every
+   other small print here uses — legible, not decorative — and nothing on the card covers it.
+   `.62rem`, NOT THE `.56` IT WAS: measured, that was 8.3px on a 390px phone and about 6px on a
+   320x568 one once the card had shrunk to fit — a credit nobody can read is a credit in name only.
+   `.62` is the floor the record's labels and the tape's already stand on. */
+.boxer-credit { margin: .3rem 0 0; font: 400 .62rem/1.35 var(--mono); color: var(--faint);
+                overflow-wrap: anywhere; }
+/* ---------- AND IT IS A LINK, SO IT IS A TAP TARGET -------------------------------------------------
+   THE CREDIT LINKS TO THE PHOTO'S COMMONS PAGE (see `boxerCredit_`), and a link the size of
+   `.62rem` small print is a 12px target — the thing `check/ui.js` exists to refuse. So the link is a
+   block at least 44px tall, in px because a fingertip does not scale with the type, and the words
+   keep their size, centred in it from top to bottom. On the profile it is the full-width line under
+   the photo (see `boxerPic_`), two lines of words in a 44px row. Underlined in the line colour, so
+   it reads as a link without shouting louder than the photo it credits. */
+.boxer-src { display: block; color: inherit; overflow-wrap: anywhere; }
+a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decoration: underline;
+              text-decoration-color: var(--line); text-underline-offset: 2px; }
+.fight-credit a.boxer-src { justify-content: center; }
+/* THE RESULT IN WORDS, FOR A SCREEN READER ONLY — `#splash-say`'s pattern: off the screen rather
+   than hidden, because `display: none` would take it from the reader too. The row is its containing
+   block, so the 1px box sits inside the row it belongs to rather than wherever an ancestor is. */
+.boxer-say { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+             clip-path: inset(50%); white-space: nowrap; }
+
+/* ---------- THE RECORD: THE BIG NUMBERS -------------------------------------------------------------
+   ONE BOX, THE ONLY BOXED THING ON THE CARD, because it is the one thing on it that is the answer.
+   Every other part is a section with a label; this is the scoreboard. The faint gold wash at the top
+   is the stage light again, at half the strength, so the box belongs to the photo above it.
+
+   THE COLUMNS ARE EQUAL, HOWEVER MANY THERE ARE — three, or four with no contests — through
+   `grid-auto-columns` rather than a count, so a fourth column needs no second rule. A hairline
+   between them, which is how a scoreboard is ruled. */
+.boxer-rec { margin: var(--fc-group) 0 0; padding: .85rem .6rem .7rem; border: 1px solid var(--line);
+             border-radius: var(--r);
+             background: linear-gradient(180deg, color-mix(in srgb, var(--gold) 7%, var(--raised)), var(--sunk) 70%); }
+.boxer-rec.is-none { padding: .6rem .7rem; background: var(--sunk); }
+.boxer-rec.is-none .fc-note { margin: 0; }
+.boxer-tally { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.boxer-n { position: relative; display: flex; flex-direction: column; align-items: center; gap: .3rem;
+           text-align: center; }
+.boxer-n + .boxer-n::before { content: ""; position: absolute; left: 0; top: .2rem; bottom: .2rem;
+                              border-left: 1px solid var(--line); }
+/* THE NUMBERS IN THE APP'S OWN MONO, BIG AND TABULAR, so 56 and 5 sit on the same baseline as the
+   same kind of thing at the same width per digit. 2.4rem is 36px on a 390px phone: a scoreboard,
+   not a headline, and three digits still fit a quarter of a 320px card. */
+.boxer-n b { font: 700 2.4rem/1 var(--mono); letter-spacing: -.04em; font-variant-numeric: tabular-nums; }
+.boxer-n.is-w b { color: var(--boxer-w); }
+.boxer-n.is-l b { color: var(--boxer-l); }
+.boxer-n.is-d b { color: var(--boxer-d); }
+.boxer-n.is-nc b { color: var(--boxer-nc); }
+/* A NOUGHT IS "NONE", AND NONE IS QUIET. Usyk's `0` under LOSSES in the loss colour shouted the one
+   thing he has not got; in the faint ink it reads as what it is, and the gold beside it does the
+   talking. The tally in front so it outranks the colour rules above by specificity rather than by
+   coming after them — `check/cascade.js`'s rule. */
+.boxer-tally .boxer-n.is-zero b { color: var(--faint); }
+.boxer-k { font: 600 .6rem/1 var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--faint); }
+.boxer-ko { font: 600 .66rem/1 var(--mono); color: var(--dim); }
+/* THE SPLIT, ONE BAR. Rounded ends by clipping the SVG rather than each rect, so a segment that is
+   the whole bar has both ends round and one in the middle has none. */
+.boxer-bar { display: block; width: 100%; height: .4rem; margin: .8rem 0 0; border-radius: .2rem;
+             overflow: hidden; background: var(--line-soft); }
+.boxer-bar .is-w  { fill: var(--boxer-w); }
+.boxer-bar .is-l  { fill: var(--boxer-l); }
+.boxer-bar .is-d  { fill: var(--boxer-d); }
+.boxer-bar .is-nc { fill: var(--boxer-nc); }
+.boxer-rec .boxer-line { text-align: center; }
+.boxer-rec .boxer-line + .fc-note { text-align: center; margin-top: var(--fc-in); }
+
+/* ---------- THE TALE OF THE TAPE ---------------------------------------------------------------------
+   A LABEL AT THE LEFT AND ITS VALUE AT THE RIGHT, ONE HAIRLINE BETWEEN ROWS — the broadcast's
+   graphic, laid flat for one fighter. The value wraps at the right rather than pushing the label:
+   "17 Jan 1942 · Louisville, USA" is two lines on a 320px phone and that is fine.
+   `.22rem` A ROW, NOT `.3`: on a 320x568 phone fifty profiles were drawn smaller to fit their pane,
+   and the tape's seven rows are the longest run of the card; a hairline between rows is what keeps
+   them apart, so the padding can be the smaller part of the gap without the rows running together. */
+.boxer-tape dl { margin: 0; }
+.boxer-tape dl > div { display: flex; justify-content: space-between; align-items: baseline; gap: .8rem;
+                       padding: .22rem 0; border-bottom: 1px solid var(--line-soft); }
+.boxer-tape dl > div:last-child { border-bottom: 0; }
+.boxer-tape dt { flex: 0 0 auto; font: 600 .62rem/1.5 var(--mono); letter-spacing: .08em;
+                 text-transform: uppercase; color: var(--faint); }
+.boxer-tape dd { margin: 0; min-width: 0; text-align: right; font-size: .8rem; line-height: 1.4;
+                 color: var(--ink); overflow-wrap: anywhere; }
+
+/* ---------- THE BELTS AND THE HONOURS ------------------------------------------------------------------
+   THE TITLES ARE A SENTENCE WITH A GOLD RULE BESIDE IT — the rule `.prac-no` draws in red for a
+   refusal, here in the colour of what he won. The honours are badges in the flag's own shape, gold
+   because they are yes-or-no facts and the yes is the point. */
+.boxer-belt { margin: 0; padding-left: .6rem; border-left: 2px solid var(--boxer-w);
+              font-size: .82rem; line-height: 1.45; color: var(--ink); }
+.boxer .boxer-badges { list-style: none; margin: 0; padding: 0; display: flex;
+                       flex-wrap: wrap; justify-content: flex-end; gap: .35rem; }
+/* THE HEADING AND THE BADGES SHARE ONE LINE — the label at the left, the honours pinned at the right
+   (see `boxerTitles_`). It wraps rather than squeezes: two badges beside "Honours" on a 320px phone
+   is wider than the card, and a badge on the next line is still a badge. The heading's own bottom
+   margin moves to the row, so the belts sit the same distance under it either way. */
+.boxer-titles-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+                     gap: .35rem .6rem; margin: 0 0 var(--fc-in); }
+.boxer .boxer-titles-head h4 { margin: 0; }
+.boxer .boxer-badges li { font: 600 .62rem/1 var(--mono); letter-spacing: .07em; text-transform: uppercase;
+                          color: var(--boxer-w); border: 1px solid var(--boxer-w); border-radius: .5rem;
+                          padding: .3rem .45rem; }
+.boxer .boxer-badges li.is-hof::before { content: "\2605\00a0"; }
+
+/* ---------- WHO HE BEAT, WHO BEAT HIM ----------------------------------------------------------------
+   A LABEL COLUMN AND A WRAPPING ROW OF NAMES, each name edged on the left in the result's colour —
+   so the two rows are told apart at a glance and a long list folds rather than running off the card.
+   `.boxer` in front of the list rules because `.fc-sec li` (0,1,1) would otherwise tie with them and
+   the file's order would decide — the `.price.faint` fault `check/cascade.js` exists to catch. */
+.boxer-vs { display: grid; grid-template-columns: 3.9rem minmax(0, 1fr); gap: .5rem; align-items: baseline;
+            margin: .45rem 0 0; }
+.boxer-vs:first-of-type { margin-top: 0; }
+.boxer-vs-k { font: 600 .62rem/1.9 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+.boxer .boxer-names { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: .3rem; }
+.boxer .boxer-names li { padding: .28rem .45rem; border: 1px solid var(--line); border-left: 2px solid var(--boxer-w);
+                         border-radius: var(--r-sm); font-size: .74rem; line-height: 1.2; color: var(--ink); }
+.boxer .boxer-vs.is-l .boxer-names li { border-left-color: var(--boxer-l); }
+
+/* ---------- HIS FIGHTS ON FILE ---------------------------------------------------------------------
+   THE RESULT IN A SQUARE, THE OPPONENT, AND HOW AND WHEN UNDER THE NAME — a printed record's line in
+   two rows, because the record's single row is a table forty characters wide and a phone is not.
+   A win is a filled gold square, a loss an outlined red one: filled against outlined survives a
+   colour-blind reader and a screenshot in grey, where gold against red alone would not. */
+.boxer .boxer-bouts ul { list-style: none; margin: 0; padding: 0; }
+.boxer .boxer-bouts li { position: relative; display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); column-gap: .65rem;
+                         row-gap: .1rem; align-items: center; padding: .36rem 0;
+                         border-bottom: 1px solid var(--line-soft); color: var(--ink); }
+.boxer .boxer-bouts li:last-child { border-bottom: 0; }
+.boxer-res { grid-row: span 2; display: grid; place-items: center; width: 1.6rem; height: 1.6rem;
+             box-sizing: border-box; border: 1px solid var(--line); border-radius: var(--r);
+             font: 700 .68rem/1 var(--mono); color: var(--boxer-d); }
+.boxer .boxer-bouts li.is-w .boxer-res { background: var(--boxer-w); border-color: var(--boxer-w); color: var(--bg); }
+.boxer .boxer-bouts li.is-l .boxer-res { border-color: var(--boxer-l); color: var(--boxer-l); }
+.boxer .boxer-bouts li.is-nc .boxer-res { color: var(--boxer-nc); }
+.boxer-opp { font-size: .82rem; font-weight: 600; line-height: 1.3; overflow-wrap: anywhere; }
+.boxer-how { font: 400 .64rem/1.35 var(--mono); color: var(--faint); }
+/* A TITLE FIGHT SAYS SO IN GOLD, after how and when it ended. The belts' own words are its tooltip:
+   "WBA, WBC, The Ring heavyweight" on every line of Ali's is a paragraph, and the fact a fan scans
+   for is only whether the belt was on the line. NOT BOXED: it was a gold outlined tag first, and on
+   Ali's page — fourteen title fights out of fourteen — the screenshot was a column of fourteen gold
+   boxes louder than the results beside them. A word in the line's own size, the dot before it in
+   the line's own ink. */
+.boxer-tt { letter-spacing: .06em; text-transform: uppercase; color: var(--boxer-w); }
+.boxer-tt::before { content: "\00a0\00b7\00a0"; color: var(--faint); }
+
+/* ---------- THE FIGHT CARD'S TWO FACES --------------------------------------------------------------
+   THE SAME FRAME AS THE PROFILE'S, SQUARE AND SMALL, either side of a `v`, lifted over the title the
+   way the profile's photo is. The winner's frame is ruled in gold — the same weight-not-label idea
+   as his name in bold under it. A draw leaves both plain. */
+.fight-faces { order: -1; display: flex; align-items: center; justify-content: center; gap: .7rem;
+               margin: 0 0 var(--fc-group); }
+.boxer-pic.is-small { flex: 0 0 auto; width: 5.6rem; margin: 0; }
+.boxer-pic.is-small .boxer-frame { aspect-ratio: 1 / 1; }
+.boxer-pic.is-small.won .boxer-frame { border-color: var(--boxer-w); box-shadow: 0 0 0 1px var(--boxer-w); }
+.fight-v { font: 700 .8rem/1 var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--faint); }
+/* THE CREDITS FOR BOTH FACES, centred under them and above the title, at the profile's caption
+   size. Each is its own `.boxer-src` so a face that fails can take its own credit away and leave the
+   other — and each is a 44px link block now (see `.boxer-src`), so two photos are two lines rather
+   than one line joined by a dot: two tap targets cannot share one line of small print. */
+.fight-credit { order: -1; margin: calc(-1 * var(--fc-group) + .35rem) 0 var(--fc-group);
+                font: 400 .62rem/1.4 var(--mono); color: var(--faint); text-align: center; overflow-wrap: anywhere; }
+
 
 /* THE TWO NAMES ARE THE TITLE NOW — an `h3` in the shared head — so they take the title's size and
    lose the 1rem they set for themselves. The row still wraps between the names rather than inside
@@ -10829,13 +11668,21 @@ ol.fc-list:has(> li:nth-child(10)) { padding-left: 2rem; }
    drawn in it, so reusing it would put the bin and the basket in one colour — the exact confusion
    the two-row layout existed to prevent. This is a cooler, brighter yellow: unmistakably yellow,
    and unmistakably not the trolley beside it. */
+/* THE TONE IS THE TOKEN, THINNED -- `color-mix` with `transparent` paints exactly what
+   `rgb(242 210 75 / .07)` did, and names which colour it is. Written out by hand, these five were the
+   pattern `.tile.is-lead` was copied from: it changed its `color` to `--gold` and kept this yellow in
+   its border, so a gold padlock sat in an admin-yellow frame on a tile every student sees. A literal
+   cannot say which token it meant, so nothing could tell. `check-css` now fails a `.tile` rule that
+   writes a token's colour out by hand. */
 .tile.is-admin {
   color: var(--admin);
-  background: rgb(242 210 75 / .07);
-  border-color: rgb(242 210 75 / .22);
+  background: color-mix(in srgb, var(--admin) 7%, transparent);
+  border-color: color-mix(in srgb, var(--admin) 22%, transparent);
 }
-.tile.is-admin:active, .tile.is-admin.is-pressed { background: rgb(242 210 75 / .16); border-color: rgb(242 210 75 / .45); }
-.tile.is-admin.on { background: rgb(242 210 75 / .2); border-color: rgb(242 210 75 / .5); }
+.tile.is-admin:active, .tile.is-admin.is-pressed { background: color-mix(in srgb, var(--admin) 16%, transparent);
+                                                   border-color: color-mix(in srgb, var(--admin) 45%, transparent); }
+.tile.is-admin.on { background: color-mix(in srgb, var(--admin) 20%, transparent);
+                    border-color: color-mix(in srgb, var(--admin) 50%, transparent); }
 
 @media (prefers-reduced-motion: reduce) { .tile:active, .tile.is-pressed { transform: none; } }
 
@@ -12252,6 +13099,11 @@ button.scr-sq { cursor: pointer; }
    IT LOOKS LIKE RULED PAPER because that is what it is standing in for. A bordered form field would
    promise a submit button that does not exist. */
 .qp-ans { display: block; margin: .9rem 0 .2rem; }
+/* THE BOX AND, AT ITS END, THE FIGURE TILE (`ansBox_`): one line, the box taking what the tile leaves.
+   The tile sits on the box's baseline, where the box's ruled line is. */
+.qp-ans-row { display: flex; align-items: flex-end; gap: .6rem; margin: .9rem 0 .2rem; }
+.qp-ans-row > .qp-ans { flex: 1 1 auto; min-width: 0; margin: 0; }
+.qp-ans-row > .tile { flex: none; }
 .qp-ans-k { display: block; font: 600 .62rem/1 var(--font); color: var(--faint);
             letter-spacing: .08em; text-transform: uppercase; margin-bottom: .4rem; }
 .qp-ans-in {
@@ -12370,12 +13222,12 @@ button.scr-sq { cursor: pointer; }
 .kp-pw sup { font-size: .65em; }
 
 /* ---------- MARK WITH AI ------------------------------------------------------------------------------
-   CHECK'S ROW, CHECK'S BUTTON — it is the same act for a worded answer (keypad.js). The feedback is
+   CHECK'S ROW, CHECK'S TILE — it is the same act for a worded answer (keypad.js). The feedback is
    one sentence UNDER the row rather than in the verdict slot, which holds two short lines at most and
    is where "2 of 3 marks" goes. Greyed, not removed, when the backend says there is no key: the
-   button stays where the student's eye already is and the sentence beside it says why. */
-.qp-ai .qp-ai-go { min-width: 120px; }
-.qp-ai .qp-ai-go[disabled] { background: var(--line); color: var(--dim); cursor: default; }
+   tile stays where the student's eye already is and the sentence beside it says why.
+   `.qp-ai-go`'s 120px width and its grey disabled fill WERE HERE, for the gold button it was; a tile
+   is 44px and draws its own disabled state (`.tile[disabled]`), so there is nothing left to say. */
 .qp-ai.is-busy .qp-verdict { color: var(--dim); }
 .qp-ai-why { margin: 0 0 .3rem; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
 .qp-ai-why:empty { display: none; }
@@ -12395,10 +13247,31 @@ button.scr-sq { cursor: pointer; }
 /* THE ANSWER, WAITING -- FOR EVERYBODY. `.qans.is-shut` WAS HERE, hiding with `display: none` an
    answer that was in the document -- "still readable by anyone who looks", as its own note said. The
    answer page draws no answer at all until it is shown (`questionAnsCard_`), and it is shown to a
-   tutor exactly as to a child: on the tap. What is left to style is the sentence saying so and the
-   one tile under it. The sentence in the dim of a caption, not a warning. */
-.qans-wait { margin-top: 1rem; }
-.qans-wait-k { margin: 0 0 .75rem; font: 500 .8rem/1.45 var(--font); color: var(--dim); }
+   tutor exactly as to a child: on the tap.
+
+   ONE ROW, ABOVE THE ANSWER, THE SAME HEIGHT SHOWN OR HIDDEN -- *"and can hide them again. simple is
+   best."* The tile is Show or Hide and stands in the same place for both, so a thumb that showed it
+   finds Hide where it pressed; the sentence beside it is in the dim of a caption, not a warning, and
+   the answer arrives under the row rather than pushing the row down. `.qans-wait` (the block that held
+   the sentence over a tile under it) went with that order. */
+.qans-tiles { margin-top: .9rem; }
+/* `Answers only` AT THE ROW'S FAR END (`ansOnlyTile_`): it is about the whole strip, not this answer, so it
+   stands apart from the eye -- and in one place whether "Answer hidden" is beside the eye or not. */
+.qans-tiles .qa-only { margin-left: auto; }
+/* THE DRAWING PAGE'S WAY ON TO THE ANSWER sits under the grid as the answer page's sits under its
+   header -- one tile, the row's own spacing. See `questionFigCard_`. */
+.qfig-tiles { margin-top: .9rem; }
+/* THE FIGURE OVER THE CARD (`q-fig`): each figure named in the words its own page's header uses when
+   the sheet holds more than one, small and quiet above it -- a caption, not a heading. */
+.qfig-sheet-k { margin: .9rem 0 0; font-size: .85rem; color: var(--dim); }
+.qfig-sheet-k:first-child { margin-top: 0; }
+/* A FIGURE NOBODY HAS DRAWN YET (`questionNoFigCard_`): the space the picture would take, marked out
+   in a dashed rule and saying so -- an outline of the gap rather than a blank page, so it reads as a
+   known hole and not as a figure that failed to load. Screen palette: this is a page of the app, not
+   a stand-in for paper. */
+.qfig-missing { margin: 1rem 0; padding: 2.4rem 1rem; text-align: center; color: var(--dim);
+  border: 1px dashed var(--line); border-radius: .5rem; }
+.qans-wait-k { margin-left: .5rem; font: 500 .8rem/1.45 var(--font); color: var(--dim); }
 
 /* ---------- A DIAGRAM YOU CAN WRITE ON -----------------------------------------------------------
    THE PEN IS OFF UNTIL THE PAD SAYS `is-drawing`, and that is not a nicety. `touch-action: none` is
@@ -12440,34 +13313,65 @@ button.scr-sq { cursor: pointer; }
    of best fit in the same colour as the axis it crosses is a line you cannot check. */
 .qpad-g path { fill: none; stroke: var(--gold); stroke-width: 2.5;
                stroke-linecap: round; stroke-linejoin: round; }
+/* THE COMPASS'S POINT AND ITS WIDTH, WHILE IT IS OPEN -- and the ruler's first end. Drawn only during
+   a drag (`padAid_`) and never stored, so they are told from a mark by shape rather than by colour:
+   the point a fat round dot, the width a dashed line, both in the pen's gold because they belong to
+   the hand that is drawing. Widths in screen pixels (`vector-effect` on each), like the pen's. */
+.qpad-aid path { fill: none; stroke: var(--gold); stroke-linecap: round; }
+.qpad-aid .qpad-pin { stroke-width: 7; }
+.qpad-aid .qpad-rad { stroke-width: 1.5; stroke-dasharray: 4 5; opacity: .85; }
 
-/* TAP TARGETS IN px. `2.75rem` is 40.75px on a 390px phone and fails — the root font is
-   `clamp(13.5px, 3.8vw, 16px)`, and a fingertip is the same size on every screen. This is the rule
-   `.btn.tiny`, `.post-act`, `.fm-adds label` and the filter chips were each convicted of. */
-.qpad-bar { display: flex; flex-wrap: wrap; gap: .4rem; margin-top: .5rem; line-height: normal; }
-.qpad-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
-  min-height: 44px; min-width: 64px; padding: 0 .8rem;
-  background: var(--sunk); color: var(--ink); border: 1px solid var(--line);
-  border-radius: var(--r-sm); font: 600 .74rem/1 var(--font); letter-spacing: .04em;
-  cursor: pointer;
-}
-/* ---------- THE LEAD, BECAUSE ARMING IS THE FIRST STEP AND THE OTHER TWO ARE NOT ------------------
-   THREE IDENTICAL GREY BUTTONS IN ONE ROW is what a screenshot of this card showed, and nothing in
-   it said which to press first — while `Undo` and `Clear` act on marks that cannot exist until the
-   pen is on. Its own line, and gold, which is what this app means everywhere else by "the one thing
-   to press".
+/* ---------- THE BAR IS A ROW OF TILES ---------------------------------------------------------------
+   `.qpad-btn` WAS HERE -- three word buttons 44px tall, the lock on a full-width line of its own in
+   gold outline. The owner: *"lock should be a tile too. same as undo and clear. it should all be
+   tiles."* So the bar is a `.tile-row` and every control in it a `.tile`, whose 44px square (a
+   fingertip in px, not rem), plate and press are `tile_`'s, with nothing to restate here.
 
-   THE PRESSED RULE STILL WINS AND BOTH WAYS ROUND: `.qpad-btn[aria-pressed="true"]` is (0,2,0)
-   against this (0,1,0), and it is written later as well — so the armed state is a gold FILL rather
-   than a gold outline, which is the difference between an invitation and a state. */
-.qpad-lock { flex: 1 0 100%; border-color: var(--gold); color: var(--gold); }
-.qpad-btn[aria-pressed="true"] { background: var(--gold); color: var(--bg); border-color: var(--gold); }
-.qpad-btn:active { transform: translateY(1px); }
+   THE LEAD, BECAUSE ARMING IS THE FIRST STEP AND THE OTHERS ARE NOT. A row of identical grey plates
+   says nothing about which to press first, while Undo and Clear act on marks that cannot exist until
+   the pen is on. So the lock's mark is gold -- what this app means by "the one thing to press" -- and
+   armed it is a gold FILL (`.on`), which is the difference between an invitation and a state. A TONE
+   and not a rule on `.qpad-lock`, because a tile's `cls` is a name a check finds it by, never a look.
+
+   THE FRAME IS GOLD TOO, FROM THE TOKEN. It was `rgb(242 210 75 / .35)` -- `--admin`'s yellow, copied
+   from `.tile.is-admin` with only the `color` changed -- and sampled off a screenshot the border came
+   out (95,84,37) round a (255,180,84) padlock: two yellows on one tile, one of them meaning "only you
+   can see this" on a control every student sees. */
+.tile.is-lead { color: var(--gold); border-color: color-mix(in srgb, var(--gold) 35%, transparent); }
+.tile.is-lead.on { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+/* TWO GROUPS, AND THE ROW BREAKS BETWEEN THEM: the lock with the tools it arms, then Undo and Clear.
+   Measured at 390 with no groups, six tiles wrapped the bin alone onto a second line. The same gap
+   inside a group as the row puts between them, so one row of six reads as one row. */
+.qpad-group { display: inline-flex; gap: .3rem; }
 /* NOT SENT ANYWHERE, AND THE CARD SAYS SO. `ansBox_` makes the same promise in its label; a pad
    that looked like homework going somewhere would be a promise the app cannot keep. */
 .qpad-note { margin: .35rem 0 0; font: 400 .62rem/1.4 var(--font); color: var(--faint);
              line-height: 1.4; }
+
+/* ---------- AN EARLIER PART'S MARKS, WHICH THIS PAGE CANNOT CHANGE ------------------------------------
+   "Use your graph" -- see `usesOf_`. Two places: UNDER a pad's own marks (`.qpad .qpad-was`), where
+   they must read as the earlier part's and not as this one's, because Undo and Clear will not touch
+   them -- the same gold at a little over half strength, so the line of (i) is plainly there and plainly
+   not the line you are drawing now; and ON A PICTURE WITH NO PEN (`.qseen`), the page in front of
+   "use your graph", where they are the only marks and are read off -- full gold, the pen's own width,
+   so a value read from your curve is read from the curve you drew.
+
+   `.qseen` IS THE PAD'S BOX WITHOUT THE PAD: `.qpad-art` and `.qpad-ink` place the ink over the
+   picture exactly as they do under a pen, and nothing here takes a finger. */
+.qseen { margin: 1rem 0; }
+/* THE BOX IS AS WIDE AS THE PICTURE, SAID OUTRIGHT: `.qpad-art` is an inline-block sized by its drawing,
+   and a drawing whose width is a percentage has no width of its own to give it -- in the Figure sheet
+   (`q-fig`) the box took the sheet's 291px while the grid stopped at 270, so the ink layer, stretched
+   to the box, put the child's curve 21px off the grid it was drawn on. The cap the drawing has
+   (`.qpad-art > svg`) moves to the box, and the drawing fills it. */
+.qseen .qpad-art { width: min(100%, 20rem); }
+.qseen .qpad-art > svg:first-child { width: 100%; }
+.qpad-was path { fill: none; stroke: var(--gold); stroke-width: 2.5;
+                 stroke-linecap: round; stroke-linejoin: round; }
+.qpad .qpad-was path { opacity: .55; }
+.qseen > .fig-by { margin: .5rem 0 0; text-align: left; opacity: 1;
+                   font: 400 .62rem/1.4 var(--font); color: var(--faint); }
+.qseen-note { margin: .5rem 0 0; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
 
 /* ---------- A PASSAGE THAT IS ITS OWN ANSWER SURFACE: RING A WORD BY TAPPING IT ----------------------
    "Circle the three adjectives in the passage below." `circWords_` makes every word of the part a
@@ -12643,6 +13547,26 @@ button.scr-sq { cursor: pointer; }
 .biz-item.is-overdue .biz-flag { color: var(--bad); }
 .biz-item label.field { margin-bottom: .3rem; } /* min-width comes from `.lib-row label.field` */
 .biz-item input { min-width: 0; }
+
+/* ---------- CHECK UPLOADS: AN ADMIN TOOL — see `uploadsHtml_` in me.js -----------------------------
+   Four questions, each a mark and a sentence. The mark is a ✓ or a ✗ AND a colour, never the colour
+   alone; the sentence under each label is the server's, so a long folder name or a Google error has
+   to wrap rather than push the card sideways. The steps are an ordered list because their order is
+   the point — the Allow before the new version, the new version before checking again. */
+.up-list { list-style: none; margin: .7rem 0 .4rem; padding: 0; }
+.up-row { display: flex; gap: .55rem; align-items: baseline; }
+.up-row + .up-row { margin-top: .45rem; }
+.up-mark { flex: 0 0 1rem; text-align: center; font-weight: 700; }
+.up-row.is-ok .up-mark { color: var(--good); }
+.up-row.is-bad .up-mark { color: var(--bad); }
+.up-k { display: block; font-size: .82rem; line-height: 1.3; }
+.up-v { display: block; font-size: .74rem; line-height: 1.35; color: var(--dim); overflow-wrap: anywhere; }
+.up-said { margin: .6rem 0 .3rem; font-size: .82rem; line-height: 1.35; overflow-wrap: anywhere; }
+.up-said.up-good { color: var(--good); }
+.up-said.up-bad { color: var(--bad); }
+.up-steps { margin: 0 0 .5rem; padding-left: 1.2rem; font-size: .78rem; line-height: 1.4; overflow-wrap: anywhere; }
+.up-steps li + li { margin-top: .3rem; }
+.up-ver { margin: .3rem 0 0; font-size: .68rem; }
 
 /* ---------- WHERE A TUTOR TUTORS, AS A HEAT MAP — see `profHeat_` in cards.js ---------------------
    A fixed-height window onto map tiles placed in pixels from its own centre. The tiles are 256px

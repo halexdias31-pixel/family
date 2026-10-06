@@ -118,11 +118,13 @@ const STATES = {
                          { field: 'kindLabel', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
-                         /* `Level · KS2 SATs`, WHERE THIS WAS `Key stage · KS2` — *"I prefer GCSE or
-                            SATs over grey areas."* A primary sheet's key stage is said as its
-                            qualification now, and Key stage is silent on it (see `keystage` in
-                            find.js), so the old answer reached nothing and the state went unmeasured. */
-                         { field: 'level', value: 'KS2 SATs' },
+                         /* `Level · SATs` AND THEN `Key stage · KS2`. This was `Key stage · KS2`,
+                            then `Level · KS2 SATs` when a primary sheet's key stage became its
+                            qualification -- *"I prefer GCSE or SATs over grey areas"* -- and is two
+                            answers now: *"sats is one tag not ks2 sats"*. The level is SATs and
+                            Key stage is asked inside it, and only there (see `keystage` in find.js). */
+                         { field: 'level', value: 'SATs' },
+                         { field: 'keystage', value: 'KS2' },
                          { field: 'yearGroup', any: true }];
         paintStuff();
         goPage('stuff', 0, true);
@@ -244,16 +246,19 @@ const STATES = {
         goPage('stuff', stuffFirstResult_(), true);
       },
       /* AND THE CARD'S SITTING IS TWO TAGS, `2017` THEN `June` — *"Fix this why it say June and year
-         in same chip"* was a screenshot of one purple `June 2024` pill on exactly this card. */
+         in same chip"* was a screenshot of one purple `June 2024` pill on exactly this card. THEN THE
+         DAY IT WAS SAT, `sat Thursday 8 June`, which was a line of its own under the tags and is a
+         sitting tag now (`qTags_`) -- with no year in it, so it is not the fused pill again. */
       expect: () => {
         const rows = document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]');
         const groups = document.querySelector('#stuff-groups');
         const card = document.querySelector('#s-stuff .page.on .qcard') || document.querySelector('#s-stuff .qcard');
         const sit = card ? [...card.querySelectorAll('.qtag[data-tag="sitting"]')].map(t => t.textContent.trim()) : [];
         return !!groups && rows.length === 0 && /That is the paper, in order/.test(groups.textContent)
-               && !!card && sit.join('|') === '2017|June';
+               && !!card && sit.slice(0, 2).join('|') === '2017|June'
+               && sit.slice(2).every(t => /^sat [A-Z][a-z]+ \d{1,2} [A-Z][a-z]+$/.test(t));
       },
-      wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it, its sitting tagged 2017 then June',
+      wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it, its sitting tagged 2017 then June (then the day it was sat, with no year)',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- AN ANSWER ONE LETTER LONG ---------------------------------------------------------
        A CHIP IS AS WIDE AS ITS WORDS, and the letter ranges `bucketValues_` groups a long list into
@@ -566,13 +571,15 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'stem0'));
       },
+      /* THE PAGE'S OWN TAGS -- what it is and its number -- which replaced the gold header (`qPage_`). */
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qstem');
-        return !!c && /^Q5( · \d+ of \d+)?$/.test(c.querySelector('.qcard-top').textContent.trim().replace(/\s+/g, ' '))
+        const tag = k => ((c && c.querySelector('.qcard-tags [data-tag="' + k + '"]')) || {}).textContent || '';
+        return !!c && tag('kind') === 'Question' && /^Q5( · \d+ of \d+)?$/.test(tag('number').trim()) && !tag('marks')
                && !!c.querySelector('.qsheet-stem') && !c.querySelector('.qp-ans, svg')
                && !!c.querySelector('.qsheet-figref');
       },
-      wants: 'the stem of Q5 on its own page, headed Q5 (1 of 2: its table makes it two), no box and no picture, saying what is next',
+      wants: 'the stem of Q5 on its own page, tagged Question and Q5 (1 of 2: its table makes it two), no marks, no box and no picture, saying what is next',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'its figure, the page after, with no question number',
       enter: () => {
@@ -585,11 +592,12 @@ const STATES = {
       },
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qfig');
-        return !!c && !/\bQ\d/.test(c.querySelector('.qcard-top').textContent)
-               && /^Figure/.test(c.querySelector('.qcard-top').textContent.trim())
+        const row = c && c.querySelector('.qcard-tags');
+        return !!row && !/\bQ\d/.test(row.textContent) && !row.querySelector('[data-tag="number"], [data-tag="marks"]')
+               && /^Figure/.test((row.querySelector('[data-tag="kind"]') || {}).textContent || '')
                && !!c.querySelector('figure svg') && !c.querySelector('.qp-ans');
       },
-      wants: 'the Venn diagram on its own page, headed Figure, with no question number and no box',
+      wants: 'the Venn diagram on its own page, tagged Figure first, with no question number, no marks and no box',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A DRAWING QUESTION WITH NO PICTURE: A SQUARED GRID UNDER THE PEN ----------------------
        *"some questions require answers on diagram. So should have a diagram for them to draw on"*. The
@@ -612,11 +620,136 @@ const STATES = {
         const c = document.querySelector('#s-stuff .page.on .qcard.qfig');
         return !!c && c.getAttribute('data-of') === window.__surfRow
                && !!c.querySelector('.qpad .qpad-art > svg.qsurf.is-grid')
-               && c.querySelector('.qcard-top').textContent.trim() === 'Squared grid'
+               && ((c.querySelector('.qcard-tags [data-tag="kind"]') || {}).textContent || '') === 'Squared grid'
                && /not the paper.s own figure/i.test(c.textContent);
       },
-      wants: 'a squared grid on its own page after its question, under the pen, headed "Squared grid" and saying it is not the paper\'s figure',
+      wants: 'a squared grid on its own page after its question, under the pen, tagged "Squared grid" and saying it is not the paper\'s figure',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- "USE YOUR GRAPH", WITH THE GRAPH IN FRONT OF IT --------------------------------------------
+       The multi-part audit's finding 5, on the row it named: June 2024 Foundation Paper 2, Q24(c) "Use your
+       graph to find estimates for the solutions of x^2 - x = 4", whose `uses` is (b). The curve (b) asks
+       for is put on (b)'s grid under whoever is signed in, as the pen stores a stroke -- y = x^2 - x from
+       -2 to 3, placed off the grid's own axes -- and the strip is turned to the page in front of (c): (b)'s
+       picture with the curve on it, no pen, no control, and the line saying whose marks they are. */
+    { name: 'the page in front of "use your graph", with the graph drawn on (b)',
+      enter: () => {
+        const all = stuffItemsAll_();
+        const c = all.find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-2F-24c');
+        const b = all.find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-2F-24b');
+        if (!c || !b) throw new Error('June 2024 2F Q24(b) or (c) is not in the library');
+        if (typeof usesOf_ !== 'function' || usesOf_(c) !== b) throw new Error('Q24(c) does not use (b) -- its `uses` cell is gone');
+        const pts = [];
+        for (let i = 0; i <= 25; i++) {
+          const x = -2 + i / 5;
+          pts.push(Math.round(146.5 + 45 * x), Math.round((194 - 22.5 * (x * x - x)) * 340 / 294));
+        }
+        window.__useKey = padKey_(b);
+        try { localStorage.setItem(window.__useKey, JSON.stringify([pts])); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(c) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(c, 'use'));
+      },
+      expect: () => {
+        const p = document.querySelector('#s-stuff .page.on .qcard.qfig-uses');
+        return !!p && p.getAttribute('data-of') === 'Q-1MA1-2406-2F-24c'
+               && p.querySelectorAll('.qpad-was path').length === 1 && !p.querySelector('.qpad, .tile, .qp-ans')
+               && /Your marks from Q24b/.test(p.textContent);
+      },
+      wants: '(b)\'s grid with the curve drawn on it, read only, on the page in front of "Use your graph", saying the marks are from Q24b',
+      leave: () => {
+        try { localStorage.removeItem(window.__useKey); } catch (e) {}
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- AND ITS FIGURE TILE, WITH THE SAME GRAPH ON IT ----------------------------------------------
+       Found in review: on Q24(c) the Figure tile opened (b)'s grid EMPTY while the page before showed the
+       child's curve. Now the sheet carries the marks (`figsBefore_`) -- and, measured here because only a
+       browser lays it out, ON the grid: in the sheet `.qpad-art` first took the sheet's whole width while
+       the grid stopped at its 20rem cap, so the ink layer stretched past the picture and the curve sat
+       21px off the axes it was drawn on. The tile is pressed through its own handler, as a finger does. */
+    { name: 'the Figure tile on "use your graph", opening (b)\'s grid with the graph on it',
+      enter: () => {
+        const all = stuffItemsAll_();
+        const c = all.find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-2F-24c');
+        const b = all.find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-2F-24b');
+        if (!c || !b) throw new Error('June 2024 2F Q24(b) or (c) is not in the library');
+        const pts = [];
+        for (let i = 0; i <= 25; i++) {
+          const x = -2 + i / 5;
+          pts.push(Math.round(146.5 + 45 * x), Math.round((194 - 22.5 * (x * x - x)) * 340 / 294));
+        }
+        window.__useKey = padKey_(b);
+        try { localStorage.setItem(window.__useKey, JSON.stringify([pts])); } catch (e) {}
+        const h = document.createElement('div');
+        h.innerHTML = figTile_(c);
+        if (!h.firstElementChild) throw new Error('Q24(c) has no Figure tile');
+        ACTIONS['q-fig'](h.firstElementChild);
+      },
+      expect: () => {
+        const s = document.querySelector('#sheet-body .qfig-sheet .qseen');
+        const art = s && s.querySelector('.qpad-art > svg:first-child');
+        const ink = s && s.querySelector('.qpad-ink');
+        if (!art || !ink) return false;
+        const a = art.getBoundingClientRect(), k = ink.getBoundingClientRect();
+        return s.querySelectorAll('.qpad-was path').length === 1 && !s.querySelector('.qpad')
+               && /yours from Q24b/.test(s.textContent)
+               && Math.abs(a.width - k.width) <= 1 && Math.abs(a.height - k.height) <= 1;
+      },
+      wants: 'the sheet showing (b)\'s grid with the curve on it, read only, the ink exactly the grid\'s size, saying the marks are from Q24b',
+      leave: () => {
+        try { localStorage.removeItem(window.__useKey); } catch (e) {}
+        closeSheet();
+      } },
+    /* ---------- A CONSTRUCTION, WITH A RULER'S LINE AND A COMPASS'S RING ON IT -----------------------------
+       *"some questions require a compass or ruler. so should have a tile for these things."* November 2019
+       Higher Paper 1, Q4: "Use a ruler and compasses to construct the line from the point P perpendicular
+       to the line CD" -- the one pen question in the library whose own row asks for compasses, found by
+       id. On its figure page, with the Compass in hand (pressed as a finger would, which also locks the
+       card) and two marks made the way the tools make them: a ruler's two-point line and a closed ring
+       built by the app's own `padArc_` from the ink's real box, so it is round at every width. Measured
+       armed, because the bar's lit tile and the gold-filled lock are what is new here. */
+    { name: 'a construction with the ruler and compass in the pen bar, a line and a circle drawn',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1911-1H-4');
+        if (!it) throw new Error('Q-1MA1-1911-1H-4 is not in the library');
+        if (padToolsOf_(it).join(' ') !== 'pen ruler compass') throw new Error('Q-1MA1-1911-1H-4 is not offered a ruler and compasses: ' + padToolsOf_(it).join(' '));
+        window.__toolKey = padKey_(it);
+        try { localStorage.removeItem(window.__toolKey); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'fig'), true);
+        /* IN THE TICK THE PAGE IS BUILT, found by its key (`.page.on` comes a frame later), with a
+           tick's grace if it is not there yet -- the timing the answer states above settled on. */
+        const mark = () => {
+          const pad = [...document.querySelectorAll('#s-stuff .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
+          const ink = pad && pad.querySelector('.qpad-ink');
+          if (!ink) return false;
+          const r = ink.getBoundingClientRect();
+          if (!r.width || !r.height) return false;
+          const ring = padArc_([200, 150], Math.min(r.width, r.height) * 0.22, r.width / 340, r.height / 340, 0, 2 * Math.PI);
+          const marks = [[60, 280, 290, 60], ring];
+          try { localStorage.setItem(window.__toolKey, JSON.stringify(marks)); } catch (e) {}
+          padRepaint_(pad, marks);
+          const c = pad.querySelector('.qpad-tool[data-tool="compass"]');
+          if (c) c.click();
+          return true;
+        };
+        if (!mark()) setTimeout(mark, 150);
+      },
+      expect: () => {
+        const pad = [...document.querySelectorAll('#s-stuff .page.on .qpad')].find(p => p.getAttribute('data-k') === window.__toolKey);
+        const lit = pad && [...pad.querySelectorAll('.qpad-tool.on')].map(b => b.getAttribute('data-tool')).join(' ');
+        return !!pad && pad.classList.contains('is-drawing') && lit === 'compass'
+               && !!pad.querySelector('.qpad-tool[data-tool="ruler"]') && !!pad.querySelector('.qpad-lock.on')
+               && pad.querySelectorAll('.qpad-g path').length === 2;
+      },
+      wants: 'Q4\'s figure under the pen, armed, with Pen, Ruler and Compass in its bar, the Compass lit, and a ruler\'s line and a compass\'s ring on it',
+      leave: () => {
+        try { localStorage.removeItem(window.__toolKey); } catch (e) {}
+        PAD_ON = ''; PAD_TOOL.delete(window.__toolKey);
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- A PASSAGE WITH TWO WORDS RINGED -----------------------------------------------------------
        "Circle the three adjectives in the passage below" -- KS2 grammar, June 2025. NO ROW CARRIES
        `surface: "text"` YET (the data workflow is writing it), so this gives the real row the value it
@@ -636,12 +769,19 @@ const STATES = {
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
-        setTimeout(() => {
+        /* AT ONCE, by key, where the page is already built; after a tick only if not -- a loaded run's 150ms
+           timer is what left this state unreached (the answer states above say more). */
+        const k = circKey_(it);
+        const ring = () => {
+          const host = [...document.querySelectorAll('#s-stuff [data-circ]')].find(h => h.getAttribute('data-circ') === k);
+          if (!host) return false;
           ['crumbling', 'rocky'].forEach(t => {
-            const w = [...document.querySelectorAll('#s-stuff .page.on .qw')].find(s => s.textContent === t);
+            const w = [...host.querySelectorAll('.qw')].find(s => s.textContent === t);
             if (w) w.click();
           });
-        }, 150);
+          return true;
+        };
+        if (!ring()) setTimeout(ring, 150);
       },
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qsheet-part.is-text');
@@ -676,7 +816,7 @@ const STATES = {
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qpre');
         return !!c && !c.querySelector('.qp-ans') && /Continued on the next page/.test(c.textContent)
-               && /1 of \d/.test(c.querySelector('.qcard-top').textContent);
+               && /1 of \d/.test((c.querySelector('.qcard-tags [data-tag="number"]') || {}).textContent || '');
       },
       wants: 'the first page of a long part: its reading, no box, "1 of N", saying it continues',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
@@ -697,13 +837,42 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
       },
+      /* IN THE TILE ROW, BESIDE THE STAR -- the gold header it sat in became tags, and the date is yours
+         like the star is (`questionTiles_`). */
       expect: () => {
-        const s = document.querySelector('#s-stuff .page.on .qcard-top .qcard-done');
-        return !!s && /^Done 4 Oct( \d{4})?$/.test(s.textContent);
+        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-done');
+        return !!s && /^Done 4 Oct( \d{4})?$/.test(s.textContent)
+               && !document.querySelector('#s-stuff .page.on .qcard .qcard-done');
       },
-      wants: 'the question card saying "Done 4 Oct" beside its marks',
+      wants: 'the question card\'s tile row saying "Done 4 Oct" beside the star',
       leave: () => { try { localStorage.removeItem(window.__doneKey); } catch (e) {}
                      STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A KS2 SATs QUESTION: `SATs` AND `KS2`, TWO TAGS, AND WHAT TO BRING AS ITS OWN ---------
+       *"why is ks2 sats one tag? it should be sats. if they want to specify key stage then it should be
+       its own thing."* and *"why do the questions say non calculator but its not a tag?"* One row, named:
+       the May 2024 Reasoning paper's first question, which asks for a ruler -- so the card wears the
+       page's own tags, the level and the key stage as two blue pills, and a needs pill in its own
+       colour, every one of which `ui.js` measures for contrast and for fitting at 320. Reached by the
+       funnel's Paper answer, as a thumb reaches it. */
+    { name: 'a KS2 SATs question, SATs and KS2 as two tags',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-STA-KS2-2024-P2-1');
+        if (!it) throw new Error('Q-STA-KS2-2024-P2-1 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+      },
+      expect: () => {
+        const row = document.querySelector('#s-stuff .page.on .qcard .qcard-tags');
+        const tags = row ? [...row.querySelectorAll('.qtag')].map(t => (t.getAttribute('data-tag') || '') + ':' + t.textContent.trim()) : [];
+        return tags[0] === 'kind:Question' && tags[1] === 'number:Q1' && tags.indexOf('level:SATs') >= 0
+               && tags.indexOf('level:KS2') === tags.indexOf('level:SATs') + 1
+               && !tags.some(t => /KS\s*\d\s*SATs/i.test(t)) && tags.indexOf('needs:Ruler') >= 0
+               && !document.querySelector('#s-stuff .page.on .qcard-needs, #s-stuff .page.on .qcard-top');
+      },
+      wants: 'a KS2 SATs question tagged Question, Q1, its mark, then SATs and KS2 side by side and Ruler as what to bring -- no header line, no needs line',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE ANSWER PAGE: HIDDEN, TURNED TO, AND SHOWN ----------------------------------------
        ASKED FOR AS "what I want was answers to be short and to be their own widget" -- the answer is
        the page after its question (`questionAnsCard_`) -- and then *"remove all 'why's. I just want
@@ -761,20 +930,32 @@ const STATES = {
         goPage('stuff', first + stuffPageOf_(it), true);
         window.__ansWant = first + stuffPageOf_(it, 'ans');
         window.__ansFrom = null;
-        /* THE TILE ON THE QUESTION'S OWN PAGE, pressed as a finger would. */
-        setTimeout(() => {
-          const tile = document.querySelector('#s-stuff .page.on [data-do="qa-go"]');
+        /* THE TILE ON THE QUESTION'S OWN PAGE, pressed as a finger would -- AT ONCE where it is already
+           drawn (the landing above is instant), so the whole of `ui.js`'s wait goes to the page turning.
+           Pressed after a tick, a loaded run measured the strip still sliding: "PANE OFF THE SCREEN",
+           73px out, a picture of the turn rather than of the page it turned to. */
+        /* BY ITS KEY, NOT BY `.page.on`, which is set a frame after the instant landing -- so the tile is
+           found in the same tick the page is built, and a loaded run's timers cannot eat the wait. */
+        const k = ansKey_(it);
+        const press = () => {
+          const tile = [...document.querySelectorAll('#s-stuff [data-do="qa-go"]')].find(b => b.getAttribute('data-k') === k);
+          if (!tile) return false;
           window.__ansFrom = PAGE.stuff;
-          if (tile) tile.click();
-        }, 150);
+          tile.click();
+          return true;
+        };
+        if (!press()) setTimeout(press, 150);
       },
+      /* LANDED ON, AND STILL HIDDEN. *"answers should just stay hidden unless user unhides them"* --
+         the question's tile is `To the answer` now and turns the page without revealing it; the
+         page's own Show tile is the one tap that does. */
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qans-card');
         return window.__ansFrom !== null && PAGE.stuff === window.__ansWant && PAGE.stuff > window.__ansFrom
-               && !!c && !c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
-               && (c.querySelector('.qans-body') || {}).textContent.trim() === ((t) => { const d = document.createElement('div'); d.innerHTML = typeset_(answerParts_(t).head); return d.textContent.trim(); })((stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1MA1-1811-1H-3') || {}).answer);
+               && !!c && c.classList.contains('is-hidden') && c.getAttribute('data-of') === 'Q-1MA1-1811-1H-3'
+               && !c.querySelector('.qans, .qans-body') && !!c.querySelector('.tile[data-do="qa-show"]');
       },
-      wants: 'the question\'s answer tile pressed, and the page turned forward to its answer, open: the result answerParts_ gives it',
+      wants: 'the question\'s "To the answer" tile pressed, and the page turned forward to its answer -- still hidden, Show the answer waiting',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'an answer, shown, and nothing under it',
       enter: () => {
@@ -785,19 +966,79 @@ const STATES = {
         STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
-        setTimeout(() => {
-          const btn = document.querySelector('#s-stuff .page.on .qans-card [data-do="qa-show"]');
-          if (btn) btn.click();
-        }, 150);
+        /* AT ONCE, by key, where the page is already built; after a tick only if not -- a loaded run's 150ms
+           timer is what left this state unreached (the answer states above say more). */
+        const k = ansKey_(it);
+        const show = () => {
+          const c = [...document.querySelectorAll('#s-stuff .qans-card')].find(e => e.getAttribute('data-k') === k);
+          const btn = c && c.querySelector('[data-do="qa-show"]');
+          if (!btn) return false;
+          btn.click();
+          return true;
+        };
+        if (!show()) setTimeout(show, 150);
       },
       /* THE RESULT AND NOTHING ELSE: "No", and no fold, no working, no examiner's note under it. */
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qans-card:not(.is-hidden)');
         const ans = c && c.querySelector('.qans');
         return !!ans && ans.querySelector('.qans-body').textContent.trim() === ((t) => { const d = document.createElement('div'); d.innerHTML = typeset_(answerParts_(t).head); return d.textContent.trim(); })((stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1MA1-1811-1H-3') || {}).answer)
-               && !c.querySelector('details, .qans-why, .qans-more, .qans-note');
+               && !c.querySelector('details, .qans-why, .qans-more, .qans-note')
+               && !!c.querySelector('.tile[data-do="qa-hide"]') && !c.querySelector('[data-do="qa-show"]');
       },
-      wants: 'the answer page showing its result (the head answerParts_ gives) once its button is pressed, and nothing under it',
+      wants: 'the answer page showing its result (the head answerParts_ gives) once its tile is pressed, nothing under it, and Hide the answer where Show was',
+      leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- AND HIDDEN AGAIN, WITH THE TILE WHERE THE THUMB LEFT IT -----------------------------
+       *"answers should just stay hidden unless user unhides them. and can hide them again. simple is
+       best."* Show, then Hide, by real clicks; the tile's box is measured at each step, because "the
+       same place" is a fact about pixels and jsdom has none (check-flow holds the markup half). The
+       tile and the card's top may not move by half a pixel either way, and the page ends hidden with
+       no answer in it. */
+    { name: 'an answer shown and hidden again, its tile where it was',
+      enter: () => {
+        ANS_SHOWN.clear();
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-1811-1H-3');
+        if (!it) throw new Error('Q-1MA1-1811-1H-3 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'ans'));
+        window.__ansAt = [];
+        window.__ansK = ansKey_(it);
+        /* BY ITS KEY, in the tick the page is built: `.page.on` arrives a frame after an instant
+           landing, and a loaded run's timers are what made the states round here flaky. */
+        const card = () => [...document.querySelectorAll('#s-stuff .qans-card')].find(c => c.getAttribute('data-k') === window.__ansK);
+        const at = () => {
+          const c = card();
+          const t = c && c.querySelector('.qa-toggle');
+          if (!t) return null;
+          const r = t.getBoundingClientRect(), q = c.getBoundingClientRect();
+          return { x: r.left, y: r.top, top: q.top, act: t.getAttribute('data-do') };
+        };
+        /* IN ONE TICK: the redraw is synchronous and a box read straight after it is laid out, so
+           there is nothing to wait for between the presses -- and nothing a slow run can miss. */
+        const run = () => {
+          if (!card()) return false;
+          window.__ansAt.push(at());
+          const s = card().querySelector('[data-do="qa-show"]');
+          if (s) s.click();
+          window.__ansAt.push(at());
+          const h = card().querySelector('[data-do="qa-hide"]');
+          if (h) h.click();
+          window.__ansAt.push(at());
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
+      },
+      expect: () => {
+        const a = window.__ansAt || [];
+        const c = [...document.querySelectorAll('#s-stuff .page.on .qans-card')].find(e => e.getAttribute('data-k') === window.__ansK);
+        const still = (p, q) => !!p && !!q && Math.abs(p.x - q.x) < 0.5 && Math.abs(p.y - q.y) < 0.5 && Math.abs(p.top - q.top) < 0.5;
+        return a.length === 3 && a[0] && a[0].act === 'qa-show' && a[1] && a[1].act === 'qa-hide' && a[2] && a[2].act === 'qa-show'
+               && still(a[0], a[1]) && still(a[1], a[2])
+               && !!c && c.classList.contains('is-hidden') && !c.querySelector('.qans, .qans-body');
+      },
+      wants: 'Show then Hide pressed on the answer page: the tile in the same place at every step, and the page hidden again with no answer in it',
       leave: () => { ANS_SHOWN.clear(); STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- MARKED, AND NOTHING MOVED --------------------------------------------------------
        ASKED FOR AS "make it nice more sleek, fresh stable". The unstable part was measured before it
@@ -824,12 +1065,14 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__qStable = null; window.__qCard = null;
-        setTimeout(() => {
+        /* AT ONCE WHERE THE CARD IS ALREADY BUILT, by its key, and after a tick only if not: a loaded run's
+           150ms timer is what left this state unreached (see the answer states above). */
+        const run = () => {
           const hit = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === ansKey_(it));
           const card = window.__qCard = hit && hit.closest('.qcard');
           const inp = card && card.querySelector('.qp-ans-in');
           const btn = card && card.querySelector('.qp-check');
-          if (!inp || !btn) return;
+          if (!inp || !btn) return false;
           const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
                             card.querySelector('.qp-ans').getBoundingClientRect().top,
                             card.getBoundingClientRect().height];
@@ -838,7 +1081,9 @@ const STATES = {
           inp.dispatchEvent(new Event('input', { bubbles: true }));
           btn.click();
           window.__qStable = { a, b: at() };
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const s = window.__qStable;
@@ -862,12 +1107,14 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__qStable = null; window.__qCard = null;
-        setTimeout(() => {
+        /* AT ONCE WHERE THE CARD IS ALREADY BUILT, by its key, and after a tick only if not: a loaded run's
+           150ms timer is what left this state unreached (see the answer states above). */
+        const run = () => {
           const hit = [...document.querySelectorAll('#s-stuff .qp-ans-in')].find(b => b.getAttribute('data-k') === ansKey_(it));
           const card = window.__qCard = hit && hit.closest('.qcard');
           const inp = card && card.querySelector('.qp-ans-in');
           const btn = card && card.querySelector('.qp-check');
-          if (!inp || !btn) return;
+          if (!inp || !btn) return false;
           const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
                             card.querySelector('.qp-ans').getBoundingClientRect().top,
                             btn.getBoundingClientRect().top];
@@ -876,7 +1123,9 @@ const STATES = {
           inp.dispatchEvent(new Event('input', { bubbles: true }));
           btn.click();
           window.__qStable = { a, b: at() };
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const s = window.__qStable;
@@ -909,11 +1158,13 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
         window.__qStable = null; window.__qCard = null;
-        setTimeout(() => {
+        /* AT ONCE, by key, where the page is already built; after a tick only if not -- a loaded run's 150ms
+           timer is what left this state unreached (the answer states above say more). */
+        const run = () => {
           const hit = [...document.querySelectorAll('#s-stuff .qp-choices')].find(b => b.getAttribute('data-k') === ansKey_(it));
           const card = window.__qCard = hit && hit.closest('.qcard');
           const opts = card ? [...card.querySelectorAll('.qp-opt')] : [];
-          if (opts.length < 2) return;
+          if (opts.length < 2) return false;
           const miss = it.choiceRight[0] === 1 ? 2 : 1;
           const at = () => [card.querySelector('.qsheet-pb').getBoundingClientRect().top,
                             card.querySelector('.qp-opt[data-n="' + miss + '"]').getBoundingClientRect().top,
@@ -921,18 +1172,22 @@ const STATES = {
           const a = at();
           opts[miss - 1].click();
           window.__qStable = { a, b: at() };
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const s = window.__qStable;
         const box = window.__qCard && window.__qCard.querySelector('.qp-choices');
         const mark = box && box.nextElementSibling;
         return !!s && !!box && box.classList.contains('is-done')
-               && !!box.querySelector('.qp-opt.is-picked:not(.is-ans)') && !!box.querySelector('.qp-opt.is-ans')
+               /* THE MISS, AND NO TICK ANYWHERE: the right option is the answer, and it waits behind
+                  Show on the answer page like every other one (`choiceBox_`). */
+               && !!box.querySelector('.qp-opt.is-picked:not(.is-ans)') && !box.querySelector('.qp-opt.is-ans')
                && !!mark && mark.classList.contains('is-near')
                && s.a.every((v, i) => Math.abs(v - s.b[i]) < 0.5);
       },
-      wants: 'a wrong tap marked, the right option ticked, and the question, the option and the card\'s height unmoved',
+      wants: 'a wrong tap marked, no option ticked as the answer, and the question, the option and the card\'s height unmoved',
       leave: () => {
         const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-CBM-multiplying-and-dividing-by-10-100-1000-etc-12');
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
@@ -975,7 +1230,9 @@ const STATES = {
             if (k) k.click();
           });
         };
-        setTimeout(typeIt, 60);
+        /* FIRST AT ONCE, in the tick the card is built -- the poll is the fallback, and on a machine
+           loaded to thirty its 20ms steps slipped past ui.js's half second (390, 768 and 1280, one run). */
+        typeIt();
       },
       expect: () => {
         const pad = document.getElementById('kp');
@@ -990,6 +1247,54 @@ const STATES = {
       leave: () => {
         const it = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q0664');
         try { if (it) localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
+    /* ---------- THE KEYPAD UP ON A PART WITH A FIGURE BEHIND IT: THE FIGURE TILE STAYS ABOVE THE PAD ---
+       THE REVIEW OF THE MULTI-PART MERGE, at 320x568: 1F Q23b's box raised the pad (top 315) and Check,
+       Figure and To the answer stood at 322-437, under it -- the Figure tile exists to show the Venn
+       WHILE answering, and was hidden exactly then; a tap where it had been typed a key. The tile now
+       stands at the end of the box's own line (`ansBox_`), so wherever the box clears the pad, it does.
+       Expect: the box AND the Figure tile wholly above the pad's top edge, at every width. */
+    { name: 'a part with a figure behind it, the keypad up, the Figure tile above the pad',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-23b');
+        if (!it) throw new Error('1F Q23b is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__kfKey = ansKey_(it);
+        /* AFTER THE COLUMN HAS STOPPED, as a finger would: the box is tapped on a page that is still.
+           Focused 20ms after `goPage`, the slide's own settle (`afterSlide_`) let go of the hold the pad
+           had just lifted the card on (and the page was not yet `.on`, so the lift never ran), and the box sat under the pad at 320 -- a fault of the state's
+           timing, not the app's: opened on the settled page, the lift is 45px and both clear it. */
+        let tries = 0;
+        const up = () => {
+          const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__kfKey);
+          const moving = typeof AFTER_SLIDE !== 'undefined' && (AFTER_SLIDE || AFTER_SLIDE_JOBS.size);
+          if (!inp || moving || !inp.closest('#screen .page.on')) { if (++tries < 60) setTimeout(up, 50); return; }
+          inp.focus();
+          if (KP_AT !== inp) kpOpen_(inp);
+        };
+        up();
+      },
+      expect: () => {
+        const pad = document.getElementById('kp');
+        const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__kfKey);
+        const pg = inp && inp.closest('.page');
+        const fig = pg && pg.querySelector('[data-do="q-fig"]');
+        if (!pad || pad.hidden || !inp || !fig) return false;
+        const top = pad.getBoundingClientRect().top;
+        return inp.getBoundingClientRect().bottom <= top && fig.getBoundingClientRect().bottom <= top
+          && fig.getBoundingClientRect().top >= 0;
+      },
+      wants: '1F Q23b\u2019s box focused, the keypad up, and both the box and its Figure tile wholly above the pad',
+      leave: () => {
+        try { localStorage.removeItem(window.__kfKey); } catch (e) {}
         if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
         kpClose_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
@@ -1034,7 +1339,8 @@ const STATES = {
           ta.dispatchEvent(new Event('input', { bubbles: true }));
           go.click();
         };
-        setTimeout(markIt, 60);
+        /* FIRST AT ONCE, as the keypad's state above now does; the poll is the fallback. */
+        markIt();
       },
       expect: () => {
         const ta = [...document.querySelectorAll('#s-stuff textarea.qp-ans-in')].find(b => b.getAttribute('data-k') === window.__aiKey);
@@ -1086,6 +1392,75 @@ const STATES = {
                && !!row && row.classList.contains('tile-row') && !!row.querySelector('a.tile[href]');
       },
       wants: 'at least two film cards, each with no tile row inside it, and the Watch tile in the row under the card' },
+    /* ---------- THE BIBLE, WHICH ONLY THE ADMIN VISITOR IS SHOWN ----------------------------------
+       "i want to add the bible to resources as a book. but only admin can see the bible." `only`, for
+       the films' reason one state up — signed out there is no item, no shelf answer and no fetch, and
+       asking a stranger to reach it would report a fault about the check (check-flow proves the
+       absence; this measures the presence).
+
+       EVERY PAGE OF IT IS CUT TO THE SCREEN, AND `check/ui.js` HOLDS IT TO THAT: a Bible page that
+       `paneReach_` had to draw smaller is a failure there, not a known cost (see `A PAGE CUT TO THE
+       SCREEN`). And `ui.js` measures every pane in the strip, not just the one in front, so each state
+       here is the page it names and the pages either side of it:
+         · the Old Testament — the cover and all three lists, which are the densest chip pages: the
+           thirty-nine were drawn at 84% at 320 until they became two pages.
+         · Genesis 1 — the reading page, the chapter numbers in front of it, and the pages after it,
+           every one cut in measured pixels when the book was opened (`bibleMeasure_`).
+         · Psalms's numbers — the one book whose numbers are several pages (five at 320x568), sized
+           to whole rows of the pane, each with a tile back to its list.
+       Each book is fetched by the app's own call from the local server, the way a tap fetches it. */
+    { name: 'the Bible, the Old Testament',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        paintStuff();
+        const x = stuffFiltered().find(i => i.kind === 'bible');
+        if (!x) throw new Error('no Bible on the Books shelf for an admin');
+        goPage('stuff', stuffFirstResult_() + Math.max(0, pageParts_(x).indexOf('ot')), true);
+        /* GENESIS AND PSALMS ASKED FOR NOW, for the states after this one. Their `enter` has the
+           500ms every state gets, and on a machine running four suites at once a 204 KB fetch plus
+           the paint did not land inside it — the state was reported as not arriving at 1280 while it
+           arrived a moment later. Held for the visit, so the next states open them from memory, as a
+           second tap would. Nothing on THIS page changes: the list is only redrawn by a tap. */
+        bibleLoad_(1);
+        bibleLoad_(19);
+      },
+      expect: () => document.querySelectorAll('#s-stuff .bb-toc[data-bb="ot"] [data-do="bible-book"]').length === 17
+                    && document.querySelectorAll('#s-stuff .bb-toc[data-bb="ot2"] [data-do="bible-book"]').length === 22
+                    && document.querySelectorAll('#s-stuff .bb-toc[data-bb="nt"] [data-do="bible-book"]').length === 27,
+      wants: 'the Bible\'s three lists of books — Genesis to Esther, Job to Malachi, the New Testament — a button each' },
+    { name: 'the Bible, Genesis 1',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        paintStuff();
+        bibleLoad_(1).then(d => { if (d) { bibleSet_(1); bibleGo_('c1'); } });
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .card.bb-text.is-c1');
+        return !!c && /In the beginning God created the heaven and the earth\./.test(c.textContent)
+               && !!c.querySelector('.bb-v i') && !/[\[\]]/.test(c.textContent)
+               && !!c.querySelector('.tile-row [data-do="bible-to"]')
+               && !!document.querySelector('#s-stuff .card.bb-chs [data-do="bible-ch"]');
+      },
+      wants: 'Genesis 1 drawn, "In the beginning…" with a supplied word in italics, no bracket, and its tile back to the chapter numbers beside it' },
+    { name: 'the Bible, Psalms\'s chapter numbers',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        paintStuff();
+        bibleLoad_(19).then(d => { if (d) { bibleSet_(19); bibleGo_('bk-1'); } });
+      },
+      expect: () => {
+        const g = document.querySelector('#s-stuff .card.bb-chs.is-bk-1');
+        return !!g && g.querySelectorAll('[data-do="bible-ch"]').length > 0
+               && !!g.querySelector('.tile-row [data-do="bible-to"][data-to="ot2"]');
+      },
+      wants: 'the second page of Psalms\'s chapter numbers, with its tile back to Job to Malachi',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ==============================================================================================
        THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
 
@@ -1108,20 +1483,85 @@ const STATES = {
         paintStuff();
         goPage('stuff', stuffFirstResult_(), true);
       },
+      /* ---------- AND THE PROFILE IT BECAME ------------------------------------------------------------
+         ASKED FOR AS *"refine the boxers widget. maybe add image of each boxer ... the wins losses
+         etc."* The record left the gold meta line for a scoreboard of its own, and the photo stands
+         beside the name — so this asks what only a browser can answer about that: the picture box is
+         the 4:5 it was told to be, it sits to the LEFT of the name rather than over it (the grid in
+         style.css, not the markup, puts it there), the scoreboard is whole numbers or says there is no
+         record, and nothing on the card scrolls sideways at this width. The shared head's two rules
+         stay: one title size, the flag above the title. */
       expect: () => {
-        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer')
-               || document.querySelector('#s-stuff .card.fc.boxer');
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)')
+               || document.querySelector('#s-stuff .card.fc.boxer:not(.is-fights)');
         if (!c || c.querySelector('.thing')) return false;
         const h3 = c.querySelector('.fc-head > h3'), flag = c.querySelector('.fc-head .fc-flag');
-        const rec = c.querySelector('.fc-meta.boxer-rec');
-        if (!h3 || !flag || !rec || flag.textContent.trim() !== 'Boxer') return false;
+        const rec = c.querySelector('.boxer-rec'), frame = c.querySelector('.boxer-pic .boxer-frame');
+        if (!h3 || !flag || !rec || !frame || flag.textContent.trim() !== 'Boxer') return false;
         const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        const nums = [...rec.querySelectorAll('.boxer-tally .boxer-n > b')].map(b => b.textContent.trim());
+        const told = nums.length ? nums.length >= 3 && nums.every(n => /^\d+$/.test(n))
+                                 : /No fight record on file/.test(rec.textContent);
+        const f = frame.getBoundingClientRect(), t = h3.getBoundingClientRect();
         return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
-               && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
-               && /^\d+-\d+-\d+/.test(rec.textContent.trim());
+               && flag.getBoundingClientRect().bottom <= t.top + .5
+               && told && f.width > 0 && Math.abs(f.width / f.height - .8) < .03
+               && f.right <= t.left + .5
+               && c.scrollWidth <= c.clientWidth + 1;
       },
-      wants: 'a boxer on the shared head — the name at the title size under a Boxer flag, the record on the meta line, no shop row',
+      wants: 'a boxer\'s profile — the name at the title size under a Boxer flag, a 4:5 picture box to its left, the record as a scoreboard of whole numbers (or "no record on file"), nothing scrolling sideways',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- THE PHOTO'S CREDIT, AS A LINK A FINGER CAN HIT ------------------------------------------
+       THE CREDIT IS A LINK NOW, to the photo's Commons file page — a CC BY or BY-SA licence asks for
+       one — and a link is a tap target, so it is a 44px block rather than a 12px line of small print
+       (`a.boxer-src` in style.css). Only a browser can say how tall a block is, so this asks one, at
+       every width: Ali's credit is a link, at least 44px tall AT ITS OWN SIZE (a profile drawn smaller
+       to fit its pane is the zoom's cost, counted by `check/ui.js` on its own line), straight under
+       the picture and across the card rather than in the photo's column, and its words at least
+       `.62rem` — the size the review measured the old `.56` against and found unreadable.
+
+       THE PICTURE CANNOT ARRIVE HERE. This browser has no route to upload.wikimedia.org, so Ali's
+       photo fails and takes its credit with it — which is `boxerPicFail_` doing its job. So the line
+       is put back under the picture box by the card's own `boxerCredit_`, with the failed address
+       forgotten first, and measured in the real stylesheet; what is measured is exactly the markup
+       the card draws when the photo loads. */
+    { name: 'a boxer photo\'s credit, a link a finger can hit',
+      enter: () => {
+        STUFF.q = 'Muhammad Ali';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Boxing' },
+                         { field: 'boxKind', value: 'Boxers' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      expect: () => {
+        const c = document.querySelector('#s-stuff .page.on .card.fc.boxer:not(.is-fights)');
+        const b = ((typeof DATA !== 'undefined' && DATA.boxers) || []).find(r => r.name === 'Muhammad Ali');
+        const box = c && c.querySelector('.boxer-pic');
+        if (!c || !b || !b.image || !box || !/Muhammad Ali/.test(c.querySelector('h3').textContent)) return false;
+        let line = c.querySelector('.boxer-credit');
+        if (!line) {
+          BOXER_PIC_DEAD.delete(pic(b.image));
+          line = document.createElement('p');
+          line.className = 'boxer-credit';
+          line.innerHTML = boxerCredit_(b, b.imageCredit);
+          box.after(line);
+          /* AND THE PANE IS FITTED AGAIN, as it is when a loaded photo's credit is there from the
+             first paint: without it the card was measured at the zoom it had WITHOUT the line, and
+             the rest of this file reported 42px below the fold that no real phone ever has. */
+          try { paneReach_([c.closest('.pane')]); } catch (e) {}
+        }
+        const a = line.querySelector('a.boxer-src');
+        if (!a || a.getAttribute('href') !== boxerCommons_(pic(b.image))) return false;
+        let z = 1;
+        for (let e = a; e; e = e.parentElement) { const v = parseFloat(e.style && e.style.zoom); if (v > 0 && v < 1) z *= v; }
+        const r = a.getBoundingClientRect(), p = box.getBoundingClientRect(), k = c.getBoundingClientRect();
+        const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        return r.height / z >= 43.5 && r.width / z >= 43.5
+               && r.top >= p.bottom - .5 && r.width >= (k.width - p.width) * .6
+               && parseFloat(getComputedStyle(a).fontSize) >= .62 * rem - .05;
+      },
+      wants: 'Ali\'s photo credit as a link to its Commons file page, a 44px block at its own size, under the picture and across the card, its words at least .62rem',
+      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'the fights, on the shared head',
       enter: () => {
         STUFF.q = '';
@@ -1141,11 +1581,16 @@ const STATES = {
         const how = c.querySelector('.fc-meta');
         if (!h3 || !flag || !how || flag.textContent.trim() !== 'Fight') return false;
         const rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+        /* AND BOTH CORNERS' FACES, SQUARE, ABOVE THE FLAG — lifted there by `order`, which only a
+           browser lays out. Two because a bout is two boxers, whether either has a photo or not. */
+        const faces = [...c.querySelectorAll('.fight-faces .boxer-pic .boxer-frame')].map(e => e.getBoundingClientRect());
         return Math.abs(parseFloat(getComputedStyle(h3).fontSize) - 1.1 * rem) < .5
                && flag.getBoundingClientRect().bottom <= h3.getBoundingClientRect().top + .5
-               && getComputedStyle(how).textTransform === 'none';
+               && getComputedStyle(how).textTransform === 'none'
+               && faces.length === 2 && faces.every(r => r.width > 0 && Math.abs(r.width - r.height) < 1.5
+                                                        && r.bottom <= flag.getBoundingClientRect().top + .5);
       },
-      wants: 'a fight on the shared head — the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
+      wants: 'a fight on the shared head — both corners\' faces square above it, the two names as the title under a Fight flag, how it ended in sentence case, no loose note paragraphs',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE TEXTBOOK'S CONTENTS, AND `10.` INSIDE THE CARD ---------------------------------
        `a textbook chapter` lands nine pages past the contents card, so the card itself was in the
@@ -1222,8 +1667,11 @@ const STATES = {
         paintStuff();
         goPage('stuff', 0, true);
         window.__findStill = null;
-        setTimeout(() => {
+        /* AT ONCE, where the page is already built; after a tick only if not -- a loaded run's 150ms
+           timer is what left this state unreached (the answer states above say more). */
+        const run = () => {
           const pane = document.getElementById('stuff-controls');
+          if (!pane || !document.getElementById('stuff-q')) return false;
           const at = () => {
             const top = pane.getBoundingClientRect().top;
             const q = document.getElementById('stuff-q').getBoundingClientRect().top - top;
@@ -1233,10 +1681,12 @@ const STATES = {
           };
           const a = at();
           const r = document.querySelector('#stuff-groups .answers > .row[data-do="facet-pick"]');
-          if (!r) return;
+          if (!r) return false;
           r.click();
           window.__findStill = { a, b: at(), n: STUFF.filters.length };
-        }, 150);
+          return true;
+        };
+        if (!run()) setTimeout(run, 150);
       },
       expect: () => {
         const s = window.__findStill;
@@ -1347,6 +1797,14 @@ const STATES = {
        button."* The third tile opens a four-box form a signed-out visitor is the only one to see —
        and `#sheet` is a sibling of the screens, so without a state of its own neither the measuring
        pass nor the pressing pass would ever have it open. Entered through the tile's own handler. */
+    /* IT OPENS ON ONE QUESTION NOW — "who is the account for?" — with the boxes under it not yet
+       shown; the walk after 273 found a parent made a student because nobody asked. So the sheet as it
+       opens is the two answers, and the two states after this one are the form each answer draws. */
+    /* `offsetHeight`, NOT `getBoundingClientRect`, IN BOTH EXPECTATIONS BELOW. The sheet opens with a
+       scale from the card it came from (`#sheet`'s transition), and a bounding box is measured through
+       that transform — so on a loaded machine `check/press.js`, which looks 340ms after entering,
+       caught the boxes mid-grow at under 44px and reported the state as never arrived. Layout height is
+       what "is it drawn at full size" means; the tap sizes themselves are `check/ui.js`'s to measure. */
     { name: 'making an account',
       only: () => typeof USER !== 'undefined' && !USER,
       enter: () => {
@@ -1354,10 +1812,37 @@ const STATES = {
         if (!tile) throw new Error('no Make an account tile on the signed-out account column');
         ACTIONS['register'](tile);
       },
-      expect: () => ['reg-first', 'reg-last', 'reg-email', 'reg-pin']
-        .filter(id => document.getElementById(id)).length
-        + (document.querySelector('#sheet-body [data-do="reg-send"]') ? 1 : 0) === 5 ? 5 : 0,
-      wants: 'the register sheet open: four boxes and its one button',
+      expect: () => {
+        const who = [...document.querySelectorAll('#sheet-body [data-do="reg-who"]')]
+          .filter(b => b.offsetHeight >= 44).length;
+        const rest = document.getElementById('reg-rest');
+        return who === 2 && rest && rest.hidden ? 2 : 0;
+      },
+      wants: 'the register sheet open on its question: two 44px answers and nothing else yet',
+      leave: () => { closeSheet(); } },
+    /* ---------- AND ANSWERED "A PARENT" ------------------------------------------------------------
+       The form a parent fills: the two names on one row, their own email, a PIN, the button and the
+       note saying where their child's account is made — and no grown-up's-email tick, which is a
+       student's. 320x568 is where the note ran under the fold before the names shared a row. */
+    { name: 'making an account as a parent',
+      only: () => typeof USER !== 'undefined' && !USER,
+      enter: () => {
+        const tile = document.querySelector('#s-account [data-do="register"]');
+        if (!tile) throw new Error('no Make an account tile on the signed-out account column');
+        ACTIONS['register'](tile);
+        const b = document.querySelector('#sheet-body [data-do="reg-who"][data-who="parent"]');
+        if (!b) throw new Error('the register sheet does not ask who the account is for');
+        ACTIONS['reg-who'](b);
+      },
+      expect: () => {
+        const boxes = ['reg-first', 'reg-last', 'reg-email', 'reg-pin']
+          .filter(id => { const el = document.getElementById(id); return el && el.offsetHeight >= 44; }).length;
+        const send = document.querySelector('#sheet-body [data-do="reg-send"]');
+        const tick = document.getElementById('reg-noemail');
+        return boxes === 4 && send && send.offsetHeight >= 44
+          && tick && tick.closest('.reg-kid').hidden ? 5 : 0;
+      },
+      wants: 'the register sheet answered "a parent": four boxes, its button, and no grown-up\'s-email tick',
       leave: () => { closeSheet(); } },
     /* ---------- AND WITH "I HAVE NO EMAIL" TICKED ----------------------------------------------------
        *"so all kids can login easily with their handle and pin."* The tick is a `.check` row inside the
@@ -1370,6 +1855,10 @@ const STATES = {
         const tile = document.querySelector('#s-account [data-do="register"]');
         if (!tile) throw new Error('no Make an account tile on the signed-out account column');
         ACTIONS['register'](tile);
+        /* A STUDENT'S TICK — the question is answered first, or the row is not drawn at all. */
+        const b = document.querySelector('#sheet-body [data-do="reg-who"][data-who="student"]');
+        if (!b) throw new Error('the register sheet does not ask who the account is for');
+        ACTIONS['reg-who'](b);
         const tick = document.getElementById('reg-noemail');
         if (!tick) throw new Error('the register sheet has no no-email tick');
         tick.checked = true;
@@ -1790,6 +2279,11 @@ const STATES = {
       enter: () => {
         KID_MADE = { pid: String(USER.personId || ''), name: 'Maximilian', handle: 'maximilian_steady42',
                      pin: ['0', '7', '3', '9'].join('') };
+        /* A FORM LEFT UNSAVED OR SENDING BY WHATEVER RAN BEFORE -- `check/press.js` presses every Save
+           on this column first -- makes `paint` keep the column rather than throw typing away
+           (`settingsKeep_`), so the slip was set and never drawn: "did not arrive" in the full suite,
+           green alone. Cleared as the photographs state below clears them. */
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
         const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.kid-make'));
         if (at < 0) throw new Error('no "Make your child\'s account" card on the settings column');
@@ -2076,36 +2570,95 @@ const STATES = {
         return pg && pg.querySelectorAll('.biz-item').length === 3
           && pg.querySelectorAll('input[type="date"][data-biz]').length === 3
           && /Due soon/.test((pg.querySelector('.biz-item.is-soon .biz-flag') || {}).textContent || '')
-          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000';
+          && (pg.querySelector('[data-biz="pub_liability"][data-k="reference"]') || {}).value === 'PL-000000'
+          /* AND EACH ROW'S TWO BOXES ARE ONE WIDTH. The row is `.lib-row.q-row`, a class pair borrowed
+             from the qualification editor — and when that editor was redrawn, its `.lib-row.q-row` rule
+             went with it and these rows fell back to `.lib-row`'s wide box beside a 7rem one, with
+             nothing here to notice. The rule is back, and this is what says so. */
+          && [...pg.querySelectorAll('.biz-item .lib-row')].every(r => {
+            const w = [...r.children].map(c => c.getBoundingClientRect().width);
+            return w.length === 2 && w[0] > 0 && Math.abs(w[0] - w[1]) <= 1;
+          });
       },
-      wants: 'three insurance items, each with its date box, and the one due soon flagged' },
+      wants: 'three insurance items, each with its date box, the one due soon flagged, and each row\'s two boxes one width' },
 
-    /* ---------- THE QUALIFICATIONS: A LIST YOU READ, AND ONE EDITOR AT A TIME ----------------------
-       REPORTED AS *"the current system for adding qualifications is really hard to understand."* The
-       shelf is a read list now — a bold subject, its levels as plain lines, a word button `Edit` on
-       each — and an editor opens in place of the one row being changed. What this asserts is the
-       DATA CONTRACT the redraw must not break, and the SHAPE the owner asked for:
+    /* ---------- THE WEEKLY PARENT EMAIL: ITS CARD, AND WHAT PREVIEW OPENS ----------------------------
+       The infrastructure for *"something which triggers every sunday"* and emails parents — built and
+       switched off (backend/digest.gs, js/digest.js). The card is the last page of an admin's Settings.
+       The preview is drawn from a reply shaped the way `digestPreviewOut_` answers, with an address
+       long enough that it has to wrap at 320, rather than by posting: the fixture is one payload and
+       has no `digestPreview` to answer with. */
+    { name: 'the weekly parent email card',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.digest'));
+        if (at < 0) throw new Error('no weekly parent email card on the settings column');
+        goPage('settings', at, true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        return !!pg && /Weekly parent email:\s*(Off|Preview|Send)/.test((pg.querySelector('.digest-mode') || {}).textContent || '')
+          && !!pg.querySelector('.tile-row [data-do="digest-preview"]');
+      },
+      wants: 'the mode in its title and one Preview tile' },
+    { name: 'the weekly parent email, previewed',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.digest'));
+        if (at < 0) throw new Error('no weekly parent email card on the settings column');
+        goPage('settings', at, true);
+        const body = 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 3 questions — 2 new and 1 gone back to.\n\n'
+          + 'New this week\n- Maths · Paper 1 (Calculator) — June 2024 · Q1\n- Maths · Paper 31: Statistics — June 2022 · Q4b\n\n'
+          + 'Gone back to\n- q:Q-9MA031-2206-1\n\nAda can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
+          + 'You get this because you are Ada’s parent on @family. To stop these emails, reply to this one and say so.';
+        openSheet('Weekly parent email', digestSheet_({ success: true, mode: 'preview', hour: 18, scheduled: 0,
+          week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
+          emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat.parent.with.a.long.address@example.org',
+                     subject: 'Ada’s week: 3 questions', text: body, html: '', count: 3 }],
+          unreachable: [{ id: 'P-S3', name: 'Cal Alone', count: 1, why: 'no parent has accepted a link to them' }] }));
+      },
+      leave: () => { if (typeof closeSheet === 'function') closeSheet(); },
+      expect: () => {
+        const t = (document.getElementById('sheet-body') || {}).textContent || '';
+        return /To Pat Parent/.test(t) && /Ada’s week: 3 questions/.test(t) && /Nobody to tell/.test(t);
+      },
+      wants: 'each email under its address, its plain body, and who nobody can tell' },
+
+    /* ---------- THE QUALIFICATIONS: ONE LINE A QUALIFICATION, AND IT FITS ---------------------------
+       ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take
+       up less space."* Measured before: seven qualifications were 900px at 320x568 — drawn at 70%,
+       the floor, and still scrolling. What this asserts, at every width, is the shape and the DATA
+       CONTRACT under it:
        - all seventy `qual_*` boxes in the form, drawn or not, because `qualsIn` rebuilds the person's
          rows from what arrives and a slot missing from the form is a qualification deleted on Save;
-       - Maths once, with its two levels under it, and the degree a level of its own subject;
-       - no checkbox anywhere on the shelf: Teach and Can teach are HIDDEN boxes holding TRUE/FALSE,
-         read here as values — GCSE taught (so both TRUE), A-Level can-teach only;
-       - an `Edit` per level and per subject, no glyph to decode, and no `data-me` on a control that
-         is not an answer.
+       - one line a qualification, each subject named once, the level over the grade in the profile
+         chip's own `.prof-iso`, and the DBS written plain;
+       - Teach and Can teach as HIDDEN TRUE/FALSE boxes, no checkbox and no glyph to decode;
+       - one `+` tile and no Save — every answer saves itself;
+       - AND THE CARD FITS ITS PANE AT FULL SIZE: its own height (a zoomed card's `clientHeight` is
+         still its height at zoom 1) is no more than the pane's. That is the "less space", as a number
+         this file can fail on, rather than as a screenshot somebody has to remember to take.
        FOUND BY ASKING THE DOM for the tenth slot's place box, which exists whether or not it shows. */
     { name: 'the qualifications',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        /* TWO LEVELS OF ONE SUBJECT AND A DEGREE, through `USER.profile`, which is what the column is
-           drawn from. The two Maths records must be ONE subject with two levels under it. Written
-           out in each state rather than shared, because a state is sent to the page as source. */
+        /* THREE SUBJECTS AT TWO LEVELS AND AN ENHANCED DBS, through `USER.profile`, which is what the
+           column is drawn from — the tutor the redesign was measured with. Written out in each state
+           rather than shared, because a state is sent to the page as source. */
         window.STATE_QUAL_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {}, {
-          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8', qual_1_board: 'Hill Top School', qual_1_received: '2017',
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_board: 'Hill Top School', qual_1_received: '2016',
           qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
-          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2019',
-          qual_2_teach: 'TRUE',
-          qual_3: 'Bible and Theology', qual_3_level: 'Degree', qual_3_received: 'Present' });
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2018',
+          qual_2_teach: 'TRUE', qual_2_spec: 'TRUE',
+          qual_3: 'Physics', qual_3_level: 'GCSE', qual_3_grade: '8', qual_3_received: '2016', qual_3_teach: 'TRUE',
+          qual_4: 'Physics', qual_4_level: 'A-Level', qual_4_grade: 'A', qual_4_board: 'Hill Top Sixth Form', qual_4_received: '2018',
+          qual_4_teach: 'TRUE',
+          qual_5: 'English Literature', qual_5_level: 'GCSE', qual_5_grade: '7', qual_5_received: '2016',
+          qual_6: 'English Literature', qual_6_level: 'A-Level', qual_6_grade: 'B', qual_6_received: '2018',
+          qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025' });
         /* A CLEAN COLUMN FIRST — see the agreement state above. */
         document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
@@ -2123,51 +2676,47 @@ const STATES = {
         const pg = document.querySelector('#s-settings .page.on');
         const shelf = pg && pg.querySelector('.q-shelf');
         if (!shelf) return 0;
-        const subjects = [...shelf.querySelectorAll('.q-subj')];
-        const maths = subjects.find(sj => sj.dataset.name === 'Maths');
-        const slotsOf = sj => [...sj.querySelectorAll('.q-levels > .q-slot')];
-        const val = (sl, k) => ((sl && sl.querySelector('[data-me="qual_' + sl.dataset.slot + k + '"]')) || {}).value;
-        const levelOf = lvl => maths && slotsOf(maths).find(sl => val(sl, '_level') === lvl);
+        const lines = [...shelf.querySelectorAll('.q-list .q-line')];
         const flags = [...shelf.querySelectorAll('[data-me$="_spec"], [data-me$="_teach"]')];
+        const card = shelf.closest('.card'), pane = shelf.closest('.pane');
         return pg.querySelectorAll('[data-me^="qual_"]').length === 70
-          /* NO SAVE TILE ON THIS CARD — every editor saves itself. */
           && pg.querySelectorAll('[data-do="me-save"]').length === 0
-          && subjects.length === 2 && !!maths
-          && shelf.querySelectorAll('.q-head').length === 2
-          && slotsOf(maths).length === 2
-          && slotsOf(maths).every(sl => val(sl, '') === 'Maths')
-          && subjects.some(sj => sj.dataset.name === 'Bible and Theology')
+          && lines.length === 7
+          && lines.map(l => l.querySelector('.q-who').textContent.trim()).filter(Boolean).join('|') === 'Maths|Physics|English Literature|DBS'
+          && shelf.querySelectorAll('.q-list .prof-iso sup + sub').length === 6
+          && (lines[6].querySelector('.q-plain') || {}).textContent === 'Enhanced'
+          && shelf.querySelectorAll('.q-list .q-chip').length === 2
           && !shelf.querySelector('input[type="checkbox"]')
           && flags.length === 20 && flags.every(b => b.type === 'hidden')
-          && val(levelOf('A-Level'), '_spec') === 'FALSE' && val(levelOf('A-Level'), '_teach') === 'TRUE'
-          && val(levelOf('GCSE'), '_spec') === 'TRUE' && val(levelOf('GCSE'), '_teach') === 'TRUE'
-          && shelf.querySelectorAll('.q-levels > .q-slot [data-do="qual-edit"]').length === 3
-          && shelf.querySelectorAll('[data-do="qual-subj-edit"]').length === 2
           && !/[✓★▸▾✕]/.test(shelf.textContent)
-          && !shelf.querySelector('.q-seg [data-me], .q-acts [data-me]')
-          /* THE GOLD CHIP ON GCSE ONLY, and nothing open. */
-          && shelf.querySelectorAll('.q-chip').length === 1 && !!levelOf('GCSE').querySelector('.q-chip')
-          && !shelf.querySelector('.is-editing')
-          && !!shelf.querySelector('input[data-me$="_board"]')
+          && shelf.querySelectorAll('.tile[data-do="qual-add"]').length === 1
+          && !shelf.querySelector('.is-open')
+          && !!card && !!pane && card.clientHeight <= pane.clientHeight
           ? 70 : 0;
       },
-      wants: 'Maths drawn once with GCSE and A-Level as read rows under it, a degree as a level of its own subject, Teach as hidden TRUE/FALSE boxes, an Edit per level and subject, and no glyphs or checkboxes' },
-    /* AND THE A-LEVEL EDITOR OPEN, through the page's own `Edit`. One thing open, the three-way control
-       drawn with `Can teach` lit (that is what the A-Level holds), every caption above its box, and
-       `Still studying` offered in Finished. Every other `Edit` is off the page while it is open. */
-    { name: 'the qualifications, one level open',
+      wants: 'seven qualifications as seven lines in the profile chip\'s notation, each subject once, one + tile, Teach as hidden boxes, and the card at full size inside its pane' },
+    /* AND THE PHYSICS A-LEVEL OPEN, through a tap on its own line. One thing open, in place — every
+       other line still on the card — the three-way control with `Can teach` lit (that is what it
+       holds), every box captioned, `Still studying` offered in Finished, and the tick and the bin at
+       opposite ends of their row. */
+    { name: 'the qualifications, one line open',
       only: () => typeof USER !== 'undefined' && !!USER,
       enter: () => {
-        /* TWO LEVELS OF ONE SUBJECT AND A DEGREE, through `USER.profile`, which is what the column is
-           drawn from. The two Maths records must be ONE subject with two levels under it. Written
-           out in each state rather than shared, because a state is sent to the page as source. */
+        /* THREE SUBJECTS AT TWO LEVELS AND AN ENHANCED DBS, through `USER.profile`, which is what the
+           column is drawn from — the tutor the redesign was measured with. Written out in each state
+           rather than shared, because a state is sent to the page as source. */
         window.STATE_QUAL_WAS = USER.profile;
         USER.profile = Object.assign({}, USER.profile || {}, {
-          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '8', qual_1_board: 'Hill Top School', qual_1_received: '2017',
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_board: 'Hill Top School', qual_1_received: '2016',
           qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
-          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'B', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2019',
-          qual_2_teach: 'TRUE',
-          qual_3: 'Bible and Theology', qual_3_level: 'Degree', qual_3_received: 'Present' });
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2018',
+          qual_2_teach: 'TRUE', qual_2_spec: 'TRUE',
+          qual_3: 'Physics', qual_3_level: 'GCSE', qual_3_grade: '8', qual_3_received: '2016', qual_3_teach: 'TRUE',
+          qual_4: 'Physics', qual_4_level: 'A-Level', qual_4_grade: 'A', qual_4_board: 'Hill Top Sixth Form', qual_4_received: '2018',
+          qual_4_teach: 'TRUE',
+          qual_5: 'English Literature', qual_5_level: 'GCSE', qual_5_grade: '7', qual_5_received: '2016',
+          qual_6: 'English Literature', qual_6_level: 'A-Level', qual_6_grade: 'B', qual_6_received: '2018',
+          qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025' });
         /* A CLEAN COLUMN FIRST — see the agreement state above. */
         document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
         paint('settings');
@@ -2175,11 +2724,12 @@ const STATES = {
         const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
         if (at < 0) throw new Error('no qualifications page on the settings column');
         goPage('settings', at, true);
-        /* AND THE A-LEVEL OPENED THROUGH ITS OWN `Edit`. */
-        const slot = [...pages[at].querySelectorAll('.q-slot')].find(sl =>
-          (sl.querySelector('[data-me$="_level"]') || {}).value === 'A-Level');
-        if (!slot) throw new Error('no A-Level row on the qualifications page');
-        slot.querySelector('[data-do="qual-edit"]').click();
+        /* AND THE PHYSICS A-LEVEL OPENED THROUGH ITS OWN LINE. */
+        const slot = [...pages[at].querySelectorAll('.q-list .q-slot')].find(sl =>
+          (sl.querySelector('[data-me$="_level"]') || {}).value === 'A-Level'
+          && (sl.querySelector('select.q-name') || {}).value === 'Physics');
+        if (!slot) throw new Error('no Physics A-Level line on the qualifications page');
+        slot.querySelector('.q-line').click();
       },
       leave: () => {
         USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
@@ -2190,18 +2740,129 @@ const STATES = {
         const pg = document.querySelector('#s-settings .page.on');
         const shelf = pg && pg.querySelector('.q-shelf');
         if (!shelf) return 0;
-        const open = [...shelf.querySelectorAll('.is-editing')];
+        const open = [...shelf.querySelectorAll('.q-slot.is-open')];
         const ed = open[0] && open[0].querySelector(':scope > .q-ed');
         const visible = el => !!(el.offsetWidth || el.offsetHeight);
-        return shelf.classList.contains('is-editing') && open.length === 1 && !!ed
+        const tick = ed && ed.querySelector('.tile[data-do="qual-done"]'), bin = ed && ed.querySelector('.tile[data-do="qual-drop"]');
+        return open.length === 1 && !!ed && visible(ed)
+          && open[0].querySelector('.q-line').getAttribute('aria-expanded') === 'true'
+          && [...shelf.querySelectorAll('.q-list .q-line')].length === 7
+          && [...shelf.querySelectorAll('.q-list .q-line')].every(visible)
           && ed.querySelectorAll('[data-do="qual-teach"]').length === 3
           && (ed.querySelector('[data-do="qual-teach"][aria-pressed="true"]') || {}).dataset.v === 'teach'
+          && ed.querySelectorAll('label.field').length === 5
           && [...ed.querySelectorAll('label.field')].every(l => !!(l.querySelector(':scope > span') || {}).textContent)
           && [...ed.querySelectorAll('select[data-me$="_received"] option')].some(o => o.textContent === 'Still studying' && o.value === 'Present')
-          && [...shelf.querySelectorAll('[data-do="qual-edit"], [data-do="qual-subj-edit"], [data-do^="qual-add"]')].every(b => !visible(b))
+          && !!tick && !!bin && bin.getBoundingClientRect().left - tick.getBoundingClientRect().right > 60
           ? 1 : 0;
       },
-      wants: 'one editor open in place of the A-Level row, its captions above the boxes, Can teach lit, and every other Edit off the page' },
+      wants: 'the Physics A-Level open in place under its line, the other six lines still there, five captioned boxes, Can teach lit, and the tick and the bin at opposite ends' },
+    /* AND THE DBS OPEN — A CERTIFICATE'S EDITOR. *Walked at 390:* it offered Grade and Teach / Can teach /
+       Not teaching, neither of which a certificate has, and Teach would have listed the DBS under Teaches
+       on the profile. Now: no grade, no three-way control, the year and the issuer side by side under
+       their certificate captions, and the tick and the bin. Mutation: `.is-cert` off the slot — the grade
+       and the control come back, and the issuer drops to a row of its own. */
+    { name: 'the qualifications, a certificate open',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_QUAL_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_board: 'Hill Top School', qual_1_received: '2016',
+          qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2018',
+          qual_2_teach: 'TRUE', qual_2_spec: 'TRUE',
+          qual_3: 'Physics', qual_3_level: 'GCSE', qual_3_grade: '8', qual_3_received: '2016', qual_3_teach: 'TRUE',
+          qual_4: 'Physics', qual_4_level: 'A-Level', qual_4_grade: 'A', qual_4_board: 'Hill Top Sixth Form', qual_4_received: '2018',
+          qual_4_teach: 'TRUE',
+          qual_5: 'English Literature', qual_5_level: 'GCSE', qual_5_grade: '7', qual_5_received: '2016',
+          qual_6: 'English Literature', qual_6_level: 'A-Level', qual_6_grade: 'B', qual_6_received: '2018',
+          qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const pages = [...document.querySelectorAll('#s-settings .page')];
+        const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
+        if (at < 0) throw new Error('no qualifications page on the settings column');
+        goPage('settings', at, true);
+        const slot = [...pages[at].querySelectorAll('.q-list .q-slot')].find(sl => (sl.querySelector('select.q-name') || {}).value === 'DBS');
+        if (!slot) throw new Error('no DBS line on the qualifications page');
+        slot.querySelector('.q-line').click();
+      },
+      leave: () => {
+        if (typeof selShut_ === 'function') selShut_();
+        USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const shelf = pg && pg.querySelector('.q-shelf');
+        if (!shelf) return 0;
+        const open = [...shelf.querySelectorAll('.q-slot.is-open')];
+        const ed = open[0] && open[0].querySelector(':scope > .q-ed');
+        const shown = el => !!el && !!(el.offsetWidth || el.offsetHeight);
+        if (open.length !== 1 || !shown(ed)) return 0;
+        const year = ed.querySelector('select[data-me$="_received"]').closest('label');
+        const from = ed.querySelector('input[data-me$="_board"]').closest('label');
+        const cap = l => [...l.querySelectorAll(':scope > span')].filter(shown).map(x => x.textContent).join('|');
+        return open[0].classList.contains('is-cert')
+          && !shown(ed.querySelector('select[data-me$="_grade"]'))
+          && !shown(ed.querySelector('.q-seg'))
+          && shown(year) && shown(from)
+          && Math.abs(year.getBoundingClientRect().top - from.getBoundingClientRect().top) < 2
+          && cap(year) === 'Year' && cap(from) === 'Issued by'
+          && !open[0].querySelector('.q-line .q-mark').textContent.trim()
+          && !!ed.querySelector('.tile[data-do="qual-done"]') && !!ed.querySelector('.tile[data-do="qual-drop"]')
+          ? 1 : 0;
+      },
+      wants: 'the Enhanced DBS open with no grade and no Teach control, its Year and Issued by side by side, and the tick and the bin' },
+    /* AND A LINE BEING ADDED, through the `+`. *Walked:* its face said `New qualification` in the
+       subject's 10ch column — "New / qualificat / ion", the first thing seen after `+` — over the boxes
+       that say the same. A line not yet saved has no face: its editor, under the gold rule, is the line.
+       Mutation: the `[data-new] > .q-line` rule removed — the face is drawn again. */
+    { name: 'the qualifications, one being added',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_QUAL_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_board: 'Hill Top School', qual_1_received: '2016',
+          qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2018',
+          qual_2_teach: 'TRUE', qual_2_spec: 'TRUE',
+          qual_3: 'Physics', qual_3_level: 'GCSE', qual_3_grade: '8', qual_3_received: '2016', qual_3_teach: 'TRUE',
+          qual_4: 'Physics', qual_4_level: 'A-Level', qual_4_grade: 'A', qual_4_board: 'Hill Top Sixth Form', qual_4_received: '2018',
+          qual_4_teach: 'TRUE',
+          qual_5: 'English Literature', qual_5_level: 'GCSE', qual_5_grade: '7', qual_5_received: '2016',
+          qual_6: 'English Literature', qual_6_level: 'A-Level', qual_6_grade: 'B', qual_6_received: '2018',
+          qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const pages = [...document.querySelectorAll('#s-settings .page')];
+        const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
+        if (at < 0) throw new Error('no qualifications page on the settings column');
+        goPage('settings', at, true);
+        pages[at].querySelector('.q-shelf [data-do="qual-add"]').click();
+        /* THE SUBJECT LIST IS HUNG FOR THE PERSON a tick later — shut it, so what is measured is the card. */
+        return new Promise(r => setTimeout(() => { if (typeof selShut_ === 'function') selShut_(); r(); }, 60));
+      },
+      leave: () => {
+        if (typeof selShut_ === 'function') selShut_();
+        USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const shelf = pg && pg.querySelector('.q-shelf');
+        if (!shelf) return 0;
+        const fresh = shelf.querySelector('.q-list .q-slot.is-open[data-new]');
+        const shown = el => !!el && !!(el.offsetWidth || el.offsetHeight);
+        return !!fresh && !shown(fresh.querySelector(':scope > .q-line'))
+          && shown(fresh.querySelector('select.q-name'))
+          && !/New qualification/.test(shelf.innerText)
+          && [...shelf.querySelectorAll('.q-list .q-line')].filter(shown).length === 7
+          ? 1 : 0;
+      },
+      wants: 'a line being added drawn as its editor alone — no face saying New qualification over its Subject box — with the seven saved lines above it' },
 
     /* ---------- THE THREE DATE-OF-BIRTH BOXES, ON A GROUP THE FIXTURE DID NOT HAVE ---------------
        `check/fixture.json` SENT NO `Contact` GROUP, so nothing in this lab had ever drawn a date of
@@ -2765,6 +3426,37 @@ const STATES = {
         && document.querySelector('#s-tools #fm-said b'),
       wants: 'the flyer maker saying what will print, with no preview on the card' },
 
+    /* ---------- CHECK UPLOADS, ANSWERED — THE ADMIN'S, LIKE THE FLYER ---------------------------
+       The card as it reads on the day it matters: a deployment that can read Drive and not write
+       to it, so two crosses, Google's own sentence under one of them, and the fix as numbered steps
+       with a link. The longest thing on it is that sentence and the folder's name, and both are the
+       server's — which is why the state seeds the reply rather than a tidy one of its own. `leave`
+       puts the card back as it opens, before anybody has pressed it. */
+    { name: 'check uploads, answered',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        const n = widgetsOf_('tool').findIndex(w => String(w.id) === 'uploads');
+        if (n < 0) throw new Error('no Check uploads widget in the roster');
+        goPage('tools', n, true);
+        UPLOADS_SAID = { success: true, ok: false, version: '2026-10-05-chatmedia',
+          checks: [
+            { id: 'column', ok: true, label: 'The messages tab has an attachments column', said: 'Yes — a file’s address has somewhere to go.' },
+            { id: 'scope', ok: false, label: 'This deployment may write to Drive', said: 'It holds drive.readonly — it can read and cannot write.' },
+            { id: 'folder', ok: true, label: 'The posts folder opens', said: '“@family. posts and photographs (2026)”, from POSTS_FOLDER in constants.gs.' },
+            { id: 'write', ok: false, label: 'A file can be made there and shared by link', said: 'No — Drive refused it for want of permission.' }],
+          steps: [
+            { text: 'Sync backend/ from GitHub, so appsscript.json in the editor lists .../auth/drive and not drive.readonly.' },
+            { text: 'Open the consent link and press Allow, ticking every box.', href: 'https://accounts.google.com/o/oauth2/auth?client_id=example' },
+            { text: 'Run authoriseDrive in the editor. Only when its last line says READY: Deploy → Manage deployments → edit → Version: New version → Deploy.' }] };
+        uploadsPaint_();
+      },
+      expect: () => document.querySelectorAll('#s-tools .up-box .up-row.is-bad').length === 2
+        && document.querySelectorAll('#s-tools .up-box .up-steps li').length === 3
+        && !!document.querySelector('#s-tools .up-box a.tile[href^="https://accounts.google.com"]')
+        && !!document.querySelector('#s-tools .up-box [data-do="uploads-check"]'),
+      wants: 'the Check uploads tile, two ticks, two crosses, three numbered steps and an Allow tile',
+      leave: () => { UPLOADS_SAID = null; uploadsPaint_(); } },
+
     /* ---------- A TUTOR'S TEACHING HOURS -----------------------------------------------------
        THE SEVENTY-SEVEN CELLS OF A WEEK GRID, on a card nobody had measured, in the one place this
        file could not reach before: `widgetsOf_` shows it to a tutor or an admin and to nobody
@@ -3319,7 +4011,8 @@ const STATES = {
      the two rules that were watching — the pane's `scrollHeight` equals its `clientHeight`, so
      nothing is overflowing; it is the PANE that hangs off the bottom, because `columnShift_`
      places the page once and nothing re-placed it when the card grew. (It centred the page on the
-     day those two numbers were taken; it puts every column's card on one line now, and a card that
+     day those two numbers were taken, then put every card on one line, and centres it again since 5
+     October; whichever, a card that
      grows after the placement is still a card the placement never saw.)
 
      THROUGH THE APP'S OWN PICKER, not by drawing on the canvas. `on('cam-pick')` reads
@@ -3558,6 +4251,116 @@ const STATES = {
       },
       wants: 'a receipt with rows on it, an admin\'s three money rows, and its tiles on the paper' },
 
+    /* ---------- AND SOMEBODY ELSE'S CLASS, WITH SEATS, SEEN BY A FAMILY NOT ON IT -----------------
+       *"The session booking thing at the bottom of receipt should be a line in the booking."* The
+       way in was a block UNDER the paper — seats, price, the list's tally, a gold button, a faint
+       paragraph — and this lab had never drawn it: every receipt state here is the admin's own, and
+       the block only ever drew for somebody `canAsk` let in. It is a `Take a seat` tile in the
+       foot, a `Sharing` row and a `Can come` row now, and those three are what this measures: the
+       tally's bars across the answer and figure tracks at 320, and a fifth tile-height thing on a
+       card `paneReach_` already shrinks to fit.
+
+       AS A PARENT, NOT AS THE LAB'S ADMIN. `doGet` never sends `canAsk` to an admin — an admin is
+       `iAmIn` on every session — so seeding it under the lab's own visitor would measure a card
+       nobody can be shown: Take a seat beside Accept, Decline and Delete. The visitor is swapped for
+       the length of the state and put back in `leave`, the way `the library still coming` holds
+       and returns the payload.
+
+       THE SHAPE `doGet` SENDS A STRANGER: no names on the seats, no `splitEmails`, `canAsk` and
+       `seatsGoing` worked out by the server, and `whenCould` as `waitlistWhen` builds it — the
+       longest block phrase the grid can write (`Wednesday afternoon`) among them, because the bar
+       is the track that has to hold it. */
+    { name: 'a class with seats, seen by a family not on it',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__RC_WAS = USER;
+        USER = { name: 'Visiting Parent', personId: 'P900', person_id: 'P900',
+                 role: 'parent', roles: ['parent'], handle: 'visitingparent' };
+        DATA.liveJobs = (DATA.liveJobs || []).filter(j => j.id !== 'W-UI').concat([{
+          id: 'W-UI', jobId: 'W-UI', type: 'job', kind: 'waitlist', status: 'unconfirmed',
+          title: 'GCSE Maths, English Language', subject: 'Maths, English Language', level: 'GCSE',
+          location: 'Colliers Wood Library', tutor: '', weekday: '', time: '', term: 'Autumn 2026',
+          maxKids: 4, currentKids: 2, dates: '', createdAt: '22/09/2026', price: 19,
+          slots: [{ n: 1, client: '', status: 'Waiting', chat: '' },
+                  { n: 2, client: '', status: 'Waiting', chat: '' }],
+          tutorSlots: [], events: [], splitEmails: '', clientHosts: false,
+          canAsk: true, seatsGoing: 2, openToOthers: true,
+          whenCould: { people: 2, slots: [
+            { slot: 'Monday evening', n: 2, all: true },
+            { slot: 'Wednesday afternoon', n: 1, all: false },
+            { slot: 'Saturday morning', n: 1, all: false }] },
+        }]);
+        OPEN_JOB = 'W-UI';
+        STALE.booking = 1;
+        paint('booking');
+        goPage('booking', typeof jobPageAt_ === 'function' ? jobPageAt_('W-UI') : 1, true);
+      },
+      /* THE THREE PIECES, EACH ON THE PAPER, AND NOTHING UNDER IT. */
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-booking .page')]
+          .find(p => /W-UI/.test((p.querySelector('.rc-ref') || {}).textContent || ''));
+        const rc = pg && pg.querySelector('.rc');
+        if (!rc || pg.querySelector('.join')) return false;
+        if (!rc.querySelector('.rc-tiles [data-do="job-take-seat"]')) return false;
+        if (rc.querySelectorAll('.bk-row.bk-tally .wc-row').length !== 3) return false;
+        const sharing = [...rc.querySelectorAll('.bk-row')]
+          .find(r => ((r.querySelector('.bk-k') || {}).textContent || '').trim() === 'Sharing');
+        if (!sharing || !/2 seats free/.test(sharing.textContent)) return false;
+        return ![...pg.querySelectorAll('[data-do]')].some(x => !x.closest('.rc'));
+      },
+      wants: 'a class\'s receipt with Take a seat in its foot, its seats in Sharing and its tally as a row',
+      leave: () => {
+        if (window.__RC_WAS) USER = window.__RC_WAS;
+        window.__RC_WAS = null;
+        OPEN_JOB = '';
+        STALE.booking = 1;
+      } },
+
+    /* ---------- AND THE OTHER KIND OF JOINING: A SESSION A FAMILY BOOKED --------------------------
+       THE SAME THREE PIECES, MINUS THE TALLY, AND THE OTHER WORD. `Ask to join` is the tile and
+       `job-join` its handler, and until this state nothing in either instrument had ever drawn it —
+       `check/press.js` pressed `job-take-seat` for the first time with the state above, and would
+       otherwise never press this one at all. `Sharing` is the row that said "Just you" to the very
+       visitor this card offers a seat to; it says the seats now, and this asks that it does. */
+    { name: 'a session with seats, seen by a family not on it',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__RC_WAS = USER;
+        USER = { name: 'Visiting Parent', personId: 'P900', person_id: 'P900',
+                 role: 'parent', roles: ['parent'], handle: 'visitingparent' };
+        DATA.liveJobs = (DATA.liveJobs || []).filter(j => j.id !== 'S-UI').concat([{
+          id: 'S-UI', jobId: 'S-UI', type: 'job', kind: '', status: 'unconfirmed',
+          title: 'GCSE Maths', subject: 'Maths', level: 'GCSE', location: 'Mitcham library',
+          tutor: '', weekday: 'Wednesday', time: '17:00', hours: '1', term: 'Autumn 2026',
+          maxKids: 4, currentKids: 1, dates: '07/10/26, 14/10/26, 21/10/26', createdAt: '22/09/2026',
+          price: 240, slots: [{ n: 1, client: '', status: 'Waiting', chat: '' }],
+          tutorSlots: [], events: [], splitEmails: '', clientHosts: false,
+          canAsk: true, seatsGoing: 3, openToOthers: true, whenCould: null,
+        }]);
+        OPEN_JOB = 'S-UI';
+        STALE.booking = 1;
+        paint('booking');
+        goPage('booking', typeof jobPageAt_ === 'function' ? jobPageAt_('S-UI') : 1, true);
+      },
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-booking .page')]
+          .find(p => /S-UI/.test((p.querySelector('.rc-ref') || {}).textContent || ''));
+        const rc = pg && pg.querySelector('.rc');
+        if (!rc || pg.querySelector('.join')) return false;
+        if (!rc.querySelector('.rc-tiles [data-do="job-join"]')) return false;
+        const sharing = [...rc.querySelectorAll('.bk-row')]
+          .find(r => ((r.querySelector('.bk-k') || {}).textContent || '').trim() === 'Sharing');
+        if (!sharing || !/3 seats free/.test(sharing.textContent)) return false;
+        return ![...pg.querySelectorAll('[data-do]')].some(x => !x.closest('.rc'));
+      },
+      wants: 'a session\'s receipt with Ask to join in its foot and its open seats in Sharing',
+      leave: () => {
+        if (window.__RC_WAS) USER = window.__RC_WAS;
+        window.__RC_WAS = null;
+        OPEN_JOB = '';
+        STALE.booking = 1;
+      } },
+
     /* ---------- THE PICTURE OF IT, IN A SHEET -------------------------------------------------------
        *"make sure sharing booking is an identical … png … of the booking reciept."* Sharing makes a
        PNG of the receipt and hands it to the phone's share sheet; where there is none, or Safari
@@ -3750,6 +4553,45 @@ const STATES = {
                  && !!document.querySelector('#s-dm [data-do="msg-retry"]')
                  && !!document.querySelector('#s-dm .msg.is-sending'),
       wants: 'a refused bubble with its sentence, Retry and Remove, and one still sending',
+      leave: () => { MSG_PENDING = []; } },
+
+    /* ---------- A PHOTOGRAPH THE DEPLOYMENT COULD NOT KEEP, AS AN ADMIN READS IT -----------------
+       *"i cant send images, or videos in the chat to people."* The refusal `sendMessage` gives when
+       Drive says no — the admin's version, because the visitor here IS the admin, and it is the
+       widest thing a bubble's red line ever holds: several lines and a consent address with no
+       space in it for a hundred characters, in 78% of 320px. And the THIRD control, Words only,
+       which is drawn only for `why: 'files'` with something typed — so this is the one state that
+       puts three 44px targets in that row. */
+    { name: 'a photo the deployment could not keep',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        MESSAGES = [{ id: 'k1', mine: false, read: true, withId: 'P009', withName: 'Ada Tutor',
+          fromName: 'Ada Tutor', at: '2026-09-16 09:12', body: 'Could you send a photo of his working?' }];
+        const png = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+        MSG_PENDING = [{ tmp: 'tmpK', mine: true, read: true, state: 'failed', why: 'files',
+          withId: 'P009', withName: 'Ada Tutor', fromName: 'Test Admin', atMs: Date.now() - 30e3,
+          body: 'Here is page 2',
+          err: 'The file could not be kept, so nothing was sent. Drive refused it: this deployment holds '
+             + 'drive.readonly, so it can read the folder and cannot add to it.'
+             + '\nFIX: Open the consent link and press Allow, ticking every box; then run authoriseDrive in '
+             + 'the Apps Script editor. Only when its last line says READY: Deploy → Manage deployments → '
+             + 'edit → Version: New version → Deploy. Tools → Check uploads says when it has worked.'
+             + '\nConsent link: https://accounts.google.com/o/oauth2/auth?client_id=1234567890-abcdefghij'
+             + 'klmnopqrstuvwxyz.apps.googleusercontent.com&scope=https://www.googleapis.com/auth/drive',
+          attachments: [{ url: png, type: 'image/png', name: 'page2.png' }],
+          queue: [{ name: 'page2.png', type: 'image/png', size: 1000, url: png }] }];
+        DM_ASKED = true; DM_DONE = true; MSG_FAILED = false; DM_LAST = Date.now();
+        paint('dm');
+      },
+      /* AND THE ADDRESS IS NOT ALSO PRINTED: once it is a control, the sentence says "the button
+         below" or drops the line that only labelled it — see `msgFailSaid_`. */
+      expect: () => !!document.querySelector('#s-dm .msg-fail a.msg-act[href^="https://accounts.google.com"]')
+                 && !/accounts\.google\.com|Consent link/.test((document.querySelector('#s-dm .msg-fail-why') || {}).textContent || 'x accounts.google.com')
+                 && !document.querySelector('#s-dm .msg-fail a.msg-act[href^="https://www.googleapis.com/auth"]')
+                 && !!document.querySelector('#s-dm [data-do="msg-words"]')
+                 && !!document.querySelector('#s-dm [data-do="msg-retry"]')
+                 && !!document.querySelector('#s-dm [data-do="msg-drop"]'),
+      wants: 'the refusal with Retry, Words only, Remove and the consent screen as a fourth control',
       leave: () => { MSG_PENDING = []; } },
 
     /* THE COMPOSER IN USE: a paragraph typed and two files waiting. The row that wrapped `Send`

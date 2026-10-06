@@ -340,6 +340,14 @@ const KINDS = {
      the contents, and `pageParts_` adds a page for each chapter after it. Starring the card keeps
      the book; a chapter is a page of it, not a thing of its own. */
   textbook: { group: 'Learning', label: 'Resources', card: x => textbookCard_(x) },
+  /* ---------- THE BIBLE, AND THE ONE KIND THE PHONE ITSELF KEEPS FROM ALL BUT AN ADMIN -----------
+     ASKED FOR AS "i want to add the bible to resources as a book. but only admin can see the bible."
+     So it wears `Resources` like the textbook beside it, on a shelf of its own (`Books`), and its
+     item exists only for an admin — `bibleItems_` and the long note above `bibleFor_` say why that
+     gate is on the phone and why it is the one exception to Find being built the same for every
+     role. NOT THE ONLY ADMIN-ONLY KIND: `film` above is an admin's too, but by the payload — `doGet`
+     sends nobody else a row — so this is the only kind with a role test on the phone. */
+  bible: { group: 'Learning', label: 'Resources', card: x => bibleCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN ---------------------------
      `Tools & games` WAS ONE ANSWER THAT IMMEDIATELY ASKED ITSELF. Choosing it led to a second
@@ -527,11 +535,12 @@ function thingCard_(x, credits) {
                 and monospaced. It is a path, not a sentence. */''}
           ${/* THE LEVEL, NOT THE KEY STAGE — `KS3, KS4` on a crumb is the grey area the owner asked
                 to stop seeing; `levelOf_` says GCSE. A stage band IS the level, so it is not said
-                twice. */''}
-          <p class="crumb">${[x.company, levelOf_(x) || x.keystage,
+                twice. AND INSIDE SATs THE KEY STAGE BESIDE IT, as its own word -- `SATs · KS2`,
+                never `KS2 SATs` (`levelSaid_`). */''}
+          <p class="crumb">${[x.company].concat(levelSaid_(x).length ? levelSaid_(x) : [x.keystage]).concat([
               x.bandType === 'year' ? (x.bandValue && 'Year ' + x.bandValue)
             : x.bandType === 'grade' ? (x.bandValue && 'Grade ' + x.bandValue)
-            : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)]
+            : x.bandType === 'stage' ? '' : x.bandValue, x.tier, yearOf(x)])
             .filter(Boolean).map(v => esc(String(v))).join(' <span class="faint">·</span> ')}</p>
           <h3>${esc(x.name)}${x.off ? ' <span class="faint">— deleted</span>' : ''}</h3>
           ${/* Its own second line: a resource says its subject, a shop item its description. This
@@ -929,10 +938,12 @@ const GRADE_BUCKET = bucketTable_([
 
 /* WHAT YOU HAVE TO HAVE IN FRONT OF YOU, by where you get it from: the calculator question is its
    own question and everybody asks it, a drawing kit comes out of a pencil case, and a sheet is
-   something the exam board hands you. */
+   something the exam board hands you. THE TWO CALCULATOR LABELS ARE THE WORDS THE CARD'S TAG SAYS
+   (`needsSay_`), so a bucket, the answer under it, its chip and the tag on the card are one spelling;
+   the values on the right stay the cell's, which `check-library.js` closes. */
 const NEEDS_BUCKET = bucketTable_([
-  ['Calculator',      ['Calculator']],
-  ['No calculator',   ['No calculator']],
+  ['Calculator allowed', ['Calculator']],
+  ['Non-calculator',     ['No calculator']],
   ['Drawing kit',     ['Ruler', 'Protractor', 'Compass']],
   ['A sheet with it', ['Printed sheet', 'Equation booklet', 'Periodic table']],
   ['A lab',           ['Lab']],
@@ -958,11 +969,13 @@ const DIVISION_BUCKET = bucketTable_([
    `KS2–GCSE` is four values wide and belongs somewhere; the top of the range is the level somebody
    is working towards, which is what they are choosing a question for. */
 const LEVEL_BUCKET = bucketTable_([
-  /* `KS1 SATs` AND `KS2 SATs`, WHERE THESE SAID `KS1` AND `KS2` — *"I prefer GCSE or SATs over grey
-     areas."* The bucket is drawn when Level has more answers than a card holds, and a bucket label
-     reading `KS2` is the key stage the owner asked not to see, one question late. */
-  ['KS1 SATs', ['KS1 SATs', 'KS1']],
-  ['KS2 SATs', ['KS2 SATs', 'KS2']],
+  /* `SATs`, ONE ANSWER, WHERE THIS WAS `KS1 SATs` AND `KS2 SATs` -- and before that `KS1` and `KS2`.
+     *"I prefer GCSE or SATs over grey areas"* turned the key stages into qualifications, and joined
+     the two facts into one word to do it. Then: *"why is ks2 sats one tag? it should be sats. if they
+     want to specify key stage then it should be its own thing. sats is one tag not ks2 sats."* So
+     the qualification is `SATs`, the key stage is the `Key stage` question asked inside it (and only
+     there), and every old spelling the data or a bulk import still carries is placed here. */
+  ['SATs',    ['SATs', 'KS1 SATs', 'KS2 SATs', 'KS1', 'KS2']],
   ['KS3',     ['KS3', 'KS2–KS3']],
   ['GCSE',    ['GCSE', 'KS2–GCSE', 'KS3–GCSE']],
   /* FUNCTIONAL SKILLS IS ITS OWN QUALIFICATION, NOT A RUNG OF THIS ONE. Level 2 is pitched near a GCSE
@@ -1262,12 +1275,17 @@ const FACETS = [
      cell, so inside GCSE it still asked `KS2 | KS3`. The qualification is the answer the owner
      prefers, so where there is one the key stage is not offered beside it. What is left is a row
      with no qualification behind it, less the key stage its level already says. It stays a facet
-     rather than being retired because the `facets` tab names it. */
-  { field: 'keystage',  label: 'Key stage', of: x => {
-      const lv = levelOf_(x), shelf = LEVEL_BUCKET(lv);
-      if (shelf && shelf !== 'KS3') return [];
-      return keyStagesOf_(x).filter(k => spellKey_(ksLevel_(k)) !== spellKey_(lv));
-    } },
+     rather than being retired because the `facets` tab names it.
+
+     ---------- AND NOW IT IS ASKED INSIDE SATs, AND ONLY THERE ----------------------------------------
+     *"why is ks2 sats one tag? it should be sats. if they want to specify key stage then it should be
+     its own thing."* The level stopped saying the key stage (`KS2 SATs` is `SATs`), so inside SATs
+     this is the one question that tells a KS1 paper from a KS2 one -- `KS1 | KS2`, off
+     `satsStagesOf_`. Everywhere else it answers nothing, which keeps the GCSE screen the owner
+     reported (`KS3 | KS4` after the qualification was chosen) and the KS3 shelf's ranges from
+     asking a grey area the qualification already settled. `check-funnel` holds both halves. */
+  { field: 'keystage',  label: 'Key stage', of: x =>
+      (LEVEL_BUCKET(levelOf_(x)) === 'SATs' ? satsStagesOf_(x) : []) },
   { field: 'examBoard', label: 'Exam board',  of: x => x.examBoard },
   /* ---------- `A-Level` IS NOT A TIER, AND IT WAS AN ANSWER TO THIS QUESTION ---------------------
      135 ROWS ANSWERED `Tier · A-Level` AND 263 ANSWERED `Level · A-Level`, so pressing the tier
@@ -1353,8 +1371,11 @@ const FACETS = [
      yet, so `FACET_COVERAGE` keeps the question quiet until the list on screen is mostly papers
      that declare it — which is the same self-correcting rule that keeps `Topic` out of the way
      until the list IS questions. */
+  /* `showOf` SAYS THE CALCULATOR THE WAY THE CARD'S TAG DOES -- `Non-calculator`, `Calculator allowed`
+     -- and matches by the cell's own value, which is what `showOf` is for. See `needsSay_`. */
   { field: 'needs',
-    bucketOf: NEEDS_BUCKET, bucketOrder: NEEDS_BUCKET.order,     label: 'What you need', of: x => asList_(x.needs) },
+    bucketOf: NEEDS_BUCKET, bucketOrder: NEEDS_BUCKET.order,     label: 'What you need', of: x => asList_(x.needs),
+    showOf: v => needsSay_(v) },
   /* ---------- `paper` — "PRINTED?" — WAS HERE, AND IT WAS NOT A QUESTION ------------------------
      IT READ `x.paper`, AND `questionItems` SET THAT TO `true` ON EVERY QUESTION. So the only
      reader of the field was this facet, and the only writer was a literal. Measured: 3,753 items
@@ -1489,6 +1510,22 @@ const FACETS = [
     of: x => x.cost == null ? ''
            : x.cost === 0 ? 'Free'
            : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
+  /* ---------- WHICH PAGES OF A QUESTION: ITS ANSWERS ONLY, OR EVERYTHING BUT THEM ----------------
+     ASKED FOR AS *"the answers should appear after their questions … they have their own tag. i
+     could in theory just click answers and only see answers."* An answer page is a page of its
+     question, straight after it -- that order is untouched -- and this is the second way to read
+     the same strip: `Answers` keeps only the answer pages of the questions that have one, `Questions`
+     everything else. Every answer page is still shut behind its own Show (`questionAnsCard_`).
+
+     A FILTER LIKE ANY OTHER, so it is a chip with a ✕ and narrows inside whatever is already chosen
+     (a paper's answers, a topic's). THE ITEM SAYS WHICH IT CAN BE (`of`); WHICH PAGES ARE DRAWN is
+     `stuffPages_`'s, because pages are built there and nowhere upstream.
+
+     `tagOnly`: NEVER ASKED BY THE FUNNEL. It is not a question about what somebody is looking for
+     -- it is a way of reading what they found, and it is reached by tapping an answer page's kind
+     tag (`answersOnly_`). `nextFacet` and `overFacet_` skip it. */
+  { field: 'pageKind',  label: 'Page',        tagOnly: true,
+    of: x => (x && x.kind === 'question' ? (questionHasAns_(x) ? ['Questions', 'Answers'] : ['Questions']) : '') },
 ];
 
 /* ==================================================================================================
@@ -3113,6 +3150,7 @@ function nextFacet(items) {
     .map(f => f.field);
 
   for (const facet of facetList()) {
+    if (facet.tagOnly) continue;
     if (settled.indexOf(facet.field) !== -1) continue;
     /* ---------- NOT UNTIL THE QUESTION IT HANGS OFF HAS BEEN ANSWERED ---------------------------
        See `FACET_NEEDS_FIRST`. Skipped rather than reordered: reordering would ask it later and
@@ -3167,7 +3205,7 @@ function overFacet_(items) {
   const asked = STUFF.filters.map(f => f.field);
   let best = null;
   for (const facet of facetList()) {
-    if (asked.indexOf(facet.field) !== -1) continue;
+    if (facet.tagOnly || asked.indexOf(facet.field) !== -1) continue;
     const vals = facetValues(items, facet).length;
     if (vals <= FACET_MAX_ANSWERS) continue;
     const min = isFinite(facet.min) ? facet.min : FACET_COVERAGE;
@@ -3359,12 +3397,38 @@ function fightCard_(x) {
      as ONE quiet line — three facts about where, read together. Nothing was dropped. */
   const about = [f.titles, where ? where + (f.attendance ? ' · ' + f.attendance + ' there' : '') : '']
     .filter(Boolean).join(' · ');
+  /* ---------- THE TWO FACES, SQUARED UP -----------------------------------------------------------
+     ASKED FOR WITH THE BOXER'S PHOTO ("maybe add image of each boxer"), and a bout is two boxers, so
+     it gets both — small, side by side, the winner's frame in gold. Each is `boxerPic_`'s corner:
+     the photo where the boxer's row has one WITH its credit, and the ring placeholder otherwise —
+     mirrored in the blue corner's colours on the right, as the splash draws its second fighter. An
+     opponent with no row at all (52 corners) gets the placeholder with his initials, which is what
+     he is: somebody this library has no picture of.
+
+     LIFTED OVER THE TITLE BY `order`, like the boxer's photo, and hidden from a screen reader: the
+     names are the title already, and two pictures announced as the same two names is the title
+     read twice.
+
+     ONE CREDIT LINE FOR BOTH, each part carrying the address it credits, so a face that fails to
+     load takes its own credit with it and leaves the other's — see `boxerPicFail_`. */
+  const bxA = boxerOf_(f.aId, f.a) || { name: f.a }, bxB = boxerOf_(f.bId, f.b) || { name: f.b };
+  /* EACH CREDIT IS A LINK TO THE PHOTO'S OWN FILE PAGE where one can be named — `boxerCredit_`, the
+     profile's rule, so the two cards cannot credit the same picture two ways. */
+  const credits = [bxA, bxB].filter(bx => boxerPicSrc_(bx)).map(bx =>
+    boxerCredit_(bx, 'Photo of ' + bx.name + ': ' + bx.imageCredit.replace(/^photo:\s*/i, '')));
   return `<div class="card fc fight">
     <div class="fc-head">
       <h3 class="fight-line">${corner(f.a, wonA)}<em>v</em>${corner(f.b, wonB)}</h3>
       <span class="fc-flags"><span class="fc-flag is-type">Fight</span></span>
     </div>
-    <p class="sub">${esc([f.date, f.division, bout].filter(Boolean).join(' · '))}</p>
+    ${/* THE DATE AS THE FIGHTER'S PAGE WRITES IT. This printed the cell — `1971-03-08` — one flick
+          away from his page printing the same bout as `8 Mar 1971`: one fight, two dates, and the
+          ISO one is a database's, not a poster's. `boxerDate_` leaves a cell that is not a date as
+          typed, so "c. 1900" still reads. */''}
+    <p class="sub">${esc([boxerDate_(f.date), f.division, bout].filter(Boolean).join(' · '))}</p>
+    <div class="fight-faces" aria-hidden="true">${boxerPic_(bxA, 'a', wonA)}<span class="fight-v">v</span>${
+      boxerPic_(bxB, 'b', wonB)}</div>
+    ${credits.length ? `<p class="fight-credit">${credits.join(' ')}</p>` : ''}
     ${how ? `<p class="fc-meta">${esc(how)}</p>` : ''}
     ${f.notes ? `<p class="fc-lede">${esc(f.notes)}</p>` : ''}
     ${about ? `<p class="fc-note">${esc(about)}</p>` : ''}
@@ -3883,6 +3947,593 @@ function textbookText_(b) {
   return plainText_(parts.filter(Boolean).join(' '));
 }
 
+/* ==================================================================================================
+   THE BIBLE (KING JAMES VERSION) — A BOOK ON THE RESOURCES SHELVES THAT ONLY AN ADMIN IS SHOWN.
+
+   ASKED FOR AS "i want to add the bible to resources as a book. but only admin can see the bible."
+   and then "i already have a bible text in repo" — `data/archive/bible.json`, the old `Library`
+   sheet's `bible` tab, 31,102 verses. `tools/bible-split.py` cuts it into `data/bible/`: one file a
+   book and a 7 KB `index.json`. Nothing about it is in the `doGet` payload, and nothing in it is
+   fetched until an admin is the one looking.
+
+   THE ONE EXCEPTION THE PHONE MAKES TO "Find shows the same thing to everyone". The owner's own rule
+   is *"No distinction between tutor and student on the finder. All the same."* — and `check-flow`
+   asks it of every role. This is the owner asking for a distinction by name, so it is made in ONE
+   place (`bibleFor_`) and nowhere else: every other item on Find is built the same for every role,
+   and the sameness journey expects the Bible on an admin's list and on nobody else's.
+   NOT THE ONLY THING ON FIND AN ADMIN ALONE SEES, and an earlier draft of this note said it was: the
+   films (`Learning · Films`) are an admin's too. But they are absent rather than hidden — `doGet`
+   sends nobody else a row of them — so no code on the phone tells the roles apart for them. The
+   Bible is the one item the PHONE decides on, which is why it is the one `bibleFor_` guards.
+
+   GATED ON THE PHONE, NOT ON THE SERVER, AND THAT IS NOT THE FILMS' MISTAKE REPEATED. The films are
+   a list the owner wants nobody to see, so `doGet` never sends them to anybody else — a filter on
+   the phone is something the network tab reads past (note 068). The King James text is public
+   domain and has sat in this public repository since the archive was made; there is nothing in it
+   to keep from anybody. What the owner asked for is what the app SHOWS, so the gate is the item
+   list. What a non-admin is spared is the download: no book and no index is asked for unless
+   `bibleFor_` says yes, and `check-flow` records every fetch to prove it.
+
+   READ AS THE @family. TEXTBOOK READS, which was the spec: a card, then pages. The card is the
+   cover; the next three pages are the lists of books — the Old Testament in two (`bibleOn_` says
+   why), then the New — and choosing one fetches that book (once a visit — `BIBLE.books`) and puts
+   its pages after ALL THREE lists: the chapter numbers, then every chapter, a page or a few each.
+   Swipe on and you read on into the next chapter, as a book does.
+   AFTER ALL THREE, NOT AFTER ITS OWN TESTAMENT, which is where it was first: Genesis's 326 pages
+   then stood between the Old Testament and the New, so with any Old Testament book open the New
+   Testament was 328 swipes away and the cover's "the books are the next pages" was false. Now the
+   lists never move, and the way back up is a tile — every page of a chapter has one to the chapter
+   numbers, and the chapter numbers have one to the list their book is on.
+
+   A CHAPTER IS CUT INTO SCREENFULS RATHER THAN SCROLLED. The median chapter is 3,300 characters and
+   Psalm 119 is 13,000 — no phone shows either on one card, and "I don't like scrolling … so they
+   all fit on screen" is the owner's rule for every widget. So a chapter is pages of whole verses
+   (`bibleCut_`), cut in PIXELS against the screen in hand (`bibleMeasure_`), each headed with where
+   it is: `Genesis 1`, `2 of 3`.
+================================================================================================== */
+const BIBLE_NAME = 'The Bible (King James Version)';
+/* `Books`, A SHELF OF ITS OWN, BESIDE `@family. textbooks` AND `Boxing`. Not the textbooks' shelf:
+   that one is books this business wrote, and the King James is not one of them. "As a book" is the
+   owner's word for it, and the next book that is not ours belongs here too. */
+const BIBLE_SHELF = 'Books';
+/* ---------- THE THREE NUMBERS FOR A DOCUMENT WITH NO LAYOUT ---------------------------------------
+   A PHONE MEASURES ITS OWN PAGES (`bibleMeasure_`); jsdom and a check have no layout to measure, so
+   they cut by characters instead, and these are those characters: what a page holds, what a verse
+   costs on top of its words (the end of its last line, half a line on average and nothing a
+   character count sees), and the tile row every text page carries, taken off every page's share. */
+const BIBLE_PAGE = 1000;
+const BIBLE_VERSE = 24;
+const BIBLE_FOOT = 150;
+/* AND THE CHAPTER NUMBERS A PAGE OFFERS WITH NOTHING TO MEASURE. A phone fits the grid to its pane —
+   five columns by eight rows at 320x568, six by thirteen at 390x844 — because a fixed sixty was
+   twelve rows at 320 and `paneReach_` drew every number at 40px to fit them. */
+const BIBLE_GRID = 60;
+/* WHERE THE OLD TESTAMENT TURNS THE PAGE — see `bibleOn_`. */
+const BIBLE_OT_TURN = 'Job';
+
+/* EVERYTHING THE READER KNOWS, IN ONE PLACE. `books` IS THE VISIT'S CACHE — a book asked for once is
+   held until the page is closed, so going back to Genesis is not a second download. `want` is the
+   last book tapped, so two quick taps open the second rather than whichever file landed last.
+   `screen` is the pane the `plans` were measured against (`bibleScreen_`). */
+const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {},
+                open: 0, want: 0, plans: {}, screen: '', item: null };
+
+/* ---------- WHO IS SHOWN IT -----------------------------------------------------------------------
+   THE WHOLE EXCEPTION IS THIS LINE. The item list asks it, the fetches ask it again (a book must not
+   be downloaded for somebody who could not have been shown the button), and nothing else does. */
+const bibleFor_ = () => typeof isAdmin === 'function' && isAdmin();
+
+/* ONE FETCH FOR EVERY FILE OF IT, stamped with the deploy so the service worker's exact-URL cache
+   hands back a fresh copy after one — `videosAsk_`'s reasoning, word for word. A failure is `null`,
+   never a throw: the page that asked says so in words. */
+function bibleGet_(file) {
+  if (!bibleFor_()) return Promise.resolve(null);
+  const stamp = window.LOAD ? '?t=' + window.LOAD : '';
+  return Promise.resolve()
+    .then(() => fetch('data/bible/' + file + stamp, { cache: 'default' }))
+    .then(res => (res && res.ok) ? res.json() : null)
+    .catch(() => null);
+}
+
+/* THE LIST OF BOOKS — asked for once, the first time an admin's Find is built, which is long before a
+   finger reaches the shelf. Held to its shape on arrival: a file name has to look like the files the
+   splitter writes, so nothing in a doctored index can point the reader anywhere else. */
+function bibleIndex_() {
+  if (BIBLE.index) return BIBLE.index;
+  if (!BIBLE.asking && !BIBLE.failed && bibleFor_()) {
+    BIBLE.asking = bibleGet_('index.json').then(d => {
+      const ok = !!d && Array.isArray(d.books) && d.books.length > 0
+        && d.books.every((b, i) => b && b.n === i + 1 && b.book && /^\d\d-[a-z0-9-]+\.json$/.test(b.file)
+                                   && b.chapters > 0 && (b.testament === 'OT' || b.testament === 'NT'));
+      BIBLE.asking = null;
+      if (ok) BIBLE.index = d; else BIBLE.failed = true;
+      /* THE SEARCH LEARNS THE BOOK NAMES, so typing `psalms` finds the Bible — on the item already
+         built, because the list is memoised and rebuilding Find for sixty-six words is not worth it.
+         The cached search is told to forget (`me.js`'s move for the friends list), or a `psalms`
+         typed while the index was on its way would go on answering from the list without them. */
+      if (ok && BIBLE.item) {
+        BIBLE.item.text = bibleWords_();
+        delete BIBLE.item._hay;
+        FIND_MEMO.key = null;
+      }
+      bibleRedraw_();
+      return BIBLE.index;
+    });
+  }
+  return null;
+}
+const bibleBook_ = n => (BIBLE.index && BIBLE.index.books[n - 1]) || null;
+const bibleTestament_ = t => (t === 'NT' ? 'New Testament' : 'Old Testament');
+/* `Psalm 23`, NOT `Psalms 23` — the book is the Psalms and a chapter of it is a psalm. The one book
+   whose chapters are cited by a different word from its title. */
+const bibleCite_ = (b, ch) => (b.book === 'Psalms' ? 'Psalm' : b.book) + ' ' + ch;
+const bibleWords_ = () => [BIBLE_NAME, 'KJV Authorized Version scripture Old Testament New Testament']
+  .concat(BIBLE.index ? BIBLE.index.books.map(b => b.book) : []).join(' ');
+
+/* ONE BOOK, ONCE A VISIT. Held to the index's own count of its chapters, so a file that came back
+   half-written is a failure on the page rather than a book missing its last chapters. */
+function bibleLoad_(n) {
+  if (BIBLE.books[n]) return Promise.resolve(BIBLE.books[n]);
+  if (BIBLE.loading[n]) return BIBLE.loading[n];
+  const b = bibleBook_(n);
+  if (!b || !bibleFor_()) return Promise.resolve(null);
+  BIBLE.loading[n] = bibleGet_(b.file).then(d => {
+    delete BIBLE.loading[n];
+    const ok = !!d && Array.isArray(d.chapters) && d.chapters.length === b.chapters
+      && d.chapters.every(c => Array.isArray(c) && c.length > 0 && c.every(v => typeof v === 'string'));
+    BIBLE.missed[n] = !ok;
+    if (!ok) return null;
+    BIBLE.books[n] = d;
+    return d;
+  });
+  return BIBLE.loading[n];
+}
+
+/* ---------- A VERSE, DRAWN ------------------------------------------------------------------------
+   THE TWO MARKS THE 1611 PRINTERS LEFT IN THE TEXT, and both are kept in the file for this function
+   to draw (see `tools/bible-split.py`):
+     `[was]` — a word the translators SUPPLIED, which the King James prints in italic. Drawn in
+       italics without the brackets: "darkness <i>was</i> upon the face of the deep".
+     a leading `# ` — the pilcrow, where a paragraph starts. Taken off here; the verse is marked
+       `is-para` instead, and the stylesheet opens a little space above it.
+   ESCAPED FIRST, THEN MARKED, the order `lawsColour` keeps for the same reason: the brackets are
+   the only thing turned into markup, and nothing inside a verse can be. */
+const bibleVerse_ = t => esc(String(t == null ? '' : t).replace(/^#\s*/, ''))
+  .replace(/\[([^\[\]]*)\]/g, '<i>$1</i>');
+
+/* ---------- ONE VERSE AS A LINE-GROUP, the same markup on the page and in the measuring below ------ */
+const bibleV_ = (v, num) => `<p class="bb-v${/^#/.test(v) ? ' is-para' : ''}"><span class="bb-n">${num}</span> ${bibleVerse_(v)}</p>`;
+
+/* ---------- WHICH PANE THE PAGES ARE CUT FOR --------------------------------------------------------
+   ITS WIDTH AND ITS CEILING, AS ONE WORD. Every result pane on Find is the same box — the page width
+   across, the screen's height less the bar down (`.pane`) — and the question page is always in the
+   document to ask. `''` with no layout, which is jsdom, a check, or a Find screen not yet drawn. */
+function bibleScreen_() {
+  try {
+    const pane = document.querySelector('#s-stuff .pane');
+    const cs = pane && pane.offsetWidth > 0 ? getComputedStyle(pane) : null;
+    return cs ? cs.width + 'x' + cs.maxHeight : '';
+  } catch (e) { return ''; }
+}
+
+/* ---------- A BOOK, MEASURED ON THE SCREEN IT WILL BE READ ON --------------------------------------
+   AN ESTIMATE IN CHARACTERS WAS RIGHT ON AVERAGE AND WRONG ON THE PAGE. Pages were cut by a character
+   count worked out from the pane, then `paneReach_` shrank whichever did not fit — and measured over
+   every page of Genesis at 320x568, 57 of 326 were shrunk, six below 90% and the worst to 81%: verse
+   text at 9.7px on one page between pages at 11.9. At 390x844 Genesis 1's third page was 11.9px
+   between two at 13px, and its left edge jumped 13px as the zoom re-centred it. A character count
+   cannot see where a line breaks, and a verse that ends one word into a new line costs a whole line.
+
+   SO THE BROWSER IS ASKED, ONCE, WHEN A BOOK IS OPENED. Four hidden panes, the real pane's width,
+   with the real classes — so the same rules, the same face and the same wrapping:
+     · an empty pane held open by something taller than the screen, whose height is then the room
+       `paneReach_` will judge a page against, read the way it reads it.
+     · a text page holding ONE verse, which is everything on a page that is not verses: the card's
+       padding, the kicker, the title, the tile row. The room left for verses is the room less that.
+     · a page of sixty chapter numbers, which says how many columns a row holds, how far apart the
+       rows are, and what the rest of that page costs — so the grid is cut to whole rows that fit.
+     · every verse of the book, a column a chapter, and each verse's height read off it: from its
+       top to the next verse's top, which carries the space between them, and so counts a little
+       over rather than under. The last verse of a chapter is its own height.
+   ONE WRITE, THEN EVERY READ, INSIDE A BOX THAT CANNOT MOVE ANYTHING ELSE. The first version filled
+   one pane four times and paid four layouts of the whole app for it — on a loaded test machine 1.2s
+   to open Genesis, 2.3s for Psalms, and 0.35s for Philemon's twenty-five verses, because it was the
+   app being laid out again and not the verses. `contain: strict` on a box of fixed size makes it a
+   layout boundary: what is inside is laid out on its own, once, and nothing outside is touched.
+   A failure anywhere is `null`, and the plan falls back to characters — a page drawn a step smaller
+   is the old behaviour, not a broken one. */
+function bibleMeasure_(n) {
+  const b = bibleBook_(n), d = BIBLE.books[n];
+  let box = null;
+  try {
+    /* THE PANE'S WIDTH TO THE FRACTION, AND HALF A PIXEL LESS. `offsetWidth` rounds — 269 for a pane
+       268.8 wide at 320 — and a line of a monospaced face that ends within that fifth of a pixel
+       wraps on the phone and not here: measured, two pages of Genesis drawn 10px past the pane for
+       one word. Narrower can only wrap sooner, which costs room and never fit. The COMPUTED width,
+       not the box on screen, because the screens are moved — and on a turn scaled — by transforms. */
+    const real = document.querySelector('#s-stuff .pane');
+    const wide = real ? parseFloat(getComputedStyle(real).width) - .5 : 0;
+    if (!b || !d || !(wide > 0)) return null;
+    box = document.createElement('div');
+    box.setAttribute('aria-hidden', 'true');
+    box.style.cssText = 'position:fixed;left:-10000px;top:0;width:' + wide + 'px;height:1px;overflow:hidden;'
+      + 'contain:strict;visibility:hidden;pointer-events:none';
+    /* THE LONGEST KICKER AND TITLE THIS BOOK CAN HAVE on the sample page, so a page is never cut for a
+       shorter head than the one it gets. */
+    box.innerHTML = '<div class="pane"><div style="height:9999px"></div></div>'
+      + '<div class="pane">' + bibleTextHtml_(b, b.chapters, [d.chapters[0][0]], 0, '22 of 22', 'bk', '') + '</div>'
+      + '<div class="pane">' + bibleGridHtml_(b, 1, BIBLE_GRID, `chapters ${b.chapters}–${b.chapters} of ${b.chapters}`, 'ot', '') + '</div>'
+      + `<div class="pane"><div class="card fc prac prac-part bible bb-text">${d.chapters.map(vs =>
+          `<div class="bb-verses">${vs.map((v, i) => bibleV_(v, i + 1)).join('')}</div>`).join('')}</div></div>`;
+    document.body.appendChild(box);
+    const panes = box.children;
+    const cs = getComputedStyle(panes[0]);
+    const pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+    const room = panes[0].clientHeight - pad;
+    const chrome = panes[1].scrollHeight - pad - panes[1].querySelector('.bb-v').getBoundingClientRect().height;
+    const nums = [].slice.call(panes[2].querySelectorAll('.bb-ch')).map(e => e.getBoundingClientRect());
+    const gridChrome = panes[2].scrollHeight - pad - panes[2].querySelector('.bb-grid').getBoundingClientRect().height;
+    const cols = nums.filter(r => Math.abs(r.top - nums[0].top) < 1).length;
+    const pitch = nums.length > cols ? nums[cols].top - nums[0].top : 0;
+    const w = [].slice.call(panes[3].querySelectorAll('.bb-verses')).map(col => {
+      const r = [].slice.call(col.children).map(e => e.getBoundingClientRect());
+      return r.map((q, i) => (i + 1 < r.length ? r[i + 1].top - q.top : q.height));
+    });
+    box.remove();
+    box = null;
+    /* ROWS: the first number's height, then a pitch for each row after it, inside the room the rest
+       of the page leaves. Two pixels short of the room, the margin `paneReach_` forgives. */
+    const rows = pitch > 0 ? Math.max(1, Math.floor((room - 2 - gridChrome - nums[0].height) / pitch) + 1) : 0;
+    if (!(room > 0 && chrome > 0 && cols > 0 && rows > 0) || w.length !== d.chapters.length) return null;
+    return { cap: room - chrome - 2, cols: cols, per: cols * rows, w: w };
+  } catch (e) {
+    if (box && box.parentNode) box.parentNode.removeChild(box);
+    return null;
+  }
+}
+
+/* ---------- A CHAPTER CUT INTO SCREENFULS ---------------------------------------------------------
+   WHOLE VERSES, AS FEW PAGES AS FIT, AND THOSE PAGES AS EVEN AS THEY CAN BE. `w` is what each verse
+   costs and `cap` what a page holds, in any one unit — pixels on a phone (`bibleMeasure_`),
+   characters with no layout. Filling each page until the next verse would not fit gives the fewest
+   pages; then the smallest page size that still needs no more pages is searched for, and the chapter
+   is cut again at that — so Genesis 1 is three pages of a similar length rather than two full ones
+   and a stub of two verses. NOTHING OVER `cap` but a verse that is taller than a page on its own,
+   which gets a page to itself and is the one thing `paneReach_` is still left to shrink.
+   PURE — it reads nothing but its arguments, so `check-bible.js` cuts every chapter of the Bible
+   through this very function. Returns `[from, to)` index pairs into the chapter's verses. */
+function bibleCut_(w, cap) {
+  const fill = lim => {
+    const out = [];
+    let from = 0, sum = 0;
+    for (let i = 0; i < w.length; i++) {
+      if (i > from && sum + w[i] > lim) { out.push([from, i]); from = i; sum = 0; }
+      sum += w[i];
+    }
+    out.push([from, w.length]);
+    return out;
+  };
+  const pages = fill(cap).length;
+  let lo = 0, hi = Math.max(cap, ...w);
+  for (let k = 0; k < 30 && hi - lo > .5; k++) {
+    const mid = (lo + hi) / 2;
+    if (fill(mid).length <= pages) hi = mid; else lo = mid;
+  }
+  return fill(Math.min(hi, cap));
+}
+
+/* THE OPEN BOOK'S PAGES, worked out once per book and screen: its chapter-number pages, then every
+   chapter's. Memoised because `pageParts_` is asked for every result on every new filter.
+   THE GRID IS AS MANY WHOLE ROWS AS THE PANE HOLDS, and then evened out the way a chapter is: Genesis
+   at 320x568 is two pages of twenty-five rather than forty and ten, and each page's count is rounded
+   up to a whole row so the numbers stand in full columns. */
+function biblePlan_(n) {
+  if (BIBLE.plans[n]) return BIBLE.plans[n];
+  const b = bibleBook_(n), d = BIBLE.books[n];
+  if (!b || !d) return null;
+  const m = bibleMeasure_(n);
+  const most = m ? m.per : BIBLE_GRID;
+  let per = Math.ceil(b.chapters / Math.ceil(b.chapters / most));
+  if (m) per = Math.min(most, Math.ceil(per / m.cols) * m.cols);
+  const parts = [];
+  for (let g = 0; g * per < b.chapters; g++) parts.push(g ? 'bk-' + g : 'bk');
+  const grids = parts.length;
+  const cuts = d.chapters.map((vs, i) => (m
+    ? bibleCut_(m.w[i], m.cap)
+    : bibleCut_(vs.map(v => String(v).length + BIBLE_VERSE), BIBLE_PAGE - BIBLE_FOOT)));
+  cuts.forEach((c, i) => c.forEach((_, k) => parts.push('c' + (i + 1) + (k ? '-' + k : ''))));
+  return (BIBLE.plans[n] = { per: per, grids: grids, cuts: cuts, parts: parts, measured: !!m });
+}
+/* WHICH PAGE OF CHAPTER NUMBERS HOLDS A CHAPTER — where a text page's tile goes back to. */
+const bibleGridOf_ = (plan, ch) => {
+  const g = Math.floor((ch - 1) / Math.max(1, plan.per));
+  return g ? 'bk-' + g : 'bk';
+};
+
+/* ---------- THE OLD TESTAMENT ON TWO PAGES, AT THE SEAM EVERY BIBLE HAS -----------------------------
+   THIRTY-NINE 44px BUTTONS DO NOT FIT A SMALL PHONE. At 320x568 they wrapped to eleven rows, 601px in
+   a 507px pane, and `paneReach_` drew the page at 84% — every button 37px, under the fingertip rule
+   the chips were written to keep. A narrower face only moved the number.
+   SO IT IS TWO PAGES ON EVERY SCREEN, not two on a short one: Genesis to Esther (the Law and the
+   histories) and Job to Malachi (the poetry and the prophets), the turn every printed contents page
+   already makes. On every screen because a list whose page count depends on the phone is a contents
+   that changes shape when the phone turns, and because the seam is one a reader knows. Seventeen and
+   twenty-two fit at 320 at full size; the New Testament's twenty-seven always did. */
+function bibleOn_(part) {
+  const ix = BIBLE.index;
+  if (!ix) return [];
+  if (part === 'nt') return ix.books.filter(b => b.testament === 'NT');
+  const ot = ix.books.filter(b => b.testament === 'OT');
+  let k = ot.findIndex(b => b.book === BIBLE_OT_TURN);
+  if (k <= 0) k = Math.ceil(ot.length / 2);
+  return part === 'ot2' ? ot.slice(k) : ot.slice(0, k);
+}
+const bibleListOf_ = b => (b.testament === 'NT' ? 'nt' : bibleOn_('ot2').indexOf(b) >= 0 ? 'ot2' : 'ot');
+
+/* THE CARD, THE THREE LISTS, AND THEN THE OPEN BOOK — see the head of this section for why the book
+   comes after all three rather than after its own testament. */
+function bibleParts_() {
+  const plan = BIBLE.open ? biblePlan_(BIBLE.open) : null;
+  return [null, 'ot', 'ot2', 'nt'].concat(plan ? plan.parts : []);
+}
+
+/* ---------- THE COVER ------------------------------------------------------------------------------
+   `data-bb` MARKS THE PAGES THAT CHANGE AFTER THEY ARE DRAWN — the cover and the three lists wait for
+   the index, and a list marks the book being fetched — so `bibleRedraw_` can find them on Find and
+   on Saved alike and draw them again in place. */
+function bibleCard_(x) {
+  const t = BIBLE.index && BIBLE.index.totals;
+  const num = v => Number(v || 0).toLocaleString('en-GB');
+  return `<div class="card fc prac bible" data-bb="card">
+    <div class="fc-head">
+      <h3>${esc(x.name)}</h3>
+      <span class="fc-flags"><span class="fc-flag is-type">Book</span></span>
+    </div>
+    <p class="sub">The Authorized Version of 1611</p>
+    <p class="fc-lede">The Old and New Testaments, whole${t ? ` — ${num(t.books)} books, ${num(t.chapters)} chapters, ${num(t.verses)} verses` : ''}.
+      The books are the next three pages: choose one, then a chapter.</p>
+    <p class="fc-note">Words in <i>italics</i> are the translators' own, added for the sense, as the
+      King James prints them.</p>
+    ${/* WHO CAN SEE IT, in the colour this app keeps for exactly that (`--admin`), so the owner is
+         never left wondering whether a student is reading this card too. */''}
+    <p class="fc-meta bb-who">Only admins are shown this book</p>
+  </div>`;
+}
+
+/* ---------- A LIST OF BOOKS: A BUTTON EACH ---------------------------------------------------------
+   BUTTONS, NOT TILES, and this is the house rule read rather than broken: a tile is an action ON a
+   thing, and this is a choice AMONG things — the funnel's own answer row, which is buttons for the
+   same reason. The card's actions (the star) are the tile row under the cover, as on every card.
+   `part` is `ot`, `ot2` or `nt`; the two Old Testament pages say which books they hold. */
+function bibleList_(part) {
+  const t = part === 'nt' ? 'NT' : 'OT';
+  const ix = bibleIndex_();
+  const head = `<p class="fc-kick">${esc(BIBLE_NAME)}</p><h3>${esc(bibleTestament_(t))}</h3>`;
+  let body;
+  if (!ix) {
+    body = BIBLE.failed
+      ? `<p class="fc-lede">The list of books did not arrive.</p>
+         <div class="bb-books"><button class="bb-book" data-do="bible-retry">Try again</button></div>`
+      : '<p class="fc-lede">Opening the list of books…</p>';
+  } else {
+    const books = bibleOn_(part);
+    const all = ix.books.filter(b => b.testament === t).length;
+    const missed = books.filter(b => BIBLE.missed[b.n] && !BIBLE.loading[b.n]).map(b => b.book);
+    const span = books.length && books.length < all
+      ? `${esc(books[0].book)} to ${esc(books[books.length - 1].book)} · ${books.length} of the ${all} books`
+      : `${books.length} books`;
+    body = `<p class="fc-meta">${span}</p>
+      <div class="bb-books">${books.map(b => {
+        const on = BIBLE.open === b.n;
+        return `<button class="bb-book${on ? ' on' : ''}${BIBLE.loading[b.n] ? ' is-busy' : ''}" data-do="bible-book"
+          data-n="${b.n}"${on ? ' aria-current="true"' : ''}>${esc(b.book)}</button>`;
+      }).join('')}</div>
+      ${missed.length ? `<p class="fc-note bb-miss">${esc(missed.join(', '))} did not arrive. Tap it again
+        to try once more.</p>` : ''}`;
+  }
+  return `<div class="card fc prac prac-part bible bb-toc is-${t.toLowerCase()}" data-bb="${part}">
+    ${head}${body}</div>`;
+}
+
+/* ---------- A BOOK: ITS CHAPTER NUMBERS -----------------------------------------------------------
+   THE WAY TO PSALM 119 THAT IS NOT 118 SWIPES. A number a button, 44px, as many to a row as fit and
+   as many rows as the pane holds (`biblePlan_`).
+   AND A TILE BACK TO THE LIST THIS BOOK IS ON. The lists stand in front of every open book, so from
+   Genesis's numbers the Old Testament is three swipes back past the New — this is the one tap. */
+function bibleGridHtml_(b, lo, hi, span, list, cls) {
+  const same = BIBLE.index ? BIBLE.index.books.filter(o => o.testament === b.testament) : [b];
+  const nums = [];
+  for (let c = lo; c <= hi; c++) {
+    nums.push(`<button class="bb-ch" data-do="bible-ch" data-ch="${c}" aria-label="${esc(bibleCite_(b, c))}">${c}</button>`);
+  }
+  return `<div class="card fc prac prac-part bible bb-chs${cls}">
+    <p class="fc-kick">${esc(bibleTestament_(b.testament))} · book ${same.indexOf(b) + 1} of ${same.length}</p>
+    <h3>${esc(b.book)}</h3>
+    <p class="fc-meta">${span} · ${Number(b.verses || 0).toLocaleString('en-GB')} verses</p>
+    <div class="bb-grid">${nums.join('')}</div>
+    <div class="tile-row">${tile_({ icon: 'book', label: bibleTestament_(b.testament), note: 'the books',
+      act: 'bible-to', data: { to: list } })}</div>
+  </div>`;
+}
+function bibleGrid_(n, g) {
+  const b = bibleBook_(n), plan = biblePlan_(n);
+  if (!b || !plan) return '';
+  const lo = g * plan.per + 1, hi = Math.min(b.chapters, (g + 1) * plan.per);
+  if (lo > hi) return '';
+  const span = plan.grids > 1 ? `chapters ${lo}–${hi} of ${b.chapters}`
+             : b.chapters + (b.chapters === 1 ? ' chapter' : ' chapters');
+  return bibleGridHtml_(b, lo, hi, span, bibleListOf_(b), ' is-bk' + (g ? '-' + g : ''));
+}
+
+/* ---------- A CHAPTER, OR ONE SCREENFUL OF IT ------------------------------------------------------
+   THE CITATION IS THE TITLE ON EVERY PAGE — `Genesis 1` — the way a printed Bible's running head
+   says where you are whichever page it falls open at; the kicker says which part of the chapter.
+   The verse number is small and quiet in front of its verse: it is how you find a place, not what
+   you read.
+   THE WAY BACK TO THE CHAPTER NUMBERS IS ON EVERY PAGE, not only the chapter's last. It was at the
+   foot of the last page alone, and Psalm 119 is twenty-two pages at 320px: from its first page the
+   way out was twenty-one swipes forward or every earlier psalm backward. The tile goes to the page
+   of numbers this chapter is on, and the room for it is taken off every page by the measuring. */
+function bibleTextHtml_(b, ch, vs, from, of, back, cls) {
+  return `<div class="card fc prac prac-part bible bb-text${cls}">
+    <p class="fc-kick">${esc(bibleTestament_(b.testament))}${of ? ' · ' + of : ''}</p>
+    <h3>${esc(bibleCite_(b, ch))}</h3>
+    <div class="bb-verses">${vs.map((v, j) => bibleV_(v, from + j + 1)).join('')}</div>
+    <div class="tile-row">${tile_({ icon: 'book', label: b.book + ' · chapters',
+      note: b.chapters + (b.chapters === 1 ? ' chapter' : ' chapters'), act: 'bible-to', data: { to: back } })}</div>
+  </div>`;
+}
+function bibleText_(n, ch, k) {
+  const b = bibleBook_(n), d = BIBLE.books[n], plan = biblePlan_(n);
+  const cuts = plan && plan.cuts[ch - 1];
+  if (!b || !d || !cuts || !cuts[k]) return '';
+  const from = cuts[k][0], to = cuts[k][1];
+  return bibleTextHtml_(b, ch, d.chapters[ch - 1].slice(from, to), from,
+    cuts.length > 1 ? (k + 1) + ' of ' + cuts.length : '', bibleGridOf_(plan, ch),
+    ' is-c' + ch + (k ? '-' + k : ''));
+}
+
+/* ONE PAGE OF IT THAT IS NOT THE COVER — `stuffPart_`'s door in. */
+function biblePart_(x, part) {
+  const p = String(part || '');
+  if (p === 'ot' || p === 'ot2' || p === 'nt') return bibleList_(p);
+  let m = /^bk(?:-(\d+))?$/.exec(p);
+  if (m) return bibleGrid_(BIBLE.open, +(m[1] || 0));
+  m = /^c(\d+)(?:-(\d+))?$/.exec(p);
+  if (m) return bibleText_(BIBLE.open, +m[1], +(m[2] || 0));
+  return '';
+}
+
+/* THE ITEM. One, for an admin; none for anybody else — which is the whole of what a non-admin's Find
+   knows about it: no item, no shelf answer, no card, no fetch. */
+function bibleItems_() {
+  if (!bibleFor_()) return [];
+  bibleIndex_();
+  /* ---------- NOT BEFORE THE LIBRARY ----------------------------------------------------------------
+     IT STANDS ON THE RESOURCES SHELVES, AND THE SHELVES ARRIVE WITH THE LIBRARY — the textbooks, the
+     boxers and the bouts are all `libraryExtras_`'s, landing with `data/questions.json`. Offered before
+     then, it was the only thing on an admin's Find for the seconds the library takes, so the screen
+     drew a funnel of one book where it should say "The questions are still coming" (`nothingHere`).
+     Measured, not reasoned: `check/states.js`'s `the library still coming` stopped being reachable for
+     the admin visitor the day this item arrived. The index is still asked for above, so the contents
+     are ready by the time the shelf is. */
+  if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
+  const x = { kind: 'bible', name: BIBLE_NAME, key: 'bible:kjv', sub: 'Old and New Testaments',
+              image: '', shelf: BIBLE_SHELF, text: bibleWords_(), row: null };
+  BIBLE.item = x;
+  return [x];
+}
+
+/* ---------- DRAWING IT AGAIN WHERE IT ALREADY IS ---------------------------------------------------
+   THE ANSWER LANDED AFTER THE PAGE WAS DRAWN — the index, or a book that did not come. The pages that
+   wait (`data-bb`) are redrawn in place, `ansShow_`'s move, and their panes are measured again so a
+   list that grew is drawn smaller to fit rather than cut off. */
+function bibleRedraw_() {
+  const x = BIBLE.item;
+  if (!x || typeof document === 'undefined') return;
+  document.querySelectorAll('.card.bible[data-bb]').forEach(el => {
+    const part = el.getAttribute('data-bb');
+    const t = document.createElement('div');
+    t.innerHTML = part === 'card' ? bibleCard_(x) : biblePart_(x, part);
+    const pane = el.closest('.pane');
+    if (t.firstElementChild) el.replaceWith(t.firstElementChild);
+    if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
+  });
+}
+
+/* THE BIBLE AS FIND IS SHOWING IT NOW, or null — on the results only once something has been asked,
+   because until then the screen is a question with no result pages behind it. */
+const bibleShown_ = () => (stuffAsked() && stuffFiltered().find(i => i.kind === 'bible')) || null;
+
+/* ---------- A DIFFERENT BOOK OPEN, AND THE PAGE UNDER YOUR THUMB STAYS PUT -------------------------
+   OPENING A BOOK CHANGES HOW MANY PAGES THE BIBLE IS, and `paintStuff(true)` only knows how to keep
+   your place when the pages in FRONT of the results move — it was written for a star. So the page you
+   are on is found by what it IS (which item, which part) before the change and found again after it,
+   and the screen is repainted around that. `STUFF_PAGES` is memoised on the results array, which has
+   not changed, so it is told to forget. */
+function bibleSet_(n) {
+  const host = $('stuff-controls');
+  const first = host ? stuffFirstResult_() : 0;
+  const before = host ? stuffPages_()[(PAGE.stuff || 0) - first] : null;
+  /* THE SCREEN IS ASKED HERE, AT AN OPENING, and nowhere else: pages re-cut while a book was open
+     would move the verses under your thumb. A different pane since the last opening (the phone
+     turned) forgets every plan, and each book is measured again the next time it is opened. */
+  const screen = bibleScreen_();
+  if (screen !== BIBLE.screen) { BIBLE.screen = screen; BIBLE.plans = {}; }
+  BIBLE.open = n;
+  STUFF_PAGES = { from: null, pages: [] };
+  if (host) {
+    if (before) {
+      const i = stuffPages_().findIndex(p => p.x === before.x && p.part === before.part);
+      if (i >= 0) PAGE.stuff = first + i;
+    }
+    paintStuff(true);
+  }
+  bibleRedraw_();
+}
+
+/* ---------- TO ONE OF ITS PAGES, FROM WHEREVER THE TAP WAS -----------------------------------------
+   ON FIND IT IS A TURN OF THE PAGE. ON SAVED — a starred Bible draws its cover and both lists there —
+   the book is not on any strip, so Find is narrowed to the Bible's shelf first, which is the route a
+   finger would have taken, and the reader opens on Find. */
+function bibleGo_(part) {
+  if (!bibleFor_()) return;
+  let x = bibleShown_();
+  if (!x && $('stuff-controls')) {
+    const any = stuffItems().find(i => i.kind === 'bible');
+    if (!any) return;
+    STUFF.q = '';
+    STUFF.filters = [{ field: 'kindLabel', value: kindOf_(any).label }, { field: 'shelf', value: any.shelf }];
+    const box = $('stuff-q');
+    if (box) box.value = '';
+    paintStuff();
+    x = bibleShown_();
+  }
+  if (!x) return;
+  const at = stuffPages_().findIndex(p => p.x === x && (p.part || null) === (part || null));
+  if (at < 0) return;
+  if (AT !== 'stuff') go('stuff');
+  goPage('stuff', stuffFirstResult_() + at);
+}
+
+/* ---------- A BOOK TAPPED -------------------------------------------------------------------------
+   HELD: straight to its chapter numbers. NOT HELD: the button says it is coming (`is-busy`), the file
+   is fetched, and the book opens when it lands — unless another was tapped meanwhile, in which case
+   that one is the one wanted. A file that does not come is said on the list and in a toast; the
+   button stays, so tapping it again is the retry. */
+function bibleOpen_(n) {
+  const b = bibleFor_() ? bibleBook_(n) : null;
+  if (!b) return;
+  BIBLE.want = n;
+  if (BIBLE.books[n]) {
+    if (BIBLE.open !== n) bibleSet_(n);
+    bibleGo_('bk');
+    return;
+  }
+  const already = !!BIBLE.loading[n];
+  bibleLoad_(n).then(d => {
+    if (!d) {
+      bibleRedraw_();
+      if (BIBLE.want === n) toast(b.book + ' did not arrive — tap it again to try once more.');
+      return;
+    }
+    if (BIBLE.want !== n) { bibleRedraw_(); return; }
+    bibleSet_(n);
+    bibleGo_('bk');
+  });
+  if (!already) bibleRedraw_();
+}
+
+on('bible-book', el => bibleOpen_(Number(el.getAttribute('data-n'))));
+on('bible-ch', el => bibleGo_('c' + Number(el.getAttribute('data-ch'))));
+on('bible-to', el => bibleGo_(String(el.getAttribute('data-to') || '')));
+/* THE LIST OF BOOKS AGAIN, after it failed — the one fetch with no button of its own to retry from. */
+on('bible-retry', () => {
+  BIBLE.failed = false;
+  bibleIndex_();
+  bibleRedraw_();
+});
+
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS ------------------------
    The card, then a page per section that has something in it. A REFUSED experiment is its card
    alone: it carries no kit and no method by rule (`check-practicals.js` refuses one that does), and
@@ -3934,11 +4585,18 @@ function pageParts_(x, prev) {
       });
       if (fig && plan.figAt >= plan.chunks.length) out.push('sfig' + i);
     });
+    /* "USE YOUR GRAPH": THE EARLIER PART'S PICTURE WITH THE CHILD'S MARKS, after the opening and in
+       front of this part's words -- see `usesOf_`. */
+    if (usesPage_(x, prev)) out.push('use');
     /* AND A LONG PART IS ITS FIRST PAGES (`preN`) AND THEN THE CARD, which keeps the last of its words
        with the box -- with its figure among them where `partPlan_` stands it. */
     const plan = partPlan_(x);
+    /* A FIGURE THE WORDS NAME AND NOBODY HAS DRAWN stands where a figure with no marker would, in
+       front of the card -- once for a run of parts that all name it, as a stem is. See `figMissing_`. */
+    const gap = figMissing_(x) && !(prev && qId_(prev) && qId_(prev) === qId_(x) && figMissing_(prev));
     plan.chunks.forEach((c, j) => {
       if (j === plan.figAt) out.push('fig');
+      if (gap && j === plan.chunks.length - 1) out.push('nofig');
       out.push(j === plan.chunks.length - 1 ? null : 'pre' + j);
     });
     if (plan.figAt >= plan.chunks.length) out.push('fig');
@@ -3959,6 +4617,13 @@ function pageParts_(x, prev) {
   if (x && x.kind === 'textbook' && x.row) {
     return [null].concat((x.row.chapters || []).map(c => 'ch' + c.n));
   }
+  /* THE BIBLE IS ITS COVER, ITS THREE LISTS OF BOOKS, AND THE OPEN BOOK'S PAGES after them — see
+     `bibleParts_`. Which book is open is the reader's state, not the item's, so the item is the same
+     object whichever book is being read. */
+  if (x && x.kind === 'bible') return bibleParts_();
+  /* A BOXER IS THEIR CARD AND, WHERE THEY HAVE ANY, THEIR FIGHTS — seven bouts a page, see
+     `boxerFightPages_`. */
+  if (x && x.kind === 'boxer' && x.row) return [null].concat(boxerFightPages_(x.row));
   if (!x || x.kind !== 'practical' || !x.row || x.row.excluded) return [null];
   const p = x.row, out = [null];
   /* THE PICTURE IS ITS OWN PAGE, straight after the card — "across the board of all resources the
@@ -3979,14 +4644,47 @@ function pageParts_(x, prev) {
    rather than a section of a guide. IN `pageParts_`'s ORDER, filtered rather than listed again,
    because "Show the answer" turns forward by the answer's place in that list — on Saved as on Find
    — and two lists of one question's pages would be two chances to disagree about where it is. */
-function cardPages_(x, credits) {
-  return pageParts_(x).filter(p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p))
+/* AND A KEPT BIBLE'S THREE LISTS OF BOOKS, because the cover alone is a card with no way into the book:
+   a book tapped on Saved opens on Find (`bibleGo_`), and the chapters themselves stay there. */
+/* `prev` IS THE KEPT THING IN FRONT, as on Find -- see `keptPages_`. */
+function cardPages_(x, credits, prev) {
+  return pageParts_(x, prev).filter(p => !p || p === 'fig' || p === 'nofig' || p === 'use' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p)
+                                 || (x.kind === 'bible' && /^(ot2?|nt)$/.test(p)))
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
+}
+
+/* ---------- SAVED AND SPOTLIGHT DRAW A QUESTION'S OPENING ONCE, AS FIND DOES -----------------------
+   THE MULTI-PART AUDIT, FINDING 8: keep both parts of 1F Q8 and Saved read opening, figure, (i), its
+   answer, then opening, figure, (ii), its answer -- every kept part was drawn as though it had been
+   landed on alone. 270 questions, 741 extra pages; AQA A-level Physics 3A Q2 was 20 pages on Find and
+   35 on Saved.
+
+   SO THE KEPT PARTS OF ONE QUESTION ARE DRAWN TOGETHER, in the paper's order (`sortKey_`), each told
+   the part in front of it -- `pageParts_`'s own rule for a stem the previous part already showed. In
+   the place the first of them holds in the list, so nothing else on the column moves. A part kept on
+   its own still has its opening in front of it, because nothing in front of it showed it. "To the
+   answer" counts from the page the tile is on (`qa-go`), so it lands the same either way. */
+function keptPages_(items, credits) {
+  const by = {}, done = {}, seq = [];
+  const key = x => x._sk || (x._sk = sortKey_(x));
+  (items || []).forEach(x => { const k = qId_(x); if (k) (by[k] = by[k] || []).push(x); });
+  (items || []).forEach(x => {
+    const k = qId_(x);
+    if (!k) { seq.push(x); return; }
+    if (done[k]) return;
+    done[k] = true;
+    by[k].slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0)).forEach(p => seq.push(p));
+  });
+  return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1])));
 }
 function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
   if (x && x.kind === 'textbook') return textbookPart_(x, part);
+  if (x && x.kind === 'bible') return biblePart_(x, part);
+  if (x && x.kind === 'boxer') return boxerPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
+  if (x && x.kind === 'question' && part === 'use') return questionUsesCard_(x);
+  if (x && x.kind === 'question' && part === 'nofig') return questionNoFigCard_(x);
   if (x && x.kind === 'question' && /^stem\d+(-\d+)?$/.test(part)) {
     const m = /^stem(\d+)(?:-(\d+))?$/.exec(part);
     return questionStemCard_(x, +m[1], +(m[2] || 0));
@@ -4045,26 +4743,606 @@ function filmCard_(x) {
   </div>`;
 }
 
+/* ==================================================================================================
+   THE FIGHTER'S PROFILE — A TALE OF THE TAPE, AND HIS FIGHTS ON THE PAGE AFTER IT.
+
+   ASKED FOR AS *"can you refine the boxers widget. maybe add image of each boxer. and make it look
+   nicer. the wins losses etc. my mate's a boxer and i want to impress him."* The card it replaces
+   was a name, a line and `56-5-0 · 37 KO` in small gold mono — every fact a boxer is judged by, in
+   the size this app keeps for a footnote. So the record is the centrepiece now, and the rest is
+   arranged the way a fight broadcast arranges it: the face and the name, the record, the tape.
+
+   THE CARD, IN THIS ORDER:
+
+     the photo        BESIDE the name, a 4:5 portrait in the left two-fifths, the way a fight poster
+                      or a trading card sets a fighter. It comes after the head in the markup and is
+                      placed by the grid in style.css, so a screen reader hears the name before the
+                      picture and every Find card still opens on its `.fc-head`, which is what
+                      `check-flow`'s shared-parts journey asks of all of them. NOT FULL WIDTH,
+                      measured: a 4:3 photo across the card put the profile at 1,480px on a 390px
+                      phone, and 102 of the 103 rows have no photo — so it would have been the
+                      placeholder, 225px tall, on nearly every page.
+     the head         the shared one: `Boxer` above the name, the nickname under it in quotes.
+     country, weight  the sub-line, with a flag where the country is one this file can name.
+     status           Active, Retired or Deceased, each with the years that status is about.
+     THE RECORD       won, lost, drawn (and no contests when there were any) as the biggest numbers
+                      on the page, the stoppages under the two columns they belong to, one bar for
+                      the split and the KO rate under it.
+     the tape         age or born and died, height, reach, stance, the weights, the career — only
+                      the rows a cell answered, so a sparse row is a short tape, not a form of blanks.
+     titles           the belts in the sheet's own words, the Hall of Fame and lineal as badges.
+
+   AND ONE PAGE AFTER IT, `fights` (see `boxerPart_`): who he beat and who beat him, then every bout
+   in `data/fights.json` he is in, newest first. A PAGE, NOT MORE CARD, because the owner's rule for
+   every widget is that it fits its screen — *"I don't like scrolling ... This goes for all widgets so
+   they all fit on screen"* — and Ali's fourteen bouts are a screen on their own. It is the
+   practicals' answer to the same problem ("Split into widgets"): the next page in the strip, one
+   flick away, headed with whose page it is.
+
+   EVERY CELL CAN BE BLANK. Eight rows have no record (fourteen did at first), sixty-nine no stance,
+   a hundred and two no photo; each part below says what it does with nothing, and the answer is
+   always to leave the part out rather than print a dash or a nought — see the `libNum` note in
+   library.js for the record a blank once turned into `0-0-0`.
+================================================================================================== */
+
+/* ---------- A FLAG FOR THE COUNTRY, WHERE THE COUNTRY IS ONE OF THESE -----------------------------
+   THE SHEET HOLDS A NAME (`USA`, `UK`, `Puerto Rico`) AND A FLAG IS A PAIR OF LETTERS, so something
+   has to join them, and a table is the honest version: every country the file uses today and the
+   ones a new row is likely to add. A country not here gets its name and no flag, which is a complete
+   answer rather than a broken one — there is no guessing a code from a name.
+   `UK` IS GB, because that is the flag; England, Scotland and Wales have flags of their own that are
+   tag sequences most phones draw as a plain black flag, so they are not offered. */
+const BOXER_FLAG = {
+  'usa': 'US', 'united states': 'US', 'uk': 'GB', 'united kingdom': 'GB', 'great britain': 'GB',
+  'england': 'GB', 'scotland': 'GB', 'wales': 'GB', 'northern ireland': 'GB',
+  'mexico': 'MX', 'ukraine': 'UA', 'puerto rico': 'PR', 'argentina': 'AR', 'ireland': 'IE',
+  'germany': 'DE', 'canada': 'CA', 'panama': 'PA', 'philippines': 'PH', 'kazakhstan': 'KZ',
+  'sweden': 'SE', 'italy': 'IT', 'nigeria': 'NG', 'nicaragua': 'NI', 'cuba': 'CU', 'jamaica': 'JM',
+  'australia': 'AU', 'japan': 'JP', 'norway': 'NO', 'netherlands': 'NL', 'france': 'FR',
+  'ghana': 'GH', 'south africa': 'ZA', 'russia': 'RU', 'dominican republic': 'DO', 'venezuela': 'VE',
+  'colombia': 'CO', 'brazil': 'BR', 'thailand': 'TH', 'south korea': 'KR', 'china': 'CN',
+  'new zealand': 'NZ', 'spain': 'ES', 'poland': 'PL', 'uzbekistan': 'UZ', 'belgium': 'BE',
+  'denmark': 'DK', 'hungary': 'HU', 'cameroon': 'CM', 'uganda': 'UG', 'zambia': 'ZM',
+};
+/* TWO REGIONAL-INDICATOR LETTERS ARE A FLAG, which is the whole of the encoding. A computer with no
+   flag glyphs (Windows is one) draws the two letters instead — `US` beside `USA` — which still says
+   it, so there is nothing to detect and nothing to fall back from. */
+function boxerFlag_(country) {
+  const cc = BOXER_FLAG[norm(country)];
+  return cc ? String.fromCodePoint(...[...cc].map(c => 0x1F1E6 + c.charCodeAt(0) - 65)) : '';
+}
+
+/* ---------- A DATE AS A FIGHT POSTER WRITES ONE ---------------------------------------------------
+   `1 Oct 1975`, through `parseWhen` — which reads an ISO date field by field, the fix recorded over
+   it for a date that came out eleven years wrong. A cell that is not an ISO date is printed as it
+   was typed rather than dropped: "c. 1900" is still worth showing. */
+const BOXER_ISO = /^\d{4}-\d{1,2}-\d{1,2}/;
+function boxerDate_(v) {
+  const s = String(v || '').trim();
+  const d = BOXER_ISO.test(s) ? parseWhen(s) : null;
+  return d ? d.getDate() + ' ' + MONTH_NAMES[d.getMonth()].slice(0, 3) + ' ' + d.getFullYear() : s;
+}
+/* WHOLE YEARS BETWEEN TWO DATES, or null when either is not one. A birthday not yet reached in the
+   last year is taken off, which is the one step a subtraction of years gets wrong. */
+function boxerAge_(from, to) {
+  const a = BOXER_ISO.test(String(from || '')) ? parseWhen(from) : null;
+  const b = to instanceof Date ? to : (BOXER_ISO.test(String(to || '')) ? parseWhen(to) : null);
+  if (!a || !b || b < a) return null;
+  let n = b.getFullYear() - a.getFullYear();
+  if (b.getMonth() < a.getMonth() || (b.getMonth() === a.getMonth() && b.getDate() < a.getDate())) n--;
+  return n;
+}
+/* CENTIMETRES, WITH WHAT A BOXING FAN ACTUALLY QUOTES beside them. A reach is said in inches alone
+   ("a 78-inch reach"), a height in feet and inches. Rounded to the inch first and then split, so
+   six foot twelve cannot happen. */
+function boxerCm_(cm, height) {
+  if (!(cm > 0)) return '';
+  const inches = Math.round(cm / 2.54);
+  return cm + ' cm · ' + (height ? Math.floor(inches / 12) + '′ ' + (inches % 12) + '″' : inches + '″');
+}
+/* THE NAMES, SPLIT ON THE PIPE THE SHEET USES FOR EVERY LIST, blanks and repeats taken out. */
+const boxerNames_ = v => String(v || '').split('|').map(s => s.trim())
+  .filter((s, i, a) => s && a.indexOf(s) === i);
+/* TWO LETTERS FOR THE PLACEHOLDER: first and last name, `Muhammad Ali` → `MA`; one word gives one
+   letter. Letters only, so nothing in a name can reach the drawing as anything but text. A `Jr.` or
+   a `III` is not a surname — Floyd Mayweather Jr. is `FM`, not `FJ`.
+
+   AND A SURNAME CAN START WITH A PARTICLE. "Oscar De La Hoya" came out `OH`, because the last word
+   was taken as the surname — and his surname is De La Hoya, which a corner banner writes as `DLH`
+   and an initial writes as `D`. So the surname starts at the first De / La / Del / Van / Von /
+   Da / Di / Du / Le / Der / Den after the first name, and its first letter is the second initial:
+   `OD`. A particle as the FIRST word is a first name and is left alone. */
+const BOXER_PARTICLE = /^(de|la|del|della|van|von|da|di|du|le|der|den|dos|das)$/i;
+function boxerInitials_(name) {
+  const words = String(name || '').split(/\s+/).filter(s => s && !/^(jr|sr|ii|iii|iv)\.?$/i.test(s));
+  const at = words.findIndex((s, i) => i > 0 && BOXER_PARTICLE.test(s));
+  const w = (at > 0 ? words.slice(0, 1).concat(words[at]) : words)
+    .map(s => (s.match(/[A-Za-zÀ-ÿ]/) || [''])[0]).filter(Boolean);
+  return (w.length > 1 ? w[0] + w[w.length - 1] : (w[0] || '?')).toUpperCase();
+}
+
+/* ---------- THE BOXER IN A BOUT'S CORNER ----------------------------------------------------------
+   BY ID, THEN BY NAME, which is `fightCard_`'s order and for its reason: an id beats a name because
+   a name is a cell somebody can edit, and the name is still the fallback because 52 corners have no
+   id yet — the opponents nobody has written a row for. */
+function boxerOf_(id, name) {
+  const all = (DATA && DATA.boxers) || [];
+  return (id && all.find(b => String(b.id) === String(id)))
+      || (name && all.find(b => norm(b.name) === norm(name))) || null;
+}
+
+/* ---------- HIS BOUTS, NEWEST FIRST, EACH ONE READ FROM HIS SIDE ----------------------------------
+   A CORNER IS HIS BY ID, OR BY NAME ONLY WHERE THAT CORNER HAS NO ID. Name alone would hand his
+   fights to any second row somebody typed with the same name and another id; an id that is present
+   always decides, so the two can never disagree.
+
+   W, L, D OR NC FROM THE WINNER — by id where the row has one and by name where it does not,
+   `fightCard_`'s rule again. A bout with no winner is a draw unless its result says no contest.
+
+   NEWEST FIRST, the opposite of how `libraryExtras_` sorts `DATA.fights` (oldest first, so a
+   rivalry reads in order). A fighter's page is read from where his career ended, the way every
+   record is printed; a rivalry from where it began. Both are right, so the copy is sorted here and
+   the shared list is left alone. */
+function boxerBouts_(b) {
+  const id = String((b && b.id) || ''), name = norm(b && b.name);
+  if (!id && !name) return [];
+  const mine = (cid, cname) => (id && cid) ? String(cid) === id : (!cid && !!name && norm(cname) === name);
+  return ((DATA && DATA.fights) || []).map(f => {
+    const side = mine(f.aId, f.a) ? 'a' : mine(f.bId, f.b) ? 'b' : '';
+    if (!side) return null;
+    const me = side === 'a' ? { id: f.aId, n: f.a } : { id: f.bId, n: f.b };
+    const them = side === 'a' ? { id: f.bId, n: f.b } : { id: f.aId, n: f.a };
+    let res;
+    if (f.winnerId) res = String(f.winnerId) === String(me.id || id) ? 'W' : 'L';
+    else if (f.winner) res = norm(f.winner) === norm(me.n) ? 'W' : 'L';
+    else res = /no.?contest|^nc$/i.test(String(f.result || '')) ? 'NC' : 'D';
+    return { f, res, opp: them.n, oppId: them.id };
+  }).filter(Boolean).sort((p, q) => String(q.f.date || '').localeCompare(String(p.f.date || '')));
+}
+/* HOW IT ENDED, as a record writes it: `TKO 14`, `UD 15`, `KO`. The round a stoppage came in; for a
+   decision the distance, which is the scheduled rounds when nobody wrote an end round. A stoppage
+   with no round is the method alone — a scheduled distance beside a KO would read as the round it
+   happened in, and that is a fact nobody wrote down. */
+function boxerHow_(f) {
+  const m = String(f.method || '').trim();
+  const dist = (!m || /^(UD|SD|MD|TD|PTS|D|DRAW)$/i.test(m)) ? (f.rounds || '') : '';
+  return [m, f.endRound || dist].filter(Boolean).join(' ');
+}
+
+/* ---------- THE RECORD BAR'S WIDTHS, WHICH ADD UP TO A HUNDRED EXACTLY ----------------------------
+   EACH SEGMENT ROUNDED ON ITS OWN DRIFTS: three thirds at two places are 99.99. The last segment
+   takes whatever the others left, so the bar always ends at the right-hand edge and `check-flow`
+   can ask for 100 rather than for "about 100". */
+function boxerSplit_(parts) {
+  const live = parts.filter(p => p.n > 0);
+  const total = live.reduce((s, p) => s + p.n, 0);
+  if (!total) return [];
+  let used = 0;
+  return live.map((p, i) => {
+    const w = i === live.length - 1 ? +(100 - used).toFixed(2) : +(p.n / total * 100).toFixed(2);
+    const out = Object.assign({}, p, { x: +used.toFixed(2), w });
+    used += w;
+    return out;
+  });
+}
+
+/* ---------- THE PHOTO, OR A RING WITH NOBODY'S BOXER IN IT ----------------------------------------
+   A FREE PHOTOGRAPH IS FREE ON A CONDITION: its author and licence are named wherever it is shown.
+   So a photo is drawn only WITH its credit, and a row with an address and no credit gets the
+   placeholder — the card cannot be made to show a Commons picture unattributed, whatever the sheet
+   says. `check-library.js` refuses such a row as well, so it is caught before it ships rather than
+   quietly hidden after.
+
+   THE PLACEHOLDER IS ALWAYS IN THE BOX, under the photo. Before the photo arrives it is what the
+   box shows, so nothing jumps and nothing sits grey; if the photo never arrives, `boxerPicFail_`
+   takes the `<img>` out and it is all that is left. Never a broken-picture icon.
+
+   THE BOXER IN IT IS THE SPLASH'S GOLD FIGHTER IN HIS GUARD — `tools/boxing.py`'s `guard` pose,
+   the same paths, painted by the same `.bx-*` rules — so the loading screen and the placeholder are
+   one drawing in one set of colours. NOBODY'S LIKENESS, which is the point that file makes and the
+   one that matters most here: a stand-in that looked like a person would be a picture of the wrong
+   man. His initials beside it say whose page it is. If the splash is regenerated, paste its new
+   guard paths over these. */
+const BOXER_GUARD = '<path class="bx-hair" d="M6 1h4v1h-4zM5 2h6v1h-6zM5 3h2v1h-2zM5 4h1v1h-1zM5 5h1v1h-1z"/>'
+  + '<path class="bx-skin" d="M7 3h5v1h-5zM6 4h4v1h-4zM11 4h1v1h-1zM6 5h6v1h-6zM6 6h4v1h-4zM7 7h2v1h-2zM4 8h6v1h-6zM3 9h8v1h-8zM3 10h5v1h-5zM11 10h1v1h-1zM3 11h5v1h-5zM4 12h5v1h-5zM4 17h2v1h-2zM10 17h2v1h-2zM3 18h2v1h-2zM11 18h2v1h-2zM3 19h2v1h-2zM11 19h2v1h-2z"/>'
+  + '<path class="bx-eye" d="M10 4h1v1h-1z"/>'
+  + '<path class="bx-glove" d="M11 6h3v1h-3zM10 7h5v1h-5zM10 8h5v1h-5zM11 9h3v1h-3zM8 10h3v1h-3zM8 11h4v1h-4zM9 12h3v1h-3z"/>'
+  + '<path class="bx-band" d="M4 13h7v1h-7z"/>'
+  + '<path class="bx-trunks" d="M4 14h7v1h-7zM4 15h7v1h-7zM4 16h3v1h-3zM9 16h3v1h-3z"/>'
+  + '<path class="bx-boot" d="M2 20h3v1h-3zM11 20h3v1h-3zM2 21h3v1h-3zM11 21h4v1h-4z"/>';
+
+/* THE RING, SIDE ON: two posts, three ropes (the middle one red, as the splash's), the pads in each
+   corner's colour, the mat and the apron, and his initials over the top rope like the name on a
+   corner banner. 40 by 50 game pixels, which is the portrait frame's own 4:5, so the drawing fills
+   it without letterboxing; the fight card's square corner crops five pixels off the top and the
+   bottom, which is sky and apron. `crispEdges` keeps every pixel square at any size. The fighter
+   stands on whole pixels — a half-pixel offset is a blurred boxer. */
+function boxerRing_(name, blue) {
+  const ropes = [23, 29, 35].map((y, i) =>
+    `<rect class="bx-rope${i === 1 ? ' bx-rope-mid' : ''}" x="3" y="${y}" width="34" height="1"/>`
+    + `<rect class="bx-pad-l" x="0" y="${y - 1}" width="3" height="3"/>`
+    + `<rect class="bx-pad-r" x="37" y="${y - 1}" width="3" height="3"/>`).join('');
+  /* THE BLUE CORNER IS THE GOLD ONE MIRRORED about the middle of the ring — `.bx-r` gives him the
+     splash's blue trunks and gold hair, exactly as the splash draws its second fighter. */
+  const who = blue ? `<g class="bx-r" transform="translate(29 21) scale(-1 1)">${BOXER_GUARD}</g>`
+                   : `<g class="bx-l" transform="translate(11 21)">${BOXER_GUARD}</g>`;
+  return `<svg class="boxer-ring" viewBox="0 0 40 50" preserveAspectRatio="xMidYMid slice" shape-rendering="crispEdges" aria-hidden="true">`
+    + `<rect class="bx-post" x="1" y="18" width="2" height="25"/><rect class="bx-post" x="37" y="18" width="2" height="25"/>`
+    + ropes
+    + `<rect class="bx-mat" x="0" y="43" width="40" height="2"/><rect class="bx-mat-edge" x="0" y="43" width="40" height="1"/>`
+    + `<rect class="bx-apron" x="0" y="45" width="40" height="5"/><rect class="bx-apron-band" x="0" y="46" width="40" height="1"/>`
+    + who
+    + `<text class="boxer-ini" x="20" y="15" font-size="10" text-anchor="middle">${esc(boxerInitials_(name))}</text></svg>`;
+}
+
+/* AN ADDRESS THAT ALREADY FAILED ON THIS PHONE IS NOT ASKED FOR AGAIN. A repaint redraws the card,
+   and without this every repaint would put the `<img>` back, watch it fail and take it out — the
+   placeholder flickering behind a picture that is never coming. */
+const BOXER_PIC_DEAD = new Set();
+
+/* THE ADDRESS A CARD MAY SHOW, or nothing. `https` only — the site is served over it and a plain
+   `http` picture is blocked as mixed content, which is a broken box by another route. A Drive link
+   goes through `pic` like every other picture in the app. */
+function boxerPicSrc_(b) {
+  const src = pic((b && b.image) || '');
+  return /^https:\/\//i.test(src) && !!(b && b.imageCredit) && !BOXER_PIC_DEAD.has(src) ? src : '';
+}
+
+/* `corner` IS THE FIGHT CARD'S: 'a' or 'b', the same frame and the same placeholder, square and
+   small, with no caption of its own — the fight card gathers its credits into one line under both
+   faces. The blue corner's stand-in faces left, as the splash's second fighter does, and the
+   winner's frame is gold. */
+function boxerPic_(b, corner, won) {
+  const src = boxerPicSrc_(b);
+  const frame = `<span class="boxer-frame">${boxerRing_(b.name, corner === 'b')}${src
+    ? `<img class="boxer-img" src="${esc(src)}" alt="${esc(b.name)}" loading="lazy" decoding="async">` : ''}</span>`;
+  if (corner) return `<span class="boxer-pic is-small${src ? '' : ' is-none'}${won ? ' won' : ''}">${frame}</span>`;
+  /* THE CREDIT IS A LINE OF ITS OWN UNDER THE PHOTO AND THE NAME, NOT A CAPTION IN THE PHOTO'S
+     COLUMN. As a `<figcaption>` it was four lines in a 134px column on a 320px phone — the photo's
+     column ran 80px past the name's, the record started that much lower, and Ali's profile was drawn
+     at 82% to fit, which put the credit itself at about seven pixels. Across the card it is two
+     lines, the column ends with the photo, and the credit sits directly under the picture it names.
+     The grid puts it there: it is the next element after the photo, so it takes the row below. */
+  return `<figure class="boxer-pic${src ? '' : ' is-none'}">${frame}</figure>${src
+    ? `<p class="boxer-credit">${boxerCredit_(b, b.imageCredit)}</p>` : ''}`;
+}
+
+/* ---------- THE CREDIT LINKS TO THE PHOTO'S FILE PAGE --------------------------------------------
+   THE CREDIT WAS PLAIN TEXT — "Photo: <author>, <licence>, via Wikimedia Commons" — which is enough
+   for a public-domain picture (Ali's is one) and NOT enough for the CC BY and CC BY-SA ones waiting
+   to be added: those licences ask for the author, the licence AND a link to where the work and its
+   licence can be read, "in any reasonable manner based on the medium". On a web page the reasonable
+   manner is the credit being that link. So it is one, to the Commons file page — which names the
+   author, the licence and the licence's own text in one place, and is the page the owner opens to
+   check a photo before trusting it.
+
+   BUILT FROM THE PICTURE'S OWN ADDRESS, NOT STORED. An `upload.wikimedia.org/wikipedia/commons/`
+   address carries the file's name — `…/8/89/Muhammad_Ali_NYWTS.jpg/480px-…` for a thumbnail, the
+   name before the size — so the page is `commons.wikimedia.org/wiki/File:<that name>`. A second
+   column would be a second thing to keep in step with the first; this cannot drift. An address
+   that is not Commons (a Drive photo somebody took) has no such page and its credit stays text —
+   `check-library.js` refuses a CC licence on any picture that is not a Commons file, so a licence
+   that needs the link always has one.
+
+   A 44px BLOCK, NOT A LINK THE SIZE OF ITS SMALL PRINT. It is a tap target like any other, and
+   `check/ui.js` measures it as one — see `.boxer-credit a` in style.css. */
+const BOXER_COMMONS = /^https:\/\/upload\.wikimedia\.org\/wikipedia\/commons\/(?:thumb\/)?[0-9a-f]\/[0-9a-f]{2}\/([^/?#]+)/i;
+function boxerCommons_(src) {
+  const m = String(src || '').match(BOXER_COMMONS);
+  return m ? 'https://commons.wikimedia.org/wiki/File:' + m[1] : '';
+}
+/* `data-src` IS THE ADDRESS THE CREDIT IS FOR, so a picture that fails takes its own credit away
+   and leaves another's — the fight card has two (`boxerPicFail_`). */
+function boxerCredit_(b, text) {
+  const src = boxerPicSrc_(b), page = boxerCommons_(src);
+  return /^https:\/\/commons\.wikimedia\.org\//.test(page)
+    ? `<a class="boxer-src" data-src="${esc(src)}" href="${esc(page)}" target="_blank" rel="noopener">${esc(text)}</a>`
+    : `<span class="boxer-src" data-src="${esc(src)}">${esc(text)}</span>`;
+}
+
+/* A PICTURE THAT DID NOT COME LEAVES THE RING. `error` does not bubble, so this listens in the
+   capture phase, once, for the whole document — `postVidFail_`'s shape in posts.js. The credit goes
+   with the picture: a credit under a placeholder names a photograph nobody can see. */
+function boxerPicFail_(img) {
+  if (!img || !img.parentNode) return;
+  BOXER_PIC_DEAD.add(img.getAttribute('src') || '');
+  const fig = img.closest('.boxer-pic');
+  const card = img.closest('.card');
+  img.remove();
+  if (fig) fig.classList.add('is-none');
+  /* THE CREDIT FOR THIS PICTURE GOES, BY ITS ADDRESS — on the profile it is the line under the photo,
+     on a fight card one of two, so it is found by `data-src` rather than by where it sits, and a
+     line left with no credit in it goes too. */
+  if (card) card.querySelectorAll('.boxer-credit [data-src], .fight-credit [data-src]').forEach(el => {
+    if (el.getAttribute('data-src') === img.getAttribute('src')) el.remove();
+  });
+  if (card) card.querySelectorAll('.boxer-credit, .fight-credit').forEach(line => {
+    if (!line.querySelector('[data-src]')) line.remove();
+  });
+}
+document.addEventListener('error', e => {
+  const el = e.target;
+  if (el && el.matches && el.matches('img.boxer-img')) boxerPicFail_(el);
+}, true);
+
+/* ---------- WHAT HE IS NOW, AND THE YEARS THAT GO WITH IT -----------------------------------------
+   EACH STATUS CARRIES THE YEARS IT IS ABOUT: an active fighter the year he started, a retired one
+   the year he stopped, a dead one the years he lived. The career's whole span is the tape's
+   `Career` row, so this line never repeats it. A status the sheet does not use is printed as typed,
+   with no years rather than wrong ones. */
+function boxerStatus_(b) {
+  const s = norm(b.status), y = v => (String(v || '').match(/\d{4}/) || [''])[0];
+  if (s === 'active') return { k: 'is-active', t: 'Active' + (y(b.activeFrom) ? ' · since ' + y(b.activeFrom) : '') };
+  if (s === 'retired') return { k: 'is-retired', t: 'Retired' + (y(b.activeTo) ? ' · ' + y(b.activeTo) : '') };
+  if (s === 'deceased') {
+    const born = y(b.dob), died = y(b.dod);
+    return { k: 'is-dead', t: 'Deceased' + (born && died ? ' · ' + born + '–' + died : died ? ' · ' + died : '') };
+  }
+  return b.status ? { k: '', t: b.status } : null;
+}
+
+/* ---------- THE RECORD ---------------------------------------------------------------------------
+   THE NUMBERS ARE THE CENTREPIECE AND THE ONLY BIG TYPE ON THE PAGE. Won in gold, lost in the
+   ring's red, drawn in the quiet ink — the way a record is always coloured, from this app's own
+   tokens, named on the card itself (`--boxer-w` and friends in style.css). No contests get a column
+   only when there were any: a fourth `0` is noise beside three numbers that matter.
+
+   KOs UNDER THE COLUMN THEY BELONG TO, and only when the cell says: `37 KO` under the wins, `1 KO`
+   under the losses. A blank `losses_ko` prints nothing, never `0 KO`.
+
+   THE BAR IS AN SVG, and that is not decoration: its segments' widths are attributes, so they add
+   up to a hundred where a check can read them, and the card carries no `style` — which the
+   shared-parts journey refuses on every Find card. `preserveAspectRatio="none"` stretches it to the
+   card's width.
+
+   NO RECORD ON FILE SAYS SO. Eight fighters have none today — six old-timers whose records are
+   disputed by design, and two current ones nobody has entered — and a line saying that is the
+   truth; three noughts would be a claim. */
+/* ---------- A NOTE TO THE EDITOR IS NOT A NOTE TO THE READER --------------------------------------
+   THE `notes` CELL HOLDS TWO KINDS OF THING and the card printed both. Most qualify the record —
+   "Exhibition bouts excluded", "Record disputed — newspaper-decision era" — and belong under it. The
+   rest are the researchers' to-do list: "ACTIVE — record needs checking" under Usyk's 24-0, "Date
+   of death needs checking" under Ricky Hatton's, "Retirement announced more than once — check"
+   under Fury's. Five of them were on public cards, in the place a fighter's own record is
+   qualified, and to a boxer they read as the site doubting its own numbers.
+
+   THE WORD IS THE SIGN. Every to-do in the file says `check` or `checking` and no qualifying note
+   does, so a note that says either is the editor's and is not drawn. Not cleared from the sheet:
+   it is still the to-do somebody has to do, and `check-library.js` lists every row carrying one
+   so it is a list rather than a silence. */
+const BOXER_EDITOR_NOTE = /\bcheck(ing)?\b/i;
+function boxerNote_(b) {
+  const s = String((b && b.notes) || '').trim();
+  return s && !BOXER_EDITOR_NOTE.test(s) ? s : '';
+}
+function boxerRecord_(b) {
+  const has = v => typeof v === 'number' && isFinite(v);
+  if (!has(b.wins) && !has(b.losses) && !has(b.draws)) {
+    return '<section class="boxer-rec is-none"><p class="fc-note">No fight record on file yet.</p></section>';
+  }
+  const W = b.wins || 0, L = b.losses || 0, D = b.draws || 0, NC = b.noContests || 0;
+  const cols = [
+    { k: 'w', n: W, label: W === 1 ? 'Win' : 'Wins', ko: has(b.winsKo) && W ? b.winsKo : null },
+    { k: 'l', n: L, label: L === 1 ? 'Loss' : 'Losses', ko: has(b.lossesKo) && L ? b.lossesKo : null },
+    { k: 'd', n: D, label: D === 1 ? 'Draw' : 'Draws', ko: null },
+  ].concat(NC ? [{ k: 'nc', n: NC, label: 'NC', say: NC === 1 ? 'no contest' : 'no contests', ko: null }] : []);
+  /* `NC` ON THE SCOREBOARD, because "NO CONTEST" in the label's capitals is wider than a quarter of a
+     320px card; the words are what a screen reader hears. */
+  const said = cols.map(c => c.n + ' ' + (c.say || c.label.toLowerCase())).join(', ');
+  const bar = boxerSplit_(cols);
+  const fights = W + L + D + NC;
+  const koRate = W && has(b.winsKo) ? Math.round(b.winsKo / W * 100) : null;
+  /* THE DATE THE COUNT WAS TAKEN, FOR A FIGHTER STILL FIGHTING. His is the one record that goes out
+     of date; a retired man's `record_as_of` is the day he stopped, which the status already says. A
+     line of its own under the numbers' line rather than a third clause on it: on a 320px phone the
+     three together broke in the middle of the date. */
+  const asOf = norm(b.status) === 'active' && b.recordAsOf ? 'Record as of ' + boxerDate_(b.recordAsOf) : '';
+  const line = [koRate != null ? 'KO rate ' + koRate + '%' : '',
+                fights + (fights === 1 ? ' fight' : ' fights')].filter(Boolean).join(' · ');
+  return `<section class="boxer-rec" aria-label="Record: ${esc(said)}">
+    <div class="boxer-tally">${cols.map(c => `<div class="boxer-n is-${c.k}${c.n ? '' : ' is-zero'}"><b>${c.n}</b><span class="boxer-k">${
+      c.label}</span>${c.ko != null ? `<span class="boxer-ko">${c.ko} KO</span>` : ''}</div>`).join('')}</div>
+    ${bar.length ? `<svg class="boxer-bar" viewBox="0 0 100 4" preserveAspectRatio="none" aria-hidden="true">${
+      bar.map(s => `<rect class="is-${s.k}" x="${s.x}" y="0" width="${s.w}" height="4"/>`).join('')}</svg>` : ''}
+    <p class="fc-meta boxer-line">${esc(line)}</p>
+    ${asOf || boxerNote_(b) ? `<p class="fc-note">${esc([asOf, boxerNote_(b)].filter(Boolean).join(' · '))}</p>` : ''}
+  </section>`;
+}
+
+/* ---------- THE WEIGHTS HE BOXED AT, SAID IN ONE LINE WHEN THERE ARE MANY ----------------------------
+   EIGHT WEIGHTS WERE SIX LINES. Pacquiao's row listed every division from Flyweight to Light
+   Middleweight, wrapped down the right-hand half of the tape on a 320px phone, and was the single
+   biggest reason his profile was drawn at 72% to fit its pane — measured over all 103 fighters, it
+   was the tallest row on every card that shrank most. A fan says "an eight-division champion,
+   flyweight to light middleweight", so the card does: the count, the lightest and the heaviest.
+
+   THREE OR FEWER ARE LISTED, because "Featherweight, Super Featherweight, Lightweight" is two lines
+   and every name in it is the answer; four is where the list starts costing more than it says.
+
+   LIGHTEST AND HEAVIEST BY THE SCALE, NOT BY THE CELL'S ORDER. Every row today is typed light to
+   heavy, but a cell is a thing somebody types, and "Heavyweight, Cruiserweight" read first-to-last
+   would say Heavyweight → Cruiserweight. The ladder below puts them in order; a weight it does not
+   know leaves the cell's own order alone rather than guessing where it goes. */
+const BOXER_LADDER = [
+  ['minimumweight', 'strawweight', 'mini flyweight', 'atomweight'], ['light flyweight', 'junior flyweight'],
+  ['flyweight'], ['super flyweight', 'junior bantamweight'], ['bantamweight'],
+  ['super bantamweight', 'junior featherweight'], ['featherweight'], ['super featherweight', 'junior lightweight'],
+  ['lightweight'], ['light welterweight', 'super lightweight', 'junior welterweight'], ['welterweight'],
+  ['light middleweight', 'super welterweight', 'junior middleweight'], ['middleweight'], ['super middleweight'],
+  ['light heavyweight'], ['cruiserweight', 'junior heavyweight'], ['bridgerweight'], ['heavyweight']];
+const boxerRung_ = w => BOXER_LADDER.findIndex(r => r.indexOf(norm(w)) >= 0);
+function boxerWeights_(list) {
+  if (list.length < 2) return list[0] || '';
+  if (list.length <= 3) return list.join(', ');
+  const ranked = list.every(w => boxerRung_(w) >= 0)
+    ? list.slice().sort((p, q) => boxerRung_(p) - boxerRung_(q)) : list;
+  return list.length + ' · ' + ranked[0] + ' → ' + ranked[ranked.length - 1];
+}
+
+/* ---------- THE TALE OF THE TAPE -----------------------------------------------------------------
+   THE ROWS A BROADCAST SHOWS BEFORE THE FIRST BELL, in its order, and only the ones a cell
+   answered — a `dl`, because each is a label and its value, which is exactly what a description
+   list is. Age for the living and the years for the dead, never both: "aged 74" beside a death date
+   is the age he reached, and an age counted to today for a man who died in 2016 would be a number
+   about nobody. */
+function boxerTape_(b) {
+  const dead = !!b.dod || norm(b.status) === 'deceased';
+  const born = [boxerDate_(b.dob), b.bornIn].filter(Boolean).join(' · ');
+  const reached = b.dod ? boxerAge_(b.dob, b.dod) : null;
+  const age = dead ? null : boxerAge_(b.dob, new Date());
+  const y = v => (String(v || '').match(/\d{4}/) || [''])[0];
+  const from = y(b.activeFrom), to = y(b.activeTo);
+  const career = from && to ? from + '–' + to : from ? 'since ' + from : to ? 'to ' + to : '';
+  const weights = String(b.divisions || '').split(/[|,;]/).map(s => s.trim()).filter(Boolean);
+  const rows = [
+    ['Age', age != null ? String(age) : ''],
+    ['Born', born],
+    ['Died', b.dod ? boxerDate_(b.dod) + (reached != null ? ' · aged ' + reached : '') : ''],
+    ['Height', boxerCm_(b.heightCm, true)],
+    ['Reach', boxerCm_(b.reachCm, false)],
+    ['Stance', b.stance],
+    /* EVERY WEIGHT HE BOXED AT, ONLY WHEN THERE WAS MORE THAN ONE — the one he is known at is under
+       his name already, and a tape row repeating it is the same fact twice on one card. */
+    [weights.length > 1 ? 'Weights' : 'Weight', weights.length > 1 ? boxerWeights_(weights) : (!b.bestDivision && weights[0]) || ''],
+    ['Career', career],
+    ['Trainer', b.trainer],
+    ['Promoter', b.promoter],
+    ['Ranked', b.ringRank],
+  ].filter(r => r[1]);
+  if (!rows.length) return '';
+  return `<section class="fc-sec boxer-tape"><h4>Tale of the tape</h4>
+    <dl>${rows.map(r => `<div><dt>${r[0]}</dt><dd>${esc(r[1])}</dd></div>`).join('')}</dl>
+  </section>`;
+}
+
+/* ---------- THE BELTS AND THE HONOURS ------------------------------------------------------------
+   THE TITLES ARE THE SHEET'S OWN SENTENCE — "WBA, WBC, The Ring heavyweight (three reigns)" —
+   because splitting it into belts would lose the reigns and the years written inside it. The Hall
+   of Fame and the lineal title are yes-or-no facts, so they are badges, and gold, because on this
+   card gold is what a fighter won.
+
+   "TITLES" OVER A HALL OF FAME BADGE AND NOTHING ELSE SAID "NO BELTS". `world_titles` was blank on
+   77 of the 103 rows — Tyson, Mayweather, Holyfield, Leonard, Hearns, Durán among them — and on 56
+   of those the section still drew, because the Hall of Fame badge is in it. Read by a boxer, a
+   heading called Titles with no title under it is the claim that the man never won one. The
+   heading is what is under it: Titles when the sheet names a belt, Honours when all it holds is an
+   honour. The blank cells are being filled, and this is what keeps the next blank one honest. */
+function boxerTitles_(b) {
+  const badges = (b.hallOfFame ? '<li class="is-hof">Hall of Fame</li>' : '')
+               + (b.lineal ? '<li>Lineal champion</li>' : '');
+  if (!b.worldTitles && !badges) return '';
+  /* THE BADGES RIDE ON THE HEADING'S LINE, at its right, the way a broadcast pins "HALL OF FAME" to
+     the corner of a fighter's caption. They had a row of their own under the belts, and on a
+     320x568 phone that row was one of the reasons fifty profiles were drawn smaller to fit. */
+  return `<section class="fc-sec boxer-titles"><div class="boxer-titles-head"><h4>${b.worldTitles ? 'Titles' : 'Honours'}</h4>${
+    badges ? `<ul class="boxer-badges">${badges}</ul>` : ''}</div>
+    ${b.worldTitles ? `<p class="boxer-belt">${esc(b.worldTitles)}</p>` : ''}
+  </section>`;
+}
+
+/* WHO HE BEAT AND WHO BEAT HIM, as names: two rows of chips under one heading, the won ones edged
+   in the win colour and the lost ones in the loss colour, so the two lists are told apart before
+   their labels are read. */
+function boxerNotable_(b) {
+  const won = boxerNames_(b.notableWins), lost = boxerNames_(b.notableLosses);
+  if (!won.length && !lost.length) return '';
+  const row = (label, k, names) => names.length ? `<div class="boxer-vs is-${k}"><span class="boxer-vs-k">${
+    label}</span><ul class="boxer-names">${names.map(n => `<li>${esc(n)}</li>`).join('')}</ul></div>` : '';
+  return `<section class="fc-sec boxer-notable"><h4>Notable fights</h4>${row('Beat', 'w', won)}${row('Lost to', 'l', lost)}</section>`;
+}
+
+/* ---------- THE BOUTS ON FILE --------------------------------------------------------------------
+   ONE LINE A BOUT, the way a record is printed: the result in a square, the opponent, then how and
+   when under the name. It is the library's bouts and not his whole career — the famous fights, 157
+   across everybody — so the heading counts the ones HERE rather than posing as the record, which is
+   the box above it. A title fight says so, because that is the first thing a fan asks of a bout.
+
+   THE RESULT IS SAID IN WORDS AND SHOWN AS A LETTER. It was `aria-label` on the square — and an
+   `aria-label` on a plain `<span>`, which has no role, is ignored by most screen readers, so they
+   read "W" or nothing. The square is hidden from them now and a word they DO read stands in its
+   place, off the screen (`.boxer-say`): "Won, Larry Holmes". */
+const BOXER_BOUTS_PAGE = 7;
+function boxerBoutList_(b, n) {
+  const bouts = boxerBouts_(b);
+  if (!bouts.length) return '';
+  const page = n || 1, from = (page - 1) * BOXER_BOUTS_PAGE;
+  const here = bouts.slice(from, from + BOXER_BOUTS_PAGE);
+  if (!here.length) return '';
+  /* THE COUNT IS THE WHOLE FILE'S, and a page that holds part of it says which part. */
+  const count = bouts.length > BOXER_BOUTS_PAGE
+    ? (from + 1) + '–' + (from + here.length) + ' of ' + bouts.length : String(bouts.length);
+  const word = { W: 'Won', L: 'Lost', D: 'Drew', NC: 'No contest' };
+  return `<section class="fc-sec boxer-bouts"><h4>Fights on file · ${count}</h4>
+    <ul>${here.map(o => `<li class="is-${o.res.toLowerCase()}"><span class="boxer-res" aria-hidden="true">${
+      o.res}</span><span class="boxer-say">${word[o.res]}, </span><span class="boxer-opp">${esc(o.opp || 'Unknown')}</span><span class="boxer-how">${
+      esc([boxerHow_(o.f), boxerDate_(o.f.date)].filter(Boolean).join(' · '))}${o.f.titles
+      ? `<span class="boxer-tt" title="${esc(o.f.titles)}">title</span>` : ''}</span></li>`).join('')}</ul>
+  </section>`;
+}
+
 function boxerCard_(x) {
-  const b = x.row;
-  const rec = [b.wins, b.losses, b.draws].join('-') + (b.noContests ? ' (' + b.noContests + ' NC)' : '');
-  const years = [b.activeFrom, b.activeTo].filter(Boolean).join('–');
-  /* ---------- THE SHARED HEAD, NOT THE SHOP'S ROW ---------------------------------------------------
-     A BOXER WAS DRAWN AS A SHOP THING — `.thing`, a picture slot with no picture and a 0.92rem title
-     — with the record pinned top right in small mono. A boxer is one card to a page, like a
-     practical, so it takes the practical's head: the name is the title at the title's size, `Boxer`
-     is the flag in the slot where every other kind says what it is, and the record is the gold meta
-     line, which is the line this app keeps for the numbers that decide whether you read on. The
-     record still leads with W-L-D, as the note above the card asks. `.boxer-rec` stays on it as
-     the name a check looks for. */
+  const b = x.row || {};
+  const flag = boxerFlag_(b.country);
+  /* COUNTRY, THEN THE WEIGHT HE IS KNOWN AT, ONE LINE EACH. They were one line joined by a dot, and
+     beside the photo the column is 134px on a 320px phone: "Ukraine ·" ended one line and
+     "Heavyweight" began the next, the dot hanging off the country it does not belong to. */
+  const where = (b.country ? `<span class="boxer-country">${flag ? `<span class="boxer-flag" aria-hidden="true">${flag}</span>` : ''}${
+    esc(b.country)}</span>` : '') + (b.bestDivision ? `<span class="boxer-weight">${esc(b.bestDivision)}</span>` : '');
+  const st = boxerStatus_(b);
+  /* `.boxer-rec` IS STILL THE RECORD'S NAME, on the whole record box now rather than on one gold
+     line. `check/states.js` looks for it on the textbook's shelf to prove no boxer leaked in, so the
+     name has to go on meaning "a boxer's record is drawn here". */
   return `<div class="card fc boxer">
     <div class="fc-head">
-      <h3>${esc(x.name)}${b.nickname ? ' <span class="boxer-nick">“' + esc(b.nickname) + '”</span>' : ''}</h3>
+      <h3>${esc(b.name || x.name)}${b.nickname ? `<span class="boxer-nick">“${esc(b.nickname)}”</span>` : ''}</h3>
       <span class="fc-flags"><span class="fc-flag is-type">Boxer</span></span>
     </div>
-    <p class="sub">${esc([b.bestDivision, b.country, years].filter(Boolean).join(' · '))}</p>
-    <p class="fc-meta boxer-rec">${esc(rec)}${b.winsKo !== '' && b.winsKo != null
-      ? ' · ' + esc(b.winsKo) + ' KO' : ''}</p>
+    ${where ? `<p class="sub boxer-from">${where}</p>` : ''}
+    ${st ? `<p class="boxer-status ${st.k}">${esc(st.t)}</p>` : ''}
+    ${boxerPic_(b)}
+    ${boxerRecord_(b)}
+    ${boxerTape_(b)}
+    ${boxerTitles_(b)}
+  </div>`;
+}
+
+/* ---------- HIS FIGHTS, THE PAGE AFTER HIS CARD ---------------------------------------------------
+   ONLY WHEN THERE IS SOMETHING ON IT. A page that can only say "nothing here" is the empty page
+   `pageParts_` refuses for a question with no answer, so a fighter with no notable names and no
+   bouts on file is his card and nothing else — which is twenty of them today. */
+function boxerHasFights_(b) {
+  return !!b && (boxerNames_(b.notableWins).length > 0 || boxerNames_(b.notableLosses).length > 0
+                 || boxerBouts_(b).length > 0);
+}
+/* ---------- AND AS MANY PAGES OF THEM AS IT TAKES, SEVEN BOUTS A PAGE -----------------------------
+   ONE PAGE HELD EVERY BOUT, AND ON A REAL SMALL PHONE THAT DID NOT FIT. Measured at 320x568 — an
+   iPhone SE, not the 320x844 the first screenshots were taken at — Ali's fourteen bouts and his six
+   names were drawn at exactly `PANE_ZOOM_MIN`, 70%, with the method and the date at about six
+   pixels; Pacquiao's twelve at 73%. A fighter with fifteen on file would have run past the floor
+   and scrolled, which is the one thing the owner's rule for every widget forbids — *"I don't like
+   scrolling ... This goes for all widgets so they all fit on screen"*.
+
+   SO THE BOUTS ARE PAGED, newest first across the pages: `fights`, then `fights2`, `fights3`, as
+   `pageParts_` lists them. SEVEN, MEASURED: the first page also carries who he beat and who beat
+   him, and seven bouts under six names is what fits a 320x568 pane at full size. It is also the most
+   any fighter but Ali and Pacquiao has, so for everybody else nothing changes — one page, as before. */
+function boxerFightPages_(b) {
+  if (!boxerHasFights_(b)) return [];
+  const n = Math.max(1, Math.ceil(boxerBouts_(b).length / BOXER_BOUTS_PAGE));
+  return Array.from({ length: n }, (_, i) => i ? 'fights' + (i + 1) : 'fights');
+}
+/* HEADED WITH WHOSE PAGE IT IS, as every part page is — `.fc-kick` and then the page's own `h3` —
+   because it is somewhere you can land from a flick four results away. A page after the first
+   says it continues, so a flick that lands on it is not mistaken for the start of his record. */
+function boxerPart_(x, part) {
+  const b = x.row || {};
+  const m = /^fights(\d*)$/.exec(String(part || ''));
+  if (!m) return '';
+  const n = Number(m[1] || 1);
+  return `<div class="card fc prac-part boxer is-fights">
+    <p class="fc-kick">${esc(b.name || x.name)}</p><h3>${n > 1 ? 'Fights, continued' : 'Fights'}</h3>
+    ${n === 1 ? boxerNotable_(b) : ''}
+    ${boxerBoutList_(b, n)}
   </div>`;
 }
 
@@ -4565,6 +5843,57 @@ function paperIdOf_(r) {
   return (r && (r.paperId || r.paper_id || r.paper)) || '';
 }
 
+/* ---------- THE ORDER OF A QUESTION'S PARTS, DECIDED FOR THE WHOLE QUESTION AT ONCE -----------------
+   THE PART WAS SORTED AS LETTERS, and three traps sat in that (the multi-part audit, finding 13 --
+   none live in the bank today, all one transcription away): "ix" sorts before "v", part 10 before
+   part 2, and "bi" beside "b(ii)" reads b(ii), b(iii), bi.
+
+   AND A NUMERAL IS NOT ALWAYS A NUMERAL. "i" is part (i) of Q8 and the ninth letter of a question
+   that runs a to j; "xi" is eleven, or (x)(i). Sorting numerals by value everywhere fixes "ix" and
+   breaks h, i, j. So the reading is decided ONCE PER QUESTION, from every part it has: a question
+   whose every part is a numeral on its own (i, ii ... ix, x, xi) is numbered in numerals and sorts
+   by value; any other is lettered, and each part is its letter then its numeral's value --
+   brackets and spaces dropped first, so "b(ii)" and "bii" are the same part, which also makes a
+   mixed spelling sort right (`check-library.js` still refuses one: the data should not say it two
+   ways). Digits are padded the way `padNums_` pads them, so part 10 follows part 9.
+
+   Keyed by the row, so `questionItems` reads one map; a question's rows are grouped by paper and
+   number, which is exactly what makes them one question. */
+const romanVal_ = s => {
+  const v = { i: 1, v: 5, x: 10 };
+  let n = 0;
+  for (let k = 0; k < s.length; k++) {
+    const a = v[s[k]] || 0, b = v[s[k + 1]] || 0;
+    n += a < b ? -a : a;
+  }
+  return n;
+};
+const partBare_ = p => String(p == null ? '' : p).trim().toLowerCase().replace(/[()\s]/g, '');
+function partKeyOf_(part, numerals) {
+  const s = partBare_(part);
+  if (!s) return '';
+  if (/^\d+$/.test(s)) return padNums_(s);
+  if (numerals && ROMAN_ONLY.test(s)) return padNums_(String(romanVal_(s)));
+  const m = /^([a-z])(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/.exec(s);
+  if (m) return m[1] + (m[2] ? padNums_(String(romanVal_(m[2]))) : '');
+  return padNums_(s);
+}
+function partKeys_(rows) {
+  const by = {};
+  (rows || []).forEach(r => {
+    if (!r || r.kind === 'preamble' || r.kind === 'document') return;
+    const k = paperIdOf_(r) + '|' + (r.q == null ? '' : r.q);
+    (by[k] = by[k] || []).push(r);
+  });
+  const out = new Map();
+  Object.keys(by).forEach(k => {
+    const list = by[k];
+    const numerals = list.every(r => { const s = partBare_(r.part); return !s || ROMAN_ONLY.test(s); });
+    list.forEach(r => out.set(r, partKeyOf_(r.part, numerals)));
+  });
+  return out;
+}
+
 /* ---------- WHAT A QUESTION IS ABOUT, AS WORDS -----------------------------------------------------
    THE SEARCH BOX COULD NOT SEE INSIDE A QUESTION. `hay` was name, sub, subject, slot and grade —
    and a question's name is `Q5b`. So of three thousand rows, not one was findable by what it is
@@ -4855,21 +6184,37 @@ function projectText_(p) {
    not carry one keep the order the file has them in. Inferring it from `lines` would read the
    first number of a span, which is right for "1-6" before "10-19" and silently wrong for a Source
    A / Source B insert where neither part is numbered at all. */
+/* ---------- AND A FOURTH SCOPE, A LETTER: THE "(d)" OPENING ----------------------------------------
+   THE OWNER'S OWN WORRY, the multi-part audit's finding 6: *"1b 1c 1di 1dii"*. A sentence (d)(i) and
+   (d)(ii) both hang from -- "A car moves from rest…" in June 2019 2H Q14 -- had nowhere to go. On
+   (d)(i) it was headed `Q1d(i) · 1 of 2` and lost when (d)(ii) was opened alone; on both, printed
+   twice; as a row for part "d" itself, a card with an answer box under a sentence that asks nothing;
+   and a preamble marked "d" had its letter ignored and stood in front of Q1(a).
+
+   SO A PREAMBLE WHOSE `part` IS A LETTER IS THAT LETTER'S OPENING. It is a stem like any other, one
+   scope further in, so `pageParts_`'s rule does the rest without a line changed: drawn once, in
+   front of the first part whose letter it is (d(i)), not again in front of d(ii) when d(i) went
+   first, and again in front of any of them opened on its own -- with its figure after it, as every
+   stem's is. Headed `Q1(d)`, see `questionStemCard_`. `stemLetter_` is the one reading of the letter,
+   for the index, for the card and for `check-library.js`'s shape rule. */
+const stemLetter_ = p => { const s = partBare_(p && p.part); return /^[a-z]$/.test(s) ? s : ''; };
 function stemIndex_(all) {
-  const at = { paper: {}, section: {}, question: {} };
+  const at = { paper: {}, section: {}, question: {}, letter: {} };
   const put = (bag, key, r) => { (bag[key] || (bag[key] = [])).push(r); };
   all.forEach(r => {
     if (!r || r.kind !== 'preamble') return;
     const pid = paperIdOf_(r);
     if (!pid) return;
-    if (r.q !== undefined && r.q !== null && r.q !== '') put(at.question, pid + '|' + r.q, r);
+    const has = r.q !== undefined && r.q !== null && r.q !== '';
+    if (has && stemLetter_(r)) put(at.letter, pid + '|' + r.q + '|' + stemLetter_(r), r);
+    else if (has) put(at.question, pid + '|' + r.q, r);
     else if (r.section) put(at.section, pid + '|' + r.section, r);
     else put(at.paper, pid, r);
   });
   /* Stable, because `sort` is stable in every engine this runs on and a preamble with no
      `sort_order` must not be reordered against its neighbours by the sort that exists for the
      ones that do. */
-  [at.paper, at.section, at.question].forEach(bag => {
+  [at.paper, at.section, at.question, at.letter].forEach(bag => {
     Object.keys(bag).forEach(k => { bag[k].sort((a, b) => (a.order || 0) - (b.order || 0)); });
   });
   return at;
@@ -4888,7 +6233,12 @@ function preamble_(r, at) {
   const add = xs => (xs || []).forEach(x => { if (x && (x.html || x.diagram)) out.push(x); });
   add(at.paper[pid]);
   if (r.section) add(at.section[pid + '|' + r.section]);
-  if (r.q !== undefined && r.q !== null && r.q !== '') add(at.question[pid + '|' + r.q]);
+  if (r.q !== undefined && r.q !== null && r.q !== '') {
+    add(at.question[pid + '|' + r.q]);
+    /* THE PART'S LETTER, read the way a typed reference is (`qRefBits_`): "d(ii)" and "dii" are (d). */
+    const bits = qRefBits_(partBare_(r.part));
+    if (bits && bits.letter && at.letter) add(at.letter[pid + '|' + r.q + '|' + bits.letter]);
+  }
   return out;
 }
 
@@ -4972,6 +6322,8 @@ function questionItems() {
   const kit = needsIndex_(all);
   /* AND THE CODE ON EACH PAPER'S COVER — see `specIndex_`. Built once per draw, off the file. */
   const spec = specIndex_();
+  /* EACH PART'S PLACE IN ITS QUESTION -- see `partKeys_`. */
+  const partKey = partKeys_(all);
 
   return all.filter(r => r.kind !== 'preamble' && r.kind !== 'document').map(r => {
     const lead = preamble_(r, stems);
@@ -5001,7 +6353,7 @@ function questionItems() {
          the number inside the name. Nothing has written them since the paper card was deleted and
          nothing was visibly wrong — see the note above the sort, which is about why that is not the
          same as nothing being wrong. */
-      qNumber: r.q, qPart: r.part || '',
+      qNumber: r.q, qPart: r.part || '', qPartKey: partKey.get(r) || '',
       /* THE TOPICS, RESOLVED ONCE. `topicOf_` splits the cell and puts every spelling of a topic on
          one button, and doing that inside the facet meant doing it per item per question asked:
          MEASURED at 38 ms to interrogate this one facet across the library. It is a fact about the
@@ -5021,6 +6373,8 @@ function questionItems() {
       answer: r.answer || '', answerType: r.answerType || '',
       /* WHAT TO ANSWER ON when the answer is a mark rather than words -- see `padSurface_`. */
       surface: r.surface || '',
+      /* AND WHICH EARLIER PART'S DRAWING IT READS -- see `usesOf_`. */
+      uses: r.uses || '',
       accept: r.accept || '',
       choices: r.choices || [], choiceRight: r.choiceRight || [],
       examinerNote: r.examinerNote || '',
@@ -5320,10 +6674,10 @@ function doneText_(iso) {
   const mon = String(names[+m[2] - 1] || m[2]).slice(0, 3);
   return 'Done ' + (+m[3]) + ' ' + mon + (+m[1] !== new Date().getFullYear() ? ' ' + m[1] : '');
 }
-/* THE SLOT IS ALWAYS DRAWN, EMPTY OR NOT, on the question card -- and marking writes into it rather
-   than redrawing the header. 261 made marking move nothing, and a stamp that arrived as a new element
-   on the first Check would be the card jumping at exactly the moment it marks you. On the marks'
-   line, which has room for it at 320. */
+/* THE SLOT IS ALWAYS DRAWN, EMPTY OR NOT, for somebody whose date can be kept -- and marking writes
+   into it rather than redrawing anything. 261 made marking move nothing, and a stamp that arrived as
+   a new element on the first Check would be the card jumping at exactly the moment it marks you. In
+   the question's tile row, beside the star: see `questionTiles_` for why there and not as a tag. */
 function doneSlot_(x) {
   const k = ansKey_(x);
   return `<i class="qcard-done" data-k="${esc(k)}">${esc(doneText_(doneRead_(k)))}</i>`;
@@ -5335,7 +6689,25 @@ function doneMark_(k) {
   if (doneRead_(k) === today) return;
   DONE_HELD.set(dk, today);
   try { localStorage.setItem(dk, today); } catch (e) {}
-  attemptSend_([{ key: doneQKey_(k), day: today }]);
+  /* AND ITS NAME, FOR THE WEEKLY PARENT EMAIL (backend/digest.gs): the sheet holds a key no parent
+     can read and the backend cannot look up. `Maths · Paper 1 — June 2024 · Q3`, the subject left out
+     when the paper's name already says it. Only here, where the card is in hand — the load's backlog
+     sends keys alone and the email falls back to the key — and absent rather than blank when there
+     is no card, so that request is what it always was. */
+  /* A PRACTICAL'S WORKSHEET BOX IS THE CARD'S KEY WITH A SLOT ON THE END (`#iv`, `#dv`, `#cv` — see
+     `guideBox_`), and `ansKey_` of no card ends in one, so those boxes found no card and went up
+     nameless: one worksheet was three raw keys in a parent's email. The slot comes off for the
+     lookup, and the name says which part of the practical it was. The backend joins the three rows
+     on the same cut (`digestPlan_`), so the worksheet is one question there too. */
+  let label = '';
+  try {
+    const slot = /#[^#]*$/.test(k), base = slot ? k.replace(/#[^#]*$/, '') : k;
+    const it = stuffItemsAll_().find(y => ansKey_(y) === base);
+    const sub = String((it && it.sub) || ''), subj = String((it && it.subject) || '');
+    if (it) label = [subj && sub.toLowerCase().indexOf(subj.toLowerCase()) === -1 ? subj : '', sub, it.name,
+                     slot ? 'Worksheet' : ''].filter(Boolean).join(' · ');
+  } catch (e) {}
+  attemptSend_([Object.assign({ key: doneQKey_(k), day: today }, label ? { label: label } : {})]);
   /* EVERY COLUMN IT IS DRAWN ON, by the answer key -- Find and Saved can both hold the card. */
   document.querySelectorAll('.qcard-done').forEach(el => {
     if (el.getAttribute('data-k') === k) el.textContent = doneText_(today);
@@ -5644,22 +7016,39 @@ function choiceBox_(x) {
       need > 1 ? `<span class="qp-ans-k">Choose ${need}</span>` : ''}
     <div class="qp-opts">${x.choices.map((c, i) => {
       const n = i + 1, on = picked.includes(n);
-      const cls = (on ? ' is-picked' : '') + (done && right.includes(n) ? ' is-ans' : '');
+      /* THE TICK GOES ON YOUR PICK WHEN IT IS RIGHT, AND NOWHERE WHEN IT IS NOT. A wrong tap used to
+         tick the right option on the spot, and that is the answer shown on the question card with
+         nobody pressing anything -- the owner: *"answers should just stay hidden unless user unhides
+         them"*, and before that *"you should have to click to reveal the answer"*. The verdict is
+         about the pick ("Correct" / "Not yet"); which option the scheme credits is the answer, and it
+         is on the answer page behind Show like every other answer. Still settled after one pick
+         (`qp-choose`): with three wrong options and a free retry, "Correct" is reached by elimination. */
+      const cls = (on ? ' is-picked' : '') + (ok && on ? ' is-ans' : '');
       /* THE OPTION'S OWN MARKUP, as the question's html is drawn: it is committed library content
-         and carries the italics and superscripts an equation needs. */
+         and carries the italics and superscripts an equation needs.
+
+         NOT A TILE, AND THE ONE EXCEPTION ON THIS PAGE BESIDE THE KEYPAD'S KEYS. The owner made every
+         control on a question's pages a tile (*"it should all be tiles"*) -- Check, Mark with AI, the
+         pen's bar, Show and Hide. An option is not a control done TO the question; it is the answer
+         being given, with its own words and its own maths in it, and a 44px square holding a mark
+         cannot hold "P = I²R". So it stays a full-width button, the way a printed paper prints a box
+         beside each answer. */
       return `<button type="button" class="qp-opt${cls}" data-do="qp-choose"
         data-n="${n}" aria-pressed="${on}">${typeset_(c)}</button>`;
     }).join('')}</div>
   </div>${right.length ? `<div class="qp-mark${done ? (ok ? ' is-right' : ' is-near') : ''}">
     <span class="qp-verdict" role="status" aria-live="polite">${done
-      ? (ok ? 'Correct' : 'Not yet — the right ' + (need > 1 ? 'ones are' : 'one is') + ' marked')
+      /* WHERE THE ANSWER IS, NOT WHAT IT IS -- and short enough for one line at 320px: "Not yet --
+         the answer has its own page" wrapped to two there, and the slot is one line tall. */
+      ? (ok ? 'Correct' : 'Not yet — see the answer page')
       : ''}</span>
   </div>` : ''}`;
 }
 
 /* A tap picks; on "choose two" a second tap adds and a tap on a chosen one takes it back off. Once
-   a marked question is answered it is settled: changing it after being shown the
-   answer would make "Correct" a thing anybody can reach. "Start again" is clearing the box. */
+   a marked question is answered it is settled: a second go after "Not yet" -- or after Show on the
+   answer page -- would make "Correct" a thing anybody can reach by elimination. "Start again" is
+   clearing the box. */
 on('qp-choose', (el) => {
   const box = el.closest('.qp-choices');
   const card = el.closest('.qcard');
@@ -5684,8 +7073,9 @@ on('qp-choose', (el) => {
   if (mark) mark.remove();
   box.replaceWith(...wrap.childNodes);
   /* RIGHT DOES NOT OPEN THE ANSWER PAGE ANY MORE. It did, from 263 on; the verdict on this card --
-     "Correct", and the right option marked -- is the answer to "was I right", and the page after
-     opens when somebody taps "Show the answer" and not before. See `ansOpen_`. */
+     "Correct" with your pick ticked, or "Not yet" with nothing ticked -- is the answer to "was I
+     right", and the page after opens when somebody taps "Show the answer" and not before. See
+     `ansOpen_`, and `choiceBox_` for why a wrong pick no longer ticks the right one. */
 });
 
 function ansBox_(x) {
@@ -5705,10 +7095,22 @@ function ansBox_(x) {
      what the answer is filed under (`ansKey_`), and a screen reader still hears "Your answer" from
      `aria-label`. CHECK IS A TILE -- *"check button should be a tile"* -- one renderer for every
      action, `.qp-check` kept as the name the keypad's ✓ and the checks find it by. */
-  return `<label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
+  /* ---------- THE FIGURE TILE STANDS BESIDE THE BOX, NOT IN THE ROW UNDER IT --------------------------
+     THE REVIEW OF THE MULTI-PART MERGE, at 320x568: 1F Q23b's box raised the keypad (its top at 315) and
+     the row under the card -- Check, Figure, To the answer -- stood at 322-437, all under it. The tile is
+     there to show the Venn WHILE the child answers, and that is exactly when it was hidden; a tap where
+     it had been typed a 4. The column cannot scroll it into view: the pages are a strip on transforms
+     and a card is sized to its screen (`partChunks_`), so there is nothing below to scroll to.
+     SO IT TAKES THE BOX'S RIGHT-HAND END, on the box's own line: whenever the box is on the screen the
+     figure is one tap away, and the line is the box's height either way, so nothing moves down. A box
+     44px narrower still holds any answer this library has (it scrolls inside, as it always did). Check
+     needs no such move -- the pad's own ✓ is Check (`kpDone_`). Options to tap are not a box and keep
+     the tile in the row (`questionTiles_`). */
+  const fig = figTile_(x);
+  return `${fig ? '<div class="qp-ans-row">' : ''}<label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${maths ? kpField_(k, ansRead_(k)) : `<textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
       rows="2" spellcheck="false" autocomplete="off" aria-label="Your answer">${esc(ansRead_(k))}</textarea>`}
-  </label>${can ? `<div class="qp-mark" data-accept="${esc(can)}">
+  </label>${fig ? fig + '</div>' : ''}${can ? `<div class="qp-mark" data-accept="${esc(can)}">
     ${tile_({ icon: 'tick', label: 'Check', note: 'mark it', act: 'qp-check', cls: 'qp-check' })}
     <span class="qp-verdict" role="status" aria-live="polite"></span>
   </div>` : aiBox_(x)}`;
@@ -5833,7 +7235,37 @@ document.addEventListener('input', e => {
    what a pen on a printed paper does, and it is what lets you tell your line of best fit from the
    axis it was drawn against.
 --------------------------------------------------------------------------------------------- */
-const padKey_ = x => 'pad:' + ((x && (x.key || x.name)) || '?');
+/* ---------- AND THEY ARE WHOEVER IS SIGNED IN'S, AS THE TYPED ANSWER IS ------------------------------
+   THE KEY WAS `pad:<question>` AND NOTHING ELSE, so the pen kept one set of marks per PHONE while the
+   box beside it kept one set of answers per PERSON (`ansKey_`). Found by the multi-part audit: Ali
+   draws on 2F Q8c, Ben signs in on the same phone, and Ben's grid already has Ali's lines on it --
+   the two-boys-on-one-phone case `whoIs_` was written for, answered for the words and not the ink.
+   287 parts take the pen and 14 ring words, and every one of them was shared.
+
+   SO THE KEY CARRIES `whoIs_` EXACTLY AS `ansKey_` DOES -- `pad:u:P7:<question>` signed in, the old
+   `pad:<question>` signed out -- and nothing else changes: `circKey_` is this plus `:words`, the
+   handlers write to the pad's own `data-k`, and `PAD_ON` / `PAD_TOOL` key by it, so a new person is a
+   new key everywhere at once. The done dates were already per person (`doneKeyOf_`) and are not
+   touched.
+
+   THE MARKS ALREADY ON THE PHONE MOVE ONCE, TO THE FIRST PERSON SIGNED IN WHO OPENS THEM
+   (`padAdopt_`). Everything drawn before today is under the bare key and belonged to whoever held
+   the phone; the person who opens the page first is the likeliest to be them, and MOVING rather than
+   copying is what makes it theirs -- a copy left under the bare key would be read by the next
+   person too, which is the fault itself carried forward. Never over marks the person already has:
+   those are newer than anything the phone kept. */
+const padItemKey_ = x => (x && (x.key || x.name)) || '?';
+const padKey_ = x => 'pad:' + (whoIs_() ? whoIs_() + ':' : '') + padItemKey_(x);
+function padAdopt_(k, bare) {
+  if (!k || !bare || k === bare) return;
+  try {
+    if (localStorage.getItem(k) !== null) return;
+    const v = localStorage.getItem(bare);
+    if (v === null) return;
+    localStorage.setItem(k, v);
+    localStorage.removeItem(bare);
+  } catch (e) {}
+}
 
 /* WHICH QUESTIONS GET ONE. The sheet says what kind of answer it wants, and two of its words mean
    "make a mark": `drawing` (produce a figure) and `annotate` (add to one). Both need a surface and
@@ -5866,6 +7298,59 @@ function padSource_(x) {
   return null;
 }
 
+/* ---------- WHICH TOOLS A QUESTION'S PEN COMES WITH ------------------------------------------------
+   ASKED FOR AS *"some questions require a compass or ruler. so should have a tile for these things. if
+   you cant find those questions dont worry just have the infrastructure set up for it."* The pen is
+   always there; a Ruler and a Compass are added where the QUESTION says so, in either of two places:
+
+     `needs`            what the card already tells you to bring -- the paper's cover and the row's own
+                        cell, unioned (`needsOf_`). "Ruler", "Compass" and "Protractor" are the closed
+                        spellings `check-library.js` holds; "compasses", "pair of compasses", "straight
+                        edge", "angle measurer" and a "geometry set" are read too, in case a cell is
+                        typed the way a paper prints it.
+     the words          the question's own, its lead's and its stems': "Use a ruler", "ruler and
+                        compasses", "construct", "bisector", "locus", "loci". A construction is ruler and
+                        compasses together. NOT "plotting compasses" (a physics field diagram, which has
+                        nothing to do with drawing circles), NOT "construct a table / tree / graph", and
+                        NOT "ruler" as a thing in a word problem ("12 rulers cost...") -- only "use /
+                        with / using a ruler" says it is in your hand.
+
+   `protractor` IS ANSWERED and drawn as nothing: there is no protractor tool, because one that is any
+   use is a scale you lay over a figure and read, not a mark you make, and that is not this bar's kind
+   of tool. Answering it anyway keeps the decision in one place for the day one exists, and lets
+   `check-library.js` count how many questions would have it.
+
+   ONE FUNCTION, NOTHING FROM OUTSIDE IT, so `check-library.js` can cut it out by name and count what
+   the library gets -- the `padSurface_` arrangement. No `{` in a pattern, for the same reason: the
+   cutter counts braces. */
+function padTools_(x) {
+  /* IN ONE ORDER WHATEVER ORDER THEY WERE FOUND IN, so the bar reads Pen, Ruler, Compass on every
+     card and a thumb learns where each one is. */
+  const ORDER = ['pen', 'ruler', 'compass', 'protractor'];
+  const want = { pen: 1 };
+  const add = t => { want[t] = 1; };
+  const out = () => ORDER.filter(t => want[t]);
+  if (!x) return out();
+  const needs = (Array.isArray(x.needs) ? x.needs : String(x.needs || '').split(','))
+    .map(v => String(v == null ? '' : v).trim().toLowerCase()).filter(Boolean);
+  needs.forEach(v => {
+    if (/geometry set|maths set|mathematical instruments/.test(v)) { add('ruler'); add('compass'); add('protractor'); }
+    if (/ruler|straight ?edge/.test(v)) add('ruler');
+    if (/compass/.test(v)) add('compass');
+    if (/protractor|angle measurer/.test(v)) add('protractor');
+  });
+  const words = [x.lead, x.html].concat((x.stems || []).map(p => p && p.html))
+    .map(h => String(h || '').replace(/<[^>]*>/g, ' ').replace(/&[a-z0-9#]+;/gi, ' '))
+    .join(' ').replace(/\s+/g, ' ').toLowerCase().replace(/plotting compass(es)?/g, ' ');
+  if (/\b(use|using|with) (a |an |your )?ruler\b|\bruler and (a pair of )?compasses\b|\bstraight ?edge\b/.test(words)) add('ruler');
+  if (/\bcompasses\b/.test(words)) add('compass');
+  const built = /\bconstruct(ion|ions|ed|ing)?\b/.test(words)
+    && !/\bconstruct(ion|ions|ed|ing)? (an? |the |your )?([\w-]+ )?([\w-]+ )?(table|tree|graph|chart|diagram|histogram|polygon|sentence|argument|frequency)s?\b/.test(words);
+  if (built || /\b(locus|loci|bisector|bisect)\b/.test(words)) { add('ruler'); add('compass'); }
+  if (/\bprotractor\b|\bangle measurer\b/.test(words)) add('protractor');
+  return out();
+}
+
 function padRead_(k) {
   try {
     const v = JSON.parse(localStorage.getItem(k) || '[]');
@@ -5887,21 +7372,69 @@ const padPath_ = st => {
 };
 
 /* ---------- WHAT THE CONTROL SAYS, IN ONE PLACE --------------------------------------------------
-   THE HANDLER REWRITES THIS BUTTON IN PLACE rather than repainting the card, so the label exists in
-   two places by construction — the markup above and the press below. Written twice they drift, and
-   the drift here is invisible: a pad that says `Draw on it` while the pen is on is a mode you cannot
-   see, which is the fault the gold frame was added for.
+   THE HANDLER REWRITES THIS TILE IN PLACE rather than repainting the card, so its face exists in
+   two places by construction — the markup below and the press in `padArm_`. Written twice they
+   drift, and the drift here is invisible: a pad that says `Draw on it` while the pen is on is a mode
+   you cannot see, which is the fault the gold frame was added for. So the face is one object, handed
+   to `tile_` to draw and to `tileSet_` to rewrite.
 
    `Draw on it` SAID NOTHING ABOUT THE CARD BEING HELD, and that is what the report was about. The
    owner's own sentence is the label: a padlock, and `Lock it to draw`. */
 const PAD_TAP = 'Hold the card still and draw on this';
-const padLockFace_ = pen =>
-  (typeof tileIcon_ === 'function' ? tileIcon_(pen ? 'lock' : 'unlock') : '')
-  + (pen ? 'Done drawing' : 'Lock it to draw');
+const padLockFace_ = pen => ({ icon: pen ? 'lock' : 'unlock',
+  label: pen ? 'Done drawing' : 'Lock it to draw', note: pen ? 'the card moves again' : 'holds the card still',
+  on: !!pen, pressed: !!pen });
+
+/* ---------- THE PEN'S BAR IS A ROW OF TILES ---------------------------------------------------------
+   THESE WERE THREE `<button>`s — a full-width gold `Lock it to draw` on a line of its own and grey
+   `Undo` and `Clear` under it — argued as a FORM's controls, which the house rule gives buttons. The
+   owner, looking at it: *"lock should be a tile too. same as undo and clear. it should all be tiles."*
+   So every control on a question's pages is a tile now, and the rule that sent these to buttons is
+   overruled here for this surface by the person it was written for. One renderer means one tap target,
+   one press animation and one place `check-doors` pairs each `act` with its handler.
+
+   THE LOCK KEEPS ITS LEAD, in the tile's own vocabulary: `tone: 'lead'` is a gold mark while the pen
+   is off (the one thing to press first, as the gold outline said) and a gold FILL while it is on
+   (`.on`), which is the difference between an invitation and a state the frame already argued for.
+   It is a switch, so it says `aria-pressed` as well as lighting up. `.qpad-lock` stays the name the
+   handler and the checks find it by, because the picture carries the same action while the pen is off. */
+/* ---------- AND WHAT THE PEN DRAWS WITH, WHERE THE QUESTION ASKS FOR MORE THAN A PEN -------------------
+   `padTools_` decides which; these are their faces. Each is a switch -- the one in hand is lit (`on`)
+   and pressed -- and only WHILE THE PEN IS ON: with the card free to move nothing is in hand, and a
+   lit Ruler over a picture a finger cannot draw on would say the opposite. Pressing one is also the
+   lock (see `pad-tool`), so lit always means "a drag here makes this".
+
+   DRAWN ONLY WHERE THERE IS A CHOICE. A question that wants nothing but the pen gets the bar it always
+   had -- lock, Undo, Clear -- because a lone Pen tile would be a switch with one position. `protractor`
+   has no face, so a question that asks for one is offered what does exist. */
+const PAD_TOOL_FACE = {
+  pen:     { icon: 'pen',     label: 'Pen',     note: 'draw freehand' },
+  ruler:   { icon: 'ruler',   label: 'Ruler',   note: 'drag a straight line' },
+  compass: { icon: 'compass', label: 'Compass', note: 'press the centre, drag out' },
+};
+const padToolTile_ = (t, on) => tile_(Object.assign({ act: 'pad-tool', cls: 'qpad-tool', data: { tool: t },
+  on: on, pressed: on }, PAD_TOOL_FACE[t]));
+const padToolsOf_ = x => padTools_(x).filter(t => PAD_TOOL_FACE[t]);
+
+/* TWO GROUPS IN THE ROW, so it breaks BETWEEN them and never inside one. Six tiles is 286px and a 390px
+   phone's card has about 288 -- measured, it wrapped Clear alone onto a line of its own, a bin
+   orphaned under a row it belongs to. Held as "the pen and what it draws with" and "taking marks
+   back", the row is four and two at 320 and at 390 alike, and one row wherever there is room. */
+const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="toolbar" aria-label="Drawing">
+      <span class="qpad-group">${tile_(Object.assign({ act: 'pad-draw', cls: 'qpad-lock', tone: 'lead' }, padLockFace_(pen)))}${
+      tools.length > 1 ? tools.map(t => padToolTile_(t, pen && t === tool)).join('') : ''}</span>
+      <span class="qpad-group">${tile_({ icon: 'undo', label: 'Undo', note: 'the last mark', act: 'pad-undo', cls: 'qpad-undo' })}${
+      tile_({ icon: 'bin', label: 'Clear', note: 'every mark', act: 'pad-clear', cls: 'qpad-clear' })}</span>
+    </div>`;
 
 function padWrap_(x, svg, credit) {
   const k = padKey_(x);
+  /* DRAWING THE PAD IS OPENING IT, so this is where the phone's old marks become this person's. */
+  padAdopt_(k, 'pad:' + padItemKey_(x));
   const marks = padRead_(k);
+  /* AND THE MARKS AN EARLIER PART MADE ON THIS SAME PICTURE, under this part's own and out of reach of
+     its Undo and Clear -- (ii)'s cross goes on the scale (i) already marked. See `usesOf_`. */
+  const was = usesUnder_(x, svg);
   /* THE MODE IS READ OFF `PAD_ON`, NOT LEFT ON THE ELEMENT BY THE PRESS THAT SET IT. A card is
      rebuilt on every repaint, so a class added by the handler alone is a class a repaint throws
      away while the state keeps it — and the state is what `pointerdown` below tests. That leaves
@@ -5909,6 +7442,9 @@ function padWrap_(x, svg, credit) {
      the invisible mode this repository already records for the reel that was paused with nothing
      on it saying so. */
   const pen = PAD_ON === k;
+  const tools = padToolsOf_(x);
+  const held = PAD_TOOL.get(k);
+  const tool = held && tools.indexOf(held) !== -1 ? held : 'pen';
   /* THE OVERLAY TAKES ITS BOX FROM THE PICTURE UNDER IT, by stretching to the same box, rather
      than by parsing a viewBox out of the drawing's markup. `preserveAspectRatio="none"` is what
      makes that exact: 340 units of user space map to the box's width and 340 to its HEIGHT
@@ -5923,16 +7459,13 @@ function padWrap_(x, svg, credit) {
   return `<div class="qpad${pen ? ' is-drawing' : ''}" data-k="${esc(k)}">
     <div class="qpad-art"${pen ? '' : ` data-do="pad-draw" title="${esc(PAD_TAP)}"`}>${svg}
       <svg class="qpad-ink"${pen ? ' data-noswipe' : ''} viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">
+        ${was.length ? usesInk_(was) : ''}
         <g class="qpad-g" vector-effect="non-scaling-stroke">${marks.map(st =>
           `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>
+        <g class="qpad-aid"></g>
       </svg>
     </div>
-    <div class="qpad-bar">
-      <button type="button" class="qpad-btn qpad-lock" data-do="pad-draw" aria-pressed="${pen}">${
-        padLockFace_(pen)}</button>
-      <button type="button" class="qpad-btn" data-do="pad-undo">Undo</button>
-      <button type="button" class="qpad-btn" data-do="pad-clear">Clear</button>
-    </div>${credit || ''}
+    ${padBar_(pen, tools, tool)}${credit || ''}${was.length ? usesSaid_(x, svg, true) : ''}
     <p class="qpad-note">Kept on this phone only, like the answer box.</p>
   </div>`;
 }
@@ -5940,9 +7473,9 @@ function padWrap_(x, svg, credit) {
 /* ---------- ARMING ONE PAD, EVERY PART OF IT TOGETHER --------------------------------------------
    FOUR THINGS MOVE AND THE HANDLER USED TO MOVE THEM IN FOUR PLACES: the class the frame is drawn
    from, the `data-noswipe` the grid reads, the `data-do` that makes the picture itself a door, and
-   the button's own face. Four sites is four chances to leave a pad half-armed — a gold frame over a
-   picture that still hands the finger to the grid, or the other way round — and a half-armed pad is
-   exactly the invisible mode the frame exists to prevent.
+   the lock tile's own face. Four sites is four chances to leave a pad half-armed — a gold frame over
+   a picture that still hands the finger to the grid, or the other way round — and a half-armed pad
+   is exactly the invisible mode the frame exists to prevent.
 
    TURNING ONE ON TURNS EVERY OTHER OFF, which is why this takes a flag rather than toggling: two
    live `touch-action: none` regions on one scroller is the trap twice. */
@@ -5960,9 +7493,18 @@ function padArm_(pad, on) {
     else { art.setAttribute('data-do', 'pad-draw'); art.setAttribute('title', PAD_TAP); }
   }
   /* `.qpad-lock` RATHER THAN THE ACTION, because the art carries the same action when the pen is
-     off and `querySelector` would hand back whichever comes first in the markup. */
+     off and `querySelector` would hand back whichever comes first in the markup. Rewritten through
+     `tileSet_`, which changes the mark, both names and the plate together -- the tile's face is
+     `padLockFace_`'s and nobody else's. */
   const b = pad.querySelector('.qpad-lock');
-  if (b) { b.setAttribute('aria-pressed', on ? 'true' : 'false'); b.innerHTML = padLockFace_(!!on); }
+  if (b) tileSet_(b, padLockFace_(!!on));
+  /* AND THE TOOL IN HAND, lit only while the pen is on -- the same rule `padBar_` draws by, so a
+     repaint and a press cannot disagree about which tile is lit. */
+  const tool = padToolNow_(pad);
+  pad.querySelectorAll('.qpad-tool').forEach(t => {
+    const lit = !!on && t.getAttribute('data-tool') === tool;
+    tileSet_(t, { on: lit, pressed: lit });
+  });
 }
 
 /* ---------- THE PEN ------------------------------------------------------------------------------
@@ -5975,15 +7517,141 @@ function padArm_(pad, on) {
 
    THE STROKE IS BUILT IN THE PICTURE'S COORDINATES AS IT IS DRAWN, and written to storage once, at
    the end. Writing per move would be a `localStorage` write every few milliseconds, which is
-   synchronous and on the main thread. */
+   synchronous and on the main thread.
+
+   AND THE PEN HAS TWO MORE TOOLS, WHICH ARE STILL THE PEN. A ruler's line and a compass's circle
+   are built as the same flat polyline a freehand stroke is (`padPath_`'s format), so Undo, Clear,
+   storage, a repaint and a reload are the code they always were and cannot tell the three apart.
+   What differs is only what a drag MAKES: every point it passes (pen), the two ends (ruler), or a
+   ring round where it began (compass). `PAD_DRAW` holds those three answers and nothing else. */
 let PAD_ON = '';                  // the key of the pad currently taking the pen, '' for none
-let PAD_ST = null;                // the stroke being drawn
+let PAD_ST = null;                // the stroke being drawn, already in the shape it is stored in
+let PAD_GO = null;                // the drag behind it: which tool, on which ink, measured how, from where
+/* WHICH TOOL EACH PAD IS HOLDING, by the pad's key, for the visit: a card is rebuilt on every repaint
+   and a tool left on the element would be dropped with it, the `PAD_ON` argument one line up. */
+const PAD_TOOL = new Map();
 
 function padAt_(ink, e) {
   const r = ink.getBoundingClientRect();
   if (!r.width || !r.height) return null;
   return [Math.round((e.clientX - r.left) / r.width * 340),
           Math.round((e.clientY - r.top) / r.height * 340)];
+}
+
+/* THE TOOL A DRAG ON THIS PAD USES: what was chosen for it, and only if the bar offers that tool.
+   Asked of the bar rather than of `padTools_` again, so a tool the decider did not give this question
+   cannot be drawn with, whatever a stale `PAD_TOOL` entry says -- the tile IS the permission. */
+function padToolNow_(pad) {
+  const t = (pad && PAD_TOOL.get(pad.getAttribute('data-k') || '')) || 'pen';
+  return t !== 'pen' && pad.querySelector('.qpad-tool[data-tool="' + t + '"]') ? t : 'pen';
+}
+
+/* ---------- SCREEN PIXELS, NOT PICTURE UNITS, FOR ANYTHING ROUND ----------------------------------
+   THE INK IS STRETCHED (`preserveAspectRatio="none"`, see `padWrap_`): 340 units are the picture's
+   width AND its height, so on a picture twice as wide as it is tall one unit across is twice one
+   unit down. A circle drawn as "every point 50 units from the centre" would be an ellipse on that
+   picture -- a compass that cannot draw a circle. So the radius and every angle are measured in the
+   box's own pixels (`sx`, `sy`: pixels per unit, read when the drag starts) and only the points are
+   turned back into units. The picture's shape is the drawing's, the same at 320px and on a laptop,
+   so a ring stored that way is round wherever it is drawn again. */
+const PAD_MIN_PX = 4;                     // shorter than this a line or a radius is a slip, not a mark
+const PAD_SWING_PX = 16;                  // nearer the point than this, its angle is noise
+const PAD_ARC_MIN = Math.PI / 6;          // a swing of 30 degrees or more is an arc rather than a circle
+
+/* A RING OR AN ARC AS THE POLYLINE THE PEN STORES: about one point every 4px of screen, at least 8 and
+   at most 120 -- at 120 the chord sits 0.05px inside a 150px radius, which nothing can see. A full turn
+   ends EXACTLY on its first point, so it is closed in storage and not merely by rounding. */
+function padArc_(c, R, sx, sy, a0, span) {
+  const full = Math.abs(span) >= 2 * Math.PI;
+  if (full) span = 2 * Math.PI;
+  const n = Math.max(8, Math.min(120, Math.ceil(Math.abs(span) * R / 4)));
+  const out = [];
+  const put = (x, y) => {
+    if (out.length && out[out.length - 2] === x && out[out.length - 1] === y) return;
+    out.push(x, y);
+  };
+  for (let i = 0; i < n; i++) {
+    const t = a0 + span * i / n;
+    put(Math.round(c[0] + R * Math.cos(t) / sx), Math.round(c[1] + R * Math.sin(t) / sy));
+  }
+  if (full) put(out[0], out[1]);
+  else put(Math.round(c[0] + R * Math.cos(a0 + span) / sx), Math.round(c[1] + R * Math.sin(a0 + span) / sy));
+  return out;
+}
+
+/* ---------- THE COMPASS: THE POINT WHERE YOU PRESS, THE WIDTH WHERE YOU DRAG TO, THE ARC YOU SWING ----
+   A REAL PAIR OF COMPASSES IS SET AND THEN TURNED, and a finger does both in one drag: down on the
+   centre, out to the radius -- a full circle, previewed as it grows -- and then, if the finger swings
+   round the point, the width HOLDS where it was when the swing began (the hinge, not the finger,
+   decides it) and what is drawn is the arc swept. A swing of a full turn or more is a circle again.
+   A construction is mostly arcs -- two from A, two from B, a ruler through where they cross -- and
+   a circle for each would bury the page in rings.
+
+   THE SWING IS COUNTED ONLY WHERE AN ANGLE MEANS SOMETHING: further out than `PAD_SWING_PX` and not
+   back near the point (60% of the furthest yet), because a finger wobbling a millimetre from the
+   centre turns through ninety degrees without meaning to. Unwrapped across the -180/180 seam, so a
+   swing through "west" is one swing. */
+function padSwing_(g, at) {
+  const dx = (at[0] - g.from[0]) * g.sx, dy = (at[1] - g.from[1]) * g.sy;
+  const r = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
+  if (r >= Math.max(PAD_SWING_PX, g.rMax * 0.6)) {
+    if (g.a === null) g.a0 = a;
+    else {
+      let d = a - g.a;
+      if (d > Math.PI) d -= 2 * Math.PI; else if (d < -Math.PI) d += 2 * Math.PI;
+      g.sweep += d;
+    }
+    g.a = a;
+  }
+  g.rMax = Math.max(g.rMax, r);
+  if (!g.held) { g.r = r; if (Math.abs(g.sweep) >= PAD_ARC_MIN) g.held = true; }
+  const arc = g.held && Math.abs(g.sweep) >= PAD_ARC_MIN && Math.abs(g.sweep) < 2 * Math.PI;
+  /* THE PENCIL'S END, where the radius line is drawn to: on the ring, in the finger's direction. */
+  g.tip = [g.from[0] + g.r * Math.cos(a) / g.sx, g.from[1] + g.r * Math.sin(a) / g.sy];
+  return padArc_(g.from, g.r, g.sx, g.sy, arc ? g.a0 : a, arc ? g.sweep : 2 * Math.PI);
+}
+
+/* WHAT A DRAG MAKES, BY TOOL. `move` answers the stroke to preview (null: nothing new); `end` answers
+   the stroke to keep (null: nothing -- a tap is a dot to the pen, and to a ruler or a compass a slip). */
+const PAD_DRAW = {
+  pen: {
+    /* ONE POINT PER PIXEL OF THE PICTURE, not one per event. A pointer fires far faster than a
+       finger moves anything visible, and every duplicated point is two more characters in storage
+       for a mark nobody can see. */
+    move: (g, at, st) => {
+      if (st[st.length - 2] === at[0] && st[st.length - 1] === at[1]) return null;
+      st.push(at[0], at[1]);
+      return st;
+    },
+    end: (g, st) => st,
+  },
+  /* A RULER IS ITS TWO ENDS. The live line follows the finger from where it went down; what is kept
+     is that line and nothing of the path the finger took to get there. */
+  ruler: {
+    move: (g, at) => [g.from[0], g.from[1], at[0], at[1]],
+    end: (g, st) => (st.length === 4
+      && Math.hypot((st[2] - st[0]) * g.sx, (st[3] - st[1]) * g.sy) >= PAD_MIN_PX ? st : null),
+  },
+  compass: {
+    move: (g, at) => padSwing_(g, at),
+    end: (g, st) => (g.r >= PAD_MIN_PX && st.length >= 4 ? st : null),
+  },
+};
+
+/* ---------- WHAT IS SHOWN WHILE IT IS DRAWN, AND GONE WHEN IT IS NOT ------------------------------
+   THE POINT AND THE WIDTH: a dot where the compass point went down (or where the ruler's line starts)
+   and, for the compass, a dashed line from it to the pencil -- the radius, live, which is what you
+   watch while you open a pair of compasses. In `.qpad-aid`, beside the marks and never among them, so
+   nothing here is ever stored, undone or redrawn: the group is emptied when the finger lifts. */
+function padAid_(g) {
+  const aid = g.ink.querySelector('.qpad-aid');
+  if (!aid) return;
+  const c = g.from;
+  const pin = `<path class="qpad-pin" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${c[0]} ${c[1]}"/>`;
+  const rad = g.tool === 'compass' && g.tip && g.r >= PAD_MIN_PX
+    ? `<path class="qpad-rad" vector-effect="non-scaling-stroke" d="M${c[0]} ${c[1]}L${Math.round(g.tip[0])} ${Math.round(g.tip[1])}"/>`
+    : '';
+  aid.innerHTML = pin + rad;
 }
 
 document.addEventListener('pointerdown', e => {
@@ -5994,37 +7662,48 @@ document.addEventListener('pointerdown', e => {
   const at = padAt_(ink, e);
   if (!at) return;
   e.preventDefault();
-  PAD_ST = at.slice();
+  const r = ink.getBoundingClientRect();
+  PAD_GO = { tool: padToolNow_(pad), ink: ink, from: at, sx: r.width / 340, sy: r.height / 340,
+             r: 0, rMax: 0, a: null, a0: 0, sweep: 0, held: false, tip: null };
+  /* THE PEN AND THE RULER START AS A DOT WHERE THE FINGER WENT DOWN; the compass starts as nothing,
+     because a ring of no width is not a mark -- its point is the aid's. */
+  PAD_ST = PAD_GO.tool === 'compass' ? [] : at.slice();
   const g = ink.querySelector('.qpad-g');
   const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   path.setAttribute('d', padPath_(PAD_ST));
   path.setAttribute('vector-effect', 'non-scaling-stroke');
   path.setAttribute('data-live', '1');
   if (g) g.appendChild(path);
+  if (PAD_GO.tool !== 'pen') padAid_(PAD_GO);
   try { ink.setPointerCapture(e.pointerId); } catch (err) {}
 });
 
 document.addEventListener('pointermove', e => {
-  if (!PAD_ST) return;
+  if (!PAD_ST || !PAD_GO) return;
   const ink = e.target && e.target.closest && e.target.closest('.qpad-ink');
-  if (!ink) return;
+  if (!ink || ink !== PAD_GO.ink) return;
   const at = padAt_(ink, e);
   if (!at) return;
-  /* ONE POINT PER PIXEL OF THE PICTURE, not one per event. A pointer fires far faster than a
-     finger moves anything visible, and every duplicated point is two more characters in storage
-     for a mark nobody can see. */
-  if (PAD_ST[PAD_ST.length - 2] === at[0] && PAD_ST[PAD_ST.length - 1] === at[1]) return;
-  PAD_ST.push(at[0], at[1]);
+  const st = PAD_DRAW[PAD_GO.tool].move(PAD_GO, at, PAD_ST);
+  if (!st) return;
+  PAD_ST = st;
   const live = ink.querySelector('[data-live]');
   if (live) live.setAttribute('d', padPath_(PAD_ST));
+  if (PAD_GO.tool !== 'pen') padAid_(PAD_GO);
 });
 
 function padEnd_(e) {
-  if (!PAD_ST) return;
-  const st = PAD_ST; PAD_ST = null;
-  const ink = document.querySelector('.qpad-ink [data-live]');
-  const pad = ink && ink.closest('.qpad');
-  if (ink) ink.removeAttribute('data-live');
+  if (!PAD_ST || !PAD_GO) { PAD_ST = null; PAD_GO = null; return; }
+  const g = PAD_GO;
+  const st = PAD_DRAW[g.tool].end(g, PAD_ST);
+  PAD_ST = null; PAD_GO = null;
+  const live = g.ink.querySelector('[data-live]');
+  const aid = g.ink.querySelector('.qpad-aid');
+  if (aid) aid.innerHTML = '';
+  /* A SLIP IS TAKEN BACK OFF THE SCREEN as well as never stored: the preview is not a mark. */
+  if (!st) { if (live) live.remove(); return; }
+  if (live) { live.removeAttribute('data-live'); live.setAttribute('d', padPath_(st)); }
+  const pad = g.ink.closest('.qpad');
   if (!pad) return;
   const k = pad.getAttribute('data-k') || '';
   const all = padRead_(k); all.push(st);
@@ -6033,12 +7712,12 @@ function padEnd_(e) {
 document.addEventListener('pointerup', padEnd_);
 document.addEventListener('pointercancel', padEnd_);
 
-/* THE THREE CONTROLS. `Lock it to draw` is a MODE and not an action, so it says which it is with
+/* THE BAR'S TILES. `Lock it to draw` is a MODE and not an action, so it says which it is with
    `aria-pressed` and a class — see the note at the top of this block about why the pen cannot
    simply always be on. Only one pad takes the pen at a time: turning one on turns the last one
    off, because two live `touch-action: none` regions on one scroller is the trap twice. */
 on('pad-draw', (el) => {
-  /* TWO DOORS, ONE HANDLER. `el` is the button in the bar, or — while the pen is off — the
+  /* TWO DOORS, ONE HANDLER. `el` is the lock tile in the bar, or — while the pen is off — the
      PICTURE itself, which carries the same action for the reason written over `padArm_`. Both are
      inside the pad, so neither needs to be told apart here.
 
@@ -6058,6 +7737,23 @@ on('pad-draw', (el) => {
   [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
   PAD_ON = want ? k : '';
   if (want) padArm_(pad, true);
+});
+
+/* ---------- PEN, RULER, COMPASS: CHOOSING ONE IS ALSO LOCKING THE CARD ------------------------------
+   *"some questions require a compass or ruler. so should have a tile for these things."* Pressing one
+   chooses it for this pad AND arms the pen if it was off -- nobody presses Ruler meaning "but do not
+   let me draw yet", and making them press the padlock as well would be two taps for one intention. It
+   never turns the pen OFF: pressing the tool already in hand leaves it in hand. The padlock is still
+   the one way off, and still the one mode this bar has; the tools are which mark that mode makes. */
+on('pad-tool', (el) => {
+  const pad = el.closest('.qpad'); if (!pad) return;
+  const k = pad.getAttribute('data-k') || '';
+  PAD_TOOL.set(k, el.getAttribute('data-tool') || 'pen');
+  if (PAD_ON !== k) {
+    [].slice.call(document.querySelectorAll('.qpad')).forEach(p => padArm_(p, false));
+    PAD_ON = k;
+  }
+  padArm_(pad, true);
 });
 
 on('pad-undo', (el) => {
@@ -6087,6 +7783,153 @@ function padRepaint_(pad, all) {
   const g = pad.querySelector('.qpad-g');
   if (g) g.innerHTML = (all || [])
     .map(st => `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('');
+}
+
+/* ==================================================================================================
+   "USE YOUR GRAPH" SHOWS YOUR GRAPH.
+
+   FOUND BY THE MULTI-PART AUDIT, finding 5. June 2024 2F Q24(b): "On the grid, draw the graph of
+   y = x^2 - x". Q24(c): "Use your graph to find estimates for the solutions of x^2 - x = 4" -- and (c)
+   had no picture at all. The graph it asks about was the child's own, on (b)'s grid, two swipes back
+   past (b)'s answer page; on Saved, or reached by a search, it was nowhere. And the related case the
+   audit named: May 2017 1F Q6(ii) puts a cross on "the probability scale" -- a fresh copy without the
+   cross (i) made, where the paper prints ONE scale with both on it.
+
+   THE ROW SAYS WHICH PART, AND THE APP DOES NOT GUESS. `uses` is the earlier part's own `part` cell
+   (`b`, `i`, `3`) inside the same paper and question; tools/set-uses.py is the deciding, row by row,
+   and says why it is a cell and not a match on the words: half of these say nothing in their words
+   ("Draw y = 2x" on the grid "Draw y = 4" already used), and "the graph" is as often the paper's own
+   as the child's. A part naming no such part, or one that does not exist, draws exactly what it did.
+
+   ONE RULE, TWO PLACES, READ ONLY IN BOTH:
+     this part's own figure IS that picture   the earlier marks go UNDER this part's own, dimmer, out
+                                              of reach of its Undo and Clear (`padWrap_`); or, where
+                                              this part only looks (AQA's "How does Figure 2 show"
+                                              after (3) plotted Figure 2), on its picture (`usesFig_`)
+     it has no such picture                   a page of its own IN FRONT OF IT, after the opening and
+                                              before its words (`use` in `pageParts_`): the earlier
+                                              part's picture with the marks on it, headed with the
+                                              picture's own name, and one line saying whose marks
+                                              they are and where to change them
+   READ ONLY BECAUSE THE MARKS ARE THE EARLIER PART'S ANSWER. A pen here that wrote to (b)'s key would
+   be (b)'s answer changed from (c)'s page; a pen that wrote to (c)'s would be a second graph that (b)
+   never sees. Changing a graph is done where it was drawn.
+
+   AND NOT A PAGE THE STRIP HAS JUST SHOWN: in front of (c) whose previous page is (b)'s own figure
+   (no answer page between them), the picture is already the page before.
+
+   WHOEVER IS SIGNED IN, as the marks are (`padKey_`): Ben's (c) shows Ben's graph, not Ali's. A CHAIN
+   IS ONE PICTURE: FSL2 Q3(c) uses (b), (b) uses (a), all on one scatter diagram, so (c)'s page carries
+   (a)'s points and (b)'s line -- followed while the picture is the same one, never round a loop. */
+const usesPart_ = p => String(p == null ? '' : p).toLowerCase().replace(/[^a-z0-9]/g, '');
+const usesAt_ = (x, part) => paperIdOf_(x.row || x) + '|' + String(x.qNumber == null ? '' : x.qNumber) + '|' + usesPart_(part);
+/* BUILT ONCE PER LIST OF ITEMS, which is once per payload and person (`stuffItemsAll_`'s own memo). */
+let USES_MEMO = { from: null, at: null };
+function usesOf_(x) {
+  if (!x || x.kind !== 'question' || !usesPart_(x.uses)) return null;
+  let all = [];
+  try { all = stuffItemsAll_() || []; } catch (e) { return null; }
+  if (USES_MEMO.from !== all) {
+    const at = new Map();
+    all.forEach(y => { if (y && y.kind === 'question') at.set(usesAt_(y, y.qPart), y); });
+    USES_MEMO = { from: all, at: at };
+  }
+  const y = USES_MEMO.at.get(usesAt_(x, x.uses));
+  return y && y.key !== x.key ? y : null;
+}
+/* A PART'S OWN MARKS, FOR WHOEVER IS SIGNED IN -- opening them anywhere is opening them (`padAdopt_`). */
+function usesMine_(y) {
+  const k = padKey_(y);
+  padAdopt_(k, 'pad:' + padItemKey_(y));
+  return padRead_(k);
+}
+/* THE PARTS `x` USES WHOSE MARKS ARE ON THE PICTURE `svg`, earliest first, stopping where the picture
+   changes. The same picture is the same markup: equal strings, so a mark lands on the same point of it
+   -- a different drawing of "the same" figure would put it somewhere else. */
+function usesChain_(x, svg) {
+  const out = [];
+  const seen = new Set([x && x.key]);
+  let y = usesOf_(x);
+  while (y && !seen.has(y.key)) {
+    seen.add(y.key);
+    const p = padSource_(y);
+    if (!p || p.svg !== svg) break;
+    out.unshift(y);
+    y = usesOf_(y);
+  }
+  return out;
+}
+/* EVERY MARK THOSE PARTS MADE, earliest part first. */
+const usesUnder_ = (x, svg) => [].concat(...usesChain_(x, svg).map(usesMine_));
+/* AND THE ONE LINE THAT SAYS WHOSE THEY ARE -- the fainter marks under a pen are the ones its Undo will
+   not take, and a mark that will not undo with nothing saying why is a pen that looks broken. Named by
+   the parts that actually have marks, so "from Q6(i)" is never said over a blank scale. */
+function usesSaid_(x, svg, under) {
+  const from = usesChain_(x, svg).filter(y => usesMine_(y).length).map(y => esc(y.name));
+  if (!from.length) return '';
+  const who = from.length > 1 ? from.slice(0, -1).join(', ') + ' and ' + from[from.length - 1] : from[0];
+  return `<p class="qpad-note qseen-from">${under ? 'The fainter marks are' : 'The marks are'} yours from ${who} &mdash;
+    change them there.</p>`;
+}
+/* THE EARLIER MARKS AS AN INK GROUP, beside the pad's own and never inside it: `padRepaint_` rewrites
+   `.qpad-g` from this part's storage, so nothing it does can reach these. */
+const usesInk_ = all => `<g class="qpad-was" vector-effect="non-scaling-stroke">${all.map(st =>
+  `<path vector-effect="non-scaling-stroke" d="${padPath_(st)}"/>`).join('')}</g>`;
+/* A PICTURE WITH MARKS ON IT AND NO PEN: the pad's box and ink layer (`.qpad-art`, `.qpad-ink`) so a
+   mark lands exactly where `padWrap_` drew it, inside `.qseen` rather than `.qpad` -- the class every
+   pen handler and `padArm_` look for, so none of them can arm a picture that is not for drawing on. */
+const usesSeen_ = (svg, all, note) => `<div class="qseen">
+    <div class="qpad-art">${svg}
+      <svg class="qpad-ink" viewBox="0 0 340 340" preserveAspectRatio="none" aria-hidden="true">${usesInk_(all)}</svg>
+    </div>${note || ''}
+  </div>`;
+/* A PART THAT ONLY LOOKS AT THE PICTURE AN EARLIER PART DREW ON: its own copy, with those marks. */
+function usesFig_(x) {
+  const was = x && x.diagram ? usesUnder_(x, x.diagram) : [];
+  return was.length ? usesSeen_(x.diagram, was, figCredit_(x, 'p') + usesSaid_(x, x.diagram)) : '';
+}
+
+/* A PICTURE WITH THE CHILD'S MARKS ON IT IS HEADED AS THEIRS -- the `use` page and the Figure sheet
+   alike. In review a page headed plain "Figure" over the child's own graph read as one more printed
+   picture. The picture's own name stays where the paper gives one ("Figure 2 · your drawing"); no
+   question number, as on every figure page (`figHead_`) -- the line under it says which part. */
+const usesHead_ = name => (!name || name === 'Figure' ? 'Your drawing' : name + ' \u00b7 your drawing');
+
+/* DOES THIS PART GET THE PAGE IN FRONT -- see the note above. `prev` is the result before it in the
+   strip, as `pageParts_` is told. */
+function usesPage_(x, prev) {
+  const y = usesOf_(x);
+  const p = y && padSource_(y);
+  if (!p) return false;
+  const own = padSource_(x);
+  if ((own && own.svg === p.svg) || (x.diagram && x.diagram === p.svg)) return false;
+  if (prev && prev.key === y.key && pageParts_(prev).slice(-1)[0] === 'fig') return false;
+  return true;
+}
+/* THE PAGE: the earlier part's picture, named as its own figure page names it (a surface by what it
+   is, a paper figure by the name the paper gives it), the marks on it, and one line. `data-of` is THIS
+   part's row, because the page is this part's -- it stands in front of it and only it; `data-uses`
+   names the row the marks came from. */
+function questionUsesCard_(x) {
+  const y = usesOf_(x);
+  const p = y && padSource_(y);
+  if (!p) return '';
+  const all = usesUnder_(y, p.svg).concat(usesMine_(y));
+  const name = p.from === 'surface' ? (SURFACE_NAME[p.surface] || 'Space to draw')
+    : p.from === 'part' ? figLabel_(String(y.lead || '') + ' ' + String(y.html || ''),
+                                    (y.stems || []).filter(stemHasFig_).map(s => figLabel_(s.html)))
+    : figLabel_(p.from.html);
+  const label = usesHead_(name);
+  const said = all.length
+    ? `Your marks from ${esc(y.name)}, to use here. To change them, go back to ${esc(y.name)}.`
+    : `Nothing drawn on ${esc(y.name)} yet &mdash; this part uses what you draw there.`;
+  const id = (x.row && x.row.row_id) || x.key || '';
+  const from = (y.row && y.row.row_id) || y.key || '';
+  return `<div class="qcard qfig qfig-uses" data-of="${esc(id)}" data-uses="${esc(from)}">
+    ${qPage_(x, label, '', false)}
+    <div class="qsheet">${usesSeen_(p.svg, all,
+      `<p class="qseen-note">${said}</p>` + (p.from === 'part' ? figCredit_(y, 'p') : ''))}</div>
+  </div>`;
 }
 
 /* ==================================================================================================
@@ -6184,8 +8027,10 @@ function surfaceSvg_(kind) {
        (its block and its place in it, `3.7`) is the same word at 320px and on a laptop.
      what the question asks for IS a set of words, so storing one is storing the answer.
 
-   STORED LIKE THE PEN'S MARKS, beside them: `pad:<question>:words`, every read and write wrapped,
-   because private mode throws on `localStorage`; `CIRC_HELD` keeps the visit's rings when it does. */
+   STORED LIKE THE PEN'S MARKS, beside them: `pad:<who>:<question>:words`, every read and write
+   wrapped, because private mode throws on `localStorage`; `CIRC_HELD` keeps the visit's rings when it
+   does. Per person through `padKey_`, and the phone's old rings move once to whoever opens them first
+   (`circOf_`, by `padAdopt_`), for the reason written there. */
 const circKey_ = x => padKey_(x) + ':words';
 const CIRC_HELD = new Map();
 function circRead_(k) {
@@ -6212,6 +8057,8 @@ function circWords_(html, block, on) {
       return tag;
     }
     if (skip) return text;
+    /* NOT TILES, for the reason the multiple-choice options are not (`choiceBox_`): a ringed word is
+       the answer being given, and it has to stay where the sentence put it. */
     return text.replace(WORD, (w, apos, ent, word) => {
       if (!word) return w;
       const k = block + '.' + (n++);
@@ -6338,26 +8185,48 @@ function satOn_(x) {
 }
 
 /* ==================================================================================================
-   A QUESTION CARD IS LABELLED WITH TAGS, NOT WITH ITS PAPER'S NAME AS ONE LINE OF TEXT.
+   EVERY FACT ABOUT A PAGE OF A QUESTION IS A TAG, IN ONE ROW AT THE TOP OF THE CARD.
 
-   ASKED FOR AS *"on the widget cards for questions it has the title of it in one text name when it
-   should still remain as tags labelling it."* The card's second line was `x.sub`, the paper's whole
-   name -- `Paper 1: Arithmetic — May 2019` -- in grey, while the funnel above it had just said the
-   same things as separate coloured tags. So the name is taken apart into the facts it is made of,
-   and each is drawn as a tag in the colour the funnel gives that kind of fact:
+   ASKED FOR TWICE, AND THE SECOND TIME AS FOUR FACTS. First *"on the widget cards for questions it has
+   the title of it in one text name when it should still remain as tags labelling it"* -- the paper's
+   whole name in grey, `Paper 1: Arithmetic — May 2019`, taken apart into the facts it is made of.
+   Then, over a card that still said three things outside the tags: *"why do the questions say non
+   calculator but its not a tag? also the marks should also be a tag. also the question numbers
+   should also be a tag. also answers should have the answer tags and questions have the question
+   tag."* The card said the calculator TWICE -- a grey `Non-Calculator` pill cut from the name and an
+   orange `No calculator` line under the tags -- and neither was a tag of the kind it is; the number
+   and the marks were a gold header line; and nothing said whether the page in your hand was the
+   question or its answer except where it sat in the strip.
 
-     the level         `KS2 SATs`, `GCSE` -- or the key stage where a row has no level
+   SO THE ROW, IN THE ORDER A PERSON READS A PAGE: what this page is, which question, what it is
+   worth -- then the paper it came from -- then what to bring.
+
+     what it is        `Question`, `Answer`, the figure's own name (`Figure 3`), a surface's (`Squared
+                       grid`). First on every page, so a page landed on cold says what it is before
+                       anything else. `qPage_` -- the builders pass it.
+     the number        `Q4a`; `Q5 · 1 of 2` on a page cut from a longer one. Never on a figure page
+                       (*"diagram widgets shouldn't have a question number on them"*).
+     the marks         `2 marks`, on the question and its answer; nothing where the row has none --
+                       a Corbettmaths sheet prints no allocation, and absent is not zero.
+     the level         `GCSE`; `SATs` and then `KS2` beside it -- *"sats is one tag not ks2 sats"*
      the board         `Edexcel`, `AQA`, unless the level already says who sets it (SATs are STA's)
+     the subject       the Subject question's word
      the tier          `Higher`, unless the paper's own name already says it
-     the date          what the name prints after its spaced dash: `May 2019`, `1 June`
-     the paper         what it prints before: `Paper 1`, a worksheet's own title, `Biology` + `Paper 2`
-     what it is        the words in the brackets or after the colon: `Arithmetic`, `Non-Calculator`
+     the sitting       the year, then the month, as the folders ask them; and the day it was sat
+                       where the row knows it
+     the paper         `Paper 1`, a worksheet's own title, `Biology Paper 2`
+     what it is        the words in the brackets or after the colon: `Arithmetic`
+     what to bring     `Non-calculator`, `Calculator allowed`, `Protractor` -- ONE tag per fact, from
+                       the paper's cover and the question's own row and its name, said once
 
    THE NAME IS CUT THE WAY `nameForms_` CUTS IT -- a spaced long dash, then a colon or a bracket --
    so a hyphen inside `A-Level` or `Non-Calculator` is never a separator, for the reason that
    function gives. Nothing here is a second copy of a column: the date and the paper's title are read
    off the name because the name is the only place they are written, and everything else is the
    facet's own `of`, so a tag cannot say a word the chip above it would not.
+
+   EACH KIND WEARS ITS FUNNEL CHIP'S COLOUR (`tagOf_`), and the three kinds no chip asks -- what the
+   page is, its number, its marks -- have tokens of their own at `:root` (`--tag-kind` and the rest).
 
    NO TAG IS A CONTROL. They are labels, smaller than a chip and not pressable, because a card of
    44px pills would be a card of nothing but pills; narrowing is what the funnel above is for. */
@@ -6367,6 +8236,34 @@ function qTagOf_(facetField, x) {
   try { return asList_(facet.of(x)).map(v => String(v || '').trim()).filter(Boolean); }
   catch (e) { return []; }
 }
+
+/* ---------- WHAT TO BRING, IN ONE SPELLING ----------------------------------------------------------
+   THE CARD SAID IT TWICE AND SPELLED IT TWO WAYS: `Non-Calculator` off the paper's name and `No
+   calculator` off the `needs` cell. One tag now, in the words below, and the funnel's `What you need`
+   answers and chips say the same words through the facet's `showOf` -- so the card, the answer and the
+   chip cannot disagree about which spelling a fact has.
+
+   `Non-calculator` BECAUSE IT IS THE BOARD'S WORD AND THE OWNER'S -- *"why do the questions say non
+   calculator"* -- and the word on the cover of every Edexcel Paper 1, in sentence case like every other
+   answer. `Calculator allowed` RATHER THAN `Calculator`, because a calculator paper permits one rather
+   than needing one (*"You may use a calculator"*), and a bare `Calculator` beside a paper's name reads
+   as what the question is about. The cell keeps the vocabulary `check-library.js` closes; this is
+   how it is SAID, and `showOf` is the funnel's own door for exactly that. */
+const NEEDS_SAY = { 'no calculator': 'Non-calculator', 'calculator': 'Calculator allowed' };
+const needsSay_ = v => NEEDS_SAY[String(v == null ? '' : v).trim().toLowerCase()] || String(v == null ? '' : v).trim();
+/* THE CALCULATOR, WHERE A PAPER'S NAME SAYS IT -- `Paper 1 (Non-Calculator)`, `Section B: Calculator
+   (September 2019 materials)` -- taken OUT of the words it was in, so the qualifier left behind is
+   only what is not the calculator, and the fact goes into the one list of things to bring. */
+function nameNeeds_(what) {
+  const s = String(what || '');
+  const m = /\bnon[\s-]*calculator\b/i.exec(s) || /\bcalculator\b/i.exec(s);
+  if (!m) return { what: s, need: '' };
+  const rest = (s.slice(0, m.index) + ' ' + s.slice(m.index + m[0].length))
+    .replace(/\(\s*\)/g, ' ').replace(/\s+/g, ' ').trim()
+    .replace(/^[\s,:;·–—-]+|[\s,:;·–—-]+$/g, '').replace(/^\((.*)\)$/, '$1').trim();
+  return { what: rest, need: /^non/i.test(m[0]) ? 'No calculator' : 'Calculator' };
+}
+
 function qTags_(x) {
   const name = String(x.sub || '').trim();
   const out = [];
@@ -6375,9 +8272,13 @@ function qTags_(x) {
     if (!t || out.some(o => norm(o.text) === norm(t))) return;
     out.push({ tag: tag, text: t });
   };
+  /* ---------- `SATs`, AND THE KEY STAGE BESIDE IT ------------------------------------------------
+     *"why is ks2 sats one tag? it should be sats. if they want to specify key stage then it should
+     be its own thing."* The Level answer and the Key stage answer, through their facets -- Key stage
+     answers only inside SATs -- each a tag in the level's colour, the colour both their chips wear. */
   const level = qTagOf_('level', x);
-  (level.length ? level : qTagOf_('keystage', x)).forEach(v => add('level', v));
-  const sats = level.some(v => /\bSATs\b/i.test(v));
+  level.concat(qTagOf_('keystage', x)).forEach(v => add(tagOf_('level'), v));
+  const sats = level.some(v => LEVEL_BUCKET(v) === 'SATs');
   if (!sats) qTagOf_('examBoard', x).forEach(v => add('board', v));
   /* ---------- THE SUBJECT IS THE FACET'S WORD, NOT THE ONE IN FRONT OF `Paper N` ------------------
      IT WAS READ OFF THE NAME, and an AQA Combined Science paper is named `Biology Paper 1` -- so a
@@ -6386,6 +8287,13 @@ function qTags_(x) {
      subject at all and read the same as Chemistry's. The green tag says what the Subject question
      says; the name's own word stays with the number it belongs to, `Biology Paper 1`, in red. */
   qTagOf_('subject', x).forEach(v => add('subject', v));
+  /* what to bring: the cover's and the row's (`needsOf_` has already unioned them), then the name's */
+  const kit = asList_(x.needs).map(v => String(v || '').trim()).filter(Boolean);
+  const bring = () => {
+    /* THE CALCULATOR FIRST: it is the one everybody asks, and the one that decides how you work. */
+    const calc = kit.filter(v => /calculator/i.test(v)), rest = kit.filter(v => !/calculator/i.test(v));
+    calc.concat(rest).forEach(v => add(tagOf_('needs'), needsSay_(v)));
+  };
   /* ---------- A 5-A-DAY IS NOT TAKEN APART BY ITS NAME -------------------------------------------
      ITS NAME IS `<type> <level> — <day>`, so the cut below made `5-a-day Foundation` one red pill --
      a type and a level fused -- and coloured the day as a sitting while the Day answer that reaches
@@ -6395,10 +8303,11 @@ function qTags_(x) {
     qTagOf_('documentType', x).forEach(v => add(tagOf_('documentType'), v));
     qTagOf_('fiveLevel', x).forEach(v => add(tagOf_('fiveLevel'), v));
     add(tagOf_('fiveDay'), fiveDayLabel_(x.row.paper_id));
+    bring();
     return out;
   }
   /* the date and the paper, off the name */
-  const dash = /\s[\u2014\u2013]\s/.exec(name);
+  const dash = /\s[—–]\s/.exec(name);
   const head = dash ? name.slice(0, dash.index).trim() : name;
   const date = dash ? name.slice(dash.index + dash[0].length).trim() : '';
   /* ONLY AN EXAM PAPER IS TAKEN APART. `Paper 1 (Non-Calculator)` is a number and a qualifier;
@@ -6425,6 +8334,15 @@ function qTags_(x) {
   const sat = sittingParts_(date);
   if (sat) { add('sitting', sat.year); add('sitting', sat.month); }
   else add('sitting', date);
+  /* ---------- AND THE DAY IT WAS SAT, WHERE THE ROW KNOWS IT -------------------------------------
+     IT WAS A LINE OF ITS OWN UNDER THE TAGS, `sat Thursday 25 May 2017` (`.qcard-sat`), and it is a
+     fact about the paper like the year and the month beside it, so it is a tag in their colour. THE
+     YEAR IS LEFT OFF: the year tag says it, and a tag holding a month and a year is the fused pill
+     *"Fix this why it say June and year in same chip"* took apart. `sat` STAYS IN FRONT because the
+     day can be in a different month from the series -- AQA's June 2024 Paper 1 was sat on Friday 10
+     May -- and `June · Friday 10 May` without the verb reads as the card contradicting itself. */
+  const day = satOn_(x).replace(/\s+(19|20)\d{2}$/, '');
+  if (day) add('sitting', 'sat ' + day);
   /* `Biology Paper 2`, `GPS Paper 1`, `Specimen paper 1`: what comes before `Paper N` says which of
      several papers this is -- so it stays WITH the number, `Biology Paper 2` in red, which is what
      the Paper answer and its chip already say. `Specimen` is a KIND of paper rather than a part of
@@ -6436,29 +8354,43 @@ function qTags_(x) {
     add('paper', 'Paper ' + subjPaper[2]);
   } else if (subjPaper) add('paper', subjPaper[1] + ' Paper ' + subjPaper[2]);
   else add('paper', paper.replace(/^paper\b/i, 'Paper'));
-  add('', what);
+  /* THE CALCULATOR OUT OF THE QUALIFIER, INTO WHAT TO BRING -- `Paper 1 (Non-Calculator)` leaves no
+     qualifier at all, `Section A: Non-calculator (September 2019 materials)` leaves the materials. */
+  const cut = nameNeeds_(what);
+  if (cut.need && !kit.some(v => norm(v) === norm(cut.need))) kit.unshift(cut.need);
+  add('', cut.what);
+  bring();
   return out;
 }
-const qTagsHtml_ = x => {
-  const tags = qTags_(x);
-  return tags.length ? `<span class="qtags">${tags.map(t =>
-    `<span class="qtag"${t.tag ? ` data-tag="${t.tag}"` : ''}>${esc(t.text)}</span>`).join('')}</span>` : '';
-};
+
+/* ---------- WHAT THE PAGE IS, WHICH QUESTION, WHAT IT IS WORTH ---------------------------------------
+   THE THREE FACTS NO FUNNEL CHIP ASKS, and the ones the gold header line used to say: `Q3 · answer`
+   with `5 marks` hard right. They lead the row, in that order, on every page of a question. `kind`
+   is what the page is (`Question`, `Answer`, `Figure 3`, `Squared grid`); `num` is the number, with
+   the page count where the words were cut across pages; `marks` asks for the marks, which only the
+   question and its answer carry -- they are the question's, and a figure or a stem is not it. */
+const marksSay_ = x => (Number(x && x.marks) > 0
+  ? Number(x.marks) + ' mark' + (Number(x.marks) === 1 ? '' : 's') : '');
+function qPage_(x, kind, num, marks) {
+  const tags = [{ tag: 'kind', text: String(kind || 'Question') }];
+  if (num) tags.push({ tag: 'number', text: String(num) });
+  if (marks && marksSay_(x)) tags.push({ tag: 'marks', text: marksSay_(x) });
+  qTags_(x).forEach(t => { if (!tags.some(o => norm(o.text) === norm(t.text))) tags.push(t); });
+  return `<div class="qtags qcard-tags">${tags.map(t =>
+    `<span class="qtag"${t.tag ? ` data-tag="${t.tag}"` : ''}>${esc(t.text)}</span>`).join('')}</div>`;
+}
+/* `Q4a`, and `Q4a · 2 of 2` where the part's words were cut across pages -- ONE TAG, because `2 of 2`
+   on its own is not a fact about anything: it is which page of Q4a this is. */
+const qNumSay_ = (num, i, n) => String(num || '') + (n > 1 ? ' · ' + (i + 1) + ' of ' + n : '');
 
 function questionCard_(x) {
-  const sat = satOn_(x);
-  const needs = asList_(x.needs);
   const many = partChunks_(x).length;
   return `<div class="qcard">
-    ${qHead_(x, many > 1 ? many + ' of ' + many : '', true)}
-    <p class="qcard-sub">${qTagsHtml_(x)}${
-      sat ? `<span class="qcard-sat">sat ${esc(sat)}</span>` : ''}${
-      /* WHAT TO BRING, WHERE IT IS READ RATHER THAN FILTERED FOR. The funnel can narrow by it, but
-         the person who needs this most is the one who has already chosen the question and is about
-         to walk into a lesson — so it belongs on the card, not only on a chip. Drawn only when the
-         row says something; a blank one prints nothing rather than "nothing needed", because those
-         are different claims and only one of them has been checked. */''}${
-      needs.length ? `<span class="qcard-needs">${esc(needs.join(' · '))}</span>` : ''}</p>
+    ${/* THE ROW, AND NOTHING ELSE ABOVE THE QUESTION. The gold `Q4a` / `2 marks` line, the grey
+          `Non-Calculator` pill, the `sat …` line and the orange `No calculator` line under it are all
+          tags now (`qPage_`), and the calculator is said once. THE DAY YOU LAST DID IT moved to the
+          tile row, beside the star -- see `questionTiles_`. */''}
+    ${qPage_(x, 'Question', qNumSay_(x.name, many - 1, many), true)}
     <div class="qsheet">
       ${/* NO STEM HERE. The paragraph a part hangs from is its own page in front of the first part
             that shares it -- `questionStemCard_`, in `pageParts_`'s order -- so six parts of one
@@ -6516,8 +8448,7 @@ function questionStemCard_(x, i, j) {
      no marker, or the page before the marker where it does. */
   const figNext = stemHasFig_(p) && j === plan.figAt - 1;
   return `<div class="qcard qstem" data-of="${esc(stemId_(p))}">
-    ${qHead_(Object.assign({}, x, { name: qNum_(x), marks: 0 }), chunks.length > 1 ? (j + 1) + ' of ' + chunks.length : '')}
-    <p class="qcard-sub">${qTagsHtml_(x)}</p>
+    ${qPage_(x, 'Question', qNumSay_(qNum_(x) + (stemLetter_(p) ? '(' + stemLetter_(p) + ')' : ''), j, chunks.length), false)}
     <div class="qsheet">
       <div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${
         p.lines && !j ? `<p class="qsheet-lines">${esc(p.lines)}</p>` : ''}${typeset_(chunks[j])}</div>${
@@ -6535,8 +8466,7 @@ function questionPreCard_(x, j) {
   const chunks = partChunks_(x);
   if (j >= chunks.length - 1) return '';
   return `<div class="qcard qpre" data-of="${esc((x.row && x.row.row_id) || x.key || '')}">
-    ${qHead_(Object.assign({}, x, { marks: 0 }), (j + 1) + ' of ' + chunks.length)}
-    <p class="qcard-sub">${qTagsHtml_(x)}</p>
+    ${qPage_(x, 'Question', qNumSay_(x.name, j, chunks.length), false)}
     <div class="qsheet">
       ${chunkHtml_(chunks[j], circOf_(x))}
       <p class="qsheet-figref">${partPlan_(x).figAt === j + 1 ? figWhat_(x) : 'Continued'} on the next page &rarr;</p>
@@ -6741,28 +8671,38 @@ function chunkHtml_(chunk, circ) {
       </div>${circ && blocks.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take
         the ring off. Kept on this phone only, like the answer box.</p>` : ''}`;
 }
-const circOf_ = x => (padSurface_(x) === 'text' ? { k: circKey_(x), on: circRead_(circKey_(x)) } : null);
+/* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
+   so do the visit's (`CIRC_HELD`), which are the only copy when storage throws. */
+function circOf_(x) {
+  if (padSurface_(x) !== 'text') return null;
+  const k = circKey_(x), bare = 'pad:' + padItemKey_(x) + ':words';
+  padAdopt_(k, bare);
+  if (k !== bare && !CIRC_HELD.has(k) && CIRC_HELD.has(bare)) {
+    CIRC_HELD.set(k, CIRC_HELD.get(bare));
+    CIRC_HELD.delete(bare);
+  }
+  return { k: k, on: circRead_(k) };
+}
 /* WHAT THE NEXT PAGE IS CALLED, in the words its own header uses: "Figure", or a surface's name -- a
    pointer saying "Figure" at a page headed "Squared grid" that says it is not the paper's figure would
    be the two pages disagreeing. */
 const figWhat_ = x => { const p = padSource_(x); return (p && p.from === 'surface' && SURFACE_NAME[p.surface]) || 'Figure'; };
 
 /* ---------- AND THE STEM'S FIGURE, THE PAGE AFTER ITS WORDS ---------------------------------------
-   No question number -- see `figHead_`. `data-of` is the stem's id, because the figure is the
+   No question number -- see `figLabel_`. `data-of` is the stem's id, because the figure is the
    stem's, not any one part's; a part that is asked to draw on it gets the pen on its OWN figure
    page (`questionFigCard_`), where the marks are keyed to that part. */
 function questionStemFigCard_(x, i) {
   const p = (x.stems || [])[i];
   if (!p) return '';
   return `<div class="qcard qfig" data-of="${esc(stemId_(p))}">
-    ${figHead_(figLabel_(p.html))}
-    <p class="qcard-sub">${qTagsHtml_(x)}</p>
+    ${qPage_(x, figLabel_(p.html), '', false)}
     <div class="qsheet">${p.diagram ? `<figure>${p.diagram}${figCredit_(p)}</figure>` : ''}${
       pics_(figImgs_(p.images))}</div>
   </div>`;
 }
 
-/* ---------- A FIGURE'S HEADER CARRIES THE FIGURE'S NAME, NOT A QUESTION NUMBER --------------------
+/* ---------- A FIGURE'S PAGE IS NAMED FOR THE FIGURE, NOT FOR A QUESTION NUMBER ---------------------
    ASKED FOR AS *"diagram widgets shouldn't have a question number on them"*. A figure in a paper is
    captioned by its own name -- "Figure 3" -- and two parts can both be about it; `Q7 · figure` said
    it was Q7's and made a reader looking for Figure 3 read every header twice. So the name the paper
@@ -6772,41 +8712,26 @@ function questionStemFigCard_(x, i) {
    question's, and the figure is not the question.
 
    `not` is the names already taken by the stems above a part, so a part reading "use Figure 3 to
-   complete Figure 4" names its own drawing Figure 4 rather than the stem's Figure 3. */
+   complete Figure 4" names its own drawing Figure 4 rather than the stem's Figure 3.
+
+   THE NAME IS THE PAGE'S KIND TAG, first in its row (`qPage_`) where a question's page says
+   `Question` -- so a figure page says what it is the way every other page does, and the number tag
+   that follows `Question` is simply not there. */
 function figLabel_(html, not) {
   const seen = String(html || '').replace(/<[^>]*>/g, ' ').match(/\bFigure\s+\d+[a-z]?\b/gi) || [];
   const hit = seen.map(t => 'Figure ' + t.replace(/^figure\s+/i, ''))
     .find(t => (not || []).indexOf(t) < 0);
   return hit || 'Figure';
 }
-function figHead_(label) {
-  return `<div class="qcard-top"><b>${esc(label || 'Figure')}</b></div>`;
-}
 
-/* ---------- ONE HEADER FOR EVERY PAGE OF A QUESTION -------------------------------------------------
-   ASKED FOR AS *"sleekerise the whole widget system in the finder for questions"*. Three builders
-   each wrote their own: the question `Q3` with its marks, the figure `Figure · Q7` in the same gold
-   but reading as a different title with no marks, and the answer a gold "Answer" half way down the
-   card. Turned through, the pages of one question did not read as one question.
-
-   SO THE NUMBER LEADS ON ALL OF THEM AND THE PART FOLLOWS IT, QUIETER: `Q3`, `Q3 · figure`,
-   `Q3 · answer`. A page you land on four results away says first which question it belongs to and
-   then which page of it this is, and the marks sit hard right on every one, because they are a fact
-   of the question rather than of one page of it. The part is an `<em>` so it can be a step dimmer
-   than the number in one rule, without `.qcard-top span` -- the marks' rule -- reaching it.
-
-   NOTHING RATHER THAN "0 marks". A Corbettmaths worksheet prints no mark allocation -- it is
-   practice, not an exam -- and a row with no `marks` cell was reading "0 marks", which says the
-   question is worth nothing rather than that nobody has said. Absent is not zero. */
-/* `done` ASKS FOR THE DATE SLOT, and only the question card asks: it is the page you answer on, so
-   it is the page that says when you last did. See `doneSlot_`. */
-function qHead_(x, part, done) {
-  const marks = Number(x.marks) > 0 ? `${esc(x.marks)} mark${Number(x.marks) === 1 ? '' : 's'}` : '';
-  return `<div class="qcard-top">
-      <b>${esc(x.name)}${part ? `<em class="qcard-part"> &middot; ${esc(part)}</em>` : ''}</b>${
-        done ? `<span>${marks}${doneSlot_(x)}</span>` : marks ? `<span>${marks}</span>` : ''}
-    </div>`;
-}
+/* ---------- `qHead_` AND `figHead_` WERE HERE: ONE GOLD HEADER LINE FOR EVERY PAGE OF A QUESTION ------
+   *"sleekerise the whole widget system"* gave every page `Q3`, `Q3 · figure`, `Q3 · answer` in gold
+   with the marks hard right, so the pages of one question read as one question. Everything that line
+   said is a tag now -- what the page is, the number, the marks -- in the row the paper's facts were
+   already in (`qPage_`), because *"the marks should also be a tag. also the question numbers should
+   also be a tag."* Two of its rules carry over unchanged: the figure page has no number, and a row
+   with no marks says nothing rather than "0 marks" (`marksSay_`). The date it held is the tile row's
+   (`questionTiles_`). */
 
 
 /* ==================================================================================================
@@ -6860,13 +8785,63 @@ function questionFigCard_(x) {
     label = figLabel_(pad.from.html);
   }
   if (pad && pad.from === 'part') out.push(padWrap_(x, x.diagram, figCredit_(x, 'p')));
-  else if (x.diagram) out.push(`<figure>${x.diagram}${figCredit_(x)}</figure>`);
+  /* A PICTURE AN EARLIER PART DREW ON, WITH THOSE MARKS -- see `usesFig_`. */
+  else if (x.diagram) out.push(usesFig_(x) || `<figure>${x.diagram}${figCredit_(x)}</figure>`);
   out.push(pics_(figImgs_(x.images)));
   const id = (x.row && x.row.row_id) || x.key || '';
+  /* THE WAY ON TO THE ANSWER, ON THE PAGE WHERE THE DRAWING IS DONE -- a pen page after its card is
+     where the child finishes, so it is where they look for what comes next (finding 9). Only there:
+     a figure in front of its card is read on the way to the box, and the card has the tile. */
+  const on = pad && partPlan_(x).figAt >= partChunks_(x).length ? questionTiles_(x, 'fig') : '';
   return `<div class="qcard qfig" data-of="${esc(id)}">
-    ${figHead_(label)}
-    <p class="qcard-sub">${qTagsHtml_(x)}</p>
-    <div class="qsheet">${out.join('')}</div>
+    ${qPage_(x, label, '', false)}
+    <div class="qsheet">${out.join('')}</div>${on ? `
+    <div class="tile-row qfig-tiles">${on}</div>` : ''}
+  </div>`;
+}
+
+/* ---------- A FIGURE THE PAPER PRINTS AND THIS SITE HAS NOT DRAWN YET -------------------------------
+   THE MULTI-PART AUDIT, FINDING 4: the question refers to a picture that is not there, and nothing on
+   the screen says so -- 1H Q12(i)-(iii) "Write down the letter of the graph…" with none of the nine
+   graphs; about 29 parts in the June 2024 Higher papers. Worse where the nearest figure a swipe back
+   is a different question's. A part that reads as complete and cannot be answered is the one
+   failure a student cannot see.
+
+   SO THE GAP IS A PAGE, where the figure would stand: "The paper prints a figure here -- not drawn
+   yet". Drawing them is data (`diagram` on the row); this is what keeps the gap visible until then,
+   and `check-library.js` counts them with the same two functions, so the backlog cannot quietly
+   grow. A PART QUALIFIES when its own words name a figure (`FIG_NAMED`: "Figure 3", "the graph", "the
+   diagram", "the grid", "the table below"…) and NOTHING in its question is one -- not its own, not
+   an opening's, not another part's -- and it is not answered on a surface (a grid or a passage to
+   ring is somewhere to answer, and is its own page). Words that carry their own `<svg>`, `<img>` or
+   `<table>` already hold what they name. */
+const FIG_NAMED = /\b(?:figure\s*\d+[a-z]?|the\s+(?:graphs?|diagrams?|grid|chart|bar\s+chart|pie\s+chart|scatter\s+(?:graph|diagram)|map)\b|the\s+table\s+below)/i;
+function figWanted_(words, figured) {
+  if (figured) return false;
+  const h = String(words || '');
+  if (/<(svg|img|table)\b/i.test(h)) return false;
+  return FIG_NAMED.test(h.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' '));
+}
+function figMissing_(x) {
+  if (!x || x.kind !== 'question' || padSurface_(x)) return false;
+  /* NOT A PART THAT USES AN EARLIER PART'S DRAWING: the figure it names is the child's own, and it has
+     its page already (`use`, `usesOf_`). Nov 2018 3H Q3c read "Nothing drawn on Q3b yet -- this part
+     uses what you draw there" and then "The paper prints a figure here -- not drawn yet": two pages in
+     a row, one of them wrong, because the graph is drawn by the child and never by this site. */
+  if (usesOf_(x)) return false;
+  const own = p => !!(p && (p.diagram || figImgs_(p.images).length));
+  let figured = own(x) || (x.stems || []).some(stemHasFig_);
+  if (!figured) {
+    const k = qId_(x);
+    figured = !!k && ((questionParts_()[k]) || []).some(own);
+  }
+  return figWanted_(String(x.lead || '') + ' ' + String(x.html || ''), figured);
+}
+function questionNoFigCard_(x) {
+  const id = (x.row && x.row.row_id) || x.key || '';
+  return `<div class="qcard qfig is-missing" data-of="${esc(id)}">
+    ${qPage_(x, figLabel_(String(x.lead || '') + ' ' + String(x.html || '')), '', false)}
+    <div class="qsheet"><p class="qfig-missing">The paper prints a figure here &mdash; not drawn yet.</p></div>
   </div>`;
 }
 
@@ -6888,8 +8863,12 @@ function questionFigCard_(x) {
    all until then: the old `is-shut` hid with `display: none` an answer anybody could read in the
    document. `ansOpen_` decides, and it asks one thing -- has this person, on this visit, asked.
 
+   AND IT GOES BACK. *"answers should just stay hidden unless user unhides them. and can hide them
+   again. simple is best."* Shown, the same tile is `Hide the answer`, and hidden is exactly hidden
+   again: the answer leaves the markup, not just the screen.
+
    `data-of` NAMES THE ROW, as the figure card does, and `data-k` is the answer box's key, which is
-   what `ansShow_` finds these by to draw them open where they already stand. */
+   what `ansSet_` finds these by to redraw them, open or shut, where they already stand. */
 function questionHasAns_(x) {
   return !!(x && x.kind === 'question' && String(x.answer || '').trim());
 }
@@ -6908,7 +8887,8 @@ function questionHasAns_(x) {
        was stored. The question card already says "Correct" -- that is the verdict -- and an answer
        page that opens itself is a reveal nobody pressed.
 
-   WHAT IS LEFT is the tap, held in `ANS_SHOWN` by the answer box's own key -- which carries who is
+   WHAT IS LEFT is the tap -- Show, and Hide to take it back -- held in `ANS_SHOWN` by the answer
+   box's own key -- which carries who is
    signed in, so the phone passed to the next student starts shut again. A SET RATHER THAN A CLASS ON
    AN ELEMENT, because the answer is drawn on a different page from the control that shows it, and
    pages are built and thrown away as you swipe (`fillStuffPages` keeps eleven): a fact left on an
@@ -6923,23 +8903,34 @@ function questionAnsCard_(x) {
   const id = (x.row && x.row.row_id) || x.key || '';
   const k = ansKey_(x);
   const open = ansOpen_(x);
+  /* ---------- ONE TILE, IN ONE PLACE, AND IT SAYS WHICH WAY IT GOES ---------------------------------
+     ASKED FOR AS *"answers should just stay hidden unless user unhides them. and can hide them again.
+     simple is best."* So the page has one control and two faces: `Show the answer` (the eye) while it is
+     hidden, `Hide the answer` (the eye struck through) once it is shown. Nothing else on the page
+     offers either, and nothing anywhere else opens it -- the question's own tile only turns to it.
+
+     ABOVE THE ANSWER, NOT UNDER IT, because "the same place" is a promise about where the thumb goes
+     back to. Under it, the tile would sit wherever the answer happened to end -- a word, or a table
+     four rows deep -- and the Hide you reach for would not be where the Show you pressed was. Here the
+     header, the tags and the tile row are the same height either way, so pressing it moves nothing
+     above the answer, and the answer arrives below where the "Answer hidden" line stood.
+
+     A TILE, as the owner asked of the reveal before this (*"show the answer button should be a
+     tile"*): one renderer for every action on a question's pages, `check-doors` pairing each `act`
+     with its handler. */
   return `<div class="qcard qans-card${open ? '' : ' is-hidden'}" data-of="${esc(id)}" data-k="${esc(k)}">
-    ${qHead_(x, 'answer')}
-    <p class="qcard-sub">${qTagsHtml_(x)}</p>
-    ${open ? answerBlock_(x) : `<div class="qans-wait">
-      ${/* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". That was advice to a student, on a page a tutor
-            reads too -- and the owner's word is that the two read the same thing. The page says what
-            it is; whether to try first is the tutor's to say out loud, not the app's to say to one of
-            them. */''}
-      <p class="qans-wait-k">Answer hidden</p>
-      ${/* A TILE, AS ASKED: *"show the answer button should be a tile."* It was a full-width button,
-            argued as the one gate in the card's body rather than an action under a thing. The owner
-            reads it as an action on the question like any other, and the question card's own tile for
-            the same act (`questionTiles_`) is a tile -- so the two pages now offer it in one form, from
-            one renderer, with `check-doors` pairing `qa-show` to its handler. */''}
-      <div class="tile-row">${tile_({ icon: 'show', label: 'Show the answer', note: 'one tap',
-        act: 'qa-show', data: { k: k } })}</div>
-    </div>`}
+    ${qPage_(x, 'Answer', x.name, true)}
+    <div class="tile-row qans-tiles">${open
+      ? tile_({ icon: 'hide', label: 'Hide the answer', note: 'one tap', act: 'qa-hide', cls: 'qa-toggle', data: { k: k } })
+      : tile_({ icon: 'show', label: 'Show the answer', note: 'one tap', act: 'qa-show', cls: 'qa-toggle', data: { k: k } })}${
+      /* "ANSWER HIDDEN", AND NOT "HAVE A GO FIRST". That was advice to a student, on a page a tutor
+         reads too -- and the owner's word is that the two read the same thing. The page says what it
+         is; whether to try first is the tutor's to say out loud, not the app's to say to one of them.
+         Beside the tile rather than over it, so the row is the row's height whichever face it wears. */
+      open ? '' : '<span class="qans-wait-k">Answer hidden</span>'}${
+      /* AND THE WAY TO READ ONLY ANSWERS, or back -- see `answersOnly_`. */
+      ansOnlyTile_(k)}</div>
+    ${open ? answerBlock_(x) : ''}
   </div>`;
 }
 
@@ -6950,48 +8941,197 @@ function ansItem_(k) {
   catch (e) { return null; }
 }
 
-/* ---------- SHOWING IT: REMEMBERED, AND DRAWN OPEN WHEREVER IT ALREADY STANDS -----------------------
-   The page after is usually built already -- `fillStuffPages` fills two either side -- so it is
-   redrawn in place, by its key, on every column it is on. Only the answer card changes; the question
-   card is not touched, which is what keeps "nothing moved" true of the page you are on. */
-function ansShow_(x) {
+/* ---------- SHOWING IT AND HIDING IT: REMEMBERED, AND DRAWN WHEREVER IT ALREADY STANDS ----------------
+   The page is usually built already -- `fillStuffPages` fills two either side -- so it is redrawn in
+   place, by its key, on every column it is on. Only the answer card changes; the question card is not
+   touched, which is what keeps "nothing moved" true of the page you are on.
+
+   EVERY COPY, SHOWN OR HIDDEN, rather than only the ones in the other state: Saved and Find can both
+   hold the page, and a Hide that redrew only the open copies is the same rule written twice. Redrawing
+   one already in the state asked for draws the same markup again, which costs nothing anybody sees.
+
+   AND THE FOCUS COMES WITH IT. Replacing the card throws away the tile that was just pressed, and a
+   keyboard's focus on a removed element falls back to `<body>` -- so Enter on Show left the next Tab
+   starting from the top of the document, every time, on a toggle whose whole promise is "press it
+   again in the same place". Only the copy that HELD the focus hands it on: a redraw must not pull
+   focus off whatever else somebody is in. `preventScroll`, because the pages are parked side by side
+   with transforms (CLAUDE.md) and a focus that scrolled would slide the strip. In a try, because an
+   old browser that refuses the options object still leaves the answer drawn. */
+function ansSet_(x, open) {
   if (!x) return;
   const k = ansKey_(x);
-  ANS_SHOWN.add(k);
-  document.querySelectorAll('.qans-card.is-hidden').forEach(el => {
+  if (open) ANS_SHOWN.add(k); else ANS_SHOWN.delete(k);
+  document.querySelectorAll('.qans-card').forEach(el => {
     if (el.getAttribute('data-k') !== k) return;
     const t = document.createElement('div');
     t.innerHTML = questionAnsCard_(x);
-    if (t.firstElementChild) el.replaceWith(t.firstElementChild);
+    const card = t.firstElementChild;
+    if (!card) return;
+    const had = el.contains(document.activeElement);
+    el.replaceWith(card);
+    if (had) { try { const tl = card.querySelector('.qa-toggle'); if (tl) tl.focus({ preventScroll: true }); } catch (e) {} }
   });
 }
+function ansShow_(x) { ansSet_(x, true); }
+function ansHide_(x) { ansSet_(x, false); }
 
-/* THE QUESTION CARD'S TILE: TO THE ANSWER PAGE, AND IT SHOWS IT. `Show the answer` for everybody.
-   STAFF READ `The answer` HERE, because their page was open already; it is not any more -- see
-   `ansOpen_` -- so there is one label and it is true for all of them: pressing it is asking, which
-   is the one thing that opens the page. Drawn the same whether or not it has been shown, so pressing
-   it changes nothing on this card. A tile because the question is a THING and this is an action on
-   it; the box, Check and the options above stay buttons, because answering is a form. */
-function questionTiles_(x) {
-  if (!questionHasAns_(x)) return '';
-  return tile_({ icon: 'show', label: 'Show the answer', note: 'next page',
-                 act: 'qa-go', data: { k: ansKey_(x) } });
+/* THE QUESTION CARD'S TILE: TO THE ANSWER PAGE, AND ONLY TO IT. It used to read `Show the answer` and
+   reveal the page as it turned to it -- one tap that did two things, and the owner's rule now is that
+   revealing is a tap of its own: *"answers should just stay hidden unless user unhides them."* So it
+   says where it goes (`To the answer`, an arrow, "turns the page") and the page it lands on is exactly
+   as it was left -- hidden, unless this person showed it on this visit. One label for everybody: staff
+   read `The answer` here once, when their page was open already, and it is not. Drawn the same whether
+   or not the answer has been shown, so pressing it changes nothing on this card. */
+/* ---------- AND ITS NOTE SAYS WHERE THE ANSWER IS, READ OFF THE PAGES THEMSELVES --------------------
+   THE MULTI-PART AUDIT, FINDING 9: the note said "next page" on 219 cards whose next page was the
+   figure or the grid to draw on -- 1F Q3, Q7, Q11c, 3F Q24b. The tile still landed on the answer;
+   the words were wrong about the swipe in between. So the note is worked out from `pageParts_`, the
+   list the strip is built from: "next page" when it is, "after the figure" (or the grid, in the name
+   its own header uses -- `figWhat_`) when one page stands between, and a count when more do.
+
+   `from` IS THE PAGE THE TILE STANDS ON -- the card (`null`), or the drawing page (`'fig'`) for a
+   part whose figure comes after its card: the child finishes on the grid, not on the words, so the
+   way on is where they finish (`questionFigCard_`). No tile where the answer is not ahead. */
+function ansWhere_(x, from) {
+  const parts = pageParts_(x);
+  const a = parts.indexOf('ans'), at = parts.indexOf(from || null);
+  if (a < 0 || at < 0 || a <= at) return '';
+  const between = parts.slice(at + 1, a);
+  if (!between.length) return 'next page';
+  if (between.length === 1 && between[0] === 'fig') return 'after the ' + figWhat_(x).toLowerCase();
+  return (between.length + 1) + ' pages on';
 }
+/* ---------- AND THE DAY YOU LAST DID IT, BESIDE THE STAR --------------------------------------------
+   IT WAS ON THE GOLD HEADER'S MARKS LINE, and the header went: everything else it said is a tag now
+   (`qPage_`). The date is NOT a tag, and that is the argument for where it is. A tag is a fact about
+   the question -- the same words for a tutor, a student and somebody signed out -- and `Done 4 Oct` is
+   a fact about YOU and the question, like the star you put on it. This row is where your marks on a
+   question are, so it holds the one that says you did it.
+
+   AND THIS ROW DOES NOT GROW. Marking writes into a slot that is already there (`doneMark_`), which is
+   what 261 made true -- marking moves nothing. As the last tag of a wrapping row the first stamp could
+   push the row onto a new line and the question down under the finger that pressed Check; here it
+   lands beside 44px tiles in a row 44px tall. DRAWN ONLY WHERE A DATE CAN BE KEPT (`doneKeyOf_`):
+   somebody signed in, the same visitor the star is drawn for. Signed out there is no slot, because
+   there is nothing it could ever say. */
+function questionTiles_(x, from) {
+  const where = questionHasAns_(x) ? ansWhere_(x, from) : '';
+  /* THE FIGURE TILE IS HERE ONLY FOR A PART ANSWERED BY TAPPING AN OPTION -- a typed box carries it at
+     its own end (`ansBox_`), where the keypad cannot cover it. */
+  const fig = from || !(Array.isArray(x.choices) && x.choices.length >= 2) ? '' : figTile_(x);
+  const go = where ? tile_({ icon: 'next', label: 'To the answer', note: where, cls: 'qa-to',
+                            act: 'qa-go', data: from ? { k: ansKey_(x), from: from } : { k: ansKey_(x) } }) : '';
+  /* The date slot belongs to the card's own row only -- a drawing page's row carries just the way on. */
+  return fig + go + (!from && doneKeyOf_(ansKey_(x)) ? doneSlot_(x) : '');
+}
+
+/* ==================================================================================================
+   THE FIGURE, OVER THE CARD, ONE TAP AWAY.
+
+   THE MULTI-PART AUDIT, FINDING 2: the question's diagram comes once, in front of part (a), and every
+   later part is further from it -- 1F Q23b is three swipes from its Venn, past (a) and (a)'s answer,
+   and twelve questions have a part nine or more pages after its picture. Swiping back loses the box
+   you were writing in. Copying the figure onto every part was tried before and refused (it is the
+   duplication `pageParts_`'s stems exist to end).
+
+   SO THE CARD OFFERS IT: a `Figure` tile, a tile like every action on a question's pages (CLAUDE.md),
+   that opens the figure in the app's own sheet over the card -- the box, the keypad and whatever is
+   typed stay exactly where they are underneath, and closing the sheet is closing the sheet. ON ANY
+   PART WHOSE QUESTION HAS A FIGURE IN FRONT OF IT: the opening's (`stems`), an earlier part's own
+   (2H Q14b's graph lives on Q14a), or its own where it stands in front of the card. All of them, in
+   the paper's order, because which one a part means is in its words and not in the data -- and a
+   question almost always has one. A drawing surface is not a figure (it is somewhere to answer, and
+   it is the part's own page).
+
+   A PICTURE AN EARLIER PART DREW ON CARRIES THOSE MARKS, read only (`usesSeen_`), as the paper in front
+   of the child would. Found in review: 2F Q24c "Use your graph..." -- the page before it showed the
+   child's graph (`use`), and its Figure tile opened (b)'s grid EMPTY, the one place in the app that
+   said the graph was not there. Whoever is signed in, as everywhere (`usesMine_`); every earlier part
+   whose pen is on that very picture (same markup), so (ii) sees (i)'s cross and (d) the whole chain.
+   Not this part's own marks: they are on its own page, where its pen is.
+
+   The earlier parts are the funnel's own items (`questionParts_`), so Saved, a search and a paper all
+   see the same figures. */
+function figsBefore_(x) {
+  if (!x || x.kind !== 'question') return [];
+  const out = [];
+  const k = qId_(x);
+  const sib = k ? ((questionParts_()[k]) || []) : [];
+  const at = sib.indexOf(x);
+  const drew = sib.slice(0, at < 0 ? 0 : at);
+  const seen = (svg, credit) => {
+    const by = drew.filter(y => { const p = padSource_(y); return p && p.svg === svg; })
+      .map(y => ({ y: y, all: usesMine_(y) })).filter(m => m.all.length);
+    if (!by.length) return '';
+    const names = by.map(m => esc(m.y.name));
+    const who = names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0];
+    return usesSeen_(svg, [].concat(...by.map(m => m.all)), credit +
+      `<p class="qpad-note qseen-from">The marks are yours from ${who} &mdash; change them there.</p>`);
+  };
+  const pic = (p, label, onlyMarked) => {
+    const marked = p.diagram ? seen(p.diagram, figCredit_(p, 'p')) : '';
+    if (onlyMarked && !marked) return;
+    const html = (marked || (p.diagram ? `<figure>${p.diagram}${figCredit_(p)}</figure>` : '')) + pics_(figImgs_(p.images));
+    if (html) out.push({ label: marked ? usesHead_(label) : label, html: html });
+  };
+  (x.stems || []).forEach(p => { if (stemHasFig_(p)) pic(p, figLabel_(p.html)); });
+  const own = p => !!(p.diagram || figImgs_(p.images).length);
+  /* ---------- AND THE PICTURE A `uses` PART READS, ONLY WITH SOMETHING ON IT -----------------------
+     2F Q24c "use your graph": the figure it reads is the child's drawing. Drawn, the sheet shows it
+     with their marks ("Your drawing", above); not drawn yet, the paper's empty grid is a figure of
+     nothing -- the page in front already says "Nothing drawn on Q24b yet" -- so no Figure for it.
+     Followed down the chain (FSL2 Q3c uses b, b uses a, one scatter diagram), never round a loop. */
+  const bare = v => String(v == null ? '' : v).toLowerCase().replace(/[^a-z0-9]/g, '');
+  const used = new Set();
+  for (let y = x, n = 0; y && n < 9; n++) {
+    const u = bare(y.uses || (y.row && y.row.uses));
+    if (!u || used.has(u)) break;
+    used.add(u);
+    y = sib.find(p => bare(p.qPart) === u) || null;
+  }
+  sib.slice(0, at < 0 ? 0 : at).forEach(p => {
+    if (own(p)) pic(p, figLabel_(String(p.lead || '') + ' ' + String(p.html || '')), used.has(bare(p.qPart)));
+  });
+  const plan = partPlan_(x);
+  if (own(x) && plan.figAt >= 0 && plan.figAt < plan.chunks.length) pic(x, figLabel_(String(x.lead || '') + ' ' + String(x.html || '')));
+  return out;
+}
+function figTile_(x) {
+  const figs = figsBefore_(x);
+  if (!figs.length) return '';
+  const one = figs.length === 1;
+  return tile_({ icon: 'figure', label: one ? figs[0].label : 'Figures', note: 'over this page', cls: 'q-figt',
+                 act: 'q-fig', data: { key: x.key || '' } });
+}
+on('q-fig', el => {
+  const k = el.getAttribute('data-key');
+  let x = null;
+  try { x = stuffItemsAll_().find(i => i && i.key === k) || null; } catch (e) { x = null; }
+  const figs = figsBefore_(x);
+  if (!figs.length) return;
+  /* EACH NAMED WHEN THERE IS MORE THAN ONE, in the words its own page's header uses (`figLabel_`). */
+  openSheet(figs.length === 1 ? figs[0].label : 'Figures', `<div class="qfig-sheet">${figs.map(f =>
+    `${figs.length > 1 ? `<p class="qfig-sheet-k">${esc(f.label)}</p>` : ''}<div class="qsheet">${f.html}</div>`).join('')}</div>`);
+});
 
 /* ---------- AND TURNING TO IT --------------------------------------------------------------------
    FORWARD BY THE ANSWER'S PLACE AMONG ITS QUESTION'S PAGES -- one, or two past a figure -- from the
    page the tile is on. Which page that is, is asked of the element (`logIndex_` turns an element's
    position into a page number past the Find screen's window) rather than read off `PAGE`, because a
    tile on the page peeking under the one you are on is still that page's tile. The same on Saved,
-   whose pages come from `cardPages_` in `pageParts_`'s own order. */
+   whose pages come from `cardPages_` in `pageParts_`'s own order.
+
+   IT DOES NOT CALL `ansShow_`, and that absence is the whole of the owner's change: the page turns,
+   and what is on it is the page's own business. */
 on('qa-go', (el) => {
   const x = ansItem_(el.getAttribute('data-k'));
   if (!x) return;
-  ansShow_(x);
   /* FROM THE QUESTION CARD, NOT FROM THE FIRST PAGE: a stem and its figure can stand in front of
      the card the tile is on (`pageParts_`), so the distance is answer minus card. */
+  /* AND FROM THE DRAWING PAGE, for the tile that stands there (`data-from`) -- see `ansWhere_`. */
   const parts = pageParts_(x);
-  const off = parts.indexOf('ans') < 0 ? -1 : parts.indexOf('ans') - parts.indexOf(null);
+  const from = parts.indexOf(el.getAttribute('data-from') || null);
+  const off = parts.indexOf('ans') < 0 || from < 0 ? -1 : parts.indexOf('ans') - from;
   const pg = el.closest('.page');
   const host = pg && pg.parentElement;
   const id = host && host.id ? host.id.replace(/^s-/, '') : '';
@@ -7001,9 +9141,12 @@ on('qa-go', (el) => {
   goPage(id, base + off);
 });
 
-/* ON THE ANSWER PAGE ITSELF it opens where it is -- you are already there. */
+/* ON THE ANSWER PAGE ITSELF, THE ONE CONTROL, BOTH WAYS -- you are already there. */
 on('qa-show', (el) => {
   ansShow_(ansItem_(el.getAttribute('data-k')));
+});
+on('qa-hide', (el) => {
+  ansHide_(ansItem_(el.getAttribute('data-k')));
 });
 
 /* `topicBy` WAS HERE — a document by id, falling back to its name. Nothing has a document to look
@@ -7172,8 +9315,15 @@ let ALL_MEMO = { key: null, from: null, items: null };
    tutor) arrives in the payload, and a new payload is a new `DATA`, which both memos already test by
    identity. A key naming the role read as though Find drew a different library for one -- *"No
    distinction between tutor and student on the finder. All the same."* -- and it does not. The person
-   stays: a starred thing and the `me` card are theirs. */
-const itemMemoKey_ = () => (USER ? (USER.personId || USER.name || 'u') : '-');
+   stays: a starred thing and the `me` card are theirs.
+   ---------- AND THE BIBLE PUTS ONE ROLE BACK, AND ONLY IT ---------------------------------------
+   `bibleItems_` IS THE ONE BUILDER THAT ASKS `isAdmin()`, by the owner's request — see `bibleFor_`.
+   A role normally changes with a new payload or a new person, both of which this key or `DATA`
+   already notices; but `roles-save` writes `USER.role` and repaints BEFORE the payload comes back,
+   and for that moment the list would still be the old role's. So the key says whether the Bible is
+   on it — named for what it is, not as a role, because it is not a second library for admins. */
+const itemMemoKey_ = () => (USER ? (USER.personId || USER.name || 'u') : '-')
+  + (typeof bibleFor_ === 'function' && bibleFor_() ? '+bible' : '');
 
 /* ---------- EVERY ITEM THE APP HAS, INCLUDING THE ONES THE FUNNEL DOES NOT OFFER ------------------
    THE FUNNEL'S EDITORIAL DECISIONS ARE ABOUT WHAT TO OFFER, NOT ABOUT WHAT EXISTS. Booking is not a
@@ -7563,6 +9713,13 @@ function stuffItemsRaw_() {
       };
     }),
 
+    /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE ---------------------------------------
+       ONE ITEM ON THE `Books` SHELF, or none. The single place on this list where code on the phone
+       asks who you are — asked for by name, see the note above `bibleFor_`. (The films below differ
+       by role too, but because the payload does, not because anything here asks.) Its pages are the
+       reader's (`bibleParts_`), fetched a book at a time; nothing about it is in the payload. */
+    ...bibleItems_(),
+
     /* ---------- ONE ROW PER FILM OR SERIES ------------------------------------------------------
        EMPTY FOR EVERYBODY BUT AN ADMIN, because the payload is — see the `film` entry in `KINDS`.
        `|| []` is the ordinary fallback and here it is also the whole gate.
@@ -7857,16 +10014,57 @@ function levelOf_(x) {
      rather than about spelling. That is exactly the line — the engine folds SPELLINGS and a reader
      like this one resolves MEANINGS. `waveOf` sits on the same side of it. */
   if (/^as(\s*-?\s*level)?$/i.test(own)) return 'AS';
+  /* ---------- `KS2 SATs` IS TWO FACTS, AND THE LEVEL IS ONE OF THEM ---------------------------------
+     *"sats is one tag not ks2 sats."* The STA papers carry `band_value: KS2 SATs` and the data is
+     not this file's to rewrite -- the next import would write it back -- so it is read here, where
+     `AS level` is: a MEANING, not a spelling. The qualification is SATs; which key stage is the
+     `Key stage` question's, read by `satsStagesOf_` off the same cell. A bare `KS1` / `KS2` typed
+     into the level column means the same and goes the same way. */
+  if (/^ks\s*[12](\s*sats)?$/i.test(own)) return 'SATs';
   return own;
+}
+
+/* ---------- WHICH KEY STAGE A SATs ROW IS, AND ONLY A SATs ROW -----------------------------------
+   THE KEY STAGE IS ITS OWN QUESTION AGAIN, ASKED INSIDE SATs AND NOWHERE ELSE. Inside GCSE it was the
+   grey area `KS3 | KS4` the owner asked not to see, and it stays silent there; inside SATs it is the
+   one thing that tells a KS1 paper from a KS2 one, now that the level no longer says it.
+
+   THE SCHOOL YEAR DECIDES FIRST, for the reason `ksFallback_` gives: it is a fact about the sheet,
+   where a `KS1, KS2` cell is a range -- a Year 2 sheet is KS1's. Then the band or level that NAMES a
+   key stage (`KS2 SATs`, the STA papers). Then the cell, every KS1 / KS2 in it: a range with no year
+   is reachable from both, which is the multi-valued facet this question was built as. */
+function satsStagesOf_(x) {
+  const yr = (x && x.bandType === 'year') ? Number(x.bandValue) : NaN;
+  if (yr >= 1 && yr <= 6) return [yr <= 2 ? 'KS1' : 'KS2'];
+  const named = /\bks\s*([12])\b/i.exec(String((x && x.bandType === 'stage' && x.bandValue)
+    || (x && x.level) || (x && x.row && x.row.level) || ''));
+  if (named) return ['KS' + named[1]];
+  const out = [];
+  keyStagesOf_(x).forEach(k => {
+    const m = /^ks\s*([12])$/i.exec(k);
+    if (m && out.indexOf('KS' + m[1]) < 0) out.push('KS' + m[1]);
+  });
+  return out.sort();
+}
+/* THE LEVEL AND, INSIDE SATs, THE KEY STAGE BESIDE IT -- `['SATs', 'KS2']`, `['GCSE']` -- for the
+   places that SAY a level rather than filter by it: the card's tags and a result's crumb. Asked of
+   `LEVEL_BUCKET`, the one table that decides what is SATs, so a level the table files there under
+   another spelling still gets its key stage said. */
+function levelSaid_(x) {
+  const lv = levelOf_(x);
+  if (!lv) return [];
+  return LEVEL_BUCKET(lv) === 'SATs' ? [lv].concat(satsStagesOf_(x)) : [lv];
 }
 
 /* ---------- A KEY STAGE, SAID AS THE QUALIFICATION AT THE END OF IT -------------------------------
    *"I prefer GCSE or SATs over grey areas."* KS4 ends in a GCSE, KS2 and KS1 in SATs, KS5 in an
    A-level; KS3 ends in nothing, so it stays KS3 — inventing an exam for it would be a wrong fact,
    and a wrong chip is worse than a grey one. The four qualifications are spelled as `LEVEL_BUCKET`
-   spells them, so every answer this makes is already placed in that table. */
+   spells them, so every answer this makes is already placed in that table.
+   KS1 AND KS2 ARE BOTH `SATs` -- *"sats is one tag not ks2 sats"*. Which of the two is the `Key
+   stage` question's to say, inside SATs; see `satsStagesOf_`. */
 function ksLevel_(k) {
-  const q = { ks1: 'KS1 SATs', ks2: 'KS2 SATs', ks3: 'KS3', ks4: 'GCSE', ks5: 'A-Level' }[spellKey_(k)];
+  const q = { ks1: 'SATs', ks2: 'SATs', ks3: 'KS3', ks4: 'GCSE', ks5: 'A-Level' }[spellKey_(k)];
   return q || String(k || '');
 }
 /* The `key_stage` cell as a list — `KS3, KS4` is two key stages, as the facet has always read it. */
@@ -7879,10 +10077,11 @@ function keyStagesOf_(x) {
 
    THE SCHOOL YEAR DECIDES FIRST, because it is a fact about the sheet and a `KS1, KS2` cell is a
    range: a Year 2 sheet is KS1's, a Year 5 sheet KS2's. Without a year, A RANGE IS FILED UNDER WHAT
-   IT GOES UP TO — `LEVEL_BUCKET`'s own rule — so `KS3, KS4` is GCSE and `KS1, KS2` is KS2 SATs. */
+   IT GOES UP TO — `LEVEL_BUCKET`'s own rule — so `KS3, KS4` is GCSE and `KS1, KS2` is SATs. Years
+   1 to 6 are all SATs; which key stage is `satsStagesOf_`'s, off the same year. */
 function ksFallback_(x) {
   const yr = (x && x.bandType === 'year') ? Number(x.bandValue) : NaN;
-  if (yr >= 1 && yr <= 11) return yr <= 2 ? 'KS1 SATs' : yr <= 6 ? 'KS2 SATs' : yr <= 9 ? 'KS3' : 'GCSE';
+  if (yr >= 1 && yr <= 11) return yr <= 6 ? 'SATs' : yr <= 9 ? 'KS3' : 'GCSE';
   const ks = keyStagesOf_(x).filter(k => /^ks[1-5]$/i.test(k)).sort();
   return ks.length ? ksLevel_(ks[ks.length - 1]) : '';
 }
@@ -8299,8 +10498,48 @@ function stuffNarrow_(out, filters, words, credits) {
     const list = byField[field].filter((f, i, all) => !(f.bucket && i < all.length - 1));
     out = out.filter(x => list.some(f => filterHit(x, f, credits)));
   });
-  if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
+  /* ---------- "q8", "8ii", "1dii", "1d(ii)", "Q 8" IS A QUESTION, NOT FOUR LETTERS -----------------
+     THE MULTI-PART AUDIT, FINDING 10, in 1F: "q2" gave fifteen results (Q2 and Q20 to Q27, every
+     haystack holding the letters), "q8ii", "8ii" and "1dii" gave nothing, and "Q 8" gave eighteen
+     that had nothing to do with Q8 -- the words "q" and "8" are somewhere in nearly every paper. A
+     tutor typing a question's number is asking for that question, so a box that reads as one is
+     matched exactly, by number and part, inside whatever the funnel has already narrowed to (a paper,
+     if one is chosen). Anything that does not read as one is words, as before. */
+  const ref = words.length ? qRef_(words.join('')) : null;
+  if (ref) out = out.filter(x => qRefHit_(x, ref));
+  else if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
   return out;
+}
+
+/* WHAT A REFERENCE LOOKS LIKE: an optional "q", the number, and a part -- a letter, a numeral, or a
+   letter and a numeral, bracketed or not (`partBare_` takes the brackets off). WITHOUT THE "q" IT HAS
+   TO CARRY A NUMERAL WITH AN "i" IN IT ("8ii", "1dii", "3iv"): a bare "8" is a number somebody may be
+   searching the words for, and "2x" is algebra before it is Q2(x). */
+const QREF_PART = /^([a-z]?)(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/;
+function qRef_(s) {
+  const m = /^(q?)0*(\d+)(.*)$/.exec(String(s || '').toLowerCase().replace(/\s+/g, ''));
+  if (!m) return null;
+  const rest = partBare_(m[3]);
+  const bits = qRefBits_(rest);
+  if (!bits) return null;
+  if (!m[1] && !/i/.test(bits.roman)) return null;
+  return { q: m[2], letter: bits.letter, roman: bits.roman };
+}
+/* ONE READING OF A PART FOR BOTH SIDES, so "8i" typed and a part "i" stored are read the same way --
+   a lone numeral is a numeral, as `qPartBits_` already says of the sheet's spelling. */
+function qRefBits_(s) {
+  if (!s) return { letter: '', roman: '' };
+  if (ROMAN_ONLY.test(s)) return { letter: '', roman: s };
+  const m = QREF_PART.exec(s);
+  return m ? { letter: m[1] || '', roman: m[2] || '' } : null;
+}
+function qRefHit_(x, ref) {
+  if (!x || x.kind !== 'question') return false;
+  if (String(x.qNumber == null ? '' : x.qNumber).replace(/^0+(?=\d)/, '') !== ref.q) return false;
+  const b = qRefBits_(partBare_(x.qPart)) || { letter: '', roman: '' };
+  if (ref.letter && b.letter !== ref.letter) return false;
+  if (ref.roman && b.roman !== ref.roman) return false;
+  return true;
 }
 
 /* ---------- SORTED ONCE, NOT ONCE PER FILTER -----------------------------------------------------
@@ -8337,10 +10576,22 @@ function stuffSorted_(items) {
    two orders become the same order. Eight digits is wider than any number this app holds.
    `\u0000` BETWEEN THE PARTS, because it sorts below every printable character — so a short field
    always loses to a longer one that starts the same way, which is what a tie-break means. */
+/* ---------- AND THE PAPER ITSELF STRAIGHT AFTER ITS NAME, THEN THE PART BY `qPartKey` --------------
+   TWO PAPERS CAN SHARE A NAME. June 2024 1F and 1H are both "Paper 1 (Non-calculator) — June 2024",
+   so with the name first and the number second their parts interleaved: H13a, F13a (the wallet),
+   H13b "these 150 people" -- which reads as if it follows the wallet. Measured by the multi-part
+   audit: 168 questions split that way across the library, only when Tier and Paper were both skipped
+   or in a mixed search. The id is unique, so the second term settles every tie the name leaves.
+
+   THE PART BY ITS VALUE, NOT ITS LETTERS: `qPartKey` is worked out per question by `partKeys_` (see
+   there), because "ix" sorted before "v" and part 10 before part 2 on letters, and the obvious fix --
+   numerals by value everywhere -- puts h, i, j out of order. Anything that is not a question has no
+   key and falls through to the letters, as it always did. */
 const sortKey_ = x => [
   padNums_(String(x.sub || x.name || '').toLowerCase()),
+  x.kind === 'question' ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),
-  String(x.qPart || '').toLowerCase(),
+  x.qPartKey != null ? x.qPartKey : String(x.qPart || '').toLowerCase(),
   padNums_(String(x.name || '').toLowerCase()),
 ].join('\u0000');
 
@@ -8394,7 +10645,9 @@ function stuffFiltered() {
   if (prev.key !== null && prev.from === DATA && prev.all === all && prev.credits === credits
       && prev.filters && prev.words
       && prev.filters.length <= STUFF.filters.length
-      && prev.words.every(w => words.some(n => n.includes(w)))) {
+      && prev.words.every(w => words.some(n => n.includes(w)))
+      /* A QUESTION REFERENCE IS NOT A WORD, so "q8" is not a narrowing of "q" -- see `qRef_`. */
+      && !qRef_(words.join('')) && !qRef_(prev.words.join(''))) {
     const same = prev.filters.every((f, i) => JSON.stringify(f) === JSON.stringify(STUFF.filters[i]));
     const had = {};
     prev.filters.forEach(f => { if (!f.any) had[f.field] = true; });
@@ -8428,9 +10681,147 @@ function stuffPages_() {
   const pages = [];
   /* EACH RESULT IS TOLD THE ONE IN FRONT OF IT, so a shared stem is drawn once, before the first of
      its parts, as the paper prints it -- see `pageParts_`. */
-  items.forEach((x, i) => pageParts_(x, items[i - 1]).forEach(part => pages.push({ x: x, part: part })));
+  /* AND A PART FOUND ON ITS OWN BRINGS ITS WHOLE QUESTION -- see `wholeQuestions_`. Here, where pages
+     are built, and not in `stuffFiltered`: every count the funnel makes is of what MATCHED, and the
+     parts brought along are reading, not results. */
+  const seq = wholeQuestions_(items);
+  /* AND ONLY THE ANSWERS, OR ONLY EVERYTHING ELSE, when the `Page` filter says -- see `pageKind`.
+     Built in full and then kept, so every page that is drawn is the page it would have been: a stem
+     is skipped by the same rule either way. */
+  const only = pageOnly_();
+  seq.forEach((x, i) => pageParts_(x, seq[i - 1]).forEach(part => {
+    if (only === 'Answers' ? part !== 'ans' : only === 'Questions' ? part === 'ans' : false) return;
+    pages.push({ x: x, part: part });
+  }));
   STUFF_PAGES = { from: items, pages: pages };
   return pages;
+}
+
+/* THE `Page` FILTER IN FORCE, the last one pressed -- '' when there is none. */
+function pageOnly_() {
+  const f = (STUFF.filters || []).filter(f => f && f.field === 'pageKind' && !f.any).pop();
+  return f ? String(f.value) : '';
+}
+/* ---------- "JUST CLICK ANSWERS AND ONLY SEE ANSWERS" ------------------------------------------------
+   A TILE ON EVERY ANSWER PAGE IS THE DOOR (`ansOnlyTile_`): `Answers only` narrows Find to the answer
+   pages of whatever is chosen -- one paper's answers, a topic's -- as the `Page: Answers` chip, and on
+   that view the same tile is lit, and pressing it again takes the chip off (so does its ✕). A second
+   press never stacks a second chip.
+
+   IT WAS A TAP ON THE ANSWER PAGE'S KIND TAG, and the review found nobody could reach it: the tag row
+   carried no "Answer" tag, the header's "Q1 · answer" is not a tag, and the journey passed only because
+   it added the tag itself before tapping it -- a green check over a door nobody could see. A tag is a
+   label and not a control here (`qTags_`), so the door is a tile, as every action on a question's pages
+   is (CLAUDE.md). The tag row is free to become a second door the same way: anything carrying
+   `data-do="qa-only"` runs this, and no words are matched.
+
+   FROM SAVED OR SPOTLIGHT the strip it narrows is Find's, and what was chosen on Find has nothing to do
+   with the answer pressed -- so there it is THAT PAPER's answers, and the screen turns to Find.
+
+   AND THE ANSWERS ARE OPEN. Forty-one pages in a row each reading "Answer hidden", one Show per page, is
+   not *"only see answers"*. Choosing the view IS the person asking -- the one tap the owner's rule wants
+   (*"you should have to click to reveal the answer"*) -- so every answer in it is shown for this visit,
+   exactly as forty-one Shows would have shown them, and Hide on any one still hides it. */
+function answersOnly_(el) {
+  const k = el && el.getAttribute ? el.getAttribute('data-k') : '';
+  const scr = el && el.closest ? el.closest('.screen') : null;
+  const elsewhere = !!scr && scr.id !== 's-stuff';
+  if (elsewhere) {
+    const x = ansItem_(k);
+    const pid = x ? paperIdOf_(x.row) : '';
+    STUFF.q = '';
+    STUFF.filters = pid ? [{ field: 'paperId', value: pid }] : [];
+  }
+  STUFF.filters = (STUFF.filters || []).filter(f => !(f && f.field === 'pageKind'));
+  STUFF.filters.push({ field: 'pageKind', value: 'Answers' });
+  try { stuffPages_().forEach(pg => { if (pg.part === 'ans') ANS_SHOWN.add(ansKey_(pg.x)); }); } catch (e) {}
+  if (typeof AT !== 'undefined' && AT !== 'stuff' && typeof go === 'function') go('stuff');
+  if (typeof paintStuff === 'function') paintStuff();
+}
+function answersAll_() {
+  STUFF.filters = (STUFF.filters || []).filter(f => !(f && f.field === 'pageKind'));
+  if (typeof paintStuff === 'function') paintStuff();
+}
+on('qa-only', el => answersOnly_(el));
+on('qa-all', () => answersAll_());
+/* THE TILE IS A SWITCH, as the pen's lock is: one name, `Answers only`, lit and `aria-pressed` while the
+   view is on, and pressing it lit turns it off (`qa-all`). `funnel` because it is the funnel's own act --
+   a narrowing, with a chip. At the row's far end (`.qa-only` in style.css), so it stands in one place
+   whether the answer beside the eye is hidden or shown. */
+function ansOnlyTile_(k) {
+  const on = pageOnly_() === 'Answers';
+  return tile_({ icon: 'funnel', label: 'Answers only', note: on ? 'tap for questions too' : 'skip questions',
+                 act: on ? 'qa-all' : 'qa-only', cls: 'qa-only', on: on, pressed: on, data: on ? null : { k: k } });
+}
+
+/* ---------- THE LAST LINE UNDER A CHOSEN PAPER COUNTS WHAT THE STRIP HOLDS -------------------------
+   IT COUNTED WHAT MATCHED, and the strip stopped being that when a part found alone began bringing its
+   whole question (`wholeQuestions_`): "q23b" said "its one question" over Q23a and Q23b -- right, one
+   question, by luck -- and "q8" said "its 2 questions" over the two parts of ONE. Answers only said
+   "its 41 questions" over forty-one answers. So it counts QUESTIONS, a question being one number on one
+   paper (`qId_`), over the strip as it is built; answers when the view is answers.
+
+   AND A SEARCH IS NOT "THE PAPER, IN ORDER". Inside a paper, "q23" is one question of it: the line names
+   it -- "Swipe up for Q23" -- rather than claiming the whole paper is below. */
+function paperEnd_(items) {
+  const seq = wholeQuestions_(items);
+  const qs = new Set(seq.map(x => qId_(x) || x)).size;
+  const searched = !!String(STUFF.q || '').trim();
+  if (pageOnly_() === 'Answers') {
+    const a = stuffPages_().length;
+    return `<p class="find-end">${searched ? 'The answers it found.' : 'The paper&rsquo;s answers, in order.'}
+        <b>Swipe up for ${a === 1 ? 'the one answer' : 'its ' + a + ' answers'}.</b></p>`;
+  }
+  const first = seq.find(x => qId_(x));
+  if (searched) {
+    return `<p class="find-end">In this paper:
+        <b>swipe up for ${qs === 1 && first ? esc(qNum_(first)) : 'its ' + qs + ' questions'}.</b></p>`;
+  }
+  return `<p class="find-end">That is the paper, in order.
+        <b>Swipe up for ${qs === 1 ? 'its one question' : 'its ' + qs + ' questions'}.</b></p>`;
+}
+
+/* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER ---------------------
+   THE MULTI-PART AUDIT, FINDING 1, and the worst of them on a phone: a search or a topic chip found
+   Q8(ii) "Give a reason for your answer" with no Q8(i), and 2H Q14b "Work out an estimate for the
+   distance…" with no graph, because the graph lives on Q14a. In 506 of the 776 multi-part questions
+   the opening and the picture are stored on part (a) -- so a later part reached alone arrived with
+   nothing to work from, and looked complete.
+
+   SO A QUESTION IS DRAWN WHOLE WHEREVER ANY PART OF IT MATCHED: its opening and figures, every part
+   in the paper's order, each part's answer straight after it. In the place its first matching part
+   holds in the results, once however many of its parts matched. The part that matched is reached
+   exactly where it always was -- `stuffPageOf_(x)` lands on it, the earlier parts one swipe behind.
+   THE SIBLINGS ARE THE FUNNEL'S OWN ITEMS (`stuffItems`, in `stuffSorted_`'s order), so a part
+   brought along is the same object a paper filter would have found, and its answer box and its pen
+   are the same ones. Inside a chosen paper nothing changes: every part is already there. */
+const qId_ = x => (x && x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== ''
+  ? paperIdOf_(x.row) + '|' + x.qNumber : '');
+const WHOLE_MEMO = new WeakMap();
+function questionParts_() {
+  const all = stuffSorted_(stuffItems());
+  let by = WHOLE_MEMO.get(all);
+  if (by) return by;
+  by = {};
+  all.forEach(x => { const k = qId_(x); if (k) (by[k] = by[k] || []).push(x); });
+  WHOLE_MEMO.set(all, by);
+  return by;
+}
+function wholeQuestions_(items) {
+  const out = [], done = {};
+  let by = null;
+  (items || []).forEach(x => {
+    const k = qId_(x);
+    if (!k) { out.push(x); return; }
+    by = by || questionParts_();
+    const sib = by[k] || [];
+    /* A RESULT THE FUNNEL'S LIST DOES NOT HOLD (a harness's own item) stands as itself. */
+    if (sib.indexOf(x) < 0) { out.push(x); return; }
+    if (done[k]) return;
+    done[k] = true;
+    sib.forEach(s => out.push(s));
+  });
+  return out;
 }
 
 /* THE PAGE AN ITEM STARTS ON, counted from the first result. For anything that turns to a result by
@@ -8533,10 +10924,10 @@ const S_ = v => String(v == null ? '' : v);
 
    NOT SIGNED IN, NOTHING TO DRAW. The booker needs somebody to book for, and the sessions are
    somebody's own — `bookBlocks` already returns the offers alone in that case, which is right. */
-/* ONE SESSION, OPENED OUT. The receipt, then the way in for somebody not in it yet, then the way
-   to pay once it has been accepted — the same three the sheet used to stack, in the same order,
-   on the page itself. Each guards itself: `joinBlock` draws nothing for a session you are already
-   in. */
+/* ONE SESSION, OPENED OUT — and it is the receipt and nothing else now, with every action on its
+   foot. The way in for somebody not on it yet was a third piece stacked under the paper
+   (`joinBlock`); it is a tile in the same row as Pay and Share, and its seats are a row of the
+   document. See the last note above `jobPage_`. */
 /* ---------- "THE PAPER, AND NOTHING ELSE" WAS TRUE WHILE SOMETHING ELSE ADDED THE TILES ----------
    THE NOTE THAT STOOD HERE said paying and withdrawing are marks in the tile row *under the card*,
    `jobTiles_` in tiles.js, "which is where every other kind keeps its actions". That was exactly
@@ -8581,6 +10972,18 @@ const S_ = v => String(v == null ? '' : v);
    A PAID SESSION OFFERS NO PAY TILE, and that is `jobTiles_`'s own test: Pay is offered while the
    booking is accepted and your seat is not yet Paying or Booked. An empty row is no row at all —
    a foot with nothing on it is a rule under the total pointing at nothing. */
+/* ---------- AND THE WAY IN, FOR SOMEBODY NOT ON IT, IS IN THE SAME ROW -----------------------------
+   ASKED FOR AS *"the session booking thing at the bottom of receipt should be a line in the
+   booking."* After the receipt this used to append `joinBlock(j)` — "2 seats left on this class.
+   £19.00 a seat.", the list's tally, a full-width `Take a seat` and a faint paragraph — on the
+   argument written beside it that the offer was "facts rather than buttons, so it is not a tile".
+   Half right: the facts were facts, and they were ALREADY rows of this paper — `Sharing` and the
+   total — one of them contradicting the block. The button was a button, on a thing.
+
+   SO THE PAGE IS THE RECEIPT, FULL STOP. `jobTiles_` answers "what can you do with this session"
+   for a stranger as well now — `Take a seat` or `Ask to join`, through `joinTile_` — so it lands
+   first in this row exactly where Pay lands for somebody on it, with Share after and an admin's
+   decisions last. Nothing is drawn under the paper for anybody. */
 function jobPage_(j) {
   const stage = typeof jobStage_ === 'function' ? jobStage_(j) : '';
   const yes = typeof jobAccepted_ === 'function' ? jobAccepted_(j) : false;
@@ -8595,10 +10998,7 @@ function jobPage_(j) {
     + tile_({ icon: 'share', label: 'Share this booking', act: 'book-share' })
     + (admin && typeof jobAdminTiles_ === 'function' ? jobAdminTiles_(j, stage, yes) : '');
   const foot = tiles.trim() ? `<div class="tile-row rc-tiles">${tiles}</div>` : '';
-  return (typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '')
-    /* NOT AN ACTION ON YOUR OWN SESSION: the offer made to somebody who is not in it yet, carrying
-       the seats left and the price. Facts rather than buttons, so it is not a tile. */
-    + (typeof joinBlock === 'function' ? joinBlock(j) : '');
+  return typeof jobReceipt === 'function' ? jobReceipt(j, foot) : '';
 }
 
 const forIs_ = want => (STUFF.filters || [])
@@ -9211,10 +11611,11 @@ function bundleTitle_(items) {
   const parts = [];
   const said = {};
   BUNDLE_TITLE_FIELDS.forEach(field => {
-    /* THE KEY STAGE ONLY WHERE THERE IS NO LEVEL. `GCSE · KS4` and `KS2 SATs · KS2` say one thing
-       twice — measured on the first run, over the owner's own example — and the level is the word
-       people use; a worksheet shelf has no level and its key stage is then the only word for it. */
-    if (field === 'keystage' && said.level) return;
+    /* `if (field === 'keystage' && said.level) return;` WAS HERE. `GCSE · KS4` and `KS2 SATs · KS2`
+       said one thing twice, so the key stage was dropped wherever a level spoke. Neither can happen
+       now: the `Key stage` question answers nothing outside SATs, so a GCSE bundle has no key stage
+       to say, and inside SATs the level no longer carries it -- *"sats is one tag not ks2 sats"* --
+       so `SATs · KS2` is two facts, the second the only word for which SATs. */
     /* THE YEAR ONLY WHERE THE SITTING DID NOT SAY IT. Seven 2017 papers are three sittings, May,
        June and November, so the sitting has nothing single to say — and "2017" is the word the owner
        asked with, which `examYear` says first and `year` says only for a row with no sitting. Where
@@ -9821,9 +12222,14 @@ const TAG_OF = {
   examBoard: 'board', company: 'board',
   tier: 'tier', division: 'tier',
   topic: 'topic', topicArea: 'topic',
-  /* `needs` IS NOT HERE ON PURPOSE. It was, in gold -- and gold is the press colour of every answer,
-     so a resting `What you need` answer read as one already pressed. A calculator is not a kind of
-     paper either; it keeps the plain outline. */
+  /* ---------- `needs` IS A KIND AGAIN, AND STILL NOT GOLD -------------------------------------------
+     IT WAS LEFT OUT ON PURPOSE: it had been gold, the press colour of every answer, so a resting `What
+     you need` answer read as one already pressed -- and it took the plain outline. Then the card's
+     calculator became a tag (*"why do the questions say non calculator but its not a tag?"*), and a
+     plain-outline tag is exactly the grey `Non-Calculator` pill that question was asked over. So it
+     has a colour of its own, `--tag-needs`, which is not gold and is not any other kind's; the answer,
+     its chip and the card's tag all wear it. */
+  needs: 'needs',
 };
 const tagOf_ = field => TAG_OF[field] || '';
 const tagAttr_ = field => tagOf_(field) ? ` data-tag="${tagOf_(field)}"` : '';
@@ -10970,10 +13376,7 @@ function stuffQuestion() {
        stylesheet, in the faintest ink on the screen, for the one sentence that tells you where the
        results went. `.find-end` sits under the chips on the same rule the chips sit on, and the
        half that is an instruction — swipe up — is in ink, because that is the half you act on. */
-    if (funnelEnded_()) {
-      return `<p class="find-end">That is the paper, in order.
-        <b>Swipe up for ${items.length === 1 ? 'its one question' : 'its ' + n + ' questions'}.</b></p>` + adding;
-    }
+    if (funnelEnded_()) return paperEnd_(items) + adding;
     return `<p class="find-end">Nothing left to narrow.
       <b>Swipe up for the ${n}.</b></p>` + adding;
   }
