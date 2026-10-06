@@ -283,3 +283,5 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The answer hides again, every control on a question's pages is a tile, and the pen has a ruler and a compass](279-the-answer-hides-again-every-control-on-a-question-s-pages-i.md)
 - [The weekly parent email is built and switched off: a Sunday run, a log, a preview, and nothing that starts it](280-the-weekly-parent-email-is-built-and-switched-off-a-sunday-r.md)
 - [The Corbettmaths primary sheets were finished from their own PDFs](281-the-corbettmaths-primary-sheets-were-finished-from-their-own-pdfs.md)
+- [Photos and videos in messages: the manifest could only read Drive, and the Ledger needed a column](282-photos-and-videos-in-messages-the-manifest-could-only-read-d.md)
+- [The way into somebody else's session is a line and a tile on its receipt, not a block under it](283-the-way-into-somebody-else-s-session-is-a-line-and-a-tile-on.md)
