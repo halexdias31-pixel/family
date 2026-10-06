@@ -1798,7 +1798,17 @@ function placeGrid(instant, drag) {
          lighter dim on the panes instead (THE WIDE WINDOW, style.css). */
       el.style.opacity = WIDE ? (d <= 3 ? '1' : '0')
         : d === 0 ? '1' : d === 1 ? '.9' : d === 2 ? '.75' : '0';
-      el.style.pointerEvents = d === 0 ? 'auto' : 'none';
+      /* ---------- THE CARD IN FRONT, NOT EVERY COLUMN'S CURRENT CARD -----------------------------
+         THIS WAS `d === 0`, which is every column's current page, and the column's own `none` above
+         did not stop it: `pointer-events` is inherited, so an explicit `auto` on a child takes the
+         press back from a parent that refused it. On a phone that was a 23px sliver nobody aimed at.
+         On a wide window it is three or five whole cards — and measured at 1280 with Find in front,
+         a mouse press on the Sign in button of the You card beside it ran `do-signin` AND brought You
+         forward: the "presses a card that is about to slide under the pointer" that the note over
+         `wideHit_` says cannot happen. With only the focused page taking presses, a press over a
+         neighbour falls through to `#screen`, where `wideHit_` brings it forward and does nothing
+         else, which is what that note promised. */
+      el.style.pointerEvents = focused ? 'auto' : 'none';
       el.style.visibility = d > 3 ? 'hidden' : 'visible';
 
       /* A pane used to be measured here, to decide whether it had overflowed and should therefore
