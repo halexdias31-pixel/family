@@ -4558,8 +4558,12 @@ function pageParts_(x, prev) {
     /* AND A LONG PART IS ITS FIRST PAGES (`preN`) AND THEN THE CARD, which keeps the last of its words
        with the box -- with its figure among them where `partPlan_` stands it. */
     const plan = partPlan_(x);
+    /* A FIGURE THE WORDS NAME AND NOBODY HAS DRAWN stands where a figure with no marker would, in
+       front of the card -- once for a run of parts that all name it, as a stem is. See `figMissing_`. */
+    const gap = figMissing_(x) && !(prev && qId_(prev) && qId_(prev) === qId_(x) && figMissing_(prev));
     plan.chunks.forEach((c, j) => {
       if (j === plan.figAt) out.push('fig');
+      if (gap && j === plan.chunks.length - 1) out.push('nofig');
       out.push(j === plan.chunks.length - 1 ? null : 'pre' + j);
     });
     if (plan.figAt >= plan.chunks.length) out.push('fig');
@@ -4611,7 +4615,7 @@ function pageParts_(x, prev) {
    a book tapped on Saved opens on Find (`bibleGo_`), and the chapters themselves stay there. */
 /* `prev` IS THE KEPT THING IN FRONT, as on Find -- see `keptPages_`. */
 function cardPages_(x, credits, prev) {
-  return pageParts_(x, prev).filter(p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p)
+  return pageParts_(x, prev).filter(p => !p || p === 'fig' || p === 'nofig' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p)
                                  || (x.kind === 'bible' && /^(ot2?|nt)$/.test(p)))
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
 }
@@ -4646,6 +4650,7 @@ function stuffPart_(x, part) {
   if (x && x.kind === 'bible') return biblePart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
+  if (x && x.kind === 'question' && part === 'nofig') return questionNoFigCard_(x);
   if (x && x.kind === 'question' && /^stem\d+(-\d+)?$/.test(part)) {
     const m = /^stem(\d+)(?:-(\d+))?$/.exec(part);
     return questionStemCard_(x, +m[1], +(m[2] || 0));
@@ -8463,6 +8468,47 @@ function questionFigCard_(x) {
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">${out.join('')}</div>${on ? `
     <div class="tile-row qfig-tiles">${on}</div>` : ''}
+  </div>`;
+}
+
+/* ---------- A FIGURE THE PAPER PRINTS AND THIS SITE HAS NOT DRAWN YET -------------------------------
+   THE MULTI-PART AUDIT, FINDING 4: the question refers to a picture that is not there, and nothing on
+   the screen says so -- 1H Q12(i)-(iii) "Write down the letter of the graph…" with none of the nine
+   graphs; about 29 parts in the June 2024 Higher papers. Worse where the nearest figure a swipe back
+   is a different question's. A part that reads as complete and cannot be answered is the one
+   failure a student cannot see.
+
+   SO THE GAP IS A PAGE, where the figure would stand: "The paper prints a figure here -- not drawn
+   yet". Drawing them is data (`diagram` on the row); this is what keeps the gap visible until then,
+   and `check-library.js` counts them with the same two functions, so the backlog cannot quietly
+   grow. A PART QUALIFIES when its own words name a figure (`FIG_NAMED`: "Figure 3", "the graph", "the
+   diagram", "the grid", "the table below"…) and NOTHING in its question is one -- not its own, not
+   an opening's, not another part's -- and it is not answered on a surface (a grid or a passage to
+   ring is somewhere to answer, and is its own page). Words that carry their own `<svg>`, `<img>` or
+   `<table>` already hold what they name. */
+const FIG_NAMED = /\b(?:figure\s*\d+[a-z]?|the\s+(?:graphs?|diagrams?|grid|chart|bar\s+chart|pie\s+chart|scatter\s+(?:graph|diagram)|map)\b|the\s+table\s+below)/i;
+function figWanted_(words, figured) {
+  if (figured) return false;
+  const h = String(words || '');
+  if (/<(svg|img|table)\b/i.test(h)) return false;
+  return FIG_NAMED.test(h.replace(/<[^>]*>/g, ' ').replace(/&nbsp;/gi, ' '));
+}
+function figMissing_(x) {
+  if (!x || x.kind !== 'question' || padSurface_(x)) return false;
+  const own = p => !!(p && (p.diagram || figImgs_(p.images).length));
+  let figured = own(x) || (x.stems || []).some(stemHasFig_);
+  if (!figured) {
+    const k = qId_(x);
+    figured = !!k && ((questionParts_()[k]) || []).some(own);
+  }
+  return figWanted_(String(x.lead || '') + ' ' + String(x.html || ''), figured);
+}
+function questionNoFigCard_(x) {
+  const id = (x.row && x.row.row_id) || x.key || '';
+  return `<div class="qcard qfig is-missing" data-of="${esc(id)}">
+    ${figHead_(figLabel_(String(x.lead || '') + ' ' + String(x.html || '')))}
+    <p class="qcard-sub">${qTagsHtml_(x)}</p>
+    <div class="qsheet"><p class="qfig-missing">The paper prints a figure here &mdash; not drawn yet.</p></div>
   </div>`;
 }
 

@@ -1594,6 +1594,53 @@ if (toolNoPen.length) {
     + '   (their answer_type is not drawing; a `surface` would give them one)');
 }
 
+/* ---------- THE FIGURES THE PAPER PRINTS AND NOBODY HAS DRAWN, COUNTED SO THE COUNT CANNOT GROW -------
+   THE MULTI-PART AUDIT, FINDING 4. A part whose words name a figure ("Figure 3", "the graph", "the
+   grid", "the table below"…) in a question where no row carries one now gets a page saying so --
+   `questionNoFigCard_` in find.js -- because a question that reads as complete and cannot be answered
+   is the failure nobody on the phone can see. That page is the stopgap; drawing them is the fix, and
+   this is the ledger: THE APP'S OWN TEST (`FIG_NAMED`, `figWanted_`, cut out of find.js by name, with
+   `padSurface_` from above), run over every part with what its question holds -- its own `diagram`
+   or `images`, any other part's, and every preamble over it (paper, section, question, letter).
+   A CEILING, NOT A RULE: today's count is written below, and a new row that adds to it fails. Drawing
+   one lowers the count, and the ceiling should follow it down so the gain is kept. */
+const NOT_DRAWN_MAX = 412;
+const nfSrc_ = ['FIG_NAMED', 'figWanted_'].map(n => cutFrom(findSrc_, n));
+if (nfSrc_.some(c => !c)) {
+  const why = 'FIG_NAMED or figWanted_ is not in find.js — renamed? The figures not drawn yet were NOT counted.';
+  fail.push(why);
+  console.log(why);
+}
+const figWanted_ = nfSrc_.some(c => !c) ? (() => false) : new Function(nfSrc_.join('\n') + '\nreturn figWanted_;')();
+const hasPic_ = r => !!(String(r.diagram || '').trim() || String(r.images || '').trim());
+const picAt_ = {};
+rows.forEach(r => {
+  if (!r || !hasPic_(r) || (r.kind !== 'question' && r.kind !== 'preamble')) return;
+  const q = String(r.question || '').trim();
+  /* A QUESTION'S PICTURE COVERS ITS QUESTION; A PREAMBLE'S, THE SCOPE IT IS WRITTEN FOR. */
+  const k = r.kind === 'question' || q ? 'q|' + r.paper_id + '|' + q
+    : r.section ? 's|' + r.paper_id + '|' + r.section : 'p|' + r.paper_id;
+  picAt_[k] = true;
+});
+const notDrawn = rows.filter(r => {
+  if (!r || r.kind !== 'question') return false;
+  if (padSurface_({ answerType: String(r.answer_type || '').trim().toLowerCase(), surface: r.surface, figure: r.figure, row: r })) return false;
+  const figured = picAt_['q|' + r.paper_id + '|' + String(r.question || '').trim()]
+    || (r.section && picAt_['s|' + r.paper_id + '|' + r.section]) || picAt_['p|' + r.paper_id];
+  return figWanted_(String(r.lead || '') + ' ' + String(r.html || ''), !!figured);
+});
+console.log(`parts naming a figure nobody has drawn yet (a "not drawn yet" page each): ${notDrawn.length}`
+  + `   (ceiling ${NOT_DRAWN_MAX})`);
+if (notDrawn.length > NOT_DRAWN_MAX) {
+  const why = `${notDrawn.length - NOT_DRAWN_MAX} more part(s) name a figure nobody has drawn than the ${NOT_DRAWN_MAX} `
+    + `already known -- a new row was added without its picture. Draw it (\`diagram\`), or it shows `
+    + `"not drawn yet". The last in the file: ${notDrawn.slice(-3).map(r => r.row_id).join(', ')}`;
+  fail.push(why);
+  console.log('  ' + why);
+} else if (notDrawn.length < NOT_DRAWN_MAX) {
+  console.log(`   ${NOT_DRAWN_MAX - notDrawn.length} fewer than the ceiling -- lower NOT_DRAWN_MAX to ${notDrawn.length} to keep the gain.`);
+}
+
 /* ---------- ONE SPELLING OF A PART PER QUESTION ---------------------------------------------------
    THE MULTI-PART AUDIT, FINDING 13: the order of a question's parts is read off how each is spelled,
    and "bi" beside "b(ii)" used to sort b(ii), b(iii), bi -- (i) last. `partKeys_` in find.js now reads

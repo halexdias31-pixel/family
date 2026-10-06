@@ -9221,6 +9221,9 @@ const mpBank_ = () => [
   mpRow_('P-MP-V', 'Other', 8, '', { html: '<p>Another paper\'s eight.</p>' }),
   mpRow_('P-MP-W', 'Whole', 14, 'a', { html: '<p>The graph shows a journey. Work out the speed.</p>', diagram: '<svg viewBox="0 0 10 10" class="mp-graph"><path d="M0 10 10 0"/></svg>' }),
   mpRow_('P-MP-W', 'Whole', 14, 'b', { html: '<p>Work out an estimate for the distance.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 20, 'a', { html: '<p>Use the graph to find the gradient.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 20, 'b', { html: '<p>From the graph, estimate the value of y when x = 3.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 21, '', { html: '<p>On the grid, draw the line y = 2x.</p>', answerType: 'drawing' }),
 ];
 
 /* FINDING 1: a search hit on one part brings the whole question, in order, and lands on the part. */
@@ -9430,6 +9433,36 @@ check('multipart: a (d) opening is drawn once before (d)(i), headed Q1(d), and a
       if (head !== 'Q1(d)') bad.push('the (d) opening is headed "' + head + '", wanted Q1(d)');
       if (!/REST/.test(h.textContent)) bad.push('the (d) opening does not draw its words');
     }
+  } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* FINDING 4: a part whose words name a figure, in a question with none, says so on a page of its own. */
+check('multipart: a figure the words name and nobody drew is a "not drawn yet" page, once per run of parts', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionItems', 'pageParts_', 'stuffPart_', 'stuffPages_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the missing figures were NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const find = name => lib.items.find(x => x.row.paper === 'P-MP-W' && x.name === name);
+  try {
+    const a = find('Q20a');
+    if (!a || JSON.stringify(w.pageParts_(a)) !== '["nofig",null]') bad.push('Q20a, "Use the graph" with no graph anywhere, has pages ' + (a && JSON.stringify(w.pageParts_(a))) + ', wanted the gap and then the card');
+    else {
+      const h = d.createElement('div');
+      h.innerHTML = w.stuffPart_(a, 'nofig');
+      if (!/not drawn yet/.test(h.textContent) || !h.querySelector('.qcard.qfig.is-missing')) bad.push('the gap page does not say "not drawn yet": ' + h.textContent.trim().slice(0, 80));
+    }
+    S.q = 'q20'; S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    const strip = w.stuffPages_().map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' ');
+    if (strip !== 'Q20a:nofig Q20a:card Q20b:card') bad.push('Q20 reads "' + strip + '" -- the gap once, in front of the first part that names it');
+    ['Q14a', 'Q14b', 'Q21'].forEach(n => {
+      const x = find(n);
+      if (x && w.pageParts_(x).indexOf('nofig') >= 0) bad.push(n + ' is given a "not drawn yet" page though its question has a figure, or it is answered on a surface');
+    });
   } finally { lib.put(); S.q = ''; S.filters = []; }
   return bad;
 });
