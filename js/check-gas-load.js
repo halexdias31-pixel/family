@@ -145,7 +145,9 @@ function backend(extra) {
   };
   Object.assign(sandbox, extra || {});
   sandbox.globalThis = sandbox;
-  const ORDER = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'records', 'doget', 'dopost'];
+  /* `digest` WITH THE REST — `digestPreview` in dopost.gs calls into it, and `check-digest.js` runs its
+     Sunday function on this same scope. */
+  const ORDER = ['constants', 'core', 'people', 'booking', 'content', 'setup', 'records', 'digest', 'doget', 'dopost'];
   const missing = ORDER.filter(n => !fs.existsSync(path.join(REPO, 'backend', n + '.gs')));
   if (missing.length) {
     console.log('backend/' + missing.join('.gs, backend/') + '.gs could not be read, so NOTHING was checked — not a pass.');

@@ -2178,6 +2178,9 @@ function settingsPages_() {
   /* THE BUSINESS'S OWN PAPERWORK, LAST AND FOR AN ADMIN — see js/records.js. They were a widget on
      the Tools column, moved here on request; appended for the wardrobe's reason above. */
   if (typeof bizPages_ === 'function') pages.push(...bizPages_());
+  /* AND THE WEEKLY PARENT EMAIL, AFTER THEM AND FOR AN ADMIN — see js/digest.js. Appended for the
+     wardrobe's reason above. */
+  if (typeof digestPages_ === 'function') pages.push(...digestPages_());
 
   return pages;
 }

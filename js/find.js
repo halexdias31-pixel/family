@@ -6548,7 +6548,25 @@ function doneMark_(k) {
   if (doneRead_(k) === today) return;
   DONE_HELD.set(dk, today);
   try { localStorage.setItem(dk, today); } catch (e) {}
-  attemptSend_([{ key: doneQKey_(k), day: today }]);
+  /* AND ITS NAME, FOR THE WEEKLY PARENT EMAIL (backend/digest.gs): the sheet holds a key no parent
+     can read and the backend cannot look up. `Maths · Paper 1 — June 2024 · Q3`, the subject left out
+     when the paper's name already says it. Only here, where the card is in hand — the load's backlog
+     sends keys alone and the email falls back to the key — and absent rather than blank when there
+     is no card, so that request is what it always was. */
+  /* A PRACTICAL'S WORKSHEET BOX IS THE CARD'S KEY WITH A SLOT ON THE END (`#iv`, `#dv`, `#cv` — see
+     `guideBox_`), and `ansKey_` of no card ends in one, so those boxes found no card and went up
+     nameless: one worksheet was three raw keys in a parent's email. The slot comes off for the
+     lookup, and the name says which part of the practical it was. The backend joins the three rows
+     on the same cut (`digestPlan_`), so the worksheet is one question there too. */
+  let label = '';
+  try {
+    const slot = /#[^#]*$/.test(k), base = slot ? k.replace(/#[^#]*$/, '') : k;
+    const it = stuffItemsAll_().find(y => ansKey_(y) === base);
+    const sub = String((it && it.sub) || ''), subj = String((it && it.subject) || '');
+    if (it) label = [subj && sub.toLowerCase().indexOf(subj.toLowerCase()) === -1 ? subj : '', sub, it.name,
+                     slot ? 'Worksheet' : ''].filter(Boolean).join(' · ');
+  } catch (e) {}
+  attemptSend_([Object.assign({ key: doneQKey_(k), day: today }, label ? { label: label } : {})]);
   /* EVERY COLUMN IT IS DRAWN ON, by the answer key -- Find and Saved can both hold the card. */
   document.querySelectorAll('.qcard-done').forEach(el => {
     if (el.getAttribute('data-k') === k) el.textContent = doneText_(today);

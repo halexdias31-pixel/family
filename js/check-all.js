@@ -203,6 +203,10 @@ const SUITE = [
   /* THE DAY A QUESTION WAS DONE, ON THE SHEET. A learner's record: one row per question, the person
      from the token, and nobody sent another learner's — through the same backend. */
   { file: 'check-attempts.js', what: 'done questions: the upsert, the token’s person, and who is sent whose' },
+  /* THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF. Nothing has ever sent one, which is why it is
+     checked: the first real run is a Sunday with families on the other end, and every rule it has
+     fails by emailing — the wrong parent, twice, or at all while it was meant to be off. */
+  { file: 'check-digest.js', what: 'the weekly parent email: a London week, accepted parents only, off/preview/send, sent once' },
   /* ---------- AND WHETHER A CREDENTIAL IS SITTING IN THE SOURCE -----------------------------------
      The third check here about SAFETY rather than about working, after `check-marking.js` and
      `check-handles.js` — and the only one whose subject is this repository rather than the app.

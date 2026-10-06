@@ -1,0 +1,535 @@
+/* ==================================================================================================
+   @family. — digest.gs   THE WEEKLY PARENT EMAIL, BUILT AND SWITCHED OFF
+
+   ASKED FOR AS *"i need you to make something which triggers every sunday. it checks what the student
+   has done that week and records the questions and send it in an email to parents. for now dont
+   actually make it but make the infrastructure to set it up so that in the future we will actually
+   wire it up and make it properlly."*
+
+   SO EVERYTHING IS HERE AND NOTHING IS RUNNING. Three things have to happen, all by the owner, before
+   one parent gets one email — and none of them is in code:
+     1. `weekly_digest` on the config tab, `off` until somebody types otherwise (CONFIG_DEFAULTS);
+     2. `installWeeklyDigest` run once from the Apps Script editor, which is the only thing that books
+        the Sunday trigger — nothing in this project calls it, and `check-digest.js` fails if anything
+        starts to;
+     3. `preview` for a Sunday or two, reading `digest_log`, before `send`.
+   The steps, and the decisions that go with them, are in docs/history/pending-digest.md.
+
+   WHAT IT READS. `attempts` — one row per learner per question, `first_done` and `last_done` (see
+   SCHEMA.attempts, and `markDone`, which writes them). A question is in a learner's week when either
+   day falls inside it: `first_done` in the week is NEW, `last_done` in the week and `first_done`
+   before it is DONE AGAIN. That is all the tab can say — it keeps the first and the last day, not
+   every day — and it is enough for a run on the Sunday the week ends. A run days later can miss a
+   question done in the week and again since, because its `last_done` has moved on; said in the note.
+
+   WHO IT GOES TO, AND THE ONE RULE THAT MATTERS: a learner's ACCEPTED parents with an address
+   (`acceptedParents` — a link the child said yes to, on the `family` tab), and nobody else. Not a
+   pending or refused link, not the learner, not a tutor, not whoever shares a surname. A learner with
+   no such parent is listed as unreachable and emailed to nobody; a parent whose `weekly_email` cell
+   says no is skipped. One email per parent per learner, so two children are two emails and each one
+   is about one child.
+
+   FILE ORDER. Functions only, like every file but constants.gs: Apps Script joins the files in an
+   order nobody chooses, and a top-level `const` here could be read before it exists. Its constants —
+   `DIGEST_MODES`, `DIGEST_TZ`, `DIGEST_RUN`, `DIGEST_LIST_MAX` — are in constants.gs for that reason.
+================================================================================================== */
+
+
+/* ---------- THE SWITCH, AND THE TWO NUMBERS BESIDE IT ------------------------------------------------
+   EACH WITH A FALLBACK, and each fallback is the safe answer: a blank, a typo or a missing config tab
+   is `off`, 18:00 and a reserve of 10. `send` has to be spelled exactly, because it is the only one
+   of the three that reaches somebody's inbox. */
+function digestMode_(cfg) {
+  const m = norm(cfg && cfg.weekly_digest);
+  return DIGEST_MODES.indexOf(m) !== -1 ? m : 'off';
+}
+function digestHour_(cfg) {
+  const c = S(cfg && cfg.weekly_digest_hour);
+  return /^\d{1,2}$/.test(c) && Number(c) <= 23 ? Number(c) : 18;
+}
+function digestReserve_(cfg) {
+  const c = S(cfg && cfg.weekly_digest_reserve);
+  return /^\d+$/.test(c) ? Number(c) : 10;
+}
+
+
+/* ---------- WHAT A WEEK IS: MONDAY 00:00 TO SUNDAY 23:59, LONDON ---------------------------------------
+   LONDON BECAUSE THAT IS WHOSE CALENDAR THE DAYS ON THE SHEET ARE. `attemptsUpsert_` writes a day as
+   `yyyy-MM-dd` — the phone's own day, or London's today — so the week has to be a run of those same
+   strings, and comparing strings is all the selection does. MONDAY TO SUNDAY because the email goes on
+   the Sunday the week ends, and a week that ended on Saturday would leave the day it is read on out.
+
+   BST IS HANDLED BY NEVER DOING ARITHMETIC ON A CLOCK. The one conversion from an instant to a date is
+   `Utilities.formatDate(now, 'Europe/London', …)`, which knows when the clocks change; everything after
+   that is calendar arithmetic on `Date.UTC`, which has no daylight saving, so a day is always 864e5 ms
+   and the last Sunday of October (25 hours) and of March (23) cannot move a boundary. Done the other
+   way — `now - 7 * 864e5`, or `getDay()` on the server's clock — a run at 00:30 on a Monday in summer
+   is still Sunday in UTC and reports the week just gone as the new one. `check-digest.js` asks both
+   Sundays the clocks change. */
+function digestDay_(now) {
+  const d = now instanceof Date && !isNaN(now) ? now : new Date();
+  return Utilities.formatDate(d, DIGEST_TZ, 'yyyy-MM-dd');
+}
+function digestShift_(iso, days) {
+  const t = Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)) + days * 864e5;
+  return new Date(t).toISOString().slice(0, 10);
+}
+/* The Monday and the Sunday of the week a London day is in. */
+function digestWeekOf_(iso) {
+  const dow = new Date(Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10))).getUTCDay();
+  const back = (dow + 6) % 7;                   // Monday 0 … Sunday 6
+  return { start: digestShift_(iso, -back), end: digestShift_(iso, 6 - back) };
+}
+/* The week `now` is in — what the admin's Preview shows: this week so far. */
+function digestWeek_(now) {
+  const today = digestDay_(now);
+  return Object.assign(digestWeekOf_(today), { today: today });
+}
+/* ---------- AND THE WEEK A RUN SENDS ---------------------------------------------------------------
+   THIS WEEK ON A SUNDAY, OTHERWISE THE ONE THAT ENDED LAST SUNDAY. The trigger only ever fires on a
+   Sunday, so for it the two are the same. The difference is the run somebody starts BY HAND on the
+   Monday — after the mail quota ran out, or to read a preview of a week that is finished — which
+   must finish the week that was being sent, not start a new one that has nothing in it. */
+function digestWeekToSend_(now) {
+  const w = digestWeek_(now);
+  if (w.today === w.end) return w;
+  return Object.assign(digestWeekOf_(digestShift_(w.start, -1)), { today: w.today });
+}
+/* `28 Sep – 4 Oct`, off the two strings — no Date, so no time zone to get wrong. */
+function digestSpan_(week) {
+  const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const say = iso => (+iso.slice(8, 10)) + ' ' + MON[+iso.slice(5, 7) - 1];
+  return say(week.start) + ' – ' + say(week.end);
+}
+
+
+/* ---------- THE PLAN: WHO DID WHAT, AND WHO IS TOLD ----------------------------------------------------
+   PURE. Everything it needs is handed in — the attempts rows, the people rows, a `parentsOf(id)` that
+   answers with person rows, and `look` (the business's name and the site's address) — and it reads no
+   tab, sends nothing and writes nothing. So the same function is the Sunday run, the admin's Preview
+   and the check, and none of the three can be looking at a different rule.
+
+   `parentsOf` IS `acceptedParents` everywhere but the check, rather than this walking `family` itself:
+   a second reader of who is whose parent is the one that drifts (see `childrenOf` in people.gs, twice).
+
+   Returns `{ week, learners, emails, unreachable, look }`:
+     learners     one per learner who did anything this week — the questions, new and again, who is told
+     emails       one per parent per learner, rendered: `to`, `subject`, `text`, `html`
+     unreachable  learners nobody can be told about, each with the reason in words */
+function digestPlan_(week, attemptRows, peopleRows, parentsOf, look) {
+  const inWeek = d => !!d && d >= week.start && d <= week.end;
+  const byId = {};
+  (peopleRows || []).forEach(p => { const id = S(p && p.person_id); if (id && !byId[id]) byId[id] = p; });
+
+  /* ONE QUESTION, HOWEVER MANY BOXES IT HAS. A practical's worksheet is three answer boxes, each
+     marked done under the practical's key with its slot on the end (`pr:…#iv`, `#dv`, `#cv` — see
+     `guideBox_` in js/find.js), so one worksheet filled in was three rows and an email saying "3
+     questions" with three raw keys in it. Rows are joined on the key before the `#`: the earliest
+     first day, the latest last day, the first name any of them carries. */
+  const joined = {};
+  (attemptRows || []).forEach(r => {
+    const pid = S(r && r.person_id), q = S(r && r.question_key).split('#')[0];
+    if (!pid || !q) return;
+    const first = isoDate_(r.first_done), last = isoDate_(r.last_done);
+    const id = pid + '\u0001' + q, J = joined[id];
+    if (!J) { joined[id] = { pid: pid, key: q, first: first, last: last, label: attemptLabel_(r.label), times: N(r.times) || 1 }; return; }
+    if (first && (!J.first || first < J.first)) J.first = first;
+    if (last && last > J.last) J.last = last;
+    if (!J.label) J.label = attemptLabel_(r.label);
+    J.times = Math.max(J.times, N(r.times) || 1);
+  });
+
+  const per = {};
+  Object.keys(joined).forEach(id => {
+    const J = joined[id];
+    const fresh = inWeek(J.first);
+    if (!fresh && !inWeek(J.last)) return;
+    const L = per[J.pid] || (per[J.pid] = { id: J.pid, fresh: [], again: [] });
+    /* THE NAME A PARENT CAN READ, OR THE KEY — see SCHEMA.attempts for why the backend cannot look a
+       key up for itself. BUT ONLY TEXT THAT CANNOT PASS FOR A MESSAGE FROM THE BUSINESS: the label
+       and the key both came off a phone, and printed under "@family." a label reading "NOTICE: fees
+       overdue, pay at https://…" is the business saying it. `digestSafe_` turns away anything with a
+       link or an address in it, and a key is printed only in the library's own shape. What is left
+       is counted and not listed — it is in "…and N more" — rather than dropped, so the number the
+       email gives stays true. */
+    const label = digestSafe_(J.label) ? J.label : DIGEST_KEY_SHAPE.test(J.key) ? J.key : '';
+    const item = { key: J.key, label: label, hidden: !label, last: J.last, times: J.times };
+    (fresh ? L.fresh : L.again).push(item);
+  });
+
+  const order = (a, b) => (a.last < b.last ? -1 : a.last > b.last ? 1 : a.label < b.label ? -1 : a.label > b.label ? 1 : 0);
+  const learners = [], emails = [], unreachable = [];
+  Object.keys(per).forEach(pid => {
+    const L = per[pid];
+    L.fresh.sort(order); L.again.sort(order);
+    L.count = L.fresh.length + L.again.length;
+    const me = byId[pid];
+    L.name = me ? personDisplayName(me) : '';
+    /* THE CHILD'S FIRST NAME GOES IN THE SUBJECT LINE, and it is a cell the child can edit. A name
+       that is a link, an address or a sentence is "Your child" instead. */
+    L.first = me && digestSafe_(me.first_name) && S(me.first_name).length <= 30 ? S(me.first_name) : '';
+    L.to = []; L.skipped = []; L.why = '';
+    if (!me) {
+      L.why = 'not on the people tab';
+    } else {
+      let parents = [];
+      try { parents = parentsOf(pid) || []; } catch (err) { parents = []; }
+      const seenId = {}, seenMail = {};
+      let linked = 0;
+      parents.forEach(p => {
+        const id = S(p && p.person_id);
+        /* NEVER THE LEARNER, whatever the family tab says — a row linking somebody to themselves is a
+           typo, and "not emailed to themselves" is the rule. */
+        if (!id || id === pid || seenId[id]) return;
+        seenId[id] = 1;
+        linked++;
+        const who = { id: id, name: personDisplayName(p), first: S(p.first_name), email: S(p.email) };
+        if (!who.email) { L.skipped.push(Object.assign(who, { why: 'no email address' })); return; }
+        /* NEVER AN ADDRESS NOBODY CONFIRMED. `verified=PENDING` is a sign-up whose link was never
+           clicked — a typo'd address, as often as not, which is a stranger's inbox. An admin's
+           `linkChild` writes `accepted` without asking the address anything, so the link alone is
+           no proof, and every Sunday a stranger would be told about somebody's child. Blank is an
+           account from before verification existed, as at sign-in (dopost.gs), and is not pending. */
+        if (S(p.verified).toUpperCase() === 'PENDING') { L.skipped.push(Object.assign(who, { why: 'email not confirmed' })); return; }
+        if (!ON_(p.weekly_email)) { L.skipped.push(Object.assign(who, { why: 'asked not to get it' })); return; }
+        /* ONE MAILBOX ONCE PER CHILD, if two parent rows share an address. */
+        const m = norm(who.email);
+        if (seenMail[m]) { L.skipped.push(Object.assign(who, { why: 'same address as another parent' })); return; }
+        seenMail[m] = 1;
+        L.to.push(who);
+      });
+      /* THE REASON IN WORDS, naming each parent, because "unreachable" alone sends the owner to the
+         family tab to work out which of three things it is. */
+      if (!L.to.length) {
+        L.why = !linked ? 'no parent has accepted a link to them'
+              : 'no parent can be told — ' + L.skipped.map(s => (s.name || s.id) + ': ' + s.why).join('; ');
+      }
+    }
+    learners.push(L);
+    if (L.why) { unreachable.push({ id: pid, name: L.name, count: L.count, why: L.why }); return; }
+    L.to.forEach(p => {
+      const m = digestRender_(L, p, week, look);
+      emails.push({ week: week.start, learner_id: pid, parent_id: p.id, learner: L.name, parent: p.name,
+                    to: p.email, subject: m.subject, text: m.text, html: m.html, count: L.count });
+    });
+  });
+  learners.sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  return { week: week, learners: learners, emails: emails, unreachable: unreachable, look: look || {} };
+}
+
+
+/* ---------- ONE EMAIL: A SUBJECT, A PLAIN BODY AND THE SAME IN HTML -----------------------------------
+   SHORT AND PLAIN, because it is read on a phone by a parent between other things: who, how many, the
+   list, the site, how to stop. No marks and no verdicts — `attempts` records that a question was done,
+   not how it went, and an email that implied a score would be inventing one.
+
+   THE PLAIN BODY IS NOT AN AFTERTHOUGHT. MailApp sends both and a mail client shows whichever it
+   prefers; the plain one is also what the admin's Preview prints. Every value in the HTML goes through
+   `digestEsc_` — a label came off a phone. */
+function digestRender_(L, P, week, look) {
+  const brand = S(look && look.brand) || BRAND_NAME;
+  const site = S(look && look.site) || SITE_URL;
+  /* THE FIRST NAME ONLY — `digestPlan_` has already turned away one that is not a name — and never
+     the full display name in its place, which is built from the same editable cells. */
+  const kid = S(L.first) || 'Your child', kids = S(L.first) ? kid : 'your child';
+  const qs = x => x + ' question' + (x === 1 ? '' : 's');
+  const n = L.fresh.length + L.again.length;
+  const hello = S(P && P.first) ? 'Hello ' + S(P.first) + ',' : 'Hello,';
+  /* "WORKED ON", NOT "DID". `markDone` is the first keystroke in an answer box, or enough options
+     chosen — a wrong answer, or one character, is a question marked done. A parent reads "did" as
+     finished work, and an email that implied it would be claiming more than the sheet knows.
+
+     AND "UP TO" THE HOUR IT IS SENT. The run is at `weekly_digest_hour` on the Sunday (18:00), and a
+     question first done after that is in nobody's week: next week's starts on the Monday, and the
+     sheet keeps days, not times. Said rather than hidden, so "this week" is not a claim to the whole
+     of Sunday. See CONFIG_DEFAULTS for the trade the hour makes. */
+  const hour = look && typeof look.hour === 'number' ? look.hour : -1;
+  const upTo = hour >= 0 && hour <= 23
+    ? ', up to ' + (hour === 0 ? 'midnight' : hour === 12 ? 'noon' : (hour % 12) + (hour < 12 ? 'am' : 'pm')) + ' on Sunday'
+    : '';
+  /* THE BUSINESS'S NAME ENDS IN A FULL STOP, so it is the sender's name and the last word of the footer
+     and never followed by more punctuation — "on @family.:" and "@family.." are what it reads as
+     anywhere else. */
+  const lead = 'This week (' + digestSpan_(week) + upTo + ') ' + kids + ' worked on ' + qs(n)
+    + (L.fresh.length && L.again.length ? ' — ' + L.fresh.length + ' new and ' + L.again.length + ' gone back to.' : '.');
+
+  /* AT MOST `DIGEST_LIST_MAX`, the new ones first, then "and N more". */
+  let room = DIGEST_LIST_MAX;
+  const take = list => { const shown = list.slice(0, Math.max(0, room)); room -= shown.length; return shown; };
+  /* A HIDDEN ITEM — a name `digestPlan_` would not print — is counted in `n` and never listed, so it
+     is part of "…and N more". */
+  const fresh = take(L.fresh.filter(q => !q.hidden)), again = take(L.again.filter(q => !q.hidden));
+  const more = n - fresh.length - again.length;
+  const parts = [];
+  if (fresh.length) parts.push({ head: L.again.length ? 'New this week' : 'The questions', items: fresh });
+  if (again.length) parts.push({ head: 'Gone back to', items: again });
+
+  /* THE CHILD CAN SEE THEM, NOT THE PARENT. `attemptsFor_` (doget.gs) sends a signed-in person their
+     OWN questions and nobody else's — a parent who signed in to look would find none of these, so
+     "see them on the site" was a promise to the wrong person. */
+  const link = (S(L.first) ? kid : 'Your child') + ' can see them on the site: ' + site;
+  const foot = 'You get this because you are ' + (S(L.first) ? kid + '’s parent' : 'a parent') + ' on ' + brand + (/[.!?]$/.test(brand) ? '' : '.')
+    + ' To stop these emails, reply to this one and say so.';
+  const subject = kid + '’s week: ' + qs(n);
+
+  const text = [hello, '', lead, '']
+    .concat(...parts.map(p => [p.head].concat(p.items.map(q => '- ' + q.label), [''])))
+    .concat(more > 0 ? ['…and ' + more + ' more.', ''] : [])
+    .concat([link, '', foot]).join('\n');
+  const html = '<p>' + digestEsc_(hello) + '</p><p>' + digestEsc_(lead) + '</p>'
+    + parts.map(p => '<p><b>' + digestEsc_(p.head) + '</b></p><ul>'
+      + p.items.map(q => '<li>' + digestEsc_(q.label) + '</li>').join('') + '</ul>').join('')
+    + (more > 0 ? '<p>…and ' + more + ' more.</p>' : '')
+    + '<p><a href="' + digestEsc_(site) + '">' + digestEsc_((S(L.first) ? kid : 'Your child') + ' can see them on ' + brand) + '</a></p>'
+    + '<p><small>' + digestEsc_(foot) + '</small></p>';
+  return { subject: subject, text: text, html: html };
+}
+
+function digestEsc_(s) {
+  return S(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/* ---------- TEXT THAT CAME OFF A PHONE, AND MAY GO OUT UNDER THE BUSINESS'S NAME ---------------------
+   ESCAPING IS NOT ENOUGH. `digestEsc_` stops a label being markup; it does not stop it being a
+   message. A learner's phone sends the label, the key and their own first name, and a reviewer sent
+   "NOTICE FROM @family.: fees overdue, pay today at https://…" through the real `markDone` and saw it
+   listed as a question in a parent's email from "@family." — with the link live, because mail clients
+   make one of any address in a plain body. So a piece of phone text is printed only when it holds no
+   link (`://`), no `www.`, no `@` and nothing shaped like a domain (`word.word`). Every name the
+   library builds — subject, paper, question, practical — passes; that was measured against
+   data/questions.json and data/practicals.json, and none of them has a full stop between two words.
+   False means "do not print it", never "drop it": the caller counts it. */
+function digestSafe_(s) {
+  const t = attemptLabel_(s);
+  return !!t && !/:\/\/|\bwww\.|@|\b[a-z0-9-]{2,}\.[a-z]{2,}\b/i.test(t);
+}
+
+/* THE BUSINESS'S NAME AND THE SITE'S ADDRESS — each from the one place it is written, each with the
+   constant beside it as the floor, so a broken config tab still signs the email. And the hour the
+   Sunday run goes at, which the email states as the end of the week it covers. */
+function digestLook_() {
+  let brand = '', site = '', cfg = {};
+  try { brand = S(brandName()); } catch (err) {}
+  try { cfg = config() || {}; site = S(cfg.site_url); } catch (err) {}
+  return { brand: brand || BRAND_NAME, site: site || SITE_URL, hour: digestHour_(cfg) };
+}
+
+/* THE PLAN FOR A WEEK, OFF THE SHEET AS IT IS. The only impure step: three reads and the real
+   `acceptedParents`. */
+function digestPlanNow_(week) {
+  return digestPlan_(week, read(TAB.attempts).rows, read(TAB.people).rows, acceptedParents, digestLook_());
+}
+
+
+/* ---------- THE SUNDAY RUN ------------------------------------------------------------------------------
+   `weeklyDigestRun` IS WHAT THE TRIGGER CALLS, and the only thing `installWeeklyDigest` books. Google
+   hands a trigger an event object, which says nothing this needs; the clock is read here.
+
+   OFF RETURNS FIRST, BEFORE THE LOCK AND BEFORE A TAB IS READ. A trigger left installed with the
+   switch off costs one config read a week and does nothing else — which is what makes installing the
+   trigger and switching the email on two separate decisions.
+
+   A RUN THAT DID NOT FINISH THROWS. Apps Script throws a trigger's return value away and emails the
+   owner only when the function throws, so a `{ error }` or a `{ held: 3 }` handed back from here was a
+   run the executions page called "Completed" — and a held email nobody noticed by the next Sunday is
+   never sent, because `digestWeekToSend_` has moved on to the new week. So anything short of every
+   email sent (or previewed), or knowingly skipped, is an exception with the counts in its message: the
+   failure email Google sends is the notice. `digestRun_` itself returns, because the checks and the
+   admin want the counts, not a stack. */
+function weeklyDigestRun(e) {
+  const out = digestRun_(new Date());
+  if (out && (out.error || out.held || out.failed || out.busy)) {
+    throw new Error('The weekly parent email did not finish: '
+      + (out.error ? out.error : 'sent ' + out.sent + ', held ' + out.held + ' (mail quota), failed '
+         + out.failed + ', busy ' + out.busy + ' (lock) — see the digest_log tab, then run '
+         + 'weeklyDigestRun again from the editor before next Sunday; it sends only what is not sent.'));
+  }
+  return out;
+}
+
+/* ---------- THE LOCK IS HELD TO CLAIM AN EMAIL, NEVER TO SEND IT ----------------------------------------
+   IT WAS HELD FOR THE WHOLE MAILING, and a mailing is a row, a flush, a `sendEmail` and another row per
+   parent — a second or so each, so 30–60 seconds at 18:00 on a Sunday during which the site's own
+   writes were refused. `markDone` (`tryLock(5000)`) answered "Busy" and the phone's backlog re-sent the
+   keys without their names; `aiMarkCount_` answered -1 and a student was told their AI marks were used
+   up. The busiest hour of the week for homework is the worst one to hold the only lock the site has.
+
+   SO THE LOCK GUARDS ONLY THE CLAIM: under it, the log is read fresh, the row for this week, learner and
+   parent is found, and if it is not already a receipt it is written `sending` and flushed. Then the lock
+   goes, and the email is sent. A second run waiting on the lock reads that `sending` row when it gets
+   in, and skips it — which is the whole of what the lock was for. AT MOST ONCE still holds: the receipt
+   is on the sheet before the send begins, and `check-digest.js` asks the mail stub to look for it.
+
+   `sent` IS WRITTEN AFTER, IN ITS OWN TRY. It was in the same `try` as `sendEmail`, so a sheet timeout
+   on that one write — after the email had gone — fell into the `catch` and wrote `failed` over the
+   `sending` receipt, and `failed` is no receipt: the next run sent the parent the same email again.
+   Now only `sendEmail` throwing is `failed`; a lost `sent` write leaves `sending`, which a rerun counts
+   as sent, which it was.
+
+   THE QUOTA. `MailApp.getRemainingDailyQuota()` is asked before each email, and the run stops sending
+   once it would go below `weekly_digest_reserve` — those rows are `held`, and running it again once
+   the quota is back (the next day, by hand) sends them, the same week, thanks to `digestWeekToSend_`.
+   A row saying `preview`, `held` or `failed` is no receipt, and a rerun sends it. */
+function digestRun_(now) {
+  let cfg = {};
+  try { cfg = config(); } catch (err) { cfg = {}; }
+  const mode = digestMode_(cfg);
+  if (mode === 'off') return { mode: 'off', did: 'nothing — weekly_digest on the config tab is off' };
+
+  if (!digestLog_().sheet) return { mode: mode, error: 'The sheet has no digest_log tab. Run ensureSchema() (open /exec?setup=1) to add it. Nothing was sent.' };
+  /* THE PLAN IS MADE WITHOUT THE LOCK. It reads `attempts` and `people` and writes nothing; what it
+     decides is checked against the log, fresh, under the lock, one email at a time. */
+  const week = digestWeekToSend_(now);
+  const plan = digestPlanNow_(week);
+  const reserve = digestReserve_(cfg);
+  const out = { mode: mode, week: { start: week.start, end: week.end }, learners: plan.learners.length,
+                emails: plan.emails.length, previewed: 0, sent: 0, already: 0, held: 0, failed: 0, busy: 0,
+                unreachable: plan.unreachable.length, skipped: 0 };
+  /* UNDER THE LOCK, BRIEFLY: `fn` is handed the log as it is now. Null when another run kept the lock
+     — counted `busy`, sent nothing, and the run throws so somebody runs it again. */
+  const lock = LockService.getScriptLock();
+  const locked = fn => {
+    if (!lock.tryLock(30000)) return null;
+    try { return fn(digestLog_()); } finally { lock.releaseLock(); }
+  };
+
+  plan.emails.forEach(m => {
+    const claim = locked(log => {
+      const row = digestLogFind_(log, week.start, m.learner_id, m.parent_id);
+      const was = norm(row && row.status);
+      if (was === 'sent' || was === 'sending') return { already: true };
+      const v = { to: m.to, subject: m.subject, questions: m.count, at: new Date(), note: '' };
+      if (mode === 'preview') {
+        digestLogPut_(log, row, week.start, m.learner_id, m.parent_id, Object.assign(v, { status: 'preview' }));
+        return { previewed: true };
+      }
+      if (digestQuota_() <= reserve) {
+        digestLogPut_(log, row, week.start, m.learner_id, m.parent_id,
+          Object.assign(v, { status: 'held', note: 'daily mail quota — run weeklyDigestRun again tomorrow' }));
+        return { held: true };
+      }
+      const r = digestLogPut_(log, row, week.start, m.learner_id, m.parent_id, Object.assign(v, { status: 'sending' }));
+      /* FLUSHED BEFORE THE LOCK GOES, so the next run to take it reads the claim off the sheet. */
+      try { SpreadsheetApp.flush(); } catch (err) {}
+      return { row: r, log: log };
+    });
+    if (!claim) { out.busy++; return; }
+    if (claim.already) { out.already++; return; }
+    if (claim.previewed) { out.previewed++; return; }
+    if (claim.held) { out.held++; return; }
+    try {
+      MailApp.sendEmail({ to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, name: plan.look.brand || BRAND_NAME });
+    } catch (err) {
+      try { setCells(claim.log, claim.row, { status: 'failed', note: S(err && err.message || err).slice(0, 200) }); } catch (e2) {}
+      out.failed++;
+      return;
+    }
+    out.sent++;
+    try { setCells(claim.log, claim.row, { status: 'sent', at: new Date() }); } catch (err) {}
+  });
+
+  /* AND WHO WAS NOT TOLD, AND WHY — a row each, so the log answers both questions. A parent who
+     asked not to be sent it is a row too; a parent with no address is in the learner's `note`. One
+     short hold for all of them: they are writes to the log and nothing else. */
+  const noted = locked(log => {
+    plan.learners.forEach(L => {
+      if (L.why) {
+        const row = digestLogFind_(log, week.start, L.id, '');
+        digestLogPut_(log, row, week.start, L.id, '', { to: '', subject: '', questions: L.count,
+          status: 'not sent', at: new Date(), note: L.why });
+        out.skipped++;
+      }
+      L.skipped.filter(p => p.why === 'asked not to get it').forEach(p => {
+        const row = digestLogFind_(log, week.start, L.id, p.id);
+        if (norm(row && row.status) === 'sent') return;
+        digestLogPut_(log, row, week.start, L.id, p.id, { to: '', subject: '', questions: L.count,
+          status: 'opted out', at: new Date(), note: 'weekly_email on their row says no' });
+        out.skipped++;
+      });
+    });
+    return true;
+  });
+  if (!noted) out.busy++;
+  return out;
+}
+
+/* THE LOG AS IT IS NOW — its cached copy dropped first, because a copy read before the lock was taken
+   is the one another run has since written to. Only this tab's: `clearCache()` would have the next
+   read of `people` and `attempts`, for nothing, go back to the sheet once per email. */
+function digestLog_() {
+  try { delete _cache[TAB.digest_log]; } catch (err) {}
+  return read(TAB.digest_log);
+}
+
+function digestLogFind_(log, weekStart, learnerId, parentId) {
+  return log.rows.find(r => isoDate_(r.week_of) === weekStart && S(r.learner_id) === S(learnerId)
+                             && S(r.parent_id) === S(parentId)) || null;
+}
+/* A ROW UPDATED, OR ONE ADDED. `week_of` is written as text — see SCHEMA.digest_log. */
+function digestLogPut_(log, row, weekStart, learnerId, parentId, values) {
+  if (row) { setCells(log, row, values); return row; }
+  return addRow(log, Object.assign({ week_of: "'" + weekStart, learner_id: S(learnerId), parent_id: S(parentId) }, values));
+}
+function digestQuota_() {
+  try { return Number(MailApp.getRemainingDailyQuota()) || 0; } catch (err) { return 0; }
+}
+
+
+/* ---------- BOOKING THE SUNDAY, BY HAND ---------------------------------------------------------------
+   RUN FROM THE APPS SCRIPT EDITOR'S FUNCTION LIST, ONCE, AND BY NOBODY ELSE. Not from `installTriggers`,
+   not from `?run=`, not from `doGet` — a trigger booked as a side effect of something else is a Sunday
+   email nobody decided to start. `check-digest.js` reads the backend for a call to either and fails.
+
+   THE OLD ONE GOES FIRST, the `installWarmTrigger` rule: run twice, it still leaves exactly one, and
+   changing `weekly_digest_hour` is running this again. `inTimezone` says London out loud rather than
+   trusting the project's own setting, so 18:00 stays 18:00 across the clocks changing.
+
+   INSTALLED IS NOT ON. With `weekly_digest` at `off` the trigger fires every Sunday and returns at its
+   first line; `preview` and `send` are a cell on the config tab, not another run of this. */
+function installWeeklyDigest() {
+  let cfg = {};
+  try { cfg = config(); } catch (err) { cfg = {}; }
+  const hour = digestHour_(cfg);
+  const removed = removeWeeklyDigest().removed;
+  ScriptApp.newTrigger(DIGEST_RUN).timeBased().onWeekDay(ScriptApp.WeekDay.SUNDAY).atHour(hour)
+    .inTimezone(DIGEST_TZ).create();
+  const mode = digestMode_(cfg);
+  return { installed: 'every Sunday at about ' + hour + ':00, London time', replaced: removed, mode: mode,
+           means: mode === 'off' ? 'it runs and does nothing until weekly_digest on the config tab is preview or send'
+                : mode === 'preview' ? 'it writes what it would send to the digest_log tab and sends nothing'
+                : 'it EMAILS PARENTS' };
+}
+/* THE WAY BACK: every Sunday trigger of this handler, gone. Safe to run when there are none. */
+function removeWeeklyDigest() {
+  let n = 0;
+  ScriptApp.getProjectTriggers().forEach(t => {
+    if (t.getHandlerFunction() === DIGEST_RUN) { ScriptApp.deleteTrigger(t); n++; }
+  });
+  return { removed: n };
+}
+/* How many are booked, for the admin's card. Null when it cannot be asked. */
+function digestScheduled_() {
+  try { return ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === DIGEST_RUN).length; }
+  catch (err) { return null; }
+}
+
+
+/* ---------- WHAT THE ADMIN'S PREVIEW IS SENT — `digestPreview` in dopost.gs -------------------------
+   THIS WEEK SO FAR, and nothing written and nothing sent: the plan, rendered, for the card on the
+   Settings column (js/digest.js). Every address is in it, which is why the action is `admin`. */
+function digestPreviewOut_(now) {
+  let cfg = {};
+  try { cfg = config(); } catch (err) { cfg = {}; }
+  const week = digestWeek_(now);
+  const plan = digestPlanNow_(week);
+  return {
+    success: true, mode: digestMode_(cfg), hour: digestHour_(cfg), scheduled: digestScheduled_(),
+    week: { start: week.start, end: week.end, span: digestSpan_(week) },
+    learners: plan.learners.map(L => ({ id: L.id, name: L.name, count: L.count, fresh: L.fresh.length,
+      again: L.again.length, to: L.to.map(p => p.name), why: L.why })),
+    emails: plan.emails.map(m => ({ learner: m.learner, parent: m.parent, to: m.to, subject: m.subject,
+      text: m.text, html: m.html, count: m.count })),
+    unreachable: plan.unreachable,
+  };
+}

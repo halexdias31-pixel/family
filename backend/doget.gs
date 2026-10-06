@@ -475,6 +475,9 @@ function doGet(e) {
                  /* The Timetable widget's week, kept on the account. */
                  'saveTimetable',
                  'listRecords', 'saveRecordsPage',
+                 /* The weekly parent email's Preview — the card asks before it posts, so a backend
+                    synced before backend/digest.gs existed says so rather than "not recognised". */
+                 'digestPreview',
                  /* The site checks for this to decide whether it may offer the picker. */
                  'folderFiles',
                  /* `likePost` is deliberately absent. The site checks this list, so a stale copy

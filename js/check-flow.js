@@ -7330,6 +7330,34 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
   await wait(30);
   if (marks().length - n1 !== 1) bad.push('typing an answer sent ' + (marks().length - n1) + ' markDone requests, wanted 1');
 
+  /* AND ITS NAME, for the weekly parent email (backend/digest.gs): a card the library holds sends what
+     a parent can read — the subject, the paper, the number — and the subject is not said twice when
+     the paper's name already says it. The cards above are not in the library, and sent no label. */
+  const heldItems = w.stuffItemsAll_;
+  const named = (k, subject, sub) => Object.assign(q(k), { subject: subject, sub: sub });
+  const qa = named('q-named', 'Maths', 'Paper 1 (Calculator) — June 2024');
+  const qb = named('q-named-2', 'Biology', 'Biology Paper 2 — June 2023');
+  const n3 = marks().length;
+  w.stuffItemsAll_ = () => [qa, qb];
+  try { check_(draw(qa)); check_(draw(qb)); } finally { w.stuffItemsAll_ = heldItems; }
+  await wait(30);
+  const labels = marks().slice(n3).map(b => ((b.items || [])[0] || {}).label);
+  if (JSON.stringify(labels) !== JSON.stringify(['Maths · Paper 1 (Calculator) — June 2024 · Q8', 'Biology Paper 2 — June 2023 · Q8'])) {
+    bad.push('a Check on a library card sent the labels ' + JSON.stringify(labels) + ' — wanted "Maths · Paper 1 (Calculator) — June 2024 · Q8" and "Biology Paper 2 — June 2023 · Q8", the name a parent reads in the weekly email');
+  }
+  /* A PRACTICAL'S WORKSHEET BOX is the card's key with a slot on the end (`guideBox_`), and it was
+     looked up whole, so it found no card and went up nameless — three raw keys in a parent's email
+     for one worksheet. The slot comes off for the lookup and the name says it was the worksheet. */
+  const pr = { kind: 'practical', name: 'Specific heat capacity', key: 'pr:PR-T1', subject: 'Physics', sub: 'AQA required practical' };
+  const n4 = marks().length;
+  w.stuffItemsAll_ = () => [qa, pr];
+  try { w.doneMark_('ans:' + w.whoIs_() + ':pr:PR-T1#iv'); } finally { w.stuffItemsAll_ = heldItems; }
+  await wait(30);
+  const prSent = (((marks().slice(n4)[0] || {}).items) || [])[0] || {};
+  if (prSent.key !== 'pr:PR-T1#iv' || prSent.label !== 'Physics · AQA required practical · Specific heat capacity · Worksheet') {
+    bad.push('a practical’s worksheet box sent ' + JSON.stringify(prSent) + ' — wanted key pr:PR-T1#iv with the label "Physics · AQA required practical · Specific heat capacity · Worksheet"');
+  }
+
   /* A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
   w.__t.USER({ name: 'Ben Other', personId: 'P8', role: 'student', roles: ['student'], token: 'tok-P8' });
   if (shows('q-sheet-only')) bad.push('Ben sees Lucca\'s sheet date: "' + shows('q-sheet-only') + '"');
@@ -7356,6 +7384,75 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
   await wait(30);
   if (marks().length !== n2) bad.push('a backend that does not list markDone was sent it anyway');
   w.__t.USER(null);
+  return bad;
+});
+
+/* ---------- THE WEEKLY PARENT EMAIL'S CARD -----------------------------------------------------------
+   ASKED FOR AS THE INFRASTRUCTURE FOR *"something which triggers every sunday"* and emails parents —
+   built and switched off (backend/digest.gs). The card is how an admin sees which: it says the mode the
+   config row says (anything but preview or send is Off, as on the server), it is an admin's alone, and
+   its one tile asks `digestPreview` — a read — and opens what would be sent, the plain body escaped.
+   It posts nothing else, and a backend without the action is told so rather than asked. */
+check('the weekly parent email card is an admin\'s, says the switch, and Preview opens the emails without sending one', async () => {
+  const preview = { success: true, mode: 'preview', hour: 18, scheduled: 0,
+    week: { start: '2026-09-28', end: '2026-10-04', span: '28 Sep – 4 Oct' },
+    emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s week: 2 questions',
+               text: 'Hello Pat,\n\nThis week (28 Sep – 4 Oct, up to 6pm on Sunday) Ada worked on 2 questions.\n\nThe questions\n- <b>Maths</b> · Q1\n- q:Q-2',
+               html: '<p>Hello Pat,</p>', count: 2 }],
+    unreachable: [{ id: 'P-S3', name: 'Cal Alone', count: 1, why: 'no parent has accepted a link to them' }] };
+  const p = payload();
+  p.features = ['digestPreview'];
+  p.constants.vars.weekly_digest = 'off';
+  const { w, sent } = boot({ payload: p, reply: b => (b.action === 'digestPreview' ? preview : { success: true }) });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  const bad = [];
+  const card = () => d.querySelector('#s-settings .card.digest');
+  const said = () => (card().querySelector('.digest-mode') || {}).textContent || '';
+  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk', profile: {} });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(200);
+  if (card()) bad.push('a parent is shown the weekly parent email card — it is an admin’s');
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', profile: {} });
+  w.paint('settings');
+  await wait(200);
+  if (!card()) return bad.concat(['an admin has no Weekly parent email card on the Settings column']);
+  if (!/Weekly parent email:\s*Off/.test(said())) bad.push('with weekly_digest off the card reads "' + said() + '"');
+  [['Preview', 'Preview'], ['send', 'Send'], ['yes', 'Off'], ['', 'Off']].forEach(([cell, word]) => {
+    t.DATA().constants.vars.weekly_digest = cell;
+    w.paint('settings');
+    if (!new RegExp('Weekly parent email:\\s*' + word).test(said())) bad.push('weekly_digest "' + cell + '" reads "' + said() + '" — wanted ' + word + ', as the server reads it');
+  });
+  t.DATA().constants.vars.weekly_digest = 'off';
+  w.paint('settings');
+  const tile = card().querySelector('.tile-row .tile[data-do="digest-preview"]');
+  if (!tile) return bad.concat(['the card has no Preview tile in a tile row']);
+  if (card().querySelector('button:not(.tile)')) bad.push('the card has a plain button — a thing has tiles');
+  sent.length = 0;
+  t.ACTIONS['digest-preview'](tile);
+  await wait(300);
+  const asks = sent.filter(b => b.action === 'digestPreview');
+  if (asks.length !== 1) bad.push('Preview posted ' + JSON.stringify(sent.map(b => b.action)) + ' — wanted one digestPreview');
+  if (sent.some(b => b.action !== 'digestPreview')) bad.push('Preview posted something besides the read: ' + JSON.stringify(sent.map(b => b.action)));
+  const sheet = d.getElementById('sheet'), body = d.getElementById('sheet-body');
+  if (!sheet || sheet.classList.contains('hidden')) bad.push('Preview did not open the sheet');
+  const text = body ? body.textContent.replace(/\s+/g, ' ') : '';
+  ['28 Sep – 4 Oct', 'To Pat Parent · pat@example.org', 'Ada’s week: 2 questions', 'Hello Pat,', 'q:Q-2',
+   'Cal Alone — no parent has accepted a link to them', 'This preview sent nothing', 'no Sunday booked yet',
+   'On Sunday this email would be written to the digest_log tab, and none sent'].forEach(s => {
+    if (text.indexOf(s) === -1) bad.push('the preview sheet does not say "' + s + '"');
+  });
+  if (text.indexOf('<b>Maths</b>') === -1 || (body && [...body.querySelectorAll('b')].some(b => b.textContent === 'Maths'))) bad.push('a question’s name was drawn as markup in the preview — it came off a phone and must be printed as text');
+  if (!/Weekly parent email:\s*Preview/.test(said())) bad.push('after the preview the card still reads "' + said() + '" — wanted the mode the server just answered with');
+  /* A BACKEND FROM BEFORE digest.gs: told, not asked. */
+  try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
+  t.DATA().features = [];
+  sent.length = 0;
+  t.ACTIONS['digest-preview'](card().querySelector('[data-do="digest-preview"]'));
+  await wait(100);
+  if (sent.some(b => b.action === 'digestPreview')) bad.push('a backend that does not list digestPreview was sent it: ' + JSON.stringify(sent.map(b => b.action)));
+  if (!/sync backend/i.test((card().querySelector('.digest-said') || {}).textContent || '')) bad.push('a backend without the weekly email is not said to need a sync');
+  t.USER(null);
   return bad;
 });
 

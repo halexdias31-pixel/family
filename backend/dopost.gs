@@ -3641,6 +3641,21 @@ function doPost(e) {
       return jsonOut({ success: true, attempts: out.attempts });
     }
 
+    /* ---------- WHAT THE WEEKLY PARENT EMAIL WOULD SAY THIS WEEK ---------------------------------------
+       ASKED FOR AS THE INFRASTRUCTURE FOR *"something which triggers every sunday"* and emails parents
+       the questions their child did — built, and switched off. This is the one door onto it from the
+       phone, and it opens onto a READ: this week's plan and every email rendered, for the admin's card
+       on the Settings column. It writes no row, sends no email and books no trigger, whatever
+       `weekly_digest` says — those are the Sunday run's, in backend/digest.gs, and the owner's.
+       `admin` in ACTION_ACCESS: the reply is every learner's week and every parent's address. */
+    if (action === 'digestPreview') {
+      try {
+        return jsonOut(digestPreviewOut_(new Date()));
+      } catch (err) {
+        return jsonOut({ error: 'The preview could not be built: ' + S(err && err.message || err) });
+      }
+    }
+
     if (action === 'openWaitlist') {
       const me = findPerson(S(body.name), S(body.personId));
       if (!me) return jsonOut({ error: 'Not signed in.' });
@@ -4334,10 +4349,16 @@ function loginReplyFor_(r, token) {
      · a day after `last`     → last = day, times + 1                       (one write: adjacent cells)
      · a day before `first`   → first = day, times + 1   (an offline copy older than the sheet)
      · a day already covered  → nothing at all. A retried request, two phones, a re-sent backlog:
-                                none of them can count a day twice, and none of them writes. */
+                                none of them can count a day twice, and none of them writes.
+
+   `label` RIDES ALONG WHERE A ROW IS BEING WRITTEN ANYWAY — on a new row, and on an old one with no
+   label the next time its day moves. Never on its own: a label arriving for a day already covered
+   would be a write the rule above says cannot happen, and the label is for the weekly email, which
+   only reads rows whose day moved this week. See SCHEMA.attempts. */
 function attemptsUpsert_(pid, items) {
   const t = read(TAB.attempts);
   if (!t.sheet) return { error: 'The sheet has no attempts tab. Run ensureSchema() (open /exec?setup=1) to add it.' };
+  const hasLabel = t.headers.indexOf('label') !== -1;
   const today = Utilities.formatDate(new Date(), 'Europe/London', 'yyyy-MM-dd');
   const tomorrow = Utilities.formatDate(new Date(Date.now() + 864e5), 'Europe/London', 'yyyy-MM-dd');
   const out = {};
@@ -4347,9 +4368,16 @@ function attemptsUpsert_(pid, items) {
     if (!q || q.length > 120) return;
     let day = S(it && it.day);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day > tomorrow || day < '2024-01-01') day = today;
+    /* NO `label` KEY AT ALL WHEN THERE IS NOTHING TO PUT IN IT, OR NOWHERE TO PUT IT. `addRow` reports
+       every key the tab has no column for, and `jsonOut` turns that into "Nothing was saved for:
+       attempts.label" — so on a live tab from before the column (a sync with the version stamps
+       unmoved, `autoMigrate` not yet run) every `markDone` came back an error, labelled or not, while
+       the rows were in fact written. The name is the weekly email's nicety; the day is the record. */
+    const label = hasLabel ? attemptLabel_(it && it.label) : '';
     const row = t.rows.find(r => key(r.person_id) === key(pid) && S(r.question_key) === q);
     if (!row) {
-      addRow(t, { person_id: pid, question_key: q, first_done: day, last_done: day, times: 1 });
+      addRow(t, Object.assign({ person_id: pid, question_key: q, first_done: day, last_done: day, times: 1 },
+                              label ? { label: label } : {}));
       out[q] = { first: day, last: day, times: 1 };
       return;
     }
@@ -4358,10 +4386,20 @@ function attemptsUpsert_(pid, items) {
     if (!last || day > last) v.last_done = day;
     if (!first || day < first) v.first_done = day;
     if (v.last_done || (v.first_done && first)) v.times = (N(row.times) || 0) + 1;
+    if (Object.keys(v).length && label && !S(row.label)) v.label = label;
     if (Object.keys(v).length) setCells(t, row, v);
     out[q] = { first: v.first_done || first, last: v.last_done || last, times: N(v.times || row.times) || 1 };
   });
   return { attempts: out };
+}
+
+/* A QUESTION'S NAME AS A PARENT WILL READ IT, FROM WHATEVER THE PHONE SENT. It came off a phone and
+   goes into an email, so: no tags (the HTML email escapes it as well — this is the cell, which a
+   person also reads), one space where there were several, and `ATTEMPT_LABEL_MAX` at most. Blank
+   is a real answer — the email falls back to the key. `cellSafe_` deals with a leading `=`. */
+function attemptLabel_(v) {
+  return S(v).replace(/<[^>]*>?/g, ' ').replace(/[<>]/g, ' ').replace(/\s+/g, ' ').trim()
+    .slice(0, ATTEMPT_LABEL_MAX).trim();
 }
 
 /* EVERY ADMIN'S PERSON ID — the other payload a done question appears in (`attemptsFor_`). */
