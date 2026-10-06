@@ -5778,6 +5778,57 @@ function paperIdOf_(r) {
   return (r && (r.paperId || r.paper_id || r.paper)) || '';
 }
 
+/* ---------- THE ORDER OF A QUESTION'S PARTS, DECIDED FOR THE WHOLE QUESTION AT ONCE -----------------
+   THE PART WAS SORTED AS LETTERS, and three traps sat in that (the multi-part audit, finding 13 --
+   none live in the bank today, all one transcription away): "ix" sorts before "v", part 10 before
+   part 2, and "bi" beside "b(ii)" reads b(ii), b(iii), bi.
+
+   AND A NUMERAL IS NOT ALWAYS A NUMERAL. "i" is part (i) of Q8 and the ninth letter of a question
+   that runs a to j; "xi" is eleven, or (x)(i). Sorting numerals by value everywhere fixes "ix" and
+   breaks h, i, j. So the reading is decided ONCE PER QUESTION, from every part it has: a question
+   whose every part is a numeral on its own (i, ii ... ix, x, xi) is numbered in numerals and sorts
+   by value; any other is lettered, and each part is its letter then its numeral's value --
+   brackets and spaces dropped first, so "b(ii)" and "bii" are the same part, which also makes a
+   mixed spelling sort right (`check-library.js` still refuses one: the data should not say it two
+   ways). Digits are padded the way `padNums_` pads them, so part 10 follows part 9.
+
+   Keyed by the row, so `questionItems` reads one map; a question's rows are grouped by paper and
+   number, which is exactly what makes them one question. */
+const romanVal_ = s => {
+  const v = { i: 1, v: 5, x: 10 };
+  let n = 0;
+  for (let k = 0; k < s.length; k++) {
+    const a = v[s[k]] || 0, b = v[s[k + 1]] || 0;
+    n += a < b ? -a : a;
+  }
+  return n;
+};
+const partBare_ = p => String(p == null ? '' : p).trim().toLowerCase().replace(/[()\s]/g, '');
+function partKeyOf_(part, numerals) {
+  const s = partBare_(part);
+  if (!s) return '';
+  if (/^\d+$/.test(s)) return padNums_(s);
+  if (numerals && ROMAN_ONLY.test(s)) return padNums_(String(romanVal_(s)));
+  const m = /^([a-z])(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/.exec(s);
+  if (m) return m[1] + (m[2] ? padNums_(String(romanVal_(m[2]))) : '');
+  return padNums_(s);
+}
+function partKeys_(rows) {
+  const by = {};
+  (rows || []).forEach(r => {
+    if (!r || r.kind === 'preamble' || r.kind === 'document') return;
+    const k = paperIdOf_(r) + '|' + (r.q == null ? '' : r.q);
+    (by[k] = by[k] || []).push(r);
+  });
+  const out = new Map();
+  Object.keys(by).forEach(k => {
+    const list = by[k];
+    const numerals = list.every(r => { const s = partBare_(r.part); return !s || ROMAN_ONLY.test(s); });
+    list.forEach(r => out.set(r, partKeyOf_(r.part, numerals)));
+  });
+  return out;
+}
+
 /* ---------- WHAT A QUESTION IS ABOUT, AS WORDS -----------------------------------------------------
    THE SEARCH BOX COULD NOT SEE INSIDE A QUESTION. `hay` was name, sub, subject, slot and grade —
    and a question's name is `Q5b`. So of three thousand rows, not one was findable by what it is
@@ -6185,6 +6236,8 @@ function questionItems() {
   const kit = needsIndex_(all);
   /* AND THE CODE ON EACH PAPER'S COVER — see `specIndex_`. Built once per draw, off the file. */
   const spec = specIndex_();
+  /* EACH PART'S PLACE IN ITS QUESTION -- see `partKeys_`. */
+  const partKey = partKeys_(all);
 
   return all.filter(r => r.kind !== 'preamble' && r.kind !== 'document').map(r => {
     const lead = preamble_(r, stems);
@@ -6214,7 +6267,7 @@ function questionItems() {
          the number inside the name. Nothing has written them since the paper card was deleted and
          nothing was visibly wrong — see the note above the sort, which is about why that is not the
          same as nothing being wrong. */
-      qNumber: r.q, qPart: r.part || '',
+      qNumber: r.q, qPart: r.part || '', qPartKey: partKey.get(r) || '',
       /* THE TOPICS, RESOLVED ONCE. `topicOf_` splits the cell and puts every spelling of a topic on
          one button, and doing that inside the facet meant doing it per item per question asked:
          MEASURED at 38 ms to interrogate this one facet across the library. It is a fact about the
@@ -9881,10 +9934,22 @@ function stuffSorted_(items) {
    two orders become the same order. Eight digits is wider than any number this app holds.
    `\u0000` BETWEEN THE PARTS, because it sorts below every printable character — so a short field
    always loses to a longer one that starts the same way, which is what a tie-break means. */
+/* ---------- AND THE PAPER ITSELF STRAIGHT AFTER ITS NAME, THEN THE PART BY `qPartKey` --------------
+   TWO PAPERS CAN SHARE A NAME. June 2024 1F and 1H are both "Paper 1 (Non-calculator) — June 2024",
+   so with the name first and the number second their parts interleaved: H13a, F13a (the wallet),
+   H13b "these 150 people" -- which reads as if it follows the wallet. Measured by the multi-part
+   audit: 168 questions split that way across the library, only when Tier and Paper were both skipped
+   or in a mixed search. The id is unique, so the second term settles every tie the name leaves.
+
+   THE PART BY ITS VALUE, NOT ITS LETTERS: `qPartKey` is worked out per question by `partKeys_` (see
+   there), because "ix" sorted before "v" and part 10 before part 2 on letters, and the obvious fix --
+   numerals by value everywhere -- puts h, i, j out of order. Anything that is not a question has no
+   key and falls through to the letters, as it always did. */
 const sortKey_ = x => [
   padNums_(String(x.sub || x.name || '').toLowerCase()),
+  x.kind === 'question' ? String(paperIdOf_(x.row) || '').toLowerCase() : '',
   padNums_(String(x.qNumber == null ? '' : x.qNumber)),
-  String(x.qPart || '').toLowerCase(),
+  x.qPartKey != null ? x.qPartKey : String(x.qPart || '').toLowerCase(),
   padNums_(String(x.name || '').toLowerCase()),
 ].join('\u0000');
 

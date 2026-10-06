@@ -1569,6 +1569,32 @@ if (toolNoPen.length) {
     + '   (their answer_type is not drawing; a `surface` would give them one)');
 }
 
+/* ---------- ONE SPELLING OF A PART PER QUESTION ---------------------------------------------------
+   THE MULTI-PART AUDIT, FINDING 13: the order of a question's parts is read off how each is spelled,
+   and "bi" beside "b(ii)" used to sort b(ii), b(iii), bi -- (i) last. `partKeys_` in find.js now reads
+   the two as one, so the order would come out right; this is the other half, because a question that
+   says one thing two ways is a transcription that was not looked at twice, and the next reader of the
+   column -- a script, a sheet formula -- will not be as forgiving. Bracketed is "a(i)", bare is "ai";
+   a numeral on its own ("ii") is neither and is allowed beside either. */
+const spellBy_ = {};
+rows.forEach(r => {
+  if (!r || r.kind !== 'question' || !r.part) return;
+  const p = String(r.part).trim();
+  const how = /\(/.test(p) ? 'bracketed' : /^[a-z](i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/i.test(p) ? 'bare' : '';
+  if (!how) return;
+  const k = String(r.paper_id) + ' Q' + String(r.question || '');
+  (spellBy_[k] = spellBy_[k] || {})[how] = (spellBy_[k][how] || []).concat(p);
+});
+const mixedSpell_ = Object.keys(spellBy_).filter(k => spellBy_[k].bracketed && spellBy_[k].bare);
+/* SAID AS WELL AS PUSHED, for the reason the tools count below gives: this is past where `fail` prints. */
+mixedSpell_.forEach(k => {
+  const why = `${k} spells its parts two ways — ${spellBy_[k].bracketed.join(', ')} beside `
+    + `${spellBy_[k].bare.join(', ')}. Keep to one per question: a(i), a(ii) or ai, aii.`;
+  fail.push(why);
+  console.log('  ' + why);
+});
+console.log(`questions spelling their parts two ways (bi beside b(ii)): ${mixedSpell_.length}`);
+
 console.log(`rows saying where the paper prints their figure (<!--fig-->): ${marked}`
   + `   (the rest stand it in front of the ask, or after it for a pen question)`);
 const allDocs_ = rows.filter(r => r && r.kind === 'document').length;
