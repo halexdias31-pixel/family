@@ -49,7 +49,8 @@
      nobody did, for weeks, while the manifest and the apple-touch-icon below went on naming a file
      that was not there. Three consumers, one 404, and Add to Home Screen on either platform giving
      a blank tile. The whole chain was built twice over — `applyBrandIcon_` in shell.js and
-     `brandIcon()` in me.js — and the one thing missing was the file.
+     `brandIcon()` in me.js — and the one thing missing was the file. (`brandIcon()` has gone since:
+     its only caller was the install card, which nothing drew. `applyBrandIcon_` is the one.)
 
      IT IS THERE NOW. `tools/make-icon.py` draws it: the `@` of `@family.` in the site's own
      typeface, cut out of a gold tile, 512×512. That script carries the whole argument — why it is
