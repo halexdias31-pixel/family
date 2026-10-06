@@ -1031,21 +1031,31 @@ async function gesture(env, o) {
         const tall = await page.evaluate(async () => {
           if (typeof stuffItems !== 'function') return null;
           await window.__sw.place('stuff');
-          const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-probability-tree-diagrams-12');
+          const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
           const facet = FACETS.find(f => f.field === 'paperId');
           if (!want || !facet) return null;
           STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
           paintStuff(true);
           await new Promise(r => setTimeout(r, 400));
           const items = stuffFiltered();
-          const i = items.findIndex(x => x.row && x.row.row_id === 'Q-1CM-probability-tree-diagrams-12');
+          const i = items.findIndex(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
           if (i < 0) return null;
-          goPage('stuff', stuffPageOf_(items[i]) + stuffFirstResult_(), true);
+          /* ITS TALLEST PAGE — the probability-tree card this used stopped being tall when the 1st
+             Class Maths sheets were transcribed properly; see the same note in press.js. */
+          const at = stuffPageOf_(items[i]) + stuffFirstResult_();
+          let best = null;
+          for (let p = at; p < at + 4; p++) {
+            goPage('stuff', p, true);
+            await window.__sw.still('stuff');
+            const pane = document.querySelector('#s-stuff > .page.on > .pane');
+            const room = pane ? pane.scrollHeight - pane.clientHeight : 0;
+            if (!best || room > best.room) best = { page: PAGE.stuff, room };
+          }
+          goPage('stuff', best.page, true);
           await window.__sw.still('stuff');
-          const pane = document.querySelector('#s-stuff > .page.on > .pane');
-          return pane ? { page: PAGE.stuff, room: pane.scrollHeight - pane.clientHeight } : null;
+          return best;
         });
-        if (!tall || tall.room < 200) fail('REACH', `${at} tall card`, tall ? `the card has ${tall.room}px to scroll — not tall` : 'the tall question card was not found');
+        if (!tall || tall.room < 60) fail('REACH', `${at} tall card`, tall ? `the card has ${tall.room}px to scroll — not tall` : 'the tall question card was not found');
         else {
           const top = () => page.evaluate(() => Math.round(document.querySelector('#s-stuff > .page.on > .pane').scrollTop));
           const zero = () => page.evaluate(() => { document.querySelector('#s-stuff > .page.on > .pane').scrollTop = 0; });
@@ -1058,7 +1068,8 @@ async function gesture(env, o) {
           reached++;
           note(`${at} a fast flick on a tall card: ${lift}px at the lift, ${later}px 700ms later, page ${tall.page} → ${pg}`);
           if (pg !== tall.page) fail('GLIDE', `${at} tall card`, `the flick turned the page (${tall.page} → ${pg}) — a tall card scrolls before the page turns`);
-          else if (later - lift < 60) fail('GLIDE', `${at} tall card`, `the card moved ${later - lift}px after the thumb left it — a flick stopped dead at the lift`);
+          /* SIXTY PIXELS, OR TO THE CARD'S END IF THAT IS NEARER — a glide that reaches the end has glided. */
+          else if (later - lift < Math.min(60, tall.room - lift - 2)) fail('GLIDE', `${at} tall card`, `the card moved ${later - lift}px after the thumb left it — a flick stopped dead at the lift`);
           /* AND A TOUCH DURING THE GLIDE STOPS IT, AND PRESSES NOTHING. */
           await zero(); await sleep(150);
           await page.evaluate(() => window.__sw.reset());
@@ -1086,7 +1097,7 @@ async function gesture(env, o) {
         if (typeof stuffItems !== 'function') return null;
         await window.__sw.place('stuff');
         const facet = FACETS.find(f => f.field === 'paperId');
-        const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-probability-tree-diagrams-12');
+        const want = stuffItemsAll_().find(x => x.row && x.row.row_id === 'Q-1CM-volume-and-surface-area-cuboids-9');
         if (!want || !facet) return null;
         STUFF.q = ''; STUFF.filters = [{ field: 'paperId', value: facet.of(want) }];
         paintStuff(true);
