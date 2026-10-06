@@ -155,7 +155,15 @@ const SCREENS_FALLBACK = ['stuff', 'account', 'feed', 'booking', 'shop', 'tools'
    the iPhone 12 through 15; 1024 is the iPad held upright, which is where 768 comes from; 800 is an
    ordinary laptop, and the shortest of the laptop heights rather than the tallest, because the
    question this file asks is whether a thing FITS. */
-const SIZES = [[320, 568], [390, 844], [768, 1024], [1280, 800]];
+/* AND 1920x1080, ADDED 6 OCTOBER WITH THE WIDE WINDOW (THE GRID SHOWS MORE OF ITSELF, shell.js).
+   From 700px up the app stops being one phone-width column and shows whole screens side by side —
+   one wider card at 768, three at 1280, five at 1920 — and those are three different layouts, not
+   one layout at three sizes. 1280 already measured the three; nothing measured the five, which is
+   the one where the most columns are on the glass at once and a card is narrowest beside others.
+   `--width=1920` measures one size alone, for the same reason `--screen` measures one screen. */
+const WIDTH_ONLY = Number(arg('width') || 0);
+const SIZES = [[320, 568], [390, 844], [768, 1024], [1280, 800], [1920, 1080]]
+  .filter(s => !WIDTH_ONLY || s[0] === WIDTH_ONLY);
 
 /* THE STATES A SCREEN CAN BE IN — see check/states.js, which `check/press.js` reads as well. One
    list, because a state declared for the measuring pass and not the pressing one is a surface

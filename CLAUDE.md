@@ -186,7 +186,7 @@ node js/check-practicals.js      # the 41 practicals, and whether their topics j
 node js/check-funnel.js          # the real funnel over the real library: can each question narrow?
 node js/check-const.js           # nothing declared `const` is assigned to. Two seconds.
 node check/deploy.js             # after a push, does a browser that has the site run the new code
-node check/ui.js                 # 9 screens x 4 widths x 2 visitors. Exits 1 on anything new.
+node check/ui.js                 # 9 screens x 5 widths x 2 visitors. Exits 1 on anything new.
 node check/ui.js --screen=tools  # one screen
 node check/ui.js --shots         # also writes PNGs to check/shots/ for a human to look at
 node check/live.js --sheets s.json --out /tmp/p.json   # the REAL doGet over the REAL spreadsheets
