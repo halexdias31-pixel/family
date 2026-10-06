@@ -71,9 +71,11 @@ const FAMILY = [
   L(7, 'P-C9', 'P-S9', 'accepted'),     // the other Ada's
   L(8, 'P-S1', 'P-S1', 'accepted'),     // a typo linking Ada to herself
 ];
+/* `slot_codes` IS WHAT `createJob` WRITES NOW — every hour the grid ticked. A row without it is a row
+   from before, and section 2 asks those separately. */
 const J1 = { job_id: 'J-1', status: 'active', subject: 'Maths', service: 'Tuition', weekday: 'Tuesday', start_time: '16:00',
   hours_per_session: 2, venue: 'Online', session_dates: '22/09/2026, 29/09/2026, 06/10/2026, 13/10/2026',
-  for_children: 'Ada Pupil, Someone else', kind: '' };
+  for_children: 'Ada Pupil, Someone else', kind: '', slot_codes: 'tu16,tu17' };
 const E = (job, actor, role, action, target) => ({ event_id: 'e-' + job + '-' + actor + '-' + action, job_id: job, actor: actor,
   role: role, action: action, target: target || '', message: '' });
 const booked = (job, client) => [E(job, client, 'client', 'Request'), E(job, 'Sam Tutor', 'tutor', 'Accept', client),
@@ -83,8 +85,10 @@ const PAPER1 = 'Maths · Paper 1 (Calculator) — June 2024';
 const ADA = [
   A('P-S1', 'q:ADA-AGAIN', '2026-09-29', '2026-10-06', PAPER1 + ' · Q7'),
   A('P-S1', 'q:ADA-NEW', '2026-10-06', '2026-10-06', PAPER1 + ' · Q3'),
-  A('P-S1', 'pr:PR-BI01#iv', '2026-10-06', '2026-10-06', 'Biology · Required practical · Osmosis · Worksheet'),
-  A('P-S1', 'pr:PR-BI01#dv', '2026-10-06', '2026-10-06', 'Biology · Required practical · Osmosis · Worksheet'),
+  /* AS THE PHONE SENT IT BEFORE `doneLabel_`: the practical card's own line, minutes and all. A
+     parent reads "60 min" as how long the child spent, so it never reaches an email. */
+  A('P-S1', 'pr:PR-BI01#iv', '2026-10-06', '2026-10-06', 'Biology · Required practical · 60 min · Osmosis · Worksheet'),
+  A('P-S1', 'pr:PR-BI01#dv', '2026-10-06', '2026-10-06', 'Biology · Required practical · 60 min · Osmosis · Worksheet'),
   A('P-S1', 'q:ADA-MON', '2026-10-05', '2026-10-05', 'Maths · Paper 2 · Q1'),
   A('P-S1', 'q:ADA-WED', '2026-10-07', '2026-10-07', 'Maths · Paper 2 · Q9'),
   A('P-S1', 'q:ADA-SEP', '2026-09-29', '2026-09-29', 'Maths · Paper 2 · Q4'),
@@ -138,7 +142,7 @@ const DUE = '2026-10-06T19:05:00Z', EARLY = '2026-10-06T18:59:00Z';
 }
 {
   /* THE SUNDAY THE CLOCKS GO BACK, 25 Oct 2026: a 14:00 lesson ends 16:00 GMT, due 18:00 GMT = 18:00 UTC. */
-  const w = seeded({ job: { weekday: 'Sunday', start_time: '14:00', session_dates: '25/10/2026' },
+  const w = seeded({ job: { weekday: 'Sunday', start_time: '14:00', session_dates: '25/10/2026', slot_codes: 'su14,su15' },
                      attempts: [A('P-S1', 'q:BACK', '2026-10-25', '2026-10-25', 'Maths · Paper 5 · Q2')] });
   run(w, '2026-10-25T17:30:00Z');
   ask('on the day the clocks go back the run sent at 17:30 UTC — 17:30 GMT, before an 18:00 due', !w.mail.sent.length);
@@ -146,8 +150,9 @@ const DUE = '2026-10-06T19:05:00Z', EARLY = '2026-10-06T18:59:00Z';
   ask('on the day the clocks go back the run did not send at 18:05 UTC', w.mail.sent.length === 1);
 }
 {
-  /* A LESSON ENDING AT 22:00 IS DUE AT MIDNIGHT, and the email names the day it was on, not "today". */
-  const w = seeded({ job: { start_time: '20:00', session_dates: '06/10/2026' } });
+  /* A LESSON ENDING AT 22:00 IS DUE AT MIDNIGHT, and the email names the day it was on, not "today".
+     A row from before `slot_codes` — its own start, later than the grid's last end, is the end. */
+  const w = seeded({ job: { start_time: '20:00', session_dates: '06/10/2026', slot_codes: '' } });
   run(w, '2026-10-06T22:55:00Z');
   ask('a lesson ending at 22:00 London was emailed at 23:55, before midnight', !w.mail.sent.length);
   run(w, '2026-10-06T23:05:00Z');
@@ -169,17 +174,65 @@ const DUE = '2026-10-06T19:05:00Z', EARLY = '2026-10-06T18:59:00Z';
   });
 }
 
-/* ---------- 2. A START NOBODY KNOWS FOR THAT DATE IS THE LATEST IT COULD BE ---------------------------------- */
+/* ---------- 2. WHEN A DAY'S TEACHING ENDS: THE HOURS TICKED, OR THE LATEST IT COULD BE ------------------------ */
 {
-  /* MONDAY 10-12 AND FRIDAY …: the row keeps one start, the first run's. On the Friday it is not known,
-     so the end is 18:00 + 2h and the email is due at 22:00 London; at 10:00 + 2h + 2h it would go at 14:00
-     with the Friday lesson not yet begun. On the Monday it is known. */
-  const w = seeded({ job: { weekday: 'Monday, Friday', start_time: '10:00', session_dates: '05/10/2026, 09/10/2026' },
+  /* MONDAY 10-12 AND FRIDAY 16-18, AS `createJob` KEEPS IT NOW: the row's start is the Monday's, and
+     `slot_codes` holds both runs. Each day ends when its own hours do, and says so. */
+  const w = seeded({ job: { weekday: 'Monday, Friday', start_time: '10:00', session_dates: '05/10/2026, 09/10/2026',
+                            slot_codes: 'm10,m11,f16,f17' },
                      attempts: [A('P-S1', 'q:FRI', '2026-10-09', '2026-10-09', 'Maths · Paper 6 · Q1'),
                                 A('P-S1', 'q:MON', '2026-10-05', '2026-10-05', 'Maths · Paper 6 · Q2')] });
   run(w, '2026-10-05T13:05:00Z');
   const mon = w.mail.sent[0] || {};
-  ask('the Monday (the first day the booking names, start known) was not emailed at 14:05 London with its time: ' + JSON.stringify(mon.body && mon.body.split('\n')[2]),
+  ask('the Monday of a Monday-and-Friday booking with its hours kept was not emailed at 14:05 London with its time: ' + JSON.stringify(mon.body && mon.body.split('\n')[2]),
+    w.mail.sent.length === 1 && /Monday 5 October, 10am to 12pm\./.test(mon.body));
+  run(w, '2026-10-09T18:30:00Z');
+  ask('the Friday (16-18 by its own hours) was emailed at 19:30 London — before its 20:00 due', w.mail.sent.length === 1);
+  run(w, '2026-10-09T19:05:00Z');
+  const fri = w.mail.sent[1] || {};
+  ask('the Friday was not emailed at 20:05 London with its own time, 4pm to 6pm: ' + JSON.stringify(fri.body && fri.body.split('\n')[2]),
+    w.mail.sent.length === 2 && /Ada had Maths on Friday 9 October, 4pm to 6pm\./.test(fri.body));
+}
+{
+  /* TWO RUNS ON ONE DAY — the grid lets a family tick Monday 10 and Monday 16-17, and `bookSpec` names
+     the session by the first: `weekday` Monday, `start_time` 10:00, one hour. The day ends at 18:00, so
+     the email is due at 20:00 London; read off the three cells it went at 13:00 saying "10am to 11am",
+     and the afternoon's questions never went at all. Two runs are not one span: no time is printed. */
+  const w = seeded({ job: { weekday: 'Monday', start_time: '10:00', hours_per_session: 1, session_dates: '05/10/2026',
+                            slot_codes: 'm10,m16,m17' },
+                     attempts: [A('P-S1', 'q:AM', '2026-10-05', '2026-10-05', 'Maths · Paper 6 · Q4'),
+                                A('P-S1', 'q:PM', '2026-10-05', '2026-10-05', 'Maths · Paper 6 · Q5')] });
+  run(w, '2026-10-05T12:05:00Z');
+  run(w, '2026-10-05T18:05:00Z');
+  ask('a Monday booked 10-11 and 16-18 was emailed at ' + (w.mail.sent.length ? 'or before 19:05' : '—') + ' London, before the afternoon’s 20:00 due', !w.mail.sent.length);
+  run(w, '2026-10-05T19:05:00Z');
+  const m = w.mail.sent[0] || { body: '' };
+  ask('a Monday booked 10-11 and 16-18 was not emailed at 20:05 London, or its email states one run as the day: ' + JSON.stringify(m.body.split('\n')[2]),
+    w.mail.sent.length === 1 && /Ada had Maths on Monday 5 October\./.test(m.body) && !/10am to 11am/.test(m.body) && !/\d(am|pm) to /.test(m.body)
+    && /worked on 2 questions/.test(m.body));
+  /* AND THE SAME ROW FROM BEFORE `slot_codes`: nothing says there was only one run, so it is not due
+     before the grid's last possible end, 19:00, plus two — 21:00 London. */
+  const old = seeded({ job: { weekday: 'Monday', start_time: '10:00', hours_per_session: 1, session_dates: '05/10/2026', slot_codes: '' },
+                       attempts: [A('P-S1', 'q:AM', '2026-10-05', '2026-10-05', 'Maths · Paper 6 · Q4')] });
+  run(old, '2026-10-05T12:05:00Z');
+  run(old, '2026-10-05T19:30:00Z');
+  ask('a Monday 10-11 row with no hours kept was emailed before 21:00 London — a second run that day could end as late as 19:00', !old.mail.sent.length);
+  run(old, '2026-10-05T20:05:00Z');
+  ask('a Monday 10-11 row with no hours kept was not emailed at 21:05 London', old.mail.sent.length === 1);
+}
+{
+  /* MONDAY AND FRIDAY ON A ROW FROM BEFORE `slot_codes`: the row keeps one start, the first run's. On
+     the Monday it is known (not due before 19:00 + 2h); on the Friday it is not, so the end is 18:00 + 2h
+     and the email is due at 22:00 London — at 10:00 + 2h + 2h it would go at 14:00 with the Friday lesson
+     not yet begun. */
+  const w = seeded({ job: { weekday: 'Monday, Friday', start_time: '10:00', session_dates: '05/10/2026, 09/10/2026', slot_codes: '' },
+                     attempts: [A('P-S1', 'q:FRI', '2026-10-09', '2026-10-09', 'Maths · Paper 6 · Q1'),
+                                A('P-S1', 'q:MON', '2026-10-05', '2026-10-05', 'Maths · Paper 6 · Q2')] });
+  run(w, '2026-10-05T13:05:00Z');
+  ask('the Monday of a row with no hours kept was emailed at 14:05 London — 10:00 + 2h + 2h, as if nothing could follow it', !w.mail.sent.length);
+  run(w, '2026-10-05T20:05:00Z');
+  const mon = w.mail.sent[0] || {};
+  ask('the Monday (the first day the booking names, start known) was not emailed at 21:05 London with its time: ' + JSON.stringify(mon.body && mon.body.split('\n')[2]),
     w.mail.sent.length === 1 && /Monday 5 October, 10am to 12pm\./.test(mon.body));
   run(w, '2026-10-09T20:30:00Z');
   ask('the Friday of a Monday-and-Friday booking was emailed at 21:30 London — the first run’s 10:00 start used on another day', w.mail.sent.length === 1);
@@ -190,8 +243,8 @@ const DUE = '2026-10-06T19:05:00Z', EARLY = '2026-10-06T18:59:00Z';
 }
 {
   /* AN EDIT MOVE rewrites `weekday` and `start_time` and leaves `session_dates` — so the row says
-     Tuesday 16:00 and a date is a Wednesday. Nothing says when that Wednesday's lesson was, if there
-     was one: the latest it could end, and no time in the email. */
+     Tuesday 16:00 and a date is a Wednesday, which no ticked hour names either. Nothing says when that
+     Wednesday's lesson was, if there was one: the latest it could end, and no time in the email. */
   const w = seeded({ job: { session_dates: '06/10/2026, 07/10/2026' },
                      attempts: [A('P-S1', 'q:WEDNESDAY', '2026-10-07', '2026-10-07', 'Maths · Paper 6 · Q3')] });
   run(w, '2026-10-07T20:30:00Z');
@@ -200,17 +253,18 @@ const DUE = '2026-10-06T19:05:00Z', EARLY = '2026-10-06T18:59:00Z';
   ask('a Wednesday date on a row that names Tuesday was not emailed at 22:05 London, or states a time', w.mail.sent.length === 1 && !/\d(am|pm) to /.test(w.mail.sent[0].body));
 }
 {
-  const w = seeded({ job: { start_time: '' } });
+  const w = seeded({ job: { start_time: '', slot_codes: '' } });
   run(w, '2026-10-06T20:30:00Z');
   ask('a lesson with no start time was emailed at 21:30 London — before 18:00 + 2h + 2h', !w.mail.sent.length);
   run(w, '2026-10-06T21:05:00Z');
   ask('a lesson with no start time was not emailed at 22:05 London, or says a time', w.mail.sent.length === 1 && !/\d(am|pm) to /.test(w.mail.sent[0].body));
 }
 {
-  /* THE SHEET'S OWN SHAPES: a time-of-day Date, a two-digit year, and a single date the sheet made a Date. */
-  const w = seeded({ job: { start_time: new Date(1899, 11, 30, 16, 0) } });
-  run(w, EARLY); run(w, DUE);
-  ask('start_time as a time-of-day Date did not read as 16:00 (due 20:00): ' + w.mail.sent.length + ' sent',
+  /* THE SHEET'S OWN SHAPES: a time-of-day Date (on a row with no hours kept, so it is the start that is
+     read — due 19:00 + 2h), a two-digit year, and a single date the sheet made a Date. */
+  const w = seeded({ job: { start_time: new Date(1899, 11, 30, 16, 0), slot_codes: '' } });
+  run(w, '2026-10-06T19:55:00Z'); run(w, '2026-10-06T20:05:00Z');
+  ask('start_time as a time-of-day Date did not read as 16:00: ' + w.mail.sent.length + ' sent',
     w.mail.sent.length === 1 && /4pm to 6pm/.test(w.mail.sent[0].body));
   const y2 = seeded({ job: { session_dates: '29/09/26, 06/10/26' } });
   run(y2, DUE);
@@ -219,6 +273,71 @@ const DUE = '2026-10-06T19:05:00Z', EARLY = '2026-10-06T18:59:00Z';
   ask('the harness did not make a lone date a Date, so the single-Date cell was NOT checked', one.b.tabs.jobs[1][one.b.tabs.jobs[0].indexOf('session_dates')] instanceof Date);
   run(one, DUE);
   ask('a session_dates cell holding one Date was not read', one.mail.sent.length === 1);
+}
+{
+  /* WHAT `createJob` KEEPS, THROUGH THE REAL HANDLER: every hour ticked, as sent; nothing for an older
+     phone that sent none (the three cells' reading would claim the first run is the only one); and an
+     Edit that moves the day and the time takes the old hours away with it. */
+  const w = seeded();
+  const { b } = w;
+  b.seed('config', [{ key: 'max_open_requests', value: 20 }]);
+  const tok = (b.post({ action: 'verifyLogin', email: 'pat@example.org', pin: '0000' }) || {}).token;
+  const job = extra => {
+    const d = b.post(Object.assign({ action: 'createJob', token: tok, name: 'Pat Parent', personId: 'P-C1', requestedTutor: 'No preference',
+      subject: 'Maths', level: 'GCSE', location: 'Online', day: 'Monday', time: '10:00', hours: 1, price: 90,
+      dates: '05/10/2026', kids: 'Ada Pupil' }, extra));
+    const row = rowsOf(b, 'jobs').find(r => r.job_id === d.jobId) || {};
+    return { d, row };
+  };
+  const ticked = job({ slots: 'm10,M16, m17,zz9,m99,m16' });
+  ask('createJob did not keep the hours ticked as `slot_codes`: ' + JSON.stringify(ticked.d).slice(0, 160) + ' / ' + JSON.stringify(ticked.row.slot_codes),
+    ticked.d.success && ticked.row.slot_codes === 'm10,m16,m17');
+  const older = job({});
+  ask('createJob from a phone that sent no slots stored ' + JSON.stringify(older.row.slot_codes) + ' — wanted blank, not the first run claimed as the whole day',
+    older.d.success && older.row.slot_codes === '');
+  /* A LIVE JOBS TAB FROM BEFORE THE COLUMN — the hours between a deploy and the `?setup=1` that adds it.
+     A write to a column that is not there turns the reply into an error, for a row that WAS appended:
+     every family pressing Ask would be told it failed, and ask again. The hours are let go instead. */
+  {
+    const v = seeded();
+    v.b.seed('config', [{ key: 'max_open_requests', value: 20 }]);
+    const g = v.b.tabs.jobs, ci = g[0].indexOf('slot_codes');
+    g.forEach(r => r.splice(ci, 1));
+    v.b.ev('clearCache()');
+    const vt = (v.b.post({ action: 'verifyLogin', email: 'pat@example.org', pin: '0000' }) || {}).token;
+    const n0 = g.length;
+    const d = v.b.post({ action: 'createJob', token: vt, name: 'Pat Parent', personId: 'P-C1', requestedTutor: 'No preference',
+      subject: 'Maths', level: 'GCSE', location: 'Online', day: 'Monday', time: '10:00', hours: 1, price: 90,
+      dates: '05/10/2026', kids: 'Ada Pupil', slots: 'm10,m16,m17' });
+    ask('on a jobs tab with no slot_codes column yet, createJob answered ' + JSON.stringify(d).slice(0, 200) + ' — a booking must not fail over the hours it could not keep',
+      d.success && !d.error && g.length === n0 + 1);
+    v.mail.sent.length = 0; v.mail.unreceipted.length = 0; v.mail.locked.length = 0;
+  }
+  /* THE EDIT MOVE, while the family is still agreeing terms. A day or a time changed with no hours
+     sent: the old hours no longer describe it. New hours sent: those. */
+  const moved = job({ slots: 'm10,m11' });
+  const edit = b.post({ action: 'move', token: tok, jobId: moved.d.jobId, role: 'client', name: 'Pat Parent', move: 'Edit',
+    edits: { day: 'Wednesday', time: '15:00' } });
+  const after = rowsOf(b, 'jobs').find(r => r.job_id === moved.d.jobId) || {};
+  ask('an Edit that moved the day and time left the old hours in slot_codes: ' + JSON.stringify(edit).slice(0, 160) + ' / ' + JSON.stringify(after.slot_codes),
+    !edit.error && after.weekday === 'Wednesday' && after.slot_codes === '');
+  const edit2 = b.post({ action: 'move', token: tok, jobId: moved.d.jobId, role: 'client', name: 'Pat Parent', move: 'Edit',
+    edits: { day: 'Thursday', time: '14:00', slots: 'th14,th15' } });
+  const after2 = rowsOf(b, 'jobs').find(r => r.job_id === moved.d.jobId) || {};
+  ask('an Edit that sent its hours did not keep them: ' + JSON.stringify(edit2).slice(0, 160) + ' / ' + JSON.stringify(after2.slot_codes), !edit2.error && after2.slot_codes === 'th14,th15');
+  const say = b.post({ action: 'move', token: tok, jobId: moved.d.jobId, role: 'client', name: 'Pat Parent', move: 'Edit',
+    edits: { price: 95 } });
+  ask('an Edit that moved neither the day nor the time touched slot_codes', !say.error && (rowsOf(b, 'jobs').find(r => r.job_id === moved.d.jobId) || {}).slot_codes === 'th14,th15');
+  /* AND THE JOB `createJob` WROTE IS EMAILED AFTER THE AFTERNOON, not the morning. The mail the
+     handlers above sent ("Booking received") is theirs, not this email's, and is set aside. */
+  w.mail.sent.length = 0; w.mail.unreceipted.length = 0; w.mail.locked.length = 0;
+  b.seed('events', [E(ticked.d.jobId, 'Sam Tutor', 'tutor', 'Accept', 'Pat Parent'), E(ticked.d.jobId, 'Pat Parent', 'client', 'Confirm')]);
+  b.seed('attempts', [A('P-S1', 'q:NEWJOB', '2026-10-05', '2026-10-05', 'Maths · Paper 6 · Q6')]);
+  run(w, '2026-10-05T13:05:00Z');
+  ask('the booking createJob just wrote (Monday 10, and 16-17) was emailed at 14:05 London, before its afternoon', !w.mail.sent.length);
+  run(w, '2026-10-05T19:05:00Z');
+  ask('the booking createJob just wrote was not emailed at 20:05 London, after its afternoon: ' + w.mail.sent.map(m => m.subject),
+    w.mail.sent.length === 1 && /^Ada’s session on Mon 5 Oct/.test(w.mail.sent[0].subject));
 }
 
 /* ---------- 3. NO BACKFILL ---------------------------------------------------------------------------------- */
@@ -361,6 +480,49 @@ const DUE = '2026-10-06T19:05:00Z', EARLY = '2026-10-06T18:59:00Z';
   ask('a first name on the booking, unique among the booker’s children, was not matched', to(w, 'pat@example.org').length === 1);
 }
 
+/* A FAMILY THAT JOINS AN OPEN CLASS. `for_children` is the booker's answer, and a family that came in
+   later by Ask to join was asked nothing — so its seat reads as a booking that named nobody: its only
+   child, or a row saying which of its children, never silence. Bo joins the way the lobby does it:
+   Request, Sam accepts him, he pays. */
+const joins = (job, who) => [E(job, who, 'client', 'Request'), E(job, 'Sam Tutor', 'tutor', 'Accept', who), E(job, who, 'client', 'Confirm')];
+{
+  const w = seeded({ job: { for_children: 'Ada Pupil' }, moreAttempts: [BEN], events: booked('J-1', 'Pat Parent').concat(joins('J-1', 'Bo Other')) });
+  run(w, DUE);
+  ask('Bo joined Pat’s class and paid; the run emailed [' + w.mail.sent.map(m => m.to + ' ' + m.subject) + '] — wanted Pat about Ada and Bo about Ben',
+    to(w, 'pat@example.org').length === 1 && /^Ada’s/.test(to(w, 'pat@example.org')[0].subject)
+    && to(w, 'bo@example.org').length === 1 && /^Ben’s/.test(to(w, 'bo@example.org')[0].subject));
+}
+{
+  const w = seeded({ job: { for_children: 'Someone else' }, moreAttempts: [BEN], events: booked('J-1', 'Pat Parent').concat(joins('J-1', 'Bo Other')) });
+  run(w, DUE);
+  ask('Pat booked for "Someone else" and Bo joined; Bo was not emailed about Ben, his only child: [' + w.mail.sent.map(m => m.to) + ']',
+    w.mail.sent.length === 1 && to(w, 'bo@example.org').length === 1 && /^Ben’s/.test(w.mail.sent[0].subject));
+  w.setClock(at(DUE));
+  const pv = JSON.parse(JSON.stringify(w.b.ev('clearCache(); recapPreviewOut_(new Date())')));
+  const day = (pv.days || []).find(d => d.day === '2026-10-06') || {};
+  ask('the Preview does not put Ben on the session Bo joined: ' + JSON.stringify(day.sessions), (day.sessions || []).some(s => (s.learners || []).indexOf('Ben Pupil') !== -1));
+}
+{
+  /* BO WITH TWO CHILDREN joins, and nothing says which: a row, not silence. */
+  const w = seeded({ job: { for_children: 'Ada Pupil' }, people: [P('P-S4', 'Dot', 'Other', 'student', 's4@example.org')],
+    moreFamily: [L(11, 'P-C5', 'P-S4', 'accepted')], moreAttempts: [BEN], events: booked('J-1', 'Pat Parent').concat(joins('J-1', 'Bo Other')) });
+  run(w, DUE);
+  ask('Bo, with two children, joined and nothing said which; wanted a "which of Bo Other’s children" row and Pat’s email alone: ' + JSON.stringify(log(w).filter(x => x.job_ids === 'J-1')),
+    log(w).some(x => x.learner_id === '' && x.job_ids === 'J-1' && /which of Bo Other’s children/.test(x.note))
+    && !to(w, 'bo@example.org').length && to(w, 'pat@example.org').length === 1);
+}
+{
+  /* WHO BOOKED IS THE FIRST CLIENT TO ASK — `createJob`'s own Request — not whichever seat the roster
+     lists first. Pat asked, stepped out before paying and came back after Bo had joined and paid, so
+     the roster now lists Bo first; the booking's "Someone else" is still Pat's word, not his. */
+  const w = seeded({ job: { for_children: 'Someone else' }, moreAttempts: [BEN],
+    events: [E('J-1', 'Pat Parent', 'client', 'Request'), E('J-1', 'Pat Parent', 'client', 'Withdraw')].concat(joins('J-1', 'Bo Other'),
+            [E('J-1', 'Pat Parent', 'client', 'Request'), E('J-1', 'Sam Tutor', 'tutor', 'Accept', 'Pat Parent'), E('J-1', 'Pat Parent', 'client', 'Confirm')]) });
+  run(w, DUE);
+  ask('with Bo first on the roster, the booker’s "Someone else" was read as Bo’s: [' + w.mail.sent.map(m => m.to) + ']',
+    to(w, 'bo@example.org').length === 1 && !to(w, 'pat@example.org').length);
+}
+
 /* ---------- 6. THAT DAY'S QUESTIONS, AND WHAT MAY BE PRINTED ---------------------------------------------------- */
 {
   const w = seeded();
@@ -370,6 +532,8 @@ const DUE = '2026-10-06T19:05:00Z', EARLY = '2026-10-06T18:59:00Z';
   ask('Pat’s email lists a question from another day (Paper 2)', !/Paper 2/.test(m.body));
   ask('Pat’s email does not group by paper with the again marker: ' + JSON.stringify(m.body), m.body.indexOf(PAPER1 + '\nQ3, Q7 (again)') !== -1);
   ask('a practical’s two boxes are not one question, by its name, once', (m.body.match(/Worksheet/g) || []).length === 1 && /Biology · Required practical · Osmosis\nWorksheet/.test(m.body));
+  ask('a practical’s heading carries the card’s duration, which a parent reads as time spent: ' + JSON.stringify((m.body.match(/Biology[^\n]*/) || [''])[0]),
+    !/\d+ min/.test(m.body + m.htmlBody));
   ['Hello Pat,', 'Ada had Maths on Tuesday 6 October, 4pm to 6pm.', 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/',
    'You get this because you are Ada’s parent on @family. To stop the emails after sessions, reply to this one and say so.'].forEach(s => {
     ask('Pat’s email does not say "' + s + '"', m.body.indexOf(s) !== -1);
@@ -476,7 +640,7 @@ const DUE = '2026-10-06T19:05:00Z', EARLY = '2026-10-06T18:59:00Z';
 
 /* ---------- 9. TWO SESSIONS IN ONE DAY ARE ONE EMAIL, AFTER THE LATER ------------------------------------------ */
 {
-  const w = seeded({ jobs: [Object.assign({}, J1, { job_id: 'J-2', subject: 'Physics', start_time: '10:00' })],
+  const w = seeded({ jobs: [Object.assign({}, J1, { job_id: 'J-2', subject: 'Physics', start_time: '10:00', slot_codes: 'tu10,tu11' })],
                      events: booked('J-1', 'Pat Parent').concat(booked('J-2', 'Pat Parent')) });
   run(w, '2026-10-06T13:05:00Z');
   ask('with Physics 10-12 and Maths 16-18, an email went at 14:05 London — after the first session, not the last', !w.mail.sent.length);
@@ -488,6 +652,26 @@ const DUE = '2026-10-06T19:05:00Z', EARLY = '2026-10-06T18:59:00Z';
   ask('the receipt for two sessions does not name both jobs', (log(w).find(x => x.parent_id === 'P-C1') || {}).job_ids === 'J-1,J-2');
   run(w, '2026-10-06T19:35:00Z');
   ask('the rerun sent again', w.mail.sent.length === 1);
+}
+
+{
+  /* A PAID MORNING AND AN AFTERNOON AGREED BUT NOT PAID. The afternoon holds the day back — one email
+     after it ends, with every question of the day — and its row does not promise an email that marking
+     it paid could no longer send: the day's receipt is spent by then. */
+  const w = seeded({ jobs: [Object.assign({}, J1, { job_id: 'J-2', subject: 'Physics', start_time: '10:00', slot_codes: 'tu10,tu11' })],
+                     events: booked('J-2', 'Pat Parent').concat([E('J-1', 'Pat Parent', 'client', 'Request'), E('J-1', 'Sam Tutor', 'tutor', 'Accept', 'Pat Parent')]) });
+  run(w, '2026-10-06T13:05:00Z');
+  ask('with Physics 10-12 paid and Maths 16-18 agreed but unpaid, an email went at 14:05 London, before the afternoon', !w.mail.sent.length);
+  run(w, DUE);
+  const m = w.mail.sent[0] || { body: '' };
+  ask('the paid morning and unpaid afternoon were not one email at 20:05 London, naming the paid lesson: ' + w.mail.sent.length + ' sent, ' + JSON.stringify(m.body.split('\n')[2]),
+    w.mail.sent.length === 1 && /Ada had Physics on Tuesday 6 October, 10am to 12pm\./.test(m.body) && /worked on 3 questions/.test(m.body));
+  const j1 = log(w).find(x => x.learner_id === '' && x.job_ids === 'J-1') || {};
+  ask('the unpaid afternoon’s row promises a send it cannot make, or is missing: ' + JSON.stringify(j1.note),
+    j1.status === 'not sent' && /agreed with the tutor/.test(j1.note) && /not named in the email/.test(j1.note) && !/next hourly check sends it/.test(j1.note));
+  w.b.seed('events', [E('J-1', 'Pat Parent', 'client', 'Confirm')]);
+  run(w, '2026-10-06T20:05:00Z');
+  ask('marking the afternoon paid after the day’s email sent a second one', w.mail.sent.length === 1);
 }
 
 /* ---------- 10. OFF, PREVIEW, SEND --------------------------------------------------------------------------- */
@@ -672,6 +856,8 @@ const split = { job: { for_children: 'Ada Pupil, Ben Pupil' }, moreAttempts: [BE
   ask('the Preview’s session line is ' + JSON.stringify(s), s.subject === 'Maths' && s.time === '4pm–6pm' && s.dueSaid === '8pm' && s.state === 'due' && (s.learners || []).join() === 'Ada Pupil');
   const pat = (day.emails || []).find(m => m.to === 'pat@example.org') || {};
   ask('the Preview does not render Pat’s email as it would go: ' + JSON.stringify(pat).slice(0, 200), /^Ada’s session on Tue 6 Oct: 4 questions/.test(pat.subject) && /Hello Pat,/.test(pat.text) && pat.status === '—');
+  /* AND WHETHER IT CAN STILL GO, so the sheet does not say "not on the log yet" over one past its 24 hours. */
+  ask('the Preview’s email does not say whether it is due, still to come or past: ' + pat.state, pat.state === 'due');
   ask('the Preview does not list Pam as opted out', (day.nobody || []).some(n => /Pam Parent/.test(n.name) && /session_email/.test(n.why)));
   ask('the Preview prints an unsafe label', !/pay\.example/.test(JSON.stringify(pv)));
   ask('recapPreview wrote ' + (weight(b) - w0) + ' cell(s), sent ' + mail.sent.length + ', booked ' + trig.length + ' — with send on it must do none of them',
@@ -683,6 +869,41 @@ const split = { job: { for_children: 'Ada Pupil, Ben Pupil' }, moreAttempts: [BE
   [['a student', tok['s1@example.org']], ['a parent', tok['pat@example.org']], ['nobody signed in', '']].forEach(([who, t]) => {
     const d = b.post({ action: 'recapPreview', token: t });
     ask(who + ' asked for recapPreview and was answered ' + JSON.stringify(d).slice(0, 160) + ' — it is an admin’s, it carries every address', !d.success && !d.days && !!d.error);
+  });
+}
+
+/* ---------- 16. THE PREVIEW check/ui.js MEASURES IS ONE THE SERVER CAN SEND --------------------------------
+   "A fixture must send what doGet really sends." `check/states.js` draws the preview sheet from a reply
+   written by hand, so the layout is measured against whatever that reply says — and it had put "agreed
+   with the tutor … mark it paid" on a SESSION line, where the server never sends it: that reason is
+   written to the log, so it is a job-level row under "Nobody to tell". Asked of the server first — a
+   reason the log is told is never a session line — and then of the fixture, against the reasons the
+   real preview put under "Nobody to tell". */
+{
+  const logged = [];
+  [{ events: [E('J-1', 'Pat Parent', 'client', 'Request'), E('J-1', 'Sam Tutor', 'tutor', 'Accept', 'Pat Parent')] },
+   { job: { for_children: '' }, moreFamily: [L(9, 'P-C1', 'P-S2', 'accepted')] },
+   { job: { for_children: 'Zed Nobody' } }].forEach(o => {
+    const w = seeded(o);
+    w.setClock(at(DUE));
+    const pv = JSON.parse(JSON.stringify(w.b.ev('clearCache(); recapPreviewOut_(new Date())')));
+    const day = (pv.days || []).find(d => d.day === '2026-10-06') || {};
+    const jobRows = (day.nobody || []).filter(n => /\(J-/.test(n.name)).map(n => n.why);
+    logged.push(...jobRows);
+    ask('the Preview put a reason the log is told on a session line: ' + JSON.stringify(day.sessions),
+      jobRows.length && !(day.sessions || []).some(x => jobRows.some(why => String(x.state).indexOf(why.split(' — ')[0]) === 0)));
+  });
+  const src = fs.readFileSync(path.join(REPO, 'check', 'states.js'), 'utf8');
+  const from = src.indexOf("name: 'the email after each session, previewed'");
+  const block = from === -1 ? '' : src.slice(from, src.indexOf('wants:', from));
+  const at0 = block.indexOf('sessions: [{');
+  const sess = at0 === -1 ? '' : block.slice(at0, block.indexOf('emails:', at0));
+  const states = [...sess.matchAll(/state: '([^']*)'/g)].map(m => m[1]);
+  ask('check/states.js has no "the email after each session, previewed" state with session lines to read, so its fixture was NOT checked', states.length >= 2);
+  const opening = why => why.split(' ').slice(0, 4).join(' ');
+  states.filter(x => ['upcoming', 'due', 'past'].indexOf(x) === -1).forEach(x => {
+    ask('check/states.js puts "' + x + '" on a session line of the previewed sheet — the server sends that reason only under "Nobody to tell", so the layout was measured against a reply it never makes',
+      !logged.some(why => x.indexOf(opening(why)) === 0));
   });
 }
 

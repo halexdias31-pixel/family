@@ -143,16 +143,22 @@ function digestPlan_(week, attemptRows, peopleRows, parentsOf, look, o) {
      `guideBox_` in js/find.js), so one worksheet filled in was three rows and an email saying "3
      questions" with three raw keys in it. Rows are joined on the key before the `#`: the earliest
      first day, the latest last day, the first name any of them carries. */
+  /* AND NO "60 min" IN A NAME. A practical's card line is `Biology · Required practical · 60 min`, and
+     the phone built its name from that line, so a parent read how long the card guesses a practical
+     takes as though it were how long their child spent on it. The phone no longer sends it
+     (`doneLabel_` in js/find.js); the rows already on the sheet still carry it, and it comes out here,
+     where both emails read every label. */
+  const tidy = v => attemptLabel_(v).split(' · ').filter(x => !/^\d+ min$/.test(x)).join(' · ');
   const joined = {};
   (attemptRows || []).forEach(r => {
     const pid = S(r && r.person_id), q = S(r && r.question_key).split('#')[0];
     if (!pid || !q) return;
     const first = isoDate_(r.first_done), last = isoDate_(r.last_done);
     const id = pid + '\u0001' + q, J = joined[id];
-    if (!J) { joined[id] = { pid: pid, key: q, first: first, last: last, label: attemptLabel_(r.label), times: N(r.times) || 1 }; return; }
+    if (!J) { joined[id] = { pid: pid, key: q, first: first, last: last, label: tidy(r.label), times: N(r.times) || 1 }; return; }
     if (first && (!J.first || first < J.first)) J.first = first;
     if (last && last > J.last) J.last = last;
-    if (!J.label) J.label = attemptLabel_(r.label);
+    if (!J.label) J.label = tidy(r.label);
     J.times = Math.max(J.times, N(r.times) || 1);
   });
 

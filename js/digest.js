@@ -185,9 +185,41 @@ function recapCard_() {
   </div>`;
 }
 
-/* A SESSION'S STATE AS WORDS: its email is still to come, falls due this hour, or is past its 24 hours.
-   Anything else is the server's reason the session counts for nobody, printed as it came. */
+/* ---------- WHAT EACH LINE SAYS, IN THE MODE IT IS IN ---------------------------------------------------
+   THE PREVIEW IS READ BEFORE ANYTHING IS SWITCHED ON — owner step 4 is opening it with `session_recap`
+   still off — and it said "email due now" over an email headed "not on the log yet", both of which
+   promise a send that off will never make. The same two words also sat beside a session five days old,
+   whose email is past its 24 hours and can never go, and beside a session nobody on it can be told
+   about. So every line is worded from three things the reply carries: the mode, the session's or the
+   email's `state` (still to come, in its hour, past), and whether anybody is on it.
+
+   THE LOG'S OWN WORD WINS when there is a row — `sent`, `held`, `preview` — because that is what
+   happened, whatever the mode is now. */
 const RECAP_STATE = { upcoming: 'email still to come', due: 'email due now', past: 'past' };
+const RECAP_STATE_OFF = { upcoming: 'off — would go later if switched on', due: 'off — would go now if switched on', past: 'past' };
+function recapSessionSay_(s, mode) {
+  const head = [s.subject || 'A session', s.time].filter(Boolean).join(' ');
+  /* A REASON FROM THE SERVER — not agreed, cancelled, for somebody not on the site — is the line. */
+  if (!RECAP_STATE[s.state]) return head + ' · ' + (s.state || '');
+  /* BOOKED, AND NOBODY ON IT CAN BE TOLD: no time for an email that will not exist. Why is under
+     "Nobody to tell". */
+  if (!(s.learners || []).length) return head + ' · nobody to email — see below';
+  return head + ' · ' + s.learners.join(', ') + (s.dueSaid ? ' · email about ' + s.dueSaid : '')
+    + ' · ' + (mode === 'off' ? RECAP_STATE_OFF : RECAP_STATE)[s.state];
+}
+function recapEmailSay_(m, mode) {
+  if (m.status && m.status !== '—') return m.status;
+  if (m.state === 'past') return 'not sent — past its 24 hours, it will not go';
+  if (mode === 'off') return 'not sent — session_recap is off';
+  if (mode === 'preview') return 'would be written to recap_log';
+  return 'not on the log yet';
+}
+/* WHAT THE HOURLY CHECK DOES WITH WHAT IS BELOW, IN THE MODE IT IS IN — `digestSheet_`'s sentence. */
+const RECAP_WILL = {
+  off: 'It is off, so nothing below goes; switched on, the emails would.',
+  preview: 'Each email is written to the recap_log tab when it falls due, and none is sent.',
+  send: 'Each email is sent once, when it falls due.',
+};
 
 function recapSheet_(d) {
   const days = (Array.isArray(d.days) ? d.days : []).filter(x => x && ((x.sessions || []).length
@@ -197,24 +229,19 @@ function recapSheet_(d) {
   if (d.warning) warn.push(d.warning);
   if (d.scheduled === 0) warn.push('No hourly check is booked yet — run installSessionRecap once in the Apps Script editor.');
   const booked = d.scheduled == null ? '' : d.scheduled ? ' · checked every hour · booked' : ' · not booked';
-  const line = s => {
-    const head = [s.subject || 'A session', s.time].filter(Boolean).join(' ');
-    const who = (s.learners || []).length ? ' · ' + s.learners.join(', ') : '';
-    const due = s.dueSaid ? ' · email about ' + s.dueSaid : '';
-    return `<p>${esc(head + who + due + ' · ' + (RECAP_STATE[s.state] || s.state || ''))}</p>`;
-  };
-  const status = v => (v && v !== '—' ? v : 'not on the log yet');
-  return `${warn.map(w => `<p><b>${esc(w)}</b></p>`).join('')}
-    <p class="faint">${esc(digestWord_(mode) + booked)}. This preview sent nothing.</p>
+  const any = days.some(x => (x.emails || []).length);
+  /* `.recap-sheet` SCOPES THE HEADINGS (style.css): a day outranks the emails under it. */
+  return `<div class="recap-sheet">${warn.map(w => `<p><b>${esc(w)}</b></p>`).join('')}
+    <p class="faint">${esc(digestWord_(mode) + booked + '. ' + (any ? RECAP_WILL[mode] + ' ' : ''))}This preview sent nothing.</p>
     ${days.length ? days.map(x => `<h2>${esc(x.label || x.day || '')}</h2>
-      ${(x.sessions || []).map(line).join('')}
-      ${(x.emails || []).map(m => `<h3>To ${esc(m.parent || '')} · ${esc(m.to || '')} — ${esc(status(m.status))}</h3>
+      ${(x.sessions || []).map(s => `<p>${esc(recapSessionSay_(s, mode))}</p>`).join('')}
+      ${(x.emails || []).map(m => `<h3>To ${esc(m.parent || '')} · ${esc(m.to || '')} — ${esc(recapEmailSay_(m, mode))}</h3>
         <p><b>${esc(m.subject || '')}</b></p>
         ${digestBody_(m.text)}`).join('')}
       ${(x.nobody || []).length ? `<h3>Nobody to tell</h3>
         ${x.nobody.map(u => `<p>${esc(u.name || '')} — ${esc(u.why || '')}${u.status && u.status !== '—'
           ? ` <span class="faint">(${esc(u.status)})</span>` : ''}</p>`).join('')}` : ''}`).join('')
-      : '<p>No booked session in the last 7 days. The email follows sessions booked on the site — one that is not booked here sends nothing.</p>'}`;
+      : '<p>No booked session in the last 7 days. The email follows sessions booked on the site — one that is not booked here sends nothing.</p>'}</div>`;
 }
 
 on('recap-preview', el => {

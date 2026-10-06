@@ -18,7 +18,7 @@ before any parent gets one: `session_recap` on the config tab reads `preview` or
 | "The questions they got done" | The child's `attempts` rows whose `first_done` or `last_done` is that day, joined on the part of the key before `#`. The email says **"that day"**, never "in the session", because the sheet keeps days, not times. `attempts` gets no new column. |
 | Right or wrong | Not reported. The verdict never reaches the sheet, because `doneMark_` fires on the first keystroke, before Check is pressed. |
 | Which sessions | `jobs` rows that are lessons. Only the children of **Booked** seats count (paid by Stripe, or Mark paid). Who is on a session comes from the `events` roster, never from the `status` cell. |
-| When a session ends | Nothing stores it. The end is the London day + `start_time` + `hours_per_session` when the start is known for that date. Otherwise it is the latest a session can end: 18:00 (the grid's last start) plus the hours, and the email leaves the time out. |
+| When a session ends | The day's last ticked hour plus one, off a new `jobs.slot_codes` column (see "After review" below). A row without it is never due before 19:00, the grid's last possible end; a date its start is not known for is 18:00 (the grid's last start) plus the hours, and the email leaves the time out. |
 | Schedule | One `everyHours(1)` trigger, booked by hand once with `installSessionRecap`. There is no trigger per session. |
 | No backfill | Stateless. A day is acted on only while `due ≤ now < due + 24h` (`RECAP_LATE_HOURS`), so switching it on reaches at most the last day's sessions, and there is no watermark to lose. |
 | Who is told | The weekly email's rule, run through `digestPlan_` itself: accepted parents only, never `verified=PENDING`, never the learner, one email per mailbox. Opting out uses a **new** column, `people.session_email`, where blank means on. `weekly_email` has nothing to do with this email. |
@@ -52,9 +52,10 @@ within 24 hours of due it is still sent; otherwise it is in Sunday's email.
 A booking is one `jobs` row for a run of dates, with one `start_time` and one `hours_per_session`.
 
 - **A multi-day booking** (`Monday, Friday`) stores only its first run's start. `bookSpec` names the
-  session by the first run, and the per-hour `slots` are used to check the tutor's hours and are
-  never stored. Using that start on the other day sends during the lesson: a Monday 10–12 / Friday
-  16–18 booking would email at 14:00 on the Friday.
+  session by the first run, and the per-hour `slots` were used to check the tutor's hours and were
+  never stored (they are now: `jobs.slot_codes`, see "After review"). Using that start on the other
+  day sends during the lesson: a Monday 10–12 / Friday 16–18 booking would email at 14:00 on the
+  Friday.
 - **An Edit move** rewrites `weekday` and `start_time` and leaves `session_dates` unchanged (dopost.gs,
   the MAP under "Edit carries the new terms"). After a move, a date can fall on a day the row no
   longer names.
@@ -110,9 +111,9 @@ to that learner's own accepted parents.
   that never existed now points at 280.
 - **The sheet**: Ledger tab `recap_log` (`day, learner_id, parent_id, job_ids, due, to, subject,
   questions, status, at, note`; `day`, `due` and `job_ids` are written as text); `people.session_email`;
-  config rows `session_recap` (off) and `session_recap_delay` (2). `weekly_digest_reserve` is now one
-  floor under both emails. The four version stamps moved together to `2026-10-06-d-sessionrecap`, so
-  `autoMigrate` adds all of it.
+  `jobs.slot_codes` (after review, below); config rows `session_recap` (off) and `session_recap_delay`
+  (2). `weekly_digest_reserve` is now one floor under both emails. The four version stamps moved
+  together, last to `2026-10-06-e-sessionrecap`, so `autoMigrate` adds all of it.
 - **`recapPreview`** (`admin`, in `features`) covers the last 7 days and writes, sends and books
   nothing. For each day it shows:
   - every booked session, with when its email falls due;
@@ -195,12 +196,81 @@ to that learner's own accepted parents.
   Screenshots at 320 and 390 were looked at: the card is the weekly card's twin, the tile is 44px, and
   the address wraps.
 
+### After review: eight faults, each fixed at its root and each proved by a mutation
+
+A review of the build found these. Every one has a check case that fails on the build as first
+committed and passes now, and every mutation below was run and turned its check red before the real
+files were made green again.
+
+1. **A day booked in two runs was emailed between them (major).** The hour grid lets a family tick
+   Monday 10:00 and Monday 16:00–17:00. `bookSpec` names the session by its first run, so the job row
+   said `Monday`, `10:00`, one hour, and the per-hour `slots` were used to check the tutor's week and
+   then dropped. The email read that as a lesson ending at 11:00, went at 13:00 saying "10am to
+   11am", and spent the day's receipt, so the afternoon's questions never went.
+   - `createJob` now keeps what was ticked in a new `jobs.slot_codes` column, **only as sent**. An
+     older phone that sends no `slots` leaves it blank, rather than storing `bookingCodes_`'s reading
+     of the three cells, which would claim the first run is the only one.
+   - It is written only when the tab has the column. Before `?setup=1` adds it, a write to a missing
+     column would turn the reply into an error for a booking that was appended, and the family would
+     ask again. A blank cell costs an email an hour or two late.
+   - An Edit that moves `day` or `time` rewrites the codes when it sends new ones, and blanks them
+     when it does not.
+   - `recapEnd_` reads this date's hours off the codes: the end is the last ticked hour plus one. The
+     time is printed only when the day is one unbroken run.
+   - A row with no codes (every booking from before) cannot show a second run, so it is never due
+     before 19:00 + the delay. The time it prints is the stored run's, on the first day the row names.
+   - `slotCodes_` (booking.gs) is the one reading of a list of codes, for the request, the row and the
+     email.
+2. **"Mark it paid and the next hourly check sends it" could be false.** With a paid morning and an
+   unpaid afternoon, the morning's email went at lunchtime; marking the afternoon paid that evening
+   found the day's receipt spent. An agreed, unpaid lesson now works out its children as `pending`,
+   and `recapGroups_` lets its end hold their day back without ever starting an email of its own. The
+   one email goes after the last lesson and carries the whole day. Its log row now says the lesson
+   "is not named in the email; that day's questions are in the child's email either way" when that is
+   so, and promises a send only when no email covers that child's day.
+3. **A family that joined an open class was never emailed, and the log said nothing (major).**
+   `for_children` is the booker's answer, and it was read against every seat. A family that joined
+   later by Ask to join matched nothing and was dropped quietly. Now only the **booker** (the actor
+   of the job's first client Request, `ask.booker`) reads the booking's words. Every other seat first
+   looks for its own children among the names, so a split booking still works, and otherwise reads as
+   a booking that named nobody: the student themself, then the family's only child, and otherwise a
+   logged "which of" or "no child linked" row.
+4. **The Preview's words ignored the mode, the 24 hours and whether anybody could be told.** With the
+   switch off it said "email due now" over an email headed "not on the log yet". It now words each line
+   from the mode, a `state` the server adds to each email, and whether the session has a learner:
+   "off — would go now if switched on", "not sent — session_recap is off", "would be written to
+   recap_log", "not sent — past its 24 hours, it will not go", and "nobody to email — see below".
+5. **Foundation and Higher shared a heading** ("Q1, Q1"). Measured on the library, 14 headings held
+   more than one paper. `doneLabel_` (js/find.js, split out of `doneMark_` so the backlog sync in task
+   39 can use it) adds the tier to the paper's name, or `A-level` when the tier cell is empty and the
+   band says so, unless the name already says it. 0 shared headings remain. Rows already on the sheet
+   keep their old labels.
+6. **A practical's heading carried the card's "60 min".** `doneLabel_` drops a `N min` segment, and
+   `digestPlan_` drops it from rows already stored, so both emails lose it.
+7. **Each email's `h3` was the largest text in the Preview.** Inside `.recap-sheet` only (a global
+   `#sheet-body h3` would have shrunk every card opened in a sheet), the day is now a divider with a
+   rule and the email heading is smaller than the text under it. The `check/states.js` state asks
+   exactly that of the drawn page.
+8. **`check/states.js` put a log reason on a session line**, a reply the server never sends.
+   `check-recap.js` now asks the real Preview which reasons are logged and reads the fixture for them.
+
+Mutations, each red: `slot_codes` ignored; the 19:00 floor dropped; two runs printed as one span;
+derived codes stored for an older phone; the column written unguarded; an Edit leaving the old hours;
+a pending lesson not holding the day; a pending lesson starting its own group; the unpaid row always
+promising a send; the booking's names read for every seat; the booker taken as the first paid seat,
+or the roster's first; a joiner's unplaced seat made quiet; durations kept (both checks); the
+Preview's email without `state`; the fixture's log reason restored; no tier, no A-level from the
+band, the tier said twice, the duration kept on the phone; and five of the Preview's wordings, plus
+the heading rule (in `check/ui.js`).
+
 ### Owner steps
 
 1. Merge and push. Sync `backend/` with the GitHub Assistant extension (route 1 in CLAUDE.md), then
    deploy a new web-app version.
-2. Open `/exec?setup=1`. It adds `recap_log`, `people.session_email` and the two config rows, **and
-   the `attempts` tab if the live Ledger still lacks it.**
+2. Open `/exec?setup=1`. It adds `recap_log`, `people.session_email`, `jobs.slot_codes` and the two
+   config rows, **and the `attempts` tab if the live Ledger still lacks it.** Bookings made before
+   this have no `slot_codes`, so their emails go at 19:00 + the delay at the earliest; bookings made
+   after it go two hours after their own last hour.
 3. In the Apps Script editor, run **`installSessionRecap`** once. Nothing new needs authorising.
 4. On the phone, go to Settings → *Email after each session* → **Preview**. For the learner:
    - their session shows under its day (if not, it is not booked on the site);

@@ -229,7 +229,9 @@ function seeded(opts) {
   /* ONE PRACTICAL'S WORKSHEET, THREE BOXES (`guideBox_`): one question, by its name. */
   const A = (pid, q, label) => ({ person_id: pid, question_key: q, first_done: '2026-10-01', last_done: '2026-10-01', times: 1, label: label || '' });
   b.seed('attempts', [
-    A('P-S2', 'pr:PR-PH01#iv', 'Physics · AQA required practical · Specific heat capacity · Worksheet'),
+    /* THE CARD'S DURATION IN ONE OF THEM, as the phone sent a practical's name before `doneLabel_`:
+       "60 min" reads to a parent as how long their child spent, so it never reaches an email. */
+    A('P-S2', 'pr:PR-PH01#iv', 'Physics · AQA required practical · 60 min · Specific heat capacity · Worksheet'),
     A('P-S2', 'pr:PR-PH01#dv', 'Physics · AQA required practical · Specific heat capacity · Worksheet'),
     A('P-S2', 'pr:PR-PH01#cv'),
     /* TEXT OFF A PHONE THAT WOULD READ AS THE BUSINESS SPEAKING: a label with a link, a key that is a
@@ -249,6 +251,8 @@ function seeded(opts) {
   const prs = (ben.fresh || []).filter(q => /^pr:/.test(q.key));
   if (prs.length !== 1 || prs[0].key !== 'pr:PR-PH01' || !/Specific heat capacity · Worksheet/.test(prs[0].label)) bad.push('a practical’s three worksheet boxes are ' + JSON.stringify(prs) + ' — wanted one question, pr:PR-PH01, by its name');
   if (ben.count !== 5) bad.push('Ben’s count is ' + ben.count + ', wanted 5: his own, the practical once, and the three whose text came off his phone');
+  asked++;
+  if (prs.length && /\d+ min/.test(prs[0].label)) bad.push('a practical’s name keeps the card’s duration, "' + prs[0].label + '" — a parent reads it as time spent');
   asked++;
   const bo = plan.emails.find(m => m.to === 'bo@example.org');
   if (!bo) bad.push('Bo is not sent Ben’s week');

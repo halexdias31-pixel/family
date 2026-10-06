@@ -240,7 +240,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-06-d-sessionrecap";
+const BACKEND_VERSION = "2026-10-06-e-sessionrecap";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -707,7 +707,20 @@ const SCHEMA = {
        filled in, so one column answers the question AND decides whether to ask it.
        A booking a parent made and one an admin made on their behalf were identical rows before
        this, and that is the fact you want on the day somebody says they never booked it. */
-    "booked_by"
+    "booked_by",
+    /* EVERY HOUR TICKED ON THE GRID, as its own codes — `m10,m16,m17`. `weekday`, `start_time` and
+       `hours_per_session` are the FIRST run (`bookSpec` on the phone names the session by it), so a
+       Monday 10-11 with a Monday 16-18 was stored as Monday 10:00 for one hour, and nothing on the row
+       said there was an afternoon. The email after a session read that as a lesson ending at 11:00
+       and went at 13:00, three hours before the second one started — and that day's receipt was then
+       spent. `recapEnd_` (recap.gs) reads this instead when it is there: the day's last ticked hour
+       plus one is when the day's teaching ends.
+       WRITTEN ONLY AS SENT. `createJob` stores what the phone ticked, never what `bookingCodes_`
+       derives for an older phone from the three cells — that derivation is the first run on every
+       named day, the very reading this column exists to correct. BLANK on every row made before it,
+       and on one an Edit move rewrote (the old hours no longer describe it); `recapEnd_` then takes
+       the latest the grid allows. */
+    "slot_codes"
   ],
   events: [
     "event_id", "at", "job_id", "actor",

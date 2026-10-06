@@ -28,11 +28,14 @@
      WHICH SESSIONS      `jobs` rows that are lessons (`kind` blank — `createJob` writes none — or
                          `session`), and only the children of BOOKED seats: paid through Stripe or
                          marked paid. Who is on a session is folded from `events`, never read off the
-                         `status` cell.
-     WHEN IT ENDS        nothing stores it. London day + `start_time` + `hours_per_session` — and when
-                         the start is not known for THAT date, the latest a session can end (the
-                         grid's last start, 18:00, plus its hours), with the time left out of the
-                         email. See `recapEnd_` for why a multi-day booking's start is not trusted.
+                         `status` cell. A lesson agreed with a tutor and not yet paid emails nobody,
+                         but its child's day waits for it. `for_children` is the BOOKER's answer; a
+                         family that joined later is placed by its own children.
+     WHEN IT ENDS        the day's last ticked hour plus one, off `slot_codes` (the whole week the grid
+                         ticked, kept since this email was built). A row without them says only its
+                         first run, so it is never due before the grid's last possible end, 19:00, and
+                         a date its start is not known for is the latest a session can end (18:00 plus
+                         the hours), with the time left out of the email. See `recapEnd_`.
      SCHEDULE            one `everyHours(1)` trigger, booked by hand. Not one trigger per session:
                          one-off triggers are not removed when they fire and count toward the
                          project's twenty (core.gs, `warmAfterEdit`).
@@ -115,35 +118,52 @@ function recapDueNow_(due, at) {
 }
 
 
-/* ---------- WHEN A SESSION ENDS, WHICH NOTHING STORES ----------------------------------------------------
-   A BOOKING IS ONE ROW FOR A WHOLE RUN OF DATES: one `start_time`, one `hours_per_session`, the dates
-   in a cell. The end is that day plus the start plus the hours, as `busyHours` reads it — when the
-   start is known FOR THIS DATE.
+/* ---------- WHEN A DAY'S TEACHING ENDS ------------------------------------------------------------------
+   A BOOKING IS ONE ROW FOR A WHOLE RUN OF DATES, and the row's three time cells — `weekday`,
+   `start_time`, `hours_per_session` — are its FIRST RUN, because that is how `bookSpec` on the phone
+   names a session. The rest of the week the grid ticked is `slot_codes` (SCHEMA.jobs), written by
+   `createJob` since this email was built, and blank on every row from before it.
 
-   IT IS NOT, TWICE. A multi-day booking (`weekday` = `Monday, Friday`) stores only its first run's
-   start — `bookSpec` on the phone names the session by the first run, and the per-hour `slots` are
-   used to check the tutor's hours and never stored — so a Monday 10-12 and Friday 16-18 booking reads
-   10:00 on the Friday, and an email due at 14:00 would go two hours before the lesson starts. And an
-   Edit move rewrites `weekday` and `start_time` and leaves `session_dates` as they were (dopost.gs, the
-   MAP under "Edit carries the new terms"), so a date can fall on a day the row no longer names. So
-   the start is trusted only when the cell names no day at all, or this date falls on the FIRST day it
-   names (compared on three letters, `Tue` and `Tuesday` alike). The build spec trusted any row naming
-   one day; that is the second case, and it is why this is stricter.
+   WITH THE CODES, THE DAY ITSELF. This date's weekday prefix picks this day's hours; the end is the
+   last of them plus one. A Monday 10-11 and 16-18 ends at 18:00 — not 11:00, which emailed a parent
+   at 13:00 about a morning with the afternoon still to come, and spent the day's receipt doing it. The
+   time goes in the email only when the day is ONE unbroken run; two runs are two spans, and one of
+   them printed alone would be half the day said as all of it.
 
-   OTHERWISE THE LATEST IT CAN END: the grid's last start (`AVAIL_HOURS`, 18:00) plus the hours — 20:00
-   for two. Never earlier than the real end, so never an email about a lesson still going; and
-   `timeKnown` false takes the time out of the email, which would otherwise state one nobody knows. */
+   WITHOUT THE CODES, NOTHING SAYS THERE WAS ONLY ONE RUN. So the stored start is trusted for its time
+   only on the first day the row names (or any day, when it names none) — a Monday-and-Friday booking
+   stores the Monday's start, and an Edit move rewrites `weekday` and `start_time` and leaves the dates
+   — and even then the email is not due before the latest a second run that day could end: the grid's
+   last hour (`AVAIL_HOURS`, 18:00) plus one, 19:00. Any other date is the latest a session could end
+   at all, the last start plus the hours, with no time in the email.
+
+   NEVER EARLY. Every fallback is the latest the grid allows, so the cost of not knowing is an email
+   an hour or two late, and never one about a lesson still going. */
 function recapEnd_(j, day, cfg) {
   const hours = Math.max(1, N(j && j.hours_per_session) || N(cfg && cfg.h) || 2);
-  const start = S(fmtTime(j && j.start_time));
+  const lastStart = Math.max.apply(null, AVAIL_HOURS);
+  const hhmm = m => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0');
+  const at = m => recapWall_(day + ' 00:00', m);
   const DOW = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
-  const dow = DOW[new Date(Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10))).getUTCDay()];
+  const CODE = ['su', 'm', 'tu', 'w', 'th', 'f', 'sa'];
+  const wd = new Date(Date.UTC(+day.slice(0, 4), +day.slice(5, 7) - 1, +day.slice(8, 10))).getUTCDay();
+  const unknown = { end: at((lastStart * 60) + Math.round(hours * 60)), timeKnown: false, from: '', to: '' };
+
+  const codes = slotCodes_(j && j.slot_codes);
+  if (codes.length) {
+    const mine = codes.filter(c => c.replace(/\d+$/, '') === CODE[wd]).map(c => Number(c.slice(-2))).sort((a, b) => a - b);
+    if (!mine.length) return unknown;         // a date on a day nothing was ticked for: moved, or typed
+    const first = mine[0], last = mine[mine.length - 1] + 1;
+    const one = last - first === mine.length;
+    return { end: at(last * 60), timeKnown: one, from: one ? hhmm(first * 60) : '', to: one ? hhmm(last * 60) : '' };
+  }
+
+  const start = S(fmtTime(j && j.start_time));
   const named = S(j && j.weekday).split(',').map(x => norm(x).slice(0, 3)).filter(Boolean);
   const shaped = /^\d{2}:\d{2}$/.test(start) && +start.slice(0, 2) <= 23 && +start.slice(3) <= 59;
-  const known = shaped && (!named.length || named[0] === dow);
-  const from = known ? (+start.slice(0, 2)) * 60 + (+start.slice(3)) : Math.max.apply(null, AVAIL_HOURS) * 60;
-  const end = recapWall_(day + ' 00:00', from + Math.round(hours * 60));
-  return { end: end, timeKnown: known, from: known ? start : '', to: known ? end.slice(11) : '' };
+  if (!shaped || (named.length && named[0] !== DOW[wd])) return unknown;
+  const from = (+start.slice(0, 2)) * 60 + (+start.slice(3)), to = from + Math.round(hours * 60);
+  return { end: at(Math.max(to, (lastStart + 1) * 60)), timeKnown: true, from: start, to: hhmm(to % (24 * 60)) };
 }
 
 
@@ -191,29 +211,49 @@ function recapDays_(j, from, to) {
   });
   return out.sort();
 }
-/* THE REAL HELPERS — what `recapSessions_` asks when nobody hands it fakes. */
+/* THE REAL HELPERS — what `recapSessions_` asks when nobody hands it fakes. `booker` is who made the
+   booking: the actor of its first client Request, which is `createJob`'s own opening event — the one
+   person whose words `for_children` are. */
 function recapAsk_() {
-  return { seats: clientsIn, status: jobStatusOf, tutor: confirmedTutorOf_, person: findPerson, children: childrenOf };
+  return { seats: clientsIn, status: jobStatusOf, tutor: confirmedTutorOf_, person: findPerson, children: childrenOf,
+           booker: id => S((eventsForJob(id).find(e => norm(e.role) !== 'tutor' && S(e.action) === ACT.REQUEST) || {}).actor) };
 }
 
 
 /* ---------- THE SESSIONS, AND WHO EACH ONE IS ABOUT ---------------------------------------------------------
-   PURE, given `ask` — the roster, the job's state, its tutor, a person by name and a person's accepted
-   children. The run and the Preview pass nothing and get the real ones; the check can pass fakes.
+   PURE, given `ask` — the roster, the job's state, its tutor, a person by name, a person's accepted
+   children and who booked. The run and the Preview pass nothing and get the real ones; the check can
+   pass fakes.
 
    STATE IS THE ROSTER'S, NEVER THE `status` CELL'S (nothing keeps that cell true but the nightly
-   `closeFinishedJobs`). A Booked seat counts. No Booked seat but a tutor agreed is a lesson that
-   happened and was not paid for yet — a row in the log saying "mark it paid", which the next hourly
-   check then acts on. No tutor agreed is a request nobody answered, and a twelve-week one would write
-   a row every week, so it is the Preview's alone. Cancelled is nothing.
+   `closeFinishedJobs`). A Booked seat counts. No tutor agreed is a request nobody answered, and a
+   twelve-week one would write a row every week, so it is the Preview's alone. Cancelled is nothing.
 
-   THE CHILDREN ARE RESOLVED SEAT BY SEAT, AND NEVER BY SEARCHING THE PEOPLE TAB FOR A NAME. `for_children`
-   is display names, often blank, sometimes "Someone else". A name is matched only against the
-   accepted children of a Booked seat's own person — the full name, or a first name that is unique
-   among that family's children — so another family's child who happens to share it is never picked.
-   A student who booked their own seat is their own learner. A family with exactly one child and a
-   booking that names nobody is that child. Anything else is said, not guessed: which of two children,
-   nobody linked, a name that is nobody's child here.
+   AGREED WITH A TUTOR AND NOT PAID YET is a lesson that probably happened. It is a row in the log —
+   and its children are worked out all the same, as `pending` on that row, so the day it is on is not
+   emailed before it ends (`recapGroups_`). Without that, a paid morning lesson emailed the parent at
+   lunchtime, the afternoon's unpaid one was marked paid that evening as the log said to, and the next
+   hourly check found the day's receipt already spent: the afternoon was never in any email, and the
+   row went on promising it would be.
+
+   THE CHILDREN ARE RESOLVED SEAT BY SEAT, AND NEVER BY SEARCHING THE PEOPLE TAB FOR A NAME. A name is
+   matched only against the accepted children of a seat's own person — the full name, or a first name
+   that is unique among that family's children — so another family's child who happens to share it is
+   never picked.
+
+   `for_children` IS THE BOOKER'S ANSWER, and only the booker's. The form asks the family making the
+   booking which of THEIR children it is for; a family that joins an open class later, by Ask to join,
+   is asked nothing, so a blank or "Someone else" there says nothing about them. So:
+     · every seat first looks for its own children among the names (a split booking names both
+       families' children, and each finds its own);
+     · the BOOKER's seat then reads the booking's words — a student who booked their own seat is the
+       learner; a family with one child and a booking naming nobody is that child; "Someone else" is
+       a child with no account here;
+     · ANY OTHER seat that found nothing reads as a booking that named nobody: the student themself,
+       or the family's only child — and otherwise a row saying which of whose children, or that there
+       is none linked. Before this, every family after the first in a group class was read against the
+       first family's answer, matched nothing, and was left out with nothing in the log.
+   Anything that cannot be placed is said, not guessed.
 
    WHY A WRONG MATCH CANNOT LEAK: whoever is picked, the email is that learner's OWN attempts, sent to
    that learner's OWN accepted parents. The session decides only whose day it is and when.
@@ -223,7 +263,8 @@ function recapAsk_() {
                 (`learners`, with how each was found), and `others` (the tutor and the bookers, for
                 `recapNothingWhy_`'s hint, never for the email)
      problems   a job and a day nobody could be placed on, with `why`; `quiet` ones are the Preview's
-                only and are never written */
+                only and are never written. An agreed, unpaid lesson's carries `unpaid` and its
+                children as `pending` */
 function recapSessions_(jobRows, from, to, ask, cfg) {
   const A = ask || recapAsk_();
   const sessions = [], problems = [];
@@ -235,7 +276,7 @@ function recapSessions_(jobRows, from, to, ask, cfg) {
     const at = days.map(day => Object.assign({ day: day }, recapEnd_(j, day, cfg)));
     const base = s => ({ day: s.day, job_id: id, subject: S(j.subject), from: s.from, to: s.to,
                          timeKnown: s.timeKnown, end: s.end });
-    const say = (why, quiet) => at.forEach(s => problems.push(Object.assign(base(s), { why: why, quiet: !!quiet })));
+    const say = (why, quiet, more) => at.forEach(s => problems.push(Object.assign(base(s), { why: why, quiet: !!quiet }, more || {})));
 
     if (!recapLesson_(j)) {
       const k = norm(j.kind);
@@ -245,14 +286,14 @@ function recapSessions_(jobRows, from, to, ask, cfg) {
 
     const seats = A.seats(id) || [];
     const booked = seats.filter(c => c && c.status === BM.BOOKED);
+    let unpaid = false;
     if (!booked.length) {
       /* NO SEAT AT ALL is a row typed into the sheet, or a request everybody left before paying —
          `jobStatusOf` calls both cancelled, and the Preview says which it can tell. */
       if (!seats.length) { say('nobody has a seat on it — cancelled, or never booked on the site', true); return; }
       if (A.status(id) === 'cancelled') { say('cancelled', true); return; }
-      if (S(A.tutor(id))) { say('agreed with the tutor but nobody’s seat is Booked — mark it paid and the next hourly check sends it'); return; }
-      say('not agreed — not counted', true);
-      return;
+      if (!S(A.tutor(id))) { say('not agreed — not counted', true); return; }
+      unpaid = true;
     }
 
     let unnamedSeat = false;
@@ -260,6 +301,12 @@ function recapSessions_(jobRows, from, to, ask, cfg) {
       if (norm(n) === RECAP_UNNAMED) { unnamedSeat = true; return false; }
       return true;
     });
+    let booker = '';
+    try { booker = S(A.booker ? A.booker(id) : ''); } catch (err) { booker = ''; }
+    /* NO REQUEST ON THE EVENTS TAB (a roster typed by hand): the first seat, which is whoever the
+       events name first — `participantsOf` keeps them in that order. */
+    if (!booker) booker = S(seats[0] && seats[0].name);
+
     /* A FAMILY'S CHILDREN AGAINST THE NAMES ON THE BOOKING: the whole name, or a first name nobody
        else in that family has. */
     const matchKids = (kids, n) => {
@@ -280,50 +327,63 @@ function recapSessions_(jobRows, from, to, ask, cfg) {
       if (pid && !seenOther[pid]) { seenOther[pid] = 1; others.push({ id: pid, name: personDisplayName(row), as: as }); }
     };
     try { const tn = S(A.tutor(id)); if (tn) other(A.person(tn), 'the tutor'); } catch (err) {}
+    /* AN UNPAID LESSON'S SEATS ARE WORKED OUT QUIETLY: its one row says why it is not counted, and
+       which of two children it was for is a question for the day it is paid. */
+    const tell = unpaid ? () => {} : say;
 
-    booked.forEach(c => {
+    (unpaid ? seats.filter(c => c && c.status !== 'Withdrawn') : booked).forEach(c => {
       const P = A.person(c.name);
-      if (!P || !S(P.person_id)) { say('booked by ‘' + S(c.name) + '’, who is not on the people tab'); return; }
+      if (!P || !S(P.person_id)) { tell('booked by ‘' + S(c.name) + '’, who is not on the people tab'); return; }
       other(P, 'who booked');
       const pid = S(P.person_id);
       const kids = (A.children(pid) || []).filter(k => k && S(k.person_id) && S(k.person_id) !== pid);
+      /* THE BOOKING'S WORDS ARE THE BOOKER'S. Anybody else's seat reads as one that named nobody. */
+      const isBooker = key(c.name) === key(booker);
+      const own = isBooker ? names : [], ownUnnamed = isBooker && unnamedSeat;
       let mine = 0;
       names.forEach(n => {
         const kid = matchKids(kids, n);
         if (kid) { add(kid, 'named on the booking'); matched[key(n)] = 1; mine++; }
       });
       const selfNamed = names.some(n => key(n) === key(personDisplayName(P)));
-      if (hasRole(P, 'student') && (!names.length || selfNamed)) {
-        add(P, 'booked their own seat');
+      if (hasRole(P, 'student') && (selfNamed || (!mine && !own.length))) {
+        add(P, isBooker ? 'booked their own seat' : 'has their own seat');
         if (selfNamed) matched[key(personDisplayName(P))] = 1;
         mine++;
       }
-      if (!mine && !names.length && !unnamedSeat && kids.length === 1) {
+      if (!mine && !own.length && !ownUnnamed && kids.length === 1) {
         add(kids[0], 'the only child on the account');
         mine++;
       }
       if (mine) return;
-      if (!names.length && !unnamedSeat) {
-        say(kids.length >= 2 ? 'the booking does not say which of ' + personDisplayName(P) + '’s children'
-                             : personDisplayName(P) + ' has no child linked on the site');
-      } else if (!names.length) {
-        say('for someone not on the site', true);
+      if (!own.length && !ownUnnamed) {
+        tell(kids.length >= 2 ? 'the booking does not say which of ' + personDisplayName(P) + '’s children'
+                              : personDisplayName(P) + ' has no child linked on the site');
+      } else if (!own.length) {
+        tell('for someone not on the site', true);
       } else {
-        say(personDisplayName(P) + '’s seat: none of their children is named on the booking', true);
+        tell(personDisplayName(P) + '’s seat: none of their children is named on the booking', true);
       }
     });
+
+    if (unpaid) {
+      /* ITS CHILDREN HOLD THEIR DAY BACK; THE WORDS FOR THE LOG ARE SETTLED IN `recapJobNotes_`, which
+         can see whether that day goes in an email anyway. */
+      say('agreed with the tutor but nobody’s seat is Booked', false, { unpaid: true, pending: learners.slice() });
+      return;
+    }
 
     /* A NAME NO BOOKED SEAT ANSWERED TO. If an unpaid or withdrawn seat's child has it, that family's
        seat is the reason and the Preview says so; otherwise it is a name nobody here can place, and
        the log names it. */
     names.filter(n => !matched[key(n)]).forEach(n => {
-      const unpaid = seats.filter(c => c && c.status !== BM.BOOKED).find(c => {
+      const unpaidSeat = seats.filter(c => c && c.status !== BM.BOOKED).find(c => {
         try {
           const P = A.person(c.name);
           return P && S(P.person_id) && !!matchKids(A.children(S(P.person_id)) || [], n);
         } catch (err) { return false; }
       });
-      if (unpaid) say('‘' + n + '’ — ' + S(unpaid.name) + '’s seat is ' + (S(unpaid.status) || 'not') + ', not Booked', true);
+      if (unpaidSeat) say('‘' + n + '’ — ' + S(unpaidSeat.name) + '’s seat is ' + (S(unpaidSeat.status) || 'not') + ', not Booked', true);
       else say('‘' + n + '’ is not a child linked to anyone with a paid seat');
     });
 
@@ -336,8 +396,13 @@ function recapSessions_(jobRows, from, to, ask, cfg) {
 /* ---------- ONE EMAIL PER CHILD PER DAY, DUE AFTER THEIR LAST SESSION -------------------------------------
    PURE. Grouped on (day, learner): two sessions the same day are one email, due `delay` hours after
    the later one ends — never after the first, which would be an email about the morning with the
-   afternoon still to come. */
-function recapGroups_(sessions, delayH) {
+   afternoon still to come.
+
+   AN AGREED LESSON NOT YET PAID (`problems` with `pending` children) COUNTS TOWARD WHEN, AND STARTS
+   NOTHING. It holds back the day of a child who has a paid lesson too, so the one email goes after the
+   last lesson of the day and carries every question of it — paid or not by then, nothing is lost. A
+   child with only the unpaid lesson has no group, and its row in the log says to mark it paid. */
+function recapGroups_(sessions, delayH, problems) {
   const by = {};
   (sessions || []).forEach(s => (s.learners || []).forEach(l => {
     const k = s.day + '\u0001' + l.id;
@@ -349,6 +414,10 @@ function recapGroups_(sessions, delayH) {
     }
     (s.others || []).forEach(o => { if (!g.others.some(x => x.id === o.id)) g.others.push(o); });
   }));
+  (problems || []).forEach(p => (p.pending || []).forEach(l => {
+    const g = by[p.day + '\u0001' + l.id];
+    if (g && p.end > g.end) g.end = p.end;
+  }));
   return Object.keys(by).map(k => {
     const g = by[k];
     g.sessions.sort((a, b) => (a.end < b.end ? -1 : a.end > b.end ? 1 : 0));
@@ -357,13 +426,25 @@ function recapGroups_(sessions, delayH) {
   }).sort((a, b) => (a.due < b.due ? -1 : a.due > b.due ? 1 : a.learner_id < b.learner_id ? -1 : 1));
 }
 /* THE JOB-LEVEL REASONS, ONE ROW PER JOB PER DAY — two names nobody can place on one booking are one
-   row saying both, not two rows overwriting each other under the same key. */
-function recapJobNotes_(problems, delayH) {
+   row saying both, not two rows overwriting each other under the same key.
+
+   AN UNPAID LESSON'S ROW SAYS ONLY WHAT IS TRUE. When one of its children has an email that day anyway
+   (`groups`, every day's, not just this hour's), that email waits for this lesson and carries every
+   question of the day — so the row says the lesson is not named in it, and promises nothing: marking it
+   paid afterwards cannot reopen a receipt. When none has, marking it paid inside the 24 hours is what
+   sends it, and the row says so. */
+function recapJobNotes_(problems, delayH, groups) {
   const by = {};
   (problems || []).filter(p => !p.quiet).forEach(p => {
     const k = p.day + '\u0001' + p.job_id;
     const n = by[k] || (by[k] = { day: p.day, job_id: p.job_id, subject: p.subject, end: p.end, whys: [] });
-    if (n.whys.indexOf(p.why) === -1) n.whys.push(p.why);
+    let why = p.why;
+    if (p.unpaid) {
+      const anyway = (p.pending || []).some(l => (groups || []).some(g => g.day === p.day && g.learner_id === l.id));
+      why += anyway ? ' — so it is not named in the email; that day’s questions are in the child’s email either way'
+                    : ' — mark it paid and the next hourly check sends it, while it is within ' + RECAP_LATE_HOURS + ' hours of due';
+    }
+    if (n.whys.indexOf(why) === -1) n.whys.push(why);
   });
   return Object.keys(by).map(k => Object.assign(by[k], {
     due: recapWall_(by[k].end, Math.round((Number(delayH) || 0) * 60)), why: by[k].whys.join('; ') }));
@@ -568,8 +649,9 @@ function recapRun_(now) {
 
   const found = recapSessions_(jobs, from, clock.today, null, cfg);
   const inWindow = due => recapDueNow_(due, clock.at);
-  const groups = recapGroups_(found.sessions, delay).filter(g => inWindow(g.due));
-  const jobNotes = recapJobNotes_(found.problems, delay).filter(p => inWindow(p.due));
+  const every = recapGroups_(found.sessions, delay, found.problems);
+  const groups = every.filter(g => inWindow(g.due));
+  const jobNotes = recapJobNotes_(found.problems, delay, every).filter(p => inWindow(p.due));
   if (!groups.length && !jobNotes.length) return { mode: mode, at: clock.at, due: 0 };
 
   if (!recapLog_().sheet) return { mode: mode, error: 'The sheet has no recap_log tab. Open /exec?setup=1 to add it. Nothing was sent.' };
@@ -694,7 +776,7 @@ function recapPreviewOut_(now) {
     : 'The Ledger has no recap_log tab. Open /exec?setup=1 (ensureSchema) to add it — until then the hourly check stops before it sends anything.');
   const people = read(TAB.people).rows;
   const found = recapSessions_(read(TAB.jobs).rows, from, clock.today, null, cfg);
-  const groups = recapGroups_(found.sessions, delay);
+  const groups = recapGroups_(found.sessions, delay, found.problems);
   const plan = recapPlan_(groups, read(TAB.attempts).rows, people, acceptedParents, digestLook_());
 
   const byId = {};
@@ -723,7 +805,7 @@ function recapPreviewOut_(now) {
       due: '', dueSaid: '', state: p.why })));
     const emails = plan.emails.filter(m => m.day === day).map(m => Object.assign({
       learner: m.learner, parent: m.parent, to: m.to, subject: m.subject, text: m.text, count: m.count,
-      due: m.due, dueSaid: said(day, m.due) }, logged(day, m.learner_id, m.parent_id)));
+      due: m.due, dueSaid: said(day, m.due), state: stateOf(m.due) }, logged(day, m.learner_id, m.parent_id)));
     const nobody = []
       .concat(plan.unreachable.filter(u => u.day === day).map(u => Object.assign({ name: u.name || nameOf(u.learner_id), why: u.why },
         { status: logged(day, u.learner_id, '').status })))
@@ -731,7 +813,7 @@ function recapPreviewOut_(now) {
         why: 'session_email on their row says no', status: logged(day, p.learner_id, p.parent_id).status })))
       .concat(plan.nothing.filter(nd => nd.day === day).map(nd => ({ name: nameOf(nd.learner_id), why: nd.why,
         status: logged(day, nd.learner_id, '').status })))
-      .concat(recapJobNotes_(found.problems.filter(p => p.day === day), delay).map(p => ({
+      .concat(recapJobNotes_(found.problems.filter(p => p.day === day), delay, groups).map(p => ({
         name: (S(p.subject) || 'A session') + ' (' + p.job_id + ')', why: p.why, status: logged(day, '', '', p.job_id).status })));
     days.push({ day: day, label: recapShort_(day), sessions: sessions, emails: emails, nobody: nobody });
   }

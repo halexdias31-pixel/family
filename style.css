@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-06-sessionrecap";
+  --css-version: "2026-10-06-sessionrecap-2";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -617,6 +617,23 @@ body {
    `h3`, and at 320 that line scrolled the whole sheet sideways by 92px (check/ui.js). The weekly
    preview's address sat in an `h2` small enough to fit, which was luck rather than a rule — so both. */
 #sheet-body h3 { overflow-wrap: anywhere; }
+/* THE PREVIEW OF THE EMAIL AFTER EACH SESSION HAS THREE LEVELS, AND THE BROWSER RANKED THEM BACKWARDS.
+   Sheet title, then a DAY (`Tue 6 Oct`, an `h2`), then each EMAIL under it (`To Pat Parent · … —
+   preview`, an `h3`). The day was the sheet's small dim marker above, and the email heading the
+   browser's own 1.17em bold — the largest text on the sheet — so the days that organise the preview
+   were the hardest thing to find on it. Scoped to `.recap-sheet` (js/digest.js) because `#sheet-body
+   h3` outranks `.card > h3` and every card opened in a sheet would have shrunk with it.
+   THE DAY becomes a divider: a rule above it and the full ink. THE EMAIL heading drops below the body
+   text — it says who and whether, and the subject line under it is the email. */
+#sheet-body .recap-sheet h2 {
+  margin-top: 1.5rem; padding-top: .55rem;
+  border-top: 1px solid var(--line);
+  font-size: .78rem; font-weight: 600; color: var(--ink);
+}
+#sheet-body .recap-sheet h3 {
+  margin: .9rem 0 .2rem;
+  font-size: .85rem; font-weight: 600; line-height: 1.35;
+}
 
 /* ---------- CARDS -------------------------------------------------------------------------------
    Full width, one column, always. On a phone a card is a ROW — two side by side and both are too
