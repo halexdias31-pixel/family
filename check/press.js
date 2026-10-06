@@ -402,7 +402,13 @@ for (const who of VISITORS) {
          that did nothing, which is the finding this file exists to make honest. */
       if (el.tagName === 'SELECT') {
         const opts = [...el.options].filter(o => !o.disabled);
-        const next = opts.find(o => o.value !== el.value);
+        /* AN ANSWER, NOT THE BLANK. The booking form's selects open on an empty "Choose…" row, and
+           moving the client from Test Admin to that row is choosing nobody — which the form rightly
+           ignores. It passed until 5 October only because the repaint it caused left the page
+           unplaced (no `on`, no styles) for longer than the 130ms below, and that difference in the
+           markup was read as the press having done something; once `paint` re-placed what it drew,
+           `book-set` read as quiet. The blank is pressed only when there is nothing else. */
+        const next = opts.find(o => o.value !== el.value && o.value !== '') || opts.find(o => o.value !== el.value);
         if (next) { el.value = next.value; el.dispatchEvent(new Event('change', { bubbles: true })); }
       } else if (el.type === 'checkbox' || el.type === 'radio') {
         el.checked = !el.checked;
