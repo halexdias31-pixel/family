@@ -9146,6 +9146,54 @@ check('the calendar marks sessions, terms, half terms, bank holidays, events and
   return bad;
 });
 
+/* ==================================================================================================
+   MULTI-PART QUESTIONS — THE FOLLOW-UPS TO THE OWNER'S *"can you see any clashes or bugs or counter
+   intuitive things which occur with current system to keep questions in order while keeping the
+   diagram in its own widget … multiple parts … like 1b 1c 1di 1dii"*. Each journey is one finding of
+   the audit that answered it, through the app's own builders. `FLOW_ONLY=multipart` runs them alone.
+================================================================================================== */
+/* A PAYLOAD ROW, the shape `libraryInto_` hands `questionItems` -- the fields it reads and no more. */
+const mpRow_ = (paper, name, q, part, extra) => Object.assign({ id: 'Q-' + paper + '-' + q + part, paper: paper,
+  q: String(q), part: part, kind: 'question', name: name, subject: 'Maths', marks: 1,
+  html: '<p>' + paper + ' Q' + q + part + '</p>' }, extra || {});
+
+/* FINDING 12 AND 13: a question's parts in the order the paper prints them, whatever the spelling and
+   however many, and two papers sharing a name never shuffled together. */
+check('multipart: parts sort by their value within a question, and two papers with one name do not interleave', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.questionItems !== 'function' || typeof w.stuffSorted_ !== 'function') return ['questionItems or stuffSorted_ not reachable — renamed? The order was NOT checked'];
+  const D = w.__t.DATA();
+  const held = D.questions;
+  const same = 'Paper 1 (Non-calculator) — June 2024';
+  const rows = [];
+  const add = (paper, name, q, parts) => parts.forEach(p => rows.push(mpRow_(paper, name, q, p)));
+  /* SHUFFLED ON PURPOSE, so the order out is the sort's and not the file's. */
+  add('P-MP-L', 'Letters', 1, ['j', 'h', 'i']);
+  add('P-MP-R', 'Numerals', 2, ['x', 'ii', 'ix', 'v', 'i', 'iv', 'iii', 'vi', 'viii', 'vii', 'xi']);
+  add('P-MP-N', 'Numbers', 3, ['10', '2', '1', '11', '9']);
+  add('P-MP-A', 'Nested', 4, ['b', 'a(ii)', 'a', 'b(i)', 'a(i)', 'dii', 'di', 'c']);
+  add('P-MP-1H', same, 13, ['b', 'a']);
+  add('P-MP-1F', same, 13, ['b', 'a']);
+  D.questions = rows;
+  let order = [];
+  try { order = w.stuffSorted_(w.questionItems()).map(x => x.row.paper + ':' + x.qPart); }
+  catch (e) { bad.push('sorting threw: ' + e.message); }
+  finally { D.questions = held; }
+  const of = paper => order.filter(o => o.indexOf(paper + ':') === 0).map(o => o.split(':')[1]).join(' ');
+  [['P-MP-L', 'h i j', 'letters h, i, j -- a lone "i" here is the ninth letter, not a numeral'],
+   ['P-MP-R', 'i ii iii iv v vi vii viii ix x xi', 'numerals by value -- "ix" used to sort before "v"'],
+   ['P-MP-N', '1 2 9 10 11', 'numbered parts past 9 -- they sorted 1, 10, 11, 2'],
+   ['P-MP-A', 'a a(i) a(ii) b b(i) c di dii', 'letters, then each letter\'s numerals']].forEach(([p, want, what]) => {
+    if (of(p) !== want) bad.push(what + ': got "' + of(p) + '", wanted "' + want + '"');
+  });
+  /* THE SAME NAME, TWO PAPERS: each paper's parts together. */
+  const twin = order.filter(o => /^P-MP-1[FH]:/.test(o)).map(o => o.replace('P-MP-', '')).join(' ');
+  if (twin !== '1F:a 1F:b 1H:a 1H:b') bad.push('two papers called "' + same + '" read "' + twin + '" -- their parts interleave');
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;
