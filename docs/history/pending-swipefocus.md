@@ -160,3 +160,43 @@ needs care because `columnShift_` reads the `offsetTop` of pages above. #9 above
 word); a card you are using growing downward rather than staying centred (so an answer shown sits a
 little below the middle until you move on); a blur of 2 px; a still release now needing a third of a
 card (56–120 px) rather than 56 px.
+
+### After the review: the keypad, a flaky centring read, and widgets under a resting finger
+
+**THE MATHS KEYPAD COVERED THE ANSWER BOX AT 320x568.** A card centred on the screen sits lower than
+one hung from the old top line, and the review measured every answer box on a paper's question cards
+under the pad — 8 pages of 8 on this branch, 1 of 8 on base (pad top 315px, box bottoms 317–327px).
+`kpRoom_` only scrolled a scrolling ancestor, and a card whose content fits has none; the hold on
+focus then kept the box where it was. Now `kpLift_` lifts the whole column by what the box is short
+of, through the hold itself — `HOLD_AT.lift`, read by `columnShift_` AFTER its clamp, because this is
+the one time a card is meant to go above the glass, as a phone's keyboard pushes a page — and
+`kpRoomBack_` takes it off when the pad closes. Worked out from where the column is GOING (unmoved
+top + held shift + the box's distance down its column), never from a rectangle read mid-slide.
+`check/swipe.js` `keypad`: a real tap on each box on five question pages of one paper at both
+widths; the box 12px or more clear of the pad (the margin `kpRoom_` keeps), and the card back where
+it was once the pad closes. Mutations: no lift → five boxes under the pad at 320 (−2 to −12.5px);
+lift never taken off → the card 14–24px high after closing. Screenshots `kp-320-*`, `kp-390-*`.
+The ✓ tile under the box is behind the pad at 320 while it is up; the pad's own ✓ key is Check.
+
+**`check/swipe.js` CENTRED WAS FLAKY, 1 run in 3, and it was the check.** Probed: the feed's camera
+card grows 611 → 692px when a machine with no camera answers, about 300ms after arriving — after
+everything `R.still` watched had gone quiet. One sample reads 40.7px low, the next 0.2px (the
+`ResizeObserver` frame re-centres it). `R.still` now also waits for `CAM_ASKING`, for the card in
+front to read the same height twice running, and for the column to be placed where `columnShift_`
+says. NOT PROVED BY MUTATION, and saying so: the fault is a ~50ms window that cannot be put under a
+measurement on demand — a 900ms-late camera made both the old and new waits pass, because the old
+one measured before the growth. Three runs of `--only=centre` green, and the full suite.
+
+**WIDGETS NO LONGER START UNDER A FINGER THAT HAS ONLY JUST TOUCHED.** `widgetsLater_` counted a
+finger once its direction was decided, and not a tapped page turn's glide at all. `SWIPE.live` alone
+and `SLIDE_UNTIL` now count, capped at 1.5s from when the column was first found busy, so a resting
+thumb or a lost `pointerup` cannot leave a column of dead widgets. `check/swipe.js` `widgets` rests a
+real touch on Tools as the queue fills: nothing starts before the cap, everything by 4s. Mutations:
+axis-only → 5 and 1 started under the finger; no cap → 6 and 4 never started. The `SLIDE_UNTIL`
+half has no mutation of its own. `.screen { will-change: transform, translate }` — the vertical
+move is the separate `translate` property now.
+
+**Not tested here, worth one look on a real phone:** text boxes on centred cards (to-do, notepad)
+sit lower than they did, so a phone's own keyboard at 320x568 is more likely to cover them. The
+browser shrinks the visual viewport for its keyboard and scrolls the focused field into view, which
+this harness cannot reproduce.
