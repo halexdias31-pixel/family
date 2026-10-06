@@ -2232,6 +2232,29 @@ const STATES = {
       /* `repaint(true)`, not `paint`: four pages leave the column (a sibling made it four), so it is placed again — a bare paint
          left the card in front sitting where the old page 2 was, and COLUMNS OUT OF LINE said so. */
       leave: () => { DATA.family = window.__FAM_HELD; DATA.familyFor = window.__FAM_FOR; DATA.claims = window.__FAM_CLAIMS; repaint(true); } },
+    /* ---------- YOUR OWN CARD WHILE YOUR EMAIL IS UNPROVED ---------------------------------------------
+       The PR #130 review: `notify` sends a PENDING address nothing, and nothing on the phone said so —
+       a parent whose link went to spam booked and heard nothing. Now a line under your own card says
+       the mail waits for the link, with "Send the link again" beside Sign out. `pendingEmail` is a key
+       of the sign-in reply the fixture visitor does not carry, so it is set here, and the address is a
+       long one with no space in it on purpose: it is the widest thing on the line. */
+    { name: 'your own card, your email not confirmed yet',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__PENDING_WAS = USER.pendingEmail;
+        USER.pendingEmail = 'philippa.parentington-smythe.family@example.org';
+        paint('account');
+        goPage('account', 0, true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-account .page.on');
+        const line = pg && pg.querySelector('.mail-held');
+        return line && /philippa\.parentington-smythe\.family@example\.org/.test(line.textContent)
+          && pg.querySelectorAll('[data-do="resend-link"]').length === 1
+          && line.scrollWidth <= line.clientWidth + 1 ? 2 : 0;
+      },
+      wants: 'the line under your own card naming the address, whole and not running off it, and one "Send the link again"',
+      leave: () => { USER.pendingEmail = window.__PENDING_WAS; repaint(true); } },
   ],
 
   /* ---------- THE SETTINGS COLUMN, WHICH THIS FILE HAD NEVER DECLARED A STATE FOR ----------------
@@ -2275,6 +2298,33 @@ const STATES = {
           && slip.scrollWidth <= slip.clientWidth + 1 ? 2 : 0;
       },
       wants: 'the make card with its three boxes, and the slip: the handle and the PIN, neither running off it' },
+    /* ---------- AND HELD FOR THE LINK: A PARENT WHOSE OWN ADDRESS NOBODY HAS PROVED ------------------------
+       The PR #130 review: no child is put on an account until its address is confirmed (`confirmFirst_`
+       in people.gs), so a PENDING parent's Settings draws ONE card where the two child forms would be —
+       the sentence and "Send the link again". Seeded through `USER.pendingEmail`, which the sign-in reply
+       carries and the fixture visitor does not, with a long address that has no space in it. */
+    { name: 'your child\'s account, held for the link',
+      only: () => typeof USER !== 'undefined' && !!USER && typeof mayAddChild_ === 'function' && mayAddChild_(),
+      enter: () => {
+        window.__PENDING_WAS = USER.pendingEmail;
+        USER.pendingEmail = 'philippa.parentington-smythe.family@example.org';
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.kid-held'));
+        if (at < 0) throw new Error('no held "Make your child\'s account" card on the settings column');
+        goPage('settings', at, true);
+      },
+      /* `repaint(true)`: one page becomes two again, so the column is placed afresh — see the family state. */
+      leave: () => { USER.pendingEmail = window.__PENDING_WAS; repaint(true); },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const card = pg && pg.querySelector('.kid-held');
+        return card && /philippa\.parentington-smythe\.family@example\.org/.test(card.textContent)
+          && card.querySelectorAll('[data-do="resend-link"]').length === 1
+          && !document.querySelector('#s-settings [data-kid-new], #s-settings [data-kid]')
+          && card.scrollWidth <= card.clientWidth + 1 ? 2 : 0;
+      },
+      wants: 'one card naming the address to open the link from, with "Send the link again", and no child form anywhere on the column' },
     /* ---------- THE PHOTOGRAPHS PAGE: THE FACE, THE CLIP, AND A SHELF OF EIGHT ------------------
        Eight boxes are IN the form whether or not they are drawn — `photosIn` rebuilds the whole cell
        from what arrives, so a box missing from the form is a photograph deleted on Save — and only

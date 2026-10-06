@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-06-d-authfix";
+const DOPOST_VERSION = "2026-10-06-e-authfix2";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -75,12 +75,13 @@ function signInRow_(t0, r, body, by) {
      the proof of who is signing in; the link proves only that the ADDRESS reaches them. So the row
      stays `PENDING` until the link is opened, and that still matters where an address is USED —
      no mail but the link and "Forgotten your PIN?" goes to a `PENDING` address (`addressPending_`),
-     a grown-up's link puts a no-email child only on a parent row that is NOT pending (`verifyEmail`),
-     and the emailed PIN or Google proving the address ends every other session on the row
-     (`authAddressProven_`) — but it no longer decides whether somebody may sign in.
+     no child is tied to a `PENDING` account by any door (`confirmFirst_`), the emailed PIN used ends
+     every other session on the row whatever its state (`authResetUse_`), and Google proving a
+     `PENDING` address also takes away the PIN its registrant chose (`googleLogin`) — but it no longer
+     decides whether somebody may sign in.
      WHAT THAT COST, FOUND BY THE PR #130 REVIEW: a PIN on a self-made row proves who REGISTERED, not
-     who owns the address. Each of those three is a place an unproved address was being trusted as if
-     it had been proved, which the sign-in refusal used to hide. */
+     who owns the address. Each of those is a place an unproved address was being trusted as if it had
+     been proved, which the sign-in refusal used to hide. */
   /* ---------- A ROW WITH NO ID IS GIVEN ONE BEFORE A SESSION IS MADE FOR IT -------------------------
      A SESSION IS `{ id }`, AND `authWhoIs_` REFUSES AN EMPTY ONE. So a child typed into the sheet
      after the last deploy — no `person_id` until `ensureSchema` next ran — was told "Signed in", and
@@ -102,6 +103,42 @@ function signInRow_(t0, r, body, by) {
       error: 'Your details are right, but signing in failed on our side: '
              + String(err && err.message || err) });
   }
+}
+
+/* ---------- THE CONFIRMATION LINK, TO AN ACCOUNT'S OWN ADDRESS ---------------------------------------
+   `register` SENDS IT ONCE AND `resendLink` SENDS IT AGAIN, and they are one body so the two cannot
+   drift: the second copy is the one somebody whose first went to spam actually reads, and it has to say
+   everything the first did — the line for whoever did not make the account most of all. Sent directly
+   rather than through `notify`, which looks the address up on the row and refuses a PENDING one; the
+   point of this mail is to prove that THIS address reaches this person. Throws as `MailApp` does, and
+   each caller says what a failure means for it. `r` needs only `first_name`, `email` and `handle`. */
+function linkMail_(r, token, asParent) {
+  const said = S(r.handle) ? '@' + S(r.handle) : '';
+  MailApp.sendEmail({ to: S(r.email), name: '@family.',
+    subject: 'Confirm your @family. account',
+    body: 'Hello ' + S(r.first_name) + ',\n\nConfirm your email address by opening this link:\n\n'
+        + SITE_URL + '?verify=' + token
+        + '\n\nYou can already sign in with this email address' + (said ? ' (or your handle, ' + said + ')' : '')
+        + ' and the PIN you chose — the link only confirms the address is yours. Until it is opened we '
+        + 'send nothing else to this address.'
+        /* ---------- AND WHAT TO DO IF YOU DID NOT MAKE IT -----------------------------------------
+           Since 6 Oct an account signs in before its link is opened, so whoever typed THIS address may
+           be signed in already, and this email is the only thing its real owner is ever sent. The way
+           back is the one that proves the inbox: the emailed PIN, typed back, replaces theirs and signs
+           everybody else out (`authResetUse_`) — whether or not the link was opened first, since round
+           two of the PR #130 review. "Do not open the link" stays because opening it confirms an
+           account somebody else holds, and a confirmed account is one a child can be put on.
+           THE REVIEW'S OBJECTION, ANSWERED RATHER THAN IGNORED: when the address is a parent's TYPO,
+           this line tells the stranger who owns it how to take the account. They are its address's
+           owner, and what they would take holds no child (`confirmFirst_`) and was mailed nothing; the
+           parent finds out at once — signed out, PIN gone — instead of never. */
+        + '\n\nIf you did not make this account, do not open the link: use "Forgotten your PIN?" with '
+        + 'this address instead — it takes the account over and signs everyone else out.'
+        /* THE NEXT STEP, for the person who came for it — and since a child waits on a confirmed
+           address (`confirmFirst_`), the link is that step's first half, said in that order. */
+        + (asParent ? '\n\nOnce you have opened the link, Settings → "Make your child\'s account" gives your '
+                    + 'child a handle and a PIN of their own — they need no email.' : '')
+        + '\n\n— @family.' });
 }
 
 function doPost(e) {
@@ -382,36 +419,21 @@ function doPost(e) {
          account's own card once signed in — which a child with no address cannot reach without it. */
       const said = regHandle ? '@' + regHandle : '';
       try {
-        MailApp.sendEmail(email
-          ? { to: email, name: '@family.',
-              subject: 'Confirm your @family. account',
-              body: 'Hello ' + first + ',\n\nConfirm your email address by opening this link:\n\n'
-                  + SITE_URL + '?verify=' + token
-                  + '\n\nYou can already sign in with this email address' + (said ? ' (or your handle, ' + said + ')' : '')
-                  + ' and the PIN you chose — the link only confirms the address is yours.'
-                  /* ---------- AND WHAT TO DO IF YOU DID NOT MAKE IT -----------------------------------------
-                     Since 6 Oct an account signs in before its link is opened, so whoever typed THIS
-                     address may be signed in already, and this email is the only thing its real owner is
-                     ever sent. The way back is the one that proves the inbox: the emailed PIN, typed back
-                     while the row is still PENDING, replaces theirs and signs everybody else out
-                     (`authAddressProven_`). Opening the link first would confirm the account for them. */
-                  + '\n\nIf you did not make this account, do not open the link: use "Forgotten your PIN?" with '
-                  + 'this address instead — it takes the account over and signs everyone else out.'
-                  /* THE NEXT STEP, for the person who came for it. A parent's first question once in is
-                     how their child gets an account, and the answer is a card they would otherwise have
-                     to go looking for. */
-                  + (asParent ? '\n\nOnce you are in, Settings → "Make your child\'s account" gives your '
-                              + 'child a handle and a PIN of their own — they need no email.' : '')
-                  + '\n\n— @family.' }
-          : { to: grownUp, name: '@family.',
+        /* THE ACCOUNT'S OWN ADDRESS GETS `linkMail_`, which `resendLink` sends again word for word. */
+        if (email) linkMail_({ first_name: first, email: email, handle: regHandle || '' }, token, asParent);
+        else MailApp.sendEmail({ to: grownUp, name: '@family.',
               subject: first + ' has made an @family. account',
               body: 'Hello,\n\n' + full + ' has made an account on @family. and gave this address as '
                   + 'their grown-up\'s, because they have no email of their own.\n\n'
                   + 'Their account works already. If that is right, open this link to confirm your address'
                   + ' (it also puts them on your @family. parent account if you have one and have confirmed it):\n\n'
                   + SITE_URL + '?verify=' + token + '\n\n'
-                  + 'They sign in with their handle, ' + said + ', and the PIN they chose. If they forget '
-                  + 'it, "Forgotten your PIN?" sends a new one to this address.\n\n'
+                  + 'They sign in with their handle, ' + said + ', and the PIN they chose. '
+                  /* "ONCE YOU HAVE OPENED IT": until then this address is one nobody has proved, and a
+                     child's PIN is not mailed to one (`authGrownUps_`) — a mistyped grown-up's address is
+                     a stranger's inbox, and the handle above is all "Forgotten your PIN?" asks for. */
+                  + 'Once you have opened the link, "Forgotten your PIN?" sends a new one to this address '
+                  + 'if they forget it.\n\n'
                   /* "AND HAVE CONFIRMED IT" since `verifyEmail` stopped linking a PENDING parent row. */
                   + 'If you have an @family. parent account on this address and have confirmed it, opening the '
                   + 'link also puts ' + first + ' on it. If you do not know who this is, ignore this email and '
@@ -477,6 +499,58 @@ function doPost(e) {
       clearCache();
       return jsonOut({ success: true, name: personDisplayName(r), handle: S(r.handle),
                        noEmail: !S(r.email), linkedTo: linked, parentPending: held });
+    }
+
+    /* ---------- "SEND THE LINK AGAIN" ------------------------------------------------------------------
+       A PARENT WHOSE LINK WENT TO SPAM HAD NO WAY TO A SECOND ONE. That was the owner's own reason for
+       letting sign-in stop waiting on it (6 Oct), and once a child waits on it instead (`confirmFirst_`)
+       the link is the one thing standing between a parent and making their child's account — so the
+       cards that say "open the link first" carry this, and it has to work.
+
+       ONLY TO THE ROW'S OWN ADDRESS, AND ONLY WHILE IT IS PENDING. `self`, so it is the row the token
+       resolved to and nobody named; nothing typed on the request says where it goes. A confirmed row is
+       told so and sent nothing. A no-email child has no address of their own — their link went to a
+       grown-up, and sending that again is the grown-up's business, not a button on the child's card.
+       ONE PER QUARTER OF AN HOUR (`AUTH.LINK_GAP_MINS`), because every press is a mail out of the quota
+       the booking notices use. A FRESH TOKEN each time, so the link in the newest mail is the only one
+       that works: a token sat in an old mail in somebody's spam is one more copy of the key. Written
+       only once the mail has gone — `forgotPin`'s rule — so a mail that fails leaves the old link
+       working rather than none. The mail is `linkMail_`, `register`'s own, word for word. */
+    if (action === 'resendLink') {
+      const t = read(TAB.people);
+      const me = t.rows.find(x => S(x.person_id) === S(body.personId));
+      if (!me) return jsonOut({ error: 'We could not find your account.' });
+      const own = S(me.email);
+      if (!own) return jsonOut({ error: 'This account has no email address of its own, so there is no link to send.' });
+      if (!addressPending_(me)) {
+        return jsonOut({ success: true, why: 'confirmed', pendingEmail: '',
+                         message: 'Your email is confirmed already — there is nothing to open.' });
+      }
+      const key = 'AUTH_LINK_' + S(me.person_id);
+      let last = 0;
+      try { last = N(authProps_().getProperty(key)); } catch (err) { last = 0; }
+      const since = Date.now() - last;
+      if (last && since < AUTH.LINK_GAP_MINS * 60000) {
+        const mins = Math.max(1, Math.ceil((AUTH.LINK_GAP_MINS * 60000 - since) / 60000));
+        return jsonOut({ success: true, why: 'already-sent', pendingEmail: own,
+          message: 'A link went to ' + own + ' a few minutes ago — look there, and in spam. You can ask again in '
+                 + mins + (mins === 1 ? ' minute.' : ' minutes.') });
+      }
+      let quota = 1;
+      try { quota = MailApp.getRemainingDailyQuota(); } catch (err) { quota = 1; }
+      const cannot = { why: 'no-mail', error: 'We could not send the email just now, so nothing has changed. Try again later.' };
+      if (quota < 1) return jsonOut(cannot);
+      const token = 'V' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+      try { linkMail_(me, token, hasRole(me, 'client')); } catch (err) { return jsonOut(cannot); }
+      if (!setCell(t, me, 'verify_token', token)) {
+        return jsonOut({ error: 'We sent a new link but could not save it, so it will not work. The first link we sent '
+                              + 'still does — ask us if you cannot find it.' });
+      }
+      try { authProps_().setProperty(key, String(Date.now())); } catch (err) {}
+      clearCache();
+      return jsonOut({ success: true, pendingEmail: own,
+        message: 'A new link is on its way to ' + own + '. Open it and your email is confirmed — any link we sent '
+               + 'before this one no longer works.' });
     }
 
     /* ================================================================================================
@@ -545,14 +619,36 @@ function doPost(e) {
         return jsonOut({ success: false,
           error: 'No @family. account uses that Google address. Ask an admin to add it to your profile.' });
       }
-      /* SIGNING IN WITH GOOGLE IS THE CONFIRMATION. The pending state exists to prove somebody
-         owns the inbox, and Google has just proved exactly that about the same address — so whoever
-         else holds a session on this row, which may be somebody who registered the address before
-         its owner did, is signed out before this one is made. See `authAddressProven_`. */
-      if (addressPending_(r)) authAddressProven_(t, r);
+      /* ---------- SIGNING IN WITH GOOGLE IS THE CONFIRMATION, AND THE TAKING BACK ---------------------
+         The pending state exists to prove somebody owns the inbox, and Google has just proved exactly
+         that about the same address (`authConfirmed_`). The PIN on a PENDING row proves nothing of the
+         kind: it was chosen by whoever registered the address, who may not be its owner.
+         ROUND ONE OF THE PR #130 REVIEW ENDED THEIR SESSIONS AND LEFT THEIR PIN, and measured, the
+         squatter signed straight back in with it — onto a row now confirmed, so a later emailed PIN
+         ended nothing either, and they read Vic's profile and reset the PIN of the child she made. So
+         on a PENDING row the PIN goes too, with the guesses at it and any emailed one waiting
+         (`check-backend`'s pair), and every session ends before this one is made: afterwards only
+         Google or a fresh "Forgotten your PIN?" gets in. Cleared rather than replaced with one drawn
+         here, because a PIN nobody is shown is a PIN nobody can use — and the reply SAYS so, because
+         the person this happens to is as often the real registrant, who would otherwise find their
+         own PIN refused tomorrow with no idea why. A CONFIRMED row is left alone: its PIN was proved
+         by whoever confirmed it, and signing in by Google must not sign its owner out elsewhere. */
+      const tookBack = addressPending_(r);
+      if (tookBack) {
+        authConfirmed_(t, r);
+        authSetPin_(t, r, '');
+        authClearThrottle_(t, r);
+        authResetDrop_(r);
+        authEndSession_(t, r);
+      }
       logEvent({ jobId: '', actor: personDisplayName(r), role: toAppRole(mainRole(r)),
                  action: ACT.SAY, message: 'signed in with Google' });
-      return loginReplyFor_(r, authNewSession_(t, r));
+      return loginReplyFor_(r, authNewSession_(t, r), tookBack ? {
+        pinCleared: true,
+        message: 'Signed in with Google, and that has confirmed your email. The account was made with a PIN '
+               + 'before anybody had confirmed the address, so that PIN no longer works and anyone else signed '
+               + 'in to it has been signed out. Sign in with Google from now on — or use "Forgotten your PIN?" '
+               + 'and we will email you a new PIN.' } : null);
     }
 
     if (action === 'signOut') {
@@ -670,7 +766,11 @@ function doPost(e) {
                        agreementSignedAt: S(me.agreement_signed_at),
                        agreementVersion: S(me.agreement_version),
                        role: toAppRole(mainRole(me)), roles: rolesOf(me).map(toAppRole),
-                       tutorPending: tutorPending_(me) });
+                       tutorPending: tutorPending_(me),
+                       /* AND WHETHER THE ADDRESS IS PROVED YET — stale on the phone exactly as the role
+                          was: opened on another phone, or by Google, and this phone held the held card
+                          for thirty days. The sign-in reply's word, read the same way. */
+                       pendingEmail: pendingEmailOf_(me) });
     }
 
     if (action === 'getProfile') {
@@ -1595,10 +1695,17 @@ function doPost(e) {
        day; anybody may press this with anybody's handle, and now what that costs the child is an email
        to their grown-up rather than a PIN that stopped working.
 
-       SESSIONS ARE NOT ENDED, and that is deliberate and is the opposite of `changePin`. There the
-       person asking has proved who they are, so ending every other session removes an intruder.
-       Here anybody may ask, so ending sessions would let a stranger sign the owner out of their own
-       phone by typing their name. */
+       SESSIONS ARE NOT ENDED BY ASKING, and that is deliberate and is the opposite of `changePin`.
+       There the person asking has proved who they are, so ending every other session removes an
+       intruder. Here anybody may ask, so ending sessions would let a stranger sign the owner out of
+       their own phone by typing their name. USING the PIN this sends is different, and ends them all
+       (`authResetUse_`): whoever types it back has proved the inbox it went to.
+
+       ---------- AND IT IS THE ONE PIN MAILED TO AN ADDRESS NOBODY HAS PROVED ---------------------------
+       An account's OWN address gets it whatever its state, because this is how that address's owner
+       takes back an account somebody else registered on it — the PR #130 review's squatter. A child's
+       grown-ups get it only once THEIR address is proved (`authGrownUps_`), because a child's PIN in a
+       typo's inbox is a stranger holding the child. */
     if (action === 'forgotPin') {
       const asked = norm(body.who).replace(/^@+/, '');   // `@halex_kind42` as cards print it — see verifyLogin
       if (!asked) return jsonOut({ error: 'Type your email address or your handle first.' });
@@ -1630,6 +1737,14 @@ function doPost(e) {
          that are not the child's, belonging to the people who would be asked anyway. */
       const own = S(r.email);
       const tos = own ? [own] : authGrownUps_(r);
+      /* A GROWN-UP'S ADDRESS THAT IS THERE AND NOT YET OPENED is said as itself: "we have no email" to a
+         child whose grown-up was sent a link yesterday sends them looking for the wrong thing. The link
+         is the way in, and it is in that inbox already. */
+      if (!tos.length && !own && S(r.parent_email) && addressPending_(r)) {
+        return jsonOut({ why: 'grown-up-pending',
+          error: 'Your grown-up has not opened the link we emailed them yet, so a new PIN cannot go to them. '
+               + 'Ask them to open it, then try again — or ask your tutor, who can give you one straight away.' });
+      }
       if (!tos.length) {
         return jsonOut({ why: 'no-inbox',
           error: 'We have no email for this account, so we could not send a new PIN. Ask your parent or '
@@ -2102,6 +2217,10 @@ function doPost(e) {
       if (!hasRole(me, 'client') && !hasRole(me, 'admin')) {
         return jsonOut({ error: 'Only a parent can add a child.' });
       }
+      /* NOT FROM AN ADDRESS NOBODY HAS PROVED — see `addressPending_`. Asking is not linking, but the
+         child's yes would be a yes to an account whoever owns that inbox can take with "Forgotten your
+         PIN?", and a child cannot be expected to know that. Refused here, before anybody is asked. */
+      if (addressPending_(me)) return jsonOut(confirmFirst_(me, 'you can add your child'));
 
       const typed = (S(body.firstName) + ' ' + S(body.lastName)).trim();
       if (!S(body.firstName) || !S(body.lastName)) {
@@ -2169,6 +2288,18 @@ function doPost(e) {
       if (norm(r.state) !== 'asked') return jsonOut({ error: 'That was already answered.' });
 
       const yes = TRUE_(body.accept);
+      /* ---------- A YES TO AN ACCOUNT WHOSE ADDRESS NOBODY HAS PROVED WAITS --------------------------
+         The claim was asked by somebody signed in, and `claimChild` refuses a PENDING asker now — but a
+         claim asked before it did, or written into the family tab by hand, still sits here, and a yes
+         to it is the child put on an account whoever owns that inbox can take.
+         So YES waits, with the row left `asked` so it can be answered once the address is proved; NO
+         is never held up, because saying no to a stranger must not depend on the stranger. */
+      const asker = yes ? findPerson(S(r.parent_id)) : null;
+      if (asker && addressPending_(asker)) {
+        return jsonOut({ why: 'unconfirmed',
+          error: personDisplayName(asker) + ' has not confirmed their email yet, so they cannot be linked to '
+               + 'you. Ask them to open the link we emailed them, then say yes — or say no.' });
+      }
       setCell(t, r, 'state', yes ? 'accepted' : 'refused');
       setCell(t, r, 'answered_on', new Date());
       clearCache();
@@ -2307,6 +2438,17 @@ function doPost(e) {
           : 'Only a parent can make a child\'s account. Tick ' + ROLE_LABEL.client
             + ' under Your roles first. Nothing was made.' });
       }
+      /* ---------- NOT ON AN ACCOUNT WHOSE ADDRESS NOBODY HAS PROVED --------------------------------
+         THE PR #130 REVIEW'S TYPO, TWICE. Jo registers on jsmith1@ meaning jsmith@, signs in (no gate
+         since 6 Oct) and makes Lu's account. Round one stopped the mail naming Lu's handle going to
+         jsmith1@ — and its owner still pressed "Forgotten your PIN?" on the address, which must reach a
+         PENDING address (it is how a squatted one is taken back), signed in as Jo and reset Lu's PIN.
+         So the child waits, not the mail: the parent opens the link first. Asked after the role, so a
+         student is still told the thing that is actually in their way. The phone draws the same
+         sentence where the form would be (`childHeldCard_` in me.js), so this is for a stale phone. */
+      if (addressPending_(me)) {
+        return jsonOut(confirmFirst_(me, 'you can make your child\'s account. Nothing was made'));
+      }
       const first = S(body.firstName), last = S(body.lastName), pin = S(body.pin);
       if (!first || !last) return jsonOut({ error: 'Their first name and their last name, please.' });
       if (!/^\d{4,8}$/.test(pin)) return jsonOut({ error: 'Choose a PIN of 4 to 8 digits for them.' });
@@ -2337,10 +2479,10 @@ function doPost(e) {
       });
       if (!link) return jsonOut({ error: 'Their account was made, but it could not be put on yours — ask us to link it.' });
       clearCache();
-      /* NOT TO AN ADDRESS NOBODY CONFIRMED (`addressPending_`). A parent who mistyped theirs signs in
-         and makes a child all the same, and this mail put the child's handle in a stranger's inbox —
-         the one thing "Forgotten your PIN?" asks for. The handle is on the screen in the reply. */
-      if (S(me.email) && !addressPending_(me)) {
+      /* ROUND ONE ASKED `addressPending_(me)` HERE, so the handle did not go to a typo's inbox. A
+         PENDING parent is refused above now and never reaches this line, so the address it mails is one
+         somebody has proved; a second test of the same thing here would be a rule in two places. */
+      if (S(me.email)) {
         try {
           MailApp.sendEmail({ to: S(me.email), name: BRAND_NAME,
             subject: first + '\'s ' + BRAND_NAME + ' account',
@@ -2368,9 +2510,9 @@ function doPost(e) {
        WHAT IT DOES is everything a new credential means here, in one place: a PIN drawn by
        `authFreshPin_`, the throttle cleared, any emailed PIN dropped, every session the child holds
        ended, a blank handle filled (a row typed into the sheet has none, and a PIN with no handle is
-       still no way in), and an unconfirmed account confirmed — whoever is giving them a PIN is the
-       grown-up vouching for them. The PIN is returned ONCE, to be read out or written down, and is
-       not kept anywhere but the cell. */
+       still no way in). (It also confirmed an unconfirmed account, and no longer does — see below.)
+       The PIN is returned ONCE, to be read out or written down, and is not kept anywhere but the
+       cell. */
     if (action === 'resetPin') {
       const me = findPerson('', S(body.personId));
       if (!me) return jsonOut({ error: 'Not signed in.' });
@@ -2384,6 +2526,16 @@ function doPost(e) {
       const mine = acceptedChildren(S(me.person_id)).some(c => S(c.person_id) === want);
       if (!hasRole(me, 'admin') && !mine) {
         return jsonOut({ error: 'Only their parent or an admin can give them a new PIN.' });
+      }
+      /* ---------- A PARENT WHOSE OWN ADDRESS NOBODY HAS PROVED GIVES NOBODY A PIN -----------------------
+         THIS IS THE STEP EVERY TAKEOVER THE PR #130 REVIEW FOUND ENDED ON: the stranger holding a
+         PENDING parent row — registered on mum's address before mum, or owning the inbox a parent
+         mistyped — reset the child's PIN and was handed it. `verifyEmail`, `claimChild`, `answerClaim`
+         and `makeChild` now put no child on such a row, and this is the same rule at the last door,
+         for the links made before they did. Asked after "is it yours", so a stranger asking about a
+         child who is not theirs hears only that. An admin is the business vouching, and is not asked. */
+      if (!hasRole(me, 'admin') && addressPending_(me)) {
+        return jsonOut(confirmFirst_(me, 'you can give ' + (S(kid.first_name) || 'them') + ' a new PIN'));
       }
       if (hasRole(kid, 'admin')) return jsonOut({ error: 'An admin changes their own PIN.' });
       if (t.headers.indexOf('pin') === -1 || t.headers.indexOf('handle') === -1) {
@@ -2403,7 +2555,14 @@ function doPost(e) {
       authClearThrottle_(t, kid);
       authResetDrop_(kid);
       authEndSession_(t, kid);
-      if (S(kid.verified).toUpperCase() === 'PENDING') setCell(t, kid, 'verified', 'TRUE');
+      /* ---------- AND THE CHILD'S `verified` IS NOT TOUCHED ------------------------------------------
+         IT WAS SET TRUE HERE, "whoever is giving them a PIN is the grown-up vouching for them", and
+         that was right while PENDING meant "may not sign in". It means "nobody has proved this address"
+         now (`addressPending_`), and the grown-up giving a PIN has proved nothing about the child's own
+         address, or about the one a no-email child TYPED for a grown-up — which `authGrownUps_` mails
+         the child's PIN to the moment the child's row is not PENDING. A parent's New PIN would have
+         laundered a typo'd grown-up's address into a proved one. The child signs in with this PIN
+         either way. */
       clearCache();
       notify(personDisplayName(kid), 'Your PIN was changed',
         'The PIN on your ' + BRAND_NAME + ' account was just changed by ' + personDisplayName(me)
@@ -4023,6 +4182,19 @@ function doPost(e) {
       if (S(parent.person_id) === S(child.person_id)) {
         return jsonOut({ error: 'That is the same person.' });
       }
+      /* ---------- NOT ONTO AN ACCOUNT WHOSE ADDRESS NOBODY HAS PROVED, EVEN BY AN ADMIN ---------------
+         The admin vouches for the PERSON; the account is whoever proves its address — and since the PR
+         #130 review the owner of an address can always take its account with "Forgotten your PIN?"
+         (`authResetUse_`). So a child an admin put on a PENDING row on a mistyped address became the
+         child of whoever owns the typo the moment they proved it, and `resetPin` handed them the PIN.
+         The rule every parent-side door keeps (`confirmFirst_`), said to the admin: fix or confirm the
+         address first. Unlinking is never held up. */
+      if (action === 'linkChild' && addressPending_(parent)) {
+        return jsonOut({ why: 'unconfirmed',
+          error: personDisplayName(parent) + '\'s email (' + (S(parent.email) || 'none') + ') has not been confirmed, so no '
+               + 'child can be put on their account yet. Ask them to open the link we sent, or correct the address '
+               + 'in the sheet first. Nothing was linked.' });
+      }
 
       const t = read(TAB.family);
       const row = t.rows.find(r => S(r.parent_id) === S(parent.person_id)
@@ -4306,7 +4478,9 @@ function profileOf_(r) {
   return out;
 }
 
-function loginReplyFor_(r, token) {
+/* `extra` IS WHAT ONE DOOR HAS TO SAY THAT THE OTHERS DO NOT — Google taking a PENDING row back
+   (`googleLogin`). Laid over the reply, so the phone reads one shape whichever door it came through. */
+function loginReplyFor_(r, token, extra) {
 // 'parent'/'kid' are what the frontend calls client/student.
   const appRole = toAppRole(mainRole(r));
   const appRoles = rolesOf(r).map(toAppRole);
@@ -4314,6 +4488,9 @@ function loginReplyFor_(r, token) {
                 /* A TUTOR TICK THE BUSINESS HAS NOT SAID YES TO — see `LISTED_PENDING`. The phone
                    reads it for its staff test (`isTutorRole`) and for the line on the roles card. */
                 tutorPending: tutorPending_(r),
+                /* THE ADDRESS NOBODY HAS PROVED YET, or blank — see `pendingEmailOf_`. The phone draws
+                   "we will email you once you open the link" and the held child card from it. */
+                pendingEmail: pendingEmailOf_(r),
                 /* THE SESSION. Sent once, at sign-in, and never again — the phone keeps it and
                    offers it on every request, and the sheet holds only its digest. */
                 token: token || '',
@@ -4389,6 +4566,7 @@ function loginReplyFor_(r, token) {
      that had values, and the next Save on those pages wrote the blanks back — reported as "some
      things arent updating when i click save". `location` went with it: nothing on the phone reads
      `profile.location`. */
+  if (extra) Object.assign(out, extra);
   return jsonOut(out);
 }
 /* ---------- ONE ROW PER PERSON PER QUESTION, UPSERTED -----------------------------------------------

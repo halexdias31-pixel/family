@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-10-06-d-authfix";
+const BOOKING_VERSION = "2026-10-06-e-authfix2";
 
 
 /**
@@ -1363,7 +1363,11 @@ const AUTH = {
      wrong tries at it while the account is locked throw it away. */
   RESET_HOURS: 24,
   RESET_GAP_MINS: 15,
-  RESET_MISSES: 5
+  RESET_MISSES: 5,
+  /* "SEND THE LINK AGAIN" — see `resendLink` in dopost.gs. A fresh confirmation link to the row's own
+     address at most once a quarter of an hour, the forgotten PIN's gap and for its reason: every press
+     is an email out of the same daily quota the booking notices are sent from. */
+  LINK_GAP_MINS: 15
 };
 
 function authProps_() { return PropertiesService.getScriptProperties(); }
@@ -1496,10 +1500,11 @@ function authWrong_(t, r) {
      account most likely to be guessed at by a classmate was the one nobody heard about. The same
      grown-ups "Forgotten your PIN?" writes to (`authGrownUps_`). */
   if (S(r.email)) return;
-  /* CONFIRMED PARENTS ONLY — the rule `notify` keeps (`addressPending_`). This mail names the child's
-     handle, and an accepted parent whose own address was never proved can be a typo, so the handle
-     went to a stranger, who then had the one thing "Forgotten your PIN?" asks for. */
-  const tos = authGrownUps_(r, true);
+  /* CONFIRMED GROWN-UPS ONLY — the rule `notify` keeps (`addressPending_`), read in `authGrownUps_`.
+     This mail names the child's handle, and an accepted parent whose own address was never proved can
+     be a typo, so the handle went to a stranger, who then had the one thing "Forgotten your PIN?" asks
+     for. The address a PENDING child typed as their grown-up's is the same kind of unproved. */
+  const tos = authGrownUps_(r);
   if (!tos.length) return;
   try {
     MailApp.sendEmail({ to: tos.join(','), name: BRAND_NAME, subject: 'Too many sign-in attempts',
@@ -1512,16 +1517,26 @@ function authWrong_(t, r) {
    Every parent who has ACCEPTED the link (an `asked` row is a claim, not a family), and the address a
    child gave as a grown-up's when they made their own account (`parent_email`). Read in one place,
    because the forgotten-PIN mail and the too-many-guesses warning both ask it.
-   `confirmedOnly` LEAVES OUT A PARENT WHOSE OWN ADDRESS IS STILL PENDING (`addressPending_`). The
-   warning asks it. "Forgotten your PIN?" does not — decided on the PR #130 review, it is the one mail
-   besides the link that still goes to an unproved address, because it is how an address's owner
-   proves it. What that leaves open, written down so it is a choice and not a surprise: a no-email
-   child's PIN still reaches an accepted parent whose own address nobody has confirmed. */
-function authGrownUps_(r, confirmedOnly) {
+
+   ---------- AND ONLY THE ONES WHOSE ADDRESS SOMEBODY HAS PROVED -------------------------------------
+   A PARENT WHOSE OWN ROW IS PENDING IS LEFT OUT (`addressPending_`), and so is the typed grown-up's
+   address while the CHILD's row is PENDING — that row is PENDING precisely because nobody has opened
+   the link sent there, so the address is as unproved as a parent's. Both are the same stranger when
+   they are typos: a parent who mistyped jsmith@ as jsmith1@ made a child, and "Forgotten your PIN?"
+   on the child's handle (printed on every card, and in the make-child mail) sent that child's PIN to
+   jsmith1@'s owner, who signed in as the child (PR #130 review, variant C; a child who mistyped
+   their grown-up's address was variant B, the same mail by the typed half).
+
+   THIS USED TO TAKE `confirmedOnly`, AND ONLY THE WARNING PASSED IT. Round one of that review kept
+   the forgotten-PIN mail going to an unproved parent on purpose, as the way an address's owner proves
+   it — which is true of an account's OWN address (`forgotPin` sends there whatever its state) and is
+   not true of a child's PIN sent to somebody else's. With every caller asking for the same answer the
+   flag was a second rule waiting for a third caller to forget it, so it went: this is the rule. */
+function authGrownUps_(r) {
   const tos = acceptedParents(S(r && r.person_id))
-    .filter(p => !confirmedOnly || !addressPending_(p)).map(p => S(p.email)).filter(Boolean);
+    .filter(p => !addressPending_(p)).map(p => S(p.email)).filter(Boolean);
   const typed = S(r && r.parent_email);
-  if (typed && tos.map(norm).indexOf(norm(typed)) === -1) tos.push(typed);
+  if (typed && !addressPending_(r) && tos.map(norm).indexOf(norm(typed)) === -1) tos.push(typed);
   return tos;
 }
 
@@ -1583,12 +1598,26 @@ function authResetUse_(t, r, given, locked) {
     /* THE OLD PIN'S GUESSES SAY NOTHING ABOUT THIS ONE — `authClearThrottle_`'s own argument. */
     authClearThrottle_(t, r);
     authResetDrop_(r);
+    /* ---------- EVERY OTHER SESSION ENDS, WHATEVER STATE THE ROW IS IN --------------------------------
+       THE ADDRESS'S OWNER CAN ALWAYS TAKE IT BACK, and this is the act that does it. Somebody who
+       registered Vic's address signs in at once (no gate since the owner's 6 Oct ask) and keeps a
+       30-day token; Vic, told "already registered", uses "Forgotten your PIN?", and the emailed PIN
+       replaces theirs — and round one of the PR #130 review ended their session only while the row
+       was still PENDING. So the squatter's route was to wait for Vic to open the "Confirm your
+       account" mail she was sent: the row went TRUE, the emailed PIN later ended nothing, and their
+       token read her profile and reset the PIN of the child she then made (round two, B5/B6).
+       An emailed PIN becoming the PIN IS a PIN changed — `authEndSession_`'s own rule and `changePin`'s
+       argument, that the act which removes an intruder must not leave them signed in — so it ends
+       every session here, PENDING or not. `signInRow_` makes the caller's new one straight after, so
+       the person typing it stays in. The REQUEST still ends nothing: anybody may make it (`forgotPin`). */
+    authEndSession_(t, r);
     /* ---------- AND TYPING IT BACK PROVES THE ADDRESS IT WENT TO ---------------------------------------
        ONLY THE ACCOUNT'S OWN ADDRESS, and only the one it was sent to (`held.to`, written by
        `forgotPin`): a no-email child's PIN went to their grown-ups, which says nothing about the child's
-       row, and an address changed since the mail went is not the one that was proved. See
-       `authAddressProven_` for why every other session ends here. */
-    if (S(held.to) && norm(held.to) === norm(r.email) && addressPending_(r)) authAddressProven_(t, r);
+       row — and confirming it would put the address the child TYPED for a grown-up, which nobody has
+       opened, into every mail `authGrownUps_` sends. An address changed since the mail went is not the
+       one that was proved. */
+    if (S(held.to) && norm(held.to) === norm(r.email) && addressPending_(r)) authConfirmed_(t, r);
     return true;
   }
   if (locked) {
@@ -1629,22 +1658,20 @@ function authWhoIs_(token) {
   return read(TAB.people).rows.find(x => S(x.person_id) === S(s.id)) || null;
 }
 
-/* ---------- A PENDING ADDRESS PROVED BY ITS OWNER: CONFIRMED, AND EVERY OTHER SESSION ENDED ---------------
+/* ---------- A PENDING ADDRESS PROVED BY ITS OWNER: CONFIRMED, AND THE LINK RETIRED ----------------------
    ONCE SIGNING IN STOPPED WAITING ON THE LINK (the owner, 6 Oct), A PENDING ROW COULD HOLD A SESSION —
-   and the PIN on a self-made row proves only who REGISTERED, not who owns the address. So somebody who
-   registered Vic's address signed in at once and kept a 30-day token; Vic, told "already registered",
-   used "Forgotten your PIN?", and the emailed PIN replaced theirs — but their session outlived it, read
-   her profile, and reset the PIN of the child she then made (PR #130 review). The emailed PIN typed
-   back (`authResetUse_`) and Google vouching for the inbox (`googleLogin`) are the two proofs that
-   come from the address and not from the registrant, so both end here: confirmed, the link retired,
-   and every session the row holds ended before the caller's new one is made — `changePin`'s argument,
-   that the act which removes an intruder must not leave them signed in.
-   NOT `verifyEmail`. Opening your own link is the registrant confirming their own account, and it must
-   not sign them out of the phone they made it on. */
-function authAddressProven_(t, r) {
+   and the PIN on a self-made row proves only who REGISTERED, not who owns the address. The emailed PIN
+   typed back (`authResetUse_`) and Google vouching for the inbox (`googleLogin`) are the two proofs that
+   come from the address and not from the registrant, so both confirm it here. Neither caller stops at
+   this: each ends every session the row holds before the caller's new one is made, and Google also
+   takes away the PIN the registrant chose — see each for why. This is only the half they share.
+   NOT `verifyEmail`, which writes the same two cells itself and ends no session: opening your own link
+   is the registrant confirming their own account, and it must not sign them out of the phone they made
+   it on. (It was `authAddressProven_` and ended the sessions too, which tied the ending to the row being
+   PENDING — the squatter's way through, by waiting for the link to be opened. See `authResetUse_`.) */
+function authConfirmed_(t, r) {
   setCell(t, r, 'verified', 'TRUE');
   setCell(t, r, 'verify_token', '');
-  authEndSession_(t, r);
   clearCache();
 }
 

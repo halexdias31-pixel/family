@@ -925,9 +925,37 @@ function adminName_() {
    asked that *"dont make them have to need to verify their email to login"* (6 Oct), an account on a
    mistyped address could sign in, book and make a child, and every booking notice, the child's handle
    and "PIN changed" went to the stranger (PR #130 review). Every mail to a person's own address asks
-   this now, except the two that exist to reach an unproved one: the confirmation link (`register`)
-   and "Forgotten your PIN?", which is how the address's owner proves it and takes the account. */
+   this now, except the two that exist to reach an unproved one: the confirmation link (`register`,
+   `resendLink`) and "Forgotten your PIN?", which is how the address's owner proves it and takes the
+   account.
+
+   ---------- AND NO CHILD IS TIED TO AN ACCOUNT EXCEPT THROUGH A CONFIRMED ADDRESS ------------------
+   Holding the mail back was round one, and the review of it found the typo still worked: the parent
+   on jsmith1@ made a child, the stranger who owns jsmith1@ pressed "Forgotten your PIN?" — which must
+   go to a PENDING address, or the real owner of a squatted one could never take it back — signed in
+   as the parent and reset the child's PIN. Neither half can give way, so the CHILD is what waits:
+   `makeChild`, `claimChild`, a child's yes in `answerClaim`, a grown-up's link in `verifyEmail`, a
+   parent's `resetPin` and an admin's `linkChild` all ask this of the parent's row and refuse while it
+   is PENDING (`confirmFirst_`). An account on an unproved address signs in and books — it holds no child, so
+   whoever proves that address owns nothing of anybody else's. */
 function addressPending_(r) { return S(r && r.verified).toUpperCase() === 'PENDING'; }
+
+/* THE ADDRESS THE PHONE IS TOLD IS WAITING, or blank (`pendingEmail` on the sign-in reply and on
+   `myProfile`). Only the row's OWN address: a no-email child's PENDING is about the grown-up's address,
+   which is not theirs to be sent a link to, and no mail of theirs is held because they have none. */
+function pendingEmailOf_(r) { return addressPending_(r) ? S(r && r.email) : ''; }
+
+/* ---------- "OPEN THE LINK FIRST": THE ONE ANSWER TO A CHILD-BINDING ACTION FROM AN UNPROVED ADDRESS ------
+   One sentence for every refusal above, so a parent hears the same next step whichever door they
+   tried, with the address IN it — the address is the whole of what is wrong when it is a typo, and
+   "check your inbox" said to somebody whose inbox it is not is a sentence they cannot act on.
+   `why` and `pendingEmail` are for the phone: it draws the held card from them (me.js). */
+function confirmFirst_(r, then) {
+  const at = S(r && r.email);
+  return { error: 'Open the link we emailed to ' + (at || 'your address') + ' first — then ' + then
+                  + '. "Send the link again" is on your card if it never came.',
+           why: 'unconfirmed', pendingEmail: at };
+}
 
 /** Send an email. Skips silently when there's no address — a missing email must not break a move. */
 function notify(name, subject, body) {

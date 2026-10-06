@@ -451,6 +451,17 @@ function googleSignedIn_(res) {
          doors have to feel the same or the one that feels slower reads as the one that is broken. */
       repaint();
       load();
+      /* ---------- EXCEPT WHEN GOOGLE HAS JUST TAKEN AWAY THE PIN -----------------------------------
+         `pinCleared`: the address was PENDING, so Google proving it also took the PIN the account was
+         made with (`googleLogin` in dopost.gs — whoever chose it may not own the address) and signed
+         everybody else out. Said in the server's words, in a sheet they close: the person this
+         happens to is as often the real registrant, and a PIN that stops working tomorrow with no
+         sentence anywhere is a lock-out they cannot explain. A toast is gone in 2.6 seconds. */
+      if (d.pinCleared) {
+        openSheet('Your PIN has changed', `<p class="sub">${esc(d.message || 'The PIN this account was made '
+          + 'with no longer works. Sign in with Google, or use "Forgotten your PIN?" for a new one.')}</p>
+          <button class="btn quiet" data-do="sheet-done">Done</button>`);
+      }
     })
     /* `send_` HAS ALREADY TOASTED IT — see the note over `do-signin`. */
     .catch(() => {});
@@ -835,7 +846,9 @@ const REG_PIN = /^\d{4,8}$/;
    THE CHOICE LIVES ON THE ROW (`data-who`), not in a variable: the sheet is the form, a closed sheet
    forgets it, and a reopened one asks again — which is right for a question about who you are. */
 const REG_NOTE = {
-  parent: 'We email you a link to open. Once you are in, make your child\'s account in Settings — '
+  /* "ONCE YOU HAVE OPENED IT", not "once you are in": signing in waits on nothing, but a child waits on
+     the parent's address being proved (`confirmFirst_` in people.gs), so the link comes first. */
+  parent: 'We email you a link to open. Once you have opened it, make your child\'s account in Settings — '
         + 'they need no email.',
   student: 'We email a link to open. Then sign in with your handle or email and the PIN. A parent '
          + 'can also make your account, in Settings.',
@@ -938,7 +951,10 @@ on('reg-send', el => {
          The account works now; the link is said as what it is, a confirmation, not a door. */
       toast(kid ? 'Account made — sign in now as ' + (handle ? '@' + handle : 'your handle')
                   + ' with your PIN. Your grown-up has been sent a link to confirm.'
-                : 'Account made — sign in now with your PIN. We have also emailed you a link to confirm your address.');
+                : who === 'parent'
+                  ? 'Account made — sign in now with your PIN. Open the link we have emailed you before making '
+                    + 'your child\'s account.'
+                  : 'Account made — sign in now with your PIN. We have also emailed you a link to confirm your address.');
     })
     .catch(() => {});      // `send_` has already said why
 });
@@ -971,19 +987,48 @@ function verifyFromLink_() {
       /* A GROWN-UP SAYING YES FOR A CHILD WITH NO EMAIL is told the child's handle, not "sign in
          with it" — the address is theirs, and it signs nobody in for the child. */
       const first = d && d.name ? String(d.name).split(' ')[0] : '';
-      if (d && d.noEmail) {
-        /* `parentPending`: THERE IS A PARENT ACCOUNT ON THIS ADDRESS AND NOBODY HAS CONFIRMED IT, so
-           the child was not put on it — it may not be the reader's (see `verifyEmail`). Said as the next
-           step, because the reader is the grown-up the child named, and it is theirs to take. */
+      if (d && d.noEmail && d.parentPending) {
+        /* ---------- `parentPending`: A SHEET THEY CLOSE, NOT A TOAST THAT CLOSES ITSELF ----------------
+           THERE IS A PARENT ACCOUNT ON THIS ADDRESS AND NOBODY HAS CONFIRMED IT, so the child was not put
+           on it — it may not be the reader's (see `verifyEmail`). Round one said this in a toast of about
+           170 characters, which `toast` takes away after 2.6 seconds; the child's link is single-use, so
+           the grown-up could never open it again to read the rest (PR #130 review, round two). The next
+           step is theirs and has three parts, so it is a sheet with Done, and stays until they say so.
+           The last line is for the reader to whom the account is a surprise: somebody else made it on
+           their address, and "Forgotten your PIN?" is how they take it back (`authResetUse_`). */
+        const who = first || 'They';
+        openSheet('Confirmed — one more step', `
+          <p class="sub">${esc(who)} can sign in now${d.handle ? ` as <b>@${esc(d.handle)}</b>` : ''} with
+            their PIN.</p>
+          <p class="sub"><b>They are not on your account yet.</b> The @family. account on your email has not
+            been confirmed, so we did not put ${esc(first || 'them')} on it.</p>
+          <p class="sub">Open the "Confirm your @family. account" email we sent you — or sign in and press
+            "Send the link again" — then add ${esc(first || 'them')} with "Add your child" in Settings.
+            They say yes, and they are on your account.</p>
+          <p class="faint">Did you never make an account here? Then somebody else did, with your email. Use
+            "Forgotten your PIN?" with your email to take it back — it signs them out.</p>
+          <button class="btn quiet" data-do="sheet-done">Done</button>`);
+        try { if (USER) load(); } catch (e) {}
+      } else if (d && d.noEmail) {
         toast('Confirmed — ' + (first || 'they') + ' can sign in now'
               + (d.handle ? ' as @' + d.handle : '') + ' with their PIN'
-              + (d.linkedTo ? ', and is on your account.'
-                 : d.parentPending ? '. They are not on your account yet: once its own email is confirmed, '
-                                     + 'add them with "Add your child" in Settings.'
-                 : '.'));
+              + (d.linkedTo ? ', and is on your account.' : '.'));
         try { if (USER) load(); } catch (e) {}
       } else {
-        toast('Email confirmed' + (first ? ', ' + first : '') + ' — now sign in with it and your PIN.');
+        /* ---------- AND YOUR OWN, OPENED ON THE PHONE YOU ARE SIGNED IN ON --------------------------------
+           Since sign-in stopped waiting on the link, the person opening it is often already in — and
+           was told "now sign in". The held card and the line under their own card go at once, from the
+           reply (`myProfile` runs beside this request at start-up and may have answered first, with the
+           address still waiting). Matched on the handle, which is one person's, or the name. */
+        const me = !!(USER && d && ((d.handle && d.handle === USER.handle) || (d.name && d.name === USER.name)));
+        if (me) {
+          USER.pendingEmail = '';
+          try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+          try { repaint(true); } catch (e) {}
+        }
+        toast('Email confirmed' + (first ? ', ' + first : '')
+              + (!me ? ' — now sign in with it and your PIN.'
+                 : mayAddChild_() ? ' — you can make your child\'s account in Settings now.' : '.'));
       }
       /* TO THE SIGN-IN CARD, which is where the next step is. */
       try { if (!USER) go('account'); } catch (e) {}
@@ -1857,7 +1902,8 @@ on('add-child-go', el => {
     if (box('last')) box('last').value = '';
     toast('Asked. They will see it when they next sign in.');
     load();
-  }).catch(() => {});
+  /* `heldBy_`: a refusal because the asker's own address is waiting redraws this as the held card. */
+  }).catch(heldBy_);
 });
 
 /* ---------- MAKING YOUR CHILD'S ACCOUNT, FROM YOURS ------------------------------------------------
@@ -1907,6 +1953,77 @@ function childMakeCard_() {
   </div>`;
 }
 
+/* ---------- AN ADDRESS NOBODY HAS PROVED: THE MAIL IT IS NOT SENT, AND THE CHILD IT CANNOT HOLD YET ----
+   SIGNING IN NEVER WAITS ON THE LINK (the owner, 6 Oct: *"dont make them have to need to verify their
+   email to login"*), and the PR #130 review found what that had cost: a PIN on a self-made row proves
+   who registered, not who owns the address. So the backend holds two things back from a PENDING
+   address — every mail but the link and a forgotten PIN (`notify`), and every door that puts a child
+   on the account (`confirmFirst_`) — and this file says so where the person would otherwise wait:
+   a line under their own card on the You column ("we will email you once you open the link"), and the
+   make-child card on Settings drawn as that one sentence instead of a form the server would refuse.
+   Both carry "Send the link again", because the person this is for is most often the one whose link
+   went to spam — the owner's own reason for dropping the gate.
+
+   THE SERVER SAYS WHICH (`pendingEmail` on the sign-in reply and on `myProfile`, see `loginReplyFor_`)
+   and the phone decides nothing: a stale phone draws the form, and the server turns it down with the
+   same sentence, which is a toast and never a child on a typo's account. */
+function pendingAddr_() { return (USER && USER.pendingEmail) ? String(USER.pendingEmail) : ''; }
+
+/* A TILE, because the link is a thing about your account, not a field on a form (CLAUDE.md). The same
+   tile in both places, so a fix to its words is one fix. `send` is the mark that means the act. */
+function resendTile_() {
+  return tile_({ icon: 'send', label: 'Send the link again', note: 'to confirm your email', act: 'resend-link' });
+}
+
+/* ONE PARAGRAPH UNDER THE ROW — the house rule for a warning a tile has no room for. The address is in
+   it: when it is a typo, the address is the whole of what is wrong, and the only place it shows. */
+function mailHeldNote_() {
+  const at = pendingAddr_();
+  /* `overflow-wrap:anywhere` ON THE ADDRESS: it is one word with no space in it, and a long one at 320
+     took the card sideways — the fault the dotted answer line paid for (check/states.js). */
+  return at ? `<p class="faint mail-held" style="margin:.6rem 0 0">We will email you once you open the link
+    we sent to <b style="overflow-wrap:anywhere">${esc(at)}</b>.</p>` : '';
+}
+
+/* WHERE "MAKE YOUR CHILD'S ACCOUNT" WOULD BE, for a parent whose address is still PENDING. Its own class
+   and not `kid-make`: there is nothing to make on it, and what finds `.kid-make` is looking for the
+   form. Drawn INSTEAD OF both child cards — the add-a-child form would be refused for the same reason,
+   and two cards saying one sentence is one too many. */
+function childHeldCard_() {
+  return `<div class="card kid-card kid-held">
+    <h3>Make your child's account</h3>
+    <p class="sub">Open the link we emailed to <b style="overflow-wrap:anywhere">${esc(pendingAddr_())}</b>
+      first, then you can add your child.</p>
+    <div class="tile-row">${resendTile_()}</div>
+  </div>`;
+}
+
+/* A REFUSAL THAT SAYS THE ADDRESS IS WAITING corrects the phone: a phone holding an old sign-in reply
+   drew the form, and the server's answer is the newer fact. Stored, and the column redrawn, so the
+   card the person is looking at turns into the one that says why. */
+function heldBy_(err) {
+  const d = err && err.reply;
+  if (!USER || !d || d.why !== 'unconfirmed' || !d.pendingEmail) return;
+  USER.pendingEmail = String(d.pendingEmail);
+  try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+  try { repaint(true); } catch (e) {}
+}
+
+on('resend-link', el => {
+  if (!USER) { toast('Sign in first'); return; }
+  send_({ action: 'resendLink', personId: USER.personId || '' }, { button: el })
+    .then(d => {
+      toast(d.message || 'A new link is on its way.');
+      /* ALREADY CONFIRMED — on another phone, or by Google. The cards go with it. */
+      if (d.why === 'confirmed' && USER) {
+        USER.pendingEmail = '';
+        try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
+        try { repaint(true); } catch (e) {}
+      }
+    })
+    .catch(() => {});      // `send_` has already said why
+});
+
 on('kid-make', el => {
   if (!USER) { toast('Sign in first'); return; }
   const card = (el && el.closest('.card')) || document;
@@ -1924,7 +2041,9 @@ on('kid-make', el => {
       if (typeof AT !== 'undefined' && AT === 'settings') repaint(true); else STALE.settings = 1;
       load();
     })
-    .catch(() => {});
+    /* `send_` HAS SAID WHY; `heldBy_` turns a stale phone's form into the held card when the why is
+       the address. */
+    .catch(heldBy_);
 });
 
 /* ---------- A NEW PIN FOR YOUR CHILD, OR FOR ANYBODY IF YOU ARE AN ADMIN ----------------------------
@@ -2113,7 +2232,15 @@ function settingsPages_() {
      was for: a parent, a client or an admin; a student has nobody to add. */
   /* MAKING THEIR ACCOUNT COMES FIRST — most children here have none — and linking one that exists
      second. Same people, same test. */
-  if (mayAddChild_()) pages.push(childMakeCard_(), childCard_());
+  /* ---------- AND WHILE THE PARENT'S OWN ADDRESS IS UNPROVED, ONE CARD SAYING SO INSTEAD ----------------
+     The server refuses both forms to a PENDING parent (`confirmFirst_`), so drawing them would be two
+     forms that answer "open the link first" — said once here, with the tile that sends it again. ONE
+     PAGE WHERE THERE WERE TWO, which moves every index after it by one; it happens once in an
+     account's life (the link opened), and a card that cannot be used is worse than a page moved. */
+  if (mayAddChild_()) {
+    if (pendingAddr_()) pages.push(childHeldCard_());
+    else pages.push(childMakeCard_(), childCard_());
+  }
 
   pages.push(`<div class="card">
     <h3>Signing in</h3>
@@ -2610,6 +2737,10 @@ function send_(body, o) {
       if (!d || d.error) {
         const refusal = new Error((d && d.error) || 'That did not work.');
         refusal.refused = !!(d && d.error);
+        /* AND THE WHOLE REPLY RIDES ON IT, as on `send`'s — a refusal is sometimes a fact for the code
+           as well as a sentence: `why: 'unconfirmed'` turns the make-child form into the held card
+           (`heldBy_`), where matching the sentence would break on its first rewording. */
+        refusal.reply = d || null;
         throw refusal;
       }
       done();
@@ -4288,11 +4419,15 @@ function profileRefresh_(loud, onOld) {
          whole `repaint`, which marks every other column stale and draws this one; one that did not
          change is the settings column alone, as before. The server never trusted these: every action
          asks the row the token resolves to, so a stale role was a missing card, not a power. */
-      const roleWas = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending]);
+      /* `pendingEmail` RIDES WITH THE ROLE, for the role's reason: it decides which cards are drawn (the
+         held make-child card, the line under your own card), and it goes stale the same way — the link
+         opened on a laptop, the address proved by Google on another phone. */
+      const roleWas = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || '')]);
       if (d.role) USER.role = d.role;
       if (Array.isArray(d.roles) && d.roles.length) USER.roles = d.roles;
       if (d.tutorPending !== undefined) USER.tutorPending = !!d.tutorPending;
-      const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending]) !== roleWas;
+      if (d.pendingEmail !== undefined) USER.pendingEmail = String(d.pendingEmail || '');
+      const roleMoved = JSON.stringify([USER.role, USER.roles, !!USER.tutorPending, String(USER.pendingEmail || '')]) !== roleWas;
       try { localStorage.setItem('familyUser', JSON.stringify(USER)); } catch {}
       if (roleMoved) { try { repaint(); } catch (e) {} return; }
       /* REDRAWN IF IT IS DRAWN — and `paint` itself declines while a card has typing in it. */

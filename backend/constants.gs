@@ -237,7 +237,7 @@ const ADMIN_NAME = "@family.";
    whether a deploy landed — open the /exec URL and read the first field. Two different files
    sharing a version string is two files you cannot tell apart, which is how a redeploy comes to
    look like it did nothing. */
-const BACKEND_VERSION = "2026-10-06-d-authfix";
+const BACKEND_VERSION = "2026-10-06-e-authfix2";
 const SITE_URL = "https://halexdias31-pixel.github.io/family/";
 
 const TAB = {
@@ -2920,6 +2920,10 @@ const ACTION_ACCESS = {
      and anybody who is not one — and only the handler can see both rows. The gate only proves who
      is asking, and writes them into `body.personId`; the child is `targetId` or does not exist yet. */
   makeChild: 'self', resetPin: 'self',
+  /* A FRESH CONFIRMATION LINK TO YOUR OWN ADDRESS. `self`, so where it goes is the row the token
+     resolved to and nothing on the request; the handler sends only to that row's own address, only
+     while it is PENDING, and once a quarter of an hour. */
+  resendLink: 'self',
   /* A NEW WORD FOR YOUR OWN HANDLE. `self`, and the handler acts on the row the token resolved to
      rather than on anything posted — the gate writes `body.personId` from the token. `changeHandle`,
      which took a typed handle, is gone: see `handleTrouble_`. */
