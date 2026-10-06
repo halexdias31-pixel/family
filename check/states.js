@@ -1383,69 +1383,97 @@ const STATES = {
        asking a stranger to reach it would report a fault about the check (check-flow proves the
        absence; this measures the presence).
 
-       EVERY PAGE OF IT IS CUT TO THE SCREEN, AND `check/ui.js` HOLDS IT TO THAT: a Bible page that
-       `paneReach_` had to draw smaller is a failure there, not a known cost (see `A PAGE CUT TO THE
-       SCREEN`). And `ui.js` measures every pane in the strip, not just the one in front, so each state
-       here is the page it names and the pages either side of it:
-         · the Old Testament — the cover and all three lists, which are the densest chip pages: the
-           thirty-nine were drawn at 84% at 320 until they became two pages.
-         · Genesis 1 — the reading page, the chapter numbers in front of it, and the pages after it,
-           every one cut in measured pixels when the book was opened (`bibleMeasure_`).
-         · Psalms's numbers — the one book whose numbers are several pages (five at 320x568), sized
-           to whole rows of the pane, each with a tile back to its list.
-       Each book is fetched by the app's own call from the local server, the way a tap fetches it. */
-    { name: 'the Bible, the Old Testament',
+       AND REDONE ON 6 OCT AS SIX QUESTIONS AND A CARD A VERSE (*"it should be like the other stuff.
+       tags in finder ... each verse is a widget"*), so these are the screens that are new: the one
+       question with one answer, the two longest grids the funnel draws — Psalms's 150 chapters and
+       Psalm 119's 176 verses, which are where a grid is drawn smaller to fit and then scrolls — a
+       verse card with its tags and its Chapter tile, and Esther 8:9, the longest verse, at every
+       width. `check/ui.js` measures every pane in the strip, so each is measured with the pages
+       either side of it.
+       THE BOOKS ARE ASKED FOR IN THE FIRST STATE, for the ones after it: a state's `enter` has the
+       500ms every state gets, and a book fetched there by the app's own call is held for the visit,
+       so the cards after it are drawn from memory as a second visit would draw them. */
+    { name: 'the Bible, the KJV question',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
+                         { field: 'shelf', value: 'Books' }];
         paintStuff();
-        const x = stuffFiltered().find(i => i.kind === 'bible');
-        if (!x) throw new Error('no Bible on the Books shelf for an admin');
-        goPage('stuff', stuffFirstResult_() + Math.max(0, pageParts_(x).indexOf('ot')), true);
-        /* GENESIS AND PSALMS ASKED FOR NOW, for the states after this one. Their `enter` has the
-           500ms every state gets, and on a machine running four suites at once a 204 KB fetch plus
-           the paint did not land inside it — the state was reported as not arriving at 1280 while it
-           arrived a moment later. Held for the visit, so the next states open them from memory, as a
-           second tap would. Nothing on THIS page changes: the list is only redrawn by a tap. */
+        goPage('stuff', stuffQuestionPage_(), true);
         bibleLoad_(1);
+        bibleLoad_(17);
         bibleLoad_(19);
       },
-      expect: () => document.querySelectorAll('#s-stuff .bb-toc[data-bb="ot"] [data-do="bible-book"]').length === 17
-                    && document.querySelectorAll('#s-stuff .bb-toc[data-bb="ot2"] [data-do="bible-book"]').length === 22
-                    && document.querySelectorAll('#s-stuff .bb-toc[data-bb="nt"] [data-do="bible-book"]').length === 27,
-      wants: 'the Bible\'s three lists of books — Genesis to Esther, Job to Malachi, the New Testament — a button each' },
-    { name: 'the Bible, Genesis 1',
+      expect: () => {
+        const a = [...document.querySelectorAll('#stuff-groups [data-do="facet-pick"]')];
+        return a.length === 1 && a[0].dataset.field === 'bibleTranslation' && a[0].dataset.value === 'KJV'
+               && !!document.querySelector('#s-stuff .card.bible[data-bb="card"]');
+      },
+      wants: 'the Books shelf answered: the Bible\'s cover, and one question, Translation, with KJV its one answer' },
+    { name: 'the Bible, Psalms\'s chapters',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
+                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
+                         { field: 'bibleBook', value: 'Psalms' }];
         paintStuff();
-        bibleLoad_(1).then(d => { if (d) { bibleSet_(1); bibleGo_('c1'); } });
+        goPage('stuff', stuffQuestionPage_(), true);
       },
-      expect: () => {
-        const c = document.querySelector('#s-stuff .card.bb-text.is-c1');
-        return !!c && /In the beginning God created the heaven and the earth\./.test(c.textContent)
-               && !!c.querySelector('.bb-v i') && !/[\[\]]/.test(c.textContent)
-               && !!c.querySelector('.tile-row [data-do="bible-to"]')
-               && !!document.querySelector('#s-stuff .card.bb-chs [data-do="bible-ch"]');
-      },
-      wants: 'Genesis 1 drawn, "In the beginning…" with a supplied word in italics, no bracket, and its tile back to the chapter numbers beside it' },
-    { name: 'the Bible, Psalms\'s chapter numbers',
+      expect: () => document.querySelectorAll('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleChapter"]').length === 150,
+      wants: 'Psalms\'s Chapter question, 1 to 150, drawn as a grid' },
+    { name: 'the Bible, Psalm 119\'s verses',
       only: () => typeof isAdmin === 'function' && isAdmin(),
       enter: () => {
         STUFF.q = '';
-        STUFF.filters = [{ field: 'kindLabel', value: 'Resources' }, { field: 'shelf', value: 'Books' }];
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
+                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Poetry & Wisdom' },
+                         { field: 'bibleBook', value: 'Psalms' }, { field: 'bibleChapter', value: '119' }];
         paintStuff();
-        bibleLoad_(19).then(d => { if (d) { bibleSet_(19); bibleGo_('bk-1'); } });
+        goPage('stuff', stuffQuestionPage_(), true);
+      },
+      expect: () => document.querySelectorAll('#stuff-groups .answers.is-grid [data-do="facet-pick"][data-field="bibleVerse"]').length === 176,
+      wants: 'Psalm 119\'s Verse question, 1 to 176, drawn as a grid' },
+    { name: 'the Bible, Genesis 1:3',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
+                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'Torah' },
+                         { field: 'bibleBook', value: 'Genesis' }, { field: 'bibleChapter', value: '1' },
+                         { field: 'bibleVerse', value: '3' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
       },
       expect: () => {
-        const g = document.querySelector('#s-stuff .card.bb-chs.is-bk-1');
-        return !!g && g.querySelectorAll('[data-do="bible-ch"]').length > 0
-               && !!g.querySelector('.tile-row [data-do="bible-to"][data-to="ot2"]');
+        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:1:1:3"] .bb-v:not(.is-wait)');
+        return !!v && /Let there be light/.test(v.textContent)
+               && !!document.querySelector('#s-stuff [data-do="bible-go"][data-key="bible:kjv:1:1:3"]');
       },
-      wants: 'the second page of Psalms\'s chapter numbers, with its tile back to Job to Malachi',
-      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+      wants: 'the card for Genesis 1:3, "Let there be light", its tags, and its Chapter tile' },
+    { name: 'the Bible, Esther 8:9',
+      only: () => typeof isAdmin === 'function' && isAdmin(),
+      enter: () => {
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Resources' },
+                         { field: 'shelf', value: 'Books' }, { field: 'bibleTranslation', value: 'KJV' },
+                         { field: 'bibleTestament', value: 'Old Testament' }, { field: 'bibleGroup', value: 'History' },
+                         { field: 'bibleBook', value: 'Esther' }, { field: 'bibleChapter', value: '8' },
+                         { field: 'bibleVerse', value: '9' }];
+        paintStuff();
+        goPage('stuff', stuffFirstResult_(), true);
+      },
+      /* THE LONGEST VERSE IN THE BIBLE, 534 characters — the one card that fills a small phone. */
+      expect: () => {
+        const v = document.querySelector('#s-stuff .card.bb-verse[data-key="bible:kjv:17:8:9"] .bb-v');
+        return !!v && !v.classList.contains('is-wait') && v.textContent.length > 500 && !/[\[\]]/.test(v.textContent);
+      },
+      wants: 'Esther 8:9, the longest verse, drawn whole with no bracket',
+      leave: () => { STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ==============================================================================================
        THE FIND CARD'S SHARED PARTS, ON THE KINDS THAT HAD NONE OF THEM
 

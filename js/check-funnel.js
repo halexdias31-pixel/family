@@ -123,7 +123,10 @@ function boot(cb) {
          the row can honestly be in. The tree is a thunk for the same reason the facets are. */
       ' topicTree: () => (DATA && DATA.topicTree) || [], topicArea: topicAreaOf_,'
       + ' levelOf: levelOf_, topicAtoms: topicAtoms_, topicIndex: topicIndex_,' +
-      ' facetsLive: () => (DATA && DATA.facets) || [], FACETS };');
+      ' facetsLive: () => (DATA && DATA.facets) || [], FACETS,' +
+      /* THE FENCE AND THE TALLIES IT SPARES — so the rule below can ask what was TALLIED, not only
+         what was asked. */
+      ' listKind_, FACET_TALLY };');
   } catch (e) {
     bad.push('the app did not load: ' + e.message);
     return cb(null);
@@ -1431,7 +1434,9 @@ boot(f => {
       try { facet = f.nextFacet(list, {}); } catch (e) { facet = null; }
       if (!facet) return;
       const n = f.facetValues(list, facet).length;
-      if (n > f.FACET_MAX_ANSWERS) tooLong.push('`' + facet.field + '` asks with ' + n + ' answers at ' + (say || 'the top'));
+      /* A GRID IS A NUMBERED RUN AND IS DRAWN AS ONE — the Bible's chapters and verses — so it is not
+         held to the cap; the static rule below keeps a grid inside a closed kind. */
+      if (n > f.FACET_MAX_ANSWERS && !facet.grid) tooLong.push('`' + facet.field + '` asks with ' + n + ' answers at ' + (say || 'the top'));
     };
     const all = f.stuffItems();
     look('', all);
@@ -1473,6 +1478,58 @@ boot(f => {
       bad.push('a question is ASKED with more answers than FACET_MAX_ANSWERS, so the whole list is drawn '
                + 'where the other questions should have narrowed it first: ' + tooLong.slice(0, 6).join('; '));
     }
+
+    /* ================================================================================================
+       A CLOSED KIND'S QUESTIONS COST EVERYBODY ELSE NOTHING — THE FENCE, MEASURED BY WHAT WAS TALLIED.
+
+       THE BIBLE IS SIX QUESTIONS ON FIND (`only: 'bible'`), asked of nobody but an admin, and this harness
+       is signed out — so there is no Bible here to ask about, and that is the point: the six must not be
+       TALLIED over a list that holds none of it. Measured before the fence, they were: placed straight
+       after Shelf, five more tallies on every school question (Questions went from 8.5 to 20.3 ms), and
+       the coverage rule was the only thing keeping them unasked — by arithmetic, after the cost.
+
+       SO THIS READS `FACET_TALLY`, THE ENGINE'S OWN MEMO, rather than the question chosen: a fenced
+       question is never tallied, so no key of one may appear. On a FRESH COPY of each list, because the
+       memo is keyed on the array and every other rule here has already tallied the originals. Over the
+       top list, every door's list, and one item of every kind on its own — where `nextFacet` finds
+       nothing to ask and `overFacet_`, the last resort, runs too; it has a fence of its own.
+
+       AND A GRID MUST BE FENCED. `grid` exempts a question from FACET_MAX_ANSWERS so a run of 150
+       chapter numbers can be drawn; on a question that is not kept to one closed kind, that exemption
+       would draw 389 topics whole on the library's own lists. */
+    f.facetList().filter(x => x.grid && !x.only).forEach(x => {
+      bad.push('`' + x.field + '` is a grid without `only` — a grid is exempt from FACET_MAX_ANSWERS, and only a '
+               + 'closed kind may be (see `grid` on the Bible\'s Chapter and Verse in find.js)');
+    });
+    if (f.FACET_TALLY && f.listKind_) {
+      const fenced = f.facetList().filter(x => x.only).map(x => x.field);
+      const states = [['the top', all]];
+      ['forLabel', 'kindLabel'].forEach(field => {
+        const facet = f.facetList().find(x => x.field === field);
+        if (facet) f.facetValues(all, facet).forEach(v => states.push([facet.label + ' · ' + (v.show || v.value), keep(all, facet, v)]));
+      });
+      const kinds = {};
+      all.forEach(x => { if (!kinds[x.kind]) { kinds[x.kind] = 1; states.push(['one ' + x.kind + ' alone', [x]]); } });
+      let leaked = [], overRan = 0;
+      states.forEach(([say, list]) => {
+        if (!list.length) return;
+        const copy = list.slice();
+        let asked = null;
+        try { asked = f.nextFacet(copy); } catch (e) { leaked.push(say + ': nextFacet threw ' + e.message); return; }
+        if (!asked) { overRan++; try { f.overFacet_(copy); } catch (e) { leaked.push(say + ': overFacet_ threw ' + e.message); return; } }
+        const keys = Object.keys(f.FACET_TALLY.get(copy) || {}).filter(k => fenced.indexOf(k.split('|')[0]) >= 0 || /^bible/.test(k));
+        if (keys.length) leaked.push(say + ' tallied ' + keys.map(k => k.split('|')[0]).join(', '));
+      });
+      if (!fenced.length) bad.push('no facet carries `only` — the Bible\'s six questions are missing, so the fence was NOT checked');
+      else if (!overRan) bad.push('no state reached `overFacet_`, so its fence was NOT checked — not a pass');
+      else if (leaked.length) {
+        bad.push('a question kept to one kind (`only`) was tallied over a list that is not that kind — the fence '
+                 + 'is not holding, and every list pays for questions it can never be asked: ' + leaked.slice(0, 5).join('; '));
+      } else {
+        console.log('\nTHE FENCE HOLDS: ' + fenced.length + ' closed-kind questions (' + fenced.join(', ') + ') tallied over none of '
+                    + states.length + ' lists, ' + overRan + ' of them through overFacet_');
+      }
+    } else bad.push('listKind_ or FACET_TALLY is not exported, so the fence was NOT checked');
     /* ---------- AND A DECLARED BUCKET HOLDS EXACTLY WHAT ITS TABLE SAYS --------------------------
        THE MUTANT THAT PROMPTED THIS PASSED EVERYTHING. With the letter ranges keyed on the raw
        value instead of on `bucketKeyOf_`, `Level` drew `KS2 (259)` where the table says 228: a

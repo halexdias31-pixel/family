@@ -164,12 +164,14 @@ const SUITE = [
      that is the only way past 260 rows of boxing, and the file fetched at all. */
   { file: 'check-textbooks.js', what: 'the textbooks: chapter order, the bones, the join, the Shelf door' },
   /* ---------- AND THE BIBLE BESIDE THEM, WHICH ONLY AN ADMIN IS SHOWN -----------------------------
-     "i want to add the bible to resources as a book. but only admin can see the bible." The split
-     out of `data/archive/bible.json` checked verse by verse against the archive, every `[word]`
-     drawn in italics by the real `bibleVerse_`, every chapter cut into whole verses by the real
-     `bibleCut_`, and the one gate read out of the source. What an admin sees and what a student
-     fetches is the journey in `check-flow`. */
-  { file: 'check-bible.js', what: 'the Bible: a lossless split, italics for [words], whole-verse pages, admin only' },
+     "i want to add the bible to resources as a book. but only admin can see the bible." — and then
+     "tags in finder ... each verse is a widget." The split out of `data/archive/bible.json` checked
+     verse by verse against the archive, the ten groups against the check's own copy, every chapter's
+     verse count against its file, every `[word]` drawn in italics by the real `bibleVerse_`, the
+     31,102 verse cards built by the real `bibleVerseList_`, and the gate, the six questions and their
+     chain read out of the source. What an admin sees and what a student fetches is the journey in
+     `check-flow`. */
+  { file: 'check-bible.js', what: 'the Bible: a lossless split, the ten groups and the verse counts, italics for [words], the verse list, admin only' },
   /* ---------- AND WHETHER A REEL IS A FILE THAT IS THERE ------------------------------------------
      A clip whose path is one character wrong does not draw a broken link. The slide stays its own
      gradient, so a missing file reads as the feature half-working rather than as a file nobody
