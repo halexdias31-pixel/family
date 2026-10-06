@@ -1377,20 +1377,32 @@ function softHold_(glass) {
 function softDrag_(which, px, stepX) {
   if (!SOFT_DRAG) SOFT_DRAG = { ok: softMotion_(), b: null, keep: new Map() };
   if (!SOFT_DRAG.ok) return;
-  const host = $('s-' + AT);
-  const a = host && host.querySelector(':scope > .page.on');
-  if (!a) return;
-  let b = null, step = 0;
-  if (which === 'x') {
-    const next = TABS[TABS.findIndex(t => t.id === AT) + (px < 0 ? 1 : -1)];
-    const col = next && $('s-' + next.id);
-    b = col ? col.querySelectorAll(':scope > .page')[domIndex_(next.id, PAGE[next.id] || 0)] || null : null;
-    step = stepX;
+  /* THE NEIGHBOUR AND HOW FAR AWAY IT IS, WORKED OUT ONCE A DIRECTION. This read `offsetTop` and
+     `offsetHeight` on every frame of a vertical drag, straight after `colWrite_` had written the
+     column — a forced style-and-layout per frame for two numbers that cannot change while the finger
+     is down. Kept on `SOFT_DRAG`, which lives exactly as long as the gesture. */
+  const key = which + (px < 0 ? '+' : '-');
+  const seen = SOFT_DRAG.near || (SOFT_DRAG.near = new Map());
+  let a, b = null, step = 0;
+  if (seen.has(key)) {
+    ({ a, b, step } = seen.get(key));
   } else {
-    b = px < 0 ? a.nextElementSibling : a.previousElementSibling;
-    if (b && !b.classList.contains('page')) b = null;
-    if (b) step = Math.abs((b.offsetTop + b.offsetHeight / 2) - (a.offsetTop + a.offsetHeight / 2));
+    const host = $('s-' + AT);
+    a = host && host.querySelector(':scope > .page.on');
+    if (!a) return;
+    if (which === 'x') {
+      const next = TABS[TABS.findIndex(t => t.id === AT) + (px < 0 ? 1 : -1)];
+      const col = next && $('s-' + next.id);
+      b = col ? col.querySelectorAll(':scope > .page')[domIndex_(next.id, PAGE[next.id] || 0)] || null : null;
+      step = stepX;
+    } else {
+      b = px < 0 ? a.nextElementSibling : a.previousElementSibling;
+      if (b && !b.classList.contains('page')) b = null;
+      if (b) step = Math.abs((b.offsetTop + b.offsetHeight / 2) - (a.offsetTop + a.offsetHeight / 2));
+    }
+    seen.set(key, { a, b, step });
   }
+  if (!a) return;
   /* THE ONE THE FINGER TURNED AWAY FROM goes back to the look its class gives it. */
   if (SOFT_DRAG.b && SOFT_DRAG.b !== b) { const g = glassOf_(SOFT_DRAG.b); if (g) g.style.filter = ''; }
   SOFT_DRAG.b = b;
@@ -1443,7 +1455,67 @@ let SLIDE_UNTIL = 0;
 /* The two axes still call in — one placer underneath, so a horizontal move and a vertical one
    cannot disagree about where a cell is. */
 
+/* ---------- A DRAG FRAME MOVES THE CARDS AND DOES NOTHING ELSE -----------------------------------
+   REPORTED ON 6 OCTOBER, from a phone: *"if i try to scroll quickly up or down its clunky and janky.
+   make it a smooth experience. more stability, smoother, more elegant."*
+
+   EVERY FRAME OF EVERY DRAG WAS A FULL PLACEMENT. Twelve columns restyled, every page of every column
+   given its position, opacity, visibility and classes again, every column's shift MEASURED again
+   (`columnShift_` reads `offsetTop`, a forced layout), and the card width published on the root — to
+   arrive, on every frame but the first, at exactly the numbers the first frame had worked out, with
+   one of them nudged by the finger. Measured at 4x CPU with rapid flicks on Games and Settings
+   (`check/swipe.js` 'flicks'): 8–14ms a drag frame on average and up to 29ms, against a frame of
+   16.7, so a quick swipe dropped a frame in three while the finger was still on the glass.
+
+   NOTHING ON THAT LIST CAN CHANGE UNDER A FINGER. `PAGE` and `AT` move only on the release; a card
+   that grows mid-drag is `holdColumn_`'s, and it already refuses a column marked `.dragging`. So the
+   first drag frame is the full placement it always was — it switches the finger's axis to no
+   transition, marks `.dragging`, and works out every column's resting place — and that answer is
+   kept as `DRAG_PLAN`. Every frame after it writes the columns the finger is moving (all of them
+   sideways, the one in front up and down) at plan + finger, and eases the focus, and stops.
+   Any placement that is NOT a drag throws the plan away, so the next drag measures afresh; so does a
+   new finger (`pointerdown` in overworld.js), a different axis, or a different page or column.
+
+   AND THE FIRST FRAME NEED NOT MEASURE EITHER, when the last placement has landed. Where every
+   column rests is already written on it — `colPlaced_` reads the inline values the last placement
+   wrote, which is not a layout — so the plan is taken from there, the finger's axis is switched to
+   no transition on the columns it moves, and the card leaves under the thumb in the same frame
+   instead of after a whole placement (7–35ms at 4x, the first frame of every swipe). Only when a
+   placement is still booked (`PLACE_FRAME`), or a column has never been placed, does the first
+   frame fall back to the full one, because then the inline values are not where anything rests. */
+let DRAG_PLAN = null;    // { which, at, page, stepX, cols: [{ host, x, y, front }] } — this drag's sums
+function dragPlan_(drag) {
+  if (PLACE_FRAME) return null;
+  const cols = [];
+  for (const t of TABS) {
+    const host = $('s-' + t.id);
+    if (!host) continue;
+    const at = colPlaced_(host);
+    if (!at || !host._slide) return null;
+    cols.push({ host: host, x: at[0], y: at[1], front: t.id === AT });
+  }
+  if (!cols.some(c => c.front)) return null;
+  cols.forEach(c => {
+    c.host.classList.add('dragging');
+    if (drag.which === 'x') colTransition_(c.host, SLIDE_NONE, null);
+    else if (c.front) colTransition_(c.host, null, SLIDE_NONE);
+  });
+  return { which: drag.which, at: AT, page: PAGE[AT] || 0, stepX: drag.which === 'x' ? stepX_() : 0, cols: cols };
+}
+function dragFast_(drag) {
+  if (!DRAG_PLAN) DRAG_PLAN = dragPlan_(drag);
+  const p = DRAG_PLAN;
+  if (!p || p.which !== drag.which || p.at !== AT || p.page !== (PAGE[AT] || 0)) return false;
+  if (!p.cols.every(c => c.host.isConnected)) return false;
+  const dx = drag.which === 'x' ? drag.px : 0, dy = drag.which === 'y' ? drag.px : 0;
+  p.cols.forEach(c => { if (dx || c.front) colWrite_(c.host, c.x + dx, c.y + (c.front ? dy : 0)); });
+  softDrag_(drag.which, drag.px, p.stepX);
+  return true;
+}
+
 function placeGrid(instant, drag) {
+  if (drag && dragFast_(drag)) return;
+  DRAG_PLAN = null;
   /* Said before anything is measured or moved, so the width the stylesheet draws and the width
      this function spaces by cannot be different on the same frame. Setting a custom property that
      already holds that value costs nothing. */
@@ -1621,7 +1693,14 @@ function placeGrid(instant, drag) {
     });
   });
 
-  if (drag) { softDrag_(drag.which, drag.px, stepX); return; }
+  if (drag) {
+    /* THE SUMS THIS FRAME DID, KEPT FOR THE REST OF THE DRAG — see `dragFast_`. The finger's own
+       offset taken back out, so the plan is where each column RESTS. */
+    DRAG_PLAN = { which: drag.which, at: AT, page: PAGE[AT] || 0, stepX: stepX,
+      cols: hosts.map(h => ({ host: h.host, x: (h.i - ti) * stepX, y: h.shift - (h.id === AT ? dyPx : 0), front: h.id === AT })) };
+    softDrag_(drag.which, drag.px, stepX);
+    return;
+  }
   softSettle_(settle ? runs(settle.axis) : SLIDE_TAP, instant);
 
   /* A SLIDE THE EYE CAN FOLLOW — the column in front going somewhere new — is a window in which a tap
@@ -2225,9 +2304,26 @@ function pageHome_(id) {
    only ever asked for its LENGTH -- and `PAGER.stuff` was building 5,226 strings to be counted, on
    every call, on the same hot path as everything else this window is about. A screen whose pages
    have no names may answer with the count itself. */
+/* ---------- AND COUNTED ONCE A HANDLER, NOT FIVE TIMES A FLICK ---------------------------------------
+   A COUNT IS A BUILD on half the columns: `PAGER.settings` is `settingsPages_().length`, which writes
+   every settings card's markup to find out how many there are, and Saved, the Spotlight, the shop,
+   the feed and Messages are the same shape. One page turn asked five times (six on a diagonal) —
+   as the finger chose its axis and again for its last page, then the release, `goPage`, and
+   `paintPager` twice — and on Settings at 4x CPU that was 20–33ms of the release and up to 60ms of
+   the first moving frame (measured on 6 October, rapid flicks): the card frozen under the thumb at
+   the exact moment it should leave. Now twice: once as the axis is chosen, once at the release.
+
+   SO A GESTURE HOLDS THE COUNT (`countHold_`, from overworld.js) for the length of one handler, which
+   is a stretch of code in which nothing adds or removes a page. Outside a hold nothing is kept, so a
+   paint that changes the pages and counts them a line later still sees the new number. */
+let COUNT_HOLD = null;
+function countHold_(on) { COUNT_HOLD = on ? new Map() : null; }
 const pageCount = id => {
+  if (COUNT_HOLD && COUNT_HOLD.has(id)) return COUNT_HOLD.get(id);
   const v = pagerNames(id);
-  return typeof v === 'number' ? Math.max(0, v | 0) : v.length;
+  const n = typeof v === 'number' ? Math.max(0, v | 0) : v.length;
+  if (COUNT_HOLD) COUNT_HOLD.set(id, n);
+  return n;
 };
 
 /**

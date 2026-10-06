@@ -12972,13 +12972,26 @@ function fillStuffPages(all) {
       const w = showingWidgets() && items[i - first] && items[i - first].row;
       if (w && !w.stop) drawWidget_(w);
     } else if (!near && el.dataset.filled === '1') {
-      pane.innerHTML = '';
-      delete el.dataset.filled;
       /* AND THE SCROLL WITH IT. The pages are a window and their elements are recycled, so a pane
          left scrolled down would hand the next card it stands for to somebody half way through it.
-         `paneReach_` puts the overflow back too, on the next fill. */
-      pane.scrollTop = 0;
-      pane.style.overflowY = '';
+         `paneReach_` puts the overflow back too, on the next fill.
+         ---------- ONLY A PANE THAT COULD HAVE SCROLLED, AND BEFORE ITS MARKUP GOES ------------------
+         `scrollTop = 0` IS A FORCED LAYOUT — the browser has to know how far the box can scroll
+         before it can be told where to — and it ran on EVERY page this loop emptied, straight after
+         the `innerHTML` a fill a line earlier had written, so the whole column was laid out again
+         inside the loop. Part of *"if i try to scroll quickly up or down its clunky and janky"* (6
+         October): a profile of rapid flicks down a paper on the Find screen put two seconds of a
+         thirteen-flick run inside this function at 4x CPU, in single tasks of up to 1.3s — the screen
+         frozen for a beat after a quick run of page turns.
+         Only a pane `paneReach_` made scrollable (`overflow-y: auto` inline) can have been scrolled:
+         every other pane clips, and `scrollHost_` in overworld.js scrolls only a box whose overflow
+         says it may. So the rest are not asked, and the few that are lose their scroll first. */
+      if (pane.style.overflowY) {
+        pane.scrollTop = 0;
+        pane.style.overflowY = '';
+      }
+      pane.innerHTML = '';
+      delete el.dataset.filled;
       changed = true;
     }
   }
