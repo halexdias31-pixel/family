@@ -234,6 +234,14 @@ const MIN_TAP = 44;
    MATCHED ON CLASS, NOT ON TEXT. A rule written against "10" would accept any 22px control that
    happens to say 10; the class is what the stylesheet acts on. */
 const ACCEPTED_TAP = [
+  { cls: /^(counted\.row|chip\.sm)\b/, why:
+    'A FUNNEL ANSWER, AND THE CHIP IT BECOMES, IS 32px BY THE OWNER\'S CHOICE -- *"Make the tags smaller because this will '
+  + 'help to make sure more fit in even when there\'s lots of names for the user to parse through."* '
+  + 'The funnel stopped cutting long lists into letter ranges on the same day, so a question can draw '
+  + 'thirty answers, and at 44px a third of them sat below the card. What was done instead of the '
+  + 'full height: each chip carries a 6px reach above and below (a `::before`, as `.qw` does), so the '
+  + 'hit area is 44px tall while the drawn chip is 32; `min-width: 44px` keeps the narrowest answer a '
+  + 'fingertip wide. A wrong tap is cheap: the answer comes back off with its chip\'s cross.' },
   { cls: /^qw\b/, why:
     'A WORD IN A PASSAGE IS THE SIZE OF A WORD, and on a "circle the three adjectives" question the '
   + 'words ARE the controls -- *"some questions require answers on diagram"*, and for KS2 grammar the '

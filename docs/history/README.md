@@ -291,3 +291,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [Multi-part questions: a part found alone brings its question, a Figure tile, the (d) opening, answers-only](287-multi-part-questions-a-part-found-alone-brings-its-question.md)
 - [A drawing is the person's who made it, and "use your graph" shows your graph](288-a-drawing-is-the-person-s-who-made-it-and-use-your-graph-sho.md)
 - [The Corbettmaths primary folder: every PDF in, every picture drawn](289-the-corbettmaths-primary-folder-every-pdf-in-every-picture-drawn.md)
+- [The funnel draws a list whole, and the tags are smaller](290-the-funnel-draws-a-list-whole-and-the-tags-are-smaller.md)

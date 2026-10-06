@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-06-multipart";
+  --css-version: "2026-10-06-alltags";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -2466,6 +2466,11 @@ button.text-drop { color: var(--bad); }
   transition: transform var(--quick) ease, border-color var(--quick) ease;
 }
 .chip:active, .chip.is-pressed { transform: scale(.94); }
+/* THE FUNNEL'S OWN CHIPS ARE 32px, like the answers under them -- *"Make the tags smaller"*, the
+   owner, 6 Oct. `sm` and not `.chip` itself: every other chip in the app is somebody's form and keeps
+   its 44. The reach is the answers' own, 6px above and below, so the finger still gets 44. */
+.chip.sm { min-height: 32px; border-radius: 16px; padding: 0 .6rem; position: relative; }
+.chip.sm::before { content: ""; position: absolute; inset: -6px 0; }
 /* The FIELD, small and dim, before the value. "Grade 9" and "9" are different amounts of
    information, and with four chips on a line the second one is a puzzle. */
 /* `--dim`, NOT `--faint`, ON THE FILL: `--faint` was measured for black and for `--raised`, and on a
@@ -12000,11 +12005,20 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
   min-width: 44px;
   justify-content: center;
   border: 1px solid var(--chip-line);
-  border-radius: 22px;
+  border-radius: 16px;
   background: none;
-  padding: .35rem .95rem;
+  padding: .2rem .7rem;
   margin: 0;
-  min-height: 44px;
+  /* ---------- 32px TALL NOW, AND THE FINGER STILL GETS ITS 44 ----------------------------------
+     THE OWNER, 6 Oct: *"Make the tags smaller because this will help to make sure more fit in even
+     when there's lots of names for the user to parse through."* The funnel draws a whole list now
+     rather than letter ranges of it (see `bucketLabels_`), so a question can hold thirty answers
+     where it held seven buckets, and 44px pills put a third of them below the card. 32px is what a
+     chip is in every filter row people already know. THE REACH IS KEPT, the way `.qw` keeps a
+     word's: the `::before` below adds 6px above and below, so the hit area is 44px tall while the
+     drawn chip is 32 -- and `min-width` keeps a one-word answer a fingertip wide. */
+  min-height: 32px;
+  position: relative;
   align-items: center;
   transition: background var(--quick) ease, border-color var(--quick) ease,
               transform var(--quick) ease;
@@ -12016,7 +12030,7 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
    the words. The card's TAGS are the third member: a tag with no kind keeps this outline, so it is
    offered to `.qtags` too rather than written out there as `#3d3d3d` a second time. */
 .answers, .chips, .qtags { --chip-line: #3d3d3d; }
-.answers { display: flex; flex-wrap: wrap; gap: .45rem .4rem; align-items: center; }
+.answers { display: flex; flex-wrap: wrap; gap: .4rem .35rem; align-items: center; }
 /* THE ANSWER IS THE HEADLINE. It was .88rem — the size of a fact on a receipt — for the one word
    on the screen somebody is here to choose. */
 /* ---------- AND IT IS THE ONLY THING ON THE ROW NOW, SO IT MAY USE THE ROW -----------------------
@@ -12037,7 +12051,8 @@ a.boxer-src { display: flex; align-items: center; min-height: 44px; text-decorat
 /* A CHIP'S WORDS ARE ITS WHOLE WIDTH now, so they take what they need and give way only when the chip
    is already the width of the card — `0 1 auto` rather than the `1 1 auto` a row needed to fill its
    line. 500 rather than 600: seven bold words side by side is a wall, seven medium ones a list. */
-.row.tap.counted .k { color: var(--ink); font-weight: 500; font-size: .86rem; line-height: 1.25;
+.row.tap.counted::before { content: ""; position: absolute; inset: -6px 0; }
+.row.tap.counted .k { color: var(--ink); font-weight: 500; font-size: .8rem; line-height: 1.2;
   flex: 0 1 auto; min-width: 0; }
 
 /* THE COUNT RECEDES. It was the same weight as the label, so a row read as two things of equal

@@ -260,44 +260,29 @@ const STATES = {
       },
       wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it, its sitting tagged 2017 then June (then the day it was sat, with no year)',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
-    /* ---------- AN ANSWER ONE LETTER LONG ---------------------------------------------------------
-       A CHIP IS AS WIDE AS ITS WORDS, and the letter ranges `bucketValues_` groups a long list into
-       are often a single letter — `S` among the topics here, `G` and `P` among the English papers.
-       The first version of the chips drew those 34x44: under the tap floor sideways, which no state
-       above could show, because every answer they reach is a word. This one reaches the Topic
-       question over GCSE Maths past papers, where one of the ranges is one letter, and leaves the
-       measuring to the tap-target rule. */
-    { name: 'an answer one letter long',
-      /* FOUND BY WALKING THE FUNNEL, NOT BY A ROUTE WRITTEN HERE. Which question ends in a one-letter
-         range is a fact about the data, and the data moves: this was written when past papers still
-         answered Topic, and the next commit to land took Topic off every question that is not a 1st
-         Class Maths worksheet — so its one route reached no range at all and the state reported
-         itself unreachable. So it answers the funnel's own questions, depth first, through the same
-         `facet-pick` rows a finger presses, and stops at the first screen drawing a one-letter chip.
-         Capped, so a library with none fails as "did not arrive" rather than hanging the run. */
+    /* ---------- A LONG LIST, DRAWN WHOLE ------------------------------------------------------------
+       THIS WAS "AN ANSWER ONE LETTER LONG" -- the `S`, `G` and `P` chips the letter ranges made -- and
+       those cannot exist any more: the owner, 6 Oct, *"I no longer want to have that a-g method or
+       h-n. Just display."* What the change made possible instead is a question drawing a dozen or
+       more answers at once, in the smaller 32px chips asked for with it, so that is what is measured:
+       Year 5's Corbettmaths worksheets, thirteen titles at the time of writing, every one its own
+       chip and none of them a range. */
+    { name: 'a long list, drawn whole',
       enter: () => {
-        const rows = () => [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
-        const one = () => rows().some(r => r.textContent.trim().length === 1);
-        let left = 400;
-        const walk = (filters, depth) => {
-          STUFF.q = ''; STUFF.filters = filters; paintStuff(); goPage('stuff', 0, true);
-          if (one()) return true;
-          if (!depth || --left <= 0) return false;
-          const opts = rows().map(r => ({ field: r.getAttribute('data-field'), value: r.getAttribute('data-value'),
-                                          bucket: !!r.getAttribute('data-bucket') }))
-                             .filter(o => o.field && o.value != null);
-          for (const o of opts) {
-            const f = Object.assign({ field: o.field, value: o.value }, o.bucket ? { bucket: true } : {});
-            if (walk(filters.concat([f]), depth - 1)) return true;
-            if (left <= 0) return false;
-          }
-          return false;
-        };
-        walk([{ field: 'forLabel', value: 'Learning' }, { field: 'kindLabel', value: 'Questions' }], 5);
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'kindLabel', value: 'Questions' },
+                         { field: 'subject', value: 'Maths', bucket: true },
+                         { field: 'documentType', value: 'Worksheet' },
+                         { field: 'keystage', value: 'KS2' },
+                         { field: 'yearGroup', value: 'Year 5' }];
+        paintStuff(); goPage('stuff', 0, true);
       },
-      expect: () => [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')]
-        .some(r => r.textContent.trim().length === 1),
-      wants: 'an answer chip whose whole label is one letter' },
+      expect: () => {
+        const rows = [...document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')];
+        return rows.length >= 10 && rows.every(r => !r.getAttribute('data-bucket'));
+      },
+      wants: 'ten or more answer chips on one question, none of them a range',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A BUNDLE OF PAPERS, WHICH ONLY A NARROWED LIST OFFERS ------------------------------
        THE CARD EXISTS ONLY WHEN THE RESULTS ARE WHOLE PAPERS — see `bundleOf_` — so `go('stuff')`
        never shows one, and neither does any state above: a search for "work out" is questions from
@@ -305,9 +290,9 @@ const STATES = {
        ever have measured it, which is the hole the receipt, the message thread and the basket were
        each in before a state put them on the screen.
 
-       THE WIDEST ONE ANYBODY REACHES BY ANSWERING, on purpose: Edexcel GCSE Higher over the
-       `2017 & 2018` bucket is twelve papers in four sittings, grouped a line per sitting — the
-       longest list and the longest title the card is drawn with on the owner's own example. A
+       THE WIDEST ONE ANYBODY REACHES BY ANSWERING, on purpose: Edexcel GCSE Higher in 2017 is two
+       sittings of papers, grouped a line per sitting. It was the `2017 & 2018` bucket, twelve papers
+       in four, until the years stopped being paired (6 Oct) -- one year is the widest answer now. A
        three-paper bundle would measure the easy case.
 
        FOUND BY THE PAGE IT IS ON rather than by a number, because the leading pages in front of the
@@ -325,11 +310,11 @@ const STATES = {
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
                          { field: 'tier', value: 'Higher' },
-                         { field: 'examYear', value: '2017 & 2018', bucket: true }];
+                         { field: 'examYear', value: '2017' }];
         paintStuff();
         const card = document.querySelector('#s-stuff .card.bundle');
         const page = card && card.closest('.page');
-        if (!page) throw new Error('the funnel narrowed to twelve whole papers offers no bundle');
+        if (!page) throw new Error('the funnel narrowed to a year of whole papers offers no bundle');
         goPage('stuff', [].indexOf.call(page.parentNode.children, page), true);
       },
       expect: () => {

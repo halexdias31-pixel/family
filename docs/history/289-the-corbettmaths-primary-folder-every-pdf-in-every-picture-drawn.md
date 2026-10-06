@@ -9,7 +9,7 @@ than against itself:
   incomplete. Found by listing the folder's 71 PDFs and matching each Drive id to a `source_url`.
   Read off their own pages, 13 drawings, answers worked and the polygons' sums checked twice.
 - **"Area of a Triangle" rows 13–20 were "Area of Squares and Rectangles" Q13–20.** The triangle
-  PDF has 12 questions. They moved to `W-CBM-area-of-squares-and-rectangles` (new ids — the old
+  PDF has 12 questions. They moved to `W-CBM-area-of-squares-and-rectangles` ("Area of a Square / Area of a Rectangle", the cover's own title -- 1st Class Maths has a paper called "Area of Squares and Rectangles") (new ids — the old
   ones named the wrong sheet), and that sheet's Q1–12 were added from its PDF.
 - **Ten questions described their picture in a sentence** ("The diagram is a circle cut into 3
   equal parts"). Drawn. The four that say *shade* are now `drawing`, answered with the pen on the
