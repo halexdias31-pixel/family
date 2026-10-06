@@ -9312,6 +9312,49 @@ check('multipart: Saved and Spotlight draw a question\'s opening and its figure 
   return bad;
 });
 
+/* FINDING 9: "To the answer" says where the answer really is, and the drawing page carries it too. */
+check('multipart: "To the answer" says where the answer is, and the drawing page after a card carries it', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionTiles_', 'questionFigCard_', 'pageParts_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the tile\'s note was NOT checked'];
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
+  const row = id => ({ row_id: id, paper_id: 'P-MP-T', subject: 'Maths', name: 'Tiles' });
+  const q = (id, extra) => Object.assign({ kind: 'question', name: 'Q' + id, qNumber: id, marks: 2, key: 'q-mp-t' + id,
+    row: row('Q-MP-T-' + id), html: '<p>Do it.</p>', answer: '<b>done</b>' }, extra || {});
+  const plain = q('1');
+  const grid = q('2', { answerType: 'drawing', surface: 'grid', html: '<p>Draw the line y = 2x.</p>' });
+  const front = q('3', { diagram: MP_SVG });
+  const note = h => { const t = el(h).querySelector('[data-do="qa-go"]'); return t ? String(t.getAttribute('aria-label') || '').replace(/^To the answer · /, '') : '(no tile)'; };
+  [[plain, 'next page', 'a card whose answer is the next page'],
+   [grid, 'after the squared grid', 'a card with the grid to draw on between it and its answer'],
+   [front, 'next page', 'a card whose figure stands in front of it']].forEach(([x, want, what]) => {
+    const got = note(w.questionTiles_(x));
+    if (got !== want) bad.push(what + ' says "' + got + '", wanted "' + want + '"');
+  });
+  /* THE DRAWING PAGE: the grid after the card carries the tile; a figure in front of its card does not. */
+  const gf = el(w.questionFigCard_(grid));
+  const gt = gf.querySelector('[data-do="qa-go"]');
+  if (!gt) bad.push('the grid page -- where the child finishes -- has no "To the answer" tile');
+  else if (note(gf.innerHTML) !== 'next page' || gt.getAttribute('data-from') !== 'fig') bad.push('the grid page\'s tile reads "' + note(gf.innerHTML) + '" from "' + gt.getAttribute('data-from') + '", wanted "next page" from the figure');
+  if (el(w.questionFigCard_(front)).querySelector('[data-do="qa-go"]')) bad.push('a figure read on the way to its card carries a tile to the answer');
+  /* AND IT TURNS ONE PAGE ON FROM THE GRID: card page 0, grid page 1, answer page 2. */
+  if (gt) {
+    const strip = el('<div id="s-mptile"><section class="page"></section><section class="page">' + gf.innerHTML + '</section><section class="page"></section></div>');
+    d.body.appendChild(strip);
+    const heldA = w.stuffItemsAll_, heldG = w.goPage;
+    let went = null;
+    w.stuffItemsAll_ = () => [grid];
+    w.goPage = (id, n) => { went = [id, n]; };
+    try { w.__t.ACTIONS['qa-go'](strip.querySelector('[data-do="qa-go"]')); }
+    finally { w.stuffItemsAll_ = heldA; w.goPage = heldG; strip.remove(); }
+    if (!went || went[1] !== 2) bad.push('the grid page\'s tile turned to ' + JSON.stringify(went) + ', wanted page 2 -- the answer is the page after the grid');
+  }
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;

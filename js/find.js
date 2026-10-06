@@ -8433,10 +8433,15 @@ function questionFigCard_(x) {
   else if (x.diagram) out.push(`<figure>${x.diagram}${figCredit_(x)}</figure>`);
   out.push(pics_(figImgs_(x.images)));
   const id = (x.row && x.row.row_id) || x.key || '';
+  /* THE WAY ON TO THE ANSWER, ON THE PAGE WHERE THE DRAWING IS DONE -- a pen page after its card is
+     where the child finishes, so it is where they look for what comes next (finding 9). Only there:
+     a figure in front of its card is read on the way to the box, and the card has the tile. */
+  const on = pad && partPlan_(x).figAt >= partChunks_(x).length ? questionTiles_(x, 'fig') : '';
   return `<div class="qcard qfig" data-of="${esc(id)}">
     ${figHead_(label)}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
-    <div class="qsheet">${out.join('')}</div>
+    <div class="qsheet">${out.join('')}</div>${on ? `
+    <div class="tile-row qfig-tiles">${on}</div>` : ''}
   </div>`;
 }
 
@@ -8576,10 +8581,31 @@ function ansHide_(x) { ansSet_(x, false); }
    as it was left -- hidden, unless this person showed it on this visit. One label for everybody: staff
    read `The answer` here once, when their page was open already, and it is not. Drawn the same whether
    or not the answer has been shown, so pressing it changes nothing on this card. */
-function questionTiles_(x) {
+/* ---------- AND ITS NOTE SAYS WHERE THE ANSWER IS, READ OFF THE PAGES THEMSELVES --------------------
+   THE MULTI-PART AUDIT, FINDING 9: the note said "next page" on 219 cards whose next page was the
+   figure or the grid to draw on -- 1F Q3, Q7, Q11c, 3F Q24b. The tile still landed on the answer;
+   the words were wrong about the swipe in between. So the note is worked out from `pageParts_`, the
+   list the strip is built from: "next page" when it is, "after the figure" (or the grid, in the name
+   its own header uses -- `figWhat_`) when one page stands between, and a count when more do.
+
+   `from` IS THE PAGE THE TILE STANDS ON -- the card (`null`), or the drawing page (`'fig'`) for a
+   part whose figure comes after its card: the child finishes on the grid, not on the words, so the
+   way on is where they finish (`questionFigCard_`). No tile where the answer is not ahead. */
+function ansWhere_(x, from) {
+  const parts = pageParts_(x);
+  const a = parts.indexOf('ans'), at = parts.indexOf(from || null);
+  if (a < 0 || at < 0 || a <= at) return '';
+  const between = parts.slice(at + 1, a);
+  if (!between.length) return 'next page';
+  if (between.length === 1 && between[0] === 'fig') return 'after the ' + figWhat_(x).toLowerCase();
+  return (between.length + 1) + ' pages on';
+}
+function questionTiles_(x, from) {
   if (!questionHasAns_(x)) return '';
-  return tile_({ icon: 'next', label: 'To the answer', note: 'turns the page', cls: 'qa-to',
-                 act: 'qa-go', data: { k: ansKey_(x) } });
+  const where = ansWhere_(x, from);
+  if (!where) return '';
+  return tile_({ icon: 'next', label: 'To the answer', note: where, cls: 'qa-to',
+                 act: 'qa-go', data: from ? { k: ansKey_(x), from: from } : { k: ansKey_(x) } });
 }
 
 /* ---------- AND TURNING TO IT --------------------------------------------------------------------
@@ -8596,8 +8622,10 @@ on('qa-go', (el) => {
   if (!x) return;
   /* FROM THE QUESTION CARD, NOT FROM THE FIRST PAGE: a stem and its figure can stand in front of
      the card the tile is on (`pageParts_`), so the distance is answer minus card. */
+  /* AND FROM THE DRAWING PAGE, for the tile that stands there (`data-from`) -- see `ansWhere_`. */
   const parts = pageParts_(x);
-  const off = parts.indexOf('ans') < 0 ? -1 : parts.indexOf('ans') - parts.indexOf(null);
+  const from = parts.indexOf(el.getAttribute('data-from') || null);
+  const off = parts.indexOf('ans') < 0 || from < 0 ? -1 : parts.indexOf('ans') - from;
   const pg = el.closest('.page');
   const host = pg && pg.parentElement;
   const id = host && host.id ? host.id.replace(/^s-/, '') : '';
