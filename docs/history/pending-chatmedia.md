@@ -180,6 +180,10 @@ an evening.
    Deploy.** Editing the existing deployment keeps the `/exec` address the site calls.
 5. **Triggers** (the clock icon in the editor's left bar). If any trigger shows errors since step 1,
    or is disabled, run **`installTriggers`** once from the dropdown. It clears and reinstalls the
-   nightly jobs and the sheet watch, leaving one of each.
+   nightly jobs and the sheet watch, leaving one of each. It does **not** reinstall a five-minute
+   `warmPayload`, on purpose: `installTriggers` explains that one would use up the day's script time
+   and stop the nightly jobs. If a `warmPayload` trigger is listed, it was added by hand. Leave it
+   disabled or delete it. Do not run `installWarmTrigger` to "repair" it. (The review suggested that,
+   and this repo decided against it.)
 6. **On the site, signed in as admin: Tools → Check uploads → press it.** Four ticks and "Ready" mean
    photos and videos can be sent in messages. Anything else is listed with the step still to do.
