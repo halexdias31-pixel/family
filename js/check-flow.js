@@ -91,7 +91,13 @@ function payload() {
       price: 19, tutorPay: 0, location: 'Colliers Wood Library', venue: 'Colliers Wood Library',
       tutor: '', day: '', time: '', weeks: 0, dates: '', maxKids: 4, currentKids: 2,
       slots: [seat('Waiting', 'Danile Cristina'), seat('Waiting', 'Phoebe Wickes')],
-      tutorSlots: [], events: [], canAsk: true, seatsGoing: 2, openToOthers: true },
+      tutorSlots: [], events: [], canAsk: true, seatsGoing: 2, openToOthers: true,
+      /* `whenCould` IS WHAT `doGet` SENDS ON EVERY WAITING LIST — `waitlistWhen`'s tally of the two
+         families' own answers, most popular first — and this list never carried one, so the only
+         thing on the page that answers the tutor's question was drawn by no journey here. The
+         shape is the backend's: `people` who answered, and each phrase with its count. */
+      whenCould: { people: 2, slots: [{ slot: 'Monday evening', n: 2, all: true },
+                                      { slot: 'Saturday morning', n: 1, all: false }] } },
   ];
   /* ---------- `client` IS SENT AND THIS PAYLOAD DID NOT SEND IT --------------------------------
      `doget.gs` CARRIES A NOTE ABOUT THIS EXACT FIELD: *"`myJobs_` ON THE PHONE FILTERS ON
@@ -4359,8 +4365,9 @@ check('taking a seat on a class does not go through the ordinary join', async ()
   w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
   try { w.__t.ACTIONS['job']({ dataset: { id: 'W-LIST' } }); }
   catch (e) { return ['opening the class threw: ' + e.message]; }
-  /* `#s-booking` RATHER THAN THE SHEET — see the note on the admin journey above. `joinBlock` is
-     what offers the seat and `jobPage_` draws it, so the control is on the page the app turns to. */
+  /* `#s-booking` RATHER THAN THE SHEET — see the note on the admin journey above. `joinTile_` is
+     what offers the seat and `jobPage_` draws it on the receipt's foot, so the control is on the
+     page the app turns to. Where on the page is the journey after this one's question. */
   const b = w.document.getElementById('s-booking');
   const dos = b ? [...b.querySelectorAll('[data-do]')].map(x => x.dataset.do) : [];
   if (dos.includes('job-join')) {
@@ -4391,6 +4398,144 @@ check('taking a seat on a class does not go through the ordinary join', async ()
   if (!B.loc) bad.push('the venue the class runs at was not filled in');
   if (sent.map(x => x.action).includes('joinWaitlist')) {
     bad.push('it sent joinWaitlist without anybody pressing send');
+  }
+  return bad;
+});
+
+/* ---------- THE WAY IN IS A LINE AND A TILE OF THE PAPER, NOT A BLOCK UNDER IT ----------------------
+   ASKED FOR AS *"the session booking thing at the bottom of receipt should be a line in the
+   booking."* `joinBlock` drew, after the receipt, a sentence with the seats and the seat price, the
+   list's tally, a gold `Take a seat` and a faint paragraph — on black, under a card it belonged to.
+   The journey above asked only that the right ACT was offered somewhere on the column, which the
+   block passed while floating; this asks WHERE, for both kinds of joining:
+
+     · nothing under the paper — no `.join`, and no control on the page outside `.rc`
+     · the act is a TILE in the receipt's own foot (`.rc .rc-tiles`), first, before Share
+     · the seats are a row of the document — `Sharing`, inside `.rc` — and an open session no longer
+       says "Just you" on the page that offers you a seat on it
+     · the list's tally is a `Can come` row of the paper, and it is there for somebody ON the list
+       too, which the block never was — `canAsk` hid it from everybody already in
+
+   PRESSED THROUGH THE TILE ITSELF, not through `ACTIONS`: a tile with the right `data-do` and no
+   `data-id` would pass a lookup and find no class when tapped. */
+const joinPage_ = (w, id) => {
+  w.__t.ACTIONS['job']({ dataset: { id } });
+  return [...w.document.querySelectorAll('#s-booking .page')]
+    .find(p => new RegExp('\\b' + id + '\\b').test((p.querySelector('.rc-ref') || {}).textContent || ''));
+};
+const rowSays_ = (pg, k) => {
+  const r = [...pg.querySelectorAll('.rc .bk-row')]
+    .find(x => ((x.querySelector('.bk-k') || {}).textContent || '').trim() === k);
+  return r ? r.querySelector('.bk-v').textContent.replace(/\s+/g, ' ').trim() : null;
+};
+const onPaperOnly_ = (pg, bad) => {
+  if (pg.querySelector('.join') || pg.ownerDocument.querySelector('#s-booking .join')) {
+    bad.push('a .join block is still drawn under the paper');
+  }
+  const loose = [...pg.querySelectorAll('[data-do]')].filter(x => !x.closest('.rc'));
+  if (loose.length) bad.push('controls float outside the paper: ' + loose.map(x => x.dataset.do).join(', '));
+};
+
+check('a class with seats offers Take a seat as a tile on its receipt, and its seats as a line', async () => {
+  const { w } = boot();
+  await wait(300);
+  w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
+  let pg;
+  try { pg = joinPage_(w, 'W-LIST'); } catch (e) { return ['opening the class threw: ' + e.message]; }
+  if (!pg) return ['the class has no page on the Booking column — nothing to look at'];
+  const bad = [];
+  onPaperOnly_(pg, bad);
+  const foot = [...pg.querySelectorAll('.rc .rc-tiles [data-do]')].map(x => x.dataset.do);
+  const tile = pg.querySelector('.rc .rc-tiles [data-do="job-take-seat"]');
+  if (!tile) bad.push('no Take a seat tile in the receipt\'s foot (the foot holds: ' + foot.join(', ') + ')');
+  else {
+    if (!tile.classList.contains('tile')) bad.push('Take a seat is in the foot but is not a tile');
+    if (tile.dataset.id !== 'W-LIST') bad.push('the Take a seat tile carries no id for the class');
+    if (foot[0] !== 'job-take-seat') bad.push('Take a seat is not first in the foot: ' + foot.join(', '));
+  }
+  if (foot.includes('job-join')) bad.push('a class offers Ask to join, which is the act for a family\'s session');
+  const sharing = rowSays_(pg, 'Sharing');
+  if (sharing == null) bad.push('no Sharing row on the class\'s paper');
+  else if (!/2 seats free/.test(sharing)) bad.push('the Sharing row says "' + sharing + '", wanted the 2 seats going');
+  const seat = [...pg.querySelectorAll('.rc .rc-total .bk-t')].map(x => x.textContent.trim());
+  if (!seat.includes('£19.00')) bad.push('the seat price is not on the paper\'s total row: ' + JSON.stringify(seat));
+  const can = rowSays_(pg, 'Can come');
+  const bars = pg.querySelectorAll('.rc .bk-row.bk-tally .wc-row').length;
+  if (can == null) bad.push('the list\'s tally is not a Can come row of the paper');
+  else if (bars !== 2 || !/Monday evening/.test(can)) bad.push('the Can come row draws ' + bars + ' bars ("' + can + '"), wanted the 2 slots sent');
+
+  /* AND SOMEBODY ON THE LIST SEES THE TALLY TOO, and is offered no seat they already have. */
+  w.__t.USER({ name: 'Danile Cristina', personId: 'P7', role: 'parent', roles: ['parent'] });
+  const D = w.__t.DATA();
+  (D.liveJobs || []).forEach(j => { if (j.id === 'W-LIST') j.canAsk = false; });
+  let mine;
+  try { mine = joinPage_(w, 'W-LIST'); } catch (e) { return bad.concat(['opening it as a member threw: ' + e.message]); }
+  if (!mine) bad.push('the list has no page for a family on it');
+  else {
+    if (mine.querySelector('[data-do="job-take-seat"]')) bad.push('a family already on the list is offered a seat');
+    if (rowSays_(mine, 'Can come') == null) bad.push('a family on the list cannot see when the others can come');
+  }
+
+  /* THE TILE IS WIRED: pressed as a finger would, it fills the form in for this class. */
+  if (tile) {
+    w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
+    (D.liveJobs || []).forEach(j => { if (j.id === 'W-LIST') j.canAsk = true; });
+    const t = joinPage_(w, 'W-LIST').querySelector('.rc-tiles [data-do="job-take-seat"]');
+    t.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
+    await wait(250);
+    if (!/wait/i.test(String(w.__t.BOOKING.how || '')) || !w.__t.BOOKING.joining) {
+      bad.push('pressing the Take a seat tile did not turn to the form for this class');
+    }
+  }
+  return bad;
+});
+
+check('a session a family booked offers Ask to join as a tile, and says its seats are open', async () => {
+  /* ONE MORE SESSION, OPEN, SEEN BY SOMEBODY NOT ON IT — in the shape `doGet` sends a stranger: no
+     names on the seats, no `splitEmails` (that goes only to the family who typed the addresses),
+     `canAsk` worked out by the server. Added to this journey's payload alone, so no other journey's
+     column grows a page. */
+  const p = payload();
+  const open = { id: 'J-OPEN', jobId: 'J-OPEN', type: 'job', kind: '', status: 'unconfirmed',
+    subject: 'Maths', level: 'GCSE', title: 'GCSE Maths', price: 240, location: 'Mitcham library',
+    tutor: '', weekday: 'Wednesday', time: '17:00', hours: '1', term: 'Autumn 1', dates: '',
+    maxKids: 4, currentKids: 1, slots: [{ n: 1, client: '', status: 'Agreed', chat: '' }],
+    tutorSlots: [], events: [], canAsk: true, seatsGoing: 3, openToOthers: true, splitEmails: '',
+    whenCould: null, client: '' };
+  p.jobs.push(open);
+  const { w } = boot({ payload: p });
+  await wait(300);
+  w.__t.USER({ name: 'Somebody Else', personId: 'P9', role: 'parent', roles: ['parent'] });
+  let pg;
+  try { pg = joinPage_(w, 'J-OPEN'); } catch (e) { return ['opening the session threw: ' + e.message]; }
+  if (!pg) return ['the open session has no page on the Booking column — nothing to look at'];
+  const bad = [];
+  onPaperOnly_(pg, bad);
+  const foot = [...pg.querySelectorAll('.rc .rc-tiles [data-do]')].map(x => x.dataset.do);
+  const tile = pg.querySelector('.rc .rc-tiles [data-do="job-join"]');
+  if (!tile) bad.push('no Ask to join tile in the receipt\'s foot (the foot holds: ' + foot.join(', ') + ')');
+  else if (tile.dataset.id !== 'J-OPEN' || foot[0] !== 'job-join' || !foot.includes('book-share')) {
+    bad.push('Ask to join is not first beside Share with its id: ' + foot.join(', '));
+  }
+  if (foot.includes('job-take-seat')) bad.push('a family\'s session offers Take a seat, which is the act for a list');
+  const sharing = rowSays_(pg, 'Sharing');
+  if (sharing == null) bad.push('no Sharing row on the session\'s paper');
+  else if (/just you/i.test(sharing) || !/3 seats free/.test(sharing)) {
+    bad.push('the Sharing row says "' + sharing + '" on a session offering you one of its 3 seats');
+  }
+  if (rowSays_(pg, 'Can come') != null) bad.push('a session with a day draws a waiting list\'s tally');
+
+  /* "JUST YOU" IS STILL THE ANSWER WHERE IT IS TRUE: nothing going and nobody named. */
+  const rows = w.__t.jobRows(Object.assign({}, open, { seatsGoing: 0 }));
+  const full = (rows.find(r => r.k === 'Sharing') || {}).v;
+  if (full !== 'Just you') bad.push('a session with no seat going says "' + full + '", wanted "Just you"');
+
+  if (tile) {
+    tile.dispatchEvent(new w.MouseEvent('click', { bubbles: true, cancelable: true }));
+    await wait(250);
+    if (!/instant/i.test(String(w.__t.BOOKING.how || '')) || !w.__t.BOOKING.joining) {
+      bad.push('pressing the Ask to join tile did not turn to the form for this session');
+    }
   }
   return bad;
 });

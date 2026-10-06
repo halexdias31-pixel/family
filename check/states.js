@@ -3962,6 +3962,116 @@ const STATES = {
       },
       wants: 'a receipt with rows on it, an admin\'s three money rows, and its tiles on the paper' },
 
+    /* ---------- AND SOMEBODY ELSE'S CLASS, WITH SEATS, SEEN BY A FAMILY NOT ON IT -----------------
+       *"The session booking thing at the bottom of receipt should be a line in the booking."* The
+       way in was a block UNDER the paper — seats, price, the list's tally, a gold button, a faint
+       paragraph — and this lab had never drawn it: every receipt state here is the admin's own, and
+       the block only ever drew for somebody `canAsk` let in. It is a `Take a seat` tile in the
+       foot, a `Sharing` row and a `Can come` row now, and those three are what this measures: the
+       tally's bars across the answer and figure tracks at 320, and a fifth tile-height thing on a
+       card `paneReach_` already shrinks to fit.
+
+       AS A PARENT, NOT AS THE LAB'S ADMIN. `doGet` never sends `canAsk` to an admin — an admin is
+       `iAmIn` on every session — so seeding it under the lab's own visitor would measure a card
+       nobody can be shown: Take a seat beside Accept, Decline and Delete. The visitor is swapped for
+       the length of the state and put back in `leave`, the way `the library still coming` holds
+       and returns the payload.
+
+       THE SHAPE `doGet` SENDS A STRANGER: no names on the seats, no `splitEmails`, `canAsk` and
+       `seatsGoing` worked out by the server, and `whenCould` as `waitlistWhen` builds it — the
+       longest block phrase the grid can write (`Wednesday afternoon`) among them, because the bar
+       is the track that has to hold it. */
+    { name: 'a class with seats, seen by a family not on it',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__RC_WAS = USER;
+        USER = { name: 'Visiting Parent', personId: 'P900', person_id: 'P900',
+                 role: 'parent', roles: ['parent'], handle: 'visitingparent' };
+        DATA.liveJobs = (DATA.liveJobs || []).filter(j => j.id !== 'W-UI').concat([{
+          id: 'W-UI', jobId: 'W-UI', type: 'job', kind: 'waitlist', status: 'unconfirmed',
+          title: 'GCSE Maths, English Language', subject: 'Maths, English Language', level: 'GCSE',
+          location: 'Colliers Wood Library', tutor: '', weekday: '', time: '', term: 'Autumn 2026',
+          maxKids: 4, currentKids: 2, dates: '', createdAt: '22/09/2026', price: 19,
+          slots: [{ n: 1, client: '', status: 'Waiting', chat: '' },
+                  { n: 2, client: '', status: 'Waiting', chat: '' }],
+          tutorSlots: [], events: [], splitEmails: '', clientHosts: false,
+          canAsk: true, seatsGoing: 2, openToOthers: true,
+          whenCould: { people: 2, slots: [
+            { slot: 'Monday evening', n: 2, all: true },
+            { slot: 'Wednesday afternoon', n: 1, all: false },
+            { slot: 'Saturday morning', n: 1, all: false }] },
+        }]);
+        OPEN_JOB = 'W-UI';
+        STALE.booking = 1;
+        paint('booking');
+        goPage('booking', typeof jobPageAt_ === 'function' ? jobPageAt_('W-UI') : 1, true);
+      },
+      /* THE THREE PIECES, EACH ON THE PAPER, AND NOTHING UNDER IT. */
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-booking .page')]
+          .find(p => /W-UI/.test((p.querySelector('.rc-ref') || {}).textContent || ''));
+        const rc = pg && pg.querySelector('.rc');
+        if (!rc || pg.querySelector('.join')) return false;
+        if (!rc.querySelector('.rc-tiles [data-do="job-take-seat"]')) return false;
+        if (rc.querySelectorAll('.bk-row.bk-tally .wc-row').length !== 3) return false;
+        const sharing = [...rc.querySelectorAll('.bk-row')]
+          .find(r => ((r.querySelector('.bk-k') || {}).textContent || '').trim() === 'Sharing');
+        if (!sharing || !/2 seats free/.test(sharing.textContent)) return false;
+        return ![...pg.querySelectorAll('[data-do]')].some(x => !x.closest('.rc'));
+      },
+      wants: 'a class\'s receipt with Take a seat in its foot, its seats in Sharing and its tally as a row',
+      leave: () => {
+        if (window.__RC_WAS) USER = window.__RC_WAS;
+        window.__RC_WAS = null;
+        OPEN_JOB = '';
+        STALE.booking = 1;
+      } },
+
+    /* ---------- AND THE OTHER KIND OF JOINING: A SESSION A FAMILY BOOKED --------------------------
+       THE SAME THREE PIECES, MINUS THE TALLY, AND THE OTHER WORD. `Ask to join` is the tile and
+       `job-join` its handler, and until this state nothing in either instrument had ever drawn it —
+       `check/press.js` pressed `job-take-seat` for the first time with the state above, and would
+       otherwise never press this one at all. `Sharing` is the row that said "Just you" to the very
+       visitor this card offers a seat to; it says the seats now, and this asks that it does. */
+    { name: 'a session with seats, seen by a family not on it',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.__RC_WAS = USER;
+        USER = { name: 'Visiting Parent', personId: 'P900', person_id: 'P900',
+                 role: 'parent', roles: ['parent'], handle: 'visitingparent' };
+        DATA.liveJobs = (DATA.liveJobs || []).filter(j => j.id !== 'S-UI').concat([{
+          id: 'S-UI', jobId: 'S-UI', type: 'job', kind: '', status: 'unconfirmed',
+          title: 'GCSE Maths', subject: 'Maths', level: 'GCSE', location: 'Mitcham library',
+          tutor: '', weekday: 'Wednesday', time: '17:00', hours: '1', term: 'Autumn 2026',
+          maxKids: 4, currentKids: 1, dates: '07/10/26, 14/10/26, 21/10/26', createdAt: '22/09/2026',
+          price: 240, slots: [{ n: 1, client: '', status: 'Waiting', chat: '' }],
+          tutorSlots: [], events: [], splitEmails: '', clientHosts: false,
+          canAsk: true, seatsGoing: 3, openToOthers: true, whenCould: null,
+        }]);
+        OPEN_JOB = 'S-UI';
+        STALE.booking = 1;
+        paint('booking');
+        goPage('booking', typeof jobPageAt_ === 'function' ? jobPageAt_('S-UI') : 1, true);
+      },
+      expect: () => {
+        const pg = [...document.querySelectorAll('#s-booking .page')]
+          .find(p => /S-UI/.test((p.querySelector('.rc-ref') || {}).textContent || ''));
+        const rc = pg && pg.querySelector('.rc');
+        if (!rc || pg.querySelector('.join')) return false;
+        if (!rc.querySelector('.rc-tiles [data-do="job-join"]')) return false;
+        const sharing = [...rc.querySelectorAll('.bk-row')]
+          .find(r => ((r.querySelector('.bk-k') || {}).textContent || '').trim() === 'Sharing');
+        if (!sharing || !/3 seats free/.test(sharing.textContent)) return false;
+        return ![...pg.querySelectorAll('[data-do]')].some(x => !x.closest('.rc'));
+      },
+      wants: 'a session\'s receipt with Ask to join in its foot and its open seats in Sharing',
+      leave: () => {
+        if (window.__RC_WAS) USER = window.__RC_WAS;
+        window.__RC_WAS = null;
+        OPEN_JOB = '';
+        STALE.booking = 1;
+      } },
+
     /* ---------- THE PICTURE OF IT, IN A SHEET -------------------------------------------------------
        *"make sure sharing booking is an identical … png … of the booking reciept."* Sharing makes a
        PNG of the receipt and hands it to the phone's share sheet; where there is none, or Safari

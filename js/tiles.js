@@ -734,12 +734,19 @@ function cardActions_(x) {
 
    ORDER: pay, then leave. The same order they stood in, and for the same reason — one is what most
    people came to do, the other is looked for deliberately. */
+/* ---------- AND FOR SOMEBODY NOT IN IT, THE ONE ACTION IS GETTING IN ------------------------------
+   THIS RETURNED NOTHING FOR A SESSION THAT IS NOT YOURS, and the way in was `joinBlock` in book.js —
+   a gold button under the paper with a paragraph either side of it. *"The session booking thing at
+   the bottom of receipt should be a line in the booking"*, and *"it should all be tiles"*: so the
+   seats are the receipt's `Sharing` row and getting in is a tile in the same foot as Share, where
+   anybody already on the session finds Pay and Withdraw. Same question — what can you do with this
+   session — answered in one place for everybody who can see it. */
 function jobTiles_(x) {
   const j = x.row || {};
   const id = String(j.id || j.jobId || '');
   if (!id || !USER) return '';
   const mine = (j.slots || []).some(sl => norm(sl.client) === norm(USER.name));
-  if (!mine) return '';
+  if (!mine) return joinTile_(j, id);
   const paid = (j.slots || []).some(sl =>
     norm(sl.client) === norm(USER.name) && /^(paying|booked)$/i.test(String(sl.status || '')));
   const owed = typeof jobAccepted_ === 'function' && jobAccepted_(j) && !paid;
@@ -750,6 +757,40 @@ function jobTiles_(x) {
     ${tile_({ icon: 'undo', label: 'Withdraw from this',
               act: 'job-leave', data: { id: id, paid: paid ? '1' : '' } })}
   `;
+}
+
+/* ---------- TWO KINDS OF JOINING, AND THEY ARE NOT THE SAME ACT -----------------------------------
+   CARRIED OVER FROM `joinBlock`, WHOSE ARGUMENT IT WAS. A waiting list shows itself to everybody —
+   `joinWaitlist` writes `open_to_others` TRUE and `doGet` sends any open booking with seats left to
+   every client, no names. The fault was the BUTTON: it sent `move`/`Request` for both, which is how
+   you ask to share somebody ELSE'S booking, and on a class that is the wrong act in every
+   particular — there is no family to ask, the seat has a fixed price, and joining writes you your
+   own receipt at that price and records when you can come.
+
+   SO ONE MARK AND TWO WORDS. A person with a plus is `Make an account` on the sign-in card and it is
+   the same gesture here — put me in — so the mark is shared and the LABEL says which act it is:
+   `Take a seat` on a list, `Ask to join` on a session a family booked. Each goes to its own handler
+   in receipt.js, and both turn to the form rather than sending: nothing leaves until the one send
+   button is pressed, with the price and the day questions in front of you.
+
+   `canAsk` IS THE GATE AND IT IS THE SERVER'S. `doGet` computes it — not yours, open, a seat going —
+   *"so the phone does not have to work it out, and so it cannot work it out wrongly and offer a join
+   on something that is not open"*. A full session and one you are already on both offer nothing.
+
+   THE FAINT SENTENCE UNDER THE OLD BUTTON IS THE NOTE. A tile has room for about three words, and
+   each sentence had one fact worth keeping: on a list nobody is charged until it fills, and on a
+   session the family say yes first. The rest of each is said by the form the tile turns to, at the
+   moment it matters — the argument `jobPage_` makes for dropping an admin's paragraph.
+
+   `tone: 'buy'` ON BOTH, because each is the one thing a stranger on this page came to do — the gold
+   `.btn` the block drew said the same, and `Pay` and `Accept` wear it for the same reason. */
+function joinTile_(j, id) {
+  if (!j || !j.canAsk || !id) return '';
+  return norm(j.kind) === 'waitlist'
+    ? tile_({ icon: 'join', label: 'Take a seat', tone: 'buy', note: 'charged once it fills',
+              act: 'job-take-seat', data: { id: id } })
+    : tile_({ icon: 'join', label: 'Ask to join', tone: 'buy', note: 'the family say yes first',
+              act: 'job-join', data: { id: id } });
 }
 
 /* A tap on a tile row that is not on a row. The rows used to sit inside a card whose whole surface
