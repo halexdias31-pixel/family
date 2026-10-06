@@ -135,18 +135,20 @@ also be left open. Before, the editor shut on Save.
   - **opens in place and saves each answer**: one line open at a time; a grade saved the moment it
     is chosen, with all seventy boxes posted; the line still open with the column held; Teach on
     Physics leaves Maths's Teach alone; Not teaching sets both boxes FALSE on that line only; an
-    emptied level is refused; the second tap closes the line without saving again.
+    emptied level is refused; the second tap closes the line without saving again; Teach pressed on
+    a shut line opens that line and answers.
   - **the + asks subject then level**: the subject list opens with your subjects first; a subject
     alone saves nothing and opens the level list; subject and level are saved, with seventy fields;
-    the new line joins the Maths group and stays open; a half-added line goes back unsaved; at ten,
-    the `+` is off and says why.
+    the new line joins the Maths group and stays open; a half-added line goes back unsaved; a press
+    on an empty slot opens it as a new line; at ten, the `+` is off and says why.
   - **the bin**: all seven boxes of the DBS are posted blank, nothing else changes, the line goes,
     and the toast says `Removed DBS Enhanced.` On an unsaved line, the bin only puts it back.
-  - **Thirteen mutations**, each red for its own reason, then green again on the real file: the
+  - **Fifteen mutations**, each red for its own reason, then green again on the real file: the
     notation upside down, the subject repeated, a certificate drawn as notation, no save on a pick,
     Teach unticking the others, an open line not holding the column, the level list not chained,
     the `+` not opening the subject list, your subjects not first, a new line not redrawn into its
-    group, the bin emptying only the level, a half-added line kept, a saved line losing its level.
+    group, the bin emptying only the level, a half-added line kept, a saved line losing its level, a
+    press on an empty slot redrawing the card unchanged, and Teach on a shut line ignored.
     One of them, *a new line not redrawn into its group*, survived the first version of the journey.
     That journey read the nearest heading, and a new line's own face names its subject. It now asks
     for the same group as Maths GCSE, and the mutation goes red.
@@ -156,6 +158,13 @@ also be left open. Before, the editor shut on Save.
   and the bin at opposite ends). Both were proved by mutation: doubling the line height made the
   first red at 320 (it still fits at 390, correctly), and putting the tiles side by side made the
   second red at both widths.
+- `check/press.js` **first reported `qual-open` and `qual-teach` as presses after which nothing
+  changed.** It presses every action in turn. On the bare Settings column the fixture admin has no
+  qualifications, so every line it finds is in the hidden pool. A line there was redrawn exactly as
+  it was, and a shut line's Teach was ignored. The old shelf had a rule for presses that race a
+  redraw: do what the person would mean. That rule now covers both cases. An empty slot pressed
+  opens as a new line, the same as `+` does with the next one. Teach on a shut line opens that line
+  and answers. Both are journey assertions, and both appear among the fifteen mutations above.
 - `check-people.js` and `check-profile.js` pass unchanged. The data contract did not move.
 
 Screenshots at 320 and 390 for the read card, one line open, and adding are in the build scratchpad,
