@@ -285,3 +285,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The Corbettmaths primary sheets were finished from their own PDFs](281-the-corbettmaths-primary-sheets-were-finished-from-their-own-pdfs.md)
 - [Photos and videos in messages: the manifest could only read Drive, and the Ledger needed a column](282-photos-and-videos-in-messages-the-manifest-could-only-read-d.md)
 - [The way into somebody else's session is a line and a tile on its receipt, not a block under it](283-the-way-into-somebody-else-s-session-is-a-line-and-a-tile-on.md)
+- [The qualifications card is one line a qualification, written like the profile chip, edited in place and saved as you go](284-the-qualifications-card-is-one-line-a-qualification-written.md)
