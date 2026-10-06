@@ -541,7 +541,10 @@ byDoc.forEach((ids, k) => {
    is what declares it, so a scope holding several rows where two share an order — or where any
    lacks one — is a paper whose insert reads differently depending on the order the file happens
    to be in. Proved by mutation, both directions. */
-const scopeOf_ = r => r.paper_id + '|' + (String(r.question || '').trim() ? 'q' + r.question
+/* A LETTER'S OPENING IS ITS OWN SCOPE -- "(d)" of a question, see `stemLetter_` in find.js -- so a
+   question's own opening and its (d) opening are not two rows in one scope demanding a sort_order. */
+const preLetter_ = r => { const p = String(r.part || '').trim().toLowerCase().replace(/[()\s]/g, ''); return /^[a-z]$/.test(p) ? p : ''; };
+const scopeOf_ = r => r.paper_id + '|' + (String(r.question || '').trim() ? 'q' + r.question + (preLetter_(r) ? '(' + preLetter_(r) + ')' : '')
                                           : r.section ? 's' + r.section : 'paper');
 const inScope = {};
 rows.forEach(r => {
@@ -594,6 +597,28 @@ rows.forEach(r => {
      paper that HAS parts and matches none of them is a paragraph nothing will ever draw. A stem
      under a paper with no parts yet is the backlog, and the backlog is already counted below —
      440 document rows are in exactly that state. */
+  /* ---------- A PREAMBLE'S `part` IS ONE LETTER, OR NOTHING ------------------------------------
+     THE "(d)" OPENING (`stemLetter_` in find.js, the multi-part audit's finding 6): a preamble whose
+     `part` is a letter is the opening of that letter's parts, drawn once before (d)(i). Anything
+     else in the column -- "d(i)", "2" -- the app reads as no letter and draws in front of the whole
+     question, which is not what whoever typed it meant. And a letter needs a question to stand in
+     and a part of that letter to stand in front of, or it is a paragraph on no screen. */
+  if (String(r.part || '').trim()) {
+    const L = preLetter_(r);
+    if (!L || !String(r.question || '').trim()) {
+      fail.push(`${r.row_id} is a preamble with part "${r.part}". An opening's part is one letter, the `
+        + `letter whose parts it opens ("d" for d(i) and d(ii)), on a row that names its question.`);
+      return;
+    }
+    if (!paperKeys.has(r.paper_id)) return;
+    const mine = rows.some(q => q && q.kind === 'question' && q.paper_id === r.paper_id
+      && String(q.question) === String(r.question)
+      && String(q.part || '').trim().toLowerCase().replace(/[()\s]/g, '').charAt(0) === L
+      && !/^(i{1,3}|iv|vi{0,3}|ix|xi{0,3})$/.test(String(q.part || '').trim().toLowerCase()));
+    if (!mine) fail.push(`${r.row_id} opens part (${L}) of ${r.paper_id} Q${r.question}, and that question has `
+      + `no part (${L}) -- the opening is in the file and on no screen.`);
+    return;
+  }
   if (!paperKeys.has(r.paper_id)) return;
   const has = (r.question !== undefined && r.question !== null && r.question !== '')
     ? partKeys.has(r.paper_id + '|' + r.question)

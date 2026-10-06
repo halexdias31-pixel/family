@@ -6145,21 +6145,37 @@ function projectText_(p) {
    not carry one keep the order the file has them in. Inferring it from `lines` would read the
    first number of a span, which is right for "1-6" before "10-19" and silently wrong for a Source
    A / Source B insert where neither part is numbered at all. */
+/* ---------- AND A FOURTH SCOPE, A LETTER: THE "(d)" OPENING ----------------------------------------
+   THE OWNER'S OWN WORRY, the multi-part audit's finding 6: *"1b 1c 1di 1dii"*. A sentence (d)(i) and
+   (d)(ii) both hang from -- "A car moves from rest…" in June 2019 2H Q14 -- had nowhere to go. On
+   (d)(i) it was headed `Q1d(i) · 1 of 2` and lost when (d)(ii) was opened alone; on both, printed
+   twice; as a row for part "d" itself, a card with an answer box under a sentence that asks nothing;
+   and a preamble marked "d" had its letter ignored and stood in front of Q1(a).
+
+   SO A PREAMBLE WHOSE `part` IS A LETTER IS THAT LETTER'S OPENING. It is a stem like any other, one
+   scope further in, so `pageParts_`'s rule does the rest without a line changed: drawn once, in
+   front of the first part whose letter it is (d(i)), not again in front of d(ii) when d(i) went
+   first, and again in front of any of them opened on its own -- with its figure after it, as every
+   stem's is. Headed `Q1(d)`, see `questionStemCard_`. `stemLetter_` is the one reading of the letter,
+   for the index, for the card and for `check-library.js`'s shape rule. */
+const stemLetter_ = p => { const s = partBare_(p && p.part); return /^[a-z]$/.test(s) ? s : ''; };
 function stemIndex_(all) {
-  const at = { paper: {}, section: {}, question: {} };
+  const at = { paper: {}, section: {}, question: {}, letter: {} };
   const put = (bag, key, r) => { (bag[key] || (bag[key] = [])).push(r); };
   all.forEach(r => {
     if (!r || r.kind !== 'preamble') return;
     const pid = paperIdOf_(r);
     if (!pid) return;
-    if (r.q !== undefined && r.q !== null && r.q !== '') put(at.question, pid + '|' + r.q, r);
+    const has = r.q !== undefined && r.q !== null && r.q !== '';
+    if (has && stemLetter_(r)) put(at.letter, pid + '|' + r.q + '|' + stemLetter_(r), r);
+    else if (has) put(at.question, pid + '|' + r.q, r);
     else if (r.section) put(at.section, pid + '|' + r.section, r);
     else put(at.paper, pid, r);
   });
   /* Stable, because `sort` is stable in every engine this runs on and a preamble with no
      `sort_order` must not be reordered against its neighbours by the sort that exists for the
      ones that do. */
-  [at.paper, at.section, at.question].forEach(bag => {
+  [at.paper, at.section, at.question, at.letter].forEach(bag => {
     Object.keys(bag).forEach(k => { bag[k].sort((a, b) => (a.order || 0) - (b.order || 0)); });
   });
   return at;
@@ -6178,7 +6194,12 @@ function preamble_(r, at) {
   const add = xs => (xs || []).forEach(x => { if (x && (x.html || x.diagram)) out.push(x); });
   add(at.paper[pid]);
   if (r.section) add(at.section[pid + '|' + r.section]);
-  if (r.q !== undefined && r.q !== null && r.q !== '') add(at.question[pid + '|' + r.q]);
+  if (r.q !== undefined && r.q !== null && r.q !== '') {
+    add(at.question[pid + '|' + r.q]);
+    /* THE PART'S LETTER, read the way a typed reference is (`qRefBits_`): "d(ii)" and "dii" are (d). */
+    const bits = qRefBits_(partBare_(r.part));
+    if (bits && bits.letter && at.letter) add(at.letter[pid + '|' + r.q + '|' + bits.letter]);
+  }
   return out;
 }
 
@@ -8086,7 +8107,7 @@ function questionStemCard_(x, i, j) {
      no marker, or the page before the marker where it does. */
   const figNext = stemHasFig_(p) && j === plan.figAt - 1;
   return `<div class="qcard qstem" data-of="${esc(stemId_(p))}">
-    ${qHead_(Object.assign({}, x, { name: qNum_(x), marks: 0 }), chunks.length > 1 ? (j + 1) + ' of ' + chunks.length : '')}
+    ${qHead_(Object.assign({}, x, { name: qNum_(x) + (stemLetter_(p) ? '(' + stemLetter_(p) + ')' : ''), marks: 0 }), chunks.length > 1 ? (j + 1) + ' of ' + chunks.length : '')}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">
       <div class="qsheet-stem${p.placeholder ? ' is-standin' : ''}">${

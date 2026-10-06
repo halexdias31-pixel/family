@@ -9213,6 +9213,8 @@ const mpBank_ = () => [
   mpRow_('P-MP-W', 'Whole', 8, 'i', { html: '<p>Work out the size of angle x.</p>', answer: '<b>50°</b>' }),
   mpRow_('P-MP-W', 'Whole', 8, 'ii', { html: '<p>Give a REASONWORD for your answer.</p>', answer: '<b>angles on a line</b>' }),
   mpRow_('P-MP-W', 'Whole', 18, '', { html: '<p>Eighteen.</p>' }),
+  { id: 'S-MP-W-1d', paper: 'P-MP-W', paper_id: 'P-MP-W', q: '1', part: 'd', kind: 'preamble', name: 'Whole',
+    html: '<p>A car moves from REST.</p>', diagram: '<svg viewBox="0 0 10 10" class="mp-car"><path d="M0 10 10 0"/></svg>' },
   mpRow_('P-MP-W', 'Whole', 1, 'c', { html: '<p>One c.</p>' }),
   mpRow_('P-MP-W', 'Whole', 1, 'd(i)', { html: '<p>One d i.</p>' }),
   mpRow_('P-MP-W', 'Whole', 1, 'd(ii)', { html: '<p>One d ii.</p>' }),
@@ -9399,6 +9401,36 @@ check('multipart: a part with a figure behind it has a Figure tile that opens it
     }
     page.remove();
   } finally { lib.put(); }
+  return bad;
+});
+
+/* FINDING 6, THE OWNER'S OWN EXAMPLE: a "(d)" opening, drawn once before (d)(i), headed Q1(d), its
+   figure after it, and again in front of (d)(ii) opened alone -- never in front of (a) or (c). */
+check('multipart: a (d) opening is drawn once before (d)(i), headed Q1(d), and again before (d)(ii) alone', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['questionItems', 'stuffPages_', 'pageParts_', 'questionStemCard_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — the (d) opening was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  try {
+    S.q = 'q1'; S.filters = [{ field: 'paperId', value: 'P-MP-W' }];
+    const strip = w.stuffPages_().filter(pg => String(pg.x.qNumber) === '1').map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' ');
+    const want = 'Q1c:card Q1d(i):stem0 Q1d(i):sfig0 Q1d(i):card Q1d(ii):card';
+    if (strip !== want) bad.push('Q1 reads "' + strip + '", wanted "' + want + '" -- the (d) opening once, between (c) and (d)(i)');
+    const di = lib.items.find(x => x.name === 'Q1d(i)'), dii = lib.items.find(x => x.name === 'Q1d(ii)'), c = lib.items.find(x => x.name === 'Q1c');
+    if (dii && JSON.stringify(w.pageParts_(dii)) !== '["stem0","sfig0",null]') bad.push('(d)(ii) opened alone has pages ' + JSON.stringify(w.pageParts_(dii)) + ' -- it needs its (d) opening and figure');
+    if (c && (c.stems || []).length) bad.push('(c) carries the (d) opening, which would stand in front of it');
+    if (di) {
+      const h = d.createElement('div');
+      h.innerHTML = w.questionStemCard_(di, 0);
+      const head = ((h.querySelector('.qcard-top b') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+      if (head !== 'Q1(d)') bad.push('the (d) opening is headed "' + head + '", wanted Q1(d)');
+      if (!/REST/.test(h.textContent)) bad.push('the (d) opening does not draw its words');
+    }
+  } finally { lib.put(); S.q = ''; S.filters = []; }
   return bad;
 });
 
