@@ -1349,22 +1349,30 @@ const msgMB_ = n => (n / 1048576).toFixed(n < 10 * 1048576 ? 1 : 0) + 'MB';
 
 /* A photograph over a couple of megabytes is redrawn through `camItemOf_` — the same 1600px the
    camera uses — because a camera roll's original is four megabytes for a bubble 280px wide. Anything
-   else goes as it is. Never rejects: a file that cannot be read comes back `null` and is left out. */
+   else goes as it is. Never rejects: a file that cannot be read at all comes back `null`, and
+   `msgPost_` SAYS SO rather than sending without it.
+
+   A PHOTOGRAPH THE BROWSER CANNOT DRAW GOES AS IT IS. `camItemOf_` answers `null` when the image will
+   not decode — a HEIC in Chrome, Firefox or Android is exactly that — and this used to hand the
+   `null` straight on, so a four-megabyte iPhone photograph chosen on a laptop was dropped from the
+   message without a word and the words went alone. The redraw is a saving, not a condition: when it
+   cannot be had, the original is read and sent, and Drive's own thumbnail draws it in the bubble. */
 function msgRead_(q) {
   const f = q.file;
-  if (/^image\/(jpeg|png|webp|heic|heif)$/i.test(f.type) && f.size > 2 * 1048576
-      && typeof camItemOf_ === 'function') {
-    return camItemOf_(f).then(it => it && it.data
-      ? { name: String(f.name || 'photo').replace(/\.\w+$/, '') + '.jpg', type: 'image/jpeg', data: it.data }
-      : null);
-  }
-  return new Promise(done => {
+  const asIs = () => new Promise(done => {
     const r = new FileReader();
     r.onload = () => done({ name: f.name || 'file', type: f.type || 'application/octet-stream',
                             data: String(r.result || '') });
     r.onerror = () => done(null);
     try { r.readAsDataURL(f); } catch (e) { done(null); }
   });
+  if (/^image\/(jpeg|png|webp|heic|heif)$/i.test(f.type) && f.size > 2 * 1048576
+      && typeof camItemOf_ === 'function') {
+    return camItemOf_(f).then(it => it && it.data
+      ? { name: String(f.name || 'photo').replace(/\.\w+$/, '') + '.jpg', type: 'image/jpeg', data: it.data }
+      : asIs());
+  }
+  return asIs();
 }
 
 function msgQueueHtml_(key) {
@@ -1392,7 +1400,14 @@ document.addEventListener('change', e => {
   [].slice.call(inp.files || []).forEach(f => {
     const total = q.reduce((n, a) => n + a.size, 0);
     if (q.length >= MSG_CAP_.count) { toast('Up to ' + MSG_CAP_.count + ' files in one message.'); return; }
-    if (f.size > MSG_CAP_.file) { toast(f.name + ' is ' + msgMB_(f.size) + ' — over the 20MB a file can be.'); return; }
+    /* A CLIP IS TOLD HOW TO FIT. 20MB is about twenty seconds of a phone's 1080p video — the owner's
+       "i cant send … videos" was mostly this — and "over 20MB" alone leaves somebody to work out
+       that trimming is the answer. The cap itself is the server's and stays. */
+    if (f.size > MSG_CAP_.file) {
+      toast(f.name + ' is ' + msgMB_(f.size) + ' — over the 20MB a file can be.'
+        + (msgKind_(f) === 'video' ? ' Trim the clip to about 20 seconds and choose it again.' : ''));
+      return;
+    }
     if (total + f.size > MSG_CAP_.total) { toast('That would be over 32MB in one message — send it on its own.'); return; }
     q.push({ file: f, name: f.name || 'file', type: f.type || '', size: f.size,
              url: URL.createObjectURL(f) });
@@ -1433,11 +1448,26 @@ document.addEventListener('keydown', e => {
 });
 
 function msgPost_(p) {
-  p.state = 'sending'; p.err = '';
+  p.state = 'sending'; p.err = ''; p.why = '';
   const files = p.queue.length ? Promise.all(p.queue.map(msgRead_)) : Promise.resolve([]);
-  return files.then(list => {
-    list = list.filter(Boolean);
-    if (p.queue.length && !list.length && !p.body) throw new Error('Those files could not be read.');
+  return files.then(read => {
+    /* ---------- A FILE THAT COULD NOT BE READ IS NEVER LEFT OUT IN SILENCE ------------------------
+       `list.filter(Boolean)` WAS THE WHOLE OF IT: an unreadable file vanished and the message went
+       without it, saying "Sent". Now the rest still go — one bad file does not hold up the other
+       five — and the one that could not be read goes BACK IN THE BOX with its name said, so it is
+       somewhere a person can see it and decide, not nowhere. Nothing readable and nothing typed is
+       a refusal that names it. */
+    const lost = p.queue.filter((q, i) => !read[i]);
+    const list = read.filter(Boolean);
+    if (lost.length) {
+      const names = lost.map(q => q.name).join(', ');
+      if (!list.length && !p.body) throw new Error(names + ' could not be read on this phone.');
+      p.queue = p.queue.filter((q, i) => read[i]);
+      p.attachments = (p.attachments || []).filter((a, i) => read[i]);
+      MSG_QUEUE[p.withId] = (MSG_QUEUE[p.withId] || []).concat(lost);
+      toast(names + ' could not be read, so ' + (lost.length === 1 ? 'it is' : 'they are')
+        + ' back in the box — the rest is going.');
+    }
     return send({ action: 'sendMessage', name: USER.name, personId: USER.personId,
                   to: p.withName, toId: p.withId, body: p.body, files: list });
   }).then(d => {
@@ -1454,6 +1484,9 @@ function msgPost_(p) {
     /* The server's sentence says what to do — "one message every five minutes — 3 to go" — so it is
        what is shown, rather than a "Not sent" that throws that away. */
     p.err = String((err && err.message) || 'Not sent.');
+    /* `why: 'files'` — the server refused the PHOTOGRAPHS, not the message, so the bubble can offer
+       the words on their own. Read off the reply `send()` hangs on the error, never off the wording. */
+    p.why = String((err && err.reply && err.reply.why) || '');
     if (p.inSheet) toast(p.err);
   }).then(() => dmRedraw_(p.withId || p.withName));
 }
@@ -1501,6 +1534,22 @@ on('msg-retry', el => {
   const p = MSG_PENDING.find(x => x.tmp === el.dataset.k);
   if (!p) return;
   p.state = 'sending'; p.err = '';
+  dmRedraw_(p.withId);
+  msgPost_(p);
+});
+/* ---------- THE WORDS WITHOUT THE PHOTOGRAPHS -----------------------------------------------------
+   OFFERED ONLY WHEN THE SERVER SAID THE FILES WERE THE PROBLEM (`why: 'files'`) — no column for them
+   yet, or a deployment not allowed to write to Drive — and only when something was typed. The site
+   decided a message goes whole or not at all (see `msgAttachSave_`), so the words are not sent behind
+   anybody's back; this is the person choosing to.
+   THE FILES GO BACK IN THE BOX, NOT THE BIN. "Never silently drop a file": they wait in the composer
+   for the next message, where Remove can still take them out. */
+on('msg-words', el => {
+  const p = MSG_PENDING.find(x => x.tmp === el.dataset.k);
+  if (!p || !p.body) return;
+  if (p.queue.length) MSG_QUEUE[p.withId] = (MSG_QUEUE[p.withId] || []).concat(p.queue);
+  p.queue = []; p.attachments = [];
+  p.state = 'sending'; p.err = ''; p.why = '';
   dmRedraw_(p.withId);
   msgPost_(p);
 });
@@ -1651,6 +1700,23 @@ function msgClock_(ms, raw) {
   return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
 }
 
+/* ---------- PICTURE, CLIP OR FILE: THE TYPE, AND THE NAME WHEN THERE IS NO TYPE ------------------
+   A PHONE DOES NOT ALWAYS SAY. A clip picked through "Browse", or shared in from another app, can
+   come with an empty `type` — and a bubble that tested the type alone drew it as a chip saying "MOV"
+   rather than a clip that plays. The server types such a file by its name before it is stored
+   (`msgTypeOf_` in content.gs); this is the same reading for the pending bubble, which has not been
+   to the server yet, and for a row stored before that. */
+function msgKind_(a) {
+  const t = String((a && a.type) || '').toLowerCase();
+  if (/^image\//.test(t)) return 'image';
+  if (/^video\//.test(t)) return 'video';
+  if (t && t !== 'application/octet-stream') return 'file';
+  const ext = (String((a && a.name) || '').toLowerCase().match(/\.([a-z0-9]{2,5})$/) || [])[1] || '';
+  if (/^(jpe?g|png|gif|webp|heic|heif)$/.test(ext)) return 'image';
+  if (/^(mov|mp4|m4v|webm|3gp)$/.test(ext)) return 'video';
+  return 'file';
+}
+
 /* A FILE'S MARK — its extension, because "PDF" and "DOCX" say more than any one icon would. */
 function msgFileMark_(a) {
   const ext = (String(a.name || '').match(/\.(\w{1,5})$/) || [])[1];
@@ -1667,18 +1733,53 @@ function msgAttachHtml_(list) {
   if (!Array.isArray(list) || !list.length) return '';
   return `<div class="msg-att">${list.map(a => {
     const url = String(a.url || '');
-    if (/^image\//i.test(a.type)) {
+    const kind = msgKind_(a);
+    if (kind === 'image') {
       return `<a class="msg-pic" href="${esc(url)}" target="_blank" rel="noopener"
         aria-label="Open ${esc(a.name || 'the photo')}">
         <img src="${esc(pic(url))}" alt="${esc(a.name || 'photo')}" loading="lazy"></a>`;
     }
-    if (/^video\//i.test(a.type)) {
+    if (kind === 'video') {
       return `<video class="msg-vid post-vid" src="${esc(/^blob:/.test(url) ? url : postVidSrc_(url))}"
         data-open="${esc(url)}" controls playsinline preload="metadata"></video>`;
     }
     return `<a class="msg-file" href="${esc(url)}" target="_blank" rel="noopener">
       <b>${esc(msgFileMark_(a))}</b><span>${esc(a.name || 'a file')}</span></a>`;
   }).join('')}</div>`;
+}
+
+/* ---------- AN ADMIN'S REFUSAL CARRIES THE FIX, AND THE FIX IS AN ADDRESS ------------------------
+   The consent screen, or the site's own `?setup=1`. As text in a red line it is something to copy
+   out by hand on a phone; as a link inside the sentence it is a 14px target. So each one becomes one
+   more control beside Retry — 44px, named for where it goes — and the sentence stays the server's.
+   The scope names Google's error quotes (`.../auth/drive`) are addresses too and go nowhere useful,
+   so they stay words. At most two: a refusal is not a page of links. */
+function msgFixUrls_(text) {
+  return (String(text || '').match(/https?:\/\/[^\s<>]+/g) || [])
+    .map(u => u.replace(/[.,;:)]+$/, ''))
+    /* A SCOPE IS NAMED BY WHERE IT STARTS, not by containing the words: the consent screen's own
+       address carries `scope=https://www.googleapis.com/auth/drive` in its query. */
+    .filter(u => /^https:\/\//.test(u) && !/^https:\/\/www\.googleapis\.com\/auth\//.test(u))
+    .slice(0, 2);
+}
+function msgFixLinks_(text) {
+  return msgFixUrls_(text).map(u => `<a class="msg-act" href="${esc(u)}" target="_blank" rel="noopener">${
+    /\?setup=1/.test(u) ? 'Open ?setup=1' : /accounts\.google\.com/.test(u) ? 'Allow it' : 'Open the link'}</a>`)
+    .join('');
+}
+/* AND THE SENTENCE WITHOUT THEM. An address that has become a control is not also printed — two
+   hundred characters of consent URL broken across eight lines of a 320px bubble, above a button
+   that goes to the same place. A line that was only a label for it ("Consent link: …") goes; one
+   that used it in a sentence ("Open … once") says where it went instead. */
+function msgFailSaid_(text) {
+  let t = String(text || '');
+  msgFixUrls_(t).forEach(u => {
+    t = t.split('\n').filter(line => {
+      const at = line.indexOf(u);
+      return !(at > 0 && /^[^:]{1,40}:\s*$/.test(line.slice(0, at)) && !line.slice(at + u.length).trim());
+    }).join('\n').split(u).join('the button below');
+  });
+  return t.trim();
 }
 
 /* ---------- THE THREAD --------------------------------------------------------------------------
@@ -1700,9 +1801,12 @@ const messagesHtml_ = ms => {
                 || !!m.tmp !== !!next.tmp;
     const words = String(m.body || '').trim();
     const state = m.state === 'failed'
-      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${esc(m.err || 'try again')}</span>
-           <button class="msg-act" data-do="msg-retry" data-k="${esc(m.tmp)}">Retry</button>
-           <button class="msg-act" data-do="msg-drop" data-k="${esc(m.tmp)}">Remove</button></p>`
+      ? `<p class="msg-when msg-fail"><span class="msg-fail-why">Not sent — ${esc(msgFailSaid_(m.err) || 'try again')}</span>
+           <button class="msg-act" data-do="msg-retry" data-k="${esc(m.tmp)}">Retry</button>${
+           m.why === 'files' && words && (m.queue || []).length
+             ? `<button class="msg-act" data-do="msg-words" data-k="${esc(m.tmp)}">Words only</button>` : ''}
+           <button class="msg-act" data-do="msg-drop" data-k="${esc(m.tmp)}">Remove</button>${
+           msgFixLinks_(m.err)}</p>`
       : m.state === 'sending' ? `<p class="faint msg-when">sending…</p>`
       : m.tmp ? `<p class="faint msg-when">sent</p>` : '';
     return `${newDay ? `<p class="msg-day"><span>${esc(dayWord)}</span></p>` : ''}
@@ -1751,6 +1855,89 @@ function msgForm_(to, toId, note, rows) {
     <p class="faint msg-said">${esc(note || '')}</p>
   </div>`;
 }
+
+/* ---------- CHECK UPLOADS: THE ADMIN'S ANSWER TO "CAN A PHOTO BE SENT YET" -----------------------
+   ASKED FOR AS *"i cant send images, or videos in the chat to people. i think you need to add
+   something to ledger for that."* Two things stood in the way — a column in the Ledger and a Drive
+   scope the deployment had never asked for — and both are fixed by the owner rather than by code:
+   `?setup=1`, an Allow, a new version. Nothing on the site said which of those was still undone, or
+   when all of them had landed, except sending a photograph and reading the refusal.
+
+   A TOOL, FOR AN ADMIN, ON THE TOOLS COLUMN — `admin: true` on the roster entry, the flyer maker's
+   lock, asked through `widgetFor_` by every door. One tile, because the card is a THING (the
+   deployment's ability to keep a file) and pressing it is the one action on it; the report is drawn
+   under the tile and kept in `UPLOADS_SAID`, so a repaint of the column — the poll, a sign-in — does
+   not throw away an answer that took a round trip and a test file to get.
+
+   THE BACKEND IS ASKED, NOT GUESSED AT. `checkUploads` makes one test file in the folder, shares it
+   and bins it — see `uploadsCheck_` in content.gs. A backend too old to have the action is told
+   apart from one that answered, because before the first deploy that IS the answer. */
+let UPLOADS_SAID = null;
+
+function uploadsHtml_(d) {
+  const tile = `<div class="tile-row">${tile_({ icon: 'tick', label: 'Check uploads', note: 'nothing kept',
+    act: 'uploads-check', tone: 'admin' })}</div>`;
+  if (!d) {
+    return tile + `<p class="faint up-said">Whether a photo or a clip sent in a message can be kept:
+      the Ledger's column, the Drive folder and what this deployment may do. One test file is made,
+      shared and binned.</p>`;
+  }
+  if (d.error) return tile + `<p class="up-said up-bad">${esc(d.error)}</p>`;
+  const rows = (d.checks || []).map(c => `<li class="up-row ${c.ok ? 'is-ok' : 'is-bad'}">
+      <b class="up-mark" role="img" aria-label="${c.ok ? 'yes' : 'no'}">${c.ok ? '✓' : '✗'}</b>
+      <span><span class="up-k">${esc(c.label)}</span>
+      <span class="up-v">${esc(c.said)}</span></span></li>`).join('');
+  const steps = (d.steps || []).map(st => `<li>${esc(st.text)}</li>`).join('');
+  /* THE ADDRESSES A STEP NEEDS ARE TILES UNDER THE LIST, not links in its sentence — a link in a
+     line of 0.78rem type is a 14px target, and a tile is 44px from the one renderer that guards
+     where it may open. `href` is the server's (the consent screen) or this app's own address with
+     `?setup=1`, which the server cannot always name: `ScriptApp.getService()` is blank from some
+     deployments. `tile_` itself refuses anything that is not an absolute http(s) address. */
+  const go = (d.steps || []).map(st => {
+    const href = String(st.href || (st.setup && typeof API === 'string' ? API + '?setup=1' : ''));
+    return href ? tile_({ icon: 'open', href: href,
+      label: st.setup ? 'Open ?setup=1' : 'Allow it', note: st.setup ? 'adds the column' : 'consent' }) : '';
+  }).filter(Boolean).join('');
+  return tile + `<ul class="up-list">${rows}</ul>
+    <p class="up-said ${d.ok ? 'up-good' : 'up-bad'}">${d.ok
+      ? 'Ready — photos, videos and files can be sent in messages.'
+      : 'Not yet. In this order:'}</p>
+    ${steps ? `<ol class="up-steps">${steps}</ol>` : ''}
+    ${go ? `<div class="tile-row">${go}</div>` : ''}
+    <p class="faint up-ver">backend ${esc(d.version || '—')}</p>`;
+}
+
+/* EVERY `.up-box` ON THE PAGE — a class rather than the id alone, for the reason `cart-box` gives:
+   two copies of one widget under one id is the `$('msg-text')` fault. */
+function uploadsPaint_() {
+  document.querySelectorAll('.up-box').forEach(b => { b.innerHTML = uploadsHtml_(UPLOADS_SAID); });
+  /* A CARD THAT GREW IS PLACED AGAIN — "every grower in the app already calls this", in the note
+     over `paneWatch_`. The answer is four rows and up to five steps under a card that was a tile
+     and a sentence, and `check/ui.js` found the column's pane 2,386px off the glass at 768 the first
+     time the state drew it. Instant, and only for the column in front. */
+  if (typeof placeCells === 'function' && (AT === 'tools' || AT === 'saved')) {
+    try { placeCells('y', true, 0, AT); } catch (e) {}
+  }
+}
+
+on('uploads-check', el => {
+  if (!isAdmin()) return;
+  /* NOT DEPLOYED YET IS THE FIRST ANSWER, and the commonest one on the day this ships: the payload
+     lists what the live backend can do, so a backend without the action says so here rather than
+     coming back "That action is not recognised". */
+  const f = (DATA && DATA.features) || [];
+  if (f.length && f.indexOf('checkUploads') < 0) {
+    UPLOADS_SAID = { error: 'The live backend is ' + (DATA.version || 'an older version') + ' and has no '
+      + 'Check uploads yet. Sync backend/ from GitHub, then Deploy → Manage deployments → New version.' };
+    uploadsPaint_();
+    return;
+  }
+  const box = el.closest('.up-box');
+  send_({ action: 'checkUploads', name: USER.name, personId: USER.personId },
+        { button: el, where: box && box.querySelector('.up-said') })
+    .then(d => { UPLOADS_SAID = d; uploadsPaint_(); })
+    .catch(err => { UPLOADS_SAID = { error: String((err && err.message) || err) }; uploadsPaint_(); });
+});
 
 /* `on('messages')` was here — a second way to see the same thread, opened in a sheet. Messages
    are a WIDGET, reached from Tools, and that route calls `fillMessages` directly; nothing has ever

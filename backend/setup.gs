@@ -1060,7 +1060,8 @@ function dataProblems(deep) {
             'This deployment can read the posts folder but not write to it',
             'Posting still works: put photographs in the folder and press ⟳ on the Posts screen. '
             + 'To upload from inside the app, appsscript.json must list .../auth/drive; then run '
-            + 'authoriseDrive from the editor and accept the prompt; then deploy a NEW VERSION — '
+            + 'authoriseDrive from the editor and accept the prompt, ticking every box; only when '
+            + 'its last line says READY, deploy a NEW VERSION — '
             + 'a deployed version pins its manifest, so authorising alone changes nothing.');
       }
     }
@@ -1547,22 +1548,17 @@ function checkScopes() {
     'script.scriptapp': 'the nightly triggers',
   };
 
-  let held = [];
-  try {
-    const res = UrlFetchApp.fetch(
-      'https://oauth2.googleapis.com/tokeninfo?access_token='
-        + encodeURIComponent(ScriptApp.getOAuthToken()),
-      { muteHttpExceptions: true });
-    const d = JSON.parse(res.getContentText() || '{}');
-    held = String(d.scope || '').split(/\s+/).filter(Boolean);
-  } catch (err) {
-    return { error: 'Could not ask Google what this token holds: ' + err,
+  /* `heldScopes_` and `holdsScope_` in content.gs — one asking of Google, and a scope matched by its
+     WHOLE name. This matched `indexOf('/auth/drive')`, which `drive.readonly` contains, so it called
+     a read-only token able to create and share post photographs. */
+  const s = heldScopes_();
+  if (s.error) {
+    return { error: 'Could not ask Google what this token holds: ' + s.error,
              hint: 'If that mentions permissions, script.external_request is missing too — which '
                  + 'means the manifest has not reached this deployment at all.' };
   }
-
-  const has = name => held.some(x => x.indexOf('/auth/' + name) !== -1
-    || (name === 'drive' && /\/auth\/drive$/.test(x)));
+  const held = s.held;
+  const has = name => holdsScope_(held, name);
 
   const missing = Object.keys(want).filter(k => !has(k));
   return {
@@ -1591,32 +1587,56 @@ function checkScopes() {
  * on a token that could read and not create — and the first anybody knew was "Specified
  * permissions are not sufficient to call DriveApp.Folder.createFile" while trying to post a
  * photograph. Read access is not write access, and a check that only reads is a check that passes
- * in exactly the case you need it to fail.
+ * in exactly the case you need it to fail. So the test file is made, SHARED BY LINK and binned —
+ * the three calls a real photograph makes — and nothing is left behind.
  *
- * The test file is created and deleted again, so nothing is left behind.
+ * ---------- ITS LAST LINE IS THE GATE FOR DEPLOYING, AND IT USED TO BE WHATEVER CAME LAST ----------
+ * THE OWNER STEPS SAID "its log should end Can write: yes", and two things made that a suggestion
+ * rather than a gate. The log did not always end there — the showcase folder's line comes after it
+ * when `showcase_folder_id` is set — and "Can write" is one permission of six. Google's consent
+ * screen has a tick box per permission now, so an Allow that grants Drive and leaves the e-mail one
+ * unticked writes the test file perfectly and still leaves the script short.
+ *
+ * THAT ORDERING IS THE ONE THAT TAKES THE WHOLE SITE DOWN. The web app runs as the person who
+ * deployed it, so a new version whose manifest lists a permission that person has not granted
+ * answers EVERY visitor "Authorization is required" — and Tools → Check uploads cannot say so,
+ * because it runs on that same broken deployment. This log, read in the editor before deploying,
+ * is the only place the mistake can be caught. So the last line is always one of two sentences,
+ * READY or DO NOT DEPLOY, and READY needs all three: Apps Script says nothing is left to authorise
+ * (the whole manifest, not just Drive — `getAuthorizationStatus`), the token holds `drive` by its
+ * whole name (`holdsScope_`), and the test file was made and shared.
  */
 function authoriseDrive() {
   const out = [];
+  const stop = [];
   const folder = getPostFolder();
   if (!folder) {
-    return 'No posts folder — add `posts_folder` to the config tab first, then run this again.';
-  }
-  out.push('Folder: ' + folder.getName());
+    out.push('No posts folder — add `posts_folder` to the config tab first, then run this again.');
+    stop.push('there is no posts folder to test a write in');
+  } else {
+    /* A READ REFUSED IS AN ANSWER TOO, and it used to be a thrown error with no verdict under it. */
+    try {
+      out.push('Folder: ' + folder.getName());
+      let n = 0;
+      const it = folder.getFiles();
+      while (it.hasNext() && n < 500) { it.next(); n++; }
+      out.push('Can read: ' + n + ' file(s) in it.');
+    } catch (err) { out.push('CANNOT READ the folder: ' + err); }
 
-  let n = 0;
-  const it = folder.getFiles();
-  while (it.hasNext() && n < 500) { it.next(); n++; }
-  out.push('Can read: ' + n + ' file(s) in it.');
-
-  try {
-    const probe = folder.createFile('family-permission-check.txt',
-      'Written by authoriseDrive to confirm the script may create files. Safe to delete.');
-    probe.setTrashed(true);
-    out.push('Can write: yes — a test file was created and removed.');
-  } catch (err) {
-    out.push('CANNOT WRITE: ' + err);
-    out.push('Open appsscript.json and check it lists https://www.googleapis.com/auth/drive,');
-    out.push('then run this again and accept the prompt.');
+    try {
+      const probe = folder.createFile('family-permission-check.txt',
+        'Written by authoriseDrive to confirm the script may create files. Safe to delete.');
+      /* BINNED EVEN IF SHARING IS WHAT FAILS — `uploadsCheck_`'s rule. A sharing refusal (a Workspace
+         domain that forbids links outside it) is a real answer, and no reason to leave a file. */
+      try { probe.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW); }
+      finally { probe.setTrashed(true); }
+      out.push('Can write: yes — a test file was created, shared by link and removed.');
+    } catch (err) {
+      out.push('CANNOT WRITE: ' + err);
+      out.push('Open appsscript.json and check it lists https://www.googleapis.com/auth/drive,');
+      out.push('then run this again and accept the prompt.');
+      stop.push('the test file could not be made and shared');
+    }
   }
 
   /* The showcase folder is a different folder and may be shared differently, so it is checked
@@ -1626,6 +1646,33 @@ function authoriseDrive() {
     try { out.push('Showcase folder: ' + DriveApp.getFolderById(showcase).getName()); }
     catch (err) { out.push('Showcase folder unreachable: ' + err); }
   }
+
+  /* EVERY PERMISSION THE MANIFEST LISTS, asked of Apps Script rather than of a list kept here — a
+     second copy of the manifest's scopes would be one more thing to forget when it changes.
+     `REQUIRED` means at least one is still unticked. A runtime that cannot answer is not a yes. */
+  let whole = '';
+  try { whole = String(ScriptApp.getAuthorizationInfo(ScriptApp.AuthMode.FULL).getAuthorizationStatus()); }
+  catch (err) { whole = ''; }
+  if (whole !== 'NOT_REQUIRED') {
+    stop.push(whole === 'REQUIRED'
+      ? 'Apps Script says some of the permissions the manifest lists are still not allowed'
+      : 'Apps Script could not say whether every permission is allowed');
+  }
+  /* AND DRIVE BY ITS WHOLE NAME, from the token itself. Unanswerable is not counted against it:
+     asking needs `script.external_request`, and a token without that has already failed above. */
+  const s = heldScopes_();
+  if (!s.error && !holdsScope_(s.held, 'drive')) {
+    stop.push('the token holds ' + (s.held.filter(x => /\/auth\/drive/.test(x)).join(', ') || 'no Drive scope')
+      + ', not https://www.googleapis.com/auth/drive');
+  }
+
+  out.push(stop.length
+    ? 'DO NOT DEPLOY A NEW VERSION YET — ' + stop.join('; ') + '. A new version with a permission '
+      + 'not allowed answers every visitor "Authorization is required". Run this again: on "Google '
+      + 'hasn\'t verified this app" press Advanced, then Go to the project; on the next screen tick '
+      + 'every box (or Select all), then Continue.'
+    : 'READY — every permission is allowed and a file was made and shared. Now deploy a new version: '
+      + 'Deploy → Manage deployments → the pencil → Version: New version → Deploy.');
 
   const msg = out.join('\n');
   Logger.log(msg);

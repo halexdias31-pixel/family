@@ -2496,7 +2496,11 @@ function send(body) {
         : 'The backend does not have `' + act + '` yet. Paste the newest .gs files into Apps '
           + 'Script and deploy. Live version: ' + (DATA.version || 'unknown'));
     }
-    if (d && d.error) throw new Error(d.error);
+    /* THE WHOLE REPLY RIDES ON THE ERROR. A refusal is a sentence for a person and sometimes a fact
+       for the code as well — `sendMessage` says `why: 'files'` when only the photographs stood in
+       the way, and the bubble offers "Words only" on that and nothing else. Recognising the
+       sentence instead would turn a rewording on the server into a button that silently vanishes. */
+    if (d && d.error) { const e = new Error(d.error); e.reply = d; throw e; }
     return d;
   });
 }
@@ -3233,8 +3237,8 @@ async function load() {
            run from the EDITOR can raise the prompt again. */
         ? 'The backend answered with a web page instead of data. Open it in a tab and read what '
           + 'it says — “Authorization is required” means the scopes changed and nobody has '
-          + 'consented yet: run any function from the Apps Script editor once, accept the prompt, '
-          + 'then deploy a new version.'
+          + 'consented yet: run authoriseDrive from the Apps Script editor, accept the prompt with '
+          + 'every box ticked, and deploy a new version once its last line says READY.'
         /* ---------- A PAGE OPENED FROM A FILE CANNOT REACH ANYTHING -------------------------------
            THE COMMONEST CAUSE OF THIS EXACT MESSAGE, and this told people to go and check their
            deployment instead. Double-click index.html and the browser gives the page the origin

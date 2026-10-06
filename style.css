@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-06-qtools";
+  --css-version: "2026-10-06-chatmedia";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -3125,7 +3125,9 @@ button.text-drop { color: var(--bad); }
 .msg-fail { color: var(--bad); display: flex; flex-wrap: wrap; align-items: center;
             justify-content: flex-end; gap: 0 .2rem; max-width: 78%; text-align: right;
             line-height: 1.35; }
-.msg-fail-why { flex: 1 0 100%; }
+/* `pre-line` AND `anywhere` FOR AN ADMIN'S REFUSAL, which carries the fix: a few lines and a
+   consent address with no space in it for a hundred characters, in a column 78% of 320px wide. */
+.msg-fail-why { flex: 1 0 100%; white-space: pre-line; overflow-wrap: anywhere; }
 /* 44px in px — a tap target, the one measurement here that must not scale. NO UNDERLINE: two
    underlined words straight after an underlined-looking red sentence read as more of the sentence.
    Retry is the gold word and Remove the quiet one, which is the order somebody is likely to want
@@ -3136,6 +3138,10 @@ button.text-drop { color: var(--bad); }
 /* The 44px is the finger's, not the eye's: pulled up into the half-line under the sentence so the
    two words read as belonging to it rather than as a row of their own 15px further down. */
 .msg-fail .msg-act { margin-block: -8px -6px; }
+/* THE FIX AS A CONTROL, for an admin's refusal — the consent screen or `?setup=1` (see
+   `msgFixLinks_`). An `<a>` is not centred the way a button is, and it is the way forward rather than
+   a way out, so it keeps Retry's gold wherever it falls in the row. */
+.msg-fail a.msg-act { display: inline-flex; align-items: center; text-decoration: none; color: var(--gold); }
 
 /* ---------- WHAT WAS SENT WITH IT ------------------------------------------------------------------
    A picture or clip sits inside the bubble at the bubble's own width; a file is a chip that opens
@@ -13352,6 +13358,26 @@ button.scr-sq { cursor: pointer; }
 .biz-item.is-overdue .biz-flag { color: var(--bad); }
 .biz-item label.field { margin-bottom: .3rem; } /* min-width comes from `.lib-row label.field` */
 .biz-item input { min-width: 0; }
+
+/* ---------- CHECK UPLOADS: AN ADMIN TOOL — see `uploadsHtml_` in me.js -----------------------------
+   Four questions, each a mark and a sentence. The mark is a ✓ or a ✗ AND a colour, never the colour
+   alone; the sentence under each label is the server's, so a long folder name or a Google error has
+   to wrap rather than push the card sideways. The steps are an ordered list because their order is
+   the point — the Allow before the new version, the new version before checking again. */
+.up-list { list-style: none; margin: .7rem 0 .4rem; padding: 0; }
+.up-row { display: flex; gap: .55rem; align-items: baseline; }
+.up-row + .up-row { margin-top: .45rem; }
+.up-mark { flex: 0 0 1rem; text-align: center; font-weight: 700; }
+.up-row.is-ok .up-mark { color: var(--good); }
+.up-row.is-bad .up-mark { color: var(--bad); }
+.up-k { display: block; font-size: .82rem; line-height: 1.3; }
+.up-v { display: block; font-size: .74rem; line-height: 1.35; color: var(--dim); overflow-wrap: anywhere; }
+.up-said { margin: .6rem 0 .3rem; font-size: .82rem; line-height: 1.35; overflow-wrap: anywhere; }
+.up-said.up-good { color: var(--good); }
+.up-said.up-bad { color: var(--bad); }
+.up-steps { margin: 0 0 .5rem; padding-left: 1.2rem; font-size: .78rem; line-height: 1.4; overflow-wrap: anywhere; }
+.up-steps li + li { margin-top: .3rem; }
+.up-ver { margin: .3rem 0 0; font-size: .68rem; }
 
 /* ---------- WHERE A TUTOR TUTORS, AS A HEAT MAP — see `profHeat_` in cards.js ---------------------
    A fixed-height window onto map tiles placed in pixels from its own centre. The tiles are 256px

@@ -2907,6 +2907,10 @@ const ACTION_ACCESS = {
      who may write to whom. The gate cannot know either, so it only checks somebody is signed in. */
   listRecords: 'admin', saveRecordsPage: 'admin',
   sendMessage: 'self', messages: 'self', readMessage: 'self', flagMessage: 'self',
+  /* WHETHER A PHOTOGRAPH IN A MESSAGE CAN BE KEPT — the column, the scope, the folder, a test file.
+     Admin: it names the Drive folder and the scopes the deployment holds, which is a view of the
+     business's Google account rather than of the site. */
+  checkUploads: 'admin',
   /* `self`, because it needs the current PIN — the gate cannot check that, only the handler can.
      Your own PIN only: the gate writes `body.name` and `body.adminName` from the token, so the
      "admin resetting somebody else's" branch that was inside could never run. That is `resetPin`. */
