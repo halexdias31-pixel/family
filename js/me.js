@@ -3159,7 +3159,10 @@ function qualSlot_(i, value, o) {
   const segB = (v, word, why) => `<button type="button" class="q-seg-b" data-do="qual-teach" data-v="${v}" data-unlocked
       title="${esc(why)}" aria-pressed="${seg === v ? 'true' : 'false'}">${word}</button>`;
   const said = qualSay_(q);
-  return `<div class="q-slot" data-slot="${esc(i)}"${q.first ? ' data-first="1"' : ''}>
+  /* EACH CAPTION IN TWO WORDINGS, a subject's and a certificate's, and the slot's `is-cert` says which
+     is shown — so a line that becomes a DBS by a pick changes its captions with no redraw. */
+  const cap = (std, cert) => `<span class="q-cap-std">${esc(std)}</span><span class="q-cap-cert">${esc(cert)}</span>`;
+  return `<div class="q-slot${qualIsCert_(q) ? ' is-cert' : ''}" data-slot="${esc(i)}"${q.first ? ' data-first="1"' : ''}>
     <input type="hidden" data-me="${esc(f('_spec'))}" value="${q.spec ? 'TRUE' : 'FALSE'}">
     <input type="hidden" data-me="${esc(f('_teach'))}" value="${q.teach ? 'TRUE' : 'FALSE'}">
     <button type="button" class="q-line" data-do="qual-open" data-unlocked aria-expanded="false"
@@ -3170,14 +3173,14 @@ function qualSlot_(i, value, o) {
         ${qualPick_(`data-me="${esc(f('_level'))}"`, q.level, QUAL_LEVELS, 'Level', 'Choose')}
       </div>
       <div class="q-row">
-        ${qualPick_(`data-me="${esc(f('_grade'))}"`, q.grade, QUAL_GRADES, 'Grade', 'None yet')}
-        <label class="field q-f"><span>Finished</span>
+        ${qualPick_(`data-me="${esc(f('_grade'))}"`, q.grade, QUAL_GRADES, 'Grade', 'None yet').replace('class="field q-f"', 'class="field q-f q-grade"')}
+        <label class="field q-f">${cap('Finished', 'Year')}
           <select data-me="${esc(f('_received'))}">${qualYears_(q.received).map(y => `<option value="${esc(y)}"${
             y === q.received ? ' selected' : ''}>${esc(y === 'Present' ? 'Still studying' : y)}</option>`).join('')}
             <option value=""${q.received ? '' : ' selected'}>Not sure</option></select></label>
+        <label class="field q-f q-school">${cap('School, college or uni', 'Issued by')}
+          <input type="text" data-me="${esc(f('_board'))}" value="${esc(q.board)}" autocomplete="off"></label>
       </div>
-      <label class="field q-f"><span>School, college or uni</span>
-        <input type="text" data-me="${esc(f('_board'))}" value="${esc(q.board)}" autocomplete="off"></label>
       <div class="q-seg" role="group" aria-label="Do you tutor it">${
         segB('spec', 'Teach', 'Shown in gold under Teaches on your profile')}${
         segB('teach', 'Can teach', 'Listed under Can also teach on your profile')}${
@@ -3188,13 +3191,27 @@ function qualSlot_(i, value, o) {
     </div>
   </div>`;
 }
-/* THE FACE OF A LINE: the subject (on a subject's first line only), the notation, the teaching mark. */
+/* THE FACE OF A LINE: the subject (on a subject's first line only), the notation, the teaching mark —
+   none on a certificate, which is held and not taught (see `qualIsCert_`). */
 function qualFace_(q) {
   const who = q.first || q.fresh ? (q.subject || (q.fresh ? 'New qualification' : '')) : '';
+  const cert = qualIsCert_(q);
   return `<span class="q-who${q.subject ? '' : ' is-none'}">${esc(who)}</span>`
     + `<span class="q-note">${qualIso_(q)}</span>`
-    + `<span class="q-mark">${q.spec ? '<span class="q-chip">Teach</span>'
+    + `<span class="q-mark">${cert ? '' : q.spec ? '<span class="q-chip">Teach</span>'
       : q.teach ? '<span class="q-can">Can teach</span>' : ''}</span>`;
+}
+/* ---------- A CERTIFICATE IS HELD, NOT STUDIED AND NOT TAUGHT --------------------------------------
+   The same test the notation uses (and `QUAL_CERTS` in core.gs copies): the subject is one of the
+   certificates at the foot of the subject list, or the level is one of the three a DBS comes at.
+   *Walked at 390:* the DBS editor offered Grade and `Teach | Can teach | Not teaching`, neither of
+   which a certificate has — and Teach would have put "DBS Enhanced" under Teaches on the profile,
+   because `teachesOf_` reads the tick and not the kind. So a certificate's editor has no grade and no
+   three-way control (`.is-cert` in style.css), its year and its issuer share a row, and the two are
+   two rows shorter — the height the open line was costing at 320. */
+function qualIsCert_(q) {
+  const isIn = (list, x) => !!x && list.some(y => norm(y) === norm(x));
+  return isIn(QUAL_CERT_SUBJECTS_, q.subject) || isIn(QUAL_CERT_LEVELS_, q.level);
 }
 /* ---------- THE NOTATION, BY THE PROFILE CHIP'S RULES ----------------------------------------------------
    `profQualChip_` in cards.js draws the parent's side and this is the same four cases on the tutor's:
@@ -3202,10 +3219,9 @@ function qualFace_(q) {
    with no grade said in the grade's place; and a certificate, or a subject with neither, written plain.
    Escaped rather than `mark`ed, because nothing on a settings card is a search result. */
 function qualIso_(q) {
-  const isIn = (list, x) => !!x && list.some(y => norm(y) === norm(x));
   const level = norm(q.level) === norm(q.subject) ? '' : (q.level || '');
   const low = q.grade ? esc(q.grade) : /^present$/i.test(q.received || '') ? '<i>studying</i>' : '';
-  if (isIn(QUAL_CERT_SUBJECTS_, q.subject) || isIn(QUAL_CERT_LEVELS_, q.level) || !(level || low)) {
+  if (qualIsCert_(q) || !(level || low)) {
     return `<span class="q-plain">${esc([level, q.grade].filter(Boolean).join(' '))}</span>`;
   }
   return `<span class="prof-iso">${level ? `<sup>${esc(level)}</sup>` : ''}${low ? `<sub>${low}</sub>` : ''}</span>`;
@@ -3282,6 +3298,7 @@ function qualFaceNow_(slot) {
   const line = slot && slot.querySelector(':scope > .q-line');
   if (!line) return;
   const q = qualRead_(slot);
+  slot.classList.toggle('is-cert', qualIsCert_(q));
   line.innerHTML = qualFace_(q);
   const said = qualSay_(q);
   line.setAttribute('aria-label', said);
@@ -3467,6 +3484,14 @@ function qualCommit_(slot, after) {
   if (!q.subject || !q.level) {
     if (!slot.dataset.new) toast(q.subject ? 'Choose a level — nothing was saved.' : 'Choose a subject — nothing was saved.');
     return;
+  }
+  /* A CERTIFICATE KEEPS NO GRADE AND NO TEACHING TICK — its editor has neither box to show, and an
+     answer nobody can see is one nobody can take back. A line moved onto DBS from Maths sheds them here,
+     before the comparison, so the move itself is what posts them empty. */
+  if (qualIsCert_(q)) {
+    qualSet_(slot, { ['qual_' + i + '_grade']: '', ['qual_' + i + '_spec']: 'FALSE', ['qual_' + i + '_teach']: 'FALSE' });
+    slot.querySelectorAll('[data-do="qual-teach"]').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === 'no' ? 'true' : 'false'));
+    qualFaceNow_(slot);
   }
   if (JSON.stringify(qualValues_(slot)) === slot.dataset.was) { if (after) after(); return; }
   let was = {};
@@ -4027,7 +4052,13 @@ function meSave_(el) {
       /* THIS CARD IS CLEAN NOW, so a repaint may redraw it — see `settingsKeep_`. */
       const form = el.closest('.me-form');
       if (form) delete form.dataset.dirty;
-      if (said) said.textContent = 'Saved';
+      /* NOT ON THE QUALIFICATIONS CARD, WHICH SAVES ON EVERY ANSWER. *Walked:* after its first answer the
+         line under it said "Saved" for the rest of the session — through a reload, under ten untouched
+         lines — beside the toast saying the same, and it cost the card a line. There the toast is the
+         receipt and the line is for a refusal only, so a success CLEARS it: the refusal from a save that
+         failed is not left standing under the one that worked. */
+      const quiet = !!box.querySelector('.q-shelf');
+      if (said) said.textContent = quiet ? '' : 'Saved';
       toast('Saved');
       /* THE PUBLIC CARD IS BUILT BY `doGet`, so it only moves when the payload does — but only when
          something was written. A Save that changed nothing writes nothing and leaves the stored
@@ -4036,7 +4067,7 @@ function meSave_(el) {
       if (!d || d.changed === undefined || d.changed > 0) {
         const at = [...document.querySelectorAll('#s-settings .me-form')].indexOf(form);
         sayAfterLoad_(() => at < 0 ? null
-          : (document.querySelectorAll('#s-settings .me-form')[at] || {}).querySelector?.('.me-said'), 'Saved');
+          : (document.querySelectorAll('#s-settings .me-form')[at] || {}).querySelector?.('.me-said'), quiet ? '' : 'Saved');
       }
       resolve(true);
     })

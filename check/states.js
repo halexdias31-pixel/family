@@ -2219,6 +2219,112 @@ const STATES = {
           ? 1 : 0;
       },
       wants: 'the Physics A-Level open in place under its line, the other six lines still there, five captioned boxes, Can teach lit, and the tick and the bin at opposite ends' },
+    /* AND THE DBS OPEN — A CERTIFICATE'S EDITOR. *Walked at 390:* it offered Grade and Teach / Can teach /
+       Not teaching, neither of which a certificate has, and Teach would have listed the DBS under Teaches
+       on the profile. Now: no grade, no three-way control, the year and the issuer side by side under
+       their certificate captions, and the tick and the bin. Mutation: `.is-cert` off the slot — the grade
+       and the control come back, and the issuer drops to a row of its own. */
+    { name: 'the qualifications, a certificate open',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_QUAL_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_board: 'Hill Top School', qual_1_received: '2016',
+          qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2018',
+          qual_2_teach: 'TRUE', qual_2_spec: 'TRUE',
+          qual_3: 'Physics', qual_3_level: 'GCSE', qual_3_grade: '8', qual_3_received: '2016', qual_3_teach: 'TRUE',
+          qual_4: 'Physics', qual_4_level: 'A-Level', qual_4_grade: 'A', qual_4_board: 'Hill Top Sixth Form', qual_4_received: '2018',
+          qual_4_teach: 'TRUE',
+          qual_5: 'English Literature', qual_5_level: 'GCSE', qual_5_grade: '7', qual_5_received: '2016',
+          qual_6: 'English Literature', qual_6_level: 'A-Level', qual_6_grade: 'B', qual_6_received: '2018',
+          qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const pages = [...document.querySelectorAll('#s-settings .page')];
+        const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
+        if (at < 0) throw new Error('no qualifications page on the settings column');
+        goPage('settings', at, true);
+        const slot = [...pages[at].querySelectorAll('.q-list .q-slot')].find(sl => (sl.querySelector('select.q-name') || {}).value === 'DBS');
+        if (!slot) throw new Error('no DBS line on the qualifications page');
+        slot.querySelector('.q-line').click();
+      },
+      leave: () => {
+        if (typeof selShut_ === 'function') selShut_();
+        USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const shelf = pg && pg.querySelector('.q-shelf');
+        if (!shelf) return 0;
+        const open = [...shelf.querySelectorAll('.q-slot.is-open')];
+        const ed = open[0] && open[0].querySelector(':scope > .q-ed');
+        const shown = el => !!el && !!(el.offsetWidth || el.offsetHeight);
+        if (open.length !== 1 || !shown(ed)) return 0;
+        const year = ed.querySelector('select[data-me$="_received"]').closest('label');
+        const from = ed.querySelector('input[data-me$="_board"]').closest('label');
+        const cap = l => [...l.querySelectorAll(':scope > span')].filter(shown).map(x => x.textContent).join('|');
+        return open[0].classList.contains('is-cert')
+          && !shown(ed.querySelector('select[data-me$="_grade"]'))
+          && !shown(ed.querySelector('.q-seg'))
+          && shown(year) && shown(from)
+          && Math.abs(year.getBoundingClientRect().top - from.getBoundingClientRect().top) < 2
+          && cap(year) === 'Year' && cap(from) === 'Issued by'
+          && !open[0].querySelector('.q-line .q-mark').textContent.trim()
+          && !!ed.querySelector('.tile[data-do="qual-done"]') && !!ed.querySelector('.tile[data-do="qual-drop"]')
+          ? 1 : 0;
+      },
+      wants: 'the Enhanced DBS open with no grade and no Teach control, its Year and Issued by side by side, and the tick and the bin' },
+    /* AND A LINE BEING ADDED, through the `+`. *Walked:* its face said `New qualification` in the
+       subject's 10ch column — "New / qualificat / ion", the first thing seen after `+` — over the boxes
+       that say the same. A line not yet saved has no face: its editor, under the gold rule, is the line.
+       Mutation: the `[data-new] > .q-line` rule removed — the face is drawn again. */
+    { name: 'the qualifications, one being added',
+      only: () => typeof USER !== 'undefined' && !!USER,
+      enter: () => {
+        window.STATE_QUAL_WAS = USER.profile;
+        USER.profile = Object.assign({}, USER.profile || {}, {
+          qual_1: 'Maths', qual_1_level: 'GCSE', qual_1_grade: '9', qual_1_board: 'Hill Top School', qual_1_received: '2016',
+          qual_1_teach: 'TRUE', qual_1_spec: 'TRUE',
+          qual_2: 'Maths', qual_2_level: 'A-Level', qual_2_grade: 'A*', qual_2_board: 'Hill Top Sixth Form', qual_2_received: '2018',
+          qual_2_teach: 'TRUE', qual_2_spec: 'TRUE',
+          qual_3: 'Physics', qual_3_level: 'GCSE', qual_3_grade: '8', qual_3_received: '2016', qual_3_teach: 'TRUE',
+          qual_4: 'Physics', qual_4_level: 'A-Level', qual_4_grade: 'A', qual_4_board: 'Hill Top Sixth Form', qual_4_received: '2018',
+          qual_4_teach: 'TRUE',
+          qual_5: 'English Literature', qual_5_level: 'GCSE', qual_5_grade: '7', qual_5_received: '2016',
+          qual_6: 'English Literature', qual_6_level: 'A-Level', qual_6_grade: 'B', qual_6_received: '2018',
+          qual_7: 'DBS', qual_7_level: 'Enhanced', qual_7_received: '2025' });
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+        const pages = [...document.querySelectorAll('#s-settings .page')];
+        const at = pages.findIndex(pg => pg.querySelector('[data-me="qual_10_board"]'));
+        if (at < 0) throw new Error('no qualifications page on the settings column');
+        goPage('settings', at, true);
+        pages[at].querySelector('.q-shelf [data-do="qual-add"]').click();
+        /* THE SUBJECT LIST IS HUNG FOR THE PERSON a tick later — shut it, so what is measured is the card. */
+        return new Promise(r => setTimeout(() => { if (typeof selShut_ === 'function') selShut_(); r(); }, 60));
+      },
+      leave: () => {
+        if (typeof selShut_ === 'function') selShut_();
+        USER.profile = window.STATE_QUAL_WAS; delete window.STATE_QUAL_WAS;
+        document.querySelectorAll('#s-settings .me-form').forEach(f => { f.removeAttribute('data-dirty'); f.classList.remove('is-sending'); });
+        paint('settings');
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        const shelf = pg && pg.querySelector('.q-shelf');
+        if (!shelf) return 0;
+        const fresh = shelf.querySelector('.q-list .q-slot.is-open[data-new]');
+        const shown = el => !!el && !!(el.offsetWidth || el.offsetHeight);
+        return !!fresh && !shown(fresh.querySelector(':scope > .q-line'))
+          && shown(fresh.querySelector('select.q-name'))
+          && !/New qualification/.test(shelf.innerText)
+          && [...shelf.querySelectorAll('.q-list .q-line')].filter(shown).length === 7
+          ? 1 : 0;
+      },
+      wants: 'a line being added drawn as its editor alone — no face saying New qualification over its Subject box — with the seven saved lines above it' },
 
     /* ---------- THE THREE DATE-OF-BIRTH BOXES, ON A GROUP THE FIXTURE DID NOT HAVE ---------------
        `check/fixture.json` SENT NO `Contact` GROUP, so nothing in this lab had ever drawn a date of

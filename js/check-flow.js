@@ -1259,10 +1259,17 @@ check('a qualification opens in place, and each answer is saved as it is chosen'
   if (q.line(4).getAttribute('aria-expanded') !== 'true') bad.push('the open line does not say it is expanded');
   /* A GRADE CHOSEN IS A GRADE SAVED — no Save to find. */
   q.sent.length = 0;
+  const saidLine = q.shelf().closest('.me-form').querySelector('.me-said');
+  if (saidLine) saidLine.textContent = 'An old refusal';
   q.pick(q.box(4, '_grade'), 'A*');
   await wait(300);
   let f = q.last();
   if (!f) bad.push('choosing a grade saved nothing');
+  /* THE TOAST IS THE RECEIPT; THE LINE UNDER THE CARD IS FOR A REFUSAL. *Walked:* "Saved" stood under the
+     card for the rest of the session beside a toast saying the same. A success clears the line —
+     including a refusal left there by a save that failed. */
+  const saidNow = q.shelf().closest('.me-form').querySelector('.me-said');
+  if (!saidNow || saidNow.textContent !== '') bad.push('after a save the line under the card says "' + (saidNow && saidNow.textContent) + '", not nothing');
   else {
     if (f.qual_4_grade !== 'A*' || f.qual_4_level !== 'A-Level' || f.qual_4 !== 'Physics') bad.push('the grade posted Physics as ' + JSON.stringify([f.qual_4, f.qual_4_level, f.qual_4_grade]));
     if (Object.keys(f).filter(k => /^qual_/.test(k)).length !== 70) bad.push('the grade did not post all seventy qual_ boxes');
@@ -1346,6 +1353,32 @@ check('a tap on another qualification while a typed answer is saving still opens
   await wait(400);
   if ((q.last() || {}).qual_2_board !== 'Kings College London') bad.push('the second school was not saved');
   if (q.shelf().querySelector('.is-open')) bad.push('the tick pressed during the save did not shut the line');
+  return bad;
+});
+/* A CERTIFICATE HAS NO GRADE AND IS NOT TAUGHT. *Walked at 390:* the DBS editor offered Grade and Teach,
+   and Teach would have listed the DBS under Teaches on the profile (`teachesOf_` reads the tick, not
+   the kind). The editor hides both (`.is-cert`, held in a real browser by `check/states.js`); here, the
+   data: a line moved onto DBS posts its grade empty and both teaching boxes FALSE, and wears no mark.
+   Mutation: the reset in `qualCommit_` removed — the A and Can teach go to the sheet under a DBS. */
+check('a qualification moved onto a certificate drops its grade and its teaching', async () => {
+  let q;
+  try { q = await qualCard_(); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  const bad = [];
+  if (!q.slot(4)) return ['the card has no Physics A-Level to work on'];
+  q.A('qual-open', q.line(4));
+  if (q.slot(4).classList.contains('is-cert')) bad.push('Physics A-Level is marked a certificate');
+  if (!q.slot(7).classList.contains('is-cert')) bad.push('the Enhanced DBS is not marked a certificate');
+  q.sent.length = 0;
+  q.pick(q.box(4, ''), 'First Aid');
+  await wait(300);
+  const f = q.last();
+  if (!f) bad.push('moving the line onto First Aid saved nothing');
+  else if (f.qual_4 !== 'First Aid' || f.qual_4_grade !== '' || f.qual_4_teach !== 'FALSE' || f.qual_4_spec !== 'FALSE') {
+    bad.push('First Aid posted as ' + JSON.stringify([f.qual_4, f.qual_4_grade, f.qual_4_teach, f.qual_4_spec]) + ', keeping a grade or a teaching tick');
+  }
+  const s4 = q.slot(4);
+  if (!s4 || !s4.classList.contains('is-cert')) bad.push('the line moved onto First Aid is not marked a certificate');
+  if (s4 && s4.querySelector('.q-line .q-mark').textContent.trim()) bad.push('the certificate still wears a teaching mark');
   return bad;
 });
 check('adding a qualification: the + asks for the subject, then the level, and saves the moment it has both', async () => {

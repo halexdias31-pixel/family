@@ -850,7 +850,25 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
 .q-slot.is-open > .q-ed { display: block; padding: .1rem 0 .45rem; }
 /* SCOPED TO THE EDITOR, because `.q-row` is also the business records card's (`.lib-row.q-row`,
    below) — a bare `.q-row` here would set that card's gap from a rule about qualifications. */
-.q-ed .q-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: .4rem; }
+/* COLUMN GAP ONLY: each box carries its own `margin-bottom`, and the second row wraps the school onto a
+   line of its own — a row gap as well would put two gaps between Finished and the school. */
+.q-ed .q-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: .4rem; }
+.q-ed .q-row > .q-school { grid-column: 1 / -1; }
+/* ---------- A CERTIFICATE: NO GRADE, NO TEACHING, AND THE YEAR BESIDE WHO ISSUED IT — see `qualIsCert_` ----
+   *Walked:* the DBS editor offered Grade and Teach / Can teach / Not teaching, and Teach would have put
+   the DBS under Teaches on the profile. Hidden rather than left out, so a pick that turns a line into a
+   certificate (or back) changes the editor without a redraw; the save empties what is hidden. Two rows
+   fewer, which is what an open line was costing the card at 320. */
+.q-slot.is-cert .q-grade, .q-slot.is-cert .q-seg { display: none; }
+.q-slot.is-cert .q-ed .q-row > .q-school { grid-column: auto; }
+.q-slot.is-cert .q-cap-std, .q-slot:not(.is-cert) .q-cap-cert { display: none; }
+/* ---------- A LINE BEING ADDED HAS NO FACE YET ----------------------------------------------------------
+   Its face would say what its Subject and Level boxes say right under it, and before a subject is
+   chosen it said `New qualification` in the subject's 10ch column — *walked:* "New / qualificat / ion",
+   the first thing anybody saw after pressing `+`. The gold rule and the boxes say which line this is;
+   once it is saved it is redrawn into its subject's group with a face like any other. 44px back on the
+   tallest moment the card has. */
+.q-slot[data-new] > .q-line { display: none; }
 /* ---------- THE CAPTION INSIDE THE BOX, OVER THE ANSWER ------------------------------------------------
    Above the box it was a line of its own per row — three lines on an editor of three rows — and a
    placeholder IN the box goes the moment something is chosen, so a chosen `B` alone did not say which
@@ -865,6 +883,9 @@ label.field > .faint { display: block; margin-top: .3rem; text-transform: none; 
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .q-ed .q-f > select, .q-ed .q-f > input { min-width: 0; padding: 16px .6rem 4px; }
+/* A NAME TOO LONG FOR HALF A 320 CARD ENDS IN AN ELLIPSIS — *walked:* "English Lan", cut with nothing to
+   say it was cut. The full name is the option's own label, one tap away. */
+.q-ed .q-f > select { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* TEACH / CAN TEACH / NOT TEACHING, ONE CONTROL. Words that say the answer, so the question that sat
    over it and the sentence that sat under it are not needed; what each does on the profile is its
    `title`. */
