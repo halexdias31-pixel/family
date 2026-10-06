@@ -5497,7 +5497,7 @@ textarea { touch-action: none; }
 #splash-box,
 #splash-odds, #splash-tri, #splash-sine, #splash-area, #splash-sieve, #splash-half,
 #splash-ang, #splash-bin, #splash-pas, #splash-fib, #splash-gal,
-#splash-sort, #splash-prot, #splash-coin, #splash-mult,
+#splash-sort, #splash-prot, #splash-coin, #splash-mult, #splash-bayes,
 #splash-breathe, #splash-rain, #splash-pend,
 #splash-nline, #splash-venn, #splash-clock,
 #splash-index, #splash-trick, #splash-sf, #splash-cent,
@@ -5528,6 +5528,7 @@ textarea { touch-action: none; }
 #splash.is-sort  #splash-sort  { display: grid; place-items: center; }
 #splash.is-prot  #splash-prot  { display: block; }
 #splash.is-coin  #splash-coin  { display: block; }
+#splash.is-bayes #splash-bayes { display: block; }
 #splash.is-line  #splash-nline { display: block; }
 #splash.is-venn  #splash-venn  { display: block; }
 #splash.is-clock #splash-clock { display: block; }
@@ -7643,6 +7644,71 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   .cn-coin, .cn-shadow, .cn-m, .cn-bar i, .cn-say span { animation: none; }
   .cn-m { opacity: 1; } .cn-bar i { transform: scaleX(.5); }
   .cn-say span:last-child { opacity: 1; }
+}
+
+/* ---------- BAYES, WITH A HUNDRED PEOPLE ---------------------------------------------------------
+   ASKED FOR AS "add a bayesian maths animation". Written by tools/bayes.py, which holds the numbers
+   and says what each moment teaches — re-run it rather than editing these lines. The prior is the
+   gold row, the test's verdict is the ring, and the answer is two rows of nine of equal length:
+   P(has it | +) = TP / (TP + FP) = 9 / 18, drawn before it is said.
+
+   THE PALETTE IS THE SCREEN'S, not a component's own: gold is what has it, ink is everybody and the
+   ring the test draws. No paper here — this is the black-and-gold screen, so tokens only.
+   Transform and opacity only, one 9.6s clock, every animation infinite; check-css and
+   check-splash-loops both hold it to that. */
+#splash-bayes { width: min(90vw, 20rem); }
+#splash-bayes .by-svg { display: block; width: min(66vw, 14rem); height: auto; margin: 0 auto;
+                        overflow: visible; }
+.by-dot { fill: var(--ink); fill-opacity: .26; }
+.by-gold { fill: var(--gold); opacity: 0; animation: by-gold 9.6s linear infinite; }
+/* THE RING SCALES ABOUT ITS OWN MIDDLE — `fill-box`, since the circle is drawn at its place in the
+   grid and not at (0,0). */
+.by-ring { fill: none; stroke: var(--ink); stroke-width: .9; opacity: 0;
+           transform-box: fill-box; transform-origin: center; }
+.by-tp .by-ring { animation: by-lit1 9.6s linear infinite; }
+.by-fp .by-ring { animation: by-lit2 9.6s linear infinite; }
+.by-fn, .by-tn { animation: by-out 9.6s linear infinite; }
+/* `--go` IS A translate IN viewBox UNITS, written per person by the generator; `view-box` and an
+   origin at 0 0 make a px in it one unit of the drawing, so it scales with the svg. */
+.by-tp, .by-fp { transform-box: view-box; transform-origin: 0 0;
+                 animation: by-go 9.6s linear infinite; }
+.by-lab { font: 600 5.4px var(--mono); text-anchor: middle; fill: var(--dim); opacity: 0;
+          animation: by-lab 9.6s linear infinite; }
+.by-lab-tp { fill: var(--gold); }
+.by-eq { font-size: 7px; fill: var(--ink); }
+.by-eq-tp { fill: var(--gold); }
+/* ONE LINE PER MOMENT, stacked in one place, only the current one showing. Wider than the drawing
+   so the longest line is never wrapped at 320. */
+.by-say { position: relative; height: 1.2rem; margin-top: .55rem;
+          font: 600 .76rem var(--mono); color: var(--ink); text-align: center; }
+.by-say span { position: absolute; left: 0; right: 0; opacity: 0; white-space: nowrap; }
+.by-say b { color: var(--gold); font-weight: 700; }
+.by-say i { font-style: normal; font-weight: 700; }
+.by-s0 { animation: by-s0 9.6s linear infinite; }
+.by-s1 { animation: by-s1 9.6s linear infinite; }
+.by-s2 { animation: by-s2 9.6s linear infinite; }
+.by-s3 { animation: by-s3 9.6s linear infinite; }
+.by-s4 { animation: by-s4 9.6s linear infinite; }
+@keyframes by-gold { 0%, 10.42% { opacity: 0; } 14.58%, 93.75% { opacity: 1; } 98.44%, 100% { opacity: 0; } }
+@keyframes by-lit1 { 0%, 27.08% { opacity: 0; transform: scale(1.9); } 31.25%, 92.71% { opacity: 1; transform: scale(1); } 94.79% { opacity: 0; transform: scale(1); } 100% { opacity: 0; transform: scale(1.9); } }
+@keyframes by-lit2 { 0%, 41.67% { opacity: 0; transform: scale(1.9); } 45.83%, 92.71% { opacity: 1; transform: scale(1); } 94.79% { opacity: 0; transform: scale(1); } 100% { opacity: 0; transform: scale(1.9); } }
+@keyframes by-lab { 0%, 66.67% { opacity: 0; } 70.83%, 92.71% { opacity: 1; } 93.75%, 100% { opacity: 0; } }
+@keyframes by-out { 0%, 56.25% { opacity: 1; } 61.46%, 94.79% { opacity: 0; } 98.44%, 100% { opacity: 1; } }
+@keyframes by-go { 0%, 59.38% { transform: translate(0px, 0px); animation-timing-function: ease-in-out; } 67.71%, 93.75% { transform: var(--go); animation-timing-function: ease-in-out; } 98.44%, 100% { transform: translate(0px, 0px); } }
+@keyframes by-s0 { 0%, 10.94% { opacity: 1; } 12.19%, 97.92% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes by-s1 { 0%, 11.98% { opacity: 0; } 13.54%, 26.04% { opacity: 1; } 27.29%, 100% { opacity: 0; } }
+@keyframes by-s2 { 0%, 27.08% { opacity: 0; } 28.65%, 40.62% { opacity: 1; } 41.87%, 100% { opacity: 0; } }
+@keyframes by-s3 { 0%, 41.67% { opacity: 0; } 43.23%, 65.62% { opacity: 1; } 66.88%, 100% { opacity: 0; } }
+@keyframes by-s4 { 0%, 67.71% { opacity: 0; } 69.27%, 92.71% { opacity: 1; } 93.96%, 100% { opacity: 0; } }
+
+/* LESS MOVEMENT: the answer, still — the two rows of nine, named, the sum and the last line. */
+@media (prefers-reduced-motion: reduce) {
+  .by-gold, .by-tp .by-ring, .by-fp .by-ring, .by-fn, .by-tn, .by-tp, .by-fp, .by-lab,
+  .by-s0, .by-s1, .by-s2, .by-s3, .by-s4 { animation: none; }
+  /* `.by-say .by-sN`, not `.by-sN`: the span rule that hides every line is one class heavier. */
+  .by-gold, .by-ring, .by-lab, .by-say .by-s4 { opacity: 1; }
+  .by-fn, .by-tn { opacity: 0; }
+  .by-tp, .by-fp { transform: var(--go); }
 }
 
 /* ---------- THE NUMBER LINE ---------------------------------------------------------------------- */

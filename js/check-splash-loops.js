@@ -70,6 +70,10 @@ const LOOPS = [
      what proves the line is drawn symmetric about its pivot, which is what makes that true. */
   { id: 'mxc', prefix: 'mx-', centreOn: ['mx-ax', 'mx-ay', 'mx-arrow'], halfTurn: ['mx-line'],
     own: mxcOwn_ },
+  /* BAYES: centred on its hundred grey dots, which tools/bayes.py lays as the whole viewBox. Its own
+     sentence — that the posterior on the screen is the one the dots make — is in check-css.js's
+     LOOPED, beside the coin and the sieve, so it is not said twice. */
+  { id: 'bayes', prefix: 'by-', centreOn: ['by-dot'] },
 ];
 
 let faults = [], said = [];
