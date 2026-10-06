@@ -1139,6 +1139,49 @@ const STATES = {
         kpClose_();
         STUFF.filters = []; paintStuff(); goPage('stuff', 0);
       } },
+    /* ---------- THE KEYPAD UP ON A PART WITH A FIGURE BEHIND IT: THE FIGURE TILE STAYS ABOVE THE PAD ---
+       THE REVIEW OF THE MULTI-PART MERGE, at 320x568: 1F Q23b's box raised the pad (top 315) and Check,
+       Figure and To the answer stood at 322-437, under it -- the Figure tile exists to show the Venn
+       WHILE answering, and was hidden exactly then; a tap where it had been typed a key. The tile now
+       stands at the end of the box's own line (`ansBox_`), so wherever the box clears the pad, it does.
+       Expect: the box AND the Figure tile wholly above the pad's top edge, at every width. */
+    { name: 'a part with a figure behind it, the keypad up, the Figure tile above the pad',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-1MA1-2406-1F-23b');
+        if (!it) throw new Error('1F Q23b is not in the library');
+        try { localStorage.removeItem(ansKey_(it)); } catch (e) {}
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.q = '';
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it), true);
+        window.__kfKey = ansKey_(it);
+        let tries = 0;
+        const up = () => {
+          const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__kfKey);
+          if (!inp) { if (++tries < 20) setTimeout(up, 20); return; }
+          inp.focus();
+          if (KP_AT !== inp) kpOpen_(inp);
+        };
+        up();
+      },
+      expect: () => {
+        const pad = document.getElementById('kp');
+        const inp = [...document.querySelectorAll('#s-stuff .kp-in')].find(b => b.getAttribute('data-k') === window.__kfKey);
+        const pg = inp && inp.closest('.page');
+        const fig = pg && pg.querySelector('[data-do="q-fig"]');
+        if (!pad || pad.hidden || !inp || !fig) return false;
+        const top = pad.getBoundingClientRect().top;
+        return inp.getBoundingClientRect().bottom <= top && fig.getBoundingClientRect().bottom <= top
+          && fig.getBoundingClientRect().top >= 0;
+      },
+      wants: '1F Q23b\u2019s box focused, the keypad up, and both the box and its Figure tile wholly above the pad',
+      leave: () => {
+        try { localStorage.removeItem(window.__kfKey); } catch (e) {}
+        if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+        kpClose_();
+        STUFF.filters = []; paintStuff(); goPage('stuff', 0);
+      } },
     /* ---------- AND A WORDED ANSWER, WITH "MARK WITH AI" UNDER IT ------------------------------------
        The fixture is a deployment with the action and no key (`aiMarking: false`), which is what
        `doGet` sends until the owner adds one — so this says yes for the length of the state, the way

@@ -9374,7 +9374,8 @@ check('multipart: a part with a figure behind it has a Figure tile that opens it
   if (!w.__t.ACTIONS['q-fig']) return ['q-fig has no handler — nothing can open a figure over the card'];
   const lib = mpLibrary_(w, mpBank_());
   const find = name => lib.items.find(x => x.row.paper === 'P-MP-W' && x.name === name);
-  const tileOf = x => { const h = d.createElement('div'); h.innerHTML = w.questionTiles_(x); return h.querySelector('[data-do="q-fig"]'); };
+  /* THE CARD AS DRAWN, because the tile stands at the end of the answer box (`ansBox_`), not in the row. */
+  const tileOf = x => { const h = d.createElement('div'); h.innerHTML = w.stuffCard(x, 0); return h.querySelector('[data-do="q-fig"]'); };
   try {
     [['Q8(ii)', 'the opening\'s figure, two parts back'], ['Q8(i)', 'the opening\'s figure, one page back'],
      ['Q14b', 'Q14a\'s own graph, a part back'], ['Q14a', 'its own graph, the page before its card']].forEach(([n, what]) => {
@@ -9393,6 +9394,10 @@ check('multipart: a part with a figure behind it has a Figure tile that opens it
     else box.value = '42 km';
     const t = page.querySelector('[data-do="q-fig"]');
     if (!t) bad.push('the card as drawn on Find carries no Figure tile');
+    /* BESIDE THE BOX, on its line -- where the keypad, which covers the row under the card on a small
+       phone, cannot cover it (the review of the merge, 1F Q23b at 320x568). */
+    else if (!t.parentElement || !t.parentElement.classList.contains('qp-ans-row') || !t.parentElement.querySelector('.qp-ans'))
+      bad.push('the Figure tile is not at the end of the answer box\'s own line -- under the card, the keypad covers it on a 320px phone');
     else {
       w.__t.ACTIONS['q-fig'](t);
       const sheet = d.getElementById('sheet');
@@ -9587,7 +9592,7 @@ check('multipart: a "use your graph" part has no "not drawn yet" page and no bla
     const labels = w.figsBefore_(c).map(f => f.html);
     if (labels.some(h => /mp-axes/.test(h))) bad.push('Q24c\'s Figure opens Q24b\'s blank grid -- the picture it reads is the child\'s drawing, not the paper\'s empty copy');
     const h = d.createElement('div');
-    h.innerHTML = w.questionTiles_(c);
+    h.innerHTML = w.stuffCard(c, 0);
     if (h.querySelector('[data-do="q-fig"]')) bad.push('Q24c offers a Figure tile with nothing in front of it but the grid it uses');
     /* A PART THAT DOES NOT SAY IT USES (b) STILL SEES (b)'s PICTURE -- the rule is the column, not the grid. */
     if (!w.figsBefore_(dd).some(f => /mp-axes/.test(f.html))) bad.push('Q24d, which uses nothing, lost Q24b\'s figure too -- the skip reached past the part that names it');

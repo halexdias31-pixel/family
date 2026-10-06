@@ -718,7 +718,8 @@ function cardActions_(x) {
      Check, Mark with AI, the pen's lock, its tools, Undo, Clear, Show and Hide — except the keypad's
      keys and the multiple-choice options, which are the answer being given rather than things done
      to it. See `padWrap_` and `choiceBox_` in find.js. */
-  /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART, `Figure` -- which opens it over the card. */
+  /* AND, WHERE THE QUESTION HAS A FIGURE BEHIND THIS PART AND IT IS ANSWERED BY TAPPING AN OPTION,
+     `Figure` -- which opens it over the card. A typed box carries it at its own end instead (`ansBox_`). */
   if (x.kind === 'question') return typeof questionTiles_ === 'function' ? questionTiles_(x) : '';
   /* THE `group` TILE WAS HERE — "Open", on a card standing for a whole paper. Collections are gone
      from the funnel (see the note where `collectionAxes_` used to be in find.js): a paper is an

@@ -7058,10 +7058,22 @@ function ansBox_(x) {
      what the answer is filed under (`ansKey_`), and a screen reader still hears "Your answer" from
      `aria-label`. CHECK IS A TILE -- *"check button should be a tile"* -- one renderer for every
      action, `.qp-check` kept as the name the keypad's ✓ and the checks find it by. */
-  return `<label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
+  /* ---------- THE FIGURE TILE STANDS BESIDE THE BOX, NOT IN THE ROW UNDER IT --------------------------
+     THE REVIEW OF THE MULTI-PART MERGE, at 320x568: 1F Q23b's box raised the keypad (its top at 315) and
+     the row under the card -- Check, Figure, To the answer -- stood at 322-437, all under it. The tile is
+     there to show the Venn WHILE the child answers, and that is exactly when it was hidden; a tap where
+     it had been typed a 4. The column cannot scroll it into view: the pages are a strip on transforms
+     and a card is sized to its screen (`partChunks_`), so there is nothing below to scroll to.
+     SO IT TAKES THE BOX'S RIGHT-HAND END, on the box's own line: whenever the box is on the screen the
+     figure is one tap away, and the line is the box's height either way, so nothing moves down. A box
+     44px narrower still holds any answer this library has (it scrolls inside, as it always did). Check
+     needs no such move -- the pad's own ✓ is Check (`kpDone_`). Options to tap are not a box and keep
+     the tile in the row (`questionTiles_`). */
+  const fig = figTile_(x);
+  return `${fig ? '<div class="qp-ans-row">' : ''}<label class="qp-ans${maths ? ' qp-ans-maths' : ''}" aria-label="Your answer">
     ${maths ? kpField_(k, ansRead_(k)) : `<textarea class="qp-ans-in" data-do="qp-ans" data-k="${esc(k)}"
       rows="2" spellcheck="false" autocomplete="off" aria-label="Your answer">${esc(ansRead_(k))}</textarea>`}
-  </label>${can ? `<div class="qp-mark" data-accept="${esc(can)}">
+  </label>${fig ? fig + '</div>' : ''}${can ? `<div class="qp-mark" data-accept="${esc(can)}">
     ${tile_({ icon: 'tick', label: 'Check', note: 'mark it', act: 'qp-check', cls: 'qp-check' })}
     <span class="qp-verdict" role="status" aria-live="polite"></span>
   </div>` : aiBox_(x)}`;
@@ -8693,7 +8705,9 @@ function ansWhere_(x, from) {
 }
 function questionTiles_(x, from) {
   const where = questionHasAns_(x) ? ansWhere_(x, from) : '';
-  const fig = from ? '' : figTile_(x);
+  /* THE FIGURE TILE IS HERE ONLY FOR A PART ANSWERED BY TAPPING AN OPTION -- a typed box carries it at
+     its own end (`ansBox_`), where the keypad cannot cover it. */
+  const fig = from || !(Array.isArray(x.choices) && x.choices.length >= 2) ? '' : figTile_(x);
   return fig + (where ? tile_({ icon: 'next', label: 'To the answer', note: where, cls: 'qa-to',
                  act: 'qa-go', data: from ? { k: ansKey_(x), from: from } : { k: ansKey_(x) } }) : '');
 }

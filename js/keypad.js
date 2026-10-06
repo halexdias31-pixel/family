@@ -244,22 +244,7 @@ function kpRoom_(inp, pad) {
   const h = pad.getBoundingClientRect().height;
   KP_ROOM = { el: el, was: el.style.paddingBottom };
   el.style.paddingBottom = h + 'px';
-  const top = pad.getBoundingClientRect().top - 12;
-  const box = inp.getBoundingClientRect();
-  let over = box.bottom - top;
-  /* ---------- AND THE ROW UNDER THE BOX, WHERE IT FITS ------------------------------------------------
-     THE TILES UNDER THE BOX WERE UNDER THE PAD. At 320x568 the pad's top is at 315 and 1F Q23b's Check,
-     Figure and To the answer stood at 322-437 -- so the Figure tile, which exists to show the Venn
-     WHILE the child answers, was hidden exactly then, and a tap where it had been typed a key. The
-     column already has the pad's height as room at its foot, so it scrolls as far as the last tile row
-     after the box -- Check, then the card's own row -- as long as the box itself stays on the screen;
-     a page too short for both keeps the box, which is what is being typed into. */
-  /* THIS PAGE'S ROWS ONLY: a column can hold the next question's page under this one. */
-  const rows = [...(inp.closest('.page') || el).querySelectorAll('.qp-mark, .tile-row')]
-    .filter(r => inp.compareDocumentPosition(r) & Node.DOCUMENT_POSITION_FOLLOWING);
-  const last = rows.length ? rows[rows.length - 1].getBoundingClientRect() : null;
-  const floor = el.getBoundingClientRect().top + 8;
-  if (last && last.bottom - top > over && box.top - (last.bottom - top) >= floor) over = last.bottom - top;
+  const over = inp.getBoundingClientRect().bottom - (pad.getBoundingClientRect().top - 12);
   if (over > 0) el.scrollTop += over;
 }
 function kpRoomBack_() {
