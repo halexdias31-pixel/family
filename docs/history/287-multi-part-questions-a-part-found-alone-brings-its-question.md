@@ -101,3 +101,14 @@ For the owner to confirm:
   1st Class Maths worksheets and AQA papers whose figure was described in words, not drawn.
 - Data moves, the owner's: put shared (d) sentences on a preamble with `part: d` (June 2019 2H Q14's
   "A car moves from rest…" first); draw the missing figures.
+
+### The data that went with it (merged 6 Oct)
+
+391 verified patches to `data/questions.json` (417 written, 26 rejected by a second reader, 14
+corrected). 163 questions now carry an opening of their own instead of hiding it in part (a); 11 rows
+that asked (i) and (ii) in one box are split into 23 parts and the parents set inactive — **the new
+parts carry no marks** (no mark scheme to hand), and `check-library` still sums to 80 only because it
+counts the inactive parents. Six figures moved in front of the ask with the existing `<!--fig-->`
+marker (no code reads a `figpos` column). 37 `uses` rows agreed exactly with the pen branch's 39.
+Rejected: thirteen "openings" whose later part stands alone ("a different sequence", "Roy's
+enlargement") — those sentences were part (a)'s own.

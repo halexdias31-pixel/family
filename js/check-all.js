@@ -411,8 +411,12 @@ for (const c of SUITE) {
     } else {
       const t0 = Date.now();
       try {
+        /* FIVE MINUTES FOR A FILE CHECK, NOT THREE. check-flow is 135 journeys now and took 180s on a
+           machine at load 20 -- killed by this limit while every journey passed alone, which printed
+           as a red check with nothing wrong in it. The limit is for a check that has HUNG, and none
+           of these takes a minute on a quiet machine. */
         out = execFileSync(process.execPath, [p].concat(args), { cwd: dir, encoding: 'utf8',
-                                                    timeout: 180000, stdio: ['ignore', 'pipe', 'pipe'] });
+                                                    timeout: 300000, stdio: ['ignore', 'pipe', 'pipe'] });
       } catch (e) {
         ok = false;
         out = String((e.stdout || '') + (e.stderr || ''));
