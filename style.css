@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-06-alltags";
+  --css-version: "2026-10-06-answerstag";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -13270,9 +13270,6 @@ button.scr-sq { cursor: pointer; }
    the answer arrives under the row rather than pushing the row down. `.qans-wait` (the block that held
    the sentence over a tile under it) went with that order. */
 .qans-tiles { margin-top: .9rem; }
-/* `Answers only` AT THE ROW'S FAR END (`ansOnlyTile_`): it is about the whole strip, not this answer, so it
-   stands apart from the eye -- and in one place whether "Answer hidden" is beside the eye or not. */
-.qans-tiles .qa-only { margin-left: auto; }
 /* THE DRAWING PAGE'S WAY ON TO THE ANSWER sits under the grid as the answer page's sits under its
    header -- one tile, the row's own spacing. See `questionFigCard_`. */
 .qfig-tiles { margin-top: .9rem; }
