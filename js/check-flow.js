@@ -7102,6 +7102,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
     /* ---------- THE FIGURE TILE ON (c) OPENS (b)'s PICTURE WITH THE GRAPH ON IT ---------------------- */
     const sheet = el((w.figsBefore_(c)[0] || {}).html || '');
     if (paths(sheet.querySelector('.qseen'), '.qpad-was') !== 2) bad.push('the Figure tile on (c) opens (b)\'s grid with ' + paths(sheet.querySelector('.qseen'), '.qpad-was') + ' of Ali\'s two marks — the graph it says to use is not there');
+    if ((w.figsBefore_(c)[0] || {}).label !== 'Your drawing') bad.push('the Figure tile on (c) is titled "' + (w.figsBefore_(c)[0] || {}).label + '" over the child\'s own graph, wanted "Your drawing"');
     if (!/yours from Q24b/.test(sheet.textContent)) bad.push('the Figure tile on (c) does not say the marks are (b)\'s');
     if (sheet.querySelector('.qpad')) bad.push('the Figure tile on (c) gives a pen to (b)\'s answer');
     /* ---------- "USE THE GRAPH" AFTER A SURFACE IS NEVER "NOT DRAWN YET" ------------------------------- */

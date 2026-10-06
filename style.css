@@ -13202,6 +13202,13 @@ button.scr-sq { cursor: pointer; }
    `.qseen` IS THE PAD'S BOX WITHOUT THE PAD: `.qpad-art` and `.qpad-ink` place the ink over the
    picture exactly as they do under a pen, and nothing here takes a finger. */
 .qseen { margin: 1rem 0; }
+/* THE BOX IS AS WIDE AS THE PICTURE, SAID OUTRIGHT: `.qpad-art` is an inline-block sized by its drawing,
+   and a drawing whose width is a percentage has no width of its own to give it -- in the Figure sheet
+   (`q-fig`) the box took the sheet's 291px while the grid stopped at 270, so the ink layer, stretched
+   to the box, put the child's curve 21px off the grid it was drawn on. The cap the drawing has
+   (`.qpad-art > svg`) moves to the box, and the drawing fills it. */
+.qseen .qpad-art { width: min(100%, 20rem); }
+.qseen .qpad-art > svg:first-child { width: 100%; }
 .qpad-was path { fill: none; stroke: var(--gold); stroke-width: 2.5;
                  stroke-linecap: round; stroke-linejoin: round; }
 .qpad .qpad-was path { opacity: .55; }

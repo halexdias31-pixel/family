@@ -7846,6 +7846,12 @@ function usesFig_(x) {
   return was.length ? usesSeen_(x.diagram, was, figCredit_(x, 'p') + usesSaid_(x, x.diagram)) : '';
 }
 
+/* A PICTURE WITH THE CHILD'S MARKS ON IT IS HEADED AS THEIRS -- the `use` page and the Figure sheet
+   alike. In review a page headed plain "Figure" over the child's own graph read as one more printed
+   picture. The picture's own name stays where the paper gives one ("Figure 2 · your drawing"); no
+   question number, as on every figure page (`figHead_`) -- the line under it says which part. */
+const usesHead_ = name => (!name || name === 'Figure' ? 'Your drawing' : name + ' \u00b7 your drawing');
+
 /* DOES THIS PART GET THE PAGE IN FRONT -- see the note above. `prev` is the result before it in the
    strip, as `pageParts_` is told. */
 function usesPage_(x, prev) {
@@ -7870,11 +7876,7 @@ function questionUsesCard_(x) {
     : p.from === 'part' ? figLabel_(String(y.lead || '') + ' ' + String(y.html || ''),
                                     (y.stems || []).filter(stemHasFig_).map(s => figLabel_(s.html)))
     : figLabel_(p.from.html);
-  /* HEADED AS YOURS, because it is: in review a page headed plain "Figure" over the child's own graph
-     read as one more printed picture. The picture's own name stays where the paper gives one
-     ("Figure 2 · your drawing"); no question number, as on every figure page (`figHead_`) -- the line
-     under it says which part the marks came from. */
-  const label = name === 'Figure' ? 'Your drawing' : name + ' \u00b7 your drawing';
+  const label = usesHead_(name);
   const said = all.length
     ? `Your marks from ${esc(y.name)}, to use here. To change them, go back to ${esc(y.name)}.`
     : `Nothing drawn on ${esc(y.name)} yet &mdash; this part uses what you draw there.`;
@@ -8932,18 +8934,19 @@ function figsBefore_(x) {
   const sib = k ? ((questionParts_()[k]) || []) : [];
   const at = sib.indexOf(x);
   const drew = sib.slice(0, at < 0 ? 0 : at);
-  const seen = svg => {
+  const seen = (svg, credit) => {
     const by = drew.filter(y => { const p = padSource_(y); return p && p.svg === svg; })
       .map(y => ({ y: y, all: usesMine_(y) })).filter(m => m.all.length);
     if (!by.length) return '';
     const names = by.map(m => esc(m.y.name));
     const who = names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0];
-    return usesSeen_(svg, [].concat(...by.map(m => m.all)),
+    return usesSeen_(svg, [].concat(...by.map(m => m.all)), credit +
       `<p class="qpad-note qseen-from">The marks are yours from ${who} &mdash; change them there.</p>`);
   };
   const pic = (p, label) => {
-    const html = (p.diagram ? (seen(p.diagram) || `<figure>${p.diagram}${figCredit_(p)}</figure>`) : '') + pics_(figImgs_(p.images));
-    if (html) out.push({ label: label, html: html });
+    const marked = p.diagram ? seen(p.diagram, figCredit_(p, 'p')) : '';
+    const html = (marked || (p.diagram ? `<figure>${p.diagram}${figCredit_(p)}</figure>` : '')) + pics_(figImgs_(p.images));
+    if (html) out.push({ label: marked ? usesHead_(label) : label, html: html });
   };
   (x.stems || []).forEach(p => { if (stemHasFig_(p)) pic(p, figLabel_(p.html)); });
   const own = p => !!(p.diagram || figImgs_(p.images).length);
