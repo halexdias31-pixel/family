@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-06-qualwidget";
+  --css-version: "2026-10-06-tags";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -106,6 +106,35 @@
   --tag-board:   #4fd1c5;
   --tag-type:    #c3e88d;
   --tag-topic:   #ff9e64;
+  /* ---------- AND THE FOUR A QUESTION'S PAGE ADDED -------------------------------------------------
+     *"why do the questions say non calculator but its not a tag? also the marks should also be a tag.
+     also the question numbers should also be a tag. also answers should have the answer tags and
+     questions have the question tag."* Every fact about a page of a question is a tag now (`qPage_`
+     in find.js), and four of those facts had no kind.
+
+     WHAT TO BRING HAS A HUE OF ITS OWN, because it is the one tag on the card a person has to act on
+     before the lesson starts -- it was the only thing on the card in the accent for that reason, and
+     gold is not available to a tag (above). The wheel is nearly full, so it was chosen by LOOKING at
+     a Higher non-calculator card with four candidates side by side: a rose between the tier's pink
+     and the paper's coral made a card of four reds (`Q4a`, `Higher`, `Paper 1`, `Non-calculator`);
+     a sky blue sat beside `GCSE` as a second level; a pale cyan beside `Edexcel` as a second board;
+     a full lemon was a step from gold, which is the press. A PALE LEMON is none of those -- yellow
+     enough to be read first, pale enough to sit away from gold and from the type's lime. Its answers
+     and chips in the funnel wear it too (`tagOf_('needs')`).
+
+     THE OTHER THREE ARE THE PAGE'S OWN AND NOT A CATEGORY, so they spend no hue. What the page is
+     (`Question`, `Answer`, `Figure 3`) is the ink, filled, and leads the row; the marks are the ink,
+     outlined. The number is the paper's red ON PURPOSE rather than a fifth colour: it says WHICH one,
+     as `Paper 1` does, and it is what the funnel's `Question` chip wore while it was a question
+     (`TAG_OF` records it). Named rather than written as `var(--ink)` at the rule, so moving any of
+     them is one line here.
+
+     ONE THEME. This app is a terminal, dark only -- there is no light palette to keep in step -- so
+     these are declared once, like every other tag colour. */
+  --tag-kind:    var(--ink);
+  --tag-number:  var(--tag-paper);
+  --tag-marks:   var(--ink);
+  --tag-needs:   #f0f08a;
 
   /* Everything below is in rem, so it all scales together from the one root above. */
   /* Square, near enough. A terminal has no rounded corners, and this is the single value that
@@ -2353,8 +2382,9 @@ button.text-drop { color: var(--bad); }
    Subject is --green, the palette's own subject colour. Tier is --pink, which was the WEARABLE
    colour -- and free on this screen, because `.card.is-wear > h3` matches nothing (the heading sits
    inside `.thing > .thing-body`, not straight under the card), so no cape heading is pink beside a
-   `Higher` tag. Retarget that rule and tier needs a colour of its own first. `needs` has no kind:
-   it was gold, the press colour, so its answers looked pressed at rest. */
+   `Higher` tag. Retarget that rule and tier needs a colour of its own first. `needs` is a kind of
+   its own, `--tag-needs` (pale lemon): NOT gold, which is the press colour -- when it was gold its
+   answers looked pressed at rest, and that is why it once had no kind at all. See the tokens at `:root`. */
 [data-tag="paper"]   { --tag: var(--tag-paper); }
 [data-tag="subject"] { --tag: var(--green); }
 [data-tag="level"]   { --tag: var(--tag-level); }
@@ -2363,6 +2393,11 @@ button.text-drop { color: var(--bad); }
 [data-tag="board"]   { --tag: var(--tag-board); }
 [data-tag="type"]    { --tag: var(--tag-type); }
 [data-tag="topic"]   { --tag: var(--tag-topic); }
+/* WHAT TO BRING, and the three only a question's page carries -- see the tokens at `:root`. */
+[data-tag="needs"]   { --tag: var(--tag-needs); }
+[data-tag="kind"]    { --tag: var(--tag-kind); }
+[data-tag="number"]  { --tag: var(--tag-number); }
+[data-tag="marks"]   { --tag: var(--tag-marks); }
 .chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: 0 0 .45rem; }
 /* ---------- WHAT YOU CHOSE, A RULE, THEN WHAT IS ASKED NEXT -------------------------------------------
    SIX ANSWERS IN, THE TWO WERE ONE CLOUD: the chosen chips are tag-coloured pills and so are the
@@ -10253,32 +10288,33 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    text and sideways room is the one thing it cannot spare. */
 .qcard { background: var(--raised); border: 1px solid var(--line); border-radius: var(--r);
          padding: .75rem .7rem .8rem; margin-bottom: .4rem; }
+/* THE BUNDLE CARD'S HEAD -- `Bundle` and its noun. It was every question page's head too, the gold
+   `Q4a` with `2 marks` hard right; those pages say all of that as tags now (`.qcard-tags` below). */
 .qcard-top { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
 .qcard-top b { font: 700 .95rem/1 var(--mono); color: var(--gold); letter-spacing: .02em; }
-/* THE MARKS IN THE FACE OF THE NUMBER THEY BELONG TO, a step quieter than it. They were the body face
-   at .66rem in `--faint`, which read as a stray caption rather than as the other half of the header
-   row somebody runs an eye down. */
 .qcard-top span { font: 500 .68rem/1 var(--mono); color: var(--dim); white-space: nowrap; }
-/* WHICH PAGE OF THE QUESTION THIS IS -- `Q3 · figure`, `Q3 · answer` (`qHead_` in find.js). The
-   number stays the title; the part is the marks' quieter voice in the number's own face, so the two
-   read as one name and a page landed on cold still says first whose page it is. */
-.qcard-top .qcard-part { font-style: normal; font-weight: 500; color: var(--dim); letter-spacing: 0; }
-/* ---------- `Done 4 Oct` -- THE DAY YOU LAST DID IT, ON THE MARKS' LINE ------------------------------
+/* ---------- `Done 4 Oct` -- THE DAY YOU LAST DID IT, BESIDE THE STAR ---------------------------------
    ASKED FOR AS *"when a student does do a question, it should record the date they did it"*
-   (`doneSlot_` in find.js). In the marks' own face and voice, after them, because it is the same
-   kind of fact -- about the question, scanned down a list -- and not a verdict: green would read as
-   "Correct", which a date is not. The slot is always there and empty until there is a date, so
-   marking writes into it and the header does not grow. `:empty` takes the gap off with the words. */
-.qcard-top .qcard-done { font-style: normal; color: var(--dim); }
-.qcard-top .qcard-done:not(:empty) { margin-left: .6em; }
-.qcard-sub { margin: .4rem 0 0; font-size: .7rem; color: var(--dim); }
+   (`doneSlot_` in find.js). It sat on the gold header's marks line; the header became tags, and the
+   date is not a tag -- it is yours, like the star, so it is in the row your marks are in
+   (`questionTiles_`). In the marks' old face and voice, not a verdict: green would read as "Correct",
+   which a date is not. The slot is there and empty until there is a date, so marking writes into it;
+   the row is 44px tiles tall whatever it holds, so nothing moves. `:empty` takes the gap off. */
+.tile-row .qcard-done { font: 500 .68rem/1 var(--mono); font-style: normal; color: var(--dim);
+                        white-space: nowrap; }
+.tile-row .qcard-done:not(:empty) { margin-left: .3rem; }
 /* ---------- THE CARD'S TAGS -------------------------------------------------------------------------
    ASKED FOR AS *"it has the title of it in one text name when it should still remain as tags."* The
    paper's name taken apart into the facts it is made of (`qTags_` in find.js), each in its kind's
    colour. Labels, not controls: smaller than a chip, not pressable, so nothing here is a tap target
    and a card of them is a card that still has room for its question. A tag with no kind -- the words
-   after a paper's colon, `Arithmetic` -- keeps the plain outline and the dim ink. */
+   after a paper's colon, `Arithmetic` -- keeps the plain outline and the dim ink.
+
+   AND THEY ARE THE TOP OF THE CARD NOW, nothing above them: *"the marks should also be a tag. also
+   the question numbers should also be a tag."* `.qcard-tags` is the row `qPage_` draws on every page
+   of a question -- what the page is, its number, its marks, the paper's facts, what to bring. */
 .qtags { display: flex; flex-wrap: wrap; gap: .3rem .25rem; }
+.qcard-tags { margin: 0; }
 /* A RADIUS IN px, NOT 999px. A long worksheet title -- "Multiplying and Dividing by 10, 100, 1000
    etc" -- wraps to two lines at 320, and a 999px radius on a two-line box drew a lozenge with the
    words running into its pointed ends. 9px is a full pill on a one-line tag (about 17px tall) and a
@@ -10288,20 +10324,19 @@ body.has-ib #install-bar { transition: transform .28s ease; }
   border: 1px solid var(--tag, var(--chip-line)); color: var(--tag, var(--dim));
   font-size: .64rem; line-height: 1.35;
 }
+/* WHAT THE PAGE IS LEADS, AND LOOKS IT: SOLID, in the weight a title has, where every other tag is an
+   outline. It is the one word that tells a question from its answer and a figure from both, and it
+   replaced a gold header line -- a tenth tag in the same weight as the nine after it would make the
+   row a list with no first item. A 16% tint was tried first and read in the screenshot as one more
+   grey pill; solid ink with the card's own ground as its letters is the one shape nothing else on
+   the card has. The number is a step heavier too, as the gold number it replaces was the heading. */
+.qtag[data-tag="kind"] { background: var(--tag); color: var(--raised); font-weight: 650; }
+.qtag[data-tag="number"] { font-weight: 650; }
 
-/* THE DAY THE PAPER WAS SAT, UNDER ITS NAME. `display: block` because it is a second line rather
-   than a second clause — the name already ends in a month ("Paper 1 (Non-Calculator) — May 2017")
-   and running an exact date straight on from it reads as one long sentence saying the month twice.
-   Dimmer than the subtitle it hangs from, because it is a detail confirming the paper rather than
-   the thing you are scanning for. Drawn on the rows that carry `exam_date` and nowhere else —
-   see `satOn_` in find.js for why that is almost all of them. */
-.qcard-sat { display: block; margin-top: .35rem; font-size: .62rem; color: var(--faint); }
-
-/* WHAT TO BRING. Gold rather than faint, and that is the one difference from the line above it: a
-   sitting date confirms you have the right paper, where "No calculator · Printed sheet" is an
-   instruction you have to act on before the lesson starts. It is the only thing on this card a
-   person has to DO something about, so it is the only thing wearing the accent. */
-.qcard-needs { display: block; margin-top: .15rem; font-size: .64rem; color: var(--gold); }
+/* `.qcard-sat` AND `.qcard-needs` WERE HERE -- the day the paper was sat, a faint line under the tags,
+   and what to bring, a gold one under that. Both are tags in the row now (`qTags_` in find.js): the
+   day in the sitting's colour, and what to bring in `--tag-needs`, once -- the gold line said "No
+   calculator" under a grey tag that said "Non-Calculator", which is the fault that was reported. */
 /* `.qcard-peek` AND `.qcard:active` WERE HERE — the clipped first line, and the press animation for
    a card that was a button. Neither has anything to do: the card is not tappable, because there is
    nothing left to open. */
@@ -10310,8 +10345,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
    "Write down the mathematical name for the type of angle marked y", with no angle anywhere on the
    card, reads as a question that failed to load. The figure moved to its own card (history 204) and
    the words it left behind still point at it, so one quiet line says where it went. A label, not a
-   control -- the page turns the way every page does -- and `--faint`, because `.qcard-needs` above is
-   the only thing on this card allowed the accent. */
+   control -- the page turns the way every page does -- and `--faint`, because it is a pointer and not
+   a fact about the question; the facts are the tags at the top. */
 .qsheet-figref { margin: .6rem 0 0; font: 500 .66rem/1.3 var(--font); color: var(--faint);
                  letter-spacing: .04em; }
 

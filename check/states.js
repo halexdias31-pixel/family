@@ -118,11 +118,13 @@ const STATES = {
                          { field: 'kindLabel', value: 'Questions' },
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Worksheet' },
-                         /* `Level · KS2 SATs`, WHERE THIS WAS `Key stage · KS2` — *"I prefer GCSE or
-                            SATs over grey areas."* A primary sheet's key stage is said as its
-                            qualification now, and Key stage is silent on it (see `keystage` in
-                            find.js), so the old answer reached nothing and the state went unmeasured. */
-                         { field: 'level', value: 'KS2 SATs' },
+                         /* `Level · SATs` AND THEN `Key stage · KS2`. This was `Key stage · KS2`,
+                            then `Level · KS2 SATs` when a primary sheet's key stage became its
+                            qualification -- *"I prefer GCSE or SATs over grey areas"* -- and is two
+                            answers now: *"sats is one tag not ks2 sats"*. The level is SATs and
+                            Key stage is asked inside it, and only there (see `keystage` in find.js). */
+                         { field: 'level', value: 'SATs' },
+                         { field: 'keystage', value: 'KS2' },
                          { field: 'yearGroup', any: true }];
         paintStuff();
         goPage('stuff', 0, true);
@@ -244,16 +246,19 @@ const STATES = {
         goPage('stuff', stuffFirstResult_(), true);
       },
       /* AND THE CARD'S SITTING IS TWO TAGS, `2017` THEN `June` — *"Fix this why it say June and year
-         in same chip"* was a screenshot of one purple `June 2024` pill on exactly this card. */
+         in same chip"* was a screenshot of one purple `June 2024` pill on exactly this card. THEN THE
+         DAY IT WAS SAT, `sat Thursday 8 June`, which was a line of its own under the tags and is a
+         sitting tag now (`qTags_`) -- with no year in it, so it is not the fused pill again. */
       expect: () => {
         const rows = document.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]');
         const groups = document.querySelector('#stuff-groups');
         const card = document.querySelector('#s-stuff .page.on .qcard') || document.querySelector('#s-stuff .qcard');
         const sit = card ? [...card.querySelectorAll('.qtag[data-tag="sitting"]')].map(t => t.textContent.trim()) : [];
         return !!groups && rows.length === 0 && /That is the paper, in order/.test(groups.textContent)
-               && !!card && sit.join('|') === '2017|June';
+               && !!card && sit.slice(0, 2).join('|') === '2017|June'
+               && sit.slice(2).every(t => /^sat [A-Z][a-z]+ \d{1,2} [A-Z][a-z]+$/.test(t));
       },
-      wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it, its sitting tagged 2017 then June',
+      wants: 'a funnel page asking nothing after Paper, with the paper\'s first question on the page after it, its sitting tagged 2017 then June (then the day it was sat, with no year)',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- AN ANSWER ONE LETTER LONG ---------------------------------------------------------
        A CHIP IS AS WIDE AS ITS WORDS, and the letter ranges `bucketValues_` groups a long list into
@@ -566,13 +571,15 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it, 'stem0'));
       },
+      /* THE PAGE'S OWN TAGS -- what it is and its number -- which replaced the gold header (`qPage_`). */
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qstem');
-        return !!c && /^Q5( · \d+ of \d+)?$/.test(c.querySelector('.qcard-top').textContent.trim().replace(/\s+/g, ' '))
+        const tag = k => ((c && c.querySelector('.qcard-tags [data-tag="' + k + '"]')) || {}).textContent || '';
+        return !!c && tag('kind') === 'Question' && /^Q5( · \d+ of \d+)?$/.test(tag('number').trim()) && !tag('marks')
                && !!c.querySelector('.qsheet-stem') && !c.querySelector('.qp-ans, svg')
                && !!c.querySelector('.qsheet-figref');
       },
-      wants: 'the stem of Q5 on its own page, headed Q5 (1 of 2: its table makes it two), no box and no picture, saying what is next',
+      wants: 'the stem of Q5 on its own page, tagged Question and Q5 (1 of 2: its table makes it two), no marks, no box and no picture, saying what is next',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     { name: 'its figure, the page after, with no question number',
       enter: () => {
@@ -585,11 +592,12 @@ const STATES = {
       },
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qfig');
-        return !!c && !/\bQ\d/.test(c.querySelector('.qcard-top').textContent)
-               && /^Figure/.test(c.querySelector('.qcard-top').textContent.trim())
+        const row = c && c.querySelector('.qcard-tags');
+        return !!row && !/\bQ\d/.test(row.textContent) && !row.querySelector('[data-tag="number"], [data-tag="marks"]')
+               && /^Figure/.test((row.querySelector('[data-tag="kind"]') || {}).textContent || '')
                && !!c.querySelector('figure svg') && !c.querySelector('.qp-ans');
       },
-      wants: 'the Venn diagram on its own page, headed Figure, with no question number and no box',
+      wants: 'the Venn diagram on its own page, tagged Figure first, with no question number, no marks and no box',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A DRAWING QUESTION WITH NO PICTURE: A SQUARED GRID UNDER THE PEN ----------------------
        *"some questions require answers on diagram. So should have a diagram for them to draw on"*. The
@@ -612,10 +620,10 @@ const STATES = {
         const c = document.querySelector('#s-stuff .page.on .qcard.qfig');
         return !!c && c.getAttribute('data-of') === window.__surfRow
                && !!c.querySelector('.qpad .qpad-art > svg.qsurf.is-grid')
-               && c.querySelector('.qcard-top').textContent.trim() === 'Squared grid'
+               && ((c.querySelector('.qcard-tags [data-tag="kind"]') || {}).textContent || '') === 'Squared grid'
                && /not the paper.s own figure/i.test(c.textContent);
       },
-      wants: 'a squared grid on its own page after its question, under the pen, headed "Squared grid" and saying it is not the paper\'s figure',
+      wants: 'a squared grid on its own page after its question, under the pen, tagged "Squared grid" and saying it is not the paper\'s figure',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- A CONSTRUCTION, WITH A RULER'S LINE AND A COMPASS'S RING ON IT -----------------------------
        *"some questions require a compass or ruler. so should have a tile for these things."* November 2019
@@ -733,7 +741,7 @@ const STATES = {
       expect: () => {
         const c = document.querySelector('#s-stuff .page.on .qcard.qpre');
         return !!c && !c.querySelector('.qp-ans') && /Continued on the next page/.test(c.textContent)
-               && /1 of \d/.test(c.querySelector('.qcard-top').textContent);
+               && /1 of \d/.test((c.querySelector('.qcard-tags [data-tag="number"]') || {}).textContent || '');
       },
       wants: 'the first page of a long part: its reading, no box, "1 of N", saying it continues',
       leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
@@ -754,13 +762,42 @@ const STATES = {
         paintStuff();
         goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
       },
+      /* IN THE TILE ROW, BESIDE THE STAR -- the gold header it sat in became tags, and the date is yours
+         like the star is (`questionTiles_`). */
       expect: () => {
-        const s = document.querySelector('#s-stuff .page.on .qcard-top .qcard-done');
-        return !!s && /^Done 4 Oct( \d{4})?$/.test(s.textContent);
+        const s = document.querySelector('#s-stuff .page.on .tile-row .qcard-done');
+        return !!s && /^Done 4 Oct( \d{4})?$/.test(s.textContent)
+               && !document.querySelector('#s-stuff .page.on .qcard .qcard-done');
       },
-      wants: 'the question card saying "Done 4 Oct" beside its marks',
+      wants: 'the question card\'s tile row saying "Done 4 Oct" beside the star',
       leave: () => { try { localStorage.removeItem(window.__doneKey); } catch (e) {}
                      STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
+    /* ---------- A KS2 SATs QUESTION: `SATs` AND `KS2`, TWO TAGS, AND WHAT TO BRING AS ITS OWN ---------
+       *"why is ks2 sats one tag? it should be sats. if they want to specify key stage then it should be
+       its own thing."* and *"why do the questions say non calculator but its not a tag?"* One row, named:
+       the May 2024 Reasoning paper's first question, which asks for a ruler -- so the card wears the
+       page's own tags, the level and the key stage as two blue pills, and a needs pill in its own
+       colour, every one of which `ui.js` measures for contrast and for fitting at 320. Reached by the
+       funnel's Paper answer, as a thumb reaches it. */
+    { name: 'a KS2 SATs question, SATs and KS2 as two tags',
+      enter: () => {
+        const it = stuffItemsAll_().find(x => x.kind === 'question' && x.row && x.row.row_id === 'Q-STA-KS2-2024-P2-1');
+        if (!it) throw new Error('Q-STA-KS2-2024-P2-1 is not in the library');
+        const facet = FACETS.find(f => f.field === 'paperId');
+        STUFF.filters = [{ field: 'paperId', value: facet.of(it) }];
+        paintStuff();
+        goPage('stuff', (typeof stuffFirstResult_ === 'function' ? stuffFirstResult_() : 1) + stuffPageOf_(it));
+      },
+      expect: () => {
+        const row = document.querySelector('#s-stuff .page.on .qcard .qcard-tags');
+        const tags = row ? [...row.querySelectorAll('.qtag')].map(t => (t.getAttribute('data-tag') || '') + ':' + t.textContent.trim()) : [];
+        return tags[0] === 'kind:Question' && tags[1] === 'number:Q1' && tags.indexOf('level:SATs') >= 0
+               && tags.indexOf('level:KS2') === tags.indexOf('level:SATs') + 1
+               && !tags.some(t => /KS\s*\d\s*SATs/i.test(t)) && tags.indexOf('needs:Ruler') >= 0
+               && !document.querySelector('#s-stuff .page.on .qcard-needs, #s-stuff .page.on .qcard-top');
+      },
+      wants: 'a KS2 SATs question tagged Question, Q1, its mark, then SATs and KS2 side by side and Ruler as what to bring -- no header line, no needs line',
+      leave: () => { STUFF.filters = []; paintStuff(); goPage('stuff', 0); } },
     /* ---------- THE ANSWER PAGE: HIDDEN, TURNED TO, AND SHOWN ----------------------------------------
        ASKED FOR AS "what I want was answers to be short and to be their own widget" -- the answer is
        the page after its question (`questionAnsCard_`) -- and then *"remove all 'why's. I just want

@@ -58,6 +58,28 @@ const typeset_ = (() => {
   return eval('(' + body + ')');
 })();
 
+/* ---------- AND HOW THE TAG ROW SAYS WHAT TO BRING AND WHAT IT IS WORTH, CUT THE SAME WAY ------------
+   THE COPY BELOW DREW PILLS THE APP DOES NOT. A reviewer read it against `qPage_`: no `data-tag` on
+   anything, `1 marks` on a one-mark question, and `Paper 1 (Non-Calculator)` kept whole beside an
+   added `No calculator` -- where the real row draws `Paper 1` and `Non-calculator`. A card measured
+   with other pills is the fixture that sends what `doGet` does not. So the four pieces that decide
+   those words are cut out of find.js by name, as `typeset_` is, and cannot drift from it -- with
+   `qPartName_`, because the number is `Q1.1` and `Q5a(i)`, not the cells run together; and the
+   browser pass below asks the real `questionCard_` whether the copy's head agrees with it. */
+const TAGSAY = (() => {
+  const { cutFrom } = require(path.join(ROOT, 'js', 'check-marks-load.js'));
+  const src = fs.readFileSync(path.join(ROOT, 'js', 'find.js'), 'utf8');
+  const names = ['NEEDS_SAY', 'needsSay_', 'nameNeeds_', 'marksSay_',
+                 'ROMAN_ONLY', 'LETTER_ROMAN', 'qPartBits_', 'qPartName_'];
+  /* A ONE-LINE `const` IS TAKEN TO ITS LINE'S END: `cutFrom` counts braces, and `i{1,3}` inside the
+     part-name regexes is a brace pair that closed the cut halfway through the pattern. */
+  const cut = n => { const m = new RegExp('^const ' + n + ' = [^\\n]*;$', 'm').exec(src);
+    return m && !/[{(]\s*$/.test(m[0]) && /^const \w+ = \//.test(m[0]) ? m[0] : cutFrom(src, n); };
+  const gone = names.filter(n => !cut(n));
+  if (gone.length) { console.log('check/cards.js: cannot find ' + gone.join(', ') + ' in find.js — renamed?'); process.exit(1); }
+  return new Function(names.map(cut).join('\n') + '\nreturn { needsSay_, nameNeeds_, marksSay_, qPartName_ };')();
+})();
+
 /* ---------- WHAT COUNTS AS A FAILURE, AND IT IS DELIBERATELY ONE THING ----------------------------
    A ROW WIDER THAN THE COLUMN IT IS IN. Not "wider than the window" — see CLAUDE.md on why that
    question returns 156 false alarms in an app whose screens are parked off-canvas. The column here
@@ -125,32 +147,56 @@ function cardHtml(r, stems) {
      *"Fix this why it say June and year in same chip"*. Two short pills wrap differently from one long
      one, so the copy cuts it the same way or it measures a card nobody draws. */
   const MONTH_RE = /^((?:\d{1,2}\s+)?(January|February|March|April|May|June|July|August|September|October|November|December))\s+((?:19|20)\d{2})$/i;
-  const tagBits = [r.band_value || r.key_stage || '']
-    .concat(String(r.name || '').split(/\s[\u2014\u2013]\s|\s*:\s*/))
-    .map(t => String(t).trim()).filter(Boolean)
-    .reduce((out, t) => { const m = MONTH_RE.exec(t); return out.concat(m ? [m[3], m[1]] : [t]); }, []);
-  const tags = `<span class="qtags">${tagBits.map(t => `<span class="qtag">${t}</span>`).join('')}</span>`;
+  /* `SATs` AND `KS2`, TWO PILLS WHERE THERE WAS ONE -- *"sats is one tag not ks2 sats"* (`levelOf_`). */
+  const lvl = String(r.band_value || r.key_stage || '');
+  const sats = /^ks\s*([12])\s*sats$/i.exec(lvl);
+  /* THE CALCULATOR OUT OF THE NAME AND INTO WHAT TO BRING, as `qTags_` does with `nameNeeds_`: each
+     piece of the name loses it, and the cover's word and the row's are one list, calculator first,
+     in `needsSay_`'s spelling. `needs` on the cover is `needsIndex_`'s, handed in as `r.coverNeeds`. */
+  const kit = [];
+  const bring = v => { const t = String(v || '').trim(); if (t && !kit.some(k => k.toLowerCase() === t.toLowerCase())) kit.push(t); };
+  const nameBits = String(r.name || '').split(/\s[\u2014\u2013]\s|\s*:\s*/).map(t => {
+    const cut = TAGSAY.nameNeeds_(t);
+    if (cut.need) bring(cut.need);
+    return cut.what;
+  });
+  String(r.coverNeeds || '').split(',').concat(String(r.needs || '').split(',')).forEach(bring);
+  /* `Printed sheet` off either of the two disjoint columns, as `libraryInto_` and `needsOf_` read it. */
+  const yes = v => /^(true|yes|1|y|on)$/i.test(String(v == null ? '' : v).trim());
+  if (yes(r.needs_print) || yes(r.print_required)) bring('Printed sheet');
+  const calcFirst = kit.filter(v => /calculator/i.test(v)).concat(kit.filter(v => !/calculator/i.test(v)));
+  const tagBits = (sats ? ['SATs', 'KS' + sats[1]] : [lvl]).map(t => ['level', t])
+    .concat(nameBits.map(t => ['', t]))
+    .map(([k, t]) => [k, String(t).trim()]).filter(([, t]) => t)
+    .reduce((out, [k, t]) => { const m = MONTH_RE.exec(t); return out.concat(m ? [['sitting', m[3]], ['sitting', m[1]]] : [[k, t]]); }, [])
+    .concat(calcFirst.map(t => ['needs', TAGSAY.needsSay_(t)]));
+  /* ---------- AND THE HEAD IS TAGS TOO -----------------------------------------------------------
+     *"the marks should also be a tag. also the question numbers should also be a tag."* The gold
+     header line is gone; `qPage_` in find.js draws what the page is, its number and its marks as the
+     first three pills of the one row, so the copy does the same -- three more pills wrap the row
+     onto another line, and a card one line taller is the thing this file measures. Each pill carries
+     its `data-tag` as the app's does, so a selector that reads the kind reads it here too. */
+  const pill = ([k, t]) => `<span class="qtag"${k ? ` data-tag="${k}"` : ''}>${t}</span>`;
+  const head = (kind, num, marks) => `<div class="qtags qcard-tags">${[['kind', kind]]
+    .concat(num ? [['number', num]] : [])
+    .concat(marks && TAGSAY.marksSay_(r) ? [['marks', TAGSAY.marksSay_(r)]] : [])
+    .concat(tagBits).map(pill).join('')}</div>`;
   const stemCards = pre.map(p => (p.html ? `<div class="qcard qstem" data-row="${p.row_id}#stem">
-    <div class="qcard-top"><b>Q${r.question || ''}</b></div>
-    <p class="qcard-sub">${tags}</p>
+    ${head('Question', 'Q' + (r.question || ''), false)}
     <div class="qsheet"><div class="qsheet-stem${String(p.placeholder) === 'True' ? ' is-standin' : ''}"
         >${typeset_(p.html)}</div></div>
   </div>` : '') + ((p.diagram || p.images) ? `<div class="qcard qfig" data-row="${p.row_id}#sfig">
-    <div class="qcard-top"><b>Figure</b></div>
-    <p class="qcard-sub">${tags}</p>
+    ${head('Figure', '', false)}
     <div class="qsheet">${fig(p.diagram) + pics(p.images)}</div>
   </div>` : '')).join('');
   return `${stemCards}<div class="qcard" data-row="${r.row_id}">
-    <div class="qcard-top"><b>Q${r.question || ''}${r.part || ''}</b>
-      <span>${r.marks || 0} marks</span></div>
-    <p class="qcard-sub">${tags}</p>
+    ${head('Question', 'Q' + (r.question || '') + TAGSAY.qPartName_(r.part), true)}
     <div class="qsheet">
       ${r.lead ? `<div class="qsheet-lead">${typeset_(r.lead)}</div>` : ''}
       <div class="qsheet-part"><div class="qsheet-pb">${typeset_(r.html)}</div></div>
     </div>
   </div>${figs ? `<div class="qcard qfig" data-row="${r.row_id}#fig">
-    <div class="qcard-top"><b>Figure</b></div>
-    <p class="qcard-sub">${tags}</p>
+    ${head('Figure', '', false)}
     <div class="qsheet">${figs}</div>
   </div>` : ''}`;
 }
@@ -264,6 +310,17 @@ function outside(svg, row) {
       stems.paper[r.paper_id] = r;
     }
   });
+
+  /* WHAT THE COVER SAYS TO BRING, the index `needsIndex_` builds off the document rows -- a calculator
+     paper's questions mostly do not repeat it, so a copy that read only the part's own cell drew no
+     calculator tag on the cards the app draws one on. */
+  const cover = {};
+  rows.forEach(r => {
+    if (!r || String(r.kind || '').toLowerCase() !== 'document') return;
+    const pid = r.paperId || r.paper_id || r.paper;
+    if (pid) cover[pid] = String(r.needs || '');
+  });
+  parts.forEach(r => { r.coverNeeds = cover[r.paperId || r.paper_id || r.paper] || ''; });
 
   if (!parts.length) {
     console.error('no question rows found — this check cannot see its subject, which is not a pass');
@@ -539,8 +596,11 @@ function outside(svg, row) {
           if ((k === 'fig' || k === 'sfig') && !el.querySelector('svg, .qpic, img')) {
             inline.push(el.dataset.row + ' is a figure page that draws no picture');
           }
-          if ((k === 'fig' || k === 'sfig') && /\bQ\d/.test((el.querySelector('.qcard-top') || {}).textContent || '')) {
-            inline.push(el.dataset.row + ' is a figure page with a question number in its header');
+          /* THE NUMBER IS A TAG NOW (`qPage_`), so a figure page with one is a `number` tag in its row --
+             or a `Q3` anywhere in the row, which is how the gold header used to say it. */
+          const fRow = el.querySelector('.qcard-tags');
+          if ((k === 'fig' || k === 'sfig') && (!fRow || fRow.querySelector('[data-tag="number"]') || /\bQ\d/.test(fRow.textContent))) {
+            inline.push(el.dataset.row + (fRow ? ' is a figure page with a question number in its tag row' : ' is a figure page with no tag row'));
           }
           const h = el.getBoundingClientRect().height;
           if (h > cap) { kinds[k].tall++; tall.push({ row: el.dataset.row, kind: k, px: Math.round(h - cap) }); }
@@ -552,6 +612,51 @@ function outside(svg, row) {
   };
   const qtall = await qtallAt(WIDTH, PHONE_H);
   const qtallBig = await qtallAt(390, 844);
+  /* ---------- THE COPY'S HEAD, ASKED OF THE APP'S ------------------------------------------------
+     `cardHtml` is a copy, and a copy is only worth measuring while it draws what the app draws. So for
+     every question card the facts the copy is responsible for -- what the page is, its number, its
+     marks and what to bring, each by its `data-tag` -- are read off the copy and off the real
+     `questionCard_` and must be the same pills in the same order -- and so must ANY pill with
+     `calculator` in it, whatever its kind, because the fault was the name keeping its
+     `(Non-Calculator)` beside the needs tag that says it. The number is compared only where
+     the part fits on one page: `Q5 · 1 of 2` is `qNumSay_` counting pages, which the copy does not
+     cut. The rest of the row (board, tier, paper) changes a width only as much as its words do, and
+     its words are the name's. */
+  const KEEP = { kind: 1, number: 1, marks: 1, needs: 1 };
+  const said = html => {
+    const m = /<div class="qtags qcard-tags">([\s\S]*?)<\/div>/.exec(html);
+    const out = [];
+    if (m) m[1].replace(/<span class="qtag"(?: data-tag="(\w+)")?>([\s\S]*?)<\/span>/g, (_, k, t) => {
+      const text = t.replace(/&amp;/g, '&').trim();
+      if (KEEP[k] || /calculator/i.test(text)) out.push((k || '-') + ':' + text);
+      return '';
+    });
+    return out;
+  };
+  const copied = {};
+  parts.forEach(r => {
+    const html = cardHtml(r, stems);
+    const at = html.indexOf('<div class="qcard" data-row="' + r.row_id + '">');
+    if (at >= 0) copied[r.row_id] = said(html.slice(at));
+  });
+  const drift = await pracPage.evaluate(copied => {
+    if (typeof stuffItems !== 'function' || typeof questionCard_ !== 'function') return null;
+    const out = []; let n = 0;
+    stuffItems().filter(x => x.kind === 'question' && x.row && copied[x.row.row_id]).forEach(x => {
+      const div = document.createElement('div');
+      div.innerHTML = questionCard_(x, 0);
+      const real = [...div.querySelectorAll('.qcard-tags .qtag')]
+        .filter(t => ({ kind: 1, number: 1, marks: 1, needs: 1 })[t.dataset.tag] || /calculator/i.test(t.textContent))
+        .map(t => (t.dataset.tag || '-') + ':' + t.textContent.trim());
+      const copy = copied[x.row.row_id].slice();
+      const cut = real.some(t => /^number:.* · \d+ of \d+$/.test(t));
+      const a = cut ? real.filter(t => !/^number:/.test(t)) : real;
+      const b = cut ? copy.filter(t => !/^number:/.test(t)) : copy;
+      n++;
+      if (a.join(' | ') !== b.join(' | ')) out.push(x.row.row_id + '  app: ' + a.join(' | ') + '   copy: ' + b.join(' | '));
+    });
+    return { n: n, out: out };
+  }, copied);
   await pracPage.setViewportSize({ width: WIDTH, height: PHONE_H });
 
   await pracPage.evaluate('window.__measure = ' + measure.toString());
@@ -762,14 +867,24 @@ function outside(svg, row) {
   bad.push(...guides.wide);
   /* `practicals.tall` IS OUT OF THIS TEST, with the rule it belongs to: it counts cards taller than
      the fold, and the pane scrolls them. The question count beside it was never in it. */
-  const inline = qtall === -1 ? ['questionCard_ could not be reached, so where the pictures are was NOT checked']
-                               : qtall.inline;
+  const inline = (qtall === -1 ? ['questionCard_ could not be reached, so where the pictures are was NOT checked']
+                               : qtall.inline);
+  const drifted = !drift ? ['questionCard_ could not be reached, so the copy\'s tag row was NOT compared with it']
+    : !drift.n ? ['no question card was compared with the copy\'s tag row -- this check cannot see its subject']
+    : drift.out;
+  console.log('\nthe copy\'s kind, number, marks and needs pills, compared with questionCard_ on '
+    + (drift ? drift.n : 0) + ' cards: ' + drifted.length + ' differ');
+  if (drifted.length) {
+    console.log('THE COPY IN cardHtml DRAWS OTHER PILLS THAN THE APP  (' + drifted.length + ') — measured cards are not drawn cards');
+    drifted.slice(0, ALL ? drifted.length : 10).forEach(l => console.log('  ' + l));
+    if (!ALL && drifted.length > 10) console.log('  … and ' + (drifted.length - 10) + ' more');
+  }
   if (inline.length) {
     console.log('\nA PICTURE NOT ON ITS OWN FIGURE PAGE  (' + inline.length + ')');
     inline.slice(0, 10).forEach(l => console.log('  ' + l));
     if (inline.length > 10) console.log('  … and ' + (inline.length - 10) + ' more');
   }
-  if (!bad.length && !painted.length && !guides.order.length && !inline.length) {
+  if (!bad.length && !painted.length && !guides.order.length && !inline.length && !drifted.length) {
     /* IT SAID "EVERY QUESTION FITS THE NARROWEST PHONE" AND MEANT ITS WIDTH. That was true and
        read as more than it said, which is the "all 18 checks pass" shape one more time: the
        question pass asks about the column and the count above asks about the fold, and 431 rows
@@ -778,6 +893,8 @@ function outside(svg, row) {
               + '     narrowest phone, and every label in every drawing is inside the drawing.'
               + '\n     The picture of a practical comes before the things it is made of, once each,'
               + '\n     and every question\'s picture is on its own figure page, none on the card.'
+              + '\n     The copy it measures draws the app\'s kind, number, marks and needs pills on all '
+              + drift.n + ' question cards.'
               /* IT SAID "every practical card fits the pane it is drawn in" AND 77 OF 82 DO NOT.
                  That was true while the guide opened in a sheet and stopped being true the hour it
                  came back onto the card — a confident sentence outliving the thing it described,

@@ -2898,9 +2898,11 @@ const QUAL_SUBJECTS = [
    could only be typed in. This is what somebody can HOLD, school to doctorate, in the order they get
    it; then the three certificate levels a DBS check comes at, so `DBS · Enhanced` is two picks rather
    than one subject spelling the level out. A level already saved that is not here is kept as its
-   chosen option, exactly as the subject is, so the sheet's `Alevel` still shows. */
+   chosen option, exactly as the subject is, so the sheet's `Alevel` still shows.
+   `SATs`, NOT `KS2 SATs` -- *"sats is one tag not ks2 sats"* -- the word the `options` tab and Find's
+   Level question both use; a `KS2 SATs` already saved is kept as its chosen option, by the rule above. */
 const QUAL_LEVELS = [
-  'Entry Level', 'KS2 SATs', '11+', 'GCSE', 'IGCSE', 'AS', 'A-Level', 'BTEC', 'T Level',
+  'Entry Level', 'SATs', '11+', 'GCSE', 'IGCSE', 'AS', 'A-Level', 'BTEC', 'T Level',
   'International Baccalaureate', 'Access to HE', 'Foundation Degree', 'HNC', 'HND',
   "Bachelor's degree", "Master's degree", 'PGCE', 'Doctorate', 'Diploma', 'Certificate',
   'Basic', 'Standard', 'Enhanced',

@@ -1271,7 +1271,10 @@ for (const who of VISITORS) {
             const stem = /^(stem|sfig)(\d+)(?:-\d+)?$/.exec(pg.part || '');
             const pre = /^pre\d+$/.test(pg.part || '');
             const sid = stem ? (pg.x.stems[+stem[2]] || {}).id : '';
-            const head = ((el && el.querySelector('.qcard-top b')) || {}).textContent || '';
+            /* WHAT THE PAGE SAYS IT IS: its kind tag and its number tag, the two that replaced the gold
+               header line (`qPage_`). A figure page's must hold no `Q<digit>`, as its header did not. */
+            const tagOf = k => ((el && el.querySelector('.qcard-tags [data-tag="' + k + '"]')) || {}).textContent || '';
+            const head = tagOf('kind') + ' ' + tagOf('number');
             let ok;
             /* ---------- AND A FIGURE WHERE THE PAPER PRINTS IT -------------------------------------------
                *"text, then diagram, then text then diagram then text ... same order but diagram has its

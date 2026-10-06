@@ -458,6 +458,10 @@ function boot(opts) {
          whether the index landed, which book failed. The Bible journey asks it rather than the DOM
          where the DOM cannot say, such as whether a failure changed the open book. */
       'BIBLE: () => (typeof BIBLE !== "undefined" ? BIBLE : null),' +
+      /* A FACET BY ITS FIELD -- a `const` arrow, so only this evaluation can hand it over. The tag-row
+         journey asks the `needs` facet's `showOf` whether the funnel says the calculator the way the
+         card's tag does. */
+      'facetBy: f => facetBy(f),' +
       /* THE MESSAGES COLUMN'S STATE, SEEDED AS AN ANSWER JUST ARRIVED — the same five lets
          `check/states.js` sets in a browser, and for the same reason they are set together: a seed
          that leaves `DM_LAST` alone is one poll away from being replaced by the stub's empty answer.
@@ -6291,6 +6295,14 @@ check('an answer draws its result and nothing else: no Why, no working, no exami
   return bad;
 });
 
+/* WHAT A PAGE OF A QUESTION SAYS IT IS: its kind tag and its number tag -- `Question Q4a`, `Figure 3`,
+   `Answer Q4a`, `Question Q5 · 1 of 2`. Those two tags replaced the gold header line (`qPage_` in
+   find.js), so the journeys that read `.qcard-top b` read this instead: the same two facts, in the
+   order the row draws them. `tagText` is one kind's text, or '' where the row has none. */
+const tagText = (root, kind) => (((root && root.querySelector('.qcard-tags .qtag[data-tag="' + kind + '"]')) || {})
+  .textContent || '').replace(/\s+/g, ' ').trim();
+const pageHead = root => [tagText(root, 'kind'), tagText(root, 'number')].filter(Boolean).join(' ');
+
 /* ---------- MARKING AND REVEALING LEAVE THE QUESTION WHERE IT IS -----------------------------------
    ASKED FOR AS "make it nice more sleek, fresh stable". jsdom lays nothing out, so the PIXELS are
    `check/states.js`'s to measure ("marked not yet, nothing moved" and its two siblings, in a real
@@ -6317,16 +6329,18 @@ check('marking, revealing and tapping leave the question where it is, and typing
   ['qp-check', 'qa-go', 'qp-choose'].forEach(a => { if (!A[a]) bad.push(a + ' has no handler'); });
   if (bad.length) return bad;
   const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
+  /* THE TAG ROW AND THE QUESTION. There was a gold header line above the tags; everything it said is a
+     tag now (`qPage_`), so the row is the card's whole head and is held as one block. */
   const still = card => {
-    const top = ['.qcard-top', '.qcard-sub', '.qsheet'].map(s => card.querySelector(s));
+    const top = ['.qcard-tags', '.qsheet'].map(s => card.querySelector(s));
     return { top, html: top.map(n => n && n.outerHTML), kids: [...card.children] };
   };
   const same = (a, card, when) => {
     const b = still(card);
     a.top.forEach((n, i) => {
-      if (!n) return bad.push(when + ': the card has no ' + ['header', 'tags', 'question'][i]);
-      if (n !== b.top[i]) bad.push(when + ': the ' + ['header', 'tags', 'question'][i] + ' was redrawn rather than left alone');
-      else if (a.html[i] !== b.html[i]) bad.push(when + ': the ' + ['header', 'tags', 'question'][i] + '\'s markup changed');
+      if (!n) return bad.push(when + ': the card has no ' + ['tag row', 'question'][i]);
+      if (n !== b.top[i]) bad.push(when + ': the ' + ['tag row', 'question'][i] + ' was redrawn rather than left alone');
+      else if (a.html[i] !== b.html[i]) bad.push(when + ': the ' + ['tag row', 'question'][i] + '\'s markup changed');
     });
     /* BY THE BLOCK'S FIRST CLASS, which names what it is; `is-near`, `is-done` and `is-shut` are the
        states marking is SUPPOSED to change. */
@@ -6634,7 +6648,7 @@ check('an answer is its own page after its question, hidden from everybody alike
   if (q.querySelector('.qans, .qans-body') || q.textContent.indexOf(SECRET) >= 0) bad.push('the question card still draws the answer');
   if (!q.querySelector('.qp-ans')) bad.push('the question card lost its answer box');
   if (!el(w.questionTiles_(base)).querySelector('[data-do="qa-go"]')) bad.push('a question with an answer has no tile to its answer page');
-  if (w.questionTiles_(none)) bad.push('a question with no answer offers a tile to an answer page that does not exist');
+  if (el(w.questionTiles_(none)).querySelector('[data-do="qa-go"]')) bad.push('a question with no answer offers a tile to an answer page that does not exist');
   /* HIDDEN, signed out. */
   if (w.__t.isTutorRole()) bad.push('signed out reads as staff, so the hidden page was NOT checked');
   const hid = el(w.questionAnsCard_(base));
@@ -6890,11 +6904,12 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   const q = el(w.questionCard_(a));
   if (q.querySelector('.qsheet-stem') || /AKU is a genetic/.test(q.textContent)) bad.push('the part\'s card still prints the stem it now follows');
   const s = el(w.questionStemCard_(a, 0));
-  const sHead = (s.querySelector('.qcard-top') || {}).textContent || '';
+  const sHead = pageHead(s);
   if (!s.querySelector('.qcard.qstem[data-of="S-ORD-3"] .qsheet-stem')) bad.push('the stem page does not draw the stem or name its row');
-  if (sHead.replace(/\s+/g, ' ').trim() !== 'Q3') bad.push('the stem page\'s header reads "' + sHead.trim() + '", wanted the question\'s number alone, Q3');
+  if (sHead !== 'Question Q3') bad.push('the stem page is tagged "' + sHead + '", wanted Question and the question\'s number alone, Q3');
+  if (tagText(s, 'marks')) bad.push('the stem page carries the marks "' + tagText(s, 'marks') + '" -- they are each part\'s');
   if (!s.querySelector('.qsheet-figref')) bad.push('a stem whose figure is the next page does not say so');
-  const head = html => ((el(html).querySelector('.qcard-top b') || {}).textContent || '').trim();
+  const head = html => pageHead(el(html));
   const sf = w.questionStemFigCard_(a, 0);
   if (head(sf) !== 'Figure 3') bad.push('the stem\'s figure is headed "' + head(sf) + '", wanted Figure 3');
   if (!el(sf).querySelector('.qfig[data-of="S-ORD-3"] svg')) bad.push('the stem\'s figure page does not draw its picture');
@@ -6902,7 +6917,9 @@ check('a question\'s pages follow the paper: its stem and that stem\'s figure fi
   const plain = part('d', { stems: [], diagram: svg, html: '<p>Measure the angle.</p>' });
   if (head(w.questionFigCard_(plain)) !== 'Figure') bad.push('a figure the paper does not number is headed "' + head(w.questionFigCard_(plain)) + '", wanted Figure');
   [sf, w.questionFigCard_(c), w.questionFigCard_(plain)].forEach(h => {
-    if (/\bQ\d/.test(el(h).querySelector('.qcard-top').textContent)) bad.push('a figure page carries a question number: ' + el(h).querySelector('.qcard-top').textContent.trim());
+    const row = el(h).querySelector('.qcard-tags');
+    if (!row) bad.push('a figure page has no tag row');
+    else if (tagText(el(h), 'number') || tagText(el(h), 'marks') || /\bQ\d/.test(row.textContent)) bad.push('a figure page carries a question number or marks: ' + row.textContent.replace(/\s+/g, ' ').trim());
   });
   if (el(w.questionCard_(c)).querySelector('.qsheet-figref')) bad.push('(c), whose own figure stands in front of it, points forward at a figure');
   if (el(w.questionCard_(b)).querySelector('.qsheet-figref')) bad.push('(b) points at a figure page it does not have -- the stem\'s figure is in front of it, not after');
@@ -6949,7 +6966,7 @@ check('a page too long for a phone is cut between paragraphs, and the ask stays 
     lead: '<p>Lead</p>', html: '<p>Work out 3 + 4</p>' };
   if (JSON.stringify(w.pageParts_(short)) !== '[null]') bad.push('a short part was cut: ' + JSON.stringify(w.pageParts_(short)));
   const sc = el(w.questionCard_(short));
-  if (!sc.querySelector('.qsheet-lead') || !sc.querySelector('.qsheet-part > .qsheet-pb') || /of \d/.test(sc.querySelector('.qcard-top b').textContent)) bad.push('a short part lost its wrappers or says "1 of 1"');
+  if (!sc.querySelector('.qsheet-lead') || !sc.querySelector('.qsheet-part > .qsheet-pb') || /of \d/.test(tagText(sc, 'number'))) bad.push('a short part lost its wrappers or says "1 of 1"');
   const parts = w.pageParts_(long);
   const pre = parts.filter(p => /^pre\d+$/.test(p || ''));
   if (!pre.length) bad.push('a part of eight paragraphs, a table and an ask was not cut: ' + JSON.stringify(parts));
@@ -6974,7 +6991,7 @@ check('a page too long for a phone is cut between paragraphs, and the ask stays 
     });
     if (pages.some(p => p.querySelectorAll('table').length > 1 || (p.querySelector('table') && p.querySelectorAll('table tr').length !== 7))) bad.push('the table was cut between its rows');
     const n = pages.length;
-    if (!new RegExp('^Q2\\.4 · ' + n + ' of ' + n + '$').test(card.querySelector('.qcard-top b').textContent.trim())) bad.push('the card is headed "' + card.querySelector('.qcard-top b').textContent.trim() + '", wanted Q2.4 · ' + n + ' of ' + n);
+    if (!new RegExp('^Q2\\.4 · ' + n + ' of ' + n + '$').test(tagText(card, 'number'))) bad.push('the card\'s number tag reads "' + tagText(card, 'number') + '", wanted Q2.4 · ' + n + ' of ' + n);
     /* THE TILE turns from the card to the answer, past the pre pages in front of it. */
     const strip = el('<div id="s-cuttest">' + parts.map(p => p === null
       ? '<section class="page"><div class="tile-row">' + w.questionTiles_(long) + '</div></section>' : '<section class="page"></section>').join('') + '</div>');
@@ -7041,7 +7058,7 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
   const svg = n => '<svg viewBox="0 0 340 200"><text x="10" y="20">' + n + '</text></svg>';
   const row = id => ({ row_id: id, paper_id: 'P-FIG', subject: 'Maths', name: 'Paper 1: Foundation — June 2024' });
   const page = (x, part) => el(part ? w.stuffPart_(x, part) : w.stuffCard(x, 0));
-  const head = pg => ((pg.querySelector('.qcard-top b') || {}).textContent || '').replace(/\s+/g, ' ').trim();
+  const head = pg => pageHead(pg);
   const say = pg => { const r = pg.querySelector('.qsheet-figref'); return r ? r.textContent.replace(/\s+/g, ' ').trim() : ''; };
 
   /* ---------- THE OWNER'S SENTENCE: FIVE PAGES ------------------------------------------------- */
@@ -7056,8 +7073,8 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
     const words = ['ONE-TEXT', 'FIG-ONE', 'THREE-TEXT', 'FIG-FOUR', 'FIVE-TEXT'];
     words.forEach((t, i) => { if (drawn[i].textContent.indexOf(t) < 0) bad.push('page ' + (i + 1) + ' of the five does not hold ' + t + ': ' + drawn[i].textContent.replace(/\s+/g, ' ').trim().slice(0, 80)); });
     const heads = drawn.slice(0, 5).map(head);
-    if (JSON.stringify(heads) !== JSON.stringify(['Q5', 'Figure', 'Q5(a) · 1 of 2', 'Figure', 'Q5(a) · 2 of 2']))
-      bad.push('the five pages are headed ' + JSON.stringify(heads) + ', wanted Q5, Figure, Q5(a) · 1 of 2, Figure, Q5(a) · 2 of 2');
+    if (JSON.stringify(heads) !== JSON.stringify(['Question Q5', 'Figure', 'Question Q5(a) · 1 of 2', 'Figure', 'Question Q5(a) · 2 of 2']))
+      bad.push('the five pages are tagged ' + JSON.stringify(heads) + ', wanted Question Q5, Figure, Question Q5(a) · 1 of 2, Figure, Question Q5(a) · 2 of 2');
     if (!drawn[4].querySelector('.qp-ans') || drawn.slice(0, 4).some(p => p.querySelector('.qp-ans'))) bad.push('the box is not on the last of the words alone');
     if (say(drawn[2]) !== 'Figure on the next page →') bad.push('(a)\'s words before its figure say "' + say(drawn[2]) + '", wanted "Figure on the next page →"');
     if (say(drawn[4])) bad.push('(a)\'s ask, after its figure, still points forward: "' + say(drawn[4]) + '"');
@@ -7075,7 +7092,8 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
   else {
     const drawn = parts.map(p => page(a, p));
     const heads = drawn.map(head);
-    const wantHeads = ['Q6 · 1 of 2', 'Figure', 'Q6 · 2 of 2', 'Q6(a) · 1 of 2', 'Figure', 'Q6(a) · 2 of 2', 'Q6(a) · answer'];
+    const wantHeads = ['Question Q6 · 1 of 2', 'Figure', 'Question Q6 · 2 of 2', 'Question Q6(a) · 1 of 2', 'Figure',
+                       'Question Q6(a) · 2 of 2', 'Answer Q6(a)'];
     if (JSON.stringify(heads) !== JSON.stringify(wantHeads)) bad.push('the pages are headed ' + JSON.stringify(heads) + ', wanted ' + JSON.stringify(wantHeads));
     /* EVERY WORD ONCE AND IN ORDER, and the figures between them. */
     const text = drawn.map(p => p.textContent).join(' | ');
@@ -7085,7 +7103,7 @@ check('a figure stands where the paper prints it, on its own page: text, figure,
     /* FIGURE PAGES: a picture, its name, no number, no box. */
     [1, 4].forEach(i => {
       if (!drawn[i].querySelector('.qcard.qfig svg')) bad.push('page ' + (i + 1) + ' is not a figure page with its picture');
-      if (/\bQ\d/.test(drawn[i].querySelector('.qcard-top').textContent)) bad.push('figure page ' + (i + 1) + ' carries a question number');
+      if (tagText(drawn[i], 'number') || /\bQ\d/.test((drawn[i].querySelector('.qcard-tags') || {}).textContent || '')) bad.push('figure page ' + (i + 1) + ' carries a question number');
     });
     if (drawn.slice(0, 5).some(p => p.querySelector('.qp-ans')) || !drawn[5].querySelector('.qp-ans')) bad.push('the box is not on the page with the part\'s last words alone');
     const says = drawn.slice(0, 6).map(say);
@@ -7191,8 +7209,8 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
     if (!pad.querySelector('.qpad-g path')) bad.push('a mark stored under the pen\'s key is not drawn back on the surface');
     if (!/not the paper.s own figure/i.test(pad.textContent)) bad.push('the surface does not say it is not the paper\'s figure');
   }
-  const gHead = ((gp.querySelector('.qcard-top b') || {}).textContent || '').trim();
-  if (gHead !== 'Squared grid') bad.push('the surface page is headed "' + gHead + '", wanted "Squared grid"');
+  const gHead = pageHead(gp);
+  if (gHead !== 'Squared grid') bad.push('the surface page is tagged "' + gHead + '", wanted "Squared grid"');
   if (/\bQ\d|Figure/.test(gHead)) bad.push('the surface page claims a number or a figure: ' + gHead);
   try { w.localStorage.removeItem('pad:' + grid.key); } catch (e) {}
   const ref = (el(w.questionCard_(grid)).querySelector('.qsheet-figref') || {}).textContent || '';
@@ -7211,7 +7229,7 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
     if (got !== want) bad.push(x.row.row_id + ' gets surface "' + got + '", wanted "' + want + '"');
   });
   const coordP = el(w.questionFigCard_(q('coord2', { answerType: 'drawing' }, { figure: 'coordinate-grid' })));
-  if (!coordP.querySelector('svg.qsurf.is-coord line.axis') || (coordP.querySelector('.qcard-top b') || {}).textContent.trim() !== 'Axes') bad.push('a coordinate-grid question is not given axes on a grid, headed Axes');
+  if (!coordP.querySelector('svg.qsurf.is-coord line.axis') || pageHead(coordP) !== 'Axes') bad.push('a coordinate-grid question is not given axes on a grid, tagged Axes');
   const own = q('own', { answerType: 'drawing', diagram: svgDiag });
   if (!w.padSource_(own) || w.padSource_(own).from !== 'part' || el(w.questionFigCard_(own)).querySelector('svg.qsurf')) bad.push('a drawing question with its own picture had it replaced by a surface');
   const stemmed = q('stem', { answerType: 'drawing', stems: [{ id: 'S-SURF', html: '<p>Here is a grid.</p>', diagram: svgDiag }] });
@@ -7280,7 +7298,8 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
 
    WHAT IS ALLOWED TO DIFFER IS WHAT IS A PERSON'S, NOT A ROLE'S, and it is taken out before comparing:
    the answer box's key and the done date's (`ans:u:<id>:`, whose drawer this is), the name over the box
-   ("Ada's answer" / "Your answer"), and the star (`fav`), which needs somebody signed in to keep it for.
+   ("Ada's answer" / "Your answer"), and the star (`fav`) and the date's slot beside it (`.qcard-done`,
+   see `questionTiles_`), which need somebody signed in to keep them for.
    Anything else that differs is a role showing through, and the first difference is printed. */
 check('Find draws the same question family, practical, project and textbook for a tutor, an admin, a student and nobody', async () => {
   const read = n => JSON.parse(fs.readFileSync(path.join(dir, '..', 'data', n + '.json'), 'utf8'));
@@ -7320,8 +7339,8 @@ check('Find draws the same question family, practical, project and textbook for 
   const norm = html => {
     const h = w.document.createElement('div');
     h.innerHTML = html;
-    h.querySelectorAll('[data-do="fav"]').forEach(n => n.remove());
-    /* A ROW THAT HELD ONLY THE STAR is the star's, and goes with it. */
+    h.querySelectorAll('[data-do="fav"], .tile-row .qcard-done').forEach(n => n.remove());
+    /* A ROW THAT HELD ONLY THE STAR (and the date beside it) is the person's, and goes with them. */
     h.querySelectorAll('.tile-row').forEach(n => { if (!n.children.length) n.remove(); });
     return h.innerHTML.replace(/u:[A-Za-z0-9_-]+:/g, '').replace(/>[^<>]*(?:’|&rsquo;)s answer/g, '>WHO answer')
       .replace(/>Your answer/g, '>WHO answer');
@@ -7493,13 +7512,115 @@ check('every control on a question\'s pages is a tile, bar the options, the keys
   return bad;
 });
 
+/* ---------- EVERY FACT ABOUT A PAGE OF A QUESTION IS A TAG, IN ONE ROW AT THE TOP ------------------------
+   ASKED FOR AS *"why do the questions say non calculator but its not a tag? also the marks should also
+   be a tag. also the question numbers should also be a tag. also answers should have the answer tags
+   and questions have the question tag."* and *"why is ks2 sats one tag? it should be sats. if they want
+   to specify key stage then it should be its own thing."* Through the app's own builders, on the five
+   pages that make a question:
+     * the tag row is the card's FIRST block, and nothing of the old head is left -- no gold header
+       (`.qcard-top`), no subtitle (`.qcard-sub`), no `sat …` line, no orange `No calculator` line
+     * the first tag says what the page is -- Question, Answer, the figure's name -- then the number,
+       then the marks; the number and the marks only where they belong (no number on a figure, no
+       marks on a figure or a stem), and nothing rather than "0 marks"
+     * the calculator is ONE tag, `Non-calculator`, though the paper's name AND the cover's cell both
+       say it -- and `Calculator allowed` on a calculator paper -- in the needs colour; the funnel's
+       answer and chip say the same word
+     * a KS2 SATs page says `SATs` and `KS2` as two tags, and nothing anywhere says `KS2 SATs` */
+check('every fact about a page of a question is a tag in one row at the top: what it is, its number, its marks, SATs and KS2, the calculator once', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const t = w.__t;
+  const need = ['questionCard_', 'questionAnsCard_', 'questionFigCard_', 'questionStemCard_', 'questionStemFigCard_', 'qTags_', 'chipShow_']
+    .filter(n => typeof w[n] !== 'function');
+  if (need.length || typeof t.facetBy !== 'function') return [need.concat(['facetBy']).join(', ') + ' not reachable — renamed? The tag row was NOT checked'];
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; return h; };
+  const row = html => {
+    const card = el(html).querySelector('.qcard');
+    const r = card && card.querySelector('.qcard-tags');
+    return { card, first: card && card.firstElementChild,
+             tags: r ? [...r.querySelectorAll('.qtag')].map(s => ({ tag: s.getAttribute('data-tag') || '', text: s.textContent.trim() })) : [] };
+  };
+  const say = tags => tags.map(x => (x.tag || '-') + ':' + x.text).join(' | ');
+  const svg = '<svg viewBox="0 0 10 10"><text>FIG</text></svg>';
+  const gcse = { kind: 'question', name: 'Q4a', qNumber: '4', qPart: 'a', marks: 2, key: 'q-tags-4a',
+    sub: 'Paper 1 (Non-Calculator) — November 2018', subject: 'Maths', level: 'GCSE', keystage: 'KS4',
+    tier: 'Higher', examBoard: 'Edexcel', documentType: 'Past paper', needs: ['No calculator', 'Protractor'],
+    row: { row_id: 'Q-TAGS-4a', paper_id: 'P-TAGS-1H', name: 'Paper 1 (Non-Calculator) — November 2018' },
+    stems: [{ id: 'S-TAGS-4', html: '<p>A shape is drawn on a grid.</p>', diagram: svg }],
+    html: '<p>Work out the size of angle x.</p>', diagram: svg, answer: '<b>40</b>', accept: '40' };
+  const pages = {
+    question: w.questionCard_(gcse), answer: w.questionAnsCard_(gcse), figure: w.questionFigCard_(gcse),
+    stem: w.questionStemCard_(gcse, 0, 0), stemFigure: w.questionStemFigCard_(gcse, 0),
+  };
+  const want = {
+    question: ['kind:Question', 'number:Q4a', 'marks:2 marks'], answer: ['kind:Answer', 'number:Q4a', 'marks:2 marks'],
+    figure: ['kind:Figure'], stem: ['kind:Question', 'number:Q4'], stemFigure: ['kind:Figure'],
+  };
+  let paperFacts = null;
+  Object.keys(pages).forEach(k => {
+    const r = row(pages[k]);
+    if (!r.card) return bad.push('the ' + k + ' page drew no card');
+    if (!r.first || !r.first.classList.contains('qcard-tags')) bad.push('the ' + k + ' page\'s first block is ' + (r.first ? '.' + r.first.className : 'nothing') + ', not the tag row');
+    ['.qcard-top', '.qcard-sub', '.qcard-needs', '.qcard-sat'].forEach(c => { if (r.card.querySelector(c)) bad.push('the ' + k + ' page still draws ' + c); });
+    const head = r.tags.slice(0, want[k].length).map(x => x.tag + ':' + x.text);
+    if (JSON.stringify(head) !== JSON.stringify(want[k])) bad.push('the ' + k + ' page\'s row starts ' + JSON.stringify(head) + ', wanted ' + JSON.stringify(want[k]));
+    const rest = r.tags.slice(want[k].length);
+    if (rest.some(x => ['kind', 'number', 'marks'].indexOf(x.tag) >= 0)) bad.push('the ' + k + ' page has a page tag past its head: ' + say(r.tags));
+    /* THE PAPER'S FACTS ARE THE SAME ON EVERY PAGE OF IT. */
+    const facts = say(rest);
+    if (paperFacts === null) paperFacts = facts;
+    else if (facts !== paperFacts) bad.push('the ' + k + ' page says the paper as ' + facts + ', the question page as ' + paperFacts);
+    const calc = r.tags.filter(x => /calculator/i.test(x.text));
+    if (calc.length !== 1 || calc[0].tag !== 'needs' || calc[0].text !== 'Non-calculator') bad.push('the ' + k + ' page says the calculator as ' + JSON.stringify(calc) + ' -- wanted ONE needs tag, Non-calculator');
+    const seen = {};
+    r.tags.forEach(x => { if (seen[x.text.toLowerCase()]) bad.push('the ' + k + ' page says "' + x.text + '" twice'); seen[x.text.toLowerCase()] = 1; });
+  });
+  if (paperFacts !== null) {
+    ['level:GCSE', 'board:Edexcel', 'subject:Maths', 'tier:Higher', 'sitting:2018', 'sitting:November', 'paper:Paper 1', 'needs:Protractor']
+      .forEach(f => { if (paperFacts.split(' | ').indexOf(f) < 0) bad.push('the paper\'s facts lack ' + f + ': ' + paperFacts); });
+    if (/KS4/.test(paperFacts)) bad.push('a GCSE page says its key stage -- Key stage is asked inside SATs only: ' + paperFacts);
+  }
+  /* A CALCULATOR PAPER, AND A ROW WITH NO MARKS. */
+  const calcQ = Object.assign({}, gcse, { key: 'q-tags-c', name: 'Q3', marks: '', sub: 'Paper 2 (Calculator) — June 2017', needs: ['Calculator'],
+    row: Object.assign({}, gcse.row, { row_id: 'Q-TAGS-C', name: 'Paper 2 (Calculator) — June 2017' }), stems: [], diagram: '' });
+  const c = row(w.questionCard_(calcQ));
+  if (c.tags.filter(x => /calculator/i.test(x.text)).map(x => x.tag + ':' + x.text).join() !== 'needs:Calculator allowed') bad.push('a calculator paper says ' + say(c.tags.filter(x => /calculator/i.test(x.text))) + ', wanted one needs tag, Calculator allowed');
+  if (c.tags.some(x => x.tag === 'marks' || /\b0 marks?\b/.test(x.text))) bad.push('a row with no marks has a marks tag: ' + say(c.tags));
+  /* THE FUNNEL SAYS THE SAME WORD: the answer and the chip, through the facet's `showOf`. */
+  const nf = t.facetBy('needs');
+  const chip = w.chipShow_({ field: 'needs', value: 'No calculator' });
+  if (!nf || !nf.showOf || nf.showOf('No calculator') !== 'Non-calculator' || chip !== 'Non-calculator') bad.push('the funnel says the calculator as "' + (nf && nf.showOf ? nf.showOf('No calculator') : '?') + '" / chip "' + chip + '", the card as Non-calculator');
+  /* SATs, AND THE KEY STAGE BESIDE IT: a primary worksheet (a school year, a key-stage cell, no level)
+     and an STA paper (`band_value: KS2 SATs`). */
+  const sheet = { kind: 'question', name: 'Q1', qNumber: '1', key: 'q-tags-ws', sub: 'Adding Fractions', subject: 'Maths',
+    bandType: 'year', bandValue: '5', keystage: 'KS2', documentType: 'Worksheet', company: '1stclassmaths',
+    row: { row_id: 'Q-TAGS-WS', paper_id: 'P-TAGS-WS', name: 'Adding Fractions' }, stems: [], html: '<p>1/4 + 2/4</p>' };
+  const sta = Object.assign({}, sheet, { key: 'q-tags-sta', bandType: 'stage', bandValue: 'KS2 SATs', documentType: 'Past paper',
+    sub: 'Paper 1: Arithmetic — May 2024', examBoard: 'STA', marks: 1,
+    row: { row_id: 'Q-TAGS-STA', paper_id: 'P-TAGS-STA', name: 'Paper 1: Arithmetic — May 2024' } });
+  [['a SATs worksheet', sheet, ['kind:Question', 'number:Q1', 'level:SATs', 'level:KS2']],
+   ['an STA paper', sta, ['kind:Question', 'number:Q1', 'marks:1 mark', 'level:SATs', 'level:KS2']]].forEach(([what, x, head]) => {
+    const r = row(w.questionCard_(x));
+    const got = r.tags.slice(0, head.length).map(y => y.tag + ':' + y.text);
+    if (JSON.stringify(got) !== JSON.stringify(head)) bad.push(what + '\'s row starts ' + JSON.stringify(got) + ', wanted ' + JSON.stringify(head));
+    if (r.tags.some(y => /KS\s*\d\s*SATs/i.test(y.text))) bad.push(what + ' still says the key stage inside the level: ' + say(r.tags));
+    if (r.tags.some(y => y.tag === 'board')) bad.push(what + ' names a board beside SATs, which says who sets it: ' + say(r.tags));
+  });
+  return bad;
+});
+
 /* ---------- THE DAY A STUDENT DID A QUESTION, ON ITS CARD, FOR THEM ------------------------------------
    ASKED FOR AS *"when a student does do a question, it should record the date they did it."* Through
-   the real handlers on a real card:
-     * signed out, nothing is recorded -- the signed-out key is everybody, and a date on it is nobody's
+   the real handlers on a real card AND THE TILE ROW UNDER IT, where the date is now -- beside the star,
+   because it is yours like the star is, and the header it sat in became tags (`questionTiles_`):
+     * signed out, nothing is recorded and there is no slot -- the signed-out key is everybody, and a
+       date on it is nobody's
      * signed in, a Check (right or not yet), a tap that chooses enough, and typing into a box that has
-       no Check each write today under `done:<who>:<key>` and show `Done <d> <Mon>` in the header's slot
-     * the slot is filled where it stands: the header is the same node, its number and marks unchanged
+       no Check each write today under `done:<who>:<key>` and show `Done <d> <Mon>` in the tile row's slot
+     * the slot is filled where it stands: the slot is the same node, the tag row untouched
      * it comes back when the card is drawn again, and is the signed-in person's only -- another
        student on the same phone sees a clean card
      * where `localStorage` throws (private mode), the date is held for the visit and still shown
@@ -7523,8 +7644,9 @@ check('a signed-in student\'s attempt is dated on the question card, for them al
     row: { row_id: 'Q-DONE-8', paper_id: 'P-DONE', subject: 'Maths', name: 'Done' },
     html: '<p>Work out 3 &times; 5</p>', answer: '<b>15</b>', accept: '15' };
   const typed = Object.assign({}, base, { key: 'q-done-typed' });
-  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
-  const slot = card => card.querySelector('.qcard-top .qcard-done');
+  /* THE CARD AND ITS TILE ROW, as `stuffCard` puts them -- the date is in the row. */
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>'; d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const slot = card => card.parentNode.querySelector('.tile-row .qcard-done');
   const stored = () => Object.keys(w.localStorage).filter(k => /^done:/.test(k));
   const markIt = card => {
     const inp = card.querySelector('.qp-ans-in');
@@ -7535,19 +7657,24 @@ check('a signed-in student\'s attempt is dated on the question card, for them al
   /* SIGNED OUT. */
   w.__t.USER(null);
   const out = draw(typed);
-  if (!slot(out)) bad.push('the question card has no date slot, so a date would arrive as a new element');
+  if (slot(out)) bad.push('signed out, the tile row has a date slot -- there is nothing it could ever say');
+  if (out.querySelector('.qcard-done')) bad.push('the date slot is inside the card, not in the tile row beside the star');
   markIt(out);
   if (slot(out) && slot(out).textContent) bad.push('signed out, a Check stamped the card "' + slot(out).textContent + '"');
   if (stored().length) bad.push('signed out, a date was stored: ' + stored().join(', '));
   /* SIGNED IN. */
   w.__t.USER({ name: 'Lucca Smith', personId: 'P7', role: 'student', roles: ['student'] });
   const card = draw(typed);
-  const top = card.querySelector('.qcard-top');
-  const b0 = top.querySelector('b').outerHTML;
+  if (!slot(card)) return bad.concat(['signed in, the tile row has no date slot, so a date would arrive as a new element']);
+  if (card.querySelector('.qcard-done')) bad.push('the date slot is inside the card, not in the tile row beside the star');
+  const top = card.querySelector('.qcard-tags');
+  const t0 = top && top.outerHTML;
+  const s0 = slot(card);
   if (slot(card).textContent) bad.push('a question never done is already stamped "' + slot(card).textContent + '"');
   markIt(card);
   if (slot(card).textContent !== label) bad.push('a Check did not stamp the card: "' + slot(card).textContent + '", wanted "' + label + '"');
-  if (card.querySelector('.qcard-top') !== top || top.querySelector('b').outerHTML !== b0) bad.push('stamping the date redrew the header rather than writing into its slot');
+  if (slot(card) !== s0) bad.push('stamping the date drew a new slot rather than writing into the one that was there');
+  if (!top || card.querySelector('.qcard-tags') !== top || top.outerHTML !== t0) bad.push('stamping the date redrew the tag row');
   if (!/Not yet/.test(card.querySelector('.qp-verdict').textContent)) bad.push('the date took the verdict\'s place');
   if (w.localStorage.getItem('done:u:P7:q-done-typed') !== today) bad.push('the date is not stored per person per question: ' + stored().join(', '));
   if (slot(draw(typed)).textContent !== label) bad.push('drawn again, the card forgot the date');
@@ -7628,8 +7755,9 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
     row: { row_id: 'Q-SHEET-8', paper_id: 'P-SHEET', subject: 'Maths', name: 'Sheet' },
     html: '<p>Work out 3 &times; 5</p>', answer: '<b>15</b>', accept: '15' };
   const q = k => Object.assign({}, base, { key: k });
-  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0); d.body.appendChild(h); return h.querySelector('.qcard'); };
-  const slot = card => (card.querySelector('.qcard-top .qcard-done') || {}).textContent || '';
+  /* THE CARD AND ITS TILE ROW -- the date is beside the star (`questionTiles_`). */
+  const draw = x => { const h = d.createElement('div'); h.innerHTML = w.questionCard_(x, 0) + '<div class="tile-row">' + w.questionTiles_(x) + '</div>'; d.body.appendChild(h); return h.querySelector('.qcard'); };
+  const slot = card => (card.parentNode.querySelector('.tile-row .qcard-done') || {}).textContent || '';
   const check_ = card => { card.querySelector('.qp-ans-in').value = '16'; A['qp-check'](card.querySelector('.qp-check')); };
 
   /* SIGNED OUT: nothing is sent. */

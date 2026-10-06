@@ -1143,16 +1143,19 @@ boot(f => {
        the card   the paper's name was one line of text -- `qTags_`
 
      KS1 AND KS2, because the two were added months apart and only one of them prompted this. Each
-     year is walked on its own, which is what the funnel does once `Year` is asked. */
+     year is walked on its own, which is what the funnel does once `Year` is asked. The route is
+     `Level · SATs` then `Key stage · KS1` / `KS2` -- *"sats is one tag not ks2 sats"* -- which is the
+     question a person answers to tell the two apart now that the level does not. */
   if (typeof f.chipShow_ === 'function' && typeof f.qTags_ === 'function' && f.STUFF) {
     const byField = fl => f.facetList().find(x => x.field === fl);
     const paperF = byField('paperId');
     const yearF = byField('examYear');
     let skipped = 0;
-    ['KS1 SATs', 'KS2 SATs'].forEach(level => {
+    ['KS1', 'KS2'].forEach(ks => {
+      const level = 'SATs ' + ks;
       /* MATHS, as reported. The English SATs paper is `GPS Paper 1`, and there `GPS` is the word
          that says which English paper it is rather than a repeat of a chip above it. */
-      const on = [['subject', 'Maths'], ['documentType', 'Past paper'], ['level', level]];
+      const on = [['subject', 'Maths'], ['documentType', 'Past paper'], ['level', 'SATs'], ['keystage', ks]];
       const kept = items.filter(x => on.every(([fl, v]) => f.filterHit(x, { field: fl, value: v })));
       const years = yearF ? f.facetValues(kept, yearF).map(v => String(v.value)) : [];
       if (!kept.length || !years.length) {
@@ -1825,8 +1828,12 @@ boot(f => {
        2. no item with a key stage has no level — 1,160 primary sheets had none, which kept Level
           under its coverage bar and put Key stage in front of it;
        3. no item's level is a bare KS1, KS2, KS4 or KS5 — those have a qualification to say;
-       4. inside any one level, Key stage has at most one answer, so it is never asked there —
-          `KS3 | KS4` inside GCSE is the exact screen that was reported. */
+       4. Key stage is asked INSIDE SATs AND NOWHERE ELSE. *"why is ks2 sats one tag? it should be
+          sats. if they want to specify key stage then it should be its own thing."* So no level
+          reads `KS1 SATs` or `KS2 SATs` (the level is `SATs`), inside SATs the question answers
+          exactly `KS1 | KS2`, and inside every other level it answers nothing at all — `KS3 | KS4`
+          inside GCSE is the exact screen first reported, and this was "at most one answer" until
+          the key stage stopped riding inside the level's name. */
   {
     const all = f.stuffItems();
     const ksF = (f.facetList() || []).find(x => x.field === 'keystage');
@@ -1843,15 +1850,23 @@ boot(f => {
       if (noLevel.length) bad.push(noLevel.length + ' item(s) carry a key stage and no level, e.g. "' + noLevel[0].name + '" (' + noLevel[0].keystage + ')');
       const bare = all.filter(x => /^KS[1245]$/i.test(String(f.levelOf(x) || '')));
       if (bare.length) bad.push(bare.length + ' item(s) give a bare key stage as their level, e.g. "' + bare[0].name + '" → ' + f.levelOf(bare[0]));
+      const fused = all.filter(x => /\bKS\s*\d\s*SATs\b/i.test(String(f.levelOf(x) || '')));
+      if (fused.length) bad.push(fused.length + ' item(s) still give the key stage inside the level, e.g. "' + fused[0].name
+        + '" → ' + f.levelOf(fused[0]) + ' — the level is SATs and the key stage is its own question');
       const levels = {};
       all.forEach(x => { const l = f.levelOf(x); if (l) (levels[l] = levels[l] || []).push(x); });
-      let asked = 0;
+      const askedIn = [];
       Object.keys(levels).forEach(l => {
-        const vals = f.facetValues(levels[l], ksF).map(v => v.value);
-        if (vals.length > 1) { asked += 1; bad.push('inside Level ' + l + ' Key stage still asks ' + vals.join(' | ')); }
+        const vals = f.facetValues(levels[l], ksF).map(v => String(v.value)).sort();
+        if (l === 'SATs') {
+          if (vals.join('|') !== 'KS1|KS2') bad.push('inside Level SATs Key stage asks ' + JSON.stringify(vals) + ', wanted KS1 | KS2');
+        } else if (vals.length) bad.push('inside Level ' + l + ' Key stage answers ' + vals.join(' | ') + ' — it is asked inside SATs only');
+        if (vals.length > 1) askedIn.push(l);
       });
+      if (!levels.SATs) bad.push('no item has the level SATs, so Key stage inside SATs was NOT checked — not a pass');
       console.log('Level against Key stage: ' + all.filter(x => ksOf(x).length).length + ' items with a key stage, '
-        + Object.keys(levels).length + ' levels, Key stage asked inside ' + asked + ' of them');
+        + Object.keys(levels).length + ' levels, Key stage asked inside ' + askedIn.length + ' of them ('
+        + askedIn.join(', ') + ')');
     }
   }
 
