@@ -187,7 +187,7 @@ last press is kept. None is made if the save failed, because the refusal under t
 person should read next. The boxes stay locked, so one save at a time still holds. A `check-flow`
 journey drives it in the walk's order with a real `click()`, which jsdom drops on a disabled button
 just as a browser does. Mutations: taking `data-unlocked` off the line left the line shut, and
-removing the queue saved the second school wrongly. Both went red.
+removing the queue lost the school typed before the tick. Both went red. The two new states in `check/states.js` were proved the same way: with their CSS rules renamed, both reported "NOT measured" at all four widths.
 
 **Fixed:**
 
