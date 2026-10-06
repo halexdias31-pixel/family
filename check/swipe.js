@@ -166,6 +166,7 @@ function RECORDER() {
   R.still = async col => {
     const wait = ms => new Promise(r => setTimeout(r, ms));
     const t0 = performance.now();
+    let lastH = -1, steady = 0;
     await wait(120);
     /* STILL MEANS NOTHING LEFT TO HAPPEN: no column moving, no pane holding a layer, no slide window
        open, no placement booked, and nothing booked for after the slide — a widget started 300ms after
@@ -179,9 +180,32 @@ function RECORDER() {
          `ResizeObserver`'s delivery, which is the frame AFTER the layout a measurement forces. One full
          run caught the feed's first card 40.7px low in exactly that frame. */
       const pics = host && [...host.querySelectorAll(':scope > .page.on img')].some(i => !i.complete);
-      const booked = !!PLACE_FRAME || !!AFTER_SLIDE || AFTER_SLIDE_JOBS.size > 0 || !!pics
+      /* AND NO CAMERA QUESTION STILL OPEN. The feed's first card asks for the camera on arrival, and
+         on a machine with none the answer comes back as a sentence that grows the card 611 → 692px —
+         AFTER everything above had gone quiet. The column re-centres on it (measured 0.2px off by
+         600ms), but a measurement taken in between read the card 40.7px low: 1 run in 3 of
+         `--only=centre`, found by the review. A phone answers before the slide lands; this machine
+         does not, and the check must wait for the answer rather than report the gap. */
+      const cam = typeof CAM_ASKING !== 'undefined' && !!CAM_ASKING;
+      const booked = !!PLACE_FRAME || !!AFTER_SLIDE || AFTER_SLIDE_JOBS.size > 0 || !!pics || cam
         || (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length > 0);
-      if ((!moving && !panes && !booked && performance.now() > SLIDE_UNTIL) || performance.now() - t0 > 6000) break;
+      /* AND THE CARD IN FRONT THE SAME HEIGHT TWICE RUNNING, WITH ITS COLUMN WHERE IT IS MEANT TO BE.
+         Whatever else grows a card late — the next thing like the camera — is caught by its effect
+         rather than by name: a height that changed since the last look, or a column whose placed shift
+         is not yet the one `columnShift_` asks for (the `ResizeObserver`'s frame has not come). */
+      const front = host && host.querySelector(':scope > .page.on');
+      const fh = front ? front.offsetHeight : 0;
+      steady = fh === lastH ? steady + 1 : 0;
+      lastH = fh;
+      let aligned = true;
+      try {
+        const placed = colPlaced_(host);
+        const id = (col || AT);
+        if (placed && !host.classList.contains('dragging'))
+          aligned = Math.abs(placed[1] - columnShift_(host, domIndex_(id, PAGE[id] || 0))) < 0.5;
+      } catch (e) {}
+      if ((!moving && !panes && !booked && steady >= 1 && aligned && performance.now() > SLIDE_UNTIL)
+          || performance.now() - t0 > 6000) break;
       await wait(60);
     }
     await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
