@@ -8176,28 +8176,40 @@ check('a Check sends one attempt to the sheet, the card shows the sheet\'s date,
      a parent can read — the subject, the paper, the number — and the subject is not said twice when
      the paper's name already says it. The cards above are not in the library, and sent no label. */
   const heldItems = w.stuffItemsAll_;
-  const named = (k, subject, sub) => Object.assign(q(k), { subject: subject, sub: sub });
+  const named = (k, subject, sub, more) => Object.assign(q(k), { subject: subject, sub: sub }, more || {});
   const qa = named('q-named', 'Maths', 'Paper 1 (Calculator) — June 2024');
   const qb = named('q-named-2', 'Biology', 'Biology Paper 2 — June 2023');
+  /* FOUNDATION AND HIGHER SIT ONE PAPER UNDER ONE NAME, and so do AQA's GCSE and A-level Physics: a
+     crossover session sent a parent "Q1, Q1" under one heading. The tier goes on the paper's name —
+     or the A-level its band names when the tier cell is empty — unless the name already says it. */
+  const qh = named('q-tier-h', 'Maths', 'Paper 1 (Non-calculator) — June 2024', { tier: 'Higher' });
+  const qf = named('q-tier-f', 'Maths', 'Paper 1 (Non-calculator) — June 2024', { tier: 'Foundation' });
+  const qal = named('q-tier-a', 'Physics', 'Paper 1 — June 2024', { tier: '', bandValue: 'A-Level', row: { level: 'Alevel' } });
+  const qsaid = named('q-tier-s', 'Maths', 'Higher Paper 3 — June 2023', { tier: 'Higher' });
   const n3 = marks().length;
-  w.stuffItemsAll_ = () => [qa, qb];
-  try { check_(draw(qa)); check_(draw(qb)); } finally { w.stuffItemsAll_ = heldItems; }
+  w.stuffItemsAll_ = () => [qa, qb, qh, qf, qal, qsaid];
+  try { [qa, qb, qh, qf, qal, qsaid].forEach(x => check_(draw(x))); } finally { w.stuffItemsAll_ = heldItems; }
   await wait(30);
   const labels = marks().slice(n3).map(b => ((b.items || [])[0] || {}).label);
-  if (JSON.stringify(labels) !== JSON.stringify(['Maths · Paper 1 (Calculator) — June 2024 · Q8', 'Biology Paper 2 — June 2023 · Q8'])) {
-    bad.push('a Check on a library card sent the labels ' + JSON.stringify(labels) + ' — wanted "Maths · Paper 1 (Calculator) — June 2024 · Q8" and "Biology Paper 2 — June 2023 · Q8", the name a parent reads in the weekly email');
+  const wantLabels = ['Maths · Paper 1 (Calculator) — June 2024 · Q8', 'Biology Paper 2 — June 2023 · Q8',
+    'Maths · Paper 1 (Non-calculator) — June 2024 (Higher) · Q8', 'Maths · Paper 1 (Non-calculator) — June 2024 (Foundation) · Q8',
+    'Physics · Paper 1 — June 2024 (A-level) · Q8', 'Maths · Higher Paper 3 — June 2023 · Q8'];
+  if (JSON.stringify(labels) !== JSON.stringify(wantLabels)) {
+    bad.push('a Check on a library card sent the labels ' + JSON.stringify(labels) + ' — wanted ' + JSON.stringify(wantLabels) + ', the names a parent reads in the emails: a paper’s tier said once, and only when its name does not');
   }
   /* A PRACTICAL'S WORKSHEET BOX is the card's key with a slot on the end (`guideBox_`), and it was
      looked up whole, so it found no card and went up nameless — three raw keys in a parent's email
-     for one worksheet. The slot comes off for the lookup and the name says it was the worksheet. */
-  const pr = { kind: 'practical', name: 'Specific heat capacity', key: 'pr:PR-T1', subject: 'Physics', sub: 'AQA required practical' };
+     for one worksheet. The slot comes off for the lookup and the name says it was the worksheet. The
+     card's line is the one `stuffItemsAll_` really builds, and its "60 min" is the card's estimate: it
+     read to a parent as time spent, so it is not part of the name. */
+  const pr = { kind: 'practical', name: 'Specific heat capacity', key: 'pr:PR-T1', subject: 'Physics', sub: 'Physics · Required practical · 60 min' };
   const n4 = marks().length;
   w.stuffItemsAll_ = () => [qa, pr];
   try { w.doneMark_('ans:' + w.whoIs_() + ':pr:PR-T1#iv'); } finally { w.stuffItemsAll_ = heldItems; }
   await wait(30);
   const prSent = (((marks().slice(n4)[0] || {}).items) || [])[0] || {};
-  if (prSent.key !== 'pr:PR-T1#iv' || prSent.label !== 'Physics · AQA required practical · Specific heat capacity · Worksheet') {
-    bad.push('a practical’s worksheet box sent ' + JSON.stringify(prSent) + ' — wanted key pr:PR-T1#iv with the label "Physics · AQA required practical · Specific heat capacity · Worksheet"');
+  if (prSent.key !== 'pr:PR-T1#iv' || prSent.label !== 'Physics · Required practical · Specific heat capacity · Worksheet') {
+    bad.push('a practical’s worksheet box sent ' + JSON.stringify(prSent) + ' — wanted key pr:PR-T1#iv with the label "Physics · Required practical · Specific heat capacity · Worksheet", no card duration in it');
   }
 
   /* A PAYLOAD BUILT FOR SOMEBODY ELSE IS NOT READ. */
@@ -8294,6 +8306,130 @@ check('the weekly parent email card is an admin\'s, says the switch, and Preview
   await wait(100);
   if (sent.some(b => b.action === 'digestPreview')) bad.push('a backend that does not list digestPreview was sent it: ' + JSON.stringify(sent.map(b => b.action)));
   if (!/sync backend/i.test((card().querySelector('.digest-said') || {}).textContent || '')) bad.push('a backend without the weekly email is not said to need a sync');
+  t.USER(null);
+  return bad;
+});
+
+/* ---------- THE EMAIL AFTER EACH SESSION'S CARD ------------------------------------------------------
+   ASKED FOR AS *"like 2 hours after the end of each session is done it will send an automated email to
+   them of the questions they got done"* — backend/recap.gs, switched off. The card is the weekly one's
+   twin and has to keep its contract: an admin's alone, the page right after the weekly card (so no
+   index in front of it moves), the mode as the server reads `session_recap`, the delay as it reads
+   `session_recap_delay`, a tile row with no switch on it, and a Preview that posts exactly one
+   `recapPreview` — a read. The sheet prints what came off phones and sheets as text: a subject typed
+   into the jobs tab with markup in it is shown, not drawn. A missing `attempts` tab and an unbooked
+   hourly check are said before anything else, and a backend without the action is told to sync. And
+   the weekly sheet, given `attempts: false`, says why rather than "nobody has done a question". */
+check('the email after each session card is an admin\'s, follows the weekly card, says the switch and the delay, and Preview reads without sending', async () => {
+  const empty = n => ({ day: '2026-10-0' + n, label: 'Day ' + n, sessions: [], emails: [], nobody: [] });
+  const preview = { success: true, mode: 'preview', delay: 2, scheduled: 0, attempts: false, logTab: true,
+    warning: 'The Ledger has no attempts tab, so nothing says what anybody did. Open /exec?setup=1 (ensureSchema) to add it.',
+    from: '2026-09-30', to: '2026-10-06', at: '2026-10-06 20:30',
+    days: [{ day: '2026-10-06', label: 'Tue 6 Oct',
+             sessions: [{ subject: '<b>Maths</b>', from: '16:00', to: '18:00', timeKnown: true, time: '4pm–6pm',
+                          learners: ['Ada Pupil'], due: '2026-10-06 20:00', dueSaid: '8pm', state: 'due' },
+                        { subject: 'Physics', time: '', learners: [], due: '', dueSaid: '', state: 'not agreed — not counted' },
+                        /* BOOKED, AND NOBODY ON IT CAN BE TOLD (which of two children): no "email about". */
+                        { subject: 'Chemistry', time: '10am–12pm', learners: [], due: '2026-10-06 14:00', dueSaid: '2pm', state: 'due' }],
+             emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s session on Tue 6 Oct: 2 questions',
+                        text: 'Hello Pat,\n\nAda had Maths on Tuesday 6 October, 4pm to 6pm. That day Ada worked on 2 questions.\n\nMaths · Paper 1\nQ3, Q7 (again)',
+                        count: 2, due: '2026-10-06 20:00', dueSaid: '8pm', state: 'due', status: '—', at: '' }],
+             nobody: [{ name: 'Cal Alone', why: 'no parent has accepted a link to them', status: 'not sent' }] },
+           { day: '2026-10-01', label: 'Thu 1 Oct',
+             sessions: [{ subject: 'Maths', time: '4pm–6pm', learners: ['Ada Pupil'], due: '2026-10-01 20:00', dueSaid: '8pm', state: 'past' }],
+             emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat@example.org', subject: 'Ada’s session on Thu 1 Oct: 1 question',
+                        text: 'Hello Pat,', count: 1, due: '2026-10-01 20:00', dueSaid: '8pm', state: 'past', status: '—', at: '' }],
+             nobody: [] },
+           empty(5), empty(4), empty(3), empty(2)] };
+  const p = payload();
+  p.features = ['digestPreview', 'recapPreview'];
+  p.constants.vars.session_recap = 'off';
+  const { w, sent } = boot({ payload: p, reply: b => (b.action === 'recapPreview' ? preview : { success: true }) });
+  await wait(300);
+  const t = w.__t, d = w.document;
+  const bad = [];
+  const card = () => d.querySelector('#s-settings .card.recap');
+  const said = () => (card().querySelector('.recap-mode') || {}).textContent || '';
+  t.USER({ name: 'Pat Parent', personId: 'P-C1', role: 'parent', roles: ['parent'], token: 'tk', profile: {} });
+  try { t.go('settings', false, true); w.paint('settings'); } catch (e) { return ['drawing settings threw: ' + e.message]; }
+  await wait(200);
+  if (card()) bad.push('a parent is shown the email-after-each-session card — it is an admin’s');
+  t.USER({ name: 'Test Admin', personId: 'P001', role: 'admin', roles: ['admin'], token: 'tk', profile: {} });
+  w.paint('settings');
+  await wait(200);
+  if (!card()) return bad.concat(['an admin has no Email after each session card on the Settings column']);
+  /* THE PAGE AFTER THE WEEKLY CARD, so every page in front of it keeps its index. */
+  const pages = [...d.querySelectorAll('#s-settings .page')];
+  const at = sel => pages.findIndex(pg => pg.querySelector(sel));
+  if (at('.card.recap') !== at('.card.digest') + 1 || at('.card.recap') !== pages.length - 1) bad.push('the session card is page ' + at('.card.recap') + ' of ' + pages.length + ', the weekly card page ' + at('.card.digest') + ' — wanted it last, right after the weekly one');
+  if (!/Email after each session:\s*Off/.test(said())) bad.push('with session_recap off the card reads "' + said() + '"');
+  [['Preview', 'Preview'], ['send', 'Send'], ['yes', 'Off'], ['', 'Off']].forEach(([cell, word]) => {
+    t.DATA().constants.vars.session_recap = cell;
+    w.paint('settings');
+    if (!new RegExp('Email after each session:\\s*' + word).test(said())) bad.push('session_recap "' + cell + '" reads "' + said() + '" — wanted ' + word + ', as the server reads it');
+  });
+  [['3', 'About 3 hours after'], ['1', 'About 1 hour after'], ['', 'About 2 hours after'], ['25', 'About 2 hours after'], ['0', 'Within the hour after']].forEach(([cell, want]) => {
+    t.DATA().constants.vars.session_recap_delay = cell;
+    w.paint('settings');
+    const sub = (card().querySelector('.sub') || {}).textContent || '';
+    if (sub.indexOf(want) !== 0) bad.push('session_recap_delay "' + cell + '" reads "' + sub.slice(0, 40) + '" — wanted "' + want + '"');
+  });
+  t.DATA().constants.vars.session_recap = 'off';
+  t.DATA().constants.vars.session_recap_delay = '';
+  w.paint('settings');
+  if (!/session_recap/.test(card().textContent) || !/installSessionRecap/.test(card().textContent)) bad.push('the card does not say where the switch is and how the hourly check is booked');
+  const tile = card().querySelector('.tile-row .tile[data-do="recap-preview"]');
+  if (!tile) return bad.concat(['the card has no Preview tile in a tile row']);
+  if (card().querySelectorAll('.tile').length !== 1 || card().querySelector('button:not(.tile)')) bad.push('the card has more than its one Preview tile, or a plain button — a thing has tiles, and there is no switch on the phone');
+  sent.length = 0;
+  t.ACTIONS['recap-preview'](tile);
+  await wait(300);
+  const asks = sent.filter(b => b.action === 'recapPreview');
+  if (asks.length !== 1 || sent.length !== 1) bad.push('Preview posted ' + JSON.stringify(sent.map(b => b.action)) + ' — wanted one recapPreview and nothing else');
+  const sheet = d.getElementById('sheet'), body = d.getElementById('sheet-body');
+  if (!sheet || sheet.classList.contains('hidden')) bad.push('Preview did not open the sheet');
+  const text = body ? body.textContent.replace(/\s+/g, ' ') : '';
+  ['The Ledger has no attempts tab', 'No hourly check is booked yet — run installSessionRecap', 'This preview sent nothing', 'not booked',
+   'Each email is written to the recap_log tab when it falls due, and none is sent.',
+   'Tue 6 Oct', '<b>Maths</b> 4pm–6pm · Ada Pupil · email about 8pm · email due now', 'Physics · not agreed — not counted',
+   'Chemistry 10am–12pm · nobody to email — see below',
+   'To Pat Parent · pat@example.org — would be written to recap_log', 'Ada’s session on Tue 6 Oct: 2 questions', 'Q3, Q7 (again)',
+   'Nobody to tell', 'Cal Alone — no parent has accepted a link to them', '(not sent)',
+   'Thu 1 Oct', 'Maths 4pm–6pm · Ada Pupil · email about 8pm · past', 'To Pat Parent · pat@example.org — not sent — past its 24 hours, it will not go'].forEach(s => {
+    if (text.indexOf(s) === -1) bad.push('the preview sheet does not say "' + s + '"');
+  });
+  if (/Chemistry[^·]*· email about/.test(text)) bad.push('a booked session nobody on it can be told about still says when its email goes: ' + (text.match(/Chemistry[^.]*/) || [''])[0]);
+  /* THE SAME REPLY WITH THE SWITCH OFF — owner step 4 — and ON. Off promises nothing: no "due now", no
+     "not on the log yet" (which reads as "it will be"). Send says the log has not got it yet. */
+  const asText = h => { const x = d.createElement('div'); x.innerHTML = h; return x.textContent.replace(/\s+/g, ' '); };
+  const offText = asText(w.recapSheet_(Object.assign({}, preview, { mode: 'off' })));
+  if (/due now|not on the log yet|would be written/.test(offText)) bad.push('with session_recap off the preview still promises a send: ' + (offText.match(/[^.]*(due now|not on the log yet|would be written)[^.]*/) || [''])[0]);
+  ['It is off, so nothing below goes', 'email about 8pm · off — would go now if switched on', 'To Pat Parent · pat@example.org — not sent — session_recap is off',
+   'not sent — past its 24 hours, it will not go'].forEach(s => {
+    if (offText.indexOf(s) === -1) bad.push('with session_recap off the preview sheet does not say "' + s + '"');
+  });
+  const sendText = asText(w.recapSheet_(Object.assign({}, preview, { mode: 'send' })));
+  if (sendText.indexOf('To Pat Parent · pat@example.org — not on the log yet') === -1 || sendText.indexOf('Each email is sent once, when it falls due.') === -1) bad.push('with session_recap on send the preview does not say the log has not got the email yet: ' + sendText.slice(0, 300));
+  if (body && [...body.querySelectorAll('b')].some(b => b.textContent === 'Maths')) bad.push('a subject typed with markup in it was drawn as markup in the preview — it must be printed as text');
+  if (body && !/^The Ledger has no attempts tab/.test(((body.querySelector('p b') || {}).textContent || ''))) bad.push('the missing attempts tab is not the first thing the preview says');
+  if (/Day 5|Day 2/.test(text)) bad.push('the preview drew days with nothing in them');
+  if (!/Email after each session:\s*Preview/.test(said())) bad.push('after the preview the card still reads "' + said() + '" — wanted the mode the server just answered with');
+  /* NO SESSION ANYWHERE IN THE WEEK: said, not a blank sheet. */
+  const none = w.recapSheet_({ success: true, mode: 'off', scheduled: 1, days: [empty(6), empty(5)] });
+  if (!/No booked session in the last 7 days/.test(none) || !/checked every hour · booked/.test(none) || /No hourly check/.test(none)) bad.push('a week with no booked session does not say so, or a booked check is called unbooked: ' + none.replace(/\s+/g, ' ').slice(0, 200));
+  /* A BACKEND FROM BEFORE recap.gs: told, not asked. */
+  try { t.ACTIONS['close-sheet'] && t.ACTIONS['close-sheet'](); } catch (e) {}
+  t.DATA().features = ['digestPreview'];
+  sent.length = 0;
+  t.ACTIONS['recap-preview'](card().querySelector('[data-do="recap-preview"]'));
+  await wait(100);
+  if (sent.some(b => b.action === 'recapPreview')) bad.push('a backend that does not list recapPreview was sent it: ' + JSON.stringify(sent.map(b => b.action)));
+  if (!/sync backend/i.test((card().querySelector('.recap-said') || {}).textContent || '')) bad.push('a backend without the email after sessions is not said to need a sync');
+  /* AND THE WEEKLY SHEET, WITH NO attempts TAB: the reason, not "nobody has done a question". */
+  const weekly = w.digestSheet_({ success: true, mode: 'off', hour: 18, scheduled: 0, attempts: false,
+    warning: 'The Ledger has no attempts tab, so nothing says what anybody did.', week: { span: '28 Sep – 4 Oct' }, emails: [], unreachable: [] });
+  if (!/<b>The Ledger has no attempts tab/.test(weekly) || /Nobody has done a question/.test(weekly)) bad.push('the weekly preview with no attempts tab does not say so in bold, or still says nobody has done a question');
+  if (!/Nobody has done a question/.test(w.digestSheet_({ success: true, mode: 'off', attempts: true, warning: '', week: {}, emails: [], unreachable: [] }))) bad.push('the weekly preview with the tab and no work no longer says nobody has done a question');
   t.USER(null);
   return bad;
 });

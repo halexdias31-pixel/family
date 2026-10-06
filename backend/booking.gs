@@ -25,7 +25,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const BOOKING_VERSION = "2026-10-06-c-noverifygate";
+const BOOKING_VERSION = "2026-10-06-f-recap";
 
 
 /**
@@ -621,7 +621,7 @@ const DAY_CODE_ = { monday: 'm', mon: 'm', tuesday: 'tu', tue: 'tu', wednesday: 
                     thursday: 'th', thu: 'th', friday: 'f', fri: 'f',
                     saturday: 'sa', sat: 'sa', sunday: 'su', sun: 'su' };
 function bookingCodes_(body) {
-  const sent = S(body.slots).split(',').map(x => norm(x)).filter(x => /^(m|tu|w|th|f|sa|su)\d{2}$/.test(x));
+  const sent = slotCodes_(body.slots);
   if (sent.length) return sent;
   const from = Number(String(fmtTime(body.time)).split(':')[0]);
   if (!S(body.time) || !isFinite(from)) return [];
@@ -631,6 +631,21 @@ function bookingCodes_(body) {
     for (let h = from; h < from + hours; h++) out.push(d + String(h).padStart(2, '0'));
   });
   return out;
+}
+
+/* ---------- A LIST OF CODES, READ ONE WAY WHEREVER IT IS READ ---------------------------------------
+   THREE PLACES TAKE ONE: the request (`bookingCodes_`, above), the job row it is kept on
+   (`createJob` writes `slot_codes`) and the email after a session, which reads the row's back to know
+   when THIS date's lesson ends (`recapEnd_` in recap.gs). Lower case, a day prefix and a two-digit
+   hour of the clock, each once, in the order given. Anything else is dropped rather than guessed at —
+   a `99` or a `mon10` typed into a cell is not an hour anybody can be taught in. */
+function slotCodes_(v) {
+  const seen = {};
+  return S(v).split(',').map(x => norm(x)).filter(x => {
+    if (!/^(m|tu|w|th|f|sa|su)\d{2}$/.test(x) || Number(x.slice(-2)) > 23 || seen[x]) return false;
+    seen[x] = 1;
+    return true;
+  });
 }
 
 /* A CODE AS A PERSON SAYS IT — `m16` is `Monday 16:00`. */

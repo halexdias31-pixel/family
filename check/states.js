@@ -2603,6 +2603,70 @@ const STATES = {
       },
       wants: 'each email under its address, its plain body, and who nobody can tell' },
 
+    /* ---------- THE EMAIL AFTER EACH SESSION: ITS CARD, AND WHAT PREVIEW OPENS ------------------------
+       *"2 hours after the end of each session"* — backend/recap.gs, js/digest.js. The card is the last
+       page of an admin's Settings, after the weekly one. The preview is drawn from a reply shaped the
+       way `recapPreviewOut_` answers — a missing-tab warning, an unbooked check, a day with a session,
+       an email, a session counted for nobody and a learner nobody can tell — with an address and a
+       paper's name long enough to have to wrap at 320. */
+    { name: 'the email after each session card',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.recap'));
+        if (at < 0) throw new Error('no email-after-each-session card on the settings column');
+        goPage('settings', at, true);
+      },
+      expect: () => {
+        const pg = document.querySelector('#s-settings .page.on');
+        return !!pg && /Email after each session:\s*(Off|Preview|Send)/.test((pg.querySelector('.recap-mode') || {}).textContent || '')
+          && !!pg.querySelector('.tile-row [data-do="recap-preview"]');
+      },
+      wants: 'the mode in its title, the delay, and one Preview tile' },
+    { name: 'the email after each session, previewed',
+      only: () => typeof USER !== 'undefined' && !!USER && isAdmin(),
+      enter: () => {
+        paint('settings');
+        const at = [...document.querySelectorAll('#s-settings .page')].findIndex(pg => pg.querySelector('.card.recap'));
+        if (at < 0) throw new Error('no email-after-each-session card on the settings column');
+        goPage('settings', at, true);
+        const body = 'Hello Pat,\n\nAda had Maths on Tuesday 6 October, 4pm to 6pm. That day Ada worked on 4 questions, 3 of them for the first time.\n\n'
+          + 'Biology · Required practical · Osmosis\nWorksheet\n\n'
+          + 'Maths · Paper 1 (Calculator) — June 2024\nQ3, Q7 (again), Q11\n\n'
+          + 'Ada can see them on the site: https://halexdias31-pixel.github.io/family/\n\n'
+          + 'You get this because you are Ada’s parent on @family. To stop the emails after sessions, reply to this one and say so.';
+        const empty = d => ({ day: d, label: d, sessions: [], emails: [], nobody: [] });
+        openSheet('Email after each session', recapSheet_({ success: true, mode: 'preview', delay: 2, scheduled: 0,
+          attempts: false, logTab: true,
+          warning: 'The Ledger has no attempts tab, so nothing says what anybody did. Open /exec?setup=1 (ensureSchema) to add it; questions marked from then on are what these emails report. Nothing was sent.',
+          days: [{ day: '2026-10-06', label: 'Tue 6 Oct',
+                   /* WHAT `recapPreviewOut_` REALLY PUTS IN `sessions`: Booked sessions, and the QUIET reasons.
+                      A reason the log is told (agreed but not paid) is a job-level row in `nobody`, for
+                      another job — one job is never both a quiet line and a log row on one day. */
+                   sessions: [{ subject: 'Maths', time: '4pm–6pm', learners: ['Ada Pupil'], dueSaid: '8pm', state: 'due' },
+                              { subject: 'Physics', time: '', learners: [], dueSaid: '', state: 'nobody has a seat on it — cancelled, or never booked on the site' }],
+                   emails: [{ learner: 'Ada Pupil', parent: 'Pat Parent', to: 'pat.parent.with.a.long.address@example.org',
+                              subject: 'Ada’s session on Tue 6 Oct: 4 questions', text: body, count: 4, dueSaid: '8pm', state: 'due', status: 'preview' }],
+                   nobody: [{ name: 'Ben Pupil', why: 'no question on the attempts tab for Ben Pupil on Tue 6 Oct — this email reports only questions marked while signed in as Ben Pupil; 9 were marked that day on Sam Tutor’s account (the tutor)', status: 'nothing done' },
+                            { name: 'Chemistry (J-3)', why: 'agreed with the tutor but nobody’s seat is Booked — mark it paid and the next hourly check sends it, while it is within 24 hours of due', status: 'not sent' }] },
+                 empty('2026-10-05'), empty('2026-10-04'), empty('2026-10-03'), empty('2026-10-02'), empty('2026-10-01'), empty('2026-09-30')] }));
+      },
+      leave: () => { if (typeof closeSheet === 'function') closeSheet(); },
+      /* AND THE DAY OUTRANKS THE EMAIL. Each email's `h3` was the browser's 1.17em bold — the largest text
+         on the sheet — under a day drawn as the sheet's small dim marker, so the days that organise the
+         preview were the hardest thing on it to find. Asked of the drawn page: an email's heading is no
+         larger than the text under it, and the day is a divider with a rule above it. */
+      expect: () => {
+        const body = document.getElementById('sheet-body');
+        const t = (body || {}).textContent || '';
+        const h2 = body && body.querySelector('.recap-sheet h2'), h3 = body && body.querySelector('.recap-sheet h3');
+        const p = h3 && h3.nextElementSibling;
+        const px = el => parseFloat(getComputedStyle(el).fontSize);
+        return /To Pat Parent/.test(t) && /Ada’s session on Tue 6 Oct: 4 questions/.test(t) && /Nobody to tell/.test(t) && /No hourly check is booked/.test(t)
+          && !!h2 && !!h3 && !!p && px(h3) <= px(p) && parseFloat(getComputedStyle(h2).borderTopWidth) > 0;
+      },
+      wants: 'the warnings first, each session on a line, each email under its address, who nobody can tell, and each day a divider that outranks the email headings under it' },
+
     /* ---------- THE QUALIFICATIONS: ONE LINE A QUALIFICATION, AND IT FITS ---------------------------
        ASKED FOR AS *"can you make the qualifications widget more efficient, elegant, intuitive and take
        up less space."* Measured before: seven qualifications were 900px at 320x568 — drawn at 70%,

@@ -207,6 +207,10 @@ const SUITE = [
      checked: the first real run is a Sunday with families on the other end, and every rule it has
      fails by emailing — the wrong parent, twice, or at all while it was meant to be off. */
   { file: 'check-digest.js', what: 'the weekly parent email: a London week, accepted parents only, off/preview/send, sent once' },
+  /* AND THE ONE AFTER EACH SESSION, ON THE SAME ENGINE. *"2 hours after the end of each session"* —
+     every rule it has fails by emailing too: before the lesson ends, about another family's child,
+     about a lesson nobody paid for, or a second time. Same backend, same stubbed mail and clock. */
+  { file: 'check-recap.js', what: 'the email after a session: London due times, Booked seats only, the child’s own day, accepted parents, sent once' },
   /* A PHOTOGRAPH OR A CLIP IN A MESSAGE, THROUGH THE SAME BACKEND AND THE REAL APP. *"i cant send
      images, or videos in the chat"* — the manifest asked for `drive.readonly`, which no harness here
      could see because every one stubbed Drive as a thing that works. This one's Drive asks for the

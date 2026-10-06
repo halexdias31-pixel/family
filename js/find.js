@@ -6512,6 +6512,53 @@ function doneSlot_(x) {
   const k = ansKey_(x);
   return `<i class="qcard-done" data-k="${esc(k)}">${esc(doneText_(doneRead_(k)))}</i>`;
 }
+/* ---------- A DONE QUESTION'S NAME, AS A PARENT READS IT ----------------------------------------------
+   FOR THE PARENT EMAILS (backend/digest.gs, backend/recap.gs): the sheet holds a key no parent can read
+   and the backend cannot look up. `Maths · Paper 1 — June 2024 · Q3`, the subject left out when the
+   paper's name already says it. Only where the card is in hand — the load's backlog sends keys alone
+   (pending: it could send this too) — and '' when there is no card, so that request is what it always
+   was. Named, rather than inline in `doneMark_`, so the backlog can ask the same question one way.
+
+   A PRACTICAL'S WORKSHEET BOX IS THE CARD'S KEY WITH A SLOT ON THE END (`#iv`, `#dv`, `#cv` — see
+   `guideBox_`), and `ansKey_` of no card ends in one, so those boxes found no card and went up
+   nameless: one worksheet was three raw keys in a parent's email. The slot comes off for the lookup,
+   and the name says which part of the practical it was. The backend joins the three rows on the same
+   cut (`digestPlan_`), so the worksheet is one question there too.
+
+   NOT THE CARD'S DURATION. A practical's line is `Biology · Required practical · 60 min`, and an email
+   heading "Biology · Required practical · 60 min · Osmosis" reads to a parent as how long their child
+   spent. A `N min` segment is a card's estimate, never a name; `digestPlan_` drops it from the rows
+   already on the sheet too.
+
+   AND THE TIER, WHEN THE PAPER'S NAME DOES NOT SAY IT. Foundation and Higher sit the same paper on the
+   same day under the same name — "Paper 1 (Non-calculator) — June 2024" is two papers, and AQA's GCSE
+   and A-level Physics share "Paper 1 — June 2024" — so a session that worked crossover questions sent
+   a parent `Q1, Q1, Q2` under one heading. Measured on the library: 14 headings held more than one
+   paper. The tier (or the A-level the band names when the tier cell is empty) goes on the paper's
+   name. Two imports of one paper at one tier stay one heading — nothing in a name can part those. */
+function doneTier_(it) {
+  if (!it || it.kind !== 'question') return '';
+  const t = String(it.tier || '').trim();
+  if (/^(foundation|higher)$/i.test(t)) return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+  const said = [t, it.bandValue, it.level, it.row && it.row.level].map(x => String(x || '').toLowerCase().replace(/[^a-z]/g, ''));
+  if (said.indexOf('alevel') !== -1) return 'A-level';
+  if (said.indexOf('as') !== -1 || said.indexOf('aslevel') !== -1) return 'AS';
+  return '';
+}
+function doneLabel_(k) {
+  try {
+    const slot = /#[^#]*$/.test(k), base = slot ? k.replace(/#[^#]*$/, '') : k;
+    const it = stuffItemsAll_().find(y => ansKey_(y) === base);
+    if (!it) return '';
+    const subj = String(it.subject || '');
+    let sub = String(it.sub || '').split(' · ').filter(x => !/^\d+ min$/.test(x.trim())).join(' · ');
+    const tier = doneTier_(it);
+    if (sub && tier && sub.toLowerCase().indexOf(tier.toLowerCase()) === -1) sub += ' (' + tier + ')';
+    return [subj && sub.toLowerCase().indexOf(subj.toLowerCase()) === -1 ? subj : '', sub, it.name,
+            slot ? 'Worksheet' : ''].filter(Boolean).join(' · ');
+  } catch (e) { return ''; }
+}
+
 function doneMark_(k) {
   const dk = doneKeyOf_(k);
   if (!dk) return;
@@ -6519,24 +6566,7 @@ function doneMark_(k) {
   if (doneRead_(k) === today) return;
   DONE_HELD.set(dk, today);
   try { localStorage.setItem(dk, today); } catch (e) {}
-  /* AND ITS NAME, FOR THE WEEKLY PARENT EMAIL (backend/digest.gs): the sheet holds a key no parent
-     can read and the backend cannot look up. `Maths · Paper 1 — June 2024 · Q3`, the subject left out
-     when the paper's name already says it. Only here, where the card is in hand — the load's backlog
-     sends keys alone and the email falls back to the key — and absent rather than blank when there
-     is no card, so that request is what it always was. */
-  /* A PRACTICAL'S WORKSHEET BOX IS THE CARD'S KEY WITH A SLOT ON THE END (`#iv`, `#dv`, `#cv` — see
-     `guideBox_`), and `ansKey_` of no card ends in one, so those boxes found no card and went up
-     nameless: one worksheet was three raw keys in a parent's email. The slot comes off for the
-     lookup, and the name says which part of the practical it was. The backend joins the three rows
-     on the same cut (`digestPlan_`), so the worksheet is one question there too. */
-  let label = '';
-  try {
-    const slot = /#[^#]*$/.test(k), base = slot ? k.replace(/#[^#]*$/, '') : k;
-    const it = stuffItemsAll_().find(y => ansKey_(y) === base);
-    const sub = String((it && it.sub) || ''), subj = String((it && it.subject) || '');
-    if (it) label = [subj && sub.toLowerCase().indexOf(subj.toLowerCase()) === -1 ? subj : '', sub, it.name,
-                     slot ? 'Worksheet' : ''].filter(Boolean).join(' · ');
-  } catch (e) {}
+  const label = doneLabel_(k);
   attemptSend_([Object.assign({ key: doneQKey_(k), day: today }, label ? { label: label } : {})]);
   /* EVERY COLUMN IT IS DRAWN ON, by the answer key -- Find and Saved can both hold the card. */
   document.querySelectorAll('.qcard-done').forEach(el => {

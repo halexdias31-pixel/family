@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOPOST_VERSION = "2026-10-06-c-noverifygate";
+const DOPOST_VERSION = "2026-10-06-f-recap";
 
 
 /* The part of signing in that comes after the row has been found, shared by the address door and the
@@ -3237,6 +3237,14 @@ function doPost(e) {
           const f = MAP[k], v = body.edits[k];
           if (f && v !== '' && v != null) setCell(t, j, f, k === 'time' ? fmtTime(v) : v);
         });
+        /* AND THE HOURS TICKED GO WITH THE DAY AND THE TIME. `slot_codes` is the whole week the first
+           run in `weekday` / `start_time` stands for, so a move that rewrites those two and leaves the
+           codes would have the email after a session reading last week's afternoon as this week's.
+           New codes when the edit sends them; otherwise blank, which `recapEnd_` reads as "not known"
+           and answers with the latest the grid allows — late, never early. */
+        const moved = ['day', 'time'].some(k => S(body.edits[k]) !== '');
+        const cell = slotCell_(t, slotCodes_(body.edits.slots));
+        if ((body.edits.slots != null || moved) && 'slot_codes' in cell) setCell(t, j, 'slot_codes', cell.slot_codes);
       }
 
       // Accepting a tutor settles who teaches: the rest are declined by the same act, because two
@@ -3375,7 +3383,7 @@ function doPost(e) {
          before anything is written, like the two refusals above it. */
       const outside = namedRow ? tutorHoursRefusal_(namedRow, body) : '';
       if (outside) return jsonOut({ error: outside });
-      addRow(t, {
+      addRow(t, Object.assign({
         job_id: jobId, status: 'unconfirmed',
         subject: S(body.subject), level: S(body.level), service: S(body.service),
         weekday: S(body.day), start_time: fmtTime(body.time),
@@ -3435,7 +3443,7 @@ function doPost(e) {
            Compared with `key` like every other name in this file, so punctuation cannot turn one
            person into two and write a `booked_by` on a booking somebody made themselves. */
         booked_by: key(S(body.name)) === key(me) ? '' : S(body.name),
-      });
+      }, slotCell_(t, slotCodes_(body.slots))));
 
       // Who is in it comes from here, not from cells on the row above.
       logEvent({ jobId, actor: me, role: 'client', action: ACT.REQUEST,
@@ -3679,6 +3687,20 @@ function doPost(e) {
     if (action === 'digestPreview') {
       try {
         return jsonOut(digestPreviewOut_(new Date()));
+      } catch (err) {
+        return jsonOut({ error: 'The preview could not be built: ' + S(err && err.message || err) });
+      }
+    }
+
+    /* ---------- WHAT THE EMAIL AFTER EACH SESSION WOULD SAY ------------------------------------------
+       ASKED FOR AS *"like 2 hours after the end of each session is done it will send an automated
+       email to them of the questions they got done"* — backend/recap.gs, switched off until the
+       owner says. The same kind of door as the one above: a READ of the last seven days — every
+       booked session, every email it would send, everybody nobody can tell and why — that writes no
+       row, sends no email and books no trigger, whatever `session_recap` says. `admin`. */
+    if (action === 'recapPreview') {
+      try {
+        return jsonOut(recapPreviewOut_(new Date()));
       } catch (err) {
         return jsonOut({ error: 'The preview could not be built: ' + S(err && err.message || err) });
       }
@@ -4419,6 +4441,21 @@ function attemptsUpsert_(pid, items) {
     out[q] = { first: v.first_done || first, last: v.last_done || last, times: N(v.times || row.times) || 1 };
   });
   return { attempts: out };
+}
+
+/* ---------- THE HOURS TICKED, FOR THE JOB ROW, WHEN THE ROW CAN HOLD THEM --------------------------------
+   `slot_codes` (SCHEMA.jobs) IS THE WHOLE WEEK the first run in `weekday` / `start_time` stands for —
+   the email after a session reads it to know when a day's teaching ends. ONLY AS SENT: an older phone
+   sends no `slots`, and the cell stays blank rather than holding `bookingCodes_`'s reading of the
+   three cells, which would claim the first run is the only one.
+
+   AND ONLY WHEN THE TAB HAS THE COLUMN. A write to a column that is not there is `missedWrite_`, and
+   that turns the reply into an error — for a booking whose row WAS appended. Between a deploy and the
+   `?setup=1` that adds the column, every family pressing Ask would be told it failed, and asked
+   again. A blank cell costs nothing: `recapEnd_` reads it as "not known" and answers with the latest
+   the grid allows, an email an hour or two late rather than one early. */
+function slotCell_(t, codes) {
+  return t && t.headers && t.headers.indexOf('slot_codes') !== -1 ? { slot_codes: (codes || []).join(',') } : {};
 }
 
 /* A QUESTION'S NAME AS A PARENT WILL READ IT, FROM WHATEVER THE PHONE SENT. It came off a phone and

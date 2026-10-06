@@ -23,7 +23,7 @@
    have `openWaitlist`, which is the version indicator actively lying: worse than none, because
    it is the thing you check to rule the deploy out.
    Each file that can go stale on its own now says so on its own. */
-const DOGET_VERSION = "2026-10-06-c-noverifygate";
+const DOGET_VERSION = "2026-10-06-f-recap";
 
 
 function doGet(e) {
@@ -478,6 +478,8 @@ function doGet(e) {
                  /* The weekly parent email's Preview — the card asks before it posts, so a backend
                     synced before backend/digest.gs existed says so rather than "not recognised". */
                  'digestPreview',
+                 /* And the email after each session's — the same card column, the same reason. */
+                 'recapPreview',
                  /* Tools → Check uploads, so a backend without it says so rather than "not recognised". */
                  'checkUploads',
                  /* The site checks for this to decide whether it may offer the picker. */

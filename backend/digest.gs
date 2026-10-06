@@ -13,7 +13,16 @@
         the Sunday trigger — nothing in this project calls it, and `check-digest.js` fails if anything
         starts to;
      3. `preview` for a Sunday or two, reading `digest_log`, before `send`.
-   The steps, and the decisions that go with them, are in docs/history/pending-digest.md.
+   The steps, and the decisions that go with them, are in
+   docs/history/280-the-weekly-parent-email-is-built-and-switched-off-a-sunday-r.md. (This line named
+   `pending-digest.md`, a file that never existed — the note was numbered when it was filed.)
+
+   AND IT IS NO LONGER THE ONLY PARENT EMAIL. backend/recap.gs sends one after each booked session,
+   and three pieces of this file are shared with it rather than copied: `digestPlan_` (who did what,
+   who is told — with the render and the opt-out column handed in), `digestMail_` (the claim, the
+   send and the receipt) and `digestNoAttempts_` (a missing `attempts` tab said out loud). A second
+   copy of the at-most-once loop is the copy that drifts the day somebody fixes the first; see
+   docs/history/291-the-email-after-a-session-goes-two-hours-after-the-child-s-la.md.
 
    WHAT IT READS. `attempts` — one row per learner per question, `first_done` and `last_done` (see
    SCHEMA.attempts, and `markDone`, which writes them). A question is in a learner's week when either
@@ -115,8 +124,16 @@ function digestSpan_(week) {
    Returns `{ week, learners, emails, unreachable, look }`:
      learners     one per learner who did anything this week — the questions, new and again, who is told
      emails       one per parent per learner, rendered: `to`, `subject`, `text`, `html`
-     unreachable  learners nobody can be told about, each with the reason in words */
-function digestPlan_(week, attemptRows, peopleRows, parentsOf, look) {
+     unreachable  learners nobody can be told about, each with the reason in words
+
+   `o` IS FOR THE EMAIL AFTER A SESSION (backend/recap.gs), and absent for the Sunday one: `o.render`
+   writes the email in place of `digestRender_`, and `o.optOut` names the people column that is this
+   email's own "stop" — `session_email`, so a parent who stopped one email has not stopped the other.
+   Everything else — which rows, which parents, which text may be printed — is this one rule, run
+   with a "week" that is one day long. */
+function digestPlan_(week, attemptRows, peopleRows, parentsOf, look, o) {
+  const optOut = (o && o.optOut) || 'weekly_email';
+  const render = (o && typeof o.render === 'function') ? o.render : digestRender_;
   const inWeek = d => !!d && d >= week.start && d <= week.end;
   const byId = {};
   (peopleRows || []).forEach(p => { const id = S(p && p.person_id); if (id && !byId[id]) byId[id] = p; });
@@ -126,16 +143,22 @@ function digestPlan_(week, attemptRows, peopleRows, parentsOf, look) {
      `guideBox_` in js/find.js), so one worksheet filled in was three rows and an email saying "3
      questions" with three raw keys in it. Rows are joined on the key before the `#`: the earliest
      first day, the latest last day, the first name any of them carries. */
+  /* AND NO "60 min" IN A NAME. A practical's card line is `Biology · Required practical · 60 min`, and
+     the phone built its name from that line, so a parent read how long the card guesses a practical
+     takes as though it were how long their child spent on it. The phone no longer sends it
+     (`doneLabel_` in js/find.js); the rows already on the sheet still carry it, and it comes out here,
+     where both emails read every label. */
+  const tidy = v => attemptLabel_(v).split(' · ').filter(x => !/^\d+ min$/.test(x)).join(' · ');
   const joined = {};
   (attemptRows || []).forEach(r => {
     const pid = S(r && r.person_id), q = S(r && r.question_key).split('#')[0];
     if (!pid || !q) return;
     const first = isoDate_(r.first_done), last = isoDate_(r.last_done);
     const id = pid + '\u0001' + q, J = joined[id];
-    if (!J) { joined[id] = { pid: pid, key: q, first: first, last: last, label: attemptLabel_(r.label), times: N(r.times) || 1 }; return; }
+    if (!J) { joined[id] = { pid: pid, key: q, first: first, last: last, label: tidy(r.label), times: N(r.times) || 1 }; return; }
     if (first && (!J.first || first < J.first)) J.first = first;
     if (last && last > J.last) J.last = last;
-    if (!J.label) J.label = attemptLabel_(r.label);
+    if (!J.label) J.label = tidy(r.label);
     J.times = Math.max(J.times, N(r.times) || 1);
   });
 
@@ -191,7 +214,7 @@ function digestPlan_(week, attemptRows, peopleRows, parentsOf, look) {
            no proof, and every Sunday a stranger would be told about somebody's child. Blank is an
            account from before verification existed, as at sign-in (dopost.gs), and is not pending. */
         if (S(p.verified).toUpperCase() === 'PENDING') { L.skipped.push(Object.assign(who, { why: 'email not confirmed' })); return; }
-        if (!ON_(p.weekly_email)) { L.skipped.push(Object.assign(who, { why: 'asked not to get it' })); return; }
+        if (!ON_(p[optOut])) { L.skipped.push(Object.assign(who, { why: 'asked not to get it' })); return; }
         /* ONE MAILBOX ONCE PER CHILD, if two parent rows share an address. */
         const m = norm(who.email);
         if (seenMail[m]) { L.skipped.push(Object.assign(who, { why: 'same address as another parent' })); return; }
@@ -208,7 +231,7 @@ function digestPlan_(week, attemptRows, peopleRows, parentsOf, look) {
     learners.push(L);
     if (L.why) { unreachable.push({ id: pid, name: L.name, count: L.count, why: L.why }); return; }
     L.to.forEach(p => {
-      const m = digestRender_(L, p, week, look);
+      const m = render(L, p, week, look);
       emails.push({ week: week.start, learner_id: pid, parent_id: p.id, learner: L.name, parent: p.name,
                     to: p.email, subject: m.subject, text: m.text, html: m.html, count: L.count });
     });
@@ -378,61 +401,31 @@ function digestRun_(now) {
   if (mode === 'off') return { mode: 'off', did: 'nothing — weekly_digest on the config tab is off' };
 
   if (!digestLog_().sheet) return { mode: mode, error: 'The sheet has no digest_log tab. Run ensureSchema() (open /exec?setup=1) to add it. Nothing was sent.' };
+  /* NO `attempts` TAB IS NOT A QUIET WEEK. `read` answers a missing tab with no rows, so this run
+     planned nothing, wrote nothing, and the Sunday looked like a week nobody worked — on a Ledger
+     that was in fact never told what anybody did. It stops here and says so, and the throw in
+     `weeklyDigestRun` is the email that says it to the owner. */
+  const noAttempts = digestNoAttempts_();
+  if (noAttempts) return { mode: mode, error: noAttempts };
   /* THE PLAN IS MADE WITHOUT THE LOCK. It reads `attempts` and `people` and writes nothing; what it
      decides is checked against the log, fresh, under the lock, one email at a time. */
   const week = digestWeekToSend_(now);
   const plan = digestPlanNow_(week);
-  const reserve = digestReserve_(cfg);
   const out = { mode: mode, week: { start: week.start, end: week.end }, learners: plan.learners.length,
                 emails: plan.emails.length, previewed: 0, sent: 0, already: 0, held: 0, failed: 0, busy: 0,
                 unreachable: plan.unreachable.length, skipped: 0 };
-  /* UNDER THE LOCK, BRIEFLY: `fn` is handed the log as it is now. Null when another run kept the lock
-     — counted `busy`, sent nothing, and the run throws so somebody runs it again. */
-  const lock = LockService.getScriptLock();
-  const locked = fn => {
-    if (!lock.tryLock(30000)) return null;
-    try { return fn(digestLog_()); } finally { lock.releaseLock(); }
-  };
-
-  plan.emails.forEach(m => {
-    const claim = locked(log => {
-      const row = digestLogFind_(log, week.start, m.learner_id, m.parent_id);
-      const was = norm(row && row.status);
-      if (was === 'sent' || was === 'sending') return { already: true };
-      const v = { to: m.to, subject: m.subject, questions: m.count, at: new Date(), note: '' };
-      if (mode === 'preview') {
-        digestLogPut_(log, row, week.start, m.learner_id, m.parent_id, Object.assign(v, { status: 'preview' }));
-        return { previewed: true };
-      }
-      if (digestQuota_() <= reserve) {
-        digestLogPut_(log, row, week.start, m.learner_id, m.parent_id,
-          Object.assign(v, { status: 'held', note: 'daily mail quota — run weeklyDigestRun again tomorrow' }));
-        return { held: true };
-      }
-      const r = digestLogPut_(log, row, week.start, m.learner_id, m.parent_id, Object.assign(v, { status: 'sending' }));
-      /* FLUSHED BEFORE THE LOCK GOES, so the next run to take it reads the claim off the sheet. */
-      try { SpreadsheetApp.flush(); } catch (err) {}
-      return { row: r, log: log };
-    });
-    if (!claim) { out.busy++; return; }
-    if (claim.already) { out.already++; return; }
-    if (claim.previewed) { out.previewed++; return; }
-    if (claim.held) { out.held++; return; }
-    try {
-      MailApp.sendEmail({ to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, name: plan.look.brand || BRAND_NAME });
-    } catch (err) {
-      try { setCells(claim.log, claim.row, { status: 'failed', note: S(err && err.message || err).slice(0, 200) }); } catch (e2) {}
-      out.failed++;
-      return;
-    }
-    out.sent++;
-    try { setCells(claim.log, claim.row, { status: 'sent', at: new Date() }); } catch (err) {}
+  const mailed = digestMail_(plan.emails, {
+    mode: mode, reserve: digestReserve_(cfg), readLog: digestLog_, brand: plan.look.brand,
+    find: (log, m) => digestLogFind_(log, week.start, m.learner_id, m.parent_id),
+    put: (log, row, m, v) => digestLogPut_(log, row, week.start, m.learner_id, m.parent_id, v),
+    heldNote: 'daily mail quota — run weeklyDigestRun again tomorrow',
   });
+  ['previewed', 'sent', 'already', 'held', 'failed', 'busy'].forEach(k => { out[k] += mailed[k]; });
 
   /* AND WHO WAS NOT TOLD, AND WHY — a row each, so the log answers both questions. A parent who
      asked not to be sent it is a row too; a parent with no address is in the learner's `note`. One
      short hold for all of them: they are writes to the log and nothing else. */
-  const noted = locked(log => {
+  const noted = digestLocked_(digestLog_, log => {
     plan.learners.forEach(L => {
       if (L.why) {
         const row = digestLogFind_(log, week.start, L.id, '');
@@ -452,6 +445,84 @@ function digestRun_(now) {
   });
   if (!noted) out.busy++;
   return out;
+}
+
+/* ---------- UNDER THE LOCK, BRIEFLY -----------------------------------------------------------------
+   `fn` is handed the log as it is now — `readLog` drops that tab's cached copy first. Null when
+   another run kept the lock for thirty seconds: the caller counts it `busy`, sends nothing for it,
+   and its trigger throws so somebody runs it again. Shared by both parent emails, so the lock is
+   taken one way in one place. */
+function digestLocked_(readLog, fn) {
+  const lock = LockService.getScriptLock();
+  if (!lock.tryLock(30000)) return null;
+  try { return fn(readLog()); } finally { lock.releaseLock(); }
+}
+
+/* ---------- CLAIM, SEND, RECEIPT — THE LOOP BOTH PARENT EMAILS GO THROUGH ------------------------------
+   MOVED OUT OF `digestRun_` UNCHANGED, the day a second email needed it: the order below is the whole
+   of "at most once", it was paid for in the three bugs written above `digestRun_`, and a copy in
+   backend/recap.gs would be the copy that kept the old order the next time one of them was fixed. So
+   the weekly-only parts are arguments and the order is not:
+
+     under the lock    the log read fresh; `sent` or `sending` already there is ALREADY;
+                       `preview` mode writes `preview`; at or below the reserve writes `held`;
+                       otherwise `sending` is written and flushed
+     lock released     then the send — never under it
+     a throw           `failed`, which is no receipt, so the next run sends it
+     after             `sent`, in its own `try`, so a lost write leaves `sending` — still a receipt
+
+   `o` = { mode, reserve, readLog, find(log, m), put(log, row, m, values), heldNote, brand }. `find`
+   and `put` are the email's own log: its tab, its key, its extra columns. Returns the counts. */
+function digestMail_(emails, o) {
+  const out = { previewed: 0, sent: 0, already: 0, held: 0, failed: 0, busy: 0 };
+  (emails || []).forEach(m => {
+    const claim = digestLocked_(o.readLog, log => {
+      const row = o.find(log, m);
+      const was = norm(row && row.status);
+      if (was === 'sent' || was === 'sending') return { already: true };
+      const v = { to: m.to, subject: m.subject, questions: m.count, at: new Date(), note: '' };
+      if (o.mode === 'preview') {
+        o.put(log, row, m, Object.assign(v, { status: 'preview' }));
+        return { previewed: true };
+      }
+      if (digestQuota_() <= o.reserve) {
+        o.put(log, row, m, Object.assign(v, { status: 'held', note: o.heldNote }));
+        return { held: true };
+      }
+      const r = o.put(log, row, m, Object.assign(v, { status: 'sending' }));
+      /* FLUSHED BEFORE THE LOCK GOES, so the next run to take it reads the claim off the sheet. */
+      try { SpreadsheetApp.flush(); } catch (err) {}
+      return { row: r, log: log };
+    });
+    if (!claim) { out.busy++; return; }
+    if (claim.already) { out.already++; return; }
+    if (claim.previewed) { out.previewed++; return; }
+    if (claim.held) { out.held++; return; }
+    try {
+      MailApp.sendEmail({ to: m.to, subject: m.subject, body: m.text, htmlBody: m.html, name: o.brand || BRAND_NAME });
+    } catch (err) {
+      try { setCells(claim.log, claim.row, { status: 'failed', note: S(err && err.message || err).slice(0, 200) }); } catch (e2) {}
+      out.failed++;
+      return;
+    }
+    out.sent++;
+    try { setCells(claim.log, claim.row, { status: 'sent', at: new Date() }); } catch (err) {}
+  });
+  return out;
+}
+
+/* ---------- NO `attempts` TAB, IN WORDS ----------------------------------------------------------------
+   THE OWNER'S LEDGER DID NOT HAVE ONE until 6 Oct, and nothing said so: `read` answers a missing tab
+   with no rows, which is exactly what a week of nobody working looks like. The weekly preview printed
+   "Nobody has done a question yet this week" over a sheet that had never been told what anybody did.
+   Only `markDone` said it, to a phone, where nobody reads it. So both parent emails ask this before
+   they plan, and a run with something to send stops on it. '' when the tab is there. */
+function digestNoAttempts_() {
+  let there = false;
+  try { there = !!read(TAB.attempts).sheet; } catch (err) { there = false; }
+  return there ? ''
+    : 'The Ledger has no attempts tab, so nothing says what anybody did. Open /exec?setup=1 (ensureSchema) '
+    + 'to add it; questions marked from then on are what these emails report. Nothing was sent.';
 }
 
 /* THE LOG AS IT IS NOW — its cached copy dropped first, because a copy read before the lock was taken
@@ -523,8 +594,12 @@ function digestPreviewOut_(now) {
   try { cfg = config(); } catch (err) { cfg = {}; }
   const week = digestWeek_(now);
   const plan = digestPlanNow_(week);
+  /* AND WHETHER THERE IS ANYTHING TO READ: with no `attempts` tab the plan is empty for a reason, and
+     the card says the reason rather than "nobody has done a question". */
+  const warning = digestNoAttempts_();
   return {
     success: true, mode: digestMode_(cfg), hour: digestHour_(cfg), scheduled: digestScheduled_(),
+    attempts: !warning, warning: warning,
     week: { start: week.start, end: week.end, span: digestSpan_(week) },
     learners: plan.learners.map(L => ({ id: L.id, name: L.name, count: L.count, fresh: L.fresh.length,
       again: L.again.length, to: L.to.map(p => p.name), why: L.why })),
