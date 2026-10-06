@@ -5632,6 +5632,97 @@ check('the app still loads when opened from a file', async () => {
   return bad;
 });
 
+/* ---------- NOTHING OFFERS TO INSTALL, AND THE BROWSER IS NOT LEFT TO OFFER IT EITHER -------------
+   THIS SPOT HELD "the install bar reaches somebody who has not signed in", and that journey went
+   with the bar — the owner, 6 Oct: *"delete the suggester telling to bookmark"*. What the bar left
+   behind was worse than either answer. me.js went on catching Chrome's `beforeinstallprompt`,
+   cancelling the browser's own install bar and KEEPING the event for `installCard` — which nothing
+   drew, because its only caller was `meRest_` and only the dead `mePages` reached that. So an
+   Android visitor got no offer from the app and none from Chrome, a door called `install` stayed
+   wired for a button that never appeared, and the comment over it said the offer "stays where
+   somebody can go looking for it … on the You screen". `check-doors` passed all of it: it pairs a
+   `data-do` with a handler wherever the string is WRITTEN, and written is not drawn.
+
+   DECIDED: NOTHING SUGGESTS INSTALLING. Chrome's own mini-bar is a suggester too, in the browser's
+   handwriting, so it stays cancelled; the browser MENU's Install / Add to Home Screen is left for
+   anybody who goes looking. So this asks the running app four things, as the two people the old
+   card was written for — somebody signed out on an iPhone, a parent on Android:
+     · the offer is cancelled, so the mini-bar stays down;
+     · nothing on the page changes when it arrives — a redraw is the app making room for an offer;
+     · no `install` door is wired, so the event has nothing to be kept for;
+     · and no screen draws an install button, the old bar, or the words "home screen". */
+check('nothing offers to install, and the browser is not left to offer it either', async () => {
+  const bad = [];
+  const phones = [
+    ['somebody signed out on an iPhone',
+     'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+     null],
+    ['a parent on Android',
+     'Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Mobile Safari/537.36',
+     { name: 'Rasa Poliksa', personId: 'P1', role: 'parent', roles: ['parent'] }],
+  ];
+  for (const [who, ua, user] of phones) {
+    /* BEFORE THE APP RUNS, because a phone is a phone from its first line — anything asking the
+       user agent at load must already get this answer. */
+    const { w, errs } = boot({ before: win => Object.defineProperty(win.navigator, 'userAgent',
+                                                 { value: ua, configurable: true }) });
+    await wait(300);
+    const t = w.__t;
+    if (!t || !t.ACTIONS || !t.TABS) { bad.push(who + ': the app did not finish loading'); continue; }
+    if (user) t.USER(user);
+
+    /* THE OFFER AS CHROME SENDS IT: cancelable, with the `prompt()` that opens the real install
+       dialog and the `userChoice` it settles. Counted, so anything that raises it later is seen. */
+    let prompted = 0;
+    const offer = new w.Event('beforeinstallprompt', { cancelable: true });
+    offer.prompt = () => { prompted++; return Promise.resolve(); };
+    offer.userChoice = Promise.resolve({ outcome: 'accepted' });
+
+    /* WHAT THE PAGE DID ABOUT IT, read off the DOM rather than off a name. `takeRecords` straight
+       after a synchronous dispatch holds exactly the mutations the listeners made — no timer can
+       run in between — so a `repaint()` for an offer shows up here whatever it is called. */
+    const watch = new w.MutationObserver(() => {});
+    watch.observe(w.document.documentElement,
+                  { childList: true, subtree: true, attributes: true, characterData: true });
+    w.dispatchEvent(offer);
+    const changed = watch.takeRecords().length;
+    watch.disconnect();
+
+    if (!offer.defaultPrevented) {
+      bad.push(who + ': `beforeinstallprompt` was not cancelled, so Chrome slides up its own "Add to '
+             + 'Home screen" bar — a suggester the owner asked to have gone, in the browser\'s handwriting');
+    }
+    if (changed) {
+      bad.push(who + ': the install offer arriving changed ' + changed + ' thing(s) on the page — the '
+             + 'app redrew for an offer, and nothing may make one');
+    }
+    if (Object.prototype.hasOwnProperty.call(t.ACTIONS, 'install')) {
+      bad.push(who + ': a door called `install` is still wired — a handler kept for an install button, '
+             + 'so the browser\'s offer is being held for something that may not be drawn');
+    }
+
+    /* EVERY SCREEN, read off `TABS` like the other walks here. Each one is drawn and then looked at
+       for the three shapes an offer has had: the button, the old bar, and the words. */
+    for (const id of t.TABS.map(x => x.id)) {
+      try { t.go(id, false, true); } catch (e) { bad.push(who + ': ' + id + ' threw: ' + e.message); continue; }
+      const el = w.document.getElementById('s-' + id);
+      if (!el) continue;
+      if (el.querySelector('[data-do="install"]')) bad.push(who + ': ' + id + ' draws an install button');
+      /* A FEW WORDS EITHER SIDE, not the sentence: `textContent` runs one element's text into the
+         next with no space, so "up to the full stop" can be half a screen. */
+      const said = el.textContent.replace(/\s+/g, ' ').match(/.{0,30}home screen.{0,30}/i);
+      if (said) bad.push(who + ': ' + id + ' says "…' + said[0].trim() + '…" — an install suggestion');
+    }
+    if (w.document.getElementById('install-bar')) bad.push(who + ': the install bar is back on the page');
+    if (prompted) {
+      bad.push(who + ': the browser\'s install dialog was opened ' + prompted + ' time(s) without anybody '
+             + 'choosing Install from the browser menu');
+    }
+    if (errs.length) bad.push(who + ': errors: ' + errs.join(' | '));
+  }
+  return bad;
+});
+
 check('each column opens on the page worth reading', async () => {
   /* THE ＋ CARD IS NOT THE FRONT PAGE. It is pane 0 of the feed because `unshift` puts it there,
      so opening at 0 opens on a form to make a post rather than on the newest post.

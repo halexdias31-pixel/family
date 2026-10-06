@@ -169,15 +169,10 @@ function meRest_() {
      What is left in this column is what you DO — the claims waiting on an answer, what needs fixing,
      your link, signing out. Who you are is one card, in one place. */
   return split_(`
-    ${/* SECOND, and that is the whole point of where it is.
-          It was seventh — six swipes across a horizontal carousel from the first thing anybody
-          sees. It was drawn correctly the entire time and nobody was ever going to reach it, which
-          from the outside is exactly the same as it not existing.
-
-          A prompt to install has one moment: while somebody is still deciding whether this is a
-          thing they will come back to. That is near the front or it is nowhere. It costs the space
-          only until it is used — once installed it returns nothing and the pane goes. */''}
-    ${installCard()}
+    ${/* `installCard()` WAS HERE, "second, and that is the whole point of where it is" — and this
+          column had stopped being drawn, so it was second on a page nobody could reach. It is
+          deleted, with everything that fed it; see "NOTHING IN THE APP ASKS ANYBODY TO INSTALL IT"
+          further down. */''}
 
     ${/* `Your figure` WAS A TILE ON YOUR CARD and is the last card of Settings now. It was a whole card here, with the
           avatar drawn a second time beside the one at the top of the same column, listing what you
@@ -346,136 +341,37 @@ const mePages = () => {
    screen's markup is in the document — the same reason a widget's `start` runs after its page is
    filled rather than while it is being built. A frame later is enough, and it costs nothing on a
    screen nobody is looking at because there is no `#msg-body` to find. */
-/* ---------- PUTTING IT ON A PHONE'S HOME SCREEN --------------------------------------------------
-   TWO PLATFORMS, TWO COMPLETELY DIFFERENT ANSWERS, and pretending otherwise is why most sites do
-   this badly.
+/* ---------- NOTHING IN THE APP ASKS ANYBODY TO INSTALL IT -----------------------------------------
+   The owner, 6 Oct: *"delete the suggester telling to bookmark"*. That took out `installBar`, the
+   "Keep @family. on your phone" strip that slid down three seconds into every first visit — and it
+   left behind everything that fed it. The browser's install offer was still caught and HELD in
+   `INSTALL_PROMPT`; `installCard` and its `on('install')` were still here, under a comment saying
+   the offer "stays where somebody can go looking for it, `installCard` on the You screen"; and
+   `brandIcon`, `isInstalled` and `isIOS` were still here because that card asked them.
 
-   ANDROID has a real API. The browser decides the site is installable, fires `beforeinstallprompt`,
-   and hands over an object that opens the actual install dialog when asked. One tap, no
-   instructions, nothing to read.
+   NONE OF IT WAS ON SCREEN. `installCard` was built only by `meRest_`, which only `meBlocks` calls,
+   which only `mePages` calls — and nothing calls `mePages` (see the note over it). So an Android
+   visitor was refused Chrome's own install bar in favour of an offer of ours that nobody could
+   reach, and the next person to read this was told the reverse. `check-doors` could not see it: it
+   pairs a `data-do` with its handler wherever the string is WRITTEN, and written is not drawn.
 
-   iOS HAS NO SUCH THING and never has. Safari will not tell a page it is installable and will not
-   let a page ask — the only route is Share, then Add to Home Screen, and the only useful thing an
-   app can do is say so in the right words at the right moment. Any site claiming a one-tap install
-   on an iPhone is showing a button that cannot work.
+   THE BROWSER'S OWN MINI-BAR IS A SUGGESTER TOO, so it stays down. Chrome on Android fires
+   `beforeinstallprompt` when it judges the site installable and, left alone, slides up its own
+   "Add @family. to Home screen" — the same interruption in the browser's handwriting.
+   `preventDefault` is the whole of stopping it, so that is the whole of this. The event is NOT
+   kept: holding it is holding an offer in reserve, and nothing may make one.
 
-   SO IT SAYS WHICH. The card knows which phone it is on and gives either the button or the two
-   taps, and it does not appear at all once the thing is installed — a prompt to install something
-   already installed is the app failing to notice where it is running. */
-/* ---------- THE ICON, FROM THE BRAND TAB WHEN THERE IS ONE ----------------------------------------
-   `icon.png` IS THE FALLBACK AND IT ALWAYS WORKS. It has to be a real file: the icon is needed
-   before any payload has arrived, and iOS will not accept a data URI for `apple-touch-icon` — it
-   wants an address it can fetch at the moment somebody taps Add to Home Screen.
+   INSTALLING STILL WORKS FOR ANYBODY WHO GOES LOOKING. The browser menu's Install / Add to Home
+   Screen reads the manifest and the `apple-touch-icon` in index.html, and neither ever needed the
+   card; on an iPhone the Share sheet was always the only route. `applyBrandIcon_` in shell.js puts
+   `brand.logo_square` on that home-screen icon, and it never depended on any of this. (`brandIcon`
+   also rebuilt the manifest around the logo — but only when `installCard` was drawn, which since
+   the You column went was never, so the manifest's own `icon.png` is what Chrome has installed.)
 
-   BUT THAT MOMENT IS AFTER THE PAYLOAD LANDS, which is the whole reason this can work at all. iOS
-   reads the DOM when the share sheet is used, not when the page loads — so swapping the href once
-   `brand!logo_square` is known means the home screen gets YOUR mark rather than the drawn one, with
-   nothing to upload and no second file to keep beside the page.
-
-   ONE KEY, THE ONE THAT ALREADY EXISTS. `logo_square` is what the feed already uses for posts made
-   as the business, so filling it in does two jobs and there is no new name to remember. */
-function brandIcon() {
-  const b = (DATA && DATA.brand) || {};
-  /* THROUGH `pic()`, WHICH ALREADY EXISTS FOR EXACTLY THIS. A Google Drive share link — the
-     `/file/d/…/view?usp=sharing` one you get from the Share button — is a PAGE, not a picture.
-     Put it in an `<img>` or an icon and the browser fetches HTML, finds no image, and shows
-     nothing: a broken icon with no error anywhere.
-
-     `pic()` in posts.js turns one into the direct address and passes anything else straight
-     through. Using it here rather than writing a second converter is the whole point — two
-     implementations of one rule is how they come to disagree, and this app has paid for that
-     lesson more than once. A square icon wants a square-ish size rather than the feed's 1200. */
-  const raw = String(b.logo_square || b.logo_circle || '').trim();
-  if (!raw) return;                                  // nothing set: the drawn icon stands
-  const url = pic(raw).replace('=w1200', '=w512');
-  try {
-    const link = document.querySelector('link[rel="apple-touch-icon"]');
-    if (link && link.getAttribute('href') !== url) link.setAttribute('href', url);
-    /* AND THE MANIFEST, rebuilt with the same image. Chrome reads this when it decides whether to
-       offer an install, which is after load — so replacing it here is in time. Written as a data
-       URI for the same reason the original is: one fewer file to keep. */
-    const man = document.querySelector('link[rel="manifest"]');
-    if (man) {
-      const m = {
-        name: '@family.', short_name: '@family.',
-        start_url: './index.html', scope: './',
-        display: 'standalone', orientation: 'portrait',
-        background_color: '#000000', theme_color: '#12100d',
-        icons: [{ src: url, sizes: '512x512', type: 'image/png', purpose: 'any' },
-                { src: url, sizes: '512x512', type: 'image/png', purpose: 'maskable' }],
-      };
-      man.setAttribute('href',
-        'data:application/manifest+json,' + encodeURIComponent(JSON.stringify(m)));
-    }
-  } catch (err) { /* an icon that will not swap is the drawn one, which is fine */ }
-}
-
-let INSTALL_PROMPT = null;
-window.addEventListener('beforeinstallprompt', e => {
-  /* HELD, NOT USED. The browser offers this once and only in response to its own judgement; taking
-     it and calling `preventDefault` stops the default bar so the card below can ask at a moment
-     that makes sense instead. */
-  e.preventDefault();
-  INSTALL_PROMPT = e;
-  try { repaint(); } catch (err) {}
-});
-
-/* ALREADY AN APP? `standalone` is how a page knows it was opened from a home screen rather than
-   from a browser — `display-mode` on everything modern, and Safari's own property on iOS, which
-   answers it there and nowhere else. */
-const isInstalled = () =>
-  (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
-  || window.navigator.standalone === true;
-
-const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent)
-  /* An iPad since iPadOS 13 reports itself as a Mac, and the only reliable tell is that it has a
-     touchscreen — a desktop Safari does not. */
-  || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-
-/* ---------- THE BAR THAT ASKED EVERYBODY TO KEEP IT, GONE ---------------------------------------
-   `installBar` slid down from the top three seconds after every first visit — "Keep @family. on your
-   phone" — with `#install-bar`, `has-ib` and its own `install-no` dismissal. The owner, 6 Oct:
-   *"delete the suggester telling to bookmark"*. The offer stays where somebody can go looking for it,
-   `installCard` on the You screen; nothing interrupts anybody to make it. */
-
-function installCard() {
-  /* Asked here because this is the card that offers the install — so the icon is right by the time
-     anybody acts on it, and nothing has to run on a screen nobody is looking at. */
-  brandIcon();
-  if (isInstalled()) return '';
-  if (INSTALL_PROMPT) {
-    return `<div class="card"><h3>Put it on your home screen</h3>
-      <p class="sub">It opens like an app, full screen, with no address bar.</p>
-      <button class="btn" data-do="install" style="margin-top:.6rem">Add to home screen</button>
-    </div>`;
-  }
-  if (isIOS()) {
-    /* THE TWO TAPS, NAMED. "Add to Home Screen" is buried far enough down Safari's share sheet that
-       "use the share menu" is not instructions — the icon and the exact words are. */
-    return `<div class="card"><h3>Put it on your home screen</h3>
-      <p class="sub">It opens like an app, full screen, with no address bar.</p>
-      <p class="sub">Tap <b>Share</b> at the bottom of Safari — the square with an arrow out of it
-        — then scroll down and tap <b>Add to Home Screen</b>.</p>
-    </div>`;
-  }
-  /* EVERYWHERE ELSE, say nothing. A desktop browser either offers this in its own address bar or
-     does not do it at all, and a card explaining an install that cannot happen is noise. */
-  return '';
-}
-
-on('install', el => {
-  if (!INSTALL_PROMPT) { toast('Your browser will offer this itself.'); return; }
-  el.disabled = true;
-  INSTALL_PROMPT.prompt();
-  INSTALL_PROMPT.userChoice.then(r => {
-    /* THE OFFER IS SINGLE USE. Once it has been shown the browser will not hand it over again, so
-       holding a spent one would leave a button that does nothing. */
-    INSTALL_PROMPT = null;
-    el.disabled = false;
-    if (r && r.outcome === 'accepted') toast('Added to your home screen');
-    repaint();
-  }).catch(() => { INSTALL_PROMPT = null; el.disabled = false; });
-});
+   `check-flow`'s "nothing offers to install" holds the decision on the running app: the offer is
+   cancelled, nothing on the page changes for it, no `install` door is wired, and no screen says
+   "home screen". */
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); });
 
 /* ---------- `screen('me')` WAS HERE -----------------------------------------------------------------
    THE LAST COLUMN BUT ONE. `meCard` had already taken the top of it into the funnel — your face,
