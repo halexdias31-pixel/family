@@ -4609,10 +4609,36 @@ function pageParts_(x, prev) {
    — and two lists of one question's pages would be two chances to disagree about where it is. */
 /* AND A KEPT BIBLE'S THREE LISTS OF BOOKS, because the cover alone is a card with no way into the book:
    a book tapped on Saved opens on Find (`bibleGo_`), and the chapters themselves stay there. */
-function cardPages_(x, credits) {
-  return pageParts_(x).filter(p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p)
+/* `prev` IS THE KEPT THING IN FRONT, as on Find -- see `keptPages_`. */
+function cardPages_(x, credits, prev) {
+  return pageParts_(x, prev).filter(p => !p || p === 'fig' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p)
                                  || (x.kind === 'bible' && /^(ot2?|nt)$/.test(p)))
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
+}
+
+/* ---------- SAVED AND SPOTLIGHT DRAW A QUESTION'S OPENING ONCE, AS FIND DOES -----------------------
+   THE MULTI-PART AUDIT, FINDING 8: keep both parts of 1F Q8 and Saved read opening, figure, (i), its
+   answer, then opening, figure, (ii), its answer -- every kept part was drawn as though it had been
+   landed on alone. 270 questions, 741 extra pages; AQA A-level Physics 3A Q2 was 20 pages on Find and
+   35 on Saved.
+
+   SO THE KEPT PARTS OF ONE QUESTION ARE DRAWN TOGETHER, in the paper's order (`sortKey_`), each told
+   the part in front of it -- `pageParts_`'s own rule for a stem the previous part already showed. In
+   the place the first of them holds in the list, so nothing else on the column moves. A part kept on
+   its own still has its opening in front of it, because nothing in front of it showed it. "To the
+   answer" counts from the page the tile is on (`qa-go`), so it lands the same either way. */
+function keptPages_(items, credits) {
+  const by = {}, done = {}, seq = [];
+  const key = x => x._sk || (x._sk = sortKey_(x));
+  (items || []).forEach(x => { const k = qId_(x); if (k) (by[k] = by[k] || []).push(x); });
+  (items || []).forEach(x => {
+    const k = qId_(x);
+    if (!k) { seq.push(x); return; }
+    if (done[k]) return;
+    done[k] = true;
+    by[k].slice().sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0)).forEach(p => seq.push(p));
+  });
+  return [].concat(...seq.map((x, i) => cardPages_(x, credits, seq[i - 1])));
 }
 function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);

@@ -9273,6 +9273,45 @@ check('multipart: typing a question reference -- q8, 8ii, 1dii, 1d(ii), Q 8 -- m
   return bad;
 });
 
+/* FINDING 8: two kept parts of one question on Saved -- and on Spotlight -- draw its opening once. */
+check('multipart: Saved and Spotlight draw a question\'s opening and its figure once for several kept parts', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const bad = [];
+  const need = ['savedPages_', 'spotPages', 'collItems_', 'questionItems'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — Saved was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const eight = lib.items.filter(x => x.row.paper === 'P-MP-W' && String(x.qNumber) === '8');
+  const other = lib.items.find(x => x.row.paper === 'P-MP-V');
+  const heldC = w.collItems_;
+  w.__t.USER({ name: 'Kept', personId: 'P-KEPT', role: 'student', roles: ['student'] });
+  /* KEPT OUT OF ORDER, with another question between them, the way stars are pressed. */
+  w.collItems_ = () => [eight[1], other, eight[0]];
+  const read = html => {
+    const h = d.createElement('div');
+    h.innerHTML = html;
+    const c = h.querySelector('.qcard') || h.firstElementChild;
+    if (!c) return '?';
+    if (c.classList.contains('qstem')) return 'stem';
+    if (c.classList.contains('qfig')) return 'fig';
+    if (c.classList.contains('qans-card')) return 'ans';
+    return ((c.querySelector('.qcard-top b') || {}).textContent || '?').trim().replace(/\s.*$/, '');
+  };
+  try {
+    [['Saved', () => w.savedPages_()], ['Spotlight', () => w.spotPages()]].forEach(([where, f]) => {
+      const got = f().map(read).join(' ');
+      const want = 'stem fig Q8(i) ans Q8(ii) ans Q8';
+      if (got !== want) bad.push(where + ' reads "' + got + '", wanted "' + want + '" -- the opening once, the parts in the paper\'s order');
+    });
+    /* A PART KEPT ALONE STILL HAS ITS OPENING. */
+    w.collItems_ = () => [eight[1]];
+    const alone = w.savedPages_().map(read).join(' ');
+    if (alone !== 'stem fig Q8(ii) ans') bad.push('a part kept alone reads "' + alone + '", wanted its opening and figure in front of it');
+  } finally { w.collItems_ = heldC; lib.put(); }
+  return bad;
+});
+
 /* ---------- RUN THEM ---------------------------------------------------------------------------- */
 (async () => {
   let failed = 0;
