@@ -281,3 +281,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The y = mx + c splash names six gradients, and Post under a post is a tile](277-the-y-mx-c-splash-names-six-gradients-and-post-under-a-post.md)
 - [A parent who signs up on the phone is a parent — "Make an account" asks who it is for](278-a-parent-who-signs-up-on-the-phone-is-a-parent-make-an-accou.md)
 - [The answer hides again, every control on a question's pages is a tile, and the pen has a ruler and a compass](279-the-answer-hides-again-every-control-on-a-question-s-pages-i.md)
+- [The weekly parent email is built and switched off: a Sunday run, a log, a preview, and nothing that starts it](280-the-weekly-parent-email-is-built-and-switched-off-a-sunday-r.md)
