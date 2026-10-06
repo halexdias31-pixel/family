@@ -970,6 +970,8 @@ function wideSet_() {
   if (w !== WIDE || document.documentElement.classList.contains('wide') !== w) {
     WIDE = w;
     document.documentElement.classList.toggle('wide', w);
+    /* AND WHAT THE POINTER WAS SAYING ON A WIDE WINDOW GOES WITH IT — see `wideOverClear_`. */
+    if (!w) wideOverClear_();
   }
   return WIDE;
 }
@@ -1144,29 +1146,57 @@ function holdHere_(t) {
    and belongs to whoever placed the grid. AT REST THE TRANSITION IS SWITCHED OFF for the move, as an
    instant placement does: with it on, the layout would jump the page and the transform would then
    slide it back over a third of a second, which is the flicker wearing a different coat. MID-SLIDE
-   it is left alone, so the running animation simply retargets. And NEVER UNDER A FINGER — a drag
-   writes its own offset every frame, and `.dragging` (from `placeGrid`) is what says one is down.
+   it is left alone, so the running animation simply retargets.
    ONLY THE VERTICAL'S TRANSITION is switched off for it: the sideways one is a separate property
    now (`colWrite_`), and a column still sliding across must keep sliding.
+   AND IT WAS NEVER SWITCHED OFF AT ALL, because the call said `'0s'` where `colTransition_` takes
+   `{ d, tf, delay }`: the duration list came out as `.3s, , .22s`, which the browser refuses
+   whole, so the column kept its third of a second. Found on 6 October while fixing the drag case
+   below: 60px added to the card above Tools/2 at rest at 390x844, and the card in front read 60,
+   59, 56, 51, 43px off on the five frames after the observer had answered — the jump painted and
+   slid back, the very thing this exists to prevent. `SLIDE_NONE` now, and swipe.js 'grow' asks the
+   frame after.
+
    AND NEVER WHILE A SLIDE IS BOOKED: `PAGE` may already name the page an animated placement is
    about to go to, and moving the column there now, instantly, would be the slide cancelled a frame
    before it began — the collision `placeCells` exists to make unwriteable. An INSTANT placement
    booked for next frame is different and is not waited for: it would put the column exactly where
    this does, one frame later, and that frame is the jump. Measured at 320x568: waiting for the one
-   `paneReach_` books after a zoom changes painted the post 85px low for a frame. */
+   `paneReach_` books after a zoom changes painted the post 85px low for a frame.
+
+   ---------- AND UNDER A FINGER IT IS THE PLAN THAT IS CORRECTED ----------------------------------
+   THIS RETURNED ON `.dragging`, on the reasoning that a drag writes its own offset every frame.
+   It did once — every drag frame was a full placement that measured the column again. Since
+   `DRAG_PLAN` (below `SLIDE_UNTIL`), a drag frame writes the rest it worked out at the start of the
+   gesture plus the finger, and nothing measures until the lift: so a card above that grew mid-drag
+   left the card under the finger displaced by the whole growth until the finger let go. Measured
+   by the review of 6 October at 390x844, 150px grown inside Tools/0 with the finger on Tools/2:
+   150px off for every frame of a held drag, both axes, against 7 then 0 before the plan existed.
+   So the column's rest IN THE PLAN is moved to the new one, and the column written there plus
+   however far the finger has it — every frame after reads the corrected rest. */
 function holdColumn_(id) {
   try {
     const host = $('s-' + id);
-    if (!host || host.classList.contains('dragging')) return;
+    if (!host) return;
     if (PLACE_FRAME && PLACE_WANT && !PLACE_WANT.instant) return;
     const at = colPlaced_(host);
     if (!at) return;
+    /* A FINGER IS DOWN: this column's entry in this drag's plan, or nothing to correct — a plan
+       made for another card in front is one the next drag frame throws away and measures afresh. */
+    let plan = null;
+    if (host.classList.contains('dragging')) {
+      const p = DRAG_PLAN;
+      plan = p && p.at === AT && p.page === (PAGE[AT] || 0) ? p.cols.find(c => c.host === host) : null;
+      if (!plan) return;
+    }
     const want = columnShift_(host, domIndex_(id, PAGE[id] || 0));
-    if (!isFinite(want) || Math.abs(at[1] - want) < 0.5) return;
+    const rest = plan ? plan.y : at[1];
+    if (!isFinite(want) || Math.abs(rest - want) < 0.5) return;
     const moving = typeof host.getAnimations === 'function'
       && host.getAnimations().some(a => a.playState === 'running' && a.transitionProperty === colProp_('y'));
-    if (!moving) colTransition_(host, null, '0s');
-    colWrite_(host, at[0], want);
+    if (!moving) colTransition_(host, null, SLIDE_NONE);
+    if (plan) plan.y = want;
+    colWrite_(host, at[0], want + (at[1] - rest));
   } catch (e) { /* a column left where it was is the behaviour before this existed */ }
 }
 
@@ -1459,9 +1489,17 @@ function softDrag_(which, px, stepX) {
   /* THE NEIGHBOUR AND HOW FAR AWAY IT IS, WORKED OUT ONCE A DIRECTION. This read `offsetTop` and
      `offsetHeight` on every frame of a vertical drag, straight after `colWrite_` had written the
      column — a forced style-and-layout per frame for two numbers that cannot change while the finger
-     is down. Kept on `SOFT_DRAG`, which lives exactly as long as the gesture. */
+     is down.
+     KEPT ON THE DRAG'S PLAN, NOT ON `SOFT_DRAG`. It was on `SOFT_DRAG`, said to live exactly as long
+     as the gesture, and it does not: `softSettle_` will not clear it while a finger with an axis is
+     down, so when the last flick's release placement landed after the next finger had taken its axis
+     — two quick flicks on a busy phone — the cache still named the old card in front and the new
+     one as its neighbour. The review of 6 October measured the card under the finger blurred 1.8px
+     for the rest of that drag and the card it had left sharp. `DRAG_PLAN` is thrown away by exactly
+     the things that move a card in front — any placement that is not a drag, and a new finger — so
+     a direction worked out on it is one worked out against the cards that are there now. */
   const key = which + (px < 0 ? '+' : '-');
-  const seen = SOFT_DRAG.near || (SOFT_DRAG.near = new Map());
+  const seen = DRAG_PLAN ? DRAG_PLAN.near || (DRAG_PLAN.near = new Map()) : new Map();
   let a, b = null, step = 0;
   if (seen.has(key)) {
     ({ a, b, step } = seen.get(key));
@@ -1547,7 +1585,9 @@ let SLIDE_UNTIL = 0;
    16.7, so a quick swipe dropped a frame in three while the finger was still on the glass.
 
    NOTHING ON THAT LIST CAN CHANGE UNDER A FINGER. `PAGE` and `AT` move only on the release; a card
-   that grows mid-drag is `holdColumn_`'s, and it already refuses a column marked `.dragging`. So the
+   that grows mid-drag is `holdColumn_`'s, which corrects the column's rest IN THIS PLAN — it used to
+   refuse a column marked `.dragging`, and with nothing else measuring until the lift the card under
+   the finger stayed off by the whole growth for the rest of the gesture (see its note). So the
    first drag frame is the full placement it always was — it switches the finger's axis to no
    transition, marks `.dragging`, and works out every column's resting place — and that answer is
    kept as `DRAG_PLAN`. Every frame after it writes the columns the finger is moving (all of them
@@ -1562,7 +1602,7 @@ let SLIDE_UNTIL = 0;
    instead of after a whole placement (7–35ms at 4x, the first frame of every swipe). Only when a
    placement is still booked (`PLACE_FRAME`), or a column has never been placed, does the first
    frame fall back to the full one, because then the inline values are not where anything rests. */
-let DRAG_PLAN = null;    // { which, at, page, stepX, cols: [{ host, x, y, front }] } — this drag's sums
+let DRAG_PLAN = null;    // { which, at, page, stepX, cols: [{ host, x, y, front }], near } — this drag's sums
 function dragPlan_(drag) {
   if (PLACE_FRAME) return null;
   const cols = [];
@@ -3286,6 +3326,22 @@ addEventListener('pointermove', e => {
     if (scr) scr.style.cursor = el ? 'pointer' : '';
   });
 }, { passive: true });
+/* ---------- LEAVING A WIDE WINDOW TAKES THE HAND AWAY ---------------------------------------------
+   THE LISTENER ABOVE IS THE ONLY THING THAT WRITES THE CURSOR, and it returns at once when the
+   window is not wide — so a window snapped or zoomed below `WIDE_FROM` with the mouse resting on a
+   side card (Win+Left on a 1280 screen, Ctrl+Plus to 200%; neither moves the mouse) kept
+   `cursor: pointer` on `#screen` for the rest of the session: a phone layout with a hand over plain
+   text, every word looking pressable. Found by the review of 6 October. Cleared by `wideSet_` the
+   moment the window stops being wide, which is where the state stops meaning anything. A hover
+   frame already booked is harmless: `wideHit_` answers nothing on a narrow window, so it clears too. */
+function wideOverClear_() {
+  try {
+    if (WIDE_OVER) WIDE_OVER.classList.remove('wide-over');
+    WIDE_OVER = null;
+    const scr = $('screen');
+    if (scr) scr.style.cursor = '';
+  } catch (e) { /* before this file has finished loading there is nothing to clear */ }
+}
 
 document.addEventListener('click', e => {
   /* FIRST, because a swipe that ends on a tab must not change tab either. */

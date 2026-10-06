@@ -753,7 +753,20 @@ addEventListener('pointerup', e => {
    ONE FRAME, ONE WRITE. The step is `requestAnimationFrame`'s and uses the frame's own time, so a
    frame that arrives late moves the card further rather than making it slower. A finger that lands
    during the glide stops it where it is (`pointerdown`), and that touch presses nothing — the glide
-   keeps `SLIDE_UNTIL` a frame ahead, which is the press swallow every moving card already has. */
+   keeps `SLIDE_UNTIL` a frame ahead, which is the press swallow every moving card already has.
+
+   ---------- AND ANYTHING ELSE THAT MOVES THE CARD OR THE FOCUS STOPS IT TOO ------------------------
+   A FINGER WAS THE ONLY THING THAT COULD. The glide carried its own position and wrote it every
+   frame without looking, so for the two-and-a-half seconds a fast one lasts it was the pane's only
+   scroller and its card was the only card in front, whatever else happened. Found by the review of
+   6 October with a mouse flick down the Messages thread: a wheel notch the other way read 412 →
+   420, 430 … 490, lost entirely; and ArrowRight during the glide left it scrolling a thread that had
+   gone, pushing `SLIDE_UNTIL` forward, so the first click on Find's answer was swallowed as a press
+   on a sliding card — 600ms after the turn's own slide had ended. So each frame asks first: is the
+   card it was let go on still the one in front (`AT` and its `PAGE`, which `go`, `goPage`, a key and
+   a wheel all move), and is the pane still where the glide last put it? A wheel, `scrollIntoView`
+   or the app's own `scrollTop` is somebody else scrolling, and the glide gives way to them. Read
+   back after each write, because the browser rounds a scroll position to a device pixel. */
 const GLIDE = { frame: 0, el: null };
 const GLIDE_DECAY = 0.998;     // per millisecond — a phone's own "normal" deceleration
 const GLIDE_MAX = 4;           // px/ms: past this a flick is a throw, and a throw is not reading
@@ -766,10 +779,12 @@ function glide_(el, v) {
   if (!el || !(Math.abs(v) >= 0.15)) return;
   v = Math.max(-GLIDE_MAX, Math.min(GLIDE_MAX, v));
   GLIDE.el = el;
-  let last = performance.now(), pos = el.scrollTop;
+  const id = AT, p = PAGE[AT] || 0;
+  let last = performance.now(), pos = el.scrollTop, wrote = pos;
   const step = now => {
     GLIDE.frame = 0;
     if (GLIDE.el !== el || !el.isConnected) return;
+    if (AT !== id || (PAGE[id] || 0) !== p || Math.abs(el.scrollTop - wrote) > 1) { GLIDE.el = null; return; }
     const dt = Math.max(1, Math.min(48, now - last));
     last = now;
     /* THE DISTANCE OVER THIS FRAME, integrated rather than v * dt, so a long frame cannot overshoot
@@ -780,6 +795,7 @@ function glide_(el, v) {
     const max = el.scrollHeight - el.clientHeight;
     if (pos <= 0 || pos >= max) pos = Math.max(0, Math.min(max, pos));
     el.scrollTop = pos;
+    wrote = el.scrollTop;
     if (pos <= 0 || pos >= max || Math.abs(v) < 0.02) { GLIDE.el = null; return; }
     SLIDE_UNTIL = Math.max(SLIDE_UNTIL, performance.now() + 100);
     GLIDE.frame = requestAnimationFrame(step);
