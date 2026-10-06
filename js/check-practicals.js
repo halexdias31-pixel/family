@@ -51,10 +51,12 @@ const rows = readLines('data/practicals.json');
 const tree = readLines('data/topics.json');
 
 /* ---------- WHAT THE TREE ANSWERS TO -------------------------------------------------------------
-   Label, alias, and the id read as words — the same three `topicIndex_` in find.js builds its map
-   from. Deliberately NOT the containment pass: that one resolves "scatter graphs" inside "Scatter
-   Graphs & Correlation" and is right to, but a practical's topic is written by hand into a file
-   under review, so it can be held to the stricter standard of naming the branch outright. */
+   Label, alias, and the id read as words — the same three `topicIndex_` in find.js built its map
+   from, while the app still read the tree for `Topic area`. Both are retired (find.js, `THE TOPIC
+   TREE WAS READ HERE`), so this file is now one of the tree's readers rather than a copy of one.
+   Deliberately NOT the containment pass the app used: that resolved "scatter graphs" inside
+   "Scatter Graphs & Correlation" and was right to, but a practical's topic is written by hand into a
+   file under review, so it can be held to the stricter standard of naming the branch outright. */
 const key = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, '');
 const known = new Set();
 tree.forEach(t => {

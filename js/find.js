@@ -753,7 +753,8 @@ function priced_(v) {
    answering `Topic area` with `Biology`, because `Subject` has already asked that and asked it
    better; a Biology PRACTICAL whose subject is Biology likewise. Nothing is lost — the narrower
    question is the one that was going to be offered anyway — and the wider one stops offering a
-   button that duplicates it.
+   button that duplicates it. (`Topic area` is retired since — see `topicArea WAS HERE`; the same
+   `not:` still stands on `tier` against `level` and on `company` against `examBoard`.)
 
    PER ITEM, NOT PER FACET, and that is the whole of why it is safe. `Probability` stays a Topic
    wherever the row's topic AREA is something else, and stops being one only on the rows where the
@@ -916,19 +917,10 @@ const SUBJECT_BUCKET = bucketTable_([
   ['Boxing',            ['Boxing']],
 ]);
 
-/* THE NATIONAL CURRICULUM'S OWN STRANDS, which is where every one of these names came from in the
-   first place — `data/topics.json` is built on them. A-level pure maths sits under Algebra because
-   that is what most of it is, and because a strand of its own for 84 questions is a button nobody
-   presses. */
-const AREA_BUCKET = bucketTable_([
-  ['Number',                   ['Number']],
-  ['Algebra',                  ['Algebra', 'A-Level Pure Maths']],
-  ['Ratio & Proportion',       ['Ratio & Proportion']],
-  ['Geometry & Measures',      ['Geometry & Measures']],
-  ['Statistics & Probability', ['Statistics', 'Probability']],
-  ['Science',                  ['Biology', 'Chemistry', 'Physics']],
-  ['English',                  ['English Grammar', 'Punctuation', 'Vocabulary & Spelling']],
-]);
+/* `AREA_BUCKET` WAS HERE — the national curriculum's strands, `Topic area`'s seven buckets, with
+   A-level pure maths filed under Algebra. Its only reader was that facet's `bucketOf`, so it went
+   with `topicAreaOf_` (see `THE TOPIC TREE WAS READ HERE`); a `const` table is invisible to
+   `check-dead.js`, which looks for `function`, so it would not have been listed. */
 
 /* GRADES IN THREES, which is how a tutor talks about them — "a grade 4 to 6 question" is a sentence
    somebody says and "Grade 4" alone is a precision nobody has about a question they have not read.
@@ -1117,16 +1109,6 @@ const FACETS = [
      `collectionAxes_` reads, so "or the 352 topics these are in" becomes available wherever
      grouping by topic would collapse the list harder than grouping by paper. Neither of those
      behaviours is written here. */
-  /* ---------- THE BRANCH BEFORE THE TOPIC --------------------------------------------------------
-     ASKED FIRST BECAUSE IT IS THE QUESTION SOMEBODY HAS FIRST, the same judgement `boxKind` and
-     `Decade` below already record: "is this algebra or geometry" comes before "is it simultaneous
-     equations". It is also the only version of this question that fits on the card -- see
-     `topicAreaOf_` for the tree it reads and the 96.6% it resolves.
-     NOTHING NEW DECIDES WHEN IT IS ASKED. Ten answers is under the cap and almost nothing outside
-     the library carries a topic, so the coverage rule keeps it out of the way until the list is
-     questions -- both rules were already there. */
-  /* `not: subject` — see `facetOwn_`. `data/topics.json` gained Biology, Chemistry and Physics as
-     roots when the practicals went in, and those are the three answers `Subject` already owns. */
   /* ---------- A QUESTION ANSWERS THESE ONLY IF IT IS A 1ST CLASS MATHS WORKSHEET ----------------
      THE OWNER'S CALL, IN HIS WORDS: "each question has an assigned topic. I hate that. I only liked
      it with the first class maths stuff because the topic names were the names of the pdf itself."
@@ -1146,7 +1128,17 @@ const FACETS = [
      the shape the owner had already refused as Grade 1–3. And on a practical it was wrong outright:
      a GCSE Biology practical answered `Algebra` and `Geometry & Measures`, because the tree files a
      science practical's maths skills under maths branches. `RETIRED_FACETS` keeps the sheet's row
-     from asking it again. `topicAreaOf_` stays: the search and the checks still read the tree. */
+     from asking it again.
+
+     AND ITS READER WENT AFTER IT, A ROUND LATE. This note first said "`topicAreaOf_` stays: the
+     search and the checks still read the tree", and only the second half was true. The search reads
+     a question's own words (`stuffHay_` — name, sub, subject, slot, grade, text) and has never asked
+     the tree anything; the one caller left was `check-funnel.js`'s rule 8, guarding a menu nobody
+     could open any more, and `check-dead.js` listed the function as unreachable from the day this
+     facet went. So `topicAreaOf_`, the index under it (`topicIndex_`, `topicPick_`), its bucket table
+     and the boot's fetch of `data/topics.json` are gone — see `THE TOPIC TREE WAS READ HERE`. The
+     file stays: `check-practicals`, `check-projects` and `check-textbooks` hold a hand-written topic
+     to its labels and aliases, which is a check reading a file, not the app reading one. */
   { field: 'topic',     label: 'Topic',
     of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
   /* Only boxers and bouts carry one, so the coverage rule keeps it out of the way of everything
@@ -9670,164 +9662,22 @@ function topicOf_(x) {
   return topicAtoms_(x && ((x.row && x.row.topics) || x.topics));
 }
 
-/* ---------- WHICH BRANCH OF THE SUBJECT A TOPIC IS ON --------------------------------------------
-   `Topic` HAS 343 ANSWERS AND A CARD HOLDS SEVEN. Trimming it to seven is honest but nearly
-   useless: seven topics out of three hundred is not a question, it is a sample. What was missing
-   is the LEVEL ABOVE — the handful of branches every one of those topics hangs off — and it turns
-   out somebody had already written it down. `data/topics.json` is 269 labels under ten roots with
-   an `aliases` column, and it sat unread in the archive.
+/* ---------- THE TOPIC TREE WAS READ HERE ----------------------------------------------------------
+   `topicIndex_`, `topicPick_` AND `topicAreaOf_` WERE HERE — 158 lines that resolved a question's
+   `topics` cell onto a root of `data/topics.json` (96.6% of 4,257 cells, into ten branches), with a
+   level that rules a branch out, a subject that only breaks a tie, and a memo per item. Their one
+   reader in the app was the `Topic area` question, and the owner retired it on 6 Oct (see `topicArea
+   WAS HERE` among the facets). The retirement's note said the search still read the tree; it never
+   had — the haystack is the question's own words, `topicAtoms_` of its `topics` cell included, and
+   no branch name was ever in it. So for a round the app fetched a 269-row file on every boot to
+   build an index nothing asked, and the only thing exercising the resolver was a check (rule 8 of
+   `check-funnel.js`) guarding a menu nobody could open.
 
-   MEASURED BEFORE BUILDING, because a tree that does not match the library is decoration: it
-   resolves 4,112 of the library's 4,257 topic cells, 96.6%, into TEN areas — and a maths question
-   only ever sees seven of them (Number, Algebra, Ratio & Proportion, Geometry & Measures,
-   Probability, Statistics, A-Level Pure Maths). English sees the other three. That is the seven
-   the card has room for, arrived at from the data rather than by picking a number.
-
-   THREE PASSES, EACH NARROWER THAN THE LAST, and the third is the one that needs the care:
-     1. the label, an alias, or the id read as words
-     2. the same again with a plural folded to its singular -- "box plots" against "Box Plots"
-     3. CONTAINMENT, and only when every candidate agrees on the same root. "scatter graphs" is
-        inside "Scatter Graphs & Correlation" and nothing else, so it resolves; "area" is inside
-        both "Area of 2-D Shapes" (Geometry) and "Area Under a Curve" (A-Level), so it resolves to
-        NOTHING rather than to a coin toss. Six cells lost against a wrong branch on a card that
-        looks authoritative — the trade this repository makes everywhere else.
-
-   NOT WRITTEN INTO THE ROWS. The library's `topics` cells keep arriving free-text from bulk
-   imports, so a migration is something the next import undoes -- the argument `levelOf_` and the
-   spelling vote both already make. */
-let TOPIC_AREA = null;
-const topicKey_ = s => String(s == null ? '' : s).toLowerCase().replace(/[^a-z0-9]/g, '');
-const topicOne_ = k => k.endsWith('ies') && k.length > 5 ? k.slice(0, -3) + 'y'
-                     : k.endsWith('ses') && k.length > 5 ? k.slice(0, -2)
-                     : k.endsWith('s')   && k.length > 3 ? k.slice(0, -1) : k;
-function topicIndex_() {
-  if (TOPIC_AREA) return TOPIC_AREA;
-  const tree = (DATA && DATA.topicTree) || [];
-  const byId = {}, exact = {}, roots = [], limits = {};
-  tree.forEach(r => { if (r && r.topic_id) byId[r.topic_id] = r; });
-  const rootOf = (r, n) => {
-    const p = String((r && r.parent_id) || '').trim();
-    return (!p || !byId[p] || (n || 0) > 8) ? r : rootOf(byId[p], (n || 0) + 1);
-  };
-  tree.forEach(r => {
-    if (!r || !r.label) return;
-    const root = rootOf(r) || r;
-    const area = root.label;
-    /* ---------- WHAT THE BRANCH SAYS ABOUT ITSELF -------------------------------------------
-       DECLARED ON THE ROOT ROW RATHER THAN READ OUT OF ITS NAME. `Pure` is A-level maths and
-       `Punctuation` is English, and both were facts only a person reading the label knew — which
-       is how a GCSE proof question ended up in an A-level menu and a grammar question about
-       brackets ended up under Number. A substring rule over the label is what put a gold
-       "required practical" flag on five cards that say they are not one. */
-    if (limits[area] === undefined) {
-      /* `topicAtoms_`, NOT `asList_`. The second one does not split a comma — it wraps a string
-         in a one-element array, and the comma-reading in this app is done by whoever owns the
-         cell. Written with `asList_` these two came out as the single key `alevelas` and every
-         A-level question lost its area; `topicAtoms_` is the same splitter `topicOf_` uses on the
-         cell these are being compared against. */
-      limits[area] = { subjects: topicAtoms_(root.only_subject).map(spellKey_).filter(Boolean),
-                       levels:   topicAtoms_(root.only_level).map(spellKey_).filter(Boolean) };
-    }
-    const names = [r.label, String(r.topic_id || '').replace(/-/g, ' ')]
-      .concat(String(r.aliases || '').split(',').filter(a => a.trim()));
-    /* A ROOT ANSWERS TO ITS OWN HALVES. "Ratio & Proportion" is one branch and the library writes
-       `ratio` and `proportion` as separate cells, so both have to reach it. */
-    if (!String(r.parent_id || '').trim()) names.push.apply(names, r.label.split(/[&/,]/));
-    names.forEach(nm => {
-      [topicKey_(nm), topicOne_(topicKey_(nm))].forEach(k => {
-        if (!k) return;
-        /* ---------- EVERY BRANCH THE WORD REACHES, NOT THE FIRST ONE IN THE FILE -------------
-           THIS WAS `if (exact[k] === undefined) exact[k] = area`, so a word in two branches
-           resolved to whichever sits higher in `data/topics.json` — a decision nobody made,
-           taken silently, and unreadable from either row. Measured: five words are in two roots
-           (`brackets`, `arc length`, `reflection`, `trapezium rule` and the singular of the
-           first), and `brackets` is why two KS2 GRAMMAR questions were filed under Number.
-           Keeping them all is what lets the row decide, below. */
-        if (exact[k] === undefined) exact[k] = [];
-        if (exact[k].indexOf(area) < 0) exact[k].push(area);
-      });
-    });
-    roots.push([topicOne_(topicKey_(r.label)), area]);
-  });
-  return (TOPIC_AREA = { exact: exact, roots: roots, limits: limits });
-}
-
-/* ---------- WHICH OF THE BRANCHES A ROW CAN HONESTLY BE IN --------------------------------------
-   THREE STEPS, AND THE ASYMMETRY BETWEEN THE FIRST TWO IS THE WHOLE CARE.
-
-   A LEVEL CONTRADICTION ALWAYS RULES A BRANCH OUT. `Pure` says it is A-level; a GCSE row is not in
-   it, whatever its topic cell says. That is the eighteen Edexcel Higher questions this was reported
-   for — `proof`, `rates of change`, `coordinate geometry`, `arithmetic` — every one of them sitting
-   in an A-level menu because the A-level subtree was the only place those words appeared.
-
-   A SUBJECT CONTRADICTION ONLY BREAKS A TIE, and that restraint was measured rather than chosen:
-   **97 practicals carry a science subject and resolve to a MATHS area on purpose** — the resistance
-   of a wire IS a straight-line graph, and a student stuck on direct proportion should find it. A
-   blanket subject rule would have broken all ninety-seven to fix two, which is the ninety-five
-   findings with two real ones in them that `check-rows.js` records.
-
-   AND A BRANCH THE ROW POSITIVELY MATCHES BEATS ONE THAT SAYS NOTHING. With `proof` now reaching
-   GCSE `Algebraic Proof` as well as A-level `Proof`, an A-level row matches both — and the branch
-   that declared itself A-level is the better answer for a row that is. Without this step the fix
-   for the GCSE rows would have taken the area off the A-level ones. */
-function topicPick_(cands, x) {
-  const at = topicIndex_();
-  const lim = a => at.limits[a] || { subjects: [], levels: [] };
-  const lv = spellKey_(levelOf_(x) || '');
-  const sub = spellKey_(String((x && x.subject) || '') || '');
-
-  let left = cands.filter(a => !(lv && lim(a).levels.length && lim(a).levels.indexOf(lv) < 0));
-  if (left.length > 1 && sub) {
-    const fits = left.filter(a => !(lim(a).subjects.length && lim(a).subjects.indexOf(sub) < 0));
-    if (fits.length) left = fits;
-  }
-  if (left.length > 1 && lv) {
-    const named = left.filter(a => lim(a).levels.indexOf(lv) >= 0);
-    if (named.length) left = named;
-  }
-  /* STILL MORE THAN ONE IS NO ANSWER. A chip that is wrong is worse than a chip that is missing —
-     this file's own rule about `cost: 0` and about a description standing in for a picture — and
-     `check-funnel.js` counts what lands here so it is a number rather than a silence. */
-  return left.length === 1 ? left[0] : null;
-}
-/* ONE ANSWER PER ITEM PER TREE. `Topic area` is tallied on every tap that reaches it, over every
-   item still in the list, and each tally resolved every topic word of every item against the tree
-   again — the same item, the same words, the same tree, the same answer — `topicAreaOf_` showed in the 8x
-   CPU profile of every tap that reached that question. Held against the item itself, and thrown
-   away whole when `topicIndex_` is rebuilt, so a tree that lands late cannot leave a stale answer
-   behind. A copy is handed out so no caller can edit the one that is kept. */
-let TOPIC_AREA_MEMO = new WeakMap(), TOPIC_AREA_FOR = null;
-function topicAreaOf_(x) {
-  const at = topicIndex_();
-  if (TOPIC_AREA_FOR !== at) { TOPIC_AREA_MEMO = new WeakMap(); TOPIC_AREA_FOR = at; }
-  const keep = x && typeof x === 'object';
-  const had = keep ? TOPIC_AREA_MEMO.get(x) : null;
-  if (had) return had.slice();
-  const out = topicAreaFresh_(x, at);
-  if (keep) TOPIC_AREA_MEMO.set(x, out.slice());
-  return out;
-}
-function topicAreaFresh_(x, at) {
-  const out = [];
-  asList_(topicOf_(x)).forEach(t => {
-    const k = topicKey_(t), k1 = topicOne_(k);
-    const hit = at.exact[k] !== undefined ? at.exact[k]
-              : at.exact[k1] !== undefined ? at.exact[k1] : null;
-    let area = hit ? topicPick_(hit, x) : null;
-    if (area === null && !hit && k1.length >= 4) {
-      let only = null, many = false;
-      at.roots.forEach(pair => {
-        if (pair[0].indexOf(k1) < 0) return;
-        if (only === null) only = pair[1]; else if (only !== pair[1]) many = true;
-      });
-      /* THROUGH THE SAME CHOICE, because a PARTIAL match is less certain than an exact one, not
-         more — so a branch the row's level rules out is ruled out here too. */
-      if (only !== null && !many) area = topicPick_([only], x);
-    }
-    if (area && out.indexOf(area) < 0) out.push(area);
-  });
-  return out;
-}
+   WHAT IT KNEW IS NOT LOST WITH IT. The level and subject limits are still columns on the tree's
+   roots (`only_level`, `only_subject`), and the two faults rule 8 was written for — 18 GCSE Higher
+   questions in the A-level branch, and `brackets` filing two KS2 grammar questions under Number —
+   are written up in `docs/history/180-…`. A topic menu that comes back should start from that note
+   and from this file's history at `topicPick_`, not from a blank page. */
 
 /**
  * WHAT LEVEL A THING IS TAUGHT AT, FROM WHICHEVER OF THE TWO COLUMNS HAS IT.
@@ -11677,17 +11527,72 @@ function bundleCard_(b) {
       tile_({ icon: 'open', label: 'See your basket', act: 'cart-open' })}</div>`;
 }
 
+/* ---------- WHICH OF THE ANSWERS ABOVE TOOK PART OF A PAPER AWAY -----------------------------------
+   THE DEAD END BLAMED "a search or a topic", AND UNDER `Bundles` THE FUNNEL ASKS NO TOPIC. The review
+   of PR #130 walked every journey under `Bundles` with `Doesn't matter` at each level — 4,975 ends —
+   and the 368 that land on the dead end all pass through `What you need`: Maths · GCSE · Higher ·
+   November 2019 · Paper `Doesn't matter` · `Compass` leaves one question, so no paper is whole, and
+   the card told somebody who had typed nothing and been offered no topic to take back a search or a
+   topic. That is finding 6's complaint again — a card blaming a choice nobody made — one card down.
+
+   SO IT IS WORKED OUT, NOT WORDED. A paper is whole when every one of its questions is on the list
+   (`bundleBuild_`), so the answers that broke one are exactly the answers some question on a listed
+   paper fails. Each answered field is put to the listed papers' whole question sets through
+   `stuffNarrow_` — the one body that decides what a chip or a word means — and the search the same
+   way. A paper-level answer (subject, year, month, Paper itself) keeps every question of a paper it
+   keeps any of, so it is never named; `What you need` today, and anything that asks about questions
+   rather than papers tomorrow, is. Asked only when the dead end is drawn, and held per list. */
+const BUNDLE_CUT_MEMO = new WeakMap();
+function bundleCutBy_() {
+  const items = stuffFiltered();
+  if (BUNDLE_CUT_MEMO.has(items)) return BUNDLE_CUT_MEMO.get(items);
+  const idOf = x => (x && x.kind === 'question' ? String(paperIdOf_(x.row || x) || '') : '');
+  const listed = new Set(items.map(idOf).filter(Boolean));
+  const papers = stuffItems().filter(x => listed.has(idOf(x)));
+  const credits = USER ? (USER.credits || 0) : 0;
+  const byField = {};
+  (STUFF.filters || []).forEach(f => {
+    if (f && !f.any) (byField[f.field] = byField[f.field] || []).push(f);
+  });
+  const cut = [];
+  Object.keys(byField).forEach(field => {
+    if (stuffNarrow_(papers, byField[field], [], credits).length < papers.length) {
+      const facet = facetBy(field);
+      cut.push(facet && facet.label ? facet.label : field);
+    }
+  });
+  const words = stuffWords_(STUFF.q);
+  if (words.length && stuffNarrow_(papers, [], words, credits).length < papers.length) cut.push('the search');
+  BUNDLE_CUT_MEMO.set(items, cut);
+  return cut;
+}
+
+/* THE DEAD END'S SENTENCE, from `bundleCutBy_` — each answer by the name its question has above it.
+   When nothing above can be blamed (the list held too many papers, or too much that is not one) it
+   says what is true without naming anybody. */
+function bundleDeadEnd_() {
+  const cut = bundleCutBy_();
+  const names = cut.map((n, i) => n === 'the search' ? (i ? 'the search' : 'The search')
+                                                      : `<b>${esc(n)}</b>`);
+  const said = names.length > 1
+    ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0];
+  const undo = cut.length === 1 && cut[0] === 'the search' ? 'Clear it'
+             : names.length > 1 ? 'Take them back' : 'Take it back';
+  const why = !names.length
+    ? 'Take an answer back above — a bundle is whole papers, and nothing on this list is one.'
+    : `${said} ${names.length > 1 ? 'keep' : 'keeps'} only some of a paper's questions, and a bundle
+        is whole papers. ${undo} above.`;
+  return `<div class="card bundle qcard"><div class="qcard-top"><b>Bundle</b></div>
+        <p class="bundle-sub">No whole sitting left on this list to bundle. ${why}</p></div>`;
+}
+
 function bundlePages_() {
   if (bundlesView_()) {
     const all = bundlesBySitting_();
     /* "A SINGLE PAPER" WAS IN THIS SENTENCE, and it was true only because of the fault over
-       `bundleBuild_`'s floor: one whole paper is a sitting now and gets its card. What still leaves
-       no whole paper is a search, or an answer about the questions rather than the paper. */
-    if (!all.length) {
-      return [`<div class="card bundle qcard"><div class="qcard-top"><b>Bundle</b></div>
-        <p class="bundle-sub">No whole sitting left on this list to bundle. Take an answer back above —
-          a search or a topic narrows it past whole papers.</p></div>`];
-    }
+       `bundleBuild_`'s floor: one whole paper is a sitting now and gets its card. "A search or a
+       topic" replaced it and was wrong the other way — see `bundleCutBy_`. */
+    if (!all.length) return [bundleDeadEnd_()];
     return all.map(bundleCard_);
   }
   const b = bundleOf_();
@@ -12102,7 +12007,8 @@ const TAG_OF = {
   documentType: 'type', practicalType: 'type', boxKind: 'type',
   examBoard: 'board', company: 'board',
   tier: 'tier', division: 'tier',
-  topic: 'topic', topicArea: 'topic',
+  /* `topicArea` was `topic` too, and is retired — see `RETIRED_FACETS`. */
+  topic: 'topic',
   /* ---------- `needs` IS A KIND AGAIN, AND STILL NOT GOLD -------------------------------------------
      IT WAS LEFT OUT ON PURPOSE: it had been gold, the press colour of every answer, so a resting `What
      you need` answer read as one already pressed -- and it took the plain outline. Then the card's

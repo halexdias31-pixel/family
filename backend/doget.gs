@@ -623,11 +623,12 @@ function doGet(e) {
          file that sends it. */
       films: filmsOut,
       cheatsheet: [],
-      /* `topicTree` IS THE FOURTH OF THESE and it is declared for the same reason as the three
-         above: `libraryExtras_` fills it from `data/topics.json` on the phone, and a key the site
-         reads that appears nowhere here is what `check-payload.js` fails on -- correctly, because
-         it cannot tell a key filled in the browser from one nobody sends. */
-      topicTree: [],
+      /* `topicTree: []` WAS THE FOURTH OF THESE, declared so `check-payload.js` would not report a
+         key the phone filled from `data/topics.json` as read-and-never-sent. Nothing reads it now —
+         the `Topic area` question and `topicAreaOf_` are retired (find.js, `THE TOPIC TREE WAS READ
+         HERE`) and the phone no longer fetches the file — so kept here it would be the same check's
+         other list, sent and never read. NO STAMP BUMP FOR IT: until the next sync the deployed copy
+         goes on sending an empty array nobody asks for, which is the whole of the difference. */
       /* AND `practicals` IS THE FIFTH, for exactly the same reason. `data/practicals.json` is
          41 experiments filled in on the phone by `libraryExtras_`; this line is what stops
          `check-payload.js` reporting the key as read-and-never-sent, which it would be right
