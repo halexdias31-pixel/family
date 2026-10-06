@@ -457,6 +457,11 @@ addEventListener('pointerdown', e => {
   SWIPE.vAt = Date.now(); SWIPE.vD = 0; SWIPE.v = 0;
   SWIPE.lock = 0; SWIPE.catch = 0; SWIPE.last = null;
   SWIPE.trail = [[e.timeStamp, e.clientX, e.clientY]];
+  /* A FINGER ON A CARD STILL GLIDING STOPS IT WHERE IT IS — see `glide_` below — and a new finger
+     is a new drag, which measures its own columns rather than inheriting the last one's (`DRAG_PLAN`
+     in shell.js). */
+  glideStop_();
+  DRAG_PLAN = null;
   /* A RELEASE NOBODY PLACED YET IS NOT THIS GESTURE'S. Cleared so a later tap cannot inherit the
      last swipe's speed — see `settleFrom_` in shell.js. */
   if (typeof settleFrom_ === 'function') settleFrom_(null);
@@ -515,72 +520,78 @@ addEventListener('pointermove', e => {
      safer wrong answer, because scrolling is the thing people do a thousand times more often. */
   if (!SWIPE.axis) {
     if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return;
-    let axis = Math.abs(dx) > Math.abs(dy) * 1.4 ? 'x' : 'y';
-    /* ---------- UNLESS UP AND DOWN HAS NOWHERE TO GO --------------------------------------------
-       "THE SAFER WRONG ANSWER" ABOVE IS SAFE ONLY WHERE THERE IS A VERTICAL TO BE WRONG INTO. On a
-       one-page column — Saved, the Spotlight, Messages, the Find root — or a card already at the
-       end in the direction the thumb went, a diagonal handed to the vertical goes nowhere at all.
-       Measured on 5 October with real touch: a sideways swipe at 40°, 45° or 55° on those columns
-       did nothing 12 times in 12, and a thumb's sideways arc bowing 45px did nothing 3 in 4 (and
-       once went sideways, depending on which coalesced sample first crossed ten pixels). `AXES.y
-       .count()` never refused, because every column has a `PAGER` entry.
-       So a gesture leaning at least half as far sideways as it goes up or down, on a vertical with
-       no page that way and no box under the finger to scroll, belongs to the sideways axis. Up to
-       about 63° from flat — beyond that a thumb is going up, and nothing happening is the answer. */
-    if (axis === 'y' && Math.abs(dx) >= Math.abs(dy) * 0.5) {
-      const n = AXES.y.count(), at = AXES.y.at();
-      const nowhere = n <= 1 || (dy > 0 && at <= 0) || (dy < 0 && at >= n - 1);
-      if (nowhere && !scrollHost_(SWIPE.target, 'y', dy)) axis = 'x';
-    }
-    const dir = axis === 'x' ? dx : dy;
-    if (!AXES[axis].count() || !axisFree(SWIPE.target, axis, dir)) {
-      /* ---------- THE GRID WILL NOT TAKE IT, SO SOMETHING UNDER THE FINGER MIGHT ------------------
-         EVERY SCROLLABLE BOX IN THIS APP USED TO CARRY `touch-action: pan-y`, so a refusal here
-         meant "the browser is already scrolling it" and dropping the gesture was the whole answer.
-         A question card cannot be `pan-y` -- `touch-action` is read once at the start of a gesture
-         and cannot say "at the bottom, going up", so a pane set to pan keeps every vertical gesture
-         for ever and a tall card measured as impossible to leave by swiping. So the pane stays
-         `none` and the app does the scrolling: same walk, same floor, and the drag hands over to
-         the grid on the NEXT swipe, when there is nothing left to scroll and `axisFree` says yes.
-         That is what a native scroller does at its end, and what the notepad already does. */
-      const host = axis === 'y' && $('sheet').classList.contains('hidden')
-        && !SWIPE.target.closest?.('select, [data-noswipe]')
-        ? scrollHost_(SWIPE.target, axis, dir) : null;
-      if (!host) { SWIPE.live = false; return; }
-      SWIPE.scroll = host;
-      /* FROM WHERE THE FINGER IS NOW, not where it started — the grid's own dead-zone pop, in the
-         box that scrolls instead. */
-      SWIPE.scrollFrom = host.scrollTop + dy;
-      SWIPE.axis = axis;
-    } else {
-      SWIPE.axis = axis;
-      SWIPE.cells = AXES[axis].cells();
-      /* ---------- THE TEN PIXELS ARE NOT ADDED IN ONE FRAME ---------------------------------------
-         NOTHING MOVES UNTIL THE FINGER HAS GONE TEN PIXELS, and then the card was placed at the whole
-         of that travel at once — measured, a 13px step in the first moving frame against a finger
-         moving 4px a frame, on every swipe. That twitch is the card not being stuck to the finger.
-         So the travel at the moment the axis is chosen is taken off what is PLACED, which is what a
-         native pager does with its touch slop. What is DECIDED — how far, which page — still reads
-         the whole travel, so the threshold to turn a page is where it always was.
-         ---------- THE SLOP, AND NOT A PIXEL MORE ------------------------------------------------
-         IT WAS THE WHOLE TRAVEL AT THE MOMENT OF DECIDING, which is ten pixels only when every move
-         arrives. On a busy phone they arrive folded together: measured on 5 October, a sideways drag
-         whose first two `pointermove`s landed at 7px and then 132px locked at 132 — and the card
-         followed the finger 132px behind it for the whole gesture, a card visibly not under the
-         thumb. A native pager takes off its slop and nothing else, so this does too: ten pixels, the
-         same ten the decision waits for, and any travel past them is placed in that first frame,
-         because that is where the finger already is. */
-      SWIPE.lock = Math.sign(dir) * Math.min(Math.abs(dir), 10);
-      SWIPE.last = AXES[axis].count() - 1;
-      /* ---------- AND A CARD STILL SETTLING IS CAUGHT WHERE IT IS --------------------------------
-         A SWIPE THAT STARTS WHILE THE LAST ONE IS STILL SLIDING used to snap the card to where it
-         was GOING before following the finger: `no-anim` kills the running transition and the drag
-         is placed relative to the target. Measured, flicking through Tools a second time 30ms
-         after lifting jumped the card 51px under a still finger. The column's real position is read
-         off the transition — once, here, and only when one is running — and the difference is
-         carried by the drag, so the card is picked up where it is. */
-      SWIPE.catch = settleLeft_(axis);
-    }
+    /* ONE COUNT FOR THE WHOLE DECISION — `countHold_` in shell.js. It was asked up to three times
+       here, and on Settings each one builds the column's markup; this is the frame the card should
+       start moving in. Let go at the end of the block, before anything can paint. */
+    countHold_(true);
+    try {
+      let axis = Math.abs(dx) > Math.abs(dy) * 1.4 ? 'x' : 'y';
+      /* ---------- UNLESS UP AND DOWN HAS NOWHERE TO GO --------------------------------------------
+         "THE SAFER WRONG ANSWER" ABOVE IS SAFE ONLY WHERE THERE IS A VERTICAL TO BE WRONG INTO. On a
+         one-page column — Saved, the Spotlight, Messages, the Find root — or a card already at the
+         end in the direction the thumb went, a diagonal handed to the vertical goes nowhere at all.
+         Measured on 5 October with real touch: a sideways swipe at 40°, 45° or 55° on those columns
+         did nothing 12 times in 12, and a thumb's sideways arc bowing 45px did nothing 3 in 4 (and
+         once went sideways, depending on which coalesced sample first crossed ten pixels). `AXES.y
+         .count()` never refused, because every column has a `PAGER` entry.
+         So a gesture leaning at least half as far sideways as it goes up or down, on a vertical with
+         no page that way and no box under the finger to scroll, belongs to the sideways axis. Up to
+         about 63° from flat — beyond that a thumb is going up, and nothing happening is the answer. */
+      if (axis === 'y' && Math.abs(dx) >= Math.abs(dy) * 0.5) {
+        const n = AXES.y.count(), at = AXES.y.at();
+        const nowhere = n <= 1 || (dy > 0 && at <= 0) || (dy < 0 && at >= n - 1);
+        if (nowhere && !scrollHost_(SWIPE.target, 'y', dy)) axis = 'x';
+      }
+      const dir = axis === 'x' ? dx : dy;
+      if (!AXES[axis].count() || !axisFree(SWIPE.target, axis, dir)) {
+        /* ---------- THE GRID WILL NOT TAKE IT, SO SOMETHING UNDER THE FINGER MIGHT ------------------
+           EVERY SCROLLABLE BOX IN THIS APP USED TO CARRY `touch-action: pan-y`, so a refusal here
+           meant "the browser is already scrolling it" and dropping the gesture was the whole answer.
+           A question card cannot be `pan-y` -- `touch-action` is read once at the start of a gesture
+           and cannot say "at the bottom, going up", so a pane set to pan keeps every vertical gesture
+           for ever and a tall card measured as impossible to leave by swiping. So the pane stays
+           `none` and the app does the scrolling: same walk, same floor, and the drag hands over to
+           the grid on the NEXT swipe, when there is nothing left to scroll and `axisFree` says yes.
+           That is what a native scroller does at its end, and what the notepad already does. */
+        const host = axis === 'y' && $('sheet').classList.contains('hidden')
+          && !SWIPE.target.closest?.('select, [data-noswipe]')
+          ? scrollHost_(SWIPE.target, axis, dir) : null;
+        if (!host) { SWIPE.live = false; return; }
+        SWIPE.scroll = host;
+        /* FROM WHERE THE FINGER IS NOW, not where it started — the grid's own dead-zone pop, in the
+           box that scrolls instead. */
+        SWIPE.scrollFrom = host.scrollTop + dy;
+        SWIPE.axis = axis;
+      } else {
+        SWIPE.axis = axis;
+        SWIPE.cells = AXES[axis].cells();
+        /* ---------- THE TEN PIXELS ARE NOT ADDED IN ONE FRAME ---------------------------------------
+           NOTHING MOVES UNTIL THE FINGER HAS GONE TEN PIXELS, and then the card was placed at the whole
+           of that travel at once — measured, a 13px step in the first moving frame against a finger
+           moving 4px a frame, on every swipe. That twitch is the card not being stuck to the finger.
+           So the travel at the moment the axis is chosen is taken off what is PLACED, which is what a
+           native pager does with its touch slop. What is DECIDED — how far, which page — still reads
+           the whole travel, so the threshold to turn a page is where it always was.
+           ---------- THE SLOP, AND NOT A PIXEL MORE ------------------------------------------------
+           IT WAS THE WHOLE TRAVEL AT THE MOMENT OF DECIDING, which is ten pixels only when every move
+           arrives. On a busy phone they arrive folded together: measured on 5 October, a sideways drag
+           whose first two `pointermove`s landed at 7px and then 132px locked at 132 — and the card
+           followed the finger 132px behind it for the whole gesture, a card visibly not under the
+           thumb. A native pager takes off its slop and nothing else, so this does too: ten pixels, the
+           same ten the decision waits for, and any travel past them is placed in that first frame,
+           because that is where the finger already is. */
+        SWIPE.lock = Math.sign(dir) * Math.min(Math.abs(dir), 10);
+        SWIPE.last = AXES[axis].count() - 1;
+        /* ---------- AND A CARD STILL SETTLING IS CAUGHT WHERE IT IS --------------------------------
+           A SWIPE THAT STARTS WHILE THE LAST ONE IS STILL SLIDING used to snap the card to where it
+           was GOING before following the finger: `no-anim` kills the running transition and the drag
+           is placed relative to the target. Measured, flicking through Tools a second time 30ms
+           after lifting jumped the card 51px under a still finger. The column's real position is read
+           off the transition — once, here, and only when one is running — and the difference is
+           carried by the drag, so the card is picked up where it is. */
+        SWIPE.catch = settleLeft_(axis);
+      }
+    } finally { countHold_(false); }
   }
 
   /* SCROLLING THAT BOX AND NOTHING ELSE. No cells, no velocity, no placement -- the grid is not
@@ -661,7 +672,7 @@ addEventListener('pointerup', e => {
      for no reason. */
   if (!SWIPE.live || (e && e.pointerId !== undefined && e.pointerId !== SWIPE.id)) return;
   const v = releaseV_(SWIPE.trail, SWIPE.axis, e && e.timeStamp !== undefined ? e.timeStamp : performance.now());
-  const axis = SWIPE.axis, d = SWIPE.d, cells = SWIPE.cells;
+  const axis = SWIPE.axis, d = SWIPE.d, cells = SWIPE.cells, scrolled = SWIPE.scroll;
   /* EVERYTHING A DRAG SET, PUT BACK — in one line, so a field added later is added here rather
      than left to be noticed. `px` and the three velocity fields were being left behind: harmless
      while `pointerdown` clears them, and harmless is not the same as correct, because the next
@@ -673,48 +684,109 @@ addEventListener('pointerup', e => {
   /* A frame booked and not yet run would place the grid mid-drag AFTER the drag had finished,
      putting it back where the finger left it a moment after it had settled somewhere else. */
   if (SWIPE.frame) { cancelAnimationFrame(SWIPE.frame); SWIPE.frame = 0; }
+  /* A TALL CARD LET GO WHILE IT WAS MOVING CARRIES ON — see `glide_`. The finger's speed is the
+     card's, the other way round: a thumb going up moves the text up, which is `scrollTop` going up. */
+  if (scrolled && axis === 'y') { SWIPE.scroll = null; glide_(scrolled, -v); return; }
   if (!axis || !cells) return;
 
   const ax = AXES[axis];
+  /* THE COUNT HELD FOR THE RELEASE — see `countHold_`. The vertical only: a page turn adds and
+     removes no page, while a column change may paint the column it arrives at, and a count kept
+     from before that paint would be a count of something that is no longer there. */
+  if (axis === 'y') countHold_(true);
+  try {
 
-  /* FAR ENOUGH, OR FAST ENOUGH — and the flick has to be going the SAME WAY as the drag. A finger
-     that pulls back at the last moment has a velocity pointing the other way, and honouring that
-     would turn the page somebody just decided against. */
-  /* ---------- AND FAR ENOUGH IS NOT ENOUGH IF THE FINGER IS ON ITS WAY BACK ----------------------
-     `fast` above already refuses a flick pointing home; `far` never looked at the speed at all.
-     REPORTED AS PART OF *"can you make swiping and so on more stable"*, and measured on 5 October:
-     drag 150px, pull back to 80px and lift while still moving back — the page turned, 8 times in 8,
-     on both axes, the page somebody had just decided against. A release moving home at 0.2px/ms or
-     more is a change of mind, however far out it was let go. */
-  const backing = Math.abs(v) >= 0.2 && (v < 0) !== (d < 0);
-  const far = Math.abs(d) >= THROW(axis) && !backing;
-  const fast = Math.abs(v) >= FLICK && (v < 0) === (d < 0) && Math.abs(d) > 8;
-  const going = far || fast;
+    /* FAR ENOUGH, OR FAST ENOUGH — and the flick has to be going the SAME WAY as the drag. A finger
+       that pulls back at the last moment has a velocity pointing the other way, and honouring that
+       would turn the page somebody just decided against. */
+    /* ---------- AND FAR ENOUGH IS NOT ENOUGH IF THE FINGER IS ON ITS WAY BACK ----------------------
+       `fast` above already refuses a flick pointing home; `far` never looked at the speed at all.
+       REPORTED AS PART OF *"can you make swiping and so on more stable"*, and measured on 5 October:
+       drag 150px, pull back to 80px and lift while still moving back — the page turned, 8 times in 8,
+       on both axes, the page somebody had just decided against. A release moving home at 0.2px/ms or
+       more is a change of mind, however far out it was let go. */
+    const backing = Math.abs(v) >= 0.2 && (v < 0) !== (d < 0);
+    const far = Math.abs(d) >= THROW(axis) && !backing;
+    const fast = Math.abs(v) >= FLICK && (v < 0) === (d < 0) && Math.abs(d) > 8;
+    const going = far || fast;
 
-  /* ---------- THE SETTLE CARRIES ON AT THE SPEED THE FINGER WAS GOING --------------------------
-     IT WAS `--slide` ON `<html>`, and that one line was most of what felt unstable. A custom property
-     is INHERITED, so a new value on the root invalidates the style of every element in the app —
-     about three thousand — and the placement that runs next pays for all of it before the card can
-     move: measured at 4x CPU, 100-200ms of the card frozen where the finger left it, then a leap.
-     And the curve it fed, `cubic-bezier(.16, 1, .3, 1)`, starts at 6.25 times its average speed, so
-     the leap was 7 to 47 times faster than the finger had been moving.
+    /* ---------- THE SETTLE CARRIES ON AT THE SPEED THE FINGER WAS GOING --------------------------
+       IT WAS `--slide` ON `<html>`, and that one line was most of what felt unstable. A custom property
+       is INHERITED, so a new value on the root invalidates the style of every element in the app —
+       about three thousand — and the placement that runs next pays for all of it before the card can
+       move: measured at 4x CPU, 100-200ms of the card frozen where the finger left it, then a leap.
+       And the curve it fed, `cubic-bezier(.16, 1, .3, 1)`, starts at 6.25 times its average speed, so
+       the leap was 7 to 47 times faster than the finger had been moving.
 
-     SO THE RELEASE IS HANDED TO THE PLACEMENT, which knows the distance each column really has to
-     travel because it is the thing about to move them: `settleFrom_` records the speed and the
-     moment, and `placeGrid` in shell.js turns them into a duration and a curve whose starting slope
-     IS that speed, written on the columns themselves. Nothing is written on the root. */
-  settleFrom_(axis, v);
+       SO THE RELEASE IS HANDED TO THE PLACEMENT, which knows the distance each column really has to
+       travel because it is the thing about to move them: `settleFrom_` records the speed and the
+       moment, and `placeGrid` in shell.js turns them into a duration and a curve whose starting slope
+       IS that speed, written on the columns themselves. Nothing is written on the root. */
+    settleFrom_(axis, v);
 
-  /* The sweep `placeCells` skips during a drag — which screens nothing points at — runs once now.
-     There is no pane-watching any more: sizes are fixed, so nothing can change size. */
-  /* PAST THE END IS A SETTLE, NOT A TURN. `goPage` returns early when it is asked for the page it
-     is already on — right for a tile, wrong here, because a card caught mid-settle and released
-     past the last page carries the catch in its position and would be left off its page for good
-     with nothing re-placing it. So a turn that has nowhere to go is a settle back, and is seen to. */
-  const to = ax.at() + (d < 0 ? 1 : -1);
-  if (going && to >= 0 && to < ax.count()) ax.go(to);
-  else placeCells(axis);          // not far enough: it settles back, and is seen to
+    /* The sweep `placeCells` skips during a drag — which screens nothing points at — runs once now.
+       There is no pane-watching any more: sizes are fixed, so nothing can change size. */
+    /* PAST THE END IS A SETTLE, NOT A TURN. `goPage` returns early when it is asked for the page it
+       is already on — right for a tile, wrong here, because a card caught mid-settle and released
+       past the last page carries the catch in its position and would be left off its page for good
+       with nothing re-placing it. So a turn that has nowhere to go is a settle back, and is seen to. */
+    const to = ax.at() + (d < 0 ? 1 : -1);
+    if (going && to >= 0 && to < ax.count()) ax.go(to);
+    else placeCells(axis);          // not far enough: it settles back, and is seen to
+  } finally { countHold_(false); }
 }, { passive: true });
+
+/* ---------- A TALL CARD KEEPS MOVING AFTER THE THUMB LEAVES IT -------------------------------------
+   PART OF *"if i try to scroll quickly up or down its clunky and janky"* (6 October). A question card
+   taller than its pane is scrolled by the app itself (`scrollHost_` above says why it cannot be the
+   browser's), and the app moved it exactly as far as the finger went and not a pixel more: a flick
+   that left the glass at two pixels a millisecond stopped DEAD the instant it lifted. Measured at
+   320x568 on the probability-tree card: a fast 120px flick, 0px of travel after the lift. Every
+   list on a phone carries on and slows down; this one hit a wall, which is what "clunky" is.
+
+   SO IT GLIDES: the release speed (`releaseV_`, the same fitted speed a page turn uses), slowed by
+   the same constant a phone's own lists use — 0.998 per millisecond, which carries a 1px/ms flick
+   about half a screen — and stopped at the card's end rather than bounced, because the end of a card
+   is where the NEXT swipe turns the page (the owner's rule: a tall card scrolls before the page
+   turns), and a rubber band there would say "more" about a place with none.
+
+   ONE FRAME, ONE WRITE. The step is `requestAnimationFrame`'s and uses the frame's own time, so a
+   frame that arrives late moves the card further rather than making it slower. A finger that lands
+   during the glide stops it where it is (`pointerdown`), and that touch presses nothing — the glide
+   keeps `SLIDE_UNTIL` a frame ahead, which is the press swallow every moving card already has. */
+const GLIDE = { frame: 0, el: null };
+const GLIDE_DECAY = 0.998;     // per millisecond — a phone's own "normal" deceleration
+const GLIDE_MAX = 4;           // px/ms: past this a flick is a throw, and a throw is not reading
+function glideStop_() {
+  if (GLIDE.frame) cancelAnimationFrame(GLIDE.frame);
+  GLIDE.frame = 0; GLIDE.el = null;
+}
+function glide_(el, v) {
+  glideStop_();
+  if (!el || !(Math.abs(v) >= 0.15)) return;
+  v = Math.max(-GLIDE_MAX, Math.min(GLIDE_MAX, v));
+  GLIDE.el = el;
+  let last = performance.now(), pos = el.scrollTop;
+  const step = now => {
+    GLIDE.frame = 0;
+    if (GLIDE.el !== el || !el.isConnected) return;
+    const dt = Math.max(1, Math.min(48, now - last));
+    last = now;
+    /* THE DISTANCE OVER THIS FRAME, integrated rather than v * dt, so a long frame cannot overshoot
+       what the decay would have allowed. */
+    const k = Math.pow(GLIDE_DECAY, dt);
+    pos += v * (1 - k) / (1 - GLIDE_DECAY);
+    v *= k;
+    const max = el.scrollHeight - el.clientHeight;
+    if (pos <= 0 || pos >= max) pos = Math.max(0, Math.min(max, pos));
+    el.scrollTop = pos;
+    if (pos <= 0 || pos >= max || Math.abs(v) < 0.02) { GLIDE.el = null; return; }
+    SLIDE_UNTIL = Math.max(SLIDE_UNTIL, performance.now() + 100);
+    GLIDE.frame = requestAnimationFrame(step);
+  };
+  SLIDE_UNTIL = Math.max(SLIDE_UNTIL, performance.now() + 100);
+  GLIDE.frame = requestAnimationFrame(step);
+}
 
 /* THE SAME GESTURE ON A TRACKPAD. Two fingers is a `wheel` event rather than a touch, so none of
    the above sees it — and without this a desktop can reach the tabs and not the widgets, because
