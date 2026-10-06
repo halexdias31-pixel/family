@@ -2305,8 +2305,9 @@ button.text-drop { color: var(--bad); }
    Subject is --green, the palette's own subject colour. Tier is --pink, which was the WEARABLE
    colour -- and free on this screen, because `.card.is-wear > h3` matches nothing (the heading sits
    inside `.thing > .thing-body`, not straight under the card), so no cape heading is pink beside a
-   `Higher` tag. Retarget that rule and tier needs a colour of its own first. `needs` has no kind:
-   it was gold, the press colour, so its answers looked pressed at rest. */
+   `Higher` tag. Retarget that rule and tier needs a colour of its own first. `needs` is a kind of
+   its own, `--tag-needs` (pale lemon): NOT gold, which is the press colour -- when it was gold its
+   answers looked pressed at rest, and that is why it once had no kind at all. See the tokens at `:root`. */
 [data-tag="paper"]   { --tag: var(--tag-paper); }
 [data-tag="subject"] { --tag: var(--green); }
 [data-tag="level"]   { --tag: var(--tag-level); }
