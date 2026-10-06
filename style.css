@@ -12362,8 +12362,8 @@ button.scr-sq { cursor: pointer; }
    one sentence UNDER the row rather than in the verdict slot, which holds two short lines at most and
    is where "2 of 3 marks" goes. Greyed, not removed, when the backend says there is no key: the
    button stays where the student's eye already is and the sentence beside it says why. */
-.qp-ai .qp-ai-go { min-width: 120px; }
-.qp-ai .qp-ai-go[disabled] { background: var(--line); color: var(--dim); cursor: default; }
+/* A TILE NOW (keypad.js says why), so its size, its press and its greyed `[disabled]` are all
+   `.tile`'s — nothing of the old button's is left here to disagree with it. */
 .qp-ai.is-busy .qp-verdict { color: var(--dim); }
 .qp-ai-why { margin: 0 0 .3rem; font: 400 .8rem/1.45 var(--font); color: var(--dim); }
 .qp-ai-why:empty { display: none; }

@@ -441,8 +441,12 @@ document.addEventListener('keydown', e => {
    on the first press, and from then every AI button on the screen is greyed and says so — one press
    wasted, never a button that keeps doing nothing.
 
-   A FORM'S BUTTON, beside Check and shaped like it, because it is the same act on a different kind of
-   answer — the answer box is a form, and its buttons belong to it.
+   A TILE, beside Check and shaped like it, because it is the same act on a different kind of answer.
+   It was a form's button, and when Check became a tile (*"check button should be a tile"*) this one
+   kept the class `.qp-check` and lost the look that came with it: measured on 6 October by
+   `check/ui.js` at 120x21 on every worded answer at 320 — a 21px tap target. The owner had already
+   said which it is: *"it should all be tiles"*, and CLAUDE.md lists Mark with AI by name. `tile_`
+   draws a `<button>`, so `disabled` below still greys it and still stops a second press.
 ================================================================================================== */
 let AI_OFF = false;
 
@@ -462,7 +466,7 @@ function aiWanted_(x) {
 function aiBox_(x) {
   if (!aiWanted_(x) || !aiOffered_()) return '';
   return `<div class="qp-mark qp-ai">
-    <button type="button" class="qp-check qp-ai-go" data-do="qp-ai">Mark with AI</button>
+    ${tile_({ icon: 'edit', label: 'Mark with AI', note: 'for a worded answer', act: 'qp-ai', cls: 'qp-ai-go' })}
     <span class="qp-verdict" role="status" aria-live="polite"></span>
   </div><p class="qp-ai-why"></p>`;
 }
