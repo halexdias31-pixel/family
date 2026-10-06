@@ -200,3 +200,24 @@ move is the separate `translate` property now.
 sit lower than they did, so a phone's own keyboard at 320x568 is more likely to cover them. The
 browser shrinks the visual viewport for its keyboard and scrolls the focused field into view, which
 this harness cannot reproduce.
+
+### And the suite, run whole: three harness waits and one tile
+
+**`check/ui.js --part=2/2` FINISHED FOR THE FIRST TIME on this branch (8 minutes, alone) and named
+eleven panes off the screen and `games` up to 42px off the middle** — a different set each run.
+Traced: the column's placed shift was exactly what `columnShift_` asked for, with a transition still
+running. A fixed 450/500ms wait does not outlast a slide on a loaded machine. `settled()` waits for no
+running animation on any column and no booked placement (bounded at 4s) before both geometry rules.
+`--screen=games`: 6 findings twice without it, clean with it. Both halves green afterwards.
+
+**`check/press.js`: `c4-again`, `oth-again`, `rg-next`, `rg-again` quiet — and THIS BRANCH'S, not
+the base's** (the note above said both; run side by side with `--screen=games` the base is green).
+Widgets start a few at a time now, and the queue read 300ms after arriving held New game but not the
+board, so New game was pressed on an unplayed board. The queue now waits for the widget queue and the
+after-slide jobs to run dry. Green after.
+
+**Mark with AI was 120x21** (TAP TARGET, part 2/2): when Check became a tile on main, this button kept
+`.qp-check` and lost the look. It is a tile now — CLAUDE.md lists it by name.
+
+**Still red, and not this branch's:** `check/cards.js` A PICTURE NOT ON ITS OWN FIGURE PAGE — 2371 on
+the base commit, 2374 here (three more library rows merged since); library data, not layout.
