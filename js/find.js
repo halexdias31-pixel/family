@@ -11463,8 +11463,18 @@ function bundleOf_() {
 
 /* `min` IS ONE FOR A SITTING ASKED FOR BY NAME (`bundlesBySitting_`): somebody who chose `Bundles`
    came to order, and the friction `BUNDLE_MIN` keeps off a working journey is the errand here. */
+/* ---------- ONE FLOOR, READ BY BOTH GATES -------------------------------------------------------
+   IT WAS WRITTEN TWICE AND ONLY ONE COPY LEARNED ABOUT `min`. The wholeness gate said
+   `min || BUNDLE_MIN`; the printable gate further down still said `BUNDLE_MIN`, and since the
+   printable papers are a subset of the whole ones, `min` 1 let one paper through the first gate for
+   the second to refuse every time. So no one-paper sitting ever had a card under `Bundles`:
+   Maths · GCSE · 2019 drew June and November and left May out, `May` under Month led to "No whole
+   sitting left on this list to bundle" over the one whole paper it is, and so did every journey
+   that answered `Paper` — which the funnel always asks. Nine whole printable sittings could not be
+   ordered at all (the review of PR #130, finding 5). Named once here so the two cannot drift. */
 function bundleBuild_(items, min) {
   if (!items.length) return null;
+  const floor = min || BUNDLE_MIN;
   /* ---------- WHICH PAPERS ARE WHOLE ON THIS LIST, AND WHAT IS LEFT OVER ------------------------
      Counted per paper over the list's QUESTIONS; anything that is not a question, or has no paper,
      goes straight to the strays — see the note above `BUNDLE_MIN` for why a stray is named rather
@@ -11482,7 +11492,7 @@ function bundleBuild_(items, min) {
   }
   const whole = paperQuestionCounts_();
   const kept = order.filter(id => count[id] === whole[id]);
-  if (kept.length < (min || BUNDLE_MIN) || kept.length > BUNDLE_MAX) return null;
+  if (kept.length < floor || kept.length > BUNDLE_MAX) return null;
   const partial = order.filter(id => count[id] !== whole[id]);
   const strayQs = partial.reduce((n, id) => n + count[id], 0);
   if (strayQs + other > items.length * BUNDLE_STRAY) return null;
@@ -11574,7 +11584,7 @@ function bundleBuild_(items, min) {
              pages: Number(doc.pages) || 0, ok: canPrint_(doc), type: doc.document_type || '' };
   });
   const printable = papers.filter(p => p.ok);
-  if (printable.length < BUNDLE_MIN) return null;
+  if (printable.length < floor) return null;
 
   /* THE TITLE IS WRITTEN FROM THE BUNDLE'S OWN QUESTIONS, not the whole list — a stray from a June
      2019 paper would otherwise stop the sitting and the year from being one thing each. */
@@ -11670,15 +11680,31 @@ function bundleCard_(b) {
 function bundlePages_() {
   if (bundlesView_()) {
     const all = bundlesBySitting_();
+    /* "A SINGLE PAPER" WAS IN THIS SENTENCE, and it was true only because of the fault over
+       `bundleBuild_`'s floor: one whole paper is a sitting now and gets its card. What still leaves
+       no whole paper is a search, or an answer about the questions rather than the paper. */
     if (!all.length) {
       return [`<div class="card bundle qcard"><div class="qcard-top"><b>Bundle</b></div>
         <p class="bundle-sub">No whole sitting left on this list to bundle. Take an answer back above —
-          a topic or a single paper narrows it past whole sittings.</p></div>`];
+          a search or a topic narrows it past whole papers.</p></div>`];
     }
     return all.map(bundleCard_);
   }
   const b = bundleOf_();
   return b ? [bundleCard_(b)] : [];
+}
+
+/* ---------- THE FUNNEL'S LAST LINE, WHEN THE RESULTS ARE BUNDLES ---------------------------------
+   IT POINTED AT QUESTION PAGES THAT ARE NEVER DRAWN. `stuffPages_` draws none under `Bundles`, and
+   the end of the funnel still went through `paperEnd_` — "That is the paper, in order. Swipe up for
+   its 20 questions." over a dead end — or said "Nothing left to narrow. Swipe up for the 60." over
+   one bundle card (the review of PR #130, finding 7). `paperEnd_` already had to learn the same
+   thing about `Answers`; this is that lesson for the third kind, said in what is actually below. */
+function bundlesEnd_() {
+  const n = bundlesBySitting_().length;
+  if (!n) return `<p class="find-end">No bundle on this list. <b>Swipe up for why.</b></p>`;
+  return `<p class="find-end">${funnelEnded_() ? 'That is the paper.' : 'Nothing left to narrow.'}
+      <b>Swipe up for ${n === 1 ? 'the bundle' : 'the ' + n + ' bundles'}.</b></p>`;
 }
 
 /* ---------- `Bundles` IS A KIND, BESIDE `Questions` AND `Answers` ----------------------------------
@@ -11694,10 +11720,20 @@ function bundlePages_() {
    the list, newest first, each the same card and the same basket line as the one the funnel always
    offered. Nothing is printed for a paper that is not printable, and nothing is offered at all where
    printing has no price (`printOffered_`). */
+/* ---------- PRINTABLE IS A FACT ABOUT THE PAPER, SO IT IS READ OFF THE PAPER ---------------------
+   THIS READ `printable` OFF THE QUESTION ROW, and `bundleBuild_` reads it off the paper's document
+   row through `canPrint_` — two rules for one fact, and they disagreed on 257 questions. 229 past-
+   paper and 28 specimen question rows carry no `printable` cell while their paper's row says FALSE:
+   every AQA Religious Studies paper, both Greek ones and the June 2024 Combined Science. So `Bundles`
+   offered `Religious Studies 152` and `Greek 78` under Subject, and either answer led only to the
+   "No whole sitting" card, blaming a topic or a paper nobody had chosen (the review of PR #130,
+   finding 6). Now it asks the bundle's own question of the bundle's own row, so a question answers
+   `Bundles` exactly when its paper could go in one. `canPrint_` says no to a paper with no document
+   row, and none of the 3,068 questions on a past or specimen paper is on one. */
 function bundleable_(x) {
   const r = (x && x.row) || x || {};
-  return /paper/i.test(String(r.document_type || '')) && String(r.printable || '').toLowerCase() !== 'false'
-    && printOffered_();
+  const doc = docById_(paperIdOf_(r));
+  return canPrint_(doc) && /paper/i.test(String(doc.document_type || '')) && printOffered_();
 }
 function bundlesView_() {
   return (STUFF.filters || []).some(f => f && f.field === 'kindLabel' && !f.any && f.value === 'Bundles');
@@ -13234,6 +13270,7 @@ function stuffQuestion() {
        stylesheet, in the faintest ink on the screen, for the one sentence that tells you where the
        results went. `.find-end` sits under the chips on the same rule the chips sit on, and the
        half that is an instruction — swipe up — is in ink, because that is the half you act on. */
+    if (bundlesView_()) return bundlesEnd_() + adding;
     if (funnelEnded_()) return paperEnd_(items) + adding;
     return `<p class="find-end">Nothing left to narrow.
       <b>Swipe up for the ${n}.</b></p>` + adding;
