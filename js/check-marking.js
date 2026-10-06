@@ -198,6 +198,70 @@ const CASES = [
   ['12pi', '12π', true, 'and pi typed against the sign'],
   ['2(3)', '23', false, 'a bracket after a digit is multiplication and must not be folded away'],
   ['(x+1)/(3)', 'x/3', false, 'a bracket round more than one term keeps its meaning'],
+
+  /* ---------- A ROOT UNDER THE LINE, OFF THE KEYPAD ----------------------------------------------
+     sin 45° on the exact-trig sheet: the cell lists `1/√2` and the model answer prints it, and the
+     keypad writes it `1/(√(2))` — the fraction key after the 1 opens `/()`, the root key opens
+     `√()`. The two folds ran in one pass, the outer bracket was tried while the inner one was still
+     on, and "Not yet" was the answer to a right one. */
+  ['1/(√(2))', '1/√2', true, 'sin 45° off the keypad: 1, the fraction key, √, 2'],
+  ['(1)/(√(2))', '1/√2', true, 'and begun with the fraction key'],
+  ['1/(√(3))', '√3/3 | 1/√3', true, 'tan 30° the same way'],
+  ['(√(3))/(2)', '√3/2', true, 'and a root on TOP begun with the fraction key, which kept its bracket too'],
+  ['1/(√(3))', '1/√2', false, 'a different root is still a different answer'],
+  ['2/(√(2))', '1/√2', false, 'and so is a different numerator'],
+  ['(√(2)+1)/(2)', '√2/2', false, 'a bracket holding a root AND more is still more than one term'],
+
+  /* ---------- `root`, THE THIRD SPELLING OF √ --------------------------------------------------------
+     The exact-trig cells listed `root3/2` beside `sqrt3/2`, so `root3/2` was right and `root 3/2`
+     wrong, and the letters sent four surd questions to the keyboard, which has no √ key. */
+  ['root 3/2', '√3/2 | sqrt3/2 | sqrt(3)/2 | (√3)/2', true, 'sin 60° typed out with the space a person puts in'],
+  ['root3', '√3', true, 'run together'],
+  ['root(3)', '√3', true, 'and bracketed the way sqrt(3) is'],
+  ['root 2', '√3', false, 'the wrong root is still wrong'],
+  ['10', '10 root 2 cm', false, 'the 10 of 10√2 — `root 2 cm` read as a UNIT after it, so this passed'],
+
+  /* ---------- `*` AND A LETTER `x` BETWEEN NUMBERS ARE `×` ----------------------------------------
+     Prime factorisation Q1 (88): the cell lists `2^3*11` and `2^3 x 11`, and refused every other
+     spacing — `2^3 * 11`, `2 * 2 * 2 * 11`, `2^3 x11`, `2³ x 11` — on all eleven rows. */
+  ['2^3 * 11', '2^3 × 11 | 2 × 2 × 2 × 11', true, '88 as a product of primes, with the spaces round the asterisk'],
+  ['2 * 2 * 2 * 11', '2^3 × 11 | 2 × 2 × 2 × 11', true, 'and written out'],
+  ['2^3 *11', '2^3 × 11', true, 'with the spacing somebody manages on a phone'],
+  ['2^3 x11', '2^3 × 11', true, 'the letter x for times'],
+  ['2³ x 11', '2³ × 11', true, 'after a superscript power'],
+  ['2^(3) x 11', '2^3 × 11', true, 'the keypad’s power, then the letter'],
+  ['3.42 x 10^7', '3.42 × 10^7', true, 'standard form with the letter'],
+  ['2^3 * 13', '2^3 × 11', false, 'a different prime is still wrong'],
+  ['2', '2 × 3 × 3 × 5', false, 'the first prime alone — `x 3 x 3 x 5` read as a unit after the 2, so this passed'],
+  ['6.3', '6.3 x 10^7', false, 'and the number without its power of ten, the same way'],
+  ['2x+3', '2 × 3', false, 'an x that is the letter is never folded: `2x` has no number after it'],
+
+  /* ---------- A UNIT WITH A CARET, AND THE POWER IS PART OF THE UNIT -------------------------------
+     Pyramid Q1 refused `300cm^3` against a cell listing `300 cm^3`, and the keypad's power key
+     writes `cm^(3)`. Area of Shapes Q1 asks for the units, and once its bare `60` was gone `60 cm`
+     still passed, because `cm^2` was read as `cm`. */
+  ['300cm^3', '300 | 300cm3 | 300 cm3 | 300 cm^3 | 300cm³', true, 'pyramid Q1 with no space before the unit'],
+  ['300cm^(3)', '300 cm^3', true, 'and off the keypad’s power key'],
+  ['300cm^3', '300 cm³', true, 'the caret against the superscript: one power, two spellings'],
+  ['301cm^3', '300 | 300 cm^3', false, 'a different number is still wrong'],
+  ['300cm^2', '300 cm^3', false, 'an area is not a volume'],
+  ['60 cm', '60cm2 | 60 cm2 | 60 cm^2 | 60cm² | 60 cm²', false, 'Area of Shapes Q1: a length is not an area'],
+  ['60 m²', '60cm2 | 60 cm2 | 60 cm^2 | 60cm² | 60 cm²', false, 'and a different area unit is a different answer'],
+  ['60cm^2', '60cm2 | 60 cm2 | 60 cm^2 | 60cm² | 60 cm²', true, 'while the right unit, any spelling, is right'],
+  ['12 cm²', '12m2 | 12 m2 | 12 m^2 | 12m² | 12 m²', false, 'Area of Shapes Q2: the triangle is in metres'],
+  ['3x^2', '3', false, 'a letter with a power is algebra, not a coefficient with a unit after it'],
+  ['6w2', '6w^2 - 10w | 6w² − 10w', false, 'and `w²` is not the unit `w2`'],
+
+  /* ---------- A NAME IN FRONT OF THE ANSWER -----------------------------------------------------------
+     The pyramid sheet's answer line is `h = ....... cm`, and a child copies it. */
+  ['h = 12.5 cm', '12.5 | h = 12.5 | h=12.5 | 12.5cm | 12.5 cm', true, 'pyramid Q6, the answer line copied'],
+  ['h=12.5cm', '12.5 | h = 12.5 | h=12.5 | 12.5cm | 12.5 cm', true, 'and closed up'],
+  ['AB = 8.7 cm', '8.7 | 8.7cm | 8.7 cm', true, 'pyramid Q7, named by its side'],
+  ['AB = 8.7', '8.7 | 8.7cm | 8.7 cm', true, 'without the unit'],
+  ['h = 12.6 cm', '12.5 | h = 12.5 | 12.5 cm', false, 'a name does not make a wrong number right'],
+  ['AB = 8.8 cm', '8.7 | 8.7 cm', false, 'nor a unit and a name together'],
+  ['x = 7', 'y = 7', false, 'a cell that names its own letter still wants that letter'],
+  ['2x+3', 'y = 2x + 3', false, 'and the `y =` of a line is never taken off the EXPECTED side'],
   ['', '7', null, 'an empty box is not a mistake'],
   ['banana', '7', false, 'and a word is not a number'],
 ];

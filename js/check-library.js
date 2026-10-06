@@ -1214,6 +1214,60 @@ if (MARKS.missing.length) {
   note.push(tickable + ' tick-box question(s) can mark themselves and each was checked against '
     + 'every other option its paper prints; ' + tickBlank + ' print their options and have no '
     + '`accept`, so they draw no Check button');
+
+  /* ---------- A QUESTION THAT ASKS FOR THE UNITS DOES NOT ACCEPT A BARE NUMBER ---------------------
+     THE MARKER LETS ANY UNIT THROUGH A BARE NUMBER, on purpose: a unit the child types is checked
+     only against a way with no unit or the same one, so where the cell lists `12` the unit is the
+     sentence and not the answer. That is right where the paper prints the unit on the answer line,
+     and wrong where the unit IS the question. Area of Shapes Q2 says "giving the units of your
+     answer", prints none, and gives one of its two marks for them — and its cell led with a bare
+     `12`, so `12 cm²` for a triangle measured in metres, the slip the question is there to catch,
+     was marked Correct. Q1 the same with `60 m²`. The older rows that ask for units (5AD-F-0925-1,
+     5AD-F-1029-3, area-of-squares-and-rectangles-12) never listed a bare number, which is the
+     convention this holds every row to. */
+  const UNITS_ASKED = /\b(?:giv(?:e|ing)|stat(?:e|ing)|includ(?:e|ing)) (?:the |your )?units\b|units of your answer/i;
+  let unitsAsked = 0;
+  rows.forEach(r => {
+    if (!r || r.kind !== 'question' || !r.accept) return;
+    if (!UNITS_ASKED.test(String(r.html || '').replace(/<[^>]*>/g, ' ').replace(/&nbsp;/g, ' '))) return;
+    unitsAsked++;
+    const bare = String(r.accept).split('|').map(w => w.trim()).filter(w => /^-?[\d.,\s\/⁄]+$/.test(w));
+    if (bare.length) fail.push(r.row_id + ' asks for the units and its `accept` lists the bare number '
+      + JSON.stringify(bare.join(' | ')) + ' — which marks ANY unit right. Leave only the ways with the unit.');
+  });
+  note.push(unitsAsked + ' question(s) ask for the units and can mark themselves; none lists a bare number');
+
+  /* ---------- A ROOT ANSWER GETS THE KEY FOR A ROOT ------------------------------------------------
+     `ansMaths_` (keypad.js) gives a calculation the maths keypad only when EVERY way in its cell is
+     maths-shaped, so one way with letters in it sends the whole row to the phone keyboard — which has
+     no √ key. The exact-trig sheet did that four times: `root3/2` beside `√3/2` (two letters in a row,
+     before `markNorm_` learned to fold `root`), and `√3cm` beside `√3 cm` on Q17 (a unit with no space
+     after a root is not one `kpMathsy_` can see). Those four surds were the answers the √ key exists
+     for, and the three rows beside them got the keypad. A row whose cell writes a root the keypad can
+     type is a keypad row; the way that says otherwise is a spelling to take out. */
+  const kpSrc = fs.readFileSync(path.join(__dirname, 'keypad.js'), 'utf8');
+  /* the cutter by its full name: `cutFrom` is destructured further down this file, past where this runs */
+  const kpParts = ['KP_WORDED', 'kpMathsy_', 'ansMaths_'].map(n => require('./check-marks-load.js').cutFrom(kpSrc, n));
+  if (kpParts.some(c => !c)) {
+    fail.push('KP_WORDED, kpMathsy_ or ansMaths_ is not in keypad.js — renamed? No row was checked for which keyboard it gets.');
+  } else {
+    const KP = eval('(function () { ' + MARKS.source + '\n' + kpParts.join('\n')
+      + '\n; return { kpMathsy_: kpMathsy_, ansMaths_: ansMaths_ }; })()');
+    let rootRows = 0;
+    rows.forEach(r => {
+      if (!r || r.kind !== 'question' || !r.accept) return;
+      const ways = String(r.accept).split('|').map(w => w.trim()).filter(Boolean);
+      if (!ways.some(w => /√|sqrt/i.test(w) && KP.kpMathsy_(w))) return;
+      rootRows++;
+      const item = { answerType: r.answer_type, accept: r.accept,
+                     choices: r.choices ? String(r.choices).split('|') : [] };
+      if (KP.ansMaths_(item)) return;
+      fail.push(r.row_id + ' writes its answer as a root the keypad can type, and '
+        + JSON.stringify(ways.filter(w => !KP.kpMathsy_(w)).join(' | '))
+        + ' sends it to the phone keyboard instead, which has no √ key');
+    });
+    note.push(rootRows + ' question(s) answer with a root, and every one of them gets the keypad');
+  }
 }
 
 console.log(`\nTHE LIBRARY  —  ${rows.length} rows, ${papers.size} papers, ${marks.size} of them summed against a stated total`);
