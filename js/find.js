@@ -7064,7 +7064,37 @@ document.addEventListener('input', e => {
    what a pen on a printed paper does, and it is what lets you tell your line of best fit from the
    axis it was drawn against.
 --------------------------------------------------------------------------------------------- */
-const padKey_ = x => 'pad:' + ((x && (x.key || x.name)) || '?');
+/* ---------- AND THEY ARE WHOEVER IS SIGNED IN'S, AS THE TYPED ANSWER IS ------------------------------
+   THE KEY WAS `pad:<question>` AND NOTHING ELSE, so the pen kept one set of marks per PHONE while the
+   box beside it kept one set of answers per PERSON (`ansKey_`). Found by the multi-part audit: Ali
+   draws on 2F Q8c, Ben signs in on the same phone, and Ben's grid already has Ali's lines on it --
+   the two-boys-on-one-phone case `whoIs_` was written for, answered for the words and not the ink.
+   287 parts take the pen and 14 ring words, and every one of them was shared.
+
+   SO THE KEY CARRIES `whoIs_` EXACTLY AS `ansKey_` DOES -- `pad:u:P7:<question>` signed in, the old
+   `pad:<question>` signed out -- and nothing else changes: `circKey_` is this plus `:words`, the
+   handlers write to the pad's own `data-k`, and `PAD_ON` / `PAD_TOOL` key by it, so a new person is a
+   new key everywhere at once. The done dates were already per person (`doneKeyOf_`) and are not
+   touched.
+
+   THE MARKS ALREADY ON THE PHONE MOVE ONCE, TO THE FIRST PERSON SIGNED IN WHO OPENS THEM
+   (`padAdopt_`). Everything drawn before today is under the bare key and belonged to whoever held
+   the phone; the person who opens the page first is the likeliest to be them, and MOVING rather than
+   copying is what makes it theirs -- a copy left under the bare key would be read by the next
+   person too, which is the fault itself carried forward. Never over marks the person already has:
+   those are newer than anything the phone kept. */
+const padItemKey_ = x => (x && (x.key || x.name)) || '?';
+const padKey_ = x => 'pad:' + (whoIs_() ? whoIs_() + ':' : '') + padItemKey_(x);
+function padAdopt_(k, bare) {
+  if (!k || !bare || k === bare) return;
+  try {
+    if (localStorage.getItem(k) !== null) return;
+    const v = localStorage.getItem(bare);
+    if (v === null) return;
+    localStorage.setItem(k, v);
+    localStorage.removeItem(bare);
+  } catch (e) {}
+}
 
 /* WHICH QUESTIONS GET ONE. The sheet says what kind of answer it wants, and two of its words mean
    "make a mark": `drawing` (produce a figure) and `annotate` (add to one). Both need a surface and
@@ -7228,6 +7258,8 @@ const padBar_ = (pen, tools, tool) => `<div class="qpad-bar tile-row" role="tool
 
 function padWrap_(x, svg, credit) {
   const k = padKey_(x);
+  /* DRAWING THE PAD IS OPENING IT, so this is where the phone's old marks become this person's. */
+  padAdopt_(k, 'pad:' + padItemKey_(x));
   const marks = padRead_(k);
   /* THE MODE IS READ OFF `PAD_ON`, NOT LEFT ON THE ELEMENT BY THE PRESS THAT SET IT. A card is
      rebuilt on every repaint, so a class added by the handler alone is a class a repaint throws
@@ -7673,8 +7705,10 @@ function surfaceSvg_(kind) {
        (its block and its place in it, `3.7`) is the same word at 320px and on a laptop.
      what the question asks for IS a set of words, so storing one is storing the answer.
 
-   STORED LIKE THE PEN'S MARKS, beside them: `pad:<question>:words`, every read and write wrapped,
-   because private mode throws on `localStorage`; `CIRC_HELD` keeps the visit's rings when it does. */
+   STORED LIKE THE PEN'S MARKS, beside them: `pad:<who>:<question>:words`, every read and write
+   wrapped, because private mode throws on `localStorage`; `CIRC_HELD` keeps the visit's rings when it
+   does. Per person through `padKey_`, and the phone's old rings move once to whoever opens them first
+   (`circOf_`, by `padAdopt_`), for the reason written there. */
 const circKey_ = x => padKey_(x) + ':words';
 const CIRC_HELD = new Map();
 function circRead_(k) {
@@ -8232,7 +8266,18 @@ function chunkHtml_(chunk, circ) {
       </div>${circ && blocks.length ? `<p class="qpad-note qw-note">Tap a word to ring it, and again to take
         the ring off. Kept on this phone only, like the answer box.</p>` : ''}`;
 }
-const circOf_ = x => (padSurface_(x) === 'text' ? { k: circKey_(x), on: circRead_(circKey_(x)) } : null);
+/* THE PHONE'S OLD RINGS MOVE TO THE FIRST PERSON WHO OPENS THEM, as the pen's do in `padWrap_` -- and
+   so do the visit's (`CIRC_HELD`), which are the only copy when storage throws. */
+function circOf_(x) {
+  if (padSurface_(x) !== 'text') return null;
+  const k = circKey_(x), bare = 'pad:' + padItemKey_(x) + ':words';
+  padAdopt_(k, bare);
+  if (k !== bare && !CIRC_HELD.has(k) && CIRC_HELD.has(bare)) {
+    CIRC_HELD.set(k, CIRC_HELD.get(bare));
+    CIRC_HELD.delete(bare);
+  }
+  return { k: k, on: circRead_(k) };
+}
 /* WHAT THE NEXT PAGE IS CALLED, in the words its own header uses: "Figure", or a surface's name -- a
    pointer saying "Figure" at a page headed "Squared grid" that says it is not the paper's figure would
    be the two pages disagreeing. */

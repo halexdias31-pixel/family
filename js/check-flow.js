@@ -6910,6 +6910,109 @@ check('a question answered on a diagram has a surface: a grid under the pen, or 
   return bad;
 });
 
+/* ---------- A DRAWING IS THE PERSON'S WHO MADE IT, AS A TYPED ANSWER IS -------------------------------
+   Found by the multi-part audit: the pen's marks and the ringed words were kept per PHONE
+   (`pad:<question>`) while the answer box beside them was kept per person (`ansKey_`), so Ben, signing
+   in after Ali on the same phone, found Ali's lines already on his grid. Through the app's own builders
+   and handlers:
+     * signed out the key is the phone's, `pad:<question>`, as it always was; signed in it carries who,
+       `pad:u:<id>:<question>`, on the pad's `data-k` and the passage's `data-circ` -- the attributes
+       every handler writes through
+     * the phone's old marks MOVE to the first person signed in who opens them: drawn on their pad,
+       stored under their key, and gone from the old one, so the next person opens a clean grid
+     * never over marks somebody already has; the phone's marks wait for a person with none
+     * a second person sees none of the first one's, and Undo on their pad takes only their own mark
+     * the first person signed in again gets theirs back
+     * ring for ring, the same for a passage */
+check('a drawing and a ringed word are kept for whoever is signed in, and the phone\'s old ones move once to the first who opens them', async () => {
+  const { w } = boot();
+  await wait(300);
+  const d = w.document;
+  const t = w.__t;
+  const A = t.ACTIONS;
+  const bad = [];
+  if (typeof w.questionFigCard_ !== 'function' || typeof w.questionCard_ !== 'function' || !t.padKey || !A['pad-undo'] || !A['qw-tap']) {
+    return ['questionFigCard_, questionCard_, padKey_ or the pen\'s handlers are not reachable — renamed? Whose drawing it is was NOT checked'];
+  }
+  const LS = w.localStorage;
+  const el = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
+  const row = id => ({ row_id: id, paper_id: 'P-WHO', subject: 'Maths', name: 'Whose' });
+  const x = { kind: 'question', name: 'Q8c', qNumber: '8', qPart: 'c', marks: 2, key: 'q:Q-WHO-8c', row: row('Q-WHO-8c'),
+              stems: [], answerType: 'drawing', html: '<p>Draw the graph of y = 2x.</p>' };
+  const OLD = 'pad:q:Q-WHO-8c';
+  const ALI = { name: 'Ali', personId: 'P21', role: 'student', roles: ['student'] };
+  const BEN = { name: 'Ben', personId: 'P22', role: 'student', roles: ['student'] };
+  const CY = { name: 'Cy', personId: 'P23', role: 'student', roles: ['student'] };
+  const got = k => { try { return JSON.parse(LS.getItem(k) || '[]'); } catch (e) { return ['unreadable']; } };
+  const pad = () => el(w.questionFigCard_(x)).querySelector('.qpad');
+  const lines = p => (p ? p.querySelectorAll('.qpad-g path').length : -1);
+
+  /* SIGNED OUT: THE PHONE'S KEY, AND A LINE LEFT ON IT FROM BEFORE TODAY. */
+  t.USER(null);
+  if (t.padKey(x) !== OLD) bad.push('signed out, the marks are kept under ' + t.padKey(x) + ', not the phone\'s ' + OLD);
+  LS.setItem(OLD, JSON.stringify([[10, 10, 100, 100]]));
+  /* ALI OPENS IT FIRST, AND THE LINE BECOMES HERS. */
+  t.USER(ALI);
+  const kA = t.padKey(x);
+  if (kA !== 'pad:u:P21:q:Q-WHO-8c') bad.push('signed in, the marks are kept under ' + kA + ', not under who is signed in');
+  const pa = pad();
+  if (!pa) return bad.concat(['a drawing question drew no pad']);
+  if (pa.getAttribute('data-k') !== kA) bad.push('Ali\'s pad writes to ' + pa.getAttribute('data-k') + ', not to her key ' + kA);
+  if (lines(pa) !== 1) bad.push('the phone\'s old line is not on the pad of the first person who opened it (' + lines(pa) + ' lines)');
+  if (got(kA).length !== 1) bad.push('the phone\'s old line was not stored under Ali\'s key: ' + JSON.stringify(got(kA)));
+  if (LS.getItem(OLD) !== null) bad.push('the phone\'s old line was COPIED to Ali, not moved — the next person would see it too');
+  LS.setItem(kA, JSON.stringify([[10, 10, 100, 100], [20, 20, 200, 200]]));
+  /* BEN, SAME PHONE: A CLEAN GRID, AND HIS UNDO IS HIS. */
+  t.USER(BEN);
+  const kB = t.padKey(x);
+  const pb = pad();
+  if (lines(pb) !== 0) bad.push('Ben, signed in after Ali on the same phone, sees ' + lines(pb) + ' of her lines');
+  if (pb.getAttribute('data-k') !== kB || kB === kA) bad.push('Ben\'s pad writes to ' + pb.getAttribute('data-k') + ' — Ali\'s key is ' + kA);
+  LS.setItem(kB, JSON.stringify([[5, 5, 50, 50]]));
+  const pb2 = pad();
+  A['pad-undo'](pb2.querySelector('.qpad-undo'));
+  if (got(kB).length !== 0) bad.push('Undo on Ben\'s pad did not take Ben\'s mark: ' + JSON.stringify(got(kB)));
+  if (got(kA).length !== 2) bad.push('Undo on Ben\'s pad touched Ali\'s marks: ' + JSON.stringify(got(kA)));
+  /* THE PHONE DRAWS AGAIN SIGNED OUT; ALI ALREADY HAS MARKS, SO THEY WAIT FOR SOMEBODY WITH NONE. */
+  t.USER(null);
+  LS.setItem(OLD, JSON.stringify([[1, 1, 2, 2]]));
+  t.USER(ALI);
+  const pa2 = pad();
+  if (lines(pa2) !== 2 || got(kA).length !== 2) bad.push('the phone\'s marks were moved over marks Ali already had: ' + JSON.stringify(got(kA)));
+  if (LS.getItem(OLD) === null) bad.push('the phone\'s marks vanished when the person who opened them already had some');
+  t.USER(CY);
+  if (lines(pad()) !== 1 || LS.getItem(OLD) !== null) bad.push('the phone\'s marks did not move to the next person with none');
+  /* ALI AGAIN: HERS, AND ONLY HERS. */
+  t.USER(ALI);
+  if (lines(pad()) !== 2) bad.push('Ali, signed in again, does not get her two lines back (' + lines(pad()) + ')');
+
+  /* ---------- AND A PASSAGE'S RINGS, THE SAME WAY ----------------------------------------------------- */
+  const text = { kind: 'question', name: 'Q9', qNumber: '9', marks: 1, key: 'q:Q-WHO-9', row: row('Q-WHO-9'), stems: [],
+                 answerType: 'annotate', surface: 'text', html: '<p>Circle the adjective.</p><p>The tall tree swayed.</p>' };
+  const OLDW = 'pad:q:Q-WHO-9:words';
+  t.USER(null);
+  const tall = (() => { const h = el(w.questionCard_(text)).querySelector('[data-circ]'); return [...h.querySelectorAll('.qw')].find(s => s.textContent === 'tall').getAttribute('data-w'); })();
+  LS.setItem(OLDW, JSON.stringify([tall]));
+  t.USER(ALI);
+  const hostA = el(w.questionCard_(text)).querySelector('[data-circ]');
+  const kAw = 'pad:u:P21:q:Q-WHO-9:words';
+  if (!hostA || hostA.getAttribute('data-circ') !== kAw) bad.push('Ali\'s rings are kept under ' + (hostA && hostA.getAttribute('data-circ')) + ', not ' + kAw);
+  else {
+    const lit = [...hostA.querySelectorAll('.qw.is-circled')].map(s => s.textContent).join(',');
+    if (lit !== 'tall') bad.push('the phone\'s old ring did not come to the first person who opened the passage: [' + lit + ']');
+    if (LS.getItem(OLDW) !== null) bad.push('the phone\'s old ring was copied, not moved');
+  }
+  t.USER(BEN);
+  const hostB = el(w.questionCard_(text)).querySelector('[data-circ]');
+  if (hostB.querySelectorAll('.qw.is-circled').length) bad.push('Ben sees Ali\'s ringed word');
+  A['qw-tap']([...hostB.querySelectorAll('.qw')].find(s => s.textContent === 'tree'));
+  if (got('pad:u:P22:q:Q-WHO-9:words').length !== 1) bad.push('Ben\'s ring was not stored under his own key');
+  if (JSON.stringify(got(kAw)) !== JSON.stringify([tall])) bad.push('Ben\'s tap changed Ali\'s rings: ' + JSON.stringify(got(kAw)));
+  t.USER(null);
+  [OLD, kA, kB, 'pad:u:P23:q:Q-WHO-8c', OLDW, kAw, 'pad:u:P22:q:Q-WHO-9:words'].forEach(k => { try { LS.removeItem(k); } catch (e) {} });
+  return bad;
+});
+
 /* ---------- FIND DRAWS THE SAME THING FOR A TUTOR, AN ADMIN, A STUDENT AND SOMEBODY SIGNED OUT --------
    ASKED FOR AS *"No distinction between tutor and student on the finder. All the same. Remove any
    nuances about that."* -- and before it, of the answer: *"Should behave the same whether it's a tutor
