@@ -347,15 +347,28 @@ function widgetDistance_(w, col) {
   } catch (e) { return 0; }
 }
 
+let TOOLS_BUSY_SINCE = 0;   // when `widgetsLater_` first found a finger down, for its cap
 function widgetsLater_() {
   if (TOOLS_WAKE) return;
   TOOLS_WAKE = setTimeout(function step() {
     TOOLS_WAKE = 0;
     if (!TOOLS_WAIT.length) return;
     const now = performance.now();
+    /* A FINGER DOWN AT ALL, NOT ONLY ONE WHOSE DIRECTION IS DECIDED: the first 10px of a swipe are
+       still a swipe, and a widget's start landing in them is a stall under a thumb that has just
+       touched. AND A TAPPED PAGE TURN STILL GLIDING (`SLIDE_UNTIL`), which `SETTLE_ON` — a release's
+       own curve — never covered. Both from the review of 5 October. */
     const busy = (typeof SETTLE_ON !== 'undefined' && SETTLE_ON && now < SETTLE_ON.until)
-              || (typeof SWIPE !== 'undefined' && SWIPE.live && SWIPE.axis);
-    if (busy) { TOOLS_WAKE = setTimeout(step, 60); return; }
+              || (typeof SWIPE !== 'undefined' && SWIPE.live)
+              || (typeof SLIDE_UNTIL !== 'undefined' && now < SLIDE_UNTIL);
+    /* BUT NOT FOR EVER. A finger resting on the glass — or a `pointerup` the browser never sent — is
+       `SWIPE.live` with nothing moving, and a column of widgets that never starts is worse than one
+       that starts under a still thumb. A second and a half of waiting, then on regardless. */
+    if (busy && !(TOOLS_BUSY_SINCE && now - TOOLS_BUSY_SINCE > 1500)) {
+      if (!TOOLS_BUSY_SINCE) TOOLS_BUSY_SINCE = now;
+      TOOLS_WAKE = setTimeout(step, 60); return;
+    }
+    if (!busy) TOOLS_BUSY_SINCE = 0;
     TOOLS_WAIT.sort((a, b) => widgetDistance_(a.w, a.col) - widgetDistance_(b.w, b.col));
     const next = TOOLS_WAIT.shift();
     TOOLS_ON.push(next.w);

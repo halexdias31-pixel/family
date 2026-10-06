@@ -842,6 +842,60 @@ async function gesture(env, o) {
         if (r.most > 3) fail('WIDGETS A FEW AT A TIME', `${at} tools`, `${r.most} widgets started in one task on arrival — a swipe waits behind every one`);
         if (r.seen < r.all) fail('WIDGETS A FEW AT A TIME', `${at} tools`, `only ${r.seen} of ${r.all} widgets had started 8s after arriving`);
       }
+      /* AND NONE STARTS UNDER A FINGER THAT HAS ONLY JUST TOUCHED. `widgetsLater_` counted a finger as
+         busy once its swipe had a direction, so the first few pixels of a swipe — the moment a stall
+         is felt most — were fair game (the review of 5 October). Arrived at Tools from Games, a real
+         touch held still on bare card while the queue still has widgets in it: nothing starts while
+         it is down, until the wait's cap — AND EVERYTHING HAS STARTED BY 4s, still under the finger,
+         because a thumb resting on the glass (or a lift the browser never sent) must not leave a
+         column of dead widgets: `widgetsLater_` waits 1.5s from when it first found the column busy
+         (`TOOLS_BUSY_SINCE`, which can be a moment before the touch) and then goes on regardless. */
+      const h = await page.evaluate(async () => {
+        const wait = ms => new Promise(res => setTimeout(res, ms));
+        /* THE SPOT FIRST, on a Tools card at rest with bare card on it — the first of the pages
+           the gestures above use. The finger goes down the moment the queue has something in it. */
+        let spot = null;
+        for (const p of [2, 4, 5, 6, 7]) { await window.__sw.place('tools', p); spot = window.__sw.spot(); if (spot) break; }
+        await window.__sw.place('games', 0);
+        const ws = widgetsOf_('tool').filter(w => typeof WIDGETS !== 'undefined' && WIDGETS.indexOf(w) !== -1 && w.start);
+        window.__swStarts = [];
+        ws.forEach(w => {
+          if (w.start.__sw) return;
+          const f = w.start;
+          w.start = function () { window.__swStarts.push(performance.now()); return f.apply(this, arguments); };
+          w.start.__sw = f;
+        });
+        go('tools', false, true);
+        /* The column's widgets are started after the arrival settles (`afterSlide_`), so the queue
+           is waited for rather than read at once. */
+        for (let k = 0; k < 600 && !TOOLS_WAIT.length; k++) await wait(5);
+        return { all: ws.length, waiting: TOOLS_WAIT.length, spot };
+      });
+      if (!h.spot || !h.waiting) fail('REACH', `${at} tools, finger down`, h.spot ? 'no widget was still waiting when the finger landed — nothing was asked' : 'no bare spot on the Tools card to rest a finger on');
+      else {
+        const T0 = Date.now();
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', timestamp: T0 / 1000, touchPoints: [{ x: h.spot.x, y: h.spot.y, id: 1, radiusX: 8, radiusY: 8, force: 1 }] });
+        const down = await page.evaluate(() => ({ t: performance.now(), waiting: TOOLS_WAIT.length,
+          cap: (typeof TOOLS_BUSY_SINCE !== 'undefined' && TOOLS_BUSY_SINCE || performance.now()) + 1450 }));
+        await sleep(4000);
+        const up = await page.evaluate(() => ({ t: performance.now(), left: TOOLS_WAIT.length }));
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', timestamp: Date.now() / 1000, touchPoints: [] });
+        const after = await page.evaluate(async ([down, cap]) => {
+          const wait = ms => new Promise(res => setTimeout(res, ms));
+          for (let k = 0; k < 80 && TOOLS_WAIT.length; k++) await wait(100);
+          /* 30ms OF GRACE AT THE TOUCH: a start already under way when the finger landed is not one
+             that began under it. */
+          const under = window.__swStarts.filter(t => t > down + 30 && t < cap).length;
+          widgetsOf_('tool').forEach(w => { if (w.start && w.start.__sw) w.start = w.start.__sw; });
+          return { under, left: TOOLS_WAIT.length, n: window.__swStarts.length };
+        }, [down.t, down.cap]);
+        reached++;
+        if (!down.waiting) fail('REACH', `${at} tools, finger down`, 'the queue had emptied before the finger landed — nothing was asked');
+        note(`${at} finger resting on Tools (${down.waiting} waiting as it landed): ${after.under} widget(s) started under it; ${after.n} started in all, ${up.left} waiting at 4s, ${after.left} after it lifted`);
+        if (after.under) fail('WIDGETS A FEW AT A TIME', `${at} tools, finger down`, `${after.under} widget(s) started while a finger rested on the card — a swipe begun then stalls behind them`);
+        if (up.left) fail('WIDGETS A FEW AT A TIME', `${at} tools, finger down`, `${up.left} widget(s) still waiting after a finger had rested 4s — the wait for a finger has no end`);
+        if (after.left) fail('WIDGETS A FEW AT A TIME', `${at} tools, finger down`, `${after.left} widget(s) never started after the finger lifted`);
+      }
     }
 
     /* ---------- 10. A RELEASE RESTYLES THE CARDS THAT CHANGED, NOT THE DOCUMENT -------------------

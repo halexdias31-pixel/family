@@ -507,7 +507,9 @@ body {
    handful of cells it was ever actually for. */
 /* Only screens move, so only screens are worth promising the browser a layer for. A page's
    position is the column's business and it never gets its own transform. */
-.screen { will-change: transform; }
+/* AND `translate`: the column's vertical position is the separate `translate` property now
+   (`colWrite_`, one clock per axis), so a promise naming `transform` alone covered half the move. */
+.screen { will-change: transform, translate; }
 /* A CELL NEVER SCROLLS. It is exactly one screen, so there is nothing past its bottom edge to
    reach — and while it could scroll, a wheel or a drag went to it instead of to the grid, which is
    a few pixels of movement that goes nowhere instead of the next widget.
