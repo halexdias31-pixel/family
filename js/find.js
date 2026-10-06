@@ -346,7 +346,9 @@ const KINDS = {
      item exists only for an admin — `bibleItems_` and the long note above `bibleFor_` say why that
      gate is on the phone and why it is the one exception to Find being built the same for every
      role. NOT THE ONLY ADMIN-ONLY KIND: `film` above is an admin's too, but by the payload — `doGet`
-     sends nobody else a row — so this is the only kind with a role test on the phone. */
+     sends nobody else a row — so this is the only kind with a role test on the phone.
+     ONE KIND, TWO CARDS: the cover on Find's own list, and each of the 31,102 verses once the Bible is
+     open (*"each verse is a widget"*) — `bibleCard_` tells them apart. */
   bible: { group: 'Learning', label: 'Resources', card: x => bibleCard_(x) },
 
   /* ---------- TWO GROUPS, NOT ONE GROUP AND THEN THE SAME QUESTION AGAIN ---------------------------
@@ -1088,6 +1090,44 @@ const FACETS = [
   /* AND WHICH BOOK, once the shelf is chosen. With one book this has one answer and is not asked,
      which is right — the list IS the book. The second book makes it a question with no deploy. */
   { field: 'book',      label: 'Book',        of: x => x.kind === 'textbook' ? x.name : '' },
+  /* ---------- THE BIBLE'S SIX QUESTIONS, IN THE OWNER'S ORDER -----------------------------------------
+     *"tags in finder. should go translation e.g. kjv, then old testament or new, then group the books,
+     e.g. torah, pauline epistles ect. then the book titles e.g. genises, eodus. then the chapters, e.g.
+     1,2,3 then the verses e.g 1 2 3. each verse is a widget."* — 6 Oct. Six ordinary questions, so each
+     answer is a chip with a ✕ like every other; see the head of the Bible section for why the reader
+     they replace was not.
+
+     TWO FLAGS NOTHING ELSE CARRIES, and both are read by name in `nextFacet`:
+       `only: '<kind>'` IS THE FENCE (`facetFenced_`). The question is asked only of a list made
+         entirely of that kind, and a list made entirely of that kind is asked only its own questions.
+         Without it the coverage rule would be doing the fencing, by arithmetic, over a list that is
+         81% verses for an admin — and every school question would pay a tally of six questions no
+         school item can answer. With it, everybody else pays one property read.
+       `grid: true` IS A NUMBERED RUN — chapters, verses — exempt from `FACET_MAX_ANSWERS` and drawn
+         as a grid of numbers rather than as chips. The cap is about forty NAMES nobody can read; a
+         grid of 150 numbers is read by position, the way a printed Bible's chapter index is. A grid
+         facet must also be `only` (`check-funnel.js` refuses one that is not), so the exemption can
+         never escape a closed kind into the library, where 389 topics would be drawn whole.
+     `folder: true` ON ALL SIX, `examYear`'s principle: a path is asked whole even where a rung has one
+     answer — KJV, Acts, Revelation, chapter 1 of Jude — so the route to a verse is always six taps.
+     THE ORDER IS `FACET_NEEDS_FIRST`'S, which chains each to the one above it, so a sheet that
+     reorders them reorders nothing, and "Doesn't matter" on one releases the next.
+     THE FIELD NAMES ARE NOT `book`, `year`, `level`… — `book` is the textbook's question just above,
+     and a shared name would put the textbooks' answers on the Bible's chip.
+     The cover answers Translation alone, and only once the index has said which translation it is. */
+  { field: 'bibleTranslation', label: 'Translation', only: 'bible', folder: true,
+    of: x => x.kind !== 'bible' ? '' : x.bb ? x.bb.translation : (BIBLE.index ? BIBLE.index.translation : '') },
+  { field: 'bibleTestament', label: 'Testament', only: 'bible', folder: true,
+    of: x => (x.bb ? x.bb.testament : ''), orderOf: v => bibleRank_('t', v) },
+  { field: 'bibleGroup', label: 'Group', only: 'bible', folder: true,
+    of: x => (x.bb ? x.bb.group : ''), orderOf: v => bibleRank_('g', v) },
+  { field: 'bibleBook', label: 'Book', only: 'bible', folder: true,
+    of: x => (x.bb ? x.bb.book : ''), orderOf: v => bibleRank_('b', v) },
+  /* NO ORDER NEEDED: `cmpText` is numeric, so 2 comes before 10 and 100. */
+  { field: 'bibleChapter', label: 'Chapter', only: 'bible', folder: true, grid: true,
+    of: x => (x.bb ? x.ch : '') },
+  { field: 'bibleVerse', label: 'Verse', only: 'bible', folder: true, grid: true,
+    of: x => (x.bb ? x.v : '') },
   /* Only venues have one, so it is only ever asked once you are looking at venues — which is the
      coverage rule doing the work that a per-kind filter list would otherwise have to.
      VENUES ARE OFF FIND, so nothing in the funnel answers it and its `facets.json` row is OFF. The
@@ -1507,6 +1547,25 @@ const FACETS = [
            : x.cost === 0 ? 'Free'
            : x.cost <= (USER ? USER.credits || 0 : 0) ? 'Can afford' : '' },
 ];
+
+/* ---------- THE FENCE: A CLOSED KIND'S QUESTIONS, AND ONLY ITS QUESTIONS --------------------------------
+   `only:` ON A FACET (see the Bible's six above) NAMES THE KIND IT BELONGS TO. `listKind_` says
+   whether a list is made entirely of one such kind, and `facetFenced_` is the rule both ways: a fenced
+   question is asked only of its own kind's list, and that list is asked only fenced questions.
+   O(1) FOR EVERY LIST THAT DOES NOT START WITH A CLOSED KIND — which is every list a non-admin ever
+   holds, and every list an admin holds outside the Bible: one property read and a `Set` lookup, before
+   any tally. A list that does start with one is walked once and remembered on the array, the
+   `FACET_TALLY` way: a new list is a new array, so there is no key to get wrong. */
+const FACET_ONLY = new Set(FACETS.map(f => f.only).filter(Boolean));
+const LIST_KIND = new WeakMap();
+function listKind_(items) {
+  const k = items && items.length ? items[0].kind : '';
+  if (!k || !FACET_ONLY.has(k)) return '';
+  let out = LIST_KIND.get(items);
+  if (out === undefined) { out = items.every(x => x && x.kind === k) ? k : ''; LIST_KIND.set(items, out); }
+  return out;
+}
+const facetFenced_ = (items, facet) => (facet.only ? facet.only !== listKind_(items) : !!listKind_(items));
 
 /* ==================================================================================================
    THE FUNNEL'S QUESTIONS, AS THE SHEET WANTS THEM.
@@ -2927,6 +2986,15 @@ function fiveDayLabel_(id, ids) {
    can no longer be asked. If one ever comes back, it comes back with its line here. */
 const FACET_NEEDS_FIRST = {
   fiveDay:  'fiveMonth',
+  /* ---------- THE BIBLE'S RUNGS, EACH BEHIND THE ONE ABOVE IT ---------------------------------------
+     THE CHAIN IS WHAT HOLDS THE OWNER'S ORDER, not the sheet's `sort_order`: translation, testament,
+     group, book, chapter, verse. A skip counts as asked, so "Doesn't matter" on one releases the next.
+     AND IT IS NOT DECORATION. `grid` exempts Chapter and Verse from the answer cap and nothing exempts
+     Book, so with Testament and Group skipped the funnel would ask Chapter — 1 to 150, over every book
+     at once — before Book, whose 66 answers are over the cap. Held here, Book is asked first (drawn
+     whole by `overFacet_`), and Chapter after it. */
+  bibleTestament: 'bibleTranslation', bibleGroup: 'bibleTestament', bibleBook: 'bibleGroup',
+  bibleChapter: 'bibleBook', bibleVerse: 'bibleChapter',
 };
 
 /* ---------- A PAPER IS THE LAST FOLDER, AND WHAT IS INSIDE IT IS THE LIST ------------------------------
@@ -2982,13 +3050,18 @@ function nextFacet(items) {
   for (const facet of facetList()) {
     if (facet.tagOnly) continue;
     if (settled.indexOf(facet.field) !== -1) continue;
+    /* ---------- A CLOSED KIND'S QUESTIONS, AND ONLY TO ITS OWN LIST -------------------------------
+       See `facetFenced_`. Before the tally, so a question that cannot apply costs nothing — the
+       Bible's six on every other list, and every other question on the Bible's. */
+    if (facetFenced_(items, facet)) continue;
     /* ---------- NOT UNTIL THE QUESTION IT HANGS OFF HAS BEEN ANSWERED ---------------------------
        See `FACET_NEEDS_FIRST`. Skipped rather than reordered: reordering would ask it later and
        still ask it of a list holding three papers, which is the same wrong answer further down. */
     const first = FACET_NEEDS_FIRST[facet.field];
     if (first && asked.indexOf(first) === -1) continue;
     const vals = facetValues(items, facet).length;
-    if (vals < (facet.folder ? 1 : 2) || vals > FACET_MAX_ANSWERS) continue;
+    /* A GRID IS A NUMBERED RUN AND IS NOT CAPPED — see `grid` on the Bible's Chapter and Verse. */
+    if (vals < (facet.folder ? 1 : 2) || (vals > FACET_MAX_ANSWERS && !facet.grid)) continue;
     if (folderOpened_(items, facet)) continue;
     /* THE THRESHOLD IS THE FACET'S OWN, falling back to the one below. A question the sheet has
        given a lower bar to is one somebody decided is worth asking early even though it is thin. */
@@ -3036,6 +3109,11 @@ function overFacet_(items) {
   let best = null;
   for (const facet of facetList()) {
     if (facet.tagOnly || asked.indexOf(facet.field) !== -1) continue;
+    /* THE FENCE HERE TOO. This runs when `nextFacet` found nothing, and a Bible list nextFacet has
+       finished with would otherwise tally every one of the other twenty-five questions to find that
+       none applies — measured at 330–410 ms on 31,102 verses. With Testament and Group both skipped
+       this is what asks Book, its 66 answers drawn whole. */
+    if (facetFenced_(items, facet)) continue;
     const vals = facetValues(items, facet).length;
     if (vals <= FACET_MAX_ANSWERS) continue;
     const min = isFinite(facet.min) ? facet.min : FACET_COVERAGE;
@@ -3088,16 +3166,23 @@ function whyThisQuestion(all) {
               + num('answers', 8) + num('cover', 7) + '  why');
   let chosen = null;
   facetList().forEach(f => {
-    const vals = facetValues(items, f);
-    const cov = facetCoverage(items, f);
+    /* A FENCED QUESTION IS NOT TALLIED HERE EITHER — it is not tallied by the funnel, and this prints
+       what the funnel did. Its columns read `-`. */
+    const fenced = facetFenced_(items, f);
+    const vals = fenced ? [] : facetValues(items, f);
+    const cov = fenced ? 0 : facetCoverage(items, f);
     const min = isFinite(f.min) ? f.min : FACET_COVERAGE;
+    const first = FACET_NEEDS_FIRST[f.field];
     let why;
     if (asked.indexOf(f.field) !== -1) why = 'asked already';
+    else if (fenced) why = f.only ? 'kept to lists that are all ' + f.only + ' (only)'
+                                  : 'this list is all ' + listKind_(items) + ': only its own questions';
+    else if (first && asked.indexOf(first) === -1) why = 'waits for ' + first + ' (FACET_NEEDS_FIRST)';
     else if (!all && funnelEnded_()) why = 'a paper is chosen — its questions are the list (FACET_ENDS)';
     else if (vals.length < (f.folder ? 1 : 2)) why = (vals.length ? 'one answer' : 'nobody can answer it')
                                     + ' — nothing to decide';
     else if (folderOpened_(items, f)) why = 'one answer, and a chip already opened that folder';
-    else if (vals.length > FACET_MAX_ANSWERS)
+    else if (vals.length > FACET_MAX_ANSWERS && !f.grid)
       why = 'too many answers — that is a list, not a question (max ' + FACET_MAX_ANSWERS + ')';
     else if (cov < min) why = 'thin — needs ' + Math.round(min * 100) + '%';
     /* THE NEW RULE HAS TO BE VISIBLE HERE OR IT IS THE OLD FAULT WEARING A HAT. A question that
@@ -3109,7 +3194,8 @@ function whyThisQuestion(all) {
     else if (!chosen) { why = '← THIS ONE'; chosen = f.field; }
     else why = 'would do, but comes after ' + chosen;
     console.log('  ' + pad(f.field + (f.fromSheet ? ' *' : ''), 14) + pad(f.label, 18)
-                + num(vals.length, 8) + num(Math.round(cov * 100) + '%', 7) + '  ' + why);
+                + num(fenced ? '-' : vals.length, 8) + num(fenced ? '-' : Math.round(cov * 100) + '%', 7)
+                + '  ' + why);
   });
   if (!chosen) console.log('\n  nothing left to ask — the list is the answer');
   if (facetList().some(f => f.fromSheet)) {
@@ -3778,79 +3864,94 @@ function textbookText_(b) {
 }
 
 /* ==================================================================================================
-   THE BIBLE (KING JAMES VERSION) — A BOOK ON THE RESOURCES SHELVES THAT ONLY AN ADMIN IS SHOWN.
+   THE BIBLE (KING JAMES VERSION) — ASKED LIKE EVERYTHING ELSE ON FIND, AND SHOWN ONLY TO AN ADMIN.
 
    ASKED FOR AS "i want to add the bible to resources as a book. but only admin can see the bible."
    and then "i already have a bible text in repo" — `data/archive/bible.json`, the old `Library`
    sheet's `bible` tab, 31,102 verses. `tools/bible-split.py` cuts it into `data/bible/`: one file a
-   book and a 7 KB `index.json`. Nothing about it is in the `doGet` payload, and nothing in it is
+   book and a 15 KB `index.json`. Nothing about it is in the `doGet` payload, and nothing in it is
    fetched until an admin is the one looking.
 
-   THE ONE EXCEPTION THE PHONE MAKES TO "Find shows the same thing to everyone". The owner's own rule
-   is *"No distinction between tutor and student on the finder. All the same."* — and `check-flow`
-   asks it of every role. This is the owner asking for a distinction by name, so it is made in ONE
-   place (`bibleFor_`) and nowhere else: every other item on Find is built the same for every role,
-   and the sameness journey expects the Bible on an admin's list and on nobody else's.
-   NOT THE ONLY THING ON FIND AN ADMIN ALONE SEES, and an earlier draft of this note said it was: the
-   films (`Learning · Films`) are an admin's too. But they are absent rather than hidden — `doGet`
-   sends nobody else a row of them — so no code on the phone tells the roles apart for them. The
-   Bible is the one item the PHONE decides on, which is why it is the one `bibleFor_` guards.
+   ---------- AND THEN REDONE, BECAUSE THE FIRST ONE WAS A SECOND APP --------------------------------
+   THE OWNER, 6 Oct: *"the bible needs to be redone. youve gone awol there. it should be like the other
+   stuff. tags in finder. should go translation e.g. kjv, then old testament or new, then group the
+   books, e.g. torah, pauline epistles ect. then the book titles e.g. genises, eodus. then the
+   chapters, e.g. 1,2,3 then the verses e.g 1 2 3. each verse is a widget."*
 
-   GATED ON THE PHONE, NOT ON THE SERVER, AND THAT IS NOT THE FILMS' MISTAKE REPEATED. The films are
-   a list the owner wants nobody to see, so `doGet` never sends them to anybody else — a filter on
-   the phone is something the network tab reads past (note 068). The King James text is public
-   domain and has sat in this public repository since the archive was made; there is nothing in it
-   to keep from anybody. What the owner asked for is what the app SHOWS, so the gate is the item
-   list. What a non-admin is spared is the download: no book and no index is asked for unless
-   `bibleFor_` says yes, and `check-flow` records every fetch to prove it.
+   WHAT WAS AWOL. The first build was a reader of its own standing on one Find result: a cover, three
+   pages of hand-made book buttons, pages of chapter-number buttons, and every chapter cut into
+   measured screenfuls (`bibleMeasure_`, `bibleCut_`), with `bible-to` tiles to climb back up. None of
+   those buttons was a funnel answer, so none made a chip, none had the ✕ every other choice on Find
+   has, and the way back out was a tile that only that reader knew about. Everything else on Find is
+   one question at a time and one thing to a page; this was a book inside a page.
 
-   READ AS THE @family. TEXTBOOK READS, which was the spec: a card, then pages. The card is the
-   cover; the next three pages are the lists of books — the Old Testament in two (`bibleOn_` says
-   why), then the New — and choosing one fetches that book (once a visit — `BIBLE.books`) and puts
-   its pages after ALL THREE lists: the chapter numbers, then every chapter, a page or a few each.
-   Swipe on and you read on into the next chapter, as a book does.
-   AFTER ALL THREE, NOT AFTER ITS OWN TESTAMENT, which is where it was first: Genesis's 326 pages
-   then stood between the Old Testament and the New, so with any Old Testament book open the New
-   Testament was 328 swipes away and the cover's "the books are the next pages" was false. Now the
-   lists never move, and the way back up is a tile — every page of a chapter has one to the chapter
-   numbers, and the chapter numbers have one to the list their book is on.
+   SO IT IS SIX QUESTIONS AND 31,102 CARDS. Books → `Translation` (KJV) → `Testament` → `Group`
+   (Torah, Pauline Epistles…) → `Book` → `Chapter` → `Verse`, each an ordinary facet in `FACETS`
+   answered by an ordinary chip, and each verse a card of its own with its tags, as a question is.
+   The reader's 260 lines of measuring and cutting are gone: one verse is never taller than a page
+   except Esther 8:9 on the narrowest phone, which `paneReach_` draws a step smaller like any card.
 
-   A CHAPTER IS CUT INTO SCREENFULS RATHER THAN SCROLLED. The median chapter is 3,300 characters and
-   Psalm 119 is 13,000 — no phone shows either on one card, and "I don't like scrolling … so they
-   all fit on screen" is the owner's rule for every widget. So a chapter is pages of whole verses
-   (`bibleCut_`), cut in PIXELS against the screen in hand (`bibleMeasure_`), each headed with where
-   it is: `Genesis 1`, `2 of 3`.
+   ---------- TWO LISTS, AND WHY THE VERSES ARE NOT ON FIND'S ----------------------------------------
+   `stuffItems()` HOLDS THE COVER ALONE, as it always did: one item, `bible:kjv`, on the Books shelf.
+   The verses are a second list (`bibleVerses_`) that `stuffFiltered` reads INSTEAD of Find's only
+   while a Bible chip is on (`bibleInside_`). Measured before building it, with the verses put on
+   Find's own list:
+     · 31,102 verses would be 81% of an admin's Find, and the coverage rule reads shares — Learning,
+       skip, skip asked Subject without them and NOTHING with them, because no school question was
+       answered by half the list any more.
+     · every tally over a mixed list walked them: 330–410 ms to find that no question applied.
+     · a search typed at the top would have answered with Bible verses before past papers.
+   With two lists, every list that is not the Bible's is today's list, item for item — `check-flow`
+   asks that every question an admin is asked is the one a parent is asked, Books apart.
+
+   ---------- THE FENCE, THE CHAIN AND THE GRID ------------------------------------------------------
+   `only: 'bible'` ON THE SIX (`facetFenced_`): a Bible question is asked only of a list that is all
+   Bible, and such a list is asked only Bible questions. Nobody else pays a tally for them; inside,
+   each tap tallies one question rather than walking twenty-five that cannot apply.
+   `FACET_NEEDS_FIRST` CHAINS THEM, so the order is the owner's whatever the sheet's `sort_order`
+   says, and "Doesn't matter" on one releases the next.
+   `grid: true` ON CHAPTER AND VERSE: a numbered run is exempt from `FACET_MAX_ANSWERS` and drawn as a
+   grid of numbers. Psalms has 150 chapters and Psalm 119 has 176 verses; the cap is about a list of
+   names nobody can read, and a run of numbers is read by its position, not word by word.
+
+   ---------- GATED ON THE PHONE, NOT ON THE SERVER, AND THAT IS NOT THE FILMS' MISTAKE REPEATED -----
+   THE ONE EXCEPTION THE PHONE MAKES TO "Find shows the same thing to everyone" (*"No distinction
+   between tutor and student on the finder. All the same."*), made in ONE place (`bibleFor_`). The
+   films are a list the owner wants nobody to see, so `doGet` never sends them to anybody else — a
+   filter on the phone is something the network tab reads past (note 068). The King James text is
+   public domain and has sat in this public repository since the archive was made; there is nothing
+   in it to keep from anybody. What the owner asked for is what the app SHOWS, so the gate is the
+   item list, the verse list and every fetch: no book and no index is asked for unless `bibleFor_`
+   says yes, and `check-flow` records every fetch to prove it.
 ================================================================================================== */
 const BIBLE_NAME = 'The Bible (King James Version)';
 /* `Books`, A SHELF OF ITS OWN, BESIDE `@family. textbooks` AND `Boxing`. Not the textbooks' shelf:
    that one is books this business wrote, and the King James is not one of them. "As a book" is the
    owner's word for it, and the next book that is not ours belongs here too. */
 const BIBLE_SHELF = 'Books';
-/* ---------- THE THREE NUMBERS FOR A DOCUMENT WITH NO LAYOUT ---------------------------------------
-   A PHONE MEASURES ITS OWN PAGES (`bibleMeasure_`); jsdom and a check have no layout to measure, so
-   they cut by characters instead, and these are those characters: what a page holds, what a verse
-   costs on top of its words (the end of its last line, half a line on average and nothing a
-   character count sees), and the tile row every text page carries, taken off every page's share. */
-const BIBLE_PAGE = 1000;
-const BIBLE_VERSE = 24;
-const BIBLE_FOOT = 150;
-/* AND THE CHAPTER NUMBERS A PAGE OFFERS WITH NOTHING TO MEASURE. A phone fits the grid to its pane —
-   five columns by eight rows at 320x568, six by thirteen at 390x844 — because a fixed sixty was
-   twelve rows at 320 and `paneReach_` drew every number at 40px to fit them. */
-const BIBLE_GRID = 60;
-/* WHERE THE OLD TESTAMENT TURNS THE PAGE — see `bibleOn_`. */
-const BIBLE_OT_TURN = 'Job';
+/* THE WORDS A SEARCH FINDS IT BY, on the cover and on every verse: what somebody types for the
+   Bible that its name does not already say. */
+const BIBLE_WORDS = 'KJV King James Authorized Version scripture';
 
-/* EVERYTHING THE READER KNOWS, IN ONE PLACE. `books` IS THE VISIT'S CACHE — a book asked for once is
-   held until the page is closed, so going back to Genesis is not a second download. `want` is the
-   last book tapped, so two quick taps open the second rather than whichever file landed last.
-   `screen` is the pane the `plans` were measured against (`bibleScreen_`). */
+/* EVERYTHING IT KNOWS, IN ONE PLACE. `books` IS THE VISIT'S CACHE — a book asked for once is held
+   until the page is closed, so a second verse of Genesis is not a second download; `loading` is the
+   fetch in flight, so twenty cards of one book drawn at once ask for it once; `missed` is a book that
+   did not come. `verses` is the verse list, built once per index (`bibleVerses_`); `rank` is the
+   canonical order of the testaments, groups and books, which the funnel sorts the answers by; `hays`
+   is what every verse of each book is searched by, which the cover answers a search with
+   (`bibleHolds_`). */
 const BIBLE = { index: null, asking: null, failed: false, books: {}, loading: {}, missed: {},
-                open: 0, want: 0, plans: {}, screen: '', item: null };
+                item: null, verses: null, rank: null, hays: null };
+
+/* THE SIX FIELDS, read off `FACETS` rather than written out a second time, so a chip on any of them is
+   a Bible chip without this file keeping a list in step with that one. */
+const BIBLE_FIELDS = {};
+FACETS.forEach(f => { if (f.only === 'bible') BIBLE_FIELDS[f.field] = 1; });
 
 /* ---------- WHO IS SHOWN IT -----------------------------------------------------------------------
-   THE WHOLE EXCEPTION IS THIS LINE. The item list asks it, the fetches ask it again (a book must not
-   be downloaded for somebody who could not have been shown the button), and nothing else does. */
+   THE WHOLE EXCEPTION IS THIS LINE. The item list asks it, the verse list asks it, the fetches ask it
+   again (a book must not be downloaded for somebody who could not have been shown it), and so does
+   every handler — a forged button is still a tap. */
 const bibleFor_ = () => typeof isAdmin === 'function' && isAdmin();
 
 /* ONE FETCH FOR EVERY FILE OF IT, stamped with the deploy so the service worker's exact-URL cache
@@ -3867,26 +3968,39 @@ function bibleGet_(file) {
 
 /* THE LIST OF BOOKS — asked for once, the first time an admin's Find is built, which is long before a
    finger reaches the shelf. Held to its shape on arrival: a file name has to look like the files the
-   splitter writes, so nothing in a doctored index can point the reader anywhere else. */
+   splitter writes, so nothing in a doctored index can point a fetch anywhere else; and the verse
+   counts have to add up, because every one of the 31,102 cards is named from them before its book is
+   on the phone — a count one short would be a verse nobody could reach, one over a card with nothing
+   on it. */
 function bibleIndex_() {
   if (BIBLE.index) return BIBLE.index;
   if (!BIBLE.asking && !BIBLE.failed && bibleFor_()) {
     BIBLE.asking = bibleGet_('index.json').then(d => {
-      const ok = !!d && Array.isArray(d.books) && d.books.length > 0
+      const ok = !!d && typeof d.translation === 'string' && /^[A-Za-z0-9]+$/.test(d.translation)
+        && Array.isArray(d.books) && d.books.length > 0
         && d.books.every((b, i) => b && b.n === i + 1 && b.book && /^\d\d-[a-z0-9-]+\.json$/.test(b.file)
-                                   && b.chapters > 0 && (b.testament === 'OT' || b.testament === 'NT'));
+                                   && b.chapters > 0 && (b.testament === 'OT' || b.testament === 'NT')
+                                   && typeof b.group === 'string' && b.group.trim() !== ''
+                                   && Array.isArray(b.chapterVerses) && b.chapterVerses.length === b.chapters
+                                   && b.chapterVerses.every(c => Number.isInteger(c) && c > 0)
+                                   && b.chapterVerses.reduce((s, c) => s + c, 0) === b.verses);
       BIBLE.asking = null;
-      if (ok) BIBLE.index = d; else BIBLE.failed = true;
-      /* THE SEARCH LEARNS THE BOOK NAMES, so typing `psalms` finds the Bible — on the item already
-         built, because the list is memoised and rebuilding Find for sixty-six words is not worth it.
-         The cached search is told to forget (`me.js`'s move for the friends list), or a `psalms`
-         typed while the index was on its way would go on answering from the list without them. */
-      if (ok && BIBLE.item) {
-        BIBLE.item.text = bibleWords_();
-        delete BIBLE.item._hay;
+      if (ok) { BIBLE.index = d; BIBLE.rank = bibleRankOf_(d); BIBLE.hays = d.books.map(bibleHay_); }
+      else BIBLE.failed = true;
+      /* THE SEARCH LEARNS THE BOOKS, so typing `psalms` finds the Bible — through `bibleHolds_`, which
+         reads `BIBLE.hays` and so changes its answer the moment they are here, on the item already
+         built. The cached search and the pages are told to forget (`me.js`'s move for the friends
+         list): a `psalms` typed while the index was on its way would otherwise go on answering from
+         the list that did not have it, and the Books shelf would go on saying "on its way" over a
+         question it can now ask. */
+      if (ok) {
         FIND_MEMO.key = null;
+        STUFF_PAGES = { from: null, pages: [] };
       }
       bibleRedraw_();
+      if ($('stuff-controls')) paintStuff(true);
+      /* A STARRED VERSE IS NAMED FROM THE INDEX, so Saved could not draw one until now. */
+      if (AT === 'saved') repaint(true); else STALE.saved = 1;
       return BIBLE.index;
     });
   }
@@ -3897,11 +4011,75 @@ const bibleTestament_ = t => (t === 'NT' ? 'New Testament' : 'Old Testament');
 /* `Psalm 23`, NOT `Psalms 23` — the book is the Psalms and a chapter of it is a psalm. The one book
    whose chapters are cited by a different word from its title. */
 const bibleCite_ = (b, ch) => (b.book === 'Psalms' ? 'Psalm' : b.book) + ' ' + ch;
-const bibleWords_ = () => [BIBLE_NAME, 'KJV Authorized Version scripture Old Testament New Testament']
-  .concat(BIBLE.index ? BIBLE.index.books.map(b => b.book) : []).join(' ');
+/* THE WORDS EVERY VERSE OF ONE BOOK CARRIES — its Bible, its testament, its group and its book — so a
+   search that names any of them finds it. One function for the verses (`bibleVerseList_`) and for the
+   cover's search (`bibleHay_`), because those two are the same question and must not be two recipes. */
+const bibleBookWords_ = b => [BIBLE_NAME, BIBLE_WORDS, bibleTestament_(b.testament), b.group, b.book].join(' ');
+/* WHAT EVERY VERSE OF ONE BOOK IS FOUND BY, BAR ITS OWN NUMBERS: a verse's haystack with the `1:3`
+   taken off its name. Built by `stuffHay_` itself from a stand-in verse, so it is the search's own
+   recipe — name, `sub`, words — and not a copy of it that could drift. */
+const bibleHay_ = b => stuffHay_({ name: bibleCite_(b, ''), sub: b.book, text: bibleBookWords_(b) });
 
-/* ONE BOOK, ONCE A VISIT. Held to the index's own count of its chapters, so a file that came back
-   half-written is a failure on the page rather than a book missing its last chapters. */
+/* ---------- A SEARCH KEEPS THE COVER EXACTLY WHEN IT WOULD KEEP A VERSE -------------------------------
+   FOUND BY THE REVIEW. The cover's haystack was every testament, group and book in one string, plus a
+   `sub` of "Old and New Testaments" that no verse had. So it held words no verse holds — `testaments`,
+   `and` — and PAIRS no verse holds, `torah gospels`, `old new`. Typed on the Books shelf, the cover
+   stayed, Translation was asked, and KJV answered "Nothing matches": a door that opened onto a wall.
+   A union of sixty-six books' words is a haystack for a thing that is none of them.
+   SO THE COVER IS ASKED WHAT A VERSE WOULD BE ASKED, of the verses it stands for — and without
+   building them, from the index. A verse's haystack is its book's (`BIBLE.hays`) and its own `c:v`,
+   and nothing else, so: every word in ONE book's, and whatever that book's leaves over inside one
+   `c:v` of it. The same words find the cover before the Bible is open and the verses after, so a
+   search that keeps the cover keeps a verse once KJV is pressed, and one that would keep no verse
+   never offers the shelf. AND `psalm 23` AND `john 3:16` FIND IT NOW, where a number found it only
+   when it happened to be in a book's name (`1 Samuel`). The walk over a book's verses runs only for a
+   word that is digits and colons, stops at the first verse that has it, and is 31,102 short strings
+   at the very worst — one item, an admin's, not a list.
+   BEFORE THE INDEX there are no books to ask, and the cover's own words decide: its name and
+   `BIBLE_WORDS`, which every verse carries too, so it can never promise what the verses lack. */
+function bibleHolds_(x, words) {
+  const ix = BIBLE.index, hays = BIBLE.hays;
+  if (!ix || !hays) return words.every(w => stuffHay_(x).includes(w));
+  return ix.books.some((b, i) => {
+    const rest = words.filter(w => !hays[i].includes(w));
+    if (!rest.length) return true;
+    if (!rest.every(w => /^[\d:]+$/.test(w))) return false;
+    return b.chapterVerses.some((count, ci) => {
+      for (let v = 1; v <= count; v++) {
+        const cv = (ci + 1) + ':' + v;
+        if (rest.every(w => cv.includes(w))) return true;
+      }
+      return false;
+    });
+  });
+}
+
+/* ---------- THE ORDER THE ANSWERS ARE DRAWN IN, WHICH IS THE BIBLE'S ------------------------------
+   THE ALPHABET IS WRONG THREE TIMES HERE. `cmpText` puts the New Testament before the Old, `General
+   Epistles` before `Torah`, and `1 Chronicles` before `Genesis` — every answer present and the order
+   meaningless, on a book whose order is the first thing anybody knows about it. So the testament,
+   group and book questions each carry `orderOf`, and this is what it reads: the place of each
+   answer in the index, which is canonical order by construction (`tools/bible-split.py` refuses an
+   archive out of order). Keyed by `spellKey_`, the fold `facetTally_` hands its answers through, so
+   the drawn spelling and the ranked one cannot drift apart. -1 is "not one of ours", which the tally
+   sorts last. Chapter and verse need none of it: `cmpText` is numeric, so 2 comes before 10. */
+function bibleRankOf_(ix) {
+  const r = { t: { oldtestament: 0, newtestament: 1 }, g: {}, b: {} };
+  ix.books.forEach(b => {
+    const g = spellKey_(b.group);
+    if (!(g in r.g)) r.g[g] = b.n;
+    r.b[spellKey_(b.book)] = b.n;
+  });
+  return r;
+}
+const bibleRank_ = (k, v) => {
+  const r = BIBLE.rank && BIBLE.rank[k];
+  const i = r ? r[spellKey_(v)] : undefined;
+  return i == null ? -1 : i;
+};
+
+/* ONE BOOK, ONCE A VISIT. Held to the index's own count of every chapter's verses, so a file that came
+   back half-written is a failure said on the card rather than a verse drawn from the wrong place. */
 function bibleLoad_(n) {
   if (BIBLE.books[n]) return Promise.resolve(BIBLE.books[n]);
   if (BIBLE.loading[n]) return BIBLE.loading[n];
@@ -3910,7 +4088,8 @@ function bibleLoad_(n) {
   BIBLE.loading[n] = bibleGet_(b.file).then(d => {
     delete BIBLE.loading[n];
     const ok = !!d && Array.isArray(d.chapters) && d.chapters.length === b.chapters
-      && d.chapters.every(c => Array.isArray(c) && c.length > 0 && c.every(v => typeof v === 'string'));
+      && d.chapters.every((c, i) => Array.isArray(c) && c.length === b.chapterVerses[i]
+                                    && c.every(v => typeof v === 'string'));
     BIBLE.missed[n] = !ok;
     if (!ok) return null;
     BIBLE.books[n] = d;
@@ -3924,318 +4103,154 @@ function bibleLoad_(n) {
    to draw (see `tools/bible-split.py`):
      `[was]` — a word the translators SUPPLIED, which the King James prints in italic. Drawn in
        italics without the brackets: "darkness <i>was</i> upon the face of the deep".
-     a leading `# ` — the pilcrow, where a paragraph starts. Taken off here; the verse is marked
-       `is-para` instead, and the stylesheet opens a little space above it.
+     a leading `# ` — the pilcrow, where a paragraph starts. Taken off here; `bibleV_` draws the
+       pilcrow itself in front of the verse instead, quietly.
    ESCAPED FIRST, THEN MARKED, the order `lawsColour` keeps for the same reason: the brackets are
-   the only thing turned into markup, and nothing inside a verse can be. */
+   the only thing turned into markup, and nothing inside a verse can be. A STANDALONE DECLARATION
+   THAT USES `esc` AND NOTHING ELSE — `check-bible.js` cuts it out by name and runs every verse of the
+   Bible through it. */
 const bibleVerse_ = t => esc(String(t == null ? '' : t).replace(/^#\s*/, ''))
   .replace(/\[([^\[\]]*)\]/g, '<i>$1</i>');
 
-/* ---------- ONE VERSE AS A LINE-GROUP, the same markup on the page and in the measuring below ------ */
-const bibleV_ = (v, num) => `<p class="bb-v${/^#/.test(v) ? ' is-para' : ''}"><span class="bb-n">${num}</span> ${bibleVerse_(v)}</p>`;
+/* ---------- THE VERSE AS THE CARD READS IT --------------------------------------------------------
+   THE PARAGRAPH MARK IS DRAWN, NOT SPACED. On a page of verses a paragraph was a little room above;
+   one verse to a card has nothing above it to make room from, so the 1611 pilcrow is printed in front
+   of the verse in the faint ink, as the 1611 printers printed it. `aria-hidden`: a reader hears the
+   verse, not the mark. Genesis 1:6 is the first. */
+const bibleV_ = t => '<p class="bb-v">'
+  + (/^#/.test(String(t == null ? '' : t)) ? '<span class="bb-para" aria-hidden="true">¶</span> ' : '')
+  + bibleVerse_(t) + '</p>';
 
-/* ---------- WHICH PANE THE PAGES ARE CUT FOR --------------------------------------------------------
-   ITS WIDTH AND ITS CEILING, AS ONE WORD. Every result pane on Find is the same box — the page width
-   across, the screen's height less the bar down (`.pane`) — and the question page is always in the
-   document to ask. `''` with no layout, which is jsdom, a check, or a Find screen not yet drawn. */
-function bibleScreen_() {
-  try {
-    const pane = document.querySelector('#s-stuff .pane');
-    const cs = pane && pane.offsetWidth > 0 ? getComputedStyle(pane) : null;
-    return cs ? cs.width + 'x' + cs.maxHeight : '';
-  } catch (e) { return ''; }
-}
-
-/* ---------- A BOOK, MEASURED ON THE SCREEN IT WILL BE READ ON --------------------------------------
-   AN ESTIMATE IN CHARACTERS WAS RIGHT ON AVERAGE AND WRONG ON THE PAGE. Pages were cut by a character
-   count worked out from the pane, then `paneReach_` shrank whichever did not fit — and measured over
-   every page of Genesis at 320x568, 57 of 326 were shrunk, six below 90% and the worst to 81%: verse
-   text at 9.7px on one page between pages at 11.9. At 390x844 Genesis 1's third page was 11.9px
-   between two at 13px, and its left edge jumped 13px as the zoom re-centred it. A character count
-   cannot see where a line breaks, and a verse that ends one word into a new line costs a whole line.
-
-   SO THE BROWSER IS ASKED, ONCE, WHEN A BOOK IS OPENED. Four hidden panes, the real pane's width,
-   with the real classes — so the same rules, the same face and the same wrapping:
-     · an empty pane held open by something taller than the screen, whose height is then the room
-       `paneReach_` will judge a page against, read the way it reads it.
-     · a text page holding ONE verse, which is everything on a page that is not verses: the card's
-       padding, the kicker, the title, the tile row. The room left for verses is the room less that.
-     · a page of sixty chapter numbers, which says how many columns a row holds, how far apart the
-       rows are, and what the rest of that page costs — so the grid is cut to whole rows that fit.
-     · every verse of the book, a column a chapter, and each verse's height read off it: from its
-       top to the next verse's top, which carries the space between them, and so counts a little
-       over rather than under. The last verse of a chapter is its own height.
-   ONE WRITE, THEN EVERY READ, INSIDE A BOX THAT CANNOT MOVE ANYTHING ELSE. The first version filled
-   one pane four times and paid four layouts of the whole app for it — on a loaded test machine 1.2s
-   to open Genesis, 2.3s for Psalms, and 0.35s for Philemon's twenty-five verses, because it was the
-   app being laid out again and not the verses. `contain: strict` on a box of fixed size makes it a
-   layout boundary: what is inside is laid out on its own, once, and nothing outside is touched.
-   A failure anywhere is `null`, and the plan falls back to characters — a page drawn a step smaller
-   is the old behaviour, not a broken one. */
-function bibleMeasure_(n) {
-  const b = bibleBook_(n), d = BIBLE.books[n];
-  let box = null;
-  try {
-    /* THE PANE'S WIDTH TO THE FRACTION, AND HALF A PIXEL LESS. `offsetWidth` rounds — 269 for a pane
-       268.8 wide at 320 — and a line of a monospaced face that ends within that fifth of a pixel
-       wraps on the phone and not here: measured, two pages of Genesis drawn 10px past the pane for
-       one word. Narrower can only wrap sooner, which costs room and never fit. The COMPUTED width,
-       not the box on screen, because the screens are moved — and on a turn scaled — by transforms. */
-    const real = document.querySelector('#s-stuff .pane');
-    const wide = real ? parseFloat(getComputedStyle(real).width) - .5 : 0;
-    if (!b || !d || !(wide > 0)) return null;
-    box = document.createElement('div');
-    box.setAttribute('aria-hidden', 'true');
-    box.style.cssText = 'position:fixed;left:-10000px;top:0;width:' + wide + 'px;height:1px;overflow:hidden;'
-      + 'contain:strict;visibility:hidden;pointer-events:none';
-    /* THE LONGEST KICKER AND TITLE THIS BOOK CAN HAVE on the sample page, so a page is never cut for a
-       shorter head than the one it gets. */
-    box.innerHTML = '<div class="pane"><div style="height:9999px"></div></div>'
-      + '<div class="pane">' + bibleTextHtml_(b, b.chapters, [d.chapters[0][0]], 0, '22 of 22', 'bk', '') + '</div>'
-      + '<div class="pane">' + bibleGridHtml_(b, 1, BIBLE_GRID, `chapters ${b.chapters}–${b.chapters} of ${b.chapters}`, 'ot', '') + '</div>'
-      + `<div class="pane"><div class="card fc prac prac-part bible bb-text">${d.chapters.map(vs =>
-          `<div class="bb-verses">${vs.map((v, i) => bibleV_(v, i + 1)).join('')}</div>`).join('')}</div></div>`;
-    document.body.appendChild(box);
-    const panes = box.children;
-    const cs = getComputedStyle(panes[0]);
-    const pad = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
-    const room = panes[0].clientHeight - pad;
-    const chrome = panes[1].scrollHeight - pad - panes[1].querySelector('.bb-v').getBoundingClientRect().height;
-    const nums = [].slice.call(panes[2].querySelectorAll('.bb-ch')).map(e => e.getBoundingClientRect());
-    const gridChrome = panes[2].scrollHeight - pad - panes[2].querySelector('.bb-grid').getBoundingClientRect().height;
-    const cols = nums.filter(r => Math.abs(r.top - nums[0].top) < 1).length;
-    const pitch = nums.length > cols ? nums[cols].top - nums[0].top : 0;
-    const w = [].slice.call(panes[3].querySelectorAll('.bb-verses')).map(col => {
-      const r = [].slice.call(col.children).map(e => e.getBoundingClientRect());
-      return r.map((q, i) => (i + 1 < r.length ? r[i + 1].top - q.top : q.height));
+/* ---------- EVERY VERSE, AS AN ITEM -----------------------------------------------------------------
+   NAMED FROM THE INDEX, NOT FROM THE BOOKS — a card has to exist, be counted and be answered for
+   before its book is on the phone, or Genesis 1:3 could not be a chip's result until the 204 KB of
+   Genesis had landed. So the verse's words are not on the item; the card fetches its book when it
+   is drawn (`bibleVerseCard_`).
+   ONE SHARED RECORD A BOOK (`bb`) AND ONE STRING A NUMBER (`num`), so 31,102 items cost 31,102 small
+   objects and not 31,102 copies of the same five strings: the funnel reads `x.bb.group` and `x.ch`
+   and allocates nothing.
+   THE KEY IS THE VERSE'S ADDRESS, `bible:kjv:1:1:3` — book number, chapter, verse — and it is
+   stored in favourites, so its shape must never change. A second translation is a second prefix.
+   IN CANONICAL ORDER, and that order is the list's own: `bibleFind_` only ever filters it, so Genesis
+   1:1 comes first and Revelation 22:21 last without a sort key. `starts` is where each chapter's
+   first verse sits, so `bibleByKey_` finds any verse without a search.
+   PURE — it reads its argument and the six names it uses, nothing else, so `check-bible.js` cuts it
+   out and builds the list from the real index. */
+function bibleVerseList_(ix) {
+  const num = [], N = i => num[i] || (num[i] = String(i));
+  const list = [], starts = [];
+  const tr = String(ix.translation), head = 'bible:' + tr.toLowerCase() + ':';
+  ix.books.forEach(b => {
+    const bb = { n: b.n, book: b.book, testament: bibleTestament_(b.testament), group: b.group, translation: tr,
+                 words: bibleBookWords_(b) };
+    const at = starts[b.n - 1] = [];
+    b.chapterVerses.forEach((count, ci) => {
+      const c = ci + 1, cite = bibleCite_(b, c) + ':';
+      at.push(list.length);
+      for (let v = 1; v <= count; v++) {
+        list.push({ kind: 'bible', key: head + b.n + ':' + c + ':' + v, name: cite + v, sub: b.book,
+                    shelf: BIBLE_SHELF, image: '', row: null, text: bb.words, bb: bb, ch: N(c), v: N(v) });
+      }
     });
-    box.remove();
-    box = null;
-    /* ROWS: the first number's height, then a pitch for each row after it, inside the room the rest
-       of the page leaves. Two pixels short of the room, the margin `paneReach_` forgives. */
-    const rows = pitch > 0 ? Math.max(1, Math.floor((room - 2 - gridChrome - nums[0].height) / pitch) + 1) : 0;
-    if (!(room > 0 && chrome > 0 && cols > 0 && rows > 0) || w.length !== d.chapters.length) return null;
-    return { cap: room - chrome - 2, cols: cols, per: cols * rows, w: w };
-  } catch (e) {
-    if (box && box.parentNode) box.parentNode.removeChild(box);
-    return null;
-  }
+  });
+  return { list: list, starts: starts };
 }
 
-/* ---------- A CHAPTER CUT INTO SCREENFULS ---------------------------------------------------------
-   WHOLE VERSES, AS FEW PAGES AS FIT, AND THOSE PAGES AS EVEN AS THEY CAN BE. `w` is what each verse
-   costs and `cap` what a page holds, in any one unit — pixels on a phone (`bibleMeasure_`),
-   characters with no layout. Filling each page until the next verse would not fit gives the fewest
-   pages; then the smallest page size that still needs no more pages is searched for, and the chapter
-   is cut again at that — so Genesis 1 is three pages of a similar length rather than two full ones
-   and a stub of two verses. NOTHING OVER `cap` but a verse that is taller than a page on its own,
-   which gets a page to itself and is the one thing `paneReach_` is still left to shrink.
-   PURE — it reads nothing but its arguments, so `check-bible.js` cuts every chapter of the Bible
-   through this very function. Returns `[from, to)` index pairs into the chapter's verses. */
-function bibleCut_(w, cap) {
-  const fill = lim => {
-    const out = [];
-    let from = 0, sum = 0;
-    for (let i = 0; i < w.length; i++) {
-      if (i > from && sum + w[i] > lim) { out.push([from, i]); from = i; sum = 0; }
-      sum += w[i];
-    }
-    out.push([from, w.length]);
-    return out;
-  };
-  const pages = fill(cap).length;
-  let lo = 0, hi = Math.max(cap, ...w);
-  for (let k = 0; k < 30 && hi - lo > .5; k++) {
-    const mid = (lo + hi) / 2;
-    if (fill(mid).length <= pages) hi = mid; else lo = mid;
-  }
-  return fill(Math.min(hi, cap));
-}
-
-/* THE OPEN BOOK'S PAGES, worked out once per book and screen: its chapter-number pages, then every
-   chapter's. Memoised because `pageParts_` is asked for every result on every new filter.
-   THE GRID IS AS MANY WHOLE ROWS AS THE PANE HOLDS, and then evened out the way a chapter is: Genesis
-   at 320x568 is two pages of twenty-five rather than forty and ten, and each page's count is rounded
-   up to a whole row so the numbers stand in full columns. */
-function biblePlan_(n) {
-  if (BIBLE.plans[n]) return BIBLE.plans[n];
-  const b = bibleBook_(n), d = BIBLE.books[n];
-  if (!b || !d) return null;
-  const m = bibleMeasure_(n);
-  const most = m ? m.per : BIBLE_GRID;
-  let per = Math.ceil(b.chapters / Math.ceil(b.chapters / most));
-  if (m) per = Math.min(most, Math.ceil(per / m.cols) * m.cols);
-  const parts = [];
-  for (let g = 0; g * per < b.chapters; g++) parts.push(g ? 'bk-' + g : 'bk');
-  const grids = parts.length;
-  const cuts = d.chapters.map((vs, i) => (m
-    ? bibleCut_(m.w[i], m.cap)
-    : bibleCut_(vs.map(v => String(v).length + BIBLE_VERSE), BIBLE_PAGE - BIBLE_FOOT)));
-  cuts.forEach((c, i) => c.forEach((_, k) => parts.push('c' + (i + 1) + (k ? '-' + k : ''))));
-  return (BIBLE.plans[n] = { per: per, grids: grids, cuts: cuts, parts: parts, measured: !!m });
-}
-/* WHICH PAGE OF CHAPTER NUMBERS HOLDS A CHAPTER — where a text page's tile goes back to. */
-const bibleGridOf_ = (plan, ch) => {
-  const g = Math.floor((ch - 1) / Math.max(1, plan.per));
-  return g ? 'bk-' + g : 'bk';
-};
-
-/* ---------- THE OLD TESTAMENT ON TWO PAGES, AT THE SEAM EVERY BIBLE HAS -----------------------------
-   THIRTY-NINE 44px BUTTONS DO NOT FIT A SMALL PHONE. At 320x568 they wrapped to eleven rows, 601px in
-   a 507px pane, and `paneReach_` drew the page at 84% — every button 37px, under the fingertip rule
-   the chips were written to keep. A narrower face only moved the number.
-   SO IT IS TWO PAGES ON EVERY SCREEN, not two on a short one: Genesis to Esther (the Law and the
-   histories) and Job to Malachi (the poetry and the prophets), the turn every printed contents page
-   already makes. On every screen because a list whose page count depends on the phone is a contents
-   that changes shape when the phone turns, and because the seam is one a reader knows. Seventeen and
-   twenty-two fit at 320 at full size; the New Testament's twenty-seven always did. */
-function bibleOn_(part) {
+/* THE VERSE LIST, BUILT ONCE A VISIT — the first time the Bible is opened, never for anybody else.
+   ALSO IN `SORTED_ITEMS` AS ITS OWN SORTED COPY, so anything that hands it to `stuffSorted_` gets it
+   back in canonical order rather than sorted by name, which would be every `1 Chronicles` in front
+   of Genesis. */
+function bibleVerses_() {
+  if (!bibleFor_()) return [];
   const ix = BIBLE.index;
   if (!ix) return [];
-  if (part === 'nt') return ix.books.filter(b => b.testament === 'NT');
-  const ot = ix.books.filter(b => b.testament === 'OT');
-  let k = ot.findIndex(b => b.book === BIBLE_OT_TURN);
-  if (k <= 0) k = Math.ceil(ot.length / 2);
-  return part === 'ot2' ? ot.slice(k) : ot.slice(0, k);
-}
-const bibleListOf_ = b => (b.testament === 'NT' ? 'nt' : bibleOn_('ot2').indexOf(b) >= 0 ? 'ot2' : 'ot');
-
-/* THE CARD, THE THREE LISTS, AND THEN THE OPEN BOOK — see the head of this section for why the book
-   comes after all three rather than after its own testament. */
-function bibleParts_() {
-  const plan = BIBLE.open ? biblePlan_(BIBLE.open) : null;
-  return [null, 'ot', 'ot2', 'nt'].concat(plan ? plan.parts : []);
-}
-
-/* ---------- THE COVER ------------------------------------------------------------------------------
-   `data-bb` MARKS THE PAGES THAT CHANGE AFTER THEY ARE DRAWN — the cover and the three lists wait for
-   the index, and a list marks the book being fetched — so `bibleRedraw_` can find them on Find and
-   on Saved alike and draw them again in place. */
-function bibleCard_(x) {
-  const t = BIBLE.index && BIBLE.index.totals;
-  const num = v => Number(v || 0).toLocaleString('en-GB');
-  return `<div class="card fc prac bible" data-bb="card">
-    <div class="fc-head">
-      <h3>${esc(x.name)}</h3>
-      <span class="fc-flags"><span class="fc-flag is-type">Book</span></span>
-    </div>
-    <p class="sub">The Authorized Version of 1611</p>
-    <p class="fc-lede">The Old and New Testaments, whole${t ? ` — ${num(t.books)} books, ${num(t.chapters)} chapters, ${num(t.verses)} verses` : ''}.
-      The books are the next three pages: choose one, then a chapter.</p>
-    <p class="fc-note">Words in <i>italics</i> are the translators' own, added for the sense, as the
-      King James prints them.</p>
-    ${/* WHO CAN SEE IT, in the colour this app keeps for exactly that (`--admin`), so the owner is
-         never left wondering whether a student is reading this card too. */''}
-    <p class="fc-meta bb-who">Only admins are shown this book</p>
-  </div>`;
-}
-
-/* ---------- A LIST OF BOOKS: A BUTTON EACH ---------------------------------------------------------
-   BUTTONS, NOT TILES, and this is the house rule read rather than broken: a tile is an action ON a
-   thing, and this is a choice AMONG things — the funnel's own answer row, which is buttons for the
-   same reason. The card's actions (the star) are the tile row under the cover, as on every card.
-   `part` is `ot`, `ot2` or `nt`; the two Old Testament pages say which books they hold. */
-function bibleList_(part) {
-  const t = part === 'nt' ? 'NT' : 'OT';
-  const ix = bibleIndex_();
-  const head = `<p class="fc-kick">${esc(BIBLE_NAME)}</p><h3>${esc(bibleTestament_(t))}</h3>`;
-  let body;
-  if (!ix) {
-    body = BIBLE.failed
-      ? `<p class="fc-lede">The list of books did not arrive.</p>
-         <div class="bb-books"><button class="bb-book" data-do="bible-retry">Try again</button></div>`
-      : '<p class="fc-lede">Opening the list of books…</p>';
-  } else {
-    const books = bibleOn_(part);
-    const all = ix.books.filter(b => b.testament === t).length;
-    const missed = books.filter(b => BIBLE.missed[b.n] && !BIBLE.loading[b.n]).map(b => b.book);
-    const span = books.length && books.length < all
-      ? `${esc(books[0].book)} to ${esc(books[books.length - 1].book)} · ${books.length} of the ${all} books`
-      : `${books.length} books`;
-    body = `<p class="fc-meta">${span}</p>
-      <div class="bb-books">${books.map(b => {
-        const on = BIBLE.open === b.n;
-        return `<button class="bb-book${on ? ' on' : ''}${BIBLE.loading[b.n] ? ' is-busy' : ''}" data-do="bible-book"
-          data-n="${b.n}"${on ? ' aria-current="true"' : ''}>${esc(b.book)}</button>`;
-      }).join('')}</div>
-      ${missed.length ? `<p class="fc-note bb-miss">${esc(missed.join(', '))} did not arrive. Tap it again
-        to try once more.</p>` : ''}`;
+  if (!BIBLE.verses || BIBLE.verses.from !== ix) {
+    const made = bibleVerseList_(ix);
+    SORTED_ITEMS.set(made.list, made.list);
+    BIBLE.verses = { from: ix, list: made.list, starts: made.starts };
   }
-  return `<div class="card fc prac prac-part bible bb-toc is-${t.toLowerCase()}" data-bb="${part}">
-    ${head}${body}</div>`;
+  return BIBLE.verses.list;
 }
 
-/* ---------- A BOOK: ITS CHAPTER NUMBERS -----------------------------------------------------------
-   THE WAY TO PSALM 119 THAT IS NOT 118 SWIPES. A number a button, 44px, as many to a row as fit and
-   as many rows as the pane holds (`biblePlan_`).
-   AND A TILE BACK TO THE LIST THIS BOOK IS ON. The lists stand in front of every open book, so from
-   Genesis's numbers the Old Testament is three swipes back past the New — this is the one tap. */
-function bibleGridHtml_(b, lo, hi, span, list, cls) {
-  const same = BIBLE.index ? BIBLE.index.books.filter(o => o.testament === b.testament) : [b];
-  const nums = [];
-  for (let c = lo; c <= hi; c++) {
-    nums.push(`<button class="bb-ch" data-do="bible-ch" data-ch="${c}" aria-label="${esc(bibleCite_(b, c))}">${c}</button>`);
+/* ONE VERSE BY ITS KEY, by arithmetic: its chapter's first verse, then the verse's place in it. Null
+   for anything that is not exactly a verse of this translation — a key from a phone that kept a
+   different index, or one somebody typed. */
+function bibleByKey_(k) {
+  const m = /^bible:([a-z0-9]+):(\d+):(\d+):(\d+)$/.exec(String(k || ''));
+  const ix = BIBLE.index;
+  if (!m || !ix || m[1] !== String(ix.translation).toLowerCase()) return null;
+  const list = bibleVerses_();
+  const at = BIBLE.verses && BIBLE.verses.starts[Number(m[2]) - 1];
+  const i = at ? at[Number(m[3]) - 1] : undefined;
+  if (i == null) return null;
+  const x = list[i + Number(m[4]) - 1];
+  return x && x.key === k ? x : null;
+}
+
+/* ---------- IS THE BIBLE OPEN? ----------------------------------------------------------------------
+   WHEN ANY CHIP IS ON ONE OF ITS SIX QUESTIONS — an answer or a "Doesn't matter". The first is the
+   Translation answer, reached from the Books shelf. ANY of them, not the Translation one: drop `KJV`
+   with Testament and Book still on and the Bible stays open and simply asks Translation again, as
+   dropping any chip re-asks its question — no special case in `filter-drop`. */
+function bibleInside_() {
+  return bibleFor_() && !!BIBLE.index
+    && (STUFF.filters || []).some(f => f && BIBLE_FIELDS[f.field] && !f.bucket);
+}
+
+/* ---------- THE BIBLE'S RESULTS ---------------------------------------------------------------------
+   THE COVER STANDS IN FOR EVERY VERSE ON THE CHIPS THAT ARE NOT THE BIBLE'S OWN. `What for: Learning`,
+   `What kind: Resources` and `Shelf: Books` are true of the cover, so they are asked of the cover —
+   once — rather than of 31,102 verses that would each answer them the same way. A chip the cover does
+   not pass (a forged `Subject: Maths`) empties the Bible, which is what that chip would do to any
+   item on the shelf. And a cover not on Find's list — the library still coming, or a sheet `kinds`
+   row switching `bible` off — is a Bible not on Find.
+   FIND'S LIST IS READ FIRST, because building it is what sets `BIBLE.item`: after a new payload the
+   item is a new object, and asking about the old one would empty the Bible for one tap.
+   THE BIBLE'S OWN CHIPS NARROWEST FIRST — the last pressed is the deepest — so Verse 3 cuts 31,102 to
+   1,189 before Chapter cuts those to 66; the other order walks the whole Bible three times. Safe to
+   reverse because no Bible chip is ever a bucket, which is the only chip whose order matters.
+   THE TRANSLATION'S OWN ANSWER IS NOT WALKED: the verse list is one translation, so `KJV` keeps every
+   verse, and filtering 31,102 items to find that out was most of the cost of the tap that opens the
+   Bible. Any other translation named on a chip — a forged one — is still a filter, and keeps nothing.
+   SO WITH NO OTHER BIBLE ANSWER AND NO WORDS THIS HANDS BACK THE VERSE LIST ITSELF, the memoised array
+   — which is also what lets the Testament question's tally be reused the next time KJV is pressed (it
+   is held on the array) — so nothing may sort or splice a results array in place; every reader here
+   only reads. */
+function bibleFind_(verses, words, credits) {
+  const all = stuffItems();
+  const x = BIBLE.item;
+  if (!x || all.indexOf(x) < 0) return [];
+  const own = [], rest = [];
+  const tr = spellKey_(BIBLE.index ? BIBLE.index.translation : '');
+  (STUFF.filters || []).forEach(f => {
+    if (!BIBLE_FIELDS[f.field]) rest.push(f);
+    else if (!(f.field === 'bibleTranslation' && !f.any && !f.bucket && spellKey_(f.value) === tr)) own.push(f);
+  });
+  if (!stuffNarrow_([x], rest, [], credits).length) return [];
+  return stuffNarrow_(verses, own.slice().reverse(), words, credits);
+}
+
+/* ---------- THE LAST LINE UNDER THE QUESTION, ONCE NOTHING IS LEFT TO ASK ---------------------------
+   `paperEnd_`'s job for the Bible: say what the strip below holds. Over the cover, the only reason
+   there is no question is the index — on its way, or not come. */
+function bibleEnd_(items) {
+  if (listKind_(items) !== 'bible') return '';
+  const first = items[0], last = items[items.length - 1];
+  if (!first.bb) {
+    if (BIBLE.index) return '';
+    return BIBLE.failed
+      ? '<p class="find-end">The list of the Bible&rsquo;s books did not arrive. <b>Try again is under the cover.</b></p>'
+      : '<p class="find-end">The list of the Bible&rsquo;s books is on its way.</p>';
   }
-  return `<div class="card fc prac prac-part bible bb-chs${cls}">
-    <p class="fc-kick">${esc(bibleTestament_(b.testament))} · book ${same.indexOf(b) + 1} of ${same.length}</p>
-    <h3>${esc(b.book)}</h3>
-    <p class="fc-meta">${span} · ${Number(b.verses || 0).toLocaleString('en-GB')} verses</p>
-    <div class="bb-grid">${nums.join('')}</div>
-    <div class="tile-row">${tile_({ icon: 'book', label: bibleTestament_(b.testament), note: 'the books',
-      act: 'bible-to', data: { to: list } })}</div>
-  </div>`;
-}
-function bibleGrid_(n, g) {
-  const b = bibleBook_(n), plan = biblePlan_(n);
-  if (!b || !plan) return '';
-  const lo = g * plan.per + 1, hi = Math.min(b.chapters, (g + 1) * plan.per);
-  if (lo > hi) return '';
-  const span = plan.grids > 1 ? `chapters ${lo}–${hi} of ${b.chapters}`
-             : b.chapters + (b.chapters === 1 ? ' chapter' : ' chapters');
-  return bibleGridHtml_(b, lo, hi, span, bibleListOf_(b), ' is-bk' + (g ? '-' + g : ''));
+  if (items.length === 1) return `<p class="find-end">${esc(first.name)}. <b>Swipe up for it.</b></p>`;
+  const to = first.bb === last.bb ? last.ch + ':' + last.v : last.name;
+  return `<p class="find-end">${esc(first.name)} to ${esc(to)}.
+      <b>Swipe up for the ${items.length.toLocaleString('en-GB')} verses.</b></p>`;
 }
 
-/* ---------- A CHAPTER, OR ONE SCREENFUL OF IT ------------------------------------------------------
-   THE CITATION IS THE TITLE ON EVERY PAGE — `Genesis 1` — the way a printed Bible's running head
-   says where you are whichever page it falls open at; the kicker says which part of the chapter.
-   The verse number is small and quiet in front of its verse: it is how you find a place, not what
-   you read.
-   THE WAY BACK TO THE CHAPTER NUMBERS IS ON EVERY PAGE, not only the chapter's last. It was at the
-   foot of the last page alone, and Psalm 119 is twenty-two pages at 320px: from its first page the
-   way out was twenty-one swipes forward or every earlier psalm backward. The tile goes to the page
-   of numbers this chapter is on, and the room for it is taken off every page by the measuring. */
-function bibleTextHtml_(b, ch, vs, from, of, back, cls) {
-  return `<div class="card fc prac prac-part bible bb-text${cls}">
-    <p class="fc-kick">${esc(bibleTestament_(b.testament))}${of ? ' · ' + of : ''}</p>
-    <h3>${esc(bibleCite_(b, ch))}</h3>
-    <div class="bb-verses">${vs.map((v, j) => bibleV_(v, from + j + 1)).join('')}</div>
-    <div class="tile-row">${tile_({ icon: 'book', label: b.book + ' · chapters',
-      note: b.chapters + (b.chapters === 1 ? ' chapter' : ' chapters'), act: 'bible-to', data: { to: back } })}</div>
-  </div>`;
-}
-function bibleText_(n, ch, k) {
-  const b = bibleBook_(n), d = BIBLE.books[n], plan = biblePlan_(n);
-  const cuts = plan && plan.cuts[ch - 1];
-  if (!b || !d || !cuts || !cuts[k]) return '';
-  const from = cuts[k][0], to = cuts[k][1];
-  return bibleTextHtml_(b, ch, d.chapters[ch - 1].slice(from, to), from,
-    cuts.length > 1 ? (k + 1) + ' of ' + cuts.length : '', bibleGridOf_(plan, ch),
-    ' is-c' + ch + (k ? '-' + k : ''));
-}
-
-/* ONE PAGE OF IT THAT IS NOT THE COVER — `stuffPart_`'s door in. */
-function biblePart_(x, part) {
-  const p = String(part || '');
-  if (p === 'ot' || p === 'ot2' || p === 'nt') return bibleList_(p);
-  let m = /^bk(?:-(\d+))?$/.exec(p);
-  if (m) return bibleGrid_(BIBLE.open, +(m[1] || 0));
-  m = /^c(\d+)(?:-(\d+))?$/.exec(p);
-  if (m) return bibleText_(BIBLE.open, +m[1], +(m[2] || 0));
-  return '';
-}
-
-/* THE ITEM. One, for an admin; none for anybody else — which is the whole of what a non-admin's Find
-   knows about it: no item, no shelf answer, no card, no fetch. */
+/* THE COVER. One item, for an admin; none for anybody else — which is the whole of what a non-admin's
+   Find knows about it: no item, no shelf answer, no card, no fetch. Its key is the one the first
+   build starred, so a star from then still finds it. */
 function bibleItems_() {
   if (!bibleFor_()) return [];
   bibleIndex_();
@@ -4245,123 +4260,191 @@ function bibleItems_() {
      then, it was the only thing on an admin's Find for the seconds the library takes, so the screen
      drew a funnel of one book where it should say "The questions are still coming" (`nothingHere`).
      Measured, not reasoned: `check/states.js`'s `the library still coming` stopped being reachable for
-     the admin visitor the day this item arrived. The index is still asked for above, so the contents
+     the admin visitor the day this item arrived. The index is still asked for above, so the books
      are ready by the time the shelf is. */
   if (typeof LIBRARY_ROWS !== 'undefined' && LIBRARY_ROWS === null) return [];
-  const x = { kind: 'bible', name: BIBLE_NAME, key: 'bible:kjv', sub: 'Old and New Testaments',
-              image: '', shelf: BIBLE_SHELF, text: bibleWords_(), row: null };
+  /* NO `sub`, AND ONLY THE WORDS EVERY VERSE CARRIES. It had `sub: 'Old and New Testaments'`, which
+     its card never drew and which put `testaments` and `and` in its haystack and in no verse's. What a
+     search finds it by is `holds` — the verses' words, asked by `bibleHolds_` — which `stuffNarrow_`
+     reads in place of the haystack for an item that stands for others. */
+  const x = { kind: 'bible', name: BIBLE_NAME, key: 'bible:kjv', image: '', shelf: BIBLE_SHELF,
+              text: BIBLE_WORDS, row: null };
+  x.holds = words => bibleHolds_(x, words);
   BIBLE.item = x;
   return [x];
 }
 
-/* ---------- DRAWING IT AGAIN WHERE IT ALREADY IS ---------------------------------------------------
-   THE ANSWER LANDED AFTER THE PAGE WAS DRAWN — the index, or a book that did not come. The pages that
-   wait (`data-bb`) are redrawn in place, `ansShow_`'s move, and their panes are measured again so a
-   list that grew is drawn smaller to fit rather than cut off. */
-function bibleRedraw_() {
-  const x = BIBLE.item;
-  if (!x || typeof document === 'undefined') return;
-  document.querySelectorAll('.card.bible[data-bb]').forEach(el => {
-    const part = el.getAttribute('data-bb');
+/* ---------- THE COVER, OR A VERSE -------------------------------------------------------------------
+   ONE KIND, TWO CARDS: `KINDS.bible.card` is this, and a verse is told apart by its `bb`. The cover is
+   one ordinary page now — what the book is, how big, and how to get in — where it was a contents page
+   with three more behind it. */
+function bibleCard_(x) {
+  if (x && x.bb) return bibleVerseCard_(x);
+  const ix = BIBLE.index, t = ix && ix.totals;
+  const num = v => Number(v || 0).toLocaleString('en-GB');
+  const how = ix ? ` Choose ${esc(ix.translation)}, then the testament, the group, the book, the chapter
+      and the verse: every verse is a card of its own.` : BIBLE.failed ? '' : ' Opening the list of books…';
+  return `<div class="card fc prac bible" data-bb="card">
+    <div class="fc-head">
+      <h3>${esc(BIBLE_NAME)}</h3>
+      <span class="fc-flags"><span class="fc-flag is-type">Book</span></span>
+    </div>
+    <p class="sub">The Authorized Version of 1611</p>
+    <p class="fc-lede">The Old and New Testaments, whole${t ? ` — ${num(t.books)} books, ${num(t.chapters)} chapters, ${num(t.verses)} verses` : ''}.${how}</p>
+    ${!ix && BIBLE.failed ? '<p class="fc-note bb-miss">The list of books did not arrive.</p>' : ''}
+    <p class="fc-note">Words in <i>italics</i> are the translators' own, added for the sense, as the
+      King James prints them.</p>
+    ${/* WHO CAN SEE IT, in the colour this app keeps for exactly that (`--admin`), so the owner is
+         never left wondering whether a student is reading this card too. */''}
+    <p class="fc-meta bb-who">Only admins are shown this book</p>
+  </div>`;
+}
+
+/* ---------- ONE VERSE, A CARD OF ITS OWN -------------------------------------------------------------
+   "each verse is a widget". THE TAGS ARE THE QUESTION CARD'S ROW (`qPage_`'s markup): what the page is
+   (`Verse`), which one (`Genesis 1:3`, in the coral Book, Chapter and Verse chips wear), and the three
+   answers that are not the citation — read through each facet's own `of` with `qTagOf_` and coloured by
+   `tagOf_`, so the card cannot say a word its chip would not. Then the verse, in the reading size.
+   THE BOOK IS FETCHED WHEN A CARD OF IT IS DRAWN, not when it is chosen: the funnel can arrive at a
+   verse by any path, a search or a star, and the card is the one place every path passes. Once a
+   visit (`BIBLE.books`), and only the first card to ask sets up the redraw, so twenty cards waiting
+   on one book are one fetch, one redraw and — if it fails — one toast. */
+function bibleVerseCard_(x) {
+  const bb = x.bb, n = bb.n, d = BIBLE.books[n];
+  const tags = [{ tag: 'kind', text: 'Verse' }, { tag: tagOf_('bibleBook'), text: x.name }];
+  ['bibleTranslation', 'bibleTestament', 'bibleGroup'].forEach(f => {
+    const v = qTagOf_(f, x)[0];
+    if (v) tags.push({ tag: tagOf_(f), text: v });
+  });
+  let body;
+  if (d) body = bibleV_(d.chapters[Number(x.ch) - 1][Number(x.v) - 1]);
+  else if (BIBLE.missed[n] && !BIBLE.loading[n]) body = `<p class="fc-note bb-miss">${esc(bb.book)} did not arrive.</p>`;
+  else {
+    body = '<p class="bb-v is-wait" aria-busy="true">…</p>';
+    if (!BIBLE.loading[n]) {
+      bibleLoad_(n).then(got => {
+        if (!got) toast(bb.book + ' did not arrive — Try again is under the verse.');
+        bibleRedraw_(n);
+      });
+    }
+  }
+  return `<div class="card fc bible bb-verse" data-bb="v" data-bn="${n}" data-key="${esc(x.key)}">
+    <div class="qtags qcard-tags">${tags.map(t =>
+      `<span class="qtag"${t.tag ? ` data-tag="${t.tag}"` : ''}>${esc(t.text)}</span>`).join('')}</div>
+    ${body}
+  </div>`;
+}
+
+/* ---------- THE TILES UNDER IT ----------------------------------------------------------------------
+   THE COVER'S ONE ACTION IS THE WAY IN — `Open`, which answers the Translation question for you —
+   because on Saved, or with a second book on the shelf, the question is not on the screen to answer.
+   A VERSE'S IS ITS CHAPTER: from a star, a search or a Verse answer, one tap puts Find in that chapter
+   on that verse, the rest of it a swipe either way. Not drawn where it would do nothing — already in
+   that chapter with nothing narrowing it further (`bibleHere_`). A book that did not come has
+   `Try again`, which is the retry the first build's buttons gave by being pressed again. */
+function bibleTiles_(x) {
+  if (!bibleFor_() || !x) return '';
+  if (!x.bb) {
+    if (BIBLE.index) return tile_({ icon: 'open', label: 'Open', note: BIBLE.index.translation, act: 'bible-go' });
+    return BIBLE.failed ? tile_({ icon: 'undo', label: 'Try again', note: 'the list of books', act: 'bible-retry' }) : '';
+  }
+  const bb = x.bb;
+  const again = BIBLE.missed[bb.n] && !BIBLE.loading[bb.n]
+    ? tile_({ icon: 'undo', label: 'Try again', note: bb.book, act: 'bible-retry', data: { n: bb.n } }) : '';
+  return again + (bibleHere_(x) ? ''
+    : tile_({ icon: 'book', label: 'Chapter', note: bibleCite_(bb, x.ch), act: 'bible-go', data: { key: x.key } }));
+}
+/* IN THIS VERSE'S CHAPTER ALREADY: its Book and Chapter answered, no Verse answer and no words
+   narrowing the chapter — the strip is the chapter, so the tile would land where you are. */
+function bibleHere_(x) {
+  if (String(STUFF.q || '').trim()) return false;
+  const leaf = f => f && !f.any && !f.bucket;
+  const fs = STUFF.filters || [];
+  if (fs.some(f => leaf(f) && f.field === 'bibleVerse')) return false;
+  return fs.some(f => leaf(f) && f.field === 'bibleBook' && spellKey_(f.value) === spellKey_(x.bb.book))
+      && fs.some(f => leaf(f) && f.field === 'bibleChapter' && String(f.value) === String(x.ch));
+}
+
+/* ---------- KEPT ON SAVED -----------------------------------------------------------------------------
+   A STARRED VERSE IS NOT ON FIND'S LIST, so `collItems_` cannot find it there; its key is its address,
+   so it is looked up by arithmetic instead. Only when some kept key IS a verse — Saved must not build
+   31,102 items to find that none of them was starred. In the Bible's order, whatever order they were
+   starred in. */
+function bibleKept_(has) {
+  if (!bibleFor_()) return [];
+  if (!BIBLE.index) return [];
+  const re = /^bible:[a-z0-9]+:\d+:\d+:\d+$/;
+  const keys = [];
+  const add = k => { const s = String(k); if (re.test(s) && has(s) && keys.indexOf(s) < 0) keys.push(s); };
+  FAVS.forEach(k => add(k));
+  if (typeof SPOT !== 'undefined') SPOT.forEach(k => add(k));
+  if (!keys.length) return [];
+  return keys.map(k => bibleByKey_(k)).filter(Boolean)
+    .sort((a, b) => (a.bb.n - b.bb.n) || (Number(a.ch) - Number(b.ch)) || (Number(a.v) - Number(b.v)));
+}
+
+/* ---------- DRAWING IT AGAIN WHERE IT ALREADY IS -----------------------------------------------------
+   THE ANSWER LANDED AFTER THE CARD WAS DRAWN — the index, under the cover, or a book, under its verses.
+   Redrawn in place wherever they are (Find and Saved alike, which is why it is the whole document),
+   `ansShow_`'s move, the tile row under each with it — the cover's `Open` and a verse's `Try again`
+   depend on what just landed — and their panes measured again. */
+function bibleRedraw_(n) {
+  if (typeof document === 'undefined') return;
+  const sel = n ? '.card.bb-verse[data-bn="' + Number(n) + '"]' : '.card.bible[data-bb="card"]';
+  document.querySelectorAll(sel).forEach(el => {
+    const x = n ? bibleByKey_(el.getAttribute('data-key')) : BIBLE.item;
+    if (!x) return;
     const t = document.createElement('div');
-    t.innerHTML = part === 'card' ? bibleCard_(x) : biblePart_(x, part);
+    t.innerHTML = bibleCard_(x);
+    const card = t.firstElementChild;
+    if (!card) return;
     const pane = el.closest('.pane');
-    if (t.firstElementChild) el.replaceWith(t.firstElementChild);
+    el.replaceWith(card);
+    const wrap = card.parentElement && card.parentElement.classList.contains('favwrap') ? card.parentElement : null;
+    const row = wrap && wrap.nextElementSibling && wrap.nextElementSibling.classList.contains('tile-row')
+      ? wrap.nextElementSibling : null;
+    const tiles = wrap ? cardTiles_(x) : '';
+    if (row) { if (tiles) row.outerHTML = tiles; else row.remove(); }
+    else if (wrap && tiles) wrap.insertAdjacentHTML('afterend', tiles);
     if (pane && typeof paneReach_ === 'function') { try { paneReach_([pane]); } catch (e) {} }
   });
 }
 
-/* THE BIBLE AS FIND IS SHOWING IT NOW, or null — on the results only once something has been asked,
-   because until then the screen is a question with no result pages behind it. */
-const bibleShown_ = () => (stuffAsked() && stuffFiltered().find(i => i.kind === 'bible')) || null;
-
-/* ---------- A DIFFERENT BOOK OPEN, AND THE PAGE UNDER YOUR THUMB STAYS PUT -------------------------
-   OPENING A BOOK CHANGES HOW MANY PAGES THE BIBLE IS, and `paintStuff(true)` only knows how to keep
-   your place when the pages in FRONT of the results move — it was written for a star. So the page you
-   are on is found by what it IS (which item, which part) before the change and found again after it,
-   and the screen is repainted around that. `STUFF_PAGES` is memoised on the results array, which has
-   not changed, so it is told to forget. */
-function bibleSet_(n) {
-  const host = $('stuff-controls');
-  const first = host ? stuffFirstResult_() : 0;
-  const before = host ? stuffPages_()[(PAGE.stuff || 0) - first] : null;
-  /* THE SCREEN IS ASKED HERE, AT AN OPENING, and nowhere else: pages re-cut while a book was open
-     would move the verses under your thumb. A different pane since the last opening (the phone
-     turned) forgets every plan, and each book is measured again the next time it is opened. */
-  const screen = bibleScreen_();
-  if (screen !== BIBLE.screen) { BIBLE.screen = screen; BIBLE.plans = {}; }
-  BIBLE.open = n;
-  STUFF_PAGES = { from: null, pages: [] };
-  if (host) {
-    if (before) {
-      const i = stuffPages_().findIndex(p => p.x === before.x && p.part === before.part);
-      if (i >= 0) PAGE.stuff = first + i;
-    }
-    paintStuff(true);
+/* ---------- INTO THE BIBLE, FROM WHEREVER THE TAP WAS --------------------------------------------------
+   THE CHIPS A FINGER WOULD HAVE PRESSED, SET IN ONE GO: the three doors, the translation, and — from a
+   verse — its testament, group, book and chapter. Then Find, on the verse the tile was under (the
+   chapter is the strip, so the verses either side are a swipe away), or on the question for the cover.
+   From Saved this is how a kept verse is read in its chapter; from Find it is how a verse found by a
+   search or a Verse answer is. The search box is cleared, because words would narrow the chapter. */
+on('bible-go', el => {
+  if (!bibleFor_() || !BIBLE.index || !BIBLE.item) return;
+  const k = el && el.getAttribute('data-key');
+  const x = k ? bibleByKey_(k) : null;
+  if (k && !x) return;
+  const kind = kindOf_(BIBLE.item);
+  STUFF.q = '';
+  const box = $('stuff-q');
+  if (box) box.value = '';
+  const f = [{ field: 'forLabel', value: asList_(kind.group)[0] }, { field: 'kindLabel', value: kind.label },
+             { field: 'shelf', value: BIBLE_SHELF }, { field: 'bibleTranslation', value: BIBLE.index.translation }];
+  if (x) {
+    f.push({ field: 'bibleTestament', value: x.bb.testament }, { field: 'bibleGroup', value: x.bb.group },
+           { field: 'bibleBook', value: x.bb.book }, { field: 'bibleChapter', value: x.ch });
   }
-  bibleRedraw_();
-}
-
-/* ---------- TO ONE OF ITS PAGES, FROM WHEREVER THE TAP WAS -----------------------------------------
-   ON FIND IT IS A TURN OF THE PAGE. ON SAVED — a starred Bible draws its cover and both lists there —
-   the book is not on any strip, so Find is narrowed to the Bible's shelf first, which is the route a
-   finger would have taken, and the reader opens on Find. */
-function bibleGo_(part) {
-  if (!bibleFor_()) return;
-  let x = bibleShown_();
-  if (!x && $('stuff-controls')) {
-    const any = stuffItems().find(i => i.kind === 'bible');
-    if (!any) return;
-    STUFF.q = '';
-    STUFF.filters = [{ field: 'kindLabel', value: kindOf_(any).label }, { field: 'shelf', value: any.shelf }];
-    const box = $('stuff-q');
-    if (box) box.value = '';
-    paintStuff();
-    x = bibleShown_();
-  }
-  if (!x) return;
-  const at = stuffPages_().findIndex(p => p.x === x && (p.part || null) === (part || null));
-  if (at < 0) return;
+  STUFF.filters = f;
+  paintStuff();
   if (AT !== 'stuff') go('stuff');
-  goPage('stuff', stuffFirstResult_() + at);
-}
-
-/* ---------- A BOOK TAPPED -------------------------------------------------------------------------
-   HELD: straight to its chapter numbers. NOT HELD: the button says it is coming (`is-busy`), the file
-   is fetched, and the book opens when it lands — unless another was tapped meanwhile, in which case
-   that one is the one wanted. A file that does not come is said on the list and in a toast; the
-   button stays, so tapping it again is the retry. */
-function bibleOpen_(n) {
-  const b = bibleFor_() ? bibleBook_(n) : null;
-  if (!b) return;
-  BIBLE.want = n;
-  if (BIBLE.books[n]) {
-    if (BIBLE.open !== n) bibleSet_(n);
-    bibleGo_('bk');
-    return;
-  }
-  const already = !!BIBLE.loading[n];
-  bibleLoad_(n).then(d => {
-    if (!d) {
-      bibleRedraw_();
-      if (BIBLE.want === n) toast(b.book + ' did not arrive — tap it again to try once more.');
-      return;
-    }
-    if (BIBLE.want !== n) { bibleRedraw_(); return; }
-    bibleSet_(n);
-    bibleGo_('bk');
-  });
-  if (!already) bibleRedraw_();
-}
-
-on('bible-book', el => bibleOpen_(Number(el.getAttribute('data-n'))));
-on('bible-ch', el => bibleGo_('c' + Number(el.getAttribute('data-ch'))));
-on('bible-to', el => bibleGo_(String(el.getAttribute('data-to') || '')));
-/* THE LIST OF BOOKS AGAIN, after it failed — the one fetch with no button of its own to retry from. */
-on('bible-retry', () => {
+  goPage('stuff', x ? stuffFirstResult_() + stuffPageOf_(x) : stuffQuestionPage_());
+});
+/* AGAIN, AFTER A FAILURE: a book (`data-n`), which redrawing its cards fetches; or the list of books. */
+on('bible-retry', el => {
+  if (!bibleFor_()) return;
+  const n = Number(el && el.getAttribute('data-n')) || 0;
+  if (n) { delete BIBLE.missed[n]; bibleRedraw_(n); return; }
   BIBLE.failed = false;
   bibleIndex_();
   bibleRedraw_();
+  if ($('stuff-controls')) paintStuff(true);
 });
 
 /* ---------- WHICH PAGES A PRACTICAL TAKES, OFF WHAT THE ROW ACTUALLY HAS ------------------------
@@ -4447,10 +4530,9 @@ function pageParts_(x, prev) {
   if (x && x.kind === 'textbook' && x.row) {
     return [null].concat((x.row.chapters || []).map(c => 'ch' + c.n));
   }
-  /* THE BIBLE IS ITS COVER, ITS THREE LISTS OF BOOKS, AND THE OPEN BOOK'S PAGES after them — see
-     `bibleParts_`. Which book is open is the reader's state, not the item's, so the item is the same
-     object whichever book is being read. */
-  if (x && x.kind === 'bible') return bibleParts_();
+  /* THE BIBLE HAS NO BRANCH HERE ANY MORE. Its cover and each of its verses are one page, the
+     default below; the cover's three lists of books and the open book's pages went with the reader
+     (see the head of the Bible section). */
   /* A BOXER IS THEIR CARD AND, WHERE THEY HAVE ANY, THEIR FIGHTS — seven bouts a page, see
      `boxerFightPages_`. */
   if (x && x.kind === 'boxer' && x.row) return [null].concat(boxerFightPages_(x.row));
@@ -4474,12 +4556,11 @@ function pageParts_(x, prev) {
    rather than a section of a guide. IN `pageParts_`'s ORDER, filtered rather than listed again,
    because "Show the answer" turns forward by the answer's place in that list — on Saved as on Find
    — and two lists of one question's pages would be two chances to disagree about where it is. */
-/* AND A KEPT BIBLE'S THREE LISTS OF BOOKS, because the cover alone is a card with no way into the book:
-   a book tapped on Saved opens on Find (`bibleGo_`), and the chapters themselves stay there. */
+/* A KEPT BIBLE IS ITS COVER ALONE NOW, with the `Open` tile under it — its three lists of books were
+   kept here once, because the cover was a card with no other way into the book. */
 /* `prev` IS THE KEPT THING IN FRONT, as on Find -- see `keptPages_`. */
 function cardPages_(x, credits, prev) {
-  return pageParts_(x, prev).filter(p => !p || p === 'fig' || p === 'nofig' || p === 'use' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p)
-                                 || (x.kind === 'bible' && /^(ot2?|nt)$/.test(p)))
+  return pageParts_(x, prev).filter(p => !p || p === 'fig' || p === 'nofig' || p === 'use' || p === 'ans' || /^(stem\d+(-\d+)?|sfig\d+|pre\d+)$/.test(p))
     .map(p => (p ? stuffPart_(x, p) : stuffCard(x, credits)));
 }
 
@@ -4510,7 +4591,6 @@ function keptPages_(items, credits) {
 function stuffPart_(x, part) {
   if (x && x.kind === 'project') return projectPart_(x, part);
   if (x && x.kind === 'textbook') return textbookPart_(x, part);
-  if (x && x.kind === 'bible') return biblePart_(x, part);
   if (x && x.kind === 'boxer') return boxerPart_(x, part);
   if (x && x.kind === 'question' && part === 'ans') return questionAnsCard_(x);
   if (x && x.kind === 'question' && part === 'use') return questionUsesCard_(x);
@@ -9605,8 +9685,9 @@ function stuffItemsRaw_() {
     /* ---------- THE BIBLE, FOR AN ADMIN AND NOBODY ELSE ---------------------------------------
        ONE ITEM ON THE `Books` SHELF, or none. The single place on this list where code on the phone
        asks who you are — asked for by name, see the note above `bibleFor_`. (The films below differ
-       by role too, but because the payload does, not because anything here asks.) Its pages are the
-       reader's (`bibleParts_`), fetched a book at a time; nothing about it is in the payload. */
+       by role too, but because the payload does, not because anything here asks.) THE COVER ONLY:
+       its 31,102 verses are a list of their own (`bibleVerses_`), read instead of this one while a
+       Bible chip is on, and fetched a book at a time; nothing about it is in the payload. */
     ...bibleItems_(),
 
     /* ---------- ONE ROW PER FILM OR SERIES ------------------------------------------------------
@@ -10398,7 +10479,11 @@ function stuffNarrow_(out, filters, words, credits) {
      if one is chosen). Anything that does not read as one is words, as before. */
   const ref = words.length ? qRef_(words.join('')) : null;
   if (ref) out = out.filter(x => qRefHit_(x, ref));
-  else if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
+  /* AN ITEM THAT STANDS FOR OTHERS IS ASKED ABOUT THEM. `holds(words)` is the Bible's cover, whose
+     31,102 verses are on no list here: its own haystack was every book's words in one string, so it
+     answered `torah gospels` that no verse does (see `bibleHolds_`). Every other item has no `holds`
+     and is asked its haystack, as before. */
+  else if (words.length) out = out.filter(x => x.holds ? x.holds(words) : words.every(w => stuffHay_(x).includes(w)));
   return out;
 }
 
@@ -10514,8 +10599,15 @@ function stuffFiltered() {
      not. */
   /* NO ROLE IN THE KEY, for the reason `itemMemoKey_` gives: nothing below filters by one. */
   const key = JSON.stringify([STUFF.q, STUFF.filters, USER ? USER.credits : -1]);
-  if (FIND_MEMO.key === key && FIND_MEMO.from === DATA) return FIND_MEMO.items;
-  const all = stuffItems();
+  /* ---------- AND WHICH LIST, BECAUSE THERE ARE TWO --------------------------------------------------
+     Find's own, or — while a Bible chip is on — the Bible's verses instead (`bibleInside_`, and the
+     head of the Bible section for why they are not one list). THE MEMO IS HELD TO THE LIST TOO: the
+     same chips over a different list are a different answer, and this is what says so when an admin
+     is made a tutor by `roles-save` without signing out — the chips are unchanged, the verses are no
+     longer theirs, and without this line they went on being handed the verses they had. */
+  const open = bibleInside_();
+  const all = open ? bibleVerses_() : stuffItems();
+  if (FIND_MEMO.key === key && FIND_MEMO.from === DATA && FIND_MEMO.all === all) return FIND_MEMO.items;
   const credits = USER ? (USER.credits || 0) : 0;
   /* ---------- A TAP ONLY EVER NARROWS, SO IT NARROWS WHAT IS ALREADY HERE --------------------------
      EVERY ANSWER IN THE FUNNEL RE-FILTERED THE WHOLE LIBRARY FROM NOTHING — five thousand items
@@ -10547,7 +10639,7 @@ function stuffFiltered() {
       items = stuffNarrow_(prev.items, added, words, credits);
     }
   }
-  if (!items) items = stuffFind(all, credits);
+  if (!items) items = open ? bibleFind_(all, words, credits) : stuffFind(all, credits);
   FIND_MEMO = { key: key, from: DATA, items: items, total: all.length, all: all, credits: credits,
                 words: words,
                 filters: STUFF.filters.map(f => Object.assign({}, f)) };
@@ -12159,6 +12251,14 @@ const TAG_OF = {
      has a colour of its own, `--tag-needs`, which is not gold and is not any other kind's; the answer,
      its chip and the card's tag all wear it. */
   needs: 'needs',
+  /* ---------- THE BIBLE'S SIX, IN KINDS THAT ALREADY HAVE COLOURS --------------------------------------
+     THE TRANSLATION IS WHO PUBLISHED THE WORDS, which is what a board is to a paper — teal. THE
+     TESTAMENT IS THE LEVEL ABOVE THE GROUP — blue. THE GROUP IS WHAT THE BOOKS ARE ABOUT, a topic —
+     orange. AND BOOK, CHAPTER AND VERSE ARE ONE CITATION, `Genesis 1:3`, which the card says in one
+     coral tag (`number`, the paper's red — it says WHICH one, as `Paper 1` does), so the three chips
+     that build it wear that tag's colour. No new token, because no new kind. */
+  bibleTranslation: 'board', bibleTestament: 'level', bibleGroup: 'topic',
+  bibleBook: 'number', bibleChapter: 'number', bibleVerse: 'number',
 };
 const tagOf_ = field => TAG_OF[field] || '';
 const tagAttr_ = field => tagOf_(field) ? ` data-tag="${tagOf_(field)}"` : '';
@@ -12366,6 +12466,27 @@ function paintStuff(keepPage) {
   if (chips) chips.innerHTML = filterChips();
   const groups = $('stuff-groups');
   if (groups) groups.innerHTML = stuffQuestion();
+  /* ---------- A NEW QUESTION IS READ FROM THE TOP OF ITS PANE ------------------------------------------
+     FOUND BY THE REVIEW, ON THE BIBLE'S GRIDS. Psalms's 150 chapters are taller than the question's pane
+     on a 320x568 phone even drawn at `PANE_ZOOM_MIN`, so the pane scrolls (`paneReach_`), and you scroll
+     it to reach 119. The tap rewrote `#stuff-groups` INSIDE that same pane and left its `scrollTop`
+     where it was — so Psalm 119's 176 verses opened scrolled down by the same amount: the search box,
+     the chips with the new CHAPTER 119 on them and the first rows of verses all above the glass, and
+     below it a grid of the same coral numbers in the same columns with `119` in the same place.
+     Nothing on the screen had changed, so the natural thing was to tap again — Verse 119, Psalm
+     119:119, a verse nobody chose. Any long grid reached by scrolling did it (Psalms from about 66 at
+     320 and 78 at 360), and a "Doesn't matter" pressed at a grid's foot.
+     SO A REPAINT THAT ANSWERED SOMETHING PUTS ITS PANE BACK AT THE TOP, where the chip that says what
+     just happened is — every one that sends you to the question (`facet-pick`, `facet-skip`,
+     `filter-drop`, `filter-clear`, `bible-go`), in this one place rather than in each. `keepPage` is
+     the repaint that keeps your place (a star, a card redrawn, the index landing), and that is left
+     exactly where it was. The search box's own repaint comes through here too and is harmless: the box
+     is at the top of this pane, so you are already there. `paneReach_` measures the new grid on its
+     deferred pass, from the top, like any other. */
+  if (groups && !keepPage) {
+    const qp = groups.closest('.pane');
+    if (qp && qp.scrollTop) qp.scrollTop = 0;
+  }
 
   const host = $('s-stuff');
   if (!host) return;
@@ -13319,6 +13440,9 @@ function stuffQuestion() {
        results went. `.find-end` sits under the chips on the same rule the chips sit on, and the
        half that is an instruction — swipe up — is in ink, because that is the half you act on. */
     if (bundlesView_()) return bundlesEnd_() + adding;
+    /* AND OVER THE BIBLE, WHICH VERSES — or why there is no question over its cover yet. */
+    const be = bibleEnd_(items);
+    if (be) return be + adding;
     if (funnelEnded_()) return paperEnd_(items) + adding;
     return `<p class="find-end">Nothing left to narrow.
       <b>Swipe up for the ${n}.</b></p>` + adding;
@@ -13397,8 +13521,17 @@ function stuffQuestion() {
   /* `.answers` IS WHAT MAKES THEM CHIPS ON A LINE rather than rows down the card — see the block of
      that name in style.css. One wrapper round the answers AND the way out, so "Doesn't matter" wraps
      onto the end of the last line like any other chip instead of sitting alone underneath. */
-  return '<div class="answers">' + values.map(v => `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)}
-        data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}>
+  /* ---------- A NUMBERED RUN IS A GRID ------------------------------------------------------------
+     `grid` (the Bible's Chapter and Verse): 150 numbers as chips are a paragraph of pills of four
+     different widths, read word by word; as a grid they line up in columns a thumb runs down, the way
+     a printed Bible's chapter index is set. Each cell is still the same chip, the same 32px drawn and
+     44px reached — `.answers.is-grid` in style.css — and named in full for a screen reader, because
+     "3" alone is not a choice anybody can hear the meaning of. `counted` stays first in the class
+     list: `check/ui.js`'s accepted tap targets read the first two classes. */
+  const grid = !!facet.grid;
+  return '<div class="answers' + (grid ? ' is-grid' : '') + '">' + values.map(v => `<div class="counted row tap" data-do="facet-pick"${tagAttr_(facet.field)}
+        data-field="${esc(facet.field)}" data-value="${esc(v.value)}"${v.bucket ? ' data-bucket="1"' : ''}${
+        grid ? ` aria-label="${esc(facet.label + ' ' + (v.show || v.value))}"` : ''}>
         <span class="k">${mark(v.show || v.value)}</span>
       </div>`).join('') + skip + '</div>';
 }

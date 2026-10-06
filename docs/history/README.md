@@ -293,3 +293,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The Corbettmaths primary folder: every PDF in, every picture drawn](289-the-corbettmaths-primary-folder-every-pdf-in-every-picture-drawn.md)
 - [The funnel draws a list whole, and the tags are smaller](290-the-funnel-draws-a-list-whole-and-the-tags-are-smaller.md)
 - [The email after a session goes two hours after the child's last lesson of the day, to the parents who accepted them, about that day](291-the-email-after-a-session-goes-two-hours-after-the-child-s-la.md)
+- [The Bible is asked like everything else: six questions, and a card a verse](292-the-bible-is-asked-like-everything-else.md)

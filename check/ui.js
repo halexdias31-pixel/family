@@ -690,19 +690,15 @@ function inspect(opts) {
   const panes = live && live.querySelectorAll ? [...live.querySelectorAll('.pane')] : [];
   for (const el of panes) {
     const zk = el.firstElementChild && parseFloat(el.firstElementChild.style.zoom);
-    /* ---------- A PAGE ALREADY CUT TO THE SCREEN IS NOT ALLOWED THE ZOOM -------------------------
-       THE ZOOM IS THE APP'S ANSWER TO A CARD NOBODY SIZED, and it is a known cost for those. A page
-       of the Bible was sized: each book is measured on the screen it is opened on and cut in pixels
-       (`bibleMeasure_` in find.js), its lists are split to fit and its grid is whole rows of the
-       pane. So one of them drawn smaller is the cut being wrong, which this listed as "known" for as
-       long as it was — 57 of Genesis's 326 pages at 320, the worst at 81% — and nobody read it.
-       ONE EXCEPTION, AND IT IS THE TEXT'S: a page holding a single verse taller than the screen
-       (Esther 8:9 at 320) cannot be cut, so it is left to the zoom like any card. */
+    /* ---------- A BIBLE PAGE IS A CARD LIKE ANY OTHER NOW --------------------------------------------
+       THIS FAILED A BIBLE PAGE THAT `paneReach_` HAD DRAWN SMALLER, because the first reader cut every
+       chapter to the screen in measured pixels and one drawn smaller was its cut being wrong. The
+       reader is gone (*"it should be like the other stuff ... each verse is a widget"*): a verse is one
+       card, and the one too tall for a small phone — Esther 8:9 — and a grid of 150 chapters are drawn
+       smaller to fit the way every card is, and counted under the known line below with the rest. */
     if (zk > 0 && zk < 1) {
       const card = el.firstElementChild;
-      const cut = card.classList.contains('bible') && card.querySelectorAll('.bb-v').length !== 1;
-      found.shrunk.push({ cls: cut ? [...card.classList].filter(c => /^(bible|bb-|is-)/.test(c)).join('.')
-                                   : String(card.className || '').split(/\s+/)[0], z: zk, cut });
+      found.shrunk.push({ cls: String(card.className || '').split(/\s+/)[0], z: zk });
     }
     const s2 = getComputedStyle(el);
     if (/(auto|scroll)/.test(s2.overflowY)) continue;
@@ -1629,12 +1625,7 @@ function inspect(opts) {
       `.${o.col} ${o.edge} edge varies by ${o.by}px down one card — "${o.hi}" against "${o.lo}"`, at));
     (r.offscreen || []).forEach(o => add('PANE OFF THE SCREEN',
       `.pane holding ${o.cls.split(/\s+/)[0] || o.tag} (${o.height}px) sits ${o.by}px outside the viewport`, at));
-    (r.shrunk || []).filter(o => o.cut).forEach(o => add('A PAGE CUT TO THE SCREEN, DRAWN SMALLER',
-      `.${o.cls} at ${Math.round(o.z * 100)}%`, at,
-      `A BIBLE PAGE IS MEASURED AND CUT TO THE PANE IT IS READ IN (\`bibleMeasure_\` and \`bibleCut_\` in `
-      + `find.js), so \`paneReach_\` should never have to shrink one. One that it did is a page whose cut `
-      + `was wrong — the reading size changing from one page to the next, and its taps under 44px.`));
-    (r.shrunk || []).filter(o => !o.cut).forEach(o => add('CARD DRAWN SMALLER TO FIT (known)',
+    (r.shrunk || []).forEach(o => add('CARD DRAWN SMALLER TO FIT (known)',
       `.${o.cls || 'card'} at ${Math.round(o.z * 100)}%`, at,
       `ASKED FOR: "I don't like scrolling. If you need to leave things more compact or smaller font. `
       + `This goes for all widgets so they all fit on screen." \`paneReach_\` in find.js shrinks a card `

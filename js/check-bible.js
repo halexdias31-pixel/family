@@ -1,29 +1,43 @@
 #!/usr/bin/env node
 /* ==================================================================================================
    @family. — check-bible.js
-   THE KING JAMES BIBLE: CUT INTO BOOKS WITHOUT LOSING A WORD, DRAWN WITHOUT ITS BRACKETS, AND SHOWN
-   TO NOBODY BUT AN ADMIN.
+   THE KING JAMES BIBLE: CUT INTO BOOKS WITHOUT LOSING A WORD, GROUPED AS THE OWNER ASKED, NAMED VERSE
+   BY VERSE, DRAWN WITHOUT ITS BRACKETS, AND SHOWN TO NOBODY BUT AN ADMIN.
 
    ASKED FOR AS "i want to add the bible to resources as a book. but only admin can see the bible."
    and "i already have a bible text in repo". `data/archive/bible.json` is the source — 31,102 verse
    rows — and `tools/bible-split.py` writes `data/bible/`, which is what the app reads. A split that
    dropped one verse, moved one, or changed one character would be a Bible that is wrong in a place
    nobody will ever look, so this reads BOTH ends and compares every verse.
+   AND THEN, 6 Oct, *"it should be like the other stuff. tags in finder. should go translation e.g.
+   kjv, then old testament or new, then group the books ... then the book titles ... then the chapters
+   ... then the verses ... each verse is a widget."* So the index now says each book's GROUP and how
+   many verses each chapter holds, and Find builds a card for every verse from it.
 
    WHAT FAILS:
      · THE SPLIT — a verse missing, added, moved or altered, against the archive in its own order; a
        chapter count or a verse count in `index.json` that its file does not have; a file in
        `data/bible/` the index does not name (a phone could be sent to it) or one it names that is
        not there; a book file not one chapter per line (the diff rule `questions.json` keeps).
+       AND THE GROUPS — each book's group against THIS FILE'S OWN copy of the ten (so an edit to the
+       splitter cannot move the answer with the question), ten of them, each a run of consecutive
+       books inside one testament and none named like a book; Hebrews a General Epistle, Lamentations
+       and Daniel Major Prophets, Acts `Church History`, Revelation `Prophecy`. AND THE VERSE COUNTS —
+       `chapterVerses` against every chapter in the file, because a card is named from them before
+       its book is on the phone.
      · THE DRAWING — every one of the 31,102 verses through the REAL `bibleVerse_`, cut out of
        find.js by name: no `[` or `]` left standing, one `<i>` per bracket pair, the pilcrow `#` gone,
        and the words left over exactly the verse's own. And a verse that tries to be markup is text.
-     · THE CUT — every chapter through the REAL `bibleCut_` at four page sizes: the pages are whole
-       verses, in order, every verse on exactly one, none empty; NO PAGE HOLDS MORE THAN A PAGE unless
-       it is one verse alone (the promise that lets a phone draw every page at full size); and the
-       evening-out never costs a page more than the fewest that fit.
+       AND THROUGH THE REAL `bibleV_`, which is what the card prints: one paragraph, the pilcrow `¶`
+       exactly where the 1611 text starts one, and after it the verse's own words, every one of them.
+     · THE VERSE LIST — the REAL `bibleVerseList_`, cut out of find.js with the six names it uses,
+       run over the real index: one item per archive row, in the archive's order, every key unique and
+       every name `Book c:v` (`Psalm`, not `Psalms`), each chapter found where `starts` says, and every
+       verse findable by searching its book, its group and its testament.
      · WHO — read out of the source: the kind wears `Resources` in Learning; the one gate is
-       `isAdmin()`; the item builder and every fetch ask it; the payload (`backend/doget.gs`) and the
+       `isAdmin()`; the cover, the verse list, the kept verses, the fetch, the two handlers and the
+       tiles all ask it; the six questions are the six, fenced, chained and coloured, and the sheet
+       has a live row for each in the owner's order; and the payload (`backend/doget.gs`) and the
        boot fetches (`index.html`, `LIB_EXTRA`) say nothing about the Bible at all.
 
    What an admin SEES, and that a student fetches nothing, is `check-flow.js`'s question — it runs
@@ -120,6 +134,71 @@ rows.forEach(r => {
 });
 if (back) fail.push(back + ' archive rows step backwards — the split keeps positions, not numbers, so an out-of-order archive would move verses');
 
+/* ---------- THE GROUPS, AGAINST THIS FILE'S OWN COPY ------------------------------------------------
+   WRITTEN OUT HERE A SECOND TIME, ON PURPOSE. The splitter's `GROUPS` is what writes the index, so a
+   check that read the splitter would agree with any edit to it — Lamentations moved, Acts renamed —
+   and pass. This is the owner's request and the four editorial decisions in `tools/bible-split.py`,
+   stated where a change to one is a red here until both are changed together, by somebody who meant
+   it. The note there says why each is what it is. */
+const GROUPS = [
+  ['Torah', 1, 5], ['History', 6, 17], ['Poetry & Wisdom', 18, 22], ['Major Prophets', 23, 27],
+  ['Minor Prophets', 28, 39], ['Gospels', 40, 43], ['Church History', 44, 44],
+  ['Pauline Epistles', 45, 57], ['General Epistles', 58, 65], ['Prophecy', 66, 66],
+];
+const groupOf = n => (GROUPS.find(g => n >= g[1] && n <= g[2]) || [''])[0];
+let groupWrong = 0;
+const firstGroupWrong = [];
+books.forEach(b => {
+  if (b.group !== groupOf(b.n)) {
+    groupWrong++;
+    if (firstGroupWrong.length < 4) firstGroupWrong.push(b.book + ' is "' + b.group + '", not "' + groupOf(b.n) + '"');
+  }
+});
+if (groupWrong) fail.push(groupWrong + ' book(s) are in the wrong group in index.json, first: ' + firstGroupWrong.join(' | '));
+/* AND THE SHAPE, ASKED OF THE INDEX ITSELF: what the funnel draws is what the index says, so the index
+   is held to it whether or not it agrees with the copy above. */
+const seenGroups = [];
+books.forEach((b, i) => {
+  const prev = books[i - 1];
+  if (!prev || prev.group !== b.group) {
+    if (seenGroups.indexOf(b.group) >= 0) fail.push('the group "' + b.group + '" comes back at ' + b.book + ' — a group is a run of consecutive books, or the funnel draws it as two');
+    seenGroups.push(b.group);
+  } else if (prev.testament !== b.testament) {
+    fail.push('the group "' + b.group + '" crosses from ' + prev.book + ' into ' + b.book + ' — a group inside two testaments is cut in half by the Testament question');
+  }
+});
+if (books.length && seenGroups.length !== 10) fail.push('index.json has ' + seenGroups.length + ' groups, not the ten: ' + seenGroups.join(', '));
+const bookNames = books.map(b => b.book);
+seenGroups.filter(g => bookNames.indexOf(g) >= 0).forEach(g => fail.push('the group "' + g + '" is named like a book — `folderOpened_` would skip its Book question and strand Chapter and Verse'));
+/* THE FOUR DECISIONS, BY NAME — the ones somebody could argue the other way, pinned so that the
+   argument happens in a commit and not in a re-run. */
+const PINNED = { Hebrews: 'General Epistles', Lamentations: 'Major Prophets', Daniel: 'Major Prophets',
+                 Acts: 'Church History', Revelation: 'Prophecy', Genesis: 'Torah' };
+Object.keys(PINNED).forEach(name => {
+  const b = books.find(o => o.book === name);
+  if (!b) fail.push(name + ' is not in index.json');
+  else if (b.group !== PINNED[name]) fail.push(name + ' is in "' + b.group + '" — it was decided to be in "' + PINNED[name] + '" (see GROUPS in tools/bible-split.py)');
+});
+
+/* ---------- AND HOW MANY VERSES EACH CHAPTER HOLDS ----------------------------------------------------
+   EVERY CARD IS NAMED FROM THESE, before its book is fetched. A count one short is a verse no chip
+   can reach; one over is a card that draws nothing. So each is the file's own chapter, exactly. */
+let cvWrong = 0;
+const firstCvWrong = [];
+books.forEach(b => {
+  const cv = b.chapterVerses, d = split[b.n];
+  let why = '';
+  if (!Array.isArray(cv)) why = 'has no chapterVerses';
+  else if (cv.length !== b.chapters) why = 'has ' + cv.length + ' chapterVerses for ' + b.chapters + ' chapters';
+  else if (cv.reduce((s, c) => s + c, 0) !== b.verses) why = 'has chapterVerses adding to ' + cv.reduce((s, c) => s + c, 0) + ', not its ' + b.verses + ' verses';
+  else if (d) {
+    const k = cv.findIndex((c, i) => !Array.isArray(d.chapters[i]) || d.chapters[i].length !== c);
+    if (k >= 0) why = 'says chapter ' + (k + 1) + ' has ' + cv[k] + ' verses; the file has ' + (d.chapters[k] || []).length;
+  }
+  if (why) { cvWrong++; if (firstCvWrong.length < 4) firstCvWrong.push(b.book + ' ' + why); }
+});
+if (cvWrong) fail.push(cvWrong + ' book(s) count their chapters\' verses wrongly in index.json, first: ' + firstCvWrong.join(' | '));
+
 /* ---------- THE DRAWING ---------------------------------------------------------------------------- */
 const findSrc = fs.readFileSync(path.join(root, 'js', 'find.js'), 'utf8');
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c =>
@@ -158,58 +237,94 @@ if (bibleVerse_) {
   if (/<img/.test(evil) || evil.indexOf('<i>and</i>') < 0) fail.push('a verse holding markup is drawn as markup: ' + evil);
 }
 
-/* ---------- THE CUT, AT FOUR PAGE SIZES ------------------------------------------------------------
-   `bibleCut_` IS PURE — a chapter's verse costs and what a page holds, nothing else — so it is cut out
-   of find.js on its own and handed every chapter of the Bible. On a phone the costs are measured
-   pixels (`bibleMeasure_`); here they are what jsdom's fallback uses, characters plus `BIBLE_VERSE`,
-   which have the same shape: a few hundred a verse, the odd one longer than a small page.
-   THE ONE PROMISE THE READER'S SIZE RESTS ON is "no page holds more than a page". Pages were once cut
-   by an estimate and then shrunk by `paneReach_` when the estimate was wrong — 57 of Genesis's 326 at
-   320x568, text at 9.7px on the worst. A page over `cap` that is not a lone verse is that fault back.
-   AND EVENING THE PAGES OUT MUST NOT ADD ONE: the fewest pages that fit is what a greedy fill gives,
-   and the balanced cut is checked against it. 450 is about a 320x568 page in characters, 850 is the
-   fallback, 1,300 about a 390x844 page, and 2,000 a tablet's. */
-const cutSrc = cutFrom(findSrc, 'bibleCut_');
-const verseM = /const BIBLE_VERSE = (\d+);/.exec(findSrc);
-if (!verseM) fail.push('BIBLE_VERSE is not a plain number in js/find.js — the cut was NOT checked');
-let pagesAt = {};
-if (cutSrc && verseM) {
-  const bibleCut_ = new Function(cutSrc + '\nreturn bibleCut_;')();
-  const greedy = (w, cap) => {
-    let n = 1, sum = 0, from = 0;
-    w.forEach((x, i) => { if (i > from && sum + x > cap) { n++; from = i; sum = 0; } sum += x; });
-    return n;
-  };
-  [450, 850, 1300, 2000].forEach(cap => {
-    let pages = 0, bad = 0, over = 0, extra = 0;
-    const firstBad = [], firstOver = [], firstExtra = [];
-    Object.keys(split).forEach(n => split[n].chapters.forEach((ch, ci) => {
-      const w = ch.map(v => String(v).length + Number(verseM[1]));
-      const cuts = bibleCut_(w, cap);
-      pages += cuts.length;
-      const where = split[n].book + ' ' + (ci + 1);
-      let at = 0, why = '';
-      cuts.forEach(([a, b]) => {
-        if (why) return;
-        if (a !== at) why = 'a page starts at verse ' + (a + 1) + ' after one ending at ' + at;
-        else if (!(b > a)) why = 'an empty page';
-        at = b;
-      });
-      if (!why && at !== ch.length) why = 'the pages end at verse ' + at + ' of ' + ch.length;
-      if (why) { bad++; if (firstBad.length < 3) firstBad.push(where + ': ' + why); }
-      cuts.forEach(([a, b]) => {
-        const sum = w.slice(a, b).reduce((s, x) => s + x, 0);
-        if (b - a > 1 && sum > cap) { over++; if (firstOver.length < 3) firstOver.push(where + ' verses ' + (a + 1) + '-' + b + ' cost ' + sum); }
-      });
-      const fewest = greedy(w, cap);
-      if (cuts.length > fewest) { extra++; if (firstExtra.length < 3) firstExtra.push(where + ': ' + cuts.length + ' pages where ' + fewest + ' fit'); }
-    }));
-    pagesAt[cap] = pages;
-    if (bad) fail.push('at a page of ' + cap + ', ' + bad + ' chapters are not cut into whole verses in order: ' + firstBad.join(' | '));
-    if (over) fail.push('at a page of ' + cap + ', ' + over + ' pages of more than one verse hold more than a page — a phone would draw them smaller: ' + firstOver.join(' | '));
-    if (extra) fail.push('at a page of ' + cap + ', ' + extra + ' chapters are cut into more pages than fit: ' + firstExtra.join(' | '));
+/* ---------- AND THE VERSE AS THE CARD DRAWS IT: `bibleV_`, OVER EVERY VERSE ----------------------------
+   `bibleVerse_` IS THE WORDS AND `bibleV_` IS WHAT A CARD ACTUALLY PRINTS — the paragraph, the pilcrow
+   where the 1611 text starts one, then the words. FOUND BY THE REVIEW: nothing read the second. A
+   precedence slip in it — the words put inside the pilcrow's ternary, `(# ? '¶ ' : words)` — draws every
+   paragraph-opening verse as a bare `¶` (2,936 of them, Genesis 1:6 and John 3:16 among them), and
+   check-bible stayed green because it read `bibleVerse_`, and check-flow stayed green because it
+   compared each card with `bibleV_` itself. So it is cut out here too, beside the function it calls, and
+   every verse goes through it: one paragraph, the pilcrow exactly when the verse starts with `#`, and
+   the words left over exactly the verse's own. */
+const vSrc = cutFrom(findSrc, 'bibleV_');
+let bibleV_ = null, drawnCards = 0, drawnParas = 0;
+if (!vSrc) fail.push('bibleV_ is not in js/find.js — what a verse card prints was NOT checked, which is not a pass');
+else if (verseSrc) bibleV_ = new Function('esc', verseSrc + '\n' + vSrc + '\nreturn bibleV_;')(esc);
+if (bibleV_) {
+  const PARA = '<span class="bb-para" aria-hidden="true">¶</span> ';
+  let bad = 0;
+  const firstBad = [];
+  Object.keys(split).forEach(n => split[n].chapters.forEach((ch, ci) => ch.forEach((v, vi) => {
+    const html = bibleV_(v);
+    const para = /^#/.test(v);
+    const inner = /^<p class="bb-v">([\s\S]*)<\/p>$/.exec(html);
+    const body = inner ? inner[1] : '';
+    const marks = (html.match(/bb-para/g) || []).length;
+    const words = unesc((para && body.indexOf(PARA) === 0 ? body.slice(PARA.length) : body).replace(/<\/?i>/g, ''));
+    const want = v.replace(/^#\s*/, '').replace(/[\[\]]/g, '');
+    const why = !inner ? 'it is not one <p class="bb-v">'
+              : para && body.indexOf(PARA) !== 0 ? 'it opens a paragraph in the 1611 text and does not start with the pilcrow'
+              : marks !== (para ? 1 : 0) ? marks + ' pilcrow(s) on a verse that ' + (para ? 'opens one paragraph' : 'opens none')
+              : words !== want ? 'the words on the card are not the verse\'s own'
+              : '';
+    drawnCards++;
+    if (para && !why) drawnParas++;
+    if (why) { bad++; if (firstBad.length < 4) firstBad.push(split[n].book + ' ' + (ci + 1) + ':' + (vi + 1) + ' — ' + why + ': ' + html.slice(0, 90)); }
+  })));
+  if (bad) fail.push(bad + ' verse cards print the wrong thing, first: ' + firstBad.join(' | '));
+}
+
+/* ---------- THE VERSE LIST, BUILT BY THE REAL FUNCTION OVER THE REAL INDEX ---------------------------
+   `bibleVerseList_` IS PURE — the index in, the items out, through six names and nothing else — so it
+   is cut out of find.js with those six and run here. Every one of the 31,102 items it makes is a card
+   somebody can reach, so each is held to the archive row it stands for: the same verse, in the same
+   place in the order, under a key that is its address and a name that is its citation. The key is
+   stored in favourites, so a key that moved would be a star that found a different verse. */
+const LIST_NAMES = ['BIBLE_NAME', 'BIBLE_WORDS', 'BIBLE_SHELF', 'bibleTestament_', 'bibleCite_', 'bibleBookWords_', 'bibleVerseList_'];
+const listSrc = LIST_NAMES.map(n => cutFrom(findSrc, n));
+let listed = 0;
+if (listSrc.some(s => !s)) {
+  fail.push('`' + LIST_NAMES.filter((n, i) => !listSrc[i]).join('`, `') + '` not found in js/find.js — the verse list was NOT checked, which is not a pass');
+} else if (index && books.length) {
+  let made = null;
+  try { made = new Function(listSrc.join('\n') + '\nreturn bibleVerseList_;')()(index); }
+  catch (e) { fail.push('bibleVerseList_ threw on the real index: ' + e.message); }
+  const list = made && Array.isArray(made.list) ? made.list : [];
+  listed = list.length;
+  if (made && list.length !== rows.length) fail.push('the verse list holds ' + list.length + ' items and the archive ' + rows.length + ' verses — every verse is a card, once');
+  const keys = new Set(list.map(x => x && x.key));
+  if (made && keys.size !== list.length) fail.push((list.length - keys.size) + ' verse keys are not unique — two cards would share one star');
+  /* THE CITATION, WRITTEN HERE RATHER THAN BY `bibleCite_`: a psalm is `Psalm 23`, every other book is
+     its own name. */
+  const cite = (book, c, v) => (book === 'Psalms' ? 'Psalm' : book) + ' ' + c + ':' + v;
+  const tr = String(index.translation || '').toLowerCase();
+  let off = 0;
+  const firstOff = [];
+  rows.forEach((r, i) => {
+    const x = list[i];
+    const n = Number(r.book_no), c = Number(r.chapter), v = Number(r.verse);
+    const b = books[n - 1] || {};
+    const why = !x ? 'no item'
+      : x.key !== 'bible:' + tr + ':' + n + ':' + c + ':' + v ? 'its key is ' + x.key
+      : x.name !== cite(r.book, c, v) ? 'it is named "' + x.name + '"'
+      : x.kind !== 'bible' || !x.bb || x.bb.n !== n || x.ch !== String(c) || x.v !== String(v) ? 'its book, chapter or verse fields are wrong'
+      : x.sub !== r.book ? 'its sub is "' + x.sub + '"'
+      : ['testament', 'group', 'book'].some(k => String(x.bb[k] || '') === '') ? 'its book record is missing a field'
+      : ['bible', 'kjv', b.book, b.group, x.bb.testament].some(w => String(x.text || '').toLowerCase().indexOf(String(w).toLowerCase()) < 0)
+        ? 'a search for its book, group or testament would not find it'
+      : '';
+    if (why) { off++; if (firstOff.length < 4) firstOff.push(r.ref + ': ' + why); }
   });
-} else if (!cutSrc) fail.push('bibleCut_ is not in js/find.js — the pages were NOT checked, which is not a pass');
+  if (off) fail.push(off + ' of ' + rows.length + ' verses are not where, or what, the archive says in the verse list, first: ' + firstOff.join(' | '));
+  /* `starts` IS HOW A STAR FINDS ITS VERSE WITHOUT A SEARCH: each chapter's first verse, by position. */
+  let lost = 0;
+  books.forEach(b => (b.chapterVerses || []).forEach((_, ci) => {
+    const at = made && made.starts && made.starts[b.n - 1] ? made.starts[b.n - 1][ci] : undefined;
+    const x = at == null ? null : list[at];
+    if (!x || x.key !== 'bible:' + tr + ':' + b.n + ':' + (ci + 1) + ':1') lost++;
+  }));
+  if (lost) fail.push(lost + ' chapter(s) are not where `starts` says they begin — `bibleByKey_` would hand back the wrong verse');
+}
 
 /* ---------- WHO IS SHOWN IT, READ OUT OF THE FILES THAT DECIDE -------------------------------------- */
 const kindM = /\n\s*bible:\s*\{\s*group:\s*'([^']*)',\s*label:\s*'([^']*)'/.exec(findSrc);
@@ -236,6 +351,82 @@ const viaGet = (getSrc.match(/fetch\([^)]*data\/bible/g) || []).length;
 if (fetches !== viaGet || !viaGet) fail.push(fetches + ' fetches of data/bible in find.js, ' + viaGet + ' of them inside bibleGet_ — every one has to be behind the gate');
 const stuffSrc = cutFrom(findSrc, 'stuffItemsRaw_') || '';
 if (!/\.\.\.bibleItems_\(\)/.test(stuffSrc)) fail.push('`stuffItemsRaw_` does not list `...bibleItems_()` — the Bible never reaches Find');
+/* ---------- AND THE REST OF THE GATE: EVERY DOOR INTO THE VERSES ASKS IT ------------------------------
+   THE VERSES ARE A SECOND LIST, so the cover's gate is not enough on its own: the list, the kept verses
+   on Saved, the test for whether the Bible is open, both handlers and the tiles each ask `bibleFor_()`
+   themselves. A handler that did not would set an admin's chips on a stranger's Find from a forged
+   button. */
+const opens = (name, why) => {
+  const s = cutFrom(findSrc, name) || '';
+  if (!new RegExp('^function ' + name + '\\([^)]*\\) \\{\\s*if \\(!bibleFor_\\(\\)\\) return \\[\\];').test(s)) fail.push('`' + name + '` does not open by returning nothing unless `bibleFor_()` — ' + why);
+};
+opens('bibleVerses_', 'the 31,102 verses would be built for anybody');
+opens('bibleKept_', 'a starred verse would be drawn on anybody\'s Saved');
+if (!/bibleFor_\(\)/.test(cutFrom(findSrc, 'bibleInside_') || '')) fail.push('`bibleInside_` does not ask `bibleFor_()` — Find would read the verses for anybody holding a Bible chip');
+if (!/bibleFor_\(\)/.test(cutFrom(findSrc, 'bibleTiles_') || '')) fail.push('`bibleTiles_` does not ask `bibleFor_()` — the Bible\'s tiles would be drawn for anybody');
+/* A HANDLER IS `on('name', el => { … })`, which `cutFrom` cannot name, so its block is read from there. */
+const handler = act => {
+  const i = findSrc.indexOf("on('" + act + "'");
+  if (i < 0) return '';
+  let j = findSrc.indexOf('{', i), depth = 0;
+  for (let k = j; k < findSrc.length; k++) {
+    if (findSrc[k] === '{') depth++;
+    if (findSrc[k] === '}' && --depth === 0) return findSrc.slice(i, k + 1);
+  }
+  return '';
+};
+['bible-go', 'bible-retry'].forEach(act => {
+  const h = handler(act);
+  if (!h) fail.push('there is no `on(\'' + act + '\')` in js/find.js — its tile would do nothing');
+  else if (!/^on\('[^']+', el => \{\s*if \(!bibleFor_\(\)/.test(h)) fail.push('`on(\'' + act + '\')` does not open by asking `bibleFor_()` — a forged button would work for anybody');
+});
+/* THE OLD READER'S DOORS ARE GONE, and a handler left behind for a button nothing draws is a way in
+   nothing checks. */
+['bible-book', 'bible-ch', 'bible-to'].forEach(act => {
+  if (findSrc.indexOf("on('" + act + "'") >= 0) fail.push('`on(\'' + act + '\')` is still in js/find.js — the reader it served is gone');
+});
+
+/* ---------- THE SIX QUESTIONS, AS DECLARED ----------------------------------------------------------
+   IN `FACETS`, IN THE OWNER'S ORDER, FENCED AND FOLDERS, and the two numbered runs the only grids — a
+   grid is exempt from the answer cap, so a grid anywhere else would be a list of hundreds drawn whole. */
+const SIX = ['bibleTranslation', 'bibleTestament', 'bibleGroup', 'bibleBook', 'bibleChapter', 'bibleVerse'];
+const facetsSrc = (() => { const i = findSrc.indexOf('const FACETS = ['); const j = findSrc.indexOf('\n];', i); return i < 0 || j < 0 ? '' : findSrc.slice(i, j); })();
+const declared = [...facetsSrc.matchAll(/\{ field: '(bible\w+)',([^\n]*)/g)].map(m => ({ field: m[1], line: m[2] }));
+if (declared.map(d => d.field).join(',') !== SIX.join(',')) {
+  fail.push('FACETS declares ' + (declared.map(d => d.field).join(', ') || 'no Bible questions') + ' — not the six, in the owner\'s order: ' + SIX.join(', '));
+}
+declared.forEach(d => {
+  if (!/only: 'bible'/.test(d.line)) fail.push('`' + d.field + '` is not `only: \'bible\'` — it would be asked of lists that are not the Bible, and they of it');
+  if (!/folder: true/.test(d.line)) fail.push('`' + d.field + '` is not a folder — a rung with one answer (KJV, Acts, Jude 1) would be skipped');
+  const grid = /grid: true/.test(d.line), want = d.field === 'bibleChapter' || d.field === 'bibleVerse';
+  if (grid !== want) fail.push('`' + d.field + '` is ' + (grid ? '' : 'not ') + 'a grid — only Chapter and Verse are numbered runs');
+});
+/* THE CHAIN, WHICH IS WHAT ACTUALLY HOLDS THE ORDER (see `FACET_NEEDS_FIRST`). */
+const needsSrc = cutFrom(findSrc, 'FACET_NEEDS_FIRST') || '';
+SIX.slice(1).forEach((f, i) => {
+  if (!new RegExp('\\b' + f + ":\\s*'" + SIX[i] + "'").test(needsSrc)) fail.push('FACET_NEEDS_FIRST does not hold `' + f + '` behind `' + SIX[i] + '` — the rungs can be asked out of order');
+});
+/* AND A COLOUR EACH, so a chip and the card's tag say the same thing the same way. */
+const tagSrc = (() => { const i = findSrc.indexOf('const TAG_OF = {'); const j = findSrc.indexOf('\n};', i); return i < 0 || j < 0 ? '' : findSrc.slice(i, j); })();
+SIX.forEach(f => { if (!new RegExp('\\b' + f + ":\\s*'\\w+'").test(tagSrc)) fail.push('TAG_OF does not name `' + f + '` — its chip would be the plain outline beside the card\'s coloured tag'); });
+/* AND THE SHEET: a live row for each, in order, between the shelf they are asked after and the
+   textbook's question they come before. A row switched off strands every rung below it, because the
+   chain holds them behind it. */
+let sheet = [];
+try { sheet = JSON.parse(fs.readFileSync(path.join(root, 'data', 'settings', 'facets.json'), 'utf8')); }
+catch (e) { fail.push('data/settings/facets.json does not parse — the sheet\'s rows were NOT checked'); }
+const row = f => sheet.find(r => r && r.field === f);
+const at = f => Number((row(f) || {}).sort_order);
+SIX.forEach(f => {
+  const r = row(f);
+  if (!r) fail.push('data/settings/facets.json has no row for `' + f + '` — it would be placed by its position in the code');
+  else if (r.active === false) fail.push('data/settings/facets.json switches `' + f + '` off — every Bible question below it would never be asked');
+});
+const ats = SIX.map(at);
+if (sheet.length && !(ats.every((v, i) => isFinite(v) && (i === 0 || v > ats[i - 1])) && ats[0] > at('shelf') && ats[5] < at('book'))) {
+  fail.push('the Bible\'s rows in data/settings/facets.json are not in order between `shelf` (' + at('shelf') + ') and `book` (' + at('book') + '): ' + SIX.map((f, i) => f + ' ' + ats[i]).join(', '));
+}
+
 /* NOTHING ABOUT IT IN THE PAYLOAD OR THE BOOT. The text is public domain and this repository is public,
    so it is not that the server must hide it — it is that every visitor's phone would pay for it. */
 /* CODE, NOT PROSE: `doget.gs` already records that the old `Library` sheet's `bible` tab is 31,102 rows
@@ -254,7 +445,10 @@ if (libM && /bible/i.test(libM[1])) fail.push('LIB_EXTRA names the Bible — eve
 console.log('THE BIBLE (KJV)  —  ' + books.length + ' books, ' + chapters + ' chapters, ' + verses + ' verses in data/bible/, '
   + seen + ' rows in the archive');
 console.log('  [bracketed] words: ' + pairs + ', drawn as ' + italics + ' italic runs;  pilcrows: ' + paras);
-console.log('  pages at page sizes ' + Object.keys(pagesAt).map(b => b + ': ' + pagesAt[b]).join(', '));
+console.log('  ' + drawnCards + ' verses printed as a card by bibleV_, ' + drawnParas + ' of them under the pilcrow');
+console.log('  ' + seenGroups.length + ' groups: ' + seenGroups.map(g => g + ' ' + books.filter(b => b.group === g).length).join(', '));
+console.log('  ' + listed + ' verse cards named from index.json, ' + books.reduce((s, b) => s + ((b.chapterVerses || []).length), 0)
+  + ' chapters counted');
 const kb = onDisk.reduce((s, f) => s + fs.statSync(path.join(DIR, f)).size, 0);
 console.log('  ' + onDisk.length + ' book files, ' + Math.round(kb / 1024) + ' KB, the largest '
   + Math.round(Math.max(0, ...onDisk.map(f => fs.statSync(path.join(DIR, f)).size)) / 1024) + ' KB');
@@ -263,9 +457,10 @@ note.forEach(n => console.log('note: ' + n));
 if (fail.length) {
   console.log('\nBROKEN  (' + fail.length + ')');
   fail.forEach(f => console.log('  ' + f));
-  console.log('\nFAILED — ' + fail.length + ' thing(s) wrong with the Bible, its split, or who is shown it.');
+  console.log('\nFAILED — ' + fail.length + ' thing(s) wrong with the Bible, its split, its questions, or who is shown it.');
   process.exit(1);
 }
-console.log('\nOK — every verse of the archive is in the split, in order and unchanged; every [word] is drawn in\n'
-  + '     italics; every chapter cuts into whole verses, no page over a page and none more than fit; and\n'
-  + '     only isAdmin() is shown it or fetches it.');
+console.log('\nOK — every verse of the archive is in the split, in order and unchanged; every book is in the group\n'
+  + '     decided for it and every chapter counted; every [word] is drawn in italics and every verse card\n'
+  + '     prints its own words under its own pilcrow; every verse is a card named for its own place; and\n'
+  + '     only isAdmin() is shown it, opens it or fetches it.');

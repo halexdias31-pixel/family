@@ -180,7 +180,12 @@ on('spot', el => {
 function collItems_(has) {
   const all = typeof stuffItemsAll_ === 'function' ? stuffItemsAll_()
             : (typeof stuffItems === 'function' ? stuffItems() : []);
-  return all.filter(x => x.key && has(x.key));
+  const kept = all.filter(x => x.key && has(x.key));
+  /* AND THE BIBLE'S VERSES, WHICH ARE ON NO LIST HERE. A verse is not one of Find's items (see the head
+     of the Bible section in find.js), so a starred one has to be looked up by its key — which is its
+     address — or every star on a verse would be a card that vanished from the one column whose job is
+     to keep it. Nothing for anybody but an admin, and nothing built unless a kept key is a verse. */
+  return typeof bibleKept_ === 'function' ? kept.concat(bibleKept_(has)) : kept;
 }
 
 /* Empty is a SENTENCE, not a blank screen. A column with nothing in it and nothing to say reads as

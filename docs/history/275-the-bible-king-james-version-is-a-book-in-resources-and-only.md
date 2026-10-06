@@ -1,5 +1,7 @@
 ## The Bible (King James Version) is a book in Resources, and only an admin is shown it
 
+**Superseded by [292](292-the-bible-is-asked-like-everything-else.md)** — the reader below (the cover, the three lists of books, the chapter grids and the measured pages) was replaced on 6 Oct by six funnel questions and a card a verse. The gate, the split and the reasons for both still stand.
+
 **Asked for as "i want to add the bible to resources as a book. but only admin can see the bible."**
 — and, when a fresh copy was about to be fetched, **"i already have a bible text in repo"**: it was
 `data/archive/bible.json`, the old `Library` sheet's `bible` tab, 31,102 verse rows, 10 MB.

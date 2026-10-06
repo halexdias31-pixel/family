@@ -705,6 +705,9 @@ function cardActions_(x) {
   if (x.kind === 'fight') return fightTiles_(x);
   if (x.kind === 'boxer') return boxerTiles_(x);
   if (x.kind === 'film') return filmTiles_(x);
+  /* THE BIBLE'S COVER OPENS IT; A VERSE GOES TO ITS CHAPTER; A BOOK THAT DID NOT COME TRIES AGAIN —
+     `bibleTiles_` in find.js, which says nothing at all to anybody but an admin. */
+  if (x.kind === 'bible') return typeof bibleTiles_ === 'function' ? bibleTiles_(x) : '';
   /* `me` HAS ONE ACTION, SIGN OUT, AND IT IS IN THE SAME ROW AS THE STAR. It was a row of its own
      under the star — *"why is sign out tile under the favourite tile?"* — which made one card carry
      two rows of marks for no reason anybody could see. The old argument was that its own row kept it
