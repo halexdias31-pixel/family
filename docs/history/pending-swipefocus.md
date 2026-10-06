@@ -48,6 +48,19 @@ worst Messages 198 px off at 320). Its first honest run found the one thing cent
 REDRAWN with a card of a new height (`paint('saved')` after a star, `dmPoll_`'s repaint every twenty
 seconds) had nothing re-placing it, which a top line never needed. `paint` books one placement now.
 
+**And centred is where a card arrives, not where it is put back.** The first version re-centred on
+every change of the card in front's height — the `ResizeObserver` behind `holdColumn_` sees it — and
+a lab run after the suite went red found what that does to the owner's *"nice more sleek, fresh
+stable"*: pressing the funnel's answer shortens its card, and **the search box moved 38 px down the
+screen at 390×844 and 31 px at 320×568** (base: 0). The state in `check/states.js` that guards it
+measures against the pane, so a pane that moved could not fail it. Showing an answer grew its card
+56 px and left the question 28 px from where the finger pressed it. So a press, a field taking focus
+or a change on the card in front holds its top (`HOLD_AT`): it grows and shrinks downward, a card
+that would grow past the bottom of the glass is lifted just enough, and arriving anywhere else lets
+go — the next card is centred, and the funnel is centred again a page away and back. Keyed on the
+page's number, because the funnel repaints the whole column on a press. **Now 0.0 px at both widths,
+and back within 0.2 px of the middle** (check).
+
 ### Out of focus, at the cost the lab allowed
 
 `.soft` on the pages that can be on the glass — up to two above and below, and the card peeking in
@@ -84,8 +97,9 @@ the other axis still sliding (asked of the mechanism, in one task, because frame
 real sideways-then-up chain; every column's card centred within 1 px; the blur at rest, mid-drag and
 under reduced motion; a focused field let go; at most three widget starts in a task on arrival; a page
 turn and a column change under 1,000 restyled elements; `camStop_` not called between two non-feed
-columns and called once leaving the feed. `--only=` and `--width=` narrow it for a mutation, and say
-so.
+columns and called once leaving the feed; a real tap on the funnel's answer moving the search box
+0 px, and the funnel centred again a page away and back. `--only=` and `--width=` narrow it for a
+mutation, and say so.
 
 **Every fix proved by mutation** (`--only=… --width=390`, each fails naming its rule; real files
 green again). Two mutants survived the first round and the rules were rewritten until they died: the
@@ -95,7 +109,27 @@ all in one task → WIDGETS A FEW AT A TIME; `backing` off → ONE CELL; the old
 the whole-travel lock → UNDER THE FINGER; the nowhere rule off → ONE CELL; `PRESS_SLIDING` off → NO
 PRESS WHILE SLIDING; a drag zeroing every transition → OTHER AXIS KEEPS SLIDING; the old top line →
 CENTRED; no `.soft` → OUT OF FOCUS; no easing → OUT OF FOCUS; no focus release → FIELD LET GO; the
-reduced-motion media query gone → OUT OF FOCUS.
+reduced-motion media query gone → OUT OF FOCUS; no hold on a press → HELD WHILE USED (38.0 px and
+30.5 px); a hold never let go → HELD WHILE USED (the funnel 37.8 px off the middle a page away and
+back).
+
+`check/press.js`'s backdrop tap asked its question where the favourite colour is — and centred, that
+is under the sheet's BODY, which rightly stays open when tapped. It now taps the first select on the
+page in front that the backdrop covers, and a page with none fails to reach. Proved by taking
+`selAt_`'s "what is in front" test out: the list behind opens (age min); the real files are green on
+Settings (24 actions, 80 swipes, 6 dropdown taps).
+
+**What the suite says under this machine's load, and why it is not this branch.** The load average
+was 20–56 throughout (other worktrees' suites). These failed on the unchanged base commit as well, in
+runs beside the ones on this branch: Find states that click 150 ms after entering and are measured
+340–500 ms later not arriving (base: "the answer, turned to from its question", "a maths answer, the
+keypad up"; this branch, a different two or three each run — every one of them arrives on this branch
+in isolation, 6 of 6, at 340 ms); the chained flick on Games (base lost the 20 ms one, this branch the
+400 ms one in one run and none in the next); and the camera journey in `check-flow`. `PANE OFF THE
+SCREEN` on "the answer, turned to from its question" is the same clock: the page turn its click starts
+is still pending its first frame when `check/ui.js` measures — sampled, it is centred and on the
+screen from 500 ms on. Flabby Pird's touch-down rule waits a fixed 900 ms after arriving at Games;
+under this load the bird's `start` ran at 979 ms on one run.
 
 `check-flow`: the Games journeys read widgets thirteen pages down straight after arriving, which the
 stagger delays by design — they wait for `quiet()` now (after-slide jobs and the widget queue run
@@ -110,4 +144,6 @@ pages and columns would shrink every layout walk (the document holds every page 
 needs care because `columnShift_` reads the `offsetTop` of pages above. #9 above.
 
 **For the owner to confirm**: centring over the top line (history 131's trade, reversed at your
-word); a blur of 2 px; a still release now needing a third of a card (56–120 px) rather than 56 px.
+word); a card you are using growing downward rather than staying centred (so an answer shown sits a
+little below the middle until you move on); a blur of 2 px; a still release now needing a third of a
+card (56–120 px) rather than 56 px.

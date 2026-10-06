@@ -997,13 +997,58 @@ const CELL_GAP   = 16;        // pixels between one card and the next, going DOW
    where the peek gives way, and the card filling the screen says "this is the one" without it.
 
    A CARD TALLER THAN THE SCREEN starts at the top rather than off it — `.pane`'s cap makes that
-   impossible today, and a card whose heading is above the glass is the worst version of wrong. */
+   impossible today, and a card whose heading is above the glass is the worst version of wrong.
+
+   AND A CARD YOU ARE USING IS NOT CENTRED AGAIN — see `HOLD_AT`, just below. */
 function columnShift_(host, at) {
   const pages = host.querySelectorAll(':scope > .page');
   const cur = pages[Math.max(0, Math.min(pages.length - 1, at))];
   if (!cur) return 0;
   const boxH = host.clientHeight || innerHeight;
+  const h = HOLD_AT;
+  if (h && host.id === 's-' + h.id && (PAGE[h.id] || 0) === h.p && at === domIndex_(h.id, h.p)
+      && h.vp === innerWidth + 'x' + innerHeight) {
+    const room = boxH - cur.offsetHeight;
+    return (room <= 0 ? 0 : Math.max(0, Math.min(room, h.top))) - cur.offsetTop;
+  }
   return Math.max(0, (boxH - cur.offsetHeight) / 2) - cur.offsetTop;
+}
+
+/* ---------- ONCE YOU ARE USING A CARD, IT STAYS WHERE IT IS ---------------------------------------
+   CENTRED IS WHERE A CARD ARRIVES, NOT WHERE IT IS PUT BACK EVERY TIME ITS HEIGHT CHANGES. The first
+   version re-centred on every change — the `ResizeObserver` behind `holdColumn_` sees the card in
+   front as well as the ones above it — and measured on 5 October, pressing the funnel's answer
+   shortened the card by its list and moved the search box 38px down the screen at 390x844 (31px at
+   320x568). The search box and the chips staying put when an answer is pressed is a thing the owner
+   asked for by name — *"nice more sleek, fresh stable"*, the state in check/states.js — and that
+   state measures against the pane, so a pane that moved could not fail it. Showing an answer grew
+   its card by 56px and moved the question 28px up from under the finger that pressed it.
+
+   SO A PRESS, A FIELD TAKING FOCUS OR A CHANGE ON THE CARD IN FRONT HOLDS ITS TOP WHERE IT IS, and
+   `columnShift_` keeps that line for as long as you stay on that card: it grows and shrinks
+   DOWNWARD, as a page of paper does, and nothing above your finger moves. Only a card that grows
+   past the bottom of the glass is lifted, by exactly as much as it needs. Arriving anywhere else
+   lets go (`placeGrid`), so the next card is centred, and a card that changes before anybody has
+   touched it — a widget drawing itself as it starts — is still re-centred, because nobody is
+   reading it yet.
+
+   KEYED ON THE PAGE'S NUMBER, NOT ITS ELEMENT: the funnel repaints the whole column on a press, and
+   the page you are on is the same page in new markup. And on the size of the window, so turning
+   the phone round centres again. */
+let HOLD_AT = null;      // { id, p, top, vp } — the card being used, and where its top is held
+
+function holdHere_(t) {
+  try {
+    const pg = t && t.closest && t.closest('#screen .page.on');
+    const host = pg && pg.parentElement;
+    if (!host || host.id !== 's-' + AT) return;
+    /* ONCE PER CARD. The first touch says where it is; asking again on every keystroke would force a
+       layout per letter typed, for the answer the first one already gave. */
+    if (HOLD_AT && HOLD_AT.id === AT && HOLD_AT.p === (PAGE[AT] || 0)) return;
+    const at = colPlaced_(host);
+    if (!at) return;
+    HOLD_AT = { id: AT, p: PAGE[AT] || 0, top: at[1] + pg.offsetTop, vp: innerWidth + 'x' + innerHeight };
+  } catch (e) { HOLD_AT = null; }
 }
 
 /* ---------- A CARD ABOVE CHANGED HEIGHT, SO THE COLUMN IS HELD ON THE PAGE YOU ARE READING --------
@@ -1448,6 +1493,9 @@ function placeGrid(instant, drag) {
        transition on the column; a drag now zeroes only its own axis (`colTransition_` below). */
     host.classList.toggle('dragging', !!drag);
   });
+  /* A CARD HELD BECAUSE YOU WERE USING IT IS LET GO THE MOMENT ANOTHER ONE IS IN FRONT — see
+     `HOLD_AT`. Before the shifts are read, so the card arrived at is centred. */
+  if (HOLD_AT && (HOLD_AT.id !== AT || (PAGE[AT] || 0) !== HOLD_AT.p)) HOLD_AT = null;
   /* Slid so the page being read sits in the middle — see `columnShift_`. A vertical drag only ever
      moves the screen in front; the others have no finger on them. READ ONLY — see the three passes
      above. */
@@ -2932,6 +2980,11 @@ addEventListener('pointerdown', e => {
   pressMark_(e.target);
 }, { passive: true, capture: true });
 addEventListener('pointercancel', pressClear_, { passive: true });
+/* A FIELD ON THE CARD IN FRONT TAKING FOCUS, OR A SELECT OR A BOX CHANGED ON IT, HOLDS IT TOO — see
+   `HOLD_AT`. A box that grows as you type grows downward, and the line you are typing on stays put.
+   `change` because a select's answer arrives through the app's own list, which is not on the card. */
+document.addEventListener('focusin', e => holdHere_(e.target), true);
+document.addEventListener('change', e => holdHere_(e.target), true);
 
 document.addEventListener('click', e => {
   /* FIRST, because a swipe that ends on a tab must not change tab either. */
@@ -2961,6 +3014,9 @@ document.addEventListener('click', e => {
       handledByChange: !!(d && (d.tagName === 'SELECT' || d.type === 'checkbox')),
     });
   }
+  /* A PRESS ON THE CARD IN FRONT HOLDS IT WHERE IT IS, before the handler below changes it — see
+     `HOLD_AT`. After the two swallows above, because a swipe is not somebody using the card. */
+  holdHere_(e.target);
   const tab = e.target.closest('.tab');
   if (tab) { go(tab.dataset.tab); return; }
 

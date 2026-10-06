@@ -20,6 +20,8 @@
        stopped dead and the card jumped 81–614px in one frame;
      · a tap on a card still sliding — it pressed whatever happened to be under the finger;
      · a text field focused and then swiped away — the keypad stayed up over a card that had gone;
+     · and, found while centring them, an answer pressed on the funnel moving the search box down the
+       screen, because the card was put back in the middle every time its height changed;
      · and the release itself: every page turn restyled all ~5,000 elements of the document.
 
    AND THE TWO THINGS THE OWNER ASKED TO SEE: the card in front sits in the middle of the screen,
@@ -40,7 +42,7 @@
      node check/swipe.js --verbose  every gesture, not only the failures
      node check/swipe.js --only=cell,focus --width=390
                                     some of it: cell folded axis tile slide other centre focus
-                                    field widgets cost reduced — for proving one rule by mutation
+                                    field hold widgets cost reduced — for proving one rule by mutation
                                     without waiting six minutes for all of them. A run narrowed
                                     this way says so, and is never what the roster runs.
    SWIPE_PORT pins the port; unset, the OS picks a free one, so parallel runs cannot collide.
@@ -172,7 +174,12 @@ function RECORDER() {
       const host = document.getElementById('s-' + (col || AT));
       const moving = host && host.getAnimations().some(a => a.playState === 'running');
       const panes = [...document.querySelectorAll('#screen .pane')].some(g => g.style.willChange === 'filter');
-      const booked = !!PLACE_FRAME || !!AFTER_SLIDE || AFTER_SLIDE_JOBS.size > 0
+      /* AND NO PICTURE ON THE CARD IN FRONT STILL ON ITS WAY. A post reserves 4:5 while its photograph
+         loads and takes the photograph's own shape when it lands; the column re-centres on that in the
+         `ResizeObserver`'s delivery, which is the frame AFTER the layout a measurement forces. One full
+         run caught the feed's first card 40.7px low in exactly that frame. */
+      const pics = host && [...host.querySelectorAll(':scope > .page.on img')].some(i => !i.complete);
+      const booked = !!PLACE_FRAME || !!AFTER_SLIDE || AFTER_SLIDE_JOBS.size > 0 || !!pics
         || (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length > 0);
       if ((!moving && !panes && !booked && performance.now() > SLIDE_UNTIL) || performance.now() - t0 > 6000) break;
       await wait(60);
@@ -649,6 +656,64 @@ async function gesture(env, o) {
           if (r.moved === ok) fail('REACH', `${at} focused field`, 'the swipe off the card with the field did not turn the page');
           else if (r.kept) fail('FIELD LET GO', `${at} tools/${ok}`, `a ${r.what} on a card that has left the screen still has the focus — the keypad stays up over the wrong card`);
         }
+      }
+    }
+
+    /* ---------- 8b. A CARD YOU ARE USING STAYS WHERE IT IS, AND THE NEXT ONE IS CENTRED ----------
+       Centring is where a card ARRIVES (`HOLD_AT` in shell.js). The first version re-centred on every
+       change of height, so a real tap on the funnel's answer — which shortens the card — moved the
+       search box 38px down the screen; the owner's "stable" state measures against the pane and could
+       not see it. So: a real tap on the first answer, and the search box must not move ON THE
+       SCREEN; then a page away and back, and the funnel must be centred again — a hold that is never
+       let go is the same fault the other way up. */
+    if (want('hold')) {
+      const a = await page.evaluate(async () => {
+        await window.__sw.place('stuff', 0);
+        STUFF.q = ''; STUFF.filters = []; paintStuff(); goPage('stuff', 0, true);
+        await window.__sw.still('stuff');
+        const q = document.getElementById('stuff-q');
+        const pg = document.querySelector('#s-stuff > .page.on');
+        const row = pg && [...pg.querySelectorAll('#stuff-groups .answers > .row[data-do="facet-pick"]')].find(r => {
+          const b = r.getBoundingClientRect();
+          const hit = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+          return b.height > 10 && hit && r.contains(hit);
+        });
+        if (!q || !pg || !row) return null;
+        const b = row.getBoundingClientRect();
+        return { q: q.getBoundingClientRect().top, h: pg.offsetHeight, n: AXES.y.count('stuff'),
+                 x: Math.round(b.left + b.width / 2), y: Math.round(b.top + b.height / 2) };
+      });
+      if (!a) fail('REACH', `${at} held card`, 'the funnel has no search box or no answer a finger can reach — nothing was asked');
+      else {
+        const T0 = Date.now();
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', timestamp: T0 / 1000, touchPoints: [{ x: a.x, y: a.y, id: 1, radiusX: 8, radiusY: 8, force: 1 }] });
+        await sleep(60);
+        await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', timestamp: (T0 + 60) / 1000, touchPoints: [] });
+        const b = await page.evaluate(async () => {
+          await window.__sw.still('stuff');
+          const pg = document.querySelector('#s-stuff > .page.on');
+          return { q: document.getElementById('stuff-q').getBoundingClientRect().top, h: pg.offsetHeight,
+                   picked: STUFF.filters.length, n: AXES.y.count('stuff') };
+        });
+        reached++;
+        note(`${at} held card: answer picked ${b.picked}; card ${a.h} → ${b.h}px; search box ${a.q.toFixed(1)} → ${b.q.toFixed(1)}`);
+        if (!b.picked || b.h === a.h) fail('REACH', `${at} held card`, `the tap ${b.picked ? 'did not change the card\'s height' : 'picked nothing'} — nothing was asked`);
+        else if (Math.abs(b.q - a.q) > 0.5) fail('HELD WHILE USED', `${at} stuff/0`, `pressing an answer moved the search box ${(b.q - a.q).toFixed(1)}px on the screen — the card was put back in the middle under the finger`);
+        /* AND LET GO: a page away and back, by the app's own turn, and the funnel is centred again. */
+        const c = await page.evaluate(async () => {
+          if (AXES.y.count('stuff') < 2) return null;
+          goPage('stuff', 1); await window.__sw.still('stuff');
+          goPage('stuff', 0); await window.__sw.still('stuff');
+          const pg = document.querySelector('#s-stuff > .page.on'), sr = document.getElementById('screen').getBoundingClientRect();
+          const r = pg.getBoundingClientRect();
+          return { dy: (r.top + r.height / 2) - (sr.top + sr.height / 2), h: r.height, H: sr.height };
+        });
+        if (!c) fail('REACH', `${at} held card`, 'the funnel had no second page to leave for — the letting go was not asked');
+        else {
+          note(`${at} held card let go: back on the funnel ${c.dy.toFixed(1)}px off the middle`);
+          if (c.h < c.H && Math.abs(c.dy) > 1) fail('HELD WHILE USED', `${at} stuff/0`, `a page away and back, the funnel is ${c.dy.toFixed(1)}px off the middle — the hold was never let go`);
+        }
+        await page.evaluate(() => { STUFF.filters = []; paintStuff(); goPage('stuff', 0, true); });
       }
     }
 
