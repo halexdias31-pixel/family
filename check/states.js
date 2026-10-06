@@ -142,8 +142,8 @@ const STATES = {
        THE EXPECT ASKS THE THINGS A SCREENSHOT SHOWED, because none is a measurement any rule in
        check/ui.js makes: no answer carries a month and a year together, no answer is a season, and at
        least two answers sit on one line — chips stacked one per row measure perfectly and are the
-       shape that was reported. Topic area and Topic are skipped, as a person who wants a sitting
-       would. */
+       shape that was reported. (`Topic area` and `Topic` were skipped here with Doesn't matter until
+       a past paper stopped answering either — see `topicArea WAS HERE` in find.js.) */
     { name: 'the year folder',
       enter: () => {
         STUFF.q = '';
@@ -152,8 +152,6 @@ const STATES = {
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
-                         { field: 'topicArea', any: true },
-                         { field: 'topic', any: true },
                          { field: 'tier', value: 'Higher' }];
         paintStuff();
         goPage('stuff', 0, true);
@@ -175,8 +173,6 @@ const STATES = {
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
-                         { field: 'topicArea', any: true },
-                         { field: 'topic', any: true },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', value: '2017' }];
         paintStuff();
@@ -205,8 +201,6 @@ const STATES = {
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
-                         { field: 'topicArea', any: true },
-                         { field: 'topic', any: true },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', any: true },
                          { field: 'examMonth', value: 'May' }];
@@ -236,8 +230,6 @@ const STATES = {
                          { field: 'subject', value: 'Maths' },
                          { field: 'documentType', value: 'Past paper' },
                          { field: 'level', value: 'GCSE' },
-                         { field: 'topicArea', any: true },
-                         { field: 'topic', any: true },
                          { field: 'tier', value: 'Higher' },
                          { field: 'examYear', value: '2017' },
                          { field: 'examMonth', value: 'June' },

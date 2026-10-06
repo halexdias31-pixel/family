@@ -278,8 +278,9 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
      past `BUNDLE_MAX`, so it would offer nothing even if wholeness were never asked — a case the
      bounds answer is not a case about wholeness. One sitting's algebra is three papers, inside
      every bound, and only the wholeness test keeps it out. */
-  [{ name: 'GCSE · Algebra', filters: DOORS.slice(0, 3).concat([{ field: 'level', value: 'GCSE' },
-                                                                   { field: 'topicArea', value: 'Algebra' }]) },
+  /* `GCSE · Algebra` WAS A `Topic area` CHIP, and that question is retired (find.js). The same
+     shape — every GCSE paper, none of them whole — is reached by typing it. */
+  [{ name: 'GCSE · "algebra"', filters: DOORS.slice(0, 3).concat([{ field: 'level', value: 'GCSE' }]), q: 'algebra' },
    /* BY THE SEARCH BOX, NOT BY QUESTION NUMBER AND NOT BY TOPIC. A past paper answers no topic
       question any more (see `topicShown_`), and this case was `Q1–10` until the owner retired the
       question number (*"no more asking for questions 1-10 or question part 1 or b."*) — a `qNumber`

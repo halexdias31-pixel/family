@@ -1135,12 +1135,19 @@ const FACETS = [
      5-a-day the same cell is a label somebody assigned to one question out of thirty, which is a
      judgement drawn as a fact. The `topics` cells stay in the file — the search box still reads
      them, and practicals and projects still join on them — so this is one test to take back out. */
-  { field: 'topicArea',
-    bucketOf: AREA_BUCKET, bucketOrder: AREA_BUCKET.order, label: 'Topic area', not: 'subject',
-    of: x => topicShown_(x) ? (x.topicArea || topicAreaOf_(x)) : '' },
-  /* `not: topicArea` — four roots are also typed as a leaf topic on a handful of rows (`Algebra`,
-     `Number`, `Probability`, `Statistics`), and on those rows the two questions are one question. */
-  { field: 'topic',     label: 'Topic', not: 'topicArea',
+  /* ---------- `topicArea` WAS HERE — `Topic area`, the branch above the topic -------------------------
+     Algebra, Geometry & Measures, Number, Probability, Ratio & Proportion, Statistics: the national
+     curriculum's strands out of `data/topics.json`, asked so that a list of topics too long to offer
+     (past `FACET_MAX_ANSWERS`) could be reached in two steps. The owner, 6 Oct: *"why is there a topic
+     area menu? like im fin with names of pdfs which are the names of the topics themselves right? or
+     is there a valid reason for this"*. There was not. On the only questions that answered it — the
+     1st Class Maths sheets — `Grade` already brings the list under the cap, and a sheet's topic IS
+     its PDF's name, which `Paper` lists; so it was a grouping laid over a list that did not need one,
+     the shape the owner had already refused as Grade 1–3. And on a practical it was wrong outright:
+     a GCSE Biology practical answered `Algebra` and `Geometry & Measures`, because the tree files a
+     science practical's maths skills under maths branches. `RETIRED_FACETS` keeps the sheet's row
+     from asking it again. `topicAreaOf_` stays: the search and the checks still read the tree. */
+  { field: 'topic',     label: 'Topic',
     of: x => topicShown_(x) ? (x.topic || topicOf_(x)) : [] },
   /* Only boxers and bouts carry one, so the coverage rule keeps it out of the way of everything
      else — the same rule that hides `borough` unless you are looking at venues. */
@@ -1644,6 +1651,9 @@ const RETIRED_FACETS = {
   qPart: 'retired with `qNumber`, on the same words: "no more asking for ... question part 1 or b."',
   question: 'the row\'s spelling of `qNumber` -- the same question numbers, and retired with them.',
   part: 'the row\'s spelling of `qPart` -- the same question parts, and retired with them.',
+  topicArea: 'the owner: "why is there a topic area menu? ... im fin with names of pdfs which are the '
+           + 'names of the topics themselves". A sheet\'s topic is its PDF\'s name, which `Paper` asks; '
+           + 'the strands above it were a grouping over a list that did not need one.',
 };
 
 function facetList() {
@@ -9647,12 +9657,14 @@ const topicAtoms_ = v => String(v == null ? '' : v).split(',').map(s => s.trim()
 
    SO IT IS `spellOne_` AND `spellKey_` IN THE FUNNEL ENGINE, applied to the answers of every facet
    including the ones a spreadsheet invents. See them above `facetTally_`. */
-/* Whether this item's topic is shown in the funnel at all — see the note over the `topicArea`
-   facet. Only questions are narrowed; a practical or a project is ABOUT its topic by construction. */
+/* Whether this item's topic is shown in the funnel at all — see `topicArea WAS HERE` among the
+   facets. A practical or a project is ABOUT its topic by construction, so it answers. */
+/* AND NO QUESTION AT ALL NOW, the 1st Class Maths sheets included. Their topic is their PDF's name,
+   and `Paper` already asks it by that name: with `Topic` asked first the same words were offered
+   twice — "Equation of a Line", then the paper "Equation of a Line" — measured 6 Oct when `Topic
+   area` went. A practical or a project still answers it. */
 function topicShown_(x) {
-  if (!x || x.kind !== 'question') return true;
-  const r = x.row || x;
-  return spellKey_(r.company) === '1stclassmaths';
+  return !x || x.kind !== 'question';
 }
 function topicOf_(x) {
   return topicAtoms_(x && ((x.row && x.row.topics) || x.topics));

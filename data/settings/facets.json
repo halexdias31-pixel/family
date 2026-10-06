@@ -16,7 +16,6 @@
 {"field": "keystage", "label": "Key stage", "sort_order": 60, "min_coverage": "", "note": "a comma in the cell is a list: a sheet may be KS1 and KS2", "active": true},
 {"field": "yearGroup", "label": "School year", "sort_order": 70, "min_coverage": "", "note": "band_type year. Not \"Year\" — that was the year a paper was sat", "active": true},
 {"field": "bandValue", "label": "Grade", "sort_order": 80, "min_coverage": "", "note": "band_type grade. One column asked three ways, gated on band_type", "active": true},
-{"field": "topicArea", "label": "Topic area", "sort_order": 90, "min_coverage": "", "note": "the branch before the leaf: algebra or geometry comes before simultaneous equations", "active": true},
 {"field": "topic", "label": "Topic", "sort_order": 100, "min_coverage": "", "note": "379 answers, so the cap keeps it quiet until the list is small enough to name one", "active": true},
 {"field": "examBoard", "label": "Exam board", "sort_order": 110, "min_coverage": "", "note": "", "active": true},
 {"field": "tier", "label": "Tier", "sort_order": 120, "min_coverage": "", "note": "Foundation or Higher. A-Level is a level and Level asks it", "active": true},
