@@ -186,7 +186,7 @@ const TILE_ICONS = {
   /* THE FIGURE IS A FRAMED PICTURE -- a hill and a sun in a frame, the mark every phone uses for "an
      image" -- and not `photo`, the camera, which means "take one". It opens the question's figure over
      the card (`q-fig` in find.js). */
-  /* A FUNNEL, the narrowing the app is named around -- `Answers only` and `Questions too` on an
+  /* A FUNNEL, the narrowing the app is named around -- the `Answers only` switch on an
      answer page (`ansOnlyTile_` in find.js), which put a chip on Find and take it off. */
   funnel: '<path d="M2.5 3h13l-5 6v5.5l-3-1.5V9z"/>',
   figure: '<rect x="2" y="2.5" width="14" height="12" rx="1.5"/><path d="m2.5 13 4.5-5 3.5 3.5 2-2 3 3.2"/>'

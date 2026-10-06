@@ -10332,7 +10332,7 @@ function pageOnly_() {
 /* ---------- "JUST CLICK ANSWERS AND ONLY SEE ANSWERS" ------------------------------------------------
    A TILE ON EVERY ANSWER PAGE IS THE DOOR (`ansOnlyTile_`): `Answers only` narrows Find to the answer
    pages of whatever is chosen -- one paper's answers, a topic's -- as the `Page: Answers` chip, and on
-   that view the same tile reads `Questions too` and takes the chip off again (so does its ✕). A second
+   that view the same tile is lit, and pressing it again takes the chip off (so does its ✕). A second
    press never stacks a second chip.
 
    IT WAS A TAP ON THE ANSWER PAGE'S KIND TAG, and the review found nobody could reach it: the tag row
@@ -10371,11 +10371,14 @@ function answersAll_() {
 }
 on('qa-only', el => answersOnly_(el));
 on('qa-all', () => answersAll_());
-/* THE TILE, ONE FACE PER VIEW. `funnel` because it is the funnel's own act -- a narrowing, with a chip. */
+/* THE TILE IS A SWITCH, as the pen's lock is: one name, `Answers only`, lit and `aria-pressed` while the
+   view is on, and pressing it lit turns it off (`qa-all`). `funnel` because it is the funnel's own act --
+   a narrowing, with a chip. At the row's far end (`.qa-only` in style.css), so it stands in one place
+   whether the answer beside the eye is hidden or shown. */
 function ansOnlyTile_(k) {
-  return pageOnly_() === 'Answers'
-    ? tile_({ icon: 'funnel', label: 'Questions too', note: 'back in order', act: 'qa-all', cls: 'qa-only' })
-    : tile_({ icon: 'funnel', label: 'Answers only', note: 'skip questions', act: 'qa-only', cls: 'qa-only', data: { k: k } });
+  const on = pageOnly_() === 'Answers';
+  return tile_({ icon: 'funnel', label: 'Answers only', note: on ? 'tap for questions too' : 'skip questions',
+                 act: on ? 'qa-all' : 'qa-only', cls: 'qa-only', on: on, pressed: on, data: on ? null : { k: k } });
 }
 
 /* ---------- THE LAST LINE UNDER A CHOSEN PAPER COUNTS WHAT THE STRIP HOLDS -------------------------

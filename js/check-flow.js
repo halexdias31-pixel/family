@@ -9477,8 +9477,8 @@ check('multipart: a figure the words name and nobody drew is a "not drawn yet" p
    if the card has none, this FAILS. It used to put an "Answer" tag on the page itself before tapping it,
    and so passed over a door nobody could see (the review of the merge). Pressed, it shows only answer
    pages, in order, OPEN -- choosing the view is asking for them -- with Hide still hiding one, and the
-   same tile reading `Questions too` takes the view off. From Saved, it is that paper's answers. */
-check('multipart: an answer page\'s "Answers only" tile shows only answer pages, open, and "Questions too" takes it off', async () => {
+   same tile, lit and pressed, takes the view off. From Saved, it is that paper's answers. */
+check('multipart: an answer page\'s "Answers only" switch shows only answer pages, open, and pressed again takes it off', async () => {
   const { w } = boot();
   await wait(300);
   const d = w.document;
@@ -9519,7 +9519,8 @@ check('multipart: an answer page\'s "Answers only" tile shows only answer pages,
       h.innerHTML = w.stuffPart_(pg.x, 'ans');
       const c = h.querySelector('.qans-card');
       if (!c || c.classList.contains('is-hidden') || !/50°|angles on a line/.test(h.textContent)) bad.push(pg.x.name + '\'s answer is shut in the answers-only view -- "only see answers" is forty Shows in a row otherwise');
-      if (c && !c.querySelector('[data-do="qa-all"]')) bad.push(pg.x.name + '\'s answer page in the answers-only view has no "Questions too" tile to leave it');
+      const sw = c && c.querySelector('[data-do="qa-all"]');
+      if (!sw || sw.getAttribute('aria-pressed') !== 'true') bad.push(pg.x.name + '\'s answer page in the answers-only view has no lit "Answers only" switch to leave it by');
     });
     /* HIDE STILL HIDES ONE. */
     if (A['qa-hide'] && pages[0]) {
@@ -9534,12 +9535,12 @@ check('multipart: an answer page\'s "Answers only" tile shows only answer pages,
       }
       h.remove();
     }
-    /* "QUESTIONS TOO" TAKES IT OFF, and the paper stays. */
+    /* PRESSED AGAIN, IT TAKES IT OFF, and the paper stays. */
     const back = card(a);
     A['qa-all'](back.querySelector('[data-do="qa-all"]') || back);
     back.remove();
-    if (S.filters.some(x => x.field === 'pageKind')) bad.push('"Questions too" left the Page filter on');
-    if (!S.filters.some(x => x.field === 'paperId')) bad.push('"Questions too" threw away the paper');
+    if (S.filters.some(x => x.field === 'pageKind')) bad.push('pressing the lit switch left the Page filter on');
+    if (!S.filters.some(x => x.field === 'paperId')) bad.push('pressing the lit switch threw away the paper');
     /* FROM SAVED: that paper's answers, whatever Find had. */
     S.q = 'eighteen'; S.filters = [{ field: 'paperId', value: 'P-MP-V' }];
     const sv = card(a, 's-saved');
