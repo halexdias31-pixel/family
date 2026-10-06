@@ -9153,7 +9153,7 @@ check('the calendar marks sessions, terms, half terms, bank holidays, events and
    the audit that answered it, through the app's own builders. `FLOW_ONLY=multipart` runs them alone.
 ================================================================================================== */
 /* A PAYLOAD ROW, the shape `libraryInto_` hands `questionItems` -- the fields it reads and no more. */
-const mpRow_ = (paper, name, q, part, extra) => Object.assign({ id: 'Q-' + paper + '-' + q + part, paper: paper,
+const mpRow_ = (paper, name, q, part, extra) => Object.assign({ id: 'Q-' + paper + '-' + q + part, paper: paper, paper_id: paper,
   q: String(q), part: part, kind: 'question', name: name, subject: 'Maths', marks: 1,
   html: '<p>' + paper + ' Q' + q + part + '</p>' }, extra || {});
 
@@ -9191,6 +9191,85 @@ check('multipart: parts sort by their value within a question, and two papers wi
   /* THE SAME NAME, TWO PAPERS: each paper's parts together. */
   const twin = order.filter(o => /^P-MP-1[FH]:/.test(o)).map(o => o.replace('P-MP-', '')).join(' ');
   if (twin !== '1F:a 1F:b 1H:a 1H:b') bad.push('two papers called "' + same + '" read "' + twin + '" -- their parts interleave');
+  return bad;
+});
+
+/* A SMALL LIBRARY OF MULTI-PART QUESTIONS, made into the funnel's own items by `questionItems` and
+   handed to Find as its whole list -- `stuffItems` replaced, so the memo keyed on `DATA` cannot hand
+   back the fixture's. Returns a function that puts everything back. */
+function mpLibrary_(w, rows) {
+  const D = w.__t.DATA();
+  const held = { q: D.questions, si: w.stuffItems, sa: w.stuffItemsAll_ };
+  D.questions = rows;
+  const items = w.questionItems();
+  D.questions = held.q;
+  w.stuffItems = () => items;
+  w.stuffItemsAll_ = () => items;
+  return { items, put: () => { w.stuffItems = held.si; w.stuffItemsAll_ = held.sa; } };
+}
+const MP_SVG = '<svg viewBox="0 0 10 10"><circle cx="5" cy="5" r="4"/></svg>';
+const mpBank_ = () => [
+  { id: 'S-MP-W-8', paper: 'P-MP-W', paper_id: 'P-MP-W', q: '8', kind: 'preamble', name: 'Whole', html: '<p>OA, OB and OC are three straight lines.</p>', diagram: MP_SVG },
+  mpRow_('P-MP-W', 'Whole', 8, 'i', { html: '<p>Work out the size of angle x.</p>', answer: '<b>50°</b>' }),
+  mpRow_('P-MP-W', 'Whole', 8, 'ii', { html: '<p>Give a REASONWORD for your answer.</p>', answer: '<b>angles on a line</b>' }),
+  mpRow_('P-MP-W', 'Whole', 18, '', { html: '<p>Eighteen.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 1, 'c', { html: '<p>One c.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 1, 'd(i)', { html: '<p>One d i.</p>' }),
+  mpRow_('P-MP-W', 'Whole', 1, 'd(ii)', { html: '<p>One d ii.</p>' }),
+  mpRow_('P-MP-V', 'Other', 8, '', { html: '<p>Another paper\'s eight.</p>' }),
+];
+
+/* FINDING 1: a search hit on one part brings the whole question, in order, and lands on the part. */
+check('multipart: a search that finds one part brings its whole question, in order, landing on that part', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  const need = ['questionItems', 'stuffFiltered', 'stuffPages_', 'stuffPageOf_'].filter(n => typeof w[n] !== 'function');
+  if (need.length) return [need.join(', ') + ' not reachable — renamed? The whole question was NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  try {
+    S.q = 'reasonword'; S.filters = [];
+    const hits = w.stuffFiltered();
+    if (hits.length !== 1 || hits[0].qPart !== 'ii') bad.push('the search should MATCH one part, Q8(ii) -- it matched ' + hits.map(x => x.name).join(', '));
+    const strip = w.stuffPages_().map(pg => pg.x.name + ':' + (pg.part || 'card')).join(' ');
+    const want = 'Q8(i):stem0 Q8(i):sfig0 Q8(i):card Q8(i):ans Q8(ii):card Q8(ii):ans';
+    if (strip !== want) bad.push('the strip reads "' + strip + '", wanted the whole question: "' + want + '"');
+    if (hits[0]) {
+      const at = w.stuffPageOf_(hits[0]);
+      const pg = w.stuffPages_()[at];
+      if (!pg || pg.x !== hits[0] || pg.part) bad.push('turning to the hit lands on page ' + at + ' (' + (pg ? pg.x.name + ':' + pg.part : 'nothing') + '), not on Q8(ii)\'s card');
+      else if (at !== 4) bad.push('the hit is page ' + at + ' -- Q8(i), its answer and the opening should be the four pages in front of it');
+    }
+  } finally { lib.put(); S.q = ''; S.filters = []; }
+  return bad;
+});
+
+/* FINDING 10: a question's number typed into the box is that question. */
+check('multipart: typing a question reference -- q8, 8ii, 1dii, 1d(ii), Q 8 -- matches that question exactly', async () => {
+  const { w } = boot();
+  await wait(300);
+  const bad = [];
+  if (typeof w.stuffFiltered !== 'function' || typeof w.questionItems !== 'function') return ['stuffFiltered or questionItems not reachable — the references were NOT checked'];
+  const lib = mpLibrary_(w, mpBank_());
+  const S = w.__t.STUFF();
+  const names = (q, filters) => {
+    S.q = q; S.filters = filters || [];
+    return w.stuffFiltered().map(x => x.row.paper.slice(-1) + x.name).join(' ');
+  };
+  try {
+    [['q8', [], 'VQ8 WQ8(i) WQ8(ii)', 'both papers\' Q8 and every part -- and not Q18'],
+     ['Q 8', [], 'VQ8 WQ8(i) WQ8(ii)', '"Q 8" with a space'],
+     ['q8ii', [], 'WQ8(ii)', '"q8ii"'], ['8ii', [], 'WQ8(ii)', '"8ii"'], ['q8(ii)', [], 'WQ8(ii)', '"q8(ii)"'],
+     ['1dii', [], 'WQ1d(ii)', '"1dii"'], ['1d(ii)', [], 'WQ1d(ii)', '"1d(ii)"'], ['q1d', [], 'WQ1d(i) WQ1d(ii)', '"q1d", the whole of (d)'],
+     ['q8', [{ field: 'paperId', value: 'P-MP-W' }], 'WQ8(i) WQ8(ii)', '"q8" inside a chosen paper'],
+    ].forEach(([q, f, want, what]) => {
+      const got = names(q, f);
+      if (got !== want) bad.push(what + ' found "' + got + '", wanted "' + want + '"');
+    });
+    /* A BARE NUMBER IS STILL WORDS: "8" is not read as Q8. */
+    if (names('eighteen', []) !== 'WQ18') bad.push('an ordinary word search broke: "eighteen" found "' + names('eighteen', []) + '"');
+  } finally { lib.put(); S.q = ''; S.filters = []; }
   return bad;
 });
 

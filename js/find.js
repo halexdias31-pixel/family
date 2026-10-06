@@ -9896,8 +9896,48 @@ function stuffNarrow_(out, filters, words, credits) {
     const list = byField[field].filter((f, i, all) => !(f.bucket && i < all.length - 1));
     out = out.filter(x => list.some(f => filterHit(x, f, credits)));
   });
-  if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
+  /* ---------- "q8", "8ii", "1dii", "1d(ii)", "Q 8" IS A QUESTION, NOT FOUR LETTERS -----------------
+     THE MULTI-PART AUDIT, FINDING 10, in 1F: "q2" gave fifteen results (Q2 and Q20 to Q27, every
+     haystack holding the letters), "q8ii", "8ii" and "1dii" gave nothing, and "Q 8" gave eighteen
+     that had nothing to do with Q8 -- the words "q" and "8" are somewhere in nearly every paper. A
+     tutor typing a question's number is asking for that question, so a box that reads as one is
+     matched exactly, by number and part, inside whatever the funnel has already narrowed to (a paper,
+     if one is chosen). Anything that does not read as one is words, as before. */
+  const ref = words.length ? qRef_(words.join('')) : null;
+  if (ref) out = out.filter(x => qRefHit_(x, ref));
+  else if (words.length) out = out.filter(x => words.every(w => stuffHay_(x).includes(w)));
   return out;
+}
+
+/* WHAT A REFERENCE LOOKS LIKE: an optional "q", the number, and a part -- a letter, a numeral, or a
+   letter and a numeral, bracketed or not (`partBare_` takes the brackets off). WITHOUT THE "q" IT HAS
+   TO CARRY A NUMERAL WITH AN "i" IN IT ("8ii", "1dii", "3iv"): a bare "8" is a number somebody may be
+   searching the words for, and "2x" is algebra before it is Q2(x). */
+const QREF_PART = /^([a-z]?)(i{1,3}|iv|vi{0,3}|ix|xi{0,3})?$/;
+function qRef_(s) {
+  const m = /^(q?)0*(\d+)(.*)$/.exec(String(s || '').toLowerCase().replace(/\s+/g, ''));
+  if (!m) return null;
+  const rest = partBare_(m[3]);
+  const bits = qRefBits_(rest);
+  if (!bits) return null;
+  if (!m[1] && !/i/.test(bits.roman)) return null;
+  return { q: m[2], letter: bits.letter, roman: bits.roman };
+}
+/* ONE READING OF A PART FOR BOTH SIDES, so "8i" typed and a part "i" stored are read the same way --
+   a lone numeral is a numeral, as `qPartBits_` already says of the sheet's spelling. */
+function qRefBits_(s) {
+  if (!s) return { letter: '', roman: '' };
+  if (ROMAN_ONLY.test(s)) return { letter: '', roman: s };
+  const m = QREF_PART.exec(s);
+  return m ? { letter: m[1] || '', roman: m[2] || '' } : null;
+}
+function qRefHit_(x, ref) {
+  if (!x || x.kind !== 'question') return false;
+  if (String(x.qNumber == null ? '' : x.qNumber).replace(/^0+(?=\d)/, '') !== ref.q) return false;
+  const b = qRefBits_(partBare_(x.qPart)) || { letter: '', roman: '' };
+  if (ref.letter && b.letter !== ref.letter) return false;
+  if (ref.roman && b.roman !== ref.roman) return false;
+  return true;
 }
 
 /* ---------- SORTED ONCE, NOT ONCE PER FILTER -----------------------------------------------------
@@ -10003,7 +10043,9 @@ function stuffFiltered() {
   if (prev.key !== null && prev.from === DATA && prev.all === all && prev.credits === credits
       && prev.filters && prev.words
       && prev.filters.length <= STUFF.filters.length
-      && prev.words.every(w => words.some(n => n.includes(w)))) {
+      && prev.words.every(w => words.some(n => n.includes(w)))
+      /* A QUESTION REFERENCE IS NOT A WORD, so "q8" is not a narrowing of "q" -- see `qRef_`. */
+      && !qRef_(words.join('')) && !qRef_(prev.words.join(''))) {
     const same = prev.filters.every((f, i) => JSON.stringify(f) === JSON.stringify(STUFF.filters[i]));
     const had = {};
     prev.filters.forEach(f => { if (!f.any) had[f.field] = true; });
@@ -10037,9 +10079,55 @@ function stuffPages_() {
   const pages = [];
   /* EACH RESULT IS TOLD THE ONE IN FRONT OF IT, so a shared stem is drawn once, before the first of
      its parts, as the paper prints it -- see `pageParts_`. */
-  items.forEach((x, i) => pageParts_(x, items[i - 1]).forEach(part => pages.push({ x: x, part: part })));
+  /* AND A PART FOUND ON ITS OWN BRINGS ITS WHOLE QUESTION -- see `wholeQuestions_`. Here, where pages
+     are built, and not in `stuffFiltered`: every count the funnel makes is of what MATCHED, and the
+     parts brought along are reading, not results. */
+  const seq = wholeQuestions_(items);
+  seq.forEach((x, i) => pageParts_(x, seq[i - 1]).forEach(part => pages.push({ x: x, part: part })));
   STUFF_PAGES = { from: items, pages: pages };
   return pages;
+}
+
+/* ---------- A SEARCH HIT ON ONE PART BRINGS THE REST OF ITS QUESTION, IN ORDER ---------------------
+   THE MULTI-PART AUDIT, FINDING 1, and the worst of them on a phone: a search or a topic chip found
+   Q8(ii) "Give a reason for your answer" with no Q8(i), and 2H Q14b "Work out an estimate for the
+   distance…" with no graph, because the graph lives on Q14a. In 506 of the 776 multi-part questions
+   the opening and the picture are stored on part (a) -- so a later part reached alone arrived with
+   nothing to work from, and looked complete.
+
+   SO A QUESTION IS DRAWN WHOLE WHEREVER ANY PART OF IT MATCHED: its opening and figures, every part
+   in the paper's order, each part's answer straight after it. In the place its first matching part
+   holds in the results, once however many of its parts matched. The part that matched is reached
+   exactly where it always was -- `stuffPageOf_(x)` lands on it, the earlier parts one swipe behind.
+   THE SIBLINGS ARE THE FUNNEL'S OWN ITEMS (`stuffItems`, in `stuffSorted_`'s order), so a part
+   brought along is the same object a paper filter would have found, and its answer box and its pen
+   are the same ones. Inside a chosen paper nothing changes: every part is already there. */
+const qId_ = x => (x && x.kind === 'question' && x.qNumber != null && String(x.qNumber) !== ''
+  ? paperIdOf_(x.row) + '|' + x.qNumber : '');
+const WHOLE_MEMO = new WeakMap();
+function questionParts_() {
+  const all = stuffSorted_(stuffItems());
+  let by = WHOLE_MEMO.get(all);
+  if (by) return by;
+  by = {};
+  all.forEach(x => { const k = qId_(x); if (k) (by[k] = by[k] || []).push(x); });
+  WHOLE_MEMO.set(all, by);
+  return by;
+}
+function wholeQuestions_(items) {
+  const out = [], done = {};
+  let by = null;
+  (items || []).forEach(x => {
+    const k = qId_(x);
+    if (!k) { out.push(x); return; }
+    if (done[k]) return;
+    done[k] = true;
+    by = by || questionParts_();
+    const sib = by[k] || [];
+    /* A RESULT THE FUNNEL'S LIST DOES NOT HOLD (a harness's own item) stands as itself. */
+    (sib.indexOf(x) >= 0 ? sib : [x]).forEach(s => out.push(s));
+  });
+  return out;
 }
 
 /* THE PAGE AN ITEM STARTS ON, counted from the first result. For anything that turns to a result by
