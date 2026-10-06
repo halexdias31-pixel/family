@@ -287,3 +287,4 @@ Every section of the old CLAUDE.md, one file each, in the order they were writte
 - [The way into somebody else's session is a line and a tile on its receipt, not a block under it](283-the-way-into-somebody-else-s-session-is-a-line-and-a-tile-on.md)
 - [The qualifications card is one line a qualification, written like the profile chip, edited in place and saved as you go](284-the-qualifications-card-is-one-line-a-qualification-written.md)
 - [Every fact about a page of a question is a tag, and SATs is one tag with the key stage beside it](285-every-fact-about-a-page-of-a-question-is-a-tag-and-sats-is-o.md)
+- [Swiping held still, the card in front sits in the middle, and the rest go soft](286-swiping-held-still-the-card-in-front-sits-in-the-middle-and.md)
