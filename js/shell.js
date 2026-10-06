@@ -3603,14 +3603,7 @@ async function load() {
      Faded by a class rather than removed from the document, so a retry can put it back. */
   splashOff_();
 
-  /* ---------- AND THE OFFER TO KEEP IT --------------------------------------------------------
-     AFTER THE APP HAS DRAWN, not before. Asking somebody to put a thing on their home screen while
-     they are still looking at a loading animation is asking about something they have not seen.
-     Three seconds is long enough to have looked at the feed and short enough to still be there.
-
-     It decides for itself whether to appear at all — installed already, dismissed before, opened
-     from a file, or a browser that cannot do it — so this is one call and no conditions. */
-  setTimeout(() => { try { installBar(); } catch (err) {} }, 3000);
+  /* THE OFFER TO KEEP IT, a bar three seconds in, was here — removed at the owner's word; see me.js. */
 
   /* ---------- THE STALE SCREENS, CLEARED BEFORE THE REDRAW ---------------------------------------
      Every screen but the one in front was drawn before this request came back, so each holds a

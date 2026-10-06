@@ -22,7 +22,7 @@
      wrong one of those.
      Read at run time and shown on the You screen beside the other two. Bump it whenever this file
      changes, exactly as the other two are bumped. */
-  --css-version: "2026-10-06-answerstag";
+  --css-version: "2026-10-06-coinbundles";
 
   /* A TERMINAL. Black, monospace, white text — and colour held back so that when it appears it
      means something.
@@ -6839,65 +6839,8 @@ span[data-do]:active { text-decoration-color: var(--gold); }
 .fest .v { color: #f0e2c8; }
 .fest .btn { width: 100%; background: var(--gold); color: #17130b; font-weight: 700; }
 
-/* ==================================================================================================
-   THE OFFER TO KEEP IT.
-
-   A BAR, NOT A CARD. The card version sat on the You screen behind a sign-in form and two swipes of
-   a carousel — so the people who most needed it, somebody who has just arrived with no account,
-   could never reach it. A prompt has to find the person.
-
-   ABOVE THE TABS, because it is a message rather than furniture, and below everything else because
-   it must never be the reason somebody cannot press a thing. It slides up rather than appearing,
-   which is the difference between arriving and interrupting.
-================================================================================================== */
-#install-bar {
-  position: fixed;
-  /* ---------- AT THE TOP -----------------------------------------------------------------------
-     IT WAS AT THE BOTTOM, sitting over the tab bar and the last card of the feed — which on a
-     phone is where the thumb lives and where Safari puts its own furniture, so it was a third bar
-     in a stack of bars competing for the same inch.
-
-     The top is empty on this app: there is no header, the feed starts under the status bar, and
-     nothing is ever tapped up there. A message belongs where nothing else is. */
-  left: 50%; top: 0;
-  width: 100%; max-width: var(--app);
-  padding-top: calc(.6rem + var(--safe-top));
-  /* Off the TOP until `.up` is added — the slide comes down now, not up. */
-  transform: translate(-50%, -110%);
-  transition: transform .28s ease;
-  display: flex; align-items: center; gap: .7rem;
-  padding-right: .8rem; padding-bottom: .6rem; padding-left: .8rem;
-  background: #16130e;
-  border-bottom: 1px solid rgb(255 180 84 / .35);
-  z-index: 40;
-}
-#install-bar.up { transform: translate(-50%, 0); }
-
-/* ---------- AND THE APP MOVES DOWN WHILE IT IS THERE --------------------------------------------
-   The bar is `fixed`, so without this it sits ON TOP of the first card — covering the thing
-   somebody is being asked to keep, which is a poor argument for keeping it.
-
-   A class on `<body>` rather than a permanent change to the padding: the bar is temporary, it is
-   dismissed or acted on within a minute, and the app should not carry a gap at the top for ever
-   because of a message that was shown once. `--ib` is set to the bar's own height so the two can
-   never disagree. */
-body.has-ib { padding-top: calc(var(--top) + var(--safe-top) + var(--ib, 3.4rem)); }
-body.has-ib #install-bar { transition: transform .28s ease; }
-/* TIGHT. The two lines are a heading and a sentence, and `1.35` on a message this short left a
-   band of empty above and below it that read as the bar being half full. */
-.ib-say { flex: 1 1 auto; min-width: 0; font: 400 .78rem/1.25 var(--mono); color: #c9b997; }
-.ib-say b { display: block; color: var(--gold); font-size: .82rem; }
-.ib-say span { display: block; }
-/* The bold inside the sentence is part of the sentence — without this it inherits the block from
-   the rule above and "Add to Home Screen" drops onto a line of its own. */
-.ib-say span b { display: inline; }
-/* The share glyph, inline with the words — "the share button" is not a thing everybody can find,
-   and the square with an arrow out of it is unmistakable. */
-.ib-share { width: .95em; height: .95em; vertical-align: -.15em; margin: 0 .1em; }
-#install-bar .btn { flex: 0 0 auto; padding: .45rem 1rem; background: var(--gold); color: #17130b;
-                    font-weight: 700; }
-.ib-x { flex: 0 0 auto; background: none; border: 0; color: #7a7263; font-size: 1rem;
-        padding: .3rem .4rem; cursor: pointer; }
+/* `#install-bar` AND `.ib-*` WERE HERE — the "Keep @family. on your phone" bar. Removed at the owner's
+   word (6 Oct); see me.js. */
 
 /* `.wk` AND ITS PARTS WERE HERE — the grid `Your week` drew. That widget is folded into the Timetable
    (see `tmtBooked_` in games.js), and its one idea, that a booked session is GREEN because a session
@@ -7548,8 +7491,8 @@ body.has-ib #install-bar { transition: transform .28s ease; }
                       real currency would be a picture of somebody else's money.
    The letter is embossed — light above-left, shade below-right — rather than printed on.
 
-   THICKNESS IS SIX DISCS STACKED IN Z inside the `preserve-3d` coin, with the faces just outside
-   them at ±.15rem. Face-on they are behind the face and invisible; edge-on they ARE the coin, a gold
+   THICKNESS IS A STACK OF DISCS IN Z inside the `preserve-3d` coin, with the faces just outside
+   them — twelve now, at ±.22rem; see the note under the face rules. Face-on they are behind the face and invisible; edge-on they ARE the coin, a gold
    band about .3rem deep. Nothing new moves: the discs ride the toss that was already there, so the
    whole thing is still one transform on one element.
 
@@ -7575,16 +7518,38 @@ body.has-ib #install-bar { transition: transform .28s ease; }
                      background: radial-gradient(circle at 34% 28%, var(--cn-hi) 0,
                                  var(--cn-gold) 26%, var(--cn-mid) 70%, var(--cn-deep) 100%); }
 .cn-coin b::after { inset: .5rem; border: .11rem dotted var(--cn-deep); opacity: .7; }
-.cn-h { transform: translateZ(.15rem); }
-.cn-t { transform: rotateX(180deg) translateZ(.15rem); }
-.cn-coin i { position: absolute; inset: .06rem; border-radius: 50%; background: var(--cn-deep);
-             box-shadow: inset 0 0 0 .1rem var(--cn-mid); }
-.cn-coin i:nth-child(1) { transform: translateZ(-.125rem); }
-.cn-coin i:nth-child(2) { transform: translateZ(-.075rem); }
-.cn-coin i:nth-child(3) { transform: translateZ(-.025rem); }
-.cn-coin i:nth-child(4) { transform: translateZ(.025rem); }
-.cn-coin i:nth-child(5) { transform: translateZ(.075rem); }
-.cn-coin i:nth-child(6) { transform: translateZ(.125rem); }
+/* ---------- AND NOW IT HAS A BODY ------------------------------------------------------------------
+   ASKED FOR AS *"make the coin in the spinning animation look more 3d like it has some thickness to
+   it"*. It had an edge, six discs .25rem deep, and nobody could see it: the coin faced the viewer
+   square-on, so the edge showed only in the instant a toss passed edge-on — a flicker, twice a
+   flip, and at rest a flat gold disc.
+
+   SO TWO THINGS. It is THICKER — twelve discs across .44rem, about an eighth of its width, which is
+   a chunky pound coin rather than a penny — and it is SEEN FROM A LITTLE TO THE SIDE AND ABOVE:
+   `.cn-tilt` turns the whole coin 24deg round the vertical and 10deg back, once, and the toss runs
+   inside it untouched. Now the band of the rim is on screen at rest, swells and thins as the coin
+   turns, and the face foreshortens into an ellipse the way a real coin does on a table. The discs
+   are shaded darker toward the middle of the band, so the rim reads as a rounded edge in light
+   rather than a stack of paper.
+
+   Still one animated transform on one element; the tilt is fixed. */
+.cn-tilt { transform-style: preserve-3d; transform: rotateX(10deg) rotateY(-24deg); }
+.cn-h { transform: translateZ(.23rem); }
+.cn-t { transform: rotateX(180deg) translateZ(.23rem); }
+.cn-coin i { position: absolute; inset: .04rem; border-radius: 50%; background: var(--cn-mid);
+             box-shadow: inset 0 0 0 .08rem var(--cn-gold); }
+.cn-coin i:nth-child(1)  { transform: translateZ(-.22rem); background: var(--cn-gold); }
+.cn-coin i:nth-child(2)  { transform: translateZ(-.18rem); }
+.cn-coin i:nth-child(3)  { transform: translateZ(-.14rem); background: var(--cn-deep); }
+.cn-coin i:nth-child(4)  { transform: translateZ(-.10rem); background: var(--cn-deep); }
+.cn-coin i:nth-child(5)  { transform: translateZ(-.06rem); background: var(--cn-dark); }
+.cn-coin i:nth-child(6)  { transform: translateZ(-.02rem); background: var(--cn-dark); }
+.cn-coin i:nth-child(7)  { transform: translateZ(.02rem);  background: var(--cn-dark); }
+.cn-coin i:nth-child(8)  { transform: translateZ(.06rem);  background: var(--cn-dark); }
+.cn-coin i:nth-child(9)  { transform: translateZ(.10rem);  background: var(--cn-deep); }
+.cn-coin i:nth-child(10) { transform: translateZ(.14rem);  background: var(--cn-deep); }
+.cn-coin i:nth-child(11) { transform: translateZ(.18rem); }
+.cn-coin i:nth-child(12) { transform: translateZ(.22rem);  background: var(--cn-gold); }
 .cn-shadow { position: absolute; bottom: -.45rem; left: 50%; width: 3rem; height: .5rem;
              margin-left: -1.5rem; border-radius: 50%; background: rgb(244 241 232 / .35);
              animation: cn-shadow 9s linear infinite; }

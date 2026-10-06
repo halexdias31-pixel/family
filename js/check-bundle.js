@@ -103,7 +103,7 @@ function boot() {
   try {
     w.eval(src + '\n;window.__b = { STUFF, stuffFiltered, bundleOf_, paintStuff, stuffFirstResult_,' +
       ' stuffPageCount, frontPages_, pageCount, go, goPage, initCart, cartCard_, orderText_,' +
-      ' printPrice, laminatePrice, money, docById_,' +
+      ' printPrice, laminatePrice, money, docById_, bundlesBySitting_, stuffPages_, facetBy,' +
       ' CART: () => CART, setCart: v => { CART = v; }, USER: () => USER };');
   } catch (e) {
     return { err: 'the app did not load: ' + e.message };
@@ -355,6 +355,31 @@ const tick = ms => new Promise(ok => setTimeout(ok, ms));
     }
   }
   b.setCart(had);
+
+  /* ---------- 4b. `Bundles` IS A KIND, AND ITS RESULTS ARE BUNDLES ---------------------------------
+     The owner, 6 Oct: *"bundle is a tag option too"*. Chosen under `What kind`, the list is every
+     question on a printable paper, the funnel narrows it as usual, and what is drawn is one bundle per
+     sitting — no question pages, and each bundle exactly that sitting's papers. */
+  {
+    const kind = b.facetBy('kindLabel');
+    narrow(DOORS.map(f => f.field === 'kindLabel' ? { field: 'kindLabel', value: 'Bundles' } : f));
+    const sits = b.bundlesBySitting_();
+    if (!kind) bad.push('there is no `What kind` facet to find `Bundles` under');
+    if (!sits.length) bad.push('`Bundles` under Edexcel · Maths · GCSE drew no bundle at all');
+    if (b.stuffPages_().length) bad.push('`Bundles` still draws ' + b.stuffPages_().length + ' question pages under its bundles');
+    const front = b.frontPages_().filter(h => /class="card bundle/.test(h)).length;
+    if (front !== sits.length) bad.push('`Bundles` found ' + sits.length + ' sittings and drew ' + front + ' bundle cards');
+    const june = papersIn(r => MATHS(r) && r.tier === 'Higher' && JUNE(r));
+    const hit = sits.find(x => [...june].every(id => x.ids.includes(id)));
+    if (!hit) bad.push('no bundle under `Bundles` holds the June 2017 Higher papers');
+    else if (hit.ids.some(id => { const d = b.docById_(id) || {}; return String(d.year) !== '2017' || String(d.month) !== '6'; })) {
+      bad.push('the June 2017 bundle under `Bundles` also holds papers from another sitting: ' + hit.ids.join(', '));
+    }
+    for (let i = 1; i < sits.length; i++) {
+      const y = s => +((b.docById_(s.ids[0]) || {}).year || 0);
+      if (y(sits[i]) > y(sits[i - 1])) { bad.push('`Bundles` are not newest first'); break; }
+    }
+  }
 
   /* ---------- 5. A BASKET SAVED BEFORE BUNDLES STILL DRAWS, AND AN UNCOUNTED PAPER IS NOT FREE ----
      `localStorage` outlives a deploy. A print line with its own `money` from the days of the paper

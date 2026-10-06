@@ -362,7 +362,6 @@ function boot(opts) {
          it did not, for as long as the form was the only thing on that page. */
       'blocks: typeof bookBlocks === "function" ? bookBlocks : null,' +
       'asked: () => ASKED_JOB,' +
-      'bar: typeof installBar === "function" ? installBar : null,' +
       /* THE CHEAT SHEET'S COMPONENT LIST AND ITS TWO WIDTHS. `matParts` is the list after the sheet
          has had its say about order and levels, which is the list the page is actually built from —
          so a journey can ask what a component is worth without a browser and without the tab. */
@@ -5631,22 +5630,6 @@ check('the app still loads when opened from a file', async () => {
     bad.push('nothing unwraps the jsonp reply, so the payload arrives and is dropped');
   }
   return bad;
-});
-
-check('the install bar reaches somebody who has not signed in', async () => {
-  /* THE POINT OF IT. The first version was a card on the You screen — behind a sign-in form and two
-     swipes of a carousel — so a new client, who is exactly the person you want to install it, could
-     never see it. This is here so it cannot quietly go back to being unreachable. */
-  const { w } = boot();
-  await wait(300);
-  Object.defineProperty(w.navigator, 'userAgent',
-    { value: 'Mozilla/5.0 (iPhone) Safari', configurable: true });
-  if (typeof w.__t.bar !== 'function') return ['installBar is not exported — cannot check it'];
-  w.__t.bar();                                     // deliberately NOT signed in
-  const el = w.document.getElementById('install-bar');
-  if (!el) return ['no install bar for a signed-out visitor on an iPhone'];
-  return /Add to Home Screen/.test(el.textContent) ? []
-    : ['the bar is there but does not say how to install on iOS'];
 });
 
 check('each column opens on the page worth reading', async () => {

@@ -891,8 +891,11 @@ function bucketTable_(pairs) {
    reads this line for that reason. NOT a bucket of its own — `Make something` holding one kind
    would be skipped by the one-answer rule, and the word the owner asked to see would never be on
    screen. */
+/* `Bundles` IS AN ERRAND OF ITS OWN — printed papers, ordered — so it is placed beside the other two
+   rather than filed under working through something; see `bundlesView_`. */
 const KIND_BUCKET = bucketTable_([
   ['Work through it',  ['Questions', 'Answers', 'Practicals', 'Projects']],
+  ['Order it',         ['Bundles']],
   ['Read or watch it', ['Films', 'Resources']],
 ]);
 
@@ -1061,7 +1064,11 @@ const FACETS = [
     bucketOf: KIND_BUCKET, bucketOrder: KIND_BUCKET.order, label: 'What kind',   always: true,
     of: x => {
       const k = x.kindLabel || kindOf_(x).label;
-      return x && x.kind === 'question' && questionHasAns_(x) ? [k, 'Answers'] : k;
+      if (!x || x.kind !== 'question') return k;
+      const out = [k];
+      if (questionHasAns_(x)) out.push('Answers');
+      if (bundleable_(x)) out.push('Bundles');
+      return out.length > 1 ? out : k;
     } },
   /* ---------- THE THIRD DOOR: WHICH SHELF OF THE RESOURCES ---------------------------------------
      THE OWNER'S ROUTE IS "Learning → Resources → @family. textbooks → GCSE Statistics", and without
@@ -10512,6 +10519,8 @@ function stuffPages_() {
   /* AND ONLY THE ANSWERS when `Answers` is the kind chosen -- see `kindLabel`. Built in full and then
      kept, so every page that is drawn is the page it would have been. */
   const only = answersView_();
+  /* AND NONE AT ALL when `Bundles` is -- the bundles are the results, drawn in front (`bundlePages_`). */
+  if (bundlesView_()) { STUFF_PAGES = { from: items, pages: pages }; return pages; }
   seq.forEach((x, i) => pageParts_(x, seq[i - 1]).forEach(part => {
     if (only && part !== 'ans') return;
     pages.push({ x: x, part: part });
@@ -11431,7 +11440,7 @@ function bundleNoun_(papers, n) {
 
 const BUNDLE_MEMO = new WeakMap();
 function bundleOf_() {
-  if (!stuffAsked() || !printOffered_()) return null;
+  if (!stuffAsked() || !printOffered_() || bundlesView_()) return null;
   const items = stuffFiltered();
   if (BUNDLE_MEMO.has(items)) return BUNDLE_MEMO.get(items);
   let out = null;
@@ -11440,7 +11449,9 @@ function bundleOf_() {
   return out;
 }
 
-function bundleBuild_(items) {
+/* `min` IS ONE FOR A SITTING ASKED FOR BY NAME (`bundlesBySitting_`): somebody who chose `Bundles`
+   came to order, and the friction `BUNDLE_MIN` keeps off a working journey is the errand here. */
+function bundleBuild_(items, min) {
   if (!items.length) return null;
   /* ---------- WHICH PAPERS ARE WHOLE ON THIS LIST, AND WHAT IS LEFT OVER ------------------------
      Counted per paper over the list's QUESTIONS; anything that is not a question, or has no paper,
@@ -11459,7 +11470,7 @@ function bundleBuild_(items) {
   }
   const whole = paperQuestionCounts_();
   const kept = order.filter(id => count[id] === whole[id]);
-  if (kept.length < BUNDLE_MIN || kept.length > BUNDLE_MAX) return null;
+  if (kept.length < (min || BUNDLE_MIN) || kept.length > BUNDLE_MAX) return null;
   const partial = order.filter(id => count[id] !== whole[id]);
   const strayQs = partial.reduce((n, id) => n + count[id], 0);
   if (strayQs + other > items.length * BUNDLE_STRAY) return null;
@@ -11645,8 +11656,59 @@ function bundleCard_(b) {
 }
 
 function bundlePages_() {
+  if (bundlesView_()) {
+    const all = bundlesBySitting_();
+    if (!all.length) {
+      return [`<div class="card bundle qcard"><div class="qcard-top"><b>Bundle</b></div>
+        <p class="bundle-sub">No whole sitting left on this list to bundle. Take an answer back above —
+          a topic or a single paper narrows it past whole sittings.</p></div>`];
+    }
+    return all.map(bundleCard_);
+  }
   const b = bundleOf_();
   return b ? [bundleCard_(b)] : [];
+}
+
+/* ---------- `Bundles` IS A KIND, BESIDE `Questions` AND `Answers` ----------------------------------
+   THE OWNER, 6 Oct: *"bundle is a tag option too. pick where is appropriate for it to put it."* A
+   bundle had only one way in: narrow the funnel until the list happened to be two to twenty-four
+   whole papers, and a card appeared one swipe from the question. Somebody who came to ORDER papers
+   had to know that.
+
+   SO IT IS AN ANSWER TO THE FIRST QUESTION, `What kind`, where somebody says what they came for — the
+   same place `Answers` went for the same reason. Every question on a printable past paper answers it
+   (`bundleable_`), so the funnel's later questions — subject, level, board, year — narrow it exactly
+   as they narrow the questions. And the results are bundles, not questions: one card per sitting on
+   the list, newest first, each the same card and the same basket line as the one the funnel always
+   offered. Nothing is printed for a paper that is not printable, and nothing is offered at all where
+   printing has no price (`printOffered_`). */
+function bundleable_(x) {
+  const r = (x && x.row) || x || {};
+  return /paper/i.test(String(r.document_type || '')) && String(r.printable || '').toLowerCase() !== 'false'
+    && printOffered_();
+}
+function bundlesView_() {
+  return (STUFF.filters || []).some(f => f && f.field === 'kindLabel' && !f.any && f.value === 'Bundles');
+}
+const BUNDLES_MEMO = new WeakMap();
+function bundlesBySitting_() {
+  if (!printOffered_()) return [];
+  const items = stuffFiltered();
+  if (BUNDLES_MEMO.has(items)) return BUNDLES_MEMO.get(items);
+  const groups = new Map();
+  items.forEach(x => {
+    const r = (x && x.row) || x || {};
+    if (!x || x.kind !== 'question') return;
+    const k = [r.exam_board || r.company, r.subject, r.level, r.year, r.month].join('|');
+    if (!groups.has(k)) groups.set(k, { year: +r.year || 0, month: +r.month || 0, items: [] });
+    groups.get(k).items.push(x);
+  });
+  const out = [...groups.values()]
+    .sort((a, b) => b.year - a.year || b.month - a.month)
+    .map(g => { try { return bundleBuild_(g.items, 1); } catch (e) { return null; } })
+    .filter(Boolean);
+  BUNDLES_MEMO.set(items, out);
+  return out;
 }
 
 /* WHICH PAGE THE QUESTION IS ON. Saved things sit in front of it and their number changes with a
