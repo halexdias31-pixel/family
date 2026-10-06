@@ -131,6 +131,19 @@ is still pending its first frame when `check/ui.js` measures — sampled, it is 
 screen from 500 ms on. Flabby Pird's touch-down rule waits a fixed 900 ms after arriving at Games;
 under this load the bird's `start` ran at 979 ms on one run.
 
+**The last full `npm run check` (ports exported, load 5–20): 46 of 51 pass, `check/swipe.js`
+among them.** The five that do not, each run against the base commit beside it:
+`check/cards.js` — A PICTURE NOT ON ITS OWN FIGURE PAGE (2374), identical on base (library data, not
+layout); `check/ui.js --part=1/2` — the same 25 states not reachable on both, and PANE OFF THE
+SCREEN (2) on both, different states each run, every one caught mid-slide (sampled: centred and on
+the screen by 500 ms); `--part=2/2` — killed at the roster's 900 s; `check/press.js` — `c4-again`,
+`oth-again`, `rg-next`, `rg-again` quiet on both, plus one state not arriving on each (base: two
+Games states; this branch: the camera's photograph); `check-flow.js` — the Games journeys at the
+roster's 180 s under load, **105 of 105 on both** run alone. One more was this branch's and is
+fixed: `book-set` read as quiet because the harness moved the client select to its blank row, and
+the base commit passed it only because the repaint left the page unplaced for longer than the 130 ms
+it waits — `paint` re-placing what it drew took that difference away. It moves to a real answer now.
+
 `check-flow`: the Games journeys read widgets thirteen pages down straight after arriving, which the
 stagger delays by design — they wait for `quiet()` now (after-slide jobs and the widget queue run
 dry) rather than a fixed sleep. The camera journey's `CAM_SLIDE` waits do the same; that journey
