@@ -914,12 +914,30 @@ function adminName_() {
   return other ? personDisplayName(other) : ADMIN_NAME;
 }
 
+/* ---------- AN ADDRESS NOBODY HAS PROVED REACHES THIS PERSON ------------------------------------------
+   `verified=PENDING` is a sign-up whose address nobody has proved yet — not by its link, not by Google,
+   not by typing back the emailed PIN. A typo'd address, as often as not, which is a stranger's inbox,
+   or somebody else's address typed by whoever wanted the account. Blank is a row from before
+   confirmation existed, and is not pending.
+
+   ONE READER, because the rule was kept in one place only. The digest skipped a PENDING address
+   (280); `notify`, the make-child email and the too-many-guesses warning did not — and once the owner
+   asked that *"dont make them have to need to verify their email to login"* (6 Oct), an account on a
+   mistyped address could sign in, book and make a child, and every booking notice, the child's handle
+   and "PIN changed" went to the stranger (PR #130 review). Every mail to a person's own address asks
+   this now, except the two that exist to reach an unproved one: the confirmation link (`register`)
+   and "Forgotten your PIN?", which is how the address's owner proves it and takes the account. */
+function addressPending_(r) { return S(r && r.verified).toUpperCase() === 'PENDING'; }
+
 /** Send an email. Skips silently when there's no address — a missing email must not break a move. */
 function notify(name, subject, body) {
   try {
     const p = findPerson(name);
     const to = p ? S(p.email) : '';
     if (!to) return false;
+    /* NOT TO AN ADDRESS NOBODY CONFIRMED — see `addressPending_`. False, as for no address: the caller
+       carries on either way, and a booking notice in a stranger's inbox is the worse of the two. */
+    if (addressPending_(p)) return false;
     MailApp.sendEmail({ to, subject, body, name: '@family.' });
     return true;
   } catch (err) {
