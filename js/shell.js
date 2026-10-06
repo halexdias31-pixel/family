@@ -1781,7 +1781,17 @@ function placeGrid(instant, drag) {
          it would be a hole in a column you can otherwise read. The focus is said by `.soft` above. */
       el.style.opacity = WIDE ? (d <= 3 ? '1' : '0')
         : d === 0 ? '1' : d === 1 ? '.9' : d === 2 ? '.75' : '0';
-      el.style.pointerEvents = d === 0 ? 'auto' : 'none';
+      /* ---------- THE CARD IN FRONT, NOT EVERY COLUMN'S CURRENT CARD -----------------------------
+         THIS WAS `d === 0`, which is every column's current page, and the column's own `none` above
+         did not stop it: `pointer-events` is inherited, so an explicit `auto` on a child takes the
+         press back from a parent that refused it. On a phone that was a 23px sliver nobody aimed at.
+         On a wide window it is three or five whole cards — and measured at 1280 with Find in front,
+         a mouse press on the Sign in button of the You card beside it ran `do-signin` AND brought You
+         forward: the "presses a card that is about to slide under the pointer" that the note over
+         `wideHit_` says cannot happen. With only the focused page taking presses, a press over a
+         neighbour falls through to `#screen`, where `wideHit_` brings it forward and does nothing
+         else, which is what that note promised. */
+      el.style.pointerEvents = focused ? 'auto' : 'none';
       el.style.visibility = d > 3 ? 'hidden' : 'visible';
 
       /* A pane used to be measured here, to decide whether it had overflowed and should therefore
@@ -3221,6 +3231,27 @@ function wideHit_(x, y) {
 }
 addEventListener('click', e => {
   if (!WIDE || PRESS_MOVED || PRESS_SLIDING) return;
+  /* ---------- A CLICK WITH NO POINTER UNDER IT IS NOT A PRESS BESIDE THE CARD -------------------
+     `e.detail` IS HOW MANY TIMES A POINTER PRESSED, and it is 0 for the two clicks no pointer made:
+     Enter or Space on a focused control, and `el.click()` from code. Both arrive with clientX and
+     clientY at 0,0 — not where anything was pressed, just the top-left corner of the window — and
+     this handler read that corner as a place, asked `wideHit_` which card was drawn there, and
+     brought it to the front.
+
+     FOUND AS EIGHT SETTINGS STATES "NOT MEASURED" AT 768, and only in a full run of check/ui.js:
+     green with `--screen=settings`, green in either `--part`. The states turn a page and click a
+     control on it in the same tick, before the placement that marks that page `.on` — so the click
+     was "not on the card in front", and 0,0 at 768 is inside You, the column left of Settings.
+     Alone, You is on its first page and nothing of it covers that corner; after You's own states
+     have left it a page down, the page above does, and the first click sent the app to You. Every
+     Settings state after it measured a column that was no longer in front.
+
+     AND A PERSON CAN DO IT WITH A KEYBOARD, which is what makes it the app's and not the lab's:
+     Tab past the last control on the card in front, into the next card down (drawn, so tabbable),
+     and press Enter — measured at 768 with You a page down: `click x0 y0 detail0`, and Settings
+     swapped for You's first page. A keyboard press has a target and no position; the target's own
+     handler answers it, exactly as it does on a phone. */
+  if (!e.detail) return;
   const t = e.target;
   /* ONLY A PRESS THAT NOTHING IN FRONT TOOK — on the front card it is that card's press. */
   if (t && t.closest && t.closest('#screen .page.on')) return;

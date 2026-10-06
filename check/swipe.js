@@ -42,7 +42,7 @@
      node check/swipe.js --verbose  every gesture, not only the failures
      node check/swipe.js --only=cell,focus --width=390
                                     some of it: cell folded axis tile slide other centre focus
-                                    field hold keypad widgets cost flicks reduced — for proving one rule by mutation
+                                    field hold keypad widgets cost flicks reduced wide — for proving one rule by mutation
                                     without waiting six minutes for all of them. A run narrowed
                                     this way says so, and is never what the roster runs.
    SWIPE_PORT pins the port; unset, the OS picks a free one, so parallel runs cannot collide.
@@ -244,8 +244,9 @@ function RECORDER() {
 }
 
 async function boot(browser, W, H, opts = {}) {
-  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: 2,
-    isMobile: true, hasTouch: true, serviceWorkers: 'block', reducedMotion: opts.reduced ? 'reduce' : 'no-preference' });
+  /* `desktop` IS A WINDOW WITH A MOUSE AND A KEYBOARD — rule 12, the only one about a wide window. */
+  const ctx = await browser.newContext({ viewport: { width: W, height: H }, deviceScaleFactor: opts.desktop ? 1 : 2,
+    isMobile: !opts.desktop, hasTouch: !opts.desktop, serviceWorkers: 'block', reducedMotion: opts.reduced ? 'reduce' : 'no-preference' });
   const page = await ctx.newPage();
   const errs = [];
   page.on('pageerror', e => errs.push(String(e.message).slice(0, 160)));
@@ -1197,6 +1198,96 @@ async function gesture(env, o) {
     });
     if (env.errs.length) fail('PAGE ERROR', '1280x800 wide', env.errs.slice(0, 3).join(' | '));
     await env.ctx.close();
+  }
+
+  /* ---------- 13. A WIDE WINDOW: A PRESS BESIDE THE CARD IN FRONT BRINGS THAT CARD FORWARD, AND ONLY THAT
+     From 700px the columns beside the one in front are whole cards (THE GRID SHOWS MORE OF ITSELF,
+     shell.js), and a press over one is "bring that one forward" — `wideHit_`, by where the press
+     landed. Two ways that went wrong, both found on 6 October and both asked here:
+
+     A. A CLICK WITH NO POSITION. Enter on a focused control, or `el.click()`, arrives at 0,0 — and
+        0,0 was read as a place. At 768 with You a page down, You's page above covers that corner, so
+        Enter on a control in Settings' next card down sent the app to You. In check/ui.js it was
+        eight Settings states "NOT measured" in a full run and green in every narrower one, because
+        only You's own states, run just before, leave You a page down. So that is set up here on
+        purpose, and the corner is asked to be covered first — if it is not, nothing was tested.
+     B. A PRESS THAT WENT THROUGH. Every column's current card took presses (`d === 0`), so at 1280
+        a mouse on a button of the card beside Find ran that button AND brought its column forward. */
+  if (want('widepress')) {
+    const env = await boot(browser, 768, 1024, { desktop: true });
+    const { page } = env;
+    await page.evaluate(() => go('account', true)); await sleep(800);
+    await page.evaluate(() => goPage('account', 1)); await sleep(800);
+    await page.evaluate(() => go('settings', true)); await sleep(1200);
+    const a = await page.evaluate(() => {
+      const corner = wideHit_(0, 0);
+      const next = document.querySelectorAll('#s-settings > .page')[domIndex_('settings', (PAGE.settings || 0) + 1)];
+      const ctl = next && [...next.querySelectorAll('button[data-do]')].find(b => !b.disabled && b.getClientRects().length);
+      if (!WIDE || !corner || corner.id === AT || !ctl) return { reach: `wide ${WIDE}, the corner holds ${corner ? corner.id : 'nothing'}, a button on the next card: ${!!ctl}` };
+      ctl.setAttribute('data-sw-kb', '1'); ctl.focus();
+      return { at: AT, corner: corner.id, what: ctl.dataset.do, focused: document.activeElement === ctl };
+    });
+    reached++;
+    if (a.reach || !a.focused) fail('REACH', 'wide 768 keyboard', a.reach || 'the button on the next card would not take the focus');
+    else {
+      await page.keyboard.press('Enter'); await sleep(900);
+      const kb = await page.evaluate(() => AT);
+      /* AND FROM CODE, the same click the lab's states send. Settings put back on the page it was
+         on — the Enter's own handler may have turned to the button's page, and a click on the card
+         in front is that card's press whatever this rule is about — and the corner asked again. */
+      /* You a page down again too, so this half stands on its own when the first one failed: the
+         jump to You is what turned You back to its first page. */
+      await page.evaluate(() => { if (typeof meDropShut_ === 'function') meDropShut_(); goPage('account', 1); go('settings', true); goPage('settings', 0, true); });
+      await sleep(900);
+      const how = await page.evaluate(() => {
+        const b = document.querySelector('[data-sw-kb]');
+        if (AT !== 'settings' || !b || b.closest('.page.on') || !wideHit_(0, 0)) return false;
+        b.click(); return true;
+      });
+      await sleep(900);
+      const js = await page.evaluate(() => AT);
+      note(`wide 768: Enter on ${a.what} on Settings' next card left ${kb} in front; el.click() ${how ? 'left ' + js : 'was not reached'} (the corner holds ${a.corner})`);
+      if (kb !== 'settings') fail('WIDE PRESS', 'wide 768 keyboard', `Enter on "${a.what}" on Settings' next card sent the app to ${kb} — a click with no position, read as a press at the corner, where ${a.corner} is drawn`);
+      if (!how) fail('REACH', 'wide 768 el.click()', 'Settings was not in front with the button off its card and the corner covered, so a click from code was not asked');
+      else if (js !== 'settings') fail('WIDE PRESS', 'wide 768 el.click()', `a click from code on "${a.what}" sent the app to ${js} — the same corner`);
+    }
+    await env.ctx.close();
+
+    const env2 = await boot(browser, 1280, 800, { desktop: true });
+    const p2 = env2.page;
+    await p2.evaluate(() => go('stuff', true)); await sleep(1200);
+    const b = await p2.evaluate(() => {
+      window.__swRan = [];
+      for (const k of Object.keys(ACTIONS)) {
+        const f = ACTIONS[k];
+        ACTIONS[k] = function () { window.__swRan.push(k); return f.apply(this, arguments); };
+      }
+      const i = TABS.findIndex(t => t.id === AT);
+      for (const t of [TABS[i + 1], TABS[i - 1]]) {
+        const host = t && document.getElementById('s-' + t.id);
+        const pg = host && host.querySelectorAll(':scope > .page')[domIndex_(t.id, PAGE[t.id] || 0)];
+        if (!pg) continue;
+        const el = [...pg.querySelectorAll('button[data-do], .tile[data-do]')].find(x => {
+          const r = x.getBoundingClientRect();
+          return r.width > 0 && r.left > 0 && r.right < innerWidth && r.top > 0 && r.bottom < innerHeight;
+        });
+        if (!el) continue;
+        const r = el.getBoundingClientRect();
+        return { col: t.id, what: el.dataset.do, x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      }
+      return null;
+    });
+    reached++;
+    if (!b) fail('REACH', 'wide 1280 mouse', 'no button on either card beside Find inside the window to press');
+    else {
+      await p2.mouse.click(b.x, b.y); await sleep(1000);
+      const r = await p2.evaluate(() => ({ at: AT, ran: window.__swRan.slice() }));
+      note(`wide 1280: a mouse press on ${b.what} on the ${b.col} card beside Find ran [${r.ran.join(', ')}] and left ${r.at} in front`);
+      if (r.ran.length) fail('WIDE PRESS', 'wide 1280 mouse', `a press on "${b.what}" on the ${b.col} card beside Find ran ${r.ran.join(', ')} — a card not in front took the press`);
+      if (r.at !== b.col) fail('WIDE PRESS', 'wide 1280 mouse', `a press on the ${b.col} card beside Find left ${r.at} in front — it should have come forward`);
+    }
+    if (env.errs.length || env2.errs.length) fail('PAGE ERROR', 'wide', env.errs.concat(env2.errs).slice(0, 3).join(' | '));
+    await env2.ctx.close();
   }
 
   await browser.close();
