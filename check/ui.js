@@ -419,6 +419,31 @@ function serve() {
 /* ---------- THE MEASUREMENTS, RUN INSIDE THE PAGE -----------------------------------------------
    One function, passed whole to the browser, because crossing the boundary per element would turn
    two thousand elements into two thousand round trips. */
+/* ---------- NOTHING IS MEASURED WHILE A COLUMN IS STILL SLIDING ----------------------------------
+   A FIXED WAIT WAS ALL THERE WAS — 450ms after `go`, 500ms after a state's `enter` — and on a loaded
+   machine a column's slide outlasts it. Both geometry rules then read a card part-way to where it was
+   sent: PANE OFF THE SCREEN named eleven panes 5–1949px out in one full run of `--part=2/2` and a
+   different set the next, and COLUMNS OUT OF LINE named `games` 3–42px off the middle with its
+   placed shift EXACTLY the one `columnShift_` asked for and one transition still running on the
+   column (traced on 6 October). Both rules are about where a card RESTS. So: no running animation on
+   any column, no placement booked for the next frame, then two frames — bounded at 4s, after which
+   whatever is there is measured and reported as it is. */
+async function settled(page) {
+  try {
+    await page.evaluate(async () => {
+      const t0 = performance.now();
+      for (;;) {
+        const moving = [...document.querySelectorAll('#screen > .screen, .screen')].some(c =>
+          typeof c.getAnimations === 'function' && c.getAnimations().some(a => a.playState === 'running'));
+        const booked = typeof PLACE_FRAME !== 'undefined' && !!PLACE_FRAME;
+        if ((!moving && !booked) || performance.now() - t0 > 4000) break;
+        await new Promise(r => setTimeout(r, 50));
+      }
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    });
+  } catch (e) { /* a page that cannot answer is measured as it stands */ }
+}
+
 function inspect(opts) {
   const { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG } = opts;
   const found = { overflow: [], hidden: [], offscreen: [], strays: [], shrunk: [],
@@ -1258,6 +1283,7 @@ function inspect(opts) {
           continue;
         }
 
+        await settled(page);
         const { found, counted, guessed } = await page.evaluate(inspect,
           { MIN_TAP, MIN_CONTRAST, MIN_CONTRAST_BIG, screenId: id });
         if (guessed) console.warn(`  ! #s-${id} not found at ${width}px — fell back to guessing `
@@ -1387,6 +1413,7 @@ function inspect(opts) {
        within the same 2px — so a column placed by any other rule (the old top line, a stray offset)
        is still named, with how far off it is. A card as tall as the screen or taller is skipped:
        it cannot be centred and is placed at its top. */
+    await settled(page);
     const ragged = await page.evaluate(() => {
       const offs = [];
       const sc = document.getElementById('screen');
