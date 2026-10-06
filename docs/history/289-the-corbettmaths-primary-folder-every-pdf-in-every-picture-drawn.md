@@ -21,3 +21,27 @@ than against itself:
 **How the PDFs were read:** the container cannot reach Drive directly, but the Drive connector's
 download is written to disk when it is too big to return, as base64 JSON; `pymupdf` renders the
 pages from there.
+
+### And then every question, against its page
+
+The ordering sheets were not the only ones: the text layer had flattened lists, sub-questions and
+answer-box labels into one line on most sheets that were already "complete". Five readers took 13
+sheets each (1,026 questions), rendered every page and re-solved every answer. 373 field changes:
+
+- **Words** on about 320 questions: one `<p>` per line of the page, `(a)`/`(b)` split, box labels
+  (`£`, `cm`, "smallest") and dotted answer lines taken out, the page's bold put back.
+- **Four questions had no row at all**, merged into a neighbour: Roman Numerals Q6 and Q23,
+  Decimals: Multiplication Q10, Order of Operations Q10. Added.
+- **Wrong answers:** Money Q1, 4, 5, 9, 11 and 19 — their DIAGRAMS had invented coins and prices and
+  the answers had been solved from the diagrams (Q1 said £2.07; the page's five 10p and five 5p are
+  75p). Checked against the page by a second reader, the diagrams redrawn from it. Multiplying by 10,
+  100, 1000 Q23, 24, 26, 27 answered fractions to decimal questions. 3D Shapes Q1 and Q4 had answers
+  that only said "the sheet is needed" — now answered, and drawn.
+- **Wrong reasons under right answers:** Metric Units (fourteen said "a metre is smaller than a
+  centimetre"), Order of Operations Q5, 7, 8.
+
+**Not done, on purpose:** `accept` was added only where a typed answer is one thing. A "write in
+order" key would also tick the right numbers in the wrong order — `markParts_` compares a
+comma-separated answer as a set — so ordering questions and the Using Calculations parts stay
+marked by eye. Inequality Signs Q6's new `< > < >` key was taken back off: `check-library` showed the
+marker could not read it.
