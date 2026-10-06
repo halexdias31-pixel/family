@@ -1303,6 +1303,13 @@ check('a qualification opens in place, and each answer is saved as it is chosen'
   if (q.posts().length) bad.push('shutting a line with nothing new in it saved again');
   if (q.shelf().querySelector('.is-open')) bad.push('the second tap did not shut the line');
   if (q.shelf().closest('.me-form').dataset.dirty) bad.push('a shut card still holds the column');
+  /* A PRESS THAT REACHES A SHUT LINE'S TEACH — a raced redraw, or `check/press.js` pressing every action
+     in turn — opens that line and answers, rather than doing nothing. */
+  q.sent.length = 0;
+  q.A('qual-teach', q.seg(5, 'spec'));
+  await wait(300);
+  const g = q.last();
+  if (!g || g.qual_5_spec !== 'TRUE' || !q.slot(5).classList.contains('is-open')) bad.push('Teach pressed on a shut line did nothing');
   return bad;
 });
 check('adding a qualification: the + asks for the subject, then the level, and saves the moment it has both', async () => {
@@ -1355,6 +1362,11 @@ check('adding a qualification: the + asks for the subject, then the level, and s
   if (half) { q.pick(half.querySelector('select.q-name'), 'Physics'); await wait(100);
               q.A('qual-done', half.querySelector('[data-do="qual-done"]')); await wait(200); }
   if (!half || q.posts().length || q.shelf().querySelector('.q-list .q-slot[data-new]')) bad.push('a line with a subject and no level was kept or saved');
+  /* AN EMPTY SLOT REACHED BY A PRESS OPENS AS A NEW LINE — what `+` does with the next one — rather
+     than redrawing the card exactly as it was. */
+  const pooled = q.shelf().querySelector('.q-pool .q-line');
+  if (pooled) { q.A('qual-open', pooled); await wait(100); }
+  if (!pooled || !q.shelf().querySelector('.q-list .q-slot.is-open[data-new]')) bad.push('a press on an empty slot did nothing');
   /* TEN IS THE MOST: the + is off, and the line under it says why. */
   const ten = {};
   for (let i = 1; i <= 10; i++) Object.assign(ten, { ['qual_' + i]: 'Subject ' + i, ['qual_' + i + '_level']: 'GCSE' });

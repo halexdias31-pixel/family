@@ -3367,13 +3367,26 @@ function qualOpen_(slot) {
   if (typeof placeCells === 'function') { try { placeCells('y', true, 0, 'settings'); } catch (e) {} }
 }
 /* THE LINE OPENS — and whatever else was open shuts first, as it was last saved. A second tap on the
-   open line is the tick. */
+   open line is the tick.
+   AN EMPTY SLOT IS A NEW QUALIFICATION. The pool's lines are not on the page, so nobody taps one — but
+   a press can reach one (`check/press.js` presses every action in turn, and on a shelf with nothing
+   saved every line it finds is in the pool), and a redraw that changes nothing is a control that does
+   nothing. Opening an empty slot is what `+` does with the next one, so that is what it does. */
 on('qual-open', el => {
   const slot = el.closest('.q-slot'), shelf = el.closest('.q-shelf');
   if (!slot || !shelf) return;
   if (slot.classList.contains('is-open')) return qualDone_(slot);
-  qualRedraw_(shelf, qualOver_(shelf), slot.dataset.slot);
+  qualReopen_(shelf, slot);
 });
+/* THE SLOT OPEN IN A FRESH SHELF — a saved line in its place, an empty one as a new line at the foot —
+   with whatever was open before shut as it was last saved. Answers the slot as it is in the new shelf. */
+function qualReopen_(shelf, slot) {
+  const i = slot.dataset.slot, pooled = !!slot.closest('.q-pool');
+  const next = qualRedraw_(shelf, qualOver_(shelf), pooled ? null : i);
+  const again = next && next.querySelector('.q-slot[data-slot="' + i + '"]');
+  if (again && pooled) qualStart_(next, again);
+  return again;
+}
 /* ---------- THE TICK: ANYTHING NOT YET SAVED IS SAVED, AND THE LINE SHUTS -------------------------------
    Normally there is nothing left to save — every answer went when it was chosen — so this only shuts.
    It saves when a save failed (the answer is still in its box) or a box was typed in and the tick was
@@ -3422,12 +3435,19 @@ function qualCommit_(slot, after) {
 }
 /* THE THREE-WAY CONTROL, written into the two hidden boxes and saved. Teach is Teach AND Can teach, which
    is the one rule `qualsIn` keeps; nothing here touches any other line, because *"when i tick teach for
-   different levels of same subject it unticks the other one. i dont want that"*. A shut line's control
-   is not on the page, so a press that reached one anyway changes nothing. */
+   different levels of same subject it unticks the other one. i dont want that"*.
+   A SHUT LINE'S CONTROL IS NOT ON THE PAGE, so a press that reached one anyway — one that raced a
+   redraw, or `check/press.js` — opens that line first and then answers, rather than doing nothing. */
 on('qual-teach', el => {
-  const slot = el.closest('.q-slot.is-open');
-  if (!slot) return;
-  const i = slot.dataset.slot, v = el.dataset.v;
+  let slot = el.closest('.q-slot');
+  const shelf = el.closest('.q-shelf'), v = el.dataset.v;
+  if (!slot || !shelf) return;
+  if (!slot.classList.contains('is-open')) {
+    slot = qualReopen_(shelf, slot);
+    el = slot && slot.querySelector('[data-do="qual-teach"][data-v="' + v + '"]');
+    if (!el) return;
+  }
+  const i = slot.dataset.slot;
   qualSet_(slot, { ['qual_' + i + '_spec']: v === 'spec' ? 'TRUE' : 'FALSE',
                    ['qual_' + i + '_teach']: v === 'no' ? 'FALSE' : 'TRUE' });
   slot.querySelectorAll('[data-do="qual-teach"]').forEach(b => b.setAttribute('aria-pressed', b === el ? 'true' : 'false'));
@@ -3440,10 +3460,8 @@ on('qual-teach', el => {
    press that raced a redraw. */
 function qualTake_(shelf) {
   const slot = shelf && shelf.querySelector('.q-pool > .q-slot');
-  if (!slot) { toast('That is the most this card holds — ten qualifications in all.'); return null; }
-  qualSet_(slot, qualBlank_(slot));
-  slot.dataset.new = '1';
-  return slot;
+  if (!slot) toast('That is the most this card holds — ten qualifications in all.');
+  return slot || null;
 }
 /* ---------- `+`: A NEW LINE AT THE FOOT, AND ITS SUBJECT LIST ALREADY OPEN ------------------------------
    The list is opened for the person rather than waiting for a second tap on a box they have just been
@@ -3454,7 +3472,13 @@ on('qual-add', el => {
   if (!shelf) return;
   const next = qualRedraw_(shelf, qualOver_(shelf));
   const slot = qualTake_(next);
-  if (!slot) return;
+  if (slot) qualStart_(next, slot);
+});
+/* AN EMPTY SLOT, MOVED OUT OF THE POOL AS A NEW LINE AT THE FOOT OF THE LIST, open, emptied and marked
+   new — so a Done or a bin before it has a subject and a level puts it back unsaved. */
+function qualStart_(next, slot) {
+  qualSet_(slot, qualBlank_(slot));
+  slot.dataset.new = '1';
   const group = document.createElement('div');
   group.className = 'q-subj is-new';
   group.appendChild(slot);
@@ -3464,7 +3488,7 @@ on('qual-add', el => {
   try { slot.scrollIntoView({ block: 'nearest' }); } catch (e) {}
   const s = slot.querySelector('select.q-name');
   setTimeout(() => { if (s && s.isConnected && typeof selOpen_ === 'function') selOpen_(s); }, 0);
-});
+}
 /* ---------- REMOVING SAVES AT ONCE ------------------------------------------------------------------
    The line's seven boxes are emptied and the card is saved — an emptied slot is dropped by `qualsIn`
    and goes back to the pool on the redraw. If the save fails the boxes are put back, so the screen
