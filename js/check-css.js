@@ -637,6 +637,62 @@ say('TAPPABLE THINGS THAT WOULD LOOK LIKE PLAIN TEXT', tapBad);
       if (!/class="mb-run"/.test(m)) bad.push('no runner (`.mb-run`) — nothing bumps the blocks');
       return bad;
     },
+    /* BAYES IS RIGHT, RECOMPUTED FROM THE DOTS. tools/bayes.py writes a hundred people, each in one
+       of the four cells of the table — by-tp, by-fn, by-fp, by-tn — with a gold circle if they have
+       it and a ring if the test says so. A hand edit that moved one ring would still animate
+       perfectly and teach the wrong posterior, which is the one thing this splash exists to get
+       right. So the counts are taken from the circles, not the classes, and every number written on
+       the screen — the five captions and the sum — must be the number the dots make. And the
+       regrouping must BE the answer: every positive carried to its own place, the true ones on one
+       row and the false on another, so the two rows' lengths are TP and FP. */
+    bayes: (m) => {
+      const bad = [];
+      const people = [...m.matchAll(/<g class="by-p (by-tp|by-fn|by-fp|by-tn)"([^>]*)>([\s\S]*?)<\/g>/g)];
+      const N = people.length;
+      if (N !== 100) bad.push(N + ' people in the grid — the picture is a hundred, so a count is a percentage');
+      let HAVE = 0, TP = 0, FP = 0;
+      const lands = { tp: [], fp: [] };
+      people.forEach(([, cls, attrs, inner], k) => {
+        const has = /class="by-gold"/.test(inner), pos = /class="by-ring"/.test(inner);
+        const want = (has ? (pos ? 'by-tp' : 'by-fn') : (pos ? 'by-fp' : 'by-tn'));
+        if (cls !== want) bad.push('person ' + (k + 1) + ' is ' + cls + ' but is drawn as ' + want
+          + ' — the class is what moves it, the circles are what it shows');
+        HAVE += has; TP += has && pos; FP += !has && pos;
+        const go = attrs.match(/--go: translate\((-?[\d.]+)px, (-?[\d.]+)px\)/);
+        if (pos !== !!go) bad.push('person ' + (k + 1) + (pos ? ' tested positive and has no --go — it stays behind when the positives regroup'
+          : ' tested negative and has a --go — it would join the positives'));
+        if (pos && go) {
+          const c = inner.match(/cx="([\d.]+)" cy="([\d.]+)"/);
+          if (c) lands[has ? 'tp' : 'fp'].push([+c[1] + +go[1], +c[2] + +go[2]]);
+        }
+      });
+      if (!TP || !FP) bad.push('TP ' + TP + ', FP ' + FP + ' — with either at nought there is no Bayes to show');
+      const rowOf = list => new Set(list.map(p => p[1].toFixed(2)));
+      if (rowOf(lands.tp).size !== 1 || rowOf(lands.fp).size !== 1 || [...rowOf(lands.tp)][0] === [...rowOf(lands.fp)][0])
+        bad.push('the positives do not land as two rows, true over false — the regrouping is meant to be the answer');
+      const spots = new Set([...lands.tp, ...lands.fp].map(p => p.map(v => v.toFixed(2)).join()));
+      if (spots.size !== TP + FP) bad.push((TP + FP - spots.size) + ' positives land on top of another — the rows would show fewer than there are');
+      /* A LINE ENDS AT `</span>` OR `</text>`; every other tag is inside a line (`<b>9</b> of 18`).
+         Run together, "flags 9 of 90" and "9 of 18" read as "flags 9 of 909". */
+      const text = m.replace(/<\/(span|text)>/g, '\n').replace(/<[^>]+>/g, '')
+        .replace(/&#247;/g, '÷').replace(/&#8217;/g, '’');
+      const P = TP + FP, pc = Math.round(100 * TP / P);
+      const said = [
+        [/(\d+) people take a test/, [N], 'the first line'],
+        [/(\d+) of them have it/, [HAVE], 'the prior'],
+        [/finds (\d+) of those (\d+)/, [TP, HAVE], 'the true positives'],
+        [/flags (\d+) of (\d+)/, [FP, N - HAVE], 'the false positives'],
+        [/= (\d+) ÷ \((\d+) \+ (\d+)\)/, [TP, TP, FP], 'the sum'],
+        [/(\d+) of (\d+) positives · (\d+)%/, [TP, P, pc], 'the answer'],
+      ];
+      said.forEach(([re, want, what]) => {
+        const got = text.match(re);
+        if (!got) { bad.push(what + ' is not written — the check looks for ' + re); return; }
+        if (got.slice(1).map(Number).join() !== want.join()) bad.push(what + ' says ' + got[0] + ', and the dots make it '
+          + want.join(', ') + ' — P(has it | +) = ' + TP + ' / (' + TP + ' + ' + FP + ') = ' + pc + '%; re-run tools/bayes.py');
+      });
+      return bad;
+    },
   };
 
   Object.keys(LOOPED).forEach(id => {

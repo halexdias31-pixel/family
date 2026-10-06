@@ -1352,6 +1352,121 @@
     <div class="sp-sig">@family.</div>
   </div>
 
+  <!-- BAYES, with a hundred people. A test right nine times in ten, and a positive that still means
+       only even odds: 9 true positives from the 10 who have it, 9 false ones from the 90 who do not.
+       Written by tools/bayes.py — re-run it rather than editing these lines; check-css.js recomputes
+       the posterior from the dots and the captions and fails if they disagree. -->
+  <div id="splash-bayes" aria-hidden="true">
+    <svg class="by-svg" viewBox="0 0 100 100">
+      <g class="by-p by-tp" style="--go: translate(5px, 29px)"><circle class="by-dot" cx="5" cy="5" r="2.9"/><circle class="by-gold" cx="5" cy="5" r="2.9"/><circle class="by-ring" cx="5" cy="5" r="4.1"/></g>
+      <g class="by-p by-tp" style="--go: translate(5px, 29px)"><circle class="by-dot" cx="15" cy="5" r="2.9"/><circle class="by-gold" cx="15" cy="5" r="2.9"/><circle class="by-ring" cx="15" cy="5" r="4.1"/></g>
+      <g class="by-p by-tp" style="--go: translate(5px, 29px)"><circle class="by-dot" cx="25" cy="5" r="2.9"/><circle class="by-gold" cx="25" cy="5" r="2.9"/><circle class="by-ring" cx="25" cy="5" r="4.1"/></g>
+      <g class="by-p by-tp" style="--go: translate(5px, 29px)"><circle class="by-dot" cx="35" cy="5" r="2.9"/><circle class="by-gold" cx="35" cy="5" r="2.9"/><circle class="by-ring" cx="35" cy="5" r="4.1"/></g>
+      <g class="by-p by-tp" style="--go: translate(5px, 29px)"><circle class="by-dot" cx="45" cy="5" r="2.9"/><circle class="by-gold" cx="45" cy="5" r="2.9"/><circle class="by-ring" cx="45" cy="5" r="4.1"/></g>
+      <g class="by-p by-tp" style="--go: translate(5px, 29px)"><circle class="by-dot" cx="55" cy="5" r="2.9"/><circle class="by-gold" cx="55" cy="5" r="2.9"/><circle class="by-ring" cx="55" cy="5" r="4.1"/></g>
+      <g class="by-p by-fn"><circle class="by-dot" cx="65" cy="5" r="2.9"/><circle class="by-gold" cx="65" cy="5" r="2.9"/></g>
+      <g class="by-p by-tp" style="--go: translate(-5px, 29px)"><circle class="by-dot" cx="75" cy="5" r="2.9"/><circle class="by-gold" cx="75" cy="5" r="2.9"/><circle class="by-ring" cx="75" cy="5" r="4.1"/></g>
+      <g class="by-p by-tp" style="--go: translate(-5px, 29px)"><circle class="by-dot" cx="85" cy="5" r="2.9"/><circle class="by-gold" cx="85" cy="5" r="2.9"/><circle class="by-ring" cx="85" cy="5" r="4.1"/></g>
+      <g class="by-p by-tp" style="--go: translate(-5px, 29px)"><circle class="by-dot" cx="95" cy="5" r="2.9"/><circle class="by-gold" cx="95" cy="5" r="2.9"/><circle class="by-ring" cx="95" cy="5" r="4.1"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="5" cy="15" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="15" cy="15" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="25" cy="15" r="2.9"/></g>
+      <g class="by-p by-fp" style="--go: translate(5px, 45px)"><circle class="by-dot" cx="35" cy="15" r="2.9"/><circle class="by-ring" cx="35" cy="15" r="4.1"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="45" cy="15" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="55" cy="15" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="65" cy="15" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="75" cy="15" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="85" cy="15" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="95" cy="15" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="5" cy="25" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="15" cy="25" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="25" cy="25" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="35" cy="25" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="45" cy="25" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="55" cy="25" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="65" cy="25" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="75" cy="25" r="2.9"/></g>
+      <g class="by-p by-fp" style="--go: translate(-5px, 35px)"><circle class="by-dot" cx="85" cy="25" r="2.9"/><circle class="by-ring" cx="85" cy="25" r="4.1"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="95" cy="25" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="5" cy="35" r="2.9"/></g>
+      <g class="by-p by-fp" style="--go: translate(5px, 25px)"><circle class="by-dot" cx="15" cy="35" r="2.9"/><circle class="by-ring" cx="15" cy="35" r="4.1"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="25" cy="35" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="35" cy="35" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="45" cy="35" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="55" cy="35" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="65" cy="35" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="75" cy="35" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="85" cy="35" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="95" cy="35" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="5" cy="45" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="15" cy="45" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="25" cy="45" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="35" cy="45" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="45" cy="45" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="55" cy="45" r="2.9"/></g>
+      <g class="by-p by-fp" style="--go: translate(-5px, 15px)"><circle class="by-dot" cx="65" cy="45" r="2.9"/><circle class="by-ring" cx="65" cy="45" r="4.1"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="75" cy="45" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="85" cy="45" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="95" cy="45" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="5" cy="55" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="15" cy="55" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="25" cy="55" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="35" cy="55" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="45" cy="55" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="55" cy="55" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="65" cy="55" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="75" cy="55" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="85" cy="55" r="2.9"/></g>
+      <g class="by-p by-fp" style="--go: translate(-5px, 5px)"><circle class="by-dot" cx="95" cy="55" r="2.9"/><circle class="by-ring" cx="95" cy="55" r="4.1"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="5" cy="65" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="15" cy="65" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="25" cy="65" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="35" cy="65" r="2.9"/></g>
+      <g class="by-p by-fp" style="--go: translate(5px, -5px)"><circle class="by-dot" cx="45" cy="65" r="2.9"/><circle class="by-ring" cx="45" cy="65" r="4.1"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="55" cy="65" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="65" cy="65" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="75" cy="65" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="85" cy="65" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="95" cy="65" r="2.9"/></g>
+      <g class="by-p by-fp" style="--go: translate(5px, -15px)"><circle class="by-dot" cx="5" cy="75" r="2.9"/><circle class="by-ring" cx="5" cy="75" r="4.1"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="15" cy="75" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="25" cy="75" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="35" cy="75" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="45" cy="75" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="55" cy="75" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="65" cy="75" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="75" cy="75" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="85" cy="75" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="95" cy="75" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="5" cy="85" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="15" cy="85" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="25" cy="85" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="35" cy="85" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="45" cy="85" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="55" cy="85" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="65" cy="85" r="2.9"/></g>
+      <g class="by-p by-fp" style="--go: translate(-5px, -25px)"><circle class="by-dot" cx="75" cy="85" r="2.9"/><circle class="by-ring" cx="75" cy="85" r="4.1"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="85" cy="85" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="95" cy="85" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="5" cy="95" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="15" cy="95" r="2.9"/></g>
+      <g class="by-p by-fp" style="--go: translate(5px, -35px)"><circle class="by-dot" cx="25" cy="95" r="2.9"/><circle class="by-ring" cx="25" cy="95" r="4.1"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="35" cy="95" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="45" cy="95" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="55" cy="95" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="65" cy="95" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="75" cy="95" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="85" cy="95" r="2.9"/></g>
+      <g class="by-p by-tn"><circle class="by-dot" cx="95" cy="95" r="2.9"/></g>
+      <text class="by-lab by-lab-tp" x="50" y="25">have it, test +</text>
+      <text class="by-lab by-lab-fp" x="50" y="51">don&#8217;t, test +</text>
+      <text class="by-lab by-eq" x="50" y="80">P(has it | +)</text>
+      <text class="by-lab by-eq" x="50" y="92">= <tspan class="by-eq-tp">9</tspan> &#247; (<tspan class="by-eq-tp">9</tspan> + <tspan class="by-eq-fp">9</tspan>)</text>
+    </svg>
+    <div class="by-say"><span class="by-s0">100 people take a test</span><span class="by-s1"><b>10</b> of them have it</span><span class="by-s2">it finds <b>9</b> of those 10</span><span class="by-s3">and wrongly flags <i>9</i> of 90</span><span class="by-s4"><b>9</b> of 18 positives · 50%</span></div>
+    <div class="sp-sig">@family.</div>
+  </div>
+
   <!-- A NUMBER LINE, with a marker walking along it. -->
   <div id="splash-nline" aria-hidden="true">
     <svg class="nl-svg" viewBox="0 0 140 44">
@@ -1623,6 +1738,9 @@
                     number line, a Venn diagram, a clock. */
                  'is-sort', 'is-prot', 'is-coin',
                  'is-line', 'is-venn', 'is-clock', 'is-mult',
+                 /* BAYES: a test right nine times in ten, and a positive that is still only even
+                    odds. tools/bayes.py. */
+                 'is-bayes',
                  /* ---------- AND THREE THAT TEACH NOTHING -----------------------------------
                     Breathing, rain, a pendulum wave. Twenty-seven proofs in a row is a set that
                     never lets anybody just wait — some loads should be calm, or pretty, and
