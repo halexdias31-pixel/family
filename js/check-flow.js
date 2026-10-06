@@ -7102,14 +7102,18 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
     const padII = el(w.questionFigCard_(ii6)).querySelector('.qpad');
     if (paths(padII, '.qpad-was') !== 1) bad.push('(ii)\'s scale does not carry (i)\'s cross (' + paths(padII, '.qpad-was') + ')');
     if (paths(padII, '.qpad-g') !== 1) bad.push('(ii)\'s own marks are ' + paths(padII, '.qpad-g') + ', wanted its one cross');
+    if (!/fainter marks are yours from Q6\(i\)/.test(padII.textContent)) bad.push('(ii)\'s pad does not say the fainter cross is (i)\'s — an Undo that will not take it would look broken');
     A['pad-undo'](padII.querySelector('.qpad-undo'));
     if (paths(padII, '.qpad-was') !== 1 || paths(padII, '.qpad-g') !== 0) bad.push('Undo on (ii) did not take (ii)\'s cross alone: ' + paths(padII, '.qpad-was') + ' of (i)\'s left, ' + paths(padII, '.qpad-g') + ' of its own');
     if (JSON.parse(LS.getItem(t.padKey(i6)) || '[]').length !== 1) bad.push('Undo on (ii) changed what (i) stored');
     if (paths(el(w.questionFigCard_(i6)).querySelector('.qpad'), '.qpad-was') !== 0) bad.push('(i) shows marks from a part that comes after it');
+    LS.removeItem(t.padKey(i6));
+    if (/fainter marks/.test(el(w.questionFigCard_(ii6)).textContent)) bad.push('with nothing on (i), (ii) still says the fainter marks are (i)\'s');
     /* ---------- ONE PICTURE, LOOKED AT: ON ITS COPY, NO PEN --------------------------------------------- */
     put(f3, [[20, 20, 300, 300]]);
     const fig4 = el(w.questionFigCard_(f4));
     if (paths(fig4.querySelector('.qseen'), '.qpad-was') !== 1 || fig4.querySelector('.qpad')) bad.push('(4), which only looks at Figure 2, does not show (3)\'s line on it read only');
+    if (!/yours from Q13/.test(fig4.textContent)) bad.push('(4)\'s figure does not say the line on it is (3)\'s');
     LS.removeItem(t.padKey(f3));
     if (el(w.questionFigCard_(f4)).querySelector('.qseen') || !el(w.questionFigCard_(f4)).querySelector('figure svg')) bad.push('with nothing drawn on (3), (4) is not its plain figure');
     /* ---------- A CHAIN ON ONE PICTURE ------------------------------------------------------------------ */

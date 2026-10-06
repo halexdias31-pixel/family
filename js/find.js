@@ -7300,7 +7300,7 @@ function padWrap_(x, svg, credit) {
         <g class="qpad-aid"></g>
       </svg>
     </div>
-    ${padBar_(pen, tools, tool)}${credit || ''}
+    ${padBar_(pen, tools, tool)}${credit || ''}${was.length ? usesSaid_(x, svg, true) : ''}
     <p class="qpad-note">Kept on this phone only, like the answer box.</p>
   </div>`;
 }
@@ -7678,10 +7678,10 @@ function usesMine_(y) {
   padAdopt_(k, 'pad:' + padItemKey_(y));
   return padRead_(k);
 }
-/* EVERY MARK THE PARTS `x` USES MADE ON THE PICTURE `svg`, earliest part first, stopping where the
-   picture changes. The same picture is the same markup: equal strings, so a mark lands on the same
-   point of it -- a different drawing of "the same" figure would put it somewhere else. */
-function usesUnder_(x, svg) {
+/* THE PARTS `x` USES WHOSE MARKS ARE ON THE PICTURE `svg`, earliest first, stopping where the picture
+   changes. The same picture is the same markup: equal strings, so a mark lands on the same point of it
+   -- a different drawing of "the same" figure would put it somewhere else. */
+function usesChain_(x, svg) {
   const out = [];
   const seen = new Set([x && x.key]);
   let y = usesOf_(x);
@@ -7689,10 +7689,22 @@ function usesUnder_(x, svg) {
     seen.add(y.key);
     const p = padSource_(y);
     if (!p || p.svg !== svg) break;
-    out.unshift(...usesMine_(y));
+    out.unshift(y);
     y = usesOf_(y);
   }
   return out;
+}
+/* EVERY MARK THOSE PARTS MADE, earliest part first. */
+const usesUnder_ = (x, svg) => [].concat(...usesChain_(x, svg).map(usesMine_));
+/* AND THE ONE LINE THAT SAYS WHOSE THEY ARE -- the fainter marks under a pen are the ones its Undo will
+   not take, and a mark that will not undo with nothing saying why is a pen that looks broken. Named by
+   the parts that actually have marks, so "from Q6(i)" is never said over a blank scale. */
+function usesSaid_(x, svg, under) {
+  const from = usesChain_(x, svg).filter(y => usesMine_(y).length).map(y => esc(y.name));
+  if (!from.length) return '';
+  const who = from.length > 1 ? from.slice(0, -1).join(', ') + ' and ' + from[from.length - 1] : from[0];
+  return `<p class="qpad-note qseen-from">${under ? 'The fainter marks are' : 'The marks are'} yours from ${who} &mdash;
+    change them there.</p>`;
 }
 /* THE EARLIER MARKS AS AN INK GROUP, beside the pad's own and never inside it: `padRepaint_` rewrites
    `.qpad-g` from this part's storage, so nothing it does can reach these. */
@@ -7709,7 +7721,7 @@ const usesSeen_ = (svg, all, note) => `<div class="qseen">
 /* A PART THAT ONLY LOOKS AT THE PICTURE AN EARLIER PART DREW ON: its own copy, with those marks. */
 function usesFig_(x) {
   const was = x && x.diagram ? usesUnder_(x, x.diagram) : [];
-  return was.length ? usesSeen_(x.diagram, was, figCredit_(x, 'p')) : '';
+  return was.length ? usesSeen_(x.diagram, was, figCredit_(x, 'p') + usesSaid_(x, x.diagram)) : '';
 }
 
 /* DOES THIS PART GET THE PAGE IN FRONT -- see the note above. `prev` is the result before it in the
@@ -7745,7 +7757,7 @@ function questionUsesCard_(x) {
     ${figHead_(label)}
     <p class="qcard-sub">${qTagsHtml_(x)}</p>
     <div class="qsheet">${usesSeen_(p.svg, all,
-      (p.from === 'part' ? figCredit_(y, 'p') : '') + `<p class="qseen-note">${said}</p>`)}</div>
+      `<p class="qseen-note">${said}</p>` + (p.from === 'part' ? figCredit_(y, 'p') : ''))}</div>
   </div>`;
 }
 
