@@ -7866,10 +7866,15 @@ function questionUsesCard_(x) {
   const p = y && padSource_(y);
   if (!p) return '';
   const all = usesUnder_(y, p.svg).concat(usesMine_(y));
-  const label = p.from === 'surface' ? (SURFACE_NAME[p.surface] || 'Space to draw')
+  const name = p.from === 'surface' ? (SURFACE_NAME[p.surface] || 'Space to draw')
     : p.from === 'part' ? figLabel_(String(y.lead || '') + ' ' + String(y.html || ''),
                                     (y.stems || []).filter(stemHasFig_).map(s => figLabel_(s.html)))
     : figLabel_(p.from.html);
+  /* HEADED AS YOURS, because it is: in review a page headed plain "Figure" over the child's own graph
+     read as one more printed picture. The picture's own name stays where the paper gives one
+     ("Figure 2 · your drawing"); no question number, as on every figure page (`figHead_`) -- the line
+     under it says which part the marks came from. */
+  const label = name === 'Figure' ? 'Your drawing' : name + ' \u00b7 your drawing';
   const said = all.length
     ? `Your marks from ${esc(y.name)}, to use here. To change them, go back to ${esc(y.name)}.`
     : `Nothing drawn on ${esc(y.name)} yet &mdash; this part uses what you draw there.`;
@@ -8709,6 +8714,11 @@ function figWanted_(words, figured) {
 }
 function figMissing_(x) {
   if (!x || x.kind !== 'question' || padSurface_(x)) return false;
+  /* NOT A PART THAT USES AN EARLIER PART'S DRAWING: the figure it names is the child's own, and it has
+     its page already (`use`, `usesOf_`). Nov 2018 3H Q3c read "Nothing drawn on Q3b yet -- this part
+     uses what you draw there" and then "The paper prints a figure here -- not drawn yet": two pages in
+     a row, one of them wrong, because the graph is drawn by the child and never by this site. */
+  if (usesOf_(x)) return false;
   const own = p => !!(p && (p.diagram || figImgs_(p.images).length));
   let figured = own(x) || (x.stems || []).some(stemHasFig_);
   if (!figured) {
@@ -8904,21 +8914,38 @@ function questionTiles_(x, from) {
    (2H Q14b's graph lives on Q14a), or its own where it stands in front of the card. All of them, in
    the paper's order, because which one a part means is in its words and not in the data -- and a
    question almost always has one. A drawing surface is not a figure (it is somewhere to answer, and
-   it is the part's own page); nor is a pen's copy -- the sheet shows the paper's picture, not marks.
+   it is the part's own page).
+
+   A PICTURE AN EARLIER PART DREW ON CARRIES THOSE MARKS, read only (`usesSeen_`), as the paper in front
+   of the child would. Found in review: 2F Q24c "Use your graph..." -- the page before it showed the
+   child's graph (`use`), and its Figure tile opened (b)'s grid EMPTY, the one place in the app that
+   said the graph was not there. Whoever is signed in, as everywhere (`usesMine_`); every earlier part
+   whose pen is on that very picture (same markup), so (ii) sees (i)'s cross and (d) the whole chain.
+   Not this part's own marks: they are on its own page, where its pen is.
 
    The earlier parts are the funnel's own items (`questionParts_`), so Saved, a search and a paper all
    see the same figures. */
 function figsBefore_(x) {
   if (!x || x.kind !== 'question') return [];
   const out = [];
-  const pic = (p, label) => {
-    const html = (p.diagram ? `<figure>${p.diagram}${figCredit_(p)}</figure>` : '') + pics_(figImgs_(p.images));
-    if (html) out.push({ label: label, html: html });
-  };
-  (x.stems || []).forEach(p => { if (stemHasFig_(p)) pic(p, figLabel_(p.html)); });
   const k = qId_(x);
   const sib = k ? ((questionParts_()[k]) || []) : [];
   const at = sib.indexOf(x);
+  const drew = sib.slice(0, at < 0 ? 0 : at);
+  const seen = svg => {
+    const by = drew.filter(y => { const p = padSource_(y); return p && p.svg === svg; })
+      .map(y => ({ y: y, all: usesMine_(y) })).filter(m => m.all.length);
+    if (!by.length) return '';
+    const names = by.map(m => esc(m.y.name));
+    const who = names.length > 1 ? names.slice(0, -1).join(', ') + ' and ' + names[names.length - 1] : names[0];
+    return usesSeen_(svg, [].concat(...by.map(m => m.all)),
+      `<p class="qpad-note qseen-from">The marks are yours from ${who} &mdash; change them there.</p>`);
+  };
+  const pic = (p, label) => {
+    const html = (p.diagram ? (seen(p.diagram) || `<figure>${p.diagram}${figCredit_(p)}</figure>`) : '') + pics_(figImgs_(p.images));
+    if (html) out.push({ label: label, html: html });
+  };
+  (x.stems || []).forEach(p => { if (stemHasFig_(p)) pic(p, figLabel_(p.html)); });
   const own = p => !!(p.diagram || figImgs_(p.images).length);
   sib.slice(0, at < 0 ? 0 : at).forEach(p => {
     if (own(p)) pic(p, figLabel_(String(p.lead || '') + ' ' + String(p.html || '')));

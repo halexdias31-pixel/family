@@ -7028,7 +7028,11 @@ check('a drawing and a ringed word are kept for whoever is signed in, and the ph
        and its Undo takes its own mark and never the earlier one; a part that only LOOKS at that picture
        gets them on its copy, with no pen
      * a chain on one picture is one picture: (d) uses (c) uses (b) uses (a) shows all three's marks
-     * a loop ends, and a part naming no such part draws exactly what it did */
+     * a loop ends, and a part naming no such part draws exactly what it did
+     * found in review, after the Figure tile and the "not drawn yet" page met this: the Figure tile on
+       (c) shows (b)'s picture WITH this person's marks, not (b)'s empty grid; a part that uses a drawing
+       on a surface ("Use the graph" after (a) drew on axes) is never also "not drawn yet"; and the page
+       in front is headed as the child's ("Your drawing"), not "Figure" */
 check('a part that uses an earlier part\'s drawing shows it, read only, in front of it or under its own pen', async () => {
   const { w } = boot();
   await wait(300);
@@ -7036,7 +7040,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
   const t = w.__t;
   const A = t.ACTIONS;
   const bad = [];
-  const need = ['pageParts_', 'stuffPart_', 'questionFigCard_', 'cardPages_', 'usesOf_', 'questionUsesCard_'].filter(n => typeof w[n] !== 'function');
+  const need = ['pageParts_', 'stuffPart_', 'questionFigCard_', 'cardPages_', 'usesOf_', 'questionUsesCard_', 'figsBefore_', 'figMissing_'].filter(n => typeof w[n] !== 'function');
   if (need.length || !t.padKey || !A['pad-undo']) return [(need.join(', ') || 'padKey_ / pad-undo') + ' not reachable — renamed? "Use your graph" was NOT checked'];
   const LS = w.localStorage;
   const el = html => { const h = d.createElement('div'); h.innerHTML = html; d.body.appendChild(h); return h; };
@@ -7059,9 +7063,14 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
   const sd = part(3, 'd', { uses: 'c', answer: '<b>8 &deg;C</b>' });
   const l1 = part(4, 'a', { answerType: 'drawing', diagram: GRID, uses: 'b' });
   const l2 = part(4, 'b', { answerType: 'drawing', diagram: GRID, uses: 'a' });
-  const LIB = [b, c, cAlone, i6, ii6, f3, f4, sa, sb, sc, sd, l1, l2];
-  const held = w.stuffItemsAll_;
+  const ax = part(25, 'a', { answerType: 'drawing', surface: 'coord', html: '<p>On the axes, draw the graph of y = 2x.</p>' });
+  const axUse = part(25, 'b', { uses: 'a', html: '<p>Use the graph to find x when y = 6.</p>', answer: '<b>3</b>' });
+  const LIB = [b, c, cAlone, i6, ii6, f3, f4, sa, sb, sc, sd, l1, l2, ax, axUse];
+  const held = w.stuffItemsAll_, heldItems = w.stuffItems;
   w.stuffItemsAll_ = () => LIB;
+  /* AND `stuffItems`, which `questionParts_` reads -- the Figure tile and "not drawn yet" ask it for a
+     part's question. */
+  w.stuffItems = () => LIB;
   const put = (x, marks) => LS.setItem(t.padKey(x), JSON.stringify(marks));
   const ALI = { name: 'Ali', personId: 'P31', role: 'student', roles: ['student'] };
   const BEN = { name: 'Ben', personId: 'P32', role: 'student', roles: ['student'] };
@@ -7080,7 +7089,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
     else {
       if (!page.classList.contains('qfig') || page.getAttribute('data-of') !== 'Q-USE-24c' || page.getAttribute('data-uses') !== 'Q-USE-24b') bad.push('the "use" page is not (c)\'s figure page naming (b) as where its marks came from: ' + page.outerHTML.slice(0, 120));
       const head = ((page.querySelector('.qcard-top b') || {}).textContent || '').trim();
-      if (head !== 'Figure' || /\bQ\d/.test(page.querySelector('.qcard-top').textContent)) bad.push('the "use" page is headed "' + page.querySelector('.qcard-top').textContent.trim() + '", wanted the picture\'s own name and no question number');
+      if (head !== 'Your drawing' || /\bQ\d/.test(page.querySelector('.qcard-top').textContent)) bad.push('the "use" page is headed "' + page.querySelector('.qcard-top').textContent.trim() + '", wanted "Your drawing" and no question number');
       if (paths(page, '.qpad-was') !== 2) bad.push('the "use" page shows ' + paths(page, '.qpad-was') + ' of the two marks Ali made on (b)');
       if (!page.querySelector('.qpad-art > svg line.grid')) bad.push('the "use" page does not draw (b)\'s picture under the marks');
       if (page.querySelector('.qpad, [data-do], .tile, .qp-ans, .qpad-g')) bad.push('the "use" page can be drawn on, pressed or typed into — it is (b)\'s answer, read only');
@@ -7090,7 +7099,18 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
     if (saved.length !== 4 || !/qfig-uses/.test(saved[1])) bad.push('on Saved, (c) is ' + saved.length + ' pages and the second is not the graph');
     const off = (() => { const p = w.pageParts_(c); return p.indexOf('ans') - p.indexOf(null); })();
     if (off !== 1) bad.push('"To the answer" on (c) would turn ' + off + ' pages, not one');
+    /* ---------- THE FIGURE TILE ON (c) OPENS (b)'s PICTURE WITH THE GRAPH ON IT ---------------------- */
+    const sheet = el((w.figsBefore_(c)[0] || {}).html || '');
+    if (paths(sheet.querySelector('.qseen'), '.qpad-was') !== 2) bad.push('the Figure tile on (c) opens (b)\'s grid with ' + paths(sheet.querySelector('.qseen'), '.qpad-was') + ' of Ali\'s two marks — the graph it says to use is not there');
+    if (!/yours from Q24b/.test(sheet.textContent)) bad.push('the Figure tile on (c) does not say the marks are (b)\'s');
+    if (sheet.querySelector('.qpad')) bad.push('the Figure tile on (c) gives a pen to (b)\'s answer');
+    /* ---------- "USE THE GRAPH" AFTER A SURFACE IS NEVER "NOT DRAWN YET" ------------------------------- */
+    if (w.figMissing_(Object.assign({}, axUse, { uses: '' })) !== true) bad.push('control: without its `uses`, Q25b "Use the graph" is not "not drawn yet" — the case below proves nothing');
+    if (w.figMissing_(axUse)) bad.push('Q25b, which uses (a)\'s graph, is also "the paper prints a figure here — not drawn yet"');
+    const pAx = w.pageParts_(axUse);
+    if (pAx.indexOf('nofig') >= 0 || pAx.indexOf('use') < 0) bad.push('Q25b has pages ' + JSON.stringify(pAx) + ', wanted its graph and no "not drawn yet"');
     t.USER(BEN);
+    if (el((w.figsBefore_(c)[0] || {}).html || '').querySelector('.qseen, .qpad-was') ) bad.push('Ben\'s Figure tile on (c) shows Ali\'s graph');
     const benPage = el(w.stuffPart_(c, 'use')).querySelector('.qcard');
     if (paths(benPage, '.qpad-was') !== 0) bad.push('Ben\'s (c) shows Ali\'s graph');
     if (!/Nothing drawn on Q24b yet/.test(benPage.textContent)) bad.push('with nothing drawn on (b), the "use" page does not say so');
@@ -7132,6 +7152,7 @@ check('a part that uses an earlier part\'s drawing shows it, read only, in front
     bad.push('threw: ' + e.message);
   } finally {
     w.stuffItemsAll_ = held;
+    w.stuffItems = heldItems;
     [ALI, BEN].forEach(u => { t.USER(u); LIB.forEach(x => { try { LS.removeItem(t.padKey(x)); } catch (e) {} }); });
     t.USER(null);
   }

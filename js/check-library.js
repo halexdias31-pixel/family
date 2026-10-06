@@ -1660,7 +1660,7 @@ usesBad.concat(usesMissing).forEach(m => console.log('   ' + m));
    or `images`, any other part's, and every preamble over it (paper, section, question, letter).
    A CEILING, NOT A RULE: today's count is written below, and a new row that adds to it fails. Drawing
    one lowers the count, and the ceiling should follow it down so the gain is kept. */
-const NOT_DRAWN_MAX = 412;
+const NOT_DRAWN_MAX = 410;
 const nfSrc_ = ['FIG_NAMED', 'figWanted_'].map(n => cutFrom(findSrc_, n));
 if (nfSrc_.some(c => !c)) {
   const why = 'FIG_NAMED or figWanted_ is not in find.js — renamed? The figures not drawn yet were NOT counted.';
@@ -1680,6 +1680,9 @@ rows.forEach(r => {
 });
 const notDrawn = rows.filter(r => {
   if (!r || r.kind !== 'question') return false;
+  /* A `uses` PART'S FIGURE IS THE CHILD'S OWN DRAWING, shown on its `use` page -- `figMissing_` says
+     the same, and a ledger that counted it would be a backlog nobody can ever draw down. */
+  if (r.uses !== undefined && r.uses !== null && String(r.uses).trim() !== '') return false;
   if (padSurface_({ answerType: String(r.answer_type || '').trim().toLowerCase(), surface: r.surface, figure: r.figure, row: r })) return false;
   const figured = picAt_['q|' + r.paper_id + '|' + String(r.question || '').trim()]
     || (r.section && picAt_['s|' + r.paper_id + '|' + r.section]) || picAt_['p|' + r.paper_id];
