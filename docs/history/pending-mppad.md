@@ -60,3 +60,33 @@ was decided rather than asked.
   when the who was a typed name; with `u:P7` it strips only `u:` and looks up `ans:P7:<key>`, which never
   exists. Not touched here (the typed answer is not this item's); noted so it is not mistaken for the
   move the pen now does.
+
+### After review: the merge with the multi-part navigation work, and what it showed
+
+The review merged this branch with `mpnav-build` (the Figure tile, the "not drawn yet" page) and
+found three places where the two met badly. They only exist with both, so this branch now **merges
+`mpnav-build` (2174a99)**: `cardPages_` takes mpnav's `(x, credits, prev)` and `'nofig'` and keeps
+`'use'` (without it Saved and Spotlight silently lose the page); `stuffPart_` answers both;
+`check-library` keeps both sections; one `--css-version`.
+
+| | |
+|---|---|
+| **two pages that contradict each other** | Nov 2018 3H Q3c read "Nothing drawn on Q3b yet — this part uses what you draw there" and then "The paper prints a figure here — not drawn yet" (AQA 8464P 2306 1H 2.6 the same). The figure is the child's graph, which this site never draws. `figMissing_` is false for a part with a `uses`, and `check-library`'s ledger skips those rows: 412 → **410**, `NOT_DRAWN_MAX` lowered with it |
+| **the Figure tile showed the empty grid** | on 2F Q24c the page before showed the child's curve and the Figure tile opened (b)'s grid blank — the one place in the app that said the graph was not there. `figsBefore_` now draws an earlier part's picture with this person's marks on it, read only (`usesSeen_`), when an earlier part's pen is on that very picture; not this part's own marks (they are on its own page) |
+| **headed "Figure" over the child's graph** | read as one more printed picture. `usesHead_`: "Your drawing", or "Figure 2 · your drawing" where the paper names it — on the `use` page and the sheet alike. Still no question number (`figHead_`); the line under it names the part |
+| **the curve 21px off its grid, in the sheet** | `.qpad-art` is an inline-block sized by its drawing, and a drawing with a percentage width gives it none: in the sheet the box took 291px and the grid stopped at its 20rem cap, so the ink overshot. `.qseen .qpad-art` carries the cap and the drawing fills it. Found by looking at the screenshot, not by any check — now `check/states.js` measures it |
+
+**Marks drawn while signed out** (review point): they are under the bare key (`pad:q:<row>`), the same
+key the phone's old marks were under, so `padAdopt_` gives them to the next signed-in person who
+opens that part with nothing of their own there. Accepted rather than fixed: a child drawing before
+signing in is the common case of it, and the alternative — marks that nobody signed in can ever see —
+is a drawing lost. Somebody else's signed-out scribble reaching a child is the cost, once, per part.
+
+**Checks added:** the `uses` journey in `check-flow` (Figure tile carries Ali's marks and says whose,
+titled "Your drawing", Ben's has none; a `uses` part after a surface is never "not drawn yet", with a
+control proving the case bites) — five mutations red for their own reason; `check-library`'s skip
+(mutation: 412 over a ceiling of 410); a `check/states.js` state for the sheet, measured by `check/ui.js`
+at every width, with ink box = grid box (mutation: the CSS out → red at 320 and 390).
+
+**Left to the other worker** (not drawings or "use your graph"): the Answers tag and its door,
+Answers-only opening its answers, the keypad over the Figure tile at 320, the strip's question count.
