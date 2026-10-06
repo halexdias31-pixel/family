@@ -516,6 +516,23 @@ for (const who of VISITORS) {
        press. That is the same argument `check/ui.js` makes for adding `#sheet` to its measured
        roots: the declared state IS the app's own door, and a sheet that a state opened is a surface
        somebody is on. */
+    /* ---------- AND EVERY WIDGET ON IT STARTED BEFORE THE QUEUE IS READ ----------------------------
+       ARRIVING AT A COLUMN STARTS ITS WIDGETS A FEW AT A TIME NOW (`widgetsLater_`, arcade.js), and a
+       widget draws most of its controls in `start` — Connect 4's columns, Othello's squares, the
+       round games' Start. Read 300ms after arriving, the queue held the column's `New game` buttons
+       and not the boards they reset, so `c4-again` was pressed on a board nobody had played and read
+       as doing nothing; the base commit started everything at once, the cells were found first in
+       document order, a counter was dropped, and `New game` had something to undo. Measured on
+       6 October: base green, branch 8 quiet (`c4-again`, `oth-again`, `rg-next`, `rg-again`, both
+       visitors), the same screen in the same harness. So the queue waits for the widget queue and
+       the after-slide jobs to run dry — the app's own idea of "arrived" — bounded at 6s. */
+    await page.evaluate(async () => {
+      const t0 = performance.now();
+      const busy = () => (typeof TOOLS_WAIT !== 'undefined' && TOOLS_WAIT.length > 0)
+        || (typeof AFTER_SLIDE_JOBS !== 'undefined' && AFTER_SLIDE_JOBS.size > 0)
+        || (typeof AFTER_SLIDE !== 'undefined' && !!AFTER_SLIDE);
+      while (busy() && performance.now() - t0 < 6000) await new Promise(r => setTimeout(r, 50));
+    });
     const queue = await page.evaluate(sid => {
       const scr = document.getElementById('s-' + sid);
       const seen = new Set();
